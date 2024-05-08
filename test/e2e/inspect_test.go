@@ -1,10 +1,11 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
@@ -22,7 +23,7 @@ var _ = Describe("Podman inspect", func() {
 	It("podman inspect bogus container", func() {
 		session := podmanTest.Podman([]string{"inspect", "foobar4321"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `no such object: "foobar4321"`))
 	})
 
 	It("podman inspect filter should work if result contains tab", func() {
@@ -128,7 +129,7 @@ var _ = Describe("Podman inspect", func() {
 		SkipIfRemote("--latest flag n/a")
 		result := podmanTest.Podman([]string{"inspect", "-l", "1234foobar"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "--latest and arguments cannot be used together"))
 	})
 
 	It("podman inspect with mount filters", func() {
@@ -173,7 +174,7 @@ var _ = Describe("Podman inspect", func() {
 
 		session := podmanTest.Podman([]string{"inspect", "--latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "no containers to inspect: no such container"))
 	})
 
 	It("podman [image,container] inspect on image", func() {
@@ -185,7 +186,11 @@ var _ = Describe("Podman inspect", func() {
 
 		ctrInspect := podmanTest.Podman([]string{"container", "inspect", ALPINE})
 		ctrInspect.WaitWithDefaultTimeout()
-		Expect(ctrInspect).To(ExitWithError())
+		if IsRemote() {
+			Expect(ctrInspect).To(ExitWithError(125, fmt.Sprintf("no such container %q", ALPINE)))
+		} else {
+			Expect(ctrInspect).To(ExitWithError(125, fmt.Sprintf("no such container %s", ALPINE)))
+		}
 
 		imageInspect := podmanTest.Podman([]string{"image", "inspect", ALPINE})
 		imageInspect.WaitWithDefaultTimeout()
@@ -197,7 +202,7 @@ var _ = Describe("Podman inspect", func() {
 	})
 
 	It("podman [image, container] inspect on container", func() {
-		ctrName := "testCtr"
+		ctrName := "testctr"
 		create := podmanTest.Podman([]string{"create", "--name", ctrName, ALPINE, "sh"})
 		create.WaitWithDefaultTimeout()
 		Expect(create).Should(ExitCleanly())
@@ -216,7 +221,7 @@ var _ = Describe("Podman inspect", func() {
 
 		imageInspect := podmanTest.Podman([]string{"image", "inspect", ctrName})
 		imageInspect.WaitWithDefaultTimeout()
-		Expect(imageInspect).To(ExitWithError())
+		Expect(imageInspect).To(ExitWithError(125, fmt.Sprintf("%s: image not known", ctrName)))
 
 		Expect(baseJSON[0]).To(HaveField("ID", ctrJSON[0].ID))
 	})
@@ -224,7 +229,7 @@ var _ = Describe("Podman inspect", func() {
 	It("podman inspect always produces a valid array", func() {
 		baseInspect := podmanTest.Podman([]string{"inspect", "doesNotExist"})
 		baseInspect.WaitWithDefaultTimeout()
-		Expect(baseInspect).To(ExitWithError())
+		Expect(baseInspect).To(ExitWithError(125, `no such object: "doesNotExist"`))
 		emptyJSON := baseInspect.InspectContainerToJSON()
 		Expect(emptyJSON).To(BeEmpty())
 	})
@@ -237,7 +242,7 @@ var _ = Describe("Podman inspect", func() {
 
 		baseInspect := podmanTest.Podman([]string{"inspect", ctrName, "doesNotExist"})
 		baseInspect.WaitWithDefaultTimeout()
-		Expect(baseInspect).To(ExitWithError())
+		Expect(baseInspect).To(ExitWithError(125, `no such object: "doesNotExist"`))
 		baseJSON := baseInspect.InspectContainerToJSON()
 		Expect(baseJSON).To(HaveLen(1))
 		Expect(baseJSON[0]).To(HaveField("Name", ctrName))
@@ -383,6 +388,7 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(volName))
 	})
+
 	It("podman inspect --type container on a pod should fail", func() {
 		podName := "testpod"
 		create := podmanTest.Podman([]string{"pod", "create", "--name", podName})
@@ -391,7 +397,11 @@ var _ = Describe("Podman inspect", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "--type", "container", podName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitWithError())
+		if IsRemote() {
+			Expect(inspect).To(ExitWithError(125, fmt.Sprintf("no such container %q", podName)))
+		} else {
+			Expect(inspect).To(ExitWithError(125, fmt.Sprintf("no such container %s", podName)))
+		}
 	})
 
 	It("podman inspect --type network on a container should fail", func() {
@@ -402,7 +412,7 @@ var _ = Describe("Podman inspect", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "--type", "network", ctrName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitWithError())
+		Expect(inspect).To(ExitWithError(125, " network not found"))
 	})
 
 	It("podman inspect --type pod on a container should fail", func() {
@@ -413,7 +423,7 @@ var _ = Describe("Podman inspect", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "--type", "pod", ctrName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitWithError())
+		Expect(inspect).To(ExitWithError(125, "no such pod "))
 	})
 
 	It("podman inspect --type volume on a container should fail", func() {
@@ -424,7 +434,7 @@ var _ = Describe("Podman inspect", func() {
 
 		inspect := podmanTest.Podman([]string{"inspect", "--type", "volume", ctrName})
 		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitWithError())
+		Expect(inspect).To(ExitWithError(125, "no such volume "))
 	})
 
 	// Fixes https://github.com/containers/podman/issues/8444
@@ -573,13 +583,15 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(BeEmpty())
 
+		commandNotFound := "OCI runtime attempted to invoke a command that was not found"
 		session = podmanTest.Podman([]string{"start", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, commandNotFound))
+
 		session = podmanTest.Podman([]string{"container", "inspect", cid, "-f", "'{{ .State.Error }}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).ToNot(BeEmpty())
+		Expect(session.OutputToString()).To(ContainSubstring(commandNotFound))
 	})
 
 })

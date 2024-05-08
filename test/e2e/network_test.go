@@ -118,8 +118,7 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "namr=ab"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring(`invalid filter "namr"`))
+		Expect(session).To(ExitWithError(125, `invalid filter "namr"`))
 	})
 
 	It("podman network list --filter failure", func() {
@@ -148,8 +147,7 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "ls", "--filter", "dangling=foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring(`invalid dangling filter value "foo"`))
+		Expect(session).To(ExitWithError(125, `invalid dangling filter value "foo"`))
 	})
 
 	It("podman network ID test", func() {
@@ -192,8 +190,13 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "inspect", netID[1:]})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("network not found"))
+		expectMessage := fmt.Sprintf("network %s: ", netID[1:])
+		// FIXME-someday: figure out why this part does not show up in remote
+		if !IsRemote() {
+			expectMessage += fmt.Sprintf("unable to find network with name or ID %s: ", netID[1:])
+		}
+		expectMessage += "network not found"
+		Expect(session).Should(ExitWithError(125, expectMessage))
 
 		session = podmanTest.Podman([]string{"network", "rm", netID})
 		session.WaitWithDefaultTimeout()
@@ -204,7 +207,7 @@ var _ = Describe("Podman network", func() {
 		It(fmt.Sprintf("podman network %s no args", rm), func() {
 			session := podmanTest.Podman([]string{"network", rm})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError())
+			Expect(session).Should(ExitWithError(125, "requires at least 1 arg(s), only received 0"))
 
 		})
 
@@ -234,7 +237,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network inspect no args", func() {
 		session := podmanTest.Podman([]string{"network", "inspect"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError())
+		Expect(session).Should(ExitWithError(125, "requires at least 1 arg(s), only received 0"))
 	})
 
 	It("podman network inspect", func() {
@@ -395,7 +398,7 @@ var _ = Describe("Podman network", func() {
 	It("podman network remove bogus", func() {
 		session := podmanTest.Podman([]string{"network", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, "unable to find network with name or ID bogus: network not found"))
 	})
 
 	It("podman network remove --force with pod", func() {
@@ -416,7 +419,7 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "rm", netName})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(2))
+		Expect(session).Should(ExitWithError(2, fmt.Sprintf(`"%s" has associated containers with it. Use -f to forcibly delete containers and pods: network is being used`, netName)))
 
 		session = podmanTest.Podman([]string{"network", "rm", "-t", "0", "--force", netName})
 		session.WaitWithDefaultTimeout()
@@ -426,6 +429,7 @@ var _ = Describe("Podman network", func() {
 		session = podmanTest.Podman([]string{"pod", "exists", podID})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
+		Expect(session.ErrorToString()).To(Equal(""))
 
 		// check if net is deleted
 		session = podmanTest.Podman([]string{"network", "ls"})
@@ -614,6 +618,7 @@ var _ = Describe("Podman network", func() {
 		session = podmanTest.Podman([]string{"network", "exists", stringid.GenerateRandomID()})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(1))
+		Expect(session.ErrorToString()).To(Equal(""))
 	})
 
 	It("podman network create macvlan with network info and options", func() {
