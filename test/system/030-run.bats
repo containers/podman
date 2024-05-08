@@ -1030,4 +1030,44 @@ EOF
     fi
 }
 
+@test "podman run - stopping loop" {
+    skip_if_remote "this doesn't work with with the REST service"
+
+    run_podman run -d --name testctr --stop-timeout 240 $IMAGE sh -c 'echo READY; sleep 999'
+    cid="$output"
+    wait_for_ready testctr
+
+    run_podman inspect --format '{{ .State.ConmonPid }}' testctr
+    conmon_pid=$output
+
+    ${PODMAN} stop testctr &
+    stop_pid=$!
+
+    timeout=20
+    while :;do
+        sleep 0.5
+        run_podman container inspect --format '{{.State.Status}}' testctr
+        if [[ "$output" = "stopping" ]]; then
+            break
+        fi
+        timeout=$((timeout - 1))
+        if [[ $timeout == 0 ]]; then
+            run_podman ps -a
+            die "Timed out waiting for testctr to acknowledge signal"
+        fi
+    done
+
+    kill -9 ${stop_pid}
+    kill -9 ${conmon_pid}
+
+    # Unclear why `-t0` is required here, works locally without.
+    # But it shouldn't hurt and does make the test pass...
+    PODMAN_TIMEOUT=5 run_podman 125 stop -t0 testctr
+    is "$output" "Error: container .* conmon exited prematurely, exit code could not be retrieved: internal libpod error" "correct error on missing conmon"
+
+    # This should be safe because stop is guaranteed to call cleanup?
+    run_podman inspect --format "{{ .State.Status }}" testctr
+    is "$output" "exited" "container has successfully transitioned to exited state after stop"
+}
+
 # vim: filetype=sh
