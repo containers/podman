@@ -9,7 +9,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pause", func() {
@@ -37,13 +36,13 @@ var _ = Describe("Podman pause", func() {
 	It("podman pause bogus container", func() {
 		session := podmanTest.Podman([]string{"pause", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman unpause bogus container", func() {
 		session := podmanTest.Podman([]string{"unpause", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman pause a created container by id", func() {
@@ -55,7 +54,7 @@ var _ = Describe("Podman pause", func() {
 		result := podmanTest.Podman([]string{"pause", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, `"created" is not running, can't pause: container state improper`))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(createdState))
 
@@ -107,7 +106,7 @@ var _ = Describe("Podman pause", func() {
 		result := podmanTest.Podman([]string{"unpause", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, fmt.Sprintf(`"%s" is not paused, can't unpause: container state improper`, cid)))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 	})
@@ -128,7 +127,7 @@ var _ = Describe("Podman pause", func() {
 		result = podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(2))
+		Expect(result).Should(ExitWithError(2, fmt.Sprintf("cannot remove container %s as it is paused - running or paused containers cannot be removed without force: container state improper", cid)))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
@@ -175,7 +174,7 @@ var _ = Describe("Podman pause", func() {
 		result = podmanTest.Podman([]string{"stop", cid})
 		result.WaitWithDefaultTimeout()
 
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, fmt.Sprintf("Error: container %s is running or paused, refusing to clean up: container state improper", cid)))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(strings.ToLower(podmanTest.GetContainerStatus())).To(ContainSubstring(pausedState))
 
@@ -186,7 +185,7 @@ var _ = Describe("Podman pause", func() {
 
 		result = podmanTest.Podman([]string{"rm", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(2))
+		Expect(result).Should(ExitWithError(2, fmt.Sprintf("cannot remove container %s as it is running - running or paused containers cannot be removed without force: container state improper", cid)))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
 
 		result = podmanTest.Podman([]string{"rm", "-t", "0", "-f", cid})
@@ -382,40 +381,38 @@ var _ = Describe("Podman pause", func() {
 		SkipIfRemote("--latest flag n/a")
 		result := podmanTest.Podman([]string{"pause", "--cidfile", "foobar", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
+
 		result = podmanTest.Podman([]string{"pause", "--cidfile", "foobar", "--all"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
+
 		result = podmanTest.Podman([]string{"pause", "--cidfile", "foobar", "--all", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
+
 		result = podmanTest.Podman([]string{"pause", "--latest", "--all"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all and --latest cannot be used together"))
 	})
 
 	It("podman unpause invalid --latest and --cidfile and --all", func() {
 		SkipIfRemote("--latest flag n/a")
 		result := podmanTest.Podman([]string{"unpause", "--cidfile", "foobar", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
+
 		result = podmanTest.Podman([]string{"unpause", "--cidfile", "foobar", "--all"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
+
 		result = podmanTest.Podman([]string{"unpause", "--cidfile", "foobar", "--all", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
+
 		result = podmanTest.Podman([]string{"unpause", "--latest", "--all"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
-		Expect(result.ErrorToString()).To(ContainSubstring("cannot be used together"))
+		Expect(result).Should(ExitWithError(125, "--all and --latest cannot be used together"))
 	})
 
 	It("podman pause --filter", func() {
@@ -437,11 +434,11 @@ var _ = Describe("Podman pause", func() {
 
 		session1 = podmanTest.Podman([]string{"pause", cid1, "-f", "status=test"})
 		session1.WaitWithDefaultTimeout()
-		Expect(session1).Should(Exit(125))
+		Expect(session1).Should(ExitWithError(125, "--filter takes no arguments"))
 
 		session1 = podmanTest.Podman([]string{"unpause", cid1, "-f", "status=paused"})
 		session1.WaitWithDefaultTimeout()
-		Expect(session1).Should(Exit(125))
+		Expect(session1).Should(ExitWithError(125, "--filter takes no arguments"))
 
 		session1 = podmanTest.Podman([]string{"pause", "-a", "--filter", "label=test=with,comma"})
 		session1.WaitWithDefaultTimeout()

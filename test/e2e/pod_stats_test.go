@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod stats", func() {
@@ -25,7 +24,7 @@ var _ = Describe("Podman pod stats", func() {
 	It("podman pod stats with a bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "stats", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "unable to get list of pods: no pod with name or ID foobar found: no such pod"))
 	})
 
 	It("podman pod stats on a specific running pod", func() {
@@ -151,7 +150,7 @@ var _ = Describe("Podman pod stats", func() {
 		Expect(session).Should(ExitCleanly())
 		stats := podmanTest.Podman([]string{"pod", "stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} \""})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats).To(ExitWithError())
+		Expect(stats).To(ExitWithError(125, `template: stats:1:20: executing "stats" at <.ID>: can't evaluate field ID in type *types.PodStatsReport`))
 	})
 
 	It("podman pod stats on net=host post", func() {

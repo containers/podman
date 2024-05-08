@@ -53,9 +53,7 @@ var _ = Describe("Podman push", func() {
 		// Invalid compression format specified, it must fail
 		session := podmanTest.Podman([]string{"push", "-q", "--compression-format=gzip", "--compression-level=40", ALPINE, fmt.Sprintf("oci:%s", bbdir)})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		output := session.ErrorToString()
-		Expect(output).To(ContainSubstring("invalid compression level"))
+		Expect(session).Should(ExitWithError(125, "writing blob: happened during read: gzip: invalid compression level: 40"))
 
 		session = podmanTest.Podman([]string{"push", "-q", "--compression-format=zstd", "--remove-signatures", ALPINE,
 			fmt.Sprintf("oci:%s", bbdir)})
@@ -217,8 +215,7 @@ var _ = Describe("Podman push", func() {
 
 				pull := podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5003/sigstore-signed"})
 				pull.WaitWithDefaultTimeout()
-				Expect(pull).To(ExitWithError())
-				Expect(pull.ErrorToString()).To(ContainSubstring("A signature was required, but no signature exists"))
+				Expect(pull).To(ExitWithError(125, "A signature was required, but no signature exists"))
 
 				// Sign an image, and verify it is accepted.
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore-private-key", "testdata/sigstore-key.key", "--sign-passphrase-file", "testdata/sigstore-key.key.pass", ALPINE, "localhost:5003/sigstore-signed"})
@@ -237,8 +234,7 @@ var _ = Describe("Podman push", func() {
 
 				pull = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, "localhost:5003/sigstore-signed-params"})
 				pull.WaitWithDefaultTimeout()
-				Expect(pull).To(ExitWithError())
-				Expect(pull.ErrorToString()).To(ContainSubstring("A signature was required, but no signature exists"))
+				Expect(pull).To(ExitWithError(125, "A signature was required, but no signature exists"))
 
 				// Sign an image, and verify it is accepted.
 				push = podmanTest.Podman([]string{"push", "-q", "--tls-verify=false", "--remove-signatures", "--sign-by-sigstore", "testdata/sigstore-signing-params.yaml", ALPINE, "localhost:5003/sigstore-signed-params"})
@@ -309,8 +305,7 @@ var _ = Describe("Podman push", func() {
 
 		push := podmanTest.Podman([]string{"push", "--tls-verify=true", "--format=v2s2", "--creds=podmantest:test", ALPINE, "localhost:5004/tlstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).To(ExitWithError())
-		Expect(push.ErrorToString()).To(ContainSubstring("x509: certificate signed by unknown authority"))
+		Expect(push).To(ExitWithError(125, "x509: certificate signed by unknown authority"))
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", "--tls-verify=false", ALPINE, "localhost:5004/tlstest"})
 		push.WaitWithDefaultTimeout()
@@ -322,15 +317,13 @@ var _ = Describe("Podman push", func() {
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:wrongpasswd", ALPINE, "localhost:5004/credstest"})
 		push.WaitWithDefaultTimeout()
-		Expect(push).To(ExitWithError())
-		Expect(push.ErrorToString()).To(ContainSubstring("/credstest: authentication required"))
+		Expect(push).To(ExitWithError(125, "/credstest: authentication required"))
 
 		if !IsRemote() {
 			// remote does not support --cert-dir
 			push = podmanTest.Podman([]string{"push", "--tls-verify=true", "--creds=podmantest:test", "--cert-dir=fakedir", ALPINE, "localhost:5004/certdirtest"})
 			push.WaitWithDefaultTimeout()
-			Expect(push).To(ExitWithError())
-			Expect(push.ErrorToString()).To(ContainSubstring("x509: certificate signed by unknown authority"))
+			Expect(push).To(ExitWithError(125, "x509: certificate signed by unknown authority"))
 		}
 
 		push = podmanTest.Podman([]string{"push", "--creds=podmantest:test", ALPINE, "localhost:5004/defaultflags"})

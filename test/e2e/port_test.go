@@ -14,13 +14,17 @@ var _ = Describe("Podman port", func() {
 	It("podman port all and latest", func() {
 		result := podmanTest.Podman([]string{"port", "-a", "-l"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		if IsRemote() {
+			Expect(result).To(ExitWithError(125, "unknown shorthand flag: 'l' in -l"))
+		} else {
+			Expect(result).To(ExitWithError(125, "--all and --latest cannot be used together"))
+		}
 	})
 
 	It("podman port all and extra", func() {
 		result := podmanTest.Podman([]string{"port", "-a", "foobar"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, "no arguments are needed with --all"))
 	})
 
 	It("podman port -l nginx", func() {
