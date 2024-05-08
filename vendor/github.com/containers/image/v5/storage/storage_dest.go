@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"sync/atomic"
 
@@ -34,7 +35,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 var (
@@ -930,7 +930,6 @@ func (s *storageImageDestination) untrustedLayerDiffID(layerIndex int) (digest.D
 	// nothing is writing to s.manifest yet, or PutManifest has been called and s.manifest != nil.
 	// Either way this function does not need the protection of s.lock.
 	if s.manifest == nil {
-		logrus.Debugf("Skipping commit for layer %d, manifest not yet available", layerIndex)
 		return "", nil
 	}
 

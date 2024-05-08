@@ -3,8 +3,10 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"runtime"
+	"slices"
 
 	platform "github.com/containers/image/v5/internal/pkg/platform"
 	compression "github.com/containers/image/v5/pkg/compression/types"
@@ -12,8 +14,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 const (

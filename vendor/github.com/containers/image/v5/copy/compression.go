@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 
 	internalblobinfocache "github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/manifest"
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/image/v5/types"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
 var (

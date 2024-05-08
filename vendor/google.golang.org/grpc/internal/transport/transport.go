@@ -28,6 +28,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -362,8 +363,12 @@ func (s *Stream) SendCompress() string {
 
 // ClientAdvertisedCompressors returns the compressor names advertised by the
 // client via grpc-accept-encoding header.
-func (s *Stream) ClientAdvertisedCompressors() string {
-	return s.clientAdvertisedCompressors
+func (s *Stream) ClientAdvertisedCompressors() []string {
+	values := strings.Split(s.clientAdvertisedCompressors, ",")
+	for i, v := range values {
+		values[i] = strings.TrimSpace(v)
+	}
+	return values
 }
 
 // Done returns a channel which is closed when it receives the final status

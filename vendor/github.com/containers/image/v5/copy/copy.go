@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -25,7 +26,6 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sync/semaphore"
 	"golang.org/x/term"
 )

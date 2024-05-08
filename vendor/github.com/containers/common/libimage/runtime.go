@@ -250,7 +250,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 	// off and entirely ignored.  The digest is the sole source of truth.
 	normalizedName, possiblyUnqualifiedNamedReference, err := normalizeTaggedDigestedString(name)
 	if err != nil {
-		return nil, "", err
+		return nil, "", fmt.Errorf(`parsing reference %q: %w`, name, err)
 	}
 	name = normalizedName
 

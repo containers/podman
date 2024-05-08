@@ -12,18 +12,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/containers/common/pkg/secrets/define"
 	"github.com/containers/storage/pkg/fileutils"
-)
-
-var (
-	// errNoSecretData indicates that there is not data associated with an id
-	errNoSecretData = errors.New("no secret data with ID")
-
-	// errNoSecretData indicates that there is secret data already associated with an id
-	errSecretIDExists = errors.New("secret data with ID already exists")
-
-	// errInvalidKey indicates that something about your key is wrong
-	errInvalidKey = errors.New("invalid key")
 )
 
 type driverConfig struct {
@@ -128,10 +118,10 @@ func (d *Driver) Lookup(id string) ([]byte, error) {
 		return nil, err
 	}
 	if err := d.gpg(context.TODO(), nil, out, "--decrypt", key); err != nil {
-		return nil, fmt.Errorf("%s: %w", id, errNoSecretData)
+		return nil, fmt.Errorf("%s: %w", id, define.ErrNoSuchSecret)
 	}
 	if out.Len() == 0 {
-		return nil, fmt.Errorf("%s: %w", id, errNoSecretData)
+		return nil, fmt.Errorf("%s: %w", id, define.ErrNoSuchSecret)
 	}
 	return out.Bytes(), nil
 }
@@ -139,7 +129,7 @@ func (d *Driver) Lookup(id string) ([]byte, error) {
 // Store saves the bytes associated with an ID. An error is returned if the ID already exists
 func (d *Driver) Store(id string, data []byte) error {
 	if _, err := d.Lookup(id); err == nil {
-		return fmt.Errorf("%s: %w", id, errSecretIDExists)
+		return fmt.Errorf("%s: %w", id, define.ErrSecretIDExists)
 	}
 	in := bytes.NewReader(data)
 	key, err := d.getPath(id)
@@ -156,7 +146,10 @@ func (d *Driver) Delete(id string) error {
 		return err
 	}
 	if err := os.Remove(key); err != nil {
-		return fmt.Errorf("%s: %w", id, errNoSecretData)
+		if errors.Is(err, os.ErrNotExist) {
+			return fmt.Errorf("%s: %w", id, define.ErrNoSuchSecret)
+		}
+		return fmt.Errorf("%s: %w", id, err)
 	}
 	return nil
 }
@@ -176,10 +169,10 @@ func (d *Driver) gpg(ctx context.Context, in io.Reader, out io.Writer, args ...s
 func (d *Driver) getPath(id string) (string, error) {
 	path, err := filepath.Abs(filepath.Join(d.Root, id))
 	if err != nil {
-		return "", errInvalidKey
+		return "", define.ErrInvalidKey
 	}
 	if !strings.HasPrefix(path, d.Root) {
-		return "", errInvalidKey
+		return "", define.ErrInvalidKey
 	}
 	return path + ".gpg", nil
 }

@@ -9,6 +9,10 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 )
 
+// _configPath is the path to the containers/containers.conf
+// inside a given config directory.
+const _configPath = "containers/containers.conf"
+
 // userConfigPath returns the path to the users local config that is
 // not shared with other users. It uses $XDG_CONFIG_HOME/containers...
 // if set or $HOME/.config/containers... if not.
@@ -22,4 +26,10 @@ func userConfigPath() (string, error) {
 	}
 
 	return filepath.Join(home, UserOverrideContainersConfig), nil
+}
+
+// overrideContainersConfigPath returns the default config path overridden
+// by the root user
+func overrideContainersConfigPath() (string, error) {
+	return OverrideContainersConfig, nil
 }

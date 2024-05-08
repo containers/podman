@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/compressor"
 	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/toc"
 	"github.com/containers/storage/pkg/fsverity"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
@@ -216,15 +217,15 @@ func (f *seekableFile) GetBlobAt(chunks []ImageSourceChunk) (chan io.ReadCloser,
 	return streams, errs, nil
 }
 
-func convertTarToZstdChunked(destDirectory string, payload *os.File) (*seekableFile, digest.Digest, map[string]string, error) {
+func convertTarToZstdChunked(destDirectory string, payload *os.File) (int64, *seekableFile, digest.Digest, map[string]string, error) {
 	diff, err := archive.DecompressStream(payload)
 	if err != nil {
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 
 	fd, err := unix.Open(destDirectory, unix.O_TMPFILE|unix.O_RDWR|unix.O_CLOEXEC, 0o600)
 	if err != nil {
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 
 	f := os.NewFile(uintptr(fd), destDirectory)
@@ -234,23 +235,24 @@ func convertTarToZstdChunked(destDirectory string, payload *os.File) (*seekableF
 	chunked, err := compressor.ZstdCompressor(f, newAnnotations, &level)
 	if err != nil {
 		f.Close()
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 
 	convertedOutputDigester := digest.Canonical.Digester()
-	if _, err := io.Copy(io.MultiWriter(chunked, convertedOutputDigester.Hash()), diff); err != nil {
+	copied, err := io.Copy(io.MultiWriter(chunked, convertedOutputDigester.Hash()), diff)
+	if err != nil {
 		f.Close()
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 	if err := chunked.Close(); err != nil {
 		f.Close()
-		return nil, "", nil, err
+		return 0, nil, "", nil, err
 	}
 	is := seekableFile{
 		file: f,
 	}
 
-	return &is, convertedOutputDigester.Digest(), newAnnotations, nil
+	return copied, &is, convertedOutputDigester.Digest(), newAnnotations, nil
 }
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
@@ -264,18 +266,26 @@ func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Diges
 		return nil, errors.New("enable_partial_images not configured")
 	}
 
-	_, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
-	_, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
+	zstdChunkedTOCDigestString, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
+	estargzTOCDigestString, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
 
 	if hasZstdChunkedTOC && hasEstargzTOC {
 		return nil, errors.New("both zstd:chunked and eStargz TOC found")
 	}
 
 	if hasZstdChunkedTOC {
-		return makeZstdChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
+		zstdChunkedTOCDigest, err := digest.Parse(zstdChunkedTOCDigestString)
+		if err != nil {
+			return nil, fmt.Errorf("parsing zstd:chunked TOC digest %q: %w", zstdChunkedTOCDigestString, err)
+		}
+		return makeZstdChunkedDiffer(ctx, store, blobSize, zstdChunkedTOCDigest, annotations, iss, &storeOpts)
 	}
 	if hasEstargzTOC {
-		return makeEstargzChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
+		estargzTOCDigest, err := digest.Parse(estargzTOCDigestString)
+		if err != nil {
+			return nil, fmt.Errorf("parsing estargz TOC digest %q: %w", estargzTOCDigestString, err)
+		}
+		return makeEstargzChunkedDiffer(ctx, store, blobSize, estargzTOCDigest, iss, &storeOpts)
 	}
 
 	return makeConvertFromRawDiffer(ctx, store, blobDigest, blobSize, annotations, iss, &storeOpts)
@@ -303,19 +313,14 @@ func makeConvertFromRawDiffer(ctx context.Context, store storage.Store, blobDige
 	}, nil
 }
 
-func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, blobSize, annotations)
+func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
+	manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, tocDigest, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
-	}
-
-	tocDigest, err := digest.Parse(annotations[internal.ManifestChecksumKey])
-	if err != nil {
-		return nil, fmt.Errorf("parse TOC digest %q: %w", annotations[internal.ManifestChecksumKey], err)
 	}
 
 	return &chunkedDiffer{
@@ -333,19 +338,14 @@ func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize in
 	}, nil
 }
 
-func makeEstargzChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, annotations)
+func makeEstargzChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, tocDigest digest.Digest, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
+	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, tocDigest)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
-	}
-
-	tocDigest, err := digest.Parse(annotations[estargz.TOCJSONDigestAnnotation])
-	if err != nil {
-		return nil, fmt.Errorf("parse TOC digest %q: %w", annotations[estargz.TOCJSONDigestAnnotation], err)
 	}
 
 	return &chunkedDiffer{
@@ -1653,6 +1653,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	stream := c.stream
 
 	var uncompressedDigest digest.Digest
+	var convertedBlobSize int64
 
 	if c.convertToZstdChunked {
 		fd, err := unix.Open(dest, unix.O_TMPFILE|unix.O_RDWR|unix.O_CLOEXEC, 0o600)
@@ -1680,10 +1681,11 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
 
-		fileSource, diffID, annotations, err := convertTarToZstdChunked(dest, blobFile)
+		tarSize, fileSource, diffID, annotations, err := convertTarToZstdChunked(dest, blobFile)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
+		convertedBlobSize = tarSize
 		// fileSource is a O_TMPFILE file descriptor, so we
 		// need to keep it open until the entire file is processed.
 		defer fileSource.Close()
@@ -1692,7 +1694,14 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		blobFile.Close()
 		blobFile = nil
 
-		manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, c.blobSize, annotations)
+		tocDigest, err := toc.GetTOCDigest(annotations)
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: parsing just-created zstd:chunked TOC digest: %w", err)
+		}
+		if tocDigest == nil {
+			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
+		}
+		manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, *tocDigest, annotations)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}
@@ -1753,13 +1762,19 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 
 	var missingParts []missingPart
 
-	mergedEntries, totalSize, err := c.mergeTocEntries(c.fileType, toc.Entries)
+	mergedEntries, totalSizeFromTOC, err := c.mergeTocEntries(c.fileType, toc.Entries)
 	if err != nil {
 		return output, err
 	}
 
 	output.UIDs, output.GIDs = collectIDs(mergedEntries)
-	output.Size = totalSize
+	if convertedBlobSize > 0 {
+		// if the image was converted, store the original tar size, so that
+		// it can be recreated correctly.
+		output.Size = convertedBlobSize
+	} else {
+		output.Size = totalSizeFromTOC
+	}
 
 	if err := maybeDoIDRemap(mergedEntries, options); err != nil {
 		return output, err

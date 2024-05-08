@@ -158,16 +158,22 @@ func systemConfigs() (configs []string, finalErr error) {
 		}
 		return append(configs, path), nil
 	}
+
 	configs = append(configs, DefaultContainersConfig)
-	configs = append(configs, OverrideContainersConfig)
 
 	var err error
-	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
+	path, err := overrideContainersConfigPath()
+	if err != nil {
+		return nil, err
+	}
+	configs = append(configs, path)
+
+	configs, err = addConfigs(path+".d", configs)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err := userConfigPath()
+	path, err = userConfigPath()
 	if err != nil {
 		return nil, err
 	}

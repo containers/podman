@@ -585,50 +585,54 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			return nil, fmt.Errorf("compressing %s: %w", what, err)
 		}
 		writer := io.MultiWriter(writeCloser, srcHasher.Hash())
-		// Scrub any local user names that might correspond to UIDs or GIDs of
-		// files in this layer.
 		{
+			// Tweak the contents of layers we're creating.
 			nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
 			writeCloser = newTarFilterer(nestedWriteCloser, func(hdr *tar.Header) (bool, bool, io.Reader) {
+				// Scrub any local user names that might correspond to UIDs or GIDs of
+				// files in this layer.
 				hdr.Uname, hdr.Gname = "", ""
-				return false, false, nil
-			})
-			writer = io.Writer(writeCloser)
-		}
-		// Use specified timestamps in the layer, if we're doing that for
-		// history entries.
-		if i.created != nil {
-			nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
-			writeCloser = newTarFilterer(nestedWriteCloser, func(hdr *tar.Header) (bool, bool, io.Reader) {
-				// Changing a zeroed field to a non-zero field
-				// can affect the format that the library uses
-				// for writing the header, so only change
-				// fields that are already set to avoid
-				// changing the format (and as a result,
-				// changing the length) of the header that we
-				// write.
-				if !hdr.ModTime.IsZero() {
-					hdr.ModTime = *i.created
-				}
-				if !hdr.AccessTime.IsZero() {
-					hdr.AccessTime = *i.created
-				}
-				if !hdr.ChangeTime.IsZero() {
-					hdr.ChangeTime = *i.created
+				// Use specified timestamps in the layer, if we're doing that for history
+				// entries.
+				if i.created != nil {
+					// Changing a zeroed field to a non-zero field can affect the
+					// format that the library uses for writing the header, so only
+					// change fields that are already set to avoid changing the
+					// format (and as a result, changing the length) of the header
+					// that we write.
+					if !hdr.ModTime.IsZero() {
+						hdr.ModTime = *i.created
+					}
+					if !hdr.AccessTime.IsZero() {
+						hdr.AccessTime = *i.created
+					}
+					if !hdr.ChangeTime.IsZero() {
+						hdr.ChangeTime = *i.created
+					}
+					return false, false, nil
 				}
 				return false, false, nil
 			})
 			writer = io.Writer(writeCloser)
 		}
+		// Okay, copy from the raw diff through the filter, compressor, and counter and
+		// digesters.
 		size, err := io.Copy(writer, rc)
-		writeCloser.Close()
-		layerFile.Close()
+		if err := writeCloser.Close(); err != nil {
+			layerFile.Close()
+			rc.Close()
+			return nil, fmt.Errorf("storing %s to file: %w on pipe close", what, err)
+		}
+		if err := layerFile.Close(); err != nil {
+			rc.Close()
+			return nil, fmt.Errorf("storing %s to file: %w on file close", what, err)
+		}
 		rc.Close()
 
 		if errChan != nil {
 			err = <-errChan
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("extracting container rootfs: %w", err)
 			}
 		}
 

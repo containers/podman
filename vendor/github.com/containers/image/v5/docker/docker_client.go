@@ -599,10 +599,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		// close response body before retry or context done
 		res.Body.Close()
 
-		delay = parseRetryAfter(res, delay)
-		if delay > backoffMaxDelay {
-			delay = backoffMaxDelay
-		}
+		delay = min(parseRetryAfter(res, delay), backoffMaxDelay)
 		logrus.Debugf("Too many requests to %s: sleeping for %f seconds before next attempt", requestURL.Redacted(), delay.Seconds())
 		select {
 		case <-ctx.Done():

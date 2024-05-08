@@ -23,7 +23,7 @@ env:
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20240320t153921z-f39f38d13"
+    IMAGE_SUFFIX: "c20240411t124913z-f39f38d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
@@ -126,7 +126,7 @@ lint_task:
         folder: $GOPATH/pkg/mod
     build_script: |
       apt-get update
-      apt-get install -y libbtrfs-dev libdevmapper-dev
+      apt-get install -y libbtrfs-dev
     test_script: |
       make TAGS=regex_precompile local-validate
       make lint
@@ -171,7 +171,7 @@ vendor_task:
 cross_task:
     alias: cross
     container:
-        image: golang:1.20
+        image: golang:1.21
     build_script: make cross
 
 
@@ -191,6 +191,6 @@ success_task:
         - vendor
         - cross
     container:
-        image: golang:1.20
+        image: golang:1.21
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed
     script: /bin/true

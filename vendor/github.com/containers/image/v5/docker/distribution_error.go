@@ -21,10 +21,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"slices"
 
 	"github.com/docker/distribution/registry/api/errcode"
 	dockerChallenge "github.com/docker/distribution/registry/client/auth/challenge"
-	"golang.org/x/exp/slices"
 )
 
 // errNoErrorsInBody is returned when an HTTP response body parses to an empty

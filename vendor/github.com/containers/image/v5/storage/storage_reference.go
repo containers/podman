@@ -6,6 +6,7 @@ package storage
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/storage"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // A storageReference holds an arbitrary name and/or an ID, which is a 32-byte

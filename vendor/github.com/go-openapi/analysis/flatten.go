@@ -62,28 +62,26 @@ func newContext() *context {
 //
 // There is a minimal and a full flattening mode.
 //
-//
 // Minimally flattening a spec means:
-//  - Expanding parameters, responses, path items, parameter items and header items (references to schemas are left
-//    unscathed)
-//  - Importing external (http, file) references so they become internal to the document
-//  - Moving every JSON pointer to a $ref to a named definition (i.e. the reworked spec does not contain pointers
-//    like "$ref": "#/definitions/myObject/allOfs/1")
+//   - Expanding parameters, responses, path items, parameter items and header items (references to schemas are left
+//     unscathed)
+//   - Importing external (http, file) references so they become internal to the document
+//   - Moving every JSON pointer to a $ref to a named definition (i.e. the reworked spec does not contain pointers
+//     like "$ref": "#/definitions/myObject/allOfs/1")
 //
 // A minimally flattened spec thus guarantees the following properties:
-//  - all $refs point to a local definition (i.e. '#/definitions/...')
-//  - definitions are unique
+//   - all $refs point to a local definition (i.e. '#/definitions/...')
+//   - definitions are unique
 //
 // NOTE: arbitrary JSON pointers (other than $refs to top level definitions) are rewritten as definitions if they
 // represent a complex schema or express commonality in the spec.
 // Otherwise, they are simply expanded.
 // Self-referencing JSON pointers cannot resolve to a type and trigger an error.
 //
-//
 // Minimal flattening is necessary and sufficient for codegen rendering using go-swagger.
 //
 // Fully flattening a spec means:
-//  - Moving every complex inline schema to be a definition with an auto-generated name in a depth-first fashion.
+//   - Moving every complex inline schema to be a definition with an auto-generated name in a depth-first fashion.
 //
 // By complex, we mean every JSON object with some properties.
 // Arrays, when they do not define a tuple,
@@ -93,22 +91,21 @@ func newContext() *context {
 // have been created.
 //
 // Available flattening options:
-//  - Minimal: stops flattening after minimal $ref processing, leaving schema constructs untouched
-//  - Expand: expand all $ref's in the document (inoperant if Minimal set to true)
-//  - Verbose: croaks about name conflicts detected
-//  - RemoveUnused: removes unused parameters, responses and definitions after expansion/flattening
+//   - Minimal: stops flattening after minimal $ref processing, leaving schema constructs untouched
+//   - Expand: expand all $ref's in the document (inoperant if Minimal set to true)
+//   - Verbose: croaks about name conflicts detected
+//   - RemoveUnused: removes unused parameters, responses and definitions after expansion/flattening
 //
 // NOTE: expansion removes all $ref save circular $ref, which remain in place
 //
 // TODO: additional options
-//  - ProgagateNameExtensions: ensure that created entries properly follow naming rules when their parent have set a
-//    x-go-name extension
-//  - LiftAllOfs:
-//     - limit the flattening of allOf members when simple objects
-//     - merge allOf with validation only
-//     - merge allOf with extensions only
-//     - ...
-//
+//   - ProgagateNameExtensions: ensure that created entries properly follow naming rules when their parent have set a
+//     x-go-name extension
+//   - LiftAllOfs:
+//   - limit the flattening of allOf members when simple objects
+//   - merge allOf with validation only
+//   - merge allOf with extensions only
+//   - ...
 func Flatten(opts FlattenOpts) error {
 	debugLog("FlattenOpts: %#v", opts)
 
@@ -270,6 +267,12 @@ func nameInlinedSchemas(opts *FlattenOpts) error {
 }
 
 func removeUnused(opts *FlattenOpts) {
+	for removeUnusedSinglePass(opts) {
+		// continue until no unused definition remains
+	}
+}
+
+func removeUnusedSinglePass(opts *FlattenOpts) (hasRemoved bool) {
 	expected := make(map[string]struct{})
 	for k := range opts.Swagger().Definitions {
 		expected[path.Join(definitionsPath, jsonpointer.Escape(k))] = struct{}{}
@@ -280,6 +283,7 @@ func removeUnused(opts *FlattenOpts) {
 	}
 
 	for k := range expected {
+		hasRemoved = true
 		debugLog("removing unused definition %s", path.Base(k))
 		if opts.Verbose {
 			log.Printf("info: removing unused definition: %s", path.Base(k))
@@ -288,6 +292,8 @@ func removeUnused(opts *FlattenOpts) {
 	}
 
 	opts.Spec.reload() // re-analyze
+
+	return hasRemoved
 }
 
 func importKnownRef(entry sortref.RefRevIdx, refStr, newName string, opts *FlattenOpts) error {
@@ -334,7 +340,7 @@ func importNewRef(entry sortref.RefRevIdx, refStr string, opts *FlattenOpts) err
 	}
 
 	// generate a unique name - isOAIGen means that a naming conflict was resolved by changing the name
-	newName, isOAIGen = uniqifyName(opts.Swagger().Definitions, nameFromRef(entry.Ref))
+	newName, isOAIGen = uniqifyName(opts.Swagger().Definitions, nameFromRef(entry.Ref, opts))
 	debugLog("new name for [%s]: %s - with name conflict:%t", strings.Join(entry.Keys, ", "), newName, isOAIGen)
 
 	opts.flattenContext.resolved[refStr] = newName
@@ -488,9 +494,9 @@ func stripPointersAndOAIGen(opts *FlattenOpts) error {
 // stripOAIGen strips the spec from unnecessary OAIGen constructs, initially created to dedupe flattened definitions.
 //
 // A dedupe is deemed unnecessary whenever:
-//  - the only conflict is with its (single) parent: OAIGen is merged into its parent (reinlining)
-//  - there is a conflict with multiple parents: merge OAIGen in first parent, the rewrite other parents to point to
-//    the first parent.
+//   - the only conflict is with its (single) parent: OAIGen is merged into its parent (reinlining)
+//   - there is a conflict with multiple parents: merge OAIGen in first parent, the rewrite other parents to point to
+//     the first parent.
 //
 // This function returns true whenever it re-inlined a complex schema, so the caller may chose to iterate
 // pointer and name resolution again.
@@ -652,6 +658,7 @@ func namePointers(opts *FlattenOpts) error {
 
 	refsToReplace := make(map[string]SchemaRef, len(opts.Spec.references.schemas))
 	for k, ref := range opts.Spec.references.allRefs {
+		debugLog("name pointers: %q => %#v", k, ref)
 		if path.Dir(ref.String()) == definitionsPath {
 			// this a ref to a top-level definition: ok
 			continue
@@ -769,6 +776,10 @@ func flattenAnonPointer(key string, v SchemaRef, refsToReplace map[string]Schema
 
 	// identifying edge case when the namer did nothing because we point to a non-schema object
 	// no definition is created and we expand the $ref for all callers
+	debugLog("decide what to do with the schema pointed to: asch.IsSimpleSchema=%t, len(callers)=%d, parts.IsSharedParam=%t, parts.IsSharedResponse=%t",
+		asch.IsSimpleSchema, len(callers), parts.IsSharedParam(), parts.IsSharedResponse(),
+	)
+
 	if (!asch.IsSimpleSchema || len(callers) > 1) && !parts.IsSharedParam() && !parts.IsSharedResponse() {
 		debugLog("replace JSON pointer at [%s] by definition: %s", key, v.Ref.String())
 		if err := namer.Name(v.Ref.String(), v.Schema, asch); err != nil {
@@ -791,6 +802,7 @@ func flattenAnonPointer(key string, v SchemaRef, refsToReplace map[string]Schema
 		return nil
 	}
 
+	// everything that is a simple schema and not factorizable is expanded
 	debugLog("expand JSON pointer for key=%s", key)
 
 	if err := replace.UpdateRefWithSchema(opts.Swagger(), key, v.Schema); err != nil {

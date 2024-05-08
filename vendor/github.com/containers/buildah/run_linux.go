@@ -47,6 +47,7 @@ import (
 	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
+	"tags.cncf.io/container-device-interface/pkg/parser"
 )
 
 var (
@@ -69,40 +70,55 @@ func setChildProcess() error {
 }
 
 func (b *Builder) cdiSetupDevicesInSpec(deviceSpecs []string, configDir string, spec *specs.Spec) ([]string, error) {
-	leftoverDevices := deviceSpecs
-	registry, err := cdi.NewCache()
-	if err != nil {
-		return nil, fmt.Errorf("creating CDI registry: %w", err)
-	}
 	var configDirs []string
+	defConfig, err := config.Default()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get container config: %w", err)
+	}
+	// The CDI cache prioritizes entries from directories that are later in
+	// the list of ones it scans, so start with our general config, then
+	// append values passed to us through API layers.
+	configDirs = slices.Clone(defConfig.Engine.CdiSpecDirs.Get())
 	if b.CDIConfigDir != "" {
 		configDirs = append(configDirs, b.CDIConfigDir)
 	}
 	if configDir != "" {
 		configDirs = append(configDirs, configDir)
 	}
-	// TODO: CdiSpecDirs will be in containers/common v0.59.0 or later?
-	// defConfig, err := config.Default()
-	// if err != nil {
-	//	return nil, fmt.Errorf("failed to get container config: %w", err)
-	// }
-	// configDirs = append(configDirs, defConfig.Engine.CdiSpecDirs.Get()...)
-	if len(configDirs) > 0 {
-		if err := registry.Configure(cdi.WithSpecDirs(configDirs...)); err != nil {
-			return nil, fmt.Errorf("CDI registry ignored configured directories %v: %w", configDirs, err)
+	if len(configDirs) == 0 {
+		// No directories to scan for CDI configuration means that CDI
+		// won't have any details for setting up any devices, so we
+		// don't need to be doing anything here.
+		return deviceSpecs, nil
+	}
+	var qualifiedDeviceSpecs, unqualifiedDeviceSpecs []string
+	for _, deviceSpec := range deviceSpecs {
+		if parser.IsQualifiedName(deviceSpec) {
+			qualifiedDeviceSpecs = append(qualifiedDeviceSpecs, deviceSpec)
+		} else {
+			unqualifiedDeviceSpecs = append(unqualifiedDeviceSpecs, deviceSpec)
 		}
 	}
-	if err := registry.Refresh(); err != nil {
-		logrus.Warnf("CDI registry refresh: %v", err)
+	if len(qualifiedDeviceSpecs) == 0 {
+		// None of the specified devices were in the form that would be
+		// handled by CDI, so we don't need to do anything here.
+		return deviceSpecs, nil
+	}
+	if err := cdi.Configure(cdi.WithSpecDirs(configDirs...)); err != nil {
+		return nil, fmt.Errorf("CDI default registry ignored configured directories %v: %w", configDirs, err)
+	}
+	leftoverDevices := slices.Clone(deviceSpecs)
+	if err := cdi.Refresh(); err != nil {
+		logrus.Warnf("CDI default registry refresh: %v", err)
 	} else {
-		leftoverDevices, err = registry.InjectDevices(spec, deviceSpecs...)
+		leftoverDevices, err = cdi.InjectDevices(spec, qualifiedDeviceSpecs...)
 		if err != nil {
-			logrus.Debugf("CDI device injection: %v, unresolved list %v", err, leftoverDevices)
+			return nil, fmt.Errorf("CDI device injection (leftover devices: %v): %w", leftoverDevices, err)
 		}
 	}
 	removed := slices.DeleteFunc(slices.Clone(deviceSpecs), func(t string) bool { return slices.Contains(leftoverDevices, t) })
-	logrus.Debugf("CDI taking care of devices %v, leaving devices %v", removed, leftoverDevices)
-	return leftoverDevices, nil
+	logrus.Debugf("CDI taking care of devices %v, leaving devices %v, skipped %v", removed, leftoverDevices, unqualifiedDeviceSpecs)
+	return append(leftoverDevices, unqualifiedDeviceSpecs...), nil
 }
 
 // Extract the device list so that we can still try to make it work if

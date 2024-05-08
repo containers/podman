@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 
@@ -25,7 +26,6 @@ import (
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vbauerster/mpb/v8"
-	"golang.org/x/exp/slices"
 )
 
 // imageCopier tracks state specific to a single image (possibly an item of a manifest list)
@@ -704,7 +704,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		canChangeLayerCompression := ic.src.CanChangeLayerCompression(srcInfo.MediaType)
 		logrus.Debugf("Checking if we can reuse blob %s: general substitution = %v, compression for MIME type %q = %v",
 			srcInfo.Digest, ic.canSubstituteBlobs, srcInfo.MediaType, canChangeLayerCompression)
-		canSubstitute := ic.canSubstituteBlobs && ic.src.CanChangeLayerCompression(srcInfo.MediaType)
+		canSubstitute := ic.canSubstituteBlobs && canChangeLayerCompression
 
 		var requiredCompression *compressiontypes.Algorithm
 		if ic.requireCompressionFormatMatch {
