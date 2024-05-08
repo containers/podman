@@ -1303,10 +1303,8 @@ func (c *Container) start(ctx context.Context) error {
 	return nil
 }
 
-// Internal, non-locking function to stop container
-func (c *Container) stop(timeout uint) error {
-	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
-
+// Whether a container should use `all` when stopping
+func (c *Container) stopWithAll() (bool, error) {
 	// If the container is running in a PID Namespace, then killing the
 	// primary pid is enough to kill the container.  If it is not running in
 	// a pid namespace then the OCI Runtime needs to kill ALL processes in
@@ -1322,12 +1320,24 @@ func (c *Container) stop(timeout uint) error {
 			// Only do this check if we need to
 			unified, err := cgroups.IsCgroup2UnifiedMode()
 			if err != nil {
-				return err
+				return false, err
 			}
 			if !unified {
 				all = false
 			}
 		}
+	}
+
+	return all, nil
+}
+
+// Internal, non-locking function to stop container
+func (c *Container) stop(timeout uint) error {
+	logrus.Debugf("Stopping ctr %s (timeout %d)", c.ID(), timeout)
+
+	all, err := c.stopWithAll()
+	if err != nil {
+		return err
 	}
 
 	// OK, the following code looks a bit weird but we have to make sure we can stop
@@ -1417,6 +1427,58 @@ func (c *Container) waitForConmonToExitAndSave() error {
 	if !conmonAlive {
 		if err := c.checkExitFile(); err != nil {
 			return err
+		}
+
+		// If we are still ContainerStateStopping, conmon exited without
+		// creating an exit file. Let's try and handle that here.
+		if c.state.State == define.ContainerStateStopping {
+			// Is container PID1 still alive?
+			if err := unix.Kill(c.state.PID, 0); err == nil {
+				// We have a runaway container, unmanaged by
+				// Conmon. Invoke OCI runtime stop.
+				// Use 0 timeout for immediate SIGKILL as things
+				// have gone seriously wrong.
+				// Ignore the error from stopWithAll, it's just
+				// a cgroup check - more important that we
+				// continue.
+				// If we wanted to be really fancy here, we
+				// could open a pidfd on container PID1 before
+				// this to get the real exit code... But I'm not
+				// that dedicated.
+				all, _ := c.stopWithAll()
+				if err := c.ociRuntime.StopContainer(c, 0, all); err != nil {
+					logrus.Errorf("Error stopping container %s after Conmon exited prematurely: %v", c.ID(), err)
+				}
+			}
+
+			// Conmon is dead. Handle it.
+			c.state.State = define.ContainerStateStopped
+			c.state.PID = 0
+			c.state.ConmonPID = 0
+			c.state.FinishedTime = time.Now()
+			c.state.ExitCode = -1
+			c.state.Exited = true
+
+			c.state.Error = "conmon died without writing exit file, container exit code could not be retrieved"
+
+			c.newContainerExitedEvent(c.state.ExitCode)
+
+			if err := c.save(); err != nil {
+				logrus.Errorf("Error saving container %s state after Conmon exited prematurely: %v", c.ID(), err)
+			}
+
+			if err := c.runtime.state.AddContainerExitCode(c.ID(), c.state.ExitCode); err != nil {
+				logrus.Errorf("Error saving container %s exit code after Conmon exited prematurely: %v", c.ID(), err)
+			}
+
+			// No Conmon alive to trigger cleanup, and the calls in
+			// regular Podman are conditional on no errors.
+			// Need to clean up manually.
+			if err := c.cleanup(context.Background()); err != nil {
+				logrus.Errorf("Error cleaning up container %s after Conmon exited prematurely: %v", c.ID(), err)
+			}
+
+			return fmt.Errorf("container %s conmon exited prematurely, exit code could not be retrieved: %w", c.ID(), define.ErrInternal)
 		}
 
 		return c.save()
