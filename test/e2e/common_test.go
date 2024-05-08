@@ -147,6 +147,11 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		// a hotrod workstation. Assume they know what they're doing.
 		baseTmpDir = ""
 	}
+	// FIXME: #22533 (debian pasta apparmor bug): CHECK THIS AFTER 2024-05-30!
+	info := GetHostDistributionInfo()
+	if info.Distribution == "debian" {
+		baseTmpDir = "/tmp"
+	}
 	globalTmpDir, err := os.MkdirTemp(baseTmpDir, "podman-e2e-")
 	Expect(err).ToNot(HaveOccurred())
 
