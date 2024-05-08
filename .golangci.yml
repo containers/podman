@@ -20,7 +20,7 @@ linters:
     - dupword # too many false positives (e.g., in tests)
     - gocognit
     - testpackage
-    - goerr113
+    - err113
     - exhaustivestruct
     - errorlint
     - wrapcheck
@@ -50,10 +50,12 @@ linters:
     - gosec
     - maligned
     - musttag # way to many warnings to fix for now, also some false positives
+    - mnd # way to many false positives
     - gomoddirectives
     - containedctx
     - contextcheck
     - cyclop
+    - canonicalheader # our current header values are fixed and should not be changed
     - errname
     - forcetypeassert
     - ireturn
@@ -69,6 +71,7 @@ linters:
     - deadcode    # deprecated since v1.49.0, replaced by unused
     - structcheck # deprecated since v1.49.0, replaced by unused
     - varcheck    # deprecated since v1.49.0, replaced by unused
+    - execinquery
 linters-settings:
   errcheck:
     check-blank: false
