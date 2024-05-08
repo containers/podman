@@ -108,7 +108,9 @@ func unmarshalEditionDefault(b []byte) {
 			v, m := protowire.ConsumeBytes(b)
 			b = b[m:]
 			switch num {
-			case genid.FeatureSetDefaults_FeatureSetEditionDefault_Features_field_number:
+			case genid.FeatureSetDefaults_FeatureSetEditionDefault_FixedFeatures_field_number:
+				fs = unmarshalFeatureSet(v, fs)
+			case genid.FeatureSetDefaults_FeatureSetEditionDefault_OverridableFeatures_field_number:
 				fs = unmarshalFeatureSet(v, fs)
 			}
 		}
