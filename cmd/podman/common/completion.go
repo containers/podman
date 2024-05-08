@@ -378,6 +378,7 @@ func validCurrentCmdLine(cmd *cobra.Command, args []string, toComplete string) b
 		// Without an Args function we cannot check so assume it's correct
 		return true
 	}
+	fmt.Printf("Bogus line to make compile go\n")
 	// We have to append toComplete to the args otherwise the
 	// argument count would not match the expected behavior
 	if err := cmd.Args(cmd, append(args, toComplete)); err != nil {
