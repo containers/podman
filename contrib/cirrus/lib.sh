@@ -89,18 +89,19 @@ fi
 # The starting place for linting and code validation
 EPOCH_TEST_COMMIT="$CIRRUS_BASE_SHA"
 
-# Regex defining all CI-related env. vars. necessary for all possible
-# testing operations on all platforms and versions.  This is necessary
-# to avoid needlessly passing through global/system values across
-# contexts, such as host->container or root->rootless user
+# The next three values define regular expressions matching env. vars. necessary
+# for all possible testing contexts (rootless, container, etc.).  These values
+# are consumed by the passthrough_envars() automation library function.
 #
 # List of envariables which must be EXACT matches
 PASSTHROUGH_ENV_EXACT='CGROUP_MANAGER|DEST_BRANCH|DISTRO_NV|GOCACHE|GOPATH|GOSRC|NETWORK_BACKEND|OCI_RUNTIME|PODMAN_IGNORE_CGROUPSV1_WARNING|ROOTLESS_USER|SCRIPT_BASE|SKIP_USERNS|EC2_INST_TYPE|PODMAN_DB|STORAGE_FS'
 
 # List of envariable patterns which must match AT THE BEGINNING of the name.
+# Consumed by the passthrough_envars() automation library function.
 PASSTHROUGH_ENV_ATSTART='CI|LANG|LC_|TEST'
 
-# List of envariable patterns which can match ANYWHERE in the name
+# List of envariable patterns which can match ANYWHERE in the name.
+# Consumed by the passthrough_envars() automation library function.
 PASSTHROUGH_ENV_ANYWHERE='_NAME|_FQIN'
 
 # Unsafe env. vars for display
