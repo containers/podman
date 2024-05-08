@@ -13,7 +13,6 @@ var (
 	INFRA_IMAGE       = "quay.io/libpod/k8s-pause:3.5" //nolint:revive,stylecheck
 	BB                = "quay.io/libpod/busybox:latest"
 	HEALTHCHECK_IMAGE = "quay.io/libpod/alpine_healthcheck:latest" //nolint:revive,stylecheck
-	fedoraToolbox     = "registry.fedoraproject.org/fedora-toolbox:36"
 	volumeTest        = "quay.io/libpod/volume-plugin-test-img:20220623"
 
 	// This image has seccomp profiles that blocks all syscalls.
