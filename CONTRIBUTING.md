@@ -291,13 +291,7 @@ commit automatically with `git commit -s`.
 
 ### Go Format and lint
 
-All code changes must pass ``make validate`` and ``make lint``.
-
-```
-podman build -t gate -f contrib/gate/Dockerfile .
-```
-
-***N/B:*** **don't miss the dot (.) at the end, it's really important**
+All code changes must pass ``make validatepr``.
 
 ### Integration Tests
 

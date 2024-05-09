@@ -324,6 +324,7 @@ validatepr:
 	$(PODMANCMD) run --rm \
 		-v $(CURDIR):/go/src/github.com/containers/podman \
 		--security-opt label=disable \
+		-it \
 		-w /go/src/github.com/containers/podman \
 		quay.io/libpod/validatepr:latest  \
 		make .validatepr
