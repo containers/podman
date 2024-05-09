@@ -144,11 +144,9 @@ var _ = Describe("Podman run networking", func() {
 		session := podmanTest.RunContainerWithNetworkTest("none")
 		session.WaitWithDefaultTimeout()
 		if _, found := os.LookupEnv("http_proxy"); found {
-			Expect(session).Should(Exit(5))
-			Expect(session.ErrorToString()).To(ContainSubstring("Could not resolve proxy:"))
+			Expect(session).Should(ExitWithError(5, "Could not resolve proxy:"))
 		} else {
-			Expect(session).Should(Exit(6))
-			Expect(session.ErrorToString()).To(ContainSubstring("Could not resolve host: www.redhat.com"))
+			Expect(session).Should(ExitWithError(6, "Could not resolve host: www.redhat.com"))
 		}
 	})
 
@@ -498,7 +496,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(results.OutputToString()).To(ContainSubstring(strconv.Itoa(port2)))
 
 		ncBusy := SystemExec("nc", []string{"-l", "-p", strconv.Itoa(port1)})
-		Expect(ncBusy).To(ExitWithError())
+		Expect(ncBusy).To(ExitWithError(2, fmt.Sprintf("Ncat: bind to 0.0.0.0:%d: Address already in use. QUITTING.", port1)))
 	})
 
 	It("podman run network expose host port 18081 to container port 8000 using rootlesskit port handler", func() {
@@ -509,7 +507,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 
 		ncBusy := SystemExec("nc", []string{"-l", "-p", strconv.Itoa(port2)})
-		Expect(ncBusy).To(ExitWithError())
+		Expect(ncBusy).To(ExitWithError(2, fmt.Sprintf("Ncat: bind to [::]:%d: Address already in use. QUITTING.", port2)))
 	})
 
 	It("podman run slirp4netns verify net.ipv6.conf.default.accept_dad=0", func() {
@@ -534,13 +532,13 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 	It("podman run network expose host port 8080 to container port 8000 using invalid port handler", func() {
 		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=invalid", "-dt", "-p", "8080:8000", ALPINE, "/bin/sh"})
-		session.Wait(30)
-		Expect(session).To(ExitWithError())
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(126, `unknown port_handler for slirp4netns: "invalid"`))
 	})
 
 	It("podman run slirp4netns network with host loopback", func() {
 		session := podmanTest.Podman([]string{"run", "--cap-add", "net_raw", "--network", "slirp4netns:allow_host_loopback=true", ALPINE, "ping", "-c1", "10.0.2.2"})
-		session.Wait(30)
+		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
 
@@ -562,8 +560,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		if strings.Contains(slirp4netnsHelp.OutputToString(), "cidr") {
 			Expect(session).Should(ExitCleanly())
 		} else {
-			Expect(session).To(ExitWithError())
-			Expect(session.ErrorToString()).To(ContainSubstring("cidr not supported"))
+			Expect(session).To(ExitWithError(125, "cidr not supported"))
 		}
 	})
 
@@ -585,8 +582,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		} else {
 			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, "-dt", ALPINE, "nc", "-w", "2", "10.0.2.2", port})
 			session.WaitWithDefaultTimeout()
-			Expect(session).To(ExitWithError())
-			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))
+			Expect(session).To(ExitWithError(125, "outbound_addr not supported"))
 		}
 	})
 
@@ -615,8 +611,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		} else {
 			session := podmanTest.Podman([]string{"run", "--network", networkConfiguration, ALPINE, "nc", "-w", "2", "10.0.2.2", port})
 			session.Wait(30)
-			Expect(session).To(ExitWithError())
-			Expect(session.ErrorToString()).To(ContainSubstring("outbound_addr not supported"))
+			Expect(session).To(ExitWithError(125, "outbound_addr not supported"))
 		}
 	})
 
@@ -723,8 +718,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		ctr2 := podmanTest.Podman([]string{"run", "-d", "--net=container:" + ctrName, "--add-host", "host1:127.0.0.1", ALPINE, "true"})
 		ctr2.WaitWithDefaultTimeout()
-		Expect(ctr2).Should(ExitWithError())
-		Expect(ctr2.ErrorToString()).Should(ContainSubstring("cannot set extra host entries when the container is joined to another containers network namespace: invalid configuration"))
+		Expect(ctr2).Should(ExitWithError(125, "cannot set extra host entries when the container is joined to another containers network namespace: invalid configuration"))
 	})
 
 	It("podman run --net container: copies hosts and resolv", func() {
@@ -972,8 +966,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	It("podman run network in bogus user created network namespace", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--net", "ns:/run/netns/xxy", ALPINE, "wget", "www.redhat.com"})
 		session.Wait(90)
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(ContainSubstring("faccessat /run/netns/xxy: no such file or directory"))
+		Expect(session).To(ExitWithError(125, "faccessat /run/netns/xxy: no such file or directory"))
 	})
 
 	It("podman run in custom CNI network with --static-ip", func() {

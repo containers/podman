@@ -110,7 +110,7 @@ var _ = Describe("Podman run with --sig-proxy", func() {
 		Expect(killSession).Should(ExitCleanly())
 
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(2, "SIGFPE: floating-point exception"))
 		Expect(session.OutputToString()).To(Not(ContainSubstring("Received")))
 	})
 
