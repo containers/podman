@@ -783,6 +783,7 @@ BOGUS=foo
 		Entry("entrypoint.container", "entrypoint.container", 0, ""),
 		Entry("escapes.container", "escapes.container", 0, ""),
 		Entry("exec.container", "exec.container", 0, ""),
+		Entry("group-add.container", "group-add.container", 0, ""),
 		Entry("health.container", "health.container", 0, ""),
 		Entry("hostname.container", "hostname.container", 0, ""),
 		Entry("idmapping.container", "idmapping.container", 0, ""),
