@@ -8,7 +8,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var pruneImage = fmt.Sprintf(`
@@ -492,8 +491,7 @@ var _ = Describe("Podman prune", func() {
 	It("podman system prune --all --external fails", func() {
 		prune := podmanTest.Podman([]string{"system", "prune", "--all", "--external"})
 		prune.WaitWithDefaultTimeout()
-		Expect(prune).Should(Exit(125))
-		Expect(prune.ErrorToString()).To(ContainSubstring("--external cannot be combined with other options"))
+		Expect(prune).Should(ExitWithError(125, "--external cannot be combined with other options"))
 	})
 
 	It("podman system prune --external leaves referenced containers", func() {
