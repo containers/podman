@@ -95,7 +95,7 @@ type LogEntryAnon struct {
 	// Required: true
 	Body interface{} `json:"body"`
 
-	// integrated time
+	// The time the entry was added to the log as a Unix timestamp in seconds
 	// Required: true
 	IntegratedTime *int64 `json:"integratedTime"`
 

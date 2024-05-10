@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"slices"
 	"strings"
 
 	"github.com/containernetworking/plugins/pkg/ns"
@@ -54,99 +55,15 @@ func Setup(opts *SetupOptions) error {
 // Note that there is no need for any special cleanup logic, the pasta
 // process will automatically exit when the netns path is deleted.
 func Setup2(opts *SetupOptions) (*SetupResult, error) {
-	NoTCPInitPorts := true
-	NoUDPInitPorts := true
-	NoTCPNamespacePorts := true
-	NoUDPNamespacePorts := true
-	NoMapGW := true
-
 	path, err := opts.Config.FindHelperBinary(BinaryName, true)
 	if err != nil {
 		return nil, fmt.Errorf("could not find pasta, the network namespace can't be configured: %w", err)
 	}
 
-	cmdArgs := []string{}
-	cmdArgs = append(cmdArgs, "--config-net")
-
-	for _, i := range opts.Ports {
-		protocols := strings.Split(i.Protocol, ",")
-		for _, protocol := range protocols {
-			var addr string
-
-			if i.HostIP != "" {
-				addr = i.HostIP + "/"
-			}
-
-			switch protocol {
-			case "tcp":
-				cmdArgs = append(cmdArgs, "-t")
-			case "udp":
-				cmdArgs = append(cmdArgs, "-u")
-			default:
-				return nil, fmt.Errorf("can't forward protocol: %s", protocol)
-			}
-
-			arg := fmt.Sprintf("%s%d-%d:%d-%d", addr,
-				i.HostPort,
-				i.HostPort+i.Range-1,
-				i.ContainerPort,
-				i.ContainerPort+i.Range-1)
-			cmdArgs = append(cmdArgs, arg)
-		}
+	cmdArgs, dnsForwardIPs, err := createPastaArgs(opts)
+	if err != nil {
+		return nil, err
 	}
-
-	// first append options set in the config
-	cmdArgs = append(cmdArgs, opts.Config.Network.PastaOptions.Get()...)
-	// then append the ones that were set on the cli
-	cmdArgs = append(cmdArgs, opts.ExtraOptions...)
-
-	var dnsForwardIPs []string
-	for i, opt := range cmdArgs {
-		switch opt {
-		case "-t", "--tcp-ports":
-			NoTCPInitPorts = false
-		case "-u", "--udp-ports":
-			NoUDPInitPorts = false
-		case "-T", "--tcp-ns":
-			NoTCPNamespacePorts = false
-		case "-U", "--udp-ns":
-			NoUDPNamespacePorts = false
-		case "--map-gw":
-			NoMapGW = false
-			// not an actual pasta(1) option
-			cmdArgs = append(cmdArgs[:i], cmdArgs[i+1:]...)
-		case dnsForwardOpt:
-			// if there is no arg after it pasta will likely error out anyway due invalid cli args
-			if len(cmdArgs) > i+1 {
-				dnsForwardIPs = append(dnsForwardIPs, cmdArgs[i+1])
-			}
-		}
-	}
-
-	if len(dnsForwardIPs) == 0 {
-		// the user did not request custom --dns-forward so add our own.
-		cmdArgs = append(cmdArgs, dnsForwardOpt, dnsForwardIpv4)
-		dnsForwardIPs = append(dnsForwardIPs, dnsForwardIpv4)
-	}
-
-	if NoTCPInitPorts {
-		cmdArgs = append(cmdArgs, "-t", "none")
-	}
-	if NoUDPInitPorts {
-		cmdArgs = append(cmdArgs, "-u", "none")
-	}
-	if NoTCPNamespacePorts {
-		cmdArgs = append(cmdArgs, "-T", "none")
-	}
-	if NoUDPNamespacePorts {
-		cmdArgs = append(cmdArgs, "-U", "none")
-	}
-	if NoMapGW {
-		cmdArgs = append(cmdArgs, "--no-map-gw")
-	}
-
-	// always pass --quiet to silence the info output from pasta
-	cmdArgs = append(cmdArgs, "--quiet", "--netns", opts.Netns)
 
 	logrus.Debugf("pasta arguments: %s", strings.Join(cmdArgs, " "))
 
@@ -204,4 +121,104 @@ func Setup2(opts *SetupOptions) (*SetupResult, error) {
 	}
 
 	return result, nil
+}
+
+// createPastaArgs creates the pasta arguments, it returns the args to be passed to pasta(1) and as second arg the dns forward ips used.
+func createPastaArgs(opts *SetupOptions) ([]string, []string, error) {
+	noTCPInitPorts := true
+	noUDPInitPorts := true
+	noTCPNamespacePorts := true
+	noUDPNamespacePorts := true
+	noMapGW := true
+
+	cmdArgs := []string{"--config-net"}
+	// first append options set in the config
+	cmdArgs = append(cmdArgs, opts.Config.Network.PastaOptions.Get()...)
+	// then append the ones that were set on the cli
+	cmdArgs = append(cmdArgs, opts.ExtraOptions...)
+
+	cmdArgs = slices.DeleteFunc(cmdArgs, func(s string) bool {
+		// --map-gw is not a real pasta(1) option so we must remove it
+		// and not add --no-map-gw below
+		if s == "--map-gw" {
+			noMapGW = false
+			return true
+		}
+		return false
+	})
+
+	var dnsForwardIPs []string
+	for i, opt := range cmdArgs {
+		switch opt {
+		case "-t", "--tcp-ports":
+			noTCPInitPorts = false
+		case "-u", "--udp-ports":
+			noUDPInitPorts = false
+		case "-T", "--tcp-ns":
+			noTCPNamespacePorts = false
+		case "-U", "--udp-ns":
+			noUDPNamespacePorts = false
+		case dnsForwardOpt:
+			// if there is no arg after it pasta will likely error out anyway due invalid cli args
+			if len(cmdArgs) > i+1 {
+				dnsForwardIPs = append(dnsForwardIPs, cmdArgs[i+1])
+			}
+		}
+	}
+
+	for _, i := range opts.Ports {
+		protocols := strings.Split(i.Protocol, ",")
+		for _, protocol := range protocols {
+			var addr string
+
+			if i.HostIP != "" {
+				addr = i.HostIP + "/"
+			}
+
+			switch protocol {
+			case "tcp":
+				noTCPInitPorts = false
+				cmdArgs = append(cmdArgs, "-t")
+			case "udp":
+				noUDPInitPorts = false
+				cmdArgs = append(cmdArgs, "-u")
+			default:
+				return nil, nil, fmt.Errorf("can't forward protocol: %s", protocol)
+			}
+
+			arg := fmt.Sprintf("%s%d-%d:%d-%d", addr,
+				i.HostPort,
+				i.HostPort+i.Range-1,
+				i.ContainerPort,
+				i.ContainerPort+i.Range-1)
+			cmdArgs = append(cmdArgs, arg)
+		}
+	}
+
+	if len(dnsForwardIPs) == 0 {
+		// the user did not request custom --dns-forward so add our own.
+		cmdArgs = append(cmdArgs, dnsForwardOpt, dnsForwardIpv4)
+		dnsForwardIPs = append(dnsForwardIPs, dnsForwardIpv4)
+	}
+
+	if noTCPInitPorts {
+		cmdArgs = append(cmdArgs, "-t", "none")
+	}
+	if noUDPInitPorts {
+		cmdArgs = append(cmdArgs, "-u", "none")
+	}
+	if noTCPNamespacePorts {
+		cmdArgs = append(cmdArgs, "-T", "none")
+	}
+	if noUDPNamespacePorts {
+		cmdArgs = append(cmdArgs, "-U", "none")
+	}
+	if noMapGW {
+		cmdArgs = append(cmdArgs, "--no-map-gw")
+	}
+
+	// always pass --quiet to silence the info output from pasta
+	cmdArgs = append(cmdArgs, "--quiet", "--netns", opts.Netns)
+
+	return cmdArgs, dnsForwardIPs, nil
 }

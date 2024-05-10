@@ -237,7 +237,10 @@ func (s *storageImageSource) getBlobAndLayerID(digest digest.Digest, layers []st
 // GetManifest() reads the image's manifest.
 func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) (manifestBlob []byte, mimeType string, err error) {
 	if instanceDigest != nil {
-		key := manifestBigDataKey(*instanceDigest)
+		key, err := manifestBigDataKey(*instanceDigest)
+		if err != nil {
+			return nil, "", err
+		}
 		blob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, key)
 		if err != nil {
 			return nil, "", fmt.Errorf("reading manifest for image instance %q: %w", *instanceDigest, err)
@@ -249,7 +252,10 @@ func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *di
 		// Prefer the manifest corresponding to the user-specified digest, if available.
 		if s.imageRef.named != nil {
 			if digested, ok := s.imageRef.named.(reference.Digested); ok {
-				key := manifestBigDataKey(digested.Digest())
+				key, err := manifestBigDataKey(digested.Digest())
+				if err != nil {
+					return nil, "", err
+				}
 				blob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, key)
 				if err != nil && !os.IsNotExist(err) { // os.IsNotExist is true if the image exists but there is no data corresponding to key
 					return nil, "", err
@@ -385,7 +391,14 @@ func (s *storageImageSource) GetSignaturesWithFormat(ctx context.Context, instan
 	instance := "default instance"
 	if instanceDigest != nil {
 		signatureSizes = s.metadata.SignaturesSizes[*instanceDigest]
-		key = signatureBigDataKey(*instanceDigest)
+		k, err := signatureBigDataKey(*instanceDigest)
+		if err != nil {
+			return nil, err
+		}
+		key = k
+		if err := instanceDigest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, so validate explicitly.
+			return nil, err
+		}
 		instance = instanceDigest.Encoded()
 	}
 	if len(signatureSizes) > 0 {

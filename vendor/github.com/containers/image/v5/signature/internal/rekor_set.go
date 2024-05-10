@@ -220,7 +220,7 @@ func VerifyRekorSET(publicKey *ecdsa.PublicKey, unverifiedRekorSET []byte, unver
 		return time.Time{}, NewInvalidSignatureError(`Missing "data.hash.algorithm" field in hashedrekord`)
 	}
 	// FIXME: Rekor 1.3.5 has added SHA-386 and SHA-512 as recognized values.
-	// Eventually we should support them as well; doing that cleanly would require updqating to Rekor 1.3.5, which requires Go 1.21.
+	// Eventually we should support them as well.
 	// Short-term, Cosign (as of 2024-02 and Cosign 2.2.3) only produces and accepts SHA-256, so right now that’s not a compatibility
 	// issue.
 	if *hashedRekordV001.Data.Hash.Algorithm != models.HashedrekordV001SchemaDataHashAlgorithmSha256 {

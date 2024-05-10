@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/pkg/config"
-	"golang.org/x/exp/slices"
 )
 
 const (

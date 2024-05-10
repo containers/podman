@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/internal/attributedstring"
@@ -17,13 +18,9 @@ import (
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 const (
-	// _configPath is the path to the containers/containers.conf
-	// inside a given config directory.
-	_configPath = "containers/containers.conf"
 	// UserOverrideContainersConfig holds the containers config path overridden by the rootless user
 	UserOverrideContainersConfig = ".config/" + _configPath
 	// Token prefix for looking for helper binary under $BINDIR
@@ -1098,10 +1095,10 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 		return exec.LookPath(name)
 	}
 	configHint := "To resolve this error, set the helper_binaries_dir key in the `[engine]` section of containers.conf to the directory containing your helper binaries."
-	if len(c.Engine.HelperBinariesDir.Get()) == 0 {
+	if len(dirList) == 0 {
 		return "", fmt.Errorf("could not find %q because there are no helper binary directories configured.  %s", name, configHint)
 	}
-	return "", fmt.Errorf("could not find %q in one of %v.  %s", name, c.Engine.HelperBinariesDir, configHint)
+	return "", fmt.Errorf("could not find %q in one of %v.  %s", name, dirList, configHint)
 }
 
 // ImageCopyTmpDir default directory to store temporary image files during copy

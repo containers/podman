@@ -168,6 +168,9 @@ type BuildOptions struct {
 	// field. In most cases though, it is not appropriate, and this field may
 	// be ignored.
 	Dialer func(context.Context, string) (net.Conn, error)
+	// Authority is the effective authority of the clientconn for which the
+	// resolver is built.
+	Authority string
 }
 
 // An Endpoint is one network endpoint, or server, which may have multiple

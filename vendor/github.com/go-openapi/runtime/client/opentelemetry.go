@@ -11,7 +11,8 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/propagation"
-	semconv "go.opentelemetry.io/otel/semconv/v1.12.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+	"go.opentelemetry.io/otel/semconv/v1.17.0/httpconv"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -131,8 +132,11 @@ func (t *openTelemetryTransport) Submit(op *runtime.ClientOperation) (interface{
 	op.Reader = runtime.ClientResponseReaderFunc(func(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 		if span != nil {
 			statusCode := response.Code()
-			span.SetAttributes(attribute.Int(string(semconv.HTTPStatusCodeKey), statusCode))
-			span.SetStatus(semconv.SpanStatusFromHTTPStatusCodeAndSpanKind(statusCode, trace.SpanKindClient))
+			// NOTE: this is replaced by semconv.HTTPResponseStatusCode in semconv v1.21
+			span.SetAttributes(semconv.HTTPStatusCode(statusCode))
+			// NOTE: the conversion from HTTP status code to trace code is no longer available with
+			// semconv v1.21
+			span.SetStatus(httpconv.ServerStatus(statusCode))
 		}
 
 		return reader.ReadResponse(response, consumer)

@@ -88,7 +88,12 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 		if err = json.NewDecoder(res.Body).Decode(&tagsHolder); err != nil {
 			return nil, err
 		}
-		tags = append(tags, tagsHolder.Tags...)
+		for _, tag := range tagsHolder.Tags {
+			if _, err := reference.WithTag(dr.ref, tag); err != nil { // Ensure the tag does not contain unexpected values
+				return nil, fmt.Errorf("registry returned invalid tag %q: %w", tag, err)
+			}
+			tags = append(tags, tag)
+		}
 
 		link := res.Header.Get("Link")
 		if link == "" {

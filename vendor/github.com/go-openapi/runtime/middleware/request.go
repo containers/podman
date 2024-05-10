@@ -19,10 +19,10 @@ import (
 	"reflect"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
+	"github.com/go-openapi/runtime/logger"
 	"github.com/go-openapi/spec"
 	"github.com/go-openapi/strfmt"
-
-	"github.com/go-openapi/runtime"
 )
 
 // UntypedRequestBinder binds and validates the data from a http request
@@ -31,6 +31,7 @@ type UntypedRequestBinder struct {
 	Parameters   map[string]spec.Parameter
 	Formats      strfmt.Registry
 	paramBinders map[string]*untypedParamBinder
+	debugLogf    func(string, ...any) // a logging function to debug context and all components using it
 }
 
 // NewUntypedRequestBinder creates a new binder for reading a request.
@@ -44,6 +45,7 @@ func NewUntypedRequestBinder(parameters map[string]spec.Parameter, spec *spec.Sw
 		paramBinders: binders,
 		Spec:         spec,
 		Formats:      formats,
+		debugLogf:    debugLogfFunc(nil),
 	}
 }
 
@@ -52,10 +54,10 @@ func (o *UntypedRequestBinder) Bind(request *http.Request, routeParams RoutePara
 	val := reflect.Indirect(reflect.ValueOf(data))
 	isMap := val.Kind() == reflect.Map
 	var result []error
-	debugLog("binding %d parameters for %s %s", len(o.Parameters), request.Method, request.URL.EscapedPath())
+	o.debugLogf("binding %d parameters for %s %s", len(o.Parameters), request.Method, request.URL.EscapedPath())
 	for fieldName, param := range o.Parameters {
 		binder := o.paramBinders[fieldName]
-		debugLog("binding parameter %s for %s %s", fieldName, request.Method, request.URL.EscapedPath())
+		o.debugLogf("binding parameter %s for %s %s", fieldName, request.Method, request.URL.EscapedPath())
 		var target reflect.Value
 		if !isMap {
 			binder.Name = fieldName
@@ -65,7 +67,7 @@ func (o *UntypedRequestBinder) Bind(request *http.Request, routeParams RoutePara
 		if isMap {
 			tpe := binder.Type()
 			if tpe == nil {
-				if param.Schema.Type.Contains("array") {
+				if param.Schema.Type.Contains(typeArray) {
 					tpe = reflect.TypeOf([]interface{}{})
 				} else {
 					tpe = reflect.TypeOf(map[string]interface{}{})
@@ -101,4 +103,15 @@ func (o *UntypedRequestBinder) Bind(request *http.Request, routeParams RoutePara
 	}
 
 	return nil
+}
+
+// SetLogger allows for injecting a logger to catch debug entries.
+//
+// The logger is enabled in DEBUG mode only.
+func (o *UntypedRequestBinder) SetLogger(lg logger.Logger) {
+	o.debugLogf = debugLogfFunc(lg)
+}
+
+func (o *UntypedRequestBinder) setDebugLogf(fn func(string, ...any)) {
+	o.debugLogf = fn
 }

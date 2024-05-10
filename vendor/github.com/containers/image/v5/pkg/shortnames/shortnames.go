@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/manifoldco/promptui"
 	"github.com/opencontainers/go-digest"
-	"golang.org/x/exp/slices"
 	"golang.org/x/term"
 )
 

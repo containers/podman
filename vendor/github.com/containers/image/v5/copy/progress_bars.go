@@ -49,10 +49,13 @@ type progressBar struct {
 // As a convention, most users of progress bars should call mark100PercentComplete on full success;
 // by convention, we don't leave progress bars in partial state when fully done
 // (even if we copied much less data than anticipated).
-func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.BlobInfo, kind string, onComplete string) *progressBar {
+func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.BlobInfo, kind string, onComplete string) (*progressBar, error) {
 	// shortDigestLen is the length of the digest used for blobs.
 	const shortDigestLen = 12
 
+	if err := info.Digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, so validate explicitly.
+		return nil, err
+	}
 	prefix := fmt.Sprintf("Copying %s %s", kind, info.Digest.Encoded())
 	// Truncate the prefix (chopping of some part of the digest) to make all progress bars aligned in a column.
 	maxPrefixLen := len("Copying blob ") + shortDigestLen
@@ -105,7 +108,7 @@ func (c *copier) createProgressBar(pool *mpb.Progress, partial bool, info types.
 	return &progressBar{
 		Bar:          bar,
 		originalSize: info.Size,
-	}
+	}, nil
 }
 
 // printCopyInfo prints a "Copying ..." message on the copier if the output is

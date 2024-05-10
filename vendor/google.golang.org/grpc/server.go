@@ -1342,7 +1342,8 @@ func (s *Server) processUnaryRPC(ctx context.Context, t transport.ServerTranspor
 	if len(shs) != 0 || len(binlogs) != 0 {
 		payInfo = &payloadInfo{}
 	}
-	d, err := recvAndDecompress(&parser{r: stream, recvBufferPool: s.opts.recvBufferPool}, stream, dc, s.opts.maxReceiveMessageSize, payInfo, decomp)
+
+	d, cancel, err := recvAndDecompress(&parser{r: stream, recvBufferPool: s.opts.recvBufferPool}, stream, dc, s.opts.maxReceiveMessageSize, payInfo, decomp)
 	if err != nil {
 		if e := t.WriteStatus(stream, status.Convert(err)); e != nil {
 			channelz.Warningf(logger, s.channelzID, "grpc: Server.processUnaryRPC failed to write status: %v", e)
@@ -1353,6 +1354,8 @@ func (s *Server) processUnaryRPC(ctx context.Context, t transport.ServerTranspor
 		t.IncrMsgRecv()
 	}
 	df := func(v any) error {
+		defer cancel()
+
 		if err := s.getCodec(stream.ContentSubtype()).Unmarshal(d, v); err != nil {
 			return status.Errorf(codes.Internal, "grpc: error unmarshalling request: %v", err)
 		}
@@ -2117,7 +2120,7 @@ func ClientSupportedCompressors(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to fetch the stream from the given context %v", ctx)
 	}
 
-	return strings.Split(stream.ClientAdvertisedCompressors(), ","), nil
+	return stream.ClientAdvertisedCompressors(), nil
 }
 
 // SetTrailer sets the trailer metadata that will be sent when an RPC returns.
@@ -2157,7 +2160,7 @@ func (c *channelzServer) ChannelzMetric() *channelz.ServerInternalMetric {
 
 // validateSendCompressor returns an error when given compressor name cannot be
 // handled by the server or the client based on the advertised compressors.
-func validateSendCompressor(name, clientCompressors string) error {
+func validateSendCompressor(name string, clientCompressors []string) error {
 	if name == encoding.Identity {
 		return nil
 	}
@@ -2166,7 +2169,7 @@ func validateSendCompressor(name, clientCompressors string) error {
 		return fmt.Errorf("compressor not registered %q", name)
 	}
 
-	for _, c := range strings.Split(clientCompressors, ",") {
+	for _, c := range clientCompressors {
 		if c == name {
 			return nil // found match
 		}

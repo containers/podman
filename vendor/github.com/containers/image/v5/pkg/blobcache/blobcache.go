@@ -78,12 +78,15 @@ func (b *BlobCache) DeleteImage(ctx context.Context, sys *types.SystemContext) e
 }
 
 // blobPath returns the path appropriate for storing a blob with digest.
-func (b *BlobCache) blobPath(digest digest.Digest, isConfig bool) string {
+func (b *BlobCache) blobPath(digest digest.Digest, isConfig bool) (string, error) {
+	if err := digest.Validate(); err != nil { // Make sure digest.String() does not contain any unexpected characters
+		return "", err
+	}
 	baseName := digest.String()
 	if isConfig {
 		baseName += ".config"
 	}
-	return filepath.Join(b.directory, baseName)
+	return filepath.Join(b.directory, baseName), nil
 }
 
 // findBlob checks if we have a blob for info in cache (whether a config or not)
@@ -95,7 +98,10 @@ func (b *BlobCache) findBlob(info types.BlobInfo) (string, int64, bool, error) {
 	}
 
 	for _, isConfig := range []bool{false, true} {
-		path := b.blobPath(info.Digest, isConfig)
+		path, err := b.blobPath(info.Digest, isConfig)
+		if err != nil {
+			return "", -1, false, err
+		}
 		fileInfo, err := os.Stat(path)
 		if err == nil && (info.Size == -1 || info.Size == fileInfo.Size()) {
 			return path, fileInfo.Size(), isConfig, nil

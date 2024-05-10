@@ -1,7 +1,5 @@
-# Validation helpers
-[![Build Status](https://travis-ci.org/go-openapi/validate.svg?branch=master)](https://travis-ci.org/go-openapi/validate)
-[![Build status](https://ci.appveyor.com/api/projects/status/d6epy6vipueyh5fs/branch/master?svg=true)](https://ci.appveyor.com/project/fredbi/validate/branch/master)
-[![codecov](https://codecov.io/gh/go-openapi/validate/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/validate)
+# Validation helpers [![Build Status](https://github.com/go-openapi/validate/actions/workflows/go-test.yml/badge.svg)](https://github.com/go-openapi/validate/actions?query=workflow%3A"go+test") [![codecov](https://codecov.io/gh/go-openapi/validate/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/validate)
+
 [![Slack Status](https://slackin.goswagger.io/badge.svg)](https://slackin.goswagger.io)
 [![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)](https://raw.githubusercontent.com/go-openapi/validate/master/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/go-openapi/validate.svg)](https://pkg.go.dev/github.com/go-openapi/validate)
@@ -24,7 +22,7 @@ Reference can be found here: https://github.com/OAI/OpenAPI-Specification/blob/m
   * Minimum, Maximum, MultipleOf
   * FormatOf
 
-[Documentation](https://godoc.org/github.com/go-openapi/validate)
+[Documentation](https://pkg.go.dev/github.com/go-openapi/validate)
 
 ## FAQ
 

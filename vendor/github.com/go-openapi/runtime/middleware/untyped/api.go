@@ -197,30 +197,31 @@ func (d *API) Validate() error {
 
 // validateWith validates the registrations in this API against the provided spec analyzer
 func (d *API) validate() error {
-	var consumes []string
+	consumes := make([]string, 0, len(d.consumers))
 	for k := range d.consumers {
 		consumes = append(consumes, k)
 	}
 
-	var produces []string
+	produces := make([]string, 0, len(d.producers))
 	for k := range d.producers {
 		produces = append(produces, k)
 	}
 
-	var authenticators []string
+	authenticators := make([]string, 0, len(d.authenticators))
 	for k := range d.authenticators {
 		authenticators = append(authenticators, k)
 	}
 
-	var operations []string
+	operations := make([]string, 0, len(d.operations))
 	for m, v := range d.operations {
 		for p := range v {
 			operations = append(operations, fmt.Sprintf("%s %s", strings.ToUpper(m), p))
 		}
 	}
 
-	var definedAuths []string
-	for k := range d.spec.Spec().SecurityDefinitions {
+	secDefinitions := d.spec.Spec().SecurityDefinitions
+	definedAuths := make([]string, 0, len(secDefinitions))
+	for k := range secDefinitions {
 		definedAuths = append(definedAuths, k)
 	}
 
@@ -267,7 +268,7 @@ func (d *API) verify(name string, registrations []string, expectations []string)
 		delete(expected, k)
 	}
 
-	var unregistered []string
+	unregistered := make([]string, 0, len(expected))
 	for k := range expected {
 		unregistered = append(unregistered, k)
 	}

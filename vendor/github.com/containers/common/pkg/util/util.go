@@ -5,12 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // StringInSlice determines if a string is in a string slice, returns bool.

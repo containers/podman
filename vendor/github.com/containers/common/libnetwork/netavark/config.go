@@ -10,13 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strconv"
 	"time"
 
 	internalutil "github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/storage/pkg/stringid"
-	"golang.org/x/exp/slices"
 )
 
 func sliceRemoveDuplicates(strList []string) []string {

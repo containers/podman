@@ -3,6 +3,8 @@
 package prioritize
 
 import (
+	"cmp"
+	"slices"
 	"time"
 
 	"github.com/containers/image/v5/internal/blobinfocache"
@@ -11,7 +13,6 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // replacementAttempts is the number of blob replacement candidates with known location returned by destructivelyPrioritizeReplacementCandidates,
@@ -118,22 +119,7 @@ func (css *candidateSortState) compare(xi, xj CandidateWithTime) int {
 		return -cmp
 	}
 	// Fall back to digest, if timestamps end up _exactly_ the same (how?!)
-	// FIXME: Use cmp.Compare after we update to Go 1.21.
-	switch {
-	case xi.Candidate.Digest < xj.Candidate.Digest:
-		return -1
-	case xi.Candidate.Digest > xj.Candidate.Digest:
-		return 1
-	default:
-		return 0
-	}
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
+	return cmp.Compare(xi.Candidate.Digest, xj.Candidate.Digest)
 }
 
 // destructivelyPrioritizeReplacementCandidatesWithMax is destructivelyPrioritizeReplacementCandidates with parameters for the
@@ -161,7 +147,7 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 
 	knownLocationCandidatesUsed := min(len(knownLocationCandidates), totalLimit)
 	remainingCapacity := totalLimit - knownLocationCandidatesUsed
-	unknownLocationCandidatesUsed := min(noLocationLimit, min(remainingCapacity, len(unknownLocationCandidates)))
+	unknownLocationCandidatesUsed := min(noLocationLimit, remainingCapacity, len(unknownLocationCandidates))
 	res := make([]blobinfocache.BICReplacementCandidate2, knownLocationCandidatesUsed)
 	for i := 0; i < knownLocationCandidatesUsed; i++ {
 		res[i] = knownLocationCandidates[i].Candidate

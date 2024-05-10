@@ -40,5 +40,5 @@ func repairURI(in string) (*url.URL, string) {
 	return u, ""
 }
 
-func fixWindowsURI(u *url.URL, in string) {
+func fixWindowsURI(_ *url.URL, _ string) {
 }

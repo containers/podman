@@ -141,9 +141,12 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 			closed = filterer.closed
 			filterer.closedLock.Unlock()
 		}
-		pipeReader.Close()
-		tarWriter.Close()
-		writeCloser.Close()
+		err1 := tarWriter.Close()
+		err := writeCloser.Close()
+		if err == nil {
+			err = err1
+		}
+		pipeReader.CloseWithError(err)
 		filterer.wg.Done()
 	}()
 	return filterer

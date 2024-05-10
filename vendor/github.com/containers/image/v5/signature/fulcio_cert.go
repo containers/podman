@@ -10,12 +10,12 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/sigstore/fulcio/pkg/certificate"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"golang.org/x/exp/slices"
 )
 
 // fulcioTrustRoot contains policy allow validating Fulcio-issued certificates.

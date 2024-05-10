@@ -1,5 +1,7 @@
 package oidc
 
+import jose "github.com/go-jose/go-jose/v4"
+
 // JOSE asymmetric signing algorithm values as defined by RFC 7518
 //
 // see: https://tools.ietf.org/html/rfc7518#section-3.1
@@ -15,3 +17,16 @@ const (
 	PS512 = "PS512" // RSASSA-PSS using SHA512 and MGF1-SHA512
 	EdDSA = "EdDSA" // Ed25519 using SHA-512
 )
+
+var allAlgs = []jose.SignatureAlgorithm{
+	jose.RS256,
+	jose.RS384,
+	jose.RS512,
+	jose.ES256,
+	jose.ES384,
+	jose.ES512,
+	jose.PS256,
+	jose.PS384,
+	jose.PS512,
+	jose.EdDSA,
+}

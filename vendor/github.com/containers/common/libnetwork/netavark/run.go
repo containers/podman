@@ -5,13 +5,13 @@ package netavark
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 type netavarkOptions struct {
