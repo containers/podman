@@ -952,6 +952,8 @@ func (c *dockerClient) detectProperties(ctx context.Context) error {
 	return c.detectPropertiesError
 }
 
+// fetchManifest fetches a manifest for (the repo of ref) + tagOrDigest.
+// The caller is responsible for ensuring tagOrDigest uses the expected format.
 func (c *dockerClient) fetchManifest(ctx context.Context, ref dockerReference, tagOrDigest string) ([]byte, string, error) {
 	path := fmt.Sprintf(manifestPath, reference.Path(ref.ref), tagOrDigest)
 	headers := map[string][]string{
@@ -1035,6 +1037,9 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 		}
 	}
 
+	if err := info.Digest.Validate(); err != nil { // Make sure info.Digest.String() does not contain any unexpected characters
+		return nil, 0, err
+	}
 	path := fmt.Sprintf(blobsPath, reference.Path(ref.ref), info.Digest.String())
 	logrus.Debugf("Downloading %s", path)
 	res, err := c.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
@@ -1098,7 +1103,10 @@ func isManifestUnknownError(err error) bool {
 // digest in ref.
 // It returns (nil, nil) if the manifest does not exist.
 func (c *dockerClient) getSigstoreAttachmentManifest(ctx context.Context, ref dockerReference, digest digest.Digest) (*manifest.OCI1, error) {
-	tag := sigstoreAttachmentTag(digest)
+	tag, err := sigstoreAttachmentTag(digest)
+	if err != nil {
+		return nil, err
+	}
 	sigstoreRef, err := reference.WithTag(reference.TrimNamed(ref.ref), tag)
 	if err != nil {
 		return nil, err
@@ -1131,6 +1139,9 @@ func (c *dockerClient) getSigstoreAttachmentManifest(ctx context.Context, ref do
 // getExtensionsSignatures returns signatures from the X-Registry-Supports-Signatures API extension,
 // using the original data structures.
 func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerReference, manifestDigest digest.Digest) (*extensionSignatureList, error) {
+	if err := manifestDigest.Validate(); err != nil { // Make sure manifestDigest.String() does not contain any unexpected characters
+		return nil, err
+	}
 	path := fmt.Sprintf(extensionsSignaturePath, reference.Path(ref.ref), manifestDigest)
 	res, err := c.makeRequest(ctx, http.MethodGet, path, nil, nil, v2Auth, nil)
 	if err != nil {
@@ -1154,8 +1165,11 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 }
 
 // sigstoreAttachmentTag returns a sigstore attachment tag for the specified digest.
-func sigstoreAttachmentTag(d digest.Digest) string {
-	return strings.Replace(d.String(), ":", "-", 1) + ".sig"
+func sigstoreAttachmentTag(d digest.Digest) (string, error) {
+	if err := d.Validate(); err != nil { // Make sure d.String() doesn’t contain any unexpected characters
+		return "", err
+	}
+	return strings.Replace(d.String(), ":", "-", 1) + ".sig", nil
 }
 
 // Close removes resources associated with an initialized dockerClient, if any.

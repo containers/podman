@@ -606,7 +606,10 @@ func (ic *imageCopier) copyConfig(ctx context.Context, src types.Image) error {
 		destInfo, err := func() (types.BlobInfo, error) { // A scope for defer
 			progressPool := ic.c.newProgressPool()
 			defer progressPool.Wait()
-			bar := ic.c.createProgressBar(progressPool, false, srcInfo, "config", "done")
+			bar, err := ic.c.createProgressBar(progressPool, false, srcInfo, "config", "done")
+			if err != nil {
+				return types.BlobInfo{}, err
+			}
 			defer bar.Abort(false)
 			ic.c.printCopyInfo("config", srcInfo)
 
@@ -738,15 +741,21 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		}
 		if reused {
 			logrus.Debugf("Skipping blob %s (already present):", srcInfo.Digest)
-			func() { // A scope for defer
+			if err := func() error { // A scope for defer
 				label := "skipped: already exists"
 				if reusedBlob.MatchedByTOCDigest {
 					label = "skipped: already exists (found by TOC)"
 				}
-				bar := ic.c.createProgressBar(pool, false, types.BlobInfo{Digest: reusedBlob.Digest, Size: 0}, "blob", label)
+				bar, err := ic.c.createProgressBar(pool, false, types.BlobInfo{Digest: reusedBlob.Digest, Size: 0}, "blob", label)
+				if err != nil {
+					return err
+				}
 				defer bar.Abort(false)
 				bar.mark100PercentComplete()
-			}()
+				return nil
+			}(); err != nil {
+				return types.BlobInfo{}, "", err
+			}
 
 			// Throw an event that the layer has been skipped
 			if ic.c.options.Progress != nil && ic.c.options.ProgressInterval > 0 {
@@ -765,8 +774,11 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 	// Attempt a partial only when the source allows to retrieve a blob partially and
 	// the destination has support for it.
 	if canAvoidProcessingCompleteLayer && ic.c.rawSource.SupportsGetBlobAt() && ic.c.dest.SupportsPutBlobPartial() {
-		if reused, blobInfo := func() (bool, types.BlobInfo) { // A scope for defer
-			bar := ic.c.createProgressBar(pool, true, srcInfo, "blob", "done")
+		reused, blobInfo, err := func() (bool, types.BlobInfo, error) { // A scope for defer
+			bar, err := ic.c.createProgressBar(pool, true, srcInfo, "blob", "done")
+			if err != nil {
+				return false, types.BlobInfo{}, err
+			}
 			hideProgressBar := true
 			defer func() { // Note that this is not the same as defer bar.Abort(hideProgressBar); we need hideProgressBar to be evaluated lazily.
 				bar.Abort(hideProgressBar)
@@ -789,18 +801,25 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				bar.mark100PercentComplete()
 				hideProgressBar = false
 				logrus.Debugf("Retrieved partial blob %v", srcInfo.Digest)
-				return true, updatedBlobInfoFromUpload(srcInfo, uploadedBlob)
+				return true, updatedBlobInfoFromUpload(srcInfo, uploadedBlob), nil
 			}
 			logrus.Debugf("Failed to retrieve partial blob: %v", err)
-			return false, types.BlobInfo{}
-		}(); reused {
+			return false, types.BlobInfo{}, nil
+		}()
+		if err != nil {
+			return types.BlobInfo{}, "", err
+		}
+		if reused {
 			return blobInfo, cachedDiffID, nil
 		}
 	}
 
 	// Fallback: copy the layer, computing the diffID if we need to do so
 	return func() (types.BlobInfo, digest.Digest, error) { // A scope for defer
-		bar := ic.c.createProgressBar(pool, false, srcInfo, "blob", "done")
+		bar, err := ic.c.createProgressBar(pool, false, srcInfo, "blob", "done")
+		if err != nil {
+			return types.BlobInfo{}, "", err
+		}
 		defer bar.Abort(false)
 
 		srcStream, srcBlobSize, err := ic.c.rawSource.GetBlob(ctx, srcInfo, ic.c.blobInfoCache)
