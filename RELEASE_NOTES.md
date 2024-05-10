@@ -1,5 +1,18 @@
 # Release Notes
 
+## 5.0.3
+### Security
+- This release addresses CVE-2024-3727, a vulnerability in the containers/image library which allows attackers to trigger authenticated registry access on behalf of the victim user.
+
+### Bugfixes
+- Fixed a bug where `podman machine start` would fail if the machine had a volume with a long target path ([#22226](https://github.com/containers/podman/issues/22226)).
+- Fixed a bug where `podman machine start` mounted volumes with paths that included dashes in the wrong location ([#22505](https://github.com/containers/podman/issues/22505)).
+
+### Misc
+- Updated Buildah to v1.35.4
+- Updated the containers/common library to v0.58.3
+- Updated the containers/image library to v5.30.1
+
 ## 5.0.2
 ### Bugfixes
 - Fixed a bug that could leak IPAM entries when a network was removed ([#22034](https://github.com/containers/podman/issues/22034)).
