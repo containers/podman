@@ -2,6 +2,13 @@
 
 # Changelog
 
+## v1.35.4 (2024-05-09)
+
+    [release-1.35] CVE-2024-3727 updates
+    integration test: handle new labels in "bud and test --unsetlabel"
+    [release-1.35] Bump go-jose CVE-2024-28180
+    [release-1.35] Bump ocicrypt and go-jose CVE-2024-28180
+
 ## v1.35.3 (2024-03-28)
 
     [release-1.35] Bump c/common to v0.58.1
