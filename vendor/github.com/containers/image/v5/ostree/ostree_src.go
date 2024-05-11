@@ -190,7 +190,7 @@ func (o ostreeReader) Read(p []byte) (int, error) {
 	if count == 0 {
 		return 0, io.EOF
 	}
-	data := unsafe.Slice((*byte)(C.g_bytes_get_data(b, nil)), count)
+	data := (*[1 << 30]byte)(unsafe.Pointer(C.g_bytes_get_data(b, nil)))[:count:count]
 	copy(p, data)
 	return count, nil
 }
@@ -286,7 +286,9 @@ func (s *ostreeImageSource) readSingleFile(commit, path string) (io.ReadCloser, 
 // The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 // May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
 func (s *ostreeImageSource) GetBlob(ctx context.Context, info types.BlobInfo, cache types.BlobInfoCache) (io.ReadCloser, int64, error) {
-
+	if err := info.Digest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, so validate explicitly.
+		return nil, -1, err
+	}
 	blob := info.Digest.Hex()
 
 	// Ensure s.compressed is initialized.  It is build by LayerInfosForCopy.

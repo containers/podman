@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/slices"
@@ -62,7 +61,7 @@ func getDefaultResolvConf(params *Params) ([]byte, bool, error) {
 			if ns.Path != "" && !strings.HasPrefix(ns.Path, "/proc/") {
 				// check for netns created by "ip netns"
 				path := filepath.Join("/etc/netns", filepath.Base(ns.Path), "resolv.conf")
-				err := fileutils.Exists(path)
+				_, err := os.Stat(path)
 				if err == nil {
 					resolveConf = path
 				}

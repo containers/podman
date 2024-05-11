@@ -11,8 +11,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-
-	"github.com/containers/storage/pkg/fileutils"
 )
 
 var (
@@ -76,7 +74,7 @@ func defaultDriverConfig() *driverConfig {
 func (cfg *driverConfig) findGpgID() {
 	path := cfg.Root
 	for len(path) > 1 {
-		if err := fileutils.Exists(filepath.Join(path, ".gpg-id")); err == nil {
+		if _, err := os.Stat(filepath.Join(path, ".gpg-id")); err == nil {
 			bs, err := os.ReadFile(filepath.Join(path, ".gpg-id"))
 			if err != nil {
 				continue

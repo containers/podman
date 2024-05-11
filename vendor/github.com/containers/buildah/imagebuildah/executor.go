@@ -122,7 +122,6 @@ type Executor struct {
 	unusedArgs              map[string]struct{}
 	capabilities            []string
 	devices                 define.ContainerDevices
-	deviceSpecs             []string
 	signBy                  string
 	architecture            string
 	timestamp               *time.Time
@@ -154,7 +153,6 @@ type Executor struct {
 	envs                    []string
 	confidentialWorkload    define.ConfidentialWorkloadOptions
 	sbomScanOptions         []define.SBOMScanOptions
-	cdiConfigDir            string
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -183,8 +181,16 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		return nil, err
 	}
 
-	var transientMounts []Mount
+	devices := define.ContainerDevices{}
+	for _, device := range append(defaultContainerConfig.Containers.Devices.Get(), options.Devices...) {
+		dev, err := parse.DeviceFromPath(device)
+		if err != nil {
+			return nil, err
+		}
+		devices = append(dev, devices...)
+	}
 
+	transientMounts := []Mount{}
 	for _, volume := range append(defaultContainerConfig.Volumes(), options.TransientMounts...) {
 		mount, err := parse.Volume(volume)
 		if err != nil {
@@ -279,7 +285,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		blobDirectory:                  options.BlobDirectory,
 		unusedArgs:                     make(map[string]struct{}),
 		capabilities:                   capabilities,
-		deviceSpecs:                    options.Devices,
+		devices:                        devices,
 		signBy:                         options.SignBy,
 		architecture:                   options.Architecture,
 		timestamp:                      options.Timestamp,
@@ -306,7 +312,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		envs:                           append([]string{}, options.Envs...),
 		confidentialWorkload:           options.ConfidentialWorkload,
 		sbomScanOptions:                options.SBOMScanOptions,
-		cdiConfigDir:                   options.CDIConfigDir,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr

@@ -179,15 +179,14 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 	return "", fmt.Errorf("unsupported mediaType to encrypt: %v", mediatype)
 }
 
-// getDecryptedMediaType will return the mediatype to its encrypted counterpart and return
+// getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
 // an error if the mediatype does not support decryption
 func getDecryptedMediaType(mediatype string) (string, error) {
-	res, ok := strings.CutSuffix(mediatype, "+encrypted")
-	if !ok {
+	if !strings.HasSuffix(mediatype, "+encrypted") {
 		return "", fmt.Errorf("unsupported mediaType to decrypt: %v", mediatype)
 	}
 
-	return res, nil
+	return strings.TrimSuffix(mediatype, "+encrypted"), nil
 }
 
 // Serialize returns the manifest in a blob format.

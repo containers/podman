@@ -32,7 +32,6 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	digest "github.com/opencontainers/go-digest"
@@ -331,7 +330,7 @@ func (l *list) Reference(store storage.Store, multiple cp.ImageListSelection, in
 					return nil, fmt.Errorf(`internal error: no file or blob with artifact "config" or "layer" digest %q recorded`, referencedBlobDigest)
 				}
 				expectedLayerBlobPath := filepath.Join(blobsDir, referencedBlobDigest.Encoded())
-				if err := fileutils.Lexists(expectedLayerBlobPath); err == nil {
+				if _, err := os.Lstat(expectedLayerBlobPath); err == nil {
 					// did this one already
 					continue
 				} else if knownFile {
@@ -496,14 +495,6 @@ func prepareAddWithCompression(variants []string) ([]cp.OptionCompressionVariant
 	return res, nil
 }
 
-func mapToSlice(m map[string]string) []string {
-	slice := make([]string, 0, len(m))
-	for key, value := range m {
-		slice = append(slice, key+"="+value)
-	}
-	return slice
-}
-
 // Add adds information about the specified image to the list, computing the
 // image's manifest's digest, retrieving OS and architecture information from
 // the image's configuration, and recording the image's reference so that it
@@ -525,7 +516,6 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		Size                                 int64
 		ConfigInfo                           types.BlobInfo
 		ArtifactType                         string
-		URLs                                 []string
 	}
 	var instanceInfos []instanceInfo
 	var manifestDigest digest.Digest
@@ -557,8 +547,6 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 					OSFeatures:     append([]string{}, platform.OSFeatures...),
 					Size:           instance.Size,
 					ArtifactType:   instance.ArtifactType,
-					Annotations:    mapToSlice(instance.Annotations),
-					URLs:           instance.URLs,
 				}
 				instanceInfos = append(instanceInfos, instanceInfo)
 			}
@@ -590,8 +578,6 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 					OSFeatures:     append([]string{}, platform.OSFeatures...),
 					Size:           instance.Size,
 					ArtifactType:   instance.ArtifactType,
-					Annotations:    mapToSlice(instance.Annotations),
-					URLs:           instance.URLs,
 				}
 				instanceInfos = append(instanceInfos, instanceInfo)
 				added = true
@@ -662,9 +648,6 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		err = l.List.AddInstance(*instanceInfo.instanceDigest, instanceInfo.Size, manifestType, instanceInfo.OS, instanceInfo.Architecture, instanceInfo.OSVersion, instanceInfo.OSFeatures, instanceInfo.Variant, instanceInfo.Features, instanceInfo.Annotations)
 		if err != nil {
 			return "", fmt.Errorf("adding instance with digest %q: %w", *instanceInfo.instanceDigest, err)
-		}
-		if err = l.List.SetURLs(*instanceInfo.instanceDigest, instanceInfo.URLs); err != nil {
-			return "", fmt.Errorf("setting URLs for instance with digest %q: %w", *instanceInfo.instanceDigest, err)
 		}
 		if _, ok := l.instances[*instanceInfo.instanceDigest]; !ok {
 			l.instances[*instanceInfo.instanceDigest] = transports.ImageName(ref)

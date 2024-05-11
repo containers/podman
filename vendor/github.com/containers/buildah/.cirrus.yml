@@ -32,7 +32,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20240320t153921z-f39f38d13"
+    IMAGE_SUFFIX: "c20240222t143004z-f39f38d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -164,7 +164,7 @@ unit_task:
       - vendor
       - cross_build
 
-    timeout_in: 90m
+    timeout_in: 1h
 
     matrix:
         - env:
@@ -221,6 +221,7 @@ integration_task:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
+            CI_DESIRED_RUNTIME: runc
         # OVERLAY
         - env:
             DISTRO_NV: "${FEDORA_NAME}"
@@ -234,6 +235,7 @@ integration_task:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
+            CI_DESIRED_RUNTIME: runc
 
     gce_instance:
         image_name: "$IMAGE_NAME"

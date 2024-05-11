@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/containers/common/internal"
 	"github.com/containers/image/v5/manifest"
@@ -81,18 +80,10 @@ func Create() List {
 	}
 }
 
-func sliceToMap(s []string) map[string]string {
-	m := make(map[string]string, len(s))
-	for _, spec := range s {
-		key, value, _ := strings.Cut(spec, "=")
-		m[key] = value
-	}
-	return m
-}
-
 // AddInstance adds an entry for the specified manifest digest, with assorted
 // additional information specified in parameters, to the list or index.
 func (l *list) AddInstance(manifestDigest digest.Digest, manifestSize int64, manifestType, osName, architecture, osVersion string, osFeatures []string, variant string, features, annotations []string) error { // nolint:revive
+	// FIXME: the annotations argument is currently ignored
 	if err := l.Remove(manifestDigest); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
@@ -125,11 +116,10 @@ func (l *list) AddInstance(manifestDigest digest.Digest, manifestSize int64, man
 		ociv1platform = nil
 	}
 	l.oci.Manifests = append(l.oci.Manifests, v1.Descriptor{
-		MediaType:   manifestType,
-		Size:        manifestSize,
-		Digest:      manifestDigest,
-		Platform:    ociv1platform,
-		Annotations: sliceToMap(annotations),
+		MediaType: manifestType,
+		Size:      manifestSize,
+		Digest:    manifestDigest,
+		Platform:  ociv1platform,
 	})
 
 	return nil

@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/sftp"
 	"github.com/sirupsen/logrus"
@@ -313,7 +312,7 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 					return err
 				}
 				keyDir := path.Dir(keyFilePath)
-				if err := fileutils.Exists(keyDir); errors.Is(err, os.ErrNotExist) {
+				if _, err := os.Stat(keyDir); errors.Is(err, os.ErrNotExist) {
 					if err := os.Mkdir(keyDir, 0o700); err != nil {
 						return err
 					}

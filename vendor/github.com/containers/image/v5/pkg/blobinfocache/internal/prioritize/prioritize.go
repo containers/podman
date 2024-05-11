@@ -1,17 +1,13 @@
-// Package prioritize provides utilities for filtering and prioritizing locations in
+// Package prioritize provides utilities for prioritizing locations in
 // types.BlobInfoCache.CandidateLocations.
 package prioritize
 
 import (
+	"sort"
 	"time"
 
 	"github.com/containers/image/v5/internal/blobinfocache"
-	"github.com/containers/image/v5/internal/manifest"
-	"github.com/containers/image/v5/pkg/compression"
-	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // replacementAttempts is the number of blob replacement candidates with known location returned by destructivelyPrioritizeReplacementCandidates,
@@ -24,67 +20,28 @@ const replacementAttempts = 5
 // This is a heuristic/guess, and could well use a different value.
 const replacementUnknownLocationAttempts = 2
 
-// CandidateCompression returns (true, compressionOp, compressionAlgo) if a blob
-// with compressionName (which can be Uncompressed or UnknownCompression) is acceptable for a CandidateLocations* call with v2Options.
-//
-// v2Options can be set to nil if the call is CandidateLocations (i.e. compression is not required to be known);
-// if not nil, the call is assumed to be CandidateLocations2.
-//
-// The (compressionOp, compressionAlgo) values are suitable for BICReplacementCandidate2
-func CandidateCompression(v2Options *blobinfocache.CandidateLocations2Options, digest digest.Digest, compressorName string) (bool, types.LayerCompression, *compression.Algorithm) {
-	if v2Options == nil {
-		return true, types.PreserveOriginal, nil // Anything goes. The (compressionOp, compressionAlgo) values are not used.
-	}
-
-	var op types.LayerCompression
-	var algo *compression.Algorithm
-	switch compressorName {
-	case blobinfocache.Uncompressed:
-		op = types.Decompress
-		algo = nil
-	case blobinfocache.UnknownCompression:
-		logrus.Debugf("Ignoring BlobInfoCache record of digest %q with unknown compression", digest.String())
-		return false, types.PreserveOriginal, nil // Not allowed with CandidateLocations2
-	default:
-		op = types.Compress
-		algo_, err := compression.AlgorithmByName(compressorName)
-		if err != nil {
-			logrus.Debugf("Ignoring BlobInfoCache record of digest %q with unrecognized compression %q: %v",
-				digest.String(), compressorName, err)
-			return false, types.PreserveOriginal, nil // The BICReplacementCandidate2.CompressionAlgorithm field is required
-		}
-		algo = &algo_
-	}
-	if !manifest.CandidateCompressionMatchesReuseConditions(manifest.ReuseConditions{
-		PossibleManifestFormats: v2Options.PossibleManifestFormats,
-		RequiredCompression:     v2Options.RequiredCompression,
-	}, algo) {
-		requiredCompresssion := "nil"
-		if v2Options.RequiredCompression != nil {
-			requiredCompresssion = v2Options.RequiredCompression.Name()
-		}
-		logrus.Debugf("Ignoring BlobInfoCache record of digest %q, compression %q does not match required %s or MIME types %#v",
-			digest.String(), compressorName, requiredCompresssion, v2Options.PossibleManifestFormats)
-		return false, types.PreserveOriginal, nil
-	}
-
-	return true, op, algo
-}
-
 // CandidateWithTime is the input to types.BICReplacementCandidate prioritization.
 type CandidateWithTime struct {
 	Candidate blobinfocache.BICReplacementCandidate2 // The replacement candidate
 	LastSeen  time.Time                              // Time the candidate was last known to exist (either read or written) (not set for Candidate.UnknownLocation)
 }
 
-// candidateSortState is a closure for a comparison used by slices.SortFunc on candidates to prioritize,
-// along with the specially-treated digest values relevant to the ordering.
+// candidateSortState is a local state implementing sort.Interface on candidates to prioritize,
+// along with the specially-treated digest values for the implementation of sort.Interface.Less
 type candidateSortState struct {
-	primaryDigest      digest.Digest // The digest the user actually asked for
-	uncompressedDigest digest.Digest // The uncompressed digest corresponding to primaryDigest. May be "", or even equal to primaryDigest
+	cs                 []CandidateWithTime // The entries to sort
+	primaryDigest      digest.Digest       // The digest the user actually asked for
+	uncompressedDigest digest.Digest       // The uncompressed digest corresponding to primaryDigest. May be "", or even equal to primaryDigest
 }
 
-func (css *candidateSortState) compare(xi, xj CandidateWithTime) int {
+func (css *candidateSortState) Len() int {
+	return len(css.cs)
+}
+
+func (css *candidateSortState) Less(i, j int) bool {
+	xi := css.cs[i]
+	xj := css.cs[j]
+
 	// primaryDigest entries come first, more recent first.
 	// uncompressedDigest entries, if uncompressedDigest is set and != primaryDigest, come last, more recent entry first.
 	// Other digest values are primarily sorted by time (more recent first), secondarily by digest (to provide a deterministic order)
@@ -93,40 +50,36 @@ func (css *candidateSortState) compare(xi, xj CandidateWithTime) int {
 	if xi.Candidate.Digest != xj.Candidate.Digest {
 		// - The two digests are different, and one (or both) of the digests is primaryDigest or uncompressedDigest: time does not matter
 		if xi.Candidate.Digest == css.primaryDigest {
-			return -1
+			return true
 		}
 		if xj.Candidate.Digest == css.primaryDigest {
-			return 1
+			return false
 		}
 		if css.uncompressedDigest != "" {
 			if xi.Candidate.Digest == css.uncompressedDigest {
-				return 1
+				return false
 			}
 			if xj.Candidate.Digest == css.uncompressedDigest {
-				return -1
+				return true
 			}
 		}
 	} else { // xi.Candidate.Digest == xj.Candidate.Digest
 		// The two digests are the same, and are either primaryDigest or uncompressedDigest: order by time
 		if xi.Candidate.Digest == css.primaryDigest || (css.uncompressedDigest != "" && xi.Candidate.Digest == css.uncompressedDigest) {
-			return -xi.LastSeen.Compare(xj.LastSeen)
+			return xi.LastSeen.After(xj.LastSeen)
 		}
 	}
 
 	// Neither of the digests are primaryDigest/uncompressedDigest:
-	if cmp := xi.LastSeen.Compare(xj.LastSeen); cmp != 0 { // Order primarily by time
-		return -cmp
+	if !xi.LastSeen.Equal(xj.LastSeen) { // Order primarily by time
+		return xi.LastSeen.After(xj.LastSeen)
 	}
 	// Fall back to digest, if timestamps end up _exactly_ the same (how?!)
-	// FIXME: Use cmp.Compare after we update to Go 1.21.
-	switch {
-	case xi.Candidate.Digest < xj.Candidate.Digest:
-		return -1
-	case xi.Candidate.Digest > xj.Candidate.Digest:
-		return 1
-	default:
-		return 0
-	}
+	return xi.Candidate.Digest < xj.Candidate.Digest
+}
+
+func (css *candidateSortState) Swap(i, j int) {
+	css.cs[i], css.cs[j] = css.cs[j], css.cs[i]
 }
 
 func min(a, b int) int {
@@ -147,10 +100,12 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 	var unknownLocationCandidates []CandidateWithTime
 	// We don't need to use sort.Stable() because nanosecond timestamps are (presumably?) unique, so no two elements should
 	// compare equal.
-	slices.SortFunc(cs, (&candidateSortState{
+	// FIXME: Use slices.SortFunc after we update to Go 1.20 (Go 1.21?) and Time.Compare and cmp.Compare are available.
+	sort.Sort(&candidateSortState{
+		cs:                 cs,
 		primaryDigest:      primaryDigest,
 		uncompressedDigest: uncompressedDigest,
-	}).compare)
+	})
 	for _, candidate := range cs {
 		if candidate.Candidate.UnknownLocation {
 			unknownLocationCandidates = append(unknownLocationCandidates, candidate)

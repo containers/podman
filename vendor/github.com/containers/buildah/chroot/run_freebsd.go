@@ -4,10 +4,8 @@
 package chroot
 
 import (
-	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -15,7 +13,6 @@ import (
 	"syscall"
 
 	"github.com/containers/buildah/pkg/jail"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -181,9 +178,9 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			}
 		}
 		target := filepath.Join(spec.Root.Path, m.Destination)
-		if err := fileutils.Exists(target); err != nil {
+		if _, err := os.Stat(target); err != nil {
 			// If the target can't be stat()ted, check the error.
-			if !errors.Is(err, fs.ErrNotExist) {
+			if !os.IsNotExist(err) {
 				return undoBinds, fmt.Errorf("examining %q for mounting in mount namespace: %w", target, err)
 			}
 			// The target isn't there yet, so create it, and make a
@@ -214,11 +211,11 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			// Do the bind mount.
 			if !srcinfo.IsDir() {
 				logrus.Debugf("emulating file mount %q on %q", m.Source, target)
-				err := fileutils.Exists(target)
+				_, err := os.Stat(target)
 				if err == nil {
 					save := saveDir(spec, target)
-					if err := fileutils.Exists(save); err != nil {
-						if errors.Is(err, fs.ErrNotExist) {
+					if _, err := os.Stat(save); err != nil {
+						if os.IsNotExist(err) {
 							err = os.MkdirAll(save, 0111)
 						}
 						if err != nil {
@@ -227,7 +224,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 						removes = append(removes, save)
 					}
 					savePath := filepath.Join(save, filepath.Base(target))
-					if err := fileutils.Exists(target); err == nil {
+					if _, err := os.Stat(target); err == nil {
 						logrus.Debugf("moving %q to %q", target, savePath)
 						if err := os.Rename(target, savePath); err != nil {
 							return undoBinds, fmt.Errorf("moving %q to %q: %w", target, savePath, err)

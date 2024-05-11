@@ -12,7 +12,6 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/rootless"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -94,7 +93,7 @@ func registriesDirPathWithHomeDir(sys *types.SystemContext, homeDir string) stri
 		return sys.RegistriesDirPath
 	}
 	userRegistriesDirPath := filepath.Join(homeDir, userRegistriesDir)
-	if err := fileutils.Exists(userRegistriesDirPath); err == nil {
+	if _, err := os.Stat(userRegistriesDirPath); err == nil {
 		return userRegistriesDirPath
 	}
 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
@@ -287,8 +286,11 @@ func (ns registryNamespace) signatureTopLevel(write bool) string {
 // lookasideStorageURL returns an URL usable for accessing signature index in base with known manifestDigest.
 // base is not nil from the caller
 // NOTE: Keep this in sync with docs/signature-protocols.md!
-func lookasideStorageURL(base lookasideStorageBase, manifestDigest digest.Digest, index int) *url.URL {
+func lookasideStorageURL(base lookasideStorageBase, manifestDigest digest.Digest, index int) (*url.URL, error) {
+	if err := manifestDigest.Validate(); err != nil { // digest.Digest.Hex() panics on failure, and could possibly result in a path with ../, so validate explicitly.
+		return nil, err
+	}
 	sigURL := *base
 	sigURL.Path = fmt.Sprintf("%s@%s=%s/signature-%d", sigURL.Path, manifestDigest.Algorithm(), manifestDigest.Hex(), index+1)
-	return &sigURL
+	return &sigURL, nil
 }

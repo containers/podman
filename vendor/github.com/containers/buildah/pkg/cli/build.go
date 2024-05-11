@@ -358,7 +358,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		CacheFrom:               cacheFrom,
 		CacheTo:                 cacheTo,
 		CacheTTL:                cacheTTL,
-		CDIConfigDir:            iopts.CDIConfigDir,
 		CNIConfigDir:            iopts.CNIConfigDir,
 		CNIPluginPath:           iopts.CNIPlugInPath,
 		ConfidentialWorkload:    confidentialWorkloadOptions,

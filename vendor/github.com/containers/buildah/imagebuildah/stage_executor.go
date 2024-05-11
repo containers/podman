@@ -543,15 +543,6 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 			StripSetuidBit:    stripSetuid,
 			StripSetgidBit:    stripSetgid,
 		}
-		if len(copy.Files) > 0 {
-			// If we are copying heredoc files, we need to temporary place
-			// them in the context dir and then move to container via copier
-			// there are cases where .containerignore can have a patterns like
-			// '*' which can match our heredoc files so let's not set any excludes
-			// or IgnoreFile for this copy.
-			options.Excludes = nil
-			options.IgnoreFile = ""
-		}
 		if err := s.builder.Add(copy.Dest, copy.Download, options, sources...); err != nil {
 			return err
 		}
@@ -760,7 +751,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		Env:              config.Env,
 		Hostname:         config.Hostname,
 		Logger:           s.executor.logger,
-		Mounts:           s.executor.transientMounts,
+		Mounts:           append([]Mount{}, s.executor.transientMounts...),
 		NamespaceOptions: namespaceOptions,
 		NoHostname:       s.executor.noHostname,
 		NoHosts:          s.executor.noHosts,
@@ -915,7 +906,6 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		Format:                s.executor.outputFormat,
 		Capabilities:          s.executor.capabilities,
 		Devices:               s.executor.devices,
-		DeviceSpecs:           s.executor.deviceSpecs,
 		MaxPullRetries:        s.executor.maxPullPushRetries,
 		PullRetryDelay:        s.executor.retryPullPushDelay,
 		OciDecryptConfig:      s.executor.ociDecryptConfig,
@@ -923,7 +913,6 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		ProcessLabel:          s.executor.processLabel,
 		MountLabel:            s.executor.mountLabel,
 		PreserveBaseImageAnns: preserveBaseImageAnnotations,
-		CDIConfigDir:          s.executor.cdiConfigDir,
 	}
 
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
@@ -1411,7 +1400,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			}
 		}
 
-		needsCacheKey := (len(s.executor.cacheFrom) != 0 && !avoidLookingCache) || len(s.executor.cacheTo) != 0
+		needsCacheKey := (len(s.executor.cacheFrom) != 0 || len(s.executor.cacheTo) != 0) && !avoidLookingCache
 
 		// If we have to commit for this instruction, only assign the
 		// stage's configured output name to the last layer.
@@ -1442,6 +1431,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// and copy the content.
 			canMatchCacheOnlyAfterRun = (step.Command == command.Add || step.Command == command.Copy)
 			if canMatchCacheOnlyAfterRun {
+				s.didExecute = true
 				if err = ib.Run(step, s, noRunsRemaining); err != nil {
 					logrus.Debugf("Error building at step %+v: %v", *step, err)
 					return "", nil, false, fmt.Errorf("building at STEP \"%s\": %w", step.Message, err)
@@ -1477,9 +1467,6 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 						pulledAndUsedCacheImage = true
 					}
 				}
-			}
-			if canMatchCacheOnlyAfterRun && cacheID == "" {
-				s.didExecute = true
 			}
 		}
 

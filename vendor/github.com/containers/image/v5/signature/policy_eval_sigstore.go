@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/manifest"
@@ -270,7 +270,12 @@ func (pr *prSigstoreSigned) isRunningImageAllowed(ctx context.Context, image pri
 	case 1:
 		summary = rejections[0]
 	default:
-		summary = PolicyRequirementError(multierr.Format("None of the signatures were accepted, reasons: ", "; ", "", rejections).Error())
+		var msgs []string
+		for _, e := range rejections {
+			msgs = append(msgs, e.Error())
+		}
+		summary = PolicyRequirementError(fmt.Sprintf("None of the signatures were accepted, reasons: %s",
+			strings.Join(msgs, "; ")))
 	}
 	return false, summary
 }

@@ -15,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/internal/mkcw/types"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -225,7 +224,7 @@ func GenerateMeasurement(workloadConfig WorkloadConfig, firmwareLibrary string) 
 		}
 	}
 	for _, candidate := range pathsToCheck {
-		if err := fileutils.Lexists(candidate); err == nil {
+		if _, err := os.Lstat(candidate); err == nil {
 			var stdout, stderr bytes.Buffer
 			logrus.Debugf("krunfw_measurement -c %s -m %s %s", cpuString, memoryString, candidate)
 			cmd := exec.Command("krunfw_measurement", "-c", cpuString, "-m", memoryString, candidate)

@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"golang.org/x/exp/maps"
 )
@@ -129,7 +128,7 @@ func (d *Driver) Delete(id string) error {
 // getAllData reads the data file and returns all data
 func (d *Driver) getAllData() (map[string][]byte, error) {
 	// check if the db file exists
-	err := fileutils.Exists(d.secretsDataFilePath)
+	_, err := os.Stat(d.secretsDataFilePath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			// the file will be created later on a store()

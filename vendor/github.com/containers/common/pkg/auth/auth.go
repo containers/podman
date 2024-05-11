@@ -16,7 +16,6 @@ import (
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
 )
@@ -70,7 +69,7 @@ func CheckAuthFile(pathOption string) error {
 	if pathOption == "" {
 		return nil
 	}
-	if err := fileutils.Exists(pathOption); err != nil {
+	if _, err := os.Stat(pathOption); err != nil {
 		return fmt.Errorf("credential file is not accessible: %w", err)
 	}
 	return nil

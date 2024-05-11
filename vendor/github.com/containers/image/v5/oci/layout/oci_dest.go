@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -17,7 +16,6 @@ import (
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/storage/pkg/fileutils"
 	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -303,7 +301,7 @@ func (d *ociImageDestination) Commit(context.Context, types.UnparsedImage) error
 }
 
 func ensureDirectoryExists(path string) error {
-	if err := fileutils.Exists(path); err != nil && errors.Is(err, fs.ErrNotExist) {
+	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
@@ -319,7 +317,7 @@ func ensureParentDirectoryExists(path string) error {
 // indexExists checks whether the index location specified in the OCI reference exists.
 // The implementation is opinionated, since in case of unexpected errors false is returned
 func indexExists(ref ociReference) bool {
-	err := fileutils.Exists(ref.indexPath())
+	_, err := os.Stat(ref.indexPath())
 	if err == nil {
 		return true
 	}

@@ -16,8 +16,6 @@ BUILDFLAGS := -tags "$(BUILDTAGS)"
 BUILDAH := buildah
 SELINUXOPT ?= $(shell test -x /usr/sbin/selinuxenabled && selinuxenabled && echo -Z)
 SELINUXTYPE=container_runtime_exec_t
-AS ?= as
-STRIP ?= strip
 
 GO := go
 GO_LDFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-ldflags"; fi)
@@ -81,14 +79,14 @@ bin/buildah: $(SOURCES) cmd/buildah/*.go internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 	test -z "${SELINUXOPT}" || chcon --verbose -t $(SELINUXTYPE) $@
 
-ifneq ($(shell $(AS) --version | grep x86_64),)
+ifneq ($(shell as --version | grep x86_64),)
 internal/mkcw/embed/entrypoint_amd64.gz: internal/mkcw/embed/entrypoint_amd64
 	gzip -k9nf $^
 
 internal/mkcw/embed/entrypoint_amd64: internal/mkcw/embed/entrypoint_amd64.s
 	$(AS) -o $(patsubst %.s,%.o,$^) $^
 	$(LD) -o $@ $(patsubst %.s,%.o,$^)
-	$(STRIP) $@
+	strip $@
 endif
 
 
@@ -220,13 +218,5 @@ lint: install.tools
 # CAUTION: This is not a replacement for RPMs provided by your distro.
 # Only intended to build and test the latest unreleased changes.
 .PHONY: rpm
-rpm:  ## Build rpm packages
-	$(MAKE) -C rpm
-
-# Remember that rpms install exec to /usr/bin/buildah while a `make install`
-# installs them to /usr/local/bin/buildah which is likely before. Always use
-# a full path to test installed buildah or you risk to call another executable.
-.PHONY: rpm-install
-rpm-install: package  ## Install rpm packages
-	$(call err_if_empty,PKG_MANAGER) -y install rpm/RPMS/*/*.rpm
-	/usr/bin/buildah version
+rpm:
+	rpkg local

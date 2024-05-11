@@ -12,7 +12,6 @@ import (
 	"github.com/containers/common/internal/attributedstring"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -253,6 +252,8 @@ type EngineConfig struct {
 	// and "systemd".
 	CgroupManager string `toml:"cgroup_manager,omitempty"`
 
+	// NOTE: when changing this struct, make sure to update (*Config).Merge().
+
 	// ConmonEnvVars are environment variables to pass to the Conmon binary
 	// when it is launched.
 	ConmonEnvVars attributedstring.Slice `toml:"conmon_env_vars,omitempty"`
@@ -318,13 +319,6 @@ type EngineConfig struct {
 	// graphRoot internal stores the location of the graphroot
 	graphRoot string
 
-	// HealthcheckEvents is set to indicate whenever podman should log healthcheck events.
-	// With many running healthcheck on short interval Podman will spam the event log a lot.
-	// Because this event is optional and only useful to external consumers that may want to
-	// know when a healthcheck is run or failed allow users to turn it off by setting it to false.
-	// Default is true.
-	HealthcheckEvents bool `toml:"healthcheck_events,omitempty"`
-
 	// HelperBinariesDir is a list of directories which are used to search for
 	// helper binaries.
 	HelperBinariesDir attributedstring.Slice `toml:"helper_binaries_dir,omitempty"`
@@ -333,11 +327,6 @@ type EngineConfig struct {
 	// multiple directories, the file in the directory listed last in
 	// this slice takes precedence.
 	HooksDir attributedstring.Slice `toml:"hooks_dir,omitempty"`
-
-	// Location of CDI configuration files. These define mounts devices and
-	// other configs according to the CDI spec. In particular this is used
-	// for GPU passthrough.
-	CdiSpecDirs attributedstring.Slice `toml:"cdi_spec_dirs,omitempty"`
 
 	// ImageBuildFormat (DEPRECATED) indicates the default image format to
 	// building container images. Should use ImageDefaultFormat
@@ -721,7 +710,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 	if hasSession {
 		for _, part := range strings.Split(session, ",") {
 			if strings.HasPrefix(part, "unix:path=") {
-				err := fileutils.Exists(strings.TrimPrefix(part, "unix:path="))
+				_, err := os.Stat(strings.TrimPrefix(part, "unix:path="))
 				hasSession = err == nil
 				break
 			}
@@ -783,10 +772,10 @@ func (m *MachineConfig) URI() string {
 }
 
 func (c *EngineConfig) findRuntime() string {
-	// Search for crun first followed by runc, runj, kata, runsc, ocijail
+	// Search for crun first followed by runc, kata, runsc
 	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc", "ocijail"} {
 		for _, v := range c.OCIRuntimes[name] {
-			if err := fileutils.Exists(v); err == nil {
+			if _, err := os.Stat(v); err == nil {
 				return name
 			}
 		}
@@ -1195,7 +1184,7 @@ func (c *Config) FindInitBinary() (string, error) {
 		return c.Engine.InitPath, nil
 	}
 	// keep old default working to guarantee backwards compat
-	if err := fileutils.Exists(DefaultInitPath); err == nil {
+	if _, err := os.Stat(DefaultInitPath); err == nil {
 		return DefaultInitPath, nil
 	}
 	return c.FindHelperBinary(defaultInitName, true)
