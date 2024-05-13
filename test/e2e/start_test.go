@@ -39,7 +39,7 @@ var _ = Describe("Podman start", func() {
 		Expect(session).Should(ExitWithError(125, "not found in $PATH"))
 		session = podmanTest.Podman([]string{"container", "exists", "test"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(1))
+		Expect(session).To(ExitWithError(1, ""))
 	})
 
 	It("podman start --rm --attach removed on failure", func() {
@@ -52,7 +52,7 @@ var _ = Describe("Podman start", func() {
 		Expect(session).Should(ExitWithError(125, "not found in $PATH"))
 		session = podmanTest.Podman([]string{"container", "exists", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(1))
+		Expect(session).To(ExitWithError(1, ""))
 	})
 
 	It("podman container start single container by id", func() {
@@ -97,7 +97,7 @@ var _ = Describe("Podman start", func() {
 		session = podmanTest.Podman([]string{"start", "--attach", cid})
 		session.WaitWithDefaultTimeout()
 		// It should forward the signal
-		Expect(session).Should(ExitWithError(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 
 	It("podman start multiple containers", func() {
