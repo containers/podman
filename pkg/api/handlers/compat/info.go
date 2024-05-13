@@ -192,6 +192,9 @@ func getSecOpts(sysInfo *sysinfo.SysInfo) []string {
 func getRuntimes(configInfo *config.Config) map[string]dockerSystem.RuntimeWithStatus {
 	runtimes := map[string]dockerSystem.RuntimeWithStatus{}
 	for name, paths := range configInfo.Engine.OCIRuntimes {
+		if len(paths) == 0 {
+			continue
+		}
 		runtime := dockerSystem.RuntimeWithStatus{}
 		runtime.Runtime = dockerSystem.Runtime{Path: paths[0], Args: nil}
 		runtimes[name] = runtime
