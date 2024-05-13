@@ -138,16 +138,7 @@ const (
 )
 
 var _ = SynchronizedBeforeSuite(func() []byte {
-	// One global scratch directory under which all test files will live.
-	// The usual case is that these tests are running in CI, on VMs
-	// with limited RAM, so we use /var/tmp.
-	baseTmpDir := "/var/tmp"
-	if os.Getenv("CI") == "" {
-		// Almost certainly a manual run, e.g., a developer with
-		// a hotrod workstation. Assume they know what they're doing.
-		baseTmpDir = ""
-	}
-	globalTmpDir, err := os.MkdirTemp(baseTmpDir, "podman-e2e-")
+	globalTmpDir, err := os.MkdirTemp("", "podman-e2e-")
 	Expect(err).ToNot(HaveOccurred())
 
 	// make cache dir
