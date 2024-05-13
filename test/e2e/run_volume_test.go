@@ -97,7 +97,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=tmpfs,target=/etc/ssl,tmpcopyup,notmpcopyup", ALPINE, "ls", "/etc/ssl"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "cannot pass 'tmpcopyup' and 'notmpcopyup' mnt.Options more than once: must provide an argument for option"))
 
 		// test csv escaping
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount=type=tmpfs,tmpfs-size=512M,\"destination=/test,\"", ALPINE, "ls", "/test,"})
@@ -106,11 +106,11 @@ var _ = Describe("Podman run with volumes", func() {
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=bind,src=/tmp,target=/tmp,tmpcopyup", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `"tmpcopyup" option not supported for "bind" mount types`))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=bind,src=/tmp,target=/tmp,notmpcopyup", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `"notmpcopyup" option not supported for "bind" mount types`))
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=tmpfs,target=/etc/ssl,notmpcopyup", ALPINE, "ls", "/etc/ssl"})
 		session.WaitWithDefaultTimeout()
@@ -161,7 +161,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", mount + ",ro=true,rw=false", ALPINE, "grep", dest, "/proc/self/mountinfo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "cannot pass 'readonly', 'ro', or 'rw' mnt.Options more than once: must provide an argument for option"))
 	})
 
 	It("podman run with volume flag and multiple named volumes", func() {
@@ -344,7 +344,7 @@ var _ = Describe("Podman run with volumes", func() {
 	It("podman run with noexec can't exec", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "-v", "/bin:/hostbin:noexec", ALPINE, "/hostbin/ls", "/"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(126, "ermission denied"))
 	})
 
 	It("podman run with tmpfs named volume mounts and unmounts", func() {
@@ -569,7 +569,7 @@ RUN sh -c "cd /etc/apk && ln -s ../../testfile"`, ALPINE)
 
 		volMount := podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:/tmp", volName), ALPINE, "ls"})
 		volMount.WaitWithDefaultTimeout()
-		Expect(volMount).To(ExitWithError())
+		Expect(volMount).To(ExitWithError(126, "mounting volume testVol for container "))
 	})
 
 	It("Podman fix for CVE-2020-1726", func() {
@@ -667,7 +667,7 @@ VOLUME /test/`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"exec", "-l", "ls", "/run/test/container"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(1, "ls: /run/test/container: No such file or directory"))
 	})
 
 	It("overlay volume conflicts with named volume and mounts", func() {
@@ -688,18 +688,20 @@ VOLUME /test/`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
+		expectErr := fmt.Sprintf("%s: duplicate mount destination", mountDest)
+
 		// overlay and named volume destinations conflict
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:%s:O", mountPath, mountDest), "-v", fmt.Sprintf("%s:%s", volName, mountDest), ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, expectErr))
 		// overlay and bind mount destinations conflict
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:%s:O", mountPath, mountDest), "--mount", fmt.Sprintf("type=bind,src=%s,target=%s", mountSrc, mountDest), ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, expectErr))
 		// overlay and tmpfs mount destinations conflict
 		session = podmanTest.Podman([]string{"run", "--rm", "-v", fmt.Sprintf("%s:%s:O", mountPath, mountDest), "--mount", fmt.Sprintf("type=tmpfs,target=%s", mountDest), ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, expectErr))
 	})
 
 	It("same volume in multiple places does not deadlock", func() {
@@ -788,7 +790,7 @@ VOLUME /test/`, ALPINE)
 		vol = "type=bind,src=" + mountPath + ",dst=" + dest + ",U=invalid"
 		session = podmanTest.Podman([]string{"run", "--rm", "--user", "888:888", "--mount", vol, ALPINE, "stat", "-c", "%u:%g", dest})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, `'U' or 'chown' must be set to true or false, instead received "invalid": must provide an argument for option`))
 
 		// true bind mount
 		vol = "type=bind,src=" + mountPath + ",dst=" + dest + ",U=true"
