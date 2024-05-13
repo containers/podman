@@ -33,9 +33,6 @@ func errnoErr(e syscall.Errno) error {
 	case errnoERROR_IO_PENDING:
 		return errERROR_IO_PENDING
 	}
-	// TODO: add more here, after collecting data on the common
-	// error values see on Windows. (perhaps when running
-	// all.bat?)
 	return e
 }
 
@@ -75,7 +72,7 @@ func _hcsAttachLayerStorageFilter(layerPath *uint16, layerData *uint16) (hr erro
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsAttachLayerStorageFilter.Addr(), 2, uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(layerData)), 0)
+	r0, _, _ := syscall.SyscallN(procHcsAttachLayerStorageFilter.Addr(), uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(layerData)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -104,7 +101,7 @@ func _hcsAttachOverlayFilter(volumePath *uint16, layerData *uint16) (hr error) {
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsAttachOverlayFilter.Addr(), 2, uintptr(unsafe.Pointer(volumePath)), uintptr(unsafe.Pointer(layerData)), 0)
+	r0, _, _ := syscall.SyscallN(procHcsAttachOverlayFilter.Addr(), uintptr(unsafe.Pointer(volumePath)), uintptr(unsafe.Pointer(layerData)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -128,7 +125,7 @@ func _hcsDestroyLayer(layerPath *uint16) (hr error) {
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsDestroyLayer.Addr(), 1, uintptr(unsafe.Pointer(layerPath)), 0, 0)
+	r0, _, _ := syscall.SyscallN(procHcsDestroyLayer.Addr(), uintptr(unsafe.Pointer(layerPath)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -152,7 +149,7 @@ func _hcsDetachLayerStorageFilter(layerPath *uint16) (hr error) {
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsDetachLayerStorageFilter.Addr(), 1, uintptr(unsafe.Pointer(layerPath)), 0, 0)
+	r0, _, _ := syscall.SyscallN(procHcsDetachLayerStorageFilter.Addr(), uintptr(unsafe.Pointer(layerPath)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -181,7 +178,7 @@ func _hcsDetachOverlayFilter(volumePath *uint16, layerData *uint16) (hr error) {
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsDetachOverlayFilter.Addr(), 2, uintptr(unsafe.Pointer(volumePath)), uintptr(unsafe.Pointer(layerData)), 0)
+	r0, _, _ := syscall.SyscallN(procHcsDetachOverlayFilter.Addr(), uintptr(unsafe.Pointer(volumePath)), uintptr(unsafe.Pointer(layerData)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -220,7 +217,7 @@ func _hcsExportLayer(layerPath *uint16, exportFolderPath *uint16, layerData *uin
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall6(procHcsExportLayer.Addr(), 4, uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(exportFolderPath)), uintptr(unsafe.Pointer(layerData)), uintptr(unsafe.Pointer(options)), 0, 0)
+	r0, _, _ := syscall.SyscallN(procHcsExportLayer.Addr(), uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(exportFolderPath)), uintptr(unsafe.Pointer(layerData)), uintptr(unsafe.Pointer(options)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -235,7 +232,7 @@ func hcsFormatWritableLayerVhd(handle windows.Handle) (hr error) {
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsFormatWritableLayerVhd.Addr(), 1, uintptr(handle), 0, 0)
+	r0, _, _ := syscall.SyscallN(procHcsFormatWritableLayerVhd.Addr(), uintptr(handle))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -250,7 +247,7 @@ func hcsGetLayerVhdMountPath(vhdHandle windows.Handle, mountPath **uint16) (hr e
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsGetLayerVhdMountPath.Addr(), 2, uintptr(vhdHandle), uintptr(unsafe.Pointer(mountPath)), 0)
+	r0, _, _ := syscall.SyscallN(procHcsGetLayerVhdMountPath.Addr(), uintptr(vhdHandle), uintptr(unsafe.Pointer(mountPath)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -284,7 +281,7 @@ func _hcsImportLayer(layerPath *uint16, sourceFolderPath *uint16, layerData *uin
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsImportLayer.Addr(), 3, uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(sourceFolderPath)), uintptr(unsafe.Pointer(layerData)))
+	r0, _, _ := syscall.SyscallN(procHcsImportLayer.Addr(), uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(sourceFolderPath)), uintptr(unsafe.Pointer(layerData)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -318,7 +315,7 @@ func _hcsInitializeWritableLayer(writableLayerPath *uint16, layerData *uint16, o
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsInitializeWritableLayer.Addr(), 3, uintptr(unsafe.Pointer(writableLayerPath)), uintptr(unsafe.Pointer(layerData)), uintptr(unsafe.Pointer(options)))
+	r0, _, _ := syscall.SyscallN(procHcsInitializeWritableLayer.Addr(), uintptr(unsafe.Pointer(writableLayerPath)), uintptr(unsafe.Pointer(layerData)), uintptr(unsafe.Pointer(options)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -347,7 +344,7 @@ func _hcsSetupBaseOSLayer(layerPath *uint16, handle windows.Handle, options *uin
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsSetupBaseOSLayer.Addr(), 3, uintptr(unsafe.Pointer(layerPath)), uintptr(handle), uintptr(unsafe.Pointer(options)))
+	r0, _, _ := syscall.SyscallN(procHcsSetupBaseOSLayer.Addr(), uintptr(unsafe.Pointer(layerPath)), uintptr(handle), uintptr(unsafe.Pointer(options)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff
@@ -381,7 +378,7 @@ func _hcsSetupBaseOSVolume(layerPath *uint16, volumePath *uint16, options *uint1
 	if hr != nil {
 		return
 	}
-	r0, _, _ := syscall.Syscall(procHcsSetupBaseOSVolume.Addr(), 3, uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(volumePath)), uintptr(unsafe.Pointer(options)))
+	r0, _, _ := syscall.SyscallN(procHcsSetupBaseOSVolume.Addr(), uintptr(unsafe.Pointer(layerPath)), uintptr(unsafe.Pointer(volumePath)), uintptr(unsafe.Pointer(options)))
 	if int32(r0) < 0 {
 		if r0&0x1fff0000 == 0x00070000 {
 			r0 &= 0xffff

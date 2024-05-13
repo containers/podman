@@ -2,6 +2,7 @@ package sysregistriesv2
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -15,7 +16,6 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
 // defaultShortNameMode is the default mode of registries.conf files if the

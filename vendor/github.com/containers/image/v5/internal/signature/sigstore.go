@@ -3,8 +3,7 @@ package signature
 import (
 	"bytes"
 	"encoding/json"
-
-	"golang.org/x/exp/maps"
+	"maps"
 )
 
 const (

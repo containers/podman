@@ -1,9 +1,10 @@
 package internal
 
 import (
+	"slices"
+
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // DeepCopyDescriptor copies a Descriptor, deeply copying its contents

@@ -16,6 +16,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -35,7 +36,7 @@ import (
 )
 
 // NewRequest creates a new swagger http client request
-func newRequest(method, pathPattern string, writer runtime.ClientRequestWriter) (*request, error) {
+func newRequest(method, pathPattern string, writer runtime.ClientRequestWriter) *request {
 	return &request{
 		pathPattern: pathPattern,
 		method:      method,
@@ -44,7 +45,7 @@ func newRequest(method, pathPattern string, writer runtime.ClientRequestWriter) 
 		query:       make(url.Values),
 		timeout:     DefaultTimeout,
 		getBody:     getRequestBuffer,
-	}, nil
+	}
 }
 
 // Request represents a swagger client request.
@@ -102,7 +103,7 @@ func logClose(err error, pw *io.PipeWriter) {
 	}
 }
 
-func (r *request) buildHTTP(mediaType, basePath string, producers map[string]runtime.Producer, registry strfmt.Registry, auth runtime.ClientAuthInfoWriter) (*http.Request, error) {
+func (r *request) buildHTTP(mediaType, basePath string, producers map[string]runtime.Producer, registry strfmt.Registry, auth runtime.ClientAuthInfoWriter) (*http.Request, error) { //nolint:gocyclo,maintidx
 	// build the data
 	if err := r.writer.WriteToRequest(r, registry); err != nil {
 		return nil, err
@@ -170,7 +171,7 @@ func (r *request) buildHTTP(mediaType, basePath string, producers map[string]run
 						// Need to read the data so that we can detect the content type
 						buf := make([]byte, 512)
 						size, err := fi.Read(buf)
-						if err != nil {
+						if err != nil && err != io.EOF {
 							logClose(err, pw)
 							return
 						}
@@ -317,13 +318,13 @@ DoneChoosingBodySource:
 
 	urlPath := path.Join(basePathURL.Path, pathPatternURL.Path)
 	for k, v := range r.pathParams {
-		urlPath = strings.Replace(urlPath, "{"+k+"}", url.PathEscape(v), -1)
+		urlPath = strings.ReplaceAll(urlPath, "{"+k+"}", url.PathEscape(v))
 	}
 	if reinstateSlash {
-		urlPath = urlPath + "/"
+		urlPath += "/"
 	}
 
-	req, err := http.NewRequest(r.method, urlPath, body)
+	req, err := http.NewRequestWithContext(context.Background(), r.method, urlPath, body)
 	if err != nil {
 		return nil, err
 	}
@@ -361,7 +362,7 @@ func (r *request) GetMethod() string {
 func (r *request) GetPath() string {
 	path := r.pathPattern
 	for k, v := range r.pathParams {
-		path = strings.Replace(path, "{"+k+"}", v, -1)
+		path = strings.ReplaceAll(path, "{"+k+"}", v)
 	}
 	return path
 }

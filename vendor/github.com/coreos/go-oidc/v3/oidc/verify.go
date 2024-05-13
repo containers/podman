@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	jose "github.com/go-jose/go-jose/v3"
+	jose "github.com/go-jose/go-jose/v4"
 	"golang.org/x/oauth2"
 )
 
@@ -310,7 +310,16 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDTok
 		return t, nil
 	}
 
-	jws, err := jose.ParseSigned(rawIDToken)
+	var supportedSigAlgs []jose.SignatureAlgorithm
+	for _, alg := range v.config.SupportedSigningAlgs {
+		supportedSigAlgs = append(supportedSigAlgs, jose.SignatureAlgorithm(alg))
+	}
+	if len(supportedSigAlgs) == 0 {
+		// If no algorithms were specified by both the config and discovery, default
+		// to the one mandatory algorithm "RS256".
+		supportedSigAlgs = []jose.SignatureAlgorithm{jose.RS256}
+	}
+	jws, err := jose.ParseSigned(rawIDToken, supportedSigAlgs)
 	if err != nil {
 		return nil, fmt.Errorf("oidc: malformed jwt: %v", err)
 	}
@@ -322,17 +331,7 @@ func (v *IDTokenVerifier) Verify(ctx context.Context, rawIDToken string) (*IDTok
 	default:
 		return nil, fmt.Errorf("oidc: multiple signatures on id token not supported")
 	}
-
 	sig := jws.Signatures[0]
-	supportedSigAlgs := v.config.SupportedSigningAlgs
-	if len(supportedSigAlgs) == 0 {
-		supportedSigAlgs = []string{RS256}
-	}
-
-	if !contains(supportedSigAlgs, sig.Header.Algorithm) {
-		return nil, fmt.Errorf("oidc: id token signed with unsupported algorithm, expected %q got %q", supportedSigAlgs, sig.Header.Algorithm)
-	}
-
 	t.sigAlgorithm = sig.Header.Algorithm
 
 	ctx = context.WithValue(ctx, parsedJWTKey, jws)

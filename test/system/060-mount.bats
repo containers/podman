@@ -289,11 +289,11 @@ EOF
     is "$output" ".*$vol1a" "podman images --inspect should include $vol1a"
     is "$output" ".*$vol1b" "podman images --inspect should include $vol1b"
 
-    run_podman 125 run --rm --mount source=${PODMAN_TMPDIR}/v2\*,type=bind,ro=false $IMAGE touch $vol2
+    run_podman 125 run --rm --mount type=bind,source=${PODMAN_TMPDIR}/v2\*,ro=false $IMAGE touch $vol2
     is "$output" "Error: must set volume destination" "Bind mounts require destination"
 
-    run_podman 125 run --rm --mount source=${PODMAN_TMPDIR}/v2\*,destination=/tmp/foobar, ro=false $IMAGE touch $vol2
-    is "$output" "Error: invalid reference format" "Default mounts don not support globs"
+    run_podman 125 run --rm --mount type=bind,source=${PODMAN_TMPDIR}/v2\*,destination=/tmp/foobar,ro=false $IMAGE touch $vol2
+    is "$output" "Error: statfs ${PODMAN_TMPDIR}/v2*: no such file or directory" "Bind mount should not interpret glob and must use as is"
 
     mkdir $PODMAN_TMPDIR/foo1 $PODMAN_TMPDIR/foo2 $PODMAN_TMPDIR/foo3
     touch $PODMAN_TMPDIR/foo1/bar $PODMAN_TMPDIR/foo2/bar $PODMAN_TMPDIR/foo3/bar

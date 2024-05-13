@@ -79,7 +79,7 @@ func getClient(ctx context.Context) *http.Client {
 //	provider, err := oidc.NewProvider(ctx, discoveryBaseURL)
 //
 // This is insecure because validating the correct issuer is critical for multi-tenant
-// proivders. Any overrides here MUST be carefully reviewed.
+// providers. Any overrides here MUST be carefully reviewed.
 func InsecureIssuerURLContext(ctx context.Context, issuerURL string) context.Context {
 	return context.WithValue(ctx, issuerURLKey, issuerURL)
 }

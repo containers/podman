@@ -7,12 +7,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 
 	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/manifest"
 	digest "github.com/opencontainers/go-digest"
-	"golang.org/x/exp/slices"
 )
 
 func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image private.UnparsedImage, sig []byte) (signatureAcceptanceResult, *Signature, error) {

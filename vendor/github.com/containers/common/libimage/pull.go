@@ -115,7 +115,7 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 		// off and entirely ignored.  The digest is the sole source of truth.
 		normalizedName, _, normalizeError := normalizeTaggedDigestedString(name)
 		if normalizeError != nil {
-			return nil, normalizeError
+			return nil, fmt.Errorf(`parsing reference %q: %w`, name, normalizeError)
 		}
 		name = normalizedName
 

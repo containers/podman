@@ -338,7 +338,7 @@ func (e Extensions) Render() ([]pkix.Extension, error) {
 	return exts, nil
 }
 
-func parseExtensions(ext []pkix.Extension) (Extensions, error) {
+func ParseExtensions(ext []pkix.Extension) (Extensions, error) {
 	out := Extensions{}
 
 	for _, e := range ext {

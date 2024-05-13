@@ -29,7 +29,7 @@ var (
 // GetLogger provides a prefix debug logger
 func GetLogger(prefix string, debug bool) func(string, ...interface{}) {
 	if debug {
-		logger := log.New(output, fmt.Sprintf("%s:", prefix), log.LstdFlags)
+		logger := log.New(output, prefix+":", log.LstdFlags)
 
 		return func(msg string, args ...interface{}) {
 			_, file1, pos1, _ := runtime.Caller(1)
@@ -37,5 +37,5 @@ func GetLogger(prefix string, debug bool) func(string, ...interface{}) {
 		}
 	}
 
-	return func(msg string, args ...interface{}) {}
+	return func(_ string, _ ...interface{}) {}
 }

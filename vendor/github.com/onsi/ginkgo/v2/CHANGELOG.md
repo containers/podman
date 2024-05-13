@@ -1,3 +1,8 @@
+## 2.17.3
+
+### Fixes
+`ginkgo watch` now ignores hidden files [bde6e00]
+
 ## 2.17.2
 
 ### Fixes

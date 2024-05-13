@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/containers/common/libimage/define"
@@ -20,7 +21,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // NOTE: the abstractions and APIs here are a first step to further merge

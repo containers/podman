@@ -18,8 +18,7 @@ import (
 	"io"
 
 	"github.com/go-openapi/runtime"
-
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // YAMLConsumer creates a consumer for yaml data

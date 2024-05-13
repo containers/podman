@@ -4,12 +4,14 @@
 package overlay
 
 import (
+	"bytes"
 	"encoding/binary"
 	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/containers/storage/pkg/chunked/dump"
@@ -70,12 +72,18 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 		// a scope to close outFd before setting fsverity on the read-only fd.
 		defer outFd.Close()
 
+		errBuf := &bytes.Buffer{}
 		cmd := exec.Command(writerJson, "--from-file", "-", "/proc/self/fd/3")
 		cmd.ExtraFiles = []*os.File{outFd}
-		cmd.Stderr = os.Stderr
+		cmd.Stderr = errBuf
 		cmd.Stdin = dumpReader
 		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("failed to convert json to erofs: %w", err)
+			rErr := fmt.Errorf("failed to convert json to erofs: %w", err)
+			exitErr := &exec.ExitError{}
+			if errors.As(err, &exitErr) {
+				return fmt.Errorf("%w: %s", rErr, strings.TrimSpace(errBuf.String()))
+			}
+			return rErr
 		}
 		return nil
 	}()
