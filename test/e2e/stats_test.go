@@ -8,7 +8,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 // TODO: we need to check the output. Currently, we only check the exit codes
@@ -25,7 +24,12 @@ var _ = Describe("Podman stats", func() {
 	It("podman stats with bogus container", func() {
 		session := podmanTest.Podman([]string{"stats", "--no-stream", "123"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := `unable to get list of containers: unable to look up container 123: no container with name or ID "123" found: no such container`
+		// FIXME: #22612
+		if IsRemote() {
+			expect = "types.ContainerStatsReport.Error: decode non empty interface: can not unmarshal into nil, error found in #9 byte"
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman stats on a running container", func() {
@@ -81,7 +85,7 @@ var _ = Describe("Podman stats", func() {
 		Expect(session).Should(ExitCleanly())
 		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--format", "\"table {{.ID}} {{.NoSuchField}} \""})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats).To(ExitWithError())
+		Expect(stats).To(ExitWithError(125, `template: stats:1:28: executing "stats" at <.NoSuchField>: can't evaluate field NoSuchField in type containers.containerStats`))
 	})
 
 	It("podman stats with negative interval", func() {
@@ -90,7 +94,7 @@ var _ = Describe("Podman stats", func() {
 		Expect(session).Should(ExitCleanly())
 		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--interval=-1"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats).To(ExitWithError())
+		Expect(stats).To(ExitWithError(125, "invalid interval, must be a positive number greater zero"))
 	})
 
 	It("podman stats with zero interval", func() {
@@ -99,7 +103,7 @@ var _ = Describe("Podman stats", func() {
 		Expect(session).Should(ExitCleanly())
 		stats := podmanTest.Podman([]string{"stats", "-a", "--no-reset", "--no-stream", "--interval=0"})
 		stats.WaitWithDefaultTimeout()
-		Expect(stats).To(ExitWithError())
+		Expect(stats).To(ExitWithError(125, "invalid interval, must be a positive number greater zero"))
 	})
 
 	It("podman stats with interval", func() {

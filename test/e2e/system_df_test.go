@@ -95,8 +95,7 @@ var _ = Describe("podman system df", func() {
 	It("podman system df --format with --verbose", func() {
 		session := podmanTest.Podman([]string{"system", "df", "--format", "json", "--verbose"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
-		Expect(session.ErrorToString()).To(Equal("Error: cannot combine --format and --verbose flags"))
+		Expect(session).To(ExitWithError(125, "Error: cannot combine --format and --verbose flags"))
 	})
 
 	It("podman system df --format json", func() {
