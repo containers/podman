@@ -370,8 +370,16 @@ var _ = Describe("Podman checkpoint", func() {
 		result = podmanTest.Podman([]string{"container", "restore", cid})
 		result.WaitWithDefaultTimeout()
 
-		// FIXME: CRIU failure message not seen by podman (same as above)
-		Expect(result).Should(ExitWithError(125))
+		// default message when using crun
+		expectStderr := "crun: CRIU restoring failed -52. Please check CRIU logfile"
+		if podmanTest.OCIRuntime == "runc" {
+			expectStderr = "runc: criu failed: type NOTIFY errno 0"
+		}
+		if !IsRemote() {
+			// This part is only seen with podman local, never remote
+			expectStderr = "OCI runtime error: " + expectStderr
+		}
+		Expect(result).Should(ExitWithError(125, expectStderr))
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
 		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Exited"))
 

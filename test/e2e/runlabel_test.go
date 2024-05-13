@@ -64,17 +64,20 @@ var _ = Describe("podman container runlabel", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 	})
+
 	It("podman container runlabel bogus label should result in non-zero exit code", func() {
 		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", ALPINE})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, fmt.Sprintf("cannot find the value of label: RUN in image: %s", ALPINE)))
 		// should not panic when label missing the value or don't have the label
 		Expect(result.OutputToString()).To(Not(ContainSubstring("panic")))
 	})
+
 	It("podman container runlabel bogus label in remote image should result in non-zero exit", func() {
-		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", "docker.io/library/ubuntu:latest"})
+		remoteImage := "quay.io/libpod/testimage:00000000"
+		result := podmanTest.Podman([]string{"container", "runlabel", "RUN", remoteImage})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, fmt.Sprintf("cannot find the value of label: RUN in image: %s", remoteImage)))
 		// should not panic when label missing the value or don't have the label
 		Expect(result.OutputToString()).To(Not(ContainSubstring("panic")))
 	})
@@ -86,7 +89,7 @@ var _ = Describe("podman container runlabel", func() {
 		// runlabel should fail with nonexistent authfile
 		result := podmanTest.Podman([]string{"container", "runlabel", "--authfile", "/tmp/nonexistent", "RUN", image})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
+		Expect(result).To(ExitWithError(125, "credential file is not accessible: faccessat /tmp/nonexistent: no such file or directory"))
 
 		result = podmanTest.Podman([]string{"rmi", image})
 		result.WaitWithDefaultTimeout()
