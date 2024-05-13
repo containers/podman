@@ -55,6 +55,7 @@ jobs:
   # Run on commit to main branch
   - job: copr_build
     trigger: commit
+    packages: [podman-fedora]
     notifications:
       failure_comment:
         message: "podman-next COPR build failed. @containers/packit-build please check."
