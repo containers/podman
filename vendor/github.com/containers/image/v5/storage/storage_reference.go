@@ -73,7 +73,10 @@ func multiArchImageMatchesSystemContext(store storage.Store, img *storage.Image,
 	// We don't need to care about storage.ImageDigestBigDataKey because
 	// manifests lists are only stored into storage by c/image versions
 	// that know about manifestBigDataKey, and only using that key.
-	key := manifestBigDataKey(manifestDigest)
+	key, err := manifestBigDataKey(manifestDigest)
+	if err != nil {
+		return false // This should never happen, manifestDigest comes from a reference.Digested, and that validates the format.
+	}
 	manifestBytes, err := store.ImageBigData(img.ID, key)
 	if err != nil {
 		return false
@@ -95,7 +98,10 @@ func multiArchImageMatchesSystemContext(store storage.Store, img *storage.Image,
 	if err != nil {
 		return false
 	}
-	key = manifestBigDataKey(chosenInstance)
+	key, err = manifestBigDataKey(chosenInstance)
+	if err != nil {
+		return false
+	}
 	_, err = store.ImageBigData(img.ID, key)
 	return err == nil // true if img.ID is based on chosenInstance.
 }

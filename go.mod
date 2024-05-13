@@ -13,11 +13,11 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.4.1
-	github.com/containers/buildah v1.35.1-0.20240507152307-453d2fc1099f
-	github.com/containers/common v0.58.1-0.20240508094622-694258d1f523
+	github.com/containers/buildah v1.35.1-0.20240510150258-77f239ae12e5
+	github.com/containers/common v0.58.1-0.20240509172903-2c88a3f280bb
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240408151405-d744d71db363
-	github.com/containers/image/v5 v5.30.1-0.20240506211741-f0acff0fe152
+	github.com/containers/image/v5 v5.30.2-0.20240509191815-9318d0eaaf78
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/psgo v1.9.0
@@ -30,7 +30,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.5
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/docker/docker v26.1.1+incompatible
+	github.com/docker/docker v26.1.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0
@@ -149,7 +149,7 @@ require (
 	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
-	github.com/hashicorp/go-retryablehttp v0.7.5 // indirect
+	github.com/hashicorp/go-retryablehttp v0.7.6 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect

@@ -114,7 +114,10 @@ func (d *blobCacheDestination) saveStream(wg *sync.WaitGroup, decompressReader i
 	}
 
 	// Determine the name that we should give to the uncompressed copy of the blob.
-	decompressedFilename := d.reference.blobPath(digester.Digest(), isConfig)
+	decompressedFilename, err := d.reference.blobPath(digester.Digest(), isConfig)
+	if err != nil {
+		return
+	}
 	// Rename the temporary file.
 	if err := os.Rename(tempFile.Name(), decompressedFilename); err != nil {
 		logrus.Debugf("error renaming new decompressed copy of blob %q into place at %q: %v", digester.Digest().String(), decompressedFilename, err)
@@ -152,7 +155,10 @@ func (d *blobCacheDestination) PutBlobWithOptions(ctx context.Context, stream io
 	needToWait := false
 	compression := archive.Uncompressed
 	if inputInfo.Digest != "" {
-		filename := d.reference.blobPath(inputInfo.Digest, options.IsConfig)
+		filename, err2 := d.reference.blobPath(inputInfo.Digest, options.IsConfig)
+		if err2 != nil {
+			return private.UploadedBlob{}, err2
+		}
 		tempfile, err = os.CreateTemp(filepath.Dir(filename), filepath.Base(filename))
 		if err == nil {
 			stream = io.TeeReader(stream, tempfile)
@@ -281,7 +287,10 @@ func (d *blobCacheDestination) PutManifest(ctx context.Context, manifestBytes []
 	if err != nil {
 		logrus.Warnf("error digesting manifest %q: %v", string(manifestBytes), err)
 	} else {
-		filename := d.reference.blobPath(manifestDigest, false)
+		filename, err := d.reference.blobPath(manifestDigest, false)
+		if err != nil {
+			return err
+		}
 		if err = ioutils.AtomicWriteFile(filename, manifestBytes, 0600); err != nil {
 			logrus.Warnf("error saving manifest as %q: %v", filename, err)
 		}
