@@ -109,6 +109,9 @@ func (s *openshiftImageSource) GetSignaturesWithFormat(ctx context.Context, inst
 		}
 		imageStreamImageName = s.imageStreamImageName
 	} else {
+		if err := instanceDigest.Validate(); err != nil { // Make sure instanceDigest.String() does not contain any unexpected characters
+			return nil, err
+		}
 		imageStreamImageName = instanceDigest.String()
 	}
 	image, err := s.client.getImage(ctx, imageStreamImageName)
