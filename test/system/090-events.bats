@@ -406,3 +406,8 @@ EOF
     run_podman events --since=1m --stream=false --filter volume=${vname:0:5}
     assert "$output" = "$notrunc_results"
 }
+
+@test "events - invalid filter" {
+    run_podman 125 events --since="the dawn of time...ish"
+    assert "$output" =~ "failed to parse event filters"
+}

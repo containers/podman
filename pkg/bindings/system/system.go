@@ -42,6 +42,10 @@ func Events(ctx context.Context, eventChan chan types.Event, cancelChan chan boo
 		}()
 	}
 
+	if response.StatusCode != http.StatusOK {
+		return response.Process(nil)
+	}
+
 	dec := json.NewDecoder(response.Body)
 	for err = (error)(nil); err == nil; {
 		var e = types.Event{}
