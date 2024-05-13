@@ -43,12 +43,13 @@ func main() {
 	if filepath.Base(os.Args[0]) == registry.PodmanSh ||
 		(len(os.Args[0]) > 0 && filepath.Base(os.Args[0][1:]) == registry.PodmanSh) {
 		shell := strings.TrimPrefix(os.Args[0], "-")
+		cfg := registry.PodmanConfig()
 
-		args := []string{shell, "exec", "-i", "--wait", strconv.FormatUint(uint64(registry.PodmanConfig().ContainersConfDefaultsRO.Engine.PodmanshTimeout), 10)}
+		args := []string{shell, "exec", "-i", "--wait", strconv.FormatUint(uint64(cfg.ContainersConfDefaultsRO.PodmanshTimeout()), 10)}
 		if term.IsTerminal(0) || term.IsTerminal(1) || term.IsTerminal(2) {
 			args = append(args, "-t")
 		}
-		args = append(args, registry.PodmanSh, "/bin/sh")
+		args = append(args, cfg.ContainersConfDefaultsRO.Podmansh.Container, cfg.ContainersConfDefaultsRO.Podmansh.Shell)
 		if len(os.Args) > 1 {
 			args = append(args, os.Args[1:]...)
 		}
