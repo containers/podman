@@ -94,7 +94,9 @@ function _check_pause_process() {
     run_podman system migrate
 
     # We're forced to use $PODMAN because run_podman cannot be backgrounded
-    $PODMAN run -i --name c_run $IMAGE sh -c "$SLEEPLOOP" &
+    # Also special logic to set a different argv0 to make sure the reexec still works:
+    # https://github.com/containers/podman/issues/22672
+    bash -c "exec -a argv0-podman $PODMAN run -i --name c_run $IMAGE sh -c '$SLEEPLOOP'" &
     local kidpid=$!
 
     _test_sigproxy c_run $kidpid

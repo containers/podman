@@ -922,8 +922,8 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
       _exit (EXIT_FAILURE);
     }
 
-  execvp (argv[0], argv);
-  fprintf (stderr, "failed to execvp %s: %m\n", argv[0]);
+  execvp ("/proc/self/exe", argv);
+  fprintf (stderr, "failed to reexec: %m\n");
 
   _exit (EXIT_FAILURE);
 }
@@ -1145,7 +1145,8 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
       _exit (ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
     }
 
-  execvp (argv[0], argv);
+  execvp ("/proc/self/exe", argv);
+  fprintf (stderr, "failed to reexec: %m\n");
 
   _exit (EXIT_FAILURE);
 }
