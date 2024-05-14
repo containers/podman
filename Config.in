@@ -1,0 +1,3 @@
+config BR2_PACKAGE_PODMAN
+    bool "podman"
+    depends on BR2_TOOLCHAIN_HAS_THREADS
