@@ -64,7 +64,7 @@ func UpdateConnectionPairPort(name string, port, uid int, remoteUsername string,
 				URI:       con.uri.String(),
 				Identity:  identityPath,
 			}
-			cfg.Connection.Connections[name] = dst
+			cfg.Connection.Connections[con.name] = dst
 		}
 
 		return nil
