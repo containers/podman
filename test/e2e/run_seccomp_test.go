@@ -37,7 +37,7 @@ var _ = Describe("Podman run", func() {
 			// TODO: worse than that. With runc, we get two alternating failures:
 			//   126 + cannot start a container that has stopped
 			//   127 + failed to connect to container's attach socket ... ENOENT
-			Expect(session).To(ExitWithError())
+			Expect(session.ExitCode()).To(BeNumerically(">=", 126), "Exit status using runc")
 		} else {
 			expect := "OCI runtime error: crun: read from the init process"
 			if IsRemote() {

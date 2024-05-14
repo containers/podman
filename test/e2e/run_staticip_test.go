@@ -82,6 +82,7 @@ var _ = Describe("Podman run with --ip flag", func() {
 		result := podmanTest.Podman([]string{"run", "-d", "--name", "nginx", "--ip", ip, NGINX_IMAGE})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
+		cid := result.OutputToString()
 
 		// This test should not use a proxy
 		client := &http.Client{
@@ -112,7 +113,6 @@ var _ = Describe("Podman run with --ip flag", func() {
 		}
 		result = podmanTest.Podman([]string{"run", "--ip", ip, ALPINE, "ip", "addr"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).To(ExitWithError())
-		Expect(result.ErrorToString()).To(ContainSubstring(" address %s ", ip))
+		Expect(result).To(ExitWithError(126, fmt.Sprintf("IPAM error: requested ip address %s is already allocated to container ID %s", ip, cid)))
 	})
 })

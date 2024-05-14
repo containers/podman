@@ -30,7 +30,7 @@ var _ = Describe("Podman run device", func() {
 	It("podman run bad device test", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/baddevice", ALPINE, "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError())
+		Expect(session).To(ExitWithError(125, "stat /dev/baddevice: no such file or directory"))
 	})
 
 	It("podman run device test", func() {

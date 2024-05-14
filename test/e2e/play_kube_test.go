@@ -2396,7 +2396,7 @@ var _ = Describe("Podman kube play", func() {
 
 		hc := podmanTest.Podman([]string{"healthcheck", "run", ctrName})
 		hc.WaitWithDefaultTimeout()
-		Expect(hc).Should(ExitWithError(1))
+		Expect(hc).Should(ExitWithError(1, ""))
 
 		exec := podmanTest.Podman([]string{"exec", ctrName, "sh", "-c", "echo 'startup probe success' > /testfile"})
 		exec.WaitWithDefaultTimeout()
@@ -5737,7 +5737,7 @@ spec:
 
 		curlTest := podmanTest.Podman([]string{"run", "--network", "host", NGINX_IMAGE, "curl", "-s", "localhost:19000"})
 		curlTest.WaitWithDefaultTimeout()
-		Expect(curlTest).Should(ExitWithError(7))
+		Expect(curlTest).Should(ExitWithError(7, ""))
 	})
 
 	It("without Ports, publish in command line - curl should succeed", func() {

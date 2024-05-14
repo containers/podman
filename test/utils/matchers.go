@@ -23,29 +23,10 @@ type ExitMatcher struct {
 	msg              string
 }
 
-// ExitWithError matches when assertion is > argument.  Default 0
+// ExitWithError checks both exit code and stderr, fails if either does not match
 // Modeled after the gomega Exit() matcher and also operates on sessions.
-func ExitWithError(expectations ...interface{}) *ExitMatcher {
-	exitCode := 0
-	expectStderr := ""
-	// FIXME: once all ExitWithError()s have been migrated to new form,
-	//        change interface to (int, ...string)
-	if len(expectations) > 0 {
-		var ok bool
-		exitCode, ok = expectations[0].(int)
-		if !ok {
-			panic("ExitWithError(): first arg, if present, must be an int")
-		}
-
-		if len(expectations) > 1 {
-			expectStderr, ok = expectations[1].(string)
-			if !ok {
-				panic("ExitWithError(): second arg, if present, must be a string")
-			}
-		}
-	}
-
-	return &ExitMatcher{ExpectedExitCode: exitCode, ExpectedStderr: expectStderr}
+func ExitWithError(expectExitCode int, expectStderr string) *ExitMatcher {
+	return &ExitMatcher{ExpectedExitCode: expectExitCode, ExpectedStderr: expectStderr}
 }
 
 // Match follows gexec.Matcher interface.
@@ -61,16 +42,6 @@ func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) 
 		return false, nil
 	}
 
-	// FIXME: temporary until all ExitWithError()s are migrated
-	//        to new mandatory-int form.
-	if matcher.ExpectedExitCode == 0 {
-		if matcher.ExitCode == 0 {
-			matcher.msg = "Expected process to exit nonzero. It did not."
-			return false, nil
-		}
-		return true, nil
-	}
-
 	// Check exit code first. If it's not what we want, there's no point
 	// in checking error substrings
 	if matcher.ExitCode != matcher.ExpectedExitCode {
@@ -81,6 +52,11 @@ func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) 
 	if matcher.ExpectedStderr != "" {
 		if !strings.Contains(session.ErrorToString(), matcher.ExpectedStderr) {
 			matcher.msg = fmt.Sprintf("Command exited %d as expected, but did not emit '%s'", matcher.ExitCode, matcher.ExpectedStderr)
+			return false, nil
+		}
+	} else {
+		if session.ErrorToString() != "" {
+			matcher.msg = "Command exited with expected exit status, but emitted unwanted stderr"
 			return false, nil
 		}
 	}

@@ -82,7 +82,7 @@ var _ = Describe("Podman run memory", func() {
 		// create a container that gets oomkilled
 		session := podmanTest.Podman([]string{"run", "--name", ctrName, "--read-only", "--memory-swap=20m", "--memory=20m", "--oom-score-adj=1000", ALPINE, "sort", "/dev/urandom"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(137))
+		Expect(session).Should(ExitWithError(137, ""))
 
 		inspect := podmanTest.Podman(([]string{"inspect", "--format", "{{.State.OOMKilled}} {{.State.ExitCode}}", ctrName}))
 		inspect.WaitWithDefaultTimeout()
