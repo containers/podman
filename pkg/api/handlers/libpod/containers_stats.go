@@ -62,18 +62,23 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write header and content type.
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	if flusher, ok := w.(http.Flusher); ok {
-		flusher.Flush()
-	}
-
+	wroteContent := false
 	// Set up JSON encoder for streaming.
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 
 	for stats := range statsChan {
+		if !wroteContent {
+			if stats.Error != nil {
+				utils.ContainerNotFound(w, "", stats.Error)
+				return
+			}
+			// Write header and content type.
+			w.WriteHeader(http.StatusOK)
+			w.Header().Set("Content-Type", "application/json")
+			wroteContent = true
+		}
+
 		if err := coder.Encode(stats); err != nil {
 			// Note: even when streaming, the stats goroutine will
 			// be notified (and stop) as the connection will be

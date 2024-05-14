@@ -1571,12 +1571,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 
 	go func() {
 		defer close(statsChan)
-		var (
-			err            error
-			containers     []*libpod.Container
-			containerStats map[string]*define.ContainerStats
-		)
-		containerStats = make(map[string]*define.ContainerStats)
+		containerStats := make(map[string]*define.ContainerStats)
 
 	stream: // label to flatten the scope
 		select {
@@ -1590,7 +1585,7 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 
 		// Anonymous func to easily use the return values for streaming.
 		computeStats := func() ([]define.ContainerStats, error) {
-			containers, err = containerFunc()
+			containers, err := containerFunc()
 			if err != nil {
 				return nil, fmt.Errorf("unable to get list of containers: %w", err)
 			}

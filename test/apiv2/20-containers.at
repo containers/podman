@@ -112,21 +112,8 @@ t GET libpod/containers/json?last=1 200 \
 
 cid=$(jq -r '.[0].Id' <<<"$output")
 
-if root; then
-    t GET libpod/containers/stats?containers='[$cid]' 200
-else
-    if have_cgroupsv2; then
-        t GET libpod/containers/stats?containers='[$cid]' 200
-    else
-        t GET libpod/containers/stats?containers='[$cid]' 409
-    fi
-fi
-
-# max_usage is not set for cgroupv2
-if have_cgroupsv2; then
-    t GET libpod/containers/stats?containers='[$cid]' 200 \
-    .memory_stats.max_usage=null
-fi
+t GET "libpod/containers/stats?containers=$cid&stream=false" 200 \
+  .memory_stats.max_usage=null
 
 t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
@@ -241,20 +228,13 @@ t GET libpod/images/newrepo:v1/json 200 \
 cparam="repo=newrepo&tag=v2&comment=bar&author=eric"
 cparam="$cparam&format=docker&changes=CMD=/bin/foo"
 
-if root || have_cgroupsv2; then
-    t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 200
-    t GET libpod/images/newrepo:v2/json 200 \
-      .RepoTags[0]=localhost/newrepo:v2	\
-      .Author=eric \
-      .Comment=bar \
-      .Config.Cmd[-1]="/bin/foo"
-    t DELETE images/localhost/newrepo:v2?force=true 200
-else
-    # cgroupsv1 rootless : pause is not supported in cgroups v1 rootless
-    t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 500 \
-      .cause="this container does not have a cgroup" \
-      .message~".*pause containers on rootless containers with cgroup V1"
-fi
+t POST "libpod/commit?container=${cid:0:12}&$cparam&pause=true" 200
+t GET libpod/images/newrepo:v2/json 200 \
+  .RepoTags[0]=localhost/newrepo:v2	\
+  .Author=eric \
+  .Comment=bar \
+  .Config.Cmd[-1]="/bin/foo"
+t DELETE images/localhost/newrepo:v2?force=true 200
 
 # Create a container for testing the container initializing later
 podman create -t -i --name myctr $IMAGE ls
@@ -484,24 +464,8 @@ t POST containers/prune?filters='{"network":["anynetwork"]}' 500 \
 
 # Test CPU limit (NanoCPUs)
 nanoCpu=500000
-if have_cgroupsv2; then
-    t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
-      .Id~[0-9a-f]\\{64\\}
-else
-    if root; then
-      # cgroupsv1 rootful : NanoCpus needs to set more than 10000000
-      t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 500 \
-        .cause="CPU cfs quota cannot be less than 1ms (i.e. 1000)"
-      t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":10000000}' 201 \
-        .Id~[0-9a-f]\\{64\\}
-      nanoCpu=10000000
-    else
-      # cgroupsv1 rootless : Resource limits that include NanoCPUs are not supported and ignored
-      t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
-        .Id~[0-9a-f]\\{64\\}
-      nanoCpu=0
-    fi
-fi
+t POST containers/create Image=$IMAGE HostConfig='{"NanoCpus":500000}' 201 \
+  .Id~[0-9a-f]\\{64\\}
 
 cid=$(jq -r '.Id' <<<"$output")
 t GET containers/$cid/json 200 \
@@ -677,14 +641,11 @@ t GET containers/status-test/json 200 .State.Status="created"
 podman start status-test
 t GET containers/status-test/json 200 .State.Status="running"
 
-# cgroupsv1 rootless : pause and unpause are not supported in cgroups v1 rootless
-if root || have_cgroupsv2; then
-    podman pause status-test
-    t GET containers/status-test/json 200 .State.Status="paused"
+podman pause status-test
+t GET containers/status-test/json 200 .State.Status="paused"
 
-    podman unpause status-test
-    t GET containers/status-test/json 200 .State.Status="running"
-fi
+podman unpause status-test
+t GET containers/status-test/json 200 .State.Status="running"
 
 podman stop status-test &
 sleep 1
@@ -718,11 +679,6 @@ if root; then
   cgroupPath=/sys/fs/cgroup/cpu.weight
   # 002 is the byte length
   cpu_weight_expect=$'\001\0025'
-  if ! have_cgroupsv2; then
-    cgroupPath=/sys/fs/cgroup/cpu/cpu.shares
-    # 004 is the byte length
-    cpu_weight_expect=$'\001\004123'
-  fi
 
   # Verify
   echo '{ "AttachStdout":true,"Cmd":["cat", "'$cgroupPath'"]}' >${TMPD}/exec.json
