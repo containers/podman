@@ -8,7 +8,7 @@ podman pull $IMAGE &>/dev/null
 # Ensure clean slate
 podman rm -a -f &>/dev/null
 
-podman run -d --name foo $IMAGE top
+podman run -d --name foo --entrypoint='["sh","-c"]' $IMAGE top
 
 # Check exists for none such
 t GET libpod/containers/nonesuch/exists 404
@@ -44,7 +44,15 @@ t GET libpod/containers/foo/json 200 \
   .State.Status=running \
   .ImageName=$IMAGE \
   .Config.Cmd[0]=top \
-  .Name=foo
+  .Name=foo \
+  .Config.StopSignal="SIGTERM" \
+  .Config.Entrypoint[0]="sh" \
+  .Config.Entrypoint[1]="-c"
+
+# now check v4 request return old compatible output
+t GET /v4.0.0/libpod/containers/foo/json 200 \
+  .Config.StopSignal=15 \
+  .Config.Entrypoint="sh -c"
 
 # List processes of the container
 t GET libpod/containers/foo/top 200 \
