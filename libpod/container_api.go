@@ -781,6 +781,14 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 					}
 				}
 				if len(wantedHealthStates) > 0 {
+					// even if we are interested only in the health check
+					// check that the container is still running to avoid
+					// waiting until the timeout expires.
+					state, err := c.State()
+					if err != nil {
+						trySend(-1, err)
+						return
+					}
 					status, err := c.HealthCheckStatus()
 					if err != nil {
 						trySend(-1, err)
@@ -788,6 +796,10 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 					}
 					if _, found := wantedHealthStates[status]; found {
 						trySend(-1, nil)
+						return
+					}
+					if state != define.ContainerStateCreated && state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+						trySend(-1, define.ErrCtrStopped)
 						return
 					}
 				}
