@@ -119,11 +119,14 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 		_ = flags.MarkHidden("disable-content-trust")
 		_ = flags.MarkHidden("sign-by")
 		_ = flags.MarkHidden("signature-policy")
-		_ = flags.MarkHidden("tls-verify")
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("output")
 		_ = flags.MarkHidden("logsplit")
 		_ = flags.MarkHidden("cw")
+		// Support for farm build in podman-remote
+		if !isFarmBuild {
+			_ = flags.MarkHidden("tls-verify")
+		}
 	}
 	if isFarmBuild {
 		for _, f := range FarmBuildHiddenFlags {

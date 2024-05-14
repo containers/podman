@@ -201,13 +201,13 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 
 // ManifestListClear clears out all instances from a manifest list
 func (ir *ImageEngine) ManifestListClear(ctx context.Context, name string) (string, error) {
-	listContents, err := manifests.InspectListData(ctx, name, &manifests.InspectOptions{})
+	listContents, err := manifests.InspectListData(ir.ClientCtx, name, &manifests.InspectOptions{})
 	if err != nil {
 		return "", err
 	}
 
 	for _, instance := range listContents.Manifests {
-		if _, err := manifests.Remove(ctx, name, instance.Digest.String(), &manifests.RemoveOptions{}); err != nil {
+		if _, err := manifests.Remove(ir.ClientCtx, name, instance.Digest.String(), &manifests.RemoveOptions{}); err != nil {
 			return "", err
 		}
 	}

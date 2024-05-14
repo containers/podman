@@ -116,6 +116,13 @@ EOF
 
 @test "farm - build on farm node only (podman-remote)" {
     iname="test-image-5"
+    # ManifestAdd only
+    echo "Running test with ManifestAdd only..."
+    run_podman --remote farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
+    assert "$output" =~ "Farm \"$FARMNAME\" ready"
+
+    # ManifestListClear and ManifestAdd
+    echo "Running test with ManifestListClear and ManifestAdd..."
     run_podman --remote farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
     assert "$output" =~ "Farm \"$FARMNAME\" ready"
 
