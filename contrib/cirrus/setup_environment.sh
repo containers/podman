@@ -93,6 +93,9 @@ case "$CG_FS_TYPE" in
     *) die_unknown CG_FS_TYPE
 esac
 
+# 2024-05-14 esm EXPERIMENTAL
+printf "[engine]\ncompression_format=\"zstd:chunked\"\n" >/etc/containers/containers.conf.d/91-zstd.conf
+
 # For testing boltdb without having to use --db-backend.
 # As of #20318 (2023-10-10) sqlite is the default, so do not create
 # a containers.conf file in that condition.
