@@ -180,5 +180,7 @@ jobs:
       if: >-
           steps.check.outputs.windows_amd == 'true' ||
           steps.actual_dryrun.outputs.dryrun == 'false'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        gh workflow run upload-win-installer.yml -f ${{steps.getversion.outputs.version}} -f dryrun=false
+        gh workflow run upload-win-installer.yml -f version=${{steps.getversion.outputs.version}} -f dryrun=false
