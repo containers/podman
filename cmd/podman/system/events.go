@@ -162,8 +162,7 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 	}
 
 	go func() {
-		err := registry.ContainerEngine().Events(context.Background(), eventOptions)
-		errChannel <- err
+		errChannel <- registry.ContainerEngine().Events(context.Background(), eventOptions)
 	}()
 
 	for {
@@ -171,6 +170,13 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		case event, ok := <-eventChannel:
 			if !ok {
 				// channel was closed we can exit
+				select {
+				case err := <-errChannel:
+					if err != nil {
+						return err
+					}
+				default:
+				}
 				return nil
 			}
 			switch {

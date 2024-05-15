@@ -43,7 +43,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 
 	libpodFilters, err := util.FiltersFromRequest(r)
 	if err != nil {
-		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse filters for %s: %w", r.URL.String(), err))
 		return
 	}
 	eventChannel := make(chan *events.Event)
@@ -68,8 +68,13 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	flush()
+	wroteContent := false
+	defer func() {
+		if !wroteContent {
+			w.WriteHeader(http.StatusOK)
+			flush()
+		}
+	}()
 
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
@@ -78,8 +83,8 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		select {
 		case err := <-errorChannel:
 			if err != nil {
-				// FIXME StatusOK already sent above cannot send 500 here
 				utils.InternalServerError(w, err)
+				wroteContent = true
 			}
 			return
 		case evt := <-eventChannel:
@@ -103,6 +108,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			if err := coder.Encode(e); err != nil {
 				logrus.Errorf("Unable to write json: %q", err)
 			}
+			wroteContent = true
 			flush()
 		case <-r.Context().Done():
 			return
