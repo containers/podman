@@ -174,7 +174,3 @@ For usage run:
 ```
 hack/bats --help
 ```
-
-## Contributing to system tests
-
-Please see [the TODO list of needed workflows/tests](system/TODO.md).
