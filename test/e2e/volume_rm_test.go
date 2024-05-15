@@ -105,10 +105,6 @@ var _ = Describe("Podman volume rm", func() {
 			// boltdb issues volume name in quotes
 			expect = `more than one result for volume name "myv": volume already exists`
 		}
-		if IsRemote() {
-			// FIXME: #22616
-			expect = `unmarshalling error into &errorhandling.ErrorModel`
-		}
 		Expect(session).To(ExitWithError(125, expect))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})

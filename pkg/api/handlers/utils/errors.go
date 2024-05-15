@@ -34,23 +34,25 @@ func Error(w http.ResponseWriter, code int, err error) {
 }
 
 func VolumeNotFound(w http.ResponseWriter, name string, err error) {
-	if !errors.Is(err, define.ErrNoSuchVolume) {
-		InternalServerError(w, err)
+	if errors.Is(err, define.ErrNoSuchVolume) || errors.Is(err, define.ErrVolumeExists) {
+		Error(w, http.StatusNotFound, err)
+		return
 	}
-	Error(w, http.StatusNotFound, err)
+	InternalServerError(w, err)
 }
 
 func ContainerNotFound(w http.ResponseWriter, name string, err error) {
 	if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrExists) {
 		Error(w, http.StatusNotFound, err)
-	} else {
-		InternalServerError(w, err)
+		return
 	}
+	InternalServerError(w, err)
 }
 
 func ImageNotFound(w http.ResponseWriter, name string, err error) {
 	if !errors.Is(err, storage.ErrImageUnknown) {
 		InternalServerError(w, err)
+		return
 	}
 	Error(w, http.StatusNotFound, err)
 }
@@ -58,6 +60,7 @@ func ImageNotFound(w http.ResponseWriter, name string, err error) {
 func NetworkNotFound(w http.ResponseWriter, name string, err error) {
 	if !errors.Is(err, define.ErrNoSuchNetwork) {
 		InternalServerError(w, err)
+		return
 	}
 	Error(w, http.StatusNotFound, err)
 }
@@ -65,6 +68,7 @@ func NetworkNotFound(w http.ResponseWriter, name string, err error) {
 func PodNotFound(w http.ResponseWriter, name string, err error) {
 	if !errors.Is(err, define.ErrNoSuchPod) {
 		InternalServerError(w, err)
+		return
 	}
 	Error(w, http.StatusNotFound, err)
 }
@@ -72,6 +76,7 @@ func PodNotFound(w http.ResponseWriter, name string, err error) {
 func SessionNotFound(w http.ResponseWriter, name string, err error) {
 	if !errors.Is(err, define.ErrNoSuchExecSession) {
 		InternalServerError(w, err)
+		return
 	}
 	Error(w, http.StatusNotFound, err)
 }
@@ -79,6 +84,7 @@ func SessionNotFound(w http.ResponseWriter, name string, err error) {
 func SecretNotFound(w http.ResponseWriter, nameOrID string, err error) {
 	if errorhandling.Cause(err).Error() != "no such secret" {
 		InternalServerError(w, err)
+		return
 	}
 	Error(w, http.StatusNotFound, err)
 }
