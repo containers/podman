@@ -115,7 +115,10 @@ func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) 
 	}
 
 	// Start the container
-	return c.start(ctx)
+	if err := c.start(); err != nil {
+		return err
+	}
+	return c.waitForHealthy(ctx)
 }
 
 // Update updates the given container.
@@ -194,6 +197,9 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 		opts.Start = true
 		opts.Started = startedChan
 
+		// attach and start the container on a different thread.  waitForHealthy must
+		// be done later, as it requires to run on the same thread that holds the lock
+		// for the container.
 		if err := c.ociRuntime.Attach(c, opts); err != nil {
 			attachChan <- err
 		}
@@ -207,7 +213,7 @@ func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachSt
 		c.newContainerEvent(events.Attach)
 	}
 
-	return attachChan, nil
+	return attachChan, c.waitForHealthy(ctx)
 }
 
 // RestartWithTimeout restarts a running container and takes a given timeout in uint
@@ -775,6 +781,14 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 					}
 				}
 				if len(wantedHealthStates) > 0 {
+					// even if we are interested only in the health check
+					// check that the container is still running to avoid
+					// waiting until the timeout expires.
+					state, err := c.State()
+					if err != nil {
+						trySend(-1, err)
+						return
+					}
 					status, err := c.HealthCheckStatus()
 					if err != nil {
 						trySend(-1, err)
@@ -782,6 +796,10 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 					}
 					if _, found := wantedHealthStates[status]; found {
 						trySend(-1, nil)
+						return
+					}
+					if state != define.ContainerStateCreated && state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+						trySend(-1, define.ErrCtrStopped)
 						return
 					}
 				}
