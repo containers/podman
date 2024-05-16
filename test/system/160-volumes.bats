@@ -467,11 +467,13 @@ NeedsChown    | true
     run_podman volume inspect --format '{{ .NeedsCopyUp }}' $myvolume
     is "${output}" "true" "If content in dest '/vol' empty NeedsCopyUP should still be true"
     run_podman volume inspect --format '{{ .NeedsChown }}' $myvolume
-    is "${output}" "false" "After first use within a container NeedsChown should still be false"
+    is "${output}" "true" "No copy up occurred so the NeedsChown will still be true"
 
     run_podman run --rm --volume $myvolume:/etc $IMAGE ls /etc/passwd
     run_podman volume inspect --format '{{ .NeedsCopyUp }}' $myvolume
     is "${output}" "false" "If content in dest '/etc' non-empty NeedsCopyUP should still have happened and be false"
+    run_podman volume inspect --format '{{ .NeedsChown }}' $myvolume
+    is "${output}" "false" "Content has been copied up into volume, needschown will be false"
 
     run_podman volume inspect --format '{{.Mountpoint}}' $myvolume
     mountpoint="$output"

@@ -98,6 +98,10 @@ type VolumeState struct {
 	// a container, the container will chown the volume to the container process
 	// UID/GID.
 	NeedsChown bool `json:"notYetChowned,omitempty"`
+	// Indicates that a copy-up event occurred during the current mount of
+	// the volume into a container.
+	// We use this to determine if a chown is appropriate.
+	CopiedUp bool `json:"copiedUp,omitempty"`
 	// UIDChowned is the UID the volume was chowned to.
 	UIDChowned int `json:"uidChowned,omitempty"`
 	// GIDChowned is the GID the volume was chowned to.

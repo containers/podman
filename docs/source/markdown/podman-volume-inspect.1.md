@@ -26,25 +26,25 @@ Format volume output using Go template
 
 Valid placeholders for the Go template are listed below:
 
-| **Placeholder**     | **Description**                                        |
-| ------------------- | ------------------------------------------------------ |
-| .Anonymous          | Indicates whether volume is anonymous                  |
-| .CreatedAt ...      | Volume creation time                                   |
-| .Driver             | Volume driver                                          |
-| .GID                | GID the volume was created with                        |
-| .Labels ...         | Label information associated with the volume           |
-| .LockNumber         | Number of the volume's Libpod lock                     |
-| .MountCount         | Number of times the volume is mounted                  |
-| .Mountpoint         | Source of volume mount point                           |
-| .Name               | Volume name                                            |
-| .NeedsChown         | Indicates volume needs to be chowned on first use      |
-| .NeedsCopyUp        | Indicates volume needs dest data copied up on first use|
-| .Options ...        | Volume options                                         |
-| .Scope              | Volume scope                                           |
-| .Status ...         | Status of the volume                                   |
-| .StorageID          | StorageID of the volume                                |
-| .Timeout            | Timeout of the volume                                  |
-| .UID                | UID the volume was created with                        |
+| **Placeholder**     | **Description**                                                             |
+| ------------------- | --------------------------------------------------------------------------- |
+| .Anonymous          | Indicates whether volume is anonymous                                       |
+| .CreatedAt ...      | Volume creation time                                                        |
+| .Driver             | Volume driver                                                               |
+| .GID                | GID the volume was created with                                             |
+| .Labels ...         | Label information associated with the volume                                |
+| .LockNumber         | Number of the volume's Libpod lock                                          |
+| .MountCount         | Number of times the volume is mounted                                       |
+| .Mountpoint         | Source of volume mount point                                                |
+| .Name               | Volume name                                                                 |
+| .NeedsChown         | Indicates volume will be chowned on next use                                |
+| .NeedsCopyUp        | Indicates data at the destination will be copied into the volume on next use|
+| .Options ...        | Volume options                                                              |
+| .Scope              | Volume scope                                                                |
+| .Status ...         | Status of the volume                                                        |
+| .StorageID          | StorageID of the volume                                                     |
+| .Timeout            | Timeout of the volume                                                       |
+| .UID                | UID the volume was created with                                             |
 
 #### **--help**
 

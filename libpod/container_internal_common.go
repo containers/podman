@@ -2868,11 +2868,26 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		return err
 	}
 
+	// If the volume is not empty, and it is not the first copy-up event -
+	// we should not do a chown.
+	if vol.state.NeedsChown && !vol.state.CopiedUp {
+		contents, err := os.ReadDir(vol.mountPoint())
+		if err != nil {
+			return fmt.Errorf("reading contents of volume %q: %w", vol.Name(), err)
+		}
+		// Not empty, do nothing and unset NeedsChown.
+		if len(contents) > 0 {
+			vol.state.NeedsChown = false
+			if err := vol.save(); err != nil {
+				return fmt.Errorf("saving volume %q state: %w", vol.Name(), err)
+			}
+			return nil
+		}
+	}
+
 	// Volumes owned by a volume driver are not chowned - we don't want to
 	// mess with a mount not managed by us.
 	if vol.state.NeedsChown && (!vol.UsesVolumeDriver() && vol.config.Driver != "image") {
-		vol.state.NeedsChown = false
-
 		uid := int(c.config.Spec.Process.User.UID)
 		gid := int(c.config.Spec.Process.User.GID)
 
@@ -2891,6 +2906,10 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			gid = newPair.GID
 		}
 
+		if vol.state.CopiedUp {
+			vol.state.NeedsChown = false
+		}
+		vol.state.CopiedUp = false
 		vol.state.UIDChowned = uid
 		vol.state.GIDChowned = gid
 
@@ -2934,6 +2953,16 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 
 				if err := idtools.SafeLchown(mountPoint, uid, gid); err != nil {
 					return err
+				}
+
+				// UID/GID 0 are sticky - if we chown to root,
+				// we stop chowning thereafter.
+				if uid == 0 && gid == 0 && vol.state.NeedsChown {
+					vol.state.NeedsChown = false
+
+					if err := vol.save(); err != nil {
+						return fmt.Errorf("saving volume %q state to database: %w", vol.Name(), err)
+					}
 				}
 			}
 			if err := os.Chmod(mountPoint, st.Mode()); err != nil {
