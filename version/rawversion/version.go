@@ -7,4 +7,4 @@ package rawversion
 //
 // NOTE: remember to bump the version at the top of the top-level README.md
 // file when this is bumped.
-const RawVersion = "5.1.0-dev"
+const RawVersion = "5.2.0-dev"
