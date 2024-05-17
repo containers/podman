@@ -2299,6 +2299,15 @@ func (c *Container) addHosts() error {
 	var exclude []net.IP
 	if c.pastaResult != nil {
 		exclude = c.pastaResult.IPAddresses
+	} else if c.config.NetMode.IsBridge() {
+		// When running rootless we have to check the rootless netns ip addresses
+		// to not assign a ip that is already used in the rootless netns as it would
+		// not be routed to the host.
+		// https://github.com/containers/podman/issues/22653
+		info, err := c.runtime.network.RootlessNetnsInfo()
+		if err == nil {
+			exclude = info.IPAddresses
+		}
 	}
 
 	return etchosts.New(&etchosts.Params{
