@@ -3,6 +3,7 @@ package rootlessnetns
 import (
 	"errors"
 
+	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/lockfile"
 )
@@ -25,4 +26,8 @@ func (n *Netns) Teardown(nets int, toRun func() error) error {
 
 func (n *Netns) Run(lock *lockfile.LockFile, toRun func() error) error {
 	return ErrNotSupported
+}
+
+func (n *Netns) Info() *types.RootlessNetnsInfo {
+	return &types.RootlessNetnsInfo{}
 }

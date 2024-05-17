@@ -295,3 +295,10 @@ func (n *cniNetwork) RunInRootlessNetns(toRun func() error) error {
 	}
 	return n.rootlessNetns.Run(n.lock, toRun)
 }
+
+func (n *cniNetwork) RootlessNetnsInfo() (*types.RootlessNetnsInfo, error) {
+	if n.rootlessNetns == nil {
+		return nil, types.ErrNotRootlessNetns
+	}
+	return n.rootlessNetns.Info(), nil
+}
