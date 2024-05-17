@@ -71,8 +71,9 @@ type SSHOptions struct {
 }
 
 type StartOptions struct {
-	NoInfo bool
-	Quiet  bool
+	NoInfo  bool
+	Quiet   bool
+	Rosetta bool
 }
 
 type StopOptions struct{}
@@ -117,6 +118,7 @@ type InspectInfo struct {
 	State              define.Status
 	UserModeNetworking bool
 	Rootful            bool
+	Rosetta            bool
 }
 
 // ImageConfig describes the bootable image for the VM
