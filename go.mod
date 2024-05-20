@@ -14,7 +14,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.4.1
 	github.com/containers/buildah v1.35.1-0.20240510150258-77f239ae12e5
-	github.com/containers/common v0.58.1-0.20240509172903-2c88a3f280bb
+	github.com/containers/common v0.58.1-0.20240517090124-fa276b325847
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
 	github.com/containers/image/v5 v5.30.2-0.20240509191815-9318d0eaaf78
@@ -30,7 +30,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.2.5
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/docker/docker v26.1.2+incompatible
+	github.com/docker/docker v26.1.3+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
 	github.com/docker/go-units v0.5.0
@@ -98,7 +98,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
-	github.com/containerd/containerd v1.7.16 // indirect
+	github.com/containerd/containerd v1.7.17 // indirect
 	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
@@ -194,7 +194,7 @@ require (
 	github.com/sigstore/rekor v1.3.6 // indirect
 	github.com/sigstore/sigstore v1.8.3 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
-	github.com/stefanberger/go-pkcs11uri v0.0.0-20201008174630-78d3cae3a980 // indirect
+	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.16.0 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect

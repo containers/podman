@@ -19,7 +19,6 @@ package pkcs11uri
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -128,6 +127,12 @@ func (uri *Pkcs11URI) SetPathAttribute(name, value string) error {
 	return uri.setAttribute(uri.pathAttributes, name, value)
 }
 
+// SetPathAttributeUnencoded sets the value for a path attribute given as byte[].
+// The value must not have been pct-encoded already.
+func (uri *Pkcs11URI) SetPathAttributeUnencoded(name string, value []byte) {
+	uri.pathAttributes[name] = string(value)
+}
+
 // AddPathAttribute adds a path attribute; it returns an error if an attribute with the same
 // name already existed or if the given value cannot be pct-unescaped
 func (uri *Pkcs11URI) AddPathAttribute(name, value string) error {
@@ -135,6 +140,16 @@ func (uri *Pkcs11URI) AddPathAttribute(name, value string) error {
 		return errors.New("duplicate path attribute")
 	}
 	return uri.SetPathAttribute(name, value)
+}
+
+// AddPathAttributeUnencoded adds a path attribute given as byte[] which must not already be pct-encoded;
+// it returns an error if an attribute with the same name already existed
+func (uri *Pkcs11URI) AddPathAttributeUnencoded(name string, value []byte) error {
+	if _, ok := uri.pathAttributes[name]; ok {
+		return errors.New("duplicate path attribute")
+	}
+	uri.SetPathAttributeUnencoded(name, value)
+	return nil
 }
 
 // RemovePathAttribute removes a path attribute
@@ -173,6 +188,12 @@ func (uri *Pkcs11URI) SetQueryAttribute(name, value string) error {
 	return uri.setAttribute(uri.queryAttributes, name, value)
 }
 
+// SetQueryAttributeUnencoded sets the value for a quiery attribute given as byte[].
+// The value must not have been pct-encoded already.
+func (uri *Pkcs11URI) SetQueryAttributeUnencoded(name string, value []byte) {
+	uri.queryAttributes[name] = string(value)
+}
+
 // AddQueryAttribute adds a query attribute; it returns an error if an attribute with the same
 // name already existed or if the given value cannot be pct-unescaped
 func (uri *Pkcs11URI) AddQueryAttribute(name, value string) error {
@@ -180,6 +201,16 @@ func (uri *Pkcs11URI) AddQueryAttribute(name, value string) error {
 		return errors.New("duplicate query attribute")
 	}
 	return uri.SetQueryAttribute(name, value)
+}
+
+// AddQueryAttributeUnencoded adds a query attribute given as byte[] which must not already be pct-encoded;
+// it returns an error if an attribute with the same name already existed
+func (uri *Pkcs11URI) AddQueryAttributeUnencoded(name string, value []byte) error {
+	if _, ok := uri.queryAttributes[name]; ok {
+		return errors.New("duplicate query attribute")
+	}
+	uri.SetQueryAttributeUnencoded(name, value)
+	return nil
 }
 
 // RemoveQueryAttribute removes a path attribute
@@ -257,7 +288,7 @@ func (uri *Pkcs11URI) GetPIN() (string, error) {
 			if !filepath.IsAbs(pinuri.Path) {
 				return "", fmt.Errorf("PIN URI path '%s' is not absolute", pinuri.Path)
 			}
-			pin, err := ioutil.ReadFile(pinuri.Path)
+			pin, err := os.ReadFile(pinuri.Path)
 			if err != nil {
 				return "", fmt.Errorf("Could not open PIN file: %s", err)
 			}
@@ -426,7 +457,7 @@ func (uri *Pkcs11URI) GetModule() (string, error) {
 	moduleName = strings.ToLower(moduleName)
 
 	for _, dir := range searchdirs {
-		files, err := ioutil.ReadDir(dir)
+		files, err := os.ReadDir(dir)
 		if err != nil {
 			continue
 		}
