@@ -581,11 +581,16 @@ func (c *Container) Wait(ctx context.Context) (int32, error) {
 // WaitForExit blocks until the container exits and returns its exit code. The
 // argument is the interval at which checks the container's status.
 func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration) (int32, error) {
+	id := c.ID()
 	if !c.valid {
+		// if the container is not valid at this point as it was deleted,
+		// check if the exit code was recorded in the db.
+		exitCode, err := c.runtime.state.GetContainerExitCode(id)
+		if err == nil {
+			return exitCode, nil
+		}
 		return -1, define.ErrCtrRemoved
 	}
-
-	id := c.ID()
 	var conmonTimer time.Timer
 	conmonTimerSet := false
 

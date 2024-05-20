@@ -242,6 +242,14 @@ READY=1" "Container log after healthcheck run"
     is "$output" "finished" "make sure container exited successfully"
     run_podman rm -f -t0 $ctr
 
+    ctr=$(random_string)
+    run_podman 12 run --name $ctr --rm               \
+            --health-cmd="touch /terminate"          \
+            --sdnotify=healthy                       \
+            $IMAGE sh -c 'while test \! -e /terminate; do sleep 0.1; done; echo finished; exit 12'
+    is "$output" "finished" "make sure container exited"
+    run_podman rm -f -t0 $ctr
+
     _stop_socat
 }
 
