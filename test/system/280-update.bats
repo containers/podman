@@ -117,6 +117,7 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
     run_podman update "${opts[@]}" $cid
 
     # ...and check one by one
+    defer-assertion-failures
     for opt in "${opts[@]}"; do
         read path op expect <<<"${check[$opt]}"
         run_podman exec $cid cat /sys/fs/cgroup/$path
@@ -126,6 +127,7 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
         updated="$(echo $output)"
         assert "$updated" $op "$expect" "$opt ($path)"
     done
+    immediate-assertion-failures
 
     # Clean up
     run_podman rm -f -t0 $cid

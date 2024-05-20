@@ -176,6 +176,7 @@ function wait_for_journal() {
     die "Timed out waiting for '$expect_str' in journalctl output"
 }
 
+# bats test_tags=distro-integration
 @test "quadlet - basic" {
     # Network=none is to work around a Pasta bug, can be removed once a patched Pasta is available.
     # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
