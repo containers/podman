@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/crc-org/vfkit/pkg/rest"
+	"github.com/sirupsen/logrus"
 )
 
 func GetDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *define.VMFile, error) {
@@ -41,7 +42,12 @@ func GetDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *d
 	if err != nil {
 		return nil, nil, err
 	}
-	devices = append(devices, disk, rng, serial, readyDevice)
+	devices = append(devices, disk, rng, readyDevice)
+	if mc.LibKrunHypervisor == nil || !logrus.IsLevelEnabled(logrus.DebugLevel) {
+		// If libkrun is the provider and we want to show the debug console,
+		// don't add a virtio serial device to avoid redirecting the output.
+		devices = append(devices, serial)
+	}
 
 	if mc.AppleHypervisor != nil && mc.AppleHypervisor.Vfkit.Rosetta {
 		rosetta := &vfConfig.RosettaShare{
