@@ -935,6 +935,8 @@ minikube_test_task:
     alias: minikube_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
+    # 2024-05-21: flaking almost constantly since March.
+    skip: $CI == $CI
     depends_on: *build
     gce_instance: *standardvm
     env:
