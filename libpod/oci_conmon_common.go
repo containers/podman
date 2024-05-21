@@ -342,6 +342,7 @@ func generateResourceFile(res *spec.LinuxResources) (string, []string, error) {
 	if err != nil {
 		return "", nil, err
 	}
+	defer f.Close()
 
 	j, err := json.Marshal(res)
 	if err != nil {
