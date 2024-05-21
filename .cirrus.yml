@@ -999,7 +999,7 @@ buildah_bud_test_task:
         - env:
             PODBIN_NAME: remote
             PRIV_NAME: rootless
-    gce_instance: *standardvm
+    gce_instance: *fastvm
     timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
