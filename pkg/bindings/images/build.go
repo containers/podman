@@ -280,6 +280,10 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	if len(options.RusageLogFile) > 0 {
 		params.Set("rusagelogfile", options.RusageLogFile)
 	}
+
+	params.Set("retry", strconv.Itoa(options.MaxPullPushRetries))
+	params.Set("retry-delay", options.PullPushRetryDelay.String())
+
 	if len(options.Manifest) > 0 {
 		params.Set("manifest", options.Manifest)
 	}

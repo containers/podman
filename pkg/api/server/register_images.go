@@ -536,6 +536,18 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      with the corresponding path inside the tarball.
 	//      (As of version 1.xx)
 	//  - in: query
+	//    name: retry
+	//    type: integer
+	//    default: 3
+	//    description: |
+	//      Number of times to retry in case of failure when performing push/pull.
+	//  - in: query
+	//    name: retry-delay
+	//    type: string
+	//    default: 2s
+	//    description: |
+	//      Delay between retries in case of push/pull failures.
+	//  - in: query
 	//    name: q
 	//    type: boolean
 	//    default: false

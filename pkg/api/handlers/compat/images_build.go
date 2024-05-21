@@ -87,6 +87,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	conf, err := runtime.GetConfigNoCopy()
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
 	query := struct {
 		AddHosts                string   `schema:"extrahosts"`
 		AdditionalCapabilities  string   `schema:"addcaps"`
@@ -147,6 +154,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Rm                      bool     `schema:"rm"`
 		RusageLogFile           string   `schema:"rusagelogfile"`
 		Remote                  string   `schema:"remote"`
+		Retry                   int      `schema:"retry"`
+		RetryDelay              string   `schema:"retry-delay"`
 		Seccomp                 string   `schema:"seccomp"`
 		Secrets                 string   `schema:"secrets"`
 		SecurityOpt             string   `schema:"securityopt"`
@@ -169,6 +178,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ShmSize:          64 * 1024 * 1024,
 		TLSVerify:        true,
 		SkipUnusedStages: true,
+		Retry:            int(conf.Engine.Retry),
+		RetryDelay:       conf.Engine.RetryDelay,
 	}
 
 	decoder := utils.GetDecoder(r)
@@ -672,7 +683,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	retryDelay := 2 * time.Second
+	if query.RetryDelay != "" {
+		retryDelay, err = time.ParseDuration(query.RetryDelay)
+		if err != nil {
+			utils.BadRequest(w, "retry-delay", query.RetryDelay, err)
+			return
+		}
+	}
+
 	buildOptions := buildahDefine.BuildOptions{
 		AddCapabilities:         addCaps,
 		AdditionalBuildContexts: additionalBuildContexts,
@@ -730,7 +749,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Layers:                         query.Layers,
 		LogRusage:                      query.LogRusage,
 		Manifest:                       query.Manifest,
-		MaxPullPushRetries:             3,
+		MaxPullPushRetries:             query.Retry,
 		NamespaceOptions:               nsoptions,
 		NoCache:                        query.NoCache,
 		OSFeatures:                     query.OSFeatures,
@@ -739,7 +758,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Output:                         output,
 		OutputFormat:                   format,
 		PullPolicy:                     pullPolicy,
-		PullPushRetryDelay:             2 * time.Second,
+		PullPushRetryDelay:             retryDelay,
 		Quiet:                          query.Quiet,
 		Registry:                       registry,
 		RemoveIntermediateCtrs:         query.Rm,

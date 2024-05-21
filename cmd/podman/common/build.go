@@ -506,6 +506,14 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		}
 	}
 
+	retryDelay := 2 * time.Second
+	if flags.RetryDelay != "" {
+		retryDelay, err = time.ParseDuration(flags.RetryDelay)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse value provided %q as --retry-delay: %w", flags.RetryDelay, err)
+		}
+	}
+
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
@@ -544,7 +552,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		LogFile:                 flags.Logfile,
 		LogSplitByPlatform:      flags.LogSplitByPlatform,
 		Manifest:                flags.Manifest,
-		MaxPullPushRetries:      3,
+		MaxPullPushRetries:      flags.Retry,
 		NamespaceOptions:        nsValues,
 		NoCache:                 flags.NoCache,
 		OSFeatures:              flags.OSFeatures,
@@ -555,7 +563,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		OutputFormat:            format,
 		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
-		PullPushRetryDelay:      2 * time.Second,
+		PullPushRetryDelay:      retryDelay,
 		Quiet:                   flags.Quiet,
 		RemoveIntermediateCtrs:  flags.Rm,
 		ReportWriter:            reporter,

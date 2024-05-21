@@ -257,6 +257,9 @@ skip_if_rootless "Flakes when run rootless, too. See Buildah PR 4190" \
 skip_if_remote "--events-backend does not work with podman-remote" \
 	       "build test default ulimits"
 
+skip_if_remote "--cert-dir option not working via remote and retry warnings are printed on the server" \
+            "build add https retry ca"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
