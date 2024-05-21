@@ -241,7 +241,8 @@ skip_if_remote "--output option not implemented in podman-remote" \
 skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"
 
 skip_if_remote "envariables do not automatically work with -remote." \
-               "build proxy"
+               "build proxy" \
+               "build-test --mount=type=secret test from env with chroot isolation"
 
 # 2022-07-04 this is a new test in buildah; it's failing in treadmill
 skip_if_remote "FIXME FIXME FIXME: does this test make sense in remote?" \
@@ -259,6 +260,9 @@ skip_if_remote "--events-backend does not work with podman-remote" \
 
 skip_if_remote "--cert-dir option not working via remote and retry warnings are printed on the server" \
             "build add https retry ca"
+
+skip_if_remote "Weird. This used to work remote, until Ed set TMPDIR in #5804" \
+               "bud-with-mount-cache-like-buildkit with buildah prune should clear the cache"
 
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
