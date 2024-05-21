@@ -1,4 +1,4 @@
-From 6f7a27f4787ec91ecf7bd7c4de048b23c3cdb74f Mon Sep 17 00:00:00 2001
+From e39e00a6d92acb83283705ea66c26261ca6a0170 Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Thu, 6 Oct 2022 17:32:59 -0600
 Subject: [PATCH] tweaks for running buildah tests under podman
@@ -9,7 +9,7 @@ Signed-off-by: Ed Santiago <santiago@redhat.com>
  1 file changed, 115 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index b47939284..ce6dde76e 100644
+index 20f0787ff..c356500ae 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
 @@ -79,6 +79,38 @@ EOF
@@ -50,8 +50,8 @@ index b47939284..ce6dde76e 100644
 +    fi
  }
  
- function starthttpd() {
-@@ -122,6 +154,32 @@ function teardown_tests() {
+ function starthttpd() { # directory [working-directory-or-"" [certfile, keyfile]]
+@@ -143,6 +175,32 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
@@ -84,7 +84,7 @@ index b47939284..ce6dde76e 100644
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -211,7 +269,12 @@ function copy() {
+@@ -232,7 +290,12 @@ function copy() {
  }
  
  function podman() {
@@ -98,7 +98,7 @@ index b47939284..ce6dde76e 100644
  }
  
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
-@@ -275,8 +338,36 @@ function run_buildah() {
+@@ -296,8 +359,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -136,7 +136,7 @@ index b47939284..ce6dde76e 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -290,8 +381,8 @@ function run_buildah() {
+@@ -311,8 +402,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -147,7 +147,7 @@ index b47939284..ce6dde76e 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -652,6 +743,26 @@ function skip_if_no_unshare() {
+@@ -673,6 +764,26 @@ function skip_if_no_unshare() {
    fi
  }
  
@@ -176,3 +176,4 @@ index b47939284..ce6dde76e 100644
    mkdir -p ${daemondir}/repo
 -- 
 2.45.2
+
