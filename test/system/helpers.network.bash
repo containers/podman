@@ -427,6 +427,6 @@ function default_addr() {
     local ip_ver="${1}"
     local ifname="${2:-$(default_ifname "${ip_ver}")}"
 
-    local expr='.[0] | .addr_info[0].local'
+    local expr='[.[0].addr_info[] | select(.deprecated != true)][0].local'
     ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
 }
