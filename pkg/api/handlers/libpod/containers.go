@@ -144,6 +144,11 @@ func GetContainer(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
+	// if client request old v4 payload we should return v4 compatible json
+	if _, err := utils.SupportedVersion(r, ">=5.0.0"); err != nil {
+		data.Config.V4PodmanCompatMarshal = true
+	}
+
 	utils.WriteResponse(w, http.StatusOK, data)
 }
 
