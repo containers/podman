@@ -202,6 +202,11 @@ func (r *DefaultReporter) DidRun(report types.SpecReport) {
 	v := r.conf.Verbosity()
 	inParallel := report.RunningInParallel
 
+	//should we completely omit this spec?
+	if report.State.Is(types.SpecStateSkipped) && r.conf.SilenceSkips {
+		return
+	}
+
 	header := r.specDenoter
 	if report.LeafNodeType.Is(types.NodeTypesForSuiteLevelNodes) {
 		header = fmt.Sprintf("[%s]", report.LeafNodeType)
@@ -278,9 +283,12 @@ func (r *DefaultReporter) DidRun(report types.SpecReport) {
 		}
 	}
 
-	// If we have no content to show, jsut emit the header and return
+	// If we have no content to show, just emit the header and return
 	if !reportHasContent {
 		r.emit(r.f(highlightColor + header + "{{/}}"))
+		if r.conf.ForceNewlines {
+			r.emit("\n")
+		}
 		return
 	}
 
