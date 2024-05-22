@@ -89,6 +89,10 @@ type InspectContainerConfig struct {
 	SdNotifyMode string `json:"sdNotifyMode,omitempty"`
 	// SdNotifySocket is the NOTIFY_SOCKET in use by/configured for the container.
 	SdNotifySocket string `json:"sdNotifySocket,omitempty"`
+
+	// V4PodmanCompatMarshal indicates that the json marshaller should
+	// use the old v4 inspect format to keep API compatibility.
+	V4PodmanCompatMarshal bool `json:"-"`
 }
 
 // UnmarshalJSON allow compatibility with podman V4 API
@@ -134,6 +138,28 @@ func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("cannot unmarshal Config.StopSignal of type  %T", stopsignal)
 	}
 	return nil
+}
+
+func (insp *InspectContainerConfig) MarshalJSON() ([]byte, error) {
+	// the alias is needed otherwise MarshalJSON will
+	type Alias InspectContainerConfig
+	conf := (*Alias)(insp)
+	if !insp.V4PodmanCompatMarshal {
+		return json.Marshal(conf)
+	}
+
+	type v4InspectContainerConfig struct {
+		Entrypoint string `json:"Entrypoint"`
+		StopSignal uint   `json:"StopSignal"`
+		*Alias
+	}
+	stopSignal, _ := signal.ParseSignal(insp.StopSignal)
+	newConf := &v4InspectContainerConfig{
+		Entrypoint: strings.Join(insp.Entrypoint, " "),
+		StopSignal: uint(stopSignal),
+		Alias:      conf,
+	}
+	return json.Marshal(newConf)
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

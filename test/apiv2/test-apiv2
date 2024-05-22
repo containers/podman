@@ -305,7 +305,7 @@ function t() {
         url=http://$HOST:$PORT
         case "$path" in
         /*) url="$url$path" ;;
-        libpod/*) url="$url/v4.0.0/$path" ;;
+        libpod/*) url="$url/v5.0.0/$path" ;;
         *)  url="$url/v1.41/$path" ;;
         esac
     fi
