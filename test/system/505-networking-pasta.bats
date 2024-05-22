@@ -1,5 +1,7 @@
 #!/usr/bin/env bats   -*- bats -*-
 #
+# Dummy change to get system tests to run
+#
 # SPDX-License-Identifier: Apache-2.0
 #
 # Networking with pasta(1)
@@ -799,6 +801,12 @@ EOF
 @test "pasta/bridge and host.containers.internal" {
     skip_if_no_ipv4 "IPv4 not routable on the host"
     pasta_ip="$(default_addr 4)"
+
+    # FIXME FIXME FIXME FOR DEBUGGING
+    echo
+    echo "$_LOG_PROMPT ip -j -4 addr show"
+    ip -j -4 addr show
+    echo
 
     for network in "pasta" "bridge"; do
         # special exit code logic needed here, it is possible that there is no host.containers.internal
