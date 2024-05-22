@@ -177,6 +177,7 @@ func GenerateJUnitReportWithConfig(report types.Report, dst string, config Junit
 				{"FocusFiles", strings.Join(report.SuiteConfig.FocusFiles, ";")},
 				{"SkipFiles", strings.Join(report.SuiteConfig.SkipFiles, ";")},
 				{"FailOnPending", fmt.Sprintf("%t", report.SuiteConfig.FailOnPending)},
+				{"FailOnEmpty", fmt.Sprintf("%t", report.SuiteConfig.FailOnEmpty)},
 				{"FailFast", fmt.Sprintf("%t", report.SuiteConfig.FailFast)},
 				{"FlakeAttempts", fmt.Sprintf("%d", report.SuiteConfig.FlakeAttempts)},
 				{"DryRun", fmt.Sprintf("%t", report.SuiteConfig.DryRun)},

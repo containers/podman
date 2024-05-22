@@ -1,3 +1,17 @@
+## 2.18.0
+
+### Features
+- Add --slience-skips and --force-newlines [f010b65]
+- fail when no tests were run and --fail-on-empty was set [d80eebe]
+
+### Fixes
+- Fix table entry context edge case [42013d6]
+
+### Maintenance
+- Bump golang.org/x/tools from 0.20.0 to 0.21.0 (#1406) [fcf1fd7]
+- Bump github.com/onsi/gomega from 1.33.0 to 1.33.1 (#1399) [8bb14fd]
+- Bump golang.org/x/net from 0.24.0 to 0.25.0 (#1407) [04bfad7]
+
 ## 2.17.3
 
 ### Fixes
