@@ -144,14 +144,13 @@ See storage.conf(5) for all available configuration settings.
 
 ### Network performance for rootless Podman
 
-When using rootless Podman, network traffic is normally passed through
-[slirp4netns](https://github.com/containers/podman/blob/main/docs/tutorials/basic_networking.md#slirp4netns).
-This comes with a performance penalty.
+When using rootless Podman, network traffic is normally passed through the network driver
+[pasta](https://passt.top/passt/about/#pasta). This comes with a performance penalty.
 
-You can avoid using slirp4netns in the following ways:
+You can avoid using _pasta_ in the following ways:
 
 * Use socket activation for listening network sockets. Communication over the activated socket does not pass through
-  slirp4netns, so it has the same performance characteristics as the normal network on the host.
+  pasta, so it has the same performance characteristics as the normal network on the host.
   Socket-activated services can be started and stopped in different ways:
   + Let systemd start the service when the first client connects. Let the service terminate by itself after some time of inactivity.
     Using a service on demand, can free up compute resources.
@@ -160,12 +159,27 @@ You can avoid using slirp4netns in the following ways:
   The [socket activation tutorial](https://github.com/containers/podman/blob/main/docs/tutorials/socket_activation.md)
   provides more information about socket activation support in Podman.
 
-* Use the network driver [_pasta_](https://passt.top/passt/about/#pasta). Pasta is under development and currently needs a patched Podman to run.
-
-* Set up the network manually as root. Create a bridge and virtual ethernet pair (VETH). See the [example](https://lists.podman.io/archives/list/podman@lists.podman.io/thread/W6MCYO6RY5YFRTSUDAOEZA7SC2EFXRZE/) posted on the Podman mailing list. See also the section _DIY networking_ in [Podman-Rootless-Networking.pdf](https://podman.io/community/meeting/notes/2021-10-05/Podman-Rootless-Networking.pdf).
+* Set up the network manually as root. Create a bridge and virtual ethernet pair (VETH). Note: compared to other methods,
+  this setup doesn't provide any network isolation. In containers granted CAP_NET_ADMIN or CAP_NET_RAW, processes can
+  open packet or raw sockets directly facing the host, which allows them to send arbitrary frames, including
+  crafted Ethernet and IP packets, as well as receiving packets that were not originally intended for the container,
+  by means of ARP spoofing.
+  For more information, see
+  + An [example](https://lists.podman.io/archives/list/podman@lists.podman.io/thread/W6MCYO6RY5YFRTSUDAOEZA7SC2EFXRZE/) posted on the Podman mailing list
+  + The section _DIY networking_ in [Podman-Rootless-Networking.pdf](https://containers.github.io/podman.io_old/old/community/meeting/notes/2021-10-05/Podman-Rootless-Networking.pdf)
 
 * Use `--network=host`. No network namespace is created. The container will use the host’s network.
   Note: By using `--network=host`, the container is given full access to local system services such as D-bus and is therefore considered insecure.
+
+Side note: Pasta is faster than the network driver [slirp4netns](https://github.com/containers/podman/blob/main/docs/tutorials/basic_networking.md#slirp4netns).
+Pasta is the default network driver since Podman 5.0.0.
+
+Since Podman 5.1.0 the default network driver can be shown with
+
+```
+$ podman info -f '{{.Host.RootlessNetworkCmd}}'
+pasta
+```
 
 ### Lazy pulling of container images
 
