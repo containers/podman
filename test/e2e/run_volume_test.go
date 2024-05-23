@@ -30,6 +30,14 @@ var _ = Describe("Podman run with volumes", func() {
 		return strings.Fields(session.OutputToString())
 	}
 
+	//nolint:unparam
+	mountVolumeAndCheckDirectory := func(volName, volPath, expectedOwner, imgName string) {
+		check := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", volName, volPath), imgName, "stat", "-c", "%U:%G", volPath})
+		check.WaitWithDefaultTimeout()
+		Expect(check).Should(ExitCleanly())
+		Expect(check.OutputToString()).Should(ContainSubstring(fmt.Sprintf("%s:%s", expectedOwner, expectedOwner)))
+	}
+
 	It("podman run with volume flag", func() {
 		mountPath := filepath.Join(podmanTest.TempDir, "secrets")
 		err = os.Mkdir(mountPath, 0755)
@@ -969,5 +977,90 @@ USER testuser`, CITEST_IMAGE)
 		Expect(run2).Should(ExitCleanly())
 
 		Expect(run1.OutputToString()).Should(Equal(run2.OutputToString()))
+	})
+
+	It("podman run -v chowns multiple times on empty volume", func() {
+		imgName := "testimg"
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN addgroup -g 1234 test1
+RUN addgroup -g 4567 test2
+RUN addgroup -g 7890 test3
+RUN adduser -D -u 1234 -G test1 test1
+RUN adduser -D -u 4567 -G test2 test2
+RUN adduser -D -u 7890 -G test3 test3
+RUN mkdir /test1 /test2 /test3 /test4
+RUN chown test1:test1 /test1
+RUN chown test2:test2 /test2
+RUN chown test3:test3 /test4
+RUN chmod 755 /test1 /test2 /test3 /test4`, ALPINE)
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(ExitCleanly())
+
+		mountVolumeAndCheckDirectory(volName, "/test1", "test1", imgName)
+		mountVolumeAndCheckDirectory(volName, "/test2", "test2", imgName)
+		mountVolumeAndCheckDirectory(volName, "/test3", "root", imgName)
+		mountVolumeAndCheckDirectory(volName, "/test4", "root", imgName)
+	})
+
+	It("podman run -v chowns until copy-up on volume", func() {
+		imgName := "testimg"
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN addgroup -g 1234 test1
+RUN addgroup -g 4567 test2
+RUN addgroup -g 7890 test3
+RUN adduser -D -u 1234 -G test1 test1
+RUN adduser -D -u 4567 -G test2 test2
+RUN adduser -D -u 7890 -G test3 test3
+RUN mkdir /test1 /test2 /test3
+RUN touch /test2/file1
+RUN chown test1:test1 /test1
+RUN chown -R test2:test2 /test2
+RUN chown test3:test3 /test3
+RUN chmod 755 /test1 /test2 /test3`, ALPINE)
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(ExitCleanly())
+
+		mountVolumeAndCheckDirectory(volName, "/test1", "test1", imgName)
+		mountVolumeAndCheckDirectory(volName, "/test2", "test2", imgName)
+		mountVolumeAndCheckDirectory(volName, "/test3", "test2", imgName)
+	})
+
+	It("podman run -v chowns until volume has contents", func() {
+		imgName := "testimg"
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN addgroup -g 1234 test1
+RUN addgroup -g 4567 test2
+RUN addgroup -g 7890 test3
+RUN adduser -D -u 1234 -G test1 test1
+RUN adduser -D -u 4567 -G test2 test2
+RUN adduser -D -u 7890 -G test3 test3
+RUN mkdir /test1 /test2 /test3
+RUN chown test1:test1 /test1
+RUN chown test2:test2 /test2
+RUN chown test3:test3 /test3
+RUN chmod 755 /test1 /test2 /test3`, ALPINE)
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		volName := "testVol"
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(ExitCleanly())
+
+		mountVolumeAndCheckDirectory(volName, "/test1", "test1", imgName)
+		mountVolumeAndCheckDirectory(volName, "/test2", "test2", imgName)
+
+		session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/test2", volName), imgName, "touch", "/test2/file1"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitCleanly())
+
+		mountVolumeAndCheckDirectory(volName, "/test3", "test2", imgName)
 	})
 })

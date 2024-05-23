@@ -110,4 +110,5 @@ func (v *Volume) refresh() error {
 func resetVolumeState(state *VolumeState) {
 	state.MountCount = 0
 	state.MountPoint = ""
+	state.CopiedUp = false
 }
