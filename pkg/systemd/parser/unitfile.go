@@ -90,6 +90,11 @@ func (g *unitGroup) addLine(line *unitLine) {
 	g.lines = append(g.lines, line)
 }
 
+func (g *unitGroup) prependLine(line *unitLine) {
+	n := []*unitLine{line}
+	g.lines = append(n, g.lines...)
+}
+
 func (g *unitGroup) addComment(line *unitLine) {
 	g.comments = append(g.comments, line)
 }
@@ -921,6 +926,17 @@ func (f *UnitFile) PrependComment(groupName string, comments ...string) {
 	for i := len(comments) - 1; i >= 0; i-- {
 		group.prependComment(newUnitLine("", "# "+comments[i], true))
 	}
+}
+
+func (f *UnitFile) PrependUnitLine(groupName string, key string, value string) {
+	var group *unitGroup
+	if groupName == "" && len(f.groups) > 0 {
+		group = f.groups[0]
+	} else {
+		// Uses magic "" for first comment-only group if no other groups
+		group = f.ensureGroup(groupName)
+	}
+	group.prependLine(newUnitLine(key, value, false))
 }
 
 func (f *UnitFile) GetTemplateParts() (string, string) {

@@ -411,6 +411,14 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	service := container.Dup()
 	service.Filename = replaceExtension(container.Filename, ".service", "", "")
 
+	// Add a dependency on network-online.target so the image pull does not happen
+	// before network is ready
+	// https://github.com/containers/podman/issues/21873
+	// Prepend the lines, so the user-provided values
+	// override the default ones.
+	service.PrependUnitLine(UnitGroup, "After", "network-online.target")
+	service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+
 	if container.Path != "" {
 		service.Add(UnitGroup, "SourcePath", container.Path)
 	}
@@ -1181,6 +1189,14 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 	service := image.Dup()
 	service.Filename = replaceExtension(image.Filename, ".service", "", "-image")
+
+	// Add a dependency on network-online.target so the image pull does not happen
+	// before network is ready
+	// https://github.com/containers/podman/issues/21873
+	// Prepend the lines, so the user-provided values
+	// override the default ones.
+	service.PrependUnitLine(UnitGroup, "After", "network-online.target")
+	service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
 
 	if image.Path != "" {
 		service.Add(UnitGroup, "SourcePath", image.Path)

@@ -15,6 +15,8 @@
 ## assert-key-is-regex "Service" "ExecStopPost" "-[/S].*/podman rm -v -f -i --cidfile=%t/%N.cid"
 ## assert-key-is-regex "Service" "ExecStop" ".*/podman rm -v -f -i --cidfile=%t/%N.cid"
 ## assert-key-is "Service" "Environment" "PODMAN_SYSTEMD_UNIT=%n"
+## assert-key-is "Unit" "After" "network-online.target"
+## assert-key-is "Unit" "Wants" "network-online.target"
 
 [Container]
 Image=localhost/imagename
