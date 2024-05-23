@@ -59,7 +59,7 @@ type storageImageDestination struct {
 	nextTempFileID        atomic.Int32             // A counter that we use for computing filenames to assign to blobs
 	manifest              []byte                   // Manifest contents, temporary
 	manifestDigest        digest.Digest            // Valid if len(manifest) != 0
-	untrustedDiffIDValues []digest.Digest          // From config’s RootFS.DiffIDs, valid if not nil
+	untrustedDiffIDValues []digest.Digest          // From config’s RootFS.DiffIDs (not even validated to be valid digest.Digest!); or nil if not read yet
 	signatures            []byte                   // Signature contents, temporary
 	signatureses          map[digest.Digest][]byte // Instance signature contents, temporary
 	metadata              storageImageMetadata     // Metadata contents being built
@@ -94,11 +94,11 @@ type storageImageDestinationLockProtected struct {
 	blobDiffIDs      map[digest.Digest]digest.Digest // Mapping from layer blobsums to their corresponding DiffIDs
 	indexToTOCDigest map[int]digest.Digest           // Mapping from layer index to a TOC Digest, IFF the layer was created/found/reused by TOC digest
 
-	// Layer data: Before commitLayer is called, either at least one of (diffOutputs, blobAdditionalLayer, filenames)
+	// Layer data: Before commitLayer is called, either at least one of (diffOutputs, indexToAdditionalLayer, filenames)
 	// should be available; or indexToTOCDigest/blobDiffIDs should be enough to locate an existing c/storage layer.
 	// They are looked up in the order they are mentioned above.
-	diffOutputs         map[int]*graphdriver.DriverWithDifferOutput // Mapping from layer index to a partially-pulled layer intermediate data
-	blobAdditionalLayer map[digest.Digest]storage.AdditionalLayer   // Mapping from layer blobsums to their corresponding additional layer
+	diffOutputs            map[int]*graphdriver.DriverWithDifferOutput // Mapping from layer index to a partially-pulled layer intermediate data
+	indexToAdditionalLayer map[int]storage.AdditionalLayer             // Mapping from layer index to their corresponding additional layer
 	// Mapping from layer blobsums to names of files we used to hold them. If set, fileSizes and blobDiffIDs must also be set.
 	filenames map[digest.Digest]string
 	// Mapping from layer blobsums to their sizes. If set, filenames and blobDiffIDs must also be set.
@@ -145,13 +145,13 @@ func newImageDestination(sys *types.SystemContext, imageRef storageReference) (*
 		},
 		indexToStorageID: make(map[int]string),
 		lockProtected: storageImageDestinationLockProtected{
-			indexToAddedLayerInfo: make(map[int]addedLayerInfo),
-			blobDiffIDs:           make(map[digest.Digest]digest.Digest),
-			indexToTOCDigest:      make(map[int]digest.Digest),
-			diffOutputs:           make(map[int]*graphdriver.DriverWithDifferOutput),
-			blobAdditionalLayer:   make(map[digest.Digest]storage.AdditionalLayer),
-			filenames:             make(map[digest.Digest]string),
-			fileSizes:             make(map[digest.Digest]int64),
+			indexToAddedLayerInfo:  make(map[int]addedLayerInfo),
+			blobDiffIDs:            make(map[digest.Digest]digest.Digest),
+			indexToTOCDigest:       make(map[int]digest.Digest),
+			diffOutputs:            make(map[int]*graphdriver.DriverWithDifferOutput),
+			indexToAdditionalLayer: make(map[int]storage.AdditionalLayer),
+			filenames:              make(map[digest.Digest]string),
+			fileSizes:              make(map[digest.Digest]int64),
 		},
 	}
 	dest.Compat = impl.AddCompat(dest)
@@ -167,13 +167,11 @@ func (s *storageImageDestination) Reference() types.ImageReference {
 // Close cleans up the temporary directory and additional layer store handlers.
 func (s *storageImageDestination) Close() error {
 	// This is outside of the scope of HasThreadSafePutBlob, so we don’t need to hold s.lock.
-	for _, al := range s.lockProtected.blobAdditionalLayer {
+	for _, al := range s.lockProtected.indexToAdditionalLayer {
 		al.Release()
 	}
 	for _, v := range s.lockProtected.diffOutputs {
-		if v.Target != "" {
-			_ = s.imageRef.transport.store.CleanupStagedLayer(v)
-		}
+		_ = s.imageRef.transport.store.CleanupStagedLayer(v)
 	}
 	return os.RemoveAll(s.directory)
 }
@@ -310,6 +308,12 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 	if err != nil {
 		return private.UploadedBlob{}, err
 	}
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			_ = s.imageRef.transport.store.CleanupStagedLayer(out)
+		}
+	}()
 
 	if out.TOCDigest == "" && out.UncompressedDigest == "" {
 		return private.UploadedBlob{}, errors.New("internal error: ApplyDiffWithDiffer succeeded with neither TOCDigest nor UncompressedDigest set")
@@ -332,6 +336,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 	s.lockProtected.diffOutputs[options.LayerIndex] = out
 	s.lock.Unlock()
 
+	succeeded = true
 	return private.UploadedBlob{
 		Digest: blobDigest,
 		Size:   srcInfo.Size,
@@ -377,14 +382,24 @@ func (s *storageImageDestination) tryReusingBlobAsPending(blobDigest digest.Dige
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
-	if options.SrcRef != nil {
+	if options.SrcRef != nil && options.TOCDigest != "" && options.LayerIndex != nil {
 		// Check if we have the layer in the underlying additional layer store.
-		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(blobDigest, options.SrcRef.String())
+		aLayer, err := s.imageRef.transport.store.LookupAdditionalLayer(options.TOCDigest, options.SrcRef.String())
 		if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
 			return false, private.ReusedBlob{}, fmt.Errorf(`looking for compressed layers with digest %q and labels: %w`, blobDigest, err)
 		} else if err == nil {
-			s.lockProtected.blobDiffIDs[blobDigest] = aLayer.UncompressedDigest()
-			s.lockProtected.blobAdditionalLayer[blobDigest] = aLayer
+			alsTOCDigest := aLayer.TOCDigest()
+			if alsTOCDigest != options.TOCDigest {
+				// FIXME: If alsTOCDigest is "", the Additional Layer Store FUSE server is probably just too old, and we could
+				// probably go on reading the layer from other sources.
+				//
+				// Currently it should not be possible for alsTOCDigest to be set and not the expected value, but there’s
+				// not that much benefit to checking for equality — we trust the FUSE server to validate the digest either way.
+				return false, private.ReusedBlob{}, fmt.Errorf("additional layer for TOCDigest %q reports unexpected TOCDigest %q",
+					options.TOCDigest, alsTOCDigest)
+			}
+			s.lockProtected.indexToTOCDigest[*options.LayerIndex] = options.TOCDigest
+			s.lockProtected.indexToAdditionalLayer[*options.LayerIndex] = aLayer
 			return true, private.ReusedBlob{
 				Digest: blobDigest,
 				Size:   aLayer.CompressedSize(),
@@ -564,7 +579,7 @@ func (s *storageImageDestination) computeID(m manifest.Manifest) string {
 	}
 	// ordinaryImageID is a digest of a config, which is a JSON value.
 	// To avoid the risk of collisions, start the input with @ so that the input is not a valid JSON.
-	tocImageID := digest.FromString("@With TOC:" + tocIDInput).Hex()
+	tocImageID := digest.FromString("@With TOC:" + tocIDInput).Encoded()
 	logrus.Debugf("Ordinary storage image ID %s; a layer was looked up by TOC, so using image ID %s", ordinaryImageID, tocImageID)
 	return tocImageID
 }
@@ -651,11 +666,11 @@ func (s *storageImageDestination) singleLayerIDComponent(layerIndex int, blobDig
 	defer s.lock.Unlock()
 
 	if d, found := s.lockProtected.indexToTOCDigest[layerIndex]; found {
-		return "@TOC=" + d.Hex(), false // "@" is not a valid start of a digest.Digest, so this is unambiguous.
+		return "@TOC=" + d.Encoded(), false // "@" is not a valid start of a digest.Digest, so this is unambiguous.
 	}
 
 	if d, found := s.lockProtected.blobDiffIDs[blobDigest]; found {
-		return d.Hex(), true // This looks like chain IDs, and it uses the traditional value.
+		return d.Encoded(), true // This looks like chain IDs, and it uses the traditional value.
 	}
 	return "", false
 }
@@ -731,7 +746,7 @@ func (s *storageImageDestination) commitLayer(index int, info addedLayerInfo, si
 
 	id := layerIDComponent
 	if !layerIDComponentStandalone || parentLayer != "" {
-		id = digest.Canonical.FromString(parentLayer + "+" + layerIDComponent).Hex()
+		id = digest.Canonical.FromString(parentLayer + "+" + layerIDComponent).Encoded()
 	}
 	if layer, err2 := s.imageRef.transport.store.Layer(id); layer != nil && err2 == nil {
 		// There's already a layer that should have the right contents, just reuse it.
@@ -767,7 +782,13 @@ func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.D
 				logrus.Debugf("Skipping commit for layer %q, manifest not yet available", newLayerID)
 				return nil, nil
 			}
+
 			untrustedUncompressedDigest = d
+			// While the contents of the digest are untrusted, make sure at least the _format_ is valid,
+			// because we are going to write it to durable storage in expectedLayerDiffIDFlag .
+			if err := untrustedUncompressedDigest.Validate(); err != nil {
+				return nil, err
+			}
 		}
 
 		flags := make(map[string]interface{})
@@ -793,7 +814,7 @@ func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.D
 	}
 
 	s.lock.Lock()
-	al, ok := s.lockProtected.blobAdditionalLayer[layerDigest]
+	al, ok := s.lockProtected.indexToAdditionalLayer[index]
 	s.lock.Unlock()
 	if ok {
 		layer, err := al.PutAs(newLayerID, parentLayer, nil)

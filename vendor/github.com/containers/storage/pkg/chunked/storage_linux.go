@@ -79,6 +79,7 @@ type compressedFileType int
 type chunkedDiffer struct {
 	stream      ImageSourceSeekable
 	manifest    []byte
+	toc         *internal.TOC // The parsed contents of manifest, or nil if not yet available
 	tarSplit    []byte
 	layersCache *layersCache
 	tocOffset   int64
@@ -314,7 +315,7 @@ func makeConvertFromRawDiffer(ctx context.Context, store storage.Store, blobDige
 }
 
 func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, storeOpts *types.StoreOptions) (*chunkedDiffer, error) {
-	manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, tocDigest, annotations)
+	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, tocDigest, annotations)
 	if err != nil {
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
@@ -331,6 +332,7 @@ func makeZstdChunkedDiffer(ctx context.Context, store storage.Store, blobSize in
 		fileType:        fileTypeZstdChunked,
 		layersCache:     layersCache,
 		manifest:        manifest,
+		toc:             toc,
 		storeOpts:       storeOpts,
 		stream:          iss,
 		tarSplit:        tarSplit,
@@ -1701,7 +1703,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		if tocDigest == nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
 		}
-		manifest, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, *tocDigest, annotations)
+		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, *tocDigest, annotations)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}
@@ -1712,6 +1714,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		// fill the chunkedDiffer with the data we just read.
 		c.fileType = fileTypeZstdChunked
 		c.manifest = manifest
+		c.toc = toc
 		c.tarSplit = tarSplit
 		c.tocOffset = tocOffset
 
@@ -1732,9 +1735,13 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	}
 
 	// Generate the manifest
-	toc, err := unmarshalToc(c.manifest)
-	if err != nil {
-		return graphdriver.DriverWithDifferOutput{}, err
+	toc := c.toc
+	if toc == nil {
+		toc_, err := unmarshalToc(c.manifest)
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+		toc = toc_
 	}
 
 	output := graphdriver.DriverWithDifferOutput{

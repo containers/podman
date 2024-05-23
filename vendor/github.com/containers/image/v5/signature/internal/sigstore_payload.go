@@ -150,7 +150,11 @@ func (s *UntrustedSigstorePayload) strictUnmarshalJSON(data []byte) error {
 	}); err != nil {
 		return err
 	}
-	s.untrustedDockerManifestDigest = digest.Digest(digestString)
+	digestValue, err := digest.Parse(digestString)
+	if err != nil {
+		return NewInvalidSignatureError(fmt.Sprintf(`invalid docker-manifest-digest value %q: %v`, digestString, err))
+	}
+	s.untrustedDockerManifestDigest = digestValue
 
 	return ParanoidUnmarshalJSONObjectExactFields(identity, map[string]any{
 		"docker-reference": &s.untrustedDockerReference,

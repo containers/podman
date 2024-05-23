@@ -78,7 +78,7 @@ func (r *Reader) List() ([][]types.ImageReference, error) {
 			}
 			nt, ok := parsedTag.(reference.NamedTagged)
 			if !ok {
-				return nil, fmt.Errorf("Invalid tag %s (%s): does not contain a tag", tag, parsedTag.String())
+				return nil, fmt.Errorf("Invalid tag %q (%s): does not contain a tag", tag, parsedTag.String())
 			}
 			ref, err := newReference(r.path, nt, -1, r.archive, nil)
 			if err != nil {

@@ -256,5 +256,5 @@ func (ref ociReference) blobPath(digest digest.Digest, sharedBlobDir string) (st
 	} else {
 		blobDir = filepath.Join(ref.dir, imgspecv1.ImageBlobsDir)
 	}
-	return filepath.Join(blobDir, digest.Algorithm().String(), digest.Hex()), nil
+	return filepath.Join(blobDir, digest.Algorithm().String(), digest.Encoded()), nil
 }

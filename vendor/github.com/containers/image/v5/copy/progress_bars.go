@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"time"
 
 	"github.com/containers/image/v5/internal/private"
@@ -151,12 +152,18 @@ type blobChunkAccessorProxy struct {
 // The specified chunks must be not overlapping and sorted by their offset.
 // The readers must be fully consumed, in the order they are returned, before blocking
 // to read the next chunk.
+// If the Length for the last chunk is set to math.MaxUint64, then it
+// fully fetches the remaining data from the offset to the end of the blob.
 func (s *blobChunkAccessorProxy) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
 	start := time.Now()
 	rc, errs, err := s.wrapped.GetBlobAt(ctx, info, chunks)
 	if err == nil {
 		total := int64(0)
 		for _, c := range chunks {
+			// do not update the progress bar if there is a chunk with unknown length.
+			if c.Length == math.MaxUint64 {
+				return rc, errs, err
+			}
 			total += int64(c.Length)
 		}
 		s.bar.EwmaIncrInt64(total, time.Since(start))

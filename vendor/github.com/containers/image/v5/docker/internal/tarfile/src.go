@@ -95,10 +95,10 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	}
 	var parsedConfig manifest.Schema2Image // There's a lot of info there, but we only really care about layer DiffIDs.
 	if err := json.Unmarshal(configBytes, &parsedConfig); err != nil {
-		return fmt.Errorf("decoding tar config %s: %w", tarManifest.Config, err)
+		return fmt.Errorf("decoding tar config %q: %w", tarManifest.Config, err)
 	}
 	if parsedConfig.RootFS == nil {
-		return fmt.Errorf("Invalid image config (rootFS is not set): %s", tarManifest.Config)
+		return fmt.Errorf("Invalid image config (rootFS is not set): %q", tarManifest.Config)
 	}
 
 	knownLayers, err := s.prepareLayerData(tarManifest, &parsedConfig)
@@ -144,7 +144,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 		}
 		layerPath := path.Clean(tarManifest.Layers[i])
 		if _, ok := unknownLayerSizes[layerPath]; ok {
-			return nil, fmt.Errorf("Layer tarfile %s used for two different DiffID values", layerPath)
+			return nil, fmt.Errorf("Layer tarfile %q used for two different DiffID values", layerPath)
 		}
 		li := &layerInfo{ // A new element in each iteration
 			path: layerPath,
@@ -179,7 +179,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			// the slower method of checking if it's compressed.
 			uncompressedStream, isCompressed, err := compression.AutoDecompress(t)
 			if err != nil {
-				return nil, fmt.Errorf("auto-decompressing %s to determine its size: %w", layerPath, err)
+				return nil, fmt.Errorf("auto-decompressing %q to determine its size: %w", layerPath, err)
 			}
 			defer uncompressedStream.Close()
 
@@ -187,7 +187,7 @@ func (s *Source) prepareLayerData(tarManifest *ManifestItem, parsedConfig *manif
 			if isCompressed {
 				uncompressedSize, err = io.Copy(io.Discard, uncompressedStream)
 				if err != nil {
-					return nil, fmt.Errorf("reading %s to find its size: %w", layerPath, err)
+					return nil, fmt.Errorf("reading %q to find its size: %w", layerPath, err)
 				}
 			}
 			li.size = uncompressedSize

@@ -221,7 +221,7 @@ func (m *Schema1) fixManifestLayers() error {
 			m.History = slices.Delete(m.History, i, i+1)
 			m.ExtractedV1Compatibility = slices.Delete(m.ExtractedV1Compatibility, i, i+1)
 		} else if m.ExtractedV1Compatibility[i].Parent != m.ExtractedV1Compatibility[i+1].ID {
-			return fmt.Errorf("Invalid parent ID. Expected %v, got %v", m.ExtractedV1Compatibility[i+1].ID, m.ExtractedV1Compatibility[i].Parent)
+			return fmt.Errorf("Invalid parent ID. Expected %v, got %q", m.ExtractedV1Compatibility[i+1].ID, m.ExtractedV1Compatibility[i].Parent)
 		}
 	}
 	return nil
@@ -342,5 +342,5 @@ func (m *Schema1) ImageID(diffIDs []digest.Digest) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return digest.FromBytes(image).Hex(), nil
+	return digest.FromBytes(image).Encoded(), nil
 }

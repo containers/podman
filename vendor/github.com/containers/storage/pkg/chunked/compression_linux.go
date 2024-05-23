@@ -133,37 +133,36 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 }
 
 // readZstdChunkedManifest reads the zstd:chunked manifest from the seekable stream blobStream.
-func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Digest, annotations map[string]string) ([]byte, []byte, int64, error) {
+// Returns (manifest blob, parsed manifest, tar-split blob, manifest offset).
+func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Digest, annotations map[string]string) ([]byte, *internal.TOC, []byte, int64, error) {
 	offsetMetadata := annotations[internal.ManifestInfoKey]
 	if offsetMetadata == "" {
-		return nil, nil, 0, fmt.Errorf("%q annotation missing", internal.ManifestInfoKey)
+		return nil, nil, nil, 0, fmt.Errorf("%q annotation missing", internal.ManifestInfoKey)
 	}
 	var manifestChunk ImageSourceChunk
 	var manifestLengthUncompressed, manifestType uint64
 	if _, err := fmt.Sscanf(offsetMetadata, "%d:%d:%d:%d", &manifestChunk.Offset, &manifestChunk.Length, &manifestLengthUncompressed, &manifestType); err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 	// The tarSplit… values are valid if tarSplitChunk.Offset > 0
 	var tarSplitChunk ImageSourceChunk
 	var tarSplitLengthUncompressed uint64
-	var tarSplitChecksum string
 	if tarSplitInfoKeyAnnotation, found := annotations[internal.TarSplitInfoKey]; found {
 		if _, err := fmt.Sscanf(tarSplitInfoKeyAnnotation, "%d:%d:%d", &tarSplitChunk.Offset, &tarSplitChunk.Length, &tarSplitLengthUncompressed); err != nil {
-			return nil, nil, 0, err
+			return nil, nil, nil, 0, err
 		}
-		tarSplitChecksum = annotations[internal.TarSplitChecksumKey]
 	}
 
 	if manifestType != internal.ManifestTypeCRFS {
-		return nil, nil, 0, errors.New("invalid manifest type")
+		return nil, nil, nil, 0, errors.New("invalid manifest type")
 	}
 
 	// set a reasonable limit
 	if manifestChunk.Length > (1<<20)*50 {
-		return nil, nil, 0, errors.New("manifest too big")
+		return nil, nil, nil, 0, errors.New("manifest too big")
 	}
 	if manifestLengthUncompressed > (1<<20)*50 {
-		return nil, nil, 0, errors.New("manifest too big")
+		return nil, nil, nil, 0, errors.New("manifest too big")
 	}
 
 	chunks := []ImageSourceChunk{manifestChunk}
@@ -172,7 +171,7 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Di
 	}
 	parts, errs, err := blobStream.GetBlobAt(chunks)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
 	readBlob := func(len uint64) ([]byte, error) {
@@ -197,32 +196,37 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Di
 
 	manifest, err := readBlob(manifestChunk.Length)
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, err
 	}
 
 	decodedBlob, err := decodeAndValidateBlob(manifest, manifestLengthUncompressed, tocDigest.String())
 	if err != nil {
-		return nil, nil, 0, err
+		return nil, nil, nil, 0, fmt.Errorf("validating and decompressing TOC: %w", err)
 	}
+	toc, err := unmarshalToc(decodedBlob)
+	if err != nil {
+		return nil, nil, nil, 0, fmt.Errorf("unmarshaling TOC: %w", err)
+	}
+
 	decodedTarSplit := []byte{}
 	if tarSplitChunk.Offset > 0 {
 		tarSplit, err := readBlob(tarSplitChunk.Length)
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, nil, 0, err
 		}
 
-		decodedTarSplit, err = decodeAndValidateBlob(tarSplit, tarSplitLengthUncompressed, tarSplitChecksum)
+		decodedTarSplit, err = decodeAndValidateBlob(tarSplit, tarSplitLengthUncompressed, toc.TarSplitDigest.String())
 		if err != nil {
-			return nil, nil, 0, err
+			return nil, nil, nil, 0, fmt.Errorf("validating and decompressing tar-split: %w", err)
 		}
 	}
-	return decodedBlob, decodedTarSplit, int64(manifestChunk.Offset), err
+	return decodedBlob, toc, decodedTarSplit, int64(manifestChunk.Offset), err
 }
 
 func decodeAndValidateBlob(blob []byte, lengthUncompressed uint64, expectedCompressedChecksum string) ([]byte, error) {
 	d, err := digest.Parse(expectedCompressedChecksum)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid digest %q: %w", expectedCompressedChecksum, err)
 	}
 
 	blobDigester := d.Algorithm().Digester()

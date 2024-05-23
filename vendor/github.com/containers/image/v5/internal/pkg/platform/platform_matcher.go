@@ -64,8 +64,8 @@ func getCPUInfo(pattern string) (info string, err error) {
 	return "", fmt.Errorf("getCPUInfo for pattern: %s not found", pattern)
 }
 
-func getCPUVariantWindows(arch string) string {
-	// Windows only supports v7 for ARM32 and v8 for ARM64 and so we can use
+func getCPUVariantDarwinWindows(arch string) string {
+	// Darwin and Windows only support v7 for ARM32 and v8 for ARM64 and so we can use
 	// runtime.GOARCH to determine the variants
 	var variant string
 	switch arch {
@@ -133,8 +133,8 @@ func getCPUVariantArm() string {
 }
 
 func getCPUVariant(os string, arch string) string {
-	if os == "windows" {
-		return getCPUVariantWindows(arch)
+	if os == "darwin" || os == "windows" {
+		return getCPUVariantDarwinWindows(arch)
 	}
 	if arch == "arm" || arch == "arm64" {
 		return getCPUVariantArm()

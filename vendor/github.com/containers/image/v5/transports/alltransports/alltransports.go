@@ -28,11 +28,11 @@ func ParseImageName(imgName string) (types.ImageReference, error) {
 	// Keep this in sync with TransportFromImageName!
 	transportName, withinTransport, valid := strings.Cut(imgName, ":")
 	if !valid {
-		return nil, fmt.Errorf(`Invalid image name "%s", expected colon-separated transport:reference`, imgName)
+		return nil, fmt.Errorf(`Invalid image name %q, expected colon-separated transport:reference`, imgName)
 	}
 	transport := transports.Get(transportName)
 	if transport == nil {
-		return nil, fmt.Errorf(`Invalid image name "%s", unknown transport "%s"`, imgName, transportName)
+		return nil, fmt.Errorf(`Invalid image name %q, unknown transport %q`, imgName, transportName)
 	}
 	return transport.ParseReference(withinTransport)
 }
