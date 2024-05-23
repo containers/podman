@@ -2,7 +2,7 @@
 
 Tutorials
 =========
-Here are a number of useful tutorials to get you up and running with Podman. If you are familiar with the Docker `Container Engine`_ the command in Podman_ should be quite familiar. If you are brand new to containers, take a look at our `Introduction`.
+Here are a number of useful tutorials to get you up and running with Podman. If you are familiar with the Docker `Container Engine`_ the commands in Podman_ should be quite familiar. If you are brand new to containers, take a look at our `Introduction`.
 
 * `Basic Setup and Use of Podman <https://github.com/containers/podman/blob/main/docs/tutorials/podman_tutorial.md>`_: Learn how to set up Podman and perform some basic commands with the utility.
 * `Basic Setup and Use of Podman in a Rootless environment <https://github.com/containers/podman/blob/main/docs/tutorials/rootless_tutorial.md>`_: The steps required to set up rootless Podman are enumerated.
