@@ -2,6 +2,7 @@ package toml
 
 import (
 	"bufio"
+	"bytes"
 	"encoding"
 	"encoding/json"
 	"errors"
@@ -76,6 +77,17 @@ type Marshaler interface {
 	MarshalTOML() ([]byte, error)
 }
 
+// Marshal returns a TOML representation of the Go value.
+//
+// See [Encoder] for a description of the encoding process.
+func Marshal(v any) ([]byte, error) {
+	buff := new(bytes.Buffer)
+	if err := NewEncoder(buff).Encode(v); err != nil {
+		return nil, err
+	}
+	return buff.Bytes(), nil
+}
+
 // Encoder encodes a Go to a TOML document.
 //
 // The mapping between Go values and TOML values should be precisely the same as
@@ -115,26 +127,21 @@ type Marshaler interface {
 // NOTE: only exported keys are encoded due to the use of reflection. Unexported
 // keys are silently discarded.
 type Encoder struct {
-	// String to use for a single indentation level; default is two spaces.
-	Indent string
-
+	Indent     string // string for a single indentation level; default is two spaces.
+	hasWritten bool   // written any output to w yet?
 	w          *bufio.Writer
-	hasWritten bool // written any output to w yet?
 }
 
 // NewEncoder create a new Encoder.
 func NewEncoder(w io.Writer) *Encoder {
-	return &Encoder{
-		w:      bufio.NewWriter(w),
-		Indent: "  ",
-	}
+	return &Encoder{w: bufio.NewWriter(w), Indent: "  "}
 }
 
 // Encode writes a TOML representation of the Go value to the [Encoder]'s writer.
 //
 // An error is returned if the value given cannot be encoded to a valid TOML
 // document.
-func (enc *Encoder) Encode(v interface{}) error {
+func (enc *Encoder) Encode(v any) error {
 	rv := eindirect(reflect.ValueOf(v))
 	err := enc.safeEncode(Key([]string{}), rv)
 	if err != nil {
@@ -280,18 +287,30 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 	case reflect.Float32:
 		f := rv.Float()
 		if math.IsNaN(f) {
+			if math.Signbit(f) {
+				enc.wf("-")
+			}
 			enc.wf("nan")
 		} else if math.IsInf(f, 0) {
-			enc.wf("%cinf", map[bool]byte{true: '-', false: '+'}[math.Signbit(f)])
+			if math.Signbit(f) {
+				enc.wf("-")
+			}
+			enc.wf("inf")
 		} else {
 			enc.wf(floatAddDecimal(strconv.FormatFloat(f, 'f', -1, 32)))
 		}
 	case reflect.Float64:
 		f := rv.Float()
 		if math.IsNaN(f) {
+			if math.Signbit(f) {
+				enc.wf("-")
+			}
 			enc.wf("nan")
 		} else if math.IsInf(f, 0) {
-			enc.wf("%cinf", map[bool]byte{true: '-', false: '+'}[math.Signbit(f)])
+			if math.Signbit(f) {
+				enc.wf("-")
+			}
+			enc.wf("inf")
 		} else {
 			enc.wf(floatAddDecimal(strconv.FormatFloat(f, 'f', -1, 64)))
 		}
@@ -304,7 +323,7 @@ func (enc *Encoder) eElement(rv reflect.Value) {
 	case reflect.Interface:
 		enc.eElement(rv.Elem())
 	default:
-		encPanic(fmt.Errorf("unexpected type: %T", rv.Interface()))
+		encPanic(fmt.Errorf("unexpected type: %s", fmtType(rv.Interface())))
 	}
 }
 
@@ -712,7 +731,7 @@ func (enc *Encoder) writeKeyValue(key Key, val reflect.Value, inline bool) {
 	}
 }
 
-func (enc *Encoder) wf(format string, v ...interface{}) {
+func (enc *Encoder) wf(format string, v ...any) {
 	_, err := fmt.Fprintf(enc.w, format, v...)
 	if err != nil {
 		encPanic(err)

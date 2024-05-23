@@ -9,7 +9,7 @@ See the [releases page](https://github.com/BurntSushi/toml/releases) for a
 changelog; this information is also in the git tag annotations (e.g. `git show
 v0.4.0`).
 
-This library requires Go 1.13 or newer; add it to your go.mod with:
+This library requires Go 1.18 or newer; add it to your go.mod with:
 
     % go get github.com/BurntSushi/toml@latest
 
