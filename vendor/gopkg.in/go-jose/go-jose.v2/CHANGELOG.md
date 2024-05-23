@@ -76,3 +76,9 @@ token".
    amounts of CPU, causing a DoS. Thanks to Matt Schwager (@mschwager) for the
    disclosure and to Tom Tervoort for originally publishing the category of attack.
    https://i.blackhat.com/BH-US-23/Presentations/US-23-Tervoort-Three-New-Attacks-Against-JSON-Web-Tokens.pdf
+
+# v2.6.3
+
+## Fixed
+
+ - Limit decompression output size to prevent a DoS. Backport from v4.0.1.
