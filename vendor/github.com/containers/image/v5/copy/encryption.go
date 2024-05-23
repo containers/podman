@@ -47,13 +47,17 @@ func (ic *imageCopier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo 
 	desc := imgspecv1.Descriptor{
 		Annotations: stream.info.Annotations,
 	}
-	reader, decryptedDigest, err := ocicrypt.DecryptLayer(ic.c.options.OciDecryptConfig, stream.reader, desc, false)
+	// DecryptLayer supposedly returns a digest of the decrypted stream.
+	// In pratice, that value is never set in the current implementation.
+	// And we shouldn’t use it anyway, because it is not trusted: encryption can be made to a public key,
+	// i.e. it doesn’t authenticate the origin of the metadata in any way.
+	reader, _, err := ocicrypt.DecryptLayer(ic.c.options.OciDecryptConfig, stream.reader, desc, false)
 	if err != nil {
 		return nil, fmt.Errorf("decrypting layer %s: %w", srcInfo.Digest, err)
 	}
 
 	stream.reader = reader
-	stream.info.Digest = decryptedDigest
+	stream.info.Digest = ""
 	stream.info.Size = -1
 	maps.DeleteFunc(stream.info.Annotations, func(k string, _ string) bool {
 		return strings.HasPrefix(k, "org.opencontainers.image.enc")

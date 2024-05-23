@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -260,9 +261,15 @@ func splitHTTP200ResponseToPartial(streams chan io.ReadCloser, errs chan error, 
 			}
 			currentOffset += toSkip
 		}
+		var reader io.Reader
+		if c.Length == math.MaxUint64 {
+			reader = body
+		} else {
+			reader = io.LimitReader(body, int64(c.Length))
+		}
 		s := signalCloseReader{
 			closed:        make(chan struct{}),
-			stream:        io.NopCloser(io.LimitReader(body, int64(c.Length))),
+			stream:        io.NopCloser(reader),
 			consumeStream: true,
 		}
 		streams <- s
@@ -343,12 +350,24 @@ func parseMediaType(contentType string) (string, map[string]string, error) {
 // The specified chunks must be not overlapping and sorted by their offset.
 // The readers must be fully consumed, in the order they are returned, before blocking
 // to read the next chunk.
+// If the Length for the last chunk is set to math.MaxUint64, then it
+// fully fetches the remaining data from the offset to the end of the blob.
 func (s *dockerImageSource) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
 	headers := make(map[string][]string)
 
 	rangeVals := make([]string, 0, len(chunks))
+	lastFound := false
 	for _, c := range chunks {
-		rangeVals = append(rangeVals, fmt.Sprintf("%d-%d", c.Offset, c.Offset+c.Length-1))
+		if lastFound {
+			return nil, nil, fmt.Errorf("internal error: another chunk requested after an util-EOF chunk")
+		}
+		// If the Length is set to -1, then request anything after the specified offset.
+		if c.Length == math.MaxUint64 {
+			lastFound = true
+			rangeVals = append(rangeVals, fmt.Sprintf("%d-", c.Offset))
+		} else {
+			rangeVals = append(rangeVals, fmt.Sprintf("%d-%d", c.Offset, c.Offset+c.Length-1))
+		}
 	}
 
 	headers["Range"] = []string{fmt.Sprintf("bytes=%s", strings.Join(rangeVals, ","))}

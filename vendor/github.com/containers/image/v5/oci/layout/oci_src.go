@@ -182,19 +182,19 @@ func (s *ociImageSource) getExternalBlob(ctx context.Context, urls []string) (io
 		hasSupportedURL = true
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 		if err != nil {
-			errWrap = fmt.Errorf("fetching %s failed %s: %w", u, err.Error(), errWrap)
+			errWrap = fmt.Errorf("fetching %q failed %s: %w", u, err.Error(), errWrap)
 			continue
 		}
 
 		resp, err := s.client.Do(req)
 		if err != nil {
-			errWrap = fmt.Errorf("fetching %s failed %s: %w", u, err.Error(), errWrap)
+			errWrap = fmt.Errorf("fetching %q failed %s: %w", u, err.Error(), errWrap)
 			continue
 		}
 
 		if resp.StatusCode != http.StatusOK {
 			resp.Body.Close()
-			errWrap = fmt.Errorf("fetching %s failed, response code not 200: %w", u, errWrap)
+			errWrap = fmt.Errorf("fetching %q failed, response code not 200: %w", u, errWrap)
 			continue
 		}
 

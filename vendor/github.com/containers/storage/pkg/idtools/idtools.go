@@ -228,7 +228,7 @@ func getOverflowUID() int {
 	return overflowUID
 }
 
-// getOverflowUID returns the GID mapped to the overflow user
+// getOverflowGID returns the GID mapped to the overflow user
 func getOverflowGID() int {
 	overflowGIDOnce.Do(func() {
 		// 65534 is the value on older kernels where /proc/sys/kernel/overflowgid is not present

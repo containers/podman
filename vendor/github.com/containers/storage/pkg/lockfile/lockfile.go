@@ -133,9 +133,23 @@ func (l *LockFile) Lock() {
 	}
 }
 
-// LockRead locks the lockfile as a reader.
+// RLock locks the lockfile as a reader.
 func (l *LockFile) RLock() {
 	l.lock(readLock)
+}
+
+// TryLock attempts to lock the lockfile as a writer.  Panic if the lock is a read-only one.
+func (l *LockFile) TryLock() error {
+	if l.ro {
+		panic("can't take write lock on read-only lock file")
+	} else {
+		return l.tryLock(writeLock)
+	}
+}
+
+// TryRLock attempts to lock the lockfile as a reader.
+func (l *LockFile) TryRLock() error {
+	return l.tryLock(readLock)
 }
 
 // Unlock unlocks the lockfile.
@@ -401,9 +415,47 @@ func (l *LockFile) lock(lType lockType) {
 		// Optimization: only use the (expensive) syscall when
 		// the counter is 0.  In this case, we're either the first
 		// reader lock or a writer lock.
-		lockHandle(l.fd, lType)
+		lockHandle(l.fd, lType, false)
 	}
 	l.lockType = lType
 	l.locked = true
 	l.counter++
+}
+
+// lock locks the lockfile via syscall based on the specified type and
+// command.
+func (l *LockFile) tryLock(lType lockType) error {
+	var success bool
+	if lType == readLock {
+		success = l.rwMutex.TryRLock()
+	} else {
+		success = l.rwMutex.TryLock()
+	}
+	if !success {
+		return fmt.Errorf("resource temporarily unavailable")
+	}
+	l.stateMutex.Lock()
+	defer l.stateMutex.Unlock()
+	if l.counter == 0 {
+		// If we're the first reference on the lock, we need to open the file again.
+		fd, err := openLock(l.file, l.ro)
+		if err != nil {
+			l.rwMutex.Unlock()
+			return err
+		}
+		l.fd = fd
+
+		// Optimization: only use the (expensive) syscall when
+		// the counter is 0.  In this case, we're either the first
+		// reader lock or a writer lock.
+		if err = lockHandle(l.fd, lType, true); err != nil {
+			closeHandle(fd)
+			l.rwMutex.Unlock()
+			return err
+		}
+	}
+	l.lockType = lType
+	l.locked = true
+	l.counter++
+	return nil
 }

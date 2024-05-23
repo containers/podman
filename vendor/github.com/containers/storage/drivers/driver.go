@@ -298,8 +298,8 @@ type AdditionalLayerStoreDriver interface {
 	Driver
 
 	// LookupAdditionalLayer looks up additional layer store by the specified
-	// digest and ref and returns an object representing that layer.
-	LookupAdditionalLayer(d digest.Digest, ref string) (AdditionalLayer, error)
+	// TOC digest and ref and returns an object representing that layer.
+	LookupAdditionalLayer(tocDigest digest.Digest, ref string) (AdditionalLayer, error)
 
 	// LookupAdditionalLayer looks up additional layer store by the specified
 	// ID and returns an object representing that layer.

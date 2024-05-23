@@ -152,7 +152,7 @@ func (c *openshiftClient) getImage(ctx context.Context, imageStreamImageName str
 func (c *openshiftClient) convertDockerImageReference(ref string) (string, error) {
 	_, repo, gotRepo := strings.Cut(ref, "/")
 	if !gotRepo {
-		return "", fmt.Errorf("Invalid format of docker reference %s: missing '/'", ref)
+		return "", fmt.Errorf("Invalid format of docker reference %q: missing '/'", ref)
 	}
 	return reference.Domain(c.ref.dockerReference) + "/" + repo, nil
 }

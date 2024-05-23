@@ -20,10 +20,10 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image priva
 	case SBKeyTypeGPGKeys:
 	case SBKeyTypeSignedByGPGKeys, SBKeyTypeX509Certificates, SBKeyTypeSignedByX509CAs:
 		// FIXME? Reject this at policy parsing time already?
-		return sarRejected, nil, fmt.Errorf(`Unimplemented "keyType" value "%s"`, string(pr.KeyType))
+		return sarRejected, nil, fmt.Errorf(`Unimplemented "keyType" value %q`, string(pr.KeyType))
 	default:
 		// This should never happen, newPRSignedBy ensures KeyType.IsValid()
-		return sarRejected, nil, fmt.Errorf(`Unknown "keyType" value "%s"`, string(pr.KeyType))
+		return sarRejected, nil, fmt.Errorf(`Unknown "keyType" value %q`, string(pr.KeyType))
 	}
 
 	// FIXME: move this to per-context initialization
@@ -77,7 +77,7 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image priva
 		},
 		validateSignedDockerReference: func(ref string) error {
 			if !pr.SignedIdentity.matchesDockerReference(image, ref) {
-				return PolicyRequirementError(fmt.Sprintf("Signature for identity %s is not accepted", ref))
+				return PolicyRequirementError(fmt.Sprintf("Signature for identity %q is not accepted", ref))
 			}
 			return nil
 		},
@@ -123,7 +123,7 @@ func (pr *prSignedBy) isRunningImageAllowed(ctx context.Context, image private.U
 			// Huh?! This should not happen at all; treat it as any other invalid value.
 			fallthrough
 		default:
-			reason = fmt.Errorf(`Internal error: Unexpected signature verification result "%s"`, string(res))
+			reason = fmt.Errorf(`Internal error: Unexpected signature verification result %q`, string(res))
 		}
 		rejections = append(rejections, reason)
 	}

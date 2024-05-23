@@ -97,7 +97,7 @@ const (
 // changeState changes pc.state, or fails if the state is unexpected
 func (pc *PolicyContext) changeState(expected, new policyContextState) error {
 	if pc.state != expected {
-		return fmt.Errorf(`Invalid PolicyContext state, expected "%s", found "%s"`, expected, pc.state)
+		return fmt.Errorf(`Invalid PolicyContext state, expected %q, found %q`, expected, pc.state)
 	}
 	pc.state = new
 	return nil
@@ -140,21 +140,21 @@ func (pc *PolicyContext) requirementsForImageRef(ref types.ImageReference) Polic
 		// Look for a full match.
 		identity := ref.PolicyConfigurationIdentity()
 		if req, ok := transportScopes[identity]; ok {
-			logrus.Debugf(` Using transport "%s" policy section %s`, transportName, identity)
+			logrus.Debugf(` Using transport %q policy section %q`, transportName, identity)
 			return req
 		}
 
 		// Look for a match of the possible parent namespaces.
 		for _, name := range ref.PolicyConfigurationNamespaces() {
 			if req, ok := transportScopes[name]; ok {
-				logrus.Debugf(` Using transport "%s" specific policy section %s`, transportName, name)
+				logrus.Debugf(` Using transport %q specific policy section %q`, transportName, name)
 				return req
 			}
 		}
 
 		// Look for a default match for the transport.
 		if req, ok := transportScopes[""]; ok {
-			logrus.Debugf(` Using transport "%s" policy section ""`, transportName)
+			logrus.Debugf(` Using transport %q policy section ""`, transportName)
 			return req
 		}
 	}

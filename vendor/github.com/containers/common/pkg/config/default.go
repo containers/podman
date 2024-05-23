@@ -265,10 +265,11 @@ func defaultConfig() (*Config, error) {
 			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
 			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),
 		},
-		Engine:  *defaultEngineConfig,
-		Secrets: defaultSecretConfig(),
-		Machine: defaultMachineConfig(),
-		Farms:   defaultFarmConfig(),
+		Engine:   *defaultEngineConfig,
+		Secrets:  defaultSecretConfig(),
+		Machine:  defaultMachineConfig(),
+		Farms:    defaultFarmConfig(),
+		Podmansh: defaultPodmanshConfig(),
 	}, nil
 }
 
@@ -304,6 +305,18 @@ func defaultMachineConfig() MachineConfig {
 func defaultFarmConfig() FarmConfig {
 	return FarmConfig{
 		List: map[string][]string{},
+	}
+}
+
+// defaultPodmanshConfig returns the default podmansh configuration.
+func defaultPodmanshConfig() PodmanshConfig {
+	return PodmanshConfig{
+		Shell:     "/bin/sh",
+		Container: "podmansh",
+
+		// A value of 0 means "not set", needed to distinguish if engine.podmansh_timeout or podmansh.timeout should be used
+		// This is needed to keep backwards compatibility to engine.PodmanshTimeout.
+		Timeout: uint(0),
 	}
 }
 
@@ -360,7 +373,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.CgroupManager = defaultCgroupManager()
 	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
-	c.PodmanshTimeout = uint(30)
+	c.PodmanshTimeout = uint(30) // deprecated: use podmansh.timeout instead, kept for backwards-compatibility
 	c.ExitCommandDelay = uint(5 * 60)
 	c.Remote = isRemote()
 	c.Retry = 3

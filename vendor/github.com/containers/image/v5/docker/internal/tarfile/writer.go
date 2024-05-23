@@ -164,7 +164,7 @@ func (w *Writer) writeLegacyMetadataLocked(layerDescriptors []manifest.Schema2De
 			return fmt.Errorf("marshaling layer config: %w", err)
 		}
 		delete(layerConfig, "layer_id")
-		layerID := digest.Canonical.FromBytes(b).Hex()
+		layerID := digest.Canonical.FromBytes(b).Encoded()
 		layerConfig["id"] = layerID
 
 		configBytes, err := json.Marshal(layerConfig)
@@ -309,10 +309,10 @@ func (w *Writer) Close() error {
 // NOTE: This is an internal implementation detail, not a format property, and can change
 // any time.
 func (w *Writer) configPath(configDigest digest.Digest) (string, error) {
-	if err := configDigest.Validate(); err != nil { // digest.Digest.Hex() panics on failure, and could possibly result in unexpected paths, so validate explicitly.
+	if err := configDigest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in unexpected paths, so validate explicitly.
 		return "", err
 	}
-	return configDigest.Hex() + ".json", nil
+	return configDigest.Encoded() + ".json", nil
 }
 
 // physicalLayerPath returns a path we choose for storing a layer with the specified digest
@@ -320,15 +320,15 @@ func (w *Writer) configPath(configDigest digest.Digest) (string, error) {
 // NOTE: This is an internal implementation detail, not a format property, and can change
 // any time.
 func (w *Writer) physicalLayerPath(layerDigest digest.Digest) (string, error) {
-	if err := layerDigest.Validate(); err != nil { // digest.Digest.Hex() panics on failure, and could possibly result in unexpected paths, so validate explicitly.
+	if err := layerDigest.Validate(); err != nil { // digest.Digest.Encoded() panics on failure, and could possibly result in unexpected paths, so validate explicitly.
 		return "", err
 	}
-	// Note that this can't be e.g. filepath.Join(l.Digest.Hex(), legacyLayerFileName); due to the way
+	// Note that this can't be e.g. filepath.Join(l.Digest.Encoded(), legacyLayerFileName); due to the way
 	// writeLegacyMetadata constructs layer IDs differently from inputinfo.Digest values (as described
 	// inside it), most of the layers would end up in subdirectories alone without any metadata; (docker load)
 	// tries to load every subdirectory as an image and fails if the config is missing.  So, keep the layers
 	// in the root of the tarball.
-	return layerDigest.Hex() + ".tar", nil
+	return layerDigest.Encoded() + ".tar", nil
 }
 
 type tarFI struct {

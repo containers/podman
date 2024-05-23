@@ -167,7 +167,7 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 // an error if the mediatype does not support encryption
 func getEncryptedMediaType(mediatype string) (string, error) {
 	if slices.Contains(strings.Split(mediatype, "+")[1:], "encrypted") {
-		return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
+		return "", fmt.Errorf("unsupported mediaType: %q already encrypted", mediatype)
 	}
 	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
 	switch unsuffixedMediatype {
@@ -176,7 +176,7 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 		return mediatype + "+encrypted", nil
 	}
 
-	return "", fmt.Errorf("unsupported mediaType to encrypt: %v", mediatype)
+	return "", fmt.Errorf("unsupported mediaType to encrypt: %q", mediatype)
 }
 
 // getDecryptedMediaType will return the mediatype to its encrypted counterpart and return
@@ -184,7 +184,7 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 func getDecryptedMediaType(mediatype string) (string, error) {
 	res, ok := strings.CutSuffix(mediatype, "+encrypted")
 	if !ok {
-		return "", fmt.Errorf("unsupported mediaType to decrypt: %v", mediatype)
+		return "", fmt.Errorf("unsupported mediaType to decrypt: %q", mediatype)
 	}
 
 	return res, nil
@@ -260,7 +260,7 @@ func (m *OCI1) ImageID(diffIDs []digest.Digest) (string, error) {
 	if err := m.Config.Digest.Validate(); err != nil {
 		return "", err
 	}
-	return m.Config.Digest.Hex(), nil
+	return m.Config.Digest.Encoded(), nil
 }
 
 // CanChangeLayerCompression returns true if we can compress/decompress layers with mimeType in the current image

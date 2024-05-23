@@ -116,7 +116,7 @@ func imageLoad(ctx context.Context, c *client.Client, reader *io.PipeReader) err
 			return fmt.Errorf("parsing docker load progress: %w", err)
 		}
 		if msg.Error != nil {
-			return fmt.Errorf("docker engine reported: %s", msg.Error.Message)
+			return fmt.Errorf("docker engine reported: %q", msg.Error.Message)
 		}
 	}
 	return nil // No error reported = success

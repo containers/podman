@@ -295,7 +295,7 @@ func (m *Schema2) ImageID([]digest.Digest) (string, error) {
 	if err := m.ConfigDescriptor.Digest.Validate(); err != nil {
 		return "", err
 	}
-	return m.ConfigDescriptor.Digest.Hex(), nil
+	return m.ConfigDescriptor.Digest.Encoded(), nil
 }
 
 // CanChangeLayerCompression returns true if we can compress/decompress layers with mimeType in the current image
