@@ -1901,6 +1901,7 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		// Set NeedsCopyUp to false since we are about to do first copy
 		// Do not copy second time.
 		vol.state.NeedsCopyUp = false
+		vol.state.CopiedUp = true
 		if err := vol.save(); err != nil {
 			return nil, err
 		}
