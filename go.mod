@@ -11,11 +11,11 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.0.0
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.33.7
-	github.com/containers/common v0.57.4
+	github.com/containers/buildah v1.33.8
+	github.com/containers/common v0.57.5
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.2
-	github.com/containers/image/v5 v5.29.2
+	github.com/containers/image/v5 v5.29.3
 	github.com/containers/libhvee v0.5.0
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/psgo v1.8.0

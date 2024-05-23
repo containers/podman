@@ -324,6 +324,13 @@ func (s *storageImageDestination) TryReusingBlobWithOptions(ctx context.Context,
 // tryReusingBlobAsPending implements TryReusingBlobWithOptions for (digest, size or -1), filling s.blobDiffIDs and other metadata.
 // The caller must arrange the blob to be eventually committed using s.commitLayer().
 func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, size int64, options *private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
+	if digest == "" {
+		return false, private.ReusedBlob{}, errors.New(`Can not check for a blob with unknown digest`)
+	}
+	if err := digest.Validate(); err != nil {
+		return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with invalid digest: %w", err)
+	}
+
 	// lock the entire method as it executes fairly quickly
 	s.lock.Lock()
 	defer s.lock.Unlock()
@@ -342,13 +349,6 @@ func (s *storageImageDestination) tryReusingBlobAsPending(digest digest.Digest, 
 				Size:   aLayer.CompressedSize(),
 			}, nil
 		}
-	}
-
-	if digest == "" {
-		return false, private.ReusedBlob{}, errors.New(`Can not check for a blob with unknown digest`)
-	}
-	if err := digest.Validate(); err != nil {
-		return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with invalid digest: %w", err)
 	}
 
 	// Check if we've already cached it in a file.
@@ -803,8 +803,12 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		if err != nil {
 			return fmt.Errorf("digesting top-level manifest: %w", err)
 		}
+		key, err := manifestBigDataKey(manifestDigest)
+		if err != nil {
+			return err
+		}
 		options.BigData = append(options.BigData, storage.ImageBigDataOption{
-			Key:    manifestBigDataKey(manifestDigest),
+			Key:    key,
 			Data:   toplevelManifest,
 			Digest: manifestDigest,
 		})
@@ -812,8 +816,12 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 	// Set up to save the image's manifest.  Allow looking it up by digest by using the key convention defined by the Store.
 	// Record the manifest twice: using a digest-specific key to allow references to that specific digest instance,
 	// and using storage.ImageDigestBigDataKey for future users that don’t specify any digest and for compatibility with older readers.
+	key, err := manifestBigDataKey(s.manifestDigest)
+	if err != nil {
+		return err
+	}
 	options.BigData = append(options.BigData, storage.ImageBigDataOption{
-		Key:    manifestBigDataKey(s.manifestDigest),
+		Key:    key,
 		Data:   s.manifest,
 		Digest: s.manifestDigest,
 	})
@@ -831,8 +839,12 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		})
 	}
 	for instanceDigest, signatures := range s.signatureses {
+		key, err := signatureBigDataKey(instanceDigest)
+		if err != nil {
+			return err
+		}
 		options.BigData = append(options.BigData, storage.ImageBigDataOption{
-			Key:    signatureBigDataKey(instanceDigest),
+			Key:    key,
 			Data:   signatures,
 			Digest: digest.Canonical.FromBytes(signatures),
 		})

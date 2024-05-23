@@ -759,7 +759,7 @@ func (m *MachineConfig) URI() string {
 }
 
 func (c *EngineConfig) findRuntime() string {
-	// Search for crun first followed by runc, kata, runsc
+	// Search for crun first followed by runc, runj, kata, runsc, ocijail
 	for _, name := range []string{"crun", "runc", "runj", "kata", "runsc", "ocijail"} {
 		for _, v := range c.OCIRuntimes[name] {
 			if _, err := os.Stat(v); err == nil {
