@@ -177,7 +177,10 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	report := entities.PodStopReport{Id: pod.ID()}
+	report := entities.PodStopReport{
+		Id:       pod.ID(),
+		RawInput: pod.Name(),
+	}
 	for id, err := range responses {
 		report.Errs = append(report.Errs, fmt.Errorf("stopping container %s: %w", id, err))
 	}
@@ -213,7 +216,15 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report := entities.PodStartReport{Id: pod.ID()}
+	cfg, err := pod.Config()
+	if err != nil {
+		utils.Error(w, http.StatusConflict, err)
+		return
+	}
+	report := entities.PodStartReport{
+		Id:       pod.ID(),
+		RawInput: cfg.Name,
+	}
 	for id, err := range responses {
 		report.Errs = append(report.Errs, fmt.Errorf("%v: %w", "starting container "+id, err))
 	}
@@ -559,14 +570,13 @@ func PodStats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var flush = func() {}
+	flush := func() {}
 	if flusher, ok := w.(http.Flusher); ok {
 		flush = flusher.Flush
 	}
 	// Collect the stats and send them over the wire.
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 	reports, err := containerEngine.PodStats(r.Context(), query.NamesOrIDs, options)
-
 	// Error checks as documented in swagger.
 	if err != nil {
 		if errors.Is(err, define.ErrNoSuchPod) {

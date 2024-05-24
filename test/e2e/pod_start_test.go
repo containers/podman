@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("Podman pod start", func() {
-
 	It("podman pod start bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "start", "123"})
 		session.WaitWithDefaultTimeout()
@@ -31,16 +30,18 @@ var _ = Describe("Podman pod start", func() {
 	})
 
 	It("podman pod start single pod by name", func() {
-		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {"foobar99"}})
+		name := "foobar99"
+		_, ec, _ := podmanTest.CreatePod(map[string][]string{"--name": {name}})
 		Expect(ec).To(Equal(0))
 
-		session := podmanTest.Podman([]string{"create", "--pod", "foobar99", ALPINE, "ls"})
+		session := podmanTest.Podman([]string{"create", "--pod", name, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"pod", "start", "foobar99"})
+		session = podmanTest.Podman([]string{"pod", "start", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).Should(ContainSubstring(name))
 	})
 
 	It("podman pod start multiple pods", func() {
@@ -62,6 +63,8 @@ var _ = Describe("Podman pod start", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
+		Expect(session.OutputToString()).Should(ContainSubstring("foobar99"))
+		Expect(session.OutputToString()).Should(ContainSubstring("foobar100"))
 	})
 
 	It("multiple pods in conflict", func() {
@@ -231,5 +234,4 @@ var _ = Describe("Podman pod start", func() {
 		cmdline := readFirstLine(fmt.Sprintf("/proc/%s/cmdline", infraConmonPID))
 		Expect(cmdline).To(ContainSubstring("/conmon"))
 	})
-
 })

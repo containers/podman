@@ -194,7 +194,10 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 		return nil, err
 	}
 	for _, p := range pods {
-		report := entities.PodStopReport{Id: p.ID()}
+		report := entities.PodStopReport{
+			Id:       p.ID(),
+			RawInput: p.Name(),
+		}
 		errs, err := p.StopWithTimeout(ctx, true, options.Timeout)
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}
@@ -247,7 +250,10 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 	}
 
 	for _, p := range pods {
-		report := entities.PodStartReport{Id: p.ID()}
+		report := entities.PodStartReport{
+			Id:       p.ID(),
+			RawInput: p.Name(),
+		}
 		errs, err := p.Start(ctx)
 		if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
 			report.Errs = []error{err}

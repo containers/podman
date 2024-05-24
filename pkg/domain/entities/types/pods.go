@@ -22,8 +22,9 @@ type PodUnpauseReport struct {
 }
 
 type PodStopReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
+	Errs     []error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 type PodRestartReport struct {
@@ -32,8 +33,9 @@ type PodRestartReport struct {
 }
 
 type PodStartReport struct {
-	Errs []error
-	Id   string //nolint:revive,stylecheck
+	Errs     []error
+	Id       string //nolint:revive,stylecheck
+	RawInput string
 }
 
 type PodRmReport struct {

@@ -115,8 +115,9 @@ func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, opt
 		response, err := pods.Stop(ic.ClientCtx, p.Id, options)
 		if err != nil {
 			report := entities.PodStopReport{
-				Errs: []error{err},
-				Id:   p.Id,
+				Errs:     []error{err},
+				Id:       p.Id,
+				RawInput: p.Name,
 			}
 			reports = append(reports, &report)
 			continue
@@ -157,8 +158,9 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 		response, err := pods.Start(ic.ClientCtx, p.Id, nil)
 		if err != nil {
 			report := entities.PodStartReport{
-				Errs: []error{err},
-				Id:   p.Id,
+				Errs:     []error{err},
+				Id:       p.Id,
+				RawInput: p.Name,
 			}
 			reports = append(reports, &report)
 			continue
