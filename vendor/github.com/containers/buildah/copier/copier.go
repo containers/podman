@@ -18,6 +18,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"unicode"
 
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/storage/pkg/archive"
@@ -632,6 +633,15 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 	killAndReturn := func(err error, step string) (*response, error) { // nolint: unparam
 		if err2 := cmd.Process.Kill(); err2 != nil {
 			return nil, fmt.Errorf("killing subprocess: %v; %s: %w", err2, step, err)
+		}
+		if errors.Is(err, io.ErrClosedPipe) || errors.Is(err, syscall.EPIPE) {
+			err2 := cmd.Wait()
+			if errorText := strings.TrimFunc(errorBuffer.String(), unicode.IsSpace); errorText != "" {
+				err = fmt.Errorf("%s: %w", errorText, err)
+			}
+			if err2 != nil {
+				return nil, fmt.Errorf("waiting on subprocess: %v; %s: %w", err2, step, err)
+			}
 		}
 		return nil, fmt.Errorf("%v: %w", step, err)
 	}

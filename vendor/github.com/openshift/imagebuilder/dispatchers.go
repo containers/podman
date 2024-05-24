@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/imagebuilder/signal"
 	"github.com/openshift/imagebuilder/strslice"
 
+	buildkitcommand "github.com/moby/buildkit/frontend/dockerfile/command"
 	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	buildkitshell "github.com/moby/buildkit/frontend/dockerfile/shell"
 )
@@ -130,7 +131,7 @@ func label(b *Builder, args []string, attributes map[string]bool, flagArgs []str
 	return nil
 }
 
-func processHereDocs(originalInstruction string, heredocs []buildkitparser.Heredoc, args []string) ([]File, error) {
+func processHereDocs(instruction, originalInstruction string, heredocs []buildkitparser.Heredoc, args []string) ([]File, error) {
 	var files []File
 	for _, heredoc := range heredocs {
 		var err error
@@ -138,7 +139,7 @@ func processHereDocs(originalInstruction string, heredocs []buildkitparser.Hered
 		if heredoc.Chomp {
 			content = buildkitparser.ChompHeredocContent(content)
 		}
-		if heredoc.Expand {
+		if heredoc.Expand && !strings.EqualFold(instruction, buildkitcommand.Run) {
 			shlex := buildkitshell.NewLex('\\')
 			shlex.RawQuotes = true
 			shlex.RawEscapes = true
@@ -202,7 +203,7 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 			return fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> flags")
 		}
 	}
-	files, err := processHereDocs(original, heredocs, userArgs)
+	files, err := processHereDocs(buildkitcommand.Add, original, heredocs, userArgs)
 	if err != nil {
 		return err
 	}
@@ -256,7 +257,7 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 			return fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
 		}
 	}
-	files, err := processHereDocs(original, heredocs, userArgs)
+	files, err := processHereDocs(buildkitcommand.Copy, original, heredocs, userArgs)
 	if err != nil {
 		return err
 	}
@@ -422,7 +423,7 @@ func run(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		}
 	}
 
-	files, err := processHereDocs(original, heredocs, userArgs)
+	files, err := processHereDocs(buildkitcommand.Run, original, heredocs, userArgs)
 	if err != nil {
 		return err
 	}
@@ -606,6 +607,7 @@ func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs
 
 		flags := flag.NewFlagSet("", flag.ContinueOnError)
 		flags.String("start-period", "", "")
+		flags.String("start-interval", "", "")
 		flags.String("interval", "", "")
 		flags.String("timeout", "", "")
 		flRetries := flags.String("retries", "", "")
@@ -641,6 +643,12 @@ func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs
 			return err
 		}
 		healthcheck.Interval = interval
+
+		startInterval, err := parseOptInterval(flags.Lookup("start-interval"))
+		if err != nil {
+			return err
+		}
+		healthcheck.StartInterval = startInterval
 
 		timeout, err := parseOptInterval(flags.Lookup("timeout"))
 		if err != nil {

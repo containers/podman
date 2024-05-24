@@ -952,7 +952,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 // makeExtraImageContentDiff creates an archive file containing the contents of
 // files named in i.extraImageContent.  The footer that marks the end of the
 // archive may be omitted.
-func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (string, digest.Digest, int64, error) {
+func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (_ string, _ digest.Digest, _ int64, retErr error) {
 	cdir, err := i.store.ContainerDirectory(i.containerID)
 	if err != nil {
 		return "", "", -1, err
@@ -962,6 +962,11 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (strin
 		return "", "", -1, err
 	}
 	defer diff.Close()
+	defer func() {
+		if retErr != nil {
+			os.Remove(diff.Name())
+		}
+	}()
 	digester := digest.Canonical.Digester()
 	counter := ioutils.NewWriteCounter(digester.Hash())
 	tw := tar.NewWriter(io.MultiWriter(diff, counter))
@@ -1001,10 +1006,10 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (strin
 		}
 	}
 	if !includeFooter {
-		return diff.Name(), "", -1, err
+		return diff.Name(), "", -1, nil
 	}
 	tw.Close()
-	return diff.Name(), digester.Digest(), counter.Count, err
+	return diff.Name(), digester.Digest(), counter.Count, nil
 }
 
 // makeContainerImageRef creates a containers/image/v5/types.ImageReference
