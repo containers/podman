@@ -13,8 +13,8 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.1.0
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.5.0
-	github.com/containers/buildah v1.35.1-0.20240510150258-77f239ae12e5
-	github.com/containers/common v0.58.1-0.20240523020001-79d954c77663
+	github.com/containers/buildah v1.36.0
+	github.com/containers/common v0.59.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
 	github.com/containers/image/v5 v5.31.0
@@ -60,7 +60,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc
 	github.com/opencontainers/selinux v1.11.0
-	github.com/openshift/imagebuilder v1.2.7
+	github.com/openshift/imagebuilder v1.2.9
 	github.com/rootless-containers/rootlesskit/v2 v2.1.0
 	github.com/shirou/gopsutil/v3 v3.24.4
 	github.com/sirupsen/logrus v1.9.3
@@ -105,7 +105,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
 	github.com/containernetworking/cni v1.1.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
-	github.com/containers/luksy v0.0.0-20240408185936-afd8e7619947 // indirect
+	github.com/containers/luksy v0.0.0-20240506205542-84b50f50f3ee // indirect
 	github.com/coreos/go-oidc/v3 v3.10.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
@@ -116,7 +116,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.8.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/fsouza/go-dockerclient v1.10.1 // indirect
+	github.com/fsouza/go-dockerclient v1.11.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.9.1 // indirect
