@@ -104,7 +104,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | volumeMounts\.name                                  | ✅      |
 | volumeMounts\.mountPropagation                      | no      |
 | volumeMounts\.readOnly                              | ✅      |
-| volumeMounts\.subPath                               | no      |
+| volumeMounts\.subPath                               | ✅      |
 | volumeMounts\.subPathExpr                           | no      |
 | volumeDevices\.devicePath                           | no      |
 | volumeDevices\.name                                 | no      |
