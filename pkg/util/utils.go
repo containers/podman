@@ -138,7 +138,10 @@ func ParseRegistryCreds(creds string) (*types.DockerAuthConfig, error) {
 	username, password := parseCreds(creds)
 	if username == "" {
 		fmt.Print("Username: ")
-		fmt.Scanln(&username)
+		_, err := fmt.Scanln(&username)
+		if err != nil {
+			return nil, fmt.Errorf("could not read username: %w", err)
+		}
 	}
 	if password == "" {
 		fmt.Print("Password: ")
