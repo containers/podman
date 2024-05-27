@@ -893,8 +893,7 @@ spec:
     done
     assert $output == "2-healthy" "After 3 seconds"
 
-    run_podman kube down $fname
-    run_podman pod rm -a
+    run_podman pod rm -fa -t0
     run_podman rm -a
 }
 
@@ -946,8 +945,7 @@ spec:
     done
     assert $output == "2-unhealthy" "After 3 seconds"
 
-    run_podman kube down $fname
-    run_podman pod rm -a
+    run_podman pod rm -fa -t0
     run_podman rm -a
 }
 
