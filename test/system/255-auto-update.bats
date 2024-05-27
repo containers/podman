@@ -132,7 +132,6 @@ function _confirm_update() {
     # Image has already been pulled, so this shouldn't take too long
     local timeout=10
     while [[ $timeout -gt 0 ]]; do
-        sleep 1
         run_podman '?' inspect --format "{{.Image}}" $cname
         if [[ $status != 0 ]]; then
             if [[ $output =~ (no such object|does not exist in database): ]]; then
@@ -144,6 +143,7 @@ function _confirm_update() {
         elif [[ $output != $old_iid ]]; then
             return
         fi
+        sleep 1
         timeout=$((timeout - 1))
     done
 
@@ -417,7 +417,7 @@ EOF
 Description=Podman auto-update testing timer
 
 [Timer]
-OnCalendar=*-*-* *:*:0/2
+OnActiveSec=0s
 Persistent=true
 
 [Install]
