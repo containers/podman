@@ -1,3 +1,9 @@
+## 2.19.0
+
+### Features
+
+[Label Sets](https://onsi.github.io/ginkgo/#label-sets) allow for more expressive and flexible label filtering.
+
 ## 2.18.0
 
 ### Features
