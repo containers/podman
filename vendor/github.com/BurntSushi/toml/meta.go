@@ -13,7 +13,7 @@ type MetaData struct {
 	context Key // Used only during decoding.
 
 	keyInfo map[string]keyInfo
-	mapping map[string]interface{}
+	mapping map[string]any
 	keys    []Key
 	decoded map[string]struct{}
 	data    []byte // Input file; for errors.
@@ -31,12 +31,12 @@ func (md *MetaData) IsDefined(key ...string) bool {
 	}
 
 	var (
-		hash      map[string]interface{}
+		hash      map[string]any
 		ok        bool
-		hashOrVal interface{} = md.mapping
+		hashOrVal any = md.mapping
 	)
 	for _, k := range key {
-		if hash, ok = hashOrVal.(map[string]interface{}); !ok {
+		if hash, ok = hashOrVal.(map[string]any); !ok {
 			return false
 		}
 		if hashOrVal, ok = hash[k]; !ok {
@@ -94,28 +94,55 @@ func (md *MetaData) Undecoded() []Key {
 type Key []string
 
 func (k Key) String() string {
-	ss := make([]string, len(k))
-	for i := range k {
-		ss[i] = k.maybeQuoted(i)
+	// This is called quite often, so it's a bit funky to make it faster.
+	var b strings.Builder
+	b.Grow(len(k) * 25)
+outer:
+	for i, kk := range k {
+		if i > 0 {
+			b.WriteByte('.')
+		}
+		if kk == "" {
+			b.WriteString(`""`)
+		} else {
+			for _, r := range kk {
+				// "Inline" isBareKeyChar
+				if !((r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-') {
+					b.WriteByte('"')
+					b.WriteString(dblQuotedReplacer.Replace(kk))
+					b.WriteByte('"')
+					continue outer
+				}
+			}
+			b.WriteString(kk)
+		}
 	}
-	return strings.Join(ss, ".")
+	return b.String()
 }
 
 func (k Key) maybeQuoted(i int) string {
 	if k[i] == "" {
 		return `""`
 	}
-	for _, c := range k[i] {
-		if !isBareKeyChar(c, false) {
-			return `"` + dblQuotedReplacer.Replace(k[i]) + `"`
+	for _, r := range k[i] {
+		if (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			continue
 		}
+		return `"` + dblQuotedReplacer.Replace(k[i]) + `"`
 	}
 	return k[i]
 }
 
+// Like append(), but only increase the cap by 1.
 func (k Key) add(piece string) Key {
+	if cap(k) > len(k) {
+		return append(k, piece)
+	}
 	newKey := make(Key, len(k)+1)
 	copy(newKey, k)
 	newKey[len(k)] = piece
 	return newKey
 }
+
+func (k Key) parent() Key  { return k[:len(k)-1] } // all except the last piece.
+func (k Key) last() string { return k[len(k)-1] }  // last piece of this key.
