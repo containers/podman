@@ -397,13 +397,13 @@ spec:
   - command:
     - sh
     - -c
-    - echo a stdout; echo a stderr 1>&2; sleep inf
+    - echo a stdout; echo a stderr 1>&2; trap 'exit' SIGTERM; while :; do sleep 0.1; done
     image: $IMAGE
     name: a
   - command:
     - sh
     - -c
-    - echo b stdout; echo b stderr 1>&2; sleep inf
+    - echo b stdout; echo b stderr 1>&2; trap 'exit' SIGTERM; while :; do sleep 0.1; done
     image: $IMAGE
     name: b
 EOF
