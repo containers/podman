@@ -16,12 +16,10 @@ linters:
     - nakedret
     - gosmopolitan # usage of time.Local in pkg/k8s.io
     - tagliatelle # too many JSON keys cannot be changed due to compat
-    - nosnakecase # too many false positives due to the `unix` package
     - dupword # too many false positives (e.g., in tests)
     - gocognit
     - testpackage
     - err113
-    - exhaustivestruct
     - errorlint
     - wrapcheck
     - paralleltest
@@ -34,7 +32,6 @@ linters:
     - nestif
     - predeclared
     - thelper
-    - ifshort
     - forbidigo
     - exhaustive
     - gofumpt
@@ -48,7 +45,6 @@ linters:
     - gocyclo
     - lll
     - gosec
-    - maligned
     - musttag # way to many warnings to fix for now, also some false positives
     - mnd # way to many false positives
     - gomoddirectives
@@ -65,12 +61,6 @@ linters:
     - nonamedreturns
     - exhaustruct
     # deprecated linters
-    - golint # replaced by revive
-    - scopelint # replaced by exportloopref
-    - interfacer
-    - deadcode    # deprecated since v1.49.0, replaced by unused
-    - structcheck # deprecated since v1.49.0, replaced by unused
-    - varcheck    # deprecated since v1.49.0, replaced by unused
     - execinquery
 linters-settings:
   errcheck:
