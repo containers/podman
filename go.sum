@@ -83,8 +83,8 @@ github.com/containers/common v0.59.0 h1:fy9Jz0B7Qs1C030bm73YJtVddaiFSZD3558EV1tg
 github.com/containers/common v0.59.0/go.mod h1:53VicJCZ2AD0O+Br7VVoyrS7viXF4YmwlTIocWUT8XE=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70 h1:aACcXSIgcuPq5QdNZZ8B53BCdhqYvw33/8QmZWJATvg=
-github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70/go.mod h1:v2JP4sZFltFJ8smHLVm12Ng3jHetrNh565ZwWpB5pzs=
+github.com/containers/gvisor-tap-vsock v0.7.4-0.20240517173717-3f7ef77e65ad h1:qIuGRPjajtoUJwJnbSORQIXxnJXZA7eVRrGWmha+GgY=
+github.com/containers/gvisor-tap-vsock v0.7.4-0.20240517173717-3f7ef77e65ad/go.mod h1:v2JP4sZFltFJ8smHLVm12Ng3jHetrNh565ZwWpB5pzs=
 github.com/containers/image/v5 v5.31.0 h1:eDFVlz5XaYICxe9dXpf23htEKvyosgkl62mJlIATXE4=
 github.com/containers/image/v5 v5.31.0/go.mod h1:5QfOqSackPkSbF7Qxc1DnVNnPJKQ+KWLkfEfDpK590Q=
 github.com/containers/libhvee v0.7.1 h1:dWGF5GLq9DZvXo3P8aDp3cNieL5eCaSell4UmeA/jY4=
