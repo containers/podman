@@ -40,12 +40,17 @@ var RandReader = rand.Reader
 
 const (
 	// RFC7518 recommends a minimum of 1,000 iterations:
-	// https://tools.ietf.org/html/rfc7518#section-4.8.1.2
+	// 	- https://tools.ietf.org/html/rfc7518#section-4.8.1.2
+	//
 	// NIST recommends a minimum of 10,000:
-	// https://pages.nist.gov/800-63-3/sp800-63b.html
-	// 1Password uses 100,000:
-	// https://support.1password.com/pbkdf2/
-	defaultP2C = 100000
+	// 	- https://pages.nist.gov/800-63-3/sp800-63b.html
+	//
+	// 1Password increased in 2023 from 100,000 to 650,000:
+	//  - https://support.1password.com/pbkdf2/
+	//
+	// OWASP recommended 600,000 in Dec 2022:
+	//	- https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#pbkdf2
+	defaultP2C = 600000
 	// Default salt size: 128 bits
 	defaultP2SSize = 16
 )

@@ -173,7 +173,10 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 		}
 	}
 
-	blobPath := d.ref.layerPath(blobDigest)
+	blobPath, err := d.ref.layerPath(blobDigest)
+	if err != nil {
+		return private.UploadedBlob{}, err
+	}
 	// need to explicitly close the file, since a rename won't otherwise not work on Windows
 	blobFile.Close()
 	explicitClosed = true
@@ -196,7 +199,10 @@ func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, inf
 	if info.Digest == "" {
 		return false, private.ReusedBlob{}, fmt.Errorf("Can not check for a blob with unknown digest")
 	}
-	blobPath := d.ref.layerPath(info.Digest)
+	blobPath, err := d.ref.layerPath(info.Digest)
+	if err != nil {
+		return false, private.ReusedBlob{}, err
+	}
 	finfo, err := os.Stat(blobPath)
 	if err != nil && os.IsNotExist(err) {
 		return false, private.ReusedBlob{}, nil
@@ -216,7 +222,11 @@ func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, inf
 // If the destination is in principle available, refuses this manifest type (e.g. it does not recognize the schema),
 // but may accept a different manifest type, the returned error must be an ManifestTypeRejectedError.
 func (d *dirImageDestination) PutManifest(ctx context.Context, manifest []byte, instanceDigest *digest.Digest) error {
-	return os.WriteFile(d.ref.manifestPath(instanceDigest), manifest, 0644)
+	path, err := d.ref.manifestPath(instanceDigest)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(path, manifest, 0644)
 }
 
 // PutSignaturesWithFormat writes a set of signatures to the destination.
@@ -229,7 +239,11 @@ func (d *dirImageDestination) PutSignaturesWithFormat(ctx context.Context, signa
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(d.ref.signaturePath(i, instanceDigest), blob, 0644); err != nil {
+		path, err := d.ref.signaturePath(i, instanceDigest)
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, blob, 0644); err != nil {
 			return err
 		}
 	}
