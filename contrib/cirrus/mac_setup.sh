@@ -7,6 +7,14 @@
 
 set -euo pipefail
 
+# Confirm rosetta is installed/enabled and working
+if ! arch -arch x86_64 /usr/bin/uname -m; then
+    # This likely means whatever script used to prepare this mac failed
+    # and/or did not execute `sudo softwareupdate --install-rosetta --agree-to-license`
+    echo "Rosetta doesn't appear to be installed, or is non-functional."
+    exit 1
+fi
+
 # The otherwise standard `/etc/ci_environment` file cannot be used in this
 # context, because the system is shared for multiple tasks.  Instead, persist
 # env. vars required during /subsequent/ testing steps via a "magic" Cirrus-CI

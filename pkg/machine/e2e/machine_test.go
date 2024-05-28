@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -69,13 +68,6 @@ var _ = BeforeSuite(func() {
 	}
 	if pullError != nil {
 		Fail(fmt.Sprintf("failed to pull wsl disk: %q", pullError))
-	}
-	if testProvider.VMType() == define.AppleHvVirt {
-		cmd := exec.Command("softwareupdate", "--install-rosetta", "--agree-to-license")
-		err := cmd.Run()
-		if err != nil {
-			Fail(fmt.Sprintf("Command failed with error: %q", err))
-		}
 	}
 })
 
