@@ -810,15 +810,12 @@ EOF
 }
 
 @test "podman kube generate tmpfs on /tmp" {
-      KUBE=$PODMAN_TMPDIR/kube.yaml
-      run_podman create --name test $IMAGE sleep 100
-      run_podman kube generate test -f $KUBE
-      run_podman kube play $KUBE
-      run_podman exec test-pod-test sh -c "mount | grep /tmp"
+      local yaml=$PODMAN_TMPDIR/test.yaml
+      _write_test_yaml command=/home/podman/pause
+      run_podman kube play $yaml
+      run_podman exec test_pod-test sh -c "mount | grep /tmp"
       assert "$output" !~ "noexec" "mounts on /tmp should not be noexec"
-      run_podman kube down $KUBE
-      run_podman pod rm -a -f -t 0
-      run_podman rm -a -f -t 0
+      run_podman kube down $yaml
 }
 
 @test "podman kube play - pull policy" {
