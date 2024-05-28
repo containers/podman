@@ -127,10 +127,7 @@ echo $rand        |   0 | $rand
 @test "podman run --name" {
     randomname=$(random_string 30)
 
-    # Assume that 4 seconds gives us enough time for 3 quick tests (or at
-    # least for the 'ps'; the 'container exists' should pass even in the
-    # unlikely case that the container exits before we get to them)
-    run_podman run -d --name $randomname $IMAGE sleep 4
+    run_podman run -d --name $randomname $IMAGE sleep inf
     cid=$output
 
     run_podman ps --format '{{.Names}}--{{.ID}}'
@@ -140,7 +137,7 @@ echo $rand        |   0 | $rand
     run_podman container exists $cid
 
     # Done with live-container tests; now let's test after container finishes
-    run_podman wait $cid
+    run_podman stop -t0 $cid
 
     # Container still exists even after stopping:
     run_podman container exists $randomname
