@@ -967,6 +967,15 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			labels[k] = v
 		}
 
+		if labels == nil {
+			labels = podYAML.Annotations
+		} else {
+			// if it already exists add the yaml annotations
+			for k, v := range podYAML.Annotations { // add podYAML labels
+				labels[k] = v
+			}
+		}
+
 		automountImages, err := ic.prepareAutomountImages(ctx, container.Name, annotations)
 		if err != nil {
 			return nil, nil, err

@@ -379,6 +379,7 @@ spec:
   shareProcessNamespace: true
 status: {}
 `
+
 var livenessProbePodYaml = `
 apiVersion: apps/v1
 kind: Deployment
@@ -411,6 +412,7 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 5
 `
+
 var livenessProbeUnhealthyPodYaml = `
 apiVersion: apps/v1
 kind: Deployment
@@ -946,6 +948,7 @@ spec:
     {{ end }}
 {{ end }}
 `
+
 var deploymentYamlTemplate = `
 apiVersion: v1
 kind: Deployment
@@ -1612,7 +1615,7 @@ func withHostUsers(val bool) podOption {
 	}
 }
 
-// Deployment describes the options a kube yaml can be configured at deployment level
+// DaemonSet describes the options a kube yaml can be configured at daemonset level
 type DaemonSet struct {
 	Name        string
 	Labels      map[string]string
@@ -3355,7 +3358,22 @@ spec:
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
+	})
+	It("deployment with annotations should carry over to pod labels", func() {
+		outputFile := filepath.Join(podmanTest.RunRoot, "deployment.yaml")
+		container := podmanTest.Podman([]string{"container", "create", "--name", "foo", "--label", "io.containers.autoupdate=registry", "quay.io/quay/busybox", "sleep", "240"})
+		container.WaitWithDefaultTimeout()
+		kube := podmanTest.Podman([]string{"kube", "generate", "-t", "deployment", "-f", outputFile, "foo"})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
 
+		play := podmanTest.Podman([]string{"kube", "play", outputFile})
+		play.WaitWithDefaultTimeout()
+		Expect(play).Should(ExitCleanly())
+		inspect := podmanTest.Podman([]string{"inspect", "foo-pod-deployment-pod-foo"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(ContainSubstring("\"io.containers.autoupdate/foo\": \"registry\""))
 	})
 
 	It("--ip and --mac-address", func() {
@@ -3401,7 +3419,6 @@ spec:
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(Equal(macs[i]))
-
 	})
 
 	It("with multiple networks", func() {
@@ -3665,7 +3682,6 @@ VOLUME %s`, CITEST_IMAGE, hostPathDir+"/")
 		ctrJSON := inspect.InspectContainerToJSON()
 		Expect(ctrJSON[0].Mounts).To(HaveLen(1))
 		Expect(ctrJSON[0].Mounts[0]).To(HaveField("Type", define.TypeBind))
-
 	})
 
 	It("test with PersistentVolumeClaim volume", func() {
@@ -3956,7 +3972,6 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCPUQuota)))
 		Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
 		Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
-
 	})
 
 	It("allows setting resource limits with --cpus 1", func() {
@@ -3964,9 +3979,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		SkipIfRootless("CPU limits require root")
 		podmanTest.CgroupManager = "systemd"
 
-		var (
-			expectedCPULimit = "1"
-		)
+		expectedCPULimit := "1"
 
 		deployment := getDeployment(
 			withPod(getPod(withCtr(getCtr(
@@ -3989,7 +4002,6 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		Expect(parts).To(HaveLen(2))
 
 		Expect(parts[0]).To(Equal(parts[1]))
-
 	})
 
 	It("reports invalid image name", func() {
@@ -4288,7 +4300,8 @@ spec:
 			// add services
 			yamlDocs = append([]string{
 				fmt.Sprintf(serviceTemplate, podName, podName),
-				fmt.Sprintf(serviceTemplate, deploymentPodName, deploymentPodName)}, yamlDocs...)
+				fmt.Sprintf(serviceTemplate, deploymentPodName, deploymentPodName),
+			}, yamlDocs...)
 
 			// add pods
 			k, err := getKubeYaml("pod", pod)
@@ -4495,7 +4508,6 @@ invalid kube kind
 	})
 
 	It("teardown volume --force", func() {
-
 		volName := RandomString(12)
 		volDevice := define.TypeTmpfs
 		volType := define.TypeTmpfs
@@ -4542,7 +4554,6 @@ invalid kube kind
 	})
 
 	It("after teardown with volume reuse", func() {
-
 		volName := RandomString(12)
 		volDevice := define.TypeTmpfs
 		volType := define.TypeTmpfs
@@ -4851,7 +4862,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			inspect.WaitWithDefaultTimeout()
 			Expect(inspect).Should(ExitCleanly())
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
-
 		})
 
 		It("uses env value from configmap for HTTP API client", func() {
@@ -5306,7 +5316,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(ExitCleanly())
 		Expect(exec.OutputToString()).Should(ContainSubstring("This is a test"))
-
 	})
 
 	It("secret as volume support - optional field", func() {
@@ -5374,7 +5383,6 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		secretData = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
 		secretData.WaitWithDefaultTimeout()
 		Expect(secretData).Should(Not(ExitCleanly()))
-
 	})
 
 	It("secret as volume with defaultMode set", func() {
@@ -5597,7 +5605,6 @@ spec:
 	})
 
 	It("with graceful shutdown", func() {
-
 		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol"})
 		volumeCreate.WaitWithDefaultTimeout()
 		Expect(volumeCreate).Should(ExitCleanly())
@@ -6242,7 +6249,6 @@ spec:
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(cidFile))
-
 	})
 
 	It("test with reserved Seccomp annotation in yaml", func() {
@@ -6577,5 +6583,4 @@ spec:
 		execArr := strings.Split(exec.OutputToString(), " ")
 		Expect(execArr[len(execArr)-1]).To(Not(ContainSubstring(arr[len(arr)-1])))
 	})
-
 })
