@@ -14,9 +14,7 @@ import (
 )
 
 func CreatePodFromSpec(ctx context.Context, spec *entitiesTypes.PodSpec) (*entitiesTypes.PodCreateReport, error) {
-	var (
-		pcr entitiesTypes.PodCreateReport
-	)
+	var pcr entitiesTypes.PodCreateReport
 	if spec == nil {
 		spec = new(entitiesTypes.PodSpec)
 	}
@@ -55,9 +53,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 
 // Inspect returns low-level information about the given pod.
 func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*entitiesTypes.PodInspectReport, error) {
-	var (
-		report entitiesTypes.PodInspectReport
-	)
+	var report entitiesTypes.PodInspectReport
 	if options == nil {
 		options = new(InspectOptions)
 	}
@@ -78,9 +74,7 @@ func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*en
 // Kill sends a SIGTERM to all the containers in a pod.  The optional signal parameter
 // can be used to override  SIGTERM.
 func Kill(ctx context.Context, nameOrID string, options *KillOptions) (*entitiesTypes.PodKillReport, error) {
-	var (
-		report entitiesTypes.PodKillReport
-	)
+	var report entitiesTypes.PodKillReport
 	if options == nil {
 		options = new(KillOptions)
 	}
@@ -145,9 +139,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entitiesTypes.PodPrun
 // List returns all pods in local storage.  The optional filters parameter can
 // be used to refine which pods should be listed.
 func List(ctx context.Context, options *ListOptions) ([]*entitiesTypes.ListPodsReport, error) {
-	var (
-		podsReports []*entitiesTypes.ListPodsReport
-	)
+	var podsReports []*entitiesTypes.ListPodsReport
 	if options == nil {
 		options = new(ListOptions)
 	}
@@ -231,6 +223,7 @@ func Start(ctx context.Context, nameOrID string, options *StartOptions) (*entiti
 
 	if response.StatusCode == http.StatusNotModified {
 		report.Id = nameOrID
+		report.RawInput = nameOrID
 		return &report, nil
 	}
 

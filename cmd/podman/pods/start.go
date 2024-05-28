@@ -39,9 +39,7 @@ var (
 	}
 )
 
-var (
-	startOptions = podStartOptionsWrapper{}
-)
+var startOptions = podStartOptionsWrapper{}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -60,9 +58,7 @@ func init() {
 }
 
 func start(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 
 	ids, err := specgenutil.ReadPodIDFiles(startOptions.PodIDFiles)
 	if err != nil {
@@ -77,7 +73,7 @@ func start(cmd *cobra.Command, args []string) error {
 	// in the cli, first we print out all the successful attempts
 	for _, r := range responses {
 		if len(r.Errs) == 0 {
-			fmt.Println(r.Id)
+			fmt.Println(r.RawInput)
 		} else {
 			errs = append(errs, r.Errs...)
 		}

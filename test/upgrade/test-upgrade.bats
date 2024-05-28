@@ -316,7 +316,7 @@ failed    | exited     | 17
     is "$output" ".*mypod.*"
 
     run_podman pod start mypod
-    is "$output" "[0-9a-f]\\{64\\}" "podman pod start"
+    is "$output" "mypod" "podman pod start"
 
     # run a container in an existing pod
     # FIXME: 2024-02-07 fails: pod X cgroup is not set: internal libpod error
@@ -328,7 +328,7 @@ failed    | exited     | 17
     is "$output" ".*Running.*" "podman pod ps shows running state"
 
     run_podman pod stop mypod
-    is "$output" "[0-9a-f]\\{64\\}" "podman pod stop"
+    is "$output" "mypod" "podman pod stop"
 
     run_podman pod rm mypod
     is "$output" "[0-9a-f]\\{64\\}" "podman pod rm"

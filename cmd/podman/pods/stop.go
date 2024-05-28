@@ -71,9 +71,7 @@ func init() {
 }
 
 func stop(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	if cmd.Flag("time").Changed {
 		stopOptions.Timeout = stopOptions.timeoutCLI
 	}
@@ -91,7 +89,7 @@ func stop(cmd *cobra.Command, args []string) error {
 	// in the cli, first we print out all the successful attempts
 	for _, r := range responses {
 		if len(r.Errs) == 0 {
-			fmt.Println(r.Id)
+			fmt.Println(r.RawInput)
 		} else {
 			errs = append(errs, r.Errs...)
 		}
