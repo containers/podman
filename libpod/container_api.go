@@ -581,11 +581,16 @@ func (c *Container) Wait(ctx context.Context) (int32, error) {
 // WaitForExit blocks until the container exits and returns its exit code. The
 // argument is the interval at which checks the container's status.
 func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration) (int32, error) {
+	id := c.ID()
 	if !c.valid {
+		// if the container is not valid at this point as it was deleted,
+		// check if the exit code was recorded in the db.
+		exitCode, err := c.runtime.state.GetContainerExitCode(id)
+		if err == nil {
+			return exitCode, nil
+		}
 		return -1, define.ErrCtrRemoved
 	}
-
-	id := c.ID()
 	var conmonTimer time.Timer
 	conmonTimerSet := false
 
@@ -767,7 +772,7 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
+			stoppedCount := 0
 			for {
 				if len(wantedStates) > 0 {
 					state, err := c.State()
@@ -784,10 +789,17 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 					// even if we are interested only in the health check
 					// check that the container is still running to avoid
 					// waiting until the timeout expires.
-					state, err := c.State()
-					if err != nil {
-						trySend(-1, err)
-						return
+					if stoppedCount > 0 {
+						stoppedCount++
+					} else {
+						state, err := c.State()
+						if err != nil {
+							trySend(-1, err)
+							return
+						}
+						if state != define.ContainerStateCreated && state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+							stoppedCount++
+						}
 					}
 					status, err := c.HealthCheckStatus()
 					if err != nil {
@@ -798,7 +810,9 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 						trySend(-1, nil)
 						return
 					}
-					if state != define.ContainerStateCreated && state != define.ContainerStateRunning && state != define.ContainerStatePaused {
+					// wait for another waitTimeout interval to give the health check process some time
+					// to record the healthy status.
+					if stoppedCount > 1 {
 						trySend(-1, define.ErrCtrStopped)
 						return
 					}
