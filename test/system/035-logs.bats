@@ -89,36 +89,30 @@ function _log_test_multi() {
 
     skip_if_remote "logs does not support multiple containers when run remotely"
 
-    # Under k8s file, 'podman logs' returns just the facts, Ma'am.
-    # Under journald, there may be other cruft (e.g. container removals)
-    local etc=
-    if [[ $driver =~ journal ]]; then
-        etc='.*'
-    fi
-
     local events_backend=$(_additional_events_backend $driver)
 
     # Simple helper to make the container starts, below, easier to read
     local -a cid
     doit() {
-        run_podman ${events_backend} run --log-driver=$driver --rm -d --name "$1" $IMAGE sh -c "$2";
+        run_podman ${events_backend} run --log-driver=$driver -d \
+            --name "$1" $IMAGE sh -c "$2";
         cid+=($(echo "${output:0:12}"))
     }
 
-    # Not really a guarantee that we'll get a-b-c-d in order, but it's
-    # the best we can do. The trailing 'sleep' in each container
-    # minimizes the chance of a race condition in which the container
-    # is removed before 'podman logs' has a chance to wake up and read
-    # the final output.
-    doit c1         "echo a;sleep 10;echo d;sleep 3"
-    doit c2 "sleep 1;echo b;sleep  2;echo c;sleep 3"
+    doit c1 "echo a1; echo a2"
+    doit c2 "echo b1; echo b2"
 
+    # Reading logs only guarantees the order for a single container,
+    # when using multiple containers the line order between them can vary.
     run_podman ${events_backend} logs -f c1 c2
     assert "$output" =~ \
-       "${cid[0]} a$etc
-${cid[1]} b$etc
-${cid[1]} c$etc
-${cid[0]} d"   "Sequential output from logs"
+       ".*^${cid[0]} a1\$.*
+${cid[0]} a2"   "Sequential output from c1"
+    assert "$output" =~ \
+       ".*^${cid[1]} b1\$.*
+${cid[1]} b2"   "Sequential output from c2"
+
+    run_podman rm -f -t0 ${cid[0]} ${cid[1]}
 }
 
 @test "podman logs - multi k8s-file" {
