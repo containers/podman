@@ -142,14 +142,16 @@ function service_cleanup() {
 @test "podman generate systemd - envar" {
     cname=$(random_string)
     FOO=value BAR=%s run_podman create --name $cname --env FOO -e BAR --env MYVAR=myval \
-        $IMAGE sh -c 'printenv && sleep 100'
+        $IMAGE sh -c 'printenv && echo READY; trap 'exit' SIGTERM; while :; do sleep 0.1; done'
 
     # Start systemd service to run this container
     service_setup
 
-    # Give container time to start; make sure output looks top-like
-    sleep 2
-    run_podman logs $cname
+    # Give container time to start and print output
+    # wait_for_ready returns directly if the logs matches and preserves $output
+    # for us so we do not have to call podman logs again here if we match the env below.
+    wait_for_ready $cname
+
     is "$output" ".*FOO=value.*" "FOO environment variable set"
     is "$output" ".*BAR=%s.*" "BAR environment variable set"
     is "$output" ".*MYVAR=myval.*" "MYVAL environment variable set"
@@ -397,13 +399,13 @@ spec:
   - command:
     - sh
     - -c
-    - echo a stdout; echo a stderr 1>&2; sleep inf
+    - echo a stdout; echo a stderr 1>&2; trap 'exit' SIGTERM; while :; do sleep 0.1; done
     image: $IMAGE
     name: a
   - command:
     - sh
     - -c
-    - echo b stdout; echo b stderr 1>&2; sleep inf
+    - echo b stdout; echo b stderr 1>&2; trap 'exit' SIGTERM; while :; do sleep 0.1; done
     image: $IMAGE
     name: b
 EOF

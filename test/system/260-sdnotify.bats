@@ -475,31 +475,41 @@ none | true  | false | 0
 none | false | false | 0
 "
 
-    # I am sorry, this is a long test as we need to test the upper matrix
-    # twice. The first run is using the default sdnotify policy of "ignore".
+    # In each iteration we switch between the sdnotify policy ignore and conmon.
+    # We could run them in a loop for each case but the test is slow so let's
+    # just switch between them as it should cover both policies sufficiently.
+    # Note because of this make sure to have at least two exit code cases directly
+    # after each other above so both polices will get at least once the error case.
+    # The first run is using the default sdnotify policy of "ignore".
     # In this case, the service container serves as the main PID of the service
     # to have a minimal resource footprint.  The second run is using the
     # "conmon" sdnotify policy in which case Podman needs to serve as the main
     # PID to act as an sdnotify proxy; there Podman will wait for the service
     # container to exit and reflects its exit code.
+    sdnotify_policy=ignore
     while read exit_code_prop cmd1 cmd2 exit_code; do
-        for sdnotify_policy in ignore conmon; do
-            generate_exit_code_yaml $fname $cmd1 $cmd2 $sdnotify_policy
-            yaml_sha=$(sha256sum $fname)
-            service_container="${yaml_sha:0:12}-service"
-            podman_exit=$exit_code
-            if [[ $sdnotify_policy == "ignore" ]];then
-                 podman_exit=0
-            fi
-            run_podman $podman_exit kube play --service-exit-code-propagation="$exit_code_prop" --service-container $fname
-            # Make sure that there are no error logs (e.g., #19715)
-            assert "$output" !~ "error msg="
-            run_podman container inspect --format '{{.KubeExitCodePropagation}}' $service_container
-            is "$output" "$exit_code_prop" "service container has the expected policy set in its annotations"
-            run_podman wait $service_container
-            is "$output" "$exit_code" "service container exit code (propagation: $exit_code_prop, policy: $service_policy, cmds: $cmd1 + $cmd2)"
-            run_podman kube down $fname
-        done
+        generate_exit_code_yaml $fname $cmd1 $cmd2 $sdnotify_policy
+        yaml_sha=$(sha256sum $fname)
+        service_container="${yaml_sha:0:12}-service"
+        podman_exit=$exit_code
+        if [[ $sdnotify_policy == "ignore" ]];then
+             podman_exit=0
+        fi
+        run_podman $podman_exit kube play --service-exit-code-propagation="$exit_code_prop" --service-container $fname
+        # Make sure that there are no error logs (e.g., #19715)
+        assert "$output" !~ "error msg="
+        run_podman container inspect --format '{{.KubeExitCodePropagation}}' $service_container
+        is "$output" "$exit_code_prop" "service container has the expected policy set in its annotations"
+        run_podman wait $service_container
+        is "$output" "$exit_code" "service container exit code (propagation: $exit_code_prop, policy: $sdnotify_policy, cmds: $cmd1 + $cmd2)"
+        run_podman kube down $fname
+
+        # in each iteration switch between conmon/ignore policy to get coverage for both
+        if [[ $sdnotify_policy == "ignore" ]]; then
+            sdnotify_policy=conmon
+        else
+            sdnotify_policy=ignore
+        fi
     done < <(parse_table "$exit_tests")
 
     # A final smoke test to make sure bogus policies lead to an error

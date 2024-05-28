@@ -778,7 +778,7 @@ json-file | f
 @test "podman run --timeout - basic test" {
     cid=timeouttest
     t0=$SECONDS
-    run_podman 255 run --name $cid --timeout 10 $IMAGE sleep 60
+    run_podman 255 run --name $cid --timeout 2 $IMAGE sleep 60
     t1=$SECONDS
     # Confirm that container is stopped. Podman-remote unfortunately
     # cannot tell the difference between "stopped" and "exited", and
@@ -790,8 +790,8 @@ json-file | f
     # This operation should take
     # exactly 10 seconds. Give it some leeway.
     delta_t=$(( $t1 - $t0 ))
-    assert "$delta_t" -gt  8 "podman stop: ran too quickly!"
-    assert "$delta_t" -le 14 "podman stop: took too long"
+    assert "$delta_t" -gt 1 "podman stop: ran too quickly!"
+    assert "$delta_t" -le 6 "podman stop: took too long"
 
     run_podman rm $cid
 }

@@ -7,41 +7,34 @@ load helpers
 load helpers.network
 
 # bats test_tags=distro-integration
-@test "events with a filter by label" {
+@test "events with a filter by label and --no-trunc option" {
     cname=test-$(random_string 30 | tr A-Z a-z)
     labelname=$(random_string 10)
     labelvalue=$(random_string 15)
 
-    run_podman run --label $labelname=$labelvalue --name $cname --rm $IMAGE ls
+    before=$(date --iso-8601=seconds)
+    run_podman run -d --label $labelname=$labelvalue --name $cname --rm $IMAGE true
+    id="$output"
 
-    expect=".* container start [0-9a-f]\+ (image=$IMAGE, name=$cname,.* ${labelname}=${labelvalue}"
-    run_podman events --filter type=container -f container=$cname --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
+    expect=".* container start $id (image=$IMAGE, name=$cname,.* ${labelname}=${labelvalue}"
+    run_podman events --since "$before"  --filter type=container -f container=$cname --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
     is "$output" "$expect" "filtering by container name and label"
 
     # Same thing, but without the container-name filter
-    run_podman system events -f type=container --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
+    run_podman system events --since "$before" -f type=container --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
     is "$output" "$expect" "filtering just by label"
 
     # Now filter just by container name, no label
-    run_podman events --filter type=container --filter container=$cname --filter event=start --stream=false
+    run_podman events --since "$before" --filter type=container --filter container=$cname --filter event=start --stream=false
     is "$output" "$expect" "filtering just by container"
-}
 
-@test "truncate events" {
-    cname=test-$(random_string 30 | tr A-Z a-z)
-
-    run_podman run -d --name=$cname --rm $IMAGE echo hi
-    id="$output"
-
-    run_podman events --filter container=$cname --filter event=start --stream=false
-    is "$output" ".* $id " "filtering by container name full id"
-
+    # check --no-trunc=false
     truncID=${id:0:12}
-    run_podman events --filter container=$cname --filter event=start --stream=false --no-trunc=false
+    run_podman events --since "$before" --filter container=$cname --filter event=start --stream=false --no-trunc=false
     is "$output" ".* $truncID " "filtering by container name trunc id"
 
     # --no-trunc does not affect --format; we always get the full ID
-    run_podman events --filter container=$cname --filter event=died --stream=false --format='{{.ID}}--{{.Image}}' --no-trunc=false
+    run_podman events --since "$before" --filter container=$cname --filter event=died --stream=false --format='{{.ID}}--{{.Image}}' --no-trunc=false
     assert "$output" = "${id}--${IMAGE}"
 }
 
