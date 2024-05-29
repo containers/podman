@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -39,9 +41,9 @@ var _ = Describe("Podman run", func() {
 			//   127 + failed to connect to container's attach socket ... ENOENT
 			Expect(session.ExitCode()).To(BeNumerically(">=", 126), "Exit status using runc")
 		} else {
-			expect := "OCI runtime error: crun: read from the init process"
+			expect := fmt.Sprintf("OCI runtime error: %s: read from the init process", podmanTest.OCIRuntime)
 			if IsRemote() {
-				expect = "for attach: crun: read from the init process: OCI runtime error"
+				expect = fmt.Sprintf("for attach: %s: read from the init process: OCI runtime error", podmanTest.OCIRuntime)
 			}
 			Expect(session).To(ExitWithError(126, expect))
 		}
