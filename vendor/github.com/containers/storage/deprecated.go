@@ -208,8 +208,6 @@ type LayerStore interface {
 	ParentOwners(id string) (uids, gids []int, err error)
 	ApplyDiff(to string, diff io.Reader) (int64, error)
 	ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
-	CleanupStagingDirectory(stagingDirectory string) error
-	ApplyDiffFromStagingDirectory(id, stagingDirectory string, diffOutput *drivers.DriverWithDifferOutput, options *drivers.ApplyDiffOpts) error
 	DifferTarget(id string) (string, error)
 	LoadLocked() error
 	PutAdditionalLayer(id string, parentLayer *Layer, names []string, aLayer drivers.AdditionalLayer) (layer *Layer, err error)

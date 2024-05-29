@@ -39,6 +39,8 @@ func (stub NoGetBlobAtInitialize) SupportsGetBlobAt() bool {
 // The specified chunks must be not overlapping and sorted by their offset.
 // The readers must be fully consumed, in the order they are returned, before blocking
 // to read the next chunk.
+// If the Length for the last chunk is set to math.MaxUint64, then it
+// fully fetches the remaining data from the offset to the end of the blob.
 func (stub NoGetBlobAtInitialize) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
 	return nil, nil, fmt.Errorf("internal error: GetBlobAt is not supported by the %q transport", stub.transportName)
 }

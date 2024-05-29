@@ -231,7 +231,7 @@ func (r *Reader) openTarComponent(componentPath string) (io.ReadCloser, error) {
 	}
 
 	if !header.FileInfo().Mode().IsRegular() {
-		return nil, fmt.Errorf("Error reading tar archive component %s: not a regular file", header.Name)
+		return nil, fmt.Errorf("Error reading tar archive component %q: not a regular file", header.Name)
 	}
 	succeeded = true
 	return &tarReadCloser{Reader: tarReader, backingFile: f}, nil
@@ -262,7 +262,7 @@ func findTarComponent(inputFile io.Reader, componentPath string) (*tar.Reader, *
 func (r *Reader) readTarComponent(path string, limit int) ([]byte, error) {
 	file, err := r.openTarComponent(path)
 	if err != nil {
-		return nil, fmt.Errorf("loading tar component %s: %w", path, err)
+		return nil, fmt.Errorf("loading tar component %q: %w", path, err)
 	}
 	defer file.Close()
 	bytes, err := iolimits.ReadAtMost(file, limit)

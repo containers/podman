@@ -129,5 +129,5 @@ func ListFromBlob(manifest []byte, manifestMIMEType string) (List, error) {
 	case DockerV2Schema1MediaType, DockerV2Schema1SignedMediaType, imgspecv1.MediaTypeImageManifest, DockerV2Schema2MediaType:
 		return nil, fmt.Errorf("Treating single images as manifest lists is not implemented")
 	}
-	return nil, fmt.Errorf("Unimplemented manifest list MIME type %s (normalized as %s)", manifestMIMEType, normalized)
+	return nil, fmt.Errorf("Unimplemented manifest list MIME type %q (normalized as %q)", manifestMIMEType, normalized)
 }

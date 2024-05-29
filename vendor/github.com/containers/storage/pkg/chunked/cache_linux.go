@@ -823,81 +823,90 @@ func unmarshalToc(manifest []byte) (*internal.TOC, error) {
 	iter := jsoniter.ParseBytes(jsoniter.ConfigFastest, manifest)
 
 	for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
-		if strings.ToLower(field) == "version" {
+		switch strings.ToLower(field) {
+		case "version":
 			toc.Version = iter.ReadInt()
-			continue
-		}
-		if strings.ToLower(field) != "entries" {
-			iter.Skip()
-			continue
-		}
-		for iter.ReadArray() {
-			var m internal.FileMetadata
-			for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
-				switch strings.ToLower(field) {
-				case "type":
-					m.Type = iter.ReadString()
-				case "name":
-					m.Name = iter.ReadString()
-				case "linkname":
-					m.Linkname = iter.ReadString()
-				case "mode":
-					m.Mode = iter.ReadInt64()
-				case "size":
-					m.Size = iter.ReadInt64()
-				case "uid":
-					m.UID = iter.ReadInt()
-				case "gid":
-					m.GID = iter.ReadInt()
-				case "modtime":
-					time, err := time.Parse(time.RFC3339, iter.ReadString())
-					if err != nil {
-						return nil, err
+
+		case "entries":
+			for iter.ReadArray() {
+				var m internal.FileMetadata
+				for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
+					switch strings.ToLower(field) {
+					case "type":
+						m.Type = iter.ReadString()
+					case "name":
+						m.Name = iter.ReadString()
+					case "linkname":
+						m.Linkname = iter.ReadString()
+					case "mode":
+						m.Mode = iter.ReadInt64()
+					case "size":
+						m.Size = iter.ReadInt64()
+					case "uid":
+						m.UID = iter.ReadInt()
+					case "gid":
+						m.GID = iter.ReadInt()
+					case "modtime":
+						time, err := time.Parse(time.RFC3339, iter.ReadString())
+						if err != nil {
+							return nil, err
+						}
+						m.ModTime = &time
+					case "accesstime":
+						time, err := time.Parse(time.RFC3339, iter.ReadString())
+						if err != nil {
+							return nil, err
+						}
+						m.AccessTime = &time
+					case "changetime":
+						time, err := time.Parse(time.RFC3339, iter.ReadString())
+						if err != nil {
+							return nil, err
+						}
+						m.ChangeTime = &time
+					case "devmajor":
+						m.Devmajor = iter.ReadInt64()
+					case "devminor":
+						m.Devminor = iter.ReadInt64()
+					case "digest":
+						m.Digest = iter.ReadString()
+					case "offset":
+						m.Offset = iter.ReadInt64()
+					case "endoffset":
+						m.EndOffset = iter.ReadInt64()
+					case "chunksize":
+						m.ChunkSize = iter.ReadInt64()
+					case "chunkoffset":
+						m.ChunkOffset = iter.ReadInt64()
+					case "chunkdigest":
+						m.ChunkDigest = iter.ReadString()
+					case "chunktype":
+						m.ChunkType = iter.ReadString()
+					case "xattrs":
+						m.Xattrs = make(map[string]string)
+						for key := iter.ReadObject(); key != ""; key = iter.ReadObject() {
+							m.Xattrs[key] = iter.ReadString()
+						}
+					default:
+						iter.Skip()
 					}
-					m.ModTime = &time
-				case "accesstime":
-					time, err := time.Parse(time.RFC3339, iter.ReadString())
-					if err != nil {
-						return nil, err
-					}
-					m.AccessTime = &time
-				case "changetime":
-					time, err := time.Parse(time.RFC3339, iter.ReadString())
-					if err != nil {
-						return nil, err
-					}
-					m.ChangeTime = &time
-				case "devmajor":
-					m.Devmajor = iter.ReadInt64()
-				case "devminor":
-					m.Devminor = iter.ReadInt64()
-				case "digest":
-					m.Digest = iter.ReadString()
-				case "offset":
-					m.Offset = iter.ReadInt64()
-				case "endoffset":
-					m.EndOffset = iter.ReadInt64()
-				case "chunksize":
-					m.ChunkSize = iter.ReadInt64()
-				case "chunkoffset":
-					m.ChunkOffset = iter.ReadInt64()
-				case "chunkdigest":
-					m.ChunkDigest = iter.ReadString()
-				case "chunktype":
-					m.ChunkType = iter.ReadString()
-				case "xattrs":
-					m.Xattrs = make(map[string]string)
-					for key := iter.ReadObject(); key != ""; key = iter.ReadObject() {
-						m.Xattrs[key] = iter.ReadString()
-					}
-				default:
-					iter.Skip()
 				}
+				if m.Type == TypeReg && m.Size == 0 && m.Digest == "" {
+					m.Digest = digestSha256Empty
+				}
+				toc.Entries = append(toc.Entries, m)
 			}
-			if m.Type == TypeReg && m.Size == 0 && m.Digest == "" {
-				m.Digest = digestSha256Empty
+
+		case "tarsplitdigest": // strings.ToLower("tarSplitDigest")
+			s := iter.ReadString()
+			d, err := digest.Parse(s)
+			if err != nil {
+				return nil, fmt.Errorf("Invalid tarSplitDigest %q: %w", s, err)
 			}
-			toc.Entries = append(toc.Entries, m)
+			toc.TarSplitDigest = d
+
+		default:
+			iter.Skip()
 		}
 	}
 

@@ -9,7 +9,11 @@ go:
   - "1.20"
 
 before_install:
+  - sudo systemctl stop docker.service && sudo systemctl stop docker.socket
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+  - yes | sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   - sudo apt-get update -q -y
+  - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
   - docker pull busybox
   - docker pull centos:7
   - chmod -R go-w ./dockerclient/testdata

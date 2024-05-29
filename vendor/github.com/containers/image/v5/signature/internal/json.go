@@ -31,7 +31,7 @@ func ParanoidUnmarshalJSONObject(data []byte, fieldResolver func(string) any) er
 		return JSONFormatError(err.Error())
 	}
 	if t != json.Delim('{') {
-		return JSONFormatError(fmt.Sprintf("JSON object expected, got \"%s\"", t))
+		return JSONFormatError(fmt.Sprintf("JSON object expected, got %#v", t))
 	}
 	for {
 		t, err := dec.Token()
@@ -45,16 +45,16 @@ func ParanoidUnmarshalJSONObject(data []byte, fieldResolver func(string) any) er
 		key, ok := t.(string)
 		if !ok {
 			// Coverage: This should never happen, dec.Token() rejects non-string-literals in this state.
-			return JSONFormatError(fmt.Sprintf("Key string literal expected, got \"%s\"", t))
+			return JSONFormatError(fmt.Sprintf("Key string literal expected, got %#v", t))
 		}
 		if seenKeys.Contains(key) {
-			return JSONFormatError(fmt.Sprintf("Duplicate key \"%s\"", key))
+			return JSONFormatError(fmt.Sprintf("Duplicate key %q", key))
 		}
 		seenKeys.Add(key)
 
 		valuePtr := fieldResolver(key)
 		if valuePtr == nil {
-			return JSONFormatError(fmt.Sprintf("Unknown key \"%s\"", key))
+			return JSONFormatError(fmt.Sprintf("Unknown key %q", key))
 		}
 		// This works like json.Unmarshal, in particular it allows us to implement UnmarshalJSON to implement strict parsing of the field value.
 		if err := dec.Decode(valuePtr); err != nil {
@@ -83,7 +83,7 @@ func ParanoidUnmarshalJSONObjectExactFields(data []byte, exactFields map[string]
 	}
 	for key := range exactFields {
 		if !seenKeys.Contains(key) {
-			return JSONFormatError(fmt.Sprintf(`Key "%s" missing in a JSON object`, key))
+			return JSONFormatError(fmt.Sprintf(`Key %q missing in a JSON object`, key))
 		}
 	}
 	return nil

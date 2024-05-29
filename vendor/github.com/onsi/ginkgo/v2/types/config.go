@@ -25,6 +25,7 @@ type SuiteConfig struct {
 	SkipFiles             []string
 	LabelFilter           string
 	FailOnPending         bool
+	FailOnEmpty           bool
 	FailFast              bool
 	FlakeAttempts         int
 	MustPassRepeatedly    int
@@ -90,6 +91,8 @@ type ReporterConfig struct {
 	FullTrace      bool
 	ShowNodeEvents bool
 	GithubOutput   bool
+	SilenceSkips   bool
+	ForceNewlines  bool
 
 	JSONReport     string
 	JUnitReport    string
@@ -275,6 +278,8 @@ var SuiteConfigFlags = GinkgoFlags{
 		Usage: "If set, ginkgo will stop running a test suite after a failure occurs."},
 	{KeyPath: "S.FlakeAttempts", Name: "flake-attempts", SectionKey: "failure", UsageDefaultValue: "0 - failed tests are not retried", DeprecatedName: "flakeAttempts", DeprecatedDocLink: "changed-command-line-flags",
 		Usage: "Make up to this many attempts to run each spec. If any of the attempts succeed, the suite will not be failed."},
+	{KeyPath: "S.FailOnEmpty", Name: "fail-on-empty", SectionKey: "failure",
+		Usage: "If set, ginkgo will mark the test suite as failed if no specs are run."},
 
 	{KeyPath: "S.DryRun", Name: "dry-run", SectionKey: "debug", DeprecatedName: "dryRun", DeprecatedDocLink: "changed-command-line-flags",
 		Usage: "If set, ginkgo will walk the test hierarchy without actually running anything.  Best paired with -v."},
@@ -334,6 +339,10 @@ var ReporterConfigFlags = GinkgoFlags{
 		Usage: "If set, default reporter prints node > Enter and < Exit events when specs fail"},
 	{KeyPath: "R.GithubOutput", Name: "github-output", SectionKey: "output",
 		Usage: "If set, default reporter prints easier to manage output in Github Actions."},
+	{KeyPath: "R.SilenceSkips", Name: "silence-skips", SectionKey: "output",
+		Usage: "If set, default reporter will not print out skipped tests."},
+	{KeyPath: "R.ForceNewlines", Name: "force-newlines", SectionKey: "output",
+		Usage: "If set, default reporter will ensure a newline appears after each test."},
 
 	{KeyPath: "R.JSONReport", Name: "json-report", UsageArgument: "filename.json", SectionKey: "output",
 		Usage: "If set, Ginkgo will generate a JSON-formatted test report at the specified location."},

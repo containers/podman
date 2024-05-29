@@ -67,15 +67,15 @@ func compressionVariantMIMEType(variantTable []compressionMIMETypeSet, mimeType 
 			return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mimeType)}
 		}
 		if name != mtsUncompressed {
-			return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("unknown compressed with algorithm %s variant for type %s", name, mimeType)}
+			return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("unknown compressed with algorithm %s variant for type %q", name, mimeType)}
 		}
 		// We can't very well say “the idea of no compression is unknown”
 		return "", ManifestLayerCompressionIncompatibilityError{fmt.Sprintf("uncompressed variant is not supported for type %q", mimeType)}
 	}
 	if algorithm != nil {
-		return "", fmt.Errorf("unsupported MIME type for compression: %s", mimeType)
+		return "", fmt.Errorf("unsupported MIME type for compression: %q", mimeType)
 	}
-	return "", fmt.Errorf("unsupported MIME type for decompression: %s", mimeType)
+	return "", fmt.Errorf("unsupported MIME type for decompression: %q", mimeType)
 }
 
 // updatedMIMEType returns the result of applying edits in updated (MediaType, CompressionOperation) to
