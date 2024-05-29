@@ -483,6 +483,11 @@ swagger_task:
 
 win_installer_task:
     name: "Verify Win Installer Build"
+    matrix:
+      - env:
+            CONTAINERS_MACHINE_PROVIDER: 'wsl'
+      - env:
+            CONTAINERS_MACHINE_PROVIDER: 'hyperv'
     alias: win_installer
     only_if:  # RHEL never releases podman windows installer binary
       $CIRRUS_TAG == '' &&
