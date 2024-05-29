@@ -24,8 +24,8 @@ load helpers
        "${cid:0:12} \+$IMAGE \+sleep [0-9]\+ .*second.* $cname"\
        "output from podman ps"
 
-    # OK. Wait for sleep to finish...
-    run_podman wait $cid
+    # OK. Stop container now.
+    run_podman stop -t0 $cid
 
     # ...then make sure container shows up as stopped
     run_podman ps -a

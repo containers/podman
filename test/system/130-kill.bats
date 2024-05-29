@@ -7,35 +7,18 @@ load helpers
 
 # bats test_tags=distro-integration
 @test "podman kill - test signal handling in containers" {
-
-    # Prepare for 'logs -f'
-    run_podman info --format '{{.Host.LogDriver}}'
-    log_driver=$output
-    run_podman info --format '{{.Host.EventLogger}}'
-    event_logger=$output
-    opt_log_driver=
-    if [ $log_driver = "journald" ] && [ $event_logger != "journald" ]; then
-        # Since PR#10431, 'logs -f' with journald driver is only supported with journald events backend.
-        # Set '--log driver' temporally because remote doesn't support '--events-backend'.
-        opt_log_driver="--log-driver k8s-file"
-    fi
+    local cname=c-$(random_string 10)
+    local fifo=${PODMAN_TMPDIR}/podman-kill-fifo.$(random_string 10)
+    mkfifo $fifo
 
     # Start a container that will handle all signals by emitting 'got: N'
     local -a signals=(1 2 3 4 5 6 8 10 12 13 14 15 16 20 21 22 23 24 25 26 64)
-    run_podman run -d ${opt_log_driver} $IMAGE sh -c \
+    $PODMAN run --name $cname $IMAGE sh -c \
         "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done;
         echo READY;
         while ! test -e /stop; do sleep 0.1; done;
-        echo DONE"
-    cid="$output"
-
-    # Run 'logs -f' on that container, but run it in the background with
-    # redirection to a named pipe from which we (foreground job) read
-    # and confirm that signals are received. We can't use run_podman here.
-    local fifo=${PODMAN_TMPDIR}/podman-kill-fifo.$(random_string 10)
-    mkfifo $fifo
-    $PODMAN logs -f $cid >$fifo </dev/null &
-    podman_log_pid=$!
+        echo DONE" &>$fifo </dev/null &
+    podman_run_pid=$!
 
     # Open the FIFO for reading, and keep it open. This prevents a race
     # condition in which the container can exit (e.g. if for some reason
@@ -54,7 +37,7 @@ load helpers
         local signal=$1
         local signum=${2:-$1}       # e.g. if signal=HUP, we expect to see '1'
 
-        run_podman kill -s $signal $cid
+        run_podman kill -s $signal $cname
         read -t 60 -u 5 actual || die "Timed out: no ACK for kill -s $signal"
         is "$actual" "got: $signum" "Signal $signal handled by container"
     }
@@ -74,14 +57,13 @@ load helpers
     # Done. Tell the container to stop, and wait for final DONE.
     # The '-d' is because container exit is racy: the exec process itself
     # could get caught and killed by cleanup, causing this step to exit 137
-    run_podman exec -d $cid touch /stop
+    run_podman exec -d $cname touch /stop
     read -t 5 -u 5 done || die "Timed out waiting for DONE from container"
     is "$done" "DONE" "final log message from container"
 
     # Clean up
-    run_podman wait $cid
-    run_podman rm $cid
-    wait $podman_log_pid
+    run_podman rm -f -t0 $cname
+    wait $podman_run_pid || die "wait for podman run failed"
 }
 
 @test "podman kill - rejects invalid args" {

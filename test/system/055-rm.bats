@@ -124,10 +124,10 @@ function __run_healthcheck_container() {
     run_podman run -d --name $1 \
                --health-cmd /bin/false \
                --health-interval 1s \
-               --health-retries 2 \
+               --health-retries 1 \
                --health-timeout 1s \
                --health-on-failure=stop \
-               --stop-timeout=2 \
+               --stop-timeout=1 \
                --health-start-period 0 \
                --stop-signal SIGTERM \
                $IMAGE sleep infinity
@@ -156,7 +156,7 @@ function __run_healthcheck_container() {
         assert "$output" =~ "Error: cannot remove container $cid as it is .* - running or paused containers cannot be removed without force: container state improper" \
                "Expected error message from podman rm"
         rm_failures=$((rm_failures + 1))
-        sleep 1
+        sleep 0.5
     done
 
     # At this point, container should be gone

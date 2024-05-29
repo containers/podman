@@ -213,8 +213,8 @@ function check_shell_completion() {
 
                 i=$(($i + 1))
                 # If the argument ends with ...] than we accept 0...n args
-                # Loop three times to make sure we are not only completing the first arg
-                if [[ ! ${arg} =~ "..." ]] || [[ i -gt 3 ]]; then
+                # Loop two times to make sure we are not only completing the first arg
+                if [[ ! ${arg} =~ "..." ]] || [[ i -gt 1 ]]; then
                     break
                 fi
 

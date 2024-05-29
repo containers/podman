@@ -127,10 +127,7 @@ echo $rand        |   0 | $rand
 @test "podman run --name" {
     randomname=$(random_string 30)
 
-    # Assume that 4 seconds gives us enough time for 3 quick tests (or at
-    # least for the 'ps'; the 'container exists' should pass even in the
-    # unlikely case that the container exits before we get to them)
-    run_podman run -d --name $randomname $IMAGE sleep 4
+    run_podman run -d --name $randomname $IMAGE sleep inf
     cid=$output
 
     run_podman ps --format '{{.Names}}--{{.ID}}'
@@ -140,7 +137,7 @@ echo $rand        |   0 | $rand
     run_podman container exists $cid
 
     # Done with live-container tests; now let's test after container finishes
-    run_podman wait $cid
+    run_podman stop -t0 $cid
 
     # Container still exists even after stopping:
     run_podman container exists $randomname
@@ -1143,16 +1140,19 @@ EOF
 
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm $IMAGE touch /testro
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false $IMAGE touch /testrw
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE touch /tmp/testrw
-    for dir in /tmp /var/tmp /dev /dev/shm /run; do
-        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE touch $dir/testro
-        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false $IMAGE touch $dir/testro
-        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false --read-only-tmpfs=true $IMAGE touch $dir/testro
-        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only-tmpfs=true $IMAGE touch $dir/testro
 
-        CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch $dir/testro
-        assert "$output" =~ "touch: $dir/testro: Read-only file system"
-    done
+    files="/tmp/a /var/tmp/b /dev/c /dev/shm/d /run/e"
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE touch $files
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false $IMAGE touch $files
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only=false --read-only-tmpfs=true $IMAGE touch $files
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --read-only-tmpfs=true $IMAGE touch $files
+
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 1 run --rm --read-only-tmpfs=false $IMAGE touch $files
+    assert "$output" == "touch: /tmp/a: Read-only file system
+touch: /var/tmp/b: Read-only file system
+touch: /dev/c: Read-only file system
+touch: /dev/shm/d: Read-only file system
+touch: /run/e: Read-only file system"
 }
 
 @test "podman run ulimit from containers.conf" {
