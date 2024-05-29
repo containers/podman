@@ -167,10 +167,10 @@ runroot = "/run/containers/storage"
 graphroot = "/var/lib/containers/storage"
 EOF
 
-# Since we've potentially changed important config settings, reset.
-# This prevents `database graph driver "" does not match "overlay"`
-# on Debian.
-rm -rf /var/lib/containers/storage
+
+# mount a tmpfs for the container storage to speed up the IO
+# side effect is we clear all potentially pre existing data so we know we always start "clean"
+mount -t tmpfs -o size=75%,mode=0700 none /var/lib/containers
 
 # shellcheck disable=SC2154
 showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE] for *e2e* tests"
