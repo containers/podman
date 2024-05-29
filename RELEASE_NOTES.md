@@ -2,7 +2,7 @@
 
 ## 5.1.0
 ### Features
-- VMs created by `podman machine` on MacOS with Apple silicon can now use Rosetta 2 (a.k.a Rosetta) for high-speed emulation of x86 code. This is enabled by default. If you wish to change this option, you can use the `CONTAINERS_MACHINE_ROSETTA` environment variable or `containers.conf`.
+- VMs created by `podman machine` on macOS with Apple silicon can now use Rosetta 2 (a.k.a Rosetta) for high-speed emulation of x86 code. This is enabled by default. If you wish to change this option, you can use the `CONTAINERS_MACHINE_ROSETTA` environment variable or `containers.conf`.
 - Changes made by the `podman update` command are now persistent, and will survive container restart and be reflected in `podman inspect`.
 - The `podman update` command now includes a new option, `--restart`, to update the restart policy of existing containers.
 - Quadlet `.container` files now support a new key, `GroupAdd`, to add groups to the container.
