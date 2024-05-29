@@ -2,7 +2,9 @@
 #include <MsiQuery.h>
 
 BOOL isWSLEnabled();
+BOOL isHyperVEnabled();
 LPCWSTR boolToNStr(BOOL bool);
+LPCSTR szSvcNameHyperv = TEXT("vmms");
 
 /**
  * CheckWSL is a custom action loaded by the Podman Windows installer
@@ -24,6 +26,19 @@ LPCWSTR boolToNStr(BOOL bool);
 	BOOL hasWSL = isWSLEnabled();
 	// Set a property with the WSL state for the installer to operate on
 	MsiSetPropertyW(hInstall, L"HAS_WSLFEATURE", boolToNStr(hasWSL));
+
+	return 0;
+}
+
+/**
+ * CheckHyperV is a custom action loaded by the Podman Windows installer
+ * to determine whether the system already has Hyper-V installed.
+ */
+
+ __declspec(dllexport) UINT __cdecl CheckHyperV(MSIHANDLE hInstall) {
+	BOOL hasHyperV = isHyperVEnabled();
+	// Set a property with the HyperV state for the installer to operate on
+	MsiSetPropertyW(hInstall, L"HAS_HYPERVFEATURE", boolToNStr(hasHyperV));
 
 	return 0;
 }
@@ -51,7 +66,7 @@ BOOL isWSLEnabled() {
 	// CreateProcessW requires lpCommandLine to be mutable
 	wchar_t cmd[] = L"wsl --set-default-version 2";
 	if (! CreateProcessW(NULL, cmd, NULL, NULL, FALSE, CREATE_NEW_CONSOLE,
-					     NULL, NULL, &startup, &process)) {
+						 NULL, NULL, &startup, &process)) {
 
 		return FALSE;
 	}
@@ -63,4 +78,53 @@ BOOL isWSLEnabled() {
 	}
 
 	return exitCode == 0;
+}
+
+BOOL isHyperVEnabled() {
+	/*
+	 * Checks if the Windows service `vmms` is running to
+	 * determine if Hyper-V is enabled.
+	 */
+	SC_HANDLE schSCManager;
+	SC_HANDLE schService;
+	SERVICE_STATUS_PROCESS ssStatus;
+	DWORD dwBytesNeeded;
+
+	// Get a handle to the SCM database.
+	schSCManager = OpenSCManager(
+		NULL,                    // local computer
+		NULL,                    // servicesActive database
+		SERVICE_QUERY_STATUS);   // service query access rights
+
+	if (NULL == schSCManager) {
+		return FALSE;
+	}
+
+	// Get a handle to the service.
+	schService = OpenService(
+		schSCManager,
+		szSvcNameHyperv,
+		SERVICE_QUERY_STATUS);
+
+	if (schService == NULL) {
+		CloseServiceHandle(schSCManager);
+		return FALSE;
+	}
+
+	// Check the status
+	if (!QueryServiceStatusEx(
+			schService,                     // handle to service
+			SC_STATUS_PROCESS_INFO,         // information level
+			(LPBYTE) &ssStatus,             // address of structure
+			sizeof(SERVICE_STATUS_PROCESS), // size of structure
+			&dwBytesNeeded ) ) {
+		CloseServiceHandle(schService);
+		CloseServiceHandle(schSCManager);
+		return FALSE;
+	}
+
+	CloseServiceHandle(schService);
+	CloseServiceHandle(schSCManager);
+
+	return ssStatus.dwCurrentState == SERVICE_RUNNING;
 }
