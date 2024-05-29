@@ -1,3 +1,61 @@
+- Changelog for v1.36.0 (2024-05-23)
+  * build: be more selective about specifying the default OS
+  * Bump to c/common v0.59.0
+  * Fix buildah prune --help showing the same example twice
+  * fix(deps): update module github.com/onsi/ginkgo/v2 to v2.18.0
+  * fix(deps): update module github.com/containers/image/v5 to v5.31.0
+  * bud tests: fix breakage when vendoring into podman
+  * Integration tests: fake up a replacement for nixery.dev/shell
+  * copierWithSubprocess(): try to capture stderr on io.ErrClosedPipe
+  * Don't expand RUN heredocs ourselves, let the shell do it
+  * Don't leak temp files on failures
+  * Add release note template to split dependency chores
+  * fix CentOS/RHEL build - no BATS there
+  * fix(deps): update module github.com/containers/luksy to v0.0.0-20240506205542-84b50f50f3ee
+  * Address CVE-2024-3727
+  * chore(deps): update module github.com/opencontainers/runtime-spec to v1.2.0
+  * Builder.cdiSetupDevicesInSpecdefConfig(): use configured CDI dirs
+  * Setting --arch should set the TARGETARCH build arg
+  * fix(deps): update module golang.org/x/exp to v0.0.0-20240416160154-fe59bbe5cc7f
+  * [CI:DOCS] Add link to Buildah image page to README.md
+  * Don't set GOTOOLCHAIN=local
+  * fix(deps): update module github.com/cyphar/filepath-securejoin to v0.2.5
+  * Makefile: set GOTOOLCHAIN=local
+  * Integration tests: switch some base images
+  * containerImageRef.NewImageSource: merge the tar filters
+  * fix(deps): update module github.com/onsi/ginkgo/v2 to v2.17.2
+  * fix(deps): update module github.com/containers/luksy to v0.0.0-20240408185936-afd8e7619947
+  * Disable packit builds for centos-stream+epel-next-8
+  * Makefile: add missing files to $(SOURCES)
+  * CI VMs: bump to new versions with tmpfs /tmp
+  * chore(deps): update module golang.org/x/net to v0.23.0 [security]
+  * integration test: handle new labels in "bud and test --unsetlabel"
+  * Switch packit configuration to use epel-9-$arch ...
+  * Give unit tests a bit more time
+  * Integration tests: remove a couple of duplicated tests
+  * Integration tests: whitespace tweaks
+  * Integration tests: don't remove images at start or end of test
+  * Integration tests: use cached images more
+  * Integration tests _prefetch: use registry configs
+  * internal: use fileutils.(Le|E)xists
+  * pkg/parse: use fileutils.(Le|E)xists
+  * buildah: use fileutils.(Le|E)xists
+  * chroot: use fileutils.(Le|E)xists
+  * vendor: update containers/(common|storage)
+  * Fix issue/pr lock workflow
+  * [CI:DOCS] Add golang 1.21 update warning
+  * heredoc: honor inline COPY irrespective of ignorefiles
+  * Update install.md
+  * source-push: add support for --digestfile
+  * Fix caching when mounting a cached stage with COPY/ADD
+  * fix(deps): update github.com/containers/luksy digest to 3d2cf0e
+  * Makefile: softcode `strip`, use it from env var
+  * Man page updates
+  * Add support for passing CDI specs to --device
+  * Update comments on some API objects
+  * pkg/parse.DeviceFromPath(): dereference src symlinks
+  * fix(deps): update module github.com/onsi/ginkgo/v2 to v2.17.1
+
 - Changelog for v1.35.0 (2024-03-06)
   * fix(deps): update module github.com/stretchr/testify to v1.9.0
   * cgroups: reuse version check from c/common

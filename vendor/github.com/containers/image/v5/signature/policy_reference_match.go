@@ -136,7 +136,7 @@ func (prm *prmRemapIdentity) remapReferencePrefix(ref reference.Named) (referenc
 	newNamedRef := strings.Replace(refString, prm.Prefix, prm.SignedPrefix, 1)
 	newParsedRef, err := reference.ParseNamed(newNamedRef)
 	if err != nil {
-		return nil, fmt.Errorf(`error rewriting reference from "%s" to "%s": %v`, refString, newNamedRef, err)
+		return nil, fmt.Errorf(`error rewriting reference from %q to %q: %v`, refString, newNamedRef, err)
 	}
 	return newParsedRef, nil
 }

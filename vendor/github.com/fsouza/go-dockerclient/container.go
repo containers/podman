@@ -389,9 +389,10 @@ type HealthConfig struct {
 	Test []string `json:"Test,omitempty" yaml:"Test,omitempty" toml:"Test,omitempty"`
 
 	// Zero means to inherit. Durations are expressed as integer nanoseconds.
-	Interval    time.Duration `json:"Interval,omitempty" yaml:"Interval,omitempty" toml:"Interval,omitempty"`          // Interval is the time to wait between checks.
-	Timeout     time.Duration `json:"Timeout,omitempty" yaml:"Timeout,omitempty" toml:"Timeout,omitempty"`             // Timeout is the time to wait before considering the check to have hung.
-	StartPeriod time.Duration `json:"StartPeriod,omitempty" yaml:"StartPeriod,omitempty" toml:"StartPeriod,omitempty"` // The start period for the container to initialize before the retries starts to count down.
+	Interval      time.Duration `json:"Interval,omitempty" yaml:"Interval,omitempty" toml:"Interval,omitempty"`                // Interval is the time to wait between checks.
+	Timeout       time.Duration `json:"Timeout,omitempty" yaml:"Timeout,omitempty" toml:"Timeout,omitempty"`                   // Timeout is the time to wait before considering the check to have hung.
+	StartPeriod   time.Duration `json:"StartPeriod,omitempty" yaml:"StartPeriod,omitempty" toml:"StartPeriod,omitempty"`       // The start period for the container to initialize before the retries starts to count down.
+	StartInterval time.Duration `json:"StartInterval,omitempty" yaml:"StartInterval,omitempty" toml:"StartInterval,omitempty"` // The start interval is the time to wait between checks during the start period.
 
 	// Retries is the number of consecutive failures needed to consider a container as unhealthy.
 	// Zero means inherit.
@@ -555,6 +556,7 @@ type HostConfig struct {
 	PublishAllPorts      bool                   `json:"PublishAllPorts,omitempty" yaml:"PublishAllPorts,omitempty" toml:"PublishAllPorts,omitempty"`
 	ReadonlyRootfs       bool                   `json:"ReadonlyRootfs,omitempty" yaml:"ReadonlyRootfs,omitempty" toml:"ReadonlyRootfs,omitempty"`
 	AutoRemove           bool                   `json:"AutoRemove,omitempty" yaml:"AutoRemove,omitempty" toml:"AutoRemove,omitempty"`
+	Annotations          map[string]string      `json:"Annotations,omitempty" yaml:"Annotations,omitempty" toml:"Annotations,omitempty"`
 }
 
 // NetworkingConfig represents the container's networking configuration for each of its interfaces

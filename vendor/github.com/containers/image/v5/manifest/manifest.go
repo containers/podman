@@ -166,5 +166,5 @@ func FromBlob(manblob []byte, mt string) (Manifest, error) {
 		return nil, fmt.Errorf("Treating manifest lists as individual manifests is not implemented")
 	}
 	// Note that this may not be reachable, NormalizedMIMEType has a default for unknown values.
-	return nil, fmt.Errorf("Unimplemented manifest MIME type %s (normalized as %s)", mt, nmt)
+	return nil, fmt.Errorf("Unimplemented manifest MIME type %q (normalized as %q)", mt, nmt)
 }

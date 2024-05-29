@@ -28,6 +28,7 @@ import (
 	"github.com/containers/storage/pkg/fsutils"
 	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/parsers"
 	"github.com/containers/storage/pkg/system"
@@ -83,6 +84,8 @@ const (
 	lowerFile  = "lower"
 	maxDepth   = 500
 
+	stagingLockFile = "staging.lock"
+
 	tocArtifact             = "toc"
 	fsVerityDigestsArtifact = "fs-verity-digests"
 
@@ -126,6 +129,8 @@ type Driver struct {
 	supportsVolatile *bool
 	usingMetacopy    bool
 	usingComposefs   bool
+
+	stagingDirsLocks map[string]*lockfile.LockFile
 
 	supportsIDMappedMounts *bool
 }
@@ -460,6 +465,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		supportsVolatile: supportsVolatile,
 		usingComposefs:   opts.useComposefs,
 		options:          *opts,
+		stagingDirsLocks: make(map[string]*lockfile.LockFile),
 	}
 
 	d.naiveDiff = graphdriver.NewNaiveDiffDriver(d, graphdriver.NewNaiveLayerIDMapUpdater(d))
@@ -876,20 +882,54 @@ func (d *Driver) Metadata(id string) (map[string]string, error) {
 	return metadata, nil
 }
 
-// Cleanup any state created by overlay which should be cleaned when daemon
-// is being shutdown. For now, we just have to unmount the bind mounted
-// we had created.
+// Cleanup any state created by overlay which should be cleaned when
+// the storage is being shutdown.  The only state created by the driver
+// is the bind mount on the home directory.
 func (d *Driver) Cleanup() error {
-	_ = os.RemoveAll(filepath.Join(d.home, stagingDir))
+	anyPresent := d.pruneStagingDirectories()
+	if anyPresent {
+		return nil
+	}
 	return mount.Unmount(d.home)
 }
 
+// pruneStagingDirectories cleans up any staging directory that was leaked.
+// It returns whether any staging directory is still present.
+func (d *Driver) pruneStagingDirectories() bool {
+	for _, lock := range d.stagingDirsLocks {
+		lock.Unlock()
+	}
+	d.stagingDirsLocks = make(map[string]*lockfile.LockFile)
+
+	anyPresent := false
+
+	homeStagingDir := filepath.Join(d.home, stagingDir)
+	dirs, err := os.ReadDir(homeStagingDir)
+	if err == nil {
+		for _, dir := range dirs {
+			stagingDirToRemove := filepath.Join(homeStagingDir, dir.Name())
+			lock, err := lockfile.GetLockFile(filepath.Join(stagingDirToRemove, stagingLockFile))
+			if err != nil {
+				anyPresent = true
+				continue
+			}
+			if err := lock.TryLock(); err != nil {
+				anyPresent = true
+				continue
+			}
+			_ = os.RemoveAll(stagingDirToRemove)
+			lock.Unlock()
+		}
+	}
+	return anyPresent
+}
+
 // LookupAdditionalLayer looks up additional layer store by the specified
-// digest and ref and returns an object representing that layer.
+// TOC digest and ref and returns an object representing that layer.
 // This API is experimental and can be changed without bumping the major version number.
 // TODO: to remove the comment once it's no longer experimental.
-func (d *Driver) LookupAdditionalLayer(dgst digest.Digest, ref string) (graphdriver.AdditionalLayer, error) {
-	l, err := d.getAdditionalLayerPath(dgst, ref)
+func (d *Driver) LookupAdditionalLayer(tocDigest digest.Digest, ref string) (graphdriver.AdditionalLayer, error) {
+	l, err := d.getAdditionalLayerPath(tocDigest, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -2029,7 +2069,14 @@ func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 
 // CleanupStagingDirectory cleanups the staging directory.
 func (d *Driver) CleanupStagingDirectory(stagingDirectory string) error {
-	return os.RemoveAll(stagingDirectory)
+	parentStagingDir := filepath.Dir(stagingDirectory)
+
+	if lock, ok := d.stagingDirsLocks[parentStagingDir]; ok {
+		delete(d.stagingDirsLocks, parentStagingDir)
+		lock.Unlock()
+	}
+
+	return os.RemoveAll(parentStagingDir)
 }
 
 func supportsDataOnlyLayersCached(home, runhome string) (bool, error) {
@@ -2050,8 +2097,8 @@ func supportsDataOnlyLayersCached(home, runhome string) (bool, error) {
 	return supportsDataOnly, err
 }
 
-// ApplyDiff applies the changes in the new layer using the specified function
-func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (output graphdriver.DriverWithDifferOutput, err error) {
+// ApplyDiffWithDiffer applies the changes in the new layer using the specified function
+func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (output graphdriver.DriverWithDifferOutput, errRet error) {
 	var idMappings *idtools.IDMappings
 	if options != nil {
 		idMappings = options.Mappings
@@ -2068,7 +2115,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		if err != nil && !os.IsExist(err) {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
-		applyDir, err = os.MkdirTemp(stagingDir, "")
+		layerDir, err := os.MkdirTemp(stagingDir, "")
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
@@ -2076,9 +2123,23 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 		if d.options.forceMask != nil {
 			perms = *d.options.forceMask
 		}
-		if err := os.Chmod(applyDir, perms); err != nil {
+		applyDir = filepath.Join(layerDir, "dir")
+		if err := os.Mkdir(applyDir, perms); err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
+
+		lock, err := lockfile.GetLockFile(filepath.Join(layerDir, stagingLockFile))
+		if err != nil {
+			return graphdriver.DriverWithDifferOutput{}, err
+		}
+		defer func() {
+			if errRet != nil {
+				delete(d.stagingDirsLocks, layerDir)
+				lock.Unlock()
+			}
+		}()
+		d.stagingDirsLocks[layerDir] = lock
+		lock.Lock()
 	} else {
 		var err error
 		applyDir, err = d.getDiffPath(id)
@@ -2112,9 +2173,19 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 // ApplyDiffFromStagingDirectory applies the changes using the specified staging directory.
 func (d *Driver) ApplyDiffFromStagingDirectory(id, parent string, diffOutput *graphdriver.DriverWithDifferOutput, options *graphdriver.ApplyDiffWithDifferOpts) error {
 	stagingDirectory := diffOutput.Target
-	if filepath.Dir(stagingDirectory) != d.getStagingDir(id) {
+	parentStagingDir := filepath.Dir(stagingDirectory)
+
+	defer func() {
+		if lock, ok := d.stagingDirsLocks[parentStagingDir]; ok {
+			delete(d.stagingDirsLocks, parentStagingDir)
+			lock.Unlock()
+		}
+	}()
+
+	if filepath.Dir(parentStagingDir) != d.getStagingDir(id) {
 		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
 	}
+
 	diffPath, err := d.getDiffPath(id)
 	if err != nil {
 		return err
@@ -2405,14 +2476,14 @@ func nameWithSuffix(name string, number int) string {
 	return fmt.Sprintf("%s%d", name, number)
 }
 
-func (d *Driver) getAdditionalLayerPath(dgst digest.Digest, ref string) (string, error) {
+func (d *Driver) getAdditionalLayerPath(tocDigest digest.Digest, ref string) (string, error) {
 	refElem := base64.StdEncoding.EncodeToString([]byte(ref))
 	for _, ls := range d.options.layerStores {
 		ref := ""
 		if ls.withReference {
 			ref = refElem
 		}
-		target := path.Join(ls.path, ref, dgst.String())
+		target := path.Join(ls.path, ref, tocDigest.String())
 		// Check if all necessary files exist
 		for _, p := range []string{
 			filepath.Join(target, "diff"),
@@ -2427,7 +2498,7 @@ func (d *Driver) getAdditionalLayerPath(dgst digest.Digest, ref string) (string,
 		return target, nil
 	}
 
-	return "", fmt.Errorf("additional layer (%q, %q) not found: %w", dgst, ref, graphdriver.ErrLayerUnknown)
+	return "", fmt.Errorf("additional layer (%q, %q) not found: %w", tocDigest, ref, graphdriver.ErrLayerUnknown)
 }
 
 func (d *Driver) releaseAdditionalLayerByID(id string) {

@@ -138,10 +138,10 @@ github.com/containernetworking/cni/pkg/types/create
 github.com/containernetworking/cni/pkg/types/internal
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v1.4.1
+# github.com/containernetworking/plugins v1.5.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.35.1-0.20240510150258-77f239ae12e5
+# github.com/containers/buildah v1.36.0
 ## explicit; go 1.21
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -171,7 +171,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.58.1-0.20240517090124-fa276b325847
+# github.com/containers/common v0.59.0
 ## explicit; go 1.21
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -244,7 +244,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.4-0.20240408151405-d744d71db363
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.30.2-0.20240509191815-9318d0eaaf78
+# github.com/containers/image/v5 v5.31.0
 ## explicit; go 1.21
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -325,7 +325,7 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20240408185936-afd8e7619947
+# github.com/containers/luksy v0.0.0-20240506205542-84b50f50f3ee
 ## explicit; go 1.20
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.1.10
@@ -355,7 +355,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.53.1-0.20240507041447-6cee10795c2d
+# github.com/containers/storage v1.54.0
 ## explicit; go 1.21
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -529,8 +529,8 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.10.1
-## explicit; go 1.20
+# github.com/fsouza/go-dockerclient v1.11.0
+## explicit; go 1.21
 github.com/fsouza/go-dockerclient
 # github.com/gabriel-vasile/mimetype v1.4.3
 ## explicit; go 1.20
@@ -840,7 +840,7 @@ github.com/nxadm/tail/winfile
 # github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
-# github.com/onsi/ginkgo/v2 v2.17.3
+# github.com/onsi/ginkgo/v2 v2.18.0
 ## explicit; go 1.20
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
@@ -911,7 +911,7 @@ github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.7
+# github.com/openshift/imagebuilder v1.2.9
 ## explicit; go 1.19
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command

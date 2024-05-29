@@ -111,7 +111,7 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref sifRefere
 		History: []imgspecv1.History{
 			{
 				Created:   &created,
-				CreatedBy: fmt.Sprintf("/bin/sh -c #(nop) ADD file:%s in %c", layerDigest.Hex(), os.PathSeparator),
+				CreatedBy: fmt.Sprintf("/bin/sh -c #(nop) ADD file:%s in %c", layerDigest.Encoded(), os.PathSeparator),
 				Comment:   "imported from SIF, uuid: " + sifImg.ID(),
 			},
 			{

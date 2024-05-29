@@ -1659,7 +1659,7 @@ func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*specs.Mount, e
 	return &volumes[0], nil
 }
 
-func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (*specs.Mount, string, error) {
+func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (_ *specs.Mount, _ string, retErr error) {
 	errInvalidSyntax := errors.New("secret should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint")
 	if len(tokens) == 0 {
 		return nil, "", errInvalidSyntax
@@ -1739,6 +1739,11 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 		if err != nil {
 			return nil, "", err
 		}
+		defer func() {
+			if retErr != nil {
+				os.Remove(tmpFile.Name())
+			}
+		}()
 		envFile = tmpFile.Name()
 		ctrFileOnHost = tmpFile.Name()
 	case "file":

@@ -176,7 +176,7 @@ func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
 	}
 
 	if tmp.Type != prTypeSigstoreSigned {
-		return InvalidPolicyFormatError(fmt.Sprintf("Unexpected policy requirement type \"%s\"", tmp.Type))
+		return InvalidPolicyFormatError(fmt.Sprintf("Unexpected policy requirement type %q", tmp.Type))
 	}
 	if signedIdentity == nil {
 		tmp.SignedIdentity = NewPRMMatchRepoDigestOrExact()

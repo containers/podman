@@ -115,6 +115,9 @@ type OptionsConfig struct {
 	// Btrfs container options to be handed to btrfs drivers
 	Btrfs struct{ BtrfsOptionsConfig } `toml:"btrfs,omitempty"`
 
+	// Thinpool container options to be handed to thinpool drivers (NOP)
+	Thinpool struct{} `toml:"thinpool,omitempty"`
+
 	// Overlay container options to be handed to overlay drivers
 	Overlay struct{ OverlayOptionsConfig } `toml:"overlay,omitempty"`
 

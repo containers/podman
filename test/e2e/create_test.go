@@ -650,7 +650,7 @@ var _ = Describe("Podman create", func() {
 	It("podman create --platform", func() {
 		session := podmanTest.Podman([]string{"create", "--platform=linux/bogus", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(125, "no image found in manifest list for architecture bogus"))
+		Expect(session).Should(ExitWithError(125, `no image found in manifest list for architecture "bogus"`))
 
 		session = podmanTest.Podman([]string{"create", "--platform=linux/arm64", "--os", "windows", ALPINE})
 		session.WaitWithDefaultTimeout()

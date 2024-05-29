@@ -15,6 +15,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <unistd.h>
+#include <libgen.h>
 #include <sys/vfs.h>
 #include <sys/mount.h>
 #include <linux/limits.h>

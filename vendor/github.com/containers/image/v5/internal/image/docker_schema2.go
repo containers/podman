@@ -366,7 +366,7 @@ func v1IDFromBlobDigestAndComponents(blobDigest digest.Digest, others ...string)
 	if err := blobDigest.Validate(); err != nil {
 		return "", err
 	}
-	parts := append([]string{blobDigest.Hex()}, others...)
+	parts := append([]string{blobDigest.Encoded()}, others...)
 	v1IDHash := sha256.Sum256([]byte(strings.Join(parts, " ")))
 	return hex.EncodeToString(v1IDHash[:]), nil
 }

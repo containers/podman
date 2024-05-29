@@ -57,6 +57,8 @@ type Config struct {
 	ConfigMaps ConfigMapConfig `toml:"configmaps"`
 	// Farms defines configurations for the buildfarm farms
 	Farms FarmConfig `toml:"farms"`
+	// Podmansh defined configurations for the podman shell
+	Podmansh PodmanshConfig `toml:"podmansh"`
 
 	loadedModules []string // only used at runtime to store which modules were loaded
 }
@@ -543,6 +545,7 @@ type EngineConfig struct {
 	// PodmanshTimeout is the number of seconds to wait for podmansh logins.
 	// In other words, the timeout for the `podmansh` container to be in running
 	// state.
+	// Deprecated: Use podmansh.Timeout instead. podmansh.Timeout has precedence.
 	PodmanshTimeout uint `toml:"podmansh_timeout,omitempty,omitzero"`
 }
 
@@ -695,6 +698,19 @@ type Destination struct {
 	IsMachine bool `json:",omitempty" toml:"is_machine,omitempty"`
 }
 
+// PodmanshConfig represents configuration for the podman shell
+type PodmanshConfig struct {
+	// Shell to start in container, default: "/bin/sh"
+	Shell string `toml:"shell,omitempty"`
+	// Name of the container the podmansh user should join
+	Container string `toml:"container,omitempty"`
+
+	// Timeout is the number of seconds to wait for podmansh logins.
+	// In other words, the timeout for the `podmansh` container to be in running
+	// state.
+	Timeout uint `toml:"timeout,omitempty,omitzero"`
+}
+
 // Consumes container image's os and arch and returns if any dedicated runtime was
 // configured otherwise returns default runtime.
 func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
@@ -713,9 +729,19 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 		return
 	}
 
-	session := os.Getenv("DBUS_SESSION_BUS_ADDRESS")
-	hasSession := session != ""
-	if hasSession {
+	hasSession := false
+
+	session, found := os.LookupEnv("DBUS_SESSION_BUS_ADDRESS")
+	if !found {
+		sessionAddr := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "bus")
+		if err := fileutils.Exists(sessionAddr); err == nil {
+			sessionAddr, err = filepath.EvalSymlinks(sessionAddr)
+			if err == nil {
+				os.Setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path="+sessionAddr)
+				hasSession = true
+			}
+		}
+	} else {
 		for _, part := range strings.Split(session, ",") {
 			if strings.HasPrefix(part, "unix:path=") {
 				err := fileutils.Exists(strings.TrimPrefix(part, "unix:path="))
@@ -1196,4 +1222,14 @@ func (c *Config) FindInitBinary() (string, error) {
 		return DefaultInitPath, nil
 	}
 	return c.FindHelperBinary(defaultInitName, true)
+}
+
+// PodmanshTimeout returns the timeout in seconds for podmansh to connect to the container.
+// Returns podmansh.Timeout if set, otherwise engine.PodmanshTimeout for backwards compatibility.
+func (c *Config) PodmanshTimeout() uint {
+	// podmansh.Timeout has precedence, if set
+	if c.Podmansh.Timeout > 0 {
+		return c.Podmansh.Timeout
+	}
+	return c.Engine.PodmanshTimeout
 }

@@ -48,6 +48,7 @@ func (m *Manager) Monitor(ctx context.Context, sync chan<- error) {
 	for {
 		select {
 		case event := <-watcher.Events:
+			m.lock.Lock()
 			m.hooks = make(map[string]*current.Hook)
 			for _, dir := range m.directories {
 				err = ReadDir(dir, m.extensionStages, m.hooks)
@@ -55,6 +56,7 @@ func (m *Manager) Monitor(ctx context.Context, sync chan<- error) {
 					logrus.Errorf("Failed loading hooks for %s: %v", event.Name, err)
 				}
 			}
+			m.lock.Unlock()
 		case <-ctx.Done():
 			err = ctx.Err()
 			logrus.Debugf("hook monitoring canceled: %v", err)
