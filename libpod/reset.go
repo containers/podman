@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/types"
+	blobinfocache "github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/util"
@@ -257,6 +258,14 @@ func (r *Runtime) Reset(ctx context.Context) error {
 			prevError = err
 		}
 	}
+
+	if err := blobinfocache.CleanupDefaultCache(nil); err != nil {
+		if prevError != nil {
+			logrus.Error(prevError)
+		}
+		prevError = err
+	}
+
 	if storageConfPath, err := storage.DefaultConfigFile(); err == nil {
 		switch storageConfPath {
 		case stypes.SystemConfigFile:
