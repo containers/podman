@@ -17,7 +17,7 @@ require (
 	github.com/containers/common v0.59.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
-	github.com/containers/image/v5 v5.31.0
+	github.com/containers/image/v5 v5.31.1-0.20240528163221-ce0305fe7c48
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/psgo v1.9.0
@@ -113,7 +113,7 @@ require (
 	github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e // indirect
 	github.com/disiqueira/gotree/v3 v3.0.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/docker-credential-helpers v0.8.1 // indirect
+	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fsouza/go-dockerclient v1.11.0 // indirect
@@ -192,7 +192,7 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sigstore/fulcio v1.4.5 // indirect
 	github.com/sigstore/rekor v1.3.6 // indirect
-	github.com/sigstore/sigstore v1.8.3 // indirect
+	github.com/sigstore/sigstore v1.8.4 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.16.0 // indirect

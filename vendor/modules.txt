@@ -244,7 +244,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.31.0
+# github.com/containers/image/v5 v5.31.1-0.20240528163221-ce0305fe7c48
 ## explicit; go 1.21
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -507,7 +507,7 @@ github.com/docker/docker/pkg/progress
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/streamformatter
 github.com/docker/docker/pkg/system
-# github.com/docker/docker-credential-helpers v0.8.1
+# github.com/docker/docker-credential-helpers v0.8.2
 ## explicit; go 1.19
 github.com/docker/docker-credential-helpers/client
 github.com/docker/docker-credential-helpers/credentials
@@ -1001,8 +1001,8 @@ github.com/sigstore/rekor/pkg/generated/client/pubkey
 github.com/sigstore/rekor/pkg/generated/client/tlog
 github.com/sigstore/rekor/pkg/generated/models
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v1.8.3
-## explicit; go 1.20
+# github.com/sigstore/sigstore v1.8.4
+## explicit; go 1.21
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauth
 github.com/sigstore/sigstore/pkg/oauthflow
