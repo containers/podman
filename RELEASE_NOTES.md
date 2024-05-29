@@ -2,6 +2,7 @@
 
 ## 5.1.0
 ### Features
+- VMs created by `podman machine` on macOS with Apple silicon can now use Rosetta 2 (a.k.a Rosetta) for high-speed emulation of x86 code. This is enabled by default. If you wish to change this option, you can use the `CONTAINERS_MACHINE_ROSETTA` environment variable or `containers.conf`.
 - Changes made by the `podman update` command are now persistent, and will survive container restart and be reflected in `podman inspect`.
 - The `podman update` command now includes a new option, `--restart`, to update the restart policy of existing containers.
 - Quadlet `.container` files now support a new key, `GroupAdd`, to add groups to the container.
@@ -13,8 +14,11 @@
 - The `podman ps` command now shows ports from `--expose` that have not been published with `--publish-all` to improve Docker compatibility.
 - The `podman runlabel` command now expands `$HOME` in the label being run to the user's home directory.
 - A new alias, `podman network list`, has been added to the `podman network ls` command.
+- The name and shell of containers created by `podmansh` can now be set in `containers.conf`.
+- The `podman-setup.exe` Windows installer now provides 3 new CLI variables, `MachineProvider` (choose the provider for the machine, `windows` or `wsl`, the default), `HyperVCheckbox` (can be set to `1` to install HyperV if it is not already installed or `0`, the default, to not install HyperV), and `SkipConfigFileCreation` (can be set to `1` to disable the creation of configuration files, or `0`, the default).
 
 ### Changes
+- Podman now changes volume ownership every time an empty named volume is mounted into a container, not just the first time, matching Docker's behavior.
 - When running Kubernetes YAML with `podman kube play` that does not include an `imagePullPolicy` and does not set a tag for the image, the image is now always pulled ([#21211](https://github.com/containers/podman/issues/21211)).
 - When running Kubernetes YAML with `podman kube play`, pod-level restart policies are now passed down to individual containers within the pod ([#20903](https://github.com/containers/podman/issues/20903)).
 - The `--runroot` global option can now accept paths with lengths longer than 50 characters ([#22272](https://github.com/containers/podman/issues/22272)).
@@ -39,12 +43,14 @@
 - Fixed a bug where rootless Podman could fail to re-exec itself when run with a custom `argv[0]` that is not a valid command path, as might happen when used in `podmansh` ([#22672](https://github.com/containers/podman/issues/22672)).
 - Fixed a bug where `podman machine` connection URIs could be incorrect after an SSH port conflict, rendering machines inaccessible.
 - Fixed a bug where the `podman events` command would not print an error if incorrect values were passed to its `--since` and `--until` options.
+- Fixed a bug where an incorrect `host.containers.internal` entry could be added when running rootless containers using the `bridge` network mode ([#22653](https://github.com/containers/podman/issues/22653)).
 
 ### API
 - A new Docker-compatible endpoint, Update, has been added for containers.
 - The Compat Create endpoint for Containers now supports setting container annotations.
 - The Libpod List endpoint for Images now includes additional information in its responses (image architecture, OS, and whether the image is a manifest list) ([#22184](https://github.com/containers/podman/issues/22184) and [#22185](https://github.com/containers/podman/issues/22185)).
 - The Build endpoint for Images no longer saves the build context as a temporary file, substantially improving performance and reducing required filesystem space on the server.
+- The Inspect API for Containers now returns results compatible with Podman v4.x when a request with version v4.0.0 is made. This allows Podman 4.X remote clients work with a Podman 5.X server ([#22657](https://github.com/containers/podman/issues/22657)).
 - Fixed a bug where the Build endpoint for Images would not clean up temporary files created by the build if an error occurred.
 
 ### Misc
