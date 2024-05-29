@@ -62,6 +62,11 @@ var _ = Describe("Toolbox-specific testing", func() {
 		if podmanTest.RemoteTest {
 			Skip("Ulimit check does not work with a remote client")
 		}
+		info := GetHostDistributionInfo()
+		if info.Distribution == "debian" {
+			// "expected 1048576 to be >= 1073741816"
+			Skip("FIXME 2024-05-28 fails on debian, maybe because of systemd 256?")
+		}
 		var session *PodmanSessionIntegration
 		var containerHardLimit int
 		var rlimit syscall.Rlimit

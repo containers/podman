@@ -595,7 +595,22 @@ READY=1" "podman-system-service sends expected data over NOTIFY_SOCKET"
     assert "$output" !~ "EXTEND_TIMEOUT_USEC="
 
     # Give the system-service 5sec to terminate before killing it.
-    /bin/kill --timeout 5000 KILL --signal TERM $mainpid
+    kill -TERM $mainpid
+    timeout=5
+    while :;do
+        if ! kill -0 $mainpid; then
+            # Yay, it's gone
+            break
+        fi
+
+        timeout=$((timeout - 1))
+        if [[ $timeout -eq 0 ]]; then
+            kill -KILL $mainpid
+            break
+        fi
+        sleep 1
+    done
+
     run_podman rmi $image_on_local_registry
     _stop_socat
 }

@@ -9,13 +9,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func isDebianRunc(pTest *PodmanTestIntegration) bool {
+// FIXME 2024-05-14: "Debian" here is a proxy for "netavark < 1.10"
+func isDebian() bool {
 	info := GetHostDistributionInfo()
-	if info.Distribution == "debian" && pTest.OCIRuntime == "runc" {
-		return true
-	}
-
-	return false
+	return info.Distribution == "debian"
 }
 
 func createNetworkDevice(name string) {
@@ -104,7 +101,7 @@ var _ = Describe("Podman container interface name", func() {
 			}
 
 			for _, driverType := range []string{"macvlan", "ipvlan"} {
-				if driverType == "ipvlan" && isDebianRunc(podmanTest) {
+				if driverType == "ipvlan" && isDebian() {
 					GinkgoWriter.Println("FIXME: Fails with netavark < 1.10. Re-enable once Debian gets an update")
 					continue
 				}
@@ -157,7 +154,7 @@ var _ = Describe("Podman container interface name", func() {
 		SkipIfRootless("cannot create network device in rootless mode.")
 
 		for _, driverType := range []string{"macvlan", "ipvlan"} {
-			if driverType == "ipvlan" && isDebianRunc(podmanTest) {
+			if driverType == "ipvlan" && isDebian() {
 				GinkgoWriter.Println("FIXME: Fails with netavark < 1.10. Re-enable once Debian gets an update")
 				continue
 			}
@@ -223,7 +220,7 @@ var _ = Describe("Podman container interface name", func() {
 		createContainersConfFileWithDeviceIfaceName(podmanTest)
 
 		for _, driverType := range []string{"macvlan", "ipvlan"} {
-			if driverType == "ipvlan" && isDebianRunc(podmanTest) {
+			if driverType == "ipvlan" && isDebian() {
 				GinkgoWriter.Println("FIXME: Fails with netavark < 1.10. Re-enable once Debian gets an update")
 				continue
 			}
