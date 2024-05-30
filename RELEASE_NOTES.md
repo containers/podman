@@ -1,5 +1,13 @@
 # Release Notes
 
+## 4.9.5
+### Security
+- This release addresses CVE-2024-3727, a vulnerability in the containers/image library which allows attackers to trigger authenticated registry access on behalf of the victim user.
+
+### API
+- Fixed a bug in the Compat List endpoint for Networks which could result in a server crash due to concurrent writes to a map ([#22330](https://github.com/containers/podman/issues/22330)).
+
+
 ## 4.9.4
 ### Security
 - Fixed [CVE-2024-1753](https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2024-1753) in Buildah and `podman build` which allowed a user to write files to the `/` directory of the host machine if selinux was not enabled.
