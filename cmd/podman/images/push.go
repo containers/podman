@@ -162,10 +162,10 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden(signPassphraseFileFlagName)
 		_ = flags.MarkHidden(encryptionKeysFlagName)
 		_ = flags.MarkHidden(encryptLayersFlagName)
-	}
-	if !registry.IsRemote() {
-		flags.StringVar(&pushOptions.SignaturePolicy, "signature-policy", "", "Path to a signature-policy file")
-		_ = flags.MarkHidden("signature-policy")
+	} else {
+		signaturePolicyFlagName := "signature-policy"
+		flags.StringVar(&pushOptions.SignaturePolicy, signaturePolicyFlagName, "", "Path to a signature-policy file")
+		_ = flags.MarkHidden(signaturePolicyFlagName)
 	}
 }
 
@@ -257,7 +257,7 @@ func imagePush(cmd *cobra.Command, args []string) error {
 	}
 
 	if pushOptions.DigestFile != "" {
-		if err := os.WriteFile(pushOptions.DigestFile, []byte(report.ManifestDigest), 0644); err != nil {
+		if err := os.WriteFile(pushOptions.DigestFile, []byte(report.ManifestDigest), 0o644); err != nil {
 			return err
 		}
 	}
