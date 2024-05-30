@@ -362,8 +362,12 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	// 3) command doesn't require Parent Namespace
 	_, found := cmd.Annotations[registry.ParentNSRequired]
 	if !registry.IsRemote() && !found {
+		cgroupMode := ""
 		_, noMoveProcess := cmd.Annotations[registry.NoMoveProcess]
-		err := registry.ContainerEngine().SetupRootless(registry.Context(), noMoveProcess)
+		if flag := cmd.LocalFlags().Lookup("cgroups"); flag != nil {
+			cgroupMode = flag.Value.String()
+		}
+		err := registry.ContainerEngine().SetupRootless(registry.Context(), noMoveProcess, cgroupMode)
 		if err != nil {
 			return err
 		}

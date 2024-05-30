@@ -37,4 +37,19 @@ load helpers
     run_podman rm myc
 }
 
+@test "podman run --cgroups=disabled keeps the current cgroup" {
+    skip_if_remote "podman-remote does not support --cgroups=disabled"
+    skip_if_rootless_cgroupsv1
+    runtime=$(podman_runtime)
+    if [[ $runtime != "crun" ]]; then
+        skip "runtime is $runtime; --cgroups=disabled requires crun"
+    fi
+
+    current_cgroup=$(cat /proc/self/cgroup)
+
+    # --cgroupns=host is required to have full visibility of the cgroup path inside the container
+    run_podman run --cgroups=disabled --cgroupns=host --rm $IMAGE cat /proc/self/cgroup
+    is "$output" $current_cgroup "--cgroups=disabled must not change the current cgroup"
+}
+
 # vim: filetype=sh

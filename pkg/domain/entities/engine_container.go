@@ -95,7 +95,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	PodUnpause(ctx context.Context, namesOrIds []string, options PodunpauseOptions) ([]*PodUnpauseReport, error)
 	Renumber(ctx context.Context) error
 	Reset(ctx context.Context) error
-	SetupRootless(ctx context.Context, noMoveProcess bool) error
+	SetupRootless(ctx context.Context, noMoveProcess bool, cgroupMode string) error
 	SecretCreate(ctx context.Context, name string, reader io.Reader, options SecretCreateOptions) (*SecretCreateReport, error)
 	SecretInspect(ctx context.Context, nameOrIDs []string, options SecretInspectOptions) ([]*SecretInfoReport, []error, error)
 	SecretList(ctx context.Context, opts SecretListRequest) ([]*SecretInfoReport, error)
