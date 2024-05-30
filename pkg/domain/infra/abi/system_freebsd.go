@@ -8,6 +8,6 @@ import (
 const defaultRunPath = "/var/run"
 
 // SetupRootless in a NOP for freebsd as it only configures the rootless userns on linux.
-func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, cgroupMode string) error {
 	return nil
 }

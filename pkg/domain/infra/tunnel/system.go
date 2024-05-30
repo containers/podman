@@ -13,7 +13,7 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 	return system.Info(ic.ClientCtx, nil)
 }
 
-func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool) error {
+func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, cgroupMode string) error {
 	panic(errors.New("rootless engine mode is not supported when tunneling"))
 }
 

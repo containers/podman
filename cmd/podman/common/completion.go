@@ -58,8 +58,13 @@ func setupContainerEngine(cmd *cobra.Command) (entities.ContainerEngine, error) 
 	}
 	if !registry.IsRemote() {
 		_, noMoveProcess := cmd.Annotations[registry.NoMoveProcess]
+		cgroupMode := ""
 
-		err := containerEngine.SetupRootless(registry.Context(), noMoveProcess)
+		if flag := cmd.LocalFlags().Lookup("cgroups"); flag != nil {
+			cgroupMode = flag.Value.String()
+		}
+
+		err := containerEngine.SetupRootless(registry.Context(), noMoveProcess, cgroupMode)
 		if err != nil {
 			return nil, err
 		}
