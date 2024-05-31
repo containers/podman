@@ -552,14 +552,6 @@ load helpers.network
     run_podman network connect $netname $background_cid
     is "$output" "" "(re)connect of container with no open ports"
 
-    # FIXME FIXME FIXME: #11825: bodhi tests are failing, remote+rootless only,
-    # with "dnsmasq: failed to create inotify". This error has never occurred
-    # in CI, and Ed has been unable to reproduce it on 1minutetip. This next
-    # line is a suggestion from Paul Holzinger for trying to shed light on
-    # the system context before the failure. This output will be invisible
-    # if the test passes.
-    for foo in /proc/\*/fd/*; do readlink -f $foo; done |grep '^/proc/.*inotify' |cut -d/ -f3 | xargs -I '{}' -- ps --no-headers -o '%p %U %a' -p '{}' |uniq -c |sort -n
-
     # connect a second network
     run_podman network connect $netname2 $cid
     is "$output" "" "Output should be empty (no errors)"
