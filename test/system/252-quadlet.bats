@@ -150,7 +150,9 @@ function remove_secret() {
     cat > $quadlet_file <<EOF
 [Container]
 Image=$IMAGE
-Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
+# Note it is important that the trap is before the ready message,
+# otherwise the signal handler may not registered in time before we do systemctl stop.
+Exec=sh -c "echo STARTED CONTAINER; trap 'exit' SIGTERM; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; while :; do sleep 0.1; done"
 Notify=yes
 LogDriver=passthrough
 Network=none
@@ -180,7 +182,7 @@ EOF
     run_podman container inspect  --format "{{.State.Status}}" $QUADLET_CONTAINER_NAME
     is "$output" "running" "container should be started by systemd and hence be running"
 
-    service_cleanup $QUADLET_SERVICE_NAME failed
+    service_cleanup $QUADLET_SERVICE_NAME inactive
 }
 
 @test "quadlet conflict names" {
