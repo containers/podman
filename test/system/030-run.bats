@@ -308,12 +308,10 @@ echo $rand        |   0 | $rand
         for user in "--user=0" "--user=100"; do
             for keepid in "" ${keep}; do
                 opts="$priv $user $keepid"
-
-                for dir in /etc /usr;do
-                    run_podman run --rm $opts $IMAGE stat -c '%u:%g:%n' $dir
-                    remove_same_dev_warning      # grumble
-                    is "$output" "0:0:$dir" "run $opts ($dir)"
-                done
+                run_podman run --rm $opts $IMAGE stat -c '%u:%g:%n' $dir /etc /usr
+                remove_same_dev_warning      # grumble
+                is "${lines[0]}" "0:0:/etc" "run $opts /etc"
+                is "${lines[1]}" "0:0:/usr" "run $opts /usr"
             done
         done
     done
