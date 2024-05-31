@@ -664,7 +664,7 @@ func (c *Container) makePlatformBindMounts() error {
 	// Make /etc/hostname
 	// This should never change, so no need to recreate if it exists
 	if _, ok := c.state.BindMounts["/etc/hostname"]; !ok {
-		hostnamePath, err := c.writeStringToRundir("hostname", c.Hostname())
+		hostnamePath, err := c.writeStringToRundir("hostname", fmt.Sprintf("%s\n", c.Hostname()))
 		if err != nil {
 			return fmt.Errorf("creating hostname file for container %s: %w", c.ID(), err)
 		}

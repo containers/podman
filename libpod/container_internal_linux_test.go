@@ -3,10 +3,16 @@
 package libpod
 
 import (
+	"fmt"
+	"os"
 	"testing"
+	"unicode/utf8"
 
+	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateUserPasswdEntry(t *testing.T) {
@@ -59,4 +65,50 @@ func TestGenerateUserGroupEntry(t *testing.T) {
 		t.Fatal(err)
 	}
 	assert.Equal(t, group, "567890:x:567890:567890\n")
+}
+
+func TestMakePlatformBindMounts(t *testing.T) {
+	runDir, err := os.MkdirTemp(os.TempDir(), "rundir")
+	require.NoError(t, err, "Unable to create temp directory")
+	defer os.RemoveAll(runDir)
+	testHostname := "test-hostname"
+	c := Container{
+		config: &ContainerConfig{
+			Spec: &spec.Spec{
+				Hostname: testHostname,
+			},
+			IDMappings: types.IDMappingOptions{
+				UIDMap: []idtools.IDMap{
+					{
+						ContainerID: 0,
+						HostID:      os.Getuid(),
+					},
+				},
+				GIDMap: []idtools.IDMap{
+					{
+						ContainerID: 0,
+						HostID:      os.Getgid(),
+					},
+				},
+			},
+		},
+		state: &ContainerState{
+			RunDir:     runDir,
+			BindMounts: make(map[string]string),
+		},
+	}
+	err = c.makePlatformBindMounts()
+	require.NoError(t, err)
+
+	bindMountEtcHostname, ok := c.state.BindMounts["/etc/hostname"]
+	require.True(t, ok, "Unable to locate container /etc/hostname")
+	require.Greater(t, len(bindMountEtcHostname), 0, "hostname file not configured")
+
+	contents, err := os.ReadFile(bindMountEtcHostname)
+	require.NoError(t, err, "error reading container /etc/hostname")
+	require.Greater(t, len(contents), 0, "container /etc/hostname was empty")
+
+	strContents := string(contents)
+	require.True(t, utf8.ValidString(strContents), "hostname does not contain valid utf-8 string")
+	require.Equal(t, fmt.Sprintf("%s\n", testHostname), strContents)
 }
