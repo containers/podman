@@ -24,13 +24,20 @@ func (p *Process) ExeWithContext(ctx context.Context) (string, error) {
 	}
 	txtFound := 0
 	lines := strings.Split(string(out), "\n")
+	fallback := ""
 	for i := 1; i < len(lines); i++ {
 		if lines[i] == "ftxt" {
 			txtFound++
+			if txtFound == 1 {
+				fallback = lines[i-1][1:]
+			}
 			if txtFound == 2 {
 				return lines[i-1][1:], nil
 			}
 		}
+	}
+	if fallback != "" {
+		return fallback, nil
 	}
 	return "", fmt.Errorf("missing txt data returned by lsof")
 }
