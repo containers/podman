@@ -142,25 +142,38 @@ load helpers
     run_podman ps --external
     is "${#lines[@]}" "1" "setup check: no storage containers at start of test"
 
-    # Force a buildah timeout; this leaves a buildah container behind
-    local t0=$SECONDS
-    PODMAN_TIMEOUT=5 run_podman 124 build -t thiswillneverexist - <<EOF
-FROM $IMAGE
-RUN touch /intermediate.image.to.be.pruned
-RUN sleep 30
-EOF
-    local t1=$SECONDS
-    local delta_t=$((t1 - t0))
-    assert $delta_t -le 10 \
-           "podman build did not get killed within 10 seconds"
+    # Ok this here is basically a way to reproduce a "leaked" podman build buildah
+    # container without having to kill any process and usage of sleep.
+    run buildah from $IMAGE
+    assert "$status" -eq 0 "buildah from successfully"
+    buildah_cid="$output"
+
+    # Commit new image so we have something to prune.
+    run buildah commit $buildah_cid
+    assert "$status" -eq 0 "buildah commit successfully"
+    buildah_image_id="${lines[-1]}"
+
+    # Create new buildah container with new image so that one can be pruned directly.
+    run buildah from "$buildah_image_id"
+    assert "$status" -eq 0 "buildah from new buildah image successfully"
+
+    # We have to mount the container to trigger the "container .* is mounted" check below.
+    local unshare=
+    if is_rootless; then
+        # rootless needs unshare for mounting
+        unshare="buildah unshare"
+    fi
+    run $unshare buildah mount "$buildah_cid"
+    assert "$status" -eq 0 "buildah mount container successfully"
 
     run_podman ps -a
     is "${#lines[@]}" "1" "podman ps -a does not see buildah containers"
 
     run_podman ps --external
     is "${#lines[@]}" "3" "podman ps -a --external sees buildah containers"
+    # output can include "second ago" or "seconds ago" depending on the timing so match both
     is "${lines[1]}" \
-       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds ago .* Storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
+       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds\? ago .* Storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
        "podman ps --external"
 
     # 'rm -a' should be a NOP
