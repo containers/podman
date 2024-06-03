@@ -1,3 +1,5 @@
+//go:build freebsd || netbsd
+
 package types
 
 const (

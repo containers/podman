@@ -1113,8 +1113,11 @@ loop:
 		}
 	}
 
-	if options.ForceMask != nil && rootHdr != nil {
-		value := fmt.Sprintf("%d:%d:0%o", rootHdr.Uid, rootHdr.Gid, rootHdr.Mode)
+	if options.ForceMask != nil {
+		value := "0:0:0755"
+		if rootHdr != nil {
+			value = fmt.Sprintf("%d:%d:0%o", rootHdr.Uid, rootHdr.Gid, rootHdr.Mode)
+		}
 		if err := system.Lsetxattr(dest, idtools.ContainersOverrideXattr, []byte(value), 0); err != nil {
 			return err
 		}

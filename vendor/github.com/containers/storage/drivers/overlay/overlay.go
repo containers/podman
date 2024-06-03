@@ -9,6 +9,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -1539,11 +1541,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	for err == nil {
 		absLowers = append(absLowers, filepath.Join(dir, nameWithSuffix("diff", diffN)))
 		diffN++
-		st, err = os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
-		if err == nil && !permsKnown {
-			perms = os.FileMode(st.Mode())
-			permsKnown = true
-		}
+		err = fileutils.Exists(filepath.Join(dir, nameWithSuffix("diff", diffN)))
 	}
 
 	idmappedMountProcessPid := -1
@@ -2024,11 +2022,27 @@ func (d *Driver) getWhiteoutFormat() archive.WhiteoutFormat {
 }
 
 type overlayFileGetter struct {
-	diffDirs []string
+	diffDirs        []string
+	composefsMounts map[string]*os.File // map from diff dir to the directory with the composefs blob mounted
 }
 
 func (g *overlayFileGetter) Get(path string) (io.ReadCloser, error) {
+	buf := make([]byte, unix.PathMax)
 	for _, d := range g.diffDirs {
+		if f, found := g.composefsMounts[d]; found {
+			// there is no *at equivalent for getxattr, but it can be emulated by opening the file under /proc/self/fd/$FD/$PATH
+			len, err := unix.Getxattr(fmt.Sprintf("/proc/self/fd/%d/%s", int(f.Fd()), path), "trusted.overlay.redirect", buf)
+			if err != nil {
+				if errors.Is(err, unix.ENODATA) {
+					continue
+				}
+				return nil, &fs.PathError{Op: "getxattr", Path: path, Err: err}
+			}
+
+			// the xattr value is the path to the file in the composefs layer diff directory
+			return os.Open(filepath.Join(d, string(buf[:len])))
+		}
+
 		f, err := os.Open(filepath.Join(d, path))
 		if err == nil {
 			return f, nil
@@ -2041,7 +2055,16 @@ func (g *overlayFileGetter) Get(path string) (io.ReadCloser, error) {
 }
 
 func (g *overlayFileGetter) Close() error {
-	return nil
+	var errs *multierror.Error
+	for _, f := range g.composefsMounts {
+		if err := f.Close(); err != nil {
+			errs = multierror.Append(errs, err)
+		}
+		if err := unix.Rmdir(f.Name()); err != nil {
+			errs = multierror.Append(errs, err)
+		}
+	}
+	return errs.ErrorOrNil()
 }
 
 func (d *Driver) getStagingDir(id string) string {
@@ -2052,10 +2075,7 @@ func (d *Driver) getStagingDir(id string) string {
 // DiffGetter returns a FileGetCloser that can read files from the directory that
 // contains files for the layer differences, either for this layer, or one of our
 // lowers if we're just a template directory. Used for direct access for tar-split.
-func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
-	if d.usingComposefs {
-		return nil, nil
-	}
+func (d *Driver) DiffGetter(id string) (_ graphdriver.FileGetCloser, Err error) {
 	p, err := d.getDiffPath(id)
 	if err != nil {
 		return nil, err
@@ -2064,7 +2084,41 @@ func (d *Driver) DiffGetter(id string) (graphdriver.FileGetCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &overlayFileGetter{diffDirs: append([]string{p}, paths...)}, nil
+
+	// map from diff dir to the directory with the composefs blob mounted
+	composefsMounts := make(map[string]*os.File)
+	defer func() {
+		if Err != nil {
+			for _, f := range composefsMounts {
+				f.Close()
+				unix.Rmdir(f.Name())
+			}
+		}
+	}()
+	diffDirs := append([]string{p}, paths...)
+	for _, diffDir := range diffDirs {
+		// diffDir has the form $GRAPH_ROOT/overlay/$ID/diff, so grab the $ID from the parent directory
+		id := path.Base(path.Dir(diffDir))
+		composefsBlob := d.getComposefsData(id)
+		if fileutils.Exists(composefsBlob) != nil {
+			// not a composefs layer, ignore it
+			continue
+		}
+		dir, err := ioutil.TempDir(d.runhome, "composefs-mnt")
+		if err != nil {
+			return nil, err
+		}
+		if err := mountComposefsBlob(composefsBlob, dir); err != nil {
+			return nil, err
+		}
+		fd, err := os.Open(dir)
+		if err != nil {
+			return nil, err
+		}
+		composefsMounts[diffDir] = fd
+		_ = unix.Unmount(dir, unix.MNT_DETACH)
+	}
+	return &overlayFileGetter{diffDirs: diffDirs, composefsMounts: composefsMounts}, nil
 }
 
 // CleanupStagingDirectory cleanups the staging directory.
@@ -2155,7 +2209,7 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 	}
 	if d.usingComposefs {
 		differOptions.Format = graphdriver.DifferOutputFormatFlat
-		differOptions.UseFsVerity = graphdriver.DifferFsVerityEnabled
+		differOptions.UseFsVerity = graphdriver.DifferFsVerityIfAvailable
 	}
 	out, err := differ.ApplyDiff(applyDir, &archive.TarOptions{
 		UIDMaps:           idMappings.UIDs(),

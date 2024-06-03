@@ -901,7 +901,7 @@ func unmarshalToc(manifest []byte) (*internal.TOC, error) {
 			s := iter.ReadString()
 			d, err := digest.Parse(s)
 			if err != nil {
-				return nil, fmt.Errorf("Invalid tarSplitDigest %q: %w", s, err)
+				return nil, fmt.Errorf("invalid tarSplitDigest %q: %w", s, err)
 			}
 			toc.TarSplitDigest = d
 

@@ -215,20 +215,25 @@ const (
 	DifferOutputFormatFlat
 )
 
+// DifferFsVerity is a part of the experimental Differ interface and should not be used from outside of c/storage.
+// It configures the fsverity requirement.
 type DifferFsVerity int
 
 const (
 	// DifferFsVerityDisabled means no fs-verity is used
 	DifferFsVerityDisabled = iota
 
-	// DifferFsVerityEnabled means fs-verity is used when supported
-	DifferFsVerityEnabled
+	// DifferFsVerityIfAvailable means fs-verity is used when supported by
+	// the underlying kernel and filesystem.
+	DifferFsVerityIfAvailable
 
-	// DifferFsVerityRequired means fs-verity is required
+	// DifferFsVerityRequired means fs-verity is required.  Note this is not
+	// currently set or exposed by the overlay driver.
 	DifferFsVerityRequired
 )
 
-// DifferOptions overrides how the differ work
+// DifferOptions is a part of the experimental Differ interface and should not be used from outside of c/storage.
+// It overrides how the differ works.
 type DifferOptions struct {
 	// Format defines the destination directory layout format
 	Format DifferOutputFormat
