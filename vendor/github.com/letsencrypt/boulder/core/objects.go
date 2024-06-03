@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-jose/go-jose/v4"
 	"golang.org/x/crypto/ocsp"
-	"gopkg.in/go-jose/go-jose.v2"
 
 	"github.com/letsencrypt/boulder/identifier"
 	"github.com/letsencrypt/boulder/probs"
@@ -119,7 +119,7 @@ type Registration struct {
 }
 
 // ValidationRecord represents a validation attempt against a specific URL/hostname
-// and the IP addresses that were resolved and used
+// and the IP addresses that were resolved and used.
 type ValidationRecord struct {
 	// SimpleHTTP only
 	URL string `json:"url,omitempty"`
@@ -144,6 +144,17 @@ type ValidationRecord struct {
 	//   ...
 	// }
 	AddressesTried []net.IP `json:"addressesTried,omitempty"`
+	// ResolverAddrs is the host:port of the DNS resolver(s) that fulfilled the
+	// lookup for AddressUsed. During recursive A and AAAA lookups, a record may
+	// instead look like A:host:port or AAAA:host:port
+	ResolverAddrs []string `json:"resolverAddrs,omitempty"`
+	// UsedRSAKEX is a *temporary* addition to the validation record, so we can
+	// see how many servers that we reach out to during HTTP-01 and TLS-ALPN-01
+	// validation are only willing to negotiate RSA key exchange mechanisms. The
+	// field is not included in the serialized json to avoid cluttering the
+	// database and log lines.
+	// TODO(#7321): Remove this when we have collected sufficient data.
+	UsedRSAKEX bool `json:"-"`
 }
 
 func looksLikeKeyAuthorization(str string) error {
@@ -225,6 +236,8 @@ func (ch Challenge) RecordsSane() bool {
 	switch ch.Type {
 	case ChallengeTypeHTTP01:
 		for _, rec := range ch.ValidationRecord {
+			// TODO(#7140): Add a check for ResolverAddress == "" only after the
+			// core.proto change has been deployed.
 			if rec.URL == "" || rec.Hostname == "" || rec.Port == "" || rec.AddressUsed == nil ||
 				len(rec.AddressesResolved) == 0 {
 				return false
@@ -237,6 +250,8 @@ func (ch Challenge) RecordsSane() bool {
 		if ch.ValidationRecord[0].URL != "" {
 			return false
 		}
+		// TODO(#7140): Add a check for ResolverAddress == "" only after the
+		// core.proto change has been deployed.
 		if ch.ValidationRecord[0].Hostname == "" || ch.ValidationRecord[0].Port == "" ||
 			ch.ValidationRecord[0].AddressUsed == nil || len(ch.ValidationRecord[0].AddressesResolved) == 0 {
 			return false
@@ -245,6 +260,8 @@ func (ch Challenge) RecordsSane() bool {
 		if len(ch.ValidationRecord) > 1 {
 			return false
 		}
+		// TODO(#7140): Add a check for ResolverAddress == "" only after the
+		// core.proto change has been deployed.
 		if ch.ValidationRecord[0].Hostname == "" {
 			return false
 		}
@@ -481,6 +498,12 @@ type CertDER []byte
 type SuggestedWindow struct {
 	Start time.Time `json:"start"`
 	End   time.Time `json:"end"`
+}
+
+// IsWithin returns true if the given time is within the suggested window,
+// inclusive of the start time and exclusive of the end time.
+func (window SuggestedWindow) IsWithin(now time.Time) bool {
+	return !now.Before(window.Start) && now.Before(window.End)
 }
 
 // RenewalInfo is a type which is exposed to clients which query the renewalInfo
