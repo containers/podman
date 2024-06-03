@@ -360,19 +360,25 @@ load helpers
     while read src dest dest_fullname description; do
         run_podman cp $srcdir/$src destrunning:$dest
         run_podman exec destrunning cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
-        is "$(echo $output)" "${randomcontent[*]}" "$description (cp -> ctr:$dest - RUNNING)"
+        is "${lines[*]}" "${randomcontent[*]}" "$description (cp -> ctr:$dest - RUNNING)"
     done < <(parse_table "$tests")
     run_podman rm -t 0 -f destrunning
 
     # CREATED container
+    run_podman create --name destcreated --workdir=/srv $cpimage sleep infinity
     while read src dest dest_fullname description; do
-        run_podman create --name destcreated --workdir=/srv $cpimage sleep infinity
         run_podman cp $srcdir/$src destcreated:$dest
-        run_podman start destcreated
-        run_podman exec destcreated cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
-        is "$(echo $output)" "${randomcontent[*]}" "$description (cp -> ctr:$dest - CREATED)"
-        run_podman rm -t 0 -f destcreated
+        # tests checks are done below
     done < <(parse_table "$tests")
+
+    # Now do the test checks, it is a bit ugly that we do this over two loops but this
+    # makes the test faster as we do not have to start/stop the container on every iteration.
+    run_podman start destcreated
+    while read src dest dest_fullname description; do
+        run_podman exec destcreated cat $dest_fullname/hostfile0 $dest_fullname/hostfile1
+        is "${lines[*]}" "${randomcontent[*]}" "$description (cp -> ctr:$dest - CREATED)"
+    done < <(parse_table "$tests")
+    run_podman rm -t 0 -f destcreated
 
     run_podman create --name destnotdir --workdir=/srv $cpimage sleep infinity
     run_podman 125 cp $srcdir destnotdir:/etc/os-release
