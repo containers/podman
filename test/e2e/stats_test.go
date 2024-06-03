@@ -24,12 +24,7 @@ var _ = Describe("Podman stats", func() {
 	It("podman stats with bogus container", func() {
 		session := podmanTest.Podman([]string{"stats", "--no-stream", "123"})
 		session.WaitWithDefaultTimeout()
-		expect := `unable to get list of containers: unable to look up container 123: no container with name or ID "123" found: no such container`
-		// FIXME: #22612
-		if IsRemote() {
-			expect = "types.ContainerStatsReport.Error: decode non empty interface: can not unmarshal into nil, error found in #9 byte"
-		}
-		Expect(session).Should(ExitWithError(125, expect))
+		Expect(session).Should(ExitWithError(125, `unable to get list of containers: unable to look up container 123: no container with name or ID "123" found: no such container`))
 	})
 
 	It("podman stats on a running container", func() {
