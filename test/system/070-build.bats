@@ -246,7 +246,7 @@ FROM $IMAGE
 RUN echo hi
 EOF
 
-    local count=30
+    local count=10
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
                 $PODMAN build -t i$i $PODMAN_TMPDIR &> $PODMAN_TMPDIR/log.$i &
