@@ -372,6 +372,10 @@ func workdir(b *Builder, args []string, attributes map[string]bool, flagArgs []s
 		workdir = filepath.Join(string(os.PathSeparator), current, workdir)
 	}
 
+	if workdir != string(os.PathSeparator) {
+		workdir = strings.TrimSuffix(workdir, string(os.PathSeparator))
+	}
+
 	b.RunConfig.WorkingDir = workdir
 	return nil
 }
