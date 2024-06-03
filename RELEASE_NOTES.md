@@ -12,7 +12,7 @@
 - A list of images to automatically mount as volumes can now be specified in Kubernetes YAML via the `io.podman.annotations.kube.image.automount/$CTRNAME` annotation (where `$CTRNAME` is the name of the container they will be mounted into).
 - The `podman info` command now includes the default rootless network command (`pasta` or `slirp4netns`).
 - The `podman ps` command now shows ports from `--expose` that have not been published with `--publish-all` to improve Docker compatibility.
-- The `podman runlabel` command now expands `$HOME` in the label being run to the user's home directory.
+- The `podman container runlabel` command now expands `$HOME` in the label being run to the user's home directory.
 - A new alias, `podman network list`, has been added to the `podman network ls` command.
 - The name and shell of containers created by `podmansh` can now be set in `containers.conf`.
 - The `podman-setup.exe` Windows installer now provides 3 new CLI variables, `MachineProvider` (choose the provider for the machine, `windows` or `wsl`, the default), `HyperVCheckbox` (can be set to `1` to install HyperV if it is not already installed or `0`, the default, to not install HyperV), and `SkipConfigFileCreation` (can be set to `1` to disable the creation of configuration files, or `0`, the default).
