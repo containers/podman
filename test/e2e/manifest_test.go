@@ -233,12 +233,11 @@ var _ = Describe("Podman manifest", func() {
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(0))
+		skopeo := SystemExec("skopeo", []string{"inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
+		Expect(skopeo).Should(ExitCleanly())
+		inspectData := []byte(skopeo.OutputToString())
 		var index imgspecv1.Index
-		inspectData := []byte(session.OutputToString())
-		err := json.Unmarshal(inspectData, &index)
+		err = json.Unmarshal(inspectData, &index)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(verifyInstanceCompression(index.Manifests, "zstd", "amd64")).Should(BeTrue())
@@ -254,10 +253,9 @@ var _ = Describe("Podman manifest", func() {
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		inspectData = []byte(session.OutputToString())
+		skopeo = SystemExec("skopeo", []string{"inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
+		Expect(skopeo).Should(ExitCleanly())
+		inspectData = []byte(skopeo.OutputToString())
 		err = json.Unmarshal(inspectData, &index)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -280,10 +278,9 @@ add_compression = ["zstd"]`), 0o644)
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		inspectData = []byte(session.OutputToString())
+		skopeo = SystemExec("skopeo", []string{"inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
+		Expect(skopeo).Should(ExitCleanly())
+		inspectData = []byte(skopeo.OutputToString())
 		err = json.Unmarshal(inspectData, &index)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -301,10 +298,9 @@ add_compression = ["zstd"]`), 0o644)
 		// 4 images must be pushed two for gzip and two for zstd
 		Expect(output).To(ContainSubstring("Copying 4 images generated from 2 images in list"))
 
-		session = podmanTest.Podman([]string{"run", "--rm", "--net", "host", "quay.io/skopeo/stable", "inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		inspectData = []byte(session.OutputToString())
+		skopeo = SystemExec("skopeo", []string{"inspect", "--tls-verify=false", "--raw", "docker://localhost:5007/list:latest"})
+		Expect(skopeo).Should(ExitCleanly())
+		inspectData = []byte(skopeo.OutputToString())
 		err = json.Unmarshal(inspectData, &index)
 		Expect(err).ToNot(HaveOccurred())
 
