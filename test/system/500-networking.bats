@@ -480,7 +480,7 @@ load helpers.network
     run_podman network create $netname2
     is "$output" "$netname2" "output of 'network create'"
 
-    # First, run a container in background to ensure that the rootless cni ns
+    # First, run a container in background to ensure that the rootless netns
     # is not destroyed after network disconnect.
     run_podman run -d --network $netname $IMAGE top
     background_cid=$output
@@ -500,14 +500,14 @@ load helpers.network
     run curl --retry 2 --retry-connrefused -s $SERVER/index.txt
     is "$output" "$random_1" "curl $SERVER/index.txt"
 
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    ip="$output"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    mac="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
+    ip="${lines[0]}"
+    mac="${lines[1]}"
 
     # check network alias for container short id
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
-    is "$output" "[${cid:0:12} $hostname]" "short container id and hostname in network aliases"
+    is "${lines[2]}" "[${cid:0:12} $hostname]" "short container id and hostname in network aliases"
 
     # check /etc/hosts for our entry
     run_podman exec $cid cat /etc/hosts
@@ -535,13 +535,12 @@ load helpers.network
 
     # check that we have a new ip and mac
     # if the ip is still the same this whole test turns into a nop
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    new_ip="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    new_ip="${lines[0]}"
     assert "$new_ip" != "$ip" \
            "IP address did not change after podman network disconnect/connect"
-
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    assert "$output" != "$mac" \
+    assert "${lines[1]}" != "$mac" \
            "MAC address did not change after podman network disconnect/connect"
 
     # check /etc/hosts for the new entry
