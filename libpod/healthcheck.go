@@ -278,6 +278,7 @@ func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
 	if recreateTimer {
 		logrus.Infof("Startup healthcheck for container %s passed, recreating timer", c.ID())
 
+		oldUnit := c.state.HCUnitName
 		// Create the new, standard healthcheck timer first.
 		if err := c.createTimer(c.HealthCheckConfig().Interval.String(), false); err != nil {
 			logrus.Errorf("Error recreating container %s healthcheck: %v", c.ID(), err)
@@ -291,7 +292,7 @@ func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
 		// Which happens to be us.
 		// So this has to be last - after this, systemd serves us a
 		// SIGTERM and we exit.
-		if err := c.removeTransientFiles(ctx, true); err != nil {
+		if err := c.removeTransientFiles(ctx, true, oldUnit); err != nil {
 			logrus.Errorf("Error removing container %s healthcheck: %v", c.ID(), err)
 			return
 		}

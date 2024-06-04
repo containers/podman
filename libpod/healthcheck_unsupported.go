@@ -18,6 +18,6 @@ func (c *Container) startTimer(isStartup bool) error {
 
 // removeTransientFiles removes the systemd timer and unit files
 // for the container
-func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) error {
+func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool, unitName string) error {
 	return nil
 }
