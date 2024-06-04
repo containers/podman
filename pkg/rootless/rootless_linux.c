@@ -880,7 +880,7 @@ reexec_userns_join (int pid_to_join, char *pause_pid_file_path)
         setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
     }
 
-  setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+  setenv ("_CONTAINERS_USERNS_CONFIGURED", "done", 1);
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
   setenv ("_CONTAINERS_ROOTLESS_GID", gid, 1);
 
@@ -1081,7 +1081,7 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
         setenv ("LISTEN_FDNAMES", saved_systemd_listen_fdnames, true);
     }
 
-  setenv ("_CONTAINERS_USERNS_CONFIGURED", "init", 1);
+  setenv ("_CONTAINERS_USERNS_CONFIGURED", "done", 1);
   setenv ("_CONTAINERS_ROOTLESS_UID", uid, 1);
   setenv ("_CONTAINERS_ROOTLESS_GID", gid, 1);
 
