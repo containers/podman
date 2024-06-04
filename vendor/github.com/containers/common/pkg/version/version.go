@@ -25,7 +25,8 @@ func queryPackageVersion(cmdArg ...string) string {
 		cmd := exec.Command(cmdArg[0], cmdArg[1:]...)
 		if outp, err := cmd.Output(); err == nil {
 			output = string(outp)
-			if cmdArg[0] == "/usr/bin/dlocate" {
+			switch cmdArg[0] {
+			case "/usr/bin/dlocate":
 				// can return multiple matches
 				l := strings.Split(output, "\n")
 				output = l[0]
@@ -44,18 +45,23 @@ func queryPackageVersion(cmdArg ...string) string {
 						}
 					}
 				}
-			} else if cmdArg[0] == "/usr/bin/dpkg" {
+			case "/usr/bin/dpkg":
 				r := strings.Split(output, ": ")
 				queryFormat := `${Package}_${Version}_${Architecture}`
 				cmd = exec.Command("/usr/bin/dpkg-query", "-f", queryFormat, "-W", r[0])
 				if outp, err := cmd.Output(); err == nil {
 					output = string(outp)
 				}
+			case "/usr/bin/pacman":
+				pkg := strings.Trim(output, "\n")
+				cmd = exec.Command(cmdArg[0], "-Q", "--", pkg)
+				if outp, err := cmd.Output(); err == nil {
+					output = strings.ReplaceAll(string(outp), " ", "-")
+				}
+			case "/sbin/apk":
+				prefix := cmdArg[len(cmdArg)-1] + " is owned by "
+				output = strings.Replace(output, prefix, "", 1)
 			}
-		}
-		if cmdArg[0] == "/sbin/apk" {
-			prefix := cmdArg[len(cmdArg)-1] + " is owned by "
-			output = strings.Replace(output, prefix, "", 1)
 		}
 	}
 	return strings.Trim(output, "\n")
@@ -77,7 +83,7 @@ func Package(program string) string { // program is full path
 		{"rpm", []string{"/usr/bin/rpm", "-q", "-f"}},
 		{"deb", []string{"/usr/bin/dlocate", "-F"}},             // Debian, Ubuntu (quick)
 		{"deb", []string{"/usr/bin/dpkg", "-S"}},                // Debian, Ubuntu (slow)
-		{"pacman", []string{"/usr/bin/pacman", "-Qo"}},          // Arch
+		{"pacman", []string{"/usr/bin/pacman", "-Qoq"}},         // Arch
 		{"gentoo", []string{"/usr/bin/qfile", "-qv"}},           // Gentoo (quick)
 		{"gentoo", []string{"/usr/bin/equery", "b"}},            // Gentoo (slow)
 		{"apk", []string{"/sbin/apk", "info", "-W"}},            // Alpine

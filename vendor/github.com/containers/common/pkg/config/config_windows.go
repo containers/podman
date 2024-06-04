@@ -5,7 +5,7 @@ import "os"
 const (
 	// _configPath is the path to the containers/containers.conf
 	// inside a given config directory.
-	_configPath = "containers\\containers.conf"
+	_configPath = "\\containers\\containers.conf"
 
 	// DefaultContainersConfig holds the default containers config path
 	DefaultContainersConfig = ""
