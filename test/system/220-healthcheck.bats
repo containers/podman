@@ -5,6 +5,7 @@
 #
 
 load helpers
+load helpers.systemd
 
 
 # Helper function: run 'podman inspect' and check various given fields
@@ -38,7 +39,10 @@ function _check_health {
                --health-interval 1s                    \
                --health-retries 3                      \
                --health-on-failure=kill                \
+               --health-startup-cmd /home/podman/healthcheck \
+               --health-startup-interval 1s                  \
                $IMAGE /home/podman/pause
+    cid="$output"
 
     run_podman inspect healthcheck_c --format "{{.Config.HealthcheckOnFailureAction}}"
     is "$output" "kill" "on-failure action is set to kill"
@@ -70,6 +74,10 @@ Log[-1].ExitCode | 1
 Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 " "$current_time" "healthy"
 
+    # Check that we now we do have valid podman units with this
+    # name so that the leak check below does not turn into a NOP without noticing.
+    assert "$(systemctl list-units --type timer | grep $cid)" =~ "podman" "Healthcheck systemd unit exists"
+
     current_time=$(date --iso-8601=seconds)
     # After three successive failures, container should no longer be healthy
     sleep 5
@@ -85,6 +93,10 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 
     # Clean up
     run_podman rm -t 0 -f healthcheck_c
+
+    # Important check for https://github.com/containers/podman/issues/22884
+    # We never should leak the unit files, healthcheck uses the cid in name so just grep that.
+    assert "$(systemctl list-units --type timer | grep $cid)" == "" "Healthcheck systemd unit cleanup"
 }
 
 @test "podman healthcheck - restart cleans up old state" {
