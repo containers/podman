@@ -663,6 +663,9 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		if err != nil {
 			return "", fmt.Errorf("adding instance with digest %q: %w", *instanceInfo.instanceDigest, err)
 		}
+		if err := l.List.SetArtifactType(instanceInfo.instanceDigest, instanceInfo.ArtifactType); err != nil {
+			return "", fmt.Errorf("setting artifact manifest type for instance with digest %q: %w", *instanceInfo.instanceDigest, err)
+		}
 		if err = l.List.SetURLs(*instanceInfo.instanceDigest, instanceInfo.URLs); err != nil {
 			return "", fmt.Errorf("setting URLs for instance with digest %q: %w", *instanceInfo.instanceDigest, err)
 		}
