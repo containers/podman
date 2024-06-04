@@ -108,7 +108,7 @@ func (c *Container) startTimer(isStartup bool) error {
 
 // removeTransientFiles removes the systemd timer and unit files
 // for the container
-func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) error {
+func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool, unitName string) error {
 	if c.disableHealthCheckSystemd(isStartup) {
 		return nil
 	}
@@ -122,7 +122,6 @@ func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool) er
 	// clean up as much as possible.
 	stopErrors := []error{}
 
-	unitName := c.state.HCUnitName
 	if unitName == "" {
 		unitName = c.hcUnitName(isStartup, true)
 	}

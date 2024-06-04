@@ -1,5 +1,12 @@
 # Release Notes
 
+## 5.1.1
+### Bugfixes
+- Fixed a bug where systemd timers associated with startup healthchecks would not be properly deleted after transitioning to the regular healthcheck ([#22884](https://github.com/containers/podman/issues/22884)).
+
+### Misc
+- Updated the containers/common library to v0.59.1
+
 ## 5.1.0
 ### Features
 - VMs created by `podman machine` on macOS with Apple silicon can now use Rosetta 2 (a.k.a Rosetta) for high-speed emulation of x86 code. This is enabled by default. If you wish to change this option, you can use the `CONTAINERS_MACHINE_ROSETTA` environment variable or `containers.conf`.
