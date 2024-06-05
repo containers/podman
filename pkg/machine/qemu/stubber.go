@@ -31,6 +31,11 @@ type QEMUStubber struct {
 	vmconfigs.QEMUConfig
 	// Command describes the final QEMU command line
 	Command command.QemuCmd
+
+	// mountType is one of virtiofs or 9p
+	mountType string
+	// virtiofsHelpers are virtiofsd child processes
+	virtiofsHelpers []virtiofsdHelperCmd
 }
 
 var (
@@ -82,13 +87,6 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 	q.Command.SetSerialPort(*readySocket, *mc.QEMUHypervisor.QEMUPidPath, mc.Name)
-
-	// Add volumes to qemu command line
-	for _, mount := range mc.Mounts {
-		// the index provided in this case is thrown away
-		_, _, _, _, securityModel := vmconfigs.SplitVolume(0, mount.OriginalInput)
-		q.Command.SetVirtfsMount(mount.Source, mount.Tag, securityModel, mount.ReadOnly)
-	}
 
 	q.Command.SetUSBHostPassthrough(mc.Resources.USBs)
 
@@ -168,6 +166,33 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 	defer dnr.Close()
 	defer dnw.Close()
 
+	if q.mountType == MountTypeVirtiofs {
+		runtime, err := mc.RuntimeDir()
+		if err != nil {
+			return nil, nil, err
+		}
+		spawner, err := newVirtiofsdSpawner(runtime)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		for _, hostmnt := range mc.Mounts {
+			qemuArgs, virtiofsdHelper, err := spawner.spawnForMount(hostmnt)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to init virtiofsd for mount %s: %w", hostmnt.Source, err)
+			}
+			q.Command = append(q.Command, qemuArgs...)
+			q.virtiofsHelpers = append(q.virtiofsHelpers, *virtiofsdHelper)
+		}
+	} else {
+		// Add volumes to qemu command line
+		for _, mount := range mc.Mounts {
+			// the index provided in this case is thrown away
+			_, _, _, _, securityModel := vmconfigs.SplitVolume(0, mount.OriginalInput)
+			q.Command.SetVirtfsMount(mount.Source, mount.Tag, securityModel, mount.ReadOnly)
+		}
+	}
+
 	cmdLine := q.Command
 
 	// Disable graphic window when not in debug mode
@@ -198,8 +223,20 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 		return waitForReady(readySocket, cmd.Process.Pid, stderrBuf)
 	}
 
+	releaseFunc := func() error {
+		if err := cmd.Process.Release(); err != nil {
+			return err
+		}
+		for _, virtiofsdCmd := range q.virtiofsHelpers {
+			if err := virtiofsdCmd.command.Process.Release(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
 	// if this is not the last line in the func, make it a defer
-	return cmd.Process.Release, readyFunc, nil
+	return releaseFunc, readyFunc, nil
 }
 
 func waitForReady(readySocket *define.VMFile, pid int, stdErrBuffer *bytes.Buffer) error {
@@ -325,7 +362,9 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		if err != nil {
 			return err
 		}
-		switch mount.Type {
+		// NOTE: We ignore q.Type here (and it should eventually be dropped from being serialized); we
+		// want the mount type to be dynamic, not static.
+		switch q.mountType {
 		case MountType9p:
 			mountOptions := []string{"-t", "9p"}
 			mountOptions = append(mountOptions, []string{"-o", "trans=virtio", mount.Tag, mount.Target}...)
@@ -333,6 +372,18 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 			if mount.ReadOnly {
 				mountOptions = append(mountOptions, []string{"-o", "ro"}...)
 			}
+			err = machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
+			if err != nil {
+				return err
+			}
+		case MountTypeVirtiofs:
+			mountOptions := []string{"-t", "virtiofs"}
+			mountOptions = append(mountOptions, []string{mount.Tag, mount.Target}...)
+			mountFlags := fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext)
+			if mount.ReadOnly {
+				mountFlags += ",ro"
+			}
+			mountOptions = append(mountOptions, "-o", mountFlags)
 			err = machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, append([]string{"sudo", "mount"}, mountOptions...))
 			if err != nil {
 				return err
@@ -345,7 +396,14 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 }
 
 func (q *QEMUStubber) MountType() vmconfigs.VolumeMountType {
-	return vmconfigs.NineP
+	switch q.mountType {
+	case MountType9p:
+		return vmconfigs.NineP
+	case MountTypeVirtiofs:
+		return vmconfigs.VirtIOFS
+	default:
+		panic(fmt.Errorf("unexpected mount type %q", q.mountType))
+	}
 }
 
 func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {

@@ -410,7 +410,12 @@ case "$TEST_FLAVOR" in
         install_test_configs
         ;;
     machine-linux)
-        showrun dnf install -y podman-gvproxy*
+        showrun dnf install -y podman-gvproxy* virtiofsd
+        # Bootstrap this link if it isn't yet in the package; xref
+        # https://github.com/containers/podman/pull/22920
+        if ! test -L /usr/libexec/podman/virtiofsd; then
+            showrun ln -sfr /usr/libexec/virtiofsd /usr/libexec/podman/virtiofsd
+        fi
         remove_packaged_podman_files
         showrun make install PREFIX=/usr ETCDIR=/etc
         install_test_configs

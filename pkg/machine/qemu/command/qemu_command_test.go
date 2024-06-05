@@ -53,6 +53,8 @@ func TestQemuCmd(t *testing.T) {
 
 	expected := []string{
 		"/usr/bin/qemu-system-x86_64",
+		"-object",
+		"memory-backend-memfd,id=mem,size=2048M,share=on",
 		"-m", "2048",
 		"-smp", "4",
 		"-fw_cfg", fmt.Sprintf("name=opt/com.coreos/config,file=%s", ignPath),

@@ -101,6 +101,33 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(runAlp).To(Exit(0))
 	})
 
+	It("Volume should be virtiofs", func() {
+		// In theory this could run on MacOS too, but we know virtiofs works for that now,
+		// this is just testing linux
+		skipIfNotVmtype(define.QemuVirt, "This is just adding coverage for virtiofs on linux")
+
+		tDir, err := filepath.Abs(GinkgoT().TempDir())
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.WriteFile(filepath.Join(tDir, "testfile"), []byte("some test contents"), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+
+		name := randomString()
+		i := new(initMachine).withImage(mb.imagePath).withNow()
+
+		// Ensure that this is a volume, it may not be automatically on qemu
+		i.withVolume(tDir)
+		session, err := mb.setName(name).setCmd(i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		ssh := new(sshMachine).withSSHCommand([]string{"findmnt", "-no", "FSTYPE", tDir})
+		findmnt, err := mb.setName(name).setCmd(ssh).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(findmnt).To(Exit(0))
+		Expect(findmnt.outputToString()).To(ContainSubstring("virtiofs"))
+	})
+
 	It("Podman ops with port forwarding and gvproxy", func() {
 		name := randomString()
 		i := new(initMachine)

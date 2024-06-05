@@ -25,8 +25,27 @@ import (
 )
 
 const (
-	MountType9p = "9p"
+	MountType9p       = "9p"
+	MountTypeVirtiofs = "virtiofs"
 )
+
+func NewStubber() (*QEMUStubber, error) {
+	var mountType string
+	if v, ok := os.LookupEnv("PODMAN_MACHINE_VIRTFS"); ok {
+		logrus.Debugf("using virtiofs %q", v)
+		switch v {
+		case MountType9p, MountTypeVirtiofs:
+			mountType = v
+		default:
+			return nil, fmt.Errorf("failed to parse PODMAN_MACHINE_VIRTFS=%s", v)
+		}
+	} else {
+		mountType = MountType9p
+	}
+	return &QEMUStubber{
+		mountType: mountType,
+	}, nil
+}
 
 // qemuPid returns -1 or the PID of the running QEMU instance.
 func qemuPid(pidFile *define.VMFile) (int, error) {
