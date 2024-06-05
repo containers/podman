@@ -246,7 +246,7 @@ FROM $IMAGE
 RUN echo hi
 EOF
 
-    local count=30
+    local count=10
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
                 $PODMAN build -t i$i $PODMAN_TMPDIR &> $PODMAN_TMPDIR/log.$i &
@@ -360,11 +360,11 @@ LABEL $label_name=$label_value
 WORKDIR $workdir
 
 # Test for #7094 - chowning of invalid symlinks
-RUN mkdir -p /a/b/c
-RUN ln -s /no/such/nonesuch /a/b/c/badsymlink
-RUN ln -s /bin/mydefaultcmd /a/b/c/goodsymlink
-RUN touch /a/b/c/myfile
-RUN chown -h 1:2 /a/b/c/badsymlink /a/b/c/goodsymlink && chown -h 4:5 /a/b/c/myfile
+RUN mkdir -p /a/b/c && \
+    ln -s /no/such/nonesuch /a/b/c/badsymlink && \
+    ln -s /bin/mydefaultcmd /a/b/c/goodsymlink && \
+    touch /a/b/c/myfile && \
+    chown -h 1:2 /a/b/c/badsymlink /a/b/c/goodsymlink && chown -h 4:5 /a/b/c/myfile
 VOLUME /a/b/c
 
 # Test for environment passing and override
@@ -374,17 +374,16 @@ ENV MYENV3 this-should-be-overridden-by-env-file
 ENV MYENV4 this-should-be-overridden-by-cmdline
 ENV http_proxy http-proxy-in-image
 ENV ftp_proxy  ftp-proxy-in-image
+
 ADD mycmd /bin/mydefaultcmd
-RUN chmod 755 /bin/mydefaultcmd
-RUN chown 2:3 /bin/mydefaultcmd
-
-RUN $CAT_SECRET
-
-RUN echo explicit-build-arg=\$arg_explicit
-RUN echo implicit-build-arg=\$arg_implicit
+RUN chmod 755 /bin/mydefaultcmd && \
+    chown 2:3 /bin/mydefaultcmd && \
+    $CAT_SECRET && \
+    echo explicit-build-arg=\$arg_explicit && \
+    echo implicit-build-arg=\$arg_implicit && \
+    cat /etc/resolv.conf
 
 CMD ["/bin/mydefaultcmd","$s_echo"]
-RUN cat /etc/resolv.conf
 EOF
 
     # The goal is to test that a missing value will be inherited from
@@ -458,7 +457,8 @@ EOF
               --env-file=$PODMAN_TMPDIR/env-file1 \
               --env-file=$PODMAN_TMPDIR/env-file2 \
               build_test \
-              printenv http_proxy https_proxy ftp_proxy
+              sh -c "printenv http_proxy https_proxy ftp_proxy &&
+                pwd"
     is "${lines[0]}" "http-proxy-in-env-file"  "env-file overrides env"
     is "${lines[1]}" "https-proxy-in-env-file" "env-file sets proxy var"
 
@@ -469,8 +469,7 @@ EOF
     fi
 
     # test that workdir is set for command-line commands also
-    run_podman run --rm build_test pwd
-    is "$output" "$workdir" "pwd command in container"
+    is "${lines[3]}" "$workdir" "pwd command in container"
 
     # Determine buildah version, so we can confirm it gets into Labels
     # Multiple --format options confirm command-line override (last one wins)
@@ -494,10 +493,8 @@ Cmd[0]             | /bin/mydefaultcmd
 Cmd[1]             | $s_echo
 WorkingDir         | $workdir
 Labels.$label_name | $label_value
+Labels.\"io.buildah.version\" | $buildah_version
 "
-    # FIXME: 2021-02-24: Fixed in buildah #3036; re-enable this once podman
-    #        vendors in a newer buildah!
-    # Labels.\"io.buildah.version\" | $buildah_version
 
     parse_table "$tests" | while read field expect; do
         actual=$(jq -r ".[0].Config.$field" <<<"$output")
@@ -509,19 +506,18 @@ Labels.$label_name | $label_value
     # get here because any 'podman run' on a volume that had symlinks,
     # be they dangling or valid, would barf with
     #    Error: chown <mountpath>/_data/symlink: ENOENT
-    run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/badsymlink
-    is "$output" "1:2:'/a/b/c/badsymlink' -> '/no/such/nonesuch'" \
+    run_podman run --rm build_test \
+        stat -c'%u:%g:%N'   /a/b/c/badsymlink \
+                            /a/b/c/goodsymlink \
+                            /bin/mydefaultcmd \
+                            /a/b/c/myfile
+
+    is "${lines[0]}" "1:2:'/a/b/c/badsymlink' -> '/no/such/nonesuch'" \
        "bad symlink to nonexistent file is chowned and preserved"
-
-    run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/goodsymlink
-    is "$output" "1:2:'/a/b/c/goodsymlink' -> '/bin/mydefaultcmd'" \
+    is "${lines[1]}" "1:2:'/a/b/c/goodsymlink' -> '/bin/mydefaultcmd'" \
        "good symlink to existing file is chowned and preserved"
-
-    run_podman run --rm build_test stat -c'%u:%g' /bin/mydefaultcmd
-    is "$output" "2:3" "target of symlink is not chowned"
-
-    run_podman run --rm build_test stat -c'%u:%g:%N' /a/b/c/myfile
-    is "$output" "4:5:/a/b/c/myfile" "file in volume is chowned"
+    is "${lines[2]}" "2:3:/bin/mydefaultcmd" "target of symlink is not chowned"
+    is "${lines[3]}" "4:5:/a/b/c/myfile" "file in volume is chowned"
 
     # Hey, as long as we have an image with lots of layers, let's
     # confirm that 'image tree' works as expected

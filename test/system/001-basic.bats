@@ -195,10 +195,10 @@ See 'podman version --help'" "podman version --remote"
 }
 
 @test "podman --log-level recognizes log levels" {
-    run_podman 1 --log-level=telepathic info
+    run_podman 1 --log-level=telepathic version
     is "$output" 'Log Level "telepathic" is not supported.*'
 
-    run_podman --log-level=trace   info
+    run_podman --log-level=trace   version
     if ! is_remote; then
         # podman-remote does not do any trace logging
         assert "$output" =~ " level=trace " "log-level=trace"
@@ -207,33 +207,33 @@ See 'podman version --help'" "podman version --remote"
     assert "$output" =~ " level=info "  "log-level=trace includes info"
     assert "$output" !~ " level=warn"   "log-level=trace does not show warn"
 
-    run_podman --log-level=debug   info
+    run_podman --log-level=debug   version
     assert "$output" !~ " level=trace " "log-level=debug does not show trace"
     assert "$output" =~ " level=debug " "log-level=debug"
     assert "$output" =~ " level=info "  "log-level=debug includes info"
     assert "$output" !~ " level=warn"   "log-level=debug does not show warn"
 
-    run_podman --log-level=info    info
+    run_podman --log-level=info    version
     assert "$output" !~ " level=trace " "log-level=info does not show trace"
     assert "$output" !~ " level=debug " "log-level=info does not show debug"
     assert "$output" =~ " level=info "  "log-level=info"
 
-    run_podman --log-level=warn    info
+    run_podman --log-level=warn    version
     assert "$output" !~ " level=" "log-level=warn shows no logs at all"
 
-    run_podman --log-level=warning info
+    run_podman --log-level=warning version
     assert "$output" !~ " level=" "log-level=warning shows no logs at all"
 
-    run_podman --log-level=error   info
+    run_podman --log-level=error   version
     assert "$output" !~ " level=" "log-level=error shows no logs at all"
 
     # docker compat
-    run_podman --debug   info
+    run_podman --debug   version
     assert "$output" =~ " level=debug " "podman --debug gives debug output"
-    run_podman -D        info
+    run_podman -D        version
     assert "$output" =~ " level=debug " "podman -D gives debug output"
 
-    run_podman 1 --debug --log-level=panic info
+    run_podman 1 --debug --log-level=panic version
     is "$output" "Setting --log-level and --debug is not allowed"
 }
 

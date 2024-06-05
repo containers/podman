@@ -308,10 +308,10 @@ load helpers.network
             $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    ip1="$output"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    mac1="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    ip1="${lines[0]}"
+    mac1="${lines[1]}"
 
     # Verify http contents: curl from localhost
     run curl -s -S $SERVER/index.txt
@@ -326,9 +326,9 @@ load helpers.network
         fi
         run iptables -t nat -F "$chain"
 
-        # check that we cannot curl (timeout after 5 sec)
-        run timeout 5 curl -s $SERVER/index.txt
-        assert $status -eq 124 "curl did not time out"
+        # check that we cannot curl (timeout after 1 sec)
+        run curl --max-time 1 -s $SERVER/index.txt
+        assert $status -eq 28 "curl did not time out"
     fi
 
     # reload the network to recreate the iptables rules
@@ -336,10 +336,10 @@ load helpers.network
     is "$output" "$cid" "Output does match container ID"
 
     # check that we still have the same mac and ip
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    is "$output" "$ip1" "IP address changed after podman network reload"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    is "$output" "$mac1" "MAC address changed after podman network reload"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    is "${lines[0]}" "$ip1" "IP address changed after podman network reload"
+    is "${lines[1]}" "$mac1" "MAC address changed after podman network reload"
 
     # check that we can still curl
     run curl -s $SERVER/index.txt
@@ -353,13 +353,13 @@ load helpers.network
     # connect the container to the second network
     run_podman network connect $netname2 $cid
 
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").IPAddress}}"
-    ip2="$output"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}"
-    is "$output" "fd.*:.*" "IPv6 address should start with fd..."
-    ipv6="$output"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").MacAddress}}"
-    mac2="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}
+{{(index .NetworkSettings.Networks \"$netname2\").MacAddress}}"
+    ip2="${lines[0]}"
+    is "${lines[1]}" "fd.*:.*" "IPv6 address should start with fd..."
+    ipv6="${lines[1]}"
+    mac2="${lines[2]}"
 
     # make sure --all is working and that this
     # cmd also works if the iptables still exists
@@ -367,16 +367,18 @@ load helpers.network
     is "$output" "$cid" "Output does match container ID"
 
     # check that both network keep there ip and mac
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    is "$output" "$ip1" "IP address changed after podman network reload ($netname)"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    is "$output" "$mac1" "MAC address changed after podman network reload ($netname)"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").IPAddress}}"
-    is "$output" "$ip2" "IP address changed after podman network reload ($netname2)"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}"
-    is "$output" "$ipv6" "IPv6 address changed after podman network reload ($netname2)"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname2\").MacAddress}}"
-    is "$output" "$mac2" "MAC address changed after podman network reload ($netname2)"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}
+{{(index .NetworkSettings.Networks \"$netname2\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname2\").GlobalIPv6Address}}
+{{(index .NetworkSettings.Networks \"$netname2\").MacAddress}}
+"
+
+    is "${lines[0]}" "$ip1" "IP address changed after podman network reload ($netname)"
+    is "${lines[1]}" "$mac1" "MAC address changed after podman network reload ($netname)"
+    is "${lines[2]}" "$ip2" "IP address changed after podman network reload ($netname2)"
+    is "${lines[3]}" "$ipv6" "IPv6 address changed after podman network reload ($netname2)"
+    is "${lines[4]}" "$mac2" "MAC address changed after podman network reload ($netname2)"
 
     # check that we can still curl
     run curl -s -S $SERVER/index.txt
@@ -478,7 +480,7 @@ load helpers.network
     run_podman network create $netname2
     is "$output" "$netname2" "output of 'network create'"
 
-    # First, run a container in background to ensure that the rootless cni ns
+    # First, run a container in background to ensure that the rootless netns
     # is not destroyed after network disconnect.
     run_podman run -d --network $netname $IMAGE top
     background_cid=$output
@@ -498,14 +500,14 @@ load helpers.network
     run curl --retry 2 --retry-connrefused -s $SERVER/index.txt
     is "$output" "$random_1" "curl $SERVER/index.txt"
 
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    ip="$output"
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    mac="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
+    ip="${lines[0]}"
+    mac="${lines[1]}"
 
     # check network alias for container short id
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").Aliases}}"
-    is "$output" "[${cid:0:12} $hostname]" "short container id and hostname in network aliases"
+    is "${lines[2]}" "[${cid:0:12} $hostname]" "short container id and hostname in network aliases"
 
     # check /etc/hosts for our entry
     run_podman exec $cid cat /etc/hosts
@@ -533,13 +535,12 @@ load helpers.network
 
     # check that we have a new ip and mac
     # if the ip is still the same this whole test turns into a nop
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
-    new_ip="$output"
+    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}
+{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
+    new_ip="${lines[0]}"
     assert "$new_ip" != "$ip" \
            "IP address did not change after podman network disconnect/connect"
-
-    run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
-    assert "$output" != "$mac" \
+    assert "${lines[1]}" != "$mac" \
            "MAC address did not change after podman network disconnect/connect"
 
     # check /etc/hosts for the new entry
@@ -551,14 +552,6 @@ load helpers.network
     is "$output" "" "disconnect of container with no open ports"
     run_podman network connect $netname $background_cid
     is "$output" "" "(re)connect of container with no open ports"
-
-    # FIXME FIXME FIXME: #11825: bodhi tests are failing, remote+rootless only,
-    # with "dnsmasq: failed to create inotify". This error has never occurred
-    # in CI, and Ed has been unable to reproduce it on 1minutetip. This next
-    # line is a suggestion from Paul Holzinger for trying to shed light on
-    # the system context before the failure. This output will be invisible
-    # if the test passes.
-    for foo in /proc/\*/fd/*; do readlink -f $foo; done |grep '^/proc/.*inotify' |cut -d/ -f3 | xargs -I '{}' -- ps --no-headers -o '%p %U %a' -p '{}' |uniq -c |sort -n
 
     # connect a second network
     run_podman network connect $netname2 $cid
