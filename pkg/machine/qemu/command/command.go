@@ -35,8 +35,10 @@ func NewQemuBuilder(binary string, options []string) QemuCmd {
 
 // SetMemory adds the specified amount of memory for the machine
 func (q *QemuCmd) SetMemory(m strongunits.MiB) {
-	// qemu accepts the memory in MiB
-	*q = append(*q, "-m", strconv.FormatUint(uint64(m), 10))
+	serializedMem := strconv.FormatUint(uint64(m), 10)
+	// In order to use virtiofsd, we must enable shared memory
+	*q = append(*q, "-object", fmt.Sprintf("memory-backend-memfd,id=mem,size=%sM,share=on", serializedMem))
+	*q = append(*q, "-m", serializedMem)
 }
 
 // SetCPUs adds the number of CPUs the machine will have
