@@ -564,6 +564,7 @@ EOF
     # Clean up
     systemctl stop $service_name
     run_podman rmi -f $(pause_image) $local_image $newID $oldID
+    run_podman network rm podman-default-kube-network
     rm -f $UNIT_DIR/$unit_name
 }
 

@@ -228,6 +228,8 @@ function teardown() {
     run_podman logs $cid
     trim=$(sed -z -e 's/[\r\n]\+//g' <<<"$output")
     is "$trim" "READY123123" "File lock restored"
+
+    run_podman rm $cid
 }
 
 @test "podman checkpoint/restore ip and mac handling" {

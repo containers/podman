@@ -318,6 +318,7 @@ READY=1" "sdnotify sent MAINPID and READY"
     # Clean up pod and pause image
     run_podman play kube --down $PODMAN_TMPDIR/test.yaml
     run_podman rmi $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 @test "sdnotify : play kube - with policies" {
@@ -427,6 +428,7 @@ READY=1" "sdnotify sent MAINPID and READY"
     # Clean up pod and pause image
     run_podman play kube --down $yaml_source
     run_podman rmi $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 function generate_exit_code_yaml {
@@ -517,6 +519,7 @@ none | false | false | 0
     is "$output" "Error: unsupported exit-code propagation \"bogus\"" "error on unsupported exit-code propagation"
 
     run_podman rmi $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 @test "podman pull - EXTEND_TIMEOUT_USEC" {

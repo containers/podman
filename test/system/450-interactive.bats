@@ -118,7 +118,7 @@ function teardown() {
     run tty <$PODMAN_TEST_PTY
     expected_tty="$output"
 
-    run_podman run -v/dev:/dev --log-driver=passthrough-tty $IMAGE tty <$PODMAN_TEST_PTY
+    run_podman run --rm -v/dev:/dev --log-driver=passthrough-tty $IMAGE tty <$PODMAN_TEST_PTY
     is "$output" "$expected_tty" "passthrough-tty: tty matches"
 }
 

@@ -155,6 +155,8 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
 
     # Restart should ensure that the container comes back up and recreates the file
     wait_for_file ${PODMAN_TMPDIR}/alive
+
+    run_podman rm -f -t0 testctr
 }
 
 # vim: filetype=sh

@@ -722,6 +722,8 @@ nameserver 8.8.8.8" "nameserver order is correct"
     run_podman run --network host --dns 1.1.1.1 --rm $IMAGE cat /etc/resolv.conf
     assert "$output" =~ ".*nameserver 1\.1\.1\.1.*" \
            "resolv.conf contains 1.1.1.1 nameserver"
+
+    run_podman network rm -f $netname
 }
 
 @test "podman run port forward range" {

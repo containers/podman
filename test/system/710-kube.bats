@@ -88,6 +88,7 @@ status                           | =  | null
       run_podman pod rm -a
       run_podman rm -a
       run_podman rmi $(pause_image)
+      run_podman network rm podman-default-kube-network
 }
 
 @test "podman kube generate - pod" {

@@ -135,6 +135,7 @@ load helpers
     run_podman 125 start $random_name
     # FIXME(#14873): while older Podmans return 0 on wait, Docker does not.
     run_podman wait $random_name
+    run_podman rm $random_name
 }
 
 @test "podman kill - no restart" {
@@ -149,6 +150,7 @@ load helpers
     is "$output" "42" "container exits with 42 on receiving SIGTERM"
     run_podman container inspect  --format "{{.State.StoppedByUser}}" $ctr
     is "$output" "true" "container is marked to be stopped by a user"
+    run_podman rm $ctr
 }
 
 # vim: filetype=sh

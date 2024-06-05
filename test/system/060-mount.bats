@@ -283,11 +283,12 @@ EOF
     is "$output" ".*$v1a" "podman images --inspect should include $v1a"
     is "$output" ".*$v1b" "podman images --inspect should include $v1b"
 
-    run_podman create --rm --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,ro $IMAGE ls $vol1a $vol1b
+    run_podman create --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,ro $IMAGE ls $vol1a $vol1b
     cid=$output
-    run_podman container inspect $output
+    run_podman container inspect $cid
     is "$output" ".*$vol1a" "podman images --inspect should include $vol1a"
     is "$output" ".*$vol1b" "podman images --inspect should include $vol1b"
+    run_podman rm $cid
 
     run_podman 125 run --rm --mount type=bind,source=${PODMAN_TMPDIR}/v2\*,ro=false $IMAGE touch $vol2
     is "$output" "Error: must set volume destination" "Bind mounts require destination"

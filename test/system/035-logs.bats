@@ -143,6 +143,8 @@ function _log_test_restarted() {
     expected=$(mktemp -p ${PODMAN_TMPDIR} expectedXXXXXXXX)
     seq 1 20  > $expected
     diff -u ${expected} ${logfile}
+
+    run_podman rm -f -t0 logtest
 }
 
 @test "podman logs restarted - k8s-file" {
@@ -165,6 +167,7 @@ function _log_test_restarted() {
     run_podman --events-backend=file logs test
     run_podman 125 --events-backend=file logs --follow test
     is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" "journald logger requires journald eventer"
+    run_podman rm test
 }
 
 function _log_test_since() {
