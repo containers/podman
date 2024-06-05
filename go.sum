@@ -110,8 +110,8 @@ github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1
 github.com/coreos/stream-metadata-go v0.4.4 h1:PM/6iNhofKGydsatiY1zdnMMHBT34skb5P7nfEFR4GU=
 github.com/coreos/stream-metadata-go v0.4.4/go.mod h1:fMObQqQm8Ku91G04btKzEH3AsdP1mrAb986z9aaK0tE=
 github.com/cpuguy83/go-md2man/v2 v2.0.3/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
-github.com/crc-org/crc/v2 v2.37.0 h1:yxCoYWMCSxQJjyF93zt8MAtklTXyS9k4zZNs/BTAqls=
-github.com/crc-org/crc/v2 v2.37.0/go.mod h1:Z4E3ZGWODjDBiRc0EB0n7X9Au/yPQmIsHar/eV7O/HY=
+github.com/crc-org/crc/v2 v2.37.1 h1:X5THVL4ELaBQXo3p6Kklp23XvTyJBJUVnLEDMsuOwLg=
+github.com/crc-org/crc/v2 v2.37.1/go.mod h1:Z4E3ZGWODjDBiRc0EB0n7X9Au/yPQmIsHar/eV7O/HY=
 github.com/crc-org/vfkit v0.5.1 h1:r1zNf1g1bLbgu5BgIQodirvYaIGWJQ91eS/PIgNO6lo=
 github.com/crc-org/vfkit v0.5.1/go.mod h1:Hqi20zQcqXMk6JqvByvOidHYv+KzPx3G+cjkdGSWv60=
 github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=
