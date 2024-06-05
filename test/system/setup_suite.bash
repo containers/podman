@@ -30,6 +30,8 @@ function setup_suite() {
     # The above does not handle errors. Do a final confirmation.
     assert "$PODMAN_LOGIN_REGISTRY_PORT" != "" \
            "Unable to set PODMAN_LOGIN_REGISTRY_PORT"
+
+    clean_setup
 }
 
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.

@@ -141,60 +141,6 @@ function skopeo() {
 
 # Setup helper: establish a test environment with exactly the images needed
 function basic_setup() {
-    # Clean up all containers
-    run_podman rm -t 0 --all --force --ignore
-
-    # ...including external (buildah) ones
-    run_podman ps --all --external --format '{{.ID}} {{.Names}}'
-    for line in "${lines[@]}"; do
-        set $line
-        echo "# setup(): removing stray external container $1 ($2)" >&3
-        run_podman '?' rm -f $1
-        if [[ $status -ne 0 ]]; then
-            echo "# [setup] $_LOG_PROMPT podman rm -f $1" >&3
-            for errline in "${lines[@]}"; do
-                echo "# $errline" >&3
-            done
-        fi
-    done
-
-    # Clean up all images except those desired.
-    # 2023-06-26 REMINDER: it is tempting to think that this is clunky,
-    # wouldn't it be safer/cleaner to just 'rmi -a' then '_prefetch $IMAGE'?
-    # Yes, but it's also tremendously slower: 29m for a CI run, to 39m.
-    # Image loads are slow.
-    found_needed_image=
-    run_podman '?' images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
-
-    for line in "${lines[@]}"; do
-        set $line
-        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
-            if [[ -z "$PODMAN_TEST_IMAGE_ID" ]]; then
-                # This will probably only trigger the 2nd time through setup
-                PODMAN_TEST_IMAGE_ID=$2
-            fi
-            found_needed_image=1
-        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
-            # This is a big image, don't force unnecessary pulls
-            :
-        else
-            # Always remove image that doesn't match by name
-            echo "# setup(): removing stray image $1" >&3
-            run_podman rmi --force "$1" >/dev/null 2>&1 || true
-
-            # Tagged image will have same IID as our test image; don't rmi it.
-            if [[ $2 != "$PODMAN_TEST_IMAGE_ID" ]]; then
-                echo "# setup(): removing stray image $2" >&3
-                run_podman rmi --force "$2" >/dev/null 2>&1 || true
-            fi
-        fi
-    done
-
-    # Make sure desired image is present
-    if [[ -z "$found_needed_image" ]]; then
-        _prefetch $PODMAN_TEST_IMAGE_FQN
-    fi
-
     # Temporary subdirectory, in which tests can write whatever they like
     # and trust that it'll be deleted on cleanup.
     # (BATS v1.3 and above provide $BATS_TEST_TMPDIR, but we still use
@@ -258,38 +204,63 @@ function defer-assertion-failures() {
 # Basic teardown: remove all pods and containers
 function basic_teardown() {
     echo "# [teardown]" >&2
-    local actions=(
-        "pod rm -t 0 --all --force --ignore"
-            "rm -t 0 --all --force --ignore"
-        "network prune --force"
-        "volume rm -a -f"
-    )
-    for action in "${actions[@]}"; do
-        run_podman '?' $action
 
-        # The -f commands should never exit nonzero, but if they do we want
-        # to know about it.
-        #   FIXME: someday: also test for [[ -n "$output" ]] - can't do this
-        #   yet because too many tests don't clean up their containers
-        if [[ $status -ne 0 ]]; then
-            echo "# [teardown] $_LOG_PROMPT podman $action" >&3
-            for line in "${lines[*]}"; do
-                echo "# $line" >&3
-            done
-
-            # Special case for timeout: check for locks (#18514)
-            if [[ $status -eq 124 ]]; then
-                echo "# [teardown] $_LOG_PROMPT podman system locks" >&3
-                run $PODMAN system locks
-                for line in "${lines[*]}"; do
-                    echo "# $line" >&3
-                done
-            fi
-        fi
-    done
-
-    command rm -rf $PODMAN_TMPDIR
     immediate-assertion-failures
+    # Unlike normal tests teardown will not exit on first command failure
+    # but rather only uses the return code of the teardown function.
+    # This must be directly after immediate-assertion-failures to capture the error code
+    local exit_code=$?
+
+    # Only checks for leaks on a successful run (BATS_TEST_COMPLETED is set 1),
+    # immediate-assertion-failures didn't fail (exit_code -eq 0)
+    # and PODMAN_BATS_LEAK_CHECK is set.
+    # As these podman commands are slow we do not want to do this by default
+    # and only provide this as opt in option. (#22909)
+    if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && [ -n "$PODMAN_BATS_LEAK_CHECK" ]; then
+        run_podman volume ls -q
+        assert "$output" == "" "Leaked volumes!!!"
+        exit_code=$((exit_code + $?))
+        run_podman network ls -q
+        # podman always exists
+        assert "$output" == "podman" "Leaked networks!!!"
+        exit_code=$((exit_code + $?))
+        run_podman pod ps -q
+        assert "$output" == "" "Leaked pods!!!"
+        exit_code=$((exit_code + $?))
+        run_podman ps -a -q
+        assert "$output" == "" "Leaked containers!!!"
+        exit_code=$((exit_code + $?))
+
+        run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+        for line in "${lines[@]}"; do
+            set $line
+            if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
+                found_needed_image=1
+            elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
+                # This is a big image, don't force unnecessary pulls
+                :
+            else
+                exit_code=$((exit_code + 1))
+                echo "Leaked image $1 $2"
+            fi
+        done
+
+        # Make sure desired image is present
+        if [[ -z "$found_needed_image" ]]; then
+            exit_code=$((exit_code + 1))
+            die "$PODMAN_TEST_IMAGE_FQN was removed"
+        fi
+    fi
+
+    # Some error happened (either in teardown itself or the actual test failed)
+    # so do a full cleanup to ensure following tests start with a clean env.
+    if [ $exit_code -gt 0 ] || [ -z "$BATS_TEST_COMPLETED" ]; then
+        clean_setup
+        exit_code=$((exit_code + $?))
+    fi
+    command rm -rf $PODMAN_TMPDIR
+    exit_code=$((exit_code + $?))
+    return $exit_code
 }
 
 
@@ -321,6 +292,89 @@ function restore_image() {
     archive=$BATS_TMPDIR/$archive_basename.tar
 
     run_podman restore $archive
+}
+
+function clean_setup() {
+    local actions=(
+        "pod rm -t 0 --all --force --ignore"
+            "rm -t 0 --all --force --ignore"
+        "network prune --force"
+        "volume rm -a -f"
+    )
+    for action in "${actions[@]}"; do
+        run_podman '?' $action
+
+        # The -f commands should never exit nonzero, but if they do we want
+        # to know about it.
+        #   FIXME: someday: also test for [[ -n "$output" ]] - can't do this
+        #   yet because too many tests don't clean up their containers
+        if [[ $status -ne 0 ]]; then
+            echo "# [teardown] $_LOG_PROMPT podman $action" >&3
+            for line in "${lines[*]}"; do
+                echo "# $line" >&3
+            done
+
+            # Special case for timeout: check for locks (#18514)
+            if [[ $status -eq 124 ]]; then
+                echo "# [teardown] $_LOG_PROMPT podman system locks" >&3
+                run $PODMAN system locks
+                for line in "${lines[*]}"; do
+                    echo "# $line" >&3
+                done
+            fi
+        fi
+    done
+
+    # ...including external (buildah) ones
+    run_podman ps --all --external --format '{{.ID}} {{.Names}}'
+    for line in "${lines[@]}"; do
+        set $line
+        echo "# setup(): removing stray external container $1 ($2)" >&3
+        run_podman '?' rm -f $1
+        if [[ $status -ne 0 ]]; then
+            echo "# [setup] $_LOG_PROMPT podman rm -f $1" >&3
+            for errline in "${lines[@]}"; do
+                echo "# $errline" >&3
+            done
+        fi
+    done
+
+    # Clean up all images except those desired.
+    # 2023-06-26 REMINDER: it is tempting to think that this is clunky,
+    # wouldn't it be safer/cleaner to just 'rmi -a' then '_prefetch $IMAGE'?
+    # Yes, but it's also tremendously slower: 29m for a CI run, to 39m.
+    # Image loads are slow.
+    found_needed_image=
+    run_podman '?' images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+
+    for line in "${lines[@]}"; do
+        set $line
+        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
+            if [[ -z "$PODMAN_TEST_IMAGE_ID" ]]; then
+                # This will probably only trigger the 2nd time through setup
+                PODMAN_TEST_IMAGE_ID=$2
+            fi
+            found_needed_image=1
+        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
+            # This is a big image, don't force unnecessary pulls
+            :
+        else
+            # Always remove image that doesn't match by name
+            echo "# setup(): removing stray image $1" >&3
+            run_podman rmi --force "$1" >/dev/null 2>&1 || true
+
+            # Tagged image will have same IID as our test image; don't rmi it.
+            if [[ $2 != "$PODMAN_TEST_IMAGE_ID" ]]; then
+                echo "# setup(): removing stray image $2" >&3
+                run_podman rmi --force "$2" >/dev/null 2>&1 || true
+            fi
+        fi
+    done
+
+    # Make sure desired image is present
+    if [[ -z "$found_needed_image" ]]; then
+        _prefetch $PODMAN_TEST_IMAGE_FQN
+    fi
 }
 
 # END   setup/teardown tools

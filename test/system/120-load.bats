@@ -15,6 +15,7 @@ function teardown() {
     # annotations and image digests may be different. See
     # https://github.com/containers/podman/discussions/17911
     run_podman rmi -a -f
+    _prefetch $IMAGE
 
     basic_teardown
 }
