@@ -1313,9 +1313,9 @@ kube play            | argument         |
 logout               | $IMAGE           |
 manifest add         | $IMAGE argument  |
 manifest inspect     | $IMAGE           |
-manifest push        | $IMAGE argument  |
-pull                 | $IMAGE argument  |
-push                 | $IMAGE argument  |
+manifest push        | $IMAGE           |
+pull                 | $IMAGE           |
+push                 | $IMAGE           |
 run                  | $IMAGE false     |
 search               | $IMAGE           |
 "
@@ -1346,6 +1346,9 @@ search               | $IMAGE           |
               "$command REGISTRY_AUTH_FILE=nonexistent-path"
         fi
     done < <(parse_table "$tests")
+
+    # test cases above create two containers
+    run_podman rm -fa
 }
 
 @test "podman --syslog and environment passed to conmon" {
