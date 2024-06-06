@@ -148,7 +148,7 @@ var _ = Describe("Podman load", func() {
 			Skip("skip on ppc64le")
 		}
 		outfile := filepath.Join(podmanTest.TempDir, "alpine.tar")
-		alpVersion := "quay.io/libpod/alpine:3.2"
+		alpVersion := "quay.io/libpod/alpine:3.10.2"
 
 		pull := podmanTest.Podman([]string{"pull", "-q", alpVersion})
 		pull.WaitWithDefaultTimeout()
@@ -169,9 +169,12 @@ var _ = Describe("Podman load", func() {
 		inspect := podmanTest.Podman([]string{"inspect", ALPINE})
 		inspect.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToString()).To(ContainSubstring(alpVersion))
+
 		inspect = podmanTest.Podman([]string{"inspect", alpVersion})
 		inspect.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToString()).To(ContainSubstring(alpVersion))
 	})
 
 	It("podman load localhost registry from scratch", func() {

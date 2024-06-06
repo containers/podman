@@ -21,24 +21,19 @@ var _ = Describe("Podman pull", func() {
 
 		session = podmanTest.Podman([]string{"pull", "busybox:latest", "docker.io/library/ibetthisdoesnotexistfr:random", "alpine"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(125, "initializing source docker://ibetthisdoesnotexistfr:random: reading manifest random in quay.io/libpod/ibetthisdoesnotexistfr:"))
+
+		// As of 2024-06 all Cirrus tests run using a local registry where
+		// we get 404. When running in dev environment, though, we still
+		// test against real registry, which returns 401
+		expect := "quay.io/libpod/ibetthisdoesnotexistfr: unauthorized: access to the requested resource is not authorized"
+		if UsingCacheRegistry() {
+			expect = "127.0.0.1:60333/libpod/ibetthisdoesnotexistfr: manifest unknown"
+		}
+		Expect(session).Should(ExitWithError(125, "initializing source docker://ibetthisdoesnotexistfr:random: reading manifest random in "+expect))
 
 		session = podmanTest.Podman([]string{"rmi", "busybox:musl", "alpine", "quay.io/libpod/cirros", "testdigest_v2s2@sha256:755f4d90b3716e2bf57060d249e2cd61c9ac089b1233465c5c2cb2d7ee550fdb"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-	})
-
-	It("podman pull bogus image", func() {
-		// This is a NOP in CI; but in a developer environment, if user
-		// has a valid login to quay.io, pull fails with "repository not found"
-		defer func() {
-			os.Unsetenv("REGISTRY_AUTH_FILE")
-		}()
-		os.Setenv("REGISTRY_AUTH_FILE", "/tmp/this/does/not/exist")
-
-		session := podmanTest.Podman([]string{"pull", "quay.io/libpod/ibetthisdoesntexist:there"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "nitializing source docker://quay.io/libpod/ibetthisdoesntexist:there: reading manifest there in quay.io/libpod/ibetthisdoesntexist: unauthorized: access to the requested resource is not authorized"))
 	})
 
 	It("podman pull with tag --quiet", func() {

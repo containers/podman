@@ -1493,3 +1493,7 @@ func CopySymLink(source, dest string) error {
 	}
 	return os.Symlink(link, dest)
 }
+
+func UsingCacheRegistry() bool {
+	return os.Getenv("CI_USE_REGISTRY_CACHE") != ""
+}

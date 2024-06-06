@@ -177,7 +177,7 @@ var _ = Describe("Podman images", func() {
 
 		// Adding one more image. There Should be no errors in the response.
 		// And the count should be three now.
-		bt.Pull("testimage:20200929")
+		bt.Pull("testimage:20221018")
 		imageSummary, err = images.List(bt.conn, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(len(imageSummary)).To(BeNumerically(">=", 2))

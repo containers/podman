@@ -124,6 +124,7 @@ exec_container() {
 
     # VM Images and Container images are built using (nearly) identical operations.
     set -x
+    env CONTAINERS_REGISTRIES_CONF=/dev/null bin/podman pull -q $CTR_FQIN
     # shellcheck disable=SC2154
     exec bin/podman run --rm --privileged --net=host --cgroupns=host \
         -v `mktemp -d -p /var/tmp`:/var/tmp:Z \
