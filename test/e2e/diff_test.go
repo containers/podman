@@ -8,7 +8,6 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman diff", func() {
@@ -23,7 +22,7 @@ var _ = Describe("Podman diff", func() {
 	It("podman diff bogus image", func() {
 		session := podmanTest.Podman([]string{"diff", "1234"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "1234 not found: layer not known"))
 	})
 
 	It("podman diff image with json output", func() {
@@ -119,7 +118,7 @@ RUN echo test
 	It("podman image diff bogus image", func() {
 		session := podmanTest.Podman([]string{"image", "diff", "1234", ALPINE})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "1234 not found: 1234: image not known"))
 	})
 
 	It("podman image diff of the same image", func() {

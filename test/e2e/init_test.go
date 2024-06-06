@@ -1,10 +1,11 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman init", func() {
@@ -12,13 +13,13 @@ var _ = Describe("Podman init", func() {
 	It("podman init bogus container", func() {
 		session := podmanTest.Podman([]string{"start", "123456"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `Error: no container with name or ID "123456" found: no such container`))
 	})
 
 	It("podman init with no arguments", func() {
 		session := podmanTest.Podman([]string{"start"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "Error: start requires at least one argument"))
 	})
 
 	It("podman init single container by ID", func() {
@@ -110,8 +111,10 @@ var _ = Describe("Podman init", func() {
 		session := podmanTest.Podman([]string{"run", "--name", "init_test", "-d", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
+
 		init := podmanTest.Podman([]string{"init", "init_test"})
 		init.WaitWithDefaultTimeout()
-		Expect(init).Should(Exit(125))
+		Expect(init).Should(ExitWithError(125, fmt.Sprintf("Error: container %s has already been created in runtime: container state improper", cid)))
 	})
 })
