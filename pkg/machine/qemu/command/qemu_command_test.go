@@ -47,7 +47,6 @@ func TestQemuCmd(t *testing.T) {
 	err = cmd.SetNetwork(vlanSocket)
 	assert.NoError(t, err)
 	cmd.SetSerialPort(*readySocket, *vmPidFile, "test-machine")
-	cmd.SetVirtfsMount("/tmp/path", "vol10", "none", true)
 	cmd.SetBootableImage(bootableImagePath)
 	cmd.SetDisplay("none")
 
@@ -65,7 +64,6 @@ func TestQemuCmd(t *testing.T) {
 		"-chardev", fmt.Sprintf("socket,path=%s,server=on,wait=off,id=atest-machine_ready", readySocketPath),
 		"-device", "virtserialport,chardev=atest-machine_ready,name=org.fedoraproject.port.0",
 		"-pidfile", vmPidFilePath,
-		"-virtfs", "local,path=/tmp/path,mount_tag=vol10,security_model=none,readonly",
 		"-drive", fmt.Sprintf("if=virtio,file=%s", bootableImagePath),
 		"-display", "none"}
 

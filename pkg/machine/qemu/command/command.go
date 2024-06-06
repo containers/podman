@@ -99,15 +99,6 @@ func (q *QemuCmd) SetSerialPort(readySocket, vmPidFile define.VMFile, name strin
 		"-pidfile", vmPidFile.GetPath())
 }
 
-// SetVirtfsMount adds a virtfs mount to the machine
-func (q *QemuCmd) SetVirtfsMount(source, tag, securityModel string, readonly bool) {
-	virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=%s", source, tag, securityModel)
-	if readonly {
-		virtfsOptions += ",readonly"
-	}
-	*q = append(*q, "-virtfs", virtfsOptions)
-}
-
 // SetBootableImage specifies the image the machine will use to boot
 func (q *QemuCmd) SetBootableImage(image string) {
 	*q = append(*q, "-drive", "if=virtio,file="+image)
