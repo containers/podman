@@ -217,8 +217,12 @@ func createPastaArgs(opts *SetupOptions) ([]string, []string, error) {
 		cmdArgs = append(cmdArgs, "--no-map-gw")
 	}
 
-	// always pass --quiet to silence the info output from pasta
-	cmdArgs = append(cmdArgs, "--quiet", "--netns", opts.Netns)
+	if !slices.Contains(cmdArgs, "--trace") && !slices.Contains(cmdArgs, "--debug")) {
+		// pass --quiet to silence the info output from pasta if verbose/trace pasta is not required
+		cmdArgs = append(cmdArgs, "--quiet")
+	}
+
+	cmdArgs = append(cmdArgs, "--netns", opts.Netns)
 
 	return cmdArgs, dnsForwardIPs, nil
 }
