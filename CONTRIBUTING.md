@@ -9,7 +9,7 @@ that we follow.
 * [Reporting Issues](#reporting-issues)
 * [Working On Issues](#working-on-issues)
 * [Contributing to Podman](#contributing-to-podman)
-* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/master)
+* [Continuous Integration](#continuous-integration) [![Build Status](https://api.cirrus-ci.com/github/containers/podman.svg)](https://cirrus-ci.com/github/containers/podman/main)
 * [Submitting Pull Requests](#submitting-pull-requests)
 * [Communications](#communications)
 
@@ -316,7 +316,7 @@ All pull requests and branch-merges automatically run:
 There is always additional complexity added by automation, and so it sometimes
 can fail for any number of reasons.  This includes post-merge testing on all
 branches, which you may occasionally see [red bars on the status graph
-.](https://cirrus-ci.com/github/containers/podman/master)
+.](https://cirrus-ci.com/github/containers/podman/main)
 
 When the graph shows mostly green bars on the right, it's a good indication
 the main branch is currently stable.  Alternating red/green bars is indicative
