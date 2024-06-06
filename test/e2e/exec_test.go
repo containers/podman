@@ -95,7 +95,7 @@ var _ = Describe("Podman exec", func() {
 
 		session := podmanTest.Podman([]string{"exec", "test1", "sh", "-c", "exit 100"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(100))
+		Expect(session).Should(ExitWithError(100, ""))
 	})
 
 	It("podman exec in keep-id container drops privileges", func() {

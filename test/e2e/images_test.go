@@ -217,8 +217,8 @@ WORKDIR /test
 		podmanTest.BuildImage(dockerfile, "foobar.com/before:latest", "false")
 		result := podmanTest.Podman([]string{"images", "-q", "-f", "dangling=true"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(0), "dangling image output: %q", result.OutputToString())
-		Expect(result.OutputToStringArray()).Should(BeEmpty(), "dangling image output: %q", result.OutputToString())
+		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToStringArray()).Should(BeEmpty(), "dangling image output")
 	})
 
 	It("podman images filter intermediate", func() {

@@ -218,13 +218,11 @@ var _ = Describe("Podman generate systemd", func() {
 		// Fail for the pod
 		session = podmanTest.Podman([]string{"generate", "systemd", "foo"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("cannot generate systemd units for init containers"))
+		Expect(session).Should(ExitWithError(125, "cannot generate systemd units for init containers"))
 		// Fail for the init container
 		session = podmanTest.Podman([]string{"generate", "systemd", "foo-init"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("cannot generate systemd units for init containers"))
+		Expect(session).Should(ExitWithError(125, "cannot generate systemd units for init containers"))
 	})
 
 	It("podman generate systemd pod --name --files", func() {

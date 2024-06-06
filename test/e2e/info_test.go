@@ -224,8 +224,7 @@ var _ = Describe("Podman Info", func() {
 		// make sure we get an error for bogus values
 		session := podmanTest.Podman([]string{"--db-backend", "bogus", "info", "--format", "{{.Host.DatabaseBackend}}"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(125))
-		Expect(session.ErrorToString()).To(Equal("Error: unsupported database backend: \"bogus\""))
+		Expect(session).To(ExitWithError(125, `Error: unsupported database backend: "bogus"`))
 	})
 
 	It("Podman info: check desired storage driver", func() {

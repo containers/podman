@@ -121,7 +121,7 @@ var _ = Describe("Podman build", func() {
 	It("podman build context directory a file", func() {
 		session := podmanTest.Podman([]string{"build", "--pull=never", "build/context_dir_a_file"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "context must be a directory:"))
 	})
 
 	// Check that builds with different values for the squash options
@@ -314,8 +314,7 @@ RUN printenv http_proxy`, CITEST_IMAGE)
 		// this tries to use the cache so we explicitly disable it
 		session = podmanTest.Podman([]string{"build", "--no-cache", "--pull-never", "--http-proxy=false", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
-		Expect(session).Should(Exit(1))
-		Expect(session.ErrorToString()).To(ContainSubstring(`Error: building at STEP "RUN printenv http_proxy"`))
+		Expect(session).Should(ExitWithError(1, `Error: building at STEP "RUN printenv http_proxy"`))
 	})
 
 	It("podman build relay exit code to process", func() {
@@ -332,7 +331,7 @@ RUN exit 5`, CITEST_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"build", "-t", "error-test", "--file", dockerfilePath, podmanTest.TempDir})
 		session.Wait(120)
-		Expect(session).Should(Exit(5))
+		Expect(session).Should(ExitWithError(5, `building at STEP "RUN exit 5": while running runtime: exit status 5`))
 	})
 
 	It("podman build and check identity", func() {
@@ -398,8 +397,7 @@ COPY /emptydir/* /dir`, CITEST_IMAGE)
 		// NOTE: Docker and buildah both should error when `COPY /* /dir` is done on emptydir
 		// as context. However buildkit simply ignores this so when buildah also starts ignoring
 		// for such case edit this test to return 0 and check that no `/dir` should be in the result.
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("can't make relative to"))
+		Expect(session).Should(ExitWithError(125, "can't make relative to"))
 	})
 
 	It("podman remote test container/docker file is not inside context dir", func() {
@@ -757,7 +755,7 @@ RUN grep CapEff /proc/self/status`
 		})
 		session.WaitWithDefaultTimeout()
 		// Then
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `unrecognized isolation type "bogus"`))
 	})
 
 	It("podman build --timestamp flag", func() {
@@ -841,7 +839,7 @@ RUN ls /dev/fuse`, CITEST_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, `building at STEP "RUN ls /dev/fuse": while running runtime: exit status 1`))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--device", "/dev/fuse", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -857,7 +855,7 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, `building at STEP "RUN ls /dev/test1": while running runtime: exit status 1`))
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--device", "/dev/zero:/dev/test1", "-t", "test", "--file", containerfilePath, podmanTest.TempDir})
 		session.WaitWithDefaultTimeout()
@@ -896,6 +894,6 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--file", "build/cache/Dockerfilecacheread", "build/cache/"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, `building at STEP "RUN --mount=type=cache,target=/test,z cat /test/world": while running runtime: exit status 1`))
 	})
 })

@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman image|container exists", func() {
@@ -22,7 +21,7 @@ var _ = Describe("Podman image|container exists", func() {
 	It("podman image does not exist in local storage", func() {
 		session := podmanTest.Podman([]string{"image", "exists", "alpine9999"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 	It("podman container exists in local storage by name", func() {
 		setup := podmanTest.RunTopContainer("foobar")
@@ -56,7 +55,7 @@ var _ = Describe("Podman image|container exists", func() {
 	It("podman container does not exist in local storage", func() {
 		session := podmanTest.Podman([]string{"container", "exists", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 
 	It("podman pod exists in local storage by name", func() {
@@ -90,6 +89,6 @@ var _ = Describe("Podman image|container exists", func() {
 		// The exit code for non-existing pod is incorrect (125 vs 1)
 		session := podmanTest.Podman([]string{"pod", "exists", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 })

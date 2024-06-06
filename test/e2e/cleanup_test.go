@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman container cleanup", func() {
@@ -16,8 +15,7 @@ var _ = Describe("Podman container cleanup", func() {
 	It("podman cleanup bogus container", func() {
 		session := podmanTest.Podman([]string{"container", "cleanup", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("no such container"))
+		Expect(session).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman cleanup container by id", func() {
@@ -88,8 +86,7 @@ var _ = Describe("Podman container cleanup", func() {
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"container", "cleanup", "running"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("container state improper"))
+		Expect(session).Should(ExitWithError(125, "is running or paused, refusing to clean up: container state improper"))
 	})
 
 	It("podman cleanup paused container", func() {
@@ -102,8 +99,7 @@ var _ = Describe("Podman container cleanup", func() {
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"container", "cleanup", "paused"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("container state improper"))
+		Expect(session).Should(ExitWithError(125, "is running or paused, refusing to clean up: container state improper"))
 
 		// unpause so that the cleanup can stop the container,
 		// otherwise it fails with container state improper
