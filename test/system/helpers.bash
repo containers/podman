@@ -217,39 +217,8 @@ function basic_teardown() {
     # As these podman commands are slow we do not want to do this by default
     # and only provide this as opt in option. (#22909)
     if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && [ -n "$PODMAN_BATS_LEAK_CHECK" ]; then
-        run_podman volume ls -q
-        assert "$output" == "" "Leaked volumes!!!"
+        leak_check
         exit_code=$((exit_code + $?))
-        run_podman network ls -q
-        # podman always exists
-        assert "$output" == "podman" "Leaked networks!!!"
-        exit_code=$((exit_code + $?))
-        run_podman pod ps -q
-        assert "$output" == "" "Leaked pods!!!"
-        exit_code=$((exit_code + $?))
-        run_podman ps -a -q
-        assert "$output" == "" "Leaked containers!!!"
-        exit_code=$((exit_code + $?))
-
-        run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
-        for line in "${lines[@]}"; do
-            set $line
-            if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
-                found_needed_image=1
-            elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
-                # This is a big image, don't force unnecessary pulls
-                :
-            else
-                exit_code=$((exit_code + 1))
-                echo "Leaked image $1 $2"
-            fi
-        done
-
-        # Make sure desired image is present
-        if [[ -z "$found_needed_image" ]]; then
-            exit_code=$((exit_code + 1))
-            die "$PODMAN_TEST_IMAGE_FQN was removed"
-        fi
     fi
 
     # Some error happened (either in teardown itself or the actual test failed)
@@ -292,6 +261,43 @@ function restore_image() {
     archive=$BATS_TMPDIR/$archive_basename.tar
 
     run_podman restore $archive
+}
+
+function leak_check() {
+    run_podman volume ls -q
+    assert "$output" == "" "Leaked volumes!!!"
+    local exit_code=$?
+    run_podman network ls -q
+    # podman always exists
+    assert "$output" == "podman" "Leaked networks!!!"
+    exit_code=$((exit_code + $?))
+    run_podman pod ps -q
+    assert "$output" == "" "Leaked pods!!!"
+    exit_code=$((exit_code + $?))
+    run_podman ps -a -q
+    assert "$output" == "" "Leaked containers!!!"
+    exit_code=$((exit_code + $?))
+
+    run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+    for line in "${lines[@]}"; do
+        set $line
+        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
+            found_needed_image=1
+        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
+            # This is a big image, don't force unnecessary pulls
+            :
+        else
+            exit_code=$((exit_code + 1))
+            echo "Leaked image $1 $2"
+        fi
+    done
+
+    # Make sure desired image is present
+    if [[ -z "$found_needed_image" ]]; then
+        exit_code=$((exit_code + 1))
+        die "$PODMAN_TEST_IMAGE_FQN was removed"
+    fi
+    return $exit_code
 }
 
 function clean_setup() {

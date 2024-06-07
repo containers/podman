@@ -37,4 +37,14 @@ function setup_suite() {
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.
 function teardown_suite() {
     stop_registry
+    local exit_code=$?
+
+    # After all tests make sure there are no leaks and cleanup if there are
+    leak_check
+    if [ $? -gt 0 ]; then
+        exit_code=$((exit_code + 1))
+        clean_setup
+    fi
+
+    return $exit_code
 }
