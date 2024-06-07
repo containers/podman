@@ -314,7 +314,7 @@ application01.MYDOMAIN.TLD {
 ```
 
 # Run the Application
-Simply Issue
+Simply Run
 ```
 podman-compose up -d
 ```
