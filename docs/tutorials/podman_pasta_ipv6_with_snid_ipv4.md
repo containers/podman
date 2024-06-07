@@ -47,6 +47,10 @@ This is NOT required in case you have a Server which has a Public IPv4 Address, 
 
 ![PODMAN Pasta Tutorial Network Diagram](https://raw.githubusercontent.com/containers/podman/tree/main/docs/tutorials/podman_pasta_ipv6_with_snid_ipv4.svg)
 
+> **Note**  
+>
+> The IPv6 Address descrbed in this Tutorial (2a01:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXX) might not apply to everybody. Some IPv6 Addresses will beging with **2a01**, some with **2a03**, some with **2003**, etc. It's just explicitely written so that it's NOT confused with the link-local addresses (such as fe80:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX).
+
 The Podman Host (Bare Metal or e.g. KVM Virtual Machine) is supposed to have:
 - Public IPv4 Address: 12.34.56.78
 - Private IPv4 Address: 172.16.1.10/24
@@ -57,7 +61,9 @@ Each Application will furthermore have an IPv6 Address, to which it will bind th
 - Port 443/udp (HTTP3)
 - Port 80/tcp (HTTP)
 
-The Applications are supposed to be located within the following Network: 2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/112 (2a01:XXXX:XXXX:XXXX:0000:0000:0001:0000 ... 2a01:XXXX:XXXX:XXXX:0000:0000:0001:ffff)
+The Applications are supposed to be located within the following Network (corresponding to `snid` Backend CIDR Configuration): 2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/112 (2a01:XXXX:XXXX:XXXX:0000:0000:0001:0000 ... 2a01:XXXX:XXXX:XXXX:0000:0000:0001:ffff). Other IPv6 Addresses are also Possible, but then you must adjust `snid` Backend CIDR accordingly !
+
+For simplicity, the Application (`application01.MYDOMAIN.TLD`) described in this Tutorial will have APPLICATION_IPV6_ADDRESS="2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001".
 
 The Remote End-Client (Laptop) is supposed to have:
 - Public IPv4 Address: 98.76.54.32
@@ -164,6 +170,13 @@ application01          IN      A    12.34.56.78
 # Compose File Setup
 Two different Approaches for the Compose File are Possible and both Work.
 
+## env File
+In order to simplify the Setup, it is Proposed to store the IP Address in an `.env` File.
+
+```
+echo 'APPLICATION_IPV6_ADDRESS="2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001"' >> .env
+```
+
 ## Compose with Port Mapping + Minimal Pasta Line
 With this Method, `podman ps` will show the Open Ports in its Output.
 
@@ -180,22 +193,21 @@ services:
       - label=type:container_runtime_t
     ports:
       - target: 80
-        host_ip: "[2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001]"
+        host_ip: "[${APPLICATION_IPV6_ADDRESS}]"
         published: 80
         protocol: tcp
       - target: 443
-        host_ip: "[2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001]"
+        host_ip: "[${APPLICATION_IPV6_ADDRESS}]"
         published: 443
         protocol: tcp
       - target: 443
-        host_ip: "[2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001]"
+        host_ip: "[${APPLICATION_IPV6_ADDRESS}]"
         published: 443
         protocol: udp
     network_mode: "pasta:--ipv6-only"
     volumes:
  #     - /run/user/1001/podman/podman.sock:/var/run/docker.sock:rw,z
       - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
-      - ~/containers/local/caddy:/srv:ro,z
       - ~/containers/data/caddy:/data:rw,z
       - ~/containers/log/caddy:/var/log:rw,z
       - ~/containers/config/caddy:/config:rw,z
@@ -232,11 +244,10 @@ services:
     security_opt:
       - no-new-privileges:true
       - label=type:container_runtime_t
-    network_mode: "pasta:--ipv6-only,-t,2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/80,-t,2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/443,-u,2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/443"
+    network_mode: "pasta:--ipv6-only,-t,${APPLICATION_IPV6_ADDRESS}/80,-t,${APPLICATION_IPV6_ADDRESS}/443,-u,${APPLICATION_IPV6_ADDRESS}/443"
     volumes:
  #     - /run/user/1001/podman/podman.sock:/var/run/docker.sock:rw,z
       - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
-      - ~/containers/local/caddy:/srv:ro,z
       - ~/containers/data/caddy:/data:rw,z
       - ~/containers/log/caddy:/var/log:rw,z
       - ~/containers/config/caddy:/config:rw,z
@@ -262,7 +273,7 @@ services:
 # Caddy Proxy Configuration
 For Simple Configurations of Applications and automatically generating a SSL Certificate using Letsencrypt with the HTTP(S) Challenge, one can just define `command` within the `compose.yml` File to something like:
 ```
-command: reverse-proxy --from application01.MYDOMAIN.TLD --to 'https//::1:8080'
+command: reverse-proxy --from application01.MYDOMAIN.TLD --to 'http//[::1]:8080'
 ```
 
 For semi-automated Setups, one can use the `lucaslorentz/caddy-docker-proxy` Docker Image, which allows to set Caddy Options directly within the `compose.yml` File.
