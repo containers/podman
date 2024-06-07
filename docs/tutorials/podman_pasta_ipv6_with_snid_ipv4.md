@@ -48,24 +48,24 @@ This is NOT required in case you have a Server which has a Public IPv4 Address, 
 ![PODMAN Pasta Tutorial Network Diagram](podman_pasta_ipv6_with_snid_ipv4.png)
 
 The Podman Host (Bare Metal or e.g. KVM Virtual Machine) is supposed to have:
-- Public IPv4 Address: 198.51.100.10 (https://www.rfc-editor.org/rfc/rfc5737)
-- Private IPv4 Address: 172.16.1.10/24
-- Public+Private IPv6 Address: IPv6: 2001:db8:0000:0001:0000:0000:0000:0100/128 (https://www.rfc-editor.org/rfc/rfc3849.html)
+- Public IPv4 Address: `198.51.100.10` (https://www.rfc-editor.org/rfc/rfc5737)
+- Private IPv4 Address: `172.16.1.10/24`
+- Public+Private IPv6 Address: IPv6: `2001:db8:0000:0001:0000:0000:0000:0100/128` (https://www.rfc-editor.org/rfc/rfc3849.html)
 
 Each Application will furthermore have an IPv6 Address, to which it will bind the Required Ports, which are typically:
-- Port 443/tcp (HTTPS)
-- Port 443/udp (HTTP3)
-- Port 80/tcp (HTTP)
+- Port `443/tcp` (HTTPS)
+- Port `443/udp` (HTTP3)
+- Port `80/tcp` (HTTP)
 
-The Applications are supposed to be located within the following Network (corresponding to `snid` Backend CIDR Configuration): 2001:db8:0000:0001:0000:0000:0001:0000/112 (2001:db8:0000:0001:0000:0000:0001:0000 ... 2001:db8:0000:0001:0000:0000:0001:ffff). Other IPv6 Addresses are also Possible, but then you must adjust `snid` Backend CIDR accordingly !
+The Applications are supposed to be located within the following Network (corresponding to `snid` Backend CIDR Configuration): `2001:db8:0000:0001:0000:0000:0001:0000/112` (`2001:db8:0000:0001:0000:0000:0001:0000` ... `2001:db8:0000:0001:0000:0000:0001:ffff`). Other IPv6 Addresses are also Possible, but then you must adjust `snid` Backend CIDR accordingly !
 
-For simplicity, the Application (`application01.MYDOMAIN.TLD`) described in this Tutorial will have APPLICATION_IPV6_ADDRESS="2001:db8:0000:0001:0000:0000:0001:0001".
+For simplicity, the Application (`application01.MYDOMAIN.TLD`) described in this Tutorial will have `APPLICATION_IPV6_ADDRESS="2001:db8:0000:0001:0000:0000:0001:0001"`.
 
 One Remote End-Client (Laptop) is supposed to have IPv4 Address:
-- Public IPv4 Address: 192.0.2.100 (https://www.rfc-editor.org/rfc/rfc5737)
+- Public IPv4 Address: `192.0.2.100` (https://www.rfc-editor.org/rfc/rfc5737)
 
 Another Remote End-Client (Laptop) is supposed to have IPv6 Address:
-- Public+Private IPv6 Address: 2001:db8:2222:2222:0000:0000:0000:0100/64 (https://www.rfc-editor.org/rfc/rfc3849.html)
+- Public+Private IPv6 Address: `2001:db8:2222:2222:0000:0000:0000:0100/128` (https://www.rfc-editor.org/rfc/rfc3849.html)
 
 The IP Addresses of the Routers/Firewalls themselves are not described in this Section, as they are not relevant for the Configuration described by this Tutorial.
 
@@ -172,7 +172,7 @@ Two different Approaches for the Compose File are Possible and both Work.
 In order to simplify the Setup, it is Proposed to store the IP Address in an `.env` File.
 
 ```
-echo 'APPLICATION_IPV6_ADDRESS="2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001"' >> .env
+echo 'APPLICATION_IPV6_ADDRESS="2001:db8:0000:0001:0000:0000:0001:0001"' >> .env
 ```
 
 In this way, the `compose.yml` can be evaluated with the `${APPLICATION_IPV6_ADDRESS}` Variable replaced by its Value, by running:
