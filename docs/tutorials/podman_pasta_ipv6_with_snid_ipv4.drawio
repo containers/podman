@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-06-07T21:44:43.162Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.1.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="GlYEdw-9E1r2p5Us09fi" version="24.1.0" type="device" pages="2">
+<mxfile host="Electron" modified="2024-06-07T21:52:46.423Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.1.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="mmTERM3Lnne-t45KrOke" version="24.1.0" type="device" pages="2">
   <diagram name="Overview" id="oKqNL2IKdhE9CAWH1NSY">
     <mxGraphModel dx="5150" dy="3755" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
@@ -268,7 +268,7 @@
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-27" value="" style="endArrow=none;html=1;rounded=0;exitX=0.6;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;strokeColor=#3333FF;" parent="1" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
             <mxPoint x="1810.7" y="-622" as="sourcePoint" />
-            <mxPoint x="2283" y="-620" as="targetPoint" />
+            <mxPoint x="1810" y="-390" as="targetPoint" />
           </mxGeometry>
         </mxCell>
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-28" value="" style="endArrow=none;html=1;rounded=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#FF0000;" parent="1" edge="1">
@@ -277,7 +277,7 @@
             <mxPoint x="1810" y="-642" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="soPqu_y1jMZuwhRrMYeZ-29" value="Remote Client" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1" parent="1" vertex="1">
+        <mxCell id="soPqu_y1jMZuwhRrMYeZ-29" value="Remote Client IPv4" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1" parent="1" vertex="1">
           <mxGeometry x="2284" y="-592" width="158" height="32" as="geometry" />
         </mxCell>
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-30" value="IPv4 Public IP: 98.76.54.32" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
@@ -290,7 +290,7 @@
           <mxGeometry x="915" y="-575" width="383" height="32" as="geometry" />
         </mxCell>
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-33" value="IPv6 LAN/DMZ IP: 2a03:YYYY:YYYY:YY00:0000:0000:0000:0100/64" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
-          <mxGeometry x="2150" y="-528" width="594" height="32" as="geometry" />
+          <mxGeometry x="2137" y="-340" width="594" height="32" as="geometry" />
         </mxCell>
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-34" value="IPv4 DMZ/LAN IP: 192.168.1.1/24" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="1754" y="-747" width="383" height="32" as="geometry" />
@@ -306,6 +306,18 @@
         </mxCell>
         <mxCell id="Wu05s-RQ8ERPaBZJQj9o-1" value="IPv6: ${APPLICATION_IPV6_ADDRESS}" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" vertex="1" parent="1">
           <mxGeometry x="663" y="510" width="473" height="32" as="geometry" />
+        </mxCell>
+        <mxCell id="Wu05s-RQ8ERPaBZJQj9o-2" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#3333FF;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="2290" y="-390.48" as="sourcePoint" />
+            <mxPoint x="1810" y="-390.48" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Wu05s-RQ8ERPaBZJQj9o-3" value="" style="image;html=1;image=img/lib/clip_art/computers/Laptop_128x128.png" vertex="1" parent="1">
+          <mxGeometry x="2327" y="-461" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Wu05s-RQ8ERPaBZJQj9o-4" value="Remote Client IPv6" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1" vertex="1" parent="1">
+          <mxGeometry x="2294" y="-383" width="158" height="32" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
