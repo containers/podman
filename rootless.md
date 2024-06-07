@@ -8,6 +8,8 @@ Contributors are more than welcomed to help with this work.  If you decide to ca
   * The kernel does not allow processes without CAP_NET_BIND_SERVICE to bind to low ports.
   * You can modify the `net.ipv4.ip_unprivileged_port_start` sysctl to change the lowest port.  For example `sysctl net.ipv4.ip_unprivileged_port_start=443` allows rootless Podman containers to bind to ports >= 443.
   * A proxy server, kernel firewall rule, or redirection tool such as [redir](https://github.com/troglobit/redir) may be used to redirect traffic from a privileged port to an unprivileged one (where a podman pod is bound) in a server scenario - where a user has access to the root account (or setuid on the binary would be an acceptable risk), but wants to run the containers as an unprivileged user for enhanced security and for a limited number of pre-known ports.
+* As of Podman 5.0, pasta is the default networking tool. Since pasta copies the IP address of the main interface, connections to that IP from containers do not work. This means that unless you have more than one interface, inter-container connections cannot be made without explicitly passing a pasta network configuration, either in `containers.conf` or at runtime.
+  * If you previously had port forwards (ex. via -p 80:80) that other containers could access, you can either revert back to slirp4netns or use the solution (setting pasta options with 10.0.2.x IPs) posted [here](https://blog.podman.io/2024/03/podman-5-0-breaking-changes-in-detail/).
 * “How To” documentation is patchy at best.
 * If /etc/subuid and /etc/subgid are not set up for a user, then podman commands
 can easily fail
