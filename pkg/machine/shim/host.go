@@ -636,38 +636,61 @@ func confirmationMessage(files []string) {
 	}
 }
 
-func Reset(dirs *machineDefine.MachineDirs, mp vmconfigs.VMProvider, mcs map[string]*vmconfigs.MachineConfig) error {
+func Reset(mps []vmconfigs.VMProvider, opts machine.ResetOptions) error {
 	var resetErrors *multierror.Error
-	for _, mc := range mcs {
-		err := Stop(mc, mp, dirs, true)
-		if err != nil {
-			resetErrors = multierror.Append(resetErrors, err)
-		}
-		_, genericRm, err := mc.Remove(false, false)
-		if err != nil {
-			resetErrors = multierror.Append(resetErrors, err)
-		}
-		_, providerRm, err := mp.Remove(mc)
-		if err != nil {
-			resetErrors = multierror.Append(resetErrors, err)
-		}
+	removeDirs := []*machineDefine.MachineDirs{}
 
-		if err := genericRm(); err != nil {
+	for _, p := range mps {
+		d, err := env.GetMachineDirs(p.VMType())
+		if err != nil {
 			resetErrors = multierror.Append(resetErrors, err)
+			continue
 		}
-		if err := providerRm(); err != nil {
+		mcs, err := vmconfigs.LoadMachinesInDir(d)
+		if err != nil {
 			resetErrors = multierror.Append(resetErrors, err)
+			continue
+		}
+		removeDirs = append(removeDirs, d)
+
+		for _, mc := range mcs {
+			err := Stop(mc, p, d, true)
+			if err != nil {
+				resetErrors = multierror.Append(resetErrors, err)
+			}
+			_, genericRm, err := mc.Remove(false, false)
+			if err != nil {
+				resetErrors = multierror.Append(resetErrors, err)
+			}
+			_, providerRm, err := p.Remove(mc)
+			if err != nil {
+				resetErrors = multierror.Append(resetErrors, err)
+			}
+
+			if err := genericRm(); err != nil {
+				resetErrors = multierror.Append(resetErrors, err)
+			}
+			if err := providerRm(); err != nil {
+				resetErrors = multierror.Append(resetErrors, err)
+			}
 		}
 	}
 
 	// Delete the various directories
+	// We do this after all the provider rm's, since providers may still share the base machine dir.
 	// Note: we cannot delete the machine run dir blindly like this because
 	// other things live there like the podman.socket and so forth.
-
-	// in linux this ~/.local/share/containers/podman/machine
-	dataDirErr := utils.GuardedRemoveAll(filepath.Dir(dirs.DataDir.GetPath()))
-	// in linux this ~/.config/containers/podman/machine
-	confDirErr := utils.GuardedRemoveAll(filepath.Dir(dirs.ConfigDir.GetPath()))
-	resetErrors = multierror.Append(resetErrors, confDirErr, dataDirErr)
+	for _, dir := range removeDirs {
+		// in linux this ~/.local/share/containers/podman/machine
+		dataDirErr := utils.GuardedRemoveAll(filepath.Dir(dir.DataDir.GetPath()))
+		if !errors.Is(dataDirErr, os.ErrNotExist) {
+			resetErrors = multierror.Append(resetErrors, dataDirErr)
+		}
+		// in linux this ~/.config/containers/podman/machine
+		confDirErr := utils.GuardedRemoveAll(filepath.Dir(dir.ConfigDir.GetPath()))
+		if !errors.Is(confDirErr, os.ErrNotExist) {
+			resetErrors = multierror.Append(resetErrors, confDirErr)
+		}
+	}
 	return resetErrors.ErrorOrNil()
 }

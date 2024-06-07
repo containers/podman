@@ -38,6 +38,10 @@ func Get() (vmconfigs.VMProvider, error) {
 	}
 }
 
+func GetAll(_ bool) ([]vmconfigs.VMProvider, error) {
+	return []vmconfigs.VMProvider{new(qemu.QEMUStubber)}, nil
+}
+
 // SupportedProviders returns the providers that are supported on the host operating system
 func SupportedProviders() []define.VMType {
 	return []define.VMType{define.QemuVirt}

@@ -43,6 +43,18 @@ func Get() (vmconfigs.VMProvider, error) {
 	}
 }
 
+func GetAll(force bool) ([]vmconfigs.VMProvider, error) {
+	providers := []vmconfigs.VMProvider{
+		new(wsl.WSLStubber),
+	}
+	if !wsl.HasAdminRights() && !force {
+		logrus.Warn("managing hyperv machines require admin authority.")
+	} else {
+		providers = append(providers, new(hyperv.HyperVStubber))
+	}
+	return providers, nil
+}
+
 // SupportedProviders returns the providers that are supported on the host operating system
 func SupportedProviders() []define.VMType {
 	return []define.VMType{define.HyperVVirt, define.WSLVirt}
