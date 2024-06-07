@@ -3,24 +3,25 @@
 package wutil
 
 import (
-	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 
 	"github.com/containers/storage/pkg/fileutils"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
+	"golang.org/x/sys/windows"
 )
 
 var (
 	once    sync.Once
 	wslPath string
+)
+
+const (
+	// https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+	flagsCreateNoWindow = 0x08000000
 )
 
 func FindWSL() string {
@@ -32,16 +33,12 @@ func FindWSL() string {
 		var locs []string
 
 		// Prefer Windows App Store version
-		if localapp := getLocalAppData(); localapp != "" {
-			locs = append(locs, filepath.Join(localapp, "Microsoft", "WindowsApps", "wsl.exe"))
+		if p, ok := getLocalAppData(); ok {
+			locs = append(locs, filepath.Join(p, "Microsoft", "WindowsApps", "wsl.exe"))
 		}
 
 		// Otherwise, the common location for the legacy system version
-		root := os.Getenv("SystemRoot")
-		if root == "" {
-			root = `C:\Windows`
-		}
-		locs = append(locs, filepath.Join(root, "System32", "wsl.exe"))
+		locs = append(locs, filepath.Join(getSystem32Root(), "wsl.exe"))
 
 		for _, loc := range locs {
 			if err := fileutils.Exists(loc); err == nil {
@@ -57,22 +54,8 @@ func FindWSL() string {
 	return wslPath
 }
 
-func getLocalAppData() string {
-	localapp := os.Getenv("LOCALAPPDATA")
-	if localapp != "" {
-		return localapp
-	}
-
-	if user := os.Getenv("USERPROFILE"); user != "" {
-		return filepath.Join(user, "AppData", "Local")
-	}
-
-	return localapp
-}
-
 func SilentExec(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
+	cmd := SilentExecCmd(command, args...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
@@ -83,28 +66,22 @@ func SilentExec(command string, args ...string) error {
 
 func SilentExecCmd(command string, args ...string) *exec.Cmd {
 	cmd := exec.Command(command, args...)
-	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
+	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: flagsCreateNoWindow}
 	return cmd
 }
 
 func IsWSLInstalled() bool {
-	cmd := SilentExecCmd(FindWSL(), "--status")
-	out, err := cmd.StdoutPipe()
-	cmd.Stderr = nil
-	if err != nil {
-		return false
-	}
-	if err = cmd.Start(); err != nil {
+	// If the kernel file does not exist,
+	// it means that the current system has only enabled the Features without running wsl --update
+	if !existsKernel() {
 		return false
 	}
 
-	kernelNotFound := matchOutputLine(out, "kernel file is not found")
-
-	if err := cmd.Wait(); err != nil {
+	if err := SilentExec(FindWSL(), "--status"); err != nil {
 		return false
 	}
 
-	return !kernelNotFound
+	return true
 }
 
 func IsWSLStoreVersionInstalled() bool {
@@ -118,13 +95,50 @@ func IsWSLStoreVersionInstalled() bool {
 	return true
 }
 
-func matchOutputLine(output io.ReadCloser, match string) bool {
-	scanner := bufio.NewScanner(transform.NewReader(output, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.Contains(line, match) {
-			return true
-		}
+func existsKernel() bool {
+	// from `MSI` or `Windows Update`
+	kernel := filepath.Join(getSystem32Root(), "lxss", "tools", "kernel")
+	if err := fileutils.Exists(kernel); err == nil {
+		return true
 	}
+
+	// from `Microsoft Store` or `Github`
+	kernel = filepath.Join(getProgramFiles(), "WSL", "tools", "kernel")
+	if err := fileutils.Exists(kernel); err == nil {
+		return true
+	}
+
 	return false
+}
+
+func getLocalAppData() (result string, ok bool) {
+	if local := os.Getenv("LOCALAPPDATA"); local != "" {
+		return local, true
+	}
+
+	if user := os.Getenv("USERPROFILE"); user != "" {
+		return filepath.Join(user, "AppData", "Local"), true
+	}
+
+	return "", false
+}
+
+func getSystem32Root() string {
+	if p := os.Getenv("SystemRoot"); p != "" {
+		return filepath.Join(p, "System32")
+	}
+
+	if p, err := windows.GetSystemDirectory(); err == nil {
+		return p
+	}
+
+	return `C:\Windows\System32`
+}
+
+func getProgramFiles() string {
+	if p := os.Getenv("ProgramFiles"); p != "" {
+		return p
+	}
+
+	return `C:\Program Files`
 }
