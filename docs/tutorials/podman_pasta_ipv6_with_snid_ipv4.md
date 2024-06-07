@@ -345,12 +345,12 @@ It is reccomended to test against something like `traefik/whoami` Application (a
 
 IPv6 Test
 ```
-curl --vvv -6 application01.MYDOMAIN.TLD
+curl -vvv -6 application01.MYDOMAIN.TLD
 ```
 
 IPv4 Test
 ```
-curl --vvv -4 application01.MYDOMAIN.TLD
+curl -vvv -4 application01.MYDOMAIN.TLD
 ```
 
 In case of Issues in the IPv4 Test, check the `snid` Service Status for Clues:
