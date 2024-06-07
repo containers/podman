@@ -369,3 +369,9 @@ cat ~/containers/log/caddy/application01.MYDOMAIN.TLD/access.json | jq -r
 This [Tool](https://github.com/luckylinux/ipv6-decode-ipv4-address) can be used to Translate IPv4-Embedded Addresses (within an IPv6 Address, done by `snid` through `NAT46`) back to the Original IPv4 Address.
 
 Simply read the Logs and look for `request`, especially `client_ip` and `remote_ip`.
+
+#  References
+Other Useful References:
+- https://docs.freifunk-franken.de/technik-und-konzepte/sni-proxy/
+- https://git.freifunk-franken.de/freifunk-franken/docs/raw/branch/master/content/technik-und-konzepte/sni-proxy.md
+- https://www.agwa.name/blog/post/using_sni_proxying_and_ipv6_to_share_port_443
