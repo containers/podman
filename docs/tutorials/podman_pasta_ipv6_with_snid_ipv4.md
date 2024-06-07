@@ -177,6 +177,11 @@ In order to simplify the Setup, it is Proposed to store the IP Address in an `.e
 echo 'APPLICATION_IPV6_ADDRESS="2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001"' >> .env
 ```
 
+In this way, the `compose.yml` can be evaluated with the `${APPLICATION_IPV6_ADDRESS}` Variable replaced by its Value, by running:
+```
+podman-compose config
+```
+
 ## Compose with Port Mapping + Minimal Pasta Line
 With this Method, `podman ps` will show the Open Ports in its Output.
 
