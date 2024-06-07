@@ -45,29 +45,27 @@ This Tutorial assumes the General "Homelab" Setup (within a LAN/VLAN), or Hosted
 
 This is NOT required in case you have a Server which has a Public IPv4 Address, however for the sake of Explanation, the NAT Setup is best, especially with regards to logging the Remote Client IPv4 Address.
 
-![PODMAN Pasta Tutorial Network Diagram](https://raw.githubusercontent.com/containers/podman/tree/main/docs/tutorials/podman_pasta_ipv6_with_snid_ipv4.svg)
-
-> **Note**  
->
-> The IPv6 Address descrbed in this Tutorial (2a01:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXX) might not apply to everybody. Some IPv6 Addresses will beging with **2a01**, some with **2a03**, some with **2003**, etc. It's just explicitely written so that it's NOT confused with the link-local addresses (such as fe80:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX).
+![PODMAN Pasta Tutorial Network Diagram](podman_pasta_ipv6_with_snid_ipv4.svg)
 
 The Podman Host (Bare Metal or e.g. KVM Virtual Machine) is supposed to have:
-- Public IPv4 Address: 12.34.56.78
+- Public IPv4 Address: 198.51.100.10 (https://www.rfc-editor.org/rfc/rfc5737)
 - Private IPv4 Address: 172.16.1.10/24
-- Public+Private IPv6 Address: IPv6: 2a01:XXXX:XXXX:XX01:0000:0000:0000:0100/128
+- Public+Private IPv6 Address: IPv6: 2001:db8:0000:0001:0000:0000:0000:0100/128 (https://www.rfc-editor.org/rfc/rfc3849.html)
 
 Each Application will furthermore have an IPv6 Address, to which it will bind the Required Ports, which are typically:
 - Port 443/tcp (HTTPS)
 - Port 443/udp (HTTP3)
 - Port 80/tcp (HTTP)
 
-The Applications are supposed to be located within the following Network (corresponding to `snid` Backend CIDR Configuration): 2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/112 (2a01:XXXX:XXXX:XXXX:0000:0000:0001:0000 ... 2a01:XXXX:XXXX:XXXX:0000:0000:0001:ffff). Other IPv6 Addresses are also Possible, but then you must adjust `snid` Backend CIDR accordingly !
+The Applications are supposed to be located within the following Network (corresponding to `snid` Backend CIDR Configuration): 2001:db8:0000:0001:0000:0000:0001:0000/112 (2001:db8:0000:0001:0000:0000:0001:0000 ... 2001:db8:0000:0001:0000:0000:0001:ffff). Other IPv6 Addresses are also Possible, but then you must adjust `snid` Backend CIDR accordingly !
 
-For simplicity, the Application (`application01.MYDOMAIN.TLD`) described in this Tutorial will have APPLICATION_IPV6_ADDRESS="2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001".
+For simplicity, the Application (`application01.MYDOMAIN.TLD`) described in this Tutorial will have APPLICATION_IPV6_ADDRESS="2001:db8:0000:0001:0000:0000:0001:0001".
 
-The Remote End-Client (Laptop) is supposed to have:
-- Public IPv4 Address: 98.76.54.32
-- Public+Private IPv6 Address: 2a03:YYYY:YYYY:YY00:0000:0000:0000:0100/64
+One Remote End-Client (Laptop) is supposed to have IPv4 Address:
+- Public IPv4 Address: 192.0.2.100 (https://www.rfc-editor.org/rfc/rfc5737)
+
+Another Remote End-Client (Laptop) is supposed to have IPv6 Address:
+- Public+Private IPv6 Address: 2001:db8:2222:2222:0000:0000:0000:0100/64 (https://www.rfc-editor.org/rfc/rfc3849.html)
 
 The IP Addresses of the Routers/Firewalls themselves are not described in this Section, as they are not relevant for the Configuration described by this Tutorial.
 
@@ -96,7 +94,7 @@ Then create a Systemd Service for it in `/etc/systemd/system/snid.service`
 ```
 # To get SNID to work:
 # Backend CIDR is supposed to be:
-# - Backend CIDR: 2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/112 (2a01:XXXX:XXXX:XXXX:0000:0000:0001:0000 ... 2a01:XXXX:XXXX:XXXX:0000:0000:0001:ffff)
+# - Backend CIDR: 2001:db8:0000:0001:0000:0000:0001:0001/112 (2001:db8:0000:0001:0000:0000:0001:0000 ... 2001:db8:0000:0001:0000:0000:0001:ffff)
 #
 # Convert IPv4 Address to IPv6 Address Representation: 
 # - https://www.agwa.name/blog/post/using_sni_proxying_and_ipv6_to_share_port_443
@@ -109,7 +107,7 @@ Description=SNID Service
 [Service]
 # Running as rootless does NOT appear to work, even when adding AmbientCapabilities=CAP_NET_BIND_SERVICE
 User=root
-ExecStart=/bin/bash -c 'cd /opt/snid && ip route add local 64:ff9b:1::/96 dev lo && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/112'
+ExecStart=/bin/bash -c 'cd /opt/snid && ip route add local 64:ff9b:1::/96 dev lo && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
 ExecStop=/bin/bash -c 'cd /opt/snid && ip route del local 64:ff9b:1::/96 dev lo'
 
 [Install]
@@ -133,14 +131,14 @@ Check that no Errors occurred !
 
 General:
 ```
-ip -6 addr add 2a01:XXXX:XXXX:XX01:0000:0000:0001:0001/64 dev ens18 
+ip -6 addr add 2001:db8:0000:0001:0000:0000:0001:0001/64 dev ens18 
 ```
 
 For Fedora:
 ```
 nmcli connection edit ens18
 set ipv6.address
-2a01:XXXX:XXXX:XX01:0000:0000:0001:0001
+2001:db8:0000:0001:0000:0000:0001:0001
 "Do you want to set 'ipv6.method' to manual"? -> no
 nmcli connection show ens18 | grep -i addr
 systemctl restart NetworkManager
@@ -148,19 +146,19 @@ systemctl restart NetworkManager
 
 For Debian/Ubuntu add in `/etc/network/interfaces` (or `/etc/network/interfaces.d/<my-interface>`) a line within the relevant Interface Block:
 ```
-ip -6 addr add 2a01:XXXX:XXXX:XX01:0000:0000:0001:0001/64 dev ens18
+ip -6 addr add 2001:db8:0000:0001:0000:0000:0001:0001/64 dev ens18
 ```
 
 # DNS Setup
 In Order for Direct IPv6 Connectivity to work, an appropriate AAAA (IPv6) Record Must be present for the Application Hostname:
 ```
-application01          IN      AAAA    2a01:XXXX:XXXX:XX01:0000:0000:0001:0001
+application01          IN      AAAA    2001:db8:0000:0001:0000:0000:0001:0001
 ```
 
 For IPv4 Connectivity, it is the IPv4 Address of the `snid` Host that must be Entered.
 In this Tutorial, since `snid` is assumed to be running on the Podman Host itself, this simply means creating an A Record for the Podman Host itself:
 ```
-application01          IN      A    12.34.56.78
+application01          IN      A    198.51.100.10
 ```
 
 > **Warning**  

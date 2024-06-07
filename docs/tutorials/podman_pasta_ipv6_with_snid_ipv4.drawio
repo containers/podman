@@ -1,6 +1,6 @@
-<mxfile host="Electron" modified="2024-06-07T22:17:53.062Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.1.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="NN4GwumADTr0xqnKFZhw" version="24.1.0" type="device" pages="2">
+<mxfile host="Electron" modified="2024-06-07T22:39:46.891Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/24.1.0 Chrome/120.0.6099.109 Electron/28.1.0 Safari/537.36" etag="PxcCg6xwD83iVMgrz0L6" version="24.1.0" type="device" pages="2">
   <diagram name="Overview" id="oKqNL2IKdhE9CAWH1NSY">
-    <mxGraphModel dx="5289" dy="3169" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+    <mxGraphModel dx="4914" dy="2956" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -58,8 +58,8 @@
         <mxCell id="ukD8bkUh3ZVpIychYJzi-21" value="IPv4: 172.16.1.10 /24 via 172.16.1.1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="640" y="34" width="473" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="ukD8bkUh3ZVpIychYJzi-22" value="IPv4 Public IP: 12.34.56.78" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
-          <mxGeometry x="110" y="551" width="230" height="32" as="geometry" />
+        <mxCell id="ukD8bkUh3ZVpIychYJzi-22" value="IPv4 Public IP: 198.51.100.10" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+          <mxGeometry x="110" y="551" width="260" height="32" as="geometry" />
         </mxCell>
         <mxCell id="ukD8bkUh3ZVpIychYJzi-23" value="" style="image;html=1;image=img/lib/clip_art/networking/Router_Icon_128x128.png" parent="1" vertex="1">
           <mxGeometry x="170" y="442.88" width="81" height="80" as="geometry" />
@@ -73,25 +73,25 @@
             <mxPoint x="-570" y="800" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ukD8bkUh3ZVpIychYJzi-30" value="IPv6: 2a01:XXXX:XXXX:XX01:0000:0000:0000:0100/128" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="ukD8bkUh3ZVpIychYJzi-30" value="IPv6: 2001:db8:0000:0001:0000:0000:0000:0100/128" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="640" y="63" width="473" height="32" as="geometry" />
         </mxCell>
         <mxCell id="ukD8bkUh3ZVpIychYJzi-32" value="" style="image;html=1;image=img/lib/clip_art/networking/Firewall_02_128x128.png" parent="1" vertex="1">
           <mxGeometry x="-50" y="439" width="80" height="80" as="geometry" />
         </mxCell>
-        <mxCell id="ukD8bkUh3ZVpIychYJzi-33" value="IPv6 Prefix: 2a01:XXXX:XXXX:XXXX::/56" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="ukD8bkUh3ZVpIychYJzi-33" value="IPv6 Prefix: 2001:db8:0000:0001::/56" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="70.75" y="583" width="383" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="ukD8bkUh3ZVpIychYJzi-35" value="&amp;nbsp;( 2a01:XXXX:XXXX:XX01:0000:0000:0001:0001/128 )" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="ukD8bkUh3ZVpIychYJzi-35" value="&amp;nbsp;( 2001:db8:0000:0001:0000:0000:0001:0001/128 )" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="700" y="540" width="473" height="32" as="geometry" />
         </mxCell>
         <mxCell id="ukD8bkUh3ZVpIychYJzi-56" value="..." style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=48;direction=south;rotation=90;" parent="1" vertex="1">
           <mxGeometry x="756" y="795" height="60" as="geometry" />
         </mxCell>
-        <mxCell id="ukD8bkUh3ZVpIychYJzi-57" value="IPv6: 2a01:XXXX:XXXX:XX01:0000:0000:0001:0002/128" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="ukD8bkUh3ZVpIychYJzi-57" value="IPv6: 2001:db8:0000:0001:0000:0000:0001:0002/128" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="664" y="755" width="473" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="ukD8bkUh3ZVpIychYJzi-58" value="IPv6: 2a01:XXXX:XXXX:XX01:0000:0000:0001:00NM/128" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="ukD8bkUh3ZVpIychYJzi-58" value="IPv6: 2001:db8:0000:0001:0000:0000:0001:00NM/128" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="664" y="1022" width="473" height="32" as="geometry" />
         </mxCell>
         <mxCell id="LBH49fOION36RNThnHYK-1" value="Caddy Reverse Proxy" style="rounded=0;whiteSpace=wrap;html=1;" parent="1" vertex="1">
@@ -115,8 +115,8 @@
         <mxCell id="LBH49fOION36RNThnHYK-7" value="NAT46 Prefix:&amp;nbsp;64:ff9b:1::/96" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="676" y="280" width="232" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="LBH49fOION36RNThnHYK-8" value="Backend:&amp;nbsp;2a01:XXXX:XXXX:XX01:0000:0000:0001:0001/112" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
-          <mxGeometry x="676" y="312" width="232" height="32" as="geometry" />
+        <mxCell id="LBH49fOION36RNThnHYK-8" value="Backend: 2001:db8:0000:0001:0000:0000:0001:0000/112" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+          <mxGeometry x="676" y="312" width="504" height="32" as="geometry" />
         </mxCell>
         <mxCell id="LBH49fOION36RNThnHYK-10" value="IPv4 Connection" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0;fontColor=#FF0000;" parent="1" vertex="1">
           <mxGeometry x="-21" y="60" width="140" height="32" as="geometry" />
@@ -223,10 +223,10 @@
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-29" value="Remote Client IPv4" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1" parent="1" vertex="1">
           <mxGeometry x="-720" y="135" width="158" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="soPqu_y1jMZuwhRrMYeZ-30" value="IPv4 Public IP: 98.76.54.32" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="soPqu_y1jMZuwhRrMYeZ-30" value="IPv4 Public IP: 192.0.2.100" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="-480" y="300" width="383" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="soPqu_y1jMZuwhRrMYeZ-33" value="IPv6 IP: 2a03:YYYY:YYYY:YY00:0000:0000:0000:0100/64" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
+        <mxCell id="soPqu_y1jMZuwhRrMYeZ-33" value="IPv6 IP: 2001:db8:2222:2222:0000:0000:0000:0100/64" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=0" parent="1" vertex="1">
           <mxGeometry x="-486" y="741" width="594" height="32" as="geometry" />
         </mxCell>
         <mxCell id="soPqu_y1jMZuwhRrMYeZ-37" value="Internet" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1" parent="1" vertex="1">
