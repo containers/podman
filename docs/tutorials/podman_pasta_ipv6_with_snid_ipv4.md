@@ -45,7 +45,7 @@ This Tutorial assumes the General "Homelab" Setup (within a LAN/VLAN), or Hosted
 
 This is NOT required in case you have a Server which has a Public IPv4 Address, however for the sake of Explanation, the NAT Setup is best, especially with regards to logging the Remote Client IPv4 Address.
 
-![PODMAN Pasta Tutorial Network Diagram](podman_pasta_ipv6_with_snid_ipv4.svg)
+![PODMAN Pasta Tutorial Network Diagram](podman_pasta_ipv6_with_snid_ipv4.png)
 
 The Podman Host (Bare Metal or e.g. KVM Virtual Machine) is supposed to have:
 - Public IPv4 Address: 198.51.100.10 (https://www.rfc-editor.org/rfc/rfc5737)
