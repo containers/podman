@@ -327,6 +327,8 @@ podman-compose --podman-run-args="--log-level=debug" up
 # Testing
 From a Remote Client (NOT located withing the same LAN, try to use 4G/LTE Connectivity otherwise) test that Connectivity is working.
 
+It is reccomended to test against something like `traefik/whoami` Application (as described in this Tutorial's `compose.yml` File), which can display many Parameters, including HTTP and especially X-Forwarded-For Headers.
+
 IPv6 Test
 ```
 curl --vvv -6 application01.MYDOMAIN.TLD
@@ -342,3 +344,14 @@ In case of Issues in the IPv4 Test, check the `snid` Service Status for Clues:
 systemctl status snid.service
 journalctl -xeu snid.service
 ```
+
+You might also want to check the `caddy` Proxy Logs for other Clues:
+```
+podman logs caddy
+cat ~/containers/log/caddy/application01.MYDOMAIN.TLD/access.json | jq -r
+```
+
+# Translating IPv6 to IPv4 based on Logs
+This [Tool](https://github.com/luckylinux/ipv6-decode-ipv4-address) can be used to Translate IPv4-Embedded Addresses (within an IPv6 Address, done by `snid` through `NAT46`) back to the Original IPv4 Address.
+
+Simply read the Logs and look for `request`, especially `client_ip` and `remote_ip`.
