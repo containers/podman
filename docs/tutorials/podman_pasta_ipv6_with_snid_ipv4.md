@@ -70,7 +70,7 @@ The IP Addresses of the Routers/Firewalls themselves are not described in this S
 > Remember to Open the Required Ports in the Upstream Firewall (e.g. OPNSense, OpenWRT, etc) as well as on the Podman Host, if a Firewall is Enabled (e.g. `firewalld`).
 
 # snid Setup
-In order to ensure that IPv4-only Remote Clients can access the Applications running on the Podman Host (Applications which ONLY have an IPv6 Address).
+In order to ensure that IPv4-only Remote Clients can access the Applications running on the Podman Host (Applications which ONLY have an IPv6 Address), an IPv4 <-> IPv6 Translation must be performed.
 
 This Setup assumes that `snid` is installed on the Podman Host itself.
 
@@ -101,7 +101,7 @@ Then create a Systemd Service for it in `/etc/systemd/system/snid.service`
 Description=SNID Service
 
 [Service]
-# Running as rootless does NOT appear to work, when when adding AmbientCapabilities=CAP_NET_BIND_SERVICE
+# Running as rootless does NOT appear to work, even when adding AmbientCapabilities=CAP_NET_BIND_SERVICE
 User=root
 ExecStart=/bin/bash -c 'cd /opt/snid && ip route add local 64:ff9b:1::/96 dev lo && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2a01:XXXX:XXXX:XXXX:0000:0000:0001:0001/112'
 ExecStop=/bin/bash -c 'cd /opt/snid && ip route del local 64:ff9b:1::/96 dev lo'
