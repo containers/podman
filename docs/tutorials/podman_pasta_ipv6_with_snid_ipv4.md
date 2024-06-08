@@ -148,8 +148,6 @@ kernel.unprivileged_userns_clone=1
 net.ipv6.ip_nonlocal_bind=1
 ```
 
-For the Routes Setup Part, do NOT put an `ExecStop` or `ExecStartPre` Condition to delete the Route if it exists, otherwise no Route will be setup at all (since the Service terminates IMMEDIATELY).
-
 `/etc/systemd/system/snid-routes.service`:
 ```
 # To get SNID to work:
@@ -168,6 +166,8 @@ Description=SNID Routes Setup Service
 #Type=oneshot
 User=root
 ExecStart=/bin/bash -c 'ip route replace local 64:ff9b:1::/96 dev lo'
+ExecStop=/bin/bash -c 'ip route del local 64:ff9b:1::/96 dev lo'
+RemainAfterExit=yes
 
 [Install]
 WantedBy=multi-user.target
@@ -194,7 +194,9 @@ Requires=snid-routes.service
 User=podman
 Group=podman
 ExecStart=/bin/bash -c 'cd /opt/snid && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
-ExecStop=/bin/bash -c 'cd /opt/snid'
+
+# Not currently used
+#ExecStop=/bin/bash -c 'cd /opt/snid'
 
 [Install]
 WantedBy=multi-user.target
