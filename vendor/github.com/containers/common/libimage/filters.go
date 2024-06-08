@@ -81,7 +81,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 	var tree *layerTree
 	getTree := func() (*layerTree, error) {
 		if tree == nil {
-			t, err := r.layerTree()
+			t, err := r.layerTree(nil)
 			if err != nil {
 				return nil, err
 			}

@@ -469,6 +469,14 @@ func (c *Client) ImportImage(opts ImportImageOptions) error {
 	return c.createImage(&opts, nil, opts.InputStream, opts.OutputStream, opts.RawJSONStream, opts.InactivityTimeout, opts.Context)
 }
 
+// BuilderVersion represents either the BuildKit or V1 ("classic") builder.
+type BuilderVersion string
+
+const (
+	BuilderV1       BuilderVersion = "1"
+	BuilderBuildKit BuilderVersion = "2"
+)
+
 // BuildImageOptions present the set of informations available for building an
 // image from a tarfile with a Dockerfile in it.
 //
@@ -504,11 +512,12 @@ type BuildImageOptions struct {
 	Target              string
 	Outputs             string `ver:"1.40"`
 	NoCache             bool
-	SuppressOutput      bool `qs:"q"`
-	Pull                bool `ver:"1.16"`
-	RmTmpContainer      bool `qs:"rm"`
-	ForceRmTmpContainer bool `qs:"forcerm" ver:"1.12"`
-	RawJSONStream       bool `qs:"-"`
+	SuppressOutput      bool           `qs:"q"`
+	Pull                bool           `ver:"1.16"`
+	RmTmpContainer      bool           `qs:"rm"`
+	ForceRmTmpContainer bool           `qs:"forcerm" ver:"1.12"`
+	RawJSONStream       bool           `qs:"-"`
+	Version             BuilderVersion `qs:"version" ver:"1.39"`
 }
 
 // BuildArg represents arguments that can be passed to the image when building

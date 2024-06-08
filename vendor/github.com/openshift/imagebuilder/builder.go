@@ -39,11 +39,16 @@ type Run struct {
 	Args  []string
 	// Mounts are mounts specified through the --mount flag inside the Containerfile
 	Mounts []string
+	// Network specifies the network mode to run the container with
+	Network string
 }
 
 type Executor interface {
 	Preserve(path string) error
+	// EnsureContainerPath should ensure that the directory exists, creating any components required
 	EnsureContainerPath(path string) error
+	// EnsureContainerPathAs should ensure that the directory exists, creating any components required
+	// with the specified owner and mode, if either is specified
 	EnsureContainerPathAs(path, user string, mode *os.FileMode) error
 	Copy(excludes []string, copies ...Copy) error
 	Run(run Run, config docker.Config) error

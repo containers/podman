@@ -59,10 +59,14 @@ Other examples of Trillian personalities are available in the
 
 ## Using the Code
 
-**WARNING**: The Trillian codebase is still under development, but the Log mode
-is now being used in production by several organizations. We will try to avoid
-any further incompatible code and schema changes but cannot guarantee that they
-will never be necessary.
+The Trillian codebase is stable and is used in production by multiple
+organizations, including many large-scale 
+[Certificate Transparency](https://certificate.transparency.dev) log
+operators.
+
+Given this, we do not plan to add any new features to this version of Trillian,
+and will try to avoid any further incompatible code and schema changes but
+cannot guarantee that they will never be necessary.
 
 The current state of feature implementation is recorded in the
 [Feature implementation matrix](docs/Feature_Implementation_Matrix.md).

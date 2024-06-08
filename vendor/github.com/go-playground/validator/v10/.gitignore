@@ -28,3 +28,4 @@ _testmain.go
 *.txt
 cover.html
 README.html
+.idea

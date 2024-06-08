@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2022, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2023, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -7,6 +7,7 @@ package sif
 
 import (
 	"crypto"
+	"encoding"
 	"errors"
 	"fmt"
 	"io"
@@ -19,7 +20,7 @@ type descriptorOpts struct {
 	linkID    uint32
 	alignment int
 	name      string
-	extra     interface{}
+	md        encoding.BinaryMarshaler
 	t         time.Time
 }
 
@@ -92,6 +93,14 @@ func OptObjectTime(t time.Time) DescriptorInputOpt {
 	}
 }
 
+// OptMetadata marshals metadata from md into the "extra" field of d.
+func OptMetadata(md encoding.BinaryMarshaler) DescriptorInputOpt {
+	return func(t DataType, opts *descriptorOpts) error {
+		opts.md = md
+		return nil
+	}
+}
+
 type unexpectedDataTypeError struct {
 	got  DataType
 	want []DataType
@@ -155,7 +164,7 @@ func OptCryptoMessageMetadata(ft FormatType, mt MessageType) DescriptorInputOpt 
 			Messagetype: mt,
 		}
 
-		opts.extra = m
+		opts.md = binaryMarshaler{m}
 		return nil
 	}
 }
@@ -184,7 +193,7 @@ func OptPartitionMetadata(fs FSType, pt PartType, arch string) DescriptorInputOp
 			Arch:     sifarch,
 		}
 
-		opts.extra = p
+		opts.md = p
 		return nil
 	}
 }
@@ -221,7 +230,7 @@ func OptSignatureMetadata(ht crypto.Hash, fp []byte) DescriptorInputOpt {
 		}
 		copy(s.Entity[:], fp)
 
-		opts.extra = s
+		opts.md = binaryMarshaler{s}
 		return nil
 	}
 }
@@ -239,7 +248,7 @@ func OptSBOMMetadata(f SBOMFormat) DescriptorInputOpt {
 			Format: f,
 		}
 
-		opts.extra = s
+		opts.md = binaryMarshaler{s}
 		return nil
 	}
 }
@@ -259,7 +268,8 @@ const DefaultObjectGroup = 1
 //
 // It is possible (and often necessary) to store additional metadata related to certain types of
 // data objects. Consider supplying options such as OptCryptoMessageMetadata, OptPartitionMetadata,
-// OptSignatureMetadata, and OptSBOMMetadata for this purpose.
+// OptSignatureMetadata, and OptSBOMMetadata for this purpose. To set custom metadata, use
+// OptMetadata.
 //
 // By default, the data object will be placed in the default data object group (1). To override
 // this behavior, use OptNoGroup or OptGroupID. To link this data object, use OptLinkedID or
@@ -317,5 +327,5 @@ func (di DescriptorInput) fillDescriptor(t time.Time, d *rawDescriptor) error {
 		return err
 	}
 
-	return d.setExtra(di.opts.extra)
+	return d.setExtra(di.opts.md)
 }

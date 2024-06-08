@@ -452,7 +452,6 @@ OUTER:
 			v.ct = ct
 
 			if !ct.fn(ctx, v) {
-
 				v.str1 = string(append(ns, cf.altName...))
 
 				if v.v.hasTagNameFunc {

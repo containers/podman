@@ -17,10 +17,12 @@ import (
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
+	"golang.org/x/exp/slices"
 )
 
 type openshiftImageDestination struct {
@@ -114,8 +116,8 @@ func (d *openshiftImageDestination) SupportsPutBlobPartial() bool {
 // inputInfo.MediaType describes the blob format, if known.
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
-// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlob MUST 1) fail, and 2) delete any data stored so far.
-func (d *openshiftImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (types.BlobInfo, error) {
+// If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlobWithOptions MUST 1) fail, and 2) delete any data stored so far.
+func (d *openshiftImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
 	return d.docker.PutBlobWithOptions(ctx, stream, inputInfo, options)
 }
 
@@ -124,18 +126,16 @@ func (d *openshiftImageDestination) PutBlobWithOptions(ctx context.Context, stre
 // It is available only if SupportsPutBlobPartial().
 // Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
 // should fall back to PutBlobWithOptions.
-func (d *openshiftImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (types.BlobInfo, error) {
+func (d *openshiftImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
 	return d.docker.PutBlobPartial(ctx, chunkAccessor, srcInfo, cache)
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 // (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
 // info.Digest must not be empty.
-// If the blob has been successfully reused, returns (true, info, nil); info must contain at least a digest and size, and may
-// include CompressionOperation and CompressionAlgorithm fields to indicate that a change to the compression type should be
-// reflected in the manifest that will be written.
+// If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
-func (d *openshiftImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, types.BlobInfo, error) {
+func (d *openshiftImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
 	return d.docker.TryReusingBlobWithOptions(ctx, info, options)
 }
 
@@ -180,12 +180,11 @@ func (d *openshiftImageDestination) PutSignaturesWithFormat(ctx context.Context,
 	if err != nil {
 		return err
 	}
-	existingSigNames := map[string]struct{}{}
+	existingSigNames := set.New[string]()
 	for _, sig := range image.Signatures {
-		existingSigNames[sig.objectMeta.Name] = struct{}{}
+		existingSigNames.Add(sig.objectMeta.Name)
 	}
 
-sigExists:
 	for _, newSigWithFormat := range signatures {
 		newSigSimple, ok := newSigWithFormat.(signature.SimpleSigning)
 		if !ok {
@@ -193,10 +192,10 @@ sigExists:
 		}
 		newSig := newSigSimple.UntrustedSignature()
 
-		for _, existingSig := range image.Signatures {
-			if existingSig.Type == imageSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig) {
-				continue sigExists
-			}
+		if slices.ContainsFunc(image.Signatures, func(existingSig imageSignature) bool {
+			return existingSig.Type == imageSignatureTypeAtomic && bytes.Equal(existingSig.Content, newSig)
+		}) {
+			continue
 		}
 
 		// The API expect us to invent a new unique name. This is racy, but hopefully good enough.
@@ -208,7 +207,7 @@ sigExists:
 				return fmt.Errorf("generating random signature len %d: %w", n, err)
 			}
 			signatureName = fmt.Sprintf("%s@%032x", imageStreamImageName, randBytes)
-			if _, ok := existingSigNames[signatureName]; !ok {
+			if !existingSigNames.Contains(signatureName) {
 				break
 			}
 		}

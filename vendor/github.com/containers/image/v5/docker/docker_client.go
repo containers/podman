@@ -213,6 +213,7 @@ func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
 // newDockerClientFromRef returns a new dockerClient instance for refHostname (a host a specified in the Docker image reference, not canonicalized to dockerRegistry)
 // “write” specifies whether the client will be used for "write" access (in particular passed to lookaside.go:toplevelFromSection)
 // signatureBase is always set in the return value
+// The caller must call .Close() on the returned client when done.
 func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, registryConfig *registryConfiguration, write bool, actions string) (*dockerClient, error) {
 	auth, err := config.GetCredentialsForRef(sys, ref.ref)
 	if err != nil {
@@ -247,6 +248,7 @@ func newDockerClientFromRef(sys *types.SystemContext, ref dockerReference, regis
 // (e.g., "registry.com[:5000][/some/namespace]/repo").
 // Please note that newDockerClient does not set all members of dockerClient
 // (e.g., username and password); those must be set by callers if necessary.
+// The caller must call .Close() on the returned client when done.
 func newDockerClient(sys *types.SystemContext, registry, reference string) (*dockerClient, error) {
 	hostName := registry
 	if registry == dockerHostname {
@@ -302,6 +304,7 @@ func CheckAuth(ctx context.Context, sys *types.SystemContext, username, password
 	if err != nil {
 		return fmt.Errorf("creating new docker client: %w", err)
 	}
+	defer client.Close()
 	client.auth = types.DockerAuthConfig{
 		Username: username,
 		Password: password,
@@ -371,6 +374,7 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 	if err != nil {
 		return nil, fmt.Errorf("creating new docker client: %w", err)
 	}
+	defer client.Close()
 	client.auth = auth
 	if sys != nil {
 		client.registryToken = sys.DockerBearerRegistryToken
@@ -448,8 +452,8 @@ func SearchRegistry(ctx context.Context, sys *types.SystemContext, registry, ima
 		if link == "" {
 			break
 		}
-		linkURLStr := strings.Trim(strings.Split(link, ";")[0], "<>")
-		linkURL, err := url.Parse(linkURLStr)
+		linkURLPart, _, _ := strings.Cut(link, ";")
+		linkURL, err := url.Parse(strings.Trim(linkURLPart, "<>"))
 		if err != nil {
 			return searchRes, err
 		}
@@ -596,7 +600,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		case <-time.After(delay):
 			// Nothing
 		}
-		delay = delay * 2 // If the registry does not specify a delay, back off exponentially.
+		delay *= 2 // If the registry does not specify a delay, back off exponentially.
 	}
 }
 
@@ -985,7 +989,7 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	return reconnectingReader, blobSize, nil
 }
 
-// getOCIDescriptorContents returns the contents a blob spcified by descriptor in ref, which must fit within limit.
+// getOCIDescriptorContents returns the contents a blob specified by descriptor in ref, which must fit within limit.
 func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerReference, desc imgspecv1.Descriptor, maxSize int, cache types.BlobInfoCache) ([]byte, error) {
 	// Note that this copies all kinds of attachments: attestations, and whatever else is there,
 	// not just signatures. We leave the signature consumers to decide based on the MIME type.
@@ -994,7 +998,7 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 		return nil, err
 	}
 	defer reader.Close()
-	payload, err := iolimits.ReadAtMost(reader, iolimits.MaxSignatureBodySize)
+	payload, err := iolimits.ReadAtMost(reader, maxSize)
 	if err != nil {
 		return nil, fmt.Errorf("reading blob %s in %s: %w", desc.Digest.String(), ref.ref.Name(), err)
 	}
@@ -1083,4 +1087,12 @@ func (c *dockerClient) getExtensionsSignatures(ctx context.Context, ref dockerRe
 // sigstoreAttachmentTag returns a sigstore attachment tag for the specified digest.
 func sigstoreAttachmentTag(d digest.Digest) string {
 	return strings.Replace(d.String(), ":", "-", 1) + ".sig"
+}
+
+// Close removes resources associated with an initialized dockerClient, if any.
+func (c *dockerClient) Close() error {
+	if c.client != nil {
+		c.client.CloseIdleConnections()
+	}
+	return nil
 }

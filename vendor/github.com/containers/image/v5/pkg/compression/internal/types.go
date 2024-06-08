@@ -44,21 +44,21 @@ func (c Algorithm) InternalUnstableUndocumentedMIMEQuestionMark() string {
 }
 
 // AlgorithmCompressor returns the compressor field of algo.
-// This is a function instead of a public method so that it is only callable from by code
+// This is a function instead of a public method so that it is only callable by code
 // that is allowed to import this internal subpackage.
 func AlgorithmCompressor(algo Algorithm) CompressorFunc {
 	return algo.compressor
 }
 
 // AlgorithmDecompressor returns the decompressor field of algo.
-// This is a function instead of a public method so that it is only callable from by code
+// This is a function instead of a public method so that it is only callable by code
 // that is allowed to import this internal subpackage.
 func AlgorithmDecompressor(algo Algorithm) DecompressorFunc {
 	return algo.decompressor
 }
 
 // AlgorithmPrefix returns the prefix field of algo.
-// This is a function instead of a public method so that it is only callable from by code
+// This is a function instead of a public method so that it is only callable by code
 // that is allowed to import this internal subpackage.
 func AlgorithmPrefix(algo Algorithm) []byte {
 	return algo.prefix

@@ -166,6 +166,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 
 	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
+		internalutil.MapDockerBridgeDriverOptions(newNetwork)
 		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools)
 		if err != nil {
 			return nil, err
@@ -197,17 +198,22 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				if err != nil {
 					return nil, err
 				}
+
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}
 		}
-	case types.MacVLANNetworkDriver:
-		err = createMacvlan(newNetwork)
+	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
+		err = createIpvlanOrMacvlan(newNetwork)
 		if err != nil {
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unsupported driver %s: %w", newNetwork.Driver, types.ErrInvalidArg)
+		net, err := n.createPlugin(newNetwork)
+		if err != nil {
+			return nil, err
+		}
+		newNetwork = net
 	}
 
 	// when we do not have ipam we must disable dns
@@ -215,12 +221,12 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 
 	// process NetworkDNSServers
 	if len(newNetwork.NetworkDNSServers) > 0 && !newNetwork.DNSEnabled {
-		return nil, fmt.Errorf("Cannot set NetworkDNSServers if DNS is not enabled for the network: %w", types.ErrInvalidArg)
+		return nil, fmt.Errorf("cannot set NetworkDNSServers if DNS is not enabled for the network: %w", types.ErrInvalidArg)
 	}
 	// validate ip address
 	for _, dnsServer := range newNetwork.NetworkDNSServers {
 		if net.ParseIP(dnsServer) == nil {
-			return nil, fmt.Errorf("Unable to parse ip %s specified in NetworkDNSServers: %w", dnsServer, types.ErrInvalidArg)
+			return nil, fmt.Errorf("unable to parse ip %s specified in NetworkDNSServers: %w", dnsServer, types.ErrInvalidArg)
 		}
 	}
 
@@ -243,7 +249,10 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	return newNetwork, nil
 }
 
-func createMacvlan(network *types.Network) error {
+// ipvlan shares the same mac address so supporting DHCP is not really possible
+var errIpvlanNoDHCP = errors.New("ipam driver dhcp is not supported with ipvlan")
+
+func createIpvlanOrMacvlan(network *types.Network) error {
 	if network.NetworkInterface != "" {
 		interfaceNames, err := internalutil.GetLiveNetworkNames()
 		if err != nil {
@@ -252,6 +261,12 @@ func createMacvlan(network *types.Network) error {
 		if !util.StringInSlice(network.NetworkInterface, interfaceNames) {
 			return fmt.Errorf("parent interface %s does not exist", network.NetworkInterface)
 		}
+	}
+
+	driver := network.Driver
+	isMacVlan := true
+	if driver == types.IPVLANNetworkDriver {
+		isMacVlan = false
 	}
 
 	// always turn dns off with macvlan, it is not implemented in netavark
@@ -263,12 +278,24 @@ func createMacvlan(network *types.Network) error {
 	switch network.IPAMOptions[types.Driver] {
 	case "":
 		if len(network.Subnets) == 0 {
-			return fmt.Errorf("macvlan driver needs at least one subnet specified, DHCP is not yet supported with netavark")
+			// if no subnets and no driver choose dhcp
+			network.IPAMOptions[types.Driver] = types.DHCPIPAMDriver
+			if !isMacVlan {
+				return errIpvlanNoDHCP
+			}
+		} else {
+			network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 		}
-		network.IPAMOptions[types.Driver] = types.HostLocalIPAMDriver
 	case types.HostLocalIPAMDriver:
 		if len(network.Subnets) == 0 {
-			return fmt.Errorf("macvlan driver needs at least one subnet specified, when the host-local ipam driver is set")
+			return fmt.Errorf("%s driver needs at least one subnet specified when the host-local ipam driver is set", driver)
+		}
+	case types.DHCPIPAMDriver:
+		if !isMacVlan {
+			return errIpvlanNoDHCP
+		}
+		if len(network.Subnets) > 0 {
+			return fmt.Errorf("ipam driver dhcp set but subnets are set")
 		}
 	}
 
@@ -276,21 +303,22 @@ func createMacvlan(network *types.Network) error {
 	for key, value := range network.Options {
 		switch key {
 		case types.ModeOption:
-			if !util.StringInSlice(value, types.ValidMacVLANModes) {
-				return fmt.Errorf("unknown macvlan mode %q", value)
+			if isMacVlan {
+				if !util.StringInSlice(value, types.ValidMacVLANModes) {
+					return fmt.Errorf("unknown macvlan mode %q", value)
+				}
+			} else {
+				if !util.StringInSlice(value, types.ValidIPVLANModes) {
+					return fmt.Errorf("unknown ipvlan mode %q", value)
+				}
 			}
 		case types.MTUOption:
 			_, err := internalutil.ParseMTU(value)
 			if err != nil {
 				return err
 			}
-		case types.BclimOption:
-			_, err := strconv.ParseInt(value, 10, 32)
-			if err != nil {
-				return fmt.Errorf("failed to parse %q option: %w", key, err)
-			}
 		default:
-			return fmt.Errorf("unsupported macvlan network option %s", key)
+			return fmt.Errorf("unsupported %s network option %s", driver, key)
 		}
 	}
 	return nil
@@ -369,15 +397,65 @@ func (n *netavarkNetwork) NetworkInspect(nameOrID string) (types.Network, error)
 func validateIPAMDriver(n *types.Network) error {
 	ipamDriver := n.IPAMOptions[types.Driver]
 	switch ipamDriver {
-	case "", types.HostLocalIPAMDriver:
+	case "", types.HostLocalIPAMDriver, types.DHCPIPAMDriver:
 	case types.NoneIPAMDriver:
 		if len(n.Subnets) > 0 {
 			return errors.New("none ipam driver is set but subnets are given")
 		}
-	case types.DHCPIPAMDriver:
-		return errors.New("dhcp ipam driver is not yet supported with netavark")
 	default:
 		return fmt.Errorf("unsupported ipam driver %q", ipamDriver)
 	}
 	return nil
+}
+
+var errInvalidPluginResult = errors.New("invalid plugin result")
+
+func (n *netavarkNetwork) createPlugin(net *types.Network) (*types.Network, error) {
+	path, err := getPlugin(net.Driver, n.pluginDirs)
+	if err != nil {
+		return nil, err
+	}
+	result := new(types.Network)
+	err = n.execPlugin(path, []string{"create"}, net, result)
+	if err != nil {
+		return nil, fmt.Errorf("plugin %s failed: %w", path, err)
+	}
+	// now make sure that neither the name, ID, driver were changed by the plugin
+	if net.Name != result.Name {
+		return nil, fmt.Errorf("%w: changed network name", errInvalidPluginResult)
+	}
+	if net.ID != result.ID {
+		return nil, fmt.Errorf("%w: changed network ID", errInvalidPluginResult)
+	}
+	if net.Driver != result.Driver {
+		return nil, fmt.Errorf("%w: changed network driver", errInvalidPluginResult)
+	}
+	return result, nil
+}
+
+func getAllPlugins(dirs []string) []string {
+	var plugins []string
+	for _, dir := range dirs {
+		entries, err := os.ReadDir(dir)
+		if err == nil {
+			for _, entry := range entries {
+				name := entry.Name()
+				if !util.StringInSlice(name, plugins) {
+					plugins = append(plugins, name)
+				}
+			}
+		}
+	}
+	return plugins
+}
+
+func getPlugin(name string, dirs []string) (string, error) {
+	for _, dir := range dirs {
+		fullpath := filepath.Join(dir, name)
+		st, err := os.Stat(fullpath)
+		if err == nil && st.Mode().IsRegular() {
+			return fullpath, nil
+		}
+	}
+	return "", fmt.Errorf("failed to find driver or plugin %q", name)
 }

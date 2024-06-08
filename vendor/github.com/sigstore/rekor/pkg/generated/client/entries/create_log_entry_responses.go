@@ -120,6 +120,11 @@ func (o *CreateLogEntryCreated) IsCode(code int) bool {
 	return code == 201
 }
 
+// Code gets the status code for the create log entry created response
+func (o *CreateLogEntryCreated) Code() int {
+	return 201
+}
+
 func (o *CreateLogEntryCreated) Error() string {
 	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryCreated  %+v", 201, o.Payload)
 }
@@ -199,6 +204,11 @@ func (o *CreateLogEntryBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the create log entry bad request response
+func (o *CreateLogEntryBadRequest) Code() int {
+	return 400
+}
+
 func (o *CreateLogEntryBadRequest) Error() string {
 	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryBadRequest  %+v", 400, o.Payload)
 }
@@ -264,6 +274,11 @@ func (o *CreateLogEntryConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the create log entry conflict response
+func (o *CreateLogEntryConflict) Code() int {
+	return 409
+}
+
 func (o *CreateLogEntryConflict) Error() string {
 	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryConflict  %+v", 409, o.Payload)
 }
@@ -317,11 +332,6 @@ type CreateLogEntryDefault struct {
 	Payload *models.Error
 }
 
-// Code gets the status code for the create log entry default response
-func (o *CreateLogEntryDefault) Code() int {
-	return o._statusCode
-}
-
 // IsSuccess returns true when this create log entry default response has a 2xx status code
 func (o *CreateLogEntryDefault) IsSuccess() bool {
 	return o._statusCode/100 == 2
@@ -345,6 +355,11 @@ func (o *CreateLogEntryDefault) IsServerError() bool {
 // IsCode returns true when this create log entry default response a status code equal to that given
 func (o *CreateLogEntryDefault) IsCode(code int) bool {
 	return o._statusCode == code
+}
+
+// Code gets the status code for the create log entry default response
+func (o *CreateLogEntryDefault) Code() int {
+	return o._statusCode
 }
 
 func (o *CreateLogEntryDefault) Error() string {

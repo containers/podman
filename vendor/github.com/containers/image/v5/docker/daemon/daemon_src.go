@@ -28,6 +28,8 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref daemonRef
 	if err != nil {
 		return nil, fmt.Errorf("initializing docker engine client: %w", err)
 	}
+	defer c.Close()
+
 	// Per NewReference(), ref.StringWithinTransport() is either an image ID (config digest), or a !reference.NameOnly() reference.
 	// Either way ImageSave should create a tarball with exactly one image.
 	inputStream, err := c.ImageSave(ctx, []string{ref.StringWithinTransport()})

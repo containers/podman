@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022, Sylabs Inc. All rights reserved.
+// Copyright (c) 2018-2023, Sylabs Inc. All rights reserved.
 // Copyright (c) 2017, SingularityWare, LLC. All rights reserved.
 // Copyright (c) 2017, Yannick Cote <yhcote@gmail.com> All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
@@ -401,4 +401,10 @@ func (f *FileImage) DataSize() int64 { return f.h.DataSize }
 // header of the image.
 func (f *FileImage) GetHeaderIntegrityReader() io.Reader {
 	return f.h.GetIntegrityReader()
+}
+
+// isDeterministic returns true if the UUID and timestamps in the header of f are set to
+// deterministic values.
+func (f *FileImage) isDeterministic() bool {
+	return f.h.ID == uuid.Nil && f.CreatedAt().IsZero() && f.ModifiedAt().IsZero()
 }

@@ -82,7 +82,7 @@ service TrillianLog {
   rpc GetConsistencyProof(GetConsistencyProofRequest)
       returns (GetConsistencyProofResponse) {}
 
-  // GetLatestSignedLogRoot returns the latest signed log root for a given tree,
+  // GetLatestSignedLogRoot returns the latest log root for a given tree,
   // and optionally also includes a consistency proof from an earlier tree size
   // to the new size of the tree.
   //

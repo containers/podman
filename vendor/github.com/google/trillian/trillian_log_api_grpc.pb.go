@@ -43,7 +43,7 @@ type TrillianLogClient interface {
 	// If the requested tree size is larger than the server is aware of,
 	// the response will include the latest known log root and an empty proof.
 	GetConsistencyProof(ctx context.Context, in *GetConsistencyProofRequest, opts ...grpc.CallOption) (*GetConsistencyProofResponse, error)
-	// GetLatestSignedLogRoot returns the latest signed log root for a given tree,
+	// GetLatestSignedLogRoot returns the latest log root for a given tree,
 	// and optionally also includes a consistency proof from an earlier tree size
 	// to the new size of the tree.
 	//
@@ -182,7 +182,7 @@ type TrillianLogServer interface {
 	// If the requested tree size is larger than the server is aware of,
 	// the response will include the latest known log root and an empty proof.
 	GetConsistencyProof(context.Context, *GetConsistencyProofRequest) (*GetConsistencyProofResponse, error)
-	// GetLatestSignedLogRoot returns the latest signed log root for a given tree,
+	// GetLatestSignedLogRoot returns the latest log root for a given tree,
 	// and optionally also includes a consistency proof from an earlier tree size
 	// to the new size of the tree.
 	//

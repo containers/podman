@@ -108,6 +108,11 @@ func (o *SearchLogQueryOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the search log query o k response
+func (o *SearchLogQueryOK) Code() int {
+	return 200
+}
+
 func (o *SearchLogQueryOK) Error() string {
 	return fmt.Sprintf("[POST /api/v1/log/entries/retrieve][%d] searchLogQueryOK  %+v", 200, o.Payload)
 }
@@ -167,6 +172,11 @@ func (o *SearchLogQueryBadRequest) IsServerError() bool {
 // IsCode returns true when this search log query bad request response a status code equal to that given
 func (o *SearchLogQueryBadRequest) IsCode(code int) bool {
 	return code == 400
+}
+
+// Code gets the status code for the search log query bad request response
+func (o *SearchLogQueryBadRequest) Code() int {
+	return 400
 }
 
 func (o *SearchLogQueryBadRequest) Error() string {
@@ -232,6 +242,11 @@ func (o *SearchLogQueryUnprocessableEntity) IsCode(code int) bool {
 	return code == 422
 }
 
+// Code gets the status code for the search log query unprocessable entity response
+func (o *SearchLogQueryUnprocessableEntity) Code() int {
+	return 422
+}
+
 func (o *SearchLogQueryUnprocessableEntity) Error() string {
 	return fmt.Sprintf("[POST /api/v1/log/entries/retrieve][%d] searchLogQueryUnprocessableEntity  %+v", 422, o.Payload)
 }
@@ -274,11 +289,6 @@ type SearchLogQueryDefault struct {
 	Payload *models.Error
 }
 
-// Code gets the status code for the search log query default response
-func (o *SearchLogQueryDefault) Code() int {
-	return o._statusCode
-}
-
 // IsSuccess returns true when this search log query default response has a 2xx status code
 func (o *SearchLogQueryDefault) IsSuccess() bool {
 	return o._statusCode/100 == 2
@@ -302,6 +312,11 @@ func (o *SearchLogQueryDefault) IsServerError() bool {
 // IsCode returns true when this search log query default response a status code equal to that given
 func (o *SearchLogQueryDefault) IsCode(code int) bool {
 	return o._statusCode == code
+}
+
+// Code gets the status code for the search log query default response
+func (o *SearchLogQueryDefault) Code() int {
+	return o._statusCode
 }
 
 func (o *SearchLogQueryDefault) Error() string {

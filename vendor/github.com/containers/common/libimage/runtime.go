@@ -537,6 +537,8 @@ type ListImagesOptions struct {
 	// used).  The definition of an external container can be set by
 	// callers.
 	IsExternalContainerFunc IsExternalContainerFunc
+	// SetListData will populate the Image.ListData fields of returned images.
+	SetListData bool
 }
 
 // ListImages lists images in the local container storage.  If names are
@@ -565,7 +567,41 @@ func (r *Runtime) ListImages(ctx context.Context, names []string, options *ListI
 		}
 	}
 
-	return r.filterImages(ctx, images, options)
+	filtered, err := r.filterImages(ctx, images, options)
+	if err != nil {
+		return nil, err
+	}
+
+	if !options.SetListData {
+		return filtered, nil
+	}
+
+	// If explicitly requested by the user, pre-compute and cache the
+	// dangling and parent information of all filtered images.  That will
+	// considerably speed things up for callers who need this information
+	// as the layer tree will computed once for all instead of once for
+	// each individual image (see containers/podman/issues/17828).
+
+	tree, err := r.layerTree(images)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range filtered {
+		isDangling, err := filtered[i].isDangling(ctx, tree)
+		if err != nil {
+			return nil, err
+		}
+		filtered[i].ListData.IsDangling = &isDangling
+
+		parent, err := filtered[i].parent(ctx, tree)
+		if err != nil {
+			return nil, err
+		}
+		filtered[i].ListData.Parent = parent
+	}
+
+	return filtered, nil
 }
 
 // RemoveImagesOptions allow for customizing image removal.

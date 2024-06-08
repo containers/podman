@@ -20,8 +20,8 @@ import (
 	"github.com/hashicorp/go-multierror"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	osFilepath "github.com/opencontainers/runtime-tools/filepath"
+	capsCheck "github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
 
 	"github.com/opencontainers/runtime-tools/specerror"
 	"github.com/xeipuuv/gojsonschema"
@@ -687,26 +687,10 @@ func (v *Validator) CheckAnnotations() (errs error) {
 }
 
 // CapValid checks whether a capability is valid
+//
+// Deprecated: use github.com/opencontainers/runtime-tools/validate/capabilities.CapValid directly.
 func CapValid(c string, hostSpecific bool) error {
-	isValid := false
-
-	if !strings.HasPrefix(c, "CAP_") {
-		return fmt.Errorf("capability %s must start with CAP_", c)
-	}
-	for _, cap := range capability.List() {
-		if c == fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String())) {
-			if hostSpecific && cap > LastCap() {
-				return fmt.Errorf("%s is not supported on the current host", c)
-			}
-			isValid = true
-			break
-		}
-	}
-
-	if !isValid {
-		return fmt.Errorf("invalid capability: %s", c)
-	}
-	return nil
+	return capsCheck.CapValid(c, hostSpecific)
 }
 
 func envValid(env string) bool {

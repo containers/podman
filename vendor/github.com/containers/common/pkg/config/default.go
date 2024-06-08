@@ -71,6 +71,12 @@ var (
 		"/usr/lib/cni",
 		"/opt/cni/bin",
 	}
+	DefaultNetavarkPluginDirs = []string{
+		"/usr/local/libexec/netavark",
+		"/usr/libexec/netavark",
+		"/usr/local/lib/netavark",
+		"/usr/lib/netavark",
+	}
 	DefaultSubnetPools = []SubnetPool{
 		// 10.89.0.0/24-10.255.255.0/24
 		parseSubnetPool("10.89.0.0/16", 24),
@@ -105,6 +111,8 @@ const (
 	CgroupfsCgroupsManager = "cgroupfs"
 	// DefaultApparmorProfile  specifies the default apparmor profile for the container.
 	DefaultApparmorProfile = apparmor.Profile
+	// DefaultDBBackend specifies the default database backend to be used by Podman.
+	DefaultDBBackend = DBBackendBoltDB
 	// DefaultHostsFile is the default path to the hosts file.
 	DefaultHostsFile = "/etc/hosts"
 	// SystemdCgroupsManager represents systemd native cgroup manager.
@@ -212,6 +220,7 @@ func DefaultConfig() (*Config, error) {
 			DefaultSubnetPools: DefaultSubnetPools,
 			DNSBindPort:        0,
 			CNIPluginDirs:      DefaultCNIPluginDirs,
+			NetavarkPluginDirs: DefaultNetavarkPluginDirs,
 		},
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
@@ -388,6 +397,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"/run/current-system/sw/bin/conmonrs",
 	}
 	c.PullPolicy = DefaultPullPolicy
+	c.DBBackend = stringBoltDB
 	c.RuntimeSupportsJSON = []string{
 		"crun",
 		"runc",
@@ -415,6 +425,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 
 	c.PodExitPolicy = defaultPodExitPolicy
 	c.SSHConfig = getDefaultSSHConfig()
+	c.KubeGenerateType = "pod"
 
 	return c, nil
 }

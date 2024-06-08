@@ -1,10 +1,8 @@
 ## locales
-<img align="right" src="https://raw.githubusercontent.com/go-playground/locales/master/logo.png">![Project status](https://img.shields.io/badge/version-0.14.0-green.svg)
+<img align="right" src="https://raw.githubusercontent.com/go-playground/locales/master/logo.png">![Project status](https://img.shields.io/badge/version-0.14.1-green.svg)
 [![Build Status](https://travis-ci.org/go-playground/locales.svg?branch=master)](https://travis-ci.org/go-playground/locales)
-[![Go Report Card](https://goreportcard.com/badge/github.com/go-playground/locales)](https://goreportcard.com/report/github.com/go-playground/locales)
 [![GoDoc](https://godoc.org/github.com/go-playground/locales?status.svg)](https://godoc.org/github.com/go-playground/locales)
 ![License](https://img.shields.io/dub/l/vibe-d.svg)
-[![Gitter](https://badges.gitter.im/go-playground/locales.svg)](https://gitter.im/go-playground/locales?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
 Locales is a set of locales generated from the [Unicode CLDR Project](http://cldr.unicode.org/) which can be used independently or within
 an i18n package; these were built for use with, but not exclusive to, [Universal Translator](https://github.com/go-playground/universal-translator).

@@ -23,6 +23,8 @@ import (
 
 var _ runtime.ClientResponse = response{}
 
+func newResponse(resp *http.Response) runtime.ClientResponse { return response{resp: resp} }
+
 type response struct {
 	resp *http.Response
 }

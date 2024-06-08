@@ -18,7 +18,6 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    - deadcode
     - depguard
     - gocyclo
     - gofmt
@@ -28,7 +27,7 @@ linters:
     - megacheck
     - misspell
     - revive
-    - varcheck
+    - unused
     # TODO(gbelvin): write license linter and commit to upstream.
     # ./scripts/check_license.sh is run by ./scripts/presubmit.sh
 

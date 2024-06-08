@@ -190,14 +190,14 @@ func (v *Validate) ValidateMap(data map[string]interface{}, rules map[string]int
 //
 // eg. to use the names which have been specified for JSON representations of structs, rather than normal Go field names:
 //
-//    validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
-//        name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
-//        // skip if tag key says it should be ignored
-//        if name == "-" {
-//            return ""
-//        }
-//        return name
-//    })
+//	validate.RegisterTagNameFunc(func(fld reflect.StructField) string {
+//	    name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+//	    // skip if tag key says it should be ignored
+//	    if name == "-" {
+//	        return ""
+//	    }
+//	    return name
+//	})
 func (v *Validate) RegisterTagNameFunc(fn TagNameFunc) {
 	v.tagNameFunc = fn
 	v.hasTagNameFunc = true
@@ -613,7 +613,7 @@ func (v *Validate) Var(field interface{}, tag string) error {
 }
 
 // VarCtx validates a single variable using tag style validation and allows passing of contextual
-// validation validation information via context.Context.
+// validation information via context.Context.
 // eg.
 // var i int
 // validate.Var(i, "gt=1,lt=10")
@@ -632,6 +632,7 @@ func (v *Validate) VarCtx(ctx context.Context, field interface{}, tag string) (e
 	}
 
 	ctag := v.fetchCacheTag(tag)
+
 	val := reflect.ValueOf(field)
 	vd := v.pool.Get().(*validate)
 	vd.top = val

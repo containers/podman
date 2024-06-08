@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"strings"
 
-	internalManifest "github.com/containers/image/v5/internal/manifest"
+	"github.com/containers/image/v5/internal/manifest"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	ociencspec "github.com/containers/ocicrypt/spec"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"golang.org/x/exp/slices"
 )
 
 // BlobInfoFromOCI1Descriptor returns a types.BlobInfo based on the input OCI1 descriptor.
@@ -49,13 +50,13 @@ func SupportedOCI1MediaType(m string) error {
 }
 
 // OCI1FromManifest creates an OCI1 manifest instance from a manifest blob.
-func OCI1FromManifest(manifest []byte) (*OCI1, error) {
+func OCI1FromManifest(manifestBlob []byte) (*OCI1, error) {
 	oci1 := OCI1{}
-	if err := json.Unmarshal(manifest, &oci1); err != nil {
+	if err := json.Unmarshal(manifestBlob, &oci1); err != nil {
 		return nil, err
 	}
-	if err := validateUnambiguousManifestFormat(manifest, imgspecv1.MediaTypeImageIndex,
-		allowedFieldConfig|allowedFieldLayers); err != nil {
+	if err := manifest.ValidateUnambiguousManifestFormat(manifestBlob, imgspecv1.MediaTypeImageIndex,
+		manifest.AllowedFieldConfig|manifest.AllowedFieldLayers); err != nil {
 		return nil, err
 	}
 	return &oci1, nil
@@ -160,10 +161,8 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 // getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
 // an error if the mediatype does not support encryption
 func getEncryptedMediaType(mediatype string) (string, error) {
-	for _, s := range strings.Split(mediatype, "+")[1:] {
-		if s == "encrypted" {
-			return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
-		}
+	if slices.Contains(strings.Split(mediatype, "+")[1:], "encrypted") {
+		return "", fmt.Errorf("unsupported mediaType: %v already encrypted", mediatype)
 	}
 	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
 	switch unsuffixedMediatype {
@@ -178,7 +177,7 @@ func getEncryptedMediaType(mediatype string) (string, error) {
 // an error if the mediatype does not support decryption
 func getDecryptedMediaType(mediatype string) (string, error) {
 	if !strings.HasSuffix(mediatype, "+encrypted") {
-		return "", fmt.Errorf("unsupported mediaType to decrypt %v:", mediatype)
+		return "", fmt.Errorf("unsupported mediaType to decrypt: %v", mediatype)
 	}
 
 	return strings.TrimSuffix(mediatype, "+encrypted"), nil
@@ -197,7 +196,7 @@ func (m *OCI1) Inspect(configGetter func(types.BlobInfo) ([]byte, error)) (*type
 		// Most software calling this without human intervention is going to expect the values to be realistic and relevant,
 		// and is probably better served by failing; we can always re-visit that later if we fail now, but
 		// if we started returning some data for OCI artifacts now, we couldn’t start failing in this function later.
-		return nil, internalManifest.NewNonImageArtifactError(m.Config.MediaType)
+		return nil, manifest.NewNonImageArtifactError(m.Config.MediaType)
 	}
 
 	config, err := configGetter(m.ConfigInfo())
@@ -248,7 +247,7 @@ func (m *OCI1) ImageID([]digest.Digest) (string, error) {
 	// (The only known caller of ImageID is storage/storageImageDestination.computeID,
 	// which can’t work with non-image artifacts.)
 	if m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
-		return "", internalManifest.NewNonImageArtifactError(m.Config.MediaType)
+		return "", manifest.NewNonImageArtifactError(m.Config.MediaType)
 	}
 
 	if err := m.Config.Digest.Validate(); err != nil {

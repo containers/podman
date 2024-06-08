@@ -102,6 +102,11 @@ func (o *GetLogProofOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the get log proof o k response
+func (o *GetLogProofOK) Code() int {
+	return 200
+}
+
 func (o *GetLogProofOK) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/proof][%d] getLogProofOK  %+v", 200, o.Payload)
 }
@@ -165,6 +170,11 @@ func (o *GetLogProofBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the get log proof bad request response
+func (o *GetLogProofBadRequest) Code() int {
+	return 400
+}
+
 func (o *GetLogProofBadRequest) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/proof][%d] getLogProofBadRequest  %+v", 400, o.Payload)
 }
@@ -207,11 +217,6 @@ type GetLogProofDefault struct {
 	Payload *models.Error
 }
 
-// Code gets the status code for the get log proof default response
-func (o *GetLogProofDefault) Code() int {
-	return o._statusCode
-}
-
 // IsSuccess returns true when this get log proof default response has a 2xx status code
 func (o *GetLogProofDefault) IsSuccess() bool {
 	return o._statusCode/100 == 2
@@ -235,6 +240,11 @@ func (o *GetLogProofDefault) IsServerError() bool {
 // IsCode returns true when this get log proof default response a status code equal to that given
 func (o *GetLogProofDefault) IsCode(code int) bool {
 	return o._statusCode == code
+}
+
+// Code gets the status code for the get log proof default response
+func (o *GetLogProofDefault) Code() int {
+	return o._statusCode
 }
 
 func (o *GetLogProofDefault) Error() string {

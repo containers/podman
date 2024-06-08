@@ -2,6 +2,76 @@
 
 ## HEAD
 
+## v1.5.1
+
+### Storage
+
+* A new storage driver for CockroachDB has been added. It's currently in alpha stage 
+  with support provided by Equinix Metal.
+
+### Misc
+* Fix log server not exiting properly on SIGINT
+
+### Dependency updates
+
+* Switch from glog to klog by @jdolitsky in https://github.com/google/trillian/pull/2787
+* Bump google.golang.org/api from 0.92.0 to 0.93.0 by @dependabot in https://github.com/google/trillian/pull/2800
+* Bump cloud.google.com/go/spanner from 1.36.0 to 1.37.0 by @dependabot in https://github.com/google/trillian/pull/2803
+* Bump google.golang.org/grpc from 1.48.0 to 1.49.0 by @dependabot in https://github.com/google/trillian/pull/2804
+* Bump google.golang.org/api from 0.93.0 to 0.94.0 by @dependabot in https://github.com/google/trillian/pull/2802
+* Bump cloud.google.com/go/spanner from 1.37.0 to 1.38.0 by @dependabot in https://github.com/google/trillian/pull/2806
+* Bump k8s.io/klog/v2 from 2.70.1 to 2.80.0 by @dependabot in https://github.com/google/trillian/pull/2807
+* Bump k8s.io/klog/v2 from 2.80.0 to 2.80.1 by @dependabot in https://github.com/google/trillian/pull/2808
+* Bump github.com/google/go-cmp from 0.5.8 to 0.5.9 by @dependabot in https://github.com/google/trillian/pull/2809
+* Bump google.golang.org/api from 0.94.0 to 0.95.0 by @dependabot in https://github.com/google/trillian/pull/2810
+* Bump go.etcd.io/etcd/etcdctl/v3 from 3.5.4 to 3.5.5 by @dependabot in https://github.com/google/trillian/pull/2812
+* Bump go.etcd.io/etcd/v3 from 3.5.4 to 3.5.5 by @dependabot in https://github.com/google/trillian/pull/2816
+* Bump google.golang.org/api from 0.95.0 to 0.96.0 by @dependabot in https://github.com/google/trillian/pull/2813
+* Bump google.golang.org/api from 0.96.0 to 0.97.0 by @dependabot in https://github.com/google/trillian/pull/2819
+* Bump cloud.google.com/go/spanner from 1.38.0 to 1.39.0 by @dependabot in https://github.com/google/trillian/pull/2818
+* Bump google.golang.org/api from 0.97.0 to 0.98.0 by @dependabot in https://github.com/google/trillian/pull/2820
+* Bump google.golang.org/grpc from 1.49.0 to 1.50.0 by @dependabot in https://github.com/google/trillian/pull/2821
+* Bump google.golang.org/grpc from 1.50.0 to 1.50.1 by @dependabot in https://github.com/google/trillian/pull/2823
+* Bump google.golang.org/api from 0.98.0 to 0.99.0 by @dependabot in https://github.com/google/trillian/pull/2822
+* Bump google.golang.org/api from 0.99.0 to 0.100.0 by @dependabot in https://github.com/google/trillian/pull/2824
+* Bump github.com/prometheus/client_model from 0.2.0 to 0.3.0 by @dependabot in https://github.com/google/trillian/pull/2825
+* Bump golang.org/x/tools from 0.1.12 to 0.2.0 by @dependabot in https://github.com/google/trillian/pull/2826
+* Bump google.golang.org/api from 0.100.0 to 0.101.0 by @dependabot in https://github.com/google/trillian/pull/2827
+* Bump github.com/prometheus/client_golang from 1.13.0 to 1.13.1 by @dependabot in https://github.com/google/trillian/pull/2828
+* Bump golang.org/x/sys from 0.1.0 to 0.2.0 by @dependabot in https://github.com/google/trillian/pull/2829
+* Bump google.golang.org/api from 0.101.0 to 0.102.0 by @dependabot in https://github.com/google/trillian/pull/2830
+* Bump go.opencensus.io from 0.23.0 to 0.24.0 by @dependabot in https://github.com/google/trillian/pull/2832
+* Bump cloud.google.com/go/spanner from 1.39.0 to 1.40.0 by @dependabot in https://github.com/google/trillian/pull/2831
+* Bump github.com/prometheus/client_golang from 1.13.1 to 1.14.0 by @dependabot in https://github.com/google/trillian/pull/2838
+* Bump google.golang.org/api from 0.102.0 to 0.103.0 by @dependabot in https://github.com/google/trillian/pull/2839
+* Bump golang.org/x/crypto from 0.1.0 to 0.2.0 by @dependabot in https://github.com/google/trillian/pull/2841
+* Bump golang.org/x/tools from 0.2.0 to 0.3.0 by @dependabot in https://github.com/google/trillian/pull/2840
+* Dependabot: Also keep GitHub actions up-to-date by @JAORMX in https://github.com/google/trillian/pull/2842
+* Bump actions/upload-artifact from 3.1.0 to 3.1.1 by @dependabot in https://github.com/google/trillian/pull/2843
+* Bump golang.org/x/crypto from 0.2.0 to 0.3.0 by @dependabot in https://github.com/google/trillian/pull/2847
+* Bump google.golang.org/grpc from 1.50.1 to 1.51.0 by @dependabot in https://github.com/google/trillian/pull/2845
+* Bump github.com/cockroachdb/cockroach-go/v2 from 2.2.16 to 2.2.18 by @dependabot in https://github.com/google/trillian/pull/2846
+* Bump go.etcd.io/etcd/v3 from 3.5.5 to 3.5.6 by @dependabot in https://github.com/google/trillian/pull/2849
+* Bump github.com/cockroachdb/cockroach-go/v2 from 2.2.18 to 2.2.19 by @dependabot in https://github.com/google/trillian/pull/2856
+* Bump golang.org/x/sys from 0.2.0 to 0.3.0 by @dependabot in https://github.com/google/trillian/pull/2858
+* Bump cloud.google.com/go/spanner from 1.40.0 to 1.41.0 by @dependabot in https://github.com/google/trillian/pull/2857
+* Bump actions/setup-go from 3.3.1 to 3.4.0 by @dependabot in https://github.com/google/trillian/pull/2862
+* Bump github/codeql-action from 2.1.34 to 2.1.35 by @dependabot in https://github.com/google/trillian/pull/2861
+* Bump golangci/golangci-lint-action from 3.3.0 to 3.3.1 by @dependabot in https://github.com/google/trillian/pull/2860
+* Bump github.com/go-sql-driver/mysql from 1.6.0 to 1.7.0 by @dependabot in https://github.com/google/trillian/pull/2859
+* Bump qs, body-parser and express in /scripts/gcb2slack by @dependabot in https://github.com/google/trillian/pull/2867
+* Bump minimist from 1.2.0 to 1.2.7 in /scripts/gcb2slack by @dependabot in https://github.com/google/trillian/pull/2864
+* Bump axios and @slack/webhook in /scripts/gcb2slack by @dependabot in https://github.com/google/trillian/pull/2868
+* Bump json-bigint and google-auth-library in /scripts/gcb2slack by @dependabot in https://github.com/google/trillian/pull/2869
+* Bump node-fetch from 2.6.0 to 2.6.7 in /scripts/gcb2slack by @dependabot in https://github.com/google/trillian/pull/2866
+* Bump golang.org/x/tools from 0.3.0 to 0.4.0 by @dependabot in https://github.com/google/trillian/pull/2870
+* Bump github/codeql-action from 2.1.35 to 2.1.36 by @dependabot in https://github.com/google/trillian/pull/2874
+* Bump actions/checkout from 3.1.0 to 3.2.0 by @dependabot in https://github.com/google/trillian/pull/2873
+* Bump golang.org/x/crypto from 0.3.0 to 0.4.0 by @dependabot in https://github.com/google/trillian/pull/2872
+* Bump google.golang.org/api from 0.103.0 to 0.104.0 by @dependabot in https://github.com/google/trillian/pull/2871
+* Bump cloud.google.com/go/spanner from 1.41.0 to 1.42.0 by @dependabot in https://github.com/google/trillian/pull/2877
+
+
 ## v.1.5.0
 
 ### Storage

@@ -10,7 +10,7 @@ import (
 
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate/seccomp"
-	"github.com/opencontainers/runtime-tools/validate"
+	capsCheck "github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/syndtr/gocapability/capability"
 )
 
@@ -264,10 +264,6 @@ func New(os string) (generator Generator, err error) {
 
 // NewFromSpec creates a configuration Generator from a given
 // configuration.
-//
-// Deprecated: Replace with:
-//
-//   generator := Generator{Config: config}
 func NewFromSpec(config *rspec.Spec) Generator {
 	envCache := map[string]int{}
 	if config != nil && config.Process != nil {
@@ -1140,7 +1136,7 @@ func (g *Generator) SetupPrivileged(privileged bool) {
 	if privileged { // Add all capabilities in privileged mode.
 		var finalCapList []string
 		for _, cap := range capability.List() {
-			if g.HostSpecific && cap > validate.LastCap() {
+			if g.HostSpecific && cap > capsCheck.LastCap() {
 				continue
 			}
 			finalCapList = append(finalCapList, fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String())))
@@ -1174,7 +1170,7 @@ func (g *Generator) ClearProcessCapabilities() {
 // AddProcessCapability adds a process capability into all 5 capability sets.
 func (g *Generator) AddProcessCapability(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+	if err := capsCheck.CapValid(cp, g.HostSpecific); err != nil {
 		return err
 	}
 
@@ -1237,7 +1233,7 @@ func (g *Generator) AddProcessCapability(c string) error {
 // AddProcessCapabilityAmbient adds a process capability into g.Config.Process.Capabilities.Ambient.
 func (g *Generator) AddProcessCapabilityAmbient(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+	if err := capsCheck.CapValid(cp, g.HostSpecific); err != nil {
 		return err
 	}
 
@@ -1261,7 +1257,7 @@ func (g *Generator) AddProcessCapabilityAmbient(c string) error {
 // AddProcessCapabilityBounding adds a process capability into g.Config.Process.Capabilities.Bounding.
 func (g *Generator) AddProcessCapabilityBounding(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+	if err := capsCheck.CapValid(cp, g.HostSpecific); err != nil {
 		return err
 	}
 
@@ -1284,7 +1280,7 @@ func (g *Generator) AddProcessCapabilityBounding(c string) error {
 // AddProcessCapabilityEffective adds a process capability into g.Config.Process.Capabilities.Effective.
 func (g *Generator) AddProcessCapabilityEffective(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+	if err := capsCheck.CapValid(cp, g.HostSpecific); err != nil {
 		return err
 	}
 
@@ -1307,7 +1303,7 @@ func (g *Generator) AddProcessCapabilityEffective(c string) error {
 // AddProcessCapabilityInheritable adds a process capability into g.Config.Process.Capabilities.Inheritable.
 func (g *Generator) AddProcessCapabilityInheritable(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+	if err := capsCheck.CapValid(cp, g.HostSpecific); err != nil {
 		return err
 	}
 
@@ -1330,7 +1326,7 @@ func (g *Generator) AddProcessCapabilityInheritable(c string) error {
 // AddProcessCapabilityPermitted adds a process capability into g.Config.Process.Capabilities.Permitted.
 func (g *Generator) AddProcessCapabilityPermitted(c string) error {
 	cp := strings.ToUpper(c)
-	if err := validate.CapValid(cp, g.HostSpecific); err != nil {
+	if err := capsCheck.CapValid(cp, g.HostSpecific); err != nil {
 		return err
 	}
 
@@ -1383,7 +1379,7 @@ func (g *Generator) DropProcessCapability(c string) error {
 		}
 	}
 
-	return validate.CapValid(cp, false)
+	return capsCheck.CapValid(cp, false)
 }
 
 // DropProcessCapabilityAmbient drops a process capability from g.Config.Process.Capabilities.Ambient.
@@ -1399,7 +1395,7 @@ func (g *Generator) DropProcessCapabilityAmbient(c string) error {
 		}
 	}
 
-	return validate.CapValid(cp, false)
+	return capsCheck.CapValid(cp, false)
 }
 
 // DropProcessCapabilityBounding drops a process capability from g.Config.Process.Capabilities.Bounding.
@@ -1415,7 +1411,7 @@ func (g *Generator) DropProcessCapabilityBounding(c string) error {
 		}
 	}
 
-	return validate.CapValid(cp, false)
+	return capsCheck.CapValid(cp, false)
 }
 
 // DropProcessCapabilityEffective drops a process capability from g.Config.Process.Capabilities.Effective.
@@ -1431,7 +1427,7 @@ func (g *Generator) DropProcessCapabilityEffective(c string) error {
 		}
 	}
 
-	return validate.CapValid(cp, false)
+	return capsCheck.CapValid(cp, false)
 }
 
 // DropProcessCapabilityInheritable drops a process capability from g.Config.Process.Capabilities.Inheritable.
@@ -1447,7 +1443,7 @@ func (g *Generator) DropProcessCapabilityInheritable(c string) error {
 		}
 	}
 
-	return validate.CapValid(cp, false)
+	return capsCheck.CapValid(cp, false)
 }
 
 // DropProcessCapabilityPermitted drops a process capability from g.Config.Process.Capabilities.Permitted.
@@ -1463,7 +1459,7 @@ func (g *Generator) DropProcessCapabilityPermitted(c string) error {
 		}
 	}
 
-	return validate.CapValid(cp, false)
+	return capsCheck.CapValid(cp, false)
 }
 
 func mapStrToNamespace(ns string, path string) (rspec.LinuxNamespace, error) {

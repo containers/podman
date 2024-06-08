@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/util"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -109,6 +110,10 @@ type ContainersConfig struct {
 	// Default cgroup configuration
 	Cgroups string `toml:"cgroups,omitempty"`
 
+	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
+	// "memory.high=1073741824" sets the memory.high limit to 1GB.
+	CgroupConf []string `toml:"cgroup_conf,omitempty"`
+
 	// Capabilities to add to all containers.
 	DefaultCapabilities []string `toml:"default_capabilities,omitempty"`
 
@@ -179,6 +184,10 @@ type ContainersConfig struct {
 
 	// NoHosts tells container engine whether to create its own /etc/hosts
 	NoHosts bool `toml:"no_hosts,omitempty"`
+
+	// OOMScoreAdj tunes the host's OOM preferences for containers
+	// (accepts values from -1000 to 1000).
+	OOMScoreAdj *int `toml:"oom_score_adj,omitempty"`
 
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
@@ -251,6 +260,9 @@ type EngineConfig struct {
 	// in containers-registries.conf(5).
 	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
 
+	// DBBackend is the database backend to be used by Podman.
+	DBBackend string `toml:"database_backend,omitempty"`
+
 	// DetachKeys is the sequence of keys used to detach a container.
 	DetachKeys string `toml:"detach_keys,omitempty"`
 
@@ -312,7 +324,7 @@ type EngineConfig struct {
 	// Building/committing defaults to OCI.
 	ImageDefaultFormat string `toml:"image_default_format,omitempty"`
 
-	// ImageVolumeMode Tells container engines how to handle the builtin
+	// ImageVolumeMode Tells container engines how to handle the built-in
 	// image volumes.  Acceptable values are "bind", "tmpfs", and "ignore".
 	ImageVolumeMode string `toml:"image_volume_mode,omitempty"`
 
@@ -325,6 +337,10 @@ type EngineConfig struct {
 
 	// InitPath is the path to the container-init binary.
 	InitPath string `toml:"init_path,omitempty"`
+
+	// KubeGenerateType sets the Kubernetes kind/specification to generate by default
+	// with the podman kube generate command
+	KubeGenerateType string `toml:"kube_generate_type,omitempty"`
 
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
@@ -542,6 +558,9 @@ type NetworkConfig struct {
 	// CNIPluginDirs is where CNI plugin binaries are stored.
 	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
 
+	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
+	NetavarkPluginDirs []string `toml:"netavark_plugin_dirs,omitempty"`
+
 	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
@@ -609,7 +628,7 @@ type MachineConfig struct {
 	CPUs uint64 `toml:"cpus,omitempty,omitzero"`
 	// DiskSize is the size of the disk in GB created when init-ing a podman-machine VM
 	DiskSize uint64 `toml:"disk_size,omitempty,omitzero"`
-	// MachineImage is the image used when init-ing a podman-machine VM
+	// Image is the image used when init-ing a podman-machine VM
 	Image string `toml:"image,omitempty"`
 	// Memory in MB a machine is created with.
 	Memory uint64 `toml:"memory,omitempty,omitzero"`
@@ -617,6 +636,8 @@ type MachineConfig struct {
 	User string `toml:"user,omitempty"`
 	// Volumes are host directories mounted into the VM by default.
 	Volumes []string `toml:"volumes"`
+	// Provider is the virtualization provider used to run podman-machine VM
+	Provider string `toml:"provider,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -752,11 +773,21 @@ func addConfigs(dirPath string, configs []string) ([]string, error) {
 // Returns the list of configuration files, if they exist in order of hierarchy.
 // The files are read in order and each new file can/will override previous
 // file settings.
-func systemConfigs() ([]string, error) {
-	var err error
-	configs := []string{}
-	path := os.Getenv("CONTAINERS_CONF")
-	if path != "" {
+func systemConfigs() (configs []string, finalErr error) {
+	if path := os.Getenv("CONTAINERS_CONF_OVERRIDE"); path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return nil, fmt.Errorf("CONTAINERS_CONF_OVERRIDE file: %w", err)
+		}
+		// Add the override config last to make sure it can override any
+		// previous settings.
+		defer func() {
+			if finalErr == nil {
+				configs = append(configs, path)
+			}
+		}()
+	}
+
+	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
 		if _, err := os.Stat(path); err != nil {
 			return nil, fmt.Errorf("CONTAINERS_CONF file: %w", err)
 		}
@@ -768,12 +799,14 @@ func systemConfigs() ([]string, error) {
 	if _, err := os.Stat(OverrideContainersConfig); err == nil {
 		configs = append(configs, OverrideContainersConfig)
 	}
+
+	var err error
 	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err = ifRootlessConfigPath()
+	path, err := ifRootlessConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -811,7 +844,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 
 	if !hasSession && unshare.GetRootlessUID() != 0 {
 		logrus.Warningf("The cgroupv2 manager is set to systemd but there is no systemd user session available")
-		logrus.Warningf("For using systemd, you may need to login using an user session")
+		logrus.Warningf("For using systemd, you may need to log in using a user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", unshare.GetRootlessUID())
 		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
 		c.Engine.CgroupManager = CgroupfsCgroupsManager
@@ -896,6 +929,11 @@ func (c *EngineConfig) Validate() error {
 	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
 		return fmt.Errorf("invalid pull type from containers.conf %q: %w", c.PullPolicy, err)
 	}
+
+	if _, err := ParseDBBackend(c.DBBackend); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -1225,16 +1263,21 @@ func (c *Config) Write() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o644)
+
+	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
+	configFile, err := ioutils.NewAtomicFileWriterWithOpts(path, 0o644, opts)
 	if err != nil {
 		return err
 	}
 	defer configFile.Close()
+
 	enc := toml.NewEncoder(configFile)
 	if err := enc.Encode(c); err != nil {
 		return err
 	}
-	return nil
+
+	// If no errors commit the changes to the config file
+	return configFile.Commit()
 }
 
 // Reload clean the cached config and reloads the configuration from containers.conf files
@@ -1330,9 +1373,13 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 				path = filepath.Join(bindirPath, strings.TrimPrefix(path, bindirPrefix+string(filepath.Separator)))
 			}
 		}
-		fullpath := filepath.Join(path, name)
-		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
-			return fullpath, nil
+		// Absolute path will force exec.LookPath to check for binary existence instead of lookup everywhere in PATH
+		if abspath, err := filepath.Abs(filepath.Join(path, name)); err == nil {
+			// exec.LookPath from absolute path on Unix is equal to os.Stat + IsNotDir + check for executable bits in FileMode
+			// exec.LookPath from absolute path on Windows is equal to os.Stat + IsNotDir for `file.ext` or loops through extensions from PATHEXT for `file`
+			if lp, err := exec.LookPath(abspath); err == nil {
+				return lp, nil
+			}
 		}
 	}
 	if searchPATH {

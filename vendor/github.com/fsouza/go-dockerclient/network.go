@@ -246,8 +246,8 @@ type EndpointConfig struct {
 //
 // See https://goo.gl/RV7BJU for more details.
 type EndpointIPAMConfig struct {
-	IPv4Address string `json:",omitempty"`
-	IPv6Address string `json:",omitempty"`
+	IPv4Address string `json:",omitempty" yaml:"IPv4Address,omitempty"`
+	IPv6Address string `json:",omitempty" yaml:"IPv6Address,omitempty"`
 }
 
 // ConnectNetwork adds a container to a network or returns an error in case of

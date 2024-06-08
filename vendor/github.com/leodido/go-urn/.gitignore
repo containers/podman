@@ -9,3 +9,4 @@
 *.txt
 
 vendor/
+/removecomments

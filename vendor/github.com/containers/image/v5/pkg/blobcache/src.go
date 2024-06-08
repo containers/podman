@@ -10,9 +10,9 @@ import (
 	"github.com/containers/image/v5/internal/image"
 	"github.com/containers/image/v5/internal/imagesource"
 	"github.com/containers/image/v5/internal/imagesource/impl"
+	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/signature"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
@@ -157,7 +157,7 @@ func (s *blobCacheSource) LayerInfosForCopy(ctx context.Context, instanceDigest 
 						case types.Compress:
 							info.MediaType = v1.MediaTypeImageLayerGzip
 							info.CompressionAlgorithm = &compression.Gzip
-						case types.Decompress:
+						case types.Decompress: // FIXME: This should remove zstd:chunked annotations (but those annotations being left with incorrect values should not break pulls)
 							info.MediaType = v1.MediaTypeImageLayer
 							info.CompressionAlgorithm = nil
 						}
@@ -200,14 +200,14 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 	defer file.Close()
 
 	for _, c := range chunks {
-		// Always seek to the desired offest; that way we don’t need to care about the consumer
+		// Always seek to the desired offset; that way we don’t need to care about the consumer
 		// not reading all of the chunk, or about the position going backwards.
 		if _, err := file.Seek(int64(c.Offset), io.SeekStart); err != nil {
 			errs <- err
 			break
 		}
 		s := signalCloseReader{
-			closed: make(chan interface{}),
+			closed: make(chan struct{}),
 			stream: io.LimitReader(file, int64(c.Length)),
 		}
 		streams <- s
@@ -218,7 +218,7 @@ func streamChunksFromFile(streams chan io.ReadCloser, errs chan error, file io.R
 }
 
 type signalCloseReader struct {
-	closed chan interface{}
+	closed chan struct{}
 	stream io.Reader
 }
 

@@ -22,3 +22,4 @@
 /trillian_log_signer
 /trillian_map_server
 default.etcd
+cockroach-data/

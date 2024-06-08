@@ -20,8 +20,9 @@
 package cdi
 
 import (
+	"fmt"
+
 	runc "github.com/opencontainers/runc/libcontainer/devices"
-	"github.com/pkg/errors"
 )
 
 // fillMissingInfo fills in missing mandatory attributes from the host device.
@@ -36,14 +37,14 @@ func (d *DeviceNode) fillMissingInfo() error {
 
 	hostDev, err := runc.DeviceFromPath(d.HostPath, "rwm")
 	if err != nil {
-		return errors.Wrapf(err, "failed to stat CDI host device %q", d.HostPath)
+		return fmt.Errorf("failed to stat CDI host device %q: %w", d.HostPath, err)
 	}
 
 	if d.Type == "" {
 		d.Type = string(hostDev.Type)
 	} else {
 		if d.Type != string(hostDev.Type) {
-			return errors.Errorf("CDI device (%q, %q), host type mismatch (%s, %s)",
+			return fmt.Errorf("CDI device (%q, %q), host type mismatch (%s, %s)",
 				d.Path, d.HostPath, d.Type, string(hostDev.Type))
 		}
 	}

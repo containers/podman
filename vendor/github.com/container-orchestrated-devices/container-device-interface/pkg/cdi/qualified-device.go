@@ -17,9 +17,8 @@
 package cdi
 
 import (
+	"fmt"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // QualifiedName returns the qualified name for a device.
@@ -50,23 +49,23 @@ func ParseQualifiedName(device string) (string, string, string, error) {
 	vendor, class, name := ParseDevice(device)
 
 	if vendor == "" {
-		return "", "", device, errors.Errorf("unqualified device %q, missing vendor", device)
+		return "", "", device, fmt.Errorf("unqualified device %q, missing vendor", device)
 	}
 	if class == "" {
-		return "", "", device, errors.Errorf("unqualified device %q, missing class", device)
+		return "", "", device, fmt.Errorf("unqualified device %q, missing class", device)
 	}
 	if name == "" {
-		return "", "", device, errors.Errorf("unqualified device %q, missing device name", device)
+		return "", "", device, fmt.Errorf("unqualified device %q, missing device name", device)
 	}
 
 	if err := ValidateVendorName(vendor); err != nil {
-		return "", "", device, errors.Wrapf(err, "invalid device %q", device)
+		return "", "", device, fmt.Errorf("invalid device %q: %w", device, err)
 	}
 	if err := ValidateClassName(class); err != nil {
-		return "", "", device, errors.Wrapf(err, "invalid device %q", device)
+		return "", "", device, fmt.Errorf("invalid device %q: %w", device, err)
 	}
 	if err := ValidateDeviceName(name); err != nil {
-		return "", "", device, errors.Wrapf(err, "invalid device %q", device)
+		return "", "", device, fmt.Errorf("invalid device %q: %w", device, err)
 	}
 
 	return vendor, class, name, nil
@@ -115,22 +114,22 @@ func ParseQualifier(kind string) (string, string) {
 //   - underscore, dash, and dot ('_', '-', and '.')
 func ValidateVendorName(vendor string) error {
 	if vendor == "" {
-		return errors.Errorf("invalid (empty) vendor name")
+		return fmt.Errorf("invalid (empty) vendor name")
 	}
 	if !isLetter(rune(vendor[0])) {
-		return errors.Errorf("invalid vendor %q, should start with letter", vendor)
+		return fmt.Errorf("invalid vendor %q, should start with letter", vendor)
 	}
 	for _, c := range string(vendor[1 : len(vendor)-1]) {
 		switch {
 		case isAlphaNumeric(c):
 		case c == '_' || c == '-' || c == '.':
 		default:
-			return errors.Errorf("invalid character '%c' in vendor name %q",
+			return fmt.Errorf("invalid character '%c' in vendor name %q",
 				c, vendor)
 		}
 	}
 	if !isAlphaNumeric(rune(vendor[len(vendor)-1])) {
-		return errors.Errorf("invalid vendor %q, should end with a letter or digit", vendor)
+		return fmt.Errorf("invalid vendor %q, should end with a letter or digit", vendor)
 	}
 
 	return nil
@@ -143,22 +142,22 @@ func ValidateVendorName(vendor string) error {
 //   - underscore and dash ('_', '-')
 func ValidateClassName(class string) error {
 	if class == "" {
-		return errors.Errorf("invalid (empty) device class")
+		return fmt.Errorf("invalid (empty) device class")
 	}
 	if !isLetter(rune(class[0])) {
-		return errors.Errorf("invalid class %q, should start with letter", class)
+		return fmt.Errorf("invalid class %q, should start with letter", class)
 	}
 	for _, c := range string(class[1 : len(class)-1]) {
 		switch {
 		case isAlphaNumeric(c):
 		case c == '_' || c == '-':
 		default:
-			return errors.Errorf("invalid character '%c' in device class %q",
+			return fmt.Errorf("invalid character '%c' in device class %q",
 				c, class)
 		}
 	}
 	if !isAlphaNumeric(rune(class[len(class)-1])) {
-		return errors.Errorf("invalid class %q, should end with a letter or digit", class)
+		return fmt.Errorf("invalid class %q, should end with a letter or digit", class)
 	}
 	return nil
 }
@@ -170,10 +169,10 @@ func ValidateClassName(class string) error {
 //   - underscore, dash, dot, colon ('_', '-', '.', ':')
 func ValidateDeviceName(name string) error {
 	if name == "" {
-		return errors.Errorf("invalid (empty) device name")
+		return fmt.Errorf("invalid (empty) device name")
 	}
 	if !isAlphaNumeric(rune(name[0])) {
-		return errors.Errorf("invalid class %q, should start with a letter or digit", name)
+		return fmt.Errorf("invalid class %q, should start with a letter or digit", name)
 	}
 	if len(name) == 1 {
 		return nil
@@ -183,12 +182,12 @@ func ValidateDeviceName(name string) error {
 		case isAlphaNumeric(c):
 		case c == '_' || c == '-' || c == '.' || c == ':':
 		default:
-			return errors.Errorf("invalid character '%c' in device name %q",
+			return fmt.Errorf("invalid character '%c' in device name %q",
 				c, name)
 		}
 	}
 	if !isAlphaNumeric(rune(name[len(name)-1])) {
-		return errors.Errorf("invalid name %q, should end with a letter or digit", name)
+		return fmt.Errorf("invalid name %q, should end with a letter or digit", name)
 	}
 	return nil
 }

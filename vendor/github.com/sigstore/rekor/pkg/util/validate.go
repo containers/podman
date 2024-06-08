@@ -21,6 +21,30 @@ import (
 	validator "github.com/go-playground/validator/v10"
 )
 
+// validateSHA512Value ensures that the supplied string matches the
+// following format: [sha512:]<128 hexadecimal characters>
+// where [sha512:] is optional
+func ValidateSHA512Value(v string) error {
+	var prefix, hash string
+
+	split := strings.SplitN(v, ":", 2)
+	switch len(split) {
+	case 1:
+		hash = split[0]
+	case 2:
+		prefix = split[0]
+		hash = split[1]
+	}
+
+	s := struct {
+		Prefix string `validate:"omitempty,oneof=sha512"`
+		Hash   string `validate:"required,len=128,hexadecimal"`
+	}{prefix, hash}
+
+	validate := validator.New()
+	return validate.Struct(s)
+}
+
 // validateSHA256Value ensures that the supplied string matches the following format:
 // [sha256:]<64 hexadecimal characters>
 // where [sha256:] is optional

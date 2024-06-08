@@ -1,6 +1,5 @@
 # Mergo
 
-
 [![GoDoc][3]][4]
 [![GitHub release][5]][6]
 [![GoCard][7]][8]
@@ -9,6 +8,7 @@
 [![Sourcegraph][11]][12]
 [![FOSSA Status][13]][14]
 [![Become my sponsor][15]][16]
+[![Tidelift][17]][18]
 
 [1]: https://travis-ci.org/imdario/mergo.png
 [2]: https://travis-ci.org/imdario/mergo
@@ -26,6 +26,8 @@
 [14]: https://app.fossa.io/projects/git%2Bgithub.com%2Fimdario%2Fmergo?ref=badge_shield
 [15]: https://img.shields.io/github/sponsors/imdario
 [16]: https://github.com/sponsors/imdario
+[17]: https://tidelift.com/badges/package/go/github.com%2Fimdario%2Fmergo
+[18]: https://tidelift.com/subscription/pkg/go-github.com-imdario-mergo
 
 A helper to merge structs and maps in Golang. Useful for configuration default values, avoiding messy if-statements.
 
@@ -55,7 +57,6 @@ If Mergo is useful to you, consider buying me a coffee, a beer, or making a mont
 
 ### Mergo in the wild
 
-- [cli/cli](https://github.com/cli/cli)
 - [moby/moby](https://github.com/moby/moby)
 - [kubernetes/kubernetes](https://github.com/kubernetes/kubernetes)
 - [vmware/dispatch](https://github.com/vmware/dispatch)
