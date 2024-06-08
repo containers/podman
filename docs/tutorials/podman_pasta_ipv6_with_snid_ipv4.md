@@ -611,7 +611,7 @@ services:
       - label=type:container_runtime_t
     ports:
       - target: 80
-        host_ip: 172.16.1.12
+        host_ip: 172.16.1.10
         published: 80
         protocol: tcp
     network_mode: "pasta:--ipv4-only"
@@ -637,7 +637,7 @@ services:
     security_opt:
       - no-new-privileges:true
       - label=type:container_runtime_t
-    network_mode: "pasta:--ipv4-only,-t,172.16.1.12/80"
+    network_mode: "pasta:--ipv4-only,-t,172.16.1.10/80"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
       - ~/containers/data/redirect-http-ipv4-caddy:/data:rw,z
@@ -662,7 +662,7 @@ services:
 
 # Redirect TCP IPV4 HTTP Requests to HTTPS
 http:// {
-  bind tcp4/172.16.1.12
+  bind tcp4/172.16.1.10
   redir https://{host}{uri} 308
 
 # Logging
