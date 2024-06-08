@@ -107,7 +107,8 @@ Description=SNID Service
 [Service]
 # Running as rootless does NOT appear to work, even when adding AmbientCapabilities=CAP_NET_BIND_SERVICE
 User=root
-ExecStart=/bin/bash -c 'cd /opt/snid && ip route add local 64:ff9b:1::/96 dev lo && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
+ExecStartPre=/bin/bash -c 'sleep 10'
+ExecStart=/bin/bash -c 'cd /opt/snid && ip route replace local 64:ff9b:1::/96 dev lo && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
 ExecStop=/bin/bash -c 'cd /opt/snid && ip route del local 64:ff9b:1::/96 dev lo'
 
 [Install]
