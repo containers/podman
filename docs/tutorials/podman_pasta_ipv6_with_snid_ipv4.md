@@ -185,11 +185,11 @@ With this Method, `podman ps` will show the Open Ports in its Output.
 
 ```
 services:
-  caddy:
+  whoami-caddy:
     image: caddy:latest
     #image: lucaslorentz/caddy-docker-proxy:2.9-alpine
     pull_policy: "missing"
-    container_name: caddy
+    container_name: whoami-caddy
     restart: "unless-stopped"
     security_opt:
       - no-new-privileges:true
@@ -211,20 +211,20 @@ services:
     volumes:
  #     - /run/user/1001/podman/podman.sock:/var/run/docker.sock:rw,z
       - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
-      - ~/containers/data/caddy:/data:rw,z
-      - ~/containers/log/caddy:/var/log:rw,z
-      - ~/containers/config/caddy:/config:rw,z
+      - ~/containers/data/whoami-caddy:/data:rw,z
+      - ~/containers/log/whoami-caddy:/var/log:rw,z
+      - ~/containers/config/whoami-caddy:/config:rw,z
       - ~/containers/certificates/letsencrypt:/certificates:ro,z
     environment:
       - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
 
   # Proxy to container
-  whoami:
+  whoami-application:
     image: traefik/whoami
     pull_policy: "missing"
-    container_name: whoami
+    container_name: whoami-application
     restart: "unless-stopped"
-    network_mode: "service:caddy"
+    network_mode: "service:whoami-caddy"
     environment:
       - WHOAMI_PORT_NUMBER=8080
 ```
@@ -238,11 +238,11 @@ This works correctly, but the only way to examine if the Port is used is to run 
 
 ```
 services:
-  caddy:
+  whoami-caddy:
     image: caddy:latest
     #image: lucaslorentz/caddy-docker-proxy:2.9-alpine
     pull_policy: "missing"
-    container_name: caddy
+    container_name: whoami-caddy
     restart: "unless-stopped"
     security_opt:
       - no-new-privileges:true
@@ -251,20 +251,20 @@ services:
     volumes:
  #     - /run/user/1001/podman/podman.sock:/var/run/docker.sock:rw,z
       - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
-      - ~/containers/data/caddy:/data:rw,z
-      - ~/containers/log/caddy:/var/log:rw,z
-      - ~/containers/config/caddy:/config:rw,z
+      - ~/containers/data/whoami-caddy:/data:rw,z
+      - ~/containers/log/whoami-caddy:/var/log:rw,z
+      - ~/containers/config/whoami-caddy:/config:rw,z
       - ~/containers/certificates/letsencrypt:/certificates:ro,z
     environment:
       - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
 
   # Proxy to container
-  whoami:
+  whoami-application:
     image: traefik/whoami
     pull_policy: "missing"
-    container_name: whoami
+    container_name: whoami-application
     restart: "unless-stopped"
-    network_mode: "service:caddy"
+    network_mode: "service:whoami-caddy"
     environment:
       - WHOAMI_PORT_NUMBER=8080
 ```
@@ -327,6 +327,110 @@ application01.MYDOMAIN.TLD {
 }
 ```
 
+# Redirects
+## General
+When handling Redirects, HTTP Codes `301` (`Moved Permanently`), `302` (`Found (Temporary Redirect)`), `307` (`Temporary Redirect`) and `308` (`Permanent Redirect`) are Typically Used.
+
+References:
+- https://storychief.io/blog/301-302-307-308-redirect
+- https://www.infidigit.com/blog/308-permanent-redirect/
+
+When a 308 redirect code is specified, the client must repeat the exact same request (POST or GET) on the target location. For 301 redirect, the client may not necessarily follow the exact same request. 
+
+Since the HTTPS must always be Enforced (`Permanent Redirect`) and the Client should perform the exact same Request over HTTPS that was performed over HTTP, the Code `308` seems more Appropriate.
+
+## HTTP -> HTTPS for IPv4 Redirects
+The `snid` Service does NOT handle HTTP (non-HTTPS) Requests and does NOT bind to the IPv4 Address on Port 80.
+
+This Problem (IPv4 HTTP -> HTTPS Redirects) can easily be solved by using a one-off (for the entire Podman Host) Caddy Container.
+
+(Option 1) `compose.yml` with "Normal" Ports Mappings:
+```
+services:
+  redirect-http-ipv4-caddy:
+    image: caddy:latest
+    pull_policy: "missing"
+    container_name: redirect-http-ipv4-caddy
+    restart: "unless-stopped"
+    security_opt:
+      - no-new-privileges:true
+      - label=type:container_runtime_t
+    ports:
+      - target: 80
+        host_ip: 172.16.1.12
+        published: 80
+        protocol: tcp
+    network_mode: "pasta:--ipv4-only"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - ~/containers/data/redirect-http-ipv4-caddy:/data:rw,z
+      - ~/containers/log/redirect-http-ipv4-caddy:/var/log:rw,z
+      - ~/containers/config/redirect-http-ipv4-caddy:/config:rw,z
+      - ~/containers/certificates/letsencrypt:/certificates:ro,z
+    environment:
+      - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
+
+```
+
+(Option 2) `compose.yml` with "Pasta" One-Liner:
+```
+services:
+  redirect-http-ipv4-caddy:
+    image: caddy:latest
+    pull_policy: "missing"
+    container_name: redirect-http-ipv4-caddy
+    restart: "unless-stopped"
+    security_opt:
+      - no-new-privileges:true
+      - label=type:container_runtime_t
+    network_mode: "pasta:--ipv4-only,-t,172.16.1.12/80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro,z
+      - ~/containers/data/redirect-http-ipv4-caddy:/data:rw,z
+      - ~/containers/log/redirect-http-ipv4-caddy:/var/log:rw,z
+      - ~/containers/config/redirect-http-ipv4-caddy:/config:rw,z
+      - ~/containers/certificates/letsencrypt:/certificates:ro,z
+    environment:
+      - CADDY_DOCKER_CADDYFILE_PATH=/etc/caddy/Caddyfile
+```
+
+
+`Caddyfile`:
+```
+# Example and Guide
+# https://caddyserver.com/docs/caddyfile/options
+
+# General Options
+{
+    # Debug Mode
+    debug
+}
+
+# Redirect TCP IPV4 HTTP Requests to HTTPS
+http:// {
+  bind tcp4/172.16.1.12
+  redir https://{host}{uri} 308
+
+# Logging
+  log {
+	output file /var/log/access.json {
+		roll_size 100MiB
+		roll_keep 5000
+		roll_keep_for 720h
+		roll_uncompressed
+	}
+        format json
+  }
+}
+```
+
+## HTTP -> HTTPs for IPv6 Redirects
+"Native" IPv6 Redirects are Handled by Caddy Proxy listening on the Configured IPv6 Address.
+
+This is already described in the Application `compose.yml` File described Previously.
+
+The Redirect itself is setup by Caddy automatically by Default (see https://caddyserver.com/docs/automatic-https).
+
 # Run the Application
 Simply Run
 ```
@@ -343,14 +447,40 @@ From a Remote Client (NOT located withing the same LAN, try to use 4G/LTE Connec
 
 It is reccomended to test against something like `traefik/whoami` Application (as described in this Tutorial's `compose.yml` File), which can display many Parameters, including HTTP and especially X-Forwarded-For Headers.
 
-IPv6 Test
+In order to follow the Redirects, `curl` MUST be invoked with the `-L` Argument.
+
+Thee `-vvv` Argument is only to Obtain more Verbose Output (which can be Useful for Debugging) and can be omitted if everything is working normally.
+
+## IPv6 Testing
+IPv6 HTTPS Test (do NOT follow redirects) should yield a `200` Status Response (`OK`):
 ```
-curl -vvv -6 application01.MYDOMAIN.TLD
+curl -vvv -6 https://application01.MYDOMAIN.TLD
 ```
 
-IPv4 Test
+IPv6 HTTP Test (do NOT follow redirects) should yield a `308` Status Response (`Permanent Redirect`):
 ```
-curl -vvv -4 application01.MYDOMAIN.TLD
+curl -vvv -6 http://application01.MYDOMAIN.TLD
+```
+
+IPv6 HTTP Test (follow redirects) should yield a `200` Status Response (`OK`):
+```
+curl -vvv -6 -L http://application01.MYDOMAIN.TLD
+```
+
+## IPv4 Testing
+IPv4 HTTPS Test (do NOT follow redirects) should yield a `200` Status Response (`OK`):
+```
+curl -vvv -4 https://application01.MYDOMAIN.TLD
+```
+
+IPv4 HTTP Test (do NOT follow redirects) should yield a `308` Status Response (`Permanent Redirect`):
+```
+curl -vvv -4 https://application01.MYDOMAIN.TLD
+```
+
+IPv4 HTTP Test (follow redirects) should yield a `200` Status Response (`OK`):
+```
+curl -vvv -4 -L http://application01.MYDOMAIN.TLD
 ```
 
 In case of Issues in the IPv4 Test, check the `snid` Service Status for Clues:
