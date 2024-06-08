@@ -148,6 +148,14 @@ kernel.unprivileged_userns_clone=1
 net.ipv6.ip_nonlocal_bind=1
 ```
 
+Furthermore concerning the User Account Setup (it is preferable to use a different User compared to the one running the Podman Containers, for the Reasons outlined above):
+```
+groupadd snid
+useradd --shell /usr/sbin/nologin -g snid --base-dir /opt/snid snid
+chown snid:snid /opt/snid/snid
+chmod 0770 /opt/snid/snid
+```
+
 `/etc/systemd/system/snid-routes.service`:
 ```
 # To get SNID to work:
@@ -191,8 +199,8 @@ Description=SNID Server Service
 Requires=snid-routes.service
 
 [Service]
-User=podman
-Group=podman
+User=snid
+Group=snid
 ExecStart=/bin/bash -c 'cd /opt/snid && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
 
 # Not currently used
