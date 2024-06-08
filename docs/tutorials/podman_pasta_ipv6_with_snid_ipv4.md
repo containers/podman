@@ -90,6 +90,13 @@ wget https://github.com/AGWA/snid/releases/download/v0.3.0/snid-v0.3.0-linux-amd
 chmod +x /opt/snid/snid
 ```
 
+## Rootfull Service
+
+This Probably requires (also as Root) in `/etc/sysctl.conf`:
+```
+net.ipv6.ip_nonlocal_bind=1
+```
+
 Then create a Systemd Service for it in `/etc/systemd/system/snid.service`
 ```
 # To get SNID to work:
@@ -124,6 +131,92 @@ systemctl status snid.service
 ```
 
 Check that no Errors occurred !
+
+## Rootless Service
+An enhancement of the original `/etc/systemd/system/snid.service` can be done, by splitting up the Service in two Parts:
+- Routes Setup Service (requires Root Privileges): `/etc/systemd/system/snid-routes.service`
+- Server Service (can be run as Normal User): `/etc/systemd/system/snid-server.service`
+
+Since the Routes are Setup in less than a Second and, after that, `snid` is run as Normal User, the attack Surface is minimized. Even better would be to run the Service as a User which is DIFFERENT from the User Running `podman` (to ensure that the Files owned by `podman` CANNOT be accessed in case `snid` is compromized).
+
+Of course this requires (but should be already in Place, since the Rootless Containers require it already) in `/etc/sysctl.conf`:
+```
+net.ipv4.ip_unprivileged_port_start=80
+net.ipv4.ping_group_range=0 2000000
+kernel.unprivileged_userns_clone=1
+
+net.ipv6.ip_nonlocal_bind=1
+```
+
+For the Routes Setup Part, do NOT put an `ExecStop` or `ExecStartPre` Condition to delete the Route if it exists, otherwise no Route will be setup at all (since the Service terminates IMMEDIATELY).
+
+`/etc/systemd/system/snid-routes.service`:
+```
+# To get SNID to work:
+# - ip route add local the_nat46_prefix/96 dev lo
+# - nmcli connection modify lo +ipv6.routes "64:ff9b:1::/96 dev lo" -> NOT WORKING
+# - Backend CIDR: 2001:db8:0000:0001:0000:0000:0001:0001/112 (2001:db8:0000:0001:0000:0000:0001:0000 ... 2001:db8:0000:0001:0000:0000:0001:ffff)
+#
+# Convert IPv4 Address to IPv6 Address Representation: 
+# - https://www.agwa.name/blog/post/using_sni_proxying_and_ipv6_to_share_port_443
+# - https://www.rfc-editor.org/rfc/rfc6052
+
+[Unit]
+Description=SNID Routes Setup Service
+
+[Service]
+#Type=oneshot
+User=root
+ExecStart=/bin/bash -c 'ip route replace local 64:ff9b:1::/96 dev lo'
+
+[Install]
+WantedBy=multi-user.target
+```
+
+For the Service Part, we just put a Condition that requires `snid-routes.service` to be Run before (`Requires`).
+`/etc/systemd/system/snid-server.service`:
+```
+# To get SNID to work:
+# - ip route add local the_nat46_prefix/96 dev lo
+# - nmcli connection modify lo +ipv6.routes "64:ff9b:1::/96 dev lo" -> NOT WORKING
+# - Backend CIDR: 2001:db8:0000:0001:0000:0000:0001:0001/112 (2001:db8:0000:0001:0000:0000:0001:0000 ... 2001:db8:0000:0001:0000:0000:0001:ffff)
+#
+# Convert IPv4 Address to IPv6 Address Representation: 
+# - https://www.agwa.name/blog/post/using_sni_proxying_and_ipv6_to_share_port_443
+# - https://www.rfc-editor.org/rfc/rfc6052
+
+[Unit]
+Description=SNID Server Service
+Requires=snid-routes.service
+
+[Service]
+User=podman
+Group=podman
+ExecStart=/bin/bash -c 'cd /opt/snid && ./snid -listen tcp:172.16.1.12:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
+ExecStop=/bin/bash -c 'cd /opt/snid'
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Reload Systemd, enable and Start the Services:
+```
+# Reload Systemd Daemon
+systemctl daemon-reload
+
+# Enable Services
+systemctl enable snid-routes.service
+systemctl enable snid-server.service
+
+# Check for potential Errors
+systemctl restart snid-server.service
+systemctl status snid-server.service
+journalctl -xeu snid-server.service
+
+# Check for potential Errors
+systemctl status snid-routes.service
+journalctl -xeu snid-routes.service
+```
 
 # IPv6 Networking Setup
 > **Warning**  
