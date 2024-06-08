@@ -174,6 +174,7 @@ WantedBy=multi-user.target
 ```
 
 For the Service Part, we just put a Condition that requires `snid-routes.service` to be Run before (`Requires`).
+
 `/etc/systemd/system/snid-server.service`:
 ```
 # To get SNID to work:
@@ -192,7 +193,7 @@ Requires=snid-routes.service
 [Service]
 User=podman
 Group=podman
-ExecStart=/bin/bash -c 'cd /opt/snid && ./snid -listen tcp:172.16.1.12:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
+ExecStart=/bin/bash -c 'cd /opt/snid && ./snid -listen tcp:172.16.1.10:443 -mode nat46 -nat46-prefix 64:ff9b:1:: -backend-cidr 2001:db8:0000:0001:0000:0000:0001:0001/112'
 ExecStop=/bin/bash -c 'cd /opt/snid'
 
 [Install]
