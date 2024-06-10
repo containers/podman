@@ -427,7 +427,7 @@ func Export(ctx context.Context, nameOrID string, w io.Writer, options *ExportOp
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode/100 == 2 {
+	if response.IsSuccess() {
 		_, err = io.Copy(w, response.Body)
 		return err
 	}
