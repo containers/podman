@@ -190,12 +190,11 @@ var _ = Describe("Podman build", func() {
 		// Test if entire build is used from cache
 		Expect(session.OutputToString()).To(ContainSubstring("Using cache"))
 
-		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "test-squash-d"})
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.RootFS.Layers}}", "test"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		// Check for one layers
 		Expect(strings.Fields(session.OutputToString())).To(HaveLen(1))
-
 	})
 
 	It("podman build Containerfile locations", func() {
