@@ -269,7 +269,7 @@ func WaitAndPingAPI(sock string) {
 	if err == nil {
 		defer resp.Body.Close()
 	}
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		logrus.Warn("API socket failed ping test")
 	}
 }

@@ -162,7 +162,7 @@ func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *Expor
 	}
 	defer response.Body.Close()
 
-	if response.StatusCode/100 == 2 || response.StatusCode/100 == 3 {
+	if response.IsSuccess() || response.IsRedirection() {
 		_, err = io.Copy(w, response.Body)
 		return err
 	}

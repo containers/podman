@@ -321,30 +321,35 @@ func (c *Connection) GetDialer(ctx context.Context) (net.Conn, error) {
 
 // IsInformational returns true if the response code is 1xx
 func (h *APIResponse) IsInformational() bool {
+	//nolint:usestdlibvars // linter wants to use http.StatusContinue over 100 but that makes less readable IMO
 	return h.Response.StatusCode/100 == 1
 }
 
 // IsSuccess returns true if the response code is 2xx
 func (h *APIResponse) IsSuccess() bool {
+	//nolint:usestdlibvars // linter wants to use http.StatusContinue over 100 but that makes less readable IMO
 	return h.Response.StatusCode/100 == 2
 }
 
 // IsRedirection returns true if the response code is 3xx
 func (h *APIResponse) IsRedirection() bool {
+	//nolint:usestdlibvars // linter wants to use http.StatusContinue over 100 but that makes less readable IMO
 	return h.Response.StatusCode/100 == 3
 }
 
 // IsClientError returns true if the response code is 4xx
 func (h *APIResponse) IsClientError() bool {
+	//nolint:usestdlibvars // linter wants to use http.StatusContinue over 100 but that makes less readable IMO
 	return h.Response.StatusCode/100 == 4
 }
 
 // IsConflictError returns true if the response code is 409
 func (h *APIResponse) IsConflictError() bool {
-	return h.Response.StatusCode == 409
+	return h.Response.StatusCode == http.StatusConflict
 }
 
 // IsServerError returns true if the response code is 5xx
 func (h *APIResponse) IsServerError() bool {
+	//nolint:usestdlibvars // linter wants to use http.StatusContinue over 100 but that makes less readable IMO
 	return h.Response.StatusCode/100 == 5
 }

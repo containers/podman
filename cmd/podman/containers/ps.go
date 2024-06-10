@@ -161,7 +161,7 @@ func jsonOut(responses []entities.ListContainer) error {
 	return nil
 }
 
-func quietOut(responses []entities.ListContainer) error {
+func quietOut(responses []entities.ListContainer) {
 	for _, r := range responses {
 		id := r.ID
 		if !noTrunc {
@@ -169,7 +169,6 @@ func quietOut(responses []entities.ListContainer) error {
 		}
 		fmt.Println(id)
 	}
-	return nil
 }
 
 func getResponses() ([]entities.ListContainer, error) {
@@ -217,7 +216,8 @@ func ps(cmd *cobra.Command, _ []string) error {
 	case report.IsJSON(listOpts.Format):
 		return jsonOut(listContainers)
 	case listOpts.Quiet && !cmd.Flags().Changed("format"):
-		return quietOut(listContainers)
+		quietOut(listContainers)
+		return nil
 	}
 
 	responses := make([]psReporter, 0, len(listContainers))
