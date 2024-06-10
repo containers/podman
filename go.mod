@@ -10,7 +10,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/buger/goterm v1.0.4
-	github.com/checkpoint-restore/checkpointctl v1.1.0
+	github.com/checkpoint-restore/checkpointctl v1.2.0
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.5.0
 	github.com/containers/buildah v1.36.0

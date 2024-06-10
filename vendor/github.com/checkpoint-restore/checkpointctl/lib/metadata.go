@@ -48,6 +48,10 @@ type ContainerConfig struct {
 	Restored        bool      `json:"restored"`
 }
 
+type Spec struct {
+	Annotations map[string]string `json:"annotations,omitempty"`
+}
+
 type ContainerdStatus struct {
 	CreatedAt  int64
 	StartedAt  int64
