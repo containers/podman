@@ -78,7 +78,7 @@ require (
 	golang.org/x/sys v0.21.0
 	golang.org/x/term v0.21.0
 	golang.org/x/text v0.16.0
-	google.golang.org/protobuf v1.34.1
+	google.golang.org/protobuf v1.34.2
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.4.0
