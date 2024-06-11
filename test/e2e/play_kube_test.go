@@ -4538,7 +4538,7 @@ invalid kube kind
 		// volume should not be deleted on teardown
 		exists = podmanTest.Podman([]string{"volume", "exists", volName})
 		exists.WaitWithDefaultTimeout()
-		Expect(exists).To(Exit(1))
+		Expect(exists).To(ExitWithError(1, ""))
 	})
 
 	It("after teardown with volume reuse", func() {

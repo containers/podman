@@ -428,8 +428,7 @@ var _ = Describe("Podman network", func() {
 		// check if pod is deleted
 		session = podmanTest.Podman([]string{"pod", "exists", podID})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
-		Expect(session.ErrorToString()).To(Equal(""))
+		Expect(session).Should(ExitWithError(1, ""))
 
 		// check if net is deleted
 		session = podmanTest.Podman([]string{"network", "ls"})
@@ -617,8 +616,7 @@ var _ = Describe("Podman network", func() {
 
 		session = podmanTest.Podman([]string{"network", "exists", stringid.GenerateRandomID()})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
-		Expect(session.ErrorToString()).To(Equal(""))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 
 	It("podman network create macvlan with network info and options", func() {

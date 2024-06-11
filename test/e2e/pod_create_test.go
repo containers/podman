@@ -16,7 +16,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
@@ -68,7 +67,7 @@ var _ = Describe("Podman pod create", func() {
 		Expect(webserver).Should(ExitCleanly())
 
 		check := SystemExec("nc", []string{"-z", "localhost", "80"})
-		Expect(check).Should(Exit(1))
+		Expect(check).Should(ExitWithError(1, ""))
 	})
 
 	It("podman create pod with network portbindings", func() {

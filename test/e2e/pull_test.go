@@ -413,7 +413,7 @@ var _ = Describe("Podman pull", func() {
 		// Note that reference is not preserved in dir.
 		session = podmanTest.Podman([]string{"image", "exists", "cirros"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 
 	It("podman pull from local OCI directory", func() {
