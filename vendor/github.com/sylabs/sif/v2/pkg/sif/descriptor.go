@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2023, Sylabs Inc. All rights reserved.
+// Copyright (c) 2018-2024, Sylabs Inc. All rights reserved.
 // Copyright (c) 2017, SingularityWare, LLC. All rights reserved.
 // Copyright (c) 2017, Yannick Cote <yhcote@gmail.com> All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
@@ -92,7 +92,9 @@ func newOCIBlobDigest() *ociBlob {
 
 // MarshalBinary encodes ob into binary format.
 func (ob *ociBlob) MarshalBinary() ([]byte, error) {
-	ob.digest.Hex = hex.EncodeToString(ob.hasher.Sum(nil))
+	if ob.digest.Hex == "" {
+		ob.digest.Hex = hex.EncodeToString(ob.hasher.Sum(nil))
+	}
 
 	return ob.digest.MarshalText()
 }

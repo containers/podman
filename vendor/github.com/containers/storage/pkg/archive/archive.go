@@ -169,10 +169,17 @@ func DetectCompression(source []byte) Compression {
 }
 
 // DecompressStream decompresses the archive and returns a ReaderCloser with the decompressed archive.
-func DecompressStream(archive io.Reader) (io.ReadCloser, error) {
+func DecompressStream(archive io.Reader) (_ io.ReadCloser, Err error) {
 	p := pools.BufioReader32KPool
 	buf := p.Get(archive)
 	bs, err := buf.Peek(10)
+
+	defer func() {
+		if Err != nil {
+			p.Put(buf)
+		}
+	}()
+
 	if err != nil && err != io.EOF {
 		// Note: we'll ignore any io.EOF error because there are some odd
 		// cases where the layer.tar file will be empty (zero bytes) and
@@ -189,6 +196,12 @@ func DecompressStream(archive io.Reader) (io.ReadCloser, error) {
 		readBufWrapper := p.NewReadCloserWrapper(buf, buf)
 		return readBufWrapper, nil
 	case Gzip:
+		cleanup := func() {
+			p.Put(buf)
+		}
+		if rc, canUse := tryProcFilter([]string{"pigz", "-d"}, buf, cleanup); canUse {
+			return rc, nil
+		}
 		gzReader, err := gzip.NewReader(buf)
 		if err != nil {
 			return nil, err
@@ -207,6 +220,12 @@ func DecompressStream(archive io.Reader) (io.ReadCloser, error) {
 		readBufWrapper := p.NewReadCloserWrapper(buf, xzReader)
 		return readBufWrapper, nil
 	case Zstd:
+		cleanup := func() {
+			p.Put(buf)
+		}
+		if rc, canUse := tryProcFilter([]string{"zstd", "-d"}, buf, cleanup); canUse {
+			return rc, nil
+		}
 		return zstdReader(buf)
 	default:
 		return nil, fmt.Errorf("unsupported compression format %s", (&compression).Extension())
@@ -214,9 +233,16 @@ func DecompressStream(archive io.Reader) (io.ReadCloser, error) {
 }
 
 // CompressStream compresses the dest with specified compression algorithm.
-func CompressStream(dest io.Writer, compression Compression) (io.WriteCloser, error) {
+func CompressStream(dest io.Writer, compression Compression) (_ io.WriteCloser, Err error) {
 	p := pools.BufioWriter32KPool
 	buf := p.Get(dest)
+
+	defer func() {
+		if Err != nil {
+			p.Put(buf)
+		}
+	}()
+
 	switch compression {
 	case Uncompressed:
 		writeBufWrapper := p.NewWriteCloserWrapper(buf, buf)
@@ -642,7 +668,7 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 			}
 		}
 
-	case tar.TypeReg, tar.TypeRegA:
+	case tar.TypeReg:
 		// Source is regular file. We use system.OpenFileSequential to use sequential
 		// file access to avoid depleting the standby list on Windows.
 		// On Linux, this equates to a regular os.OpenFile
@@ -701,8 +727,11 @@ func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, L
 	}
 
 	if forceMask != nil && (hdr.Typeflag != tar.TypeSymlink || runtime.GOOS == "darwin") {
-		value := fmt.Sprintf("%d:%d:0%o", hdr.Uid, hdr.Gid, hdrInfo.Mode()&0o7777)
-		if err := system.Lsetxattr(path, idtools.ContainersOverrideXattr, []byte(value), 0); err != nil {
+		value := idtools.Stat{
+			IDs:  idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid},
+			Mode: hdrInfo.Mode() & 0o7777,
+		}
+		if err := idtools.SetContainersOverrideXattr(path, value); err != nil {
 			return err
 		}
 	}
@@ -1113,9 +1142,14 @@ loop:
 		}
 	}
 
-	if options.ForceMask != nil && rootHdr != nil {
-		value := fmt.Sprintf("%d:%d:0%o", rootHdr.Uid, rootHdr.Gid, rootHdr.Mode)
-		if err := system.Lsetxattr(dest, idtools.ContainersOverrideXattr, []byte(value), 0); err != nil {
+	if options.ForceMask != nil {
+		value := idtools.Stat{Mode: 0o755}
+		if rootHdr != nil {
+			value.IDs.UID = rootHdr.Uid
+			value.IDs.GID = rootHdr.Gid
+			value.Mode = os.FileMode(rootHdr.Mode)
+		}
+		if err := idtools.SetContainersOverrideXattr(dest, value); err != nil {
 			return err
 		}
 	}

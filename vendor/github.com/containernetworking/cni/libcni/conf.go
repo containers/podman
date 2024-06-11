@@ -16,13 +16,17 @@ package libcni
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
+
+	"github.com/Masterminds/semver/v3"
 
 	"github.com/containernetworking/cni/pkg/types"
+	"github.com/containernetworking/cni/pkg/version"
 )
 
 type NotFoundError struct {
@@ -54,7 +58,7 @@ func ConfFromBytes(bytes []byte) (*NetworkConfig, error) {
 }
 
 func ConfFromFile(filename string) (*NetworkConfig, error) {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %w", filename, err)
 	}
@@ -85,17 +89,84 @@ func ConfListFromBytes(bytes []byte) (*NetworkConfigList, error) {
 		}
 	}
 
-	disableCheck := false
-	if rawDisableCheck, ok := rawList["disableCheck"]; ok {
-		disableCheck, ok = rawDisableCheck.(bool)
-		if !ok {
-			return nil, fmt.Errorf("error parsing configuration list: invalid disableCheck type %T", rawDisableCheck)
+	rawVersions, ok := rawList["cniVersions"]
+	if ok {
+		// Parse the current package CNI version
+		currentVersion, err := semver.NewVersion(version.Current())
+		if err != nil {
+			panic("CNI version is invalid semver!")
 		}
+
+		rvs, ok := rawVersions.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("error parsing configuration list: invalid type for cniVersions: %T", rvs)
+		}
+		vs := make([]*semver.Version, 0, len(rvs))
+		for i, rv := range rvs {
+			v, ok := rv.(string)
+			if !ok {
+				return nil, fmt.Errorf("error parsing configuration list: invalid type for cniVersions index %d: %T", i, rv)
+			}
+			if v, err := semver.NewVersion(v); err != nil {
+				return nil, fmt.Errorf("error parsing configuration list: invalid cniVersions entry %s at index %d: %w", v, i, err)
+			} else if !v.GreaterThan(currentVersion) {
+				// Skip versions "greater" than this implementation of the spec
+				vs = append(vs, v)
+			}
+		}
+
+		// if cniVersion was already set, append it to the list for sorting.
+		if cniVersion != "" {
+			if v, err := semver.NewVersion(cniVersion); err != nil {
+				return nil, fmt.Errorf("error parsing configuration list: invalid cniVersion %s: %w", cniVersion, err)
+			} else if !v.GreaterThan(currentVersion) {
+				// ignore any versions higher than the current implemented spec version
+				vs = append(vs, v)
+			}
+		}
+		sort.Sort(semver.Collection(vs))
+		if len(vs) > 0 {
+			cniVersion = vs[len(vs)-1].String()
+		}
+	}
+
+	readBool := func(key string) (bool, error) {
+		rawVal, ok := rawList[key]
+		if !ok {
+			return false, nil
+		}
+		if b, ok := rawVal.(bool); ok {
+			return b, nil
+		}
+
+		s, ok := rawVal.(string)
+		if !ok {
+			return false, fmt.Errorf("error parsing configuration list: invalid type %T for %s", rawVal, key)
+		}
+		s = strings.ToLower(s)
+		switch s {
+		case "false":
+			return false, nil
+		case "true":
+			return true, nil
+		}
+		return false, fmt.Errorf("error parsing configuration list: invalid value %q for %s", s, key)
+	}
+
+	disableCheck, err := readBool("disableCheck")
+	if err != nil {
+		return nil, err
+	}
+
+	disableGC, err := readBool("disableGC")
+	if err != nil {
+		return nil, err
 	}
 
 	list := &NetworkConfigList{
 		Name:         name,
 		DisableCheck: disableCheck,
+		DisableGC:    disableGC,
 		CNIVersion:   cniVersion,
 		Bytes:        bytes,
 	}
@@ -129,7 +200,7 @@ func ConfListFromBytes(bytes []byte) (*NetworkConfigList, error) {
 }
 
 func ConfListFromFile(filename string) (*NetworkConfigList, error) {
-	bytes, err := ioutil.ReadFile(filename)
+	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("error reading %s: %w", filename, err)
 	}
@@ -138,7 +209,7 @@ func ConfListFromFile(filename string) (*NetworkConfigList, error) {
 
 func ConfFiles(dir string, extensions []string) ([]string, error) {
 	// In part, adapted from rkt/networking/podenv.go#listFiles
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	switch {
 	case err == nil: // break
 	case os.IsNotExist(err):
@@ -206,7 +277,8 @@ func LoadConfList(dir, name string) (*NetworkConfigList, error) {
 	singleConf, err := LoadConf(dir, name)
 	if err != nil {
 		// A little extra logic so the error makes sense
-		if _, ok := err.(NoConfigsFoundError); len(files) != 0 && ok {
+		var ncfErr NoConfigsFoundError
+		if len(files) != 0 && errors.As(err, &ncfErr) {
 			// Config lists found but no config files found
 			return nil, NotFoundError{dir, name}
 		}

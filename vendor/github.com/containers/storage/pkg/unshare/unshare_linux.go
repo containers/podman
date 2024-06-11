@@ -526,8 +526,11 @@ func MaybeReexecUsingUserNamespace(evenForRoot bool) {
 	} else {
 		// If we have CAP_SYS_ADMIN, then we don't need to create a new namespace in order to be able
 		// to use unshare(), so don't bother creating a new user namespace at this point.
-		capabilities, err := capability.NewPid(0)
+		capabilities, err := capability.NewPid2(0)
+		bailOnError(err, "Initializing a new Capabilities object of pid 0")
+		err = capabilities.Load()
 		bailOnError(err, "Reading the current capabilities sets")
+
 		if capabilities.Get(capability.EFFECTIVE, capability.CAP_SYS_ADMIN) {
 			return
 		}

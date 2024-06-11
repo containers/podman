@@ -1437,7 +1437,9 @@ func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
 	return true
 }
 
-// putLayer requires the rlstore, rlstores, as well as s.containerStore (even if not an argument to this function) to be locked for write.
+// On entry:
+// - rlstore must be locked for writing
+// - rlstores MUST NOT be locked
 func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader, slo *stagedLayerOptions) (*Layer, int64, error) {
 	var parentLayer *Layer
 	var options LayerOptions
@@ -1474,6 +1476,11 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 			return nil, -1, ErrLayerUnknown
 		}
 		parentLayer = ilayer
+
+		if err := s.containerStore.startWriting(); err != nil {
+			return nil, -1, err
+		}
+		defer s.containerStore.stopWriting()
 		containers, err := s.containerStore.Containers()
 		if err != nil {
 			return nil, -1, err
@@ -1490,6 +1497,13 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 			gidMap = ilayer.GIDMap
 		}
 	} else {
+		// FIXME? It’s unclear why we are holding containerStore locked here at all
+		// (and because we are not modifying it, why it is a write lock, not a read lock).
+		if err := s.containerStore.startWriting(); err != nil {
+			return nil, -1, err
+		}
+		defer s.containerStore.stopWriting()
+
 		if !options.HostUIDMapping && len(options.UIDMap) == 0 {
 			uidMap = s.uidMap
 		}
@@ -1525,10 +1539,6 @@ func (s *store) PutLayer(id, parent string, names []string, mountLabel string, w
 		return nil, -1, err
 	}
 	defer rlstore.stopWriting()
-	if err := s.containerStore.startWriting(); err != nil {
-		return nil, -1, err
-	}
-	defer s.containerStore.stopWriting()
 	return s.putLayer(rlstore, rlstores, id, parent, names, mountLabel, writeable, lOptions, diff, nil)
 }
 
@@ -3009,15 +3019,13 @@ func (s *store) ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error) {
 		return layer, err
 	}
 	if err == nil {
+		// This code path exists only for cmd/containers/storage.applyDiffUsingStagingDirectory; we have tests that
+		// assume layer creation and applying a staged layer are separate steps. Production pull code always uses the
+		// other path, where layer creation is atomic.
 		return layer, rlstore.applyDiffFromStagingDirectory(args.ID, args.DiffOutput, args.DiffOptions)
 	}
 
 	// if the layer doesn't exist yet, try to create it.
-
-	if err := s.containerStore.startWriting(); err != nil {
-		return nil, err
-	}
-	defer s.containerStore.stopWriting()
 
 	slo := stagedLayerOptions{
 		DiffOutput:  args.DiffOutput,

@@ -17,13 +17,30 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
+// TOC is short for Table of Contents and is used by the zstd:chunked
+// file format to effectively add an overall index into the contents
+// of a tarball; it also includes file metadata.
 type TOC struct {
-	Version        int            `json:"version"`
-	Entries        []FileMetadata `json:"entries"`
-	TarSplitDigest digest.Digest  `json:"tarSplitDigest,omitempty"`
+	// Version is currently expected to be 1
+	Version int `json:"version"`
+	// Entries is the list of file metadata in this TOC.
+	// The ordering in this array currently defaults to being the same
+	// as that of the tar stream; however, this should not be relied on.
+	Entries []FileMetadata `json:"entries"`
+	// TarSplitDigest is the checksum of the "tar-split" data which
+	// is included as a distinct skippable zstd frame before the TOC.
+	TarSplitDigest digest.Digest `json:"tarSplitDigest,omitempty"`
 }
 
+// FileMetadata is an entry in the TOC that includes both generic file metadata
+// that duplicates what can found in the tar header (and should match), but
+// also special/custom content (see below).
+//
+// Note that the metadata here, when fetched by a zstd:chunked aware client,
+// is used instead of that in the tar stream.  The contents of the tar stream
+// are not used in this scenario.
 type FileMetadata struct {
+	// The metadata below largely duplicates that in the tar headers.
 	Type       string            `json:"type"`
 	Name       string            `json:"name"`
 	Linkname   string            `json:"linkName,omitempty"`
@@ -37,9 +54,11 @@ type FileMetadata struct {
 	Devmajor   int64             `json:"devMajor,omitempty"`
 	Devminor   int64             `json:"devMinor,omitempty"`
 	Xattrs     map[string]string `json:"xattrs,omitempty"`
-	Digest     string            `json:"digest,omitempty"`
-	Offset     int64             `json:"offset,omitempty"`
-	EndOffset  int64             `json:"endOffset,omitempty"`
+	// Digest is a hexadecimal sha256 checksum of the file contents; it
+	// is empty for empty files
+	Digest    string `json:"digest,omitempty"`
+	Offset    int64  `json:"offset,omitempty"`
+	EndOffset int64  `json:"endOffset,omitempty"`
 
 	ChunkSize   int64  `json:"chunkSize,omitempty"`
 	ChunkOffset int64  `json:"chunkOffset,omitempty"`
@@ -53,19 +72,23 @@ const (
 )
 
 const (
+	// The following types correspond to regular types of entries that can
+	// appear in a tar archive.
 	TypeReg     = "reg"
-	TypeChunk   = "chunk"
 	TypeLink    = "hardlink"
 	TypeChar    = "char"
 	TypeBlock   = "block"
 	TypeDir     = "dir"
 	TypeFifo    = "fifo"
 	TypeSymlink = "symlink"
+	// TypeChunk is special; in zstd:chunked not only are files individually
+	// compressed and indexable, there is a "rolling checksum" used to compute
+	// "chunks" of individual file contents, that are also added to the TOC
+	TypeChunk = "chunk"
 )
 
 var TarTypes = map[byte]string{
 	tar.TypeReg:     TypeReg,
-	tar.TypeRegA:    TypeReg,
 	tar.TypeLink:    TypeLink,
 	tar.TypeChar:    TypeChar,
 	tar.TypeBlock:   TypeBlock,
@@ -83,11 +106,23 @@ func GetType(t byte) (string, error) {
 }
 
 const (
+	// ManifestChecksumKey is a hexadecimal sha256 digest of the compressed manifest digest.
 	ManifestChecksumKey = "io.github.containers.zstd-chunked.manifest-checksum"
-	ManifestInfoKey     = "io.github.containers.zstd-chunked.manifest-position"
-	TarSplitInfoKey     = "io.github.containers.zstd-chunked.tarsplit-position"
+	// ManifestInfoKey is an annotation that signals the start of the TOC (manifest)
+	// contents which are embedded as a skippable zstd frame.  It has a format of
+	// four decimal integers separated by `:` as follows:
+	// <offset>:<length>:<uncompressed length>:<type>
+	// The <type> is ManifestTypeCRFS which should have the value `1`.
+	ManifestInfoKey = "io.github.containers.zstd-chunked.manifest-position"
+	// TarSplitInfoKey is an annotation that signals the start of the "tar-split" metadata
+	// contents which are embedded as a skippable zstd frame.  It has a format of
+	// three decimal integers separated by `:` as follows:
+	// <offset>:<length>:<uncompressed length>
+	TarSplitInfoKey = "io.github.containers.zstd-chunked.tarsplit-position"
 
-	TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum" // Deprecated: Use the TOC.TarSplitDigest field instead, this annotation is no longer read nor written.
+	// TarSplitChecksumKey is no longer used and is replaced by the TOC.TarSplitDigest field instead.
+	// The value is retained here as a constant as a historical reference for older zstd:chunked images.
+	// TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
 
 	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
 	ManifestTypeCRFS = 1

@@ -17,6 +17,7 @@ package name
 import (
 	// nolint: depguard
 	_ "crypto/sha256" // Recommended by go-digest.
+	"encoding/json"
 	"strings"
 
 	"github.com/opencontainers/go-digest"
@@ -57,6 +58,25 @@ func (d Digest) Name() string {
 // String returns the original input string.
 func (d Digest) String() string {
 	return d.original
+}
+
+// MarshalJSON formats the digest into a string for JSON serialization.
+func (d Digest) MarshalJSON() ([]byte, error) {
+	return json.Marshal(d.String())
+}
+
+// UnmarshalJSON parses a JSON string into a Digest.
+func (d *Digest) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	n, err := NewDigest(s)
+	if err != nil {
+		return err
+	}
+	*d = n
+	return nil
 }
 
 // NewDigest returns a new Digest representing the given name.

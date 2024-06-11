@@ -53,6 +53,8 @@ local-cross cross: ## cross build the binaries for arm, darwin, and freebsd
 		os=`echo $${target} | cut -f1 -d/` ; \
 		arch=`echo $${target} | cut -f2 -d/` ; \
 		suffix=$${os}.$${arch} ; \
+		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) ./... ; \
+		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) ./... || exit 1 ; \
 		echo env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags \"$(NATIVETAGS) $(TAGS)\" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage ; \
 		env CGO_ENABLED=0 GOOS=$${os} GOARCH=$${arch} $(GO) build -compiler gc -tags "$(NATIVETAGS) $(TAGS)" $(FLAGS) -o containers-storage.$${suffix} ./cmd/containers-storage || exit 1 ; \
 	done
