@@ -256,7 +256,9 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
        install.docker-docs \
        install.remote \
 %if %{defined _modulesloaddir}
+%if !%{defined rhel} || %{rhel} < 10
         install.modules-load
+%endif
 %endif
 
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
@@ -293,7 +295,9 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %{_systemdgeneratordir}/%{name}-system-generator
 %{_systemdusergeneratordir}/%{name}-user-generator
 %if %{defined _modulesloaddir}
+%if !%{defined rhel} || %{rhel} < 10
 %{_modulesloaddir}/%{name}-iptables.conf
+%endif
 %endif
 
 %files docker
