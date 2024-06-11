@@ -49,12 +49,13 @@ var (
 	// Key: Extension
 	// Value: Processing order for resource naming dependencies
 	supportedExtensions = map[string]int{
-		".container": 3,
+		".container": 4,
 		".volume":    2,
-		".kube":      3,
+		".kube":      4,
 		".network":   2,
 		".image":     1,
-		".pod":       4,
+		".build":     3,
+		".pod":       5,
 	}
 )
 
@@ -474,7 +475,7 @@ func warnIfAmbiguousName(unit *parser.UnitFile, group string) {
 	if !ok {
 		return
 	}
-	if strings.HasSuffix(imageName, ".image") {
+	if strings.HasSuffix(imageName, ".build") || strings.HasSuffix(imageName, ".image") {
 		return
 	}
 	if !isUnambiguousName(imageName) {
@@ -497,6 +498,19 @@ func generatePodsInfoMap(units []*parser.UnitFile) map[string]*quadlet.PodInfo {
 	}
 
 	return podsInfoMap
+}
+
+func prefillBuiltImageNames(units []*parser.UnitFile, resourceNames map[string]string) {
+	for _, unit := range units {
+		if !strings.HasSuffix(unit.Filename, ".build") {
+			continue
+		}
+
+		imageName := quadlet.GetBuiltImageName(unit)
+		if len(imageName) > 0 {
+			resourceNames[unit.Filename] = imageName
+		}
+	}
 }
 
 func main() {
@@ -600,6 +614,12 @@ func process() error {
 	// A map of network/volume unit file-names, against their calculated names, as needed by Podman.
 	var resourceNames = make(map[string]string)
 
+	// Prefill resouceNames for .build files. This is significantly less complex than
+	// pre-computing all resourceNames for all Quadlet types (which is rather complex for a few
+	// types), but still breaks the dependency cycle between .volume and .build ([Volume] can
+	// have Image=some.build, and [Build] can have Volume=some.volume:/some-volume)
+	prefillBuiltImageNames(units, resourceNames)
+
 	for _, unit := range units {
 		var service *parser.UnitFile
 		var name string
@@ -619,6 +639,8 @@ func process() error {
 		case strings.HasSuffix(unit.Filename, ".image"):
 			warnIfAmbiguousName(unit, quadlet.ImageGroup)
 			service, name, err = quadlet.ConvertImage(unit)
+		case strings.HasSuffix(unit.Filename, ".build"):
+			service, name, err = quadlet.ConvertBuild(unit, resourceNames)
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			service, err = quadlet.ConvertPod(unit, unit.Filename, podsInfoMap, resourceNames)
 		default:

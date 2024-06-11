@@ -50,6 +50,8 @@ func loadQuadletTestcase(path string) *quadletTestcase {
 		service += "-network"
 	case ".image":
 		service += "-image"
+	case ".build":
+		service += "-build"
 	case ".pod":
 		service += "-pod"
 	}
@@ -606,6 +608,44 @@ var _ = Describe("quadlet system generator", func() {
 		err          error
 		generatedDir string
 		quadletDir   string
+
+		runQuadletTestCase = func(fileName string, exitCode int, errString string) {
+			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
+
+			// Write the tested file to the quadlet dir
+			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Also copy any extra snippets
+			snippetdirs := []string{fileName + ".d"}
+			if ok, genericFileName := getGenericTemplateFile(fileName); ok {
+				snippetdirs = append(snippetdirs, genericFileName+".d")
+			}
+			for _, snippetdir := range snippetdirs {
+				dotdDir := filepath.Join("quadlet", snippetdir)
+				if s, err := os.Stat(dotdDir); err == nil && s.IsDir() {
+					dotdDirDest := filepath.Join(quadletDir, snippetdir)
+					err = os.Mkdir(dotdDirDest, os.ModePerm)
+					Expect(err).ToNot(HaveOccurred())
+					err = CopyDirectory(dotdDir, dotdDirDest)
+					Expect(err).ToNot(HaveOccurred())
+				}
+			}
+
+			// Run quadlet to convert the file
+			session := podmanTest.Quadlet([]string{"--user", "--no-kmsg-log", generatedDir}, quadletDir)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(Exit(exitCode))
+
+			// Print any stderr output
+			errs := session.ErrorToString()
+			if errs != "" {
+				GinkgoWriter.Println("error:", session.ErrorToString())
+			}
+			Expect(errs).Should(ContainSubstring(errString))
+
+			testcase.check(generatedDir, session)
+		}
 	)
 
 	BeforeEach(func() {
@@ -747,43 +787,7 @@ BOGUS=foo
 	})
 
 	DescribeTable("Running quadlet test case",
-		func(fileName string, exitCode int, errString string) {
-			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
-
-			// Write the tested file to the quadlet dir
-			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
-			Expect(err).ToNot(HaveOccurred())
-
-			// Also copy any extra snippets
-			snippetdirs := []string{fileName + ".d"}
-			if ok, genericFileName := getGenericTemplateFile(fileName); ok {
-				snippetdirs = append(snippetdirs, genericFileName+".d")
-			}
-			for _, snippetdir := range snippetdirs {
-				dotdDir := filepath.Join("quadlet", snippetdir)
-				if s, err := os.Stat(dotdDir); err == nil && s.IsDir() {
-					dotdDirDest := filepath.Join(quadletDir, snippetdir)
-					err = os.Mkdir(dotdDirDest, os.ModePerm)
-					Expect(err).ToNot(HaveOccurred())
-					err = CopyDirectory(dotdDir, dotdDirDest)
-					Expect(err).ToNot(HaveOccurred())
-				}
-			}
-
-			// Run quadlet to convert the file
-			session := podmanTest.Quadlet([]string{"--user", "--no-kmsg-log", generatedDir}, quadletDir)
-			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(exitCode))
-
-			// Print any stderr output
-			errs := session.ErrorToString()
-			if errs != "" {
-				GinkgoWriter.Println("error:", session.ErrorToString())
-			}
-			Expect(errs).Should(ContainSubstring(errString))
-
-			testcase.check(generatedDir, session)
-		},
+		runQuadletTestCase,
 		Entry("Basic container", "basic.container", 0, ""),
 		Entry("annotation.container", "annotation.container", 0, ""),
 		Entry("autoupdate.container", "autoupdate.container", 0, ""),
@@ -880,6 +884,8 @@ BOGUS=foo
 		Entry("image-no-image.volume", "image-no-image.volume", 1, "converting \"image-no-image.volume\": the key Image is mandatory when using the image driver"),
 		Entry("Volume - global args", "globalargs.volume", 0, ""),
 		Entry("Volume - Containers Conf Modules", "containersconfmodule.volume", 0, ""),
+		Entry("Volume - Quadlet image (.build) not found", "build-not-found.quadlet.volume", 1, "converting \"build-not-found.quadlet.volume\": requested Quadlet image not-found.build was not found"),
+		Entry("Volume - Quadlet image (.image) not found", "image-not-found.quadlet.volume", 1, "converting \"image-not-found.quadlet.volume\": requested Quadlet image not-found.image was not found"),
 
 		Entry("Absolute Path", "absolute.path.kube", 0, ""),
 		Entry("Basic kube", "basic.kube", 0, ""),
@@ -944,12 +950,65 @@ BOGUS=foo
 		Entry("Image - Containers Conf Modules", "containersconfmodule.image", 0, ""),
 		Entry("Image - Unit After Override", "unit-after-override.image", 0, ""),
 
+		Entry("Build - Basic", "basic.build", 0, ""),
+		Entry("Build - Annotation Key", "annotation.build", 0, ""),
+		Entry("Build - Arch Key", "arch.build", 0, ""),
+		Entry("Build - AuthFile Key", "authfile.build", 0, ""),
+		Entry("Build - DNS Key", "dns.build", 0, ""),
+		Entry("Build - DNSOptions Key", "dns-options.build", 0, ""),
+		Entry("Build - DNSSearch Key", "dns-search.build", 0, ""),
+		Entry("Build - Environment Key", "env.build", 0, ""),
+		Entry("Build - File Key absolute", "file-abs.build", 0, ""),
+		Entry("Build - File Key relative", "file-rel.build", 0, ""),
+		Entry("Build - File Key relative no WD", "file-rel-no-wd.build", 1, "converting \"file-rel-no-wd.build\": relative path in File key requires SetWorkingDirectory key to be set"),
+		Entry("Build - File Key HTTP(S) URL", "file-https.build", 0, ""),
+		Entry("Build - ForceRM Key", "force-rm.build", 0, ""),
+		Entry("Build - GlobalArgs", "globalargs.build", 0, ""),
+		Entry("Build - GroupAdd Key", "group-add.build", 0, ""),
+		Entry("Build - Containers Conf Modules", "containersconfmodule.build", 0, ""),
+		Entry("Build - Label Key", "label.build", 0, ""),
+		Entry("Build - Neither WorkingDirectory nor File Key", "neither-workingdirectory-nor-file.build", 1, "converting \"neither-workingdirectory-nor-file.build\": neither SetWorkingDirectory, nor File key specified"),
+		Entry("Build - Network Key host", "network.build", 0, ""),
+		Entry("Build - Network Key quadlet", "network.quadlet.build", 0, ""),
+		Entry("Build - No ImageTag Key", "no-imagetag.build", 1, "converting \"no-imagetag.build\": no ImageTag key specified"),
+		Entry("Build - PodmanArgs", "podmanargs.build", 0, ""),
+		Entry("Build - Pull Key", "pull.build", 0, ""),
+		Entry("Build - Secrets", "secrets.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is absolute path", "setworkingdirectory-is-abs.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is absolute File= path", "setworkingdirectory-is-file-abs.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is relative path", "setworkingdirectory-is-rel.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is relative File= path", "setworkingdirectory-is-file-rel.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is https://.git URL", "setworkingdirectory-is-https-git.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is git:// URL", "setworkingdirectory-is-git.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is github.com URL", "setworkingdirectory-is-github.build", 0, ""),
+		Entry("Build - SetWorkingDirectory is archive URL", "setworkingdirectory-is-archive.build", 0, ""),
+		Entry("Build - Target Key", "target.build", 0, ""),
+		Entry("Build - TLSVerify Key", "tls-verify.build", 0, ""),
+		Entry("Build - Variant Key", "variant.build", 0, ""),
+		Entry("Build - Volume Key", "volume.build", 0, ""),
+		Entry("Build - Volume Key quadlet", "volume.quadlet.build", 0, ""),
+
 		Entry("basic.pod", "basic.pod", 0, ""),
 		Entry("name.pod", "name.pod", 0, ""),
 		Entry("network.pod", "network.pod", 0, ""),
 		Entry("network-quadlet.pod", "network.quadlet.pod", 0, ""),
 		Entry("podmanargs.pod", "podmanargs.pod", 0, ""),
 		Entry("volume.pod", "volume.pod", 0, ""),
+	)
+
+	DescribeTable("Running quadlet test case with dependencies",
+		func(fileName string, exitCode int, errString string, dependencyFiles []string) {
+			// Write additional files this test depends on to the quadlet dir
+			for _, dependencyFileName := range dependencyFiles {
+				dependencyTestCase := loadQuadletTestcase(filepath.Join("quadlet", dependencyFileName))
+				err = os.WriteFile(filepath.Join(quadletDir, dependencyFileName), dependencyTestCase.data, 0644)
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			runQuadletTestCase(fileName, exitCode, errString)
+		},
+		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", 0, "", []string{"basic.build"}),
+		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", 0, "", []string{"basic.image"}),
 	)
 
 })
