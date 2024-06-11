@@ -58,6 +58,9 @@ load helpers
     is "$output" ".*$c1_id.*" "--filter finds container 1"
     is "$output" ".*$c3_id.*" "--filter finds container 3"
 
+    # start again, before this fix it could panic
+    run_podman start --filter restart-policy=always
+
     # Start via filtered names
     run_podman start --filter restart-policy=on-failure $c2 $c3
     is "$output" "$c2" "--filter finds container 2"

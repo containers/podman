@@ -193,12 +193,13 @@ var _ = Describe("Podman restart", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		testCmd := []string{"exec", "host-restart-test", "sh", "-c", "wc -l < /etc/hosts"}
+		testCmd := []string{"exec", "host-restart-test", "cat", "/etc/hosts"}
 
 		// before restart
 		beforeRestart := podmanTest.Podman(testCmd)
 		beforeRestart.WaitWithDefaultTimeout()
 		Expect(beforeRestart).Should(ExitCleanly())
+		nHostLines := len(beforeRestart.OutputToStringArray())
 
 		session = podmanTest.Podman([]string{"restart", "host-restart-test"})
 		session.WaitWithDefaultTimeout()
@@ -209,7 +210,8 @@ var _ = Describe("Podman restart", func() {
 		Expect(afterRestart).Should(ExitCleanly())
 
 		// line count should be equal
-		Expect(beforeRestart.OutputToString()).To(Equal(afterRestart.OutputToString()))
+		Expect(afterRestart.OutputToStringArray()).To(HaveLen(nHostLines),
+			"number of host lines post-restart == number of lines pre-restart")
 	})
 
 	It("podman restart all stopped containers with --all", func() {

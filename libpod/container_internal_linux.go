@@ -71,6 +71,14 @@ func (c *Container) prepare() error {
 
 	go func() {
 		defer wg.Done()
+		if c.state.State == define.ContainerStateStopped {
+			// networking should not be reused after a stop
+			if err := c.cleanupNetwork(); err != nil {
+				createNetNSErr = err
+				return
+			}
+		}
+
 		// Set up network namespace if not already set up
 		noNetNS := c.state.NetNS == ""
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
