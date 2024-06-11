@@ -75,7 +75,7 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 	if err := flag.Value.Set("missing"); err != nil {
 		logrus.Errorf("Unable to set --pull to 'missing': %v", err)
 	}
-	flag.Usage = `Pull image policy ("always/true"|"missing"|"never/false"|"newer")`
+	flag.Usage = `Pull image policy ("always"|"missing"|"never"|"newer")`
 	flags.AddFlagSet(&budFlags)
 
 	// Add the completion functions

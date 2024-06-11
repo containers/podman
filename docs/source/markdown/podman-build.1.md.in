@@ -313,8 +313,6 @@ the help of emulation provided by packages like `qemu-user-static`.
 
 @@option pull.image
 
-Pull image policy. The default is **missing**.
-
 @@option quiet
 
 @@option retry
