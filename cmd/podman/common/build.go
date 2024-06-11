@@ -136,9 +136,8 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 }
 
 func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrapper) (*entities.BuildOptions, error) {
-	if (cmd.Flags().Changed("squash") && cmd.Flags().Changed("layers")) ||
-		(cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("squash")) {
-		return nil, errors.New("cannot specify --squash with --layers and --squash-all with --squash")
+	if cmd.Flags().Changed("squash-all") && cmd.Flags().Changed("squash") {
+		return nil, errors.New("cannot specify --squash-all with --squash")
 	}
 
 	if cmd.Flag("output").Changed && registry.IsRemote() {

@@ -1110,6 +1110,12 @@ EOF
     run_podman build -t build_test $tmpdir/link
 }
 
+@test "podman build --squash --squash-all should conflict" {
+    echo FROM scratch > $PODMAN_TMPDIR/Dockerfile
+    run_podman 125 build -t build_test --squash-all --squash $PODMAN_TMPDIR
+    is "$output" "Error: cannot specify --squash-all with --squash" "--squash and --sqaush-all should conflict"
+}
+
 @test "podman build --volumes-from conflict" {
     rand_content=$(random_string 50)
 
