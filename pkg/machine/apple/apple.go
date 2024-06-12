@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
 	"syscall"
 	"time"
 
@@ -274,6 +275,42 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 	go sockets.ListenAndWaitOnSocket(readyChan, readyListen)
 
 	logrus.Debugf("helper command-line: %v", cmd.Args)
+
+	if mc.LibKrunHypervisor != nil && logrus.IsLevelEnabled(logrus.DebugLevel) {
+		rtDir, err := mc.RuntimeDir()
+		if err != nil {
+			return nil, nil, err
+		}
+		kdFile, err := rtDir.AppendToNewVMFile("krunkit-debug.sh", nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		f, err := os.Create(kdFile.Path)
+		if err != nil {
+			return nil, nil, err
+		}
+		err = os.Chmod(kdFile.Path, 0744)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		_, err = f.WriteString("#!/bin/sh\nexec ")
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, arg := range cmd.Args {
+			_, err = f.WriteString(fmt.Sprintf("%q ", arg))
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		err = f.Close()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		cmd = exec.Command("/usr/bin/open", "-Wa", "Terminal", kdFile.Path)
+	}
 
 	if err := cmd.Start(); err != nil {
 		return nil, nil, err
