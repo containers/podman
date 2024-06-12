@@ -90,6 +90,7 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		storageOpts.RunRoot = cfg.Runroot
 	}
 	if fs.Changed("imagestore") {
+		storageSet = true
 		storageOpts.ImageStore = cfg.ImageStore
 		options = append(options, libpod.WithImageStore(cfg.ImageStore))
 	}
