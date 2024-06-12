@@ -154,6 +154,7 @@ Requires: openssl
 Requires: socat
 Requires: buildah
 Requires: gnupg
+Requires: zstd
 
 %description tests
 %{summary}
@@ -240,6 +241,10 @@ export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remot
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
 %gobuild -o bin/quadlet ./cmd/quadlet
 
+# builds test/e2e/e2e.test
+(cd test/tools && %gobuild -o build/ginkgo ./vendor/github.com/onsi/ginkgo/v2/ginkgo)
+./test/tools/build/ginkgo build -tags="${BUILDTAGS:-}" test/e2e
+
 # reset LDFLAGS for plugins binaries
 LDFLAGS=''
 
@@ -270,6 +275,55 @@ rm -f %{buildroot}%{_mandir}/man5/docker*.5
 
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
+
+# The compiled set of ginkgo tests, and a helper script
+install -d -p %{buildroot}/%{_datadir}/%{name}/test/e2e
+cp test/e2e/e2e.test hack/podman-registry %{buildroot}/%{_datadir}/%{name}/test/e2e
+
+# Files and subdirectories used by those tests
+for testfiles in certs deny.json policy.json redhat_sigstore.yaml registries.conf; do
+    cp -pav test/$testfiles %{buildroot}/%{_datadir}/%{name}/test/e2e/
+done
+for subdir in build cdi config quadlet sign testdata; do
+    cp -pav test/e2e/$subdir %{buildroot}/%{_datadir}/%{name}/test/e2e/
+done
+
+# Invoking ginkgo is complicated. Make it easier for end users.
+cat >%{buildroot}/%{_datadir}/%{name}/test/e2e/run-tests <<EOF
+#!/bin/bash
+#
+# Possible options:
+#
+#   --ginkgo.focus "blah blah"
+#   --ginkgo.flake-attempts 3
+#   --ginkgo.parallel.total 3
+#   --ginkgo.randomize-all
+#
+
+# /tmp is probably too small for all we do
+export TMPDIR=/var/tmp
+
+# Fetch images only once. Important when rerunning e2e tests.
+export PODMAN_TEST_IMAGE_CACHE_DIR=/var/tmp/ginkgo
+mkdir -p \$PODMAN_TEST_IMAGE_CACHE_DIR
+
+# The executables we're testing are the ones delivered in RPM
+export PODMAN_BINARY=%{_bindir}/%{name}
+export PODMAN_REMOTE_BINARY=%{_bindir}/%{name}-remote
+export QUADLET_BINARY=%{_libexecdir}/%{name}/quadlet
+
+# Where subtests will find files they need
+export PODMAN_INTEGRATION_ROOT=%{_datadir}/%{name}/test/e2e
+
+# Many tests rely on files relative to cwd
+cd \$PODMAN_INTEGRATION_ROOT/
+
+# Needed for podman-registry script
+export PATH=\$PATH:\$PODMAN_INTEGRATION_ROOT
+
+exec ./e2e.test --ginkgo.trace --ginkgo.v "\$@"
+EOF
+chmod 555 %{buildroot}/%{_datadir}/%{name}/test/e2e/run-tests
 
 #define license tag if not already defined
 %{!?_licensedir:%global license %doc}

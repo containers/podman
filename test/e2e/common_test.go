@@ -17,7 +17,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"syscall"
 	"testing"
 	"time"
 
@@ -146,9 +145,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	err = os.MkdirAll(ImageCacheDir, 0700)
 	Expect(err).ToNot(HaveOccurred())
 
-	// Cache images
-	cwd, _ := os.Getwd()
-	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 	podman := PodmanTestSetup(filepath.Join(globalTmpDir, "image-init"))
 
 	// Pull cirros but don't put it into the cache
@@ -193,8 +189,6 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 })
 
 func (p *PodmanTestIntegration) Setup() {
-	cwd, _ := os.Getwd()
-	INTEGRATION_ROOT = filepath.Join(cwd, "../../")
 }
 
 var _ = SynchronizedAfterSuite(func() {
@@ -301,6 +295,12 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		}
 	}
 
+	INTEGRATION_ROOT = os.Getenv("PODMAN_INTEGRATION_ROOT")
+	if INTEGRATION_ROOT == "" {
+		cwd, _ := os.Getwd()
+		INTEGRATION_ROOT = filepath.Join(cwd, "../")
+	}
+
 	if err := os.MkdirAll(root, 0755); err != nil {
 		panic(err)
 	}
@@ -337,7 +337,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		OCIRuntime:          ociRuntime,
 		RunRoot:             filepath.Join(tempDir, "runroot"),
 		StorageOptions:      storageOptions,
-		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "test/policy.json"),
+		SignaturePolicyPath: filepath.Join(INTEGRATION_ROOT, "policy.json"),
 		CgroupManager:       cgroupManager,
 		Host:                host,
 	}
@@ -1420,11 +1420,6 @@ func CopyDirectory(srcDir, dest string) error {
 			return err
 		}
 
-		stat, ok := fileInfo.Sys().(*syscall.Stat_t)
-		if !ok {
-			return fmt.Errorf("failed to get raw syscall.Stat_t data for %q", sourcePath)
-		}
-
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
 			if err := os.MkdirAll(destPath, 0755); err != nil {
@@ -1441,10 +1436,6 @@ func CopyDirectory(srcDir, dest string) error {
 			if err := Copy(sourcePath, destPath); err != nil {
 				return err
 			}
-		}
-
-		if err := os.Lchown(destPath, int(stat.Uid), int(stat.Gid)); err != nil {
-			return err
 		}
 
 		fInfo, err := entry.Info()

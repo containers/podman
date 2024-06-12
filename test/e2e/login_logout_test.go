@@ -48,11 +48,10 @@ var _ = Describe("Podman login and logout", func() {
 
 		testImg = strings.Join([]string{server, "test-alpine"}, "/")
 
-		certDirPath = filepath.Join(os.Getenv("HOME"), ".config/containers/certs.d", server)
+		certDirPath = filepath.Join(podmanTest.TempDir, "certs")
 		err = os.MkdirAll(certDirPath, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		cwd, _ := os.Getwd()
-		certPath = filepath.Join(cwd, "../", "certs")
+		certPath = filepath.Join(INTEGRATION_ROOT, "certs")
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDirPath, "ca.crt")})
 		setup.WaitWithDefaultTimeout()
@@ -61,7 +60,7 @@ var _ = Describe("Podman login and logout", func() {
 			"-e", strings.Join([]string{"REGISTRY_HTTP_ADDR=0.0.0.0", strconv.Itoa(port)}, ":"), "--name", "registry", "-v",
 			strings.Join([]string{authPath, "/auth:Z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
 			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
-			"-v", strings.Join([]string{certPath, "/certs:Z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
+			"-v", strings.Join([]string{certDirPath, "/certs:Z"}, ":"), "-e", "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt",
 			"-e", "REGISTRY_HTTP_TLS_KEY=/certs/domain.key", REGISTRY_IMAGE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -296,8 +295,7 @@ var _ = Describe("Podman login and logout", func() {
 		err = os.MkdirAll(certDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
-		cwd, _ := os.Getwd()
-		certPath = filepath.Join(cwd, "../", "certs")
+		certPath = filepath.Join(INTEGRATION_ROOT, "certs")
 
 		setup := SystemExec("cp", []string{filepath.Join(certPath, "domain.crt"), filepath.Join(certDir, "ca.crt")})
 		setup.WaitWithDefaultTimeout()

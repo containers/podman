@@ -49,7 +49,7 @@ func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os
 }
 
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
-	defaultFile := filepath.Join(INTEGRATION_ROOT, "test/registries.conf")
+	defaultFile := filepath.Join(INTEGRATION_ROOT, "registries.conf")
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", defaultFile)
 }
 
