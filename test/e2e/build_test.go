@@ -94,6 +94,25 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman build with not found Containerfile or Dockerfile", func() {
+		targetPath := filepath.Join(podmanTest.TempDir, "notfound")
+		err = os.Mkdir(targetPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			Expect(os.RemoveAll(targetPath)).To(Succeed())
+		}()
+
+		session := podmanTest.Podman([]string{"build", targetPath})
+		session.WaitWithDefaultTimeout()
+		expectStderr := fmt.Sprintf("no Containerfile or Dockerfile specified or found in context directory, %s", targetPath)
+		Expect(session).Should(ExitWithError(125, expectStderr))
+
+		session = podmanTest.Podman([]string{"build", "-f", "foo", targetPath})
+		session.WaitWithDefaultTimeout()
+		expectStderr = fmt.Sprintf("the specified Containerfile or Dockerfile does not exist, %s", "foo")
+		Expect(session).Should(ExitWithError(125, expectStderr))
+	})
+
 	It("podman build with logfile", func() {
 		logfile := filepath.Join(podmanTest.TempDir, "logfile")
 		session := podmanTest.Podman([]string{"build", "--pull=never", "--tag", "test", "--logfile", logfile, "build/basicalpine"})
