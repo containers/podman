@@ -25,15 +25,34 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
+    # If the job fails, these details are all but impossible to observe.yy
+    - name: Provide github event JSON for examination
+      run: |
+        echo "::group::Event JSON"
+        jq --color-output "." ${{ github.event_path }}""
+        echo "::endgroup::"
     - name: Determine Version
       id: getversion
       run: |
         if [[ -z "${{ inputs.version }}" ]]
         then
-              VERSION=${{ github.event.release.tag_name }}
+          VERSION=${{ github.event.release.tag_name }}
         else
-              VERSION=${{ inputs.version }}
+          VERSION=${{ inputs.version }}
         fi
+
+        if ! grep -Eq 'v[0-9]+(\.[0-9]+(\.[0-9]+(-.+)?)?)?$' <<<"$VERSION"
+        then
+          echo "Unable to parse release version '$VERSION' from github event JSON, or workflow 'version' input."
+          exit 1
+        fi
+
+        if grep -Eq '.+-dev$' <<<"$VERSION"
+        then
+          echo "Refusing to process a "-dev" version '$VERSION'"
+          exit 1
+        fi
+
         echo
         echo "version=$VERSION" >> $GITHUB_OUTPUT
 
