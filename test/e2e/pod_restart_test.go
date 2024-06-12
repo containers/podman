@@ -1,10 +1,11 @@
 package integration
 
 import (
+	"fmt"
+
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod restart", func() {
@@ -12,7 +13,11 @@ var _ = Describe("Podman pod restart", func() {
 	It("podman pod restart bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "restart", "123"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID 123 found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "123": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod restart single empty pod", func() {
@@ -21,7 +26,7 @@ var _ = Describe("Podman pod restart", func() {
 
 		session := podmanTest.Podman([]string{"pod", "restart", podid})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("no containers in pod %s have no dependencies, cannot start pod: no such container", podid)))
 	})
 
 	It("podman pod restart single pod by name", func() {
@@ -152,6 +157,10 @@ var _ = Describe("Podman pod restart", func() {
 
 		session = podmanTest.Podman([]string{"pod", "restart", podid1, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID doesnotexist found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "doesnotexist": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 })

@@ -10,14 +10,17 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod start", func() {
 	It("podman pod start bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "start", "123"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID 123 found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "123": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod start single empty pod", func() {
@@ -26,7 +29,12 @@ var _ = Describe("Podman pod start", func() {
 
 		session := podmanTest.Podman([]string{"pod", "start", podid})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := fmt.Sprintf("no containers in pod %s have no dependencies, cannot start pod: no such container", podid)
+		if IsRemote() {
+			// FIXME: #22989 no error message
+			expect = "Error:"
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod start single pod by name", func() {
@@ -94,7 +102,8 @@ var _ = Describe("Podman pod start", func() {
 
 		session = podmanTest.Podman([]string{"pod", "start", podid1, podid2})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(125))
+		// Different network backends emit different messages; check only the common part
+		Expect(session).To(ExitWithError(125, "ddress already in use"))
 	})
 
 	It("podman pod start all pods", func() {
@@ -153,7 +162,11 @@ var _ = Describe("Podman pod start", func() {
 
 		session = podmanTest.Podman([]string{"pod", "start", podid, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID doesnotexist found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "doesnotexist": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod start single pod via --pod-id-file", func() {
