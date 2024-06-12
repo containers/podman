@@ -57,4 +57,5 @@ type PodmanConfig struct {
 	MachineMode    bool
 	TransientStore bool
 	GraphRoot      string
+	PullOptions    []string
 }
