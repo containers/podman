@@ -29,7 +29,7 @@ jobs:
       - name: Provide github event JSON for examination
         run: |
           echo "::group::Event JSON"
-          jq --color-output "." ${{ github.event_path }}"
+          jq --color-output "." "${{ github.event_path }}"
           echo "::endgroup::"
 
       - name: Determine Version
@@ -208,7 +208,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh workflow run upload-win-installer.yml -f version=${{steps.getversion.outputs.version}} -f dryrun=false
-          
+
     outputs:
       uploaded: ${{ steps.upload.outputs.complete }}
       version: ${{ steps.getversion.outputs.version }}
@@ -219,16 +219,24 @@ jobs:
     needs: build
     steps:
       - name: Format release email
+        id: format
         env:
           VERSION: ${{ needs.build.outputs.version }}
         run: |
+          if grep -Eq '.+-rc' <<<"$VERSION"
+          then
+            RC_PREFIX="candidate "
+          fi
+
+          echo "mail_subj=Podman ${RC_PREFIX}${VERSION} Released" >> $GITHUB_OUTPUT
+
           cat <<EOF>email_body.txt
           Hi all,
 
-          Podman $VERSION is now available.  You may view the full details at
+          Podman ${RC_PREFIX}${VERSION} is now available.  You may view the full details at
           https://github.com/${{ github.repository }}/releases/tag/$VERSION
 
-          Release Notes:
+          Release ${RC_PREFIX}Notes:
           --------------
           EOF
 
@@ -248,7 +256,7 @@ jobs:
           server_port: 465
           username: ${{secrets.ACTION_MAIL_USERNAME}}
           password: ${{secrets.ACTION_MAIL_PASSWORD}}
-          subject: Podman ${{ needs.build.outputs.version }} Released
+          subject: ${{ steps.format.outputs.mail_subj }}
           to: Podman List <podman@lists.podman.io>
           from: ${{secrets.ACTION_MAIL_SENDER}}
           body: file://./email_body.txt
