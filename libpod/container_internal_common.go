@@ -164,7 +164,6 @@ func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 
 	// NewFromSpec() is deprecated according to its comment
 	// however the recommended replace just causes a nil map panic
-	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If the flag to mount all devices is set for a privileged container, add
@@ -1205,7 +1204,6 @@ func (c *Container) generateContainerSpec() error {
 
 	// NewFromSpec() is deprecated according to its comment
 	// however the recommended replace just causes a nil map panic
-	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
 	if err := c.saveSpec(g.Config); err != nil {
