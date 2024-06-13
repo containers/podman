@@ -15,6 +15,28 @@ type ServiceOptions struct {
 	URI         string        // Path to unix domain socket service should listen on
 }
 
+// SystemCheckOptions provides options for checking storage consistency.
+type SystemCheckOptions struct {
+	Quick                       bool           // skip the most time-intensive checks
+	Repair                      bool           // remove damaged images
+	RepairLossy                 bool           // remove damaged containers
+	UnreferencedLayerMaximumAge *time.Duration // maximum allowed age for unreferenced layers
+}
+
+// SystemCheckReport provides a report of what a storage consistency check
+// found, and if we removed anything that was damaged, what we removed.
+type SystemCheckReport struct {
+	Errors            bool                // any errors were detected
+	Layers            map[string][]string // layer ID → what was detected
+	ROLayers          map[string][]string // layer ID → what was detected
+	RemovedLayers     []string            // layer ID
+	Images            map[string][]string // image ID → what was detected
+	ROImages          map[string][]string // image ID → what was detected
+	RemovedImages     map[string][]string // image ID → names
+	Containers        map[string][]string // container ID → what was detected
+	RemovedContainers map[string]string   // container ID → name
+}
+
 // SystemPruneOptions provides options to prune system.
 type SystemPruneOptions struct {
 	All      bool

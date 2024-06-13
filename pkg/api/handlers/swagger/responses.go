@@ -188,6 +188,13 @@ type versionResponse struct {
 	Body entities.ComponentVersion
 }
 
+// Check
+// swagger:response
+type systemCheckResponse struct {
+	// in:body
+	Body entities.SystemCheckReport
+}
+
 // Disk usage
 // swagger:response
 type systemDiskUsage struct {

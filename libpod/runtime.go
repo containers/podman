@@ -31,6 +31,7 @@ import (
 	"github.com/containers/podman/v5/libpod/lock"
 	"github.com/containers/podman/v5/libpod/plugin"
 	"github.com/containers/podman/v5/libpod/shutdown"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/systemd"
 	"github.com/containers/podman/v5/pkg/util"
@@ -39,9 +40,11 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
+	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // Set up the JSON library for all of Libpod
@@ -1248,4 +1251,134 @@ func (r *Runtime) LockConflicts() (map[uint32][]string, []uint32, error) {
 	}
 
 	return toReturn, locksHeld, nil
+}
+
+// SystemCheck checks our storage for consistency, and depending on the options
+// specified, will attempt to remove anything which fails consistency checks.
+func (r *Runtime) SystemCheck(ctx context.Context, options entities.SystemCheckOptions) (entities.SystemCheckReport, error) {
+	what := storage.CheckEverything()
+	if options.Quick {
+		what = storage.CheckMost()
+	}
+	if options.UnreferencedLayerMaximumAge != nil {
+		tmp := *options.UnreferencedLayerMaximumAge
+		what.LayerUnreferencedMaximumAge = &tmp
+	}
+	storageReport, err := r.store.Check(what)
+	if err != nil {
+		return entities.SystemCheckReport{}, err
+	}
+	if len(storageReport.Containers) == 0 &&
+		len(storageReport.Layers) == 0 &&
+		len(storageReport.ROLayers) == 0 &&
+		len(storageReport.Images) == 0 &&
+		len(storageReport.ROImages) == 0 {
+		// no errors detected
+		return entities.SystemCheckReport{}, nil
+	}
+	mapErrorSlicesToStringSlices := func(m map[string][]error) map[string][]string {
+		if len(m) == 0 {
+			return nil
+		}
+		mapped := make(map[string][]string, len(m))
+		for k, errs := range m {
+			strs := make([]string, len(errs))
+			for i, e := range errs {
+				strs[i] = e.Error()
+			}
+			mapped[k] = strs
+		}
+		return mapped
+	}
+
+	report := entities.SystemCheckReport{
+		Errors:     true,
+		Layers:     mapErrorSlicesToStringSlices(storageReport.Layers),
+		ROLayers:   mapErrorSlicesToStringSlices(storageReport.ROLayers),
+		Images:     mapErrorSlicesToStringSlices(storageReport.Images),
+		ROImages:   mapErrorSlicesToStringSlices(storageReport.ROImages),
+		Containers: mapErrorSlicesToStringSlices(storageReport.Containers),
+	}
+	if !options.Repair && report.Errors {
+		// errors detected, no corrective measures to be taken
+		return report, err
+	}
+
+	// get a list of images that we knew of before we tried to clean up any
+	// that were damaged
+	imagesBefore, err := r.store.Images()
+	if err != nil {
+		return report, fmt.Errorf("getting a list of images before attempting repairs: %w", err)
+	}
+
+	repairOptions := storage.RepairOptions{
+		RemoveContainers: options.RepairLossy,
+	}
+	var containers []*Container
+	if repairOptions.RemoveContainers {
+		// build a list of the containers that we claim as ours that we
+		// expect to be removing in a bit
+		for containerID := range storageReport.Containers {
+			ctr, lookupErr := r.state.LookupContainer(containerID)
+			if lookupErr != nil {
+				// we're about to remove it, so it's okay that
+				// it isn't even one of ours
+				continue
+			}
+			containers = append(containers, ctr)
+		}
+	}
+
+	// run the cleanup
+	merr := multierror.Append(nil, r.store.Repair(storageReport, &repairOptions)...)
+
+	if repairOptions.RemoveContainers {
+		// get the list of containers that storage will still admit to knowing about
+		containersAfter, err := r.store.Containers()
+		if err != nil {
+			merr = multierror.Append(merr, fmt.Errorf("getting a list of containers after attempting repairs: %w", err))
+		}
+		for _, ctr := range containers {
+			// if one of our containers that we tried to remove is
+			// still on disk, report an error
+			if slices.IndexFunc(containersAfter, func(containerAfter storage.Container) bool {
+				return containerAfter.ID == ctr.ID()
+			}) != -1 {
+				merr = multierror.Append(merr, fmt.Errorf("clearing storage for container %s: %w", ctr.ID(), err))
+				continue
+			}
+			// remove the container from our database
+			if removeErr := r.state.RemoveContainer(ctr); removeErr != nil {
+				merr = multierror.Append(merr, fmt.Errorf("updating state database to reflect removal of container %s: %w", ctr.ID(), removeErr))
+				continue
+			}
+			if report.RemovedContainers == nil {
+				report.RemovedContainers = make(map[string]string)
+			}
+			report.RemovedContainers[ctr.ID()] = ctr.config.Name
+		}
+	}
+
+	// get a list of images that are still around after we clean up any
+	// that were damaged
+	imagesAfter, err := r.store.Images()
+	if err != nil {
+		merr = multierror.Append(merr, fmt.Errorf("getting a list of images after attempting repairs: %w", err))
+	}
+	for _, imageBefore := range imagesBefore {
+		if slices.IndexFunc(imagesAfter, func(imageAfter storage.Image) bool {
+			return imageAfter.ID == imageBefore.ID
+		}) == -1 {
+			if report.RemovedImages == nil {
+				report.RemovedImages = make(map[string][]string)
+			}
+			report.RemovedImages[imageBefore.ID] = slices.Clone(imageBefore.Names)
+		}
+	}
+
+	if merr != nil {
+		err = merr.ErrorOrNil()
+	}
+
+	return report, err
 }
