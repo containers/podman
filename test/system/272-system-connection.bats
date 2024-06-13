@@ -230,6 +230,10 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     CONTAINER_HOST=foo://124.com _run_podman_remote 125 --remote ps
     assert "$output" =~ "foo" "test env variable CONTAINER_HOST wrt config"
 
+    # Does not crash with invalid connection
+    CONTAINER_HOST=badvalue _run_podman_remote 125 ps
+    assert "$output" =~ "Error: unable to create connection." "test invalid CONTAINER_HOST gives Error and doesn't crash"
+
     # Clean up
     run_podman system connection rm defaultconnection
     run_podman system connection rm env-override
