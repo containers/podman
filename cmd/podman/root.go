@@ -580,6 +580,8 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 
 		pFlags.BoolVar(&podmanConfig.TransientStore, "transient-store", false, "Enable transient container storage")
 
+		pFlags.StringArrayVar(&podmanConfig.PullOptions, "pull-option", nil, "Specify an option to change how the image is pulled")
+
 		runtimeFlagName := "runtime"
 		pFlags.StringVar(&podmanConfig.RuntimePath, runtimeFlagName, podmanConfig.ContainersConfDefaultsRO.Engine.OCIRuntime, "Path to the OCI-compatible binary used to run containers.")
 		_ = cmd.RegisterFlagCompletionFunc(runtimeFlagName, completion.AutocompleteDefault)
@@ -606,6 +608,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 			"default-mounts-file",
 			"max-workers",
 			"memory-profile",
+			"pull-option",
 			"registries-conf",
 			"trace",
 		} {

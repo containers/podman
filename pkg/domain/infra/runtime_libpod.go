@@ -9,6 +9,7 @@ import (
 	"io/fs"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 
@@ -90,8 +91,23 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 		storageOpts.RunRoot = cfg.Runroot
 	}
 	if fs.Changed("imagestore") {
+		storageSet = true
 		storageOpts.ImageStore = cfg.ImageStore
 		options = append(options, libpod.WithImageStore(cfg.ImageStore))
+	}
+	if fs.Changed("pull-option") {
+		storageSet = true
+		storageOpts.PullOptions = make(map[string]string)
+		for _, v := range cfg.PullOptions {
+			if v == "" {
+				continue
+			}
+			val := strings.SplitN(v, "=", 2)
+			if len(val) != 2 {
+				return nil, fmt.Errorf("invalid pull option: %s", v)
+			}
+			storageOpts.PullOptions[val[0]] = val[1]
+		}
 	}
 	if fs.Changed("storage-driver") {
 		storageSet = true
