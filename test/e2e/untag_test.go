@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman untag", func() {
@@ -35,7 +34,7 @@ var _ = Describe("Podman untag", func() {
 		for _, t := range tags {
 			session = podmanTest.Podman([]string{"image", "exists", t})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(1))
+			Expect(session).Should(ExitWithError(1, ""))
 		}
 	})
 
@@ -68,7 +67,7 @@ var _ = Describe("Podman untag", func() {
 
 			session = podmanTest.Podman([]string{"image", "exists", tt.normalized})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(Exit(1))
+			Expect(session).Should(ExitWithError(1, ""))
 		}
 	})
 

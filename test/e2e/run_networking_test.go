@@ -66,7 +66,7 @@ var _ = Describe("Podman run networking", func() {
 
 		session = podmanTest.Podman([]string{"exec", "con1", "nslookup", "google.com", aardvarkDNSGateway})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 		Expect(session.OutputToString()).To(ContainSubstring(";; connection timed out; no servers could be reached"))
 	})
 
@@ -118,7 +118,7 @@ var _ = Describe("Podman run networking", func() {
 
 		session = podmanTest.Podman([]string{"exec", "con1", "nslookup", "google.com", aardvarkDNSGateway})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 		Expect(session.OutputToString()).To(ContainSubstring(";; connection timed out; no servers could be reached"))
 	})
 
@@ -766,7 +766,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "--uidmap", "0:100000:1000", "--rm", "--hostname", "foohostname", "-v", "/etc/hosts:/etc/hosts", ALPINE, "grep", "foohostname", "/etc/hosts"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 
 	It("podman run network in user created network namespace", func() {
@@ -1111,7 +1111,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, CITEST_IMAGE, "nslookup", "con1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 		Expect(session.OutputToString()).To(ContainSubstring("server can't find con1.dns.podman: NXDOMAIN"))
 
 		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, CITEST_IMAGE, "nslookup", pod2 + ".dns.podman"})

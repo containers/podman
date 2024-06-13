@@ -700,7 +700,7 @@ RUN touch /file
 
 		session = podmanTest.Podman([]string{"manifest", "exists", "no-manifest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 
 	It("rm should not remove referenced images", func() {
@@ -753,6 +753,6 @@ RUN touch /file
 		// verify that manifest should not exist
 		session = podmanTest.Podman([]string{"manifest", "exists", manifestName})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 	})
 })
