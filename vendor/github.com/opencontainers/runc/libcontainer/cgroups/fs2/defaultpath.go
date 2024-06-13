@@ -55,9 +55,6 @@ func _defaultDirPath(root, cgPath, cgParent, cgName string) (string, error) {
 		return filepath.Join(root, innerPath), nil
 	}
 
-	// we don't need to use /proc/thread-self here because runc always runs
-	// with every thread in the same cgroup. This lets us avoid having to do
-	// runtime.LockOSThread.
 	ownCgroup, err := parseCgroupFile("/proc/self/cgroup")
 	if err != nil {
 		return "", err

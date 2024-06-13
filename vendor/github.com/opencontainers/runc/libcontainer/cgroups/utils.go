@@ -36,13 +36,13 @@ func IsCgroup2UnifiedMode() bool {
 		var st unix.Statfs_t
 		err := unix.Statfs(unifiedMountpoint, &st)
 		if err != nil {
-			level := logrus.WarnLevel
 			if os.IsNotExist(err) && userns.RunningInUserNS() {
-				// For rootless containers, sweep it under the rug.
-				level = logrus.DebugLevel
+				// ignore the "not found" error if running in userns
+				logrus.WithError(err).Debugf("%s missing, assuming cgroup v1", unifiedMountpoint)
+				isUnified = false
+				return
 			}
-			logrus.StandardLogger().Logf(level,
-				"statfs %s: %v; assuming cgroup v1", unifiedMountpoint, err)
+			panic(fmt.Sprintf("cannot statfs cgroup root: %s", err))
 		}
 		isUnified = st.Type == unix.CGROUP2_SUPER_MAGIC
 	})
@@ -217,26 +217,21 @@ func PathExists(path string) bool {
 	return true
 }
 
-// rmdir tries to remove a directory, optionally retrying on EBUSY.
-func rmdir(path string, retry bool) error {
-	delay := time.Millisecond
-	tries := 10
-
-again:
-	err := unix.Rmdir(path)
-	switch err { // nolint:errorlint // unix errors are bare
-	case nil, unix.ENOENT:
-		return nil
-	case unix.EINTR:
-		goto again
-	case unix.EBUSY:
-		if retry && tries > 0 {
-			time.Sleep(delay)
-			delay *= 2
-			tries--
-			goto again
-
+func EnterPid(cgroupPaths map[string]string, pid int) error {
+	for _, path := range cgroupPaths {
+		if PathExists(path) {
+			if err := WriteCgroupProc(path, pid); err != nil {
+				return err
+			}
 		}
+	}
+	return nil
+}
+
+func rmdir(path string) error {
+	err := unix.Rmdir(path)
+	if err == nil || err == unix.ENOENT { //nolint:errorlint // unix errors are bare
+		return nil
 	}
 	return &os.PathError{Op: "rmdir", Path: path, Err: err}
 }
@@ -244,41 +239,67 @@ again:
 // RemovePath aims to remove cgroup path. It does so recursively,
 // by removing any subdirectories (sub-cgroups) first.
 func RemovePath(path string) error {
-	// Try the fast path first.
-	if err := rmdir(path, false); err == nil {
+	// try the fast path first
+	if err := rmdir(path); err == nil {
 		return nil
 	}
 
 	infos, err := os.ReadDir(path)
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = nil
+		}
 		return err
 	}
 	for _, info := range infos {
 		if info.IsDir() {
-			// We should remove subcgroup first.
+			// We should remove subcgroups dir first
 			if err = RemovePath(filepath.Join(path, info.Name())); err != nil {
 				break
 			}
 		}
 	}
 	if err == nil {
-		err = rmdir(path, true)
+		err = rmdir(path)
 	}
 	return err
 }
 
 // RemovePaths iterates over the provided paths removing them.
+// We trying to remove all paths five times with increasing delay between tries.
+// If after all there are not removed cgroups - appropriate error will be
+// returned.
 func RemovePaths(paths map[string]string) (err error) {
-	for s, p := range paths {
-		if err := RemovePath(p); err == nil {
-			delete(paths, s)
+	const retries = 5
+	delay := 10 * time.Millisecond
+	for i := 0; i < retries; i++ {
+		if i != 0 {
+			time.Sleep(delay)
+			delay *= 2
 		}
-	}
-	if len(paths) == 0 {
-		//nolint:ineffassign,staticcheck // done to help garbage collecting: opencontainers/runc#2506
-		// TODO: switch to clear once Go < 1.21 is not supported.
-		paths = make(map[string]string)
-		return nil
+		for s, p := range paths {
+			if err := RemovePath(p); err != nil {
+				// do not log intermediate iterations
+				switch i {
+				case 0:
+					logrus.WithError(err).Warnf("Failed to remove cgroup (will retry)")
+				case retries - 1:
+					logrus.WithError(err).Error("Failed to remove cgroup")
+				}
+			}
+			_, err := os.Stat(p)
+			// We need this strange way of checking cgroups existence because
+			// RemoveAll almost always returns error, even on already removed
+			// cgroups
+			if os.IsNotExist(err) {
+				delete(paths, s)
+			}
+		}
+		if len(paths) == 0 {
+			//nolint:ineffassign,staticcheck // done to help garbage collecting: opencontainers/runc#2506
+			paths = make(map[string]string)
+			return nil
+		}
 	}
 	return fmt.Errorf("Failed to remove paths: %v", paths)
 }

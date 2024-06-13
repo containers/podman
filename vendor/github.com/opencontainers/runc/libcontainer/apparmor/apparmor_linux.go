@@ -26,18 +26,13 @@ func isEnabled() bool {
 }
 
 func setProcAttr(attr, value string) error {
-	attr = utils.CleanPath(attr)
-	attrSubPath := "attr/apparmor/" + attr
-	if _, err := os.Stat("/proc/self/" + attrSubPath); errors.Is(err, os.ErrNotExist) {
+	// Under AppArmor you can only change your own attr, so use /proc/self/
+	// instead of /proc/<tid>/ like libapparmor does
+	attrPath := "/proc/self/attr/apparmor/" + attr
+	if _, err := os.Stat(attrPath); errors.Is(err, os.ErrNotExist) {
 		// fall back to the old convention
-		attrSubPath = "attr/" + attr
+		attrPath = "/proc/self/attr/" + attr
 	}
-
-	// Under AppArmor you can only change your own attr, so there's no reason
-	// to not use /proc/thread-self/ (instead of /proc/<tid>/, like libapparmor
-	// does).
-	attrPath, closer := utils.ProcThreadSelf(attrSubPath)
-	defer closer()
 
 	f, err := os.OpenFile(attrPath, os.O_WRONLY, 0)
 	if err != nil {

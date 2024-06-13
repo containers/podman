@@ -99,12 +99,11 @@ func tryDefaultPath(cgroupPath, subsystem string) string {
 // expensive), so it is assumed that cgroup mounts are not being changed.
 func readCgroupMountinfo() ([]*mountinfo.Info, error) {
 	readMountinfoOnce.Do(func() {
-		// mountinfo.GetMounts uses /proc/thread-self, so we can use it without
-		// issues.
 		cgroupMountinfo, readMountinfoErr = mountinfo.GetMounts(
 			mountinfo.FSTypeFilter("cgroup"),
 		)
 	})
+
 	return cgroupMountinfo, readMountinfoErr
 }
 
@@ -197,9 +196,6 @@ func getCgroupMountsV1(all bool) ([]Mount, error) {
 		return nil, err
 	}
 
-	// We don't need to use /proc/thread-self here because runc always runs
-	// with every thread in the same cgroup. This lets us avoid having to do
-	// runtime.LockOSThread.
 	allSubsystems, err := ParseCgroupFile("/proc/self/cgroup")
 	if err != nil {
 		return nil, err
@@ -218,10 +214,6 @@ func GetOwnCgroup(subsystem string) (string, error) {
 	if IsCgroup2UnifiedMode() {
 		return "", errUnified
 	}
-
-	// We don't need to use /proc/thread-self here because runc always runs
-	// with every thread in the same cgroup. This lets us avoid having to do
-	// runtime.LockOSThread.
 	cgroups, err := ParseCgroupFile("/proc/self/cgroup")
 	if err != nil {
 		return "", err
@@ -239,6 +231,27 @@ func GetOwnCgroupPath(subsystem string) (string, error) {
 	// If subsystem is empty, we look for the cgroupv2 hybrid path.
 	if len(subsystem) == 0 {
 		return hybridMountpoint, nil
+	}
+
+	return getCgroupPathHelper(subsystem, cgroup)
+}
+
+func GetInitCgroup(subsystem string) (string, error) {
+	if IsCgroup2UnifiedMode() {
+		return "", errUnified
+	}
+	cgroups, err := ParseCgroupFile("/proc/1/cgroup")
+	if err != nil {
+		return "", err
+	}
+
+	return getControllerPath(subsystem, cgroups)
+}
+
+func GetInitCgroupPath(subsystem string) (string, error) {
+	cgroup, err := GetInitCgroup(subsystem)
+	if err != nil {
+		return "", err
 	}
 
 	return getCgroupPathHelper(subsystem, cgroup)
