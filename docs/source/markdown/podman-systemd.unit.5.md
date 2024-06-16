@@ -185,6 +185,13 @@ create a drop-in file like `sleep@10.container.d/10-image.conf`:
 Image=quay.io/centos/centos
 ```
 
+### Relative paths
+
+In order to support Systemd specifiers, Quadlet does not resolve relative paths that start with `%`.
+To resolve such a path, prepend it with `./`.
+
+For example, instead of `EnvironmentFile=%n/env` use `EnvironmentFile=./%n/env`
+
 ### Debugging unit files
 
 After placing the unit file in one of the unit search paths (mentioned
