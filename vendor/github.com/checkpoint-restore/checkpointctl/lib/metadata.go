@@ -16,6 +16,7 @@ const (
 	// container archive
 	ConfigDumpFile             = "config.dump"
 	SpecDumpFile               = "spec.dump"
+	StatusDumpFile             = "status.dump"
 	NetworkStatusFile          = "network.status"
 	CheckpointDirectory        = "checkpoint"
 	CheckpointVolumesDirectory = "volumes"
