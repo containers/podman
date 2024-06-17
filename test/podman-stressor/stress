@@ -1,0 +1,86 @@
+#!/bin/bash
+# shellcheck disable=SC1091,SC2034
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/common"
+
+# If user set any env variable to run stress-ng
+is_stress_ng_set_to_run() {
+    STRESS_NG_SET_TO_RUN=false
+    if [ -n "${STRESS_MEMORY}" ] ||
+       [ -n "${STRESS_CPU}" ] ||
+       [ -n "${STRESS_DISK}" ]; then
+        # Check if the variable is set or not empty and doesn't contain 'stress-ng'
+        if [[ -z "${EXTRA_PACKAGES_TO_INSTALL}" ]]; then
+            # Initialize the variable if it is empty or unset
+            EXTRA_PACKAGES_TO_INSTALL="stress-ng"
+        elif [[ ! " ${EXTRA_PACKAGES_TO_INSTALL} " =~ " stress-ng " ]]; then
+            # Add 'stress-ng' to the variable if not already present
+            EXTRA_PACKAGES_TO_INSTALL+=" stress-ng"
+        fi
+	# Set a flag variable instead of returning
+        STRESS_NG_SET_TO_RUN=true
+    fi
+}
+
+build_stress_ng_cmd() {
+    # Construct stress-ng command
+    local __INTENTIONAL_SPACE_TO_CONTINUE_CMD=" "
+    local stress_cmd="${__INTENTIONAL_SPACE_TO_CONTINUE_CMD}stress-ng"
+
+    if [ -n "${STRESS_MEMORY}" ]; then
+        stress_cmd+=" --vm ${STRESS_VM_STRESSOR_INSTANCES} --vm-bytes ${STRESS_MEMORY}"
+    fi
+
+    if [ -n "${STRESS_CPU}" ]; then
+        stress_cmd+=" --cpu ${STRESS_CPU}"
+    fi
+
+    if [ -n "${STRESS_DISK}" ]; then
+        stress_cmd+=" --hdd ${STRESS_DISK} --hdd-bytes ${STRESS_DISK_SIZE}"
+    fi
+
+    # Ensure the container remains running for the duration of the stress test
+    stress_cmd+=" --timeout ${STRESS_TIME}"
+    echo "${stress_cmd}"
+}
+
+run_stress_cmd() {
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] Running stress-ng in container ${container_name}..."
+    fi
+
+    # Find all container names starting with 'test_container_'
+    container_names=$(podman ps --format "{{.Names}}" | grep "^${BASE_NAME_FOR_CONTAINERS}")
+
+    # Execute the command in each container in parallel
+    for container_name in ${container_names}; do
+      {
+         stress_ng_command=$(build_stress_ng_cmd)
+
+         # Execute the command using eval
+         if ! sudo podman exec "${container_name}" ${stress_ng_command}; then
+            if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+                echo -e "[ ${RED}FAIL${NC} ] Failed to run stress-ng in container ${container_name}"
+            fi
+            exit 1  # Exit the subshell with an error
+        fi
+      } &
+    done
+
+    # Wait for all parallel processes to complete
+    wait
+}

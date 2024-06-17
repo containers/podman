@@ -1,0 +1,152 @@
+#!/bin/bash
+# shellcheck disable=SC1091
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/memory"
+source "$SHARE_DIR/common"
+
+# Function to create and configure a cgroup with total memory limit
+cgroup_create_env() {
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] creating cgroup ${CGROUP_NAME} with total memory limit ${TOTAL_MEMORY_FOR_THE_NAMESPACE}..."
+    fi
+
+    if ! sudo mkdir -p "${CGROUP_NAME_PATH}"; then
+        echo -e "[ ${RED}FAIL${NC} ] cgroupv2 ${CGROUP_NAME} fail to create cgroup dir structure"
+        return 1
+    fi
+
+    ##############################################################################
+    # FOR THE FUTURE - Explore the idea of adding paralell tests
+    # into specific cgroups via PID
+    ##############################################################################
+    # Example (need to be tested in the time)
+    # echo <PID> | sudo tee /sys/fs/cgroup/${CGROUP_NAME}/cgroup.procs 1> /dev/null
+    ##############################################################################
+
+    # Set the memory limit for the cgroup
+    if ! sudo sh -c "echo \"${TOTAL_MEMORY_FOR_THE_NAMESPACE}\" > "${CGROUP_NAME_PATH}"/memory.max"; then
+        echo -e "[ ${RED}FAIL${NC} ] cgroupv2 ${CGROUP_NAME} fail to set max memory for the cgroup"
+        return 1
+    fi
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] cgroup ${CGROUP_NAME} created and configured."
+    fi
+
+    return 0
+}
+
+# Function to check memory.limit_in_bytes
+cgroup_check_if_memory_limit_is_set_correctly() {
+    local current_limit
+    current_limit=$(cat "${CGROUP_NAME_PATH}"/memory.limit_in_bytes)
+
+    if [[ "${current_limit}" -eq "${EXPECTED_MEMORY_LIMIT}" ]]; then
+        if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+            echo -e "[ ${BLUE}INFO${NC} ] The memory.limit_in_bytes is correctly set to ${EXPECTED_MEMORY_LIMIT}."
+	fi
+        return 0
+    else
+        echo -e "[ ${RED}FAIL${NC} ] The memory.limit_in_bytes is set to ${current_limit}, expected ${EXPECTED_MEMORY_LIMIT}."
+        return 1
+    fi
+}
+
+# Is cgroup enabled?
+cgroup_is_enabled() {
+    if ! mount | grep -q cgroup2; then
+        return 1
+    fi
+    return 0
+}
+
+# Check if the memory controller is present
+cgroup_check_controller_availability() {
+    #
+    # These commands below enable the cpu and cpuset controllers for the
+    # immediate children groups of the /sys/fs/cgroup/ root control
+    # group. A child group is where you can specify processes and
+    # apply control checks to each of the processes based on your criteria.
+    #
+    # cpu-related controllers:
+    # echo "+cpu" >> /sys/fs/cgroup/cgroup.subtree_control
+    # echo "+cpuset" >> /sys/fs/cgroup/cgroup.subtree_control
+    #
+    for controller in "${CGROUP_USED_CONTROLLERS[@]}"; do
+	# remove , after the controller name
+	controller=${controller//,/}
+        if ! grep -q "$controller" "$CGROUP_CONTROLLERS_PATH"; then
+		sudo bash -c "echo '+${controller}' > /sys/fs/cgroup/${CGROUP_NAME}/cgroup.subtree_control"
+        fi
+    done
+}
+
+cgroup_max_memory_available() {
+    if [ -f "${CGROUP_NAME_PATH}"/memory.max ]; then
+        convert_memory $(cat "${CGROUP_NAME_PATH}"/memory.max)
+    fi
+}
+
+# Function to remove the cgroup
+cgroup_remove() {
+    local script_pid=$$
+
+    # Function to get all child PIDs of a given PID
+    get_child_pids() {
+        local parent_pid=$1
+        local child_pids=$(pgrep -P $parent_pid)
+        echo $child_pids
+    }
+
+    # Get all child PIDs of the script
+    all_child_pids=$(get_child_pids $script_pid)
+
+    # Check if the cgroup exists
+    if [ ! -d "$CGROUP_NAME_PATH" ]; then
+        if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+            echo -e "[ ${RED}FAIL${NC} ] cgroup $CGROUP_NAME_PATH does not exist."
+	fi
+        return 1
+    fi
+
+    # List all processes in the cgroup
+    local procs=$(cat "$CGROUP_NAME_PATH/cgroup.procs")
+
+    # Check if there are any processes
+    if [ -n "$procs" ]; then
+        echo "$procs"
+
+        # Loop through each process and kill it if it's not the script or its child
+        while read -r pid; do
+            if [[ "$pid" != "$script_pid" && ! "$all_child_pids" =~ "$pid" ]]; then
+                sudo kill -9 "$pid"
+            fi
+        done <<< "$procs"
+    fi
+
+    # Wait for processes to terminate
+    while [ -n "$(cat "$CGROUP_NAME_PATH/cgroup.procs")" ]; do
+        sleep 0.5
+    done
+
+    # Remove the cgroup directory (might be busy)
+    sudo rm -rf "$CGROUP_NAME_PATH" &> /dev/null
+    sudo rm -rf "$CGROUP_NAME_PATH.slice/" &> /dev/null
+
+    return 0
+}

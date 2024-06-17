@@ -1,0 +1,55 @@
+#!/bin/bash -e
+# shellcheck disable=SC1091
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/cgroup"
+
+echo -e "======================"
+echo -e "podman-stressor demo"
+echo -e "======================\n"
+
+echo -e "[ ${BLUE}INFO${NC} ] listing podman process(es)..."
+sudo podman ps
+
+echo -e "\n[ ${BLUE}INFO${NC} ] listing podman network(s)..."
+sudo podman network ls
+
+echo -e "\n[ ${BLUE}INFO${NC} ] listing podman volume(s)..."
+sudo podman volume ls
+
+pushd .. 1> /dev/null || exit 1
+    echo
+
+    echo -e "[ ${BLUE}INFO${NC} ] listing resource from cgroup ${CGROUP_NAME}..."
+    if [ -d "/sys/fs/cgroup/${CGROUP_NAME}" ]; then
+        echo "  - cgroup name: ${CGROUP_NAME}"
+        echo "  - path: ${CGROUP_NAME_PATH}"
+        echo "  - slice: ${CGROUP_NAME_PATH}.slice"
+
+        if [ -f "${CGROUP_NAME_PATH}"/memory.max ]; then
+            echo "  - Current cgroup memory max: " $(cgroup_max_memory_available)
+        fi
+    else
+	echo "  x cgroup name: ${CGROUP_NAME}"
+        echo "  x unable to find the cgroup resources for ${CGROUP_NAME}"
+        echo "  x cgroup path: ${CGROUP_NAME_PATH}"
+	echo "  x cgroup ${CGROUP_NAME} already removed?"
+	exit 1
+    fi
+
+popd 1> /dev/null || exit 1
+
+exit 0

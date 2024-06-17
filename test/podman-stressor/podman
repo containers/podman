@@ -1,0 +1,231 @@
+#!/bin/bash
+# shellcheck disable=SC1091,SC2155,SC2086
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/cgroup"
+source "$SHARE_DIR/common"
+source "$SHARE_DIR/stress"
+source "$SHARE_DIR/systemd"
+source "$SHARE_DIR/selinux"
+
+# Install extra packages in the container
+# Argument: container name
+install_packages() {
+    local container_name=$1
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] Installing packages in container ${container_name} - packages ${EXTRA_PACKAGES_TO_INSTALL}..."
+    fi
+
+    if ! sudo podman exec "${container_name}" "${PACKAGER_INSTALLER}" install -y -q ${EXTRA_PACKAGES_TO_INSTALL}; then
+        if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+            echo -e "[ ${RED}FAIL${NC} ] container ${container_name} fail to install package(s) ${EXTRA_PACKAGES_TO_INSTALL}"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Function to create a container
+create_container() {
+    local container_name=$1
+
+    local start_time=$(date +%s%3N) # Log start time in milliseconds
+
+    # Running Podman containers under a systemd scope integrates them more
+    # tightly with the systemd service manager.
+    podman_cmd="podman run -d --replace \
+                  --name ${container_name} \
+                  --volume ${VOLUME_NAME}:${VOLUME_PATH} \
+                  --network ${NETWORK_NAME} \
+                  ${IMAGE_NAME} \
+                  ${IMAGE_COMMAND}"
+
+    cmd="sudo systemd-run --quiet --scope \
+    	      -p Delegate=yes \
+    	      --slice=${CGROUP_NAME}.slice \
+    	      ${podman_cmd}"
+
+    # run the command
+    systemd_scope=$(eval $cmd)
+
+    # Add the scope thing for the validation
+    systemd_scope="libpod-${systemd_scope}.scope"
+
+    # check if it's running using systemctl is-active or
+    # systemctl list-units --type=scope --state=running
+    if ! sudo systemctl is-active "${systemd_scope}" &> /dev/null; then
+        echo -e "[ ${RED}FAIL${NC} ] Container ${container_name} fail to start"
+        exit 255
+    fi
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] Container ${container_name} started"
+    fi
+
+    local end_time=$(date +%s%3N) # Log end time in milliseconds
+
+    ################################
+    #   Adding Extra Packages      #
+    ################################
+    if [[ ! -z "$EXTRA_PACKAGES_TO_INSTALL" ]]; then
+        install_packages "${container_name}"
+    fi
+
+}
+
+# Function to stop and remove a container
+stop_and_remove_container() {
+    local container_name=$1
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] stopping and removing container ${container_name}"
+    fi
+
+    if podman ps -a --format "{{.Names}}" | grep -q "^${BASE_NAME_FOR_CONTAINERS}"; then
+        # Attempt to stop the container gracefully with a custom timeout
+        podman stop -t "${TIMEOUT_PODMAN_STOP_CONTAINER}" "$container_name" &> /dev/null
+        # Forcefully remove the container if it still exists
+        if ! podman rm "$container_name" &> /dev/null; then
+	    echo -e "[ ${RED}FAIL${NC} ] to remove container $container_name."
+            exit 255
+        fi
+    else
+        if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+            echo -e "[ ${BLUE}INFO${NC} ] no container ${container_name} found to be removed."
+	fi
+	exit 0
+    fi
+}
+
+# Function to execute specific action in containers
+execute_action_in_containers_in_parallel() {
+    local caller_function=$1
+
+    for ((i=1; i<=${NUMBER_OF_CONTAINERS}; i+=BATCH_SIZE)); do
+        declare -A pid_to_container
+        for ((j=i; j<i+BATCH_SIZE && j<=NUMBER_OF_CONTAINERS; j++)); do
+            container_name="${BASE_NAME_FOR_CONTAINERS}$j"
+            if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+                echo -e "[ ${BLUE}INFO${NC} ] creating container ${container_name}"
+            fi
+
+            ${caller_function} "$container_name" &
+            pid_to_container[$!]=$container_name
+        done
+
+        wait_and_check_status pid_to_container
+    done
+}
+
+# Wait and Check the Status
+wait_and_check_status() {
+    local -n pid_to_container_ref=$1
+    local wait_fail=0
+
+    for pid in "${!pid_to_container_ref[@]}"; do
+        start_time=$(date +%s)
+        while kill -0 "$pid" 2>/dev/null; do
+            current_time=$(date +%s)
+            elapsed_time=$((current_time - start_time))
+            if (( elapsed_time > TIMEOUT_WAITING_ACTIONS )); then
+                echo -e "[ ${RED}FAIL${NC} ] Timeout waiting for container ${pid_to_container_ref[$pid]} with PID $pid."
+                kill -TERM "$pid" 2>/dev/null
+                wait_fail=1
+                break
+            fi
+            sleep 1
+        done
+
+        if ! wait $pid; then
+            echo -e "[ ${RED}FAIL${NC} ] Failed to run container ${pid_to_container_ref[$pid]} with PID $pid."
+            wait_fail=1
+        fi
+    done
+
+    if [[ $wait_fail -ne 0 ]]; then
+        exit 255
+    fi
+}
+
+cleanup_containers_in_parallel() {
+    execute_action_in_containers_in_parallel stop_and_remove_container
+}
+
+# Main function to run the script
+main() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: $0 <create|remove> <additional_parameters>"
+        exit 1
+    fi
+    local action=$1
+
+    case $action in
+        create)
+            local start_time=$(date +%s)
+            local msg="creating ${NUMBER_OF_CONTAINERS} containers"
+
+	    # Checking if we need to install stress-ng in the containers
+	    is_stress_ng_set_to_run
+	    execute_action_in_containers_in_parallel "create_container"
+
+	    # user requested to check if service is enabled
+	    if [ -n "${SERVICE_MUST_BE_ENABLED}" ]; then
+	        services_must_be_enabled "${container_name}"
+            fi
+
+	    if [[ "${SYSTEMD_TIMEOUTSTOPSEC}" = "INFINITY" ]]; then
+	        is_systemd_TimeoutStopSec_infinity_works "${container_name}"
+	    fi
+
+	    # user requested to check if service is disabled
+	    if [ -n "${SERVICE_MUST_BE_DISABLED}" ]; then
+	        services_must_be_disabled "${container_name}"
+            fi
+
+	    if [ -n "${SELINUX_STATUS_MUST_BE}" ]; then
+	        selinux_check_status "${container_name}"
+            fi
+
+	    # If users requested to stress the containers, it's time to stress
+	    # all containers via stress-ng
+	    if [ "$STRESS_NG_SET_TO_RUN" = true ]; then
+                msg+=" and stressing it"
+                run_stress_cmd
+                if [ $? -ne 0 ]; then
+                    echo "Failed to run stress-ng. Exiting."
+                    exit 1
+                fi
+            fi
+
+            local end_time=$(date +%s)
+            local elapsed_time=$((end_time - start_time))
+            if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+                echo -e "[ ${GREEN}PASS${NC} ] Total number of containers created in parallel: $NUMBER_OF_CONTAINERS"
+                echo -e "[ ${GREEN}PASS${NC} ] Time taken for only $msg: $elapsed_time seconds."
+	    fi
+            ;;
+        remove)
+            cleanup_containers_in_parallel
+            ;;
+        *)
+            echo "Unknown action: $action"
+            exit 1
+            ;;
+    esac
+}
+
+main "$@"

@@ -1,0 +1,48 @@
+#!/bin/bash
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/system"
+source "$SHARE_DIR/rpm"
+source "$SHARE_DIR/date"
+
+# network and volume definition to be used in remove and creation
+NETNAME="my_network"
+VOLNAME="my_volume"
+
+# just to make sure our example will work
+cleanenv() {
+    echo -e "[ ${BLUE}INFO${NC} ] Cleaning any file from previous tests..."
+    sudo podman volume rm "${VOLNAME}" --force &> /dev/null
+    sudo podman network rm "${NETNAME}" --force &> /dev/null
+}
+
+# calling the function
+cleanenv
+
+# executing the program in previous dir
+pushd ../../../ 1> /dev/null || exit 1
+
+echo -e "[ ${BLUE}INFO${NC} ] Executing test: service must be disabled in the distro: [podman]"
+
+echo -e "[ ${BLUE}INFO${NC} ]"
+echo -e "[ ${BLUE}INFO${NC} ] This test was executed in the following criteria:"
+echo -e "[ ${BLUE}INFO${NC} ]"
+echo -e "[ ${BLUE}INFO${NC} ] Date:" $(current_date)
+echo -e "[ ${BLUE}INFO${NC} ] System information:"
+echo -e "[ ${BLUE}INFO${NC} ] \t - $(system_info)"
+echo -e "[ ${BLUE}INFO${NC} ]"
+echo -e "[ ${BLUE}INFO${NC} ] RPM(s):"
+echo -e "[ ${BLUE}INFO${NC} ] \t - $(rpm_package_version "systemd")"
+echo -e "[ ${BLUE}INFO${NC} ]"
+
+    sudo CLEANUP=false \
+         VERBOSE=false \
+         NETWORK_NAME="${NETNAME}" \
+         VOLUME_NAME="${VOLNAME}" \
+         IMAGE_COMMAND="sleep 3600" \
+         IMAGE_NAME="quay.io/centos-sig-automotive/automotive-osbuild" \
+         NUMBER_OF_CONTAINERS="1" \
+	 SERVICE_MUST_BE_ENABLED="bluechi-controller,bluechi-agent" \
+         ./podman-stressor
+
+popd 1> /dev/null || exit 1

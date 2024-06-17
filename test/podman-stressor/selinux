@@ -1,0 +1,38 @@
+#!/bin/bash
+# shellcheck disable=SC1091,SC2155,SC2086
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/common"
+
+selinux_check_status() {
+    local container_id=$1
+
+    # Execute the command inside the container to check SELinux status
+    current_selinux_status=$(podman exec "$container_id" getenforce)
+
+    # Trim whitespace and convert to uppercase for reliable comparison
+    current_selinux_status=$(echo "$current_selinux_status" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+    SELINUX_STATUS_MUST_BE=$(echo "$SELINUX_STATUS_MUST_BE" | tr -d '[:space:]' | tr '[:lower:]' '[:upper:]')
+
+    if [[ "$current_selinux_status" = "${SELINUX_STATUS_MUST_BE}" ]]; then
+        echo -e "[ ${GREEN}PASS${NC} ] SELinux status is ${SELINUX_STATUS_MUST_BE}"
+    else
+        echo -e "[ ${RED}FAIL${NC} ] SELinux is NOT in ${SELINUX_STATUS_MUST_BE} mode in container $container_id."
+        echo -e "[ ${RED}FAIL${NC} ] The current status is: ${current_selinux_status}"
+        return 1
+    fi
+    return 0
+}

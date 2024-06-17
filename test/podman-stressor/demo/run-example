@@ -1,0 +1,58 @@
+#!/bin/bash -e
+# shellcheck disable=SC1091
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+
+podman_ps_by_name() {
+    echo -e "\nContainers running listed by name:"
+    sudo podman ps --format "\t - {{.Names}}"
+}
+
+# network and volume definition to be used in remove and creation
+NETNAME="my_network"
+VOLNAME="my_volume"
+NRM_CONTAINERS=5
+
+echo -e "======================"
+echo -e "podman-stressor demo"
+echo -e "======================\n"
+
+# Just make sure we are in a fresh env
+echo -e "[ ${BLUE}INFO${NC} ] Cleaning previous podman-stressor container volume settings..."
+sudo podman volume rm "${VOLNAME}" --force &> /dev/null
+
+echo -e "[ ${BLUE}INFO${NC} ] Cleaning previous podman-stressor container network settings..."
+sudo podman network rm "${NETNAME}" --force &> /dev/null
+
+echo -e "[ ${BLUE}INFO${NC} ] Triggering ${NRM_CONTAINERS} containers with podman-stressor..."
+pushd .. 1> /dev/null || exit 1
+    # starting the podman-stressor
+    sudo TOTAL_MEMORY_FOR_THE_NAMESPACE="1G" \
+         LIST_CURRENT_STATE=true \
+         VERBOSE=true \
+         CLEANUP=false \
+	 TIMEOUT_PODMAN_STOP_CONTAINER=5 \
+         NETWORK_NAME="${NETNAME}" \
+         VOLUME_NAME="${VOLNAME}" \
+         IMAGE_NAME="quay.io/centos-sig-automotive/automotive-osbuild" \
+         IMAGE_COMMAND="sleep 3600" \
+         NUMBER_OF_CONTAINERS="$NRM_CONTAINERS" \
+         ./podman-stressor
+
+    # podman_ps_by_name
+popd 1> /dev/null || exit 1
+
+echo -e "[ ${BLUE}INFO${NC} ] done"

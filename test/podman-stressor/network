@@ -1,0 +1,120 @@
+#!/bin/bash
+# shellcheck disable=SC1091
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/common"
+
+# Function to create a network
+create_network() {
+    if [ -z "${NETWORK_NAME}" ]; then
+        echo -e "[ ${RED}FAIL${NC} ] NETWORK_NAME must be defined in constant file"
+        return 1
+	#exit 255
+    fi
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] creating network ${NETWORK_NAME}"
+    fi
+
+    if ! podman network create "${NETWORK_NAME}" 1> /dev/null; then
+        echo -e "[ ${RED}FAIL${NC} ] unable to create network ${NETWORK_NAME}"
+	return 1
+	#exit 255
+    fi
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${GREEN}PASS${NC} ] network ${NETWORK_NAME} created."
+    fi
+    return 0
+    #exit 0
+}
+
+# Function to remove a network
+remove_network() {
+    if [ -z "${NETWORK_NAME}" ]; then
+        echo -e "[ ${RED}FAIL${NC} ] NETWORK_NAME must be defined in constant file"
+        return 1
+	#exit 255
+    fi
+
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] removing network ${NETWORK_NAME}"
+    fi
+
+    if ! podman network rm "${NETWORK_NAME}" --force 1> /dev/null; then
+        echo -e "[ ${RED}FAIL${NC} ] unable to remove network $NETWORK_NAME."
+	return 1
+	#exit 255
+    fi
+    if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${GREEN}PASS${NC} ] network ${NETWORK_NAME} removed."
+    fi
+    return 0
+}
+
+# Function to list networks
+list_networks() {
+    echo
+    # Print header
+    echo -e "[ ${BLUE}INFO${NC} ] ==============================================="
+    echo -e "[ ${BLUE}INFO${NC} ]              ${GREEN}Listing current podman network${NC}"
+    echo -e "[ ${BLUE}INFO${NC} ] ==============================================="
+
+    # Execute podman network ls and check for errors
+    if ! output=$(podman network ls 2>&1); then
+        echo -e "[ ${RED}ERROR${NC} ] Failed to execute 'podman network ls':"
+        echo -e "[ ${RED}ERROR${NC} ] $output"
+        echo -e "[ ${BLUE}INFO${NC} ] ==============================================="
+        exit 1
+    fi
+
+    # Print the output line by line with the formatted header
+    echo "$output" | while IFS= read -r line; do
+        echo -e "[ ${BLUE}INFO${NC} ] $line"
+    done
+
+    # Print footer
+    echo -e "[ ${BLUE}INFO${NC} ] ==============================================="
+}
+
+# Main function to run the script
+main() {
+    if [ $# -lt 1 ]; then
+        echo "Usage: $0 <create|remove|list>"
+        exit 1
+    fi
+
+    local action=$1
+
+    case $action in
+        create)
+            create_network
+            ;;
+        remove)
+            remove_network
+            ;;
+        list)
+            list_networks
+            ;;
+        *)
+            echo "Unknown action: $action"
+            exit 1
+            ;;
+    esac
+
+}
+
+# main
+main "$@"

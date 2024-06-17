@@ -1,0 +1,220 @@
+#!/bin/bash
+# shellcheck disable=SC1091
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+CONFIG_DIR="$HOME/.config/podman-stressor"
+source "$CONFIG_DIR/constants"
+source "$SHARE_DIR/cgroup"
+source "$SHARE_DIR/common"
+
+# Read the format from /usr/share/podman-stressor/constant
+# and provide the OPTION_NAME and DESCRIPTION for easy reading
+# or documentation
+show_options_from_constant_file() {
+    local input_file="$HOME/.config/podman-stressor"
+
+    # Check if input file exists
+    if [[ ! -f "$input_file" ]]; then
+        echo "Error: Input file '$input_file' does not exist."
+        return 1
+    fi
+
+    local found_description=false
+    local description=""
+
+    while IFS= read -r line; do
+        if [[ "$found_description" == true && "$line" =~ ^#?[[:space:]]*[A-Za-z_]+= ]]; then
+            # Process the flag line, remove leading '#', optional spaces, and extract the flag name
+            local flag_name
+            flag_name=$(echo "$line" | sed 's/^#[[:space:]]*//;s/^[ \t]*//' | cut -d'=' -f1)
+            echo "Name: $flag_name"
+            echo "Description: $description"
+            echo ""
+            found_description=false
+        elif [[ "$line" == "# Description" ]]; then
+            found_description=true
+        elif [[ "$found_description" == true && "$line" == \#* && ! "$line" =~ ^#?[[:space:]]*[A-Za-z_]+= ]]; then
+            # Store the description line without leading '#'
+            description="${line#"#"}"
+            description="${description#"${description%%[![:space:]]*}"}"
+        fi
+    done < "$input_file"
+}
+
+# Just list the current state for processes, volumes and network
+list_current_state() {
+    if [[ "$LIST_CURRENT_STATE" = "${FEATURE_ENABLED}" ]]; then
+        ./podman-operations --list-procs
+        ./podman-operations --list-vols
+        ./podman-operations --list-nets
+    fi
+}
+
+check_required_parameters() {
+  missing_params=""
+
+  if [[ -z "${NETWORK_NAME}" ]]; then
+    missing_params+="NETWORK_NAME "
+  fi
+
+  if [[ -z "${VOLUME_NAME}" ]]; then
+    missing_params+="VOLUME_NAME "
+  fi
+
+  if [[ -z "${IMAGE_NAME}" ]]; then
+    missing_params+="IMAGE_NAME "
+  fi
+
+  if [[ -z "${NUMBER_OF_CONTAINERS}" ]]; then
+    missing_params+="NUMBER_OF_CONTAINERS "
+  fi
+
+  if [[ -n "${missing_params}" ]]; then
+    echo "Error: Missing required parameters: ${missing_params}"
+    usage
+  fi
+}
+
+# Display help message
+usage() {
+  echo "Usage: $0 [--show-options]"
+  echo
+  echo "Example:"
+  echo
+  echo "  sudo LIST_CURRENT_STATE=true \\"
+  echo "       VERBOSE=true \\"
+  echo "       CLEANUP=true \\"
+  echo "       NETWORK_NAME=\"my_network\" \\"
+  echo "       VOLUME_NAME=\"my_storage\" \\"
+  echo "       IMAGE_NAME=\"quay.io/centos-sig-automotive/automotive-osbuild\" \\"
+  echo "       IMAGE_COMMAND=\"sleep 3600\" \\"
+  echo "       NUMBER_OF_CONTAINERS=\"100\" \\"
+  echo "       $0"
+  exit 1
+}
+
+# Function to check for --show-options flag
+check_show_options() {
+  for arg in "$@"; do
+    if [ "$arg" == "--show-options" ]; then
+        show_options_from_constant_file
+	usage
+	exit 0
+    fi
+  done
+}
+
+# Check for --show-options flag
+check_show_options "$@"
+
+# If user provided greater than 0 args lets show usage()
+if [[ "$#" -gt 0 ]]; then
+    echo "Unknown parameter: $1"
+    usage
+fi
+
+check_required_parameters
+
+if ! cgroup_is_enabled; then
+    echo -e "[ ${RED}FAIL${NC} ] CGROUP is not ENABLED in the system"
+    exit 255
+fi
+
+if ! cgroup_create_env; then
+    echo -e "[ ${RED}FAIL${NC} ] CGROUP cannot create environment"
+    exit 255
+fi
+
+if ! cgroup_check_controller_availability; then
+    echo -e "[ ${RED}FAIL${NC} ] CGROUP unable to locate required controllers in ${CGROUP_CONTROLLERS_PATH}"
+    exit 255
+fi
+
+# Debugging output
+if [[ "$VERBOSE" = "${FEATURE_ENABLED}" ]]; then
+    echo
+    echo -e "[ ${BLUE}INFO${NC} ] ======================================================="
+    echo -e "[ ${BLUE}INFO${NC} ] ${GREEN}VERBOSE MODE IS ON${NC}"
+    echo -e "[ ${BLUE}INFO${NC} ] ======================================================="
+    echo -e "[ ${BLUE}INFO${NC} ] env NETWORK_NAME is ${NETWORK_NAME}"
+    echo -e "[ ${BLUE}INFO${NC} ] env VOLUME_NAME is ${VOLUME_NAME}"
+    echo -e "[ ${BLUE}INFO${NC} ] env NUMER_OF_CONTAINERS is ${NUMBER_OF_CONTAINERS}"
+    echo -e "[ ${BLUE}INFO${NC} ] env IMAGE_NAME is ${IMAGE_NAME}"
+    echo -e "[ ${BLUE}INFO${NC} ] env IMAGE_COMMAND is ${IMAGE_COMMAND}"
+
+    if [[ "${CLEANUP}" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] env CLEANUP is set"
+    fi
+
+    if [[ "$LIST_CURRENT_STATE" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] env LIST_CURRENT_STATE is set"
+    fi
+    echo
+fi
+
+# List the current state of processes, volumes and networks
+if [[ "$LIST_CURRENT_STATE" = "${FEATURE_ENABLED}" ]]; then
+    echo -e "[ ${BLUE}INFO${NC} ] ${GREEN}Listing current podman env state NO CHANGES FROM SCRIPT${NC}"
+    list_current_state
+fi
+
+# create volume
+./podman-operations --create-vol
+
+# create network
+./podman-operations --create-net
+
+# create containers
+./podman-operations --create-cont
+
+if [[ "$LIST_CURRENT_STATE" = "${FEATURE_ENABLED}" ]]; then
+    echo
+    echo -e "[ ${BLUE}INFO${NC} ] ================================================================================="
+    echo -e "[ ${BLUE}INFO${NC} ] ${GREEN}Requested addon has been added to the environment${NC}"
+    echo -e "[ ${BLUE}INFO${NC} ] ================================================================================="
+    echo -e "[ ${BLUE}INFO${NC} ] - Number of Containers - ${NUMBER_OF_CONTAINERS}"
+    echo -e "[ ${BLUE}INFO${NC} ] - Network - ${NETWORK_NAME}"
+    echo -e "[ ${BLUE}INFO${NC} ] - Volume  - ${VOLUME_NAME}"
+    echo -e "[ ${BLUE}INFO${NC} ] ================================================================================="
+    list_current_state
+    echo
+fi
+
+# All Done, let's cleanup
+if [[ "${CLEANUP}" = "${FEATURE_ENABLED}" ]]; then
+    if [[ "${VERBOSE}" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] Removing total number of containers: ${NUMBER_OF_CONTAINERS}..."
+    fi
+        ./podman-operations --cleanup-cont
+
+    if [[ "${VERBOSE}" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] Removing network ${NETWORK_NAME}..."
+    fi
+        ./podman-operations --cleanup-net
+
+    if [[ "${VERBOSE}" = "${FEATURE_ENABLED}" ]]; then
+        echo -e "[ ${BLUE}INFO${NC} ] Removing volume ${VOLUME_NAME}..."
+    fi
+        ./podman-operations --cleanup-vol
+        cgroup_remove
+fi
+
+if [[ "$LIST_CURRENT_STATE" = "${FEATURE_ENABLED}" ]]; then
+    list_current_state
+fi
+
+if [[ "${VERBOSE}" = "${FEATURE_ENABLED}" ]]; then
+    echo
+    echo -e "[ ${GREEN}PASS${NC} ] All tests passed."
+fi

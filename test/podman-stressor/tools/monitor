@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# Path to the existing cgroup
+CGROUP_PATH="/sys/fs/cgroup/podman_stressor.slice"
+
+# Function to print cgroup stats
+print_cgroup_stats() {
+    echo "Timestamp: $(date)"
+
+    echo "CPU usage:"
+    cat $CGROUP_PATH/cpu.stat
+    echo
+
+    echo "Memory usage:"
+    cat $CGROUP_PATH/memory.current
+    echo
+
+    echo "I/O stats:"
+    cat $CGROUP_PATH/io.stat
+    echo
+
+    echo "-----------------------------------"
+}
+
+# Monitor cgroup usage every 'X' seconds
+while true; do
+    print_cgroup_stats
+    sleep 2
+done

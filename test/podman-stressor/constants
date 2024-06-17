@@ -1,0 +1,325 @@
+#!/bin/bash
+# shellcheck disable=SC2034
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+###########################################################
+##################  START - COLORS ########################
+###########################################################
+GREEN='\033[0;32m'
+BLUE='\033[1;34m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+
+# No color
+NC='\033[0m'
+###########################################################
+###################  END - COLORS #########################
+###########################################################
+
+###########################################################
+##########  START - Global definitions ####################
+###########################################################
+FEATURE_ENABLED=true
+FEATURE_DISABLED=false
+
+###############################################################################
+# Description:
+# Define packager installer inside the containers. i.e: dnf, apt, etc.
+#PACKAGER_INSTALLER="dnf"
+###############################################################################
+
+###############################################################################
+#IMAGE_NAME="alpine"
+#IMAGE_NAME="quay.io/centos-sig-automotive/automotive-osbuild"
+#IMAGE_COMMAND="sleep 3600"
+
+
+# Description
+# Number of containers to trigger. Default 10
+# NUMBER_OF_CONTAINERS=5
+
+###############################################################################
+# Description
+# Remove podman volume, network and containers created as soon the program finish. Default: false
+#CLEANUP="${FEATURE_DISABLED}"
+###############################################################################
+
+###############################################################################
+# Description
+# Extra packages to install in the containers
+#EXTRA_PACKAGES_TO_INSTALL="vim podman"
+###############################################################################
+
+###########################################################
+##########  END - Global definitions ####################
+###########################################################
+
+###############################################################################
+# Description
+# List current state of network, storage and containers. (true or false) Default: false
+LIST_CURRENT_STATE="${FEATURE_DISABLED}"
+###############################################################################
+
+###############################################################################
+# Description
+# Controls how many containers are started/stopped in each batch.
+BATCH_SIZE=10
+###############################################################################
+
+###############################################################################
+# Description
+# Specify the number of seconds to wait before forcibly stopping a container. Default is 10
+TIMEOUT_PODMAN_STOP_CONTAINER=5
+###############################################################################
+
+###############################################################################
+# Description
+# Wait time for containers starting OR removal
+TIMEOUT_WAITING_ACTIONS=300 # 5 minutes
+###############################################################################
+
+###############################################################################
+# Description
+# A comma separated check for systemd services which should be enabled.
+#SERVICE_MUST_BE_ENABLED=
+###############################################################################
+
+###############################################################################
+# Description
+# A comma separated check for systemd services which should be disabled.
+#SERVICE_MUST_BE_DISABLED=
+###############################################################################
+
+###########################################################
+##########  START - Cgroup definitions ####################
+###########################################################
+
+###############################################################################
+# Description
+# cgroup name for podman-stressor
+CGROUP_NAME="podman_stressor"
+###############################################################################
+
+###############################################################################
+# Description
+# Path to podman-stressor cgroup
+CGROUP_NAME_PATH="/sys/fs/cgroup/"${CGROUP_NAME}""
+###############################################################################
+
+###############################################################################
+# Description
+# Path for the cgroup general controllers
+CGROUP_CONTROLLERS_PATH="/sys/fs/cgroup/cgroup.controllers"
+###############################################################################
+
+###############################################################################
+# Description
+# Max memory per container in the cgroup
+#MEMORY_MAX_PER_CONTAINER="256M"      # i.e: 256M, 512M, 1G, 16G, 32G
+###############################################################################
+
+###############################################################################
+# Description
+# Total memory set for the cgroup namespace
+TOTAL_MEMORY_FOR_THE_NAMESPACE="1G"    # i.e: 256M, 512M, 1G, 16G, 32G
+###############################################################################
+
+###############################################################################
+# Description
+# Array which contain the cgroupv2 resources used in the tool. i.e: memory, cpu, io
+CGROUP_USED_CONTROLLERS=("memory", "cpu", "io")
+###############################################################################
+
+###############################################################################
+# Description
+# Just a random name that will be added a number after: i.e: text_container_X
+#BASE_NAME_FOR_CONTAINERS="test_container_"
+###############################################################################
+
+######################################################################
+############  END - Cgroup definitions ###############################
+######################################################################
+
+
+######################################################################
+############       START - SELinux          ##########################
+######################################################################
+
+######################################################################
+# Description
+# SELinux mode expected in the container
+#SELINUX_STATUS_MUST_BE="Enforcing"
+######################################################################
+
+######################################################################
+############       END - SELinux           ###########################
+######################################################################
+
+######################################################################
+############  START - STRESS definitions #############################
+######################################################################
+
+###############################################################################
+# Description
+# Number of CPU workers (threads) to stress (optional)
+#STRESS_CPU="6"
+###############################################################################
+
+###############################################################################
+# Description
+# Number of disk workers (threads) to stress (optional)
+#STRESS_DISK="8"
+###############################################################################
+
+###############################################################################
+# Description
+# Size of the temporary file for disk stress (optional)
+#STRESS_DISK_SIZE="1G"
+###############################################################################
+
+###############################################################################
+# Description
+# Memory to be stressed in each container (optional)
+#STRESS_MEMORY="1G"
+###############################################################################
+
+###############################################################################
+# Description
+# Duration to stress (REQUIRED IF: any STRESS option is set)
+STRESS_TIME="60s"
+###############################################################################
+
+###############################################################################
+# Description
+# If stress-ng tool should run in the container created by the tool. (Default: false)
+# STRESS_NG_SET_TO_RUN=false
+###############################################################################
+
+###############################################################################
+# Description
+# --vm (virtual memory stressor instances)
+STRESS_VM_STRESSOR_INSTANCES=100
+###############################################################################
+
+###############################################################################
+# Description
+# Check if timeout stop sec works in different arguments.
+#SYSTEMD_TIMEOUTSTOPSEC=INFINITY
+###############################################################################
+
+# Check if one variable is set and the other is not
+if [[ (-n "$STRESS_DISK" && -z "$STRESS_DISK_SIZE") || \
+      (-z "$STRESS_DISK" && -n "$STRESS_DISK_SIZE") ]]; then
+    echo -e "[ ${RED}FAIL${NC} ] Error: Both STRESS_DISK and STRESS_DISK_SIZE must be set and not empty if one of them is set."
+    exit 1
+fi
+
+# Check if STRESS_TIME is NOT set but one of STRESS options is configured.
+# In such case, we must fail.
+if [ -z "$STRESS_TIME" ]; then
+    if [ -n "${STRESS_MEMORY}" ] ||
+       [ -n "${STRESS_CPU}" ] ||
+       [ -n "${STRESS_DISK}" ] ||
+       [ -n "${STRESS_NETWORK}" ] ||
+       [ -n "${STRESS_TCP}" ] ||
+       [ -n "${STRESS_UDP}" ]; then
+        echo -e "[ ${RED}FAIL${NC} ] Exiting with failure because one or more " \
+            "stress variables are set but STRESS_TIME is not set."
+        echo -e "[ ${RED}FAIL${NC} ] STRESS_TIME ensure the container remains " \
+            "running for the duration of the stress test."
+        exit 1
+    fi
+fi
+###########################################################
+##############  END - STRESS definitions ##################
+###########################################################
+
+###########################################################
+###########################################################
+#
+# Set defaults if user didn't set values
+#
+###########################################################
+###########################################################
+if [ -z "${VERBOSE+x}" ]; then
+    VERBOSE="${FEATURE_DISABLED}"
+fi
+
+if [ -z "${CLEANUP+x}" ]; then
+    CLEANUP="${FEATURE_DISABLED}"
+fi
+
+if [ -z "${PACKAGER_INSTALLER+x}" ]; then
+    PACKAGER_INSTALLER="dnf"
+fi
+
+if [ -z "${VOLUME_PATH+x}" ]; then
+    VOLUME_PATH="/data"
+fi
+
+if [ -z "$STRESS_VM_STRESSOR_INSTANCES" ]; then
+    STRESS_VM_STRESSOR_INSTANCES=1
+fi
+
+if [ -z "${MEMORY_MAX_PER_CONTAINER+x}" ]; then
+    MEMORY_MAX_PER_CONTAINER="256M"
+fi
+
+if [ -z "${TOTAL_MEMORY_FOR_THE_NAMESPACE+x}" ]; then
+    TOTAL_MEMORY_FOR_THE_NAMESPACE="1G"
+fi
+
+if [ -z "${BASE_NAME_FOR_CONTAINERS+x}" ]; then
+    BASE_NAME_FOR_CONTAINERS="test_container_"
+fi
+
+if [ -z "${TIMEOUT_PODMAN_STOP_CONTAINER+x}" ]; then
+    TIMEOUT_PODMAN_STOP_CONTAINER=5
+fi
+
+if [ -z "${CGROUP_NAME+x}" ]; then
+    CGROUP_NAME="podman_stressor"
+fi
+
+if [ -z "${IMAGE_NAME+x}" ]; then
+    IMAGE_NAME="centos:stream9"
+fi
+
+if [ -z "${IMAGE_COMMAND+x}" ]; then
+    IMAGE_NAME="sleep 3600"
+fi
+
+if [ -z "${LIST_CURRENT_STATE+x}" ]; then
+    LIST_CURRENT_STATE="${FEATURE_DISABLED}"
+fi
+
+if [ -z "${BATCH_SIZE+x}" ]; then
+    BATCH_SIZE=10
+fi
+
+if [ -z "${NUMBER_OF_CONTAINERS+x}" ]; then
+    NUMBER_OF_CONTAINERS=10
+fi
+
+if [ -z "${STRESS_NG_SET_TO_RUN+x}" ]; then
+    STRESS_NG_SET_TO_RUN=false
+fi
+
+if [ -z "${SERVICE_MUST_BE_ENABLED+x}" ]; then
+    SERVICE_MUST_BE_ENABLED=""
+fi
+
+if [ -z "${SERVICE_MUST_BE_DISABLED+x}" ]; then
+    SERVICE_MUST_BE_DISABLED=""
+fi
