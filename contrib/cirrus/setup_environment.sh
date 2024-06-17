@@ -340,8 +340,6 @@ case "$TEST_FLAVOR" in
         remove_packaged_podman_files
         showrun make install PREFIX=/usr ETCDIR=/etc
 
-        msg "Installing previously downloaded/cached packages"
-        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/docker-py
         source .venv/docker-py/bin/activate
         showrun pip install --upgrade pip
