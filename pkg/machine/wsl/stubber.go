@@ -266,7 +266,7 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 	}
 
 	if err = cmd.Wait(); err != nil {
-		return fmt.Errorf("wait for systemd to exit: %w (%s)", err, strings.TrimSpace(out.String()))
+		logrus.Warnf("Failed to wait for systemd to exit: (%s)", strings.TrimSpace(out.String()))
 	}
 
 	return terminateDist(dist)
