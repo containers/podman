@@ -326,7 +326,6 @@ esac
 showrun echo "about to set up for TEST_FLAVOR [=$TEST_FLAVOR]"
 case "$TEST_FLAVOR" in
     validate)
-        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         # For some reason, this is also needed for validation
         showrun make .install.pre-commit .install.gitvalidation
         ;;
@@ -341,8 +340,6 @@ case "$TEST_FLAVOR" in
         remove_packaged_podman_files
         showrun make install PREFIX=/usr ETCDIR=/etc
 
-        msg "Installing previously downloaded/cached packages"
-        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/docker-py
         source .venv/docker-py/bin/activate
         showrun pip install --upgrade pip
