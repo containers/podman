@@ -4,6 +4,7 @@ package wsl
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -550,7 +551,10 @@ func runCmdPassThrough(name string, arg ...string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("command %s %v failed: %w", name, arg, err)
+	}
+	return nil
 }
 
 func runCmdPassThroughTee(out io.Writer, name string, arg ...string) error {
@@ -562,7 +566,10 @@ func runCmdPassThroughTee(out io.Writer, name string, arg ...string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = io.MultiWriter(os.Stdout, out)
 	cmd.Stderr = io.MultiWriter(os.Stderr, out)
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("command %s %v failed: %w", name, arg, err)
+	}
+	return nil
 }
 
 func pipeCmdPassThrough(name string, input string, arg ...string) error {
@@ -571,7 +578,10 @@ func pipeCmdPassThrough(name string, input string, arg ...string) error {
 	cmd.Stdin = strings.NewReader(input)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("command %s %v failed: %w", name, arg, err)
+	}
+	return nil
 }
 
 func setupWslProxyEnv() (hasProxy bool) {
@@ -638,8 +648,10 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 	if err != nil {
 		return nil, err
 	}
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
 	if err = cmd.Start(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to start command %s %v: %w", cmd.Path, args, err)
 	}
 
 	all := make(map[string]struct{})
@@ -651,7 +663,10 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 		}
 	}
 
-	_ = cmd.Wait()
+	err = cmd.Wait()
+	if err != nil {
+		return nil, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, args, err, strings.TrimSpace(stderr.String()))
+	}
 
 	return all, nil
 }
@@ -663,6 +678,8 @@ func isSystemdRunning(dist string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
 	if err = cmd.Start(); err != nil {
 		return false, err
 	}
@@ -676,19 +693,30 @@ func isSystemdRunning(dist string) (bool, error) {
 		}
 	}
 
-	_ = cmd.Wait()
+	err = cmd.Wait()
+	if err != nil {
+		return false, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(stderr.String()))
+	}
 
 	return result, nil
 }
 
 func terminateDist(dist string) error {
 	cmd := exec.Command(wutil.FindWSL(), "--terminate", dist)
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func unregisterDist(dist string) error {
 	cmd := exec.Command(wutil.FindWSL(), "--unregister", dist)
-	return cmd.Run()
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(string(out)))
+	}
+	return nil
 }
 
 func isRunning(name string) (bool, error) {
@@ -736,6 +764,8 @@ func getCPUs(name string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
 	if err = cmd.Start(); err != nil {
 		return 0, err
 	}
@@ -744,7 +774,10 @@ func getCPUs(name string) (uint64, error) {
 	for scanner.Scan() {
 		result = scanner.Text()
 	}
-	_ = cmd.Wait()
+	err = cmd.Wait()
+	if err != nil {
+		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(strings.TrimSpace(stderr.String())))
+	}
 
 	ret, err := strconv.Atoi(result)
 	return uint64(ret), err
@@ -761,6 +794,8 @@ func getMem(name string) (strongunits.MiB, error) {
 	if err != nil {
 		return 0, err
 	}
+	stderr := &bytes.Buffer{}
+	cmd.Stderr = stderr
 	if err = cmd.Start(); err != nil {
 		return 0, err
 	}
@@ -783,7 +818,10 @@ func getMem(name string) (strongunits.MiB, error) {
 			break
 		}
 	}
-	_ = cmd.Wait()
+	err = cmd.Wait()
+	if err != nil {
+		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(stderr.String()))
+	}
 
 	return strongunits.MiB(total - available), err
 }

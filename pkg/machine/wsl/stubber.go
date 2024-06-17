@@ -3,6 +3,7 @@
 package wsl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -110,7 +111,7 @@ func (w WSLStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error,
 	// of the vm
 	wslRemoveFunc := func() error {
 		if err := runCmdPassThrough(wutil.FindWSL(), "--unregister", env.WithPodmanPrefix(mc.Name)); err != nil {
-			logrus.Error(err)
+			return err
 		}
 		return nil
 	}
@@ -251,17 +252,21 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 
 	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(waitTerm)
+	out := &bytes.Buffer{}
+	cmd.Stderr = out
+	cmd.Stdout = out
+
 	if err = cmd.Start(); err != nil {
 		return fmt.Errorf("executing wait command: %w", err)
 	}
 
 	exitCmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
 	if err = exitCmd.Run(); err != nil {
-		return fmt.Errorf("stopping sysd: %w", err)
+		return fmt.Errorf("stopping systemd: %w", err)
 	}
 
 	if err = cmd.Wait(); err != nil {
-		return err
+		return fmt.Errorf("wait for systemd to exit: %w (%s)", err, strings.TrimSpace(out.String()))
 	}
 
 	return terminateDist(dist)

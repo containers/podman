@@ -4,6 +4,7 @@ package wutil
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -74,7 +75,10 @@ func SilentExec(command string, args ...string) error {
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("command %s %v failed: %w", command, args, err)
+	}
+	return nil
 }
 
 func SilentExecCmd(command string, args ...string) *exec.Cmd {
