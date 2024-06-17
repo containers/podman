@@ -74,24 +74,9 @@ cd "${GOSRC}/"
 
 mkdir -p /etc/containers/containers.conf.d
 
-# Defined by lib.sh: Does the host support cgroups v1 or v2? Use runc or crun
-# respectively.
-# **IMPORTANT**: $OCI_RUNTIME is a fakeout! It is used only in e2e tests.
-# For actual podman, as in system tests, we force runtime in containers.conf
-showrun echo "conditional check: CG_FS_TYPE [=$CG_FS_TYPE]"
-case "$CG_FS_TYPE" in
-    tmpfs)
-        if ((CONTAINER==0)); then
-            warn "Forcing testing with runc instead of crun"
-            echo "OCI_RUNTIME=runc" >> /etc/ci_environment
-            printf "[engine]\nruntime=\"runc\"\n" > /etc/containers/containers.conf.d/90-runtime.conf
-        fi
-        ;;
-    cgroup2fs)
-        # Nothing to do: podman defaults to crun
-        ;;
-    *) die_unknown CG_FS_TYPE
-esac
+# Only cgroups v2 is supported, die if anything else.
+[[ "$CG_FS_TYPE" == "cgroup2fs" ]] || \
+    die "Only cgroups v2 CI VMs are supported, not: '$CG_FS_TYPE'"
 
 # For testing boltdb without having to use --db-backend.
 # As of #20318 (2023-10-10) sqlite is the default, so do not create
@@ -132,12 +117,7 @@ fi
 # Which distribution are we testing on.
 case "$OS_RELEASE_ID" in
     debian)
-        showrun echo "more conditional setup for debian"
-        # FIXME 2023-04-11: workaround for runc regression causing failure
-        # in system tests: "skipping device /dev/char/10:200 for systemd"
-        # (Checked on 2023-08-08 and it's still too old: 1.1.5)
-        # FIXME: please remove this once runc >= 1.2 makes it into debian.
-        showrun modprobe tun
+        showrun echo "No-op conditional setup for debian"
         ;;
     fedora)
         showrun echo "conditional setup for fedora"
@@ -202,6 +182,7 @@ showrun echo "about to set up for TEST_ENVIRON [=$TEST_ENVIRON]"
 case "$TEST_ENVIRON" in
     host)
         # The e2e tests wrongly guess `--cgroup-manager` option
+        # under some runtime contexts like rootless.
         # shellcheck disable=SC2154
         if [[ "$CG_FS_TYPE" == "cgroup2fs" ]] || [[ "$PRIV_NAME" == "root" ]]
         then

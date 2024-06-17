@@ -158,11 +158,6 @@ LogDriver=passthrough
 Network=none
 EOF
 
-    # FIXME: Temporary until podman fully removes cgroupsv1 support; see #21431
-    if [[ -n "$PODMAN_IGNORE_CGROUPSV1_WARNING" ]]; then
-        skip "Way too complicated to test under cgroupsv1, and not worth the effort"
-    fi
-
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
