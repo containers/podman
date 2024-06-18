@@ -645,7 +645,7 @@ local_integration_test_task: &local_integration_test_task
     #       - NOT (source code is changed AND not only test files)
     skip: &skip_int_test >-
         $CIRRUS_PR != '' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
         !changesInclude('test/e2e/**', 'test/utils/**') &&
         !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -747,7 +747,7 @@ podman_machine_task:
     #       - when no machine code files are changed
     skip: &skip_machine_test >-
         $CIRRUS_PR != '' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
         !changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
     depends_on: *build
     ec2_instance:
@@ -876,7 +876,7 @@ local_system_test_task: &local_system_test_task
     #       - NOT (source code is changed AND not only test files)
     skip: &skip_system_test >-
         $CIRRUS_PR != '' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
         !changesInclude('test/system/**') &&
         !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -1005,7 +1005,7 @@ buildah_bud_test_task:
     #       - when build source files are changed
     skip: >-
         $CIRRUS_PR != '' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
         !changesInclude('**/*build*.go')
     depends_on: *build
     env:
