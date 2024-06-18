@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args "--name=systemd-%P_%I"
+## assert-podman-args "--name=systemd-%p_%i"
 ## assert-symlink want.service.wants/template@default.service ../template@.service
 ## assert-podman-args --env "FOO=bar"
 

@@ -488,7 +488,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	if !ok || len(containerName) == 0 {
 		// By default, We want to name the container by the service name
 		if strings.Contains(container.Filename, "@") {
-			containerName = "systemd-%P_%I"
+			containerName = "systemd-%p_%i"
 		} else {
 			containerName = "systemd-%N"
 		}
