@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -27,7 +26,6 @@ import (
 	"go.podman.io/podman/v6/pkg/machine/lock"
 	"go.podman.io/podman/v6/pkg/machine/provider"
 	"go.podman.io/podman/v6/pkg/machine/proxyenv"
-	"go.podman.io/podman/v6/pkg/machine/shim/diskpull"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"go.podman.io/podman/v6/utils"
 	"golang.org/x/term"
@@ -70,9 +68,8 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 
 func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	var (
-		err            error
-		imageExtension string
-		imagePath      *machineDefine.VMFile
+		err       error
+		imagePath *machineDefine.VMFile
 	)
 
 	callbackFuncs := machine.CleanUp()
@@ -142,28 +139,16 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		}
 	}
 
-	// Get Image
-	// TODO This needs rework bigtime; my preference is most of below of not living in here.
-	// ideally we could get a func back that pulls the image, and only do so IF everything works because
-	// image stuff is the slowest part of the operation
-
-	// This is a break from before.  New images are named vmname-ARCH.
-	// It turns out that Windows/HyperV will not accept a disk that
-	// is not suffixed as ".vhdx". Go figure
-	switch mp.VMType() {
-	case machineDefine.QemuVirt:
-		imageExtension = ".qcow2"
-	case machineDefine.AppleHvVirt, machineDefine.LibKrun:
-		imageExtension = ".raw"
-	case machineDefine.HyperVVirt:
-		imageExtension = ".vhdx"
-	case machineDefine.WSLVirt:
-		imageExtension = ""
-	default:
-		return fmt.Errorf("unknown VM type: %s", mp.VMType())
+	imagePuller := opts.ImagePuller
+	if imagePuller == nil {
+		imagePuller, err = vmconfigs.NewQuayPuller(mp.VMType(), mc, opts.SkipTlsVerify)
+		if err != nil {
+			return err
+		}
+		imagePuller.SetSourceURI(opts.Image)
 	}
 
-	imagePath, err = dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s%s", opts.Name, runtime.GOARCH, imageExtension), nil)
+	imagePath, err = imagePuller.LocalPath()
 	if err != nil {
 		return err
 	}
@@ -180,7 +165,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		// "http|https://path"
 		// "/path
 		// "docker://quay.io/something/someManifest
-		if err := diskpull.GetDisk(opts.Image, dirs, mc.ImagePath, mp.VMType(), mc.Name, opts.SkipTlsVerify); err != nil {
+		if err := imagePuller.Download(); err != nil {
 			return err
 		}
 		callbackFuncs.Add(mc.ImagePath.Delete)

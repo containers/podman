@@ -27,4 +27,5 @@ type InitOptions struct {
 	USBs               []string
 	SkipTlsVerify      types.OptionalBool
 	ImportNativeCA     bool
+	ImagePuller        ImagePuller
 }
