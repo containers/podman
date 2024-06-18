@@ -115,6 +115,12 @@ RUN echo test
 		Expect(session.OutputToStringArray()).ToNot(BeEmpty())
 	})
 
+	It("podman image diff no args", func() {
+		session := podmanTest.Podman([]string{"diff"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `"podman diff" requires a name, id, fruit bat, or the "--latest" flag`))
+	})
+
 	It("podman image diff bogus image", func() {
 		session := podmanTest.Podman([]string{"image", "diff", "1234", ALPINE})
 		session.WaitWithDefaultTimeout()

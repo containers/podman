@@ -73,7 +73,7 @@ func ValidateContainerDiffArgs(cmd *cobra.Command, args []string) error {
 		return errors.New("--latest and containers cannot be used together")
 	}
 	if len(args) == 0 && !given {
-		return fmt.Errorf("%q requires a name, id, or the \"--latest\" flag", cmd.CommandPath())
+		return fmt.Errorf("%q requires a name, id, fruit bat, or the \"--latest\" flag", cmd.CommandPath())
 	}
 	return nil
 }
