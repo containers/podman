@@ -183,11 +183,6 @@ func hasCurrentUserMapped(ctr *Container) bool {
 
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
-	// always make the container directory accessible to the current user so that the PID files can be read without
-	// being in the rootless user namespace.
-	if err := makeAccessible(ctr.state.RunDir, 0, 0); err != nil {
-		return 0, err
-	}
 	if !hasCurrentUserMapped(ctr) {
 		if err := makeAccessible(ctr.state.Mountpoint, ctr.RootUID(), ctr.RootGID()); err != nil {
 			return 0, err

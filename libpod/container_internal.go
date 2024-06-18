@@ -544,16 +544,6 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	c.config.StaticDir = containerInfo.Dir
 	c.state.RunDir = containerInfo.RunDir
 
-	if len(c.config.IDMappings.UIDMap) != 0 || len(c.config.IDMappings.GIDMap) != 0 {
-		if err := idtools.SafeChown(containerInfo.RunDir, c.RootUID(), c.RootGID()); err != nil {
-			return err
-		}
-
-		if err := idtools.SafeChown(containerInfo.Dir, c.RootUID(), c.RootGID()); err != nil {
-			return err
-		}
-	}
-
 	// Set the default Entrypoint and Command
 	if containerInfo.Config != nil {
 		// Set CMD in the container to the default configuration only if ENTRYPOINT is not set by the user.

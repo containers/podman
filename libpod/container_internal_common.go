@@ -1834,10 +1834,6 @@ func (c *Container) mountIntoRootDirs(mountName string, mountPath string) error 
 
 // Make standard bind mounts to include in the container
 func (c *Container) makeBindMounts() error {
-	if err := idtools.SafeChown(c.state.RunDir, c.RootUID(), c.RootGID()); err != nil {
-		return fmt.Errorf("cannot chown run directory: %w", err)
-	}
-
 	if c.state.BindMounts == nil {
 		c.state.BindMounts = make(map[string]string)
 	}
