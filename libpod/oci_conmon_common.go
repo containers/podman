@@ -183,16 +183,14 @@ func hasCurrentUserMapped(ctr *Container) bool {
 
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
-	// always make the run dir accessible to the current user so that the PID files can be read without
+	// always make the container directory accessible to the current user so that the PID files can be read without
 	// being in the rootless user namespace.
 	if err := makeAccessible(ctr.state.RunDir, 0, 0); err != nil {
 		return 0, err
 	}
 	if !hasCurrentUserMapped(ctr) {
-		for _, i := range []string{ctr.state.RunDir, ctr.runtime.config.Engine.TmpDir, ctr.config.StaticDir, ctr.state.Mountpoint, ctr.runtime.config.Engine.VolumePath} {
-			if err := makeAccessible(i, ctr.RootUID(), ctr.RootGID()); err != nil {
-				return 0, err
-			}
+		if err := makeAccessible(ctr.state.Mountpoint, ctr.RootUID(), ctr.RootGID()); err != nil {
+			return 0, err
 		}
 
 		// if we are running a non privileged container, be sure to umount some kernel paths so they are not

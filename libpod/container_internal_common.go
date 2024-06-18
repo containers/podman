@@ -1917,15 +1917,6 @@ func (c *Container) makeBindMounts() error {
 					return fmt.Errorf("assigning mounts to container %s: %w", c.ID(), err)
 				}
 			}
-
-			if !hasCurrentUserMapped(c) {
-				if err := makeAccessible(resolvPath, c.RootUID(), c.RootGID()); err != nil {
-					return err
-				}
-				if err := makeAccessible(hostsPath, c.RootUID(), c.RootGID()); err != nil {
-					return err
-				}
-			}
 		} else {
 			if !c.config.UseImageResolvConf {
 				if err := c.createResolvConf(); err != nil {
