@@ -508,6 +508,7 @@ spec:
     is "$output" "stop" "custom exit policy"
     _ensure_pod_state $name-pod Exited
     run_podman pod rm $name-pod
+    run_podman network rm podman-default-kube-network
 }
 
 @test "pod resource limits" {

@@ -324,6 +324,7 @@ EOF
     is "$output" "with space"
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
+    run_podman volume rm $volume_name
 }
 
 # A quadlet container depends on a quadlet volume
@@ -450,6 +451,7 @@ EOF
     is "$output" "with space"
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
+    run_podman network rm $network_name
 }
 
 # A quadlet container depends on a quadlet network
@@ -591,6 +593,7 @@ EOF
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 @test "quadlet kube - named network dependency" {
@@ -960,6 +963,7 @@ EOF
    done < <(parse_table "$exit_tests")
 
    run_podman rmi $(pause_image)
+   run_podman network rm podman-default-kube-network
 }
 
 @test "quadlet kube - Working Directory" {
@@ -1020,6 +1024,7 @@ EOF
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 @test "quadlet - image files" {
@@ -1251,6 +1256,7 @@ EOF
     service_cleanup $pod_service inactive
     run_podman volume rm $quadlet_kube_volume_name
     run_podman rmi --ignore $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 @test "quadlet - kube down force" {
@@ -1330,6 +1336,7 @@ EOF
     # Volume should not exist
     run_podman 1 volume exists ${quadlet_kube_volume_name}
     run_podman rmi --ignore $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 
 @test "quadlet - image tag" {
@@ -1417,6 +1424,7 @@ EOF
     service_cleanup $container_service failed
     run_podman image rm --ignore $image_for_test
     run_podman rmi --ignore $(pause_image)
+    run_podman volume rm $volume_name
 }
 
 @test "quadlet - pod simple" {
@@ -1546,5 +1554,6 @@ EOF
 
     service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $untagged_image:latest $built_image $(pause_image)
+    run_podman network rm podman-default-kube-network
 }
 # vim: filetype=sh

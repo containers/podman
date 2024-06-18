@@ -39,9 +39,13 @@ load helpers
 @test "podman stop --all" {
     # Start three containers, create (without running) a fourth
     run_podman run -d --name c1 $IMAGE sleep 20
+    cid1="$output"
     run_podman run -d --name c2 $IMAGE sleep 40
+    cid2="$output"
     run_podman run -d --name c3 $IMAGE sleep 60
+    cid3="$output"
     run_podman create --name c4 $IMAGE sleep 80
+    cid4="$output"
 
     # podman ps (without -a) should show the three running containers
     run_podman ps --sort names --format '{{.Names}}--{{.Status}}'
@@ -71,6 +75,8 @@ load helpers
     is "${lines[1]}" "c2--Exited.*"  "ps -a, second stopped container"
     is "${lines[2]}" "c3--Exited.*"  "ps -a, third stopped container"
     is "${lines[3]}" "c4--Created.*" "ps -a, created container (unaffected)"
+
+    run_podman rm $cid1 $cid2 $cid3 $cid4
 }
 
 @test "podman stop print IDs or raw input" {
@@ -194,6 +200,8 @@ load helpers
     # Exit code should be 137 as it was killed
     run_podman inspect --format '{{.State.ExitCode}}' stopme
     is "$output" "137" "Exit code of killed container"
+
+    run_podman rm stopme
 }
 
 @test "podman stop -t 1 Generate warning" {

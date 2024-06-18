@@ -37,10 +37,7 @@ echo $rand        |   0 | $rand
         # a way to do so.
         eval set "$cmd"
 
-        # FIXME: The </dev/null is a hack, necessary because as of 2019-09
-        #        podman-remote has a bug in which it silently slurps up stdin,
-        #        including the output of parse_table (i.e. tests to be run).
-        run_podman $expected_rc run $IMAGE "$@"
+        run_podman $expected_rc run --rm $IMAGE "$@"
         is "$output" "$expected_output" "podman run $cmd - output"
 
         tests_run=$(expr $tests_run + 1)
@@ -1313,9 +1310,9 @@ kube play            | argument         |
 logout               | $IMAGE           |
 manifest add         | $IMAGE argument  |
 manifest inspect     | $IMAGE           |
-manifest push        | $IMAGE argument  |
-pull                 | $IMAGE argument  |
-push                 | $IMAGE argument  |
+manifest push        | $IMAGE           |
+pull                 | $IMAGE           |
+push                 | $IMAGE           |
 run                  | $IMAGE false     |
 search               | $IMAGE           |
 "
@@ -1346,6 +1343,9 @@ search               | $IMAGE           |
               "$command REGISTRY_AUTH_FILE=nonexistent-path"
         fi
     done < <(parse_table "$tests")
+
+    # test cases above create two containers
+    run_podman rm -fa
 }
 
 @test "podman --syslog and environment passed to conmon" {
@@ -1501,6 +1501,8 @@ search               | $IMAGE           |
     # This should be safe because stop is guaranteed to call cleanup?
     run_podman inspect --format "{{ .State.Status }}" testctr
     is "$output" "exited" "container has successfully transitioned to exited state after stop"
+
+    run_podman rm -f -t0 testctr
 }
 
 # vim: filetype=sh

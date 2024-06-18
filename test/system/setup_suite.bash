@@ -30,9 +30,21 @@ function setup_suite() {
     # The above does not handle errors. Do a final confirmation.
     assert "$PODMAN_LOGIN_REGISTRY_PORT" != "" \
            "Unable to set PODMAN_LOGIN_REGISTRY_PORT"
+
+    clean_setup
 }
 
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.
 function teardown_suite() {
     stop_registry
+    local exit_code=$?
+
+    # After all tests make sure there are no leaks and cleanup if there are
+    leak_check
+    if [ $? -gt 0 ]; then
+        exit_code=$((exit_code + 1))
+        clean_setup
+    fi
+
+    return $exit_code
 }

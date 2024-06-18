@@ -275,6 +275,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman create --name $cname $IMAGE top
     run_podman 125 generate systemd --new=false --template -n $cname
     is "$output" ".*--template cannot be set" "Error message should be '--template requires --new'"
+    run_podman rm $cname
 }
 
 @test "podman --cgroup=cgroupfs doesn't show systemd warning" {
@@ -287,6 +288,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     container_uuid=$output
     run_podman inspect test --format '{{ .ID }}'
     is "${container_uuid}" "${output:0:32}" "UUID should be first 32 chars of Container id"
+    run_podman rm test
 }
 
 @test "podman --systemd fails on cgroup v1 with a private cgroupns" {
@@ -480,6 +482,7 @@ $name stderr" "logs work with passthrough"
     run_podman 1 container exists $service_container
     run_podman 1 pod exists test_pod
     run_podman rmi $(pause_image)
+    run_podman network rm podman-default-kube-network
     rm -f $UNIT_DIR/$unit_name
 }
 
@@ -492,5 +495,6 @@ $name stderr" "logs work with passthrough"
     is "$output" ".*[DEPRECATED] command:"
     run_podman generate --help
     is "$output" ".*\[DEPRECATED\] Generate systemd units"
+    run_podman rm test
 }
 # vim: filetype=sh

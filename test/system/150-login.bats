@@ -349,9 +349,13 @@ function _test_skopeo_credential_sharing() {
         --tls-verify=false $mid \
         $image1
     run_podman rmi $image1
+
+    run_podman images $IMAGE --format {{.ID}}
+    local podman_image_id=$output
+
     run_podman pull -q --retry 4 --retry-delay "0s" --authfile=$authfile \
         --tls-verify=false $image1
-    assert "${output:0:12}" = "$PODMAN_TEST_IMAGE_ID" "First pull (before stopping registry)"
+    assert "${output:0:12}" = "$podman_image_id" "First pull (before stopping registry)"
     run_podman rmi $image1
 
     # This actually STOPs the registry, so the port is unbound...
@@ -361,7 +365,7 @@ function _test_skopeo_credential_sharing() {
     run_podman 0+w pull -q --retry 4 --retry-delay "5s" --authfile=$authfile \
             --tls-verify=false $image1
     assert "$output" =~ "Failed, retrying in 5s.*Error: initializing.* connection refused"
-    assert "${lines[-1]:0:12}" = "$PODMAN_TEST_IMAGE_ID" "push should succeed via retry"
+    assert "${lines[-1]:0:12}" = "$podman_image_id" "push should succeed via retry"
     unpause_registry
 
     run_podman rmi $image1

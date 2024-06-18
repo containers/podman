@@ -217,6 +217,8 @@ load helpers
 
     run_podman inspect --format "{{len .ExecIDs}}" $cid
     assert "$output" = "0" ".ExecIDs must be empty"
+
+    run_podman rm -f -t0 $cid
 }
 
 # 'exec --preserve-fd' passes a list of additional file descriptors into the container
@@ -239,6 +241,8 @@ load helpers
     assert "${lines[0]}" !~ [123][0-9] "/proc/self/fd must not contain 10-39"
     assert "${lines[1]}" = "fd9"       "cat from fd 9"
     assert "${lines[2]}" = "$content"  "cat from fd 40"
+
+    run_podman rm -f -t0 $cid
 }
 
 # vim: filetype=sh

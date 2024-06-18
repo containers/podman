@@ -134,7 +134,7 @@ function _events_disjunctive_filters() {
     run_podman 125 --events-backend=file logs --follow test
     is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" \
        "Should fail with reasonable error message when events-backend and events-logger do not match"
-
+    run_podman rm test
 }
 
 @test "events with disjunctive filters - default" {
@@ -358,6 +358,8 @@ EOF
         --stream=false
     assert "$output" != ".*ConmonPidFile.*"
     assert "$output" != ".*EffectiveCaps.*"
+
+    run_podman rm $cname
 }
 
 @test "events - container inspect data - journald" {

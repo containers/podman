@@ -1134,6 +1134,7 @@ EOF
     run_podman run --rm --volumes-from test_ctr $IMAGE  echo $rand_content
     is "$output"   "$rand_content"   "No error should be thrown about volume in use"
 
+    run_podman rm -f -v -t0 test_ctr
     run_podman rmi -f build_test
 }
 

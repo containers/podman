@@ -345,7 +345,7 @@ EOF
     run id -Z
     user=$(secon -u $output)
     role=$(secon -r $output)
-    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman run $IMAGE cat /proc/self/attr/current
+    CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman run --rm $IMAGE cat /proc/self/attr/current
     level=$(secon -l $output)
     id -Z
     is "$output" "$user:$role:container_t:$level"  "Confined label Correctly"

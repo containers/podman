@@ -68,6 +68,8 @@ load helpers
     # Nothing on match
     run_podman start --filter restart-policy=none --all
     is "$output" ""
+
+    run_podman rm -f $c1 $c2 $c3
 }
 
 @test "podman start --filter invalid-restart-policy - return error" {
@@ -76,6 +78,7 @@ load helpers
     run_podman 125 start --filter restart-policy=fakepolicy $cid
     is "$output" "Error: fakepolicy invalid restart policy" \
        "CID of restart-policy=<not-exists> container"
+    run_podman rm -f $cid
 }
 
 @test "podman start --all --filter" {
@@ -87,6 +90,8 @@ load helpers
     run_podman wait $cid_exited_0 $cid_exited_1
     run_podman start --all --filter exited=0
     is "$output" "$cid_exited_0"
+
+    run_podman rm -f $cid_exited_0 $cid_exited_1
 }
 
 @test "podman start print IDs or raw input" {

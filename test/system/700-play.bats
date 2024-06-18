@@ -17,6 +17,7 @@ function teardown() {
             run_podman rmi $id
         fi
     done <<<"$output"
+    run_podman network rm -f podman-default-kube-network
 
     basic_teardown
 }
