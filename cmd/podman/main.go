@@ -110,6 +110,7 @@ func parseCommands() *cobra.Command {
 		os.Exit(1)
 	}
 
+	// some code change
 	rootCmd.SetFlagErrorFunc(flagErrorFuncfunc)
 	return rootCmd
 }
