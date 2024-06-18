@@ -172,8 +172,8 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	// If the process was re-executed with elevation, the image has already been pulled
 	// in the parent process, so skip disk pulling here.
 	if !opts.ReExec {
-		// TODO The following stanzas should be re-written in a differeent place.  It should have a custom
-		// parser for our image pulling.  It would be nice if init just got an error and mydisk back.
+		// TODO The following stanzas should be re-written in a different place. It should have a custom
+		// parser for our image pulling. It would be nice if init just got an error and mydisk back.
 		//
 		// Eventual valid input:
 		// "" <- means take the default
