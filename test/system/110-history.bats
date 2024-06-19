@@ -2,8 +2,6 @@
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 @test "podman history - basic tests" {
     tests="
                                  | .*[0-9a-f]\\\{12\\\} .* CMD .* LABEL
