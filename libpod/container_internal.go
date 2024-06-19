@@ -14,6 +14,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
+	"syscall"
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
@@ -2360,6 +2362,75 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 	}
 
 	return allHooks, nil
+}
+
+// getRootPathForOCI returns the root path to use for the OCI runtime.
+// If the current user is mapped in the container user namespace, then it returns
+// the container's mountpoint directly from the storage.
+// Otherwise, it returns an intermediate mountpoint that is accessible to anyone.
+func (c *Container) getRootPathForOCI() (string, error) {
+	if hasCurrentUserMapped(c) {
+		return c.state.Mountpoint, nil
+	}
+	return c.getIntermediateMountpointUser()
+}
+
+var (
+	intermediateMountPoint     string
+	intermediateMountPointErr  error
+	intermediateMountPointSync sync.Mutex
+)
+
+// getIntermediateMountpointUser returns a path that is accessible to everyone.  It must be on TMPDIR since
+// the runroot/tmpdir used by libpod are accessible only to the owner.
+// To avoid TOCTOU issues, the path must be owned by the current user's UID and GID.
+// The path can be used by different containers, so a mount must be created only in a private mount namespace.
+func (c *Container) recreateIntermediateMountpointUser() (string, error) {
+	uid := os.Geteuid()
+	gid := os.Getegid()
+	for i := 0; ; i++ {
+		tmpDir := os.Getenv("TMPDIR")
+		if tmpDir == "" {
+			tmpDir = "/tmp"
+		}
+		dir := filepath.Join(tmpDir, fmt.Sprintf("intermediate-mountpoint-%d.%d", rootless.GetRootlessUID(), i))
+		err := os.Mkdir(dir, 0755)
+		if err != nil {
+			if !errors.Is(err, os.ErrExist) {
+				return "", err
+			}
+			st, err2 := os.Stat(dir)
+			if err2 != nil {
+				return "", err
+			}
+			sys := st.Sys().(*syscall.Stat_t)
+			if !st.IsDir() || sys.Uid != uint32(uid) || sys.Gid != uint32(gid) {
+				continue
+			}
+		}
+		return dir, nil
+	}
+}
+
+// getIntermediateMountpointUser returns a path that is accessible to everyone.
+// To avoid TOCTOU issues, the path must be owned by the current user's UID and GID.
+// The path can be used by different containers, so a mount must be created only in a private mount namespace.
+func (c *Container) getIntermediateMountpointUser() (string, error) {
+	intermediateMountPointSync.Lock()
+	defer intermediateMountPointSync.Unlock()
+
+	if intermediateMountPoint == "" || fileutils.Exists(intermediateMountPoint) != nil {
+		return c.recreateIntermediateMountpointUser()
+	}
+
+	// update the timestamp to prevent systemd-tmpfiles from removing it
+	now := time.Now()
+	if err := os.Chtimes(intermediateMountPoint, now, now); err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return c.recreateIntermediateMountpointUser()
+		}
+	}
+	return intermediateMountPoint, intermediateMountPointErr
 }
 
 // mount mounts the container's root filesystem

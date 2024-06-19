@@ -184,15 +184,10 @@ func hasCurrentUserMapped(ctr *Container) bool {
 // CreateContainer creates a container.
 func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
 	if !hasCurrentUserMapped(ctr) {
-		if err := makeAccessible(ctr.state.Mountpoint, ctr.RootUID(), ctr.RootGID()); err != nil {
-			return 0, err
-		}
-
 		// if we are running a non privileged container, be sure to umount some kernel paths so they are not
 		// bind mounted inside the container at all.
-		if !ctr.config.Privileged && !rootless.IsRootless() {
-			return r.createRootlessContainer(ctr, restoreOptions)
-		}
+		hideFiles := !ctr.config.Privileged && !rootless.IsRootless()
+		return r.createRootlessContainer(ctr, restoreOptions, hideFiles)
 	}
 	return r.createOCIContainer(ctr, restoreOptions)
 }
@@ -970,28 +965,6 @@ func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntime
 		Version: runtimeVersion,
 	}
 	return &conmon, &ocirt, nil
-}
-
-// makeAccessible changes the path permission and each parent directory to have --x--x--x
-func makeAccessible(path string, uid, gid int) error {
-	for ; path != "/"; path = filepath.Dir(path) {
-		st, err := os.Stat(path)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return err
-		}
-		if int(st.Sys().(*syscall.Stat_t).Uid) == uid && int(st.Sys().(*syscall.Stat_t).Gid) == gid {
-			continue
-		}
-		if st.Mode()&0111 != 0111 {
-			if err := os.Chmod(path, st.Mode()|0111); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }
 
 // Wait for a container which has been sent a signal to stop

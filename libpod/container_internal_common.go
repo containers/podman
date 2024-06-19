@@ -565,7 +565,11 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		return nil, nil, err
 	}
 
-	g.SetRootPath(c.state.Mountpoint)
+	rootPath, err := c.getRootPathForOCI()
+	if err != nil {
+		return nil, nil, err
+	}
+	g.SetRootPath(rootPath)
 	g.AddAnnotation("org.opencontainers.image.stopSignal", strconv.FormatUint(uint64(c.config.StopSignal), 10))
 
 	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
