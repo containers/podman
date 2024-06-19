@@ -273,11 +273,4 @@ run_podman --noout system connection ls
     is "$output" ${version_number} "Version matches"
 }
 
-@test "podman - shutdown engines" {
-    run_podman --log-level=debug run --rm $IMAGE true
-    is "$output" ".*Shutting down engines.*"
-    run_podman 125 --log-level=debug run dockah://rien.de/rien:latest
-    is "${lines[-1]}" ".*Shutting down engines"
-}
-
 # vim: filetype=sh

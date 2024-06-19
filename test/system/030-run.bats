@@ -1506,4 +1506,11 @@ search               | $IMAGE           |
     run_podman rm -f -t0 testctr
 }
 
+@test "podman run - shutdown engines" {
+    run_podman --log-level=debug run --rm $IMAGE true
+    is "$output" ".*Shutting down engines.*"
+    run_podman 125 --log-level=debug run dockah://rien.de/rien:latest
+    is "${lines[-1]}" ".*Shutting down engines"
+}
+
 # vim: filetype=sh
