@@ -5,8 +5,6 @@
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 ###############################################################################
 # BEGIN setup/teardown
 
@@ -57,27 +55,28 @@ function teardown() {
 
     CR=$'\r'
 
+    local cname="c-stty-$(random_string)"
     # ...and make sure stty under podman reads that.
     # This flakes often ("stty: standard input"), so, retry.
-    run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
+    run_podman run -it --name $cname $IMAGE stty size <$PODMAN_TEST_PTY
     if [[ "$output" =~ stty ]]; then
         echo "# stty flaked, retrying: $output" >&3
-        run_podman rm -f mystty
+        run_podman rm -f $cname
         sleep 1
-        run_podman run -it --name mystty $IMAGE stty size <$PODMAN_TEST_PTY
+        run_podman run -it --name $cname $IMAGE stty size <$PODMAN_TEST_PTY
     fi
     is "$output" "$rows $cols$CR" "stty under podman run reads the correct dimensions"
 
-    run_podman rm -t 0 -f mystty
+    run_podman rm -t 0 -f $cname
 
     # FIXME: the checks below are flaking a lot (see #10710).
 
     # check that the same works for podman exec
-#    run_podman run -d --name mystty $IMAGE top
-#    run_podman exec -it mystty stty size <$PODMAN_TEST_PTY
+#    run_podman run -d --name $cname $IMAGE top
+#    run_podman exec -it $cname stty size <$PODMAN_TEST_PTY
 #    is "$output" "$rows $cols" "stty under podman exec reads the correct dimensions"
 #
-#    run_podman rm -t 0 -f mystty
+#    run_podman rm -t 0 -f $cname
 }
 
 
