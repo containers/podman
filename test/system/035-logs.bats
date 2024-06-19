@@ -5,8 +5,6 @@
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 @test "podman logs - basic test" {
     rand_string=$(random_string 40)
 
@@ -101,12 +99,15 @@ function _log_test_multi() {
         cid+=($(echo "${output:0:12}"))
     }
 
-    doit c1 "echo a1; echo a2"
-    doit c2 "echo b1; echo b2"
+    local cname1="c1-$(random_string)"
+    local cname2="c2-$(random_string)"
+
+    doit $cname1 "echo a1; echo a2"
+    doit $cname2 "echo b1; echo b2"
 
     # Reading logs only guarantees the order for a single container,
     # when using multiple containers the line order between them can vary.
-    run_podman ${events_backend} logs -f c1 c2
+    run_podman ${events_backend} logs -f $cname1 $cname2
     assert "$output" =~ \
        ".*^${cid[0]} a1\$.*
 ${cid[0]} a2"   "Sequential output from c1"
@@ -134,19 +135,22 @@ function _log_test_restarted() {
     if [[ -n "${events_backend}" ]]; then
         skip_if_remote "remote does not support --events-backend"
     fi
-    run_podman run --log-driver=$driver ${events_backend} --name logtest $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
+
+    local cname="log-restarted-$(random_string)"
+
+    run_podman run --log-driver=$driver ${events_backend} --name $cname $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
     # FIXME: #9597
     # run/start is flaking for remote so let's wait for the container condition
     # to stop wasting energy until the root cause gets fixed.
-    run_podman container wait --condition=exited --condition=stopped logtest
-    run_podman ${events_backend} start -a logtest
+    run_podman container wait --condition=exited --condition=stopped $cname
+    run_podman ${events_backend} start -a $cname
     logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
-    $PODMAN $_PODMAN_TEST_OPTS ${events_backend} logs -f logtest > $logfile
+    $PODMAN $_PODMAN_TEST_OPTS ${events_backend} logs -f $cname > $logfile
     expected=$(mktemp -p ${PODMAN_TMPDIR} expectedXXXXXXXX)
     seq 1 20  > $expected
     diff -u ${expected} ${logfile}
 
-    run_podman rm -f -t0 logtest
+    run_podman rm -f -t0 $cname
 }
 
 @test "podman logs restarted - k8s-file" {
@@ -165,11 +169,13 @@ function _log_test_restarted() {
     # We can't use journald on RHEL as rootless: rhbz#1895105
     skip_if_journald_unavailable
 
-    run_podman --events-backend=file run --log-driver=journald -d --name test --replace $IMAGE ls /
-    run_podman --events-backend=file logs test
-    run_podman 125 --events-backend=file logs --follow test
+    local cname="c-journal-$(random_string)"
+
+    run_podman --events-backend=file run --log-driver=journald -d --name $cname $IMAGE ls /
+    run_podman --events-backend=file logs $cname
+    run_podman 125 --events-backend=file logs --follow $cname
     is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" "journald logger requires journald eventer"
-    run_podman rm test
+    run_podman rm $cname
 }
 
 function _log_test_since() {
@@ -178,30 +184,32 @@ function _log_test_since() {
     s_before="before_$(random_string)_${driver}"
     s_after="after_$(random_string)_${driver}"
 
+    local cname="c-since-$(random_string)"
+
     before=$(date --iso-8601=seconds)
-    run_podman run --log-driver=$driver -d --name test $IMAGE sh -c \
+    run_podman run --log-driver=$driver -d --name $cname $IMAGE sh -c \
         "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 0.1; done"
-    wait_for_output "$s_before" test
+    wait_for_output "$s_before" $cname
 
     # sleep a second to make sure the date is after the first echo
     # (We could instead use iso-8601=ns but seconds feels more real-world)
     sleep 1
     after=$(date --iso-8601=seconds)
-    run_podman stop test
+    run_podman stop $cname
 
-    run_podman logs test
+    run_podman logs $cname
     is "$output" \
         "$s_before
 $s_after"
 
-    run_podman logs --since $before test
+    run_podman logs --since $before $cname
     is "$output" \
         "$s_before
 $s_after"
 
-    run_podman logs --since $after test
+    run_podman logs --since $after $cname
     is "$output" "$s_after"
-    run_podman rm -t 1 -f test
+    run_podman rm -t 1 -f $cname
 }
 
 @test "podman logs - since k8s-file" {
@@ -221,22 +229,23 @@ function _log_test_until() {
     s_before="before_$(random_string)_${driver}"
     s_after="after_$(random_string)_${driver}"
 
+    local cname="c-until-$(random_string)"
     before=$(date --iso-8601=seconds)
     sleep 1
-    run_podman run --log-driver=$driver -d --name test $IMAGE sh -c \
+    run_podman run --log-driver=$driver -d --name $cname $IMAGE sh -c \
         "echo $s_before; trap 'echo $s_after; exit' SIGTERM; while :; do sleep 0.1; done"
 
     # sleep a second to make sure the date is after the first echo
     sleep 1
-    run_podman stop test
-    run_podman wait test
+    run_podman stop $cname
+    run_podman wait $cname
 
     # Sigh. Stupid journald has a lag. Wait a few seconds for it to catch up.
     retries=20
     s_both="$s_before
 $s_after"
     while [[ $retries -gt 0 ]]; do
-        run_podman logs test
+        run_podman logs $cname
         if [[ "$output" = "$s_both" ]]; then
             break
         fi
@@ -246,14 +255,14 @@ $s_after"
     assert $retries -gt 0 \
            "Timed out waiting for before&after in podman logs: $output"
 
-    run_podman logs --until $before test
+    run_podman logs --until $before $cname
     is "$output" "" "podman logs --until before"
 
     after=$(date --date='+1 second' --iso-8601=ns)
 
-    run_podman logs --until $after test
+    run_podman logs --until $after $cname
     is "$output" "$s_both" "podman logs --until after"
-    run_podman rm -t 0 -f test
+    run_podman rm -t 0 -f $cname
 }
 
 @test "podman logs - until k8s-file" {
@@ -269,7 +278,7 @@ $s_after"
 
 function _log_test_follow() {
     local driver=$1
-    cname=$(random_string)
+    cname="c-follow-$(random_string)"
     contentA=$(random_string)
     contentB=$(random_string)
     contentC=$(random_string)
@@ -302,7 +311,7 @@ $contentC" "logs -f on exited container works"
 
 function _log_test_follow_since() {
     local driver=$1
-    cname=$(random_string)
+    cname="c-follow-since-$(random_string)"
     content=$(random_string)
     local events_backend=$(_additional_events_backend $driver)
 
@@ -348,7 +357,7 @@ timeout: sending signal TERM to command.*" "logs --since -f on running container
 
 function _log_test_follow_until() {
     local driver=$1
-    cname=$(random_string)
+    cname="c-follow-until-$(random_string)"
     content=$(random_string)
     local events_backend=$(_additional_events_backend $driver)
 
@@ -391,7 +400,7 @@ $content--2.*" "logs --until -f on running container works"
 
 # https://github.com/containers/podman/issues/19545
 @test "podman logs --tail, k8s-file with partial lines" {
-    cname="tail_container"
+    cname="tail_container-$(random_string)"
 
     # "-t" gives us ^Ms (CRs) in the log
     run_podman run --name $cname --log-driver k8s-file -t $IMAGE echo hi
