@@ -7,6 +7,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman cp file from host to container" {
     srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
     mkdir -p $srcdir

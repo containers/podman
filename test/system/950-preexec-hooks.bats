@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # The existence of this file allows preexec hooks to run.
 preexec_hook_ok_file=/etc/containers/podman_preexec_hooks.txt
 

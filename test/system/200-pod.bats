@@ -3,6 +3,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 LOOPDEVICE=
 
 # This is a long ugly way to clean up pods and remove the pause image

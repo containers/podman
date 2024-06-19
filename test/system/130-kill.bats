@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # bats test_tags=distro-integration
 @test "podman kill - test signal handling in containers" {
     local cname=c-$(random_string 10)

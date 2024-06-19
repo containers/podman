@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function teardown() {
     # Destroy all images, to make sure we don't leave garbage behind.
     #

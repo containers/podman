@@ -681,7 +681,7 @@ localmachine:
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	if timeout -v 1 true; then PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T test/system/; else echo "Skipping $@: 'timeout -v' unavailable'"; fi
+	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T -j $$(nproc) --no-parallelize-across-files test/system/
 
 .PHONY: remotesystem
 remotesystem:
@@ -706,7 +706,7 @@ remotesystem:
 			echo "Error: ./bin/podman system service did not come up on $$SOCK_FILE" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats -T test/system/ ;\
+		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats -T -j $$(nproc) --no-parallelize-across-files test/system/ ;\
 		rc=$$?;\
 		kill %1;\
 		rm -f $$SOCK_FILE;\

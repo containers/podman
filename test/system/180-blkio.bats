@@ -7,6 +7,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function teardown() {
     lofile=${PODMAN_TMPDIR}/disk.img
     if [ -f ${lofile} ]; then

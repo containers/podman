@@ -7,6 +7,8 @@ load helpers
 load helpers.network
 load helpers.registry
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 ###############################################################################
 # BEGIN filtering - none of these tests will work with podman-remote
 

@@ -7,6 +7,7 @@
 load helpers
 load helpers.systemd
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
 
 # Helper function: run 'podman inspect' and check various given fields
 function _check_health {

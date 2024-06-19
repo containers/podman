@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # helper function for "podman tag/untag" test
 function _tag_and_check() {
     local tag_as="$1"

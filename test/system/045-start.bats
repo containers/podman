@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman start --all - start all containers" {
     # Run a bunch of short-lived containers, with different --restart settings
     run_podman run -d $IMAGE /bin/true

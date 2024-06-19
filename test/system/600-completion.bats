@@ -8,6 +8,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function setup() {
     # $PODMAN may be a space-separated string, e.g. if we include a --url.
     local -a podman_as_array=($PODMAN)

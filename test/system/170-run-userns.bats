@@ -8,6 +8,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function _require_crun() {
     runtime=$(podman_runtime)
     if [[ $runtime != "crun" ]]; then

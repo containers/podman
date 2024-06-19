@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman image trust set" {
       skip_if_remote "trust only works locally"
       policypath=$PODMAN_TMPDIR/policy.json

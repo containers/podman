@@ -6,6 +6,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function teardown() {
     # In case test fails: standard teardown does not wipe machines or secrets
     run_podman '?' machine rm -f mymachine

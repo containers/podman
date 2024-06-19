@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function setup() {
     # Depending on which tests have been run prior to getting here, there
     # may be one or two images loaded. We want only '$IMAGE', not the

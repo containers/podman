@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # This will be set if we start a local service
 _SERVICE_PID=
 

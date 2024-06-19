@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman run, preserves initial --cgroup-manager" {
     skip_if_remote "podman-remote does not support --cgroup-manager"
 

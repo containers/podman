@@ -214,9 +214,12 @@ function basic_teardown() {
     # Only checks for leaks on a successful run (BATS_TEST_COMPLETED is set 1),
     # immediate-assertion-failures didn't fail (exit_code -eq 0)
     # and PODMAN_BATS_LEAK_CHECK is set.
+    # BATS_SEMAPHORE_NUMBER_OF_SLOTS is set when tests are run parallel and we
+    # cannot do leaks checks there as other tests might interfere.
     # As these podman commands are slow we do not want to do this by default
     # and only provide this as opt in option. (#22909)
-    if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && [ -n "$PODMAN_BATS_LEAK_CHECK" ]; then
+    if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && \
+     [ -n "$PODMAN_BATS_LEAK_CHECK" ] && [ -z "$BATS_SEMAPHORE_NUMBER_OF_SLOTS" ]; then
         leak_check
         exit_code=$((exit_code + $?))
     fi
@@ -242,6 +245,23 @@ function teardown() {
     basic_teardown
 }
 
+# teardown_file is used to check for leaks at the ned of a file.
+# When running
+function teardown_file() {
+    local exit_code=0
+    # BATS_SEMAPHORE_NUMBER_OF_SLOTS is set by bats when running in parallel mode
+    # When we do not run parallel we already did the leak check in the normal teardown
+    # so no point in doing it again here.
+    if [ -n "$PODMAN_BATS_LEAK_CHECK" ] && [ -n "$BATS_SEMAPHORE_NUMBER_OF_SLOTS" ]; then
+        leak_check
+        exit_code=$((exit_code + $?))
+        if [ $exit_code -gt 0 ]; then
+            clean_setup
+            exit_code=$((exit_code + $?))
+        fi
+    fi
+    return $exit_code
+}
 
 # Helpers useful for tests running rmi
 function archive_image() {

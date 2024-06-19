@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 
 function check_label() {
     skip_if_no_selinux

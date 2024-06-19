@@ -8,6 +8,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman --ipc=host" {
     hostipc="$(readlink /proc/self/ns/ipc)"
     run_podman run --name IPC --ipc=host $IMAGE readlink /proc/self/ns/ipc

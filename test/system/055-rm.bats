@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman rm" {
     rand=$(random_string 30)
     run_podman run --name $rand $IMAGE /bin/true

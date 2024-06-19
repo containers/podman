@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman import" {
     local archive=$PODMAN_TMPDIR/archive.tar
     local random_content=$(random_string 12)

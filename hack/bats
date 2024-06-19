@@ -28,6 +28,9 @@ $0 is a wrapper for invoking podman system tests.
 
    -T             Passed on to bats, which will then show timing data
 
+   --no-parallel  Do not try to run tests in parallel, slower but useful to
+                  debug tests that leak resources.
+
    --help         display usage message
 
 By default, tests ./bin/podman. To test a different podman, do:
@@ -75,15 +78,19 @@ declare -a bats_opts=()
 
 declare -a bats_filter=()
 
+# Do parallel testing by default.
+parallel=1
+
 for i;do
     value=`expr "$i" : '[^=]*=\(.*\)'`
     case "$i" in
-        -h|--help)  echo "$usage"; exit 0;;
-        --root)     TEST_ROOTLESS= ;;
-        --rootless) TEST_ROOT= ;;
-        --remote)   REMOTE=remote ;;
-        --ts|-T)    bats_opts+=("-T") ;;
-        --tag=*)    bats_filter=("--filter-tags" "$value") ;;
+        -h|--help)     echo "$usage"; exit 0;;
+        --root)        TEST_ROOTLESS= ;;
+        --rootless)    TEST_ROOT= ;;
+        --remote)      REMOTE=remote ;;
+        --ts|-T)       bats_opts+=("-T") ;;
+        --tag=*)       bats_filter=("--filter-tags" "$value") ;;
+        --no-parallel) parallel=0 ;;
         */*.bats)   TESTS=$i ;;
         *)
             if [[ $i =~ : ]]; then
@@ -97,6 +104,11 @@ for i;do
             ;;
     esac
 done
+
+if [ "$parallel" -eq 1 ]; then
+    # Run tests in parallel to speed them up
+    bats_opts+=("-j" "$(nproc)" --no-parallelize-across-files)
+fi
 
 # With --remote, use correct binary and make sure daem--I mean server--is live
 if [[ "$REMOTE" ]]; then

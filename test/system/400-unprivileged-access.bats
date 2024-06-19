@@ -6,6 +6,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman container storage is not accessible by unprivileged users" {
     skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     skip_if_rootless "test meaningless without suid"

@@ -3,6 +3,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # bats test_tags=distro-integration
 @test "podman run - basic tests" {
     rand=$(random_string 30)

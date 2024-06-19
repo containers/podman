@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman top - basic tests" {
     run_podman run -d $IMAGE top
     cid=$output

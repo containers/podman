@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function setup() {
     is_remote || skip "only applicable on podman-remote"
 

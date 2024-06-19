@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 CHECKED_ROOTLESS=
 function setup() {
     # None of these tests work rootless....

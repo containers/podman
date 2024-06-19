@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman mount - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
     skip_if_rootless "mount does not work rootless"

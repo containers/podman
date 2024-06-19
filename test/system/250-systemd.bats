@@ -7,6 +7,8 @@ load helpers
 load helpers.systemd
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 SERVICE_NAME="podman_test_$(random_string)"
 
 UNIT_FILE="$UNIT_DIR/$SERVICE_NAME.service"

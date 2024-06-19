@@ -10,6 +10,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function setup() {
     basic_setup
     skip_if_not_rootless "pasta networking only available in rootless mode"

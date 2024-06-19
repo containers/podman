@@ -7,6 +7,9 @@
 
 load helpers
 
+# Only set this if the tests in this file cannot be run in parallel
+# export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman subcmd - description of this particular test" {
     args="some sort of argument list"
     run_podman subcmd $args
@@ -31,6 +34,8 @@ load helpers
 #
 
 load helpers
+
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
 
 # FIXME: DELETE THESE LINES UNLESS YOU ABSOLUTELY NEED THEM.
 # FIXME: Most tests will not need a custom setup/teardown: they are

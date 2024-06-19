@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function setup() {
     skip_if_remote "--sign-by does not work with podman-remote"
 

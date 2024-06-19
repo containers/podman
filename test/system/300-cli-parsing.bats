@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman cli parsing - quoted args - #2574" {
     # 1.1.2 fails with:
     #   Error: invalid argument "true=\"false\"" for "-l, --label" \

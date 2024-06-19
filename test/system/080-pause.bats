@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # bats test_tags=distro-integration
 @test "podman pause/unpause" {
     if is_rootless && ! is_cgroupsv2; then

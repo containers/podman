@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman diff" {
     n=$(random_string 10)          # container name
     rand_file=$(random_string 10)

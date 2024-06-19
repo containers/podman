@@ -7,6 +7,8 @@ load helpers
 load helpers.network
 load helpers.registry
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # This is a long ugly way to clean up pods and remove the pause image
 function teardown() {
     run_podman pod rm -t 0 -f -a

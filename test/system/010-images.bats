@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman images - basic output" {
     headings="REPOSITORY *TAG *IMAGE ID *CREATED *SIZE"
 
