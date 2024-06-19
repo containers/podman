@@ -5,8 +5,6 @@
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 @test "podman run, preserves initial --cgroup-manager" {
     skip_if_remote "podman-remote does not support --cgroup-manager"
 
@@ -20,23 +18,24 @@ export BATS_NO_PARALLELIZE_WITHIN_FILE=true
         *)        die "Unknown CgroupManager '$output'" ;;
     esac
 
-    run_podman --cgroup-manager=$other run --name myc $IMAGE true
+    local cname="c-$(random_string)"
+    run_podman --cgroup-manager=$other run --name $cname $IMAGE true
     assert "$output" = "" "run true, with cgroup-manager=$other, is silent"
 
-    run_podman container inspect --format '{{.HostConfig.CgroupManager}}' myc
+    run_podman container inspect --format '{{.HostConfig.CgroupManager}}' $cname
     is "$output" "$other" "podman preserved .HostConfig.CgroupManager"
 
     if is_rootless && test $other = cgroupfs ; then
-        run_podman container inspect --format '{{.HostConfig.CgroupParent}}' myc
+        run_podman container inspect --format '{{.HostConfig.CgroupParent}}' $cname
         is "$output" "" "podman didn't set .HostConfig.CgroupParent for cgroupfs and rootless"
     fi
 
     # Restart the container, without --cgroup-manager option (ie use default)
     # Prior to #7970, this would fail with an OCI runtime error
-    run_podman start -a myc
+    run_podman start -a $cname
     assert "$output" = "" "restarted container emits no output"
 
-    run_podman rm myc
+    run_podman rm $cname
 }
 
 # bats test_tags=distro-integration
