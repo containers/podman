@@ -69,6 +69,15 @@ env:
         curl --retry 5 --retry-delay 8 --fail --location -O
         --url ${ART_URL}
 
+    # Danger files, used in the skip changesInclude() condition
+    # https://cirrus-ci.org/guide/writing-tasks/#supported-functions
+    CI_TASK_DANGER_FILES: >-
+        '.cirrus.yml',
+        'Makefile',
+        'contrib/cirrus/**',
+        'vendor/**',
+        'hack/**'
+
 
 # Default timeout for each task
 timeout_in: 60m
@@ -645,7 +654,7 @@ local_integration_test_task: &local_integration_test_task
     #       - NOT (source code is changed AND not only test files)
     skip: &skip_int_test >-
         $CIRRUS_PR != '' &&
-        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude($CI_TASK_DANGER_FILES) &&
         !changesInclude('test/e2e/**', 'test/utils/**') &&
         !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -747,7 +756,7 @@ podman_machine_task:
     #       - when no machine code files are changed
     skip: &skip_machine_test >-
         $CIRRUS_PR != '' &&
-        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude($CI_TASK_DANGER_FILES) &&
         !changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
     depends_on: *build
     ec2_instance:
@@ -876,7 +885,7 @@ local_system_test_task: &local_system_test_task
     #       - NOT (source code is changed AND not only test files)
     skip: &skip_system_test >-
         $CIRRUS_PR != '' &&
-        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude($CI_TASK_DANGER_FILES) &&
         !changesInclude('test/system/**') &&
         !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -1005,7 +1014,7 @@ buildah_bud_test_task:
     #       - when build source files are changed
     skip: >-
         $CIRRUS_PR != '' &&
-        !changesInclude('Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**') &&
+        !changesInclude($CI_TASK_DANGER_FILES) &&
         !changesInclude('**/*build*.go')
     depends_on: *build
     env:
