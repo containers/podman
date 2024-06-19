@@ -3,8 +3,6 @@
 load helpers
 load helpers.sig-proxy
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 # Each of the tests below does some setup, then invokes the helper from helpers.sig-proxy.bash.
 
 # bats test_tags=distro-integration
