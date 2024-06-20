@@ -60,6 +60,21 @@ class TestDependsOn(TestCaseBase):
                 msg=('No success aggregation task depends_on "{0}"'.format(task_name))
                 self.assertIn(task_name, success_deps, msg=msg)
 
+    def test_skips(self):
+        """2024-06 PR#23030: ugly but necessary duplication in skip conditions. Prevent typos or unwanted changes."""
+        beginning = "$CIRRUS_PR != '' && $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' && !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') && "
+        real_source_changes = " && !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))"
+
+        for task_name in self.ALL_TASK_NAMES:
+            task = self.CIRRUS_YAML[task_name + '_task']
+            if 'skip' in task:
+                skip = task['skip']
+                if 'changesInclude' in skip:
+                    msg = ('{0}: invalid skip'.format(task_name))
+                    self.assertEqual(skip[:len(beginning)], beginning, msg=msg+": beginning part is wrong")
+                    if 'changesIncludeOnly' in skip:
+                        self.assertEqual(skip[len(skip)-len(real_source_changes):], real_source_changes, msg=msg+": changesIncludeOnly() part is wrong")
+
     def not_task(self):
         """Ensure no task is named 'task'"""
         self.assertNotIn('task', self.ALL_TASK_NAMES)

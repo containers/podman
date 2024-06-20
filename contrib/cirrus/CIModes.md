@@ -126,6 +126,10 @@ is removed.
 commit-change before Cirrus-CI will notice the draft-status update (i.e.
 pressing the re-run button **is not** good enough).
 
+### Intended `[CI:ALL]` behavior:
+
+Run even the tasks that are skipped based on changed sources conditions otherwise.
+
 ### Intended Branch tasks (and Cirrus-cron jobs):
 + *build*
 + swagger
