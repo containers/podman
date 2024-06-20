@@ -102,16 +102,17 @@ func CRImportCheckpoint(ctx context.Context, runtime *libpod.Runtime, restoreOpt
 		if !crutils.CRRuntimeSupportsPodCheckpointRestore(runtime.GetOCIRuntimePath()) {
 			return nil, fmt.Errorf("runtime %s does not support pod restore", runtime.GetOCIRuntimePath())
 		}
-		// Restoring into an existing Pod
-		ctrConfig.Pod = restoreOptions.Pod
 
 		// According to podman pod create a pod can share the following namespaces:
 		// cgroup, ipc, net, pid, uts
 		// Let's make sure we are restoring into a pod with the same shared namespaces.
-		pod, err := runtime.LookupPod(ctrConfig.Pod)
+		pod, err := runtime.LookupPod(restoreOptions.Pod)
 		if err != nil {
 			return nil, fmt.Errorf("pod %q cannot be retrieved: %w", ctrConfig.Pod, err)
 		}
+
+		// Restoring into an existing Pod
+		ctrConfig.Pod = pod.ID()
 
 		infraContainer, err := pod.InfraContainer()
 		if err != nil {
