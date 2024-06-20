@@ -2,12 +2,11 @@
 #
 # Tests for the namespace options
 #
+# bats file_tags=distro-integration
+#
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
-# bats test_tags=distro-integration
 @test "podman test all namespaces" {
     # format is nsname | option name
     tests="
@@ -50,6 +49,77 @@ uts    | uts
             run_podman rm -f -t0 $cname
         done < <(parse_table "$tests")
     done
+}
+
+@test "podman --ipc=host" {
+    local cname="c-host-$(random_string)"
+    hostipc="$(readlink /proc/self/ns/ipc)"
+    run_podman run --name $cname --ipc=host $IMAGE readlink /proc/self/ns/ipc
+    is "$output" "$hostipc" "HostIPC and container IPC should be same"
+    run_podman inspect $cname --format '{{ .HostConfig.IpcMode }}'
+    is "$output" "host" "host mode should be selected"
+    run_podman rm $cname
+}
+
+@test "podman --ipc=none" {
+    local cname="c-none-$(random_string)"
+    hostipc="$(readlink /proc/self/ns/ipc)"
+    run_podman run --ipc=none --name $cname $IMAGE readlink /proc/self/ns/ipc
+    assert "$output" != "$hostipc" "containeripc should != hostipc"
+    run_podman inspect $cname --format '{{ .HostConfig.IpcMode }}'
+    is "$output" "none" "none mode should be selected"
+    run_podman rm $cname
+
+    run_podman 1 run --rm --ipc=none $IMAGE ls /dev/shm
+    is "$output" "ls: /dev/shm: No such file or directory" "Should fail with missing /dev/shm"
+}
+
+@test "podman --ipc=private" {
+    local cname="c-private-$(random_string)"
+    hostipc="$(readlink /proc/self/ns/ipc)"
+    run_podman run -d --ipc=private --name $cname $IMAGE sleep 100
+    assert "$output" != "$hostipc" "containeripc should != hostipc"
+    run_podman inspect $cname --format '{{ .HostConfig.IpcMode }}'
+    is "$output" "private" "private mode should be selected"
+
+    run_podman 125 run --ipc=container:$cname --rm $IMAGE readlink /proc/self/ns/ipc
+    is "$output" ".*is not allowed: non-shareable IPC (hint: use IpcMode:shareable for the donor container)" "Containers should not share private ipc namespace"
+    run_podman rm -f -t 0 $cname
+}
+
+@test "podman --ipc=shareable" {
+    local cname="c-shareable-$(random_string)"
+    hostipc="$(readlink /proc/self/ns/ipc)"
+    run_podman run -d --ipc=shareable --name $cname $IMAGE sleep 100
+    assert "$output" != "$hostipc" "containeripc(shareable) should != hostipc"
+    run_podman inspect $cname --format '{{ .HostConfig.IpcMode }}'
+    is "$output" "shareable" "shareable mode should be selected"
+
+    run_podman run --ipc=container:$cname --rm $IMAGE readlink /proc/self/ns/ipc
+    assert "$output" != "$hostipc" "containeripc(:$cname) should != hostipc"
+
+    run_podman rm -f -t 0 $cname
+}
+
+@test "podman --ipc=container@test" {
+    local cname="c-container-$(random_string)"
+    hostipc="$(readlink /proc/self/ns/ipc)"
+    run_podman run -d --name $cname $IMAGE sleep 100
+    containerid=$output
+    run_podman inspect $cname --format '{{ .HostConfig.IpcMode }}'
+    is "$output" "shareable" "shareable mode should be selected"
+    run_podman exec $cname readlink /proc/self/ns/ipc
+    assert "$output" != "$hostipc" "containeripc(exec) should != hostipc"
+    testipc=$output
+
+    local cname2="c-contest-$(random_string)"
+    run_podman run --name $cname2 --ipc=container:$cname $IMAGE readlink /proc/self/ns/ipc
+    assert "$output" = "$testipc" "Containers should share ipc namespace"
+    run_podman inspect $cname2 --format '{{ .HostConfig.IpcMode }}'
+    is "$output" "container:$containerid" "ipc mode should be selected"
+    run_podman rm $cname2
+
+    run_podman rm -f -t 0 $cname
 }
 
 # vim: filetype=sh
