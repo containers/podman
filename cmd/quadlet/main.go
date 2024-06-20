@@ -27,11 +27,12 @@ import (
 // for more details.
 
 var (
-	verboseFlag bool // True if -v passed
-	noKmsgFlag  bool
-	isUserFlag  bool // True if run as quadlet-user-generator executable
-	dryRunFlag  bool // True if -dryrun is used
-	versionFlag bool // True if -version is used
+	verboseFlag    bool // True if -v passed
+	noKmsgFlag     bool
+	isUserFlag     bool   // True if run as quadlet-user-generator executable
+	dryRunFlag     bool   // True if -dryrun is used
+	versionFlag    bool   // True if -version is used
+	listImagesFlag string // Set if -list-images is used
 )
 
 const (
@@ -549,7 +550,7 @@ func process() error {
 		prevError = err
 	}
 
-	if !dryRunFlag && flag.NArg() < 1 {
+	if !dryRunFlag && flag.NArg() < 1 && len(listImagesFlag) == 0 {
 		reportError(errors.New("missing output directory argument"))
 		return prevError
 	}
@@ -584,6 +585,31 @@ func process() error {
 		if err := loadUnitDropins(unit, sourcePaths); err != nil {
 			reportError(err)
 		}
+	}
+
+	if len(listImagesFlag) > 0 {
+		fd, err := os.OpenFile(listImagesFlag, os.O_WRONLY, 0644)
+		if err != nil {
+			return err
+		}
+		for _, unit := range units {
+			if !strings.HasSuffix(unit.Filename, ".image") {
+				continue
+			}
+			imageName, err := quadlet.ListImage(unit)
+			if err != nil {
+				reportError(err)
+			}
+			if !isUnambiguousName(imageName) {
+				Logf("Warning: %s specifies the image \"%s\" which not a fully qualified image name and is hence being ignored.", unit.Filename, imageName)
+				continue
+			}
+			fmt.Fprintf(fd, "%s\n", imageName)
+		}
+		if err := fd.Close(); err != nil {
+			reportError(err)
+		}
+		return prevError
 	}
 
 	if !dryRunFlag {
@@ -681,4 +707,5 @@ func init() {
 	flag.BoolVar(&isUserFlag, "user", false, "Run as systemd user")
 	flag.BoolVar(&dryRunFlag, "dryrun", false, "Run in dryrun mode printing debug information")
 	flag.BoolVar(&versionFlag, "version", false, "Print version information and exit")
+	flag.StringVar(&listImagesFlag, "list-images", "", "Write a list of all images being references in .image Quadlets to specified file")
 }

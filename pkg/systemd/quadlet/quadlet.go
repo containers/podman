@@ -1223,6 +1223,21 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	return service, nil
 }
 
+func ListImage(image *parser.UnitFile) (string, error) {
+	// Even if we're only interested in the Image= of the unit, it should
+	// still be valid.
+	if err := checkForUnknownKeys(image, ImageGroup, supportedImageKeys); err != nil {
+		return "", err
+	}
+
+	imageName, ok := image.Lookup(ImageGroup, KeyImage)
+	if !ok || len(imageName) == 0 {
+		return "", fmt.Errorf("no Image key specified")
+	}
+
+	return imageName, nil
+}
+
 func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 	service := image.Dup()
 	service.Filename = replaceExtension(image.Filename, ".service", "", "-image")

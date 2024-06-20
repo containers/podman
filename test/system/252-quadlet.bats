@@ -1027,6 +1027,43 @@ EOF
     run_podman network rm podman-default-kube-network
 }
 
+@test "quadlet - list images" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+    mkdir -p $quadlet_tmpdir
+
+    local image_name_1=quay.io/quadlet/image:1
+    local image_name_2=quay.io/quadlet/image:2
+    local image_name_3=quay.io/quadlet/image:3
+
+    cat > $PODMAN_TMPDIR/1.image <<EOF
+[Image]
+Image=$image_name_1
+EOF
+    cat > $quadlet_tmpdir/2.image <<EOF
+[Image]
+Image=$image_name_2
+EOF
+    cat > $quadlet_tmpdir/3.image <<EOF
+[Image]
+Image=$image_name_3
+EOF
+    cat > $quadlet_tmpdir/1.container <<EOF
+[Image]
+Image=quay.io/do/not/parse:me
+EOF
+
+    local image_file=$quadlet_tmpdir/image_file
+    touch $image_file
+
+    QUADLET_UNIT_DIRS=$PODMAN_TMPDIR run \
+                    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT \
+                    $QUADLET -list-images=$image_file
+
+    assert "$(< $image_file)" = "$image_name_1
+$image_name_2
+$image_name_3" "-list-images=FILE lists all images referenced in .image Quadlets"
+}
+
 @test "quadlet - image files" {
     local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
 
