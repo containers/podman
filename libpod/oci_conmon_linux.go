@@ -45,8 +45,13 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 				return 0, err
 			}
 			defer func() {
-				if err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS); err != nil {
-					logrus.Errorf("Unable to clone new namespace: %q", err)
+				err := unix.Setns(int(fd.Fd()), unix.CLONE_NEWNS)
+				if err == nil {
+					// If we are able to reset the previous mount namespace, unlock the thread and reuse it
+					runtime.UnlockOSThread()
+				} else {
+					// otherwise, leave the thread locked and the Go runtime will terminate it
+					logrus.Errorf("Unable to reset the previous mount namespace: %q", err)
 				}
 			}()
 
