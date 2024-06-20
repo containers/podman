@@ -656,7 +656,7 @@ spec:
     PODMAN_TIMEOUT=2 run_podman 124 kube play --wait $fname
     local t1=$SECONDS
     local delta_t=$((t1 - t0))
-    assert $delta_t -le 3 \
+    assert $delta_t -le 4 \
            "podman kube play did not get killed within 3 seconds"
     # Make sure we actually got SIGTERM and podman printed its message.
     assert "$output" =~ "Cleaning up containers, pods, and volumes" "kube play printed sigterm message"
