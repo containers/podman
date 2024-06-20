@@ -1310,7 +1310,7 @@ func (s *SQLiteState) RewriteVolumeConfig(volume *Volume, newCfg *VolumeConfig) 
 		}
 	}()
 
-	results, err := tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE ID=?;", newCfg.Name, json, volume.Name())
+	results, err := tx.Exec("UPDATE VolumeConfig SET Name=?, JSON=? WHERE Name=?;", newCfg.Name, json, volume.Name())
 	if err != nil {
 		return fmt.Errorf("updating volume config table with new configuration for volume %s: %w", volume.Name(), err)
 	}
