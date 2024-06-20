@@ -640,11 +640,13 @@ local_integration_test_task: &local_integration_test_task
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_branch_build_docs_machine
     # skip when: - it is a PR (we never want to skip on nightly tests); and
+    #            - CI:ALL title is not set; and
     #            - no danger files are changed; and
     #            - when no int test code is changed; and
     #            - NOT (source code is changed AND NOT only test files)
     skip: &skip_int_test >-
         $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
         !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
         !changesInclude('test/e2e/**', 'test/utils/**') &&
         !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
@@ -743,10 +745,12 @@ podman_machine_task:
          $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
         ) || $CIRRUS_CRON == "main"
     # skip when: - it is a PR (we never want to skip on nightly tests); and
+    #            - CI:ALL title is not set; and
     #            - no danger files are changed; and
     #            - no machine code files are changed
     skip: &skip_machine_test >-
         $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
         !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
         !changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
     depends_on: *build
@@ -871,11 +875,13 @@ local_system_test_task: &local_system_test_task
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
     # skip when: - it is a PR (we never want to skip on nightly tests); and
+    #            - CI:ALL title is not set; and
     #            - no danger files are changed; and
     #            - no system test code is changed; and
     #            - NOT (source code is changed AND not only test files)
     skip: &skip_system_test >-
         $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
         !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
         !changesInclude('test/system/**') &&
         !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
@@ -1001,10 +1007,12 @@ buildah_bud_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *not_tag_magic
     # skip when: - it is a PR (we never want to skip on nightly tests); and
+    #            - CI:ALL title is not set; and
     #            - no danger files are changed; and
     #            - no build source files are changed and no bud tests
     skip: >-
         $CIRRUS_PR != '' &&
+        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
         !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
         !changesInclude('**/*build*.go', 'test/buildah-bud/**')
     depends_on: *build
