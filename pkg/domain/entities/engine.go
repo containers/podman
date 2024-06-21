@@ -48,6 +48,7 @@ type PodmanConfig struct {
 	Trace                    bool     // Hidden: Trace execution
 	URI                      string   // URI to RESTful API Service
 	FarmNodeName             string   // Name of farm node
+	ConnectionError          error    // Error when looking up the connection in setupRemoteConnection()
 
 	Runroot        string
 	ImageStore     string
