@@ -103,7 +103,6 @@ build_task:
               # Not used here, is used in other tasks
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              # ID for re-use of build output
         - env:
               DISTRO_NV: ${PRIOR_FEDORA_NAME}
               VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
@@ -119,8 +118,6 @@ build_task:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
               CI_DESIRED_NETWORK: netavark
-              # Ignore cgroups-v1 warnings on debian
-              PODMAN_IGNORE_CGROUPSV1_WARNING: true
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with

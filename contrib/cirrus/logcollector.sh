@@ -46,7 +46,6 @@ case $1 in
                     netavark
                     passt
                     podman
-                    runc
                     skopeo
                     slirp4netns
         )
