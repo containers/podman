@@ -1169,4 +1169,9 @@ function teardown() {
     basic_teardown
 }
 
+@test "podman build --help defaults" {
+    run_podman build --help
+    assert "$output" =~ "--pull.*(default \"missing\")" "pull should default to missing"
+}
+
 # vim: filetype=sh
