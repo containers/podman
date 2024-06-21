@@ -230,6 +230,18 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     CONTAINER_HOST=foo://124.com _run_podman_remote 125 --remote ps
     assert "$output" =~ "foo" "test env variable CONTAINER_HOST wrt config"
 
+    # There was a bug where this would panic instead of returning a proper error (#22997)
+    CONTAINER_CONNECTION=invalid-env _run_podman_remote 125 --remote ps
+    assert "$output" =~ "read cli flags: connection \"invalid-env\" not found" "connection error from  env"
+
+    # Check again with cli overwrite to ensure correct connection name in error is reported
+    CONTAINER_CONNECTION=invalid-env _run_podman_remote 125 --connection=invalid-cli ps
+    assert "$output" =~ "read cli flags: connection \"invalid-cli\" not found" "connection error from --connection cli"
+
+    # Invalid env is fine if valid connection is given via cli
+    CONTAINER_CONNECTION=invalid-env _run_podman_remote 125 --connection=cli-override ps
+    assert "$output" =~ "/run/user/cli-override/podman/podman.sock" "no CONTAINER_CONNECTION connection error with valid --connection cli"
+
     # Clean up
     run_podman system connection rm defaultconnection
     run_podman system connection rm env-override
