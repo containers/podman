@@ -497,4 +497,21 @@ $name stderr" "logs work with passthrough"
     is "$output" ".*\[DEPRECATED\] Generate systemd units"
     run_podman rm test
 }
+
+@test "podman passes down the KillSignal and StopTimeout setting" {
+    ctr=systemd_test_$(random_string 5)
+
+    run_podman run -d --name $ctr --stop-signal 5 --stop-timeout 7 --rm $IMAGE top
+    run_podman inspect $ctr --format '{{ .Id }}'
+    id="$output"
+
+    run systemctl show -p TimeoutStopUSec "libpod-${id}.scope"
+    assert "$output" == "TimeoutStopUSec=7s"
+
+    run systemctl show -p KillSignal "libpod-${id}.scope"
+    assert "$output" == "KillSignal=5"
+
+    # Clean up
+    run_podman rm -t 0 -f $ctr
+}
 # vim: filetype=sh
