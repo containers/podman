@@ -267,11 +267,20 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: compress
 	//    type: boolean
-	//    description: use compression on image
+	//    description: Use compression on image.
 	//  - in: query
 	//    name: destination
 	//    type: string
-	//    description: destination name for the image being pushed
+	//    description: Allows for pushing the image to a different destination than the image refers to.
+	//  - in: query
+	//    name: format
+	//    type: string
+	//    description: Manifest type (oci, v2s1, or v2s2) to use when pushing an image. Default is manifest type of source, with fallbacks.
+	//  - in: query
+	//    name: tlsVerify
+	//    description: Require TLS verification.
+	//    type: boolean
+	//    default: true
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string
@@ -731,15 +740,43 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//  - in: query
+	//    name: compressionFormat
+	//    type: string
+	//    description: Compression format used to compress image layers.
+	//  - in: query
+	//    name: compressionLevel
+	//    type: integer
+	//    description: Compression level used to compress image layers.
+	//  - in: query
 	//    name: tlsVerify
 	//    description: Require TLS verification.
 	//    type: boolean
 	//    default: true
 	//  - in: query
 	//    name: quiet
-	//    description: "silences extra stream data on push"
+	//    description: Silences extra stream data on push.
 	//    type: boolean
 	//    default: true
+	//  - in: query
+	//    name: format
+	//    type: string
+	//    description: Manifest type (oci, v2s1, or v2s2) to use when pushing an image. Default is manifest type of source, with fallbacks.
+	//  - in: query
+	//    name: all
+	//    type: boolean
+	//    description: All indicates whether to push all images related to the image list.
+	//  - in: query
+	//    name: removeSignatures
+	//    type: boolean
+	//    description: Discard any pre-existing signatures in the image.
+	//  - in: query
+	//    name: retry
+	//    type: integer
+	//    description: Number of times to retry push in case of failure.
+	//  - in: query
+	//    name: retryDelay
+	//    type: string
+	//    description: Delay between retries in case of push failures. Duration format such as "412ms", or "3.5h".
 	//  - in: header
 	//    name: X-Registry-Auth
 	//    type: string
