@@ -2,6 +2,7 @@ package define
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -28,6 +29,14 @@ func (m *VMFile) GetPath() string {
 		return m.Path
 	}
 	return *m.Symlink
+}
+
+func (m *VMFile) String() string {
+	if m.Symlink != nil {
+		return fmt.Sprintf("%s (<-%s)", *m.Symlink, m.Path)
+	}
+
+	return m.Path
 }
 
 // Delete removes the machinefile symlink (if it exists) and
