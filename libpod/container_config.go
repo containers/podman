@@ -349,7 +349,7 @@ type ContainerMiscConfig struct {
 	Labels map[string]string `json:"labels,omitempty"`
 	// StopSignal is the signal that will be used to stop the container
 	StopSignal uint `json:"stopSignal,omitempty"`
-	// StopTimeout is the signal that will be used to stop the container
+	// StopTimeout is maximum time a container is allowed to run after getting the stop signal
 	StopTimeout uint `json:"stopTimeout,omitempty"`
 	// Timeout is maximum time a container will run before getting the kill signal
 	Timeout uint `json:"timeout,omitempty"`
