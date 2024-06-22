@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
+func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions, hideFiles bool) (int64, error) {
 	return -1, errors.New("unsupported (*ConmonOCIRuntime) createRootlessContainer")
 }
 
