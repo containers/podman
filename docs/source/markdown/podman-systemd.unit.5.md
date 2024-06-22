@@ -582,12 +582,12 @@ created by using a `$name.network` Quadlet file.
 
 This key can be listed multiple times.
 
-### `NoNewPrivileges=` (defaults to `no`)
+### `NoNewPrivileges=` (defaults to `false`)
 
 If enabled, this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
-### `Notify=` (defaults to `no`)
+### `Notify=` (defaults to `false`)
 
 By default, Podman is run in such a way that the systemd startup notify command is handled by
 the container runtime. In other words, the service is deemed started when the container runtime
@@ -648,13 +648,13 @@ This key can be listed multiple times.
 Set the image pull policy.
 This is equivalent to the Podman `--pull` option
 
-### `ReadOnly=` (defaults to `no`)
+### `ReadOnly=` (defaults to `false`)
 
 If enabled, makes the image read-only.
 
-### `ReadOnlyTmpfs=` (defaults to `yes`)
+### `ReadOnlyTmpfs=` (defaults to `true`)
 
-If ReadOnly is set to `yes`, mount a read-write tmpfs on /dev, /dev/shm, /run, /tmp, and /var/tmp.
+If ReadOnly is set to `true`, mount a read-write tmpfs on /dev, /dev/shm, /run, /tmp, and /var/tmp.
 
 ### `Rootfs=`
 
@@ -664,7 +664,7 @@ The format of the rootfs is the same as when passed to `podman run --rootfs`, so
 
 Note: On SELinux systems, the rootfs needs the correct label, which is by default unconfined_u:object_r:container_file_t:s0.
 
-### `RunInit=` (default to `no`)
+### `RunInit=` (default to `false`)
 
 If enabled, the container has a minimal init process inside the
 container that forwards signals and reaps processes.
@@ -1101,7 +1101,7 @@ Load the specified containers.conf(5) module. Equivalent to the Podman `--module
 
 This key can be listed multiple times.
 
-### `DisableDNS=` (defaults to `no`)
+### `DisableDNS=` (defaults to `false`)
 
 If enabled, disables the DNS plugin for this network.
 
@@ -1139,7 +1139,7 @@ escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
-### `Internal=` (defaults to `no`)
+### `Internal=` (defaults to `false`)
 
 Restrict external access of this network.
 
@@ -1248,7 +1248,7 @@ Load the specified containers.conf(5) module. Equivalent to the Podman `--module
 
 This key can be listed multiple times.
 
-### `Copy=` (default to `yes`)
+### `Copy=` (default to `true`)
 
 If enabled, the content of the image located at the mountpoint of the volume is copied into the
 volume on the first run.
