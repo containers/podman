@@ -33,12 +33,10 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	d := &Driver{
 		name:       "vfs",
 		home:       home,
-		idMappings: idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
 		imageStore: options.ImageStore,
 	}
 
-	rootIDs := d.idMappings.RootPair()
-	if err := idtools.MkdirAllAndChown(filepath.Join(home, "dir"), 0o700, rootIDs); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, "dir"), 0o700); err != nil {
 		return nil, err
 	}
 	for _, option := range options.DriverOptions {
@@ -79,7 +77,6 @@ type Driver struct {
 	name              string
 	home              string
 	additionalHomes   []string
-	idMappings        *idtools.IDMappings
 	ignoreChownErrors bool
 	naiveDiff         graphdriver.DiffDriver
 	updater           graphdriver.LayerIDMapUpdater
@@ -152,14 +149,8 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		return fmt.Errorf("--storage-opt is not supported for vfs")
 	}
 
-	idMappings := d.idMappings
-	if opts != nil && opts.IDMappings != nil {
-		idMappings = opts.IDMappings
-	}
-
 	dir := d.dir2(id, ro)
-	rootIDs := idMappings.RootPair()
-	if err := idtools.MkdirAllAndChown(filepath.Dir(dir), 0o700, rootIDs); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dir), 0o700); err != nil {
 		return err
 	}
 
@@ -174,6 +165,7 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 		rootPerms = os.FileMode(0o700)
 	}
 
+	rootIDs := idtools.IDPair{UID: 0, GID: 0}
 	if parent != "" {
 		st, err := system.Stat(d.dir(parent))
 		if err != nil {

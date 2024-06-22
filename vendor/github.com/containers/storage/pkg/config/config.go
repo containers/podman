@@ -75,10 +75,6 @@ type OptionsConfig struct {
 	// Size
 	Size string `toml:"size,omitempty"`
 
-	// RemapUIDs is a list of default UID mappings to use for layers.
-	RemapUIDs string `toml:"remap-uids,omitempty"`
-	// RemapGIDs is a list of default GID mappings to use for layers.
-	RemapGIDs string `toml:"remap-gids,omitempty"`
 	// IgnoreChownErrors is a flag for whether chown errors should be
 	// ignored when building an image.
 	IgnoreChownErrors string `toml:"ignore_chown_errors,omitempty"`
@@ -89,13 +85,6 @@ type OptionsConfig struct {
 	// ForceMask indicates the permissions mask (e.g. "0755") to use for new
 	// files and directories.
 	ForceMask os.FileMode `toml:"force_mask,omitempty"`
-
-	// RemapUser is the name of one or more entries in /etc/subuid which
-	// should be used to set up default UID mappings.
-	RemapUser string `toml:"remap-user,omitempty"`
-	// RemapGroup is the name of one or more entries in /etc/subgid which
-	// should be used to set up default GID mappings.
-	RemapGroup string `toml:"remap-group,omitempty"`
 
 	// RootAutoUsernsUser is the name of one or more entries in /etc/subuid and
 	// /etc/subgid which should be used to set up automatically a userns.

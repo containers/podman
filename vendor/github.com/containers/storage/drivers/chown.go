@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/opencontainers/selinux/pkg/pwalk"
+	"github.com/opencontainers/selinux/pkg/pwalkdir"
 )
 
 const (
@@ -54,13 +55,14 @@ func chownByMapsMain() {
 
 	chowner := newLChowner()
 
-	chown := func(path string, info os.FileInfo, _ error) error {
-		if path == "." {
+	var chown fs.WalkDirFunc = func(path string, d fs.DirEntry, _ error) error {
+		info, err := d.Info()
+		if path == "." || err != nil {
 			return nil
 		}
 		return chowner.LChown(path, info, toHost, toContainer)
 	}
-	if err := pwalk.Walk(".", chown); err != nil {
+	if err := pwalkdir.Walk(".", chown); err != nil {
 		fmt.Fprintf(os.Stderr, "error during chown: %v", err)
 		os.Exit(1)
 	}
