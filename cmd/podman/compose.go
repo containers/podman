@@ -202,7 +202,7 @@ func composeProviderExec(args []string, stdout io.Writer, stderr io.Writer, warn
 	logrus.Debugf("Executing compose provider (%s %s) with additional env %s", provider, strings.Join(args, " "), strings.Join(env, " "))
 
 	if warn {
-		fmt.Fprint(os.Stderr, underline(fmt.Sprintf(">>>> Executing external compose provider %q. Please refer to the documentation for details. <<<<\n\n", provider)))
+		fmt.Fprint(os.Stderr, underline(fmt.Sprintf(">>>> Executing external compose provider %q. Please see podman-compose(1) for how to disable this message. <<<<\n\n", provider)))
 	}
 
 	if err := cmd.Run(); err != nil {
