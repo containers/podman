@@ -572,6 +572,15 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	g.SetRootPath(rootPath)
 	g.AddAnnotation("org.opencontainers.image.stopSignal", strconv.FormatUint(uint64(c.config.StopSignal), 10))
 
+	if c.config.StopSignal != 0 {
+		g.AddAnnotation("org.systemd.property.KillSignal", strconv.FormatUint(uint64(c.config.StopSignal), 10))
+	}
+
+	if c.config.StopTimeout != 0 {
+		annotation := fmt.Sprintf("uint64 %d", c.config.StopTimeout*1000000) // sec to usec
+		g.AddAnnotation("org.systemd.property.TimeoutStopUSec", annotation)
+	}
+
 	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
 	}
