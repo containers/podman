@@ -276,7 +276,6 @@ help: ## (Default) Print listing of key targets with their descriptions
 
 .PHONY: lint
 lint: golangci-lint
-	@echo "Linting vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
 ifeq ($(PRE_COMMIT),)
 	@echo "FATAL: pre-commit was not found, make .install.pre-commit to installing it." >&2
 	@exit 2

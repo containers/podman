@@ -22,13 +22,8 @@ source $(dirname $0)/lib.sh
 showrun echo "starting"
 
 function _run_validate() {
-    # git-validation tool fails if $EPOCH_TEST_COMMIT is empty
-    # shellcheck disable=SC2154
-    if [[ -n "$EPOCH_TEST_COMMIT" ]]; then
-        showrun make validate
-    else
-        warn "Skipping git-validation since \$EPOCH_TEST_COMMIT is empty"
-    fi
+    showrun make validate
+
     # make sure PRs have tests
     showrun make tests-included
 }
@@ -257,7 +252,8 @@ function _run_altbuild() {
             context_dir=$(mktemp -d --tmpdir make-size-check.XXXXXXX)
             savedhead=$(git rev-parse HEAD)
             # Push to PR base. First run of the script will write size files
-            pr_base=$(git merge-base origin/$DEST_BRANCH HEAD)
+            # shellcheck disable=SC2154
+            pr_base=$PR_BASE_SHA
             showrun git checkout $pr_base
             showrun hack/make-and-check-size $context_dir
             # pop back to PR, and run incremental makes. Subsequent script
@@ -457,7 +453,9 @@ function _bail_if_test_can_be_skipped() {
     # Defined by Cirrus-CI for all tasks
     # shellcheck disable=SC2154
     head=$CIRRUS_CHANGE_IN_REPO
-    base=$(git merge-base $DEST_BRANCH $head)
+    # shellcheck disable=SC2154
+    base=$PR_BASE_SHA
+    echo "_bail_if_test_can_be_skipped: head=$head  base=$base"
     diffs=$(git diff --name-only $base $head)
 
     # If PR touches any files in an argument directory, we cannot skip
