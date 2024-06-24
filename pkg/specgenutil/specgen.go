@@ -222,7 +222,8 @@ func setNamespaces(rtc *config.Config, s *specgen.SpecGenerator, c *entities.Con
 		}
 	}
 	userns := c.UserNS
-	if userns == "" && c.Pod == "" {
+	// caller must make sure s.Pod is set before calling this function.
+	if userns == "" && s.Pod == "" {
 		if ns, ok := os.LookupEnv("PODMAN_USERNS"); ok {
 			userns = ns
 		} else {
@@ -388,6 +389,22 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
 	}
 
+	if len(s.Pod) == 0 || len(c.Pod) > 0 {
+		s.Pod = c.Pod
+	}
+
+	if len(c.PodIDFile) > 0 {
+		if len(s.Pod) > 0 {
+			return errors.New("cannot specify both --pod and --pod-id-file")
+		}
+		podID, err := ReadPodIDFile(c.PodIDFile)
+		if err != nil {
+			return err
+		}
+		s.Pod = podID
+	}
+
+	// Important s.Pod must be set above here.
 	if err := setNamespaces(rtc, s, c); err != nil {
 		return err
 	}
@@ -406,21 +423,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	if s.PublishExposedPorts == nil {
 		s.PublishExposedPorts = &c.PublishAll
-	}
-
-	if len(s.Pod) == 0 || len(c.Pod) > 0 {
-		s.Pod = c.Pod
-	}
-
-	if len(c.PodIDFile) > 0 {
-		if len(s.Pod) > 0 {
-			return errors.New("cannot specify both --pod and --pod-id-file")
-		}
-		podID, err := ReadPodIDFile(c.PodIDFile)
-		if err != nil {
-			return err
-		}
-		s.Pod = podID
 	}
 
 	expose, err := CreateExpose(c.Expose)
