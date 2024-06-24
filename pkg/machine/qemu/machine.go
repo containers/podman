@@ -24,9 +24,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	MountType9p = "9p"
-)
+func NewStubber() (*QEMUStubber, error) {
+	return &QEMUStubber{}, nil
+}
 
 // qemuPid returns -1 or the PID of the running QEMU instance.
 func qemuPid(pidFile *define.VMFile) (int, error) {

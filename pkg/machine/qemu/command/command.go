@@ -35,8 +35,10 @@ func NewQemuBuilder(binary string, options []string) QemuCmd {
 
 // SetMemory adds the specified amount of memory for the machine
 func (q *QemuCmd) SetMemory(m strongunits.MiB) {
-	// qemu accepts the memory in MiB
-	*q = append(*q, "-m", strconv.FormatUint(uint64(m), 10))
+	serializedMem := strconv.FormatUint(uint64(m), 10)
+	// In order to use virtiofsd, we must enable shared memory
+	*q = append(*q, "-object", fmt.Sprintf("memory-backend-memfd,id=mem,size=%sM,share=on", serializedMem))
+	*q = append(*q, "-m", serializedMem)
 }
 
 // SetCPUs adds the number of CPUs the machine will have
@@ -95,15 +97,6 @@ func (q *QemuCmd) SetSerialPort(readySocket, vmPidFile define.VMFile, name strin
 		"-chardev", "socket,path="+readySocket.GetPath()+",server=on,wait=off,id=a"+name+"_ready",
 		"-device", "virtserialport,chardev=a"+name+"_ready"+",name=org.fedoraproject.port.0",
 		"-pidfile", vmPidFile.GetPath())
-}
-
-// SetVirtfsMount adds a virtfs mount to the machine
-func (q *QemuCmd) SetVirtfsMount(source, tag, securityModel string, readonly bool) {
-	virtfsOptions := fmt.Sprintf("local,path=%s,mount_tag=%s,security_model=%s", source, tag, securityModel)
-	if readonly {
-		virtfsOptions += ",readonly"
-	}
-	*q = append(*q, "-virtfs", virtfsOptions)
 }
 
 // SetBootableImage specifies the image the machine will use to boot

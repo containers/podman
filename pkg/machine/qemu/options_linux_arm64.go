@@ -16,7 +16,7 @@ func (q *QEMUStubber) addArchOptions(_ *setNewMachineCMDOpts) []string {
 	opts := []string{
 		"-accel", "kvm",
 		"-cpu", "host",
-		"-M", "virt,gic-version=max",
+		"-M", "virt,gic-version=max,memory-backend=mem",
 		"-bios", getQemuUefiFile("QEMU_EFI.fd"),
 	}
 	return opts

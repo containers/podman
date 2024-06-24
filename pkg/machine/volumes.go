@@ -7,6 +7,11 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
+// NFSSELinuxContext is what is used by NFS mounts, which is allowed
+// access by container_t.  We need to fix the Fedora selinux policy
+// to just allow access to virtiofs_t.
+const NFSSELinuxContext = "system_u:object_r:nfs_t:s0"
+
 type Volume interface {
 	Kind() VolumeKind
 }

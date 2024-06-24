@@ -88,7 +88,7 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 		mountUnit.Add("Mount", "What", "%s")
 		mountUnit.Add("Mount", "Where", "%s")
 		mountUnit.Add("Mount", "Type", "virtiofs")
-		mountUnit.Add("Mount", "Options", "context=\"system_u:object_r:nfs_t:s0\"")
+		mountUnit.Add("Mount", "Options", fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext))
 		mountUnit.Add("Install", "WantedBy", "multi-user.target")
 		mountUnitFile, err := mountUnit.ToString()
 		if err != nil {
