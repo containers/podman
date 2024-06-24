@@ -85,12 +85,7 @@ var _ = Describe("Podman top", func() {
 		// the wrong input and still print the -ef output instead.
 		result := podmanTest.Podman([]string{"pod", "top", podid, "-eo", "invalid"})
 		result.WaitWithDefaultTimeout()
-		if IsRemote() {
-			// FIXME: #22986
-			Expect(result).Should(ExitWithError(125, "unmarshalling into &handlers.PodTopOKBody{ContainerTopOKBody:container.ContainerTopOKBody"))
-		} else {
-			Expect(result).Should(ExitWithError(125, "Error: '-eo': unknown descriptor"))
-		}
+		Expect(result).Should(ExitWithError(125, "Error: '-eo': unknown descriptor"))
 	})
 
 	It("podman pod top on pod with containers in same pid namespace", func() {

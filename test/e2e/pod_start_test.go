@@ -29,12 +29,7 @@ var _ = Describe("Podman pod start", func() {
 
 		session := podmanTest.Podman([]string{"pod", "start", podid})
 		session.WaitWithDefaultTimeout()
-		expect := fmt.Sprintf("no containers in pod %s have no dependencies, cannot start pod: no such container", podid)
-		if IsRemote() {
-			// FIXME: #22989 no error message
-			expect = "Error:"
-		}
-		Expect(session).Should(ExitWithError(125, expect))
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("no containers in pod %s have no dependencies, cannot start pod: no such container", podid)))
 	})
 
 	It("podman pod start single pod by name", func() {
