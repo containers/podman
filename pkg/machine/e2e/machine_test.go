@@ -3,7 +3,6 @@ package e2e_test
 import (
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -11,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -126,26 +124,7 @@ func setup() (string, *machineTestBuilder) {
 			Fail(fmt.Sprintf("failed to close src reader %q: %q", src.Name(), err))
 		}
 	}()
-	mb.imagePath = filepath.Join(homeDir, suiteImageName)
-	dest, err := os.Create(mb.imagePath)
-	if err != nil {
-		Fail(fmt.Sprintf("failed to create file %s: %q", mb.imagePath, err))
-	}
-	defer func() {
-		if err := dest.Close(); err != nil {
-			Fail(fmt.Sprintf("failed to close destination file %q: %q\n", dest.Name(), err))
-		}
-	}()
-	fmt.Printf("--> copying %q to %q\n", src.Name(), dest.Name())
-	if runtime.GOOS != "darwin" {
-		if _, err := io.Copy(dest, src); err != nil {
-			Fail(fmt.Sprintf("failed to copy %ss to %s: %q", fqImageName, mb.imagePath, err))
-		}
-	} else {
-		if err := copySparse(dest, src); err != nil {
-			Fail(fmt.Sprintf("failed to copy %q to %q: %q", src.Name(), dest.Name(), err))
-		}
-	}
+	mb.imagePath = fqImageName
 	return homeDir, mb
 }
 
@@ -169,18 +148,6 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 			Fail("failed to set windows home dir back to original")
 		}
 	}
-}
-
-// copySparse is a helper method for tests only; caller is responsible for closures
-func copySparse(dst io.WriteSeeker, src io.Reader) (retErr error) {
-	spWriter := compression.NewSparseWriter(dst)
-	defer func() {
-		if err := spWriter.Close(); err != nil && retErr == nil {
-			retErr = err
-		}
-	}()
-	_, err := io.Copy(spWriter, src)
-	return err
 }
 
 func setTmpDir(value string) (string, error) {
