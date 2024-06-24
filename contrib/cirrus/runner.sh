@@ -21,8 +21,8 @@ source $(dirname $0)/lib.sh
 
 showrun echo "starting"
 
-function _run_validate() {
-    showrun make validate
+function _run_validate-source() {
+    showrun make validate-source
 
     # make sure PRs have tests
     showrun make tests-included
@@ -207,10 +207,18 @@ eof
 }
 
 function _run_build() {
+    local vb_target
+
+    # There's no reason to validate-binaries across multiple linux platforms
+    # shellcheck disable=SC2154
+    if [[ "$DISTRO_NV" =~ $FEDORA_NAME ]]; then
+        vb_target=validate-binaries
+    fi
+
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
     showrun make vendor
-    showrun make podman-release  # includes podman, podman-remote, and docs
+    showrun make podman-release $vb_target # includes podman, podman-remote, and docs
 
     # Last-minute confirmation that we're testing the desired runtime.
     # This Can't Possibly Fail™ in regular CI; only when updating VMs.

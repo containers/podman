@@ -311,9 +311,16 @@ test/version/version: version/version.go
 codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"*.fish,RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L secon,passt,bu,hastable,te,clos,ans,pullrequest,uint,iff,od,seeked,splitted,marge,erro,hist,ether,specif -w
 
-.PHONY: validate
-validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-expect-exit pr-removes-fixed-skips
+# Code validation target that **DOES NOT** require building podman binaries
+.PHONY: validate-source
+validate-source: lint .gitvalidation swagger-check tests-expect-exit pr-removes-fixed-skips
 
+# Code validation target that **DOES** require building podman binaries
+.PHONY: validate-binaries
+validate-binaries: man-page-check validate.completions
+
+.PHONY: validate
+validate: validate-source validate-binaries
 
 # The image used below is generated manually from contrib/validatepr/Containerfile in this podman repo.  The builds are
 # not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
