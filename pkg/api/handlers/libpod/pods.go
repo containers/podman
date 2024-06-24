@@ -411,12 +411,8 @@ func PodTop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// We are committed now - all errors logged but not reported to client, ship has sailed
-	w.WriteHeader(http.StatusOK)
+	wroteContent := false
 	w.Header().Set("Content-Type", "application/json")
-	if f, ok := w.(http.Flusher); ok {
-		f.Flush()
-	}
 
 	encoder := json.NewEncoder(w)
 
@@ -428,11 +424,22 @@ loop: // break out of for/select infinite` loop
 		default:
 			output, err := pod.GetPodPidInformation([]string{query.PsArgs})
 			if err != nil {
-				logrus.Infof("Error from %s %q : %v", r.Method, r.URL, err)
-				break loop
+				if !wroteContent {
+					utils.InternalServerError(w, err)
+				} else {
+					// ship has sailed, client already got a 200 response and expects valid
+					// PodTopOKBody json format so we no longer can send the error.
+					logrus.Infof("Error from %s %q : %v", r.Method, r.URL, err)
+				}
+				return
 			}
 
 			if len(output) > 0 {
+				if !wroteContent {
+					// Write header only first time around
+					w.WriteHeader(http.StatusOK)
+					wroteContent = true
+				}
 				body := handlers.PodTopOKBody{}
 				body.Titles = utils.PSTitles(output[0])
 				for i := range body.Titles {
