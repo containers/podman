@@ -6,7 +6,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman pod stop", func() {
@@ -14,7 +13,11 @@ var _ = Describe("Podman pod stop", func() {
 	It("podman pod stop bogus pod", func() {
 		session := podmanTest.Podman([]string{"pod", "stop", "123"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID 123 found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "123": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod stop --ignore bogus pod", func() {
@@ -34,7 +37,11 @@ var _ = Describe("Podman pod stop", func() {
 
 		session = podmanTest.Podman([]string{"pod", "stop", "bogus", "test1"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID bogus found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "bogus": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman stop --ignore bogus pod and a running pod", func() {
@@ -155,7 +162,11 @@ var _ = Describe("Podman pod stop", func() {
 
 		session = podmanTest.Podman([]string{"pod", "stop", podid1, "doesnotexist"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		expect := "no pod with name or ID doesnotexist found: no such pod"
+		if IsRemote() {
+			expect = `unable to find pod "doesnotexist": no such pod`
+		}
+		Expect(session).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod start/stop single pod via --pod-id-file", func() {

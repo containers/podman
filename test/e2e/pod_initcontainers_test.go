@@ -8,7 +8,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman init containers", func() {
@@ -16,13 +15,13 @@ var _ = Describe("Podman init containers", func() {
 	It("podman create init container without --pod should fail", func() {
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "must specify pod value with init-ctr"))
 	})
 
 	It("podman create init container with bad init type should fail", func() {
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "unknown", "--pod", "new:foobar", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "init-ctr value must be 'always' or 'once'"))
 	})
 
 	It("podman init containers should not degrade pod status", func() {
@@ -54,7 +53,7 @@ var _ = Describe("Podman init containers", func() {
 		// adding init-ctr to running pod should fail
 		session := podmanTest.Podman([]string{"create", "--init-ctr", "always", "--pod", "foobar", ALPINE, "date"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "cannot add init-ctr to a running pod"))
 	})
 
 	It("podman make sure init container runs before pod containers", func() {
@@ -91,8 +90,8 @@ var _ = Describe("Podman init containers", func() {
 		check := podmanTest.Podman([]string{"container", "exists", initContainerID})
 		check.WaitWithDefaultTimeout()
 		// Container was rm'd
-		// Expect(check).Should(Exit(1))
-		Expect(check.ExitCode()).To(Equal(1), "I dont understand why the other way does not work")
+		Expect(check).To(ExitWithError(1, ""))
+
 		// Let's double check with a stop and start
 		podmanTest.StopPod("foobar")
 		startPod := podmanTest.Podman([]string{"pod", "start", "foobar"})
@@ -102,7 +101,7 @@ var _ = Describe("Podman init containers", func() {
 		// Because no init was run, the file should not even exist
 		doubleCheck := podmanTest.Podman([]string{"exec", verify.OutputToString(), "cat", filename})
 		doubleCheck.WaitWithDefaultTimeout()
-		Expect(doubleCheck).Should(Exit(1))
+		Expect(doubleCheck).Should(ExitWithError(1, fmt.Sprintf("cat: can't open '%s': No such file or directory", filename)))
 
 	})
 

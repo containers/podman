@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman top", func() {
@@ -15,13 +14,17 @@ var _ = Describe("Podman top", func() {
 	It("podman pod top without pod name or id", func() {
 		result := podmanTest.Podman([]string{"pod", "top"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "you must provide the name or id of a running pod"))
 	})
 
 	It("podman pod top on bogus pod", func() {
 		result := podmanTest.Podman([]string{"pod", "top", "1234"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		expect := "no pod with name or ID 1234 found: no such pod"
+		if !IsRemote() {
+			expect = "unable to look up requested container: " + expect
+		}
+		Expect(result).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod top on non-running pod", func() {
@@ -30,7 +33,11 @@ var _ = Describe("Podman top", func() {
 
 		result := podmanTest.Podman([]string{"top", podid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		expect := fmt.Sprintf(`no container with name or ID "%s" found: no such container`, podid)
+		if !IsRemote() {
+			expect = "unable to look up requested container: " + expect
+		}
+		Expect(result).Should(ExitWithError(125, expect))
 	})
 
 	It("podman pod top on pod", func() {
@@ -78,7 +85,12 @@ var _ = Describe("Podman top", func() {
 		// the wrong input and still print the -ef output instead.
 		result := podmanTest.Podman([]string{"pod", "top", podid, "-eo", "invalid"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		if IsRemote() {
+			// FIXME: #22986
+			Expect(result).Should(ExitWithError(125, "unmarshalling into &handlers.PodTopOKBody{ContainerTopOKBody:container.ContainerTopOKBody"))
+		} else {
+			Expect(result).Should(ExitWithError(125, "Error: '-eo': unknown descriptor"))
+		}
 	})
 
 	It("podman pod top on pod with containers in same pid namespace", func() {
