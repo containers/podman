@@ -68,6 +68,9 @@ Quadlet will recursively search and run the unit files present in these subdirec
 Note: When a Quadlet is starting, Podman often pulls or builds one more container images which may take a considerable amount of time.
 Systemd defaults service start time to 90 seconds, or fails the service. Pre-pulling the image or extending
 the systemd timeout time for the service using the *TimeoutStartSec* Service option can fix the problem.
+A word of caution: *TimeoutStartSec* is not available for `Type=oneshot` units. Refer to `systemd.service(5)`
+for more information on how to handle long startup times for units which do not need to stay active
+once their main process has finished.
 
 Adding the following snippet to a Quadlet file extends the systemd timeout to 15 minutes.
 
@@ -88,7 +91,9 @@ However, `Type` may be explicitly set to `oneshot` for `.container` and `.kube` 
 to run once `podman` exits.
 
 When setting `Type=oneshot`, it is recommended to also set `RemainAfterExit=yes` to prevent the service state
-from becoming `inactive (dead)`
+from becoming `inactive (dead)`. However, when activating a service via a timer unit, having `RemainAfterExit=yes`
+leaves the job in a "started" state which prevents subsequent activations by the timer. For more information, see the
+`systemd.service(5)` man page.
 
 Examples for such cases:
 - `.container` file with an image that exits after their entrypoint has finished
