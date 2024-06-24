@@ -202,7 +202,7 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 	}
 	status, err := pod.GetPodStatus()
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	if status == define.PodStateRunning {
@@ -212,13 +212,13 @@ func PodStart(w http.ResponseWriter, r *http.Request) {
 
 	responses, err := pod.Start(r.Context())
 	if err != nil && !errors.Is(err, define.ErrPodPartialFail) {
-		utils.Error(w, http.StatusConflict, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 
 	cfg, err := pod.Config()
 	if err != nil {
-		utils.Error(w, http.StatusConflict, err)
+		utils.InternalServerError(w, err)
 		return
 	}
 	report := entities.PodStartReport{
