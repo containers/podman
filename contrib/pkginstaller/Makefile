@@ -8,8 +8,10 @@ else
 endif
 GVPROXY_VERSION ?= 0.7.3
 VFKIT_VERSION ?= 0.5.1
+KRUNKIT_VERSION ?= 0.1.1
 GVPROXY_RELEASE_URL ?= https://github.com/containers/gvisor-tap-vsock/releases/download/v$(GVPROXY_VERSION)/gvproxy-darwin
 VFKIT_RELEASE_URL ?= https://github.com/crc-org/vfkit/releases/download/v$(VFKIT_VERSION)/vfkit-unsigned
+KRUNKIT_RELEASE_URL ?= https://github.com/containers/krunkit/releases/download/v$(KRUNKIT_VERSION)/krunkit-podman-unsigned-$(KRUNKIT_VERSION).tgz
 PACKAGE_DIR ?= out/packaging
 TMP_BIN ?= tmp-bin
 PACKAGE_ROOT ?= root
@@ -28,6 +30,10 @@ $(TMP_BIN)/vfkit:
 	mkdir -p $(TMP_BIN)
 	cd $(TMP_BIN) && curl -sLo vfkit $(VFKIT_RELEASE_URL)
 
+$(TMP_BIN)/krunkit.tgz:
+	mkdir -p $(TMP_BIN)
+	cd $(TMP_BIN) && curl -sLo krunkit.tgz $(KRUNKIT_RELEASE_URL)
+
 packagedir: podman_version package_root Distribution welcome.html
 	mkdir -p $(PACKAGE_DIR)
 	cp -r Resources $(PACKAGE_DIR)/
@@ -41,11 +47,13 @@ packagedir: podman_version package_root Distribution welcome.html
 	echo -n $(ARCH) > $(PACKAGE_DIR)/ARCH
 	cp ../../LICENSE $(PACKAGE_DIR)/Resources/LICENSE.txt
 	cp vfkit.entitlements $(PACKAGE_DIR)/
+	cp krunkit.entitlements $(PACKAGE_DIR)/
 
-package_root: clean-pkgroot $(TMP_BIN)/gvproxy $(TMP_BIN)/vfkit
+package_root: clean-pkgroot $(TMP_BIN)/gvproxy $(TMP_BIN)/vfkit $(TMP_BIN)/krunkit.tgz
 	mkdir -p $(PACKAGE_ROOT)/podman/bin
 	cp $(TMP_BIN)/gvproxy $(PACKAGE_ROOT)/podman/bin/
 	cp $(TMP_BIN)/vfkit $(PACKAGE_ROOT)/podman/bin/
+	tar xf $(TMP_BIN)/krunkit.tgz -C $(PACKAGE_ROOT)/podman
 	chmod a+x $(PACKAGE_ROOT)/podman/bin/*
 	# Leaving for future considerations
 	# mkdir $(PACKAGE_ROOT)/podman/config
