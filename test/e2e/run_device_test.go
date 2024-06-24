@@ -9,7 +9,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices string) {
@@ -95,7 +94,7 @@ var _ = Describe("Podman run device", func() {
 		// verify --privileged is required
 		session2 := podmanTest.Podman([]string{"run", ALPINE, "test", "-c", "/dev/kmsg"})
 		session2.WaitWithDefaultTimeout()
-		Expect(session2).Should(Exit(1))
+		Expect(session2).Should(ExitWithError(1, ""))
 		Expect(session2.OutputToString()).To(BeEmpty())
 	})
 

@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run exit", func() {
@@ -15,19 +14,19 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit define.ExecErrorCodeGeneric", func() {
 		result := podmanTest.Podman([]string{"run", "--foobar", ALPINE, "ls", "$tmp"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(define.ExecErrorCodeGeneric))
+		Expect(result).Should(ExitWithError(define.ExecErrorCodeGeneric, "unknown flag: --foobar"))
 	})
 
 	It("podman run exit ExecErrorCodeCannotInvoke", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(define.ExecErrorCodeCannotInvoke))
+		Expect(result).Should(ExitWithError(define.ExecErrorCodeCannotInvoke, "open executable: Operation not permitted: OCI permission denied"))
 	})
 
 	It("podman run exit ExecErrorCodeNotFound", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "foobar"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(define.ExecErrorCodeNotFound))
+		Expect(result).Should(ExitWithError(define.ExecErrorCodeNotFound, "executable file `foobar` not found in $PATH: No such file or directory: OCI runtime attempted to invoke a command that was not found"))
 	})
 
 	It("podman run exit 0", func() {
@@ -39,12 +38,12 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit 50", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 50"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(50))
+		Expect(result).Should(ExitWithError(50, ""))
 	})
 
 	It("podman run exit 125", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", fmt.Sprintf("exit %d", define.ExecErrorCodeGeneric)})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(define.ExecErrorCodeGeneric))
+		Expect(result).Should(ExitWithError(define.ExecErrorCodeGeneric, ""))
 	})
 })

@@ -132,7 +132,7 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(err).ToNot(HaveOccurred())
 		session := podmanTest.Podman([]string{"run", "-v", mountPath + ":" + dest, "-v", "/tmp" + ":" + dest, ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, fmt.Sprintf("%s: duplicate mount destination", dest)))
 	})
 
 	It("podman run with conflict between image volume and user mount succeeds", func() {
@@ -430,7 +430,7 @@ var _ = Describe("Podman run with volumes", func() {
 
 		noCopySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol4:/etc/apk:nocopy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
 		noCopySession.WaitWithDefaultTimeout()
-		Expect(noCopySession).Should(Exit(1))
+		Expect(noCopySession).Should(ExitWithError(1, "stat: can't stat '/etc/apk/arch': No such file or directory"))
 	})
 
 	It("podman named volume copyup symlink", func() {

@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
@@ -124,7 +123,7 @@ var _ = Describe("Podman run", func() {
 
 		session = podmanTest.Podman([]string{"run", "--security-opt", "label=type:spc_t", "--security-opt", "label=filetype:foobar", fedoraMinimal, "ls", "-Z", "/dev"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(126))
+		Expect(session).Should(ExitWithError(126, "invalid argument"))
 	})
 
 	It("podman exec selinux check", func() {
