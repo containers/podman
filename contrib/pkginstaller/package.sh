@@ -13,6 +13,7 @@ MACHINE_POLICY_JSON_DIR="/opt/podman/config"
 tmpBin="contrib/pkginstaller/tmp-bin"
 
 binDir="${BASEDIR}/root/podman/bin"
+libDir="${BASEDIR}/root/podman/lib"
 
 version=$(cat "${BASEDIR}/VERSION")
 arch=$(cat "${BASEDIR}/ARCH")
@@ -65,7 +66,10 @@ function sign() {
   if [ -f "${entitlements}" ]; then
       opts="--entitlements ${entitlements}"
   fi
-  codesign --deep --sign "${CODESIGN_IDENTITY}" --options runtime --timestamp --force ${opts} "$1"
+  if [ ! "${NO_CODESIGN}" -eq "1" ]; then
+      opts="$opts --options runtime"
+  fi
+  codesign --deep --sign "${CODESIGN_IDENTITY}" --timestamp --force ${opts} "$1"
 }
 
 goArch="${arch}"
@@ -79,6 +83,12 @@ sign "${binDir}/podman"
 sign "${binDir}/gvproxy"
 sign "${binDir}/vfkit"
 sign "${binDir}/podman-mac-helper"
+
+sign "${binDir}/krunkit"
+sign "${libDir}/libkrun-efi.dylib"
+sign "${libDir}/libvirglrenderer.1.dylib"
+sign "${libDir}/libepoxy.0.dylib"
+sign "${libDir}/libMoltenVK.dylib"
 
 pkgbuild --identifier com.redhat.podman --version "${version}" \
   --scripts "${BASEDIR}/scripts" \
