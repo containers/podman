@@ -247,6 +247,9 @@ function teardown() {
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     mac1="$output"
 
+    run_podman exec $cid cat /etc/hosts /etc/resolv.conf
+    pre_hosts_resolv_conf_output="$output"
+
     run_podman container checkpoint $cid
     is "$output" "$cid"
     run_podman container restore $cid
@@ -257,6 +260,10 @@ function teardown() {
     ip2="$output"
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     mac2="$output"
+
+    # Make sure hosts and resolv.conf are the same after restore (#22901)
+    run_podman exec $cid cat /etc/hosts /etc/resolv.conf
+    assert "$output" == "$pre_hosts_resolv_conf_output" "hosts/resolv.conf must be the same after checkpoint"
 
     assert "$ip2" == "$ip1" "ip after restore should match"
     assert "$mac2" == "$mac1" "mac after restore should match"
