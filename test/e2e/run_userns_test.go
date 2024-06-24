@@ -422,4 +422,41 @@ var _ = Describe("Podman UserNS support", func() {
 			podmanTest.RestartRemoteService()
 		}
 	})
+
+	It("podman pod userns inherited for containers", func() {
+		podName := "testPod"
+		podIDFile := filepath.Join(podmanTest.TempDir, "podid")
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--pod-id-file", podIDFile, "--uidmap", "0:0:1000", "--name", podName})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(ExitCleanly())
+
+		// The containers should not use PODMAN_USERNS as they must inherited the userns from the pod.
+		os.Setenv("PODMAN_USERNS", "keep-id")
+		defer os.Unsetenv("PODMAN_USERNS")
+
+		expectedMapping := `         0          0       1000
+         0          0       1000
+`
+		// rootless mapping is split in two ranges
+		if isRootless() {
+			expectedMapping = `         0          0          1
+         1          1        999
+         0          0          1
+         1          1        999
+`
+		}
+
+		session := podmanTest.Podman([]string{"run", "--pod", podName, ALPINE, "cat", "/proc/self/uid_map", "/proc/self/gid_map"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		output := string(session.Out.Contents())
+		Expect(output).To(Equal(expectedMapping))
+
+		// https://github.com/containers/podman/issues/22931
+		session = podmanTest.Podman([]string{"run", "--pod-id-file", podIDFile, ALPINE, "cat", "/proc/self/uid_map", "/proc/self/gid_map"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		output = string(session.Out.Contents())
+		Expect(output).To(Equal(expectedMapping))
+	})
 })
