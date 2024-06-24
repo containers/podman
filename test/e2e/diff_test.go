@@ -165,4 +165,13 @@ RUN touch %s`, ALPINE, imagefile)
 		Expect(session.OutputToString()).To(ContainSubstring(confile))
 	})
 
+	It("podman diff without args", func() {
+		session := podmanTest.Podman([]string{"diff"})
+		session.WaitWithDefaultTimeout()
+		if IsRemote() {
+			Expect(session).Should(ExitWithError(125, " requires a name or id"))
+		} else {
+			Expect(session).Should(ExitWithError(125, " requires a name, id, or the \"--latest\" flag"))
+		}
+	})
 })
