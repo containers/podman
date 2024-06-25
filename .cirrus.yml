@@ -654,7 +654,7 @@ local_integration_test_task: &local_integration_test_task
     gce_instance: &fastvm
       <<: *standardvm
       cpu: 4
-    timeout_in: 50m
+    timeout_in: 30m
     env:
         TEST_FLAVOR: int
     clone_script: *get_gosrc
@@ -701,7 +701,7 @@ container_integration_test_task:
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
-    timeout_in: 50m
+    timeout_in: 30m
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
@@ -721,7 +721,7 @@ rootless_integration_test_task:
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *fastvm
-    timeout_in: 50m
+    timeout_in: 30m
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
