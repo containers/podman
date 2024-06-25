@@ -14,6 +14,7 @@ const (
 	KernProcProc     = 8
 	KernProcPathname = 12
 	KernProcArgs     = 55
+	KernProcCwd      = 78
 	KernProcArgv     = 1
 	KernProcEnv      = 3
 )
