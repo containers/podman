@@ -75,8 +75,6 @@ func init() {
 type Driver struct {
 	sync.Mutex
 	root          string
-	uidMaps       []idtools.IDMap
-	gidMaps       []idtools.IDMap
 	ctr           *graphdriver.RefCounter
 	pathCacheLock sync.Mutex
 	pathCache     map[string]string
@@ -129,22 +127,16 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	a := &Driver{
 		root:         home,
-		uidMaps:      options.UIDMaps,
-		gidMaps:      options.GIDMaps,
 		pathCache:    make(map[string]string),
 		ctr:          graphdriver.NewRefCounter(graphdriver.NewFsChecker(graphdriver.FsMagicAufs)),
 		locker:       locker.New(),
 		mountOptions: mountOptions,
 	}
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
-	if err != nil {
-		return nil, err
-	}
 	// Create the root aufs driver dir and return
 	// if it already exists
 	// If not populate the dir structure
-	if err := idtools.MkdirAllAs(home, 0o700, rootUID, rootGID); err != nil {
+	if err := os.MkdirAll(home, 0o700); err != nil {
 		if os.IsExist(err) {
 			return a, nil
 		}
@@ -157,7 +149,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	// Populate the dir structure
 	for _, p := range paths {
-		if err := idtools.MkdirAllAs(path.Join(home, p), 0o700, rootUID, rootGID); err != nil {
+		if err := os.MkdirAll(path.Join(home, p), 0o700); err != nil {
 			return nil, err
 		}
 	}
@@ -334,7 +326,7 @@ func (a *Driver) createDirsFor(id, parent string) error {
 	// The path of directories are <aufs_root_path>/mnt/<image_id>
 	// and <aufs_root_path>/diff/<image_id>
 	for _, p := range paths {
-		rootPair := idtools.NewIDMappingsFromMaps(a.uidMaps, a.gidMaps).RootPair()
+		rootPair := idtools.IDPair{UID: 0, GID: 0}
 		rootPerms := defaultPerms
 		if parent != "" {
 			st, err := system.Stat(path.Join(a.rootPath(), p, parent))

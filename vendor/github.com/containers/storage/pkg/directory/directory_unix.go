@@ -1,5 +1,5 @@
-//go:build linux || darwin || freebsd || solaris
-// +build linux darwin freebsd solaris
+//go:build !windows
+// +build !windows
 
 package directory
 
