@@ -738,7 +738,12 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		UnsetLabels:                    query.UnsetLabels,
 	}
 
-	for _, platformSpec := range query.Platform {
+	platforms := query.Platform
+	if len(platforms) == 1 {
+		// Docker API uses comma sperated platform arg so match this here
+		platforms = strings.Split(query.Platform[0], ",")
+	}
+	for _, platformSpec := range platforms {
 		os, arch, variant, err := parse.Platform(platformSpec)
 		if err != nil {
 			utils.BadRequest(w, "platform", platformSpec, err)

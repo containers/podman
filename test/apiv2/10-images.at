@@ -274,6 +274,12 @@ else
     _show_ok 1 "compat quiet build"
 fi
 
+# Do not try a real build here to tests the comma separated syntax as emulation
+# is slow and may not work everywhere, checking the error is good enough to know
+# we parsed it correctly on the server I would say
+t POST "/build?q=1&dockerfile=containerfile&platform=linux/amd64,test" $CONTAINERFILE_WITH_ERR_TAR 400 \
+  .message="failed to parse query parameter 'platform': \"test\": invalid platform syntax for --platform=\"test\": \"test\": unknown operating system or architecture: invalid argument"
+
 cleanBuildTest
 
 # compat API vs libpod API event differences:

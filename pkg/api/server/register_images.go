@@ -667,6 +667,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    default:
 	//    description: |
 	//      Platform format os[/arch[/variant]]
+	//      Can be comma separated list for multi arch builds.
 	//      (As of version 1.xx)
 	//  - in: query
 	//    name: target
