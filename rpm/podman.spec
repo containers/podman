@@ -101,12 +101,6 @@ Requires: containers-common-extra >= 5:0.58.0-1
 %else
 Requires: containers-common-extra
 %endif
-%if %{defined rhel} && !%{defined eln}
-Recommends: gvisor-tap-vsock-gvforwarder
-%else
-Requires: gvisor-tap-vsock-gvforwarder
-%endif
-Recommends: gvisor-tap-vsock
 Provides: %{name}-quadlet
 Obsoletes: %{name}-quadlet <= 5:4.4.0-1
 Provides: %{name}-quadlet = %{epoch}:%{version}-%{release}
@@ -185,6 +179,17 @@ capabilities specified in user quadlets.
 
 It is a symlink to %{_bindir}/%{name} and execs into the `%{name}sh` container
 when `%{_bindir}/%{name}sh` is set as a login shell or set as os.Args[0].
+
+%package machine
+Summary: Metapackage for setting up %{name} machine
+Requires: %{name} = %{epoch}:%{version}-%{release}
+Requires: gvisor-tap-vsock
+Requires: qemu
+Requires: virtiofsd
+
+%description machine
+This subpackage installs the dependencies for %{name} machine, for more see:
+https://docs.podman.io/en/latest/markdown/podman-machine.1.html
 
 %prep
 %autosetup -Sgit -n %{name}-%{version_no_tilde}
@@ -276,6 +281,9 @@ rm -f %{buildroot}%{_mandir}/man5/docker*.5
 install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
 cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 
+# symlink virtiofsd in %%{name} libexecdir for machine subpackage
+ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
+
 #define license tag if not already defined
 %{!?_licensedir:%global license %doc}
 
@@ -325,6 +333,10 @@ cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
 %files -n %{name}sh
 %{_bindir}/%{name}sh
 %{_mandir}/man1/%{name}sh.1*
+
+%files machine
+%dir %{_libexecdir}/%{name}
+%{_libexecdir}/%{name}/virtiofsd
 
 %changelog
 %if %{defined autochangelog}
