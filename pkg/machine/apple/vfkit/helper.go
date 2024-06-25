@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -89,33 +88,28 @@ func (vf *Helper) stateChange(newState rest.StateChange) error {
 }
 
 func (vf *Helper) Stop(force, wait bool) error {
-	waitDuration := time.Millisecond * 10
-	// TODO Add ability to wait until stopped
+	state := rest.Stop
 	if force {
-		if err := vf.stateChange(rest.HardStop); err != nil {
-			return err
-		}
-	} else {
-		if err := vf.stateChange(rest.Stop); err != nil {
-			return err
-		}
+		state = rest.HardStop
+	}
+	if err := vf.stateChange(state); err != nil {
+		return err
 	}
 	if !wait {
 		return nil
 	}
-	waitErr := fmt.Errorf("failed waiting for vm to stop")
-	// Backoff to wait on the machine shutdown
-	for i := 0; i < 11; i++ {
+	waitDuration := time.Millisecond * 500
+	// Wait up to 90s then hard force off
+	for i := 0; i < 180; i++ {
 		_, err := vf.getRawState()
 		if err != nil || errors.Is(err, unix.ECONNREFUSED) {
-			waitErr = nil
-			break
+			return nil
 		}
-		waitDuration *= 2
-		logrus.Debugf("backoff wait time: %s", waitDuration.String())
 		time.Sleep(waitDuration)
 	}
-	return waitErr
+	logrus.Warn("Failed to gracefully stop machine, performing hard stop")
+	// we waited long enough do a hard stop
+	return vf.stateChange(rest.HardStop)
 }
 
 // Helper describes the use of vfkit: cmdline and endpoint
