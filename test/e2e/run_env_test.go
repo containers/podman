@@ -6,7 +6,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run", func() {
@@ -54,7 +53,7 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"run", "--rm", "--env", "FOO", ALPINE, "printenv", "FOO"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(BeEmpty())
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 
 		session = podmanTest.Podman([]string{"run", "--rm", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
@@ -90,8 +89,7 @@ ENV hello=world
 		session.WaitWithDefaultTimeout()
 		if IsRemote() {
 			// podman-remote does not support --env-host
-			Expect(session).Should(Exit(125))
-			Expect(session.ErrorToString()).To(ContainSubstring("unknown flag: --env-host"))
+			Expect(session).Should(ExitWithError(125, "unknown flag: --env-host"))
 			return
 		}
 		Expect(session).Should(ExitCleanly())
@@ -125,7 +123,7 @@ ENV hello=world
 
 		session = podmanTest.Podman([]string{"run", "--http-proxy=false", ALPINE, "printenv", "http_proxy"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
+		Expect(session).Should(ExitWithError(1, ""))
 		Expect(session.OutputToString()).To(Equal(""))
 
 		session = podmanTest.Podman([]string{"run", "--env", "http_proxy=5.6.7.8", ALPINE, "printenv", "http_proxy"})

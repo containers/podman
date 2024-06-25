@@ -12,7 +12,6 @@ import (
 	"github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 func createContainersConfFileWithCustomUserns(pTest *PodmanTestIntegration, userns string) {
@@ -371,13 +370,11 @@ var _ = Describe("Podman UserNS support", func() {
 	It("podman --userns= conflicts with ui[dg]map and sub[ug]idname", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=host", "--uidmap=0:1:500", "alpine", "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive"))
+		Expect(session).Should(ExitWithError(125, "--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive"))
 
 		session = podmanTest.Podman([]string{"run", "--userns=host", "--gidmap=0:200:5000", "alpine", "true"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive"))
+		Expect(session).Should(ExitWithError(125, "--userns and --uidmap/--gidmap/--subuidname/--subgidname are mutually exclusive"))
 
 		// with sub[ug]idname we don't check for the error output since the error message could be different, depending on the
 		// system configuration since the specified user could not be defined and cause a different earlier error.
