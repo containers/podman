@@ -143,6 +143,39 @@ function remove_secret() {
     run_podman secret rm $secret_name
 }
 
+function wait_for_journal() {
+    local step=1
+    local count=10
+    local expect_str=
+
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -s|--step)
+                step="$2"
+                shift 2
+                ;;
+            -c|--count)
+                count="$2"
+                shift 2
+                ;;
+            *)
+                expect_str="$1"
+                shift 1
+                ;;
+        esac
+    done
+
+    while [ "$count" -gt 0 ]; do
+        run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+        if [[ "$output" =~ "$expect_str" ]]; then
+            return
+        fi
+        sleep "$step"
+        count=$(( count - 1 ))
+    done
+    die "Timed out waiting for '$expect_str' in journalctl output"
+}
+
 @test "quadlet - basic" {
     # Network=none is to work around a Pasta bug, can be removed once a patched Pasta is available.
     # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
@@ -230,13 +263,15 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME inactive
 }
 
-@test "quadlet - ContainerName" {
+@test "quadlet - ContainerName and journal output check" {
     local quadlet_file=$PODMAN_TMPDIR/containername_$(random_string).container
+    local token_out="STDOUT$(random_string 10)"
+    local token_err="STDERR$(random_string 10)"
     cat > $quadlet_file <<EOF
 [Container]
 ContainerName=customcontainername
 Image=$IMAGE
-Exec=top"
+Exec=sh -c "echo $token_out; echo $token_err 1>&2; top -d 10"
 EOF
 
     run_quadlet "$quadlet_file"
@@ -245,6 +280,18 @@ EOF
     # Ensure we can access with the custom container name
     run_podman container inspect  --format "{{.State.Status}}" customcontainername
     is "$output" "running" "container should be started by systemd and hence be running"
+
+    wait_for_journal "Started $QUADLET_SERVICE_NAME"
+
+    run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+    assert "$output" =~ "$token_out" "Output can be found with journalctl"
+    assert "$output" =~ "$token_err" "Error can be found with journalctl"
+    assert "$output" =~ "Starting $QUADLET_SERVICE_NAME" "Status information can be found with journalctl"
+
+    # log priority 3 in journalctl is err. This is documented in syslog(3)
+    run journalctl "--since=$STARTED_TIME" --priority=3 --unit="$QUADLET_SERVICE_NAME"
+    assert "$output" =~ "$token_err" "Error can be found with journalctl --priority=3"
+    assert "$output" !~ "$token_out" "Output can not be found with journalctl --priority=3"
 
     service_cleanup $QUADLET_SERVICE_NAME failed
 }
