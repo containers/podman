@@ -12,8 +12,57 @@ import (
 )
 
 func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
+	var ret []TimesStat
 	if percpu {
-		return []TimesStat{}, common.ErrNotImplementedError
+		per_out, err := invoke.CommandWithContext(ctx, "sar", "-u", "-P", "ALL", "10", "1")
+		if err != nil {
+			return nil, err
+		}
+		lines := strings.Split(string(per_out), "\n")
+		if len(lines) < 6 {
+			return []TimesStat{}, common.ErrNotImplementedError
+		}
+
+		hp := strings.Fields(lines[5]) // headers
+		for l := 6; l < len(lines)-1; l++ {
+			ct := &TimesStat{}
+			v := strings.Fields(lines[l]) // values
+			for i, header := range hp {
+				// We're done in any of these use cases
+				if i >= len(v) || v[0] == "-" {
+					break
+				}
+
+				// Position variable for v
+				pos := i
+				// There is a missing field at the beginning of all but the first line
+				// so adjust the position
+				if l > 6 {
+					pos = i - 1
+				}
+				// We don't want invalid positions
+				if pos < 0 {
+					continue
+				}
+
+				if t, err := strconv.ParseFloat(v[pos], 64); err == nil {
+					switch header {
+					case `cpu`:
+						ct.CPU = strconv.FormatFloat(t, 'f', -1, 64)
+					case `%usr`:
+						ct.User = t
+					case `%sys`:
+						ct.System = t
+					case `%wio`:
+						ct.Iowait = t
+					case `%idle`:
+						ct.Idle = t
+					}
+				}
+			}
+			// Valid CPU data, so append it
+			ret = append(ret, *ct)
+		}
 	} else {
 		out, err := invoke.CommandWithContext(ctx, "sar", "-u", "10", "1")
 		if err != nil {
@@ -24,26 +73,28 @@ func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
 			return []TimesStat{}, common.ErrNotImplementedError
 		}
 
-		ret := TimesStat{CPU: "cpu-total"}
+		ct := &TimesStat{CPU: "cpu-total"}
 		h := strings.Fields(lines[len(lines)-3]) // headers
 		v := strings.Fields(lines[len(lines)-2]) // values
 		for i, header := range h {
 			if t, err := strconv.ParseFloat(v[i], 64); err == nil {
 				switch header {
 				case `%usr`:
-					ret.User = t
+					ct.User = t
 				case `%sys`:
-					ret.System = t
+					ct.System = t
 				case `%wio`:
-					ret.Iowait = t
+					ct.Iowait = t
 				case `%idle`:
-					ret.Idle = t
+					ct.Idle = t
 				}
 			}
 		}
 
-		return []TimesStat{ret}, nil
+		ret = append(ret, *ct)
 	}
+
+	return ret, nil
 }
 
 func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
@@ -78,6 +129,20 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 				}
 			}
 			break
+		} else if strings.HasPrefix(line, "System Model:") {
+			p := strings.Split(string(line), ":")
+			if p != nil {
+				ret.VendorID = strings.TrimSpace(p[1])
+			}
+		} else if strings.HasPrefix(line, "Processor Type:") {
+			p := strings.Split(string(line), ":")
+			if p != nil {
+				c := strings.Split(string(p[1]), "_")
+				if c != nil {
+					ret.Family = strings.TrimSpace(c[0])
+					ret.Model = strings.TrimSpace(c[1])
+				}
+			}
 		}
 	}
 	return []InfoStat{ret}, nil

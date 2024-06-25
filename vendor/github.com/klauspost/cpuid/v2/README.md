@@ -310,6 +310,7 @@ Exit Code 1
 | AVXSLOW            | Indicates the CPU performs 2 128 bit operations instead of one                                                                                                                     |
 | AVXVNNI            | AVX (VEX encoded) VNNI neural network instructions                                                                                                                                 |
 | AVXVNNIINT8        | AVX-VNNI-INT8 instructions                                                                                                                                                         |
+| AVXVNNIINT16       | AVX-VNNI-INT16 instructions                                                                                                                                                        |
 | BHI_CTRL           | Branch History Injection and Intra-mode Branch Target Injection / CVE-2022-0001, CVE-2022-0002 / INTEL-SA-00598                                                                    |
 | BMI1               | Bit Manipulation Instruction Set 1                                                                                                                                                 |
 | BMI2               | Bit Manipulation Instruction Set 2                                                                                                                                                 |
