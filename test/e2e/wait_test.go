@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman wait", func() {
@@ -12,7 +11,7 @@ var _ = Describe("Podman wait", func() {
 	It("podman wait on bogus container", func() {
 		session := podmanTest.Podman([]string{"wait", "1234"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `no container with name or ID "1234" found: no such container`))
 
 	})
 
@@ -86,7 +85,7 @@ var _ = Describe("Podman wait", func() {
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"container", "wait", "--interval", "100days", session.OutputToString()})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `time: unknown unit "days" in duration "100days"`))
 	})
 
 	It("podman wait on three containers", func() {

@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman run entrypoint", func() {
@@ -17,7 +16,7 @@ CMD []
 		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Or(Exit(126), Exit(127)))
+		Expect(session).Should(ExitWithError(126, "open executable: Operation not permitted: OCI permission denied"))
 	})
 
 	It("podman run entrypoint == [\"\"]", func() {

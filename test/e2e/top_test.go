@@ -7,7 +7,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman top", func() {
@@ -15,13 +14,17 @@ var _ = Describe("Podman top", func() {
 	It("podman top without container name or id", func() {
 		result := podmanTest.Podman([]string{"top"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "you must provide the name or id of a running container"))
 	})
 
 	It("podman top on bogus container", func() {
 		result := podmanTest.Podman([]string{"top", "1234"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		expect := `no container with name or ID "1234" found: no such container`
+		if !IsRemote() {
+			expect = `unable to look up requested container: ` + expect
+		}
+		Expect(result).Should(ExitWithError(125, expect))
 	})
 
 	It("podman top on non-running container", func() {
@@ -29,7 +32,7 @@ var _ = Describe("Podman top", func() {
 		Expect(ec).To(Equal(0))
 		result := podmanTest.Podman([]string{"top", cid})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "top can only be used on running containers"))
 	})
 
 	It("podman top on container", func() {
@@ -115,8 +118,7 @@ var _ = Describe("Podman top", func() {
 		// Because the image does not contain this must fail and we know we use the correct podman exec fallback.
 		exec := podmanTest.Podman([]string{"top", session.OutputToString(), "aux"})
 		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(Exit(125))
-		Expect(exec.ErrorToString()).Should(ContainSubstring("OCI runtime attempted to invoke a command that was not found"))
+		Expect(exec).Should(ExitWithError(125, "OCI runtime attempted to invoke a command that was not found"))
 	})
 
 	It("podman top with comma-separated options", func() {
@@ -142,7 +144,7 @@ var _ = Describe("Podman top", func() {
 		// the wrong input and still print the -ef output instead.
 		result := podmanTest.Podman([]string{"top", cid, "-eo", "invalid"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, `Error: ps(1) failed with exit code 1: error: unknown user-defined format specifier "invalid"`))
 	})
 
 	It("podman top on privileged container", func() {

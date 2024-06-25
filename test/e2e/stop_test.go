@@ -16,7 +16,7 @@ var _ = Describe("Podman stop", func() {
 	It("podman stop bogus container", func() {
 		session := podmanTest.Podman([]string{"stop", "foobar"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `no container with name or ID "foobar" found: no such container`))
 	})
 
 	It("podman stop --ignore bogus container", func() {
@@ -307,19 +307,19 @@ var _ = Describe("Podman stop", func() {
 
 		result := podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
 
 		result = podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--all"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
 
 		result = podmanTest.Podman([]string{"stop", "--cidfile", "foobar", "--all", "--latest"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "--all, --latest, and --cidfile cannot be used together"))
 
 		result = podmanTest.Podman([]string{"stop", "--latest", "--all"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(Exit(125))
+		Expect(result).Should(ExitWithError(125, "--all and --latest cannot be used together"))
 	})
 
 	It("podman stop --all", func() {
@@ -348,7 +348,7 @@ var _ = Describe("Podman stop", func() {
 
 		session = podmanTest.Podman([]string{"stop", "bogus", cid})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `no container with name or ID "bogus" found: no such container`))
 
 		session = podmanTest.Podman([]string{"stop", "--ignore", "bogus", cid})
 		session.WaitWithDefaultTimeout()
@@ -384,7 +384,7 @@ var _ = Describe("Podman stop", func() {
 
 		session1 = podmanTest.Podman([]string{"stop", cid1, "-f", "status=running"})
 		session1.WaitWithDefaultTimeout()
-		Expect(session1).Should(Exit(125))
+		Expect(session1).Should(ExitWithError(125, "--filter takes no arguments"))
 
 		session1 = podmanTest.Podman([]string{"stop", "-a", "--filter", fmt.Sprintf("id=%swrongid", shortCid3)})
 		session1.WaitWithDefaultTimeout()

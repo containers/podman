@@ -9,7 +9,6 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("Podman secret", func() {
@@ -430,6 +429,6 @@ var _ = Describe("Podman secret", func() {
 
 		exists := podmanTest.Podman([]string{"secret", "exists", secretName})
 		exists.WaitWithDefaultTimeout()
-		Expect(exists).Should(Exit(1))
+		Expect(exists).Should(ExitWithError(1, ""))
 	})
 })
