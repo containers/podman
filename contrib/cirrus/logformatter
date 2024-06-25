@@ -886,10 +886,13 @@ END_SYNOPSIS
     }
     $s .= _tr("Logs", join(" / ", @logs));
 
-    # BASE_SHA can tell us if our parent includes--or doesn't--a purported
-    # fix for a flake. Note that "commits", plural, links to a git history
-    # listing; if we used "commit", singular, that would be less useful.
-    $s .= _tr("Base commit", _a("{CIRRUS_BASE_SHA}", "https://{CIRRUS_REPO_CLONE_HOST}/{CIRRUS_REPO_FULL_NAME}/commits/{CIRRUS_BASE_SHA}"));
+    # PR_BASE_SHA (set in lib.sh) can tell us if our parent includes--or
+    # doesn't--a purported fix for a flake. Note about the URL: "commits", plural,
+    # links to a git history listing; if we used "commit", singular, that would
+    # be less useful.
+    if (my $base = $ENV{PR_BASE_SHA}) {
+        $s .= _tr("Base commit", _a($base, "https://{CIRRUS_REPO_CLONE_HOST}/{CIRRUS_REPO_FULL_NAME}/commits/$base"));
+    }
 
     $s .= "</table>\n";
     return $s;
