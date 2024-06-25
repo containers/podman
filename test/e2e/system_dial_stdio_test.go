@@ -4,7 +4,6 @@ import (
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman system dial-stdio", func() {
@@ -22,7 +21,6 @@ var _ = Describe("podman system dial-stdio", func() {
 		}
 		session := podmanTest.Podman([]string{"system", "dial-stdio"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("Error: failed to open connection to podman"))
+		Expect(session).Should(ExitWithError(125, "Error: failed to open connection to podman"))
 	})
 })

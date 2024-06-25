@@ -232,8 +232,7 @@ var _ = Describe("Podman run", func() {
 
 		run := podmanTest.Podman([]string{"run", pushedImage, "date"})
 		run.WaitWithDefaultTimeout()
-		Expect(run).Should(Exit(125))
-		Expect(run.ErrorToString()).To(ContainSubstring("pinging container registry localhost:" + port))
+		Expect(run).Should(ExitWithError(125, "pinging container registry localhost:"+port))
 		Expect(run.ErrorToString()).To(ContainSubstring("http: server gave HTTP response to HTTPS client"))
 
 		run = podmanTest.Podman([]string{"run", "--tls-verify=false", pushedImage, "echo", "got here"})
@@ -393,8 +392,7 @@ var _ = Describe("Podman run", func() {
 			if _, err := os.Stat(mask); err == nil {
 				session = podmanTest.Podman([]string{"exec", "maskCtr", "touch", mask})
 				session.WaitWithDefaultTimeout()
-				Expect(session).Should(Exit(1))
-				Expect(session.ErrorToString()).To(Equal(fmt.Sprintf("touch: %s: Read-only file system", mask)))
+				Expect(session).Should(ExitWithError(1, fmt.Sprintf("touch: %s: Read-only file system", mask)))
 			}
 		}
 	})
@@ -530,15 +528,13 @@ var _ = Describe("Podman run", func() {
 		cmd = append(secOpts, cmd...)
 		session = podmanTest.Podman(append([]string{"run"}, cmd...))
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("ln: /linkNotAllowed: Operation not permitted"))
+		Expect(session).To(ExitWithError(1, "ln: /linkNotAllowed: Operation not permitted"))
 
 		// ...even with --privileged
 		cmd = append([]string{"--privileged"}, cmd...)
 		session = podmanTest.Podman(append([]string{"run"}, cmd...))
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(Exit(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("ln: /linkNotAllowed: Operation not permitted"))
+		Expect(session).To(ExitWithError(1, "ln: /linkNotAllowed: Operation not permitted"))
 	})
 
 	It("podman run seccomp test --privileged no profile should be unconfined", func() {
@@ -791,7 +787,7 @@ USER bin`, BB)
 		// network sysctls should fail if --net=host is set
 		session = podmanTest.Podman([]string{"run", "--net", "host", "--rm", "--sysctl", "net.core.somaxconn=65535", ALPINE, "sysctl", "net.core.somaxconn"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "sysctl net.core.somaxconn=65535 can't be set since Network Namespace set to host: invalid argument"))
 	})
 
 	It("podman run blkio-weight test", func() {
@@ -1126,19 +1122,19 @@ echo -n %s >%s
 	It("podman run attach nonsense errors", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "asdfasdf", ALPINE, "ls", "/"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, `invalid stream "asdfasdf" for --attach - must be one of stdin, stdout, or stderr: invalid argument`))
 	})
 
 	It("podman run exit code on failure to exec", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(126))
+		Expect(session).Should(ExitWithError(126, "open executable: Operation not permitted: OCI permission denied"))
 	})
 
 	It("podman run error on exec", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 100"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(100))
+		Expect(session).Should(ExitWithError(100, ""))
 	})
 
 	It("podman run with named volume", func() {
@@ -1222,8 +1218,7 @@ USER mail`, BB)
 		// check that the read-only option works
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro", ALPINE, "touch", mountpoint + "abc.txt"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("Read-only file system"))
+		Expect(session).Should(ExitWithError(1, "Read-only file system"))
 
 		// check that both z and ro options work
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro,z", ALPINE, "cat", mountpoint + filename})
@@ -1234,14 +1229,12 @@ USER mail`, BB)
 		// check that multiple ro/rw are not working
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":ro,rw", ALPINE, "cat", mountpoint + filename})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("cannot set ro or rw options more than once"))
+		Expect(session).Should(ExitWithError(125, "cannot set ro or rw options more than once"))
 
 		// check that multiple z options are not working
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID + ":z,z,ro", ALPINE, "cat", mountpoint + filename})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("cannot set :z more than once in mount options"))
+		Expect(session).Should(ExitWithError(125, "cannot set :z more than once in mount options"))
 
 		// create new read-only volume
 		session = podmanTest.Podman([]string{"create", "--volume", vol + ":" + mountpoint + ":ro", ALPINE, "cat", mountpoint + filename})
@@ -1252,8 +1245,7 @@ USER mail`, BB)
 		// check if the original volume was mounted as read-only that --volumes-from also mount it as read-only
 		session = podmanTest.Podman([]string{"run", "--volumes-from", ctrID, ALPINE, "touch", mountpoint + "abc.txt"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(1))
-		Expect(session.ErrorToString()).To(ContainSubstring("Read-only file system"))
+		Expect(session).Should(ExitWithError(1, "Read-only file system"))
 	})
 
 	It("podman run --volumes-from flag with built-in volumes", func() {
@@ -1699,8 +1691,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		// Make sure we error out with --name.
 		session := podmanTest.Podman([]string{"create", "--replace", ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("cannot replace container without --name being set"))
+		Expect(session).Should(ExitWithError(125, "cannot replace container without --name being set"))
 
 		// Run and replace 5 times in a row the "same" container.
 		ctrName := "testCtr"
@@ -1852,7 +1843,7 @@ WORKDIR /madethis`, BB)
 	It("podman run a container with --pull never should fail if no local store", func() {
 		session := podmanTest.Podman([]string{"run", "--pull", "never", "docker.io/library/debian:latest", "ls"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
+		Expect(session).Should(ExitWithError(125, "Error: docker.io/library/debian:latest: image not known"))
 	})
 
 	It("podman run container with --pull missing and only pull once", func() {
@@ -2180,8 +2171,7 @@ WORKDIR /madethis`, BB)
 		// Must fail without --decryption-key
 		session = podmanTest.Podman([]string{"run", "--tls-verify=false", imgPath})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(Exit(125))
-		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + imgPath))
+		Expect(session).Should(ExitWithError(125, "Trying to pull "+imgPath))
 		Expect(session.ErrorToString()).To(ContainSubstring("invalid tar header"))
 
 		// With
