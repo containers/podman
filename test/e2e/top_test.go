@@ -119,6 +119,18 @@ var _ = Describe("Podman top", func() {
 		exec := podmanTest.Podman([]string{"top", session.OutputToString(), "aux"})
 		exec.WaitWithDefaultTimeout()
 		Expect(exec).Should(ExitWithError(125, "OCI runtime attempted to invoke a command that was not found"))
+
+		session = podmanTest.Podman([]string{"run", "-d", "--uidmap=0:1000:1000", "--user", "9", fedoraMinimal, "sleep", "inf"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		result = podmanTest.Podman([]string{"top", session.OutputToString(), "-ef", "hn"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		output := result.OutputToString()
+		Expect(output).To(ContainSubstring("sleep inf"))
+		// check for https://github.com/containers/podman/issues/22293
+		Expect(output).To(HavePrefix("9 "), "user id of process")
 	})
 
 	It("podman top with comma-separated options", func() {
