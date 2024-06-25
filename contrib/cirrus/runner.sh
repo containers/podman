@@ -61,14 +61,10 @@ function _run_compose_v2() {
 }
 
 function _run_int() {
-    _bail_if_test_can_be_skipped test/e2e
-
     dotest integration
 }
 
 function _run_sys() {
-    _bail_if_test_can_be_skipped test/system
-
     dotest system
 }
 
@@ -79,8 +75,6 @@ function _run_upgrade_test() {
 }
 
 function _run_bud() {
-    _bail_if_test_can_be_skipped test/buildah-bud
-
     showrun ./test/buildah-bud/run-buildah-bud-tests |& logformatter
 }
 
@@ -429,8 +423,6 @@ dotest() {
 }
 
 _run_machine-linux() {
-    _bail_if_test_can_be_skipped pkg/machine/e2e
-
     showrun make localmachine |& logformatter
 }
 
