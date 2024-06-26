@@ -79,6 +79,48 @@ gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e4
 aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241e895dbf1737580b4d84eed27a311a2b74287ef9f79f]
 
 
+validate-source_task:
+    name: "Validate source code changes"
+    alias: validate-source
+    # This task is primarily intended to catch human-errors early on, in a
+    # PR context.  Skip running it everywhere else.
+    only_if: &is_pr "$CIRRUS_PR != ''"
+    gce_instance:
+        image_project: libpod-218412
+        zone: "us-central1-a"
+        # golangci-lint is a very, very hungry beast.
+        cpu: 8
+        memory: "16Gb"
+        # Required to be 200gig, do not modify - has i/o performance impact
+        # according to gcloud CLI tool warning messages.
+        disk: 200
+        image_name: "${FEDORA_CACHE_IMAGE_NAME}"  # from stdenvars
+    env:
+        TEST_FLAVOR: validate-source
+    # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
+    #       environment expectations in contrib/cirrus/lib.sh.  Specifically
+    #       the 'origin' remote must be defined, and all remote branches/tags
+    #       must be available for reference from CI scripts.
+    clone_script: &full_clone |
+          set -exo pipefail
+          cd /
+          rm -rf $CIRRUS_WORKING_DIR
+          mkdir -p $CIRRUS_WORKING_DIR
+          git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
+          cd $CIRRUS_WORKING_DIR
+          git remote update origin
+          if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
+              git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
+              git checkout pull/$CIRRUS_PR
+          else
+              git reset --hard $CIRRUS_CHANGE_IN_REPO
+          fi
+    # Standard setup stage call, used by nearly every task in CI.
+    setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
+    # Standard main execution stage call, used by nearly every task in CI.
+    main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
+
+
 # N/B: This matrix of build tasks are critical to CI, along with the following
 # aarch64 task. They build binaries for all CI platforms, and versions. On
 # success, the contents of the repository are preserved as an artifact for
@@ -120,33 +162,15 @@ build_task:
               CI_DESIRED_NETWORK: netavark
     env:
         TEST_FLAVOR: build
-    # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
-    #       environment expectations in contrib/cirrus/lib.sh.  Specifically
-    #       the 'origin' remote must be defined, and all remote branches/tags
-    #       must be available for reference from CI scripts.
-    clone_script: &full_clone |
-          set -exo pipefail
-          cd /
-          rm -rf $CIRRUS_WORKING_DIR
-          mkdir -p $CIRRUS_WORKING_DIR
-          git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
-          cd $CIRRUS_WORKING_DIR
-          git remote update origin
-          if [[ -n "$CIRRUS_PR" ]]; then # running for a PR
-              git fetch origin pull/$CIRRUS_PR/head:pull/$CIRRUS_PR
-              git checkout pull/$CIRRUS_PR
-          else
-              git reset --hard $CIRRUS_CHANGE_IN_REPO
-          fi
+    clone_script: *full_clone
     # Attempt to prevent flakes by confirming basic environment expectations,
     # network service connectivity and essential container image availability.
+    # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
     prebuild_script: &prebuild $SCRIPT_BASE/prebuild.sh
-    # Standard setup stage call, used by nearly every task in CI.
-    setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
+    setup_script: *setup
     # Attempt to prevent flakes by confirming automation environment and
     # all required external/3rd-party services are available and functional.
-    # Standard main execution stage call, used by nearly every task in CI.
-    main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
+    main_script: *main
     # Attempt to catch code-quality and vendoring problems early.
     postbuild_script: &postbuild $SCRIPT_BASE/postbuild.sh
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
@@ -160,48 +184,6 @@ build_task:
         runner_stats_artifacts:
             path: ./*-${STATS_LOGFILE_SFX}
             type: text/plain
-
-
-# Confirm the result of building on at least one platform appears sane.
-# This confirms the binaries can be executed, checks --help vs docs, and
-# other essential post-build validation checks.
-validate_task:
-    name: "Validate ${DISTRO_NV} Build"
-    alias: validate
-    # This task is primarily intended to catch human-errors early on, in a
-    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
-    # automation reliability/speed in those contexts.  Any missed errors due
-    # to nonsequential PR merging practices, will be caught on a future PR,
-    # build or test task failures.
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &is_pr "$CIRRUS_PR != ''"
-    depends_on:
-        - build
-    # golangci-lint is a very, very hungry beast.
-    gce_instance: &bigvm
-        <<: *standardvm
-        cpu: 8
-        memory: "16Gb"
-    matrix:
-        - env:
-            <<: *stdenvars
-            VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-            DISTRO_NV: ${FEDORA_NAME}
-        - env:
-            <<: *stdenvars
-            VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
-            DISTRO_NV: ${RAWHIDE_NAME}
-    env:
-        TEST_FLAVOR: validate
-    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
-    clone_script: &get_gosrc |
-        cd /tmp
-        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
-        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
-        time tar xjf /tmp/repo.tbz -C $GOSRC
-    setup_script: *setup
-    main_script: *main
-    always: *runner_stats
 
 
 build_aarch64_task:
@@ -219,6 +201,7 @@ build_aarch64_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_FLAVOR: build
     clone_script: *full_clone
+    # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
     prebuild_script: *prebuild
     setup_script: *setup
     postbuild_script: *postbuild
@@ -230,37 +213,6 @@ build_aarch64_task:
     repo_artifacts: &repo_artifacts_aarch64
         path: ./repo.tbz
         type: application/octet-stream
-    always: *runner_stats
-
-
-# Confirm the result of building on at least one platform appears sane.
-# This confirms the binaries can be executed, checks --help vs docs, and
-# other essential post-build validation checks.
-validate_aarch64_task:
-    name: "Validate $DISTRO_NV Build"
-    alias: validate_aarch64
-    # This task is primarily intended to catch human-errors early on, in a
-    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
-    # automation reliability/speed in those contexts.  Any missed errors due
-    # to nonsequential PR merging practices, will be caught on a future PR,
-    # build or test task failures.
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *is_pr
-    depends_on:
-        - build_aarch64
-    ec2_instance: *standard_build_ec2_aarch64
-    env:
-        <<: *stdenvars_aarch64
-        TEST_FLAVOR: validate
-        DISTRO_NV: ${FEDORA_AARCH64_NAME}
-    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
-    clone_script: &get_gosrc_aarch64 |
-        cd /tmp
-        echo "$ARTCURL/build_aarch64/repo/repo.tbz"
-        time $ARTCURL/build_aarch64/repo/repo.tbz
-        time tar xjf /tmp/repo.tbz -C $GOSRC
-    setup_script: *setup
-    main_script: *main
     always: *runner_stats
 
 
@@ -393,10 +345,9 @@ build_success_task:
     name: "Total Build Success"
     alias: build_success
     depends_on:
+        - validate-source
         - build
-        - validate
         - build_aarch64
-        - validate_aarch64
         - alt_build
         - osx_alt_build
         - freebsd_alt_build
@@ -430,7 +381,12 @@ bindings_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
-    clone_script: *get_gosrc
+    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
+    clone_script: &get_gosrc |
+        cd /tmp
+        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
+        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
+        time tar xjf /tmp/repo.tbz -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
@@ -781,7 +737,12 @@ podman_machine_aarch64_task:
         PRIV_NAME: "rootless"  # intended use-case
         DISTRO_NV: "${FEDORA_AARCH64_NAME}"
         VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
-    clone_script: *get_gosrc_aarch64
+    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
+    clone_script: &get_gosrc_aarch64 |
+        cd /tmp
+        echo "$ARTCURL/build_aarch64/repo/repo.tbz"
+        time $ARTCURL/build_aarch64/repo/repo.tbz
+        time tar xjf /tmp/repo.tbz -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
