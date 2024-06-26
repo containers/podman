@@ -260,7 +260,7 @@ alt_build_task:
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
-    name: "OSX Cross"
+    name: "Build for MacOS amd64+arm64"
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
@@ -1169,7 +1169,7 @@ artifacts_task:
     osx_binaries_script:
         - mkdir -p /tmp/osx
         - cd /tmp/osx
-        - $ARTCURL/OSX%20Cross/repo/repo.tbz
+        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tbz
         - tar xjf repo.tbz
         - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
         - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/
