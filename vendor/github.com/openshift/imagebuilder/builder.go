@@ -30,12 +30,29 @@ type Copy struct {
 	Download bool
 	// If set, the owner:group for the destination.  This value is passed
 	// to the executor for handling.
-	Chown    string
-	Chmod    string
+	Chown string
+	Chmod string
+	// If set, a checksum which the source must match, or be rejected.
 	Checksum string
 	// Additional files which need to be created by executor for this
 	// instruction.
 	Files []File
+	// If set, when the source is a URL for a remote Git repository,
+	// refrain from stripping out the .git subdirectory after cloning it.
+	KeepGitDir bool
+	// If set, instead of adding these items to the rootfs and picking them
+	// up as part of a subsequent diff generation, build an archive of them
+	// and include it as an independent layer.
+	Link bool
+	// If set, preserve leading directories in the paths of items being
+	// copied, relative to either the top of the build context, or to the
+	// "pivot point", a location in the source path marked by a path
+	// component named "." (i.e., where "/./" occurs in the path).
+	Parents bool
+	// Exclusion patterns, a la .dockerignore, relative to either the top
+	// of a directory tree being copied, or the "pivot point", a location
+	// in the source path marked by a path component named ".".
+	Excludes []string
 }
 
 // File defines if any additional file needs to be created

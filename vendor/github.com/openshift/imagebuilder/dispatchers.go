@@ -168,6 +168,9 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 	var chown string
 	var chmod string
 	var checksum string
+	var keepGitDir bool
+	var link bool
+	var excludes []string
 	last := len(args) - 1
 	dest := makeAbsolute(args[last], b.RunConfig.WorkingDir)
 	filteredUserArgs := make(map[string]string)
@@ -199,8 +202,22 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 			if checksum == "" {
 				return fmt.Errorf("no value specified for --checksum=")
 			}
+		case arg == "--link", arg == "--link=true":
+			link = true
+		case arg == "--link=false":
+			link = false
+		case arg == "--keep-git-dir", arg == "--keep-git-dir=true":
+			keepGitDir = true
+		case arg == "--keep-git-dir=false":
+			keepGitDir = false
+		case strings.HasPrefix(arg, "--exclude="):
+			exclude := strings.TrimPrefix(arg, "--exclude=")
+			if exclude == "" {
+				return fmt.Errorf("no value specified for --exclude=")
+			}
+			excludes = append(excludes, exclude)
 		default:
-			return fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> flags")
+			return fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, --checksum=<checksum>, --link, --keep-git-dir, and --exclude=<pattern> flags")
 		}
 	}
 	files, err := processHereDocs(buildkitcommand.Add, original, heredocs, userArgs)
@@ -208,13 +225,17 @@ func add(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		return err
 	}
 	b.PendingCopies = append(b.PendingCopies, Copy{
-		Src:      args[0:last],
-		Dest:     dest,
-		Download: true,
-		Chown:    chown,
-		Chmod:    chmod,
-		Checksum: checksum,
-		Files:    files})
+		Src:        args[0:last],
+		Dest:       dest,
+		Download:   true,
+		Chown:      chown,
+		Chmod:      chmod,
+		Checksum:   checksum,
+		Files:      files,
+		KeepGitDir: keepGitDir,
+		Link:       link,
+		Excludes:   excludes,
+	})
 	return nil
 }
 
@@ -230,6 +251,9 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 	var chown string
 	var chmod string
 	var from string
+	var link bool
+	var parents bool
+	var excludes []string
 	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
@@ -253,15 +277,40 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 			if from == "" {
 				return fmt.Errorf("no value specified for --from=")
 			}
+		case arg == "--link", arg == "--link=true":
+			link = true
+		case arg == "--link=false":
+			link = false
+		case arg == "--parents", arg == "--parents=true":
+			parents = true
+		case arg == "--parents=false":
+			parents = false
+		case strings.HasPrefix(arg, "--exclude="):
+			exclude := strings.TrimPrefix(arg, "--exclude=")
+			if exclude == "" {
+				return fmt.Errorf("no value specified for --exclude=")
+			}
+			excludes = append(excludes, exclude)
 		default:
-			return fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
+			return fmt.Errorf("COPY only supports the --chmod=<permissions>, --chown=<uid:gid>, --from=<image|stage>, --link, --parents, and --exclude=<pattern> flags")
 		}
 	}
 	files, err := processHereDocs(buildkitcommand.Copy, original, heredocs, userArgs)
 	if err != nil {
 		return err
 	}
-	b.PendingCopies = append(b.PendingCopies, Copy{From: from, Src: args[0:last], Dest: dest, Download: false, Chown: chown, Chmod: chmod, Files: files})
+	b.PendingCopies = append(b.PendingCopies, Copy{
+		From:     from,
+		Src:      args[0:last],
+		Dest:     dest,
+		Download: false,
+		Chown:    chown,
+		Chmod:    chmod,
+		Files:    files,
+		Link:     link,
+		Parents:  parents,
+		Excludes: excludes,
+	})
 	return nil
 }
 
@@ -308,7 +357,7 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 		}
 	}
 	for _, a := range flagArgs {
-		arg, err := ProcessWord(a, userArgs)
+		arg, err := ProcessWord(a, nameArgs)
 		if err != nil {
 			return err
 		}
@@ -768,6 +817,8 @@ func shell(b *Builder, args []string, attributes map[string]bool, flagArgs []str
 	return nil
 }
 
+// checkChmodConversion makes sure that the argument to a --chmod= flag for
+// COPY or ADD is an octal number
 func checkChmodConversion(chmod string) error {
 	_, err := strconv.ParseUint(chmod, 8, 32)
 	if err != nil {
