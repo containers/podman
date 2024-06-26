@@ -56,7 +56,6 @@ type ConmonOCIRuntime struct {
 	conmonPath        string
 	conmonEnv         []string
 	tmpDir            string
-	exitsDir          string
 	logSizeMax        int64
 	noPivot           bool
 	reservePorts      bool
@@ -144,14 +143,9 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 		return nil, fmt.Errorf("no valid executable found for OCI runtime %s: %w", name, define.ErrInvalidArg)
 	}
 
-	runtime.exitsDir = filepath.Join(runtime.tmpDir, "exits")
 	// The persist-dir is where conmon writes the exit file and oom file (if oom killed), we join the container ID to this path later on
 	runtime.persistDir = filepath.Join(runtime.tmpDir, "persist")
 
-	// Create the exit files and attach sockets directories
-	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
-		return nil, fmt.Errorf("creating OCI runtime exit files directory: %w", err)
-	}
 	if err := os.MkdirAll(runtime.persistDir, 0750); err != nil {
 		return nil, fmt.Errorf("creating OCI runtime persist directory: %w", err)
 	}
@@ -848,18 +842,34 @@ func (r *ConmonOCIRuntime) AttachSocketPath(ctr *Container) (string, error) {
 	return filepath.Join(ctr.bundlePath(), "attach"), nil
 }
 
+// PersistDir returns the persit dir containing oom & exit files for containers.
+func (r *ConmonOCIRuntime) PersistDir(ctr *Container) (string, error) {
+	if ctr == nil {
+		return "", fmt.Errorf("must provide a valid container to get persist dir: %w", define.ErrInvalidArg)
+	}
+
+	return filepath.Join(r.persistDir, ctr.ID()), nil
+}
+
 // ExitFilePath is the path to a container's exit file.
 func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
-	if ctr == nil {
-		return "", fmt.Errorf("must provide a valid container to get exit file path: %w", define.ErrInvalidArg)
+	persistDir, err := r.PersistDir(ctr)
+	if err != nil {
+		return "", err
 	}
-	return filepath.Join(r.exitsDir, ctr.ID()), nil
+
+	return filepath.Join(persistDir, "exit"), nil
 }
 
 // OOMFilePath is the path to a container's oom file.
 // The oom file will only exist if the container was oom killed.
 func (r *ConmonOCIRuntime) OOMFilePath(ctr *Container) (string, error) {
-	return filepath.Join(r.persistDir, ctr.ID(), "oom"), nil
+	persistDir, err := r.PersistDir(ctr)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(persistDir, "oom"), nil
 }
 
 // RuntimeInfo provides information on the runtime.
@@ -1008,7 +1018,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	persistDir := filepath.Join(r.persistDir, ctr.ID())
-	args, err := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, persistDir, ociLog, ctr.LogDriver(), logTag)
+	args, err := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), persistDir, ociLog, ctr.LogDriver(), logTag)
 	if err != nil {
 		return 0, err
 	}
@@ -1272,8 +1282,8 @@ func (r *ConmonOCIRuntime) configureConmonEnv() ([]string, error) {
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-// func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
+// func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
 	// Make the persists directory for the container after the ctr ID is appended to it in the caller
 	// This is needed as conmon writes the exit and oom file in the given persist directory path as just "exit" and "oom"
 	// So creating a directory with the container ID under the persist dir will help keep track of which container the
@@ -1291,7 +1301,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		"-b", bundlePath,
 		"-p", pidPath,
 		"-n", ctr.Name(),
-		"--exit-dir", exitDir,
 		"--persist-dir", persistDir,
 		"--full-attach",
 	}

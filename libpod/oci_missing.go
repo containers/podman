@@ -27,8 +27,6 @@ var (
 type MissingRuntime struct {
 	// Name is the name of the missing runtime. Will be used in errors.
 	name string
-	// exitsDir is the directory for exit files.
-	exitsDir string
 	// persistDir is the directory for exit and oom files.
 	persistDir string
 }
@@ -53,7 +51,6 @@ func getMissingRuntime(name string, r *Runtime) OCIRuntime {
 
 	newRuntime := new(MissingRuntime)
 	newRuntime.name = name
-	newRuntime.exitsDir = filepath.Join(r.config.Engine.TmpDir, "exits")
 	newRuntime.persistDir = filepath.Join(r.config.Engine.TmpDir, "persist")
 
 	missingRuntimes[name] = newRuntime
@@ -208,22 +205,38 @@ func (r *MissingRuntime) ExecAttachSocketPath(ctr *Container, sessionID string) 
 	return "", r.printError()
 }
 
+// PersistDir returns the persit dir containing oom & exit files for containers.
+func (r *MissingRuntime) PersistDir(ctr *Container) (string, error) {
+	if ctr == nil {
+		return "", fmt.Errorf("must provide a valid container to get persist dir: %w", define.ErrInvalidArg)
+	}
+
+	return filepath.Join(r.persistDir, ctr.ID()), nil
+}
+
 // ExitFilePath returns the exit file path for containers.
 // Here, we mimic what ConmonOCIRuntime does, because there is a chance that the
 // container in question is still running happily (config file modified to
 // remove a runtime, for example). We can't find the runtime to do anything to
 // the container, but Conmon should still place an exit file for it.
 func (r *MissingRuntime) ExitFilePath(ctr *Container) (string, error) {
-	if ctr == nil {
-		return "", fmt.Errorf("must provide a valid container to get exit file path: %w", define.ErrInvalidArg)
+	persistDir, err := r.PersistDir(ctr)
+	if err != nil {
+		return "", err
 	}
-	return filepath.Join(r.exitsDir, ctr.ID()), nil
+
+	return filepath.Join(persistDir, "exit"), nil
 }
 
 // OOMFilePath returns the oom file path for a container.
 // The oom file will only exist if the container was oom killed.
 func (r *MissingRuntime) OOMFilePath(ctr *Container) (string, error) {
-	return filepath.Join(r.persistDir, ctr.ID(), "oom"), nil
+	persistDir, err := r.PersistDir(ctr)
+	if err != nil {
+		return "", err
+	}
+
+	return filepath.Join(persistDir, "oom"), nil
 }
 
 // RuntimeInfo returns information on the missing runtime

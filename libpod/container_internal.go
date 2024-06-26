@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -151,6 +150,10 @@ func (c *Container) exitFilePath() (string, error) {
 
 func (c *Container) oomFilePath() (string, error) {
 	return c.ociRuntime.OOMFilePath(c)
+}
+
+func (c *Container) persistDir() (string, error) {
+	return c.ociRuntime.PersistDir(c)
 }
 
 // Wait for the container's exit file to appear.
@@ -757,22 +760,12 @@ func (c *Container) removeConmonFiles() error {
 		return fmt.Errorf("removing container %s winsz file: %w", c.ID(), err)
 	}
 
-	// Remove the exit file so we don't leak memory in tmpfs
-	exitFile, err := c.exitFilePath()
+	persistDir, err := c.persistDir()
 	if err != nil {
 		return err
 	}
-	if err := os.Remove(exitFile); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("removing container %s exit file: %w", c.ID(), err)
-	}
-
-	// Remove the oom file
-	oomFile, err := c.oomFilePath()
-	if err != nil {
-		return err
-	}
-	if err := os.Remove(oomFile); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return fmt.Errorf("removing container %s oom file: %w", c.ID(), err)
+	if err := os.RemoveAll(persistDir); err != nil {
+		return fmt.Errorf("removing container %s perist dir with exit & oom files %q: %w", c.ID(), persistDir, err)
 	}
 
 	return nil

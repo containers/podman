@@ -885,16 +885,16 @@ func (c *Container) execAttachSocketPath(sessionID string) (string, error) {
 	return c.ociRuntime.ExecAttachSocketPath(c, sessionID)
 }
 
-// execExitFileDir gets the path to the container's exit file
-func (c *Container) execExitFileDir(sessionID string) string {
-	return filepath.Join(c.execBundlePath(sessionID), "exit")
-}
-
 // execPersistDir gets the path to the container's persist directory
 // The persist directory container the exit file and oom file (if oomkilled)
 // of a container
 func (c *Container) execPersistDir(sessionID string) string {
 	return filepath.Join(c.execBundlePath(sessionID), "persist", c.ID())
+}
+
+// execExitFileDir gets the path to the container's exit file
+func (c *Container) execExitFileDir(sessionID string) string {
+	return filepath.Join(c.execPersistDir(sessionID), "exit")
 }
 
 // execOCILog returns the file path for the exec sessions oci log
@@ -918,12 +918,6 @@ func (c *Container) createExecBundle(sessionID string) (retErr error) {
 			}
 		}
 	}()
-	if err := os.MkdirAll(c.execExitFileDir(sessionID), execDirPermission); err != nil {
-		// The directory is allowed to exist
-		if !os.IsExist(err) {
-			return fmt.Errorf("creating OCI runtime exit file path %s: %w", c.execExitFileDir(sessionID), err)
-		}
-	}
 	if err := os.MkdirAll(c.execPersistDir(sessionID), execDirPermission); err != nil {
 		return fmt.Errorf("creating OCI runtime persist directory path %s: %w", c.execPersistDir(sessionID), err)
 	}
