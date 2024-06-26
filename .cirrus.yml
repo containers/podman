@@ -90,8 +90,7 @@ build_task:
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
-        cpu: 2
-        memory: "4Gb"
+        type: "c2d-highcpu-16"
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.
         disk: 200
@@ -195,6 +194,7 @@ validate_task:
         TEST_FLAVOR: validate
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc |
+        /bin/false  # FIXME: TESTING
         cd /tmp
         echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
         time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
@@ -255,6 +255,7 @@ validate_aarch64_task:
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc_aarch64 |
+        /bin/false  # FIXME: TESTING
         cd /tmp
         echo "$ARTCURL/build_aarch64/repo/repo.tbz"
         time $ARTCURL/build_aarch64/repo/repo.tbz
