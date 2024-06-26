@@ -278,8 +278,8 @@ done
 
 rm -f %{buildroot}%{_mandir}/man5/docker*.5
 
-install -d -p %{buildroot}/%{_datadir}/%{name}/test/system
-cp -pav test/system %{buildroot}/%{_datadir}/%{name}/test/
+install -d -p %{buildroot}%{_datadir}/%{name}/test/system
+cp -pav test/system %{buildroot}%{_datadir}/%{name}/test/
 
 # symlink virtiofsd in %%{name} libexecdir for machine subpackage
 ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
@@ -339,9 +339,4 @@ ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
 %{_libexecdir}/%{name}/virtiofsd
 
 %changelog
-%if %{defined autochangelog}
 %autochangelog
-%else
-* Mon May 01 2023 RH Container Bot <rhcontainerbot@fedoraproject.org>
-- Placeholder changelog for envs that are not autochangelog-ready
-%endif
