@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/sirupsen/logrus"
 )
 
@@ -35,7 +37,7 @@ var _ = Describe("podman machine init", func() {
 		cpus = 1
 	}
 
-	It("bad init name", func() {
+	It("bad init", func() {
 		i := initMachine{}
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		session, err := mb.setName(reallyLongName).setCmd(&i).run()
@@ -77,6 +79,16 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
 		Expect(session.errorToString()).To(ContainSubstring(`invalid username "-/a": names must match [a-zA-Z0-9][a-zA-Z0-9_.-]*: invalid argument`))
+
+		// this comes in bytes
+		memStat, err := mem.VirtualMemory()
+		Expect(err).ToNot(HaveOccurred())
+		total := strongunits.ToMib(strongunits.B(memStat.Total)) + 1024
+
+		badMem := initMachine{}
+		badMemSession, err := mb.setCmd(badMem.withMemory(uint(total))).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(badMemSession).To(Exit(125))
 	})
 
 	It("simple init", func() {
