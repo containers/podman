@@ -71,18 +71,7 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 
 	unitFiles := make([]ignition.Unit, 0, len(mounts))
 	for _, mnt := range mounts {
-		// Here we are looping the mounts and for each mount, we are adding two unit files
-		// for virtiofs.  One unit file is the mount itself and the second is to automount it
-		// on boot.
-		autoMountUnit := parser.NewUnitFile()
-		autoMountUnit.Add("Automount", "Where", "%s")
-		autoMountUnit.Add("Install", "WantedBy", "multi-user.target")
-		autoMountUnit.Add("Unit", "Description", "Mount virtiofs volume %s")
-		autoMountUnitFile, err := autoMountUnit.ToString()
-		if err != nil {
-			return nil, err
-		}
-
+		// Create mount unit for each mount
 		mountUnit := parser.NewUnitFile()
 		mountUnit.Add("Mount", "What", "%s")
 		mountUnit.Add("Mount", "Where", "%s")
@@ -94,49 +83,57 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 			return nil, err
 		}
 
-		virtiofsAutomount := ignition.Unit{
-			Enabled:  ignition.BoolToPtr(true),
-			Name:     fmt.Sprintf("%s.automount", parser.PathEscape(mnt.Target)),
-			Contents: ignition.StrToPtr(fmt.Sprintf(autoMountUnitFile, mnt.Tag, mnt.Target)),
-		}
 		virtiofsMount := ignition.Unit{
 			Enabled:  ignition.BoolToPtr(true),
 			Name:     fmt.Sprintf("%s.mount", parser.PathEscape(mnt.Target)),
 			Contents: ignition.StrToPtr(fmt.Sprintf(mountUnitFile, mnt.Tag, mnt.Target)),
 		}
 
-		// This "unit" simulates something like systemctl enable virtiofs-mount-prepare@
-		enablePrep := ignition.Unit{
-			Enabled: ignition.BoolToPtr(true),
-			Name:    fmt.Sprintf("virtiofs-mount-prepare@%s.service", parser.PathEscape(mnt.Target)),
-		}
-
-		unitFiles = append(unitFiles, virtiofsAutomount, virtiofsMount, enablePrep)
+		unitFiles = append(unitFiles, virtiofsMount)
 	}
 
-	// mount prep is a way to workaround the FCOS limitation of creating directories
+	// This is a way to workaround the FCOS limitation of creating directories
 	// at the rootfs / and then mounting to them.
-	mountPrep := parser.NewUnitFile()
-	mountPrep.Add("Unit", "Description", "Allow virtios to mount to /")
-	mountPrep.Add("Unit", "DefaultDependencies", "no")
-	mountPrep.Add("Unit", "ConditionPathExists", "!%f")
+	immutableRootOff := parser.NewUnitFile()
+	immutableRootOff.Add("Unit", "Description", "Allow systemd to create mount points on /")
+	immutableRootOff.Add("Unit", "DefaultDependencies", "no")
 
-	mountPrep.Add("Service", "Type", "oneshot")
-	mountPrep.Add("Service", "ExecStartPre", "chattr -i /")
-	mountPrep.Add("Service", "ExecStart", "mkdir -p '%f'")
-	mountPrep.Add("Service", "ExecStopPost", "chattr +i /")
+	immutableRootOff.Add("Service", "Type", "oneshot")
+	immutableRootOff.Add("Service", "ExecStart", "chattr -i /")
 
-	mountPrep.Add("Install", "WantedBy", "remote-fs.target")
-	mountPrepFile, err := mountPrep.ToString()
+	immutableRootOff.Add("Install", "WantedBy", "remote-fs-pre.target")
+	immutableRootOffFile, err := immutableRootOff.ToString()
 	if err != nil {
 		return nil, err
 	}
 
-	virtioFSChattr := ignition.Unit{
-		Contents: ignition.StrToPtr(mountPrepFile),
-		Name:     "virtiofs-mount-prepare@.service",
+	immutableRootOffUnit := ignition.Unit{
+		Contents: ignition.StrToPtr(immutableRootOffFile),
+		Name:     "immutable-root-off.service",
+		Enabled:  ignition.BoolToPtr(true),
 	}
-	unitFiles = append(unitFiles, virtioFSChattr)
+	unitFiles = append(unitFiles, immutableRootOffUnit)
+
+	immutableRootOn := parser.NewUnitFile()
+	immutableRootOn.Add("Unit", "Description", "Set / back to immutable after mounts are done")
+	immutableRootOn.Add("Unit", "DefaultDependencies", "no")
+	immutableRootOn.Add("Unit", "After", "remote-fs.target")
+
+	immutableRootOn.Add("Service", "Type", "oneshot")
+	immutableRootOn.Add("Service", "ExecStart", "chattr +i /")
+
+	immutableRootOn.Add("Install", "WantedBy", "remote-fs.target")
+	immutableRootOnFile, err := immutableRootOn.ToString()
+	if err != nil {
+		return nil, err
+	}
+
+	immutableRootOnUnit := ignition.Unit{
+		Contents: ignition.StrToPtr(immutableRootOnFile),
+		Name:     "immutable-root-on.service",
+		Enabled:  ignition.BoolToPtr(true),
+	}
+	unitFiles = append(unitFiles, immutableRootOnUnit)
 
 	return unitFiles, nil
 }
