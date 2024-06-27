@@ -128,7 +128,7 @@ validate-source_task:
 # otherwise duplicative effort in most tasks.
 build_task:
     alias: 'build'
-    name: 'Build for $DISTRO_NV'
+    name: 'Build for $DISTRO_NV' # N/B: Referenced by URLencoded strings elsewhere
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
@@ -237,17 +237,17 @@ alt_build_task:
       - env:
             # TODO: Replace with task using `winmake` to build
             # binary and archive installation zip file.
-            ALT_NAME: 'Windows Cross'
+            ALT_NAME: 'Windows Cross' # N/B: Referenced by URLencoded strings elsewhere
       - env:
-            ALT_NAME: 'Alt Arch. x86 Cross'
+            ALT_NAME: 'Alt Arch. x86 Cross' # N/B: Referenced by URLencoded strings elsewhere
       - env:
-            ALT_NAME: 'Alt Arch. ARM Cross'
+            ALT_NAME: 'Alt Arch. ARM Cross' # N/B: Referenced by URLencoded strings elsewhere
       - env:
-            ALT_NAME: 'Alt Arch. MIPS Cross'
+            ALT_NAME: 'Alt Arch. MIPS Cross' # N/B: Referenced by URLencoded strings elsewhere
       - env:
-            ALT_NAME: 'Alt Arch. MIPS64 Cross'
+            ALT_NAME: 'Alt Arch. MIPS64 Cross' # N/B: Referenced by URLencoded strings elsewhere
       - env:
-            ALT_NAME: 'Alt Arch. Other Cross'
+            ALT_NAME: 'Alt Arch. Other Cross' # N/B: Referenced by URLencoded strings elsewhere
     # This task cannot make use of the shared repo.tbz artifact.
     clone_script: *full_clone
     setup_script: *setup
@@ -260,7 +260,7 @@ alt_build_task:
 
 # Confirm building the remote client, natively on a Mac OS-X VM.
 osx_alt_build_task:
-    name: "Build for MacOS amd64+arm64"
+    name: "Build for MacOS amd64+arm64" # N/B: Referenced by URLencoded strings elsewhere
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
