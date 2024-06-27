@@ -12,6 +12,8 @@ packages:
   podman-centos:
     pkg_tool: centpkg
     specfile_path: rpm/podman.spec
+  podman-rhel:
+    specfile_path: rpm/podman.spec
 
 srpm_build_deps:
   - git-archive-all
@@ -25,32 +27,39 @@ jobs:
   - job: copr_build
     trigger: pull_request
     packages: [podman-fedora]
-    notifications:
+    notifications: &packit_build_failure_notification
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
     targets:
-      - fedora-all-x86_64
-      - fedora-all-aarch64
-      - fedora-eln-x86_64
-      - fedora-eln-aarch64
-    additional_repos:
-      - "copr://rhcontainerbot/podman-next"
+      fedora-all-x86_64: {}
+      fedora-all-aarch64: {}
+      fedora-eln-x86_64:
+        additional_repos:
+          - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/x86_64/"
+      fedora-eln-aarch64:
+        additional_repos:
+          - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/aarch64/"
 
   - job: copr_build
     trigger: pull_request
     packages: [podman-centos]
-    notifications:
-      failure_comment:
-        message: "Ephemeral COPR build failed. @containers/packit-build please check."
+    notifications: *packit_build_failure_notification
+    enable_net: true
+    targets:
+      - centos-stream-9-x86_64
+      - centos-stream-9-aarch64
+      - centos-stream-10-x86_64
+      - centos-stream-10-aarch64
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [podman-rhel]
+    notifications: *packit_build_failure_notification
     enable_net: true
     targets:
       - epel-9-x86_64
       - epel-9-aarch64
-      - centos-stream-10-x86_64
-      - centos-stream-10-aarch64
-    additional_repos:
-      - "copr://rhcontainerbot/podman-next"
 
   # Run on commit to main branch
   - job: copr_build
