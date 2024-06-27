@@ -126,12 +126,14 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	switch mp.VMType() {
 	case machineDefine.QemuVirt:
 		imageExtension = ".qcow2"
-	case machineDefine.AppleHvVirt:
+	case machineDefine.AppleHvVirt, machineDefine.LibKrun:
 		imageExtension = ".raw"
 	case machineDefine.HyperVVirt:
 		imageExtension = ".vhdx"
+	case machineDefine.WSLVirt:
+		imageExtension = ""
 	default:
-		// do nothing
+		return fmt.Errorf("unknown VM type: %s", mp.VMType())
 	}
 
 	imagePath, err = dirs.DataDir.AppendToNewVMFile(fmt.Sprintf("%s-%s%s", opts.Name, runtime.GOARCH, imageExtension), nil)
