@@ -1687,6 +1687,19 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman run --device and --privileged", func() {
+		session := podmanTest.Podman([]string{"run", "--device", "/dev/null:/dev/testdevice", "--privileged", ALPINE, "ls", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring(" testdevice "), "our custom device")
+		// assumes that /dev/mem always exists
+		Expect(session.OutputToString()).To(ContainSubstring(" mem "), "privileged device")
+
+		session = podmanTest.Podman([]string{"run", "--device", "invalid-device", "--privileged", ALPINE, "ls", "/dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "stat invalid-device: no such file or directory"))
+	})
+
 	It("podman run --replace", func() {
 		// Make sure we error out with --name.
 		session := podmanTest.Podman([]string{"create", "--replace", ALPINE, "/bin/sh"})
