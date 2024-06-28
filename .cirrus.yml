@@ -737,7 +737,6 @@ podman_machine_aarch64_task:
         PRIV_NAME: "rootless"  # intended use-case
         DISTRO_NV: "${FEDORA_AARCH64_NAME}"
         VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
-    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc_aarch64 |
         cd /tmp
         echo "$ARTCURL/build_aarch64/repo/repo.tbz"
