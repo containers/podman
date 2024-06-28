@@ -1,0 +1,9 @@
+## assert-podman-args "--log-opt" "path=/var/log/some-logs.json"
+## assert-podman-args "--log-opt" "size=10mb"
+## assert-podman-args "--log-opt" "tag="{{.ImageName}}""
+
+[Kube]
+Yaml=deployment.yml
+LogOpt=path=/var/log/some-logs.json
+LogOpt=size=10mb
+LogOpt=tag="{{.ImageName}}"

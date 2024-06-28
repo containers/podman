@@ -278,6 +278,7 @@ Valid options for `[Container]` are listed below:
 | IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
 | Label="XYZ"                          | --label "XYZ"                                        |
 | LogDriver=journald                   | --log-driver journald                                |
+| LogOpt=path=/var/log/mykube\.json    | --log-opt path=/var/log/mykube\.json                 |
 | Mask=/proc/sys/foo\:/proc/sys/bar    | --security-opt mask=/proc/sys/foo:/proc/sys/bar      |
 | Mount=type=...                       | --mount type=...                                     |
 | Network=host                         | --net host                                           |
@@ -556,6 +557,12 @@ This key can be listed multiple times.
 
 Set the log-driver used by Podman when running the container.
 Equivalent to the Podman `--log-driver` option.
+
+### `LogOpt=`
+
+Set the log-opt (logging options) used by Podman when running the container.
+Equivalent to the Podman `--log-opt` option.
+This key can be listed multiple times.
 
 ### `Mask=`
 
