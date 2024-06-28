@@ -57,9 +57,7 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 	runDir := dirs.RuntimeDir
 	cmd.PidFile = filepath.Join(runDir.GetPath(), "gvproxy.pid")
 
-	if logrus.IsLevelEnabled(logrus.DebugLevel) {
-		cmd.LogFile = filepath.Join(runDir.GetPath(), "gvproxy.log")
-	}
+	cmd.LogFile = filepath.Join(runDir.GetPath(), "gvproxy.log")
 
 	cmd.SSHPort = mc.SSH.Port
 
