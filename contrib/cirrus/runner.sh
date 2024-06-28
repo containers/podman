@@ -243,6 +243,10 @@ function _run_altbuild() {
     cd $GOSRC
     case "$ALT_NAME" in
         *Each*)
+            if [[ -z "$CIRRUS_PR" ]]; then
+                echo ".....only meaningful on PRs"
+                return
+            fi
             showrun git fetch origin
             # The make-and-check-size script, introduced 2022-03-22 in #13518,
             # runs 'make' (the original purpose of this check) against
