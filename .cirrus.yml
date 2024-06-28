@@ -29,7 +29,6 @@ env:
     FEDORA_NAME: "fedora-39"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
     PRIOR_FEDORA_NAME: "fedora-38"
-    RAWHIDE_NAME: "rawhide"
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
@@ -41,7 +40,6 @@ env:
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
@@ -115,11 +113,6 @@ build_task:
               CI_DESIRED_STORAGE: vfs
               # Catch invalid "TMPDIR == /tmp" assumptions; PR #19281
               TMPDIR: /var/tmp
-        - env:
-              <<: *stdenvars
-              DISTRO_NV: ${RAWHIDE_NAME}
-              VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
-              CTR_FQIN: ""
         - env:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
@@ -227,10 +220,6 @@ validate_task:
             <<: *stdenvars
             VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
             DISTRO_NV: ${FEDORA_NAME}
-        - env:
-            <<: *stdenvars
-            VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
-            DISTRO_NV: ${RAWHIDE_NAME}
     env:
         TEST_FLAVOR: validate
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
@@ -925,7 +914,6 @@ meta_task:
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            ${RAWHIDE_CACHE_IMAGE_NAME}
             ${DEBIAN_CACHE_IMAGE_NAME}
             build-push-${IMAGE_SUFFIX}
         EC2IMGNAMES: >-
