@@ -111,6 +111,9 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.Unsetenv("SSH_AUTH_SOCK"); err != nil {
 		Fail("unable to unset SSH_AUTH_SOCK")
 	}
+	if err := os.Setenv("PODMAN_CONNECTIONS_CONF", filepath.Join(homeDir, "connections.json")); err != nil {
+		Fail("failed to set PODMAN_CONNECTIONS_CONF")
+	}
 	mb, err := newMB()
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create machine test: %q", err))
