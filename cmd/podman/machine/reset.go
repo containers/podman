@@ -7,14 +7,14 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/env"
+	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,6 @@ var (
 		Use:               "reset [options]",
 		Short:             "Remove all machines",
 		Long:              "Remove all machines, configurations, data, and cached images",
-		PersistentPreRunE: machinePreRunE,
 		RunE:              reset,
 		Args:              validate.NoArgs,
 		Example:           `podman machine reset`,
@@ -51,21 +50,19 @@ func reset(_ *cobra.Command, _ []string) error {
 		err error
 	)
 
-	dirs, err := env.GetMachineDirs(provider.VMType())
-	if err != nil {
-		return err
-	}
-
-	// TODO we could consider saying we get a list of vms but can proceed
-	// to just delete all local disk dirs, etc.  Maybe a --proceed?
-	mcs, err := vmconfigs.LoadMachinesInDir(dirs)
+	providers, err := provider2.GetAll(resetOptions.Force)
 	if err != nil {
 		return err
 	}
 
 	if !resetOptions.Force {
-		vms := vmNamesFromMcs(mcs)
-		resetConfirmationMessage(vms)
+		listResponse, err := shim.List(providers, machine.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		resetConfirmationMessage(listResponse)
+
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Print("\nAre you sure you want to continue? [y/N] ")
 		answer, err := reader.ReadString('\n')
@@ -76,24 +73,18 @@ func reset(_ *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
-
-	// resetErr can be nil or a multi-error
-	return shim.Reset(dirs, provider, mcs)
+	return shim.Reset(providers, resetOptions)
 }
 
-func resetConfirmationMessage(vms []string) {
+func resetConfirmationMessage(listResponse []*machine.ListResponse) {
 	fmt.Println("Warning: this command will delete all existing Podman machines")
 	fmt.Println("and all of the configuration and data directories for Podman machines")
 	fmt.Printf("\nThe following machine(s) will be deleted:\n\n")
-	for _, msg := range vms {
-		fmt.Printf("%s\n", msg)
-	}
-}
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintln(w, "NAME\tPROVIDER")
 
-func vmNamesFromMcs(mcs map[string]*vmconfigs.MachineConfig) []string {
-	keys := make([]string, 0, len(mcs))
-	for k := range mcs {
-		keys = append(keys, k)
+	for _, m := range listResponse {
+		fmt.Fprintf(w, "%s\t%s\n", m.Name, m.VMType)
 	}
-	return keys
+	w.Flush()
 }
