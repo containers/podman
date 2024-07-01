@@ -9,7 +9,9 @@ import (
 	"bytes"
 	"encoding/base64"
 	"io"
+	"strings"
 
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/internal"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/klauspost/compress/zstd"
@@ -374,8 +376,12 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 			return err
 		}
 		xattrs := make(map[string]string)
-		for k, v := range hdr.Xattrs {
-			xattrs[k] = base64.StdEncoding.EncodeToString([]byte(v))
+		for k, v := range hdr.PAXRecords {
+			xattrKey, ok := strings.CutPrefix(k, archive.PaxSchilyXattr)
+			if !ok {
+				continue
+			}
+			xattrs[xattrKey] = base64.StdEncoding.EncodeToString([]byte(v))
 		}
 		entries := []internal.FileMetadata{
 			{

@@ -19,16 +19,6 @@ package quota
 #include <linux/quota.h>
 #include <linux/dqblk_xfs.h>
 
-#ifndef FS_XFLAG_PROJINHERIT
-struct fsxattr {
-	__u32		fsx_xflags;
-	__u32		fsx_extsize;
-	__u32		fsx_nextents;
-	__u32		fsx_projid;
-	unsigned char	fsx_pad[12];
-};
-#define FS_XFLAG_PROJINHERIT	0x00000200
-#endif
 #ifndef FS_IOC_FSGETXATTR
 #define FS_IOC_FSGETXATTR		_IOR ('X', 31, struct fsxattr)
 #endif
@@ -357,7 +347,6 @@ func setProjectID(targetPath string, projectID uint32) error {
 		return fmt.Errorf("failed to get projid for %s: %w", targetPath, errno)
 	}
 	fsx.fsx_projid = C.__u32(projectID)
-	fsx.fsx_xflags |= C.FS_XFLAG_PROJINHERIT
 	_, _, errno = unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSSETXATTR,
 		uintptr(unsafe.Pointer(&fsx)))
 	if errno != 0 {

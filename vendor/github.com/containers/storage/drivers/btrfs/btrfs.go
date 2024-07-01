@@ -66,11 +66,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 		return nil, fmt.Errorf("%q is not on a btrfs filesystem: %w", home, graphdriver.ErrPrerequisites)
 	}
 
-	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UIDMaps, options.GIDMaps)
-	if err != nil {
-		return nil, err
-	}
-	if err := idtools.MkdirAllAs(filepath.Join(home, "subvolumes"), 0o700, rootUID, rootGID); err != nil {
+	if err := os.MkdirAll(filepath.Join(home, "subvolumes"), 0o700); err != nil {
 		return nil, err
 	}
 
@@ -85,8 +81,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 
 	driver := &Driver{
 		home:    home,
-		uidMaps: options.UIDMaps,
-		gidMaps: options.GIDMaps,
 		options: opt,
 	}
 
@@ -129,8 +123,6 @@ func parseOptions(opt []string) (btrfsOptions, bool, error) {
 type Driver struct {
 	// root of the file system
 	home         string
-	uidMaps      []idtools.IDMap
-	gidMaps      []idtools.IDMap
 	options      btrfsOptions
 	quotaEnabled bool
 	once         sync.Once
@@ -481,11 +473,7 @@ func (d *Driver) CreateReadWrite(id, parent string, opts *graphdriver.CreateOpts
 func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 	quotas := d.quotasDir()
 	subvolumes := d.subvolumesDir()
-	rootUID, rootGID, err := idtools.GetRootUIDGID(d.uidMaps, d.gidMaps)
-	if err != nil {
-		return err
-	}
-	if err := idtools.MkdirAllAs(subvolumes, 0o700, rootUID, rootGID); err != nil {
+	if err := os.MkdirAll(subvolumes, 0o700); err != nil {
 		return err
 	}
 	if parent == "" {
@@ -523,18 +511,10 @@ func (d *Driver) Create(id, parent string, opts *graphdriver.CreateOpts) error {
 		if err := d.setStorageSize(path.Join(subvolumes, id), driver); err != nil {
 			return err
 		}
-		if err := idtools.MkdirAllAs(quotas, 0o700, rootUID, rootGID); err != nil {
+		if err := os.MkdirAll(quotas, 0o700); err != nil {
 			return err
 		}
 		if err := os.WriteFile(path.Join(quotas, id), []byte(fmt.Sprint(driver.options.size)), 0o644); err != nil {
-			return err
-		}
-	}
-
-	// if we have a remapped root (user namespaces enabled), change the created snapshot
-	// dir ownership to match
-	if rootUID != 0 || rootGID != 0 {
-		if err := os.Chown(path.Join(subvolumes, id), rootUID, rootGID); err != nil {
 			return err
 		}
 	}

@@ -5,7 +5,7 @@ import (
 )
 
 // Deprecated: Use lockfile.*LockFile.
-type Locker = lockfile.Locker //lint:ignore SA1019 // lockfile.Locker is deprecated
+type Locker = lockfile.Locker //nolint:staticcheck // SA1019 lockfile.Locker is deprecated
 
 // Deprecated: Use lockfile.GetLockFile.
 func GetLockfile(path string) (lockfile.Locker, error) {
