@@ -110,6 +110,7 @@ const (
 	KeyKubeDownForce         = "KubeDownForce"
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
+	KeyLogOpt                = "LogOpt"
 	KeyMask                  = "Mask"
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
@@ -212,6 +213,7 @@ var (
 		KeyImage:                 true,
 		KeyLabel:                 true,
 		KeyLogDriver:             true,
+		KeyLogOpt:                true,
 		KeyMask:                  true,
 		KeyMount:                 true,
 		KeyNetwork:               true,
@@ -299,6 +301,7 @@ var (
 		KeyGlobalArgs:           true,
 		KeyKubeDownForce:        true,
 		KeyLogDriver:            true,
+		KeyLogOpt:               true,
 		KeyNetwork:              true,
 		KeyPodmanArgs:           true,
 		KeyPublishPort:          true,
@@ -544,6 +547,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	)
 
 	handleLogDriver(container, ContainerGroup, podman)
+	handleLogOpt(container, ContainerGroup, podman)
 
 	// We delegate groups to the runtime
 	service.Add(ServiceGroup, "Delegate", "yes")
@@ -1164,6 +1168,7 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	}
 
 	handleLogDriver(kube, KubeGroup, execStart)
+	handleLogOpt(kube, KubeGroup, execStart)
 
 	if err := handleUserMappings(kube, KubeGroup, execStart, isUser, false); err != nil {
 		return nil, err
@@ -1810,6 +1815,13 @@ func handleLogDriver(unitFile *parser.UnitFile, groupName string, podman *Podman
 	logDriver, found := unitFile.Lookup(groupName, KeyLogDriver)
 	if found {
 		podman.add("--log-driver", logDriver)
+	}
+}
+
+func handleLogOpt(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	logOpts := unitFile.LookupAllStrv(groupName, KeyLogOpt)
+	for _, logOpt := range logOpts {
+		podman.add("--log-opt", logOpt)
 	}
 }
 
