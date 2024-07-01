@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
@@ -14,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -196,6 +198,12 @@ func initMachine(cmd *cobra.Command, args []string) error {
 		initOpts.UserModeNetworking = &initOptionalFlags.UserModeNetworking
 	}
 
+	if cmd.Flags().Changed("memory") {
+		if err := checkMaxMemory(strongunits.MiB(initOpts.Memory)); err != nil {
+			return err
+		}
+	}
+
 	// TODO need to work this back in
 	// if finished, err := vm.Init(initOpts); err != nil || !finished {
 	// 	// Finished = true,  err  = nil  -  Success! Log a message with further instructions
@@ -225,4 +233,17 @@ func initMachine(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("To start your machine run:\n\n\tpodman machine start%s\n\n", extra)
 	return err
+}
+
+// checkMaxMemory gets the total system memory and compares it to the variable.  if the variable
+// is larger than the total memory, it returns an error
+func checkMaxMemory(newMem strongunits.MiB) error {
+	memStat, err := mem.VirtualMemory()
+	if err != nil {
+		return err
+	}
+	if total := strongunits.B(memStat.Total); strongunits.B(memStat.Total) < newMem.ToBytes() {
+		return fmt.Errorf("requested amount of memory (%d MB) greater than total system memory (%d MB)", newMem, total)
+	}
+	return nil
 }

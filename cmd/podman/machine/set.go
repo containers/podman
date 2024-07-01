@@ -111,6 +111,9 @@ func setMachine(cmd *cobra.Command, args []string) error {
 	}
 	if cmd.Flags().Changed("memory") {
 		newMemory := strongunits.MiB(setFlags.Memory)
+		if err := checkMaxMemory(newMemory); err != nil {
+			return err
+		}
 		setOpts.Memory = &newMemory
 	}
 	if cmd.Flags().Changed("disk-size") {
