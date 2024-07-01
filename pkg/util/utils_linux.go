@@ -106,7 +106,6 @@ func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 	if err != nil {
 		return err
 	}
-	g.ClearLinuxDevices()
 
 	if rootless.IsRootless() {
 		mounts := make(map[string]interface{})
