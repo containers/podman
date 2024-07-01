@@ -18,17 +18,6 @@ import (
 )
 
 var _ = Describe("run basic podman commands", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("Basic ops", func() {
 		// golangci-lint has trouble with actually skipping tests marked Skip

@@ -15,17 +15,6 @@ import (
 )
 
 var _ = Describe("podman machine init - windows only", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("init with user mode networking", func() {
 		if testProvider.VMType() != define.WSLVirt {

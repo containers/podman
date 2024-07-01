@@ -14,17 +14,6 @@ import (
 )
 
 var _ = Describe("podman machine list", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("list machine", func() {
 		list := new(listMachine)

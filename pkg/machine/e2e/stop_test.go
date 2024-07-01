@@ -10,17 +10,6 @@ import (
 )
 
 var _ = Describe("podman machine stop", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("stop bad name", func() {
 		i := stopMachine{}
