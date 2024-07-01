@@ -19,8 +19,11 @@ import (
 // Old root is removed after the call to pivot_root so it is no longer available under the new root.
 // This is similar to how libcontainer sets up a container's rootfs
 func chroot(path string) (err error) {
-	caps, err := capability.NewPid(0)
+	caps, err := capability.NewPid2(0)
 	if err != nil {
+		return err
+	}
+	if err := caps.Load(); err != nil {
 		return err
 	}
 

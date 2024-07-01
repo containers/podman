@@ -2,9 +2,14 @@ package chunked
 
 import (
 	"encoding/binary"
+	"fmt"
 	"hash/crc32"
 	"io"
+
+	"github.com/docker/go-units"
 )
+
+const bloomFilterMaxLength = 100 * units.MB // max size for bloom filter
 
 type bloomFilter struct {
 	bitArray []uint64
@@ -78,6 +83,10 @@ func readBloomFilter(reader io.Reader) (*bloomFilter, error) {
 	}
 	if err := binary.Read(reader, binary.LittleEndian, &k); err != nil {
 		return nil, err
+	}
+	// sanity check
+	if bloomFilterLen > bloomFilterMaxLength {
+		return nil, fmt.Errorf("bloom filter length %d exceeds max length %d", bloomFilterLen, bloomFilterMaxLength)
 	}
 	bloomFilterArray := make([]uint64, bloomFilterLen)
 	if err := binary.Read(reader, binary.LittleEndian, &bloomFilterArray); err != nil {

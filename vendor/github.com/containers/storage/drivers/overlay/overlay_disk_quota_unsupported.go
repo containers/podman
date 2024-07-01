@@ -1,5 +1,6 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build linux && (!cgo || exclude_disk_quota)
+// +build linux
+// +build !cgo exclude_disk_quota
 
 package overlay
 
@@ -13,10 +14,5 @@ import (
 // For Overlay, it attempts to check the XFS quota for size, and falls back to
 // finding the size of the "diff" directory.
 func (d *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
-	usage := &directory.DiskUsage{}
-	if d.quotaCtl != nil {
-		err := d.quotaCtl.GetDiskUsage(d.dir(id), usage)
-		return usage, err
-	}
 	return directory.Usage(path.Join(d.dir(id), "diff"))
 }

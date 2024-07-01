@@ -209,15 +209,26 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Di
 	}
 
 	decodedTarSplit := []byte{}
-	if tarSplitChunk.Offset > 0 {
+	if toc.TarSplitDigest != "" {
+		if tarSplitChunk.Offset <= 0 {
+			return nil, nil, nil, 0, fmt.Errorf("TOC requires a tar-split, but the %s annotation does not describe a position", internal.TarSplitInfoKey)
+		}
 		tarSplit, err := readBlob(tarSplitChunk.Length)
 		if err != nil {
 			return nil, nil, nil, 0, err
 		}
-
 		decodedTarSplit, err = decodeAndValidateBlob(tarSplit, tarSplitLengthUncompressed, toc.TarSplitDigest.String())
 		if err != nil {
 			return nil, nil, nil, 0, fmt.Errorf("validating and decompressing tar-split: %w", err)
+		}
+	} else if tarSplitChunk.Offset > 0 {
+		// We must ignore the tar-split when the digest is not present in the TOC, because we can’t authenticate it.
+		//
+		// But if we asked for the chunk, now we must consume the data to not block the producer.
+		// Ideally the GetBlobAt API should be changed so that this is not necessary.
+		_, err := readBlob(tarSplitChunk.Length)
+		if err != nil {
+			return nil, nil, nil, 0, err
 		}
 	}
 	return decodedBlob, toc, decodedTarSplit, int64(manifestChunk.Offset), err
