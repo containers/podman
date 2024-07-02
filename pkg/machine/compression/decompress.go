@@ -3,11 +3,9 @@ package compression
 import (
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
 )
@@ -66,19 +64,6 @@ func runDecompression(d decompressor, decompressedFilePath string) (retErr error
 	}
 	defer d.close()
 
-	initMsg := progressBarPrefix + ": " + filepath.Base(decompressedFilePath)
-	finalMsg := initMsg + ": done"
-
-	p, bar := utils.ProgressBar(initMsg, d.compressedFileSize(), finalMsg)
-	// Wait for bars to complete and then shut down the bars container
-	defer p.Wait()
-
-	compressedFileReaderProxy := bar.ProxyReader(compressedFileReader)
-	// Interrupts the bar goroutine. It's important that
-	// bar.Abort(false) is called before p.Wait(), otherwise
-	// can hang.
-	defer bar.Abort(false)
-
 	var decompressedFileWriter *os.File
 
 	if decompressedFileWriter, err = os.OpenFile(decompressedFilePath, decompressedFileFlag, d.compressedFileMode()); err != nil {
@@ -94,7 +79,7 @@ func runDecompression(d decompressor, decompressedFilePath string) (retErr error
 		}
 	}()
 
-	if err = d.decompress(decompressedFileWriter, compressedFileReaderProxy); err != nil {
+	if err = d.decompress(decompressedFileWriter, compressedFileReader); err != nil {
 		logrus.Errorf("Error extracting compressed file: %q", err)
 		return err
 	}
