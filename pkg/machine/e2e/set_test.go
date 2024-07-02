@@ -13,17 +13,6 @@ import (
 )
 
 var _ = Describe("podman machine set", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("set machine cpus, disk, memory", func() {
 		skipIfWSL("WSL cannot change set properties of disk, processor, or memory")

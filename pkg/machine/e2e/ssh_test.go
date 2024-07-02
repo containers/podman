@@ -8,17 +8,6 @@ import (
 )
 
 var _ = Describe("podman machine ssh", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("bad machine name", func() {
 		name := randomString()

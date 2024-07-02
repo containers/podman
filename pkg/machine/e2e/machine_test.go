@@ -111,6 +111,9 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.Unsetenv("SSH_AUTH_SOCK"); err != nil {
 		Fail("unable to unset SSH_AUTH_SOCK")
 	}
+	if err := os.Setenv("PODMAN_CONNECTIONS_CONF", filepath.Join(homeDir, "connections.json")); err != nil {
+		Fail("failed to set PODMAN_CONNECTIONS_CONF")
+	}
 	mb, err := newMB()
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create machine test: %q", err))
@@ -128,14 +131,7 @@ func setup() (string, *machineTestBuilder) {
 	return homeDir, mb
 }
 
-func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
-	r := new(rmMachine)
-	for _, name := range mb.names {
-		if _, err := mb.setName(name).setCmd(r.withForce()).run(); err != nil {
-			GinkgoWriter.Printf("error occurred rm'ing machine: %q\n", err)
-		}
-	}
-
+func teardown(origHomeDir string, testDir string) {
 	if err := utils.GuardedRemoveAll(testDir); err != nil {
 		Fail(fmt.Sprintf("failed to remove test dir: %q", err))
 	}
@@ -149,6 +145,18 @@ func teardown(origHomeDir string, testDir string, mb *machineTestBuilder) {
 		}
 	}
 }
+
+var (
+	mb      *machineTestBuilder
+	testDir string
+)
+
+var _ = BeforeEach(func() {
+	testDir, mb = setup()
+	DeferCleanup(func() {
+		teardown(originalHomeDir, testDir)
+	})
+})
 
 func setTmpDir(value string) (string, error) {
 	switch {

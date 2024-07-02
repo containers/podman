@@ -11,17 +11,6 @@ import (
 )
 
 var _ = Describe("podman inspect stop", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("inspect bad name", func() {
 		i := inspectMachine{}

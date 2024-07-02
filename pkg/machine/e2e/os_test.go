@@ -7,17 +7,6 @@ package e2e_test
 // )
 
 // var _ = Describe("podman machine os apply", func() {
-// 	var (
-// 		mb      *machineTestBuilder
-// 		testDir string
-// 	)
-
-// 	BeforeEach(func() {
-// 		testDir, mb = setup()
-// 	})
-// 	AfterEach(func() {
-// 		teardown(originalHomeDir, testDir, mb)
-// 	})
 
 // 	It("apply machine", func() {
 // 		i := new(initMachine)

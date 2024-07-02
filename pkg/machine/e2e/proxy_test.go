@@ -11,17 +11,6 @@ import (
 )
 
 var _ = Describe("podman machine proxy settings propagation", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
 
 	It("ssh to running machine and check proxy settings", func() {
 		defer func() {

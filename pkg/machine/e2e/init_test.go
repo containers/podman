@@ -20,18 +20,6 @@ import (
 )
 
 var _ = Describe("podman machine init", func() {
-	var (
-		mb      *machineTestBuilder
-		testDir string
-	)
-
-	BeforeEach(func() {
-		testDir, mb = setup()
-	})
-	AfterEach(func() {
-		teardown(originalHomeDir, testDir, mb)
-	})
-
 	cpus := runtime.NumCPU() / 2
 	if cpus == 0 {
 		cpus = 1
