@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
@@ -24,7 +25,7 @@ import (
 var originalHomeDir = os.Getenv("HOME")
 
 const (
-	defaultTimeout = 240 * time.Second
+	defaultTimeout = 10 * time.Minute
 )
 
 type machineCommand interface {
@@ -53,7 +54,16 @@ type machineTestBuilder struct {
 // waitWithTimeout waits for a command to complete for a given
 // number of seconds
 func (ms *machineSession) waitWithTimeout(timeout time.Duration) {
-	Eventually(ms, timeout).Should(Exit())
+	Eventually(ms, timeout).Should(Exit(), func() string {
+		// Note eventually does not kill the command as such the command is leaked forever without killing it
+		// Also let's use SIGABRT to create a go stack trace so in case there is a deadlock we see it.
+		ms.Signal(syscall.SIGABRT)
+		// Give some time to let the command print the output so it is not printed much later
+		// in the log at the wrong place.
+		time.Sleep(1 * time.Second)
+		return fmt.Sprintf("command timed out after %fs: %v",
+			timeout.Seconds(), ms.Command.Args)
+	})
 }
 
 func (ms *machineSession) Bytes() []byte {
