@@ -21,6 +21,8 @@ Default settings for flags are defined in `containers.conf`. Most settings for
 Remote connections use the server's containers.conf, except when documented in
 man pages.
 
+DOC only change
+
 **podman [GLOBAL OPTIONS]**
 
 ## GLOBAL OPTIONS
