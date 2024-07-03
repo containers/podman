@@ -5,6 +5,8 @@
 set -Eu
 ME=$(basename $0)
 
+# compose change
+
 ###############################################################################
 # BEGIN stuff you can but probably shouldn't customize
 
