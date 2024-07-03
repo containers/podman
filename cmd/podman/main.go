@@ -119,6 +119,7 @@ func flagErrorFuncfunc(c *cobra.Command, e error) error {
 	return e
 }
 
+// code change
 func addCommand(c registry.CliCommand) {
 	parent := rootCmd
 	if c.Parent != nil {
