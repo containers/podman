@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/sirupsen/logrus"
 )
 
 const zerosThreshold = 1024
@@ -123,12 +125,14 @@ func (sw *sparseWriter) Close() error {
 		return errors.New("file is already closed")
 	}
 	if sw.pendingZeroes != 0 {
+		logrus.Error("sw.pendingZeroes: ", sw.pendingZeroes)
 		if holeSize := sw.pendingZeroes - 1; holeSize >= zerosThreshold {
 			if err := sw.createHole(holeSize); err != nil {
 				return err
 			}
 			sw.pendingZeroes -= holeSize
 		}
+		logrus.Error("sw.pendingZeroes after hole: ", sw.pendingZeroes)
 		var zeroArray [zerosThreshold]byte
 		if _, err := sw.file.Write(zeroArray[:sw.pendingZeroes]); err != nil {
 			return err
