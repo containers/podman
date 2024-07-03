@@ -55,6 +55,30 @@ type machineTestBuilder struct {
 // number of seconds
 func (ms *machineSession) waitWithTimeout(timeout time.Duration) {
 	Eventually(ms, timeout).Should(Exit(), func() string {
+		c := exec.Command("du", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("df", "f")
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("mount")
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("diskutil", "list")
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
 		// Note eventually does not kill the command as such the command is leaked forever without killing it
 		// Also let's use SIGABRT to create a go stack trace so in case there is a deadlock we see it.
 		ms.Signal(syscall.SIGABRT)
