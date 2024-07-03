@@ -222,7 +222,7 @@ build_aarch64_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't create task for [CI:DOCS], or rhel-release builds
+    # Don't create task on rhel-release builds
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
@@ -314,9 +314,7 @@ freebsd_alt_build_task:
     alias: freebsd_alt_build
     # Only run on 'main' and PRs against 'main'
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: |
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
-        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
+    only_if: $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main'
     env:
         <<: *stdenvars
         # Functional FreeBSD builds must be built natively since they depend on CGO
@@ -1134,12 +1132,7 @@ success_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     container: *smallcontainer
     clone_script: *noop
-    script: |
-        if [[ "$CIRRUS_CHANGE_TITLE" =~ CI:MACHINE ]] && [[ -n "$CIRRUS_PR" ]]; then
-            echo "Error: Risk of untested change merge."
-            echo "Please remove [CI:MACHINE] from title."
-            exit 1
-        fi
+    script: *noop
 
 # WARNING: Most of the artifacts captured here are also have their
 # permalinks present in the `DOWNLOADS.md` file.  Any changes made
@@ -1149,7 +1142,6 @@ artifacts_task:
     alias: artifacts
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
