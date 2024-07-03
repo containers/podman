@@ -42,72 +42,32 @@ of this document, it's not possible to override the behavior of `$CIRRUS_PR`.
 
 ## Cirrus Task contexts and runtime modes
 
-### Intended general PR Tasks (*italic*: matrix)
-+ *build*
-+ validate
-+ bindings
-+ swagger
-+ *alt_build*
-+ osx_alt_build
-+ freebsd_alt_build
-+ docker-py_test
-+ *unit_test*
-+ apiv2_test
-+ *compose_test*
-+ *local_integration_test*
-+ *remote_integration_test*
-+ *container_integration_test*
-+ *rootless_integration_test*
-+ *local_system_test*
-+ *remote_system_test*
-+ *rootless_remote_system_test*
-+ *buildah_bud_test*
-+ *rootless_system_test*
-+ rootless_gitlab_test
-+ *upgrade_test*
-+ meta
-+ success
-+ artifacts
+By default cirrus will trigger task depending on the source changes.
 
-### Intended for PR w/ "release" or "bump" in title:
-+ (All the general PR tasks above)
-+ release_test
+It is implemented using the `only_if` field for the cirrus tasks, this logic
+uses the following main rules:
+ - Never skip on cron runs: `$CIRRUS_PR == ''`
+ - Never skip when using the special `CI:ALL` title: `$CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*'`, see below.
+ - Never skip when a danger file is changed, these files contain things that can
+   affect any tasks so the code cannot skip it. It includes
+   - `.cirrus.yml` (cirrus changes)
+   - `Makefile` (make targets are used to trigger tests)
+   - `contrib/cirrus/**` (cirrus scripts to run the tests)
+   - `vendor/**` (dependency updates)
+   - `hack/**` (contains scripts used by several tests)
+   - `version/rawversion/*` (podman version changes, intended to ensure all release PRs test everything to not release known broken code)
 
-### Intended `[CI:DOCS]` PR Tasks:
-+ *build*
-+ validate
-+ swagger
-+ meta
-+ success
+After that, task-specific rules are added, check [.cirrus.yml](../../.cirrus.yml) for them.
+Another common rule used there is `(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))`.
+This rule defines the set of source code. Podman uses both go and c source code,
+however as some tests are also using go code we manually exclude the test
+directories from this list.
 
-### Intended `[CI:BUILD]` PR Tasks:
-+ *build*
-+ validate
-+ *alt_build*
-+ osx_alt_build
-+ freebsd_alt_build
-+ meta
-+ success
-+ artifacts
+### Intended `[CI:ALL]` behavior:
 
-### Intended `[CI:MACHINE]` PR Tasks:
-
-If and only if the PR is in **draft-mode**, run only the following
-tasks.  The draft-mode check is necessary to remove the risk of
-merging a change that affects the untested aspects of podman.
-
-+ *build*
-+ validate
-+ *alt_build*
-+ win_installer
-+ osx_alt_build
-+ podman_machine_task
-+ podman_machine_aarch64_task
-+ podman_machine_windows_task
-+ podman_machine_mac_task
-+ meta
-+ success
-+ artifacts
+As of June 2024, the default Cirrus CI setup skips tasks that it deems
+unnecessary, such as running e2e or system tests on a doc-only PR (see
+#23174). This string in a PR title forces all CI jobs to run.
 
 ### Intended `[CI:NEXT]` behavior:
 
@@ -125,32 +85,3 @@ is removed.
 **Note:** When changing the draft-status of PR, you will need to re-push a
 commit-change before Cirrus-CI will notice the draft-status update (i.e.
 pressing the re-run button **is not** good enough).
-
-### Intended `[CI:ALL]` behavior:
-
-Run even the tasks that are skipped based on changed sources conditions otherwise.
-
-### Intended Branch tasks (and Cirrus-cron jobs):
-+ *build*
-+ swagger
-+ *alt_build*
-+ osx_alt_build
-+ freebsd_alt_build
-+ *local_system_test*
-+ *remote_system_test*
-+ *rootless_remote_system_test*
-+ *rootless_system_test*
-+ meta
-+ success
-+ artifacts
-
-### Intended for new Tag tasks:
-+ *build*
-+ swagger
-+ *alt_build*
-+ osx_alt_build
-+ freebsd_alt_build
-+ meta
-+ success
-+ artifacts
-+ release
