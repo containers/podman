@@ -534,8 +534,15 @@ EOF
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm volume_image stat -f -c %T /data
     is "$output" "tmpfs" "Should be tmpfs"
 
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume anonymous --rm volume_image stat -f -c %T /data
-    assert "$output" != "tmpfs" "Should match hosts $fs"
+    # get the hostfs first so we can match it below
+    run_podman info --format {{.Store.GraphRoot}}
+    hostfs=$(stat -f -c %T $output)
+
+    # stat -f -c %T seems to just return unknown for our normal bind mount for some reason.
+    # Therfore manually parse /proc/mounts to get the real fs for the bind mount.
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume anonymous --rm volume_image \
+        sh -c "grep ' /data ' /proc/mounts | cut -f3 -d' '"
+    assert "$output" == "$hostfs" "Should match hosts graphroot fs"
 
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume tmpfs --rm volume_image stat -f -c %T /data
     is "$output" "tmpfs" "Should be tmpfs"
