@@ -6,20 +6,23 @@
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 @test "podman container storage is not accessible by unprivileged users" {
     skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     skip_if_rootless "test meaningless without suid"
     skip_if_remote
 
-    run_podman run --name c_uidmap   --uidmap 0:10000:10000 $IMAGE true
-    run_podman run --name c_uidmap_v --uidmap 0:10000:10000 -v foo:/foo $IMAGE true
+    local cname1="c_uidmap-$(random_string)"
+    local cname2="c_uidmap_v-$(random_string)"
+    local cname_mount="c_mount-$(random_string)"
+    local volume="vol-$(random_string)"
 
-    run_podman run --name c_mount $IMAGE \
+    run_podman run --name $cname1 --uidmap 0:10000:10000 $IMAGE true
+    run_podman run --name $cname2 --uidmap 0:10000:10000 -v $volume:/foo $IMAGE true
+
+    run_podman run --name $cname_mount $IMAGE \
                sh -c "echo hi > /myfile;mkdir -p /mydir/mysubdir; chmod 777 /myfile /mydir /mydir/mysubdir"
 
-    run_podman mount c_mount
+    run_podman mount $cname_mount
     mount_path=$output
 
     # Do all the work from within a test script. Since we'll be invoking it
@@ -105,11 +108,10 @@ EOF
     # Done. Clean up.
     rm -f $test_script
 
-    run_podman umount c_mount
-    run_podman rm c_mount
+    run_podman umount $cname_mount
 
-    run_podman rm c_uidmap c_uidmap_v
-    run_podman volume rm foo
+    run_podman rm $cname1 $cname2 $cname_mount
+    run_podman volume rm $volume
 }
 
 
