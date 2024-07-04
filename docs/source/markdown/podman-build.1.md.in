@@ -14,8 +14,8 @@ Containerfiles or Dockerfiles and a specified build context directory. A
 Containerfile uses the same syntax as a Dockerfile internally. For this
 document, a file referred to as a Containerfile can be a file named
 either 'Containerfile' or 'Dockerfile' exclusively. Any file that has additional
- extension attached will not be recognized by `podman build .` unless a `-f` flag is
- used to specify the file.
+extension attached will not be recognized by `podman build .` unless a `-f` flag is
+used to specify the file.
 
 The build context directory can be specified as the http(s) URL of an archive,
 git repository or Containerfile.
