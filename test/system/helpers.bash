@@ -291,10 +291,10 @@ function leak_check() {
     # podman always exists
     assert "$output" == "podman" "Leaked networks!!!"
     exit_code=$((exit_code + $?))
-    run_podman pod ps -q
+    run_podman pod ps --noheading
     assert "$output" == "" "Leaked pods!!!"
     exit_code=$((exit_code + $?))
-    run_podman ps -a -q
+    run_podman ps -a --noheading --external
     assert "$output" == "" "Leaked containers!!!"
     exit_code=$((exit_code + $?))
 
