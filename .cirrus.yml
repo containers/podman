@@ -373,7 +373,7 @@ bindings_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('pkg/bindings/test/**') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: &build
@@ -499,7 +499,7 @@ docker-py_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/python/**') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -526,7 +526,7 @@ unit_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('**/*_test.go') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -556,7 +556,7 @@ apiv2_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/apiv2/**') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -588,7 +588,7 @@ compose_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/compose/**') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -620,7 +620,7 @@ local_integration_test_task: &local_integration_test_task
     only_if: &only_if_int_test >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/e2e/**', 'test/utils/**') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -714,7 +714,7 @@ podman_machine_task:
     only_if: &only_if_machine_test >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
     depends_on: *build
     ec2_instance:
@@ -837,7 +837,7 @@ local_system_test_task: &local_system_test_task
     only_if: &only_if_system_test >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/system/**') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -929,7 +929,7 @@ minikube_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/minikube/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     # 2024-05-21: flaking almost constantly since March.
@@ -955,7 +955,7 @@ farm_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/farm/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
@@ -979,7 +979,7 @@ buildah_bud_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('**/*build*.go', 'test/buildah-bud/**')
     depends_on: *build
     env:
@@ -1007,7 +1007,7 @@ upgrade_test_task:
     only_if: >-
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
-        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude( 'Makefile', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/upgrade/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
