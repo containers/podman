@@ -12,6 +12,10 @@ if [[ "${CIRRUS_CHANGE_TITLE}" =~ CI:DOCS ]]; then
     exit 0
 fi
 
+printenv CIRRUS_PR_LABELS
+echo "Cirrus PR Labels $CIRRUS_PR_LABELS"
+exit 1
+
 # HEAD should be good enough, but the CIRRUS envariable allows us to test
 head=${CIRRUS_CHANGE_IN_REPO:-HEAD}
 # Base of this PR. Here we absolutely rely on cirrus.
