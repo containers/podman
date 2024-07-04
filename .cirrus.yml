@@ -222,7 +222,7 @@ build_aarch64_task:
 alt_build_task:
     name: "$ALT_NAME"
     alias: alt_build
-    # Don't create task for [CI:DOCS], or rhel-release builds
+    # Don't create task on rhel-release builds
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
@@ -314,9 +314,7 @@ freebsd_alt_build_task:
     alias: freebsd_alt_build
     # Only run on 'main' and PRs against 'main'
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: |
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*' &&
-        ( $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main' )
+    only_if: $CIRRUS_BRANCH == 'main' || $CIRRUS_BASE_BRANCH == 'main'
     env:
         <<: *stdenvars
         # Functional FreeBSD builds must be built natively since they depend on CGO
@@ -368,13 +366,16 @@ build_success_task:
 bindings_task:
     name: "Test Bindings"
     alias: bindings
-    # Don't create task for PRs using [CI:DOCS] or [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - bindings test code is changed; or
+    #            - actual source code changed
     only_if: >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('pkg/bindings/test/**') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: &build
         - build_success
     gce_instance: *standardvm
@@ -410,11 +411,6 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
-    # Don't create task for [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: |
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -496,14 +492,16 @@ win_installer_task:
 docker-py_test_task:
     name: Docker-py Compat.
     alias: docker-py_test
-    # Don't create task for tags, branches, or PRs w/ [CI:<magic>]
-    # N/B: for PRs $CIRRUS_BRANCH == 'pull/<number>'
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_branch_build_docs_machine >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - docker-py test code is changed; or
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/python/**') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -520,8 +518,17 @@ docker-py_test_task:
 unit_test_task:
     name: "Unit tests on $DISTRO_NV"
     alias: unit_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs_machine
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - unit test files are changed (contains a false positves such as test/e2e/
+    #              but that should not be an issue, it only runs when it doesn't have to)
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('**/*_test.go') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix:
         - env: *stdenvars
@@ -542,8 +549,16 @@ unit_test_task:
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
     alias: apiv2_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs_machine
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - apiv2 test code is changed; or
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/apiv2/**') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
@@ -566,8 +581,16 @@ apiv2_test_task:
 compose_test_task:
     name: "$TEST_FLAVOR test on $DISTRO_NV ($PRIV_NAME)"
     alias: compose_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs_machine
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - compose test code is changed; or
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/compose/**') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     matrix:
@@ -590,19 +613,16 @@ local_integration_test_task: &local_integration_test_task
     # <int.|sys.> <podman|remote> <Distro NV> <root|rootless>
     name: &std_name_fmt "$TEST_FLAVOR $PODBIN_NAME $DISTRO_NV $PRIV_NAME $TEST_ENVIRON ${CI_DESIRED_DATABASE}"
     alias: local_integration_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs_machine
-    # skip when: - it is a PR (we never want to skip on nightly tests); and
-    #            - CI:ALL title is not set; and
-    #            - no danger files are changed; and
-    #            - when no int test code is changed; and
-    #            - NOT (source code is changed AND NOT only test files)
-    skip: &skip_int_test >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
-        !changesInclude('test/e2e/**', 'test/utils/**') &&
-        !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - int test code is changed; or
+    #            - actual source code changed
+    only_if: &only_if_int_test >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/e2e/**', 'test/utils/**') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix: *platform_axis
     # integration tests scale well with cpu as they are parallelized
@@ -643,8 +663,7 @@ container_integration_test_task:
     name: *std_name_fmt
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs_machine
-    skip: *skip_int_test
+    only_if: *only_if_int_test
     depends_on: *build
     matrix: &fedora_vm_axis
         - env:
@@ -672,8 +691,7 @@ rootless_integration_test_task:
     name: *std_name_fmt
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_branch_build_docs_machine
-    skip: *skip_int_test
+    only_if: *only_if_int_test
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *fastvm
@@ -690,22 +708,14 @@ rootless_integration_test_task:
 podman_machine_task:
     name: *std_name_fmt
     alias: podman_machine
-    # Only run for PRs and never [CI:DOCS] or [CI:BUILD]
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &machine_cron_not_tag_build_docs >-
-        ($CIRRUS_PR != '' &&
-         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-         $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-        ) || $CIRRUS_CRON == "main"
-    # skip when: - it is a PR (we never want to skip on nightly tests); and
-    #            - CI:ALL title is not set; and
-    #            - no danger files are changed; and
-    #            - no machine code files are changed
-    skip: &skip_machine_test >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
-        !changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - machine code files are changed
+    only_if: &only_if_machine_test >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
     depends_on: *build
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
@@ -726,8 +736,7 @@ podman_machine_task:
 podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
-    only_if: *machine_cron_not_tag_build_docs
-    skip: *skip_machine_test
+    only_if: *only_if_machine_test
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
@@ -750,10 +759,8 @@ podman_machine_aarch64_task:
 podman_machine_windows_task:
     name: *std_name_fmt
     alias: podman_machine_windows
-    # Only run for non-docs/copr PRs and non-release branch builds
-    # and never for tags.  Docs: ./contrib/cirrus/CIModes.md
-    only_if: *machine_cron_not_tag_build_docs
-    skip: *skip_machine_test
+    # Docs: ./contrib/cirrus/CIModes.md
+    only_if: *only_if_machine_test
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -777,8 +784,7 @@ podman_machine_windows_task:
 podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
-    only_if: *machine_cron_not_tag_build_docs
-    skip: *skip_machine_test
+    only_if: *only_if_machine_test
     depends_on: *build
     persistent_worker: *mac_pw
     env:
@@ -824,24 +830,16 @@ podman_machine_mac_task:
 local_system_test_task: &local_system_test_task
     name: *std_name_fmt
     alias: local_system_test
-    # Don't create task for tags, or if using [CI:*] magic
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &not_tag_magic >-
-        $CIRRUS_TAG == '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:MACHINE.*'
-    # skip when: - it is a PR (we never want to skip on nightly tests); and
-    #            - CI:ALL title is not set; and
-    #            - no danger files are changed; and
-    #            - no system test code is changed; and
-    #            - NOT (source code is changed AND not only test files)
-    skip: &skip_system_test >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
-        !changesInclude('test/system/**') &&
-        !(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - sys test code is changed; or
+    #            - actual source code changed
+    only_if: &only_if_system_test >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/system/**') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -856,10 +854,8 @@ local_system_test_task: &local_system_test_task
 local_system_test_aarch64_task: &local_system_test_task_aarch64
     name: *std_name_fmt
     alias: local_system_test_aarch64
-    # Don't create task for tags, or if using [CI:DOCS], [CI:BUILD]
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
-    skip: *skip_system_test
+    only_if: *only_if_system_test
     depends_on: *build
     persistent_worker: *mac_pw
     ec2_instance: *standard_build_ec2_aarch64
@@ -910,8 +906,7 @@ rootless_system_test_task:
     name: *std_name_fmt
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
-    skip: *skip_system_test
+    only_if: *only_if_system_test
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -927,8 +922,16 @@ rootless_system_test_task:
 minikube_test_task:
     name: *std_name_fmt
     alias: minikube_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - minikube test code is changed or one of the shared helper import files from the system test; or
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/minikube/**', 'test/system/*.bash') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     # 2024-05-21: flaking almost constantly since March.
     skip: $CI == $CI
     depends_on: *build
@@ -945,8 +948,16 @@ minikube_test_task:
 farm_test_task:
     name: *std_name_fmt
     alias: farm_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - farm test code is changed or one of the shared helper import files from the system test; or
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/farm/**', 'test/system/*.bash') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -961,17 +972,15 @@ farm_test_task:
 buildah_bud_test_task:
     name: *std_name_fmt
     alias: buildah_bud_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
-    # skip when: - it is a PR (we never want to skip on nightly tests); and
-    #            - CI:ALL title is not set; and
-    #            - no danger files are changed; and
-    #            - no build source files are changed and no bud tests
-    skip: >-
-        $CIRRUS_PR != '' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:ALL.*' &&
-        !changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') &&
-        !changesInclude('**/*build*.go', 'test/buildah-bud/**')
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - podman build source code files or bud tests files are changed
+    #              (vendor updates, i.e. buildah, are already covered in the main rules)
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('**/*build*.go', 'test/buildah-bud/**')
     depends_on: *build
     env:
         <<: *stdenvars
@@ -991,8 +1000,16 @@ buildah_bud_test_task:
 upgrade_test_task:
     name: "Upgrade test: from $PODMAN_UPGRADE_FROM"
     alias: upgrade_test
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *not_tag_magic
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - upgrade test code is changed or one of the shared helper import files from the system test; or
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('test/upgrade/**', 'test/system/*.bash') ||
+        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix:
         - env:
@@ -1092,12 +1109,7 @@ success_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     container: *smallcontainer
     clone_script: *noop
-    script: |
-        if [[ "$CIRRUS_CHANGE_TITLE" =~ CI:MACHINE ]] && [[ -n "$CIRRUS_PR" ]]; then
-            echo "Error: Risk of untested change merge."
-            echo "Please remove [CI:MACHINE] from title."
-            exit 1
-        fi
+    script: *noop
 
 # WARNING: Most of the artifacts captured here are also have their
 # permalinks present in the `DOWNLOADS.md` file.  Any changes made
@@ -1107,7 +1119,6 @@ artifacts_task:
     alias: artifacts
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
     depends_on:
