@@ -47,6 +47,8 @@ fi
 # Registries are flaky: any time we have to pull an image, that's a risk.
 #
 
+# test change
+
 # Store in a semipermanent location. Not important for CI, but nice for
 # developers so test restarts don't hang fetching images.
 export PODMAN_IMAGECACHE=${BATS_TMPDIR:-/tmp}/podman-systest-imagecache-$(id -u)
