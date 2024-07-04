@@ -193,7 +193,7 @@ type goAway struct {
 	code      http2.ErrCode
 	debugData []byte
 	headsUp   bool
-	closeConn error // if set, loopyWriter will exit, resulting in conn closure
+	closeConn error // if set, loopyWriter will exit with this error
 }
 
 func (*goAway) isTransportResponseFrame() bool { return false }
@@ -336,7 +336,7 @@ func (c *controlBuffer) put(it cbItem) error {
 	return err
 }
 
-func (c *controlBuffer) executeAndPut(f func(it any) bool, it cbItem) (bool, error) {
+func (c *controlBuffer) executeAndPut(f func() bool, it cbItem) (bool, error) {
 	var wakeUp bool
 	c.mu.Lock()
 	if c.err != nil {
@@ -344,7 +344,7 @@ func (c *controlBuffer) executeAndPut(f func(it any) bool, it cbItem) (bool, err
 		return false, c.err
 	}
 	if f != nil {
-		if !f(it) { // f wasn't successful
+		if !f() { // f wasn't successful
 			c.mu.Unlock()
 			return false, nil
 		}
@@ -495,21 +495,22 @@ type loopyWriter struct {
 	ssGoAwayHandler func(*goAway) (bool, error)
 }
 
-func newLoopyWriter(s side, fr *framer, cbuf *controlBuffer, bdpEst *bdpEstimator, conn net.Conn, logger *grpclog.PrefixLogger) *loopyWriter {
+func newLoopyWriter(s side, fr *framer, cbuf *controlBuffer, bdpEst *bdpEstimator, conn net.Conn, logger *grpclog.PrefixLogger, goAwayHandler func(*goAway) (bool, error)) *loopyWriter {
 	var buf bytes.Buffer
 	l := &loopyWriter{
-		side:          s,
-		cbuf:          cbuf,
-		sendQuota:     defaultWindowSize,
-		oiws:          defaultWindowSize,
-		estdStreams:   make(map[uint32]*outStream),
-		activeStreams: newOutStreamList(),
-		framer:        fr,
-		hBuf:          &buf,
-		hEnc:          hpack.NewEncoder(&buf),
-		bdpEst:        bdpEst,
-		conn:          conn,
-		logger:        logger,
+		side:            s,
+		cbuf:            cbuf,
+		sendQuota:       defaultWindowSize,
+		oiws:            defaultWindowSize,
+		estdStreams:     make(map[uint32]*outStream),
+		activeStreams:   newOutStreamList(),
+		framer:          fr,
+		hBuf:            &buf,
+		hEnc:            hpack.NewEncoder(&buf),
+		bdpEst:          bdpEst,
+		conn:            conn,
+		logger:          logger,
+		ssGoAwayHandler: goAwayHandler,
 	}
 	return l
 }

@@ -28,7 +28,7 @@ import (
 
 // NetResolver groups the methods on net.Resolver that are used by the DNS
 // resolver implementation. This allows the default net.Resolver instance to be
-// overidden from tests.
+// overridden from tests.
 type NetResolver interface {
 	LookupHost(ctx context.Context, host string) (addrs []string, err error)
 	LookupSRV(ctx context.Context, service, proto, name string) (cname string, addrs []*net.SRV, err error)
@@ -50,10 +50,6 @@ var (
 
 // The following vars are overridden from tests.
 var (
-	// MinResolutionRate is the minimum rate at which re-resolutions are
-	// allowed. This helps to prevent excessive re-resolution.
-	MinResolutionRate = 30 * time.Second
-
 	// TimeAfterFunc is used by the DNS resolver to wait for the given duration
 	// to elapse. In non-test code, this is implemented by time.After.  In test
 	// code, this can be used to control the amount of time the resolver is

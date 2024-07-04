@@ -962,22 +962,9 @@ func setCallInfoCodec(c *callInfo) error {
 	return nil
 }
 
-// channelzData is used to store channelz related data for ClientConn, addrConn and Server.
-// These fields cannot be embedded in the original structs (e.g. ClientConn), since to do atomic
-// operation on int64 variable on 32-bit machine, user is responsible to enforce memory alignment.
-// Here, by grouping those int64 fields inside a struct, we are enforcing the alignment.
-type channelzData struct {
-	callsStarted   int64
-	callsFailed    int64
-	callsSucceeded int64
-	// lastCallStartedTime stores the timestamp that last call starts. It is of int64 type instead of
-	// time.Time since it's more costly to atomically update time.Time variable than int64 variable.
-	lastCallStartedTime int64
-}
-
 // The SupportPackageIsVersion variables are referenced from generated protocol
 // buffer files to ensure compatibility with the gRPC version used.  The latest
-// support package version is 7.
+// support package version is 9.
 //
 // Older versions are kept for compatibility.
 //
@@ -989,6 +976,7 @@ const (
 	SupportPackageIsVersion6 = true
 	SupportPackageIsVersion7 = true
 	SupportPackageIsVersion8 = true
+	SupportPackageIsVersion9 = true
 )
 
 const grpcUA = "grpc-go/" + Version

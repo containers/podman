@@ -28,9 +28,6 @@ import (
 var (
 	// TXTErrIgnore is set if TXT errors should be ignored ("GRPC_GO_IGNORE_TXT_ERRORS" is not "false").
 	TXTErrIgnore = boolFromEnv("GRPC_GO_IGNORE_TXT_ERRORS", true)
-	// AdvertiseCompressors is set if registered compressor should be advertised
-	// ("GRPC_GO_ADVERTISE_COMPRESSORS" is not "false").
-	AdvertiseCompressors = boolFromEnv("GRPC_GO_ADVERTISE_COMPRESSORS", true)
 	// RingHashCap indicates the maximum ring size which defaults to 4096
 	// entries but may be overridden by setting the environment variable
 	// "GRPC_RING_HASH_CAP".  This does not override the default bounds

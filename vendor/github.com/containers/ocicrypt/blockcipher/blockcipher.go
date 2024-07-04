@@ -96,9 +96,8 @@ func (lbco LayerBlockCipherOptions) GetOpt(key string) (value []byte, ok bool) {
 		return v, ok
 	} else if v, ok := lbco.Private.CipherOptions[key]; ok {
 		return v, ok
-	} else {
-		return nil, false
 	}
+	return nil, false
 }
 
 func wrapFinalizerWithType(fin Finalizer, typ LayerCipherType) Finalizer {
