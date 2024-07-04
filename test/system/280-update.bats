@@ -5,8 +5,6 @@
 
 load helpers
 
-export BATS_NO_PARALLELIZE_WITHIN_FILE=true
-
 LOOPDEVICE=
 
 function teardown() {
@@ -140,15 +138,16 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
 }
 
 @test "podman update - set restart policy" {
+    local cname="c-restart-$(random_string)"
     touch ${PODMAN_TMPDIR}/sentinel
-    run_podman run --security-opt label=disable --name testctr -v ${PODMAN_TMPDIR}:/testdir -d $IMAGE sh -c "touch /testdir/alive; while test -e /testdir/sentinel; do sleep 0.1; done;"
+    run_podman run --security-opt label=disable --name $cname -v ${PODMAN_TMPDIR}:/testdir -d $IMAGE sh -c "touch /testdir/alive; while test -e /testdir/sentinel; do sleep 0.1; done;"
 
-    run_podman container inspect testctr --format "{{ .HostConfig.RestartPolicy.Name }}"
+    run_podman container inspect $cname --format "{{ .HostConfig.RestartPolicy.Name }}"
     is "$output" "no"
 
-    run_podman update --restart always testctr
+    run_podman update --restart always $cname
 
-    run_podman container inspect testctr --format "{{ .HostConfig.RestartPolicy.Name }}"
+    run_podman container inspect $cname --format "{{ .HostConfig.RestartPolicy.Name }}"
     is "$output" "always"
 
     # Ensure the container is alive
@@ -160,7 +159,7 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
     # Restart should ensure that the container comes back up and recreates the file
     wait_for_file ${PODMAN_TMPDIR}/alive
 
-    run_podman rm -f -t0 testctr
+    run_podman rm -f -t0 $cname
 }
 
 # vim: filetype=sh
