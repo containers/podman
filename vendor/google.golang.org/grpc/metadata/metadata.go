@@ -90,6 +90,21 @@ func Pairs(kv ...string) MD {
 	return md
 }
 
+// String implements the Stringer interface for pretty-printing a MD.
+// Ordering of the values is non-deterministic as it ranges over a map.
+func (md MD) String() string {
+	var sb strings.Builder
+	fmt.Fprintf(&sb, "MD{")
+	for k, v := range md {
+		if sb.Len() > 3 {
+			fmt.Fprintf(&sb, ", ")
+		}
+		fmt.Fprintf(&sb, "%s=[%s]", k, strings.Join(v, ", "))
+	}
+	fmt.Fprintf(&sb, "}")
+	return sb.String()
+}
+
 // Len returns the number of items in md.
 func (md MD) Len() int {
 	return len(md)
