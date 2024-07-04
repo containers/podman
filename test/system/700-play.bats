@@ -398,6 +398,8 @@ _EOF
 
     _write_test_yaml command=id image=quay.io/libpod/userimage
     run_podman 125 play kube --build --start=false $PODMAN_TMPDIR/test.yaml
+    assert "$output" =~ "initializing source docker://quay.io/libpod/userimage:latest: reading manifest latest in "
+
     run_podman play kube --replace --context-dir=$PODMAN_TMPDIR --build --start=false $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.User }}" test_pod-test
     is "$output" bin "expect container within pod to run as the bin user"

@@ -1010,6 +1010,7 @@ EOF
     run_podman rm $output
 }
 
+# bats file_tags=distro-integration
 @test "podman run --device-read-bps" {
     skip_if_rootless "cannot use this flag in rootless mode"
     # this test is a triple check on blkio flags since they seem to sneak by the tests

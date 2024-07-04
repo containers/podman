@@ -305,6 +305,7 @@ EOF
     is "$output" "bar1.*bar2.*bar3" "Should match multiple source files on single destination directory"
 }
 
+# bats test_tags=distro-integration
 @test "podman mount noswap memory mounts" {
     # tmpfs+noswap new in kernel 6.x, mid-2023; likely not in RHEL for a while
     if ! is_rootless; then

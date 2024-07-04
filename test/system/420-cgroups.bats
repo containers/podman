@@ -37,6 +37,7 @@ load helpers
     run_podman rm myc
 }
 
+# bats test_tags=distro-integration
 @test "podman run --cgroups=disabled keeps the current cgroup" {
     skip_if_remote "podman-remote does not support --cgroups=disabled"
     skip_if_rootless_cgroupsv1
