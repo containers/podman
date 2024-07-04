@@ -3,13 +3,13 @@ package compat
 import (
 	"time"
 
-	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 )
 
 // CPUStats aggregates and wraps all CPU related info of container
 type CPUStats struct {
 	// CPU Usage. Linux and Windows.
-	CPUUsage docker.CPUUsage `json:"cpu_usage"`
+	CPUUsage container.CPUUsage `json:"cpu_usage"`
 
 	// System Usage. Linux only.
 	SystemUsage uint64 `json:"system_cpu_usage,omitempty"`
@@ -21,7 +21,7 @@ type CPUStats struct {
 	CPU float64 `json:"cpu"`
 
 	// Throttling Data. Linux only.
-	ThrottlingData docker.ThrottlingData `json:"throttling_data,omitempty"`
+	ThrottlingData container.ThrottlingData `json:"throttling_data,omitempty"`
 }
 
 // Stats is Ultimate struct aggregating all types of stats of one container
@@ -31,17 +31,17 @@ type Stats struct {
 	PreRead time.Time `json:"preread"`
 
 	// Linux specific stats, not populated on Windows.
-	PidsStats  docker.PidsStats  `json:"pids_stats,omitempty"`
-	BlkioStats docker.BlkioStats `json:"blkio_stats,omitempty"`
+	PidsStats  container.PidsStats  `json:"pids_stats,omitempty"`
+	BlkioStats container.BlkioStats `json:"blkio_stats,omitempty"`
 
 	// Windows specific stats, not populated on Linux.
-	NumProcs     uint32              `json:"num_procs"`
-	StorageStats docker.StorageStats `json:"storage_stats,omitempty"`
+	NumProcs     uint32                 `json:"num_procs"`
+	StorageStats container.StorageStats `json:"storage_stats,omitempty"`
 
 	// Shared stats
-	CPUStats    CPUStats           `json:"cpu_stats,omitempty"`
-	PreCPUStats CPUStats           `json:"precpu_stats,omitempty"` // "Pre"="Previous"
-	MemoryStats docker.MemoryStats `json:"memory_stats,omitempty"`
+	CPUStats    CPUStats              `json:"cpu_stats,omitempty"`
+	PreCPUStats CPUStats              `json:"precpu_stats,omitempty"` // "Pre"="Previous"
+	MemoryStats container.MemoryStats `json:"memory_stats,omitempty"`
 }
 
 type StatsJSON struct {
@@ -51,7 +51,7 @@ type StatsJSON struct {
 	ID   string `json:"Id,omitempty"`
 
 	// Networks request version >=1.21
-	Networks map[string]docker.NetworkStats `json:"networks,omitempty"`
+	Networks map[string]container.NetworkStats `json:"networks,omitempty"`
 }
 
 // DockerStatsJSON is the same as StatsJSON except for the lowercase
@@ -62,7 +62,6 @@ type DockerStatsJSON struct {
 
 	Name string `json:"name,omitempty"`
 	ID   string `json:"id,omitempty"`
-
 	// Networks request version >=1.21
-	Networks map[string]docker.NetworkStats `json:"networks,omitempty"`
+	Networks map[string]container.NetworkStats `json:"networks,omitempty"`
 }

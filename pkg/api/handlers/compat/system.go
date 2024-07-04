@@ -58,7 +58,8 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			State:      o.Status,
 			Status:     o.Status,
 			HostConfig: struct {
-				NetworkMode string `json:",omitempty"`
+				NetworkMode string            `json:",omitempty"`
+				Annotations map[string]string `json:",omitempty"`
 			}{},
 			NetworkSettings: nil,
 			Mounts:          nil,

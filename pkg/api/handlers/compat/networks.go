@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/docker/docker/api/types"
 	"golang.org/x/exp/maps"
 
 	dockerNetwork "github.com/docker/docker/api/types/network"
@@ -67,8 +66,8 @@ func InspectNetwork(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi.ContainerNetStatus, network *nettypes.Network, changeDefaultName bool) *types.NetworkResource {
-	containerEndpoints := make(map[string]types.EndpointResource, len(statuses))
+func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi.ContainerNetStatus, network *nettypes.Network, changeDefaultName bool) *dockerNetwork.Inspect {
+	containerEndpoints := make(map[string]dockerNetwork.EndpointResource, len(statuses))
 	for _, st := range statuses {
 		if netData, ok := st.Status[network.Name]; ok {
 			ipv4Address := ""
@@ -87,7 +86,7 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 				macAddr = dev.MacAddress.String()
 				break
 			}
-			containerEndpoint := types.EndpointResource{
+			containerEndpoint := dockerNetwork.EndpointResource{
 				Name:        st.Name,
 				MacAddress:  macAddr,
 				IPv4Address: ipv4Address,
@@ -126,7 +125,7 @@ func convertLibpodNetworktoDockerNetwork(runtime *libpod.Runtime, statuses []abi
 	// https://github.com/containers/podman/issues/15580
 	delete(options, nettypes.IsolateOption)
 
-	report := types.NetworkResource{
+	report := dockerNetwork.Inspect{
 		Name:       name,
 		ID:         network.ID,
 		Driver:     network.Driver,
@@ -171,7 +170,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	reports := make([]*types.NetworkResource, 0, len(nets))
+	reports := make([]*dockerNetwork.Summary, 0, len(nets))
 	for _, net := range nets {
 		report := convertLibpodNetworktoDockerNetwork(runtime, statuses, &net, true)
 		reports = append(reports, report)
@@ -181,7 +180,7 @@ func ListNetworks(w http.ResponseWriter, r *http.Request) {
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	var (
-		networkCreate   types.NetworkCreateRequest
+		networkCreate   dockerNetwork.CreateRequest
 		network         nettypes.Network
 		responseWarning string
 	)
@@ -198,7 +197,9 @@ func CreateNetwork(w http.ResponseWriter, r *http.Request) {
 	network.Driver = networkCreate.Driver
 	network.Labels = networkCreate.Labels
 	network.Internal = networkCreate.Internal
-	network.IPv6Enabled = networkCreate.EnableIPv6
+	if networkCreate.EnableIPv6 != nil {
+		network.IPv6Enabled = *networkCreate.EnableIPv6
+	}
 
 	network.Options = make(map[string]string)
 
@@ -357,7 +358,7 @@ func RemoveNetwork(w http.ResponseWriter, r *http.Request) {
 func Connect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	var netConnect types.NetworkConnect
+	var netConnect dockerNetwork.ConnectOptions
 	if err := json.NewDecoder(r.Body).Decode(&netConnect); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return
@@ -439,7 +440,7 @@ func Connect(w http.ResponseWriter, r *http.Request) {
 func Disconnect(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
-	var netDisconnect types.NetworkDisconnect
+	var netDisconnect dockerNetwork.DisconnectOptions
 	if err := json.NewDecoder(r.Body).Decode(&netDisconnect); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("Decode(): %w", err))
 		return

@@ -12,7 +12,7 @@ import (
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/storage/pkg/system"
-	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	runccgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 )
@@ -67,7 +67,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 		preRead = time.Now()
 		systemUsage, _ := cgroups.SystemCPUUsage()
 		preCPUStats = CPUStats{
-			CPUUsage: docker.CPUUsage{
+			CPUUsage: container.CPUUsage{
 				TotalUsage:        stats.CPUNano,
 				PercpuUsage:       stats.PerCPU,
 				UsageInKernelmode: stats.CPUSystemNano,
@@ -76,7 +76,7 @@ func StatsContainer(w http.ResponseWriter, r *http.Request) {
 			CPU:            stats.CPU,
 			SystemUsage:    systemUsage,
 			OnlineCPUs:     0,
-			ThrottlingData: docker.ThrottlingData{},
+			ThrottlingData: container.ThrottlingData{},
 		}
 	}
 	onlineCPUs, err := libpod.GetOnlineCPUs(ctnr)
@@ -119,9 +119,9 @@ streamLabel: // A label to flatten the scope
 			return
 		}
 
-		net := make(map[string]docker.NetworkStats)
+		net := make(map[string]container.NetworkStats)
 		for netName, netStats := range stats.Network {
-			net[netName] = docker.NetworkStats{
+			net[netName] = container.NetworkStats{
 				RxBytes:    netStats.RxBytes,
 				RxPackets:  netStats.RxPackets,
 				RxErrors:   netStats.RxErrors,
@@ -156,11 +156,11 @@ streamLabel: // A label to flatten the scope
 			Stats: Stats{
 				Read:    time.Now(),
 				PreRead: preRead,
-				PidsStats: docker.PidsStats{
+				PidsStats: container.PidsStats{
 					Current: cgroupStat.PidsStats.Current,
 					Limit:   0,
 				},
-				BlkioStats: docker.BlkioStats{
+				BlkioStats: container.BlkioStats{
 					IoServiceBytesRecursive: toBlkioStatEntry(cgroupStat.BlkioStats.IoServiceBytesRecursive),
 					IoServicedRecursive:     nil,
 					IoQueuedRecursive:       nil,
@@ -171,7 +171,7 @@ streamLabel: // A label to flatten the scope
 					SectorsRecursive:        nil,
 				},
 				CPUStats: CPUStats{
-					CPUUsage: docker.CPUUsage{
+					CPUUsage: container.CPUUsage{
 						TotalUsage:        cgroupStat.CpuStats.CpuUsage.TotalUsage,
 						PercpuUsage:       cgroupStat.CpuStats.CpuUsage.PercpuUsage,
 						UsageInKernelmode: cgroupStat.CpuStats.CpuUsage.UsageInKernelmode,
@@ -180,14 +180,14 @@ streamLabel: // A label to flatten the scope
 					CPU:         stats.CPU,
 					SystemUsage: systemUsage,
 					OnlineCPUs:  uint32(onlineCPUs),
-					ThrottlingData: docker.ThrottlingData{
+					ThrottlingData: container.ThrottlingData{
 						Periods:          0,
 						ThrottledPeriods: 0,
 						ThrottledTime:    0,
 					},
 				},
 				PreCPUStats: preCPUStats,
-				MemoryStats: docker.MemoryStats{
+				MemoryStats: container.MemoryStats{
 					Usage:             cgroupStat.MemoryStats.Usage.Usage,
 					MaxUsage:          cgroupStat.MemoryStats.Usage.MaxUsage,
 					Stats:             nil,
@@ -236,8 +236,8 @@ streamLabel: // A label to flatten the scope
 	}
 }
 
-func toBlkioStatEntry(entries []runccgroups.BlkioStatEntry) []docker.BlkioStatEntry {
-	results := make([]docker.BlkioStatEntry, len(entries))
+func toBlkioStatEntry(entries []runccgroups.BlkioStatEntry) []container.BlkioStatEntry {
+	results := make([]container.BlkioStatEntry, len(entries))
 	for i, e := range entries {
 		bits, err := json.Marshal(e)
 		if err != nil {
