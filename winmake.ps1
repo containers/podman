@@ -85,6 +85,44 @@ function Installer{
     Pop-Location
 }
 
+function Test-Installer{
+    param (
+        [string]$version,
+        [ValidateSet("dev", "prod")]
+        [string]$flavor = "dev",
+        [ValidateSet("wsl", "hyperv")]
+        [string]$provider = "wsl"
+    );
+
+    if (-Not $version) {
+        # Get Podman version from local source code
+        $version = Get-Podman-Version
+    }
+
+    if ($flavor -eq "prod") {
+        $suffix = ""
+    } else {
+        $suffix = "-dev"
+    }
+
+    $setupExePath = "$PSScriptRoot\contrib\win-installer\podman-${version}${suffix}-setup.exe"
+    if (!(Test-Path -Path $setupExePath -PathType Leaf)) {
+        Write-Host "Setup executable not found in path $setupExePath."
+        Write-Host "Make 'installer' before making the installer test:"
+        Write-Host "   .\winmake.ps1 installer"
+        Exit 1
+    }
+
+    $command = "$PSScriptRoot\contrib\win-installer\test-installer.ps1"
+    $command += " -operation all"
+    $command += " -provider $provider"
+    $command += " -setupExePath $setupExePath"
+    $command += " -installWSL:`$false"
+    $command += " -installHyperV:`$false"
+    $command += " -skipWinVersionCheck:`$true"
+    Run-Command "${command}"
+}
+
 function Documentation{
     Write-Host "Generating the documentation artifacts"
     # Check that pandoc is installed
@@ -249,6 +287,13 @@ switch ($target) {
     'installer' {
         Installer
     }
+    'installertest' {
+        if ($args.Count -gt 1) {
+            Test-Installer -provider $args[1]
+        } else {
+            Test-Installer
+        }
+    }
     'docs' {
         Documentation
     }
@@ -275,6 +320,9 @@ switch ($target) {
         Write-Host
         Write-Host "Example: Build the windows installer"
         Write-Host " .\winmake installer"
+        Write-Host
+        Write-Host "Example: Run windows installer tests"
+        Write-Host " .\winmake installertest"
         Write-Host
         Write-Host "Example: Generate the documetation artifacts"
         Write-Host " .\winmake docs"
