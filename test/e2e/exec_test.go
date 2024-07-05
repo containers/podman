@@ -60,6 +60,38 @@ var _ = Describe("Podman exec", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman exec simple command using cidfile", func() {
+		cidFile := filepath.Join(tempdir, "cid")
+		session := podmanTest.RunTopContainerWithArgs("test1", []string{"--cidfile", cidFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		result := podmanTest.Podman([]string{"exec", "--cidfile", cidFile, "ls"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+	})
+
+	It("podman exec latest and cidfile", func() {
+		SkipIfRemote("--latest flag n/a")
+
+		cidFile := filepath.Join(tempdir, "cid")
+		session := podmanTest.RunTopContainerWithArgs("test1", []string{"--cidfile", cidFile})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
+
+		result := podmanTest.Podman([]string{"exec", "--cidfile", cidFile, "--latest", "ls"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitWithError(125, `--latest and --cidfile can not be used together`))
+	})
+
+	It("podman exec nonextant cidfile", func() {
+		session := podmanTest.Podman([]string{"exec", "--cidfile", "foobar", "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, `reading CIDFile: open foobar: no such file or directory`))
+	})
+
 	It("podman exec environment test", func() {
 		setup := podmanTest.RunTopContainer("test1")
 		setup.WaitWithDefaultTimeout()
