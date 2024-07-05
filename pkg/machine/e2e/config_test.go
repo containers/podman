@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
@@ -24,7 +25,7 @@ import (
 var originalHomeDir = os.Getenv("HOME")
 
 const (
-	defaultTimeout = 240 * time.Second
+	defaultTimeout = 10 * time.Minute
 )
 
 type machineCommand interface {
@@ -48,12 +49,22 @@ type machineTestBuilder struct {
 	names        []string
 	podmanBinary string
 	timeout      time.Duration
+	isInit       bool
 }
 
 // waitWithTimeout waits for a command to complete for a given
 // number of seconds
 func (ms *machineSession) waitWithTimeout(timeout time.Duration) {
-	Eventually(ms, timeout).Should(Exit())
+	Eventually(ms, timeout).Should(Exit(), func() string {
+		// Note eventually does not kill the command as such the command is leaked forever without killing it
+		// Also let's use SIGABRT to create a go stack trace so in case there is a deadlock we see it.
+		ms.Signal(syscall.SIGABRT)
+		// Give some time to let the command print the output so it is not printed much later
+		// in the log at the wrong place.
+		time.Sleep(1 * time.Second)
+		return fmt.Sprintf("command timed out after %fs: %v",
+			timeout.Seconds(), ms.Command.Args)
+	})
 }
 
 func (ms *machineSession) Bytes() []byte {
@@ -129,6 +140,10 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 		m.names = append(m.names, m.name)
 	}
 	m.cmd = mc.buildCmd(m)
+
+	_, ok := mc.(*initMachine)
+	m.isInit = ok
+
 	return m
 }
 
@@ -156,7 +171,27 @@ func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
 }
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
-	return runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
+	s, err := runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
+	if m.isInit {
+		c := exec.Command("du", "-ah", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("ls", "-lh", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("stat", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv", m.name+"-arm64.raw"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+	}
+	return s, err
 }
 
 func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {

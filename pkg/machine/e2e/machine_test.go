@@ -1,13 +1,16 @@
 package e2e_test
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -75,7 +78,29 @@ var _ = BeforeSuite(func() {
 	}
 })
 
-var _ = SynchronizedAfterSuite(func() {}, func() {})
+type timing struct {
+	name   string
+	length time.Duration
+}
+
+var timings []timing
+
+var _ = AfterEach(func() {
+	r := CurrentSpecReport()
+	timings = append(timings, timing{
+		name:   r.FullText(),
+		length: r.RunTime,
+	})
+})
+
+var _ = SynchronizedAfterSuite(func() {}, func() {
+	slices.SortFunc(timings, func(a, b timing) int {
+		return cmp.Compare(a.length, b.length)
+	})
+	for _, t := range timings {
+		GinkgoWriter.Printf("%s\t\t%f seconds\n", t.name, t.length.Seconds())
+	}
+})
 
 func setup() (string, *machineTestBuilder) {
 	// Set TMPDIR if this needs a new directory
