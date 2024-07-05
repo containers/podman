@@ -947,49 +947,8 @@ check_proc_sys_userns_file (const char *path)
     }
 }
 
-static int
-copy_file_to_fd (const char *file_to_read, int outfd)
-{
-  char buf[512];
-  cleanup_close int fd = -1;
-
-  fd = open (file_to_read, O_RDONLY);
-  if (fd < 0)
-    {
-      fprintf (stderr, "open `%s`: %m\n", file_to_read);
-      return fd;
-    }
-
-  for (;;)
-    {
-      ssize_t r, w, t = 0;
-
-      r = TEMP_FAILURE_RETRY (read (fd, buf, sizeof buf));
-      if (r < 0)
-        {
-          fprintf (stderr, "read from `%s`: %m\n", file_to_read);
-          return r;
-        }
-
-      if (r == 0)
-        break;
-
-      while (t < r)
-        {
-          w = TEMP_FAILURE_RETRY (write (outfd, &buf[t], r - t));
-          if (w < 0)
-            {
-              fprintf (stderr, "write file to output fd `%s`: %m\n", file_to_read);
-              return w;
-            }
-          t += w;
-        }
-    }
-  return 0;
-}
-
 int
-reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_read, int outputfd)
+reexec_in_user_namespace (int ready, char *pause_pid_file_path)
 {
   cleanup_free char **argv = NULL;
   cleanup_free char *argv0 = NULL;
@@ -1136,13 +1095,6 @@ reexec_in_user_namespace (int ready, char *pause_pid_file_path, char *file_to_re
     {
       fprintf (stderr, "cannot block signals: %m\n");
       _exit (EXIT_FAILURE);
-    }
-
-  if (file_to_read && file_to_read[0])
-    {
-      ret = copy_file_to_fd (file_to_read, outputfd);
-      close (outputfd);
-      _exit (ret == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
     }
 
   execvp ("/proc/self/exe", argv);

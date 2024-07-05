@@ -24,7 +24,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 		return false, -1, err
 	}
 
-	became, ret, err := TryJoinFromFilePaths("", false, []string{pausePidPath})
+	became, ret, err := TryJoinFromFilePaths("", []string{pausePidPath})
 	if err == nil {
 		return became, ret, nil
 	}
@@ -45,7 +45,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	}()
 
 	// Now the pause PID file is locked.  Try to join once again in case it changed while it was not locked.
-	became, ret, err = TryJoinFromFilePaths("", false, []string{pausePidPath})
+	became, ret, err = TryJoinFromFilePaths("", []string{pausePidPath})
 	if err != nil {
 		// It is still failing.  We can safely remove it.
 		os.Remove(pausePidPath)

@@ -119,7 +119,7 @@ function _check_pause_process() {
 
     # First let's run a container in the background to keep the userns active
     local cname1=c1_$(random_string)
-    run_podman run -d --name $cname1 $IMAGE top
+    run_podman run -d --name $cname1 --uidmap 0:100:100 $IMAGE top
 
     run_podman unshare readlink /proc/self/ns/user
     userns="$output"
@@ -135,6 +135,9 @@ function _check_pause_process() {
     local kidpid=$!
 
     _test_sigproxy $cname2 $kidpid
+
+    # check pause process again
+    _check_pause_process
 
     # our container exits 0 so podman should too
     wait $kidpid || die "podman run exited $? instead of zero"

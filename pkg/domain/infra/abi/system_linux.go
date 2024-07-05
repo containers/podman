@@ -88,7 +88,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 	}
 
 	if len(paths) > 0 {
-		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, paths)
 	} else {
 		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 		if err == nil {

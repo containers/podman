@@ -32,7 +32,7 @@ import (
 #include <sys/types.h>
 extern uid_t rootless_uid();
 extern uid_t rootless_gid();
-extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path, char *file_to_read, int fd);
+extern int reexec_in_user_namespace(int ready, char *pause_pid_file_path);
 extern int reexec_in_user_namespace_wait(int pid, int options);
 extern int reexec_userns_join(int pid, char *pause_pid_file_path);
 extern int is_fd_inherited(int fd);
@@ -213,7 +213,7 @@ func copyMappings(from, to string) error {
 	return os.WriteFile(to, content, 0600)
 }
 
-func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ bool, _ int, retErr error) {
+func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
 	if err != nil {
 		return false, 0, err
@@ -249,13 +249,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 	cPausePid := C.CString(pausePid)
 	defer C.free(unsafe.Pointer(cPausePid))
 
-	cFileToRead := C.CString(fileToRead)
-	defer C.free(unsafe.Pointer(cFileToRead))
-	var fileOutputFD C.int
-	if fileOutput != nil {
-		fileOutputFD = C.int(fileOutput.Fd())
-	}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -287,7 +280,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		}
 	}()
 
-	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid, cFileToRead, fileOutputFD)
+	pidC := C.reexec_in_user_namespace(C.int(r.Fd()), cPausePid)
 	pid = int(pidC)
 	if pid < 0 {
 		return false, -1, fmt.Errorf("cannot re-exec process")
@@ -361,14 +354,6 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, -1, fmt.Errorf("read from sync pipe: %w", err)
 	}
 
-	if fileOutput != nil {
-		ret := C.reexec_in_user_namespace_wait(pidC, 0)
-		if ret < 0 {
-			return false, -1, errors.New("waiting for the re-exec process")
-		}
-		return true, 0, nil
-	}
-
 	if b[0] == '2' {
 		// We have lost the race for writing the PID file, as probably another
 		// process created a namespace and wrote the PID.
@@ -434,69 +419,27 @@ func waitAndProxySignalsToChild(pid C.int) (bool, int, error) {
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.
 func BecomeRootInUserNS(pausePid string) (bool, int, error) {
-	return becomeRootInUserNS(pausePid, "", nil)
+	return becomeRootInUserNS(pausePid)
 }
 
 // TryJoinFromFilePaths attempts to join the namespaces of the pid files in paths.
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
 // processes to attempt joining their namespaces.
-// If needNewNamespace is set, the file is read from a temporary user
-// namespace, this is useful for containers that are running with a
-// different uidmap and the unprivileged user has no way to read the
-// file owned by the root in the container.
-func TryJoinFromFilePaths(pausePidPath string, needNewNamespace bool, paths []string) (bool, int, error) {
+func TryJoinFromFilePaths(pausePidPath string, paths []string) (bool, int, error) {
 	var lastErr error
-	var pausePid int
 
 	for _, path := range paths {
-		if !needNewNamespace {
-			data, err := os.ReadFile(path)
-			if err != nil {
-				lastErr = err
-				continue
-			}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			lastErr = err
+			continue
+		}
 
-			pausePid, err = strconv.Atoi(string(data))
-			if err != nil {
-				lastErr = fmt.Errorf("cannot parse file %q: %w", path, err)
-				continue
-			}
-		} else {
-			r, w, err := os.Pipe()
-			if err != nil {
-				lastErr = err
-				continue
-			}
-
-			defer errorhandling.CloseQuiet(r)
-
-			if _, _, err := becomeRootInUserNS("", path, w); err != nil {
-				w.Close()
-				lastErr = err
-				continue
-			}
-
-			if err := w.Close(); err != nil {
-				return false, 0, err
-			}
-			defer func() {
-				C.reexec_in_user_namespace_wait(-1, 0)
-			}()
-
-			b := make([]byte, 32)
-
-			n, err := r.Read(b)
-			if err != nil {
-				lastErr = fmt.Errorf("cannot read %q: %w", path, err)
-				continue
-			}
-
-			pausePid, err = strconv.Atoi(string(b[:n]))
-			if err != nil {
-				lastErr = err
-				continue
-			}
+		pausePid, err := strconv.Atoi(string(data))
+		if err != nil {
+			lastErr = fmt.Errorf("cannot parse file %q: %w", path, err)
+			continue
 		}
 
 		if pausePid > 0 && unix.Kill(pausePid, 0) == nil {
