@@ -4,14 +4,18 @@
 podman\-exec - Execute a command in a running container
 
 ## SYNOPSIS
-**podman exec** [*options*] *container* *command* [*arg* ...]
+**podman exec** [*options*] [*container*] *command* [*arg* ...]
 
-**podman container exec** [*options*] *container* *command* [*arg* ...]
+**podman container exec** [*options*] [*container*] *command* [*arg* ...]
 
 ## DESCRIPTION
 **podman exec** executes a command in a running container.
 
 ## OPTIONS
+
+#### **--cidfile**=*file*
+
+Read the ID of the target container from the specified *file*.
 
 #### **--detach**, **-d**
 

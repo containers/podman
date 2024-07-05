@@ -24,7 +24,7 @@ var (
 	execDescription = `Execute the specified command inside a running container.
 `
 	execCommand = &cobra.Command{
-		Use:               "exec [options] CONTAINER COMMAND [ARG...]",
+		Use:               "exec [options] [CONTAINER] COMMAND [ARG...]",
 		Short:             "Run a process in a running container",
 		Long:              execDescription,
 		RunE:              exec,
@@ -50,6 +50,7 @@ var (
 	envInput, envFile []string
 	execOpts          entities.ExecOptions
 	execDetach        bool
+	execCidFile       string
 )
 
 func execFlags(cmd *cobra.Command) {
@@ -62,6 +63,10 @@ func execFlags(cmd *cobra.Command) {
 	detachKeysFlagName := "detach-keys"
 	flags.StringVar(&execOpts.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
+
+	cidfileFlagName := "cidfile"
+	flags.StringVar(&execCidFile, cidfileFlagName, "", "File to read the container ID from")
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	envFlagName := "env"
 	flags.StringArrayVarP(&envInput, envFlagName, "e", []string{}, "Set environment variables")
@@ -97,6 +102,7 @@ func execFlags(cmd *cobra.Command) {
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("preserve-fds")
+		_ = flags.MarkHidden("cidfile")
 	}
 }
 
@@ -117,14 +123,26 @@ func init() {
 
 func exec(cmd *cobra.Command, args []string) error {
 	var nameOrID string
+	var latestSpecified bool = execOpts.Latest
+	var execCidFileProvided bool = execCidFile != ""
 
-	if len(args) == 0 && !execOpts.Latest {
-		return errors.New("exec requires the name or ID of a container or the --latest flag")
+	if len(args) == 0 && !latestSpecified && !execCidFileProvided {
+		return errors.New("exec requires the name or ID of a container or the --latest or --cidfile flag")
+	} else if latestSpecified && execCidFileProvided {
+		return errors.New("--latest and --cidfile can not be used together")
 	}
 	execOpts.Cmd = args
-	if !execOpts.Latest {
-		execOpts.Cmd = args[1:]
-		nameOrID = strings.TrimPrefix(args[0], "/")
+	if !latestSpecified {
+		if !execCidFileProvided {
+			execOpts.Cmd = args[1:]
+			nameOrID = strings.TrimPrefix(args[0], "/")
+		} else {
+			content, err := os.ReadFile(execCidFile)
+			if err != nil {
+				return fmt.Errorf("reading CIDFile: %w", err)
+			}
+			nameOrID = strings.Split(string(content), "\n")[0]
+		}
 	}
 	// Validate given environment variables
 	execOpts.Envs = make(map[string]string)
