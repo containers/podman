@@ -49,6 +49,7 @@ type machineTestBuilder struct {
 	names        []string
 	podmanBinary string
 	timeout      time.Duration
+	isInit       bool
 }
 
 // waitWithTimeout waits for a command to complete for a given
@@ -139,6 +140,10 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 		m.names = append(m.names, m.name)
 	}
 	m.cmd = mc.buildCmd(m)
+
+	_, ok := mc.(*initMachine)
+	m.isInit = ok
+
 	return m
 }
 
@@ -166,7 +171,27 @@ func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
 }
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
-	return runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
+	s, err := runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
+	if m.isInit {
+		c := exec.Command("du", "-ah", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("ls", "-lh", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+
+		c = exec.Command("stat", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv", m.name+"-arm64.raw"))
+		c.Stderr = os.Stderr
+		c.Stdout = os.Stdout
+		GinkgoWriter.Println(c.Args)
+		_ = c.Run()
+	}
+	return s, err
 }
 
 func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
