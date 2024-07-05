@@ -1,4 +1,4 @@
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
     <Fragment>
         <UI>
             <Dialog Id="WelcomeInstallDlg" Width="370" Height="270" Title="!(loc.WelcomeDlg_Title)">
@@ -6,44 +6,30 @@
                 <Control Id="Title" Type="Text" X="135" Y="20" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="!(loc.WelcomeDlgTitle)" />
                 <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
                 <Control Id="Description" Type="Text" X="135" Y="50" Width="220" Height="60" Transparent="yes" NoPrefix="yes" Text="!(loc.WelcomeDlgDescription)" />
-                <Control Id="ProviderChoice" Type="Text" X="135" Y="115" Width="220" Height="18" Transparent="yes" NoPrefix="yes" Text="Select the Virtualization Provider for the Podman machine:">
-                    <Condition Action="hide">HIDE_PROVIDER_CHOICE</Condition>
-                </Control>
-                <Control Type="RadioButtonGroup" Property="MACHINE_PROVIDER" Id="MachineProviderRadioButtonGroup" Width="226" Height="30" X="135" Y="135">
+                <Control Id="ProviderChoice" Type="Text" X="135" Y="115" Width="220" Height="18" Transparent="yes" NoPrefix="yes" Text="Select the Virtualization Provider for the Podman machine:" HideCondition="HIDE_PROVIDER_CHOICE" />
+                <Control Type="RadioButtonGroup" Property="MACHINE_PROVIDER" Id="MachineProviderRadioButtonGroup" Width="226" Height="30" X="135" Y="135" HideCondition="HIDE_PROVIDER_CHOICE">
                     <RadioButtonGroup Property="MACHINE_PROVIDER">
                         <RadioButton Text="Windows Linux Subsystem (WSLv2)" Height="15" Value="wsl" Width="226" X="10" Y="0" />
                         <RadioButton Text="Windows Hyper-V" Height="15" Value="hyperv" Width="226" X="10" Y="15" />
                     </RadioButtonGroup>
-                     <Condition Action="hide">HIDE_PROVIDER_CHOICE</Condition>
+
                 </Control>
-                <Control Id="WSLInstallCheckbox" Type="CheckBox" X="135" Y="190" Width="226" Height="18" CheckBoxValue="1" Property="WSL_INSTALL" Default="no" Text="Install WSL if needed (requires reboot)">
-                    <Condition Action="show">MACHINE_PROVIDER = "wsl"</Condition>
-                    <Condition Action="hide">MACHINE_PROVIDER = "hyperv" OR HIDE_PROVIDER_CHOICE</Condition>
-                    <Condition Action="hide">HAS_WSLFEATURE = 1</Condition>
-                </Control>
-                <Control Id="HyperVInstallCheckbox" Type="CheckBox" X="135" Y="190" Width="226" Height="18" CheckBoxValue="1" Property="HYPERV_INSTALL" Default="no" Text="Install Hyper-V if needed (requires reboot)">
-                    <Condition Action="show">MACHINE_PROVIDER = "hyperv"</Condition>
-                    <Condition Action="hide">MACHINE_PROVIDER = "wsl" OR HIDE_PROVIDER_CHOICE</Condition>
-                    <Condition Action="hide">HAS_HYPERVFEATURE = 1</Condition>
-                </Control>
+                <Control Id="WSLInstallCheckbox" Type="CheckBox" X="135" Y="190" Width="226" Height="18" CheckBoxValue="1" Property="WSL_INSTALL" Default="no" Text="Install WSL if needed (requires reboot)" ShowCondition="MACHINE_PROVIDER = &quot;wsl&quot;" HideCondition="(MACHINE_PROVIDER = &quot;hyperv&quot; OR HIDE_PROVIDER_CHOICE) OR (HAS_WSLFEATURE = 1)" />
+                <Control Id="HyperVInstallCheckbox" Type="CheckBox" X="135" Y="190" Width="226" Height="18" CheckBoxValue="1" Property="HYPERV_INSTALL" Default="no" Text="Install Hyper-V if needed (requires reboot)" ShowCondition="MACHINE_PROVIDER = &quot;hyperv&quot;" HideCondition="(MACHINE_PROVIDER = &quot;wsl&quot; OR HIDE_PROVIDER_CHOICE) OR (HAS_HYPERVFEATURE = 1)" />
                 <Control Id="Back" Type="PushButton" X="156" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
                 <Control Id="Install" Type="PushButton" ElevationShield="yes" X="212" Y="243" Width="80" Height="17" Default="yes" Text="!(loc.WelcomeEulaDlgInstall)">
-                    <Publish Event="SpawnWaitDialog" Value="WaitForCostingDlg">!(wix.WixUICostingPopupOptOut) OR CostingComplete = 1</Publish>
-                    <Publish Event="EndDialog" Value="Return"><![CDATA[OutOfDiskSpace <> 1]]></Publish>
-                    <Publish Event="SpawnDialog" Value="OutOfRbDiskDlg">OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST="P" OR NOT PROMPTROLLBACKCOST)</Publish>
-                    <Publish Event="EndDialog" Value="Return">OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST="D"</Publish>
-                    <Publish Event="EnableRollback" Value="False">OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST="D"</Publish>
-                    <Publish Event="SpawnDialog" Value="OutOfDiskDlg">(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST="F")</Publish>
+                    <Publish Event="SpawnWaitDialog" Value="WaitForCostingDlg" Condition="!(wix.WixUICostingPopupOptOut) OR CostingComplete = 1" />
+                    <Publish Event="EndDialog" Value="Return" Condition="OutOfDiskSpace &lt;&gt; 1" />
+                    <Publish Event="SpawnDialog" Value="OutOfRbDiskDlg" Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND (PROMPTROLLBACKCOST=&quot;P&quot; OR NOT PROMPTROLLBACKCOST)" />
+                    <Publish Event="EndDialog" Value="Return" Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;" />
+                    <Publish Event="EnableRollback" Value="False" Condition="OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 0 AND PROMPTROLLBACKCOST=&quot;D&quot;" />
+                    <Publish Event="SpawnDialog" Value="OutOfDiskDlg" Condition="(OutOfDiskSpace = 1 AND OutOfNoRbDiskSpace = 1) OR (OutOfDiskSpace = 1 AND PROMPTROLLBACKCOST=&quot;F&quot;)" />
                 </Control>
                 <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="!(loc.WixUICancel)">
-                    <Publish Event="SpawnDialog" Value="CancelDlg">1</Publish>
+                    <Publish Event="SpawnDialog" Value="CancelDlg" />
                 </Control>
 
             </Dialog>
         </UI>
-
-        <InstallUISequence>
-            <Show Dialog="WelcomeInstallDlg" Before="ProgressDlg" Overridable="yes">NOT Installed</Show>
-        </InstallUISequence>
     </Fragment>
 </Wix>

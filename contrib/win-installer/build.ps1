@@ -4,31 +4,6 @@ function ExitOnError() {
     }
 }
 
-function FetchPanel() {
-    Remove-Item -Recurse -Force -Path fetch -ErrorAction SilentlyContinue | Out-Null
-    New-Item -Force -ItemType Directory fetch | Out-Null
-    Push-Location fetch
-
-    $ProgressPreference = 'SilentlyContinue'
-    Invoke-WebRequest -UseBasicParsing -OutFile nuget.exe -ErrorAction Stop `
-        -Uri https://dist.nuget.org/win-x86-commandline/latest/nuget.exe
-    # 3.3.3.224 generates invalid schema with RemoveFeature defaults.
-    # Lock the version to 211 until this issue is fixed (7/18/2023)
-    .\nuget.exe install PanelSwWixExtension -Version 3.3.3.211
-    $code = $LASTEXITCODE
-    Pop-Location
-    if ($code -gt 0) {
-        Exit 1
-    }
-    $loc = Get-ChildItem -Recurse -Path fetch -Name PanelSwWixExtension.dll
-    if (!$loc) {
-        Write-Host "Could not locate PanelSwWixExtension.dll"
-        Exit 1
-    }
-
-    Copy-Item -Path fetch/$loc -Destination artifacts/PanelSwWixExtension.dll -ErrorAction Stop
-}
-
 function SignItem() {
     param(
         [Parameter(Mandatory)]
@@ -71,7 +46,7 @@ function CheckCommand() {
 
 function CheckRequirements() {
     CheckCommand "gcc" "MingW CC"
-    CheckCommand "candle" "WiX Toolset"
+    CheckCommand "wix" "WiX Toolset"
     CheckCommand "go" "Golang"
 }
 
@@ -99,7 +74,7 @@ if ($args.Count -lt 1 -or $args[0].Length -lt 1) {
 }
 
 # Pre-set to standard locations in-case build env does not refresh paths
-$Env:Path="$Env:Path;C:\Program Files (x86)\WiX Toolset v3.14\bin;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin;;C:\Program Files\Go\bin"
+$Env:Path="$Env:Path;C:\Users\micro\mingw64\bin;C:\ProgramData\chocolatey\lib\mingw\tools\install\mingw64\bin;;C:\Program Files\Go\bin;C:\Program Files\dotnet"
 
 CheckRequirements
 
@@ -129,8 +104,6 @@ if ($ENV:INSTVER -eq "") {
     Exit 1
 }
 
-FetchPanel
-
 .\build-hooks.bat; ExitOnError
 SignItem @("artifacts/win-sshproxy.exe",
           "artifacts/podman.exe",
@@ -151,15 +124,18 @@ if ($gvExists) {
 # } else {
 #     $env:IncludePolicyJSON = "Skip"
 # }
-.\build-msi.bat $ENV:INSTVER; ExitOnError
-SignItem @("podman.msi")
+if (Test-Path ./obj) {
+    Remove-Item ./obj -Recurse -Force -Confirm:$false
+}
+dotnet build podman.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" -o .; ExitOnError
+SignItem @("en-US\podman.msi")
 
-.\build-burn.bat $ENV:INSTVER; ExitOnError
-insignia -ib podman-setup.exe -o engine.exe; ExitOnError
+dotnet build podman-setup.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" -o .; ExitOnError
+wix burn detach podman-setup.exe -engine engine.exe; ExitOnError
 SignItem @("engine.exe")
 
 $file = "podman-$version$suffix-setup.exe"
-insignia -ab engine.exe podman-setup.exe -o $file; ExitOnError
+wix burn reattach -engine engine.exe podman-setup.exe -o $file; ExitOnError
 SignItem @("$file")
 
 if (Test-Path -Path shasums) {

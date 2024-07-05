@@ -35,6 +35,7 @@ release.txt
 /test/copyimg/copyimg
 /test/goecho/goecho
 /test/version/version
+/test/version/version.exe
 /test/testvol/testvol
 /test/tools/build
 /test/e2e/ginkgo-node-*
@@ -45,12 +46,14 @@ result
 /*runner_stats.log
 .generate-bindings
 contrib/win-installer/artifacts/
+contrib/win-installer/current/
 contrib/win-installer/docs/
+contrib/win-installer/en-US/
 contrib/win-installer/fetch/
-contrib/win-installer/podman.msi
 contrib/win-installer/podman-*setup.exe
 contrib/win-installer/engine.exe
+contrib/win-installer/obj/
 contrib/win-installer/shasums
-contrib/win-installer/pages.wxs
 contrib/win-installer/*.wixobj
 contrib/win-installer/*.wixpdb
+contrib/win-installer/*.log

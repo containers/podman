@@ -111,11 +111,11 @@ try {
         }
         Write-Host "Old release, zip does not include win-sshproxy.exe, fetching via msi"
         DownloadOrSkip "$base_url/releases/download/$version/podman-$version.msi" "podman.msi"
-        dark -x expand ./podman.msi
+        wix msi decompile -x expand ./podman.msi
         if (!$?) {
-            throw "Dark command failed"
+            throw "wix msi decompile command failed"
         }
-        $loc = Get-ChildItem -Recurse -Path expand -Name 4A2AD125-34E7-4BD8-BE28-B2A9A5EDBEB5
+        $loc = Get-ChildItem -Recurse -Path expand -Name WinSshProxyExecutableFile
         if (!$loc) {
             throw "Could not obtain win-sshproxy.exe"
         }

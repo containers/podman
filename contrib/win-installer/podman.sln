@@ -1,0 +1,37 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35004.147
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{B7DD6F7E-DEF8-4E67-B5B7-07EF123DB6F0}") = "podman", "podman.wixproj", "{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|ARM64 = Debug|ARM64
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|ARM64 = Release|ARM64
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Debug|ARM64.Build.0 = Debug|ARM64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Debug|x64.ActiveCfg = Debug|x64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Debug|x64.Build.0 = Debug|x64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Debug|x86.ActiveCfg = Debug|x86
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Debug|x86.Build.0 = Debug|x86
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Release|ARM64.ActiveCfg = Release|ARM64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Release|ARM64.Build.0 = Release|ARM64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Release|x64.ActiveCfg = Release|x64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Release|x64.Build.0 = Release|x64
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Release|x86.ActiveCfg = Release|x86
+		{3EBBAB4A-A15D-4986-98FF-FEC3892997DB}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0F83E058-C6D8-49C2-95BD-645730145A9D}
+	EndGlobalSection
+EndGlobal
