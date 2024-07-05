@@ -21,7 +21,7 @@
 //
 // Note that XTS is usually not appropriate for any use besides disk encryption.
 // Most users should use an AEAD mode like GCM (from crypto/cipher.NewGCM) instead.
-package xts // import "golang.org/x/crypto/xts"
+package xts
 
 import (
 	"crypto/cipher"
