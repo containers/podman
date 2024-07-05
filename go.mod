@@ -71,7 +71,7 @@ require (
 	github.com/vbauerster/mpb/v8 v8.7.3
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.10
-	golang.org/x/crypto v0.24.0
+	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240531132922-fd00a4e0eefc
 	golang.org/x/net v0.26.0
 	golang.org/x/sync v0.7.0
