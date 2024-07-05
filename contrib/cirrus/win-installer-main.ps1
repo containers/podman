@@ -8,7 +8,7 @@ if ($Env:CI -eq "true") {
 } else {
     $WIN_INST_FOLDER = "$PSScriptRoot\..\win-installer"
     $ENV:WIN_INST_VER = "9.9.9"
-    $RELEASE_DIR = "$PSScriptRoot\..\.."
+    $RELEASE_DIR = "$PSScriptRoot\..\..\contrib\win-installer\current"
     $ENV:CONTAINERS_MACHINE_PROVIDER = "wsl"
 }
 
@@ -18,7 +18,7 @@ $WindowsPathsToTest = @("C:\Program Files\RedHat\Podman\podman.exe",
                   "$ConfFilePath",
                   "HKLM:\SOFTWARE\Red Hat\Podman")
 
-Set-Location $WIN_INST_FOLDER
+Push-Location $WIN_INST_FOLDER
 
 # Build Installer
 # Note: consumes podman-remote-release-windows_amd64.zip from repo.tbz2
@@ -30,15 +30,18 @@ $ret = Start-Process -Wait -PassThru ".\podman-${ENV:WIN_INST_VER}-dev-setup.exe
 if ($ret.ExitCode -ne 0) {
     Write-Host "Install failed, dumping log"
     Get-Content inst.log
+    Pop-Location
     throw "Exit code is $($ret.ExitCode)"
 }
 $WindowsPathsToTest | ForEach-Object {
     if (! (Test-Path -Path $_) ) {
+        Pop-Location
         throw "Expected $_ but it's not present after uninstall"
     }
 }
 $machineProvider = Get-Content $ConfFilePath | Select-Object -Skip 1 | ConvertFrom-StringData | ForEach-Object { $_.provider }
 if ( $machineProvider -ne "`"$ENV:CONTAINERS_MACHINE_PROVIDER`"" ) {
+    Pop-Location
     throw "Expected `"$ENV:CONTAINERS_MACHINE_PROVIDER`" as default machine provider but got $machineProvider"
 }
 
@@ -49,12 +52,15 @@ $ret = Start-Process -Wait -PassThru ".\podman-${ENV:WIN_INST_VER}-dev-setup.exe
 if ($ret.ExitCode -ne 0) {
     Write-Host "Uninstall failed, dumping log"
     Get-Content uninst.log
+    Pop-Location
     throw "Exit code is $($ret.ExitCode)"
 }
 $WindowsPathsToTest | ForEach-Object {
     if ( Test-Path -Path $_ ) {
+        Pop-Location
         throw "Path $_ is still present after uninstall"
     }
 }
 
 Write-Host "Uninstaller verification successful!"
+Pop-Location
