@@ -107,7 +107,7 @@ done
 
 if [ "$parallel" -eq 1 ]; then
     # Run tests in parallel to speed them up
-    bats_opts+=("-j" "$(nproc)" --no-parallelize-across-files)
+    bats_opts+=("-j" "$(($(nproc) + 1))" --no-parallelize-across-files)
 fi
 
 # With --remote, use correct binary and make sure daem--I mean server--is live
