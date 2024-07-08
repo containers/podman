@@ -27,6 +27,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"golang.org/x/sync/errgroup"
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/internal/event"
 	"golang.org/x/tools/internal/gocommand"
@@ -365,9 +366,7 @@ func (p *pass) load() ([]*ImportFix, bool) {
 	if p.loadRealPackageNames {
 		err := p.loadPackageNames(append(imports, p.candidates...))
 		if err != nil {
-			if p.env.Logf != nil {
-				p.env.Logf("loading package names: %v", err)
-			}
+			p.env.logf("loading package names: %v", err)
 			return nil, false
 		}
 	}
@@ -563,7 +562,14 @@ func (p *pass) addCandidate(imp *ImportInfo, pkg *packageInfo) {
 
 // fixImports adds and removes imports from f so that all its references are
 // satisfied and there are no unused imports.
-func fixImports(fset *token.FileSet, f *ast.File, filename string, env *ProcessEnv) error {
+//
+// This is declared as a variable rather than a function so goimports can
+// easily be extended by adding a file with an init function.
+//
+// DO NOT REMOVE: used internally at Google.
+var fixImports = fixImportsDefault
+
+func fixImportsDefault(fset *token.FileSet, f *ast.File, filename string, env *ProcessEnv) error {
 	fixes, err := getFixes(context.Background(), fset, f, filename, env)
 	if err != nil {
 		return err
@@ -580,9 +586,7 @@ func getFixes(ctx context.Context, fset *token.FileSet, f *ast.File, filename st
 		return nil, err
 	}
 	srcDir := filepath.Dir(abs)
-	if env.Logf != nil {
-		env.Logf("fixImports(filename=%q), abs=%q, srcDir=%q ...", filename, abs, srcDir)
-	}
+	env.logf("fixImports(filename=%q), abs=%q, srcDir=%q ...", filename, abs, srcDir)
 
 	// First pass: looking only at f, and using the naive algorithm to
 	// derive package names from import paths, see if the file is already
@@ -1014,14 +1018,24 @@ func (e *ProcessEnv) GetResolver() (Resolver, error) {
 		// already know the view type.
 		if len(e.Env["GOMOD"]) == 0 && len(e.Env["GOWORK"]) == 0 {
 			e.resolver = newGopathResolver(e)
+			e.logf("created gopath resolver")
 		} else if r, err := newModuleResolver(e, e.ModCache); err != nil {
 			e.resolverErr = err
+			e.logf("failed to create module resolver: %v", err)
 		} else {
 			e.resolver = Resolver(r)
+			e.logf("created module resolver")
 		}
 	}
 
 	return e.resolver, e.resolverErr
+}
+
+// logf logs if e.Logf is non-nil.
+func (e *ProcessEnv) logf(format string, args ...any) {
+	if e.Logf != nil {
+		e.Logf(format, args...)
+	}
 }
 
 // buildContext returns the build.Context to use for matching files.
@@ -1127,8 +1141,8 @@ type Resolver interface {
 	// scan works with callback to search for packages. See scanCallback for details.
 	scan(ctx context.Context, callback *scanCallback) error
 
-	// loadExports returns the set of exported symbols in the package at dir.
-	// loadExports may be called concurrently.
+	// loadExports returns the package name and set of exported symbols in the
+	// package at dir. loadExports may be called concurrently.
 	loadExports(ctx context.Context, pkg *pkg, includeTest bool) (string, []stdlib.Symbol, error)
 
 	// scoreImportPath returns the relevance for an import path.
@@ -1205,54 +1219,52 @@ func addExternalCandidates(ctx context.Context, pass *pass, refs references, fil
 		imp *ImportInfo
 		pkg *packageInfo
 	}
-	results := make(chan result, len(refs))
+	results := make([]*result, len(refs))
 
-	ctx, cancel := context.WithCancel(ctx)
-	var wg sync.WaitGroup
-	defer func() {
-		cancel()
-		wg.Wait()
-	}()
-	var (
-		firstErr     error
-		firstErrOnce sync.Once
-	)
+	g, ctx := errgroup.WithContext(ctx)
+
+	searcher := symbolSearcher{
+		logf:        pass.env.logf,
+		srcDir:      pass.srcDir,
+		xtest:       strings.HasSuffix(pass.f.Name.Name, "_test"),
+		loadExports: resolver.loadExports,
+	}
+
+	i := 0
 	for pkgName, symbols := range refs {
-		wg.Add(1)
-		go func(pkgName string, symbols map[string]bool) {
-			defer wg.Done()
+		index := i // claim an index in results
+		i++
+		pkgName := pkgName
+		symbols := symbols
 
-			found, err := findImport(ctx, pass, found[pkgName], pkgName, symbols)
-
+		g.Go(func() error {
+			found, err := searcher.search(ctx, found[pkgName], pkgName, symbols)
 			if err != nil {
-				firstErrOnce.Do(func() {
-					firstErr = err
-					cancel()
-				})
-				return
+				return err
 			}
-
 			if found == nil {
-				return // No matching package.
+				return nil // No matching package.
 			}
 
 			imp := &ImportInfo{
 				ImportPath: found.importPathShort,
 			}
-
 			pkg := &packageInfo{
 				name:    pkgName,
 				exports: symbols,
 			}
-			results <- result{imp, pkg}
-		}(pkgName, symbols)
+			results[index] = &result{imp, pkg}
+			return nil
+		})
 	}
-	go func() {
-		wg.Wait()
-		close(results)
-	}()
+	if err := g.Wait(); err != nil {
+		return err
+	}
 
-	for result := range results {
+	for _, result := range results {
+		if result == nil {
+			continue
+		}
 		// Don't offer completions that would shadow predeclared
 		// names, such as github.com/coreos/etcd/error.
 		if types.Universe.Lookup(result.pkg.name) != nil { // predeclared
@@ -1266,7 +1278,7 @@ func addExternalCandidates(ctx context.Context, pass *pass, refs references, fil
 		}
 		pass.addCandidate(result.imp, result.pkg)
 	}
-	return firstErr
+	return nil
 }
 
 // notIdentifier reports whether ch is an invalid identifier character.
@@ -1610,9 +1622,7 @@ func loadExportsFromFiles(ctx context.Context, env *ProcessEnv, dir string, incl
 		fullFile := filepath.Join(dir, fi.Name())
 		f, err := parser.ParseFile(fset, fullFile, nil, 0)
 		if err != nil {
-			if env.Logf != nil {
-				env.Logf("error parsing %v: %v", fullFile, err)
-			}
+			env.logf("error parsing %v: %v", fullFile, err)
 			continue
 		}
 		if f.Name.Name == "documentation" {
@@ -1648,9 +1658,7 @@ func loadExportsFromFiles(ctx context.Context, env *ProcessEnv, dir string, incl
 	}
 	sortSymbols(exports)
 
-	if env.Logf != nil {
-		env.Logf("loaded exports in dir %v (package %v): %v", dir, pkgName, exports)
-	}
+	env.logf("loaded exports in dir %v (package %v): %v", dir, pkgName, exports)
 	return pkgName, exports, nil
 }
 
@@ -1660,25 +1668,39 @@ func sortSymbols(syms []stdlib.Symbol) {
 	})
 }
 
-// findImport searches for a package with the given symbols.
-// If no package is found, findImport returns ("", false, nil)
-func findImport(ctx context.Context, pass *pass, candidates []pkgDistance, pkgName string, symbols map[string]bool) (*pkg, error) {
+// A symbolSearcher searches for a package with a set of symbols, among a set
+// of candidates. See [symbolSearcher.search].
+//
+// The search occurs within the scope of a single file, with context captured
+// in srcDir and xtest.
+type symbolSearcher struct {
+	logf        func(string, ...any)
+	srcDir      string // directory containing the file
+	xtest       bool   // if set, the file containing is an x_test file
+	loadExports func(ctx context.Context, pkg *pkg, includeTest bool) (string, []stdlib.Symbol, error)
+}
+
+// search searches the provided candidates for a package containing all
+// exported symbols.
+//
+// If successful, returns the resulting package.
+func (s *symbolSearcher) search(ctx context.Context, candidates []pkgDistance, pkgName string, symbols map[string]bool) (*pkg, error) {
 	// Sort the candidates by their import package length,
 	// assuming that shorter package names are better than long
 	// ones.  Note that this sorts by the de-vendored name, so
 	// there's no "penalty" for vendoring.
 	sort.Sort(byDistanceOrImportPathShortLength(candidates))
-	if pass.env.Logf != nil {
+	if s.logf != nil {
 		for i, c := range candidates {
-			pass.env.Logf("%s candidate %d/%d: %v in %v", pkgName, i+1, len(candidates), c.pkg.importPathShort, c.pkg.dir)
+			s.logf("%s candidate %d/%d: %v in %v", pkgName, i+1, len(candidates), c.pkg.importPathShort, c.pkg.dir)
 		}
 	}
-	resolver, err := pass.env.GetResolver()
-	if err != nil {
-		return nil, err
-	}
 
-	// Collect exports for packages with matching names.
+	// Arrange rescv so that we can we can await results in order of relevance
+	// and exit as soon as we find the first match.
+	//
+	// Search with bounded concurrency, returning as soon as the first result
+	// among rescv is non-nil.
 	rescv := make([]chan *pkg, len(candidates))
 	for i := range candidates {
 		rescv[i] = make(chan *pkg, 1)
@@ -1686,6 +1708,7 @@ func findImport(ctx context.Context, pass *pass, candidates []pkgDistance, pkgNa
 	const maxConcurrentPackageImport = 4
 	loadExportsSem := make(chan struct{}, maxConcurrentPackageImport)
 
+	// Ensure that all work is completed at exit.
 	ctx, cancel := context.WithCancel(ctx)
 	var wg sync.WaitGroup
 	defer func() {
@@ -1693,6 +1716,7 @@ func findImport(ctx context.Context, pass *pass, candidates []pkgDistance, pkgNa
 		wg.Wait()
 	}()
 
+	// Start the search.
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
@@ -1703,53 +1727,65 @@ func findImport(ctx context.Context, pass *pass, candidates []pkgDistance, pkgNa
 				return
 			}
 
+			i := i
+			c := c
 			wg.Add(1)
-			go func(c pkgDistance, resc chan<- *pkg) {
+			go func() {
 				defer func() {
 					<-loadExportsSem
 					wg.Done()
 				}()
-
-				if pass.env.Logf != nil {
-					pass.env.Logf("loading exports in dir %s (seeking package %s)", c.pkg.dir, pkgName)
+				if s.logf != nil {
+					s.logf("loading exports in dir %s (seeking package %s)", c.pkg.dir, pkgName)
 				}
-				// If we're an x_test, load the package under test's test variant.
-				includeTest := strings.HasSuffix(pass.f.Name.Name, "_test") && c.pkg.dir == pass.srcDir
-				_, exports, err := resolver.loadExports(ctx, c.pkg, includeTest)
+				pkg, err := s.searchOne(ctx, c, symbols)
 				if err != nil {
-					if pass.env.Logf != nil {
-						pass.env.Logf("loading exports in dir %s (seeking package %s): %v", c.pkg.dir, pkgName, err)
+					if s.logf != nil && ctx.Err() == nil {
+						s.logf("loading exports in dir %s (seeking package %s): %v", c.pkg.dir, pkgName, err)
 					}
-					resc <- nil
-					return
+					pkg = nil
 				}
-
-				exportsMap := make(map[string]bool, len(exports))
-				for _, sym := range exports {
-					exportsMap[sym.Name] = true
-				}
-
-				// If it doesn't have the right
-				// symbols, send nil to mean no match.
-				for symbol := range symbols {
-					if !exportsMap[symbol] {
-						resc <- nil
-						return
-					}
-				}
-				resc <- c.pkg
-			}(c, rescv[i])
+				rescv[i] <- pkg // may be nil
+			}()
 		}
 	}()
 
+	// Await the first (best) result.
 	for _, resc := range rescv {
-		pkg := <-resc
-		if pkg == nil {
-			continue
+		select {
+		case r := <-resc:
+			if r != nil {
+				return r, nil
+			}
+		case <-ctx.Done():
+			return nil, ctx.Err()
 		}
-		return pkg, nil
 	}
 	return nil, nil
+}
+
+func (s *symbolSearcher) searchOne(ctx context.Context, c pkgDistance, symbols map[string]bool) (*pkg, error) {
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
+	}
+	// If we're considering the package under test from an x_test, load the
+	// test variant.
+	includeTest := s.xtest && c.pkg.dir == s.srcDir
+	_, exports, err := s.loadExports(ctx, c.pkg, includeTest)
+	if err != nil {
+		return nil, err
+	}
+
+	exportsMap := make(map[string]bool, len(exports))
+	for _, sym := range exports {
+		exportsMap[sym.Name] = true
+	}
+	for symbol := range symbols {
+		if !exportsMap[symbol] {
+			return nil, nil // no match
+		}
+	}
+	return c.pkg, nil
 }
 
 // pkgIsCandidate reports whether pkg is a candidate for satisfying the
@@ -1771,56 +1807,22 @@ func pkgIsCandidate(filename string, refs references, pkg *pkg) bool {
 	}
 
 	// Speed optimization to minimize disk I/O:
-	// the last two components on disk must contain the
-	// package name somewhere.
 	//
-	// This permits mismatch naming like directory
-	// "go-foo" being package "foo", or "pkg.v3" being "pkg",
-	// or directory "google.golang.org/api/cloudbilling/v1"
-	// being package "cloudbilling", but doesn't
-	// permit a directory "foo" to be package
-	// "bar", which is strongly discouraged
-	// anyway. There's no reason goimports needs
-	// to be slow just to accommodate that.
+	// Use the matchesPath heuristic to filter to package paths that could
+	// reasonably match a dangling reference.
+	//
+	// This permits mismatch naming like directory "go-foo" being package "foo",
+	// or "pkg.v3" being "pkg", or directory
+	// "google.golang.org/api/cloudbilling/v1" being package "cloudbilling", but
+	// doesn't permit a directory "foo" to be package "bar", which is strongly
+	// discouraged anyway. There's no reason goimports needs to be slow just to
+	// accommodate that.
 	for pkgIdent := range refs {
-		lastTwo := lastTwoComponents(pkg.importPathShort)
-		if strings.Contains(lastTwo, pkgIdent) {
-			return true
-		}
-		if hasHyphenOrUpperASCII(lastTwo) && !hasHyphenOrUpperASCII(pkgIdent) {
-			lastTwo = lowerASCIIAndRemoveHyphen(lastTwo)
-			if strings.Contains(lastTwo, pkgIdent) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func hasHyphenOrUpperASCII(s string) bool {
-	for i := 0; i < len(s); i++ {
-		b := s[i]
-		if b == '-' || ('A' <= b && b <= 'Z') {
+		if matchesPath(pkgIdent, pkg.importPathShort) {
 			return true
 		}
 	}
 	return false
-}
-
-func lowerASCIIAndRemoveHyphen(s string) (ret string) {
-	buf := make([]byte, 0, len(s))
-	for i := 0; i < len(s); i++ {
-		b := s[i]
-		switch {
-		case b == '-':
-			continue
-		case 'A' <= b && b <= 'Z':
-			buf = append(buf, b+('a'-'A'))
-		default:
-			buf = append(buf, b)
-		}
-	}
-	return string(buf)
 }
 
 // canUse reports whether the package in dir is usable from filename,
@@ -1863,19 +1865,84 @@ func canUse(filename, dir string) bool {
 	return !strings.Contains(relSlash, "/vendor/") && !strings.Contains(relSlash, "/internal/") && !strings.HasSuffix(relSlash, "/internal")
 }
 
-// lastTwoComponents returns at most the last two path components
-// of v, using either / or \ as the path separator.
-func lastTwoComponents(v string) string {
+// matchesPath reports whether ident may match a potential package name
+// referred to by path, using heuristics to filter out unidiomatic package
+// names.
+//
+// Specifically, it checks whether either of the last two '/'- or '\'-delimited
+// path segments matches the identifier. The segment-matching heuristic must
+// allow for various conventions around segment naming, including go-foo,
+// foo-go, and foo.v3. To handle all of these, matching considers both (1) the
+// entire segment, ignoring '-' and '.', as well as (2) the last subsegment
+// separated by '-' or '.'. So the segment foo-go matches all of the following
+// identifiers: foo, go, and foogo. All matches are case insensitive (for ASCII
+// identifiers).
+//
+// See the docstring for [pkgIsCandidate] for an explanation of how this
+// heuristic filters potential candidate packages.
+func matchesPath(ident, path string) bool {
+	// Ignore case, for ASCII.
+	lowerIfASCII := func(b byte) byte {
+		if 'A' <= b && b <= 'Z' {
+			return b + ('a' - 'A')
+		}
+		return b
+	}
+
+	// match reports whether path[start:end] matches ident, ignoring [.-].
+	match := func(start, end int) bool {
+		ii := len(ident) - 1 // current byte in ident
+		pi := end - 1        // current byte in path
+		for ; pi >= start && ii >= 0; pi-- {
+			pb := path[pi]
+			if pb == '-' || pb == '.' {
+				continue
+			}
+			pb = lowerIfASCII(pb)
+			ib := lowerIfASCII(ident[ii])
+			if pb != ib {
+				return false
+			}
+			ii--
+		}
+		return ii < 0 && pi < start // all bytes matched
+	}
+
+	// segmentEnd and subsegmentEnd hold the end points of the current segment
+	// and subsegment intervals.
+	segmentEnd := len(path)
+	subsegmentEnd := len(path)
+
+	// Count slashes; we only care about the last two segments.
 	nslash := 0
-	for i := len(v) - 1; i >= 0; i-- {
-		if v[i] == '/' || v[i] == '\\' {
+
+	for i := len(path) - 1; i >= 0; i-- {
+		switch b := path[i]; b {
+		// TODO(rfindley): we handle backlashes here only because the previous
+		// heuristic handled backslashes. This is perhaps overly defensive, but is
+		// the result of many lessons regarding Chesterton's fence and the
+		// goimports codebase.
+		//
+		// However, this function is only ever called with something called an
+		// 'importPath'. Is it possible that this is a real import path, and
+		// therefore we need only consider forward slashes?
+		case '/', '\\':
+			if match(i+1, segmentEnd) || match(i+1, subsegmentEnd) {
+				return true
+			}
 			nslash++
 			if nslash == 2 {
-				return v[i:]
+				return false // did not match above
 			}
+			segmentEnd, subsegmentEnd = i, i // reset
+		case '-', '.':
+			if match(i+1, subsegmentEnd) {
+				return true
+			}
+			subsegmentEnd = i
 		}
 	}
-	return v
+	return match(0, segmentEnd) || match(0, subsegmentEnd)
 }
 
 type visitFn func(node ast.Node) ast.Visitor
