@@ -30,15 +30,16 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 		}
 	}
 
-	configureCgroup := cgroupMode != "disabled"
-	if configureCgroup {
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return err
+	}
+
+	// check for both euid == 0 and CAP_SYS_ADMIN because we may be running in a container with CAP_SYS_ADMIN set.
+	if os.Geteuid() == 0 && hasCapSysAdmin {
 		// do it only after podman has already re-execed and running with uid==0.
-		hasCapSysAdmin, err := unshare.HasCapSysAdmin()
-		if err != nil {
-			return err
-		}
-		// check for both euid == 0 and CAP_SYS_ADMIN because we may be running in a container with CAP_SYS_ADMIN set.
-		if os.Geteuid() == 0 && hasCapSysAdmin {
+		configureCgroup := cgroupMode != "disabled"
+		if configureCgroup {
 			ownsCgroup, err := cgroups.UserOwnsCurrentSystemdCgroup()
 			if err != nil {
 				logrus.Infof("Failed to detect the owner for the current cgroup: %v", err)
@@ -55,8 +56,8 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 					}
 				}
 			}
-			return nil
 		}
+		return nil
 	}
 
 	pausePidPath, err := util.GetRootlessPauseProcessPidPath()
@@ -88,7 +89,7 @@ func (ic *ContainerEngine) SetupRootless(_ context.Context, noMoveProcess bool, 
 	}
 
 	if len(paths) > 0 {
-		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, true, paths)
+		became, ret, err = rootless.TryJoinFromFilePaths(pausePidPath, paths)
 	} else {
 		became, ret, err = rootless.BecomeRootInUserNS(pausePidPath)
 		if err == nil {
