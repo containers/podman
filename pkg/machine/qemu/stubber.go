@@ -168,9 +168,13 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 	if err != nil {
 		return nil, nil, err
 	}
-	spawner, err := newVirtiofsdSpawner(runtime)
-	if err != nil {
-		return nil, nil, err
+
+	var spawner *virtiofsdSpawner
+	if len(mc.Mounts) > 0 {
+		spawner, err = newVirtiofsdSpawner(runtime)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
 	for _, hostmnt := range mc.Mounts {
