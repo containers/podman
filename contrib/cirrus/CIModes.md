@@ -54,6 +54,7 @@ uses the following main rules:
    - `Makefile` (make targets are used to trigger tests)
    - `contrib/cirrus/**` (cirrus scripts to run the tests)
    - `vendor/**` (dependency updates)
+   - `test/tools/**` (test dependency code, i.e. ginkgo)
    - `hack/**` (contains scripts used by several tests)
    - `version/rawversion/*` (podman version changes, intended to ensure all release PRs test everything to not release known broken code)
 
