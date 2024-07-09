@@ -97,12 +97,6 @@ function _run_endpoint() {
     showrun make endpoint
 }
 
-function _run_minikube() {
-    _bail_if_test_can_be_skipped test/minikube
-    msg "Testing  minikube."
-    showrun bats test/minikube |& logformatter
-}
-
 function _run_farm() {
     _bail_if_test_can_be_skipped test/farm test/system
     msg "Testing podman farm."
