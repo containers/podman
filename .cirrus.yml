@@ -375,7 +375,7 @@ bindings_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('pkg/bindings/test/**') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: &build
         - build_success
     gce_instance: *standardvm
@@ -501,7 +501,7 @@ docker-py_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/python/**') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -528,7 +528,7 @@ unit_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('**/*_test.go') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix:
         - env: *stdenvars
@@ -558,7 +558,7 @@ apiv2_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/apiv2/**') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     # Test is normally pretty quick, about 10-minutes.  If it hangs,
@@ -590,7 +590,7 @@ compose_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/compose/**') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     matrix:
@@ -622,7 +622,7 @@ local_integration_test_task: &local_integration_test_task
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/e2e/**', 'test/utils/**') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix: *platform_axis
     # integration tests scale well with cpu as they are parallelized
@@ -839,7 +839,7 @@ local_system_test_task: &local_system_test_task
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/system/**') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
@@ -931,7 +931,7 @@ minikube_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/minikube/**', 'test/system/*.bash') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     # 2024-05-21: flaking almost constantly since March.
     skip: $CI == $CI
     depends_on: *build
@@ -957,7 +957,7 @@ farm_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/farm/**', 'test/system/*.bash') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
     env:
@@ -1009,7 +1009,7 @@ upgrade_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/upgrade/**', 'test/system/*.bash') ||
-        (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix:
         - env:
