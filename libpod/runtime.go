@@ -613,6 +613,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// refresh runs.
 	runtime.valid = true
 
+	// Setup the worker channel early to start accepting jobs from refresh,
+	// but do not start to execute the jobs right away. The runtime is not
+	// ready at this point.
+	runtime.setupWorkerQueue()
+
 	// If we need to refresh the state, do it now - things are guaranteed to
 	// be set up by now.
 	if doRefresh {
