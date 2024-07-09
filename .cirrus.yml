@@ -814,7 +814,7 @@ podman_machine_mac_task:
     clone_script:  # artifacts from osx_alt_build_task
         - mkdir -p $CIRRUS_WORKING_DIR
         - cd $CIRRUS_WORKING_DIR
-        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tbz
+        - $ARTCURL/OSX%20Cross/repo/repo.tbz
         - tar xjf repo.tbz
     # This host is/was shared with potentially many other CI tasks.
     # The previous task may have been canceled or aborted.
