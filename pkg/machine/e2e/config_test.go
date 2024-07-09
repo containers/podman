@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -172,7 +173,9 @@ func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
 	s, err := runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
-	if m.isInit {
+	// debug for the slow init on macos
+	// The image file is not consistent, sometimes it is sparse sometimes not.
+	if m.isInit && runtime.GOOS == "darwin" {
 		c := exec.Command("du", "-ah", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
 		c.Stderr = os.Stderr
 		c.Stdout = os.Stdout
