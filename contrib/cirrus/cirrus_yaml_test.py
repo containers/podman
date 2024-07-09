@@ -63,7 +63,7 @@ class TestDependsOn(TestCaseBase):
     def test_only_if(self):
         """2024-07 PR#23174: ugly but necessary duplication in only_if conditions. Prevent typos or unwanted changes."""
         beginning = "$CIRRUS_PR == '' || $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' || changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'hack/**', 'version/rawversion/*') || "
-        real_source_changes = " || (changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))"
+        real_source_changes = " || (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))"
 
         for task_name in self.ALL_TASK_NAMES:
             task = self.CIRRUS_YAML[task_name + '_task']

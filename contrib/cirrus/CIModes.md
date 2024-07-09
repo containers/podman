@@ -59,8 +59,8 @@ uses the following main rules:
    - `version/rawversion/*` (podman version changes, intended to ensure all release PRs test everything to not release known broken code)
 
 After that, task-specific rules are added, check [.cirrus.yml](../../.cirrus.yml) for them.
-Another common rule used there is `(changesInclude('**/*.go', '**/*.c') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))`.
-This rule defines the set of source code. Podman uses both go and c source code,
+Another common rule used there is `(changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))`.
+This rule defines the set of source code. Podman uses both go and c source code (including header files),
 however as some tests are also using go code we manually exclude the test
 directories from this list.
 
