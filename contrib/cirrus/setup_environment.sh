@@ -384,14 +384,6 @@ case "$TEST_FLAVOR" in
         showrun make install PREFIX=/usr ETCDIR=/etc
         install_test_configs
         ;;
-    minikube)
-        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/minikube-latest*
-        remove_packaged_podman_files
-        showrun make install.tools
-        showrun make install PREFIX=/usr ETCDIR=/etc
-        showrun minikube config set driver podman
-        install_test_configs
-        ;;
     machine-linux)
         showrun dnf install -y podman-gvproxy* virtiofsd
         # Bootstrap this link if it isn't yet in the package; xref
