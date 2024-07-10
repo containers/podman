@@ -48,6 +48,11 @@ setup() {
     # skip_mount_home=true is required so we can share the storage mounts between host and container,
     # the default c/storage behavior is to make the mount propagation private.
     export _PODMAN_TEST_OPTS="--storage-opt=skip_mount_home=true --cgroup-manager=cgroupfs --root=$PODMAN_UPGRADE_WORKDIR/root --runroot=$PODMAN_UPGRADE_WORKDIR/runroot --tmpdir=$PODMAN_UPGRADE_WORKDIR/tmp"
+
+    # Old netavark used iptables but newer versions might uses nftables.
+    # Networking can only work correctly if both use the same firewall driver so force iptables.
+    printf "[network]\nfirewall_driver=\"iptables\"\n" > $PODMAN_UPGRADE_WORKDIR/containers.conf
+    export CONTAINERS_CONF_OVERRIDE=$PODMAN_UPGRADE_WORKDIR/containers.conf
 }
 
 ###############################################################################
@@ -180,6 +185,7 @@ EOF
             --net=host \
             --cgroupns=host \
             --pid=host \
+            --env CONTAINERS_CONF_OVERRIDE \
             $v_sconf \
             -v /dev/fuse:/dev/fuse \
             -v /run/crun:/run/crun \
