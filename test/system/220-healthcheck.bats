@@ -12,8 +12,19 @@ function _check_health {
     local testname="$1"
     local tests="$2"
     local since="$3"
-    local hc_status="$4"
-    local cname="$5"
+    local until="$4"
+    local hc_status="$5"
+    local cname="$6"
+
+    # Make sure we can read the healthcheck event in podman events (#20342)
+    run_podman events --filter container=$cname --filter event=health_status \
+        --since "$since" --until "$until" --format "{{.HealthStatus}}"
+    # Because the assert below would fail with "lines: bad array subscript" when
+    # there are no events lets special case this to provide a more meaningful error.
+    if [[ -z "$output" ]]; then
+        die "no healthcheck events"
+    fi
+    assert "${lines[-1]}" == "$hc_status" "$testname - podman events health status"
 
     run_podman inspect --format "{{json .State.Healthcheck}}" $cname
 
@@ -21,16 +32,6 @@ function _check_health {
         actual=$(jq ".$field" <<<"$output")
         is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
     done
-
-    # Make sure we can read the healthcheck event in podman events (#20342)
-    run_podman events --filter container=$cname --filter event=health_status \
-        --since "$since" --stream=false --format "{{.HealthStatus}}"
-    # Because the assert below would fail with "lines: bad array subscript" when
-    # there are no events lets special case this to provide a more meaningful error.
-    if [[ -z "$output" ]]; then
-        die "no healthcheck events"
-    fi
-    assert "${lines[-1]}" == "$hc_status" "$testname - podman events health status"
 }
 
 @test "podman healthcheck" {
@@ -62,19 +63,18 @@ Status           | \"healthy\"
 FailingStreak    | 0
 Log[-1].ExitCode | 0
 Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\"
-" "$current_time" "healthy" $cname
+" "$current_time" 0s "healthy" $cname
 
     current_time=$(date --iso-8601=seconds)
     # Force a failure
     run_podman exec $cname touch /uh-oh
-    sleep 2
 
     _check_health "First failure" "
 Status           | \"healthy\"
-FailingStreak    | [123]
+FailingStreak    | [12]
 Log[-1].ExitCode | 1
 Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
-" "$current_time" "healthy" $cname
+" "$current_time" 2s "healthy" $cname
 
     # Check that we now we do have valid podman units with this
     # name so that the leak check below does not turn into a NOP without noticing.
@@ -82,13 +82,12 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 
     current_time=$(date --iso-8601=seconds)
     # After three successive failures, container should no longer be healthy
-    sleep 5
     _check_health "Three or more failures" "
 Status           | \"unhealthy\"
 FailingStreak    | [3456]
 Log[-1].ExitCode | 1
 Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
-" "$current_time" "unhealthy" $cname
+" "$current_time" 4s "unhealthy" $cname
 
     # now the on-failure should kick in and kill the container
     run_podman wait $cname
