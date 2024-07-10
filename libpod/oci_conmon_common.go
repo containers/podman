@@ -1197,6 +1197,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.Dir = persistDir
 	if ctr.Terminal() {
 		cmd.Stderr = &stderrBuf
 	}
