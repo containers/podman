@@ -1,5 +1,17 @@
 # Release Notes
 
+## 5.1.2
+### Bugfixes
+- Fixed a bug that would sometimes prevent the mount of some `podman machine` volumes into the virtual machine when using the Apple hypervisor ([#22569](https://github.com/containers/podman/issues/22569)).
+- Fixed a bug where `podman top` would show the incorrect UID for processes in containers run in a user namespace ([#22293](https://github.com/containers/podman/issues/22293)).
+- Fixed a bug where the `/etc/hosts` and `/etc/resolv.conf` files in a container would be empty after restoring from a checkpoint ([#22901](https://github.com/containers/podman/issues/22901)).
+- Fixed a bug where the `--pod-id-file` argument to `podman run` and `podman create` did not respect the pod's user namespace ([#22931](https://github.com/containers/podman/issues/22931)).
+- Fixed a bug in the Podman remote client where specifying a invalid connection in the `CONTAINER_CONNECTION` environment variable would lead to a panic.
+
+### Misc
+- Virtual machines run by `podman machine` using the Apple hypervisor now wait 90 seconds before forcibly stopping the VM, matching the standard systemd shutdown timeout ([#22515](https://github.com/containers/podman/issues/22515)).
+- Updates the containers/image library to v5.31.1
+
 ## 5.1.1
 ### Bugfixes
 - Fixed a bug where systemd timers associated with startup healthchecks would not be properly deleted after transitioning to the regular healthcheck ([#22884](https://github.com/containers/podman/issues/22884)).

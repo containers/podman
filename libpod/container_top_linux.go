@@ -31,6 +31,7 @@ import (
 void fork_exec_ps();
 void create_argv(int len);
 void set_argv(int pos, char *arg);
+void set_userns();
 */
 import "C"
 
@@ -56,13 +57,13 @@ func podmanTopMain() {
 	os.Exit(0)
 }
 
-// podmanTopInner os.Args = {command name} {pid} {psPath} [args...]
+// podmanTopInner os.Args = {command name} {pid} {userns(1/0)} {psPath} [args...]
 // We are rexxec'd in a new mountns, then we need to set some security settings in order
 // to safely execute ps in the container pid namespace. Most notably make sure podman and
 // ps are read only to prevent a process from overwriting it.
 func podmanTopInner() error {
-	if len(os.Args) < 3 {
-		return fmt.Errorf("internal error, need at least two arguments")
+	if len(os.Args) < 4 {
+		return fmt.Errorf("internal error, need at least three arguments")
 	}
 
 	// We have to lock the thread as we a) switch namespace below and b) use PR_SET_PDEATHSIG
@@ -84,7 +85,7 @@ func podmanTopInner() error {
 		return fmt.Errorf("make / mount private: %w", err)
 	}
 
-	psPath := os.Args[2]
+	psPath := os.Args[3]
 
 	// try to mount everything read only
 	if err := unix.MountSetattr(0, "/", unix.AT_RECURSIVE, &unix.MountAttr{
@@ -122,8 +123,13 @@ func podmanTopInner() error {
 	}
 	pidFD.Close()
 
+	userns := os.Args[2]
+	if userns == "1" {
+		C.set_userns()
+	}
+
 	args := []string{psPath}
-	args = append(args, os.Args[3:]...)
+	args = append(args, os.Args[4:]...)
 
 	C.create_argv(C.int(len(args)))
 	for i, arg := range args {
@@ -317,7 +323,14 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 		wPipe.Close()
 		return nil, true, err
 	}
-	args := append([]string{podmanTopCommand, strconv.Itoa(c.state.PID), psPath}, psArgs...)
+
+	// see podmanTopInner()
+	userns := "0"
+	if len(c.config.IDMappings.UIDMap) > 0 {
+		userns = "1"
+	}
+
+	args := append([]string{podmanTopCommand, strconv.Itoa(c.state.PID), userns, psPath}, psArgs...)
 
 	cmd := reexec.Command(args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{

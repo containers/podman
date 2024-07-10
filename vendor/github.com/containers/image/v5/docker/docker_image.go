@@ -14,6 +14,7 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 )
 
 // Image is a Docker-specific implementation of types.ImageCloser with a few extra methods
@@ -90,6 +91,14 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 		}
 		for _, tag := range tagsHolder.Tags {
 			if _, err := reference.WithTag(dr.ref, tag); err != nil { // Ensure the tag does not contain unexpected values
+				// Per https://github.com/containers/skopeo/issues/2346 , unknown versions of JFrog Artifactory,
+				// contrary to the tag format specified in
+				// https://github.com/opencontainers/distribution-spec/blob/8a871c8234977df058f1a14e299fe0a673853da2/spec.md?plain=1#L160 ,
+				// include digests in the list.
+				if _, err := digest.Parse(tag); err == nil {
+					logrus.Debugf("Ignoring invalid tag %q matching a digest format", tag)
+					continue
+				}
 				return nil, fmt.Errorf("registry returned invalid tag %q: %w", tag, err)
 			}
 			tags = append(tags, tag)

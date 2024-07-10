@@ -3,6 +3,8 @@
 
 #define _GNU_SOURCE
 #include <errno.h>
+#include <fcntl.h>
+#include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mount.h>
@@ -11,6 +13,7 @@
 
 /* keep special_exit_code in sync with container_top_linux.go */
 int special_exit_code = 255;
+int join_userns = 0;
 char **argv = NULL;
 
 void
@@ -31,6 +34,12 @@ void
 set_argv (int pos, char *arg)
 {
   argv[pos] = arg;
+}
+
+void
+set_userns ()
+{
+  join_userns = 1;
 }
 
 /*
@@ -64,6 +73,23 @@ fork_exec_ps ()
           fprintf (stderr, "mount proc: %m");
           exit (special_exit_code);
         }
+      if (join_userns)
+        {
+          // join the userns to make sure uid mapping match
+          // we are already part of the pidns so so pid 1 is the main container process
+          r = open ("/proc/1/ns/user", O_CLOEXEC | O_RDONLY);
+          if (r < 0)
+            {
+              fprintf (stderr, "open /proc/1/ns/user: %m");
+              exit (special_exit_code);
+            }
+          if ((status = setns (r, CLONE_NEWUSER)) < 0)
+            {
+              fprintf (stderr, "setns NEWUSER: %m");
+              exit (special_exit_code);
+            }
+        }
+
       /* use execve to unset all env vars, we do not want to leak anything into the container */
       execve (argv[0], argv, NULL);
       fprintf (stderr, "execve: %m");

@@ -1712,6 +1712,15 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}
 
+	// setup hosts/resolv.conf files
+	// Note this should normally be called after the container is created in the runtime but before it is started.
+	// However restore starts the container right away. This means that if we do the call afterwards there is a
+	// short interval where the file is still empty. Thus I decided to call it before which makes it not working
+	// with PostConfigureNetNS (userns) but as this does not work anyway today so I don't see it as problem.
+	if err := c.completeNetworkSetup(); err != nil {
+		return nil, 0, fmt.Errorf("complete network setup: %w", err)
+	}
+
 	runtimeRestoreDuration, err = c.ociRuntime.CreateContainer(c, &options)
 	if err != nil {
 		return nil, 0, err
