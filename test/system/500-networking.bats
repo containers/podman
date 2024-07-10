@@ -726,6 +726,7 @@ nameserver 8.8.8.8" "nameserver order is correct"
     run_podman network rm -f $netname
 }
 
+# bats test_tags=distro-integration
 @test "podman run port forward range" {
     # we run a long loop of tests lets run all combinations before bailing out
     defer-assertion-failures
@@ -755,6 +756,12 @@ nameserver 8.8.8.8" "nameserver order is correct"
 
         run_podman run --network $netmode -p "$range:$range" -d $IMAGE sleep inf
         cid="$output"
+
+        # make sure binding the same port fails
+        run timeout 5 nc -l -p $port 127.0.0.1
+        assert "$status" -eq 2 "ncat unexpected exit code"
+        assert "$output" =~ "127.0.0.1:$port: Address already in use" "ncat error message"
+
         for port in $(seq $port $end_port); do
             run_podman exec -d $cid nc -l -p $port -e /bin/cat
 
