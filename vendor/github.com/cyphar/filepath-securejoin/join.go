@@ -1,5 +1,5 @@
 // Copyright (C) 2014-2015 Docker Inc & Go Authors. All rights reserved.
-// Copyright (C) 2017 SUSE LLC. All rights reserved.
+// Copyright (C) 2017-2024 SUSE LLC. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -40,6 +40,12 @@ func IsNotExist(err error) bool {
 // components in the returned string are not modified (in other words are not
 // replaced with symlinks on the filesystem) after this function has returned.
 // Such a symlink race is necessarily out-of-scope of SecureJoin.
+//
+// NOTE: Due to the above limitation, Linux users are strongly encouraged to
+// use OpenInRoot instead, which does safely protect against these kinds of
+// attacks. There is no way to solve this problem with SecureJoinVFS because
+// the API is fundamentally wrong (you cannot return a "safe" path string and
+// guarantee it won't be modified afterwards).
 //
 // Volume names in unsafePath are always discarded, regardless if they are
 // provided via direct input or when evaluating symlinks. Therefore:
