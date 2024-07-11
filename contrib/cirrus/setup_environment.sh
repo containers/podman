@@ -41,6 +41,27 @@ done
 # Bypass git safety/security checks when operating in a throwaway environment
 showrun git config --global --add safe.directory $GOSRC
 
+# Special case: "composefs" is not a valid setting but it's useful for
+# readability in .cirrus.yml. Here we translate that to overlayfs (the
+# actual filesystem) along with extra magic envariables.
+# Be sure to do this before writing /etc/ci_environment.
+export CI_DESIRED_COMPOSEFS=
+# shellcheck disable=SC2154
+if [[ "$CI_DESIRED_STORAGE" = "composefs" ]]; then
+    CI_DESIRED_STORAGE="overlay"
+
+    # composefs is root only
+    if [[ "$PRIV_NAME" == "root" ]]; then
+        CI_DESIRED_COMPOSEFS="+composefs"
+
+        # KLUDGE ALERT! Magic options needed for testing composefs.
+        # This option was intended for passing one arg to --storage-opt
+        # but we're hijacking it to pass an extra option+arg. And it
+        # actually works. Just MAKE SURE THERE ARE NO SPACES IN THE {...}!
+        export STORAGE_OPTIONS_OVERLAY='overlay.use_composefs=true --pull-option {enable_partial_images="true",use_hard_links="false",ostree_repos="",convert_images="true"}'
+    fi
+fi
+
 # Ensure that all lower-level contexts and child-processes have
 # ready access to higher level orchestration (e.g Cirrus-CI)
 # variables.
@@ -155,7 +176,7 @@ esac
 # This is (sigh) different because e2e tests have their own special way
 # of ignoring system defaults.
 # shellcheck disable=SC2154
-showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE] for *system* tests"
+showrun echo "Setting CI_DESIRED_STORAGE [=$CI_DESIRED_STORAGE$CI_DESIRED_COMPOSEFS] for *system* tests"
 conf=/etc/containers/storage.conf
 if [[ -e $conf ]]; then
     die "FATAL! INTERNAL ERROR! Cannot override $conf"
@@ -167,6 +188,18 @@ runroot = "/run/containers/storage"
 graphroot = "/var/lib/containers/storage"
 EOF
 
+if [[ -n "$CI_DESIRED_COMPOSEFS" ]]; then
+    cat <<EOF >>$conf
+
+# BEGIN CI-enabled composefs
+[storage.options]
+pull_options = {enable_partial_images = "true", use_hard_links = "false", ostree_repos="", convert_images = "true"}
+
+[storage.options.overlay]
+use_composefs = "true"
+# END CI-enabled composefs
+EOF
+fi
 
 # mount a tmpfs for the container storage to speed up the IO
 # side effect is we clear all potentially pre existing data so we know we always start "clean"

@@ -124,6 +124,16 @@ host.slirp4netns.executable | $expr_path
     fi
 
     is "$(podman_storage_driver)" "$CI_DESIRED_STORAGE" "podman storage driver is not CI_DESIRED_STORAGE (from .cirrus.yml)"
+
+    # Confirm desired setting of composefs
+    if [[ "$CI_DESIRED_STORAGE" = "overlay" ]]; then
+        expect="<no value>"
+        if [[ -n "$CI_DESIRED_COMPOSEFS" ]]; then
+            expect="true"
+        fi
+        run_podman info --format '{{index .Store.GraphOptions "overlay.use_composefs"}}'
+        assert "$output" = "$expect" ".Store.GraphOptions -> overlay.use_composefs"
+    fi
 }
 
 # 2021-04-06 discussed in watercooler: RHEL must never use crun, even if

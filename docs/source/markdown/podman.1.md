@@ -263,7 +263,7 @@ Set default `--storage-driver` value.
 
 #### **STORAGE_OPTS**
 
-Set default `--storage-opts` value.
+Set default `--storage-opt` value.
 
 #### **TMPDIR**
 

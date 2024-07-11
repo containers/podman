@@ -360,6 +360,12 @@ driver="$storagedriver"
 additionalimagestores = [ "$imstore/root" ]
 EOF
 
+    # If composefs (root only) is enabled, we must mirror that setting in our conf
+    if grep -q 'BEGIN CI-enabled composefs' /etc/containers/storage.conf; then
+        sed -ne '/BEGIN CI-enabled composefs/,/END CI-enabled composefs/p' /etc/containers/storage.conf \
+            | grep -vF '[storage.options]' >>$sconf
+    fi
+
     skopeo copy containers-storage:$IMAGE \
            containers-storage:\[${storagedriver}@${imstore}/root+${imstore}/runroot\]$IMAGE
 
