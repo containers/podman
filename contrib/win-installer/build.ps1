@@ -45,7 +45,6 @@ function CheckCommand() {
 }
 
 function CheckRequirements() {
-    CheckCommand "gcc" "MingW CC"
     CheckCommand "wix" "WiX Toolset"
     CheckCommand "go" "Golang"
 }
@@ -104,7 +103,7 @@ if ($ENV:INSTVER -eq "") {
     Exit 1
 }
 
-.\build-hooks.bat; ExitOnError
+.\build-hooks.ps1; ExitOnError
 SignItem @("artifacts/win-sshproxy.exe",
           "artifacts/podman.exe",
           "artifacts/podman-msihooks.dll",

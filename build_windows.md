@@ -11,6 +11,7 @@ Windows.
   - [Git and go](#git-and-go)
   - [Pandoc](#pandoc)
   - [.NET SDK](#net-sdk)
+  - [Visual Studio Build Tools](#visual-studio-build-tools)
   - [Virtualization Provider](#virtualization-provider)
     - [WSL](#wsl)
     - [Hyper-V](#hyper-v)
@@ -85,6 +86,30 @@ used too and can be installed using `dotnet install`:
 
 ```pwsh
 dotnet tool install --global wix
+```
+
+### Visual Studio Build Tools
+
+The installer includes a C program that checks the installation of the
+pre-required virtualization providers (WSL or Hyper-V). Building this program
+requires the
+[Microsoft C/C++ compiler](https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170) and the
+[PowerShell Moduel VSSetup](https://github.com/microsoft/vssetup.powershell):
+
+1. Download the Build Tools for Visual Studio 2022 installer
+```pwsh
+Invoke-WebRequest -Uri 'https://aka.ms/vs/17/release/vs_BuildTools.exe' -OutFile "$env:TEMP\vs_BuildTools.exe"
+```
+2. Run the installer with the parameter to include the optional C/C++ Tools
+```pwsh
+& "$env:TEMP\vs_BuildTools.exe" --passive --wait `
+                      --add Microsoft.VisualStudio.Workload.VCTools `
+                      --includeRecommended `
+                      --remove Microsoft.VisualStudio.Component.VC.CMake.Project
+```
+3. Install the PowerShell Module VSSetup
+```pwsh
+Install-Module VSSetup
 ```
 
 ### Virtualization Provider
@@ -339,6 +364,9 @@ otherwise):
 ```pwsh
 contrib\win-installer\podman-5.1.0-dev-setup.exe /install /log podman-setup.log /quiet MachineProvider=wsl WSLCheckbox=0 HyperVCheckbox=0
 ```
+
+:information_source: The `winmake.ps1` target `installertest` automatically
+tests installing and uninstalling Podman.
 
 ### Build and test the standalone `podman.msi` file
 
