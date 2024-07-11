@@ -335,6 +335,18 @@ case "$PODBIN_NAME" in
     *) die_unknown PODBIN_NAME
 esac
 
+# As of July 2024, CI VMs come built-in with a registry.
+LCR=/var/cache/local-registry/local-cache-registry
+if [[ -x $LCR ]]; then
+    # Images in cache registry are prepopulated at the time
+    # VMs are built. If any PR adds a dependency on new images,
+    # those must be fetched now, at VM start time. This should
+    # be rare, and must be fixed in next automation_images build.
+    while read new_image; do
+        $LCR cache $new_image
+    done < <(grep '^[^#]' test/NEW-IMAGES || true)
+fi
+
 # Required to be defined by caller: The primary type of testing that will be performed
 # shellcheck disable=SC2154
 showrun echo "about to set up for TEST_FLAVOR [=$TEST_FLAVOR]"
@@ -426,6 +438,10 @@ case "$TEST_FLAVOR" in
         fi
         remove_packaged_podman_files
         showrun make install PREFIX=/usr ETCDIR=/etc
+        # machine-os image changes too frequently, can't be precached
+        # FIXME: I don't think we can use version.go, because of chicken-egg
+        # problem when that gets bumped. Ideas welcome.
+        $LCR cache podman/machine-os:5.2
         install_test_configs
         ;;
     swagger)

@@ -72,6 +72,9 @@ CIRRUS_CI="${CIRRUS_CI:-false}"
 CONTINUOUS_INTEGRATION="${CONTINUOUS_INTEGRATION:-false}"
 CIRRUS_REPO_NAME=${CIRRUS_REPO_NAME:-podman}
 
+# All CI jobs use a local registry
+export CI_USE_REGISTRY_CACHE=true
+
 # shellcheck disable=SC2154
 if [[ -n "$CIRRUS_PR" ]] && [[ -z "$PR_BASE_SHA" ]]; then
     # shellcheck disable=SC2154
@@ -193,7 +196,8 @@ setup_rootless() {
 
 install_test_configs() {
     msg "Installing ./test/registries.conf system-wide."
-    install -v -D -m 644 ./test/registries.conf /etc/containers/
+    # All CI VMs run with a local registry
+    install -v -D -m 644 ./test/registries-cached.conf /etc/containers/registries.conf
 }
 
 # Remove all files provided by the distro version of podman.

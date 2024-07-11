@@ -7,7 +7,9 @@
 podman pull -q $IMAGE
 
 t GET libpod/images/json 200 \
-  .[0].Id~[0-9a-f]\\{64\\}
+  length=1 \
+  .[0].Id~[0-9a-f]\\{64\\} \
+  .[0].Names[0]="$IMAGE"
 iid=$(jq -r '.[0].Id' <<<"$output")
 
 # Create an empty manifest and make sure it is not listed
@@ -18,7 +20,7 @@ t GET images/json 200 length=1
 t GET libpod/images/json 200 length=2
 
 t GET libpod/images/$iid/exists                     204
-t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/exists  204
+t GET libpod/images/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG/exists  204
 t GET libpod/images/${iid}abcdef/exists  404 \
   .cause="failed to find image ${iid}abcdef"
 
@@ -51,11 +53,13 @@ t GET images/$iid/json 200 \
 t POST "images/create?fromImage=alpine" 200 .error~null .status~".*Download complete.*"
 t POST "libpod/images/pull?reference=alpine&compatMode=true" 200 .error~null .status~".*Download complete.*"
 
-t POST "images/create?fromImage=alpine&tag=latest" 200
+t POST "images/create?fromImage=alpine&tag=latest" 200 \
+  .status~"Already exists"
 
 # 10977 - handle platform parameter correctly
-t POST "images/create?fromImage=quay.io/libpod/testimage:20240123&platform=linux/arm64" 200
-t GET  "images/testimage:20240123/json" 200 \
+# THIS IMAGE MUST NOT BE THE SAME AS $IMAGE
+t POST "images/create?fromImage=quay.io/libpod/testimage:20221018&platform=linux/arm64" 200
+t GET  "images/testimage:20221018/json" 200 \
   .Architecture=arm64
 
 # Make sure that new images are pulled
@@ -78,34 +82,42 @@ t POST /images/create?fromImage=busybox:invalidtag123 404
 # Display the image history
 t GET libpod/images/nonesuch/history 404
 
-for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
+for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG; do
   t GET libpod/images/$i/history 200 \
     .[0].Id=$iid \
     .[0].Created~[0-9]\\{10\\} \
     .[0].Tags[0]="$IMAGE" \
-    .[0].Size=0 \
-    .[0].Comment=
+    .[0].Size=1024 \
+    .[0].Comment="FROM localhost/interim-image:latest"
 done
 
-for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
+for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG; do
   t GET images/$i/history 200 \
     .[0].Id="sha256:"$iid \
     .[0].Created~[0-9]\\{10\\} \
     .[0].Tags[0]="$IMAGE" \
-    .[0].Size=0 \
-    .[0].Comment=
+    .[0].Size=1024 \
+    .[0].Comment="FROM localhost/interim-image:latest"
 done
 
 # compat api pull image unauthorized message error
-t POST "/images/create?fromImage=quay.io/idonotexist/idonotexist:dummy" 401 \
-  .message="unauthorized: access to the requested resource is not authorized"
+# This depends on whether we're using local cache registry or real quay
+expect_code=401
+expect_msg="unauthorized: access to the requested resource is not authorized"
+if [[ -n "$CI_USE_REGISTRY_CACHE" ]]; then
+    # local registry has no auth, so it can return 404
+    expect_code=404
+    expect_msg="manifest unknown: manifest unknown"
+fi
+t POST "/images/create?fromImage=quay.io/idonotexist/idonotexist:dummy" $expect_code \
+  .message="$expect_msg"
 
 # Export an image on the local
 t GET libpod/images/nonesuch/get 404
 t GET libpod/images/$iid/get?format=foo 500
 t GET libpod/images/$PODMAN_TEST_IMAGE_NAME/get?compress=bar 400
 
-for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME; do
+for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG; do
   t GET "libpod/images/$i/get"                200 '[POSIX tar archive]'
   t GET "libpod/images/$i/get?compress=true"  200 '[POSIX tar archive]'
   t GET "libpod/images/$i/get?compress=false" 200 '[POSIX tar archive]'
@@ -296,10 +308,12 @@ t DELETE libpod/images/test:test 200
 # This sleep seems to avoid the race.
 # If it fails and begins to flake, investigate a retry loop.
 sleep 1
+# FIXME 2024-05-30 #22726: when running with a local cache registry, DELETE
+# sometimes produces 5-6 events instead of the desired only-one.
 t GET "libpod/events?stream=false&since=$START"  200  \
-  'select(.status | contains("remove")).Action=remove'
+  'select(.status | contains("remove")).Actor.Attributes.name~.*localhost/test:test'
 t GET "events?stream=false&since=$START"  200  \
-  'select(.status | contains("delete")).Action=delete'
+  'select(.status | contains("delete")).Actor.Attributes.name~.*localhost/test:test'
 
 # Test image removal with `noprune={true,false}`
 podman create --name c_test1 $IMAGE true

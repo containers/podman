@@ -15,15 +15,6 @@ var (
 	HEALTHCHECK_IMAGE = "quay.io/libpod/alpine_healthcheck:latest" //nolint:revive,stylecheck
 	volumeTest        = "quay.io/libpod/volume-plugin-test-img:20220623"
 
-	// This image has seccomp profiles that blocks all syscalls.
-	// The intention behind blocking all syscalls is to prevent
-	// regressions in the future.  The required syscalls can vary
-	// depending on which runtime we're using.
-	alpineSeccomp = "quay.io/libpod/alpine-with-seccomp:label"
-	// This image has a bogus/invalid seccomp profile which should
-	// yield a json error when being read.
-	alpineBogusSeccomp = "quay.io/libpod/alpine-with-bogus-seccomp:label"
-
 	// ImageCacheDir is initialized at runtime.
 	// e.g., filepath.Join(os.TempDir(), "imagecachedir")
 	// This directory should be used by per-user.

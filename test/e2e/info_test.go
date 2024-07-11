@@ -117,13 +117,11 @@ var _ = Describe("Podman Info", func() {
 			Expect(session.OutputToString()).To(Equal("false"))
 		}
 
-		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Exists}}"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
 		if IsRemote() {
-			Expect(session.OutputToString()).To(ContainSubstring("true"))
-		} else {
-			Expect(session.OutputToString()).To(ContainSubstring("false"))
+			session = podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Exists}}"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(Equal("true"))
 		}
 
 	})

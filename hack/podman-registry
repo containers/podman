@@ -7,7 +7,7 @@ ME=$(basename $0)
 ###############################################################################
 # BEGIN defaults
 
-PODMAN_REGISTRY_IMAGE=quay.io/libpod/registry:2.8
+PODMAN_REGISTRY_IMAGE=quay.io/libpod/registry:2.8.2
 
 PODMAN_REGISTRY_USER=
 PODMAN_REGISTRY_PASS=

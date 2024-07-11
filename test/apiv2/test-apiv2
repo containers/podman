@@ -11,13 +11,13 @@ ME=$(basename $0)
 
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
-PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"alpine_labels"}
-PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"latest"}
+PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20240123"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 
 IMAGE=$PODMAN_TEST_IMAGE_FQN
 
-REGISTRY_IMAGE="${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/registry:2.7"
+REGISTRY_IMAGE="${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/registry:2.8.2"
 
 # END   stuff you can but probably shouldn't customize
 ###############################################################################
@@ -53,6 +53,14 @@ fi
 
 # Path to podman binary
 PODMAN_BIN=${PODMAN:-${CONTAINERS_HELPER_BINARY_DIR}/podman}
+
+# Path to registries.conf file. CI uses a locally-running cache registry,
+# but we can't expect developers to have that in their local environment.
+registries_conf_file=registries.conf
+if [[ -n "$CI_USE_REGISTRY_CACHE" ]]; then
+    registries_conf_file=registries-cached.conf
+fi
+registries_conf_path=$TESTS_DIR/../$registries_conf_file
 
 # Cleanup handlers
 clean_up_server() {
@@ -474,7 +482,7 @@ function start_service() {
         $PODMAN_BIN unshare true
     fi
 
-    CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
+    CONTAINERS_REGISTRIES_CONF=$registries_conf_path \
         $PODMAN_BIN \
         --root $WORKDIR/server_root --syslog=true \
         system service \
@@ -526,7 +534,7 @@ function start_registry() {
     mkdir -p $AUTHDIR
 
     mkdir -p ${REGDIR}/{root,runroot}
-    local PODMAN_REGISTRY_ARGS="--root ${REGDIR}/root --runroot ${REGDIR}/runroot"
+    local PODMAN_REGISTRY_ARGS="--root ${REGDIR}/root --runroot ${REGDIR}/runroot --tmpdir ${REGDIR}/tmp"
 
     # Give it three tries, to compensate for network flakes
     podman ${PODMAN_REGISTRY_ARGS} pull $REGISTRY_IMAGE ||
@@ -644,7 +652,7 @@ function wait_for_port() {
 ############
 function podman() {
     echo "\$ $PODMAN_BIN $*"                           >>$WORKDIR/output.log
-#    env CONTAINERS_REGISTRIES_CONF=$TESTS_DIR/../registries.conf \
+    env CONTAINERS_REGISTRIES_CONF=$registries_conf_path \
         $PODMAN_BIN --root $WORKDIR/server_root "$@"   >>$WORKDIR/output.log 2>&1
 }
 
