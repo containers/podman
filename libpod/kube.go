@@ -513,6 +513,10 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 
 	for _, ctr := range containers {
 		if ctr.IsInfra() {
+			// If there is an user namespace for the infra container, then register it for the entire pod.
+			if v, found := ctr.config.Spec.Annotations[define.UserNsAnnotation]; found {
+				podAnnotations[define.UserNsAnnotation] = v
+			}
 			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
