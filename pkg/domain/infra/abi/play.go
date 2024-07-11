@@ -610,6 +610,10 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		} else {
 			options.Userns = "host"
 		}
+		// FIXME: how to deal with explicit mappings?
+		if options.Userns == "private" {
+			options.Userns = "auto"
+		}
 	} else if podYAML.Spec.HostUsers != nil {
 		logrus.Info("overriding the user namespace mode in the pod spec")
 	}
