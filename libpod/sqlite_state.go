@@ -6,7 +6,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	"path/filepath"
 	goruntime "runtime"
@@ -379,21 +378,24 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 
 	checkField := func(fieldName, dbVal, ourVal string, isPath bool) error {
 		if isPath {
-			// Evaluate symlinks. Ignore ENOENT. No guarantee all
-			// directories exist this early in Libpod init.
+			// Tolerate symlinks when possible - most relevant for OStree systems
+			// and rootless containers, where we want to put containers in /home,
+			// which is symlinked to /var/home.
+			// Ignore ENOENT as reasonable, as some paths may not exist in early Libpod
+			// init.
 			if dbVal != "" {
-				dbValClean, err := filepath.EvalSymlinks(dbVal)
-				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				checkedVal, err := evalSymlinksIfExists(dbVal)
+				if err != nil {
 					return fmt.Errorf("cannot evaluate symlinks on DB %s path %q: %w", fieldName, dbVal, err)
 				}
-				dbVal = dbValClean
+				dbVal = checkedVal
 			}
 			if ourVal != "" {
-				ourValClean, err := filepath.EvalSymlinks(ourVal)
-				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+				checkedVal, err := evalSymlinksIfExists(ourVal)
+				if err != nil {
 					return fmt.Errorf("cannot evaluate symlinks on our %s path %q: %w", fieldName, ourVal, err)
 				}
-				ourVal = ourValClean
+				ourVal = checkedVal
 			}
 		}
 

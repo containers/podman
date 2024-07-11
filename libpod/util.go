@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -287,4 +288,23 @@ func writeStringToPath(path, contents, mountLabel string, uid, gid int) error {
 	}
 
 	return nil
+}
+
+// If the given path exists, evaluate any symlinks in it. If it does not, clean
+// the path and return it. Used to try and verify path equality in a somewhat
+// sane fashion.
+func evalSymlinksIfExists(toCheck string) (string, error) {
+	checkedVal, err := filepath.EvalSymlinks(toCheck)
+	if err != nil {
+		// If the error is not ENOENT, something more serious has gone
+		// wrong, return it.
+		if !errors.Is(err, fs.ErrNotExist) {
+			return "", err
+		}
+		// This is an ENOENT. On ENOENT, EvalSymlinks returns "".
+		// We don't want that. Return a cleaned version of the original
+		// path.
+		return filepath.Clean(toCheck), nil
+	}
+	return checkedVal, nil
 }
