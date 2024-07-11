@@ -187,17 +187,6 @@ var _ = Describe("Podman run networking", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("nameserver 1.1.1.1"))
 	})
 
-	It("podman run network expose port 222", func() {
-		SkipIfRootless("iptables is not supported for rootless users")
-		session := podmanTest.Podman([]string{"run", "-dt", "--expose", "222-223", "-P", ALPINE, "/bin/sh"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		results := SystemExec("iptables", []string{"-t", "nat", "-nvL"})
-		Expect(results).Should(ExitCleanly())
-		Expect(results.OutputToString()).To(ContainSubstring("222"))
-		Expect(results.OutputToString()).To(ContainSubstring("223"))
-	})
-
 	It("podman run -p 80", func() {
 		name := "testctr"
 		session := podmanTest.Podman([]string{"create", "-t", "-p", "80", "--name", name, ALPINE, "/bin/sh"})
@@ -361,7 +350,7 @@ var _ = Describe("Podman run networking", func() {
 
 	It("podman run --expose 80 -P", func() {
 		name := "testctr"
-		session := podmanTest.Podman([]string{"create", "-t", "--expose", "80", "-P", "--name", name, ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"run", "-d", "--expose", "80", "-P", "--name", name, ALPINE, "sleep", "100"})
 		session.WaitWithDefaultTimeout()
 		inspectOut := podmanTest.InspectContainer(name)
 		Expect(inspectOut).To(HaveLen(1))
@@ -373,7 +362,7 @@ var _ = Describe("Podman run networking", func() {
 
 	It("podman run --expose 80/udp -P", func() {
 		name := "testctr"
-		session := podmanTest.Podman([]string{"create", "-t", "--expose", "80/udp", "-P", "--name", name, ALPINE, "/bin/sh"})
+		session := podmanTest.Podman([]string{"run", "-d", "--expose", "80/udp", "-P", "--name", name, ALPINE, "sleep", "100"})
 		session.WaitWithDefaultTimeout()
 		inspectOut := podmanTest.InspectContainer(name)
 		Expect(inspectOut).To(HaveLen(1))
@@ -381,6 +370,22 @@ var _ = Describe("Podman run networking", func() {
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0].HostPort).To(Not(Equal("0")))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/udp"][0]).To(HaveField("HostIP", "0.0.0.0"))
+	})
+
+	It("podman run --expose port range", func() {
+		name := "testctr"
+		session := podmanTest.Podman([]string{"run", "-d", "--expose", "222-223", "-P", "--name", name, ALPINE, "sleep", "100"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		inspectOut := podmanTest.InspectContainer(name)
+		Expect(inspectOut).To(HaveLen(1))
+		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(2))
+		Expect(inspectOut[0].NetworkSettings.Ports["222/tcp"]).To(HaveLen(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["222/tcp"][0].HostPort).To(Not(Equal("0")))
+		Expect(inspectOut[0].NetworkSettings.Ports["222/tcp"][0]).To(HaveField("HostIP", "0.0.0.0"))
+		Expect(inspectOut[0].NetworkSettings.Ports["223/tcp"]).To(HaveLen(1))
+		Expect(inspectOut[0].NetworkSettings.Ports["223/tcp"][0].HostPort).To(Not(Equal("0")))
+		Expect(inspectOut[0].NetworkSettings.Ports["223/tcp"][0]).To(HaveField("HostIP", "0.0.0.0"))
 	})
 
 	It("podman run --expose 80 -p 80", func() {
@@ -482,32 +487,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostPort", "9280"))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", "0.0.0.0"))
-	})
-
-	It("podman run network expose host port 80 to container port", func() {
-		SkipIfRootless("iptables is not supported for rootless users")
-		port1 := GetPort()
-		port2 := GetPort()
-		session := podmanTest.Podman([]string{"run", "-dt", "-p", fmt.Sprintf("%d:%d", port1, port2), ALPINE, "/bin/sh"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		results := SystemExec("iptables", []string{"-t", "nat", "-nvL"})
-		Expect(results).Should(ExitCleanly())
-		Expect(results.OutputToString()).To(ContainSubstring(strconv.Itoa(port2)))
-
-		ncBusy := SystemExec("nc", []string{"-l", "-p", strconv.Itoa(port1)})
-		Expect(ncBusy).To(ExitWithError(2, fmt.Sprintf("Ncat: bind to 0.0.0.0:%d: Address already in use. QUITTING.", port1)))
-	})
-
-	It("podman run network expose host port 18081 to container port 8000 using rootlesskit port handler", func() {
-		port1 := GetPort()
-		port2 := GetPort()
-		session := podmanTest.Podman([]string{"run", "--network", "slirp4netns:port_handler=rootlesskit", "-dt", "-p", fmt.Sprintf("%d:%d", port2, port1), ALPINE, "/bin/sh"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		ncBusy := SystemExec("nc", []string{"-l", "-p", strconv.Itoa(port2)})
-		Expect(ncBusy).To(ExitWithError(2, fmt.Sprintf("Ncat: bind to [::]:%d: Address already in use. QUITTING.", port2)))
 	})
 
 	It("podman run slirp4netns verify net.ipv6.conf.default.accept_dad=0", func() {
