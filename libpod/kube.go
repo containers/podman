@@ -512,7 +512,28 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	sort.Slice(containers, func(i, j int) bool { return containers[i].CreatedTime().Before(containers[j].CreatedTime()) })
 
 	for _, ctr := range containers {
-		if !ctr.IsInfra() {
+		if ctr.IsInfra() {
+			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr, getService)
+			if err != nil {
+				return nil, err
+			}
+			if infraDNS != nil {
+				if servers := infraDNS.Nameservers; len(servers) > 0 {
+					dnsInfo.Nameservers = servers
+				}
+				if searches := infraDNS.Searches; len(searches) > 0 {
+					dnsInfo.Searches = searches
+				}
+				if options := infraDNS.Options; len(options) > 0 {
+					dnsInfo.Options = options
+				}
+			}
+			// If the infraName is not the podID-infra, that means the user set another infra name using
+			// --infra-name during pod creation
+			if infraName != "" && infraName != p.ID()[:12]+"-infra" {
+				podAnnotations[define.InfraNameAnnotation] = infraName
+			}
+		} else {
 			for k, v := range ctr.config.Spec.Annotations {
 				if !podmanOnly && (define.IsReservedAnnotation(k)) {
 					continue
@@ -573,27 +594,6 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 			for _, vol := range volumes {
 				vol := vol
 				deDupPodVolumes[vol.Name] = &vol
-			}
-		} else {
-			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr, getService)
-			if err != nil {
-				return nil, err
-			}
-			if infraDNS != nil {
-				if servers := infraDNS.Nameservers; len(servers) > 0 {
-					dnsInfo.Nameservers = servers
-				}
-				if searches := infraDNS.Searches; len(searches) > 0 {
-					dnsInfo.Searches = searches
-				}
-				if options := infraDNS.Options; len(options) > 0 {
-					dnsInfo.Options = options
-				}
-			}
-			// If the infraName is not the podID-infra, that means the user set another infra name using
-			// --infra-name during pod creation
-			if infraName != "" && infraName != p.ID()[:12]+"-infra" {
-				podAnnotations[define.InfraNameAnnotation] = infraName
 			}
 		}
 	}
