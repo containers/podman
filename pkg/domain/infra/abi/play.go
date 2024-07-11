@@ -603,11 +603,12 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	if options.Userns == "" {
 		if v, ok := annotations[define.UserNsAnnotation]; ok {
 			options.Userns = v
+		} else if v, ok := annotations[define.UserNsAnnotation+"/"+podName]; ok {
+			options.Userns = v
+		} else if podYAML.Spec.HostUsers != nil && !*podYAML.Spec.HostUsers {
+			options.Userns = "auto"
 		} else {
 			options.Userns = "host"
-		}
-		if podYAML.Spec.HostUsers != nil && !*podYAML.Spec.HostUsers {
-			options.Userns = "auto"
 		}
 	} else if podYAML.Spec.HostUsers != nil {
 		logrus.Info("overriding the user namespace mode in the pod spec")
