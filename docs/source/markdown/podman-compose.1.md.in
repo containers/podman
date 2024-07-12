@@ -13,6 +13,8 @@ The default compose providers are `docker-compose` and `podman-compose`.  If ins
 
 If you want to change the default behavior or have a custom installation path for your provider of choice, please change the `compose_provider` field in `containers.conf(5)`.  You may also set the `PODMAN_COMPOSE_PROVIDER` environment variable.
 
+By default, `podman compose` will emit a warning saying that it executes an external command. This warning can be disabled by setting `compose_warning_logs` to false in `containers.conf(5)` or setting the `PODMAN_COMPOSE_WARNING_LOGS` environment variable to false. See the man page for `containers.conf(5)` for more information.
+
 ## OPTIONS
 
 To see supported options of the installed compose provider, please run `podman compose --help`.
