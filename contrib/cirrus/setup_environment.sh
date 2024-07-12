@@ -57,8 +57,8 @@ if [[ "$CI_DESIRED_STORAGE" = "composefs" ]]; then
         # KLUDGE ALERT! Magic options needed for testing composefs.
         # This option was intended for passing one arg to --storage-opt
         # but we're hijacking it to pass an extra option+arg. And it
-        # actually works. Just MAKE SURE THERE ARE NO SPACES IN THE {...}!
-        export STORAGE_OPTIONS_OVERLAY='overlay.use_composefs=true --pull-option {enable_partial_images="true",use_hard_links="false",ostree_repos="",convert_images="true"}'
+        # actually works.
+        export STORAGE_OPTIONS_OVERLAY='overlay.use_composefs=true --pull-option=enable_partial_images=true --pull-option=convert_images=true'
     fi
 fi
 
