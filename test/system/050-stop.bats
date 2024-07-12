@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # Very simple test
 @test "podman stop - basic test" {
     run_podman run -d $IMAGE sleep 60

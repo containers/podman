@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 
 @test "options that cannot be set together" {
     skip_if_remote "not much point testing remote, and container-cleanup fails anyway"

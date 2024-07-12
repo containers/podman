@@ -7,6 +7,8 @@ load helpers
 load helpers.registry
 load helpers.sig-proxy
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function setup_file() {
     # We have to stop the background registry here. These tests kill the podman pause
     # process which means commands after that are in a new one and when the cleanup

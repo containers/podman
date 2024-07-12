@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman compose - smoke tests" {
     fake_compose_bin="$PODMAN_TMPDIR/fake_compose"
     cat >$fake_compose_bin <<EOF

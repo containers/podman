@@ -7,34 +7,37 @@
 load helpers
 load helpers.systemd
 
-
 # Helper function: run 'podman inspect' and check various given fields
 function _check_health {
     local testname="$1"
     local tests="$2"
     local since="$3"
-    local hc_status="$4"
-
-    run_podman inspect --format "{{json .State.Healthcheck}}" healthcheck_c
-
-    parse_table "$tests" | while read field expect;do
-        actual=$(jq ".$field" <<<"$output")
-        is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
-    done
+    local until="$4"
+    local hc_status="$5"
+    local cname="$6"
 
     # Make sure we can read the healthcheck event in podman events (#20342)
-    run_podman events --filter container=healthcheck_c --filter event=health_status \
-        --since "$since" --stream=false --format "{{.HealthStatus}}"
+    run_podman events --filter container=$cname --filter event=health_status \
+        --since "$since" --until "$until" --format "{{.HealthStatus}}"
     # Because the assert below would fail with "lines: bad array subscript" when
     # there are no events lets special case this to provide a more meaningful error.
     if [[ -z "$output" ]]; then
         die "no healthcheck events"
     fi
     assert "${lines[-1]}" == "$hc_status" "$testname - podman events health status"
+
+    run_podman inspect --format "{{json .State.Healthcheck}}" $cname
+
+    parse_table "$tests" | while read field expect;do
+        actual=$(jq ".$field" <<<"$output")
+        is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
+    done
 }
 
 @test "podman healthcheck" {
-    run_podman run -d --name healthcheck_c             \
+    local cname="c-healthcheck-$(random_string)"
+
+    run_podman run -d --name $cname             \
                --health-cmd /home/podman/healthcheck   \
                --health-interval 1s                    \
                --health-retries 3                      \
@@ -44,7 +47,7 @@ function _check_health {
                $IMAGE /home/podman/pause
     cid="$output"
 
-    run_podman inspect healthcheck_c --format "{{.Config.HealthcheckOnFailureAction}}"
+    run_podman inspect $cname --format "{{.Config.HealthcheckOnFailureAction}}"
     is "$output" "kill" "on-failure action is set to kill"
 
     current_time=$(date --iso-8601=seconds)
@@ -52,7 +55,7 @@ function _check_health {
     # short; it could run healthcheck before we get to our first check.
     #
     # So, just force a healthcheck run, then confirm that it's running.
-    run_podman healthcheck run healthcheck_c
+    run_podman healthcheck run $cname
     is "$output" "" "output from 'podman healthcheck run'"
 
     _check_health "All healthy" "
@@ -60,19 +63,18 @@ Status           | \"healthy\"
 FailingStreak    | 0
 Log[-1].ExitCode | 0
 Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\"
-" "$current_time" "healthy"
+" "$current_time" 0s "healthy" $cname
 
     current_time=$(date --iso-8601=seconds)
     # Force a failure
-    run_podman exec healthcheck_c touch /uh-oh
-    sleep 2
+    run_podman exec $cname touch /uh-oh
 
     _check_health "First failure" "
 Status           | \"healthy\"
-FailingStreak    | [123]
+FailingStreak    | [12]
 Log[-1].ExitCode | 1
 Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
-" "$current_time" "healthy"
+" "$current_time" 2s "healthy" $cname
 
     # Check that we now we do have valid podman units with this
     # name so that the leak check below does not turn into a NOP without noticing.
@@ -80,19 +82,18 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 
     current_time=$(date --iso-8601=seconds)
     # After three successive failures, container should no longer be healthy
-    sleep 5
     _check_health "Three or more failures" "
 Status           | \"unhealthy\"
 FailingStreak    | [3456]
 Log[-1].ExitCode | 1
 Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
-" "$current_time" "unhealthy"
+" "$current_time" 4s "unhealthy" $cname
 
     # now the on-failure should kick in and kill the container
-    run_podman wait healthcheck_c
+    run_podman wait $cname
 
     # Clean up
-    run_podman rm -t 0 -f healthcheck_c
+    run_podman rm -t 0 -f $cname
 
     # Important check for https://github.com/containers/podman/issues/22884
     # We never should leak the unit files, healthcheck uses the cid in name so just grep that.
@@ -100,8 +101,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 }
 
 @test "podman healthcheck - restart cleans up old state" {
-    ctr="healthcheck_c"
-
+    local ctr="c-healthcheck-restart-$(random_string)"
     run_podman run -d --name $ctr                  \
            --health-cmd /home/podman/healthcheck   \
            --health-retries=3                      \
@@ -126,7 +126,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 }
 
 @test "podman wait --condition={healthy,unhealthy}" {
-    ctr="healthcheck_c"
+    local ctr="c-healthcheck-condition-$(random_string)"
 
     wait_file="$PODMAN_TMPDIR/$(random_string).wait_for_me"
 
@@ -166,7 +166,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
     run_podman 125 create --health-on-failure=kill $IMAGE
     is "$output" "Error: cannot set on-failure action to kill without a health check"
 
-    ctr="healthcheck_c"
+    local ctr="c-healthcheck-on-failure-$(random_string)"
 
     for policy in none kill restart stop;do
         uhoh=/uh-oh
@@ -221,7 +221,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 }
 
 @test "podman healthcheck --health-on-failure with interval" {
-    ctr="healthcheck_c"
+    local ctr="c-healthcheck-on-failure-interval-$(random_string)"
 
     for policy in stop kill restart ;do
         t0=$(date --iso-8601=seconds)

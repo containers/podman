@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman CONTAINERS_CONF - CONTAINERS_CONF in conmon" {
     skip_if_remote "can't check conmon environment over remote"
 

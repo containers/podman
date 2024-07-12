@@ -2,6 +2,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman container runlabel test" {
     skip_if_remote "container runlabel is not supported for remote"
     tmpdir=$PODMAN_TMPDIR/runlabel-test

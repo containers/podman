@@ -8,6 +8,8 @@ load helpers.network
 load helpers.registry
 load helpers.systemd
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 export SNAME_FILE
 
 function setup() {

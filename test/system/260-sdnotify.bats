@@ -7,6 +7,8 @@ load helpers
 load helpers.network
 load helpers.registry
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # Shared throughout this module: PID of socat process, and path to its log
 _SOCAT_PID=
 _SOCAT_LOG=

@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # bats test_tags=distro-integration
 @test "events with a filter by label and --no-trunc option" {
     cname=test-$(random_string 30 | tr A-Z a-z)

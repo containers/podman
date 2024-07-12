@@ -6,6 +6,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # bats test_tags=distro-integration
 @test "podman build - basic test" {
     rand_filename=$(random_string 20)

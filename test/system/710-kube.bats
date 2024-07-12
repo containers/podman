@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # capability drop list
 capabilities='{"drop":["CAP_FOWNER","CAP_SETFCAP"]}'
 

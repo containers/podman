@@ -4,6 +4,8 @@ load helpers
 load helpers.network
 load helpers.registry
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 function teardown() {
     # Enumerate every one of the manifest names used everywhere below
     echo "[ teardown - ignore 'image not known' errors below ]"

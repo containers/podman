@@ -5,6 +5,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # Confirm that we're still using the same database we started with.
 #
 # This should never fail! If it does, it means that some test somewhere

@@ -166,6 +166,8 @@ load helpers
     # Run all tests, report failures at end
     defer-assertion-failures
 
+    local cname="c-tty-$(random_string)"
+
     # Outer loops: different variations on the RUN container
     for run_opt_t in "" "-t"; do
         for run_term_env in "" "explicit_RUN_term"; do
@@ -173,7 +175,7 @@ load helpers
             if [[ -n "$run_term_env" ]]; then
                 run_opt_env="--env=TERM=$run_term_env"
             fi
-            run_podman run -d $run_opt_t $run_opt_env --name test $IMAGE top
+            run_podman run -d $run_opt_t $run_opt_env --name $cname $IMAGE top
 
             # Inner loops: different variations on EXEC
             for exec_opt_t in "" "-t"; do
@@ -196,12 +198,12 @@ load helpers
                     fi
 
                     local desc="run $run_opt_t $run_opt_env, exec $exec_opt_t $exec_opt_env"
-                    TERM=exec-term run_podman exec $exec_opt_t $exec_opt_env test sh -c 'echo -n $TERM'
+                    TERM=exec-term run_podman exec $exec_opt_t $exec_opt_env $cname sh -c 'echo -n $TERM'
                     assert "$output" = "$expected" "$desc"
                 done
             done
 
-            run_podman rm -f -t0 test
+            run_podman rm -f -t0 $cname
         done
     done
 }

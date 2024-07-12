@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 SERVICE_NAME="podman_test_$(random_string)"
 
 SERVICE_TCP_HOST="localhost"

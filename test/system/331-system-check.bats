@@ -7,6 +7,8 @@
 
 load helpers
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman system check - unmanaged layers" {
     run_podman_testing create-storage-layer
     layerID="$output"

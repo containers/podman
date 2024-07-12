@@ -3,6 +3,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 # bats test_tags=distro-integration
 @test "podman run - basic tests" {
     rand=$(random_string 30)
@@ -1504,6 +1506,13 @@ search               | $IMAGE           |
     is "$output" "exited" "container has successfully transitioned to exited state after stop"
 
     run_podman rm -f -t0 testctr
+}
+
+@test "podman run - shutdown engines" {
+    run_podman --log-level=debug run --rm $IMAGE true
+    is "$output" ".*Shutting down engines.*"
+    run_podman 125 --log-level=debug run dockah://rien.de/rien:latest
+    is "${lines[-1]}" ".*Shutting down engines"
 }
 
 # vim: filetype=sh

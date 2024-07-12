@@ -6,6 +6,8 @@
 load helpers
 load helpers.network
 
+export BATS_NO_PARALLELIZE_WITHIN_FILE=true
+
 @test "podman network - basic tests" {
     heading="NETWORK *ID *NAME *DRIVER"
     run_podman network ls
