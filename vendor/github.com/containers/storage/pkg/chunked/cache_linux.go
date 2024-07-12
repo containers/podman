@@ -80,7 +80,9 @@ var (
 func (c *layer) release() {
 	runtime.SetFinalizer(c, nil)
 	if c.mmapBuffer != nil {
-		unix.Munmap(c.mmapBuffer)
+		if err := unix.Munmap(c.mmapBuffer); err != nil {
+			logrus.Warnf("Error Munmap: layer %q: %v", c.id, err)
+		}
 	}
 }
 
@@ -192,7 +194,9 @@ func (c *layersCache) loadLayerCache(layerID string) (_ *layer, errRet error) {
 	}
 	defer func() {
 		if errRet != nil && mmapBuffer != nil {
-			unix.Munmap(mmapBuffer)
+			if err := unix.Munmap(mmapBuffer); err != nil {
+				logrus.Warnf("Error Munmap: layer %q: %v", layerID, err)
+			}
 		}
 	}()
 	cacheFile, err := readCacheFileFromMemory(buffer)

@@ -76,7 +76,9 @@ func doHardLink(dirfd, srcFd int, destFile string) error {
 
 	// if the destination exists, unlink it first and try again
 	if err != nil && os.IsExist(err) {
-		unix.Unlinkat(destDirFd, destBase, 0)
+		if err := unix.Unlinkat(destDirFd, destBase, 0); err != nil {
+			return err
+		}
 		return doLink()
 	}
 	return err
@@ -503,7 +505,7 @@ func safeLink(dirfd int, mode os.FileMode, metadata *fileMetadata, options *arch
 	return setFileAttrs(dirfd, newFile, mode, metadata, options, false)
 }
 
-func safeSymlink(dirfd int, mode os.FileMode, metadata *fileMetadata, options *archive.TarOptions) error {
+func safeSymlink(dirfd int, metadata *fileMetadata) error {
 	destDir, destBase := filepath.Split(metadata.Name)
 	destDirFd := dirfd
 	if destDir != "" && destDir != "." {

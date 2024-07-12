@@ -107,12 +107,15 @@ func invokeUnpack(decompressedArchive io.Reader, dest string, options *archive.T
 	w.Close()
 
 	if err := cmd.Wait(); err != nil {
+		errorOut := fmt.Errorf("unpacking failed (error: %w; output: %s)", err, output)
 		// when `xz -d -c -q | storage-untar ...` failed on storage-untar side,
 		// we need to exhaust `xz`'s output, otherwise the `xz` side will be
 		// pending on write pipe forever
-		io.Copy(io.Discard, decompressedArchive)
+		if _, err := io.Copy(io.Discard, decompressedArchive); err != nil {
+			return fmt.Errorf("%w\nexhausting input failed (error: %w)", errorOut, err)
+		}
 
-		return fmt.Errorf("processing tar file(%s): %w", output, err)
+		return errorOut
 	}
 	return nil
 }

@@ -304,7 +304,14 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 							archiveErr = err
 						}
 						// consume any trailer after the EOF marker
-						io.Copy(io.Discard, diffReader)
+						if _, err := io.Copy(io.Discard, diffReader); err != nil {
+							err = fmt.Errorf("layer %s: consume any trailer after the EOF marker: %w", layerID, err)
+							if isReadWrite {
+								report.Layers[layerID] = append(report.Layers[layerID], err)
+							} else {
+								report.ROLayers[layerID] = append(report.ROLayers[layerID], err)
+							}
+						}
 						wg.Done()
 					}(id, reader)
 					wg.Wait()
@@ -366,7 +373,7 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 			if options.LayerMountable {
 				func() {
 					// Mount the layer.
-					mountPoint, err := s.graphDriver.Get(id, drivers.MountOpts{MountLabel: layer.MountLabel})
+					mountPoint, err := s.graphDriver.Get(id, drivers.MountOpts{MountLabel: layer.MountLabel, Options: []string{"ro"}})
 					if err != nil {
 						err := fmt.Errorf("%slayer %s: %w", readWriteDesc, id, err)
 						if isReadWrite {
@@ -955,6 +962,9 @@ func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int6
 					mtime:    mtime,
 				}
 			}
+		case tar.TypeXGlobalHeader:
+			// ignore, since even though it looks like a valid pathname, it doesn't end
+			// up on the filesystem
 		default:
 			// treat these as TypeReg items
 			delete(c.directory, components[0])
@@ -966,9 +976,6 @@ func (c *checkDirectory) add(path string, typeflag byte, uid, gid int, size int6
 				mode:     mode,
 				mtime:    mtime,
 			}
-		case tar.TypeXGlobalHeader:
-			// ignore, since even though it looks like a valid pathname, it doesn't end
-			// up on the filesystem
 		}
 		return
 	}

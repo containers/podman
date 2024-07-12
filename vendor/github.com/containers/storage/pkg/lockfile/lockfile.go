@@ -415,7 +415,9 @@ func (l *LockFile) lock(lType lockType) {
 		// Optimization: only use the (expensive) syscall when
 		// the counter is 0.  In this case, we're either the first
 		// reader lock or a writer lock.
-		lockHandle(l.fd, lType, false)
+		if err := lockHandle(l.fd, lType, false); err != nil {
+			panic(err)
+		}
 	}
 	l.lockType = lType
 	l.locked = true

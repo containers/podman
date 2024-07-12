@@ -352,7 +352,7 @@ func getRootlessStorageOpts(systemOpts StoreOptions) (StoreOptions, error) {
 			}
 
 			if opts.GraphDriverName == "" {
-				if canUseRootlessOverlay(opts.GraphRoot, opts.RunRoot) {
+				if canUseRootlessOverlay() {
 					opts.GraphDriverName = overlayDriver
 				} else {
 					opts.GraphDriverName = "vfs"

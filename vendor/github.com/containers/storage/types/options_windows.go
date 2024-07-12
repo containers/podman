@@ -14,6 +14,6 @@ var (
 )
 
 // canUseRootlessOverlay returns true if the overlay driver can be used for rootless containers
-func canUseRootlessOverlay(home, runhome string) bool {
+func canUseRootlessOverlay() bool {
 	return false
 }
