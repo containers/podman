@@ -391,10 +391,13 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 			Labels:     l.Labels(),
 			State:      stateStr,
 			Status:     status,
+			// FIXME: this seems broken, the field is never shown in the API output.
 			HostConfig: struct {
-				NetworkMode string `json:",omitempty"`
+				NetworkMode string            `json:",omitempty"`
+				Annotations map[string]string `json:",omitempty"`
 			}{
-				"host",
+				NetworkMode: "host",
+				// TODO: add annotations here for >= v1.46
 			},
 			NetworkSettings: &networkSettings,
 			Mounts:          mounts,

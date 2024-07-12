@@ -11,7 +11,8 @@ import (
 	"github.com/containers/podman/v5/pkg/inspect"
 	dockerAPI "github.com/docker/docker/api/types"
 	dockerImage "github.com/docker/docker/api/types/image"
-	dockerVolume "github.com/docker/docker/api/types/volume"
+	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/volume"
 )
 
 // Image Tree
@@ -248,21 +249,21 @@ type containersList struct {
 // swagger:response
 type volumeInspect struct {
 	// in:body
-	Body dockerVolume.Volume
+	Body volume.Volume
 }
 
 // Volume prune
 // swagger:response
 type volumePruneResponse struct {
 	// in:body
-	Body dockerAPI.VolumesPruneReport
+	Body volume.PruneReport
 }
 
 // Volume List
 // swagger:response
 type volumeList struct {
 	// in:body
-	Body dockerVolume.ListResponse
+	Body volume.ListResponse
 }
 
 // Volume list
@@ -343,14 +344,14 @@ type containerWaitResponse struct {
 // swagger:response
 type networkInspectCompat struct {
 	// in:body
-	Body dockerAPI.NetworkResource
+	Body network.Inspect
 }
 
 // Network list
 // swagger:response
 type networkListCompat struct {
 	// in:body
-	Body []dockerAPI.NetworkResource
+	Body []network.Summary
 }
 
 // List Containers

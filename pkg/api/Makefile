@@ -12,4 +12,4 @@ serve: ${SWAGGER_OUT}
 ${SWAGGER_OUT}:
 	# generate doesn't remove file on error
 	rm -f ${SWAGGER_OUT}
-	$(SWAGGER) generate spec -x github.com/sigstore/rekor -o ${SWAGGER_OUT} -i tags.yaml -w ./ -m
+	$(SWAGGER) generate spec -x github.com/sigstore/rekor -x github.com/docker/docker/api/types/network -o ${SWAGGER_OUT} -i tags.yaml -w ./ -m
