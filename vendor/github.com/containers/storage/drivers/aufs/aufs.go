@@ -30,7 +30,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -183,13 +182,7 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 }
 
 // Return a nil error if the kernel supports aufs
-// We cannot modprobe because inside dind modprobe fails
-// to run
 func supportsAufs() error {
-	// We can try to modprobe aufs first before looking at
-	// proc/filesystems for when aufs is supported
-	exec.Command("modprobe", "aufs").Run()
-
 	if unshare.IsRootless() {
 		return ErrAufsNested
 	}
@@ -347,7 +340,9 @@ func (a *Driver) createDirsFor(id, parent string) error {
 // Remove will unmount and remove the given id.
 func (a *Driver) Remove(id string) error {
 	a.locker.Lock(id)
-	defer a.locker.Unlock(id)
+	defer func() {
+		_ = a.locker.Unlock(id)
+	}()
 	a.pathCacheLock.Lock()
 	mountpoint, exists := a.pathCache[id]
 	a.pathCacheLock.Unlock()
@@ -438,7 +433,10 @@ func atomicRemove(source string) error {
 // This will mount the dir at its given path
 func (a *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 	a.locker.Lock(id)
-	defer a.locker.Unlock(id)
+	defer func() {
+		_ = a.locker.Unlock(id)
+	}()
+
 	parents, err := a.getParentLayerPaths(id)
 	if err != nil && !os.IsNotExist(err) {
 		return "", err
@@ -475,7 +473,10 @@ func (a *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 // Put unmounts and updates list of active mounts.
 func (a *Driver) Put(id string) error {
 	a.locker.Lock(id)
-	defer a.locker.Unlock(id)
+	defer func() {
+		_ = a.locker.Unlock(id)
+	}()
+
 	a.pathCacheLock.Lock()
 	m, exists := a.pathCache[id]
 	if !exists {
@@ -498,7 +499,9 @@ func (a *Driver) Put(id string) error {
 // For AUFS, it queries the mountpoint for this ID.
 func (a *Driver) ReadWriteDiskUsage(id string) (*directory.DiskUsage, error) {
 	a.locker.Lock(id)
-	defer a.locker.Unlock(id)
+	defer func() {
+		_ = a.locker.Unlock(id)
+	}()
 	a.pathCacheLock.Lock()
 	m, exists := a.pathCache[id]
 	if !exists {
@@ -681,7 +684,9 @@ func (a *Driver) Cleanup() error {
 func (a *Driver) aufsMount(ro []string, rw, target string, options graphdriver.MountOpts) (err error) {
 	defer func() {
 		if err != nil {
-			Unmount(target)
+			if err1 := Unmount(target); err1 != nil {
+				logrus.Warnf("Unmount %q: %v", target, err1)
+			}
 		}
 	}()
 

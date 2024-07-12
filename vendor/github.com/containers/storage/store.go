@@ -1509,23 +1509,17 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 			gidMap = s.gidMap
 		}
 	}
-	layerOptions := LayerOptions{
-		OriginalDigest:     options.OriginalDigest,
-		OriginalSize:       options.OriginalSize,
-		UncompressedDigest: options.UncompressedDigest,
-		Flags:              options.Flags,
-	}
 	if s.canUseShifting(uidMap, gidMap) {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
+		options.IDMappingOptions = types.IDMappingOptions{HostUIDMapping: true, HostGIDMapping: true, UIDMap: nil, GIDMap: nil}
 	} else {
-		layerOptions.IDMappingOptions = types.IDMappingOptions{
+		options.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: options.HostUIDMapping,
 			HostGIDMapping: options.HostGIDMapping,
 			UIDMap:         copyIDMap(uidMap),
 			GIDMap:         copyIDMap(gidMap),
 		}
 	}
-	return rlstore.create(id, parentLayer, names, mountLabel, nil, &layerOptions, writeable, diff, slo)
+	return rlstore.create(id, parentLayer, names, mountLabel, nil, &options, writeable, diff, slo)
 }
 
 func (s *store) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, lOptions *LayerOptions, diff io.Reader) (*Layer, int64, error) {

@@ -193,7 +193,9 @@ func (d *Driver) create(id, parent string, opts *graphdriver.CreateOpts, ro bool
 	}
 	labelOpts := []string{"level:s0"}
 	if _, mountLabel, err := label.InitLabels(labelOpts); err == nil {
-		label.SetFileLabel(dir, mountLabel)
+		if err := label.SetFileLabel(dir, mountLabel); err != nil {
+			logrus.Debugf("Set %s label to %q file ended with error: %v", mountLabel, dir, err)
+		}
 	}
 	if parent != "" {
 		parentDir, err := d.Get(parent, graphdriver.MountOpts{})

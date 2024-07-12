@@ -193,6 +193,7 @@ type DriverWithDifferOutput struct {
 	UIDs               []uint32
 	GIDs               []uint32
 	UncompressedDigest digest.Digest
+	CompressedDigest   digest.Digest
 	Metadata           string
 	BigData            map[string][]byte
 	TarSplit           []byte

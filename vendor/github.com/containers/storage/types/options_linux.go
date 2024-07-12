@@ -22,7 +22,7 @@ var (
 )
 
 // canUseRootlessOverlay returns true if the overlay driver can be used for rootless containers
-func canUseRootlessOverlay(home, runhome string) bool {
+func canUseRootlessOverlay() bool {
 	// we check first for fuse-overlayfs since it is cheaper.
 	if path, _ := exec.LookPath("fuse-overlayfs"); path != "" {
 		return true

@@ -1,11 +1,7 @@
 ---
 run:
   concurrency: 6
-  deadline: 5m
-  skip-dirs-use-default: true
+  timeout: 5m
 linters:
   enable:
     - gofumpt
-  disable:
-    - errcheck
-    - staticcheck

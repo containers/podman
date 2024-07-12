@@ -150,9 +150,12 @@ func (w *atomicFileWriter) complete(commit bool) (retErr error) {
 	}
 
 	defer func() {
-		w.closeTempFile()
+		err := w.closeTempFile()
 		if retErr != nil || w.writeErr != nil {
 			os.Remove(w.f.Name())
+		}
+		if retErr == nil {
+			retErr = err
 		}
 	}()
 

@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"io"
 	"strings"
+	"time"
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/internal"
@@ -233,6 +234,14 @@ func newTarSplitData(level int) (*tarSplitData, error) {
 	}, nil
 }
 
+// timeIfNotZero returns a pointer to the time.Time if it is not zero, otherwise it returns nil.
+func timeIfNotZero(t *time.Time) *time.Time {
+	if t == nil || t.IsZero() {
+		return nil
+	}
+	return t
+}
+
 func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, reader io.Reader, level int) error {
 	// total written so far.  Used to retrieve partial offsets in the file
 	dest := ioutils.NewWriteCounter(destFile)
@@ -392,9 +401,9 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 				Size:       hdr.Size,
 				UID:        hdr.Uid,
 				GID:        hdr.Gid,
-				ModTime:    &hdr.ModTime,
-				AccessTime: &hdr.AccessTime,
-				ChangeTime: &hdr.ChangeTime,
+				ModTime:    timeIfNotZero(&hdr.ModTime),
+				AccessTime: timeIfNotZero(&hdr.AccessTime),
+				ChangeTime: timeIfNotZero(&hdr.ChangeTime),
 				Devmajor:   hdr.Devmajor,
 				Devminor:   hdr.Devminor,
 				Xattrs:     xattrs,

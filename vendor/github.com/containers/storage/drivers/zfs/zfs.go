@@ -240,7 +240,9 @@ func (d *Driver) cloneFilesystem(name, parentName string) error {
 	}
 
 	if err != nil {
-		snapshot.Destroy(zfs.DestroyDeferDeletion)
+		if err1 := snapshot.Destroy(zfs.DestroyDeferDeletion); err1 != nil {
+			logrus.Warnf("Destroy zfs.DestroyDeferDeletion: %v", err1)
+		}
 		return err
 	}
 	return snapshot.Destroy(zfs.DestroyDeferDeletion)

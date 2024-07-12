@@ -2529,7 +2529,9 @@ func (r *layerStore) applyDiffFromStagingDirectory(id string, diffOutput *driver
 	layer.GIDs = diffOutput.GIDs
 	updateDigestMap(&r.byuncompressedsum, layer.UncompressedDigest, diffOutput.UncompressedDigest, layer.ID)
 	layer.UncompressedDigest = diffOutput.UncompressedDigest
-	updateDigestMap(&r.bytocsum, diffOutput.TOCDigest, diffOutput.TOCDigest, layer.ID)
+	updateDigestMap(&r.bycompressedsum, layer.CompressedDigest, diffOutput.CompressedDigest, layer.ID)
+	layer.CompressedDigest = diffOutput.CompressedDigest
+	updateDigestMap(&r.bytocsum, layer.TOCDigest, diffOutput.TOCDigest, layer.ID)
 	layer.TOCDigest = diffOutput.TOCDigest
 	layer.UncompressedSize = diffOutput.Size
 	layer.Metadata = diffOutput.Metadata
