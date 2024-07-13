@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -242,4 +243,61 @@ func TestRanges_Roundtrip(t *testing.T) {
 
 		assert.Equal(t, sample, asStr)
 	}
+}
+
+// If a given .container has spaces in its options such as
+// `Mount=type=bind,src=/mnt/base part1 part 2,dst=/mnt`,
+// We want to make sure it gets quoted appropriately,
+// Such as: `Mount="type=bind,src=/mnt/base part1 part 2,dst=/mnt"`
+const emptyUnitFile = `
+[Container]
+
+[Service]
+`
+
+func Test_Add_OptionWithSpaceValue(t *testing.T) {
+	f := NewUnitFile()
+
+	if e := f.Parse(emptyUnitFile); e != nil {
+		panic(e)
+	}
+
+	f.Add("Container", "OptionWithSpacesInValue", "/mnt/base part1 part2/xyz") // Visible spaces added to the absolute path (value)
+	f.Add("Service", "ExecStart", `fake exec start with spaces should have no quotes`)
+
+	asStr, e := f.ToString()
+	if e != nil {
+		panic(e)
+	}
+
+	lines := strings.Split(asStr, "\n")
+
+	assert.Equal(t, `OptionWithSpacesInValue="/mnt/base part1 part2/xyz"`, lines[1])
+
+	// Assert the execStartsLine (ExecStarts=...)'s value isn't quoted, as a result
+	// of any options with spaces in their values (OptionWithSpacesInValue).
+	execStartsLine := lines[len(lines)-2]
+	assert.Equal(t, false, strings.Contains(execStartsLine, "\""))
+}
+
+func Test_Add_OptionWithoutSpaceValue(t *testing.T) {
+	f := NewUnitFile()
+
+	if e := f.Parse(emptyUnitFile); e != nil {
+		panic(e)
+	}
+
+	f.Add("Container", "OptionWithoutSpacesInValue", "/mnt/path_value_no_space") // Spaces don't exist in the value
+
+	asStr, e := f.ToString()
+	if e != nil {
+		panic(e)
+	}
+
+	lines := strings.Split(asStr, "\n")
+
+	actual := lines[1]
+	expected := `OptionWithoutSpacesInValue=/mnt/path_value_no_space` // assert if that no quotes got added
+
+	assert.Equal(t, expected, actual)
 }
