@@ -114,6 +114,7 @@ const (
 	KeyMask                  = "Mask"
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
+	KeyNetworkAlias          = "NetworkAlias"
 	KeyNetworkName           = "NetworkName"
 	KeyNoNewPrivileges       = "NoNewPrivileges"
 	KeyNotify                = "Notify"
@@ -217,6 +218,7 @@ var (
 		KeyMask:                  true,
 		KeyMount:                 true,
 		KeyNetwork:               true,
+		KeyNetworkAlias:          true,
 		KeyNoNewPrivileges:       true,
 		KeyNotify:                true,
 		KeyPidsLimit:             true,
@@ -363,6 +365,7 @@ var (
 		KeyContainersConfModule: true,
 		KeyGlobalArgs:           true,
 		KeyNetwork:              true,
+		KeyNetworkAlias:         true,
 		KeyPodName:              true,
 		KeyPodmanArgs:           true,
 		KeyPublishPort:          true,
@@ -559,6 +562,11 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 	}
 
 	addNetworks(container, ContainerGroup, service, names, podman)
+
+	networkAliases := container.LookupAll(ContainerGroup, KeyNetworkAlias)
+	for _, networkAlias := range networkAliases {
+		podman.add("--network-alias", networkAlias)
+	}
 
 	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
 	runInit, ok := container.LookupBoolean(ContainerGroup, KeyRunInit)
@@ -1535,6 +1543,11 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 	}
 
 	addNetworks(podUnit, PodGroup, service, names, execStartPre)
+
+	networkAliases := podUnit.LookupAll(PodGroup, KeyNetworkAlias)
+	for _, networkAlias := range networkAliases {
+		execStartPre.add("--network-alias", networkAlias)
+	}
 
 	if err := addVolumes(podUnit, service, PodGroup, names, execStartPre); err != nil {
 		return nil, err

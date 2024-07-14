@@ -873,6 +873,7 @@ BOGUS=foo
 		Entry("template@.container", "template@.container", 0, ""),
 		Entry("template@instance.container", "template@instance.container", 0, ""),
 		Entry("Unit After Override", "unit-after-override.container", 0, ""),
+		Entry("NetworkAlias", "network-alias.container", 0, ""),
 
 		Entry("basic.volume", "basic.volume", 0, ""),
 		Entry("device-copy.volume", "device-copy.volume", 0, ""),
@@ -996,6 +997,7 @@ BOGUS=foo
 		Entry("network-quadlet.pod", "network.quadlet.pod", 0, ""),
 		Entry("podmanargs.pod", "podmanargs.pod", 0, ""),
 		Entry("volume.pod", "volume.pod", 0, ""),
+		Entry("Pod - NetworkAlias", "network-alias.pod", 0, ""),
 	)
 
 	DescribeTable("Running quadlet test case with dependencies",
