@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -124,9 +125,11 @@ func Execute() {
 		fmt.Fprintln(os.Stderr, formatError(err))
 	}
 
+	_ = shutdown.Stop()
+
 	if requireCleanup {
 		// The cobra post-run is not being executed in case of
-		// a previous error , so make sure that the engine(s)
+		// a previous error, so make sure that the engine(s)
 		// are correctly shutdown.
 		//
 		// See https://github.com/spf13/cobra/issues/914
