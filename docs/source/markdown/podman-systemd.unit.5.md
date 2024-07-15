@@ -282,6 +282,7 @@ Valid options for `[Container]` are listed below:
 | Mask=/proc/sys/foo\:/proc/sys/bar    | --security-opt mask=/proc/sys/foo:/proc/sys/bar      |
 | Mount=type=...                       | --mount type=...                                     |
 | Network=host                         | --net host                                           |
+| NetworkAlias=name                    | --network-alias name                                 |
 | NoNewPrivileges=true                 | --security-opt no-new-privileges                     |
 | Notify=true                          | --sdnotify container                                 |
 | PidsLimit=10000                      | --pids-limit 10000                                   |
@@ -594,6 +595,15 @@ created by using a `$name.network` Quadlet file.
 
 This key can be listed multiple times.
 
+### `NetworkAlias=`
+
+Add a network-scoped alias for the container. This has the same format as the `--network-alias`
+option to `podman run`. Aliases can be used to group containers together in DNS resolution: for
+example, setting `NetworkAlias=web` on multiple containers will make a DNS query for `web` resolve
+to all the containers with that alias.
+
+This key can be listed multiple times.
+
 ### `NoNewPrivileges=` (defaults to `false`)
 
 If enabled, this disables the container processes from gaining additional privileges via things like
@@ -828,6 +838,7 @@ Valid options for `[Pod]` are listed below:
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
 | Network=host                        | --network host                         |
+| NetworkAlias=name                   | --network-alias name                   |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
 | PodName=name                        | --name=name                            |
 | PublishPort=50-59                   | --publish 50-59                        |
@@ -863,6 +874,15 @@ As a special case, if the `name` of the network ends with `.network`, Quadlet wi
 If found, Quadlet will use the name of the Network set in the Unit, otherwise, `systemd-$name` is used.
 The generated systemd service contains a dependency on the service unit generated for that `.network` unit,
 or on `$name-network.service` if the `.network` unit is not found
+
+This key can be listed multiple times.
+
+### `NetworkAlias=`
+
+Add a network-scoped alias for the pod. This has the same format as the `--network-alias` option to
+`podman pod create`. Aliases can be used to group containers together in DNS resolution: for
+example, setting `NetworkAlias=web` on multiple containers will make a DNS query for `web` resolve
+to all the containers with that alias.
 
 This key can be listed multiple times.
 
