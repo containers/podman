@@ -248,6 +248,11 @@ type V2RegistriesConf struct {
 	// potentially use all unqualified-search registries
 	ShortNameMode string `toml:"short-name-mode"`
 
+	// AdditionalLayerStoreAuthHelper is a helper binary that receives
+	// registry credentials pass them to Additional Layer Store for
+	// registry authentication. These credentials are only collected when pulling (not pushing).
+	AdditionalLayerStoreAuthHelper string `toml:"additional-layer-store-auth-helper"`
+
 	shortNameAliasConf
 
 	// If you add any field, make sure to update Nonempty() below.
@@ -825,6 +830,16 @@ func CredentialHelpers(sys *types.SystemContext) ([]string, error) {
 	return config.partialV2.CredentialHelpers, nil
 }
 
+// AdditionalLayerStoreAuthHelper returns the helper for passing registry
+// credentials to Additional Layer Store.
+func AdditionalLayerStoreAuthHelper(sys *types.SystemContext) (string, error) {
+	config, err := getConfig(sys)
+	if err != nil {
+		return "", err
+	}
+	return config.partialV2.AdditionalLayerStoreAuthHelper, nil
+}
+
 // refMatchingSubdomainPrefix returns the length of ref
 // iff ref, which is a registry, repository namespace, repository or image reference (as formatted by
 // reference.Domain(), reference.Named.Name() or reference.Reference.String()
@@ -1049,6 +1064,11 @@ func (c *parsedConfig) updateWithConfigurationFrom(updates *parsedConfig) {
 	// We don’t maintain c.partialV2.ShortNameMode.
 	if updates.shortNameMode != types.ShortNameModeInvalid {
 		c.shortNameMode = updates.shortNameMode
+	}
+
+	// == Merge AdditionalLayerStoreAuthHelper:
+	if updates.partialV2.AdditionalLayerStoreAuthHelper != "" {
+		c.partialV2.AdditionalLayerStoreAuthHelper = updates.partialV2.AdditionalLayerStoreAuthHelper
 	}
 
 	// == Merge aliasCache:

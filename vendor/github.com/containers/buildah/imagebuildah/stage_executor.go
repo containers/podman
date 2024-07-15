@@ -349,6 +349,26 @@ func (s *StageExecutor) volumeCacheRestore() error {
 // Copy copies data into the working tree.  The "Download" field is how
 // imagebuilder tells us the instruction was "ADD" and not "COPY".
 func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
+	for _, cp := range copies {
+		if cp.KeepGitDir {
+			if cp.Download {
+				return errors.New("ADD --keep-git-dir is not supported")
+			}
+			return errors.New("COPY --keep-git-dir is not supported")
+		}
+		if cp.Link {
+			return errors.New("COPY --link is not supported")
+		}
+		if cp.Parents {
+			return errors.New("COPY --parents is not supported")
+		}
+		if len(cp.Excludes) > 0 {
+			if cp.Download {
+				return errors.New("ADD --excludes is not supported")
+			}
+			return errors.New("COPY --excludes is not supported")
+		}
+	}
 	s.builder.ContentDigester.Restart()
 	return s.performCopy(excludes, copies...)
 }
@@ -860,12 +880,15 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		from = base
 	}
 	displayFrom := from
+	if ib.Platform != "" {
+		displayFrom = "--platform=" + ib.Platform + " " + displayFrom
+	}
 
 	// stage.Name will be a numeric string for all stages without an "AS" clause
 	asImageName := stage.Name
 	if asImageName != "" {
 		if _, err := strconv.Atoi(asImageName); err != nil {
-			displayFrom = from + " AS " + asImageName
+			displayFrom += " AS " + asImageName
 		}
 	}
 
@@ -1992,6 +2015,12 @@ func (s *StageExecutor) pushCache(ctx context.Context, src, cacheKey string) err
 			MaxRetries:          s.executor.maxPullPushRetries,
 			RetryDelay:          s.executor.retryPullPushDelay,
 		}
+		if s.executor.cachePushSourceLookupReferenceFunc != nil {
+			options.SourceLookupReferenceFunc = s.executor.cachePushSourceLookupReferenceFunc(dest)
+		}
+		if s.executor.cachePushDestinationLookupReferenceFunc != nil {
+			options.DestinationLookupReferenceFunc = s.executor.cachePushDestinationLookupReferenceFunc
+		}
 		ref, digest, err := buildah.Push(ctx, src, dest, options)
 		if err != nil {
 			return fmt.Errorf("failed pushing cache to %q: %w", dest, err)
@@ -2013,7 +2042,8 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (referen
 		return nil, "", err
 	}
 	for _, src := range srcList {
-		logrus.Debugf("trying to pull cache from remote repo: %+v", src.DockerReference())
+		srcDockerRef := src.DockerReference()
+		logrus.Debugf("trying to pull cache from remote repo: %+v", srcDockerRef)
 		options := buildah.PullOptions{
 			SignaturePolicyPath: s.executor.signaturePolicyPath,
 			Store:               s.executor.store,
@@ -2025,7 +2055,14 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (referen
 			ReportWriter:        nil,
 			PullPolicy:          define.PullIfNewer,
 		}
-		id, err := buildah.Pull(ctx, src.DockerReference().String(), options)
+		if s.executor.cachePullSourceLookupReferenceFunc != nil {
+			options.SourceLookupReferenceFunc = s.executor.cachePullSourceLookupReferenceFunc
+		}
+		if s.executor.cachePullDestinationLookupReferenceFunc != nil {
+			options.DestinationLookupReferenceFunc = s.executor.cachePullDestinationLookupReferenceFunc(src)
+		}
+
+		id, err := buildah.Pull(ctx, srcDockerRef.String(), options)
 		if err != nil {
 			logrus.Debugf("failed pulling cache from source %s: %v", src, err)
 			continue // failed pulling this one try next
@@ -2179,11 +2216,12 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	s.builder.SetStopSignal(config.StopSignal)
 	if config.Healthcheck != nil {
 		s.builder.SetHealthcheck(&buildahdocker.HealthConfig{
-			Test:        append([]string{}, config.Healthcheck.Test...),
-			Interval:    config.Healthcheck.Interval,
-			Timeout:     config.Healthcheck.Timeout,
-			StartPeriod: config.Healthcheck.StartPeriod,
-			Retries:     config.Healthcheck.Retries,
+			Test:          append([]string{}, config.Healthcheck.Test...),
+			Interval:      config.Healthcheck.Interval,
+			Timeout:       config.Healthcheck.Timeout,
+			StartPeriod:   config.Healthcheck.StartPeriod,
+			StartInterval: config.Healthcheck.StartInterval,
+			Retries:       config.Healthcheck.Retries,
 		})
 	} else {
 		s.builder.SetHealthcheck(nil)
@@ -2237,6 +2275,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		RetryDelay:            s.executor.retryPullPushDelay,
 		HistoryTimestamp:      s.executor.timestamp,
 		Manifest:              s.executor.manifest,
+		CompatSetParent:       s.executor.compatSetParent,
 	}
 	if finalInstruction {
 		options.ConfidentialWorkloadOptions = s.executor.confidentialWorkload
@@ -2291,9 +2330,11 @@ func (s *StageExecutor) generateBuildOutput(buildOutputOpts define.BuildOutputOp
 }
 
 func (s *StageExecutor) EnsureContainerPath(path string) error {
+	logrus.Debugf("EnsureContainerPath %q in %q", path, s.builder.ContainerID)
 	return s.builder.EnsureContainerPathAs(path, "", nil)
 }
 
 func (s *StageExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+	logrus.Debugf("EnsureContainerPath %q (owner %q, mode %o) in %q", path, user, mode, s.builder.ContainerID)
 	return s.builder.EnsureContainerPathAs(path, user, mode)
 }

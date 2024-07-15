@@ -326,6 +326,11 @@ func createIpvlanOrMacvlan(network *types.Network) error {
 					return fmt.Errorf("unknown ipvlan mode %q", value)
 				}
 			}
+		case types.MetricOption:
+			_, err := strconv.ParseUint(value, 10, 32)
+			if err != nil {
+				return err
+			}
 		case types.MTUOption:
 			_, err := internalutil.ParseMTU(value)
 			if err != nil {

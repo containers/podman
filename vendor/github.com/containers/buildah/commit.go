@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 const (
@@ -127,6 +128,10 @@ type CommitOptions struct {
 	// SBOMScanOptions encapsulates options which control whether or not we
 	// run scanners on the rootfs that we're about to commit, and how.
 	SBOMScanOptions []SBOMScanOptions
+	// CompatSetParent causes the "parent" field to be set when committing
+	// the image in Docker format.  Newer BuildKit-based builds don't set
+	// this field.
+	CompatSetParent types.OptionalBool
 }
 
 var (
@@ -325,7 +330,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	logrus.Debugf("committing image with reference %q is allowed by policy", transports.ImageName(dest))
 
 	// If we need to scan the rootfs, do it now.
-	options.ExtraImageContent = copyStringStringMap(options.ExtraImageContent)
+	options.ExtraImageContent = maps.Clone(options.ExtraImageContent)
 	var extraImageContent, extraLocalContent map[string]string
 	if len(options.SBOMScanOptions) != 0 {
 		var scansDirectory string
@@ -339,9 +344,14 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 				}
 			}()
 		}
-		for k, v := range extraImageContent {
-			if _, set := options.ExtraImageContent[k]; !set {
-				options.ExtraImageContent[k] = v
+		if len(extraImageContent) > 0 {
+			if options.ExtraImageContent == nil {
+				options.ExtraImageContent = make(map[string]string, len(extraImageContent))
+			}
+			for k, v := range extraImageContent {
+				if _, set := options.ExtraImageContent[k]; !set {
+					options.ExtraImageContent[k] = v
+				}
 			}
 		}
 	}

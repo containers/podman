@@ -449,6 +449,42 @@ func SystemContextFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name strin
 	return ctx, nil
 }
 
+// pullPolicyWithFlags parses a string value of a pull policy, evaluating it in
+// combination with "always" and "never" boolean flags.
+// Allow for:
+// * --pull
+// * --pull=""
+// * --pull=true
+// * --pull=false
+// * --pull=never
+// * --pull=always
+// * --pull=ifmissing
+// * --pull=missing
+// * --pull=notpresent
+// * --pull=newer
+// * --pull=ifnewer
+// and --pull-always and --pull-never as boolean flags.
+func pullPolicyWithFlags(policySpec string, always, never bool) (define.PullPolicy, error) {
+	if always {
+		return define.PullAlways, nil
+	}
+	if never {
+		return define.PullNever, nil
+	}
+	policy := strings.ToLower(policySpec)
+	switch policy {
+	case "true", "missing", "ifmissing", "notpresent":
+		return define.PullIfMissing, nil
+	case "always":
+		return define.PullAlways, nil
+	case "false", "never":
+		return define.PullNever, nil
+	case "ifnewer", "newer":
+		return define.PullIfNewer, nil
+	}
+	return 0, fmt.Errorf("unrecognized pull policy %q", policySpec)
+}
+
 // PullPolicyFromOptions returns a PullPolicy that reflects the combination of
 // the specified "pull" and undocumented "pull-always" and "pull-never" flags.
 func PullPolicyFromOptions(c *cobra.Command) (define.PullPolicy, error) {
@@ -474,30 +510,23 @@ func PullPolicyFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name string) 
 		return 0, errors.New("can only set one of 'pull' or 'pull-always' or 'pull-never'")
 	}
 
-	// Allow for --pull, --pull=true, --pull=false, --pull=never, --pull=always
-	// --pull-always and --pull-never.  The --pull-never and --pull-always options
-	// will not be documented.
-	pullPolicy := define.PullIfMissing
-	pullFlagValue := findFlagFunc("pull").Value.String()
-	if strings.EqualFold(pullFlagValue, "true") || strings.EqualFold(pullFlagValue, "ifnewer") {
-		pullPolicy = define.PullIfNewer
-	}
+	// The --pull-never and --pull-always options will not be documented.
 	pullAlwaysFlagValue, err := flags.GetBool("pull-always")
 	if err != nil {
-		return 0, err
-	}
-	if pullAlwaysFlagValue || strings.EqualFold(pullFlagValue, "always") {
-		pullPolicy = define.PullAlways
+		return 0, fmt.Errorf("checking the --pull-always flag value: %w", err)
 	}
 	pullNeverFlagValue, err := flags.GetBool("pull-never")
 	if err != nil {
+		return 0, fmt.Errorf("checking the --pull-never flag value: %w", err)
+	}
+
+	// The --pull[=...] flag is the one we really care about.
+	pullFlagValue := findFlagFunc("pull").Value.String()
+	pullPolicy, err := pullPolicyWithFlags(pullFlagValue, pullAlwaysFlagValue, pullNeverFlagValue)
+	if err != nil {
 		return 0, err
 	}
-	if pullNeverFlagValue ||
-		strings.EqualFold(pullFlagValue, "never") ||
-		strings.EqualFold(pullFlagValue, "false") {
-		pullPolicy = define.PullNever
-	}
+
 	logrus.Debugf("Pull Policy for pull [%v]", pullPolicy)
 
 	return pullPolicy, nil

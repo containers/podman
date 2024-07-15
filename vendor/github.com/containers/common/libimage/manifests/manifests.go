@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"net/http"
 	"os"
@@ -40,7 +41,6 @@ import (
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
 const (
@@ -236,11 +236,7 @@ func (l *list) SaveToImage(store storage.Store, imageID string, names []string, 
 // Files returns the list of files associated with a particular artifact
 // instance in the image index, primarily for display purposes.
 func (l *list) Files(instanceDigest digest.Digest) ([]string, error) {
-	filesList, ok := l.artifacts.Files[instanceDigest]
-	if ok {
-		return slices.Clone(filesList), nil
-	}
-	return nil, nil
+	return slices.Clone(l.artifacts.Files[instanceDigest]), nil
 }
 
 // instanceByFile returns the instanceDigest of the first manifest in the index
@@ -640,9 +636,7 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 			if instanceInfo.OS == "" {
 				instanceInfo.OS = config.OS
 				instanceInfo.OSVersion = config.OSVersion
-				if config.OSFeatures != nil {
-					instanceInfo.OSFeatures = slices.Clone(config.OSFeatures)
-				}
+				instanceInfo.OSFeatures = slices.Clone(config.OSFeatures)
 			}
 			if instanceInfo.Architecture == "" {
 				instanceInfo.Architecture = config.Architecture
@@ -906,9 +900,7 @@ func (l *list) AddArtifact(ctx context.Context, sys *types.SystemContext, option
 		Subject:      subject,
 	}
 	// Add in annotations, more or less exactly as specified.
-	if options.Annotations != nil {
-		artifactManifest.Annotations = maps.Clone(options.Annotations)
-	}
+	artifactManifest.Annotations = maps.Clone(options.Annotations)
 
 	// Encode and save the data we care about.
 	artifactManifestBytes, err := json.Marshal(artifactManifest)

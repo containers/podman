@@ -21,6 +21,8 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -313,10 +315,10 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			UIDMap:         uidmap,
 			GIDMap:         gidmap,
 		},
-		Capabilities:     copyStringSlice(options.Capabilities),
+		Capabilities:     slices.Clone(options.Capabilities),
 		CommonBuildOpts:  options.CommonBuildOpts,
 		TopLayer:         topLayer,
-		Args:             copyStringStringMap(options.Args),
+		Args:             maps.Clone(options.Args),
 		Format:           options.Format,
 		TempVolumes:      map[string]bool{},
 		Devices:          options.Devices,

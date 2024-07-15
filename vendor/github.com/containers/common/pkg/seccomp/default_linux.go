@@ -51,9 +51,16 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"bdflush",
+				"cachestat",
+				"futex_requeue",
+				"futex_wait",
+				"futex_waitv",
+				"futex_wake",
 				"io_pgetevents",
+				"io_pgetevents_time64",
 				"kexec_file_load",
 				"kexec_load",
+				"map_shadow_stack",
 				"migrate_pages",
 				"move_pages",
 				"nfsservctl",
@@ -68,9 +75,9 @@ func DefaultProfile() *Seccomp {
 				"pciconfig_write",
 				"sgetmask",
 				"ssetmask",
-				"swapcontext",
 				"swapoff",
 				"swapon",
+				"syscall",
 				"sysfs",
 				"uselib",
 				"userfaultfd",
@@ -310,7 +317,6 @@ func DefaultProfile() *Seccomp {
 				"pwritev2",
 				"read",
 				"readahead",
-				"readdir",
 				"readlink",
 				"readlinkat",
 				"readv",
@@ -398,15 +404,12 @@ func DefaultProfile() *Seccomp {
 				"shmdt",
 				"shmget",
 				"shutdown",
-				"sigaction",
 				"sigaltstack",
 				"signal",
 				"signalfd",
 				"signalfd4",
-				"sigpending",
 				"sigprocmask",
 				"sigreturn",
-				"sigsuspend",
 				"socketcall",
 				"socketpair",
 				"splice",
@@ -420,7 +423,6 @@ func DefaultProfile() *Seccomp {
 				"sync",
 				"sync_file_range",
 				"syncfs",
-				"syscall",
 				"sysinfo",
 				"syslog",
 				"tee",
@@ -433,7 +435,6 @@ func DefaultProfile() *Seccomp {
 				"timer_gettime64",
 				"timer_settime",
 				"timer_settime64",
-				"timerfd",
 				"timerfd_create",
 				"timerfd_gettime",
 				"timerfd_gettime64",
@@ -523,6 +524,7 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"sync_file_range2",
+				"swapcontext",
 			},
 			Action: ActAllow,
 			Args:   []*Arg{},
@@ -579,6 +581,16 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
+				"riscv_flush_icache",
+			},
+			Action: ActAllow,
+			Args:   []*Arg{},
+			Includes: Filter{
+				Arches: []string{"riscv64"},
+			},
+		},
+		{
+			Names: []string{
 				"open_by_handle_at",
 			},
 			Action: ActAllow,
@@ -604,8 +616,8 @@ func DefaultProfile() *Seccomp {
 				"bpf",
 				"fanotify_init",
 				"lookup_dcookie",
-				"perf_event_open",
 				"quotactl",
+				"quotactl_fd",
 				"setdomainname",
 				"sethostname",
 				"setns",
@@ -618,11 +630,11 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"bpf",
 				"fanotify_init",
 				"lookup_dcookie",
 				"perf_event_open",
 				"quotactl",
+				"quotactl_fd",
 				"setdomainname",
 				"sethostname",
 				"setns",
@@ -883,6 +895,50 @@ func DefaultProfile() *Seccomp {
 			Action: ActAllow,
 			Includes: Filter{
 				Caps: []string{"CAP_AUDIT_WRITE"},
+			},
+		},
+		{
+			Names: []string{
+				"bpf",
+			},
+			Action:   ActErrno,
+			Errno:    "EPERM",
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_ADMIN", "CAP_BPF"},
+			},
+		},
+		{
+			Names: []string{
+				"bpf",
+			},
+			Action: ActAllow,
+			Args:   []*Arg{},
+			Includes: Filter{
+				Caps: []string{"CAP_BPF"},
+			},
+		},
+		{
+			Names: []string{
+				"perf_event_open",
+			},
+			Action:   ActErrno,
+			Errno:    "EPERM",
+			ErrnoRet: &eperm,
+			Args:     []*Arg{},
+			Excludes: Filter{
+				Caps: []string{"CAP_SYS_ADMIN", "CAP_BPF"},
+			},
+		},
+		{
+			Names: []string{
+				"perf_event_open",
+			},
+			Action: ActAllow,
+			Args:   []*Arg{},
+			Includes: Filter{
+				Caps: []string{"CAP_PERFMON"},
 			},
 		},
 	}

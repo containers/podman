@@ -97,7 +97,6 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		FromImageDigest:  imageDigest,
 		Container:        containerName,
 		ContainerID:      containerID,
-		ImageAnnotations: map[string]string{},
 		ImageCreatedBy:   "",
 		NamespaceOptions: defaultNamespaceOptions,
 		IDMappingOptions: define.IDMappingOptions{

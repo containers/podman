@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023, Sylabs Inc. All rights reserved.
+// Copyright (c) 2021-2024, Sylabs Inc. All rights reserved.
 // This software is licensed under a 3-clause BSD license. Please consult the
 // LICENSE file distributed with the sources of this project regarding your
 // rights to use or distribute this software.
@@ -184,10 +184,16 @@ func multiSelectorFunc(fns ...DescriptorSelectorFunc) DescriptorSelectorFunc {
 	}
 }
 
+var errNilSelectFunc = errors.New("descriptor selector func must not be nil")
+
 // withDescriptors calls onMatchFn with each in-use descriptor in f for which selectFn returns
 // true. If selectFn or onMatchFn return a non-nil error, the iteration halts, and the error is
 // returned to the caller.
 func (f *FileImage) withDescriptors(selectFn DescriptorSelectorFunc, onMatchFn func(*rawDescriptor) error) error {
+	if selectFn == nil {
+		return errNilSelectFunc
+	}
+
 	for i, d := range f.rds {
 		if !d.Used {
 			continue

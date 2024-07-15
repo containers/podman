@@ -70,6 +70,9 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	if options.CommonBuildOpts == nil {
 		options.CommonBuildOpts = &define.CommonBuildOptions{}
 	}
+	if options.Args == nil {
+		options.Args = make(map[string]string)
+	}
 	if err := parse.Volumes(options.CommonBuildOpts.Volumes); err != nil {
 		return "", nil, fmt.Errorf("validating volumes: %w", err)
 	}

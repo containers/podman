@@ -55,9 +55,16 @@
 		{
 			"names": [
 				"bdflush",
+				"cachestat",
+				"futex_requeue",
+				"futex_wait",
+				"futex_waitv",
+				"futex_wake",
 				"io_pgetevents",
+				"io_pgetevents_time64",
 				"kexec_file_load",
 				"kexec_load",
+				"map_shadow_stack",
 				"migrate_pages",
 				"move_pages",
 				"nfsservctl",
@@ -72,9 +79,9 @@
 				"pciconfig_write",
 				"sgetmask",
 				"ssetmask",
-				"swapcontext",
 				"swapoff",
 				"swapon",
+				"syscall",
 				"sysfs",
 				"uselib",
 				"userfaultfd",
@@ -317,7 +324,6 @@
 				"pwritev2",
 				"read",
 				"readahead",
-				"readdir",
 				"readlink",
 				"readlinkat",
 				"readv",
@@ -405,15 +411,12 @@
 				"shmdt",
 				"shmget",
 				"shutdown",
-				"sigaction",
 				"sigaltstack",
 				"signal",
 				"signalfd",
 				"signalfd4",
-				"sigpending",
 				"sigprocmask",
 				"sigreturn",
-				"sigsuspend",
 				"socketcall",
 				"socketpair",
 				"splice",
@@ -427,7 +430,6 @@
 				"sync",
 				"sync_file_range",
 				"syncfs",
-				"syscall",
 				"sysinfo",
 				"syslog",
 				"tee",
@@ -440,7 +442,6 @@
 				"timer_gettime64",
 				"timer_settime",
 				"timer_settime64",
-				"timerfd",
 				"timerfd_create",
 				"timerfd_gettime",
 				"timerfd_gettime64",
@@ -562,7 +563,8 @@
 		},
 		{
 			"names": [
-				"sync_file_range2"
+				"sync_file_range2",
+				"swapcontext"
 			],
 			"action": "SCMP_ACT_ALLOW",
 			"args": [],
@@ -644,6 +646,20 @@
 		},
 		{
 			"names": [
+				"riscv_flush_icache"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [],
+			"comment": "",
+			"includes": {
+				"arches": [
+					"riscv64"
+				]
+			},
+			"excludes": {}
+		},
+		{
+			"names": [
 				"open_by_handle_at"
 			],
 			"action": "SCMP_ACT_ALLOW",
@@ -677,8 +693,8 @@
 				"bpf",
 				"fanotify_init",
 				"lookup_dcookie",
-				"perf_event_open",
 				"quotactl",
+				"quotactl_fd",
 				"setdomainname",
 				"sethostname",
 				"setns"
@@ -695,11 +711,11 @@
 		},
 		{
 			"names": [
-				"bpf",
 				"fanotify_init",
 				"lookup_dcookie",
 				"perf_event_open",
 				"quotactl",
+				"quotactl_fd",
 				"setdomainname",
 				"sethostname",
 				"setns"
@@ -1044,6 +1060,68 @@
 			"includes": {
 				"caps": [
 					"CAP_AUDIT_WRITE"
+				]
+			},
+			"excludes": {}
+		},
+		{
+			"names": [
+				"bpf"
+			],
+			"action": "SCMP_ACT_ERRNO",
+			"args": [],
+			"comment": "",
+			"includes": {},
+			"excludes": {
+				"caps": [
+					"CAP_SYS_ADMIN",
+					"CAP_BPF"
+				]
+			},
+			"errnoRet": 1,
+			"errno": "EPERM"
+		},
+		{
+			"names": [
+				"bpf"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [],
+			"comment": "",
+			"includes": {
+				"caps": [
+					"CAP_BPF"
+				]
+			},
+			"excludes": {}
+		},
+		{
+			"names": [
+				"perf_event_open"
+			],
+			"action": "SCMP_ACT_ERRNO",
+			"args": [],
+			"comment": "",
+			"includes": {},
+			"excludes": {
+				"caps": [
+					"CAP_SYS_ADMIN",
+					"CAP_BPF"
+				]
+			},
+			"errnoRet": 1,
+			"errno": "EPERM"
+		},
+		{
+			"names": [
+				"perf_event_open"
+			],
+			"action": "SCMP_ACT_ALLOW",
+			"args": [],
+			"comment": "",
+			"includes": {
+				"caps": [
+					"CAP_PERFMON"
 				]
 			},
 			"excludes": {}

@@ -46,7 +46,14 @@ func tryProcFilter(args []string, input io.Reader, cleanup func()) (io.ReadClose
 	go func() {
 		err := cmd.Run()
 		if err != nil && stderrBuf.Len() > 0 {
-			err = fmt.Errorf("%s: %w", strings.TrimRight(stderrBuf.String(), "\n"), err)
+			b := make([]byte, 1)
+			// if there is an error reading from input, prefer to return that error
+			_, errRead := input.Read(b)
+			if errRead != nil && errRead != io.EOF {
+				err = errRead
+			} else {
+				err = fmt.Errorf("%s: %w", strings.TrimRight(stderrBuf.String(), "\n"), err)
+			}
 		}
 		w.CloseWithError(err) // CloseWithErr(nil) == Close()
 		cleanup()
