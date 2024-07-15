@@ -518,7 +518,12 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if effectiveImportantFlags != expectedImportantFlags {
 			// Do a remount to try to get the desired flags to stick.
 			effectiveUnimportantFlags := uintptr(fs.Flags) & ^possibleImportantFlags
-			if err = unix.Mount(target, target, m.Type, unix.MS_REMOUNT|bindFlags|requestFlags|mountFlagsForFSFlags(effectiveUnimportantFlags), ""); err != nil {
+			remountFlags := unix.MS_REMOUNT | bindFlags | requestFlags | mountFlagsForFSFlags(effectiveUnimportantFlags)
+			// If we are requesting a read-only mount, add any possibleImportantFlags present in fs.Flags to remountFlags.
+			if requestFlags&unix.ST_RDONLY == unix.ST_RDONLY {
+				remountFlags |= uintptr(fs.Flags) & possibleImportantFlags
+			}
+			if err = unix.Mount(target, target, m.Type, remountFlags, ""); err != nil {
 				return undoBinds, fmt.Errorf("remounting %q in mount namespace with flags %#x instead of %#x: %w", target, requestFlags, effectiveImportantFlags, err)
 			}
 			// Check if the desired flags stuck.

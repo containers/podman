@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -20,7 +21,6 @@ import (
 	structcopier "github.com/jinzhu/copier"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
 )
 
 // NOTE: the abstractions and APIs here are a first step to further merge
@@ -238,9 +238,7 @@ func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
 	for i, manifest := range ociFormat.Manifests {
 		inspectList.Manifests[i].Annotations = manifest.Annotations
 		inspectList.Manifests[i].ArtifactType = manifest.ArtifactType
-		if manifest.URLs != nil {
-			inspectList.Manifests[i].URLs = slices.Clone(manifest.URLs)
-		}
+		inspectList.Manifests[i].URLs = slices.Clone(manifest.URLs)
 		inspectList.Manifests[i].Data = manifest.Data
 		inspectList.Manifests[i].Files, err = m.list.Files(manifest.Digest)
 		if err != nil {
@@ -252,10 +250,7 @@ func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
 		if platform == nil {
 			platform = &imgspecv1.Platform{}
 		}
-		var osFeatures []string
-		if platform.OSFeatures != nil {
-			osFeatures = slices.Clone(platform.OSFeatures)
-		}
+		osFeatures := slices.Clone(platform.OSFeatures)
 		inspectList.Subject = &define.ManifestListDescriptor{
 			Platform: manifest.Schema2PlatformSpec{
 				OS:           platform.OS,
@@ -483,23 +478,23 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 
 // Options for annotating a manifest list.
 type ManifestListAnnotateOptions struct {
-	// Add the specified annotations to the added image.
+	// Add the specified annotations to the added image.  Empty values are ignored.
 	Annotations map[string]string
-	// Add the specified architecture to the added image.
+	// Add the specified architecture to the added image.  Empty values are ignored.
 	Architecture string
-	// Add the specified features to the added image.
+	// Add the specified features to the added image.  Empty values are ignored.
 	Features []string
-	// Add the specified OS to the added image.
+	// Add the specified OS to the added image.  Empty values are ignored.
 	OS string
-	// Add the specified OS features to the added image.
+	// Add the specified OS features to the added image.  Empty values are ignored.
 	OSFeatures []string
-	// Add the specified OS version to the added image.
+	// Add the specified OS version to the added image.  Empty values are ignored.
 	OSVersion string
-	// Add the specified variant to the added image.
+	// Add the specified variant to the added image.  Empty values are ignored unless Architecture is set to a non-empty value.
 	Variant string
-	// Add the specified annotations to the index itself.
+	// Add the specified annotations to the index itself.  Empty values are ignored.
 	IndexAnnotations map[string]string
-	// Set the subject to which the index refers.
+	// Set the subject to which the index refers.  Empty values are ignored.
 	Subject string
 }
 
@@ -536,7 +531,7 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 			return err
 		}
 	}
-	if len(options.Variant) > 0 {
+	if len(options.Architecture) != 0 || len(options.Variant) > 0 {
 		if err := m.list.SetVariant(d, options.Variant); err != nil {
 			return err
 		}

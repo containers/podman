@@ -32,7 +32,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20240411t124913z-f39f38d13"
+    IMAGE_SUFFIX: "c20240620t153000z-f40f39d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -137,15 +137,9 @@ cross_build_task:
     alias: cross_build
     only_if: >-
         $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
-
-    osx_instance:
-        image: ghcr.io/cirruslabs/macos-ventura-base:latest
-
+    env:
+        HOME: /root
     script:
-        - brew update
-        - brew install go
-        - brew install go-md2man
-        - brew install gpgme
         - go version
         - make cross CGO_ENABLED=0
 
@@ -181,7 +175,7 @@ unit_task:
 
 
 conformance_task:
-    name: 'Build Conformance w/ $STORAGE_DRIVER'
+    name: 'Debian Conformance w/ $STORAGE_DRIVER'
     alias: conformance
     only_if: *not_build_docs
     depends_on: *smoke_vendor_cross
@@ -194,6 +188,7 @@ conformance_task:
     matrix:
         - env:
             STORAGE_DRIVER: 'vfs'
+            TMPDIR: '/var/tmp'
         - env:
             STORAGE_DRIVER: 'overlay'
 

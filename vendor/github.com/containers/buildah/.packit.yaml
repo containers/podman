@@ -2,8 +2,18 @@
 # See the documentation for more information:
 # https://packit.dev/docs/configuration/
 
-specfile_path: rpm/buildah.spec
+downstream_package_name: buildah
 upstream_tag_template: v{version}
+
+packages:
+  buildah-fedora:
+    pkg_tool: fedpkg
+    specfile_path: rpm/buildah.spec
+  buildah-centos:
+    pkg_tool: centpkg
+    specfile_path: rpm/buildah.spec
+  buildah-rhel:
+    specfile_path: rpm/buildah.spec
 
 srpm_build_deps:
   - make
@@ -11,35 +21,68 @@ srpm_build_deps:
 jobs:
   - job: copr_build
     trigger: pull_request
-    notifications:
+    packages: [buildah-fedora]
+    notifications: &copr_build_failure_notification
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
-    enable_net: true
     targets:
-      - fedora-all-x86_64
-      - fedora-all-aarch64
-      - fedora-eln-x86_64
-      - fedora-eln-aarch64
+      fedora-all-x86_64: {}
+      fedora-all-aarch64: {}
+      fedora-eln-x86_64:
+        additional_repos:
+          - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/x86_64/"
+      fedora-eln-aarch64:
+        additional_repos:
+          - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/aarch64/"
+    enable_net: true
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [buildah-centos]
+    notifications: *copr_build_failure_notification
+    targets:
+      - centos-stream-9-x86_64
+      - centos-stream-9-aarch64
+      - centos-stream-10-x86_64
+      - centos-stream-10-aarch64
+    enable_net: true
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [buildah-rhel]
+    notifications: *copr_build_failure_notification
+    targets:
       - epel-9-x86_64
       - epel-9-aarch64
-    additional_repos:
-      - "copr://rhcontainerbot/podman-next"
+    enable_net: true
 
   # Run on commit to main branch
   - job: copr_build
     trigger: commit
+    packages: [buildah-fedora]
     notifications:
       failure_comment:
         message: "podman-next COPR build failed. @containers/packit-build please check."
+    branch: main
     owner: rhcontainerbot
     project: podman-next
     enable_net: true
 
+  # Sync to Fedora
   - job: propose_downstream
     trigger: release
+    packages: [buildah-fedora]
     update_release: false
     dist_git_branches:
       - fedora-all
+
+  # Sync to CentOS Stream
+  - job: propose_downstream
+    trigger: release
+    packages: [buildah-centos]
+    update_release: false
+    dist_git_branches:
+      - c10s
 
   - job: koji_build
     trigger: commit

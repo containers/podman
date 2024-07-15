@@ -691,8 +691,8 @@ func (b *Builder) userForCopy(mountPoint string, userspec string) (uint32, uint3
 	return owner.UID, owner.GID, nil
 }
 
-// EnsureContainerPathAs creates the specified directory owned by USER
-// with the file mode set to MODE.
+// EnsureContainerPathAs creates the specified directory if it doesn't exist,
+// setting a newly-created directory's owner to USER and its permissions to MODE.
 func (b *Builder) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
@@ -722,5 +722,4 @@ func (b *Builder) EnsureContainerPathAs(path, user string, mode *os.FileMode) er
 		GIDMap:   destGIDMap,
 	}
 	return copier.Mkdir(mountPoint, filepath.Join(mountPoint, path), opts)
-
 }

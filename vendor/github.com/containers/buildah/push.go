@@ -66,6 +66,8 @@ type PushOptions struct {
 	// prebuilt copies of layer blobs that we might otherwise need to
 	// regenerate from on-disk layers, substituting them in the list of
 	// blobs to copy whenever possible.
+	//
+	// Not applicable if SourceLookupReferenceFunc is set.
 	BlobDirectory string
 	// Quiet is a boolean value that determines if minimal output to
 	// the user will be displayed, this is best used for logging.
@@ -90,6 +92,12 @@ type PushOptions struct {
 	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
+	// SourceLookupReference provides a function to look up source
+	// references. Overrides BlobDirectory, if set.
+	SourceLookupReferenceFunc libimage.LookupReferenceFunc
+	// DestinationLookupReference provides a function to look up destination
+	// references.
+	DestinationLookupReferenceFunc libimage.LookupReferenceFunc
 
 	// CompressionFormat is the format to use for the compression of the blobs
 	CompressionFormat *compression.Algorithm
@@ -125,7 +133,12 @@ func Push(ctx context.Context, image string, dest types.ImageReference, options 
 	if options.Compression == archive.Gzip {
 		compress = types.Compress
 	}
-	libimageOptions.SourceLookupReferenceFunc = cacheLookupReferenceFunc(options.BlobDirectory, compress)
+	if options.SourceLookupReferenceFunc != nil {
+		libimageOptions.SourceLookupReferenceFunc = options.SourceLookupReferenceFunc
+	} else {
+		libimageOptions.SourceLookupReferenceFunc = cacheLookupReferenceFunc(options.BlobDirectory, compress)
+	}
+	libimageOptions.DestinationLookupReferenceFunc = options.DestinationLookupReferenceFunc
 
 	runtime, err := libimage.RuntimeFromStore(options.Store, &libimage.RuntimeOptions{SystemContext: options.SystemContext})
 	if err != nil {

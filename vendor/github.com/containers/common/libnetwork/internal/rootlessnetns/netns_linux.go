@@ -462,6 +462,10 @@ func (n *Netns) setupMounts() error {
 
 	// 5. Mount the new prepared run dir to /run, it has to be recursive to keep the other bind mounts.
 	runDir := n.getPath("run")
+	err = os.MkdirAll(runDir, 0o700)
+	if err != nil {
+		return wrapError("create run directory", err)
+	}
 	// relabel the new run directory to the iptables /run label
 	// this is important, otherwise the iptables command will fail
 	err = label.Relabel(runDir, "system_u:object_r:iptables_var_run_t:s0", false)

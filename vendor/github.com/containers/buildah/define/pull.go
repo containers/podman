@@ -5,6 +5,9 @@ import (
 )
 
 // PullPolicy takes the value PullIfMissing, PullAlways, PullIfNewer, or PullNever.
+// N.B.: the enumeration values for this type differ from those used by
+// github.com/containers/common/pkg/config.PullPolicy (their zero values
+// indicate different policies), so they are not interchangeable.
 type PullPolicy int
 
 const (

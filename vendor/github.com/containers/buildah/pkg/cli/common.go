@@ -263,8 +263,12 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.String("os", runtime.GOOS, "set the OS to the provided value instead of the current operating system of the host")
 	fs.StringArrayVar(&flags.OSFeatures, "os-feature", []string{}, "set required OS `feature` for the target image in addition to values from the base image")
 	fs.StringVar(&flags.OSVersion, "os-version", "", "set required OS `version` for the target image instead of the value from the base image")
-	fs.StringVar(&flags.Pull, "pull", "true", "pull base and SBOM scanner images from the registry if newer or not present in store, if false, only pull base and SBOM scanner images if not present, if always, pull base and SBOM scanner images even if the named images are present in store, if never, only use images present in store if available")
-	fs.Lookup("pull").NoOptDefVal = "true" //allow `--pull ` to be set to `true` as expected.
+	fs.StringVar(&flags.Pull, "pull", "missing", `pull base and SBOM scanner images from the registry. Values:
+always:  pull base and SBOM scanner images even if the named images are present in store.
+missing: pull base and SBOM scanner images if the named images are not present in store.
+never:   only use images present in store if available.
+newer:   only pull base and SBOM scanner images when newer images exist on the registry than those in the store.`)
+	fs.Lookup("pull").NoOptDefVal = "missing" //treat a --pull with no argument like --pull=missing
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	if err := fs.MarkHidden("pull-always"); err != nil {
 		panic(fmt.Sprintf("error marking the pull-always flag as hidden: %v", err))

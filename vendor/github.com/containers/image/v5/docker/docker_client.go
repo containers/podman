@@ -86,11 +86,9 @@ type extensionSignatureList struct {
 	Signatures []extensionSignature `json:"signatures"`
 }
 
+// bearerToken records a cached token we can use to authenticate.
 type bearerToken struct {
-	Token          string    `json:"token"`
-	AccessToken    string    `json:"access_token"`
-	ExpiresIn      int       `json:"expires_in"`
-	IssuedAt       time.Time `json:"issued_at"`
+	token          string
 	expirationTime time.Time
 }
 
@@ -146,25 +144,6 @@ const (
 	// no authentication, works for both v1 and v2.
 	noAuth
 )
-
-func newBearerTokenFromJSONBlob(blob []byte) (*bearerToken, error) {
-	token := new(bearerToken)
-	if err := json.Unmarshal(blob, &token); err != nil {
-		return nil, err
-	}
-	if token.Token == "" {
-		token.Token = token.AccessToken
-	}
-	if token.ExpiresIn < minimumTokenLifetimeSeconds {
-		token.ExpiresIn = minimumTokenLifetimeSeconds
-		logrus.Debugf("Increasing token expiration to: %d seconds", token.ExpiresIn)
-	}
-	if token.IssuedAt.IsZero() {
-		token.IssuedAt = time.Now().UTC()
-	}
-	token.expirationTime = token.IssuedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
-	return token, nil
-}
 
 // dockerCertDir returns a path to a directory to be consumed by tlsclientconfig.SetupCertificates() depending on ctx and hostPort.
 func dockerCertDir(sys *types.SystemContext, hostPort string) (string, error) {
@@ -774,7 +753,7 @@ func (c *dockerClient) setupRequestAuth(req *http.Request, extraScope *authScope
 					token = *t
 					c.tokenCache.Store(cacheKey, token)
 				}
-				registryToken = token.Token
+				registryToken = token.token
 			}
 			req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", registryToken))
 			return nil
@@ -827,12 +806,7 @@ func (c *dockerClient) getBearerTokenOAuth2(ctx context.Context, challenge chall
 		return nil, err
 	}
 
-	tokenBlob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxAuthTokenBodySize)
-	if err != nil {
-		return nil, err
-	}
-
-	return newBearerTokenFromJSONBlob(tokenBlob)
+	return newBearerTokenFromHTTPResponseBody(res)
 }
 
 func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
@@ -878,12 +852,50 @@ func (c *dockerClient) getBearerToken(ctx context.Context, challenge challenge,
 	if err := httpResponseToError(res, "Requesting bearer token"); err != nil {
 		return nil, err
 	}
-	tokenBlob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxAuthTokenBodySize)
+
+	return newBearerTokenFromHTTPResponseBody(res)
+}
+
+// newBearerTokenFromHTTPResponseBody parses a http.Response to obtain a bearerToken.
+// The caller is still responsible for ensuring res.Body is closed.
+func newBearerTokenFromHTTPResponseBody(res *http.Response) (*bearerToken, error) {
+	blob, err := iolimits.ReadAtMost(res.Body, iolimits.MaxAuthTokenBodySize)
 	if err != nil {
 		return nil, err
 	}
 
-	return newBearerTokenFromJSONBlob(tokenBlob)
+	var token struct {
+		Token          string    `json:"token"`
+		AccessToken    string    `json:"access_token"`
+		ExpiresIn      int       `json:"expires_in"`
+		IssuedAt       time.Time `json:"issued_at"`
+		expirationTime time.Time
+	}
+	if err := json.Unmarshal(blob, &token); err != nil {
+		const bodySampleLength = 50
+		bodySample := blob
+		if len(bodySample) > bodySampleLength {
+			bodySample = bodySample[:bodySampleLength]
+		}
+		return nil, fmt.Errorf("decoding bearer token (last URL %q, body start %q): %w", res.Request.URL.Redacted(), string(bodySample), err)
+	}
+
+	bt := &bearerToken{
+		token: token.Token,
+	}
+	if bt.token == "" {
+		bt.token = token.AccessToken
+	}
+
+	if token.ExpiresIn < minimumTokenLifetimeSeconds {
+		token.ExpiresIn = minimumTokenLifetimeSeconds
+		logrus.Debugf("Increasing token expiration to: %d seconds", token.ExpiresIn)
+	}
+	if token.IssuedAt.IsZero() {
+		token.IssuedAt = time.Now().UTC()
+	}
+	bt.expirationTime = token.IssuedAt.Add(time.Duration(token.ExpiresIn) * time.Second)
+	return bt, nil
 }
 
 // detectPropertiesHelper performs the work of detectProperties which executes

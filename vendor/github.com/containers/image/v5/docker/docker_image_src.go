@@ -1,7 +1,9 @@
 package docker
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -11,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
 	"sync"
 
@@ -161,6 +164,34 @@ func newImageSourceAttempt(ctx context.Context, sys *types.SystemContext, logica
 	if err := s.ensureManifestIsLoaded(ctx); err != nil {
 		client.Close()
 		return nil, err
+	}
+
+	if h, err := sysregistriesv2.AdditionalLayerStoreAuthHelper(endpointSys); err == nil && h != "" {
+		acf := map[string]struct {
+			Username      string `json:"username,omitempty"`
+			Password      string `json:"password,omitempty"`
+			IdentityToken string `json:"identityToken,omitempty"`
+		}{
+			physicalRef.ref.String(): {
+				Username:      client.auth.Username,
+				Password:      client.auth.Password,
+				IdentityToken: client.auth.IdentityToken,
+			},
+		}
+		acfD, err := json.Marshal(acf)
+		if err != nil {
+			logrus.Warnf("failed to marshal auth config: %v", err)
+		} else {
+			cmd := exec.Command(h)
+			cmd.Stdin = bytes.NewReader(acfD)
+			if err := cmd.Run(); err != nil {
+				var stderr string
+				if ee, ok := err.(*exec.ExitError); ok {
+					stderr = string(ee.Stderr)
+				}
+				logrus.Warnf("Failed to call additional-layer-store-auth-helper (stderr:%s): %v", stderr, err)
+			}
+		}
 	}
 	return s, nil
 }

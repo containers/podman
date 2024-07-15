@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/imagebuilder"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -94,67 +95,72 @@ type Executor struct {
 	cniPluginPath                  string
 	cniConfigDir                   string
 	// NetworkInterface is the libnetwork network interface used to setup CNI or netavark networks.
-	networkInterface        nettypes.ContainerNetwork
-	idmappingOptions        *define.IDMappingOptions
-	commonBuildOptions      *define.CommonBuildOptions
-	defaultMountsFilePath   string
-	iidfile                 string
-	squash                  bool
-	labels                  []string
-	layerLabels             []string
-	annotations             []string
-	layers                  bool
-	noHostname              bool
-	noHosts                 bool
-	useCache                bool
-	removeIntermediateCtrs  bool
-	forceRmIntermediateCtrs bool
-	imageMap                map[string]string           // Used to map images that we create to handle the AS construct.
-	containerMap            map[string]*buildah.Builder // Used to map from image names to only-created-for-the-rootfs containers.
-	baseMap                 map[string]struct{}         // Holds the names of every base image, as given.
-	rootfsMap               map[string]struct{}         // Holds the names of every stage whose rootfs is referenced in a COPY or ADD instruction.
-	blobDirectory           string
-	excludes                []string
-	groupAdd                []string
-	ignoreFile              string
-	args                    map[string]string
-	globalArgs              map[string]string
-	unusedArgs              map[string]struct{}
-	capabilities            []string
-	devices                 define.ContainerDevices
-	deviceSpecs             []string
-	signBy                  string
-	architecture            string
-	timestamp               *time.Time
-	os                      string
-	maxPullPushRetries      int
-	retryPullPushDelay      time.Duration
-	ociDecryptConfig        *encconfig.DecryptConfig
-	lastError               error
-	terminatedStage         map[string]error
-	stagesLock              sync.Mutex
-	stagesSemaphore         *semaphore.Weighted
-	logRusage               bool
-	rusageLogFile           io.Writer
-	imageInfoLock           sync.Mutex
-	imageInfoCache          map[string]imageTypeAndHistoryAndDiffIDs
-	fromOverride            string
-	additionalBuildContexts map[string]*define.AdditionalBuildContext
-	manifest                string
-	secrets                 map[string]define.Secret
-	sshsources              map[string]*sshagent.Source
-	logPrefix               string
-	unsetEnvs               []string
-	unsetLabels             []string
-	processLabel            string // Shares processLabel of first stage container with containers of other stages in same build
-	mountLabel              string // Shares mountLabel of first stage container with containers of other stages in same build
-	buildOutput             string // Specifies instructions for any custom build output
-	osVersion               string
-	osFeatures              []string
-	envs                    []string
-	confidentialWorkload    define.ConfidentialWorkloadOptions
-	sbomScanOptions         []define.SBOMScanOptions
-	cdiConfigDir            string
+	networkInterface                        nettypes.ContainerNetwork
+	idmappingOptions                        *define.IDMappingOptions
+	commonBuildOptions                      *define.CommonBuildOptions
+	defaultMountsFilePath                   string
+	iidfile                                 string
+	squash                                  bool
+	labels                                  []string
+	layerLabels                             []string
+	annotations                             []string
+	layers                                  bool
+	noHostname                              bool
+	noHosts                                 bool
+	useCache                                bool
+	removeIntermediateCtrs                  bool
+	forceRmIntermediateCtrs                 bool
+	imageMap                                map[string]string           // Used to map images that we create to handle the AS construct.
+	containerMap                            map[string]*buildah.Builder // Used to map from image names to only-created-for-the-rootfs containers.
+	baseMap                                 map[string]struct{}         // Holds the names of every base image, as given.
+	rootfsMap                               map[string]struct{}         // Holds the names of every stage whose rootfs is referenced in a COPY or ADD instruction.
+	blobDirectory                           string
+	excludes                                []string
+	groupAdd                                []string
+	ignoreFile                              string
+	args                                    map[string]string
+	globalArgs                              map[string]string
+	unusedArgs                              map[string]struct{}
+	capabilities                            []string
+	devices                                 define.ContainerDevices
+	deviceSpecs                             []string
+	signBy                                  string
+	architecture                            string
+	timestamp                               *time.Time
+	os                                      string
+	maxPullPushRetries                      int
+	retryPullPushDelay                      time.Duration
+	cachePullSourceLookupReferenceFunc      libimage.LookupReferenceFunc
+	cachePullDestinationLookupReferenceFunc func(srcRef types.ImageReference) libimage.LookupReferenceFunc
+	cachePushSourceLookupReferenceFunc      func(dest types.ImageReference) libimage.LookupReferenceFunc
+	cachePushDestinationLookupReferenceFunc libimage.LookupReferenceFunc
+	ociDecryptConfig                        *encconfig.DecryptConfig
+	lastError                               error
+	terminatedStage                         map[string]error
+	stagesLock                              sync.Mutex
+	stagesSemaphore                         *semaphore.Weighted
+	logRusage                               bool
+	rusageLogFile                           io.Writer
+	imageInfoLock                           sync.Mutex
+	imageInfoCache                          map[string]imageTypeAndHistoryAndDiffIDs
+	fromOverride                            string
+	additionalBuildContexts                 map[string]*define.AdditionalBuildContext
+	manifest                                string
+	secrets                                 map[string]define.Secret
+	sshsources                              map[string]*sshagent.Source
+	logPrefix                               string
+	unsetEnvs                               []string
+	unsetLabels                             []string
+	processLabel                            string // Shares processLabel of first stage container with containers of other stages in same build
+	mountLabel                              string // Shares mountLabel of first stage container with containers of other stages in same build
+	buildOutput                             string // Specifies instructions for any custom build output
+	osVersion                               string
+	osFeatures                              []string
+	envs                                    []string
+	confidentialWorkload                    define.ConfidentialWorkloadOptions
+	sbomScanOptions                         []define.SBOMScanOptions
+	cdiConfigDir                            string
+	compatSetParent                         types.OptionalBool
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -221,92 +227,97 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 	}
 
 	exec := Executor{
-		args:                           options.Args,
-		cacheFrom:                      options.CacheFrom,
-		cacheTo:                        options.CacheTo,
-		cacheTTL:                       options.CacheTTL,
-		containerSuffix:                options.ContainerSuffix,
-		logger:                         logger,
-		stages:                         make(map[string]*StageExecutor),
-		store:                          store,
-		contextDir:                     options.ContextDirectory,
-		excludes:                       excludes,
-		groupAdd:                       options.GroupAdd,
-		ignoreFile:                     options.IgnoreFile,
-		pullPolicy:                     options.PullPolicy,
-		registry:                       options.Registry,
-		ignoreUnrecognizedInstructions: options.IgnoreUnrecognizedInstructions,
-		quiet:                          options.Quiet,
-		runtime:                        options.Runtime,
-		runtimeArgs:                    options.RuntimeArgs,
-		transientMounts:                transientMounts,
-		compression:                    options.Compression,
-		output:                         options.Output,
-		outputFormat:                   options.OutputFormat,
-		additionalTags:                 options.AdditionalTags,
-		signaturePolicyPath:            options.SignaturePolicyPath,
-		skipUnusedStages:               options.SkipUnusedStages,
-		systemContext:                  options.SystemContext,
-		log:                            options.Log,
-		in:                             options.In,
-		out:                            options.Out,
-		err:                            options.Err,
-		reportWriter:                   writer,
-		isolation:                      options.Isolation,
-		namespaceOptions:               options.NamespaceOptions,
-		configureNetwork:               options.ConfigureNetwork,
-		cniPluginPath:                  options.CNIPluginPath,
-		cniConfigDir:                   options.CNIConfigDir,
-		networkInterface:               options.NetworkInterface,
-		idmappingOptions:               options.IDMappingOptions,
-		commonBuildOptions:             options.CommonBuildOpts,
-		defaultMountsFilePath:          options.DefaultMountsFilePath,
-		iidfile:                        options.IIDFile,
-		squash:                         options.Squash,
-		labels:                         append([]string{}, options.Labels...),
-		layerLabels:                    append([]string{}, options.LayerLabels...),
-		annotations:                    append([]string{}, options.Annotations...),
-		layers:                         options.Layers,
-		noHostname:                     options.CommonBuildOpts.NoHostname,
-		noHosts:                        options.CommonBuildOpts.NoHosts,
-		useCache:                       !options.NoCache,
-		removeIntermediateCtrs:         options.RemoveIntermediateCtrs,
-		forceRmIntermediateCtrs:        options.ForceRmIntermediateCtrs,
-		imageMap:                       make(map[string]string),
-		containerMap:                   make(map[string]*buildah.Builder),
-		baseMap:                        make(map[string]struct{}),
-		rootfsMap:                      make(map[string]struct{}),
-		blobDirectory:                  options.BlobDirectory,
-		unusedArgs:                     make(map[string]struct{}),
-		capabilities:                   capabilities,
-		deviceSpecs:                    options.Devices,
-		signBy:                         options.SignBy,
-		architecture:                   options.Architecture,
-		timestamp:                      options.Timestamp,
-		os:                             options.OS,
-		maxPullPushRetries:             options.MaxPullPushRetries,
-		retryPullPushDelay:             options.PullPushRetryDelay,
-		ociDecryptConfig:               options.OciDecryptConfig,
-		terminatedStage:                make(map[string]error),
-		stagesSemaphore:                options.JobSemaphore,
-		logRusage:                      options.LogRusage,
-		rusageLogFile:                  rusageLogFile,
-		imageInfoCache:                 make(map[string]imageTypeAndHistoryAndDiffIDs),
-		fromOverride:                   options.From,
-		additionalBuildContexts:        options.AdditionalBuildContexts,
-		manifest:                       options.Manifest,
-		secrets:                        secrets,
-		sshsources:                     sshsources,
-		logPrefix:                      logPrefix,
-		unsetEnvs:                      append([]string{}, options.UnsetEnvs...),
-		unsetLabels:                    append([]string{}, options.UnsetLabels...),
-		buildOutput:                    options.BuildOutput,
-		osVersion:                      options.OSVersion,
-		osFeatures:                     append([]string{}, options.OSFeatures...),
-		envs:                           append([]string{}, options.Envs...),
-		confidentialWorkload:           options.ConfidentialWorkload,
-		sbomScanOptions:                options.SBOMScanOptions,
-		cdiConfigDir:                   options.CDIConfigDir,
+		args:                                    options.Args,
+		cacheFrom:                               options.CacheFrom,
+		cacheTo:                                 options.CacheTo,
+		cacheTTL:                                options.CacheTTL,
+		containerSuffix:                         options.ContainerSuffix,
+		logger:                                  logger,
+		stages:                                  make(map[string]*StageExecutor),
+		store:                                   store,
+		contextDir:                              options.ContextDirectory,
+		excludes:                                excludes,
+		groupAdd:                                options.GroupAdd,
+		ignoreFile:                              options.IgnoreFile,
+		pullPolicy:                              options.PullPolicy,
+		registry:                                options.Registry,
+		ignoreUnrecognizedInstructions:          options.IgnoreUnrecognizedInstructions,
+		quiet:                                   options.Quiet,
+		runtime:                                 options.Runtime,
+		runtimeArgs:                             options.RuntimeArgs,
+		transientMounts:                         transientMounts,
+		compression:                             options.Compression,
+		output:                                  options.Output,
+		outputFormat:                            options.OutputFormat,
+		additionalTags:                          options.AdditionalTags,
+		signaturePolicyPath:                     options.SignaturePolicyPath,
+		skipUnusedStages:                        options.SkipUnusedStages,
+		systemContext:                           options.SystemContext,
+		log:                                     options.Log,
+		in:                                      options.In,
+		out:                                     options.Out,
+		err:                                     options.Err,
+		reportWriter:                            writer,
+		isolation:                               options.Isolation,
+		namespaceOptions:                        options.NamespaceOptions,
+		configureNetwork:                        options.ConfigureNetwork,
+		cniPluginPath:                           options.CNIPluginPath,
+		cniConfigDir:                            options.CNIConfigDir,
+		networkInterface:                        options.NetworkInterface,
+		idmappingOptions:                        options.IDMappingOptions,
+		commonBuildOptions:                      options.CommonBuildOpts,
+		defaultMountsFilePath:                   options.DefaultMountsFilePath,
+		iidfile:                                 options.IIDFile,
+		squash:                                  options.Squash,
+		labels:                                  slices.Clone(options.Labels),
+		layerLabels:                             slices.Clone(options.LayerLabels),
+		annotations:                             slices.Clone(options.Annotations),
+		layers:                                  options.Layers,
+		noHostname:                              options.CommonBuildOpts.NoHostname,
+		noHosts:                                 options.CommonBuildOpts.NoHosts,
+		useCache:                                !options.NoCache,
+		removeIntermediateCtrs:                  options.RemoveIntermediateCtrs,
+		forceRmIntermediateCtrs:                 options.ForceRmIntermediateCtrs,
+		imageMap:                                make(map[string]string),
+		containerMap:                            make(map[string]*buildah.Builder),
+		baseMap:                                 make(map[string]struct{}),
+		rootfsMap:                               make(map[string]struct{}),
+		blobDirectory:                           options.BlobDirectory,
+		unusedArgs:                              make(map[string]struct{}),
+		capabilities:                            capabilities,
+		deviceSpecs:                             options.Devices,
+		signBy:                                  options.SignBy,
+		architecture:                            options.Architecture,
+		timestamp:                               options.Timestamp,
+		os:                                      options.OS,
+		maxPullPushRetries:                      options.MaxPullPushRetries,
+		retryPullPushDelay:                      options.PullPushRetryDelay,
+		cachePullSourceLookupReferenceFunc:      options.CachePullSourceLookupReferenceFunc,
+		cachePullDestinationLookupReferenceFunc: options.CachePullDestinationLookupReferenceFunc,
+		cachePushSourceLookupReferenceFunc:      options.CachePushSourceLookupReferenceFunc,
+		cachePushDestinationLookupReferenceFunc: options.CachePushDestinationLookupReferenceFunc,
+		ociDecryptConfig:                        options.OciDecryptConfig,
+		terminatedStage:                         make(map[string]error),
+		stagesSemaphore:                         options.JobSemaphore,
+		logRusage:                               options.LogRusage,
+		rusageLogFile:                           rusageLogFile,
+		imageInfoCache:                          make(map[string]imageTypeAndHistoryAndDiffIDs),
+		fromOverride:                            options.From,
+		additionalBuildContexts:                 options.AdditionalBuildContexts,
+		manifest:                                options.Manifest,
+		secrets:                                 secrets,
+		sshsources:                              sshsources,
+		logPrefix:                               logPrefix,
+		unsetEnvs:                               slices.Clone(options.UnsetEnvs),
+		unsetLabels:                             slices.Clone(options.UnsetLabels),
+		buildOutput:                             options.BuildOutput,
+		osVersion:                               options.OSVersion,
+		osFeatures:                              slices.Clone(options.OSFeatures),
+		envs:                                    slices.Clone(options.Envs),
+		confidentialWorkload:                    options.ConfidentialWorkload,
+		sbomScanOptions:                         options.SBOMScanOptions,
+		cdiConfigDir:                            options.CDIConfigDir,
+		compatSetParent:                         options.CompatSetParent,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr

@@ -1,6 +1,8 @@
 package config
 
 import (
+	"slices"
+
 	"github.com/containers/image/v5/manifest"
 	dockerclient "github.com/fsouza/go-dockerclient"
 )
@@ -41,17 +43,17 @@ func Schema2ConfigFromGoDockerclientConfig(config *dockerclient.Config) *manifes
 		Tty:             config.Tty,
 		OpenStdin:       config.OpenStdin,
 		StdinOnce:       config.StdinOnce,
-		Env:             append([]string{}, config.Env...),
-		Cmd:             append([]string{}, config.Cmd...),
+		Env:             slices.Clone(config.Env),
+		Cmd:             slices.Clone(config.Cmd),
 		Healthcheck:     overrideHealthCheck,
 		ArgsEscaped:     config.ArgsEscaped,
 		Image:           config.Image,
 		Volumes:         volumes,
 		WorkingDir:      config.WorkingDir,
-		Entrypoint:      append([]string{}, config.Entrypoint...),
+		Entrypoint:      slices.Clone(config.Entrypoint),
 		NetworkDisabled: config.NetworkDisabled,
 		MacAddress:      config.MacAddress,
-		OnBuild:         append([]string{}, config.OnBuild...),
+		OnBuild:         slices.Clone(config.OnBuild),
 		Labels:          labels,
 		StopSignal:      config.StopSignal,
 		Shell:           config.Shell,

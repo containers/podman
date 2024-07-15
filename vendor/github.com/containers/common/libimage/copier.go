@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/libimage/manifests"
 	"github.com/containers/common/libimage/platform"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/retry"
@@ -31,12 +30,6 @@ const (
 	defaultMaxRetries = 3
 	defaultRetryDelay = time.Second
 )
-
-// LookupReferenceFunc return an image reference based on the specified one.
-// The returned reference can return custom ImageSource or ImageDestination
-// objects which intercept or filter blobs, manifests, and signatures as
-// they are read and written.
-type LookupReferenceFunc = manifests.LookupReferenceFunc
 
 // CopyOptions allow for customizing image-copy operations.
 type CopyOptions struct {
