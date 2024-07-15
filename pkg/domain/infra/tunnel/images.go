@@ -38,7 +38,11 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 	filters := make(map[string][]string, len(opts.Filter))
 	for _, filter := range opts.Filter {
 		f := strings.SplitN(filter, "=", 2)
-		filters[f[0]] = append(filters[f[0]], f[1])
+		if len(f) > 1 {
+			filters[f[0]] = append(filters[f[0]], f[1])
+		} else {
+			filters[f[0]] = append(filters[f[0]], "")
+		}
 	}
 	options := new(images.ListOptions).WithAll(opts.All).WithFilters(filters)
 	psImages, err := images.List(ir.ClientCtx, options)
