@@ -795,13 +795,6 @@ func (ic *ContainerEngine) ContainerAttach(ctx context.Context, nameOrID string,
 	}
 
 	ctr := containers[0]
-	conState, err := ctr.State()
-	if err != nil {
-		return fmt.Errorf("unable to determine state of %s: %w", ctr.ID(), err)
-	}
-	if conState != define.ContainerStateRunning {
-		return fmt.Errorf("you can only attach to running containers")
-	}
 
 	// If the container is in a pod, also set to recursively start dependencies
 	err = terminal.StartAttachCtr(ctx, ctr.Container, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, false)
@@ -939,14 +932,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	// There can only be one container if attach was used
 	for i := range containers {
 		ctr := containers[i]
-		ctrState, err := ctr.State()
-		if err != nil {
-			return nil, err
-		}
-		ctrRunning := ctrState == define.ContainerStateRunning
 
 		if options.Attach {
-			err = terminal.StartAttachCtr(ctx, ctr.Container, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, !ctrRunning)
+			err = terminal.StartAttachCtr(ctx, ctr.Container, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, true)
 			if errors.Is(err, define.ErrDetach) {
 				// User manually detached
 				// Exit cleanly immediately
@@ -968,16 +956,6 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					ExitCode: define.ExitCode(err),
 				})
 				return reports, fmt.Errorf("attempting to start container %s would cause a deadlock; please run 'podman system renumber' to resolve", ctr.ID())
-			}
-
-			if ctrRunning {
-				reports = append(reports, &entities.ContainerStartReport{
-					Id:       ctr.ID(),
-					RawInput: ctr.rawInput,
-					Err:      nil,
-					ExitCode: 0,
-				})
-				return reports, err
 			}
 
 			if err != nil {
@@ -1008,34 +986,43 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			return reports, nil
 		} // end attach
 
-		// Start the container if it's not running already.
-		if !ctrRunning {
-			// Handle non-attach start
-			// If the container is in a pod, also set to recursively start dependencies
-			report := &entities.ContainerStartReport{
-				Id:       ctr.ID(),
-				RawInput: ctr.rawInput,
-				ExitCode: 125,
-			}
-			if err := ctr.Start(ctx, true); err != nil {
-				report.Err = err
-				if errors.Is(err, define.ErrWillDeadlock) {
-					report.Err = fmt.Errorf("please run 'podman system renumber' to resolve deadlocks: %w", err)
+		// Handle non-attach start
+		// If the container is in a pod, also set to recursively start dependencies
+		report := &entities.ContainerStartReport{
+			Id:       ctr.ID(),
+			RawInput: ctr.rawInput,
+			ExitCode: 125,
+		}
+		if err := ctr.Start(ctx, true); err != nil {
+			// Already running is no error for the start command as it is idempotent.
+			if errors.Is(err, define.ErrCtrStateRunning) {
+				// If all is set we only want to output the actual started containers
+				// so do not include the entry in the result.
+				if !options.All {
+					report.ExitCode = 0
 					reports = append(reports, report)
-					continue
-				}
-				report.Err = fmt.Errorf("unable to start container %q: %w", ctr.ID(), err)
-				reports = append(reports, report)
-				if ctr.AutoRemove() {
-					if _, _, err := ic.removeContainer(ctx, ctr.Container, entities.RmOptions{}); err != nil {
-						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
-					}
 				}
 				continue
 			}
-			report.ExitCode = 0
+
+			report.Err = err
+			if errors.Is(err, define.ErrWillDeadlock) {
+				report.Err = fmt.Errorf("please run 'podman system renumber' to resolve deadlocks: %w", err)
+				reports = append(reports, report)
+				continue
+			}
+			report.Err = fmt.Errorf("unable to start container %q: %w", ctr.ID(), err)
+			if ctr.AutoRemove() {
+				if _, _, err := ic.removeContainer(ctx, ctr.Container, entities.RmOptions{}); err != nil {
+					logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
+				}
+			}
 			reports = append(reports, report)
+			continue
 		}
+		// no error set exit code to 0
+		report.ExitCode = 0
+		reports = append(reports, report)
 	}
 	return reports, nil
 }

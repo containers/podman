@@ -91,6 +91,7 @@ func (r *ConmonOCIRuntime) Attach(c *Container, params *AttachOptions) error {
 		}
 		params.Started <- true
 	}
+	close(params.Started)
 
 	if passthrough {
 		return nil

@@ -89,11 +89,7 @@ func StartAttachCtr(ctx context.Context, ctr *libpod.Container, stdout, stderr, 
 		ProxySignals(ctr)
 	}
 
-	if !startContainer {
-		return ctr.Attach(streams, detachKeys, resize)
-	}
-
-	attachChan, err := ctr.StartAndAttach(ctx, streams, detachKeys, resize, true)
+	attachChan, err := ctr.Attach(ctx, streams, detachKeys, resize, startContainer)
 	if err != nil {
 		return err
 	}

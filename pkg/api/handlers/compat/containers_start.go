@@ -1,6 +1,7 @@
 package compat
 
 import (
+	"errors"
 	"net/http"
 
 	api "github.com/containers/podman/v5/pkg/api/types"
@@ -33,16 +34,11 @@ func StartContainer(w http.ResponseWriter, r *http.Request) {
 		utils.ContainerNotFound(w, name, err)
 		return
 	}
-	state, err := con.State()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	if state == define.ContainerStateRunning {
-		utils.WriteResponse(w, http.StatusNotModified, nil)
-		return
-	}
 	if err := con.Start(r.Context(), true); err != nil {
+		if errors.Is(err, define.ErrCtrStateRunning) {
+			utils.WriteResponse(w, http.StatusNotModified, nil)
+			return
+		}
 		utils.InternalServerError(w, err)
 		return
 	}

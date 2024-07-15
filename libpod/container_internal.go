@@ -821,6 +821,11 @@ func (c *Container) save() error {
 func (c *Container) prepareToStart(ctx context.Context, recursive bool) (retErr error) {
 	// Container must be created or stopped to be started
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateExited) {
+		// Special case: Let the caller know that is is already running,
+		// the caller can then decide to ignore/handle the error the way it needs.
+		if c.state.State == define.ContainerStateRunning {
+			return fmt.Errorf("container %s: %w", c.ID(), define.ErrCtrStateRunning)
+		}
 		return fmt.Errorf("container %s must be in Created or Stopped state to be started: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
