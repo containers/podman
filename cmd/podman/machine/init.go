@@ -123,6 +123,13 @@ func init() {
 		"USB Host passthrough: bus=$1,devnum=$2 or vendor=$1,product=$2")
 	_ = initCmd.RegisterFlagCompletionFunc(USBFlagName, completion.AutocompleteDefault)
 
+	VolumeDriverFlagName := "volume-driver"
+	flags.String(VolumeDriverFlagName, "", "Optional volume driver")
+	_ = initCmd.RegisterFlagCompletionFunc(VolumeDriverFlagName, completion.AutocompleteDefault)
+	if err := flags.MarkDeprecated(VolumeDriverFlagName, "will be ignored"); err != nil {
+		logrus.Error("unable to mark volume-driver flag deprecated")
+	}
+
 	IgnitionPathFlagName := "ignition-path"
 	flags.StringVar(&initOpts.IgnitionPath, IgnitionPathFlagName, "", "Path to ignition file")
 	_ = initCmd.RegisterFlagCompletionFunc(IgnitionPathFlagName, completion.AutocompleteDefault)
