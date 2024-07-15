@@ -33,7 +33,6 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 var (
@@ -1057,16 +1056,6 @@ func rmAll(podmanBin string, path string) {
 			GinkgoWriter.Printf("%v\n", err)
 		}
 	} else {
-		// When using overlay as root, podman leaves a stray mount behind.
-		// This leak causes remote tests to take a loooooong time, which
-		// then causes Cirrus to time out. Unmount that stray.
-		overlayPath := path + "/root/overlay"
-		if _, err := os.Stat(overlayPath); err == nil {
-			if err = unix.Unmount(overlayPath, unix.MNT_DETACH); err != nil {
-				GinkgoWriter.Printf("Error unmounting %s: %v\n", overlayPath, err)
-			}
-		}
-
 		if err = os.RemoveAll(path); err != nil {
 			GinkgoWriter.Printf("%q\n", err)
 		}

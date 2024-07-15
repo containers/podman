@@ -91,6 +91,11 @@ func Stop() error {
 		return nil
 	}
 
+	// if the signal handler is running, wait that it terminates
+	handlerLock.Lock()
+	defer handlerLock.Unlock()
+	// it doesn't need to be in the critical section, but staticcheck complains if
+	// the critical section is empty.
 	cancelChan <- true
 
 	return nil
