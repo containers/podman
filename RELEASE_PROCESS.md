@@ -163,7 +163,7 @@ spelled with complete minutiae.
 1. Update version numbers and push tag
 
    1. Edit `version/rawversion/version.go` and bump the `Version` value to the new
-      release version.  If there were API changes, also bump `APIVersion` value.
+      release version. If there were API changes, also bump `APIVersion` value in `version/version.go`.
       Make sure to also bump the version in the swagger.yaml `pkg/api/server/docs.go`
       For major and minor versions also add the new branch name to
       `docs/source/Reference.rst` to show the new swagger version on docs.podman.io.
@@ -171,9 +171,10 @@ spelled with complete minutiae.
       should be `Bump to vX.Y.Z` (using the actual version numbers).
    1. Push this single change to your GitHub fork, and make a new PR,
       **being careful** to select the proper release branch as its base.
+      Include `CI:ALL` in PR title to make sure all tests run.
    1. Wait for all automated tests pass (including on an RC-branch PR).  Re-running
       and/or updating code as needed.
-   1. In the PR, under the *Checks* tab, locate and clock on the Cirrus-CI
+   1. In the PR, under the *Checks* tab, locate and click on the Cirrus-CI
       task `Optional Release Test`.  In the right-hand window pane, click
       the `trigger` button and wait for the test to go green.  *This is a
       critical step* which confirms the commit is worthy of becoming a release.
