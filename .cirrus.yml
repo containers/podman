@@ -790,15 +790,15 @@ podman_machine_mac_task:
     persistent_worker: *mac_pw
     env:
         <<: *mac_env
-        # Consumed by podman-machine ginkgo tests
-        CONTAINERS_MACHINE_PROVIDER: "applehv"
-        # TODO: Should not require a special image, for now it does.
-        # Simply remove the line below when a mac image is GA.
-        # MACHINE_IMAGE: "https://fedorapeople.org/groups/podman/testing/applehv/arm64/fedora-coreos-38.20230925.dev.0-applehv.aarch64.raw.gz"
-        # Values necessary to populate std_name_fmt alias
-        TEST_FLAVOR: "machine-mac"
         DISTRO_NV: "darwin"
         PRIV_NAME: "rootless"  # intended use-case
+    matrix:
+        - env:
+            # See contrib/cirrus/mac_runner.sh
+            TEST_FLAVOR: "machine-applehv"
+        - env:
+            # See contrib/cirrus/mac_runner.sh
+            TEST_FLAVOR: "machine-libkrun"
     clone_script:  # artifacts from osx_alt_build_task
         - mkdir -p $CIRRUS_WORKING_DIR
         - cd $CIRRUS_WORKING_DIR

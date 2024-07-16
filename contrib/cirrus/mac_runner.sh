@@ -29,4 +29,18 @@ function logformatter() {
     "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$(output_name)"
 }
 
+# Defined by .cirrus.yml
+# shellcheck disable=SC2154
+case "$TEST_FLAVOR" in
+    machine-applehv)
+        export CONTAINERS_MACHINE_PROVIDER="applehv"
+        ;;
+    machine-libkrun)
+        export CONTAINERS_MACHINE_PROVIDER="libkrun"
+        ;;
+    *)
+        echo "Unknown/unsupported \$TEST_FLAVOR value '$TEST_FLAVOR'."
+        exit 1
+esac
+
 make localmachine 2>&1 | logformatter
