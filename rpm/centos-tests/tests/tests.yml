@@ -1,0 +1,30 @@
+---
+- hosts: localhost
+  tags:  classic
+  vars:
+  - artifacts: ./artifacts
+  roles:
+  - role: bats_installed
+  - role: rootless_user
+  - role: run_bats_tests
+    tests:
+    - name:    podman root
+      package: podman
+      environment:
+        PODMAN: /usr/bin/podman
+        PODMAN_TESTING: /usr/bin/podman-testing
+        QUADLET: /usr/libexec/podman/quadlet
+
+    - name:    podman rootless
+      package: podman
+      environment:
+        PODMAN: /usr/bin/podman
+        PODMAN_TESTING: /usr/bin/podman-testing
+        QUADLET: /usr/libexec/podman/quadlet
+      become:  true
+
+      #- name:    podman-remote root
+      #package: podman
+      #environment:
+      #  PODMAN: /usr/bin/podman-remote
+      #  QUADLET: /usr/libexec/podman/quadlet

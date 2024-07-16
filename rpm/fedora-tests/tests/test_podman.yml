@@ -1,0 +1,39 @@
+---
+- hosts: localhost
+  tags:
+    - classic
+    - container
+  vars:
+  - artifacts: ./artifacts
+    rootless_user: testuser
+  roles:
+  - role: disable_systemd_resolved
+  - role: rootless_user_ready
+
+  tasks:
+  # At the start of a run, clean up state. Useful for test reruns.
+  - name: local artifacts directory exists
+    local_action: file path="{{ artifacts }}" state=directory
+
+  - name: remove stale log files
+    local_action: shell rm -f {{ artifacts }}/test*.log
+
+  - name: clear test results (test.log)
+    local_action: command truncate --size=0 {{ artifacts }}/test.log
+
+  - name: clear test results (results.yml)
+    local_action: copy content="results:\n" dest={{ artifacts }}/results.yml
+
+  # These are the actual tests.
+  - name: test podman
+    include_tasks: run_podman_tests.yml
+    loop: [ podman, podman-remote ]
+    loop_control:
+      loop_var: podman_bin
+
+  - name: test toolbx
+    include_tasks: test_toolbx.yml
+
+  # Postprocessing: check for FAIL or ERROR in any test, exit 1 if so
+  - name: check results
+    include_tasks: check_results.yml

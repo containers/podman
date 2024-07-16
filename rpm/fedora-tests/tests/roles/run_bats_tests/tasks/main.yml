@@ -1,0 +1,10 @@
+---
+# Create empty results file, world-writable
+- name: initialize test.log file
+  copy: dest=/tmp/test.log content='' force=yes mode=0666
+
+- name: execute tests
+  include_tasks: run_one_test.yml
+  with_items: "{{ tests }}"
+  loop_control:
+    loop_var: test

@@ -9,9 +9,26 @@ packages:
   podman-fedora:
     pkg_tool: fedpkg
     specfile_path: rpm/podman.spec
+    # Ref: https://packit.dev/docs/configuration#files_to_sync
+    files_to_sync:
+      - src: rpm/gating.yaml
+        dest: gating.yaml
+        delete: true
+      - src: rpm/fedora-tests/tests
+        dest: tests/
+        delete: true
+      - .packit.yaml
   podman-centos:
     pkg_tool: centpkg
     specfile_path: rpm/podman.spec
+    files_to_sync:
+      - src: rpm/gating.yaml
+        dest: gating.yaml
+        delete: true
+      - src: rpm/centos-tests/tests
+        dest: tests/
+        delete: true
+      - .packit.yaml
   podman-rhel:
     specfile_path: rpm/podman.spec
 

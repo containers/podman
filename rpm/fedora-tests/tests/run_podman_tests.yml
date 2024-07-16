@@ -1,0 +1,29 @@
+---
+- name: "podman-remote | install"
+  dnf: name="podman-remote" state=installed
+  when: podman_bin == "podman-remote"
+
+# As of podman 5.0, slirp is a soft dependency. Until/unless it is
+# actually deprecated, we continue to test with it.
+- name: "slirp4netns | install"
+  dnf: name="slirp4netns" state=installed
+
+- include_role:
+    name: run_bats_tests
+  vars:
+    tests:
+    # Yes, this is horrible duplication, but trying to refactor in ansible
+    # yields even more horrible unreadable code. This is the lesser evil.
+    - name: "{{ podman_bin }} root"
+      package: podman
+      environment:
+        PODMAN: /usr/bin/{{ podman_bin }}
+        PODMAN_TESTING: /usr/bin/{{ podman_bin }}-testing
+        QUADLET: /usr/libexec/podman/quadlet
+    - name: "{{ podman_bin }} rootless"
+      package: podman
+      environment:
+        PODMAN: /usr/bin/{{ podman_bin }}
+        PODMAN_TESTING: /usr/bin/{{ podman_bin }}-testing
+        QUADLET: /usr/libexec/podman/quadlet
+      become: true

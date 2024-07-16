@@ -1,0 +1,8 @@
+summary: Make sure that container provision works
+require:
+  - tmt-provision-container
+test:
+    tmt run --verbose --remove
+        provision --how container --image fedora
+        login --command 'cat /etc/os-release'
+        finish

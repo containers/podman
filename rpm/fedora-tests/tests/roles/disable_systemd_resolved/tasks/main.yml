@@ -1,0 +1,3 @@
+---
+- name: disable systemd resolved
+  script: ./disable_systemd_resolved.sh

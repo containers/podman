@@ -1,0 +1,14 @@
+---
+- name: make sure rootless account exists
+  user: name={{ rootless_user }}
+
+- name: rootless account | enable linger
+  shell: loginctl enable-linger {{ rootless_user }}
+
+- name: rootless account | get uid
+  getent:
+    database: passwd
+    key: "{{ rootless_user }}"
+
+- name: rootless account | preserve uid
+  set_fact: rootless_uid="{{ getent_passwd[rootless_user][1] }}"

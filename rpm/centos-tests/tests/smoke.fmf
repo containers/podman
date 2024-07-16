@@ -1,0 +1,2 @@
+summary: Execute a simple command
+test: podman run -t --rm fedora cat /etc/os-release | grep 'Fedora Linux'

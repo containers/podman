@@ -1,0 +1,11 @@
+---
+- include_role:
+    name: run_bats_tests
+  vars:
+    tests:
+    - name: toolbx
+      package: toolbox
+      become: true
+      environment:
+        TMPDIR: /var/tmp
+        XDG_RUNTIME_DIR: /run/user/{{ rootless_uid }}

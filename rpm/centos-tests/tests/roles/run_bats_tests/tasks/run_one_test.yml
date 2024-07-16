@@ -1,0 +1,52 @@
+---
+- name: "{{ test.name }} | install test packages"
+  dnf: name="{{ test.package }}-tests" state=installed
+
+- name: "{{ test.name }} | define helper variables"
+  set_fact:
+    test_name_oneword: "{{ test.name | replace(' ','-') }}"
+
+# UGH. This is necessary because our caller sets some environment variables
+# and we need to set a few more based on other caller variables; then we
+# need to combine the two dicts when running the test. This seems to be
+# the only way to do it in ansible.
+- name: "{{ test.name }} | define local environment"
+  set_fact:
+    local_environment:
+      TEST_NAME:    "{{ test.name }}"
+      TEST_PACKAGE: "{{ test.package }}"
+      TEST_ENV:     "{{ test.environment }}"
+
+- name: "{{ test.name }} | setup/teardown helper | see if exists"
+  local_action: stat path={{ role_path }}/files/helper.{{ test_name_oneword }}.sh
+  register: helper
+
+- name: "{{ test.name }} | setup/teardown helper | install"
+  copy: src=helper.{{ test_name_oneword }}.sh dest=/tmp/helper.sh
+  when: helper.stat.exists
+
+- name: "{{ test.name }} | run test"
+  script: ./run_bats_tests.sh
+  args:
+    chdir: /usr/share/{{ test.package }}/test/system
+  become: "{{ true if test.become is defined else false }}"
+  become_user: testuser
+  environment: "{{ local_environment | combine(test.environment) }}"
+
+- name: "{{ test.name }} | pull logs"
+  fetch:
+    src: "/tmp/test.{{ item }}.log"
+    dest: "{{ artifacts }}/test.{{ test_name_oneword }}.{{ item }}.log"
+    flat: yes
+  with_items:
+    - bats
+    - debug
+
+- name: "{{ test.name }} | remove remote logs and helpers"
+  file:
+    dest=/tmp/{{ item }}
+    state=absent
+  with_items:
+    - test.bats.log
+    - test.debug.log
+    - helper.sh

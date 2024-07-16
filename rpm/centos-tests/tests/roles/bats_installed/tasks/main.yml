@@ -1,0 +1,12 @@
+---
+# Sigh; RHEL8 doesn't have BATS
+- name: bats | fetch and unpack tarball
+  unarchive:
+    src: https://github.com/bats-core/bats-core/archive/v1.11.0.tar.gz
+    dest: /root
+    remote_src: true
+
+- name: bats | install
+  command: ./install.sh /usr/local
+  args:
+    chdir: /root/bats-core-1.11.0

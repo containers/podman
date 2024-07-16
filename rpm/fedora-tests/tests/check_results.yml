@@ -1,0 +1,36 @@
+---
+# Copied from standard-test-basic
+# ...and, 2020-05-13, updated, looks like they changed the whole thing around
+- name: Check the results
+  local_action:
+    module: shell
+    cmd: |
+      log="{{ artifacts }}/test.log"
+      if [ ! -f "$log" ]; then
+          echo ERROR
+          echo "Test results not found." 1>&2
+      elif grep ^ERROR "$log" 1>&2; then
+          echo ERROR
+      elif grep ^FAIL "$log" 1>&2; then
+          echo FAIL
+      elif grep -q ^PASS "$log"; then
+          echo PASS
+      else
+          echo ERROR
+          echo "No test results found." 1>&2
+      fi
+  register: test_results
+
+- name: Set role result
+  set_fact:
+    role_result: "{{ test_results.stdout }}"
+    role_message: "{{ test_results.stderr|d('test execution error.') }}"
+
+- name: display results
+  vars:
+    msg: |
+       role_result:  {{ role_result|d('Undefined') }}
+       {{ role_message|d('[No error messages found]') }}
+  debug:
+    msg: "{{ msg.split('\n') }}"
+  failed_when: role_message|d("") != ""

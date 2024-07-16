@@ -1,0 +1,7 @@
+---
+- name: create rootless user
+  user:
+    name: testuser
+    shell: /bin/bash
+- name: enable linger
+  command: loginctl enable-linger testuser

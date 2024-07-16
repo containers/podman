@@ -1,0 +1,87 @@
+---
+- name: "{{ test.name }} | install test packages"
+  dnf: name="{{ test.package }}-tests" state=installed
+
+- name: "{{ test.name }} | define helper variables"
+  set_fact:
+    test_name_oneword: "{{ test.name | replace(' ','-') }}"
+
+# UGH. This is necessary because our caller sets some environment variables
+# and we need to set a few more based on other caller variables; then we
+# need to combine the two dicts when running the test. This seems to be
+# the only way to do it in ansible.
+- name: "{{ test.name }} | define local environment"
+  set_fact:
+    local_environment:
+      TEST_NAME:    "{{ test.name }}"
+      TEST_PACKAGE: "{{ test.package }}"
+      TEST_ENV:     "{{ test.environment }}"
+
+- name: "{{ test.name }} | setup/teardown helper | see if exists"
+  local_action: stat path={{ role_path }}/files/helper.{{ test_name_oneword }}.sh
+  register: helper
+
+- name: "{{ test.name }} | setup/teardown helper | install"
+  copy: src=helper.{{ test_name_oneword }}.sh dest=/tmp/helper.sh
+  when: helper.stat.exists
+
+# This is what runs the BATS tests.
+- name: "{{ test.name }} | run test"
+  script: ./run_bats_tests.sh
+  args:
+    chdir: /usr/share/{{ test.package }}/test/system
+  become: "{{ true if test.become is defined else false }}"
+  become_user: "{{ rootless_user }}"
+  environment: "{{ local_environment | combine(test.environment) }}"
+
+# BATS tests will always exit zero and should leave behind two files:
+# a full log (test.bats.log) and a one-line PASS/FAIL file (.summary.log)
+- name: "{{ test.name }} | pull logs"
+  fetch:
+    src: "/tmp/test.{{ item }}.log"
+    dest: "{{ artifacts }}/test.{{ test_name_oneword }}.{{ item }}.log"
+    flat: yes
+  with_items:
+    - bats
+    - summary
+
+# Collect all the one-line PASS/FAIL results in one file, test.log
+# Write the same thing, in a different format, to results.yml
+#   https://docs.fedoraproject.org/en-US/ci/standard-test-interface/
+- name: "{{ test.name }} | keep running tally of test results"
+  local_action:
+    module: shell
+    cmd: |
+      cd {{ artifacts }}
+      cat "test.{{ test_name_oneword }}.summary.log" >>test.log
+
+      status=$(awk '{print $1}' <test.{{ test_name_oneword }}.summary.log | tr A-Z a-z)
+      echo "- test: {{ test.name }}"                        >>results.yml
+      echo "  result: $status"                              >>results.yml
+      echo "  logs: test.{{ test_name_oneword }}.bats.log"  >>results.yml
+
+      # delete the oneliner file, to keep artifacts dir clean
+      rm -f test.{{ test_name_oneword }}.summary.log
+
+- name: "{{ test.name }} | remove remote logs and helpers"
+  file:
+    dest=/tmp/{{ item }}
+    state=absent
+  with_items:
+    - test.bats.log
+    - test.summary.log
+    - helper.sh
+
+# AAAAARGH!
+#
+# Fedora gating tests are failing, because str-common-final/tasks/main.yml
+# tries to pull test.log and other logs from $remote_host:/tmp/artifacts .
+# Those don't exist, because I track status and artifacts locally, because
+# with the reboot I can't rely on /tmp being preserved.
+# I see no way to tell str-common-final to skip this step; so let's just
+# push logs over upon completion of each subtest.
+- name: keep remote artifacts synced
+  synchronize:
+    src:  "{{ artifacts }}/"
+    dest: "{{ remote_artifacts|d('/tmp/artifacts') }}/"
+    mode: push

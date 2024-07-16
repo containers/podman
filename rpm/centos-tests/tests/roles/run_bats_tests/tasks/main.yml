@@ -1,0 +1,37 @@
+---
+# Create empty results file, world-writable
+- name: initialize test.log file
+  copy: dest=/tmp/test.log content='' force=yes mode=0666
+
+- name: execute tests
+  include: run_one_test.yml
+  with_items: "{{ tests }}"
+  loop_control:
+    loop_var: test
+
+- name: pull test.log results
+  fetch:
+    src: "/tmp/test.log"
+    dest: "{{ artifacts }}/test.log"
+    flat: yes
+
+# Copied from standard-test-basic
+- name: check results
+  shell: grep "^FAIL" /tmp/test.log
+  register: test_fails
+  # Never fail at this step. Just store result of tests.
+  failed_when: False
+
+- name: preserve results
+  set_fact:
+    role_result_failed: "{{ (test_fails.stdout|d|length > 0) or (test_fails.stderr|d|length > 0) }}"
+    role_result_msg: "{{ test_fails.stdout|d('tests failed.') }}"
+
+- name: display results
+  vars:
+    msg: |
+       Tests failed: {{ role_result_failed|d('Undefined') }}
+       Tests msg: {{ role_result_msg|d('None') }}
+  debug:
+    msg: "{{ msg.split('\n') }}"
+  failed_when: "role_result_failed|bool"

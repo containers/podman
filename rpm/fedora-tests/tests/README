@@ -1,0 +1,18 @@
+I'm sorry. The playbooks here are a much-too-complicated way of saying:
+
+   - test podman (root and rootless)
+   - same, with podman-remote
+
+The starting point is tests.yml . From there:
+
+    tests.yml
+      \- test_podman.yml
+           |- roles/rootless_user_ready/
+           \- run_podman_tests.yml          (once for local, once for remote)
+                \- roles/run_bats_tests/    (runs tests: root, rootless)
+
+Principal result is the file 'artifacts/test.log'. It will contain
+one line for each test run, format will be '(PASS|FAIL|ERROR) <test name>'
+
+For each completed test there will also be a 'test.<name>.bats.log'
+containing some setup blurbs (RPMs, environment) and the full BATS log.
