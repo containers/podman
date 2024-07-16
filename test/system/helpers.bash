@@ -1153,6 +1153,20 @@ function random_string() {
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
 }
 
+##############
+#  safename  #  Returns a pseudorandom string suitable for container/image/etc names
+##############
+#
+# Name will include the bats test number, eg "t123_xyz123". When/if we
+# ever parallelize system tests, this will make it possible to check
+# for leaks and identify the test that leaked.
+#
+# String is lower-case so it can be used as an image name
+#
+function safename() {
+    echo "t${BATS_SUITE_TEST_NUMBER}_$(random_string 8 | tr A-Z a-z)"
+}
+
 #########################
 #  find_exec_pid_files  #  Returns nothing or exec_pid hash files
 #########################
