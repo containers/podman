@@ -139,7 +139,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.36.1-0.20240715114330-4a82e0a3f382
+# github.com/containers/buildah v1.36.1-0.20240716190956-ec5b8feb76ec
 ## explicit; go 1.21.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
