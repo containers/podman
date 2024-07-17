@@ -65,51 +65,6 @@ spec:
 status: {}
 "
 
-RELABEL="system_u:object_r:container_file_t:s0"
-
-@test "podman kube with stdin" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-
-    run_podman kube play - < $PODMAN_TMPDIR/test.yaml
-    if selinux_enabled; then
-       run ls -Zd $TESTDIR
-       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
-    fi
-
-    # Make sure that the K8s pause image isn't pulled but the local podman-pause is built.
-    run_podman images
-    run_podman 1 image exists k8s.gcr.io/pause
-    run_podman 1 image exists registry.k8s.io/pause
-    run_podman image exists $(pause_image)
-
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-}
-
-@test "podman play" {
-    # Testing that the "podman play" cmd still works now that
-    # "podman kube" is an option.
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    run_podman play kube $PODMAN_TMPDIR/test.yaml
-    if selinux_enabled; then
-       run ls -Zd $TESTDIR
-       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
-    fi
-
-    # Now rerun twice to make sure nothing gets removed
-    run_podman 125 play kube $PODMAN_TMPDIR/test.yaml
-    is "$output" ".* is in use: pod already exists"
-    run_podman 125 play kube $PODMAN_TMPDIR/test.yaml
-    is "$output" ".* is in use: pod already exists"
-
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-}
-
 # helper function: writes a yaml file with customizable values
 function _write_test_yaml() {
     local outfile=$PODMAN_TMPDIR/test.yaml
@@ -169,6 +124,51 @@ EOF
 status: {}
 EOF
     fi
+}
+
+RELABEL="system_u:object_r:container_file_t:s0"
+
+@test "podman kube with stdin" {
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+
+    run_podman kube play - < $PODMAN_TMPDIR/test.yaml
+    if selinux_enabled; then
+       run ls -Zd $TESTDIR
+       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
+    fi
+
+    # Make sure that the K8s pause image isn't pulled but the local podman-pause is built.
+    run_podman images
+    run_podman 1 image exists k8s.gcr.io/pause
+    run_podman 1 image exists registry.k8s.io/pause
+    run_podman image exists $(pause_image)
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
+}
+
+@test "podman play" {
+    # Testing that the "podman play" cmd still works now that
+    # "podman kube" is an option.
+    TESTDIR=$PODMAN_TMPDIR/testdir
+    mkdir -p $TESTDIR
+    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    run_podman play kube $PODMAN_TMPDIR/test.yaml
+    if selinux_enabled; then
+       run ls -Zd $TESTDIR
+       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
+    fi
+
+    # Now rerun twice to make sure nothing gets removed
+    run_podman 125 play kube $PODMAN_TMPDIR/test.yaml
+    is "$output" ".* is in use: pod already exists"
+    run_podman 125 play kube $PODMAN_TMPDIR/test.yaml
+    is "$output" ".* is in use: pod already exists"
+
+    run_podman stop -a -t 0
+    run_podman pod rm -t 0 -f test_pod
 }
 
 @test "podman play --service-container" {
