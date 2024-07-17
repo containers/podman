@@ -24,27 +24,28 @@ function teardown() {
 
 # helper function: writes a yaml file with customizable values
 function _write_test_yaml() {
-    # This is available to our caller
+    # All of these are available to our caller
     TESTYAML=$PODMAN_TMPDIR/test.yaml
+    PODNAME="p-$(safename)"
+    CTRNAME="c-$(safename)"
+    PODCTRNAME="$PODNAME-$CTRNAME"
 
     # Function args must all be of the form 'keyword=value' (value may be null)
     local annotations=
     local labels="app: test"
-    local name="test_pod"
     local command=""
     local image="$IMAGE"
-    local ctrname="test"
-    local volume
+    local volume=
     for i;do
         # This will error on 'foo=' (no value). That's totally OK.
         local value=$(expr "$i" : '[^=]*=\(.*\)')
         case "$i" in
             annotations=*)   annotations="$value" ;;
             labels=*)        labels="$value"      ;;
-            name=*)          name="$value"        ;;
+            name=*)          PODNAME="$value"     ;;
             command=*)       command="$value"     ;;
             image=*)         image="$value"       ;;
-            ctrname=*)       ctrname="$value"     ;;
+            ctrname=*)       CTRNAME="$value"     ;;
             volume=*)        volume="$value"      ;;
             *)               die "_write_test_yaml: cannot grok '$i'" ;;
         esac
@@ -66,8 +67,8 @@ EOF
         echo "  labels:"        >>$TESTYAML
         echo "    $labels"      >>$TESTYAML
     fi
-    if [[ -n "$name" ]]; then
-        echo "  name: $name"    >>$TESTYAML
+    if [[ -n "$PODNAME" ]]; then
+        echo "  name: $PODNAME" >>$TESTYAML
     fi
 
     # We always have spec and container lines...
@@ -79,7 +80,7 @@ EOF
   - command:
     - $command
     image: $image
-    name: $ctrname
+    name: $CTRNAME
     resources: {}
 EOF
 
@@ -136,8 +137,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman 1 image exists registry.k8s.io/pause
     run_podman image exists $(pause_image)
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman pod rm -t 0 -f $PODNAME
 }
 
 @test "podman play" {
@@ -158,8 +158,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman 125 play kube $TESTYAML
     is "$output" ".* is in use: pod already exists"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman pod rm -t 0 -f $PODNAME
 }
 
 @test "podman play --service-container" {
@@ -174,7 +173,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
         $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
 
     # Wait for the container to be running
-    container_a=test_pod-test
+    container_a=$PODCTRNAME
     container_running=
     for i in $(seq 1 20); do
         run_podman "?" container wait $container_a --condition="running"
@@ -206,14 +205,14 @@ RELABEL="system_u:object_r:container_file_t:s0"
     #  1) The pod transitions to Exited
     #  2) The service container is stopped
     #  #) The service container is marked as a service container
-    run_podman stop test_pod-test
-    _ensure_pod_state test_pod Exited
+    run_podman stop $PODCTRNAME
+    _ensure_pod_state $PODNAME Exited
     _ensure_container_running $service_container false
     run_podman container inspect $service_container --format "{{.IsService}}"
     is "$output" "true"
 
     # Restart the pod, make sure the service is running again
-    run_podman pod restart test_pod
+    run_podman pod restart $PODNAME
     run_podman container inspect $service_container --format "{{.State.Running}}"
     is "$output" "true"
 
@@ -224,24 +223,23 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
 
     # Kill the pod and make sure the service is not running
-    run_podman pod kill test_pod
+    run_podman pod kill $PODNAME
     _ensure_container_running $service_container false
 
     # Remove the pod and make sure the service is removed along with it
-    run_podman pod rm test_pod
+    run_podman pod rm $PODNAME
     run_podman 1 container exists $service_container
 }
 
 @test "podman kube --network" {
-    _write_test_yaml
+    _write_test_yaml command=top
 
     run_podman kube play --network host $TESTYAML
     is "$output" "Pod:.*" "podman kube play should work with --network host"
 
-    run_podman pod inspect --format "{{.InfraConfig.HostNetwork}}" test_pod
+    run_podman pod inspect --format "{{.InfraConfig.HostNetwork}}" $PODNAME
     is "$output" "true" ".InfraConfig.HostNetwork"
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman pod rm -t 0 -f $PODNAME
 
     if has_slirp4netns; then
         run_podman kube play --network slirp4netns:port_handler=slirp4netns $TESTYAML
@@ -251,8 +249,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
         is "$output" "slirp4netns" "network mode slirp4netns is set for the container"
     fi
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman pod rm -t 0 -f $PODNAME
 
     run_podman kube play --network none $TESTYAML
     run_podman pod inspect --format {{.InfraContainerID}} "${lines[1]}"
@@ -260,44 +257,47 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman container inspect --format "{{.HostConfig.NetworkMode}}" $infraID
     is "$output" "none" "network mode none is set for the container"
 
+    run_podman container exists $PODCTRNAME
     run_podman kube down $TESTYAML
-    run_podman 125 inspect test_pod-test
-    is "$output" ".*Error: no such object: \"test_pod-test\""
-    run_podman pod rm -a
-    run_podman rm -a
+    run_podman 1 container exists $PODCTRNAME
 }
 
 @test "podman kube play read-only" {
     YAML=$PODMAN_TMPDIR/test.yml
 
+    podname="p-$(safename)"
+    c1name="c1-$(safename)"
+    c2name="c2-$(safename)"
+    c3name="c3-$(safename)"
+
     # --restart=no is crucial: without that, the "podman wait" below
     # will spin for indeterminate time.
-    run_podman create --pod new:pod1         --restart=no --name test1 $IMAGE touch /testrw
-    run_podman create --pod pod1 --read-only --restart=no --name test2 $IMAGE touch /testro
-    run_podman create --pod pod1 --read-only --restart=no --name test3 $IMAGE sh -c "echo "#!echo hi" > /tmp/testtmp; chmod +x /tmp/test/tmp; /tmp/testtmp"
+    run_podman create --pod new:$podname         --restart=no --name $c1name $IMAGE touch /testrw
+    run_podman create --pod $podname --read-only --restart=no --name $c2name $IMAGE touch /testro
+    run_podman create --pod $podname --read-only --restart=no --name $c3name $IMAGE sh -c "echo "#!echo hi" > /tmp/testtmp; chmod +x /tmp/test/tmp; /tmp/testtmp"
 
     # Generate and run from yaml. (The "cat" is for debugging failures)
-    run_podman kube generate pod1 -f $YAML
+    run_podman kube generate $podname -f $YAML
     cat $YAML
     run_podman kube play --replace $YAML
 
     # Wait for all containers and check their exit statuses
-    run_podman wait pod1-test1 pod1-test2 pod1-test3
+    run_podman wait ${podname}-${c1name} ${podname}-${c2name} ${podname}-${c3name}
     is "${lines[0]}" 0 "exit status: touch /file on read/write container"
     is "${lines[1]}" 1 "exit status: touch /file on read-only container"
     is "${lines[2]}" 0 "exit status: touch on /tmp is always ok, even on read-only container"
 
     # Confirm config settings
-    run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' pod1-test1 pod1-test2 pod1-test3
+    run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' ${podname}-${c1name} ${podname}-${c2name} ${podname}-${c3name}
     is "${lines[0]}" "false"  "ReadonlyRootfs - container 1"
     is "${lines[1]}" "true"   "ReadonlyRootfs - container 2"
     is "${lines[2]}" "true"   "ReadonlyRootfs - container 3"
 
     # Clean up
     run_podman kube down - < $YAML
-    run_podman 1 container exists pod1-test1
-    run_podman 1 container exists pod1-test2
-    run_podman 1 container exists pod1-test3
+    run_podman 1 container exists ${podname}-${c1name}
+    run_podman 1 container exists ${podname}-${c2name}
+    run_podman 1 container exists ${podname}-${c3name}
 }
 
 @test "podman kube play read-only from containers.conf" {
@@ -309,101 +309,103 @@ EOF
 
     YAML=$PODMAN_TMPDIR/test.yml
 
+    podname="p-$(safename)"
+    c1name="c1-$(safename)"
+    c2name="c2-$(safename)"
+    c3name="c3-$(safename)"
+
     # --restart=no is crucial: without that, the "podman wait" below
     # will spin for indeterminate time.
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod new:pod1 --read-only=false --restart=no --name test1 $IMAGE touch /testrw
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1                       --restart=no --name test2 $IMAGE touch /testro
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod pod1                       --restart=no --name test3 $IMAGE touch /tmp/testtmp
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod new:$podname --read-only=false --restart=no --name $c1name $IMAGE touch /testrw
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod $podname                       --restart=no --name $c2name $IMAGE touch /testro
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod $podname                       --restart=no --name $c3name $IMAGE touch /tmp/testtmp
 
     # Inspect settings in created containers
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' test1 test2 test3
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' $c1name $c2name $c3name
     is "${lines[0]}" "false"  "ReadonlyRootfs - container 1, created"
     is "${lines[1]}" "true"   "ReadonlyRootfs - container 2, created"
     is "${lines[2]}" "true"   "ReadonlyRootfs - container 3, created"
 
     # Now generate and run kube.yaml on a machine without the defaults set
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman kube generate pod1 -f $YAML
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman kube generate $podname -f $YAML
     cat $YAML
 
     run_podman kube play --replace $YAML
 
     # Wait for all containers and check their exit statuses
-    run_podman wait pod1-test1 pod1-test2 pod1-test3
+    run_podman wait ${podname}-${c1name} ${podname}-${c2name} ${podname}-${c3name}
     is "${lines[0]}" 0 "exit status: touch /file on read/write container"
     is "${lines[1]}" 1 "exit status: touch /file on read-only container"
     is "${lines[2]}" 0 "exit status: touch on /tmp is always ok, even on read-only container"
 
     # Confirm settings again
-    run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' pod1-test1 pod1-test2 pod1-test3
+    run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' ${podname}-${c1name} ${podname}-${c2name} ${podname}-${c3name}
     is "${lines[0]}" "false"  "ReadonlyRootfs - container 1, post-run"
     is "${lines[1]}" "true"   "ReadonlyRootfs - container 2, post-run"
     is "${lines[2]}" "true"   "ReadonlyRootfs - container 3, post-run"
 
     # Clean up
     run_podman kube down - < $YAML
-    run_podman 1 container exists pod1-test1
-    run_podman 1 container exists pod1-test2
-    run_podman 1 container exists pod1-test3
+    run_podman 1 container exists ${podname}-${c1name}
+    run_podman 1 container exists ${podname}-${c2name}
+    run_podman 1 container exists ${podname}-${c3name}
 }
 
 @test "podman play with user from image" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
+    imgname="i-$(safename)"
+    _write_test_yaml command=id image=$imgname
 
-    _write_test_yaml command=id image=userimage
-
-cat > $PODMAN_TMPDIR/Containerfile << _EOF
+    cat > $PODMAN_TMPDIR/Containerfile << _EOF
 from $IMAGE
 USER bin
 _EOF
 
     # Unset the PATH during build and make sure that all default env variables
     # are correctly set for the created container.
-    run_podman build --unsetenv PATH -t userimage $PODMAN_TMPDIR
-    run_podman image inspect userimage --format "{{.Config.Env}}"
+    run_podman build --unsetenv PATH -t $imgname $PODMAN_TMPDIR
+    run_podman image inspect $imgname --format "{{.Config.Env}}"
     is "$output" "\[\]" "image does not set PATH - env is empty"
 
     run_podman play kube --start=false $TESTYAML
-    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    run_podman inspect --format "{{ .Config.User }}" $PODCTRNAME
     is "$output" bin "expect container within pod to run as the bin user"
-    run_podman inspect --format "{{ .Config.Env }}" test_pod-test
+    run_podman inspect --format "{{ .Config.Env }}" $PODCTRNAME
     is "$output" ".*PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin.*" "expect PATH to be set"
     is "$output" ".*container=podman.*" "expect container to be set"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-    run_podman rmi -f userimage:latest
+    run_podman pod rm -t 0 -f $PODNAME
+    run_podman rmi -f $imgname
 }
 
 @test "podman play --build --context-dir" {
     skip_if_remote "--build is not supported in context remote"
 
-    mkdir -p $PODMAN_TMPDIR/userimage
-    cat > $PODMAN_TMPDIR/userimage/Containerfile << _EOF
+    imgname="userimage-$(safename)"
+
+    mkdir -p $PODMAN_TMPDIR/$imgname
+    cat > $PODMAN_TMPDIR/$imgname/Containerfile << _EOF
 from $IMAGE
 USER bin
 _EOF
 
-    _write_test_yaml command=id image=quay.io/libpod/userimage
+    _write_test_yaml command=id image=quay.io/libpod/$imgname
     run_podman 125 play kube --build --start=false $TESTYAML
-    assert "$output" =~ "initializing source docker://quay.io/libpod/userimage:latest: reading manifest latest in "
+    assert "$output" =~ "initializing source docker://quay.io/libpod/$imgname:latest: reading manifest latest in "
 
     run_podman play kube --replace --context-dir=$PODMAN_TMPDIR --build --start=false $TESTYAML
-    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    run_podman inspect --format "{{ .Config.User }}" $PODCTRNAME
     is "$output" bin "expect container within pod to run as the bin user"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-    run_podman rmi -f userimage:latest
+    run_podman pod rm -t 0 -f $PODNAME
+    run_podman rmi -f $imgname
 
     cd $PODMAN_TMPDIR
     run_podman play kube --replace --build --start=false $TESTYAML
-    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    run_podman inspect --format "{{ .Config.User }}" $PODCTRNAME
     is "$output" bin "expect container within pod to run as the bin user"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-    run_podman rmi -f userimage:latest
+    run_podman pod rm -t 0 -f $PODNAME
+    run_podman rmi -f $imgname
 }
 
 # Occasionally a remnant storage container is left behind which causes
@@ -412,18 +414,16 @@ _EOF
 # functions proplery by removing the storage container.
 @test "podman kube play --replace external storage" {
     _write_test_yaml
+
     run_podman play kube $TESTYAML
     # Force removal of container
-    run_podman rm --force -t0 test_pod-test
+    run_podman rm --force -t0 $PODCTRNAME
     # Create external container using buildah with same name
-    buildah from --name test_pod-test $IMAGE
+    buildah from --name $PODCTRNAME $IMAGE
     # --replace deletes the buildah container and replace it with new one
     run_podman play kube --replace $TESTYAML
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-    run_podman rm test_pod-test
-    run_podman rmi -f userimage:latest
+    run_podman pod rm -t 0 -f $PODNAME
 }
 
 @test "podman kube --annotation" {
@@ -433,7 +433,7 @@ _EOF
     ANNOTATION_WITH_COMMA="comma,$(random_string 5)"
     run_podman kube play --annotation "name=$RANDOMSTRING"  \
         --annotation "anno=$ANNOTATION_WITH_COMMA" $TESTYAML
-    run_podman inspect --format "{{ .Config.Annotations }}" test_pod-test
+    run_podman inspect --format "{{ .Config.Annotations }}" $PODCTRNAME
     is "$output" ".*name:$RANDOMSTRING" "Annotation should be added to pod"
     is "$output" ".*anno:$ANNOTATION_WITH_COMMA" "Annotation with comma should be added to pod"
 
@@ -441,11 +441,11 @@ _EOF
     run_podman 125 kube play --annotation "val" $TESTYAML
     assert "$output" == "Error: annotation \"val\" must include an '=' sign" "invalid annotation error"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
+    run_podman pod rm -t 0 -f $PODNAME
 }
 
 @test "podman play Yaml deprecated --no-trunc annotation" {
+   skip "FIXME: I can't figure out what this test is supposed to do"
    RANDOMSTRING=$(random_string 65)
 
    _write_test_yaml "annotations=test: ${RANDOMSTRING}" command=id
@@ -460,14 +460,12 @@ _EOF
 
     # Make sure that the default log driver is used
     run_podman kube play $TESTYAML
-    run_podman inspect --format "{{.HostConfig.LogConfig.Type}}" test_pod-test
+    run_podman inspect --format "{{.HostConfig.LogConfig.Type}}" $PODCTRNAME
     is "$output" "$default_driver" "play kube uses default log driver"
 
     run_podman kube down $TESTYAML
-    run_podman 125 inspect test_pod-test
-    is "$output" ".*Error: no such object: \"test_pod-test\""
-    run_podman pod rm -a
-    run_podman rm -a
+    run_podman 125 inspect $PODCTRNAME
+    is "$output" ".*Error: no such object: \"$PODCTRNAME\""
 }
 
 @test "podman kube play - URL" {
@@ -478,7 +476,8 @@ _EOF
     HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
 
-    run_podman run -d --name myyaml -p "$HOST_PORT:80" \
+    serverctr="yamlserver-$(safename)"
+    run_podman run -d --name $serverctr -p "$HOST_PORT:80" \
                -v $TESTYAML:/var/www/testpod.yaml:Z \
                -v $PODMAN_TMPDIR/ready:/var/www/ready:Z \
                -w /var/www \
@@ -488,14 +487,13 @@ _EOF
     wait_for_command_output "curl -s -S $SERVER/ready" "READY"
 
     run_podman kube play $SERVER/testpod.yaml
-    run_podman inspect test_pod-test --format "{{.State.Running}}"
+    run_podman inspect $PODCTRNAME --format "{{.State.Running}}"
     is "$output" "true"
     run_podman kube down $SERVER/testpod.yaml
-    run_podman 125 inspect test_pod-test
-    is "$output" ".*Error: no such object: \"test_pod-test\""
+    run_podman 125 inspect $PODCTRNAME
+    is "$output" ".*Error: no such object: \"$PODCTRNAME\""
 
-    run_podman pod rm -a -f
-    run_podman rm -a -f -t0
+    run_podman rm -f -t0 $serverctr
 }
 
 @test "podman play with init container" {
@@ -505,18 +503,18 @@ _EOF
     - ls
     - /dev/shm/test1
     image: $IMAGE
-    name: testCtr
+    name: ${CTRNAME}-test
   initContainers:
   - command:
     - touch
     - /dev/shm/test1
     image: $IMAGE
-    name: initCtr
+    name: ${CTRNAME}-init
 EOF
 
     run_podman kube play $TESTYAML
     assert "$output" !~ "level=" "init containers should not generate logrus.Error"
-    run_podman inspect --format "{{.State.ExitCode}}" test_pod-testCtr
+    run_podman inspect --format "{{.State.ExitCode}}" ${PODNAME}-${CTRNAME}-test
     is "$output" "0" "init container should have created /dev/shm/test1"
 
     run_podman kube down $TESTYAML
@@ -526,7 +524,7 @@ EOF
     HOST_PORT=$(random_free_port)
     _write_test_yaml
     cat >>$TESTYAML <<EOF
-    - name: server
+    - name: ${CTRNAME}-server
       image: $IMAGE
       ports:
         - name: hostp
@@ -534,12 +532,9 @@ EOF
 EOF
 
     run_podman kube play $TESTYAML
-    run_podman pod inspect test_pod --format "{{.InfraConfig.PortBindings}}"
+    run_podman pod inspect $PODNAME --format "{{.InfraConfig.PortBindings}}"
     assert "$output" = "map[$HOST_PORT/tcp:[{0.0.0.0 $HOST_PORT}]]"
     run_podman kube down $TESTYAML
-
-    run_podman pod rm -a -f
-    run_podman rm -a -f
 }
 
 @test "podman kube play - multi-pod YAML" {
@@ -547,8 +542,10 @@ EOF
     skip_if_journald_unavailable
 
     # Create the YAMl file, with two pods, each with one container
+    podnamebase="p-$(safename)"
+    ctrnamebase="c-$(safename)"
     for n in 1 2;do
-        _write_test_yaml labels="app: pod$n" name="pod$n" ctrname="ctr$n" command=top
+        _write_test_yaml labels="app: $podnamebase-$n" name="$podnamebase-$n" ctrname="$ctrnamebase-$n" command=top
 
         # Separator between two yaml halves
         if [[ $n = 1 ]]; then
@@ -566,8 +563,8 @@ EOF
     yaml_sha=$(sha256sum $TESTYAML)
     service_container="${yaml_sha:0:12}-service"
     # Wait for the containers to be running
-    container_1=pod1-ctr1
-    container_2=pod2-ctr2
+    container_1="${podnamebase}-1-${ctrnamebase}-1"
+    container_2="${podnamebase}-2-${ctrnamebase}-2"
     containers_running=
     for i in $(seq 1 20); do
         run_podman "?" container wait $container_1 $container_2 $service_container --condition="running"
@@ -585,7 +582,7 @@ EOF
 
     # Stop the pods, make sure that no ugly error logs show up and that the
     # service container will implicitly get stopped as well
-    run_podman pod stop pod1 pod2
+    run_podman pod stop ${podnamebase}-1 ${podnamebase}-2
     assert "$output" !~ "Stopping"
     _ensure_container_running $service_container false
 
@@ -594,29 +591,39 @@ EOF
 
 @test "podman kube generate filetype" {
     YAML=$PODMAN_TMPDIR/test.yml
-    run_podman create --pod new:pod1 --security-opt label=level:s0:c1,c2 --security-opt label=filetype:usr_t -v myvol:/myvol --name test1 $IMAGE true
-    run_podman kube generate pod1 -f $YAML
+
+    podname="p-$(safename)"
+    ctrname="c-$(safename)"
+    volname="v-$(safename)"
+
+    run_podman create --pod new:$podname \
+               --security-opt label=level:s0:c1,c2 \
+               --security-opt label=filetype:usr_t \
+               -v $volname:/myvol --name $ctrname $IMAGE true
+    run_podman kube generate $podname -f $YAML
     run cat $YAML
     is "$output" ".*filetype: usr_t" "Generated YAML file should contain filetype usr_t"
-    run_podman pod rm --force pod1
-    run_podman volume rm -t -1 myvol --force
+    run_podman pod rm --force $podname
+    run_podman volume rm -t -1 $volname --force
 
     run_podman kube play $YAML
     if selinux_enabled; then
-        run_podman inspect pod1-test1 --format "{{ .MountLabel }}"
+        run_podman inspect ${podname}-${ctrname} --format "{{ .MountLabel }}"
         is "$output" "system_u:object_r:usr_t:s0:c1,c2" "Generated container should use filetype usr_t"
-        run_podman volume inspect myvol --format '{{ .Mountpoint }}'
+        run_podman volume inspect $volname --format '{{ .Mountpoint }}'
         path=${output}
         run ls -Zd $path
         is "$output" "system_u:object_r:usr_t:s0 $path" "volume should be labeled with usr_t type"
     fi
     run_podman kube down $YAML
-    run_podman volume rm myvol --force
+    run_podman volume rm $volname --force
 }
 
 # kube play --wait=true, where we clear up the created containers, pods, and volumes when a kill or sigterm is triggered
 @test "podman kube play --wait with siginterrupt" {
-    cname=c$(random_string 15)
+    podname="p-$(safename)"
+    ctrname="c-$(safename)"
+
     fname="$PODMAN_TMPDIR/play_kube_wait_$(random_string 6).yaml"
     echo "
 apiVersion: v1
@@ -624,11 +631,11 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
 spec:
   restartPolicy: Never
   containers:
-    - name: server
+    - name: $ctrname
       image: $IMAGE
       command:
       - top
@@ -647,11 +654,13 @@ spec:
 
     # there should be no containers running or created
     run_podman ps -aq
-    is "$output" "" "There should be no containers"
-    run_podman rmi $(pause_image)
+    assert "$output" !~ "$(safename)" "No containers created by this test"
 }
 
 @test "podman kube play --wait - wait for pod to exit" {
+    podname="p-$(safename)"
+    ctrname="c-$(safename)"
+
     fname="$PODMAN_TMPDIR/play_kube_wait_$(random_string 6).yaml"
     echo "
 apiVersion: v1
@@ -659,15 +668,15 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
 spec:
   restartPolicy: Never
   containers:
-    - name: server
+    - name: $ctrname
       image: $IMAGE
       command:
       - echo
-      - "hello"
+      - hello
 " > $fname
 
     run_podman kube play --wait $fname
@@ -675,12 +684,15 @@ spec:
     # debug to see what container is being left behind after the cleanup
     # there should be no containers running or created
     run_podman ps -a --noheading
-    is "$output" "" "There should be no containers"
+    assert "$output" !~ "$(safename)" "No containers created by this test"
     run_podman pod ps
-    run_podman rmi $(pause_image)
+    assert "$output" !~ "$(safename)" "No pods created by this test"
 }
 
 @test "podman kube play with configmaps" {
+    foovalue="foo-$(safename)"
+    barvalue="bar-$(safename)"
+
     configmap_file=${PODMAN_TMPDIR}/play_kube_configmap_configmaps$(random_string 6),withcomma.yaml
     echo "
 ---
@@ -689,15 +701,18 @@ kind: ConfigMap
 metadata:
   name: foo
 data:
-  value: foo
+  value: $foovalue
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: bar
 data:
-  value: bar
+  value: $barvalue
 " > $configmap_file
+
+    podname="p-$(safename)"
+    ctrname="c-$(safename)"
 
     pod_file=${PODMAN_TMPDIR}/play_kube_configmap_pod$(random_string 6).yaml
     echo "
@@ -706,11 +721,11 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
 spec:
   restartPolicy: Never
   containers:
-  - name: server
+  - name: $ctrname
     image: $IMAGE
     env:
     - name: FOO
@@ -731,19 +746,19 @@ spec:
 " > $pod_file
 
     run_podman kube play --configmap=$configmap_file $pod_file
-    run_podman wait test_pod-server
+    run_podman wait $podname-$ctrname
 
     # systemd logs are unreliable; we may need to retry a few times
     # https://github.com/systemd/systemd/issues/28650
     local retries=10
     while [[ $retries -gt 0 ]]; do
-        run_podman logs test_pod-server
+        run_podman logs $podname-$ctrname
         test -n "$output" && break
         sleep 0.1
         retries=$((retries - 1))
     done
     assert "$retries" -gt 0 "Timed out waiting for podman logs"
-    assert "$output" = "foo:bar" "output from podman logs"
+    assert "$output" = "$foovalue:$barvalue" "output from podman logs"
 
     run_podman kube down $pod_file
 }
@@ -768,8 +783,8 @@ spec:
 umask = "0472"
 EOF
 
-    ctr="ctr"
-    ctrInPod="ctr-pod-ctr"
+    ctr="c-$(safename)"
+    ctrInPod="${ctr}-pod-${ctr}"
 
     run_podman create --restart never --name $ctr $IMAGE sh -c "touch /umask-test;stat -c '%a' /umask-test"
     run_podman kube generate -f $YAML $ctr
@@ -788,16 +803,15 @@ EOF
     assert "$output" = "204" "stat() on created file"
 
     run_podman kube down $YAML
-    run_podman pod rm -a
-    run_podman rm -a
+    run_podman rm $ctr
 }
 
 @test "podman kube generate tmpfs on /tmp" {
-      _write_test_yaml command=/home/podman/pause
-      run_podman kube play $TESTYAML
-      run_podman exec test_pod-test sh -c "mount | grep /tmp"
-      assert "$output" !~ "noexec" "mounts on /tmp should not be noexec"
-      run_podman kube down $TESTYAML
+    _write_test_yaml command=/home/podman/pause
+    run_podman kube play $TESTYAML
+    run_podman exec $PODCTRNAME sh -c "mount | grep /tmp"
+    assert "$output" !~ "noexec" "mounts on /tmp should not be noexec"
+    run_podman kube down $TESTYAML
 }
 
 @test "podman kube play - pull policy" {
@@ -810,7 +824,7 @@ EOF
     assert "$output" =~ "Pulling image $IMAGE \(policy\: missing\)" "default pull policy is missing"
     run_podman kube down $TESTYAML
 
-    local_image="localhost/name:latest"
+    local_image="localhost/i-$(safename):latest"
     run_podman tag $IMAGE $local_image
     rm $TESTYAML
     _write_test_yaml command=true image=$local_image
@@ -823,16 +837,19 @@ EOF
 }
 
 @test "podman kube play healthcheck should wait initialDelaySeconds before updating status (healthy)" {
+    podname="liveness-exec-$(safename)"
+    ctrname="liveness-ctr-$(safename)"
+
     fname="$PODMAN_TMPDIR/play_kube_healthy_$(random_string 6).yaml"
     echo "
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
-  name: liveness-exec
+  name: $podname
 spec:
   containers:
-  - name: liveness
+  - name: $ctrname
     image: $IMAGE
     args:
     - /bin/sh
@@ -849,7 +866,7 @@ spec:
 " > $fname
 
     run_podman kube play $fname
-    ctrName="liveness-exec-liveness"
+    ctrName="$podname-$ctrname"
 
     # Keep checking status. For the first 2 seconds it must be 'starting'
     t0=$SECONDS
@@ -870,21 +887,23 @@ spec:
     done
     assert $output == "2-healthy" "After 3 seconds"
 
-    run_podman pod rm -fa -t0
-    run_podman rm -a
+    run_podman kube down $fname
 }
 
 @test "podman kube play healthcheck should wait initialDelaySeconds before updating status (unhealthy)" {
+    podname="liveness-exec-$(safename)"
+    ctrname="liveness-ctr-$(safename)"
+
     fname="$PODMAN_TMPDIR/play_kube_unhealthy_$(random_string 6).yaml"
     echo "
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
-  name: liveness-exec
+  name: $podname
 spec:
   containers:
-  - name: liveness
+  - name: $ctrname
     image: $IMAGE
     args:
     - /bin/sh
@@ -901,7 +920,7 @@ spec:
 " > $fname
 
     run_podman kube play $fname
-    ctrName="liveness-exec-liveness"
+    ctrName="$podname-$ctrname"
 
     # Keep checking status. For the first 2 seconds it must be 'starting'
     t0=$SECONDS
@@ -922,19 +941,19 @@ spec:
     done
     assert $output == "2-unhealthy" "After 3 seconds"
 
-    run_podman pod rm -fa -t0
-    run_podman rm -a
+    run_podman kube down $fname
 }
 
 @test "podman play --build private registry" {
     skip_if_remote "--build is not supported in context remote"
 
     local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
-    local from_image=$registry/quadlet_image_test:$(random_string)
+    local from_image=$registry/quadlet_image_test-$(safename):$(random_string)
     local authfile=$PODMAN_TMPDIR/authfile.json
 
-    mkdir -p $PODMAN_TMPDIR/userimage
-    cat > $PODMAN_TMPDIR/userimage/Containerfile << _EOF
+    userimage=userimage-$(safename)
+    mkdir -p $PODMAN_TMPDIR/$userimage
+    cat > $PODMAN_TMPDIR/$userimage/Containerfile << _EOF
 from $from_image
 USER bin
 _EOF
@@ -954,22 +973,25 @@ _EOF
     # Remove the local image to make sure it will be pulled again
     run_podman image rm --ignore $from_image
 
-    _write_test_yaml command=id image=userimage
+    _write_test_yaml command=id image=$userimage
     run_podman 125 play kube --build --start=false $TESTYAML
     assert "$output" "=~" \
-        "Error: short-name resolution enforced but cannot prompt without a TTY|Resolving \"userimage\" using unqualified-search registries" \
+        "Error: short-name resolution enforced but cannot prompt without a TTY|Resolving \"$userimage\" using unqualified-search registries" \
         "The error message does match any of the expected ones"
 
     run_podman play kube --replace --context-dir=$PODMAN_TMPDIR --tls-verify=false --authfile=$authfile --build --start=false $TESTYAML
-    run_podman inspect --format "{{ .Config.User }}" test_pod-test
+    run_podman inspect --format "{{ .Config.User }}" $PODCTRNAME
     is "$output" bin "expect container within pod to run as the bin user"
 
-    run_podman stop -a -t 0
-    run_podman pod rm -t 0 -f test_pod
-    run_podman rmi -f userimage:latest $from_image
+    run_podman kube down $TESTYAML
+    run_podman rmi -f $userimage $from_image
 }
 
 @test "podman play with automount volume" {
+    imgname="automount-test-$(safename)"
+    podname="p-$(safename)"
+    ctrname="c-$(safename)"
+
     cat >$PODMAN_TMPDIR/Containerfile <<EOF
 FROM $IMAGE
 RUN mkdir /test1 /test2
@@ -979,7 +1001,7 @@ VOLUME /test1
 VOLUME /test2
 EOF
 
-    run_podman build -t automount_test -f $PODMAN_TMPDIR/Containerfile
+    run_podman build -t $imgname -f $PODMAN_TMPDIR/Containerfile
 
     fname="/tmp/play_kube_wait_$(random_string 6).yaml"
     echo "
@@ -988,28 +1010,30 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
 spec:
   restartPolicy: Never
   containers:
-    - name: testctr
+    - name: $ctrname
       image: $IMAGE
       command:
       - top
 " > $fname
 
-    run_podman kube play --annotation "io.podman.annotations.kube.image.volumes.mount/testctr=automount_test" $fname
+    run_podman kube play --annotation "io.podman.annotations.kube.image.volumes.mount/$ctrname=$imgname" $fname
 
-    run_podman run --rm automount_test ls /test1
+    run_podman run --rm $imgname ls -x /test1
+    assert "$output" = "a  b  c" "ls /test1 on image"
     run_out_test1="$output"
-    run_podman exec test_pod-testctr ls /test1
+    run_podman exec $podname-$ctrname ls -x /test1
     assert "$output" = "$run_out_test1" "matching ls run/exec volume path test1"
 
-    run_podman run --rm automount_test ls /test2
+    run_podman run --rm $imgname ls -x /test2
+    assert "$output" = "asdf    ejgre   lteghe"  "ls /test2 on image"
     run_out_test2="$output"
-    run_podman exec test_pod-testctr ls /test2
+    run_podman exec $podname-$ctrname ls -x /test2
     assert "$output" = "$run_out_test2" "matching ls run/exec volume path test2"
 
-    run_podman rm -f -t 0 -a
-    run_podman rmi automount_test
+    run_podman kube down $fname
+    run_podman rmi $imgname
 }
