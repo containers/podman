@@ -22,49 +22,6 @@ function teardown() {
     basic_teardown
 }
 
-testYaml="
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-    app: test
-  name: test_pod
-spec:
-  containers:
-  - command:
-    - /home/podman/pause
-    env:
-    - name: PATH
-      value: /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    - name: TERM
-      value: xterm
-    - name: container
-      value: podman
-    image: $IMAGE
-    name: test
-    resources: {}
-    securityContext:
-      runAsUser: 1000
-      runAsGroup: 3000
-      fsGroup: 2000
-      allowPrivilegeEscalation: true
-      capabilities: {}
-      privileged: false
-      seLinuxOptions:
-         level: \"s0:c1,c2\"
-      readOnlyRootFilesystem: false
-    volumeMounts:
-    - mountPath: /testdir:z
-      name: home-podman-testdir
-    workingDir: /
-  volumes:
-  - hostPath:
-      path: TESTDIR
-      type: Directory
-    name: home-podman-testdir
-status: {}
-"
-
 # helper function: writes a yaml file with customizable values
 function _write_test_yaml() {
     local outfile=$PODMAN_TMPDIR/test.yaml
@@ -76,6 +33,7 @@ function _write_test_yaml() {
     local command=""
     local image="$IMAGE"
     local ctrname="test"
+    local volume
     for i;do
         # This will error on 'foo=' (no value). That's totally OK.
         local value=$(expr "$i" : '[^=]*=\(.*\)')
@@ -86,6 +44,7 @@ function _write_test_yaml() {
             command=*)       command="$value"     ;;
             image=*)         image="$value"       ;;
             ctrname=*)       ctrname="$value"     ;;
+            volume=*)        volume="$value"      ;;
             *)               die "_write_test_yaml: cannot grok '$i'" ;;
         esac
     done
@@ -121,8 +80,35 @@ EOF
     image: $image
     name: $ctrname
     resources: {}
-status: {}
 EOF
+
+        # only makes sense when command is given
+        if [[ -n "$volume" ]]; then
+            cat <<EOF >>$outfile
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 3000
+      fsGroup: 2000
+      allowPrivilegeEscalation: true
+      capabilities: {}
+      privileged: false
+      seLinuxOptions:
+         level: "s0:c1,c2"
+      readOnlyRootFilesystem: false
+    volumeMounts:
+    - mountPath: /testdir:z
+      name: home-podman-testdir
+    workingDir: /
+  volumes:
+  - hostPath:
+      path: $volume
+      type: Directory
+    name: home-podman-testdir
+EOF
+        fi
+
+        # Done.
+        echo "status: {}" >>$outfile
     fi
 
     # For debugging
@@ -135,7 +121,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
 @test "podman kube with stdin" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml command=top volume=$TESTDIR
 
     run_podman kube play - < $PODMAN_TMPDIR/test.yaml
     if selinux_enabled; then
@@ -158,7 +144,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     # "podman kube" is an option.
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml command=top volume=$TESTDIR
     run_podman play kube $PODMAN_TMPDIR/test.yaml
     if selinux_enabled; then
        run ls -Zd $TESTDIR
