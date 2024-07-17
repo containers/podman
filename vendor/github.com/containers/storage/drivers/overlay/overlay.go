@@ -848,14 +848,14 @@ func (d *Driver) Status() [][2]string {
 // Metadata returns meta data about the overlay driver such as
 // LowerDir, UpperDir, WorkDir and MergeDir used to store data.
 func (d *Driver) Metadata(id string) (map[string]string, error) {
-	dir := d.dir(id)
+	dir, _, inAdditionalStore := d.dir2(id, false)
 	if err := fileutils.Exists(dir); err != nil {
 		return nil, err
 	}
 
 	metadata := map[string]string{
 		"WorkDir":   path.Join(dir, "work"),
-		"MergedDir": path.Join(dir, "merged"),
+		"MergedDir": d.getMergedDir(id, dir, inAdditionalStore),
 		"UpperDir":  path.Join(dir, "diff"),
 	}
 
@@ -1703,10 +1703,10 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		}
 	}
 
-	mergedDir := path.Join(dir, "merged")
+	mergedDir := d.getMergedDir(id, dir, inAdditionalStore)
 	// Attempt to create the merged dir only if it doesn't exist.
 	if err := fileutils.Exists(mergedDir); err != nil && os.IsNotExist(err) {
-		if err := idtools.MkdirAs(mergedDir, 0o700, rootUID, rootGID); err != nil && !os.IsExist(err) {
+		if err := idtools.MkdirAllAs(mergedDir, 0o700, rootUID, rootGID); err != nil && !os.IsExist(err) {
 			return "", err
 		}
 	}
@@ -1856,7 +1856,9 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		mountFunc = func(source string, target string, mType string, flags uintptr, label string) error {
 			return mountOverlayFrom(d.home, source, target, mType, flags, label)
 		}
-		mountTarget = path.Join(id, "merged")
+		if !inAdditionalStore {
+			mountTarget = path.Join(id, "merged")
+		}
 	}
 
 	// overlay has a check in place to prevent mounting the same file system twice
@@ -1875,13 +1877,25 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	return mergedDir, nil
 }
 
+// getMergedDir returns the directory path that should be used as the mount point for the overlayfs.
+func (d *Driver) getMergedDir(id, dir string, inAdditionalStore bool) string {
+	// If the layer is in an additional store, the lock we might hold only a reading lock.  To prevent
+	// races with other processes, use a private directory under the main store rundir, where we hold
+	// a read/write lock.
+	if inAdditionalStore {
+		return path.Join(d.runhome, id, "merged")
+	}
+	return path.Join(dir, "merged")
+}
+
 // Put unmounts the mount path created for the give id.
 func (d *Driver) Put(id string) error {
 	dir, _, inAdditionalStore := d.dir2(id, false)
 	if err := fileutils.Exists(dir); err != nil {
 		return err
 	}
-	mountpoint := path.Join(dir, "merged")
+	mountpoint := d.getMergedDir(id, dir, inAdditionalStore)
+
 	if count := d.ctr.Decrement(mountpoint); count > 0 {
 		return nil
 	}
@@ -1938,7 +1952,15 @@ func (d *Driver) Put(id string) error {
 		}
 	}
 
-	if !inAdditionalStore {
+	if inAdditionalStore {
+		// check the base name for extra safety
+		if strings.HasPrefix(mountpoint, d.runhome) && filepath.Base(mountpoint) == "merged" {
+			err := os.RemoveAll(filepath.Dir(mountpoint))
+			if err != nil {
+				logrus.Warningf("Failed to remove mountpoint %s overlay: %s: %v", id, mountpoint, err)
+			}
+		}
+	} else {
 		uid, gid := int(0), int(0)
 		fi, err := os.Stat(mountpoint)
 		if err != nil {
@@ -1955,7 +1977,7 @@ func (d *Driver) Put(id string) error {
 		// rename(2) can be used on an empty directory, as it is the mountpoint after umount, and it retains
 		// its atomic semantic.  In this way the "merged" directory is never removed.
 		if err := unix.Rename(tmpMountpoint, mountpoint); err != nil {
-			logrus.Debugf("Failed to replace mountpoint %s overlay: %s - %v", id, mountpoint, err)
+			logrus.Debugf("Failed to replace mountpoint %s overlay: %s: %v", id, mountpoint, err)
 			return fmt.Errorf("replacing mount point %q: %w", mountpoint, err)
 		}
 	}
