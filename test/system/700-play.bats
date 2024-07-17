@@ -124,6 +124,10 @@ EOF
 status: {}
 EOF
     fi
+
+    # For debugging
+    echo "# test yaml:"
+    sed -e "s/^/    /g" <$outfile
 }
 
 RELABEL="system_u:object_r:container_file_t:s0"
@@ -243,9 +247,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
 }
 
 @test "podman kube --network" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml
 
     run_podman kube play --network host $PODMAN_TMPDIR/test.yaml
     is "$output" "Pod:.*" "podman kube play should work with --network host"
@@ -423,9 +425,7 @@ _EOF
 # storage container name using buildah to make sure --replace, still
 # functions proplery by removing the storage container.
 @test "podman kube play --replace external storage" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml
     run_podman play kube $PODMAN_TMPDIR/test.yaml
     # Force removal of container
     run_podman rm --force -t0 test_pod-test
@@ -436,15 +436,15 @@ _EOF
 
     run_podman stop -a -t 0
     run_podman pod rm -t 0 -f test_pod
+    run_podman rm test_pod-test
     run_podman rmi -f userimage:latest
 }
 
 @test "podman kube --annotation" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
+    _write_test_yaml command=/home/podman/pause
+
     RANDOMSTRING=$(random_string 15)
     ANNOTATION_WITH_COMMA="comma,$(random_string 5)"
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
     run_podman kube play --annotation "name=$RANDOMSTRING"  \
         --annotation "anno=$ANNOTATION_WITH_COMMA" $PODMAN_TMPDIR/test.yaml
     run_podman inspect --format "{{ .Config.Annotations }}" test_pod-test
@@ -467,9 +467,7 @@ _EOF
 }
 
 @test "podman kube play - default log driver" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml command=top
     # Get the default log driver
     run_podman info --format "{{.Host.LogDriver}}"
     default_driver=$output
@@ -487,10 +485,9 @@ _EOF
 }
 
 @test "podman kube play - URL" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
-    echo READY                                      > $PODMAN_TMPDIR/ready
+    _write_test_yaml command=top
+
+    echo READY > $PODMAN_TMPDIR/ready
 
     HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
@@ -767,9 +764,7 @@ spec:
 }
 
 @test "podman kube with --authfile=/tmp/bogus" {
-    TESTDIR=$PODMAN_TMPDIR/testdir
-    mkdir -p $TESTDIR
-    echo "$testYaml" | sed "s|TESTDIR|${TESTDIR}|g" > $PODMAN_TMPDIR/test.yaml
+    _write_test_yaml
     bogus=$PODMAN_TMPDIR/bogus-authfile
 
     run_podman 125 kube play --authfile=$bogus - < $PODMAN_TMPDIR/test.yaml
