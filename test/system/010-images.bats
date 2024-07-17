@@ -123,6 +123,9 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman images ${opts} --filter=before=$iname
     is "$output" "sha256:$iid--$IMAGE" "filter: before"
 
+    run_podman 125 image list -f json
+    is "$output" 'Error: invalid image filter "json": must be in the format "filter=value or filter!=value"' "Invalid filter"
+
     # Clean up
     run_podman rmi $iname
     run_podman rm  $cname
