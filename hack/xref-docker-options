@@ -14,7 +14,6 @@ declare -a hidden=(
     "docker -D"                          # Hidden
     "docker -H"                          # Hidden
 
-    "docker .* --gpus"                   # Not likely to be implemented
     "docker .* --isolation"              # Only for Windows containers
     "docker .* --kernel-memory"          # CGroupsV1 only, present but hidden
     "docker .* --link"                   # Deprecated in docker

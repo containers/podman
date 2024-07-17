@@ -247,8 +247,5 @@ func run(cmd *cobra.Command, args []string) error {
 			}
 		}
 	}
-	if cmd.Flag("gpus").Changed {
-		logrus.Info("--gpus is a Docker specific option and is a NOOP")
-	}
 	return nil
 }
