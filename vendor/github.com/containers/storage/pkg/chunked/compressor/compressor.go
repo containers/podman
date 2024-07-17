@@ -7,12 +7,8 @@ package compressor
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"io"
-	"strings"
-	"time"
 
-	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/internal"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/klauspost/compress/zstd"
@@ -234,14 +230,6 @@ func newTarSplitData(level int) (*tarSplitData, error) {
 	}, nil
 }
 
-// timeIfNotZero returns a pointer to the time.Time if it is not zero, otherwise it returns nil.
-func timeIfNotZero(t *time.Time) *time.Time {
-	if t == nil || t.IsZero() {
-		return nil
-	}
-	return t
-}
-
 func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, reader io.Reader, level int) error {
 	// total written so far.  Used to retrieve partial offsets in the file
 	dest := ioutils.NewWriteCounter(destFile)
@@ -380,38 +368,14 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 			}
 		}
 
-		typ, err := internal.GetType(hdr.Typeflag)
+		mainEntry, err := internal.NewFileMetadata(hdr)
 		if err != nil {
 			return err
 		}
-		xattrs := make(map[string]string)
-		for k, v := range hdr.PAXRecords {
-			xattrKey, ok := strings.CutPrefix(k, archive.PaxSchilyXattr)
-			if !ok {
-				continue
-			}
-			xattrs[xattrKey] = base64.StdEncoding.EncodeToString([]byte(v))
-		}
-		entries := []internal.FileMetadata{
-			{
-				Type:       typ,
-				Name:       hdr.Name,
-				Linkname:   hdr.Linkname,
-				Mode:       hdr.Mode,
-				Size:       hdr.Size,
-				UID:        hdr.Uid,
-				GID:        hdr.Gid,
-				ModTime:    timeIfNotZero(&hdr.ModTime),
-				AccessTime: timeIfNotZero(&hdr.AccessTime),
-				ChangeTime: timeIfNotZero(&hdr.ChangeTime),
-				Devmajor:   hdr.Devmajor,
-				Devminor:   hdr.Devminor,
-				Xattrs:     xattrs,
-				Digest:     checksum,
-				Offset:     startOffset,
-				EndOffset:  lastOffset,
-			},
-		}
+		mainEntry.Digest = checksum
+		mainEntry.Offset = startOffset
+		mainEntry.EndOffset = lastOffset
+		entries := []internal.FileMetadata{mainEntry}
 		for i := 1; i < len(chunks); i++ {
 			entries = append(entries, internal.FileMetadata{
 				Type:        internal.TypeChunk,

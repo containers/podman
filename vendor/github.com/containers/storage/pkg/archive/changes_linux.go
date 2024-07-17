@@ -316,7 +316,11 @@ func parseDirent(buf []byte, names []nameIno) (consumed int, newnames []nameIno)
 // with respect to the parent layers
 func OverlayChanges(layers []string, rw string) ([]Change, error) {
 	dc := func(root, path string, fi os.FileInfo) (string, error) {
-		return overlayDeletedFile(layers, root, path, fi)
+		r, err := overlayDeletedFile(layers, root, path, fi)
+		if err != nil {
+			return "", fmt.Errorf("overlay deleted file query: %w", err)
+		}
+		return r, nil
 	}
 	return changes(layers, rw, dc, nil, overlayLowerContainsWhiteout)
 }
@@ -351,7 +355,7 @@ func overlayDeletedFile(layers []string, root, path string, fi os.FileInfo) (str
 	// If the directory isn't marked as opaque, then it's just a normal directory.
 	opaque, err := system.Lgetxattr(filepath.Join(root, path), getOverlayOpaqueXattrName())
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed querying overlay opaque xattr: %w", err)
 	}
 	if len(opaque) != 1 || opaque[0] != 'y' {
 		return "", err

@@ -20,13 +20,13 @@ require (
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.54.1-0.20240712125645-98ad80d6d165
+	github.com/containers/storage v1.54.1-0.20240724150347-86a0c425388b
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
 	github.com/crc-org/crc/v2 v2.38.0
 	github.com/crc-org/vfkit v0.5.1
-	github.com/cyphar/filepath-securejoin v0.3.0
+	github.com/cyphar/filepath-securejoin v0.3.1
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v27.0.3+incompatible
@@ -87,7 +87,7 @@ require (
 require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.12.4 // indirect
+	github.com/Microsoft/hcsshim v0.12.5 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 // indirect
@@ -170,7 +170,7 @@ require (
 	github.com/moby/buildkit v0.12.5 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
-	github.com/moby/sys/mountinfo v0.7.1 // indirect
+	github.com/moby/sys/mountinfo v0.7.2 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
