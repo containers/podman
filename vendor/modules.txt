@@ -18,7 +18,7 @@ github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.12.4
+# github.com/Microsoft/hcsshim v0.12.5
 ## explicit; go 1.21
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.54.1-0.20240712125645-98ad80d6d165
+# github.com/containers/storage v1.54.1-0.20240712125645-98ad80d6d165 => github.com/mtrmac/storage v0.0.0-20240717182924-85d7be504cb6
 ## explicit; go 1.21
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1369,3 +1369,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20240131200429-02120488a4c0
+# github.com/containers/storage => github.com/mtrmac/storage v0.0.0-20240717182924-85d7be504cb6

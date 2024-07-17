@@ -5,16 +5,19 @@ package internal
 // larger software like the graph drivers.
 
 import (
-	"archive/tar"
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
+	"github.com/containers/storage/pkg/archive"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
+	"github.com/vbatts/tar-split/archive/tar"
 )
 
 // TOC is short for Table of Contents and is used by the zstd:chunked
@@ -40,6 +43,8 @@ type TOC struct {
 // is used instead of that in the tar stream.  The contents of the tar stream
 // are not used in this scenario.
 type FileMetadata struct {
+	// If you add any fields, update ensureFileMetadataMatches as well!
+
 	// The metadata below largely duplicates that in the tar headers.
 	Type       string            `json:"type"`
 	Name       string            `json:"name"`
@@ -266,4 +271,44 @@ func footerDataToBlob(footer ZstdChunkedFooterData) []byte {
 	copy(manifestDataLE[8*7:], ZstdChunkedFrameMagic)
 
 	return manifestDataLE
+}
+
+// timeIfNotZero returns a pointer to the time.Time if it is not zero, otherwise it returns nil.
+func timeIfNotZero(t *time.Time) *time.Time {
+	if t == nil || t.IsZero() {
+		return nil
+	}
+	return t
+}
+
+// NewFileMetadata creates a basic FileMetadata entry for hdr.
+// The caller must set DigestOffset/EndOffset, and the Chunk* values, separately.
+func NewFileMetadata(hdr *tar.Header) (FileMetadata, error) {
+	typ, err := GetType(hdr.Typeflag)
+	if err != nil {
+		return FileMetadata{}, err
+	}
+	xattrs := make(map[string]string)
+	for k, v := range hdr.PAXRecords {
+		xattrKey, ok := strings.CutPrefix(k, archive.PaxSchilyXattr)
+		if !ok {
+			continue
+		}
+		xattrs[xattrKey] = base64.StdEncoding.EncodeToString([]byte(v))
+	}
+	return FileMetadata{
+		Type:       typ,
+		Name:       hdr.Name,
+		Linkname:   hdr.Linkname,
+		Mode:       hdr.Mode,
+		Size:       hdr.Size,
+		UID:        hdr.Uid,
+		GID:        hdr.Gid,
+		ModTime:    timeIfNotZero(&hdr.ModTime),
+		AccessTime: timeIfNotZero(&hdr.AccessTime),
+		ChangeTime: timeIfNotZero(&hdr.ChangeTime),
+		Devmajor:   hdr.Devmajor,
+		Devminor:   hdr.Devminor,
+		Xattrs:     xattrs,
+	}, nil
 }
