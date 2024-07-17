@@ -760,7 +760,7 @@ nameserver 8.8.8.8" "nameserver order is correct"
         cid="$output"
 
         # make sure binding the same port fails
-        run timeout 5 nc -l -p $port 127.0.0.1
+        run timeout 5 nc -l 127.0.0.1 $port
         assert "$status" -eq 2 "ncat unexpected exit code"
         assert "$output" =~ "127.0.0.1:$port: Address already in use" "ncat error message"
 
