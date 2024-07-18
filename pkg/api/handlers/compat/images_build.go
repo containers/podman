@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/buildah"
@@ -32,6 +33,13 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
+
+func genSpaceErr(err error) error {
+	if errors.Is(err, syscall.ENOSPC) {
+		return fmt.Errorf("context directory may be too large: %w", err)
+	}
+	return err
+}
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
@@ -73,7 +81,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	contextDirectory, err := extractTarFile(anchorDir, r)
 	if err != nil {
-		utils.InternalServerError(w, err)
+		utils.InternalServerError(w, genSpaceErr(err))
 		return
 	}
 
@@ -202,7 +210,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 		tempDir, subDir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", query.Remote)
 		if err != nil {
-			utils.InternalServerError(w, err)
+			utils.InternalServerError(w, genSpaceErr(err))
 			return
 		}
 		if tempDir != "" {
