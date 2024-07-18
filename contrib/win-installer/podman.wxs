@@ -25,7 +25,7 @@
 			</DirectorySearch>
 		</Property>
 		<Property Id="MAIN_EXECUTABLE_FILE_PATH">
-			<DirectorySearch Id="ProgramFiles6432FolderSearch" Path="[ProgramFiles6432Folder]">
+			<DirectorySearch Id="ProgramFiles64FolderSearch" Path="[ProgramFiles64Folder]">
 				<DirectorySearch Id="RedHatFolderSearch" Path="RedHat">
 					<DirectorySearch Id="PodmanFolderSearch" Path="Podman">
 						<FileSearch Name="podman.exe" />
@@ -52,12 +52,11 @@
 		<SetProperty Id="HYPERV_INSTALL" Before="AppSearch" Value="1" Sequence="first" Condition="(HAS_HYPERVFEATURE = 0) AND (MACHINE_PROVIDER = &quot;hyperv&quot;) AND (NOT (WITH_HYPERV = 0))" />
 		<!--
       Property CREATE_MACHINE_PROVIDER_CONFIG_FILE is set at runtime and used as the condition to run the `MachineProviderConfigFile` Component:
-      The machine provider config file is created only if all these conditions are met:
+      The machine provider config file is created (or is not deleted if it already exist) if these conditions are met:
         - The user hasn't set property `SKIP_CONFIG_FILE_CREATION` to 1
-        - The machine provider config file ($PROGRAMDATA/containers/containers.conf.d/99-podman-machine-provider.conf) doesn't exist
-        - The main executable file ($PROGRAMDATA/RedHat/Podman/podman.exe) doesn't exist
+        - The main executable file ($PROGRAMDATA/RedHat/Podman/podman.exe) doesn't exist or, if it exists, the machine provider config file exists
      -->
-		<SetProperty Id="CREATE_MACHINE_PROVIDER_CONFIG_FILE" After="AppSearch" Value="1" Sequence="first" Condition="(NOT (SKIP_CONFIG_FILE_CREATION = 1)) AND (NOT MACHINE_PROVIDER_CONFIG_FILE_PATH) AND (NOT MAIN_EXECUTABLE_FILE_PATH)" />
+		<SetProperty Id="CREATE_MACHINE_PROVIDER_CONFIG_FILE" After="AppSearch" Value="1" Sequence="first" Condition="(NOT (SKIP_CONFIG_FILE_CREATION = 1)) AND ((NOT MAIN_EXECUTABLE_FILE_PATH) OR (MACHINE_PROVIDER_CONFIG_FILE_PATH))" />
 		<!--
       Property HIDE_PROVIDER_CHOICE is set at runtime and used as the condition to hide the Machine Provider
       choice from the MSI GUI (the Radio Button Group and other related controls):
@@ -153,10 +152,9 @@
 		<StandardDirectory Id="CommonAppDataFolder">
 			<Directory Id="CONFIGDIR" Name="containers">
 				<Directory Id="ContainersConfigSubDir" Name="containers.conf.d">
-					<Component Id="MachineProviderConfigFile" Guid="C32C0040-D9AF-4155-AC7E-465B63B6BE3B" Condition="CREATE_MACHINE_PROVIDER_CONFIG_FILE">
+					<Component Id="MachineProviderConfigFile" Guid="C32C0040-D9AF-4155-AC7E-465B63B6BE3B" Condition="CREATE_MACHINE_PROVIDER_CONFIG_FILE" NeverOverwrite="true">
 						<CreateFolder />
 						<IniFile Id="MachineProviderConfigFile" Action="createLine" Directory="ContainersConfigSubDir" Section="machine" Name="99-podman-machine-provider.conf" Key="provider" Value="&quot;[MACHINE_PROVIDER]&quot;" />
-
 					</Component>
 				</Directory>
 			</Directory>

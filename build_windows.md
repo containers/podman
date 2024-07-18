@@ -362,11 +362,19 @@ set the bundle variables `MachineProvider` (`wsl` or `hyperv`), `WSLCheckbox`
 otherwise):
 
 ```pwsh
-contrib\win-installer\podman-5.1.0-dev-setup.exe /install /log podman-setup.log /quiet MachineProvider=wsl WSLCheckbox=0 HyperVCheckbox=0
+contrib\win-installer\podman-5.1.0-dev-setup.exe /install `
+                      /log podman-setup.log /quiet `
+                      MachineProvider=wsl WSLCheckbox=0 HyperVCheckbox=0
 ```
 
-:information_source: The `winmake.ps1` target `installertest` automatically
-tests installing and uninstalling Podman.
+#### Run the Windows installer automated tests
+
+The following command executes a number of tests of the windows installer. Running
+it requires an administrator terminal.
+
+```pwsh
+.\winmake.ps1 installertest
+```
 
 ### Build and test the standalone `podman.msi` file
 

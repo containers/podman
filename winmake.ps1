@@ -114,12 +114,9 @@ function Test-Installer{
     }
 
     $command = "$PSScriptRoot\contrib\win-installer\test-installer.ps1"
-    $command += " -operation all"
+    $command += " -scenario all"
     $command += " -provider $provider"
     $command += " -setupExePath $setupExePath"
-    $command += " -installWSL:`$false"
-    $command += " -installHyperV:`$false"
-    $command += " -skipWinVersionCheck:`$true"
     Run-Command "${command}"
 }
 
@@ -205,7 +202,7 @@ function Build-Ginkgo{
 function Git-Commit{
     # git is not installed by default on windows,
     # so if we can't get the commit, we don't include this info
-    Get-Command git  -ErrorAction SilentlyContinue  | out-null
+    Get-Command git  -ErrorAction SilentlyContinue | out-null
     if(!$?){
         return
     }
@@ -285,7 +282,11 @@ switch ($target) {
         Win-SSHProxy -Ref $ref
     }
     'installer' {
-        Installer
+        if ($args.Count -gt 1) {
+            Installer -version $args[1]
+        } else {
+            Installer
+        }
     }
     'installertest' {
         if ($args.Count -gt 1) {
