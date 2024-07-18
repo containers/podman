@@ -4,6 +4,7 @@ package autoupdate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"sort"
@@ -367,12 +368,15 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 
 	u.unitToTasks = make(map[string][]*task)
 
-	errors := []error{}
+	errs := []error{}
 	for _, c := range allContainers {
 		ctr := c
 		state, err := ctr.State()
 		if err != nil {
-			errors = append(errors, err)
+			// container may have been removed in the meantime ignore it and not print errors
+			if !errors.Is(err, define.ErrNoSuchCtr) {
+				errs = append(errs, err)
+			}
 			continue
 		}
 		// Only update running containers.
@@ -389,7 +393,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		}
 		policy, err := LookupPolicy(value)
 		if err != nil {
-			errors = append(errors, err)
+			errs = append(errs, err)
 			continue
 		}
 		if policy == PolicyDefault {
@@ -400,11 +404,11 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		// stored as a label at container creation.
 		unit, exists, err := u.systemdUnitForContainer(ctr, labels)
 		if err != nil {
-			errors = append(errors, err)
+			errs = append(errs, err)
 			continue
 		}
 		if !exists {
-			errors = append(errors, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable))
+			errs = append(errs, fmt.Errorf("auto-updating container %q: no %s label found", ctr.ID(), systemdDefine.EnvVariable))
 			continue
 		}
 
@@ -412,13 +416,13 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		image, exists := imageMap[id]
 		if !exists {
 			err := fmt.Errorf("internal error: no image found for ID %s", id)
-			errors = append(errors, err)
+			errs = append(errs, err)
 			continue
 		}
 
 		rawImageName := ctr.RawImageName()
 		if rawImageName == "" {
-			errors = append(errors, fmt.Errorf("locally auto-updating container %q: raw-image name is empty", ctr.ID()))
+			errs = append(errs, fmt.Errorf("locally auto-updating container %q: raw-image name is empty", ctr.ID()))
 			continue
 		}
 
@@ -443,7 +447,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		u.unitToTasks[unit] = append(u.unitToTasks[unit], &t)
 	}
 
-	return errors
+	return errs
 }
 
 // systemdUnitForContainer returns the name of the container's systemd unit.
