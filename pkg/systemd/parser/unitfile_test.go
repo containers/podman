@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -226,6 +227,43 @@ Also=systemd-networkd-wait-online.service
 
 var samples = []string{memcachedService, systemdloginService, systemdnetworkdService}
 
+const sampleDropinService string = "sample-unit.service"
+
+var sampleDropinServicePaths = []string{
+	"sample-unit.service.d",
+	"sample-.service.d",
+	"service.d",
+}
+
+const sampleDropinTemplate string = "sample-template-unit@.service"
+
+var sampleDropinTemplatePaths = []string{
+	"sample-template-unit@.service.d",
+	"sample-template-@.service.d",
+	"sample-template-.service.d",
+	"sample-@.service.d",
+	"sample-.service.d",
+	"service.d",
+}
+
+const sampleDropinTemplateInstance string = "sample-template-unit@base-instance.service"
+
+var sampleDropinTemplateInstancePaths = []string{
+	"sample-template-unit@base-instance.service.d",
+	"sample-template-unit@.service.d",
+	"sample-template-@.service.d",
+	"sample-template-.service.d",
+	"sample-@.service.d",
+	"sample-.service.d",
+	"service.d",
+}
+
+var sampleDropinPaths = map[string][]string{
+	sampleDropinService:          sampleDropinServicePaths,
+	sampleDropinTemplate:         sampleDropinTemplatePaths,
+	sampleDropinTemplateInstance: sampleDropinTemplateInstancePaths,
+}
+
 func TestRanges_Roundtrip(t *testing.T) {
 	for i := range samples {
 		sample := samples[i]
@@ -241,5 +279,16 @@ func TestRanges_Roundtrip(t *testing.T) {
 		}
 
 		assert.Equal(t, sample, asStr)
+	}
+}
+
+func TestUnitDropinPaths_Search(t *testing.T) {
+	for filename, expectedPaths := range sampleDropinPaths {
+		f := UnitFile{
+			Filename: filename,
+		}
+		generatedPaths := f.GetUnitDropinPaths()
+
+		assert.True(t, reflect.DeepEqual(expectedPaths, generatedPaths))
 	}
 }

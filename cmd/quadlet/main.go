@@ -158,9 +158,12 @@ func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(
 	}
 
 	err = filepath.WalkDir(resolvedPath, func(_path string, info os.DirEntry, err error) error {
-		if info == nil || info.IsDir() {
-			if filterPtr == nil || filterPtr(_path, isUserFlag) {
-				dirs = append(dirs, _path)
+		// Ignore drop-in directory subpaths
+		if !strings.HasSuffix(_path, ".d") {
+			if info == nil || info.IsDir() {
+				if filterPtr == nil || filterPtr(_path, isUserFlag) {
+					dirs = append(dirs, _path)
+				}
 			}
 		}
 		return err
@@ -256,16 +259,11 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 	}
 
 	dropinDirs := []string{}
+	unitDropinPaths := unit.GetUnitDropinPaths()
 
 	for _, sourcePath := range sourcePaths {
-		dropinDirs = append(dropinDirs, path.Join(sourcePath, unit.Filename+".d"))
-	}
-
-	// For instantiated templates, also look in the non-instanced template dropin dirs
-	templateBase, templateInstance := unit.GetTemplateParts()
-	if templateBase != "" && templateInstance != "" {
-		for _, sourcePath := range sourcePaths {
-			dropinDirs = append(dropinDirs, path.Join(sourcePath, templateBase+".d"))
+		for _, dropinPath := range unitDropinPaths {
+			dropinDirs = append(dropinDirs, path.Join(sourcePath, dropinPath))
 		}
 	}
 
@@ -359,15 +357,14 @@ func enableServiceFile(outputPath string, service *parser.UnitFile) {
 	}
 
 	serviceFilename := service.Filename
-	templateBase, templateInstance := service.GetTemplateParts()
+	templateBase, templateInstance, isTemplate := service.GetTemplateParts()
 
 	// For non-instantiated template service we only support installs if a
 	// DefaultInstance is given. Otherwise we ignore the Install group, but
 	// it is still useful when instantiating the unit via a symlink.
-	if templateBase != "" && templateInstance == "" {
+	if isTemplate && templateInstance == "" {
 		if defaultInstance, ok := service.Lookup(quadlet.InstallGroup, "DefaultInstance"); ok {
-			parts := strings.SplitN(templateBase, "@", 2)
-			serviceFilename = parts[0] + "@" + defaultInstance + parts[1]
+			serviceFilename = templateBase + "@" + defaultInstance + filepath.Ext(serviceFilename)
 		} else {
 			serviceFilename = ""
 		}
