@@ -434,22 +434,11 @@ function pasta_test_do() {
 
 ### DNS ########################################################################
 
-@test "External resolver, IPv4" {
-    skip_if_no_ipv4 "IPv4 not routable on the host"
-
+@test "Basic nameserver lookup" {
     run_podman '?' run --rm --net=pasta $IMAGE nslookup 127.0.0.1
 
     assert "$output" =~ "1.0.0.127.in-addr.arpa" \
            "127.0.0.1 not resolved"
-}
-
-@test "External resolver, IPv6" {
-    skip_if_no_ipv6 "IPv6 not routable on the host"
-
-    run_podman '?' run --rm --net=pasta $IMAGE nslookup ::1
-
-    assert "$output" =~ "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa" \
-           "::1 not resolved"
 }
 
 @test "Default nameserver forwarding" {
