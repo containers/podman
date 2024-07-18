@@ -143,3 +143,80 @@ func convertUint64(value string) reflect.Value {
 	}
 	return invalidValue
 }
+
+func convertPointer(k reflect.Kind, value string) reflect.Value {
+	switch k {
+	case boolType:
+		if v := convertBool(value); v.IsValid() {
+			converted := v.Bool()
+			return reflect.ValueOf(&converted)
+		}
+	case float32Type:
+		if v := convertFloat32(value); v.IsValid() {
+			converted := float32(v.Float())
+			return reflect.ValueOf(&converted)
+		}
+	case float64Type:
+		if v := convertFloat64(value); v.IsValid() {
+			converted := float64(v.Float())
+			return reflect.ValueOf(&converted)
+		}
+	case intType:
+		if v := convertInt(value); v.IsValid() {
+			converted := int(v.Int())
+			return reflect.ValueOf(&converted)
+		}
+	case int8Type:
+		if v := convertInt8(value); v.IsValid() {
+			converted := int8(v.Int())
+			return reflect.ValueOf(&converted)
+		}
+	case int16Type:
+		if v := convertInt16(value); v.IsValid() {
+			converted := int16(v.Int())
+			return reflect.ValueOf(&converted)
+		}
+	case int32Type:
+		if v := convertInt32(value); v.IsValid() {
+			converted := int32(v.Int())
+			return reflect.ValueOf(&converted)
+		}
+	case int64Type:
+		if v := convertInt64(value); v.IsValid() {
+			converted := int64(v.Int())
+			return reflect.ValueOf(&converted)
+		}
+	case stringType:
+		if v := convertString(value); v.IsValid() {
+			converted := v.String()
+			return reflect.ValueOf(&converted)
+		}
+	case uintType:
+		if v := convertUint(value); v.IsValid() {
+			converted := uint(v.Uint())
+			return reflect.ValueOf(&converted)
+		}
+	case uint8Type:
+		if v := convertUint8(value); v.IsValid() {
+			converted := uint8(v.Uint())
+			return reflect.ValueOf(&converted)
+		}
+	case uint16Type:
+		if v := convertUint16(value); v.IsValid() {
+			converted := uint16(v.Uint())
+			return reflect.ValueOf(&converted)
+		}
+	case uint32Type:
+		if v := convertUint32(value); v.IsValid() {
+			converted := uint32(v.Uint())
+			return reflect.ValueOf(&converted)
+		}
+	case uint64Type:
+		if v := convertUint64(value); v.IsValid() {
+			converted := uint64(v.Uint())
+			return reflect.ValueOf(&converted)
+		}
+	}
+
+	return invalidValue
+}
