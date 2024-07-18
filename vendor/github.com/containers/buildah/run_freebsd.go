@@ -259,7 +259,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		SystemContext:    options.SystemContext,
 	}
 
-	runArtifacts, err := b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
+	runArtifacts, err := b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, options.CompatBuiltinVolumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
 	if err != nil {
 		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}

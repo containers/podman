@@ -12,15 +12,15 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.2.1
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.36.1-0.20240715114330-4a82e0a3f382
-	github.com/containers/common v0.59.1-0.20240717135212-fdbae3a180cb
+	github.com/containers/buildah v1.36.1-0.20240716190956-ec5b8feb76ec
+	github.com/containers/common v0.59.1-0.20240712101718-237a317152ae
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
 	github.com/containers/image/v5 v5.31.1-0.20240711123249-1dbd8fbbe516
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.54.1-0.20240712125645-98ad80d6d165
+	github.com/containers/storage v1.54.1-0.20240715203904-a9357dd79e26
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4

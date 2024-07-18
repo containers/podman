@@ -170,6 +170,12 @@ type RunOptions struct {
 	// CDIConfigDir is the location of CDI configuration files, if the files in
 	// the default configuration locations shouldn't be used.
 	CDIConfigDir string
+	// CompatBuiltinVolumes causes the contents of locations marked as
+	// volumes in the container's configuration to be set up as bind mounts to
+	// directories which are not in the container's rootfs, hiding changes
+	// made to contents of those changes when the container is subsequently
+	// committed.
+	CompatBuiltinVolumes types.OptionalBool
 }
 
 // RunMountArtifacts are the artifacts created when using a run mount.

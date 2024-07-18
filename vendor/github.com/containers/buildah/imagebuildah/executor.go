@@ -161,6 +161,7 @@ type Executor struct {
 	sbomScanOptions                         []define.SBOMScanOptions
 	cdiConfigDir                            string
 	compatSetParent                         types.OptionalBool
+	compatVolumes                           types.OptionalBool
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -318,6 +319,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		sbomScanOptions:                         options.SBOMScanOptions,
 		cdiConfigDir:                            options.CDIConfigDir,
 		compatSetParent:                         options.CompatSetParent,
+		compatVolumes:                           options.CompatVolumes,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr

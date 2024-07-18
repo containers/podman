@@ -88,8 +88,6 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		return tree, nil
 	}
 
-	filterInvalidValue := `invalid image filter %q: must be in the format "filter=value or filter!=value"`
-
 	var wantedReferenceMatches, unwantedReferenceMatches []string
 	filters := map[string][]filterFunc{}
 	duplicate := map[string]string{}
@@ -103,7 +101,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		} else {
 			split = strings.SplitN(f, "=", 2)
 			if len(split) != 2 {
-				return nil, fmt.Errorf(filterInvalidValue, f)
+				return nil, fmt.Errorf("invalid image filter %q: must be in the format %q", f, "filter=value or filter!=value")
 			}
 		}
 
@@ -197,7 +195,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 			filter = filterBefore(until)
 
 		default:
-			return nil, fmt.Errorf(filterInvalidValue, key)
+			return nil, fmt.Errorf("unsupported image filter %q", key)
 		}
 		if negate {
 			filter = negateFilter(filter)

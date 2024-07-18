@@ -139,7 +139,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.36.1-0.20240715114330-4a82e0a3f382
+# github.com/containers/buildah v1.36.1-0.20240716190956-ec5b8feb76ec
 ## explicit; go 1.21.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -169,7 +169,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.59.1-0.20240717135212-fdbae3a180cb
+# github.com/containers/common v0.59.1-0.20240712101718-237a317152ae
 ## explicit; go 1.21.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.54.1-0.20240712125645-98ad80d6d165
+# github.com/containers/storage v1.54.1-0.20240715203904-a9357dd79e26
 ## explicit; go 1.21
 github.com/containers/storage
 github.com/containers/storage/drivers
