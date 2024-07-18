@@ -66,18 +66,27 @@ func runDecompression(d decompressor, decompressedFilePath string) (retErr error
 	}
 	defer d.close()
 
-	initMsg := progressBarPrefix + ": " + filepath.Base(decompressedFilePath)
-	finalMsg := initMsg + ": done"
+	filesize := d.compressedFileSize()
+	// bar.ProxyReader() returns nil when the bar is finished.
+	// When the size is set to 0 the bar will finfish immediately, but this happens
+	// in a different goroutine so it is race and only happens sometimes.
+	// In general if the input is an empty file then we do not have to display a
+	// progress bar at all as there is nothing to copy/extract really
+	// https://github.com/containers/podman/issues/23281
+	if filesize > 0 {
+		initMsg := progressBarPrefix + ": " + filepath.Base(decompressedFilePath)
+		finalMsg := initMsg + ": done"
 
-	p, bar := utils.ProgressBar(initMsg, d.compressedFileSize(), finalMsg)
-	// Wait for bars to complete and then shut down the bars container
-	defer p.Wait()
+		p, bar := utils.ProgressBar(initMsg, filesize, finalMsg)
+		// Wait for bars to complete and then shut down the bars container
+		defer p.Wait()
 
-	compressedFileReaderProxy := bar.ProxyReader(compressedFileReader)
-	// Interrupts the bar goroutine. It's important that
-	// bar.Abort(false) is called before p.Wait(), otherwise
-	// can hang.
-	defer bar.Abort(false)
+		compressedFileReader = bar.ProxyReader(compressedFileReader)
+		// Interrupts the bar goroutine. It's important that
+		// bar.Abort(false) is called before p.Wait(), otherwise
+		// can hang.
+		defer bar.Abort(false)
+	}
 
 	var decompressedFileWriter *os.File
 
@@ -94,7 +103,7 @@ func runDecompression(d decompressor, decompressedFilePath string) (retErr error
 		}
 	}()
 
-	if err = d.decompress(decompressedFileWriter, compressedFileReaderProxy); err != nil {
+	if err = d.decompress(decompressedFileWriter, compressedFileReader); err != nil {
 		logrus.Errorf("Error extracting compressed file: %q", err)
 		return err
 	}
