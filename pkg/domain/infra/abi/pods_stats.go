@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/docker/go-units"
@@ -39,6 +40,10 @@ func (ic *ContainerEngine) podsToStatsReport(pods []*libpod.Pod) ([]*entities.Po
 	for i := range pods { // Access by index to prevent potential loop-variable leaks.
 		podStats, err := pods[i].GetPodStats(nil)
 		if err != nil {
+			// pod was removed, skip it
+			if errors.Is(err, define.ErrNoSuchPod) {
+				continue
+			}
 			return nil, err
 		}
 		podID := pods[i].ID()[:12]
