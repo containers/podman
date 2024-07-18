@@ -1157,14 +1157,22 @@ function random_string() {
 #  safename  #  Returns a pseudorandom string suitable for container/image/etc names
 ##############
 #
-# Name will include the bats test number, eg "t123_xyz123". When/if we
-# ever parallelize system tests, this will make it possible to check
-# for leaks and identify the test that leaked.
+# Name will include the bats test number and a pseudorandom element,
+# eg "t123-xyz123". safename() will return the same string across
+# multiple invocations within a given test; this makes it easier for
+# a maintainer to see common name patterns.
 #
 # String is lower-case so it can be used as an image name
 #
 function safename() {
-    echo "t${BATS_SUITE_TEST_NUMBER}_$(random_string 8 | tr A-Z a-z)"
+    # FIXME: I don't think these can ever fail. Remove checks once I'm sure.
+    test -n "$BATS_SUITE_TMPDIR"
+    test -n "$BATS_SUITE_TEST_NUMBER"
+    safenamepath=$BATS_SUITE_TMPDIR/.safename.$BATS_SUITE_TEST_NUMBER
+    if [[ ! -e $safenamepath ]]; then
+        echo -n "t${BATS_SUITE_TEST_NUMBER}-$(random_string 8 | tr A-Z a-z)" >$safenamepath
+    fi
+    cat $safenamepath
 }
 
 #########################
