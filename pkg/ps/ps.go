@@ -76,7 +76,8 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	for _, con := range cons {
 		listCon, err := ListContainerBatch(runtime, con, options)
 		switch {
-		case errors.Is(err, define.ErrNoSuchCtr):
+		// ignore both no ctr and no such pod errors as it means the ctr is gone now
+		case errors.Is(err, define.ErrNoSuchCtr), errors.Is(err, define.ErrNoSuchPod):
 			continue
 		case err != nil:
 			return nil, err
@@ -148,6 +149,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		networks                                []string
 		healthStatus                            string
 		restartCount                            uint
+		podName                                 string
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -201,10 +203,6 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 			return err
 		}
 
-		if !opts.Size && !opts.Namespace {
-			return nil
-		}
-
 		if opts.Namespace {
 			ctrPID := strconv.Itoa(pid)
 			cgroup, _ = getNamespaceInfo(filepath.Join("/proc", ctrPID, "ns", "cgroup"))
@@ -231,6 +229,14 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 			size.RootFsSize = rootFsSize
 			size.RwSize = rwSize
 		}
+
+		if opts.Pod && len(conConfig.Pod) > 0 {
+			podName, err = rt.GetPodName(conConfig.Pod)
+			if err != nil {
+				return fmt.Errorf("could not find container %s pod (id %s) in state: %w", conConfig.ID, conConfig.Pod, err)
+			}
+		}
+
 		return nil
 	})
 	if batchErr != nil {
@@ -256,22 +262,13 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		Networks:     networks,
 		Pid:          pid,
 		Pod:          conConfig.Pod,
+		PodName:      podName,
 		Ports:        portMappings,
 		Restarts:     restartCount,
 		Size:         size,
 		StartedAt:    startedTime.Unix(),
 		State:        conState.String(),
 		Status:       healthStatus,
-	}
-	if opts.Pod && len(conConfig.Pod) > 0 {
-		podName, err := rt.GetPodName(conConfig.Pod)
-		if err != nil {
-			if errors.Is(err, define.ErrNoSuchCtr) {
-				return entities.ListContainer{}, fmt.Errorf("could not find container %s pod (id %s) in state: %w", conConfig.ID, conConfig.Pod, define.ErrNoSuchPod)
-			}
-			return entities.ListContainer{}, err
-		}
-		ps.PodName = podName
 	}
 
 	if opts.Namespace {
