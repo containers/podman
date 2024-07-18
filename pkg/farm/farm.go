@@ -61,7 +61,7 @@ func newFarmWithBuilders(_ context.Context, name string, cons []config.Connectio
 			defer fmt.Printf("Builder %q ready\n", con.Name)
 			builderMutex.Lock()
 			defer builderMutex.Unlock()
-			farm.builders[name] = engine
+			farm.builders[con.Name] = engine
 			return nil
 		})
 	}
