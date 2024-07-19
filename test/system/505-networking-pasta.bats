@@ -411,10 +411,7 @@ function pasta_test_do() {
 ### DNS ########################################################################
 
 @test "Basic nameserver lookup" {
-    run_podman '?' run --rm --net=pasta $IMAGE nslookup 127.0.0.1
-
-    assert "$output" =~ "1.0.0.127.in-addr.arpa" \
-           "127.0.0.1 not resolved"
+    run_podman run --rm --net=pasta $IMAGE nslookup 127.0.0.1
 }
 
 @test "Default nameserver forwarding" {
@@ -429,8 +426,7 @@ function pasta_test_do() {
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
     run_podman run --rm --net=pasta:--dns-forward,198.51.100.1 \
-        $IMAGE nslookup 127.0.0.1 || :
-    assert "$output" =~ "1.0.0.127.in-addr.arpa" "No answer from resolver"
+        $IMAGE nslookup 127.0.0.1
 }
 
 @test "Local forwarder, IPv6" {
