@@ -670,7 +670,7 @@ var _ = Describe("Podman pull", func() {
 				Skip("Cannot start docker registry.")
 			}
 
-			imgPath := "localhost:5012/my-alpine"
+			imgPath := "localhost:5012/my-alpine-pull-and-decrypt"
 
 			session = decryptionTestHelper(imgPath, `initializing source docker://localhost:5012/my-alpine:latest: pinging container registry localhost:5012: Get "https://localhost:5012/v2/": http: server gave HTTP response to HTTPS client`)
 
