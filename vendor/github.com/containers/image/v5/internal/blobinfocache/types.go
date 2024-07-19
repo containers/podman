@@ -26,6 +26,15 @@ type BlobInfoCache2 interface {
 	// Close destroys state created by Open().
 	Close()
 
+	// UncompressedDigestForTOC returns an uncompressed digest corresponding to anyDigest.
+	// Returns "" if the uncompressed digest is unknown.
+	UncompressedDigestForTOC(tocDigest digest.Digest) digest.Digest
+	// RecordTOCUncompressedPair records that the tocDigest corresponds to uncompressed.
+	// WARNING: Only call this for LOCALLY VERIFIED data; don’t record a digest pair just because some remote author claims so (e.g.
+	// because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
+	// (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
+	RecordTOCUncompressedPair(tocDigest digest.Digest, uncompressed digest.Digest)
+
 	// RecordDigestCompressorName records a compressor for the blob with the specified digest,
 	// or Uncompressed or UnknownCompression.
 	// WARNING: Only call this with LOCALLY VERIFIED data; don’t record a compressor for a

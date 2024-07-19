@@ -242,7 +242,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.4
 ## explicit; go 1.21
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.31.1-0.20240711123249-1dbd8fbbe516
+# github.com/containers/image/v5 v5.31.1-0.20240711123249-1dbd8fbbe516 => github.com/mtrmac/image/v5 v5.0.0-20240727151921-2b3d34d1622c
 ## explicit; go 1.21.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.54.1-0.20240724150347-86a0c425388b
+# github.com/containers/storage v1.55.0
 ## explicit; go 1.21
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -467,7 +467,7 @@ github.com/distribution/reference
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
 github.com/docker/distribution/registry/client/auth/challenge
-# github.com/docker/docker v27.1.0+incompatible
+# github.com/docker/docker v27.1.1+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
@@ -1369,3 +1369,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20240131200429-02120488a4c0
+# github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20240727151921-2b3d34d1622c

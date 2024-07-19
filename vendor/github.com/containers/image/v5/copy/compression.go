@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/pkg/compression"
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
+	chunkedToc "github.com/containers/storage/pkg/chunked/toc"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -73,7 +74,7 @@ type bpCompressionStepData struct {
 	operation              bpcOperation                // What we are actually doing
 	uploadedOperation      types.LayerCompression      // Operation to use for updating the blob metadata (matching the end state, not necessarily what we do)
 	uploadedAlgorithm      *compressiontypes.Algorithm // An algorithm parameter for the compressionOperation edits.
-	uploadedAnnotations    map[string]string           // Annotations that should be set on the uploaded blob. WARNING: This is only set after the srcStream.reader is fully consumed.
+	uploadedAnnotations    map[string]string           // Compression-related annotations that should be set on the uploaded blob. WARNING: This is only set after the srcStream.reader is fully consumed.
 	srcCompressorName      string                      // Compressor name to record in the blob info cache for the source blob.
 	uploadedCompressorName string                      // Compressor name to record in the blob info cache for the uploaded blob.
 	closers                []io.Closer                 // Objects to close after the upload is done, if any.
@@ -308,6 +309,15 @@ func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInf
 			// No useful information
 		case bpcOpCompressUncompressed:
 			c.blobInfoCache.RecordDigestUncompressedPair(uploadedInfo.Digest, srcInfo.Digest)
+			if d.uploadedAnnotations != nil {
+				tocDigest, err := chunkedToc.GetTOCDigest(d.uploadedAnnotations)
+				if err != nil {
+					return fmt.Errorf("parsing just-created compression annotations: %w", err)
+				}
+				if tocDigest != nil {
+					c.blobInfoCache.RecordTOCUncompressedPair(*tocDigest, srcInfo.Digest)
+				}
+			}
 		case bpcOpDecompressCompressed:
 			c.blobInfoCache.RecordDigestUncompressedPair(srcInfo.Digest, uploadedInfo.Digest)
 		case bpcOpRecompressCompressed, bpcOpPreserveCompressed:
@@ -323,7 +333,11 @@ func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInf
 			return fmt.Errorf("Internal error: Unexpected d.operation value %#v", d.operation)
 		}
 	}
-	if d.uploadedCompressorName != "" && d.uploadedCompressorName != internalblobinfocache.UnknownCompression {
+	if d.srcCompressorName == "" || d.uploadedCompressorName == "" {
+		return fmt.Errorf("internal error: missing compressor names (src: %q, uploaded: %q)",
+			d.srcCompressorName, d.uploadedCompressorName)
+	}
+	if d.uploadedCompressorName != internalblobinfocache.UnknownCompression {
 		if d.uploadedCompressorName != compressiontypes.ZstdChunkedAlgorithmName {
 			// HACK: Don’t record zstd:chunked algorithms.
 			// There is already a similar hack in internal/imagedestination/impl/helpers.CandidateMatchesTryReusingBlobOptions,
@@ -337,7 +351,7 @@ func (d *bpCompressionStepData) recordValidatedDigestData(c *copier, uploadedInf
 		}
 	}
 	if srcInfo.Digest != "" && srcInfo.Digest != uploadedInfo.Digest &&
-		d.srcCompressorName != "" && d.srcCompressorName != internalblobinfocache.UnknownCompression {
+		d.srcCompressorName != internalblobinfocache.UnknownCompression {
 		if d.srcCompressorName != compressiontypes.ZstdChunkedAlgorithmName {
 			// HACK: Don’t record zstd:chunked algorithms, see above.
 			c.blobInfoCache.RecordDigestCompressorName(srcInfo.Digest, d.srcCompressorName)

@@ -149,6 +149,28 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		ic.compressionFormat = c.options.DestinationCtx.CompressionFormat
 		ic.compressionLevel = c.options.DestinationCtx.CompressionLevel
 	}
+	// HACK: Don’t combine zstd:chunked and encryption.
+	// zstd:chunked can only usefully be consumed using range requests of parts of the layer, which would require the encryption
+	// to support decrypting arbitrary subsets of the stream. That’s plausible but not supported using the encryption API we have.
+	// Also, the chunked metadata is exposed in annotations unencrypted, which reveals the TOC digest = layer identity without
+	// encryption. (That can be determined from the unencrypted config anyway, but, still...)
+	//
+	// Ideally this should query a well-defined property of the compression algorithm (and $somehow determine the right fallback) instead of
+	// hard-coding zstd:chunked / zstd.
+	if ic.c.options.OciEncryptLayers != nil {
+		format := ic.compressionFormat
+		if format == nil {
+			format = defaultCompressionFormat
+		}
+		if format.Name() == compression.ZstdChunked.Name() {
+			if ic.requireCompressionFormatMatch {
+				return copySingleImageResult{}, errors.New("explicitly requested to combine zstd:chunked with encryption, which is not beneficial; use plain zstd instead")
+			}
+			logrus.Warnf("Compression using zstd:chunked is not beneficial for encrypted layers, using plain zstd instead")
+			ic.compressionFormat = &compression.Zstd
+		}
+	}
+
 	// Decide whether we can substitute blobs with semantic equivalents:
 	// - Don’t do that if we can’t modify the manifest at all
 	// - Ensure _this_ copy sees exactly the intended data when either processing a signed image or signing it.

@@ -295,6 +295,14 @@ func ensureDBHasCurrentSchema(db *sql.DB) error {
 				`PRIMARY KEY (transport, scope, digest, location)
 			)`,
 		},
+		{
+			"DigestTOCUncompressedPairs",
+			`CREATE TABLE IF NOT EXISTS DigestTOCUncompressedPairs(` +
+				// index implied by PRIMARY KEY
+				`tocDigest			TEXT PRIMARY KEY NOT NULL,` +
+				`uncompressedDigest	TEXT NOT NULL
+			)`,
+		},
 	}
 
 	_, err := dbTransaction(db, func(tx *sql.Tx) (void, error) {
@@ -380,6 +388,57 @@ func (sqc *cache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompre
 		if _, err := tx.Exec("INSERT OR REPLACE INTO DigestUncompressedPairs(anyDigest, uncompressedDigest) VALUES (?, ?)",
 			anyDigest.String(), uncompressed.String()); err != nil {
 			return void{}, fmt.Errorf("recording uncompressed digest %q for %q: %w", uncompressed, anyDigest, err)
+		}
+		return void{}, nil
+	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
+}
+
+// UncompressedDigestForTOC returns an uncompressed digest corresponding to anyDigest.
+// Returns "" if the uncompressed digest is unknown.
+func (sqc *cache) UncompressedDigestForTOC(tocDigest digest.Digest) digest.Digest {
+	res, err := transaction(sqc, func(tx *sql.Tx) (digest.Digest, error) {
+		uncompressedString, found, err := querySingleValue[string](tx, "SELECT uncompressedDigest FROM DigestTOCUncompressedPairs WHERE tocDigest = ?", tocDigest.String())
+		if err != nil {
+			return "", err
+		}
+		if found {
+			d, err := digest.Parse(uncompressedString)
+			if err != nil {
+				return "", err
+			}
+			return d, nil
+
+		}
+		return "", nil
+	})
+	if err != nil {
+		return "" // FIXME? Log err (but throttle the log volume on repeated accesses)?
+	}
+	return res
+}
+
+// RecordTOCUncompressedPair records that the tocDigest corresponds to uncompressed.
+// WARNING: Only call this for LOCALLY VERIFIED data; don’t record a digest pair just because some remote author claims so (e.g.
+// because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
+// (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
+func (sqc *cache) RecordTOCUncompressedPair(tocDigest digest.Digest, uncompressed digest.Digest) {
+	_, _ = transaction(sqc, func(tx *sql.Tx) (void, error) {
+		previousString, gotPrevious, err := querySingleValue[string](tx, "SELECT uncompressedDigest FROM DigestTOCUncompressedPairs WHERE tocDigest = ?", tocDigest.String())
+		if err != nil {
+			return void{}, fmt.Errorf("looking for uncompressed digest for blob with TOC %q", tocDigest)
+		}
+		if gotPrevious {
+			previous, err := digest.Parse(previousString)
+			if err != nil {
+				return void{}, err
+			}
+			if previous != uncompressed {
+				logrus.Warnf("Uncompressed digest for blob with TOC %q previously recorded as %q, now %q", tocDigest, previous, uncompressed)
+			}
+		}
+		if _, err := tx.Exec("INSERT OR REPLACE INTO DigestTOCUncompressedPairs(tocDigest, uncompressedDigest) VALUES (?, ?)",
+			tocDigest.String(), uncompressed.String()); err != nil {
+			return void{}, fmt.Errorf("recording uncompressed digest %q for blob with TOC %q: %w", uncompressed, tocDigest, err)
 		}
 		return void{}, nil
 	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?

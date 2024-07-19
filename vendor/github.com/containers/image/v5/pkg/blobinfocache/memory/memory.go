@@ -24,10 +24,11 @@ type locationKey struct {
 type cache struct {
 	mutex sync.Mutex
 	// The following fields can only be accessed with mutex held.
-	uncompressedDigests   map[digest.Digest]digest.Digest
-	digestsByUncompressed map[digest.Digest]*set.Set[digest.Digest]                // stores a set of digests for each uncompressed digest
-	knownLocations        map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
-	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Unknown (not blobinfocache.UnknownCompression), for each digest
+	uncompressedDigests      map[digest.Digest]digest.Digest
+	uncompressedDigestsByTOC map[digest.Digest]digest.Digest
+	digestsByUncompressed    map[digest.Digest]*set.Set[digest.Digest]                // stores a set of digests for each uncompressed digest
+	knownLocations           map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
+	compressors              map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Uncompressed (not blobinfocache.UnknownCompression), for each digest
 }
 
 // New returns a BlobInfoCache implementation which is in-memory only.
@@ -44,10 +45,11 @@ func New() types.BlobInfoCache {
 
 func new2() *cache {
 	return &cache{
-		uncompressedDigests:   map[digest.Digest]digest.Digest{},
-		digestsByUncompressed: map[digest.Digest]*set.Set[digest.Digest]{},
-		knownLocations:        map[locationKey]map[types.BICLocationReference]time.Time{},
-		compressors:           map[digest.Digest]string{},
+		uncompressedDigests:      map[digest.Digest]digest.Digest{},
+		uncompressedDigestsByTOC: map[digest.Digest]digest.Digest{},
+		digestsByUncompressed:    map[digest.Digest]*set.Set[digest.Digest]{},
+		knownLocations:           map[locationKey]map[types.BICLocationReference]time.Time{},
+		compressors:              map[digest.Digest]string{},
 	}
 }
 
@@ -102,6 +104,30 @@ func (mem *cache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompre
 		mem.digestsByUncompressed[uncompressed] = anyDigestSet
 	}
 	anyDigestSet.Add(anyDigest)
+}
+
+// UncompressedDigestForTOC returns an uncompressed digest corresponding to anyDigest.
+// Returns "" if the uncompressed digest is unknown.
+func (mem *cache) UncompressedDigestForTOC(tocDigest digest.Digest) digest.Digest {
+	mem.mutex.Lock()
+	defer mem.mutex.Unlock()
+	if d, ok := mem.uncompressedDigestsByTOC[tocDigest]; ok {
+		return d
+	}
+	return ""
+}
+
+// RecordTOCUncompressedPair records that the tocDigest corresponds to uncompressed.
+// WARNING: Only call this for LOCALLY VERIFIED data; don’t record a digest pair just because some remote author claims so (e.g.
+// because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
+// (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
+func (mem *cache) RecordTOCUncompressedPair(tocDigest digest.Digest, uncompressed digest.Digest) {
+	mem.mutex.Lock()
+	defer mem.mutex.Unlock()
+	if previous, ok := mem.uncompressedDigestsByTOC[tocDigest]; ok && previous != uncompressed {
+		logrus.Warnf("Uncompressed digest for blob with TOC %q previously recorded as %q, now %q", tocDigest, previous, uncompressed)
+	}
+	mem.uncompressedDigestsByTOC[tocDigest] = uncompressed
 }
 
 // RecordKnownLocation records that a blob with the specified digest exists within the specified (transport, scope) scope,
