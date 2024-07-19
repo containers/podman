@@ -41,25 +41,22 @@ var _ = Describe("Podman healthcheck run", func() {
 	})
 
 	It("podman run healthcheck and logs should contain healthcheck output", func() {
-		session := podmanTest.Podman([]string{"run", "--name", "test-logs", "-dt", "--health-interval", "1s", "--health-cmd", "echo working", "busybox", "sleep", "3600"})
+		session := podmanTest.Podman([]string{"run", "--name", "test-logs", "-dt", "--health-interval", "1s",
+			// echo -n is important for https://github.com/containers/podman/issues/23332
+			"--health-cmd", "echo -n working", ALPINE, "sleep", "3600"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		// Buy a little time to get container running
-		for i := 0; i < 5; i++ {
-			hc := podmanTest.Podman([]string{"healthcheck", "run", "test-logs"})
-			hc.WaitWithDefaultTimeout()
-			exitCode := hc.ExitCode()
-			if exitCode == 0 || i == 4 {
-				break
-			}
-			time.Sleep(1 * time.Second)
-		}
-
-		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.State.Healthcheck.Log}}", "test-logs"})
+		hc := podmanTest.Podman([]string{"healthcheck", "run", "test-logs"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(ExitCleanly())
-		Expect(hc.OutputToString()).To(ContainSubstring("working"))
+
+		// using json formatter here to make sure the newline is not part of the output string an just added by podman inspect
+		hc = podmanTest.Podman([]string{"container", "inspect", "--format", "{{json (index .State.Healthcheck.Log 0).Output}}", "test-logs"})
+		hc.WaitWithDefaultTimeout()
+		Expect(hc).Should(ExitCleanly())
+		// exact output match for https://github.com/containers/podman/issues/23332
+		Expect(string(hc.Out.Contents())).To(Equal("\"working\"\n"))
 	})
 
 	It("podman healthcheck from image's config (not container config)", func() {
