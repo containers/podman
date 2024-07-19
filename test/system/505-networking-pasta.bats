@@ -446,20 +446,31 @@ function pasta_test_do() {
     assert "${lines[0]}" == "nameserver 169.254.1.1" "default dns forward server"
 }
 
-@test "Local forwarder, IPv4" {
+@test "Custom DNS forward address, IPv4" {
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
-    run_podman run --rm --net=pasta:--dns-forward,198.51.100.1 \
-        $IMAGE nslookup l.root-servers.net
+    local addr=198.51.100.1
+
+    run_podman run --rm --net=pasta:--dns-forward,$addr \
+        $IMAGE grep nameserver /etc/resolv.conf
+    assert "${lines[0]}" == "nameserver $addr" "custom dns forward server"
+
+    run_podman run --rm --net=pasta:--dns-forward,$addr \
+        $IMAGE nslookup l.root-servers.net $addr
 }
 
-@test "Local forwarder, IPv6" {
+@test "Custom DNS forward address, IPv6" {
     skip_if_no_ipv6 "IPv6 not routable on the host"
 
     # TODO: Two issues here:
     skip "Currently unsupported"
-    # run_podman run --dns 2001:db8::1 \
-    #   --net=pasta:--dns-forward,2001:db8::1 $IMAGE nslookup ::1
+    # local addr=2001:db8::1
+    #
+    # run_podman run --rm --net=pasta:--dns-forward,$addr \
+    #     $IMAGE grep nameserver /etc/resolv.conf
+    # assert "${lines[0]}" == "nameserver $addr" "custom dns forward server"
+    # run_podman run --rm --net=pasta:--dns-forward,$addr \
+    #     $IMAGE nslookup l.root-servers.net $addr
     #
     # 1. With this, Podman writes "nameserver 2001:db8::1" to
     #    /etc/resolv.conf, without zone, and the query originates from ::1.
