@@ -1,8 +1,12 @@
-schema
-======
-[![GoDoc](https://godoc.org/github.com/gorilla/schema?status.svg)](https://godoc.org/github.com/gorilla/schema) [![Build Status](https://travis-ci.org/gorilla/schema.png?branch=master)](https://travis-ci.org/gorilla/schema)
-[![Sourcegraph](https://sourcegraph.com/github.com/gorilla/schema/-/badge.svg)](https://sourcegraph.com/github.com/gorilla/schema?badge)
+# gorilla/schema
 
+![testing](https://github.com/gorilla/schema/actions/workflows/test.yml/badge.svg)
+[![codecov](https://codecov.io/github/gorilla/schema/branch/main/graph/badge.svg)](https://codecov.io/github/gorilla/schema)
+[![godoc](https://godoc.org/github.com/gorilla/schema?status.svg)](https://godoc.org/github.com/gorilla/schema)
+[![sourcegraph](https://sourcegraph.com/github.com/gorilla/schema/-/badge.svg)](https://sourcegraph.com/github.com/gorilla/schema?badge)
+
+
+![Gorilla Logo](https://github.com/gorilla/.github/assets/53367916/d92caabf-98e0-473e-bfbf-ab554ba435e5)
 
 Package gorilla/schema converts structs to and from form values.
 
@@ -83,7 +87,32 @@ The supported field types in the struct are:
 
 Unsupported types are simply ignored, however custom types can be registered to be converted.
 
-More examples are available on the Gorilla website: https://www.gorillatoolkit.org/pkg/schema
+## Setting Defaults
+
+It is possible to set default values when encoding/decoding by using the `default` tag option. The value of `default` is applied when a field has a zero value, a pointer has a nil value, or a slice is empty.
+
+```go
+type Person struct {
+    Phone string `schema:"phone,default:+123456"`          // custom name
+    Age int     `schema:"age,default:21"`
+	Admin bool    `schema:"admin,default:false"`
+	Balance float64 `schema:"balance,default:10.0"`
+    Friends []string `schema:friends,default:john|bob`
+}
+```
+
+The `default` tag option is supported for the following types:
+
+* bool
+* float variants (float32, float64)
+* int variants (int, int8, int16, int32, int64)
+* uint variants (uint, uint8, uint16, uint32, uint64)
+* string
+* a slice of the above types. As shown in the example above, `|` should be used to separate between slice items. 
+* a pointer to one of the above types (pointer to slice and slice of pointers are not supported).
+
+> [!NOTE]  
+> Because primitive types like int, float, bool, unint and their variants have their default (or zero) values set by Golang, it is not possible to distinguish them from a provided value when decoding/encoding form values. In this case, the value provided by the `default` option tag will be always applied. For example, let's assume that the value submitted in the form for `balance` is `0.0` then the default of `10.0` will be applied, even if `0.0` is part of the form data for the `balance` field. In such cases, it is highly recommended to use pointers to allow schema to distinguish between when a form field has no provided value and when a form has a value equal to the corresponding default set by Golang for a particular type. If the type of the `Balance` field above is changed to `*float64`, then the zero value would be `nil`. In this case, if the form data value for `balance` is `0.0`, then the default will not be applied.
 
 ## License
 
