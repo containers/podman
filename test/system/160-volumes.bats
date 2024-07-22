@@ -539,7 +539,7 @@ EOF
     hostfs=$(stat -f -c %T $output)
 
     # stat -f -c %T seems to just return unknown for our normal bind mount for some reason.
-    # Therfore manually parse /proc/mounts to get the real fs for the bind mount.
+    # Therefore manually parse /proc/mounts to get the real fs for the bind mount.
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --image-volume anonymous --rm volume_image \
         sh -c "grep ' /data ' /proc/mounts | cut -f3 -d' '"
     assert "$output" == "$hostfs" "Should match hosts graphroot fs"

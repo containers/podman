@@ -178,7 +178,7 @@ func (o *OCIArtifactDisk) get() (func(), error) {
 
 func (o *OCIArtifactDisk) cleanCache(cachedImagePath string) func() {
 	// cache miss while using an image that we cache, ie the default image
-	// clean out all old files fron the cache dir
+	// clean out all old files from the cache dir
 	if o.cache {
 		files, err := os.ReadDir(o.dirs.ImageCacheDir.GetPath())
 		if err != nil {

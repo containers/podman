@@ -122,7 +122,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) 
 
 // Update updates the given container.
 // Either resource limits or restart policy can be updated.
-// Either resourcs or restartPolicy must not be nil.
+// Either resources or restartPolicy must not be nil.
 // If restartRetries is not nil, restartPolicy must be set and must be "on-failure".
 func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string, restartRetries *uint) error {
 	if !c.batched {
