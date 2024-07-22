@@ -854,6 +854,7 @@ BOGUS=foo
 		Entry("selinux.container", "selinux.container", 0, ""),
 		Entry("shmsize.container", "shmsize.container", 0, ""),
 		Entry("shortname.container", "shortname.container", 0, "Warning: shortname.container specifies the image \"shortname\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details."),
+		Entry("stopsigal.container", "stopsignal.container", 0, ""),
 		Entry("stoptimeout.container", "stoptimeout.container", 0, ""),
 		Entry("subidmapping.container", "subidmapping.container", 0, ""),
 		Entry("subidmapping-with-remap.container", "subidmapping-with-remap.container", 1, "converting \"subidmapping-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),

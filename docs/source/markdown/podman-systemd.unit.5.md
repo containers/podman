@@ -306,6 +306,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelNested=true             | --security-opt label=nested                          |
 | SecurityLabelType=spc_t              | --security-opt label=type:spc_t                      |
 | ShmSize=100m                         | --shm-size=100m                                      |
+| StopSignal=SIGINT                    | --stop-signal=SIGINT                                 |
 | StopTimeout=20                       | --stop-timeout=20                                    |
 | SubGIDMap=gtest                      | --subgidname=gtest                                   |
 | SubUIDMap=utest                      | --subuidname=utest                                   |
@@ -730,6 +731,12 @@ Set the label process type for the container processes.
 Size of /dev/shm.
 
 This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
+
+### `StopSignal=`
+
+Signal to stop a container. Default is **SIGTERM**.
+
+This is equivalent to the Podman `--stop-signal` option
 
 ### `StopTimeout=`
 
