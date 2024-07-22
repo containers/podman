@@ -939,14 +939,63 @@ func (f *UnitFile) PrependUnitLine(groupName string, key string, value string) {
 	group.prependLine(newUnitLine(key, value, false))
 }
 
-func (f *UnitFile) GetTemplateParts() (string, string) {
+func (f *UnitFile) GetTemplateParts() (string, string, bool) {
 	ext := filepath.Ext(f.Filename)
 	basename := strings.TrimSuffix(f.Filename, ext)
 	parts := strings.SplitN(basename, "@", 2)
 	if len(parts) < 2 {
-		return "", ""
+		return parts[0], "", false
 	}
-	return parts[0] + "@" + ext, parts[1]
+	return parts[0], parts[1], true
+}
+
+func (f *UnitFile) GetUnitDropinPaths() []string {
+	unitName, instanceName, isTemplate := f.GetTemplateParts()
+
+	ext := filepath.Ext(f.Filename)
+	dropinExt := ext + ".d"
+
+	dropinPaths := []string{}
+
+	// Add top-level drop-in location (pod.d, container.d, etc)
+	topLevelDropIn := strings.TrimPrefix(dropinExt, ".")
+	dropinPaths = append(dropinPaths, topLevelDropIn)
+
+	truncatedParts := strings.Split(unitName, "-")
+	// If the unit contains any '-', then there are truncated paths to search.
+	if len(truncatedParts) > 1 {
+		// We don't need the last item because that would be the full path
+		truncatedParts = truncatedParts[:len(truncatedParts)-1]
+		// Truncated instance names are not included in the drop-in search path
+		// i.e. template-unit@base-instance.service does not search template-unit@base-.service
+		// So we only search truncations of the template name, i.e. template-@.service, and unit name, i.e. template-.service
+		// or only the unit name if it is not a template.
+		for i := range truncatedParts {
+			truncatedUnitPath := strings.Join(truncatedParts[:i+1], "-") + "-"
+			dropinPaths = append(dropinPaths, truncatedUnitPath+dropinExt)
+			// If the unit is a template, add the truncated template name as well.
+			if isTemplate {
+				truncatedTemplatePath := truncatedUnitPath + "@"
+				dropinPaths = append(dropinPaths, truncatedTemplatePath+dropinExt)
+			}
+		}
+	}
+	// For instanced templates, add the base template unit search path
+	if instanceName != "" {
+		dropinPaths = append(dropinPaths, unitName+"@"+dropinExt)
+	}
+	// Add the drop-in directory for the full filename
+	dropinPaths = append(dropinPaths, f.Filename+".d")
+	// Finally, reverse the list so that when drop-ins are parsed,
+	// the most specific are applied instead of the most broad.
+	// dropinPaths should be a list where the items are in order of specific -> broad
+	// i.e., the most specific search path is dropinPaths[0], and broadest search path is dropinPaths[len(dropinPaths)-1]
+	// Uses https://go.dev/wiki/SliceTricks#reversing
+	for i := len(dropinPaths)/2 - 1; i >= 0; i-- {
+		opp := len(dropinPaths) - 1 - i
+		dropinPaths[i], dropinPaths[opp] = dropinPaths[opp], dropinPaths[i]
+	}
+	return dropinPaths
 }
 
 func PathEscape(path string) string {

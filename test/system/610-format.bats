@@ -149,7 +149,7 @@ function check_subcommand() {
     # ...or machine. But podman machine is ultra-finicky, it fails as root
     # or if qemu is missing. Instead of checking for all the possible ways
     # to skip it, just try running init. If it works, we can test it.
-    run_podman '?' machine init --image-path=/dev/null mymachine
+    run_podman '?' machine init --image=/dev/null mymachine
     if [[ $status -eq 0 ]]; then
         can_run_podman_machine=true
         extra_args_table+="

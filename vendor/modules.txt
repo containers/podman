@@ -169,7 +169,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.59.1-0.20240715151621-fdf625dfee0e
+# github.com/containers/common v0.59.1-0.20240717135212-fdbae3a180cb
 ## explicit; go 1.21.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -949,8 +949,8 @@ github.com/proglottis/gpgme
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
-# github.com/rootless-containers/rootlesskit/v2 v2.1.0
-## explicit; go 1.19
+# github.com/rootless-containers/rootlesskit/v2 v2.2.0
+## explicit; go 1.21.0
 github.com/rootless-containers/rootlesskit/v2/pkg/api
 github.com/rootless-containers/rootlesskit/v2/pkg/lowlevelmsgutil
 github.com/rootless-containers/rootlesskit/v2/pkg/port
@@ -1062,8 +1062,8 @@ github.com/twitchyliquid64/golang-asm/objabi
 github.com/twitchyliquid64/golang-asm/src
 github.com/twitchyliquid64/golang-asm/sys
 github.com/twitchyliquid64/golang-asm/unsafeheader
-# github.com/u-root/uio v0.0.0-20230305220412-3e8cd9d6bf63
-## explicit; go 1.16
+# github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701
+## explicit; go 1.21
 github.com/u-root/uio/ulog
 # github.com/ugorji/go/codec v1.2.12
 ## explicit; go 1.11
@@ -1079,7 +1079,7 @@ github.com/ulikunitz/xz/lzma
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm
 github.com/vbatts/tar-split/tar/storage
-# github.com/vbauerster/mpb/v8 v8.7.3
+# github.com/vbauerster/mpb/v8 v8.7.4
 ## explicit; go 1.17
 github.com/vbauerster/mpb/v8
 github.com/vbauerster/mpb/v8/cwriter

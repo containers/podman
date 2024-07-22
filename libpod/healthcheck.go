@@ -4,6 +4,7 @@ package libpod
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -87,29 +88,16 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	if len(newCommand) < 1 || newCommand[0] == "" {
 		return define.HealthCheckNotDefined, "", fmt.Errorf("container %s has no defined healthcheck", c.ID())
 	}
-	rPipe, wPipe, err := os.Pipe()
-	if err != nil {
-		return define.HealthCheckInternalError, "", fmt.Errorf("unable to create pipe for healthcheck session: %w", err)
-	}
-	defer wPipe.Close()
-	defer rPipe.Close()
 
 	streams := new(define.AttachStreams)
+	output := &bytes.Buffer{}
 
 	streams.InputStream = bufio.NewReader(os.Stdin)
-	streams.OutputStream = wPipe
-	streams.ErrorStream = wPipe
+	streams.OutputStream = output
+	streams.ErrorStream = output
 	streams.AttachOutput = true
 	streams.AttachError = true
 	streams.AttachInput = true
-
-	stdout := []string{}
-	go func() {
-		scanner := bufio.NewScanner(rPipe)
-		for scanner.Scan() {
-			stdout = append(stdout, scanner.Text())
-		}
-	}()
 
 	logrus.Debugf("executing health check command %s for %s", strings.Join(newCommand, " "), c.ID())
 	timeStart := time.Now()
@@ -154,7 +142,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		}
 	}
 
-	eventLog := strings.Join(stdout, "\n")
+	eventLog := output.String()
 	if len(eventLog) > MaxHealthCheckLogLength {
 		eventLog = eventLog[:MaxHealthCheckLogLength]
 	}
