@@ -38,7 +38,7 @@ func (ic *ContainerEngine) PodStats(ctx context.Context, namesOrIds []string, op
 func (ic *ContainerEngine) podsToStatsReport(pods []*libpod.Pod) ([]*entities.PodStatsReport, error) {
 	reports := []*entities.PodStatsReport{}
 	for i := range pods { // Access by index to prevent potential loop-variable leaks.
-		podStats, err := pods[i].GetPodStats(nil)
+		podStats, err := pods[i].GetPodStats()
 		if err != nil {
 			// pod was removed, skip it
 			if errors.Is(err, define.ErrNoSuchPod) {
