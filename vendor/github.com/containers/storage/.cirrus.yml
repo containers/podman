@@ -56,8 +56,6 @@ gce_instance:
 fedora_testing_task: &fedora_testing
     alias: fedora_testing
     name: &std_test_name "${OS_NAME} ${TEST_DRIVER}"
-    depends_on:
-        - lint
 
     gce_instance:  # Only need to specify differences from defaults (above)
         image_name: "${VM_IMAGE}"
@@ -104,21 +102,6 @@ ubuntu_testing_task: &ubuntu_testing
             TEST_DRIVER: "overlay"
 
 
-lint_task:
-    env:
-        CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
-    container:
-        image: golang:1.17
-    modules_cache:
-        fingerprint_script: cat go.sum
-        folder: $GOPATH/pkg/mod
-    build_script: |
-      echo "deb http://deb.debian.org/debian stretch-backports main" > /etc/apt/sources.list.d/backports.list
-      apt-get update
-      apt-get install -y libbtrfs-dev libdevmapper-dev
-    test_script: make TAGS=regex_precompile local-validate && make lint && make clean
-
-
 # Update metadata on VM images referenced by this repository state
 meta_task:
 
@@ -155,7 +138,6 @@ vendor_task:
 # Represent overall pass/fail status from required dependent tasks
 success_task:
     depends_on:
-        - lint
         - fedora_testing
         - ubuntu_testing
         - meta
