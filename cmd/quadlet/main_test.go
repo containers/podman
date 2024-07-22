@@ -48,6 +48,7 @@ func TestIsUnambiguousName(t *testing.T) {
 
 func TestUnitDirs(t *testing.T) {
 	rootDirs := []string{}
+	rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirTemp, false, userLevelFilter)
 	rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirAdmin, false, userLevelFilter)
 	rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirDistro, false, userLevelFilter)
 	unitDirs := getUnitDirs(false)
@@ -60,6 +61,10 @@ func TestUnitDirs(t *testing.T) {
 
 	rootlessDirs := []string{}
 
+	runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
+	if found {
+		rootlessDirs = appendSubPaths(rootlessDirs, path.Join(runtimeDir, "containers/systemd"), false, nil)
+	}
 	rootlessDirs = appendSubPaths(rootlessDirs, path.Join(configDir, "containers/systemd"), false, nil)
 	rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
 	rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
