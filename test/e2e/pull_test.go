@@ -595,7 +595,7 @@ var _ = Describe("Podman pull", func() {
 
 	Describe("podman pull and decrypt", func() {
 
-		decryptionTestHelper := func(imgPath string, expectedError1 string) *PodmanSessionIntegration {
+		decryptionTestHelper := func(imgPath string) *PodmanSessionIntegration {
 			bitSize := 1024
 			keyFileName := filepath.Join(podmanTest.TempDir, "key,withcomma")
 			publicKeyFileName, privateKeyFileName, err := WriteRSAKeyPair(keyFileName, bitSize)
@@ -613,9 +613,9 @@ var _ = Describe("Podman pull", func() {
 			Expect(session).Should(ExitCleanly())
 
 			// Pulling encrypted image without key should fail
-			session = podmanTest.Podman([]string{"pull", imgPath})
+			session = podmanTest.Podman([]string{"pull", "--tls-verify=false", imgPath})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError(125, expectedError1))
+			Expect(session).Should(ExitWithError(125, "invalid tar header"))
 
 			// Pulling encrypted image with wrong key should fail
 			session = podmanTest.Podman([]string{"pull", "-q", "--decryption-key", wrongPrivateKeyFileName, "--tls-verify=false", imgPath})
@@ -642,7 +642,7 @@ var _ = Describe("Podman pull", func() {
 			imgName := "localhost/name:tag"
 			imgPath := fmt.Sprintf("oci:%s:%s", bbdir, imgName)
 
-			session := decryptionTestHelper(imgPath, "invalid tar header")
+			session := decryptionTestHelper(imgPath)
 
 			Expect(session.LineInOutputContainsTag("localhost/name", "tag")).To(BeTrue())
 		})
@@ -672,7 +672,7 @@ var _ = Describe("Podman pull", func() {
 
 			imgPath := "localhost:5012/my-alpine-pull-and-decrypt"
 
-			session = decryptionTestHelper(imgPath, `initializing source docker://localhost:5012/my-alpine:latest: pinging container registry localhost:5012: Get "https://localhost:5012/v2/": http: server gave HTTP response to HTTPS client`)
+			session = decryptionTestHelper(imgPath)
 
 			Expect(session.LineInOutputContainsTag(imgPath, "latest")).To(BeTrue())
 		})
