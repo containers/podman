@@ -14,7 +14,7 @@
     <Variable Name="AllowOldWin" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="LaunchTarget" Value="explorer.exe" />
     <Variable Name="LaunchArguments" Value="&quot;[InstallFolder]\podman-for-windows.html&quot;" />
-    <Variable Name="SkipConfigFileCreation" Value="0" />
+    <Variable Name="SkipConfigFileCreation" Value="0" bal:Overridable="yes" />
 
     <util:RegistrySearch Id="PreviousVersionSearch" Variable="PreviousVersion" Result="value" Root="HKLM" Key="SOFTWARE\[WixBundleManufacturer]\Updates\[WixBundleName]" Value="PackageVersion" />
     <util:RegistrySearch Id="PreviousInstallFolderSearch" Root="HKLM" Key="SOFTWARE\[WixBundleManufacturer]\[WixBundleName]" Value="InstallDir" Variable="PreviousInstallFolder" Bitness="always64" />
