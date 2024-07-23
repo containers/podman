@@ -1153,6 +1153,28 @@ function random_string() {
     head /dev/urandom | tr -dc a-zA-Z0-9 | head -c$length
 }
 
+##############
+#  safename  #  Returns a pseudorandom string suitable for container/image/etc names
+##############
+#
+# Name will include the bats test number and a pseudorandom element,
+# eg "t123-xyz123". safename() will return the same string across
+# multiple invocations within a given test; this makes it easier for
+# a maintainer to see common name patterns.
+#
+# String is lower-case so it can be used as an image name
+#
+function safename() {
+    # FIXME: I don't think these can ever fail. Remove checks once I'm sure.
+    test -n "$BATS_SUITE_TMPDIR"
+    test -n "$BATS_SUITE_TEST_NUMBER"
+    safenamepath=$BATS_SUITE_TMPDIR/.safename.$BATS_SUITE_TEST_NUMBER
+    if [[ ! -e $safenamepath ]]; then
+        echo -n "t${BATS_SUITE_TEST_NUMBER}-$(random_string 8 | tr A-Z a-z)" >$safenamepath
+    fi
+    cat $safenamepath
+}
+
 #########################
 #  find_exec_pid_files  #  Returns nothing or exec_pid hash files
 #########################

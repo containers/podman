@@ -62,31 +62,33 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     # podman history is persistent: it permanently alters our base image.
     # Create a dummy image here so we leave our setup as we found it.
     # Multiple --name options confirm command-line override (last one wins)
-    run_podman run --name ignore-me --name my-container $IMAGE true
-    run_podman commit my-container my-test-image
+    cname=c_$(safename)
+    iname=i_$(safename)
+    run_podman run --name ignore-me --name $cname $IMAGE true
+    run_podman commit $cname $iname
 
-    run_podman images my-test-image --format '{{ .History }}'
-    is "$output" "localhost/my-test-image:latest" "image history with initial name"
+    run_podman images $iname --format '{{ .History }}'
+    is "$output" "localhost/$iname:latest" "image history with initial name"
 
-    # Generate two randomish tags; 'tr' because they must be all lower-case
-    rand_name1="test-image-history-$(random_string 10 | tr A-Z a-z)"
-    rand_name2="test-image-history-$(random_string 10 | tr A-Z a-z)"
+    # Generate two randomish tags
+    rand_name1="test-image-history-1-$(safename)"
+    rand_name2="test-image-history-2-$(safename)"
 
     # Tag once, rmi, and make sure the tag name appears in history
-    run_podman tag my-test-image $rand_name1
+    run_podman tag $iname $rand_name1
     run_podman rmi $rand_name1
-    run_podman images my-test-image --format '{{ .History }}'
-    is "$output" "localhost/my-test-image:latest, localhost/${rand_name1}:latest" "image history after one tag"
+    run_podman images $iname --format '{{ .History }}'
+    is "$output" "localhost/$iname:latest, localhost/${rand_name1}:latest" "image history after one tag"
 
     # Repeat with second tag. Now both tags should be in history
-    run_podman tag my-test-image $rand_name2
+    run_podman tag $iname $rand_name2
     run_podman rmi $rand_name2
-    run_podman images my-test-image --format '{{ .History }}'
-    is "$output" "localhost/my-test-image:latest, localhost/${rand_name2}:latest, localhost/${rand_name1}:latest" \
+    run_podman images $iname --format '{{ .History }}'
+    is "$output" "localhost/$iname:latest, localhost/${rand_name2}:latest, localhost/${rand_name1}:latest" \
        "image history after two tags"
 
-    run_podman rmi my-test-image
-    run_podman rm my-container
+    run_podman rmi $iname
+    run_podman rm $cname
 }
 
 @test "podman images - filter" {
@@ -102,26 +104,31 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 
     # Create a dummy container, then commit that as an image. We will
     # now be able to use before/after/since queries
-    run_podman run --name mytinycontainer $IMAGE true
-    run_podman commit -q  mytinycontainer mynewimage
+    cname=c_$(safename)
+    iname=i_$(safename)
+    run_podman run --name $cname $IMAGE true
+    run_podman commit -q  $cname $iname
     new_iid=$output
 
     # (refactor common options for legibility)
     opts='--noheading --no-trunc --format={{.ID}}--{{.Repository}}:{{.Tag}}'
 
     run_podman images ${opts} --filter=after=$iid
-    is "$output" "sha256:$new_iid--localhost/mynewimage:latest" "filter: after"
+    is "$output" "sha256:$new_iid--localhost/$iname:latest" "filter: after"
 
     # Same thing, with 'since' instead of 'after'
     run_podman images ${opts} --filter=since=$iid
-    is "$output" "sha256:$new_iid--localhost/mynewimage:latest" "filter: since"
+    is "$output" "sha256:$new_iid--localhost/$iname:latest" "filter: since"
 
-    run_podman images ${opts} --filter=before=mynewimage
+    run_podman images ${opts} --filter=before=$iname
     is "$output" "sha256:$iid--$IMAGE" "filter: before"
 
+    run_podman 125 image list -f json
+    is "$output" 'Error: invalid image filter "json": must be in the format "filter=value or filter!=value"' "Invalid filter"
+
     # Clean up
-    run_podman rmi mynewimage
-    run_podman rm  mytinycontainer
+    run_podman rmi $iname
+    run_podman rm  $cname
 }
 
 # Regression test for https://github.com/containers/podman/issues/7651
@@ -238,7 +245,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 }
 
 @test "podman images - rmi -af removes all containers and pods" {
-    pname=$(random_string)
+    pname=p_$(safename)
     run_podman create --pod new:$pname $IMAGE
 
     run_podman inspect --format '{{.ID}}' $IMAGE
@@ -274,7 +281,7 @@ Deleted: $pauseID" "infra images gets removed as well"
 }
 
 @test "podman images - rmi -f can remove infra images" {
-    pname=$(random_string)
+    pname=p_$(safename)
     run_podman create --pod new:$pname $IMAGE
 
     pauseImage=$(pause_image)
@@ -299,8 +306,7 @@ Deleted: $pauseID"
 }
 
 @test "podman rmi --ignore" {
-    random_image_name=$(random_string)
-    random_image_name=${random_image_name,,} # name must be lowercase
+    random_image_name=i_$(safename)
     run_podman 1 rmi $random_image_name
     is "$output" "Error: $random_image_name: image not known.*"
     run_podman rmi --ignore $random_image_name
@@ -313,8 +319,7 @@ Deleted: $pauseID"
     run_podman image rm --force bogus
     is "$output" "" "Should print no output"
 
-    random_image_name=$(random_string)
-    random_image_name=${random_image_name,,} # name must be lowercase
+    random_image_name=i_$(safename)
     run_podman image tag $IMAGE $random_image_name
     run_podman image rm --force bogus $random_image_name
     assert "$output" = "Untagged: localhost/$random_image_name:latest" "removed image"
@@ -324,24 +329,26 @@ Deleted: $pauseID"
 }
 
 @test "podman images - commit docker with comment" {
-    run_podman run --name my-container -d $IMAGE top
-    run_podman 125 commit -m comment my-container my-test-image
+    cname=c_$(safename)
+    iname=i_$(safename)
+    run_podman run --name $cname -d $IMAGE top
+    run_podman 125 commit -m comment $cname $iname
     assert "$output" == "Error: messages are only compatible with the docker image format (-f docker)" "podman should fail unless docker format"
 
     # Without -q: verbose output, but only on podman-local, not remote
-    run_podman commit my-container --format docker -m comment my-test-image1
+    run_podman commit $cname --format docker -m comment ${iname}_2
     if ! is_remote; then
         assert "$output" =~ "Getting image.*Writing manif" \
                "Without -q, verbose output"
     fi
 
     # With -q, both local and remote: only an image ID
-    run_podman commit -q my-container --format docker -m comment my-test-image2
+    run_podman commit -q $cname --format docker -m comment ${iname}_3
     assert "$output" =~ "^[0-9a-f]{64}\$" \
            "With -q, output is a commit ID, no warnings or other output"
 
-    run_podman rmi my-test-image1 my-test-image2
-    run_podman rm my-container --force -t 0
+    run_podman rmi ${iname}_2 ${iname}_3
+    run_podman rm $cname --force -t 0
 }
 
 @test "podman pull image with additional store" {

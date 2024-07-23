@@ -8,7 +8,6 @@ type InitOptions struct {
 	IgnitionPath       string
 	Image              string
 	Volumes            []string
-	VolumeDriver       string
 	IsDefault          bool
 	Memory             uint64
 	Name               string

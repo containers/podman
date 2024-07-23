@@ -1581,7 +1581,14 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 			for _, ctr := range containers {
 				stats, err := ctr.GetContainerStats(containerStats[ctr.ID()])
 				if err != nil {
-					if queryAll && (errors.Is(err, define.ErrCtrRemoved) || errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrStateInvalid)) {
+					if queryAll &&
+						// All these errors might happen while we get stats, when we list all
+						// they must be skipped as they cause podman stats to stop and error otherwise.
+						// ErrCtrStopped can happen when the container process exited before we could
+						// update the container state
+						// https://github.com/containers/podman/issues/23334
+						(errors.Is(err, define.ErrCtrRemoved) || errors.Is(err, define.ErrNoSuchCtr) ||
+							errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped)) {
 						continue
 					}
 					return nil, err

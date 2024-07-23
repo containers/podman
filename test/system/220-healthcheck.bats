@@ -59,7 +59,7 @@ function _check_health {
 Status           | \"healthy\"
 FailingStreak    | 0
 Log[-1].ExitCode | 0
-Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\"
+Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\\\n\"
 " "$current_time" "healthy"
 
     current_time=$(date --iso-8601=seconds)
@@ -71,7 +71,7 @@ Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\"
 Status           | \"healthy\"
 FailingStreak    | [123]
 Log[-1].ExitCode | 1
-Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
+Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 " "$current_time" "healthy"
 
     # Check that we now we do have valid podman units with this
@@ -85,7 +85,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
 Status           | \"unhealthy\"
 FailingStreak    | [3456]
 Log[-1].ExitCode | 1
-Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\"
+Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 " "$current_time" "unhealthy"
 
     # now the on-failure should kick in and kill the container

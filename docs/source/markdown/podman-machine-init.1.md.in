@@ -160,10 +160,6 @@ Example: `-v "$HOME/git:$HOME/git:ro,security_model=none"`
 Default volume mounts are defined in *containers.conf*.  Unless changed, the default values
 is `$HOME:$HOME`.
 
-#### **--volume-driver**
-
-Driver to use for mounting volumes from the host, such as `virtfs`.
-
 ## EXAMPLES
 
 Initialize the default Podman machine, pulling the content from the internet.

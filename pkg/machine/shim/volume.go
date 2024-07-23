@@ -8,6 +8,9 @@ import (
 func CmdLineVolumesToMounts(volumes []string, volumeType vmconfigs.VolumeMountType) []*vmconfigs.Mount {
 	mounts := []*vmconfigs.Mount{}
 	for i, volume := range volumes {
+		if volume == "" {
+			continue
+		}
 		var mount vmconfigs.Mount
 		tag, source, target, readOnly, _ := vmconfigs.SplitVolume(i, volume)
 		switch volumeType {

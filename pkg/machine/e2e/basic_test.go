@@ -117,6 +117,33 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(findmnt.outputToString()).To(ContainSubstring("virtiofs"))
 	})
 
+	It("Volume should be disabled by command line", func() {
+		skipIfWSL("Requires standard volume handling")
+		skipIfVmtype(define.AppleHvVirt, "Skipped on Apple platform")
+		skipIfVmtype(define.LibKrun, "Skipped on Apple platform")
+
+		name := randomString()
+		i := new(initMachine).withImage(mb.imagePath).withNow()
+
+		// Empty arg forces no volumes
+		i.withVolume("")
+		session, err := mb.setName(name).setCmd(i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		ssh9p := new(sshMachine).withSSHCommand([]string{"findmnt", "-no", "FSTYPE", "-t", "9p"})
+		findmnt9p, err := mb.setName(name).setCmd(ssh9p).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(findmnt9p).To(Exit(0))
+		Expect(findmnt9p.outputToString()).To(BeEmpty())
+
+		sshVirtiofs := new(sshMachine).withSSHCommand([]string{"findmnt", "-no", "FSTYPE", "-t", "virtiofs"})
+		findmntVirtiofs, err := mb.setName(name).setCmd(sshVirtiofs).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(findmntVirtiofs).To(Exit(0))
+		Expect(findmntVirtiofs.outputToString()).To(BeEmpty())
+	})
+
 	It("Podman ops with port forwarding and gvproxy", func() {
 		name := randomString()
 		i := new(initMachine)

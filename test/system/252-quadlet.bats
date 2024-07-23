@@ -64,14 +64,18 @@ function run_quadlet() {
     assert $status -eq 0 "Failed to convert quadlet file: $sourcefile"
     is "$output" "" "quadlet should report no errors"
 
+    run cat $UNIT_DIR/$service
+    assert $status -eq 0 "Could not cat $UNIT_DIR/$service"
+    echo "$output"
+    local content="$output"
+
     # Ensure this is teared down
     UNIT_FILES+=("$UNIT_DIR/$service")
 
     QUADLET_SERVICE_NAME="$service"
+    QUADLET_SERVICE_CONTENT="$content"
     QUADLET_SYSLOG_ID="$(basename $service .service)"
     QUADLET_CONTAINER_NAME="systemd-$QUADLET_SYSLOG_ID"
-
-    cat $UNIT_DIR/$QUADLET_SERVICE_NAME
 }
 
 function service_setup() {
@@ -1598,5 +1602,59 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME inactive
     run_podman rmi $untagged_image:latest $built_image $(pause_image)
     run_podman network rm podman-default-kube-network
+}
+
+@test "quadlet - drop-in files" {
+    local quadlet_tmpdir="${PODMAN_TMPDIR}/dropins"
+
+    local quadlet_file="truncated-$(random_string).container"
+
+    local -A dropin_dirs=(
+        [toplevel]=container.d
+        [truncated]=truncated-.container.d
+        [quadlet]="${quadlet_file}.d"
+    )
+
+    # Table of drop-in .conf files. Format is:
+    #
+    #    apply | dir | filename | [Section] | Content=...
+    local dropin_files="
+y | toplevel  | 10 | [Unit]      | Description=Test File for Dropin Configuration
+n | toplevel  | 99 | [Install]   | WantedBy=default.target
+y | truncated | 50 | [Container] | ContainerName=truncated-dropins
+n | truncated | 99 | [Service]   | Restart=always
+n | truncated | 99 | [Install]   | WantedBy=multiuser.target
+y | quadlet   | 99 | [Service]   | RestartSec=60s
+"
+
+    # Pass 1: Create all drop-in directories and files
+    while read apply dir file section content; do
+        local d="${quadlet_tmpdir}/${dropin_dirs[${dir}]}"
+        mkdir -p "${d}"
+
+        local f="${d}/${file}.conf"
+        echo "${section}" >>"${f}"
+        echo "${content}" >>"${f}"
+    done < <(parse_table "${dropin_files}")
+
+    # Create the base quadlet file
+    quadlet_base="${PODMAN_TMPDIR}/${quadlet_file}"
+    cat > "${quadlet_base}" <<EOF
+[Container]
+Image="${IMAGE}"
+EOF
+
+    # Generate the quadlet file from the base file and any drop-in .conf files.
+    run_quadlet "${quadlet_base}" "${quadlet_tmpdir}"
+
+    # Pass 2: test whether the expected .conf files are applied
+    # and the overridden .conf files are not.
+    while read apply dir file section content; do
+        if [[ "${apply}" = "y" ]]; then
+            assert "${QUADLET_SERVICE_CONTENT}" =~ "${content}" "Set in ${dir}/${file}.conf"
+        else
+            assert "${QUADLET_SERVICE_CONTENT}" !~ "${content}" "Set in ${dir}/${file}.conf but should have been overridden"
+        fi
+    done < <(parse_table "${dropin_files}")
 }
 # vim: filetype=sh
