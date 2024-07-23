@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"net/url"
 	"path/filepath"
 	"time"
 
@@ -109,4 +110,18 @@ func WaitForSocketWithBackoffs(maxBackoffs int, backoff time.Duration, socketPat
 		backoffWait *= 2
 	}
 	return fmt.Errorf("unable to connect to %q socket at %q", name, socketPath)
+}
+
+// ToUnixURL converts `socketLoc` into URL representation
+func ToUnixURL(socketLoc *define.VMFile) (*url.URL, error) {
+	p := socketLoc.GetPath()
+	if !filepath.IsAbs(p) {
+		return nil, fmt.Errorf("socket path must be absolute %q", p)
+	}
+	s, err := url.Parse("unix:///")
+	if err != nil {
+		return nil, err
+	}
+	s = s.JoinPath(filepath.ToSlash(p))
+	return s, nil
 }
