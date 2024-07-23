@@ -828,7 +828,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(tmpsubdir)"
 
-# Checks out and builds win-sshproxy helper. See comment on GV_GITURL declaration
+# Downloads pre-built gvproxy and win-sshproxy helpers. See comment on GV_VERSION declaration
 .PHONY: win-gvproxy
 win-gvproxy: test/version/version
 	mkdir -p bin/windows/
