@@ -94,7 +94,7 @@ The installer includes a C program that checks the installation of the
 pre-required virtualization providers (WSL or Hyper-V). Building this program
 requires the
 [Microsoft C/C++ compiler](https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-170) and the
-[PowerShell Moduel VSSetup](https://github.com/microsoft/vssetup.powershell):
+[PowerShell Module VSSetup](https://github.com/microsoft/vssetup.powershell):
 
 1. Download the Build Tools for Visual Studio 2022 installer
 ```pwsh

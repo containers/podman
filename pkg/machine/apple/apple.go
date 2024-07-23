@@ -139,7 +139,7 @@ func GenerateSystemDFilesForVirtiofsMounts(mounts []machine.VirtIoFs) ([]ignitio
 	return unitFiles, nil
 }
 
-// StartGenericAppleVM is wrappered by apple provider methods and starts the vm
+// StartGenericAppleVM is wrapped by apple provider methods and starts the vm
 func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootloader vfConfig.Bootloader, endpoint string) (func() error, func() error, error) {
 	var (
 		ignitionSocket *define.VMFile
@@ -366,7 +366,7 @@ func CheckProcessRunning(processName string, pid int) error {
 	return nil
 }
 
-// StartGenericNetworking is wrappered by apple provider methods
+// StartGenericNetworking is wrapped by apple provider methods
 func StartGenericNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy.GvproxyCommand) error {
 	gvProxySock, err := mc.GVProxySocket()
 	if err != nil {

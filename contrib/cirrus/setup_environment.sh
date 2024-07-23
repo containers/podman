@@ -396,7 +396,7 @@ case "$TEST_FLAVOR" in
         showrun make .install.ginkgo
         ;&
     sys)
-        # when run nighlty check for system test leaks
+        # when run nightly check for system test leaks
         # shellcheck disable=SC2154
         if [[ "$CIRRUS_CRON" != '' ]]; then
             export PODMAN_BATS_LEAK_CHECK=1
