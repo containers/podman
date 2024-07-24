@@ -319,7 +319,8 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     # stop systemd container
     service_cleanup
 
-    pasta_iface=$(default_ifname)
+    pasta_iface=$(default_ifname 4)
+    assert "$pasta_iface" != "" "pasta_iface is set"
 
     # now check that the rootless netns slirp4netns process is still alive and working
     run_podman unshare --rootless-netns ip addr
