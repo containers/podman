@@ -187,7 +187,7 @@ func (q *QEMUStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func()
 	cmdLine := q.Command
 
 	// Disable graphic window when not in debug mode
-	// Done in start, so we're not suck with the debug level we used on init
+	// Done in start, so we're not stuck with the debug level we used on init
 	if !logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmdLine.SetDisplay("none")
 	}
