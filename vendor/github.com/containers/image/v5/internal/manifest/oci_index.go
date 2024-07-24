@@ -1,7 +1,6 @@
 package manifest
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -297,51 +296,29 @@ func OCI1IndexPublicFromComponents(components []imgspecv1.Descriptor, annotation
 		},
 	}
 	for i, component := range components {
-		index.Manifests[i] = oci1DescriptorClone(component)
+		var platform *imgspecv1.Platform
+		if component.Platform != nil {
+			platformCopy := ociPlatformClone(*component.Platform)
+			platform = &platformCopy
+		}
+		m := imgspecv1.Descriptor{
+			MediaType:    component.MediaType,
+			ArtifactType: component.ArtifactType,
+			Size:         component.Size,
+			Digest:       component.Digest,
+			URLs:         slices.Clone(component.URLs),
+			Annotations:  maps.Clone(component.Annotations),
+			Platform:     platform,
+		}
+		index.Manifests[i] = m
 	}
 	return &index
-}
-
-func oci1DescriptorClone(d imgspecv1.Descriptor) imgspecv1.Descriptor {
-	var platform *imgspecv1.Platform
-	if d.Platform != nil {
-		platformCopy := ociPlatformClone(*d.Platform)
-		platform = &platformCopy
-	}
-	return imgspecv1.Descriptor{
-		MediaType:    d.MediaType,
-		Digest:       d.Digest,
-		Size:         d.Size,
-		URLs:         slices.Clone(d.URLs),
-		Annotations:  maps.Clone(d.Annotations),
-		Data:         bytes.Clone(d.Data),
-		Platform:     platform,
-		ArtifactType: d.ArtifactType,
-	}
 }
 
 // OCI1IndexPublicClone creates a deep copy of the passed-in index.
 // This is publicly visible as c/image/manifest.OCI1IndexClone.
 func OCI1IndexPublicClone(index *OCI1IndexPublic) *OCI1IndexPublic {
-	var subject *imgspecv1.Descriptor
-	if index.Subject != nil {
-		s := oci1DescriptorClone(*index.Subject)
-		subject = &s
-	}
-	manifests := make([]imgspecv1.Descriptor, len(index.Manifests))
-	for i, m := range index.Manifests {
-		manifests[i] = oci1DescriptorClone(m)
-	}
-	return &OCI1IndexPublic{
-		Index: imgspecv1.Index{
-			Versioned:    index.Versioned,
-			MediaType:    index.MediaType,
-			ArtifactType: index.ArtifactType,
-			Manifests:    manifests,
-			Subject:      subject,
-			Annotations:  maps.Clone(index.Annotations),
-		},
-	}
+	return OCI1IndexPublicFromComponents(index.Manifests, index.Annotations)
 }
 
 // ToOCI1Index returns the index encoded as an OCI1 index.

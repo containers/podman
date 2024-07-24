@@ -16,7 +16,7 @@ require (
 	github.com/containers/common v0.59.1-0.20240717135212-fdbae3a180cb
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
-	github.com/containers/image/v5 v5.31.1-0.20240711123249-1dbd8fbbe516
+	github.com/containers/image/v5 v5.31.1
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/psgo v1.9.0
@@ -24,7 +24,7 @@ require (
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
-	github.com/crc-org/crc/v2 v2.38.0
+	github.com/crc-org/crc/v2 v2.39.0
 	github.com/crc-org/vfkit v0.5.1
 	github.com/cyphar/filepath-securejoin v0.3.0
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e

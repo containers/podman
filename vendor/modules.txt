@@ -242,8 +242,8 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.4-0.20240515153903-01a1a0cd3f70
 ## explicit; go 1.20
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.31.1-0.20240711123249-1dbd8fbbe516
-## explicit; go 1.21.0
+# github.com/containers/image/v5 v5.31.1
+## explicit; go 1.21
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -425,7 +425,7 @@ github.com/coreos/stream-metadata-go/fedoracoreos
 github.com/coreos/stream-metadata-go/fedoracoreos/internals
 github.com/coreos/stream-metadata-go/stream
 github.com/coreos/stream-metadata-go/stream/rhcos
-# github.com/crc-org/crc/v2 v2.38.0
+# github.com/crc-org/crc/v2 v2.39.0
 ## explicit; go 1.21
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
