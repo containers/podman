@@ -1243,22 +1243,23 @@ EOF
     echo "cat /etc/sub?id"
     cat /etc/sub?id
 
-    # check if the underlying file system supports idmapped mounts
-    check_dir=$PODMAN_TMPDIR/idmap-check
-    mkdir $check_dir
-    run_podman '?' run --rm --uidmap=0:1000:10000 --rootfs $check_dir:idmap true
-    if [[ "$output" == *"failed to create idmapped mount: invalid argument"* ]]; then
-        skip "idmapped mounts not supported"
-    fi
-
     run_podman image mount $IMAGE
     src="$output"
 
     # we cannot use idmap on top of overlay, so we need a copy
     romount=$PODMAN_TMPDIR/rootfs
     cp -ar "$src" "$romount"
-
     run_podman image unmount $IMAGE
+
+    # the TMPDIR must be accessible by different users as the following tests use different mappings
+    chmod 755 $PODMAN_TMPDIR
+
+    # check if the underlying file system supports idmapped mounts
+
+    run_podman '?' run --rm --uidmap=0:1000:10000000 --rootfs $romount:idmap true
+    if [[ "$output" == *"failed to create idmapped mount: invalid argument"* ]]; then
+        skip "idmapped mounts not supported"
+    fi
 
     run_podman run --rm --uidmap=0:1000:10000 --rootfs $romount:idmap stat -c %u:%g /bin
     is "$output" "0:0"
