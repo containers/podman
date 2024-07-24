@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/containers/common/pkg/machine"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/stretchr/testify/assert"
@@ -215,4 +216,17 @@ func TestGenRlimits(t *testing.T) {
 
 	_, err = GenRlimits([]string{"nofile=bar:buzz"})
 	assert.Error(t, err, "err is not nil")
+}
+
+func TestFillOutSpecGenRecorsUserNs(t *testing.T) {
+	sg := specgen.NewSpecGenerator("nothing", false)
+	err := FillOutSpecGen(sg, &entities.ContainerCreateOptions{
+		ImageVolume: "ignore",
+		UserNS:      "keep-id",
+	}, []string{})
+	assert.NoError(t, err)
+
+	v, ok := sg.Annotations[define.UserNsAnnotation]
+	assert.True(t, ok, "UserNsAnnotation is set")
+	assert.Equal(t, "keep-id", v, "UserNsAnnotation is keep-id")
 }

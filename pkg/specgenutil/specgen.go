@@ -516,6 +516,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.Annotations) == 0 {
 		s.Annotations = annotations
 	}
+	// Add the user namespace configuration to the annotations
+	if c.UserNS != "" {
+		s.Annotations[define.UserNsAnnotation] = c.UserNS
+	}
 
 	if len(c.StorageOpts) > 0 {
 		opts := make(map[string]string, len(c.StorageOpts))
