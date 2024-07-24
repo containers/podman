@@ -8,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -56,7 +57,7 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 
 	fd, err := unix.Openat(unix.AT_FDCWD, destFile, unix.O_WRONLY|unix.O_CREAT|unix.O_TRUNC|unix.O_EXCL|unix.O_CLOEXEC, 0o644)
 	if err != nil {
-		return fmt.Errorf("failed to open output file %q: %w", destFile, err)
+		return &fs.PathError{Op: "openat", Path: destFile, Err: err}
 	}
 	outFd := os.NewFile(uintptr(fd), "outFd")
 
@@ -117,7 +118,7 @@ func hasACL(path string) (bool, error) {
 
 	fd, err := unix.Openat(unix.AT_FDCWD, path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return false, err
+		return false, &fs.PathError{Op: "openat", Path: path, Err: err}
 	}
 	defer unix.Close(fd)
 	// do not worry about checking the magic number, if the file is invalid
@@ -125,7 +126,7 @@ func hasACL(path string) (bool, error) {
 	flags := make([]byte, 4)
 	nread, err := unix.Pread(fd, flags, 8)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("pread %q: %w", path, err)
 	}
 	if nread != 4 {
 		return false, fmt.Errorf("failed to read flags from %q", path)
@@ -150,5 +151,8 @@ func mountComposefsBlob(dataDir, mountPoint string) error {
 		mountOpts += ",noacl"
 	}
 
-	return unix.Mount(loop.Name(), mountPoint, "erofs", unix.MS_RDONLY, mountOpts)
+	if err := unix.Mount(loop.Name(), mountPoint, "erofs", unix.MS_RDONLY, mountOpts); err != nil {
+		return fmt.Errorf("failed to mount erofs image at %q: %w", mountPoint, err)
+	}
+	return nil
 }
