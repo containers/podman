@@ -784,7 +784,8 @@ EOF
 @test "Podman unshare --rootless-netns with Pasta" {
     skip_if_remote "unshare is local-only"
 
-    pasta_iface=$(default_ifname)
+    pasta_iface=$(default_ifname 4)
+    assert "$pasta_iface" != "" "pasta_iface is set"
 
     # First let's force a setup error by making pasta be "false".
     ln -s /usr/bin/false $PODMAN_TMPDIR/pasta
