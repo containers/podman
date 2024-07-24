@@ -10,15 +10,25 @@ podman\-systemd.unit - systemd units using Podman Quadlet
 
 ### Podman rootful unit search path
 
-Quadlet files for the root user can be placed in the following two directories:
+Quadlet files for the root user can be placed in the following directories ordered in precedence. Meaning duplicate named quadlets found under /run take precedence over ones in /etc, as well as those in /usr:
 
- * /etc/containers/systemd/
- * /usr/share/containers/systemd/
+Temporary quadlets, usually used for testing:
+
+* /run/containers/systemd/
+
+System administrator's defined quadlets:
+
+* /etc/containers/systemd/
+
+Distribution defined quadlets:
+
+* /usr/share/containers/systemd/
 
 ### Podman rootless unit search path
 
 Quadlet files for non-root users can be placed in the following directories
 
+ * $XDG_RUNTIME_DIR/containers/systemd/
  * $XDG_CONFIG_HOME/containers/systemd/ or ~/.config/containers/systemd/
  * /etc/containers/systemd/users/$(UID)
  * /etc/containers/systemd/users/

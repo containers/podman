@@ -20,6 +20,8 @@ const (
 	// github.com/containers/podman/v5/libpod/define.AutoUpdateLabel
 	// but it is causing bloat
 	autoUpdateLabel = "io.containers.autoupdate"
+	// Directory for temporary Quadlet files (sysadmin owned)
+	UnitDirTemp = "/run/containers/systemd"
 	// Directory for global Quadlet files (sysadmin owned)
 	UnitDirAdmin = "/etc/containers/systemd"
 	// Directory for global Quadlet files (distro owned)
