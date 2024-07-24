@@ -46,6 +46,9 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		infraOptions.Net = &entities.NetOptions{}
 		infraOptions.Devices = psg.Devices
 		infraOptions.SecurityOpt = psg.SecurityOpt
+		if !psg.Userns.IsDefault() {
+			infraOptions.UserNS = psg.Userns.String()
+		}
 		if psg.ShareParent == nil {
 			t := true
 			psg.ShareParent = &t
