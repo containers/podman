@@ -285,6 +285,13 @@ case "$PRIV_NAME" in
     *) die_unknown PRIV_NAME
 esac
 
+# Root user namespace
+for which in uid gid;do
+    if ! grep -qE '^containers:' /etc/sub$which; then
+        echo 'containers:200000:1048576' >>/etc/sub$which
+    fi
+done
+
 # FIXME! experimental workaround for #16973, the "lookup cdn03.quay.io" flake.
 #
 # If you are reading this on or after April 2023:

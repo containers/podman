@@ -1270,7 +1270,8 @@ EOF
     myvolume=my-volume-$(safename)
     run_podman volume create $myvolume
     mkdir $romount/volume
-    run_podman run --rm --uidmap=0:1000:10000 -v volume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
+    chown 1000:1000 $romount/volume
+    run_podman run --rm --uidmap=0:1000:10000 -v $myvolume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
     is "$output" "0:0"
     run_podman volume rm $myvolume
 
