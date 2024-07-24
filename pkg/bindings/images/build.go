@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
@@ -47,6 +48,21 @@ type BuildResponse struct {
 	// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
 	ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
 	Aux          json.RawMessage `json:"aux,omitempty"`
+}
+
+// Modify the build contexts that uses a local windows path. The windows path is
+// converted into the corresping guest path in the default Windows machine
+// (e.g. C:\test ==> /mnt/c/test).
+func convertAdditionalBuildContexts(additionalBuildContexts map[string]*define.AdditionalBuildContext) {
+	for _, context := range additionalBuildContexts {
+		if !context.IsImage && !context.IsURL {
+			path, err := specgen.ConvertWinMountPath(context.Value)
+			// It's not worth failing if the path can't be converted
+			if err == nil {
+				context.Value = path
+			}
+		}
+	}
 }
 
 // Build creates an image using a containerfile reference
@@ -90,6 +106,10 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Add("t", tag)
 	}
 	if additionalBuildContexts := options.AdditionalBuildContexts; len(additionalBuildContexts) > 0 {
+		// TODO: Additional build contexts should be packaged and sent as tar files
+		// For the time being we make our best to make them accessible on remote
+		// machines too (i.e. on macOS and Windows).
+		convertAdditionalBuildContexts(additionalBuildContexts)
 		additionalBuildContextMap, err := jsoniter.Marshal(additionalBuildContexts)
 		if err != nil {
 			return nil, err

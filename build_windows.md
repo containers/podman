@@ -24,8 +24,8 @@ Windows.
   - [Create and start a podman machine](#create-and-start-a-podman-machine)
   - [Run a container using podman](#run-a-container-using-podman)
 - [Build and test the Podman Windows installer](#build-and-test-the-podman-windows-installer)
-  - [Build the installer](#build-the-installer)
-  - [Test the installer](#test-the-installer)
+  - [Build the Windows installer](#build-the-windows-installer)
+  - [Test the Windows installer](#test-the-windows-installer)
   - [Build and test the standalone `podman.msi` file](#build-and-test-the-standalone-podmanmsi-file)
   - [Verify the installation](#verify-the-installation)
   - [Uninstall and clean-up](#uninstall-and-clean-up)
@@ -480,7 +480,7 @@ $foldersToCheck = @(
     "$env:USERPROFILE.config\containers\"
     "$env:USERPROFILE.local\share\containers\"
     "$ENV:LOCALAPPDATA\containers\"
-    "$ENV:APPDATA\containers\containers.conf.d\99-podman-machine-provider.conf"
+    "$ENV:PROGRAMDATA\containers\containers.conf.d\99-podman-machine-provider.conf"
 )
 $foldersToCheck | ForEach-Object {Test-Path -Path $PSItem}
 ```
