@@ -11,7 +11,7 @@ name: "Lock closed issues and PRs"
 on:
   schedule:
     - cron: '0 0 * * *'
-  # Allow re-use of this workflow by other repositories
+  # Allow reuse of this workflow by other repositories
   # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
   workflow_call:
     secrets:
