@@ -11,6 +11,7 @@ Type=exec
 KillMode=process
 Environment=LOGGING="--log-level=info"
 ExecStart=@@PODMAN@@ $LOGGING system service
+LogLevelMax=notice
 
 [Install]
 WantedBy=default.target
