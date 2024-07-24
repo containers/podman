@@ -1239,6 +1239,10 @@ EOF
 
     grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
 
+    # FIXME: debugging
+    echo "cat /etc/sub?id"
+    cat /etc/sub?id
+
     # check if the underlying file system supports idmapped mounts
     check_dir=$PODMAN_TMPDIR/idmap-check
     mkdir $check_dir
