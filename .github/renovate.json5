@@ -1,6 +1,6 @@
 /*
 
-Validate this file before commiting with (from repository root):
+Validate this file before committing with (from repository root):
 
     podman run -it \
         -v ./.github/renovate.json5:/usr/src/app/renovate.json5:z \
@@ -17,7 +17,7 @@ and/or use the pre-commit hook: https://github.com/renovatebot/pre-commit-hooks
    ****** Global/general configuration options *****
    *************************************************/
 
-  // Re-use predefined sets of configuration options to DRY
+  // Reuse predefined sets of configuration options to DRY
   "extends": [
     // https://github.com/containers/automation/blob/main/renovate/defaults.json5
     "github>containers/automation//renovate/defaults.json5"

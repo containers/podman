@@ -92,7 +92,7 @@ t POST libpod/containers/create name=test1 image=$IMAGE privileged=true 201
 t GET libpod/containers/test1/json 200 \
   .HostConfig.Annotations.'"io.podman.annotations.privileged"'="TRUE"
 
-# now the same without privileged it should not inhert the privileged from before
+# now the same without privileged it should not inherit the privileged from before
 t POST libpod/containers/create name=test2 image=$IMAGE 201
 t GET libpod/containers/test2/json 200 \
   .HostConfig.Annotations=null

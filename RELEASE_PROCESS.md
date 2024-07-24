@@ -253,7 +253,7 @@ spelled with complete minutiae.
       event states triggered, but this can be ignored, as any duplicates
       will gracefully back-off. The job takes 5-6 minutes to complete.
 
-      Please note that the Windows action depends onthe artifact action, and will be
+      Please note that the Windows action depends on the artifact action, and will be
       triggered after the artifact action succeeds.
 
       If any of these actions are somehow not triggered, you can manually trigger them
