@@ -417,11 +417,17 @@ ignore"
     is "$output" "0" "container exited cleanly after sending READY message"
 
     wait_for_file_content $_SOCAT_LOG "READY=1"
-    assert "$(< $_SOCAT_LOG)" =~ "MAINPID=.*
+
+    # (for debugging)
+    echo;echo "$_LOG_PROMPT cat $_SOCAT_LOG"
+    run cat $_SOCAT_LOG
+    echo "$output"
+
+    assert "$output" =~ "MAINPID=.*
 READY=1" "sdnotify sent MAINPID and READY"
 
     # Make sure that Podman is the service's MainPID
-    main_pid=$(head -n1 $_SOCAT_LOG | awk -F= '{print $2}')
+    main_pid=$(head -n1 <<<"$output" | awk -F= '{print $2}')
     is "$(</proc/$main_pid/comm)" "podman" "podman is the service mainPID ($main_pid)"
     _stop_socat
 
