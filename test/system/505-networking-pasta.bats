@@ -802,7 +802,10 @@ EOF
     pasta_ip="$(default_addr 4)"
     host_ips=$(ip -4 -j addr | jq -r '.[] | select(.ifname != "lo") | .addr_info[].local')
 
-    for network in "pasta" "bridge"; do
+    netname=n_$(safename)
+    run_podman network create $netname
+
+    for network in "pasta" "$netname"; do
         # special exit code logic needed here, it is possible that there is no host.containers.internal
         # when there is only one ip one the host and that one is used by pasta.
         # As such we have to deal with both cases.
@@ -818,6 +821,8 @@ EOF
             die "unexpected exit code '$status' from grep or podman ($network)"
         fi
     done
+
+    run_podman network rm $netname
 
     first_host_ip=$(head -n 1 <<<"$host_ips")
     run_podman run --rm --network=pasta:-a,169.254.0.2,-g,169.254.0.1,-n,24 $IMAGE grep host.containers.internal /etc/hosts
