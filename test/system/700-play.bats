@@ -1043,10 +1043,11 @@ spec:
         grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
     fi
 
-    run_podman pod create --userns auto --name usernspod
-    run_podman create --pod usernspod $IMAGE true
+    podname="p-userns-$(safename)"
+    run_podman pod create --userns auto --name $podname
+    run_podman create --pod $podname $IMAGE true
 
-    run_podman pod inspect --format {{.InfraContainerID}} usernspod
+    run_podman pod inspect --format {{.InfraContainerID}} $podname
     infraID="$output"
 
     run_podman inspect --format '{{index .Config.Annotations "io.podman.annotations.userns"}}' $infraID
@@ -1055,15 +1056,15 @@ spec:
     YAML=$PODMAN_TMPDIR/test.yml
 
     # Make sure the same setting is restored if the pod is recreated from the yaml
-    run_podman kube generate usernspod -f $YAML
+    run_podman kube generate $podname -f $YAML
     cat $YAML
     run_podman kube play --replace $YAML
 
-    run_podman pod inspect --format {{.InfraContainerID}} usernspod
+    run_podman pod inspect --format {{.InfraContainerID}} $podname
     infraID="$output"
 
     run_podman inspect --format '{{index .Config.Annotations "io.podman.annotations.userns"}}' $infraID
     assert "$output" == "auto" "user namespace should be kept"
 
-    run_podman pod rm -f usernspod
+    run_podman pod rm -f $podname
 }
