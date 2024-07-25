@@ -264,9 +264,11 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
        install.docker \
        install.docker-docs \
        install.remote \
-       install.testing \
-%if %{defined _modulesloaddir}
-       install.modules-load
+       install.testing
+
+# Only need this on Fedora until nftables becomes the default
+%if %{defined fedora}
+%{__make} DESTDIR=%{buildroot} MODULESLOADDIR=%{_modulesloaddir} install.modules-load
 %endif
 
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
@@ -305,7 +307,7 @@ ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
 %{_tmpfilesdir}/%{name}.conf
 %{_systemdgeneratordir}/%{name}-system-generator
 %{_systemdusergeneratordir}/%{name}-user-generator
-%if %{defined _modulesloaddir}
+%if %{defined fedora}
 %{_modulesloaddir}/%{name}-iptables.conf
 %endif
 
