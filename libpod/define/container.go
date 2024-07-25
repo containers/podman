@@ -61,4 +61,6 @@ const (
 	K8sKindDeployment = "deployment"
 	// A DaemonSet kube yaml spec
 	K8sKindDaemonSet = "daemonset"
+	// a Job kube yaml spec
+	K8sKindJob = "job"
 )

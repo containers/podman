@@ -24,6 +24,7 @@ Currently, the supported Kubernetes kinds are:
 - ConfigMap
 - Secret
 - DaemonSet
+- Job
 
 `Kubernetes Pods or Deployments`
 

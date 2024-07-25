@@ -1103,6 +1103,157 @@ spec:
 {{ end }}
 `
 
+var jobYamlTemplate = `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  creationTimestamp: "2019-07-17T14:44:08Z"
+  name: {{ .Name }}
+  labels:
+    app: {{ .Name }}
+{{ with .Labels }}
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+{{ with .Annotations }}
+  annotations:
+  {{ range $key, $value := . }}
+    {{ $key }}: {{ $value }}
+  {{ end }}
+{{ end }}
+
+spec:
+  template:
+  {{ with .PodTemplate }}
+    metadata:
+      labels:
+        app: {{ .Name }}
+        {{- with .Labels }}{{ range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+        {{- end }}{{ end }}
+      {{- with .Annotations }}
+      annotations:
+      {{- range $key, $value := . }}
+        {{ $key }}: {{ $value }}
+      {{- end }}
+      {{- end }}
+    spec:
+      restartPolicy: {{ .RestartPolicy }}
+      hostname: {{ .Hostname }}
+      hostNetwork: {{ .HostNetwork }}
+      containers:
+    {{ with .Ctrs }}
+      {{ range . }}
+      - command:
+        {{ range .Cmd }}
+        - {{.}}
+        {{ end }}
+        args:
+        {{ range .Arg }}
+        - {{.}}
+        {{ end }}
+        env:
+        - name: HOSTNAME
+        {{ range .Env }}
+        - name: {{ .Name }}
+        {{ if (eq .ValueFrom "configmap") }}
+          valueFrom:
+            configMapKeyRef:
+              name: {{ .RefName }}
+              key: {{ .RefKey }}
+              optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .ValueFrom "secret") }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .RefName }}
+              key: {{ .RefKey }}
+              optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .ValueFrom "") }}
+          value: {{ .Value }}
+        {{ end }}
+        {{ end }}
+        {{ with .EnvFrom}}
+        envFrom:
+        {{ range . }}
+        {{ if (eq .From "configmap") }}
+        - configMapRef:
+            name: {{ .Name }}
+            optional: {{ .Optional }}
+        {{ end }}
+        {{ if (eq .From "secret") }}
+        - secretRef:
+            name: {{ .Name }}
+            optional: {{ .Optional }}
+        {{ end }}
+        {{ end }}
+        {{ end }}
+        image: {{ .Image }}
+        name: {{ .Name }}
+        imagePullPolicy: {{ .PullPolicy }}
+        {{- if or .CPURequest .CPULimit .MemoryRequest .MemoryLimit }}
+        resources:
+          {{- if or .CPURequest .MemoryRequest }}
+          requests:
+            {{if .CPURequest }}cpu: {{ .CPURequest }}{{ end }}
+            {{if .MemoryRequest }}memory: {{ .MemoryRequest }}{{ end }}
+          {{- end }}
+          {{- if or .CPULimit .MemoryLimit }}
+          limits:
+            {{if .CPULimit }}cpu: {{ .CPULimit }}{{ end }}
+            {{if .MemoryLimit }}memory: {{ .MemoryLimit }}{{ end }}
+          {{- end }}
+        {{- end }}
+        {{ if .SecurityContext }}
+        securityContext:
+          allowPrivilegeEscalation: true
+          {{ if .Caps }}
+          capabilities:
+            {{ with .CapAdd }}
+            add:
+              {{ range . }}
+              - {{.}}
+              {{ end }}
+            {{ end }}
+            {{ with .CapDrop }}
+            drop:
+              {{ range . }}
+              - {{.}}
+              {{ end }}
+            {{ end }}
+          {{ end }}
+          privileged: false
+          readOnlyRootFilesystem: false
+        workingDir: /
+        volumeMounts:
+        {{ if .VolumeMount }}
+        - name: {{.VolumeName}}
+          mountPath: {{ .VolumeMountPath }}
+          readonly: {{.VolumeReadOnly}}
+        {{ end }}
+        {{ end }}
+      {{ end }}
+    {{ end }}
+    {{ with .Volumes }}
+      volumes:
+      {{ range . }}
+      - name: {{ .Name }}
+        {{- if (eq .VolumeType "HostPath") }}
+        hostPath:
+          path: {{ .HostPath.Path }}
+          type: {{ .HostPath.Type }}
+        {{- end }}
+        {{- if (eq .VolumeType "PersistentVolumeClaim") }}
+        persistentVolumeClaim:
+          claimName: {{ .PersistentVolumeClaim.ClaimName }}
+        {{- end }}
+      {{ end }}
+    {{ end }}
+{{ end }}
+`
+
 var publishPortsPodWithoutPorts = `
 apiVersion: v1
 kind: Pod
@@ -1302,6 +1453,7 @@ var (
 	defaultVolName        = "testVol"
 	defaultDaemonSetName  = "testDaemonSet"
 	defaultDeploymentName = "testDeployment"
+	defaultJobName        = "testJob"
 	defaultConfigMapName  = "testConfigMap"
 	defaultSecretName     = "testSecret"
 	defaultPVCName        = "testPVC"
@@ -1326,6 +1478,8 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 		yamlTemplate = daemonSetYamlTemplate
 	case "deployment":
 		yamlTemplate = deploymentYamlTemplate
+	case "job":
+		yamlTemplate = jobYamlTemplate
 	case "persistentVolumeClaim":
 		yamlTemplate = persistentVolumeClaimYamlTemplate
 	case "secret":
@@ -1614,7 +1768,7 @@ func withHostUsers(val bool) podOption {
 	}
 }
 
-// Deployment describes the options a kube yaml can be configured at deployment level
+// Daemonset describes the options a kube yaml can be configured at daemoneset level
 type DaemonSet struct {
 	Name        string
 	Labels      map[string]string
@@ -1695,6 +1849,39 @@ func getPodNameInDaemonSet(d *DaemonSet) Pod {
 // with just its name set, so that it can be passed around
 // and into getCtrNameInPod for ease of testing
 func getPodNameInDeployment(d *Deployment) Pod {
+	p := Pod{}
+	p.Name = fmt.Sprintf("%s-pod", d.Name)
+
+	return p
+}
+
+type Job struct {
+	Name        string
+	Labels      map[string]string
+	Annotations map[string]string
+	PodTemplate *Pod
+}
+
+func getJob(options ...jobOption) *Job {
+	j := Job{
+		Name:        defaultJobName,
+		Labels:      make(map[string]string),
+		Annotations: make(map[string]string),
+		PodTemplate: getPod(),
+	}
+	for _, option := range options {
+		option(&j)
+	}
+
+	return &j
+}
+
+type jobOption func(*Job)
+
+// getPodNameInJob returns the Pod object
+// with just its name set, so that it can be passed around
+// and into getCtrNameInPod for ease of testing
+func getPodNameInJob(d *Job) Pod {
 	p := Pod{}
 	p.Name = fmt.Sprintf("%s-pod", d.Name)
 
@@ -3358,6 +3545,23 @@ spec:
 		Expect(inspect).Should(ExitCleanly())
 		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
 
+	})
+
+	It("job sanity", func() {
+		job := getJob()
+		err := generateKubeYaml("job", job, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		podName := getPodNameInJob(job)
+		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&podName), "--format", "'{{ .Config.Entrypoint }}'"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		// yaml's command should override the image's Entrypoint
+		Expect(inspect.OutputToString()).To(ContainSubstring(strings.Join(defaultCtrCmd, " ")))
 	})
 
 	It("--ip and --mac-address", func() {

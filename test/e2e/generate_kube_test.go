@@ -1541,6 +1541,54 @@ USER test1`
 		Expect(kube).Should(ExitWithError(125, "k8s Deployments can only have restartPolicy set to Always"))
 	})
 
+	It("on pod with --type=job", func() {
+		podName := "test-pod"
+		session := podmanTest.Podman([]string{"pod", "create", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		session = podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "sleep", "100"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "job", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		dep := new(v1.Job)
+		err := yaml.Unmarshal(kube.Out.Contents(), dep)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dep.Name).To(Equal(podName + "-job"))
+		Expect(dep.Spec.Template.Name).To(Equal(podName))
+		var intone int32 = 1
+		Expect(dep.Spec.Parallelism).To(Equal(&intone))
+		Expect(dep.Spec.Completions).To(Equal(&intone))
+
+		numContainers := 0
+		for range dep.Spec.Template.Spec.Containers {
+			numContainers++
+		}
+		Expect(numContainers).To(Equal(2))
+	})
+
+	It("on pod with --type=job and --restart=always should fail", func() {
+		podName := "test-pod"
+		session := podmanTest.Podman([]string{"pod", "create", "--restart", "always", podName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "top"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		kube := podmanTest.Podman([]string{"kube", "generate", "--type", "job", podName})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitWithError(125, "k8s Jobs can not have restartPolicy set to Always; only Never and OnFailure policies allowed"))
+	})
+
 	It("on pod with invalid name", func() {
 		podName := "test_pod"
 		session := podmanTest.Podman([]string{"pod", "create", podName})
