@@ -349,7 +349,7 @@ END_HTML
         # BATS handling. This will recognize num_tests both at start and end
         if ($line =~ /^1\.\.(\d+)$/) {
             $looks_like_bats = 1;
-            $bats_count{expected_total} = $1;
+            $bats_count{expected_total} += $1;
             undef $looks_like_python;
         }
         # Since the number of tests can't always be predicted, recognize
@@ -445,9 +445,14 @@ END_HTML
             if ($css) {
                 # Make it linkable, e.g. foo.html#t--00001
                 if ($line =~ /^(not\s+)?ok\s+(\d+)\s+(.*)/) {
-                    $line = sprintf("<a name='t--%05d'>%s</a>", $2, $line);
+                    my ($notok, $num, $name) = ($1, $2, $3);
+                    # Parallel system tests are shown as |nnn| instead of [nnn]
+                    my $p = '';
+                    $p = 'p' if $name =~ /^\s*\|\d+\|/;
 
-                    push @{$bats_count{__fail_list}}, [ $2, $3 ] if $1;
+                    $line = sprintf("<a name='t--%05d%s'>%s</a>", $num, $p, $line);
+
+                    push @{$bats_count{__fail_list}}, [ $num, $name ] if $notok;
                 }
                 $bats_count{$css}++;
                 $css = "bats-$css";

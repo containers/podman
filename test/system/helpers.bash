@@ -160,7 +160,12 @@ function basic_setup() {
 
     # Test filenames must match ###-name.bats; use "[###] " as prefix
     run expr "$BATS_TEST_FILENAME" : "^.*/\([0-9]\{3\}\)-[^/]\+\.bats\$"
-    BATS_TEST_NAME_PREFIX="[${output}] "
+    # If parallel, use |nnn|. Serial, [nnn]
+    if [[ -n "$PARALLEL_JOBSLOT" ]]; then
+        BATS_TEST_NAME_PREFIX="|${output}| "
+    else
+        BATS_TEST_NAME_PREFIX="[${output}] "
+    fi
 
     # By default, assert() and die() cause an immediate test failure.
     # Under special circumstances (usually long test loops), tests
