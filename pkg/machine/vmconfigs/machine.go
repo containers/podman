@@ -15,7 +15,6 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/pkg/machine/ports"
 	"github.com/containers/storage/pkg/fileutils"
@@ -331,19 +330,8 @@ func (mc *MachineConfig) IsFirstBoot() (bool, error) {
 }
 
 func (mc *MachineConfig) ConnectionInfo(vmtype define.VMType) (*define.VMFile, *define.VMFile, error) {
-	var (
-		socket *define.VMFile
-		pipe   *define.VMFile
-	)
-
-	if vmtype == define.HyperVVirt || vmtype == define.WSLVirt {
-		pipeName := env.WithPodmanPrefix(mc.Name)
-		pipe = &define.VMFile{Path: `\\.\pipe\` + pipeName}
-		return nil, pipe, nil
-	}
-
 	socket, err := mc.APISocket()
-	return socket, nil, err
+	return socket, getPipe(mc.Name), err
 }
 
 // LoadMachineByName returns a machine config based on the vm name and provider

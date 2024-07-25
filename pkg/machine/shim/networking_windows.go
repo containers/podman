@@ -6,6 +6,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
+	sc "github.com/containers/podman/v5/pkg/machine/sockets"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
@@ -22,5 +23,16 @@ func setupMachineSockets(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) 
 		state = machine.DockerGlobal
 	}
 
-	return sockets, sockets[len(sockets)-1], state, nil
+	hostSocket, err := mc.APISocket()
+	if err != nil {
+		return nil, "", 0, err
+	}
+
+	hostURL, err := sc.ToUnixURL(hostSocket)
+	if err != nil {
+		return nil, "", 0, err
+	}
+	sockets = append(sockets, hostURL.String())
+
+	return sockets, sockets[len(sockets)-2], state, nil
 }
