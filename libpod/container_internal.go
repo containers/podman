@@ -262,7 +262,9 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTransientFiles(ctx, c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
+		if err := c.removeTransientFiles(ctx,
+			c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed,
+			c.state.HCUnitName); err != nil {
 			return false, err
 		}
 	}
@@ -641,6 +643,7 @@ func resetContainerState(state *ContainerState) {
 	state.StartupHCPassed = false
 	state.StartupHCSuccessCount = 0
 	state.StartupHCFailureCount = 0
+	state.HCUnitName = ""
 	state.NetNS = ""
 	state.NetworkStatus = nil
 	state.NetworkStatusOld = nil
@@ -1557,7 +1560,9 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 		}
 
 		if c.config.HealthCheckConfig != nil {
-			if err := c.removeTransientFiles(context.Background(), c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
+			if err := c.removeTransientFiles(context.Background(),
+				c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed,
+				c.state.HCUnitName); err != nil {
 				logrus.Error(err.Error())
 			}
 		}
@@ -2054,7 +2059,9 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTransientFiles(ctx, c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
+		if err := c.removeTransientFiles(ctx,
+			c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed,
+			c.state.HCUnitName); err != nil {
 			logrus.Errorf("Removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}
