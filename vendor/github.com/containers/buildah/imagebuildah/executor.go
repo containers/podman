@@ -161,6 +161,7 @@ type Executor struct {
 	sbomScanOptions                         []define.SBOMScanOptions
 	cdiConfigDir                            string
 	compatSetParent                         types.OptionalBool
+	compatVolumes                           types.OptionalBool
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -318,6 +319,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		sbomScanOptions:                         options.SBOMScanOptions,
 		cdiConfigDir:                            options.CDIConfigDir,
 		compatSetParent:                         options.CompatSetParent,
+		compatVolumes:                           options.CompatVolumes,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -771,18 +773,19 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 									base = child.Next.Value
 								}
 							}
+							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
 							// append heading args so if --build-arg key=value is not
 							// specified but default value is set in Containerfile
 							// via `ARG key=value` so default value can be used.
-							userArgs = append(headingArgs, userArgs...)
+							userArgs = append(builtinArgs, append(userArgs, headingArgs...)...)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
 							}
 							b.baseMap[baseWithArg] = struct{}{}
-							logrus.Debugf("base for stage %d: %q", stageIndex, base)
+							logrus.Debugf("base for stage %d: %q resolves to %q", stageIndex, base, baseWithArg)
 							// Check if selected base is not an additional
 							// build context and if base is a valid stage
 							// add it to current stage's dependency tree.
@@ -809,16 +812,18 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							// if following ADD or COPY needs any other
 							// stage.
 							stageName := rootfs
+							builtinArgs := argsMapToSlice(stage.Builder.BuiltinArgDefaults)
 							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
 							// append heading args so if --build-arg key=value is not
 							// specified but default value is set in Containerfile
 							// via `ARG key=value` so default value can be used.
-							userArgs = append(headingArgs, userArgs...)
+							userArgs = append(builtinArgs, append(userArgs, headingArgs...)...)
 							baseWithArg, err := imagebuilder.ProcessWord(stageName, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", stageName, err)
 							}
+							logrus.Debugf("stage %d name: %q resolves to %q", stageIndex, stageName, baseWithArg)
 							stageName = baseWithArg
 							// If --from=<index> convert index to name
 							if index, err := strconv.Atoi(stageName); err == nil {

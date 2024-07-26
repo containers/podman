@@ -361,6 +361,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		CDIConfigDir:            iopts.CDIConfigDir,
 		CNIConfigDir:            iopts.CNIConfigDir,
 		CNIPluginPath:           iopts.CNIPlugInPath,
+		CompatVolumes:           types.NewOptionalBool(iopts.CompatVolumes),
 		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CPPFlags:                iopts.CPPFlags,
 		CommonBuildOpts:         commonOpts,
