@@ -287,6 +287,13 @@ func (c *layersCache) load() error {
 			newLayers = append(newLayers, l)
 			continue
 		}
+
+		if r.ReadOnly {
+			// if the layer is coming from a read-only store, do not attempt
+			// to write to it.
+			continue
+		}
+
 		// the cache file is either not present or broken.  Try to generate it from the TOC.
 		l, err = c.createCacheFileFromTOC(r.ID)
 		if err != nil {
