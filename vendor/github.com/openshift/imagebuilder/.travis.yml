@@ -14,8 +14,13 @@ before_install:
   - yes | sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
   - sudo apt-get update -q -y
   - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+  - sudo systemctl enable --now docker.service && sudo systemctl enable --now docker.socket
   - docker pull busybox
   - docker pull centos:7
+  - docker pull alpine
+  - docker pull registry.fedoraproject.org/fedora-minimal
+  - docker pull registry.fedoraproject.org/fedora-minimal:41-x86_64
+  - docker pull registry.fedoraproject.org/fedora-minimal:41-aarch64
   - chmod -R go-w ./dockerclient/testdata
 
 script:

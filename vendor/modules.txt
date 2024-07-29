@@ -109,6 +109,7 @@ github.com/chzyer/readline
 github.com/containerd/cgroups/v3/cgroup1/stats
 # github.com/containerd/containerd v1.7.18
 ## explicit; go 1.21
+github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/pkg/userns
 github.com/containerd/containerd/platforms
 # github.com/containerd/errdefs v0.1.0
@@ -907,7 +908,7 @@ github.com/opencontainers/runtime-tools/validate/capabilities
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.11
+# github.com/openshift/imagebuilder v1.2.14
 ## explicit; go 1.19
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command

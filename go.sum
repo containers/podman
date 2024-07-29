@@ -398,8 +398,8 @@ github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc h1:
 github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc/go.mod h1:8tx1helyqhUC65McMm3x7HmOex8lO2/v9zPuxmKHurs=
 github.com/opencontainers/selinux v1.11.0 h1:+5Zbo97w3Lbmb3PeqQtpmTkMwsW5nRI3YaLpt7tQ7oU=
 github.com/opencontainers/selinux v1.11.0/go.mod h1:E5dMC3VPuVvVHDYmi78qvhJp8+M586T4DlDRYpFkyec=
-github.com/openshift/imagebuilder v1.2.11 h1:4EmEMyiLr7jlskS1h6V6smdcrQSGLRdcIeaXeV3F8EM=
-github.com/openshift/imagebuilder v1.2.11/go.mod h1:KkkXOyRjJlZEXWQtHNBNzVHqh4vf/0xX5cDIQ2gr+5I=
+github.com/openshift/imagebuilder v1.2.14 h1:l4gUw0KIsjZrX7otfS4WoKxzGBrxYldU3pF4+5W/ud8=
+github.com/openshift/imagebuilder v1.2.14/go.mod h1:KkkXOyRjJlZEXWQtHNBNzVHqh4vf/0xX5cDIQ2gr+5I=
 github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
 github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
 github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f h1:/UDgs8FGMqwnHagNDPGOlts35QkhAZ8by3DR7nMih7M=
