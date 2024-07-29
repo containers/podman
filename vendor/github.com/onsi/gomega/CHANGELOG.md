@@ -1,3 +1,8 @@
+## 1.34.1
+
+### Maintenance
+- Use slices from exp/slices to keep golang 1.20 compat [5e71dcd]
+
 ## 1.34.0
 
 ### Features
