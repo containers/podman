@@ -157,8 +157,9 @@ RELABEL="system_u:object_r:container_file_t:s0"
 
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
+    log=/tmp/podman-kube-bg.log
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
+        $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>$log &
 
     # Wait for the container to be running
     container_a=$PODCTRNAME
@@ -214,6 +215,10 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod kill $PODNAME
     _ensure_container_running $service_container false
 
+    echo
+    echo "cat $log:"
+    cat $log
+    echo
     run_podman network ls
 
     # Remove the pod and make sure the service is removed along with it
