@@ -119,6 +119,7 @@ type BudResults struct {
 	OSVersion           string
 	CWOptions           string
 	SBOMOptions         []string
+	CompatVolumes       bool
 }
 
 // FromAndBugResults represents the results for common flags
@@ -228,6 +229,7 @@ func GetBudFlags(flags *BudResults) pflag.FlagSet {
 	fs.StringVar(&flags.CacheTTL, "cache-ttl", "", "only consider cache images under specified duration.")
 	fs.StringVar(&flags.CertDir, "cert-dir", "", "use certificates at the specified path to access the registry")
 	fs.BoolVar(&flags.Compress, "compress", false, "this is a legacy option, which has no effect on the image")
+	fs.BoolVar(&flags.CompatVolumes, "compat-volumes", false, "preserve the contents of VOLUMEs during RUN instructions")
 	fs.StringArrayVar(&flags.CPPFlags, "cpp-flag", []string{}, "set additional flag to pass to C preprocessor (cpp)")
 	fs.StringVar(&flags.Creds, "creds", "", "use `[username[:password]]` for accessing the registry")
 	fs.StringVarP(&flags.CWOptions, "cw", "", "", "confidential workload `options`")

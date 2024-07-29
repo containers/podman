@@ -4,7 +4,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/manifests"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
@@ -349,25 +349,29 @@ type BuildOptions struct {
 	CDIConfigDir string
 	// CachePullSourceLookupReferenceFunc is an optional LookupReferenceFunc
 	// used to look up source references for cache pulls.
-	CachePullSourceLookupReferenceFunc libimage.LookupReferenceFunc
+	CachePullSourceLookupReferenceFunc manifests.LookupReferenceFunc
 	// CachePullDestinationLookupReferenceFunc is an optional generator
 	// function which provides a LookupReferenceFunc used to look up
 	// destination references for cache pulls.
 	//
 	// BlobDirectory will be ignored for cache pulls if this option is set.
-	CachePullDestinationLookupReferenceFunc func(srcRef types.ImageReference) libimage.LookupReferenceFunc
+	CachePullDestinationLookupReferenceFunc func(srcRef types.ImageReference) manifests.LookupReferenceFunc
 	// CachePushSourceLookupReferenceFunc is an optional generator function
 	// which provides a LookupReferenceFunc used to look up source
 	// references for cache pushes.
 	//
 	// BlobDirectory will be ignored for cache pushes if this option is set.
-	CachePushSourceLookupReferenceFunc func(dest types.ImageReference) libimage.LookupReferenceFunc
+	CachePushSourceLookupReferenceFunc func(dest types.ImageReference) manifests.LookupReferenceFunc
 	// CachePushDestinationLookupReferenceFunc is an optional
 	// LookupReferenceFunc used to look up destination references for cache
 	// pushes
-	CachePushDestinationLookupReferenceFunc libimage.LookupReferenceFunc
+	CachePushDestinationLookupReferenceFunc manifests.LookupReferenceFunc
 	// CompatSetParent causes the "parent" field to be set in the image's
 	// configuration when committing in Docker format.  Newer
 	// BuildKit-based docker build doesn't set this field.
 	CompatSetParent types.OptionalBool
+	// CompatVolumes causes the contents of locations marked as volumes in
+	// base images or by a VOLUME instruction to be preserved during RUN
+	// instructions.  Newer BuildKit-based docker build doesn't bother.
+	CompatVolumes types.OptionalBool
 }

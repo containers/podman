@@ -27,7 +27,7 @@ type cache struct {
 	uncompressedDigests   map[digest.Digest]digest.Digest
 	digestsByUncompressed map[digest.Digest]*set.Set[digest.Digest]                // stores a set of digests for each uncompressed digest
 	knownLocations        map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
-	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Unknown (not blobinfocache.UnknownCompression), for each digest
+	compressors           map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Uncompressed (not blobinfocache.UnknownCompression), for each digest
 }
 
 // New returns a BlobInfoCache implementation which is in-memory only.
