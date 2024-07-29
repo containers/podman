@@ -863,6 +863,7 @@ Valid options for `[Pod]` are listed below:
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
 | PodName=name                        | --name=name                            |
 | PublishPort=50-59                   | --publish 50-59                        |
+| ServiceName=name                    | Name the systemd unit `name.service`   |
 | Volume=/source:/dest                | --volume /source:/dest                 |
 
 Supported keys in the `[Pod]` section are:
@@ -946,6 +947,14 @@ allocated port can be found with the `podman port` command.
 When using `host` networking via `Network=host`, the `PublishPort=` option cannot be used.
 
 This key can be listed multiple times.
+
+
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit by appending `-pod` to the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
 
 ### `Volume=`
 
