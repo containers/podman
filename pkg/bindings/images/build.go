@@ -281,6 +281,12 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	if mem := options.CommonBuildOpts.Memory; mem > 0 {
 		params.Set("memory", strconv.Itoa(int(mem)))
 	}
+	switch options.CompatVolumes {
+	case imageTypes.OptionalBoolTrue:
+		params.Set("compatvolumes", "1")
+	case imageTypes.OptionalBoolFalse:
+		params.Set("compatvolumes", "0")
+	}
 	if options.NoCache {
 		params.Set("nocache", "1")
 	}
