@@ -170,7 +170,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
+        $PODMAN --syslog play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
 
     # Wait for the container to be running
     container_a=$PODCTRNAME
@@ -212,7 +212,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "true"
 
     # Restart the pod, make sure the service is running again
-    run_podman pod restart $PODNAME
+    run_podman --syslog pod restart $PODNAME
     run_podman container inspect $service_container --format "{{.State.Running}}"
     is "$output" "true"
 
@@ -223,11 +223,11 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
 
     # Kill the pod and make sure the service is not running
-    run_podman pod kill $PODNAME
+    run_podman --syslog pod kill $PODNAME
     _ensure_container_running $service_container false
 
     # Remove the pod and make sure the service is removed along with it
-    run_podman pod rm $PODNAME
+    run_podman --syslog pod rm $PODNAME
     run_podman 1 container exists $service_container
 }
 
