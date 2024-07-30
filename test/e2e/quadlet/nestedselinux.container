@@ -1,4 +1,4 @@
-## assert-podman-args "--security-opt" "label:nested"
+## assert-podman-args "--security-opt" "label=nested"
 
 [Container]
 Image=localhost/imagename

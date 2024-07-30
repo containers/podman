@@ -615,12 +615,12 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	securityLabelDisable := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelDisable, false)
 	if securityLabelDisable {
-		podman.add("--security-opt", "label:disable")
+		podman.add("--security-opt", "label=disable")
 	}
 
 	securityLabelNested := container.LookupBooleanWithDefault(ContainerGroup, KeySecurityLabelNested, false)
 	if securityLabelNested {
-		podman.add("--security-opt", "label:nested")
+		podman.add("--security-opt", "label=nested")
 	}
 
 	pidsLimit, ok := container.Lookup(ContainerGroup, KeyPidsLimit)
