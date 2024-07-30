@@ -46,7 +46,12 @@ func bindPorts(ports []types.PortMapping) ([]*os.File, error) {
 			for i := uint16(0); i < port.Range; i++ {
 				f, err := bindPort(protocol, port.HostIP, port.HostPort+i, isV6, &sctpWarning)
 				if err != nil {
-					return files, err
+					// close all open ports in case of early error so we do not
+					// rely garbage  collector to close them
+					for _, f := range files {
+						f.Close()
+					}
+					return nil, err
 				}
 				if f != nil {
 					files = append(files, f)

@@ -54,6 +54,15 @@ load helpers.network
             $IMAGE /bin/busybox-extras httpd -f -p 80
     cid=$output
 
+    # Try to bind the same port again, this must fail.
+    # regression test for https://issues.redhat.com/browse/RHEL-50746
+    # which caused this command to overwrite the firewall rules as root
+    # causing the curl commands below to fail
+    run_podman 126 run --rm -p "$HOST_PORT:80" $IMAGE true
+    # Note error messages differ between root/rootless, so only check port
+    # and the part of the error text that is common.
+    assert "$output" =~ "$HOST_PORT.*ddress already in use" "port in use"
+
     # In that container, create a second file, using exec and redirection
     run_podman exec -i myweb sh -c "cat > index2.txt" <<<"$random_2"
     # ...verify its contents as seen from container.
@@ -61,9 +70,9 @@ load helpers.network
     is "$output" "$random_2" "exec cat index2.txt"
 
     # Verify http contents: curl from localhost
-    run curl -s -S $SERVER/index.txt
+    run curl --max-time 3 -s -S $SERVER/index.txt
     is "$output" "$random_1" "curl 127.0.0.1:/index.txt"
-    run curl -s -S $SERVER/index2.txt
+    run curl --max-time 3 -s -S $SERVER/index2.txt
     is "$output" "$random_2" "curl 127.0.0.1:/index2.txt"
 
     # Verify http contents: wget from a second container

@@ -118,6 +118,10 @@ type Container struct {
 	rootlessPortSyncR *os.File
 	rootlessPortSyncW *os.File
 
+	// reservedPorts contains the fds for the bound ports when using the
+	// bridge network mode as root.
+	reservedPorts []*os.File
+
 	// perNetworkOpts should be set when you want to use special network
 	// options when calling network setup/teardown. This should be used for
 	// container restore or network reload for example. Leave this nil if
