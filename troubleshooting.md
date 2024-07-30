@@ -733,8 +733,30 @@ file `/etc/systemd/system/user@.service.d/delegate.conf` with the contents:
 Delegate=memory pids cpu cpuset
 ```
 
+Then `sudo systemctl daemon-reload` to Reload systemd configuration.
+
 After logging out and logging back in, you should have permission to set
 CPU and CPUSET limits.
+
+##### Auto shell scripts
+
+Here is a shell script that combines the above operations:
+
+```sh
+cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers" \
+| grep cpu || ( \
+sudo mkdir -p /etc/systemd/system/user@.service.d/ && \
+ 
+sudo bash -c "cat > /etc/systemd/system/user@.service.d/delegate.conf << EOF
+[Service]
+Delegate=memory pids cpu cpuset
+EOF" && \
+ 
+sudo systemctl daemon-reload
+)
+```
+
+After logging out and logging back in, check it again by `cat "/sys/fs/cgroup/user.slice/user-$(id -u).slice/user@$(id -u).service/cgroup.controllers"`
 
 ### 27) `exec container process '/bin/sh': Exec format error` (or another binary than `bin/sh`)
 
