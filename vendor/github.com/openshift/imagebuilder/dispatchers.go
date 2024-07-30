@@ -18,6 +18,7 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
+	"github.com/containerd/containerd/errdefs"
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/storage/pkg/regexp"
 	"github.com/openshift/imagebuilder/signal"
@@ -35,7 +36,7 @@ var (
 var localspec = platforms.DefaultSpec()
 
 // https://docs.docker.com/engine/reference/builder/#automatic-platform-args-in-the-global-scope
-var builtinBuildArgs = map[string]string{
+var builtinArgDefaults = map[string]string{
 	"TARGETPLATFORM": localspec.OS + "/" + localspec.Architecture,
 	"TARGETOS":       localspec.OS,
 	"TARGETARCH":     localspec.Architecture,
@@ -48,8 +49,8 @@ var builtinBuildArgs = map[string]string{
 
 func init() {
 	if localspec.Variant != "" {
-		builtinBuildArgs["TARGETPLATFORM"] = builtinBuildArgs["TARGETPLATFORM"] + "/" + localspec.Variant
-		builtinBuildArgs["BUILDPLATFORM"] = builtinBuildArgs["BUILDPLATFORM"] + "/" + localspec.Variant
+		builtinArgDefaults["TARGETPLATFORM"] = builtinArgDefaults["TARGETPLATFORM"] + "/" + localspec.Variant
+		builtinArgDefaults["BUILDPLATFORM"] = builtinArgDefaults["BUILDPLATFORM"] + "/" + localspec.Variant
 	}
 }
 
@@ -83,13 +84,12 @@ func env(b *Builder, args []string, attributes map[string]bool, flagArgs []strin
 		fmt.Printf("Str1:%v\n", flStr1)
 	*/
 
-	for j := 0; j < len(args); j++ {
+	for j := 0; j+1 < len(args); j += 2 {
 		// name  ==> args[j]
 		// value ==> args[j+1]
 		newVar := []string{args[j] + "=" + args[j+1]}
 		b.RunConfig.Env = mergeEnv(b.RunConfig.Env, newVar)
 		b.Env = mergeEnv(b.Env, newVar)
-		j++
 	}
 
 	return nil
@@ -254,7 +254,13 @@ func dispatchCopy(b *Builder, args []string, attributes map[string]bool, flagArg
 	var link bool
 	var parents bool
 	var excludes []string
-	userArgs := mergeEnv(envMapAsSlice(b.Args), b.Env)
+	filteredUserArgs := make(map[string]string)
+	for k, v := range b.Args {
+		if _, ok := b.AllowedArgs[k]; ok {
+			filteredUserArgs[k] = v
+		}
+	}
+	userArgs := mergeEnv(envMapAsSlice(filteredUserArgs), b.Env)
 	for _, a := range flagArgs {
 		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
@@ -323,17 +329,12 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 	case len(args) == 3 && len(args[0]) > 0 && strings.EqualFold(args[1], "as") && len(args[2]) > 0:
 
 	default:
-		return fmt.Errorf("FROM requires either one argument, or three: FROM <source> [as <name>]")
+		return fmt.Errorf("FROM requires either one argument, or three: FROM <source> [AS <name>]")
 	}
 
 	name := args[0]
 
-	// Support ARG before from
-	argStrs := []string{}
-	for n, v := range b.HeadingArgs {
-		argStrs = append(argStrs, n+"="+v)
-	}
-	defaultArgs := envMapAsSlice(builtinBuildArgs)
+	// Support ARG before FROM
 	filteredUserArgs := make(map[string]string)
 	for k, v := range b.UserArgs {
 		for _, a := range b.GlobalAllowedArgs {
@@ -343,10 +344,11 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 		}
 	}
 	userArgs := mergeEnv(envMapAsSlice(filteredUserArgs), b.Env)
-	userArgs = mergeEnv(defaultArgs, userArgs)
-	nameArgs := mergeEnv(argStrs, userArgs)
+	userArgs = mergeEnv(envMapAsSlice(b.BuiltinArgDefaults), userArgs)
+	userArgs = mergeEnv(envMapAsSlice(builtinArgDefaults), userArgs)
+	userArgs = mergeEnv(envMapAsSlice(b.HeadingArgs), userArgs)
 	var err error
-	if name, err = ProcessWord(name, nameArgs); err != nil {
+	if name, err = ProcessWord(name, userArgs); err != nil {
 		return err
 	}
 
@@ -357,7 +359,7 @@ func from(b *Builder, args []string, attributes map[string]bool, flagArgs []stri
 		}
 	}
 	for _, a := range flagArgs {
-		arg, err := ProcessWord(a, nameArgs)
+		arg, err := ProcessWord(a, userArgs)
 		if err != nil {
 			return err
 		}
@@ -727,70 +729,64 @@ func healthcheck(b *Builder, args []string, attributes map[string]bool, flagArgs
 	return nil
 }
 
-var targetArgs = []string{"TARGETOS", "TARGETARCH", "TARGETVARIANT"}
-
 // ARG name[=value]
 //
 // Adds the variable foo to the trusted list of variables that can be passed
 // to builder using the --build-arg flag for expansion/subsitution or passing to 'run'.
 // Dockerfile author may optionally set a default value of this variable.
 func arg(b *Builder, args []string, attributes map[string]bool, flagArgs []string, original string, heredocs []buildkitparser.Heredoc) error {
-	var (
-		name       string
-		value      string
-		hasDefault bool
-	)
-
 	for _, argument := range args {
+		var (
+			name         string
+			defaultValue string
+			haveDefault  bool
+		)
 		arg := argument
 		// 'arg' can just be a name or name-value pair. Note that this is different
 		// from 'env' that handles the split of name and value at the parser level.
 		// The reason for doing it differently for 'arg' is that we support just
-		// defining an arg and not assign it a value (while 'env' always expects a
+		// defining an arg without assigning it a value (while 'env' always expects a
 		// name-value pair). If possible, it will be good to harmonize the two.
-		if strings.Contains(arg, "=") {
-			parts := strings.SplitN(arg, "=", 2)
-			name = parts[0]
-			value = parts[1]
-			hasDefault = true
-			if name == "TARGETPLATFORM" {
-				p, err := platforms.Parse(value)
-				if err != nil {
-					return fmt.Errorf("error parsing TARGETPLATFORM argument")
-				}
-				for _, val := range targetArgs {
-					b.AllowedArgs[val] = true
-				}
-				b.Args["TARGETPLATFORM"] = p.OS + "/" + p.Architecture
-				b.Args["TARGETOS"] = p.OS
-				b.Args["TARGETARCH"] = p.Architecture
-				b.Args["TARGETVARIANT"] = p.Variant
-				if p.Variant != "" {
-					b.Args["TARGETPLATFORM"] = b.Args["TARGETPLATFORM"] + "/" + p.Variant
-				}
-			}
-		} else if val, ok := builtinBuildArgs[arg]; ok {
-			name = arg
-			value = val
-			hasDefault = true
-		} else {
-			name = arg
-			hasDefault = false
-		}
+		name, defaultValue, haveDefault = strings.Cut(arg, "=")
+
 		// add the arg to allowed list of build-time args from this step on.
 		b.AllowedArgs[name] = true
 
-		// If there is still no default value, a value can be assigned from the heading args
-		if val, ok := b.HeadingArgs[name]; ok && !hasDefault {
-			b.Args[name] = val
+		// If the stage introduces one of the predefined args, add the
+		// predefined value to the list of values known in this stage
+		if value, defined := builtinArgDefaults[name]; defined {
+			if haveDefault && (name == "TARGETPLATFORM" || name == "BUILDPLATFORM") {
+				return fmt.Errorf("attempted to redefine %q: %w", name, errdefs.ErrInvalidArgument)
+			}
+			if b.BuiltinArgDefaults == nil {
+				b.BuiltinArgDefaults = make(map[string]string)
+			}
+			// N.B.: we're only consulting b.BuiltinArgDefaults for
+			// values that correspond to keys in
+			// builtinArgDefaults, which keeps the caller from
+			// using it to sneak in arbitrary ARG values
+			if _, setByUser := b.UserArgs[name]; !setByUser && defined {
+				if builderValue, builderDefined := b.BuiltinArgDefaults[name]; builderDefined {
+					b.Args[name] = builderValue
+				} else {
+					b.Args[name] = value
+				}
+			}
+			continue
 		}
 
-		// If there is a default value associated with this arg then add it to the
-		// b.buildArgs, later default values for the same arg override earlier ones.
-		// The args passed to builder (UserArgs) override the default value of 'arg'
-		// Don't add them here as they were already set in NewBuilder.
-		if _, ok := b.UserArgs[name]; !ok && hasDefault {
-			b.Args[name] = value
+		// If there is still no default value, check for a default value from the heading args
+		if !haveDefault {
+			defaultValue, haveDefault = b.HeadingArgs[name]
+		}
+
+		// If there is a default value provided for this arg, and the user didn't supply
+		// a value, then set the default value in b.Args.  Later defaults given for the
+		// same arg override earlier ones.  The args passed to the builder (UserArgs) override
+		// any default values of 'arg', so don't set them here as they were already set
+		// in NewBuilder().
+		if _, setByUser := b.UserArgs[name]; !setByUser && haveDefault {
+			b.Args[name] = defaultValue
 		}
 	}
 

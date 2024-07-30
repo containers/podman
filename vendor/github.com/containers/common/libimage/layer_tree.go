@@ -135,7 +135,7 @@ func (r *Runtime) layerTree(ctx context.Context, images []*Image) (*layerTree, e
 			// mistake. Users may not be able to recover, so we're now
 			// throwing a warning to guide them to resolve the issue and
 			// turn the errors non-fatal.
-			logrus.Warnf("Top layer %s of image %s not found in layer tree. The storage may be corrupted, consider running `podman system reset`.", topLayer, img.ID())
+			logrus.Warnf("Top layer %s of image %s not found in layer tree. The storage may be corrupted, consider running `podman system check`.", topLayer, img.ID())
 			continue
 		}
 		node.images = append(node.images, img)
@@ -234,7 +234,7 @@ func (t *layerTree) children(ctx context.Context, parent *Image, all bool) ([]*I
 		// mistake. Users may not be able to recover, so we're now
 		// throwing a warning to guide them to resolve the issue and
 		// turn the errors non-fatal.
-		logrus.Warnf("Layer %s not found in layer tree. The storage may be corrupted, consider running `podman system reset`.", parent.TopLayer())
+		logrus.Warnf("Layer %s not found in layer tree. The storage may be corrupted, consider running `podman system check`.", parent.TopLayer())
 		return children, nil
 	}
 
@@ -336,7 +336,7 @@ func (t *layerTree) parent(ctx context.Context, child *Image) (*Image, error) {
 		// mistake. Users may not be able to recover, so we're now
 		// throwing a warning to guide them to resolve the issue and
 		// turn the errors non-fatal.
-		logrus.Warnf("Layer %s not found in layer tree. The storage may be corrupted, consider running `podman system reset`.", child.TopLayer())
+		logrus.Warnf("Layer %s not found in layer tree. The storage may be corrupted, consider running `podman system check`.", child.TopLayer())
 		return nil, nil
 	}
 

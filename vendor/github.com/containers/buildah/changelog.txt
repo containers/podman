@@ -1,3 +1,74 @@
+- Changelog for vv1.37.0 (2024-07-26)
+  * Bump c/storage, c/image, c/common for v1.37.0
+  * "build with basename resolving user arg" tests: correct ARG use
+  * bud-multiple-platform-no-run test: correct ARG use
+  * imagebuildah: always have default values for $TARGET... args ready
+  * bump github.com/openshift/imagebuilder to v1.2.14
+  * fix(deps): update module github.com/docker/docker to v27.1.1+incompatible
+  * fix(deps): update module github.com/cyphar/filepath-securejoin to v0.3.1
+  * fix(deps): update module github.com/docker/docker to v27.1.0+incompatible
+  * CI: use local registry, part 2 of 2
+  * CI: use local registry, part 1 of 2
+  * fix(deps): update module github.com/fsouza/go-dockerclient to v1.11.1
+  * Revert "fix(deps): update github.com/containers/image/v5 to v5.31.1"
+  * Replace libimage.LookupReferenceFunc with the manifests version
+  * conformance tests: enable testing CompatVolumes
+  * conformance tests: add a test that tries to chown a volume
+  * imagebuildah: make traditional volume handling not the default
+  * StageExecutor.prepare(): mark base image volumes for preservation
+  * fix(deps): update module github.com/containers/image/v5 to v5.31.1
+  * Vendor in latest containers/(common, storage, image)
+  * fix(deps): update module golang.org/x/term to v0.22.0
+  * fix(deps): update module golang.org/x/sys to v0.22.0
+  * fix(deps): update golang.org/x/exp digest to 7f521ea
+  * fix(deps): update github.com/containers/luksy digest to a8846e2
+  * imagebuildah.StageExecutor.Copy(): reject new flags for now
+  * bump github.com/openshift/imagebuilder to v1.2.11
+  * Rework parsing of --pull flags
+  * fix(deps): update module github.com/containers/image/v5 to v5.31.1
+  * imagebuildah.StageExecutor.prepare(): log the --platform flag
+  * CI VMs: bump
+  * buildah copy: preserve owner info with --from= a container or image
+  * conformance tests: enable testing CompatSetParent
+  * containerImageRef.NewImageSource(): move the FROM comment to first
+  * commit: set "parent" for docker format only when requested
+  * Update godoc for Builder.EnsureContainerPathAs
+  * fix(deps): update module github.com/spf13/cobra to v1.8.1
+  * fix(deps): update module github.com/containernetworking/cni to v1.2.0
+  * fix(deps): update module github.com/opencontainers/runc to v1.1.13
+  * Change default for podman build to --pull missing
+  * fix(deps): update module github.com/containers/common to v0.59.1
+  * Clarify definition of --pull options
+  * buildah: fix a nil pointer reference on FreeBSD
+  * Use /var/tmp for $TMPDIR for vfs conformance jobs
+  * Cirrus: run `df` during job setup
+  * conformance: use quay.io/libpod/centos:7 instead of centos:8
+  * Stop setting "parent" in docker format
+  * conformance: check if workdir trims path separator suffixes
+  * push integration test: pass password to docker login via stdin
+  * Re-enable the "copy with chown" conformance test
+  * healthcheck: Add support for `--start-interval`
+  * fix(deps): update module github.com/docker/docker to v26.1.4+incompatible
+  * fix(deps): update module github.com/containerd/containerd to v1.7.18
+  * tests: set _CONTAINERS_USERNS_CONFIGURED=done for libnetwork
+  * Cross-build on Fedora
+  * Drop copyStringSlice() and copyStringStringMap()
+  * fix(deps): update module golang.org/x/crypto to v0.24.0
+  * fix(deps): update module github.com/openshift/imagebuilder to v1.2.10
+  * Provide an uptime_netbsd.go
+  * Spell unix as "!windows"
+  * Add netbsd to lists-of-OSes
+  * fix(deps): update golang.org/x/exp digest to fd00a4e
+  * [skip-ci] Packit: enable c10s downstream sync
+  * CI VMs: bump, to debian with cgroups v2
+  * Document when BlobDirectory is overridden
+  * fix secret mounts for env vars when using chroot isolation
+  * Change to take a types.ImageReference arg
+  * imagebuildah: Support custom image reference lookup for cache push/pull
+  * fix(deps): update module github.com/onsi/ginkgo/v2 to v2.19.0
+  * Bump to v1.37.0-dev
+  * CI: Clarify Debian use for conformance tests
+
 - Changelog for v1.36.0 (2024-05-23)
   * build: be more selective about specifying the default OS
   * Bump to c/common v0.59.0
