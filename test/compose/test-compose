@@ -295,11 +295,7 @@ else
 fi
 
 # hide annoying podman compose warnings, some tests want to check compose stderr and this breaks it.
-CONTAINERS_CONF_OVERRIDE="$WORKDIR/containers.conf"
-echo '[engine]
-compose_warning_logs=false' > "$CONTAINERS_CONF_OVERRIDE"
-export CONTAINERS_CONF_OVERRIDE
-
+export PODMAN_COMPOSE_WARNING_LOGS=false
 
 # Identify the tests to run. If called with args, use those as globs.
 tests_to_run=()
