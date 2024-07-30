@@ -6,6 +6,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"os"
 	"regexp"
 	"sort"
 
@@ -39,6 +40,16 @@ func getNetNSPathCommon(ctr *Container) string {
 	// If it doesn't have Path() method, it might be a string on FreeBSD
 	// Use fmt to convert to string as a fallback
 	return fmt.Sprintf("%v", ctr.state.NetNS)
+}
+
+// bindPorts ports to keep them open via conmon so no other process can use them and we can check if they are in use.
+// Note in all cases it is important that we bind before setting up the network to avoid issues were we add firewall
+// rules before we even "own" the port.
+func (c *Container) bindPorts() ([]*os.File, error) {
+	if !c.runtime.config.Engine.EnablePortReservation || rootless.IsRootless() || !c.config.NetMode.IsBridge() {
+		return nil, nil
+	}
+	return bindPorts(c.convertPortMappings())
 }
 
 // convertPortMappings will remove the HostIP part from the ports when running inside podman machine.

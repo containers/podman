@@ -70,6 +70,11 @@ func (c *Container) prepare() error {
 		// Set up network namespace if not already set up
 		noNetNS := c.state.NetNS == nil
 		if c.config.CreateNetNS && noNetNS && !c.config.PostConfigureNetNS {
+			c.reservedPorts, createNetNSErr = c.bindPorts()
+			if createNetNSErr != nil {
+				return
+			}
+
 			netNS, networkStatus, createNetNSErr = c.runtime.createNetNS(c)
 			if createNetNSErr != nil {
 				return
@@ -136,6 +141,11 @@ func (c *Container) prepare() error {
 	}
 
 	if createErr != nil {
+		for _, f := range c.reservedPorts {
+			// make sure to close all ports again on errors
+			f.Close()
+		}
+		c.reservedPorts = nil
 		return createErr
 	}
 
