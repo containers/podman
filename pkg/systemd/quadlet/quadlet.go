@@ -143,6 +143,7 @@ const (
 	KeySecurityLabelLevel    = "SecurityLabelLevel"
 	KeySecurityLabelNested   = "SecurityLabelNested"
 	KeySecurityLabelType     = "SecurityLabelType"
+	KeyServiceName           = "ServiceName"
 	KeySetWorkingDirectory   = "SetWorkingDirectory"
 	KeyShmSize               = "ShmSize"
 	KeyStopSignal            = "StopSignal"
@@ -373,6 +374,7 @@ var (
 		KeyPodName:              true,
 		KeyPodmanArgs:           true,
 		KeyPublishPort:          true,
+		KeyServiceName:          true,
 		KeyVolume:               true,
 	}
 )
@@ -1474,6 +1476,9 @@ func GetBuiltImageName(buildUnit *parser.UnitFile) string {
 }
 
 func GetPodServiceName(podUnit *parser.UnitFile) string {
+	if serviceName, ok := podUnit.Lookup(PodGroup, KeyServiceName); ok {
+		return serviceName
+	}
 	return replaceExtension(podUnit.Filename, "", "", "-pod")
 }
 
