@@ -169,18 +169,21 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 			// Can't batch these without forcing Stop() to hold the
 			// lock for the full duration of the timeout.
 			// We probably don't want to do that.
+			var err error
 			if timeout > -1 {
-				if err := c.StopWithTimeout(uint(timeout)); err != nil {
-					return err
-				}
+				err = c.StopWithTimeout(uint(timeout))
 			} else {
-				if err := c.Stop(); err != nil {
-					return err
-				}
+				err = c.Stop()
+			}
+			if err != nil && !errors.Is(err, define.ErrCtrStateInvalid) && !errors.Is(err, define.ErrCtrStopped) {
+				return err
 			}
 
 			if cleanup {
-				return c.Cleanup(ctx)
+				err := c.Cleanup(ctx)
+				if err != nil && !errors.Is(err, define.ErrCtrStateInvalid) && !errors.Is(err, define.ErrCtrStopped) {
+					return err
+				}
 			}
 
 			return nil
@@ -196,9 +199,6 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	// Get returned error for every container we worked on
 	for id, channel := range ctrErrChan {
 		if err := <-channel; err != nil {
-			if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) {
-				continue
-			}
 			ctrErrors[id] = err
 		}
 	}
