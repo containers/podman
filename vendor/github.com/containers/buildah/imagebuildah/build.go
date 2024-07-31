@@ -38,6 +38,7 @@ import (
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"golang.org/x/sync/semaphore"
 )
@@ -204,6 +205,9 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	if options.SystemContext == nil {
 		options.SystemContext = &types.SystemContext{}
 	}
+	if options.AdditionalBuildContexts == nil {
+		options.AdditionalBuildContexts = make(map[string]*define.AdditionalBuildContext)
+	}
 
 	if len(options.Platforms) == 0 {
 		options.Platforms = append(options.Platforms, struct{ OS, Arch, Variant string }{
@@ -213,9 +217,6 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 	}
 
 	if options.AllPlatforms {
-		if options.AdditionalBuildContexts == nil {
-			options.AdditionalBuildContexts = make(map[string]*define.AdditionalBuildContext)
-		}
 		options.Platforms, err = platformsForBaseImages(ctx, logger, paths, files, options.From, options.Args, options.AdditionalBuildContexts, options.SystemContext)
 		if err != nil {
 			return "", nil, err
@@ -251,11 +252,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			logPrefix = "[" + platforms.Format(platformSpec) + "] "
 		}
 		// Deep copy args to prevent concurrent read/writes over Args.
-		argsCopy := make(map[string]string)
-		for key, value := range options.Args {
-			argsCopy[key] = value
-		}
-		platformOptions.Args = argsCopy
+		platformOptions.Args = maps.Clone(options.Args)
 		builds.Go(func() error {
 			loggerPerPlatform := logger
 			if platformOptions.LogFile != "" && platformOptions.LogSplitByPlatform {
@@ -395,36 +392,38 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 	// --platform was explicitly selected for this build
 	// so set correct TARGETPLATFORM in args if it is not
 	// already selected by the user.
+	builtinArgDefaults := make(map[string]string)
 	if options.SystemContext.OSChoice != "" && options.SystemContext.ArchitectureChoice != "" {
 		// os component from --platform string populates TARGETOS
 		// buildkit parity: give priority to user's `--build-arg`
-		if _, ok := options.Args["TARGETOS"]; !ok {
-			options.Args["TARGETOS"] = options.SystemContext.OSChoice
-		}
+		builtinArgDefaults["TARGETOS"] = options.SystemContext.OSChoice
 		// arch component from --platform string populates TARGETARCH
 		// buildkit parity: give priority to user's `--build-arg`
-		if _, ok := options.Args["TARGETARCH"]; !ok {
-			options.Args["TARGETARCH"] = options.SystemContext.ArchitectureChoice
-		}
+		builtinArgDefaults["TARGETARCH"] = options.SystemContext.ArchitectureChoice
 		// variant component from --platform string populates TARGETVARIANT
 		// buildkit parity: give priority to user's `--build-arg`
-		if _, ok := options.Args["TARGETVARIANT"]; !ok {
-			if options.SystemContext.VariantChoice != "" {
-				options.Args["TARGETVARIANT"] = options.SystemContext.VariantChoice
-			}
-		}
+		builtinArgDefaults["TARGETVARIANT"] = options.SystemContext.VariantChoice
 		// buildkit parity: give priority to user's `--build-arg`
-		if _, ok := options.Args["TARGETPLATFORM"]; !ok {
-			// buildkit parity: TARGETPLATFORM should be always created
-			// from SystemContext and not `TARGETOS` and `TARGETARCH` because
-			// users can always override values of `TARGETOS` and `TARGETARCH`
-			// but `TARGETPLATFORM` should be set independent of those values.
-			options.Args["TARGETPLATFORM"] = options.SystemContext.OSChoice + "/" + options.SystemContext.ArchitectureChoice
-			if options.SystemContext.VariantChoice != "" {
-				options.Args["TARGETPLATFORM"] = options.Args["TARGETPLATFORM"] + "/" + options.SystemContext.VariantChoice
-			}
+		// buildkit parity: TARGETPLATFORM should be always created
+		// from SystemContext and not `TARGETOS` and `TARGETARCH` because
+		// users can always override values of `TARGETOS` and `TARGETARCH`
+		// but `TARGETPLATFORM` should be set independent of those values.
+		builtinArgDefaults["TARGETPLATFORM"] = builtinArgDefaults["TARGETOS"] + "/" + builtinArgDefaults["TARGETARCH"]
+		if options.SystemContext.VariantChoice != "" {
+			builtinArgDefaults["TARGETPLATFORM"] += "/" + options.SystemContext.VariantChoice
+		}
+	} else {
+		// fill them in using values for the default platform
+		defaultPlatform := platforms.DefaultSpec()
+		builtinArgDefaults["TARGETOS"] = defaultPlatform.OS
+		builtinArgDefaults["TARGETVARIANT"] = defaultPlatform.Variant
+		builtinArgDefaults["TARGETARCH"] = defaultPlatform.Architecture
+		builtinArgDefaults["TARGETPLATFORM"] = defaultPlatform.OS + "/" + defaultPlatform.Architecture
+		if defaultPlatform.Variant != "" {
+			builtinArgDefaults["TARGETPLATFORM"] += "/" + defaultPlatform.Variant
 		}
 	}
+	delete(options.Args, "TARGETPLATFORM")
 
 	for i, d := range dockerfilecontents[1:] {
 		additionalNode, err := imagebuilder.ParseDockerfile(bytes.NewReader(d))
@@ -440,6 +439,9 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		return "", nil, fmt.Errorf("creating build executor: %w", err)
 	}
 	b := imagebuilder.NewBuilder(options.Args)
+	for k, v := range builtinArgDefaults {
+		b.BuiltinArgDefaults[k] = v
+	}
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return "", nil, fmt.Errorf("failed to get container config: %w", err)

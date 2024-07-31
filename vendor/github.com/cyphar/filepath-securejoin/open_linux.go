@@ -9,6 +9,7 @@ package securejoin
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"golang.org/x/sys/unix"
 )
@@ -16,13 +17,9 @@ import (
 // OpenatInRoot is equivalent to OpenInRoot, except that the root is provided
 // using an *os.File handle, to ensure that the correct root directory is used.
 func OpenatInRoot(root *os.File, unsafePath string) (*os.File, error) {
-	handle, remainingPath, err := partialLookupInRoot(root, unsafePath)
+	handle, err := completeLookupInRoot(root, unsafePath)
 	if err != nil {
-		return nil, err
-	}
-	if remainingPath != "" {
-		_ = handle.Close()
-		return nil, &os.PathError{Op: "securejoin.OpenInRoot", Path: unsafePath, Err: unix.ENOENT}
+		return nil, &os.PathError{Op: "securejoin.OpenInRoot", Path: unsafePath, Err: err}
 	}
 	return handle, nil
 }
@@ -69,15 +66,36 @@ func Reopen(handle *os.File, flags int) (*os.File, error) {
 		return nil, err
 	}
 
+	// We can't operate on /proc/thread-self/fd/$n directly when doing a
+	// re-open, so we need to open /proc/thread-self/fd and then open a single
+	// final component.
+	procFdDir, closer, err := procThreadSelf(procRoot, "fd/")
+	if err != nil {
+		return nil, fmt.Errorf("get safe /proc/thread-self/fd handle: %w", err)
+	}
+	defer procFdDir.Close()
+	defer closer()
+
+	// Try to detect if there is a mount on top of the magic-link we are about
+	// to open. If we are using unsafeHostProcRoot(), this could change after
+	// we check it (and there's nothing we can do about that) but for
+	// privateProcRoot() this should be guaranteed to be safe (at least since
+	// Linux 5.12[1], when anonymous mount namespaces were completely isolated
+	// from external mounts including mount propagation events).
+	//
+	// [1]: Linux commit ee2e3f50629f ("mount: fix mounting of detached mounts
+	// onto targets that reside on shared mounts").
+	fdStr := strconv.Itoa(int(handle.Fd()))
+	if err := checkSymlinkOvermount(procRoot, procFdDir, fdStr); err != nil {
+		return nil, fmt.Errorf("check safety of /proc/thread-self/fd/%s magiclink: %w", fdStr, err)
+	}
+
 	flags |= unix.O_CLOEXEC
-	fdPath := fmt.Sprintf("fd/%d", handle.Fd())
-	return doProcSelfMagiclink(procRoot, fdPath, func(procDirHandle *os.File, base string) (*os.File, error) {
-		// Rather than just wrapping openatFile, open-code it so we can copy
-		// handle.Name().
-		reopenFd, err := unix.Openat(int(procDirHandle.Fd()), base, flags, 0)
-		if err != nil {
-			return nil, fmt.Errorf("reopen fd %d: %w", handle.Fd(), err)
-		}
-		return os.NewFile(uintptr(reopenFd), handle.Name()), nil
-	})
+	// Rather than just wrapping openatFile, open-code it so we can copy
+	// handle.Name().
+	reopenFd, err := unix.Openat(int(procFdDir.Fd()), fdStr, flags, 0)
+	if err != nil {
+		return nil, fmt.Errorf("reopen fd %d: %w", handle.Fd(), err)
+	}
+	return os.NewFile(uintptr(reopenFd), handle.Name()), nil
 }

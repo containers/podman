@@ -1,4 +1,4 @@
-From 09b115ea501320bde7cf979f280f42dc803aa70b Mon Sep 17 00:00:00 2001
+From 6f7a27f4787ec91ecf7bd7c4de048b23c3cdb74f Mon Sep 17 00:00:00 2001
 From: Ed Santiago <santiago@redhat.com>
 Date: Thu, 6 Oct 2022 17:32:59 -0600
 Subject: [PATCH] tweaks for running buildah tests under podman
@@ -9,13 +9,13 @@ Signed-off-by: Ed Santiago <santiago@redhat.com>
  1 file changed, 115 insertions(+), 4 deletions(-)
 
 diff --git a/tests/helpers.bash b/tests/helpers.bash
-index f4245c8bc..8df18c0cc 100644
+index b47939284..ce6dde76e 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -71,6 +71,38 @@ EOF
-     BUILDAH_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf --registries-conf-dir ${TEST_SCRATCH_DIR}/registries.d --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
-     COPY_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf --registries-conf-dir ${TEST_SCRATCH_DIR}/registries.d --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
-     PODMAN_REGISTRY_OPTS="--registries-conf ${TEST_SOURCES}/registries.conf"
+@@ -79,6 +79,38 @@ EOF
+     BUILDAH_REGISTRY_OPTS="${regconfopt} ${regconfdir} --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
+     COPY_REGISTRY_OPTS="${BUILDAH_REGISTRY_OPTS}"
+     PODMAN_REGISTRY_OPTS="${regconfopt}"
 +
 +    PODMAN_SERVER_PID=
 +    PODMAN_NATIVE="${PODMAN_BINARY} ${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
@@ -51,7 +51,7 @@ index f4245c8bc..8df18c0cc 100644
  }
  
  function starthttpd() {
-@@ -114,6 +146,32 @@ function teardown_tests() {
+@@ -122,6 +154,32 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
@@ -84,7 +84,7 @@ index f4245c8bc..8df18c0cc 100644
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -203,7 +261,12 @@ function copy() {
+@@ -211,7 +269,12 @@ function copy() {
  }
  
  function podman() {
@@ -98,7 +98,7 @@ index f4245c8bc..8df18c0cc 100644
  }
  
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
-@@ -267,8 +330,36 @@ function run_buildah() {
+@@ -275,8 +338,36 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
@@ -136,7 +136,7 @@ index f4245c8bc..8df18c0cc 100644
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -282,8 +373,8 @@ function run_buildah() {
+@@ -290,8 +381,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -147,7 +147,7 @@ index f4245c8bc..8df18c0cc 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -644,6 +735,26 @@ function skip_if_no_unshare() {
+@@ -652,6 +743,26 @@ function skip_if_no_unshare() {
    fi
  }
  
@@ -175,5 +175,4 @@ index f4245c8bc..8df18c0cc 100644
    daemondir=${TEST_SCRATCH_DIR}/git-daemon
    mkdir -p ${daemondir}/repo
 -- 
-2.44.0
-
+2.45.2

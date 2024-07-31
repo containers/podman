@@ -9,6 +9,7 @@ package imagebuilder
 import (
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"text/scanner"
 	"unicode"
@@ -103,9 +104,14 @@ func (w *wordsStruct) getWords() []string {
 	return w.words
 }
 
+func (sw *shellWord) processStopOn(stopChar rune) (string, []string, error) {
+	_, result, words, err := sw.processStopOnAny([]rune{stopChar})
+	return result, words, err
+}
+
 // Process the word, starting at 'pos', and stop when we get to the
 // end of the word or the 'stopChar' character
-func (sw *shellWord) processStopOn(stopChar rune) (string, []string, error) {
+func (sw *shellWord) processStopOnAny(stopChars []rune) (rune, string, []string, error) {
 	var result string
 	var words wordsStruct
 
@@ -115,18 +121,26 @@ func (sw *shellWord) processStopOn(stopChar rune) (string, []string, error) {
 		'$':  sw.processDollar,
 	}
 
+	sliceContains := func(slice []rune, value rune) bool {
+		for _, r := range slice {
+			if r == value {
+				return true
+			}
+		}
+		return false
+	}
 	for sw.scanner.Peek() != scanner.EOF {
 		ch := sw.scanner.Peek()
 
-		if stopChar != scanner.EOF && ch == stopChar {
-			sw.scanner.Next()
-			return result, words.getWords(), nil
+		if sliceContains(stopChars, ch) {
+			sw.scanner.Next() // skip over ch
+			return ch, result, words.getWords(), nil
 		}
 		if fn, ok := charFuncMapping[ch]; ok {
 			// Call special processing func for certain chars
 			tmp, err := fn()
 			if err != nil {
-				return "", []string{}, err
+				return ch, "", []string{}, err
 			}
 			result += tmp
 
@@ -157,11 +171,11 @@ func (sw *shellWord) processStopOn(stopChar rune) (string, []string, error) {
 		}
 	}
 
-	if stopChar != scanner.EOF {
-		return "", []string{}, fmt.Errorf("unexpected end of statement while looking for matching %s", string(stopChar))
+	if !sliceContains(stopChars, scanner.EOF) {
+		return scanner.EOF, "", []string{}, fmt.Errorf("unexpected end of statement while looking for matching %s", string(stopChars))
 	}
 
-	return result, words.getWords(), nil
+	return scanner.EOF, result, words.getWords(), nil
 }
 
 func (sw *shellWord) processSingleQuote() (string, error) {
@@ -281,7 +295,117 @@ func (sw *shellWord) processDollar() (string, error) {
 				return "", fmt.Errorf("Unsupported modifier (%c) in substitution: %s", modifier, sw.word)
 			}
 		}
-		return "", fmt.Errorf("Missing ':' in substitution: %s", sw.word)
+		if ch == '#' || ch == '%' { // strip a prefix or suffix
+			sw.scanner.Next() // skip over # or %
+			greedy := false
+			if sw.scanner.Peek() == ch {
+				sw.scanner.Next() // skip over second # or %
+				greedy = true
+			}
+			word, _, err := sw.processStopOn('}')
+			if err != nil {
+				return "", err
+			}
+			value := sw.getEnv(name)
+			switch ch {
+			case '#': // strip a prefix
+				if word == "" {
+					return "", fmt.Errorf("%s#: no prefix to remove", name)
+				}
+				if greedy {
+					for i := len(value) - 1; i >= 0; i-- {
+						if matches, err := path.Match(word, value[:i]); err == nil && matches {
+							return value[i:], nil
+						}
+					}
+				} else {
+					for i := 0; i < len(value)-1; i++ {
+						if matches, err := path.Match(word, value[:i]); err == nil && matches {
+							return value[i:], nil
+						}
+					}
+				}
+				return value, nil
+			case '%': // strip a suffix
+				if word == "" {
+					return "", fmt.Errorf("%s%%: no suffix to remove", name)
+				}
+				if greedy {
+					for i := 0; i < len(value)-1; i++ {
+						if matches, err := path.Match(word, value[i:]); err == nil && matches {
+							return value[:i], nil
+						}
+					}
+				} else {
+					for i := len(value) - 1; i >= 0; i-- {
+						if matches, err := path.Match(word, value[i:]); err == nil && matches {
+							return value[:i], nil
+						}
+					}
+				}
+				return value, nil
+			}
+		}
+		if ch == '/' { // perform substitution
+			sw.scanner.Next() // skip over /
+			all, begin, end := false, false, false
+			switch sw.scanner.Peek() {
+			case ch:
+				sw.scanner.Next() // skip over second /
+				all = true        // replace all instances
+			case '#':
+				sw.scanner.Next() // skip over #
+				begin = true      // replace only an prefix instance
+			case '%':
+				sw.scanner.Next() // skip over %
+				end = true        // replace only a fuffix instance
+			}
+			// the '/', and the replacement pattern that follows
+			// it, can be omitted if the replacement pattern is "",
+			// so the pattern-to-replace can end at either a '/' or
+			// a '}'
+			ch, pattern, _, err := sw.processStopOnAny([]rune{'/', '}'})
+			if err != nil {
+				return "", err
+			}
+			if pattern == "" { // pattern to replace needs to not be empty
+				return "", fmt.Errorf("%s/: no pattern to replace", name)
+			}
+			var replacement string
+			if ch == '/' { // patter to replace it with was specified
+				replacement, _, err = sw.processStopOn('}')
+				if err != nil {
+					return "", err
+				}
+			}
+			value := sw.getEnv(name)
+			i := 0
+			for {
+				if i >= len(value) {
+					break
+				}
+				for j := len(value); j > i; j-- {
+					if begin && i != 0 {
+						continue
+					}
+					if end && j != len(value) {
+						continue
+					}
+					matches, err := path.Match(pattern, value[i:j])
+					if err == nil && matches {
+						value = value[:i] + replacement + value[j:]
+						if !all {
+							return value, nil
+						}
+						i += (len(replacement) - 1)
+						break
+					}
+				}
+				i++
+			}
+			return value, nil
+		}
+		return "", fmt.Errorf("Missing ':' or '#' or '%%' or '/' in substitution: %s", sw.word)
 	}
 	// $xxx case
 	name := sw.processName()

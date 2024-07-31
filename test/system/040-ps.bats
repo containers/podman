@@ -144,18 +144,24 @@ load helpers
 
     # Ok this here is basically a way to reproduce a "leaked" podman build buildah
     # container without having to kill any process and usage of sleep.
+    echo;echo "$_LOG_PROMPT buildah from $IMAGE"
     run buildah from $IMAGE
-    assert "$status" -eq 0 "buildah from successfully"
+    echo "$output"
+    assert "$status" -eq 0 "status of buildah from"
     buildah_cid="$output"
 
     # Commit new image so we have something to prune.
+    echo;echo "$_LOG_PROMPT buildah commit $buildah_cid"
     run buildah commit $buildah_cid
-    assert "$status" -eq 0 "buildah commit successfully"
+    echo "$output"
+    assert "$status" -eq 0 "status of buildah commit"
     buildah_image_id="${lines[-1]}"
 
     # Create new buildah container with new image so that one can be pruned directly.
+    echo;echo "$_LOG_PROMPT buildah from $buildah_image_id"
     run buildah from "$buildah_image_id"
-    assert "$status" -eq 0 "buildah from new buildah image successfully"
+    echo "$output"
+    assert "$status" -eq 0 "status of buildah from new buildah image"
 
     # We have to mount the container to trigger the "container .* is mounted" check below.
     local unshare=
@@ -163,8 +169,10 @@ load helpers
         # rootless needs unshare for mounting
         unshare="buildah unshare"
     fi
+    echo;echo "$_LOG_PROMPT $unshare buildah mount $buildah_cid"
     run $unshare buildah mount "$buildah_cid"
-    assert "$status" -eq 0 "buildah mount container successfully"
+    echo "$output"
+    assert "$status" -eq 0 "status of buildah mount container"
 
     run_podman ps -a
     is "${#lines[@]}" "1" "podman ps -a does not see buildah containers"

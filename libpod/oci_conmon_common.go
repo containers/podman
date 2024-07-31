@@ -1216,17 +1216,22 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.Env = append(cmd.Env, conmonEnv...)
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childSyncPipe, childStartPipe)
 
-	if r.reservePorts && !rootless.IsRootless() && !ctr.config.NetMode.IsSlirp4netns() {
-		ports, err := bindPorts(ctr.convertPortMappings())
+	if ctr.config.PostConfigureNetNS {
+		// netns was not setup yet but we have to bind ports now so we can leak the fd to conmon
+		ports, err := ctr.bindPorts()
 		if err != nil {
 			return 0, err
 		}
 		filesToClose = append(filesToClose, ports...)
-
 		// Leak the port we bound in the conmon process.  These fd's won't be used
 		// by the container and conmon will keep the ports busy so that another
 		// process cannot use them.
 		cmd.ExtraFiles = append(cmd.ExtraFiles, ports...)
+	} else {
+		// ports were bound in ctr.prepare() as we must do it before the netns setup
+		filesToClose = append(filesToClose, ctr.reservedPorts...)
+		cmd.ExtraFiles = append(cmd.ExtraFiles, ctr.reservedPorts...)
+		ctr.reservedPorts = nil
 	}
 
 	if ctr.config.NetMode.IsSlirp4netns() || rootless.IsRootless() {

@@ -401,7 +401,7 @@ type ExportImagesOptions struct {
 //
 // See https://goo.gl/N9XlDn for more details.
 func (c *Client) ExportImages(opts ExportImagesOptions) error {
-	if opts.Names == nil || len(opts.Names) == 0 {
+	if len(opts.Names) == 0 {
 		return ErrMustSpecifyNames
 	}
 	// API < 1.25 allows multiple name values

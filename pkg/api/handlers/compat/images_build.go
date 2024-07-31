@@ -89,6 +89,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CacheTo                 string   `schema:"cacheto"`
 		CacheTTL                string   `schema:"cachettl"`
 		CgroupParent            string   `schema:"cgroupparent"`
+		CompatVolumes           bool     `schema:"compatvolumes"`
 		Compression             uint64   `schema:"compression"`
 		ConfigureNetwork        string   `schema:"networkmode"`
 		CPPFlags                string   `schema:"cppflags"`
@@ -694,6 +695,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Secrets:            secrets,
 			Volumes:            query.Volumes,
 		},
+		CompatVolumes:                  types.NewOptionalBool(query.CompatVolumes),
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,

@@ -27,14 +27,18 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// copy vars here and not leak config pointers into specgen
+	noHosts := conf.Containers.NoHosts
+	privileged := conf.Containers.Privileged
+
 	// we have to set the default before we decode to make sure the correct default is set when the field is unset
 	sg := specgen.SpecGenerator{
 		ContainerNetworkConfig: specgen.ContainerNetworkConfig{
-			UseImageHosts: &conf.Containers.NoHosts,
+			UseImageHosts: &noHosts,
 		},
 		ContainerSecurityConfig: specgen.ContainerSecurityConfig{
 			Umask:      conf.Containers.Umask,
-			Privileged: &conf.Containers.Privileged,
+			Privileged: &privileged,
 		},
 	}
 
