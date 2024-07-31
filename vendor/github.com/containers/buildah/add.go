@@ -2,6 +2,8 @@ package buildah
 
 import (
 	"archive/tar"
+	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -19,8 +21,12 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/pkg/chrootuser"
+	"github.com/containers/common/pkg/retry"
+	"github.com/containers/image/v5/pkg/tlsclientconfig"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/docker/go-connections/tlsconfig"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -72,6 +78,19 @@ type AddAndCopyOptions struct {
 	// Clear the sticky bit on items being copied.  Has no effect on
 	// archives being extracted, where the bit is always preserved.
 	StripStickyBit bool
+	// If not "", a directory containing a CA certificate (ending with
+	// ".crt"), a client certificate (ending with ".cert") and a client
+	// certificate key (ending with ".key") used when downloading sources
+	// from locations protected with TLS.
+	CertPath string
+	// Allow downloading sources from HTTPS where TLS verification fails.
+	InsecureSkipTLSVerify types.OptionalBool
+	// MaxRetries is the maximum number of attempts we'll make to retrieve
+	// contents from a remote location.
+	MaxRetries int
+	// RetryDelay is how long to wait before retrying attempts to retrieve
+	// remote contents.
+	RetryDelay time.Duration
 }
 
 // sourceIsRemote returns true if "source" is a remote location.
@@ -80,12 +99,22 @@ func sourceIsRemote(source string) bool {
 }
 
 // getURL writes a tar archive containing the named content
-func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest) error {
+func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest, certPath string, insecureSkipTLSVerify types.OptionalBool) error {
 	url, err := url.Parse(src)
 	if err != nil {
 		return err
 	}
-	response, err := http.Get(src)
+	tlsClientConfig := &tls.Config{
+		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
+	}
+	if err := tlsclientconfig.SetupCertificates(certPath, tlsClientConfig); err != nil {
+		return err
+	}
+	tlsClientConfig.InsecureSkipVerify = insecureSkipTLSVerify == types.OptionalBoolTrue
+
+	tr := &http.Transport{TLSClientConfig: tlsClientConfig}
+	httpClient := &http.Client{Transport: tr}
+	response, err := httpClient.Get(src)
 	if err != nil {
 		return err
 	}
@@ -235,6 +264,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	// Figure out what sorts of sources we have.
 	var localSources, remoteSources []string
 	for i, src := range sources {
+		if src == "" {
+			return errors.New("empty source location")
+		}
 		if sourceIsRemote(src) {
 			remoteSources = append(remoteSources, src)
 			continue
@@ -415,7 +447,12 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			}
 			wg.Add(1)
 			go func() {
-				getErr = getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest)
+				getErr = retry.IfNecessary(context.TODO(), func() error {
+					return getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest, options.CertPath, options.InsecureSkipTLSVerify)
+				}, &retry.Options{
+					MaxRetry: options.MaxRetries,
+					Delay:    options.RetryDelay,
+				})
 				pipeWriter.Close()
 				wg.Done()
 			}()

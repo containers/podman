@@ -753,3 +753,62 @@ func (b *Builder) AddAppendedEmptyLayer(created *time.Time, createdBy, author, c
 func (b *Builder) ClearAppendedEmptyLayers() {
 	b.AppendedEmptyLayers = nil
 }
+
+// AddPrependedLinkedLayer adds an item to the history that we'll create when
+// committing the image, optionally with a layer, after any history we inherit
+// from the base image, but before the history item that we'll use to describe
+// the new layer that we're adding.
+// The blobPath can be either the location of an uncompressed archive, or a
+// directory whose contents will be archived to use as a layer blob.  Leaving
+// blobPath empty is functionally similar to calling AddPrependedEmptyLayer().
+func (b *Builder) AddPrependedLinkedLayer(created *time.Time, createdBy, author, comment, blobPath string) {
+	if created != nil {
+		copiedTimestamp := *created
+		created = &copiedTimestamp
+	}
+	b.PrependedLinkedLayers = append(b.PrependedLinkedLayers, LinkedLayer{
+		BlobPath: blobPath,
+		History: ociv1.History{
+			Created:    created,
+			CreatedBy:  createdBy,
+			Author:     author,
+			Comment:    comment,
+			EmptyLayer: blobPath == "",
+		},
+	})
+}
+
+// ClearPrependedLinkedLayers clears the list of history entries that we'll add
+// the committed image before the layer that we're adding (if we're adding it).
+func (b *Builder) ClearPrependedLinkedLayers() {
+	b.PrependedLinkedLayers = nil
+}
+
+// AddAppendedLinkedLayer adds an item to the history that we'll create when
+// committing the image, optionally with a layer, after the history item that
+// we'll use to describe the new layer that we're adding.
+// The blobPath can be either the location of an uncompressed archive, or a
+// directory whose contents will be archived to use as a layer blob.  Leaving
+// blobPath empty is functionally similar to calling AddAppendedEmptyLayer().
+func (b *Builder) AddAppendedLinkedLayer(created *time.Time, createdBy, author, comment, blobPath string) {
+	if created != nil {
+		copiedTimestamp := *created
+		created = &copiedTimestamp
+	}
+	b.AppendedLinkedLayers = append(b.AppendedLinkedLayers, LinkedLayer{
+		BlobPath: blobPath,
+		History: ociv1.History{
+			Created:    created,
+			CreatedBy:  createdBy,
+			Author:     author,
+			Comment:    comment,
+			EmptyLayer: blobPath == "",
+		},
+	})
+}
+
+// ClearAppendedLinkedLayers clears the list of linked layers that we'll add to
+// the committed image after the layer that we're adding (if we're adding it).
+func (b *Builder) ClearAppendedLinkedLayers() {
+	b.AppendedLinkedLayers = nil
+}

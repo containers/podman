@@ -24,6 +24,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
 	digest "github.com/opencontainers/go-digest"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 )
@@ -120,10 +121,11 @@ type CommitOptions struct {
 	// OverrideConfig is applied.
 	OverrideChanges []string
 	// ExtraImageContent is a map which describes additional content to add
-	// to the committed image.  The map's keys are filesystem paths in the
-	// image and the corresponding values are the paths of files whose
-	// contents will be used in their place.  The contents will be owned by
-	// 0:0 and have mode 0644.  Currently only accepts regular files.
+	// to the new layer in the committed image.  The map's keys are
+	// filesystem paths in the image and the corresponding values are the
+	// paths of files whose contents will be used in their place.  The
+	// contents will be owned by 0:0 and have mode 0o644.  Currently only
+	// accepts regular files.
 	ExtraImageContent map[string]string
 	// SBOMScanOptions encapsulates options which control whether or not we
 	// run scanners on the rootfs that we're about to commit, and how.
@@ -132,6 +134,23 @@ type CommitOptions struct {
 	// the image in Docker format.  Newer BuildKit-based builds don't set
 	// this field.
 	CompatSetParent types.OptionalBool
+	// PrependedLinkedLayers and AppendedLinkedLayers are combinations of
+	// history entries and locations of either directory trees (if
+	// directories, per os.Stat()) or uncompressed layer blobs which should
+	// be added to the image at commit-time.  The order of these relative
+	// to PrependedEmptyLayers and AppendedEmptyLayers, and relative to the
+	// corresponding members in the Builder object, in the committed image
+	// is not guaranteed.
+	PrependedLinkedLayers, AppendedLinkedLayers []LinkedLayer
+}
+
+// LinkedLayer combines a history entry with the location of either a directory
+// tree (if it's a directory, per os.Stat()) or an uncompressed layer blob
+// which should be added to the image at commit-time.  The BlobPath and
+// History.EmptyLayer fields should be considered mutually-exclusive.
+type LinkedLayer struct {
+	History  v1.History // history entry to add
+	BlobPath string     // corresponding uncompressed blob file (layer as a tar archive), or directory tree to archive
 }
 
 var (
@@ -348,6 +367,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 			if options.ExtraImageContent == nil {
 				options.ExtraImageContent = make(map[string]string, len(extraImageContent))
 			}
+			// merge in the scanner-generated content
 			for k, v := range extraImageContent {
 				if _, set := options.ExtraImageContent[k]; !set {
 					options.ExtraImageContent[k] = v

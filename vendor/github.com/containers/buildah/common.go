@@ -73,7 +73,7 @@ func retryCopyImage(ctx context.Context, policyContext *signature.PolicyContext,
 		err           error
 		lastErr       error
 	)
-	err = retry.RetryIfNecessary(ctx, func() error {
+	err = retry.IfNecessary(ctx, func() error {
 		manifestBytes, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
 		if registry != nil && registry.Transport().Name() != docker.Transport.Name() {
 			lastErr = err
