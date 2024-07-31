@@ -545,7 +545,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    default: false
 	//    description: |
 	//      Contents of base images to be modified on ADD or COPY only
-	//      (As of version 1.37)
+	//      (As of Podman version v5.2)
 	//  - in: query
 	//    name: nocache
 	//    type: boolean
@@ -1506,7 +1506,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    default: false
 	//    description: |
 	//      Contents of base images to be modified on ADD or COPY only
-	//      (As of version 1.37)
+	//      (As of Podman version v5.2)
 	//  - in: query
 	//    name: nocache
 	//    type: boolean
