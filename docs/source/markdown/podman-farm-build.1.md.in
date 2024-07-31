@@ -57,6 +57,8 @@ Note: Since the images built are directly pushed to a registry, the user must pa
 
 Remove built images from farm nodes on success (Default: false).
 
+@@option compat-volumes
+
 @@option cpp-flag
 
 @@option cpu-period
