@@ -195,9 +195,20 @@ setup_rootless() {
 }
 
 install_test_configs() {
-    msg "Installing ./test/registries.conf system-wide."
+    # Which registries.conf to use. By default we always want the cached one...
+    cached="-cached"
+    # ...except for podman-machine, where it's antihelpful
+    if [[ -n "$1" ]]; then
+        if [[ "$1" = "nocache" ]]; then
+            cached=""
+        else
+            die "Internal error: install_test_configs(): unknown arg '$*'"
+        fi
+    fi
+
+    msg "Installing ./test/registries$cached.conf system-wide."
     # All CI VMs run with a local registry
-    install -v -D -m 644 ./test/registries-cached.conf /etc/containers/registries.conf
+    install -v -D -m 644 ./test/registries$cached.conf /etc/containers/registries.conf
 }
 
 # Remove all files provided by the distro version of podman.
