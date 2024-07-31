@@ -443,11 +443,8 @@ case "$TEST_FLAVOR" in
         fi
         remove_packaged_podman_files
         showrun make install PREFIX=/usr ETCDIR=/etc
-        # machine-os image changes too frequently, can't be precached
-        # FIXME: I don't think we can use version.go, because of chicken-egg
-        # problem when that gets bumped. Ideas welcome.
-        $LCR cache podman/machine-os:5.2
-        install_test_configs
+        # machine-os image changes too frequently, can't use image cache
+        install_test_configs nocache
         ;;
     swagger)
         showrun make .install.swagger
