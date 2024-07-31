@@ -446,7 +446,7 @@ case "$TEST_FLAVOR" in
         # machine-os image changes too frequently, can't be precached
         # FIXME: I don't think we can use version.go, because of chicken-egg
         # problem when that gets bumped. Ideas welcome.
-        $LCR cache podman/machine-os:5.2
+        $LCR cache podman/machine-os:5.3
         install_test_configs
         ;;
     swagger)
