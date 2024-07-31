@@ -2846,7 +2846,7 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 		exists := store.Exists(id)
 		store.stopReading()
 		if exists {
-			return "", fmt.Errorf("mounting read/only store images is not allowed: %w", ErrLayerUnknown)
+			return "", fmt.Errorf("mounting read/only store images is not allowed: %w", ErrStoreIsReadOnly)
 		}
 	}
 
@@ -2930,14 +2930,40 @@ func (s *store) Unmount(id string, force bool) (bool, error) {
 }
 
 func (s *store) Changes(from, to string) ([]archive.Change, error) {
-	if res, done, err := readAllLayerStores(s, func(store roLayerStore) ([]archive.Change, bool, error) {
+	// NaiveDiff could cause mounts to happen without a lock, so be safe
+	// and treat the .Diff operation as a Mount.
+	// We need to make sure the home mount is present when the Mount is done, which happens by possibly reinitializing the graph driver
+	// in startUsingGraphDriver().
+	if err := s.startUsingGraphDriver(); err != nil {
+		return nil, err
+	}
+	defer s.stopUsingGraphDriver()
+
+	rlstore, lstores, err := s.bothLayerStoreKindsLocked()
+	if err != nil {
+		return nil, err
+	}
+	if err := rlstore.startWriting(); err != nil {
+		return nil, err
+	}
+	if rlstore.Exists(to) {
+		res, err := rlstore.Changes(from, to)
+		rlstore.stopWriting()
+		return res, err
+	}
+	rlstore.stopWriting()
+
+	for _, s := range lstores {
+		store := s
+		if err := store.startReading(); err != nil {
+			return nil, err
+		}
 		if store.Exists(to) {
 			res, err := store.Changes(from, to)
-			return res, true, err
+			store.stopReading()
+			return res, err
 		}
-		return nil, false, nil
-	}); done {
-		return res, err
+		store.stopReading()
 	}
 	return nil, ErrLayerUnknown
 }
@@ -2968,12 +2994,30 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 	}
 	defer s.stopUsingGraphDriver()
 
-	layerStores, err := s.allLayerStoresLocked()
+	rlstore, lstores, err := s.bothLayerStoreKindsLocked()
 	if err != nil {
 		return nil, err
 	}
 
-	for _, s := range layerStores {
+	if err := rlstore.startWriting(); err != nil {
+		return nil, err
+	}
+	if rlstore.Exists(to) {
+		rc, err := rlstore.Diff(from, to, options)
+		if rc != nil && err == nil {
+			wrapped := ioutils.NewReadCloserWrapper(rc, func() error {
+				err := rc.Close()
+				rlstore.stopWriting()
+				return err
+			})
+			return wrapped, nil
+		}
+		rlstore.stopWriting()
+		return rc, err
+	}
+	rlstore.stopWriting()
+
+	for _, s := range lstores {
 		store := s
 		if err := store.startReading(); err != nil {
 			return nil, err

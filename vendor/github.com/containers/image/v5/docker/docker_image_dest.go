@@ -361,8 +361,6 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 				logrus.Debugf("Error parsing BlobInfoCache location reference: %s", err)
 				continue
 			}
-		}
-		if !candidate.UnknownLocation {
 			if candidate.CompressionAlgorithm != nil {
 				logrus.Debugf("Trying to reuse blob with cached digest %s compressed with %s in destination repo %s", candidate.Digest.String(), candidate.CompressionAlgorithm.Name(), candidateRepo.Name())
 			} else {

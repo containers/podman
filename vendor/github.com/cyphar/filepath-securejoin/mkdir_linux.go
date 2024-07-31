@@ -49,14 +49,14 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode int) (_ *os.File, Err
 
 	// Try to open as much of the path as possible.
 	currentDir, remainingPath, err := partialLookupInRoot(root, unsafePath)
-	if err != nil {
-		return nil, fmt.Errorf("find existing subpath of %q: %w", unsafePath, err)
-	}
 	defer func() {
 		if Err != nil {
 			_ = currentDir.Close()
 		}
 	}()
+	if err != nil && !errors.Is(err, unix.ENOENT) {
+		return nil, fmt.Errorf("find existing subpath of %q: %w", unsafePath, err)
+	}
 
 	// If there is an attacker deleting directories as we walk into them,
 	// detect this proactively. Note this is guaranteed to detect if the
@@ -82,6 +82,7 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode int) (_ *os.File, Err
 	} else if err != nil {
 		return nil, fmt.Errorf("re-opening handle to %q: %w", currentDir.Name(), err)
 	} else {
+		_ = currentDir.Close()
 		currentDir = reopenDir
 	}
 

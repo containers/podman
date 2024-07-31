@@ -10,7 +10,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strconv"
 	"sync"
@@ -160,7 +159,7 @@ func clonePrivateProcMount() (_ *os.File, Err error) {
 }
 
 func privateProcRoot() (*os.File, error) {
-	if !hasNewMountApi() {
+	if !hasNewMountApi() || testingForceGetProcRootUnsafe() {
 		return nil, fmt.Errorf("new mount api: %w", unix.ENOTSUP)
 	}
 	// Try to create a new procfs mount from scratch if we can. This ensures we
@@ -199,7 +198,7 @@ func unsafeHostProcRoot() (_ *os.File, Err error) {
 
 func doGetProcRoot() (*os.File, error) {
 	procRoot, err := privateProcRoot()
-	if err != nil || testingForceGetProcRootUnsafe(procRoot) {
+	if err != nil {
 		// Fall back to using a /proc handle if making a private mount failed.
 		// If we have openat2, at least we can avoid some kinds of over-mount
 		// attacks, but without openat2 there's not much we can do.
@@ -286,14 +285,14 @@ func procThreadSelf(procRoot *os.File, subpath string) (_ *os.File, _ procThread
 		//       procSelfFdReadlink to clean up the returned f.Name() if we use
 		//       RESOLVE_IN_ROOT (which would lead to an infinite recursion).
 		handle, err = openat2File(procRoot, threadSelf+subpath, &unix.OpenHow{
-			Flags:   unix.O_PATH | unix.O_CLOEXEC,
+			Flags:   unix.O_PATH | unix.O_NOFOLLOW | unix.O_CLOEXEC,
 			Resolve: unix.RESOLVE_BENEATH | unix.RESOLVE_NO_XDEV | unix.RESOLVE_NO_MAGICLINKS,
 		})
 		if err != nil {
 			return nil, nil, fmt.Errorf("%w: %w", errUnsafeProcfs, err)
 		}
 	} else {
-		handle, err = openatFile(procRoot, threadSelf+subpath, unix.O_PATH|unix.O_CLOEXEC, 0)
+		handle, err = openatFile(procRoot, threadSelf+subpath, unix.O_PATH|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
 		if err != nil {
 			return nil, nil, fmt.Errorf("%w: %w", errUnsafeProcfs, err)
 		}
@@ -333,10 +332,10 @@ func hasStatxMountId() bool {
 	return hasStatxMountIdBool
 }
 
-func checkSymlinkOvermount(dir *os.File, path string) error {
+func getMountId(dir *os.File, path string) (uint64, error) {
 	// If we don't have statx(STATX_MNT_ID*) support, we can't do anything.
 	if !hasStatxMountId() {
-		return nil
+		return 0, nil
 	}
 
 	var (
@@ -346,31 +345,29 @@ func checkSymlinkOvermount(dir *os.File, path string) error {
 		wantStxMask uint32 = unix.STATX_MNT_ID_UNIQUE | unix.STATX_MNT_ID
 	)
 
+	err := unix.Statx(int(dir.Fd()), path, unix.AT_EMPTY_PATH|unix.AT_SYMLINK_NOFOLLOW, int(wantStxMask), &stx)
+	if stx.Mask&wantStxMask == 0 {
+		// It's not a kernel limitation, for some reason we couldn't get a
+		// mount ID. Assume it's some kind of attack.
+		err = fmt.Errorf("%w: could not get mount id", errUnsafeProcfs)
+	}
+	if err != nil {
+		return 0, &os.PathError{Op: "statx(STATX_MNT_ID_...)", Path: dir.Name() + "/" + path, Err: err}
+	}
+	return stx.Mnt_id, nil
+}
+
+func checkSymlinkOvermount(procRoot *os.File, dir *os.File, path string) error {
 	// Get the mntId of our procfs handle.
-	err := unix.Statx(int(dir.Fd()), "", unix.AT_EMPTY_PATH, int(wantStxMask), &stx)
+	expectedMountId, err := getMountId(procRoot, "")
 	if err != nil {
-		return &os.PathError{Op: "statx", Path: dir.Name(), Err: err}
+		return err
 	}
-	if stx.Mask&wantStxMask == 0 {
-		// It's not a kernel limitation, for some reason we couldn't get a
-		// mount ID. Assume it's some kind of attack.
-		return fmt.Errorf("%w: could not get mnt id of dir %s", errUnsafeProcfs, dir.Name())
-	}
-	expectedMountId := stx.Mnt_id
-
-	// Get the mntId of the target symlink.
-	stx = unix.Statx_t{}
-	err = unix.Statx(int(dir.Fd()), path, unix.AT_SYMLINK_NOFOLLOW, int(wantStxMask), &stx)
+	// Get the mntId of the target magic-link.
+	gotMountId, err := getMountId(dir, path)
 	if err != nil {
-		return &os.PathError{Op: "statx", Path: dir.Name() + "/" + path, Err: err}
+		return err
 	}
-	if stx.Mask&wantStxMask == 0 {
-		// It's not a kernel limitation, for some reason we couldn't get a
-		// mount ID. Assume it's some kind of attack.
-		return fmt.Errorf("%w: could not get mnt id of symlink %s", errUnsafeProcfs, path)
-	}
-	gotMountId := stx.Mnt_id
-
 	// As long as the directory mount is alive, even with wrapping mount IDs,
 	// we would expect to see a different mount ID here. (Of course, if we're
 	// using unsafeHostProcRoot() then an attaker could change this after we
@@ -381,37 +378,33 @@ func checkSymlinkOvermount(dir *os.File, path string) error {
 	return nil
 }
 
-func doProcSelfMagiclink[T any](procRoot *os.File, subPath string, fn func(procDirHandle *os.File, base string) (T, error)) (T, error) {
-	// We cannot operate on the magic-link directly with a handle, we need to
-	// create a handle to the parent of the magic-link and then do
-	// single-component operations on it.
-	dir, base := filepath.Dir(subPath), filepath.Base(subPath)
-
-	procDirHandle, closer, err := procThreadSelf(procRoot, dir)
+func doRawProcSelfFdReadlink(procRoot *os.File, fd int) (string, error) {
+	fdPath := fmt.Sprintf("fd/%d", fd)
+	procFdLink, closer, err := procThreadSelf(procRoot, fdPath)
 	if err != nil {
-		return *new(T), fmt.Errorf("get safe /proc/thread-self/%s handle: %w", dir, err)
+		return "", fmt.Errorf("get safe /proc/thread-self/%s handle: %w", fdPath, err)
 	}
-	defer procDirHandle.Close()
+	defer procFdLink.Close()
 	defer closer()
 
-	// Try to detect if there is a mount on top of the symlink we are about to
-	// read. If we are using unsafeHostProcRoot(), this could change after we
-	// check it (and there's nothing we can do about that) but for
-	// privateProcRoot() this should be guaranteed to be safe (at least since
-	// Linux 5.12[1], when anonymous mount namespaces were completely isolated
-	// from external mounts including mount propagation events).
+	// Try to detect if there is a mount on top of the magic-link. Since we use the handle directly
+	// provide to the closure. If the closure uses the handle directly, this
+	// should be safe in general (a mount on top of the path afterwards would
+	// not affect the handle itself) and will definitely be safe if we are
+	// using privateProcRoot() (at least since Linux 5.12[1], when anonymous
+	// mount namespaces were completely isolated from external mounts including
+	// mount propagation events).
 	//
 	// [1]: Linux commit ee2e3f50629f ("mount: fix mounting of detached mounts
 	// onto targets that reside on shared mounts").
-	if err := checkSymlinkOvermount(procDirHandle, base); err != nil {
-		return *new(T), fmt.Errorf("check safety of %s proc magiclink: %w", subPath, err)
+	if err := checkSymlinkOvermount(procRoot, procFdLink, ""); err != nil {
+		return "", fmt.Errorf("check safety of /proc/thread-self/fd/%d magiclink: %w", fd, err)
 	}
-	return fn(procDirHandle, base)
-}
 
-func doRawProcSelfFdReadlink(procRoot *os.File, fd int) (string, error) {
-	fdPath := fmt.Sprintf("fd/%d", fd)
-	return doProcSelfMagiclink(procRoot, fdPath, readlinkatFile)
+	// readlinkat implies AT_EMPTY_PATH since Linux 2.6.39. See Linux commit
+	// 65cfc6722361 ("readlinkat(), fchownat() and fstatat() with empty
+	// relative pathnames").
+	return readlinkatFile(procFdLink, "")
 }
 
 func rawProcSelfFdReadlink(fd int) (string, error) {

@@ -87,6 +87,17 @@ func openat2File(dir *os.File, path string, how *unix.OpenHow) (*os.File, error)
 	return nil, &os.PathError{Op: "openat2", Path: fullPath, Err: errPossibleAttack}
 }
 
+func lookupOpenat2(root *os.File, unsafePath string, partial bool) (*os.File, string, error) {
+	if !partial {
+		file, err := openat2File(root, unsafePath, &unix.OpenHow{
+			Flags:   unix.O_PATH | unix.O_CLOEXEC,
+			Resolve: unix.RESOLVE_IN_ROOT | unix.RESOLVE_NO_MAGICLINKS,
+		})
+		return file, "", err
+	}
+	return partialLookupOpenat2(root, unsafePath)
+}
+
 // partialLookupOpenat2 is an alternative implementation of
 // partialLookupInRoot, using openat2(RESOLVE_IN_ROOT) to more safely get a
 // handle to the deepest existing child of the requested path within the root.
@@ -95,6 +106,7 @@ func partialLookupOpenat2(root *os.File, unsafePath string) (*os.File, string, e
 
 	unsafePath = filepath.ToSlash(unsafePath) // noop
 	endIdx := len(unsafePath)
+	var lastError error
 	for endIdx > 0 {
 		subpath := unsafePath[:endIdx]
 
@@ -108,11 +120,12 @@ func partialLookupOpenat2(root *os.File, unsafePath string) (*os.File, string, e
 				endIdx += 1
 			}
 			// We found a subpath!
-			return handle, unsafePath[endIdx:], nil
+			return handle, unsafePath[endIdx:], lastError
 		}
 		if errors.Is(err, unix.ENOENT) || errors.Is(err, unix.ENOTDIR) {
 			// That path doesn't exist, let's try the next directory up.
 			endIdx = strings.LastIndexByte(subpath, '/')
+			lastError = err
 			continue
 		}
 		return nil, "", fmt.Errorf("open subpath: %w", err)
@@ -124,5 +137,5 @@ func partialLookupOpenat2(root *os.File, unsafePath string) (*os.File, string, e
 	if err != nil {
 		return nil, "", err
 	}
-	return rootClone, unsafePath, nil
+	return rootClone, unsafePath, lastError
 }
