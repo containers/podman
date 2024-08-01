@@ -411,16 +411,30 @@ _EOF
 # Occasionally a remnant storage container is left behind which causes
 # podman play kube --replace to fail. This tests created a conflicting
 # storage container name using buildah to make sure --replace, still
-# functions proplery by removing the storage container.
+# functions properly by removing the storage container.
 @test "podman kube play --replace external storage" {
-    _write_test_yaml
+    _write_test_yaml command="top"
 
     run_podman play kube $TESTYAML
-    # Force removal of container
+
+    # Pod container exists
+    run_podman ps -a --format '=={{.Names}}=={{.Status}}=='
+    assert "$output" =~ "==${PODCTRNAME}==Up " "Pod container created"
+
+    # Force removal of container, and confirm that it no longer exists
     run_podman rm --force -t0 $PODCTRNAME
+    assert "$output" = "$PODCTRNAME" "Confirmation that container was removed"
+    run_podman ps -a --external --format '=={{.Names}}=={{.Status}}=='
+    assert "$output" !~ "$PODCTRNAME" "Pod container gone"
+
     # Create external container using buildah with same name
     buildah from --name $PODCTRNAME $IMAGE
-    # --replace deletes the buildah container and replace it with new one
+    # Confirm that we now have an external (Storage) container by that name
+    run_podman ps -a --external --format '=={{.Names}}=={{.Status}}=='
+    assert "$output" =~ "==${PODCTRNAME}==Storage==" "Storage (external) container created"
+
+    # --replace deletes the buildah container and replace it with new one.
+    # Prior to #20025, this would fail with "container name is in use"
     run_podman play kube --replace $TESTYAML
 
     run_podman pod rm -t 0 -f $PODNAME
