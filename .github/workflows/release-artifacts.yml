@@ -101,9 +101,6 @@ jobs:
             fi
 
       - name: Checkout Version
-        if: >-
-          steps.check.outputs.buildartifacts == 'true' ||
-          steps.actual_dryrun.outputs.dryrun == 'true'
         uses: actions/checkout@v4
         with:
           ref: ${{steps.getversion.outputs.version}}
