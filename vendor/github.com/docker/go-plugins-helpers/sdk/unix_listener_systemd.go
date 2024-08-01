@@ -1,5 +1,4 @@
-// +build linux freebsd
-// +build !nosystemd
+//go:build (linux || freebsd) && !nosystemd
 
 package sdk
 
@@ -25,6 +24,7 @@ func isRunningSystemd() bool {
 	return fi.IsDir()
 }
 
+// FIXME(thaJeztah): this code was added in https://github.com/docker/go-plugins-helpers/commit/008703b825c10311af1840deeaf5f4769df7b59e, but is not used anywhere
 func setupSocketActivation() (net.Listener, error) {
 	if !isRunningSystemd() {
 		return nil, nil

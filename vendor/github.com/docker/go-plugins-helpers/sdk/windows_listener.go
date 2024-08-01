@@ -1,4 +1,4 @@
-// +build windows
+//go:build windows
 
 package sdk
 
@@ -14,20 +14,19 @@ import (
 // Named pipes use Windows Security Descriptor Definition Language to define ACL. Following are
 // some useful definitions.
 const (
-	// This will set permissions for everyone to have full access
+	// AllowEveryone grants full access permissions for everyone.
 	AllowEveryone = "S:(ML;;NW;;;LW)D:(A;;0x12019f;;;WD)"
 
-	// This will set permissions for Service, System, Adminstrator group and account to have full access
+	// AllowServiceSystemAdmin grants full access permissions for Service, System, Administrator group and account.
 	AllowServiceSystemAdmin = "D:(A;ID;FA;;;SY)(A;ID;FA;;;BA)(A;ID;FA;;;LA)(A;ID;FA;;;LS)"
 )
 
 func newWindowsListener(address, pluginName, daemonRoot string, pipeConfig *WindowsPipeConfig) (net.Listener, string, error) {
-	winioPipeConfig := winio.PipeConfig{
+	listener, err := winio.ListenPipe(address, &winio.PipeConfig{
 		SecurityDescriptor: pipeConfig.SecurityDescriptor,
 		InputBufferSize:    pipeConfig.InBufferSize,
 		OutputBufferSize:   pipeConfig.OutBufferSize,
-	}
-	listener, err := winio.ListenPipe(address, &winioPipeConfig)
+	})
 	if err != nil {
 		return nil, "", err
 	}
@@ -48,7 +47,7 @@ func newWindowsListener(address, pluginName, daemonRoot string, pipeConfig *Wind
 
 func windowsCreateDirectoryWithACL(name string) error {
 	sa := syscall.SecurityAttributes{Length: 0}
-	sddl := "D:P(A;OICI;GA;;;BA)(A;OICI;GA;;;SY)"
+	const sddl = "D:P(A;OICI;GA;;;BA)(A;OICI;GA;;;SY)"
 	sd, err := winio.SddlToSecurityDescriptor(sddl)
 	if err != nil {
 		return &os.PathError{Op: "mkdir", Path: name, Err: err}

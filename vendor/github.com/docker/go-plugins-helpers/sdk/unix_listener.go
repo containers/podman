@@ -1,4 +1,4 @@
-// +build linux freebsd
+//go:build linux || freebsd
 
 package sdk
 
