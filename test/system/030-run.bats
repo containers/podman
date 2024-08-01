@@ -1239,38 +1239,44 @@ EOF
 
     grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
 
-    # check if the underlying file system supports idmapped mounts
-    check_dir=$PODMAN_TMPDIR/idmap-check
-    mkdir $check_dir
-    run_podman '?' run --rm --uidmap=0:1000:10000 --rootfs $check_dir:idmap true
-    if [[ "$output" == *"failed to create idmapped mount: invalid argument"* ]]; then
-        skip "idmapped mounts not supported"
-    fi
+    # the TMPDIR must be accessible by different users as the following tests use different mappings
+    chmod 755 $PODMAN_TMPDIR
 
     run_podman image mount $IMAGE
     src="$output"
 
     # we cannot use idmap on top of overlay, so we need a copy
     romount=$PODMAN_TMPDIR/rootfs
-    cp -ar "$src" "$romount"
+    cp -a "$src" "$romount"
 
     run_podman image unmount $IMAGE
 
-    run_podman run --rm --uidmap=0:1000:10000 --rootfs $romount:idmap stat -c %u:%g /bin
+    # check if the underlying file system supports idmapped mounts
+    run_podman '?' run --security-opt label=disable --rm --uidmap=0:1000:10000 --rootfs $romount:idmap true
+    if [[ $status -ne 0 ]]; then
+        if [[ "$output" =~ "failed to create idmapped mount: invalid argument" ]]; then
+            skip "idmapped mounts not supported"
+        fi
+        # Any other error is fatal
+        die "Cannot create idmap mount: $output"
+    fi
+
+    run_podman run --security-opt label=disable --rm --uidmap=0:1000:10000 --rootfs $romount:idmap stat -c %u:%g /bin
     is "$output" "0:0"
 
-    run_podman run --uidmap=0:1000:10000 --rm --rootfs "$romount:idmap=uids=0-1001-10000;gids=0-1002-10000" stat -c %u:%g /bin
+    run_podman run --security-opt label=disable --uidmap=0:1000:10000 --rm --rootfs "$romount:idmap=uids=0-1001-10000;gids=0-1002-10000" stat -c %u:%g /bin
     is "$output" "1:2"
 
     touch $romount/testfile
     chown 2000:2000 $romount/testfile
-    run_podman run --uidmap=0:1000:200 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
+    run_podman run --security-opt label=disable --uidmap=0:1000:200 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
     is "$output" "1:1"
 
     myvolume=my-volume-$(safename)
     run_podman volume create $myvolume
     mkdir $romount/volume
-    run_podman run --rm --uidmap=0:1000:10000 -v volume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
+    chown 1000:1000 $romount/volume
+    run_podman run --security-opt label=disable --rm --uidmap=0:1000:10000 -v $myvolume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
     is "$output" "0:0"
     run_podman volume rm $myvolume
 

@@ -2374,7 +2374,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 // the container's mountpoint directly from the storage.
 // Otherwise, it returns an intermediate mountpoint that is accessible to anyone.
 func (c *Container) getRootPathForOCI() (string, error) {
-	if hasCurrentUserMapped(c) {
+	if hasCurrentUserMapped(c) || c.config.RootfsMapping != nil {
 		return c.state.Mountpoint, nil
 	}
 	return c.getIntermediateMountpointUser()
