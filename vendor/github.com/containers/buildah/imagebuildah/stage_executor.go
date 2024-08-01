@@ -592,6 +592,13 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 			IDMappingOptions:  idMappingOptions,
 			StripSetuidBit:    stripSetuid,
 			StripSetgidBit:    stripSetgid,
+			// The values for these next two fields are ultimately
+			// based on command line flags with names that sound
+			// much more generic.
+			CertPath:              s.executor.systemContext.DockerCertPath,
+			InsecureSkipTLSVerify: s.executor.systemContext.DockerInsecureSkipTLSVerify,
+			MaxRetries:            s.executor.maxPullPushRetries,
+			RetryDelay:            s.executor.retryPullPushDelay,
 		}
 		if len(copy.Files) > 0 {
 			// If we are copying heredoc files, we need to temporary place
