@@ -1,4 +1,4 @@
-// +build !windows
+//go:build !windows
 
 package sdk
 
@@ -7,12 +7,8 @@ import (
 	"net"
 )
 
-var (
-	errOnlySupportedOnWindows = errors.New("named pipe creation is only supported on Windows")
-)
-
 func newWindowsListener(address, pluginName, daemonRoot string, pipeConfig *WindowsPipeConfig) (net.Listener, string, error) {
-	return nil, "", errOnlySupportedOnWindows
+	return nil, "", errors.New("named pipe creation is only supported on Windows")
 }
 
 func windowsCreateDirectoryWithACL(name string) error {

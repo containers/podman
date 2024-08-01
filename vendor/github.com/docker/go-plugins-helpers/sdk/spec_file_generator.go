@@ -2,7 +2,6 @@ package sdk
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -50,7 +49,7 @@ func writeSpecFile(name, address, pluginSpecDir string, proto protocol) (string,
 	specFileDir := filepath.Join(pluginSpecDir, name+".spec")
 
 	url := string(proto) + "://" + address
-	if err := ioutil.WriteFile(specFileDir, []byte(url), 0644); err != nil {
+	if err := os.WriteFile(specFileDir, []byte(url), 0644); err != nil {
 		return "", err
 	}
 

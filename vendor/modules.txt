@@ -514,7 +514,7 @@ github.com/docker/docker-credential-helpers/credentials
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
-# github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651
+# github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8
 ## explicit
 github.com/docker/go-plugins-helpers/sdk
 github.com/docker/go-plugins-helpers/volume
