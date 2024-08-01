@@ -263,40 +263,88 @@ function restore_image() {
     run_podman restore $archive
 }
 
-function leak_check() {
-    run_podman volume ls -q
-    assert "$output" == "" "Leaked volumes!!!"
-    local exit_code=$?
-    run_podman network ls -q
-    # podman always exists
-    assert "$output" == "podman" "Leaked networks!!!"
-    exit_code=$((exit_code + $?))
-    run_podman pod ps -q
-    assert "$output" == "" "Leaked pods!!!"
-    exit_code=$((exit_code + $?))
-    run_podman ps -a -q
-    assert "$output" == "" "Leaked containers!!!"
-    exit_code=$((exit_code + $?))
-
-    run_podman images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
-    for line in "${lines[@]}"; do
-        set $line
-        if [[ "$1" == "$PODMAN_TEST_IMAGE_FQN" ]]; then
-            found_needed_image=1
-        elif [[ "$1" == "$PODMAN_SYSTEMD_IMAGE_FQN" ]]; then
-            # This is a big image, don't force unnecessary pulls
-            :
-        else
-            exit_code=$((exit_code + 1))
-            echo "Leaked image $1 $2"
-        fi
-    done
-
-    # Make sure desired image is present
-    if [[ -z "$found_needed_image" ]]; then
+#######################
+#  _run_podman_quiet  #  Helper for leak_check. Runs podman with no logging
+#######################
+function _run_podman_quiet() {
+    # This should be the same as what run_podman() does.
+    run timeout -v --foreground --kill=10 60 $PODMAN $_PODMAN_TEST_OPTS "$@"
+    if [[ $status -ne 0 ]]; then
+        echo "# Error running command: podman $*"
+        echo "$output"
         exit_code=$((exit_code + 1))
-        die "$PODMAN_TEST_IMAGE_FQN was removed"
     fi
+}
+
+#####################
+#  _leak_check_one  #  Helper for leak_check: shows leaked artifacts
+#####################
+#
+# NOTE: plays fast & loose with variables! Reads $output, updates $exit_code
+#
+function _leak_check_one() {
+    local what="$1"
+
+    # Shown the first time we see a stray of this kind
+    separator="vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+"
+
+    while read line; do
+        if [[ -n "$line" ]]; then
+            echo "${separator}*** Leaked $what: $line"
+            separator=""
+            exit_code=$((exit_code + 1))
+        fi
+    done <<<"$output"
+}
+
+################
+#  leak_check  #  Look for, and warn about, stray artifacts
+################
+#
+# Runs on test failure, or at end of all tests, or when PODMAN_BATS_LEAK_CHECK=1
+#
+# Note that all ps/ls commands specify a format where something useful
+# (ID or name) is in the first column. This is not important today
+# (July 2024) but may be useful one day: a future PR may run bats
+# with --gather-test-outputs-in, which preserves logs of all tests.
+# Why not today? Because that option is still buggy: (1) we need
+# bats-1.11 to fix a more-than-one-slash-in-test-name bug, (2) as
+# of July 2024 that option only copies logs of *completed* tests
+# to the directory, so currently-running tests (the one running
+# teardown, or, in parallel mode, any other running tests) are
+# not seen. This renders that option less useful, and not worth
+# bothering with at the moment. But please leave ID-or-name as
+# the first column anyway because things may change and it's
+# a reasonable format anyway.
+#
+function leak_check() {
+    local exit_code=0
+
+    # Volumes.
+    _run_podman_quiet volume ls --format '{{.Name}} {{.Driver}}'
+    _leak_check_one "volume"
+
+    # Networks. "podman" and "podman-default-kube-network" are OK.
+    _run_podman_quiet network ls --noheading
+    output=$(grep -ve "^[0-9a-z]\{12\} *podman\(-default-kube-network\)\? *bridge\$" <<<"$output")
+    _leak_check_one "network"
+
+    # Pods, containers, and external (buildah) containers.
+    _run_podman_quiet pod ls --format '{{.ID}} {{.Name}} status={{.Status}} ({{.NumberOfContainers}} containers)'
+    _leak_check_one "pod"
+
+    _run_podman_quiet ps -a --format '{{.ID}} {{.Image}} {{.Names}}  {{.Status}}'
+    _leak_check_one "container"
+
+    _run_podman_quiet ps -a --external --filter=status=unknown --format '{{.ID}} {{.Image}} {{.Names}}  {{.Status}}'
+    _leak_check_one "storage container"
+
+    # Images. Exclude our standard expected images.
+    _run_podman_quiet images --all --format '{{.ID}} {{.Repository}}:{{.Tag}}'
+    output=$(awk "\$2 != \"$IMAGE\" && \$2 != \"$PODMAN_SYSTEMD_IMAGE_FQN\" && \$2 !~ \"localhost/podman-pause:\" { print }" <<<"$output")
+    _leak_check_one "image"
+
     return $exit_code
 }
 
@@ -308,7 +356,7 @@ function clean_setup() {
         "volume rm -a -f"
     )
     for action in "${actions[@]}"; do
-        run_podman '?' $action
+        _run_podman_quiet $action
 
         # The -f commands should never exit nonzero, but if they do we want
         # to know about it.
@@ -332,7 +380,7 @@ function clean_setup() {
     done
 
     # ...including external (buildah) ones
-    run_podman ps --all --external --format '{{.ID}} {{.Names}}'
+    _run_podman_quiet ps --all --external --format '{{.ID}} {{.Names}}'
     for line in "${lines[@]}"; do
         set $line
         echo "# setup(): removing stray external container $1 ($2)" >&3
@@ -351,7 +399,7 @@ function clean_setup() {
     # Yes, but it's also tremendously slower: 29m for a CI run, to 39m.
     # Image loads are slow.
     found_needed_image=
-    run_podman '?' images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
+    _run_podman_quiet images --all --format '{{.Repository}}:{{.Tag}} {{.ID}}'
 
     for line in "${lines[@]}"; do
         set $line
