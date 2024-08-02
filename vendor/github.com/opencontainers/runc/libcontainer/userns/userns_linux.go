@@ -7,32 +7,26 @@ import (
 	"sync"
 )
 
-var (
-	inUserNS bool
-	nsOnce   sync.Once
-)
+var inUserNS = sync.OnceValue(runningInUserNS)
 
 // runningInUserNS detects whether we are currently running in a user namespace.
 //
 // Originally copied from https://github.com/lxc/incus/blob/e45085dd42f826b3c8c3228e9733c0b6f998eafe/shared/util.go#L678-L700.
 func runningInUserNS() bool {
-	nsOnce.Do(func() {
-		file, err := os.Open("/proc/self/uid_map")
-		if err != nil {
-			// This kernel-provided file only exists if user namespaces are supported.
-			return
-		}
-		defer file.Close()
+	file, err := os.Open("/proc/self/uid_map")
+	if err != nil {
+		// This kernel-provided file only exists if user namespaces are supported.
+		return false
+	}
+	defer file.Close()
 
-		buf := bufio.NewReader(file)
-		l, _, err := buf.ReadLine()
-		if err != nil {
-			return
-		}
+	buf := bufio.NewReader(file)
+	l, _, err := buf.ReadLine()
+	if err != nil {
+		return false
+	}
 
-		inUserNS = uidMapInUserNS(string(l))
-	})
-	return inUserNS
+	return uidMapInUserNS(string(l))
 }
 
 func uidMapInUserNS(uidMap string) bool {
