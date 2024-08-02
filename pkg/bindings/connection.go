@@ -276,7 +276,12 @@ func (c *Connection) DoRequest(ctx context.Context, httpBody io.Reader, httpMeth
 		params[i+1] = url.PathEscape(pv)
 	}
 
-	uri := fmt.Sprintf("http://d/v%s/libpod"+endpoint, params...)
+	baseURL := "http://d"
+	if c.URI.Scheme == "tcp" {
+		// Allow path prefixes for tcp connections to match Docker behavior
+		baseURL = "http://" + c.URI.Host + c.URI.Path
+	}
+	uri := fmt.Sprintf(baseURL+"/v%s/libpod"+endpoint, params...)
 	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)
 
 	req, err := http.NewRequestWithContext(ctx, httpMethod, uri, httpBody)
