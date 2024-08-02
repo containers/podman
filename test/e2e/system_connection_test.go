@@ -3,12 +3,18 @@
 package integration
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"os"
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strings"
+	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -117,6 +123,22 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(Equal("QA-TCP tcp://localhost:8888 true true"))
+		})
+
+		It("add tcp to reverse proxy path", func() {
+			cmd := []string{"system", "connection", "add",
+				"QA-TCP-RP",
+				"tcp://localhost:8888/reverse/proxy/path/prefix",
+			}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			session = podmanTest.Podman(systemConnectionListCmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(Equal("QA-TCP-RP tcp://localhost:8888/reverse/proxy/path/prefix true true"))
 		})
 
 		It("add to new farm", func() {
@@ -312,6 +334,91 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToStringArray()).Should(HaveLen(1))
 			Expect(session.Err.Contents()).Should(BeEmpty())
+		})
+	})
+
+	Context("with running API service", func() {
+		BeforeEach(func() {
+			SkipIfNotRemote("requires podman API service")
+		})
+
+		It("add tcp:// connection with reverse proxy path", func() {
+			// Create a reverse proxy to the podman socket using path prefix
+			const pathPrefix = "/reverse/proxy/path/prefix"
+			proxyGotUsed := false
+			proxy := http.NewServeMux()
+			proxy.Handle(pathPrefix+"/", &httputil.ReverseProxy{
+				Rewrite: func(pr *httputil.ProxyRequest) {
+					proxyGotUsed = true
+					pr.Out.URL.Path = strings.TrimPrefix(pr.Out.URL.Path, pathPrefix)
+					pr.Out.URL.RawPath = strings.TrimPrefix(pr.Out.URL.RawPath, pathPrefix)
+					baseURL, _ := url.Parse("http://d")
+					pr.SetURL(baseURL)
+				},
+				Transport: &http.Transport{
+					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						By("Proxying to " + podmanTest.RemoteSocket)
+						url, err := url.Parse(podmanTest.RemoteSocket)
+						if err != nil {
+							return nil, err
+						}
+						return (&net.Dialer{}).DialContext(ctx, "unix", url.Path)
+					},
+				},
+			})
+			srv := &http.Server{
+				Handler:           proxy,
+				ReadHeaderTimeout: time.Second,
+			}
+
+			// Serve the reverse proxy on a random port
+			lis, err := net.Listen("tcp", "127.0.0.1:0")
+			Expect(err).ToNot(HaveOccurred())
+			defer lis.Close()
+
+			defer srv.Close()
+			go func() {
+				defer GinkgoRecover()
+				Expect(srv.Serve(lis)).To(MatchError(http.ErrServerClosed))
+			}()
+
+			connectionURL := "tcp://" + lis.Addr().String() + pathPrefix
+
+			cmd := exec.Command(podmanTest.RemotePodmanBinary,
+				"system", "connection", "add",
+				"--default", "QA", connectionURL,
+			)
+			session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("%q failed to execute", podmanTest.RemotePodmanBinary))
+			Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(BeEmpty())
+			Expect(session.Err.Contents()).Should(BeEmpty())
+
+			Expect(proxyGotUsed).To(BeFalse())
+			cmd = exec.Command(podmanTest.RemotePodmanBinary,
+				"--connection", "QA", "ps")
+			session, err = Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("%q failed to execute", podmanTest.RemotePodmanBinary))
+			Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(Equal([]byte(`CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+`)))
+			Expect(session.Err.Contents()).Should(BeEmpty())
+			Expect(proxyGotUsed).To(BeTrue())
+
+			// export the container_host env var and try again
+			proxyGotUsed = false
+			err = os.Setenv("CONTAINER_HOST", connectionURL)
+			Expect(err).ToNot(HaveOccurred())
+			defer os.Unsetenv("CONTAINER_HOST")
+
+			cmd = exec.Command(podmanTest.RemotePodmanBinary, "ps")
+			session, err = Start(cmd, GinkgoWriter, GinkgoWriter)
+			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("%q failed to execute", podmanTest.RemotePodmanBinary))
+			Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+			Expect(session.Out.Contents()).Should(Equal([]byte(`CONTAINER ID  IMAGE       COMMAND     CREATED     STATUS      PORTS       NAMES
+`)))
+			Expect(session.Err.Contents()).Should(BeEmpty())
+			Expect(proxyGotUsed).To(BeTrue())
 		})
 	})
 
