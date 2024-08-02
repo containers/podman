@@ -122,6 +122,9 @@ func GetExternalContainerLists(runtime *libpod.Runtime) ([]entities.ListContaine
 		switch {
 		case errors.Is(err, types.ErrLoadError):
 			continue
+		// Container could have been removed since listing
+		case errors.Is(err, types.ErrContainerUnknown):
+			continue
 		case err != nil:
 			return nil, err
 		default:
