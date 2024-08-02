@@ -401,6 +401,9 @@ bindings_task:
         server_log_artifacts:
             path: ./podman-server.log
             type: text/plain
+        cleanup_tracer_artifacts:
+            path: ./podman-cleanup-tracer.log
+            type: text/plain
         df_script: '$SCRIPT_BASE/logcollector.sh df'
         audit_log_script: '$SCRIPT_BASE/logcollector.sh audit'
         journal_script: '$SCRIPT_BASE/logcollector.sh journal'
