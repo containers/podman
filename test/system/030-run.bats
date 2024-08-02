@@ -1232,7 +1232,7 @@ EOF
     fi
 }
 
-@test "podman run - rootfs with idmapped mounts" {
+@test "podman run - idmapped mounts" {
     skip_if_rootless "idmapped mounts work only with root for now"
 
     skip_if_remote "userns=auto is set on the server"
@@ -1277,6 +1277,12 @@ EOF
     mkdir $romount/volume
     chown 1000:1000 $romount/volume
     run_podman run --security-opt label=disable --rm --uidmap=0:1000:10000 -v $myvolume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
+    is "$output" "0:0"
+    run_podman volume rm $myvolume
+
+    # verify that copyup with an idmap volume maintains the original ownership
+    myvolume=my-volume-$(safename)
+    run_podman run --rm --uidmap=0:1000:10000 -v $myvolume:/etc:idmap $IMAGE stat -c %u:%g /etc/passwd
     is "$output" "0:0"
     run_podman volume rm $myvolume
 

@@ -1922,6 +1922,11 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 			getOptions := copier.GetOptions{
 				KeepDirectoryNames: false,
 			}
+			// If the volume is idmapped, we need to "undo" the idmapping
+			if slices.Contains(v.Options, "idmap") {
+				getOptions.UIDMap = c.config.IDMappings.UIDMap
+				getOptions.GIDMap = c.config.IDMappings.GIDMap
+			}
 			errChan <- copier.Get(srcDir, "", getOptions, []string{"/."}, writer)
 		}()
 
@@ -1929,6 +1934,8 @@ func (c *Container) mountNamedVolume(v *ContainerNamedVolume, mountpoint string)
 		// the volume.
 		copyOpts := copier.PutOptions{}
 		if err := copier.Put(volMount, "", copyOpts, reader); err != nil {
+			// consume the reader otherwise the goroutine will block
+			_, _ = io.Copy(io.Discard, reader)
 			err2 := <-errChan
 			if err2 != nil {
 				logrus.Errorf("Streaming contents of container %s directory for volume copy-up: %v", c.ID(), err2)
