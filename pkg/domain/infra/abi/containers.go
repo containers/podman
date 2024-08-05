@@ -34,6 +34,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
 )
 
@@ -1367,6 +1368,11 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	for _, ctr := range containers {
 		report := entities.ContainerMountReport{Id: ctr.ID()}
 		report.Path, report.Err = ctr.Mount()
+		if options.All &&
+			(errors.Is(report.Err, define.ErrNoSuchCtr) ||
+				errors.Is(report.Err, define.ErrCtrRemoved)) {
+			continue
+		}
 		reports = append(reports, &report)
 	}
 	if len(reports) > 0 {
@@ -1381,6 +1387,9 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	for _, sctr := range storageCtrs {
 		mounted, path, err := ic.Libpod.IsStorageContainerMounted(sctr.ID)
 		if err != nil {
+			if errors.Is(err, types.ErrContainerUnknown) {
+				continue
+			}
 			return nil, err
 		}
 
@@ -1405,6 +1414,10 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	for _, ctr := range containers {
 		mounted, path, err := ctr.Mounted()
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchCtr) ||
+				errors.Is(err, define.ErrCtrRemoved) {
+				continue
+			}
 			return nil, err
 		}
 
