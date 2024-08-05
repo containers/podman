@@ -170,9 +170,15 @@ const (
 	KeyYaml                  = "Yaml"
 )
 
-type PodInfo struct {
+type UnitInfo struct {
+	// The name of the generated systemd service unit
 	ServiceName string
-	Containers  []string
+	// The name of the podman resource created by the service
+	ResourceName string
+
+	// For .pod units
+	// List of containers in a pod
+	Containers []string
 }
 
 var (
@@ -245,6 +251,7 @@ var (
 		KeySecurityLabelLevel:    true,
 		KeySecurityLabelNested:   true,
 		KeySecurityLabelType:     true,
+		KeyServiceName:           true,
 		KeyShmSize:               true,
 		KeyStopSignal:            true,
 		KeyStopTimeout:           true,
@@ -275,6 +282,7 @@ var (
 		KeyLabel:                true,
 		KeyOptions:              true,
 		KeyPodmanArgs:           true,
+		KeyServiceName:          true,
 		KeyType:                 true,
 		KeyUser:                 true,
 		KeyVolumeName:           true,
@@ -295,6 +303,7 @@ var (
 		KeyInternal:             true,
 		KeyNetworkName:          true,
 		KeyOptions:              true,
+		KeyServiceName:          true,
 		KeySubnet:               true,
 		KeyPodmanArgs:           true,
 	}
@@ -316,6 +325,7 @@ var (
 		KeyRemapUid:             true,
 		KeyRemapUidSize:         true,
 		KeyRemapUsers:           true,
+		KeyServiceName:          true,
 		KeySetWorkingDirectory:  true,
 		KeyUserNS:               true,
 		KeyYaml:                 true,
@@ -335,6 +345,7 @@ var (
 		KeyImageTag:             true,
 		KeyOS:                   true,
 		KeyPodmanArgs:           true,
+		KeyServiceName:          true,
 		KeyTLSVerify:            true,
 		KeyVariant:              true,
 	}
@@ -359,6 +370,7 @@ var (
 		KeyPodmanArgs:           true,
 		KeyPull:                 true,
 		KeySecret:               true,
+		KeyServiceName:          true,
 		KeySetWorkingDirectory:  true,
 		KeyTarget:               true,
 		KeyTLSVerify:            true,
@@ -379,7 +391,11 @@ var (
 	}
 )
 
-func replaceExtension(name string, extension string, extraPrefix string, extraSuffix string) string {
+func (u *UnitInfo) ServiceFileName() string {
+	return fmt.Sprintf("%s.service", u.ServiceName)
+}
+
+func removeExtension(name string, extraPrefix string, extraSuffix string) string {
 	baseName := name
 
 	dot := strings.LastIndexByte(name, '.')
@@ -387,7 +403,7 @@ func replaceExtension(name string, extension string, extraPrefix string, extraSu
 		baseName = name[:dot]
 	}
 
-	return extraPrefix + baseName + extraSuffix + extension
+	return extraPrefix + baseName + extraSuffix
 }
 
 func isURL(urlCandidate string) bool {
@@ -456,9 +472,14 @@ func usernsOpts(kind string, opts []string) string {
 // service file (unit file with Service group) based on the options in the
 // Container group.
 // The original Container group is kept around as X-Container.
-func ConvertContainer(container *parser.UnitFile, names map[string]string, isUser bool, podsInfoMap map[string]*PodInfo) (*parser.UnitFile, error) {
+func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[container.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing container %s", container.Filename)
+	}
+
 	service := container.Dup()
-	service.Filename = replaceExtension(container.Filename, ".service", "", "")
+	service.Filename = unitInfo.ServiceFileName()
 
 	// Add a dependency on network-online.target so the image pull does not happen
 	// before network is ready
@@ -491,7 +512,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	if len(image) > 0 {
 		var err error
-		if image, err = handleImageSource(image, service, names); err != nil {
+		if image, err = handleImageSource(image, service, unitsInfoMap); err != nil {
 			return nil, err
 		}
 	}
@@ -567,7 +588,9 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.addf("--tz=%s", timezone)
 	}
 
-	addNetworks(container, ContainerGroup, service, names, podman)
+	if err := addNetworks(container, ContainerGroup, service, unitsInfoMap, podman); err != nil {
+		return nil, err
+	}
 
 	networkAliases := container.LookupAll(ContainerGroup, KeyNetworkAlias)
 	for _, networkAlias := range networkAliases {
@@ -753,7 +776,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--tmpfs", tmpfs)
 	}
 
-	if err := addVolumes(container, service, ContainerGroup, names, podman); err != nil {
+	if err := addVolumes(container, service, ContainerGroup, unitsInfoMap, podman); err != nil {
 		return nil, err
 	}
 
@@ -827,7 +850,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 
 	mounts := container.LookupAllArgs(ContainerGroup, KeyMount)
 	for _, mount := range mounts {
-		mountStr, err := resolveContainerMountParams(container, service, mount, names)
+		mountStr, err := resolveContainerMountParams(container, service, mount, unitsInfoMap)
 		if err != nil {
 			return nil, err
 		}
@@ -845,7 +868,7 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 		podman.add("--pull", pull)
 	}
 
-	if err := handlePod(container, service, ContainerGroup, podsInfoMap, podman); err != nil {
+	if err := handlePod(container, service, ContainerGroup, unitsInfoMap, podman); err != nil {
 		return nil, err
 	}
 
@@ -881,12 +904,17 @@ func ConvertContainer(container *parser.UnitFile, names map[string]string, isUse
 // The original Network group is kept around as X-Network.
 // Also returns the canonical network name, either auto-generated or user-defined via the
 // NetworkName key-value.
-func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, string, error) {
+func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[network.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing network %s", network.Filename)
+	}
+
 	service := network.Dup()
-	service.Filename = replaceExtension(network.Filename, ".service", "", "-network")
+	service.Filename = unitInfo.ServiceFileName()
 
 	if err := checkForUnknownKeys(network, NetworkGroup, supportedNetworkKeys); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	/* Rename old Network group to x-Network so that systemd ignores it */
@@ -895,7 +923,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 	// Derive network name from unit name (with added prefix), or use user-provided name.
 	networkName, ok := network.Lookup(NetworkGroup, KeyNetworkName)
 	if !ok || len(networkName) == 0 {
-		networkName = replaceExtension(name, "", "systemd-", "")
+		networkName = removeExtension(name, "systemd-", "")
 	}
 
 	// Need the containers filesystem mounted to start podman
@@ -924,10 +952,10 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 	ipRanges := network.LookupAll(NetworkGroup, KeyIPRange)
 	if len(subnets) > 0 {
 		if len(gateways) > len(subnets) {
-			return nil, "", fmt.Errorf("cannot set more gateways than subnets")
+			return nil, fmt.Errorf("cannot set more gateways than subnets")
 		}
 		if len(ipRanges) > len(subnets) {
-			return nil, "", fmt.Errorf("cannot set more ranges than subnets")
+			return nil, fmt.Errorf("cannot set more ranges than subnets")
 		}
 		for i := range subnets {
 			podman.addf("--subnet=%s", subnets[i])
@@ -939,7 +967,7 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 			}
 		}
 	} else if len(ipRanges) > 0 || len(gateways) > 0 {
-		return nil, "", fmt.Errorf("cannot set gateway or range without subnet")
+		return nil, fmt.Errorf("cannot set gateway or range without subnet")
 	}
 
 	if internal := network.LookupBooleanWithDefault(NetworkGroup, KeyInternal, false); internal {
@@ -976,7 +1004,9 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 		// The default syslog identifier is the exec basename (podman) which isn't very useful here
 		"SyslogIdentifier", "%N")
 
-	return service, networkName, nil
+	// Store the name of the created resource
+	unitInfo.ResourceName = networkName
+	return service, nil
 }
 
 // Convert a quadlet volume file (unit file with a Volume group) to a systemd
@@ -985,12 +1015,17 @@ func ConvertNetwork(network *parser.UnitFile, name string) (*parser.UnitFile, st
 // The original Volume group is kept around as X-Volume.
 // Also returns the canonical volume name, either auto-generated or user-defined via the VolumeName
 // key-value.
-func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string) (*parser.UnitFile, string, error) {
+func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[volume.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing network %s", volume.Filename)
+	}
+
 	service := volume.Dup()
-	service.Filename = replaceExtension(volume.Filename, ".service", "", "-volume")
+	service.Filename = unitInfo.ServiceFileName()
 
 	if err := checkForUnknownKeys(volume, VolumeGroup, supportedVolumeKeys); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	/* Rename old Volume group to x-Volume so that systemd ignores it */
@@ -999,7 +1034,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 	// Derive volume name from unit name (with added prefix), or use user-provided name.
 	volumeName, ok := volume.Lookup(VolumeGroup, KeyVolumeName)
 	if !ok || len(volumeName) == 0 {
-		volumeName = replaceExtension(name, "", "systemd-", "")
+		volumeName = removeExtension(name, "systemd-", "")
 	}
 
 	// Need the containers filesystem mounted to start podman
@@ -1023,11 +1058,11 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 
 		imageName, ok := volume.Lookup(VolumeGroup, KeyImage)
 		if !ok {
-			return nil, "", fmt.Errorf("the key %s is mandatory when using the image driver", KeyImage)
+			return nil, fmt.Errorf("the key %s is mandatory when using the image driver", KeyImage)
 		}
-		imageName, err := handleImageSource(imageName, service, names)
+		imageName, err := handleImageSource(imageName, service, unitsInfoMap)
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
 
 		opts.WriteString(imageName)
@@ -1072,7 +1107,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 			if devValid {
 				podman.add("--opt", fmt.Sprintf("type=%s", devType))
 			} else {
-				return nil, "", fmt.Errorf("key Type can't be used without Device")
+				return nil, fmt.Errorf("key Type can't be used without Device")
 			}
 		}
 
@@ -1084,7 +1119,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 				}
 				opts.WriteString(mountOpts)
 			} else {
-				return nil, "", fmt.Errorf("key Options can't be used without Device")
+				return nil, fmt.Errorf("key Options can't be used without Device")
 			}
 		}
 	}
@@ -1108,12 +1143,20 @@ func ConvertVolume(volume *parser.UnitFile, name string, names map[string]string
 		// The default syslog identifier is the exec basename (podman) which isn't very useful here
 		"SyslogIdentifier", "%N")
 
-	return service, volumeName, nil
+	// Store the name of the created resource
+	unitInfo.ResourceName = volumeName
+
+	return service, nil
 }
 
-func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*parser.UnitFile, error) {
+func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[kube.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing network %s", kube.Filename)
+	}
+
 	service := kube.Dup()
-	service.Filename = replaceExtension(kube.Filename, ".service", "", "")
+	service.Filename = unitInfo.ServiceFileName()
 
 	if kube.Path != "" {
 		service.Add(UnitGroup, "SourcePath", kube.Path)
@@ -1192,7 +1235,9 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 		return nil, err
 	}
 
-	addNetworks(kube, KubeGroup, service, names, execStart)
+	if err := addNetworks(kube, KubeGroup, service, unitsInfoMap, execStart); err != nil {
+		return nil, err
+	}
 
 	updateMaps := kube.LookupAllStrv(KubeGroup, KeyAutoUpdate)
 	for _, update := range updateMaps {
@@ -1246,9 +1291,14 @@ func ConvertKube(kube *parser.UnitFile, names map[string]string, isUser bool) (*
 	return service, nil
 }
 
-func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
+func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[image.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing network %s", image.Filename)
+	}
+
 	service := image.Dup()
-	service.Filename = replaceExtension(image.Filename, ".service", "", "-image")
+	service.Filename = unitInfo.ServiceFileName()
 
 	// Add a dependency on network-online.target so the image pull does not happen
 	// before network is ready
@@ -1263,12 +1313,12 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 	}
 
 	if err := checkForUnknownKeys(image, ImageGroup, supportedImageKeys); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	imageName, ok := image.Lookup(ImageGroup, KeyImage)
 	if !ok || len(imageName) == 0 {
-		return nil, "", fmt.Errorf("no Image key specified")
+		return nil, fmt.Errorf("no Image key specified")
 	}
 
 	/* Rename old Network group to x-Network so that systemd ignores it */
@@ -1321,12 +1371,25 @@ func ConvertImage(image *parser.UnitFile) (*parser.UnitFile, string, error) {
 		imageName = name
 	}
 
-	return service, imageName, nil
+	// Store the name of the created resource
+	unitInfo.ResourceName = imageName
+
+	return service, nil
 }
 
-func ConvertBuild(build *parser.UnitFile, names map[string]string) (*parser.UnitFile, string, error) {
+func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[build.Filename]
+	if !ok {
+		return nil, fmt.Errorf("internal error while processing network %s", build.Filename)
+	}
+
+	// Fast fail is ResouceName is not set
+	if len(unitInfo.ResourceName) == 0 {
+		return nil, fmt.Errorf("no ImageTag key specified")
+	}
+
 	service := build.Dup()
-	service.Filename = replaceExtension(build.Filename, ".service", "", "-build")
+	service.Filename = unitInfo.ServiceFileName()
 
 	// Add a dependency on network-online.target so the image pull does not happen
 	// before network is ready
@@ -1347,7 +1410,7 @@ func ConvertBuild(build *parser.UnitFile, names map[string]string) (*parser.Unit
 	}
 
 	if err := checkForUnknownKeys(build, BuildGroup, supportedBuildKeys); err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	podman := createBasePodmanCommand(build, BuildGroup)
@@ -1405,22 +1468,19 @@ func ConvertBuild(build *parser.UnitFile, names map[string]string) (*parser.Unit
 	labels := build.LookupAllKeyVal(BuildGroup, KeyLabel)
 	podman.addLabels(labels)
 
-	builtImageName, ok := names[build.Filename]
-	if !ok {
-		return nil, "", fmt.Errorf("no ImageTag key specified")
+	podman.addf("--tag=%s", unitInfo.ResourceName)
+
+	if err := addNetworks(build, BuildGroup, service, unitsInfoMap, podman); err != nil {
+		return nil, err
 	}
-
-	podman.addf("--tag=%s", builtImageName)
-
-	addNetworks(build, BuildGroup, service, names, podman)
 
 	secrets := build.LookupAllArgs(BuildGroup, KeySecret)
 	for _, secret := range secrets {
 		podman.add("--secret", secret)
 	}
 
-	if err := addVolumes(build, service, BuildGroup, names, podman); err != nil {
-		return nil, "", err
+	if err := addVolumes(build, service, BuildGroup, unitsInfoMap, podman); err != nil {
+		return nil, err
 	}
 
 	// In order to build an image locally, we need either a File key pointing directly at a
@@ -1429,13 +1489,13 @@ func ConvertBuild(build *parser.UnitFile, names map[string]string) (*parser.Unit
 	// an archive.
 	context, err := handleSetWorkingDirectory(build, service, BuildGroup)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
 	workingDirectory, okWD := service.Lookup(ServiceGroup, ServiceKeyWorkingDirectory)
 	filePath, okFile := build.Lookup(BuildGroup, KeyFile)
 	if (!okWD || len(workingDirectory) == 0) && (!okFile || len(filePath) == 0) && len(context) == 0 {
-		return nil, "", fmt.Errorf("neither SetWorkingDirectory, nor File key specified")
+		return nil, fmt.Errorf("neither SetWorkingDirectory, nor File key specified")
 	}
 
 	if len(filePath) > 0 {
@@ -1450,7 +1510,7 @@ func ConvertBuild(build *parser.UnitFile, names map[string]string) (*parser.Unit
 	} else if !filepath.IsAbs(filePath) && !isURL(filePath) {
 		// Special handling for relative filePaths
 		if len(workingDirectory) == 0 {
-			return nil, "", fmt.Errorf("relative path in File key requires SetWorkingDirectory key to be set")
+			return nil, fmt.Errorf("relative path in File key requires SetWorkingDirectory key to be set")
 		}
 		podman.add(workingDirectory)
 	}
@@ -1465,7 +1525,7 @@ func ConvertBuild(build *parser.UnitFile, names map[string]string) (*parser.Unit
 		// which isn't very useful here
 		"SyslogIdentifier", "%N")
 
-	return service, builtImageName, nil
+	return service, nil
 }
 
 func GetBuiltImageName(buildUnit *parser.UnitFile) string {
@@ -1475,21 +1535,49 @@ func GetBuiltImageName(buildUnit *parser.UnitFile) string {
 	return ""
 }
 
-func GetPodServiceName(podUnit *parser.UnitFile) string {
-	if serviceName, ok := podUnit.Lookup(PodGroup, KeyServiceName); ok {
-		return serviceName
-	}
-	return replaceExtension(podUnit.Filename, "", "", "-pod")
+func GetContainerServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, ContainerGroup, "")
 }
 
-func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*PodInfo, names map[string]string) (*parser.UnitFile, error) {
-	podInfo, ok := podsInfoMap[podUnit.Filename]
+func GetKubeServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, KubeGroup, "")
+}
+
+func GetVolumeServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, VolumeGroup, "-volume")
+}
+
+func GetNetworkServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, NetworkGroup, "-network")
+}
+
+func GetImageServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, ImageGroup, "-image")
+}
+
+func GetBuildServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, BuildGroup, "-build")
+}
+
+func GetPodServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, PodGroup, "-pod")
+}
+
+func getServiceName(quadletUnitFile *parser.UnitFile, groupName string, defaultExtraSuffix string) string {
+	if serviceName, ok := quadletUnitFile.Lookup(groupName, KeyServiceName); ok {
+		return serviceName
+	}
+	return removeExtension(quadletUnitFile.Filename, "", defaultExtraSuffix)
+}
+
+func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+	unitInfo, ok := unitsInfoMap[podUnit.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
 	}
 
 	service := podUnit.Dup()
-	service.Filename = fmt.Sprintf("%s.service", podInfo.ServiceName)
+	service.Filename = unitInfo.ServiceFileName()
 
 	if podUnit.Path != "" {
 		service.Add(UnitGroup, "SourcePath", podUnit.Path)
@@ -1502,7 +1590,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 	// Derive pod name from unit name (with added prefix), or use user-provided name.
 	podName, ok := podUnit.Lookup(PodGroup, KeyPodName)
 	if !ok || len(podName) == 0 {
-		podName = replaceExtension(name, "", "systemd-", "")
+		podName = removeExtension(name, "systemd-", "")
 	}
 
 	/* Rename old Pod group to x-Pod so that systemd ignores it */
@@ -1511,7 +1599,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	for _, containerService := range podInfo.Containers {
+	for _, containerService := range unitInfo.Containers {
 		service.Add(UnitGroup, "Wants", containerService)
 		service.Add(UnitGroup, "Before", containerService)
 	}
@@ -1555,14 +1643,16 @@ func ConvertPod(podUnit *parser.UnitFile, name string, podsInfoMap map[string]*P
 		return nil, err
 	}
 
-	addNetworks(podUnit, PodGroup, service, names, execStartPre)
+	if err := addNetworks(podUnit, PodGroup, service, unitsInfoMap, execStartPre); err != nil {
+		return nil, err
+	}
 
 	networkAliases := podUnit.LookupAll(PodGroup, KeyNetworkAlias)
 	for _, networkAlias := range networkAliases {
 		execStartPre.add("--network-alias", networkAlias)
 	}
 
-	if err := addVolumes(podUnit, service, PodGroup, names, execStartPre); err != nil {
+	if err := addVolumes(podUnit, service, PodGroup, unitsInfoMap, execStartPre); err != nil {
 		return nil, err
 	}
 
@@ -1714,34 +1804,35 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 	return nil
 }
 
-func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnitFile *parser.UnitFile, names map[string]string, podman *PodmanCmdline) {
+func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnitFile *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, podman *PodmanCmdline) error {
 	networks := quadletUnitFile.LookupAll(groupName, KeyNetwork)
 	for _, network := range networks {
 		if len(network) > 0 {
 			quadletNetworkName, options, found := strings.Cut(network, ":")
 			if strings.HasSuffix(quadletNetworkName, ".network") {
 				// the podman network name is systemd-$name if none is specified by the user.
-				networkName := names[quadletNetworkName]
-				if networkName == "" {
-					networkName = replaceExtension(quadletNetworkName, "", "systemd-", "")
+				networkUnitInfo, ok := unitsInfoMap[quadletNetworkName]
+				if !ok {
+					return fmt.Errorf("requested Quadlet image %s was not found", quadletNetworkName)
 				}
 
-				// the systemd unit name is $name-network.service
-				networkServiceName := replaceExtension(quadletNetworkName, ".service", "", "-network")
+				// the systemd unit name is $serviceName.service
+				networkServiceName := networkUnitInfo.ServiceFileName()
 
 				serviceUnitFile.Add(UnitGroup, "Requires", networkServiceName)
 				serviceUnitFile.Add(UnitGroup, "After", networkServiceName)
 
 				if found {
-					network = fmt.Sprintf("%s:%s", networkName, options)
+					network = fmt.Sprintf("%s:%s", networkUnitInfo.ResourceName, options)
 				} else {
-					network = networkName
+					network = networkUnitInfo.ResourceName
 				}
 			}
 
 			podman.addf("--network=%s", network)
 		}
 	}
+	return nil
 }
 
 // Systemd Specifiers start with % with the exception of %%
@@ -1851,7 +1942,7 @@ func handleLogOpt(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 	}
 }
 
-func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, names map[string]string) (string, error) {
+func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo) (string, error) {
 	if source[0] == '.' {
 		var err error
 		source, err = getAbsolutePath(quadletUnitFile, source)
@@ -1863,19 +1954,17 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 		// Absolute path
 		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
 	} else if strings.HasSuffix(source, ".volume") {
-		// the podman volume name is systemd-$name if none has been provided by the user.
-		volumeName := names[source]
-		if volumeName == "" {
-			volumeName = replaceExtension(source, "", "systemd-", "")
+		volumeUnitInfo, ok := unitsInfoMap[source]
+		if !ok {
+			return "", fmt.Errorf("requested Quadlet image %s was not found", source)
 		}
 
-		// the systemd unit name is $name-volume.service
-		volumeServiceName := replaceExtension(source, ".service", "", "-volume")
-
-		source = volumeName
-
+		// the systemd unit name is $serviceName.service
+		volumeServiceName := volumeUnitInfo.ServiceFileName()
 		serviceUnitFile.Add(UnitGroup, "Requires", volumeServiceName)
 		serviceUnitFile.Add(UnitGroup, "After", volumeServiceName)
+
+		source = volumeUnitInfo.ResourceName
 	}
 
 	return source, nil
@@ -1989,29 +2078,29 @@ func lookupAndAddBoolean(unit *parser.UnitFile, group, key, flag string, podman 
 	}
 }
 
-func handleImageSource(quadletImageName string, serviceUnitFile *parser.UnitFile, names map[string]string) (string, error) {
+func handleImageSource(quadletImageName string, serviceUnitFile *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (string, error) {
 	for _, suffix := range []string{".build", ".image"} {
 		if strings.HasSuffix(quadletImageName, suffix) {
 			// since there is no default name conversion, the actual image name must exist in the names map
-			imageName, ok := names[quadletImageName]
+			unitInfo, ok := unitsInfoMap[quadletImageName]
 			if !ok {
 				return "", fmt.Errorf("requested Quadlet image %s was not found", quadletImageName)
 			}
 
 			// the systemd unit name is $name-$suffix.service
-			imageServiceName := replaceExtension(quadletImageName, ".service", "", fmt.Sprintf("-%s", suffix[1:]))
+			imageServiceName := unitInfo.ServiceFileName()
 
 			serviceUnitFile.Add(UnitGroup, "Requires", imageServiceName)
 			serviceUnitFile.Add(UnitGroup, "After", imageServiceName)
 
-			quadletImageName = imageName
+			quadletImageName = unitInfo.ResourceName
 		}
 	}
 
 	return quadletImageName, nil
 }
 
-func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.UnitFile, mount string, names map[string]string) (string, error) {
+func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.UnitFile, mount string, unitsInfoMap map[string]*UnitInfo) (string, error) {
 	mountType, tokens, err := specgenutilexternal.FindMountType(mount)
 	if err != nil {
 		return "", err
@@ -2035,7 +2124,7 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 		}
 	}
 
-	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, names)
+	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap)
 	if err != nil {
 		return "", err
 	}
@@ -2080,21 +2169,21 @@ func createBasePodmanCommand(unitFile *parser.UnitFile, groupName string) *Podma
 	return podman
 }
 
-func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string, podsInfoMap map[string]*PodInfo, podman *PodmanCmdline) error {
+func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string, unitsInfoMap map[string]*UnitInfo, podman *PodmanCmdline) error {
 	pod, ok := quadletUnitFile.Lookup(groupName, KeyPod)
 	if ok && len(pod) > 0 {
 		if !strings.HasSuffix(pod, ".pod") {
 			return fmt.Errorf("pod %s is not Quadlet based", pod)
 		}
 
-		podInfo, ok := podsInfoMap[pod]
+		podInfo, ok := unitsInfoMap[pod]
 		if !ok {
 			return fmt.Errorf("quadlet pod unit %s does not exist", pod)
 		}
 
 		podman.add("--pod-id-file", fmt.Sprintf("%%t/%s.pod-id", podInfo.ServiceName))
 
-		podServiceName := fmt.Sprintf("%s.service", podInfo.ServiceName)
+		podServiceName := podInfo.ServiceFileName()
 		serviceUnitFile.Add(UnitGroup, "BindsTo", podServiceName)
 		serviceUnitFile.Add(UnitGroup, "After", podServiceName)
 
@@ -2103,7 +2192,7 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 	return nil
 }
 
-func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string, names map[string]string, podman *PodmanCmdline) error {
+func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string, unitsInfoMap map[string]*UnitInfo, podman *PodmanCmdline) error {
 	volumes := quadletUnitFile.LookupAll(groupName, KeyVolume)
 	for _, volume := range volumes {
 		parts := strings.SplitN(volume, ":", 3)
@@ -2123,7 +2212,7 @@ func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName str
 
 		if source != "" {
 			var err error
-			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, names)
+			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, unitsInfoMap)
 			if err != nil {
 				return err
 			}
