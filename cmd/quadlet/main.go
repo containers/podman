@@ -34,10 +34,6 @@ var (
 	versionFlag bool // True if -version is used
 )
 
-const (
-	SystemUserDirLevel = 5
-)
-
 var (
 	// data saved between logToKmsg calls
 	noKmsg   = false
@@ -57,6 +53,12 @@ var (
 		".build":     3,
 		".pod":       5,
 	}
+)
+
+var (
+	unitDirAdminUser         string
+	resolvedUnitDirAdminUser string
+	systemUserDirLevel       int
 )
 
 // We log directly to /dev/kmsg, because that is the only way to get information out
@@ -114,6 +116,14 @@ func getUnitDirs(rootless bool) []string {
 	// Allow overriding source dir, this is mainly for the CI tests
 	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
 	dirs := make([]string, 0)
+
+	unitDirAdminUser = filepath.Join(quadlet.UnitDirAdmin, "users")
+	var err error
+	if resolvedUnitDirAdminUser, err = filepath.EvalSymlinks(unitDirAdminUser); err != nil {
+		Debugf("Error occurred resolving path %q: %s", unitDirAdminUser, err)
+		resolvedUnitDirAdminUser = unitDirAdminUser
+	}
+	systemUserDirLevel = len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
 
 	if len(unitDirsEnv) > 0 {
 		for _, eachUnitDir := range strings.Split(unitDirsEnv, ":") {
@@ -185,10 +195,10 @@ func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(
 func nonNumericFilter(_path string, isUserFlag bool) bool {
 	// when running in rootless, recursive walk directories that are non numeric
 	// ignore sub dirs under the `users` directory which correspond to a user id
-	if strings.Contains(_path, filepath.Join(quadlet.UnitDirAdmin, "users")) {
+	if strings.HasPrefix(_path, resolvedUnitDirAdminUser) {
 		listDirUserPathLevels := strings.Split(_path, string(os.PathSeparator))
-		if len(listDirUserPathLevels) > SystemUserDirLevel {
-			if !(regexp.MustCompile(`^[0-9]*$`).MatchString(listDirUserPathLevels[SystemUserDirLevel])) {
+		if len(listDirUserPathLevels) > systemUserDirLevel {
+			if !(regexp.MustCompile(`^[0-9]*$`).MatchString(listDirUserPathLevels[systemUserDirLevel])) {
 				return true
 			}
 		}
@@ -201,7 +211,7 @@ func nonNumericFilter(_path string, isUserFlag bool) bool {
 func userLevelFilter(_path string, isUserFlag bool) bool {
 	// if quadlet generator is run rootless, do not recurse other user sub dirs
 	// if quadlet generator is run as root, ignore users sub dirs
-	if strings.Contains(_path, filepath.Join(quadlet.UnitDirAdmin, "users")) {
+	if strings.HasPrefix(_path, resolvedUnitDirAdminUser) {
 		if isUserFlag {
 			return true
 		}
