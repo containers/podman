@@ -30,20 +30,6 @@ func (m *VMFile) GetPath() string {
 	return *m.Symlink
 }
 
-// Delete removes the machinefile symlink (if it exists) and
-// the actual path
-func (m *VMFile) Delete() error {
-	if m.Symlink != nil {
-		if err := os.Remove(*m.Symlink); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Errorf("unable to remove symlink %q", *m.Symlink)
-		}
-	}
-	if err := os.Remove(m.Path); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
-	}
-	return nil
-}
-
 // Read the contents of a given file and return in []bytes
 func (m *VMFile) Read() ([]byte, error) {
 	return os.ReadFile(m.GetPath())

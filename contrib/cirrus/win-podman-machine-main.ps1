@@ -2,6 +2,9 @@
 
 . $PSScriptRoot\win-lib.ps1
 
+
+choco install handle -y
+
 Set-Location "$ENV:CIRRUS_WORKING_DIR\repo"
 
 $GvTargetDir = "C:\Program Files\Redhat\Podman\"
