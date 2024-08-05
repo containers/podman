@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package utils
 
@@ -10,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	_ "unsafe" // for go:linkname
 
@@ -260,4 +260,18 @@ func ProcThreadSelf(subpath string) (string, ProcThreadSelfCloser) {
 // without using fmt.Sprintf to avoid unneeded overhead.
 func ProcThreadSelfFd(fd uintptr) (string, ProcThreadSelfCloser) {
 	return ProcThreadSelf("fd/" + strconv.FormatUint(uint64(fd), 10))
+}
+
+// IsLexicallyInRoot is shorthand for strings.HasPrefix(path+"/", root+"/"),
+// but properly handling the case where path or root are "/".
+//
+// NOTE: The return value only make sense if the path doesn't contain "..".
+func IsLexicallyInRoot(root, path string) bool {
+	if root != "/" {
+		root += "/"
+	}
+	if path != "/" {
+		path += "/"
+	}
+	return strings.HasPrefix(path, root)
 }
