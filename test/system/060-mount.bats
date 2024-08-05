@@ -2,6 +2,8 @@
 
 load helpers
 
+
+# bats test_tags=ci:parallel
 @test "podman mount - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
     skip_if_rootless "mount does not work rootless"
@@ -10,7 +12,7 @@ load helpers
     f_path=/tmp/tmpfile_$(random_string 8)
     f_content=$(random_string 30)
 
-    c_name=mount_test_$(random_string 5)
+    c_name="c-mount-$(safename)"
     run_podman run --name $c_name $IMAGE \
                sh -c "echo $f_content > $f_path"
 
@@ -21,11 +23,14 @@ load helpers
     test -e "$mount_path/$f_path"
     is $(< "$mount_path/$f_path") "$f_content" "contents of file, as read via fs"
 
-    # Make sure that 'podman mount' (no args) returns the expected path
+    # Make sure that 'podman mount' (no args) returns the expected path and CID
+    run_podman inspect --format '{{.ID}}' $c_name
+    cid="$output"
+
     run_podman mount --notruncate
-    # FIXME: is it worth the effort to validate the CID ($1) ?
-    reported_mountpoint=$(echo "$output" | awk '{print $2}')
-    is "$reported_mountpoint" "$mount_path" "mountpoint reported by 'podman mount'"
+    assert "$output" != "" "'podman mount' should list one or more mounts"
+    reported_cid=$(awk -v WANT="$mount_path" '$2 == WANT {print $1}' <<<"$output")
+    assert "$reported_cid" == "$cid" "CID of mount point matches container ID"
 
     # umount, and make sure files are gone
     run_podman umount $c_name
@@ -44,7 +49,7 @@ load helpers
     fi
 }
 
-
+# DO NOT PARALLELIZE: mount/umount -a
 @test "podman image mount" {
     skip_if_remote "mounting remote is meaningless"
     skip_if_rootless "too hard to test rootless"
@@ -94,6 +99,7 @@ load helpers
     is "$output" "" "podman image mount, no args, after umount"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --mount ro=false " {
     local volpath=/path/in/container
     local stdopts="type=volume,destination=$volpath"
@@ -107,60 +113,98 @@ load helpers
     # All of these should pass
     for varopt in rw rw=true ro=false readonly=false;do
         run_podman run --rm -q --mount $stdopts,$varopt $IMAGE touch $volpath/a
+        assert "$output" = "" "touch, with varopt=$varopt"
     done
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --mount image" {
     skip_if_rootless "too hard to test rootless"
 
+    # For parallel safety: create a temporary image to use for mounts
+    local tmpctr="c-$(safename)"
+    local iname="i-$(safename)"
+    run_podman run --name $tmpctr $IMAGE true
+    run_podman commit -q $tmpctr $iname
+    run_podman rm $tmpctr
+
+    run_podman image inspect --format '{{.ID}}' $iname
+    local iid="$output"
+
+    mountopts="type=image,src=$iname,dst=/image-mount"
     # Run a container with an image mount
-    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE diff /etc/os-release /image-mount/etc/os-release
+    run_podman run --rm --mount $mountopts $iname \
+               diff /etc/os-release /image-mount/etc/os-release
+    assert "$output" == "" "no output from diff command"
 
     # Make sure the mount is read-only
-    run_podman 1 run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE touch /image-mount/read-only
+    run_podman 1 run --rm --mount $mountopts $iname \
+               touch /image-mount/read-only
     is "$output" "touch: /image-mount/read-only: Read-only file system"
 
     # Make sure that rw,readwrite work
-    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount,rw=true $IMAGE touch /image-mount/readwrite
-    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount,readwrite=true $IMAGE touch /image-mount/readwrite
+    run_podman run --rm --mount "${mountopts},rw=true" $iname \
+               touch /image-mount/readwrite
+    run_podman run --rm --mount "${mountopts},readwrite=true" $iname \
+               touch /image-mount/readwrite
 
-    skip_if_remote "mounting remote is meaningless"
+    # The rest of the tests below are meaningless under remote
+    if is_remote; then
+        run_podman rmi $iname
+        return
+    fi
 
-    # The mount should be cleaned up during container removal as no other entity mounted the image
-    run_podman image umount $IMAGE
-    is "$output" "" "image mount should have been cleaned up during container removal"
+    # All the above commands were 'run --rm'. Confirm no stray mounts left.
+    run_podman mount --notruncate
+    assert "$output" !~ "$iid" "stray mount found!"
 
     # Now make sure that the image mount is not cleaned up during container removal when another entity mounted the image
-    run_podman image mount $IMAGE
-    run_podman run --rm --mount type=image,src=$IMAGE,dst=/image-mount $IMAGE diff /etc/os-release /image-mount/etc/os-release
+    run_podman image mount $iname
+    local mountpoint="$output"
 
-    run_podman image inspect --format '{{.ID}}' $IMAGE
-    iid="$output"
+    # Confirm that image is mounted
+    run_podman image mount
+    assert "$output" =~ ".*localhost/$iname:latest  *$mountpoint.*" \
+           "Image is mounted"
 
-    run_podman image umount $IMAGE
-    is "$output" "$iid" "podman image umount: image ID of what was umounted"
+    run_podman run --rm --mount $mountopts $iname \
+               diff /etc/os-release /image-mount/etc/os-release
+    assert "$output" == "" "no output from diff command"
 
-    run_podman image umount $IMAGE
-    is "$output" "" "image mount should have been cleaned up via 'image umount'"
+    # Image must still be mounted
+    run_podman image mount
+    assert "$output" =~ ".*localhost/$iname:latest  *$mountpoint.*" \
+           "Image is still mounted after container run --rm"
+
+    run_podman image umount $iname
+    is "$output" "$iid" "podman image umount, first time, confirms IID"
+
+    run_podman image umount $iname
+    is "$output" "" "podman image umount, second time, is a NOP"
 
     # Run a container in the background (source is the ID instead of name)
     run_podman run -d --mount type=image,src=$iid,dst=/image-mount,readwrite=true $IMAGE sleep infinity
     cid="$output"
 
     # Unmount the image
-    run_podman image umount $IMAGE
-    is "$output" "$iid" "podman image umount: image ID of what was umounted"
-    run_podman image umount $IMAGE
-    is "$output" "" "image mount should have been cleaned up via 'image umount'"
+    run_podman image umount $iname
+    is "$output" "$iid" "podman image umount of CONTAINER mount: confirms IID"
+    run_podman image umount $iname
+    is "$output" "" "podman image umount of CONTAINER, second time, is a NOP"
 
     # Make sure that the mount in the container is unaffected
     run_podman exec $cid diff /etc/os-release /image-mount/etc/os-release
-    run_podman exec $cid find /image-mount/etc/
+    assert "$output" = "" "no output from exec diff"
+    run_podman exec $cid find /image-mount/home/podman
+    assert "$output" =~ ".*/image-mount/home/podman/testimage-id.*" \
+           "find /image-mount/home/podman"
 
     # Clean up
     run_podman rm -t 0 -f $cid
+    run_podman rmi $iname
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --mount image inspection" {
     skip_if_rootless "too hard to test rootless"
 
@@ -183,6 +227,7 @@ load helpers
     run_podman rm -t 0 -f $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman mount containers.conf" {
     skip_if_remote "remote does not support CONTAINERS_CONF*"
 
@@ -209,13 +254,13 @@ EOF
 mounts=[ "type=$bogus,src=$tmpfile2,destination=$dest,ro", ]
 EOF
 
-    run_podman 1 run $IMAGE cat $dest
+    run_podman 1 run --rm $IMAGE cat $dest
     is "$output" "cat: can't open '$dest': No such file or directory" "$dest does not exist"
 
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run $IMAGE cat $dest
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm $IMAGE cat $dest
     is "$output" "$random1" "file should contain $random1"
 
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --mount $mountStr2 $IMAGE cat $dest
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm --mount $mountStr2 $IMAGE cat $dest
     is "$output" "$random2" "overridden file should contain $random2"
 
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 125 run --mount $mountStr1 --mount $mountStr2 $IMAGE cat $dest
@@ -223,20 +268,25 @@ EOF
 
     CONTAINERS_CONF_OVERRIDE="$badcontainersconf" run_podman 125 run $IMAGE cat $dest
     is "$output" "Error: parsing containers.conf mounts: invalid filesystem type \"$bogus\"" "containers.conf should fail with bad mounts entry"
-
-    run_podman rm --all --force -t 0
 }
 
+# bats test_tags=ci:parallel
 @test "podman mount external container - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
     skip_if_rootless "mount does not work rootless"
     skip_if_remote "mounting remote is meaningless"
 
     # Create a container that podman does not know about
-    external_cid=$(buildah from $IMAGE)
+    external_cname=$(buildah from --name b-$(safename) $IMAGE)
 
-    run_podman mount $external_cid
+    run_podman mount $external_cname
     mount_path=$output
+
+    # convert buildah CID to podman CID. We can't use podman inspect
+    # because that can't access external containers by name.
+    run_podman ps --external -a --notruncate --format '{{.ID}} {{.Names}}'
+    external_cid=$(awk -v WANT="$external_cname" '$2 == WANT {print $1}' <<<"$output")
+    assert "$external_cid" != "" "SHA for $external_cname"
 
     # Test image will always have this file, and will always have the tag
     test -d $mount_path
@@ -246,21 +296,22 @@ EOF
     # Make sure that 'podman mount' (no args) returns the expected path
     run_podman mount --notruncate
 
-    reported_mountpoint=$(echo "$output" | awk '{print $2}')
-    is "$reported_mountpoint" "$mount_path" "mountpoint reported by 'podman mount'"
+    cid_found=$(awk -v WANT="$mount_path" '$2 == WANT { print $1 }' <<<"$output")
+    assert "$cid_found" = "$external_cid" "'podman mount' lists CID + mountpoint"
 
     # umount, and make sure mountpoint no longer exists
-    run_podman umount $external_cid
+    run_podman umount $external_cname
     if findmnt "$mount_path" >/dev/null ; then
         die "'podman umount' did not umount $mount_path"
     fi
-    buildah rm $external_cid
+    buildah rm $external_cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman volume globs" {
-    v1a=v1_$(random_string)
-    v1b=v1_$(random_string)
-    v2=v2_$(random_string)
+    v1a="v1a-$(safename)"
+    v1b="v1b-$(safename)"
+    v2="v2-$(safename)"
     vol1a=${PODMAN_TMPDIR}/$v1a
     vol1b=${PODMAN_TMPDIR}/$v1b
     vol2=${PODMAN_TMPDIR}/$v2
@@ -280,14 +331,14 @@ EOF
     run_podman run --rm --mount source=${PODMAN_TMPDIR}/v2\*,type=glob,ro=false,Z $IMAGE touch $vol2
 
     run_podman run --rm --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,destination=/non/existing/directory,ro $IMAGE ls /non/existing/directory
-    is "$output" ".*$v1a" "podman images --inspect should include $v1a"
-    is "$output" ".*$v1b" "podman images --inspect should include $v1b"
+    is "$output" ".*$v1a" "podman images --inspect should include v1a"
+    is "$output" ".*$v1b" "podman images --inspect should include v1b"
 
     run_podman create --mount type=glob,src=${PODMAN_TMPDIR}/v1\*,ro $IMAGE ls $vol1a $vol1b
     cid=$output
     run_podman container inspect $cid
-    is "$output" ".*$vol1a" "podman images --inspect should include $vol1a"
-    is "$output" ".*$vol1b" "podman images --inspect should include $vol1b"
+    is "$output" ".*$v1a" "podman images --inspect should include v1a"
+    is "$output" ".*$v1b" "podman images --inspect should include v1b"
     run_podman rm $cid
 
     run_podman 125 run --rm --mount type=bind,source=${PODMAN_TMPDIR}/v2\*,ro=false $IMAGE touch $vol2
@@ -305,7 +356,7 @@ EOF
     is "$output" "bar1.*bar2.*bar3" "Should match multiple source files on single destination directory"
 }
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration,ci:parallel
 @test "podman mount noswap memory mounts" {
     # tmpfs+noswap new in kernel 6.x, mid-2023; likely not in RHEL for a while
     if ! is_rootless; then
@@ -335,6 +386,7 @@ EOF
     fi
 }
 
+# bats test_tags=ci:parallel
 @test "podman mount no-dereference" {
     # Test how bind and glob-mounts behave with respect to relative (rel) and
     # absolute (abs) symlinks.
@@ -357,7 +409,7 @@ FROM $IMAGE
 RUN mkdir /mountroot && echo ${datacontent[img]} > /mountroot/data
 EOF
 
-    img="localhost/preserve:symlinks"
+    img="localhost/img-$(safename)"
     run_podman build -t $img -f $dockerfile
 
     # Each test is set up in exactly the same way:
