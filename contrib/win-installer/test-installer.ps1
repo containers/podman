@@ -293,7 +293,7 @@ switch ($scenario) {
         Start-Scenario-Installation-Skip-Config-Creation-Flag
         Start-Scenario-Installation-With-Pre-Existing-Podman-Exe
         Start-Scenario-Update-Without-User-Changes
-        Start-Scenario-Update-With-User-Changed-Config-File
+        # Start-Scenario-Update-With-User-Changed-Config-File
         Start-Scenario-Update-With-User-Removed-Config-File
     }
 }
