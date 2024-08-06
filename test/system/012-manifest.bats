@@ -4,11 +4,25 @@ load helpers
 load helpers.network
 load helpers.registry
 
+# Runs once before all tests in this file
+function setup_file() {
+    if ! is_remote; then
+        start_registry
+        authfile=${PODMAN_LOGIN_WORKDIR}/auth-manifest.json
+        run_podman login --tls-verify=false \
+                   --username ${PODMAN_LOGIN_USER} \
+                   --password-stdin \
+                   --authfile=$authfile \
+                   localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
+        is "$output" "Login Succeeded!" "output from podman login"
+    fi
+}
+
 function teardown() {
     # Enumerate every one of the manifest names used everywhere below
     echo "[ teardown - ignore 'image not known' errors below ]"
-    run_podman '?' manifest rm test:1.0 \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0
+    run_podman '?' manifest rm "m-$(safename):1.0" \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/"m-$(safename):1.0"
 
     basic_teardown
 }
@@ -53,7 +67,8 @@ function validate_instance_compression {
     run_podman inspect --format '{{.ID}}' $IMAGE
     iid=$output
 
-    run_podman manifest create test:1.0
+    mname="m-$(safename):1.0"
+    run_podman manifest create $mname
     mid=$output
     run_podman manifest inspect --verbose $mid
     is "$output" ".*\"mediaType\": \"application/vnd.docker.distribution.manifest.list.v2+json\"" "--insecure is a noop want to make sure manifest inspect is successful"
@@ -61,23 +76,17 @@ function validate_instance_compression {
     is "$output" ".*\"mediaType\": \"application/vnd.docker.distribution.manifest.list.v2+json\"" "--insecure is a noop want to make sure manifest inspect is successful"
     run_podman images --format '{{.ID}}' --no-trunc
     is "$output" ".*sha256:$iid" "Original image ID still shown in podman-images output"
-    run_podman rmi test:1.0
+    run_podman rmi $mname
 }
 
 @test "podman manifest --tls-verify and --authfile" {
     skip_if_remote "running a local registry doesn't work with podman-remote"
-    start_registry
-    authfile=${PODMAN_LOGIN_WORKDIR}/auth-$(random_string 10).json
-    run_podman login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               --authfile=$authfile \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
-    is "$output" "Login Succeeded!" "output from podman login"
 
-    manifest1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
+    manifest1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/m-$(safename):1.0"
     run_podman manifest create $manifest1
     mid=$output
+
+    authfile=${PODMAN_LOGIN_WORKDIR}/auth-manifest.json
     run_podman manifest push --authfile=$authfile \
         --tls-verify=false $mid \
         $manifest1
@@ -100,7 +109,6 @@ function validate_instance_compression {
 
 @test "manifest list --add-compression with zstd" {
     skip_if_remote "running a local registry doesn't work with podman-remote"
-    start_registry
 
     # Using TARGETARCH gives us distinct images for each arch
     dockerfile=$PODMAN_TMPDIR/Dockerfile
@@ -109,16 +117,9 @@ FROM scratch
 ARG TARGETARCH
 COPY Dockerfile /i-am-\${TARGETARCH}
 EOF
-    authfile=${PODMAN_LOGIN_WORKDIR}/auth-$(random_string 10).json
-    run_podman login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               --authfile=$authfile \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
-    is "$output" "Login Succeeded!" "output from podman login"
 
     # Build two images, different arches, and add each to one manifest list
-    local manifestlocal="test:1.0"
+    local manifestlocal="m-$(safename):1.0"
     run_podman manifest create $manifestlocal
     for arch in amd arm;do
         # This leaves behind a <none>:<none> image that must be purged, below
@@ -130,7 +131,8 @@ EOF
     run_podman images -a
 
     # Push to local registry; the magic key here is --add-compression...
-    local manifestpushed="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
+    local manifestpushed="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$manifestlocal"
+    local authfile=${PODMAN_LOGIN_WORKDIR}/auth-manifest.json
     run_podman manifest push --authfile=$authfile --all --compression-format gzip --add-compression zstd --tls-verify=false $manifestlocal $manifestpushed
 
     # ...and use skopeo to confirm that each component has the right settings
@@ -159,22 +161,33 @@ function manifestListAddArtifactOnce() {
     echo configFlag="$configFlag"
     echo titleFlag="$titleFlag"
     local index artifact firstdigest seconddigest config configSize defaulttype filetitle requested expected actual
+
+    local authfile=${PODMAN_LOGIN_WORKDIR}/auth-manifest.json
+
     run_podman manifest create $listFlags $list
     run_podman manifest add $list ${platformFlags} --artifact ${typeFlag} ${layerTypeFlag} ${configTypeFlag} ${configFlag} ${titleFlag} ${PODMAN_TMPDIR}/listed.txt
     run_podman manifest add $list ${platformFlags} --artifact ${typeFlag} ${layerTypeFlag} ${configTypeFlag} ${configFlag} ${titleFlag} ${PODMAN_TMPDIR}/zeroes
     run_podman manifest inspect $list
-    run_podman tag $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
-    run_podman manifest push --tls-verify=false localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
-    run skopeo inspect --tls-verify=false --raw docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
-    assert $status -eq 0
+    run_podman tag $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
+    run_podman manifest push --authfile=$authfile --tls-verify=false \
+               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
+    echo "skopeo inspect ..."
+    run skopeo inspect --authfile=$authfile --tls-verify=false --raw \
+        docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
+    echo "$output"
+    assert $status -eq 0 "skopeo inspect (status)"
     echo "$output"
     index="$output"
+
     if [[ -n "$listFlags" ]] ; then
-        assert $(jq -r '.annotations["global"]' <<<"$index") == local
+        assert $(jq -r '.annotations["global"]' <<<"$index") == local \
+               "listFlags=$listFlags, .annotations[global]"
     fi
     if [[ -n "$platformFlags" ]] ; then
-        assert $(jq -r '.manifests[1].platform.os' <<<"$index") == linux
-        assert $(jq -r '.manifests[1].platform.architecture' <<<"$index") == amd64
+        assert $(jq -r '.manifests[1].platform.os' <<<"$index") == linux \
+               "platformFlags=$platformFlags, .platform.os"
+        assert $(jq -r '.manifests[1].platform.architecture' <<<"$index") == amd64 \
+               "platformFlags=$platformFlags, .platform.architecture"
     fi
     if [[ -n "$typeFlag" ]] ; then
         actual=$(jq -r '.manifests[0].artifactType' <<<"$index")
@@ -198,28 +211,36 @@ function manifestListAddArtifactOnce() {
             false
             ;;
         esac
-        run skopeo inspect --raw --tls-verify=false docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test@${digest}
-        assert $status -eq 0
+
+        echo "skopeo inspect ... by digest"
+        run skopeo inspect --raw --authfile=$authfile --tls-verify=false \
+            docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/${list%:*}@${digest}
         echo "$output"
+        assert $status -eq 0 "skopeo inspect (status)"
+
         artifact="$output"
         if [[ -n "$typeFlag" ]] ; then
             actual=$(jq -r '.artifactType' <<<"$artifact")
-            assert "${actual#null}" == "${typeFlag#--artifact-type=}"
+            assert "${actual#null}" == "${typeFlag#--artifact-type=}" \
+                   "typeFlag=$typeFlag, .artifactType"
         else
             actual=$(jq -r '.artifactType' <<<"$artifact")
-            assert "${actual}" == application/vnd.unknown.artifact.v1
+            assert "${actual}" == application/vnd.unknown.artifact.v1 \
+                   "typeFlag=NULL, .artifactType"
         fi
         if [ -n "$layerTypeFlag" ] ; then
             actual=$(jq -r '.layers[0].mediaType' <<<"$artifact")
-            assert "${actual}" == "${layerTypeFlag#--artifact-layer-type=}"
+            assert "${actual}" == "${layerTypeFlag#--artifact-layer-type=}" \
+                   "layerTypeFlag=$layerTypeFlag, layer0.mediaType"
         else
             actual=$(jq -r '.layers[0].mediaType' <<<"$artifact")
-            assert "${actual}" == "$defaulttype"
+            assert "${actual}" == "$defaulttype" \
+                   "layerTypeFlag=NULL, layer0.mediaType"
         fi
         requested=${configTypeFlag#--artifact-config-type=}
         actual=$(jq -r '.config.mediaType' <<<"$artifact")
         if test -n "$requested" ; then
-            assert "$actual" == "$requested"
+            assert "$actual" == "$requested" ".config.mediaType (requested)"
         else
             config=${configFlag#--artifact-config=}
             if [ -z "$config" ] ; then
@@ -232,28 +253,25 @@ function manifestListAddArtifactOnce() {
                     expected=application/vnd.oci.empty.v1+json
                 fi
             fi
-            assert "$actual" == "$expected"
+            assert "$actual" == "$expected" ".config.mediaType (default)"
         fi
+
+        imgtitle=$(jq -r '.layers[0].annotations["org.opencontainers.image.title"]' <<<"$artifact")
         if test -n "$titleFlag" ; then
-            assert $(jq -r '.layers[0].annotations["org.opencontainers.image.title"]' <<<"$artifact") == null
+            assert "$imgtitle" == null "titleFlag=$titleFlag, .image.title"
         else
-            assert $(jq -r '.layers[0].annotations["org.opencontainers.image.title"]' <<<"$artifact") == $filetitle
+            assert "$imgtitle" == "$filetitle" \
+                   "titleFlag=NULL, .image.title"
         fi
     done
-    run_podman rmi $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test
+    run_podman rmi $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
 }
 
 @test "manifest list --add --artifact" {
     # Build a list and add some files to it, making sure to exercise and verify
     # every flag available.
     skip_if_remote "running a local registry doesn't work with podman-remote"
-    start_registry
-    run_podman login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               --authfile=$authfile \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
-    local list="test:1.0"
+    local list="m-$(safename):1.0"
     truncate -s 20M ${PODMAN_TMPDIR}/zeroes
     echo oh yeah > ${PODMAN_TMPDIR}/listed.txt
     echo '{}' > ${PODMAN_TMPDIR}/minimum-config.json
