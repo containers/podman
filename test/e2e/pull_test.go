@@ -667,7 +667,8 @@ var _ = Describe("Podman pull", func() {
 			}
 			lock := GetPortLock("5012")
 			defer lock.Unlock()
-			session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5012:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+			// FIXME: #23517: using network slirp4netns as work around
+			session := podmanTest.Podman([]string{"run", "-d", "--network", "slirp4netns", "--name", "registry", "-p", "5012:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
