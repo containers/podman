@@ -137,7 +137,7 @@ func hasACL(path string) (bool, error) {
 	return binary.LittleEndian.Uint32(flags)&LCFS_EROFS_FLAGS_HAS_ACL != 0, nil
 }
 
-func mountComposefsBlob(dataDir, mountPoint string) error {
+func mountComposefsBlob(dataDir, mountPoint string) (retErr error) {
 	blobFile := getComposefsBlob(dataDir)
 	loop, err := loopback.AttachLoopDeviceRO(blobFile)
 	if err != nil {
@@ -155,6 +155,16 @@ func mountComposefsBlob(dataDir, mountPoint string) error {
 		return fmt.Errorf("failed to open erofs filesystem: %w", err)
 	}
 	defer unix.Close(fsfd)
+
+	defer func() {
+		if retErr != nil {
+			buffer := make([]byte, 4096)
+			if n, _ := unix.Read(fsfd, buffer); n > 0 {
+				out, _ := exec.Command("sh", "-c", fmt.Sprintf("gzip < %s | base64", blobFile)).CombinedOutput()
+				fmt.Fprintf(os.Stderr, "erofs image:\n--BEGIN---\n%s\n---END---\n", out)
+			}
+		}
+	}()
 
 	if err := unix.FsconfigSetString(fsfd, "source", loop.Name()); err != nil {
 		return fmt.Errorf("failed to set source for erofs filesystem: %w", err)
