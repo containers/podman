@@ -79,8 +79,8 @@ github.com/containernetworking/plugins v1.5.1 h1:T5ji+LPYjjgW0QM+KyrigZbLsZ8jaX+
 github.com/containernetworking/plugins v1.5.1/go.mod h1:MIQfgMayGuHYs0XdNudf31cLLAC+i242hNm6KuDGqCM=
 github.com/containers/buildah v1.37.0 h1:jvHwu1vIwIqnHyOSg9eef9Apdpry+5oWLrm43gdf8Rk=
 github.com/containers/buildah v1.37.0/go.mod h1:MKd79tkluMf6vtH06SedhBQK5OB7E0pFVIuiTTw3dJk=
-github.com/containers/common v0.60.1-0.20240731140509-ae4a61e1b2e0 h1:WqC1NUmYpiEIqYoy+44TFvYEUYO5oBlDOdFZ2I0S1Vo=
-github.com/containers/common v0.60.1-0.20240731140509-ae4a61e1b2e0/go.mod h1:k0URVvOTicn3w0y4qc31Ughcb9n28atRHfjd0NpkCiA=
+github.com/containers/common v0.60.1-0.20240805120402-c0cc6b7a78f1 h1:sajCXeHQuD1rSqJ1A19FL62QJOELbPkMlRNjRJktdS8=
+github.com/containers/common v0.60.1-0.20240805120402-c0cc6b7a78f1/go.mod h1:mWJvbq/MQ8smLKiVwGkcEwzNO+TiFVWA3gpJ2teqgIs=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.4 h1:iOtr/KEi+r599OOx1+9Qbss91jD5yxh1HO35MKTdths=
@@ -615,8 +615,8 @@ golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9/go.mod h1:RxMgew5VJxzue5/jJ
 golang.org/x/sync v0.0.0-20210220032951-036812b2e83c/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.1.0/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
-golang.org/x/sync v0.7.0 h1:YsImfSBoP9QPYL0xyKJPq0gcaJdG3rInoqxTWbfQu9M=
-golang.org/x/sync v0.7.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
+golang.org/x/sync v0.8.0 h1:3NFvSEYkUoMifnESzZl15y791HH1qU2xm6eCJU5ZPXQ=
+golang.org/x/sync v0.8.0/go.mod h1:Czt+wKu1gCyEFDUtn0jG5QVvpJ6rzVqr5aXyt9drQfk=
 golang.org/x/sys v0.0.0-20180830151530-49385e6e1522/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181122145206-62eef0e2fa9b/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=

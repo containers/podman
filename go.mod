@@ -13,7 +13,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.5.1
 	github.com/containers/buildah v1.37.0
-	github.com/containers/common v0.60.1-0.20240731140509-ae4a61e1b2e0
+	github.com/containers/common v0.60.1-0.20240805120402-c0cc6b7a78f1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4
 	github.com/containers/image/v5 v5.32.0
@@ -73,7 +73,7 @@ require (
 	golang.org/x/crypto v0.25.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/net v0.27.0
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.23.0
 	golang.org/x/term v0.22.0
 	golang.org/x/text v0.16.0

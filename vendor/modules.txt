@@ -170,7 +170,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20240731140509-ae4a61e1b2e0
+# github.com/containers/common v0.60.1-0.20240805120402-c0cc6b7a78f1
 ## explicit; go 1.21.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -1206,7 +1206,7 @@ golang.org/x/net/trace
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.7.0
+# golang.org/x/sync v0.8.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
