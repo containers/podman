@@ -2,22 +2,50 @@
 # tunnels the output such that WSL operations will complete
 $ErrorActionPreference = 'Stop'
 
+$syms =  [char[]]([char]'a'..[char]'z') +
+        [char[]]([char]'A'..[char]'Z') +
+        [char[]]([char]'0'..[char]'9')
+
 if ($Args.Length -lt 1) {
     Write-Object "Usage: " + $MyInvocation.MyCommand.Name + " <script>"
     Exit 1;
 }
 
-function RegenPassword {
-    param($username)
-    $syms = [char[]]([char]'a'..[char]'z' `
-               + [char]'A'..[char]'Z'  `
-               + [char]'0'..[char]'9')
-    $rnd = [byte[]]::new(32)
+
+# Shuffle a 32 character password from $syms
+function GenerateRandomPassword {
+    param(
+        [int]$length = 32
+    )
+
+    $rnd = [byte[]]::new($length)
     [System.Security.Cryptography.RandomNumberGenerator]::create().getBytes($rnd)
     $password = ($rnd | % { $syms[$_ % $syms.length] }) -join ''
-    $encPass = ConvertTo-SecureString $password -AsPlainText -Force
-    Set-LocalUser -Name $username -Password $encPass
+
     return $password
+}
+
+function RegenPassword {
+    param($username)
+
+    $maxAttempts = 3
+    for ($attempts = 0; $attempts -lt $maxAttempts; $attempts++) {
+        $password = GenerateRandomPassword
+
+        try{
+            $encPass = ConvertTo-SecureString $password -AsPlainText -Force
+            Set-LocalUser -Name $username -Password $encPass
+            return $password
+        } catch {
+            # In case we catch a flake like here
+            # https://github.com/containers/podman/issues/23468
+            # we want to know what happened and retry.
+            Write-Host "Error generating password."
+            Write-Host "Username: $username"
+            Write-Host "Generated Password: $password"
+            Write-Host "Error Message: $_"
+        }
+    }
 }
 
 $runScript = $Args[0]
