@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/types"
+	blobinfocache "github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -259,6 +260,14 @@ func (r *Runtime) Reset(ctx context.Context) error {
 			prevError = err
 		}
 	}
+
+	if err := blobinfocache.CleanupDefaultCache(nil); err != nil {
+		if prevError != nil {
+			logrus.Error(prevError)
+		}
+		prevError = err
+	}
+
 	if storageConfPath, err := storage.DefaultConfigFile(rootless.IsRootless()); err == nil {
 		switch storageConfPath {
 		case stypes.SystemConfigFile:

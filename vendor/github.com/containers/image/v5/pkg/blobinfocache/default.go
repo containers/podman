@@ -74,3 +74,15 @@ func DefaultCache(sys *types.SystemContext) types.BlobInfoCache {
 	logrus.Debugf("Using SQLite blob info cache at %s", path)
 	return cache
 }
+
+// CleanupDefaultCache removes the blob info cache directory.
+// It deletes the cache directory but it does not affect any file or memory buffer currently
+// in use.
+func CleanupDefaultCache(sys *types.SystemContext) error {
+	dir, err := blobInfoCacheDir(sys, rootless.GetRootlessEUID())
+	if err != nil {
+		// Mirror the DefaultCache behavior that does not fail in this case
+		return nil
+	}
+	return os.RemoveAll(dir)
+}
