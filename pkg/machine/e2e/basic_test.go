@@ -60,7 +60,6 @@ var _ = Describe("run basic podman commands", func() {
 	})
 
 	It("Volume ops", func() {
-		skipIfVmtype(define.HyperVVirt, "FIXME: #21036 - Hyper-V podman run -v fails due to path translation issues")
 		skipIfVmtype(define.LibKrun, "FIXME: #23296 - Fails on MacOS when libkrun in use.")
 
 		tDir, err := filepath.Abs(GinkgoT().TempDir())
