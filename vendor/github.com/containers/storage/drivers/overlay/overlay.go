@@ -1934,7 +1934,7 @@ func (d *Driver) Put(id string) error {
 		// If fusermount|fusermount3 failed to unmount the FUSE file system, make sure all
 		// pending changes are propagated to the file system
 		if !unmounted {
-			fd, err := unix.Open(mountpoint, unix.O_DIRECTORY, 0)
+			fd, err := unix.Open(mountpoint, unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 			if err == nil {
 				if err := unix.Syncfs(fd); err != nil {
 					logrus.Debugf("Error Syncfs(%s) - %v", mountpoint, err)
