@@ -27,5 +27,5 @@ func CleanupGVProxy(f define.VMFile) error {
 	if err := waitOnProcess(proxyPid); err != nil {
 		return err
 	}
-	return f.Delete()
+	return removeGVProxyPIDFile(f)
 }
