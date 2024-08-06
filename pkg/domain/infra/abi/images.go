@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/storage"
+	"github.com/containers/storage/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -181,6 +182,9 @@ func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entit
 			// We're only looking for mounted images.
 			mountPoint, err = i.Mountpoint()
 			if err != nil {
+				if errors.Is(err, types.ErrImageUnknown) {
+					continue
+				}
 				return nil, err
 			}
 			// Not mounted, so skip.
