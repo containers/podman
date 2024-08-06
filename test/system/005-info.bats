@@ -194,6 +194,13 @@ host.slirp4netns.executable | $expr_path
 
     ln -s /home $new_home
 
+    # Remove volume directory. This doesn't break Podman but can cause our DB
+    # validation to break if Podman misbehaves. Ref:
+    # https://github.com/containers/podman/issues/23515
+    # (Unfortunately, we can't just use a new directory, that will just trip DB
+    # validation that it doesn't match the path we were using before)
+    rm -rf $PODMAN_TMPDIR/$HOME/.local/share/containers/storage/volumes
+
     # Just need the command to run cleanly
     HOME=$PODMAN_TMPDIR/$HOME run_podman info
 
