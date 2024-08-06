@@ -611,6 +611,7 @@ var _ = Describe("Podman pull", func() {
 
 			session := podmanTest.Podman([]string{"push", "-q", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
 			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
 
 			session = podmanTest.Podman([]string{"rmi", ALPINE})
 			session.WaitWithDefaultTimeout()

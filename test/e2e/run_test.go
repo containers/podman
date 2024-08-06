@@ -2176,6 +2176,8 @@ WORKDIR /madethis`, BB)
 		imgPath := "localhost:5006/my-alpine-podman-run-and-decrypt"
 		session = podmanTest.Podman([]string{"push", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
 		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(0))
+		Expect(session.ErrorToString()).To(ContainSubstring("Writing manifest to image destination"))
 
 		session = podmanTest.Podman([]string{"rmi", ALPINE})
 		session.WaitWithDefaultTimeout()
