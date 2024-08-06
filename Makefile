@@ -140,7 +140,7 @@ GINKGO ?= ./test/tools/build/ginkgo
 GINKGO_JSON ?= $(if $(CI),--json-report ginkgo-e2e.json,)
 
 # Allow control over some Ginkgo parameters
-GINKGO_FLAKE_ATTEMPTS ?= 3
+GINKGO_FLAKE_ATTEMPTS ?= 1
 GINKGO_NO_COLOR ?= y
 
 # Conditional required to produce empty-output if binary not built yet.
