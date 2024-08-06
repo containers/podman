@@ -2053,6 +2053,11 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	logrus.Debugf("Cleaning up container %s", c.ID())
 
+	// Ensure we are not killed half way through cleanup
+	// which can leave us in a bad state.
+	shutdown.Inhibit()
+	defer shutdown.Uninhibit()
+
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
 		if err := c.removeTransientFiles(ctx,
