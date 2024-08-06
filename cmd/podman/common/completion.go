@@ -970,6 +970,13 @@ func AutocompleteUserNamespace(cmd *cobra.Command, args []string, toComplete str
 	return results, directive
 }
 
+// AutocompleteBaseHostsFile - Autocomplete base hosts file options.
+// -> "image", "none", paths
+func AutocompleteBaseHostsFile(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	BaseHostsFileModes := []string{"image", "none"}
+	return BaseHostsFileModes, cobra.ShellCompDirectiveNoSpace
+}
+
 // AutocompleteCgroupMode - Autocomplete cgroup mode options.
 // -> "enabled", "disabled", "no-conmon", "split"
 func AutocompleteCgroupMode(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

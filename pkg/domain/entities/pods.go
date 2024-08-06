@@ -137,6 +137,7 @@ type ContainerCreateOptions struct {
 	Annotation         []string
 	Attach             []string
 	Authfile           string
+	BaseHostsFile      string
 	BlkIOWeight        string
 	BlkIOWeightDevice  []string
 	CapAdd             []string

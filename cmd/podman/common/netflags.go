@@ -26,6 +26,13 @@ func DefineNetFlags(cmd *cobra.Command) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(addHostFlagName, completion.AutocompleteNone)
 
+	baseHostsFileFlagName := "base-hosts-file"
+	netFlags.String(
+		baseHostsFileFlagName, "",
+		`Path to a hosts file to copy the entries into the container, or one of the special values. ("image"|"none")`,
+	)
+	_ = cmd.RegisterFlagCompletionFunc(baseHostsFileFlagName, AutocompleteBaseHostsFile)
+
 	dnsFlagName := "dns"
 	netFlags.StringSlice(
 		dnsFlagName, podmanConfig.ContainersConf.DNSServers(),
