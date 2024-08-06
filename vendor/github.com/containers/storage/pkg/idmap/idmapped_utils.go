@@ -4,7 +4,9 @@
 package idmap
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"runtime"
 	"syscall"
@@ -26,7 +28,7 @@ func CreateIDMappedMount(source, target string, pid int) error {
 
 	targetDirFd, err := unix.OpenTree(0, source, unix.OPEN_TREE_CLONE)
 	if err != nil {
-		return err
+		return &os.PathError{Op: "open_tree", Path: source, Err: err}
 	}
 	defer unix.Close(targetDirFd)
 
@@ -35,13 +37,16 @@ func CreateIDMappedMount(source, target string, pid int) error {
 			Attr_set:  unix.MOUNT_ATTR_IDMAP,
 			Userns_fd: uint64(userNsFile.Fd()),
 		}); err != nil {
-		return err
+		return &os.PathError{Op: "mount_setattr", Path: source, Err: err}
 	}
-	if err := os.Mkdir(target, 0o700); err != nil && !os.IsExist(err) {
+	if err := os.Mkdir(target, 0o700); err != nil && !errors.Is(err, fs.ErrExist) {
 		return err
 	}
 
-	return unix.MoveMount(targetDirFd, "", 0, target, unix.MOVE_MOUNT_F_EMPTY_PATH)
+	if err := unix.MoveMount(targetDirFd, "", 0, target, unix.MOVE_MOUNT_F_EMPTY_PATH); err != nil {
+		return &os.PathError{Op: "move_mount", Path: target, Err: err}
+	}
+	return nil
 }
 
 // CreateUsernsProcess forks the current process and creates a user namespace using the specified

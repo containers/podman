@@ -174,7 +174,7 @@ func setFileAttrs(dirfd int, file *os.File, mode os.FileMode, metadata *fileMeta
 	if usePath {
 		dirName := filepath.Dir(metadata.Name)
 		if dirName != "" {
-			parentFd, err := openFileUnderRoot(dirfd, dirName, unix.O_PATH|unix.O_DIRECTORY, 0)
+			parentFd, err := openFileUnderRoot(dirfd, dirName, unix.O_PATH|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 			if err != nil {
 				return err
 			}
@@ -402,7 +402,7 @@ func openFileUnderRoot(dirfd int, name string, flags uint64, mode os.FileMode) (
 // name is the path to open relative to dirfd.
 // mode specifies the mode to use for newly created files.
 func openOrCreateDirUnderRoot(dirfd int, name string, mode os.FileMode) (*os.File, error) {
-	fd, err := openFileUnderRootRaw(dirfd, name, unix.O_DIRECTORY|unix.O_RDONLY, 0)
+	fd, err := openFileUnderRootRaw(dirfd, name, unix.O_DIRECTORY|unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err == nil {
 		return os.NewFile(uintptr(fd), name), nil
 	}
@@ -422,7 +422,7 @@ func openOrCreateDirUnderRoot(dirfd int, name string, mode os.FileMode) (*os.Fil
 				return nil, &fs.PathError{Op: "mkdirat", Path: name, Err: err2}
 			}
 
-			fd, err = openFileUnderRootRaw(int(pDir.Fd()), baseName, unix.O_DIRECTORY|unix.O_RDONLY, 0)
+			fd, err = openFileUnderRootRaw(int(pDir.Fd()), baseName, unix.O_DIRECTORY|unix.O_RDONLY|unix.O_CLOEXEC, 0)
 			if err == nil {
 				return os.NewFile(uintptr(fd), name), nil
 			}
@@ -465,7 +465,7 @@ func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *fileMetadata,
 		}
 	}
 
-	file, err := openFileUnderRoot(parentFd, base, unix.O_DIRECTORY|unix.O_RDONLY, 0)
+	file, err := openFileUnderRoot(parentFd, base, unix.O_DIRECTORY|unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return err
 	}
@@ -475,7 +475,7 @@ func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *fileMetadata,
 }
 
 func safeLink(dirfd int, mode os.FileMode, metadata *fileMetadata, options *archive.TarOptions) error {
-	sourceFile, err := openFileUnderRoot(dirfd, metadata.Linkname, unix.O_PATH|unix.O_RDONLY|unix.O_NOFOLLOW, 0)
+	sourceFile, err := openFileUnderRoot(dirfd, metadata.Linkname, unix.O_PATH|unix.O_RDONLY|unix.O_NOFOLLOW|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return err
 	}
