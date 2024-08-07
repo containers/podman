@@ -89,8 +89,7 @@ validate-source_task:
         image_project: libpod-218412
         zone: "us-central1-a"
         # golangci-lint is a very, very hungry beast.
-        cpu: 8
-        memory: "16Gb"
+        type: n2-standard-8
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.
         disk: 200
@@ -132,8 +131,7 @@ build_task:
     gce_instance: &standardvm
         image_project: libpod-218412
         zone: "us-central1-a"
-        cpu: 2
-        memory: "4Gb"
+        type: n2-standard-2
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.
         disk: 200
@@ -630,7 +628,7 @@ local_integration_test_task: &local_integration_test_task
     # so we give these tests 4 cores to make them faster
     gce_instance: &fastvm
       <<: *standardvm
-      cpu: 4
+      type: n2-standard-4
     timeout_in: 30m
     env:
         TEST_FLAVOR: int
