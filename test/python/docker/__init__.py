@@ -44,16 +44,26 @@ class PodmanAPI:
         os.environ["CONTAINERS_REGISTRIES_CONF"] = os.path.join(
             self.anchor_directory, "registry.conf"
         )
-        conf = """unqualified-search-registries = ["docker.io", "quay.io"]
 
-[[registry]]
-location="localhost:5000"
-insecure=true
+        # Entry verified by compat/test_system.py
+        reg_conf_sfx = """
 
 [[registry.mirror]]
 location = "mirror.localhost:5000"
 
 """
+
+        # Assume developer-mode testing by default
+        reg_conf_source_path="./test/registries.conf"
+
+        # When operating in a CI environment, use the local registry server.
+        # Ref: https://github.com/containers/automation_images/pull/357
+        #      https://github.com/containers/podman/pull/22726
+        if os.getenv("CI_USE_REGISTRY_CACHE"):
+            reg_conf_source_path = "./test/registries-cached.conf"
+
+        with open(os.path.join(reg_conf_source_path)) as file:
+            conf = file.read() + reg_conf_sfx
 
         with open(os.environ["CONTAINERS_REGISTRIES_CONF"], "w") as file:
             file.write(conf)

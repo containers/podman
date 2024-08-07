@@ -558,7 +558,7 @@ apiv2_test_task:
         $CIRRUS_PR == '' ||
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
-        changesInclude('test/apiv2/**') ||
+        changesInclude('test/apiv2/**', 'test/python/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
