@@ -201,8 +201,9 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 	}
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
 	}
+	// DEBUG
+	cmd.Stderr = os.Stderr
 
 	endpointArgs, err := GetVfKitEndpointCMDArgs(endpoint)
 	if err != nil {
