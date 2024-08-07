@@ -1,7 +1,6 @@
 package abi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -12,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/libimage/define"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/manifest"
@@ -79,7 +79,7 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 }
 
 // ManifestInspect returns the content of a manifest list or image
-func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
+func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) (*define.ManifestListData, error) {
 	// NOTE: we have to do a bit of a limbo here as `podman manifest
 	// inspect foo` wants to do a remote-inspect of foo iff "foo" in the
 	// containers storage is an ordinary image but not a manifest list.
@@ -95,25 +95,12 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts en
 		return nil, err
 	}
 
-	schema2List, err := manifestList.Inspect()
-	if err != nil {
-		return nil, err
-	}
-
-	rawSchema2List, err := json.Marshal(schema2List)
-	if err != nil {
-		return nil, err
-	}
-
-	var b bytes.Buffer
-	if err := json.Indent(&b, rawSchema2List, "", "    "); err != nil {
-		return nil, fmt.Errorf("rendering manifest %s for display: %w", name, err)
-	}
-	return b.Bytes(), nil
+	return manifestList.Inspect()
 }
 
 // inspect a remote manifest list.
-func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
+func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) (*define.ManifestListData, error) {
+	inspectList := define.ManifestListData{}
 	sys := ir.Libpod.SystemContext()
 
 	if opts.Authfile != "" {
@@ -134,7 +121,6 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, o
 		latestErr error
 		result    []byte
 		manType   string
-		b         bytes.Buffer
 	)
 	appendErr := func(e error) {
 		if latestErr == nil {
@@ -181,27 +167,24 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, o
 		if err != nil {
 			return nil, fmt.Errorf("parsing manifest blob %q as a %q: %w", string(result), manType, err)
 		}
+
 		if result, err = schema2Manifest.Serialize(); err != nil {
 			return nil, err
 		}
 	default:
-		listBlob, err := manifest.ListFromBlob(result, manType)
+		list, err := manifest.ListFromBlob(result, manType)
 		if err != nil {
 			return nil, fmt.Errorf("parsing manifest blob %q as a %q: %w", string(result), manType, err)
-		}
-		list, err := listBlob.ConvertToMIMEType(manifest.DockerV2ListMediaType)
-		if err != nil {
-			return nil, err
 		}
 		if result, err = list.Serialize(); err != nil {
 			return nil, err
 		}
 	}
 
-	if err = json.Indent(&b, result, "", "    "); err != nil {
-		return nil, fmt.Errorf("rendering manifest %s for display: %w", name, err)
+	if err := json.Unmarshal(result, &inspectList); err != nil {
+		return nil, err
 	}
-	return b.Bytes(), nil
+	return &inspectList, nil
 }
 
 // ManifestAdd adds images to the manifest list
