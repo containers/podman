@@ -46,7 +46,6 @@ import (
 //
 // Unfortunately there are a number of open bugs related to
 // interactions among the LoadMode bits:
-// - https://github.com/golang/go/issues/48226
 // - https://github.com/golang/go/issues/56633
 // - https://github.com/golang/go/issues/56677
 // - https://github.com/golang/go/issues/58726
@@ -76,7 +75,7 @@ const (
 	// NeedTypes adds Types, Fset, and IllTyped.
 	NeedTypes
 
-	// NeedSyntax adds Syntax.
+	// NeedSyntax adds Syntax and Fset.
 	NeedSyntax
 
 	// NeedTypesInfo adds TypesInfo.
@@ -961,11 +960,13 @@ func (ld *loader) refine(response *DriverResponse) ([]*Package, error) {
 		}
 		if ld.requestedMode&NeedTypes == 0 {
 			ld.pkgs[i].Types = nil
-			ld.pkgs[i].Fset = nil
 			ld.pkgs[i].IllTyped = false
 		}
 		if ld.requestedMode&NeedSyntax == 0 {
 			ld.pkgs[i].Syntax = nil
+		}
+		if ld.requestedMode&NeedTypes == 0 && ld.requestedMode&NeedSyntax == 0 {
+			ld.pkgs[i].Fset = nil
 		}
 		if ld.requestedMode&NeedTypesInfo == 0 {
 			ld.pkgs[i].TypesInfo = nil
@@ -1498,6 +1499,10 @@ func impliedLoadMode(loadMode LoadMode) LoadMode {
 	if loadMode&(NeedDeps|NeedTypes|NeedTypesInfo) != 0 {
 		// All these things require knowing the import graph.
 		loadMode |= NeedImports
+	}
+	if loadMode&NeedTypes != 0 {
+		// Types require the GoVersion from Module.
+		loadMode |= NeedModule
 	}
 
 	return loadMode
