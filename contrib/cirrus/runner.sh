@@ -511,7 +511,9 @@ msg "************************************************************"
 if [[ "$UID" -eq 0 ]] && ((CONTAINER==0)); then
     # start ebpf cleanup tracer (#23487)
     msg "start ebpf cleanup tracer"
-    bpftrace $GOSRC/hack/podman_cleanup_tracer.bt &> $GOSRC/podman-cleanup-tracer.log </dev/null &
+    # replace zero bytes to make the log more readable
+    bpftrace $GOSRC/hack/podman_cleanup_tracer.bt |& \
+        tr '\0' ' ' >$GOSRC/podman-cleanup-tracer.log &
     TRACER_PID=$!
 fi
 
