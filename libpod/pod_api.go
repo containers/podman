@@ -27,14 +27,22 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 		if err := initCon.Start(ctx, true); err != nil {
 			return err
 		}
-		// Check that the init container waited correctly and the exit
-		// code is good
-		rc, err := initCon.Wait(ctx)
-		if err != nil {
-			return err
-		}
-		if rc != 0 {
-			return fmt.Errorf("init container %s exited with code %d", initCon.ID(), rc)
+
+		if initCon.config.InitContainerType == define.AlwaysInitContainer {
+			// For restartable init container, check startup probing is success
+			if err := initCon.WaitForStartupProbeSuccess(ctx, DefaultWaitInterval); err != nil {
+				return err
+			}
+		} else {
+			// Check that the init container waited correctly and the exit
+			// code is good
+			rc, err := initCon.Wait(ctx)
+			if err != nil {
+				return err
+			}
+			if rc != 0 {
+				return fmt.Errorf("init container %s exited with code %d", initCon.ID(), rc)
+			}
 		}
 		// If the container is a once init container, we need to remove it
 		// after it runs
