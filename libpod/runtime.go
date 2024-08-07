@@ -369,6 +369,14 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		return fmt.Errorf("creating runtime temporary files directory: %w", err)
 	}
 
+	// Create the volume path if needed.
+	// This is not strictly necessary at this point, but the path not
+	// existing can cause troubles with DB path validation on OSTree based
+	// systems. Ref: https://github.com/containers/podman/issues/23515
+	if err := os.MkdirAll(runtime.config.Engine.VolumePath, 0700); err != nil {
+		return fmt.Errorf("creating runtime volume path directory: %w", err)
+	}
+
 	// Set up the state.
 	runtime.state, err = getDBState(runtime)
 	if err != nil {
