@@ -2069,7 +2069,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
-		lastError = fmt.Errorf("removing container %s network: %w", c.ID(), err)
+		lastError = fmt.Errorf("removing container (state %s) %s network: %w", c.state.State.String(), c.ID(), err)
 	}
 
 	// cleanup host entry if it is shared
