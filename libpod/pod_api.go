@@ -262,7 +262,10 @@ func (p *Pod) stopIfOnlyInfraRemains(ctx context.Context, ignoreID string) error
 		}
 	}
 
-	_, err = p.stopWithTimeout(ctx, true, -1)
+	errs, err := p.stopWithTimeout(ctx, true, -1)
+	for ctr, e := range errs {
+		logrus.Errorf("Failed to stop container %s: %v", ctr, e)
+	}
 	return err
 }
 
