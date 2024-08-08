@@ -698,6 +698,10 @@ func (p *PodmanTestIntegration) Cleanup() {
 	rmall := p.Podman([]string{"rm", "-fa", "-t", "0"})
 	rmall.WaitWithDefaultTimeout()
 
+	// DEBUG netns cleanup flake, collect all events
+	events := p.Podman([]string{"events", "--stream=false"})
+	events.WaitWithDefaultTimeout()
+
 	p.StopRemoteService()
 	// Nuke tempdir
 	rmAll(p.PodmanBinary, p.TempDir)
