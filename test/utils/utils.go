@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	crypto_rand "crypto/rand"
@@ -368,9 +369,15 @@ func (s *PodmanSession) WaitWithDefaultTimeout() {
 // WaitWithTimeout waits for process finished with DefaultWaitTimeout
 func (s *PodmanSession) WaitWithTimeout(timeout int) {
 	Eventually(s, timeout).Should(Exit(), func() string {
-		// in case of timeouts show output
-		return fmt.Sprintf("command timed out after %ds: %v\nSTDOUT: %s\nSTDERR: %s",
-			timeout, s.Command.Args, string(s.Out.Contents()), string(s.Err.Contents()))
+		// Note eventually does not kill the command as such the command is leaked forever without killing it
+		// Also let's use SIGABRT to create a go stack trace so in case there is a deadlock we see it.
+		s.Signal(syscall.SIGABRT)
+		// Give some time to let the command print the output so it is not printed much later
+		// in the log at the wrong place.
+		time.Sleep(1 * time.Second)
+		// As the output is logged by default there no need to dump it here.
+		return fmt.Sprintf("command timed out after %ds: %v",
+			timeout, s.Command.Args)
 	})
 	os.Stdout.Sync()
 	os.Stderr.Sync()
