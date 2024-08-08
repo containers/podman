@@ -5761,15 +5761,30 @@ spec:
 		Expect(kube).Should(ExitWithError(125, "rootlessport cannot expose privileged port 80"))
 	})
 
-	It("podman play kube should not publish containerPort by default", func() {
-		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
-		Expect(err).ToNot(HaveOccurred())
+	// Prevent these two tests from running in parallel
+	Describe("with containerPort", Serial, func() {
+		It("should not publish containerPort by default", func() {
+			err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
+			Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(0))
+			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
 
-		testHTTPServer("80", true, "connection refused")
+			testHTTPServer("80", true, "connection refused")
+		})
+
+		It("should publish containerPort with --publish-all", func() {
+			SkipIfRootless("rootlessport can't expose privileged port 80")
+			err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
+			Expect(err).ToNot(HaveOccurred())
+
+			kube := podmanTest.Podman([]string{"kube", "play", "--publish-all=true", kubeYaml})
+			kube.WaitWithDefaultTimeout()
+			Expect(kube).Should(Exit(0))
+
+			testHTTPServer("80", false, "podman rulez")
+		})
 	})
 
 	It("with privileged containers ports and publish in command line - curl should succeed", func() {
@@ -5781,18 +5796,6 @@ spec:
 		Expect(kube).Should(ExitCleanly())
 
 		testHTTPServer("19003", false, "podman rulez")
-	})
-
-	It("podman play kube should publish containerPort with --publish-all", func() {
-		SkipIfRootless("rootlessport can't expose privileged port 80")
-		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
-		Expect(err).ToNot(HaveOccurred())
-
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish-all=true", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(Exit(0))
-
-		testHTTPServer("80", false, "podman rulez")
 	})
 
 	It("with Host Ports - curl should succeed", func() {
