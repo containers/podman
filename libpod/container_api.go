@@ -84,26 +84,19 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // running before starting the container. The recursive parameter, if set, will start all
 // dependencies before starting this container.
 func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			if finalErr != nil {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -147,26 +140,19 @@ func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string
 // ordering of the two such that no output from the container is lost (e.g. the
 // Attach call occurs before Start).
 func (c *Container) Attach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, start bool) (retChan <-chan error, finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			if finalErr != nil {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return nil, err
@@ -270,26 +256,19 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			if finalErr != nil {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -808,10 +787,13 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 // Cleanup unmounts all mount points in container and cleans up container storage
 // It also cleans up the network stack
 func (c *Container) Cleanup(ctx context.Context) error {
+	// some high number unlikely to be used, just so we can catch writes in ebpf
+	f := os.NewFile(214748312, "debug")
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
+		fmt.Fprintf(f, "cleanup before sync %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
 		if err := c.syncContainer(); err != nil {
 			// When the container has already been removed, the OCI runtime directory remains.
 			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
@@ -823,6 +805,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 			logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
 			return err
 		}
+		fmt.Fprintf(f, "cleanup after sync %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
 	}
 
 	// Check if state is good
@@ -873,7 +856,9 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	}
 
 	defer c.newContainerEvent(events.Cleanup)
-	return c.cleanup(ctx)
+	err = c.cleanup(ctx)
+	fmt.Fprintf(f, "cleanup end %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
+	return err
 }
 
 // Batch starts a batch operation on the given container
@@ -1163,6 +1148,10 @@ func (c *Container) Stat(ctx context.Context, containerPath string) (*define.Fil
 }
 
 func saveContainerError(c *Container, err error) error {
+	f := os.NewFile(214748312, "debug")
+	fmt.Fprintf(f, "saveContainerError before %p %s %s %s err: %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS, err)
 	c.state.Error = err.Error()
-	return c.save()
+	err = c.save()
+	fmt.Fprintf(f, "saveContainerError after %p %s %s %s err: %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS, err)
+	return err
 }

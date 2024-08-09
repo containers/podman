@@ -357,9 +357,12 @@ func (c *Container) ensureState(states ...define.ContainerStatus) bool {
 // This function should suffice to ensure a container's state is accurate and
 // it is valid for use.
 func (c *Container) syncContainer() error {
+	f := os.NewFile(214748312, "debug")
+	fmt.Fprintf(f, "UpdateContainer before %p %s %s %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS)
 	if err := c.runtime.state.UpdateContainer(c); err != nil {
 		return err
 	}
+	fmt.Fprintf(f, "UpdateContainer after %p %s %s %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS)
 	// If runtime knows about the container, update its status in runtime
 	// And then save back to disk
 	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStatePaused) {
@@ -388,6 +391,7 @@ func (c *Container) syncContainer() error {
 	if !c.valid {
 		return fmt.Errorf("container %s is not valid: %w", c.ID(), define.ErrCtrRemoved)
 	}
+	fmt.Fprintf(f, "UpdateContainer end %p %s %s %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS)
 
 	return nil
 }
@@ -809,9 +813,12 @@ func (c *Container) getArtifactPath(name string) string {
 
 // save container state to the database
 func (c *Container) save() error {
+	f := os.NewFile(214748312, "debug")
+	fmt.Fprintf(f, "save before %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
 	if err := c.runtime.state.SaveContainer(c); err != nil {
 		return fmt.Errorf("saving container %s state: %w", c.ID(), err)
 	}
+	fmt.Fprintf(f, "save after %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
 	return nil
 }
 
@@ -2069,7 +2076,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Clean up network namespace, if present
 	if err := c.cleanupNetwork(); err != nil {
-		lastError = fmt.Errorf("removing container %s network: %w", c.ID(), err)
+		lastError = fmt.Errorf("removing container (state %s) %s network: %w", c.state.State.String(), c.ID(), err)
 	}
 
 	// cleanup host entry if it is shared
