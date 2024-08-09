@@ -146,15 +146,18 @@ func (c *Container) cleanupNetwork() error {
 	}
 
 	// Stop the container's network namespace (if it has one)
-	if err := c.runtime.teardownNetNS(c); err != nil {
-		logrus.Errorf("Unable to cleanup network for container %s: %q", c.ID(), err)
+	neterr := c.runtime.teardownNetNS(c)
+
+	// always save even when there was an error
+	err = c.save()
+	if err != nil {
+		if neterr != nil {
+			logrus.Errorf("Unable to clean up network for container %s: %q", c.ID(), neterr)
+		}
+		return err
 	}
 
-	if c.valid {
-		return c.save()
-	}
-
-	return nil
+	return neterr
 }
 
 // reloadNetwork reloads the network for the given container, recreating
