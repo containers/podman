@@ -84,7 +84,7 @@ func generatekeys(writeLocation string) error {
 	}
 	errMsg, err := io.ReadAll(stdErr)
 	if err != nil {
-		return fmt.Errorf("key generation failed, unable to read from stderr: %w", waitErr)
+		return fmt.Errorf("key generation failed, unable to read from stderr: %w", err)
 	}
 	return fmt.Errorf("failed to generate keys: %s: %w", string(errMsg), waitErr)
 }
