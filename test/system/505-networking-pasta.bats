@@ -209,34 +209,52 @@ function pasta_test_do() {
         local expect="$(for i in $(seq ${seq}); do printf "x"; done)"
     fi
 
-    # Set retry/initial delay for client to connect
-    local delay=1
-    if [ ${ip_ver} -eq 6 ] && [ "${addr}" != "::1" ]; then
-        # Duplicate Address Detection on link-local
-        delay=3
-    elif [ "${proto}" = "udp" ]; then
-        # With Podman up, and socat still starting, UDP clients send to nowhere
-        delay=2
-    fi
-
-    # Now actually run the test: client,
-    for one_port in $(seq ${seq}); do
-        local connect="${proto_upper}${ip_ver}:[${addr}]:${one_port}"
-        [ "${proto}" = "udp" ] && connect="${connect},shut-null"
-
-        local retries=10
-        (while sleep ${delay} && test $((retries--)) -gt 0 && ! timeout --foreground -v --kill=5 90 socat -u "OPEN:${XFER_FILE}" "${connect}"; do :
-         done) &
-    done
-
-    # and server,
-    run_podman run --rm --net=pasta"${pasta_spec}" -p "${podman_spec}" "${IMAGE}" \
+    # Start server
+    local cname="c-socat-$(safename)"
+    run_podman run -d --name="$cname" --net=pasta"${pasta_spec}" -p "${podman_spec}" "${IMAGE}" \
                    sh -c 'for port in $(seq '"${xseq}"'); do '\
 '                             socat -u '"${bind}"' '"${recv}"' & '\
 '                         done; wait'
 
+    # Make sure all ports in the container are bound.
+    for cport in $(seq ${xseq}); do
+        retries=50
+        while [[ $retries -gt 0 ]]; do
+            run_podman exec $cname ss -Hln -$ip_ver --$proto sport = "$cport"
+            if [[ "$output" =~ "$cport" ]]; then
+                break
+            fi
+            retries=$((retries - 1))
+            sleep 0.1
+        done
+        assert $retries -gt 0 "Timed out waiting for bound port $cport in container"
+    done
+
+    if [ ${ip_ver} -eq 6 ] && [ ${iftype} = "tap" ]; then
+        # For IPv6 tests via tap interface, we use pairs of link-local
+        # addresses to communicate. While we disable DAD on all the
+        # (global unicast) addresses we copy from the host, or
+        # otherwise set, link-local addresses are automatically added
+        # by the kernel with DAD, so we need to wait until it's done.
+        sleep 2
+    fi
+
+    for hport in $(seq ${seq}); do
+        local connect="${proto_upper}${ip_ver}:[${addr}]:${hport}"
+        [ "${proto}" = "udp" ] && connect="${connect},shut-null"
+        # Ports are bound: we can start the client in the background.
+        timeout --foreground -v --kill=5 90 socat -u "OPEN:${XFER_FILE}" "${connect}" &
+    done
+
+    # Wait for the client children to finish.
+    wait
+
+    # Get server output, --follow is used to wait for the container to exit,
+    run_podman logs --follow $cname
     # which should give us the expected output back.
     assert "${output}" = "${expect}" "Mismatch between data sent and received"
+
+    run_podman rm $cname
 }
 
 ### Addresses ##################################################################
