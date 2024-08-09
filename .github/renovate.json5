@@ -53,25 +53,26 @@
 
   "addLabels": ["release-note-none"],
 
-  "golang": {
-    // N/B: LAST matching rule wins
-    "packageRules": [
-      // Updates for `github.com/containers/*` should be checked hourly.
-      {
-        "matchPackagePrefixes": ["github.com/containers"],
-        "schedule": "before 11am",  // UTC
-      },
+  // N/B: LAST matching rule wins
+  "packageRules": [
+    // Updates for `github.com/containers/*` should be checked more frequently than other deps.
+    {
+      "matchCategories": ["golang"],
+      "schedule": "before 11am",
+      "matchPackageNames": ["github.com/containers{/,}**"]
+    },
 
-      // Updates for c/common, c/image, and c/storage should be grouped into a single PR
-      {
-        "matchPackagePatterns": [
-          "^github.com/containers/common",
-          "^github.com/containers/image",
-          "^github.com/containers/storage",
-        ],
-        "groupName": "common, image, and storage deps",
-        "schedule": "before 11am",  // UTC
-      }
-    ],
+    // Updates for c/common, c/image, and c/storage should be grouped into a single PR.
+    {
+      "matchCategories": ["golang"],
+      "groupName": "common, image, and storage deps",
+      "schedule": "before 11am",
+      "matchPackageNames": [
+        "/^github.com/containers/common/",
+        "/^github.com/containers/image/",
+        "/^github.com/containers/storage/"
+      ]
+    }
+  ],
   }
 }
