@@ -435,9 +435,19 @@ Use the host environment inside of the container.
 
 ### `Exec=`
 
-If this is set then it defines what command line to run in the container. If it is not set the
-default entry point of the container image is used. The format is the same as for
-[systemd command lines](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines).
+Additional arguments for the container; this has exactly the same effect as passing
+more arguments after a `podman run <image> <arguments>` invocation.
+
+The format is the same as for [systemd command lines](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines),
+However, unlike the usage scenario for similarly-named systemd `ExecStart=` verb
+which operates on the ambient root filesystem, it is very common for container
+images to have their own `ENTRYPOINT` or `CMD` metadata which this
+which this interacts with.
+
+The default expectation for many images is that the image will include an `ENTRYPOINT`
+with a default binary, and this field will add arguments to that entrypoint.
+
+Another way to describe this is that it works the same way as the [args field in a Kubernetes pod](https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell).
 
 ### `ExposeHostPort=`
 
