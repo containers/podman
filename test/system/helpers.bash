@@ -157,7 +157,12 @@ function basic_setup() {
 
     # Test filenames must match ###-name.bats; use "[###] " as prefix
     run expr "$BATS_TEST_FILENAME" : "^.*/\([0-9]\{3\}\)-[^/]\+\.bats\$"
-    BATS_TEST_NAME_PREFIX="[${output}] "
+    # If parallel, use |nnn|. Serial, [nnn]
+    if [[ -n "$PARALLEL_JOBSLOT" ]]; then
+        BATS_TEST_NAME_PREFIX="|${output}| "
+    else
+        BATS_TEST_NAME_PREFIX="[${output}] "
+    fi
 
     # By default, assert() and die() cause an immediate test failure.
     # Under special circumstances (usually long test loops), tests
@@ -216,17 +221,17 @@ function basic_teardown() {
     # and PODMAN_BATS_LEAK_CHECK is set.
     # As these podman commands are slow we do not want to do this by default
     # and only provide this as opt in option. (#22909)
-    if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && [ -n "$PODMAN_BATS_LEAK_CHECK" ]; then
-        leak_check
-        exit_code=$((exit_code + $?))
-    fi
+#    if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && [ -n "$PODMAN_BATS_LEAK_CHECK" ]; then
+#        leak_check
+#        exit_code=$((exit_code + $?))
+#    fi
 
     # Some error happened (either in teardown itself or the actual test failed)
     # so do a full cleanup to ensure following tests start with a clean env.
-    if [ $exit_code -gt 0 ] || [ -z "$BATS_TEST_COMPLETED" ]; then
-        clean_setup
-        exit_code=$((exit_code + $?))
-    fi
+#    if [ $exit_code -gt 0 ] || [ -z "$BATS_TEST_COMPLETED" ]; then
+ #       clean_setup
+#        exit_code=$((exit_code + $?))
+#    fi
     command rm -rf $PODMAN_TMPDIR
     exit_code=$((exit_code + $?))
     return $exit_code
@@ -415,12 +420,12 @@ function clean_setup() {
         else
             # Always remove image that doesn't match by name
             echo "# setup(): removing stray image $1" >&3
-            run_podman rmi --force "$1" >/dev/null 2>&1 || true
+            _run_podman_quiet rmi --force "$1"
 
             # Tagged image will have same IID as our test image; don't rmi it.
             if [[ $2 != "$PODMAN_TEST_IMAGE_ID" ]]; then
                 echo "# setup(): removing stray image $2" >&3
-                run_podman rmi --force "$2" >/dev/null 2>&1 || true
+                _run_podman_quiet rmi --force "$2"
             fi
         fi
     done

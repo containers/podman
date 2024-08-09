@@ -273,6 +273,28 @@ function ether_get_name() {
 
 ### Ports and Ranges ###########################################################
 
+# reserve_port() - create a lock file reserving a port, or return false
+function reserve_port() {
+    local port=$1
+
+    # NOTE: there's no mechanism to free or unreserve ports.
+    #   Should that ever be desired: make $lockdir global,
+    #   grep -w $BATS_SUITE_TEST_NUMBER $lockdir/*, and rm those.
+    local lockdir=$BATS_SUITE_TMPDIR/reserved-ports
+    mkdir -p $lockdir
+    local lockfile=$lockdir/$port
+    local locktmp=$lockdir/.$port.$$
+    echo $BATS_SUITE_TEST_NUMBER >$locktmp
+
+    if ln $locktmp $lockfile; then
+        rm -f $locktmp
+        return
+    fi
+    # Port already reserved
+    rm -f $locktmp
+    false
+}
+
 # random_free_port() - Get unbound port with pseudorandom number
 # $1:	Optional, dash-separated interval, [5000, 5999] by default
 # $2:	Optional binding address, any IPv4 address by default
@@ -331,6 +353,9 @@ function random_free_port_range() {
 # $3:	Optional IPv4 or IPv6 address, or optional protocol, default: any
 function port_is_bound() {
     local port=${1?Usage: port_is_bound PORT [tcp|udp] [ADDRESS]}
+
+    # First make sure no other tests are using it
+    reserve_port $port || return 0
 
     if   [ "${2}" = "tcp" ] || [ "${2}" = "udp" ]; then
         local address="${3}"

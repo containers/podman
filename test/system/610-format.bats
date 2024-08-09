@@ -7,40 +7,14 @@
 load helpers
 
 function teardown() {
-    # In case test fails: standard teardown does not wipe machines or secrets
-    run_podman '?' machine rm -f mymachine
-    run_podman '?' secret rm mysecret
+    # In case test fails: clean up all the entities we created
+    run_podman '?' machine rm -f "m-$(safename)"
+    run_podman '?' secret rm "s-$(safename)"
+    run_podman '?' pod rm -f "p-$(safename)"
+    run_podman '?' rm -f -t0 "c-$(safename)"
 
     basic_teardown
 }
-
-# Most commands can't just be run with --format; they need an argument or
-# option. This table defines what those are.
-#
-# FIXME: once you've finished fixing them all, remove the SKIPs (just
-# remove the entire lines, except for pod-inspect, just remove the SKIP
-# but leave "mypod")
-extra_args_table="
-history           | $IMAGE
-image history     | $IMAGE
-image inspect     | $IMAGE
-container inspect | mycontainer
-inspect           | mycontainer
-
-
-volume inspect    | -a
-secret inspect    | mysecret
-network inspect   | podman
-ps                | -a
-
-image search      | $IMAGE
-search            | $IMAGE
-
-pod inspect       | mypod
-
-events            | --stream=false --events-backend=file
-system events     | --stream=false --events-backend=file
-"
 
 # podman machine is finicky. Assume we can't run it, but see below for more.
 can_run_podman_machine=
@@ -126,7 +100,7 @@ function check_subcommand() {
         #  - If you see any other error, it probably means that someone
         #    added a new podman subcommand that supports --format but
         #    needs some sort of option or argument to actually run.
-        #    See 'extra_args_table' at the top of this script.
+        #    See 'extra_args_table' below.
         #
         assert "$output" = "" "$command_string --format '{{\"\n\"}}'"
 
@@ -138,22 +112,53 @@ function check_subcommand() {
 }
 
 # Test entry point
+# bats test_tags=ci:parallel
 @test "check Go template formatting" {
     skip_if_remote
 
+    ctrname="c-$(safename)"
+    podname="p-$(safename)"
+    secretname="s-$(safename)"
     # Setup: some commands need a container, pod, secret, ...
-    run_podman run -d --name mycontainer $IMAGE top
-    run_podman pod create mypod
-    run_podman secret create mysecret /etc/hosts
+    run_podman run -d --name $ctrname $IMAGE top
+    run_podman pod create $podname
+    run_podman secret create $secretname /etc/hosts
+
+    # Most commands can't just be run with --format; they need an argument or
+    # option. This table defines what those are.
+    extra_args_table="
+history           | $IMAGE
+image history     | $IMAGE
+image inspect     | $IMAGE
+container inspect | $ctrname
+inspect           | $ctrname
+
+
+volume inspect    | -a
+secret inspect    | $secretname
+network inspect   | podman
+ps                | -a
+
+image search      | $IMAGE
+search            | $IMAGE
+
+pod inspect       | $podname
+
+events            | --stream=false --events-backend=file
+system events     | --stream=false --events-backend=file
+"
+
+
 
     # ...or machine. But podman machine is ultra-finicky, it fails as root
     # or if qemu is missing. Instead of checking for all the possible ways
     # to skip it, just try running init. If it works, we can test it.
-    run_podman '?' machine init --image=/dev/null mymachine
+    machinename="m-$(safename)"
+    run_podman '?' machine init --image=/dev/null $machinename
     if [[ $status -eq 0 ]]; then
         can_run_podman_machine=true
         extra_args_table+="
-machine inspect   | mymachine
+machine inspect   | $machinename
 "
     fi
 
@@ -177,11 +182,10 @@ stats             | --no-stream
     check_subcommand
 
     # Clean up
-    run_podman pod rm mypod
-    run_podman rmi $(pause_image)
-    run_podman rm -f -t0 mycontainer
-    run_podman secret rm mysecret
-    run_podman '?' machine rm -f mymachine
+    run_podman pod rm $podname
+    run_podman rm -f -t0 $ctrname
+    run_podman secret rm $secretname
+    run_podman '?' machine rm -f $machinename
 
     # Make sure there are no leftover commands in our table - this would
     # indicate a typo in the table, or a flaw in our logic such that

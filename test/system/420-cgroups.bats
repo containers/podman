@@ -5,6 +5,7 @@
 
 load helpers
 
+# bats test_tags=ci:parallel
 @test "podman run, preserves initial --cgroup-manager" {
     skip_if_remote "podman-remote does not support --cgroup-manager"
 
@@ -37,7 +38,7 @@ load helpers
     run_podman rm myc
 }
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman run --cgroups=disabled keeps the current cgroup" {
     skip_if_remote "podman-remote does not support --cgroups=disabled"
     skip_if_rootless_cgroupsv1

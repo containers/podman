@@ -10,6 +10,8 @@
 load helpers
 load helpers.network
 
+# bats file_tags=ci:parallel
+
 function setup() {
     basic_setup
     skip_if_not_rootless "pasta networking only available in rootless mode"
@@ -156,7 +158,7 @@ function pasta_test_do() {
         local seq="$(echo ${port} | tr '-' ' ')"
         local xseq="$(echo ${xport} | tr '-' ' ')"
     else
-        local port=$(random_free_port "" ${address} ${proto})
+        local port=$(random_free_port "" ${addr} ${proto})
         local xport="$((port + delta))"
         local seq="${port} ${port}"
         local xseq="${xport} ${xport}"
@@ -230,7 +232,7 @@ function pasta_test_do() {
     done
 
     # and server,
-    run_podman run --rm --net=pasta"${pasta_spec}" -p "${podman_spec}" "${IMAGE}" \
+    run_podman run --rm --name="c-socat-$(safename)" --net=pasta"${pasta_spec}" -p "${podman_spec}" "${IMAGE}" \
                    sh -c 'for port in $(seq '"${xseq}"'); do '\
 '                             socat -u '"${bind}"' '"${recv}"' & '\
 '                         done; wait'
@@ -314,7 +316,7 @@ function pasta_test_do() {
 @test "podman puts pasta IP in /etc/hosts" {
     skip_if_no_ipv4 "IPv4 not routable on the host"
 
-    pname="p$(random_string 30)"
+    pname="p-$(safename)"
     ip="$(default_addr 4)"
 
     run_podman pod create --net=pasta --name "${pname}"
@@ -323,7 +325,6 @@ function pasta_test_do() {
     assert "$(echo ${output} | cut -f1 -d' ')" = "${ip}" "Correct /etc/hosts entry missing"
 
     run_podman pod rm "${pname}"
-    run_podman rmi $(pause_image)
 }
 
 ### Routes #####################################################################
@@ -777,24 +778,6 @@ EOF
     CONTAINERS_CONF_OVERRIDE=$containersconf run_podman run --rm \
         --net=pasta:--ns-mac-addr,"$mac2" $IMAGE ip link show myname
     assert "$output" =~ "$mac2" "mac address from cli is set on custom interface"
-}
-
-### Rootless unshare testing
-
-@test "Podman unshare --rootless-netns with Pasta" {
-    skip_if_remote "unshare is local-only"
-
-    pasta_iface=$(default_ifname 4)
-    assert "$pasta_iface" != "" "pasta_iface is set"
-
-    # First let's force a setup error by making pasta be "false".
-    ln -s /usr/bin/false $PODMAN_TMPDIR/pasta
-    CONTAINERS_HELPER_BINARY_DIR="$PODMAN_TMPDIR" run_podman 125 unshare --rootless-netns ip addr
-    assert "$output" =~ "pasta failed with exit code 1"
-
-    # Now this should recover from the previous error and setup the netns correctly.
-    run_podman unshare --rootless-netns ip addr
-    is "$output" ".*${pasta_iface}.*"
 }
 
 # https://github.com/containers/podman/issues/22653

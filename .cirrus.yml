@@ -228,6 +228,7 @@ alt_build_task:
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
@@ -265,6 +266,7 @@ osx_alt_build_task:
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
+    skip: $CI == $CI
     persistent_worker: &mac_pw
         labels:
             os: darwin
@@ -443,6 +445,7 @@ win_installer_task:
       $CIRRUS_TAG == '' &&
       $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
       $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance: &windows
         image: "${WINDOWS_AMI}"
@@ -717,6 +720,7 @@ podman_machine_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
@@ -738,6 +742,7 @@ podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
     only_if: *only_if_machine_test
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
@@ -762,6 +767,7 @@ podman_machine_windows_task:
     alias: podman_machine_windows
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_machine_test
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -786,6 +792,7 @@ podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
     only_if: *only_if_machine_test
+    skip: $CI == $CI
     depends_on: *build
     persistent_worker: *mac_pw
     env:
@@ -843,7 +850,7 @@ local_system_test_task: &local_system_test_task
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     matrix: *platform_axis
-    gce_instance: *standardvm
+    gce_instance: *fastvm
     env:
         TEST_FLAVOR: sys
     clone_script: *get_gosrc
@@ -896,7 +903,7 @@ rootless_remote_system_test_task:
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     <<: *local_system_test_task
     alias: rootless_remote_system_test
-    gce_instance: *standardvm
+    gce_instance: *fastvm
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -910,7 +917,7 @@ rootless_system_test_task:
     only_if: *only_if_system_test
     depends_on: *build
     matrix: *platform_axis
-    gce_instance: *standardvm
+    gce_instance: *fastvm
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless

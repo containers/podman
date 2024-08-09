@@ -5,13 +5,13 @@
 
 load helpers
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman pause/unpause" {
     if is_rootless && ! is_cgroupsv2; then
         skip "'podman pause' (rootless) only works with cgroups v2"
     fi
 
-    cname=$(random_string 10)
+    cname="c-$(safename)"
     run_podman run -d --name $cname $IMAGE \
                sh -c 'while :;do date +%s;sleep 1;done'
     cid="$output"
@@ -28,10 +28,10 @@ load helpers
     is "$output" "paused" "podman inspect .State.Status"
     sleep 3
     run_podman ps -a --format '{{.ID}} {{.Names}} {{.Status}}'
-    is "$output" "${cid:0:12} $cname Paused" "podman ps on paused container"
+    assert "$output" =~ ".*${cid:0:12} $cname Paused.*" "podman ps on paused container"
     run_podman unpause $cname
     run_podman ps -a --format '{{.ID}} {{.Names}} {{.Status}}'
-    is "$output" "${cid:0:12} $cname Up .*" "podman ps on resumed container"
+    assert "$output" =~ ".*${cid:0:12} $cname Up .*" "podman ps on resumed container"
     sleep 1
 
     # Get full logs, and iterate through them computing delta_t between entries
@@ -54,11 +54,16 @@ load helpers
 
     # Pause/unpause on nonexistent name or id - these should all fail
     run_podman 125 pause $cid
+    assert "$output" =~ "no container with name or ID \"$cid\" found: no such container"
     run_podman 125 pause $cname
+    assert "$output" =~ "no container with name or ID \"$cname\" found: no such container"
     run_podman 125 unpause $cid
+    assert "$output" =~ "no container with name or ID \"$cid\" found: no such container"
     run_podman 125 unpause $cname
+    assert "$output" =~ "no container with name or ID \"$cname\" found: no such container"
 }
 
+# CANNOT BE PARALLELIZED! (because of unpause --all)
 # bats test_tags=distro-integration
 @test "podman unpause --all" {
     if is_rootless && ! is_cgroupsv2; then

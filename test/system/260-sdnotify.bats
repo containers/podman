@@ -88,6 +88,7 @@ function _assert_mainpid_is_conmon() {
 ###############################################################################
 # BEGIN tests themselves
 
+# bats test_tags=ci:parallel
 @test "sdnotify : ignore" {
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/ignore.sock
     _start_socat
@@ -105,12 +106,13 @@ function _assert_mainpid_is_conmon() {
     _stop_socat
 }
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "sdnotify : conmon" {
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/conmon.sock
     _start_socat
 
-    run_podman run -d --name sdnotify_conmon_c \
+    ctrname=ctr_$(safename)
+    run_podman run -d --name $ctrname \
                --sdnotify=conmon \
                $IMAGE \
                sh -c 'printenv NOTIFY_SOCKET;echo READY;sleep 999'
@@ -120,10 +122,10 @@ function _assert_mainpid_is_conmon() {
     run_podman container inspect $cid --format "{{.Config.SdNotifyMode}} {{.Config.SdNotifySocket}}"
     is "$output" "conmon $NOTIFY_SOCKET"
 
-    run_podman container inspect sdnotify_conmon_c --format "{{.State.ConmonPid}}"
+    run_podman container inspect $ctrname --format "{{.State.ConmonPid}}"
     mainPID="$output"
 
-    run_podman logs sdnotify_conmon_c
+    run_podman logs $ctrname
     is "$output" "READY" "\$NOTIFY_SOCKET in container"
 
     # loop-wait for the final READY line
@@ -143,7 +145,7 @@ READY=1" "sdnotify sent MAINPID and READY"
 
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "sdnotify : container" {
     _prefetch $SYSTEMD_IMAGE
 
@@ -184,6 +186,7 @@ READY=1" "Container log after ready signal"
 
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
+# bats test_tags=ci:parallel
 @test "sdnotify : healthy" {
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/container.sock
     _start_socat
@@ -194,7 +197,7 @@ READY=1" "Container log after ready signal"
 
     # Create a container with a simple `/bin/true` healthcheck that we need to
     # run manually.
-    ctr=$(random_string)
+    ctr=c_$(safename)
     run_podman create --name $ctr     \
             --health-cmd=/bin/true    \
             --health-retries=1        \
@@ -254,16 +257,18 @@ READY=1" "Container log after healthcheck run"
     _stop_socat
 }
 
+# bats test_tags=ci:parallel
 @test "sdnotify : play kube - no policies" {
     # Create the YAMl file
     yaml_source="$PODMAN_TMPDIR/test.yaml"
+    podname=p_$(safename)
     cat >$yaml_source <<EOF
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
 spec:
   restartPolicy: "Never"
   containers:
@@ -302,10 +307,10 @@ EOF
 
     # Tell pod to finish, then wait for all containers to stop
     touch $PODMAN_TMPDIR/tears
-    run_podman container wait $service_container test_pod-test
+    run_podman container wait $service_container ${podname}-test
 
     # Make sure the containers have the correct policy.
-    run_podman container inspect test_pod-test $service_container --format "{{.Config.SdNotifyMode}}"
+    run_podman container inspect ${podname}-test $service_container --format "{{.Config.SdNotifyMode}}"
     is "$output" "ignore
 ignore"
 
@@ -317,16 +322,16 @@ READY=1" "sdnotify sent MAINPID and READY"
 
     # Clean up pod and pause image
     run_podman play kube --down $PODMAN_TMPDIR/test.yaml
-    run_podman rmi $(pause_image)
-    run_podman network rm podman-default-kube-network
 }
 
+# bats test_tags=ci:parallel
 @test "sdnotify : play kube - with policies" {
     skip_if_journald_unavailable
 
     _prefetch $SYSTEMD_IMAGE
 
     # Create the YAMl file
+    podname=pod_$(safename)
     yaml_source="$PODMAN_TMPDIR/test.yaml"
     cat >$yaml_source <<EOF
 apiVersion: v1
@@ -334,7 +339,7 @@ kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
   annotations:
     io.containers.sdnotify:   "container"
     io.containers.sdnotify/b: "conmon"
@@ -354,8 +359,8 @@ spec:
     image: $IMAGE
     name: b
 EOF
-    container_a="test_pod-a"
-    container_b="test_pod-b"
+    container_a="${podname}-a"
+    container_b="${podname}-b"
 
     # The name of the service container is predictable: the first 12 characters
     # of the hash of the YAML file followed by the "-service" suffix
@@ -433,8 +438,6 @@ READY=1" "sdnotify sent MAINPID and READY"
 
     # Clean up pod and pause image
     run_podman play kube --down $yaml_source
-    run_podman rmi $(pause_image)
-    run_podman network rm podman-default-kube-network
 }
 
 function generate_exit_code_yaml {
@@ -442,13 +445,14 @@ function generate_exit_code_yaml {
     local cmd1=$2
     local cmd2=$3
     local sdnotify_policy=$4
+    local podname=p_$(safename)
     echo "
 apiVersion: v1
 kind: Pod
 metadata:
   labels:
     app: test
-  name: test_pod
+  name: $podname
   annotations:
     io.containers.sdnotify: "$sdnotify_policy"
 spec:
@@ -465,7 +469,7 @@ spec:
 " > $fname
 }
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman kube play - exit-code propagation" {
     fname=$PODMAN_TMPDIR/$(random_string).yaml
 
@@ -523,9 +527,6 @@ none | false | false | 0
     # A final smoke test to make sure bogus policies lead to an error
     run_podman 125 kube play --service-exit-code-propagation=bogus --service-container $fname
     is "$output" "Error: unsupported exit-code propagation \"bogus\"" "error on unsupported exit-code propagation"
-
-    run_podman rmi $(pause_image)
-    run_podman network rm podman-default-kube-network
 }
 
 @test "podman pull - EXTEND_TIMEOUT_USEC" {
@@ -555,6 +556,7 @@ none | false | false | 0
     _stop_socat
 }
 
+# bats test_tags=ci:parallel
 @test "podman system service" {
     # This test makes sure that podman-system-service uses the NOTIFY_SOCKET
     # correctly and that it unsets it after sending the expected MAINPID and

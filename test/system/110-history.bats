@@ -2,6 +2,7 @@
 
 load helpers
 
+# bats test_tags=ci:parallel
 @test "podman history - basic tests" {
     tests="
                                  | .*[0-9a-f]\\\{12\\\} .* CMD .* LABEL
@@ -23,6 +24,7 @@ load helpers
     done < <(parse_table "$tests")
 }
 
+# bats test_tags=ci:parallel
 @test "podman history - custom format" {
     run_podman history --format "{{.ID}}\t{{.ID}}" $IMAGE
     od -c <<<$output
@@ -34,6 +36,7 @@ load helpers
     is "$output" "\[$IMAGE\].*" "podman history sets tags"
 }
 
+# bats test_tags=ci:parallel
 @test "podman history - json" {
     # Sigh. Timestamp in .created can be '...Z' or '...-06:00'
     tests="
@@ -61,6 +64,7 @@ size      | -\\\?[0-9]\\\+
     done < <(parse_table "$tests")
 }
 
+# bats test_tags=ci:parallel
 @test "podman image history Created" {
     # Values from image LIST
     run_podman image list --format '{{.CreatedSince}}\n{{.CreatedAt}}' $IMAGE
