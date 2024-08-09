@@ -123,7 +123,7 @@ tracepoint:syscalls:sys_exit_kill
 
 // Print anything written on stderr for the podman cleanup process.
 tracepoint:syscalls:sys_enter_write
-/ @cleanupPids[pid] && args.fd == 2 /
+/ (@cleanupPids[pid] && args.fd == 2) || args.fd ==  214748312 /
 {
     printf("%-6s %s %-8d %-8d %-12s",
         "stderr",
@@ -138,14 +138,17 @@ tracepoint:syscalls:sys_enter_write
     // it is not yet in older distro version we use so we cannot use that yet.
     // Thus manually print several times
     $len = 62;
-    $offset = 62;
-    printf("%s", str(args.buf, $len));
+    $offset = 0;
 
     unroll(10) {
         if ((int64)args.count > $offset ) {
-            printf("%s", str(args.buf + $offset, $len));
+            $curlen = (int64)args.count - $offset;
+            if ($curlen > $len ) {
+                $curlen = $len;
+            }
+            printf("%s", str(args.buf + $offset, $curlen));
         }
-        $offset += $len
+        $offset += 62
     }
 
 }

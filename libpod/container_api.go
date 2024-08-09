@@ -808,10 +808,13 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 // Cleanup unmounts all mount points in container and cleans up container storage
 // It also cleans up the network stack
 func (c *Container) Cleanup(ctx context.Context) error {
+	// some high number unlikely to be used, just so we can catch writes in ebpf
+	f := os.NewFile(214748312, "debug")
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
+		fmt.Fprintf(f, "cleanup before sync %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
 		if err := c.syncContainer(); err != nil {
 			// When the container has already been removed, the OCI runtime directory remains.
 			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
@@ -823,6 +826,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 			logrus.Errorf("Syncing container %s status: %v", c.ID(), err)
 			return err
 		}
+		fmt.Fprintf(f, "cleanup after sync %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
 	}
 
 	// Check if state is good
@@ -873,7 +877,9 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	}
 
 	defer c.newContainerEvent(events.Cleanup)
-	return c.cleanup(ctx)
+	err = c.cleanup(ctx)
+	fmt.Fprintf(f, "cleanup end %s %s %s\n", c.state.State.String(), c.ID(), c.state.NetNS)
+	return err
 }
 
 // Batch starts a batch operation on the given container
