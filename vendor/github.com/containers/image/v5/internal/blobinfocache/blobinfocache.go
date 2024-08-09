@@ -27,7 +27,14 @@ func (bic *v1OnlyBlobInfoCache) Open() {
 func (bic *v1OnlyBlobInfoCache) Close() {
 }
 
-func (bic *v1OnlyBlobInfoCache) RecordDigestCompressorName(anyDigest digest.Digest, compressorName string) {
+func (bic *v1OnlyBlobInfoCache) UncompressedDigestForTOC(tocDigest digest.Digest) digest.Digest {
+	return ""
+}
+
+func (bic *v1OnlyBlobInfoCache) RecordTOCUncompressedPair(tocDigest digest.Digest, uncompressed digest.Digest) {
+}
+
+func (bic *v1OnlyBlobInfoCache) RecordDigestCompressorData(anyDigest digest.Digest, data DigestCompressorData) {
 }
 
 func (bic *v1OnlyBlobInfoCache) CandidateLocations2(transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest, options CandidateLocations2Options) []BICReplacementCandidate2 {
