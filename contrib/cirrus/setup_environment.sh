@@ -393,7 +393,6 @@ case "$TEST_FLAVOR" in
         ;& # Continue with next item
     apiv2)
         msg "Installing previously downloaded/cached packages"
-        showrun dnf install -y $PACKAGE_DOWNLOAD_DIR/python3*.rpm
         virtualenv .venv/requests
         source .venv/requests/bin/activate
         showrun pip install --upgrade pip

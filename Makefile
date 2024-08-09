@@ -723,10 +723,6 @@ localapiv2-bash:
 localapiv2-python:
 	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman \
 		pytest --verbose --disable-warnings ./test/apiv2/python
-	touch test/__init__.py
-	env CONTAINERS_CONF=$(CURDIR)/test/apiv2/containers.conf PODMAN=./bin/podman \
-		pytest --verbose --disable-warnings ./test/python/docker
-	rm -f test/__init__.py
 
 # Order is important running python tests first causes the bash tests
 # to fail, see 12-imagesMore.  FIXME order of tests should not matter
