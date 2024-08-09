@@ -68,42 +68,6 @@ location = "mirror.localhost:5000"
         with open(os.environ["CONTAINERS_REGISTRIES_CONF"], "w") as file:
             file.write(conf)
 
-        os.environ["CNI_CONFIG_PATH"] = os.path.join(self.anchor_directory, "cni", "net.d")
-        os.makedirs(os.environ["CNI_CONFIG_PATH"], exist_ok=True)
-        self.cmd.append("--network-config-dir=" + os.environ["CNI_CONFIG_PATH"])
-        cni_cfg = os.path.join(os.environ["CNI_CONFIG_PATH"], "87-podman-bridge.conflist")
-        # json decoded and encoded to ensure legal json
-        buf = json.loads(
-            """
-            {
-              "cniVersion": "0.3.0",
-              "name": "default",
-              "plugins": [{
-                  "type": "bridge",
-                  "bridge": "cni0",
-                  "isGateway": true,
-                  "ipMasq": true,
-                  "ipam": {
-                    "type": "host-local",
-                    "subnet": "10.88.0.0/16",
-                    "routes": [{
-                      "dst": "0.0.0.0/0"
-                    }]
-                  }
-                },
-                {
-                  "type": "portmap",
-                  "capabilities": {
-                    "portMappings": true
-                  }
-                }
-              ]
-            }
-            """
-        )
-        with open(cni_cfg, "w") as file:
-            json.dump(buf, file)
-
     def open(self, command, *args, **kwargs):
         """Podman initialized instance to run a given command
 
