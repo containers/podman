@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/containers/common/pkg/auth"
@@ -55,10 +56,14 @@ func inspect(cmd *cobra.Command, args []string) error {
 		insecure, _ := cmd.Flags().GetBool("insecure")
 		inspectOptions.SkipTLSVerify = types.NewOptionalBool(insecure)
 	}
-	buf, err := registry.ImageEngine().ManifestInspect(registry.Context(), args[0], inspectOptions)
+	list, err := registry.ImageEngine().ManifestInspect(registry.Context(), args[0], inspectOptions)
 	if err != nil {
 		return err
 	}
-	fmt.Println(string(buf))
+	prettyJSON, err := json.MarshalIndent(list, "", "    ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(prettyJSON))
 	return nil
 }

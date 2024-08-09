@@ -15,7 +15,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/common/libimage/define"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod"
@@ -190,19 +189,13 @@ func ManifestInspect(w http.ResponseWriter, r *http.Request) {
 	}
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
-	rawManifest, err := imageEngine.ManifestInspect(r.Context(), name, opts)
+	manifest, err := imageEngine.ManifestInspect(r.Context(), name, opts)
 	if err != nil {
 		utils.Error(w, http.StatusNotFound, err)
 		return
 	}
 
-	var schema2List define.ManifestListData
-	if err := json.Unmarshal(rawManifest, &schema2List); err != nil {
-		utils.Error(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	utils.WriteResponse(w, http.StatusOK, schema2List)
+	utils.WriteResponse(w, http.StatusOK, manifest)
 }
 
 // ManifestAddV3 remove digest from manifest list

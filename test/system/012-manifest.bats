@@ -107,7 +107,7 @@ function validate_instance_compression {
     is "$output" ".*\"mediaType\": \"application/vnd.docker.distribution.manifest.list.v2+json\"" "Verify --tls-verify=false with REGISTRY_AUTH_FILE works against an insecure registry"
 }
 
-@test "manifest list --add-compression with zstd" {
+@test "manifest list --add-compression with zstd:chunked" {
     skip_if_remote "running a local registry doesn't work with podman-remote"
 
     # Using TARGETARCH gives us distinct images for each arch
@@ -133,17 +133,40 @@ EOF
     # Push to local registry; the magic key here is --add-compression...
     local manifestpushed="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$manifestlocal"
     local authfile=${PODMAN_LOGIN_WORKDIR}/auth-manifest.json
-    run_podman manifest push --authfile=$authfile --all --compression-format gzip --add-compression zstd --tls-verify=false $manifestlocal $manifestpushed
+    run_podman manifest push --authfile=$authfile --all --compression-format gzip --add-compression zstd:chunked --tls-verify=false $manifestlocal $manifestpushed
 
     # ...and use skopeo to confirm that each component has the right settings
     echo "$_LOG_PROMPT skopeo inspect ... $manifestpushed"
-    list=$(skopeo inspect --authfile=$authfile --tls-verify=false --raw docker://$manifestpushed)
-    jq . <<<"$list"
+    smanifest=$(skopeo inspect --authfile=$authfile --tls-verify=false --raw docker://$manifestpushed)
+    jq . <<<"$smanifest"
 
-    validate_instance_compression "0" "$list" "amd64" "gzip"
-    validate_instance_compression "1" "$list" "arm64" "gzip"
-    validate_instance_compression "2" "$list" "amd64" "zstd"
-    validate_instance_compression "3" "$list" "arm64" "zstd"
+    validate_instance_compression "0" "$smanifest" "amd64" "gzip"
+    validate_instance_compression "1" "$smanifest" "arm64" "gzip"
+    validate_instance_compression "2" "$smanifest" "amd64" "zstd"
+    validate_instance_compression "3" "$smanifest" "arm64" "zstd"
+
+    run_podman manifest inspect --authfile=$authfile --tls-verify=false \
+        $manifestpushed
+    pmanifest="$output"
+
+    objects=$(for obj in 0 1 2 3; do echo \
+          ".manifests[$obj].annotations" \
+          ".manifests[$obj].digest" \
+          ".manifests[$obj].platform.architecture" \
+          ".manifests[$obj].platform.os" \
+          ".manifests[$obj].mediaType" \
+          ".manifests[$obj].size" \
+          ; done)
+    for object in \
+        $objects \
+        '.schemaVersion' \
+        '.mediaType' \
+         ; do
+        skopeoObj=$(jq -r "$object" <<<"$smanifest")
+        podmanObj=$(jq -r "$object" <<<"$pmanifest")
+        assert "$skopeoObj" != "$smanifest" "\"$object\" does not exist in skopeo result"
+        assert "$podmanObj" == "$skopeoObj" "podman \"$object\" does not match skopeo"
+    done
 
     run_podman rmi image_amd image_arm
     run_podman manifest rm $manifestlocal
