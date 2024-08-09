@@ -101,7 +101,7 @@ jobs:
             steps.checkversion.outputs.needsUpdate == 'true' &&
             steps.checkpr.outputs.prexists == 'false'
         run: |
-          # Make commiter the user who triggered the action, either through cutting a release or manual trigger
+          # Make committer the user who triggered the action, either through cutting a release or manual trigger
           # GitHub gives everyone a noreply email associated with their account, use that email for the sign-off
           git config --local user.name ${{ github.actor }}
           git config --local user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"

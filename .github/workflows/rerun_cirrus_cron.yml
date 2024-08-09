@@ -13,7 +13,7 @@ on:
         - cron:  '01 01 * * 1-5'
     # Debug: Allow triggering job manually in github-actions WebUI
     workflow_dispatch: {}
-    # Allow re-use of this workflow by other repositories
+    # Allow reuse of this workflow by other repositories
     # Ref: https://docs.github.com/en/actions/using-workflows/reusing-workflows
     workflow_call:
       secrets:
