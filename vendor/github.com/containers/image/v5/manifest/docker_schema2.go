@@ -202,7 +202,7 @@ func (m *Schema2) ConfigInfo() types.BlobInfo {
 // The Digest field is guaranteed to be provided; Size may be -1.
 // WARNING: The list may contain duplicates, and they are semantically relevant.
 func (m *Schema2) LayerInfos() []LayerInfo {
-	blobs := []LayerInfo{}
+	blobs := make([]LayerInfo, 0, len(m.LayersDescriptors))
 	for _, layer := range m.LayersDescriptors {
 		blobs = append(blobs, LayerInfo{
 			BlobInfo:   BlobInfoFromSchema2Descriptor(layer),
