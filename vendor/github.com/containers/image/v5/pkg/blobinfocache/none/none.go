@@ -34,6 +34,19 @@ func (noCache) UncompressedDigest(anyDigest digest.Digest) digest.Digest {
 func (noCache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompressed digest.Digest) {
 }
 
+// UncompressedDigestForTOC returns an uncompressed digest corresponding to anyDigest.
+// Returns "" if the uncompressed digest is unknown.
+func (noCache) UncompressedDigestForTOC(tocDigest digest.Digest) digest.Digest {
+	return ""
+}
+
+// RecordTOCUncompressedPair records that the tocDigest corresponds to uncompressed.
+// WARNING: Only call this for LOCALLY VERIFIED data; don’t record a digest pair just because some remote author claims so (e.g.
+// because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
+// (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
+func (noCache) RecordTOCUncompressedPair(tocDigest digest.Digest, uncompressed digest.Digest) {
+}
+
 // RecordKnownLocation records that a blob with the specified digest exists within the specified (transport, scope) scope,
 // and can be reused given the opaque location data.
 func (noCache) RecordKnownLocation(transport types.ImageTransport, scope types.BICTransportScope, blobDigest digest.Digest, location types.BICLocationReference) {
