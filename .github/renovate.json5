@@ -55,5 +55,12 @@ and/or use the pre-commit hook: https://github.com/renovatebot/pre-commit-hooks
       ]
     }
   ],
+
+  // Match in subdirectories also (except ignorePaths, above).
+  "pip_requirements": {
+    "groupName": "python dependencies",
+    "fileMatch": [
+        "requirements([-.]\\w+)?\\.(txt|pip)$"
+      ]
   }
 }
