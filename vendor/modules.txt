@@ -243,7 +243,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.4
 ## explicit; go 1.21
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.32.0
+# github.com/containers/image/v5 v5.32.1-0.20240807101533-8c7c58c5aacd
 ## explicit; go 1.21.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -1202,7 +1202,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.21.0
+# golang.org/x/oauth2 v0.22.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal

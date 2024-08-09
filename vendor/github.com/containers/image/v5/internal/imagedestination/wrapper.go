@@ -76,6 +76,9 @@ func (w *wrapped) TryReusingBlobWithOptions(ctx context.Context, info types.Blob
 		Size:                 blob.Size,
 		CompressionOperation: blob.CompressionOperation,
 		CompressionAlgorithm: blob.CompressionAlgorithm,
+		// CompressionAnnotations could be set to blob.Annotations, but that may contain unrelated
+		// annotations, and we didn’t use the blob.Annotations field previously, so we’ll
+		// continue not using it.
 	}, nil
 }
 

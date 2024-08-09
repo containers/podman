@@ -25,57 +25,133 @@ const replacementAttempts = 5
 // This is a heuristic/guess, and could well use a different value.
 const replacementUnknownLocationAttempts = 2
 
-// CandidateCompression returns (true, compressionOp, compressionAlgo) if a blob
-// with compressionName (which can be Uncompressed or UnknownCompression) is acceptable for a CandidateLocations* call with v2Options.
+// CandidateTemplate is a subset of BICReplacementCandidate2 with data related to a specific digest,
+// which can be later combined with information about a location.
+type CandidateTemplate struct {
+	digest                 digest.Digest
+	compressionOperation   types.LayerCompression // Either types.Decompress for uncompressed, or types.Compress for compressed
+	compressionAlgorithm   *compression.Algorithm // An algorithm when the candidate is compressed, or nil when it is uncompressed
+	compressionAnnotations map[string]string      // If necessary, annotations necessary to use compressionAlgorithm
+}
+
+// CandidateTemplateWithCompression returns a CandidateTemplate if a blob with data is acceptable
+// for a CandidateLocations* call with v2Options.
 //
 // v2Options can be set to nil if the call is CandidateLocations (i.e. compression is not required to be known);
 // if not nil, the call is assumed to be CandidateLocations2.
-//
-// The (compressionOp, compressionAlgo) values are suitable for BICReplacementCandidate2
-func CandidateCompression(v2Options *blobinfocache.CandidateLocations2Options, digest digest.Digest, compressorName string) (bool, types.LayerCompression, *compression.Algorithm) {
+func CandidateTemplateWithCompression(v2Options *blobinfocache.CandidateLocations2Options, digest digest.Digest, data blobinfocache.DigestCompressorData) *CandidateTemplate {
 	if v2Options == nil {
-		return true, types.PreserveOriginal, nil // Anything goes. The (compressionOp, compressionAlgo) values are not used.
+		return &CandidateTemplate{ // Anything goes. The compressionOperation, compressionAlgorithm and compressionAnnotations values are not used.
+			digest: digest,
+		}
 	}
 
-	var op types.LayerCompression
-	var algo *compression.Algorithm
-	switch compressorName {
+	requiredCompression := "nil"
+	if v2Options.RequiredCompression != nil {
+		requiredCompression = v2Options.RequiredCompression.Name()
+	}
+	switch data.BaseVariantCompressor {
 	case blobinfocache.Uncompressed:
-		op = types.Decompress
-		algo = nil
+		if !manifest.CandidateCompressionMatchesReuseConditions(manifest.ReuseConditions{
+			PossibleManifestFormats: v2Options.PossibleManifestFormats,
+			RequiredCompression:     v2Options.RequiredCompression,
+		}, nil) {
+			logrus.Debugf("Ignoring BlobInfoCache record of digest %q, uncompressed format does not match required %s or MIME types %#v",
+				digest.String(), requiredCompression, v2Options.PossibleManifestFormats)
+			return nil
+		}
+		return &CandidateTemplate{
+			digest:                 digest,
+			compressionOperation:   types.Decompress,
+			compressionAlgorithm:   nil,
+			compressionAnnotations: nil,
+		}
 	case blobinfocache.UnknownCompression:
 		logrus.Debugf("Ignoring BlobInfoCache record of digest %q with unknown compression", digest.String())
-		return false, types.PreserveOriginal, nil // Not allowed with CandidateLocations2
+		return nil // Not allowed with CandidateLocations2
 	default:
-		op = types.Compress
-		algo_, err := compression.AlgorithmByName(compressorName)
+		// See if we can use the specific variant, first.
+		if data.SpecificVariantCompressor != blobinfocache.UnknownCompression {
+			algo, err := compression.AlgorithmByName(data.SpecificVariantCompressor)
+			if err != nil {
+				logrus.Debugf("Not considering unrecognized specific compression variant %q for BlobInfoCache record of digest %q: %v",
+					data.SpecificVariantCompressor, digest.String(), err)
+			} else {
+				if !manifest.CandidateCompressionMatchesReuseConditions(manifest.ReuseConditions{
+					PossibleManifestFormats: v2Options.PossibleManifestFormats,
+					RequiredCompression:     v2Options.RequiredCompression,
+				}, &algo) {
+					logrus.Debugf("Ignoring specific compression variant %q for BlobInfoCache record of digest %q, it does not match required %s or MIME types %#v",
+						data.SpecificVariantCompressor, digest.String(), requiredCompression, v2Options.PossibleManifestFormats)
+				} else {
+					return &CandidateTemplate{
+						digest:                 digest,
+						compressionOperation:   types.Compress,
+						compressionAlgorithm:   &algo,
+						compressionAnnotations: data.SpecificVariantAnnotations,
+					}
+				}
+			}
+		}
+
+		// Try the base variant.
+		algo, err := compression.AlgorithmByName(data.BaseVariantCompressor)
 		if err != nil {
 			logrus.Debugf("Ignoring BlobInfoCache record of digest %q with unrecognized compression %q: %v",
-				digest.String(), compressorName, err)
-			return false, types.PreserveOriginal, nil // The BICReplacementCandidate2.CompressionAlgorithm field is required
+				digest.String(), data.BaseVariantCompressor, err)
+			return nil // The BICReplacementCandidate2.CompressionAlgorithm field is required
 		}
-		algo = &algo_
-	}
-	if !manifest.CandidateCompressionMatchesReuseConditions(manifest.ReuseConditions{
-		PossibleManifestFormats: v2Options.PossibleManifestFormats,
-		RequiredCompression:     v2Options.RequiredCompression,
-	}, algo) {
-		requiredCompresssion := "nil"
-		if v2Options.RequiredCompression != nil {
-			requiredCompresssion = v2Options.RequiredCompression.Name()
+		if !manifest.CandidateCompressionMatchesReuseConditions(manifest.ReuseConditions{
+			PossibleManifestFormats: v2Options.PossibleManifestFormats,
+			RequiredCompression:     v2Options.RequiredCompression,
+		}, &algo) {
+			logrus.Debugf("Ignoring BlobInfoCache record of digest %q, compression %q does not match required %s or MIME types %#v",
+				digest.String(), data.BaseVariantCompressor, requiredCompression, v2Options.PossibleManifestFormats)
+			return nil
 		}
-		logrus.Debugf("Ignoring BlobInfoCache record of digest %q, compression %q does not match required %s or MIME types %#v",
-			digest.String(), compressorName, requiredCompresssion, v2Options.PossibleManifestFormats)
-		return false, types.PreserveOriginal, nil
+		return &CandidateTemplate{
+			digest:                 digest,
+			compressionOperation:   types.Compress,
+			compressionAlgorithm:   &algo,
+			compressionAnnotations: nil,
+		}
 	}
-
-	return true, op, algo
 }
 
 // CandidateWithTime is the input to types.BICReplacementCandidate prioritization.
 type CandidateWithTime struct {
-	Candidate blobinfocache.BICReplacementCandidate2 // The replacement candidate
-	LastSeen  time.Time                              // Time the candidate was last known to exist (either read or written) (not set for Candidate.UnknownLocation)
+	candidate blobinfocache.BICReplacementCandidate2 // The replacement candidate
+	lastSeen  time.Time                              // Time the candidate was last known to exist (either read or written) (not set for Candidate.UnknownLocation)
+}
+
+// CandidateWithLocation returns a complete CandidateWithTime combining (template from CandidateTemplateWithCompression, location, lastSeen)
+func (template CandidateTemplate) CandidateWithLocation(location types.BICLocationReference, lastSeen time.Time) CandidateWithTime {
+	return CandidateWithTime{
+		candidate: blobinfocache.BICReplacementCandidate2{
+			Digest:                 template.digest,
+			CompressionOperation:   template.compressionOperation,
+			CompressionAlgorithm:   template.compressionAlgorithm,
+			CompressionAnnotations: template.compressionAnnotations,
+			UnknownLocation:        false,
+			Location:               location,
+		},
+		lastSeen: lastSeen,
+	}
+}
+
+// CandidateWithUnknownLocation returns a complete CandidateWithTime for a template from CandidateTemplateWithCompression and an unknown location.
+func (template CandidateTemplate) CandidateWithUnknownLocation() CandidateWithTime {
+	return CandidateWithTime{
+		candidate: blobinfocache.BICReplacementCandidate2{
+			Digest:                 template.digest,
+			CompressionOperation:   template.compressionOperation,
+			CompressionAlgorithm:   template.compressionAlgorithm,
+			CompressionAnnotations: template.compressionAnnotations,
+			UnknownLocation:        true,
+			Location:               types.BICLocationReference{Opaque: ""},
+		},
+		lastSeen: time.Time{},
+	}
 }
 
 // candidateSortState is a closure for a comparison used by slices.SortFunc on candidates to prioritize,
@@ -91,35 +167,35 @@ func (css *candidateSortState) compare(xi, xj CandidateWithTime) int {
 	// Other digest values are primarily sorted by time (more recent first), secondarily by digest (to provide a deterministic order)
 
 	// First, deal with the primaryDigest/uncompressedDigest cases:
-	if xi.Candidate.Digest != xj.Candidate.Digest {
+	if xi.candidate.Digest != xj.candidate.Digest {
 		// - The two digests are different, and one (or both) of the digests is primaryDigest or uncompressedDigest: time does not matter
-		if xi.Candidate.Digest == css.primaryDigest {
+		if xi.candidate.Digest == css.primaryDigest {
 			return -1
 		}
-		if xj.Candidate.Digest == css.primaryDigest {
+		if xj.candidate.Digest == css.primaryDigest {
 			return 1
 		}
 		if css.uncompressedDigest != "" {
-			if xi.Candidate.Digest == css.uncompressedDigest {
+			if xi.candidate.Digest == css.uncompressedDigest {
 				return 1
 			}
-			if xj.Candidate.Digest == css.uncompressedDigest {
+			if xj.candidate.Digest == css.uncompressedDigest {
 				return -1
 			}
 		}
 	} else { // xi.Candidate.Digest == xj.Candidate.Digest
 		// The two digests are the same, and are either primaryDigest or uncompressedDigest: order by time
-		if xi.Candidate.Digest == css.primaryDigest || (css.uncompressedDigest != "" && xi.Candidate.Digest == css.uncompressedDigest) {
-			return -xi.LastSeen.Compare(xj.LastSeen)
+		if xi.candidate.Digest == css.primaryDigest || (css.uncompressedDigest != "" && xi.candidate.Digest == css.uncompressedDigest) {
+			return -xi.lastSeen.Compare(xj.lastSeen)
 		}
 	}
 
 	// Neither of the digests are primaryDigest/uncompressedDigest:
-	if cmp := xi.LastSeen.Compare(xj.LastSeen); cmp != 0 { // Order primarily by time
+	if cmp := xi.lastSeen.Compare(xj.lastSeen); cmp != 0 { // Order primarily by time
 		return -cmp
 	}
 	// Fall back to digest, if timestamps end up _exactly_ the same (how?!)
-	return cmp.Compare(xi.Candidate.Digest, xj.Candidate.Digest)
+	return cmp.Compare(xi.candidate.Digest, xj.candidate.Digest)
 }
 
 // destructivelyPrioritizeReplacementCandidatesWithMax is destructivelyPrioritizeReplacementCandidates with parameters for the
@@ -138,7 +214,7 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 		uncompressedDigest: uncompressedDigest,
 	}).compare)
 	for _, candidate := range cs {
-		if candidate.Candidate.UnknownLocation {
+		if candidate.candidate.UnknownLocation {
 			unknownLocationCandidates = append(unknownLocationCandidates, candidate)
 		} else {
 			knownLocationCandidates = append(knownLocationCandidates, candidate)
@@ -150,11 +226,11 @@ func destructivelyPrioritizeReplacementCandidatesWithMax(cs []CandidateWithTime,
 	unknownLocationCandidatesUsed := min(noLocationLimit, remainingCapacity, len(unknownLocationCandidates))
 	res := make([]blobinfocache.BICReplacementCandidate2, knownLocationCandidatesUsed)
 	for i := 0; i < knownLocationCandidatesUsed; i++ {
-		res[i] = knownLocationCandidates[i].Candidate
+		res[i] = knownLocationCandidates[i].candidate
 	}
 	// If candidates with unknown location are found, lets add them to final list
 	for i := 0; i < unknownLocationCandidatesUsed; i++ {
-		res = append(res, unknownLocationCandidates[i].Candidate)
+		res = append(res, unknownLocationCandidates[i].candidate)
 	}
 	return res
 }

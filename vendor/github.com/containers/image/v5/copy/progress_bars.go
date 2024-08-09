@@ -121,7 +121,7 @@ func (c *copier) printCopyInfo(kind string, info types.BlobInfo) {
 	}
 }
 
-// mark100PercentComplete marks the progres bars as 100% complete;
+// mark100PercentComplete marks the progress bars as 100% complete;
 // it may do so by possibly advancing the current state if it is below the known total.
 func (bar *progressBar) mark100PercentComplete() {
 	if bar.originalSize > 0 {

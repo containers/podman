@@ -61,14 +61,12 @@ func parseUnnormalizedShortName(input string) (bool, reference.Named, error) {
 // the tag or digest and stores it in the return values so that both can be
 // re-added to a possible resolved alias' or USRs at a later point.
 func splitUserInput(named reference.Named) (isTagged bool, isDigested bool, normalized reference.Named, tag string, digest digest.Digest) {
-	tagged, isT := named.(reference.NamedTagged)
-	if isT {
+	if tagged, ok := named.(reference.NamedTagged); ok {
 		isTagged = true
 		tag = tagged.Tag()
 	}
 
-	digested, isD := named.(reference.Digested)
-	if isD {
+	if digested, ok := named.(reference.Digested); ok {
 		isDigested = true
 		digest = digested.Digest()
 	}

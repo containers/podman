@@ -611,7 +611,8 @@ var _ = Describe("Podman pull", func() {
 
 			session := podmanTest.Podman([]string{"push", "-q", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitCleanly())
+			Expect(session).Should(Exit(0))
+			Expect(session.ErrorToString()).To(ContainSubstring("Compression using zstd:chunked is not beneficial for encrypted layers, using plain zstd instead"))
 
 			session = podmanTest.Podman([]string{"rmi", ALPINE})
 			session.WaitWithDefaultTimeout()

@@ -205,11 +205,6 @@ type ReuseConditions struct {
 // (which can be nil to represent uncompressed or unknown) matches reuseConditions.
 func CandidateCompressionMatchesReuseConditions(c ReuseConditions, candidateCompression *compressiontypes.Algorithm) bool {
 	if c.RequiredCompression != nil {
-		if c.RequiredCompression.Name() == compressiontypes.ZstdChunkedAlgorithmName {
-			// HACK: Never match when the caller asks for zstd:chunked, because we don’t record the annotations required to use the chunked blobs.
-			// The caller must re-compress to build those annotations.
-			return false
-		}
 		if candidateCompression == nil ||
 			(c.RequiredCompression.Name() != candidateCompression.Name() && c.RequiredCompression.Name() != candidateCompression.BaseVariantName()) {
 			return false

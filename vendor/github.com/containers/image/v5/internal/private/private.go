@@ -134,8 +134,13 @@ type ReusedBlob struct {
 	Size   int64         // Must be provided
 	// The following compression fields should be set when the reuse substitutes
 	// a differently-compressed blob.
+	// They may be set also to change from a base variant to a specific variant of an algorithm.
 	CompressionOperation types.LayerCompression // Compress/Decompress, matching the reused blob; PreserveOriginal if N/A
 	CompressionAlgorithm *compression.Algorithm // Algorithm if compressed, nil if decompressed or N/A
+
+	// Annotations that should be added, for CompressionAlgorithm. Note that they might need to be
+	// added even if the digest doesn’t change (if we found the annotations in a cache).
+	CompressionAnnotations map[string]string
 
 	MatchedByTOCDigest bool // Whether the layer was reused/matched by TOC digest. Used only for UI purposes.
 }
