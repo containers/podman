@@ -36,10 +36,7 @@ func getGenericTemplateFile(fileName string) (bool, string) {
 	return false, ""
 }
 
-func loadQuadletTestcase(path string) *quadletTestcase {
-	data, err := os.ReadFile(path)
-	Expect(err).ToNot(HaveOccurred())
-
+func calcServiceName(path string) string {
 	base := filepath.Base(path)
 	ext := filepath.Ext(base)
 	service := base[:len(base)-len(ext)]
@@ -54,6 +51,23 @@ func loadQuadletTestcase(path string) *quadletTestcase {
 		service += "-build"
 	case ".pod":
 		service += "-pod"
+	}
+	return service
+}
+
+func loadQuadletTestcase(path string) *quadletTestcase {
+	return loadQuadletTestcaseWithServiceName(path, "")
+}
+
+func loadQuadletTestcaseWithServiceName(path, serviceName string) *quadletTestcase {
+	data, err := os.ReadFile(path)
+	Expect(err).ToNot(HaveOccurred())
+
+	var service string
+	if len(serviceName) > 0 {
+		service = serviceName
+	} else {
+		service = calcServiceName(path)
 	}
 	service += ".service"
 
@@ -609,8 +623,8 @@ var _ = Describe("quadlet system generator", func() {
 		generatedDir string
 		quadletDir   string
 
-		runQuadletTestCase = func(fileName string, exitCode int, errString string) {
-			testcase := loadQuadletTestcase(filepath.Join("quadlet", fileName))
+		runQuadletTestCaseWithServiceName = func(fileName string, exitCode int, errString string, serviceName string) {
+			testcase := loadQuadletTestcaseWithServiceName(filepath.Join("quadlet", fileName), serviceName)
 
 			// Write the tested file to the quadlet dir
 			err = os.WriteFile(filepath.Join(quadletDir, fileName), testcase.data, 0644)
@@ -645,6 +659,10 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(errs).Should(ContainSubstring(errString))
 
 			testcase.check(generatedDir, session)
+		}
+
+		runQuadletTestCase = func(fileName string, exitCode int, errString string) {
+			runQuadletTestCaseWithServiceName(fileName, exitCode, errString, "")
 		}
 
 		runSuccessQuadletTestCase = func(fileName string) {
@@ -831,11 +849,9 @@ BOGUS=foo
 		Entry("logdriver.container", "logdriver.container"),
 		Entry("logopt.container", "logopt.container"),
 		Entry("mask.container", "mask.container"),
-		Entry("mount.container", "mount.container"),
 		Entry("name.container", "name.container"),
 		Entry("nestedselinux.container", "nestedselinux.container"),
 		Entry("network.container", "network.container"),
-		Entry("network.quadlet.container", "network.quadlet.container"),
 		Entry("notify.container", "notify.container"),
 		Entry("notify-healthy.container", "notify-healthy.container"),
 		Entry("oneshot.container", "oneshot.container"),
@@ -870,7 +886,6 @@ BOGUS=foo
 		Entry("unmask.container", "unmask.container"),
 		Entry("user.container", "user.container"),
 		Entry("userns.container", "userns.container"),
-		Entry("volume.container", "volume.container"),
 		Entry("workingdir.container", "workingdir.container"),
 		Entry("Container - global args", "globalargs.container"),
 		Entry("Container - Containers Conf Modules", "containersconfmodule.container"),
@@ -902,7 +917,6 @@ BOGUS=foo
 		Entry("Kube - PodmanArgs", "podmanargs.kube"),
 		Entry("Kube - Publish IPv4 ports", "ports.kube"),
 		Entry("Kube - Publish IPv6 ports", "ports_ipv6.kube"),
-		Entry("Kube - Quadlet Network", "network.quadlet.kube"),
 		Entry("Kube - User Remap Auto with IDs", "remap-auto2.kube"),
 		Entry("Kube - User Remap Auto", "remap-auto.kube"),
 		Entry("Syslog Identifier", "syslog.identifier.kube"),
@@ -967,7 +981,6 @@ BOGUS=foo
 		Entry("Build - Containers Conf Modules", "containersconfmodule.build"),
 		Entry("Build - Label Key", "label.build"),
 		Entry("Build - Network Key host", "network.build"),
-		Entry("Build - Network Key quadlet", "network.quadlet.build"),
 		Entry("Build - PodmanArgs", "podmanargs.build"),
 		Entry("Build - Pull Key", "pull.build"),
 		Entry("Build - Secrets", "secrets.build"),
@@ -982,15 +995,11 @@ BOGUS=foo
 		Entry("Build - Target Key", "target.build"),
 		Entry("Build - TLSVerify Key", "tls-verify.build"),
 		Entry("Build - Variant Key", "variant.build"),
-		Entry("Build - Volume Key", "volume.build"),
-		Entry("Build - Volume Key quadlet", "volume.quadlet.build"),
 
 		Entry("basic.pod", "basic.pod"),
 		Entry("name.pod", "name.pod"),
 		Entry("network.pod", "network.pod"),
-		Entry("network-quadlet.pod", "network.quadlet.pod"),
 		Entry("podmanargs.pod", "podmanargs.pod"),
-		Entry("volume.pod", "volume.pod"),
 		Entry("Pod - NetworkAlias", "network-alias.pod"),
 	)
 
@@ -1026,8 +1035,21 @@ BOGUS=foo
 		Entry("Build - No ImageTag Key", "no-imagetag.build", "converting \"no-imagetag.build\": no ImageTag key specified"),
 	)
 
-	DescribeTable("Running quadlet test case with dependencies",
-		func(fileName string, exitCode int, errString string, dependencyFiles []string) {
+	DescribeTable("Running success quadlet with ServiceName test case",
+		func(fileName, serviceName string) {
+			runQuadletTestCaseWithServiceName(fileName, 0, "", serviceName)
+		},
+		Entry("Build", "service-name.build", "basic"),
+		Entry("Container", "service-name.container", "basic"),
+		Entry("Image", "service-name.image", "basic"),
+		Entry("Kube", "service-name.kube", "basic"),
+		Entry("Network", "service-name.network", "basic"),
+		Entry("Pod", "service-name.pod", "basic"),
+		Entry("Volume", "service-name.volume", "basic"),
+	)
+
+	DescribeTable("Running quadlet success test case with dependencies",
+		func(fileName string, dependencyFiles []string) {
 			// Write additional files this test depends on to the quadlet dir
 			for _, dependencyFileName := range dependencyFiles {
 				dependencyTestCase := loadQuadletTestcase(filepath.Join("quadlet", dependencyFileName))
@@ -1035,10 +1057,33 @@ BOGUS=foo
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			runQuadletTestCase(fileName, exitCode, errString)
+			runSuccessQuadletTestCase(fileName)
 		},
-		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", 0, "", []string{"basic.build"}),
-		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", 0, "", []string{"basic.image"}),
+		Entry("Container - Mount", "mount.container", []string{"basic.volume"}),
+		Entry("Container - Quadlet Network", "network.quadlet.container", []string{"basic.network"}),
+		Entry("Container - Quadlet Volume", "volume.container", []string{"basic.volume"}),
+		Entry("Container - Mount overriding service name", "mount.servicename.container", []string{"service-name.volume"}),
+		Entry("Container - Quadlet Network overriding service name", "network.quadlet.servicename.container", []string{"service-name.network"}),
+		Entry("Container - Quadlet Volume overriding service name", "volume.servicename.container", []string{"service-name.volume"}),
+
+		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", []string{"basic.build"}),
+		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", []string{"basic.image"}),
+		Entry("Volume - Quadlet image (.build) overriding service name", "build.quadlet.servicename.volume", []string{"service-name.build"}),
+		Entry("Volume - Quadlet image (.image) overriding service name", "image.quadlet.servicename.volume", []string{"service-name.image"}),
+
+		Entry("Kube - Quadlet Network", "network.quadlet.kube", []string{"basic.network"}),
+		Entry("Kube - Quadlet Network overriding service name", "network.quadlet.servicename.kube", []string{"service-name.network"}),
+
+		Entry("Build - Network Key quadlet", "network.quadlet.build", []string{"basic.network"}),
+		Entry("Build - Volume Key", "volume.build", []string{"basic.volume"}),
+		Entry("Build - Volume Key quadlet", "volume.quadlet.build", []string{"basic.volume"}),
+		Entry("Build - Network Key quadlet overriding service name", "network.quadlet.servicename.build", []string{"service-name.network"}),
+		Entry("Build - Volume Key quadlet overriding service name", "volume.quadlet.servicename.build", []string{"service-name.volume"}),
+
+		Entry("Pod - Quadlet Network", "network.quadlet.pod", []string{"basic.network"}),
+		Entry("Pod - Quadlet Volume", "volume.pod", []string{"basic.volume"}),
+		Entry("Pod - Quadlet Network overriding service name", "network.servicename.quadlet.pod", []string{"service-name.network"}),
+		Entry("Pod - Quadlet Volume overriding service name", "volume.servicename.pod", []string{"service-name.volume"}),
 	)
 
 })

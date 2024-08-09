@@ -1,0 +1,7 @@
+## assert-podman-args "--network=test-network"
+## assert-key-is "Unit" "Requires" "basic.service"
+## assert-key-is "Unit" "After" "network-online.target" "basic.service"
+
+[Container]
+Image=localhost/imagename
+Network=service-name.network

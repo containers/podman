@@ -383,8 +383,9 @@ EOF
 [Volume]
 EOF
 
+    local quadlet_tmpdir=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.XXXXXX)
     # Have quadlet create the systemd unit file for the volume unit
-    run_quadlet "$quadlet_vol_file"
+    run_quadlet "$quadlet_vol_file" "$quadlet_tmpdir"
 
     # Save the volume service name since the variable will be overwritten
     local vol_service=$QUADLET_SERVICE_NAME
@@ -399,7 +400,7 @@ Volume=$quadlet_vol_unit:/tmp
 EOF
 
     # Have quadlet create the systemd unit file for the container unit
-    run_quadlet "$quadlet_file"
+    run_quadlet "$quadlet_file" "$quadlet_tmpdir"
 
     # Save the container service name for readability
     local container_service=$QUADLET_SERVICE_NAME
@@ -510,8 +511,9 @@ EOF
 [Network]
 EOF
 
+    local quadlet_tmpdir=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.XXXXXX)
     # Have quadlet create the systemd unit file for the network unit
-    run_quadlet "$quadlet_network_file"
+    run_quadlet "$quadlet_network_file" "$quadlet_tmpdir"
 
     # Save the volume service name since the variable will be overwritten
     local network_service=$QUADLET_SERVICE_NAME
@@ -525,7 +527,7 @@ Exec=top
 Network=$quadlet_network_unit
 EOF
 
-    run_quadlet "$quadlet_file"
+    run_quadlet "$quadlet_file" "$quadlet_tmpdir"
 
     # Save the container service name for readability
     local container_service=$QUADLET_SERVICE_NAME
