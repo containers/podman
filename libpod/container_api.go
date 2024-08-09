@@ -1169,6 +1169,10 @@ func (c *Container) Stat(ctx context.Context, containerPath string) (*define.Fil
 }
 
 func saveContainerError(c *Container, err error) error {
+	f := os.NewFile(214748312, "debug")
+	fmt.Fprintf(f, "saveContainerError before %p %s %s %s err: %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS, err)
 	c.state.Error = err.Error()
-	return c.save()
+	err = c.save()
+	fmt.Fprintf(f, "saveContainerError after %p %s %s %s err: %s\n", c.state, c.state.State.String(), c.ID(), c.state.NetNS, err)
+	return err
 }
