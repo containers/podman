@@ -78,13 +78,14 @@ func generatekeys(writeLocation string) error {
 	if err := cmd.Start(); err != nil {
 		return err
 	}
+	errMsg, ioErr := io.ReadAll(stdErr)
+
 	waitErr := cmd.Wait()
 	if waitErr == nil {
 		return nil
 	}
-	errMsg, err := io.ReadAll(stdErr)
-	if err != nil {
-		return fmt.Errorf("key generation failed, unable to read from stderr: %w", waitErr)
+	if ioErr != nil {
+		return fmt.Errorf("key generation failed, unable to read from stderr: %w", ioErr)
 	}
 	return fmt.Errorf("failed to generate keys: %s: %w", string(errMsg), waitErr)
 }
