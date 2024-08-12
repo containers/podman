@@ -273,6 +273,36 @@ function ether_get_name() {
 
 ### Ports and Ranges ###########################################################
 
+# reserve_port() - create a lock file reserving a port, or return false
+function reserve_port() {
+    local port=$1
+
+    mkdir -p $PORT_LOCK_DIR
+    local lockfile=$PORT_LOCK_DIR/$port
+    local locktmp=$PORT_LOCK_DIR/.$port.$$
+    echo $BATS_SUITE_TEST_NUMBER >$locktmp
+
+    if ln $locktmp $lockfile; then
+        rm -f $locktmp
+        return
+    fi
+    # Port already reserved
+    rm -f $locktmp
+    false
+}
+
+# unreserve_port() - free a temporarily-reserved port
+function unreserve_port() {
+    local port=$1
+
+    local lockfile=$PORT_LOCK_DIR/$port
+    -e $lockfile || die "Cannot unreserve non-reserved port $port"
+    assert "$(< $lockfile)" = "$BATS_SUITE_TEST_NUMBER" \
+           "Port $port is not reserved by this test"
+    rm -f $lockfile
+}
+
+
 # random_free_port() - Get unbound port with pseudorandom number
 # $1:	Optional, dash-separated interval, [5000, 5999] by default
 # $2:	Optional binding address, any IPv4 address by default
@@ -284,9 +314,14 @@ function random_free_port() {
 
     local port
     for port in $(shuf -i ${range}); do
-        if port_is_free $port $address $protocol; then
-            echo $port
-            return
+        # First make sure no other tests are using it
+        if reserve_port $port; then
+            if port_is_free $port $address $protocol; then
+                echo $port
+                return
+            fi
+
+            unreserve_port $port
         fi
     done
 
@@ -308,8 +343,13 @@ function random_free_port_range() {
         local lastport=
         for i in $(seq 1 $((size - 1))); do
             lastport=$((firstport + i))
+            if ! reserve_port $lastport; then
+                lastport=
+                break
+            fi
             if ! port_is_free $lastport $address $protocol; then
                 echo "# port $lastport is in use; trying another." >&3
+                unreserve_port $lastport
                 lastport=
                 break
             fi
@@ -318,6 +358,8 @@ function random_free_port_range() {
             echo "$firstport-$lastport"
             return
         fi
+
+        unreserve_port $firstport
 
         maxtries=$((maxtries - 1))
     done

@@ -22,6 +22,9 @@ rc=0
 PODMAN_TMPDIR=$(mktemp -d --tmpdir=${TMPDIR:-/tmp} podman_helper_tests.XXXXXX)
 trap 'rm -rf $PODMAN_TMPDIR' 0
 
+# Used by random_free_port.
+PORT_LOCK_DIR=$PODMAN_TMPDIR/reserved-ports
+
 ###############################################################################
 # BEGIN test the parse_table helper
 
