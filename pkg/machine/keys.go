@@ -3,9 +3,9 @@
 package machine
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -71,22 +71,18 @@ func CreateSSHKeysPrefix(identityPath string, passThru bool, skipExisting bool, 
 func generatekeys(writeLocation string) error {
 	args := append(append([]string{}, sshCommand[1:]...), writeLocation)
 	cmd := exec.Command(sshCommand[0], args...)
-	stdErr, err := cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
+	stdErr := &bytes.Buffer{}
+	cmd.Stderr = stdErr
+
 	if err := cmd.Start(); err != nil {
 		return err
 	}
 	waitErr := cmd.Wait()
-	if waitErr == nil {
-		return nil
+	if waitErr != nil {
+		return fmt.Errorf("failed to generate keys: %s: %w", strings.TrimSpace(stdErr.String()), waitErr)
 	}
-	errMsg, err := io.ReadAll(stdErr)
-	if err != nil {
-		return fmt.Errorf("key generation failed, unable to read from stderr: %w", waitErr)
-	}
-	return fmt.Errorf("failed to generate keys: %s: %w", string(errMsg), waitErr)
+
+	return nil
 }
 
 // generatekeys creates an ed25519 set of keys
