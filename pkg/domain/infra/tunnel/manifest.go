@@ -2,11 +2,11 @@ package tunnel
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 
+	"github.com/containers/common/libimage/define"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	"github.com/containers/podman/v5/pkg/bindings/manifests"
@@ -34,7 +34,7 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 }
 
 // ManifestInspect returns contents of manifest list with given name
-func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) ([]byte, error) {
+func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) (*define.ManifestListData, error) {
 	options := new(manifests.InspectOptions).WithAuthfile(opts.Authfile)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
@@ -49,11 +49,7 @@ func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts en
 		return nil, fmt.Errorf("getting content of manifest list or image %s: %w", name, err)
 	}
 
-	buf, err := json.MarshalIndent(list, "", "    ")
-	if err != nil {
-		return buf, fmt.Errorf("rendering manifest for display: %w", err)
-	}
-	return buf, err
+	return list, err
 }
 
 // ManifestAdd adds images to the manifest list
