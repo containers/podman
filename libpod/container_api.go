@@ -84,26 +84,19 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // running before starting the container. The recursive parameter, if set, will start all
 // dependencies before starting this container.
 func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			if finalErr != nil {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -147,26 +140,19 @@ func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string
 // ordering of the two such that no output from the container is lost (e.g. the
 // Attach call occurs before Start).
 func (c *Container) Attach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, start bool) (retChan <-chan error, finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			if finalErr != nil {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return nil, err
@@ -270,26 +256,23 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			// The podman stop command is idempotent while the internal function here is not.
+			// As such we do not want to log these errors in the state because they are not
+			// actually user visible errors.
+			if finalErr != nil && !errors.Is(finalErr, define.ErrCtrStopped) &&
+				!errors.Is(finalErr, define.ErrCtrStateInvalid) {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
