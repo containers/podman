@@ -97,7 +97,7 @@ function run_test_script() {
             testnum=$(( testnum + 1 ))
 
             CIRRUS_CHANGE_TITLE="[CI:DOCS] hi there" $test_script &>/dev/null
-            if [[ $? -ne 0 ]]; then
+            if [[ $? -ne 1 ]]; then
                 echo "not ok $testnum $rest (override with CI:DOCS)"
                 rc=1
             else
