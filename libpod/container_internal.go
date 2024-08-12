@@ -1106,6 +1106,9 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	c.state.RestoreLog = ""
 	c.state.ExitCode = 0
 	c.state.Exited = false
+	// Reset any previous errors as we try to init it again, either it works and we don't
+	// want to keep an old error around or a new error will be written anyway.
+	c.state.Error = ""
 	c.state.State = define.ContainerStateCreated
 	c.state.StoppedByUser = false
 	c.state.RestartPolicyMatch = false
