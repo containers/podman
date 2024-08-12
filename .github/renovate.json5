@@ -55,5 +55,4 @@ and/or use the pre-commit hook: https://github.com/renovatebot/pre-commit-hooks
       ]
     }
   ],
-  }
 }
