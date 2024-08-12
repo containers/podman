@@ -84,7 +84,7 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 		// does not attempts to re-resolve it
 		ignoreFile = path
 		ignore, dockerIgnoreErr = os.ReadFile(path)
-		if os.IsNotExist(dockerIgnoreErr) {
+		if errors.Is(dockerIgnoreErr, fs.ErrNotExist) {
 			// In this case either ignorefile was not found
 			// or it is a symlink to unexpected file in such
 			// case manually set ignorefile to `/dev/null` so
