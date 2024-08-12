@@ -93,6 +93,9 @@ BuildRequires: systemd
 BuildRequires: systemd-devel
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
+# Not a strict requirement yet, but we expect it to potentially
+# become one.
+Requires: composefs
 %if %{defined fedora} && 0%{?fedora} >= 40
 # TODO: Remove the f40 conditional after a few releases to keep conditionals to
 # a minimum
