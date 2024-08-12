@@ -1,0 +1,6 @@
+[Container]
+Image=localhost/imagename
+## assert-key-is "Unit" "Requires" "basic.service"
+## assert-key-is "Unit" "After" "network-online.target" "basic.service"
+## assert-podman-args -v test-volume:/container/quadlet
+Volume=service-name.volume:/container/quadlet

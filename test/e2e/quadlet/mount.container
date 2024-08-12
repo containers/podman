@@ -8,10 +8,10 @@ Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared
 Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
 ## assert-podman-args-key-val "--mount" "," "type=volume,source=vol1,destination=/path/in/container,ro=true"
 Mount=type=volume,source=vol1,destination=/path/in/container,ro=true
-## assert-podman-args-key-val "--mount" "," "type=volume,source=systemd-vol2,destination=/path/in/container,ro=true"
-## assert-key-is "Unit" "Requires" "vol2-volume.service"
-## assert-key-is "Unit" "After" "network-online.target" "vol2-volume.service"
-Mount=type=volume,source=vol2.volume,destination=/path/in/container,ro=true
+## assert-podman-args-key-val "--mount" "," "type=volume,source=systemd-basic,destination=/path/in/container,ro=true"
+## assert-key-is "Unit" "Requires" "basic-volume.service"
+## assert-key-is "Unit" "After" "network-online.target" "basic-volume.service"
+Mount=type=volume,source=basic.volume,destination=/path/in/container,ro=true
 ## assert-podman-args-key-val "--mount" "," "type=tmpfs,tmpfs-size=512M,destination=/path/in/container"
 Mount=type=tmpfs,tmpfs-size=512M,destination=/path/in/container
 ## assert-podman-args-key-val "--mount" "," "type=image,source=fedora,destination=/fedora-image,rw=true"
