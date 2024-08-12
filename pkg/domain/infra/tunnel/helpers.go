@@ -24,6 +24,13 @@ func getContainersAndInputByContext(contextWithConnection context.Context, all, 
 	if all && len(namesOrIDs) > 0 {
 		return nil, nil, errors.New("cannot look up containers and all")
 	}
+	// short cut if not all, not filters and no names are given. This can happen with
+	// --ignore and --cidfile, https://github.com/containers/podman/issues/23554.
+	// In this case we have to do nothting and not even have to do a request
+	if !all && len(filters) == 0 && len(namesOrIDs) == 0 {
+		return nil, nil, nil
+	}
+
 	options := new(containers.ListOptions).WithAll(true).WithSync(true).WithFilters(filters)
 	allContainers, err := containers.List(contextWithConnection, options)
 	if err != nil {
