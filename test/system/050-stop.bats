@@ -110,8 +110,15 @@ load helpers
     run_podman 125 stop --cidfile=$nosuchfile
     is "$output" "Error: reading CIDFile: open $nosuchfile: no such file or directory" "podman stop with missing cidfile, without --ignore"
 
+    # create a container to reproduce (#23554)
+    run_podman run -d $IMAGE sleep inf
+    cid="$output"
+
+    # Important for (#23554) that there is no output here
     run_podman stop --cidfile=$nosuchfile --ignore
-    is "$output" "" "podman stop with missing cidfile, with --ignore"
+    is "$output" "" "podman stop with missing cidfile, with --ignore (empty output)"
+
+    run_podman rm -f -t0 $cid
 }
 
 
