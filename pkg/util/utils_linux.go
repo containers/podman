@@ -191,6 +191,9 @@ func getDevices(path string) ([]spec.LinuxDevice, error) {
 			default:
 				sub, err := getDevices(filepath.Join(path, f.Name()))
 				if err != nil {
+					if errors.Is(err, fs.ErrNotExist) {
+						continue
+					}
 					return nil, err
 				}
 				if sub != nil {
@@ -209,7 +212,7 @@ func getDevices(path string) ([]spec.LinuxDevice, error) {
 			if err == errNotADevice {
 				continue
 			}
-			if os.IsNotExist(err) {
+			if errors.Is(err, fs.ErrNotExist) {
 				continue
 			}
 			return nil, err
