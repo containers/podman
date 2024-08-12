@@ -263,7 +263,11 @@ func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
 		// defer's are executed LIFO so we are locked here
 		// as long as we call this after the defer unlock()
 		defer func() {
-			if finalErr != nil {
+			// The podman stop command is idempotent while the internal function here is not.
+			// As such we do not want to log these errors in the state because they are not
+			// actually user visible errors.
+			if finalErr != nil && !errors.Is(finalErr, define.ErrCtrStopped) &&
+				!errors.Is(finalErr, define.ErrCtrStateInvalid) {
 				if err := saveContainerError(c, finalErr); err != nil {
 					logrus.Debug(err)
 				}

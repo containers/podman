@@ -583,6 +583,15 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(BeEmpty())
 
+		// Stopping the container should be a NOP and not log an error in the state here.
+		session = podmanTest.Podman([]string{"container", "stop", cid})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		session = podmanTest.Podman([]string{"container", "inspect", cid, "-f", "{{ .State.Error }}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(BeEmpty(), "state error after stop")
+
 		commandNotFound := "OCI runtime attempted to invoke a command that was not found"
 		session = podmanTest.Podman([]string{"start", cid})
 		session.WaitWithDefaultTimeout()
