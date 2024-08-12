@@ -1,7 +1,9 @@
 package file
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -138,7 +140,9 @@ func (locks *FileLocks) DeallocateAllLocks() error {
 		p := filepath.Join(locks.lockPath, f.Name())
 		err := os.Remove(p)
 		if err != nil {
-			lastErr = err
+			if errors.Is(err, fs.ErrNotExist) {
+				continue
+			}
 			logrus.Errorf("Deallocating lock %s", p)
 		}
 	}
