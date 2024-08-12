@@ -405,6 +405,9 @@ func Stop(ctx context.Context, nameOrID string, options *StopOptions) error {
 		return err
 	}
 	defer response.Body.Close()
+	if options.GetIgnore() && response.StatusCode == http.StatusNotFound {
+		return nil
+	}
 
 	return response.Process(nil)
 }
