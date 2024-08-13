@@ -363,16 +363,17 @@ function _log_test_follow_until() {
     run_podman ${events_backend} run --log-driver=$driver --name $cname -d $IMAGE \
         sh -c "n=1;while :; do echo $content--\$n; n=\$((n+1));sleep 0.1; done"
 
-    t0=$SECONDS
+    t0=$(date +%s%3N)
     # The logs command should exit after the until time even when follow is set
     PODMAN_TIMEOUT=10 run_podman ${events_backend} logs --until 3s -f $cname
-    t1=$SECONDS
+    t1=$(date +%s%3N)
+
     logs_seen="$output"
 
     # The delta should be 3 but because it could be a bit longer on a slow system such as CI we also accept 4.
-    delta_t=$(( $t1 - $t0 ))
-    assert $delta_t -gt 2 "podman logs --until: exited too early!"
-    assert $delta_t -lt 5 "podman logs --until: exited too late!"
+    delta_t_ms=$(($t1 - $t0))
+    assert $delta_t_ms -gt 2000 "podman logs --until: exited too early!"
+    assert $delta_t_ms -lt 5000 "podman logs --until: exited too late!"
 
     # Impossible to know how many lines we'll see, but require at least two
     assert "$logs_seen" =~ "$content--1
