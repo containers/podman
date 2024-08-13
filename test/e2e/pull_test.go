@@ -605,7 +605,8 @@ var _ = Describe("Podman pull", func() {
 			_, wrongPrivateKeyFileName, err := WriteRSAKeyPair(wrongKeyFileName, bitSize)
 			Expect(err).ToNot(HaveOccurred())
 
-			session := podmanTest.Podman([]string{"push", "-q", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
+			// Force zstd here because zstd:chunked throws a warning, https://github.com/containers/image/issues/2485.
+			session := podmanTest.Podman([]string{"push", "-q", "--compression-format=zstd", "--encryption-key", "jwe:" + publicKeyFileName, "--tls-verify=false", "--remove-signatures", ALPINE, imgPath})
 			session.WaitWithDefaultTimeout()
 
 			session = podmanTest.Podman([]string{"rmi", ALPINE})
