@@ -541,119 +541,97 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		}
 		return -1, define.ErrCtrRemoved
 	}
-	var conmonTimer time.Timer
-	conmonTimerSet := false
 
-	conmonPidFd := c.getConmonPidFd()
-	if conmonPidFd != -1 {
-		defer unix.Close(conmonPidFd)
-	}
-	conmonPidFdTriggered := false
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
 
-	getExitCode := func() (bool, int32, error) {
-		containerRemoved := false
-		if !c.batched {
-			c.lock.Lock()
-			defer c.lock.Unlock()
-		}
-
-		if err := c.syncContainer(); err != nil {
-			if !errors.Is(err, define.ErrNoSuchCtr) {
-				return false, -1, err
-			}
-			containerRemoved = true
-		}
-
-		// If conmon is not alive anymore set a timer to make sure
-		// we're returning even if conmon has forcefully been killed.
-		if !conmonTimerSet && !containerRemoved {
-			conmonAlive, err := c.ociRuntime.CheckConmonRunning(c)
-			switch {
-			case errors.Is(err, define.ErrNoSuchCtr):
-				// Container has been removed, so we assume the
-				// exit code is present in the DB.
-				containerRemoved = true
-			case err != nil:
-				return false, -1, err
-			case !conmonAlive:
-				// Give the exit code at most 20 seconds to
-				// show up in the DB.  That should largely be
-				// enough for the cleanup process.
-				timerDuration := time.Second * 20
-				conmonTimer = *time.NewTimer(timerDuration)
-				conmonTimerSet = true
-			case conmonAlive:
-				// Continue waiting if conmon's still running.
-				return false, -1, nil
-			}
-		}
-
-		timedout := ""
-		if !containerRemoved {
-			// If conmon is dead for more than $timerDuration or if the
-			// container has exited properly, try to look up the exit code.
-			select {
-			case <-conmonTimer.C:
-				logrus.Debugf("Exceeded conmon timeout waiting for container %s to exit", id)
-				timedout = " [exceeded conmon timeout waiting for container to exit]"
-			default:
-				switch c.state.State {
-				case define.ContainerStateExited, define.ContainerStateConfigured:
-					// Container exited, so we can look up the exit code.
-				case define.ContainerStateStopped:
-					// Continue looping unless the restart policy is always.
-					// In this case, the container would never transition to
-					// the exited state, so we need to look up the exit code.
-					if c.config.RestartPolicy != define.RestartPolicyAlways {
-						return false, -1, nil
-					}
-				default:
-					// Continue looping
-					return false, -1, nil
+		// Note this is one of the rare cases where we do not like to use syncContainer() as it does read the exit file
+		// We like to avoid that here because that means we might read it before container cleanup run and possible
+		// removed the container
+		if err := c.runtime.state.UpdateContainer(c); err != nil {
+			if errors.Is(err, define.ErrNoSuchCtr) {
+				// if the container is not valid at this point as it was deleted,
+				// check if the exit code was recorded in the db.
+				exitCode, err := c.runtime.state.GetContainerExitCode(id)
+				if err == nil {
+					return exitCode, nil
 				}
 			}
+			return -1, err
 		}
+	}
 
+	conmonPID := c.state.ConmonPID
+	// conmonPID == 0 means container is not running
+	if conmonPID == 0 {
 		exitCode, err := c.runtime.state.GetContainerExitCode(id)
 		if err != nil {
 			if errors.Is(err, define.ErrNoSuchExitCode) {
 				// If the container is configured or created, we must assume it never ran.
 				if c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated) {
-					return true, 0, nil
+					return 0, nil
 				}
 			}
-			return true, -1, fmt.Errorf("%w (container in state %s)%s", err, c.state.State, timedout)
-		}
-
-		return true, exitCode, nil
-	}
-
-	for {
-		hasExited, exitCode, err := getExitCode()
-		if hasExited {
-			return exitCode, err
-		}
-		if err != nil {
 			return -1, err
 		}
-		select {
-		case <-ctx.Done():
-			return -1, fmt.Errorf("waiting for exit code of container %s canceled", id)
-		default:
-			if conmonPidFd != -1 && !conmonPidFdTriggered {
-				// If possible (pidfd works), the first cycle we block until conmon dies
-				// If this happens, and we fall back to the old poll delay
-				// There is a deadlock in the cleanup code for "play kube" which causes
-				// conmon to not exit, so unfortunately we have to use the poll interval
-				// timeout here to avoid hanging.
-				fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
-				_, _ = unix.Poll(fds, int(pollInterval.Milliseconds()))
-				conmonPidFdTriggered = true
-			} else {
-				time.Sleep(pollInterval)
+		return exitCode, nil
+	}
+
+	conmonPidFd := c.getConmonPidFd()
+	if conmonPidFd > -1 {
+		defer unix.Close(conmonPidFd)
+	}
+
+	// we cannot wait locked as we would hold the lock forever, so we unlock and then lock again
+	c.lock.Unlock()
+	err := waitForConmonExit(conmonPID, conmonPidFd, pollInterval)
+	c.lock.Lock()
+	if err != nil {
+		return -1, fmt.Errorf("failed to wait for conmon to exit: %w", err)
+	}
+
+	// we locked again so we must sync the state
+	if err := c.syncContainer(); err != nil {
+		if errors.Is(err, define.ErrNoSuchCtr) {
+			// if the container is not valid at this point as it was deleted,
+			// check if the exit code was recorded in the db.
+			exitCode, err := c.runtime.state.GetContainerExitCode(id)
+			if err == nil {
+				return exitCode, nil
 			}
 		}
+		return -1, err
 	}
+
+	// syncContainer already did the exit file read so nothing extra for us to do here
+	return c.runtime.state.GetContainerExitCode(id)
+}
+
+func waitForConmonExit(conmonPID, conmonPidFd int, pollInterval time.Duration) error {
+	if conmonPidFd > -1 {
+		for {
+			fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
+			if _, err := unix.Poll(fds, -1); err != nil {
+				if err == unix.EINTR {
+					continue
+				}
+				return err
+			}
+			return nil
+		}
+	}
+	// no pidfd support, we must poll the pid
+	for {
+		if err := unix.Kill(conmonPID, 0); err != nil {
+			if err == unix.ESRCH {
+				break
+			}
+			return err
+		}
+		time.Sleep(pollInterval)
+	}
+	return nil
 }
 
 type waitResult struct {
