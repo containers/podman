@@ -3,6 +3,7 @@ package sqlite
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -295,6 +296,24 @@ func ensureDBHasCurrentSchema(db *sql.DB) error {
 				`PRIMARY KEY (transport, scope, digest, location)
 			)`,
 		},
+		{
+			"DigestTOCUncompressedPairs",
+			`CREATE TABLE IF NOT EXISTS DigestTOCUncompressedPairs(` +
+				// index implied by PRIMARY KEY
+				`tocDigest			TEXT PRIMARY KEY NOT NULL,` +
+				`uncompressedDigest	TEXT NOT NULL
+			)`,
+		},
+		{
+			"DigestSpecificVariantCompressors", // If changing the schema incompatibly, merge this with DigestCompressors.
+			`CREATE TABLE IF NOT EXISTS DigestSpecificVariantCompressors(` +
+				// index implied by PRIMARY KEY
+				`digest		TEXT PRIMARY KEY NOT NULL,` +
+				// The compressor is not `UnknownCompression`.
+				`specificVariantCompressor	TEXT NOT NULL,
+				specificVariantAnnotations	BLOB NOT NULL
+			)`,
+		},
 	}
 
 	_, err := dbTransaction(db, func(tx *sql.Tx) (void, error) {
@@ -385,6 +404,57 @@ func (sqc *cache) RecordDigestUncompressedPair(anyDigest digest.Digest, uncompre
 	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
 }
 
+// UncompressedDigestForTOC returns an uncompressed digest corresponding to anyDigest.
+// Returns "" if the uncompressed digest is unknown.
+func (sqc *cache) UncompressedDigestForTOC(tocDigest digest.Digest) digest.Digest {
+	res, err := transaction(sqc, func(tx *sql.Tx) (digest.Digest, error) {
+		uncompressedString, found, err := querySingleValue[string](tx, "SELECT uncompressedDigest FROM DigestTOCUncompressedPairs WHERE tocDigest = ?", tocDigest.String())
+		if err != nil {
+			return "", err
+		}
+		if found {
+			d, err := digest.Parse(uncompressedString)
+			if err != nil {
+				return "", err
+			}
+			return d, nil
+
+		}
+		return "", nil
+	})
+	if err != nil {
+		return "" // FIXME? Log err (but throttle the log volume on repeated accesses)?
+	}
+	return res
+}
+
+// RecordTOCUncompressedPair records that the tocDigest corresponds to uncompressed.
+// WARNING: Only call this for LOCALLY VERIFIED data; don’t record a digest pair just because some remote author claims so (e.g.
+// because a manifest/config pair exists); otherwise the cache could be poisoned and allow substituting unexpected blobs.
+// (Eventually, the DiffIDs in image config could detect the substitution, but that may be too late, and not all image formats contain that data.)
+func (sqc *cache) RecordTOCUncompressedPair(tocDigest digest.Digest, uncompressed digest.Digest) {
+	_, _ = transaction(sqc, func(tx *sql.Tx) (void, error) {
+		previousString, gotPrevious, err := querySingleValue[string](tx, "SELECT uncompressedDigest FROM DigestTOCUncompressedPairs WHERE tocDigest = ?", tocDigest.String())
+		if err != nil {
+			return void{}, fmt.Errorf("looking for uncompressed digest for blob with TOC %q", tocDigest)
+		}
+		if gotPrevious {
+			previous, err := digest.Parse(previousString)
+			if err != nil {
+				return void{}, err
+			}
+			if previous != uncompressed {
+				logrus.Warnf("Uncompressed digest for blob with TOC %q previously recorded as %q, now %q", tocDigest, previous, uncompressed)
+			}
+		}
+		if _, err := tx.Exec("INSERT OR REPLACE INTO DigestTOCUncompressedPairs(tocDigest, uncompressedDigest) VALUES (?, ?)",
+			tocDigest.String(), uncompressed.String()); err != nil {
+			return void{}, fmt.Errorf("recording uncompressed digest %q for blob with TOC %q: %w", uncompressed, tocDigest, err)
+		}
+		return void{}, nil
+	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
+}
+
 // RecordKnownLocation records that a blob with the specified digest exists within the specified (transport, scope) scope,
 // and can be reused given the opaque location data.
 func (sqc *cache) RecordKnownLocation(transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest, location types.BICLocationReference) {
@@ -398,29 +468,58 @@ func (sqc *cache) RecordKnownLocation(transport types.ImageTransport, scope type
 	}) // FIXME? Log error (but throttle the log volume on repeated accesses)?
 }
 
-// RecordDigestCompressorName records a compressor for the blob with the specified digest,
-// or Uncompressed or UnknownCompression.
-// WARNING: Only call this with LOCALLY VERIFIED data; don’t record a compressor for a
-// digest just because some remote author claims so (e.g. because a manifest says so);
+// RecordDigestCompressorData records data for the blob with the specified digest.
+// WARNING: Only call this with LOCALLY VERIFIED data:
+//   - don’t record a compressor for a digest just because some remote author claims so
+//     (e.g. because a manifest says so);
+//   - don’t record the non-base variant or annotations if we are not _sure_ that the base variant
+//     and the blob’s digest match the non-base variant’s annotations (e.g. because we saw them
+//     in a manifest)
+//
 // otherwise the cache could be poisoned and cause us to make incorrect edits to type
 // information in a manifest.
-func (sqc *cache) RecordDigestCompressorName(anyDigest digest.Digest, compressorName string) {
+func (sqc *cache) RecordDigestCompressorData(anyDigest digest.Digest, data blobinfocache.DigestCompressorData) {
 	_, _ = transaction(sqc, func(tx *sql.Tx) (void, error) {
 		previous, gotPrevious, err := querySingleValue[string](tx, "SELECT compressor FROM DigestCompressors WHERE digest = ?", anyDigest.String())
 		if err != nil {
-			return void{}, fmt.Errorf("looking for compressor of for %q", anyDigest)
+			return void{}, fmt.Errorf("looking for compressor of %q", anyDigest)
 		}
-		if gotPrevious && previous != compressorName {
-			logrus.Warnf("Compressor for blob with digest %s previously recorded as %s, now %s", anyDigest, previous, compressorName)
+		warned := false
+		if gotPrevious && previous != data.BaseVariantCompressor {
+			logrus.Warnf("Compressor for blob with digest %s previously recorded as %s, now %s", anyDigest, previous, data.BaseVariantCompressor)
+			warned = true
 		}
-		if compressorName == blobinfocache.UnknownCompression {
+		if data.BaseVariantCompressor == blobinfocache.UnknownCompression {
 			if _, err := tx.Exec("DELETE FROM DigestCompressors WHERE digest = ?", anyDigest.String()); err != nil {
 				return void{}, fmt.Errorf("deleting compressor for digest %q: %w", anyDigest, err)
 			}
+			if _, err := tx.Exec("DELETE FROM DigestSpecificVariantCompressors WHERE digest = ?", anyDigest.String()); err != nil {
+				return void{}, fmt.Errorf("deleting specific variant compressor for digest %q: %w", anyDigest, err)
+			}
 		} else {
 			if _, err := tx.Exec("INSERT OR REPLACE INTO DigestCompressors(digest, compressor) VALUES (?, ?)",
-				anyDigest.String(), compressorName); err != nil {
-				return void{}, fmt.Errorf("recording compressor %q for %q: %w", compressorName, anyDigest, err)
+				anyDigest.String(), data.BaseVariantCompressor); err != nil {
+				return void{}, fmt.Errorf("recording compressor %q for %q: %w", data.BaseVariantCompressor, anyDigest, err)
+			}
+		}
+
+		if data.SpecificVariantCompressor != blobinfocache.UnknownCompression {
+			if !warned { // Don’t warn twice about the same digest
+				prevSVC, found, err := querySingleValue[string](tx, "SELECT specificVariantCompressor FROM DigestSpecificVariantCompressors WHERE digest = ?", anyDigest.String())
+				if err != nil {
+					return void{}, fmt.Errorf("looking for specific variant compressor of %q", anyDigest)
+				}
+				if found && data.SpecificVariantCompressor != prevSVC {
+					logrus.Warnf("Specific compressor for blob with digest %s previously recorded as %s, now %s", anyDigest, prevSVC, data.SpecificVariantCompressor)
+				}
+			}
+			annotations, err := json.Marshal(data.SpecificVariantAnnotations)
+			if err != nil {
+				return void{}, err
+			}
+			if _, err := tx.Exec("INSERT OR REPLACE INTO DigestSpecificVariantCompressors(digest, specificVariantCompressor, specificVariantAnnotations) VALUES (?, ?, ?)",
+				anyDigest.String(), data.SpecificVariantCompressor, annotations); err != nil {
+				return void{}, fmt.Errorf("recording specific variant compressor %q/%q for %q: %w", data.SpecificVariantCompressor, annotations, anyDigest, err)
 			}
 		}
 		return void{}, nil
@@ -433,18 +532,33 @@ func (sqc *cache) RecordDigestCompressorName(anyDigest digest.Digest, compressor
 // with unknown compression.
 func (sqc *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, tx *sql.Tx, transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest,
 	v2Options *blobinfocache.CandidateLocations2Options) ([]prioritize.CandidateWithTime, error) {
-	compressorName := blobinfocache.UnknownCompression
+	compressionData := blobinfocache.DigestCompressorData{
+		BaseVariantCompressor:      blobinfocache.UnknownCompression,
+		SpecificVariantCompressor:  blobinfocache.UnknownCompression,
+		SpecificVariantAnnotations: nil,
+	}
 	if v2Options != nil {
-		compressor, found, err := querySingleValue[string](tx, "SELECT compressor FROM DigestCompressors WHERE digest = ?", digest.String())
-		if err != nil {
-			return nil, fmt.Errorf("scanning compressorName: %w", err)
-		}
-		if found {
-			compressorName = compressor
+		var baseVariantCompressor string
+		var specificVariantCompressor sql.NullString
+		var annotationBytes []byte
+		switch err := tx.QueryRow("SELECT compressor, specificVariantCompressor, specificVariantAnnotations "+
+			"FROM DigestCompressors LEFT JOIN DigestSpecificVariantCompressors USING (digest) WHERE digest = ?", digest.String()).
+			Scan(&baseVariantCompressor, &specificVariantCompressor, &annotationBytes); {
+		case errors.Is(err, sql.ErrNoRows): // Do nothing
+		case err != nil:
+			return nil, fmt.Errorf("scanning compressor data: %w", err)
+		default:
+			compressionData.BaseVariantCompressor = baseVariantCompressor
+			if specificVariantCompressor.Valid && annotationBytes != nil {
+				compressionData.SpecificVariantCompressor = specificVariantCompressor.String
+				if err := json.Unmarshal(annotationBytes, &compressionData.SpecificVariantAnnotations); err != nil {
+					return nil, err
+				}
+			}
 		}
 	}
-	ok, compressionOp, compressionAlgo := prioritize.CandidateCompression(v2Options, digest, compressorName)
-	if !ok {
+	template := prioritize.CandidateTemplateWithCompression(v2Options, digest, compressionData)
+	if template == nil {
 		return candidates, nil
 	}
 
@@ -463,15 +577,7 @@ func (sqc *cache) appendReplacementCandidates(candidates []prioritize.CandidateW
 		if err := rows.Scan(&location, &time); err != nil {
 			return nil, fmt.Errorf("scanning candidate: %w", err)
 		}
-		candidates = append(candidates, prioritize.CandidateWithTime{
-			Candidate: blobinfocache.BICReplacementCandidate2{
-				Digest:               digest,
-				CompressionOperation: compressionOp,
-				CompressionAlgorithm: compressionAlgo,
-				Location:             types.BICLocationReference{Opaque: location},
-			},
-			LastSeen: time,
-		})
+		candidates = append(candidates, template.CandidateWithLocation(types.BICLocationReference{Opaque: location}, time))
 		rowAdded = true
 	}
 	if err := rows.Err(); err != nil {
@@ -479,16 +585,7 @@ func (sqc *cache) appendReplacementCandidates(candidates []prioritize.CandidateW
 	}
 
 	if !rowAdded && v2Options != nil {
-		candidates = append(candidates, prioritize.CandidateWithTime{
-			Candidate: blobinfocache.BICReplacementCandidate2{
-				Digest:               digest,
-				CompressionOperation: compressionOp,
-				CompressionAlgorithm: compressionAlgo,
-				UnknownLocation:      true,
-				Location:             types.BICLocationReference{Opaque: ""},
-			},
-			LastSeen: time.Time{},
-		})
+		candidates = append(candidates, template.CandidateWithUnknownLocation())
 	}
 	return candidates, nil
 }
@@ -516,40 +613,41 @@ func (sqc *cache) candidateLocations(transport types.ImageTransport, scope types
 			if err != nil {
 				return nil, err
 			}
-
-			// FIXME? We could integrate this with appendReplacementCandidates into a single join instead of N+1 queries.
-			// (In the extreme, we could turn _everything_ this function does into a single query.
-			// And going even further, even DestructivelyPrioritizeReplacementCandidates could be turned into SQL.)
-			// For now, we prioritize simplicity, and sharing both code and implementation structure with the other cache implementations.
-			rows, err := tx.Query("SELECT anyDigest FROM DigestUncompressedPairs WHERE uncompressedDigest = ?", uncompressedDigest.String())
-			if err != nil {
-				return nil, fmt.Errorf("querying for other digests: %w", err)
-			}
-			defer rows.Close()
-			for rows.Next() {
-				var otherDigestString string
-				if err := rows.Scan(&otherDigestString); err != nil {
-					return nil, fmt.Errorf("scanning other digest: %w", err)
-				}
-				otherDigest, err := digest.Parse(otherDigestString)
+			if uncompressedDigest != "" {
+				// FIXME? We could integrate this with appendReplacementCandidates into a single join instead of N+1 queries.
+				// (In the extreme, we could turn _everything_ this function does into a single query.
+				// And going even further, even DestructivelyPrioritizeReplacementCandidates could be turned into SQL.)
+				// For now, we prioritize simplicity, and sharing both code and implementation structure with the other cache implementations.
+				rows, err := tx.Query("SELECT anyDigest FROM DigestUncompressedPairs WHERE uncompressedDigest = ?", uncompressedDigest.String())
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("querying for other digests: %w", err)
 				}
-				if otherDigest != primaryDigest && otherDigest != uncompressedDigest {
-					res, err = sqc.appendReplacementCandidates(res, tx, transport, scope, otherDigest, v2Options)
+				defer rows.Close()
+				for rows.Next() {
+					var otherDigestString string
+					if err := rows.Scan(&otherDigestString); err != nil {
+						return nil, fmt.Errorf("scanning other digest: %w", err)
+					}
+					otherDigest, err := digest.Parse(otherDigestString)
 					if err != nil {
 						return nil, err
 					}
+					if otherDigest != primaryDigest && otherDigest != uncompressedDigest {
+						res, err = sqc.appendReplacementCandidates(res, tx, transport, scope, otherDigest, v2Options)
+						if err != nil {
+							return nil, err
+						}
+					}
 				}
-			}
-			if err := rows.Err(); err != nil {
-				return nil, fmt.Errorf("iterating through other digests: %w", err)
-			}
+				if err := rows.Err(); err != nil {
+					return nil, fmt.Errorf("iterating through other digests: %w", err)
+				}
 
-			if uncompressedDigest != primaryDigest {
-				res, err = sqc.appendReplacementCandidates(res, tx, transport, scope, uncompressedDigest, v2Options)
-				if err != nil {
-					return nil, err
+				if uncompressedDigest != primaryDigest {
+					res, err = sqc.appendReplacementCandidates(res, tx, transport, scope, uncompressedDigest, v2Options)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
