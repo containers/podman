@@ -7,34 +7,49 @@
 load helpers
 load helpers.systemd
 
+# bats file_tags=ci:parallel
 
 # Helper function: run 'podman inspect' and check various given fields
 function _check_health {
-    local testname="$1"
-    local tests="$2"
-    local since="$3"
-    local hc_status="$4"
+    local ctrname="$1"
+    local testname="$2"
+    local tests="$3"
+    local since="$4"
+    local hc_status="$5"
 
-    run_podman inspect --format "{{json .State.Healthcheck}}" healthcheck_c
+    # Loop-wait (up to a few seconds) for healthcheck event (#20342)
+    local timeout=5
+    while :; do
+        run_podman events --filter container=$ctrname --filter event=health_status \
+                   --since "$since" --stream=false --format "{{.HealthStatus}}"
+        # Output may be empty or multiple lines.
+        if [[ -n "$output" ]]; then
+            if [[ "${lines[-1]}" = "$hc_status" ]]; then
+                break
+            fi
+        fi
 
+        timeout=$((timeout - 1))
+        if [[ $timeout -eq 0 ]]; then
+            die "$testname - timed out waiting for '$hc_status' in podman events"
+        fi
+        sleep 1
+    done
+
+    # Got the desired status. Now verify all the healthcheck fields
+    run_podman inspect --format "{{json .State.Healthcheck}}" $ctrname
+
+    defer-assertion-failures
     parse_table "$tests" | while read field expect;do
         actual=$(jq ".$field" <<<"$output")
         is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
     done
-
-    # Make sure we can read the healthcheck event in podman events (#20342)
-    run_podman events --filter container=healthcheck_c --filter event=health_status \
-        --since "$since" --stream=false --format "{{.HealthStatus}}"
-    # Because the assert below would fail with "lines: bad array subscript" when
-    # there are no events lets special case this to provide a more meaningful error.
-    if [[ -z "$output" ]]; then
-        die "no healthcheck events"
-    fi
-    assert "${lines[-1]}" == "$hc_status" "$testname - podman events health status"
+    immediate-assertion-failures
 }
 
 @test "podman healthcheck" {
-    run_podman run -d --name healthcheck_c             \
+    local ctrname="c-h-$(safename)"
+    run_podman run -d --name $ctrname                  \
                --health-cmd /home/podman/healthcheck   \
                --health-interval 1s                    \
                --health-retries 3                      \
@@ -44,30 +59,29 @@ function _check_health {
                $IMAGE /home/podman/pause
     cid="$output"
 
-    run_podman inspect healthcheck_c --format "{{.Config.HealthcheckOnFailureAction}}"
+    run_podman inspect $ctrname --format "{{.Config.HealthcheckOnFailureAction}}"
     is "$output" "kill" "on-failure action is set to kill"
 
-    current_time=$(date --iso-8601=seconds)
+    current_time=$(date --iso-8601=ns)
     # We can't check for 'starting' because a 1-second interval is too
     # short; it could run healthcheck before we get to our first check.
     #
     # So, just force a healthcheck run, then confirm that it's running.
-    run_podman healthcheck run healthcheck_c
+    run_podman healthcheck run $ctrname
     is "$output" "" "output from 'podman healthcheck run'"
 
-    _check_health "All healthy" "
+    _check_health $ctrname "All healthy" "
 Status           | \"healthy\"
 FailingStreak    | 0
 Log[-1].ExitCode | 0
 Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\\\n\"
 " "$current_time" "healthy"
 
-    current_time=$(date --iso-8601=seconds)
+    current_time=$(date --iso-8601=ns)
     # Force a failure
-    run_podman exec healthcheck_c touch /uh-oh
-    sleep 2
+    run_podman exec $ctrname touch /uh-oh
 
-    _check_health "First failure" "
+    _check_health $ctrname "First failure" "
 Status           | \"healthy\"
 FailingStreak    | [123]
 Log[-1].ExitCode | 1
@@ -78,10 +92,9 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     # name so that the leak check below does not turn into a NOP without noticing.
     assert "$(systemctl list-units --type timer | grep $cid)" =~ "podman" "Healthcheck systemd unit exists"
 
-    current_time=$(date --iso-8601=seconds)
+    current_time=$(date --iso-8601=ns)
     # After three successive failures, container should no longer be healthy
-    sleep 5
-    _check_health "Three or more failures" "
+    _check_health $ctrname "Four or more failures" "
 Status           | \"unhealthy\"
 FailingStreak    | [3456]
 Log[-1].ExitCode | 1
@@ -89,10 +102,10 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 " "$current_time" "unhealthy"
 
     # now the on-failure should kick in and kill the container
-    run_podman wait healthcheck_c
+    run_podman wait $ctrname
 
     # Clean up
-    run_podman rm -t 0 -f healthcheck_c
+    run_podman rm -t 0 -f $ctrname
 
     # Important check for https://github.com/containers/podman/issues/22884
     # We never should leak the unit files, healthcheck uses the cid in name so just grep that.
@@ -100,7 +113,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 }
 
 @test "podman healthcheck - restart cleans up old state" {
-    ctr="healthcheck_c"
+    ctr="c-h-$(safename)"
 
     run_podman run -d --name $ctr                  \
            --health-cmd /home/podman/healthcheck   \
@@ -126,7 +139,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 }
 
 @test "podman wait --condition={healthy,unhealthy}" {
-    ctr="healthcheck_c"
+    ctr="c-h-$(safename)"
 
     wait_file="$PODMAN_TMPDIR/$(random_string).wait_for_me"
 
@@ -166,7 +179,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     run_podman 125 create --health-on-failure=kill $IMAGE
     is "$output" "Error: cannot set on-failure action to kill without a health check"
 
-    ctr="healthcheck_c"
+    ctr="c-h-$(safename)"
 
     for policy in none kill restart stop;do
         uhoh=/uh-oh
@@ -221,7 +234,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 }
 
 @test "podman healthcheck --health-on-failure with interval" {
-    ctr="healthcheck_c"
+    ctr="c-h-$(safename)"
 
     for policy in stop kill restart ;do
         t0=$(date --iso-8601=seconds)
