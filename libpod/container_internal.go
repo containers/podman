@@ -2163,6 +2163,11 @@ func (c *Container) stopPodIfNeeded(ctx context.Context) error {
 		return nil
 	}
 
+	// Never try to stop the pod when a init container stopped
+	if c.IsInitCtr() {
+		return nil
+	}
+
 	pod, err := c.runtime.state.Pod(c.config.Pod)
 	if err != nil {
 		return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", c.ID(), c.config.Pod, err)
