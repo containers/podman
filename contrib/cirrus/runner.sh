@@ -26,6 +26,9 @@ function _run_validate-source() {
 
     # make sure PRs have tests
     showrun make tests-included
+
+    # make sure PRs have jira links (if needed for branch)
+    showrun make test-jira-links-included
 }
 
 function _run_unit() {

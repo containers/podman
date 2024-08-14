@@ -62,6 +62,9 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
     # Tests for lib.sh
     showrun ${SCRIPT_BASE}/lib.sh.t
 
+    # Tests for pr-should-link-jira
+    showrun ${SCRIPT_BASE}/pr-should-link-jira.t
+
     msg "Checking renovate config."
     showrun podman run -it \
             -v ./.github/renovate.json5:/usr/src/app/renovate.json5:z \
