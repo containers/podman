@@ -1775,7 +1775,7 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 			autoOpts = append(autoOpts, fmt.Sprintf("size=%v", uidSize))
 		}
 
-		podman.addf("--userns=" + usernsOpts("auto", autoOpts))
+		podman.add("--userns=" + usernsOpts("auto", autoOpts))
 	case "keep-id":
 		if !isUser {
 			return fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
@@ -1795,7 +1795,7 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 			keepidOpts = append(keepidOpts, "gid="+gidMaps[0])
 		}
 
-		podman.addf("--userns=" + usernsOpts("keep-id", keepidOpts))
+		podman.add("--userns=" + usernsOpts("keep-id", keepidOpts))
 
 	default:
 		return fmt.Errorf("unsupported RemapUsers option '%s'", remapUsers)
