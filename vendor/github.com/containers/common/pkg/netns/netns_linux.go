@@ -28,10 +28,12 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
@@ -177,26 +179,35 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 
 // UnmountNS unmounts the given netns path
 func UnmountNS(nsPath string) error {
-	var rErr error
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
 	if !strings.HasPrefix(nsPath, "/proc/") {
-		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
-			// Do not return here, always try to remove below.
-			// This is important in case podman now is in a new userns compared to
-			// when the netns was created. The umount will fail EINVAL but removing
-			// the file will work and the kernel will destroy the bind mount in the
-			// other ns because of this. We also need it so pasta doesn't leak.
-			rErr = fmt.Errorf("failed to unmount NS: at %s: %w", nsPath, err)
+		// EINVAL means the path exists but is not mounted, just try to remove the path below
+		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) {
+			// If path does not exists we can return without error as we have nothing to do.
+			if errors.Is(err, unix.ENOENT) {
+				return nil
+			}
+
+			return fmt.Errorf("failed to unmount NS: at %s: %w", nsPath, err)
 		}
 
-		if err := os.Remove(nsPath); err != nil {
-			err := fmt.Errorf("failed to remove ns path: %w", err)
-			if rErr != nil {
-				err = fmt.Errorf("%v, %w", err, rErr)
+		for {
+			if err := os.Remove(nsPath); err != nil {
+				if errors.Is(err, unix.EBUSY) {
+					// mount is still busy, sleep a moment and try again to remove
+					logrus.Debugf("Netns %s still busy, try removing it again in 10ms", nsPath)
+					time.Sleep(10 * time.Millisecond)
+					continue
+				}
+				// If path does not exists we can return without error.
+				if errors.Is(err, unix.ENOENT) {
+					break
+				}
+				return fmt.Errorf("failed to remove ns path: %w", err)
 			}
-			rErr = err
+			break
 		}
 	}
 
-	return rErr
+	return nil
 }
