@@ -26,6 +26,12 @@ func (s *sshMachine) withUsername(name string) *sshMachine { //nolint:unused
 }
 
 func (s *sshMachine) withSSHCommand(sshCommand []string) *sshMachine {
-	s.sshCommand = sshCommand
+	sshOptions := []string{
+        "-o", "UserKnownHostsFile=/dev/null",
+        "-o", "StrictHostKeyChecking=no",
+        "-o", "CheckHostIP=no",
+    }
+    // Combine the options with the provided SSH command
+    s.sshCommand = append(sshOptions, sshCommand...)
 	return s
 }
