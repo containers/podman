@@ -14,19 +14,19 @@ func TestSocketActivated(t *testing.T) {
 	assert.False(SocketActivated())
 
 	// different pid
-	assert.NoError(os.Setenv("LISTEN_PID", "1"))
+	t.Setenv("LISTEN_PID", "1")
 	assert.False(SocketActivated())
 
 	// same pid no fds
-	assert.NoError(os.Setenv("LISTEN_PID", strconv.Itoa(os.Getpid())))
-	assert.NoError(os.Setenv("LISTEN_FDS", "0"))
+	t.Setenv("LISTEN_PID", strconv.Itoa(os.Getpid()))
+	t.Setenv("LISTEN_FDS", "0")
 	assert.False(SocketActivated())
 
 	// same pid some fds
-	assert.NoError(os.Setenv("LISTEN_FDS", "1"))
+	t.Setenv("LISTEN_FDS", "1")
 	assert.True(SocketActivated())
 
 	// FDNAME is ok too (but not required)
-	assert.NoError(os.Setenv("LISTEN_FDNAMES", "/meshuggah/rocks"))
+	t.Setenv("LISTEN_FDNAMES", "/meshuggah/rocks")
 	assert.True(SocketActivated())
 }

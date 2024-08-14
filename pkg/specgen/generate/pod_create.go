@@ -268,7 +268,7 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 		spec.ConmonPidFile = p.InfraConmonPidFile
 	}
 
-	if p.Sysctl != nil && len(p.Sysctl) > 0 {
+	if len(p.Sysctl) > 0 {
 		spec.Sysctl = p.Sysctl
 	}
 
