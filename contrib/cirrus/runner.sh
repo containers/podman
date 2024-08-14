@@ -34,6 +34,8 @@ function _run_validate() {
         warn "Skipping git-validation since \$EPOCH_TEST_COMMIT is empty"
     fi
 
+    # make sure PRs have jira links (if needed for branch)
+    showrun make test-jira-links-included
 }
 
 function _run_unit() {
