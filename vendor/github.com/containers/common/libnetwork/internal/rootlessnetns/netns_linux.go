@@ -181,7 +181,7 @@ func (n *Netns) cleanup() error {
 	if err := n.cleanupRootlessNetns(); err != nil {
 		multiErr = multierror.Append(multiErr, wrapError("kill network process", err))
 	}
-	if err := os.RemoveAll(n.dir); err != nil {
+	if err := os.RemoveAll(n.dir); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		multiErr = multierror.Append(multiErr, wrapError("remove rootless netns dir", err))
 	}
 
@@ -280,6 +280,11 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 func (n *Netns) cleanupRootlessNetns() error {
 	pidFile := n.getPath(rootlessNetNsConnPidFile)
 	pid, err := readPidFile(pidFile)
+	// do not hard error if the file dos not exists, cleanup should be idempotent
+	if errors.Is(err, fs.ErrNotExist) {
+		logrus.Debugf("Rootless netns conn pid file does not exists %s", pidFile)
+		return nil
+	}
 	if err == nil {
 		// kill the slirp/pasta process so we do not leak it
 		err = unix.Kill(pid, unix.SIGTERM)
@@ -512,14 +517,14 @@ func (n *Netns) mountCNIVarDir() error {
 	return nil
 }
 
-func (n *Netns) runInner(toRun func() error) (err error) {
+func (n *Netns) runInner(toRun func() error, cleanup bool) (err error) {
 	nsRef, newNs, err := n.getOrCreateNetns()
 	if err != nil {
 		return err
 	}
 	defer nsRef.Close()
-	// If a new netns was created make sure to clean it up again on an error to not leak it.
-	if newNs {
+	// If a new netns was created make sure to clean it up again on an error to not leak it if requested.
+	if newNs && cleanup {
 		defer func() {
 			if err != nil {
 				if err := n.cleanup(); err != nil {
@@ -555,7 +560,7 @@ func (n *Netns) runInner(toRun func() error) (err error) {
 }
 
 func (n *Netns) Setup(nets int, toRun func() error) error {
-	err := n.runInner(toRun)
+	err := n.runInner(toRun, true)
 	if err != nil {
 		return err
 	}
@@ -564,25 +569,22 @@ func (n *Netns) Setup(nets int, toRun func() error) error {
 }
 
 func (n *Netns) Teardown(nets int, toRun func() error) error {
-	var multiErr *multierror.Error
-	count, countErr := refCount(n.dir, -nets)
-	if countErr != nil {
-		multiErr = multierror.Append(multiErr, countErr)
-	}
-	err := n.runInner(toRun)
+	err := n.runInner(toRun, true)
 	if err != nil {
-		multiErr = multierror.Append(multiErr, err)
+		return err
+	}
+	// decrement only if teardown didn't fail, podman will call us again on errors so we should not double decrement
+	count, err := refCount(n.dir, -nets)
+	if err != nil {
+		return err
 	}
 
-	// only cleanup if the ref count did not throw an error
-	if count == 0 && countErr == nil {
-		err = n.cleanup()
-		if err != nil {
-			multiErr = multierror.Append(multiErr, wrapError("cleanup", err))
-		}
+	// cleanup when ref count is 0
+	if count == 0 {
+		return n.cleanup()
 	}
 
-	return multiErr.ErrorOrNil()
+	return nil
 }
 
 // Run any long running function in the userns.
@@ -604,7 +606,7 @@ func (n *Netns) Run(lock *lockfile.LockFile, toRun func() error) error {
 		return err
 	}
 
-	inErr := n.runInner(inner)
+	inErr := n.runInner(inner, false)
 	// make sure to always reset the ref counter afterwards
 	count, err := refCount(n.dir, -1)
 	if err != nil {
@@ -614,9 +616,8 @@ func (n *Netns) Run(lock *lockfile.LockFile, toRun func() error) error {
 		logrus.Errorf("Failed to decrement ref count: %v", err)
 		return inErr
 	}
-	// runInner() already cleans up the netns when it created a new one on errors
-	// so we only need to do that if there was no error.
-	if inErr == nil && count == 0 {
+
+	if count == 0 {
 		err = n.cleanup()
 		if err != nil {
 			return wrapError("cleanup", err)

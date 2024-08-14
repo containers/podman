@@ -12,11 +12,11 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.2.1
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.37.0
-	github.com/containers/common v0.60.0
+	github.com/containers/buildah v1.37.1
+	github.com/containers/common v0.60.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4
-	github.com/containers/image/v5 v5.32.0
+	github.com/containers/image/v5 v5.32.1
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/psgo v1.9.0
@@ -51,8 +51,8 @@ require (
 	github.com/moby/sys/user v0.2.0
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.11
-	github.com/onsi/ginkgo/v2 v2.19.0
-	github.com/onsi/gomega v1.33.1
+	github.com/onsi/ginkgo/v2 v2.20.0
+	github.com/onsi/gomega v1.34.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/opencontainers/runc v1.1.13
@@ -67,16 +67,16 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
-	github.com/vbauerster/mpb/v8 v8.7.4
+	github.com/vbauerster/mpb/v8 v8.7.5
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.10
-	golang.org/x/crypto v0.25.0
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
-	golang.org/x/net v0.27.0
-	golang.org/x/sync v0.7.0
-	golang.org/x/sys v0.22.0
-	golang.org/x/term v0.22.0
-	golang.org/x/text v0.16.0
+	golang.org/x/crypto v0.26.0
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	golang.org/x/net v0.28.0
+	golang.org/x/sync v0.8.0
+	golang.org/x/sys v0.24.0
+	golang.org/x/term v0.23.0
+	golang.org/x/text v0.17.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -121,7 +121,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
-	github.com/go-logr/logr v1.4.1 // indirect
+	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-openapi/analysis v0.23.0 // indirect
@@ -145,7 +145,7 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-containerregistry v0.20.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
-	github.com/google/pprof v0.0.0-20240424215950-a892ee059fd6 // indirect
+	github.com/google/pprof v0.0.0-20240727154555-813a5fbdbec8 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.7 // indirect
@@ -162,7 +162,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mdlayher/socket v0.4.1 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
@@ -214,10 +214,10 @@ require (
 	go.opentelemetry.io/otel/metric v1.24.0 // indirect
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/oauth2 v0.21.0 // indirect
+	golang.org/x/mod v0.20.0 // indirect
+	golang.org/x/oauth2 v0.22.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
+	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240318140521-94a12d6c2237 // indirect
 	google.golang.org/grpc v1.64.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

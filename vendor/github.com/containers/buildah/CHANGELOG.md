@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.37.1 (2024-08-12)
+
+    [release-1.37] Bump c/common v0.60.1, c/image v5.32.1
+
 ## vv1.37.0 (2024-07-26)
 
     Bump c/storage, c/image, c/common for v1.37.0

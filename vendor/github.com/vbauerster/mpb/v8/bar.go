@@ -173,13 +173,12 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 }
 
 // EnableTriggerComplete enables triggering complete event. It's effective
-// only for bars which were constructed with `total <= 0` and after total
-// has been set with `(*Bar).SetTotal(int64, false)`. If `curren >= total`
+// only for bars which were constructed with `total <= 0`. If `curren >= total`
 // at the moment of call, complete event is triggered right away.
 func (b *Bar) EnableTriggerComplete() {
 	select {
 	case b.operateState <- func(s *bState) {
-		if s.triggerComplete || s.total <= 0 {
+		if s.triggerComplete {
 			return
 		}
 		if s.current >= s.total {
@@ -196,10 +195,10 @@ func (b *Bar) EnableTriggerComplete() {
 
 // SetTotal sets total to an arbitrary value. It's effective only for bar
 // which was constructed with `total <= 0`. Setting total to negative value
-// is equivalent to `(*Bar).SetTotal((*Bar).Current(), bool)` but faster. If
-// triggerCompletion is true, total value is set to current and complete
-// event is triggered right away.
-func (b *Bar) SetTotal(total int64, triggerCompletion bool) {
+// is equivalent to `(*Bar).SetTotal((*Bar).Current(), bool)` but faster.
+// If `complete` is true complete event is triggered right away.
+// Calling `(*Bar).EnableTriggerComplete` makes this one no operational.
+func (b *Bar) SetTotal(total int64, complete bool) {
 	select {
 	case b.operateState <- func(s *bState) {
 		if s.triggerComplete {
@@ -210,7 +209,7 @@ func (b *Bar) SetTotal(total int64, triggerCompletion bool) {
 		} else {
 			s.total = total
 		}
-		if triggerCompletion {
+		if complete {
 			s.current = s.total
 			s.completed = true
 			b.triggerCompletion(s)

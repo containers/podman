@@ -130,6 +130,12 @@ func systemdDestroyConn(path string, c *systemdDbus.Conn) error {
 	ch := make(chan string)
 	_, err := c.StopUnitContext(context.TODO(), name, "replace", ch)
 	if err != nil {
+		if dbe, ok := err.(dbus.Error); ok {
+			if dbe.Name == "org.freedesktop.systemd1.NoSuchUnit" {
+				// the unit was already removed
+				return nil
+			}
+		}
 		return err
 	}
 	<-ch
