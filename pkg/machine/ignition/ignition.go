@@ -303,7 +303,7 @@ func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ boo
 	lingerExample.Add("Service", "ExecStart", "/usr/bin/sleep infinity")
 	lingerExampleFile, err := lingerExample.ToString()
 	if err != nil {
-		logrus.Warnf(err.Error())
+		logrus.Warn(err.Error())
 	}
 
 	containers := `[containers]
