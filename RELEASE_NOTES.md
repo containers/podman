@@ -1,5 +1,14 @@
 # Release Notes
 
+## 5.2.1
+### Bugfixes
+- Fixed a bug where Podman could sometimes save an incorrect container state to the database, which could cause a number of issues including but not limited to attempting to clean up containers twice ([#21569](https://github.com/containers/podman/issues/21569)).
+
+### Misc
+- Updated Buildah to v1.37.1
+- Updated the containers/common library to v0.60.1
+- Updated the containers/image library to v5.32.1
+
 ## 5.2.0
 ### Features
 - Podman now supports `libkrun` as a backend for creating virtual machines on MacOS. The `libkrun` backend has the advantage of allowing GPUs to be mounted into the virtual machine to accelerate tasks. The default backend remains `applehv`.
