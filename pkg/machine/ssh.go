@@ -116,7 +116,10 @@ func commonNativeSSH(username, identityPath, name string, sshPort int, inputArgs
 
 	args := []string{"-i", identityPath, "-p", port, sshDestination,
 		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no", "-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=" + os.DevNull,
+		"-o", "CheckHostIP=no",
+		"-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
 	if len(inputArgs) > 0 {
 		interactive = false
 		args = append(args, inputArgs...)
