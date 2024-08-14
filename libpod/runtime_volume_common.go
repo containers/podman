@@ -357,13 +357,11 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 		return define.ErrVolumeRemoved
 	}
 
-	v.lock.Lock()
-	defer v.lock.Unlock()
-
-	// Update volume status to pick up a potential removal from state
-	if err := v.update(); err != nil {
-		return err
-	}
+	// DANGEROUS: Do not lock here yet because we might needed to remove containers first.
+	// In general we must always acquire the ctr lock before a volume lock so we cannot lock.
+	// THIS MUST BE DONE to prevent ABBA deadlocks.
+	// It also means the are several races around creating containers with volumes and removing
+	// them in parallel. However that problem exists regadless of taking the lock here or not.
 
 	deps, err := r.state.VolumeInUse(v)
 	if err != nil {
@@ -398,6 +396,15 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 				return fmt.Errorf("removing container %s that depends on volume %s: %w", ctr.ID(), v.Name(), err)
 			}
 		}
+	}
+
+	// Ok now we are good to lock.
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	// Update volume status to pick up a potential removal from state
+	if err := v.update(); err != nil {
+		return err
 	}
 
 	// If the volume is still mounted - force unmount it
