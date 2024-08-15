@@ -1,3 +1,5 @@
+//go:build !remote
+
 // Package swagger defines the payloads used by the Podman API
 //
 //   - errors.go: declares the errors used in the API. By embedding errors.ErrorModel, more meaningful
