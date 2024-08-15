@@ -5,6 +5,7 @@ package integration
 import (
 	"os"
 	"path/filepath"
+	"syscall"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -73,6 +74,8 @@ func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 }
 
 func (p *PodmanTestIntegration) StopRemoteService() {}
+
+func (p *PodmanTestIntegration) stopRemoteService(signal syscall.Signal) {}
 
 // We don't support running API service when local
 func (p *PodmanTestIntegration) StartRemoteService() {
