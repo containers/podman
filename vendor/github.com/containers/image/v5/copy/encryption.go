@@ -48,7 +48,7 @@ func (ic *imageCopier) blobPipelineDecryptionStep(stream *sourceStream, srcInfo 
 		Annotations: stream.info.Annotations,
 	}
 	// DecryptLayer supposedly returns a digest of the decrypted stream.
-	// In pratice, that value is never set in the current implementation.
+	// In practice, that value is never set in the current implementation.
 	// And we shouldn’t use it anyway, because it is not trusted: encryption can be made to a public key,
 	// i.e. it doesn’t authenticate the origin of the metadata in any way.
 	reader, _, err := ocicrypt.DecryptLayer(ic.c.options.OciDecryptConfig, stream.reader, desc, false)
