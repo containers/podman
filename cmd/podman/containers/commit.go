@@ -9,7 +9,6 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
-	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
@@ -104,9 +103,6 @@ func commit(cmd *cobra.Command, args []string) error {
 	}
 	if !commitOptions.Quiet {
 		commitOptions.Writer = os.Stderr
-	}
-	if len(commitOptions.Changes) > 0 {
-		commitOptions.Changes = handlers.DecodeChanges(commitOptions.Changes)
 	}
 	if len(configFile) > 0 {
 		cfg, err := os.ReadFile(configFile)

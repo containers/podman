@@ -1,3 +1,5 @@
+//go:build !remote
+
 // Package server supports a RESTful API for the Libpod library
 //
 // This documentation describes the Podman v2.x+ RESTful API. It consists of a Docker-compatible
