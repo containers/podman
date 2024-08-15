@@ -935,6 +935,27 @@ EOF
      fi
 }
 
+function wait_for_restart_count() {
+    local cname="$1"
+    local count="$2"
+    local tname="$3"
+
+    local timeout=10
+    while :; do
+        # Previously this would fail as the container would run out of ips after 5 restarts.
+        run_podman inspect --format "{{.RestartCount}}" $cname
+        if [[ "$output" == "$2" ]]; then
+            break
+        fi
+
+        timeout=$((timeout - 1))
+        if [[ $timeout -eq 0 ]]; then
+            die "Timed out waiting for RestartCount with $tname"
+        fi
+        sleep 0.5
+    done
+}
+
 # Test for https://github.com/containers/podman/issues/18615
 @test "podman network cleanup --userns + --restart" {
     skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
@@ -955,10 +976,8 @@ EOF
     # This will cause 7 containers runs with the restart policy (one more than the on failure limit)
     # Since they run sequentially they should run fine without allocating all ips.
     run_podman 1 run --name $cname --network $net1 --restart on-failure:6 --userns keep-id $IMAGE false
-
-    # Previously this would fail as the container would run out of ips after 5 restarts.
-    run_podman inspect --format "{{.RestartCount}}" $cname
-    assert "$output" == "6" "RestartCount for failing container with bridge network"
+    wait_for_restart_count $cname 6 "custom network"
+    run_podman wait $cname
 
     # Now make sure we can still run a container with free ips.
     run_podman run --rm --network $net1 $IMAGE true
@@ -969,23 +988,23 @@ EOF
     if has_slirp4netns; then
         cname2=con2-$(random_string 10)
         run_podman 1 run --name $cname2 --network slirp4netns --restart on-failure:2 --userns keep-id $IMAGE false
-        run_podman inspect --format "{{.RestartCount}}" $cname2
-        assert "$output" == "2" "RestartCount for failing container with slirp4netns"
+        wait_for_restart_count $cname2 2 "slirp4netns"
+        run_podman wait $cname2
     fi
 
     if is_rootless; then
         # pasta can only run rootless
         cname3=con3-$(random_string 10)
         run_podman 1 run --name $cname3 --network pasta --restart on-failure:2 --userns keep-id $IMAGE false
-        run_podman inspect --format "{{.RestartCount}}" $cname3
-        assert "$output" == "2" "RestartCount for failing container with pasta"
+        wait_for_restart_count $cname3 2 "pasta"
+        run_podman wait $cname3
     else
         # This is racy if other programs modify /run/netns while the test is running.
         # However I think the risk is minimal and I think checking for this is important.
         assert "$(ls /run/netns | wc -l)" == "$netns_count" "/run/netns has no leaked netns files"
     fi
 
-    run_podman rm -f -t0 $cname $cname2 $cname3
+    run_podman rm $cname $cname2 $cname3
     run_podman network rm $net1
 }
 

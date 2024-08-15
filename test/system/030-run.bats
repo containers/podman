@@ -1289,13 +1289,15 @@ EOF
     rm -rf $romount
 }
 
-@test "podman run --restart=always -- wait" {
+@test "podman run --restart=always/on-failure -- wait" {
     # regression test for #18572 to make sure Podman waits less than 20 seconds
     ctr=c_$(safename)
-    run_podman run -d --restart=always --name=$ctr $IMAGE false
-    PODMAN_TIMEOUT=20 run_podman wait $ctr
-    is "$output" "1" "container should exit 1"
-    run_podman rm -f -t0 $ctr
+    for policy in always on-failure; do
+        run_podman run -d --restart=$policy --name=$ctr $IMAGE false
+        PODMAN_TIMEOUT=20 run_podman wait $ctr
+        is "$output" "1" "container should exit 1 (policy: $policy)"
+        run_podman rm -f -t0 $ctr
+    done
 }
 
 @test "podman run - custom static_dir" {
