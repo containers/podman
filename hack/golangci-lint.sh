@@ -19,7 +19,7 @@ BUILD_TAGS_REMOTE="remote,containers_image_openpgp"
 
 SKIP_DIRS_ABI=""
 SKIP_DIRS_TUNNEL=""
-SKIP_DIRS_REMOTE="libpod/events,test"
+SKIP_DIRS_REMOTE="libpod/events,pkg/machine/qemu,pkg/machine/wsl,test"
 
 declare -a to_lint
 to_lint=(ABI TUNNEL)

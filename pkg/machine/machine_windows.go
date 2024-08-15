@@ -207,8 +207,8 @@ func readWinProxyTid(name string, vmtype define.VMType) (uint32, uint32, string,
 	}
 
 	var pid, tid uint32
-	fmt.Sscanf(string(contents), "%d:%d", &pid, &tid)
-	return pid, tid, tidFile, nil
+	_, err = fmt.Sscanf(string(contents), "%d:%d", &pid, &tid)
+	return pid, tid, tidFile, err
 }
 
 func waitTimeout(proc *os.Process, timeout time.Duration) bool {
