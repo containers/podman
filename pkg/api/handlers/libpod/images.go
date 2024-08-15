@@ -1,3 +1,5 @@
+//go:build !remote
+
 package libpod
 
 import (
@@ -499,7 +501,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Author = query.Author
 	options.Pause = query.Pause
 	options.Squash = query.Squash
-	options.Changes = handlers.DecodeChanges(query.Changes)
+	options.Changes = util.DecodeChanges(query.Changes)
 	ctr, err := runtime.LookupContainer(query.Container)
 	if err != nil {
 		utils.Error(w, http.StatusNotFound, err)

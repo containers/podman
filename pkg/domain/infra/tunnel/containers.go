@@ -350,7 +350,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	}
 	var changes []string
 	if len(opts.Changes) > 0 {
-		changes = handlers.DecodeChanges(opts.Changes)
+		changes = util.DecodeChanges(opts.Changes)
 	}
 	var configReader io.Reader
 	if len(opts.Config) > 0 {
