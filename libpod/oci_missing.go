@@ -76,11 +76,6 @@ func (r *MissingRuntime) CreateContainer(ctr *Container, restoreOptions *Contain
 	return 0, r.printError()
 }
 
-// UpdateContainerStatus is not available as the runtime is missing
-func (r *MissingRuntime) UpdateContainerStatus(ctr *Container) error {
-	return r.printError()
-}
-
 // StartContainer is not available as the runtime is missing
 func (r *MissingRuntime) StartContainer(ctr *Container) error {
 	return r.printError()
