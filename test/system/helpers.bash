@@ -41,6 +41,9 @@ if [ $(id -u) -eq 0 ]; then
     _LOG_PROMPT='#'
 fi
 
+# Used in helpers.network, needed here in teardown
+PORT_LOCK_DIR=$BATS_SUITE_TMPDIR/reserved-ports
+
 ###############################################################################
 # BEGIN tools for fetching & caching test images
 #
@@ -204,6 +207,14 @@ function defer-assertion-failures() {
 # Basic teardown: remove all pods and containers
 function basic_teardown() {
     echo "# [teardown]" >&2
+
+    # Free any ports reserved by our test
+    if [[ -d $PORT_LOCK_DIR ]]; then
+        mylocks=$(grep -wlr $BATS_SUITE_TEST_NUMBER $PORT_LOCK_DIR || true)
+        if [[ -n "$mylocks" ]]; then
+            rm -f $mylocks
+        fi
+    fi
 
     immediate-assertion-failures
     # Unlike normal tests teardown will not exit on first command failure
