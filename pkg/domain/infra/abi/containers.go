@@ -1392,7 +1392,11 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 	for _, sctr := range storageCtrs {
 		mounted, path, err := ic.Libpod.IsStorageContainerMounted(sctr.ID)
 		if err != nil {
-			if errors.Is(err, types.ErrContainerUnknown) {
+			// ErrCtrExists means this is a libpod container, we handle that below.
+			// This can only happen in a narrow race because we first create the storage
+			// container and then the libpod container so the StorageContainers() call
+			// above would need to happen in that interval.
+			if errors.Is(err, types.ErrContainerUnknown) || errors.Is(err, define.ErrCtrExists) {
 				continue
 			}
 			return nil, err
