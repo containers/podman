@@ -28,9 +28,10 @@ const replacementUnknownLocationAttempts = 2
 // CandidateTemplate is a subset of BICReplacementCandidate2 with data related to a specific digest,
 // which can be later combined with information about a location.
 type CandidateTemplate struct {
-	digest               digest.Digest
-	compressionOperation types.LayerCompression // Either types.Decompress for uncompressed, or types.Compress for compressed
-	compressionAlgorithm *compression.Algorithm // An algorithm when the candidate is compressed, or nil when it is uncompressed
+	digest                 digest.Digest
+	compressionOperation   types.LayerCompression // Either types.Decompress for uncompressed, or types.Compress for compressed
+	compressionAlgorithm   *compression.Algorithm // An algorithm when the candidate is compressed, or nil when it is uncompressed
+	compressionAnnotations map[string]string      // If necessary, annotations necessary to use compressionAlgorithm
 }
 
 // CandidateTemplateWithCompression returns a CandidateTemplate if a blob with data is acceptable
@@ -40,7 +41,7 @@ type CandidateTemplate struct {
 // if not nil, the call is assumed to be CandidateLocations2.
 func CandidateTemplateWithCompression(v2Options *blobinfocache.CandidateLocations2Options, digest digest.Digest, data blobinfocache.DigestCompressorData) *CandidateTemplate {
 	if v2Options == nil {
-		return &CandidateTemplate{ // Anything goes. The compressionOperation, compressionAlgorithm values are not used.
+		return &CandidateTemplate{ // Anything goes. The compressionOperation, compressionAlgorithm and compressionAnnotations values are not used.
 			digest: digest,
 		}
 	}
@@ -60,14 +61,40 @@ func CandidateTemplateWithCompression(v2Options *blobinfocache.CandidateLocation
 			return nil
 		}
 		return &CandidateTemplate{
-			digest:               digest,
-			compressionOperation: types.Decompress,
-			compressionAlgorithm: nil,
+			digest:                 digest,
+			compressionOperation:   types.Decompress,
+			compressionAlgorithm:   nil,
+			compressionAnnotations: nil,
 		}
 	case blobinfocache.UnknownCompression:
 		logrus.Debugf("Ignoring BlobInfoCache record of digest %q with unknown compression", digest.String())
 		return nil // Not allowed with CandidateLocations2
 	default:
+		// See if we can use the specific variant, first.
+		if data.SpecificVariantCompressor != blobinfocache.UnknownCompression {
+			algo, err := compression.AlgorithmByName(data.SpecificVariantCompressor)
+			if err != nil {
+				logrus.Debugf("Not considering unrecognized specific compression variant %q for BlobInfoCache record of digest %q: %v",
+					data.SpecificVariantCompressor, digest.String(), err)
+			} else {
+				if !manifest.CandidateCompressionMatchesReuseConditions(manifest.ReuseConditions{
+					PossibleManifestFormats: v2Options.PossibleManifestFormats,
+					RequiredCompression:     v2Options.RequiredCompression,
+				}, &algo) {
+					logrus.Debugf("Ignoring specific compression variant %q for BlobInfoCache record of digest %q, it does not match required %s or MIME types %#v",
+						data.SpecificVariantCompressor, digest.String(), requiredCompression, v2Options.PossibleManifestFormats)
+				} else {
+					return &CandidateTemplate{
+						digest:                 digest,
+						compressionOperation:   types.Compress,
+						compressionAlgorithm:   &algo,
+						compressionAnnotations: data.SpecificVariantAnnotations,
+					}
+				}
+			}
+		}
+
+		// Try the base variant.
 		algo, err := compression.AlgorithmByName(data.BaseVariantCompressor)
 		if err != nil {
 			logrus.Debugf("Ignoring BlobInfoCache record of digest %q with unrecognized compression %q: %v",
@@ -83,9 +110,10 @@ func CandidateTemplateWithCompression(v2Options *blobinfocache.CandidateLocation
 			return nil
 		}
 		return &CandidateTemplate{
-			digest:               digest,
-			compressionOperation: types.Compress,
-			compressionAlgorithm: &algo,
+			digest:                 digest,
+			compressionOperation:   types.Compress,
+			compressionAlgorithm:   &algo,
+			compressionAnnotations: nil,
 		}
 	}
 }
@@ -100,11 +128,12 @@ type CandidateWithTime struct {
 func (template CandidateTemplate) CandidateWithLocation(location types.BICLocationReference, lastSeen time.Time) CandidateWithTime {
 	return CandidateWithTime{
 		candidate: blobinfocache.BICReplacementCandidate2{
-			Digest:               template.digest,
-			CompressionOperation: template.compressionOperation,
-			CompressionAlgorithm: template.compressionAlgorithm,
-			UnknownLocation:      false,
-			Location:             location,
+			Digest:                 template.digest,
+			CompressionOperation:   template.compressionOperation,
+			CompressionAlgorithm:   template.compressionAlgorithm,
+			CompressionAnnotations: template.compressionAnnotations,
+			UnknownLocation:        false,
+			Location:               location,
 		},
 		lastSeen: lastSeen,
 	}
@@ -114,11 +143,12 @@ func (template CandidateTemplate) CandidateWithLocation(location types.BICLocati
 func (template CandidateTemplate) CandidateWithUnknownLocation() CandidateWithTime {
 	return CandidateWithTime{
 		candidate: blobinfocache.BICReplacementCandidate2{
-			Digest:               template.digest,
-			CompressionOperation: template.compressionOperation,
-			CompressionAlgorithm: template.compressionAlgorithm,
-			UnknownLocation:      true,
-			Location:             types.BICLocationReference{Opaque: ""},
+			Digest:                 template.digest,
+			CompressionOperation:   template.compressionOperation,
+			CompressionAlgorithm:   template.compressionAlgorithm,
+			CompressionAnnotations: template.compressionAnnotations,
+			UnknownLocation:        true,
+			Location:               types.BICLocationReference{Opaque: ""},
 		},
 		lastSeen: time.Time{},
 	}
