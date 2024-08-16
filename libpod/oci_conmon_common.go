@@ -192,91 +192,6 @@ func (r *ConmonOCIRuntime) CreateContainer(ctr *Container, restoreOptions *Conta
 	return r.createOCIContainer(ctr, restoreOptions)
 }
 
-// UpdateContainerStatus retrieves the current status of the container from the
-// runtime. It updates the container's state but does not save it.
-// If useRuntime is false, we will not directly hit runc to see the container's
-// status, but will instead only check for the existence of the conmon exit file
-// and update state to stopped if it exists.
-func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
-	runtimeDir, err := util.GetRootlessRuntimeDir()
-	if err != nil {
-		return err
-	}
-
-	// Store old state so we know if we were already stopped
-	oldState := ctr.state.State
-
-	state := new(spec.State)
-
-	cmd := exec.Command(r.path, "state", ctr.ID())
-	cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-
-	outPipe, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("getting stdout pipe: %w", err)
-	}
-	errPipe, err := cmd.StderrPipe()
-	if err != nil {
-		return fmt.Errorf("getting stderr pipe: %w", err)
-	}
-
-	err = cmd.Start()
-	if err != nil {
-		return fmt.Errorf("error launching container runtime: %w", err)
-	}
-	defer func() {
-		_ = cmd.Wait()
-	}()
-
-	stderr, err := io.ReadAll(errPipe)
-	if err != nil {
-		return fmt.Errorf("reading stderr: %s: %w", ctr.ID(), err)
-	}
-	if strings.Contains(string(stderr), "does not exist") || strings.Contains(string(stderr), "No such file") {
-		if err := ctr.removeConmonFiles(); err != nil {
-			logrus.Debugf("unable to remove conmon files for container %s", ctr.ID())
-		}
-		ctr.state.ExitCode = -1
-		ctr.state.FinishedTime = time.Now()
-		ctr.state.State = define.ContainerStateExited
-		return ctr.runtime.state.AddContainerExitCode(ctr.ID(), ctr.state.ExitCode)
-	}
-	if err := errPipe.Close(); err != nil {
-		return err
-	}
-
-	out, err := io.ReadAll(outPipe)
-	if err != nil {
-		return fmt.Errorf("reading stdout: %s: %w", ctr.ID(), err)
-	}
-	if err := json.NewDecoder(bytes.NewReader(out)).Decode(state); err != nil {
-		return fmt.Errorf("decoding container status for container %s: %w", ctr.ID(), err)
-	}
-	ctr.state.PID = state.Pid
-
-	switch state.Status {
-	case "created":
-		ctr.state.State = define.ContainerStateCreated
-	case "paused":
-		ctr.state.State = define.ContainerStatePaused
-	case "running":
-		ctr.state.State = define.ContainerStateRunning
-	case "stopped":
-		ctr.state.State = define.ContainerStateStopped
-	default:
-		return fmt.Errorf("unrecognized status returned by runtime for container %s: %s: %w",
-			ctr.ID(), state.Status, define.ErrInternal)
-	}
-
-	// Handle ContainerStateStopping - keep it unless the container
-	// transitioned to no longer running.
-	if oldState == define.ContainerStateStopping && (ctr.state.State == define.ContainerStatePaused || ctr.state.State == define.ContainerStateRunning) {
-		ctr.state.State = define.ContainerStateStopping
-	}
-
-	return nil
-}
-
 // StartContainer starts the given container.
 // Sets time the container was started, but does not save it.
 func (r *ConmonOCIRuntime) StartContainer(ctr *Container) error {
@@ -358,6 +273,8 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 
 // If captureStderr is requested, OCI runtime STDERR will be captured as a
 // *bytes.buffer and returned; otherwise, it is set to os.Stderr.
+// IMPORTANT: Thus function is called from an unlocked container state in
+// the stop() code path so do not modify the state here.
 func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captureStderr bool) (*bytes.Buffer, error) {
 	logrus.Debugf("Sending signal %d to container %s", signal, ctr.ID())
 	runtimeDir, err := util.GetRootlessRuntimeDir()
@@ -381,15 +298,15 @@ func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captu
 		stderr = stderrBuffer
 	}
 	if err := utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, stderr, env, r.path, args...); err != nil {
-		// Update container state - there's a chance we failed because
-		// the container exited in the meantime.
-		if err2 := r.UpdateContainerStatus(ctr); err2 != nil {
-			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
+		rErr := err
+		// quick check if ctr pid is still alive
+		if err := unix.Kill(ctr.state.PID, 0); err == unix.ESRCH {
+			// pid already dead so signal sending fails logically, set error to ErrCtrStateInvalid
+			// This is needed for the ProxySignals() function which already ignores the error to not cause flakes
+			// when the ctr process just exited.
+			rErr = define.ErrCtrStateInvalid
 		}
-		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return stderrBuffer, fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
-		}
-		return stderrBuffer, fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
+		return stderrBuffer, fmt.Errorf("sending signal to container %s: %w", ctr.ID(), rErr)
 	}
 
 	return stderrBuffer, nil
@@ -401,6 +318,8 @@ func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captu
 // immediately kill with SIGKILL.
 // Does not set finished time for container, assumes you will run updateStatus
 // after to pull the exit code.
+// IMPORTANT: Thus function is called from an unlocked container state in
+// the stop() code path so do not modify the state here.
 func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool) error {
 	logrus.Debugf("Stopping container %s (PID %d)", ctr.ID(), ctr.state.PID)
 
