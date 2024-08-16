@@ -66,7 +66,7 @@ EOF
     # container completes fast, and the cleanup *did* happen properly
     # the container is now gone.  So, we need to ignore "no such
     # container" errors from podman wait.
-    CONTAINERS_CONF="$conf_tmp" run_podman '?' wait "$cid"
+    CONTAINERS_CONF="$conf_tmp" run_podman '?' wait --condition=removing "$cid"
     if [[ $status != 0 ]]; then
         is "$output" "Error:.*no such container" "unexpected error from podman wait"
     fi

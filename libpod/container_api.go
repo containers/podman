@@ -546,10 +546,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		c.lock.Lock()
 		defer c.lock.Unlock()
 
-		// Note this is one of the rare cases where we do not like to use syncContainer() as it does read the exit file
-		// We like to avoid that here because that means we might read it before container cleanup run and possible
-		// removed the container
-		if err := c.runtime.state.UpdateContainer(c); err != nil {
+		if err := c.syncContainer(); err != nil {
 			if errors.Is(err, define.ErrNoSuchCtr) {
 				// if the container is not valid at this point as it was deleted,
 				// check if the exit code was recorded in the db.
@@ -705,6 +702,13 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 				if len(wantedStates) > 0 {
 					state, err := c.State()
 					if err != nil {
+						// If the we wait for removing and the container is removed do not return this as error.
+						// This allows callers to actually wait for the ctr to be removed.
+						if wantedStates[define.ContainerStateRemoving] &&
+							(errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
+							trySend(-1, nil)
+							return
+						}
 						trySend(-1, err)
 						return
 					}
