@@ -233,7 +233,7 @@ func (s *bFiller) Fill(w io.Writer, stat decor.Statistics) error {
 	var tip component
 	var refilling, filling, padding []byte
 	var fillCount int
-	curWidth := int(internal.PercentageRound(stat.Total, stat.Current, int64(width)))
+	curWidth := int(internal.PercentageRound(stat.Total, stat.Current, uint(width)))
 
 	if curWidth != 0 {
 		if !stat.Completed || s.tipOnComplete {
@@ -243,7 +243,7 @@ func (s *bFiller) Fill(w io.Writer, stat decor.Statistics) error {
 		}
 		switch refWidth := 0; {
 		case stat.Refill != 0:
-			refWidth = int(internal.PercentageRound(stat.Total, stat.Refill, int64(width)))
+			refWidth = int(internal.PercentageRound(stat.Total, stat.Refill, uint(width)))
 			curWidth -= refWidth
 			refWidth += curWidth
 			fallthrough

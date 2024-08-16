@@ -17,15 +17,15 @@ func Elapsed(style TimeStyle, wcc ...WC) Decorator {
 //
 //	`style` one of [ET_STYLE_GO|ET_STYLE_HHMMSS|ET_STYLE_HHMM|ET_STYLE_MMSS]
 //
-//	`startTime` start time
+//	`start` start time
 //
 //	`wcc` optional WC config
-func NewElapsed(style TimeStyle, startTime time.Time, wcc ...WC) Decorator {
+func NewElapsed(style TimeStyle, start time.Time, wcc ...WC) Decorator {
 	var msg string
 	producer := chooseTimeProducer(style)
 	fn := func(s Statistics) string {
-		if !s.Completed {
-			msg = producer(time.Since(startTime))
+		if !s.Completed && !s.Aborted {
+			msg = producer(time.Since(start))
 		}
 		return msg
 	}

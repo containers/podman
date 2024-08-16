@@ -14,9 +14,9 @@ func Percentage(total, current, width uint) float64 {
 }
 
 // PercentageRound same as Percentage but with math.Round.
-func PercentageRound(total, current, width int64) float64 {
-	if total < 0 || current < 0 || width < 0 {
+func PercentageRound(total, current int64, width uint) float64 {
+	if total < 0 || current < 0 {
 		return 0
 	}
-	return math.Round(Percentage(uint(total), uint(current), uint(width)))
+	return math.Round(Percentage(uint(total), uint(current), width))
 }

@@ -69,28 +69,5 @@ func toReadCloser(r io.Reader) io.ReadCloser {
 	if rc, ok := r.(io.ReadCloser); ok {
 		return rc
 	}
-	return toNopReadCloser(r)
-}
-
-func toNopReadCloser(r io.Reader) io.ReadCloser {
-	if _, ok := r.(io.WriterTo); ok {
-		return nopReadCloserWriterTo{r}
-	}
-	return nopReadCloser{r}
-}
-
-type nopReadCloser struct {
-	io.Reader
-}
-
-func (nopReadCloser) Close() error { return nil }
-
-type nopReadCloserWriterTo struct {
-	io.Reader
-}
-
-func (nopReadCloserWriterTo) Close() error { return nil }
-
-func (c nopReadCloserWriterTo) WriteTo(w io.Writer) (int64, error) {
-	return c.Reader.(io.WriterTo).WriteTo(w)
+	return io.NopCloser(r)
 }
