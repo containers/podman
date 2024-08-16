@@ -70,5 +70,5 @@ func (s *medianWindow) Set(value float64) {
 
 // NewMedian is fixed last 3 samples median MovingAverage.
 func NewMedian() ewma.MovingAverage {
-	return new(medianWindow)
+	return NewThreadSafeMovingAverage(new(medianWindow))
 }

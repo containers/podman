@@ -126,6 +126,9 @@ func (p *Progress) AddSpinner(total int64, options ...BarOption) *Bar {
 
 // New creates a bar by calling `Build` method on provided `BarFillerBuilder`.
 func (p *Progress) New(total int64, builder BarFillerBuilder, options ...BarOption) *Bar {
+	if builder == nil {
+		return p.MustAdd(total, nil, options...)
+	}
 	return p.MustAdd(total, builder.Build(), options...)
 }
 
@@ -147,12 +150,10 @@ func (p *Progress) MustAdd(total int64, filler BarFiller, options ...BarOption) 
 func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) (*Bar, error) {
 	if filler == nil {
 		filler = NopStyle().Build()
+	} else if f, ok := filler.(BarFillerFunc); ok && f == nil {
+		filler = NopStyle().Build()
 	}
-	type result struct {
-		bar *Bar
-		bs  *bState
-	}
-	ch := make(chan result)
+	ch := make(chan *Bar)
 	select {
 	case p.operateState <- func(ps *pState) {
 		bs := ps.makeBarState(total, filler, options...)
@@ -163,22 +164,9 @@ func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) (*Ba
 			ps.hm.push(bar, true)
 		}
 		ps.idCount++
-		ch <- result{bar, bs}
+		ch <- bar
 	}:
-		res := <-ch
-		bar, bs := res.bar, res.bs
-		bar.TraverseDecorators(func(d decor.Decorator) {
-			if d, ok := d.(decor.AverageDecorator); ok {
-				bs.averageDecorators = append(bs.averageDecorators, d)
-			}
-			if d, ok := d.(decor.EwmaDecorator); ok {
-				bs.ewmaDecorators = append(bs.ewmaDecorators, d)
-			}
-			if d, ok := d.(decor.ShutdownListener); ok {
-				bs.shutdownListeners = append(bs.shutdownListeners, d)
-			}
-		})
-		return bar, nil
+		return <-ch, nil
 	case <-p.done:
 		return nil, DoneError
 	}
@@ -237,13 +225,12 @@ func (p *Progress) Write(b []byte) (int, error) {
 // Wait waits for all bars to complete and finally shutdowns container. After
 // this method has been called, there is no way to reuse `*Progress` instance.
 func (p *Progress) Wait() {
+	p.bwg.Wait()
+	p.Shutdown()
 	// wait for user wg, if any
 	if p.uwg != nil {
 		p.uwg.Wait()
 	}
-
-	p.bwg.Wait()
-	p.Shutdown()
 }
 
 // Shutdown cancels any running bar immediately and then shutdowns `*Progress`
@@ -453,6 +440,9 @@ func (s pState) makeBarState(total int64, filler BarFiller, options ...BarOption
 		filler:      filler,
 		renderReq:   s.renderReq,
 		autoRefresh: s.autoRefresh,
+		extender: func(_ decor.Statistics, rows ...io.Reader) ([]io.Reader, error) {
+			return rows, nil
+		},
 	}
 
 	if total > 0 {

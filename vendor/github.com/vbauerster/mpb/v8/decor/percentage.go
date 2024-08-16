@@ -61,7 +61,7 @@ func NewPercentage(format string, wcc ...WC) Decorator {
 		format = "% d"
 	}
 	f := func(s Statistics) string {
-		p := internal.PercentageRound(s.Total, s.Current, 100)
+		p := internal.Percentage(uint(s.Total), uint(s.Current), 100)
 		return fmt.Sprintf(format, percentageType(p))
 	}
 	return Any(f, wcc...)
