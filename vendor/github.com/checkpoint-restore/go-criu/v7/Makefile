@@ -18,9 +18,6 @@ test: build
 coverage:
 	$(MAKE) -C test coverage
 
-codecov:
-	$(MAKE) -C test codecov
-
 rpc/rpc.proto:
 	curl -sSL https://raw.githubusercontent.com/checkpoint-restore/criu/master/images/rpc.proto -o $@
 
@@ -42,4 +39,4 @@ clean:
 	$(MAKE) -C crit/ clean
 	$(MAKE) -C test/ clean
 
-.PHONY: build test lint vendor coverage codecov clean
+.PHONY: build test lint vendor coverage clean

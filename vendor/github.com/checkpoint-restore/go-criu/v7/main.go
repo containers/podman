@@ -61,13 +61,19 @@ func (c *Criu) Prepare() error {
 }
 
 // Cleanup cleans up
-func (c *Criu) Cleanup() {
+func (c *Criu) Cleanup() error {
+	var errs []error
 	if c.swrkCmd != nil {
-		c.swrkSk.Close()
+		if err := c.swrkSk.Close(); err != nil {
+			errs = append(errs, err)
+		}
 		c.swrkSk = nil
-		_ = c.swrkCmd.Wait()
+		if err := c.swrkCmd.Wait(); err != nil {
+			errs = append(errs, fmt.Errorf("criu swrk failed: %w", err))
+		}
 		c.swrkCmd = nil
 	}
+	return errors.Join(errs...)
 }
 
 func (c *Criu) sendAndRecv(reqB []byte) ([]byte, int, error) {
@@ -99,9 +105,7 @@ func (c *Criu) doSwrk(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy Notify) e
 	return nil
 }
 
-func (c *Criu) doSwrkWithResp(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy Notify, features *rpc.CriuFeatures) (*rpc.CriuResp, error) {
-	var resp *rpc.CriuResp
-
+func (c *Criu) doSwrkWithResp(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy Notify, features *rpc.CriuFeatures) (resp *rpc.CriuResp, retErr error) {
 	req := rpc.CriuReq{
 		Type: &reqType,
 		Opts: opts,
@@ -121,7 +125,13 @@ func (c *Criu) doSwrkWithResp(reqType rpc.CriuReqType, opts *rpc.CriuOpts, nfy N
 			return nil, err
 		}
 
-		defer c.Cleanup()
+		defer func() {
+			// append any cleanup errors to the returned error
+			err := c.Cleanup()
+			if err != nil {
+				retErr = errors.Join(retErr, err)
+			}
+		}()
 	}
 
 	for {
