@@ -318,6 +318,10 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		configSpec.Annotations[define.InspectAnnotationAutoremove] = define.InspectResponseTrue
 	}
 
+	if s.RemoveImage != nil && *s.RemoveImage {
+		configSpec.Annotations[define.InspectAnnotationAutoremoveImage] = define.InspectResponseTrue
+	}
+
 	if len(s.VolumesFrom) > 0 {
 		configSpec.Annotations[define.VolumesFromAnnotation] = strings.Join(s.VolumesFrom, ";")
 	}
