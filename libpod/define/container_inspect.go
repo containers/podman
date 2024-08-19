@@ -390,6 +390,11 @@ type InspectContainerHostConfig struct {
 	// It is not handled directly within libpod and is stored in an
 	// annotation.
 	AutoRemove bool `json:"AutoRemove"`
+	// AutoRemoveImage is whether the container's image will be
+	// automatically removed on exiting.
+	// It is not handled directly within libpod and is stored in an
+	// annotation.
+	AutoRemoveImage bool `json:"AutoRemoveImage"`
 	// Annotations are provided to the runtime when the container is
 	// started.
 	Annotations map[string]string `json:"Annotations"`

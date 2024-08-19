@@ -261,7 +261,7 @@ func parseAndValidatePort(port string) (uint16, error) {
 	return uint16(num), nil
 }
 
-func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *config.Config, syslog, rm, exec bool) ([]string, error) {
+func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *config.Config, syslog, rm, rmi, exec bool) ([]string, error) {
 	// We need a cleanup process for containers in the current model.
 	// But we can't assume that the caller is Podman - it could be another
 	// user of the API.
@@ -315,6 +315,10 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 
 	if rm {
 		command = append(command, "--rm")
+	}
+
+	if rmi {
+		command = append(command, "--rmi")
 	}
 
 	// This has to be absolutely last, to ensure that the exec session ID

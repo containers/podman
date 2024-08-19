@@ -211,6 +211,11 @@ func run(cmd *cobra.Command, args []string) error {
 	s.ImageArch = cliVals.Arch
 	s.ImageVariant = cliVals.Variant
 	s.Passwd = &runOpts.Passwd
+
+	if runRmi {
+		s.RemoveImage = &runRmi
+	}
+
 	runOpts.Spec = s
 
 	if err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {

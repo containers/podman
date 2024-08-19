@@ -517,6 +517,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		if ctrSpec.Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue {
 			hostConfig.AutoRemove = true
 		}
+		if ctrSpec.Annotations[define.InspectAnnotationAutoremoveImage] == define.InspectResponseTrue {
+			hostConfig.AutoRemoveImage = true
+		}
 		if ctrs, ok := ctrSpec.Annotations[define.VolumesFromAnnotation]; ok {
 			hostConfig.VolumesFrom = strings.Split(ctrs, ";")
 		}
