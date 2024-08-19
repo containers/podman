@@ -130,7 +130,7 @@ make localintegration FOCUS="podman inspect bogus pod"
 You can control some of the parameters passed to Ginkgo
 
 - Disable parallel tests by setting `GINKGO_PARALLEL=n`
-- Set flake retry count (default 3) to one by setting `GINKGO_FLAKE_ATTEMPTS=1`
+- Set flake retry count (default 0) to one by setting `GINKGO_FLAKE_ATTEMPTS=1`
 - Produce colorful tests report by setting `GINKGO_NO_COLOR=n`
 
 # System tests
