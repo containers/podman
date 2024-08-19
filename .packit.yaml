@@ -99,8 +99,7 @@ jobs:
     update_release: false
     packages: [podman-fedora]
     dist_git_branches:
-      - fedora-development
-      - fedora-latest
+      - fedora-all
 
   - job: propose_downstream
     trigger: release
