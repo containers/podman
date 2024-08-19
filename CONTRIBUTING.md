@@ -192,7 +192,15 @@ that’s a sign that you probably need to split up your patch.
 
 If the patch fixes a logged bug entry, refer to that bug entry by number and
 URL. If the patch follows from a mailing list discussion, give a URL to the
-mailing list archive.
+mailing list archive. Please format these lines as `Fixes:` followed by the URL
+or, for Github bugs, the bug number preceded by a #. For example:
+
+```
+Fixes: #00000
+Fixes: https://github.com/containers/common/issues/00000
+Fixes: https://issues.redhat.com/browse/RHEL-00000
+Fixes: RHEL-00000
+```
 
 However, try to make your explanation understandable without external
 resources. In addition to giving a URL to a mailing list archive or bug,
@@ -215,7 +223,8 @@ from now.
 
 If your patch fixes a bug in a specific commit, e.g. you found an issue using
 git bisect, please use the ‘Fixes:’ tag with the first 12 characters of the
-SHA-1 ID, and the one line summary. For example:
+SHA-1 ID, and the one line summary. If the bug you are fixing also has a Github
+issue, please include that as well in a separate `Fixes:` line. For example:
 
 ```
 Fixes: f641c2d9384e ("fix bug in rm -fa parallel deletes")
