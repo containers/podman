@@ -1,3 +1,5 @@
+//go:build !remote
+
 package abi
 
 import (
@@ -18,7 +20,6 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/logs"
-	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/checkpoint"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
@@ -586,7 +587,7 @@ func (ic *ContainerEngine) ContainerCommit(ctx context.Context, nameOrID string,
 	sc := ic.Libpod.SystemContext()
 	var changes []string
 	if len(options.Changes) > 0 {
-		changes = handlers.DecodeChanges(options.Changes)
+		changes = util.DecodeChanges(options.Changes)
 	}
 	var overrideConfig *manifest.Schema2Config
 	if len(options.Config) > 0 {

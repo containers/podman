@@ -1,4 +1,4 @@
-//go:build !remote_testing
+//go:build !remote_testing && (linux || freebsd)
 
 // build for play kube is not supported on remote yet.
 

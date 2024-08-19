@@ -411,7 +411,7 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	if logrus.GetLevel() >= logrus.DebugLevel {
 		// If we're running in debug mode or higher, we might want to have a
 		// look at stderr which includes debug logs from conmon.
-		logrus.Debugf(errBuf.String())
+		logrus.Debug(errBuf.String())
 	}
 
 	if err := <-outErrChan; err != nil {

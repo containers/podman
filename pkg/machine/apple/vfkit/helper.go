@@ -102,7 +102,8 @@ func (vf *Helper) Stop(force, wait bool) error {
 	// Wait up to 90s then hard force off
 	for i := 0; i < 180; i++ {
 		_, err := vf.getRawState()
-		if err != nil || errors.Is(err, unix.ECONNREFUSED) {
+		if err != nil {
+			//nolint:nilerr // error means vfkit is gone so machine is stopped
 			return nil
 		}
 		time.Sleep(waitDuration)

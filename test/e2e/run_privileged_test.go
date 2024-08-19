@@ -1,3 +1,5 @@
+//go:build linux || freebsd
+
 package integration
 
 import (
@@ -137,13 +139,6 @@ var _ = Describe("Podman privileged container tests", func() {
 	})
 
 	It("run no-new-privileges test", func() {
-		// Check if our kernel is new enough
-		k, err := IsKernelNewerThan("4.14")
-		Expect(err).ToNot(HaveOccurred())
-		if !k {
-			Skip("Kernel is not new enough to test this feature")
-		}
-
 		cap := SystemExec("grep", []string{"NoNewPrivs", "/proc/self/status"})
 		if cap.ExitCode() != 0 {
 			Skip("Can't determine NoNewPrivs")

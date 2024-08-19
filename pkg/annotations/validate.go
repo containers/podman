@@ -1,6 +1,7 @@
 package annotations
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -41,7 +42,7 @@ func isDNS1123Subdomain(value string) error {
 	}
 
 	if !dns1123SubdomainRegexp.MatchString(value) {
-		return fmt.Errorf(regexErrorMsg(dns1123SubdomainErrorMsg, dns1123SubdomainFmt, "example.com"))
+		return errors.New(regexErrorMsg(dns1123SubdomainErrorMsg, dns1123SubdomainFmt, "example.com"))
 	}
 
 	return nil
