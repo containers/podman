@@ -15,3 +15,4 @@ scripts/magic-gen/expected.go
 scripts/magic-gen/output.go
 crit/bin
 crit/test-imgs/
+__pycache__
