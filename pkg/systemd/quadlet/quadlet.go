@@ -1656,6 +1656,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		return nil, err
 	}
 
+	execStartPre.addf("--infra-name=%s-infra", podName)
 	execStartPre.addf("--name=%s", podName)
 
 	handlePodmanArgs(podUnit, PodGroup, execStartPre)
