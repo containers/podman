@@ -897,6 +897,7 @@ BOGUS=foo
 		Entry("template@instance.container", "template@instance.container"),
 		Entry("Unit After Override", "unit-after-override.container"),
 		Entry("NetworkAlias", "network-alias.container"),
+		Entry("CgroupMode", "cgroups-mode.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("device-copy.volume", "device-copy.volume"),
