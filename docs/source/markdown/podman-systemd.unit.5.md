@@ -259,6 +259,7 @@ Valid options for `[Container]` are listed below:
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
+| CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
 | ContainerName=name                   | --name name                                          |
 | ContainersConfModule=/etc/nvd\.conf  | --module=/etc/nvd\.conf                              |
 | DNS=192.168.55.1                     | --dns=192.168.55.1                                   |
@@ -369,6 +370,16 @@ Indicates whether the container will be auto-updated ([podman-auto-update(1)](po
 * `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which image to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
 
 * `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the container.
+
+### `CgroupsMode=`
+
+The cgroups mode of the Podman container. Equivalent to the Podman `--cgroups` option.
+
+By default, the cgroups mode of the container created by Quadlet is `split`,
+which differs from the default (`enabled`) used by the Podman CLI.
+
+If the container joins a pod (i.e. `Pod=` is specified), you may want to change this to
+`no-conmon` or `enabled` so that pod level cgroup resource limits can take effect.
 
 ### `ContainerName=`
 
