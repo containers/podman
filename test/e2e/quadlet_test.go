@@ -998,11 +998,15 @@ BOGUS=foo
 		Entry("Build - TLSVerify Key", "tls-verify.build"),
 		Entry("Build - Variant Key", "variant.build"),
 
-		Entry("basic.pod", "basic.pod"),
-		Entry("name.pod", "name.pod"),
-		Entry("network.pod", "network.pod"),
-		Entry("podmanargs.pod", "podmanargs.pod"),
+		Entry("Pod - Basic", "basic.pod"),
+		Entry("Pod - Name", "name.pod"),
+		Entry("Pod - Network", "network.pod"),
+		Entry("Pod - PodmanArgs", "podmanargs.pod"),
 		Entry("Pod - NetworkAlias", "network-alias.pod"),
+		Entry("Pod - Remap auto", "remap-auto.pod"),
+		Entry("Pod - Remap auto2", "remap-auto2.pod"),
+		Entry("Pod - Remap keep-id", "remap-keep-id.pod"),
+		Entry("Pod - Remap manual", "remap-manual.pod"),
 	)
 
 	DescribeTable("Running expected warning quadlet test case",

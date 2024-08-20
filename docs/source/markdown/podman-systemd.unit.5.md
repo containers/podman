@@ -867,6 +867,7 @@ Valid options for `[Pod]` are listed below:
 | **[Pod] options**                   | **podman container create equivalent** |
 |-------------------------------------|----------------------------------------|
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
+| GIDMap=0:10000:10                   | --gidmap=0:10000:10                   |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
 | Network=host                        | --network host                         |
 | NetworkAlias=name                   | --network-alias name                   |
@@ -874,6 +875,10 @@ Valid options for `[Pod]` are listed below:
 | PodName=name                        | --name=name                            |
 | PublishPort=50-59                   | --publish 50-59                        |
 | ServiceName=name                    | Name the systemd unit `name.service`   |
+| SubGIDMap=gtest                     | --subgidname=gtest                     |
+| SubUIDMap=utest                     | --subuidname=utest                     |
+| UIDMap=0:10000:10                   | --uidmap=0:10000:10                    |
+| UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210       |
 | Volume=/source:/dest                | --volume /source:/dest                 |
 
 Supported keys in the `[Pod]` section are:
@@ -881,6 +886,13 @@ Supported keys in the `[Pod]` section are:
 ### `ContainersConfModule=`
 
 Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
+### `GIDMap=`
+
+Create the pod in a new user namespace using the supplied GID mapping.
+Equivalent to the Podman `--gidmap` option.
 
 This key can be listed multiple times.
 
@@ -965,6 +977,28 @@ By default, Quadlet will name the systemd service unit by appending `-pod` to th
 Setting this key overrides this behavior by instructing Quadlet to use the provided name.
 
 Note, the name should not include the `.service` file extension
+
+### `SubGIDMap=`
+
+Create the pod in a new user namespace using the map with name in the /etc/subgid file.
+Equivalent to the Podman `--subgidname` option.
+
+### `SubUIDMap=`
+
+Create the pod in a new user namespace using the map with name in the /etc/subuid file.
+Equivalent to the Podman `--subuidname` option.
+
+### `UIDMap=`
+
+Create the pod in a new user namespace using the supplied UID mapping.
+Equivalent to the Podman `--uidmap` option.
+
+This key can be listed multiple times.
+
+### `UserNS=`
+
+Set the user namespace mode for the pod. This is equivalent to the Podman `--userns` option and
+generally has the form `MODE[:OPTIONS,...]`.
 
 ### `Volume=`
 

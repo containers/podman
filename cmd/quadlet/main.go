@@ -658,7 +658,7 @@ func process() error {
 		case strings.HasSuffix(unit.Filename, ".build"):
 			service, err = quadlet.ConvertBuild(unit, unitsInfoMap)
 		case strings.HasSuffix(unit.Filename, ".pod"):
-			service, err = quadlet.ConvertPod(unit, unit.Filename, unitsInfoMap)
+			service, err = quadlet.ConvertPod(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		default:
 			Logf("Unsupported file type %q", unit.Filename)
 			continue

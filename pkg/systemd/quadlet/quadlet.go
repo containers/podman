@@ -380,13 +380,22 @@ var (
 
 	supportedPodKeys = map[string]bool{
 		KeyContainersConfModule: true,
+		KeyGIDMap:               true,
 		KeyGlobalArgs:           true,
 		KeyNetwork:              true,
 		KeyNetworkAlias:         true,
 		KeyPodName:              true,
 		KeyPodmanArgs:           true,
 		KeyPublishPort:          true,
+		KeyRemapGid:             true,
+		KeyRemapUid:             true,
+		KeyRemapUidSize:         true,
+		KeyRemapUsers:           true,
 		KeyServiceName:          true,
+		KeySubGIDMap:            true,
+		KeySubUIDMap:            true,
+		KeyUIDMap:               true,
+		KeyUserNS:               true,
 		KeyVolume:               true,
 	}
 )
@@ -1570,7 +1579,7 @@ func getServiceName(quadletUnitFile *parser.UnitFile, groupName string, defaultE
 	return removeExtension(quadletUnitFile.Filename, "", defaultExtraSuffix)
 }
 
-func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[podUnit.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
@@ -1638,6 +1647,10 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		"--exit-policy=stop",
 		"--replace",
 	)
+
+	if err := handleUserMappings(podUnit, PodGroup, execStartPre, isUser, true); err != nil {
+		return nil, err
+	}
 
 	if err := handlePublishPorts(podUnit, PodGroup, execStartPre); err != nil {
 		return nil, err
