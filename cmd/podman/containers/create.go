@@ -299,12 +299,26 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 			}
 			vals.Env = env
 		}
-		if c.Flag("cgroups").Changed && vals.CgroupsMode == "split" && registry.IsRemote() {
+
+		cgroupsChanged := c.Flag("cgroups").Changed
+		if cgroupsChanged && vals.CgroupsMode == "split" && registry.IsRemote() {
 			return vals, fmt.Errorf("the option --cgroups=%q is not supported in remote mode", vals.CgroupsMode)
 		}
 
 		if c.Flag("pod").Changed && !strings.HasPrefix(c.Flag("pod").Value.String(), "new:") && c.Flag("userns").Changed {
 			return vals, errors.New("--userns and --pod cannot be set together")
+		}
+
+		if c.Flag("pod").Changed || c.Flag("pod-id-file").Changed {
+			if cgroupsChanged && (vals.CgroupsMode == "split" || vals.CgroupsMode == "disabled") {
+				logrus.Warnf("Setting --cgroups=%q ignores pod level cgroup resource limits.", vals.CgroupsMode)
+			}
+			if c.Flag("cgroupns").Changed && vals.CgroupNS != "private" {
+				logrus.Warnf("Setting --cgroupns may ignore pod level cgroup resource limits.")
+			}
+			if c.Flag("cgroup-parent").Changed {
+				logrus.Warnf("Setting --cgroup-parent may ignore pod level cgroup resource limits.")
+			}
 		}
 	}
 	if c.Flag("shm-size").Changed {
