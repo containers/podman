@@ -1,5 +1,9 @@
 # Release Notes
 
+## 5.2.2
+### Bugfixes
+- Fixed a bug where rootless Podman could fail to validate the runtime's volume path on systems with a symlinked `/home` ([#23515](https://github.com/containers/podman/issues/23515)).
+
 ## 5.2.1
 ### Bugfixes
 - Fixed a bug where Podman could sometimes save an incorrect container state to the database, which could cause a number of issues including but not limited to attempting to clean up containers twice ([#21569](https://github.com/containers/podman/issues/21569)).
