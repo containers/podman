@@ -62,6 +62,7 @@ const (
 	KeyAuthFile              = "AuthFile"
 	KeyAutoUpdate            = "AutoUpdate"
 	KeyCertDir               = "CertDir"
+	KeyCgroupsMode           = "CgroupsMode"
 	KeyConfigMap             = "ConfigMap"
 	KeyContainerName         = "ContainerName"
 	KeyContainersConfModule  = "ContainersConfModule"
@@ -191,6 +192,7 @@ var (
 		KeyAddDevice:             true,
 		KeyAnnotation:            true,
 		KeyAutoUpdate:            true,
+		KeyCgroupsMode:           true,
 		KeyContainerName:         true,
 		KeyContainersConfModule:  true,
 		KeyDNS:                   true,
@@ -581,7 +583,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	// We delegate groups to the runtime
 	service.Add(ServiceGroup, "Delegate", "yes")
-	podman.add("--cgroups=split")
+
+	if cgroupsMode, ok := container.Lookup(ContainerGroup, KeyCgroupsMode); ok && len(cgroupsMode) > 0 {
+		podman.addf("--cgroups=%s", cgroupsMode)
+	} else {
+		podman.add("--cgroups=split")
+	}
 
 	timezone, ok := container.Lookup(ContainerGroup, KeyTimezone)
 	if ok && len(timezone) > 0 {
@@ -1656,6 +1663,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		return nil, err
 	}
 
+	execStartPre.addf("--infra-name=%s-infra", podName)
 	execStartPre.addf("--name=%s", podName)
 
 	handlePodmanArgs(podUnit, PodGroup, execStartPre)

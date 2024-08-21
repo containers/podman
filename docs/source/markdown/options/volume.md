@@ -82,13 +82,14 @@ content with a shared content label. Shared volume labels allow all containers
 to read/write content. The **Z** option tells Podman to label the content with
 a private unshared label Only the current <<container|pod>> can use a private
 volume. Note: all containers within a `pod` share the same SELinux label. This
-means all containers within said pod can read/write volumes create with the
-`:Z`. Relabeling walks the file system under the volume and changes the label
-on each file, if the volume has thousands of inodes, this process takes a
-long time, delaying the start of the <<container|pod>>. If the volume
-was previously relabeled with the `z` option, Podman is optimized to not relabel
-a second time. If files are moved into the volume, then the labels can be
-manually change with the `chcon -Rt container_file_t PATH` command.
+means all containers within said pod can read/write volumes shared into the
+container created with the `:Z` on any of one the containers. Relabeling walks
+the file system under the volume and changes the label on each file, if the
+volume has thousands of inodes, this process takes a long time, delaying the
+start of the <<container|pod>>. If the volume was previously relabeled with the
+`z` option, Podman is optimized to not relabel a second time. If files are
+moved into the volume, then the labels can be manually change with the
+`chcon -Rt container_file_t PATH` command.
 
 Note: Do not relabel system files and directories. Relabeling system content
 might cause other confined services on the machine to fail.  For these types

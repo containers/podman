@@ -1261,6 +1261,17 @@ func (c *Container) AutoRemove() bool {
 	return spec.Annotations[define.InspectAnnotationAutoremove] == define.InspectResponseTrue
 }
 
+// AutoRemoveImage indicates that the container will automatically remove the
+// image it is using after it exits and is removed.
+// Only allowed if AutoRemove is true.
+func (c *Container) AutoRemoveImage() bool {
+	spec := c.config.Spec
+	if spec.Annotations == nil {
+		return false
+	}
+	return spec.Annotations[define.InspectAnnotationAutoremoveImage] == define.InspectResponseTrue
+}
+
 // Timezone returns the timezone configured inside the container.
 // Local means it has the same timezone as the host machine
 func (c *Container) Timezone() string {
