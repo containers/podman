@@ -18,7 +18,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/containers/storage/pkg/parsers/kernel"
 	. "github.com/onsi/ginkgo/v2"    //nolint:revive,stylecheck
 	. "github.com/onsi/gomega"       //nolint:revive,stylecheck
 	. "github.com/onsi/gomega/gexec" //nolint:revive,stylecheck
@@ -446,27 +445,6 @@ func GetHostDistributionInfo() HostOS {
 		}
 	}
 	return host
-}
-
-// IsKernelNewerThan compares the current kernel version to one provided.  If
-// the kernel is equal to or greater, returns true
-func IsKernelNewerThan(version string) (bool, error) {
-	inputVersion, err := kernel.ParseRelease(version)
-	if err != nil {
-		return false, err
-	}
-	kv, err := kernel.GetKernelVersion()
-	if err != nil {
-		return false, err
-	}
-
-	// CompareKernelVersion compares two kernel.VersionInfo structs.
-	// Returns -1 if a < b, 0 if a == b, 1 it a > b
-	result := kernel.CompareKernelVersion(*kv, *inputVersion)
-	if result >= 0 {
-		return true, nil
-	}
-	return false, nil
 }
 
 // IsCommandAvailable check if command exist

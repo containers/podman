@@ -1,3 +1,5 @@
+//go:build !remote
+
 package compat
 
 import (
@@ -137,7 +139,7 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	options.Author = query.Author
 	options.Pause = query.Pause
 	options.Squash = query.Squash
-	options.Changes = handlers.DecodeChanges(query.Changes)
+	options.Changes = util.DecodeChanges(query.Changes)
 	if r.Body != nil {
 		defer r.Body.Close()
 		if options.CommitOptions.OverrideConfig, err = abi.DecodeOverrideConfig(r.Body); err != nil {

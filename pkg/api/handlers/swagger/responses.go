@@ -1,3 +1,5 @@
+//go:build !remote
+
 //nolint:unused // these types are used to wire generated swagger to API code
 package swagger
 

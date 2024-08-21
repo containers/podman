@@ -18,11 +18,11 @@ BUILD_TAGS_TUNNEL="$BUILD_TAGS_DEFAULT,remote"
 BUILD_TAGS_REMOTE="remote,containers_image_openpgp"
 
 SKIP_DIRS_ABI=""
-SKIP_DIRS_TUNNEL="pkg/api,pkg/domain/infra/abi,internal/domain/infra/abi"
-SKIP_DIRS_REMOTE="libpod/events,pkg/api,pkg/domain/infra/abi,internal/domain/infra/abi,pkg/machine/qemu,pkg/trust,test"
+SKIP_DIRS_TUNNEL=""
+SKIP_DIRS_REMOTE="libpod/events,pkg/machine/qemu,pkg/machine/wsl,test"
 
 declare -a to_lint
-to_lint=(ABI TUNNEL REMOTE)
+to_lint=(ABI TUNNEL)
 
 # Special-case, for Darwin and Windows only "remote" linting is possible and required.
 if [[ "$GOOS" == "windows" ]] || [[ "$GOOS" == "darwin" ]]; then

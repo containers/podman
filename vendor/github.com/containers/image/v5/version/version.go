@@ -6,9 +6,9 @@ const (
 	// VersionMajor is for an API incompatible changes
 	VersionMajor = 5
 	// VersionMinor is for functionality in a backwards-compatible manner
-	VersionMinor = 33
+	VersionMinor = 32
 	// VersionPatch is for backwards-compatible bug fixes
-	VersionPatch = 1
+	VersionPatch = 2
 
 	// VersionDev indicates development branch. Releases will be empty string.
 	VersionDev = ""
