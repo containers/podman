@@ -5,7 +5,7 @@
 
 load helpers
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman test all namespaces" {
     # format is nsname | option name
     tests="
@@ -18,7 +18,7 @@ uts    | uts
 
     for nstype in private host; do
         while read name option; do
-            local cname="c_${name}_$(random_string)"
+            local cname="c-${name}-$(safename)"
             # ipc is special, private does not allow joining from another container.
             # Instead we must use "shareable".
             local type=$nstype
