@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.37.2 (2024-08-20)
+
+    [release-1.37] Bump c/common to v0.60.2, c/image to v5.32.2
+
 ## v1.37.1 (2024-08-12)
 
     [release-1.37] Bump c/common v0.60.1, c/image v5.32.1
