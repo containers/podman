@@ -7,9 +7,10 @@ type listMachine struct {
 		-q, --quiet           Show only machine names
 	*/
 
-	format    string
-	noHeading bool
-	quiet     bool
+	format       string
+	noHeading    bool
+	quiet        bool
+	allProviders bool
 
 	cmd []string
 }
@@ -25,6 +26,10 @@ func (i *listMachine) buildCmd(m *machineTestBuilder) []string {
 	if i.quiet {
 		cmd = append(cmd, "--quiet")
 	}
+	if i.allProviders {
+		cmd = append(cmd, "--all-providers")
+	}
+
 	i.cmd = cmd
 	return cmd
 }
@@ -41,5 +46,10 @@ func (i *listMachine) withQuiet() *listMachine {
 
 func (i *listMachine) withFormat(format string) *listMachine {
 	i.format = format
+	return i
+}
+
+func (i *listMachine) withAllProviders() *listMachine {
+	i.allProviders = true
 	return i
 }

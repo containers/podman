@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
 const podmanBinary = "../../../bin/windows/podman.exe"
@@ -22,4 +24,13 @@ func pgrep(n string) (string, error) {
 		return "", fmt.Errorf("no task found")
 	}
 	return strOut, nil
+}
+
+func getOtherProvider() string {
+	if isVmtype(define.WSLVirt) {
+		return "hyperv"
+	} else if isVmtype(define.HyperVVirt) {
+		return "wsl"
+	}
+	return ""
 }

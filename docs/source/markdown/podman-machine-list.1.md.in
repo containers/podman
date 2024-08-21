@@ -26,6 +26,10 @@ environment variable while the machines are running can lead to unexpected behav
 
 ## OPTIONS
 
+#### **--all-providers**
+
+Show machines from all providers
+
 #### **--format**=*format*
 
 Change the default output format.  This can be of a supported type like 'json'
