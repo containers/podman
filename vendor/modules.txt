@@ -107,9 +107,8 @@ github.com/chzyer/readline
 # github.com/containerd/cgroups/v3 v3.0.3
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
-# github.com/containerd/containerd v1.7.18
+# github.com/containerd/containerd v1.7.20
 ## explicit; go 1.21
-github.com/containerd/containerd/errdefs
 github.com/containerd/containerd/platforms
 # github.com/containerd/errdefs v0.1.0
 ## explicit; go 1.20
@@ -117,6 +116,9 @@ github.com/containerd/errdefs
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
+# github.com/containerd/platforms v0.2.1
+## explicit; go 1.20
+github.com/containerd/platforms
 # github.com/containerd/stargz-snapshotter/estargz v0.15.1
 ## explicit; go 1.19
 github.com/containerd/stargz-snapshotter/estargz
@@ -525,7 +527,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/fsouza/go-dockerclient v1.11.1
+# github.com/fsouza/go-dockerclient v1.11.2
 ## explicit; go 1.21
 github.com/fsouza/go-dockerclient
 # github.com/gabriel-vasile/mimetype v1.4.3
@@ -792,8 +794,8 @@ github.com/mistifyio/go-zfs/v3
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/buildkit v0.12.5
-## explicit; go 1.20
+# github.com/moby/buildkit v0.15.1
+## explicit; go 1.21.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
 github.com/moby/buildkit/frontend/dockerfile/shell
@@ -909,11 +911,12 @@ github.com/opencontainers/runtime-tools/validate/capabilities
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.14
-## explicit; go 1.19
+# github.com/openshift/imagebuilder v1.2.15
+## explicit; go 1.21.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
+github.com/openshift/imagebuilder/internal
 github.com/openshift/imagebuilder/signal
 github.com/openshift/imagebuilder/strslice
 # github.com/opentracing/opentracing-go v1.2.0

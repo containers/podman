@@ -18,6 +18,7 @@ import (
 	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"
 	buildkitshell "github.com/moby/buildkit/frontend/dockerfile/shell"
 	"github.com/openshift/imagebuilder/dockerfile/command"
+	"github.com/openshift/imagebuilder/internal"
 )
 
 // Node is a structure used to represent a parse tree.
@@ -408,7 +409,7 @@ func heredocsFromLine(line string) ([]buildkitparser.Heredoc, error) {
 	shlex.RawQuotes = true
 	shlex.RawEscapes = true
 	shlex.SkipUnsetEnv = true
-	words, _ := shlex.ProcessWords(line, []string{})
+	words, _ := shlex.ProcessWords(line, internal.EnvironmentSlice([]string{}))
 
 	var docs []buildkitparser.Heredoc
 	for _, word := range words {

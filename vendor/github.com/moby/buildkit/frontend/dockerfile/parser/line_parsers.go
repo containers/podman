@@ -17,6 +17,7 @@ import (
 
 var (
 	errDockerfileNotStringArray = errors.New("when using JSON array syntax, arrays must be comprised of strings only")
+	errDockerfileNotJSONArray   = errors.New("not a JSON array")
 )
 
 const (
@@ -58,11 +59,11 @@ func parseWords(rest string, d *directives) []string {
 
 	words := []string{}
 	phase := inSpaces
-	word := ""
 	quote := '\000'
 	blankOK := false
 	var ch rune
 	var chWidth int
+	var sbuilder strings.Builder
 
 	for pos := 0; pos <= len(rest); pos += chWidth {
 		if pos != len(rest) {
@@ -79,18 +80,18 @@ func parseWords(rest string, d *directives) []string {
 			phase = inWord // found it, fall through
 		}
 		if (phase == inWord || phase == inQuote) && (pos == len(rest)) {
-			if blankOK || len(word) > 0 {
-				words = append(words, word)
+			if blankOK || sbuilder.Len() > 0 {
+				words = append(words, sbuilder.String())
 			}
 			break
 		}
 		if phase == inWord {
 			if unicode.IsSpace(ch) {
 				phase = inSpaces
-				if blankOK || len(word) > 0 {
-					words = append(words, word)
+				if blankOK || sbuilder.Len() > 0 {
+					words = append(words, sbuilder.String())
 				}
-				word = ""
+				sbuilder.Reset()
 				blankOK = false
 				continue
 			}
@@ -106,11 +107,11 @@ func parseWords(rest string, d *directives) []string {
 				// If we're not quoted and we see an escape token, then always just
 				// add the escape token plus the char to the word, even if the char
 				// is a quote.
-				word += string(ch)
+				sbuilder.WriteRune(ch)
 				pos += chWidth
 				ch, chWidth = utf8.DecodeRuneInString(rest[pos:])
 			}
-			word += string(ch)
+			sbuilder.WriteRune(ch)
 			continue
 		}
 		if phase == inQuote {
@@ -124,10 +125,10 @@ func parseWords(rest string, d *directives) []string {
 					continue // just skip the escape token at end
 				}
 				pos += chWidth
-				word += string(ch)
+				sbuilder.WriteRune(ch)
 				ch, chWidth = utf8.DecodeRuneInString(rest[pos:])
 			}
-			word += string(ch)
+			sbuilder.WriteRune(ch)
 		}
 	}
 
@@ -154,7 +155,7 @@ func parseNameVal(rest string, key string, d *directives) (*Node, error) {
 		if len(parts) < 2 {
 			return nil, errors.Errorf("%s must have two arguments", key)
 		}
-		return newKeyValueNode(parts[0], parts[1]), nil
+		return newKeyValueNode(parts[0], parts[1], ""), nil
 	}
 
 	var rootNode *Node
@@ -165,17 +166,20 @@ func parseNameVal(rest string, key string, d *directives) (*Node, error) {
 		}
 
 		parts := strings.SplitN(word, "=", 2)
-		node := newKeyValueNode(parts[0], parts[1])
+		node := newKeyValueNode(parts[0], parts[1], "=")
 		rootNode, prevNode = appendKeyValueNode(node, rootNode, prevNode)
 	}
 
 	return rootNode, nil
 }
 
-func newKeyValueNode(key, value string) *Node {
+func newKeyValueNode(key, value, sep string) *Node {
 	return &Node{
 		Value: key,
-		Next:  &Node{Value: value},
+		Next: &Node{
+			Value: value,
+			Next:  &Node{Value: sep},
+		},
 	}
 }
 
@@ -187,7 +191,9 @@ func appendKeyValueNode(node, rootNode, prevNode *Node) (*Node, *Node) {
 		prevNode.Next = node
 	}
 
-	prevNode = node.Next
+	for prevNode = node.Next; prevNode.Next != nil; {
+		prevNode = prevNode.Next
+	}
 	return rootNode, prevNode
 }
 
@@ -269,14 +275,14 @@ func parseString(rest string, d *directives) (*Node, map[string]bool, error) {
 }
 
 // parseJSON converts JSON arrays to an AST.
-func parseJSON(rest string, d *directives) (*Node, map[string]bool, error) {
+func parseJSON(rest string) (*Node, map[string]bool, error) {
 	rest = strings.TrimLeftFunc(rest, unicode.IsSpace)
 	if !strings.HasPrefix(rest, "[") {
-		return nil, nil, errors.Errorf("Error parsing %q as a JSON array", rest)
+		return nil, nil, errDockerfileNotJSONArray
 	}
 
 	var myJSON []interface{}
-	if err := json.NewDecoder(strings.NewReader(rest)).Decode(&myJSON); err != nil {
+	if err := json.Unmarshal([]byte(rest), &myJSON); err != nil {
 		return nil, nil, err
 	}
 
@@ -307,7 +313,7 @@ func parseMaybeJSON(rest string, d *directives) (*Node, map[string]bool, error) 
 		return nil, nil, nil
 	}
 
-	node, attrs, err := parseJSON(rest, d)
+	node, attrs, err := parseJSON(rest)
 
 	if err == nil {
 		return node, attrs, nil
@@ -325,7 +331,7 @@ func parseMaybeJSON(rest string, d *directives) (*Node, map[string]bool, error) 
 // so, passes to parseJSON; if not, attempts to parse it as a whitespace
 // delimited string.
 func parseMaybeJSONToList(rest string, d *directives) (*Node, map[string]bool, error) {
-	node, attrs, err := parseJSON(rest, d)
+	node, attrs, err := parseJSON(rest)
 
 	if err == nil {
 		return node, attrs, nil

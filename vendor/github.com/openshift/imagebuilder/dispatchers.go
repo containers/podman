@@ -18,9 +18,10 @@ import (
 
 	docker "github.com/fsouza/go-dockerclient"
 
-	"github.com/containerd/containerd/errdefs"
-	"github.com/containerd/containerd/platforms"
+	"github.com/containerd/errdefs"
+	"github.com/containerd/platforms"
 	"github.com/containers/storage/pkg/regexp"
+	"github.com/openshift/imagebuilder/internal"
 	"github.com/openshift/imagebuilder/signal"
 	"github.com/openshift/imagebuilder/strslice"
 
@@ -143,7 +144,7 @@ func processHereDocs(instruction, originalInstruction string, heredocs []buildki
 			shlex := buildkitshell.NewLex('\\')
 			shlex.RawQuotes = true
 			shlex.RawEscapes = true
-			content, err = shlex.ProcessWord(content, args)
+			content, _, err = shlex.ProcessWord(content, internal.EnvironmentSlice(args))
 			if err != nil {
 				return nil, err
 			}
