@@ -2,7 +2,6 @@ package inspect
 
 import (
 	"context"
-	"encoding/json" // due to a bug in json-iterator it cannot be used here
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
@@ -163,7 +163,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	var err error
 	switch {
 	case report.IsJSON(i.options.Format) || i.options.Format == "":
-		err = printJSON(data)
+		err = utils.PrintGenericJSON(data)
 	default:
 		// Landing here implies user has given a custom --format
 		var rpt *report.Formatter
@@ -189,15 +189,6 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		return errs[0]
 	}
 	return nil
-}
-
-func printJSON(data interface{}) error {
-	enc := json.NewEncoder(os.Stdout)
-	// by default, json marshallers will force utf=8 from
-	// a string. this breaks healthchecks that use <,>, &&.
-	enc.SetEscapeHTML(false)
-	enc.SetIndent("", "     ")
-	return enc.Encode(data)
 }
 
 func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, []error, error) {

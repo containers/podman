@@ -5,6 +5,8 @@ Commands
 
 :doc:`Podman <markdown/podman.1>` (Pod Manager) Global Options, Environment Variables, Exit Codes, Configuration Files, and more
 
+:doc:`artifact <markdown/podman-artifact.1>` Manage OCI artifacts
+
 :doc:`attach <markdown/podman-attach.1>` Attach to a running container
 
 :doc:`auto-update <markdown/podman-auto-update.1>` Auto update containers according to their auto-update policy

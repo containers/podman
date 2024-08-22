@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -147,4 +148,13 @@ func RemoveSlash(input []string) []string {
 		output = append(output, strings.TrimPrefix(in, "/"))
 	}
 	return output
+}
+
+func PrintGenericJSON(data interface{}) error {
+	enc := json.NewEncoder(os.Stdout)
+	// by default, json marshallers will force utf=8 from
+	// a string.
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "     ")
+	return enc.Encode(data)
 }

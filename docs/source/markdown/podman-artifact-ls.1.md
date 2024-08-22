@@ -1,0 +1,57 @@
+% podman-artifact-ls 1
+
+
+## WARNING: Experimental command
+*This command is considered experimental and still in development. Inputs, options, and outputs are all
+subject to change.*
+
+## NAME
+podman\-artifact\-ls - List OCI artifacts in local store
+
+## SYNOPSIS
+**podman artifact ls** [*options*]
+
+## DESCRIPTION
+
+List all local artifacts in your local store.
+
+## OPTIONS
+
+#### **--format**
+
+Print results with a Go template.
+
+| **Placeholder** | **Description**                                |
+|-----------------|------------------------------------------------|
+| .Digest         | The computed digest of the artifact's manifest |
+| .Repository     | Repository name of the artifact                |
+| .Size           | Size artifact in human readable units          |
+| .Tag            | Tag of the artifact name                       |
+
+
+
+## EXAMPLES
+
+List artifacts in the local store
+```
+$ podman artifact ls
+REPOSITORY                TAG         DIGEST                                                            SIZE
+quay.io/artifact/foobar1  latest      ab609fad386df1433f461b0643d9cf575560baf633809dcc9c190da6cc3a3c29  2.097GB
+quay.io/artifact/foobar2  special     cd734b558ceb8ccc0281ca76530e1dea1eb479407d3163f75fb601bffb6f73d0  12.58MB
+
+
+```
+List artifact digests and size using a --format
+```
+$ podman artifact ls --format "{{.Digest}} {{.Size}}"
+ab609fad386df1433f461b0643d9cf575560baf633809dcc9c190da6cc3a3c29 2.097GB
+cd734b558ceb8ccc0281ca76530e1dea1eb479407d3163f75fb601bffb6f73d0 12.58MB
+```
+
+
+
+## SEE ALSO
+**[podman(1)](podman.1.md)**, **[podman-artifact(1)](podman-artifact.1.md)**
+
+## HISTORY
+Jan 2025, Originally compiled by Brent Baude <bbaude@redhat.com>
