@@ -880,6 +880,8 @@ Valid options for `[Pod]` are listed below:
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
 | GIDMap=0:10000:10                   | --gidmap=0:10000:10                   |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
+| IP=192.5.0.1                        | --ip 192.5.0.1                         |
+| IP6=2001:db8::1                     | --ip6 2001:db8::1                      |
 | Network=host                        | --network host                         |
 | NetworkAlias=name                   | --network-alias name                   |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
@@ -918,6 +920,16 @@ The format of this is a space separated list of arguments, which can optionally 
 escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
+
+### `IP=`
+
+Specify a static IPv4 address for the pod, for example **10.88.64.128**.
+Equivalent to the Podman `--ip` option.
+
+### `IP6=`
+
+Specify a static IPv6 address for the pod, for example **fd46:db93:aa76:ac37::10**.
+Equivalent to the Podman `--ip6` option.
 
 ### `Network=`
 

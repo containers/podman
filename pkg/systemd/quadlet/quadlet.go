@@ -384,6 +384,8 @@ var (
 		KeyContainersConfModule: true,
 		KeyGIDMap:               true,
 		KeyGlobalArgs:           true,
+		KeyIP:                   true,
+		KeyIP6:                  true,
 		KeyNetwork:              true,
 		KeyNetworkAlias:         true,
 		KeyPodName:              true,
@@ -1678,6 +1680,16 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	execStartPre.addf("--infra-name=%s-infra", podName)
 	execStartPre.addf("--name=%s", podName)
+
+	ip, ok := podUnit.Lookup(PodGroup, KeyIP)
+	if ok && len(ip) > 0 {
+		execStartPre.addf("--ip=%s", ip)
+	}
+
+	ip6, ok := podUnit.Lookup(PodGroup, KeyIP6)
+	if ok && len(ip6) > 0 {
+		execStartPre.addf("--ip6=%s", ip6)
+	}
 
 	handlePodmanArgs(podUnit, PodGroup, execStartPre)
 

@@ -1000,6 +1000,7 @@ BOGUS=foo
 		Entry("Build - Variant Key", "variant.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
+		Entry("Pod - IP", "ip.pod"),
 		Entry("Pod - Name", "name.pod"),
 		Entry("Pod - Network", "network.pod"),
 		Entry("Pod - PodmanArgs", "podmanargs.pod"),
