@@ -1,3 +1,8 @@
+## 2.20.1
+
+### Fixes
+- make BeSpecEvent duration matcher more forgiving [d6f9640]
+
 ## 2.20.0
 
 ### Features
