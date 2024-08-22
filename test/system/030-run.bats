@@ -3,7 +3,7 @@
 load helpers
 load helpers.network
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman run - basic tests" {
     rand=$(random_string 30)
 
@@ -50,12 +50,14 @@ echo $rand        |   0 | $rand
     is "$tests_run" "$(grep . <<<$tests | wc -l)" "Ran the full set of tests"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - global runtime option" {
     skip_if_remote "runtime flag is not passed over remote"
     run_podman 126 --runtime-flag invalidflag run --rm $IMAGE
     is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --memory=0 runtime option" {
     run_podman run --memory=0 --rm $IMAGE echo hello
     if is_rootless && ! is_cgroupsv2; then
@@ -67,6 +69,7 @@ echo $rand        |   0 | $rand
 }
 
 # 'run --preserve-fds' passes a number of additional file descriptors into the container
+# bats test_tags=ci:parallel
 @test "podman run --preserve-fds" {
     skip_if_remote "preserve-fds is meaningless over remote"
 
@@ -78,6 +81,7 @@ echo $rand        |   0 | $rand
 }
 
 # 'run --preserve-fd' passes a list of additional file descriptors into the container
+# bats test_tags=ci:parallel
 @test "podman run --preserve-fd" {
     skip_if_remote "preserve-fd is meaningless over remote"
 
@@ -96,6 +100,7 @@ echo $rand        |   0 | $rand
     assert "${lines[2]}" = "$content"  "cat from fd 40"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - uidmapping has no /sys/kernel mounts" {
     skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     skip_if_rootless "cannot umount as rootless"
@@ -111,6 +116,7 @@ echo $rand        |   0 | $rand
 
 # 'run --rm' goes through different code paths and may lose exit status.
 # See https://github.com/containers/podman/issues/3795
+# bats test_tags=ci:parallel
 @test "podman run --rm" {
 
     run_podman 0 run --rm $IMAGE /bin/true
@@ -121,6 +127,7 @@ echo $rand        |   0 | $rand
     run_podman 1 run --rm $IMAGE sh -c /bin/false
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --name" {
     randomname=c_$(safename)
 
@@ -128,7 +135,7 @@ echo $rand        |   0 | $rand
     cid=$output
 
     run_podman ps --format '{{.Names}}--{{.ID}}'
-    is "$output" "$randomname--${cid:0:12}"
+    assert "$output" =~ "$randomname--${cid:0:12}"
 
     run_podman container exists $randomname
     run_podman container exists $cid
@@ -146,6 +153,7 @@ echo $rand        |   0 | $rand
     run_podman 1 container exists $cid
 }
 
+# not parallelizable due to podman rm -a at end
 @test "podman run --pull" {
     run_podman run --pull=missing $IMAGE true
     is "$output" "" "--pull=missing [present]: no output"
@@ -186,6 +194,7 @@ echo $rand        |   0 | $rand
 }
 
 # 'run --rmi' deletes the image in the end unless it's used by another container
+# CANNOT BE PARALLELIZED because other tests may use $NONLOCAL_IMAGE
 @test "podman run --rmi" {
     # Name of a nonlocal image. It should be pulled in by the first 'run'
     NONLOCAL_IMAGE="$PODMAN_NONLOCAL_IMAGE_FQN"
@@ -234,6 +243,7 @@ echo $rand        |   0 | $rand
 
 # 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.
 # Both are critical for systemd units.
+# bats test_tags=ci:parallel
 @test "podman run --conmon-pidfile --cidfile" {
     pidfile=${PODMAN_TMPDIR}/pidfile
     cidfile=${PODMAN_TMPDIR}/cidfile
@@ -273,6 +283,7 @@ echo $rand        |   0 | $rand
     fi
 }
 
+# bats test_tags=ci:parallel
 @test "podman run docker-archive" {
     skip_if_remote "podman-remote does not support docker-archive"
 
@@ -322,6 +333,7 @@ echo $rand        |   0 | $rand
 # The initial report has to do with bind mounts, but that particular
 # symptom only manifests on a fedora container image -- we have no
 # reproducer on alpine. Checking directory ownership is good enough.
+# bats test_tags=ci:parallel
 @test "podman run : user namespace preserved root ownership" {
     keep="--userns=keep-id"
     is_rootless || keep=""
@@ -339,7 +351,7 @@ echo $rand        |   0 | $rand
 }
 
 # #6829 : add username to /etc/passwd inside container if --userns=keep-id
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman run : add username to /etc/passwd if --userns=keep-id" {
     skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     # Default: always run as root
@@ -374,9 +386,6 @@ echo $rand        |   0 | $rand
                    $IMAGE sh -c 'echo $(pwd;printenv HOME;echo ~)'
             is "$output" "$expect" "run with --userns=keep-id and $name sets \$HOME"
         done < <(parse_table "$tests")
-
-        # Clean up volumes
-        run_podman volume rm -a
     fi
 
     # --privileged should make no difference
@@ -391,6 +400,7 @@ echo $rand        |   0 | $rand
 }
 
 # #6991 : /etc/passwd is modifiable
+# bats test_tags=ci:parallel
 @test "podman run : --userns=keep-id: passwd file is modifiable" {
     skip_if_not_rootless "--userns=keep-id only works in rootless mode"
     run_podman run -d --userns=keep-id --cap-add=dac_override $IMAGE top
@@ -418,6 +428,7 @@ echo $rand        |   0 | $rand
 }
 
 # For #7754: json-file was equating to 'none'
+# bats test_tags=ci:parallel
 @test "podman run --log-driver" {
     # '-' means that LogPath will be blank and there's no easy way to test
     tests="
@@ -477,6 +488,7 @@ json-file | f
        "--log-driver InvalidDriver"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --log-driver journald" {
     skip_if_remote "We cannot read journalctl over remote."
 
@@ -497,6 +509,7 @@ json-file | f
     run_podman rm $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --tz" {
     # This file will always have a constant reference timestamp
     local testfile=/home/podman/testimage-id
@@ -523,6 +536,7 @@ json-file | f
     is "$output" "$expect" "podman run with --tz=local, matches host"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --tz with zoneinfo" {
     _prefetch $SYSTEMD_IMAGE
 
@@ -534,6 +548,7 @@ json-file | f
 }
 
 # run with --runtime should preserve the named runtime
+# bats test_tags=ci:parallel
 @test "podman run : full path to --runtime is preserved" {
     skip_if_remote "podman-remote does not support --runtime option"
 
@@ -556,6 +571,7 @@ json-file | f
     rm -f $new_runtime
 }
 
+# bats test_tags=ci:parallel
 @test "podman --noout run should not print output" {
     cname=c_$(safename)
     run_podman --noout run -d --name $cname $IMAGE echo hi
@@ -565,6 +581,7 @@ json-file | f
     is "$output" "" "output should be empty"
 }
 
+# bats test_tags=ci:parallel
 @test "podman --noout create should not print output" {
     cname=c_$(safename)
     run_podman --noout create --name $cname $IMAGE echo hi
@@ -573,6 +590,7 @@ json-file | f
     is "$output" "" "output should be empty"
 }
 
+# bats test_tags=ci:parallel
 @test "podman --out run should save the container id" {
     outfile=${PODMAN_TMPDIR}/out-results
 
@@ -590,6 +608,7 @@ json-file | f
     is "$output" "" "output should be empty"
 }
 
+# bats test_tags=ci:parallel
 @test "podman --out create should save the container id" {
     outfile=${PODMAN_TMPDIR}/out-results
 
@@ -607,6 +626,7 @@ json-file | f
 }
 
 # Regression test for issue #8082
+# bats test_tags=ci:parallel
 @test "podman run : look up correct image name" {
     # Create a 2nd tag for the local image.
     local newtag="localhost/r_$(safename)/i_$(safename)"
@@ -637,6 +657,7 @@ json-file | f
 }
 
 # Regression test for issue #8558
+# CANNOT BE PARALLELIZED: temporarily untags $IMAGE
 @test "podman run on untagged image: make sure that image metadata is set" {
     run_podman inspect $IMAGE --format "{{.ID}}"
     imageID="$output"
@@ -649,22 +670,41 @@ json-file | f
     run_podman tag $imageID $IMAGE
 }
 
+# bats test_tags=ci:parallel
 @test "podman inspect includes image data" {
     randomname=c_$(safename)
 
     run_podman inspect $IMAGE --format "{{.ID}}"
     expected="$IMAGE $output"
-    run_podman inspect $IMAGE --format "{{.RepoDigests}}"
-    expectedDigests="$output"
+
+    # .RepoDigests gives us an array of [quay.io/libpod/testimage@sha256:xxxx ...]
+    # .ImageDigest (below) only gives us the sha256:xxxx part.
+    run_podman inspect $IMAGE --format "{{json .RepoDigests}}"
+    # ...so, strip off the prefix and get an array of sha strings
+    declare -a expectedDigests=($(jq -r '.[]' <<<"$output" |\
+                                      sed -e "s;^${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}@;;"))
 
     run_podman run --name $randomname $IMAGE true
     run_podman container inspect $randomname --format "{{.ImageName}} {{.Image}}"
     is "$output" "$expected"
     run_podman container inspect $randomname --format "{{.ImageDigest}}"
-    assert "$output" =~ "$expectedDigests"
+    local actualDigest="$output"
+
+    local found=
+    for digest in "${expectedDigests[@]}"; do
+        echo "checking $digest"
+        if [[ "$actualDigest" = "$digest" ]]; then
+            found=1
+            break
+        fi
+    done
+
+    test -n "$found" || die "container .ImageDigest does not match any of image .RepoDigests"
+
     run_podman rm -f -t0 $randomname
 }
 
+# bats test_tags=ci:parallel
 @test "Verify /run/.containerenv exist" {
     # Nonprivileged container: file exists, but must be empty
     for opt in "" "--tmpfs=/run" "--tmpfs=/run --init" "--read-only" "--systemd=always"; do
@@ -700,6 +740,7 @@ json-file | f
     is "${lines[5]}" "$rootless"      'containerenv : $rootless'
 }
 
+# bats test_tags=ci:parallel
 @test "podman run with --net=host and --port prints warning" {
     rand=$(random_string 10)
 
@@ -710,6 +751,7 @@ json-file | f
     is "${lines[1]}" "$rand" "Container runs successfully despite warning"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - check workdir" {
     # Workdirs specified via the CLI are not created on the root FS.
     run_podman 126 run --rm --workdir /i/do/not/exist $IMAGE pwd
@@ -753,6 +795,7 @@ json-file | f
 # https://github.com/containers/podman/issues/9096
 # podman exec may truncate stdout/stderr; actually a bug in conmon:
 # https://github.com/containers/conmon/issues/236
+# CANNOT BE PARALLELIZED due to "-l"
 # bats test_tags=distro-integration
 @test "podman run - does not truncate or hang with big output" {
     # Size, in bytes, to dd and to expect in return
@@ -791,12 +834,14 @@ json-file | f
     run_podman rm $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - do not set empty HOME" {
     # Regression test for #9378.
     run_podman run --rm --user 100 $IMAGE printenv
     is "$output" ".*HOME=/.*"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --timeout - basic test" {
     cname=c_$(safename)
     t0=$SECONDS
@@ -818,6 +863,7 @@ json-file | f
     run_podman rm $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman run no /etc/mtab " {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -827,13 +873,16 @@ FROM $IMAGE
 RUN rm /etc/mtab
 EOF
     expected="'/etc/mtab' -> '/proc/mounts'"
-    run_podman build -t nomtab $tmpdir
-    run_podman run --rm nomtab stat -c %N /etc/mtab
+
+    local iname=nomtab-$(safename)
+    run_podman build -t $iname $tmpdir
+    run_podman run --rm $iname stat -c %N /etc/mtab
     is "$output" "$expected" "/etc/mtab should be created"
 
-    run_podman rmi nomtab
+    run_podman rmi $iname
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --hostuser tests" {
     skip_if_not_rootless "test whether hostuser is successfully added"
     user=$(id -un)
@@ -857,6 +906,7 @@ EOF
     run_podman 126 run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --device-cgroup-rule tests" {
     if is_rootless; then
         run_podman 125 run --device-cgroup-rule="b 7:* rmw" --rm $IMAGE
@@ -878,12 +928,14 @@ EOF
     is "$output" "Error: strconv.ParseUint: parsing \"a\": invalid syntax"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run closes stdin" {
     random_1=$(random_string 25)
     run_podman run -i --rm $IMAGE cat <<<"$random_1"
     is "$output" "$random_1" "output matches STDIN"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run defaultenv" {
     run_podman run --rm $IMAGE printenv
     assert "$output" !~ "TERM=" "env doesn't include TERM by default"
@@ -912,6 +964,7 @@ EOF
            "missing TERM environment variable despite TERM being set on commandline"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - no /etc/hosts" {
     if [[ -z "$container" ]]; then
         skip "Test is too dangerous to run in a non-container environment"
@@ -932,6 +985,7 @@ EOF
 }
 
 # rhbz#1854566 : $IMAGE has incorrect permission 555 on the root '/' filesystem
+# bats test_tags=ci:parallel
 @test "podman run image with filesystem permission" {
     # make sure the IMAGE image have permissiong of 555 like filesystem RPM expects
     run_podman run --rm $IMAGE stat -c %a /
@@ -939,6 +993,7 @@ EOF
 }
 
 # rhbz#1763007 : the --log-opt for podman run does not work as expected
+# bats test_tags=ci:parallel
 @test "podman run with log-opt option" {
     # Pseudorandom size of the form N.NNN. The '| 1' handles '0.NNN' or 'N.NN0',
     # which podman displays as 'NNN kB' or 'N.NN MB' respectively.
@@ -953,6 +1008,7 @@ EOF
     run_podman rm -t -1 -f $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --kernel-memory warning" {
     # Not sure what situations this fails in, but want to make sure warning shows.
     run_podman '?' run --rm --kernel-memory 100 $IMAGE false
@@ -961,6 +1017,7 @@ EOF
 }
 
 # rhbz#1902979 : podman run fails to update /etc/hosts when --uidmap is provided
+# bats test_tags=ci:parallel
 @test "podman run update /etc/hosts" {
     skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     HOST=$(random_string 25)
@@ -968,6 +1025,7 @@ EOF
     is "${lines[0]}" ".*${HOST}.*"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run doesn't override oom-score-adj" {
     current_oom_score_adj=$(cat /proc/self/oom_score_adj)
     run_podman run --rm $IMAGE cat /proc/self/oom_score_adj
@@ -993,6 +1051,7 @@ EOF
 }
 
 # issue 19829
+# bats test_tags=ci:parallel
 @test "rootless podman clamps oom-score-adj if it is lower than the current one" {
     skip_if_not_rootless
     skip_if_remote
@@ -1004,6 +1063,7 @@ EOF
 }
 
 # CVE-2022-1227 : podman top joins container mount NS and uses nsenter from image
+# bats test_tags=ci:parallel
 @test "podman top does not use nsenter from image" {
     keepid="--userns=keep-id"
     is_rootless || keepid=""
@@ -1020,7 +1080,7 @@ echo -e "#!/bin/sh\nfalse" >> /usr/bin/nsenter; \
 chmod +x /usr/bin/nsenter
 EOF
 
-    test_image="cve_2022_1227_test"
+    test_image="cve_2022_1227_test-$(safename)"
     run_podman build -t $test_image $tmpbuilddir
     run_podman run -d ${keepid} $test_image top
     ctr="$output"
@@ -1029,6 +1089,7 @@ EOF
     run_podman rmi $test_image
 }
 
+# bats test_tags=ci:parallel
 @test "podman create --security-opt" {
     run_podman create --security-opt no-new-privileges=true $IMAGE
     run_podman rm $output
@@ -1040,22 +1101,27 @@ EOF
     run_podman rm $output
 }
 
-# bats file_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman run --device-read-bps" {
     skip_if_rootless "cannot use this flag in rootless mode"
+
+    local cid
     # this test is a triple check on blkio flags since they seem to sneak by the tests
     if is_cgroupsv2; then
         run_podman run -dt --device-read-bps=/dev/zero:1M $IMAGE top
+        cid=$output
         run_podman exec -it $output cat /sys/fs/cgroup/io.max
         is "$output" ".*1:5 rbps=1048576 wbps=max riops=max wiops=max" "throttle devices passed successfully.*"
     else
         run_podman run -dt --device-read-bps=/dev/zero:1M $IMAGE top
+        cid=$output
         run_podman exec -it $output cat /sys/fs/cgroup/blkio/blkio.throttle.read_bps_device
         is "$output" ".*1:5 1048576" "throttle devices passed successfully.*"
     fi
-    run_podman container rm -fa
+    run_podman container rm -f -t0 $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman run failed --rm " {
     port=$(random_free_port)
 
@@ -1067,16 +1133,20 @@ EOF
     # Run two containers with the same port bindings. The second must fail
     run_podman     run -p $port:80 --rm -d --name $c_ok           $IMAGE top
     run_podman 126 run -p $port:80      -d --name $c_fail_no_rm   $IMAGE top
+    assert "$output" =~ "ddress already in use"
     run_podman 126 run -p $port:80 --rm -d --name $c_fail_with_rm $IMAGE top
+    assert "$output" =~ "ddress already in use"
     # Prior to #15060, the third container would still show up in ps -a
-    run_podman ps -a --sort names --format '{{.Image}}--{{.Names}}'
-    is "$output" "$IMAGE--${c_ok}
-$IMAGE--${c_fail_no_rm}" \
-       "podman ps -a shows running & failed containers, but not failed-with-rm"
+    run_podman ps -a --sort names --format '--{{.Image}}-{{.Names}}--'
+    assert "$output" !~ "$c_fail_with_rm" \
+           "podman ps -a must not show failed container run with --rm"
+    assert "$output" =~ "--$IMAGE-${c_ok}--.*--$IMAGE-${c_fail_no_rm}--" \
+           "podman ps -a shows running & failed containers"
 
     run_podman container rm -f -t 0 $c_ok $c_fail_no_rm
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --attach stdin prints container ID" {
     ctr_name="container-$(safename)"
     run_podman run --name $ctr_name --attach stdin $IMAGE echo hello
@@ -1088,6 +1158,7 @@ $IMAGE--${c_fail_no_rm}" \
 }
 
 # 15895: --privileged + --systemd = hide /dev/ttyNN
+# bats test_tags=ci:parallel
 @test "podman run --privileged as root with systemd will not mount /dev/tty" {
     skip_if_rootless "this test only makes sense as root"
 
@@ -1121,6 +1192,7 @@ $IMAGE--${c_fail_no_rm}" \
     run_podman rm -t -1 -f $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --privileged as rootless will not mount /dev/tty\d+" {
     skip_if_not_rootless "this test as rootless"
 
@@ -1143,6 +1215,7 @@ $IMAGE--${c_fail_no_rm}" \
 }
 
 # 16925: --privileged + --systemd = share non-virtual-terminal TTYs (both rootful and rootless)
+# bats test_tags=ci:parallel
 @test "podman run --privileged as root with systemd mounts non-vt /dev/tty devices" {
     # First, confirm that we _have_ non-virtual terminal /dev/tty* devices on
     # the host.
@@ -1162,6 +1235,7 @@ $IMAGE--${c_fail_no_rm}" \
     run_podman stop -t 0 $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman run read-only from containers.conf" {
     containersconf=$PODMAN_TMPDIR/containers.conf
     cat >$containersconf <<EOF
@@ -1186,6 +1260,7 @@ touch: /dev/shm/d: Read-only file system
 touch: /run/e: Read-only file system"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run ulimit from containers.conf" {
     skip_if_remote "containers.conf has to be set on remote, only tested on E2E test"
     containersconf=$PODMAN_TMPDIR/containers.conf
@@ -1205,6 +1280,7 @@ EOF
     assert "$output" =~ " ${nofile2}  * ${nofile2}  * files"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run ulimit with -1" {
     max=unlimited
     if is_rootless; then
@@ -1225,6 +1301,7 @@ EOF
     is "$output" "Error: ulimit option \"core=-1:1000\" requires name=SOFT:HARD, failed to be parsed: ulimit soft limit must be less than or equal to hard limit: soft: -1 (unlimited), hard: 1000"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run bad --name" {
     randomname=c_$(safename)
     run_podman 125 create --name "$randomname/bad" $IMAGE
@@ -1235,6 +1312,7 @@ EOF
     run_podman 125 create --name "$randomname/" $IMAGE
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --net=host --cgroupns=host with read only cgroupfs" {
     skip_if_rootless_cgroupsv1
 
@@ -1253,6 +1331,7 @@ EOF
     fi
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - idmapped mounts" {
     skip_if_rootless "idmapped mounts work only with root for now"
 
@@ -1310,6 +1389,7 @@ EOF
     rm -rf $romount
 }
 
+# bats test_tags=ci:parallel
 @test "podman run --restart=always/on-failure -- wait" {
     # regression test for #18572 to make sure Podman waits less than 20 seconds
     ctr=c_$(safename)
@@ -1321,6 +1401,7 @@ EOF
     done
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - custom static_dir" {
     # regression test for #19938 to make sure the cleanup process uses the same
     # static_dir and writes the exit code.  If not, podman-run will run into
@@ -1344,6 +1425,7 @@ EOF
     CONTAINERS_CONF_OVERRIDE=$containersconf run_podman rm -f -t0 $ctr
 }
 
+# bats test_tags=ci:parallel
 @test "podman --authfile=nonexistent-path" {
     # List of commands to be tested. These all share a common authfile check.
     #
@@ -1363,7 +1445,7 @@ manifest inspect     | $IMAGE           |
 manifest push        | $IMAGE           |
 pull                 | $IMAGE           |
 push                 | $IMAGE           |
-run                  | $IMAGE false     |
+run --rm             | $IMAGE false     |
 search               | $IMAGE           |
 "
 
@@ -1391,13 +1473,16 @@ search               | $IMAGE           |
            REGISTRY_AUTH_FILE=$bogus run_podman ? $command $args
            assert "$output" !~ "credential file is not accessible" \
               "$command REGISTRY_AUTH_FILE=nonexistent-path"
+
+           # "create" leaves behind a container. Clean it up.
+           if [[ "$command" = "create" ]]; then
+               run_podman container rm $output
+           fi
         fi
     done < <(parse_table "$tests")
-
-    # test cases above create two containers
-    run_podman rm -fa
 }
 
+# bats test_tags=ci:parallel
 @test "podman --syslog and environment passed to conmon" {
     skip_if_remote "--syslog is not supported for remote clients"
     skip_if_journald_unavailable
@@ -1418,6 +1503,7 @@ search               | $IMAGE           |
     run_podman rm -f -t0 $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman create container with conflicting name" {
     local cname=c_$(safename)
     local output_msg_ext="^Error: .*: the container name \"$cname\" is already in use by .* You have to remove that container to be able to reuse that name: that name is already in use by an external entity, or use --replace to instruct Podman to do so."
@@ -1444,6 +1530,7 @@ search               | $IMAGE           |
 }
 
 # https://issues.redhat.com/browse/RHEL-14469
+# bats test_tags=ci:parallel
 @test "podman run - /run must not be world-writable in systemd containers" {
     _prefetch $SYSTEMD_IMAGE
 
@@ -1457,6 +1544,7 @@ search               | $IMAGE           |
     run_podman rm -f -t0 $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman run with mounts.conf missing" {
     skip_if_remote "--default-mounts-file is not supported for remote clients"
     MOUNTS_CONF=$PODMAN_TMPDIR/mounts.conf
@@ -1481,6 +1569,7 @@ search               | $IMAGE           |
     assert "$output" = "$randcontent" "mounts should appear in container"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - rm pod if container creation failed with -pod new:" {
     cname=c_$(safename)
     run_podman run -d --name $cname $IMAGE hostname
@@ -1495,9 +1584,9 @@ search               | $IMAGE           |
     run_podman 1 pod exists $podname
 
     run_podman rm $cid
-    run_podman rmi $(pause_image)
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - no entrypoint" {
     run_podman 127 run --rm --rootfs "$PODMAN_TMPDIR"
 
@@ -1514,6 +1603,7 @@ search               | $IMAGE           |
     is "$output" "Error.*: $expect" "podman emits useful diagnostic when no entrypoint is set"
 }
 
+# bats test_tags=ci:parallel
 @test "podman run - stopping loop" {
     skip_if_remote "this doesn't work with with the REST service"
 
