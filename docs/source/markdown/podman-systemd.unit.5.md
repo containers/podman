@@ -257,6 +257,7 @@ Valid options for `[Container]` are listed below:
 |--------------------------------------|------------------------------------------------------|
 | AddCapability=CAP                    | --cap-add CAP                                        |
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
+| AddHost=hostname:192.168.10.11       | --add-host=hostname:192.168.10.11                    |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
 | CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
@@ -354,6 +355,14 @@ the container, and `PERMISSIONS` is a list of permissions combining 'r' for read
 'w' for write, and 'm' for mknod(2). The `-` prefix tells Quadlet to add the device
 only if it exists on the host.
 
+This key can be listed multiple times.
+
+### `AddHost=`
+
+Add  host-to-IP mapping to /etc/hosts.
+The format is `hostname:ip`.
+
+Equivalent to the Podman `--add-host` option.
 This key can be listed multiple times.
 
 ### `Annotation=`
@@ -877,6 +886,7 @@ Valid options for `[Pod]` are listed below:
 
 | **[Pod] options**                   | **podman container create equivalent** |
 |-------------------------------------|----------------------------------------|
+| AddHost=hostname:192.168.10.11      | --add-host=hostname:192.168.10.11      |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
 | GIDMap=0:10000:10                   | --gidmap=0:10000:10                   |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
@@ -895,6 +905,14 @@ Valid options for `[Pod]` are listed below:
 | Volume=/source:/dest                | --volume /source:/dest                 |
 
 Supported keys in the `[Pod]` section are:
+
+### `AddHost=`
+
+Add  host-to-IP mapping to /etc/hosts.
+The format is `hostname:ip`.
+
+Equivalent to the Podman `--add-host` option.
+This key can be listed multiple times.
 
 ### `ContainersConfModule=`
 
