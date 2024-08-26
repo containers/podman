@@ -39,5 +39,10 @@ environment variable while the machines are running can lead to unexpected behav
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-machine-info(1)](podman-machine-info.1.md)**, **[podman-machine-init(1)](podman-machine-init.1.md)**, **[podman-machine-list(1)](podman-machine-list.1.md)**, **[podman-machine-os(1)](podman-machine-os.1.md)**, **[podman-machine-rm(1)](podman-machine-rm.1.md)**, **[podman-machine-ssh(1)](podman-machine-ssh.1.md)**, **[podman-machine-start(1)](podman-machine-start.1.md)**, **[podman-machine-stop(1)](podman-machine-stop.1.md)**, **[podman-machine-inspect(1)](podman-machine-inspect.1.md)**, **[podman-machine-reset(1)](podman-machine-reset.1.md)**
 
+### Troubleshooting
+
+See [podman-troubleshooting(7)](https://github.com/containers/podman/blob/main/troubleshooting.md)
+for solutions to common issues.
+
 ## HISTORY
 March 2021, Originally compiled by Ashley Cui <acui@redhat.com>

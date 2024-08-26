@@ -95,7 +95,7 @@ OCI_RUNTIME ?= ""
 MANPAGES_SOURCE_DIR = docs/source/markdown
 MANPAGES_MD_IN ?= $(wildcard $(MANPAGES_SOURCE_DIR)/*.md.in)
 MANPAGES_MD_GENERATED ?= $(MANPAGES_MD_IN:%.md.in=%.md)
-MANPAGES_MD ?= $(sort $(wildcard $(MANPAGES_SOURCE_DIR)/*.md) $(MANPAGES_MD_GENERATED))
+MANPAGES_MD ?= $(sort $(wildcard $(MANPAGES_SOURCE_DIR)/*.md) $(MANPAGES_MD_GENERATED) $(MANPAGES_SOURCE_DIR)/podman-troubleshooting.7.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
@@ -523,15 +523,19 @@ pkg/api/swagger.yaml: .install.swagger
 $(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
 	hack/markdown-preprocess
 
+$(MANPAGES_SOURCE_DIR)/podman-troubleshooting.7.md: troubleshooting.md
+	( echo "% podman-troubleshooting 7"; echo; sed -e '/logo.*\.png/d' <$< ) >$@.tmp.$$ && \
+		mv $@.tmp.$$ $@
+
 $(MANPAGES): OUTFILE=$(subst source/markdown,build/man,$@)
 $(MANPAGES): %: %.md .install.md2man docdir
 
 # This does a bunch of filtering needed for man pages:
-#  1. Strip markdown link targets like '[podman(1)](podman.1.md)'
+#  1. Convert all markdown site links to plain text:
+#           [foo](https://www.....)   ->   foo
+#  2. Strip man-page targets like '[podman(1)](podman.1.md)'
 #     to just '[podman(1)]', because man pages have no link mechanism;
-#  2. Then remove the brackets: '[podman(1)]' -> 'podman(1)';
-#  3. Then do the same for all other markdown links,
-#     like '[cgroups(7)](https://.....)'  -> just 'cgroups(7)';
+#  3. Then remove the brackets: '[podman(1)]' -> 'podman(1)';
 #  4. Remove HTML-ish stuff like '<sup>..</sup>' and '<a>..</a>'
 #  5. Replace "\" (backslash) at EOL with two spaces (no idea why)
 # Then two sanity checks:
@@ -545,11 +549,11 @@ $(MANPAGES): %: %.md .install.md2man docdir
 #     ASCII art. I (esm) believe the cost of releasing corrupt man pages
 #     is higher than the cost of carrying this kludge.
 #
-	@$(SED) -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g'    \
-	       -e 's/\[\(podman[^]]*\)\]/\1/g'              \
-	       -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
-	       -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
-	       -e 's/\\$$/  /g' $<                         |\
+	@$(SED) -e 's/\[\([^]]*\)](http[^)]\+)/\1/g'         \
+	        -e 's/\((podman[^)]*\.md\(#.*\)\?)\)//g'     \
+	        -e 's/\[\(podman[^]]*\)\]/\1/g'              \
+	        -e 's;<\(/\)\?\(a\|a\s\+[^>]*\|sup\)>;;g'    \
+	        -e 's/\\$$/  /g' $<                         |\
 	$(GOMD2MAN) -out $(OUTFILE)
 	@if grep 'included file options/' $(OUTFILE); then \
 		echo "FATAL: man pages must not contain ^^^^ in $(OUTFILE)"; exit 1; \
@@ -910,10 +914,12 @@ install.modules-load: # This should only be used by distros which might use ipta
 install.man:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(MANDIR)/man7
 	install ${SELINUXOPT} -m 644 $(filter %.1,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*1 $(DESTDIR)$(MANDIR)/man1
 	install ${SELINUXOPT} -m 644 $(filter %.5,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man5
 	install ${SELINUXOPT} -m 644 docs/source/markdown/links/*5 $(DESTDIR)$(MANDIR)/man5
+	install ${SELINUXOPT} -m 644 $(filter %.7,$(MANPAGES_DEST)) $(DESTDIR)$(MANDIR)/man7
 
 .PHONY: install.completions
 install.completions:

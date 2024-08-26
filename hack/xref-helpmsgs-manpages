@@ -599,6 +599,10 @@ sub podman_man {
         elsif ($line =~ /^\#\#\s+SEE\s+ALSO/) {
             $section = 'see-also';
         }
+        # New section or subsection within SEE ALSO: disable the '**' rules.
+        elsif ($line =~ /^\#\#+/ && $section eq 'see-also') {
+            $section = '';
+        }
         elsif ($line =~ /^\#\#[^#]/) {
             $section = '';
         }

@@ -15,7 +15,7 @@ help:
 
 clean:
 	$(RM) -fr build
-	cd source/markdown && $(RM) -f $$(<.gitignore)
+	cd source/markdown && $(RM) -f $$(<.gitignore) podman-troubleshooting.7.md
 
 .PHONY: help Makefile
 
