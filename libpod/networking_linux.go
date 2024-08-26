@@ -256,9 +256,13 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 		}
 		var gateway net.IP
 		for _, route := range routes {
-			// default gateway
-			if route.Dst == nil {
-				gateway = route.Gw
+			// add default gateway
+			// Dst is set to 0.0.0.0/0 or ::/0 which is the default route
+			if route.Dst != nil && route.Dst.IP.IsUnspecified() {
+				ones, _ := route.Dst.Mask.Size()
+				if ones == 0 {
+					gateway = route.Gw
+				}
 			}
 		}
 		result.Interfaces = make(map[string]types.NetInterface)
