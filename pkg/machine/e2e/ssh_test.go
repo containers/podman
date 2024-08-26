@@ -9,23 +9,21 @@ import (
 
 var _ = Describe("podman machine ssh", func() {
 
-	It("bad machine name", func() {
-		name := randomString()
-		ssh := sshMachine{}
-		session, err := mb.setName(name).setCmd(ssh).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(125))
-		Expect(session.errorToString()).To(ContainSubstring("not exist"))
-	})
-
 	It("ssh to non-running machine", func() {
+		// Stop machine with bad name
+		badName := randomString()
+		ssh := sshMachine{}
+		badNameSession, err := mb.setName(badName).setCmd(ssh).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(badNameSession).To(Exit(125))
+		Expect(badNameSession.errorToString()).To(ContainSubstring("not exist"))
+
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		ssh := sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession.errorToString()).To(ContainSubstring("is not running"))

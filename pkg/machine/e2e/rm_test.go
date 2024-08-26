@@ -12,16 +12,14 @@ import (
 )
 
 var _ = Describe("podman machine rm", func() {
-
-	It("bad init name", func() {
-		i := rmMachine{}
-		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		session, err := mb.setName(reallyLongName).setCmd(&i).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(125))
-	})
-
 	It("Remove machine", func() {
+		// Invalid name should result in an error
+		rmBadMachineName := rmMachine{}
+		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		badSession, err := mb.setName(reallyLongName).setCmd(&rmBadMachineName).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(badSession).To(Exit(125))
+
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()

@@ -8,17 +8,16 @@ import (
 
 var _ = Describe("podman machine reset", func() {
 
-	It("starting from scratch should not error", func() {
-		i := resetMachine{}
-		session, err := mb.setCmd(i.withForce()).run()
+	It("reset machine with one defined machine", func() {
+		// starting from scratch should not error
+		resetMachine := resetMachine{}
+		session, err := mb.setCmd(resetMachine.withForce()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
-	})
 
-	It("reset machine with one defined machine", func() {
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		session, err = mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
@@ -28,8 +27,7 @@ var _ = Describe("podman machine reset", func() {
 		Expect(beforeSession).To(Exit(0))
 		Expect(beforeSession.outputToStringSlice()).To(HaveLen(1))
 
-		reset := resetMachine{}
-		resetSession, err := mb.setCmd(reset.withForce()).run()
+		resetSession, err := mb.setCmd(resetMachine.withForce()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(resetSession).To(Exit(0))
 
@@ -73,5 +71,4 @@ var _ = Describe("podman machine reset", func() {
 		Expect(afterSession).To(Exit(0))
 		Expect(afterSession.outputToStringSlice()).To(BeEmpty())
 	})
-
 })
