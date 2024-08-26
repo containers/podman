@@ -160,7 +160,7 @@ $ podman network create --subnet 2001:db8::/64 --ipv6 newnetv6
 newnetv6
 ```
 
-Create a network named *newnet* that uses *192.168.33.0/24* and defines a gateway as *192.168.133.3*.
+Create a network named *newnet* that uses *192.168.33.0/24* and defines a gateway as *192.168.33.3*.
 ```
 $ podman network create --subnet 192.168.33.0/24 --gateway 192.168.33.3 newnet
 newnet
