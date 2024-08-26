@@ -16,12 +16,14 @@ import (
 var _ = Describe("podman machine start", func() {
 
 	It("start simple machine", func() {
+		name := randomString()
+
 		i := new(initMachine)
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 		s := new(startMachine)
-		startSession, err := mb.setCmd(s).run()
+		startSession, err := mb.setName(name).setCmd(s).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(startSession).To(Exit(0))
 
@@ -31,22 +33,23 @@ var _ = Describe("podman machine start", func() {
 		Expect(info[0].State).To(Equal(define.Running))
 
 		stop := new(stopMachine)
-		stopSession, err := mb.setCmd(stop).run()
+		stopSession, err := mb.setName(name).setCmd(stop).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(stopSession).To(Exit(0))
 
 		// suppress output
-		startSession, err = mb.setCmd(s.withNoInfo()).run()
+		startTime := time.Now()
+		startSession, err = mb.setName(name).setCmd(s.withNoInfo()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(startSession).To(Exit(0))
 		Expect(startSession.outputToString()).ToNot(ContainSubstring("API forwarding"))
 
-		stopSession, err = mb.setCmd(stop).run()
+		stopSession, err = mb.setName(name).setCmd(stop).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(stopSession).To(Exit(0))
 
 		// Stopping it again should not result in an error
-		stopAgain, err := mb.setCmd(stop).run()
+		stopAgain, err := mb.setName(name).setCmd(stop).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(stopAgain).To(Exit(0))
 		Expect(stopAgain.outputToString()).To(ContainSubstring(fmt.Sprintf("Machine \"%s\" stopped successfully", name)))
@@ -58,9 +61,9 @@ var _ = Describe("podman machine start", func() {
 		Expect(inspectSession).To(Exit(0))
 		lastupTime, err := time.Parse(time.RFC3339, inspectSession.outputToString())
 		Expect(err).ToNot(HaveOccurred())
-		Expect(lastupTime).To(BeTemporally(">", starttime))
+		Expect(lastupTime).To(BeTemporally(">", startTime))
 
-		startSession, err = mb.setCmd(s.withQuiet()).run()
+		startSession, err = mb.setName(name).setCmd(s.withQuiet()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(startSession).To(Exit(0))
 		Expect(startSession.outputToStringSlice()).To(HaveLen(1))

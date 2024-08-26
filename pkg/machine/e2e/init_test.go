@@ -79,7 +79,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(badMemSession).To(Exit(125))
 	})
 
-	It("simple init", func() {
+	It("simple init with start", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -96,20 +96,6 @@ var _ = Describe("podman machine init", func() {
 			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
 			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
 		}
-	})
-
-	It("simple init with start", func() {
-		i := initMachine{}
-		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
-		inspectBefore, ec, err := mb.toQemuInspectInfo()
-		Expect(ec).To(BeZero())
-		Expect(inspectBefore).ToNot(BeEmpty())
-		Expect(err).ToNot(HaveOccurred())
-		Expect(inspectBefore).ToNot(BeEmpty())
-		Expect(inspectBefore[0].Name).To(Equal(mb.names[0]))
 
 		s := startMachine{}
 		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
@@ -134,13 +120,17 @@ var _ = Describe("podman machine init", func() {
 		Expect(zincati.outputToString()).To(ContainSubstring("disabled"))
 	})
 
-	It("simple init with username", func() {
-		i := new(initMachine)
+	It("machine init with cpus, disk size, memory, timezone, and name", func() {
+		skipIfWSL("setting hardware resource numbers and timezone are not supported on WSL")
+		name := randomString()
 		remoteUsername := "remoteuser"
-		session, err := mb.setCmd(i.withImage(mb.imagePath).withUsername(remoteUsername)).run()
+
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withNow().withUsername(remoteUsername).withImage(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
+		// check username
 		inspectBefore, ec, err := mb.toQemuInspectInfo()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ec).To(BeZero())
@@ -148,26 +138,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(inspectBefore).ToNot(BeEmpty())
 		testMachine := inspectBefore[0]
 		Expect(testMachine.Name).To(Equal(mb.names[0]))
-		if testProvider.VMType() != define.WSLVirt { // memory and cpus something we cannot set with WSL
-			Expect(testMachine.Resources.CPUs).To(Equal(uint64(cpus)))
-			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
-		}
 		Expect(testMachine.SSHConfig.RemoteUsername).To(Equal(remoteUsername))
-
-	})
-
-	It("machine init with cpus, disk size, memory, timezone", func() {
-		skipIfWSL("setting hardware resource numbers and timezone are not supported on WSL")
-		name := randomString()
-		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withCPUs(2).withDiskSize(102).withMemory(4096).withTimezone("Pacific/Honolulu")).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
-		s := new(startMachine)
-		startSession, err := mb.setCmd(s).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(startSession).To(Exit(0))
 
 		sshCPU := sshMachine{}
 		CPUsession, err := mb.setName(name).setCmd(sshCPU.withSSHCommand([]string{"lscpu", "|", "grep", "\"CPU(s):\"", "|", "head", "-1"})).run()
@@ -372,10 +343,7 @@ var _ = Describe("podman machine init", func() {
 	})
 
 	It("machine init with rosetta=true", func() {
-		skipIfVmtype(define.QemuVirt, "Test is only for AppleHv")
-		skipIfVmtype(define.WSLVirt, "Test is only for AppleHv")
-		skipIfVmtype(define.HyperVVirt, "Test is only for AppleHv")
-		skipIfVmtype(define.LibKrun, "Test is only for AppleHv")
+		skipIfNotVmtype(define.AppleHvVirt, "test is only for applehv provider")
 		if runtime.GOARCH != "arm64" {
 			Skip("Test is only for AppleHv with arm64 architecture")
 		}
@@ -417,10 +385,7 @@ var _ = Describe("podman machine init", func() {
 	})
 
 	It("machine init with rosetta=false", func() {
-		skipIfVmtype(define.QemuVirt, "Test is only for AppleHv")
-		skipIfVmtype(define.WSLVirt, "Test is only for AppleHv")
-		skipIfVmtype(define.HyperVVirt, "Test is only for AppleHv")
-		skipIfVmtype(define.LibKrun, "Test is only for AppleHv")
+		skipIfNotVmtype(define.AppleHvVirt, "test is only for applehv provider")
 		if runtime.GOARCH != "arm64" {
 			Skip("Test is only for AppleHv with arm64 architecture")
 		}

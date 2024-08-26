@@ -12,43 +12,37 @@ import (
 
 var _ = Describe("podman inspect stop", func() {
 
-	It("inspect bad name", func() {
-		i := inspectMachine{}
+	It("inspect two machines", func() {
+		name1 := randomString()
+		name2 := randomString()
+
+		// inspect bad name
+		inspectBad := inspectMachine{}
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-		session, err := mb.setName(reallyLongName).setCmd(&i).run()
+		session, err := mb.setName(reallyLongName).setCmd(&inspectBad).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
-	})
 
-	It("inspect two machines", func() {
 		i := new(initMachine)
-		foo1, err := mb.setName("foo1").setCmd(i.withImage(mb.imagePath)).run()
+		machine1, err := mb.setName(name1).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(foo1).To(Exit(0))
+		Expect(machine1).To(Exit(0))
 
 		ii := new(initMachine)
-		foo2, err := mb.setName("foo2").setCmd(ii.withImage(mb.imagePath)).run()
+		machine2, err := mb.setName(name2).setCmd(ii.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
-		Expect(foo2).To(Exit(0))
+		Expect(machine2).To(Exit(0))
 
 		inspect := new(inspectMachine)
 		inspect = inspect.withFormat("{{.Name}}")
-		inspectSession, err := mb.setName("foo1").setCmd(inspect).run()
+		inspectSession, err := mb.setName(name1).setCmd(inspect).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession).To(Exit(0))
-		Expect(inspectSession.Bytes()).To(ContainSubstring("foo1"))
-	})
-
-	It("inspect with go format", func() {
-		name := randomString()
-		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
+		Expect(inspectSession.Bytes()).To(ContainSubstring(name1))
 
 		// regular inspect should
 		inspectJSON := new(inspectMachine)
-		inspectSession, err := mb.setName(name).setCmd(inspectJSON).run()
+		inspectSession, err = mb.setName(name1).setCmd(inspectJSON).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession).To(Exit(0))
 
@@ -63,17 +57,17 @@ var _ = Describe("podman inspect stop", func() {
 			Expect(inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()).To(HaveSuffix("api.sock"))
 		}
 
-		inspect := new(inspectMachine)
+		inspect = new(inspectMachine)
 		inspect = inspect.withFormat("{{.Name}}")
-		inspectSession, err = mb.setName(name).setCmd(inspect).run()
+		inspectSession, err = mb.setName(name1).setCmd(inspect).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession).To(Exit(0))
-		Expect(inspectSession.Bytes()).To(ContainSubstring(name))
+		Expect(inspectSession.Bytes()).To(ContainSubstring(name1))
 
 		// check invalid template returns error
 		inspect = new(inspectMachine)
 		inspect = inspect.withFormat("{{.Abcde}}")
-		inspectSession, err = mb.setName(name).setCmd(inspect).run()
+		inspectSession, err = mb.setName(name1).setCmd(inspect).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession).To(Exit(125))
 		Expect(inspectSession.errorToString()).To(ContainSubstring("can't evaluate field Abcde in type machine.InspectInfo"))

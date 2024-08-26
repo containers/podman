@@ -32,23 +32,25 @@ var _ = Describe("podman machine list", func() {
 		Expect(firstList).Should(Exit(0))
 		Expect(firstList.outputToStringSlice()).To(BeEmpty()) // No header with quiet
 
-		i := new(initMachine)
-		session, err := mb.setName(name1).setCmd(i.withImage(mb.imagePath)).run()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(session).To(Exit(0))
-
-		secondList, err := mb.setCmd(list).run()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(secondList).To(Exit(0))
-		Expect(secondList.outputToStringSlice()).To(HaveLen(2)) // one machine and the header
-
-		// init first machine - name1
 		noheaderSession, err := mb.setCmd(list.withNoHeading()).run() // noheader
 		Expect(err).NotTo(HaveOccurred())
 		Expect(noheaderSession).Should(Exit(0))
 		Expect(noheaderSession.outputToStringSlice()).To(BeEmpty())
 
+		// init first machine - name1
+		i := new(initMachine)
+		session, err := mb.setName(name1).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		list.quiet = false // turn off quiet
+		secondList, err := mb.setCmd(list).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(secondList).To(Exit(0))
+		Expect(secondList.outputToStringSlice()).To(HaveLen(1)) // one machine and the header
+
 		// init second machine - name2
+		i = new(initMachine)
 		session2, err := mb.setName(name2).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
@@ -94,13 +96,18 @@ var _ = Describe("podman machine list", func() {
 		Expect(err3).NotTo(HaveOccurred())
 		Expect(listSession3).To(Exit(0))
 		listNames3 := listSession3.outputToStringSlice()
-		Expect(listNames3).To(HaveLen(2))
+		Expect(listNames3).To(HaveLen(3)) // two machines plus a header
 
 		// list machine in machine-readable byte format
 		list = new(listMachine)
 		list = list.withFormat(("json"))
 		listSession, err = mb.setCmd(list).run()
 		Expect(err).NotTo(HaveOccurred())
+
+		rmName2 := new(rmMachine)
+		rmName2Session, err := mb.setName(name2).setCmd(rmName2.withForce()).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(rmName2Session).To(Exit(0))
 
 		listResponse = []*entities.ListReporter{}
 		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
