@@ -687,29 +687,32 @@ localsystem:
 remotesystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	# Start podman server using tmp socket; loop-wait for it;
-	# test podman-remote; kill server, clean up tmp socket file.
-	# podman server spews copious unhelpful output; ignore it.
+	# . Make sure there's no active podman server - if there is,
+	#   it's not us, and we have no way to know what it is.
+	# . Start server. Wait to make sure it comes up.
+	# . Run tests, pretty much the same as localsystem.
+	# . Stop server.
 	rc=0;\
 	if timeout -v 1 true; then \
-		SOCK_FILE=$(shell mktemp --dry-run --tmpdir podman_tmp_XXXX);\
-		export PODMAN_SOCKET=unix://$$SOCK_FILE; \
-		./bin/podman system service --timeout=0 $$PODMAN_SOCKET > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
+		if ./bin/podman-remote info; then \
+			echo "Error: podman system service (not ours) is already running" >&2;\
+			exit 1;\
+		fi;\
+		./bin/podman system service --timeout=0 > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
 		retry=5;\
 		while [ $$retry -ge 0 ]; do\
 			echo Waiting for server...;\
 			sleep 1;\
-			./bin/podman-remote --url $$PODMAN_SOCKET info >/dev/null 2>&1 && break;\
+			./bin/podman-remote info >/dev/null 2>&1 && break;\
 			retry=$$(expr $$retry - 1);\
 		done;\
 		if [ $$retry -lt 0 ]; then\
-			echo "Error: ./bin/podman system service did not come up on $$SOCK_FILE" >&2;\
+			echo "Error: ./bin/podman system service did not come up" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="$(CURDIR)/bin/podman-remote --url $$PODMAN_SOCKET" bats -T test/system/ ;\
+		env PODMAN="$(CURDIR)/bin/podman-remote" bats -T test/system/ ;\
 		rc=$$?;\
 		kill %1;\
-		rm -f $$SOCK_FILE;\
 	else \
 		echo "Skipping $@: 'timeout -v' unavailable'";\
 	fi;\
