@@ -313,7 +313,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				}
 			}
 		} else {
-			if err = c.Cleanup(ctx); err != nil {
+			if err = c.Cleanup(ctx, false); err != nil {
 				// The container could still have been removed, as we unlocked
 				// after we stopped it.
 				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
@@ -1320,7 +1320,7 @@ func (ic *ContainerEngine) ContainerCleanup(ctx context.Context, namesOrIds []st
 				report.RmErr = fmt.Errorf("failed to clean up and remove container %v: %w", ctr.ID(), err)
 			}
 		} else {
-			err := ctr.Cleanup(ctx)
+			err := ctr.Cleanup(ctx, options.StoppedOnly)
 			// ignore error if ctr is removed or cannot be cleaned up, likely the ctr was already restarted by another process
 			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrStateInvalid) {
 				report.CleanErr = fmt.Errorf("failed to clean up container %v: %w", ctr.ID(), err)

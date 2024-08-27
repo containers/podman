@@ -785,8 +785,10 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage
-// It also cleans up the network stack
-func (c *Container) Cleanup(ctx context.Context) error {
+// It also cleans up the network stack.
+// onlyStopped is set by the podman container cleanup to ensure we only cleanup a stopped container,
+// all other states mean another process already called cleanup before us which is fine in such cases.
+func (c *Container) Cleanup(ctx context.Context, onlyStopped bool) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -807,6 +809,9 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	// Check if state is good
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
 		return fmt.Errorf("container %s is running or paused, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+	if onlyStopped && !c.ensureState(define.ContainerStateStopped) {
+		return fmt.Errorf("container %s is not stopped and only cleanup for a stopped container was requested: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	// if the container was not created in the oci runtime or was already cleaned up, then do nothing

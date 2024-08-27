@@ -371,6 +371,7 @@ type ContainerCleanupOptions struct {
 	Latest      bool
 	Remove      bool
 	RemoveImage bool
+	StoppedOnly bool // Only cleanup if the container is stopped, i.e. was running before
 }
 
 // ContainerCleanupReport describes the response from a
