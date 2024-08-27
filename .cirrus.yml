@@ -439,10 +439,7 @@ win_installer_task:
       - env:
             CONTAINERS_MACHINE_PROVIDER: 'hyperv'
     alias: win_installer
-    only_if:  # RHEL never releases podman windows installer binary
-      $CIRRUS_TAG == '' &&
-      $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-      $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    only_if: *no_rhel_release
     depends_on: *build
     ec2_instance: &windows
         image: "${WINDOWS_AMI}"
@@ -762,6 +759,14 @@ podman_machine_windows_task:
     alias: podman_machine_windows
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_machine_test
+    # Special case, we do not run macos/windows builds on rhel branches.
+    # Thus the machine task should not be run too, while we use only_if
+    # everywhere to do so here it would mean we would need duplicate the
+    # full big only_if condition which is more difficult to maintain so
+    # use the skip here.
+    skip: &skip_rhel_release |
+        $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
+        $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -786,6 +791,7 @@ podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
     only_if: *only_if_machine_test
+    skip: *skip_rhel_release
     depends_on: *build
     persistent_worker: *mac_pw
     env:
@@ -1092,9 +1098,7 @@ artifacts_task:
     name: "Artifacts"
     alias: artifacts
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: >-
-        $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
-        $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    only_if: *no_rhel_release
     depends_on:
         - success
     # This task is a secondary/convenience for downstream consumers, don't
