@@ -56,6 +56,7 @@ const (
 const (
 	KeyAddCapability         = "AddCapability"
 	KeyAddDevice             = "AddDevice"
+	KeyAddHost               = "AddHost"
 	KeyAllTags               = "AllTags"
 	KeyAnnotation            = "Annotation"
 	KeyArch                  = "Arch"
@@ -190,6 +191,7 @@ var (
 	supportedContainerKeys = map[string]bool{
 		KeyAddCapability:         true,
 		KeyAddDevice:             true,
+		KeyAddHost:               true,
 		KeyAnnotation:            true,
 		KeyAutoUpdate:            true,
 		KeyCgroupsMode:           true,
@@ -381,9 +383,12 @@ var (
 	}
 
 	supportedPodKeys = map[string]bool{
+		KeyAddHost:              true,
 		KeyContainersConfModule: true,
 		KeyGIDMap:               true,
 		KeyGlobalArgs:           true,
+		KeyIP:                   true,
+		KeyIP6:                  true,
 		KeyNetwork:              true,
 		KeyNetworkAlias:         true,
 		KeyPodName:              true,
@@ -828,6 +833,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	ip6, ok := container.Lookup(ContainerGroup, KeyIP6)
 	if ok && len(ip6) > 0 {
 		podman.add("--ip6", ip6)
+	}
+
+	addHosts := container.LookupAll(ContainerGroup, KeyAddHost)
+	for _, addHost := range addHosts {
+		podman.addf("--add-host=%s", addHost)
 	}
 
 	labels := container.LookupAllKeyVal(ContainerGroup, KeyLabel)
@@ -1678,6 +1688,21 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	execStartPre.addf("--infra-name=%s-infra", podName)
 	execStartPre.addf("--name=%s", podName)
+
+	ip, ok := podUnit.Lookup(PodGroup, KeyIP)
+	if ok && len(ip) > 0 {
+		execStartPre.addf("--ip=%s", ip)
+	}
+
+	ip6, ok := podUnit.Lookup(PodGroup, KeyIP6)
+	if ok && len(ip6) > 0 {
+		execStartPre.addf("--ip6=%s", ip6)
+	}
+
+	addHosts := podUnit.LookupAll(PodGroup, KeyAddHost)
+	for _, addHost := range addHosts {
+		execStartPre.addf("--add-host=%s", addHost)
+	}
 
 	handlePodmanArgs(podUnit, PodGroup, execStartPre)
 

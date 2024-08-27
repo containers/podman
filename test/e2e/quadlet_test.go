@@ -841,6 +841,7 @@ BOGUS=foo
 		Entry("exec.container", "exec.container"),
 		Entry("group-add.container", "group-add.container"),
 		Entry("health.container", "health.container"),
+		Entry("host.container", "host.container"),
 		Entry("hostname.container", "hostname.container"),
 		Entry("idmapping.container", "idmapping.container"),
 		Entry("image.container", "image.container"),
@@ -1000,6 +1001,8 @@ BOGUS=foo
 		Entry("Build - Variant Key", "variant.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
+		Entry("Pod - Host", "host.pod"),
+		Entry("Pod - IP", "ip.pod"),
 		Entry("Pod - Name", "name.pod"),
 		Entry("Pod - Network", "network.pod"),
 		Entry("Pod - PodmanArgs", "podmanargs.pod"),

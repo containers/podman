@@ -257,6 +257,7 @@ Valid options for `[Container]` are listed below:
 |--------------------------------------|------------------------------------------------------|
 | AddCapability=CAP                    | --cap-add CAP                                        |
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
+| AddHost=hostname:192.168.10.11       | --add-host=hostname:192.168.10.11                    |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
 | CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
@@ -354,6 +355,14 @@ the container, and `PERMISSIONS` is a list of permissions combining 'r' for read
 'w' for write, and 'm' for mknod(2). The `-` prefix tells Quadlet to add the device
 only if it exists on the host.
 
+This key can be listed multiple times.
+
+### `AddHost=`
+
+Add  host-to-IP mapping to /etc/hosts.
+The format is `hostname:ip`.
+
+Equivalent to the Podman `--add-host` option.
 This key can be listed multiple times.
 
 ### `Annotation=`
@@ -877,9 +886,12 @@ Valid options for `[Pod]` are listed below:
 
 | **[Pod] options**                   | **podman container create equivalent** |
 |-------------------------------------|----------------------------------------|
+| AddHost=hostname:192.168.10.11      | --add-host=hostname:192.168.10.11      |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
 | GIDMap=0:10000:10                   | --gidmap=0:10000:10                   |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
+| IP=192.5.0.1                        | --ip 192.5.0.1                         |
+| IP6=2001:db8::1                     | --ip6 2001:db8::1                      |
 | Network=host                        | --network host                         |
 | NetworkAlias=name                   | --network-alias name                   |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
@@ -893,6 +905,14 @@ Valid options for `[Pod]` are listed below:
 | Volume=/source:/dest                | --volume /source:/dest                 |
 
 Supported keys in the `[Pod]` section are:
+
+### `AddHost=`
+
+Add  host-to-IP mapping to /etc/hosts.
+The format is `hostname:ip`.
+
+Equivalent to the Podman `--add-host` option.
+This key can be listed multiple times.
 
 ### `ContainersConfModule=`
 
@@ -918,6 +938,16 @@ The format of this is a space separated list of arguments, which can optionally 
 escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
+
+### `IP=`
+
+Specify a static IPv4 address for the pod, for example **10.88.64.128**.
+Equivalent to the Podman `--ip` option.
+
+### `IP6=`
+
+Specify a static IPv6 address for the pod, for example **fd46:db93:aa76:ac37::10**.
+Equivalent to the Podman `--ip6` option.
 
 ### `Network=`
 
