@@ -699,6 +699,10 @@ test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.cataton
 tests-included:
 	contrib/cirrus/pr-should-include-tests
 
+.PHONY: test-jira-links-included
+test-jira-links-included:
+	contrib/cirrus/pr-should-link-jira
+
 .PHONY: tests-expect-exit
 tests-expect-exit:
 	@if grep -E --line-number 'Expect.*ExitCode' test/e2e/*.go | grep -E -v ', ".*"\)'; then \
