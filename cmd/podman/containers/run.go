@@ -16,7 +16,6 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgenutil"
-	"github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
@@ -238,18 +237,16 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if runOpts.Detach && !passthrough {
-		fmt.Println(report.Id)
+	if runOpts.Detach {
+		if !passthrough {
+			fmt.Println(report.Id)
+		}
 		return nil
 	}
 	if runRmi {
-		_, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), []string{imageName}, entities.ImageRemoveOptions{})
+		_, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), []string{imageName}, entities.ImageRemoveOptions{Ignore: true})
 		for _, err := range rmErrors {
-			// ImageUnknown would be a super-unlikely race
-			if !errors.Is(err, types.ErrImageUnknown) {
-				// Typical case: ErrImageUsedByContainer
-				logrus.Warn(err)
-			}
+			logrus.Warnf("Failed to remove image: %v", err)
 		}
 	}
 	return nil
