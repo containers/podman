@@ -40,7 +40,10 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 			return err
 		}
 	}
+	return c.initUnlocked(ctx, recursive)
+}
 
+func (c *Container) initUnlocked(ctx context.Context, recursive bool) error {
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateStopped, define.ContainerStateExited) {
 		return fmt.Errorf("container %s has already been created in runtime: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
@@ -342,24 +345,35 @@ func (c *Container) HTTPAttach(r *http.Request, w http.ResponseWriter, streams *
 		close(hijackDone)
 	}()
 
+	locked := false
 	if !c.batched {
+		locked = true
 		c.lock.Lock()
+		defer func() {
+			if locked {
+				c.lock.Unlock()
+			}
+		}()
 		if err := c.syncContainer(); err != nil {
-			c.lock.Unlock()
-
 			return err
 		}
-		// We are NOT holding the lock for the duration of the function.
-		c.lock.Unlock()
 	}
-
-	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
-		return fmt.Errorf("can only attach to created or running containers: %w", define.ErrCtrStateInvalid)
+	// For Docker compatibility, we need to re-initialize containers in these states.
+	if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited, define.ContainerStateStopped) {
+		if err := c.initUnlocked(r.Context(), c.config.Pod != ""); err != nil {
+			return fmt.Errorf("preparing container %s for attach: %w", c.ID(), err)
+		}
+	} else if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return fmt.Errorf("can only attach to created or running containers - currently in state %s: %w", c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
 	if !streamAttach && !streamLogs {
 		return fmt.Errorf("must specify at least one of stream or logs: %w", define.ErrInvalidArg)
 	}
+
+	// We are NOT holding the lock for the duration of the function.
+	locked = false
+	c.lock.Unlock()
 
 	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
 
