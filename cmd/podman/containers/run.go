@@ -237,8 +237,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if runOpts.Detach && !passthrough {
-		fmt.Println(report.Id)
+	if runOpts.Detach {
+		if !passthrough {
+			fmt.Println(report.Id)
+		}
 		return nil
 	}
 	if runRmi {
