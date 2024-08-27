@@ -74,7 +74,7 @@ type prSignedBy struct {
 
 	// KeyPath is a pathname to a local file containing the trusted key(s). Exactly one of KeyPath, KeyPaths and KeyData must be specified.
 	KeyPath string `json:"keyPath,omitempty"`
-	// KeyPaths if a set of pathnames to local files containing the trusted key(s). Exactly one of KeyPath, KeyPaths and KeyData must be specified.
+	// KeyPaths is a set of pathnames to local files containing the trusted key(s). Exactly one of KeyPath, KeyPaths and KeyData must be specified.
 	KeyPaths []string `json:"keyPaths,omitempty"`
 	// KeyData contains the trusted key(s), base64-encoded. Exactly one of KeyPath, KeyPaths and KeyData must be specified.
 	KeyData []byte `json:"keyData,omitempty"`
@@ -111,24 +111,35 @@ type prSignedBaseLayer struct {
 type prSigstoreSigned struct {
 	prCommon
 
-	// KeyPath is a pathname to a local file containing the trusted key. Exactly one of KeyPath, KeyData, Fulcio must be specified.
+	// KeyPath is a pathname to a local file containing the trusted key. Exactly one of KeyPath, KeyPaths, KeyData, KeyDatas and Fulcio must be specified.
 	KeyPath string `json:"keyPath,omitempty"`
-	// KeyData contains the trusted key, base64-encoded. Exactly one of KeyPath, KeyData, Fulcio must be specified.
+	// KeyPaths is a set of pathnames to local files containing the trusted key(s). Exactly one of KeyPath, KeyPaths, KeyData, KeyDatas and Fulcio must be specified.
+	KeyPaths []string `json:"keyPaths,omitempty"`
+	// KeyData contains the trusted key, base64-encoded. Exactly one of KeyPath, KeyPaths, KeyData, KeyDatas and Fulcio must be specified.
 	KeyData []byte `json:"keyData,omitempty"`
-	// FIXME: Multiple public keys?
+	// KeyDatas is a set of trusted keys, base64-encoded. Exactly one of KeyPath, KeyPaths, KeyData, KeyDatas and Fulcio must be specified.
+	KeyDatas [][]byte `json:"keyDatas,omitempty"`
 
-	// Fulcio specifies which Fulcio-generated certificates are accepted. Exactly one of KeyPath, KeyData, Fulcio must be specified.
+	// Fulcio specifies which Fulcio-generated certificates are accepted. Exactly one of KeyPath, KeyPaths, KeyData, KeyDatas and Fulcio must be specified.
 	// If Fulcio is specified, one of RekorPublicKeyPath or RekorPublicKeyData must be specified as well.
 	Fulcio PRSigstoreSignedFulcio `json:"fulcio,omitempty"`
 
 	// RekorPublicKeyPath is a pathname to local file containing a public key of a Rekor server which must record acceptable signatures.
-	// If Fulcio is used, one of RekorPublicKeyPath or RekorPublicKeyData must be specified as well; otherwise it is optional
-	// (and Rekor inclusion is not required if a Rekor public key is not specified).
+	// If Fulcio is used, one of RekorPublicKeyPath, RekorPublicKeyPaths, RekorPublicKeyData and RekorPublicKeyDatas must be specified as well;
+	// otherwise it is optional (and Rekor inclusion is not required if a Rekor public key is not specified).
 	RekorPublicKeyPath string `json:"rekorPublicKeyPath,omitempty"`
+	// RekorPublicKeyPaths is a set of pathnames to local files, each containing a public key of a Rekor server. One of the keys must record acceptable signatures.
+	// If Fulcio is used, one of RekorPublicKeyPath, RekorPublicKeyPaths, RekorPublicKeyData and RekorPublicKeyDatas must be specified as well;
+	// otherwise it is optional (and Rekor inclusion is not required if a Rekor public key is not specified).
+	RekorPublicKeyPaths []string `json:"rekorPublicKeyPaths,omitempty"`
 	// RekorPublicKeyPath contain a base64-encoded public key of a Rekor server which must record acceptable signatures.
-	// If Fulcio is used, one of RekorPublicKeyPath or RekorPublicKeyData must be specified as well; otherwise it is optional
-	// (and Rekor inclusion is not required if a Rekor public key is not specified).
+	// If Fulcio is used, one of RekorPublicKeyPath, RekorPublicKeyPaths, RekorPublicKeyData and RekorPublicKeyDatas must be specified as well;
+	// otherwise it is optional (and Rekor inclusion is not required if a Rekor public key is not specified).
 	RekorPublicKeyData []byte `json:"rekorPublicKeyData,omitempty"`
+	// RekorPublicKeyDatas each contain a base64-encoded public key of a Rekor server. One of the keys must record acceptable signatures.
+	// If Fulcio is used, one of RekorPublicKeyPath, RekorPublicKeyPaths, RekorPublicKeyData and RekorPublicKeyDatas must be specified as well;
+	// otherwise it is optional (and Rekor inclusion is not required if a Rekor public key is not specified).
+	RekorPublicKeyDatas [][]byte `json:"rekorPublicKeyDatas,omitempty"`
 
 	// SignedIdentity specifies what image identity the signature must be claiming about the image.
 	// Defaults to "matchRepoDigestOrExact" if not specified.

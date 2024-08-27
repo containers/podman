@@ -141,7 +141,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.37.0
+# github.com/containers/buildah v1.37.2
 ## explicit; go 1.21.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -171,7 +171,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20240808214705-d93f74f43223
+# github.com/containers/common v0.60.2
 ## explicit; go 1.21.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -244,7 +244,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.4
 ## explicit; go 1.21
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.32.1-0.20240806084436-e3e9287ca8e6
+# github.com/containers/image/v5 v5.32.2
 ## explicit; go 1.21.0
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
