@@ -18,7 +18,7 @@ const (
 )
 
 var (
-	relevantAttributes    = []string{"security.capability", "security.ima", "user.*"} // the attributes that we preserve - we discard others
+	relevantAttributes    = []string{"security.capability", "user.*"} // the attributes that we preserve - we discard others
 	initialXattrListSize  = 64 * 1024
 	initialXattrValueSize = 64 * 1024
 )

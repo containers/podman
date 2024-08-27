@@ -425,7 +425,7 @@ func readSecurityXattrToTarHeader(path string, hdr *tar.Header) error {
 	if hdr.PAXRecords == nil {
 		hdr.PAXRecords = make(map[string]string)
 	}
-	for _, xattr := range []string{"security.capability", "security.ima"} {
+	for _, xattr := range []string{"security.capability"} {
 		capability, err := system.Lgetxattr(path, xattr)
 		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
 			return fmt.Errorf("failed to read %q attribute from %q: %w", xattr, path, err)
