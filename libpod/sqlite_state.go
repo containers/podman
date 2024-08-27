@@ -2157,6 +2157,7 @@ func (s *SQLiteState) Volume(name string) (*Volume, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, define.ErrNoSuchVolume
 		}
+		return nil, fmt.Errorf("querying volume %s: %w", name, err)
 	}
 
 	vol := new(Volume)
