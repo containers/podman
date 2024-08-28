@@ -311,7 +311,9 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		command = append(command, "--module", module)
 	}
 
-	command = append(command, []string{"container", "cleanup"}...)
+	// --stopped-only is used to ensure we only cleanup stopped containers and do not race
+	// against other processes that did a cleanup() + init() again before we had the chance to run
+	command = append(command, []string{"container", "cleanup", "--stopped-only"}...)
 
 	if rm {
 		command = append(command, "--rm")

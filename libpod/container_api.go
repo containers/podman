@@ -40,7 +40,10 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 			return err
 		}
 	}
+	return c.initUnlocked(ctx, recursive)
+}
 
+func (c *Container) initUnlocked(ctx context.Context, recursive bool) error {
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateStopped, define.ContainerStateExited) {
 		return fmt.Errorf("container %s has already been created in runtime: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
@@ -342,24 +345,35 @@ func (c *Container) HTTPAttach(r *http.Request, w http.ResponseWriter, streams *
 		close(hijackDone)
 	}()
 
+	locked := false
 	if !c.batched {
+		locked = true
 		c.lock.Lock()
+		defer func() {
+			if locked {
+				c.lock.Unlock()
+			}
+		}()
 		if err := c.syncContainer(); err != nil {
-			c.lock.Unlock()
-
 			return err
 		}
-		// We are NOT holding the lock for the duration of the function.
-		c.lock.Unlock()
 	}
-
-	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
-		return fmt.Errorf("can only attach to created or running containers: %w", define.ErrCtrStateInvalid)
+	// For Docker compatibility, we need to re-initialize containers in these states.
+	if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited, define.ContainerStateStopped) {
+		if err := c.initUnlocked(r.Context(), c.config.Pod != ""); err != nil {
+			return fmt.Errorf("preparing container %s for attach: %w", c.ID(), err)
+		}
+	} else if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning) {
+		return fmt.Errorf("can only attach to created or running containers - currently in state %s: %w", c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
 	if !streamAttach && !streamLogs {
 		return fmt.Errorf("must specify at least one of stream or logs: %w", define.ErrInvalidArg)
 	}
+
+	// We are NOT holding the lock for the duration of the function.
+	locked = false
+	c.lock.Unlock()
 
 	logrus.Infof("Performing HTTP Hijack attach to container %s", c.ID())
 
@@ -771,8 +785,10 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 }
 
 // Cleanup unmounts all mount points in container and cleans up container storage
-// It also cleans up the network stack
-func (c *Container) Cleanup(ctx context.Context) error {
+// It also cleans up the network stack.
+// onlyStopped is set by the podman container cleanup to ensure we only cleanup a stopped container,
+// all other states mean another process already called cleanup before us which is fine in such cases.
+func (c *Container) Cleanup(ctx context.Context, onlyStopped bool) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -793,6 +809,9 @@ func (c *Container) Cleanup(ctx context.Context) error {
 	// Check if state is good
 	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
 		return fmt.Errorf("container %s is running or paused, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+	if onlyStopped && !c.ensureState(define.ContainerStateStopped) {
+		return fmt.Errorf("container %s is not stopped and only cleanup for a stopped container was requested: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
 	// if the container was not created in the oci runtime or was already cleaned up, then do nothing

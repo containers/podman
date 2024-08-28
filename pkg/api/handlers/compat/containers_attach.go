@@ -4,11 +4,9 @@ package compat
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/containers/podman/v5/libpod"
-	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	"github.com/containers/podman/v5/pkg/api/server/idle"
 	api "github.com/containers/podman/v5/pkg/api/types"
@@ -76,22 +74,6 @@ func AttachContainer(w http.ResponseWriter, r *http.Request) {
 	ctr, err := runtime.LookupContainer(name)
 	if err != nil {
 		utils.ContainerNotFound(w, name, err)
-		return
-	}
-
-	state, err := ctr.State()
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-	// For Docker compatibility, we need to re-initialize containers in these states.
-	if state == define.ContainerStateConfigured || state == define.ContainerStateExited || state == define.ContainerStateStopped {
-		if err := ctr.Init(r.Context(), ctr.PodID() != ""); err != nil {
-			utils.Error(w, http.StatusConflict, fmt.Errorf("preparing container %s for attach: %w", ctr.ID(), err))
-			return
-		}
-	} else if !(state == define.ContainerStateCreated || state == define.ContainerStateRunning) {
-		utils.InternalServerError(w, fmt.Errorf("can only attach to created or running containers - currently in state %s: %w", state.String(), define.ErrCtrStateInvalid))
 		return
 	}
 
