@@ -455,7 +455,7 @@ function pasta_test_do() {
 
     # pasta is the default now so no need to set it
     run_podman run --rm $IMAGE grep nameserver /etc/resolv.conf
-    assert "${lines[0]}" == "nameserver 169.254.0.1" "default dns forward server"
+    assert "${lines[0]}" == "nameserver 169.254.1.1" "default dns forward server"
 
     run_podman run --rm --net=pasta:--dns-forward,198.51.100.1 \
         $IMAGE nslookup 127.0.0.1 || :
@@ -835,7 +835,9 @@ EOF
         run_podman '?' run --rm --network=$network $IMAGE grep host.containers.internal /etc/hosts
         if [ "$status" -eq 0 ]; then
             assert "$output" !~ "$pasta_ip" "pasta host ip must not be assigned ($network)"
-            assert "$host_ips" =~ "$(cut -f1 <<<$output)" "ip is one of the host ips ($network)"
+            # even more special we use a new --map-guest-addr pasta option and
+            # to map 169.254.1.2 to the host, https://github.com/containers/common/pull/2136
+            assert "$host_ips 169.254.1.2" =~ "$(cut -f1 <<<$output)" "ip is one of the host ips ($network)"
         elif [ "$status" -eq 1 ]; then
             # if only pasta ip then we cannot have a host.containers.internal entry
             # make sure this fact is actually the case
@@ -848,6 +850,6 @@ EOF
     run_podman network rm $netname
 
     first_host_ip=$(head -n 1 <<<"$host_ips")
-    run_podman run --rm --network=pasta:-a,169.254.0.2,-g,169.254.0.1,-n,24 $IMAGE grep host.containers.internal /etc/hosts
-    assert "$output" =~ "^$first_host_ip" "uses host first ip"
+    run_podman run --rm --network=pasta:-a,192.168.0.2,-g,192.168.0.1,-n,24 $IMAGE grep host.containers.internal /etc/hosts
+    assert "$output" =~ "^($first_host_ip|169.254.1.2)" "uses first host ip or special 169.254.1.2 --map-guest-addr"
 }

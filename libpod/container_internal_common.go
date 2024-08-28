@@ -2139,11 +2139,13 @@ func (c *Container) addResolvConf() error {
 		if len(networkNameServers) == 0 || networkBackend != string(types.Netavark) {
 			keepHostServers = true
 		}
-		// first add the nameservers from the networks status
-		nameservers = networkNameServers
-
-		// pasta and slirp4netns have a built in DNS forwarder.
-		nameservers = c.addSpecialDNS(nameservers)
+		if len(networkNameServers) > 0 {
+			// add the nameservers from the networks status
+			nameservers = networkNameServers
+		} else {
+			// pasta and slirp4netns have a built in DNS forwarder.
+			nameservers = c.addSpecialDNS(nameservers)
+		}
 	}
 
 	// Set DNS search domains
@@ -2306,8 +2308,13 @@ func (c *Container) addHosts() error {
 	}
 
 	var exclude []net.IP
+	var preferIP string
 	if c.pastaResult != nil {
 		exclude = c.pastaResult.IPAddresses
+		if len(c.pastaResult.MapGuestAddrIPs) > 0 {
+			// we used --map-guest-addr to setup pasta so prefer this address
+			preferIP = c.pastaResult.MapGuestAddrIPs[0]
+		}
 	} else if c.config.NetMode.IsBridge() {
 		// When running rootless we have to check the rootless netns ip addresses
 		// to not assign a ip that is already used in the rootless netns as it would
@@ -2316,16 +2323,27 @@ func (c *Container) addHosts() error {
 		info, err := c.runtime.network.RootlessNetnsInfo()
 		if err == nil {
 			exclude = info.IPAddresses
+			if len(info.MapGuestIps) > 0 {
+				// we used --map-guest-addr to setup pasta so prefer this address
+				preferIP = info.MapGuestIps[0]
+			}
 		}
 	}
 
+	hostContainersInternalIP := etchosts.GetHostContainersInternalIP(etchosts.HostContainersInternalOptions{
+		Conf:             c.runtime.config,
+		NetStatus:        c.state.NetworkStatus,
+		NetworkInterface: c.runtime.network,
+		Exclude:          exclude,
+		PreferIP:         preferIP,
+	})
+
 	return etchosts.New(&etchosts.Params{
-		BaseFile:     baseHostFile,
-		ExtraHosts:   c.config.HostAdd,
-		ContainerIPs: containerIPsEntries,
-		HostContainersInternalIP: etchosts.GetHostContainersInternalIPExcluding(
-			c.runtime.config, c.state.NetworkStatus, c.runtime.network, exclude),
-		TargetFile: targetFile,
+		BaseFile:                 baseHostFile,
+		ExtraHosts:               c.config.HostAdd,
+		ContainerIPs:             containerIPsEntries,
+		HostContainersInternalIP: hostContainersInternalIP,
+		TargetFile:               targetFile,
 	})
 }
 
