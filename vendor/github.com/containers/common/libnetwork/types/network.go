@@ -342,6 +342,10 @@ type TeardownOptions struct {
 type RootlessNetnsInfo struct {
 	// IPAddresses used in the netns, must not be used for host.containers.internal
 	IPAddresses []net.IP
+	// DnsForwardIps ips used in resolv.conf
+	DnsForwardIps []string
+	// MapGuestIps should be used for the host.containers.internal entry when set
+	MapGuestIps []string
 }
 
 // FilterFunc can be passed to NetworkList to filter the networks.

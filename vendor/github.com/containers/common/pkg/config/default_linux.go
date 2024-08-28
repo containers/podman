@@ -28,9 +28,9 @@ func getDefaultProcessLimits() []string {
 	dat, err := os.ReadFile("/proc/sys/kernel/pid_max")
 	if err == nil {
 		val := strings.TrimSuffix(string(dat), "\n")
-		max, err := strconv.ParseUint(val, 10, 64)
+		maxLimit, err := strconv.ParseUint(val, 10, 64)
 		if err == nil {
-			rlim = unix.Rlimit{Cur: max, Max: max}
+			rlim = unix.Rlimit{Cur: maxLimit, Max: maxLimit}
 		}
 	}
 	defaultLimits := []string{}

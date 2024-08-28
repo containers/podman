@@ -10,17 +10,27 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 )
 
-// GetHostContainersInternalIP returns the host.containers.internal ip
-// if netStatus is not nil then networkInterface also must be non nil otherwise this function panics
-func GetHostContainersInternalIP(conf *config.Config, netStatus map[string]types.StatusBlock, networkInterface types.ContainerNetwork) string {
-	return GetHostContainersInternalIPExcluding(conf, netStatus, networkInterface, nil)
+// HostContainersInternalOptions contains the options for GetHostContainersInternalIP()
+type HostContainersInternalOptions struct {
+	// Conf is the containers.Conf, must not be nil
+	Conf *config.Config
+	// NetStatus is the network status for the container,
+	// if this is set networkInterface must not be nil
+	NetStatus map[string]types.StatusBlock
+	// NetworkInterface of the current runtime
+	NetworkInterface types.ContainerNetwork
+	// Exclude are then ips that should not be returned, this is
+	// useful to prevent returning the same ip as in the container.
+	Exclude []net.IP
+	// PreferIP is a ip that should be used if set but it has a
+	// lower priority than the containers.conf config option.
+	// This is used for the pasta --map-guest-addr ip.
+	PreferIP string
 }
 
-// GetHostContainersInternalIPExcluding returns the host.containers.internal ip
-// Exclude are ips that should not be returned, this is useful to prevent returning the same ip as in the container.
-// if netStatus is not nil then networkInterface also must be non nil otherwise this function panics
-func GetHostContainersInternalIPExcluding(conf *config.Config, netStatus map[string]types.StatusBlock, networkInterface types.ContainerNetwork, exclude []net.IP) string {
-	switch conf.Containers.HostContainersInternalIP {
+// GetHostContainersInternalIP returns the host.containers.internal ip
+func GetHostContainersInternalIP(opts HostContainersInternalOptions) string {
+	switch opts.Conf.Containers.HostContainersInternalIP {
 	case "":
 		// if empty (default) we will automatically choose one below
 		// if machine using gvproxy we let the gvproxy dns server handle the dns name so do not add it
@@ -30,16 +40,22 @@ func GetHostContainersInternalIPExcluding(conf *config.Config, netStatus map[str
 	case "none":
 		return ""
 	default:
-		return conf.Containers.HostContainersInternalIP
+		return opts.Conf.Containers.HostContainersInternalIP
 	}
+
+	// caller has a specific ip it prefers
+	if opts.PreferIP != "" {
+		return opts.PreferIP
+	}
+
 	ip := ""
 	// Only use the bridge ip when root, as rootless the interfaces are created
 	// inside the special netns and not the host so we cannot use them.
 	if unshare.IsRootless() {
-		return util.GetLocalIPExcluding(exclude)
+		return util.GetLocalIPExcluding(opts.Exclude)
 	}
-	for net, status := range netStatus {
-		network, err := networkInterface.NetworkInspect(net)
+	for net, status := range opts.NetStatus {
+		network, err := opts.NetworkInterface.NetworkInspect(net)
 		// only add the host entry for bridge networks
 		// ip/macvlan gateway is normally not on the host
 		if err != nil || network.Driver != types.BridgeNetworkDriver {
@@ -60,7 +76,19 @@ func GetHostContainersInternalIPExcluding(conf *config.Config, netStatus map[str
 	if ip != "" {
 		return ip
 	}
-	return util.GetLocalIPExcluding(exclude)
+	return util.GetLocalIPExcluding(opts.Exclude)
+}
+
+// GetHostContainersInternalIPExcluding returns the host.containers.internal ip
+// Exclude are ips that should not be returned, this is useful to prevent returning the same ip as in the container.
+// if netStatus is not nil then networkInterface also must be non nil otherwise this function panics
+func GetHostContainersInternalIPExcluding(conf *config.Config, netStatus map[string]types.StatusBlock, networkInterface types.ContainerNetwork, exclude []net.IP) string {
+	return GetHostContainersInternalIP(HostContainersInternalOptions{
+		Conf:             conf,
+		NetStatus:        netStatus,
+		NetworkInterface: networkInterface,
+		Exclude:          exclude,
+	})
 }
 
 // GetNetworkHostEntries returns HostEntries for all ips in the network status

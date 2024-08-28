@@ -74,7 +74,7 @@ func MoveRootlessNetnsSlirpProcessToUserSlice(pid int) error {
 func MovePauseProcessToScope(pausePidPath string) {
 	var err error
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		randBytes := make([]byte, 4)
 		_, err = rand.Read(randBytes)
 		if err != nil {
