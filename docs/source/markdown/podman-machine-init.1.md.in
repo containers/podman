@@ -160,6 +160,11 @@ Example: `-v "$HOME/git:$HOME/git:ro,security_model=none"`
 Default volume mounts are defined in *containers.conf*.  Unless changed, the default values
 is `$HOME:$HOME`.
 
+**Note on Windows Subsystem for Linux (WSL)**
+Since all drives are mounted at `/mnt` on startup by default in WSL, passing
+`--volume` is redundant and has no effect. The host home directory for a `C:`
+drive will be mounted at `/mnt/c/Users/<my username>`.
+
 ## EXAMPLES
 
 Initialize the default Podman machine, pulling the content from the internet.
