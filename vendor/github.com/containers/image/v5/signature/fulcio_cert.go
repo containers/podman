@@ -195,10 +195,10 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 	return untrustedCertificate.PublicKey, nil
 }
 
-func verifyRekorFulcio(rekorPublicKey *ecdsa.PublicKey, fulcioTrustRoot *fulcioTrustRoot, untrustedRekorSET []byte,
+func verifyRekorFulcio(rekorPublicKeys []*ecdsa.PublicKey, fulcioTrustRoot *fulcioTrustRoot, untrustedRekorSET []byte,
 	untrustedCertificateBytes []byte, untrustedIntermediateChainBytes []byte, untrustedBase64Signature string,
 	untrustedPayloadBytes []byte) (crypto.PublicKey, error) {
-	rekorSETTime, err := internal.VerifyRekorSET(rekorPublicKey, untrustedRekorSET, untrustedCertificateBytes,
+	rekorSETTime, err := internal.VerifyRekorSET(rekorPublicKeys, untrustedRekorSET, untrustedCertificateBytes,
 		untrustedBase64Signature, untrustedPayloadBytes)
 	if err != nil {
 		return nil, err
