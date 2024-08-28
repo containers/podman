@@ -252,6 +252,10 @@ function pasta_test_do() {
     # Get server output, --follow is used to wait for the container to exit,
     run_podman logs --follow $cname
     # which should give us the expected output back.
+    # ...except, sigh, #23482: seems to be a bug in socat, issues spurious warning
+    if [[ "$recv" =~ EXEC ]]; then
+        output=$(grep -vE 'socat.*waitpid.*No child process' <<<"$output")
+    fi
     assert "${output}" = "${expect}" "Mismatch between data sent and received"
 
     run_podman rm $cname
