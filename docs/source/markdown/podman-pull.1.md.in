@@ -218,5 +218,10 @@ $ podman --remote pull -q --retry 6 --retry-delay 10s ubi9
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-push(1)](podman-push.1.md)**, **[podman-login(1)](podman-login.1.md)**, **[containers-certs.d(5)](https://github.com/containers/image/blob/main/docs/containers-certs.d.5.md)**, **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**, **[containers-transports(5)](https://github.com/containers/image/blob/main/docs/containers-transports.5.md)**
 
+### Troubleshooting
+
+See [podman-troubleshooting(7)](https://github.com/containers/podman/blob/main/troubleshooting.md)
+for solutions to common issues.
+
 ## HISTORY
 July 2017, Originally compiled by Urvashi Mohnani <umohnani@redhat.com>

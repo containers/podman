@@ -274,7 +274,7 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
 
 # do not include docker and podman-remote man pages in main package
-for file in `find %{buildroot}%{_mandir}/man[15] -type f | sed "s,%{buildroot},," | grep -v -e %{name}sh.1 -e remote -e docker`; do
+for file in `find %{buildroot}%{_mandir}/man[157] -type f | sed "s,%{buildroot},," | grep -v -e %{name}sh.1 -e remote -e docker`; do
     echo "$file*" >> %{name}.file-list
 done
 

@@ -226,6 +226,10 @@ $ podman pod create --network net1:ip=10.89.1.5 --network net2:ip=10.89.10.10
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-pod(1)](podman-pod.1.md)**, **[podman-kube-play(1)](podman-kube-play.1.md)**, **containers.conf(1)**, **[cgroups(7)](https://man7.org/linux/man-pages/man7/cgroups.7.html)**
 
+### Troubleshooting
+
+See [podman-troubleshooting(7)](https://github.com/containers/podman/blob/main/troubleshooting.md)
+for solutions to common issues.
 
 ## HISTORY
 July 2018, Originally compiled by Peter Hunt <pehunt@redhat.com>
