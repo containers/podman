@@ -51,10 +51,21 @@ var (
 // The following vars are overridden from tests.
 var (
 	// TimeAfterFunc is used by the DNS resolver to wait for the given duration
-	// to elapse. In non-test code, this is implemented by time.After.  In test
+	// to elapse. In non-test code, this is implemented by time.After. In test
 	// code, this can be used to control the amount of time the resolver is
 	// blocked waiting for the duration to elapse.
 	TimeAfterFunc func(time.Duration) <-chan time.Time
+
+	// TimeNowFunc is used by the DNS resolver to get the current time.
+	// In non-test code, this is implemented by time.Now. In test code,
+	// this can be used to control the current time for the resolver.
+	TimeNowFunc func() time.Time
+
+	// TimeUntilFunc is used by the DNS resolver to calculate the remaining
+	// wait time for re-resolution. In non-test code, this is implemented by
+	// time.Until. In test code, this can be used to control the remaining
+	// time for resolver to wait for re-resolution.
+	TimeUntilFunc func(time.Time) time.Duration
 
 	// NewNetResolver returns the net.Resolver instance for the given target.
 	NewNetResolver func(string) (NetResolver, error)

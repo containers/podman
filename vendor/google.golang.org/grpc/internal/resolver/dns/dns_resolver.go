@@ -24,6 +24,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"strconv"
@@ -35,7 +36,6 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/internal/backoff"
 	"google.golang.org/grpc/internal/envconfig"
-	"google.golang.org/grpc/internal/grpcrand"
 	"google.golang.org/grpc/internal/resolver/dns/internal"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/serviceconfig"
@@ -63,6 +63,8 @@ var (
 func init() {
 	resolver.Register(NewBuilder())
 	internal.TimeAfterFunc = time.After
+	internal.TimeNowFunc = time.Now
+	internal.TimeUntilFunc = time.Until
 	internal.NewNetResolver = newNetResolver
 	internal.AddressDialer = addressDialer
 }
@@ -209,12 +211,12 @@ func (d *dnsResolver) watcher() {
 			err = d.cc.UpdateState(*state)
 		}
 
-		var waitTime time.Duration
+		var nextResolutionTime time.Time
 		if err == nil {
 			// Success resolving, wait for the next ResolveNow. However, also wait 30
 			// seconds at the very least to prevent constantly re-resolving.
 			backoffIndex = 1
-			waitTime = MinResolutionInterval
+			nextResolutionTime = internal.TimeNowFunc().Add(MinResolutionInterval)
 			select {
 			case <-d.ctx.Done():
 				return
@@ -223,13 +225,13 @@ func (d *dnsResolver) watcher() {
 		} else {
 			// Poll on an error found in DNS Resolver or an error received from
 			// ClientConn.
-			waitTime = backoff.DefaultExponential.Backoff(backoffIndex)
+			nextResolutionTime = internal.TimeNowFunc().Add(backoff.DefaultExponential.Backoff(backoffIndex))
 			backoffIndex++
 		}
 		select {
 		case <-d.ctx.Done():
 			return
-		case <-internal.TimeAfterFunc(waitTime):
+		case <-internal.TimeAfterFunc(internal.TimeUntilFunc(nextResolutionTime)):
 		}
 	}
 }
@@ -423,7 +425,7 @@ func chosenByPercentage(a *int) bool {
 	if a == nil {
 		return true
 	}
-	return grpcrand.Intn(100)+1 <= *a
+	return rand.Intn(100)+1 <= *a
 }
 
 func canaryingSC(js string) string {

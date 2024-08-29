@@ -24,7 +24,7 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 		listImagesOptions.Filters = append(listImagesOptions.Filters, "intermediate=false")
 	}
 
-	images, err := ir.Libpod.LibimageRuntime().ListImages(ctx, nil, listImagesOptions)
+	images, err := ir.Libpod.LibimageRuntime().ListImages(ctx, listImagesOptions)
 	if err != nil {
 		return nil, err
 	}

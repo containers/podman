@@ -480,7 +480,7 @@ func (u *updater) assembleImageMap(ctx context.Context) (map[string]*libimage.Im
 	listOptions := &libimage.ListImagesOptions{
 		Filters: []string{"readonly=false"},
 	}
-	imagesSlice, err := u.runtime.LibimageRuntime().ListImages(ctx, nil, listOptions)
+	imagesSlice, err := u.runtime.LibimageRuntime().ListImages(ctx, listOptions)
 	if err != nil {
 		return nil, err
 	}

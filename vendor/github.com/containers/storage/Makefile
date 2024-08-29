@@ -32,6 +32,11 @@ BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO ?= go
 TESTFLAGS := $(shell $(GO) test -race $(BUILDFLAGS) ./pkg/stringutils 2>&1 > /dev/null && echo -race)
 
+# N/B: This value is managed by Renovate, manual changes are
+# possible, as long as they don't disturb the formatting
+# (i.e. DO NOT ADD A 'v' prefix!)
+GOLANGCI_LINT_VERSION := 1.60.2
+
 default all: local-binary docs local-validate local-cross ## validate all checks, build and cross-build\nbinaries and docs
 
 clean: ## remove all built files
@@ -74,7 +79,7 @@ local-validate validate: install.tools ## validate DCO on the host
 	@./hack/git-validation.sh
 
 install.tools:
-	$(MAKE) -C tests/tools
+	$(MAKE) -C tests/tools GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION)
 
 install.docs: docs
 	$(MAKE) -C docs install

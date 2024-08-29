@@ -1492,7 +1492,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 				if err := unix.Uname(&uts); err == nil {
 					release = " " + string(uts.Release[:]) + " " + string(uts.Version[:])
 				}
-				logrus.StandardLogger().Logf(logLevel, "Ignoring global metacopy option, not supported with booted kernel"+release)
+				logrus.StandardLogger().Logf(logLevel, "Ignoring global metacopy option, not supported with booted kernel %s", release)
 			} else {
 				logrus.Debugf("Ignoring global metacopy option, the mount program doesn't support it")
 			}

@@ -496,7 +496,7 @@ func driverPut(driver ProtoDriver, id string, mainErr *error) {
 		if *mainErr == nil {
 			*mainErr = err
 		} else {
-			logrus.Errorf(err.Error())
+			logrus.Error(err)
 		}
 	}
 }
