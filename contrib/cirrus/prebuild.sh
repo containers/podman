@@ -65,12 +65,6 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
     # Tests for pr-should-link-jira
     showrun ${SCRIPT_BASE}/pr-should-link-jira.t
 
-    msg "Checking renovate config."
-    showrun podman run -it \
-            -v ./.github/renovate.json5:/usr/src/app/renovate.json5:z \
-            ghcr.io/renovatebot/renovate:latest \
-            renovate-config-validator
-
     # Run this during daily cron job to prevent a GraphQL API change/breakage
     # from impacting every PR.  Down-side being if it does fail, a maintainer
     # will need to do some archaeology to find it.
@@ -81,19 +75,3 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
       showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
     fi
 fi
-
-msg "Checking 3rd party network service connectivity"
-# shellcheck disable=SC2154
-cat ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/required_host_ports.txt | \
-    while read host port
-    do
-        if [[ "$port" -eq "443" ]]
-        then
-            echo "SSL/TLS to $host:$port"
-            echo -n '' | \
-                err_retry 9 1000 "" openssl s_client -quiet -no_ign_eof -connect $host:$port
-        else
-            echo "Connect to $host:$port"
-            err_retry 9 1000 1 nc -zv -w 13 $host $port
-        fi
-    done

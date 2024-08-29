@@ -136,8 +136,6 @@ GINKGOTIMEOUT ?= -timeout=90m
 GINKGOWHAT ?= test/e2e/.
 GINKGO_PARALLEL=y
 GINKGO ?= ./test/tools/build/ginkgo
-# ginkgo json output is only useful in CI, not on developer runs
-GINKGO_JSON ?= $(if $(CI),--json-report ginkgo-e2e.json,)
 
 # Allow control over some Ginkgo parameters
 GINKGO_FLAKE_ATTEMPTS ?= 0
@@ -652,7 +650,7 @@ ginkgo-run: .install.ginkgo
 	$(GINKGO) version
 	$(GINKGO) -vv $(TESTFLAGS) --tags "$(TAGS) remote" $(GINKGOTIMEOUT) --flake-attempts $(GINKGO_FLAKE_ATTEMPTS) \
 		--trace $(if $(findstring y,$(GINKGO_NO_COLOR)),--no-color,) \
-		$(GINKGO_JSON) $(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(if $(FOCUS),--focus "$(FOCUS)",) \
+		$(if $(findstring y,$(GINKGO_PARALLEL)),-p,) $(if $(FOCUS),--focus "$(FOCUS)",) \
 		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)",) $(GINKGOWHAT)
 
 .PHONY: ginkgo

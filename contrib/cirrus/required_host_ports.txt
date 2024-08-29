@@ -1,5 +1,0 @@
-github.com 22
-docker.io 443
-quay.io 443
-registry.fedoraproject.org 443
-podman.cachix.org 443
