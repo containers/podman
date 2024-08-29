@@ -275,16 +275,10 @@ function _run_altbuild() {
             showrun make package
             ;;
         Alt*x86*Cross)
-            arches=(\
-                amd64
-                386)
-            _build_altbuild_archs "${arches[@]}"
+            _build_altbuild_archs "386"
             ;;
         Alt*ARM*Cross)
-            arches=(\
-                arm
-                arm64)
-            _build_altbuild_archs "${arches[@]}"
+            _build_altbuild_archs "arm"
             ;;
         Alt*Other*Cross)
             arches=(\
