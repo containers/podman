@@ -1629,7 +1629,7 @@ msgstr ""
 #: ../../source/markdown/podman-pod-create.1.md:39
 #: ../../source/markdown/podman-run.1.md:94
 msgid ""
-"Add a line to /etc/hosts. The format is hostname:ip. The **--add-host** "
+"Add a line to /etc/hosts. The format is hostname1;hostname2;hostname3:ip. Multiple hostnames for the same IP can be separated by semicolons. The **--add-host** "
 "option can be set multiple times. Conflicts with the **--no-hosts** "
 "option."
 msgstr ""
