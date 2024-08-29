@@ -71,7 +71,7 @@ env:
 
 
 # Default timeout for each task
-timeout_in: 60m
+timeout_in: 20m
 
 
 gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
@@ -559,9 +559,6 @@ apiv2_test_task:
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: *build
     gce_instance: *standardvm
-    # Test is normally pretty quick, about 10-minutes.  If it hangs,
-    # don't make developers wait the full 1-hour timeout.
-    timeout_in: 20m
     env:
         <<: *stdenvars
         TEST_FLAVOR: apiv2
@@ -628,7 +625,6 @@ local_integration_test_task: &local_integration_test_task
     gce_instance: &fastvm
       <<: *standardvm
       cpu: 4
-    timeout_in: 30m
     env:
         TEST_FLAVOR: int
     clone_script: *get_gosrc
@@ -674,7 +670,6 @@ container_integration_test_task:
               CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
               CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
-    timeout_in: 30m
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
@@ -693,7 +688,6 @@ rootless_integration_test_task:
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *fastvm
-    timeout_in: 30m
     env:
         TEST_FLAVOR: int
         PRIV_NAME: rootless
@@ -719,6 +713,7 @@ podman_machine_task:
         image: "${VM_IMAGE_NAME}"
         type: "${EC2_INST_TYPE}"
         region: us-east-1
+    timeout_in: 30m
     env:
       EC2_INST_TYPE: "m5zn.metal"  # Bare-metal instance is required
       TEST_FLAVOR: "machine-linux"
@@ -738,6 +733,7 @@ podman_machine_aarch64_task:
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
+    timeout_in: 30m
     env:
         TEST_FLAVOR: "machine-linux"
         EC2_INST_TYPE: c6g.metal
@@ -772,6 +768,7 @@ podman_machine_windows_task:
         <<: *windows
         type: m5zn.metal
         platform: windows
+    timeout_in: 45m
     env: *winenv
     matrix:
       - env:
@@ -794,6 +791,7 @@ podman_machine_mac_task:
     skip: *skip_rhel_release
     depends_on: *build
     persistent_worker: *mac_pw
+    timeout_in: 35m
     env:
         <<: *mac_env
         DISTRO_NV: "darwin"
@@ -850,6 +848,7 @@ local_system_test_task: &local_system_test_task
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
+    timeout_in: 35m
     env:
         TEST_FLAVOR: sys
     clone_script: *get_gosrc
@@ -864,8 +863,8 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_system_test
     depends_on: *build
-    persistent_worker: *mac_pw
     ec2_instance: *standard_build_ec2_aarch64
+    timeout_in: 35m
     env:
         <<: *stdenvars_aarch64
         TEST_FLAVOR: sys
@@ -903,6 +902,7 @@ rootless_remote_system_test_task:
     <<: *local_system_test_task
     alias: rootless_remote_system_test
     gce_instance: *standardvm
+    timeout_in: 35m
     env:
         TEST_FLAVOR: sys
         PODBIN_NAME: remote
@@ -917,6 +917,7 @@ rootless_system_test_task:
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *standardvm
+    timeout_in: 35m
     env:
         TEST_FLAVOR: sys
         PRIV_NAME: rootless
