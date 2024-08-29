@@ -52,8 +52,6 @@ function _run_validate-source() {
 }
 
 function _run_unit() {
-    _bail_if_test_can_be_skipped test/goecho test/version
-
     # shellcheck disable=SC2154
     if [[ "$PODBIN_NAME" != "podman" ]]; then
         # shellcheck disable=SC2154
@@ -63,8 +61,6 @@ function _run_unit() {
 }
 
 function _run_apiv2() {
-    _bail_if_test_can_be_skipped test/apiv2
-
     (
         showrun make localapiv2-bash
         source .venv/requests/bin/activate
@@ -73,8 +69,6 @@ function _run_apiv2() {
 }
 
 function _run_compose_v2() {
-    _bail_if_test_can_be_skipped test/compose
-
     showrun ./test/compose/test-compose |& logformatter
 }
 
@@ -87,8 +81,6 @@ function _run_sys() {
 }
 
 function _run_upgrade_test() {
-    _bail_if_test_can_be_skipped test/system test/upgrade
-
     showrun bats test/upgrade |& logformatter
 }
 
@@ -121,7 +113,6 @@ function _run_endpoint() {
 }
 
 function _run_farm() {
-    _bail_if_test_can_be_skipped test/farm test/system
     msg "Testing podman farm."
     showrun bats test/farm |& logformatter
 }
@@ -245,16 +236,11 @@ function _run_build() {
 }
 
 function _run_altbuild() {
-    # Subsequent windows-based tasks require a build.  Var. defined in .cirrus.yml
-    # shellcheck disable=SC2154
-    if [[ ! "$ALT_NAME" =~ Windows ]]; then
-        # We can skip all these steps for test-only PRs, but not doc-only ones
-        _bail_if_test_can_be_skipped docs
-    fi
-
     local -a arches
     local arch
     req_env_vars ALT_NAME
+    # Var. defined in .cirrus.yml
+    # shellcheck disable=SC2154
     msg "Performing alternate build: $ALT_NAME"
     msg "************************************************************"
     set -x
@@ -444,59 +430,6 @@ dotest() {
 
 _run_machine-linux() {
     showrun make localmachine |& logformatter
-}
-
-# Optimization: will exit if the only PR diffs are under docs/ or tests/
-# with the exception of any given arguments. E.g., don't run e2e or unit
-# or bud tests if the only PR changes are in test/system.
-function _bail_if_test_can_be_skipped() {
-    local head base diffs
-
-    # Cirrus sets these for PRs but not branches or cron. In cron and branches,
-    #we never want to skip.
-    for v in CIRRUS_CHANGE_IN_REPO CIRRUS_PR DEST_BRANCH; do
-        if [[ -z "${!v}" ]]; then
-            msg "[ _cannot do selective skip: \$$v is undefined ]"
-            return 0
-        fi
-    done
-    # And if this one *is* defined, it means we're not in PR-land; don't skip.
-    if [[ -n "$CIRRUS_TAG" ]]; then
-        msg "[ _cannot do selective skip: \$CIRRUS_TAG is defined ]"
-        return 0
-    fi
-
-    # Defined by Cirrus-CI for all tasks
-    # shellcheck disable=SC2154
-    head=$CIRRUS_CHANGE_IN_REPO
-    # shellcheck disable=SC2154
-    base=$PR_BASE_SHA
-    echo "_bail_if_test_can_be_skipped: head=$head  base=$base"
-    diffs=$(git diff --name-only $base $head)
-
-    # If PR touches any files in an argument directory, we cannot skip
-    for subdir in "$@"; do
-        if grep -E -q "^$subdir/" <<<"$diffs"; then
-            return 0
-        fi
-    done
-
-    # PR does not touch any files under our input directories. Now see
-    # if the PR touches files outside of the following directories, by
-    # filtering these out from the diff results.
-    for subdir in docs test; do
-        # || true needed because we're running with set -e
-        diffs=$(grep -E -v "^$subdir/" <<<"$diffs" || true)
-    done
-
-    # If we still have diffs, they indicate files outside of docs & test.
-    # It is not safe to skip.
-    if [[ -n "$diffs" ]]; then
-        return 0
-    fi
-
-    msg "SKIPPING: This is a doc- and/or test-only PR with no changes under $*"
-    exit 0
 }
 
 # Nearly every task in .cirrus.yml makes use of this shell script
