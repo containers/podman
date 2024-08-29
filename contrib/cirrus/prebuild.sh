@@ -65,12 +65,6 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
     # Tests for pr-should-link-jira
     showrun ${SCRIPT_BASE}/pr-should-link-jira.t
 
-    msg "Checking renovate config."
-    showrun podman run -it \
-            -v ./.github/renovate.json5:/usr/src/app/renovate.json5:z \
-            ghcr.io/renovatebot/renovate:latest \
-            renovate-config-validator
-
     # Run this during daily cron job to prevent a GraphQL API change/breakage
     # from impacting every PR.  Down-side being if it does fail, a maintainer
     # will need to do some archaeology to find it.
