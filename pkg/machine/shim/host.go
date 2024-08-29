@@ -17,6 +17,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/lock"
 	"github.com/containers/podman/v5/pkg/machine/proxyenv"
+	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/utils"
 	"github.com/hashicorp/go-multierror"
@@ -151,7 +152,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	// "/path
 	// "docker://quay.io/something/someManifest
 
-	if err := mp.GetDisk(opts.Image, dirs, mc); err != nil {
+	if err := diskpull.GetDisk(opts.Image, dirs, mc.ImagePath, mp.VMType(), mc.Name); err != nil {
 		return err
 	}
 

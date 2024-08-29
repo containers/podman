@@ -20,7 +20,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/qemu/command"
-	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/sockets"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
@@ -388,10 +387,6 @@ func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bo
 func (q *QEMUStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
 	// managed by gvproxy on this backend, so nothing to do
 	return nil
-}
-
-func (q *QEMUStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
-	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, q.VMType(), mc.Name)
 }
 
 func (q *QEMUStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {

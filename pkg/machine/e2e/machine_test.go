@@ -62,17 +62,13 @@ var _ = BeforeSuite(func() {
 	if err != nil {
 		Fail("unable to create testProvider")
 	}
-	if testProvider.VMType() == define.WSLVirt {
-		pullError = pullWSLDisk()
-	} else {
-		// This is a one-off and a little messy but once WSL switches
-		// to use OCI disk artifacts, we can make all the conditionals cleaner.
-		testDiskProvider := testProvider.VMType()
-		if testDiskProvider == define.LibKrun {
-			testDiskProvider = define.AppleHvVirt // libkrun uses the applehv image for testing
-		}
-		pullError = pullOCITestDisk(tmpDir, testDiskProvider)
+
+	testDiskProvider := testProvider.VMType()
+	if testDiskProvider == define.LibKrun {
+		testDiskProvider = define.AppleHvVirt // libkrun uses the applehv image for testing
 	}
+	pullError = pullOCITestDisk(tmpDir, testDiskProvider)
+
 	if pullError != nil {
 		Fail(fmt.Sprintf("failed to pull disk: %q", pullError))
 	}
