@@ -81,19 +81,3 @@ if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
       showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
     fi
 fi
-
-msg "Checking 3rd party network service connectivity"
-# shellcheck disable=SC2154
-cat ${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/required_host_ports.txt | \
-    while read host port
-    do
-        if [[ "$port" -eq "443" ]]
-        then
-            echo "SSL/TLS to $host:$port"
-            echo -n '' | \
-                err_retry 9 1000 "" openssl s_client -quiet -no_ign_eof -connect $host:$port
-        else
-            echo "Connect to $host:$port"
-            err_retry 9 1000 1 nc -zv -w 13 $host $port
-        fi
-    done
