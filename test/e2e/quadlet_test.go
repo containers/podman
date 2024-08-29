@@ -984,6 +984,7 @@ BOGUS=foo
 		Entry("Build - GroupAdd Key", "group-add.build"),
 		Entry("Build - Containers Conf Modules", "containersconfmodule.build"),
 		Entry("Build - Label Key", "label.build"),
+		Entry("Build - Multiple Tags", "multiple-tags.build"),
 		Entry("Build - Network Key host", "network.build"),
 		Entry("Build - PodmanArgs", "podmanargs.build"),
 		Entry("Build - Pull Key", "pull.build"),
@@ -1075,6 +1076,7 @@ BOGUS=foo
 		Entry("Container - Mount overriding service name", "mount.servicename.container", []string{"service-name.volume"}),
 		Entry("Container - Quadlet Network overriding service name", "network.quadlet.servicename.container", []string{"service-name.network"}),
 		Entry("Container - Quadlet Volume overriding service name", "volume.servicename.container", []string{"service-name.volume"}),
+		Entry("Container - Quadlet build with multiple tags", "build.multiple-tags.container", []string{"multiple-tags.build"}),
 
 		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", []string{"basic.build"}),
 		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", []string{"basic.image"}),
