@@ -50,13 +50,13 @@ type flushSection struct {
 }
 
 type bFiller struct {
-	components    [components]component
-	meta          [components]func(io.Writer, []byte) error
-	flush         func(io.Writer, ...flushSection) error
-	tipOnComplete bool
-	tip           struct {
-		frames []component
-		count  uint
+	components [components]component
+	meta       [components]func(io.Writer, []byte) error
+	flush      func(io.Writer, ...flushSection) error
+	tip        struct {
+		onComplete bool
+		count      uint
+		frames     []component
 	}
 }
 
@@ -155,8 +155,7 @@ func (s barStyle) Reverse() BarStyleComposer {
 
 func (s barStyle) Build() BarFiller {
 	bf := &bFiller{
-		meta:          s.metaFuncs,
-		tipOnComplete: s.tipOnComplete,
+		meta: s.metaFuncs,
 	}
 	bf.components[iLbound] = component{
 		width: runewidth.StringWidth(s.style[iLbound]),
@@ -178,6 +177,7 @@ func (s barStyle) Build() BarFiller {
 		width: runewidth.StringWidth(s.style[iPadding]),
 		bytes: []byte(s.style[iPadding]),
 	}
+	bf.tip.onComplete = s.tipOnComplete
 	bf.tip.frames = make([]component, len(s.tipFrames))
 	for i, t := range s.tipFrames {
 		bf.tip.frames[i] = component{
@@ -236,7 +236,7 @@ func (s *bFiller) Fill(w io.Writer, stat decor.Statistics) error {
 	curWidth := int(internal.PercentageRound(stat.Total, stat.Current, uint(width)))
 
 	if curWidth != 0 {
-		if !stat.Completed || s.tipOnComplete {
+		if !stat.Completed || s.tip.onComplete {
 			tip = s.tip.frames[s.tip.count%uint(len(s.tip.frames))]
 			s.tip.count++
 			fillCount += tip.width
