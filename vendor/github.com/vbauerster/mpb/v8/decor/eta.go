@@ -44,7 +44,7 @@ func EwmaNormalizedETA(style TimeStyle, age float64, normalizer TimeNormalizer, 
 	} else {
 		average = ewma.NewMovingAverage(age)
 	}
-	return MovingAverageETA(style, NewThreadSafeMovingAverage(average), normalizer, wcc...)
+	return MovingAverageETA(style, average, normalizer, wcc...)
 }
 
 // MovingAverageETA decorator relies on MovingAverage implementation to calculate its average.
@@ -86,7 +86,6 @@ func (d *movingAverageETA) Decor(s Statistics) (string, int) {
 	return d.Format(d.producer(remaining))
 }
 
-// EwmaUpdate is called concurrently with (d *movingAverageETA).Decor
 func (d *movingAverageETA) EwmaUpdate(n int64, dur time.Duration) {
 	if n <= 0 {
 		d.zDur += dur
@@ -165,7 +164,10 @@ func MaxTolerateTimeNormalizer(maxTolerate time.Duration) TimeNormalizer {
 		}
 		normalized -= time.Since(lastCall)
 		lastCall = time.Now()
-		return normalized
+		if normalized > 0 {
+			return normalized
+		}
+		return remaining
 	})
 }
 
@@ -184,7 +186,10 @@ func FixedIntervalTimeNormalizer(updInterval int) TimeNormalizer {
 		count--
 		normalized -= time.Since(lastCall)
 		lastCall = time.Now()
-		return normalized
+		if normalized > 0 {
+			return normalized
+		}
+		return remaining
 	})
 }
 

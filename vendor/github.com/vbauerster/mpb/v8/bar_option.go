@@ -24,7 +24,7 @@ func inspect(decorators []decor.Decorator) (dest []decor.Decorator) {
 func PrependDecorators(decorators ...decor.Decorator) BarOption {
 	decorators = inspect(decorators)
 	return func(s *bState) {
-		s.sortDecorators(decorators)
+		s.populateEwmaDecorators(decorators)
 		s.decorators[0] = decorators
 	}
 }
@@ -33,7 +33,7 @@ func PrependDecorators(decorators ...decor.Decorator) BarOption {
 func AppendDecorators(decorators ...decor.Decorator) BarOption {
 	decorators = inspect(decorators)
 	return func(s *bState) {
-		s.sortDecorators(decorators)
+		s.populateEwmaDecorators(decorators)
 		s.decorators[1] = decorators
 	}
 }

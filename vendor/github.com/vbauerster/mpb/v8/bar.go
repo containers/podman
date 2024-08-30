@@ -31,28 +31,26 @@ type extenderFunc func(decor.Statistics, ...io.Reader) ([]io.Reader, error)
 
 // bState is actual bar's state.
 type bState struct {
-	id                int
-	priority          int
-	reqWidth          int
-	shutdown          int
-	total             int64
-	current           int64
-	refill            int64
-	trimSpace         bool
-	aborted           bool
-	triggerComplete   bool
-	rmOnComplete      bool
-	noPop             bool
-	autoRefresh       bool
-	buffers           [3]*bytes.Buffer
-	decorators        [2][]decor.Decorator
-	averageDecorators []decor.AverageDecorator
-	ewmaDecorators    []decor.EwmaDecorator
-	shutdownListeners []decor.ShutdownListener
-	filler            BarFiller
-	extender          extenderFunc
-	renderReq         chan<- time.Time
-	waitBar           *Bar // key for (*pState).queueBars
+	id              int
+	priority        int
+	reqWidth        int
+	shutdown        int
+	total           int64
+	current         int64
+	refill          int64
+	trimSpace       bool
+	aborted         bool
+	triggerComplete bool
+	rmOnComplete    bool
+	noPop           bool
+	autoRefresh     bool
+	buffers         [3]*bytes.Buffer
+	decorators      [2][]decor.Decorator
+	ewmaDecorators  []decor.EwmaDecorator
+	filler          BarFiller
+	extender        extenderFunc
+	renderReq       chan<- time.Time
+	waitBar         *Bar // key for (*pState).queueBars
 }
 
 type renderFrame struct {
@@ -158,21 +156,25 @@ func (b *Bar) SetRefill(amount int64) {
 	}
 }
 
-// TraverseDecorators traverses all available decorators and calls cb func on each.
+// TraverseDecorators traverses available decorators and calls cb func
+// on each in a new goroutine. Decorators implementing decor.Wrapper
+// interface are unwrapped first.
 func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
-	iter := make(chan decor.Decorator)
 	select {
 	case b.operateState <- func(s *bState) {
+		var wg sync.WaitGroup
 		for _, decorators := range s.decorators {
+			wg.Add(len(decorators))
 			for _, d := range decorators {
-				iter <- d
+				d := d
+				go func() {
+					cb(unwrap(d))
+					wg.Done()
+				}()
 			}
 		}
-		close(iter)
+		wg.Wait()
 	}:
-		for d := range iter {
-			cb(unwrap(d))
-		}
 	case <-b.ctx.Done():
 	}
 }
@@ -239,31 +241,6 @@ func (b *Bar) SetCurrent(current int64) {
 	}
 }
 
-// EwmaSetCurrent sets progress' current to an arbitrary value and updates
-// EWMA based decorators by dur of a single iteration.
-func (b *Bar) EwmaSetCurrent(current int64, iterDur time.Duration) {
-	if current < 0 {
-		return
-	}
-	result := make(chan *sync.WaitGroup)
-	select {
-	case b.operateState <- func(s *bState) {
-		n := current - s.current
-		s.current = current
-		if s.triggerComplete && s.current >= s.total {
-			s.current = s.total
-			s.triggerCompletion(b)
-		}
-		var wg sync.WaitGroup
-		s.decoratorEwmaUpdate(n, iterDur, &wg)
-		result <- &wg
-	}:
-		wg := <-result
-		wg.Wait()
-	case <-b.ctx.Done():
-	}
-}
-
 // Increment is a shorthand for b.IncrInt64(1).
 func (b *Bar) Increment() {
 	b.IncrInt64(1)
@@ -301,36 +278,65 @@ func (b *Bar) EwmaIncrBy(n int, iterDur time.Duration) {
 // EwmaIncrInt64 increments progress by amount of n and updates EWMA based
 // decorators by dur of a single iteration.
 func (b *Bar) EwmaIncrInt64(n int64, iterDur time.Duration) {
-	result := make(chan *sync.WaitGroup)
 	select {
 	case b.operateState <- func(s *bState) {
+		var wg sync.WaitGroup
+		wg.Add(len(s.ewmaDecorators))
+		for _, d := range s.ewmaDecorators {
+			d := d
+			go func() {
+				d.EwmaUpdate(n, iterDur)
+				wg.Done()
+			}()
+		}
 		s.current += n
 		if s.triggerComplete && s.current >= s.total {
 			s.current = s.total
 			s.triggerCompletion(b)
 		}
-		var wg sync.WaitGroup
-		s.decoratorEwmaUpdate(n, iterDur, &wg)
-		result <- &wg
-	}:
-		wg := <-result
 		wg.Wait()
+	}:
 	case <-b.ctx.Done():
 	}
 }
 
-// DecoratorAverageAdjust adjusts all average based decorators. Call
-// if you need to adjust start time of all average based decorators
-// or after progress resume.
-func (b *Bar) DecoratorAverageAdjust(start time.Time) {
+// EwmaSetCurrent sets progress' current to an arbitrary value and updates
+// EWMA based decorators by dur of a single iteration.
+func (b *Bar) EwmaSetCurrent(current int64, iterDur time.Duration) {
+	if current < 0 {
+		return
+	}
 	select {
 	case b.operateState <- func(s *bState) {
-		for _, d := range s.averageDecorators {
-			d.AverageAdjust(start)
+		n := current - s.current
+		var wg sync.WaitGroup
+		wg.Add(len(s.ewmaDecorators))
+		for _, d := range s.ewmaDecorators {
+			d := d
+			go func() {
+				d.EwmaUpdate(n, iterDur)
+				wg.Done()
+			}()
 		}
+		s.current = current
+		if s.triggerComplete && s.current >= s.total {
+			s.current = s.total
+			s.triggerCompletion(b)
+		}
+		wg.Wait()
 	}:
 	case <-b.ctx.Done():
 	}
+}
+
+// DecoratorAverageAdjust adjusts decorators implementing decor.AverageDecorator interface.
+// Call if there is need to set start time after decorators have been constructed.
+func (b *Bar) DecoratorAverageAdjust(start time.Time) {
+	b.TraverseDecorators(func(d decor.Decorator) {
+		if d, ok := d.(decor.AverageDecorator); ok {
+			d.AverageAdjust(start)
+		}
+	})
 }
 
 // SetPriority changes bar's order among multiple bars. Zero is highest
@@ -396,18 +402,28 @@ func (b *Bar) Wait() {
 }
 
 func (b *Bar) serve(bs *bState) {
+	decoratorsOnShutdown := func(decorators []decor.Decorator) {
+		for _, d := range decorators {
+			if d, ok := unwrap(d).(decor.ShutdownListener); ok {
+				b.container.bwg.Add(1)
+				go func() {
+					d.OnShutdown()
+					b.container.bwg.Done()
+				}()
+			}
+		}
+	}
 	for {
 		select {
 		case op := <-b.operateState:
 			op(bs)
 		case <-b.ctx.Done():
-			shutdownListeners := bs.shutdownListeners
+			decoratorsOnShutdown(bs.decorators[0])
+			decoratorsOnShutdown(bs.decorators[1])
+			// bar can be aborted by canceling parent ctx without calling b.Abort
 			bs.aborted = !bs.completed()
 			b.bs = bs
 			close(b.bsOk)
-			for _, d := range shutdownListeners {
-				d.OnShutdown()
-			}
 			b.container.bwg.Done()
 			return
 		}
@@ -549,17 +565,10 @@ func (s *bState) wSyncTable() (table syncTable) {
 	return table
 }
 
-func (s *bState) sortDecorators(decorators []decor.Decorator) {
+func (s *bState) populateEwmaDecorators(decorators []decor.Decorator) {
 	for _, d := range decorators {
-		d := unwrap(d)
-		if d, ok := d.(decor.AverageDecorator); ok {
-			s.averageDecorators = append(s.averageDecorators, d)
-		}
-		if d, ok := d.(decor.EwmaDecorator); ok {
+		if d, ok := unwrap(d).(decor.EwmaDecorator); ok {
 			s.ewmaDecorators = append(s.ewmaDecorators, d)
-		}
-		if d, ok := d.(decor.ShutdownListener); ok {
-			s.shutdownListeners = append(s.shutdownListeners, d)
 		}
 	}
 }
@@ -578,17 +587,6 @@ func (s *bState) triggerCompletion(b *Bar) {
 
 func (s bState) completed() bool {
 	return s.triggerComplete && s.current == s.total
-}
-
-func (s bState) decoratorEwmaUpdate(n int64, dur time.Duration, wg *sync.WaitGroup) {
-	wg.Add(len(s.ewmaDecorators))
-	for _, d := range s.ewmaDecorators {
-		d := d
-		go func() {
-			d.EwmaUpdate(n, dur)
-			wg.Done()
-		}()
-	}
 }
 
 func (s bState) newStatistics(tw int) decor.Statistics {
