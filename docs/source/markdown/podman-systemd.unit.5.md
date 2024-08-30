@@ -638,6 +638,10 @@ As a special case, if the `name` of the network ends with `.network`, a Podman n
 a dependency on the `$name-network.service`. Such a network can be automatically
 created by using a `$name.network` Quadlet file.
 
+Another special case is that if the `name` ends with `.container`,
+the container will reuse the network stack of another container created by `$name.container`.
+The generated systemd service contains a dependency on `$name.service`.
+
 This key can be listed multiple times.
 
 ### `NetworkAlias=`
