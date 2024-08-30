@@ -62,6 +62,21 @@ type VolumeSource struct {
 	// More info: https://kubernetes.io/docs/concepts/storage/volumes#emptydir
 	// +optional
 	EmptyDir *EmptyDirVolumeSource `json:"emptyDir,omitempty"`
+	// image represents a container image pulled and mounted on the host machine.
+	// The volume is resolved at pod startup depending on which PullPolicy value is provided:
+	//
+	// - Always: podman always attempts to pull the reference. Container creation will fail If the pull fails.
+	// - Never: podman never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.
+	// - IfNotPresent: podman pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.
+	//
+	// The volume gets re-resolved if the pod gets deleted and recreated, which means that new remote content will become available on pod recreation.
+	// A failure to resolve or pull the image during pod startup will block containers from starting and the pod won't be created.
+	// The container image gets mounted in a single directory (spec.containers[*].volumeMounts.mountPath) by merging the manifest layers in the same way as for container images.
+	// The volume will be mounted read-only (ro) and non-executable files (noexec).
+	// Sub path mounts for containers are not supported (spec.containers[*].volumeMounts.subpath).
+	// The field spec.securityContext.fsGroupChangePolicy has no effect on this volume type.
+	// +optional
+	Image *ImageVolumeSource `json:"image,omitempty"`
 }
 
 // PersistentVolumeClaimVolumeSource references the user's PVC in the same namespace.
@@ -463,6 +478,24 @@ type EmptyDirVolumeSource struct {
 	// More info: http://kubernetes.io/docs/user-guide/volumes#emptydir
 	// +optional
 	SizeLimit *resource.Quantity `json:"sizeLimit,omitempty"`
+}
+
+// ImageVolumeSource represents a image volume resource.
+type ImageVolumeSource struct {
+	// Required: Container image reference to be used.
+	// Behaves in the same way as pod.spec.containers[*].image.
+	// This field is optional to allow higher level config management to default or override
+	// container images in workload controllers like Deployments and StatefulSets.
+	// +optional
+	Reference string `json:"reference,omitempty"`
+
+	// Policy for pulling OCI objects. Possible values are:
+	// Always: podman always attempts to pull the reference. Container creation will fail If the pull fails.
+	// Never: podman never pulls the reference and only uses a local image or artifact. Container creation will fail if the reference isn't present.
+	// IfNotPresent: podman pulls if the reference isn't already present on disk. Container creation will fail if the reference isn't present and the pull fails.
+	// Defaults to Always if :latest tag is specified, or IfNotPresent otherwise.
+	// +optional
+	PullPolicy PullPolicy `json:"pullPolicy,omitempty"`
 }
 
 // SecretReference represents a Secret Reference. It has enough information to retrieve secret

@@ -1001,7 +1001,7 @@ _EOF
     run_podman rmi -f $userimage $from_image
 }
 
-@test "podman play with automount volume" {
+@test "podman play with image volume (automount annotation and OCI VolumeSource)" {
     imgname1="automount-img1-$(safename)"
     imgname2="automount-img2-$(safename)"
     podname="p-$(safename)"
@@ -1046,6 +1046,7 @@ EOF
 
     run_podman kube down $TESTYAML
 
+    # Testing the first technique to mount an OCI image: through a Pod annotation
     fname="/$PODMAN_TMPDIR/play_kube_wait_$(random_string 6).yaml"
     cat >$fname <<EOF
 apiVersion: v1
@@ -1087,7 +1088,150 @@ EOF
     assert "$output" !~ "test" "No volume should be mounted in no-mount container"
 
     run_podman kube down $fname
+
+    # Testing the second technique to mount an OCI image: using image volume
+        fname="/$PODMAN_TMPDIR/play_kube_wait_$(random_string 6).yaml"
+    cat >$fname <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: $podname
+spec:
+  restartPolicy: Never
+  containers:
+    - name: $ctrname
+      image: $IMAGE
+      command:
+        - top
+      volumeMounts:
+        - name: volume1
+          mountPath: /image1
+        - name: volume2
+          mountPath: /image2
+    - name: $ctrname_not_mounted
+      image: $IMAGE
+      command:
+      - top
+  volumes:
+    - name: volume1
+      image:
+        reference: $imgname1
+    - name: volume2
+      image:
+        reference: $imgname2
+EOF
+
+    run_podman kube play $fname
+
+    run_podman exec "$podname-$ctrname" ls -x /image1/test1
+    assert "a  b  c" "ls /test1 inside container"
+
+    run_podman exec "$podname-$ctrname" ls -x /image2/test2
+    assert "asdf    ejgre   lteghe" "ls /test2 inside container"
+
+    run_podman 1 exec "$podname-$ctrname" touch /image1/test1/readonly
+    assert "$output" =~ "Read-only file system" "image mounted as readonly"
+
+    run_podman exec "$podname-$ctrname_not_mounted" ls /
+    assert "$output" !~ "image" "No volume should be mounted in no-mount container"
+
+    run_podman kube down $fname
     run_podman rmi $imgname1 $imgname2
+}
+
+@test "podman play with image volume pull policies" {
+    podname="p-$(safename)"
+    ctrname="c-$(safename)"
+    volimg_local="localhost/i-$(safename):latest" # only exists locally
+    volimg_remote=${PODMAN_NONLOCAL_IMAGE_FQN}    # only exists remotely
+    volimg_both="quay.io/libpod/alpine:latest"    # exists both remotely and locally
+
+    localfile="localfile"
+
+    # Pull $volimg_both and commit a local modification. As a result
+    # the image exists both locally and remotely but the two versions
+    # are slightly different.
+    run_podman pull $volimg_both
+    run_podman run --name $ctrname $volimg_both sh -c "touch /$localfile"
+    run_podman commit $ctrname $volimg_both
+    run_podman rm $ctrname
+
+    # Tag $volimg_both as $volimg_local
+    run_podman tag $volimg_both $volimg_local
+
+    # Check that $volimg_both and $volimg_local exists locally
+    run_podman image exists $volimg_both
+    run_podman image exists $volimg_local
+
+    # Check that $volimg_remote doesn't exist locally
+    run_podman 1 image exists $volimg_remote
+
+    # The test scenarios:
+    # We verify the return code of kube play for different
+    # combinations of image locations (remote/local/both)
+    # and pull policies (IfNotPresent/Always/Never).
+    # When the image exists both locally and remotely the
+    # tests verify that the correct version of image is
+    # mounted (0 for the local version, 1 for the remote
+    # version).
+    # When running the tests with $volimg_both, the test
+    # with policy "Always" should be run as the last one,
+    # as it pulls the remote image and overwrites the local
+    # one.
+    tests="
+$volimg_local    |  IfNotPresent | 0   |
+$volimg_local    |  Never        | 0   |
+$volimg_local    |  Always       | 125 |
+$volimg_remote   |  IfNotPresent | 0   |
+$volimg_remote   |  Never        | 125 |
+$volimg_remote   |  Always       | 0   |
+$volimg_both     |  IfNotPresent | 0   | 0
+$volimg_both     |  Never        | 0   | 0
+$volimg_both     |  Always       | 0   | 1
+"
+
+    while read volimg policy playrc islocal; do
+
+        fname="/$PODMAN_TMPDIR/play_kube_volimg_${policy}.yaml"
+        cat >$fname <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: test
+  name: $podname
+spec:
+  restartPolicy: Never
+  containers:
+    - name: $ctrname
+      image: $IMAGE
+      command:
+        - top
+      volumeMounts:
+        - name: volume
+          mountPath: /image
+  volumes:
+    - name: volume
+      image:
+        reference: $volimg
+        pullPolicy: $policy
+EOF
+        run_podman $playrc kube play $fname
+
+        if [[ "$islocal" != "''" ]]; then
+            run_podman $islocal exec "$podname-$ctrname" ls /image/$localfile
+        fi
+
+        run_podman kube down $fname
+
+        # If the remote-only image was pulled, remove it
+        run_podman rmi -f $volimg_remote
+
+    done < <(parse_table "$tests")
+
+    run_podman rmi $volimg_local $volimg_both
 }
 
 @test "podman kube restore user namespace" {
