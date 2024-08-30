@@ -1,12 +1,14 @@
 package e2e_test
 
 import (
+	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -181,6 +183,47 @@ var _ = Describe("podman machine list", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(listSession).To(Exit(0))
 		Expect(listSession.outputToString()).To(Equal("2GiB 11GiB"))
+	})
+	It("list machine from all providers", func() {
+		skipIfVmtype(define.QemuVirt, "linux only has one provider")
+
+		// create machine on other provider
+		currprovider := os.Getenv("CONTAINERS_MACHINE_PROVIDER")
+		os.Setenv("CONTAINERS_MACHINE_PROVIDER", getOtherProvider())
+		defer os.Setenv("CONTAINERS_MACHINE_PROVIDER", currprovider)
+
+		// this may take a long time - we're not pre-fetching this image
+		othermach := new(initMachine)
+		session, err := mb.setName("otherprovider").setCmd(othermach).run()
+		// make sure to remove machine from other provider later
+		defer func() {
+			os.Setenv("CONTAINERS_MACHINE_PROVIDER", getOtherProvider())
+			defer os.Setenv("CONTAINERS_MACHINE_PROVIDER", currprovider)
+			rm := new(rmMachine)
+			removed, err := mb.setName("otherprovider").setCmd(rm.withForce()).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(removed).To(Exit(0))
+		}()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		// change back to current provider
+		os.Setenv("CONTAINERS_MACHINE_PROVIDER", currprovider)
+		name := randomString()
+		i := new(initMachine)
+		session, err = mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		list := new(listMachine)
+		listSession, err := mb.setCmd(list.withAllProviders().withFormat("{{.Name}}")).run()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(listSession).To(Exit(0))
+		listNames := listSession.outputToStringSlice()
+		stripAsterisk(listNames)
+		Expect(listNames).To(HaveLen(2))
+		Expect(slices.Contains(listNames, "otherprovider")).To(BeTrue())
+		Expect(slices.Contains(listNames, name)).To(BeTrue())
 	})
 })
 

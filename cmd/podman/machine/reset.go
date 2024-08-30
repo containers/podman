@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/shim"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -50,9 +51,17 @@ func reset(_ *cobra.Command, _ []string) error {
 		err error
 	)
 
-	providers, err := provider2.GetAll(resetOptions.Force)
+	providers := provider2.GetAll()
 	if err != nil {
 		return err
+	}
+	for _, p := range providers {
+		hasPerms := provider2.HasPermsForProvider(p.VMType())
+		isInstalled, err := provider2.IsInstalled(p.VMType())
+		if !hasPerms && (isInstalled || err != nil) && !resetOptions.Force {
+			logrus.Warnf("Managing %s machines require admin authority.", p.VMType().String())
+			logrus.Warnf("Continuing to reset may cause Podman to be unaware of remaining VMs in the VM manager.")
+		}
 	}
 
 	if !resetOptions.Force {
