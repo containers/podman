@@ -1257,6 +1257,12 @@ type Container struct {
 	// Default is false.
 	// +optional
 	TTY bool `json:"tty,omitempty"`
+	// Restart policy for the container to manage the restart behavior of each
+	// container within a pod.
+	// This may only be set for init containers. You cannot set this field on
+	// ephemeral containers.
+	// +optional
+	RestartPolicy *ContainerRestartPolicy `json:"restartPolicy,omitempty" protobuf:"bytes,24,opt,name=restartPolicy,casttype=ContainerRestartPolicy"`
 }
 
 // Handler defines a specific action that should be taken
@@ -1483,6 +1489,14 @@ const (
 	RestartPolicyAlways    RestartPolicy = "Always"
 	RestartPolicyOnFailure RestartPolicy = "OnFailure"
 	RestartPolicyNever     RestartPolicy = "Never"
+)
+
+// ContainerRestartPolicy is the restart policy for a single container.
+// This may only be set for init containers and only allowed value is "Always".
+type ContainerRestartPolicy string
+
+const (
+	ContainerRestartPolicyAlways ContainerRestartPolicy = "Always"
 )
 
 // DNSPolicy defines how a pod's DNS will be configured.
@@ -2375,6 +2389,12 @@ type EphemeralContainerCommon struct {
 	// Default is false.
 	// +optional
 	TTY bool `json:"tty,omitempty"`
+	// Restart policy for the container to manage the restart behavior of each
+	// container within a pod.
+	// This may only be set for init containers. You cannot set this field on
+	// ephemeral containers.
+	// +optional
+	RestartPolicy *ContainerRestartPolicy `json:"restartPolicy,omitempty" protobuf:"bytes,24,opt,name=restartPolicy,casttype=ContainerRestartPolicy"`
 }
 
 // EphemeralContainerCommon converts to Container. All fields must be kept in sync between
