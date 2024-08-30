@@ -31,6 +31,7 @@ import (
 
 	"google.golang.org/grpc/balancer"
 	"google.golang.org/grpc/balancer/base"
+	"google.golang.org/grpc/balancer/pickfirst"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
 	"google.golang.org/grpc/internal"
@@ -72,6 +73,8 @@ var (
 	// invalidDefaultServiceConfigErrPrefix is used to prefix the json parsing error for the default
 	// service config.
 	invalidDefaultServiceConfigErrPrefix = "grpc: the provided default service config is invalid"
+	// PickFirstBalancerName is the name of the pick_first balancer.
+	PickFirstBalancerName = pickfirst.Name
 )
 
 // The following errors are returned from Dial and DialContext
@@ -152,6 +155,16 @@ func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) 
 	for _, opt := range opts {
 		opt.apply(&cc.dopts)
 	}
+
+	// Determine the resolver to use.
+	if err := cc.initParsedTargetAndResolverBuilder(); err != nil {
+		return nil, err
+	}
+
+	for _, opt := range globalPerTargetDialOptions {
+		opt.DialOptionForTarget(cc.parsedTarget.URL).apply(&cc.dopts)
+	}
+
 	chainUnaryClientInterceptors(cc)
 	chainStreamClientInterceptors(cc)
 
@@ -160,7 +173,7 @@ func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) 
 	}
 
 	if cc.dopts.defaultServiceConfigRawJSON != nil {
-		scpr := parseServiceConfig(*cc.dopts.defaultServiceConfigRawJSON)
+		scpr := parseServiceConfig(*cc.dopts.defaultServiceConfigRawJSON, cc.dopts.maxCallAttempts)
 		if scpr.Err != nil {
 			return nil, fmt.Errorf("%s: %v", invalidDefaultServiceConfigErrPrefix, scpr.Err)
 		}
@@ -168,24 +181,15 @@ func NewClient(target string, opts ...DialOption) (conn *ClientConn, err error) 
 	}
 	cc.mkp = cc.dopts.copts.KeepaliveParams
 
-	// Register ClientConn with channelz.
+	if err = cc.initAuthority(); err != nil {
+		return nil, err
+	}
+
+	// Register ClientConn with channelz. Note that this is only done after
+	// channel creation cannot fail.
 	cc.channelzRegistration(target)
-
-	// TODO: Ideally it should be impossible to error from this function after
-	// channelz registration.  This will require removing some channelz logs
-	// from the following functions that can error.  Errors can be returned to
-	// the user, and successful logs can be emitted here, after the checks have
-	// passed and channelz is subsequently registered.
-
-	// Determine the resolver to use.
-	if err := cc.parseTargetAndFindResolver(); err != nil {
-		channelz.RemoveEntry(cc.channelz.ID)
-		return nil, err
-	}
-	if err = cc.determineAuthority(); err != nil {
-		channelz.RemoveEntry(cc.channelz.ID)
-		return nil, err
-	}
+	channelz.Infof(logger, cc.channelz, "parsed dial target is: %#v", cc.parsedTarget)
+	channelz.Infof(logger, cc.channelz, "Channel authority set to %q", cc.authority)
 
 	cc.csMgr = newConnectivityStateManager(cc.ctx, cc.channelz)
 	cc.pickerWrapper = newPickerWrapper(cc.dopts.copts.StatsHandlers)
@@ -587,11 +591,11 @@ type ClientConn struct {
 
 	// The following are initialized at dial time, and are read-only after that.
 	target          string            // User's dial target.
-	parsedTarget    resolver.Target   // See parseTargetAndFindResolver().
-	authority       string            // See determineAuthority().
+	parsedTarget    resolver.Target   // See initParsedTargetAndResolverBuilder().
+	authority       string            // See initAuthority().
 	dopts           dialOptions       // Default and user specified dial options.
 	channelz        *channelz.Channel // Channelz object.
-	resolverBuilder resolver.Builder  // See parseTargetAndFindResolver().
+	resolverBuilder resolver.Builder  // See initParsedTargetAndResolverBuilder().
 	idlenessMgr     *idle.Manager
 
 	// The following provide their own synchronization, and therefore don't
@@ -692,8 +696,7 @@ func (cc *ClientConn) waitForResolvedAddrs(ctx context.Context) error {
 var emptyServiceConfig *ServiceConfig
 
 func init() {
-	balancer.Register(pickfirstBuilder{})
-	cfg := parseServiceConfig("{}")
+	cfg := parseServiceConfig("{}", defaultMaxCallAttempts)
 	if cfg.Err != nil {
 		panic(fmt.Sprintf("impossible error parsing empty service config: %v", cfg.Err))
 	}
@@ -1673,22 +1676,19 @@ func (cc *ClientConn) connectionError() error {
 	return cc.lastConnectionError
 }
 
-// parseTargetAndFindResolver parses the user's dial target and stores the
-// parsed target in `cc.parsedTarget`.
+// initParsedTargetAndResolverBuilder parses the user's dial target and stores
+// the parsed target in `cc.parsedTarget`.
 //
 // The resolver to use is determined based on the scheme in the parsed target
 // and the same is stored in `cc.resolverBuilder`.
 //
 // Doesn't grab cc.mu as this method is expected to be called only at Dial time.
-func (cc *ClientConn) parseTargetAndFindResolver() error {
-	channelz.Infof(logger, cc.channelz, "original dial target is: %q", cc.target)
+func (cc *ClientConn) initParsedTargetAndResolverBuilder() error {
+	logger.Infof("original dial target is: %q", cc.target)
 
 	var rb resolver.Builder
 	parsedTarget, err := parseTarget(cc.target)
-	if err != nil {
-		channelz.Infof(logger, cc.channelz, "dial target %q parse failed: %v", cc.target, err)
-	} else {
-		channelz.Infof(logger, cc.channelz, "parsed dial target is: %#v", parsedTarget)
+	if err == nil {
 		rb = cc.getResolver(parsedTarget.URL.Scheme)
 		if rb != nil {
 			cc.parsedTarget = parsedTarget
@@ -1707,15 +1707,12 @@ func (cc *ClientConn) parseTargetAndFindResolver() error {
 		defScheme = resolver.GetDefaultScheme()
 	}
 
-	channelz.Infof(logger, cc.channelz, "fallback to scheme %q", defScheme)
 	canonicalTarget := defScheme + ":///" + cc.target
 
 	parsedTarget, err = parseTarget(canonicalTarget)
 	if err != nil {
-		channelz.Infof(logger, cc.channelz, "dial target %q parse failed: %v", canonicalTarget, err)
 		return err
 	}
-	channelz.Infof(logger, cc.channelz, "parsed dial target is: %+v", parsedTarget)
 	rb = cc.getResolver(parsedTarget.URL.Scheme)
 	if rb == nil {
 		return fmt.Errorf("could not get resolver for default scheme: %q", parsedTarget.URL.Scheme)
@@ -1805,7 +1802,7 @@ func encodeAuthority(authority string) string {
 // credentials do not match the authority configured through the dial option.
 //
 // Doesn't grab cc.mu as this method is expected to be called only at Dial time.
-func (cc *ClientConn) determineAuthority() error {
+func (cc *ClientConn) initAuthority() error {
 	dopts := cc.dopts
 	// Historically, we had two options for users to specify the serverName or
 	// authority for a channel. One was through the transport credentials
@@ -1838,6 +1835,5 @@ func (cc *ClientConn) determineAuthority() error {
 	} else {
 		cc.authority = encodeAuthority(endpoint)
 	}
-	channelz.Infof(logger, cc.channelz, "Channel authority set to %q", cc.authority)
 	return nil
 }

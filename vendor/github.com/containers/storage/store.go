@@ -84,6 +84,20 @@ type ApplyStagedLayerOptions struct {
 	DiffOptions *drivers.ApplyDiffWithDifferOpts // Mandatory
 }
 
+// MultiListOptions contains options to pass to MultiList
+type MultiListOptions struct {
+	Images     bool // if true, Images will be listed in the result
+	Layers     bool // if true, layers will be listed in the result
+	Containers bool // if true, containers will be listed in the result
+}
+
+// MultiListResult contains slices of Images, Layers or Containers listed by MultiList method
+type MultiListResult struct {
+	Images     []Image
+	Layers     []Layer
+	Containers []Container
+}
+
 // An roBigDataStore wraps up the read-only big-data related methods of the
 // various types of file-based lookaside stores that we implement.
 type roBigDataStore interface {
@@ -561,6 +575,12 @@ type Store interface {
 	// usually by deleting layers and images which are damaged.  If the
 	// right options are set, it will remove containers as well.
 	Repair(report CheckReport, options *RepairOptions) []error
+
+	// MultiList returns a MultiListResult structure that contains layer, image, or container
+	// extracts according to the values in MultiListOptions.
+	// MultiList returns consistent values as of a single point in time.
+	// WARNING: The values may already be out of date by the time they are returned to the caller.
+	MultiList(MultiListOptions) (MultiListResult, error)
 }
 
 // AdditionalLayer represents a layer that is contained in the additional layer store
@@ -3814,4 +3834,56 @@ func (s *store) GarbageCollect() error {
 	}
 
 	return firstErr
+}
+
+// List returns a MultiListResult structure that contains layer, image, or container
+// extracts according to the values in MultiListOptions.
+func (s *store) MultiList(options MultiListOptions) (MultiListResult, error) {
+	// TODO: Possible optimization: Deduplicate content from multiple stores.
+	out := MultiListResult{}
+
+	if options.Layers {
+		layerStores, err := s.allLayerStores()
+		if err != nil {
+			return MultiListResult{}, err
+		}
+		for _, roStore := range layerStores {
+			if err := roStore.startReading(); err != nil {
+				return MultiListResult{}, err
+			}
+			defer roStore.stopReading()
+			layers, err := roStore.Layers()
+			if err != nil {
+				return MultiListResult{}, err
+			}
+			out.Layers = append(out.Layers, layers...)
+		}
+	}
+
+	if options.Images {
+		for _, roStore := range s.allImageStores() {
+			if err := roStore.startReading(); err != nil {
+				return MultiListResult{}, err
+			}
+			defer roStore.stopReading()
+
+			images, err := roStore.Images()
+			if err != nil {
+				return MultiListResult{}, err
+			}
+			out.Images = append(out.Images, images...)
+		}
+	}
+
+	if options.Containers {
+		containers, _, err := readContainerStore(s, func() ([]Container, bool, error) {
+			res, err := s.containerStore.Containers()
+			return res, true, err
+		})
+		if err != nil {
+			return MultiListResult{}, err
+		}
+		out.Containers = append(out.Containers, containers...)
+	}
+	return out, nil
 }

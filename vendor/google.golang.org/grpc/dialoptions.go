@@ -21,6 +21,7 @@ package grpc
 import (
 	"context"
 	"net"
+	"net/url"
 	"time"
 
 	"google.golang.org/grpc/backoff"
@@ -36,12 +37,25 @@ import (
 	"google.golang.org/grpc/stats"
 )
 
+const (
+	// https://github.com/grpc/proposal/blob/master/A6-client-retries.md#limits-on-retries-and-hedges
+	defaultMaxCallAttempts = 5
+)
+
 func init() {
 	internal.AddGlobalDialOptions = func(opt ...DialOption) {
 		globalDialOptions = append(globalDialOptions, opt...)
 	}
 	internal.ClearGlobalDialOptions = func() {
 		globalDialOptions = nil
+	}
+	internal.AddGlobalPerTargetDialOptions = func(opt any) {
+		if ptdo, ok := opt.(perTargetDialOption); ok {
+			globalPerTargetDialOptions = append(globalPerTargetDialOptions, ptdo)
+		}
+	}
+	internal.ClearGlobalPerTargetDialOptions = func() {
+		globalPerTargetDialOptions = nil
 	}
 	internal.WithBinaryLogger = withBinaryLogger
 	internal.JoinDialOptions = newJoinDialOption
@@ -80,6 +94,7 @@ type dialOptions struct {
 	idleTimeout                 time.Duration
 	recvBufferPool              SharedBufferPool
 	defaultScheme               string
+	maxCallAttempts             int
 }
 
 // DialOption configures how we set up the connection.
@@ -88,6 +103,19 @@ type DialOption interface {
 }
 
 var globalDialOptions []DialOption
+
+// perTargetDialOption takes a parsed target and returns a dial option to apply.
+//
+// This gets called after NewClient() parses the target, and allows per target
+// configuration set through a returned DialOption. The DialOption will not take
+// effect if specifies a resolver builder, as that Dial Option is factored in
+// while parsing target.
+type perTargetDialOption interface {
+	// DialOption returns a Dial Option to apply.
+	DialOptionForTarget(parsedTarget url.URL) DialOption
+}
+
+var globalPerTargetDialOptions []perTargetDialOption
 
 // EmptyDialOption does not alter the dial configuration. It can be embedded in
 // another structure to build custom dial options.
@@ -655,6 +683,7 @@ func defaultDialOptions() dialOptions {
 		idleTimeout:     30 * time.Minute,
 		recvBufferPool:  nopBufferPool{},
 		defaultScheme:   "dns",
+		maxCallAttempts: defaultMaxCallAttempts,
 	}
 }
 
@@ -709,6 +738,23 @@ func WithResolvers(rs ...resolver.Builder) DialOption {
 func WithIdleTimeout(d time.Duration) DialOption {
 	return newFuncDialOption(func(o *dialOptions) {
 		o.idleTimeout = d
+	})
+}
+
+// WithMaxCallAttempts returns a DialOption that configures the maximum number
+// of attempts per call (including retries and hedging) using the channel.
+// Service owners may specify a higher value for these parameters, but higher
+// values will be treated as equal to the maximum value by the client
+// implementation. This mitigates security concerns related to the service
+// config being transferred to the client via DNS.
+//
+// A value of 5 will be used if this dial option is not set or n < 2.
+func WithMaxCallAttempts(n int) DialOption {
+	return newFuncDialOption(func(o *dialOptions) {
+		if n < 2 {
+			n = defaultMaxCallAttempts
+		}
+		o.maxCallAttempts = n
 	})
 }
 

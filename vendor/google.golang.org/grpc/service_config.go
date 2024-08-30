@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"google.golang.org/grpc/balancer"
+	"google.golang.org/grpc/balancer/pickfirst"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/internal"
 	"google.golang.org/grpc/internal/balancer/gracefulswitch"
@@ -163,9 +164,11 @@ type jsonSC struct {
 }
 
 func init() {
-	internal.ParseServiceConfig = parseServiceConfig
+	internal.ParseServiceConfig = func(js string) *serviceconfig.ParseResult {
+		return parseServiceConfig(js, defaultMaxCallAttempts)
+	}
 }
-func parseServiceConfig(js string) *serviceconfig.ParseResult {
+func parseServiceConfig(js string, maxAttempts int) *serviceconfig.ParseResult {
 	if len(js) == 0 {
 		return &serviceconfig.ParseResult{Err: fmt.Errorf("no JSON service config provided")}
 	}
@@ -183,12 +186,12 @@ func parseServiceConfig(js string) *serviceconfig.ParseResult {
 	}
 	c := rsc.LoadBalancingConfig
 	if c == nil {
-		name := PickFirstBalancerName
+		name := pickfirst.Name
 		if rsc.LoadBalancingPolicy != nil {
 			name = *rsc.LoadBalancingPolicy
 		}
 		if balancer.Get(name) == nil {
-			name = PickFirstBalancerName
+			name = pickfirst.Name
 		}
 		cfg := []map[string]any{{name: struct{}{}}}
 		strCfg, err := json.Marshal(cfg)
@@ -218,7 +221,7 @@ func parseServiceConfig(js string) *serviceconfig.ParseResult {
 			WaitForReady: m.WaitForReady,
 			Timeout:      (*time.Duration)(m.Timeout),
 		}
-		if mc.RetryPolicy, err = convertRetryPolicy(m.RetryPolicy); err != nil {
+		if mc.RetryPolicy, err = convertRetryPolicy(m.RetryPolicy, maxAttempts); err != nil {
 			logger.Warningf("grpc: unmarshalling service config %s: %v", js, err)
 			return &serviceconfig.ParseResult{Err: err}
 		}
@@ -264,7 +267,7 @@ func parseServiceConfig(js string) *serviceconfig.ParseResult {
 	return &serviceconfig.ParseResult{Config: &sc}
 }
 
-func convertRetryPolicy(jrp *jsonRetryPolicy) (p *internalserviceconfig.RetryPolicy, err error) {
+func convertRetryPolicy(jrp *jsonRetryPolicy, maxAttempts int) (p *internalserviceconfig.RetryPolicy, err error) {
 	if jrp == nil {
 		return nil, nil
 	}
@@ -278,16 +281,15 @@ func convertRetryPolicy(jrp *jsonRetryPolicy) (p *internalserviceconfig.RetryPol
 		return nil, nil
 	}
 
+	if jrp.MaxAttempts < maxAttempts {
+		maxAttempts = jrp.MaxAttempts
+	}
 	rp := &internalserviceconfig.RetryPolicy{
-		MaxAttempts:          jrp.MaxAttempts,
+		MaxAttempts:          maxAttempts,
 		InitialBackoff:       time.Duration(jrp.InitialBackoff),
 		MaxBackoff:           time.Duration(jrp.MaxBackoff),
 		BackoffMultiplier:    jrp.BackoffMultiplier,
 		RetryableStatusCodes: make(map[codes.Code]bool),
-	}
-	if rp.MaxAttempts > 5 {
-		// TODO(retry): Make the max maxAttempts configurable.
-		rp.MaxAttempts = 5
 	}
 	for _, code := range jrp.RetryableStatusCodes {
 		rp.RetryableStatusCodes[code] = true

@@ -3,7 +3,6 @@
 package libimage
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -38,7 +37,7 @@ func (i *Image) Tree(traverseChildren bool) (string, error) {
 		fmt.Fprintf(sb, "No Image Layers")
 	}
 
-	layerTree, err := i.runtime.layerTree(context.Background(), nil)
+	layerTree, err := i.runtime.newFreshLayerTree()
 	if err != nil {
 		return "", err
 	}

@@ -171,7 +171,7 @@ func (ccr *ccResolverWrapper) NewAddress(addrs []resolver.Address) {
 // ParseServiceConfig is called by resolver implementations to parse a JSON
 // representation of the service config.
 func (ccr *ccResolverWrapper) ParseServiceConfig(scJSON string) *serviceconfig.ParseResult {
-	return parseServiceConfig(scJSON)
+	return parseServiceConfig(scJSON, ccr.cc.dopts.maxCallAttempts)
 }
 
 // addChannelzTraceEvent adds a channelz trace event containing the new

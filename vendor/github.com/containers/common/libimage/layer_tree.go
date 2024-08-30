@@ -89,21 +89,18 @@ func (l *layerNode) repoTags() ([]string, error) {
 	return orderedTags, nil
 }
 
-// layerTree extracts a layerTree from the layers in the local storage and
-// relates them to the specified images.
-func (r *Runtime) layerTree(ctx context.Context, images []*Image) (*layerTree, error) {
-	layers, err := r.store.Layers()
+// newFreshLayerTree extracts a layerTree from consistent layers and images in the local storage.
+func (r *Runtime) newFreshLayerTree() (*layerTree, error) {
+	images, layers, err := r.getImagesAndLayers()
 	if err != nil {
 		return nil, err
 	}
+	return r.newLayerTreeFromData(images, layers)
+}
 
-	if images == nil {
-		images, err = r.ListImages(ctx, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-	}
-
+// newLayerTreeFromData extracts a layerTree from the given the layers and images.
+// The caller is responsible for (layers, images) being consistent.
+func (r *Runtime) newLayerTreeFromData(images []*Image, layers []storage.Layer) (*layerTree, error) {
 	tree := layerTree{
 		nodes:    make(map[string]*layerNode),
 		ociCache: make(map[string]*ociv1.Image),

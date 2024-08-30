@@ -198,6 +198,10 @@ func (ccb *ccBalancerWrapper) UpdateAddresses(sc balancer.SubConn, addrs []resol
 func (ccb *ccBalancerWrapper) UpdateState(s balancer.State) {
 	ccb.cc.mu.Lock()
 	defer ccb.cc.mu.Unlock()
+	if ccb.cc.conns == nil {
+		// The CC has been closed; ignore this update.
+		return
+	}
 
 	ccb.mu.Lock()
 	if ccb.closed {

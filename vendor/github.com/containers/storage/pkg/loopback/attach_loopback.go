@@ -41,11 +41,10 @@ func getNextFreeLoopbackIndex() (int, error) {
 	return index, err
 }
 
-func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (loopFile *os.File, err error) {
+func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (*os.File, error) {
 	// Read information about the loopback file.
 	var st syscall.Stat_t
-	err = syscall.Fstat(int(sparseFile.Fd()), &st)
-	if err != nil {
+	if err := syscall.Fstat(int(sparseFile.Fd()), &st); err != nil {
 		logrus.Errorf("Reading information about loopback file %s: %v", sparseName, err)
 		return nil, ErrAttachLoopbackDevice
 	}
@@ -70,7 +69,7 @@ func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (loopFile
 		target := fmt.Sprintf("/dev/loop%d", index)
 
 		// OpenFile adds O_CLOEXEC
-		loopFile, err = os.OpenFile(target, os.O_RDWR, 0o644)
+		loopFile, err := os.OpenFile(target, os.O_RDWR, 0o644)
 		if err != nil {
 			// The kernel returns ENXIO when opening a device that is in the "deleting" or "rundown" state, so
 			// just treat ENXIO as if the device does not exist.
@@ -100,13 +99,12 @@ func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (loopFile
 			loopFile.Close()
 
 			// If the error is EBUSY, then try the next loopback
-			if err != syscall.EBUSY {
-				logrus.Errorf("Cannot set up loopback device %s: %s", target, err)
-				return nil, ErrAttachLoopbackDevice
+			if err == syscall.EBUSY {
+				continue
 			}
 
-			// Otherwise, we keep going with the loop
-			continue
+			logrus.Errorf("Cannot set up loopback device %s: %s", target, err)
+			return nil, ErrAttachLoopbackDevice
 		}
 
 		// Check if the loopback driver and underlying filesystem agree on the loopback file's
@@ -119,18 +117,8 @@ func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (loopFile
 		if dev != uint64(st.Dev) || ino != st.Ino {
 			logrus.Errorf("Loopback device and filesystem disagree on device/inode for %q: %#x(%d):%#x(%d) vs %#x(%d):%#x(%d)", sparseName, dev, dev, ino, ino, st.Dev, st.Dev, st.Ino, st.Ino)
 		}
-
-		// In case of success, we finished. Break the loop.
-		break
+		return loopFile, nil
 	}
-
-	// This can't happen, but let's be sure
-	if loopFile == nil {
-		logrus.Errorf("Unreachable code reached! Error attaching %s to a loopback device.", sparseFile.Name())
-		return nil, ErrAttachLoopbackDevice
-	}
-
-	return loopFile, nil
 }
 
 // AttachLoopDevice attaches the given sparse file to the next

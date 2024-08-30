@@ -139,7 +139,7 @@ func (m *ManifestList) LookupInstance(ctx context.Context, architecture, os, var
 		return nil, err
 	}
 
-	allImages, err := m.image.runtime.ListImages(ctx, nil, nil)
+	allImages, err := m.image.runtime.ListImages(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
