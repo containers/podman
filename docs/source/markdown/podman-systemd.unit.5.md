@@ -1621,6 +1621,8 @@ successfully.
 
 This is equivalent to the `--tag` option of `podman build`.
 
+This key can be listed multiple times. The first instance will be used as the name of the created artifact when the `.build` file is referenced by another Quadlet unit.
+
 ### `Label=`
 
 Add an image *label* (e.g. label=*value*) to the image metadata. Can be used multiple times.

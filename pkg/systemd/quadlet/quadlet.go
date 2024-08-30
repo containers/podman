@@ -1494,7 +1494,10 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	labels := build.LookupAllKeyVal(BuildGroup, KeyLabel)
 	podman.addLabels(labels)
 
-	podman.addf("--tag=%s", unitInfo.ResourceName)
+	imageTags := build.LookupAll(BuildGroup, KeyImageTag)
+	for _, imageTag := range imageTags {
+		podman.addf("--tag=%s", imageTag)
+	}
 
 	if err := addNetworks(build, BuildGroup, service, unitsInfoMap, podman); err != nil {
 		return nil, err
@@ -1555,8 +1558,9 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 }
 
 func GetBuiltImageName(buildUnit *parser.UnitFile) string {
-	if builtImageName, ok := buildUnit.Lookup(BuildGroup, KeyImageTag); ok {
-		return builtImageName
+	imageTags := buildUnit.LookupAll(BuildGroup, KeyImageTag)
+	if len(imageTags) > 0 {
+		return imageTags[0]
 	}
 	return ""
 }
