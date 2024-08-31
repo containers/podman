@@ -947,4 +947,20 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, `building at STEP "RUN --mount=type=cache,target=/test,z cat /test/world": while running runtime: exit status 1`))
 	})
+
+	It("podman build with stdout as output", func() {
+		SkipIfRemote("cannot use different outputs with remote")
+		tmpfile := filepath.Join(podmanTest.TempDir, "almostempty.tar")
+		session := podmanTest.Podman([]string{"build", "build/almostempty", "--output", fmt.Sprintf("type=tar,dest=%s", tmpfile)})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		iid := session.OutputToStringArray()[len(session.OutputToStringArray())-1]
+
+		session = podmanTest.Podman([]string{"build", "build/almostempty", "-o", "-"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		var output = session.Out.Contents()
+		var expected, _ = os.ReadFile(tmpfile)
+		Expect(output[0 : len(output)-len(iid)-1]).Should(Equal(expected))
+	})
 })
