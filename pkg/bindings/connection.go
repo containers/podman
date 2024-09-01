@@ -1,6 +1,7 @@
 package bindings
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -209,6 +210,22 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	}, ssh.GolangMode)
 	if err != nil {
 		return connection, newConnectError(err)
+	}
+	if _url.Path == "" {
+		session, err := conn.NewSession()
+		if err != nil {
+			return connection, err
+		}
+		defer session.Close()
+
+		var b bytes.Buffer
+		session.Stdout = &b
+		if err := session.Run(
+			"podman info --format '{{.Host.RemoteSocket.Path}}'"); err != nil {
+			return connection, err
+		}
+		val := strings.TrimSuffix(b.String(), "\n")
+		_url.Path = val
 	}
 	dialContext := func(ctx context.Context, _, _ string) (net.Conn, error) {
 		return ssh.DialNet(conn, "unix", _url)
