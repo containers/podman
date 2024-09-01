@@ -22,7 +22,7 @@ require (
 	github.com/containers/psgo v1.9.0
 	github.com/containers/storage v1.55.1-0.20240821103551-8ec73cadc730
 	github.com/containers/winquit v1.1.0
-	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
+	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.4.4
 	github.com/crc-org/crc/v2 v2.38.0
 	github.com/crc-org/vfkit v0.5.1
