@@ -2095,6 +2095,9 @@ func (r *layerStore) layerMappings(layer *Layer) *idtools.IDMappings {
 }
 
 // Requires startReading or startWriting.
+//
+// NOTE: Overlay’s implementation assumes use of an exclusive lock over the primary layer store,
+// see drivers/overlay.Driver.getMergedDir.
 func (r *layerStore) Changes(from, to string) ([]archive.Change, error) {
 	from, to, fromLayer, toLayer, err := r.findParentAndLayer(from, to)
 	if err != nil {
@@ -2161,6 +2164,9 @@ func writeCompressedDataGoroutine(pwriter *io.PipeWriter, compressor io.WriteClo
 }
 
 // Requires startReading or startWriting.
+//
+// NOTE: Overlay’s implementation assumes use of an exclusive lock over the primary layer store,
+// see drivers/overlay.Driver.getMergedDir.
 func (r *layerStore) Diff(from, to string, options *DiffOptions) (io.ReadCloser, error) {
 	var metadata storage.Unpacker
 

@@ -1456,6 +1456,35 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		return "", err
 	}
 
+	// user namespace requires this to move a directory from lower to upper.
+	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UidMaps, options.GidMaps)
+	if err != nil {
+		return "", err
+	}
+
+	mergedDir := d.getMergedDir(id, dir, inAdditionalStore)
+	// Attempt to create the merged dir if it doesn't exist, but don't chown an already existing directory (it might be in an additional store)
+	if err := idtools.MkdirAllAndChownNew(mergedDir, 0o700, idtools.IDPair{UID: rootUID, GID: rootGID}); err != nil && !os.IsExist(err) {
+		return "", err
+	}
+
+	if count := d.ctr.Increment(mergedDir); count > 1 {
+		return mergedDir, nil
+	}
+	defer func() {
+		if retErr != nil {
+			if c := d.ctr.Decrement(mergedDir); c <= 0 {
+				if mntErr := unix.Unmount(mergedDir, 0); mntErr != nil {
+					// Ignore EINVAL, it means the directory is not a mount point and it can happen
+					// if the current function fails before the mount point is created.
+					if !errors.Is(mntErr, unix.EINVAL) {
+						logrus.Errorf("Unmounting %v: %v", mergedDir, mntErr)
+					}
+				}
+			}
+		}
+	}()
+
 	readWrite := !inAdditionalStore
 
 	if !d.SupportsShifting() || options.DisableShifting {
@@ -1575,7 +1604,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", fmt.Errorf("cannot mount a composefs layer as writeable")
 		}
 
-		dest := filepath.Join(composeFsLayersDir, fmt.Sprintf("%d", i))
+		dest := filepath.Join(composeFsLayersDir, strconv.Itoa(i))
 		if err := os.MkdirAll(dest, 0o700); err != nil {
 			return "", err
 		}
@@ -1683,12 +1712,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		optsList = append(optsList, "metacopy=on", "redirect_dir=on")
 	}
 
-	// user namespace requires this to move a directory from lower to upper.
-	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UidMaps, options.GidMaps)
-	if err != nil {
-		return "", err
-	}
-
 	if len(absLowers) == 0 {
 		absLowers = append(absLowers, path.Join(dir, "empty"))
 	}
@@ -1702,26 +1725,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", err
 		}
 	}
-
-	mergedDir := d.getMergedDir(id, dir, inAdditionalStore)
-	// Attempt to create the merged dir only if it doesn't exist.
-	if err := fileutils.Exists(mergedDir); err != nil && os.IsNotExist(err) {
-		if err := idtools.MkdirAllAs(mergedDir, 0o700, rootUID, rootGID); err != nil && !os.IsExist(err) {
-			return "", err
-		}
-	}
-	if count := d.ctr.Increment(mergedDir); count > 1 {
-		return mergedDir, nil
-	}
-	defer func() {
-		if retErr != nil {
-			if c := d.ctr.Decrement(mergedDir); c <= 0 {
-				if mntErr := unix.Unmount(mergedDir, 0); mntErr != nil {
-					logrus.Errorf("Unmounting %v: %v", mergedDir, mntErr)
-				}
-			}
-		}
-	}()
 
 	workdir := path.Join(dir, "work")
 
@@ -1879,10 +1882,21 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 // getMergedDir returns the directory path that should be used as the mount point for the overlayfs.
 func (d *Driver) getMergedDir(id, dir string, inAdditionalStore bool) string {
-	// If the layer is in an additional store, the lock we might hold only a reading lock.  To prevent
-	// races with other processes, use a private directory under the main store rundir.  At this point, the
-	// current process is holding an exclusive lock on the store, and since the rundir cannot be shared for
-	// different stores, it is safe to assume the current process has exclusive access to it.
+	// Ordinarily, .Get() (layer mounting) callers are supposed to guarantee exclusion.
+	//
+	// But additional stores are initialized with RO locks and don’t support a write
+	// lock operation at all; and naiveDiff operations cause mounts/unmounts, so they might
+	// happen on code paths where we might only holding a RO lock for the additional store.
+	// To prevent races with other processes mounting or unmounting the layer,
+	// use a private directory under the main store rundir, not the "merged" directory inside the
+	// original layer store holding the layer data.
+	//
+	// To support this, contrary to the _general_ locking rules for .Diff / .Changes (which allow a RO lock),
+	// the top-level Store implementation uses an exclusive lock for the primary layer store;
+	// and since the rundir cannot be shared for different stores, it is safe to assume the
+	// current process has exclusive access to it.
+	//
+	// LOCKING BUG? the .DiffSize operation does not currently hold an exclusive lock on the primary store.
 	if inAdditionalStore {
 		return path.Join(d.runhome, id, "merged")
 	}
@@ -2128,24 +2142,16 @@ func (d *Driver) DiffGetter(id string) (_ graphdriver.FileGetCloser, Err error) 
 	for _, diffDir := range diffDirs {
 		// diffDir has the form $GRAPH_ROOT/overlay/$ID/diff, so grab the $ID from the parent directory
 		id := path.Base(path.Dir(diffDir))
-		composefsBlob := d.getComposefsData(id)
-		if fileutils.Exists(composefsBlob) != nil {
+		composefsData := d.getComposefsData(id)
+		if fileutils.Exists(composefsData) != nil {
 			// not a composefs layer, ignore it
 			continue
 		}
-		dir, err := os.MkdirTemp(d.runhome, "composefs-mnt")
+		fd, err := openComposefsMount(composefsData)
 		if err != nil {
 			return nil, err
 		}
-		if err := mountComposefsBlob(composefsBlob, dir); err != nil {
-			return nil, err
-		}
-		fd, err := os.Open(dir)
-		if err != nil {
-			return nil, err
-		}
-		composefsMounts[diffDir] = fd
-		_ = unix.Unmount(dir, unix.MNT_DETACH)
+		composefsMounts[diffDir] = os.NewFile(uintptr(fd), composefsData)
 	}
 	return &overlayFileGetter{diffDirs: diffDirs, composefsMounts: composefsMounts}, nil
 }

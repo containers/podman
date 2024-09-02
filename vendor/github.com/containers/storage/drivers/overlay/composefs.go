@@ -137,54 +137,62 @@ func hasACL(path string) (bool, error) {
 	return binary.LittleEndian.Uint32(flags)&LCFS_EROFS_FLAGS_HAS_ACL != 0, nil
 }
 
-func mountComposefsBlob(dataDir, mountPoint string) error {
+func openComposefsMount(dataDir string) (int, error) {
 	blobFile := getComposefsBlob(dataDir)
 	loop, err := loopback.AttachLoopDeviceRO(blobFile)
 	if err != nil {
-		return err
+		return -1, err
 	}
 	defer loop.Close()
 
 	hasACL, err := hasACL(blobFile)
 	if err != nil {
-		return err
+		return -1, err
 	}
 
 	fsfd, err := unix.Fsopen("erofs", 0)
 	if err != nil {
-		return fmt.Errorf("failed to open erofs filesystem: %w", err)
+		return -1, fmt.Errorf("failed to open erofs filesystem: %w", err)
 	}
 	defer unix.Close(fsfd)
 
 	if err := unix.FsconfigSetString(fsfd, "source", loop.Name()); err != nil {
-		return fmt.Errorf("failed to set source for erofs filesystem: %w", err)
+		return -1, fmt.Errorf("failed to set source for erofs filesystem: %w", err)
 	}
 
 	if err := unix.FsconfigSetFlag(fsfd, "ro"); err != nil {
-		return fmt.Errorf("failed to set erofs filesystem read-only: %w", err)
+		return -1, fmt.Errorf("failed to set erofs filesystem read-only: %w", err)
 	}
 
 	if !hasACL {
 		if err := unix.FsconfigSetFlag(fsfd, "noacl"); err != nil {
-			return fmt.Errorf("failed to set noacl for erofs filesystem: %w", err)
+			return -1, fmt.Errorf("failed to set noacl for erofs filesystem: %w", err)
 		}
 	}
 
 	if err := unix.FsconfigCreate(fsfd); err != nil {
 		buffer := make([]byte, 4096)
 		if n, _ := unix.Read(fsfd, buffer); n > 0 {
-			return fmt.Errorf("failed to create erofs filesystem: %s: %w", string(buffer[:n]), err)
+			return -1, fmt.Errorf("failed to create erofs filesystem: %s: %w", string(buffer[:n]), err)
 		}
-		return fmt.Errorf("failed to create erofs filesystem: %w", err)
+		return -1, fmt.Errorf("failed to create erofs filesystem: %w", err)
 	}
 
 	mfd, err := unix.Fsmount(fsfd, 0, unix.MOUNT_ATTR_RDONLY)
 	if err != nil {
 		buffer := make([]byte, 4096)
 		if n, _ := unix.Read(fsfd, buffer); n > 0 {
-			return fmt.Errorf("failed to mount erofs filesystem: %s: %w", string(buffer[:n]), err)
+			return -1, fmt.Errorf("failed to mount erofs filesystem: %s: %w", string(buffer[:n]), err)
 		}
-		return fmt.Errorf("failed to mount erofs filesystem: %w", err)
+		return -1, fmt.Errorf("failed to mount erofs filesystem: %w", err)
+	}
+	return mfd, nil
+}
+
+func mountComposefsBlob(dataDir, mountPoint string) error {
+	mfd, err := openComposefsMount(dataDir)
+	if err != nil {
+		return err
 	}
 	defer unix.Close(mfd)
 

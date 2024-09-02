@@ -2963,6 +2963,10 @@ func (s *store) Changes(from, to string) ([]archive.Change, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// While the general rules require the layer store to only be locked RO (apart from known LOCKING BUGs)
+	// the overlay driver requires the primary layer store to be locked RW; see
+	// drivers/overlay.Driver.getMergedDir.
 	if err := rlstore.startWriting(); err != nil {
 		return nil, err
 	}
@@ -3019,6 +3023,9 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 		return nil, err
 	}
 
+	// While the general rules require the layer store to only be locked RO (apart from known LOCKING BUGs)
+	// the overlay driver requires the primary layer store to be locked RW; see
+	// drivers/overlay.Driver.getMergedDir.
 	if err := rlstore.startWriting(); err != nil {
 		return nil, err
 	}
