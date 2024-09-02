@@ -921,6 +921,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
+	// XXX: only %N is handled.
+	// it is difficult to properly implement specifiers handling without consulting systemd.
+	resourceName := strings.ReplaceAll(containerName, "%N", unitInfo.ServiceName)
+	if !strings.Contains(resourceName, "%") {
+		unitInfo.ResourceName = resourceName
+	}
+
 	return service, nil
 }
 
@@ -1859,23 +1866,38 @@ func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnit
 	for _, network := range networks {
 		if len(network) > 0 {
 			quadletNetworkName, options, found := strings.Cut(network, ":")
-			if strings.HasSuffix(quadletNetworkName, ".network") {
-				// the podman network name is systemd-$name if none is specified by the user.
-				networkUnitInfo, ok := unitsInfoMap[quadletNetworkName]
+
+			isNetworkUnit := strings.HasSuffix(quadletNetworkName, ".network")
+			isContainerUnit := strings.HasSuffix(quadletNetworkName, ".container")
+
+			if isNetworkUnit || isContainerUnit {
+				unitInfo, ok := unitsInfoMap[quadletNetworkName]
 				if !ok {
-					return fmt.Errorf("requested Quadlet image %s was not found", quadletNetworkName)
+					return fmt.Errorf("requested Quadlet unit %s was not found", quadletNetworkName)
+				}
+
+				// XXX: this is usually because a '@' in service name
+				if len(unitInfo.ResourceName) == 0 {
+					return fmt.Errorf("cannot get the resource name of %s", quadletNetworkName)
 				}
 
 				// the systemd unit name is $serviceName.service
-				networkServiceName := networkUnitInfo.ServiceFileName()
+				serviceFileName := unitInfo.ServiceFileName()
 
-				serviceUnitFile.Add(UnitGroup, "Requires", networkServiceName)
-				serviceUnitFile.Add(UnitGroup, "After", networkServiceName)
+				serviceUnitFile.Add(UnitGroup, "Requires", serviceFileName)
+				serviceUnitFile.Add(UnitGroup, "After", serviceFileName)
 
 				if found {
-					network = fmt.Sprintf("%s:%s", networkUnitInfo.ResourceName, options)
+					if isContainerUnit {
+						return fmt.Errorf("extra options are not supported when joining another container's network")
+					}
+					network = fmt.Sprintf("%s:%s", unitInfo.ResourceName, options)
 				} else {
-					network = networkUnitInfo.ResourceName
+					if isContainerUnit {
+						network = fmt.Sprintf("container:%s", unitInfo.ResourceName)
+					} else {
+						network = unitInfo.ResourceName
+					}
 				}
 			}
 
