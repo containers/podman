@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4
 	github.com/go-swagger/go-swagger v0.30.5
-	github.com/onsi/ginkgo/v2 v2.20.1
+	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/vbatts/git-validation v1.2.1
 	golang.org/x/tools v0.24.0
 )
