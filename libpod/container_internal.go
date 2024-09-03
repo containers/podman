@@ -2227,7 +2227,6 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 				return err
 			}
 			for i, hook := range extensionHooks {
-				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
 				hookErr, err := exec.RunWithOptions(

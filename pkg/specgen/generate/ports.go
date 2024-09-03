@@ -212,7 +212,6 @@ func ParsePortMapping(portMappings []types.PortMapping, exposePorts map[uint16][
 
 	for hostIP, protoMap := range portMap {
 		for protocol, ports := range protoMap {
-			ports := ports
 			if len(ports) == 0 {
 				continue
 			}

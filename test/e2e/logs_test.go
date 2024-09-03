@@ -35,8 +35,6 @@ var _ = Describe("Podman logs", func() {
 	})
 
 	for _, log := range []string{"k8s-file", "journald", "json-file"} {
-		// This is important to move the 'log' var to the correct scope under Ginkgo flow.
-		log := log
 
 		// Flake prevention: journalctl makes no timeliness guarantees
 		logTimeout := time.Millisecond

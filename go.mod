@@ -2,7 +2,7 @@ module github.com/containers/podman/v5
 
 // Warning: Ensure the "go" and "toolchain" versions match exactly to prevent unwanted auto-updates
 
-go 1.21.0
+go 1.22.0
 
 require (
 	github.com/BurntSushi/toml v1.4.0

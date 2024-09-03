@@ -596,7 +596,6 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 			// Deduplicate volumes, so if containers in the pod share a volume, it's only
 			// listed in the volumes section once
 			for _, vol := range volumes {
-				vol := vol
 				deDupPodVolumes[vol.Name] = &vol
 			}
 		}

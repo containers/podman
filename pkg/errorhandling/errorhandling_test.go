@@ -43,7 +43,6 @@ func TestCause(t *testing.T) {
 			expectedErr: fmt.Errorf("0: %w", errors.New("error")),
 		},
 	} {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			err := Cause(tc.err())

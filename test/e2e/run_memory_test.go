@@ -62,7 +62,6 @@ var _ = Describe("Podman run memory", func() {
 	})
 
 	for _, limit := range []string{"0", "15", "100"} {
-		limit := limit // Keep this value in a proper scope
 		testName := fmt.Sprintf("podman run memory-swappiness test(%s)", limit)
 		It(testName, func() {
 			SkipIfCgroupV2("memory-swappiness not supported on cgroupV2")
