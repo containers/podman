@@ -7,6 +7,9 @@
 
 load helpers
 
+# All tests here can be run in parallel
+# bats file_tags=ci:parallel
+
 @test "podman cp file from host to container" {
     srcdir=$PODMAN_TMPDIR/cp-test-file-host-to-ctr
     mkdir -p $srcdir

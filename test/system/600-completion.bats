@@ -262,6 +262,7 @@ function _check_no_suggestions() {
 }
 
 
+# bats test_tags=ci:parallel
 @test "podman shell completion test" {
 
     random_container_name="c-$(safename)"
@@ -351,6 +352,7 @@ function _check_no_suggestions() {
     done
 }
 
+# bats test_tags=ci:parallel
 @test "podman shell completion for paths in container/image" {
     skip_if_remote "mounting via remote does not work"
     for cmd in create run; do
