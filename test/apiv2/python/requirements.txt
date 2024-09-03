@@ -1,6 +1,6 @@
 requests-mock~=1.12.1
 requests~=2.32.3
-setuptools~=74.0.0
+setuptools~=74.1.0
 python-dateutil~=2.9.0
 PyYAML~=6.0.0
 openapi-schema-validator~=0.6.2
