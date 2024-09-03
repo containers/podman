@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	psutil "github.com/shirou/gopsutil/v3/process"
+	psutil "github.com/shirou/gopsutil/v4/process"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
