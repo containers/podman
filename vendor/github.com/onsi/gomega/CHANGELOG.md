@@ -1,3 +1,11 @@
+## 1.34.2
+
+Require Go 1.22+
+
+### Maintenance
+- bump ginkgo as well [c59c6dc]
+- bump to go 1.22 - remove x/exp dependency [8158b99]
+
 ## 1.34.1
 
 ### Maintenance

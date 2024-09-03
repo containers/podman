@@ -1,3 +1,10 @@
+## 2.20.2
+
+Require Go 1.22+
+
+### Maintenance
+- bump go to v1.22 [a671816]
+
 ## 2.20.1
 
 ### Fixes
