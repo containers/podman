@@ -548,7 +548,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 	})
 
 	for _, local := range []bool{true, false} {
-		local := local
 		testName := "HostIP"
 		if local {
 			testName = "127.0.0.1"

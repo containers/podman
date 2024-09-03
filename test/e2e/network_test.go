@@ -549,7 +549,6 @@ var _ = Describe("Podman network", func() {
 	})
 
 	for _, opt := range []string{"-o=parent=lo", "--interface-name=lo"} {
-		opt := opt
 		It(fmt.Sprintf("podman network create/remove macvlan as driver (-d) with %s", opt), func() {
 			net := "macvlan" + stringid.GenerateRandomID()
 			nc := podmanTest.Podman([]string{"network", "create", "-d", "macvlan", opt, net})

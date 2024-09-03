@@ -1118,9 +1118,6 @@ var _ = Describe("Podman checkpoint", func() {
 			share,
 		)
 
-		share := share // copy into local scope, for use inside function
-		index := index
-
 		It(testName, func() {
 			podName := "test_pod"
 

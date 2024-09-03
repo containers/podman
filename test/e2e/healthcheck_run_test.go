@@ -217,7 +217,6 @@ var _ = Describe("Podman healthcheck run", func() {
 	// Run this test with and without healthcheck events, even without events
 	// podman inspect and ps should still show accurate healthcheck results.
 	for _, hcEvent := range []bool{true, false} {
-		hcEvent := hcEvent
 		testName := "hc_events=" + strconv.FormatBool(hcEvent)
 		It("podman healthcheck single healthy result changes failed to healthy "+testName, func() {
 			if !hcEvent {

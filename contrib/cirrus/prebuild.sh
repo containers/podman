@@ -43,11 +43,13 @@ get_env_key() {
     python -c "$script"
 }
 
-# Only need to check CI-stuffs on a single build-task, there's only ever
-# one prior-fedora task so use that one.
+# Only need to check CI-stuffs on a single build-task, there's
+# generally one latest fedora task so use that one. In some cases
+# when we have to drop testing for the prior fedora task we may
+# run twice on current fedora but this is not a problem.
 # Envars all defined by CI config.
 # shellcheck disable=SC2154
-if [[ "${DISTRO_NV}" == "$PRIOR_FEDORA_NAME" ]]; then
+if [[ "${DISTRO_NV}" == "$FEDORA_NAME" ]]; then
     msg "Checking shell scripts"
     showrun ooe.sh dnf install -y ShellCheck  # small/quick addition
     showrun shellcheck --format=tty \

@@ -32,8 +32,12 @@ jobs:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
     targets:
-      fedora-all-x86_64: {}
-      fedora-all-aarch64: {}
+      fedora-development-x86_64: {}
+      fedora-development-aarch64: {}
+      fedora-latest-x86_64: {}
+      fedora-latest-aarch64: {}
+      fedora-latest-stable-x86_64: {}
+      fedora-latest-stable-aarch64: {}
       fedora-eln-x86_64:
         additional_repos:
           - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/x86_64/"
@@ -52,14 +56,15 @@ jobs:
       - centos-stream-10-x86_64
       - centos-stream-10-aarch64
 
-  - job: copr_build
-    trigger: pull_request
-    packages: [podman-rhel]
-    notifications: *packit_build_failure_notification
-    enable_net: true
-    targets:
-      - epel-9-x86_64
-      - epel-9-aarch64
+  # Disabled until there is go 1.22 in epel-9
+  # - job: copr_build
+  #   trigger: pull_request
+  #   packages: [podman-rhel]
+  #   notifications: *packit_build_failure_notification
+  #   enable_net: true
+  #   targets:
+  #     - epel-9-x86_64
+  #     - epel-9-aarch64
 
   # Run on commit to main branch
   - job: copr_build

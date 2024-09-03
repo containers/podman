@@ -44,7 +44,6 @@ func newFarmWithBuilders(_ context.Context, name string, cons []config.Connectio
 	)
 	// Set up the remote connections to handle the builds
 	for _, con := range cons {
-		con := con
 		builderGroup.Go(func() error {
 			fmt.Printf("Connecting to %q\n", con.Name)
 			engine, err := infra.NewImageEngine(&entities.PodmanConfig{
@@ -115,7 +114,6 @@ func (f *Farm) Status(ctx context.Context) (map[string]error, error) {
 		statusGroup multierror.Group
 	)
 	for _, engine := range f.builders {
-		engine := engine
 		statusGroup.Go(func() error {
 			logrus.Debugf("getting status of %q", engine.FarmNodeName(ctx))
 			defer logrus.Debugf("got status of %q", engine.FarmNodeName(ctx))
@@ -159,7 +157,6 @@ func (f *Farm) NativePlatforms(ctx context.Context) ([]string, error) {
 		nativeGroup multierror.Group
 	)
 	for _, engine := range f.builders {
-		engine := engine
 		nativeGroup.Go(func() error {
 			logrus.Debugf("getting native platform of %q\n", engine.FarmNodeName(ctx))
 			defer logrus.Debugf("got native platform of %q", engine.FarmNodeName(ctx))
@@ -199,7 +196,6 @@ func (f *Farm) EmulatedPlatforms(ctx context.Context) ([]string, error) {
 		emulatedGroup multierror.Group
 	)
 	for _, engine := range f.builders {
-		engine := engine
 		emulatedGroup.Go(func() error {
 			logrus.Debugf("getting emulated platforms of %q", engine.FarmNodeName(ctx))
 			defer logrus.Debugf("got emulated platforms of %q", engine.FarmNodeName(ctx))
@@ -260,7 +256,6 @@ func (f *Farm) Schedule(ctx context.Context, platforms []string) (Schedule, erro
 	// Make notes of which platforms we can build for natively, and which
 	// ones we can build for using emulation.
 	for name, engine := range f.builders {
-		name, engine := name, engine
 		infoGroup.Go(func() error {
 			inspect, err := engine.FarmNodeInspect(ctx)
 			if err != nil {
@@ -377,7 +372,6 @@ func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.Bu
 		builder entities.ImageEngine
 	}
 	for platform, builder := range schedule.platformBuilders {
-		platform, builder := platform, builder
 		outReader, outWriter := io.Pipe()
 		errReader, errWriter := io.Pipe()
 		go func() {

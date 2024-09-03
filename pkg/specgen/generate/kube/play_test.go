@@ -224,7 +224,6 @@ func TestConfigMapVolumes(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			result, err := VolumeFromConfigMap(test.volume.ConfigMap, test.configmaps)
 			if test.errorMessage == "" {
@@ -434,7 +433,6 @@ func TestEnvVarsFrom(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			result, err := envVarsFrom(test.envFrom, &test.options)
 			assert.Equal(t, err == nil, test.succeed)
@@ -1027,7 +1025,6 @@ func TestEnvVarValue(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			result, err := envVarValue(test.envVar, &test.options)
 			assert.Equal(t, err == nil, test.succeed)
@@ -1270,7 +1267,6 @@ func TestHttpLivenessProbe(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			err := setupLivenessProbe(&test.specGenerator, test.container, test.restartPolicy)
 			if err == nil {
@@ -1393,7 +1389,6 @@ func TestTCPLivenessProbe(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		test := test
 		t.Run(test.name, func(t *testing.T) {
 			err := setupLivenessProbe(&test.specGenerator, test.container, test.restartPolicy)
 			assert.Equal(t, err == nil, test.succeed)

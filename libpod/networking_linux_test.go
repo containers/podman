@@ -232,7 +232,6 @@ func Test_ocicniPortsToNetTypesPorts(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			result := ocicniPortsToNetTypesPorts(tt.arg)
 			assert.Equal(t, tt.want, result, "ports do not match")

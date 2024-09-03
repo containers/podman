@@ -64,7 +64,6 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 	)
 	refs := []string{}
 	for image, engine := range images {
-		image, engine := image, engine
 		pushGroup.Go(func() error {
 			logrus.Infof("pushing image %s", image.ID)
 			defer logrus.Infof("pushed image %s", image.ID)
@@ -91,7 +90,6 @@ func (l *listLocal) build(ctx context.Context, images map[entities.BuildReport]e
 			if engine.FarmNodeName(ctx) == entities.LocalFarmImageBuilderName {
 				continue
 			}
-			image, engine := image, engine
 			rmGroup.Go(func() error {
 				_, err := engine.Remove(ctx, []string{image.ID}, entities.ImageRemoveOptions{})
 				if len(err) > 0 {
