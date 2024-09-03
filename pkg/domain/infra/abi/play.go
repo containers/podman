@@ -550,6 +550,11 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 }
 
 func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podYAML *v1.PodTemplateSpec, options entities.PlayKubeOptions, ipIndex *int, annotations map[string]string, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, []*notifyproxy.NotifyProxy, error) {
+	cfg, err := ic.Libpod.GetConfigNoCopy()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var (
 		writer      io.Writer
 		playKubePod entities.PlayKubePod
@@ -777,7 +782,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	if podOpt.Infra {
-		infraImage := util.DefaultContainerConfig().Engine.InfraImage
+		infraImage := cfg.Engine.InfraImage
 		infraOptions := entities.NewInfraContainerCreateOptions()
 		infraOptions.Hostname = podSpec.PodSpecGen.PodBasicConfig.Hostname
 		infraOptions.ReadOnly = true
@@ -848,11 +853,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		if err != nil {
 			return nil, nil, err
 		}
-	}
-
-	cfg, err := ic.Libpod.GetConfigNoCopy()
-	if err != nil {
-		return nil, nil, err
 	}
 
 	var readOnly types.OptionalBool

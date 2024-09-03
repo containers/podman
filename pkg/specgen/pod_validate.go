@@ -3,15 +3,12 @@ package specgen
 import (
 	"errors"
 	"fmt"
-
-	"github.com/containers/podman/v5/pkg/util"
 )
 
 var (
 	// ErrInvalidPodSpecConfig describes an error given when the podspecgenerator is invalid
 	ErrInvalidPodSpecConfig = errors.New("invalid pod spec")
 	// containerConfig has the default configurations defined in containers.conf
-	containerConfig = util.DefaultContainerConfig()
 )
 
 func exclusivePodOptions(opt1, opt2 string) error {

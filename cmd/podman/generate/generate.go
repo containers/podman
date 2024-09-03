@@ -3,7 +3,6 @@ package generate
 import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
-	"github.com/containers/podman/v5/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -15,7 +14,7 @@ var (
 		Long:  "Generate structured data (e.g., Kubernetes YAML or systemd units) based on containers, pods or volumes.",
 		RunE:  validate.SubCommandExists,
 	}
-	containerConfig = util.DefaultContainerConfig()
+	containerConfig = registry.PodmanConfig().ContainersConfDefaultsRO
 )
 
 func init() {

@@ -74,7 +74,7 @@ func load(cmd *cobra.Command, args []string) error {
 	if len(loadOpts.Input) > 0 {
 		// Download the input file if needed.
 		if strings.HasPrefix(loadOpts.Input, "https://") || strings.HasPrefix(loadOpts.Input, "http://") {
-			tmpdir, err := util.DefaultContainerConfig().ImageCopyTmpDir()
+			tmpdir, err := registry.PodmanConfig().ContainersConfDefaultsRO.ImageCopyTmpDir()
 			if err != nil {
 				return err
 			}
