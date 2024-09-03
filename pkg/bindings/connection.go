@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/user"
 	"strconv"
 	"strings"
 	"time"
@@ -151,6 +152,13 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 		URI: _url,
 	}
 	userinfo := _url.User
+	if _url.User == nil {
+		u, err := user.Current()
+		if err != nil {
+			return connection, fmt.Errorf("current user could not be determined: %w", err)
+		}
+		userinfo = url.User(u.Username)
+	}
 	port := 22
 	if _url.Port() != "" {
 		port, err = strconv.Atoi(_url.Port())
