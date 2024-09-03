@@ -1100,8 +1100,8 @@ github.com/vishvananda/netns
 # github.com/yusufpapurcu/wmi v1.2.4
 ## explicit; go 1.16
 github.com/yusufpapurcu/wmi
-# go.etcd.io/bbolt v1.3.10
-## explicit; go 1.21
+# go.etcd.io/bbolt v1.3.11
+## explicit; go 1.22
 go.etcd.io/bbolt
 # go.mongodb.org/mongo-driver v1.14.0
 ## explicit; go 1.18
