@@ -41,6 +41,37 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman image prune should clean build cache", Serial, func() {
+		// try writing something to persistent cache
+		session := podmanTest.Podman([]string{"build", "-f", "build/buildkit-mount/Containerfilecachewrite"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// try reading something from persistent cache
+		session = podmanTest.Podman([]string{"build", "-f", "build/buildkit-mount/Containerfilecacheread"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("hello"))
+
+		// Prune build cache
+		session = podmanTest.Podman([]string{"image", "prune", "-f", "--build-cache"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		expectedErr := "open '/test/world': No such file or directory"
+		// try reading something from persistent cache should fail
+		session = podmanTest.Podman([]string{"build", "-f", "build/buildkit-mount/Containerfilecacheread"})
+		session.WaitWithDefaultTimeout()
+		if IsRemote() {
+			// In the case of podman remote the error from build is not being propogated to `stderr` instead it appears
+			// on the `stdout` this could be a potential bug in `remote build` which needs to be fixed and visited.
+			Expect(session.OutputToString()).To(ContainSubstring(expectedErr))
+			Expect(session).Should(ExitWithError(1, "exit status 1"))
+		} else {
+			Expect(session).Should(ExitWithError(1, expectedErr))
+		}
+	})
+
 	It("podman build and remove basic alpine with TMPDIR as relative", func() {
 		// preserve TMPDIR if it was originally set
 		if cacheDir, found := os.LookupEnv("TMPDIR"); found {

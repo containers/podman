@@ -93,6 +93,8 @@ type PruneOptions struct {
 	All *bool
 	// Prune images even when they're used by external containers
 	External *bool
+	// Prune persistent build cache
+	BuildCache *bool
 	// Filters to apply when pruning images
 	Filters map[string][]string
 }

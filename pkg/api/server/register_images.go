@@ -1129,6 +1129,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      Remove images even when they are used by external containers (e.g, by build containers)
 	//  - in: query
+	//    name: buildcache
+	//    default: false
+	//    type: boolean
+	//    description: |
+	//      Remove persistent build cache created by build instructions such as `--mount=type=cache`.
+	//  - in: query
 	//    name: filters
 	//    type: string
 	//    description: |
