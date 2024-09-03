@@ -28,8 +28,14 @@ type MachineInfo struct {
 
 // MachineHostInfo contains info on the machine host
 type MachineHostInfo struct {
-	Arch             string `json:"Arch"`
-	CurrentMachine   string `json:"CurrentMachine"`
+	Arch           string `json:"Arch"`
+	CurrentMachine string `json:"CurrentMachine"`
+	// TODO(6.0): Change `DefaultName` to `ActiveMachineConnection` to fix address
+	// confusion as shown in https://github.com/containers/podman/issues/23353.
+	// The name `DefaultMachine` can cause confusion with the user in thinking that
+	// they can set a default podman machine via system connections. However,
+	// regardless of which system connection is default, the default podman machine
+	// will always be podman-machine-default.
 	DefaultMachine   string `json:"DefaultMachine"`
 	EventsDir        string `json:"EventsDir"`
 	MachineConfigDir string `json:"MachineConfigDir"`
