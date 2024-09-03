@@ -1,7 +1,7 @@
 package bipartitegraph
 
 import (
-    "golang.org/x/exp/slices"
+	"slices"
 
 	. "github.com/onsi/gomega/matchers/support/goraph/edge"
 	. "github.com/onsi/gomega/matchers/support/goraph/node"
