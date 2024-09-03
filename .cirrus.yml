@@ -160,7 +160,6 @@ build_task:
         - env:
               DISTRO_NV: ${DEBIAN_NAME}
               VM_IMAGE_NAME: ${DEBIAN_CACHE_IMAGE_NAME}
-              CI_DESIRED_NETWORK: netavark
     env:
         TEST_FLAVOR: build
     clone_script: *full_clone
