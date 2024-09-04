@@ -210,10 +210,10 @@ var _ = Describe("podman machine start", func() {
 		Expect(startSession1).To(Or(Exit(0), Exit(125)), "start command should succeed or fail with 125")
 		if startSession1.ExitCode() == 0 {
 			Expect(startSession2).To(Exit(125), "first start worked, second start must fail")
-			Expect(startSession2.errorToString()).To(ContainSubstring("machine %s: VM already running or starting", machine1))
+			Expect(startSession2.errorToString()).To(ContainSubstring("machine %s is already running: only one VM can be active at a time", machine1))
 		} else {
 			Expect(startSession2).To(Exit(0), "first start failed, second start succeed")
-			Expect(startSession1.errorToString()).To(ContainSubstring("machine %s: VM already running or starting", machine2))
+			Expect(startSession1.errorToString()).To(ContainSubstring("machine %s is already running: only one VM can be active at a time", machine2))
 		}
 	})
 })
