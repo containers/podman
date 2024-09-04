@@ -13,6 +13,7 @@ SERVICE_TCP_HOST="localhost"
 SERVICE_FILE="$UNIT_DIR/$SERVICE_NAME.service"
 SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
 
+# bats test_tags=ci:parallel
 @test "podman system service - tcp CORS" {
     skip_if_remote "system service tests are meaningless over remote"
     PORT=$(random_free_port 63000-64999)
@@ -30,6 +31,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
            "podman warns about server on TCP"
 }
 
+# bats test_tags=ci:parallel
 @test "podman system service - tcp without CORS" {
     skip_if_remote "system service tests are meaningless over remote"
     PORT=$(random_free_port 63000-64999)
@@ -41,10 +43,15 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     wait $podman_pid || true
 }
 
+# bats test_tags=ci:parallel
 @test "podman system service - CORS enabled in logs" {
     skip_if_remote "system service tests are meaningless over remote"
-    run_podman system service --log-level="debug" --cors="*" -t 1
+
+    PORT=$(random_free_port 63000-64999)
+    run_podman 0+w system service --log-level="debug" --cors="*" -t 1 tcp:$SERVICE_TCP_HOST:$PORT
     is "$output" ".*CORS Headers were set to ..\*...*" "debug log confirms CORS headers set"
+    assert "$output" =~ "level=warning msg=\"Using the Podman API service with TCP sockets is not recommended" \
+           "TCP socket warning"
 }
 
 # vim: filetype=sh

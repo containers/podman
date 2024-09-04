@@ -196,6 +196,7 @@ function check_help() {
 }
 
 
+# bats test_tags=ci:parallel
 @test "podman help - basic tests" {
     skip_if_remote
 

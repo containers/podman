@@ -6,6 +6,7 @@
 load helpers
 
 
+# bats test_tags=ci:parallel
 @test "options that cannot be set together" {
     skip_if_remote "not much point testing remote, and container-cleanup fails anyway"
 
