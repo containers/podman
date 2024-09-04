@@ -957,7 +957,29 @@ USER bin`, BB)
 		random := stringid.GenerateRandomID()
 
 		hookScript := fmt.Sprintf(`#!/bin/sh
-echo -n %s >%s
+teststring="%s"
+tmpfile="%s"
+
+# Hook gets invoked with config.json in stdin.
+# Flush it, otherwise caller may get SIGPIPE.
+cat >$tmpfile.json
+
+# Check for required fields in our given json.
+# Hooks have no visibility -- our output goes nowhere -- so
+# use unique exit codes to give test code reader a hint as
+# to what went wrong. Podman will exit 126, but will emit
+#   "crun: error executing hook .... (exit code: X)"
+rc=1
+for s in ociVersion id pid root bundle status annotations io.container.manager; do
+    grep -w $s $tmpfile.json || exit $rc
+    rc=$((rc + 1))
+done
+rm -f $tmpfile.json
+
+# json contains all required keys. We're good so far.
+# Now write a modified teststring to our tmpfile. Our
+# caller will confirm.
+echo -n madeit-$teststring >$tmpfile
 `, random, targetFile)
 		err = os.WriteFile(hookScriptPath, []byte(hookScript), 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -968,7 +990,7 @@ echo -n %s >%s
 
 		b, err := os.ReadFile(targetFile)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(string(b)).To(Equal(random))
+		Expect(string(b)).To(Equal("madeit-" + random))
 	})
 
 	It("podman run with subscription secrets", func() {
