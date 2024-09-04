@@ -5,9 +5,9 @@
 
 load helpers
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman kill - test signal handling in containers" {
-    local cname=c-$(random_string 10)
+    local cname=c-$(safename)
     local fifo=${PODMAN_TMPDIR}/podman-kill-fifo.$(random_string 10)
     mkfifo $fifo
 
@@ -66,6 +66,7 @@ load helpers
     wait $podman_run_pid || die "wait for podman run failed"
 }
 
+# bats test_tags=ci:parallel
 @test "podman kill - rejects invalid args" {
     # These errors are thrown by the imported docker/signal.ParseSignal()
     local -a bad_signal_names=(0 SIGBADSIG SIG BADSIG %% ! "''" '""' " ")
@@ -100,6 +101,7 @@ load helpers
     is "$output" "Error: valid signals are 1 through 64" "podman create"
 }
 
+# CANNOT BE PARALLELIZED: kill -a
 @test "podman kill - print IDs or raw input" {
     # kill -a must print the IDs
     run_podman run --rm -d $IMAGE top
@@ -108,38 +110,41 @@ load helpers
     is "$output" "$ctrID"
 
     # kill $input must print $input
-    cname=$(random_string)
+    cname=c-$(safename)
     run_podman run --rm -d --name $cname $IMAGE top
     run_podman kill $cname
     is "$output" $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman kill - concurrent stop" {
     # 14761 - concurrent kill/stop must record the exit code
-    random_name=$(random_string 10)
-    run_podman run -d --replace --name=$random_name $IMAGE sh -c "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 0.2; done"
-    $PODMAN stop -t 1 $random_name &
-    run_podman kill $random_name
-    run_podman wait $random_name
-    run_podman rm -f $random_name
+    cname=c-$(safename)
+    run_podman run -d --replace --name=$cname $IMAGE sh -c "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 0.2; done"
+    $PODMAN stop -t 1 $cname &
+    run_podman kill $cname
+    run_podman wait $cname
+    run_podman rm -f $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman wait - exit codes" {
-    random_name=$(random_string 10)
-    run_podman create --name=$random_name $IMAGE /no/such/command
-    run_podman container inspect  --format "{{.State.StoppedByUser}}" $random_name
+    cname=c-$(safename)
+    run_podman create --name=$cname $IMAGE /no/such/command
+    run_podman container inspect  --format "{{.State.StoppedByUser}}" $cname
     is "$output" "false" "container not marked to be stopped by a user"
     # Container never ran -> exit code == 0
-    run_podman wait $random_name
+    run_podman wait $cname
     # Container did not start successfully -> exit code != 0
-    run_podman 125 start $random_name
+    run_podman 125 start $cname
     # FIXME(#14873): while older Podmans return 0 on wait, Docker does not.
-    run_podman wait $random_name
-    run_podman rm $random_name
+    run_podman wait $cname
+    run_podman rm $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman kill - no restart" {
-    ctr=$(random_string 10)
+    ctr=c-$(safename)
     run_podman run -d --restart=always --name=$ctr $IMAGE \
         sh -c "trap 'exit 42' SIGTERM; echo READY; while :; do sleep 0.2; done"
     run_podman container inspect  --format "{{.State.Status}}" $ctr
