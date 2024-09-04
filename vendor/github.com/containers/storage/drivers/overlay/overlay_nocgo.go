@@ -7,6 +7,10 @@ import (
 	"fmt"
 )
 
+func openComposefsMount(dataDir string) (int, error) {
+	return 0, fmt.Errorf("composefs not supported on this build")
+}
+
 func getComposeFsHelper() (string, error) {
 	return "", fmt.Errorf("composefs not supported on this build")
 }
