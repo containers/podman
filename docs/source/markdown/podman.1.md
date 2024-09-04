@@ -407,9 +407,9 @@ The mounts.conf file specifies volume mount directories that are automatically m
 
 When Podman runs in rootless mode, the file `$HOME/.config/containers/mounts.conf` overrides the default if it exists. For details, see containers-mounts.conf(5).
 
-**policy.json** (`/etc/containers/policy.json`)
+**policy.json** (`/etc/containers/policy.json`, `$HOME/.config/containers/policy.json`)
 
-Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid.
+Signature verification policy files are used to specify policy, e.g. trusted keys, applicable when deciding whether to accept an image, or individual signatures of that image, as valid. For details, see containers-policy.json(5).
 
 **registries.conf** (`/etc/containers/registries.conf`, `$HOME/.config/containers/registries.conf`)
 
