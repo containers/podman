@@ -1002,6 +1002,9 @@ BOGUS=foo
 		Entry("Build - Variant Key", "variant.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
+		Entry("Pod - DNS", "dns.pod"),
+		Entry("Pod - DNS Option", "dns-option.pod"),
+		Entry("Pod - DNS Search", "dns-search.pod"),
 		Entry("Pod - Host", "host.pod"),
 		Entry("Pod - IP", "ip.pod"),
 		Entry("Pod - Name", "name.pod"),

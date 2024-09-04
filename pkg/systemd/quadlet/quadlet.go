@@ -385,6 +385,9 @@ var (
 	supportedPodKeys = map[string]bool{
 		KeyAddHost:              true,
 		KeyContainersConfModule: true,
+		KeyDNS:                  true,
+		KeyDNSOption:            true,
+		KeyDNSSearch:            true,
 		KeyGIDMap:               true,
 		KeyGlobalArgs:           true,
 		KeyIP:                   true,
@@ -1699,6 +1702,21 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	execStartPre.addf("--infra-name=%s-infra", podName)
 	execStartPre.addf("--name=%s", podName)
+
+	dns := podUnit.LookupAll(PodGroup, KeyDNS)
+	for _, ipAddr := range dns {
+		execStartPre.addf("--dns=%s", ipAddr)
+	}
+
+	dnsOptions := podUnit.LookupAll(PodGroup, KeyDNSOption)
+	for _, dnsOption := range dnsOptions {
+		execStartPre.addf("--dns-option=%s", dnsOption)
+	}
+
+	dnsSearches := podUnit.LookupAll(PodGroup, KeyDNSSearch)
+	for _, dnsSearch := range dnsSearches {
+		execStartPre.addf("--dns-search=%s", dnsSearch)
+	}
 
 	ip, ok := podUnit.Lookup(PodGroup, KeyIP)
 	if ok && len(ip) > 0 {
