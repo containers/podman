@@ -32,9 +32,7 @@ For more details about format and configurations of the auth.json file, see cont
 
 @@option cert-dir
 
-#### **--compat-auth-file**=*path*
-
-Instead of updating the default credentials file, update the one at *path*, and use a Docker-compatible format.
+@@option compat-auth-file
 
 #### **--get-login**
 
