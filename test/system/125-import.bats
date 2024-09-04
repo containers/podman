@@ -5,6 +5,7 @@
 
 load helpers
 
+# bats test_tags=ci:parallel
 @test "podman import" {
     local archive=$PODMAN_TMPDIR/archive.tar
     local random_content=$(random_string 12)
@@ -13,9 +14,10 @@ load helpers
     local random_tag=t0$(random_string 7 | tr A-Z a-z)
     local fqin=localhost/$random_name:$random_tag
 
-    run_podman run --name import $IMAGE sh -c "echo ${random_content} > /random.txt"
-    run_podman export import -o $archive
-    run_podman rm -t 0 -f import
+    cname=c-import-$(safename)
+    run_podman run --name $cname $IMAGE sh -c "echo ${random_content} > /random.txt"
+    run_podman export $cname -o $archive
+    run_podman rm -t 0 -f $cname
 
     # Simple import
     run_podman import -q $archive
@@ -45,7 +47,7 @@ load helpers
 }
 
 # Integration tag to catch future breakage in tar, e.g. #19407
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman export, alter tarball, re-import" {
     # FIXME: #21373 - tar < 1.35 is broken.
     # Remove this skip once all VMs are updated to 1.35.2 or above
@@ -69,13 +71,14 @@ ADD testfile1 /tmp
 WORKDIR /tmp
 EOF
 
-    b_img=before_change_img
-    b_cnt=before_change_cnt
-    a_img=after_change_img
-    a_cnt=after_change_cnt
+    b_img=img-before-$(safename)
+    b_cnt=ctr-before-$(safename)
+    a_img=img-after-$(safename)
+    a_cnt=ctr-after-$(safename)
 
     # Build from Dockerfile FROM non-existing local image
-    run_podman build -t $b_img $PODMAN_TMPDIR
+    # --layers=false needed to work around buildah#5674 parallel flake
+    run_podman build -t $b_img --layers=false $PODMAN_TMPDIR
     run_podman create --name $b_cnt $b_img
 
     # Export built container as tarball
