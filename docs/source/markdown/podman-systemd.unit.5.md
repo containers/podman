@@ -892,7 +892,10 @@ Valid options for `[Pod]` are listed below:
 |-------------------------------------|----------------------------------------|
 | AddHost=hostname:192.168.10.11      | --add-host=hostname:192.168.10.11      |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
-| GIDMap=0:10000:10                   | --gidmap=0:10000:10                   |
+| DNS=192.168.55.1                    | --dns=192.168.55.1                     |
+| DNSOption=ndots:1                   | --dns-option=ndots:1                   |
+| DNSSearch=foo.com                   | --dns-search=foo.com                   |
+| GIDMap=0:10000:10                   | --gidmap=0:10000:10                    |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
 | IP=192.5.0.1                        | --ip 192.5.0.1                         |
 | IP6=2001:db8::1                     | --ip6 2001:db8::1                      |
@@ -921,6 +924,24 @@ This key can be listed multiple times.
 ### `ContainersConfModule=`
 
 Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
+### `DNS=`
+
+Set network-scoped DNS resolver/nameserver for containers in this pod.
+
+This key can be listed multiple times.
+
+### `DNSOption=`
+
+Set custom DNS options.
+
+This key can be listed multiple times.
+
+### `DNSSearch=`
+
+Set custom DNS search domains. Use **DNSSearch=.** to remove the search domain.
 
 This key can be listed multiple times.
 
