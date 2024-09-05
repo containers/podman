@@ -19,6 +19,7 @@ import (
 	"time"
 
 	bdefine "github.com/containers/buildah/define"
+	"github.com/containers/buildah/pkg/volumes"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libimage/filter"
 	"github.com/containers/common/pkg/config"
@@ -105,6 +106,13 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 			break
 		}
 		numPreviouslyRemovedImages = numRemovedImages
+	}
+
+	if opts.BuildCache || opts.All {
+		// Clean build cache if any
+		if err := volumes.CleanCacheMount(); err != nil {
+			return nil, err
+		}
 	}
 
 	return pruneReports, nil

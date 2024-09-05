@@ -102,7 +102,7 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 		f := strings.Split(filter, "=")
 		filters[f[0]] = f[1:]
 	}
-	options := new(images.PruneOptions).WithAll(opts.All).WithFilters(filters).WithExternal(opts.External)
+	options := new(images.PruneOptions).WithAll(opts.All).WithFilters(filters).WithExternal(opts.External).WithBuildCache(opts.BuildCache)
 	reports, err := images.Prune(ir.ClientCtx, options)
 	if err != nil {
 		return nil, err

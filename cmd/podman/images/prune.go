@@ -46,6 +46,7 @@ func init() {
 
 	flags := pruneCmd.Flags()
 	flags.BoolVarP(&pruneOpts.All, "all", "a", false, "Remove all images not in use by containers, not just dangling ones")
+	flags.BoolVarP(&pruneOpts.BuildCache, "build-cache", "", false, "Remove persistent build cache created by --mount=type=cache")
 	flags.BoolVarP(&pruneOpts.External, "external", "", false, "Remove images even when they are used by external containers (e.g., by build containers)")
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation")
 
