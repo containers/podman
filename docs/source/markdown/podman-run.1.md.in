@@ -909,6 +909,9 @@ NOTE: Use the environment variable `TMPDIR` to change the temporary storage loca
 See [podman-troubleshooting(7)](https://github.com/containers/podman/blob/main/troubleshooting.md)
 for solutions to common issues.
 
+See [podman-rootless(7)](https://github.com/containers/podman/blob/main/rootless.md)
+for rootless issues.
+
 ## HISTORY
 September 2018, updated by Kunal Kushwaha `<kushwaha_kunal_v7@lab.ntt.co.jp>`
 

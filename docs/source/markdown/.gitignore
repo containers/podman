@@ -59,6 +59,7 @@ podman-stats.1.md
 podman-stop.1.md
 podman-top.1.md
 podman-troubleshooting.7.md
+podman-rootless.7.md
 podman-unmount.1.md
 podman-unpause.1.md
 podman-update.1.md

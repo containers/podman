@@ -714,6 +714,9 @@ useradd to stop creating the lastlog file.
 See [podman-troubleshooting(7)](https://github.com/containers/podman/blob/main/troubleshooting.md)
 for solutions to common issues.
 
+See [podman-rootless(7)](https://github.com/containers/podman/blob/main/rootless.md)
+for rootless issues.
+
 ## HISTORY
 Aug 2020, Additional options and .containerignore added by Dan Walsh `<dwalsh@redhat.com>`
 
