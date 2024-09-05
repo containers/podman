@@ -63,7 +63,7 @@ var _ = Describe("Podman build", func() {
 		session = podmanTest.Podman([]string{"build", "-f", "build/buildkit-mount/Containerfilecacheread"})
 		session.WaitWithDefaultTimeout()
 		if IsRemote() {
-			// In the case of podman remote the error from build is not being propogated to `stderr` instead it appears
+			// In the case of podman remote the error from build is not being propagated to `stderr` instead it appears
 			// on the `stdout` this could be a potential bug in `remote build` which needs to be fixed and visited.
 			Expect(session.OutputToString()).To(ContainSubstring(expectedErr))
 			Expect(session).Should(ExitWithError(1, "exit status 1"))
