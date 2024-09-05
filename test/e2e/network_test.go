@@ -695,7 +695,7 @@ var _ = Describe("Podman network", func() {
 		Expect(listAgain.OutputToStringArray()).Should(ContainElement("podman"))
 	})
 
-	It("podman network prune", func() {
+	It("podman network prune", Serial, func() {
 		useCustomNetworkDir(podmanTest, tempdir)
 		// Create two networks
 		// Check they are there
