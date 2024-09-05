@@ -1410,6 +1410,9 @@ func WaitForService(address url.URL) {
 // This needs to be called for all test they may remove networks from other tests,
 // so netwokr prune, system prune, or system reset.
 // see https://github.com/containers/podman/issues/17946
+// Note that when using this and running containers with custom networks you must use the
+// ginkgo Serial decorator to ensure no parallel test are running otherwise we get flakes,
+// https://github.com/containers/podman/issues/23876
 func useCustomNetworkDir(podmanTest *PodmanTestIntegration, tempdir string) {
 	// set custom network directory to prevent flakes since the dir is shared with all tests by default
 	podmanTest.NetworkConfigDir = tempdir
