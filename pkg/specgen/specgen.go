@@ -213,11 +213,11 @@ type ContainerBasicConfig struct {
 	// container.
 	// Optional.
 	EnvMerge []string `json:"envmerge,omitempty"`
-	// UnsetEnv unsets the specified default environment variables from the image or from buildin or containers.conf
+	// UnsetEnv unsets the specified default environment variables from the image or from built-in or containers.conf
 	// Optional.
 	UnsetEnv []string `json:"unsetenv,omitempty"`
-	// UnsetEnvAll unsetall default environment variables from the image or from buildin or containers.conf
-	// UnsetEnvAll unsets all default environment variables from the image or from buildin
+	// UnsetEnvAll unsetall default environment variables from the image or from built-in or containers.conf
+	// UnsetEnvAll unsets all default environment variables from the image or from built-in
 	// Optional.
 	UnsetEnvAll *bool `json:"unsetenvall,omitempty"`
 	// Passwd is a container run option that determines if we are validating users/groups before running the container
