@@ -95,7 +95,7 @@ OCI_RUNTIME ?= ""
 MANPAGES_SOURCE_DIR = docs/source/markdown
 MANPAGES_MD_IN ?= $(wildcard $(MANPAGES_SOURCE_DIR)/*.md.in)
 MANPAGES_MD_GENERATED ?= $(MANPAGES_MD_IN:%.md.in=%.md)
-MANPAGES_MD ?= $(sort $(wildcard $(MANPAGES_SOURCE_DIR)/*.md) $(MANPAGES_MD_GENERATED) $(MANPAGES_SOURCE_DIR)/podman-troubleshooting.7.md)
+MANPAGES_MD ?= $(sort $(wildcard $(MANPAGES_SOURCE_DIR)/*.md) $(MANPAGES_MD_GENERATED) $(MANPAGES_SOURCE_DIR)/podman-troubleshooting.7.md $(MANPAGES_SOURCE_DIR)/podman-rootless.7.md)
 MANPAGES ?= $(MANPAGES_MD:%.md=%)
 MANPAGES_DEST ?= $(subst markdown,man, $(subst source,build,$(MANPAGES)))
 
@@ -524,6 +524,10 @@ $(MANPAGES_MD_GENERATED): %.md: %.md.in $(MANPAGES_SOURCE_DIR)/options/*.md
 
 $(MANPAGES_SOURCE_DIR)/podman-troubleshooting.7.md: troubleshooting.md
 	( echo "% podman-troubleshooting 7"; echo; sed -e '/logo.*\.png/d' <$< ) >$@.tmp.$$ && \
+		mv $@.tmp.$$ $@
+
+$(MANPAGES_SOURCE_DIR)/podman-rootless.7.md: rootless.md
+	( echo "% podman-rootless 7"; echo; sed -e '/logo.*\.png/d' <$< ) >$@.tmp.$$ && \
 		mv $@.tmp.$$ $@
 
 $(MANPAGES): OUTFILE=$(subst source/markdown,build/man,$@)
