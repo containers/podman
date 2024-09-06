@@ -18,5 +18,6 @@ package sqlite3
 #cgo openbsd LDFLAGS: -lsqlite3
 #cgo solaris LDFLAGS: -lsqlite3
 #cgo windows LDFLAGS: -lsqlite3
+#cgo zos LDFLAGS: -lsqlite3
 */
 import "C"
