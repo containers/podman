@@ -215,7 +215,7 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 	}
 
 	paramsArr := []SearchResult{}
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		// Check whether query matches filters
 		if !(filterMatchesAutomatedFilter(&options.Filter, results[i]) && filterMatchesOfficialFilter(&options.Filter, results[i]) && filterMatchesStarFilter(&options.Filter, results[i])) {
 			continue
@@ -275,7 +275,7 @@ func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registr
 		}
 	}
 	paramsArr := []SearchResult{}
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		params := SearchResult{
 			Name:  imageRef.DockerReference().Name(),
 			Tag:   tags[i],

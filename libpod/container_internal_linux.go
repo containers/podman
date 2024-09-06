@@ -617,12 +617,16 @@ func (c *Container) setCgroupsPath(g *generate.Generator) error {
 
 // addSpecialDNS adds special dns servers for slirp4netns and pasta
 func (c *Container) addSpecialDNS(nameservers []string) []string {
-	if c.pastaResult != nil {
+	switch {
+	case c.config.NetMode.IsBridge():
+		info, err := c.runtime.network.RootlessNetnsInfo()
+		if err == nil {
+			nameservers = append(nameservers, info.DnsForwardIps...)
+		}
+	case c.pastaResult != nil:
 		nameservers = append(nameservers, c.pastaResult.DNSForwardIPs...)
-	}
-
-	// slirp4netns has a built in DNS forwarder.
-	if c.config.NetMode.IsSlirp4netns() {
+	case c.config.NetMode.IsSlirp4netns():
+		// slirp4netns has a built in DNS forwarder.
 		slirp4netnsDNS, err := slirp4netns.GetDNS(c.slirp4netnsSubnet)
 		if err != nil {
 			logrus.Warn("Failed to determine Slirp4netns DNS: ", err.Error())

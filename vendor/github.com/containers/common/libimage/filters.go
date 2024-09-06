@@ -34,7 +34,7 @@ func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree 
 				// meantime, so do an extra check and make the
 				// error non-fatal (see containers/podman/issues/12582).
 				if errCorrupted := i.isCorrupted(ctx, ""); errCorrupted != nil {
-					logrus.Errorf(errCorrupted.Error())
+					logrus.Error(errCorrupted.Error())
 					return false, nil
 				}
 				return false, err

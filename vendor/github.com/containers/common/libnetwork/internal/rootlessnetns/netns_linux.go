@@ -1,6 +1,7 @@
 package rootlessnetns
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -34,6 +35,9 @@ const (
 	// refCountFile file name for the ref count file
 	refCountFile = "ref-count"
 
+	// infoCacheFile file name for the cache file used to store the rootless netns info
+	infoCacheFile = "info.json"
+
 	// rootlessNetNsConnPidFile is the name of the rootless netns slirp4netns/pasta pid file
 	rootlessNetNsConnPidFile = "rootless-netns-conn.pid"
 
@@ -54,11 +58,9 @@ type Netns struct {
 	// config contains containers.conf options.
 	config *config.Config
 
-	// ipAddresses used in the netns, this is needed to store
-	// the netns ips that are used by pasta. This is then handed
-	// back to the caller via IPAddresses() which then can make
-	// sure to not use them for host.containers.internal.
-	ipAddresses []net.IP
+	// info contain information about ip addresses used in the netns.
+	// A caller can get this info via Info().
+	info *types.RootlessNetnsInfo
 }
 
 type rootlessNetnsError struct {
@@ -115,6 +117,9 @@ func (n *Netns) getOrCreateNetns() (ns.NetNS, bool, error) {
 			// quick check if pasta/slirp4netns are still running
 			err := unix.Kill(pid, 0)
 			if err == nil {
+				if err := n.deserializeInfo(); err != nil {
+					return nil, false, wrapError("deserialize info", err)
+				}
 				// All good, return the netns.
 				return nsRef, false, nil
 			}
@@ -227,6 +232,15 @@ func (n *Netns) setupPasta(nsPath string) error {
 		return wrapError("create resolv.conf", err)
 	}
 
+	n.info = &types.RootlessNetnsInfo{
+		IPAddresses:   res.IPAddresses,
+		DnsForwardIps: res.DNSForwardIPs,
+		MapGuestIps:   res.MapGuestAddrIPs,
+	}
+	if err := n.serializeInfo(); err != nil {
+		return wrapError("serialize info", err)
+	}
+
 	return nil
 }
 
@@ -261,6 +275,12 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 	if err != nil {
 		return wrapError("determine default slirp4netns DNS address", err)
 	}
+	nameservers := []string{resolveIP.String()}
+
+	netnsIP, err := slirp4netns.GetIP(res.Subnet)
+	if err != nil {
+		return wrapError("determine default slirp4netns ip address", err)
+	}
 
 	if err := resolvconf.New(&resolvconf.Params{
 		Path: n.getPath(resolvConfName),
@@ -270,10 +290,19 @@ func (n *Netns) setupSlirp4netns(nsPath string) error {
 		},
 		IPv6Enabled:     res.IPv6,
 		KeepHostServers: true,
-		Nameservers:     []string{resolveIP.String()},
+		Nameservers:     nameservers,
 	}); err != nil {
 		return wrapError("create resolv.conf", err)
 	}
+
+	n.info = &types.RootlessNetnsInfo{
+		IPAddresses:   []net.IP{*netnsIP},
+		DnsForwardIps: nameservers,
+	}
+	if err := n.serializeInfo(); err != nil {
+		return wrapError("serialize info", err)
+	}
+
 	return nil
 }
 
@@ -541,20 +570,6 @@ func (n *Netns) runInner(toRun func() error, cleanup bool) (err error) {
 		if err := toRun(); err != nil {
 			return err
 		}
-
-		// get the current active addresses in the netns, and store them
-		addrs, err := net.InterfaceAddrs()
-		if err != nil {
-			return err
-		}
-		ips := make([]net.IP, 0, len(addrs))
-		for _, addr := range addrs {
-			// make sure to skip localhost and other special addresses
-			if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.IsGlobalUnicast() {
-				ips = append(ips, ipnet.IP)
-			}
-		}
-		n.ipAddresses = ips
 		return nil
 	})
 }
@@ -630,9 +645,7 @@ func (n *Netns) Run(lock *lockfile.LockFile, toRun func() error) error {
 // IPAddresses returns the currently used ip addresses in the netns
 // These should then not be assigned for the host.containers.internal entry.
 func (n *Netns) Info() *types.RootlessNetnsInfo {
-	return &types.RootlessNetnsInfo{
-		IPAddresses: n.ipAddresses,
-	}
+	return n.info
 }
 
 func refCount(dir string, inc int) (int, error) {
@@ -670,4 +683,27 @@ func readPidFile(path string) (int, error) {
 		return 0, err
 	}
 	return strconv.Atoi(strings.TrimSpace(string(b)))
+}
+
+func (n *Netns) serializeInfo() error {
+	f, err := os.Create(filepath.Join(n.dir, infoCacheFile))
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(f).Encode(n.info)
+}
+
+func (n *Netns) deserializeInfo() error {
+	f, err := os.Open(filepath.Join(n.dir, infoCacheFile))
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil
+		}
+		return err
+	}
+	defer f.Close()
+	if n.info == nil {
+		n.info = new(types.RootlessNetnsInfo)
+	}
+	return json.NewDecoder(f).Decode(n.info)
 }

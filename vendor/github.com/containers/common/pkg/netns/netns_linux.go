@@ -60,7 +60,7 @@ func NewNSAtPath(nsPath string) (ns.NetNS, error) {
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
-	for i := 0; i < 10000; i++ {
+	for range 10000 {
 		b := make([]byte, 16)
 		_, err := rand.Reader.Read(b)
 		if err != nil {

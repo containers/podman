@@ -62,7 +62,6 @@ func (n *cniNetwork) Setup(namespacePath string, options types.SetupOptions) (ma
 		}
 
 		for name, netOpts := range options.Networks {
-			netOpts := netOpts
 			network := n.networks[name]
 			rt := getRuntimeConfig(namespacePath, options.ContainerName, options.ContainerID, name, ports, &netOpts)
 
@@ -237,7 +236,6 @@ func (n *cniNetwork) teardown(namespacePath string, options types.TeardownOption
 	var multiErr *multierror.Error
 	teardown := func() error {
 		for name, netOpts := range options.Networks {
-			netOpts := netOpts
 			rt := getRuntimeConfig(namespacePath, options.ContainerName, options.ContainerID, name, ports, &netOpts)
 
 			cniConfList, newRt, err := getCachedNetworkConfig(n.cniConf, name, rt)
