@@ -244,6 +244,16 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 				return nil, err
 			}
 			typeContent = append(typeContent, b)
+		case define.K8sKindJob:
+			job, err := libpod.GenerateForKubeJob(ctx, libpod.ConvertV1PodToYAMLPod(po), options)
+			if err != nil {
+				return nil, err
+			}
+			b, err := generateKubeYAML(job)
+			if err != nil {
+				return nil, err
+			}
+			typeContent = append(typeContent, b)
 		case define.K8sKindPod:
 			b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
 			if err != nil {
@@ -251,7 +261,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 			}
 			typeContent = append(typeContent, b)
 		default:
-			return nil, fmt.Errorf("invalid generation type - only pods, deployments and daemonsets are currently supported: %+v", options.Type)
+			return nil, fmt.Errorf("invalid generation type - only pods, deployments, jobs, and daemonsets are currently supported: %+v", options.Type)
 		}
 
 		if options.Service {
@@ -311,6 +321,16 @@ func getKubePods(ctx context.Context, pods []*libpod.Pod, options entities.Gener
 				return nil, nil, err
 			}
 			out = append(out, b)
+		case define.K8sKindJob:
+			job, err := libpod.GenerateForKubeJob(ctx, libpod.ConvertV1PodToYAMLPod(po), options)
+			if err != nil {
+				return nil, nil, err
+			}
+			b, err := generateKubeYAML(job)
+			if err != nil {
+				return nil, nil, err
+			}
+			out = append(out, b)
 		case define.K8sKindPod:
 			b, err := generateKubeYAML(libpod.ConvertV1PodToYAMLPod(po))
 			if err != nil {
@@ -318,7 +338,7 @@ func getKubePods(ctx context.Context, pods []*libpod.Pod, options entities.Gener
 			}
 			out = append(out, b)
 		default:
-			return nil, nil, fmt.Errorf("invalid generation type - only pods, deployments and daemonsets are currently supported")
+			return nil, nil, fmt.Errorf("invalid generation type - only pods, deployments, jobs, and daemonsets are currently supported")
 		}
 
 		if options.Service {

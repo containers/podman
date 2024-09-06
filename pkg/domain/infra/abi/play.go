@@ -394,6 +394,22 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			report.Pods = append(report.Pods, r.Pods...)
 			validKinds++
 			ranContainers = true
+		case "Job":
+			var jobYAML v1.Job
+
+			if err := yaml.Unmarshal(document, &jobYAML); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as Kube Job: %w", err)
+			}
+
+			r, proxies, err := ic.playKubeJob(ctx, &jobYAML, options, &ipIndex, configMaps, serviceContainer)
+			if err != nil {
+				return nil, err
+			}
+			notifyProxies = append(notifyProxies, proxies...)
+
+			report.Pods = append(report.Pods, r.Pods...)
+			validKinds++
+			ranContainers = true
 		case "PersistentVolumeClaim":
 			var pvcYAML v1.PersistentVolumeClaim
 
@@ -541,6 +557,29 @@ func (ic *ContainerEngine) playKubeDeployment(ctx context.Context, deploymentYAM
 
 	podName := fmt.Sprintf("%s-pod", deploymentName)
 	podReport, proxies, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, deploymentYAML.Annotations, configMaps, serviceContainer)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encountered while bringing up pod %s: %w", podName, err)
+	}
+	report.Pods = podReport.Pods
+
+	return &report, proxies, nil
+}
+
+func (ic *ContainerEngine) playKubeJob(ctx context.Context, jobYAML *v1.Job, options entities.PlayKubeOptions, ipIndex *int, configMaps []v1.ConfigMap, serviceContainer *libpod.Container) (*entities.PlayKubeReport, []*notifyproxy.NotifyProxy, error) {
+	var (
+		jobName string
+		podSpec v1.PodTemplateSpec
+		report  entities.PlayKubeReport
+	)
+
+	jobName = jobYAML.ObjectMeta.Name
+	if jobName == "" {
+		return nil, nil, errors.New("job does not have a name")
+	}
+	podSpec = jobYAML.Spec.Template
+
+	podName := fmt.Sprintf("%s-pod", jobName)
+	podReport, proxies, err := ic.playKubePod(ctx, podName, &podSpec, options, ipIndex, jobYAML.Annotations, configMaps, serviceContainer)
 	if err != nil {
 		return nil, nil, fmt.Errorf("encountered while bringing up pod %s: %w", podName, err)
 	}
@@ -1502,7 +1541,7 @@ func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
 		}
 
 		switch kind {
-		case "Pod", "Deployment", "DaemonSet":
+		case "Pod", "Deployment", "DaemonSet", "Job":
 			sortedDocumentList = append(sortedDocumentList, document)
 		default:
 			sortedDocumentList = append([][]byte{document}, sortedDocumentList...)
@@ -1632,6 +1671,15 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 				logrus.Warnf("Limiting replica count to 1, more than one replica is not supported by Podman")
 			}
 			podName := fmt.Sprintf("%s-pod", deploymentName)
+			podNames = append(podNames, podName)
+		case "Job":
+			var jobYAML v1.Job
+
+			if err := yaml.Unmarshal(document, &jobYAML); err != nil {
+				return nil, fmt.Errorf("unable to read YAML as Kube Job: %w", err)
+			}
+			jobName := jobYAML.ObjectMeta.Name
+			podName := fmt.Sprintf("%s-pod", jobName)
 			podNames = append(podNames, podName)
 		case "PersistentVolumeClaim":
 			var pvcYAML v1.PersistentVolumeClaim

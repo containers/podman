@@ -233,6 +233,61 @@ func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entiti
 	return &dep, nil
 }
 
+// GenerateForKubeJob returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Job
+// kind YAML.
+func GenerateForKubeJob(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLJob, error) {
+	// Restart policy for Job cannot be set to Always
+	if options.Type == define.K8sKindJob && pod.Spec.RestartPolicy == v1.RestartPolicyAlways {
+		return nil, fmt.Errorf("k8s Jobs can not have restartPolicy set to Always; only Never and OnFailure policies allowed")
+	}
+
+	// Create label map that will be added to podSpec and Job metadata
+	// The matching label lets the job know which pods to manage
+	appKey := "app"
+	matchLabels := map[string]string{appKey: pod.Name}
+	// Add the key:value (app:pod-name) to the podSpec labels
+	if pod.Labels == nil {
+		pod.Labels = matchLabels
+	} else {
+		pod.Labels[appKey] = pod.Name
+	}
+
+	jobSpec := YAMLJobSpec{
+		Template: &YAMLPodTemplateSpec{
+			PodTemplateSpec: v1.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+			},
+			Spec: pod.Spec,
+		},
+	}
+
+	// Set the completions and parallelism to 1 by default for the Job
+	completions, parallelism := int32(1), int32(1)
+	jobSpec.Completions = &completions
+	jobSpec.Parallelism = &parallelism
+	// Set the restart policy to never as k8s requires a job to have a restart policy
+	// of onFailure or never set in the kube yaml
+	jobSpec.Template.Spec.RestartPolicy = v1.RestartPolicyNever
+
+	// Create the Deployment object
+	job := YAMLJob{
+		Job: v1.Job{
+			ObjectMeta: v12.ObjectMeta{
+				Name:              pod.Name + "-job",
+				CreationTimestamp: pod.CreationTimestamp,
+				Labels:            pod.Labels,
+			},
+			TypeMeta: v12.TypeMeta{
+				Kind:       "Job",
+				APIVersion: "batch/v1",
+			},
+		},
+		Spec: &jobSpec,
+	}
+
+	return &job, nil
+}
+
 // GenerateForKube generates a v1.PersistentVolumeClaim from a libpod volume.
 func (v *Volume) GenerateForKube() *v1.PersistentVolumeClaim {
 	annotations := make(map[string]string)
@@ -328,6 +383,15 @@ type YAMLDaemonSetSpec struct {
 	Strategy *v1.DaemonSetUpdateStrategy `json:"strategy,omitempty"`
 }
 
+// YAMLJobSpec represents the same k8s API core JobSpec with a small
+// change and that is having Template as a pointer to YAMLPodTemplateSpec
+// because Go doesn't omit empty struct and we want to omit Strategy and any fields in the Pod YAML
+// if it's empty.
+type YAMLJobSpec struct {
+	v1.JobSpec
+	Template *YAMLPodTemplateSpec `json:"template,omitempty"`
+}
+
 // YAMLDaemonSet represents the same k8s API core DaemonSet with a small change
 // and that is having Spec as a pointer to YAMLDaemonSetSpec and Status as a pointer to
 // k8s API core DaemonSetStatus.
@@ -348,6 +412,12 @@ type YAMLDeployment struct {
 	v1.Deployment
 	Spec   *YAMLDeploymentSpec  `json:"spec,omitempty"`
 	Status *v1.DeploymentStatus `json:"status,omitempty"`
+}
+
+type YAMLJob struct {
+	v1.Job
+	Spec   *YAMLJobSpec  `json:"spec,omitempty"`
+	Status *v1.JobStatus `json:"status,omitempty"`
 }
 
 // YAMLService represents the same k8s API core Service struct with a small
