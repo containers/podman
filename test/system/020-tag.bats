@@ -27,6 +27,25 @@ function _tag_and_check() {
     # prepended and ":latest" is appended.
     _tag_and_check image localhost/image:latest
 
+    # The order is intentionally wrong here to check the sorting
+    # https://github.com/containers/podman/issues/23803
+    local image1="registry.com/image:1"
+    run_podman tag $IMAGE $image1
+    local image3="registry.com/image:3"
+    run_podman tag $IMAGE $image3
+    local image2="registry.com/image:2"
+    run_podman tag $IMAGE $image2
+
+    local imageA="registry.com/aaa:a"
+    run_podman tag $IMAGE $imageA
+
+    local nl="
+"
+    run_podman images --format '{{.Repository}}:{{.Tag}}' --sort repository
+    assert "$output" =~ "$imageA${nl}$image1${nl}$image2${nl}$image3" "images are sorted by repository and tag"
+
+    run_podman untag $IMAGE $imageA $image1 $image2 $image3
+
     # Test error case.
     run_podman 125 untag $IMAGE registry.com/foo:bar
     is "$output" "Error: registry.com/foo:bar: tag not known"
