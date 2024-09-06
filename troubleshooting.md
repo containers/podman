@@ -1435,3 +1435,37 @@ Using the default `overlay` storage driver, a `COPY`, `ADD`, or an I/O intensive
 This could be caused by the child container using `fuse-overlayfs` for writing to `/var/lib/containers/storage`. Writes can be slow with `fuse-overlayfs`. The solution is to use the native `overlay` filesystem by using a local directory on the host system as a volume to `/var/lib/containers/storage` like so: `podman run --privileged --rm -it -v ./nested_storage:/var/lib/containers/storage parent:latest`. Ensure that the base image of `parent:latest` in this example has no contents in `/var/lib/containers/storage` in the image itself for this to work. Once using the native volume, the nested container should not fall back to `fuse-overlayfs` to write files and the nested build will complete much faster.
 
 If you don't have access to the parent run process, such as in a CI environment, then the second option is to change the storage driver to `vfs` in the parent image by changing changing this line in your `storage.conf` file: `driver = "vfs"`. You may have to run `podman system reset` for this to take effect. You know it's changed when `podman info |grep graphDriverName` outputs `graphDriverName: vfs`. This method is slower performance than using the volume method above but is significantly faster than `fuse-overlayfs`
+
+### 43) `podman run --userns=auto` fails with "Error: creating container storage: not enough unused IDs in user namespace"
+
+Using `--userns=auto` when creating new containers does not work as long as any containers exist that were created with `--userns=keep-id` or `--userns=nomap`
+
+#### Symptom
+
+1. Run with `--userns=auto`
+   ```
+   $ podman run --rm -d --userns=auto alpine sleep 3600
+   ```
+   The command succeeds.
+2. Run with `--userns=auto`
+   ```
+   $ podman run --rm -d --userns=auto alpine sleep 3600
+   ```
+   The command succeeds.
+3. Run with `--userns=keep-id`
+   ```
+   $ podman run --rm -d --userns=keep-id alpine sleep 3600
+   ```
+   The command succeeds.
+4. Run with `--userns=auto`
+   ```
+   $ podman run --rm -d --userns=auto alpine sleep 3600
+   ```
+   The command fails with the error message
+   ```
+   Error: creating container storage: not enough unused IDs in user namespace
+   ```
+
+#### Solution
+
+Any existing containers that were created using `--userns=keep-id` or `--userns=nomap` must first be deleted before any new container can be created with `--userns=auto`
