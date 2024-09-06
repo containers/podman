@@ -86,7 +86,7 @@ var (
 // combination is incorrect or unknown.
 //
 // If the SQLITE_USER table is not present in the database file, then
-// this interface is a harmless no-op returnning SQLITE_OK.
+// this interface is a harmless no-op returning SQLITE_OK.
 func (c *SQLiteConn) Authenticate(username, password string) error {
 	rv := c.authenticate(username, password)
 	switch rv {
