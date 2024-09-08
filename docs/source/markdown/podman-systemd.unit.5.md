@@ -222,7 +222,7 @@ generator failed to create a service file.
 
 View the generated files and/or error messages with:
 ```
-/usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
+/usr/libexec/podman/quadlet {--user} --dryrun
 ```
 
 #### Debugging a limited set of unit files
@@ -231,7 +231,7 @@ If you would like to debug a limited set of unit files, you can copy them to a s
 `QUADLET_UNIT_DIRS` environment variable to this directory when running the command below:
 
 ```
-QUADLET_UNIT_DIRS=<Directory> /usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
+QUADLET_UNIT_DIRS=<Directory> /usr/libexec/podman/quadlet {--user} --dryrun
 ```
 
 This will instruct Quadlet to look for units in this directory instead of the common ones and by
