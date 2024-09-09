@@ -1,13 +1,15 @@
 module github.com/containers/podman/test/tools
 
-go 1.22
+go 1.22.0
+
+toolchain go1.22.7
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.4
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/vbatts/git-validation v1.2.1
-	golang.org/x/tools v0.24.0
+	golang.org/x/tools v0.25.0
 )
 
 require (
@@ -65,9 +67,9 @@ require (
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect
 	golang.org/x/crypto v0.17.0 // indirect
-	golang.org/x/mod v0.20.0 // indirect
+	golang.org/x/mod v0.21.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.24.0 // indirect
+	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.17.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
