@@ -1,10 +1,11 @@
 package images
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
-	"sort"
+	"slices"
 	"strings"
 	"time"
 	"unicode"
@@ -249,7 +250,35 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 		listFlag.readOnly = e.IsReadOnly()
 	}
 
-	sort.Slice(imgs, sortFunc(listFlag.sort, imgs))
+	slices.SortFunc(imgs, func(a, b imageReporter) int {
+		switch listFlag.sort {
+		case "id":
+			return cmp.Compare(a.ID(), b.ID())
+
+		case "repository":
+			r := cmp.Compare(a.Repository, b.Repository)
+			if r == 0 {
+				// if repository is the same imply tag sorting
+				return cmp.Compare(a.Tag, b.Tag)
+			}
+			return r
+		case "size":
+			return cmp.Compare(a.size(), b.size())
+		case "tag":
+			return cmp.Compare(a.Tag, b.Tag)
+		case "created":
+			if a.created().After(b.created()) {
+				return -1
+			}
+			if a.created().Equal(b.created()) {
+				return 0
+			}
+			return 1
+		default:
+			return 0
+		}
+	})
+
 	return imgs, err
 }
 
@@ -282,32 +311,6 @@ func tokenRepoTag(ref string) (string, string, error) {
 	}
 
 	return name, tag, nil
-}
-
-func sortFunc(key string, data []imageReporter) func(i, j int) bool {
-	switch key {
-	case "id":
-		return func(i, j int) bool {
-			return data[i].ID() < data[j].ID()
-		}
-	case "repository":
-		return func(i, j int) bool {
-			return data[i].Repository < data[j].Repository
-		}
-	case "size":
-		return func(i, j int) bool {
-			return data[i].size() < data[j].size()
-		}
-	case "tag":
-		return func(i, j int) bool {
-			return data[i].Tag < data[j].Tag
-		}
-	default:
-		// case "created":
-		return func(i, j int) bool {
-			return data[i].created().After(data[j].created())
-		}
-	}
 }
 
 func lsFormatFromFlags(flags listFlagType) string {
