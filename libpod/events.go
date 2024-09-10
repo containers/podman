@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/sirupsen/logrus"
 )
@@ -28,27 +29,37 @@ func (r *Runtime) newEventer() (events.Eventer, error) {
 
 // newContainerEvent creates a new event based on a container
 func (c *Container) newContainerEvent(status events.Status) {
-	if err := c.newContainerEventWithInspectData(status, "", false); err != nil {
+	if err := c.newContainerEventWithInspectData(status, define.HealthCheckResults{}, false); err != nil {
 		logrus.Errorf("Unable to write container event: %v", err)
 	}
 }
 
 // newContainerHealthCheckEvent creates a new healthcheck event with the given status
-func (c *Container) newContainerHealthCheckEvent(healthStatus string) {
-	if err := c.newContainerEventWithInspectData(events.HealthStatus, healthStatus, false); err != nil {
+func (c *Container) newContainerHealthCheckEvent(healthCheckResult define.HealthCheckResults) {
+	if err := c.newContainerEventWithInspectData(events.HealthStatus, healthCheckResult, false); err != nil {
 		logrus.Errorf("Unable to write container event: %v", err)
 	}
 }
 
 // newContainerEventWithInspectData creates a new event and sets the
 // ContainerInspectData field if inspectData is set.
-func (c *Container) newContainerEventWithInspectData(status events.Status, healthStatus string, inspectData bool) error {
+func (c *Container) newContainerEventWithInspectData(status events.Status, healthCheckResult define.HealthCheckResults, inspectData bool) error {
 	e := events.NewEvent(status)
 	e.ID = c.ID()
 	e.Name = c.Name()
 	e.Image = c.config.RootfsImageName
 	e.Type = events.Container
-	e.HealthStatus = healthStatus
+	e.HealthStatus = healthCheckResult.Status
+	if c.config.HealthLogDestination == define.HealthCheckEventsLoggerDestination {
+		if len(healthCheckResult.Log) > 0 {
+			logData, err := json.Marshal(healthCheckResult.Log[len(healthCheckResult.Log)-1])
+			if err != nil {
+				return fmt.Errorf("unable to marshall healthcheck log for writing: %w", err)
+			}
+			e.HealthLog = string(logData)
+		}
+	}
+	e.HealthFailingStreak = healthCheckResult.FailingStreak
 
 	e.Details = events.Details{
 		PodID:      c.PodID(),

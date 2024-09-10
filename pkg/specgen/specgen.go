@@ -593,6 +593,14 @@ type ContainerHealthCheckConfig struct {
 	// Requires that HealthConfig be set.
 	// Optional.
 	StartupHealthConfig *define.StartupHealthCheck `json:"startupHealthConfig,omitempty"`
+	// HealthLogDestination defines the destination where the log is stored
+	HealthLogDestination string `json:"healthLogDestination,omitempty"`
+	// HealthMaxLogCount is maximum number of attempts in the HealthCheck log file.
+	// ('0' value means an infinite number of attempts in the log file)
+	HealthMaxLogCount uint `json:"healthMaxLogCount,omitempty"`
+	// HealthMaxLogSize is the maximum length in characters of stored HealthCheck log
+	// ("0" value means an infinite log length)
+	HealthMaxLogSize uint `json:"healthMaxLogSize,omitempty"`
 }
 
 // SpecGenerator creates an OCI spec and Libpod configuration options to create
@@ -665,13 +673,25 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 	}
 	return &SpecGenerator{
 		ContainerStorageConfig: csc,
+		ContainerHealthCheckConfig: ContainerHealthCheckConfig{
+			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+			HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+			HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
+		},
 	}
 }
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
 func NewSpecGeneratorWithRootfs(rootfs string) *SpecGenerator {
 	csc := ContainerStorageConfig{Rootfs: rootfs}
-	return &SpecGenerator{ContainerStorageConfig: csc}
+	return &SpecGenerator{
+		ContainerStorageConfig: csc,
+		ContainerHealthCheckConfig: ContainerHealthCheckConfig{
+			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+			HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+			HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
+		},
+	}
 }
 
 func StringSlicesEqual(a, b []string) bool {

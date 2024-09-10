@@ -195,7 +195,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	// inspect status should be set to nil.
 	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
 		// This container has a healthcheck defined in it; we need to add its state
-		healthCheckState, err := c.getHealthCheckLog()
+		healthCheckState, err := c.readHealthCheckLog()
 		if err != nil {
 			// An error here is not considered fatal; no health state will be displayed
 			logrus.Error(err)
@@ -411,6 +411,12 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.Healthcheck = c.config.HealthCheckConfig
 
 	ctrConfig.HealthcheckOnFailureAction = c.config.HealthCheckOnFailureAction.String()
+
+	ctrConfig.HealthLogDestination = c.config.HealthLogDestination
+
+	ctrConfig.HealthMaxLogCount = c.config.HealthMaxLogCount
+
+	ctrConfig.HealthMaxLogSize = c.config.HealthMaxLogSize
 
 	ctrConfig.CreateCommand = c.config.CreateCommand
 

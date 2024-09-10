@@ -642,6 +642,10 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
 	}
 
+	options = append(options, libpod.WithHealthCheckLogDestination(s.ContainerHealthCheckConfig.HealthLogDestination))
+	options = append(options, libpod.WithHealthCheckMaxLogCount(s.ContainerHealthCheckConfig.HealthMaxLogCount))
+	options = append(options, libpod.WithHealthCheckMaxLogSize(s.ContainerHealthCheckConfig.HealthMaxLogSize))
+
 	if s.SdNotifyMode == define.SdNotifyModeHealthy && !healthCheckSet {
 		return nil, fmt.Errorf("%w: sdnotify policy %q requires a healthcheck to be set", define.ErrInvalidArg, s.SdNotifyMode)
 	}
