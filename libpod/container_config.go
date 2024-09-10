@@ -413,6 +413,14 @@ type ContainerMiscConfig struct {
 	HealthCheckConfig *manifest.Schema2HealthConfig `json:"healthcheck"`
 	// HealthCheckOnFailureAction defines an action to take once the container turns unhealthy.
 	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"healthcheck_on_failure_action"`
+	// HealthLogDestination defines the destination where the log is stored
+	HealthLogDestination string `json:"healthLogDestination,omitempty"`
+	// HealthMaxLogCount is maximum number of attempts in the HealthCheck log file.
+	// ('0' value means an infinite number of attempts in the log file)
+	HealthMaxLogCount uint `json:"healthMaxLogCount,omitempty"`
+	// HealthMaxLogSize is the maximum length in characters of stored HealthCheck log
+	// ("0" value means an infinite log length)
+	HealthMaxLogSize uint `json:"healthMaxLogSize,omitempty"`
 	// StartupHealthCheckConfig is the configuration of the startup
 	// healthcheck for the container. This will run before the regular HC
 	// runs, and when it passes the regular HC will be activated.
