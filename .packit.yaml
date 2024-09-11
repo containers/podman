@@ -115,12 +115,19 @@ jobs:
 
   - job: koji_build
     trigger: commit
-    packages: [podman-fedora]
+    sidetag_group: podman-releases
     dist_git_branches:
       - fedora-all
 
   - job: bodhi_update
-    trigger: commit
-    packages: [podman-fedora]
+    trigger: koji_build
+    sidetag_group: podman-releases
+    # Dependencies are not rpm dependencies, but packages that should go in the
+    # same bodhi update
+    # Ref: https://packit.dev/docs/fedora-releases-guide/releasing-multiple-packages
+    dependencies:
+      - buildah
+      - containers-common
+      - skopeo
     dist_git_branches:
-      - fedora-branched # rawhide updates are created automatically
+      - fedora-all
