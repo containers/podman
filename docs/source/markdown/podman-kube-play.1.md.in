@@ -68,8 +68,8 @@ A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the Pe
 
 Use `volume.podman.io/import-source` to import the contents of the tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz) specified in the annotation's value into the created Podman volume
 
-Kube play is capable of building images on the fly given the correct directory layout and Containerfiles. This
-option is not available for remote clients, including Mac and Windows (excluding WSL2) machines, yet. Consider the following excerpt from a YAML file:
+Kube play is capable of building images on the fly given the correct directory layout and Containerfiles.
+Consider the following excerpt from a YAML file:
 ```
 apiVersion: v1
 kind: Pod
@@ -178,7 +178,7 @@ An image can be automatically mounted into a container if the annotation `io.pod
 
 #### **--build**
 
-Build images even if they are found in the local storage. Use `--build=false` to completely disable builds. (This option is not available with the remote Podman client)
+Build images even if they are found in the local storage. Use `--build=false` to completely disable builds.
 
 Note:  You  can also override the default isolation type by setting the BUILDAH_ISOLATION environment variable.  export BUILDAH_ISOLATION=oci. See podman-build.1.md for more information.
 
@@ -193,7 +193,7 @@ The YAML file may be in a multi-doc YAML format. But, it must container only con
 
 #### **--context-dir**=*path*
 
-Use *path* as the build context directory for each image. Requires --build option be true. (This option is not available with the remote Podman client)
+Use *path* as the build context directory for each image. Requires --build option be true.
 
 @@option creds
 

@@ -2,6 +2,7 @@ package kube
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -9,8 +10,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"syscall"
+
+	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 
 	buildahParse "github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/pkg/auth"
@@ -174,6 +179,13 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
 	_ = flags.MarkHidden(noTruncFlagName)
 
+	buildFlagName := "build"
+	flags.BoolVar(&playOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
+
+	contextDirFlagName := "context-dir"
+	flags.StringVar(&playOptions.ContextDir, contextDirFlagName, "", "Path to top level of context directory")
+	_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -182,13 +194,6 @@ func playFlags(cmd *cobra.Command) {
 		seccompProfileRootFlagName := "seccomp-profile-root"
 		flags.StringVar(&playOptions.SeccompProfileRoot, seccompProfileRootFlagName, defaultSeccompRoot, "Directory path for seccomp profiles")
 		_ = cmd.RegisterFlagCompletionFunc(seccompProfileRootFlagName, completion.AutocompleteDefault)
-
-		buildFlagName := "build"
-		flags.BoolVar(&playOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
-
-		contextDirFlagName := "context-dir"
-		flags.StringVar(&playOptions.ContextDir, contextDirFlagName, "", "Path to top level of context directory")
-		_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
 
 		flags.StringVar(&playOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 
@@ -279,6 +284,22 @@ func play(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if registry.IsRemote() && playOptions.Build == types.OptionalBoolTrue {
+		var cwd string
+		if playOptions.ContextDir != "" {
+			cwd = playOptions.ContextDir
+		} else {
+			cwd = filepath.Dir(args[0])
+		}
+
+		result, err := kubeBuild(registry.ImageEngine(), registry.Context(), reader, cwd)
+		if err != nil {
+			return err
+		}
+
+		reader = result
+	}
+
 	if playOptions.Down {
 		return teardown(reader, entities.PlayKubeDownOptions{Force: playOptions.Force})
 	}
@@ -356,6 +377,136 @@ func play(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+// Concatenate and create a bytes.Reader
+func bytesArrayToReader(yamlArray [][]byte) *bytes.Reader {
+	// Use a buffer to concatenate the byte slices
+	var buffer bytes.Buffer
+
+	// Loop through each []byte and add it to the buffer
+	for i, yamlDoc := range yamlArray {
+		buffer.Write(yamlDoc)
+
+		// Add YAML document separator between documents, except after the last one
+		if i < len(yamlArray)-1 {
+			buffer.WriteString("\n---\n")
+		}
+	}
+
+	// Return a bytes.Reader from the buffer
+	return bytes.NewReader(buffer.Bytes())
+}
+
+func kubeBuild(imageEngine entities.ImageEngine, context context.Context, body *bytes.Reader, contextDir string) (*bytes.Reader, error) {
+	content, err := io.ReadAll(body)
+	if err != nil {
+		return nil, err
+	}
+	if len(content) == 0 {
+		return nil, errors.New("yaml file provided is empty, cannot apply to a cluster")
+	}
+
+	// Split the yaml file
+	documentList, err := util.SplitMultiDocYAML(content)
+	if err != nil {
+		return nil, err
+	}
+
+	// sort kube kinds
+	documentList, err = util.SortKubeKinds(documentList)
+	if err != nil {
+		return nil, fmt.Errorf("unable to sort kube kinds: %w", err)
+	}
+
+	output := make([][]byte, len(documentList))
+
+	for i, document := range documentList {
+		kind, err := util.GetKubeKind(document)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read as kube YAML: %w", err)
+		}
+
+		// ignore non-pod kind
+		if kind != "Pod" {
+			output[i] = document
+			continue
+		}
+
+		var podYAML v1.Pod
+		if err := yaml.Unmarshal(document, &podYAML); err != nil {
+			return nil, fmt.Errorf("unable to read YAML as Kube Pod: %w", err)
+		}
+
+		pod, err := podBuild(imageEngine, context, podYAML, contextDir)
+		if err != nil {
+			return nil, err
+		}
+
+		// convert the pod object to bytes
+		podMarshaled, err := yaml.Marshal(&pod)
+		if err != nil {
+			return nil, err
+		}
+
+		output[i] = podMarshaled
+	}
+
+	return bytesArrayToReader(output), nil
+}
+
+func podBuild(imageEngine entities.ImageEngine, context context.Context, pod v1.Pod, contextDir string) (*v1.Pod, error) {
+	for i := range pod.Spec.Containers {
+		// get the corresponding image
+		buildFile, err := util.GetBuildFile(pod.Spec.Containers[i].Image, contextDir)
+		if err != nil {
+			return nil, err
+		}
+
+		found, err := imageEngine.Exists(
+			context,
+			pod.Spec.Containers[i].Image,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(buildFile) == 0 {
+			continue
+		}
+
+		if found.Value {
+			reports, _, err := imageEngine.Inspect(context, []string{pod.Spec.Containers[i].Image}, entities.InspectOptions{})
+			if err != nil {
+				return nil, err
+			}
+			if len(reports) == 0 {
+				return nil, fmt.Errorf("image %s not found in %s", pod.Spec.Containers[i].Image, contextDir)
+			}
+			// overwrite the image id as container image
+			pod.Spec.Containers[i].Image = reports[0].ID
+		} else {
+			buildOpts := new(entities.BuildOptions)
+			buildOpts.Output = pod.Spec.Containers[i].Image
+			buildOpts.SystemContext = playOptions.SystemContext
+			buildOpts.ContextDirectory = filepath.Dir(buildFile)
+
+			build, err := imageEngine.Build(
+				context,
+				[]string{buildFile},
+				*buildOpts,
+			)
+
+			if err != nil {
+				return nil, err
+			}
+
+			// overwrite the image id as container image
+			pod.Spec.Containers[i].Image = build.ID
+		}
+	}
+
+	return &pod, nil
 }
 
 func playKube(cmd *cobra.Command, args []string) error {
