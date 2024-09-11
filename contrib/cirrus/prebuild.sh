@@ -51,7 +51,6 @@ get_env_key() {
 # shellcheck disable=SC2154
 if [[ "${DISTRO_NV}" == "$FEDORA_NAME" ]]; then
     msg "Checking shell scripts"
-    showrun ooe.sh dnf install -y ShellCheck  # small/quick addition
     showrun shellcheck --format=tty \
         --shell=bash --external-sources \
         --enable add-default-case,avoid-nullary-conditions,check-unassigned-uppercase \
