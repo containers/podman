@@ -14,6 +14,8 @@ packages:
     specfile_path: rpm/podman.spec
   podman-rhel:
     specfile_path: rpm/podman.spec
+  podman-eln:
+    specfile_path: rpm/podman.spec
 
 srpm_build_deps:
   - git-archive-all
@@ -32,12 +34,21 @@ jobs:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
     targets:
-      fedora-development-x86_64: {}
-      fedora-development-aarch64: {}
-      fedora-latest-x86_64: {}
-      fedora-latest-aarch64: {}
-      fedora-latest-stable-x86_64: {}
-      fedora-latest-stable-aarch64: {}
+      - fedora-development-x86_64
+      - fedora-development-aarch64
+      - fedora-latest-x86_64
+      - fedora-latest-aarch64
+      - fedora-latest-stable-x86_64
+      - fedora-latest-stable-aarch64
+      - fedora-40-x86_64
+      - fedora-40-aarch64
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [podman-eln]
+    notifications: *packit_build_failure_notification
+    enable_net: true
+    targets:
       fedora-eln-x86_64:
         additional_repos:
           - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/x86_64/"
@@ -103,7 +114,7 @@ jobs:
     trigger: release
     update_release: false
     packages: [podman-fedora]
-    dist_git_branches:
+    dist_git_branches: &fedora_targets
       - fedora-all
 
   - job: propose_downstream
@@ -116,8 +127,7 @@ jobs:
   - job: koji_build
     trigger: commit
     sidetag_group: podman-releases
-    dist_git_branches:
-      - fedora-all
+    dist_git_branches: *fedora_targets
 
   - job: bodhi_update
     trigger: koji_build
@@ -129,5 +139,4 @@ jobs:
       - buildah
       - containers-common
       - skopeo
-    dist_git_branches:
-      - fedora-all
+    dist_git_branches: *fedora_targets
