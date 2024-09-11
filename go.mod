@@ -10,10 +10,10 @@ require (
 	github.com/blang/semver/v4 v4.0.0
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.2.1
-	github.com/checkpoint-restore/go-criu/v7 v7.1.1-0.20240728160228-a9064d7e053c
+	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
 	github.com/containers/buildah v1.37.0
-	github.com/containers/common v0.60.1-0.20240906123248-5298b838dcbd
+	github.com/containers/common v0.60.1-0.20240911102244-e2c949db8a59
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.5
 	github.com/containers/image/v5 v5.32.1-0.20240806084436-e3e9287ca8e6
