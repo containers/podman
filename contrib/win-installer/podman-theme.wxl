@@ -6,9 +6,10 @@
   <String Id="Caption" Value="[WixBundleName] [VERSION] Setup" />
   <String Id="Title" Value="[WixBundleName] [VERSION]" />
   <String Id="InstallHeader" Value="Welcome to [WixBundleName] Setup" />
-  <String Id="InstallMessage" Value="Welcome to the [WixBundleName] [VERSION] setup wizard. This will install [WixBundleName] on your computer.
+  <String Id="InstallMessage" Value="Welcome to the [WixBundleName] [VERSION] setup wizard. This will install [WixBundleName] on your computer." />
+  <String Id="ProvidersMessage" Value="Additionally, you have the option to select the virtualization provider required by Podman: WSLv2 or Hyper-V.
 
-Additionally, you have the option to also install WSL (required by podman) if it is not already enabled. This operation requires a reboot during the installation process. Alternatively, you can deselect the WSL checkbox, and install WSL manually using the wsl --install command.
+You can choose to also install the virtualization provider if it is not already enabled. This operation requires a reboot during the installation process. Alternatively, you can deselect the checkbox, and install the virtualization provider manually.
 
 Finally, click install to continue, or Close to abort the installation." />
   <String Id="InstallVersion" Value="Version [WixBundleVersion]" />
@@ -26,7 +27,8 @@ Finally, click install to continue, or Close to abort the installation." />
   <String Id="HelpCloseButton" Value="&amp;Close" />
   <String Id="InstallLicenseLinkText" Value='[WixBundleName] &lt;a href="#"&gt;license terms&lt;/a&gt;.' />
   <String Id="InstallAcceptCheckbox" Value="I &amp;agree to the license terms and conditions" />
-  <String Id="InstallOptionsButton" Value="&amp;Options" />
+  <String Id="InstallWSLCheckbox" Value="&amp;Install WSLv2 if not present" />
+  <String Id="InstallHypervCheckbox" Value="&amp;Install Hyper-V if not present" />
   <String Id="InstallInstallButton" Value="&amp;Install" />
   <String Id="InstallCancelButton" Value="&amp;Close" />
   <String Id="OptionsHeader" Value="Setup Options" />
