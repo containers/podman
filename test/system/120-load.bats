@@ -89,7 +89,7 @@ verify_iid_and_name() {
         skip "impossible due to pitfalls in our SSH implementation"
     fi
 
-    # FIXME: Broken on debian SID systemd 256 <= rc3
+    # FIXME: Broken on debian SID; still broken 2024-09-11
     # See https://github.com/containers/podman/pull/23020#issuecomment-2179284640
     OS_RELEASE_ID="${OS_RELEASE_ID:-$(source /etc/os-release; echo $ID)}"
     if [[ "$OS_RELEASE_ID" == "debian" ]]; then
