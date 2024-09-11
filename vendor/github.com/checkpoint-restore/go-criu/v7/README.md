@@ -62,7 +62,8 @@ The following table shows the relation between go-criu and criu versions:
 
 | Major version  | Latest release | CRIU version |
 | -------------- | -------------- | ------------ |
-| v7             | 7.1.0          | 3.18         |
+| v7             | 7.2.0          | 3.19         |
+| v7             | 7.0.0          | 3.18         |
 | v6             | 6.3.0          | 3.17         |
 | v5             | 5.3.0          | 3.16         |
 | v5             | 5.0.0          | 3.15         |

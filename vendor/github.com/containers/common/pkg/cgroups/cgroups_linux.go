@@ -95,7 +95,8 @@ func init() {
 func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool) ([]controller, error) {
 	if cgroup2 {
 		controllers := []controller{}
-		controllersFile := cgroupRoot + "/cgroup.controllers"
+		controllersFile := filepath.Join(cgroupRoot, "cgroup.controllers")
+
 		// rootless cgroupv2: check available controllers for current user, systemd or servicescope will inherit
 		if unshare.IsRootless() {
 			userSlice, err := getCgroupPathForCurrentProcess()
@@ -104,7 +105,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 			}
 			// userSlice already contains '/' so not adding here
 			basePath := cgroupRoot + userSlice
-			controllersFile = basePath + "/cgroup.controllers"
+			controllersFile = filepath.Join(basePath, "cgroup.controllers")
 		}
 		controllersFileBytes, err := os.ReadFile(controllersFile)
 		if err != nil {
@@ -597,7 +598,7 @@ func createCgroupv2Path(path string) (deferredError error) {
 	if !strings.HasPrefix(path, cgroupRoot+"/") {
 		return fmt.Errorf("invalid cgroup path %s", path)
 	}
-	content, err := os.ReadFile(cgroupRoot + "/cgroup.controllers")
+	content, err := os.ReadFile(filepath.Join(cgroupRoot, "cgroup.controllers"))
 	if err != nil {
 		return err
 	}
@@ -625,8 +626,43 @@ func createCgroupv2Path(path string) (deferredError error) {
 		// We enable the controllers for all the path components except the last one.  It is not allowed to add
 		// PIDs if there are already enabled controllers.
 		if i < len(elements[3:])-1 {
-			if err := os.WriteFile(filepath.Join(current, "cgroup.subtree_control"), res, 0o755); err != nil {
-				return err
+			subtreeControl := filepath.Join(current, "cgroup.subtree_control")
+			if err := os.WriteFile(subtreeControl, res, 0o755); err != nil {
+				// The kernel returns ENOENT either if the file itself is missing, or a controller
+				if errors.Is(err, os.ErrNotExist) {
+					if err2 := fileutils.Exists(subtreeControl); err2 != nil {
+						// If the file itself is missing, return the original error.
+						return err
+					}
+					repeatAttempts := 1000
+					for repeatAttempts > 0 {
+						// store the controllers that failed to be enabled, so we can retry them
+						newCtrs := [][]byte{}
+						for _, ctr := range ctrs {
+							// Try to enable each controller individually, at least we can give a better error message if any fails.
+							if err := os.WriteFile(subtreeControl, []byte(fmt.Sprintf("+%s\n", ctr)), 0o755); err != nil {
+								// The kernel can return EBUSY when a process was moved to a sub-cgroup
+								// and the controllers are enabled in its parent cgroup.  Retry a few times when
+								// it happens.
+								if errors.Is(err, unix.EBUSY) {
+									newCtrs = append(newCtrs, ctr)
+								} else {
+									return fmt.Errorf("enabling controller %s: %w", ctr, err)
+								}
+							}
+						}
+						if len(newCtrs) == 0 {
+							err = nil
+							break
+						}
+						ctrs = newCtrs
+						repeatAttempts--
+						time.Sleep(time.Millisecond)
+					}
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}

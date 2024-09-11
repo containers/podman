@@ -89,7 +89,7 @@ github.com/bytedance/sonic/utf8
 # github.com/checkpoint-restore/checkpointctl v1.2.1
 ## explicit; go 1.21
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu/v7 v7.1.1-0.20240728160228-a9064d7e053c
+# github.com/checkpoint-restore/go-criu/v7 v7.2.0
 ## explicit; go 1.20
 github.com/checkpoint-restore/go-criu/v7
 github.com/checkpoint-restore/go-criu/v7/rpc
@@ -171,7 +171,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20240906123248-5298b838dcbd
+# github.com/containers/common v0.60.1-0.20240911102244-e2c949db8a59
 ## explicit; go 1.22.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring

@@ -41,8 +41,8 @@ github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UF
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/checkpoint-restore/checkpointctl v1.2.1 h1:aYFl2CEk95bPLDvNDgif4ZLx3pjCZMJm6td+A0X1+xs=
 github.com/checkpoint-restore/checkpointctl v1.2.1/go.mod h1:8oF+AtNUFJAI13ETcbB3clnjiwvviX0QzVBhYzQ8yBA=
-github.com/checkpoint-restore/go-criu/v7 v7.1.1-0.20240728160228-a9064d7e053c h1:/LNWuEZICKO96wvlLRam53lp7inbzwR1zE/YuoUUV/k=
-github.com/checkpoint-restore/go-criu/v7 v7.1.1-0.20240728160228-a9064d7e053c/go.mod h1:FTB8VSlcpwignNNaAXXzNlKBIf+DcZw8urnXKCkpeB4=
+github.com/checkpoint-restore/go-criu/v7 v7.2.0 h1:qGiWA4App1gGlEfIJ68WR9jbezV9J7yZdjzglezcqKo=
+github.com/checkpoint-restore/go-criu/v7 v7.2.0/go.mod h1:u0LCWLg0w4yqqu14aXhiB4YD3a1qd8EcCEg7vda5dwo=
 github.com/chenzhuoyu/base64x v0.0.0-20211019084208-fb5309c8db06/go.mod h1:DH46F32mSOjUmXrMHnKwZdA8wcEefY7UVqBKYGjpdQY=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311/go.mod h1:b583jCggY9gE99b6G5LEC39OIiVsWj+R97kbl5odCEk=
 github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d h1:77cEq6EriyTZ0g/qfRdp61a3Uu/AWrgIq2s0ClJV1g0=
@@ -81,8 +81,8 @@ github.com/containernetworking/plugins v1.5.1 h1:T5ji+LPYjjgW0QM+KyrigZbLsZ8jaX+
 github.com/containernetworking/plugins v1.5.1/go.mod h1:MIQfgMayGuHYs0XdNudf31cLLAC+i242hNm6KuDGqCM=
 github.com/containers/buildah v1.37.0 h1:jvHwu1vIwIqnHyOSg9eef9Apdpry+5oWLrm43gdf8Rk=
 github.com/containers/buildah v1.37.0/go.mod h1:MKd79tkluMf6vtH06SedhBQK5OB7E0pFVIuiTTw3dJk=
-github.com/containers/common v0.60.1-0.20240906123248-5298b838dcbd h1:eUzsKokkxMAxqBwCD1agfKf6lIZEQ/ayPru7Tb/oW9Y=
-github.com/containers/common v0.60.1-0.20240906123248-5298b838dcbd/go.mod h1:f/n9w0F2lW52S3ppXjQlSVazsyNdilFZ80AyrFl4zn4=
+github.com/containers/common v0.60.1-0.20240911102244-e2c949db8a59 h1:X9km1EYMFpx80DZEy32/vKuadtYCJ/KJZuLamVbJX98=
+github.com/containers/common v0.60.1-0.20240911102244-e2c949db8a59/go.mod h1:I+AnVQDPUP6E9tWFOx1PngtVP6U6OIA4dcNGqFqjoQU=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.5 h1:bTy4u3DOmmUPwurL6me2rsgfypAFDhyeJleUcQmBR/E=
