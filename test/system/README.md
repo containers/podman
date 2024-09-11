@@ -14,7 +14,7 @@ one and only one (standard) image, and no running containers.
 * `parse_table` - you can define tables of inputs and expected results,
 then read those in a `while` loop. This makes it easy to add new tests.
 Because bash is not a programming language, the caller of `parse_table`
-sometimes needs to massage the returned values; `015-run.bats` offers
+sometimes needs to massage the returned values; `030-run.bats` offers
 examples of how to deal with the more typical such issues.
 
 * `run_podman` - runs command defined in `$PODMAN` (default: 'podman'
