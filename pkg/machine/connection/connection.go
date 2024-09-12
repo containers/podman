@@ -75,26 +75,34 @@ func UpdateConnectionPairPort(name string, port, uid int, remoteUsername string,
 // Returns true if it modified the default
 func UpdateConnectionIfDefault(rootful bool, name, rootfulName string) error {
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		if name == cfg.Connection.Default && rootful {
-			cfg.Connection.Default = rootfulName
-		} else if rootfulName == cfg.Connection.Default && !rootful {
-			cfg.Connection.Default = name
-		}
+		updateConnection(cfg, rootful, name, rootfulName)
 		return nil
 	})
 }
 
-func RemoveConnections(names ...string) error {
+func updateConnection(cfg *config.ConnectionsFile, rootful bool, name, rootfulName string) {
+	if name == cfg.Connection.Default && rootful {
+		cfg.Connection.Default = rootfulName
+	} else if rootfulName == cfg.Connection.Default && !rootful {
+		cfg.Connection.Default = name
+	}
+}
+
+func RemoveConnections(machines map[string]bool, names ...string) error {
 	var dest config.Destination
 	var service string
 
 	if err := config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-        err := setNewDefaultConnection(cfg, &dest, &service, names...)
-        if err != nil {
-            return err
-        }
+		err := setNewDefaultConnection(cfg, &dest, &service, names...)
+		if err != nil {
+			return err
+		}
 
-        return nil
+		rootful, ok := machines[service]
+		if dest.IsMachine && ok {
+			updateConnection(cfg, rootful, service, service+"-root")
+		}
+		return nil
 	}); err != nil {
 		return err
 	}
