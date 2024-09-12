@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/sirupsen/logrus"
 )
 
 const LocalhostIP = "127.0.0.1"
@@ -104,18 +102,6 @@ func RemoveConnections(names ...string) error {
 		}
 		return nil
 	})
-}
-
-// removeFilesAndConnections removes any files and connections with the given names
-func RemoveFilesAndConnections(files []string, names ...string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
-		}
-	}
-	if err := RemoveConnections(names...); err != nil {
-		logrus.Error(err)
-	}
 }
 
 // makeSSHURL creates a URL from the given input
