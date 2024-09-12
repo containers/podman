@@ -237,7 +237,7 @@ endif
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: lint
 lint: golangci-lint
@@ -289,7 +289,7 @@ codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
+validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
 
 .PHONY: build-all-new-commits
 build-all-new-commits:

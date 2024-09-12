@@ -1299,7 +1299,7 @@ var _ = Describe("Podman play kube", func() {
 	It("podman play kube should use customized infra_image", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
-		infraImage := "k8s.gcr.io/pause:3.2"
+		infraImage := "quay.io/libpod/k8s-pause:3.5"
 		err := ioutil.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
 		Expect(err).To(BeNil())
 

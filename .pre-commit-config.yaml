@@ -1,5 +1,5 @@
 ---
-exclude: ^vendor/
+exclude: ^vendor/|^test/tools/vendor/
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks.git
     rev: v3.4.0
