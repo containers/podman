@@ -46,7 +46,7 @@ var rootCmd = &cobra.Command{
 
 func main() {
 	if os.Geteuid() != 0 {
-		fmt.Printf("This command must be ran as root via sudo or osascript\n")
+		fmt.Printf("This command must be run as root via sudo or as a script\n")
 		os.Exit(1)
 	}
 
