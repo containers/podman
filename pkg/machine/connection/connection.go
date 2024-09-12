@@ -9,6 +9,7 @@ import (
 	"net/url"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
 const LocalhostIP = "127.0.0.1"
@@ -84,24 +85,56 @@ func UpdateConnectionIfDefault(rootful bool, name, rootfulName string) error {
 }
 
 func RemoveConnections(names ...string) error {
-	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		for _, name := range names {
-			if _, ok := cfg.Connection.Connections[name]; ok {
-				delete(cfg.Connection.Connections, name)
-			} else {
-				return fmt.Errorf("unable to find connection named %q", name)
-			}
+	var dest config.Destination
+	var service string
 
-			if cfg.Connection.Default == name {
-				cfg.Connection.Default = ""
-			}
+	if err := config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+        err := setNewDefaultConnection(cfg, &dest, &service, names...)
+        if err != nil {
+            return err
+        }
+
+        return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setNewDefaultConnection iterates through the available system connections and
+// sets the first available connection as the new default
+func setNewDefaultConnection(cfg *config.ConnectionsFile, dest *config.Destination, service *string, names ...string) error {
+	// delete the connection associated with the names and if that connection is
+	// the default, reset the default connection
+	for _, name := range names {
+		if _, ok := cfg.Connection.Connections[name]; ok {
+			delete(cfg.Connection.Connections, name)
+		} else {
+			return fmt.Errorf("unable to find connection named %q", name)
 		}
-		for service := range cfg.Connection.Connections {
-			cfg.Connection.Default = service
-			break
+
+		if cfg.Connection.Default == name {
+			cfg.Connection.Default = ""
 		}
+	}
+
+	// If there is a podman-machine-default system connection, immediately set that as the new default
+	if c, ok := cfg.Connection.Connections[define.DefaultMachineName]; ok {
+		cfg.Connection.Default = define.DefaultMachineName
+		*dest = c
+		*service = define.DefaultMachineName
 		return nil
-	})
+	}
+
+	// set the new default system connection to the first in the map
+	for con, d := range cfg.Connection.Connections {
+		cfg.Connection.Default = con
+		*dest = d
+		*service = con
+		break
+	}
+	return nil
 }
 
 // makeSSHURL creates a URL from the given input
