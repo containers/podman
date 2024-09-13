@@ -88,6 +88,14 @@ var _ = Describe("run basic podman commands", func() {
 		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", tDir + ":/test:Z", "quay.io/libpod/alpine_nginx", "ls", "/test/attr-test-file"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
+
+		// Test build with --volume option
+		cf := filepath.Join(tDir, "Containerfile")
+		err = os.WriteFile(cf, []byte("FROM quay.io/libpod/alpine_nginx\nRUN ls /test/attr-test-file\n"), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", "-t", name, "-v", tDir + ":/test", tDir})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(build).To(Exit(0))
 	})
 
 	It("Volume should be virtiofs", func() {
