@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] ##
 
+## [0.3.2] - 2024-09-13 ##
+
+### Changed ###
+- Passing the `S_ISUID` or `S_ISGID` modes to `MkdirAllInRoot` will now return
+  an explicit error saying that those bits are ignored by `mkdirat(2)`. In the
+  past a different error was returned, but since the silent ignoring behaviour
+  is codified in the man pages a more explicit error seems apt. While silently
+  ignoring these bits would be the most compatible option, it could lead to
+  users thinking their code sets these bits when it doesn't. Programs that need
+  to deal with compatibility can mask the bits themselves. (#23, #25)
+
+### Fixed ###
+- If a directory has `S_ISGID` set, then all child directories will have
+  `S_ISGID` set when created and a different gid will be used for any inode
+  created under the directory. Previously, the "expected owner and mode"
+  validation in `securejoin.MkdirAll` did not correctly handle this. We now
+  correctly handle this case. (#24, #25)
+
 ## [0.3.1] - 2024-07-23 ##
 
 ### Changed ###
@@ -127,7 +145,8 @@ This is our first release of `github.com/cyphar/filepath-securejoin`,
 containing a full implementation with a coverage of 93.5% (the only missing
 cases are the error cases, which are hard to mocktest at the moment).
 
-[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.2.5...v0.3.0
 [0.2.5]: https://github.com/cyphar/filepath-securejoin/compare/v0.2.4...v0.2.5
