@@ -31,10 +31,16 @@
         <Page Name="Install">
             <ImageControl X="11" Y="11" Width="165" Height="400" ImageFile="logoside.png"/>
             <Label X="185" Y="11" Width="-11" Height="40" FontId="5" DisablePrefix="yes">#(loc.InstallHeader)</Label>
-            <Label X="185" Y="82" Width="-11" Height="160" FontId="3" DisablePrefix="yes">#(loc.InstallMessage)</Label>
+            <Label X="185" Y="82" Width="-11" Height="40" FontId="3" DisablePrefix="yes">#(loc.InstallMessage)</Label>
+            <Label X="185" Y="127" Width="-11" Height="120" VisibleCondition="NOT PreviousInstallFolder" FontId="3" DisablePrefix="yes">#(loc.ProvidersMessage)</Label>
+            <RadioButtons Name="MachineProvider">
+                <RadioButton Name="WSLRadioButton" Value="wsl" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="260" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes" EnableCondition="" >Windows Linux Subsystem (WSLv2)</RadioButton>
+                <RadioButton Name="HyperVRadioButton"  Value="hyperv" VisibleCondition="NOT PreviousInstallFolder" X="185" Y="285" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">Windows Hyper-V</RadioButton>
+            </RadioButtons>
             <Hypertext Name="EulaHyperlink" X="185" Y="-111" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
-            <Label Name="InstallVersion" X="185" Y="-81" Width="-11" Height="17" FontId="3" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
-            <Checkbox Name="WSLCheckbox" X="185" Y="250" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">Install WSL if not present</Checkbox>
+            <Label Name="InstallVersion" X="510" Y="-50" Width="-11" Height="17" FontId="3" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
+            <Checkbox Name="WSLCheckbox" VisibleCondition="(MachineProvider = &quot;wsl&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="320" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallWSLCheckbox)</Checkbox>
+            <Checkbox Name="HyperVCheckbox" VisibleCondition="(MachineProvider = &quot;hyperv&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="320" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallHypervCheckbox)</Checkbox>
             <Button Name="OptionsButton" X="-171" Y="-11" Width="75" Height="23" TabStop="yes" FontId="0" VisibleCondition="NOT WixStdBASuppressOptionsUI">
                 <Text>#(loc.InstallOptionsButton)</Text>
                 <ChangePageAction Page="Options" />

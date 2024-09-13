@@ -411,9 +411,9 @@ msiexec /package contrib\win-installer\en-US\podman.msi /l*v podman-msi.log /qui
 ```
 
 :information_source: `podman.msi` GUI dialogs, defined in the file
-`contrib\win-installer\podman-ui.wxs`, are distinct from the installation bundle
+`contrib\win-installer\welcome-install-dlg.wxs`, are distinct from the installation bundle
 `podman-setup.exe` GUI dialogs, defined in
-`contrib\win-installer\welcome-install-dlg.wxs`.
+`contrib\win-installer\podman-theme.xml`.
 
 ### Verify the installation
 
