@@ -283,7 +283,10 @@ func checkExclusiveActiveVM(provider vmconfigs.VMProvider, mc *vmconfigs.Machine
 			return err
 		}
 		if state == machineDefine.Running || state == machineDefine.Starting {
-			return fmt.Errorf("unable to start %q: machine %s: %w", mc.Name, name, machineDefine.ErrVMAlreadyRunning)
+			if mc.Name == name {
+				return fmt.Errorf("unable to start %q: machine %s: %w", mc.Name, name, machineDefine.ErrVMAlreadyRunning)
+			}
+			return fmt.Errorf("unable to start %q: machine %s is already running: %w", mc.Name, name, machineDefine.ErrMultipleActiveVM)
 		}
 	}
 	return nil
