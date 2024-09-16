@@ -1469,3 +1469,79 @@ Using `--userns=auto` when creating new containers does not work as long as any 
 #### Solution
 
 Any existing containers that were created using `--userns=keep-id` or `--userns=nomap` must first be deleted before any new container can be created with `--userns=auto`
+
+### 44) `sudo podman run --userns=auto` fails with `Cannot find mappings for user "containers"`
+
+When rootful podman is invoked with `--userns=auto`, podman needs to
+pick subranges of subuids and subgids for the user namespace of the container.
+Rootful podman ensures that the subuid and subgid ranges for such containers
+do not overlap, but how can rootful podman prevent other tools
+from accidentally using these IDs?
+
+It's not possible to block other tools that are running as root from using these IDs,
+but such tools would normally not use subuids and subgids that have already
+been assigned to a user in _/etc/subuid_ and _/etc/subgid_.
+
+The username _containers_ on the host has a special function for rootful Podman.
+Rootful podman uses the subuids and subgids of the user _containers_ when
+running `--userns=auto` containers. The user _containers_ has no need for these
+subuids and subgids because no processes should be started as the user _containers_.
+In other words, the user _containers_ is a special user that only exists on the system
+to reserve _subuids_ and _subgids_ for rootful podman.
+
+_containers_ is the default username but it can be changed by setting the
+option `root-auto-userns-user` in the file _/etc/containers/storage.conf_
+
+#### Symptom
+
+Run rootful podman with `--userns=auto`
+```
+sudo podman run --rm --userns=auto alpine echo hello
+```
+The command fails with the error message:
+```
+ERRO[0000] Cannot find mappings for user "containers": no subuid ranges found for user "containers" in /etc/subuid
+Error: creating container storage: not enough unused IDs in user namespace
+```
+
+The files _/etc/subuid_ and _/etc/subgid_ do not have any lines that start with `containers:`
+
+#### Solution
+
+Add subuid and subgid ranges for the user _containers_ in _/etc/subuid_ and _/etc/subgid_
+or provide such ranges with _/etc/nsswitch.conf_.
+For details, see [subid(5)](https://man7.org/linux/man-pages/man5/subuid.5.html).
+
+The following steps create the user _containers_ and assigns big subuid and subgid ranges to it:
+
+1. Create the user _containers_
+   ```
+   sudo useradd --comment "Helper user to reserve subuids and subgids for Podman" \
+		--no-create-home \
+                --home-dir / \
+                --shell /usr/sbin/nologin \
+                containers
+   ```
+2. Check the subuid and subgid ranges of the user _containers_
+   ```
+   $ grep ^containers: /etc/subuid
+   containers:720896:65536
+   $ grep ^containers: /etc/subgid
+   containers:720896:65536
+   ```
+   By default __useradd__ assigns 65536 subuids and 65536 subgids to a new user.
+   Typically you would like the reserved pool to be bigger than that. The bigger
+   the size, the more containers could be started with `sudo podman run --userns=auto ...`
+3. Edit the line for the user _containers_ in the files  _/etc/subuid_ and _/etc/subgid_
+   to make the ranges bigger. Ensure that the subuid range of the user _containers_ do
+   not overlap with any other subuid ranges in the files _/etc/subuid_. Ensure that the
+   subgid range of the user _containers_ do not overlap with any other subgid ranges in
+   the files _/etc/subgid_.
+
+Test the echo command again
+
+```
+sudo podman run --rm --userns=auto alpine echo hello
+```
+
+The command succeeds and prints `hello`
