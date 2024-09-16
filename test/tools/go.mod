@@ -5,7 +5,7 @@ go 1.22.0
 toolchain go1.22.7
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.4
+	github.com/cpuguy83/go-md2man/v2 v2.0.5
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/onsi/ginkgo/v2 v2.20.2
 	github.com/vbatts/git-validation v1.2.1
