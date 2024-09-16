@@ -65,6 +65,27 @@ func convertAdditionalBuildContexts(additionalBuildContexts map[string]*define.A
 	}
 }
 
+// convertVolumeSrcPath converts windows paths in the HOST-DIR part of a volume
+// into the corresponding path in the default Windows machine.
+// (e.g. C:\test:/src/docs ==> /mnt/c/test:/src/docs).
+// If any error occurs while parsing the volume string, the original volume
+// string is returned.
+func convertVolumeSrcPath(volume string) string {
+	splitVol := specgen.SplitVolumeString(volume)
+	if len(splitVol) < 2 || len(splitVol) > 3 {
+		return volume
+	}
+	convertedSrcPath, err := specgen.ConvertWinMountPath(splitVol[0])
+	if err != nil {
+		return volume
+	}
+	if len(splitVol) == 2 {
+		return convertedSrcPath + ":" + splitVol[1]
+	} else {
+		return convertedSrcPath + ":" + splitVol[1] + ":" + splitVol[2]
+	}
+}
+
 // Build creates an image using a containerfile reference
 func Build(ctx context.Context, containerFiles []string, options types.BuildOptions) (*types.BuildReport, error) {
 	if options.CommonBuildOpts == nil {
@@ -352,7 +373,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	for _, volume := range options.CommonBuildOpts.Volumes {
-		params.Add("volume", volume)
+		params.Add("volume", convertVolumeSrcPath(volume))
 	}
 
 	for _, group := range options.GroupAdd {
