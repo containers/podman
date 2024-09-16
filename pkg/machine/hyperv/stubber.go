@@ -19,7 +19,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/hyperv/vsock"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
-	"github.com/containers/podman/v5/pkg/machine/shim/diskpull"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
@@ -449,10 +448,6 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 func (h HyperVStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
 	// managed by gvproxy on this backend, so nothing to do
 	return nil
-}
-
-func (h HyperVStubber) GetDisk(userInputPath string, dirs *define.MachineDirs, mc *vmconfigs.MachineConfig) error {
-	return diskpull.GetDisk(userInputPath, dirs, mc.ImagePath, h.VMType(), mc.Name)
 }
 
 func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
