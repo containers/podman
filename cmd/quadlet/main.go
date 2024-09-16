@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/user"
 	"path"
@@ -120,7 +121,9 @@ func getUnitDirs(rootless bool) []string {
 	unitDirAdminUser = filepath.Join(quadlet.UnitDirAdmin, "users")
 	var err error
 	if resolvedUnitDirAdminUser, err = filepath.EvalSymlinks(unitDirAdminUser); err != nil {
-		Debugf("Error occurred resolving path %q: %s", unitDirAdminUser, err)
+		if !errors.Is(err, fs.ErrNotExist) {
+			Debugf("Error occurred resolving path %q: %s", unitDirAdminUser, err)
+		}
 		resolvedUnitDirAdminUser = unitDirAdminUser
 	}
 	systemUserDirLevel = len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
@@ -166,7 +169,9 @@ func getUnitDirs(rootless bool) []string {
 func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(string, bool) bool) []string {
 	resolvedPath, err := filepath.EvalSymlinks(path)
 	if err != nil {
-		Debugf("Error occurred resolving path %q: %s", path, err)
+		if !errors.Is(err, fs.ErrNotExist) {
+			Debugf("Error occurred resolving path %q: %s", path, err)
+		}
 		// Despite the failure add the path to the list for logging purposes
 		// This is the equivalent of adding the path when info==nil below
 		dirs = append(dirs, path)
