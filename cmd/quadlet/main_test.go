@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"testing"
 
@@ -60,6 +61,9 @@ func TestUnitDirs(t *testing.T) {
 
 	if os.Getenv("_UNSHARED") != "true" {
 		unitDirs := getUnitDirs(false)
+
+		resolvedUnitDirAdminUser := resolveUnitDirAdminUser()
+		userLevelFilter := getUserLevelFilter(resolvedUnitDirAdminUser)
 		rootDirs := []string{}
 		rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirTemp, false, userLevelFilter)
 		rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirAdmin, false, userLevelFilter)
@@ -70,6 +74,9 @@ func TestUnitDirs(t *testing.T) {
 		assert.Nil(t, err)
 
 		rootlessDirs := []string{}
+
+		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
+		nonNumericFilter := getNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
 
 		runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
 		if found {
