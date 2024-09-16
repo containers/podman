@@ -9,4 +9,4 @@ For example if `--cache-ttl=1h` is specified, Buildah considers intermediate cac
 under the duration of one hour, and intermediate cache images outside this duration is ignored.
 
 Note: Setting `--cache-ttl=0` manually is equivalent to using `--no-cache` in the
-implementation since this means that the user dones not want to use cache at all.
+implementation since this means that the user does not want to use cache at all.
