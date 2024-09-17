@@ -452,6 +452,17 @@ function clean_setup() {
     if [[ -z "$found_needed_image" ]]; then
         _prefetch $PODMAN_TEST_IMAGE_FQN
     fi
+
+    # When running in parallel, load (create, actually) the pause image.
+    # This way, all pod tests will have it available. Without this,
+    # parallel pod tests will leave behind <none>:<none> images.
+    # FIXME: #23292 -- this should not be necessary.
+    if [[ -n "$PARALLEL_JOBSLOT" ]]; then
+        run_podman pod create mypod
+        run_podman pod rm mypod
+        # And now, we have a pause image, and each test does not
+        # need to build their own.
+    fi
 }
 
 # END   setup/teardown tools
