@@ -268,4 +268,34 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     done
 }
 
+@test "podman healthcheck one run" {
+    local ctrname="c-h-$(safename)"
+    run_podman run -d --name $ctrname    \
+               --health-cmd "echo Hi"    \
+               $IMAGE /home/podman/pause >&3
+    cid="$output"
+
+    run_podman healthcheck run $ctrname
+    run_podman inspect $ctrname --format "{{.State.Health.Log}}" >&3
+    [ $(echo "$output" | grep -o "Hi" - | wc -l) -eq 1 ]
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+@test "podman healthcheck one run with startup cmd" {
+    local ctrname="c-h-$(safename)"
+    run_podman run -d --name $ctrname    \
+               --health-cmd "echo Hi"    \
+               --health-startup-cmd "echo start" \
+               $IMAGE /home/podman/pause >&3
+    cid="$output"
+
+    run_podman healthcheck run $ctrname
+
+    run_podman inspect $ctrname --format "{{.State.Health.Log}}" >&3
+    [ $(echo "$output" | grep -o "Hi" - | wc -l) -eq 1 ]
+
+    run_podman rm -t 0 -f $ctrname
+}
+
 # vim: filetype=sh
