@@ -29,14 +29,23 @@ var (
 )
 
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.
-// ExtraHost is in the form of name:ip where the ip has to be a valid ip (ipv4 or ipv6) or the special string HostGateway.
+// ExtraHost is in the form of name1;name2;name3:ip where the ip has to be a valid ip (ipv4 or ipv6) or the special string HostGateway.
 // for add-host flag
 func ValidateExtraHost(val string) (string, error) {
 	// allow for IPv6 addresses in extra hosts by only splitting on first ":"
-	name, ip, hasIP := strings.Cut(val, ":")
-	if !hasIP || len(name) == 0 {
+	names, ip, hasIP := strings.Cut(val, ":")
+	if !hasIP || len(names) == 0 {
 		return "", fmt.Errorf("bad format for add-host: %q", val)
 	}
+
+	// Split the hostnames by semicolon and validate each one
+	nameList := strings.Split(names, ";")
+	for _, name := range nameList {
+		if len(name) == 0 {
+			return "", fmt.Errorf("hostname in add-host %q is empty", val)
+		}
+	}
+
 	if ip == etchosts.HostGateway {
 		return val, nil
 	}

@@ -42,17 +42,23 @@ func TestValidateExtraHost(t *testing.T) {
 	}{
 		// 2001:0db8:85a3:0000:0000:8a2e:0370:7334
 		{name: "good-ipv4", args: args{val: "foobar:192.168.1.1"}, want: "foobar:192.168.1.1", wantErr: false},
+		{name: "good-multiple-ipv4", args: args{val: "host1;host2;host3:192.168.1.1"}, want: "host1;host2;host3:192.168.1.1", wantErr: false},
 		{name: "bad-ipv4", args: args{val: "foobar:999.999.999.99"}, want: "", wantErr: true},
 		{name: "bad-ipv4", args: args{val: "foobar:999.999.999"}, want: "", wantErr: true},
+		{name: "bad-multiple-ipv4", args: args{val: "host1;host2;host3:999.999.999"}, want: "", wantErr: true},
 		{name: "noname-ipv4", args: args{val: "192.168.1.1"}, want: "", wantErr: true},
 		{name: "noname-ipv4", args: args{val: ":192.168.1.1"}, want: "", wantErr: true},
+		{name: "noname-multiple-ipv4", args: args{val: "host1;;host3:192.168.1.1"}, want: "", wantErr: true},
 		{name: "noip", args: args{val: "foobar:"}, want: "", wantErr: true},
 		{name: "noip", args: args{val: "foobar"}, want: "", wantErr: true},
 		{name: "good-ipv6", args: args{val: "foobar:2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "foobar:2001:0db8:85a3:0000:0000:8a2e:0370:7334", wantErr: false},
+		{name: "good-multiple-ipv6", args: args{val: "host1;host2;host3:2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "host1;host2;host3:2001:0db8:85a3:0000:0000:8a2e:0370:7334", wantErr: false},
 		{name: "bad-ipv6", args: args{val: "foobar:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "", wantErr: true},
 		{name: "bad-ipv6", args: args{val: "foobar:0db8:85a3:0000:0000:8a2e:0370:7334.0000.0000.000"}, want: "", wantErr: true},
+		{name: "bad-multiple-ipv6", args: args{val: "host1;host2;host3:0db8:85a3:0000:0000:8a2e:0370:7334.0000.0000.000"}, want: "", wantErr: true},
 		{name: "noname-ipv6", args: args{val: "2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "", wantErr: true},
 		{name: "noname-ipv6", args: args{val: ":2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "", wantErr: true},
+		{name: "noname-multiple-ipv6", args: args{val: "host1;;host3:2001:0db8:85a3:0000:0000:8a2e:0370:7334"}, want: "", wantErr: true},
 		{name: "host-gateway", args: args{val: "foobar:host-gateway"}, want: fmt.Sprintf("foobar:%s", etchosts.HostGateway), wantErr: false},
 	}
 	for _, tt := range tests {
