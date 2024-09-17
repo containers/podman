@@ -262,12 +262,22 @@ var _ = Describe("Podman events", func() {
 		result = podmanTest.Podman([]string{"events", "--stream=false", "--since", "30s"})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-		lines := result.OutputToStringArray()
-		Expect(lines).To(HaveLen(5))
-		Expect(lines[3]).To(ContainSubstring("network connect"))
-		Expect(lines[3]).To(ContainSubstring(fmt.Sprintf("(container=%s, name=%s)", ctrID, network)))
-		Expect(lines[4]).To(ContainSubstring("network disconnect"))
-		Expect(lines[4]).To(ContainSubstring(fmt.Sprintf("(container=%s, name=%s)", ctrID, network)))
+
+		eventDetails := fmt.Sprintf(" %s (container=%s, name=%s)", ctrID, ctrID, network)
+		// Workaround for #23634, event order not guaranteed when remote.
+		// Although the issue is closed, the bug is a real one. It seems
+		// unlikely ever to be fixed.
+		if IsRemote() {
+			lines := result.OutputToString()
+			Expect(lines).To(ContainSubstring("network connect" + eventDetails))
+			Expect(lines).To(ContainSubstring("network disconnect" + eventDetails))
+			Expect(lines).To(MatchRegexp(" network connect .* network disconnect "))
+		} else {
+			lines := result.OutputToStringArray()
+			Expect(lines).To(HaveLen(5))
+			Expect(lines[3]).To(ContainSubstring("network connect" + eventDetails))
+			Expect(lines[4]).To(ContainSubstring("network disconnect" + eventDetails))
+		}
 	})
 
 	It("podman events health_status generated", func() {
