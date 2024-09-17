@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/cgroups"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/namespaces"
 	"github.com/containers/podman/v5/pkg/util"
@@ -333,14 +334,18 @@ func ParseUserNamespace(ns string) (Namespace, error) {
 // If the input is nil or empty it will use the default setting from containers.conf
 func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetworkOptions, map[string][]string, error) {
 	var networkOptions map[string][]string
+	toReturn := Namespace{}
 	// by default we try to use the containers.conf setting
 	// if we get at least one value use this instead
-	ns := containerConfig.Containers.NetNS
+	cfg, err := config.Default()
+	if err != nil {
+		return toReturn, nil, nil, err
+	}
+	ns := cfg.Containers.NetNS
 	if len(networks) > 0 {
 		ns = networks[0]
 	}
 
-	toReturn := Namespace{}
 	podmanNetworks := make(map[string]types.PerNetworkOptions)
 
 	switch {

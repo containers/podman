@@ -577,6 +577,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		stopTimeout *uint
 	)
 
+	cfg, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+
 	// Let's sort the containers in order of created time
 	// This will ensure that the init containers are defined in the correct order in the kube yaml
 	sort.Slice(containers, func(i, j int) bool { return containers[i].CreatedTime().Before(containers[j].CreatedTime()) })
@@ -630,7 +635,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 
 			// Pick the first container that has a stop-timeout set and use that value
 			// Ignore podman's default
-			if ctr.config.StopTimeout != util.DefaultContainerConfig().Engine.StopTimeout && stopTimeout == nil {
+			if ctr.config.StopTimeout != cfg.Engine.StopTimeout && stopTimeout == nil {
 				stopTimeout = &ctr.config.StopTimeout
 			}
 
@@ -736,6 +741,11 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
 func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService, podmanOnly bool) (*v1.Pod, error) {
+	cfg, err := config.Default()
+	if err != nil {
+		return nil, err
+	}
+
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -775,7 +785,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 
 		// Pick the first container that has a stop-timeout set and use that value
 		// Ignore podman's default
-		if ctr.config.StopTimeout != util.DefaultContainerConfig().Engine.StopTimeout && stopTimeout == nil {
+		if ctr.config.StopTimeout != cfg.Engine.StopTimeout && stopTimeout == nil {
 			stopTimeout = &ctr.config.StopTimeout
 		}
 
@@ -786,7 +796,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 
 		if ctr.config.Spec.Process != nil {
 			var ulimitArr []string
-			defaultUlimits := util.DefaultContainerConfig().Ulimits()
+			defaultUlimits := cfg.Ulimits()
 			for _, ulimit := range ctr.config.Spec.Process.Rlimits {
 				finalUlimit := strings.ToLower(strings.ReplaceAll(ulimit.Type, "RLIMIT_", "")) + "=" + strconv.Itoa(int(ulimit.Soft)) + ":" + strconv.Itoa(int(ulimit.Hard))
 				// compare ulimit with default list so we don't add it twice

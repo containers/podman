@@ -3,7 +3,6 @@ package pods
 import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
-	"github.com/containers/podman/v5/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +17,7 @@ var (
 		Long:  "Pods are a group of one or more containers sharing the same network, pid and ipc namespaces.",
 		RunE:  validate.SubCommandExists,
 	}
-	containerConfig = util.DefaultContainerConfig()
+	containerConfig = registry.PodmanConfig().ContainersConfDefaultsRO
 )
 
 func init() {

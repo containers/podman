@@ -643,7 +643,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		AuthFilePath:     authfile,
 		DockerAuthConfig: creds,
 	}
-	utils.PossiblyEnforceDockerHub(r, systemContext)
+	if err := utils.PossiblyEnforceDockerHub(r, systemContext); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("checking to enforce DockerHub: %w", err))
+		return
+	}
 
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		systemContext.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)

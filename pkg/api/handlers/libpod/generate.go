@@ -6,18 +6,24 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
-	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
 )
 
 func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	cfg, err := config.Default()
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("reading containers.conf: %w", err))
+		return
+	}
+
 	query := struct {
 		Name                   bool     `schema:"useName"`
 		New                    bool     `schema:"new"`
@@ -36,7 +42,7 @@ func GenerateSystemd(w http.ResponseWriter, r *http.Request) {
 		AdditionalEnvVariables []string `schema:"additionalEnvVariables"`
 	}{
 		StartTimeout: 0,
-		StopTimeout:  util.DefaultContainerConfig().Engine.StopTimeout,
+		StopTimeout:  cfg.Engine.StopTimeout,
 	}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
