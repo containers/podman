@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -81,5 +82,26 @@ var _ = Describe("Podman container inspect", func() {
 		Expect(data).To(HaveLen(1))
 		Expect(data[0].HostConfig.VolumesFrom).To(Equal([]string{volsctr}))
 		Expect(data[0].Config.Annotations[define.VolumesFromAnnotation]).To(Equal(volsctr))
+	})
+
+	It("podman inspect hides secrets mounted to env", func() {
+		secretName := "mysecret"
+
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mySecretValue"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"secret", "create", secretName, secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		name := "testcon"
+		session = podmanTest.Podman([]string{"run", "--secret", fmt.Sprintf("%s,type=env", secretName), "--name", name, CITEST_IMAGE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		data := podmanTest.InspectContainer(name)
+		Expect(data).To(HaveLen(1))
+		Expect(data[0].Config.Env).To(ContainElement(Equal(secretName + "=*******")))
 	})
 })
