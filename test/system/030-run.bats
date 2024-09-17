@@ -874,8 +874,9 @@ RUN rm /etc/mtab
 EOF
     expected="'/etc/mtab' -> '/proc/mounts'"
 
+    # --layers=false needed to work around buildah#5674 parallel flake
     local iname=nomtab-$(safename)
-    run_podman build -t $iname $tmpdir
+    run_podman build -t $iname --layers=false $tmpdir
     run_podman run --rm $iname stat -c %N /etc/mtab
     is "$output" "$expected" "/etc/mtab should be created"
 
@@ -1080,8 +1081,9 @@ echo -e "#!/bin/sh\nfalse" >> /usr/bin/nsenter; \
 chmod +x /usr/bin/nsenter
 EOF
 
+    # --layers=false needed to work around buildah#5674 parallel flake
     test_image="cve_2022_1227_test-$(safename)"
-    run_podman build -t $test_image $tmpbuilddir
+    run_podman build -t $test_image --layers=false $tmpbuilddir
     run_podman run -d ${keepid} $test_image top
     ctr="$output"
     run_podman top $ctr huser,user

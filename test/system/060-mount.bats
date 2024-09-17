@@ -409,8 +409,9 @@ FROM $IMAGE
 RUN mkdir /mountroot && echo ${datacontent[img]} > /mountroot/data
 EOF
 
+    # --layers=false needed to work around buildah#5674 parallel flake
     img="localhost/img-$(safename)"
-    run_podman build -t $img -f $dockerfile
+    run_podman build -t $img --layers=false -f $dockerfile
 
     # Each test is set up in exactly the same way:
     #
@@ -554,7 +555,7 @@ glob | /*    | /mountroot/           | in
     echo "$datafile_contents" > $workdir/$datafile
     ln -s $datafile $workdir/link
 
-    run_podman create --mount type=glob,src=$workdir/*,dst=/mountroot/,no-dereference --privileged $img sh -c "stat -c '%N' /mountroot/link; cat /mountroot/link"
+    run_podman create --mount type=glob,src=$workdir/*,dst=/mountroot/,no-dereference --privileged $img sh -c "stat -c '%N' /mountroot/link; cat /mountroot/link; ls -l /mountroot"
     cid="$output"
     run_podman start -a $cid
     assert "${lines[0]}" = "'/mountroot/link' -> '$datafile'" "symlink is preserved, on start"
