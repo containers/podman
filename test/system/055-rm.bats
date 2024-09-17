@@ -127,10 +127,10 @@ function __run_healthcheck_container() {
     run_podman run -d --name $1 \
                --health-cmd /bin/false \
                --health-interval 1s \
-               --health-retries 1 \
+               --health-retries 2 \
                --health-timeout 1s \
                --health-on-failure=stop \
-               --stop-timeout=1 \
+               --stop-timeout=2 \
                --health-start-period 0 \
                --stop-signal SIGTERM \
                $IMAGE sleep infinity

@@ -25,13 +25,19 @@ function setup_suite() {
 
     # FIXME: racy! It could be many minutes between now and when we start it.
     # To mitigate, we use a range not used anywhere else in system tests.
-    export PODMAN_LOGIN_REGISTRY_PORT=$(random_free_port 42000-42999)
+    export PODMAN_LOGIN_REGISTRY_PORT=$(random_free_port 27000-27999)
 
     # The above does not handle errors. Do a final confirmation.
     assert "$PODMAN_LOGIN_REGISTRY_PORT" != "" \
            "Unable to set PODMAN_LOGIN_REGISTRY_PORT"
 
     clean_setup
+
+    # Canary file. Will be removed if any individual test fails.
+    touch "$BATS_SUITE_TMPDIR/all-tests-passed"
+
+    # Track network namespaces, so we can check for leaks at test end
+    ip netns list > $BATS_SUITE_TMPDIR/netns-pre
 }
 
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.
@@ -39,11 +45,22 @@ function teardown_suite() {
     stop_registry
     local exit_code=$?
 
-    # After all tests make sure there are no leaks and cleanup if there are
-    leak_check
-    if [ $? -gt 0 ]; then
-        exit_code=$((exit_code + 1))
-        clean_setup
+    # At end, if all tests have passed, check for leaks.
+    # Don't do this if there were errors: failing tests may not clean up.
+    if [[ -e "$BATS_SUITE_TMPDIR/all-tests-passed" ]]; then
+        leak_check
+        if [ $? -gt 0 ]; then
+            exit_code=$((exit_code + 1))
+        fi
+
+        # Network namespace leak check. List should match what we saw above.
+        echo
+        ip netns list > $BATS_SUITE_TMPDIR/netns-post
+        if ! diff -u $BATS_SUITE_TMPDIR/netns-{pre,post}; then
+            echo
+            echo "^^^^^ Leaks found in /run/netns ^^^^^"
+            exit_code=$((exit_code + 1))
+        fi
     fi
 
     return $exit_code

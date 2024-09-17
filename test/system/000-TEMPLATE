@@ -11,6 +11,22 @@ load helpers
     args="some sort of argument list"
     run_podman subcmd $args
     assert "$output" == "what we expect"   "output from 'podman subcmd $args'"
+
+    # safename() provides a lower-case string with both the BATS test number
+    # and a pseudorandom element. Its use is strongly encouraged for container
+    # names, volumes, networks, images, everything, because the test number
+    # makes it possible to find leaked elements.
+    cname="c-$(safename)"
+
+    # Run "top" in a detached container with a safe name
+    run_podman run -d --name $cname --this-option --that $IMAGE top
+
+    # A number ("17") as the first run_podman arg means "expect this exit code".
+    # By default, run_podman expects success, and will barf on nonzero status.
+    run_podman 17 run --this-option --that $IMAGE exit 17
+
+    # Give a hoot, don't pollute
+    run_podman rm -f -t0 $cname
 }
 
 # vim: filetype=sh
@@ -110,5 +126,31 @@ size      | -\\\?[0-9]\\\+
     done < <(parse_table "$tests")
 }
 
+# Whenever possible, please add the ci:parallel tag to new tests,
+# not only for speed but for stress testing.
+#
+# This is an example of what NOT to do when enabling parallel tests.
+#
+# bats test_tags=ci:parallel
+@test "this test is completely broken in parallel" {
+    # Never use "--name HARDCODED". Define 'cname=c-$(safename)' instead.
+    # Not only does that guarantee uniqueness, it also gives the test number
+    # in the name, so if there's a leak (at end of tests) it will be possible
+    # to identify the culprit.
+    run_podman --name mycontainer $IMAGE top
+
+    # Same thing for build and -t
+    run_podman build -t myimage ...
+
+    # Never assume exact output from podman ps! Many other containers may be running.
+    run_podman ps
+    assert "$output" = "mycontainer"
+
+    # Never use "-l". It is meaningless when other processes are running.
+    run_podman container inspect -l
+
+    # Never 'rm -a'!!! OMG like seriously just don't.
+    run_podman rm -f -a
+}
 
 # vim: filetype=sh
