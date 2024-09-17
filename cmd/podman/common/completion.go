@@ -224,6 +224,29 @@ func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellComp
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
+func getManifestListMembers(cmd *cobra.Command, list, toComplete string) ([]string, cobra.ShellCompDirective) {
+	suggestions := []string{}
+	inspectOptions := entities.ManifestInspectOptions{}
+
+	engine, err := setupImageEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	listData, err := engine.ManifestInspect(registry.GetContext(), list, inspectOptions)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	for _, item := range listData.Manifests {
+		if strings.HasPrefix(item.Digest.String(), toComplete) {
+			suggestions = append(suggestions, item.Digest.String())
+		}
+	}
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
+}
+
 func getSecrets(cmd *cobra.Command, toComplete string, cType completeType) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 
@@ -611,7 +634,21 @@ func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([
 	return getImages(cmd, toComplete)
 }
 
-// AutocompleteImageSearchFilters - Autocomplate `search --filter`.
+// AutocompleteManifestListAndMember - Autocomplete names of manifest lists and digests of items in them.
+func AutocompleteManifestListAndMember(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		return getImages(cmd, toComplete)
+	}
+	if len(args) == 1 {
+		return getManifestListMembers(cmd, args[0], toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteImageSearchFilters - Autocomplete `search --filter`.
 func AutocompleteImageSearchFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return libimageDefine.SearchFilters, cobra.ShellCompDirectiveNoFileComp
 }

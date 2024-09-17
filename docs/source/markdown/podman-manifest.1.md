@@ -21,7 +21,7 @@ The `podman manifest` command provides subcommands which can be used to:
 | exists   | [podman-manifest-exists(1)](podman-manifest-exists.1.md)     | Check if the given manifest list exists in local storage                                 |
 | inspect  | [podman-manifest-inspect(1)](podman-manifest-inspect.1.md)   | Display a manifest list or image index.                                                  |
 | push     | [podman-manifest-push(1)](podman-manifest-push.1.md)         | Push a manifest list or image index to a registry.                                       |
-| remove   | [podman-manifest-remove(1)](podman-manifest-remove.1.md)     | Remove an image from a manifest list or image index.                                     |
+| remove   | [podman-manifest-remove(1)](podman-manifest-remove.1.md)     | Remove an item from a manifest list or image index.                                     |
 | rm       | [podman-manifest-rm(1)](podman-manifest-rm.1.md)             | Remove manifest list or image index from local storage.                                  |
 
 ## EXAMPLES
