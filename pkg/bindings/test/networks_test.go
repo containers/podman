@@ -30,7 +30,7 @@ var _ = Describe("Podman networks", func() {
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
-		connText, err = bindings.NewConnection(context.Background(), bt.sock)
+		connText, err = bindings.NewConnection(context.Background(), bt.sock) //nolint:fatcontext
 		Expect(err).ToNot(HaveOccurred())
 		_, err = network.Prune(connText, &network.PruneOptions{})
 		Expect(err).ToNot(HaveOccurred())

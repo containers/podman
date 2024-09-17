@@ -26,7 +26,7 @@ var _ = Describe("Podman secrets", func() {
 		bt.RestoreImagesFromCache()
 		s = bt.startAPIService()
 		time.Sleep(1 * time.Second)
-		connText, err = bindings.NewConnection(context.Background(), bt.sock)
+		connText, err = bindings.NewConnection(context.Background(), bt.sock) //nolint:fatcontext
 		Expect(err).ToNot(HaveOccurred())
 	})
 
