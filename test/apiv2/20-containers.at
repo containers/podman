@@ -144,6 +144,14 @@ if root; then
     podman rm -f $CTRNAME
 fi
 
+# Verify that compat top endpoint combines multi-entry COMMAND lines
+CTRNAME=testtopproc
+podman run --name $CTRNAME -d $IMAGE sleep 25
+t GET containers/$CTRNAME/top?stream=false 200 \
+  .Processes.[0].[6]="00:00:00" \
+  .Processes.[0].[7]="sleep 25"
+podman rm -f -t0 $CTRNAME
+
 CTRNAME=test123
 podman run --name $CTRNAME -d $IMAGE top
 t GET libpod/containers/$CTRNAME/top?ps_args=--invalid 500 \

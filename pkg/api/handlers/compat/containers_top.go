@@ -88,11 +88,22 @@ loop: // break out of for/select infinite` loop
 				}
 
 				for _, line := range output[1:] {
-					process := strings.Split(line, "\t")
-					for i := range process {
-						process[i] = strings.TrimSpace(process[i])
+					process := strings.FieldsFunc(line, func(r rune) bool {
+						return r == ' ' || r == '\t'
+					})
+					if len(process) > len(body.Titles) {
+						// Docker assumes the last entry is *always* command
+						// Which can include spaces.
+						// All other descriptors are assumed to NOT include extra spaces.
+						// So combine any extras.
+						cmd := strings.Join(process[len(body.Titles)-1:], " ")
+						var finalProc []string
+						finalProc = append(finalProc, process[:len(body.Titles)-1]...)
+						finalProc = append(finalProc, cmd)
+						body.Processes = append(body.Processes, finalProc)
+					} else {
+						body.Processes = append(body.Processes, process)
 					}
-					body.Processes = append(body.Processes, process)
 				}
 
 				if err := encoder.Encode(body); err != nil {
