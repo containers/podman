@@ -222,22 +222,34 @@ function basic_teardown() {
     # This must be directly after immediate-assertion-failures to capture the error code
     local exit_code=$?
 
-    # Only checks for leaks on a successful run (BATS_TEST_COMPLETED is set 1),
-    # immediate-assertion-failures didn't fail (exit_code -eq 0)
-    # and PODMAN_BATS_LEAK_CHECK is set.
-    # As these podman commands are slow we do not want to do this by default
-    # and only provide this as opt in option. (#22909)
-    if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [ $exit_code -eq 0 ] && [ -n "$PODMAN_BATS_LEAK_CHECK" ]; then
-        leak_check
-        exit_code=$((exit_code + $?))
+    # Leak check and state reset. Only run these when running tests serially!
+    # (For parallel tests, we run a leak check only at the very end of all tests)
+    if [[ -z "$PARALLEL_JOBSLOT" ]]; then
+        # Check for leaks, but only if:
+        #  1) test was successful (BATS_TEST_COMPLETED is set 1); and
+        #  2) immediate-assertion-failures didn't fail (exit_code -eq 0); and
+        #  3) PODMAN_BATS_LEAK_CHECK is set (usually only in cron).
+        # As these podman commands are slow we do not want to do this by default
+        # and only provide this as opt-in option. (#22909)
+        if [[ "$BATS_TEST_COMPLETED" -eq 1 ]] && [[ $exit_code -eq 0 ]] && [[ -n "$PODMAN_BATS_LEAK_CHECK" ]]; then
+            leak_check
+            exit_code=$((exit_code + $?))
+        fi
+
+        # Some error happened (either in teardown itself or the actual test failed)
+        # so do a full cleanup to ensure following tests start with a clean env.
+        if [ $exit_code -gt 0 ] || [ -z "$BATS_TEST_COMPLETED" ]; then
+            clean_setup
+            exit_code=$((exit_code + $?))
+        fi
     fi
 
-    # Some error happened (either in teardown itself or the actual test failed)
-    # so do a full cleanup to ensure following tests start with a clean env.
-    if [ $exit_code -gt 0 ] || [ -z "$BATS_TEST_COMPLETED" ]; then
-        clean_setup
-        exit_code=$((exit_code + $?))
+    # Status file used in teardown_suite() to decide whether or not
+    # to check for leaks
+    if [[ "$BATS_TEST_COMPLETED" -ne 1 ]]; then
+        rm -f "$BATS_SUITE_TMPDIR/all-tests-passed"
     fi
+
     command rm -rf $PODMAN_TMPDIR
     exit_code=$((exit_code + $?))
     return $exit_code
@@ -426,12 +438,12 @@ function clean_setup() {
         else
             # Always remove image that doesn't match by name
             echo "# setup(): removing stray image $1" >&3
-            run_podman rmi --force "$1" >/dev/null 2>&1 || true
+            _run_podman_quiet rmi --force "$1"
 
             # Tagged image will have same IID as our test image; don't rmi it.
             if [[ $2 != "$PODMAN_TEST_IMAGE_ID" ]]; then
                 echo "# setup(): removing stray image $2" >&3
-                run_podman rmi --force "$2" >/dev/null 2>&1 || true
+                _run_podman_quiet rmi --force "$2"
             fi
         fi
     done

@@ -32,6 +32,9 @@ function setup_suite() {
            "Unable to set PODMAN_LOGIN_REGISTRY_PORT"
 
     clean_setup
+
+    # Canary file. Will be removed if any individual test fails.
+    touch "$BATS_SUITE_TMPDIR/all-tests-passed"
 }
 
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.
@@ -39,11 +42,13 @@ function teardown_suite() {
     stop_registry
     local exit_code=$?
 
-    # After all tests make sure there are no leaks and cleanup if there are
-    leak_check
-    if [ $? -gt 0 ]; then
-        exit_code=$((exit_code + 1))
-        clean_setup
+    # At end, if all tests have passed, check for leaks.
+    # Don't do this if there were errors: failing tests may not clean up.
+    if [[ -e "$BATS_SUITE_TMPDIR/all-tests-passed" ]]; then
+        leak_check
+        if [ $? -gt 0 ]; then
+            exit_code=$((exit_code + 1))
+        fi
     fi
 
     return $exit_code

@@ -83,7 +83,10 @@ for i;do
         --rootless) TEST_ROOT= ;;
         --remote)   REMOTE=remote ;;
         --ts|-T)    bats_opts+=("-T") ;;
-        --tag=*)    bats_filter=("--filter-tags" "$value") ;;
+        --tag=*)    bats_filter=("--filter-tags" "$value")
+                    if [[ "$value" = "ci:parallel" ]]; then
+                        bats_opts+=("--jobs" $(nproc))
+                    fi;;
         */*.bats)   TESTS=$i ;;
         *)
             if [[ $i =~ : ]]; then
@@ -130,7 +133,7 @@ export PODMAN_BATS_LEAK_CHECK=1
 
 # Root
 if [[ "$TEST_ROOT" ]]; then
-    echo "# bats ${bats_filter[*]} $TESTS"
+    echo "# bats ${bats_opts[*]} ${bats_filter[*]} $TESTS"
     sudo    --preserve-env=PODMAN \
             --preserve-env=QUADLET \
             --preserve-env=PODMAN_TEST_DEBUG \
@@ -144,7 +147,7 @@ fi
 # Rootless. (Only if we're not already root)
 if [[ "$TEST_ROOTLESS" && "$(id -u)" != 0 ]]; then
     echo "--------------------------------------------------"
-    echo "\$ bats ${bats_filter[*]} $TESTS"
+    echo "\$ bats ${bats_opts[*]} ${bats_filter[*]} $TESTS"
     bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
     rc=$((rc | $?))
 fi
