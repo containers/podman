@@ -2900,8 +2900,10 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 		uid := int(c.config.Spec.Process.User.UID)
 		gid := int(c.config.Spec.Process.User.GID)
 
+		idmapped := hasIdmapOption(v.Options)
+
 		// if the volume is mounted with "idmap", leave the IDs in from the current environment.
-		if c.config.IDMappings.UIDMap != nil && !hasIdmapOption(v.Options) {
+		if c.config.IDMappings.UIDMap != nil && !idmapped {
 			p := idtools.IDPair{
 				UID: uid,
 				GID: gid,
@@ -2947,7 +2949,8 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
 				uid, gid := int(stat.Uid), int(stat.Gid)
 
-				if c.config.IDMappings.UIDMap != nil {
+				// If the volume is idmapped then undo the conversion to obtain the desired UID/GID in the container
+				if c.config.IDMappings.UIDMap != nil && idmapped {
 					p := idtools.IDPair{
 						UID: uid,
 						GID: gid,

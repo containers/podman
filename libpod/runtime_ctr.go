@@ -513,16 +513,11 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			volOptions = append(volOptions, withSetAnon())
 		}
 
-		needsChown := true
-
 		// If volume-opts are set, parse and add driver opts.
 		if len(vol.Options) > 0 {
 			isDriverOpts := false
 			driverOpts := make(map[string]string)
 			for _, opts := range vol.Options {
-				if opts == "idmap" {
-					needsChown = false
-				}
 				if strings.HasPrefix(opts, "volume-opt") {
 					isDriverOpts = true
 					driverOptKey, driverOptValue, err := util.ParseDriverOpts(opts)
@@ -538,11 +533,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			}
 		}
 
-		if needsChown {
-			volOptions = append(volOptions, WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
-		} else {
-			volOptions = append(volOptions, WithVolumeNoChown())
-		}
+		volOptions = append(volOptions, WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
 
 		_, err = r.newVolume(ctx, false, volOptions...)
 		if err != nil {
