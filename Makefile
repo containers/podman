@@ -137,7 +137,7 @@ endif
 # This must never include the 'hack' directory
 export PATH := $(PATH):$(GOBIN)
 
-GOMD2MAN ?= $(shell command -v go-md2man || echo '$(GOBIN)/go-md2man')
+GOMD2MAN ?= $(shell command -v go-md2man || echo './test/tools/build/go-md2man')
 
 CROSS_BUILD_TARGETS := \
 	bin/podman.cross.linux.amd64 \
@@ -237,7 +237,7 @@ endif
 .PHONY: .gitvalidation
 .gitvalidation: .gopathok
 	@echo "Validating vs commit '$(call err_if_empty,EPOCH_TEST_COMMIT)'"
-	GIT_CHECK_EXCLUDE="./vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" $(GOBIN)/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
+	GIT_CHECK_EXCLUDE="./vendor:./test/tools/vendor:docs/make.bat:test/buildah-bud/buildah-tests.diff" ./test/tools/build/git-validation -run DCO,short-subject,dangling-whitespace -range $(EPOCH_TEST_COMMIT)..$(HEAD)
 
 .PHONY: lint
 lint: golangci-lint
@@ -289,7 +289,7 @@ codespell:
 	codespell -S bin,vendor,.git,go.sum,.cirrus.yml,"RELEASE_NOTES.md,*.xz,*.gz,*.ps1,*.tar,swagger.yaml,*.tgz,bin2img,*ico,*.png,*.1,*.5,copyimg,*.orig,apidoc.go" -L uint,iff,od,seeked,splitted,marge,ERRO,hist,ether -w
 
 .PHONY: validate
-validate: gofmt lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
+validate: lint .gitvalidation validate.completions man-page-check swagger-check tests-included tests-expect-exit
 
 .PHONY: build-all-new-commits
 build-all-new-commits:
@@ -863,13 +863,8 @@ install.systemd:
 endif
 
 .PHONY: install.tools
-install.tools: .install.goimports .install.gitvalidation .install.md2man .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
-
-.install.goimports: .gopathok
-	if [ ! -x "$(GOBIN)/goimports" ]; then \
-		$(call go-install,golang.org/x/tools/cmd/goimports); \
-	fi
-	touch .install.goimports
+install.tools: .install.ginkgo .install.golangci-lint .install.bats ## Install needed tools
+	make -C test/tools
 
 .PHONY: .install.ginkgo
 .install.ginkgo: .gopathok
@@ -877,15 +872,15 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 		$(GO) install $(BUILDFLAGS) ./vendor/github.com/onsi/ginkgo/ginkgo ; \
 	fi
 
-.PHONY: .install.gitvalidation
-.install.gitvalidation: .gopathok
-	if [ ! -x "$(GOBIN)/git-validation" ]; then \
-		$(call go-install,github.com/vbatts/git-validation); \
-	fi
-
 .PHONY: .install.golangci-lint
 .install.golangci-lint: .gopathok
 	VERSION=1.45.2 GOBIN=$(GOBIN) ./hack/install_golangci.sh
+
+.PHONY: .install.md2man
+.install.md2man:
+	if [ ! -x "$(GOMD2MAN)" ]; then \
+		make -C test/tools build/go-md2man ; \
+	fi
 
 .PHONY: .install.bats
 .install.bats: .gopathok
@@ -895,12 +890,6 @@ install.tools: .install.goimports .install.gitvalidation .install.md2man .instal
 .install.pre-commit:
 	if [ -z "$(PRE_COMMIT)" ]; then \
 		python3 -m pip install --user pre-commit; \
-	fi
-
-.PHONY: .install.md2man
-.install.md2man: .gopathok
-	if [ ! -x "$(GOMD2MAN)" ]; then \
-		$(call go-install,github.com/cpuguy83/go-md2man); \
 	fi
 
 # $BUILD_TAGS variable is used in hack/golangci-lint.sh

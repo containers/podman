@@ -33,6 +33,7 @@ release.txt
 /test/goecho/goecho
 /test/version/version
 /test/testvol/testvol
+/test/tools/build
 .vscode*
 tags
 result
