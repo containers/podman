@@ -4,6 +4,9 @@ load helpers
 load helpers.network
 load helpers.registry
 
+# All tests in this file must be able to run in parallel
+# bats file_tags=ci:parallel
+
 # Runs once before all tests in this file
 function setup_file() {
     if ! is_remote; then
@@ -119,12 +122,12 @@ COPY Dockerfile /i-am-\${TARGETARCH}
 EOF
 
     # Build two images, different arches, and add each to one manifest list
+    local img="i-$(safename)"
     local manifestlocal="m-$(safename):1.0"
     run_podman manifest create $manifestlocal
     for arch in amd arm;do
-        # This leaves behind a <none>:<none> image that must be purged, below
-        run_podman build -t image_$arch --platform linux/${arch}64 -f $dockerfile
-        run_podman manifest add $manifestlocal containers-storage:localhost/image_$arch:latest
+        run_podman build --layers=false -t "$img-$arch" --platform linux/${arch}64 -f $dockerfile
+        run_podman manifest add $manifestlocal containers-storage:localhost/"$img-$arch:latest"
     done
 
     # (for debugging)
@@ -168,11 +171,8 @@ EOF
         assert "$podmanObj" == "$skopeoObj" "podman \"$object\" does not match skopeo"
     done
 
-    run_podman rmi image_amd image_arm
+    run_podman rmi "$img-amd" "$img-arm"
     run_podman manifest rm $manifestlocal
-
-    # Needed because the above build leaves a dangling <none>
-    run_podman image prune -f
 }
 
 function manifestListAddArtifactOnce() {
@@ -319,6 +319,5 @@ function manifestListAddArtifactOnce() {
     for titleFlag in "" "--artifact-exclude-titles" ; do
         manifestListAddArtifactOnce
     done
-    stop_registry
 }
 # vim: filetype=sh
