@@ -428,12 +428,14 @@ EOF
 
 # A quadlet container depends on a named quadlet volume
 @test "quadlet - named volume dependency" {
+    local volume_name="v-$(safename)"
+
     # Save the unit name to use as the volume for the container
     local quadlet_vol_unit=dep_$(safename).volume
     local quadlet_vol_file=$PODMAN_TMPDIR/${quadlet_vol_unit}
     cat > $quadlet_vol_file <<EOF
 [Volume]
-VolumeName=foo
+VolumeName=$volume_name
 EOF
 
     # Have quadlet create the systemd unit file for the volume unit
@@ -442,7 +444,6 @@ EOF
 
     # Save the volume service name since the variable will be overwritten
     local vol_service=$QUADLET_SERVICE_NAME
-    local volume_name="foo"
 
     local quadlet_file=$PODMAN_TMPDIR/user_$(safename).container
     cat > $quadlet_file <<EOF
@@ -975,6 +976,7 @@ EOF
 
       service_setup $QUADLET_SERVICE_NAME
 
+      # FIXME: log.91: Starting, not Started
       # Ensure we have output. Output is synced via sd-notify (socat in Exec)
       run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
       is "$output" '.*Started.*\.service.*'

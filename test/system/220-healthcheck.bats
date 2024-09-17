@@ -18,7 +18,12 @@ function _check_health {
     local hc_status="$5"
 
     # Loop-wait (up to a few seconds) for healthcheck event (#20342)
+    # Allow a margin when running parallel, because of system load
     local timeout=5
+    if [[ -n "$PARALLEL_JOBSLOT" ]]; then
+        timeout=$((timeout + 3))
+    fi
+
     while :; do
         run_podman events --filter container=$ctrname --filter event=health_status \
                    --since "$since" --stream=false --format "{{.HealthStatus}}"
@@ -157,7 +162,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 
         # Wait for the container in the background and create the $wait_file to
         # signal the specified wait condition was met.
-        (timeout --foreground -v --kill=5 5 $PODMAN wait --condition=$condition $ctr && touch $wait_file) &
+        (timeout --foreground -v --kill=5 10 $PODMAN wait --condition=$condition $ctr && touch $wait_file) &
 
         # Sleep 1 second to make sure above commands are running
         sleep 1
