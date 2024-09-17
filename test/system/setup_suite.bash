@@ -25,7 +25,7 @@ function setup_suite() {
 
     # FIXME: racy! It could be many minutes between now and when we start it.
     # To mitigate, we use a range not used anywhere else in system tests.
-    export PODMAN_LOGIN_REGISTRY_PORT=$(random_free_port 42000-42999)
+    export PODMAN_LOGIN_REGISTRY_PORT=$(random_free_port 27000-27999)
 
     # The above does not handle errors. Do a final confirmation.
     assert "$PODMAN_LOGIN_REGISTRY_PORT" != "" \
