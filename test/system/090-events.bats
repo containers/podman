@@ -6,11 +6,11 @@
 load helpers
 load helpers.network
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "events with a filter by label and --no-trunc option" {
-    cname=test-$(random_string 30 | tr A-Z a-z)
-    labelname=$(random_string 10)
-    labelvalue=$(random_string 15)
+    cname=test-$(safename)
+    labelname=labelname-$(safename)
+    labelvalue=labelvalue-$(safename)-$(random_string 15)
 
     before=$(date --iso-8601=seconds)
     run_podman run -d --label $labelname=$labelvalue --name $cname --rm $IMAGE true
@@ -33,11 +33,18 @@ load helpers.network
     run_podman events --since "$before" --filter container=$cname --filter event=start --stream=false --no-trunc=false
     is "$output" ".* $truncID " "filtering by container name trunc id"
 
+    # Wait for container to truly be gone.
+    # 99% of the time this will return immediately with a "no such container" error,
+    # which is fine. Under heavy load, it might actually catch the container while
+    # it's being cleaned up. Either way, this guarantees the "died" event is logged.
+    PODMAN_TIMEOUT=4 run_podman '?' wait $id
+
     # --no-trunc does not affect --format; we always get the full ID
     run_podman events --since "$before" --filter container=$cname --filter event=died --stream=false --format='{{.ID}}--{{.Image}}' --no-trunc=false
     assert "$output" = "${id}--${IMAGE}"
 }
 
+# CANNOT BE PARALLELIZED: depends on consecutive events, also, #23750
 @test "image events" {
     skip_if_remote "remote does not support --events-backend"
     pushedDir=$PODMAN_TMPDIR/dir
@@ -49,7 +56,7 @@ load helpers.network
     imageID="$output"
 
     t0=$(date --iso-8601=seconds)
-    tag=registry.com/$(random_string 10 | tr A-Z a-z)
+    tag=registry.com/img-$(safename)
 
     bogus_image="localhost:$(random_free_port)/bogus"
 
@@ -104,44 +111,53 @@ load helpers.network
 function _events_disjunctive_filters() {
     local backend=$1
 
+    c1=c1-$(safename)
+    c2=c2-$(safename)
+
     # Regression test for #10507: make sure that filters with the same key are
     # applied in disjunction.
     t0=$(date --iso-8601=seconds)
-    run_podman $backend run --name foo --rm $IMAGE ls
-    run_podman $backend run --name bar --rm $IMAGE ls
-    run_podman $backend events --stream=false --since=$t0 --filter container=foo --filter container=bar --filter event=start
-    is "$output" ".* container start .* name=foo.*
-.* container start .* name=bar.*"
+    run_podman $backend run --name $c1 --rm $IMAGE ls
+    run_podman $backend run --name $c2 --rm $IMAGE ls
+    run_podman $backend events --stream=false --since=$t0 --filter container=$c1 --filter container=$c2 --filter event=start
+    is "$output" ".* container start .* name=${c1}.*
+.* container start .* name=${c2}.*"
 }
 
+# CANNOT BE PARALLELIZED - #23750, events-backend=file cannot coexist with journal
 @test "events with disjunctive filters - file" {
     skip_if_remote "remote does not support --events-backend"
     _events_disjunctive_filters --events-backend=file
 }
 
+# bats test_tags=ci:parallel
 @test "events with disjunctive filters - journald" {
     skip_if_remote "remote does not support --events-backend"
     skip_if_journald_unavailable "system does not support journald events"
     _events_disjunctive_filters --events-backend=journald
 }
 
+# CANNOT BE PARALLELIZED - #23750, events-backend=file cannot coexist with journal
 @test "events with file backend and journald logdriver with --follow failure" {
     skip_if_remote "remote does not support --events-backend"
     skip_if_journald_unavailable "system does not support journald events"
-    run_podman --events-backend=file run --log-driver=journald --name=test $IMAGE echo hi
+
+    cname=c-$(safename)
+    run_podman --events-backend=file run --log-driver=journald --name=$cname $IMAGE echo hi
     is "$output" "hi" "Should support events-backend=file"
 
-    run_podman 125 --events-backend=file logs --follow test
+    run_podman 125 --events-backend=file logs --follow $cname
     is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" \
        "Should fail with reasonable error message when events-backend and events-logger do not match"
-    run_podman rm test
+    run_podman rm $cname
 }
 
+# bats test_tags=ci:parallel
 @test "events with disjunctive filters - default" {
     _events_disjunctive_filters ""
 }
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "events with events_logfile_path in containers.conf" {
     skip_if_remote "remote does not support --events-backend"
     events_file=$PODMAN_TMPDIR/events.log
@@ -163,7 +179,7 @@ function _populate_events_file() {
     done
 }
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "events log-file rotation" {
     skip_if_remote "setting CONTAINERS_CONF_OVERRIDE logger options does not affect remote client"
 
@@ -227,6 +243,7 @@ EOF
     is "${lines[-1]}" "{\"ID\":\"$ctrID\",\"Image\":\"$IMAGE\",\"Name\":\".*\",\"Status\":\"remove\",\"time\":[0-9]\+,\"timeNano\":[0-9]\+,\"Type\":\"container\",\"Attributes\":{.*}}"
 }
 
+# bats test_tags=ci:parallel
 @test "events log-file no duplicates" {
     skip_if_remote "setting CONTAINERS_CONF_OVERRIDE logger options does not affect remote client"
 
@@ -298,11 +315,12 @@ EOF
 }
 
 # Prior to #15633, container labels would not appear in 'die' log events
+# CANNOT BE PARALLELIZED - #23750, events-backend=file cannot coexist with journal
 @test "events - labels included in container die" {
     skip_if_remote "remote does not support --events-backend"
-    local cname=c$(random_string 15)
-    local lname=l$(random_string 10)
-    local lvalue="v$(random_string 10) $(random_string 5)"
+    local cname=c-$(safename)
+    local lname=label$(safename | tr -d -)
+    local lvalue="labelvalue-$(safename) $(random_string 5)"
 
     run_podman 17 --events-backend=file run --rm \
                --name=$cname \
@@ -316,6 +334,7 @@ EOF
     assert "$output" = "$lvalue" "podman-events output includes container label"
 }
 
+# bats test_tags=ci:parallel
 @test "events - backend none should error" {
     skip_if_remote "remote does not support --events-backend"
 
@@ -333,7 +352,7 @@ events_logger="$1"
 events_container_create_inspect_data=true
 EOF
 
-    local cname=c$(random_string 15)
+    local cname=c-$1-$(safename)
     t0=$(date --iso-8601=seconds)
 
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman create --name=$cname $IMAGE
@@ -362,6 +381,7 @@ EOF
     run_podman rm $cname
 }
 
+# bats test_tags=ci:parallel
 @test "events - container inspect data - journald" {
     skip_if_remote "remote does not support --events-backend"
     skip_if_journald_unavailable
@@ -369,26 +389,29 @@ EOF
     _events_container_create_inspect_data journald
 }
 
+# CANNOT BE PARALLELIZED - #23750, events-backend=file cannot coexist with journal
 @test "events - container inspect data - file" {
     skip_if_remote "remote does not support --events-backend"
 
     _events_container_create_inspect_data file
 }
 
+# bats test_tags=ci:parallel
 @test "events - docker compat" {
-    local cname=c$(random_string 15)
-    t0=$(date --iso-8601=seconds)
+    local cname=c-$(safename)
+    t0=$(date --iso-8601=ns)
     run_podman run --name=$cname --rm $IMAGE true
     run_podman events \
         --since="$t0"           \
-        --filter=status=$cname  \
+        --filter=container=$cname  \
         --filter=status=die     \
         --stream=false
-    is "${lines[0]}" ".* container died .* (image=$IMAGE, name=$cname, .*)"
+    assert "${lines[0]}" =~ ".* container died [0-9a-f]+ \(image=$IMAGE, name=$cname, .*\)"
 }
 
+# bats test_tags=ci:parallel
 @test "events - volume events" {
-    local vname=v$(random_string 10)
+    local vname=v-$(safename)
     run_podman volume create $vname
     run_podman volume rm $vname
 
@@ -398,10 +421,11 @@ EOF
     assert "${lines[1]}" =~ ".* volume remove $vname"
 
     # Prefix test
-    run_podman events --since=1m --stream=false --filter volume=${vname:0:5}
+    run_podman events --since=1m --stream=false --filter volume=${vname:0:9}
     assert "$output" = "$notrunc_results"
 }
 
+# bats test_tags=ci:parallel
 @test "events - invalid filter" {
     run_podman 125 events --since="the dawn of time...ish"
     assert "$output" =~ "failed to parse event filters"
