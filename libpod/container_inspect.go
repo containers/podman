@@ -372,6 +372,20 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	if spec.Process != nil {
 		ctrConfig.Tty = spec.Process.Terminal
 		ctrConfig.Env = append([]string{}, spec.Process.Env...)
+
+		// finds all secrets mounted as env variables and hides the value
+		// the inspect command should not display it
+		envSecrets := c.config.EnvSecrets
+		for envIndex, envValue := range ctrConfig.Env {
+			// env variables come in the style `name=value`
+			envName := strings.Split(envValue, "=")[0]
+
+			envSecret, ok := envSecrets[envName]
+			if ok {
+				ctrConfig.Env[envIndex] = envSecret.Name + "=*******"
+			}
+		}
+
 		ctrConfig.WorkingDir = spec.Process.Cwd
 	}
 
