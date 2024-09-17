@@ -35,6 +35,9 @@ function setup_suite() {
 
     # Canary file. Will be removed if any individual test fails.
     touch "$BATS_SUITE_TMPDIR/all-tests-passed"
+
+    # Track network namespaces, so we can check for leaks at test end
+    ip netns list > $BATS_SUITE_TMPDIR/netns-pre
 }
 
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.
@@ -47,6 +50,15 @@ function teardown_suite() {
     if [[ -e "$BATS_SUITE_TMPDIR/all-tests-passed" ]]; then
         leak_check
         if [ $? -gt 0 ]; then
+            exit_code=$((exit_code + 1))
+        fi
+
+        # Network namespace leak check. List should match what we saw above.
+        echo
+        ip netns list > $BATS_SUITE_TMPDIR/netns-post
+        if ! diff -u $BATS_SUITE_TMPDIR/netns-{pre,post}; then
+            echo
+            echo "^^^^^ Leaks found in /run/netns ^^^^^"
             exit_code=$((exit_code + 1))
         fi
     fi
