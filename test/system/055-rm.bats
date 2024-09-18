@@ -150,7 +150,7 @@ function __run_healthcheck_container() {
     # We have no way to guarantee that we see 'stopping', but at a very
     # minimum we need to check at least one rm failure
     local rm_failures=0
-    for i in {1..10}; do
+    for i in {1..20}; do
         run_podman '?' rm $cname
         if [[ $status -eq 0 ]]; then
             break
