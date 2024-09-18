@@ -462,7 +462,12 @@ function pasta_test_do() {
 @test "Custom DNS forward address, IPv6" {
     skip_if_no_ipv6 "IPv6 not routable on the host"
 
-    # TODO: Two issues here:
+    # TODO: In fact, this requires not just IPv6 connectivity on the
+    #       host, but an IPv6 reachable nameserver which is harder to
+    #       test for.  We could remove that requirement if pasta could
+    #       forward between IPv4 and IPv6 addresses but as of
+    #       2024_09_06.6b38f07 that's unsupported.  Skip the test for
+    #       now.
     skip "Currently unsupported"
     # local addr=2001:db8::1
     #
@@ -471,6 +476,10 @@ function pasta_test_do() {
     # assert "${lines[0]}" == "nameserver $addr" "custom dns forward server"
     # run_podman run --rm --net=pasta:--dns-forward,$addr \
     #     $IMAGE nslookup l.root-servers.net $addr
+    #
+    # TODO: In addition to the IPv6 nameserver requirement above,
+    #       there seem to be two problems running this test.  It's
+    #       unclear if those are in busybox, musl or pasta.
     #
     # 1. With this, Podman writes "nameserver 2001:db8::1" to
     #    /etc/resolv.conf, without zone, and the query originates from ::1.
