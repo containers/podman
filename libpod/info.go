@@ -229,7 +229,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 
 	var grStats syscall.Statfs_t
 	if err := syscall.Statfs(r.store.GraphRoot(), &grStats); err != nil {
-		return nil, fmt.Errorf("unable to collect graph root usasge for %q: %w", r.store.GraphRoot(), err)
+		return nil, fmt.Errorf("unable to collect graph root usage for %q: %w", r.store.GraphRoot(), err)
 	}
 	allocated := uint64(grStats.Bsize) * grStats.Blocks
 	info := define.StoreInfo{
