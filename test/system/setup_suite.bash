@@ -37,7 +37,7 @@ function setup_suite() {
     touch "$BATS_SUITE_TMPDIR/all-tests-passed"
 
     # Track network namespaces, so we can check for leaks at test end
-    ip netns list > $BATS_SUITE_TMPDIR/netns-pre
+    check_netns_files > $BATS_SUITE_TMPDIR/netns-pre
 }
 
 # Run at the very end of all tests. Useful for cleanup of non-BATS tmpdirs.
@@ -54,14 +54,30 @@ function teardown_suite() {
         fi
 
         # Network namespace leak check. List should match what we saw above.
+        # When they leak we indefinitely leak resources which is bad.
         echo
-        ip netns list > $BATS_SUITE_TMPDIR/netns-post
+        check_netns_files > $BATS_SUITE_TMPDIR/netns-post
         if ! diff -u $BATS_SUITE_TMPDIR/netns-{pre,post}; then
             echo
-            echo "^^^^^ Leaks found in /run/netns ^^^^^"
+            echo "^^^^^ Leaks found in $NETNS_DIR ^^^^^"
             exit_code=$((exit_code + 1))
         fi
     fi
 
     return $exit_code
+}
+
+NETNS_DIR=
+# List a files in the common netns dir that is used to bind the netns files.
+function check_netns_files() {
+    if is_rootless; then
+        NETNS_DIR=$XDG_RUNTIME_DIR/netns
+    else
+        NETNS_DIR=/run/netns
+    fi
+
+    # The dir may not exists which is fine
+    if [ -d "$NETNS_DIR" ]; then
+        ls -1 "$NETNS_DIR"
+    fi
 }
