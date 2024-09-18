@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"math/rand"
 	"net"
 	"net/url"
@@ -138,9 +139,31 @@ const (
 	imageCacheDir = "imagecachedir"
 )
 
+var netnsFiles []fs.DirEntry
+
+func getNetnsDir() string {
+	if isRootless() {
+		var path string
+		if env, ok := os.LookupEnv("XDG_RUNTIME_DIR"); ok {
+			path = env
+		} else {
+			path = fmt.Sprintf("/run/user/%d", os.Getuid())
+		}
+		return filepath.Join(path, "netns")
+	}
+	// root is hard coded to
+	return "/run/netns"
+}
+
 var _ = SynchronizedBeforeSuite(func() []byte {
 	globalTmpDir, err := os.MkdirTemp("", "podman-e2e-")
 	Expect(err).ToNot(HaveOccurred())
+
+	netnsFiles, err = os.ReadDir(getNetnsDir())
+	// dir might not exists which is fine
+	if !errors.Is(err, fs.ErrNotExist) {
+		Expect(err).ToNot(HaveOccurred())
+	}
 
 	// make cache dir
 	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
@@ -203,6 +226,13 @@ var _ = SynchronizedAfterSuite(func() {
 	timingsFile = nil
 },
 	func() {
+		// perform a netns leak check after all tests run
+		newNetnsFiles, err := os.ReadDir(getNetnsDir())
+		if !errors.Is(err, fs.ErrNotExist) {
+			Expect(err).ToNot(HaveOccurred())
+		}
+		Expect(newNetnsFiles).To(ConsistOf(netnsFiles), "Netns files were leaked")
+
 		testTimings := make(testResultsSorted, 0, 2000)
 		for i := 1; i <= GinkgoT().ParallelTotal(); i++ {
 			f, err := os.Open(fmt.Sprintf("%s/timings-%d", LockTmpDir, i))
