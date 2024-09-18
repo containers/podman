@@ -822,6 +822,12 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 			continue
 		}
 
+		// If we are on a cgroup v2 system and there are cgroup v1 controllers
+		// mounted, ignore them when the current process is at the root cgroup.
+		if cgroup2 && parts[1] != "" && parts[2] == "/" {
+			continue
+		}
+
 		var cgroupPath string
 
 		if cgroup2 {
