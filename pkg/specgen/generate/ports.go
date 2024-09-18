@@ -158,7 +158,7 @@ func ParsePortMapping(portMappings []types.PortMapping, exposePorts map[uint16][
 	// First, we need to validate the ports passed in the specgen
 	for _, port := range portMappings {
 		// First, check proto
-		protocols, err := checkProtocol(port.Protocol, true)
+		protocols, err := checkProtocol(port.Protocol)
 		if err != nil {
 			return nil, err
 		}
@@ -356,7 +356,7 @@ func createPortMappings(s *specgen.SpecGenerator, imageData *libimage.ImageData)
 			if port == 0 {
 				return nil, nil, fmt.Errorf("cannot expose 0 as it is not a valid port number")
 			}
-			protocols, err := checkProtocol(proto, false)
+			protocols, err := checkProtocol(proto)
 			if err != nil {
 				return nil, nil, fmt.Errorf("validating protocols for exposed port %d: %w", port, err)
 			}
@@ -377,7 +377,7 @@ func createPortMappings(s *specgen.SpecGenerator, imageData *libimage.ImageData)
 }
 
 // Check a string to ensure it is a comma-separated set of valid protocols
-func checkProtocol(protocol string, allowSCTP bool) ([]string, error) {
+func checkProtocol(protocol string) ([]string, error) {
 	protocols := make(map[string]struct{})
 	splitProto := strings.Split(protocol, ",")
 	// Don't error on duplicates - just deduplicate
@@ -389,9 +389,6 @@ func checkProtocol(protocol string, allowSCTP bool) ([]string, error) {
 		case protoUDP:
 			protocols[protoUDP] = struct{}{}
 		case protoSCTP:
-			if !allowSCTP {
-				return nil, fmt.Errorf("protocol SCTP is not allowed for exposed ports")
-			}
 			protocols[protoSCTP] = struct{}{}
 		default:
 			return nil, fmt.Errorf("unrecognized protocol %q in port mapping", p)
