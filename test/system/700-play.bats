@@ -7,21 +7,6 @@ load helpers
 load helpers.network
 load helpers.registry
 
-# This is a long ugly way to clean up pods and remove the pause image
-function teardown() {
-    run_podman pod rm -t 0 -f -a
-    run_podman rm -t 0 -f -a
-    run_podman image list --format '{{.ID}} {{.Repository}}'
-    while read id name; do
-        if [[ "$name" =~ /podman-pause ]]; then
-            run_podman rmi $id
-        fi
-    done <<<"$output"
-    run_podman network rm -f podman-default-kube-network
-
-    basic_teardown
-}
-
 # helper function: writes a yaml file with customizable values
 function _write_test_yaml() {
     # All of these are available to our caller
@@ -120,6 +105,7 @@ EOF
 
 RELABEL="system_u:object_r:container_file_t:s0"
 
+# bats test_tags=ci:parallel
 @test "podman kube with stdin" {
     TESTDIR=$PODMAN_TMPDIR/testdir
     mkdir -p $TESTDIR
@@ -140,6 +126,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod rm -t 0 -f $PODNAME
 }
 
+# bats test_tags=ci:parallel
 @test "podman play" {
     # Testing that the "podman play" cmd still works now that
     # "podman kube" is an option.
@@ -161,6 +148,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod rm -t 0 -f $PODNAME
 }
 
+# bats test_tags=ci:parallel
 @test "podman play --service-container" {
     skip_if_remote "service containers only work locally"
 
@@ -226,11 +214,14 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman pod kill $PODNAME
     _ensure_container_running $service_container false
 
+    run_podman network ls
+
     # Remove the pod and make sure the service is removed along with it
     run_podman pod rm $PODNAME
     run_podman 1 container exists $service_container
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube --network" {
     _write_test_yaml command=top
 
@@ -262,6 +253,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman 1 container exists $PODCTRNAME
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play read-only" {
     YAML=$PODMAN_TMPDIR/test.yml
 
@@ -300,6 +292,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     run_podman 1 container exists ${podname}-${c3name}
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play read-only from containers.conf" {
     containersconf=$PODMAN_TMPDIR/containers.conf
     cat >$containersconf <<EOF
@@ -351,6 +344,7 @@ EOF
     run_podman 1 container exists ${podname}-${c3name}
 }
 
+# bats test_tags=ci:parallel
 @test "podman play with user from image" {
     imgname="i-$(safename)"
     _write_test_yaml command=id image=$imgname
@@ -362,7 +356,8 @@ _EOF
 
     # Unset the PATH during build and make sure that all default env variables
     # are correctly set for the created container.
-    run_podman build --unsetenv PATH -t $imgname $PODMAN_TMPDIR
+    # --layers=false needed to work around buildah#5674 parallel flake
+    run_podman build --layers=false --unsetenv PATH -t $imgname $PODMAN_TMPDIR
     run_podman image inspect $imgname --format "{{.Config.Env}}"
     is "$output" "\[\]" "image does not set PATH - env is empty"
 
@@ -377,6 +372,8 @@ _EOF
     run_podman rmi -f $imgname
 }
 
+# CANNOT BE PARALLELIZED (YET): buildah#5674, parallel builds fail
+# ...workaround is --layers=false, but there's no way to do that in kube
 @test "podman play --build --context-dir" {
     skip_if_remote "--build is not supported in context remote"
 
@@ -412,6 +409,7 @@ _EOF
 # podman play kube --replace to fail. This tests created a conflicting
 # storage container name using buildah to make sure --replace, still
 # functions properly by removing the storage container.
+# bats test_tags=ci:parallel
 @test "podman kube play --replace external storage" {
     _write_test_yaml command="top"
 
@@ -440,6 +438,7 @@ _EOF
     run_podman pod rm -t 0 -f $PODNAME
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube --annotation" {
     _write_test_yaml command=/home/podman/pause
 
@@ -458,6 +457,7 @@ _EOF
     run_podman pod rm -t 0 -f $PODNAME
 }
 
+# bats test_tags=ci:parallel
 @test "podman play Yaml deprecated --no-trunc annotation" {
    skip "FIXME: I can't figure out what this test is supposed to do"
    RANDOMSTRING=$(random_string 65)
@@ -466,6 +466,7 @@ _EOF
    run_podman play kube --no-trunc - < $TESTYAML
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play - default log driver" {
     _write_test_yaml command=top
     # Get the default log driver
@@ -482,6 +483,7 @@ _EOF
     is "$output" ".*Error: no such object: \"$PODCTRNAME\""
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play - URL" {
     _write_test_yaml command=top
 
@@ -510,6 +512,7 @@ _EOF
     run_podman rm -f -t0 $serverctr
 }
 
+# bats test_tags=ci:parallel
 @test "podman play with init container" {
     _write_test_yaml command=
     cat >>$TESTYAML <<EOF
@@ -534,6 +537,7 @@ EOF
     run_podman kube down $TESTYAML
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play - hostport" {
     HOST_PORT=$(random_free_port)
     _write_test_yaml
@@ -551,6 +555,7 @@ EOF
     run_podman kube down $TESTYAML
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play - multi-pod YAML" {
     skip_if_remote "service containers only work locally"
     skip_if_journald_unavailable
@@ -603,6 +608,7 @@ EOF
     run_podman kube down $TESTYAML
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube generate filetype" {
     YAML=$PODMAN_TMPDIR/test.yml
 
@@ -634,6 +640,7 @@ EOF
 }
 
 # kube play --wait=true, where we clear up the created containers, pods, and volumes when a kill or sigterm is triggered
+# bats test_tags=ci:parallel
 @test "podman kube play --wait with siginterrupt" {
     podname="p-$(safename)"
     ctrname="c-$(safename)"
@@ -661,16 +668,28 @@ spec:
     PODMAN_TIMEOUT=2 run_podman 124 kube play --wait $fname
     local t1=$SECONDS
     local delta_t=$((t1 - t0))
-    assert $delta_t -le 4 \
-           "podman kube play did not get killed within 3 seconds"
+
+    # Expectation (in seconds) of when we should time out. When running
+    # parallel, allow 4 more seconds due to system load
+    local expect=4
+    if [[ -n "$PARALLEL_JOBSLOT" ]]; then
+        expect=$((expect + 4))
+    fi
+    assert $delta_t -le $expect \
+           "podman kube play did not get killed within $expect seconds"
     # Make sure we actually got SIGTERM and podman printed its message.
     assert "$output" =~ "Cleaning up containers, pods, and volumes" "kube play printed sigterm message"
 
     # there should be no containers running or created
-    run_podman ps -aq
-    assert "$output" !~ "$(safename)" "No containers created by this test"
+    run_podman ps -a --noheading
+    assert "$output" !~ "$(safename)" "All containers created by this test should be gone"
+
+    # ...nor pods
+    run_podman pod ps --noheading
+    assert "$output" !~ "$(safename)" "All pods created by this test should be gone"
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play --wait - wait for pod to exit" {
     podname="p-$(safename)"
     ctrname="c-$(safename)"
@@ -703,6 +722,7 @@ spec:
     assert "$output" !~ "$(safename)" "No pods created by this test"
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play with configmaps" {
     foovalue="foo-$(safename)"
     barvalue="bar-$(safename)"
@@ -777,6 +797,7 @@ spec:
     run_podman kube down $pod_file
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube with --authfile=/tmp/bogus" {
     _write_test_yaml
     bogus=$PODMAN_TMPDIR/bogus-authfile
@@ -786,6 +807,7 @@ spec:
            "$command should fail with not such file"
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play with umask from containers.conf" {
     skip_if_remote "remote does not support CONTAINERS_CONF*"
     YAML=$PODMAN_TMPDIR/test.yaml
@@ -820,6 +842,7 @@ EOF
     run_podman rm $ctr
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube generate tmpfs on /tmp" {
     _write_test_yaml command=/home/podman/pause
     run_podman kube play $TESTYAML
@@ -828,6 +851,7 @@ EOF
     run_podman kube down $TESTYAML
 }
 
+# bats test_tags=ci:parallel
 @test "podman kube play - pull policy" {
     skip_if_remote "pull debug logs only work locally"
 
@@ -850,12 +874,14 @@ EOF
     run_podman rmi $local_image
 }
 
-@test "podman kube play healthcheck should wait initialDelaySeconds before updating status (healthy)" {
-    podname="liveness-exec-$(safename)"
-    ctrname="liveness-ctr-$(safename)"
+# bats test_tags=ci:parallel
+@test "podman kube play healthcheck should wait initialDelaySeconds before updating status" {
+    for want in healthy unhealthy; do
+        podname="liveness-exec-$(safename)-$want"
+        ctrname="liveness-ctr-$(safename)-$want"
 
-    fname="$PODMAN_TMPDIR/play_kube_healthy_$(random_string 6).yaml"
-    echo "
+        fname="$PODMAN_TMPDIR/play_kube_${want}_$(random_string 6).yaml"
+        cat <<EOF >$fname
 apiVersion: v1
 kind: Pod
 metadata:
@@ -871,93 +897,62 @@ spec:
     - touch /tmp/healthy && sleep 100
     livenessProbe:
       exec:
+        # /tmp/healthy will exist in healthy container
+        # /tmp/unhealthy will never exist, and will thus
+        # cause healthcheck failure
         command:
         - cat
-        - /tmp/healthy
+        - /tmp/$want
       initialDelaySeconds: 3
       failureThreshold: 1
       periodSeconds: 1
-" > $fname
+EOF
 
-    run_podman kube play $fname
-    ctrName="$podname-$ctrname"
+        run_podman kube play $fname
+        ctrName="$podname-$ctrname"
 
-    # Keep checking status. For the first 2 seconds it must be 'starting'
-    t0=$SECONDS
-    while [[ $SECONDS -le $((t0 + 2)) ]]; do
-        run_podman inspect $ctrName --format "1-{{.State.Health.Status}}"
-        assert "$output" == "1-starting" "Health.Status at $((SECONDS - t0))"
-        sleep 0.5
-    done
+        # Collect status every half-second until it goes into the desired state.
+        local i=1
+        local full_log=""
+        while [[ $i -lt 15 ]]; do
+            run_podman inspect $ctrName --format "$i-{{.State.Health.Status}}"
+            full_log+=" $output"
+            if [[ "$output" =~ "-$want" ]]; then
+                break
+            fi
+            sleep 0.5
+            i=$((i+1))
+        done
 
-    # After 3 seconds it may take another second to go healthy. Wait.
-    t0=$SECONDS
-    while [[ $SECONDS -le $((t0 + 3)) ]]; do
-        run_podman inspect $ctrName --format "2-{{.State.Health.Status}}"
-        if [[ "$output" = "2-healthy" ]]; then
-            break;
+        assert "$full_log" =~ "-$want\$" \
+               "Container got to '$want'"
+        assert "$full_log" =~ "-starting.*-$want" \
+               "Container went from starting to $want"
+
+        if [[ $want == "healthy" ]]; then
+            dontwant="unhealthy"
+        else
+            dontwant="healthy"
         fi
-        sleep 0.5
-    done
-    assert $output == "2-healthy" "After 3 seconds"
+        assert "$full_log" !~ "-$dontwant" \
+               "Container never goes $dontwant"
 
-    run_podman kube down $fname
+        # GAH! Save ten seconds, but in a horrible way.
+        #   - 'kube down' does not have a -t0 option.
+        #   - Using 'top' in the container, instead of 'sleep 100', results
+        #     in very weird failures. Seriously weird.
+        #   - 'stop -t0', every once in a while on parallel runs on my
+        #     laptop (never yet in CI), barfs with 'container is running or
+        #     paused, refusing to clean up, container state improper'
+        # Here's hoping that this will silence the flakes.
+        run_podman '?' stop -t0 $ctrName
+
+        run_podman kube down $fname
+    done
 }
 
-@test "podman kube play healthcheck should wait initialDelaySeconds before updating status (unhealthy)" {
-    podname="liveness-exec-$(safename)"
-    ctrname="liveness-ctr-$(safename)"
-
-    fname="$PODMAN_TMPDIR/play_kube_unhealthy_$(random_string 6).yaml"
-    echo "
-apiVersion: v1
-kind: Pod
-metadata:
-  labels:
-  name: $podname
-spec:
-  containers:
-  - name: $ctrname
-    image: $IMAGE
-    args:
-    - /bin/sh
-    - -c
-    - touch /tmp/healthy && sleep 100
-    livenessProbe:
-      exec:
-        command:
-        - cat
-        - /tmp/randomfile
-      initialDelaySeconds: 3
-      failureThreshold: 1
-      periodSeconds: 1
-" > $fname
-
-    run_podman kube play $fname
-    ctrName="$podname-$ctrname"
-
-    # Keep checking status. For the first 2 seconds it must be 'starting'
-    t0=$SECONDS
-    while [[ $SECONDS -le $((t0 + 2)) ]]; do
-        run_podman inspect $ctrName --format "1-{{.State.Health.Status}}"
-        assert "$output" == "1-starting" "Health.Status at $((SECONDS - t0))"
-        sleep 0.5
-    done
-
-    # After 3 seconds it may take another second to go unhealthy. Wait.
-    t0=$SECONDS
-    while [[ $SECONDS -le $((t0 + 3)) ]]; do
-        run_podman inspect $ctrName --format "2-{{.State.Health.Status}}"
-        if [[ "$output" = "2-unhealthy" ]]; then
-            break;
-        fi
-        sleep 0.5
-    done
-    assert $output == "2-unhealthy" "After 3 seconds"
-
-    run_podman kube down $fname
-}
-
+# CANNOT BE PARALLELIZED (YET): buildah#5674, parallel builds fail
+# ...workaround is --layers=false, but there's no way to do that in kube
 @test "podman play --build private registry" {
     skip_if_remote "--build is not supported in context remote"
 
@@ -1001,6 +996,7 @@ _EOF
     run_podman rmi -f $userimage $from_image
 }
 
+# bats test_tags=ci:parallel
 @test "podman play with image volume (automount annotation and OCI VolumeSource)" {
     imgname1="automount-img1-$(safename)"
     imgname2="automount-img2-$(safename)"
@@ -1026,8 +1022,9 @@ VOLUME /test2
 VOLUME /test_same
 EOF
 
-    run_podman build -t $imgname1 -f $PODMAN_TMPDIR/Containerfile1
-    run_podman build -t $imgname2 -f $PODMAN_TMPDIR/Containerfile2
+    # --layers=false needed to work around buildah#5674 parallel flake
+    run_podman build -t $imgname1 --layers=false -f $PODMAN_TMPDIR/Containerfile1
+    run_podman build -t $imgname2 --layers=false -f $PODMAN_TMPDIR/Containerfile2
 
     _write_test_yaml command=top name=$podname ctrname=$ctrname
     run_podman kube play --annotation "io.podman.annotations.kube.image.volumes.mount/$ctrname=$imgname1" $TESTYAML
@@ -1141,6 +1138,7 @@ EOF
     run_podman rmi $imgname1 $imgname2
 }
 
+# bats test_tags=ci:parallel
 @test "podman play with image volume pull policies" {
     podname="p-$(safename)"
     ctrname="c-$(safename)"
@@ -1234,6 +1232,7 @@ EOF
     run_podman rmi $volimg_local $volimg_both
 }
 
+# CANNOT BE PARALLELIZED: userns=auto, rootless, => not enough unused IDs in user namespace
 @test "podman kube restore user namespace" {
     if ! is_rootless; then
         grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
