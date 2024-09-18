@@ -129,17 +129,34 @@ size      | -\\\?[0-9]\\\+
 # Whenever possible, please add the ci:parallel tag to new tests,
 # not only for speed but for stress testing.
 #
-# This is an example of what NOT to do when enabling parallel tests.
+# Some test files have '# bats file_tags=ci:parallel' at the top.
+#                              ^^^^---- instead of test_tags on each test
+# This indicates that ALL tests in the file run parallel, and if
+# you add new tests, you need to guarantee that your new test
+# will also run parallel-safe.
+#
+# Below is an example of what NOT to do when enabling parallel tests.
 #
 # bats test_tags=ci:parallel
 @test "this test is completely broken in parallel" {
-    # Never use "--name HARDCODED". Define 'cname=c-$(safename)' instead.
+    # Never use "--name HARDCODED". Define 'cname=c-$(safename)' instead:
+    #    cname="c-$(safename)"
+    #    run_podman --name $cname ...
     # Not only does that guarantee uniqueness, it also gives the test number
     # in the name, so if there's a leak (at end of tests) it will be possible
     # to identify the culprit.
     run_podman --name mycontainer $IMAGE top
 
-    # Same thing for build and -t
+    # Same thing for build and -t:
+    #    imgname="i-$(safename)"
+    #    run_podman build -t $imgname ...
+    # Ed's convention is "c-$(safename)" for containers, "i-" images,
+    # "n-" namespaces, "p-" pods, "v-" volumes, "z-" zebras.
+    # When there are multiple objects needed, it is slightly easier
+    # to differentiate in front rather than at the tail:
+    #    yes: c1="ctr1-$(safename)"
+    #         c2="ctr2-$(safename)"
+    #    no:  c1="ctr-$(safename)-1"
     run_podman build -t myimage ...
 
     # Never assume exact output from podman ps! Many other containers may be running.
@@ -148,6 +165,10 @@ size      | -\\\?[0-9]\\\+
 
     # Never use "-l". It is meaningless when other processes are running.
     run_podman container inspect -l
+
+    # "userns=auto" can NEVER be parallelized: multiple jobs running
+    # at once will cause "not enough unused IDs in user namespace"
+    run_podman run --userns=auto ....
 
     # Never 'rm -a'!!! OMG like seriously just don't.
     run_podman rm -f -a
