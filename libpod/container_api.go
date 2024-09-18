@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/containers/common/pkg/resize"
@@ -596,7 +595,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 
 	// we cannot wait locked as we would hold the lock forever, so we unlock and then lock again
 	c.lock.Unlock()
-	err := waitForConmonExit(conmonPID, conmonPidFd, pollInterval)
+	err := waitForConmonExit(ctx, conmonPID, conmonPidFd, pollInterval)
 	c.lock.Lock()
 	if err != nil {
 		return -1, fmt.Errorf("failed to wait for conmon to exit: %w", err)
@@ -619,15 +618,24 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 	return c.runtime.state.GetContainerExitCode(id)
 }
 
-func waitForConmonExit(conmonPID, conmonPidFd int, pollInterval time.Duration) error {
+func waitForConmonExit(ctx context.Context, conmonPID, conmonPidFd int, pollInterval time.Duration) error {
 	if conmonPidFd > -1 {
 		for {
 			fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
-			if _, err := unix.Poll(fds, -1); err != nil {
+			if n, err := unix.Poll(fds, int(pollInterval.Milliseconds())); err != nil {
 				if err == unix.EINTR {
 					continue
 				}
 				return err
+			} else if n == 0 {
+				// n == 0 means timeout
+				select {
+				case <-ctx.Done():
+					return define.ErrCanceled
+				default:
+					// context not done, wait again
+					continue
+				}
 			}
 			return nil
 		}
@@ -640,7 +648,11 @@ func waitForConmonExit(conmonPID, conmonPidFd int, pollInterval time.Duration) e
 			}
 			return err
 		}
-		time.Sleep(pollInterval)
+		select {
+		case <-ctx.Done():
+			return define.ErrCanceled
+		case <-time.After(pollInterval):
+		}
 	}
 	return nil
 }
@@ -695,22 +707,15 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 		}
 	}
 
-	var wg sync.WaitGroup
-
 	if waitForExit {
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
-
 			code, err := c.WaitForExit(ctx, waitTimeout)
 			trySend(code, err)
 		}()
 	}
 
 	if len(wantedStates) > 0 || len(wantedHealthStates) > 0 {
-		wg.Add(1)
 		go func() {
-			defer wg.Done()
 			stoppedCount := 0
 			for {
 				if len(wantedStates) > 0 {
@@ -780,7 +785,6 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 	case <-ctx.Done():
 		result = waitResult{-1, define.ErrCanceled}
 	}
-	wg.Wait()
 	return result.code, result.err
 }
 

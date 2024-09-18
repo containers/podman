@@ -108,4 +108,19 @@ var _ = Describe("Podman wait", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(Equal([]string{"0", "0", "0"}))
 	})
+
+	It("podman wait on multiple conditions", func() {
+		session := podmanTest.Podman([]string{"run", "-d", ALPINE, "sleep", "100"})
+		session.Wait(20)
+		Expect(session).Should(ExitCleanly())
+		cid := session.OutputToString()
+
+		// condition should return once nay of the condition is met not all of them,
+		// as the container is running this should return immediately
+		// https://github.com/containers/podman-py/issues/425
+		session = podmanTest.Podman([]string{"wait", "--condition", "running,exited", cid})
+		session.Wait(20)
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(Equal("-1"))
+	})
 })
