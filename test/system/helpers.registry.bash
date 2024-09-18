@@ -37,20 +37,6 @@ function start_registry() {
         done
 
         die "Internal error: timed out waiting for another process to start registry"
-
-        # Fixes very obscure corner case in root system tests:
-        #  1) we run 150-login tests, starting a registry; then
-        #  2) run 500-network, which runs iptables -F; then
-        #  3) run 700-play, the "private" test, which needs the
-        #     already-started registry, but its port is now DROPped,
-        #     so the test times out trying to talk to registry
-
-        ###### FIXME FIXME FIXME TEMPORARY!
-        ###### Trying to understand flake #23725. What happens if we stop
-        ###### doing the network reload?
-        ###### FIXME FIXME FIXME, should we do it in stop_registry??
-        ###### run_podman --storage-driver vfs $(podman_isolation_opts ${PODMAN_LOGIN_WORKDIR}) network reload --all
-        return
     fi
 
     mkdir -p $AUTHDIR
@@ -86,21 +72,19 @@ function start_registry() {
 
     # Run the registry container.
     run_podman ${PODMAN_LOGIN_ARGS} run -d \
-               -p 127.0.0.1:${PODMAN_LOGIN_REGISTRY_PORT}:5000 \
+               --net=host \
                --name registry \
                -v $AUTHDIR:/auth:Z \
-               -e "REGISTRY_AUTH=htpasswd" \
-               -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm" \
-               -e REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd \
-               -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
-               -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
+               -e REGISTRY_HTTP_ADDR="127.0.0.1:${PODMAN_LOGIN_REGISTRY_PORT}" \
+               -e REGISTRY_AUTH="htpasswd" \
+               -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
+               -e REGISTRY_AUTH_HTPASSWD_PATH="/auth/htpasswd" \
+               -e REGISTRY_HTTP_TLS_CERTIFICATE="/auth/domain.crt" \
+               -e REGISTRY_HTTP_TLS_KEY="/auth/domain.key" \
                $REGISTRY_IMAGE
     cid="$output"
 
-    # wait_for_port isn't enough: that just checks that podman has mapped the port...
     wait_for_port 127.0.0.1 ${PODMAN_LOGIN_REGISTRY_PORT}
-    # ...so we look in container logs for confirmation that registry is running.
-    _PODMAN_TEST_OPTS="${PODMAN_LOGIN_ARGS}" wait_for_output "listening on .::.:5000" $cid
 
     touch $startflag
     echo "I have started the registry"
