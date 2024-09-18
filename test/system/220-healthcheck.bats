@@ -82,6 +82,12 @@ Log[-1].ExitCode | 0
 Log[-1].Output   | \"Life is Good on stdout\\\nLife is Good on stderr\\\n\"
 " "$current_time" "healthy"
 
+    # FIXME FIXME FIXME: 20240918: there's a race here, wherein _check_health()
+    # can see a "healthy" that comes from before 'touch uh-oh'. One way to
+    # fix that might be to add another arg to _check_health, 'FailingStreak'.
+    # That doesn't show up in podman-events, though, so we'd have to
+    # run podman-inspect in a loop, and that introduces its own races.
+    # I don't have a good answer here. See log.103
     current_time=$(date --iso-8601=ns)
     # Force a failure
     run_podman exec $ctrname touch /uh-oh
