@@ -64,31 +64,36 @@ func TestUnitDirs(t *testing.T) {
 
 		resolvedUnitDirAdminUser := resolveUnitDirAdminUser()
 		userLevelFilter := getUserLevelFilter(resolvedUnitDirAdminUser)
-		rootDirs := []string{}
-		rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirTemp, false, userLevelFilter)
-		rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirAdmin, false, userLevelFilter)
-		rootDirs = appendSubPaths(rootDirs, quadlet.UnitDirDistro, false, userLevelFilter)
-		assert.Equal(t, unitDirs, rootDirs, "rootful unit dirs should match")
+		rootDirs := make(map[string]struct{}, 0)
+		appendSubPaths(rootDirs, quadlet.UnitDirTemp, false, userLevelFilter)
+		appendSubPaths(rootDirs, quadlet.UnitDirAdmin, false, userLevelFilter)
+		appendSubPaths(rootDirs, quadlet.UnitDirDistro, false, userLevelFilter)
+		assert.Equal(t, rootDirs, unitDirs, "rootful unit dirs should match")
 
 		configDir, err := os.UserConfigDir()
 		assert.Nil(t, err)
 
-		rootlessDirs := []string{}
+		rootlessDirs := make(map[string]struct{}, 0)
 
 		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
 		nonNumericFilter := getNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
 
 		runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
 		if found {
-			rootlessDirs = appendSubPaths(rootlessDirs, path.Join(runtimeDir, "containers/systemd"), false, nil)
+			appendSubPaths(rootlessDirs, path.Join(runtimeDir, "containers/systemd"), false, nil)
 		}
-		rootlessDirs = appendSubPaths(rootlessDirs, path.Join(configDir, "containers/systemd"), false, nil)
-		rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
-		rootlessDirs = appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
-		rootlessDirs = append(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
+		appendSubPaths(rootlessDirs, path.Join(configDir, "containers/systemd"), false, nil)
+		appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
+		appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		rootlessDirs[filepath.Join(quadlet.UnitDirAdmin, "users")] = struct{}{}
 
 		unitDirs = getUnitDirs(true)
-		assert.Equal(t, unitDirs, rootlessDirs, "rootless unit dirs should match")
+		assert.Equal(t, rootlessDirs, unitDirs, "rootless unit dirs should match")
+
+		// Test that relative path returns an empty list
+		t.Setenv("QUADLET_UNIT_DIRS", "./relative/path")
+		unitDirs = getUnitDirs(false)
+		assert.Equal(t, map[string]struct{}{}, unitDirs)
 
 		name, err := os.MkdirTemp("", "dir")
 		assert.Nil(t, err)
@@ -97,10 +102,10 @@ func TestUnitDirs(t *testing.T) {
 
 		t.Setenv("QUADLET_UNIT_DIRS", name)
 		unitDirs = getUnitDirs(false)
-		assert.Equal(t, unitDirs, []string{name}, "rootful should use environment variable")
+		assert.Equal(t, map[string]struct{}{name: {}}, unitDirs, "rootful should use environment variable")
 
 		unitDirs = getUnitDirs(true)
-		assert.Equal(t, unitDirs, []string{name}, "rootless should use environment variable")
+		assert.Equal(t, map[string]struct{}{name: {}}, unitDirs, "rootless should use environment variable")
 
 		symLinkTestBaseDir, err := os.MkdirTemp("", "podman-symlinktest")
 		assert.Nil(t, err)
@@ -118,7 +123,72 @@ func TestUnitDirs(t *testing.T) {
 		assert.Nil(t, err)
 		t.Setenv("QUADLET_UNIT_DIRS", symlink)
 		unitDirs = getUnitDirs(true)
-		assert.Equal(t, unitDirs, []string{actualDir, innerDir}, "directory resolution should follow symlink")
+		assert.Equal(t, map[string]struct{}{actualDir: {}, innerDir: {}}, unitDirs, "directory resolution should follow symlink")
+
+		// Make a more elborate test with the following structure:
+		// <BASE>/linkToDir - real directory to link to
+		// <BASE>/linkToDir/a - real directory
+		// <BASE>/linkToDir/b - link to <BASE>/unitDir/b/a should be ignored
+		// <BASE>/linkToDir/c - link to <BASE>/unitDir should be ignored
+		// <BASE>/unitDir - start from here
+		// <BASE>/unitDir/a - real directory
+		// <BASE>/unitDir/a/a - real directory
+		// <BASE>/unitDir/a/a/a - real directory
+		// <BASE>/unitDir/b/a - real directory
+		// <BASE>/unitDir/b/b - link to <BASE>/unitDir/a/a should be ignored
+		// <BASE>/unitDir/c - link to <BASE>/linkToDir
+		symLinkRecursiveTestBaseDir, err := os.MkdirTemp("", "podman-symlink-recursive-test")
+		assert.Nil(t, err)
+		// remove the temporary directory at the end of the program
+		defer os.RemoveAll(symLinkRecursiveTestBaseDir)
+
+		createDir := func(path, name string, dirs map[string]struct{}) string {
+			dirName := filepath.Join(path, name)
+			assert.NotContains(t, dirs, dirName)
+			err = os.Mkdir(dirName, 0755)
+			assert.Nil(t, err)
+			dirs[dirName] = struct{}{}
+			return dirName
+		}
+		expectedDirs := make(map[string]struct{}, 0)
+		// Create <BASE>/linkToDir
+		linkToDirPath := createDir(symLinkRecursiveTestBaseDir, "linkToDir", expectedDirs)
+		// Create <BASE>/linkToDir/a
+		createDir(linkToDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir
+		unitsDirPath := createDir(symLinkRecursiveTestBaseDir, "unitsDir", expectedDirs)
+		// Create <BASE>/unitDir/a
+		aDirPath := createDir(unitsDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir/a/a
+		aaDirPath := createDir(aDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir/a/b
+		createDir(aDirPath, "b", expectedDirs)
+		// Create <BASE>/unitDir/a/a/a
+		createDir(aaDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir/b
+		bDirPath := createDir(unitsDirPath, "b", expectedDirs)
+		// Create <BASE>/unitDir/b/a
+		baDirPath := createDir(bDirPath, "a", expectedDirs)
+
+		linkDir := func(path, name, target string) {
+			linkName := filepath.Join(path, name)
+			err = os.Symlink(target, linkName)
+			assert.Nil(t, err)
+		}
+		// Link <BASE>/unitDir/b/b to <BASE>/unitDir/a/a
+		linkDir(bDirPath, "b", aaDirPath)
+		// Link <BASE>/linkToDir/b to <BASE>/unitDir/b/a
+		linkDir(linkToDirPath, "b", baDirPath)
+		// Link <BASE>/linkToDir/c to <BASE>/unitDir
+		linkDir(linkToDirPath, "c", unitsDirPath)
+		// Link <BASE>/unitDir/c to <BASE>/linkToDir
+		linkDir(unitsDirPath, "c", linkToDirPath)
+
+		t.Setenv("QUADLET_UNIT_DIRS", unitsDirPath)
+		unitDirs = getUnitDirs(true)
+		assert.Equal(t, expectedDirs, unitDirs, "directory resolution should follow symlink")
+		// remove the temporary directory at the end of the program
+		defer os.RemoveAll(symLinkTestBaseDir)
 
 		// because chroot is only available for root,
 		// unshare the namespace and map user to root

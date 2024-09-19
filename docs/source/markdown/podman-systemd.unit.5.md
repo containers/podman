@@ -35,8 +35,7 @@ Quadlet files for non-root users can be placed in the following directories
 
 ### Using symbolic links
 
-Quadlet supports using symbolic links for the base of the search paths.
-Symbolic links below the search paths are not supported.
+Quadlet supports using symbolic links for the base of the search paths and inside them.
 
 ## DESCRIPTION
 

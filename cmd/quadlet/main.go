@@ -107,9 +107,11 @@ func Debugf(format string, a ...interface{}) {
 // For system generators these are in /usr/share/containers/systemd (for distro files)
 // and /etc/containers/systemd (for sysadmin files).
 // For user generators these can live in $XDG_RUNTIME_DIR/containers/systemd, /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, and $XDG_CONFIG_HOME/containers/systemd
-func getUnitDirs(rootless bool) []string {
+func getUnitDirs(rootless bool) map[string]struct{} {
+	dirs := make(map[string]struct{}, 0)
+
 	// Allow overriding source dir, this is mainly for the CI tests
-	if varExist, dirs := getDirsFromEnv(); varExist {
+	if getDirsFromEnv(dirs) {
 		return dirs
 	}
 
@@ -119,61 +121,57 @@ func getUnitDirs(rootless bool) []string {
 	if rootless {
 		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
 		nonNumericFilter := getNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
-		return getRootlessDirs(nonNumericFilter, userLevelFilter)
+		getRootlessDirs(dirs, nonNumericFilter, userLevelFilter)
+	} else {
+		getRootDirs(dirs, userLevelFilter)
 	}
-
-	return getRootDirs(userLevelFilter)
+	return dirs
 }
 
-func getDirsFromEnv() (bool, []string) {
+func getDirsFromEnv(dirs map[string]struct{}) bool {
 	unitDirsEnv := os.Getenv("QUADLET_UNIT_DIRS")
 	if len(unitDirsEnv) == 0 {
-		return false, nil
+		return false
 	}
 
-	dirs := make([]string, 0)
 	for _, eachUnitDir := range strings.Split(unitDirsEnv, ":") {
 		if !filepath.IsAbs(eachUnitDir) {
 			Logf("%s not a valid file path", eachUnitDir)
-			return true, nil
+			break
 		}
-		dirs = appendSubPaths(dirs, eachUnitDir, false, nil)
+		appendSubPaths(dirs, eachUnitDir, false, nil)
 	}
-	return true, dirs
+	return true
 }
 
-func getRootlessDirs(nonNumericFilter, userLevelFilter func(string, bool) bool) []string {
-	dirs := make([]string, 0)
-
+func getRootlessDirs(dirs map[string]struct{}, nonNumericFilter, userLevelFilter func(string, bool) bool) {
 	runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
 	if found {
-		dirs = appendSubPaths(dirs, path.Join(runtimeDir, "containers/systemd"), false, nil)
+		appendSubPaths(dirs, path.Join(runtimeDir, "containers/systemd"), false, nil)
 	}
 
 	configDir, err := os.UserConfigDir()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: %v", err)
-		return nil
+		return
 	}
-	dirs = appendSubPaths(dirs, path.Join(configDir, "containers/systemd"), false, nil)
+	appendSubPaths(dirs, path.Join(configDir, "containers/systemd"), false, nil)
 
 	u, err := user.Current()
 	if err == nil {
-		dirs = appendSubPaths(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
-		dirs = appendSubPaths(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		appendSubPaths(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
+		appendSubPaths(dirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
 	} else {
 		fmt.Fprintf(os.Stderr, "Warning: %v", err)
 	}
 
-	return append(dirs, filepath.Join(quadlet.UnitDirAdmin, "users"))
+	dirs[filepath.Join(quadlet.UnitDirAdmin, "users")] = struct{}{}
 }
 
-func getRootDirs(userLevelFilter func(string, bool) bool) []string {
-	dirs := make([]string, 0)
-
-	dirs = appendSubPaths(dirs, quadlet.UnitDirTemp, false, userLevelFilter)
-	dirs = appendSubPaths(dirs, quadlet.UnitDirAdmin, false, userLevelFilter)
-	return appendSubPaths(dirs, quadlet.UnitDirDistro, false, nil)
+func getRootDirs(dirs map[string]struct{}, userLevelFilter func(string, bool) bool) {
+	appendSubPaths(dirs, quadlet.UnitDirTemp, false, userLevelFilter)
+	appendSubPaths(dirs, quadlet.UnitDirAdmin, false, userLevelFilter)
+	appendSubPaths(dirs, quadlet.UnitDirDistro, false, nil)
 }
 
 func resolveUnitDirAdminUser() string {
@@ -189,7 +187,7 @@ func resolveUnitDirAdminUser() string {
 	return resolvedUnitDirAdminUser
 }
 
-func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(string, bool) bool) []string {
+func appendSubPaths(dirs map[string]struct{}, path string, isUserFlag bool, filterPtr func(string, bool) bool) {
 	resolvedPath, err := filepath.EvalSymlinks(path)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -197,27 +195,55 @@ func appendSubPaths(dirs []string, path string, isUserFlag bool, filterPtr func(
 		}
 		// Despite the failure add the path to the list for logging purposes
 		// This is the equivalent of adding the path when info==nil below
-		dirs = append(dirs, path)
-		return dirs
+		dirs[path] = struct{}{}
+		return
 	}
 
-	err = filepath.WalkDir(resolvedPath, func(_path string, info os.DirEntry, err error) error {
-		// Ignore drop-in directory subpaths
-		if !strings.HasSuffix(_path, ".d") {
-			if info == nil || info.IsDir() {
-				if filterPtr == nil || filterPtr(_path, isUserFlag) {
-					dirs = append(dirs, _path)
-				}
-			}
+	// If the resolvedPath is already in the map no need to read it again
+	if _, already := dirs[resolvedPath]; already {
+		return
+	}
+
+	// Don't traverse drop-in directories
+	if strings.HasSuffix(resolvedPath, ".d") {
+		return
+	}
+
+	// Check if the directory should be filtered out
+	if filterPtr != nil && !filterPtr(resolvedPath, isUserFlag) {
+		return
+	}
+
+	stat, err := os.Stat(resolvedPath)
+	if err != nil {
+		if !errors.Is(err, fs.ErrNotExist) {
+			Debugf("Error occurred resolving path %q: %s", path, err)
 		}
-		return err
-	})
+		return
+	}
+
+	// Not a directory nothing to add
+	if !stat.IsDir() {
+		return
+	}
+
+	// Add the current directory
+	dirs[resolvedPath] = struct{}{}
+
+	// Read the contents of the directory
+	entries, err := os.ReadDir(resolvedPath)
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			Debugf("Error occurred walking sub directories %q: %s", path, err)
 		}
+		return
 	}
-	return dirs
+
+	// Recursively run through the contents of the directory
+	for _, entry := range entries {
+		fullPath := filepath.Join(resolvedPath, entry.Name())
+		appendSubPaths(dirs, fullPath, isUserFlag, filterPtr)
+	}
 }
 
 func getNonNumericFilter(resolvedUnitDirAdminUser string, systemUserDirLevel int) func(string, bool) bool {
@@ -297,7 +323,7 @@ func loadUnitsFromDir(sourcePath string) ([]*parser.UnitFile, error) {
 	return units, prevError
 }
 
-func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
+func loadUnitDropins(unit *parser.UnitFile, sourcePaths map[string]struct{}) error {
 	var prevError error
 	reportError := func(err error) {
 		if prevError != nil {
@@ -309,7 +335,7 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 	dropinDirs := []string{}
 	unitDropinPaths := unit.GetUnitDropinPaths()
 
-	for _, sourcePath := range sourcePaths {
+	for sourcePath := range sourcePaths {
 		for _, dropinPath := range unitDropinPaths {
 			dropinDirs = append(dropinDirs, path.Join(sourcePath, dropinPath))
 		}
@@ -620,10 +646,10 @@ func process() error {
 		Debugf("Starting quadlet-generator, output to: %s", outputPath)
 	}
 
-	sourcePaths := getUnitDirs(isUserFlag)
+	sourcePathsMap := getUnitDirs(isUserFlag)
 
 	var units []*parser.UnitFile
-	for _, d := range sourcePaths {
+	for d := range sourcePathsMap {
 		if result, err := loadUnitsFromDir(d); err != nil {
 			reportError(err)
 		} else {
@@ -634,12 +660,12 @@ func process() error {
 	if len(units) == 0 {
 		// containers/podman/issues/17374: exit cleanly but log that we
 		// had nothing to do
-		Debugf("No files parsed from %s", sourcePaths)
+		Debugf("No files parsed from %s", sourcePathsMap)
 		return prevError
 	}
 
 	for _, unit := range units {
-		if err := loadUnitDropins(unit, sourcePaths); err != nil {
+		if err := loadUnitDropins(unit, sourcePathsMap); err != nil {
 			reportError(err)
 		}
 	}
