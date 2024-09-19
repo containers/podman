@@ -662,12 +662,19 @@ spec:
       - top
 " > $fname
 
-    # force a timeout to happen so that the kube play command is killed
-    # and expect the timeout code 124 to happen so that we can clean up
+    # force a timeout to happen so that the kube play command is killed.
+    # We *expect* a timeout exit status (124), but as of September 2024,
+    # when run in parallel, we often see 137.
     local t0=$SECONDS
-    PODMAN_TIMEOUT=2 run_podman 124 kube play --wait $fname
+    PODMAN_TIMEOUT=2 run_podman '?' kube play --wait $fname
     local t1=$SECONDS
     local delta_t=$((t1 - t0))
+
+    if [[ $status -eq 137 ]]; then
+        echo "# FIXME-someday: timeout command exited $status" >&3
+    else
+        assert "$status" -eq 124 "Exit status from podman"
+    fi
 
     # Expectation (in seconds) of when we should time out. When running
     # parallel, allow 4 more seconds due to system load
