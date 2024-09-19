@@ -458,16 +458,16 @@ function clean_setup() {
         _prefetch $PODMAN_TEST_IMAGE_FQN
     fi
 
-    # When running in parallel, load (create, actually) the pause image.
-    # This way, all pod tests will have it available. Without this,
-    # parallel pod tests will leave behind <none>:<none> images.
+    # Load (create, actually) the pause image. This way, all pod tests will
+    # have it available. Without this, pod tests run in parallel will leave
+    # behind <none>:<none> images.
+    # FIXME: we have to do this always, because there's no way (in bats 1.11)
+    #        to tell if we're running in parallel. See bats-core#998
     # FIXME: #23292 -- this should not be necessary.
-    if [[ -n "$PARALLEL_JOBSLOT" ]]; then
-        run_podman pod create mypod
-        run_podman pod rm mypod
-        # And now, we have a pause image, and each test does not
-        # need to build their own.
-    fi
+    run_podman pod create mypod
+    run_podman pod rm mypod
+    # And now, we have a pause image, and each test does not
+    # need to build their own.
 }
 
 # END   setup/teardown tools

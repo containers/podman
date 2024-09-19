@@ -976,9 +976,16 @@ EOF
 
       service_setup $QUADLET_SERVICE_NAME
 
-      # FIXME: log.91: Starting, not Started
       # Ensure we have output. Output is synced via sd-notify (socat in Exec)
-      run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+      # When running under heavy load (e.g. parallel tests), it
+      # may take a little while for service to reach Started
+      for tries in $(seq 1 5); do
+          run journalctl "--since=$STARTED_TIME" --unit="$QUADLET_SERVICE_NAME"
+          if [[ "$output" =~ "Started.*\.service" ]]; then
+              break
+          fi
+          sleep 1
+      done
       is "$output" '.*Started.*\.service.*'
 
       # Opportunistic test: confirm that the Propagation field got set.
@@ -1519,8 +1526,14 @@ EOF
     # Shutdown the service
     service_cleanup $pod_service inactive
 
-    # The service of the container should be active
-    run systemctl show --property=ActiveState "$container_service"
+    # It might take a few seconds to go inactive, esp. under heavy load
+    for tries in $(seq 1 5); do
+        run systemctl show --property=ActiveState "$container_service"
+        if [[ "$output" = "ActiveState=inactive" ]]; then
+            break
+        fi
+        sleep 1
+    done
     assert "ActiveState=inactive" \
            "quadlet - pod base: container service ActiveState"
 
