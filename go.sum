@@ -272,12 +272,12 @@ github.com/containernetworking/plugins v1.2.0 h1:SWgg3dQG1yzUo4d9iD8cwSVh1VqI+bP
 github.com/containernetworking/plugins v1.2.0/go.mod h1:/VjX4uHecW5vVimFa1wkG4s+r/s9qIfPdqlLF4TW8c4=
 github.com/containers/buildah v1.29.3 h1:OMHme3lsXULrGzWGsU2i/UzXgcCuwNTJmnNja0VRdrM=
 github.com/containers/buildah v1.29.3/go.mod h1:VSGsuTRlvCEHjRGki6drxhEagZ7HzEJJBGIsHg5AHVM=
-github.com/containers/common v0.51.3 h1:wwFXpQd0FtDWmaMZpnYYfEQvQB6dPGChRQfm71znzeY=
-github.com/containers/common v0.51.3/go.mod h1:3W2WIdalgQfrsX/T5tjX+6CxgT3ThJVN2G9sNuFjuCM=
+github.com/containers/common v0.51.4 h1:1m3D9lPYgY7sS4Xod962rCEZTsOlR2nuAbYFhzopME4=
+github.com/containers/common v0.51.4/go.mod h1:CVSTmQWOs6IbjOZW7ik+7QggrOR3gzKc6gqYfRipl1c=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
-github.com/containers/image/v5 v5.24.1 h1:XaRw3FJmvZtI297uBVTJluUVH4AQJ//YpHviaOw0C4M=
-github.com/containers/image/v5 v5.24.1/go.mod h1:oss5F6ssGQz8ZtC79oY+fuzYA3m3zBek9tq9gmhuvHc=
+github.com/containers/image/v5 v5.24.3 h1:IKrt9qWFqLkvu7trjH5XOKjkCdJ3y5vdcriOcm7j3GM=
+github.com/containers/image/v5 v5.24.3/go.mod h1:oss5F6ssGQz8ZtC79oY+fuzYA3m3zBek9tq9gmhuvHc=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.0.1/go.mod h1:MeJDzk1RJHv89LjsH0Sp5KTY3ZYkjXO/C+bKAeWFIrc=
