@@ -114,7 +114,7 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 		return nil, err
 	}
 
-	defer c.close()
+	defer c.Close()
 
-	return c.copy(ctx, srcRef, destRef)
+	return c.Copy(ctx, srcRef, destRef)
 }
