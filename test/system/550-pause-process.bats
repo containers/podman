@@ -149,3 +149,22 @@ function _check_pause_process() {
 
     run_podman rm -f -t0 $cname1
 }
+
+# regression test for https://issues.redhat.com/browse/RHEL-59620
+@test "rootless userns can unmount netns properly" {
+    skip_if_not_rootless "pause process is only used as rootless"
+    skip_if_remote "system migrate not supported via remote"
+
+    # Use podman system migrate to stop the currently running pause process
+    run_podman system migrate
+
+    # First run a container with a custom userns as this uses different netns setup logic.
+    local cname=c-$(safename)
+    run_podman run --userns keep-id --name $cname -d $IMAGE sleep 100
+
+    # Now run a "normal" container without userns
+    run_podman run --rm $IMAGE true
+
+    # This used to hang trying to unmount the netns.
+    run_podman rm -f -t0 $cname
+}
