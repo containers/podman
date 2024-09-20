@@ -60,6 +60,13 @@ type CopyOptions struct {
 	CertDirPath string
 	// Force layer compression when copying to a `dir` transport destination.
 	DirForceCompress bool
+
+	// ImageListSelection is one of CopySystemImage, CopyAllImages, or
+	// CopySpecificImages, to control whether, when the source reference is a list,
+	// copy.Image() copies only an image which matches the current runtime
+	// environment, or all images which match the supplied reference, or only
+	// specific images from the source reference.
+	ImageListSelection copy.ImageListSelection
 	// Allow contacting registries over HTTP, or HTTPS with failed TLS
 	// verification. Note that this does not affect other TLS connections.
 	InsecureSkipTLSVerify types.OptionalBool
@@ -206,13 +213,17 @@ func getDockerAuthConfig(name, passwd, creds, idToken string) (*types.DockerAuth
 	}
 }
 
+// NewCopier is a simple, exported wrapper for newCopier
+func NewCopier(options *CopyOptions, sc *types.SystemContext) (*copier, error) {
+	return newCopier(options, sc)
+}
+
 // newCopier creates a copier.  Note that fields in options *may* overwrite the
 // counterparts of the specified system context.  Please make sure to call
 // `(*copier).close()`.
-func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
+func newCopier(options *CopyOptions, sc *types.SystemContext) (*copier, error) {
 	c := copier{extendTimeoutSocket: options.extendTimeoutSocket}
-	c.systemContext = r.systemContextCopy()
-
+	c.systemContext = sc
 	if options.SourceLookupReferenceFunc != nil {
 		c.sourceLookup = options.SourceLookupReferenceFunc
 	}
@@ -300,6 +311,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 		c.imageCopyOptions.ProgressInterval = time.Second
 	}
 
+	c.imageCopyOptions.ImageListSelection = options.ImageListSelection
 	c.imageCopyOptions.ForceCompressionFormat = options.ForceCompressionFormat
 	c.imageCopyOptions.ForceManifestMIMEType = options.ManifestMIMEType
 	c.imageCopyOptions.SourceCtx = c.systemContext
@@ -325,14 +337,22 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 	return &c, nil
 }
 
-// close open resources.
-func (c *copier) close() error {
+// newCopier creates a copier.  Note that fields in options *may* overwrite the
+// counterparts of the specified system context.  Please make sure to call
+// `(*copier).close()`.
+func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
+	sc := r.systemContextCopy()
+	return newCopier(options, sc)
+}
+
+// Close open resources.
+func (c *copier) Close() error {
 	return c.policyContext.Destroy()
 }
 
-// copy the source to the destination.  Returns the bytes of the copied
+// Copy the source to the destination.  Returns the bytes of the copied
 // manifest which may be used for digest computation.
-func (c *copier) copy(ctx context.Context, source, destination types.ImageReference) ([]byte, error) {
+func (c *copier) Copy(ctx context.Context, source, destination types.ImageReference) ([]byte, error) {
 	logrus.Debugf("Copying source image %s to destination image %s", source.StringWithinTransport(), destination.StringWithinTransport())
 
 	// Avoid running out of time when running inside a systemd unit by
