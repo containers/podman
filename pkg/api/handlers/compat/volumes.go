@@ -240,7 +240,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 	 * respectively.
 	 */
 	name := utils.GetName(r)
-	vol, err := runtime.LookupVolume(name)
+	vol, err := runtime.GetVolume(name)
 	if err == nil {
 		// As above, we do not pass `force` from the query parameters here
 		if err := runtime.RemoveVolume(r.Context(), vol, false, query.Timeout); err != nil {

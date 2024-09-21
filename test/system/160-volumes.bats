@@ -556,7 +556,11 @@ EOF
 
 @test "podman volume rm --force bogus" {
     run_podman 1 volume rm bogus
-    is "$output" "Error: no volume with name \"bogus\" found: no such volume" "Should print error"
+    expectedoutput="Error: no such volume"
+    if [[ "$CI_DESIRED_DATABASE" = "boltdb" ]]; then
+        expectedoutput="Error: volume with name bogus not found: no such volume"
+    fi
+    is "$output" "$expectedoutput" "Should print error"
     run_podman volume rm --force bogus
     is "$output" "" "Should print no output"
 
@@ -566,6 +570,21 @@ EOF
 
     run_podman volume ls -q
     assert "$output" = "" "no volumes"
+}
+
+@test "podman volume rm require exact name" {
+    myvolume="testvol"
+    run_podman volume create "$myvolume"
+    run_podman 1 volume rm test
+    expectedoutput="Error: no such volume"
+    if [[ "$CI_DESIRED_DATABASE" = "boltdb" ]]; then
+        expectedoutput="Error: volume with name test not found: no such volume"
+    fi
+    is "$output" "$expectedoutput" "Should print error"
+    run_podman volume ls -q
+    assert "$output" = "$myvolume" "$myvolume still exists"
+    # Clean up
+    run_podman volume rm "$myvolume"
 }
 
 @test "podman ps -f" {

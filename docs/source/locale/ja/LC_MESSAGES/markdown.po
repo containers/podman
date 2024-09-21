@@ -30940,7 +30940,7 @@ msgid ""
 "removed. If a volume is being used by a container, an error is returned "
 "unless the **--force** flag is being used. To remove all volumes, use the"
 " **--all** flag. Volumes can be removed individually by providing their "
-"full name or a unique partial name."
+"full name."
 msgstr ""
 
 #: ../../source/markdown/podman-volume-rm.1.md:21

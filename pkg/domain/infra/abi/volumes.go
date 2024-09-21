@@ -61,7 +61,7 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 		}
 	} else {
 		for _, id := range namesOrIds {
-			vol, err := ic.Libpod.LookupVolume(id)
+			vol, err := ic.Libpod.GetVolume(id)
 			if err != nil {
 				if opts.Ignore && errors.Is(err, define.ErrNoSuchVolume) {
 					continue
