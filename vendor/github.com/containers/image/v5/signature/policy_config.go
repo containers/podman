@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature/internal"
@@ -51,28 +52,49 @@ func (err InvalidPolicyFormatError) Error() string {
 // NOTE: When this function returns an error, report it to the user and abort.
 // DO NOT hard-code fallback policies in your application.
 func DefaultPolicy(sys *types.SystemContext) (*Policy, error) {
-	return NewPolicyFromFile(defaultPolicyPath(sys))
+	policyPath, err := defaultPolicyPath(sys)
+	if err != nil {
+		return nil, err
+	}
+	return NewPolicyFromFile(policyPath)
 }
 
 // defaultPolicyPath returns a path to the default policy of the system.
-func defaultPolicyPath(sys *types.SystemContext) string {
-	return defaultPolicyPathWithHomeDir(sys, homedir.Get())
+func defaultPolicyPath(sys *types.SystemContext) (string, error) {
+	policyFilePath, err := defaultPolicyPathWithHomeDir(sys, homedir.Get())
+	if err != nil {
+		return "", err
+	}
+	return policyFilePath, nil
 }
 
 // defaultPolicyPathWithHomeDir is an internal implementation detail of defaultPolicyPath,
 // it exists only to allow testing it with an artificial home directory.
-func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string) string {
+func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string) (string, error) {
+	var checkedPolicyPaths []string // To store the paths being checked
+
 	if sys != nil && sys.SignaturePolicyPath != "" {
-		return sys.SignaturePolicyPath
+		checkedPolicyPaths = append(checkedPolicyPaths, sys.SignaturePolicyPath)
+		return sys.SignaturePolicyPath, nil
 	}
+
 	userPolicyFilePath := filepath.Join(homeDir, userPolicyFile)
+	checkedPolicyPaths = append(checkedPolicyPaths, userPolicyFilePath)
 	if err := fileutils.Exists(userPolicyFilePath); err == nil {
-		return userPolicyFilePath
+		return userPolicyFilePath, nil
 	}
 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
+		systemPath := filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
+		checkedPolicyPaths = append(checkedPolicyPaths, systemPath)
+		if err := fileutils.Exists(systemPath); err == nil {
+			return systemPath, nil
+		}
 	}
-	return systemDefaultPolicyPath
+	checkedPolicyPaths = append(checkedPolicyPaths, systemDefaultPolicyPath)
+	if err := fileutils.Exists(systemDefaultPolicyPath); err == nil {
+		return systemDefaultPolicyPath, nil
+	}
+	return "", fmt.Errorf("no policy.json file found at any of the following:%s", strings.Join(checkedPolicyPaths, ", "))
 }
 
 // NewPolicyFromFile returns a policy configured in the specified file.
