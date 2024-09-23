@@ -311,7 +311,7 @@ values for $GOOS and $GOARCH at https://golang.org/doc/install/source#environmen
 and can also be found by running `go tool dist list`.
 
 While `podman build` is happy to use base images and build images for any
-platform that exists, `RUN` instructions are able to succeed without
+platform that exists, `RUN` instructions are unable to succeed without
 the help of emulation provided by packages like `qemu-user-static`.
 
 @@option pull.image
