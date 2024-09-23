@@ -40,6 +40,8 @@ import (
 // threadNsPath is the /proc path to the current netns handle for the current thread
 const threadNsPath = "/proc/thread-self/ns/net"
 
+var errNoFreeName = errors.New("failed to find free netns path name")
+
 // GetNSRunDir returns the dir of where to create the netNS. When running
 // rootless, it needs to be at a location writable by user.
 func GetNSRunDir() (string, error) {
@@ -60,14 +62,26 @@ func NewNSAtPath(nsPath string) (ns.NetNS, error) {
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
 // an object representing that namespace, without switching to it.
 func NewNS() (ns.NetNS, error) {
+	nsRunDir, err := GetNSRunDir()
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the directory for mounting network namespaces
+	// This needs to be a shared mountpoint in case it is mounted in to
+	// other namespaces (containers)
+	err = makeNetnsDir(nsRunDir)
+	if err != nil {
+		return nil, err
+	}
+
 	for i := 0; i < 10000; i++ {
-		b := make([]byte, 16)
-		_, err := rand.Reader.Read(b)
+		nsName, err := getRandomNetnsName()
 		if err != nil {
-			return nil, fmt.Errorf("failed to generate random netns name: %v", err)
+			return nil, err
 		}
-		nsName := fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-		ns, err := NewNSWithName(nsName)
+		nsPath := path.Join(nsRunDir, nsName)
+		ns, err := newNSPath(nsPath)
 		if err == nil {
 			return ns, nil
 		}
@@ -77,62 +91,128 @@ func NewNS() (ns.NetNS, error) {
 		}
 		return nil, err
 	}
-	return nil, errors.New("failed to find free netns path name")
+	return nil, errNoFreeName
 }
 
-// NewNSWithName creates a new persistent (bind-mounted) network namespace and returns
-// an object representing that namespace, without switching to it.
-func NewNSWithName(name string) (ns.NetNS, error) {
+// NewNSFrom creates a persistent (bind-mounted) network namespace from the
+// given netns path, i.e. /proc/<pid>/ns/net, and returns the new full path to
+// the bind mounted file in the netns run dir.
+func NewNSFrom(fromNetns string) (string, error) {
 	nsRunDir, err := GetNSRunDir()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// Create the directory for mounting network namespaces
-	// This needs to be a shared mountpoint in case it is mounted in to
-	// other namespaces (containers)
-	err = os.MkdirAll(nsRunDir, 0o755)
+	err = makeNetnsDir(nsRunDir)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	// Remount the namespace directory shared. This will fail if it is not
-	// already a mountpoint, so bind-mount it on to itself to "upgrade" it
-	// to a mountpoint.
+	for i := 0; i < 10000; i++ {
+		nsName, err := getRandomNetnsName()
+		if err != nil {
+			return "", err
+		}
+		nsPath := filepath.Join(nsRunDir, nsName)
+
+		// create an empty file to use as at the mount point
+		err = createNetnsFile(nsPath)
+		if err != nil {
+			// retry when the name already exists
+			if errors.Is(err, os.ErrExist) {
+				continue
+			}
+			return "", err
+		}
+
+		err = unix.Mount(fromNetns, nsPath, "none", unix.MS_BIND|unix.MS_SHARED|unix.MS_REC, "")
+		if err != nil {
+			// Do not leak the ns on errors
+			_ = os.RemoveAll(nsPath)
+			return "", fmt.Errorf("failed to bind mount ns at %s: %v", nsPath, err)
+		}
+		return nsPath, nil
+	}
+
+	return "", errNoFreeName
+}
+
+func getRandomNetnsName() (string, error) {
+	b := make([]byte, 16)
+	_, err := rand.Reader.Read(b)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate random netns name: %v", err)
+	}
+	return fmt.Sprintf("netns-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
+}
+
+func makeNetnsDir(nsRunDir string) error {
+	err := os.MkdirAll(nsRunDir, 0o755)
+	if err != nil {
+		return err
+	}
+	// Important, the bind mount setup is racy if two process try to set it up in parallel.
+	// This can have very bad consequences because we end up with two duplicated mounts
+	// for the netns file that then might have a different parent mounts.
+	// Also because as root netns dir is also created by ip netns we should not race against them.
+	// Use a lock on the netns dir like they do, compare the iproute2 ip netns add code.
+	// https://github.com/iproute2/iproute2/blob/8b9d9ea42759c91d950356ca43930a975d0c352b/ip/ipnetns.c#L806-L815
+
+	dirFD, err := unix.Open(nsRunDir, unix.O_RDONLY|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
+	if err != nil {
+		return &os.PathError{Op: "open", Path: nsRunDir, Err: err}
+	}
+	// closing the fd will also unlock so we do not have to call flock(fd,LOCK_UN)
+	defer unix.Close(dirFD)
+
+	err = unix.Flock(dirFD, unix.LOCK_EX)
+	if err != nil {
+		return fmt.Errorf("failed to lock %s dir: %w", nsRunDir, err)
+	}
+
+	// Remount the namespace directory shared. This will fail with EINVAL
+	// if it is not already a mountpoint, so bind-mount it on to itself
+	// to "upgrade" it to a mountpoint.
+	err = unix.Mount("", nsRunDir, "none", unix.MS_SHARED|unix.MS_REC, "")
+	if err == nil {
+		return nil
+	}
+	if err != unix.EINVAL {
+		return fmt.Errorf("mount --make-rshared %s failed: %q", nsRunDir, err)
+	}
+
+	// Recursively remount /run/netns on itself. The recursive flag is
+	// so that any existing netns bindmounts are carried over.
+	err = unix.Mount(nsRunDir, nsRunDir, "none", unix.MS_BIND|unix.MS_REC, "")
+	if err != nil {
+		return fmt.Errorf("mount --rbind %s %s failed: %q", nsRunDir, nsRunDir, err)
+	}
+
+	// Now we can make it shared
 	err = unix.Mount("", nsRunDir, "none", unix.MS_SHARED|unix.MS_REC, "")
 	if err != nil {
-		if err != unix.EINVAL {
-			return nil, fmt.Errorf("mount --make-rshared %s failed: %q", nsRunDir, err)
-		}
-
-		// Recursively remount /run/netns on itself. The recursive flag is
-		// so that any existing netns bindmounts are carried over.
-		err = unix.Mount(nsRunDir, nsRunDir, "none", unix.MS_BIND|unix.MS_REC, "")
-		if err != nil {
-			return nil, fmt.Errorf("mount --rbind %s %s failed: %q", nsRunDir, nsRunDir, err)
-		}
-
-		// Now we can make it shared
-		err = unix.Mount("", nsRunDir, "none", unix.MS_SHARED|unix.MS_REC, "")
-		if err != nil {
-			return nil, fmt.Errorf("mount --make-rshared %s failed: %q", nsRunDir, err)
-		}
+		return fmt.Errorf("mount --make-rshared %s failed: %q", nsRunDir, err)
 	}
 
-	nsPath := path.Join(nsRunDir, name)
-	return newNSPath(nsPath)
+	return nil
+}
+
+// createNetnsFile created the file with O_EXCL to ensure there are no conflicts with others
+// Callers should check for ErrExist and loop over it to find a free file.
+func createNetnsFile(path string) error {
+	mountPointFd, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+	if err != nil {
+		return err
+	}
+	return mountPointFd.Close()
 }
 
 func newNSPath(nsPath string) (ns.NetNS, error) {
-	// create an empty file at the mount point
-	mountPointFd, err := os.OpenFile(nsPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
+	// create an empty file to use as at the mount point
+	err := createNetnsFile(nsPath)
 	if err != nil {
 		return nil, err
 	}
-	if err := mountPointFd.Close(); err != nil {
-		return nil, err
-	}
-
 	// Ensure the mount point is cleaned up on errors; if the namespace
 	// was successfully mounted this will have no effect because the file
 	// is in-use
