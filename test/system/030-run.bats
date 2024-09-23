@@ -1267,11 +1267,23 @@ EOF
     run_podman run --uidmap=0:1000:200 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
     is "$output" "1:1"
 
+    # verify that copyup with an empty idmap volume maintains the original ownership with different mappings and --rootfs
     myvolume=my-volume-$(safename)
     run_podman volume create $myvolume
     mkdir $romount/volume
-    run_podman run --rm --uidmap=0:1000:10000 -v volume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
-    is "$output" "0:0"
+    chown 1000:1000 $romount/volume
+    for FROM in 1000 2000; do
+        run_podman run --security-opt label=disable --rm --uidmap=0:$FROM:10000 -v $myvolume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
+        is "$output" "0:0"
+    done
+    run_podman volume rm $myvolume
+
+    # verify that copyup with an empty idmap volume maintains the original ownership with different mappings
+    myvolume=my-volume-$(safename)
+    for FROM in 1000 2000; do
+        run_podman run --rm --uidmap=0:$FROM:10000 -v $myvolume:/etc:idmap $IMAGE stat -c %u:%g /etc/passwd
+        is "$output" "0:0"
+    done
     run_podman volume rm $myvolume
 
     rm -rf $romount
