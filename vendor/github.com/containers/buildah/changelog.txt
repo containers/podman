@@ -1,3 +1,11 @@
+- Changelog for v1.37.3 (2024-09-20)
+  * Do not error on trying to write IMA xattr as rootless
+  * imagebuildah.StageExecutor: clean up volumes/volumeCache
+  * `manifest add --artifact`: handle multiple values
+  * Packit: split out ELN jobs and reuse fedora downstream targets
+  * Packit: Enable sidetags for bodhi updates
+  * Use Epoch: 2 and respect the epoch in dependencies.
+
 - Changelog for v1.37.2 (2024-08-20)
   * [release-1.37] Bump c/common to v0.60.2, c/image to v5.32.2
 

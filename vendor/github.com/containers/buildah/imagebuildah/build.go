@@ -143,7 +143,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			}
 			contents, err = os.Open(dfile)
 			if err != nil {
-				return "", nil, err
+				return "", nil, fmt.Errorf("reading build instructions: %w", err)
 			}
 			dinfo, err = contents.Stat()
 			if err != nil {

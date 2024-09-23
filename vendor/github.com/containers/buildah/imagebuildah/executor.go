@@ -222,7 +222,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		} else {
 			rusageLogFile, err = os.OpenFile(options.RusageLogFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("creating file to store rusage logs: %w", err)
 			}
 		}
 	}
