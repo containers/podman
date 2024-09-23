@@ -130,6 +130,14 @@ function check_subcommand() {
     run_podman pod create $podname
     run_podman secret create $secretname /etc/hosts
 
+    # For 'search' and 'image search': if local cache registry is available,
+    # use it. This bypasses quay, and thus prevents flakes.
+    searchargs=$IMAGE
+    if [[ -n "$CI_USE_REGISTRY_CACHE" ]]; then
+        # FIXME: someday: find a way to refactor the hardcoded port
+        searchargs="--tls-verify=false 127.0.0.1:60333/we/dontactuallyneed:arealimage"
+    fi
+
     # Most commands can't just be run with --format; they need an argument or
     # option. This table defines what those are.
     extra_args_table="
@@ -145,8 +153,8 @@ secret inspect    | $secretname
 network inspect   | podman
 ps                | -a
 
-image search      | $IMAGE
-search            | $IMAGE
+image search      | $searchargs
+search            | $searchargs
 
 pod inspect       | $podname
 
