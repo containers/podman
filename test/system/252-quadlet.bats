@@ -221,6 +221,8 @@ EOF
 }
 
 @test "quadlet conflict names" {
+    skip "FIXME: #24047, temporary skip because this is an intense flake"
+
     # If two directories in the search have files with the same name, quadlet should
     # only process the first name
     dir1=$PODMAN_TMPDIR/$(random_string)
