@@ -64,36 +64,36 @@ func TestUnitDirs(t *testing.T) {
 
 		resolvedUnitDirAdminUser := resolveUnitDirAdminUser()
 		userLevelFilter := getUserLevelFilter(resolvedUnitDirAdminUser)
-		rootDirs := make(map[string]struct{}, 0)
-		appendSubPaths(rootDirs, quadlet.UnitDirTemp, false, userLevelFilter)
-		appendSubPaths(rootDirs, quadlet.UnitDirAdmin, false, userLevelFilter)
-		appendSubPaths(rootDirs, quadlet.UnitDirDistro, false, userLevelFilter)
-		assert.Equal(t, rootDirs, unitDirs, "rootful unit dirs should match")
+		rootfulPaths := newSearchPaths()
+		appendSubPaths(rootfulPaths, quadlet.UnitDirTemp, false, userLevelFilter)
+		appendSubPaths(rootfulPaths, quadlet.UnitDirAdmin, false, userLevelFilter)
+		appendSubPaths(rootfulPaths, quadlet.UnitDirDistro, false, userLevelFilter)
+		assert.Equal(t, rootfulPaths.sorted, unitDirs, "rootful unit dirs should match")
 
 		configDir, err := os.UserConfigDir()
 		assert.Nil(t, err)
 
-		rootlessDirs := make(map[string]struct{}, 0)
+		rootlessPaths := newSearchPaths()
 
 		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
 		nonNumericFilter := getNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
 
 		runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
 		if found {
-			appendSubPaths(rootlessDirs, path.Join(runtimeDir, "containers/systemd"), false, nil)
+			appendSubPaths(rootlessPaths, path.Join(runtimeDir, "containers/systemd"), false, nil)
 		}
-		appendSubPaths(rootlessDirs, path.Join(configDir, "containers/systemd"), false, nil)
-		appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
-		appendSubPaths(rootlessDirs, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
-		rootlessDirs[filepath.Join(quadlet.UnitDirAdmin, "users")] = struct{}{}
+		appendSubPaths(rootlessPaths, path.Join(configDir, "containers/systemd"), false, nil)
+		appendSubPaths(rootlessPaths, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
+		appendSubPaths(rootlessPaths, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		rootlessPaths.Add(filepath.Join(quadlet.UnitDirAdmin, "users"))
 
 		unitDirs = getUnitDirs(true)
-		assert.Equal(t, rootlessDirs, unitDirs, "rootless unit dirs should match")
+		assert.Equal(t, rootlessPaths.sorted, unitDirs, "rootless unit dirs should match")
 
 		// Test that relative path returns an empty list
 		t.Setenv("QUADLET_UNIT_DIRS", "./relative/path")
 		unitDirs = getUnitDirs(false)
-		assert.Equal(t, map[string]struct{}{}, unitDirs)
+		assert.Equal(t, []string{}, unitDirs)
 
 		name, err := os.MkdirTemp("", "dir")
 		assert.Nil(t, err)
@@ -102,10 +102,10 @@ func TestUnitDirs(t *testing.T) {
 
 		t.Setenv("QUADLET_UNIT_DIRS", name)
 		unitDirs = getUnitDirs(false)
-		assert.Equal(t, map[string]struct{}{name: {}}, unitDirs, "rootful should use environment variable")
+		assert.Equal(t, []string{name}, unitDirs, "rootful should use environment variable")
 
 		unitDirs = getUnitDirs(true)
-		assert.Equal(t, map[string]struct{}{name: {}}, unitDirs, "rootless should use environment variable")
+		assert.Equal(t, []string{name}, unitDirs, "rootless should use environment variable")
 
 		symLinkTestBaseDir, err := os.MkdirTemp("", "podman-symlinktest")
 		assert.Nil(t, err)
@@ -123,7 +123,7 @@ func TestUnitDirs(t *testing.T) {
 		assert.Nil(t, err)
 		t.Setenv("QUADLET_UNIT_DIRS", symlink)
 		unitDirs = getUnitDirs(true)
-		assert.Equal(t, map[string]struct{}{actualDir: {}, innerDir: {}}, unitDirs, "directory resolution should follow symlink")
+		assert.Equal(t, []string{actualDir, innerDir}, unitDirs, "directory resolution should follow symlink")
 
 		// Make a more elborate test with the following structure:
 		// <BASE>/linkToDir - real directory to link to
@@ -137,44 +137,46 @@ func TestUnitDirs(t *testing.T) {
 		// <BASE>/unitDir/b/a - real directory
 		// <BASE>/unitDir/b/b - link to <BASE>/unitDir/a/a should be ignored
 		// <BASE>/unitDir/c - link to <BASE>/linkToDir
-		symLinkRecursiveTestBaseDir, err := os.MkdirTemp("", "podman-symlink-recursive-test")
-		assert.Nil(t, err)
-		// remove the temporary directory at the end of the program
-		defer os.RemoveAll(symLinkRecursiveTestBaseDir)
-
-		createDir := func(path, name string, dirs map[string]struct{}) string {
+		createDir := func(path, name string, dirs []string) (string, []string) {
 			dirName := filepath.Join(path, name)
 			assert.NotContains(t, dirs, dirName)
 			err = os.Mkdir(dirName, 0755)
 			assert.Nil(t, err)
-			dirs[dirName] = struct{}{}
-			return dirName
+			dirs = append(dirs, dirName)
+			return dirName, dirs
 		}
-		expectedDirs := make(map[string]struct{}, 0)
-		// Create <BASE>/linkToDir
-		linkToDirPath := createDir(symLinkRecursiveTestBaseDir, "linkToDir", expectedDirs)
-		// Create <BASE>/linkToDir/a
-		createDir(linkToDirPath, "a", expectedDirs)
-		// Create <BASE>/unitDir
-		unitsDirPath := createDir(symLinkRecursiveTestBaseDir, "unitsDir", expectedDirs)
-		// Create <BASE>/unitDir/a
-		aDirPath := createDir(unitsDirPath, "a", expectedDirs)
-		// Create <BASE>/unitDir/a/a
-		aaDirPath := createDir(aDirPath, "a", expectedDirs)
-		// Create <BASE>/unitDir/a/b
-		createDir(aDirPath, "b", expectedDirs)
-		// Create <BASE>/unitDir/a/a/a
-		createDir(aaDirPath, "a", expectedDirs)
-		// Create <BASE>/unitDir/b
-		bDirPath := createDir(unitsDirPath, "b", expectedDirs)
-		// Create <BASE>/unitDir/b/a
-		baDirPath := createDir(bDirPath, "a", expectedDirs)
 
 		linkDir := func(path, name, target string) {
 			linkName := filepath.Join(path, name)
 			err = os.Symlink(target, linkName)
 			assert.Nil(t, err)
 		}
+
+		symLinkRecursiveTestBaseDir, err := os.MkdirTemp("", "podman-symlink-recursive-test")
+		assert.Nil(t, err)
+		// remove the temporary directory at the end of the program
+		defer os.RemoveAll(symLinkRecursiveTestBaseDir)
+
+		expectedDirs := make([]string, 0)
+		// Create <BASE>/unitDir
+		unitsDirPath, expectedDirs := createDir(symLinkRecursiveTestBaseDir, "unitsDir", expectedDirs)
+		// Create <BASE>/unitDir/a
+		aDirPath, expectedDirs := createDir(unitsDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir/a/a
+		aaDirPath, expectedDirs := createDir(aDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir/a/a/a
+		_, expectedDirs = createDir(aaDirPath, "a", expectedDirs)
+		// Create <BASE>/unitDir/a/b
+		_, expectedDirs = createDir(aDirPath, "b", expectedDirs)
+		// Create <BASE>/unitDir/b
+		bDirPath, expectedDirs := createDir(unitsDirPath, "b", expectedDirs)
+		// Create <BASE>/unitDir/b/a
+		baDirPath, expectedDirs := createDir(bDirPath, "a", expectedDirs)
+		// Create <BASE>/linkToDir
+		linkToDirPath, expectedDirs := createDir(symLinkRecursiveTestBaseDir, "linkToDir", expectedDirs)
+		// Create <BASE>/linkToDir/a
+		_, expectedDirs = createDir(linkToDirPath, "a", expectedDirs)
+
 		// Link <BASE>/unitDir/b/b to <BASE>/unitDir/a/a
 		linkDir(bDirPath, "b", aaDirPath)
 		// Link <BASE>/linkToDir/b to <BASE>/unitDir/b/a

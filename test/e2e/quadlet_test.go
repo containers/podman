@@ -713,7 +713,7 @@ var _ = Describe("quadlet system generator", func() {
 			Expect(session).Should(Exit(0))
 
 			current := session.ErrorToStringArray()
-			expected := "No files parsed from map[/something:{}]"
+			expected := "No files parsed from [/something]"
 
 			found := false
 			for _, line := range current {
