@@ -73,7 +73,7 @@ func Split(src string) (entries []string) {
 	}
 	// handle upper case -> lower case sequences, e.g.
 	// "PDFL", "oader" -> "PDF", "Loader"
-	for i := range len(runes) - 1 {
+	for i := 0; i < len(runes)-1; i++ {
 		if unicode.IsUpper(runes[i][0]) && unicode.IsLower(runes[i+1][0]) {
 			runes[i+1] = append([]rune{runes[i][len(runes[i])-1]}, runes[i+1]...)
 			runes[i] = runes[i][:len(runes[i])-1]

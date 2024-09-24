@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"reflect"
 	"slices"
 	"strings"
@@ -162,7 +163,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		if format == nil {
 			format = defaultCompressionFormat
 		}
-		if format.Name() == compression.ZstdChunked.Name() {
+		if format.Name() == compressiontypes.ZstdChunkedAlgorithmName {
 			if ic.requireCompressionFormatMatch {
 				return copySingleImageResult{}, errors.New("explicitly requested to combine zstd:chunked with encryption, which is not beneficial; use plain zstd instead")
 			}
@@ -888,21 +889,33 @@ func updatedBlobInfoFromReuse(inputInfo types.BlobInfo, reusedBlob private.Reuse
 	// Handling of compression, encryption, and the related MIME types and the like are all the responsibility
 	// of the generic code in this package.
 	res := types.BlobInfo{
-		Digest:               reusedBlob.Digest,
-		Size:                 reusedBlob.Size,
-		URLs:                 nil,                   // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
-		Annotations:          inputInfo.Annotations, // FIXME: This should remove zstd:chunked annotations (but those annotations being left with incorrect values should not break pulls)
-		MediaType:            inputInfo.MediaType,   // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
+		Digest: reusedBlob.Digest,
+		Size:   reusedBlob.Size,
+		URLs:   nil, // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
+		// FIXME: This should remove zstd:chunked annotations IF the original was chunked and the new one isn’t
+		// (but those annotations being left with incorrect values should not break pulls).
+		Annotations:          maps.Clone(inputInfo.Annotations),
+		MediaType:            inputInfo.MediaType, // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
 		CompressionOperation: reusedBlob.CompressionOperation,
 		CompressionAlgorithm: reusedBlob.CompressionAlgorithm,
 		CryptoOperation:      inputInfo.CryptoOperation, // Expected to be unset anyway.
 	}
 	// The transport is only expected to fill CompressionOperation and CompressionAlgorithm
-	// if the blob was substituted; otherwise, fill it in based
+	// if the blob was substituted; otherwise, it is optional, and if not set, fill it in based
 	// on what we know from the srcInfos we were given.
 	if reusedBlob.Digest == inputInfo.Digest {
-		res.CompressionOperation = inputInfo.CompressionOperation
-		res.CompressionAlgorithm = inputInfo.CompressionAlgorithm
+		if res.CompressionOperation == types.PreserveOriginal {
+			res.CompressionOperation = inputInfo.CompressionOperation
+		}
+		if res.CompressionAlgorithm == nil {
+			res.CompressionAlgorithm = inputInfo.CompressionAlgorithm
+		}
+	}
+	if len(reusedBlob.CompressionAnnotations) != 0 {
+		if res.Annotations == nil {
+			res.Annotations = map[string]string{}
+		}
+		maps.Copy(res.Annotations, reusedBlob.CompressionAnnotations)
 	}
 	return res
 }

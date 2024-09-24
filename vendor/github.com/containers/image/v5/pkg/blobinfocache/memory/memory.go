@@ -28,7 +28,7 @@ type cache struct {
 	uncompressedDigestsByTOC map[digest.Digest]digest.Digest
 	digestsByUncompressed    map[digest.Digest]*set.Set[digest.Digest]                // stores a set of digests for each uncompressed digest
 	knownLocations           map[locationKey]map[types.BICLocationReference]time.Time // stores last known existence time for each location reference
-	compressors              map[digest.Digest]string                                 // stores a compressor name, or blobinfocache.Uncompressed (not blobinfocache.UnknownCompression), for each digest
+	compressors              map[digest.Digest]blobinfocache.DigestCompressorData     // stores compression data for each digest; BaseVariantCompressor != UnknownCompression
 }
 
 // New returns a BlobInfoCache implementation which is in-memory only.
@@ -49,7 +49,7 @@ func new2() *cache {
 		uncompressedDigestsByTOC: map[digest.Digest]digest.Digest{},
 		digestsByUncompressed:    map[digest.Digest]*set.Set[digest.Digest]{},
 		knownLocations:           map[locationKey]map[types.BICLocationReference]time.Time{},
-		compressors:              map[digest.Digest]string{},
+		compressors:              map[digest.Digest]blobinfocache.DigestCompressorData{},
 	}
 }
 
@@ -148,20 +148,36 @@ func (mem *cache) RecordKnownLocation(transport types.ImageTransport, scope type
 // WARNING: Only call this with LOCALLY VERIFIED data:
 //   - don’t record a compressor for a digest just because some remote author claims so
 //     (e.g. because a manifest says so);
+//   - don’t record the non-base variant or annotations if we are not _sure_ that the base variant
+//     and the blob’s digest match the non-base variant’s annotations (e.g. because we saw them
+//     in a manifest)
 //
 // otherwise the cache could be poisoned and cause us to make incorrect edits to type
 // information in a manifest.
 func (mem *cache) RecordDigestCompressorData(anyDigest digest.Digest, data blobinfocache.DigestCompressorData) {
 	mem.mutex.Lock()
 	defer mem.mutex.Unlock()
-	if previous, ok := mem.compressors[anyDigest]; ok && previous != data.BaseVariantCompressor {
-		logrus.Warnf("Compressor for blob with digest %s previously recorded as %s, now %s", anyDigest, previous, data.BaseVariantCompressor)
+	if previous, ok := mem.compressors[anyDigest]; ok {
+		if previous.BaseVariantCompressor != data.BaseVariantCompressor {
+			logrus.Warnf("Base compressor for blob with digest %s previously recorded as %s, now %s", anyDigest, previous.BaseVariantCompressor, data.BaseVariantCompressor)
+		} else if previous.SpecificVariantCompressor != blobinfocache.UnknownCompression && data.SpecificVariantCompressor != blobinfocache.UnknownCompression &&
+			previous.SpecificVariantCompressor != data.SpecificVariantCompressor {
+			logrus.Warnf("Specific compressor for blob with digest %s previously recorded as %s, now %s", anyDigest, previous.SpecificVariantCompressor, data.SpecificVariantCompressor)
+		}
+		// We don’t check SpecificVariantAnnotations for equality, it’s possible that their generation is not deterministic.
+
+		// Preserve specific variant information if the incoming data does not have it.
+		if data.BaseVariantCompressor != blobinfocache.UnknownCompression && data.SpecificVariantCompressor == blobinfocache.UnknownCompression &&
+			previous.SpecificVariantCompressor != blobinfocache.UnknownCompression {
+			data.SpecificVariantCompressor = previous.SpecificVariantCompressor
+			data.SpecificVariantAnnotations = previous.SpecificVariantAnnotations
+		}
 	}
 	if data.BaseVariantCompressor == blobinfocache.UnknownCompression {
 		delete(mem.compressors, anyDigest)
 		return
 	}
-	mem.compressors[anyDigest] = data.BaseVariantCompressor
+	mem.compressors[anyDigest] = data
 }
 
 // appendReplacementCandidates creates prioritize.CandidateWithTime values for digest in memory
@@ -171,13 +187,15 @@ func (mem *cache) RecordDigestCompressorData(anyDigest digest.Digest, data blobi
 // with unknown compression.
 func (mem *cache) appendReplacementCandidates(candidates []prioritize.CandidateWithTime, transport types.ImageTransport, scope types.BICTransportScope, digest digest.Digest,
 	v2Options *blobinfocache.CandidateLocations2Options) []prioritize.CandidateWithTime {
-	compressorName := blobinfocache.UnknownCompression
-	if v, ok := mem.compressors[digest]; ok {
-		compressorName = v
+	compressionData := blobinfocache.DigestCompressorData{
+		BaseVariantCompressor:      blobinfocache.UnknownCompression,
+		SpecificVariantCompressor:  blobinfocache.UnknownCompression,
+		SpecificVariantAnnotations: nil,
 	}
-	template := prioritize.CandidateTemplateWithCompression(v2Options, digest, blobinfocache.DigestCompressorData{
-		BaseVariantCompressor: compressorName,
-	})
+	if v, ok := mem.compressors[digest]; ok {
+		compressionData = v
+	}
+	template := prioritize.CandidateTemplateWithCompression(v2Options, digest, compressionData)
 	if template == nil {
 		return candidates
 	}
