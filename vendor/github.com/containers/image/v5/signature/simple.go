@@ -105,13 +105,7 @@ var _ json.Unmarshaler = (*untrustedSignature)(nil)
 
 // UnmarshalJSON implements the json.Unmarshaler interface
 func (s *untrustedSignature) UnmarshalJSON(data []byte) error {
-	err := s.strictUnmarshalJSON(data)
-	if err != nil {
-		if formatErr, ok := err.(internal.JSONFormatError); ok {
-			err = internal.NewInvalidSignatureError(formatErr.Error())
-		}
-	}
-	return err
+	return internal.JSONFormatToInvalidSignatureError(s.strictUnmarshalJSON(data))
 }
 
 // strictUnmarshalJSON is UnmarshalJSON, except that it may return the internal.JSONFormatError error type.
@@ -149,7 +143,7 @@ func (s *untrustedSignature) strictUnmarshalJSON(data []byte) error {
 	if gotTimestamp {
 		intTimestamp := int64(timestamp)
 		if float64(intTimestamp) != timestamp {
-			return internal.NewInvalidSignatureError("Field optional.timestamp is not is not an integer")
+			return internal.NewInvalidSignatureError("Field optional.timestamp is not an integer")
 		}
 		s.untrustedTimestamp = &intTimestamp
 	}

@@ -1,3 +1,27 @@
+# v4.0.4
+
+## Fixed
+
+ - Reverted "Allow unmarshalling JSONWebKeySets with unsupported key types" as a
+   breaking change. See #136 / #137.
+
+# v4.0.3
+
+## Changed
+
+ - Allow unmarshalling JSONWebKeySets with unsupported key types (#130)
+ - Document that OpaqueKeyEncrypter can't be implemented (for now) (#129)
+ - Dependency updates
+
+# v4.0.2
+
+## Changed
+
+ - Improved documentation of Verify() to note that JSONWebKeySet is a supported
+   argument type (#104)
+ - Defined exported error values for missing x5c header and unsupported elliptic
+   curves error cases (#117)
+
 # v4.0.1
 
 ## Fixed

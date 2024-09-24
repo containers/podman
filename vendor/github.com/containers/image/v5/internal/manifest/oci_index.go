@@ -236,10 +236,7 @@ func (index *OCI1IndexPublic) chooseInstance(ctx *types.SystemContext, preferGzi
 	if preferGzip == types.OptionalBoolTrue {
 		didPreferGzip = true
 	}
-	wantedPlatforms, err := platform.WantedPlatforms(ctx)
-	if err != nil {
-		return "", fmt.Errorf("getting platform information %#v: %w", ctx, err)
-	}
+	wantedPlatforms := platform.WantedPlatforms(ctx)
 	var bestMatch *instanceCandidate
 	bestMatch = nil
 	for manifestIndex, d := range index.Manifests {

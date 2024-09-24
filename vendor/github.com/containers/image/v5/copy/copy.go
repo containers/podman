@@ -193,35 +193,33 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 		reportWriter = options.ReportWriter
 	}
 
+	// safeClose amends retErr with an error from c.Close(), if any.
+	safeClose := func(name string, c io.Closer) {
+		err := c.Close()
+		if err == nil {
+			return
+		}
+		// Do not use %w for err as we don't want it to be unwrapped by callers.
+		if retErr != nil {
+			retErr = fmt.Errorf(" (%s: %s): %w", name, err.Error(), retErr)
+		} else {
+			retErr = fmt.Errorf(" (%s: %s)", name, err.Error())
+		}
+	}
+
 	publicDest, err := destRef.NewImageDestination(ctx, options.DestinationCtx)
 	if err != nil {
 		return nil, fmt.Errorf("initializing destination %s: %w", transports.ImageName(destRef), err)
 	}
 	dest := imagedestination.FromPublic(publicDest)
-	defer func() {
-		if err := dest.Close(); err != nil {
-			if retErr != nil {
-				retErr = fmt.Errorf(" (dest: %v): %w", err, retErr)
-			} else {
-				retErr = fmt.Errorf(" (dest: %v)", err)
-			}
-		}
-	}()
+	defer safeClose("dest", dest)
 
 	publicRawSource, err := srcRef.NewImageSource(ctx, options.SourceCtx)
 	if err != nil {
 		return nil, fmt.Errorf("initializing source %s: %w", transports.ImageName(srcRef), err)
 	}
 	rawSource := imagesource.FromPublic(publicRawSource)
-	defer func() {
-		if err := rawSource.Close(); err != nil {
-			if retErr != nil {
-				retErr = fmt.Errorf(" (src: %v): %w", err, retErr)
-			} else {
-				retErr = fmt.Errorf(" (src: %v)", err)
-			}
-		}
-	}()
+	defer safeClose("src", rawSource)
 
 	// If reportWriter is not a TTY (e.g., when piping to a file), do not
 	// print the progress bars to avoid long and hard to parse output.

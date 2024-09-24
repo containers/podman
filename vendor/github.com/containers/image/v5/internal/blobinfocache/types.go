@@ -37,8 +37,11 @@ type BlobInfoCache2 interface {
 
 	// RecordDigestCompressorData records data for the blob with the specified digest.
 	// WARNING: Only call this with LOCALLY VERIFIED data:
-	//   - don’t record a compressor for a digest just because some remote author claims so
-	//     (e.g. because a manifest says so);
+	//  - don’t record a compressor for a digest just because some remote author claims so
+	//    (e.g. because a manifest says so);
+	//  - don’t record the non-base variant or annotations if we are not _sure_ that the base variant
+	//    and the blob’s digest match the non-base variant’s annotations (e.g. because we saw them
+	//    in a manifest)
 	// otherwise the cache could be poisoned and cause us to make incorrect edits to type
 	// information in a manifest.
 	RecordDigestCompressorData(anyDigest digest.Digest, data DigestCompressorData)
@@ -52,6 +55,9 @@ type BlobInfoCache2 interface {
 // (This is worded generically, but basically targeted at the zstd / zstd:chunked situation.)
 type DigestCompressorData struct {
 	BaseVariantCompressor string // A compressor’s base variant name, or Uncompressed or UnknownCompression.
+	// The following fields are only valid if the base variant is neither Uncompressed nor UnknownCompression:
+	SpecificVariantCompressor  string            // A non-base variant compressor (or UnknownCompression if the true format is just the base variant)
+	SpecificVariantAnnotations map[string]string // Annotations required to benefit from the base variant.
 }
 
 // CandidateLocations2Options are used in CandidateLocations2.
@@ -66,9 +72,10 @@ type CandidateLocations2Options struct {
 
 // BICReplacementCandidate2 is an item returned by BlobInfoCache2.CandidateLocations2.
 type BICReplacementCandidate2 struct {
-	Digest               digest.Digest
-	CompressionOperation types.LayerCompression      // Either types.Decompress for uncompressed, or types.Compress for compressed
-	CompressionAlgorithm *compressiontypes.Algorithm // An algorithm when the candidate is compressed, or nil when it is uncompressed
-	UnknownLocation      bool                        // is true when `Location` for this blob is not set
-	Location             types.BICLocationReference  // not set if UnknownLocation is set to `true`
+	Digest                 digest.Digest
+	CompressionOperation   types.LayerCompression      // Either types.Decompress for uncompressed, or types.Compress for compressed
+	CompressionAlgorithm   *compressiontypes.Algorithm // An algorithm when the candidate is compressed, or nil when it is uncompressed
+	CompressionAnnotations map[string]string           // If necessary, annotations necessary to use CompressionAlgorithm
+	UnknownLocation        bool                        // is true when `Location` for this blob is not set
+	Location               types.BICLocationReference  // not set if UnknownLocation is set to `true`
 }

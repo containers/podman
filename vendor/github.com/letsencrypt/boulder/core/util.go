@@ -76,9 +76,9 @@ func NewToken() string {
 
 var tokenFormat = regexp.MustCompile(`^[\w-]{43}$`)
 
-// LooksLikeAToken checks whether a string represents a 32-octet value in
+// looksLikeAToken checks whether a string represents a 32-octet value in
 // the URL-safe base64 alphabet.
-func LooksLikeAToken(token string) bool {
+func looksLikeAToken(token string) bool {
 	return tokenFormat.MatchString(token)
 }
 

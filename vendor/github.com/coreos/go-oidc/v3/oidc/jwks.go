@@ -64,15 +64,27 @@ func newRemoteKeySet(ctx context.Context, jwksURL string, now func() time.Time) 
 	if now == nil {
 		now = time.Now
 	}
-	return &RemoteKeySet{jwksURL: jwksURL, ctx: ctx, now: now}
+	return &RemoteKeySet{
+		jwksURL: jwksURL,
+		now:     now,
+		// For historical reasons, this package uses contexts for configuration, not just
+		// cancellation. In hindsight, this was a bad idea.
+		//
+		// Attemps to reason about how cancels should work with background requests have
+		// largely lead to confusion. Use the context here as a config bag-of-values and
+		// ignore the cancel function.
+		ctx: context.WithoutCancel(ctx),
+	}
 }
 
 // RemoteKeySet is a KeySet implementation that validates JSON web tokens against
 // a jwks_uri endpoint.
 type RemoteKeySet struct {
 	jwksURL string
-	ctx     context.Context
 	now     func() time.Time
+
+	// Used for configuration. Cancelation is ignored.
+	ctx context.Context
 
 	// guard all other fields
 	mu sync.RWMutex

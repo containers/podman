@@ -152,10 +152,7 @@ func (list *Schema2ListPublic) ChooseInstanceByCompression(ctx *types.SystemCont
 // ChooseInstance parses blob as a schema2 manifest list, and returns the digest
 // of the image which is appropriate for the current environment.
 func (list *Schema2ListPublic) ChooseInstance(ctx *types.SystemContext) (digest.Digest, error) {
-	wantedPlatforms, err := platform.WantedPlatforms(ctx)
-	if err != nil {
-		return "", fmt.Errorf("getting platform information %#v: %w", ctx, err)
-	}
+	wantedPlatforms := platform.WantedPlatforms(ctx)
 	for _, wantedPlatform := range wantedPlatforms {
 		for _, d := range list.Manifests {
 			imagePlatform := ociPlatformFromSchema2PlatformSpec(d.Platform)

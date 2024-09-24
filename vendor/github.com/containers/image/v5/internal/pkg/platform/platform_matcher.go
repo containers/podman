@@ -153,7 +153,7 @@ var compatibility = map[string][]string{
 // WantedPlatforms returns all compatible platforms with the platform specifics possibly overridden by user,
 // the most compatible platform is first.
 // If some option (arch, os, variant) is not present, a value from current platform is detected.
-func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
+func WantedPlatforms(ctx *types.SystemContext) []imgspecv1.Platform {
 	// Note that this does not use Platform.OSFeatures and Platform.OSVersion at all.
 	// The fields are not specified by the OCI specification, as of version 1.1, usefully enough
 	// to be interoperable, anyway.
@@ -211,7 +211,7 @@ func WantedPlatforms(ctx *types.SystemContext) ([]imgspecv1.Platform, error) {
 			Variant:      v,
 		})
 	}
-	return res, nil
+	return res
 }
 
 // MatchesPlatform returns true if a platform descriptor from a multi-arch image matches

@@ -114,16 +114,40 @@ func OIDConnect(issuer, id, secret, redirectURL string, tg TokenGetter) (*OIDCID
 	return tg.GetIDToken(provider, config)
 }
 
+type stringAsBool bool
+
+func (sb *stringAsBool) UnmarshalJSON(b []byte) error {
+	switch string(b) {
+	case "true", `"true"`, "True", `"True"`:
+		*sb = true
+	case "false", `"false"`, "False", `"False"`:
+		*sb = false
+	default:
+		return errors.New("invalid value for boolean")
+	}
+	return nil
+}
+
 type claims struct {
-	Email    string `json:"email"`
-	Verified bool   `json:"email_verified"`
-	Subject  string `json:"sub"`
+	Email    string       `json:"email"`
+	Verified stringAsBool `json:"email_verified"`
+	Subject  string       `json:"sub"`
 }
 
 // SubjectFromToken extracts the subject claim from an OIDC Identity Token
 func SubjectFromToken(tok *oidc.IDToken) (string, error) {
 	claims := claims{}
 	if err := tok.Claims(&claims); err != nil {
+		return "", err
+	}
+	return subjectFromClaims(claims)
+}
+
+// SubjectFromUnverifiedToken extracts the subject claim from the raw bytes of
+// an OIDC identity token.
+func SubjectFromUnverifiedToken(tok []byte) (string, error) {
+	claims := claims{}
+	if err := json.Unmarshal(tok, &claims); err != nil {
 		return "", err
 	}
 	return subjectFromClaims(claims)

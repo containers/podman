@@ -38,13 +38,13 @@ func (t *tarballTransport) ParseReference(reference string) (types.ImageReferenc
 		if filename == "-" {
 			stdin, err = io.ReadAll(os.Stdin)
 			if err != nil {
-				return nil, fmt.Errorf("error buffering stdin: %v", err)
+				return nil, fmt.Errorf("error buffering stdin: %w", err)
 			}
 			continue
 		}
 		f, err := os.Open(filename)
 		if err != nil {
-			return nil, fmt.Errorf("error opening %q: %v", filename, err)
+			return nil, fmt.Errorf("error opening %q: %w", filename, err)
 		}
 		f.Close()
 	}
