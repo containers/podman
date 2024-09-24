@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/connection"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/storage/pkg/ioutils"
 )
 
@@ -36,7 +37,7 @@ func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardS
 	suffix := ""
 	var fmtString string
 
-	if name != DefaultMachineName {
+	if name != define.DefaultMachineName {
 		suffix = " " + name
 	}
 
@@ -95,7 +96,7 @@ following command in your terminal session:
 
 func PrintRootlessWarning(name string) {
 	suffix := ""
-	if name != DefaultMachineName {
+	if name != define.DefaultMachineName {
 		suffix = " " + name
 	}
 
