@@ -1,5 +1,15 @@
 # Release Notes
 
+## 5.2.3
+### Bugfixes
+- Fixed a bug that could cause network namespaces to fail to unmount, resulting in Podman commands hanging.
+- Fixed a bug where Podman could not run images which included SCTP exposed ports.
+- Fixed a bug where containers run by the root user, but inside a user namespace (including inside a container), could not use the `pasta` network mode.
+- Fixed a bug where volume copy-up did not properly chown empty volumes when the `:idmap` mount option was used.
+
+### Misc
+- Updated Buildah to v1.37.3
+
 ## 5.2.2
 ### Bugfixes
 - Fixed a bug where rootless Podman could fail to validate the runtime's volume path on systems with a symlinked `/home` ([#23515](https://github.com/containers/podman/issues/23515)).
