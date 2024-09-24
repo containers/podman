@@ -14,6 +14,7 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -158,30 +159,7 @@ func init() {
 }
 
 func hasMetacopyOption(opts []string) bool {
-	for _, s := range opts {
-		if s == "metacopy=on" {
-			return true
-		}
-	}
-	return false
-}
-
-func stripOption(opts []string, option string) []string {
-	for i, s := range opts {
-		if s == option {
-			return stripOption(append(opts[:i], opts[i+1:]...), option)
-		}
-	}
-	return opts
-}
-
-func hasVolatileOption(opts []string) bool {
-	for _, s := range opts {
-		if s == "volatile" {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(opts, "metacopy=on")
 }
 
 func getMountProgramFlagFile(path string) string {
@@ -1526,14 +1504,13 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 				logrus.Debugf("Ignoring global metacopy option, the mount program doesn't support it")
 			}
 		}
-		optsList = stripOption(optsList, "metacopy=on")
+		optsList = slices.DeleteFunc(optsList, func(opt string) bool {
+			return opt == "metacopy=on"
+		})
 	}
 
-	for _, o := range optsList {
-		if o == "ro" {
-			readWrite = false
-			break
-		}
+	if slices.Contains(optsList, "ro") {
+		readWrite = false
 	}
 
 	lowers, err := os.ReadFile(path.Join(dir, lowerFile))
@@ -1732,7 +1709,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		optsList = append(optsList, "userxattr")
 	}
 
-	if options.Volatile && !hasVolatileOption(optsList) {
+	if options.Volatile && !slices.Contains(optsList, "volatile") {
 		supported, err := d.getSupportsVolatile()
 		if err != nil {
 			return "", err
@@ -1896,7 +1873,9 @@ func (d *Driver) getMergedDir(id, dir string, inAdditionalStore bool) string {
 	// and since the rundir cannot be shared for different stores, it is safe to assume the
 	// current process has exclusive access to it.
 	//
-	// LOCKING BUG? the .DiffSize operation does not currently hold an exclusive lock on the primary store.
+	// TO DO: LOCKING BUG: the .DiffSize operation does not currently hold an exclusive lock on the primary store.
+	// (_Some_ of the callers might be better ported to use a metadata-only size computation instead of DiffSize,
+	// but DiffSize probably needs to remain for computing sizes of container’s RW layers.)
 	if inAdditionalStore {
 		return path.Join(d.runhome, id, "merged")
 	}
@@ -2187,7 +2166,7 @@ func supportsDataOnlyLayersCached(home, runhome string) (bool, error) {
 }
 
 // ApplyDiffWithDiffer applies the changes in the new layer using the specified function
-func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (output graphdriver.DriverWithDifferOutput, errRet error) {
+func (d *Driver) ApplyDiffWithDiffer(options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (output graphdriver.DriverWithDifferOutput, errRet error) {
 	var idMappings *idtools.IDMappings
 	var forceMask *os.FileMode
 
@@ -2205,44 +2184,36 @@ func (d *Driver) ApplyDiffWithDiffer(id, parent string, options *graphdriver.App
 
 	var applyDir string
 
-	if id == "" {
-		stagingDir := d.getStagingDir(id)
-		err := os.MkdirAll(stagingDir, 0o700)
-		if err != nil && !os.IsExist(err) {
-			return graphdriver.DriverWithDifferOutput{}, err
-		}
-		layerDir, err := os.MkdirTemp(stagingDir, "")
-		if err != nil {
-			return graphdriver.DriverWithDifferOutput{}, err
-		}
-		perms := defaultPerms
-		if forceMask != nil {
-			perms = *forceMask
-		}
-		applyDir = filepath.Join(layerDir, "dir")
-		if err := os.Mkdir(applyDir, perms); err != nil {
-			return graphdriver.DriverWithDifferOutput{}, err
-		}
-
-		lock, err := lockfile.GetLockFile(filepath.Join(layerDir, stagingLockFile))
-		if err != nil {
-			return graphdriver.DriverWithDifferOutput{}, err
-		}
-		defer func() {
-			if errRet != nil {
-				delete(d.stagingDirsLocks, layerDir)
-				lock.Unlock()
-			}
-		}()
-		d.stagingDirsLocks[layerDir] = lock
-		lock.Lock()
-	} else {
-		var err error
-		applyDir, err = d.getDiffPath(id)
-		if err != nil {
-			return graphdriver.DriverWithDifferOutput{}, err
-		}
+	stagingDir := d.getStagingDir("")
+	err := os.MkdirAll(stagingDir, 0o700)
+	if err != nil && !os.IsExist(err) {
+		return graphdriver.DriverWithDifferOutput{}, err
 	}
+	layerDir, err := os.MkdirTemp(stagingDir, "")
+	if err != nil {
+		return graphdriver.DriverWithDifferOutput{}, err
+	}
+	perms := defaultPerms
+	if forceMask != nil {
+		perms = *forceMask
+	}
+	applyDir = filepath.Join(layerDir, "dir")
+	if err := os.Mkdir(applyDir, perms); err != nil {
+		return graphdriver.DriverWithDifferOutput{}, err
+	}
+
+	lock, err := lockfile.GetLockFile(filepath.Join(layerDir, stagingLockFile))
+	if err != nil {
+		return graphdriver.DriverWithDifferOutput{}, err
+	}
+	defer func() {
+		if errRet != nil {
+			delete(d.stagingDirsLocks, layerDir)
+			lock.Unlock()
+		}
+	}()
+	d.stagingDirsLocks[layerDir] = lock
+	lock.Lock()
 
 	logrus.Debugf("Applying differ in %s", applyDir)
 
