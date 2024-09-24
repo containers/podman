@@ -57,3 +57,4 @@ contrib/win-installer/shasums
 contrib/win-installer/*.wixobj
 contrib/win-installer/*.wixpdb
 contrib/win-installer/*.log
+podman-cleanup-tracer.log*

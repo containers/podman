@@ -458,6 +458,15 @@ msg "************************************************************"
 ((${SETUP_ENVIRONMENT:-0})) || \
     die "Expecting setup_environment.sh to have completed successfully"
 
+if [[ "$UID" -eq 0 ]] && ((CONTAINER==0)); then
+    # start ebpf cleanup tracer (#23487)
+    msg "start ebpf cleanup tracer"
+    # replace zero bytes to make the log more readable
+    bpftrace $GOSRC/hack/podman_cleanup_tracer.bt |& \
+        tr '\0' ' ' >$GOSRC/podman-cleanup-tracer.log &
+    TRACER_PID=$!
+fi
+
 # shellcheck disable=SC2154
 if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
     # Remove /var/lib/cni, it is not required for rootless cni.
@@ -498,5 +507,10 @@ if [ "$(type -t $handler)" != "function" ]; then
 fi
 
 showrun $handler
+
+if [[ -n "$TRACER_PID" ]]; then
+    # ignore any error here
+    kill "$TRACER_PID" || true
+fi
 
 showrun echo "finished"
