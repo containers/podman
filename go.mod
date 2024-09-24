@@ -12,7 +12,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.2.1
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.37.2
+	github.com/containers/buildah v1.37.3
 	github.com/containers/common v0.60.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.4
@@ -48,7 +48,7 @@ require (
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mattn/go-sqlite3 v1.14.22
 	github.com/mdlayher/vsock v1.2.1
-	github.com/moby/sys/user v0.2.0
+	github.com/moby/sys/user v0.3.0
 	github.com/moby/term v0.5.0
 	github.com/nxadm/tail v1.4.11
 	github.com/onsi/ginkgo/v2 v2.20.0
