@@ -66,12 +66,12 @@ function generate_service() {
 
     # Unless specified, set a default command.
     if [[ -z "$command" ]]; then
-        command="top -d 120"
+        command="top -d $((100 + BATS_SUITE_TEST_NUMBER))"
     fi
 
     # Container name. Include the autoupdate type, to make debugging easier.
     # IMPORTANT: variable 'cname' is passed (out of scope) up to caller!
-    cname=c_${autoupdate//\'/}_$(random_string)
+    cname="c-$(safename)-${autoupdate//\'/}-$(random_string)"
     target_img="quay.io/libpod/$target_img_basename:latest"
     if [[ -n "$7" ]]; then
         target_img="$7"
@@ -214,6 +214,9 @@ function _confirm_update() {
     run_podman container inspect --format "{{.ID}}" $ctr_child
     run_podman container inspect --format "{{.State.Status}}" $ctr_child
     is "$output" "running" "child container is in running state"
+
+    run_podman container rm -f -t0 $ctr_child
+    run_podman container rm -f -t0 $ctr_parent
 }
 
 @test "podman auto-update - label io.containers.autoupdate=image with rollback" {
