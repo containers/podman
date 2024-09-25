@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package overlay
 
@@ -1433,6 +1432,9 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	if err := fileutils.Exists(dir); err != nil {
 		return "", err
 	}
+	if _, err := redirectDiffIfAdditionalLayer(path.Join(dir, "diff"), true); err != nil {
+		return "", err
+	}
 
 	// user namespace requires this to move a directory from lower to upper.
 	rootUID, rootGID, err := idtools.GetRootUIDGID(options.UidMaps, options.GidMaps)
@@ -2338,7 +2340,7 @@ func (d *Driver) getComposefsData(id string) string {
 
 func (d *Driver) getDiffPath(id string) (string, error) {
 	dir := d.dir(id)
-	return redirectDiffIfAdditionalLayer(path.Join(dir, "diff"))
+	return redirectDiffIfAdditionalLayer(path.Join(dir, "diff"), false)
 }
 
 func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
@@ -2347,7 +2349,7 @@ func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
 		return nil, err
 	}
 	for i, l := range layers {
-		layers[i], err = redirectDiffIfAdditionalLayer(l)
+		layers[i], err = redirectDiffIfAdditionalLayer(l, false)
 		if err != nil {
 			return nil, err
 		}
@@ -2690,11 +2692,16 @@ func notifyReleaseAdditionalLayer(al string) {
 // redirectDiffIfAdditionalLayer checks if the passed diff path is Additional Layer and
 // returns the redirected path. If the passed diff is not the one in Additional Layer
 // Store, it returns the original path without changes.
-func redirectDiffIfAdditionalLayer(diffPath string) (string, error) {
+func redirectDiffIfAdditionalLayer(diffPath string, checkExistence bool) (string, error) {
 	if ld, err := os.Readlink(diffPath); err == nil {
 		// diff is the link to Additional Layer Store
 		if !path.IsAbs(ld) {
 			return "", fmt.Errorf("linkpath must be absolute (got: %q)", ld)
+		}
+		if checkExistence {
+			if err := fileutils.Exists(ld); err != nil {
+				return "", fmt.Errorf("failed to access to the linked additional layer: %w", err)
+			}
 		}
 		diffPath = ld
 	} else if err.(*os.PathError).Err != syscall.EINVAL {

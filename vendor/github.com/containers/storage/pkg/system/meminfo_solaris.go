@@ -1,5 +1,4 @@
 //go:build solaris && cgo
-// +build solaris,cgo
 
 package system
 

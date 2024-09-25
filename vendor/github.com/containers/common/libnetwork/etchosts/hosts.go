@@ -229,10 +229,9 @@ func checkIfEntryExists(current HostEntry, entries HostEntries) bool {
 	return false
 }
 
-// parseExtraHosts converts a slice of "name1;name2;name3:ip" string to entries.
-// Each entry can contain one or more hostnames separated by semicolons and an IP address separated by a colon.
-// Because podman and buildah both store the extra hosts in this format,
-// we convert it here instead of having to do this on the caller side.
+// parseExtraHosts converts a slice of "name:ip" string to entries.
+// Because podman and buildah both store the extra hosts in this format
+// we convert it here instead of having to this on the caller side.
 func parseExtraHosts(extraHosts []string, hostContainersInternalIP string) (HostEntries, error) {
 	entries := make(HostEntries, 0, len(extraHosts))
 	for _, entry := range extraHosts {
@@ -253,8 +252,7 @@ func parseExtraHosts(extraHosts []string, hostContainersInternalIP string) (Host
 			}
 			ip = hostContainersInternalIP
 		}
-		names := strings.Split(values[0], ";")
-		e := HostEntry{IP: ip, Names: names}
+		e := HostEntry{IP: ip, Names: []string{values[0]}}
 		entries = append(entries, e)
 	}
 	return entries, nil
