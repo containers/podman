@@ -67,9 +67,9 @@ type StageExecutor struct {
 	name                  string
 	builder               *buildah.Builder
 	preserved             int
-	volumes               imagebuilder.VolumeSet
-	volumeCache           map[string]string
-	volumeCacheInfo       map[string]os.FileInfo
+	volumes               imagebuilder.VolumeSet // list of directories which are volumes
+	volumeCache           map[string]string      // mapping from volume directories to cache archives (used by vfs method)
+	volumeCacheInfo       map[string]os.FileInfo // mapping from volume directories to perms/datestamps to reset after restoring
 	mountPoint            string
 	output                string
 	containerIDs          []string
@@ -92,7 +92,7 @@ type StageExecutor struct {
 // writeable while the RUN instruction is being handled, even if any changes
 // made within the directory are ultimately discarded.
 func (s *StageExecutor) Preserve(path string) error {
-	logrus.Debugf("PRESERVE %q in %q", path, s.builder.ContainerID)
+	logrus.Debugf("PRESERVE %q in %q (already preserving %v)", path, s.builder.ContainerID, s.volumes)
 
 	// Try and resolve the symlink (if one exists)
 	// Set archivedPath and path based on whether a symlink is found or not
@@ -111,71 +111,61 @@ func (s *StageExecutor) Preserve(path string) error {
 		return fmt.Errorf("evaluating path %q: %w", path, err)
 	}
 
+	// Whether or not we're caching and restoring the contents of this
+	// directory, we need to ensure it exists now.
 	const createdDirPerms = os.FileMode(0o755)
-	if s.executor.compatVolumes != types.OptionalBoolTrue {
-		logrus.Debugf("ensuring volume path %q exists", path)
+	st, err := os.Stat(archivedPath)
+	if errors.Is(err, os.ErrNotExist) {
+		// Yup, we do have to create it.  That means it's not in any
+		// cached copy of the path that covers it, so we have to
+		// invalidate such cached copy.
+		logrus.Debugf("have to create volume %q", path)
 		createdDirPerms := createdDirPerms
 		if err := copier.Mkdir(s.mountPoint, archivedPath, copier.MkdirOptions{ChmodNew: &createdDirPerms}); err != nil {
 			return fmt.Errorf("ensuring volume path exists: %w", err)
 		}
-		logrus.Debugf("not doing volume save-and-restore of %q in %q", path, s.builder.ContainerID)
-		return nil
+		if err := s.volumeCacheInvalidate(path); err != nil {
+			return fmt.Errorf("ensuring volume path %q is preserved: %w", filepath.Join(s.mountPoint, path), err)
+		}
+		if st, err = os.Stat(archivedPath); err != nil {
+			return fmt.Errorf("checking on just-created volume path: %w", err)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("reading info cache for volume at %q: %w", path, err)
 	}
 
 	if s.volumes.Covers(path) {
 		// This path is a subdirectory of a volume path that we're
-		// already preserving, so there's nothing new to be done except
-		// ensure that it exists.
-		st, err := os.Stat(archivedPath)
-		if errors.Is(err, os.ErrNotExist) {
-			// We do have to create it.  That means it's not in any
-			// cached copy of the path that covers it, so we have
-			// to invalidate such cached copy.
-			logrus.Debugf("have to create volume %q", path)
-			createdDirPerms := createdDirPerms
-			if err := copier.Mkdir(s.mountPoint, filepath.Join(s.mountPoint, path), copier.MkdirOptions{ChmodNew: &createdDirPerms}); err != nil {
-				return fmt.Errorf("ensuring volume path exists: %w", err)
-			}
-			if err := s.volumeCacheInvalidate(path); err != nil {
-				return fmt.Errorf("ensuring volume path %q is preserved: %w", filepath.Join(s.mountPoint, path), err)
-			}
-			if st, err = os.Stat(archivedPath); err != nil {
-				return fmt.Errorf("checking on just-created volume path: %w", err)
-			}
-		}
+		// already preserving, so there's nothing new to be done now
+		// that we've ensured that it exists.
 		s.volumeCacheInfo[path] = st
 		return nil
 	}
 
-	// Figure out where the cache for this volume would be stored.
-	s.preserved++
-	cacheDir, err := s.executor.store.ContainerDirectory(s.builder.ContainerID)
-	if err != nil {
-		return fmt.Errorf("unable to locate temporary directory for container")
-	}
-	cacheFile := filepath.Join(cacheDir, fmt.Sprintf("volume%d.tar", s.preserved))
-
-	// Save info about the top level of the location that we'll be archiving.
-	st, err := os.Stat(archivedPath)
-	if errors.Is(err, os.ErrNotExist) {
-		logrus.Debugf("have to create volume %q", path)
-		createdDirPerms := os.FileMode(0o755)
-		if err = copier.Mkdir(s.mountPoint, archivedPath, copier.MkdirOptions{ChmodNew: &createdDirPerms}); err != nil {
-			return fmt.Errorf("ensuring volume path exists: %w", err)
-		}
-		st, err = os.Stat(archivedPath)
-	}
-	if err != nil {
-		logrus.Debugf("error reading info about %q: %v", archivedPath, err)
-		return err
-	}
-	s.volumeCacheInfo[path] = st
+	// Add the new volume path to the ones that we're tracking.
 	if !s.volumes.Add(path) {
 		// This path is not a subdirectory of a volume path that we're
 		// already preserving, so adding it to the list should have
 		// worked.
 		return fmt.Errorf("adding %q to the volume cache", path)
 	}
+	s.volumeCacheInfo[path] = st
+
+	// If we're not doing save/restore, we're done, since volumeCache
+	// should be empty.
+	if s.executor.compatVolumes != types.OptionalBoolTrue {
+		logrus.Debugf("not doing volume save-and-restore of %q in %q", path, s.builder.ContainerID)
+		return nil
+	}
+
+	// Decide where the cache for this volume will be stored.
+	s.preserved++
+	cacheDir, err := s.executor.store.ContainerDirectory(s.builder.ContainerID)
+	if err != nil {
+		return fmt.Errorf("unable to locate temporary directory for container")
+	}
+	cacheFile := filepath.Join(cacheDir, fmt.Sprintf("volume%d.tar", s.preserved))
 	s.volumeCache[path] = cacheFile
 
 	// Now prune cache files for volumes that are newly supplanted by this one.
@@ -206,7 +196,7 @@ func (s *StageExecutor) Preserve(path string) error {
 			if errors.Is(err, os.ErrNotExist) {
 				continue
 			}
-			return err
+			return fmt.Errorf("removing cache of %q: %w", archivedPath, err)
 		}
 		delete(s.volumeCache, cachedPath)
 	}
@@ -256,16 +246,12 @@ func (s *StageExecutor) volumeCacheSaveVFS() (mounts []specs.Mount, err error) {
 			continue
 		}
 		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-		createdDirPerms := os.FileMode(0755)
-		if err := copier.Mkdir(s.mountPoint, archivedPath, copier.MkdirOptions{ChmodNew: &createdDirPerms}); err != nil {
-			return nil, fmt.Errorf("ensuring volume path exists: %w", err)
+			return nil, fmt.Errorf("checking for presence of a cached copy of %q at %q: %w", cachedPath, cacheFile, err)
 		}
 		logrus.Debugf("caching contents of volume %q in %q", archivedPath, cacheFile)
 		cache, err := os.Create(cacheFile)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("creating cache for volume %q: %w", archivedPath, err)
 		}
 		defer cache.Close()
 		rc, err := chrootarchive.Tar(archivedPath, nil, s.mountPoint)
@@ -298,14 +284,10 @@ func (s *StageExecutor) volumeCacheRestoreVFS() (err error) {
 		logrus.Debugf("restoring contents of volume %q from %q", archivedPath, cacheFile)
 		cache, err := os.Open(cacheFile)
 		if err != nil {
-			return err
+			return fmt.Errorf("restoring contents of volume %q: %w", archivedPath, err)
 		}
 		defer cache.Close()
 		if err := copier.Remove(s.mountPoint, archivedPath, copier.RemoveOptions{All: true}); err != nil {
-			return err
-		}
-		createdDirPerms := os.FileMode(0o755)
-		if err := copier.Mkdir(s.mountPoint, archivedPath, copier.MkdirOptions{ChmodNew: &createdDirPerms}); err != nil {
 			return err
 		}
 		err = chrootarchive.Untar(cache, archivedPath, nil)
@@ -334,13 +316,11 @@ func (s *StageExecutor) volumeCacheRestoreVFS() (err error) {
 }
 
 // Save the contents of each of the executor's list of volumes for which we
-// don't already have a cache file.
+// don't already have a cache file.  For overlay, we "save" and "restore" by
+// using it as a lower for an overlay mount in the same location, and then
+// discarding the upper.
 func (s *StageExecutor) volumeCacheSaveOverlay() (mounts []specs.Mount, err error) {
 	for cachedPath := range s.volumeCache {
-		err = copier.Mkdir(s.mountPoint, filepath.Join(s.mountPoint, cachedPath), copier.MkdirOptions{})
-		if err != nil {
-			return nil, fmt.Errorf("ensuring volume exists: %w", err)
-		}
 		volumePath := filepath.Join(s.mountPoint, cachedPath)
 		mount := specs.Mount{
 			Source:      volumePath,
@@ -1079,6 +1059,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		s.mountPoint = mountPoint
 		s.builder = builder
 		// Now that the rootfs is mounted, set up handling of volumes from the base image.
+		s.volumes = make([]string, 0, len(s.volumes))
 		s.volumeCache = make(map[string]string)
 		s.volumeCacheInfo = make(map[string]os.FileInfo)
 		for _, v := range builder.Volumes() {
