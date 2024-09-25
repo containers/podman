@@ -211,15 +211,6 @@ endif
 # Necessary for nested-$(MAKE) calls and docs/remote-docs.sh
 export GOOS GOARCH CGO_ENABLED BINSFX SRCBINDIR
 
-# Need to use CGO for mDNS resolution, but cross builds need CGO disabled
-# See https://github.com/golang/go/issues/12524 for details
-DARWIN_GCO := 0
-ifeq ($(call err_if_empty,NATIVE_GOOS),darwin)
-ifdef HOMEBREW_PREFIX
-	DARWIN_GCO := 1
-endif
-endif
-
 # gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
 # the upstream project ships pre-built binaries since version 0.7.1
 GVPROXY_VERSION=$(shell $(GO) list -m -f '{{.Version}}' github.com/containers/gvisor-tap-vsock)
