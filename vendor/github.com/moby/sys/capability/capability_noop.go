@@ -11,10 +11,16 @@ package capability
 
 import "errors"
 
-func newPid(pid int) (Capabilities, error) {
-	return nil, errors.New("not supported")
+var errNotSup = errors.New("not supported")
+
+func newPid(_ int) (Capabilities, error) {
+	return nil, errNotSup
 }
 
-func newFile(path string) (Capabilities, error) {
-	return nil, errors.New("not supported")
+func newFile(_ string) (Capabilities, error) {
+	return nil, errNotSup
+}
+
+func lastCap() (Cap, error) {
+	return -1, errNotSup
 }

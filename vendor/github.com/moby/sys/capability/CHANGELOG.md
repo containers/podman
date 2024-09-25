@@ -5,7 +5,20 @@ from https://github.com/syndtr/gocapability/commit/42c35b4376354fd5.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 0.2.0 - 2024-09-16
+## [0.3.0] - 2024-09-25
+
+### Added
+* Added [ListKnown] and [ListSupported] functions. (#153)
+* [LastCap] is now available on non-Linux platforms (where it returns an error). (#152)
+
+### Changed
+* [List] is now deprecated in favor of [ListKnown] and [ListSupported]. (#153)
+
+### Fixed
+* Various documentation improvements. (#151)
+* Fix "generated code" comment. (#153)
+
+## [0.2.0] - 2024-09-16
 
 This is the first release after the move to a new home in
 github.com/moby/sys/capability.
@@ -53,8 +66,13 @@ This is an initial release since the fork.
 <!-- Doc links. -->
 [Apply]: https://pkg.go.dev/github.com/moby/sys/capability#Capabilities.Apply
 [LastCap]: https://pkg.go.dev/github.com/moby/sys/capability#LastCap
+[List]: https://pkg.go.dev/github.com/moby/sys/capability#List
+[ListKnown]: https://pkg.go.dev/github.com/moby/sys/capability#ListKnown
+[ListSupported]: https://pkg.go.dev/github.com/moby/sys/capability#ListSupported
 
 <!-- Minor releases. -->
+[0.3.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.3.0
+[0.2.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.2.0
 [0.1.1]: https://github.com/kolyshkin/capability/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/kolyshkin/capability/compare/42c35b4376354fd5...v0.1.0
 

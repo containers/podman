@@ -7,6 +7,8 @@
 
 package capability
 
+import "slices"
+
 type CapType uint
 
 func (c CapType) String() string {
@@ -301,3 +303,28 @@ const (
 	// Introduced in kernel 5.9
 	CAP_CHECKPOINT_RESTORE = Cap(40)
 )
+
+// List returns the list of all capabilities known to the package.
+//
+// Deprecated: use [ListKnown] or [ListSupported] instead.
+func List() []Cap {
+	return ListKnown()
+}
+
+// ListKnown returns the list of all capabilities known to the package.
+func ListKnown() []Cap {
+	return list()
+}
+
+// ListSupported retuns the list of all capabilities known to the package,
+// except those that are not supported by the currently running Linux kernel.
+func ListSupported() ([]Cap, error) {
+	last, err := LastCap()
+	if err != nil {
+		return nil, err
+	}
+	return slices.DeleteFunc(list(), func(c Cap) bool {
+		// Remove caps not supported by the kernel.
+		return c > last
+	}), nil
+}
