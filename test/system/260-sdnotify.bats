@@ -433,7 +433,12 @@ READY=1" "sdnotify sent MAINPID and READY"
 
     # Make sure that Podman is the service's MainPID
     main_pid=$(head -n1 <<<"$output" | awk -F= '{print $2}')
-    is "$(</proc/$main_pid/comm)" "podman" "podman is the service mainPID ($main_pid)"
+    comm="$(</proc/$main_pid/comm)"
+
+    # rootless podman will reexec itself as /proc/self/exe and
+    # sometimes (especially Fedora gating) the command line
+    # is still shown as "exe". Deal with it.
+    assert "$comm" =~ "^(podman|exe)\$" "/proc/MAINPID/comm (mainpid=$main_pid)"
     _stop_socat
 
     # Clean up pod and pause image
