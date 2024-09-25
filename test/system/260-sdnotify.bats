@@ -540,7 +540,6 @@ none | false | false | 0
 }
 
 # CANNOT BE PARALLELIZED. I don't know why. It flakes. Still investigating.
-# bats test_tags=ci:parallel
 @test "podman pull - EXTEND_TIMEOUT_USEC" {
     # Make sure that Podman extends the start timeout via DBUS when running
     # inside a systemd unit (i.e., with NOTIFY_SOCKET set).  Extending the
