@@ -18,6 +18,7 @@ function setup() {
 }
 
 function teardown() {
+    ls -l /run/netns | sed -e "s/^/# teardown /" >&3
     if [[ -e $SNAME_FILE ]]; then
         while read line; do
             if [[ "$line" =~ "podman-auto-update" ]]; then
@@ -25,7 +26,9 @@ function teardown() {
                 systemctl stop $line.timer
                 systemctl disable $line.timer
             else
+                ls -l /run/netns | sed -e "s/^/# before stop $line /" >&3
                 systemctl stop $line
+                ls -l /run/netns | sed -e "s/^/# after stop $line /" >&3
             fi
             rm -f $UNIT_DIR/$line.{service,timer}
         done < $SNAME_FILE
@@ -172,7 +175,7 @@ function _confirm_update() {
 
 # This test can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
-@test "podman auto-update - label io.containers.autoupdate=image" {
+@test "podman auto-update - label io.containers.autoupdate=imagexxxxxxx" {
     since=$(date --iso-8601=seconds)
     run_podman auto-update
     is "$output" ""
@@ -215,8 +218,10 @@ function _confirm_update() {
     run_podman container inspect --format "{{.State.Status}}" $ctr_child
     is "$output" "running" "child container is in running state"
 
+    ls -l /run/netns | sed -e 's/^/# before container rm /' >&3
     run_podman container rm -f -t0 $ctr_child
     run_podman container rm -f -t0 $ctr_parent
+    ls -l /run/netns | sed -e 's/^/# after container rm /' >&3
 }
 
 @test "podman auto-update - label io.containers.autoupdate=image with rollback" {
