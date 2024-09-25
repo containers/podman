@@ -24,13 +24,18 @@ func (c *copier) newProgressPool() *mpb.Progress {
 
 // customPartialBlobDecorFunc implements mpb.DecorFunc for the partial blobs retrieval progress bar
 func customPartialBlobDecorFunc(s decor.Statistics) string {
+	current := decor.SizeB1024(s.Current)
+	total := decor.SizeB1024(s.Total)
+	refill := decor.SizeB1024(s.Refill)
 	if s.Total == 0 {
-		pairFmt := "%.1f / %.1f (skipped: %.1f)"
-		return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill))
+		return fmt.Sprintf("%.1f / %.1f (skipped: %.1f)", current, total, refill)
 	}
-	pairFmt := "%.1f / %.1f (skipped: %.1f = %.2f%%)"
+	// If we didn't do a partial fetch then let's not output a distracting ("skipped: 0.0b = 0.00%")
+	if s.Refill == 0 {
+		return fmt.Sprintf("%.1f / %.1f", current, total)
+	}
 	percentage := 100.0 * float64(s.Refill) / float64(s.Total)
-	return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill), percentage)
+	return fmt.Sprintf("%.1f / %.1f (skipped: %.1f = %.2f%%)", current, total, refill, percentage)
 }
 
 // progressBar wraps a *mpb.Bar, allowing us to add extra state and methods.

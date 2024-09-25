@@ -171,7 +171,7 @@ vendor_task:
 cross_task:
     alias: cross
     container:
-        image: golang:1.21
+        image: golang:1.22
     build_script: make cross
 
 

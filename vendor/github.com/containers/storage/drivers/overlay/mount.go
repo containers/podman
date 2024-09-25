@@ -103,20 +103,20 @@ func mountOverlayFromMain() {
 	// paths, but we don't want to mess with other options.
 	var upperk, upperv, workk, workv, lowerk, lowerv, labelk, labelv, others string
 	for _, arg := range strings.Split(options.Label, ",") {
-		kv := strings.SplitN(arg, "=", 2)
-		switch kv[0] {
+		key, val, _ := strings.Cut(arg, "=")
+		switch key {
 		case "upperdir":
 			upperk = "upperdir="
-			upperv = kv[1]
+			upperv = val
 		case "workdir":
 			workk = "workdir="
-			workv = kv[1]
+			workv = val
 		case "lowerdir":
 			lowerk = "lowerdir="
-			lowerv = kv[1]
+			lowerv = val
 		case "label":
 			labelk = "label="
-			labelv = kv[1]
+			labelv = val
 		default:
 			if others == "" {
 				others = arg

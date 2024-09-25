@@ -106,7 +106,7 @@ func (c *copier) createSignatures(ctx context.Context, manifest []byte, identity
 			if len(c.signers) == 1 {
 				return nil, fmt.Errorf("creating signature: %w", err)
 			} else {
-				return nil, fmt.Errorf("creating signature %d: %w", signerIndex, err)
+				return nil, fmt.Errorf("creating signature %d: %w", signerIndex+1, err)
 			}
 		}
 		res = append(res, newSig)

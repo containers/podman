@@ -779,7 +779,13 @@ func (key rawJSONWebKey) symmetricKey() ([]byte, error) {
 	return key.K.bytes(), nil
 }
 
-func tryJWKS(key interface{}, headers ...Header) interface{} {
+var (
+	// ErrJWKSKidNotFound is returned when a JWKS does not contain a JWK with a
+	// key ID which matches one in the provided tokens headers.
+	ErrJWKSKidNotFound = errors.New("go-jose/go-jose: JWK with matching kid not found in JWK Set")
+)
+
+func tryJWKS(key interface{}, headers ...Header) (interface{}, error) {
 	var jwks JSONWebKeySet
 
 	switch jwksType := key.(type) {
@@ -788,9 +794,11 @@ func tryJWKS(key interface{}, headers ...Header) interface{} {
 	case JSONWebKeySet:
 		jwks = jwksType
 	default:
-		return key
+		// If the specified key is not a JWKS, return as is.
+		return key, nil
 	}
 
+	// Determine the KID to search for from the headers.
 	var kid string
 	for _, header := range headers {
 		if header.KeyID != "" {
@@ -799,14 +807,17 @@ func tryJWKS(key interface{}, headers ...Header) interface{} {
 		}
 	}
 
+	// If no KID is specified in the headers, reject.
 	if kid == "" {
-		return key
+		return nil, ErrJWKSKidNotFound
 	}
 
+	// Find the JWK with the matching KID. If no JWK with the specified KID is
+	// found, reject.
 	keys := jwks.Key(kid)
 	if len(keys) == 0 {
-		return key
+		return nil, ErrJWKSKidNotFound
 	}
 
-	return keys[0].Key
+	return keys[0].Key, nil
 }

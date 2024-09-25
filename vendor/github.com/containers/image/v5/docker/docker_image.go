@@ -91,6 +91,12 @@ func GetRepositoryTags(ctx context.Context, sys *types.SystemContext, ref types.
 		}
 		for _, tag := range tagsHolder.Tags {
 			if _, err := reference.WithTag(dr.ref, tag); err != nil { // Ensure the tag does not contain unexpected values
+				// Per https://github.com/containers/skopeo/issues/2409 , Sonatype Nexus 3.58, contrary
+				// to the spec, may include JSON null values in the list; and Go silently parses them as "".
+				if tag == "" {
+					logrus.Debugf("Ignoring invalid empty tag")
+					continue
+				}
 				// Per https://github.com/containers/skopeo/issues/2346 , unknown versions of JFrog Artifactory,
 				// contrary to the tag format specified in
 				// https://github.com/opencontainers/distribution-spec/blob/8a871c8234977df058f1a14e299fe0a673853da2/spec.md?plain=1#L160 ,

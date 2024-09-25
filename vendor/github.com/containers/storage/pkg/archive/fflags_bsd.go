@@ -80,9 +80,9 @@ func parseFileFlags(fflags string) (uint32, uint32, error) {
 	var set, clear uint32 = 0, 0
 	for _, fflag := range strings.Split(fflags, ",") {
 		isClear := false
-		if strings.HasPrefix(fflag, "no") {
+		if clean, ok := strings.CutPrefix(fflag, "no"); ok {
 			isClear = true
-			fflag = strings.TrimPrefix(fflag, "no")
+			fflag = clean
 		}
 		if value, ok := flagNameToValue[fflag]; ok {
 			if isClear {

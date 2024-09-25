@@ -390,7 +390,10 @@ func (obj JSONWebSignature) UnsafePayloadWithoutVerification() []byte {
 // The verificationKey argument must have one of the types allowed for the
 // verificationKey argument of JSONWebSignature.Verify().
 func (obj JSONWebSignature) DetachedVerify(payload []byte, verificationKey interface{}) error {
-	key := tryJWKS(verificationKey, obj.headers()...)
+	key, err := tryJWKS(verificationKey, obj.headers()...)
+	if err != nil {
+		return err
+	}
 	verifier, err := newVerifier(key)
 	if err != nil {
 		return err
@@ -455,7 +458,10 @@ func (obj JSONWebSignature) VerifyMulti(verificationKey interface{}) (int, Signa
 // The verificationKey argument must have one of the types allowed for the
 // verificationKey argument of JSONWebSignature.Verify().
 func (obj JSONWebSignature) DetachedVerifyMulti(payload []byte, verificationKey interface{}) (int, Signature, error) {
-	key := tryJWKS(verificationKey, obj.headers()...)
+	key, err := tryJWKS(verificationKey, obj.headers()...)
+	if err != nil {
+		return -1, Signature{}, err
+	}
 	verifier, err := newVerifier(key)
 	if err != nil {
 		return -1, Signature{}, err

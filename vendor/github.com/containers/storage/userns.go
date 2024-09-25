@@ -89,7 +89,7 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 		passwdFile = filepath.Join(containerMount, "etc/passwd")
 	}
 	if groupFile == "" {
-		groupFile = filepath.Join(groupFile, "etc/group")
+		groupFile = filepath.Join(containerMount, "etc/group")
 	}
 
 	size := 0
@@ -99,14 +99,14 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 		for _, u := range users {
 			// Skip the "nobody" user otherwise we end up with 65536
 			// ids with most images
-			if u.Name == "nobody" {
+			if u.Name == "nobody" || u.Name == "nogroup" {
 				continue
 			}
 			if u.Uid > size && u.Uid != nobodyUser {
-				size = u.Uid
+				size = u.Uid + 1
 			}
 			if u.Gid > size && u.Gid != nobodyUser {
-				size = u.Gid
+				size = u.Gid + 1
 			}
 		}
 	}
@@ -114,11 +114,11 @@ func parseMountedFiles(containerMount, passwdFile, groupFile string) uint32 {
 	groups, err := libcontainerUser.ParseGroupFile(groupFile)
 	if err == nil {
 		for _, g := range groups {
-			if g.Name == "nobody" {
+			if g.Name == "nobody" || g.Name == "nogroup" {
 				continue
 			}
 			if g.Gid > size && g.Gid != nobodyUser {
-				size = g.Gid
+				size = g.Gid + 1
 			}
 		}
 	}

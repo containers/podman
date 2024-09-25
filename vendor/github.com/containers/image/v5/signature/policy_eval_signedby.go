@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 
 	"github.com/containers/image/v5/internal/multierr"
@@ -27,33 +26,18 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image priva
 	}
 
 	// FIXME: move this to per-context initialization
-	var data [][]byte
-	keySources := 0
-	if pr.KeyPath != "" {
-		keySources++
-		d, err := os.ReadFile(pr.KeyPath)
-		if err != nil {
-			return sarRejected, nil, err
-		}
-		data = [][]byte{d}
+	const notOneSourceErrorText = `Internal inconsistency: not exactly one of "keyPath", "keyPaths" and "keyData" specified`
+	data, err := loadBytesFromConfigSources(configBytesSources{
+		inconsistencyErrorMessage: notOneSourceErrorText,
+		path:                      pr.KeyPath,
+		paths:                     pr.KeyPaths,
+		data:                      pr.KeyData,
+	})
+	if err != nil {
+		return sarRejected, nil, err
 	}
-	if pr.KeyPaths != nil {
-		keySources++
-		data = [][]byte{}
-		for _, path := range pr.KeyPaths {
-			d, err := os.ReadFile(path)
-			if err != nil {
-				return sarRejected, nil, err
-			}
-			data = append(data, d)
-		}
-	}
-	if pr.KeyData != nil {
-		keySources++
-		data = [][]byte{pr.KeyData}
-	}
-	if keySources != 1 {
-		return sarRejected, nil, errors.New(`Internal inconsistency: not exactly one of "keyPath", "keyPaths" and "keyData" specified`)
+	if data == nil {
+		return sarRejected, nil, errors.New(notOneSourceErrorText)
 	}
 
 	// FIXME: move this to per-context initialization

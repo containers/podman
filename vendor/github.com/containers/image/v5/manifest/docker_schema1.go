@@ -318,20 +318,20 @@ func (m *Schema1) ToSchema2Config(diffIDs []digest.Digest) ([]byte, error) {
 	// Add the history and rootfs information.
 	rootfs, err := json.Marshal(rootFS)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding rootfs information %#v: %v", rootFS, err)
+		return nil, fmt.Errorf("error encoding rootfs information %#v: %w", rootFS, err)
 	}
 	rawRootfs := json.RawMessage(rootfs)
 	raw["rootfs"] = &rawRootfs
 	history, err := json.Marshal(convertedHistory)
 	if err != nil {
-		return nil, fmt.Errorf("error encoding history information %#v: %v", convertedHistory, err)
+		return nil, fmt.Errorf("error encoding history information %#v: %w", convertedHistory, err)
 	}
 	rawHistory := json.RawMessage(history)
 	raw["history"] = &rawHistory
 	// Encode the result.
 	config, err = json.Marshal(raw)
 	if err != nil {
-		return nil, fmt.Errorf("error re-encoding compat image config %#v: %v", s1, err)
+		return nil, fmt.Errorf("error re-encoding compat image config %#v: %w", s1, err)
 	}
 	return config, nil
 }

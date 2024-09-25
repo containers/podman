@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/mount"
-	"github.com/syndtr/gocapability/capability"
+	"github.com/moby/sys/capability"
 	"golang.org/x/sys/unix"
 )
 

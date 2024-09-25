@@ -1331,7 +1331,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		wg.Wait()
 	}()
 
-	for i := 0; i < copyGoRoutines; i++ {
+	for range copyGoRoutines {
 		wg.Add(1)
 		jobs := copyFileJobs
 

@@ -135,8 +135,9 @@ func (d *DeviceFlowTokenGetter) deviceFlow(p *oidc.Provider, clientID, redirectU
 		// Some providers use a secret here, we don't need for sigstore oauth one so leave it off.
 		data := url.Values{
 			"grant_type":    []string{"urn:ietf:params:oauth:grant-type:device_code"},
+			"client_id":     []string{clientID},
 			"device_code":   []string{parsed.DeviceCode},
-			"scope":         []string{"openid", "email"},
+			"scope":         []string{"openid email"},
 			"code_verifier": []string{pkce.Value},
 		}
 

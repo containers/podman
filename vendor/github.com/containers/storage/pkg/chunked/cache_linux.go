@@ -65,11 +65,10 @@ type layer struct {
 }
 
 type layersCache struct {
-	layers  []*layer
-	refs    int
-	store   storage.Store
-	mutex   sync.RWMutex
-	created time.Time
+	layers []*layer
+	refs   int
+	store  storage.Store
+	mutex  sync.RWMutex
 }
 
 var (
@@ -83,6 +82,7 @@ func (c *layer) release() {
 		if err := unix.Munmap(c.mmapBuffer); err != nil {
 			logrus.Warnf("Error Munmap: layer %q: %v", c.id, err)
 		}
+		c.mmapBuffer = nil
 	}
 }
 
@@ -107,14 +107,13 @@ func (c *layersCache) release() {
 func getLayersCacheRef(store storage.Store) *layersCache {
 	cacheMutex.Lock()
 	defer cacheMutex.Unlock()
-	if cache != nil && cache.store == store && time.Since(cache.created).Minutes() < 10 {
+	if cache != nil && cache.store == store {
 		cache.refs++
 		return cache
 	}
-	cache := &layersCache{
-		store:   store,
-		refs:    1,
-		created: time.Now(),
+	cache = &layersCache{
+		store: store,
+		refs:  1,
 	}
 	return cache
 }
@@ -291,7 +290,7 @@ func (c *layersCache) load() error {
 		if r.ReadOnly {
 			// If the layer is coming from a read-only store, do not attempt
 			// to write to it.
-			// Therefore,we won’t find any matches in read-only-store layers,
+			// Therefore, we won’t find any matches in read-only-store layers,
 			// unless the read-only store layer comes prepopulated with cacheKey data.
 			continue
 		}
@@ -781,13 +780,13 @@ func (c *layersCache) findDigestInternal(digest string) (string, string, int64, 
 		return "", "", -1, nil
 	}
 
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
 	binaryDigest, err := makeBinaryDigest(digest)
 	if err != nil {
 		return "", "", 0, err
 	}
-
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
 
 	for _, layer := range c.layers {
 		if !layer.cacheFile.bloomFilter.maybeContains(binaryDigest) {

@@ -344,8 +344,8 @@ func getRootlessStorageOpts(systemOpts StoreOptions) (StoreOptions, error) {
 			dirEntries, err := os.ReadDir(opts.GraphRoot)
 			if err == nil {
 				for _, entry := range dirEntries {
-					if strings.HasSuffix(entry.Name(), "-images") {
-						opts.GraphDriverName = strings.TrimSuffix(entry.Name(), "-images")
+					if name, ok := strings.CutSuffix(entry.Name(), "-images"); ok {
+						opts.GraphDriverName = name
 						break
 					}
 				}

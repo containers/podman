@@ -27,17 +27,8 @@ func (ref ociReference) DeleteImage(ctx context.Context, sys *types.SystemContex
 		return err
 	}
 
-	var blobsUsedByImage map[digest.Digest]int
-
-	switch descriptor.MediaType {
-	case imgspecv1.MediaTypeImageManifest:
-		blobsUsedByImage, err = ref.getBlobsUsedInSingleImage(&descriptor, sharedBlobsDir)
-	case imgspecv1.MediaTypeImageIndex:
-		blobsUsedByImage, err = ref.getBlobsUsedInImageIndex(&descriptor, sharedBlobsDir)
-	default:
-		return fmt.Errorf("unsupported mediaType in index: %q", descriptor.MediaType)
-	}
-	if err != nil {
+	blobsUsedByImage := make(map[digest.Digest]int)
+	if err := ref.countBlobsForDescriptor(blobsUsedByImage, &descriptor, sharedBlobsDir); err != nil {
 		return err
 	}
 
@@ -54,80 +45,46 @@ func (ref ociReference) DeleteImage(ctx context.Context, sys *types.SystemContex
 	return ref.deleteReferenceFromIndex(descriptorIndex)
 }
 
-func (ref ociReference) getBlobsUsedInSingleImage(descriptor *imgspecv1.Descriptor, sharedBlobsDir string) (map[digest.Digest]int, error) {
-	manifest, err := ref.getManifest(descriptor, sharedBlobsDir)
-	if err != nil {
-		return nil, err
-	}
-	blobsUsedInManifest := ref.getBlobsUsedInManifest(manifest)
-	blobsUsedInManifest[descriptor.Digest]++ // Add the current manifest to the list of blobs used by this reference
-
-	return blobsUsedInManifest, nil
-}
-
-func (ref ociReference) getBlobsUsedInImageIndex(descriptor *imgspecv1.Descriptor, sharedBlobsDir string) (map[digest.Digest]int, error) {
+// countBlobsForDescriptor updates dest with usage counts of blobs required for descriptor, INCLUDING descriptor itself.
+func (ref ociReference) countBlobsForDescriptor(dest map[digest.Digest]int, descriptor *imgspecv1.Descriptor, sharedBlobsDir string) error {
 	blobPath, err := ref.blobPath(descriptor.Digest, sharedBlobsDir)
 	if err != nil {
-		return nil, err
-	}
-	index, err := parseIndex(blobPath)
-	if err != nil {
-		return nil, err
+		return err
 	}
 
-	blobsUsedInImageRefIndex := make(map[digest.Digest]int)
-	err = ref.addBlobsUsedInIndex(blobsUsedInImageRefIndex, index, sharedBlobsDir)
-	if err != nil {
-		return nil, err
-	}
-	blobsUsedInImageRefIndex[descriptor.Digest]++ // Add the nested index in the list of blobs used by this reference
-
-	return blobsUsedInImageRefIndex, nil
-}
-
-// Updates a map of digest with the usage count, so a blob that is referenced three times will have 3 in the map
-func (ref ociReference) addBlobsUsedInIndex(destination map[digest.Digest]int, index *imgspecv1.Index, sharedBlobsDir string) error {
-	for _, descriptor := range index.Manifests {
-		destination[descriptor.Digest]++
-		switch descriptor.MediaType {
-		case imgspecv1.MediaTypeImageManifest:
-			manifest, err := ref.getManifest(&descriptor, sharedBlobsDir)
-			if err != nil {
-				return err
-			}
-			for digest, count := range ref.getBlobsUsedInManifest(manifest) {
-				destination[digest] += count
-			}
-		case imgspecv1.MediaTypeImageIndex:
-			blobPath, err := ref.blobPath(descriptor.Digest, sharedBlobsDir)
-			if err != nil {
-				return err
-			}
-			index, err := parseIndex(blobPath)
-			if err != nil {
-				return err
-			}
-			err = ref.addBlobsUsedInIndex(destination, index, sharedBlobsDir)
-			if err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("unsupported mediaType in index: %q", descriptor.MediaType)
+	dest[descriptor.Digest]++
+	switch descriptor.MediaType {
+	case imgspecv1.MediaTypeImageManifest:
+		manifest, err := parseJSON[imgspecv1.Manifest](blobPath)
+		if err != nil {
+			return err
 		}
+		dest[manifest.Config.Digest]++
+		for _, layer := range manifest.Layers {
+			dest[layer.Digest]++
+		}
+	case imgspecv1.MediaTypeImageIndex:
+		index, err := parseIndex(blobPath)
+		if err != nil {
+			return err
+		}
+		if err := ref.countBlobsReferencedByIndex(dest, index, sharedBlobsDir); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unsupported mediaType in index: %q", descriptor.MediaType)
 	}
-
 	return nil
 }
 
-func (ref ociReference) getBlobsUsedInManifest(manifest *imgspecv1.Manifest) map[digest.Digest]int {
-	blobsUsedInManifest := make(map[digest.Digest]int, 0)
-
-	blobsUsedInManifest[manifest.Config.Digest]++
-	for _, layer := range manifest.Layers {
-		blobsUsedInManifest[layer.Digest]++
+// countBlobsReferencedByIndex updates dest with usage counts of blobs required for index, EXCLUDING the index itself.
+func (ref ociReference) countBlobsReferencedByIndex(destination map[digest.Digest]int, index *imgspecv1.Index, sharedBlobsDir string) error {
+	for _, descriptor := range index.Manifests {
+		if err := ref.countBlobsForDescriptor(destination, &descriptor, sharedBlobsDir); err != nil {
+			return err
+		}
 	}
-
-	return blobsUsedInManifest
+	return nil
 }
 
 // This takes in a map of the digest and their usage count in the manifest to be deleted
@@ -138,7 +95,7 @@ func (ref ociReference) getBlobsToDelete(blobsUsedByDescriptorToDelete map[diges
 		return nil, err
 	}
 	blobsUsedInRootIndex := make(map[digest.Digest]int)
-	err = ref.addBlobsUsedInIndex(blobsUsedInRootIndex, rootIndex, sharedBlobsDir)
+	err = ref.countBlobsReferencedByIndex(blobsUsedInRootIndex, rootIndex, sharedBlobsDir)
 	if err != nil {
 		return nil, err
 	}
@@ -223,18 +180,4 @@ func saveJSON(path string, content any) error {
 	defer file.Close()
 
 	return json.NewEncoder(file).Encode(content)
-}
-
-func (ref ociReference) getManifest(descriptor *imgspecv1.Descriptor, sharedBlobsDir string) (*imgspecv1.Manifest, error) {
-	manifestPath, err := ref.blobPath(descriptor.Digest, sharedBlobsDir)
-	if err != nil {
-		return nil, err
-	}
-
-	manifest, err := parseJSON[imgspecv1.Manifest](manifestPath)
-	if err != nil {
-		return nil, err
-	}
-
-	return manifest, nil
 }

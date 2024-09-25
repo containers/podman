@@ -325,7 +325,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 		return private.UploadedBlob{}, err
 	}
 
-	out, err := s.imageRef.transport.store.ApplyDiffWithDiffer("", nil, differ)
+	out, err := s.imageRef.transport.store.PrepareStagedLayer(nil, differ)
 	if err != nil {
 		return private.UploadedBlob{}, err
 	}
@@ -337,7 +337,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 	}()
 
 	if out.TOCDigest == "" && out.UncompressedDigest == "" {
-		return private.UploadedBlob{}, errors.New("internal error: ApplyDiffWithDiffer succeeded with neither TOCDigest nor UncompressedDigest set")
+		return private.UploadedBlob{}, errors.New("internal error: PrepareStagedLayer succeeded with neither TOCDigest nor UncompressedDigest set")
 	}
 
 	blobDigest := srcInfo.Digest
@@ -356,11 +356,11 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 		// The computation of UncompressedDigest means the whole layer has been consumed; while doing that, chunked.GetDiffer is
 		// responsible for ensuring blobDigest has been validated.
 		if out.CompressedDigest != blobDigest {
-			return private.UploadedBlob{}, fmt.Errorf("internal error: ApplyDiffWithDiffer returned CompressedDigest %q not matching expected %q",
+			return private.UploadedBlob{}, fmt.Errorf("internal error: PrepareStagedLayer returned CompressedDigest %q not matching expected %q",
 				out.CompressedDigest, blobDigest)
 		}
 		// So, record also information about blobDigest, that might benefit reuse.
-		// We trust ApplyDiffWithDiffer to validate or create both values correctly.
+		// We trust PrepareStagedLayer to validate or create both values correctly.
 		s.lockProtected.blobDiffIDs[blobDigest] = out.UncompressedDigest
 		options.Cache.RecordDigestUncompressedPair(out.CompressedDigest, out.UncompressedDigest)
 	} else {

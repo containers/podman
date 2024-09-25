@@ -2,8 +2,10 @@ package storage
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -181,18 +183,18 @@ func copyImage(i *Image) *Image {
 	return &Image{
 		ID:              i.ID,
 		Digest:          i.Digest,
-		Digests:         copyDigestSlice(i.Digests),
-		Names:           copyStringSlice(i.Names),
-		NamesHistory:    copyStringSlice(i.NamesHistory),
+		Digests:         slices.Clone(i.Digests),
+		Names:           slices.Clone(i.Names),
+		NamesHistory:    slices.Clone(i.NamesHistory),
 		TopLayer:        i.TopLayer,
-		MappedTopLayers: copyStringSlice(i.MappedTopLayers),
+		MappedTopLayers: slices.Clone(i.MappedTopLayers),
 		Metadata:        i.Metadata,
-		BigDataNames:    copyStringSlice(i.BigDataNames),
-		BigDataSizes:    copyStringInt64Map(i.BigDataSizes),
-		BigDataDigests:  copyStringDigestMap(i.BigDataDigests),
+		BigDataNames:    slices.Clone(i.BigDataNames),
+		BigDataSizes:    maps.Clone(i.BigDataSizes),
+		BigDataDigests:  maps.Clone(i.BigDataDigests),
 		Created:         i.Created,
 		ReadOnly:        i.ReadOnly,
-		Flags:           copyStringInterfaceMap(i.Flags),
+		Flags:           maps.Clone(i.Flags),
 	}
 }
 
@@ -863,12 +865,6 @@ func (r *imageStore) Delete(id string) error {
 		return fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 	}
 	id = image.ID
-	toDeleteIndex := -1
-	for i, candidate := range r.images {
-		if candidate.ID == id {
-			toDeleteIndex = i
-		}
-	}
 	delete(r.byid, id)
 	// This can only fail if the ID is already missing, which shouldn’t happen — and in that case the index is already in the desired state anyway.
 	// The store’s Delete method is used on various paths to recover from failures, so this should be robust against partially missing data.
@@ -877,21 +873,18 @@ func (r *imageStore) Delete(id string) error {
 		delete(r.byname, name)
 	}
 	for _, digest := range image.Digests {
-		prunedList := imageSliceWithoutValue(r.bydigest[digest], image)
+		prunedList := slices.DeleteFunc(r.bydigest[digest], func(i *Image) bool {
+			return i == image
+		})
 		if len(prunedList) == 0 {
 			delete(r.bydigest, digest)
 		} else {
 			r.bydigest[digest] = prunedList
 		}
 	}
-	if toDeleteIndex != -1 {
-		// delete the image at toDeleteIndex
-		if toDeleteIndex == len(r.images)-1 {
-			r.images = r.images[:len(r.images)-1]
-		} else {
-			r.images = append(r.images[:toDeleteIndex], r.images[toDeleteIndex+1:]...)
-		}
-	}
+	r.images = slices.DeleteFunc(r.images, func(candidate *Image) bool {
+		return candidate.ID == id
+	})
 	if err := r.Save(); err != nil {
 		return err
 	}
@@ -977,17 +970,6 @@ func (r *imageStore) BigDataNames(id string) ([]string, error) {
 	return copyStringSlice(image.BigDataNames), nil
 }
 
-func imageSliceWithoutValue(slice []*Image, value *Image) []*Image {
-	modified := make([]*Image, 0, len(slice))
-	for _, v := range slice {
-		if v == value {
-			continue
-		}
-		modified = append(modified, v)
-	}
-	return modified
-}
-
 // Requires startWriting.
 func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
 	if !r.lockfile.IsReadWrite() {
@@ -1037,21 +1019,16 @@ func (r *imageStore) setBigData(image *Image, key string, data []byte, newDigest
 		if !sizeOk || oldSize != image.BigDataSizes[key] || !digestOk || oldDigest != newDigest {
 			save = true
 		}
-		addName := true
-		for _, name := range image.BigDataNames {
-			if name == key {
-				addName = false
-				break
-			}
-		}
-		if addName {
+		if !slices.Contains(image.BigDataNames, key) {
 			image.BigDataNames = append(image.BigDataNames, key)
 			save = true
 		}
 		for _, oldDigest := range image.Digests {
 			// remove the image from the list of images in the digest-based index
 			if list, ok := r.bydigest[oldDigest]; ok {
-				prunedList := imageSliceWithoutValue(list, image)
+				prunedList := slices.DeleteFunc(list, func(i *Image) bool {
+					return i == image
+				})
 				if len(prunedList) == 0 {
 					delete(r.bydigest, oldDigest)
 				} else {
@@ -1066,9 +1043,7 @@ func (r *imageStore) setBigData(image *Image, key string, data []byte, newDigest
 			// add the image to the list of images in the digest-based index which
 			// corresponds to the new digest for this item, unless it's already there
 			list := r.bydigest[newDigest]
-			if len(list) == len(imageSliceWithoutValue(list, image)) {
-				// the list isn't shortened by trying to prune this image from it,
-				// so it's not in there yet
+			if !slices.Contains(list, image) {
 				r.bydigest[newDigest] = append(list, image)
 			}
 		}

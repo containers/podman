@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math"
-	"math/rand"
+	"math/rand/v2"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -158,7 +158,7 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 			logrus.Debugf("Error closing blob body: %v", err) // … and ignore err otherwise
 		}
 		br.body = nil
-		time.Sleep(1*time.Second + time.Duration(rand.Intn(100_000))*time.Microsecond) // Some jitter so that a failure blip doesn’t cause a deterministic stampede
+		time.Sleep(1*time.Second + rand.N(100_000*time.Microsecond)) // Some jitter so that a failure blip doesn’t cause a deterministic stampede
 
 		headers := map[string][]string{
 			"Range": {fmt.Sprintf("bytes=%d-", br.offset)},

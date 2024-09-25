@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/containers/storage/types"
 )
@@ -41,22 +42,12 @@ func applyNameOperation(oldNames []string, opParameters []string, op updateNameO
 		// remove given names from old names
 		result = make([]string, 0, len(oldNames))
 		for _, name := range oldNames {
-			// only keep names in final result which do not intersect with input names
-			// basically `result = oldNames - opParameters`
-			nameShouldBeRemoved := false
-			for _, opName := range opParameters {
-				if name == opName {
-					nameShouldBeRemoved = true
-				}
-			}
-			if !nameShouldBeRemoved {
+			if !slices.Contains(opParameters, name) {
 				result = append(result, name)
 			}
 		}
 	case addNames:
-		result = make([]string, 0, len(opParameters)+len(oldNames))
-		result = append(result, opParameters...)
-		result = append(result, oldNames...)
+		result = slices.Concat(opParameters, oldNames)
 	default:
 		return result, errInvalidUpdateNameOperation
 	}

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"sync"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -300,7 +301,7 @@ func (s *storageImageSource) LayerInfosForCopy(ctx context.Context, instanceDige
 		uncompressedLayerType = manifest.DockerV2SchemaLayerMediaTypeUncompressed
 	}
 
-	physicalBlobInfos := []types.BlobInfo{}
+	physicalBlobInfos := []types.BlobInfo{} // Built reversed
 	layerID := s.image.TopLayer
 	for layerID != "" {
 		layer, err := s.imageRef.transport.store.Layer(layerID)
@@ -340,9 +341,10 @@ func (s *storageImageSource) LayerInfosForCopy(ctx context.Context, instanceDige
 			Size:      size,
 			MediaType: uncompressedLayerType,
 		}
-		physicalBlobInfos = append([]types.BlobInfo{blobInfo}, physicalBlobInfos...)
+		physicalBlobInfos = append(physicalBlobInfos, blobInfo)
 		layerID = layer.Parent
 	}
+	slices.Reverse(physicalBlobInfos)
 
 	res, err := buildLayerInfosForCopy(man.LayerInfos(), physicalBlobInfos)
 	if err != nil {

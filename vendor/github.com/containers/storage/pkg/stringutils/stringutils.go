@@ -3,7 +3,7 @@ package stringutils
 
 import (
 	"bytes"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 )
 
@@ -13,7 +13,7 @@ func GenerateRandomAlphaOnlyString(n int) string {
 	letters := []byte("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+		b[i] = letters[rand.IntN(len(letters))]
 	}
 	return string(b)
 }
@@ -25,7 +25,7 @@ func GenerateRandomASCIIString(n int) string {
 		"~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:` "
 	res := make([]byte, n)
 	for i := 0; i < n; i++ {
-		res[i] = chars[rand.Intn(len(chars))]
+		res[i] = chars[rand.IntN(len(chars))]
 	}
 	return string(res)
 }
