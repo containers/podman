@@ -1517,8 +1517,7 @@ The following steps create the user _containers_ and assigns big subuid and subg
 1. Create the user _containers_
    ```
    sudo useradd --comment "Helper user to reserve subuids and subgids for Podman" \
-		--no-create-home \
-                --home-dir / \
+                --no-create-home \
                 --shell /usr/sbin/nologin \
                 containers
    ```
