@@ -252,11 +252,6 @@ function _test_skopeo_credential_sharing() {
 }
 
 @test "podman login - shares credentials with skopeo - default auth file" {
-    if is_rootless; then
-        if [ -z "${XDG_RUNTIME_DIR}" ]; then
-            skip "skopeo does not match podman when XDG_RUNTIME_DIR unset; #823"
-        fi
-    fi
     _test_skopeo_credential_sharing
 }
 

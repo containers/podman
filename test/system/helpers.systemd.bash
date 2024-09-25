@@ -3,13 +3,6 @@
 # BATS helpers for systemd-related functionality
 #
 
-# podman initializes this if unset, but systemctl doesn't
-if [ -z "$XDG_RUNTIME_DIR" ]; then
-    if is_rootless; then
-        export XDG_RUNTIME_DIR=/run/user/$(id -u)
-    fi
-fi
-
 # For tests which write systemd unit files
 UNIT_DIR="/run/systemd/system"
 _DASHUSER=
