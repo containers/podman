@@ -197,7 +197,13 @@ func (s *APIServer) Serve() error {
 	s.setupPprof()
 
 	if err := shutdown.Register("service", func(sig os.Signal) error {
-		return s.Shutdown(true)
+		err := s.Shutdown(true)
+		if err == nil {
+			// For `systemctl stop podman.service` support, exit code should be 0
+			// but only if we did indeed gracefully shutdown
+			shutdown.SetExitCode(0)
+		}
+		return err
 	}); err != nil {
 		return err
 	}
