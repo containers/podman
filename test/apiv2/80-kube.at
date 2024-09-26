@@ -78,8 +78,6 @@ t DELETE libpod/play/kube $YAML 200 \
 
 rm -rf $TMPD
 
-# vim: filetype=sh
-
 # check kube play works when uploading body as a tar
 TMPD=$(mktemp -d podman-apiv2-test-kube.XXXXXX)
 KUBE_PLAY_TAR="${TMPD}/kubeplay.tar"
@@ -91,7 +89,7 @@ metadata:
 spec:
   containers:
     - name: container
-      image: docker.io/library/nginx:latest
+      image: ${IMAGE}
 EOF
 # Tar the content of the tmp folder
 tar --format=posix -C $TMPD -cvf ${KUBE_PLAY_TAR} play.yaml &> /dev/null
@@ -123,7 +121,7 @@ spec:
 EOF
 mkdir $TMPD/barfoo
 cat > $TMPD/barfoo/Containerfile << EOF
-FROM docker.io/library/nginx:latest
+FROM ${IMAGE}
 LABEL bar="${LABEL_VALUE}"
 EOF
 
@@ -147,3 +145,5 @@ t DELETE "libpod/kube/play" $TMPD/play.yaml 200 \
    .RmReport[0].Id~[0-9a-f]\\{64\\}
 
 rm -rf $TMPD
+
+# vim: filetype=sh
