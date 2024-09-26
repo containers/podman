@@ -16,14 +16,11 @@ function setup_file() {
 }
 
 function _check_pause_process() {
-    pause_pid=
-    if [[ -z "$pause_pid_file" ]]; then
-        return
-    fi
-
+    # do not mark this variable as local; our caller expects it
+    pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
     test -e $pause_pid_file || die "Pause pid file $pause_pid_file missing"
 
-    # do not mark this variable as local; our parent expects it
+    # do not mark this variable as local; our caller expects it
     pause_pid=$(<$pause_pid_file)
     test -d /proc/$pause_pid || die "Pause process $pause_pid (from $pause_pid_file) is not running"
 
@@ -43,13 +40,6 @@ function _check_pause_process() {
     # To prevent any issues we should only ever have a single pause process running,
     # regardless of any --root/-runroot/--tmpdir values.
 
-    # System tests can execute in contexts without XDG; in those, we have to
-    # skip the pause-pid-file checks.
-    local pause_pid_file
-    if [[ -n "$XDG_RUNTIME_DIR" ]]; then
-        pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
-    fi
-
     # Baseline: get the current userns (one will be created on demand)
     local getns="unshare readlink /proc/self/ns/user"
     run_podman $getns
@@ -62,12 +52,10 @@ function _check_pause_process() {
     run_podman system migrate
 
     # After migrate, there must be no pause process
-    if [[ -n "$pause_pid_file" ]]; then
-        test -e $pause_pid_file && die "Pause pid file $pause_pid_file still exists, even after podman system migrate"
+    test -e $pause_pid_file && die "Pause pid file $pause_pid_file still exists, even after podman system migrate"
 
-        run kill -0 $pause_pid
-        test $status -eq 0 && die "Pause process $pause_pid is still running even after podman system migrate"
-    fi
+    run kill -0 $pause_pid
+    test $status -eq 0 && die "Pause process $pause_pid is still running even after podman system migrate"
 
     run_podman $(podman_isolation_opts ${PODMAN_TMPDIR}) $getns
     tmpdir_userns="$output"
@@ -109,13 +97,6 @@ function _check_pause_process() {
 @test "rootless reexec with sig-proxy when rejoining userns from container" {
     skip_if_not_rootless "pause process is only used as rootless"
     skip_if_remote "unshare not supported via remote"
-
-    # System tests can execute in contexts without XDG; in those, we have to
-    # skip the pause-pid-file checks.
-    if [[ -z "$XDG_RUNTIME_DIR" ]]; then
-        skip "\$XDG_RUNTIME_DIR not defined"
-    fi
-    local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
 
     # First let's run a container in the background to keep the userns active
     local cname1=c1_$(random_string)

@@ -41,6 +41,16 @@ if [ $(id -u) -eq 0 ]; then
     _LOG_PROMPT='#'
 fi
 
+# Invocations via su may not set this. Although all container tools make
+# an effort to determine a default if unset, there are corner cases (rootless
+# namespace preservation) that run before the default is set.
+# For purposes of system tests (CI, gating, OpenQA) we force a default early.
+# As of September 2024 we no longer test the default-setting logic in the
+# tools.
+if [[ -z "$XDG_RUNTIME_DIR" ]] && [[ "$(id -u)" -ne 0 ]]; then
+    export XDG_RUNTIME_DIR=/run/user/$(id -u)
+fi
+
 # Used in helpers.network, needed here in teardown
 PORT_LOCK_DIR=$BATS_SUITE_TMPDIR/reserved-ports
 
@@ -117,21 +127,6 @@ function _prefetch() {
     cmd="skopeo copy --all oci-archive:$cachepath containers-storage:$want"
     echo "$_LOG_PROMPT $cmd"
     $cmd
-}
-
-
-# Wrapper for skopeo, because skopeo doesn't work rootless if $XDG is unset
-# (as it is in RHEL gating): it defaults to /run/containers/<uid>, which
-# of course is a root-only dir, hence fails with permission denied.
-# -- https://github.com/containers/skopeo/issues/823
-function skopeo() {
-    local xdg=${XDG_RUNTIME_DIR}
-    if [ -z "$xdg" ]; then
-        if is_rootless; then
-            xdg=/run/user/$(id -u)
-        fi
-    fi
-    XDG_RUNTIME_DIR=${xdg} command skopeo "$@"
 }
 
 # END   tools for fetching & caching test images
