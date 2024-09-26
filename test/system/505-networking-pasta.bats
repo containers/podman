@@ -169,10 +169,6 @@ function pasta_test_do() {
 
     # socat options for first <address> in server ("LISTEN" address types),
     local bind="${proto_upper}${ip_ver}-LISTEN:\${port}"
-    # For IPv6 via tap, we can pick either link-local or global unicast
-    if [ ${ip_ver} -eq 4 ] || [ ${iftype} = "loopback" ]; then
-        bind="${bind},bind=[${addr}]"
-    fi
     if [ "${proto}" = "udp" ]; then
         bind="${bind},null-eof"
     fi
