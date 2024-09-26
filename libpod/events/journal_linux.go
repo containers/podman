@@ -65,8 +65,13 @@ func (e EventJournalD) Write(ee Event) error {
 			}
 			m["PODMAN_LABELS"] = string(b)
 		}
-		m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
-
+		if ee.Status == HealthStatus {
+			m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
+			if ee.HealthLog != "" {
+				m["PODMAN_HEALTH_LOG"] = ee.HealthLog
+			}
+			m["PODMAN_HEALTH_FAILING_STREAK"] = strconv.Itoa(ee.HealthFailingStreak)
+		}
 		if len(ee.Details.ContainerInspectData) > 0 {
 			m["PODMAN_CONTAINER_INSPECT_DATA"] = ee.Details.ContainerInspectData
 		}
@@ -225,6 +230,15 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 			}
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
+		if log, ok := entry.Fields["PODMAN_HEALTH_LOG"]; ok {
+			newEvent.HealthLog = log
+		}
+		if FailingStreak, ok := entry.Fields["PODMAN_HEALTH_FAILING_STREAK"]; ok {
+			FailingStreakInt, err := strconv.Atoi(FailingStreak)
+			if err == nil {
+				newEvent.HealthFailingStreak = FailingStreakInt
+			}
+		}
 		newEvent.Details.ContainerInspectData = entry.Fields["PODMAN_CONTAINER_INSPECT_DATA"]
 	case Network:
 		newEvent.ID = entry.Fields["PODMAN_ID"]

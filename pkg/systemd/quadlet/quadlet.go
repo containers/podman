@@ -93,6 +93,9 @@ const (
 	KeyGroupAdd              = "GroupAdd"
 	KeyHealthCmd             = "HealthCmd"
 	KeyHealthInterval        = "HealthInterval"
+	KeyHealthLogDestination  = "HealthLogDestination"
+	KeyHealthMaxLogCount     = "HealthMaxLogCount"
+	KeyHealthMaxLogSize      = "HealthMaxLogSize"
 	KeyHealthOnFailure       = "HealthOnFailure"
 	KeyHealthRetries         = "HealthRetries"
 	KeyHealthStartPeriod     = "HealthStartPeriod"
@@ -214,6 +217,9 @@ var (
 		KeyHealthCmd:             true,
 		KeyHealthInterval:        true,
 		KeyHealthOnFailure:       true,
+		KeyHealthLogDestination:  true,
+		KeyHealthMaxLogCount:     true,
+		KeyHealthMaxLogSize:      true,
 		KeyHealthRetries:         true,
 		KeyHealthStartPeriod:     true,
 		KeyHealthStartupCmd:      true,
@@ -2065,6 +2071,9 @@ func handleHealth(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 		{KeyHealthCmd, "cmd"},
 		{KeyHealthInterval, "interval"},
 		{KeyHealthOnFailure, "on-failure"},
+		{KeyHealthLogDestination, "log-destination"},
+		{KeyHealthMaxLogCount, "max-log-count"},
+		{KeyHealthMaxLogSize, "max-log-size"},
 		{KeyHealthRetries, "retries"},
 		{KeyHealthStartPeriod, "start-period"},
 		{KeyHealthTimeout, "timeout"},

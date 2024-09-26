@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/containers/podman/v5/libpod"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -41,6 +42,9 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		ContainerSecurityConfig: specgen.ContainerSecurityConfig{
 			Umask:      conf.Containers.Umask,
 			Privileged: &privileged,
+		},
+		ContainerHealthCheckConfig: specgen.ContainerHealthCheckConfig{
+			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
 		},
 	}
 
