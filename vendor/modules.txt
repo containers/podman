@@ -806,7 +806,7 @@ github.com/moby/docker-image-spec/specs-go/v1
 # github.com/moby/patternmatcher v0.6.0
 ## explicit; go 1.19
 github.com/moby/patternmatcher
-# github.com/moby/sys/capability v0.2.0
+# github.com/moby/sys/capability v0.3.0
 ## explicit; go 1.21
 github.com/moby/sys/capability
 # github.com/moby/sys/mountinfo v0.7.2

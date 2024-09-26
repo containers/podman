@@ -25,11 +25,6 @@ const (
 	linuxCapVer3 = 0x20080522
 )
 
-// LastCap returns highest valid capability of the running kernel.
-func LastCap() (Cap, error) {
-	return lastCap()
-}
-
 var lastCap = sync.OnceValues(func() (Cap, error) {
 	f, err := os.Open("/proc/sys/kernel/cap_last_cap")
 	if err != nil {
