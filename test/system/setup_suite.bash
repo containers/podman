@@ -45,6 +45,8 @@ function teardown_suite() {
     stop_registry
     local exit_code=$?
 
+    run_podman '?' rmi $(pause_image)
+
     # At end, if all tests have passed, check for leaks.
     # Don't do this if there were errors: failing tests may not clean up.
     if [[ -e "$BATS_SUITE_TMPDIR/all-tests-passed" ]]; then
