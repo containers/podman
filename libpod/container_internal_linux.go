@@ -19,6 +19,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -66,6 +67,9 @@ func (c *Container) prepare() error {
 		mountPoint                      string
 		tmpStateLock                    sync.Mutex
 	)
+
+	shutdown.Inhibit()
+	defer shutdown.Uninhibit()
 
 	wg.Add(2)
 
