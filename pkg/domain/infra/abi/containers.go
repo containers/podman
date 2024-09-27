@@ -1421,7 +1421,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			if errors.Is(err, types.ErrContainerUnknown) || errors.Is(err, types.ErrLayerUnknown) || errors.Is(err, define.ErrCtrExists) {
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("check if storage container is mounted: %w", err)
 		}
 
 		var name string
@@ -1449,7 +1449,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 				errors.Is(err, define.ErrCtrRemoved) {
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("check if container is mounted: %w", err)
 		}
 
 		if mounted {

@@ -1412,13 +1412,13 @@ func (r *Runtime) IsStorageContainerMounted(id string) (bool, string, error) {
 
 	mountCnt, err := r.storageService.MountedContainerImage(id)
 	if err != nil {
-		return false, "", err
+		return false, "", fmt.Errorf("get mount count of container: %w", err)
 	}
 	mounted := mountCnt > 0
 	if mounted {
 		path, err = r.storageService.GetMountpoint(id)
 		if err != nil {
-			return false, "", err
+			return false, "", fmt.Errorf("get container mount point: %w", err)
 		}
 	}
 	return mounted, path, nil
