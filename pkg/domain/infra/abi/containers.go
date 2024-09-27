@@ -1418,7 +1418,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			// This can only happen in a narrow race because we first create the storage
 			// container and then the libpod container so the StorageContainers() call
 			// above would need to happen in that interval.
-			if errors.Is(err, types.ErrContainerUnknown) || errors.Is(err, define.ErrCtrExists) {
+			if errors.Is(err, types.ErrContainerUnknown) || errors.Is(err, types.ErrLayerUnknown) || errors.Is(err, define.ErrCtrExists) {
 				continue
 			}
 			return nil, err
