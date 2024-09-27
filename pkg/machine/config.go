@@ -20,10 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	DefaultMachineName string = "podman-machine-default"
-	apiUpTimeout              = 20 * time.Second
-)
+const apiUpTimeout = 20 * time.Second
 
 var (
 	ForwarderBinaryName = "gvproxy"

@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"net"
 	"net/url"
-	"os"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/sirupsen/logrus"
+	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
 const LocalhostIP = "127.0.0.1"
@@ -76,46 +75,74 @@ func UpdateConnectionPairPort(name string, port, uid int, remoteUsername string,
 // Returns true if it modified the default
 func UpdateConnectionIfDefault(rootful bool, name, rootfulName string) error {
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		if name == cfg.Connection.Default && rootful {
-			cfg.Connection.Default = rootfulName
-		} else if rootfulName == cfg.Connection.Default && !rootful {
-			cfg.Connection.Default = name
-		}
+		updateConnection(cfg, rootful, name, rootfulName)
 		return nil
 	})
 }
 
-func RemoveConnections(names ...string) error {
-	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
-		for _, name := range names {
-			if _, ok := cfg.Connection.Connections[name]; ok {
-				delete(cfg.Connection.Connections, name)
-			} else {
-				return fmt.Errorf("unable to find connection named %q", name)
-			}
-
-			if cfg.Connection.Default == name {
-				cfg.Connection.Default = ""
-			}
-		}
-		for service := range cfg.Connection.Connections {
-			cfg.Connection.Default = service
-			break
-		}
-		return nil
-	})
+func updateConnection(cfg *config.ConnectionsFile, rootful bool, name, rootfulName string) {
+	if name == cfg.Connection.Default && rootful {
+		cfg.Connection.Default = rootfulName
+	} else if rootfulName == cfg.Connection.Default && !rootful {
+		cfg.Connection.Default = name
+	}
 }
 
-// removeFilesAndConnections removes any files and connections with the given names
-func RemoveFilesAndConnections(files []string, names ...string) {
-	for _, f := range files {
-		if err := os.Remove(f); err != nil && !errors.Is(err, os.ErrNotExist) {
-			logrus.Error(err)
+func RemoveConnections(machines map[string]bool, names ...string) error {
+	var dest config.Destination
+	var service string
+
+	if err := config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
+		err := setNewDefaultConnection(cfg, &dest, &service, names...)
+		if err != nil {
+			return err
+		}
+
+		rootful, ok := machines[service]
+		if dest.IsMachine && ok {
+			updateConnection(cfg, rootful, service, service+"-root")
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// setNewDefaultConnection iterates through the available system connections and
+// sets the first available connection as the new default
+func setNewDefaultConnection(cfg *config.ConnectionsFile, dest *config.Destination, service *string, names ...string) error {
+	// delete the connection associated with the names and if that connection is
+	// the default, reset the default connection
+	for _, name := range names {
+		if _, ok := cfg.Connection.Connections[name]; ok {
+			delete(cfg.Connection.Connections, name)
+		} else {
+			return fmt.Errorf("unable to find connection named %q", name)
+		}
+
+		if cfg.Connection.Default == name {
+			cfg.Connection.Default = ""
 		}
 	}
-	if err := RemoveConnections(names...); err != nil {
-		logrus.Error(err)
+
+	// If there is a podman-machine-default system connection, immediately set that as the new default
+	if c, ok := cfg.Connection.Connections[define.DefaultMachineName]; ok {
+		cfg.Connection.Default = define.DefaultMachineName
+		*dest = c
+		*service = define.DefaultMachineName
+		return nil
 	}
+
+	// set the new default system connection to the first in the map
+	for con, d := range cfg.Connection.Connections {
+		cfg.Connection.Default = con
+		*dest = d
+		*service = con
+		break
+	}
+	return nil
 }
 
 // makeSSHURL creates a URL from the given input

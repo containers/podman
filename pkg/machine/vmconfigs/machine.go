@@ -153,7 +153,7 @@ func (mc *MachineConfig) updateLastBoot() error { //nolint:unused
 	return mc.Write()
 }
 
-func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() error, error) {
+func (mc *MachineConfig) Remove(machines map[string]bool, saveIgnition, saveImage bool) ([]string, func() error, error) {
 	ignitionFile, err := mc.IgnitionFile()
 	if err != nil {
 		return nil, nil, err
@@ -195,7 +195,7 @@ func (mc *MachineConfig) Remove(saveIgnition, saveImage bool) ([]string, func() 
 
 	mcRemove := func() error {
 		var errs []error
-		if err := connection.RemoveConnections(mc.Name, mc.Name+"-root"); err != nil {
+		if err := connection.RemoveConnections(machines, mc.Name, mc.Name+"-root"); err != nil {
 			errs = append(errs, err)
 		}
 

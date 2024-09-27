@@ -11,7 +11,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
-	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -34,7 +33,7 @@ var (
 
 	initOpts           = define.InitOptions{}
 	initOptionalFlags  = InitOptionalFlags{}
-	defaultMachineName = machine.DefaultMachineName
+	defaultMachineName = define.DefaultMachineName
 	now                bool
 )
 

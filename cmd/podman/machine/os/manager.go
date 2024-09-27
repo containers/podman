@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	machineconfig "github.com/containers/common/pkg/machine"
-	pkgMachine "github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	pkgOS "github.com/containers/podman/v5/pkg/machine/os"
 	"github.com/containers/podman/v5/pkg/machine/provider"
@@ -47,7 +47,7 @@ func guestOSManager() (pkgOS.Manager, error) {
 func machineOSManager(opts ManagerOpts, _ vmconfigs.VMProvider) (pkgOS.Manager, error) {
 	vmName := opts.VMName
 	if opts.VMName == "" {
-		vmName = pkgMachine.DefaultMachineName
+		vmName = define.DefaultMachineName
 	}
 	p, err := provider.Get()
 	if err != nil {

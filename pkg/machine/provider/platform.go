@@ -2,6 +2,8 @@ package provider
 
 import (
 	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/env"
+	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
 func InstalledProviders() ([]define.VMType, error) {
@@ -17,4 +19,27 @@ func InstalledProviders() ([]define.VMType, error) {
 		}
 	}
 	return installedTypes, nil
+}
+
+// GetAllMachinesAndRootfulness collects all podman machine configs and returns
+// a map in the format: { machineName: isRootful }
+func GetAllMachinesAndRootfulness() (map[string]bool, error) {
+	providers := GetAll()
+	machines := map[string]bool{}
+	for _, provider := range providers {
+		dirs, err := env.GetMachineDirs(provider.VMType())
+		if err != nil {
+			return nil, err
+		}
+		providerMachines, err := vmconfigs.LoadMachinesInDir(dirs)
+		if err != nil {
+			return nil, err
+		}
+
+		for n, m := range providerMachines {
+			machines[n] = m.HostUser.Rootful
+		}
+	}
+
+	return machines, nil
 }
