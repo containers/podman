@@ -297,6 +297,13 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 
 	postConfigureNetNS := needPostConfigureNetNS(s)
 
+	// Network
+	portMappings, expose, err := createPortMappings(s, imageData)
+	if err != nil {
+		return nil, err
+	}
+	toReturn = append(toReturn, libpod.WithExposedPorts(expose))
+
 	switch s.NetNS.NSMode {
 	case specgen.FromPod:
 		if pod == nil || infraCtr == nil {
@@ -316,28 +323,15 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			toReturn = append(toReturn, libpod.WithNetNSFrom(netCtr))
 		}
 	case specgen.Slirp:
-		portMappings, expose, err := createPortMappings(s, imageData)
-		if err != nil {
-			return nil, err
-		}
 		val := "slirp4netns"
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, val, nil))
 	case specgen.Pasta:
-		portMappings, expose, err := createPortMappings(s, imageData)
-		if err != nil {
-			return nil, err
-		}
 		val := "pasta"
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, val, nil))
 	case specgen.Bridge, specgen.Private, specgen.Default:
-		portMappings, expose, err := createPortMappings(s, imageData)
-		if err != nil {
-			return nil, err
-		}
-
 		rtConfig, err := rt.GetConfigNoCopy()
 		if err != nil {
 			return nil, err
@@ -364,7 +358,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 			s.Networks[rtConfig.Network.DefaultNetwork] = opts
 			delete(s.Networks, "default")
 		}
-		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, "bridge", s.Networks))
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, postConfigureNetNS, "bridge", s.Networks))
 	}
 
 	if s.UseImageHosts != nil && *s.UseImageHosts {
