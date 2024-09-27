@@ -220,13 +220,8 @@ func writeHijackHeader(r *http.Request, conn io.Writer, tty bool) {
 	}
 }
 
-// Convert OCICNI port bindings into Inspect-formatted port bindings.
+// Generate inspect-formatted port mappings from the format used in our config file
 func makeInspectPortBindings(bindings []types.PortMapping) map[string][]define.InspectHostPort {
-	return makeInspectPorts(bindings, nil)
-}
-
-// Convert OCICNI port bindings into Inspect-formatted port bindings with exposed, but not bound ports set to nil.
-func makeInspectPorts(bindings []types.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
 	portBindings := make(map[string][]define.InspectHostPort)
 	for _, port := range bindings {
 		protocols := strings.Split(port.Protocol, ",")
@@ -242,7 +237,12 @@ func makeInspectPorts(bindings []types.PortMapping, expose map[uint16][]string) 
 			}
 		}
 	}
-	// add exposed ports without host port information to match docker
+
+	return portBindings
+}
+
+// Add exposed ports to inspect port bindings. These must be done on a per-container basis, not per-netns basis.
+func addInspectPortsExpose(expose map[uint16][]string, portBindings map[string][]define.InspectHostPort) {
 	for port, protocols := range expose {
 		for _, protocol := range protocols {
 			key := fmt.Sprintf("%d/%s", port, protocol)
@@ -251,7 +251,6 @@ func makeInspectPorts(bindings []types.PortMapping, expose map[uint16][]string) 
 			}
 		}
 	}
-	return portBindings
 }
 
 // Write a given string to a new file at a given path.
