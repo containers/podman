@@ -78,4 +78,72 @@ t DELETE libpod/play/kube $YAML 200 \
 
 rm -rf $TMPD
 
+# check kube play works when uploading body as a tar
+TMPD=$(mktemp -d podman-apiv2-test-kube.XXXXXX)
+KUBE_PLAY_TAR="${TMPD}/kubeplay.tar"
+cat > $TMPD/play.yaml << EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-tar-remote
+spec:
+  containers:
+    - name: container
+      image: ${IMAGE}
+EOF
+# Tar the content of the tmp folder
+tar --format=posix -C $TMPD -cvf ${KUBE_PLAY_TAR} play.yaml &> /dev/null
+t POST "libpod/play/kube" $KUBE_PLAY_TAR 200 \
+   .Pods[0].ID~[0-9a-f]\\{64\\} \
+   .Pods[0].ContainerErrors=null \
+   .Pods[0].Containers[0]~[0-9a-f]\\{64\\}
+# Cleanup
+t DELETE libpod/kube/play $TMPD/play.yaml 200 \
+  .StopReport[0].Id~[0-9a-f]\\{64\\} \
+  .RmReport[0].Id~[0-9a-f]\\{64\\}
+rm -rf $TMPD
+
+# check kube play is capable of building the image when uploading body as a tar
+
+TMPD=$(mktemp -d podman-apiv2-test-kube-build.XXXXXX)
+KUBE_PLAY_TAR="${TMPD}/kubeplay.tar"
+# Generate an unique label value
+LABEL_VALUE="foo-$(date +%s)"
+cat > $TMPD/play.yaml << EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: demo-build-remote
+spec:
+  containers:
+    - name: container
+      image: barfoo
+EOF
+mkdir $TMPD/barfoo
+cat > $TMPD/barfoo/Containerfile << EOF
+FROM ${IMAGE}
+LABEL bar="${LABEL_VALUE}"
+EOF
+
+tar --format=posix -C $TMPD -cvf ${KUBE_PLAY_TAR} . &> /dev/null
+
+t POST "libpod/play/kube?build=true" $KUBE_PLAY_TAR 200 \
+   .Pods[0].ID~[0-9a-f]\\{64\\} \
+   .Pods[0].ContainerErrors=null \
+   .Pods[0].Containers[0]~[0-9a-f]\\{64\\}
+
+# Get the container id created
+cid=$(jq -r '.Pods[0].Containers[0]' <<<"$output")
+
+# Ensure the image build has the label defined in the Containerfile
+t GET containers/$cid/json 200 \
+    .Config.Labels.bar="${LABEL_VALUE}"
+
+# Cleanup
+t DELETE "libpod/kube/play" $TMPD/play.yaml 200 \
+   .StopReport[0].Id~[0-9a-f]\\{64\\} \
+   .RmReport[0].Id~[0-9a-f]\\{64\\}
+
+rm -rf $TMPD
+
 # vim: filetype=sh
