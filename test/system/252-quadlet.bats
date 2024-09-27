@@ -221,8 +221,6 @@ EOF
 }
 
 @test "quadlet conflict names" {
-    skip "FIXME: #24047, temporary skip because this is an intense flake"
-
     # If two directories in the search have files with the same name, quadlet should
     # only process the first name
     dir1=$PODMAN_TMPDIR/$(random_string)
@@ -232,13 +230,13 @@ EOF
 
     cat > $dir1/$quadlet_file <<EOF
 [Container]
-Image=$IMAGE
+Image=quay.io/libpod/this-is-the-one:wewant
 Notify=yes
 EOF
 
     cat > $dir2/$quadlet_file <<EOF
 [Container]
-Image=$IMAGE
+Image=quay.io/libpod/bad-bad-bad:nonono
 Notify=no
 EOF
     QUADLET_UNIT_DIRS="$dir1:$dir2" run \
