@@ -204,7 +204,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 	}
 
 	settings := new(define.InspectNetworkSettings)
-	settings.Ports = makeInspectPorts(c.config.PortMappings, c.config.ExposedPorts)
+	settings.Ports = makeInspectPortBindings(c.config.PortMappings)
 
 	networks, err := c.networks()
 	if err != nil {
