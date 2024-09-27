@@ -211,6 +211,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		return nil, err
 	}
 	data.NetworkSettings = networkConfig
+	addInspectPortsExpose(c.config.ExposedPorts, data.NetworkSettings.Ports)
 
 	inspectConfig := c.generateInspectContainerConfig(ctrSpec)
 	data.Config = inspectConfig
