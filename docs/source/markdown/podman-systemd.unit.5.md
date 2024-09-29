@@ -205,10 +205,13 @@ Image=quay.io/centos/centos
 
 ### Relative paths
 
-In order to support Systemd specifiers, Quadlet does not resolve relative paths that start with `%`.
-To resolve such a path, prepend it with `./`.
+In order to support Systemd specifiers, Quadlet does not resolve relative paths
+that start with `%`.  To resolve such a path, prepend it with `./`.
 
-For example, instead of `EnvironmentFile=%n/env` use `EnvironmentFile=./%n/env`
+For example, instead of `EnvironmentFile=%n/env` use
+`EnvironmentFile=./%n/env`. Keep in mind that unit files are generated in
+`$XDG_RUNTIME_DIR/systemd/generator` and environmental files will not be copied
+there.
 
 ### Debugging unit files
 
@@ -450,6 +453,7 @@ and can be listed multiple times.
 Use a line-delimited file to set environment variables in the container.
 The path may be absolute or relative to the location of the unit file.
 This key may be used multiple times, and the order persists when passed to `podman run`.
+See *Relative paths* for more information about paths.
 
 ### `EnvironmentHost=`
 
