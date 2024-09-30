@@ -97,6 +97,8 @@ type InspectContainerConfig struct {
 	SdNotifyMode string `json:"sdNotifyMode,omitempty"`
 	// SdNotifySocket is the NOTIFY_SOCKET in use by/configured for the container.
 	SdNotifySocket string `json:"sdNotifySocket,omitempty"`
+	// ExposedPorts includes ports the container has exposed.
+	ExposedPorts map[string]struct{} `json:"ExposedPorts,omitempty"`
 
 	// V4PodmanCompatMarshal indicates that the json marshaller should
 	// use the old v4 inspect format to keep API compatibility.
