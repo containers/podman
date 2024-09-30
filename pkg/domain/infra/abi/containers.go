@@ -1418,10 +1418,10 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 			// This can only happen in a narrow race because we first create the storage
 			// container and then the libpod container so the StorageContainers() call
 			// above would need to happen in that interval.
-			if errors.Is(err, types.ErrContainerUnknown) || errors.Is(err, define.ErrCtrExists) {
+			if errors.Is(err, types.ErrContainerUnknown) || errors.Is(err, types.ErrLayerUnknown) || errors.Is(err, define.ErrCtrExists) {
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("check if storage container is mounted: %w", err)
 		}
 
 		var name string
@@ -1449,7 +1449,7 @@ func (ic *ContainerEngine) ContainerMount(ctx context.Context, nameOrIDs []strin
 				errors.Is(err, define.ErrCtrRemoved) {
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("check if container is mounted: %w", err)
 		}
 
 		if mounted {
