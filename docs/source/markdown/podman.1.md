@@ -101,7 +101,7 @@ Further note that the flag is a root-level flag and must be specified before any
 #### **--network-cmd-path**=*path*
 Path to the `slirp4netns(1)` command binary to use for setting up a slirp4netns network.
 If "" is used, then the binary will first be searched using the `helper_binaries_dir` option in `containers.conf`, and second using the `$PATH` environment variable.
-**Note:** This option is deprecated and will be removed with Podman 5.0. Use the `helper_binaries_dir` option in `containers.conf` instead.
+**Note:** This option is deprecated and will be removed with Podman 6.0. Use the `helper_binaries_dir` option in `containers.conf` instead.
 
 #### **--network-config-dir**=*directory*
 
