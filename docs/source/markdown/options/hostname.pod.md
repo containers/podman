@@ -4,4 +4,7 @@
 ####> are applicable to all of those.
 #### **--hostname**=*name*
 
-Set a hostname to the pod.
+Set the pod's hostname inside all containers.
+
+The given hostname is also added to the `/etc/hosts` file using the container's
+primary IP address (also see the **--add-host** option).

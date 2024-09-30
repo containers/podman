@@ -12,7 +12,9 @@ The operator can identify a container in three ways:
 - UUID short identifier (“f78375b1c487”);
 - Name (“jonah”).
 
-Podman generates a UUID for each container, and if a name is not assigned
-to the container with **--name** then it generates a random
-string name. The name can be useful as a more human-friendly way to identify containers.
-This works for both background and foreground containers.
+Podman generates a UUID for each container, and if no name is assigned to the
+container using **--name**, Podman generates a random string name. The name can
+be useful as a more human-friendly way to identify containers. This works for
+both background and foreground containers. The container's name is also added
+to the `/etc/hosts` file using the container's primary IP address (also see the
+**--add-host** option).
