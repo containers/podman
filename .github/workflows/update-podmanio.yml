@@ -12,7 +12,7 @@ on:
 jobs:
   bump:
     name: Bump
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Get version
         id: getversion
