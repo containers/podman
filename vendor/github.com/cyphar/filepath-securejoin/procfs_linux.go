@@ -54,33 +54,26 @@ func verifyProcRoot(procRoot *os.File) error {
 	return nil
 }
 
-var (
-	hasNewMountApiBool bool
-	hasNewMountApiOnce sync.Once
-)
-
-func hasNewMountApi() bool {
-	hasNewMountApiOnce.Do(func() {
-		// All of the pieces of the new mount API we use (fsopen, fsconfig,
-		// fsmount, open_tree) were added together in Linux 5.1[1,2], so we can
-		// just check for one of the syscalls and the others should also be
-		// available.
-		//
-		// Just try to use open_tree(2) to open a file without OPEN_TREE_CLONE.
-		// This is equivalent to openat(2), but tells us if open_tree is
-		// available (and thus all of the other basic new mount API syscalls).
-		// open_tree(2) is most light-weight syscall to test here.
-		//
-		// [1]: merge commit 400913252d09
-		// [2]: <https://lore.kernel.org/lkml/153754740781.17872.7869536526927736855.stgit@warthog.procyon.org.uk/>
-		fd, err := unix.OpenTree(-int(unix.EBADF), "/", unix.OPEN_TREE_CLOEXEC)
-		if err == nil {
-			hasNewMountApiBool = true
-			_ = unix.Close(fd)
-		}
-	})
-	return hasNewMountApiBool
-}
+var hasNewMountApi = sync.OnceValue(func() bool {
+	// All of the pieces of the new mount API we use (fsopen, fsconfig,
+	// fsmount, open_tree) were added together in Linux 5.1[1,2], so we can
+	// just check for one of the syscalls and the others should also be
+	// available.
+	//
+	// Just try to use open_tree(2) to open a file without OPEN_TREE_CLONE.
+	// This is equivalent to openat(2), but tells us if open_tree is
+	// available (and thus all of the other basic new mount API syscalls).
+	// open_tree(2) is most light-weight syscall to test here.
+	//
+	// [1]: merge commit 400913252d09
+	// [2]: <https://lore.kernel.org/lkml/153754740781.17872.7869536526927736855.stgit@warthog.procyon.org.uk/>
+	fd, err := unix.OpenTree(-int(unix.EBADF), "/", unix.OPEN_TREE_CLOEXEC)
+	if err != nil {
+		return false
+	}
+	_ = unix.Close(fd)
+	return true
+})
 
 func fsopen(fsName string, flags int) (*os.File, error) {
 	// Make sure we always set O_CLOEXEC.
@@ -172,14 +165,6 @@ func privateProcRoot() (*os.File, error) {
 	return procRoot, err
 }
 
-var (
-	procRootHandle *os.File
-	procRootError  error
-	procRootOnce   sync.Once
-
-	errUnsafeProcfs = errors.New("unsafe procfs detected")
-)
-
 func unsafeHostProcRoot() (_ *os.File, Err error) {
 	procRoot, err := os.OpenFile("/proc", unix.O_PATH|unix.O_NOFOLLOW|unix.O_DIRECTORY|unix.O_CLOEXEC, 0)
 	if err != nil {
@@ -207,17 +192,15 @@ func doGetProcRoot() (*os.File, error) {
 	return procRoot, err
 }
 
-func getProcRoot() (*os.File, error) {
-	procRootOnce.Do(func() {
-		procRootHandle, procRootError = doGetProcRoot()
-	})
-	return procRootHandle, procRootError
-}
+var getProcRoot = sync.OnceValues(func() (*os.File, error) {
+	return doGetProcRoot()
+})
 
-var (
-	haveProcThreadSelf     bool
-	haveProcThreadSelfOnce sync.Once
-)
+var hasProcThreadSelf = sync.OnceValue(func() bool {
+	return unix.Access("/proc/thread-self/", unix.F_OK) == nil
+})
+
+var errUnsafeProcfs = errors.New("unsafe procfs detected")
 
 type procThreadSelfCloser func()
 
@@ -230,13 +213,6 @@ type procThreadSelfCloser func()
 // This is similar to ProcThreadSelf from runc, but with extra hardening
 // applied and using *os.File.
 func procThreadSelf(procRoot *os.File, subpath string) (_ *os.File, _ procThreadSelfCloser, Err error) {
-	haveProcThreadSelfOnce.Do(func() {
-		// If the kernel doesn't support thread-self, it doesn't matter which
-		// /proc handle we use.
-		_, err := fstatatFile(procRoot, "thread-self", unix.AT_SYMLINK_NOFOLLOW)
-		haveProcThreadSelf = (err == nil)
-	})
-
 	// We need to lock our thread until the caller is done with the handle
 	// because between getting the handle and using it we could get interrupted
 	// by the Go runtime and hit the case where the underlying thread is
@@ -251,7 +227,7 @@ func procThreadSelf(procRoot *os.File, subpath string) (_ *os.File, _ procThread
 
 	// Figure out what prefix we want to use.
 	threadSelf := "thread-self/"
-	if !haveProcThreadSelf || testingForceProcSelfTask() {
+	if !hasProcThreadSelf() || testingForceProcSelfTask() {
 		/// Pre-3.17 kernels don't have /proc/thread-self, so do it manually.
 		threadSelf = "self/task/" + strconv.Itoa(unix.Gettid()) + "/"
 		if _, err := fstatatFile(procRoot, threadSelf, unix.AT_SYMLINK_NOFOLLOW); err != nil || testingForceProcSelf() {
@@ -275,7 +251,7 @@ func procThreadSelf(procRoot *os.File, subpath string) (_ *os.File, _ procThread
 		// absolutely sure we are operating on a clean /proc handle that
 		// doesn't have any cheeky overmounts that could trick us (including
 		// symlink mounts on top of /proc/thread-self). RESOLVE_BENEATH isn't
-		// stricly needed, but just use it since we have it.
+		// strictly needed, but just use it since we have it.
 		//
 		// NOTE: /proc/self is technically a magic-link (the contents of the
 		//       symlink are generated dynamically), but it doesn't use
@@ -313,24 +289,16 @@ func procThreadSelf(procRoot *os.File, subpath string) (_ *os.File, _ procThread
 	return handle, runtime.UnlockOSThread, nil
 }
 
-var (
-	hasStatxMountIdBool bool
-	hasStatxMountIdOnce sync.Once
-)
-
-func hasStatxMountId() bool {
-	hasStatxMountIdOnce.Do(func() {
-		var (
-			stx unix.Statx_t
-			// We don't care which mount ID we get. The kernel will give us the
-			// unique one if it is supported.
-			wantStxMask uint32 = unix.STATX_MNT_ID_UNIQUE | unix.STATX_MNT_ID
-		)
-		err := unix.Statx(-int(unix.EBADF), "/", 0, int(wantStxMask), &stx)
-		hasStatxMountIdBool = (err == nil && (stx.Mask&wantStxMask != 0))
-	})
-	return hasStatxMountIdBool
-}
+var hasStatxMountId = sync.OnceValue(func() bool {
+	var (
+		stx unix.Statx_t
+		// We don't care which mount ID we get. The kernel will give us the
+		// unique one if it is supported.
+		wantStxMask uint32 = unix.STATX_MNT_ID_UNIQUE | unix.STATX_MNT_ID
+	)
+	err := unix.Statx(-int(unix.EBADF), "/", 0, int(wantStxMask), &stx)
+	return err == nil && stx.Mask&wantStxMask != 0
+})
 
 func getMountId(dir *os.File, path string) (uint64, error) {
 	// If we don't have statx(STATX_MNT_ID*) support, we can't do anything.
@@ -441,22 +409,6 @@ func isDeadInode(file *os.File) error {
 		return fmt.Errorf("%w %q", err, file.Name())
 	}
 	return nil
-}
-
-func getUmask() int {
-	// umask is a per-thread property, but it is inherited by children, so we
-	// need to lock our OS thread to make sure that no other goroutine runs in
-	// this thread and no goroutines are spawned from this thread until we
-	// revert to the old umask.
-	//
-	// We could parse /proc/self/status to avoid this get-set problem, but
-	// /proc/thread-self requires LockOSThread anyway, so there's no real
-	// benefit over just using umask(2).
-	runtime.LockOSThread()
-	umask := unix.Umask(0)
-	unix.Umask(umask)
-	runtime.UnlockOSThread()
-	return umask
 }
 
 func checkProcSelfFdPath(path string, file *os.File) error {

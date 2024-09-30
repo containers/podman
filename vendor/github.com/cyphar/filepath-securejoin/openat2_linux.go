@@ -13,34 +13,21 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"testing"
 
 	"golang.org/x/sys/unix"
 )
 
-var (
-	hasOpenat2Bool bool
-	hasOpenat2Once sync.Once
-
-	testingForceHasOpenat2 *bool
-)
-
-func hasOpenat2() bool {
-	if testing.Testing() && testingForceHasOpenat2 != nil {
-		return *testingForceHasOpenat2
-	}
-	hasOpenat2Once.Do(func() {
-		fd, err := unix.Openat2(unix.AT_FDCWD, ".", &unix.OpenHow{
-			Flags:   unix.O_PATH | unix.O_CLOEXEC,
-			Resolve: unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_IN_ROOT,
-		})
-		if err == nil {
-			hasOpenat2Bool = true
-			_ = unix.Close(fd)
-		}
+var hasOpenat2 = sync.OnceValue(func() bool {
+	fd, err := unix.Openat2(unix.AT_FDCWD, ".", &unix.OpenHow{
+		Flags:   unix.O_PATH | unix.O_CLOEXEC,
+		Resolve: unix.RESOLVE_NO_SYMLINKS | unix.RESOLVE_IN_ROOT,
 	})
-	return hasOpenat2Bool
-}
+	if err != nil {
+		return false
+	}
+	_ = unix.Close(fd)
+	return true
+})
 
 func scopedLookupShouldRetry(how *unix.OpenHow, err error) bool {
 	// RESOLVE_IN_ROOT (and RESOLVE_BENEATH) can return -EAGAIN if we resolve
