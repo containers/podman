@@ -48,6 +48,7 @@ load helpers
 
     # There should be a 3-4 second gap, *maybe* 5. Never 1 or 2, that
     # would imply that the container never paused.
+    # FIXME: under high load, can be 7
     is "$max_delta" "[3456]" "delta t between paused and restarted"
 
     run_podman rm -t 0 -f $cname
