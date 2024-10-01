@@ -1,10 +1,10 @@
 freebsd_instance:
-  image_family: freebsd-13-0
+  image_family: freebsd-14-0
 
 task:
   name: Test on FreeBSD
-  install_script: pkg install -y go119 dbus
+  install_script: pkg install -y go122 dbus
   test_script: |
     /usr/local/etc/rc.d/dbus onestart && \
     eval `dbus-launch --sh-syntax` && \
-    go119 test -v ./...
+    go122 test -v ./...
