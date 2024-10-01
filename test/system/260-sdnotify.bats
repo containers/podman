@@ -52,6 +52,16 @@ function _start_socat() {
     (exec socat unix-recvfrom:"$NOTIFY_SOCKET",fork \
           system:"(cat;echo) >> $_SOCAT_LOG" 3>&-) &
     _SOCAT_PID=$!
+
+    # Wait for socat to create the socket file. This _should_ be
+    # instantaneous, but can take a few seconds under high load
+    for try in $(seq 1 10); do
+        if [[ -e "$NOTIFY_SOCKET" ]]; then
+            return
+        fi
+        sleep 0.5
+    done
+    die "Timed out waiting for socat to create $NOTIFY_SOCKET"
 }
 
 # Stop the socat background process and clean up logs
