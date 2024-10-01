@@ -682,6 +682,7 @@ spec:
     if [[ -n "$PARALLEL_JOBSLOT" ]]; then
         expect=$((expect + 4))
     fi
+    # FIXME: under high load, delta_t can be 12
     assert $delta_t -le $expect \
            "podman kube play did not get killed within $expect seconds"
     # Make sure we actually got SIGTERM and podman printed its message.
