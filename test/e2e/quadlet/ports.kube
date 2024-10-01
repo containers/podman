@@ -4,19 +4,19 @@ Yaml=/opt/k8s/deployment.yml
 ## assert-podman-args --publish 127.0.0.1:80:90
 PublishPort=127.0.0.1:80:90
 
-## assert-podman-args --publish 80:91
+## assert-podman-args --publish 0.0.0.0:80:91
 PublishPort=0.0.0.0:80:91
 
-## assert-podman-args --publish 80:92
+## assert-podman-args --publish :80:92
 PublishPort=:80:92
 
 ## assert-podman-args --publish 127.0.0.1::93
 PublishPort=127.0.0.1::93
 
-## assert-podman-args --publish 94
+## assert-podman-args --publish 0.0.0.0::94
 PublishPort=0.0.0.0::94
 
-## assert-podman-args --publish 95
+## assert-podman-args --publish ::95
 PublishPort=::95
 
 ## assert-podman-args --publish 80:96
