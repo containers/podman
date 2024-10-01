@@ -83,8 +83,24 @@ host.slirp4netns.executable | $expr_path
 }
 
 @test "podman info - confirm desired network backend" {
+    if [[ -z "$CI_DESIRED_NETWORK" ]]; then
+        # When running on RHEL, CI_DESIRED_NETWORK *must* be defined
+        # in gating.yaml because some versions of RHEL use CNI, some
+        # use netavark.
+        local osrelease=/etc/os-release
+        if [[ -e $osrelease ]]; then
+            local osname=$(source $osrelease; echo $NAME)
+            if [[ $osname =~ Red.Hat ]]; then
+                die "CI_DESIRED_NETWORK must be set in gating.yaml for RHEL testing"
+            fi
+        fi
+
+        # Everywhere other than RHEL, the only supported network is netavark
+        CI_DESIRED_NETWORK="netavark"
+    fi
+
     run_podman info --format '{{.Host.NetworkBackend}}'
-    is "$output" "netavark" "netavark backend"
+    is "$output" "$CI_DESIRED_NETWORK" ".Host.NetworkBackend"
 }
 
 @test "podman info - confirm desired database" {
