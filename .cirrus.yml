@@ -129,10 +129,10 @@ validate-source_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV' # N/B: Referenced by URLencoded strings elsewhere
-    gce_instance: &standardvm
+    gce_instance: &fastvm
         image_project: libpod-218412
         zone: "us-central1-a"
-        cpu: 2
+        cpu: 4
         memory: "4Gb"
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.
@@ -232,7 +232,7 @@ alt_build_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
-    gce_instance: *standardvm
+    gce_instance: *fastvm
     matrix:
       - env:
             ALT_NAME: 'Build Each Commit'
@@ -380,7 +380,9 @@ bindings_task:
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: &build
         - build_success
-    gce_instance: *standardvm
+    gce_instance: &standardvm
+      <<: *fastvm
+      cpu: 2
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
@@ -626,9 +628,7 @@ local_integration_test_task: &local_integration_test_task
     matrix: *platform_axis
     # integration tests scale well with cpu as they are parallelized
     # so we give these tests 4 cores to make them faster
-    gce_instance: &fastvm
-      <<: *standardvm
-      cpu: 4
+    gce_instance: *fastvm
     env:
         TEST_FLAVOR: int
     clone_script: *get_gosrc
