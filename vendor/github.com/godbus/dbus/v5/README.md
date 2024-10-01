@@ -14,7 +14,7 @@ D-Bus message bus system.
 
 ### Installation
 
-This packages requires Go 1.12 or later. It can be installed by running the command below:
+This packages requires Go 1.20 or later. It can be installed by running the command below:
 
 ```
 go get github.com/godbus/dbus/v5

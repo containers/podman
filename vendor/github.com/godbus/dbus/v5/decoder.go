@@ -370,12 +370,6 @@ func (c *stringConverter) String(b []byte) string {
 }
 
 // toString converts a byte slice to a string without allocating.
-// Starting from Go 1.20 you should use unsafe.String.
 func toString(b []byte) string {
-	var s string
-	h := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	h.Data = uintptr(unsafe.Pointer(&b[0]))
-	h.Len = len(b)
-
-	return s
+	return unsafe.String(&b[0], len(b))
 }

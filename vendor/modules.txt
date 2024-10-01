@@ -636,8 +636,8 @@ github.com/goccy/go-json/internal/encoder/vm_color_indent
 github.com/goccy/go-json/internal/encoder/vm_indent
 github.com/goccy/go-json/internal/errors
 github.com/goccy/go-json/internal/runtime
-# github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466
-## explicit; go 1.12
+# github.com/godbus/dbus/v5 v5.1.1-0.20240921181615-a817f3cc4a9e
+## explicit; go 1.20
 github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
