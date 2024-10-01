@@ -828,9 +828,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		podman.addf("--expose=%s", exposedPort)
 	}
 
-	if err := handlePublishPorts(container, ContainerGroup, podman); err != nil {
-		return nil, err
-	}
+	handlePublishPorts(container, ContainerGroup, podman)
 
 	podman.addEnv(podmanEnv)
 
@@ -1302,9 +1300,7 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 		execStart.add("--configmap", configMapPath)
 	}
 
-	if err := handlePublishPorts(kube, KubeGroup, execStart); err != nil {
-		return nil, err
-	}
+	handlePublishPorts(kube, KubeGroup, execStart)
 
 	handlePodmanArgs(kube, KubeGroup, execStart)
 
@@ -1689,9 +1685,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		return nil, err
 	}
 
-	if err := handlePublishPorts(podUnit, PodGroup, execStartPre); err != nil {
-		return nil, err
-	}
+	handlePublishPorts(podUnit, PodGroup, execStartPre)
 
 	if err := addNetworks(podUnit, PodGroup, service, unitsInfoMap, execStartPre); err != nil {
 		return nil, err
@@ -1960,68 +1954,11 @@ func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string,
 	return filePath, nil
 }
 
-func handlePublishPorts(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) error {
+func handlePublishPorts(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
 	publishPorts := unitFile.LookupAll(groupName, KeyPublishPort)
 	for _, publishPort := range publishPorts {
-		publishPort = strings.TrimSpace(publishPort) // Allow whitespace after
-
-		// IP address could have colons in it. For example: "[::]:8080:80/tcp, so use custom splitter
-		parts := splitPorts(publishPort)
-
-		var containerPort string
-		ip := ""
-		hostPort := ""
-
-		// format (from podman run):
-		// ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
-		//
-		// ip could be IPv6 with minimum of these chars "[::]"
-		// containerPort can have a suffix of "/tcp" or "/udp"
-		//
-
-		switch len(parts) {
-		case 1:
-			containerPort = parts[0]
-
-		case 2:
-			hostPort = parts[0]
-			containerPort = parts[1]
-
-		case 3:
-			ip = parts[0]
-			hostPort = parts[1]
-			containerPort = parts[2]
-
-		default:
-			return fmt.Errorf("invalid published port '%s'", publishPort)
-		}
-
-		if ip == "0.0.0.0" {
-			ip = ""
-		}
-
-		if len(hostPort) > 0 && !isPortRange(hostPort) {
-			return fmt.Errorf("invalid port format '%s'", hostPort)
-		}
-
-		if len(containerPort) > 0 && !isPortRange(containerPort) {
-			return fmt.Errorf("invalid port format '%s'", containerPort)
-		}
-
-		podman.add("--publish")
-		switch {
-		case len(ip) > 0 && len(hostPort) > 0:
-			podman.addf("%s:%s:%s", ip, hostPort, containerPort)
-		case len(ip) > 0:
-			podman.addf("%s::%s", ip, containerPort)
-		case len(hostPort) > 0:
-			podman.addf("%s:%s", hostPort, containerPort)
-		default:
-			podman.addf("%s", containerPort)
-		}
+		podman.add("--publish", publishPort)
 	}
-
-	return nil
 }
 
 func handleLogDriver(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
