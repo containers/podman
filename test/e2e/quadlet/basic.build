@@ -1,5 +1,5 @@
 ## assert-podman-final-args-regex /.*/podman-e2e-.*/subtest-.*/quadlet
-## assert-podman-args --tag=localhost/imagename
+## assert-podman-args "--tag" "localhost/imagename"
 ## assert-key-is "Unit" "After" "network-online.target"
 ## assert-key-is "Unit" "Wants" "network-online.target"
 ## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"

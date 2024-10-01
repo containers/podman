@@ -1,5 +1,5 @@
-## assert-podman-pre-args "--dns=8.7.7.7"
-## assert-podman-pre-args "--dns=8.8.8.8"
+## assert-podman-pre-args "--dns" "8.7.7.7"
+## assert-podman-pre-args "--dns" "8.8.8.8"
 
 [Pod]
 DNS=8.7.7.7

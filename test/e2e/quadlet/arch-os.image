@@ -1,6 +1,6 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args --os=windows
-## assert-podman-args --arch=arm64
+## assert-podman-args "--os" "windows"
+## assert-podman-args "--arch" "arm64"
 
 [Image]
 Image=localhost/imagename

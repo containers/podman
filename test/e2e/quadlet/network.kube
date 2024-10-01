@@ -1,4 +1,4 @@
-## assert-podman-args "--network=basic"
+## assert-podman-args --network basic
 
 [Kube]
 Yaml=deployment.yml

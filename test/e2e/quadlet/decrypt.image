@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args --decryption-key=/etc/keys/decrypt:passphrase
+## assert-podman-args "--decryption-key" "/etc/keys/decrypt:passphrase"
 
 [Image]
 Image=localhost/imagename

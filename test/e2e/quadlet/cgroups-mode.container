@@ -1,4 +1,4 @@
-## assert-podman-args --cgroups=no-conmon
+## assert-podman-args "--cgroups" "no-conmon"
 
 [Container]
 Image=localhost/imagename

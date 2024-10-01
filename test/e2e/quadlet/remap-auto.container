@@ -1,4 +1,4 @@
-## assert-podman-args --userns=auto
+## assert-podman-args --userns auto
 
 [Container]
 Image=localhost/imagename

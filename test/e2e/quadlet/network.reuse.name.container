@@ -1,4 +1,4 @@
-## assert-podman-args "--network=container:foobar"
+## assert-podman-args "--network" "container:foobar"
 ## assert-key-is "Unit" "Requires" "name.service"
 ## assert-key-is "Unit" "After" "network-online.target" "name.service"
 

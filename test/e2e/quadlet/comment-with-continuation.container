@@ -1,6 +1,6 @@
 ## assert-podman-final-args localhost/imagename:latest
 ## assert-podman-args --publish 9091:9091
-## assert-podman-args "--name=greatName"
+## assert-podman-args "--name" "greatName"
 
 [Unit]
 Wants=network-online.target

@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args "-w=%h"
+## assert-podman-args "--workdir" "%h"
 
 [Container]
 Image=localhost/imagename

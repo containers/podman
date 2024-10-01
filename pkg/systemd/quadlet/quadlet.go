@@ -588,7 +588,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	podman.add("run")
 
-	podman.addf("--name=%s", containerName)
+	podman.add("--name", containerName)
 
 	podman.add(
 		// We store the container id so we can clean it up in case of failure
@@ -608,29 +608,47 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	service.Add(ServiceGroup, "Delegate", "yes")
 
 	if cgroupsMode, ok := container.Lookup(ContainerGroup, KeyCgroupsMode); ok && len(cgroupsMode) > 0 {
-		podman.addf("--cgroups=%s", cgroupsMode)
+		podman.add("--cgroups", cgroupsMode)
 	} else {
 		podman.add("--cgroups=split")
 	}
 
-	timezone, ok := container.Lookup(ContainerGroup, KeyTimezone)
-	if ok && len(timezone) > 0 {
-		podman.addf("--tz=%s", timezone)
+	stringKeys := map[string]string{
+		KeyTimezone:    "--tz",
+		KeyPidsLimit:   "--pids-limit",
+		KeyShmSize:     "--shm-size",
+		KeyEntrypoint:  "--entrypoint",
+		KeyWorkingDir:  "--workdir",
+		KeyIP:          "--ip",
+		KeyIP6:         "--ip6",
+		KeyHostName:    "--hostname",
+		KeyStopSignal:  "--stop-signal",
+		KeyStopTimeout: "--stop-timeout",
+		KeyPull:        "--pull",
 	}
+	lookupAndAddString(container, ContainerGroup, stringKeys, podman)
+
+	allStringsKeys := map[string]string{
+		KeyNetworkAlias: "--network-alias",
+		KeyUlimit:       "--ulimit",
+		KeyDNS:          "--dns",
+		KeyDNSOption:    "--dns-option",
+		KeyDNSSearch:    "--dns-search",
+		KeyGroupAdd:     "--group-add",
+		KeyAddHost:      "--add-host",
+		KeyTmpfs:        "--tmpfs",
+	}
+	lookupAndAddAllStrings(container, ContainerGroup, allStringsKeys, podman)
+
+	boolKeys := map[string]string{
+		KeyRunInit:         "--init",
+		KeyEnvironmentHost: "--env-host",
+		KeyReadOnlyTmpfs:   "--read-only-tmpfs",
+	}
+	lookupAndAddBoolean(container, ContainerGroup, boolKeys, podman)
 
 	if err := addNetworks(container, ContainerGroup, service, unitsInfoMap, podman); err != nil {
 		return nil, err
-	}
-
-	networkAliases := container.LookupAll(ContainerGroup, KeyNetworkAlias)
-	for _, networkAlias := range networkAliases {
-		podman.add("--network-alias", networkAlias)
-	}
-
-	// Run with a pid1 init to reap zombies by default (as most apps don't do that)
-	runInit, ok := container.LookupBoolean(ContainerGroup, KeyRunInit)
-	if ok {
-		podman.addBool("--init", runInit)
 	}
 
 	serviceType, ok := service.Lookup(ServiceGroup, "Type")
@@ -678,11 +696,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		podman.add("--security-opt", "label=nested")
 	}
 
-	pidsLimit, ok := container.Lookup(ContainerGroup, KeyPidsLimit)
-	if ok && len(pidsLimit) > 0 {
-		podman.add("--pids-limit", pidsLimit)
-	}
-
 	securityLabelType, ok := container.Lookup(ContainerGroup, KeySecurityLabelType)
 	if ok && len(securityLabelType) > 0 {
 		podman.add("--security-opt", fmt.Sprintf("label=type:%s", securityLabelType))
@@ -698,12 +711,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		podman.add("--security-opt", fmt.Sprintf("label=level:%s", securityLabelLevel))
 	}
 
-	ulimits := container.LookupAll(ContainerGroup, KeyUlimit)
-	for _, ulimit := range ulimits {
-		podman.add("--ulimit", ulimit)
-	}
-
-	// But allow overrides with AddCapability
 	devices := container.LookupAllStrv(ContainerGroup, KeyAddDevice)
 	for _, device := range devices {
 		if device[0] == '-' {
@@ -713,7 +720,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 				continue
 			}
 		}
-		podman.addf("--device=%s", device)
+		podman.add("--device", device)
 	}
 
 	// Default to no higher level privileges or caps
@@ -722,55 +729,27 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		podman.add("--security-opt", fmt.Sprintf("seccomp=%s", seccompProfile))
 	}
 
-	dns := container.LookupAll(ContainerGroup, KeyDNS)
-	for _, ipAddr := range dns {
-		podman.addf("--dns=%s", ipAddr)
-	}
-
-	dnsOptions := container.LookupAll(ContainerGroup, KeyDNSOption)
-	for _, dnsOption := range dnsOptions {
-		podman.addf("--dns-option=%s", dnsOption)
-	}
-
-	dnsSearches := container.LookupAll(ContainerGroup, KeyDNSSearch)
-	for _, dnsSearch := range dnsSearches {
-		podman.addf("--dns-search=%s", dnsSearch)
-	}
-
 	dropCaps := container.LookupAllStrv(ContainerGroup, KeyDropCapability)
 
 	for _, caps := range dropCaps {
-		podman.addf("--cap-drop=%s", strings.ToLower(caps))
+		podman.add("--cap-drop", strings.ToLower(caps))
 	}
 
 	// But allow overrides with AddCapability
 	addCaps := container.LookupAllStrv(ContainerGroup, KeyAddCapability)
 	for _, caps := range addCaps {
-		podman.addf("--cap-add=%s", strings.ToLower(caps))
-	}
-
-	shmSize, hasShmSize := container.Lookup(ContainerGroup, KeyShmSize)
-	if hasShmSize {
-		podman.addf("--shm-size=%s", shmSize)
-	}
-
-	entrypoint, hasEntrypoint := container.Lookup(ContainerGroup, KeyEntrypoint)
-	if hasEntrypoint {
-		podman.addf("--entrypoint=%s", entrypoint)
+		podman.add("--cap-add", strings.ToLower(caps))
 	}
 
 	sysctl := container.LookupAllStrv(ContainerGroup, KeySysctl)
 	for _, sysctlItem := range sysctl {
-		podman.addf("--sysctl=%s", sysctlItem)
+		podman.add("--sysctl", sysctlItem)
 	}
 
+	// This was not moved to the generic handling since readOnly is used also with volatileTmp
 	readOnly, ok := container.LookupBoolean(ContainerGroup, KeyReadOnly)
 	if ok {
 		podman.addBool("--read-only", readOnly)
-	}
-
-	if readOnlyTmpfs, ok := container.LookupBoolean(ContainerGroup, KeyReadOnlyTmpfs); ok {
-		podman.addBool("--read-only-tmpfs", readOnlyTmpfs)
 	}
 
 	volatileTmp := container.LookupBooleanWithDefault(ContainerGroup, KeyVolatileTmp, false)
@@ -782,28 +761,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		return nil, err
 	}
 
-	if workdir, exists := container.Lookup(ContainerGroup, KeyWorkingDir); exists {
-		podman.addf("-w=%s", workdir)
-	}
-
 	if err := handleUserMappings(container, ContainerGroup, podman, isUser, true); err != nil {
 		return nil, err
-	}
-
-	groupsAdd := container.LookupAll(ContainerGroup, KeyGroupAdd)
-	for _, groupAdd := range groupsAdd {
-		if len(groupAdd) > 0 {
-			podman.addf("--group-add=%s", groupAdd)
-		}
-	}
-
-	tmpfsValues := container.LookupAll(ContainerGroup, KeyTmpfs)
-	for _, tmpfs := range tmpfsValues {
-		if strings.Count(tmpfs, ":") > 1 {
-			return nil, fmt.Errorf("invalid tmpfs format '%s'", tmpfs)
-		}
-
-		podman.add("--tmpfs", tmpfs)
 	}
 
 	if err := addVolumes(container, service, ContainerGroup, unitsInfoMap, podman); err != nil {
@@ -825,27 +784,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 			return nil, fmt.Errorf("invalid port format '%s'", exposedPort)
 		}
 
-		podman.addf("--expose=%s", exposedPort)
+		podman.add("--expose", exposedPort)
 	}
 
 	handlePublishPorts(container, ContainerGroup, podman)
 
 	podman.addEnv(podmanEnv)
-
-	ip, ok := container.Lookup(ContainerGroup, KeyIP)
-	if ok && len(ip) > 0 {
-		podman.add("--ip", ip)
-	}
-
-	ip6, ok := container.Lookup(ContainerGroup, KeyIP6)
-	if ok && len(ip6) > 0 {
-		podman.add("--ip6", ip6)
-	}
-
-	addHosts := container.LookupAll(ContainerGroup, KeyAddHost)
-	for _, addHost := range addHosts {
-		podman.addf("--add-host=%s", addHost)
-	}
 
 	labels := container.LookupAllKeyVal(ContainerGroup, KeyLabel)
 	podman.addLabels(labels)
@@ -872,10 +816,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		podman.add("--env-file", filePath)
 	}
 
-	if envHost, ok := container.LookupBoolean(ContainerGroup, KeyEnvironmentHost); ok {
-		podman.addBool("--env-host", envHost)
-	}
-
 	secrets := container.LookupAllArgs(ContainerGroup, KeySecret)
 	for _, secret := range secrets {
 		podman.add("--secret", secret)
@@ -892,25 +832,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	handleHealth(container, ContainerGroup, podman)
 
-	if hostname, ok := container.Lookup(ContainerGroup, KeyHostName); ok {
-		podman.add("--hostname", hostname)
-	}
-
-	pull, ok := container.Lookup(ContainerGroup, KeyPull)
-	if ok && len(pull) > 0 {
-		podman.add("--pull", pull)
-	}
-
 	if err := handlePod(container, service, ContainerGroup, unitsInfoMap, podman); err != nil {
 		return nil, err
-	}
-
-	if stopSignal, ok := container.Lookup(ContainerGroup, KeyStopSignal); ok && len(stopSignal) > 0 {
-		podman.add("--stop-signal", stopSignal)
-	}
-
-	if stopTimeout, ok := container.Lookup(ContainerGroup, KeyStopTimeout); ok && len(stopTimeout) > 0 {
-		podman.add("--stop-timeout", stopTimeout)
 	}
 
 	handlePodmanArgs(container, ContainerGroup, podman)
@@ -953,6 +876,10 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 	service := network.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
+	if network.Path != "" {
+		service.Add(UnitGroup, "SourcePath", network.Path)
+	}
+
 	if err := checkForUnknownKeys(network, NetworkGroup, supportedNetworkKeys); err != nil {
 		return nil, err
 	}
@@ -973,19 +900,23 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 
 	podman.add("network", "create", "--ignore")
 
-	if disableDNS := network.LookupBooleanWithDefault(NetworkGroup, KeyDisableDNS, false); disableDNS {
-		podman.add("--disable-dns")
+	boolKeys := map[string]string{
+		KeyDisableDNS: "--disable-dns",
+		KeyInternal:   "--internal",
+		KeyIPv6:       "--ipv6",
 	}
+	lookupAndAddBoolean(network, NetworkGroup, boolKeys, podman)
 
-	dns := network.LookupAll(NetworkGroup, KeyDNS)
-	for _, ipAddr := range dns {
-		podman.addf("--dns=%s", ipAddr)
+	stringKeys := map[string]string{
+		KeyDriver:     "--driver",
+		KeyIPAMDriver: "--ipam-driver",
 	}
+	lookupAndAddString(network, NetworkGroup, stringKeys, podman)
 
-	driver, ok := network.Lookup(NetworkGroup, KeyDriver)
-	if ok && len(driver) > 0 {
-		podman.addf("--driver=%s", driver)
+	allStringKeys := map[string]string{
+		KeyDNS: "--dns",
 	}
+	lookupAndAddAllStrings(network, NetworkGroup, allStringKeys, podman)
 
 	subnets := network.LookupAll(NetworkGroup, KeySubnet)
 	gateways := network.LookupAll(NetworkGroup, KeyGateway)
@@ -998,28 +929,16 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 			return nil, fmt.Errorf("cannot set more ranges than subnets")
 		}
 		for i := range subnets {
-			podman.addf("--subnet=%s", subnets[i])
+			podman.add("--subnet", subnets[i])
 			if len(gateways) > i {
-				podman.addf("--gateway=%s", gateways[i])
+				podman.add("--gateway", gateways[i])
 			}
 			if len(ipRanges) > i {
-				podman.addf("--ip-range=%s", ipRanges[i])
+				podman.add("--ip-range", ipRanges[i])
 			}
 		}
 	} else if len(ipRanges) > 0 || len(gateways) > 0 {
 		return nil, fmt.Errorf("cannot set gateway or range without subnet")
-	}
-
-	if internal := network.LookupBooleanWithDefault(NetworkGroup, KeyInternal, false); internal {
-		podman.add("--internal")
-	}
-
-	if ipamDriver, ok := network.Lookup(NetworkGroup, KeyIPAMDriver); ok && len(ipamDriver) > 0 {
-		podman.addf("--ipam-driver=%s", ipamDriver)
-	}
-
-	if ipv6 := network.LookupBooleanWithDefault(NetworkGroup, KeyIPv6, false); ipv6 {
-		podman.add("--ipv6")
 	}
 
 	networkOptions := network.LookupAllKeyVal(NetworkGroup, KeyOptions)
@@ -1064,6 +983,10 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 	service := volume.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
+	if volume.Path != "" {
+		service.Add(UnitGroup, "SourcePath", volume.Path)
+	}
+
 	if err := checkForUnknownKeys(volume, VolumeGroup, supportedVolumeKeys); err != nil {
 		return nil, err
 	}
@@ -1088,7 +1011,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	driver, ok := volume.Lookup(VolumeGroup, KeyDriver)
 	if ok {
-		podman.addf("--driver=%s", driver)
+		podman.add("--driver", driver)
 	}
 
 	var opts strings.Builder
@@ -1378,19 +1301,13 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 		KeyOS:            "--os",
 		KeyVariant:       "--variant",
 	}
+	lookupAndAddString(image, ImageGroup, stringKeys, podman)
 
 	boolKeys := map[string]string{
 		KeyAllTags:   "--all-tags",
 		KeyTLSVerify: "--tls-verify",
 	}
-
-	for key, flag := range stringKeys {
-		lookupAndAddString(image, ImageGroup, key, flag, podman)
-	}
-
-	for key, flag := range boolKeys {
-		lookupAndAddBoolean(image, ImageGroup, key, flag, podman)
-	}
+	lookupAndAddBoolean(image, ImageGroup, boolKeys, podman)
 
 	handlePodmanArgs(image, ImageGroup, podman)
 
@@ -1461,55 +1378,31 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 		KeyTarget:   "--target",
 		KeyVariant:  "--variant",
 	}
+	lookupAndAddString(build, BuildGroup, stringKeys, podman)
 
 	boolKeys := map[string]string{
 		KeyTLSVerify: "--tls-verify",
 		KeyForceRM:   "--force-rm",
 	}
+	lookupAndAddBoolean(build, BuildGroup, boolKeys, podman)
 
-	for key, flag := range stringKeys {
-		lookupAndAddString(build, BuildGroup, key, flag, podman)
+	allStringKeys := map[string]string{
+		KeyDNS:       "--dns",
+		KeyDNSOption: "--dns-option",
+		KeyDNSSearch: "--dns-search",
+		KeyGroupAdd:  "--group-add",
+		KeyImageTag:  "--tag",
 	}
-
-	for key, flag := range boolKeys {
-		lookupAndAddBoolean(build, BuildGroup, key, flag, podman)
-	}
+	lookupAndAddAllStrings(build, BuildGroup, allStringKeys, podman)
 
 	annotations := build.LookupAllKeyVal(BuildGroup, KeyAnnotation)
 	podman.addAnnotations(annotations)
 
-	dns := build.LookupAll(BuildGroup, KeyDNS)
-	for _, ipAddr := range dns {
-		podman.addf("--dns=%s", ipAddr)
-	}
-
-	dnsOptions := build.LookupAll(BuildGroup, KeyDNSOption)
-	for _, dnsOption := range dnsOptions {
-		podman.addf("--dns-option=%s", dnsOption)
-	}
-
-	dnsSearches := build.LookupAll(BuildGroup, KeyDNSSearch)
-	for _, dnsSearch := range dnsSearches {
-		podman.addf("--dns-search=%s", dnsSearch)
-	}
-
 	podmanEnv := build.LookupAllKeyVal(BuildGroup, KeyEnvironment)
 	podman.addEnv(podmanEnv)
 
-	groupsAdd := build.LookupAll(BuildGroup, KeyGroupAdd)
-	for _, groupAdd := range groupsAdd {
-		if len(groupAdd) > 0 {
-			podman.addf("--group-add=%s", groupAdd)
-		}
-	}
-
 	labels := build.LookupAllKeyVal(BuildGroup, KeyLabel)
 	podman.addLabels(labels)
-
-	imageTags := build.LookupAll(BuildGroup, KeyImageTag)
-	for _, imageTag := range imageTags {
-		podman.addf("--tag=%s", imageTag)
-	}
 
 	if err := addNetworks(build, BuildGroup, service, unitsInfoMap, podman); err != nil {
 		return nil, err
@@ -1540,7 +1433,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	}
 
 	if len(filePath) > 0 {
-		podman.addf("--file=%s", filePath)
+		podman.add("--file", filePath)
 	}
 
 	handlePodmanArgs(build, BuildGroup, podman)
@@ -1691,47 +1584,27 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		return nil, err
 	}
 
-	networkAliases := podUnit.LookupAll(PodGroup, KeyNetworkAlias)
-	for _, networkAlias := range networkAliases {
-		execStartPre.add("--network-alias", networkAlias)
+	stringsKeys := map[string]string{
+		KeyIP:  "--ip",
+		KeyIP6: "--ip6",
 	}
+	lookupAndAddAllStrings(podUnit, PodGroup, stringsKeys, execStartPre)
+
+	allStringsKeys := map[string]string{
+		KeyNetworkAlias: "--network-alias",
+		KeyDNS:          "--dns",
+		KeyDNSOption:    "--dns-option",
+		KeyDNSSearch:    "--dns-search",
+		KeyAddHost:      "--add-host",
+	}
+	lookupAndAddAllStrings(podUnit, PodGroup, allStringsKeys, execStartPre)
 
 	if err := addVolumes(podUnit, service, PodGroup, unitsInfoMap, execStartPre); err != nil {
 		return nil, err
 	}
 
-	execStartPre.addf("--infra-name=%s-infra", podName)
-	execStartPre.addf("--name=%s", podName)
-
-	dns := podUnit.LookupAll(PodGroup, KeyDNS)
-	for _, ipAddr := range dns {
-		execStartPre.addf("--dns=%s", ipAddr)
-	}
-
-	dnsOptions := podUnit.LookupAll(PodGroup, KeyDNSOption)
-	for _, dnsOption := range dnsOptions {
-		execStartPre.addf("--dns-option=%s", dnsOption)
-	}
-
-	dnsSearches := podUnit.LookupAll(PodGroup, KeyDNSSearch)
-	for _, dnsSearch := range dnsSearches {
-		execStartPre.addf("--dns-search=%s", dnsSearch)
-	}
-
-	ip, ok := podUnit.Lookup(PodGroup, KeyIP)
-	if ok && len(ip) > 0 {
-		execStartPre.addf("--ip=%s", ip)
-	}
-
-	ip6, ok := podUnit.Lookup(PodGroup, KeyIP6)
-	if ok && len(ip6) > 0 {
-		execStartPre.addf("--ip6=%s", ip6)
-	}
-
-	addHosts := podUnit.LookupAll(PodGroup, KeyAddHost)
-	for _, addHost := range addHosts {
-		execStartPre.addf("--add-host=%s", addHost)
-	}
+	execStartPre.add("--infra-name", fmt.Sprintf("%s-infra", podName))
+	execStartPre.add("--name", podName)
 
 	handlePodmanArgs(podUnit, PodGroup, execStartPre)
 
@@ -1761,12 +1634,13 @@ func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdli
 		return nil
 	}
 
+	var userGroupStr string
 	if !okGroup {
-		podman.add("--user", user)
-		return nil
+		userGroupStr = user
+	} else {
+		userGroupStr = fmt.Sprintf("%s:%s", user, group)
 	}
-
-	podman.addf("--user=%s:%s", user, group)
+	podman.add("--user", userGroupStr)
 
 	return nil
 }
@@ -1782,13 +1656,13 @@ func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *Pod
 	uidMaps := unitFile.LookupAllStrv(groupName, KeyUIDMap)
 	mappingsDefined = mappingsDefined || len(uidMaps) > 0
 	for _, uidMap := range uidMaps {
-		podman.addf("--uidmap=%s", uidMap)
+		podman.add("--uidmap", uidMap)
 	}
 
 	gidMaps := unitFile.LookupAllStrv(groupName, KeyGIDMap)
 	mappingsDefined = mappingsDefined || len(gidMaps) > 0
 	for _, gidMap := range gidMaps {
-		podman.addf("--gidmap=%s", gidMap)
+		podman.add("--gidmap", gidMap)
 	}
 
 	if subUIDMap, ok := unitFile.Lookup(groupName, KeySubUIDMap); ok && len(subUIDMap) > 0 {
@@ -1829,10 +1703,10 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 	case "manual":
 		if supportManual {
 			for _, uidMap := range uidMaps {
-				podman.addf("--uidmap=%s", uidMap)
+				podman.add("--uidmap", uidMap)
 			}
 			for _, gidMap := range gidMaps {
-				podman.addf("--gidmap=%s", gidMap)
+				podman.add("--gidmap", gidMap)
 			}
 		} else {
 			return fmt.Errorf("RemapUsers=manual is not supported")
@@ -1850,7 +1724,7 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 			autoOpts = append(autoOpts, fmt.Sprintf("size=%v", uidSize))
 		}
 
-		podman.add("--userns=" + usernsOpts("auto", autoOpts))
+		podman.add("--userns", usernsOpts("auto", autoOpts))
 	case "keep-id":
 		if !isUser {
 			return fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
@@ -1870,7 +1744,7 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 			keepidOpts = append(keepidOpts, "gid="+gidMaps[0])
 		}
 
-		podman.add("--userns=" + usernsOpts("keep-id", keepidOpts))
+		podman.add("--userns", usernsOpts("keep-id", keepidOpts))
 
 	default:
 		return fmt.Errorf("unsupported RemapUsers option '%s'", remapUsers)
@@ -1919,7 +1793,7 @@ func addNetworks(quadletUnitFile *parser.UnitFile, groupName string, serviceUnit
 				}
 			}
 
-			podman.addf("--network=%s", network)
+			podman.add("--network", network)
 		}
 	}
 	return nil
@@ -2100,17 +1974,28 @@ func handleSetWorkingDirectory(quadletUnitFile, serviceUnitFile *parser.UnitFile
 	return context, nil
 }
 
-func lookupAndAddString(unit *parser.UnitFile, group, key, flag string, podman *PodmanCmdline) {
-	val, ok := unit.Lookup(group, key)
-	if ok && len(val) > 0 {
-		podman.addf("%s=%s", flag, val)
+func lookupAndAddString(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) {
+	for key, flag := range keys {
+		if val, ok := unit.Lookup(group, key); ok && len(val) > 0 {
+			podman.add(flag, val)
+		}
 	}
 }
 
-func lookupAndAddBoolean(unit *parser.UnitFile, group, key, flag string, podman *PodmanCmdline) {
-	val, ok := unit.LookupBoolean(group, key)
-	if ok {
-		podman.addBool(flag, val)
+func lookupAndAddAllStrings(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) {
+	for key, flag := range keys {
+		values := unit.LookupAll(group, key)
+		for _, val := range values {
+			podman.add(flag, val)
+		}
+	}
+}
+
+func lookupAndAddBoolean(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) {
+	for key, flag := range keys {
+		if val, ok := unit.LookupBoolean(group, key); ok {
+			podman.addBool(flag, val)
+		}
 	}
 }
 

@@ -1,4 +1,4 @@
-## assert-podman-args "--name=foobar"
+## assert-podman-args "--name" "foobar"
 
 [Container]
 Image=localhost/imagename

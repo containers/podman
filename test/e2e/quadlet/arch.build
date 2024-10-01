@@ -1,6 +1,6 @@
 ## assert-podman-final-args-regex /.*/podman-e2e-.*/subtest-.*/quadlet
-## assert-podman-args --tag=localhost/imagename
-## assert-podman-args --arch=aarch64
+## assert-podman-args "--tag" "localhost/imagename"
+## assert-podman-args "--arch" "aarch64"
 
 [Build]
 ImageTag=localhost/imagename

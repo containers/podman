@@ -1,4 +1,4 @@
-## assert-podman-args --userns=keep-id
+## assert-podman-args --userns keep-id
 
 [Container]
 Image=localhost/imagename

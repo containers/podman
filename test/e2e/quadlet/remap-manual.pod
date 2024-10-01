@@ -1,7 +1,7 @@
-## assert-podman-pre-args "--uidmap=0:10000:10"
-## assert-podman-pre-args "--uidmap=10:20000:10"
-## assert-podman-pre-args "--gidmap=0:10000:10"
-## assert-podman-pre-args "--gidmap=10:20000:10"
+## assert-podman-pre-args "--uidmap" "0:10000:10"
+## assert-podman-pre-args "--uidmap" "10:20000:10"
+## assert-podman-pre-args "--gidmap" "0:10000:10"
+## assert-podman-pre-args "--gidmap" "10:20000:10"
 
 [Pod]
 RemapUsers=manual

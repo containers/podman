@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args --variant=arm/v5
+## assert-podman-args "--variant" "arm/v5"
 
 [Image]
 Image=localhost/imagename

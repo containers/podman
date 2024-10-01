@@ -1,4 +1,4 @@
-## assert-podman-pre-args "--network=test-network"
+## assert-podman-pre-args "--network" "test-network"
 ## assert-key-is "Unit" "Requires" "basic.service"
 ## assert-key-is "Unit" "After" "basic.service"
 
