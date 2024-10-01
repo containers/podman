@@ -972,7 +972,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	// Wait for all events to be read
 	mutex.Lock()
 	if eventsErr != nil || lastEvent == nil {
-		logrus.Errorf("Cannot get exit code: %v", err)
+		logrus.Errorf("Cannot get exit code: %v, last event: %v", eventsErr, lastEvent)
 		report.ExitCode = define.ExecErrorCodeNotFound
 		return &report, nil //nolint: nilerr
 	}
