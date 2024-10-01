@@ -28,10 +28,18 @@ var (
 	shutdownInhibit sync.RWMutex
 	logrus          = logrusImport.WithField("PID", os.Getpid())
 	ErrNotStarted   = errors.New("shutdown signal handler has not yet been started")
+	// exitCode used to exit once we are done with all signal handlers, by default 1
+	exitCode = 1
 )
 
+// SetExitCode when we exit after we ran all shutdown handlers, it should be positive.
+func SetExitCode(i int) {
+	exitCode = i
+}
+
 // Start begins handling SIGTERM and SIGINT and will run the given on-signal
-// handlers when one is called. This can be cancelled by calling Stop().
+// handlers when one is called and then exit with the exit code of 1 if not
+// overwritten with SetExitCode(). This can be cancelled by calling Stop().
 func Start() error {
 	if sigChan != nil {
 		// Already running, do nothing.
@@ -75,6 +83,7 @@ func Start() error {
 			}
 			handlerLock.Unlock()
 			shutdownInhibit.Unlock()
+			os.Exit(exitCode)
 			return
 		}
 	}()
@@ -128,32 +137,6 @@ func Register(name string, handler func(os.Signal) error) error {
 
 	handlers[name] = handler
 	handlerOrder = append([]string{name}, handlerOrder...)
-
-	return nil
-}
-
-// Unregister un-registers a given shutdown handler.
-func Unregister(name string) error {
-	handlerLock.Lock()
-	defer handlerLock.Unlock()
-
-	if handlers == nil {
-		return nil
-	}
-
-	if _, ok := handlers[name]; !ok {
-		return nil
-	}
-
-	delete(handlers, name)
-
-	newOrder := []string{}
-	for _, checkName := range handlerOrder {
-		if checkName != name {
-			newOrder = append(newOrder, checkName)
-		}
-	}
-	handlerOrder = newOrder
 
 	return nil
 }
