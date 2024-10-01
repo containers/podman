@@ -266,8 +266,8 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
        install.remote \
        install.testing
 
-# Only need this on Fedora until nftables becomes the default
-%if %{defined fedora}
+# See above for the iptables.conf declaration
+%if %{defined fedora} && 0%{?fedora} < 41
 %{__make} DESTDIR=%{buildroot} MODULESLOADDIR=%{_modulesloaddir} install.modules-load
 %endif
 
@@ -307,7 +307,10 @@ ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
 %{_tmpfilesdir}/%{name}.conf
 %{_systemdgeneratordir}/%{name}-system-generator
 %{_systemdusergeneratordir}/%{name}-user-generator
-%if %{defined fedora}
+# iptables modules are only needed with iptables-legacy,
+# as of f41 netavark will default to nftables so do not load unessary modules
+# https://fedoraproject.org/wiki/Changes/NetavarkNftablesDefault
+%if %{defined fedora} && 0%{?fedora} < 41
 %{_modulesloaddir}/%{name}-iptables.conf
 %endif
 
