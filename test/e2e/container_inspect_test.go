@@ -37,6 +37,8 @@ var _ = Describe("Podman container inspect", func() {
 		Expect(data).To(HaveLen(1))
 		Expect(data[0].NetworkSettings.Ports).
 			To(Equal(map[string][]define.InspectHostPort{"8787/udp": nil, "99/sctp": nil}))
+		Expect(data[0].Config.ExposedPorts).
+			To(Equal(map[string]struct{}{"8787/udp": {}, "99/sctp": {}}))
 
 		session = podmanTest.Podman([]string{"ps", "--format", "{{.Ports}}"})
 		session.WaitWithDefaultTimeout()
@@ -59,6 +61,27 @@ var _ = Describe("Podman container inspect", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("80/tcp, 8989/tcp"))
+	})
+
+	It("podman inspect exposed ports includes published ports", func() {
+		c1 := "ctr1"
+		c1s := podmanTest.Podman([]string{"run", "-d", "--expose", "22/tcp", "-p", "8080:80/tcp", "--name", c1, ALPINE, "top"})
+		c1s.WaitWithDefaultTimeout()
+		Expect(c1s).Should(ExitCleanly())
+
+		c2 := "ctr2"
+		c2s := podmanTest.Podman([]string{"run", "-d", "--net", fmt.Sprintf("container:%s", c1), "--name", c2, ALPINE, "top"})
+		c2s.WaitWithDefaultTimeout()
+		Expect(c2s).Should(ExitCleanly())
+
+		data1 := podmanTest.InspectContainer(c1)
+		Expect(data1).To(HaveLen(1))
+		Expect(data1[0].Config.ExposedPorts).
+			To(Equal(map[string]struct{}{"22/tcp": {}, "80/tcp": {}}))
+
+		data2 := podmanTest.InspectContainer(c2)
+		Expect(data2).To(HaveLen(1))
+		Expect(data2[0].Config.ExposedPorts).To(BeNil())
 	})
 
 	It("podman inspect shows volumes-from with mount options", func() {
