@@ -319,7 +319,7 @@ func Archive(rootfsPath string, ociConfig *v1.Image, options ArchiveOptions) (io
 	imageSize := slop(options.ImageSize, options.Slop)
 	if imageSize == 0 {
 		var sourceSize int64
-		if err := filepath.WalkDir(rootfsPath, func(path string, d fs.DirEntry, err error) error {
+		if err := filepath.WalkDir(rootfsPath, func(_ string, d fs.DirEntry, err error) error {
 			if err != nil && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, os.ErrPermission) {
 				return err
 			}

@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package chroot
 
@@ -16,10 +15,10 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/moby/sys/capability"
 	"github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
 	"golang.org/x/sys/unix"
 )
 
@@ -179,39 +178,39 @@ func setCapabilities(spec *specs.Spec, keepCaps ...string) error {
 	capMap := map[capability.CapType][]string{
 		capability.BOUNDING:    spec.Process.Capabilities.Bounding,
 		capability.EFFECTIVE:   spec.Process.Capabilities.Effective,
-		capability.INHERITABLE: []string{},
+		capability.INHERITABLE: {},
 		capability.PERMITTED:   spec.Process.Capabilities.Permitted,
-		capability.AMBIENT:     spec.Process.Capabilities.Ambient,
+		capability.AMBIENT:     {},
 	}
-	knownCaps := capability.List()
+	knownCaps := capability.ListKnown()
 	noCap := capability.Cap(-1)
 	for capType, capList := range capMap {
-		for _, capToSet := range capList {
-			cap := noCap
+		for _, capSpec := range capList {
+			capToSet := noCap
 			for _, c := range knownCaps {
-				if strings.EqualFold("CAP_"+c.String(), capToSet) {
-					cap = c
+				if strings.EqualFold("CAP_"+c.String(), capSpec) {
+					capToSet = c
 					break
 				}
 			}
-			if cap == noCap {
-				return fmt.Errorf("mapping capability %q to a number", capToSet)
+			if capToSet == noCap {
+				return fmt.Errorf("mapping capability %q to a number", capSpec)
 			}
-			caps.Set(capType, cap)
+			caps.Set(capType, capToSet)
 		}
-		for _, capToSet := range keepCaps {
-			cap := noCap
+		for _, capSpec := range keepCaps {
+			capToSet := noCap
 			for _, c := range knownCaps {
-				if strings.EqualFold("CAP_"+c.String(), capToSet) {
-					cap = c
+				if strings.EqualFold("CAP_"+c.String(), capSpec) {
+					capToSet = c
 					break
 				}
 			}
-			if cap == noCap {
-				return fmt.Errorf("mapping capability %q to a number", capToSet)
+			if capToSet == noCap {
+				return fmt.Errorf("mapping capability %q to a number", capSpec)
 			}
-			if currentCaps.Get(capType, cap) {
-				caps.Set(capType, cap)
+			if currentCaps.Get(capType, capToSet) {
+				caps.Set(capType, capToSet)
 			}
 		}
 	}
@@ -225,7 +224,7 @@ func makeRlimit(limit specs.POSIXRlimit) unix.Rlimit {
 	return unix.Rlimit{Cur: limit.Soft, Max: limit.Hard}
 }
 
-func createPlatformContainer(options runUsingChrootExecSubprocOptions) error {
+func createPlatformContainer(_ runUsingChrootExecSubprocOptions) error {
 	return errors.New("unsupported createPlatformContainer")
 }
 
@@ -302,7 +301,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	subDev := filepath.Join(spec.Root.Path, "/dev")
 	if err := unix.Mount("/dev", subDev, "bind", devFlags, ""); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			err = os.Mkdir(subDev, 0755)
+			err = os.Mkdir(subDev, 0o755)
 			if err == nil {
 				err = unix.Mount("/dev", subDev, "bind", devFlags, "")
 			}
@@ -326,7 +325,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	subProc := filepath.Join(spec.Root.Path, "/proc")
 	if err := unix.Mount("/proc", subProc, "bind", procFlags, ""); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			err = os.Mkdir(subProc, 0755)
+			err = os.Mkdir(subProc, 0o755)
 			if err == nil {
 				err = unix.Mount("/proc", subProc, "bind", procFlags, "")
 			}
@@ -341,7 +340,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	subSys := filepath.Join(spec.Root.Path, "/sys")
 	if err := unix.Mount("/sys", subSys, "bind", sysFlags, ""); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			err = os.Mkdir(subSys, 0755)
+			err = os.Mkdir(subSys, 0o755)
 			if err == nil {
 				err = unix.Mount("/sys", subSys, "bind", sysFlags, "")
 			}
@@ -364,9 +363,9 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 		if err := unix.Mount(m.Mountpoint, subSys, "bind", sysFlags, ""); err != nil {
 			msg := fmt.Sprintf("could not bind mount %q, skipping: %v", m.Mountpoint, err)
 			if strings.HasPrefix(m.Mountpoint, "/sys") {
-				logrus.Infof(msg)
+				logrus.Info(msg)
 			} else {
-				logrus.Warningf(msg)
+				logrus.Warning(msg)
 			}
 			continue
 		}
@@ -433,15 +432,15 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 			// The target isn't there yet, so create it.  If the source is a directory,
 			// we need a directory, otherwise we need a non-directory (i.e., a file).
 			if srcinfo.IsDir() {
-				if err = os.MkdirAll(target, 0755); err != nil {
+				if err = os.MkdirAll(target, 0o755); err != nil {
 					return undoBinds, fmt.Errorf("creating mountpoint %q in mount namespace: %w", target, err)
 				}
 			} else {
-				if err = os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+				if err = os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 					return undoBinds, fmt.Errorf("ensuring parent of mountpoint %q (%q) is present in mount namespace: %w", target, filepath.Dir(target), err)
 				}
 				var file *os.File
-				if file, err = os.OpenFile(target, os.O_WRONLY|os.O_CREATE, 0755); err != nil {
+				if file, err = os.OpenFile(target, os.O_WRONLY|os.O_CREATE, 0o755); err != nil {
 					return undoBinds, fmt.Errorf("creating mountpoint %q in mount namespace: %w", target, err)
 				}
 				file.Close()
@@ -594,7 +593,7 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 	// Create an empty directory for to use for masking directories.
 	roEmptyDir := filepath.Join(bundlePath, "empty")
 	if len(spec.Linux.MaskedPaths) > 0 {
-		if err := os.Mkdir(roEmptyDir, 0700); err != nil {
+		if err := os.Mkdir(roEmptyDir, 0o700); err != nil {
 			return undoBinds, fmt.Errorf("creating empty directory %q: %w", roEmptyDir, err)
 		}
 	}
