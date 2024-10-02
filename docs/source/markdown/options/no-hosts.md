@@ -12,4 +12,5 @@ hostname (see **--hostname** option), the internal `host.containers.internal`
 and `host.docker.internal` hosts, as well as any hostname added using the
 **--add-host** option. Refer to the **--add-host** option for details. Passing
 **--no-hosts** disables this, so that the image's `/etc/hosts` file is kept
-unmodified.
+unmodified. The same can be achieved globally by setting *no_hosts=true* in
+`containers.conf`.
