@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/common/pkg/umask"
 	"github.com/containers/storage/pkg/idtools"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -345,7 +346,10 @@ func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint,
 
 	srcBackendDir := "/usr/share/crypto-policies/back-ends/FIPS"
 	destDir := "/etc/crypto-policies/back-ends"
-	srcOnHost := filepath.Join(mountPoint, srcBackendDir)
+	srcOnHost, err := securejoin.SecureJoin(mountPoint, srcBackendDir)
+	if err != nil {
+		return fmt.Errorf("resolve %s in the container: %w", srcBackendDir, err)
+	}
 	if _, err := os.Stat(srcOnHost); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return nil
