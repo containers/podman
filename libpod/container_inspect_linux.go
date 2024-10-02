@@ -10,11 +10,9 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/moby/sys/capability"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
 )
 
 func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostConfig *define.InspectContainerHostConfig) error {
@@ -152,15 +150,8 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 				boundingCaps[cap] = true
 			}
 		} else {
-			g, err := generate.New("linux")
-			if err != nil {
-				return err
-			}
 			// If we are privileged, use all caps.
-			for _, cap := range capability.List() {
-				if g.HostSpecific && cap > capabilities.LastCap() {
-					continue
-				}
+			for _, cap := range capability.ListKnown() {
 				boundingCaps[fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String()))] = true
 			}
 		}
