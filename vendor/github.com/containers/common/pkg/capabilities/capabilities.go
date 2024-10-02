@@ -9,20 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 
-	"github.com/syndtr/gocapability/capability"
+	"github.com/moby/sys/capability"
 )
 
 var (
-	// Used internally and populated during init().
-	capabilityList []string
-
-	// Used internally and populated during init().
-	capsList []capability.Cap
-
 	// ErrUnknownCapability is thrown when an unknown capability is processed.
 	ErrUnknownCapability = errors.New("unknown capability")
 
@@ -35,67 +28,67 @@ var (
 // Useful on the CLI for `--cap-add=all` etc.
 const All = "ALL"
 
-func getCapName(c capability.Cap) string {
+func capName(c capability.Cap) string {
 	return "CAP_" + strings.ToUpper(c.String())
 }
 
-func init() {
-	last := capability.CAP_LAST_CAP
-	// hack for RHEL6 which has no /proc/sys/kernel/cap_last_cap
-	if last == capability.Cap(63) {
-		last = capability.CAP_BLOCK_SUSPEND
+// capStrList returns all capabilities supported by the currently running kernel,
+// or an error if the list can not be obtained.
+var capStrList = sync.OnceValues(func() ([]string, error) {
+	list, err := capability.ListSupported()
+	if err != nil {
+		return nil, err
 	}
-	for _, cap := range capability.List() {
-		if cap > last {
+	caps := make([]string, len(list))
+	for i, c := range list {
+		caps[i] = capName(c)
+	}
+	slices.Sort(caps)
+	return caps, nil
+})
+
+// BoundingSet returns the capabilities in the current bounding set.
+func BoundingSet() ([]string, error) {
+	return boundingSet()
+}
+
+var boundingSet = sync.OnceValues(func() ([]string, error) {
+	currentCaps, err := capability.NewPid2(0)
+	if err != nil {
+		return nil, err
+	}
+	err = currentCaps.Load()
+	if err != nil {
+		return nil, err
+	}
+	list, err := capability.ListSupported()
+	if err != nil {
+		return nil, err
+	}
+	var r []string
+	for _, c := range list {
+		if !currentCaps.Get(capability.BOUNDING, c) {
 			continue
 		}
-		capsList = append(capsList, cap)
-		capabilityList = append(capabilityList, getCapName(cap))
-		sort.Strings(capabilityList)
+		r = append(r, capName(c))
 	}
-}
+	slices.Sort(r)
+	return r, nil
+})
 
-var (
-	boundingSetOnce sync.Once
-	boundingSetRet  []string
-	boundingSetErr  error
-)
-
-// BoundingSet returns the capabilities in the current bounding set
-func BoundingSet() ([]string, error) {
-	boundingSetOnce.Do(func() {
-		currentCaps, err := capability.NewPid2(0)
-		if err != nil {
-			boundingSetErr = err
-			return
-		}
-		err = currentCaps.Load()
-		if err != nil {
-			boundingSetErr = err
-			return
-		}
-		var r []string
-		for _, c := range capsList {
-			if !currentCaps.Get(capability.BOUNDING, c) {
-				continue
-			}
-			r = append(r, getCapName(c))
-		}
-		boundingSetRet = r
-		sort.Strings(boundingSetRet)
-		boundingSetErr = err
-	})
-	return boundingSetRet, boundingSetErr
-}
-
-// AllCapabilities returns all known capabilities.
+// AllCapabilities returns all capabilities supported by the running kernel.
 func AllCapabilities() []string {
-	return capabilityList
+	list, _ := capStrList()
+	return list
 }
 
 // NormalizeCapabilities normalizes caps by adding a "CAP_" prefix (if not yet
 // present).
 func NormalizeCapabilities(caps []string) ([]string, error) {
+	all, err := capStrList()
+	if err != nil {
+		return nil, err
+	}
 	normalized := make([]string, 0, len(caps))
 	for _, c := range caps {
 		c = strings.ToUpper(c)
@@ -106,19 +99,23 @@ func NormalizeCapabilities(caps []string) ([]string, error) {
 		if !strings.HasPrefix(c, "CAP_") {
 			c = "CAP_" + c
 		}
-		if !slices.Contains(capabilityList, c) {
+		if !slices.Contains(all, c) {
 			return nil, fmt.Errorf("%q: %w", c, ErrUnknownCapability)
 		}
 		normalized = append(normalized, c)
 	}
-	sort.Strings(normalized)
+	slices.Sort(normalized)
 	return normalized, nil
 }
 
 // ValidateCapabilities validates if caps only contains valid capabilities.
 func ValidateCapabilities(caps []string) error {
+	all, err := capStrList()
+	if err != nil {
+		return err
+	}
 	for _, c := range caps {
-		if !slices.Contains(capabilityList, c) {
+		if !slices.Contains(all, c) {
 			return fmt.Errorf("%q: %w", c, ErrUnknownCapability)
 		}
 	}
@@ -155,7 +152,7 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 			return nil, errors.New("adding all caps and removing all caps not allowed")
 		}
 		// "Drop" all capabilities; return what's in capAdd instead
-		sort.Strings(capAdd)
+		slices.Sort(capAdd)
 		return capAdd, nil
 	}
 
@@ -195,6 +192,6 @@ func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 		}
 		caps = append(caps, cap)
 	}
-	sort.Strings(caps)
+	slices.Sort(caps)
 	return caps, nil
 }

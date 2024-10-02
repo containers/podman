@@ -326,6 +326,8 @@ default_sysctls = [
 
 # The compression format to use when pushing an image.
 # Valid options are: `gzip`, `zstd` and `zstd:chunked`.
+# `zstd:chunked` is incompatible with encrypting images, and will be treated as `zstd` with a warning
+# in that case.
 #
 #compression_format = "gzip"
 
