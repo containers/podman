@@ -5,16 +5,18 @@
 
 load helpers
 
+# bats file_tags=ci:parallel
+
 ###############################################################################
 # BEGIN setup/teardown
 
-# Each test runs with its own PTY, managed by socat.
-PODMAN_TEST_PTY=$(mktemp -u --tmpdir=${BATS_TMPDIR:-/tmp} podman_pty.XXXXXX)
-PODMAN_DUMMY=$(mktemp -u --tmpdir=${BATS_TMPDIR:-/tmp} podman_dummy.XXXXXX)
-PODMAN_SOCAT_PID=
-
 function setup() {
     basic_setup
+
+    # Each test runs with its own PTY, managed by socat.
+    PODMAN_TEST_PTY=$PODMAN_TMPDIR/podman_pty
+    PODMAN_DUMMY=$PODMAN_TMPDIR/podman_dummy
+    PODMAN_SOCAT_PID=
 
     # Create a pty. Run under 'timeout' because BATS reaps child processes
     # and if we exit before killing socat, bats will hang forever.
