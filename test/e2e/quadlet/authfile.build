@@ -1,6 +1,6 @@
 ## assert-podman-final-args-regex /.*/podman-e2e-.*/subtest-.*/quadlet
-## assert-podman-args --tag=localhost/imagename
-## assert-podman-args --authfile=/etc/certs/auth.json
+## assert-podman-args "--tag" "localhost/imagename"
+## assert-podman-args "--authfile" "/etc/certs/auth.json"
 
 [Build]
 ImageTag=localhost/imagename

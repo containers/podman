@@ -1,5 +1,5 @@
 ## assert-podman-final-args github.com/containers/PodmanHello.git
-## assert-podman-args --tag=localhost/podman-hello
+## assert-podman-args "--tag" "localhost/podman-hello"
 
 [Build]
 ImageTag=localhost/podman-hello

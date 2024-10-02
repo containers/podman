@@ -1,4 +1,4 @@
-## assert-podman-args --tag=localhost/imagename
+## assert-podman-args "--tag" "localhost/imagename"
 
 [Build]
 ServiceName=basic

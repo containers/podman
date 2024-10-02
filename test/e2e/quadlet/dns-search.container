@@ -1,6 +1,6 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args "--dns-search=foo.com"
-## assert-podman-args "--dns-search=bar.com"
+## assert-podman-args "--dns-search" "foo.com"
+## assert-podman-args "--dns-search" "bar.com"
 
 [Container]
 Image=localhost/imagename

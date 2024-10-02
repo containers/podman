@@ -1,9 +1,9 @@
-## assert-podman-args --device=/dev/fuse
-## assert-podman-args --device=/dev/loop0:r
-## assert-podman-args --device=/dev/null:/dev/test
-## !assert-podman-args --device=/dev/bogus:r
-## !assert-podman-args --device=/dev/bogus
-## !assert-podman-args --device=/dev/bogus1
+## assert-podman-args --device /dev/fuse
+## assert-podman-args --device /dev/loop0:r
+## assert-podman-args --device /dev/null:/dev/test
+## !assert-podman-args --device /dev/bogus:r
+## !assert-podman-args --device /dev/bogus
+## !assert-podman-args --device /dev/bogus1
 
 [Container]
 Image=localhost/imagename

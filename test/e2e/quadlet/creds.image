@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args --creds=myname:mypassword
+## assert-podman-args "--creds" "myname:mypassword"
 
 [Image]
 Image=localhost/imagename

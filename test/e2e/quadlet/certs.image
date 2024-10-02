@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args --cert-dir=/etc/certs/auth.json
+## assert-podman-args "--cert-dir" "/etc/certs/auth.json"
 
 [Image]
 Image=localhost/imagename

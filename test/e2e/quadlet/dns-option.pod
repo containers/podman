@@ -1,5 +1,5 @@
-## assert-podman-pre-args "--dns-option=ndots:1"
-## assert-podman-pre-args "--dns-option=color:blue"
+## assert-podman-pre-args "--dns-option" "ndots:1"
+## assert-podman-pre-args "--dns-option" "color:blue"
 
 [Pod]
 DNSOption=ndots:1

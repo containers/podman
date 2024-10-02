@@ -1,4 +1,4 @@
-## assert-podman-pre-args "--network=systemd-basic"
+## assert-podman-pre-args "--network" "systemd-basic"
 ## assert-key-is "Unit" "Requires" "basic-network.service"
 ## assert-key-is "Unit" "After" "basic-network.service"
 

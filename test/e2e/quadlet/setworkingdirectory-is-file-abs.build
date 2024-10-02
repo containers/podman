@@ -1,4 +1,4 @@
-## assert-podman-args --file=/etc/containers/systemd/Containerfile
+## assert-podman-args "--file" "/etc/containers/systemd/Containerfile"
 ## assert-key-is "Service" "WorkingDirectory" "/etc/containers/systemd"
 
 [Build]

@@ -1,4 +1,4 @@
-## assert-podman-args --driver=image
+## assert-podman-args --driver image
 ## assert-podman-args --opt image=localhost/imagename
 
 [Volume]

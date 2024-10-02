@@ -1,5 +1,5 @@
 ## assert-podman-final-args git://git@git.sr.ht/~emersion/sr.ht-container-compose
-## assert-podman-args --tag=localhost/podman-hello
+## assert-podman-args "--tag" "localhost/podman-hello"
 
 [Build]
 ImageTag=localhost/podman-hello

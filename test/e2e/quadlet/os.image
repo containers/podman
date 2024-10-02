@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args --os=windows
+## assert-podman-args "--os" "windows"
 
 [Image]
 Image=localhost/imagename

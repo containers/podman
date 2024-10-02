@@ -1,5 +1,5 @@
 ## assert-podman-final-args localhost/imagename
-## assert-podman-args "--name=systemd-%N"
+## assert-podman-args "--name" "systemd-%N"
 ## assert-podman-args "--cidfile=%t/%N.cid"
 ## assert-podman-args "--rm"
 ## assert-podman-args "--replace"

@@ -1,5 +1,5 @@
 ## assert-podman-final-args .
-## assert-podman-args-regex "--file=Containerfile"
+## assert-podman-args-regex "--file" "Containerfile"
 
 [Build]
 ImageTag=localhost/imagename

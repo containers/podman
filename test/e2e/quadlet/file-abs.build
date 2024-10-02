@@ -1,4 +1,4 @@
-## assert-podman-final-args --file=/etc/containers/systemd/Containerfile
+## assert-podman-final-args "--file" "/etc/containers/systemd/Containerfile"
 
 [Build]
 File=/etc/containers/systemd/Containerfile

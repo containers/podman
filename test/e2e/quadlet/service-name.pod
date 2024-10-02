@@ -1,4 +1,4 @@
-## assert-podman-pre-args "--name=test-pod"
+## assert-podman-pre-args "--name" "test-pod"
 
 [Pod]
 ServiceName=basic
