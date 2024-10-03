@@ -198,9 +198,7 @@ func (m *machineTestBuilder) run() (*machineSession, error) {
 }
 
 func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
-	if len(os.Getenv("DEBUG")) > 0 {
-		cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
-	}
+	cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
 	GinkgoWriter.Println(podmanBinary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(podmanBinary, cmdArgs...)
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
