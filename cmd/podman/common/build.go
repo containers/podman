@@ -396,6 +396,11 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		reporter = logfile
 	}
 
+	var quiet = flags.Quiet
+	if flags.BuildOutput == "-" {
+		quiet = true
+	}
+
 	nsValues, networkPolicy, err := parse.NamespaceOptions(c)
 	if err != nil {
 		return nil, err
@@ -556,7 +561,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		Platforms:               platforms,
 		PullPolicy:              pullPolicy,
 		PullPushRetryDelay:      2 * time.Second,
-		Quiet:                   flags.Quiet,
+		Quiet:                   quiet,
 		RemoveIntermediateCtrs:  flags.Rm,
 		ReportWriter:            reporter,
 		Runtime:                 podmanConfig.RuntimePath,
