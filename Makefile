@@ -20,6 +20,7 @@
 ### Variables & Definitions
 ###
 
+#
 # Default shell `/bin/sh` has different meanings depending on the platform.
 SHELL := $(shell command -v bash;)
 GO ?= go
