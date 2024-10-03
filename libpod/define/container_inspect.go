@@ -643,8 +643,8 @@ type InspectContainerHostConfig struct {
 	// MemorySwappiness is the willingness of the kernel to page container
 	// memory to swap. It is an integer from 0 to 100, with low numbers
 	// being more likely to be put into swap.
-	// -1, the default, will not set swappiness and use the system defaults.
-	MemorySwappiness int64 `json:"MemorySwappiness"`
+	// nil means swappiness is unset and the system default is used.
+	MemorySwappiness *int64 `json:"MemorySwappiness"`
 	// OomKillDisable indicates whether the kernel OOM killer is disabled
 	// for the container.
 	OomKillDisable bool `json:"OomKillDisable"`

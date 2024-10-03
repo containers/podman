@@ -61,10 +61,8 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 					hostConfig.MemorySwap = *ctrSpec.Linux.Resources.Memory.Swap
 				}
 				if ctrSpec.Linux.Resources.Memory.Swappiness != nil {
-					hostConfig.MemorySwappiness = int64(*ctrSpec.Linux.Resources.Memory.Swappiness)
-				} else {
-					// Swappiness has a default of -1
-					hostConfig.MemorySwappiness = -1
+					swappiness := int64(*ctrSpec.Linux.Resources.Memory.Swappiness)
+					hostConfig.MemorySwappiness = &swappiness
 				}
 				if ctrSpec.Linux.Resources.Memory.DisableOOMKiller != nil {
 					hostConfig.OomKillDisable = *ctrSpec.Linux.Resources.Memory.DisableOOMKiller

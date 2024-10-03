@@ -870,6 +870,21 @@ t GET containers/$cid/json 200 \
 t DELETE containers/$cid 204
 podman rmi test1
 
+# test MemorySwappiness
+podman run -d --rm --name swappiness_with_mem_limit --memory 200M $IMAGE top
+podman run -d --rm --name swappiness_without_mem_limit $IMAGE top
+
+t GET containers/swappiness_with_mem_limit/json 200 \
+  .HostConfig.MemorySwappiness=null
+t GET containers/swappiness_without_mem_limit/json 200 \
+  .HostConfig.MemorySwappiness=null
+
+t GET libpod/containers/swappiness_with_mem_limit/json 200 \
+  .HostConfig.MemorySwappiness=null
+t GET libpod/containers/swappiness_without_mem_limit/json 200 \
+  .HostConfig.MemorySwappiness=null
+
+podman stop -t0 swappiness_with_mem_limit swappiness_without_mem_limit
 
 # test if API support -1 for ulimits https://github.com/containers/podman/issues/24886
 
