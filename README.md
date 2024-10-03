@@ -166,7 +166,7 @@ OCI images, such as pulling and tagging.  It also allows you to create, run, and
 created from those images.  For building container images via Dockerfiles, Podman uses Buildah's
 golang API and can be installed independently from Buildah.
 
-A major difference between Podman and Buildah is their concept of a container.  Podman
+A major difference between Podman and Buildah is their concept of a container. Podman
 allows users to create "traditional containers" where the intent of these containers is
 to be long lived.  While Buildah containers are really just created to allow content
 to be added back to the container image.  An easy way to think of it is the
