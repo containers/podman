@@ -18,6 +18,7 @@ import (
 	winio "github.com/Microsoft/go-winio"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
+	"github.com/containers/podman/v5/pkg/machine/sockets"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 )
@@ -45,6 +46,7 @@ type WinProxyOpts struct {
 	RemoteUsername string
 	Rootful        bool
 	VMType         define.VMType
+	Socket         *define.VMFile
 }
 
 func GetProcessState(pid int) (active bool, exitCode int) {
@@ -159,6 +161,12 @@ func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 		args = append(args, NamedPipePrefix+GlobalNamedPipe, dest, opts.IdentityPath)
 		waitPipe = GlobalNamedPipe
 	}
+
+	hostURL, err := sockets.ToUnixURL(opts.Socket)
+	if err != nil {
+		return false, "", err
+	}
+	args = append(args, hostURL.String(), dest, opts.IdentityPath)
 
 	cmd := exec.Command(command, args...)
 	logrus.Debugf("winssh command: %s %v", command, args)

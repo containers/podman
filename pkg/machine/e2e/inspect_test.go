@@ -80,9 +80,6 @@ var _ = Describe("podman inspect stop", func() {
 	})
 
 	It("inspect shows a unique socket name per machine", func() {
-		skipIfVmtype(define.WSLVirt, "test is only relevant for Unix based providers")
-		skipIfVmtype(define.HyperVVirt, "test is only relevant for Unix based machines")
-
 		var socks []string
 		for c := 0; c < 2; c++ {
 			name := randomString()

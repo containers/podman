@@ -186,6 +186,10 @@ func (w WSLStubber) RequireExclusiveActive() bool {
 }
 
 func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+	socket, err := mc.APISocket()
+	if err != nil {
+		return err
+	}
 	winProxyOpts := machine.WinProxyOpts{
 		Name:           mc.Name,
 		IdentityPath:   mc.SSH.IdentityPath,
@@ -193,6 +197,7 @@ func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool
 		RemoteUsername: mc.SSH.RemoteUsername,
 		Rootful:        mc.HostUser.Rootful,
 		VMType:         w.VMType(),
+		Socket:         socket,
 	}
 	machine.LaunchWinProxy(winProxyOpts, noInfo)
 
