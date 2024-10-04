@@ -169,3 +169,15 @@ EOF
     run_podman run --rm --userns=auto:uidmapping=$mapping $IMAGE awk '{if($1 == 1){print $2}}' /proc/self/uid_map
     assert "$output" == 1
 }
+
+# bats test_tags=ci:parallel
+@test "podman current user not mapped in the userns" {
+    # both uid and gid not mapped
+    run_podman run --rm --uidmap 0:1:1000 $IMAGE true
+
+    # uid not mapped
+    run_podman run --rm --uidmap 0:1:1000 --gidmap 0:0:1000 $IMAGE true
+
+    # gid not mapped
+    run_podman run --rm --uidmap 0:0:1000 --gidmap 0:1:1000 $IMAGE true
+}
