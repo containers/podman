@@ -34,6 +34,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/idtools"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -172,13 +173,15 @@ func hasCurrentUserMapped(ctr *Container) bool {
 	if len(ctr.config.IDMappings.UIDMap) == 0 && len(ctr.config.IDMappings.GIDMap) == 0 {
 		return true
 	}
-	uid := os.Geteuid()
-	for _, m := range ctr.config.IDMappings.UIDMap {
-		if uid >= m.HostID && uid < m.HostID+m.Size {
-			return true
+	containsID := func(id int, mappings []idtools.IDMap) bool {
+		for _, m := range mappings {
+			if id >= m.HostID && id < m.HostID+m.Size {
+				return true
+			}
 		}
+		return false
 	}
-	return false
+	return containsID(os.Geteuid(), ctr.config.IDMappings.UIDMap) && containsID(os.Getegid(), ctr.config.IDMappings.GIDMap)
 }
 
 // CreateContainer creates a container.
