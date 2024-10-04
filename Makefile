@@ -140,6 +140,7 @@ GINKGO ?= ./test/tools/build/ginkgo
 # Allow control over some Ginkgo parameters
 GINKGO_FLAKE_ATTEMPTS ?= 0
 GINKGO_NO_COLOR ?= y
+GINKGO_EXTRA_FLAGS ?=
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -657,7 +658,8 @@ ginkgo-run: .install.ginkgo
 		--trace $(if $(findstring y,$(GINKGO_NO_COLOR)),--no-color,) \
 		$(if $(findstring y,$(GINKGO_PARALLEL)),-p,) \
 		$(if $(FOCUS),--focus "$(FOCUS) --silence-skips",) \
-		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)" --silence-skips,) $(GINKGOWHAT)
+		$(if $(FOCUS_FILE),--focus-file "$(FOCUS_FILE)" --silence-skips,) \
+		$(GINKGO_EXTRA_FLAGS) $(GINKGOWHAT)
 
 .PHONY: ginkgo
 ginkgo:
