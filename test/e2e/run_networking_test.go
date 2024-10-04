@@ -441,19 +441,22 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(inspectOut[0].HostConfig.PublishAllPorts).To(BeTrue())
 	})
 
-	It("podman run --net=host --expose includes port in inspect output", func() {
+	It("podman run --net=host --expose includes ports in inspect output", func() {
 		containerName := "testctr"
-		session := podmanTest.Podman([]string{"run", "--name", containerName, "-d", "--expose", "8080/tcp", NGINX_IMAGE, "sleep", "+inf"})
+		session := podmanTest.Podman([]string{"run", "--net=host", "--name", containerName, "-d", "--expose", "8080/tcp", NGINX_IMAGE, "sleep", "+inf"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
 		inspectOut := podmanTest.InspectContainer(containerName)
 		Expect(inspectOut).To(HaveLen(1))
 
+		// Ports is empty. ExposedPorts is not.
+		Expect(inspectOut[0].NetworkSettings.Ports).To(BeEmpty())
+
 		// 80 from the image, 8080 from the expose
-		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(2))
-		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("80/tcp"))
-		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("8080/tcp"))
+		Expect(inspectOut[0].Config.ExposedPorts).To(HaveLen(2))
+		Expect(inspectOut[0].Config.ExposedPorts).To(HaveKey("80/tcp"))
+		Expect(inspectOut[0].Config.ExposedPorts).To(HaveKey("8080/tcp"))
 	})
 
 	It("podman run --net=container --expose exposed port from own container", func() {
@@ -469,8 +472,10 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 
 		inspectOut := podmanTest.InspectContainer(ctr2)
 		Expect(inspectOut).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveKey("8090/tcp"))
+		// Ports will not be populated. ExposedPorts will be.
+		Expect(inspectOut[0].NetworkSettings.Ports).To(BeEmpty())
+		Expect(inspectOut[0].Config.ExposedPorts).To(HaveLen(1))
+		Expect(inspectOut[0].Config.ExposedPorts).To(HaveKey("8090/tcp"))
 	})
 
 	It("podman run -p 127.0.0.1::8980/udp", func() {

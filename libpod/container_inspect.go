@@ -211,7 +211,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		return nil, err
 	}
 	data.NetworkSettings = networkConfig
-	addInspectPortsExpose(c.config.ExposedPorts, data.NetworkSettings.Ports)
+	// Ports in NetworkSettings includes exposed ports for network modes that are not host,
+	// and not container.
+	if !(c.config.NetNsCtr != "" || c.NetworkMode() == "host") {
+		addInspectPortsExpose(c.config.ExposedPorts, data.NetworkSettings.Ports)
+	}
 
 	inspectConfig := c.generateInspectContainerConfig(ctrSpec)
 	data.Config = inspectConfig
