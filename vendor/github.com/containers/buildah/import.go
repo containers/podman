@@ -109,7 +109,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 		CommonBuildOpts:  &CommonBuildOptions{},
 	}
 
-	if err := builder.initConfig(ctx, image, systemContext); err != nil {
+	if err := builder.initConfig(ctx, systemContext, image, nil); err != nil {
 		return nil, fmt.Errorf("preparing image configuration: %w", err)
 	}
 

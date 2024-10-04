@@ -26,6 +26,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	digest "github.com/opencontainers/go-digest"
@@ -33,6 +34,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -80,7 +82,9 @@ type containerImageRef struct {
 	parent                string
 	blobDirectory         string
 	preEmptyLayers        []v1.History
+	preLayers             []commitLinkedLayerInfo
 	postEmptyLayers       []v1.History
+	postLayers            []commitLinkedLayerInfo
 	overrideChanges       []string
 	overrideConfig        *manifest.Schema2Config
 	extraImageContent     map[string]string
@@ -90,6 +94,13 @@ type containerImageRef struct {
 type blobLayerInfo struct {
 	ID   string
 	Size int64
+}
+
+type commitLinkedLayerInfo struct {
+	layerID            string // more like layer "ID"
+	linkedLayer        LinkedLayer
+	uncompressedDigest digest.Digest
+	size               int64
 }
 
 type containerImageSource struct {
@@ -278,7 +289,6 @@ func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadClo
 		err := copier.Get(mountPoint, mountPoint, copierOptions, []string{"."}, pipeWriter)
 		errChan <- err
 		pipeWriter.Close()
-
 	}()
 	return ioutils.NewReadCloserWrapper(pipeReader, func() error {
 		if err = pipeReader.Close(); err != nil {
@@ -398,7 +408,7 @@ func (i *containerImageRef) createConfigsAndManifests() (v1.Image, v1.Manifest, 
 	return oimage, omanifest, dimage, dmanifest, nil
 }
 
-func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.SystemContext) (src types.ImageSource, err error) {
+func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemContext) (src types.ImageSource, err error) {
 	// Decide which type of manifest and configuration output we're going to provide.
 	manifestType := i.preferredManifestType
 	// If it's not a format we support, return an error.
@@ -406,8 +416,17 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		return nil, fmt.Errorf("no supported manifest types (attempted to use %q, only know %q and %q)",
 			manifestType, v1.MediaTypeImageManifest, manifest.DockerV2Schema2MediaType)
 	}
-	// Start building the list of layers using the read-write layer.
+	// These maps will let us check if a layer ID is part of one group or another.
+	parentLayerIDs := make(map[string]bool)
+	apiLayerIDs := make(map[string]bool)
+	// Start building the list of layers with any prepended layers.
 	layers := []string{}
+	for _, preLayer := range i.preLayers {
+		layers = append(layers, preLayer.layerID)
+		apiLayerIDs[preLayer.layerID] = true
+	}
+	// Now look at the read-write layer, and prepare to work our way back
+	// through all of its parent layers.
 	layerID := i.layerID
 	layer, err := i.store.Layer(layerID)
 	if err != nil {
@@ -417,7 +436,15 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	// or making a confidential workload, we're only producing one layer, so stop at
 	// the layer ID of the top layer, which we won't really be using anyway.
 	for layer != nil {
-		layers = append(append([]string{}, layerID), layers...)
+		if layerID == i.layerID {
+			// append the layer for this container to the list,
+			// whether it's first or after some prepended layers
+			layers = append(layers, layerID)
+		} else {
+			// prepend this parent layer to the list
+			layers = append(append([]string{}, layerID), layers...)
+			parentLayerIDs[layerID] = true
+		}
 		layerID = layer.Parent
 		if layerID == "" || i.confidentialWorkload.Convert || i.squash {
 			err = nil
@@ -430,13 +457,23 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	}
 	layer = nil
 
-	// If we're slipping in a synthesized layer, we need to add a placeholder for it
-	// to the list.
+	// If we're slipping in a synthesized layer to hold some files, we need
+	// to add a placeholder for it to the list just after the read-write
+	// layer.  Confidential workloads and squashed images will just inline
+	// the files, so we don't need to create a layer in those cases.
 	const synthesizedLayerID = "(synthesized layer)"
 	if len(i.extraImageContent) > 0 && !i.confidentialWorkload.Convert && !i.squash {
 		layers = append(layers, synthesizedLayerID)
 	}
+	// Now add any API-supplied layers we have to append.
+	for _, postLayer := range i.postLayers {
+		layers = append(layers, postLayer.layerID)
+		apiLayerIDs[postLayer.layerID] = true
+	}
 	logrus.Debugf("layer list: %q", layers)
+
+	// It's simpler from here on to keep track of these as a group.
+	apiLayers := append(slices.Clone(i.preLayers), slices.Clone(i.postLayers)...)
 
 	// Make a temporary directory to hold blobs.
 	path, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
@@ -469,21 +506,26 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		if i.confidentialWorkload.Convert || i.squash {
 			what = fmt.Sprintf("container %q", i.containerID)
 		}
+		if layerID == synthesizedLayerID {
+			what = synthesizedLayerID
+		}
+		if apiLayerIDs[layerID] {
+			what = layerID
+		}
 		// The default layer media type assumes no compression.
 		omediaType := v1.MediaTypeImageLayer
 		dmediaType := docker.V2S2MediaTypeUncompressedLayer
 		// Look up this layer.
 		var layerUncompressedDigest digest.Digest
 		var layerUncompressedSize int64
-		if layerID != synthesizedLayerID {
-			layer, err := i.store.Layer(layerID)
-			if err != nil {
-				return nil, fmt.Errorf("unable to locate layer %q: %w", layerID, err)
-			}
-			layerID = layer.ID
-			layerUncompressedDigest = layer.UncompressedDigest
-			layerUncompressedSize = layer.UncompressedSize
-		} else {
+		linkedLayerHasLayerID := func(l commitLinkedLayerInfo) bool { return l.layerID == layerID }
+		if apiLayerIDs[layerID] {
+			// API-provided prepended or appended layer
+			apiLayerIndex := slices.IndexFunc(apiLayers, linkedLayerHasLayerID)
+			layerUncompressedDigest = apiLayers[apiLayerIndex].uncompressedDigest
+			layerUncompressedSize = apiLayers[apiLayerIndex].size
+		} else if layerID == synthesizedLayerID {
+			// layer diff consisting of extra files to synthesize into a layer
 			diffFilename, digest, size, err := i.makeExtraImageContentDiff(true)
 			if err != nil {
 				return nil, fmt.Errorf("unable to generate layer for additional content: %w", err)
@@ -492,10 +534,20 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			extraImageContentDiffDigest = digest
 			layerUncompressedDigest = digest
 			layerUncompressedSize = size
+		} else {
+			// "normal" layer
+			layer, err := i.store.Layer(layerID)
+			if err != nil {
+				return nil, fmt.Errorf("unable to locate layer %q: %w", layerID, err)
+			}
+			layerID = layer.ID
+			layerUncompressedDigest = layer.UncompressedDigest
+			layerUncompressedSize = layer.UncompressedSize
 		}
-		// If we already know the digest of the contents of parent
-		// layers, reuse their blobsums, diff IDs, and sizes.
-		if !i.confidentialWorkload.Convert && !i.squash && layerID != i.layerID && layerID != synthesizedLayerID && layerUncompressedDigest != "" {
+		// We already know the digest of the contents of parent layers,
+		// so if this is a parent layer, and we know its digest, reuse
+		// its blobsum, diff ID, and size.
+		if !i.confidentialWorkload.Convert && !i.squash && parentLayerIDs[layerID] && layerUncompressedDigest != "" {
 			layerBlobSum := layerUncompressedDigest
 			layerBlobSize := layerUncompressedSize
 			diffID := layerUncompressedDigest
@@ -546,7 +598,20 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 				return nil, err
 			}
 		} else {
-			if layerID != synthesizedLayerID {
+			if apiLayerIDs[layerID] {
+				// We're reading an API-supplied blob.
+				apiLayerIndex := slices.IndexFunc(apiLayers, linkedLayerHasLayerID)
+				f, err := os.Open(apiLayers[apiLayerIndex].linkedLayer.BlobPath)
+				if err != nil {
+					return nil, fmt.Errorf("opening layer blob for %s: %w", layerID, err)
+				}
+				rc = f
+			} else if layerID == synthesizedLayerID {
+				// Slip in additional content as an additional layer.
+				if rc, err = os.Open(extraImageContentDiff); err != nil {
+					return nil, err
+				}
+			} else {
 				// If we're up to the final layer, but we don't want to
 				// include a diff for it, we're done.
 				if i.emptyLayer && layerID == i.layerID {
@@ -557,16 +622,11 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 				if err != nil {
 					return nil, fmt.Errorf("extracting %s: %w", what, err)
 				}
-			} else {
-				// Slip in additional content as an additional layer.
-				if rc, err = os.Open(extraImageContentDiff); err != nil {
-					return nil, err
-				}
 			}
 		}
 		srcHasher := digest.Canonical.Digester()
 		// Set up to write the possibly-recompressed blob.
-		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0600)
+		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
 			rc.Close()
 			return nil, fmt.Errorf("opening file for %s: %w", what, err)
@@ -678,7 +738,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	}
 
 	// Build history notes in the image configurations.
-	appendHistory := func(history []v1.History) {
+	appendHistory := func(history []v1.History, empty bool) {
 		for i := range history {
 			var created *time.Time
 			if history[i].Created != nil {
@@ -690,7 +750,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 				CreatedBy:  history[i].CreatedBy,
 				Author:     history[i].Author,
 				Comment:    history[i].Comment,
-				EmptyLayer: true,
+				EmptyLayer: empty,
 			}
 			oimage.History = append(oimage.History, onews)
 			if created == nil {
@@ -701,7 +761,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 				CreatedBy:  history[i].CreatedBy,
 				Author:     history[i].Author,
 				Comment:    history[i].Comment,
-				EmptyLayer: true,
+				EmptyLayer: empty,
 			}
 			dimage.History = append(dimage.History, dnews)
 		}
@@ -712,36 +772,38 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 		// Keep track of how many entries the base image's history had
 		// before we started adding to it.
 		baseImageHistoryLen := len(oimage.History)
-		appendHistory(i.preEmptyLayers)
+
+		// Add history entries for prepended empty layers.
+		appendHistory(i.preEmptyLayers, true)
+		// Add history entries for prepended API-supplied layers.
+		for _, h := range i.preLayers {
+			appendHistory([]v1.History{h.linkedLayer.History}, h.linkedLayer.History.EmptyLayer)
+		}
+		// Add a history entry for this layer, empty or not.
 		created := time.Now().UTC()
 		if i.created != nil {
 			created = (*i.created).UTC()
-		}
-		comment := i.historyComment
-		// Add a comment indicating which base image was used, if it wasn't
-		// just an image ID.
-		if strings.Contains(i.parent, i.fromImageID) && i.fromImageName != i.fromImageID {
-			comment += "FROM " + i.fromImageName
 		}
 		onews := v1.History{
 			Created:    &created,
 			CreatedBy:  i.createdBy,
 			Author:     oimage.Author,
 			EmptyLayer: i.emptyLayer,
+			Comment:    i.historyComment,
 		}
 		oimage.History = append(oimage.History, onews)
-		oimage.History[baseImageHistoryLen].Comment = comment
 		dnews := docker.V2S2History{
 			Created:    created,
 			CreatedBy:  i.createdBy,
 			Author:     dimage.Author,
 			EmptyLayer: i.emptyLayer,
+			Comment:    i.historyComment,
 		}
 		dimage.History = append(dimage.History, dnews)
-		dimage.History[baseImageHistoryLen].Comment = comment
-		appendHistory(i.postEmptyLayers)
-
 		// Add a history entry for the extra image content if we added a layer for it.
+		// This diff was added to the list of layers before API-supplied layers that
+		// needed to be appended, and we need to keep the order of history entries for
+		// not-empty layers consistent with that.
 		if extraImageContentDiff != "" {
 			createdBy := fmt.Sprintf(`/bin/sh -c #(nop) ADD dir:%s in /",`, extraImageContentDiffDigest.Encoded())
 			onews := v1.History{
@@ -755,6 +817,24 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 			}
 			dimage.History = append(dimage.History, dnews)
 		}
+		// Add history entries for appended empty layers.
+		appendHistory(i.postEmptyLayers, true)
+		// Add history entries for appended API-supplied layers.
+		for _, h := range i.postLayers {
+			appendHistory([]v1.History{h.linkedLayer.History}, h.linkedLayer.History.EmptyLayer)
+		}
+
+		// Assemble a comment indicating which base image was used, if it wasn't
+		// just an image ID, and add it to the first history entry we added.
+		var fromComment string
+		if strings.Contains(i.parent, i.fromImageID) && i.fromImageName != "" && !strings.HasPrefix(i.fromImageID, i.fromImageName) {
+			if oimage.History[baseImageHistoryLen].Comment != "" {
+				fromComment = " "
+			}
+			fromComment += "FROM " + i.fromImageName
+		}
+		oimage.History[baseImageHistoryLen].Comment += fromComment
+		dimage.History[baseImageHistoryLen].Comment += fromComment
 
 		// Confidence check that we didn't just create a mismatch between non-empty layers in the
 		// history and the number of diffIDs.  Only applicable if the base image (if there was
@@ -841,7 +921,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, sc *types.System
 	return src, nil
 }
 
-func (i *containerImageRef) NewImageDestination(ctx context.Context, sc *types.SystemContext) (types.ImageDestination, error) {
+func (i *containerImageRef) NewImageDestination(_ context.Context, _ *types.SystemContext) (types.ImageDestination, error) {
 	return nil, errors.New("can't write to a container")
 }
 
@@ -885,15 +965,15 @@ func (i *containerImageSource) Reference() types.ImageReference {
 	return i.ref
 }
 
-func (i *containerImageSource) GetSignatures(ctx context.Context, instanceDigest *digest.Digest) ([][]byte, error) {
+func (i *containerImageSource) GetSignatures(_ context.Context, _ *digest.Digest) ([][]byte, error) {
 	return nil, nil
 }
 
-func (i *containerImageSource) GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error) {
+func (i *containerImageSource) GetManifest(_ context.Context, _ *digest.Digest) ([]byte, string, error) {
 	return i.manifest, i.manifestType, nil
 }
 
-func (i *containerImageSource) LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]types.BlobInfo, error) {
+func (i *containerImageSource) LayerInfosForCopy(_ context.Context, _ *digest.Digest) ([]types.BlobInfo, error) {
 	return nil, nil
 }
 
@@ -901,7 +981,7 @@ func (i *containerImageSource) HasThreadSafeGetBlob() bool {
 	return false
 }
 
-func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo, cache types.BlobInfoCache) (reader io.ReadCloser, size int64, err error) {
+func (i *containerImageSource) GetBlob(_ context.Context, blob types.BlobInfo, _ types.BlobInfoCache) (reader io.ReadCloser, size int64, err error) {
 	if blob.Digest == i.configDigest {
 		logrus.Debugf("start reading config")
 		reader := bytes.NewReader(i.config)
@@ -923,7 +1003,7 @@ func (i *containerImageSource) GetBlob(ctx context.Context, blob types.BlobInfo,
 	} else {
 		for _, blobDir := range []string{i.blobDirectory, i.path} {
 			var layerFile *os.File
-			layerFile, err = os.OpenFile(filepath.Join(blobDir, blob.Digest.String()), os.O_RDONLY, 0600)
+			layerFile, err = os.OpenFile(filepath.Join(blobDir, blob.Digest.String()), os.O_RDONLY, 0o600)
 			if err == nil {
 				st, err := layerFile.Stat()
 				if err != nil {
@@ -1018,11 +1098,92 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (_ str
 	return diff.Name(), digester.Digest(), counter.Count, nil
 }
 
+// makeLinkedLayerInfos calculates the size and digest information for a layer
+// we intend to add to the image that we're committing.
+func (b *Builder) makeLinkedLayerInfos(layers []LinkedLayer, layerType string) ([]commitLinkedLayerInfo, error) {
+	if layers == nil {
+		return nil, nil
+	}
+	infos := make([]commitLinkedLayerInfo, 0, len(layers))
+	for i, layer := range layers {
+		// complain if EmptyLayer and "is the BlobPath empty" don't agree
+		if layer.History.EmptyLayer != (layer.BlobPath == "") {
+			return nil, fmt.Errorf("internal error: layer-is-empty = %v, but content path is %q", layer.History.EmptyLayer, layer.BlobPath)
+		}
+		// if there's no layer contents, we're done with this one
+		if layer.History.EmptyLayer {
+			continue
+		}
+		// check if it's a directory or a non-directory
+		st, err := os.Stat(layer.BlobPath)
+		if err != nil {
+			return nil, fmt.Errorf("checking if layer content %s is a directory: %w", layer.BlobPath, err)
+		}
+		info := commitLinkedLayerInfo{
+			layerID:     fmt.Sprintf("(%s %d)", layerType, i+1),
+			linkedLayer: layer,
+		}
+		if err = func() error {
+			if st.IsDir() {
+				// if it's a directory, archive it and digest the archive while we're storing a copy somewhere
+				cdir, err := b.store.ContainerDirectory(b.ContainerID)
+				if err != nil {
+					return fmt.Errorf("determining directory for working container: %w", err)
+				}
+				f, err := os.CreateTemp(cdir, "")
+				if err != nil {
+					return fmt.Errorf("creating temporary file to hold blob for %q: %w", info.linkedLayer.BlobPath, err)
+				}
+				defer f.Close()
+				rc, err := chrootarchive.Tar(info.linkedLayer.BlobPath, nil, info.linkedLayer.BlobPath)
+				if err != nil {
+					return fmt.Errorf("generating a layer blob from %q: %w", info.linkedLayer.BlobPath, err)
+				}
+				digester := digest.Canonical.Digester()
+				sizeCounter := ioutils.NewWriteCounter(digester.Hash())
+				_, copyErr := io.Copy(f, io.TeeReader(rc, sizeCounter))
+				if err := rc.Close(); err != nil {
+					return fmt.Errorf("storing a copy of %q: %w", info.linkedLayer.BlobPath, err)
+				}
+				if copyErr != nil {
+					return fmt.Errorf("storing a copy of %q: %w", info.linkedLayer.BlobPath, copyErr)
+				}
+				info.uncompressedDigest = digester.Digest()
+				info.size = sizeCounter.Count
+				info.linkedLayer.BlobPath = f.Name()
+			} else {
+				// if it's not a directory, just digest it
+				f, err := os.Open(info.linkedLayer.BlobPath)
+				if err != nil {
+					return err
+				}
+				defer f.Close()
+				sizeCounter := ioutils.NewWriteCounter(io.Discard)
+				uncompressedDigest, err := digest.Canonical.FromReader(io.TeeReader(f, sizeCounter))
+				if err != nil {
+					return err
+				}
+				info.uncompressedDigest = uncompressedDigest
+				info.size = sizeCounter.Count
+			}
+			return nil
+		}(); err != nil {
+			return nil, err
+		}
+		infos = append(infos, info)
+	}
+	return infos, nil
+}
+
 // makeContainerImageRef creates a containers/image/v5/types.ImageReference
 // which is mainly used for representing the working container as a source
-// image that can be copied, which is how we commit container to create the
+// image that can be copied, which is how we commit the container to create the
 // image.
 func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageRef, error) {
+	if (len(options.PrependedLinkedLayers) > 0 || len(options.AppendedLinkedLayers) > 0) &&
+		(options.ConfidentialWorkloadOptions.Convert || options.Squash) {
+		return nil, errors.New("can't add prebuilt layers and produce an image with only one layer, at the same time")
+	}
 	var name reference.Named
 	container, err := b.store.Container(b.ContainerID)
 	if err != nil {
@@ -1080,6 +1241,15 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		}
 	}
 
+	preLayerInfos, err := b.makeLinkedLayerInfos(append(slices.Clone(b.PrependedLinkedLayers), slices.Clone(options.PrependedLinkedLayers)...), "prepended layer")
+	if err != nil {
+		return nil, err
+	}
+	postLayerInfos, err := b.makeLinkedLayerInfos(append(slices.Clone(options.AppendedLinkedLayers), slices.Clone(b.AppendedLinkedLayers)...), "appended layer")
+	if err != nil {
+		return nil, err
+	}
+
 	ref := &containerImageRef{
 		fromImageName:         b.FromImage,
 		fromImageID:           b.FromImageID,
@@ -1104,12 +1274,28 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		idMappingOptions:      &b.IDMappingOptions,
 		parent:                parent,
 		blobDirectory:         options.BlobDirectory,
-		preEmptyLayers:        b.PrependedEmptyLayers,
-		postEmptyLayers:       b.AppendedEmptyLayers,
+		preEmptyLayers:        slices.Clone(b.PrependedEmptyLayers),
+		preLayers:             preLayerInfos,
+		postEmptyLayers:       slices.Clone(b.AppendedEmptyLayers),
+		postLayers:            postLayerInfos,
 		overrideChanges:       options.OverrideChanges,
 		overrideConfig:        options.OverrideConfig,
 		extraImageContent:     maps.Clone(options.ExtraImageContent),
 		compatSetParent:       options.CompatSetParent,
+	}
+	if ref.created != nil {
+		for i := range ref.preEmptyLayers {
+			ref.preEmptyLayers[i].Created = ref.created
+		}
+		for i := range ref.preLayers {
+			ref.preLayers[i].linkedLayer.History.Created = ref.created
+		}
+		for i := range ref.postEmptyLayers {
+			ref.postEmptyLayers[i].Created = ref.created
+		}
+		for i := range ref.postLayers {
+			ref.postLayers[i].linkedLayer.History.Created = ref.created
+		}
 	}
 	return ref, nil
 }

@@ -27,12 +27,12 @@ env:
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-39"
-    PRIOR_FEDORA_NAME: "fedora-38"
+    FEDORA_NAME: "fedora-40"
+    PRIOR_FEDORA_NAME: "fedora-39"
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20240708t152000z-f40f39d13"
+    IMAGE_SUFFIX: "c20240826t190000z-f40f39d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -208,10 +208,11 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'vfs'
+        # Disabled until we update to f40/41 as f39 does not have go 1.22
+        # - env:
+        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        #     STORAGE_DRIVER: 'vfs'
         - env:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
@@ -221,10 +222,11 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
+        # Disabled until we update to f40/41 as f39 does not have go 1.22
+        # - env:
+        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        #     STORAGE_DRIVER: 'overlay'
         - env:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
@@ -265,11 +267,12 @@ integration_rootless_task:
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
-        - env:
-            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-            STORAGE_DRIVER: 'overlay'
-            PRIV_NAME: rootless
+        # Disabled until we update to f40/41 as f39 does not have go 1.22
+        # - env:
+        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+        #     STORAGE_DRIVER: 'overlay'
+        #     PRIV_NAME: rootless
         - env:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"

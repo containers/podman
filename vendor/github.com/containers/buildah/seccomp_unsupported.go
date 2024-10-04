@@ -1,4 +1,4 @@
-// +build !seccomp !linux
+//go:build !seccomp || !linux
 
 package buildah
 

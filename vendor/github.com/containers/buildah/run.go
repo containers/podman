@@ -222,9 +222,10 @@ type IDMaps struct {
 
 // netResult type to hold network info for hosts/resolv.conf
 type netResult struct {
-	entries           etchosts.HostEntries
-	dnsServers        []string
-	excludeIPs        []net.IP
-	ipv6              bool
-	keepHostResolvers bool
+	entries                           etchosts.HostEntries
+	dnsServers                        []string
+	excludeIPs                        []net.IP
+	ipv6                              bool
+	keepHostResolvers                 bool
+	preferredHostContainersInternalIP string
 }

@@ -143,20 +143,19 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 		for _, c := range containers {
 			if id == c.ID {
 				continue
-			} else {
-				b, err := OpenBuilder(store, c.ID)
-				if err != nil {
-					if errors.Is(err, os.ErrNotExist) {
-						// Ignore not exist errors since containers probably created by other tool
-						// TODO, we need to read other containers json data to reserve their SELinux labels
-						continue
-					}
-					return err
+			}
+			b, err := OpenBuilder(store, c.ID)
+			if err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					// Ignore not exist errors since containers probably created by other tool
+					// TODO, we need to read other containers json data to reserve their SELinux labels
+					continue
 				}
-				// Prevent different containers from using same MCS label
-				if err := label.ReserveLabel(b.ProcessLabel); err != nil {
-					return fmt.Errorf("reserving SELinux label %q: %w", b.ProcessLabel, err)
-				}
+				return err
+			}
+			// Prevent different containers from using same MCS label
+			if err := label.ReserveLabel(b.ProcessLabel); err != nil {
+				return fmt.Errorf("reserving SELinux label %q: %w", b.ProcessLabel, err)
 			}
 		}
 	}

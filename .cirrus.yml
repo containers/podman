@@ -964,6 +964,12 @@ buildah_bud_test_task:
             PODBIN_NAME: podman
         - env:
             PODBIN_NAME: remote
+        - env:
+            PODBIN_NAME: podman
+            PRIV_NAME: rootless
+        - env:
+            PODBIN_NAME: remote
+            PRIV_NAME: rootless
     gce_instance: *standardvm
     timeout_in: 45m
     clone_script: *get_gosrc

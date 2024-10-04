@@ -2,6 +2,8 @@ package buildah
 
 import (
 	"archive/tar"
+	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -18,9 +20,15 @@ import (
 
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
+	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/chrootuser"
+	"github.com/containers/common/pkg/retry"
+	"github.com/containers/image/v5/pkg/tlsclientconfig"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/regexp"
+	"github.com/docker/go-connections/tlsconfig"
 	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -29,7 +37,7 @@ import (
 
 // AddAndCopyOptions holds options for add and copy commands.
 type AddAndCopyOptions struct {
-	//Chmod sets the access permissions of the destination content.
+	// Chmod sets the access permissions of the destination content.
 	Chmod string
 	// Chown is a spec for the user who should be given ownership over the
 	// newly-added content, potentially overriding permissions which would
@@ -72,20 +80,61 @@ type AddAndCopyOptions struct {
 	// Clear the sticky bit on items being copied.  Has no effect on
 	// archives being extracted, where the bit is always preserved.
 	StripStickyBit bool
+	// If not "", a directory containing a CA certificate (ending with
+	// ".crt"), a client certificate (ending with ".cert") and a client
+	// certificate key (ending with ".key") used when downloading sources
+	// from locations protected with TLS.
+	CertPath string
+	// Allow downloading sources from HTTPS where TLS verification fails.
+	InsecureSkipTLSVerify types.OptionalBool
+	// MaxRetries is the maximum number of attempts we'll make to retrieve
+	// contents from a remote location.
+	MaxRetries int
+	// RetryDelay is how long to wait before retrying attempts to retrieve
+	// remote contents.
+	RetryDelay time.Duration
 }
 
-// sourceIsRemote returns true if "source" is a remote location.
+// gitURLFragmentSuffix matches fragments to use as Git reference and build
+// context from the Git repository e.g.
+//
+//	github.com/containers/buildah.git
+//	github.com/containers/buildah.git#main
+//	github.com/containers/buildah.git#v1.35.0
+var gitURLFragmentSuffix = regexp.Delayed(`\.git(?:#.+)?$`)
+
+// sourceIsGit returns true if "source" is a git location.
+func sourceIsGit(source string) bool {
+	return isURL(source) && gitURLFragmentSuffix.MatchString(source)
+}
+
+func isURL(url string) bool {
+	return strings.HasPrefix(url, "http://") || strings.HasPrefix(url, "https://")
+}
+
+// sourceIsRemote returns true if "source" is a remote location
+// and *not* a git repo. Certain github urls such as raw.github.* are allowed.
 func sourceIsRemote(source string) bool {
-	return strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://")
+	return isURL(source) && !gitURLFragmentSuffix.MatchString(source)
 }
 
 // getURL writes a tar archive containing the named content
-func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest) error {
+func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest, certPath string, insecureSkipTLSVerify types.OptionalBool) error {
 	url, err := url.Parse(src)
 	if err != nil {
 		return err
 	}
-	response, err := http.Get(src)
+	tlsClientConfig := &tls.Config{
+		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
+	}
+	if err := tlsclientconfig.SetupCertificates(certPath, tlsClientConfig); err != nil {
+		return err
+	}
+	tlsClientConfig.InsecureSkipVerify = insecureSkipTLSVerify == types.OptionalBoolTrue
+
+	tr := &http.Transport{TLSClientConfig: tlsClientConfig}
+	httpClient := &http.Client{Transport: tr}
+	response, err := httpClient.Get(src)
 	if err != nil {
 		return err
 	}
@@ -147,7 +196,7 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		uid = chown.UID
 		gid = chown.GID
 	}
-	var mode int64 = 0600
+	var mode int64 = 0o600
 	if chmod != nil {
 		mode = int64(*chmod)
 	}
@@ -201,6 +250,18 @@ func includeDirectoryAnyway(path string, pm *fileutils.PatternMatcher) bool {
 	return false
 }
 
+// globbedToGlobbable takes a pathname which might include the '[', *, or ?
+// characters, and converts it into a glob pattern that matches itself by
+// marking the '[' characters as _not_ the beginning of match ranges and
+// escaping the * and ? characters.
+func globbedToGlobbable(glob string) string {
+	result := glob
+	result = strings.ReplaceAll(result, "[", "[[]")
+	result = strings.ReplaceAll(result, "?", "\\?")
+	result = strings.ReplaceAll(result, "*", "\\*")
+	return result
+}
+
 // Add copies the contents of the specified sources into the container's root
 // filesystem, optionally extracting contents of local files that look like
 // non-empty archives.
@@ -233,16 +294,29 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	}
 
 	// Figure out what sorts of sources we have.
-	var localSources, remoteSources []string
+	var localSources, remoteSources, gitSources []string
 	for i, src := range sources {
+		if src == "" {
+			return errors.New("empty source location")
+		}
 		if sourceIsRemote(src) {
 			remoteSources = append(remoteSources, src)
+			continue
+		}
+		if sourceIsGit(src) {
+			gitSources = append(gitSources, src)
 			continue
 		}
 		if !filepath.IsAbs(src) && options.ContextDir == "" {
 			sources[i] = filepath.Join(currentDir, src)
 		}
 		localSources = append(localSources, sources[i])
+	}
+
+	// Treat git sources as a subset of remote sources
+	// differentiating only in how we fetch the two later on.
+	if len(gitSources) > 0 {
+		remoteSources = append(remoteSources, gitSources...)
 	}
 
 	// Check how many items our local source specs matched.  Each spec
@@ -276,7 +350,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		}
 		numLocalSourceItems += len(localSourceStat.Globbed)
 	}
-	if numLocalSourceItems+len(remoteSources) == 0 {
+	if numLocalSourceItems+len(remoteSources)+len(gitSources) == 0 {
 		return fmt.Errorf("no sources %v found: %w", sources, syscall.ENOENT)
 	}
 
@@ -332,6 +406,9 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			if item.IsRegular {
 				destCanBeFile = true
 			}
+		}
+		if len(gitSources) > 0 {
+			destMustBeDirectory = true
 		}
 	}
 
@@ -404,7 +481,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 		var multiErr *multierror.Error
 		var getErr, closeErr, renameErr, putErr error
 		var wg sync.WaitGroup
-		if sourceIsRemote(src) {
+		if sourceIsRemote(src) || sourceIsGit(src) {
 			pipeReader, pipeWriter := io.Pipe()
 			var srcDigest digest.Digest
 			if options.Checksum != "" {
@@ -413,12 +490,43 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					return fmt.Errorf("invalid checksum flag: %w", err)
 				}
 			}
+
 			wg.Add(1)
-			go func() {
-				getErr = getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest)
-				pipeWriter.Close()
-				wg.Done()
-			}()
+			if sourceIsGit(src) {
+				go func() {
+					var cloneDir string
+					cloneDir, _, getErr = define.TempDirForURL(tmpdir.GetTempDir(), "", src)
+					getOptions := copier.GetOptions{
+						UIDMap:         srcUIDMap,
+						GIDMap:         srcGIDMap,
+						Excludes:       options.Excludes,
+						ExpandArchives: extract,
+						ChownDirs:      chownDirs,
+						ChmodDirs:      chmodDirsFiles,
+						ChownFiles:     chownFiles,
+						ChmodFiles:     chmodDirsFiles,
+						StripSetuidBit: options.StripSetuidBit,
+						StripSetgidBit: options.StripSetgidBit,
+						StripStickyBit: options.StripStickyBit,
+					}
+					writer := io.WriteCloser(pipeWriter)
+					getErr = copier.Get(cloneDir, cloneDir, getOptions, []string{"."}, writer)
+					pipeWriter.Close()
+					wg.Done()
+				}()
+			} else {
+				go func() {
+					getErr = retry.IfNecessary(context.TODO(), func() error {
+						return getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest, options.CertPath, options.InsecureSkipTLSVerify)
+					}, &retry.Options{
+						MaxRetry: options.MaxRetries,
+						Delay:    options.RetryDelay,
+					})
+					pipeWriter.Close()
+					wg.Done()
+				}()
+			}
+
 			wg.Add(1)
 			go func() {
 				b.ContentDigester.Start("")
@@ -480,27 +588,27 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 
 		// Iterate through every item that matched the glob.
 		itemsCopied := 0
-		for _, glob := range localSourceStat.Globbed {
-			rel := glob
-			if filepath.IsAbs(glob) {
-				if rel, err = filepath.Rel(contextDir, glob); err != nil {
-					return fmt.Errorf("computing path of %q relative to %q: %w", glob, contextDir, err)
+		for _, globbed := range localSourceStat.Globbed {
+			rel := globbed
+			if filepath.IsAbs(globbed) {
+				if rel, err = filepath.Rel(contextDir, globbed); err != nil {
+					return fmt.Errorf("computing path of %q relative to %q: %w", globbed, contextDir, err)
 				}
 			}
 			if strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
-				return fmt.Errorf("possible escaping context directory error: %q is outside of %q", glob, contextDir)
+				return fmt.Errorf("possible escaping context directory error: %q is outside of %q", globbed, contextDir)
 			}
 			// Check for dockerignore-style exclusion of this item.
 			if rel != "." {
 				excluded, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
 				if err != nil {
-					return fmt.Errorf("checking if %q(%q) is excluded: %w", glob, rel, err)
+					return fmt.Errorf("checking if %q(%q) is excluded: %w", globbed, rel, err)
 				}
 				if excluded {
 					// non-directories that are excluded are excluded, no question, but
 					// directories can only be skipped if we don't have to allow for the
 					// possibility of finding things to include under them
-					globInfo := localSourceStat.Results[glob]
+					globInfo := localSourceStat.Results[globbed]
 					if !globInfo.IsDir || !includeDirectoryAnyway(rel, pm) {
 						continue
 					}
@@ -517,7 +625,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 				// due to potentially not having anything in the tarstream that we passed.
 				itemsCopied++
 			}
-			st := localSourceStat.Results[glob]
+			st := localSourceStat.Results[globbed]
 			pipeReader, pipeWriter := io.Pipe()
 			wg.Add(1)
 			go func() {
@@ -530,7 +638,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						return false, false, nil
 					})
 				}
-				writer = newTarFilterer(writer, func(hdr *tar.Header) (bool, bool, io.Reader) {
+				writer = newTarFilterer(writer, func(_ *tar.Header) (bool, bool, io.Reader) {
 					itemsCopied++
 					return false, false, nil
 				})
@@ -547,7 +655,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					StripSetgidBit: options.StripSetgidBit,
 					StripStickyBit: options.StripStickyBit,
 				}
-				getErr = copier.Get(contextDir, contextDir, getOptions, []string{glob}, writer)
+				getErr = copier.Get(contextDir, contextDir, getOptions, []string{globbedToGlobbable(globbed)}, writer)
 				closeErr = writer.Close()
 				if renameTarget != "" && renamedItems > 1 {
 					renameErr = fmt.Errorf("internal error: renamed %d items when we expected to only rename 1", renamedItems)
@@ -640,7 +748,6 @@ func (b *Builder) userForRun(mountPoint string, userspec string) (specs.User, st
 		} else {
 			u.AdditionalGids = groups
 		}
-
 	}
 	return u, homeDir, err
 }

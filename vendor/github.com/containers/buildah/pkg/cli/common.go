@@ -270,7 +270,7 @@ always:  pull base and SBOM scanner images even if the named images are present 
 missing: pull base and SBOM scanner images if the named images are not present in store.
 never:   only use images present in store if available.
 newer:   only pull base and SBOM scanner images when newer images exist on the registry than those in the store.`)
-	fs.Lookup("pull").NoOptDefVal = "missing" //treat a --pull with no argument like --pull=missing
+	fs.Lookup("pull").NoOptDefVal = "missing" // treat a --pull with no argument like --pull=missing
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	if err := fs.MarkHidden("pull-always"); err != nil {
 		panic(fmt.Sprintf("error marking the pull-always flag as hidden: %v", err))
@@ -516,7 +516,7 @@ func VerifyFlagsArgsOrder(args []string) error {
 }
 
 // AliasFlags is a function to handle backwards compatibility with old flags
-func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
+func AliasFlags(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "net":
 		name = "network"
@@ -550,10 +550,8 @@ func LookupEnvVarReferences(specs, environ []string) []string {
 	for _, spec := range specs {
 		if key, _, ok := strings.Cut(spec, "="); ok {
 			result = append(result, spec)
-
 		} else if key == "*" {
 			result = append(result, environ...)
-
 		} else {
 			prefix := key + "="
 			if strings.HasSuffix(key, "*") {

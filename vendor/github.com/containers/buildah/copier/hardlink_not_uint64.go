@@ -1,5 +1,4 @@
 //go:build darwin || (linux && mips) || (linux && mipsle) || (linux && mips64) || (linux && mips64le)
-// +build darwin linux,mips linux,mipsle linux,mips64 linux,mips64le
 
 package copier
 

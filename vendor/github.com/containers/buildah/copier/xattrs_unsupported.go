@@ -1,4 +1,4 @@
-// +build !linux,!netbsd,!freebsd,!darwin
+//go:build !linux && !netbsd && !freebsd && !darwin
 
 package copier
 

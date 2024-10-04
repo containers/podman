@@ -3,8 +3,8 @@ package util
 import (
 	"bytes"
 	"errors"
-	"time"
 	"os"
+	"time"
 )
 
 func ReadUptime() (time.Duration, error) {

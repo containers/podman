@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package chroot
 
@@ -16,7 +15,7 @@ import (
 // this instead of posix_openpt is that it avoids cgo.
 func getPtyDescriptors() (int, int, error) {
 	// Create a pseudo-terminal -- open a copy of the master side.
-	controlFd, err := unix.Open("/dev/ptmx", os.O_RDWR, 0600)
+	controlFd, err := unix.Open("/dev/ptmx", os.O_RDWR, 0o600)
 	if err != nil {
 		return -1, -1, fmt.Errorf("opening PTY master using /dev/ptmx: %v", err)
 	}
@@ -37,7 +36,7 @@ func getPtyDescriptors() (int, int, error) {
 			return -1, -1, fmt.Errorf("getting PTY number: %v", err)
 		}
 		ptyName := fmt.Sprintf("/dev/pts/%d", ptyN)
-		fd, err := unix.Open(ptyName, unix.O_RDWR|unix.O_NOCTTY, 0620)
+		fd, err := unix.Open(ptyName, unix.O_RDWR|unix.O_NOCTTY, 0o620)
 		if err != nil {
 			return -1, -1, fmt.Errorf("opening PTY %q: %v", ptyName, err)
 		}

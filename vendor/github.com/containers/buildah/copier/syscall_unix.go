@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package copier
 
@@ -58,7 +57,7 @@ func lchown(path string, uid, gid int) error {
 	return os.Lchown(path, uid, gid)
 }
 
-func lutimes(isSymlink bool, path string, atime, mtime time.Time) error {
+func lutimes(_ bool, path string, atime, mtime time.Time) error {
 	if atime.IsZero() || mtime.IsZero() {
 		now := time.Now()
 		if atime.IsZero() {

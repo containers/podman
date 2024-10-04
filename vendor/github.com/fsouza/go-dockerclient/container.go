@@ -318,8 +318,9 @@ type VolumeOptions struct {
 
 // TempfsOptions contains optional configuration for the tempfs type
 type TempfsOptions struct {
-	SizeBytes int64 `json:"SizeBytes,omitempty" yaml:"SizeBytes,omitempty" toml:"SizeBytes,omitempty"`
-	Mode      int   `json:"Mode,omitempty" yaml:"Mode,omitempty" toml:"Mode,omitempty"`
+	SizeBytes int64      `json:"SizeBytes,omitempty" yaml:"SizeBytes,omitempty" toml:"SizeBytes,omitempty"`
+	Mode      int        `json:"Mode,omitempty" yaml:"Mode,omitempty" toml:"Mode,omitempty"`
+	Options   [][]string `json:"Options,omitempty" yaml:"Options,omitempty" toml:"Options,omitempty"`
 }
 
 // VolumeDriverConfig holds a map of volume driver specific options

@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package copier
 
@@ -25,6 +24,7 @@ func (h *hardlinkChecker) Check(fi os.FileInfo) string {
 	}
 	return ""
 }
+
 func (h *hardlinkChecker) Add(fi os.FileInfo, name string) {
 	if st, ok := fi.Sys().(*syscall.Stat_t); ok && fi.Mode().IsRegular() && st.Nlink > 1 {
 		h.hardlinks.Store(makeHardlinkDeviceAndInode(st), name)

@@ -1,4 +1,4 @@
-// +build windows
+//go:build windows
 
 package copier
 
@@ -83,6 +83,6 @@ func sameDevice(a, b os.FileInfo) bool {
 }
 
 const (
-	testModeMask           = int64(0600)
+	testModeMask           = int64(0o600)
 	testIgnoreSymlinkDates = true
 )

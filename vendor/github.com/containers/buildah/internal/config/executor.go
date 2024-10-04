@@ -17,26 +17,26 @@ import (
 // from a Dockerfile.  Try anything more than that and it'll return an error.
 type configOnlyExecutor struct{}
 
-func (g *configOnlyExecutor) Preserve(path string) error {
+func (g *configOnlyExecutor) Preserve(_ string) error {
 	return errors.New("ADD/COPY/RUN not supported as changes")
 }
 
-func (g *configOnlyExecutor) EnsureContainerPath(path string) error {
+func (g *configOnlyExecutor) EnsureContainerPath(_ string) error {
 	return nil
 }
 
-func (g *configOnlyExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
+func (g *configOnlyExecutor) EnsureContainerPathAs(_, _ string, _ *os.FileMode) error {
 	return nil
 }
 
-func (g *configOnlyExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) error {
+func (g *configOnlyExecutor) Copy(_ []string, copies ...imagebuilder.Copy) error {
 	if len(copies) == 0 {
 		return nil
 	}
 	return errors.New("ADD/COPY not supported as changes")
 }
 
-func (g *configOnlyExecutor) Run(run imagebuilder.Run, config dockerclient.Config) error {
+func (g *configOnlyExecutor) Run(_ imagebuilder.Run, _ dockerclient.Config) error {
 	return errors.New("RUN not supported as changes")
 }
 

@@ -60,7 +60,6 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		if c.Flag("dns-search").Changed {
 			return options, nil, nil, errors.New("the --dns-search option cannot be used with --network=none")
 		}
-
 	}
 	if c.Flag("tag").Changed {
 		tags = iopts.Tag

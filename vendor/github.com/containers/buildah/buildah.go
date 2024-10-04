@@ -191,6 +191,13 @@ type Builder struct {
 	// CDIConfigDir is the location of CDI configuration files, if the files in
 	// the default configuration locations shouldn't be used.
 	CDIConfigDir string
+	// PrependedLinkedLayers and AppendedLinkedLayers are combinations of
+	// history entries and locations of either directory trees (if
+	// directories, per os.Stat()) or uncompressed layer blobs which should
+	// be added to the image at commit-time.  The order of these relative
+	// to PrependedEmptyLayers and AppendedEmptyLayers in the committed
+	// image is not guaranteed.
+	PrependedLinkedLayers, AppendedLinkedLayers []LinkedLayer
 }
 
 // BuilderInfo are used as objects to display container information
@@ -370,6 +377,11 @@ type BuilderOptions struct {
 	// CDIConfigDir is the location of CDI configuration files, if the files in
 	// the default configuration locations shouldn't be used.
 	CDIConfigDir string
+	// CompatScratchConfig controls whether a "scratch" image is created
+	// with a truly empty configuration, as would have happened in the past
+	// (when set to true), or with a minimal initial configuration which
+	// has a working directory set in it.
+	CompatScratchConfig types.OptionalBool
 }
 
 // ImportOptions are used to initialize a Builder from an existing container
@@ -563,7 +575,7 @@ func (b *Builder) Save() error {
 	if err != nil {
 		return err
 	}
-	if err = ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0600); err != nil {
+	if err = ioutils.AtomicWriteFile(filepath.Join(cdir, stateFile), buildstate, 0o600); err != nil {
 		return fmt.Errorf("saving builder state to %q: %w", filepath.Join(cdir, stateFile), err)
 	}
 	return nil

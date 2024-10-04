@@ -64,7 +64,6 @@ func newAgentServerSocket(socketPath string) (*AgentServer, error) {
 		conn:     &conn,
 		shutdown: make(chan bool, 1),
 	}, nil
-
 }
 
 // Serve starts the SSH agent on the host and returns the path of the socket where the agent is serving
@@ -104,7 +103,7 @@ func (a *AgentServer) Serve(processLabel string) (string, error) {
 
 	go func() {
 		for {
-			//listener.Accept blocks
+			// listener.Accept blocks
 			c, err := listener.Accept()
 			if err != nil {
 				select {

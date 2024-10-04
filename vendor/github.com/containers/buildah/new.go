@@ -243,7 +243,6 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 
 	suffixDigitsModulo := 100
 	for {
-
 		var flags map[string]interface{}
 		// check if we have predefined ProcessLabel and MountLabel
 		// this could be true if this is another stage in a build
@@ -335,7 +334,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		}
 	}
 
-	if err := builder.initConfig(ctx, src, systemContext); err != nil {
+	if err := builder.initConfig(ctx, systemContext, src, &options); err != nil {
 		return nil, fmt.Errorf("preparing image configuration: %w", err)
 	}
 

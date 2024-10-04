@@ -1,5 +1,4 @@
 //go:build (linux && !mips && !mipsle && !mips64 && !mips64le) || freebsd || netbsd
-// +build linux,!mips,!mipsle,!mips64,!mips64le freebsd netbsd
 
 package copier
 

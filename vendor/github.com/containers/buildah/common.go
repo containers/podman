@@ -2,6 +2,7 @@ package buildah
 
 import (
 	"context"
+	"errors"
 	"io"
 	"path/filepath"
 	"time"
@@ -11,6 +12,7 @@ import (
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/signature"
+	is "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
@@ -67,22 +69,31 @@ func getSystemContext(store storage.Store, defaults *types.SystemContext, signat
 	return sc
 }
 
-func retryCopyImage(ctx context.Context, policyContext *signature.PolicyContext, dest, src, registry types.ImageReference, copyOptions *cp.Options, maxRetries int, retryDelay time.Duration) ([]byte, error) {
+func retryCopyImage(ctx context.Context, policyContext *signature.PolicyContext, maybeWrappedDest, maybeWrappedSrc, directDest types.ImageReference, copyOptions *cp.Options, maxRetries int, retryDelay time.Duration) ([]byte, error) {
+	return retryCopyImageWithOptions(ctx, policyContext, maybeWrappedDest, maybeWrappedSrc, directDest, copyOptions, maxRetries, retryDelay, true)
+}
+
+func retryCopyImageWithOptions(ctx context.Context, policyContext *signature.PolicyContext, maybeWrappedDest, maybeWrappedSrc, directDest types.ImageReference, copyOptions *cp.Options, maxRetries int, retryDelay time.Duration, retryOnLayerUnknown bool) ([]byte, error) {
 	var (
 		manifestBytes []byte
 		err           error
-		lastErr       error
 	)
-	err = retry.RetryIfNecessary(ctx, func() error {
-		manifestBytes, err = cp.Image(ctx, policyContext, dest, src, copyOptions)
-		if registry != nil && registry.Transport().Name() != docker.Transport.Name() {
-			lastErr = err
-			return nil
-		}
+	err = retry.IfNecessary(ctx, func() error {
+		manifestBytes, err = cp.Image(ctx, policyContext, maybeWrappedDest, maybeWrappedSrc, copyOptions)
 		return err
-	}, &retry.RetryOptions{MaxRetry: maxRetries, Delay: retryDelay})
-	if lastErr != nil {
-		err = lastErr
-	}
+	}, &retry.RetryOptions{MaxRetry: maxRetries, Delay: retryDelay, IsErrorRetryable: func(err error) bool {
+		if retryOnLayerUnknown && directDest.Transport().Name() == is.Transport.Name() && errors.Is(err, storage.ErrLayerUnknown) {
+			// we were trying to reuse a layer that belonged to an
+			// image that was deleted at just the right (worst
+			// possible) time? yeah, try again
+			return true
+		}
+		if directDest.Transport().Name() != docker.Transport.Name() {
+			// if we're not talking to a registry, then nah
+			return false
+		}
+		// hand it off to the default should-this-be-retried logic
+		return retry.IsErrorRetryable(err)
+	}})
 	return manifestBytes, err
 }
