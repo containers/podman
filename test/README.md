@@ -127,11 +127,16 @@ make localintegration FOCUS="podman inspect bogus pod"
 ```
 
 ### Controlling Ginkgo parameters
-You can control some of the parameters passed to Ginkgo
+You can control the parameters passed to Ginkgo.
+
+The flags already used can be set by their corresponding environment variable:
 
 - Disable parallel tests by setting `GINKGO_PARALLEL=n`
 - Set flake retry count (default 0) to one by setting `GINKGO_FLAKE_ATTEMPTS=1`
 - Produce colorful tests report by setting `GINKGO_NO_COLOR=n`
+
+For anything else, use `TESTFLAGS`.
+For example for failing fast, set `TESTFLAGS=--fail-fast`
 
 # System tests
 System tests are used for testing the *podman* CLI in the context of a complete system. It
