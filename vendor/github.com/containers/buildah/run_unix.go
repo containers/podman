@@ -1,5 +1,4 @@
 //go:build darwin
-// +build darwin
 
 package buildah
 
@@ -24,6 +23,7 @@ func runUsingRuntimeMain() {}
 func (b *Builder) Run(command []string, options RunOptions) error {
 	return errors.New("function not supported on non-linux systems")
 }
+
 func DefaultNamespaceOptions() (NamespaceOptions, error) {
 	options := NamespaceOptions{
 		{Name: string(specs.CgroupNamespace), Host: false},

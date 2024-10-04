@@ -1,5 +1,4 @@
 //go:build linux || freebsd
-// +build linux freebsd
 
 package chroot
 
@@ -74,7 +73,7 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	if err != nil {
 		return err
 	}
-	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0600); err != nil {
+	if err = ioutils.AtomicWriteFile(filepath.Join(bundlePath, "config.json"), specbytes, 0o600); err != nil {
 		return fmt.Errorf("storing runtime configuration: %w", err)
 	}
 	logrus.Debugf("config = %v", string(specbytes))
@@ -266,7 +265,7 @@ func runUsingChrootMain() {
 			logrus.Warnf("error %s ownership of container PTY %sto %d/%d: %v", op, from, rootUID, rootGID, err)
 		}
 		// Set permissions on the PTY.
-		if err = ctty.Chmod(0620); err != nil {
+		if err = ctty.Chmod(0o620); err != nil {
 			logrus.Errorf("error setting permissions of container PTY: %v", err)
 			os.Exit(1)
 		}
@@ -526,7 +525,6 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	cmd.ExtraFiles = append([]*os.File{preader}, cmd.ExtraFiles...)
 	if err := setPlatformUnshareOptions(spec, cmd); err != nil {
 		return 1, fmt.Errorf("setting platform unshare options: %w", err)
-
 	}
 	interrupted := make(chan os.Signal, 100)
 	cmd.Hook = func(int) error {

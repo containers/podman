@@ -1,5 +1,4 @@
 //go:build linux || netbsd || freebsd || darwin
-// +build linux netbsd freebsd darwin
 
 package copier
 
@@ -10,15 +9,18 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/containers/storage/pkg/unshare"
+	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 const (
 	xattrsSupported = true
+	imaXattr        = "security.ima"
 )
 
 var (
-	relevantAttributes    = []string{"security.capability", "security.ima", "user.*"} // the attributes that we preserve - we discard others
+	relevantAttributes    = []string{"security.capability", imaXattr, "user.*"} // the attributes that we preserve - we discard others
 	initialXattrListSize  = 64 * 1024
 	initialXattrValueSize = 64 * 1024
 )
@@ -93,7 +95,11 @@ func Lsetxattrs(path string, xattrs map[string]string) error {
 	for attribute, value := range xattrs {
 		if isRelevantXattr(attribute) {
 			if err := unix.Lsetxattr(path, attribute, []byte(value), 0); err != nil {
-				return fmt.Errorf("setting value of extended attribute %q on %q: %w", attribute, path, err)
+				if unshare.IsRootless() && attribute == imaXattr {
+					logrus.Warnf("Unable to set %q xattr on %q: %v", attribute, path, err)
+				} else {
+					return fmt.Errorf("setting value of extended attribute %q on %q: %w", attribute, path, err)
+				}
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-// +build darwin linux
+//go:build darwin || linux
 
 package define
 

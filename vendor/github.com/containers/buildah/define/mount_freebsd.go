@@ -1,5 +1,4 @@
 //go:build freebsd
-// +build freebsd
 
 package define
 
@@ -11,7 +10,5 @@ const (
 	TempDir = "/var/tmp"
 )
 
-var (
-	// Mount potions for bind
-	BindOptions = []string{}
-)
+// Mount potions for bind
+var BindOptions = []string{}

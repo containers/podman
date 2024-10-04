@@ -1,6 +1,4 @@
 //go:build !linux && !(freebsd && cgo)
-// +build !linux
-// +build !freebsd !cgo
 
 package chroot
 

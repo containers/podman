@@ -10,7 +10,7 @@ import (
 
 // AutocompleteNamespaceFlag - Autocomplete the userns flag.
 // -> host, private, container, ns:[path], [path]
-func AutocompleteNamespaceFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNamespaceFlag(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	var completions []string
 	// If we don't filter on "toComplete", zsh and fish will not do file completion
 	// even if the prefix typed by the user does not match the returned completions

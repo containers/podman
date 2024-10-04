@@ -14,6 +14,8 @@ packages:
     specfile_path: rpm/buildah.spec
   buildah-rhel:
     specfile_path: rpm/buildah.spec
+  buildah-eln:
+    specfile_path: rpm/buildah.spec
 
 srpm_build_deps:
   - make
@@ -26,8 +28,21 @@ jobs:
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     targets:
-      fedora-all-x86_64: {}
-      fedora-all-aarch64: {}
+      - fedora-development-x86_64
+      - fedora-development-aarch64
+      - fedora-latest-x86_64
+      - fedora-latest-aarch64
+      - fedora-latest-stable-x86_64
+      - fedora-latest-stable-aarch64
+      - fedora-40-x86_64
+      - fedora-40-aarch64
+    enable_net: true
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [buildah-eln]
+    notifications: *copr_build_failure_notification
+    targets:
       fedora-eln-x86_64:
         additional_repos:
           - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/x86_64/"
@@ -47,14 +62,15 @@ jobs:
       - centos-stream-10-aarch64
     enable_net: true
 
-  - job: copr_build
-    trigger: pull_request
-    packages: [buildah-rhel]
-    notifications: *copr_build_failure_notification
-    targets:
-      - epel-9-x86_64
-      - epel-9-aarch64
-    enable_net: true
+  # Disabled until there is go 1.22 in epel-9
+  # - job: copr_build
+  #   trigger: pull_request
+  #   packages: [buildah-rhel]
+  #   notifications: *copr_build_failure_notification
+  #   targets:
+  #     - epel-9-x86_64
+  #     - epel-9-aarch64
+  #   enable_net: true
 
   # Run on commit to main branch
   - job: copr_build
@@ -73,7 +89,7 @@ jobs:
     trigger: release
     packages: [buildah-fedora]
     update_release: false
-    dist_git_branches:
+    dist_git_branches: &fedora_targets
       - fedora-all
 
   # Sync to CentOS Stream
@@ -84,12 +100,13 @@ jobs:
     dist_git_branches:
       - c10s
 
+  # Fedora Koji build
   - job: koji_build
     trigger: commit
-    dist_git_branches:
-      - fedora-all
-
-  - job: bodhi_update
-    trigger: commit
-    dist_git_branches:
-      - fedora-branched # rawhide updates are created automatically
+    sidetag_group: podman-releases
+    # Dependents are not rpm dependencies, but the package whose bodhi update
+    # should include this package.
+    # Ref: https://packit.dev/docs/fedora-releases-guide/releasing-multiple-packages
+    dependents:
+      - podman
+    dist_git_branches: *fedora_targets
