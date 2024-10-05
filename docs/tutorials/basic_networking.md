@@ -128,7 +128,7 @@ client can connect to the container.
 
 Now run the container.
 ```
-$ podman run -dt --name webserver --net podman1 -p 8081:80 quay.io/libpod/banner
+$ podman run -dt --name webserver --network podman1 -p 8081:80 quay.io/libpod/banner
 269fd0d6b2c8ed60f2ca41d7beceec2471d72fb9a33aa8ca45b81dc9a0abbb12
 ```
 Note in the above run command, the container’s port 80 (where the Nginx server is
