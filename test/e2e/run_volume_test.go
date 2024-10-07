@@ -122,6 +122,10 @@ var _ = Describe("Podman run with volumes", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitWithError(125, `"notmpcopyup" option not supported for "bind" mount types`))
 
+		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=bind,src=/tmp,target=/tmp,bind-propagation=fake", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, `invalid value "bind-propagation=fake"`))
+
 		session = podmanTest.Podman([]string{"run", "--rm", "--mount", "type=tmpfs,target=/etc/ssl,notmpcopyup", ALPINE, "ls", "/etc/ssl"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

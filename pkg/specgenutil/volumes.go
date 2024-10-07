@@ -272,6 +272,12 @@ func parseMountOptions(mountType string, args []string) (*spec.Mount, error) {
 			if !hasValue {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
+			switch value {
+			case "shared", "rshared", "private", "rprivate", "slave", "rslave", "unbindable", "runbindable":
+				// Do nothing, sane value
+			default:
+				return nil, fmt.Errorf("invalid value %q", arg)
+			}
 			mnt.Options = append(mnt.Options, value)
 		case "consistency":
 			// Often used on MACs and mistakenly on Linux platforms.
