@@ -210,11 +210,8 @@ build_aarch64_task:
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
-    repo_prep_script: &repo_prep_aarch64 >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
-    repo_artifacts: &repo_artifacts_aarch64
-        path: ./repo.tbz
-        type: application/octet-stream
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
     always: *runner_stats
 
 
