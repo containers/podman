@@ -5,7 +5,6 @@ package libpod
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 
@@ -114,46 +113,11 @@ func checkRuntimeConfig(db *bolt.DB, rt *Runtime) error {
 			false,
 		},
 		{
-			"libpod root directory (staticdir)",
-			filepath.Clean(rt.config.Engine.StaticDir),
-			staticDirKey,
-			"",
-			true,
-		},
-		{
-			"libpod temporary files directory (tmpdir)",
-			filepath.Clean(rt.config.Engine.TmpDir),
-			tmpDirKey,
-			"",
-			true,
-		},
-		{
-			"storage temporary directory (runroot)",
-			filepath.Clean(rt.StorageConfig().RunRoot),
-			runRootKey,
-			storeOpts.RunRoot,
-			true,
-		},
-		{
-			"storage graph root directory (graphroot)",
-			filepath.Clean(rt.StorageConfig().GraphRoot),
-			graphRootKey,
-			storeOpts.GraphRoot,
-			true,
-		},
-		{
 			"storage graph driver",
 			rt.StorageConfig().GraphDriverName,
 			graphDriverKey,
 			storeOpts.GraphDriverName,
 			false,
-		},
-		{
-			"volume path",
-			rt.config.Engine.VolumePath,
-			volPathKey,
-			"",
-			true,
 		},
 	}
 
