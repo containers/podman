@@ -1,5 +1,14 @@
 # Release Notes
 
+## 5.2.4
+### Security
+- This release addresses [CVE-2024-9407](https://github.com/advisories/GHSA-fhqq-8f65-5xfc), which allows arbitrary access to the host filesystem from `RUN --mount` arguments to a Dockerfile being built.
+- This release also addresses [CVE-2024-9341](https://github.com/advisories/GHSA-mc76-5925-c5p6), allowing the mounting of arbitrary directories from the host into containers on FIPS enabled systems using a malicious image with crafted symlinks.
+
+### Misc
+- Updated Buildah to v1.37.4
+- Updated the containers/common library to v0.60.4
+
 ## 5.2.3
 ### Bugfixes
 - Fixed a bug that could cause network namespaces to fail to unmount, resulting in Podman commands hanging.
