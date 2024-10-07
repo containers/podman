@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.37.4 (2024-10-07)
+
+    Fixed CVE-2024-9407 and CVE-2024-934
+
 ## v1.37.3 (2024-09-20)
 
     Do not error on trying to write IMA xattr as rootless
