@@ -82,6 +82,11 @@ var _ = Describe("Systemd activate", func() {
 			return testUtils.SystemExec(podmanTest.PodmanBinary, args)
 		}
 
+		// regression check for https://github.com/containers/podman/issues/24152
+		session := podmanRemote("info", "--format", "{{.Host.RemoteSocket.Path}}--{{.Host.RemoteSocket.Exists}}")
+		Expect(session).Should(testUtils.ExitCleanly())
+		Expect(session.OutputToString()).To(Equal("tcp://" + addr + "--true"))
+
 		containerName := "top_" + testUtils.RandomString(8)
 		apiSession := podmanRemote(
 			"create", "--tty", "--name", containerName, "--entrypoint", "top",
