@@ -256,7 +256,7 @@ Valid options for `[Container]` are listed below:
 |--------------------------------------|------------------------------------------------------|
 | AddCapability=CAP                    | --cap-add CAP                                        |
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
-| AddHost=hostname:192.168.10.11       | --add-host=hostname:192.168.10.11                    |
+| AddHost=example\.com:192.168.10.11   | --add-host example.com:192.168.10.11                 |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
 | CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
@@ -264,7 +264,7 @@ Valid options for `[Container]` are listed below:
 | ContainersConfModule=/etc/nvd\.conf  | --module=/etc/nvd\.conf                              |
 | DNS=192.168.55.1                     | --dns=192.168.55.1                                   |
 | DNSOption=ndots:1                    | --dns-option=ndots:1                                 |
-| DNSSearch=foo.com                    | --dns-search=foo.com                                 |
+| DNSSearch=example.com                | --dns-search example.com                             |
 | DropCapability=CAP                   | --cap-drop=CAP                                       |
 | Entrypoint=/foo.sh                   | --entrypoint=/foo.sh                                 |
 | Environment=foo=bar                  | --env foo=bar                                        |
@@ -290,7 +290,7 @@ Valid options for `[Container]` are listed below:
 | HealthStartupSuccess=2               | --health-startup-success=2                           |
 | HealthStartupTimeout=1m33s           | --health-startup-timeout=1m33s                       |
 | HealthTimeout=20s                    | --health-timeout=20s                                 |
-| HostName=new-host-name               | --hostname="new-host-name"                           |
+| HostName=example.com                 | --hostname example.com                               |
 | Image=ubi8                           | Image specification - ubi8                           |
 | IP=192.5.0.1                         | --ip 192.5.0.1                                       |
 | IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
@@ -305,9 +305,9 @@ Valid options for `[Container]` are listed below:
 | Notify=true                          | --sdnotify container                                 |
 | PidsLimit=10000                      | --pids-limit 10000                                   |
 | Pod=pod-name                         | --pod=pod-name                                       |
-| PodmanArgs=--add-host foobar         | --add-host foobar                                    |
-| PublishPort=50-59                    | --publish 50-59                                      |
-| Pull=never                           | --pull=never                                         |
+| PodmanArgs=--publish 8080:80         | --publish 8080:80                                    |
+| PublishPort=8080:80                  | --publish 8080:80                                    |
+| Pull=never                           | --pull never                                         |
 | ReadOnly=true                        | --read-only                                          |
 | ReadOnlyTmpfs=true                   | --read-only-tmpfs                                    |
 | Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
@@ -914,11 +914,11 @@ Valid options for `[Pod]` are listed below:
 
 | **[Pod] options**                   | **podman container create equivalent** |
 |-------------------------------------|----------------------------------------|
-| AddHost=hostname:192.168.10.11      | --add-host=hostname:192.168.10.11      |
+| AddHost=example\.com:192.168.10.11  | --add-host example.com:192.168.10.11   |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
 | DNS=192.168.55.1                    | --dns=192.168.55.1                     |
 | DNSOption=ndots:1                   | --dns-option=ndots:1                   |
-| DNSSearch=foo.com                   | --dns-search=foo.com                   |
+| DNSSearch=example.com               | --dns-search example.com               |
 | GIDMap=0:10000:10                   | --gidmap=0:10000:10                    |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
 | IP=192.5.0.1                        | --ip 192.5.0.1                         |
@@ -927,7 +927,7 @@ Valid options for `[Pod]` are listed below:
 | NetworkAlias=name                   | --network-alias name                   |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
 | PodName=name                        | --name=name                            |
-| PublishPort=50-59                   | --publish 50-59                        |
+| PublishPort=8080:80                 | --publish 8080:80                      |
 | ServiceName=name                    | Name the systemd unit `name.service`   |
 | SubGIDMap=gtest                     | --subgidname=gtest                     |
 | SubUIDMap=utest                     | --subuidname=utest                     |
@@ -1127,7 +1127,7 @@ Valid options for `[Kube]` are listed below:
 | LogDriver=journald                  | --log-driver journald                                            |
 | Network=host                        | --net host                                                       |
 | PodmanArgs=\-\-annotation=key=value | --annotation=key=value                                           |
-| PublishPort=59-60                   | --publish=59-60                                                  |
+| PublishPort=8080:80                 | --publish 8080:80                                                |
 | SetWorkingDirectory=yaml            | Set `WorkingDirectory` of unit file to location of the YAML file |
 | UserNS=keep-id:uid=200,gid=210      | --userns keep-id:uid=200,gid=210                                 |
 | Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                                  |
@@ -1552,7 +1552,7 @@ Valid options for `[Build]` are listed below:
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                     |
 | DNS=192.168.55.1                    | --dns=192.168.55.1                          |
 | DNSOption=ndots:1                   | --dns-option=ndots:1                        |
-| DNSSearch=foo.com                   | --dns-search=foo.com                        |
+| DNSSearch=example.com               | --dns-search example.com                    |
 | Environment=foo=bar                 | --env foo=bar                               |
 | File=/path/to/Containerfile         | --file=/path/to/Containerfile               |
 | ForceRM=false                       | --force-rm=false                            |
@@ -1561,8 +1561,8 @@ Valid options for `[Build]` are listed below:
 | ImageTag=localhost/imagename        | --tag=localhost/imagename                   |
 | Label=label                         | --label=label                               |
 | Network=host                        | --network=host                              |
-| PodmanArgs=--add-host foobar        | --add-host foobar                           |
-| Pull=never                          | --pull=never                                |
+| PodmanArgs=--pull never             | --pull never                                |
+| Pull=never                          | --pull never                                |
 | Secret=secret                       | --secret=id=mysecret,src=path               |
 | SetWorkingDirectory=unit            | Set `WorkingDirectory` of systemd unit file |
 | Target=my-app                       | --target=my-app                             |

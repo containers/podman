@@ -27969,11 +27969,11 @@ msgid "--health-timeout=20s"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "HostName=new-host-name"
+msgid "HostName=example.com"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "--hostname=\"new-host-name\""
+msgid "--hostname=example.com"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
@@ -28057,19 +28057,15 @@ msgid "--sdnotify container"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "PodmanArgs=--add-host foobar"
+msgid "PodmanArgs=--publish 8080:80"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "--add-host foobar"
+msgid "--publish 8080:80"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "PublishPort=50-59"
-msgstr ""
-
-#: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "--publish 50-59"
+msgid "PublishPort=8080:80"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
@@ -28077,7 +28073,7 @@ msgid "Pull=never"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "--pull=never"
+msgid "--pull never"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
@@ -29010,14 +29006,6 @@ msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
 msgid "--annotation=key=value"
-msgstr ""
-
-#: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "PublishPort=59-60"
-msgstr ""
-
-#: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "--publish=59-60"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
