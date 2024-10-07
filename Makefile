@@ -590,10 +590,18 @@ podman-remote-%-docs: podman-remote
 		$(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 .PHONY: man-page-check
-man-page-check: bin/podman docs
+man-page-check: man-page-checker xref-helpmsgs-manpages xref-quadlet-docs xref-quadlet-docs
+
+man-page-checker: bin/podman docs
 	hack/man-page-checker
+
+xref-helpmsgs-manpages: bin/podman docs
 	hack/xref-helpmsgs-manpages
+
+man-page-table-check: docs
 	hack/man-page-table-check
+
+xref-quadlet-docs: docs
 	hack/xref-quadlet-docs
 
 .PHONY: swagger-check
