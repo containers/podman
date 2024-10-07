@@ -15,7 +15,7 @@ if ($Env:CI -eq "true") {
 Push-Location $WIN_INST_FOLDER
 
 # Build Installer
-# Note: consumes podman-remote-release-windows_amd64.zip from repo.tbz2
+# Note: consumes podman-remote-release-windows_amd64.zip from repo.tar.zst
 Run-Command ".\build.ps1 $Env:WIN_INST_VER dev `"$RELEASE_DIR`""
 
 Pop-Location
