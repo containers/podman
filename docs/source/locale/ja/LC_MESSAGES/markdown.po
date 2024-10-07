@@ -28029,7 +28029,7 @@ msgid "Network=host"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1
-msgid "--net host"
+msgid "--network host"
 msgstr ""
 
 #: ../../source/markdown/podman-systemd.unit.5.md:1

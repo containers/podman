@@ -299,7 +299,7 @@ Valid options for `[Container]` are listed below:
 | LogOpt=path=/var/log/mykube\.json    | --log-opt path=/var/log/mykube\.json                 |
 | Mask=/proc/sys/foo\:/proc/sys/bar    | --security-opt mask=/proc/sys/foo:/proc/sys/bar      |
 | Mount=type=...                       | --mount type=...                                     |
-| Network=host                         | --net host                                           |
+| Network=host                         | --network host                                       |
 | NetworkAlias=name                    | --network-alias name                                 |
 | NoNewPrivileges=true                 | --security-opt no-new-privileges                     |
 | Notify=true                          | --sdnotify container                                 |
@@ -1125,7 +1125,7 @@ Valid options for `[Kube]` are listed below:
 | GlobalArgs=--log-level=debug        | --log-level=debug                                                |
 | KubeDownForce=true                  | --force (for `podman kube down`)                                 |
 | LogDriver=journald                  | --log-driver journald                                            |
-| Network=host                        | --net host                                                       |
+| Network=host                        | --network host                                                   |
 | PodmanArgs=\-\-annotation=key=value | --annotation=key=value                                           |
 | PublishPort=8080:80                 | --publish 8080:80                                                |
 | SetWorkingDirectory=yaml            | Set `WorkingDirectory` of unit file to location of the YAML file |
