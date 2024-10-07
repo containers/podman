@@ -20,6 +20,7 @@ type InitOptions struct {
 	TimeZone           string
 	URI                url.URL
 	Username           string
+	SSHIdentityPath    string
 	ReExec             bool
 	Rootful            bool
 	UID                string // uid of the user that called machine

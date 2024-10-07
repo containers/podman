@@ -89,9 +89,12 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		return err
 	}
 
-	sshIdentityPath, err := env.GetSSHIdentityPath(machineDefine.DefaultIdentityName)
-	if err != nil {
-		return err
+	sshIdentityPath := opts.SSHIdentityPath
+	if sshIdentityPath == "" {
+		sshIdentityPath, err = env.GetSSHIdentityPath(machineDefine.DefaultIdentityName)
+		if err != nil {
+			return err
+		}
 	}
 	sshKey, err := machine.GetSSHKeys(sshIdentityPath)
 	if err != nil {
