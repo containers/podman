@@ -170,6 +170,15 @@ func (t *quadletTestcase) assertKeyIs(args []string, unit *parser.UnitFile) bool
 	return true
 }
 
+func (t *quadletTestcase) assertKeyIsEmpty(args []string, unit *parser.UnitFile) bool {
+	Expect(args).To(HaveLen(2))
+	group := args[0]
+	key := args[1]
+
+	realValues := unit.LookupAll(group, key)
+	return len(realValues) == 0
+}
+
 func (t *quadletTestcase) assertKeyIsRegex(args []string, unit *parser.UnitFile) bool {
 	Expect(len(args)).To(BeNumerically(">=", 3))
 	group := args[0]
@@ -501,6 +510,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStdErrContains(args, session)
 	case "assert-key-is":
 		ok = t.assertKeyIs(args, unit)
+	case "assert-key-is-empty":
+		ok = t.assertKeyIsEmpty(args, unit)
 	case "assert-key-is-regex":
 		ok = t.assertKeyIsRegex(args, unit)
 	case "assert-key-contains":
@@ -899,6 +910,7 @@ BOGUS=foo
 		Entry("Unit After Override", "unit-after-override.container"),
 		Entry("NetworkAlias", "network-alias.container"),
 		Entry("CgroupMode", "cgroups-mode.container"),
+		Entry("Container - No Default Dependencies", "no_deps.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("device-copy.volume", "device-copy.volume"),
@@ -967,6 +979,7 @@ BOGUS=foo
 		Entry("Image - global args", "globalargs.image"),
 		Entry("Image - Containers Conf Modules", "containersconfmodule.image"),
 		Entry("Image - Unit After Override", "unit-after-override.image"),
+		Entry("Image - No Default Dependencies", "no_deps.image"),
 
 		Entry("Build - Basic", "basic.build"),
 		Entry("Build - Annotation Key", "annotation.build"),
@@ -1000,6 +1013,7 @@ BOGUS=foo
 		Entry("Build - Target Key", "target.build"),
 		Entry("Build - TLSVerify Key", "tls-verify.build"),
 		Entry("Build - Variant Key", "variant.build"),
+		Entry("Build - No Default Dependencies", "no_deps.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
 		Entry("Pod - DNS", "dns.pod"),

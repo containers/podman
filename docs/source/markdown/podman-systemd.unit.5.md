@@ -236,6 +236,14 @@ QUADLET_UNIT_DIRS=<Directory> /usr/lib/systemd/system-generators/podman-system-g
 This will instruct Quadlet to look for units in this directory instead of the common ones and by
 that limit the output to only the units you are debugging.
 
+### Implicit network dependencies
+
+In the case of Container, Image and Build units, Quadlet will add dependencies on the `network-online.target`
+by adding `After=` and `Wants=` properties to the unit. This is to ensure that the network is reachable if
+an image needs to be pulled.
+
+This behavior can be disabled by adding `DefaultDependencies=false` in the `Quadlet` section.
+
 ## Container units [Container]
 
 Container units are named with a `.container` extension and contain a `[Container]` section describing
@@ -1913,6 +1921,22 @@ This is equivalent to the Podman `--tls-verify` option.
 Override the default architecture variant of the container image.
 
 This is equivalent to the Podman `--variant` option.
+
+## Quadlet section [Quadlet]
+Some quadlet specific configuration is shared between different unit types. Those settings
+can be configured in the `[Quadlet]` section.
+
+Valid options for `[Quadlet]` are listed below:
+
+| **[Quadlet] options**      | **Description**                                   |
+|----------------------------|---------------------------------------------------|
+| DefaultDependencies=false  | Disable implicit network dependencies to the unit |
+
+### `DefaultDependencies=`
+
+Add Quadlet's default network dependencies to the unit (default is `true`).
+
+When set to false, Quadlet will **not** add a dependency (After=, Wants=) to `network-online.target` to the generated unit.
 
 ## EXAMPLES
 
