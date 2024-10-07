@@ -30,13 +30,13 @@ source $AUTOMATION_LIB_PATH/common_lib.sh
 # shellcheck disable=SC2154
 cd $CIRRUS_WORKING_DIR
 
+# Note, make completions and make vendor will already be run in _run_build()
+# so do not run them again for no reason. This just makes CI slower.
+SUGGESTION="run 'make vendor' or 'make completions' and commit all changes" ./hack/tree_status.sh
+
 showrun make .install.goimports
-showrun make vendor
-SUGGESTION="run 'make vendor' and commit all changes" ./hack/tree_status.sh
 showrun make generate-bindings
 SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
-showrun make completions
-SUGGESTION="run 'make completions' and commit all changes" ./hack/tree_status.sh
 
 # Defined in Cirrus-CI config.
 # shellcheck disable=SC2154
