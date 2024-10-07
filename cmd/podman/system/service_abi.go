@@ -48,7 +48,7 @@ func restService(flags *pflag.FlagSet, cfg *entities.PodmanConfig, opts entities
 		if listener == nil {
 			return errors.New("unexpected fd received from systemd: cannot listen on it")
 		}
-		libpodRuntime.SetRemoteURI(listeners[0].Addr().String())
+		libpodRuntime.SetRemoteURI(listeners[0].Addr().Network() + "://" + listeners[0].Addr().String())
 	} else {
 		uri, err := url.Parse(opts.URI)
 		if err != nil {

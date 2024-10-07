@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -48,19 +49,16 @@ func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
 		info.Host.RemoteSocket.Path = uri.Path
 	}
 
-	uri, err := url.Parse(ic.Libpod.RemoteURI())
-	if err != nil {
-		return nil, err
-	}
-
-	if uri.Scheme == "unix" {
-		err := fileutils.Exists(uri.Path)
+	// check if the unix path exits, if not unix socket we always we assume it exists, i.e. tcp socket
+	path, found := strings.CutPrefix(info.Host.RemoteSocket.Path, "unix://")
+	if found {
+		err := fileutils.Exists(path)
 		info.Host.RemoteSocket.Exists = err == nil
 	} else {
 		info.Host.RemoteSocket.Exists = true
 	}
 
-	return info, err
+	return info, nil
 }
 
 // SystemPrune removes unused data from the system. Pruning pods, containers, networks, volumes and images.
