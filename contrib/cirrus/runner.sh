@@ -310,7 +310,7 @@ function _run_altbuild() {
 function _build_altbuild_archs() {
     for arch in "$@"; do
         msg "Building release archive for $arch"
-        showrun make podman-release-${arch}.tar.gz GOARCH=$arch
+        showrun make cross-binaries GOARCH=$arch
     done
 }
 

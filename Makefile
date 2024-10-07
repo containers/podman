@@ -500,6 +500,14 @@ local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple 
 .PHONY: cross
 cross: local-cross
 
+# Simple target to check that we can build all binaries for another arch,
+# the resulting binaries are not meant to be usable this is just for
+# testing if it builds, it depends on the caller to set GOOS/GOARCH.
+.PHONY: cross-binaries
+cross-binaries:
+	$(MAKE) CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		BUILDTAGS="$(BUILDTAGS_CROSS)" clean-binaries binaries
+
 .PHONY: completions
 completions: podman podman-remote
 	# key = shell, value = completion filename
