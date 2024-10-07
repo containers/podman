@@ -60,8 +60,6 @@ var _ = Describe("run basic podman commands", func() {
 	})
 
 	It("Volume ops", func() {
-		skipIfVmtype(define.LibKrun, "FIXME: #23296 - Fails on MacOS when libkrun in use.")
-
 		tDir, err := filepath.Abs(GinkgoT().TempDir())
 		Expect(err).ToNot(HaveOccurred())
 		roFile := filepath.Join(tDir, "attr-test-file")
@@ -219,7 +217,6 @@ var _ = Describe("run basic podman commands", func() {
 	It("podman build contexts", func() {
 		skipIfVmtype(define.HyperVVirt, "FIXME: #23429 - Error running podman build with option --build-context on Hyper-V")
 		skipIfVmtype(define.QemuVirt, "FIXME: #23433 - Additional build contexts should be sent as additional tar files")
-		skipIfVmtype(define.LibKrun, "FIXME: #23296 - Fails on MacOS when libkrun in use.")
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
