@@ -242,7 +242,6 @@ import (
 
 	"golang.org/x/tools/go/types/objectpath"
 	"golang.org/x/tools/internal/aliases"
-	"golang.org/x/tools/internal/tokeninternal"
 )
 
 // IExportShallow encodes "shallow" export data for the specified package.
@@ -441,7 +440,7 @@ func (p *iexporter) encodeFile(w *intWriter, file *token.File, needed []uint64) 
 	// Sort the set of needed offsets. Duplicates are harmless.
 	sort.Slice(needed, func(i, j int) bool { return needed[i] < needed[j] })
 
-	lines := tokeninternal.GetLines(file) // byte offset of each line start
+	lines := file.Lines() // byte offset of each line start
 	w.uint64(uint64(len(lines)))
 
 	// Rather than record the entire array of line start offsets,
@@ -725,13 +724,13 @@ func (p *iexporter) doDecl(obj types.Object) {
 	case *types.TypeName:
 		t := obj.Type()
 
-		if tparam, ok := aliases.Unalias(t).(*types.TypeParam); ok {
+		if tparam, ok := types.Unalias(t).(*types.TypeParam); ok {
 			w.tag(typeParamTag)
 			w.pos(obj.Pos())
 			constraint := tparam.Constraint()
 			if p.version >= iexportVersionGo1_18 {
 				implicit := false
-				if iface, _ := aliases.Unalias(constraint).(*types.Interface); iface != nil {
+				if iface, _ := types.Unalias(constraint).(*types.Interface); iface != nil {
 					implicit = iface.IsImplicit()
 				}
 				w.bool(implicit)
@@ -741,7 +740,7 @@ func (p *iexporter) doDecl(obj types.Object) {
 		}
 
 		if obj.IsAlias() {
-			alias, materialized := t.(*aliases.Alias) // may fail when aliases are not enabled
+			alias, materialized := t.(*types.Alias) // may fail when aliases are not enabled
 
 			var tparams *types.TypeParamList
 			if materialized {
@@ -975,7 +974,7 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 		}()
 	}
 	switch t := t.(type) {
-	case *aliases.Alias:
+	case *types.Alias:
 		if targs := aliases.TypeArgs(t); targs.Len() > 0 {
 			w.startType(instanceType)
 			w.pos(t.Obj().Pos())
@@ -1091,7 +1090,7 @@ func (w *exportWriter) doTyp(t types.Type, pkg *types.Package) {
 		for i := 0; i < n; i++ {
 			ft := t.EmbeddedType(i)
 			tPkg := pkg
-			if named, _ := aliases.Unalias(ft).(*types.Named); named != nil {
+			if named, _ := types.Unalias(ft).(*types.Named); named != nil {
 				w.pos(named.Obj().Pos())
 			} else {
 				w.pos(token.NoPos)

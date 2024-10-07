@@ -257,7 +257,7 @@ golang.org/x/mod/semver
 # golang.org/x/sync v0.8.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
-# golang.org/x/sys v0.25.0
+# golang.org/x/sys v0.26.0
 ## explicit; go 1.18
 golang.org/x/sys/unix
 golang.org/x/sys/windows
@@ -266,7 +266,7 @@ golang.org/x/sys/windows
 golang.org/x/text/runes
 golang.org/x/text/transform
 golang.org/x/text/unicode/norm
-# golang.org/x/tools v0.25.0
+# golang.org/x/tools v0.26.0
 ## explicit; go 1.22.0
 golang.org/x/tools/cmd/goimports
 golang.org/x/tools/cover
@@ -278,6 +278,7 @@ golang.org/x/tools/go/internal/cgo
 golang.org/x/tools/go/loader
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/types/objectpath
+golang.org/x/tools/go/types/typeutil
 golang.org/x/tools/imports
 golang.org/x/tools/internal/aliases
 golang.org/x/tools/internal/event
@@ -291,7 +292,7 @@ golang.org/x/tools/internal/imports
 golang.org/x/tools/internal/packagesinternal
 golang.org/x/tools/internal/pkgbits
 golang.org/x/tools/internal/stdlib
-golang.org/x/tools/internal/tokeninternal
+golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
 # gopkg.in/ini.v1 v1.67.0
