@@ -125,11 +125,13 @@ jobs:
 
   - job: koji_build
     trigger: commit
+    packages: [podman-fedora]
     sidetag_group: podman-releases
     dist_git_branches: *fedora_targets
 
   - job: bodhi_update
     trigger: koji_build
+    packages: [podman-fedora]
     sidetag_group: podman-releases
     # Dependencies are not rpm dependencies, but packages that should go in the
     # same bodhi update
