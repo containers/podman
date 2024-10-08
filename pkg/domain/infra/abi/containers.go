@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage"
+	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
 )
 
@@ -290,15 +291,35 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				return err
 			}
 		}
-		err = c.Cleanup(ctx)
-		if err != nil {
-			// Issue #7384 and #11384: If the container is configured for
-			// auto-removal, it might already have been removed at this point.
-			// We still need to clean up since we do not know if the other cleanup process is successful
-			if c.AutoRemove() && (errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
-				return nil
+		if c.AutoRemove() {
+			_, imageName := c.Image()
+
+			if err := ic.Libpod.RemoveContainer(ctx, c, false, true, nil); err != nil {
+				// Issue #7384 and #11384: If the container is configured for
+				// auto-removal, it might already have been removed at this point.
+				// We still need to clean up since we do not know if the other cleanup process is successful
+				if !(errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
+					return err
+				}
 			}
-			return err
+
+			if c.AutoRemoveImage() {
+				imageEngine := ImageEngine{Libpod: ic.Libpod}
+				_, rmErrors := imageEngine.Remove(ctx, []string{imageName}, entities.ImageRemoveOptions{Ignore: true})
+				if len(rmErrors) > 0 {
+					mErr := multierror.Append(nil, rmErrors...)
+					return fmt.Errorf("removing container %s image %s: %w", c.ID(), imageName, mErr)
+				}
+			}
+		} else {
+			if err = c.Cleanup(ctx); err != nil {
+				// The container could still have been removed, as we unlocked
+				// after we stopped it.
+				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+					return nil
+				}
+				return err
+			}
 		}
 		return nil
 	})
@@ -826,7 +847,7 @@ func makeExecConfig(options entities.ExecOptions, rt *libpod.Runtime) (*libpod.E
 		return nil, fmt.Errorf("retrieving Libpod configuration to build exec exit command: %w", err)
 	}
 	// TODO: Add some ability to toggle syslog
-	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, true)
+	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), false, false, true)
 	if err != nil {
 		return nil, fmt.Errorf("constructing exit command for exec session: %w", err)
 	}

@@ -209,6 +209,27 @@ echo $rand        |   0 | $rand
 
     run_podman 125 run --rmi --rm=false $NONLOCAL_IMAGE /bin/true
     is "$output" "Error: the --rmi option does not work without --rm" "--rmi should refuse to remove images when --rm=false set by user"
+
+    # Try again with a detached container and verify it works
+    cname=c_$(safename)
+    run_podman run -d --name $cname --rmi $NONLOCAL_IMAGE /bin/true
+    # 10 chances for the image to disappear
+    for i in `seq 1 10`; do
+        sleep 0.5
+        run_podman '?' image exists $NONLOCAL_IMAGE
+        if [[ $status == 1 ]]; then
+           break
+        fi
+    done
+    # Final check will error if image still exists
+    run_podman 1 image exists $NONLOCAL_IMAGE
+
+    # Verify that the inspect annotation is set correctly
+    run_podman run -d --name $cname --rmi $NONLOCAL_IMAGE sleep 10
+    run_podman inspect --format '{{ .HostConfig.AutoRemoveImage }} {{ .HostConfig.AutoRemove }}' $cname
+    is "$output" "true true" "Inspect correctly shows image autoremove and normal autoremove"
+    run_podman stop -t0 $cname
+    run_podman 1 image exists $NONLOCAL_IMAGE
 }
 
 # 'run --conmon-pidfile --cid-file' makes sure we don't regress on these flags.

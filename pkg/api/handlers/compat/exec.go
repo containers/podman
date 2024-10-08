@@ -74,7 +74,7 @@ func ExecCreateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Automatically log to syslog if the server has log-level=debug set
-	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), true, true)
+	exitCommandArgs, err := specgenutil.CreateExitCommandArgs(storageConfig, runtimeConfig, logrus.IsLevelEnabled(logrus.DebugLevel), true, false, true)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
