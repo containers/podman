@@ -123,6 +123,8 @@ load helpers
     assert "$output" !~ "$(safename)" "container should be removed"
 }
 
+# DO NOT CHANGE "sleep infinity"! This is how we get a container to
+# remain in state "stopping" for long enough to check it.
 function __run_healthcheck_container() {
     run_podman run -d --name $1 \
                --health-cmd /bin/false \
@@ -187,17 +189,17 @@ function __run_healthcheck_container() {
     for i in {1..10}; do
         run_podman inspect $cname --format '{{.State.Status}}'
         if [ "$output" = "stopping" ]; then
-            break
+            run_podman rm -f $cname
+            if kill -0 $pid; then
+                die "Container $cname process is still running (pid $pid)"
+            fi
+            return
         fi
 
         sleep 0.5
     done
 
-    run_podman rm -f $cname
-
-    if kill -0 $pid; then
-        die "Container $cname process is still running (pid $pid)"
-    fi
+    die "Container never entered 'stopping' state"
 }
 
 # vim: filetype=sh
