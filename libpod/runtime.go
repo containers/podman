@@ -1393,3 +1393,7 @@ func (r *Runtime) SystemCheck(ctx context.Context, options entities.SystemCheckO
 
 	return report, err
 }
+
+func (r *Runtime) GetContainerExitCode(id string) (int32, error) {
+	return r.state.GetContainerExitCode(id)
+}

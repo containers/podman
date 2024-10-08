@@ -130,6 +130,17 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 	reports, err := containerEngine.ContainerWait(r.Context(), []string{name}, opts)
 	if err != nil {
 		if errors.Is(err, define.ErrNoSuchCtr) {
+			// Special case: In the common scenario of podman-remote run --rm
+			// the API is required to attach + start + wait to get exit code.
+			// This has the problem that the wait call races against the container
+			// removal from the cleanup process so it may not get the exit code back.
+			// However we keep the exit code around for longer than the container so
+			// we can just look it up here. Of course this only works when we get a
+			// full id as param but podman-remote will do that
+			if code, err := runtime.GetContainerExitCode(name); err == nil {
+				WriteResponse(w, http.StatusOK, strconv.Itoa(int(code)))
+				return
+			}
 			ContainerNotFound(w, name, err)
 			return
 		}
