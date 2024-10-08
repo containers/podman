@@ -16,7 +16,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containerd/platforms"
+	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/define"
 	internalUtil "github.com/containers/buildah/internal/util"
@@ -228,17 +228,6 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 		platformContext := *systemContext
 		if platform.OS == "" && platform.Arch != "" {
 			platform.OS = runtime.GOOS
-		}
-		if platform.OS == "" && platform.Arch == "" {
-			if targetPlatform, ok := options.Args["TARGETPLATFORM"]; ok {
-				targetPlatform, err := platforms.Parse(targetPlatform)
-				if err != nil {
-					return "", nil, fmt.Errorf("parsing TARGETPLATFORM value %q: %w", targetPlatform, err)
-				}
-				platform.OS = targetPlatform.OS
-				platform.Arch = targetPlatform.Architecture
-				platform.Variant = targetPlatform.Variant
-			}
 		}
 		platformSpec := internalUtil.NormalizePlatform(v1.Platform{
 			OS:           platform.OS,

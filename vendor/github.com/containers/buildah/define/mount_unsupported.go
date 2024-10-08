@@ -1,4 +1,5 @@
 //go:build darwin || windows || netbsd
+// +build darwin windows netbsd
 
 package define
 
@@ -10,5 +11,7 @@ const (
 	TempDir = "/var/tmp"
 )
 
-// Mount potions for bind
-var BindOptions = []string{""}
+var (
+	// Mount potions for bind
+	BindOptions = []string{""}
+)

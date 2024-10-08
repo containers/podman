@@ -29,7 +29,7 @@ const (
 	// identify working containers.
 	Package = "buildah"
 	// Version for the Package. Also used by .packit.sh for Packit builds.
-	Version = "1.38.0-dev"
+	Version = "1.37.4"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -254,16 +254,9 @@ func parseGitBuildContext(url string) (string, string, string) {
 	return gitBranchPart[0], gitSubdir, gitBranch
 }
 
-func isGitTag(remote, ref string) bool {
-	if _, err := exec.Command("git", "ls-remote", "--exit-code", remote, ref).Output(); err != nil {
-		return true
-	}
-	return false
-}
-
 func cloneToDirectory(url, dir string) ([]byte, string, error) {
 	var cmd *exec.Cmd
-	gitRepo, gitSubdir, gitRef := parseGitBuildContext(url)
+	gitRepo, gitSubdir, gitBranch := parseGitBuildContext(url)
 	// init repo
 	cmd = exec.Command("git", "init", dir)
 	combinedOutput, err := cmd.CombinedOutput()
@@ -277,23 +270,27 @@ func cloneToDirectory(url, dir string) ([]byte, string, error) {
 	if err != nil {
 		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git remote add`: %w", err)
 	}
-
-	if gitRef != "" {
-		if ok := isGitTag(url, gitRef); ok {
-			gitRef += ":refs/tags/" + gitRef
-		}
+	// fetch required branch or commit and perform checkout
+	// Always default to `HEAD` if nothing specified
+	fetch := "HEAD"
+	if gitBranch != "" {
+		fetch = gitBranch
 	}
-
-	logrus.Debugf("fetching repo %q and branch (or commit ID) %q to %q", gitRepo, gitRef, dir)
-	args := []string{"fetch", "-u", "--depth=1", "origin", "--", gitRef}
-	cmd = exec.Command("git", args...)
+	logrus.Debugf("fetching repo %q and branch (or commit ID) %q to %q", gitRepo, fetch, dir)
+	cmd = exec.Command("git", "fetch", "--depth=1", "origin", "--", fetch)
 	cmd.Dir = dir
 	combinedOutput, err = cmd.CombinedOutput()
 	if err != nil {
 		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git fetch`: %w", err)
 	}
-
-	cmd = exec.Command("git", "checkout", "FETCH_HEAD")
+	if fetch == "HEAD" {
+		// We fetched default branch therefore
+		// we don't have any valid `branch` or
+		// `commit` name hence checkout detached
+		// `FETCH_HEAD`
+		fetch = "FETCH_HEAD"
+	}
+	cmd = exec.Command("git", "checkout", fetch)
 	cmd.Dir = dir
 	combinedOutput, err = cmd.CombinedOutput()
 	if err != nil {
@@ -327,7 +324,7 @@ func downloadToDirectory(url, dir string) error {
 		}
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile
-		if err := ioutils.AtomicWriteFile(dockerfile, body, 0o600); err != nil {
+		if err := ioutils.AtomicWriteFile(dockerfile, body, 0600); err != nil {
 			return fmt.Errorf("failed to write %q to %q: %w", url, dockerfile, err)
 		}
 	}
@@ -345,7 +342,7 @@ func stdinToDirectory(dir string) error {
 	if err := chrootarchive.Untar(reader, dir, nil); err != nil {
 		dockerfile := filepath.Join(dir, "Dockerfile")
 		// Assume this is a Dockerfile
-		if err := ioutils.AtomicWriteFile(dockerfile, b, 0o600); err != nil {
+		if err := ioutils.AtomicWriteFile(dockerfile, b, 0600); err != nil {
 			return fmt.Errorf("failed to write bytes to %q: %w", dockerfile, err)
 		}
 	}

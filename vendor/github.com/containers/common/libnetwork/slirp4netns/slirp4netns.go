@@ -645,7 +645,7 @@ func setupRootlessPortMappingViaSlirp(ports []types.PortMapping, cmd *exec.Cmd, 
 			if hostIP == "" {
 				hostIP = "0.0.0.0"
 			}
-			for i := range port.Range {
+			for i := uint16(0); i < port.Range; i++ {
 				if err := openSlirp4netnsPort(apiSocket, protocol, hostIP, port.HostPort+i, port.ContainerPort+i); err != nil {
 					return err
 				}

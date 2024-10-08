@@ -1,4 +1,5 @@
 //go:build !windows && !freebsd
+// +build !windows,!freebsd
 
 package copier
 

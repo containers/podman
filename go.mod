@@ -12,8 +12,8 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.2.1
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed
-	github.com/containers/common v0.60.1-0.20241001171026-c3edf18f3339
+	github.com/containers/buildah v1.37.4
+	github.com/containers/common v0.60.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.5
 	github.com/containers/image/v5 v5.32.3-0.20240923171149-9e1153a28c46
@@ -97,6 +97,7 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
+	github.com/containerd/containerd v1.7.21 // indirect
 	github.com/containerd/errdefs v0.1.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect

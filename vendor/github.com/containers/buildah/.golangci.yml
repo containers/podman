@@ -8,9 +8,6 @@ run:
   concurrency: 4
 linters:
   enable:
-    - gofmt
-    - gofumpt
     - revive
     - unconvert
     - unparam
-    - whitespace

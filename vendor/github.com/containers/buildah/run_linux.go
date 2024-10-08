@@ -1,4 +1,5 @@
 //go:build linux
+// +build linux
 
 package buildah
 
@@ -9,7 +10,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"syscall"
 
 	"github.com/containers/buildah/bind"
@@ -19,7 +19,6 @@ import (
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/internal/volumes"
-	"github.com/containers/buildah/pkg/binfmt"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
 	butil "github.com/containers/buildah/pkg/util"
@@ -60,9 +59,6 @@ var (
 	nonCleanablePrefixes = []string{
 		"/etc", "/dev", "/sys", "/proc",
 	}
-	// binfmtRegistered makes sure we only try to register binfmt_misc
-	// interpreters once, the first time we handle a RUN instruction.
-	binfmtRegistered sync.Once
 )
 
 func setChildProcess() error {
@@ -165,21 +161,6 @@ func separateDevicesFromRuntimeSpec(g *generate.Generator) define.ContainerDevic
 
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	if os.Getenv("container") != "" {
-		os, arch, variant, err := parse.Platform("")
-		if err != nil {
-			return fmt.Errorf("reading the current default platform")
-		}
-		platform := b.OCIv1.Platform
-		if os != platform.OS || arch != platform.Architecture || variant != platform.Variant {
-			binfmtRegistered.Do(func() {
-				if err := binfmt.Register(nil); err != nil {
-					logrus.Warnf("registering binfmt_misc interpreters: %v", err)
-				}
-			})
-		}
-	}
-
 	p, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
 	if err != nil {
 		return err
@@ -365,7 +346,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	idPair := &idtools.IDPair{UID: int(uid), GID: int(gid)}
 
-	mode := os.FileMode(0o755)
+	mode := os.FileMode(0755)
 	coptions := copier.MkdirOptions{
 		ChownNew: idPair,
 		ChmodNew: &mode,
@@ -415,7 +396,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 					})
 				}
 			}
-			err = b.addHostsEntries(hostsFile, mountPoint, entries, nil, "")
+			err = b.addHostsEntries(hostsFile, mountPoint, entries, nil)
 			if err != nil {
 				return err
 			}
@@ -451,7 +432,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	// Empty file, so no need to recreate if it exists
 	if _, ok := bindFiles["/run/.containerenv"]; !ok {
 		containerenvPath := filepath.Join(path, "/run/.containerenv")
-		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0o755); err != nil {
+		if err = os.MkdirAll(filepath.Dir(containerenvPath), 0755); err != nil {
 			return err
 		}
 
@@ -469,7 +450,7 @@ imageid=%q
 rootless=%d
 `, define.Version, b.Container, b.ContainerID, b.FromImage, b.FromImageID, rootless)
 
-		if err = ioutils.AtomicWriteFile(containerenvPath, []byte(containerenv), 0o755); err != nil {
+		if err = ioutils.AtomicWriteFile(containerenvPath, []byte(containerenv), 0755); err != nil {
 			return err
 		}
 		if err := relabel(containerenvPath, b.MountLabel, false); err != nil {
@@ -674,7 +655,7 @@ func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options, 
 }
 
 func setupPasta(config *config.Config, netns string, options, hostnames []string) (func(), *netResult, error) {
-	res, err := pasta.Setup(&pasta.SetupOptions{
+	res, err := pasta.Setup2(&pasta.SetupOptions{
 		Config:       config,
 		Netns:        netns,
 		ExtraOptions: options,
@@ -688,18 +669,12 @@ func setupPasta(config *config.Config, netns string, options, hostnames []string
 		entries = etchosts.HostEntries{{IP: res.IPAddresses[0].String(), Names: hostnames}}
 	}
 
-	mappedIP := ""
-	if len(res.MapGuestAddrIPs) > 0 {
-		mappedIP = res.MapGuestAddrIPs[0]
-	}
-
 	result := &netResult{
-		entries:                           entries,
-		dnsServers:                        res.DNSForwardIPs,
-		excludeIPs:                        res.IPAddresses,
-		ipv6:                              res.IPv6,
-		keepHostResolvers:                 true,
-		preferredHostContainersInternalIP: mappedIP,
+		entries:           entries,
+		dnsServers:        res.DNSForwardIPs,
+		excludeIPs:        res.IPAddresses,
+		ipv6:              res.IPv6,
+		keepHostResolvers: true,
 	}
 
 	return nil, result, nil
@@ -811,7 +786,7 @@ func runMakeStdioPipe(uid, gid int) ([][]int, error) {
 	return stdioPipe, nil
 }
 
-func setupNamespaces(_ *logrus.Logger, g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, networkString string, configureUTS bool, err error) {
+func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOptions define.NamespaceOptions, idmapOptions define.IDMappingOptions, policy define.NetworkConfigurationPolicy) (configureNetwork bool, networkString string, configureUTS bool, err error) {
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
 		return false, "", false, fmt.Errorf("failed to get container config: %w", err)
@@ -941,7 +916,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
 
 	networkPolicy := options.ConfigureNetwork
-	// Nothing was specified explicitly so network policy should be inherited from builder
+	//Nothing was specified explicitly so network policy should be inherited from builder
 	if networkPolicy == NetworkDefault {
 		networkPolicy = b.ConfigureNetwork
 
@@ -1218,6 +1193,9 @@ func setupCapAdd(g *generate.Generator, caps ...string) error {
 		if err := g.AddProcessCapabilityPermitted(cap); err != nil {
 			return fmt.Errorf("adding %q to the permitted capability set: %w", cap, err)
 		}
+		if err := g.AddProcessCapabilityAmbient(cap); err != nil {
+			return fmt.Errorf("adding %q to the ambient capability set: %w", cap, err)
+		}
 	}
 	return nil
 }
@@ -1232,6 +1210,9 @@ func setupCapDrop(g *generate.Generator, caps ...string) error {
 		}
 		if err := g.DropProcessCapabilityPermitted(cap); err != nil {
 			return fmt.Errorf("removing %q from the permitted capability set: %w", cap, err)
+		}
+		if err := g.DropProcessCapabilityAmbient(cap); err != nil {
+			return fmt.Errorf("removing %q from the ambient capability set: %w", cap, err)
 		}
 	}
 	return nil
@@ -1315,10 +1296,10 @@ func setupSpecialMountSpecChanges(spec *specs.Spec, shmSize string) ([]specs.Mou
 		if err != nil {
 			return nil, err
 		}
-		gid5Available = checkIDsGreaterThan5(gids)
+		gid5Available = checkIdsGreaterThan5(gids)
 	}
 	if gid5Available && len(spec.Linux.GIDMappings) > 0 {
-		gid5Available = checkIDsGreaterThan5(spec.Linux.GIDMappings)
+		gid5Available = checkIdsGreaterThan5(spec.Linux.GIDMappings)
 	}
 	if !gid5Available {
 		// If we have no GID mappings, the gid=5 default option would fail, so drop it.
@@ -1389,7 +1370,7 @@ func setupSpecialMountSpecChanges(spec *specs.Spec, shmSize string) ([]specs.Mou
 	return mounts, nil
 }
 
-func checkIDsGreaterThan5(ids []specs.LinuxIDMapping) bool {
+func checkIdsGreaterThan5(ids []specs.LinuxIDMapping) bool {
 	for _, r := range ids {
 		if r.ContainerID <= 5 && 5 < r.ContainerID+r.Size {
 			return true

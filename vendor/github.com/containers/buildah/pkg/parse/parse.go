@@ -15,7 +15,7 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/containerd/platforms"
+	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	mkcwtypes "github.com/containers/buildah/internal/mkcw/types"
 	internalParse "github.com/containers/buildah/internal/parse"
@@ -250,6 +250,7 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 		default:
 			return fmt.Errorf("invalid --security-opt 2: %q", opt)
 		}
+
 	}
 
 	if commonOpts.SeccompProfilePath == "" {
@@ -327,7 +328,7 @@ func validateExtraHost(val string) error {
 // validateIPAddress validates an Ip address.
 // for dns, ip, and ip6 flags also
 func validateIPAddress(val string) (string, error) {
-	ip := net.ParseIP(strings.TrimSpace(val))
+	var ip = net.ParseIP(strings.TrimSpace(val))
 	if ip != nil {
 		return ip.String(), nil
 	}
@@ -635,9 +636,7 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 	username, password := parseCreds(creds)
 	if username == "" {
 		fmt.Print("Username: ")
-		if _, err := fmt.Scanln(&username); err != nil {
-			return nil, fmt.Errorf("reading user name: %w", err)
-		}
+		fmt.Scanln(&username)
 	}
 	if password == "" {
 		fmt.Print("Password: ")
@@ -660,19 +659,15 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 	if len(buildOutput) == 1 && buildOutput == "-" {
 		// Feature parity with buildkit, output tar to stdout
 		// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
-		return define.BuildOutputOption{
-			Path:     "",
+		return define.BuildOutputOption{Path: "",
 			IsDir:    false,
-			IsStdout: true,
-		}, nil
+			IsStdout: true}, nil
 	}
 	if !strings.Contains(buildOutput, ",") {
 		// expect default --output <dirname>
-		return define.BuildOutputOption{
-			Path:     buildOutput,
+		return define.BuildOutputOption{Path: buildOutput,
 			IsDir:    true,
-			IsStdout: false,
-		}, nil
+			IsStdout: false}, nil
 	}
 	isDir := true
 	isStdout := false
@@ -717,11 +712,9 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 		if isDir {
 			return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, type=local and dest=- is not supported", buildOutput)
 		}
-		return define.BuildOutputOption{
-			Path:     "",
+		return define.BuildOutputOption{Path: "",
 			IsDir:    false,
-			IsStdout: true,
-		}, nil
+			IsStdout: true}, nil
 	}
 
 	return define.BuildOutputOption{Path: path, IsDir: isDir, IsStdout: isStdout}, nil
@@ -757,7 +750,7 @@ func GetConfidentialWorkloadOptions(arg string) (define.ConfidentialWorkloadOpti
 			if options.AttestationURL == option {
 				options.AttestationURL = strings.TrimPrefix(option, "attestation-url=")
 			}
-		case strings.HasPrefix(option, "passphrase="):
+		case strings.HasPrefix(option, "passphrase="), strings.HasPrefix(option, "passphrase="):
 			options.Convert = true
 			options.DiskEncryptionPassphrase = strings.TrimPrefix(option, "passphrase=")
 		case strings.HasPrefix(option, "workload_id="), strings.HasPrefix(option, "workload-id="):
@@ -808,7 +801,7 @@ func SBOMScanOptions(c *cobra.Command) (*define.SBOMScanOptions, error) {
 }
 
 // SBOMScanOptionsFromFlagSet parses scan settings from the cli
-func SBOMScanOptionsFromFlagSet(flags *pflag.FlagSet, _ func(name string) *pflag.Flag) (*define.SBOMScanOptions, error) {
+func SBOMScanOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name string) *pflag.Flag) (*define.SBOMScanOptions, error) {
 	preset, err := flags.GetString("sbom")
 	if err != nil {
 		return nil, fmt.Errorf("invalid value for --sbom: %w", err)
@@ -873,7 +866,7 @@ func SBOMScanOptionsFromFlagSet(flags *pflag.FlagSet, _ func(name string) *pflag
 }
 
 // IDMappingOptions parses the build options related to user namespaces and ID mapping.
-func IDMappingOptions(c *cobra.Command, _ define.Isolation) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
+func IDMappingOptions(c *cobra.Command, isolation define.Isolation) (usernsOptions define.NamespaceOptions, idmapOptions *define.IDMappingOptions, err error) {
 	return IDMappingOptionsFromFlagSet(c.Flags(), c.PersistentFlags(), c.Flag)
 }
 
@@ -1216,7 +1209,7 @@ func Device(device string) (string, string, string, error) {
 // isValidDeviceMode checks if the mode for device is valid or not.
 // isValid mode is a composition of r (read), w (write), and m (mknod).
 func isValidDeviceMode(mode string) bool {
-	legalDeviceMode := map[rune]struct{}{
+	var legalDeviceMode = map[rune]struct{}{
 		'r': {},
 		'w': {},
 		'm': {},
@@ -1292,6 +1285,7 @@ func Secrets(secrets []string) (map[string]define.Secret, error) {
 			SourceType: typ,
 		}
 		parsed[id] = newSecret
+
 	}
 	return parsed, nil
 }

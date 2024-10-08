@@ -56,6 +56,7 @@ func RuntimeConfigFilterWithOptions(ctx context.Context, options RuntimeConfigFi
 		return nil, err
 	}
 	for i, hook := range options.Hooks {
+		hook := hook
 		var stdout bytes.Buffer
 		hookErr, err = RunWithOptions(ctx, RunOptions{Hook: &hook, Dir: options.Dir, State: data, Stdout: &stdout, PostKillTimeout: options.PostKillTimeout})
 		if err != nil {

@@ -162,7 +162,6 @@ type Executor struct {
 	cdiConfigDir                            string
 	compatSetParent                         types.OptionalBool
 	compatVolumes                           types.OptionalBool
-	compatScratchConfig                     types.OptionalBool
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -221,7 +220,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		if options.RusageLogFile == "" {
 			rusageLogFile = options.Out
 		} else {
-			rusageLogFile, err = os.OpenFile(options.RusageLogFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0o644)
+			rusageLogFile, err = os.OpenFile(options.RusageLogFile, os.O_TRUNC|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				return nil, fmt.Errorf("creating file to store rusage logs: %w", err)
 			}
@@ -321,7 +320,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		cdiConfigDir:                            options.CDIConfigDir,
 		compatSetParent:                         options.CompatSetParent,
 		compatVolumes:                           options.CompatVolumes,
-		compatScratchConfig:                     options.CompatScratchConfig,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
@@ -1052,7 +1050,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	}
 	logrus.Debugf("printing final image id %q", imageID)
 	if b.iidfile != "" {
-		if err = os.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0o644); err != nil {
+		if err = os.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0644); err != nil {
 			return imageID, ref, fmt.Errorf("failed to write image ID to file %q: %w", b.iidfile, err)
 		}
 	} else {
