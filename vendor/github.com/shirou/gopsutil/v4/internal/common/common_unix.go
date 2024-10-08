@@ -40,23 +40,3 @@ func CallLsofWithContext(ctx context.Context, invoke Invoker, pid int32, args ..
 	}
 	return ret, nil
 }
-
-func CallPgrepWithContext(ctx context.Context, invoke Invoker, pid int32) ([]int32, error) {
-	out, err := invoke.CommandWithContext(ctx, "pgrep", "-P", strconv.Itoa(int(pid)))
-	if err != nil {
-		return []int32{}, err
-	}
-	lines := strings.Split(string(out), "\n")
-	ret := make([]int32, 0, len(lines))
-	for _, l := range lines {
-		if len(l) == 0 {
-			continue
-		}
-		i, err := strconv.ParseInt(l, 10, 32)
-		if err != nil {
-			continue
-		}
-		ret = append(ret, int32(i))
-	}
-	return ret, nil
-}

@@ -70,3 +70,61 @@ func SwapDevices() ([]*SwapDevice, error) {
 func SwapDevicesWithContext(ctx context.Context) ([]*SwapDevice, error) {
 	return nil, common.ErrNotImplementedError
 }
+
+type vmStatisticsData struct {
+	freeCount     uint32
+	activeCount   uint32
+	inactiveCount uint32
+	wireCount     uint32
+	_             [44]byte // Not used here
+}
+
+// VirtualMemory returns VirtualmemoryStat.
+func VirtualMemory() (*VirtualMemoryStat, error) {
+	return VirtualMemoryWithContext(context.Background())
+}
+
+func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
+	machLib, err := common.NewLibrary(common.System)
+	if err != nil {
+		return nil, err
+	}
+	defer machLib.Close()
+
+	hostStatistics := common.GetFunc[common.HostStatisticsFunc](machLib, common.HostStatisticsSym)
+	machHostSelf := common.GetFunc[common.MachHostSelfFunc](machLib, common.MachHostSelfSym)
+
+	count := uint32(common.HOST_VM_INFO_COUNT)
+	var vmstat vmStatisticsData
+
+	status := hostStatistics(machHostSelf(), common.HOST_VM_INFO,
+		uintptr(unsafe.Pointer(&vmstat)), &count)
+
+	if status != common.KERN_SUCCESS {
+		return nil, fmt.Errorf("host_statistics error=%d", status)
+	}
+
+	pageSizeAddr, _ := machLib.Dlsym("vm_kernel_page_size")
+	pageSize := **(**uint64)(unsafe.Pointer(&pageSizeAddr))
+	total, err := getHwMemsize()
+	if err != nil {
+		return nil, err
+	}
+	totalCount := uint32(total / pageSize)
+
+	availableCount := vmstat.inactiveCount + vmstat.freeCount
+	usedPercent := 100 * float64(totalCount-availableCount) / float64(totalCount)
+
+	usedCount := totalCount - availableCount
+
+	return &VirtualMemoryStat{
+		Total:       total,
+		Available:   pageSize * uint64(availableCount),
+		Used:        pageSize * uint64(usedCount),
+		UsedPercent: usedPercent,
+		Free:        pageSize * uint64(vmstat.freeCount),
+		Active:      pageSize * uint64(vmstat.activeCount),
+		Inactive:    pageSize * uint64(vmstat.inactiveCount),
+		Wired:       pageSize * uint64(vmstat.wireCount),
+	}, nil
+}

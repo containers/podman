@@ -12,6 +12,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -338,21 +339,34 @@ func (p *Process) PageFaultsWithContext(ctx context.Context) (*PageFaultsStat, e
 }
 
 func (p *Process) ChildrenWithContext(ctx context.Context) ([]*Process, error) {
-	pids, err := common.CallPgrepWithContext(ctx, invoke, p.Pid)
+	statFiles, err := filepath.Glob(common.HostProcWithContext(ctx, "[0-9]*/stat"))
 	if err != nil {
 		return nil, err
 	}
-	if len(pids) == 0 {
-		return nil, ErrorNoChildren
-	}
-	ret := make([]*Process, 0, len(pids))
-	for _, pid := range pids {
-		np, err := NewProcessWithContext(ctx, pid)
+	ret := make([]*Process, 0, len(statFiles))
+	for _, statFile := range statFiles {
+		statContents, err := os.ReadFile(statFile)
 		if err != nil {
-			return nil, err
+			continue
 		}
-		ret = append(ret, np)
+		fields := splitProcStat(statContents)
+		pid, err := strconv.ParseInt(fields[1], 10, 32)
+		if err != nil {
+			continue
+		}
+		ppid, err := strconv.ParseInt(fields[4], 10, 32)
+		if err != nil {
+			continue
+		}
+		if int32(ppid) == p.Pid {
+			np, err := NewProcessWithContext(ctx, int32(pid))
+			if err != nil {
+				continue
+			}
+			ret = append(ret, np)
+		}
 	}
+	sort.Slice(ret, func(i, j int) bool { return ret[i].Pid < ret[j].Pid })
 	return ret, nil
 }
 
@@ -1082,8 +1096,7 @@ func (p *Process) fillFromTIDStatWithContext(ctx context.Context, tid int32) (ui
 	if err != nil {
 		return 0, 0, nil, 0, 0, 0, nil, err
 	}
-	ctime := (t / uint64(clockTicks)) + uint64(bootTime)
-	createTime := int64(ctime * 1000)
+	createTime := int64((t * 1000 / uint64(clockTicks)) + uint64(bootTime*1000))
 
 	rtpriority, err := strconv.ParseInt(fields[18], 10, 32)
 	if err != nil {
