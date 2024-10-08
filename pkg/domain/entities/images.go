@@ -5,6 +5,7 @@ import (
 	"net/url"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature/signer"
 	"github.com/containers/image/v5/types"
@@ -199,6 +200,8 @@ type ImagePushOptions struct {
 	// CompressionFormat is used exclusively, and blobs of other compression
 	// algorithms are not reused.
 	ForceCompressionFormat bool
+	TarCompressionFormat   string
+	TarCompressionLevel    *int
 }
 
 // ImagePushReport is the response from pushing an image.
@@ -301,8 +304,10 @@ type ImageSaveOptions struct {
 	// Output - write image to the specified path.
 	Output string
 	// Quiet - suppress output when copying images
-	Quiet           bool
-	SignaturePolicy string
+	Quiet                bool
+	SignaturePolicy      string
+	TarCompressionFormat string
+	TarCompressionLevel  *int
 }
 
 // ImageScpOptions provide options for securely copying images to and from a remote host
@@ -329,6 +334,25 @@ type ImageScpConnections struct {
 	URI []*url.URL
 	// Identities contains ssh identity keys to be used by the client
 	Identities []string
+}
+
+type ImageScpBaseOptions struct {
+	ImageExecuteTransferOptions
+}
+
+type ImageExecuteTransferOptions struct {
+	ParentFlags          []string
+	Quiet                bool
+	SshMode              ssh.EngineMode
+	TarCompressionFormat string
+	TarCompressionLevel  *int
+}
+
+type ImageExecuteTransferReport struct {
+	LoadReport  *ImageLoadReport
+	Source      *ImageScpOptions
+	Dest        *ImageScpOptions
+	ParentFlags []string
 }
 
 // ImageTreeOptions provides options for ImageEngine.Tree()

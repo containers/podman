@@ -61,3 +61,33 @@ func (o *ExportOptions) GetOciAcceptUncompressedLayers() bool {
 	}
 	return *o.OciAcceptUncompressedLayers
 }
+
+// WithTarCompressionFormat set field TarCompressionFormat to given value
+func (o *ExportOptions) WithTarCompressionFormat(value string) *ExportOptions {
+	o.TarCompressionFormat = &value
+	return o
+}
+
+// GetTarCompressionFormat returns value of field TarCompressionFormat
+func (o *ExportOptions) GetTarCompressionFormat() string {
+	if o.TarCompressionFormat == nil {
+		var z string
+		return z
+	}
+	return *o.TarCompressionFormat
+}
+
+// WithTarCompressionLevel set field TarCompressionLevel to given value
+func (o *ExportOptions) WithTarCompressionLevel(value int) *ExportOptions {
+	o.TarCompressionLevel = &value
+	return o
+}
+
+// GetTarCompressionLevel returns value of field TarCompressionLevel
+func (o *ExportOptions) GetTarCompressionLevel() int {
+	if o.TarCompressionLevel == nil {
+		var z int
+		return z
+	}
+	return *o.TarCompressionLevel
+}

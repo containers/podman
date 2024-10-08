@@ -674,7 +674,9 @@ type SystemContext struct {
 	// CompressionFormat is the format to use for the compression of the blobs
 	CompressionFormat *compression.Algorithm
 	// CompressionLevel specifies what compression level is used
-	CompressionLevel *int
+	CompressionLevel     *int
+	TarCompressionFormat *compression.Algorithm
+	TarCompressionLevel  *int
 }
 
 // ProgressEvent is the type of events a progress reader can produce
