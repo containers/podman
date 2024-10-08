@@ -10,13 +10,11 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/bindings/containers"
@@ -647,7 +645,7 @@ func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID s
 	return sessionID, nil
 }
 
-func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigProxy bool, input, output, errput *os.File) error {
+func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigProxy bool, input, output, errput *os.File) (int, error) {
 	if output == nil && errput == nil {
 		fmt.Printf("%s\n", name)
 	}
@@ -671,6 +669,10 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigPro
 	}()
 	// Wait for the attach to actually happen before starting
 	// the container.
+
+	cancelCtx, cancel := context.WithCancel(ic.ClientCtx)
+	defer cancel()
+	var code int
 	select {
 	case <-attachReady:
 		startOptions := new(containers.StartOptions)
@@ -678,13 +680,21 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigPro
 			startOptions.WithDetachKeys(*dk)
 		}
 		if err := containers.Start(ic.ClientCtx, name, startOptions); err != nil {
-			return err
+			return -1, err
 		}
+
+		// call wait immediately after start to avoid racing against container removal when it was created with --rm
+		exitCode, err := containers.Wait(cancelCtx, name, nil)
+		if err != nil {
+			return -1, err
+		}
+		code = int(exitCode)
+
 	case err := <-attachErr:
-		return err
+		return -1, err
 	}
 	// If attachReady happens first, wait for containers.Attach to complete
-	return <-attachErr
+	return code, <-attachErr
 }
 
 func logIfRmError(id string, err error, reports []*reports.RmReport) {
@@ -742,7 +752,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 		}
 		ctrRunning := ctr.State == define.ContainerStateRunning.String()
 		if options.Attach {
-			err = startAndAttach(ic, name, &options.DetachKeys, options.SigProxy, options.Stdin, options.Stdout, options.Stderr)
+			code, err := startAndAttach(ic, name, &options.DetachKeys, options.SigProxy, options.Stdin, options.Stdout, options.Stderr)
 			if err == define.ErrDetach {
 				// User manually detached
 				// Exit cleanly immediately
@@ -780,19 +790,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 				}()
 			}
 
-			exitCode, err := containers.Wait(ic.ClientCtx, name, nil)
-			if err == define.ErrNoSuchCtr {
-				// Check events
-				event, err := ic.GetLastContainerEvent(ctx, name, events.Exited)
-				if err != nil {
-					logrus.Errorf("Cannot get exit code: %v", err)
-					report.ExitCode = define.ExecErrorCodeNotFound
-				} else {
-					report.ExitCode = *event.ContainerExitCode
-				}
-			} else {
-				report.ExitCode = int(exitCode)
-			}
+			report.ExitCode = code
 			reports = append(reports, &report)
 			return reports, nil
 		}
@@ -904,7 +902,9 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 			return err
 		})
 	}
-	if err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.SigProxy, opts.InputStream, opts.OutputStream, opts.ErrorStream); err != nil {
+
+	code, err := startAndAttach(ic, con.ID, &opts.DetachKeys, opts.SigProxy, opts.InputStream, opts.OutputStream, opts.ErrorStream)
+	if err != nil {
 		if err == define.ErrDetach {
 			return &report, nil
 		}
@@ -932,53 +932,8 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		}()
 	}
 
-	// Wait
-	exitCode, waitErr := containers.Wait(ic.ClientCtx, con.ID, nil)
-	if waitErr == nil {
-		report.ExitCode = int(exitCode)
-		return &report, nil
-	}
-
-	// Determine why the wait failed.  If the container doesn't exist,
-	// consult the events.
-	if !errorhandling.Contains(waitErr, define.ErrNoSuchCtr) {
-		return &report, waitErr
-	}
-
-	// Events
-	eventsChannel := make(chan *events.Event)
-	eventOptions := entities.EventsOptions{
-		EventChan: eventsChannel,
-		Filter: []string{
-			"type=container",
-			fmt.Sprintf("container=%s", con.ID),
-			fmt.Sprintf("event=%s", events.Exited),
-		},
-	}
-
-	var lastEvent *events.Event
-	var mutex sync.Mutex
-	mutex.Lock()
-	// Read the events.
-	go func() {
-		for e := range eventsChannel {
-			lastEvent = e
-		}
-		mutex.Unlock()
-	}()
-
-	eventsErr := ic.Events(ctx, eventOptions)
-
-	// Wait for all events to be read
-	mutex.Lock()
-	if eventsErr != nil || lastEvent == nil {
-		logrus.Errorf("Cannot get exit code: %v", err)
-		report.ExitCode = define.ExecErrorCodeNotFound
-		return &report, nil //nolint: nilerr
-	}
-
-	report.ExitCode = *lastEvent.ContainerExitCode
-	return &report, err
+	report.ExitCode = code
+	return &report, nil
 }
 
 func (ic *ContainerEngine) Diff(ctx context.Context, namesOrIDs []string, opts entities.DiffOptions) (*entities.DiffReport, error) {
