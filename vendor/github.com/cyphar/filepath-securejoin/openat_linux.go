@@ -42,10 +42,6 @@ func fstatatFile(dir *os.File, path string, flags int) (unix.Stat_t, error) {
 	return stat, nil
 }
 
-func fstatFile(fd *os.File) (unix.Stat_t, error) {
-	return fstatatFile(fd, "", unix.AT_EMPTY_PATH)
-}
-
 func readlinkatFile(dir *os.File, path string) (string, error) {
 	size := 4096
 	for {

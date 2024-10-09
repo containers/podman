@@ -1,5 +1,6 @@
 ## `filepath-securejoin` ##
 
+[![Go Documentation](https://pkg.go.dev/badge/github.com/cyphar/filepath-securejoin.svg)](https://pkg.go.dev/github.com/cyphar/filepath-securejoin)
 [![Build Status](https://github.com/cyphar/filepath-securejoin/actions/workflows/ci.yml/badge.svg)](https://github.com/cyphar/filepath-securejoin/actions/workflows/ci.yml)
 
 ### Old API ###
@@ -85,7 +86,7 @@ more secure. In particular:
   or avoid being tricked by a `/proc` that is not legitimate. This is done
   using [`openat2`][openat2.2] for all users, and privileged users will also be
   further protected by using [`fsopen`][fsopen.2] and [`open_tree`][open_tree.2]
-  (Linux 4.18 or later).
+  (Linux 5.2 or later).
 
 [openat2.2]: https://www.man7.org/linux/man-pages/man2/openat2.2.html
 [fsopen.2]: https://github.com/brauner/man-pages-md/blob/main/fsopen.md

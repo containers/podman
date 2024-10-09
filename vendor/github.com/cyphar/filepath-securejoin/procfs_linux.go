@@ -134,7 +134,7 @@ func clonePrivateProcMount() (_ *os.File, Err error) {
 	// we can be sure there are no over-mounts and so if the root is valid then
 	// we're golden. Otherwise, we have to deal with over-mounts.
 	procfsHandle, err := openTree(nil, "/proc", unix.OPEN_TREE_CLONE)
-	if err != nil || testingForcePrivateProcRootOpenTreeAtRecursive(procfsHandle) {
+	if err != nil || hookForcePrivateProcRootOpenTreeAtRecursive(procfsHandle) {
 		procfsHandle, err = openTree(nil, "/proc", unix.OPEN_TREE_CLONE|unix.AT_RECURSIVE)
 	}
 	if err != nil {
@@ -152,13 +152,13 @@ func clonePrivateProcMount() (_ *os.File, Err error) {
 }
 
 func privateProcRoot() (*os.File, error) {
-	if !hasNewMountApi() || testingForceGetProcRootUnsafe() {
+	if !hasNewMountApi() || hookForceGetProcRootUnsafe() {
 		return nil, fmt.Errorf("new mount api: %w", unix.ENOTSUP)
 	}
 	// Try to create a new procfs mount from scratch if we can. This ensures we
 	// can get a procfs mount even if /proc is fake (for whatever reason).
 	procRoot, err := newPrivateProcMount()
-	if err != nil || testingForcePrivateProcRootOpenTree(procRoot) {
+	if err != nil || hookForcePrivateProcRootOpenTree(procRoot) {
 		// Try to clone /proc then...
 		procRoot, err = clonePrivateProcMount()
 	}
@@ -227,10 +227,10 @@ func procThreadSelf(procRoot *os.File, subpath string) (_ *os.File, _ procThread
 
 	// Figure out what prefix we want to use.
 	threadSelf := "thread-self/"
-	if !hasProcThreadSelf() || testingForceProcSelfTask() {
+	if !hasProcThreadSelf() || hookForceProcSelfTask() {
 		/// Pre-3.17 kernels don't have /proc/thread-self, so do it manually.
 		threadSelf = "self/task/" + strconv.Itoa(unix.Gettid()) + "/"
-		if _, err := fstatatFile(procRoot, threadSelf, unix.AT_SYMLINK_NOFOLLOW); err != nil || testingForceProcSelf() {
+		if _, err := fstatatFile(procRoot, threadSelf, unix.AT_SYMLINK_NOFOLLOW); err != nil || hookForceProcSelf() {
 			// In this case, we running in a pid namespace that doesn't match
 			// the /proc mount we have. This can happen inside runc.
 			//
@@ -424,3 +424,17 @@ func checkProcSelfFdPath(path string, file *os.File) error {
 	}
 	return nil
 }
+
+// Test hooks used in the procfs tests to verify that the fallback logic works.
+// See testing_mocks_linux_test.go and procfs_linux_test.go for more details.
+var (
+	hookForcePrivateProcRootOpenTree            = hookDummyFile
+	hookForcePrivateProcRootOpenTreeAtRecursive = hookDummyFile
+	hookForceGetProcRootUnsafe                  = hookDummy
+
+	hookForceProcSelfTask = hookDummy
+	hookForceProcSelf     = hookDummy
+)
+
+func hookDummy() bool               { return false }
+func hookDummyFile(_ *os.File) bool { return false }

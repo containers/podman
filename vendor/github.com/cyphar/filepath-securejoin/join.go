@@ -3,11 +3,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package securejoin is an implementation of the hopefully-soon-to-be-included
-// SecureJoin helper that is meant to be part of the "path/filepath" package.
-// The purpose of this project is to provide a PoC implementation to make the
-// SecureJoin proposal (https://github.com/golang/go/issues/20126) more
-// tangible.
 package securejoin
 
 import (
