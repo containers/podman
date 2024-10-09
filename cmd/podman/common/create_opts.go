@@ -85,4 +85,7 @@ func DefineCreateDefaults(opts *entities.ContainerCreateOptions) {
 	opts.Ulimit = ulimits()
 	opts.SeccompPolicy = "default"
 	opts.Volume = volumes()
+	opts.HealthLogDestination = define.DefaultHealthCheckLocalDestination
+	opts.HealthMaxLogCount = define.DefaultHealthMaxLogCount
+	opts.HealthMaxLogSize = define.DefaultHealthMaxLogSize
 }

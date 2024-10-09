@@ -370,6 +370,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	s.HealthCheckOnFailureAction = onFailureAction
 
+	s.HealthLogDestination = c.HealthLogDestination
+
+	s.HealthMaxLogCount = c.HealthMaxLogCount
+
+	s.HealthMaxLogSize = c.HealthMaxLogSize
+
 	if c.StartupHCCmd != "" {
 		if c.NoHealthCheck {
 			return errors.New("cannot specify both --no-healthcheck and --health-startup-cmd")

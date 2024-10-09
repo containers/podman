@@ -184,6 +184,30 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthIntervalFlagName, completion.AutocompleteNone)
 
+		healthLogDestinationFlagName := "health-log-destination"
+		createFlags.StringVar(
+			&cf.HealthLogDestination,
+			healthLogDestinationFlagName, define.DefaultHealthCheckLocalDestination,
+			"set the destination of the HealthCheck log. Directory path, local or events_logger (local use container state file)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(healthLogDestinationFlagName, completion.AutocompleteNone)
+
+		healthMaxLogCountFlagName := "health-max-log-count"
+		createFlags.UintVar(
+			&cf.HealthMaxLogCount,
+			healthMaxLogCountFlagName, define.DefaultHealthMaxLogCount,
+			"set maximum number of attempts in the HealthCheck log file. ('0' value means an infinite number of attempts in the log file)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(healthMaxLogCountFlagName, completion.AutocompleteNone)
+
+		healthMaxLogSizeFlagName := "health-max-log-size"
+		createFlags.UintVar(
+			&cf.HealthMaxLogSize,
+			healthMaxLogSizeFlagName, define.DefaultHealthMaxLogSize,
+			"set maximum length in characters of stored HealthCheck log. ('0' value means an infinite log length)",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(healthMaxLogSizeFlagName, completion.AutocompleteNone)
+
 		healthRetriesFlagName := "health-retries"
 		createFlags.UintVar(
 			&cf.HealthRetries,

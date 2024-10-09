@@ -16,6 +16,8 @@ const (
 	// and the start-period (time allowed for the container to start and application
 	// to be running) expires.
 	HealthCheckStarting string = "starting"
+	// HealthCheckReset describes reset of HealthCheck logs
+	HealthCheckReset string = "reset"
 )
 
 // HealthCheckStatus represents the current state of a container
@@ -56,7 +58,15 @@ const (
 	DefaultHealthCheckStartPeriod = "0s"
 	// DefaultHealthCheckTimeout default value
 	DefaultHealthCheckTimeout = "30s"
+	// DefaultHealthMaxLogCount default value
+	DefaultHealthMaxLogCount uint = 5
+	// DefaultHealthMaxLogSize default value
+	DefaultHealthMaxLogSize uint = 500
+	// DefaultHealthCheckLocalDestination default value
+	DefaultHealthCheckLocalDestination string = "local"
 )
+
+const HealthCheckEventsLoggerDestination string = "events_logger"
 
 // HealthConfig.Test options
 const (

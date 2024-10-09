@@ -84,8 +84,11 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		ReadOnly:         true,
 		ReadWriteTmpFS:   false,
 		// No need to spin up slirp etc.
-		Net:         &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
-		StopTimeout: rtc.Engine.StopTimeout,
+		Net:                  &entities.NetOptions{Network: specgen.Namespace{NSMode: specgen.NoNetwork}},
+		StopTimeout:          rtc.Engine.StopTimeout,
+		HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+		HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+		HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
 	}
 
 	// Create and fill out the runtime spec.
