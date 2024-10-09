@@ -171,7 +171,7 @@ sub crossref_doc {
         chomp $line;
 
         # New section, with its own '| table |' and '### Keyword blocks'
-        if ($line =~ /^##\s+(\S+)\s+units\s+\[(\S+)\]/) {
+        if ($line =~ /^##\s+(\S+)\s+(?:units|section)\s+\[(\S+)\]/) {
             my $new_unit = $1;
             $new_unit eq $2
                 or warn "$ME: $path:$.: inconsistent block names in '$line'\n";
@@ -227,7 +227,7 @@ sub crossref_doc {
             }
 
             grep { $_ eq $key } @found_in_table
-                or warn "$ME: $path:$.: key '$key' is not listed in table for unit '$unit'\n";
+                or warn "$ME: $path:$.: key '$key' is not listed in table for unit/section '$unit'\n";
 
             push @described, $key;
             $documented{$key}++;

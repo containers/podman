@@ -38,6 +38,7 @@ const (
 	VolumeGroup     = "Volume"
 	ImageGroup      = "Image"
 	BuildGroup      = "Build"
+	QuadletGroup    = "Quadlet"
 	XContainerGroup = "X-Container"
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
@@ -45,6 +46,7 @@ const (
 	XVolumeGroup    = "X-Volume"
 	XImageGroup     = "X-Image"
 	XBuildGroup     = "X-Build"
+	XQuadletGroup   = "X-Quadlet"
 )
 
 // Systemd Unit file keys
@@ -70,6 +72,7 @@ const (
 	KeyCopy                  = "Copy"
 	KeyCreds                 = "Creds"
 	KeyDecryptionKey         = "DecryptionKey"
+	KeyDefaultDependencies   = "DefaultDependencies"
 	KeyDevice                = "Device"
 	KeyDisableDNS            = "DisableDNS"
 	KeyDNS                   = "DNS"
@@ -414,6 +417,11 @@ var (
 		KeyUserNS:               true,
 		KeyVolume:               true,
 	}
+
+	// Supported keys in "Quadlet" group
+	supportedQuadletKeys = map[string]bool{
+		KeyDefaultDependencies: true,
+	}
 )
 
 func (u *UnitInfo) ServiceFileName() string {
@@ -439,14 +447,24 @@ func isPortRange(port string) bool {
 	return validPortRange.MatchString(port)
 }
 
-func checkForUnknownKeys(unit *parser.UnitFile, groupName string, supportedKeys map[string]bool) error {
+func checkForUnknownKeysInSpecificGroup(unit *parser.UnitFile, groupName string, supportedKeys map[string]bool) error {
 	keys := unit.ListKeys(groupName)
 	for _, key := range keys {
 		if !supportedKeys[key] {
 			return fmt.Errorf("unsupported key '%s' in group '%s' in %s", key, groupName, unit.Path)
 		}
 	}
+
 	return nil
+}
+
+func checkForUnknownKeys(unit *parser.UnitFile, groupName string, supportedKeys map[string]bool) error {
+	err := checkForUnknownKeysInSpecificGroup(unit, groupName, supportedKeys)
+	if err == nil {
+		return checkForUnknownKeysInSpecificGroup(unit, QuadletGroup, supportedQuadletKeys)
+	}
+
+	return err
 }
 
 func splitPorts(ports string) []string {
@@ -509,10 +527,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	// Add a dependency on network-online.target so the image pull does not happen
 	// before network is ready
 	// https://github.com/containers/podman/issues/21873
-	// Prepend the lines, so the user-provided values
-	// override the default ones.
-	service.PrependUnitLine(UnitGroup, "After", "network-online.target")
-	service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
+		service.PrependUnitLine(UnitGroup, "After", "network-online.target")
+		service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+	}
 
 	if container.Path != "" {
 		service.Add(UnitGroup, "SourcePath", container.Path)
@@ -524,6 +542,9 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	// Rename old Container group to x-Container so that systemd ignores it
 	service.RenameGroup(ContainerGroup, XContainerGroup)
+
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	// One image or rootfs must be specified for the container
 	image, _ := container.Lookup(ContainerGroup, KeyImage)
@@ -887,6 +908,9 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 	/* Rename old Network group to x-Network so that systemd ignores it */
 	service.RenameGroup(NetworkGroup, XNetworkGroup)
 
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
+
 	// Derive network name from unit name (with added prefix), or use user-provided name.
 	networkName, ok := network.Lookup(NetworkGroup, KeyNetworkName)
 	if !ok || len(networkName) == 0 {
@@ -993,6 +1017,9 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	/* Rename old Volume group to x-Volume so that systemd ignores it */
 	service.RenameGroup(VolumeGroup, XVolumeGroup)
+
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	// Derive volume name from unit name (with added prefix), or use user-provided name.
 	volumeName, ok := volume.Lookup(VolumeGroup, KeyVolumeName)
@@ -1132,6 +1159,9 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 	// Rename old Kube group to x-Kube so that systemd ignores it
 	service.RenameGroup(KubeGroup, XKubeGroup)
 
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
+
 	yamlPath, ok := kube.Lookup(KubeGroup, KeyYaml)
 	if !ok || len(yamlPath) == 0 {
 		return nil, fmt.Errorf("no Yaml key specified")
@@ -1264,10 +1294,10 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	// Add a dependency on network-online.target so the image pull does not happen
 	// before network is ready
 	// https://github.com/containers/podman/issues/21873
-	// Prepend the lines, so the user-provided values
-	// override the default ones.
-	service.PrependUnitLine(UnitGroup, "After", "network-online.target")
-	service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
+		service.PrependUnitLine(UnitGroup, "After", "network-online.target")
+		service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+	}
 
 	if image.Path != "" {
 		service.Add(UnitGroup, "SourcePath", image.Path)
@@ -1284,6 +1314,9 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 
 	/* Rename old Network group to x-Network so that systemd ignores it */
 	service.RenameGroup(ImageGroup, XImageGroup)
+
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
@@ -1349,13 +1382,16 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	// Add a dependency on network-online.target so the image pull does not happen
 	// before network is ready
 	// https://github.com/containers/podman/issues/21873
-	// Prepend the lines, so the user-provided values
-	// override the default ones.
-	service.PrependUnitLine(UnitGroup, "After", "network-online.target")
-	service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
+		service.PrependUnitLine(UnitGroup, "After", "network-online.target")
+		service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
+	}
 
 	/* Rename old Build group to X-Build so that systemd ignores it */
 	service.RenameGroup(BuildGroup, XBuildGroup)
+
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
@@ -1530,6 +1566,9 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	/* Rename old Pod group to x-Pod so that systemd ignores it */
 	service.RenameGroup(PodGroup, XPodGroup)
+
+	// Rename common quadlet group
+	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
