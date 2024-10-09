@@ -1097,7 +1097,7 @@ EOF
     local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
 
     local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
-    local image_for_test=$registry/quadlet_image_test:$(random_string)
+    local image_for_test=$registry/i-$(safename):$(random_string)
     local authfile=$PODMAN_TMPDIR/authfile.json
 
     local quadlet_image_unit=image_test_$(safename).image
@@ -1137,8 +1137,13 @@ EOF
         --password ${PODMAN_LOGIN_PASS} \
         $registry
 
-    # Push the test image to the registry
-    run_podman image tag $IMAGE $image_for_test
+    # Generate a test image and push it to the registry.
+    # For safety in parallel runs, test image must be isolated
+    # from $IMAGE. A simple add-tag will not work. (#23756)
+    tmpcname=c-tmp-$(safename)
+    run_podman run --name $tmpcname $IMAGE true
+    run_podman commit -q $tmpcname $image_for_test
+    run_podman rm $tmpcname
     run_podman image push --tls-verify=false --authfile=$authfile $image_for_test
 
     # Remove the local image to make sure it will be pulled again
@@ -1404,7 +1409,7 @@ EOF
 @test "quadlet - image tag" {
     local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
     local archive_file=$PODMAN_TMPDIR/archive-file.tar
-    local image_for_test=localhost/quadlet_image_test:$(random_string)
+    local image_for_test=localhost/i-$(safename):$(random_string)
 
     local quadlet_image_unit=image_test_$(safename).image
     local quadlet_image_file=$PODMAN_TMPDIR/$quadlet_image_unit
@@ -1432,8 +1437,13 @@ Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:
 Volume=$quadlet_volume_unit:/vol
 EOF
 
-    # Tag the image, save it into a file and remove it
-    run_podman image tag $IMAGE $image_for_test
+    # Generate a test image, save it into a file, and remove it.
+    # For safety in parallel runs, test image must be isolated
+    # from $IMAGE. A simple add-tag will not work. (#23756)
+    tmpcname=c-tmp-$(safename)
+    run_podman run --name $tmpcname $IMAGE true
+    run_podman commit -q $tmpcname $image_for_test
+    run_podman rm $tmpcname
     run_podman image save --format docker-archive --output $archive_file $image_for_test
     run_podman image rm $image_for_test
 
@@ -1484,8 +1494,8 @@ EOF
 
     # Shutdown the service and remove the image
     service_cleanup $container_service failed
-    run_podman image rm --ignore $image_for_test
     run_podman volume rm $volume_name
+    run_podman image rm --ignore $image_for_test
 }
 
 @test "quadlet - pod simple" {
