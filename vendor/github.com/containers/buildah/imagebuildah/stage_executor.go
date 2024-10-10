@@ -435,7 +435,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 				if err != nil {
 					return fmt.Errorf("unable to create tmp file for COPY instruction at %q: %w", parse.GetTempDir(), err)
 				}
-				err = tmpFile.Chmod(0o644) // 644 is consistent with buildkit
+				err = tmpFile.Chmod(0644) // 644 is consistent with buildkit
 				if err != nil {
 					tmpFile.Close()
 					return fmt.Errorf("unable to chmod tmp file created for COPY instruction at %q: %w", tmpFile.Name(), err)
@@ -572,13 +572,6 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 			IDMappingOptions:  idMappingOptions,
 			StripSetuidBit:    stripSetuid,
 			StripSetgidBit:    stripSetgid,
-			// The values for these next two fields are ultimately
-			// based on command line flags with names that sound
-			// much more generic.
-			CertPath:              s.executor.systemContext.DockerCertPath,
-			InsecureSkipTLSVerify: s.executor.systemContext.DockerInsecureSkipTLSVerify,
-			MaxRetries:            s.executor.maxPullPushRetries,
-			RetryDelay:            s.executor.retryPullPushDelay,
 		}
 		if len(copy.Files) > 0 {
 			// If we are copying heredoc files, we need to temporary place
@@ -603,8 +596,10 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 	return nil
 }
 
-// Returns a map of StageName/ImageName:internal.StageMountDetails for the
-// items in the passed-in mounts list which include a "from=" value.
+// Returns a map of StageName/ImageName:internal.StageMountDetails for RunOpts if any --mount with from is provided
+// Stage can automatically cleanup this mounts when a stage is removed
+// check if RUN contains `--mount` with `from`. If yes pre-mount images or stages from executor for Run.
+// stages mounted here will we used be Run().
 func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]internal.StageMountDetails, error) {
 	stageMountPoints := make(map[string]internal.StageMountDetails)
 	for _, flag := range mountList {
@@ -627,11 +622,9 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 					if fromErr != nil {
 						return nil, fmt.Errorf("unable to resolve argument %q: %w", val, fromErr)
 					}
-					// If the value corresponds to an additional build context,
-					// the mount source is either either the rootfs of the image,
-					// the filesystem path, or a temporary directory populated
-					// with the contents of the URL, all in preference to any
-					// stage which might have the value as its name.
+					// If additional buildContext contains this
+					// give priority to that and break if additional
+					// is not an external image.
 					if additionalBuildContext, ok := s.executor.additionalBuildContexts[from]; ok {
 						if additionalBuildContext.IsImage {
 							mountPoint, err := s.getImageRootfs(s.ctx, additionalBuildContext.Value)
@@ -644,38 +637,39 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 							//  `from` to refer from stageMountPoints map later.
 							stageMountPoints[from] = internal.StageMountDetails{IsStage: false, DidExecute: true, MountPoint: mountPoint}
 							break
-						}
-						// Most likely this points to path on filesystem
-						// or external tar archive, Treat it as a stage
-						// nothing is different for this. So process and
-						// point mountPoint to path on host and it will
-						// be automatically handled correctly by since
-						// GetBindMount will honor IsStage:false while
-						// processing stageMountPoints.
-						mountPoint := additionalBuildContext.Value
-						if additionalBuildContext.IsURL {
-							// Check if following buildContext was already
-							// downloaded before in any other RUN step. If not
-							// download it and populate DownloadCache field for
-							// future RUN steps.
-							if additionalBuildContext.DownloadedCache == "" {
-								// additional context contains a tar file
-								// so download and explode tar to buildah
-								// temp and point context to that.
-								path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
-								if err != nil {
-									return nil, fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
+						} else {
+							// Most likely this points to path on filesystem
+							// or external tar archive, Treat it as a stage
+							// nothing is different for this. So process and
+							// point mountPoint to path on host and it will
+							// be automatically handled correctly by since
+							// GetBindMount will honor IsStage:false while
+							// processing stageMountPoints.
+							mountPoint := additionalBuildContext.Value
+							if additionalBuildContext.IsURL {
+								// Check if following buildContext was already
+								// downloaded before in any other RUN step. If not
+								// download it and populate DownloadCache field for
+								// future RUN steps.
+								if additionalBuildContext.DownloadedCache == "" {
+									// additional context contains a tar file
+									// so download and explode tar to buildah
+									// temp and point context to that.
+									path, subdir, err := define.TempDirForURL(tmpdir.GetTempDir(), internal.BuildahExternalArtifactsDir, additionalBuildContext.Value)
+									if err != nil {
+										return nil, fmt.Errorf("unable to download context from external source %q: %w", additionalBuildContext.Value, err)
+									}
+									// point context dir to the extracted path
+									mountPoint = filepath.Join(path, subdir)
+									// populate cache for next RUN step
+									additionalBuildContext.DownloadedCache = mountPoint
+								} else {
+									mountPoint = additionalBuildContext.DownloadedCache
 								}
-								// point context dir to the extracted path
-								mountPoint = filepath.Join(path, subdir)
-								// populate cache for next RUN step
-								additionalBuildContext.DownloadedCache = mountPoint
-							} else {
-								mountPoint = additionalBuildContext.DownloadedCache
 							}
+							stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: true, MountPoint: mountPoint}
+							break
 						}
-						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: true, MountPoint: mountPoint}
-						break
 					}
 					// If the source's name corresponds to the
 					// result of an earlier stage, wait for that
@@ -683,13 +677,10 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 					if isStage, err := s.executor.waitForStage(s.ctx, from, s.stages[:s.index]); isStage && err != nil {
 						return nil, err
 					}
-					// If the source's name is a stage, return a
-					// pointer to its rootfs.
 					if otherStage, ok := s.executor.stages[from]; ok && otherStage.index < s.index {
 						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: otherStage.didExecute, MountPoint: otherStage.mountPoint}
 						break
 					} else {
-						// Treat the source's name as the name of an image.
 						mountPoint, err := s.getImageRootfs(s.ctx, from)
 						if err != nil {
 							return nil, fmt.Errorf("%s from=%s: no stage or image found with that name", flag, from)
@@ -717,7 +708,7 @@ func (s *StageExecutor) createNeededHeredocMountsForRun(files []imagebuilder.Fil
 			f.Close()
 			return nil, err
 		}
-		err = f.Chmod(0o755)
+		err = f.Chmod(0755)
 		if err != nil {
 			f.Close()
 			return nil, err
@@ -887,20 +878,20 @@ func (s *StageExecutor) UnrecognizedInstruction(step *imagebuilder.Step) error {
 	errStr := fmt.Sprintf("Build error: Unknown instruction: %q ", strings.ToUpper(step.Command))
 	err := fmt.Sprintf(errStr+"%#v", step)
 	if s.executor.ignoreUnrecognizedInstructions {
-		logrus.Debug(err)
+		logrus.Debugf(err)
 		return nil
 	}
 
 	switch logrus.GetLevel() {
 	case logrus.ErrorLevel:
-		s.executor.logger.Error(errStr)
+		s.executor.logger.Errorf(errStr)
 	case logrus.DebugLevel:
-		logrus.Debug(err)
+		logrus.Debugf(err)
 	default:
 		s.executor.logger.Errorf("+(UNHANDLED LOGLEVEL) %#v", step)
 	}
 
-	return errors.New(err)
+	return fmt.Errorf(err)
 }
 
 // prepare creates a working container based on the specified image, or if one
@@ -987,7 +978,6 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		MountLabel:            s.executor.mountLabel,
 		PreserveBaseImageAnns: preserveBaseImageAnnotations,
 		CDIConfigDir:          s.executor.cdiConfigDir,
-		CompatScratchConfig:   s.executor.compatScratchConfig,
 	}
 
 	builder, err = buildah.NewBuilder(ctx, s.executor.store, builderOptions)
@@ -1208,7 +1198,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		if output != "" {
 			commitMessage = fmt.Sprintf("%s %s", commitMessage, output)
 		}
-		logrus.Debug(commitMessage)
+		logrus.Debugf(commitMessage)
 		if !s.executor.quiet {
 			s.log(commitMessage)
 		}
@@ -1360,13 +1350,14 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 						// since this additional context
 						// is not an image.
 						break
+					} else {
+						// replace with image set in build context
+						from = additionalBuildContext.Value
+						if _, err := s.getImageRootfs(ctx, from); err != nil {
+							return "", nil, false, fmt.Errorf("%s --from=%s: no stage or image found with that name", command, from)
+						}
+						break
 					}
-					// replace with image set in build context
-					from = additionalBuildContext.Value
-					if _, err := s.getImageRootfs(ctx, from); err != nil {
-						return "", nil, false, fmt.Errorf("%s --from=%s: no stage or image found with that name", command, from)
-					}
-					break
 				}
 
 				// If the source's name corresponds to the
@@ -1415,29 +1406,30 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				}
 				s.builder.AddPrependedEmptyLayer(&timestamp, s.getCreatedBy(node, addedContentSummary), "", "")
 				continue
-			}
-			// This is the last instruction for this stage,
-			// so we should commit this container to create
-			// an image, but only if it's the last stage,
-			// or if it's used as the basis for a later
-			// stage.
-			if lastStage || imageIsUsedLater {
-				logCommit(s.output, i)
-				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output, s.executor.squash, lastStage && lastInstruction)
-				if err != nil {
-					return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
-				}
-				logImageID(imgID)
-				// Generate build output if needed.
-				if canGenerateBuildOutput {
-					if err := s.generateBuildOutput(buildOutputOption); err != nil {
-						return "", nil, false, err
-					}
-				}
 			} else {
-				imgID = ""
+				// This is the last instruction for this stage,
+				// so we should commit this container to create
+				// an image, but only if it's the last stage,
+				// or if it's used as the basis for a later
+				// stage.
+				if lastStage || imageIsUsedLater {
+					logCommit(s.output, i)
+					imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output, s.executor.squash, lastStage && lastInstruction)
+					if err != nil {
+						return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
+					}
+					logImageID(imgID)
+					// Generate build output if needed.
+					if canGenerateBuildOutput {
+						if err := s.generateBuildOutput(buildOutputOption); err != nil {
+							return "", nil, false, err
+						}
+					}
+				} else {
+					imgID = ""
+				}
+				break
 			}
-			break
 		}
 
 		// We're in a multi-layered build.
@@ -2114,7 +2106,7 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (referen
 		if err != nil {
 			logrus.Debugf("failed pulling cache from source %s: %v", src, err)
 			continue // failed pulling this one try next
-			// return "", fmt.Errorf("failed while pulling cache from %q: %w", src, err)
+			//return "", fmt.Errorf("failed while pulling cache from %q: %w", src, err)
 		}
 		logrus.Debugf("successfully pulled cache from repo %s: %s", src, id)
 		return src.DockerReference(), id, nil

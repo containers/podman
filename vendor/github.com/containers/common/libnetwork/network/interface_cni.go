@@ -1,4 +1,6 @@
 //go:build (linux || freebsd) && cni
+// +build linux freebsd
+// +build cni
 
 package network
 

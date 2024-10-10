@@ -1,4 +1,5 @@
 //go:build freebsd
+// +build freebsd
 
 package buildah
 
@@ -45,14 +46,16 @@ const (
 	PROC_REAP_RELEASE = 3
 )
 
-// We dont want to remove destinations with /etc, /dev as
-// rootfs already contains these files and unionfs will create
-// a `whiteout` i.e `.wh` files on removal of overlapping
-// files from these directories.  everything other than these
-// will be cleaned up
-var nonCleanablePrefixes = []string{
-	"/etc", "/dev",
-}
+var (
+	// We dont want to remove destinations with /etc, /dev as
+	// rootfs already contains these files and unionfs will create
+	// a `whiteout` i.e `.wh` files on removal of overlapping
+	// files from these directories.  everything other than these
+	// will be cleaned up
+	nonCleanablePrefixes = []string{
+		"/etc", "/dev",
+	}
+)
 
 func procctl(idtype int, id int, cmd int, arg *byte) error {
 	_, _, e1 := unix.Syscall6(
@@ -182,7 +185,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	uid, gid := spec.Process.User.UID, spec.Process.User.GID
 	idPair := &idtools.IDPair{UID: int(uid), GID: int(gid)}
 
-	mode := os.FileMode(0o755)
+	mode := os.FileMode(0755)
 	coptions := copier.MkdirOptions{
 		ChownNew: idPair,
 		ChmodNew: &mode,
@@ -223,7 +226,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 					})
 				}
 			}
-			err = b.addHostsEntries(hostsFile, mountPoint, entries, nil, "")
+			err = b.addHostsEntries(hostsFile, mountPoint, entries, nil)
 			if err != nil {
 				return err
 			}
@@ -241,7 +244,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		// Only add entries here if we do not have to do setup network,
 		// if we do we have to do it much later after the network setup.
 		if !configureNetwork {
-			err = b.addResolvConfEntries(resolvFile, nil, spec, false, true)
+			err = b.addResolvConfEntries(resolvFile, nil, nil, false, true)
 			if err != nil {
 				return err
 			}
@@ -533,7 +536,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 	namespaceOptions.AddOrReplace(options.NamespaceOptions...)
 
 	networkPolicy := options.ConfigureNetwork
-	// Nothing was specified explicitly so network policy should be inherited from builder
+	//Nothing was specified explicitly so network policy should be inherited from builder
 	if networkPolicy == NetworkDefault {
 		networkPolicy = b.ConfigureNetwork
 

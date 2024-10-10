@@ -1,4 +1,5 @@
 //go:build seccomp && linux
+// +build seccomp,linux
 
 package buildah
 
