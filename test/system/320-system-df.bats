@@ -45,9 +45,9 @@ function setup_file() {
     local results="$output"
 
     # FIXME! This needs to be fiddled with every time we bump testimage.
-    local size=11
+    local size=12
     if [[ "$(uname -m)" = "aarch64" ]]; then
-        size=13
+        size=14
     fi
 
     # FIXME: we can't check exact RawSize or Size because every CI system

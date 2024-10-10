@@ -174,10 +174,14 @@ function pasta_test_do() {
     fi
 
     # socat options for second <address> in server ("STDOUT" or "EXEC"),
+    local recvhelper=
     if [ "${bytes}" = "1" ]; then
         recv="STDOUT"
     else
-        recv="EXEC:md5sum"
+        # To ease debugging in case of problems, use a helper that
+        # gives us byte count, hash, and first/last few bytes
+        recvhelper=/home/podman/bytecheck
+        recv="EXEC:$recvhelper"
     fi
 
     # and port forwarding configuration for Podman and pasta.
@@ -202,7 +206,8 @@ function pasta_test_do() {
     # Fill in file for data transfer tests, and expected output strings
     if [ "${bytes}" != "1" ]; then
         dd if=/dev/urandom bs=${bytes} count=1 of="${XFER_FILE}"
-        local expect="$(cat "${XFER_FILE}" | md5sum)"
+        run_podman run -i --rm $IMAGE $recvhelper < ${XFER_FILE}
+        local expect="$output"
     else
         printf "x" > "${XFER_FILE}"
         local expect="$(for i in $(seq ${seq}); do printf "x"; done)"
