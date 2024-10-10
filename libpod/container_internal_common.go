@@ -671,18 +671,18 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, err
 		}
 	}
-	if isRootless {
-		for _, rlimit := range c.config.Spec.Process.Rlimits {
-			if rlimit.Type == "RLIMIT_NOFILE" {
-				nofileSet = true
-			}
-			if rlimit.Type == "RLIMIT_NPROC" {
-				nprocSet = true
-			}
+	for _, rlimit := range c.config.Spec.Process.Rlimits {
+		if rlimit.Type == "RLIMIT_NOFILE" {
+			nofileSet = true
 		}
-		if !nofileSet {
-			max := rlimT(define.RLimitDefaultValue)
-			current := rlimT(define.RLimitDefaultValue)
+		if rlimit.Type == "RLIMIT_NPROC" {
+			nprocSet = true
+		}
+	}
+	if !nofileSet {
+		max := rlimT(define.RLimitDefaultValue)
+		current := rlimT(define.RLimitDefaultValue)
+		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
 				logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
@@ -693,11 +693,13 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			if rlimT(rlimit.Max) < max {
 				max = rlimT(rlimit.Max)
 			}
-			g.AddProcessRlimits("RLIMIT_NOFILE", uint64(max), uint64(current))
 		}
-		if !nprocSet {
-			max := rlimT(define.RLimitDefaultValue)
-			current := rlimT(define.RLimitDefaultValue)
+		g.AddProcessRlimits("RLIMIT_NOFILE", uint64(max), uint64(current))
+	}
+	if !nprocSet {
+		max := rlimT(define.RLimitDefaultValue)
+		current := rlimT(define.RLimitDefaultValue)
+		if isRootless {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
 				logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
@@ -708,8 +710,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			if rlimT(rlimit.Max) < max {
 				max = rlimT(rlimit.Max)
 			}
-			g.AddProcessRlimits("RLIMIT_NPROC", uint64(max), uint64(current))
 		}
+		g.AddProcessRlimits("RLIMIT_NPROC", uint64(max), uint64(current))
 	}
 
 	c.addMaskedPaths(&g)
