@@ -346,10 +346,11 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("HST"))
 
 		// verify flag still overrides
-		session = podmanTest.Podman([]string{"run", "--tz", "EST", ALPINE, "date", "+'%H %Z'"})
+		// Arizona does not observe DST so this command is safe at all times of the year
+		session = podmanTest.Podman([]string{"run", "--tz", "America/Phoenix", ALPINE, "date", "+'%H %Z'"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("EST"))
+		Expect(session.OutputToString()).To(ContainSubstring("MST"))
 	})
 
 	It("add umask", func() {

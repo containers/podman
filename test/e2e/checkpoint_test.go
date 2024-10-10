@@ -967,6 +967,7 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with --pre-checkpoint", func() {
+		SkipIfContainerized("FIXME: #24230 - no longer works in container testing")
 		if !criu.MemTrack() {
 			Skip("system (architecture/kernel/CRIU) does not support memory tracking")
 		}
@@ -999,6 +1000,7 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with --pre-checkpoint and export (migration)", func() {
+		SkipIfContainerized("FIXME: #24230 - no longer works in container testing")
 		SkipIfRemote("--import-previous is not yet supported on the remote client")
 		if !criu.MemTrack() {
 			Skip("system (architecture/kernel/CRIU) does not support memory tracking")

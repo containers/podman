@@ -518,9 +518,9 @@ json-file | f
     is "$output" "Sun Sep 13 12:26:40 UTC 2020" "podman run with no TZ"
 
     # Multiple --tz options; confirm that the last one wins
-    run_podman run --rm --tz=US/Eastern --tz=Iceland --tz=MST7MDT \
+    run_podman run --rm --tz=US/Eastern --tz=Iceland --tz=America/New_York \
                $IMAGE date -r $testfile
-    is "$output" "Sun Sep 13 06:26:40 MDT 2020" "podman run with --tz=MST7MDT"
+    is "$output" "Sun Sep 13 08:26:40 EDT 2020" "podman run with --tz=America/New_York"
 
     # --tz=local pays attention to /etc/localtime, not $TZ. We set TZ anyway,
     # to make sure podman ignores it; and, because this test is locale-
