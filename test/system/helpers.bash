@@ -456,13 +456,17 @@ function clean_setup() {
     # Load (create, actually) the pause image. This way, all pod tests will
     # have it available. Without this, pod tests run in parallel will leave
     # behind <none>:<none> images.
-    # FIXME: we have to do this always, because there's no way (in bats 1.11)
-    #        to tell if we're running in parallel. See bats-core#998
+    # FIXME: only do this when running parallel! Otherwise, we may break
+    #        test expectations.
+    #        SUB-FIXME: there's no actual way to tell if we're running bats
+    #                   in parallel (see bats-core#998). Use undocumented hack.
     # FIXME: #23292 -- this should not be necessary.
-    run_podman pod create mypod
-    run_podman pod rm mypod
-    # And now, we have a pause image, and each test does not
-    # need to build their own.
+    if [[ -n "$BATS_SEMAPHORE_DIR" ]]; then
+        run_podman pod create mypod
+        run_podman pod rm mypod
+        # And now, we have a pause image, and each test does not
+        # need to build their own.
+    fi
 }
 
 # END   setup/teardown tools
