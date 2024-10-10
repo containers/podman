@@ -416,21 +416,30 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 }
 
 func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
+	opts := entities.ImageScpBaseOptions{}
+	opts.ParentFlags = parentFlags
+	opts.Quiet = quiet
+	opts.SSHMode = sshMode
+	_, err := ir.ScpWithOpts(ctx, src, dst, opts)
+	return err
+}
+
+func (ir *ImageEngine) ScpWithOpts(ctx context.Context, src, dst string, opts entities.ImageScpBaseOptions) (*entities.ImageScpReport, error) {
 	options := new(images.ScpOptions)
 
 	var destination *string
 	if len(dst) > 1 {
 		destination = &dst
 	}
-	options.Quiet = &quiet
+	options.Quiet = &opts.Quiet
 	options.Destination = destination
 
 	rep, err := images.Scp(ir.ClientCtx, &src, destination, *options)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	fmt.Println("Loaded Image(s):", rep.Id)
 
-	return nil
+	return &entities.ImageScpReport{}, nil
 }

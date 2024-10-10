@@ -773,20 +773,29 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 }
 
 func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
-	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet, sshMode)
-	if err != nil {
-		return err
-	}
-	if (rep == nil && err == nil) && (source != nil && dest != nil) { // we need to execute the transfer
-		err := Transfer(ctx, *source, *dest, flags)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	opts := entities.ImageScpBaseOptions{}
+	opts.ParentFlags = parentFlags
+	opts.Quiet = quiet
+	opts.SSHMode = sshMode
+	_, err := ir.ScpWithOpts(ctx, src, dst, opts)
+	return err
 }
 
-func Transfer(ctx context.Context, source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string) error {
+func (ir *ImageEngine) ScpWithOpts(ctx context.Context, src, dst string, opts entities.ImageScpBaseOptions) (*entities.ImageScpReport, error) {
+	report, err := domainUtils.ExecuteTransferWithOpts(src, dst, opts.ScpExecuteTransferOptions)
+	if err != nil {
+		return nil, err
+	}
+	if (report.LoadReport == nil && err == nil) && (report.Source != nil && report.Dest != nil) { // we need to execute the transfer
+		err := Transfer(ctx, *report.Source, *report.Dest, report.ParentFlags)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &entities.ImageScpReport{}, nil
+}
+
+func Transfer(ctx context.Context, source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, parentFlags []string) error {
 	if source.User == "" {
 		return fmt.Errorf("you must define a user when transferring from root to rootless storage: %w", define.ErrInvalidArg)
 	}
@@ -801,7 +810,7 @@ func Transfer(ctx context.Context, source entities.ImageScpOptions, dest entitie
 }
 
 // TransferRootless creates new podman processes using exec.Command and sudo, transferring images between the given source and destination users
-func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
+func transferRootless(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, podman string, parentFlags []string) error {
 	var cmdSave *exec.Cmd
 	saveCommand, loadCommand := parentFlags, parentFlags
 	saveCommand = append(saveCommand, []string{"save"}...)
@@ -842,7 +851,7 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 }
 
 // transferRootful creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
-func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
+func transferRootful(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, podman string, parentFlags []string) error {
 	basicCommand := make([]string, 0, len(parentFlags)+1)
 	basicCommand = append(basicCommand, podman)
 	basicCommand = append(basicCommand, parentFlags...)
