@@ -4,22 +4,16 @@ import (
 	"fmt"
 	"os"
 	"syscall"
-
-	"github.com/containers/podman/v5/libpod/define"
 )
 
 func setRLimits() error {
 	rlimits := new(syscall.Rlimit)
-	rlimits.Cur = define.RLimitDefaultValue
-	rlimits.Max = define.RLimitDefaultValue
+	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
+		return fmt.Errorf("getting rlimits: %w", err)
+	}
+	rlimits.Cur = rlimits.Max
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-		if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return fmt.Errorf("getting rlimits: %w", err)
-		}
-		rlimits.Cur = rlimits.Max
-		if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, rlimits); err != nil {
-			return fmt.Errorf("setting new rlimits: %w", err)
-		}
+		return fmt.Errorf("setting new rlimits: %w", err)
 	}
 	return nil
 }
