@@ -23,7 +23,7 @@ func systemdCreate(resources *configs.Resources, path string, c *systemdDbus.Con
 	slice = strings.TrimSuffix(slice, "/")
 
 	var lastError error
-	for i := range 2 {
+	for i := 0; i < 2; i++ {
 		properties := []systemdDbus.Property{
 			systemdDbus.PropDescription("cgroup " + name),
 			systemdDbus.PropWants(slice),

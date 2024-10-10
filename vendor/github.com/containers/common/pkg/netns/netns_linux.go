@@ -75,7 +75,7 @@ func NewNS() (ns.NetNS, error) {
 		return nil, err
 	}
 
-	for range 10000 {
+	for i := 0; i < 10000; i++ {
 		nsName, err := getRandomNetnsName()
 		if err != nil {
 			return nil, err
@@ -108,7 +108,7 @@ func NewNSFrom(fromNetns string) (string, error) {
 		return "", err
 	}
 
-	for range 10000 {
+	for i := 0; i < 10000; i++ {
 		nsName, err := getRandomNetnsName()
 		if err != nil {
 			return "", err

@@ -63,6 +63,8 @@ github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDk
 github.com/cncf/udpa/go v0.0.0-20191209042840-269d4d468f6f/go.mod h1:M8M6+tZqaGXZJjfX53e64911xZQV5JYwmTeXPW+k8Sc=
 github.com/containerd/cgroups/v3 v3.0.3 h1:S5ByHZ/h9PMe5IOQoN7E+nMc2UcLEM/V48DGDJ9kip0=
 github.com/containerd/cgroups/v3 v3.0.3/go.mod h1:8HBe7V3aWGLFPd/k03swSIsGjZhHI2WzJmticMgVuz0=
+github.com/containerd/containerd v1.7.21 h1:USGXRK1eOC/SX0L195YgxTHb0a00anxajOzgfN0qrCA=
+github.com/containerd/containerd v1.7.21/go.mod h1:e3Jz1rYRUZ2Lt51YrH9Rz0zPyJBOlSvB3ghr2jbVD8g=
 github.com/containerd/errdefs v0.1.0 h1:m0wCRBiu1WJT/Fr+iOoQHMQS/eP5myQ8lCv4Dz5ZURM=
 github.com/containerd/errdefs v0.1.0/go.mod h1:YgWiiHtLmSeBrvpw+UfPijzbLaB77mEG1WwJTDETIV0=
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
@@ -79,8 +81,8 @@ github.com/containernetworking/plugins v1.5.1 h1:T5ji+LPYjjgW0QM+KyrigZbLsZ8jaX+
 github.com/containernetworking/plugins v1.5.1/go.mod h1:MIQfgMayGuHYs0XdNudf31cLLAC+i242hNm6KuDGqCM=
 github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed h1:qiE4J6RukT5+a2wV+Xeimu0c4Xx6DZrdt8JiP3c9CY8=
 github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed/go.mod h1:ytj7qYHUdP/p+2lAXVaFSHDyYFJZ3y1ikpFERypXbCI=
-github.com/containers/common v0.60.1-0.20241001171026-c3edf18f3339 h1:VjK9wBKZTbmZqZ0qW2QlbW81xOu8YxXecek5MUSLGKc=
-github.com/containers/common v0.60.1-0.20241001171026-c3edf18f3339/go.mod h1:vuBEtzP83Fa7mgk0BJdHF2BDfFRfNayeYyVHRJw8hSM=
+github.com/containers/common v0.60.3 h1:pToT7gtFx/KWyMtWw98g4pIbW54i9KfGH2QrdN2s1io=
+github.com/containers/common v0.60.3/go.mod h1:I0upBi1qJX3QmzGbUOBN1LVP6RvkKhd3qQpZbQT+Q54=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.5 h1:bTy4u3DOmmUPwurL6me2rsgfypAFDhyeJleUcQmBR/E=
@@ -110,8 +112,8 @@ github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1
 github.com/coreos/stream-metadata-go v0.4.4 h1:PM/6iNhofKGydsatiY1zdnMMHBT34skb5P7nfEFR4GU=
 github.com/coreos/stream-metadata-go v0.4.4/go.mod h1:fMObQqQm8Ku91G04btKzEH3AsdP1mrAb986z9aaK0tE=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
-github.com/crc-org/crc/v2 v2.38.0 h1:8QcoH4hYksfKUQOLXHZw4jIY1aNS162WraZR4mzQzC8=
-github.com/crc-org/crc/v2 v2.38.0/go.mod h1:HPY6grOaExM4Bhmd3T4RSkP0eizWsb8wSgoSwNsV5+k=
+github.com/crc-org/crc/v2 v2.42.0 h1:9GpIttMaBq6ezN/m4sBMW92OU9wu/g4rv1JAp782yyE=
+github.com/crc-org/crc/v2 v2.42.0/go.mod h1:Hp+y5Oa4S/qAesCotV/AXHEYHya0fyrrKYvEX6EmQZ4=
 github.com/crc-org/vfkit v0.5.1 h1:r1zNf1g1bLbgu5BgIQodirvYaIGWJQ91eS/PIgNO6lo=
 github.com/crc-org/vfkit v0.5.1/go.mod h1:Hqi20zQcqXMk6JqvByvOidHYv+KzPx3G+cjkdGSWv60=
 github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=

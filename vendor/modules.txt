@@ -107,6 +107,9 @@ github.com/chzyer/readline
 # github.com/containerd/cgroups/v3 v3.0.3
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
+# github.com/containerd/containerd v1.7.21
+## explicit; go 1.21
+github.com/containerd/containerd/platforms
 # github.com/containerd/errdefs v0.1.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -169,8 +172,8 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20241001171026-c3edf18f3339
-## explicit; go 1.22.0
+# github.com/containers/common v0.60.3
+## explicit; go 1.21.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -424,8 +427,8 @@ github.com/coreos/stream-metadata-go/fedoracoreos
 github.com/coreos/stream-metadata-go/fedoracoreos/internals
 github.com/coreos/stream-metadata-go/stream
 github.com/coreos/stream-metadata-go/stream/rhcos
-# github.com/crc-org/crc/v2 v2.38.0
-## explicit; go 1.21
+# github.com/crc-org/crc/v2 v2.42.0
+## explicit; go 1.22.0
 github.com/crc-org/crc/v2/pkg/crc/logging
 github.com/crc-org/crc/v2/pkg/os
 # github.com/crc-org/vfkit v0.5.1

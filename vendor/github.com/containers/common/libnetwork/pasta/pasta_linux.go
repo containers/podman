@@ -26,16 +26,11 @@ import (
 )
 
 const (
-	dnsForwardOpt   = "--dns-forward"
-	mapGuestAddrOpt = "--map-guest-addr"
+	dnsForwardOpt = "--dns-forward"
 
 	// dnsForwardIpv4 static ip used as nameserver address inside the netns,
 	// given this is a "link local" ip it should be very unlikely that it causes conflicts
-	dnsForwardIpv4 = "169.254.1.1"
-
-	// mapGuestAddrIpv4 static ip used as forwarder address inside the netns to reach the host,
-	// given this is a "link local" ip it should be very unlikely that it causes conflicts
-	mapGuestAddrIpv4 = "169.254.1.2"
+	dnsForwardIpv4 = "169.254.0.1"
 )
 
 type SetupOptions struct {
@@ -50,61 +45,45 @@ type SetupOptions struct {
 	ExtraOptions []string
 }
 
-// Setup2 alias for Setup()
-func Setup2(opts *SetupOptions) (*SetupResult, error) {
-	return Setup(opts)
+func Setup(opts *SetupOptions) error {
+	_, err := Setup2(opts)
+	return err
 }
 
-// Setup start the pasta process for the given netns.
+// Setup2 start the pasta process for the given netns.
 // The pasta binary is looked up in the HelperBinariesDir and $PATH.
 // Note that there is no need for any special cleanup logic, the pasta
 // process will automatically exit when the netns path is deleted.
-func Setup(opts *SetupOptions) (*SetupResult, error) {
+func Setup2(opts *SetupOptions) (*SetupResult, error) {
 	path, err := opts.Config.FindHelperBinary(BinaryName, true)
 	if err != nil {
 		return nil, fmt.Errorf("could not find pasta, the network namespace can't be configured: %w", err)
 	}
 
-	cmdArgs, dnsForwardIPs, mapGuestAddrIPs, err := createPastaArgs(opts)
+	cmdArgs, dnsForwardIPs, err := createPastaArgs(opts)
 	if err != nil {
 		return nil, err
 	}
 
 	logrus.Debugf("pasta arguments: %s", strings.Join(cmdArgs, " "))
 
-	for {
-		// pasta forks once ready, and quits once we delete the target namespace
-		out, err := exec.Command(path, cmdArgs...).CombinedOutput()
-		if err != nil {
-			exitErr := &exec.ExitError{}
-			if errors.As(err, &exitErr) {
-				// special backwards compat check, --map-guest-addr was added in pasta version 20240814 so we
-				// cannot hard require it yet. Once we are confident that the update is most distros we can remove it.
-				if exitErr.ExitCode() == 1 &&
-					strings.Contains(string(out), "unrecognized option '"+mapGuestAddrOpt) &&
-					len(mapGuestAddrIPs) == 1 && mapGuestAddrIPs[0] == mapGuestAddrIpv4 {
-					// we did add the default --map-guest-addr option, if users set something different we want
-					// to get to the error below. We have to unset mapGuestAddrIPs here to avoid a infinite loop.
-					mapGuestAddrIPs = nil
-					// Trim off last two args which are --map-guest-addr 169.254.1.2.
-					cmdArgs = cmdArgs[:len(cmdArgs)-2]
-					continue
-				}
-				return nil, fmt.Errorf("pasta failed with exit code %d:\n%s",
-					exitErr.ExitCode(), string(out))
-			}
-			return nil, fmt.Errorf("failed to start pasta: %w", err)
+	// pasta forks once ready, and quits once we delete the target namespace
+	out, err := exec.Command(path, cmdArgs...).CombinedOutput()
+	if err != nil {
+		exitErr := &exec.ExitError{}
+		if errors.As(err, &exitErr) {
+			return nil, fmt.Errorf("pasta failed with exit code %d:\n%s",
+				exitErr.ExitCode(), string(out))
 		}
+		return nil, fmt.Errorf("failed to start pasta: %w", err)
+	}
 
-		if len(out) > 0 {
-			// TODO: This should be warning but as of August 2024 pasta still prints
-			// things with --quiet that we do not care about. In podman CI I still see
-			// "Couldn't get any nameserver address" so until this is fixed we cannot
-			// enable it. For now info is fine and we can bump it up later, it is only a
-			// nice to have.
-			logrus.Infof("pasta logged warnings: %q", strings.TrimSpace(string(out)))
-		}
-		break
+	if len(out) > 0 {
+		// TODO: This should be warning but right now pasta still prints
+		// things with --quiet that we do not care about.
+		// For now info is fine and we can bump it up later, it is only a
+		// nice to have.
+		logrus.Infof("pasta logged warnings: %q", string(out))
 	}
 
 	var ipv4, ipv6 bool
@@ -133,27 +112,19 @@ func Setup(opts *SetupOptions) (*SetupResult, error) {
 	}
 
 	result.IPv6 = ipv6
-	result.DNSForwardIPs = filterIpFamily(dnsForwardIPs, ipv4, ipv6)
-	result.MapGuestAddrIPs = filterIpFamily(mapGuestAddrIPs, ipv4, ipv6)
+	for _, ip := range dnsForwardIPs {
+		ipp := net.ParseIP(ip)
+		// add the namesever ip only if the address family matches
+		if ipv4 && util.IsIPv4(ipp) || ipv6 && util.IsIPv6(ipp) {
+			result.DNSForwardIPs = append(result.DNSForwardIPs, ip)
+		}
+	}
 
 	return result, nil
 }
 
-func filterIpFamily(ips []string, ipv4, ipv6 bool) []string {
-	var result []string
-	for _, ip := range ips {
-		ipp := net.ParseIP(ip)
-		// add the ip only if the address family matches
-		if ipv4 && util.IsIPv4(ipp) || ipv6 && util.IsIPv6(ipp) {
-			result = append(result, ip)
-		}
-	}
-	return result
-}
-
-// createPastaArgs creates the pasta arguments, it returns the args to be passed to pasta(1)
-// and as second arg the dns forward ips used. As third arg the map guest addr ips used.
-func createPastaArgs(opts *SetupOptions) ([]string, []string, []string, error) {
+// createPastaArgs creates the pasta arguments, it returns the args to be passed to pasta(1) and as second arg the dns forward ips used.
+func createPastaArgs(opts *SetupOptions) ([]string, []string, error) {
 	noTCPInitPorts := true
 	noUDPInitPorts := true
 	noTCPNamespacePorts := true
@@ -178,7 +149,6 @@ func createPastaArgs(opts *SetupOptions) ([]string, []string, []string, error) {
 	})
 
 	var dnsForwardIPs []string
-	var mapGuestAddrIPs []string
 	for i, opt := range cmdArgs {
 		switch opt {
 		case "-t", "--tcp-ports":
@@ -195,10 +165,6 @@ func createPastaArgs(opts *SetupOptions) ([]string, []string, []string, error) {
 			// if there is no arg after it pasta will likely error out anyway due invalid cli args
 			if len(cmdArgs) > i+1 {
 				dnsForwardIPs = append(dnsForwardIPs, cmdArgs[i+1])
-			}
-		case mapGuestAddrOpt:
-			if len(cmdArgs) > i+1 {
-				mapGuestAddrIPs = append(mapGuestAddrIPs, cmdArgs[i+1])
 			}
 		}
 	}
@@ -220,7 +186,7 @@ func createPastaArgs(opts *SetupOptions) ([]string, []string, []string, error) {
 				noUDPInitPorts = false
 				cmdArgs = append(cmdArgs, "-u")
 			default:
-				return nil, nil, nil, fmt.Errorf("can't forward protocol: %s", protocol)
+				return nil, nil, fmt.Errorf("can't forward protocol: %s", protocol)
 			}
 
 			arg := fmt.Sprintf("%s%d-%d:%d-%d", addr,
@@ -260,13 +226,5 @@ func createPastaArgs(opts *SetupOptions) ([]string, []string, []string, error) {
 
 	cmdArgs = append(cmdArgs, "--netns", opts.Netns)
 
-	// do this as last arg so we can easily trim them off in the error case when we have an older version
-	if len(mapGuestAddrIPs) == 0 {
-		// the user did not request custom --map-guest-addr so add our own so that we can use this
-		// for our own host.containers.internal host entry.
-		cmdArgs = append(cmdArgs, mapGuestAddrOpt, mapGuestAddrIpv4)
-		mapGuestAddrIPs = append(mapGuestAddrIPs, mapGuestAddrIpv4)
-	}
-
-	return cmdArgs, dnsForwardIPs, mapGuestAddrIPs, nil
+	return cmdArgs, dnsForwardIPs, nil
 }
