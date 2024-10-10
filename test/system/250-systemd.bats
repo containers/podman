@@ -372,6 +372,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman exec $cname touch /uh-oh
 
     # healthcheck should now fail, with exit status 1 and 'unhealthy' output
+    # FIXME: race: on high load, we can get "Error: no container with ID xxxx"
     run_podman 1 healthcheck run $cname
     is "$output" "unhealthy" "output from 'podman healthcheck run'"
 

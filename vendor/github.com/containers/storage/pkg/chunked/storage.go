@@ -23,3 +23,22 @@ type ErrBadRequest struct { //nolint: errname
 func (e ErrBadRequest) Error() string {
 	return "bad request"
 }
+
+// ErrFallbackToOrdinaryLayerDownload is a custom error type that
+// suggests to the caller that a fallback mechanism can be used
+// instead of a hard failure.
+type ErrFallbackToOrdinaryLayerDownload struct {
+	Err error
+}
+
+func (c ErrFallbackToOrdinaryLayerDownload) Error() string {
+	return c.Err.Error()
+}
+
+func (c ErrFallbackToOrdinaryLayerDownload) Unwrap() error {
+	return c.Err
+}
+
+func newErrFallbackToOrdinaryLayerDownload(err error) error {
+	return ErrFallbackToOrdinaryLayerDownload{Err: err}
+}

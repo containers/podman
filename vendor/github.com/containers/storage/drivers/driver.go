@@ -189,7 +189,7 @@ type Driver interface {
 type DriverWithDifferOutput struct {
 	Differ             Differ
 	Target             string
-	Size               int64
+	Size               int64 // Size of the uncompressed layer, -1 if unknown. Must be known if UncompressedDigest is set.
 	UIDs               []uint32
 	GIDs               []uint32
 	UncompressedDigest digest.Digest

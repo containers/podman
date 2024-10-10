@@ -1,5 +1,4 @@
 //go:build !linux
-// +build !linux
 
 package vfs // import "github.com/containers/storage/drivers/vfs"
 

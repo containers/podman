@@ -2,6 +2,7 @@ package chunked
 
 import (
 	archivetar "archive/tar"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,8 @@ import (
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/archive/tar"
+	"github.com/vbatts/tar-split/tar/asm"
+	"github.com/vbatts/tar-split/tar/storage"
 	expMaps "golang.org/x/exp/maps"
 )
 
@@ -256,7 +259,8 @@ func ensureTOCMatchesTarSplit(toc *internal.TOC, tarSplit []byte) error {
 		}
 	}
 
-	if err := iterateTarSplit(tarSplit, func(hdr *tar.Header) error {
+	unpacker := storage.NewJSONUnpacker(bytes.NewReader(tarSplit))
+	if err := asm.IterateHeaders(unpacker, func(hdr *tar.Header) error {
 		e, ok := pendingFiles[hdr.Name]
 		if !ok {
 			return fmt.Errorf("tar-split contains an entry for %q missing in TOC", hdr.Name)

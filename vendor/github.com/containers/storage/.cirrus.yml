@@ -167,12 +167,18 @@ vendor_task:
     build_script: make vendor
     test_script: hack/tree_status.sh
 
-
 cross_task:
     alias: cross
     container:
         image: golang:1.22
     build_script: make cross
+
+gofix_task:
+    alias: gofix
+    container:
+        image: golang:1.22
+    build_script: go fix ./...
+    test_script: git diff --exit-code
 
 
 # Status aggregator for all tests.  This task simply ensures a defined
@@ -190,6 +196,7 @@ success_task:
         - meta
         - vendor
         - cross
+        - gofix
     container:
         image: golang:1.21
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed

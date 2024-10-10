@@ -128,9 +128,8 @@ func GetROLockfile(path string) (Locker, error) {
 func (l *LockFile) Lock() {
 	if l.ro {
 		panic("can't take write lock on read-only lock file")
-	} else {
-		l.lock(writeLock)
 	}
+	l.lock(writeLock)
 }
 
 // RLock locks the lockfile as a reader.
@@ -142,9 +141,8 @@ func (l *LockFile) RLock() {
 func (l *LockFile) TryLock() error {
 	if l.ro {
 		panic("can't take write lock on read-only lock file")
-	} else {
-		return l.tryLock(writeLock)
 	}
+	return l.tryLock(writeLock)
 }
 
 // TryRLock attempts to lock the lockfile as a reader.

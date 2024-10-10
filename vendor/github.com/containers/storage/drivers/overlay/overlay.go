@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 package overlay
 
@@ -127,6 +126,7 @@ type Driver struct {
 	naiveDiff        graphdriver.DiffDriver
 	supportsDType    bool
 	supportsVolatile *bool
+	supportsDataOnly *bool
 	usingMetacopy    bool
 	usingComposefs   bool
 
@@ -272,6 +272,18 @@ func (d *Driver) getSupportsVolatile() (bool, error) {
 	return supportsVolatile, nil
 }
 
+func (d *Driver) getSupportsDataOnly() (bool, error) {
+	if d.supportsDataOnly != nil {
+		return *d.supportsDataOnly, nil
+	}
+	supportsDataOnly, err := supportsDataOnlyLayersCached(d.home, d.runhome)
+	if err != nil {
+		return false, err
+	}
+	d.supportsDataOnly = &supportsDataOnly
+	return supportsDataOnly, nil
+}
+
 // isNetworkFileSystem checks if the specified file system is supported by native overlay
 // as backing store when running in a user namespace.
 func isNetworkFileSystem(fsMagic graphdriver.FsMagic) bool {
@@ -359,13 +371,6 @@ func Init(home string, options graphdriver.Options) (graphdriver.Driver, error) 
 	if opts.useComposefs {
 		if unshare.IsRootless() {
 			return nil, fmt.Errorf("composefs is not supported in user namespaces")
-		}
-		supportsDataOnly, err := supportsDataOnlyLayersCached(home, runhome)
-		if err != nil {
-			return nil, err
-		}
-		if !supportsDataOnly {
-			return nil, fmt.Errorf("composefs is not supported on this kernel: %w", graphdriver.ErrIncompatibleFS)
 		}
 		if _, err := getComposeFsHelper(); err != nil {
 			return nil, fmt.Errorf("composefs helper program not found: %w", err)
@@ -869,11 +874,11 @@ func (d *Driver) pruneStagingDirectories() bool {
 
 	anyPresent := false
 
-	homeStagingDir := filepath.Join(d.home, stagingDir)
-	dirs, err := os.ReadDir(homeStagingDir)
+	stagingDirBase := filepath.Join(d.homeDirForImageStore(), stagingDir)
+	dirs, err := os.ReadDir(stagingDirBase)
 	if err == nil {
 		for _, dir := range dirs {
-			stagingDirToRemove := filepath.Join(homeStagingDir, dir.Name())
+			stagingDirToRemove := filepath.Join(stagingDirBase, dir.Name())
 			lock, err := lockfile.GetLockFile(filepath.Join(stagingDirToRemove, stagingLockFile))
 			if err != nil {
 				anyPresent = true
@@ -1205,17 +1210,22 @@ func (d *Driver) getAllImageStores() []string {
 	return additionalImageStores
 }
 
-func (d *Driver) dir2(id string, useImageStore bool) (string, string, bool) {
-	var homedir string
-
-	if useImageStore && d.imageStore != "" {
-		homedir = path.Join(d.imageStore, d.name)
-	} else {
-		homedir = d.home
+// homeDirForImageStore returns the home directory to use when an image store is configured
+func (d *Driver) homeDirForImageStore() string {
+	if d.imageStore != "" {
+		return path.Join(d.imageStore, d.name)
 	}
+	// If there is not an image store configured, use the same
+	// store
+	return d.home
+}
 
+func (d *Driver) dir2(id string, useImageStore bool) (string, string, bool) {
+	homedir := d.home
+	if useImageStore {
+		homedir = d.homeDirForImageStore()
+	}
 	newpath := path.Join(homedir, id)
-
 	if err := fileutils.Exists(newpath); err != nil {
 		for _, p := range d.getAllImageStores() {
 			l := path.Join(p, d.name, id)
@@ -1431,6 +1441,9 @@ func (d *Driver) Get(id string, options graphdriver.MountOpts) (string, error) {
 func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountOpts) (_ string, retErr error) {
 	dir, _, inAdditionalStore := d.dir2(id, false)
 	if err := fileutils.Exists(dir); err != nil {
+		return "", err
+	}
+	if _, err := redirectDiffIfAdditionalLayer(path.Join(dir, "diff"), true); err != nil {
 		return "", err
 	}
 
@@ -1770,8 +1783,16 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 
 	lowerDirs := strings.Join(absLowers, ":")
 	if len(composeFsLayers) > 0 {
-		composeFsLayersLowerDirs := strings.Join(composeFsLayers, "::")
-		lowerDirs = lowerDirs + "::" + composeFsLayersLowerDirs
+		sep := "::"
+		supportsDataOnly, err := d.getSupportsDataOnly()
+		if err != nil {
+			return "", err
+		}
+		if !supportsDataOnly {
+			sep = ":"
+		}
+		composeFsLayersLowerDirs := strings.Join(composeFsLayers, sep)
+		lowerDirs = lowerDirs + sep + composeFsLayersLowerDirs
 	}
 	// absLowers is not valid anymore now as we have added composeFsLayers to it, so prevent
 	// its usage.
@@ -2087,9 +2108,14 @@ func (g *overlayFileGetter) Close() error {
 	return errs.ErrorOrNil()
 }
 
-func (d *Driver) getStagingDir(id string) string {
-	_, homedir, _ := d.dir2(id, d.imageStore != "")
-	return filepath.Join(homedir, stagingDir)
+// newStagingDir creates a new staging directory and returns the path to it.
+func (d *Driver) newStagingDir() (string, error) {
+	stagingDirBase := filepath.Join(d.homeDirForImageStore(), stagingDir)
+	err := os.MkdirAll(stagingDirBase, 0o700)
+	if err != nil && !os.IsExist(err) {
+		return "", err
+	}
+	return os.MkdirTemp(stagingDirBase, "")
 }
 
 // DiffGetter returns a FileGetCloser that can read files from the directory that
@@ -2149,14 +2175,14 @@ func (d *Driver) CleanupStagingDirectory(stagingDirectory string) error {
 
 func supportsDataOnlyLayersCached(home, runhome string) (bool, error) {
 	feature := "dataonly-layers"
-	overlayCacheResult, overlayCacheText, err := cachedFeatureCheck(runhome, feature)
+	overlayCacheResult, _, err := cachedFeatureCheck(runhome, feature)
 	if err == nil {
 		if overlayCacheResult {
 			logrus.Debugf("Cached value indicated that data-only layers for overlay are supported")
 			return true, nil
 		}
 		logrus.Debugf("Cached value indicated that data-only layers for overlay are not supported")
-		return false, errors.New(overlayCacheText)
+		return false, nil
 	}
 	supportsDataOnly, err := supportsDataOnlyLayers(home)
 	if err2 := cachedFeatureRecord(runhome, feature, supportsDataOnly, ""); err2 != nil {
@@ -2182,14 +2208,7 @@ func (d *Driver) ApplyDiffWithDiffer(options *graphdriver.ApplyDiffWithDifferOpt
 		idMappings = &idtools.IDMappings{}
 	}
 
-	var applyDir string
-
-	stagingDir := d.getStagingDir("")
-	err := os.MkdirAll(stagingDir, 0o700)
-	if err != nil && !os.IsExist(err) {
-		return graphdriver.DriverWithDifferOutput{}, err
-	}
-	layerDir, err := os.MkdirTemp(stagingDir, "")
+	layerDir, err := d.newStagingDir()
 	if err != nil {
 		return graphdriver.DriverWithDifferOutput{}, err
 	}
@@ -2197,7 +2216,7 @@ func (d *Driver) ApplyDiffWithDiffer(options *graphdriver.ApplyDiffWithDifferOpt
 	if forceMask != nil {
 		perms = *forceMask
 	}
-	applyDir = filepath.Join(layerDir, "dir")
+	applyDir := filepath.Join(layerDir, "dir")
 	if err := os.Mkdir(applyDir, perms); err != nil {
 		return graphdriver.DriverWithDifferOutput{}, err
 	}
@@ -2249,10 +2268,6 @@ func (d *Driver) ApplyDiffFromStagingDirectory(id, parent string, diffOutput *gr
 			lock.Unlock()
 		}
 	}()
-
-	if filepath.Dir(parentStagingDir) != d.getStagingDir(id) {
-		return fmt.Errorf("%q is not a staging directory", stagingDirectory)
-	}
 
 	diffPath, err := d.getDiffPath(id)
 	if err != nil {
@@ -2338,7 +2353,7 @@ func (d *Driver) getComposefsData(id string) string {
 
 func (d *Driver) getDiffPath(id string) (string, error) {
 	dir := d.dir(id)
-	return redirectDiffIfAdditionalLayer(path.Join(dir, "diff"))
+	return redirectDiffIfAdditionalLayer(path.Join(dir, "diff"), false)
 }
 
 func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
@@ -2347,7 +2362,7 @@ func (d *Driver) getLowerDiffPaths(id string) ([]string, error) {
 		return nil, err
 	}
 	for i, l := range layers {
-		layers[i], err = redirectDiffIfAdditionalLayer(l)
+		layers[i], err = redirectDiffIfAdditionalLayer(l, false)
 		if err != nil {
 			return nil, err
 		}
@@ -2690,11 +2705,16 @@ func notifyReleaseAdditionalLayer(al string) {
 // redirectDiffIfAdditionalLayer checks if the passed diff path is Additional Layer and
 // returns the redirected path. If the passed diff is not the one in Additional Layer
 // Store, it returns the original path without changes.
-func redirectDiffIfAdditionalLayer(diffPath string) (string, error) {
+func redirectDiffIfAdditionalLayer(diffPath string, checkExistence bool) (string, error) {
 	if ld, err := os.Readlink(diffPath); err == nil {
 		// diff is the link to Additional Layer Store
 		if !path.IsAbs(ld) {
 			return "", fmt.Errorf("linkpath must be absolute (got: %q)", ld)
+		}
+		if checkExistence {
+			if err := fileutils.Exists(ld); err != nil {
+				return "", fmt.Errorf("failed to access to the linked additional layer: %w", err)
+			}
 		}
 		diffPath = ld
 	} else if err.(*os.PathError).Err != syscall.EINVAL {

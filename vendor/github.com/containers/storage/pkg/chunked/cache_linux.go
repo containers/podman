@@ -297,7 +297,7 @@ func (c *layersCache) load() error {
 
 		// the cache file is either not present or broken.  Try to generate it from the TOC.
 		l, err = c.createCacheFileFromTOC(r.ID)
-		if err != nil {
+		if err != nil && !errors.Is(err, storage.ErrLayerUnknown) {
 			logrus.Warningf("Error creating cache file for layer %q: %v", r.ID, err)
 		}
 		if l != nil {
