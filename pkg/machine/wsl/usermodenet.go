@@ -32,7 +32,7 @@ fi
 if [[ ! $ROUTE =~ default\ via ]]; then
 	exit 3
 fi
-nohup $GVFORWARDER -iface podman-usermode -stop-if-exist ignore -url "stdio:$GVPROXY?listen-stdio=accept" > /var/log/vm.log 2> /var/log/vm.err  < /dev/null &
+nohup $GVFORWARDER -iface podman-usermode -stop-if-exist ignore -url "stdio:$GVPROXY?listen-stdio=accept&ssh-port=$GVSSHPORT" > /var/log/vm.log 2> /var/log/vm.err  < /dev/null &
 echo $! > $STATE/vm.pid
 sleep 1
 ps -eo args | grep -q -m1 ^$GVFORWARDER || exit 42
@@ -99,7 +99,7 @@ func startUserModeNetworking(mc *vmconfigs.MachineConfig) error {
 
 	// Start or reuse
 	if !running {
-		if err := launchUserModeNetDist(exe); err != nil {
+		if err := launchUserModeNetDist(exe, mc.SSH.Port); err != nil {
 			return err
 		}
 	}
@@ -168,7 +168,7 @@ func isGvProxyVMRunning() bool {
 	return wslInvoke(userModeDist, "bash", "-c", cmd) == nil
 }
 
-func launchUserModeNetDist(exeFile string) error {
+func launchUserModeNetDist(exeFile string, sshPort int) error {
 	fmt.Println("Starting user-mode networking...")
 
 	exe, err := specgen.ConvertWinMountPath(exeFile)
@@ -176,7 +176,7 @@ func launchUserModeNetDist(exeFile string) error {
 		return err
 	}
 
-	cmdStr := fmt.Sprintf("GVPROXY=%q\nGVFORWARDER=%q\n%s", exe, gvForwarderPath, startUserModeNet)
+	cmdStr := fmt.Sprintf("GVPROXY=%q\nGVFORWARDER=%q\nGVSSHPORT=%d\n%s", exe, gvForwarderPath, sshPort, startUserModeNet)
 	if err := wslPipe(cmdStr, userModeDist, "bash"); err != nil {
 		_ = terminateDist(userModeDist)
 
