@@ -189,7 +189,11 @@ func (r *Runtime) saveDockerArchive(ctx context.Context, names []string, path st
 		}
 	}
 
-	writer, err := dockerArchiveTransport.NewWriter(r.systemContextCopy(), path)
+	sysContextWithOpts, err := r.newScWithCopyOpts(&options.CopyOptions)
+	if err != nil {
+		return err
+	}
+	writer, err := dockerArchiveTransport.NewWriter(sysContextWithOpts, path)
 	if err != nil {
 		return err
 	}

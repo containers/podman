@@ -80,6 +80,8 @@ func init() {
 func pushFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
+	common.DefineTarCompressFlags(cmd, &pushOptions.TarCompressionFormat)
+
 	// For now default All flag to true, for pushing of manifest lists
 	pushOptions.All = true
 	authfileFlagName := "authfile"
@@ -247,6 +249,14 @@ func imagePush(cmd *cobra.Command, args []string) error {
 			// is selected then defaults to `true`.
 			pushOptions.ForceCompressionFormat = true
 		}
+	}
+
+	if cmd.Flags().Changed("tar-compression-level") {
+		val, err := cmd.Flags().GetInt("tar-compression-level")
+		if err != nil {
+			return err
+		}
+		pushOptions.TarCompressionLevel = &val
 	}
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering

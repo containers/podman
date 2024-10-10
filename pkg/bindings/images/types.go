@@ -83,6 +83,8 @@ type ExportOptions struct {
 	Format *string
 	// Accept uncompressed layers when copying OCI images.
 	OciAcceptUncompressedLayers *bool
+	TarCompressionFormat        *string
+	TarCompressionLevel         *int
 }
 
 // PruneOptions are optional options for pruning images
@@ -151,7 +153,9 @@ type PushOptions struct {
 	// algorithms are not reused.
 	ForceCompressionFormat *bool
 	// Add existing instances with requested compression algorithms to manifest list
-	AddCompression []string
+	AddCompression       []string
+	TarCompressionFormat *string
+	TarCompressionLevel  *int
 	// Manifest type of the pushed image
 	Format *string
 	// Password for authenticating against the registry.
@@ -245,6 +249,8 @@ type ExistsOptions struct {
 }
 
 type ScpOptions struct {
-	Quiet       *bool
-	Destination *string
+	TarCompressionFormat *string
+	TarCompressionLevel  *int
+	Quiet                *bool
+	Destination          *string
 }

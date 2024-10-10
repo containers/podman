@@ -50,6 +50,8 @@ type CopyOptions struct {
 	// CompressionFormat is used exclusively, and blobs of other compression
 	// algorithms are not reused.
 	ForceCompressionFormat bool
+	TarCompressionFormat   *compression.Algorithm
+	TarCompressionLevel    *int
 
 	// containers-auth.json(5) file to use when authenticating against
 	// container registries.
@@ -179,6 +181,18 @@ func (r *Runtime) newCopier(options *CopyOptions) (*Copier, error) {
 	return NewCopier(options, r.SystemContext())
 }
 
+// newScWithCopyOpts creates a copy of the runtime's system context,
+// and overwrites the relevent fields with the fields from options.
+// It is akin to creating a Copier c via r.newCopier and then taking the resulting c.systemContext.
+func (r *Runtime) newScWithCopyOpts(options *CopyOptions) (*types.SystemContext, error) {
+	sc := r.SystemContext()
+	err := ScWithCopyOpts(options, sc)
+	if err != nil {
+		return nil, err
+	}
+	return sc, nil
+}
+
 // storageAllowedPolicyScopes overrides the policy for local storage
 // to ensure that we can read images from it.
 var storageAllowedPolicyScopes = signature.PolicyTransportScopes{
@@ -226,6 +240,10 @@ func getDockerAuthConfig(name, passwd, creds, idToken string) (*types.DockerAuth
 func NewCopier(options *CopyOptions, sc *types.SystemContext) (*Copier, error) {
 	c := Copier{extendTimeoutSocket: options.extendTimeoutSocket}
 	sysContextCopy := *sc
+	err := ScWithCopyOpts(options, &sysContextCopy)
+	if err != nil {
+		return nil, err
+	}
 	c.systemContext = &sysContextCopy
 
 	if options.SourceLookupReferenceFunc != nil {
@@ -235,53 +253,6 @@ func NewCopier(options *CopyOptions, sc *types.SystemContext) (*Copier, error) {
 	if options.DestinationLookupReferenceFunc != nil {
 		c.destinationLookup = options.DestinationLookupReferenceFunc
 	}
-
-	if options.InsecureSkipTLSVerify != types.OptionalBoolUndefined {
-		c.systemContext.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
-		c.systemContext.OCIInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
-		c.systemContext.DockerDaemonInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
-	}
-
-	c.systemContext.DirForceCompress = c.systemContext.DirForceCompress || options.DirForceCompress
-
-	if options.AuthFilePath != "" {
-		c.systemContext.AuthFilePath = options.AuthFilePath
-	}
-
-	c.systemContext.DockerArchiveAdditionalTags = options.dockerArchiveAdditionalTags
-
-	c.systemContext.OSChoice, c.systemContext.ArchitectureChoice, c.systemContext.VariantChoice = platform.Normalize(options.OS, options.Architecture, options.Variant)
-
-	if options.SignaturePolicyPath != "" {
-		c.systemContext.SignaturePolicyPath = options.SignaturePolicyPath
-	}
-
-	dockerAuthConfig, err := getDockerAuthConfig(options.Username, options.Password, options.Credentials, options.IdentityToken)
-	if err != nil {
-		return nil, err
-	}
-	if dockerAuthConfig != nil {
-		c.systemContext.DockerAuthConfig = dockerAuthConfig
-	}
-
-	if options.BlobInfoCacheDirPath != "" {
-		c.systemContext.BlobInfoCacheDir = options.BlobInfoCacheDirPath
-	}
-
-	if options.CertDirPath != "" {
-		c.systemContext.DockerCertPath = options.CertDirPath
-	}
-
-	if options.CompressionFormat != nil {
-		c.systemContext.CompressionFormat = options.CompressionFormat
-	}
-
-	if options.CompressionLevel != nil {
-		c.systemContext.CompressionLevel = options.CompressionLevel
-	}
-
-	// NOTE: for the sake of consistency it's called Oci* in the CopyOptions.
-	c.systemContext.OCIAcceptUncompressedLayers = options.OciAcceptUncompressedLayers
 
 	policy, err := signature.DefaultPolicy(c.systemContext)
 	if err != nil {
@@ -339,6 +310,67 @@ func NewCopier(options *CopyOptions, sc *types.SystemContext) (*Copier, error) {
 	}
 
 	return &c, nil
+}
+
+// ScWithCopyOpts overwrites the relevent fields in a system context with the fields from options.
+// It is akin to creating a Copier c via NewCopier and then taking the resulting c.systemContext.
+func ScWithCopyOpts(options *CopyOptions, sc *types.SystemContext) error {
+	if options.InsecureSkipTLSVerify != types.OptionalBoolUndefined {
+		sc.DockerInsecureSkipTLSVerify = options.InsecureSkipTLSVerify
+		sc.OCIInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+		sc.DockerDaemonInsecureSkipTLSVerify = options.InsecureSkipTLSVerify == types.OptionalBoolTrue
+	}
+
+	sc.DirForceCompress = sc.DirForceCompress || options.DirForceCompress
+
+	if options.AuthFilePath != "" {
+		sc.AuthFilePath = options.AuthFilePath
+	}
+
+	sc.DockerArchiveAdditionalTags = options.dockerArchiveAdditionalTags
+
+	sc.OSChoice, sc.ArchitectureChoice, sc.VariantChoice = platform.Normalize(options.OS, options.Architecture, options.Variant)
+
+	if options.SignaturePolicyPath != "" {
+		sc.SignaturePolicyPath = options.SignaturePolicyPath
+	}
+
+	dockerAuthConfig, err := getDockerAuthConfig(options.Username, options.Password, options.Credentials, options.IdentityToken)
+	if err != nil {
+		return err
+	}
+	if dockerAuthConfig != nil {
+		sc.DockerAuthConfig = dockerAuthConfig
+	}
+
+	if options.BlobInfoCacheDirPath != "" {
+		sc.BlobInfoCacheDir = options.BlobInfoCacheDirPath
+	}
+
+	if options.CertDirPath != "" {
+		sc.DockerCertPath = options.CertDirPath
+	}
+
+	if options.CompressionFormat != nil {
+		sc.CompressionFormat = options.CompressionFormat
+	}
+
+	if options.CompressionLevel != nil {
+		sc.CompressionLevel = options.CompressionLevel
+	}
+
+	if options.TarCompressionFormat != nil {
+		sc.TarCompressionFormat = options.TarCompressionFormat
+	}
+
+	if options.TarCompressionLevel != nil {
+		sc.TarCompressionLevel = options.TarCompressionLevel
+	}
+
+	// NOTE: for the sake of consistency it's called Oci* in the CopyOptions.
+	sc.OCIAcceptUncompressedLayers = options.OciAcceptUncompressedLayers
+
+	return nil
 }
 
 // Close open resources.

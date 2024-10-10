@@ -23,7 +23,6 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libimage/filter"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -375,6 +374,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	pushOptions.OciEncryptLayers = options.OciEncryptLayers
 	pushOptions.CompressionLevel = options.CompressionLevel
 	pushOptions.ForceCompressionFormat = options.ForceCompressionFormat
+	pushOptions.TarCompressionLevel = options.TarCompressionLevel
 	pushOptions.MaxRetries = options.Retry
 	if options.RetryDelay != "" {
 		duration, err := time.ParseDuration(options.RetryDelay)
@@ -400,12 +400,36 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 		pushOptions.CompressionFormat = &algo
 	}
 
+	tarCompressionFormat := options.TarCompressionFormat
+	if tarCompressionFormat == "" {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		tarCompressionFormat = config.Engine.TarCompressionFormat
+	}
+	if tarCompressionFormat != "" {
+		algo, err := compression.AlgorithmByName(tarCompressionFormat)
+		if err != nil {
+			return nil, err
+		}
+		pushOptions.TarCompressionFormat = &algo
+	}
+
 	if pushOptions.CompressionLevel == nil {
 		config, err := ir.Libpod.GetConfigNoCopy()
 		if err != nil {
 			return nil, err
 		}
 		pushOptions.CompressionLevel = config.Engine.CompressionLevel
+	}
+
+	if pushOptions.TarCompressionLevel == nil {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return nil, err
+		}
+		pushOptions.TarCompressionLevel = config.Engine.TarCompressionLevel
 	}
 
 	if !options.Quiet && pushOptions.Writer == nil {
@@ -485,6 +509,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	saveOptions.DirForceCompress = options.Compress
 	saveOptions.OciAcceptUncompressedLayers = options.OciAcceptUncompressedLayers
 	saveOptions.SignaturePolicyPath = options.SignaturePolicy
+	saveOptions.TarCompressionLevel = options.TarCompressionLevel
 
 	// Force signature removal to preserve backwards compat.
 	// See https://github.com/containers/podman/pull/11669#issuecomment-925250264
@@ -492,6 +517,30 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 
 	if !options.Quiet {
 		saveOptions.Writer = os.Stderr
+	}
+
+	tarCompressionFormat := options.TarCompressionFormat
+	if tarCompressionFormat == "" {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return err
+		}
+		tarCompressionFormat = config.Engine.TarCompressionFormat
+	}
+	if tarCompressionFormat != "" {
+		algo, err := compression.AlgorithmByName(tarCompressionFormat)
+		if err != nil {
+			return err
+		}
+		saveOptions.TarCompressionFormat = &algo
+	}
+
+	if options.TarCompressionLevel == nil {
+		config, err := ir.Libpod.GetConfigNoCopy()
+		if err != nil {
+			return err
+		}
+		saveOptions.TarCompressionLevel = config.Engine.TarCompressionLevel
 	}
 
 	names := []string{nameOrID}
@@ -772,13 +821,13 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	return nil, nil
 }
 
-func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
-	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet, sshMode)
+func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, opts entities.ImageScpBaseOptions) error {
+	report, err := domainUtils.ExecuteTransferWithOpts(src, dst, opts.ImageExecuteTransferOptions)
 	if err != nil {
 		return err
 	}
-	if (rep == nil && err == nil) && (source != nil && dest != nil) { // we need to execute the transfer
-		err := Transfer(ctx, *source, *dest, flags)
+	if (report.LoadReport == nil && err == nil) && (report.Source != nil && report.Dest != nil) { // we need to execute the transfer
+		err := Transfer(ctx, *report.Source, *report.Dest, report.ParentFlags)
 		if err != nil {
 			return err
 		}

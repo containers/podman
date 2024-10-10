@@ -542,6 +542,12 @@ type EngineConfig struct {
 	// CompressionLevel is the compression level used to compress image layers.
 	CompressionLevel *int `toml:"compression_level,omitempty"`
 
+	// TarCompressionFormat is the compression format used to compress archives.
+	TarCompressionFormat string `toml:"tar_compression_format,omitempty"`
+
+	// TarCompressionLevel is the compression level used to compress archives.
+	TarCompressionLevel *int `toml:"tar_compression_level,omitempty"`
+
 	// PodmanshTimeout is the number of seconds to wait for podmansh logins.
 	// In other words, the timeout for the `podmansh` container to be in running
 	// state.

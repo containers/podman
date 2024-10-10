@@ -9,15 +9,17 @@ import (
 
 	"github.com/containers/image/v5/docker/internal/tarfile"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
 )
 
 // Writer manages a single in-progress Docker archive and allows adding images to it.
 type Writer struct {
-	path        string // The original, user-specified path; not the maintained temporary file, if any
-	regularFile bool   // path refers to a regular file (e.g. not a pipe)
-	archive     *tarfile.Writer
-	writer      io.Closer
+	path              string // The original, user-specified path; not the maintained temporary file, if any
+	regularFile       bool   // path refers to a regular file (e.g. not a pipe)
+	archive           *tarfile.Writer
+	writer            io.Closer
+	compressionWriter io.Closer
 
 	// The following state can only be accessed with the mutex held.
 	mutex     sync.Mutex
@@ -52,15 +54,30 @@ func NewWriter(sys *types.SystemContext, path string) (*Writer, error) {
 		return nil, errors.New("docker-archive doesn't support modifying existing images")
 	}
 
-	archive := tarfile.NewWriter(fh)
+	var cw io.WriteCloser
+	cw = nil
+	if sys.TarCompressionFormat != nil {
+		cw, err = compression.CompressStream(fh, *sys.TarCompressionFormat, sys.TarCompressionLevel)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var archive *tarfile.Writer
+	if cw != nil {
+		archive = tarfile.NewWriter(cw)
+	} else {
+		archive = tarfile.NewWriter(fh)
+	}
 
 	succeeded = true
 	return &Writer{
-		path:        path,
-		regularFile: regularFile,
-		archive:     archive,
-		writer:      fh,
-		hadCommit:   false,
+		path:              path,
+		regularFile:       regularFile,
+		archive:           archive,
+		writer:            fh,
+		compressionWriter: cw,
+		hadCommit:         false,
 	}, nil
 }
 
@@ -76,6 +93,11 @@ func (w *Writer) imageCommitted() {
 // No more images can be added after this is called.
 func (w *Writer) Close() error {
 	err := w.archive.Close()
+	if w.compressionWriter != nil {
+		if err2 := w.compressionWriter.Close(); err2 != nil && err == nil {
+			err = err2
+		}
+	}
 	if err2 := w.writer.Close(); err2 != nil && err == nil {
 		err = err2
 	}

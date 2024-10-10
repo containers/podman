@@ -10,6 +10,7 @@ import (
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/signature"
+	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
@@ -20,13 +21,18 @@ import (
 type ociArchiveImageDestination struct {
 	impl.Compat
 
-	ref          ociArchiveReference
-	unpackedDest private.ImageDestination
-	tempDirRef   tempDirOCIRef
+	ref            ociArchiveReference
+	unpackedDest   private.ImageDestination
+	tempDirRef     tempDirOCIRef
+	tarCompression archive.Compression
 }
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
 func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociArchiveReference) (private.ImageDestination, error) {
+	tarCompression, err := compression.ToArchiveCompression(sys.TarCompressionFormat)
+	if err != nil {
+		return nil, err
+	}
 	tempDirRef, err := createOCIRef(sys, ref.image)
 	if err != nil {
 		return nil, fmt.Errorf("creating oci reference: %w", err)
@@ -39,9 +45,10 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref ociA
 		return nil, err
 	}
 	d := &ociArchiveImageDestination{
-		ref:          ref,
-		unpackedDest: imagedestination.FromPublic(unpackedDest),
-		tempDirRef:   tempDirRef,
+		ref:            ref,
+		unpackedDest:   imagedestination.FromPublic(unpackedDest),
+		tempDirRef:     tempDirRef,
+		tarCompression: tarCompression,
 	}
 	d.Compat = impl.AddCompat(d)
 	return d, nil
@@ -163,14 +170,14 @@ func (d *ociArchiveImageDestination) Commit(ctx context.Context, unparsedTopleve
 	src := d.tempDirRef.tempDirectory
 	// path to save tarred up file
 	dst := d.ref.resolvedFile
-	return tarDirectory(src, dst)
+	return tarDirectory(src, dst, d.tarCompression)
 }
 
 // tar converts the directory at src and saves it to dst
-func tarDirectory(src, dst string) error {
+func tarDirectory(src, dst string, tarCompression archive.Compression) error {
 	// input is a stream of bytes from the archive of the directory at path
 	input, err := archive.TarWithOptions(src, &archive.TarOptions{
-		Compression: archive.Uncompressed,
+		Compression: tarCompression,
 		// Don’t include the data about the user account this code is running under.
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
 	})

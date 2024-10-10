@@ -82,6 +82,8 @@ func init() {
 func saveFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
+	common.DefineTarCompressFlags(cmd, &saveOpts.TarCompressionFormat)
+
 	flags.BoolVar(&saveOpts.Compress, "compress", false, "Compress tarball image layers when saving to a directory using the 'dir' transport. (default is same compression type as source)")
 
 	flags.BoolVar(&saveOpts.OciAcceptUncompressedLayers, "uncompressed", false, "Accept uncompressed layers when copying OCI images")
@@ -110,6 +112,13 @@ func save(cmd *cobra.Command, args []string) (finalErr error) {
 	)
 	if cmd.Flag("compress").Changed && saveOpts.Format != define.V2s2ManifestDir {
 		return errors.New("--compress can only be set when --format is 'docker-dir'")
+	}
+	if cmd.Flags().Changed("tar-compression-level") {
+		val, err := cmd.Flags().GetInt("tar-compression-level")
+		if err != nil {
+			return err
+		}
+		saveOpts.TarCompressionLevel = &val
 	}
 	if len(saveOpts.Output) == 0 {
 		saveOpts.Quiet = true

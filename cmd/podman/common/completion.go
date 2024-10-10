@@ -1780,6 +1780,12 @@ func AutocompleteCompressionFormat(cmd *cobra.Command, args []string, toComplete
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteTarCompressionFormat - Autocomplete tar-compression-format type options.
+func AutocompleteTarCompressionFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	types := []string{"gzip", "zstd"}
+	return types, cobra.ShellCompDirectiveNoFileComp
+}
+
 // AutocompleteClone - Autocomplete container and image names
 func AutocompleteClone(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
