@@ -500,6 +500,14 @@ local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple 
 .PHONY: cross
 cross: local-cross
 
+# Simple target to check that we can build all binaries for another arch,
+# the resulting binaries are not meant to be usable this is just for
+# testing if it builds, it depends on the caller to set GOOS/GOARCH.
+.PHONY: cross-binaries
+cross-binaries:
+	$(MAKE) CGO_ENABLED=0 GOOS=$(GOOS) GOARCH=$(GOARCH) \
+		BUILDTAGS="$(BUILDTAGS_CROSS)" clean-binaries binaries
+
 .PHONY: completions
 completions: podman podman-remote
 	# key = shell, value = completion filename
@@ -590,10 +598,18 @@ podman-remote-%-docs: podman-remote
 		$(if $(findstring windows,$*),docs/source/markdown,docs/build/man)
 
 .PHONY: man-page-check
-man-page-check: bin/podman docs
+man-page-check: man-page-checker xref-helpmsgs-manpages xref-quadlet-docs xref-quadlet-docs
+
+man-page-checker: bin/podman docs
 	hack/man-page-checker
+
+xref-helpmsgs-manpages: bin/podman docs
 	hack/xref-helpmsgs-manpages
+
+man-page-table-check: docs
 	hack/man-page-table-check
+
+xref-quadlet-docs: docs
 	hack/xref-quadlet-docs
 
 .PHONY: swagger-check

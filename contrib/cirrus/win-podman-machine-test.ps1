@@ -24,7 +24,7 @@ if ($Env:TEST_FLAVOR -eq "machine-wsl") {
 Write-Host "    CONTAINERS_MACHINE_PROVIDER = $Env:CONTAINERS_MACHINE_PROVIDER"
 Write-Host "`n"
 
-# The repo.tbz artifact was extracted here
+# The repo.tar.zst artifact was extracted here
 Set-Location "$ENV:CIRRUS_WORKING_DIR\repo"
 # Tests hard-code this location for podman-remote binary, make sure it actually runs.
 Run-Command ".\bin\windows\podman.exe --version"
