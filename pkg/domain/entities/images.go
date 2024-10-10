@@ -305,21 +305,13 @@ type ImageSaveOptions struct {
 	SignaturePolicy string
 }
 
-// ImageScpOptions provide options for securely copying images to and from a remote host
-type ImageScpOptions struct {
-	// Remote determines if this entity is operating on a remote machine
-	Remote bool `json:"remote,omitempty"`
-	// File is the input/output file for the save and load Operation
-	File string `json:"file,omitempty"`
-	// Quiet Determines if the save and load operation will be done quietly
-	Quiet bool `json:"quiet,omitempty"`
-	// Image is the image the user is providing to save and load
-	Image string `json:"image,omitempty"`
-	// User is used in conjunction with Transfer to determine if a valid user was given to save from/load into
-	User string `json:"user,omitempty"`
-	// Tag is the name to be used for the image on the destination
-	Tag string `json:"tag,omitempty"`
+// ImageScpBaseOptions provides options for ImageEngine.ScpWithOpts()
+type ImageScpBaseOptions struct {
+	ScpExecuteTransferOptions
 }
+
+// ImageScpReport provides results from ImageEngine.ScpWithOpts()
+type ImageScpReport struct{}
 
 // ImageScpConnections provides the ssh related information used in remote image transfer
 type ImageScpConnections struct {
