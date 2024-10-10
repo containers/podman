@@ -1304,6 +1304,58 @@ EOF
 }
 
 # bats test_tags=ci:parallel
+@test "podman run - can use maximum ulimit value" {
+    skip_if_remote "cannot check local ulimits with podman remote"
+    run ulimit -n -H
+    max=$output
+    run_podman run --rm --ulimit=nofile=$max:$max $IMAGE sh -c 'ulimit -n -H'
+    is "$output" "$max" "wrong ulimit value"
+
+    run_podman run --rm $IMAGE sh -c 'ulimit -n -H'
+    default_value=$output
+
+    # Set the current ulimit smaller than the default value
+    ulimit -n -H $((default_value - 1))
+
+    run_podman run --rm $IMAGE sh -c 'ulimit -n -H'
+
+    if is_rootless; then
+        # verify that the value was clamped to the maximum allowed
+        is "$output" "$(ulimit -n -H)" "wrong ulimit value"
+    else
+        # when running as root check that the current environment does not affect
+        # the ulimit set inside the container.
+        is "$output" "$default_value" "wrong ulimit value"
+    fi
+}
+
+# bats test_tags=ci:parallel
+@test "podman run - ulimits have the correct default values" {
+    expected_nofile=1048576
+    expected_nproc=1048576
+
+    # clamp the expected values in rootless mode when they are
+    # greater than the current limits.
+    if is_rootless; then
+        nofile=$(ulimit -n -H)
+        if [[ $nofile -lt $expected_nofile ]]; then
+            expected_nofile=$nofile
+        fi
+        nproc=$(ulimit -u -H)
+        if [[ $nproc -lt $expected_nproc ]]; then
+            expected_nproc=$nproc
+        fi
+    fi
+
+    # validate that nofile and nproc are both set to the correct value
+    run_podman run --rm $IMAGE sh -c 'ulimit -n -H'
+    is "$output" "$expected_nofile" "wrong ulimit -n default value"
+
+    run_podman run --rm $IMAGE sh -c 'ulimit -u -H'
+    is "$output" "$expected_nproc" "wrong ulimit -u default value"
+}
+
+# bats test_tags=ci:parallel
 @test "podman run bad --name" {
     randomname=c_$(safename)
     run_podman 125 create --name "$randomname/bad" $IMAGE
