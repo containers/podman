@@ -79,6 +79,31 @@ fi
 EOF
 chmod 755 healthcheck
 
+# Another helper; used in pasta tests for comparing bytestream data
+cat >bytecheck <<'EOF'
+#!/bin/sh
+#
+# Helper script for comparing bytestream data. Shows data size,
+# md5sum, and first/last eight bytes. Because plain md5sum is
+# not very helpful in identifying where things went wrong.
+#
+# Reads stream from stdin, writes summary to stdout
+#
+tmpfile=`mktemp bytecheck.XXXXXXX`
+
+cat >$tmpfile
+
+size=`stat -c %s $tmpfile`
+hash=`md5sum <$tmpfile`
+odl=`head -c8 $tmpfile | od -An -tx1`
+odr=`tail -c8 $tmpfile | od -An -tx1`
+
+rm -f $tmpfile
+
+echo size=$size hash=$hash head=$odl tail=$odr
+EOF
+chmod 755 bytecheck
+
 # alpine because it's small and light and reliable
 #    - check for updates @ https://hub.docker.com/_/alpine
 # busybox-extras provides httpd needed in 500-networking.bats
@@ -94,9 +119,9 @@ chmod 755 healthcheck
 #
 cat >Containerfile1 <<EOF
 ARG REPO=please-override-repo
-FROM docker.io/\${REPO}/alpine:3.19.0
+FROM docker.io/\${REPO}/alpine:3.20.3
 RUN apk add busybox-extras iproute2 socat
-ADD testimage-id healthcheck pause /home/podman/
+ADD testimage-id healthcheck pause bytecheck /home/podman/
 RUN rm -f /var/cache/apk/*
 EOF
 
