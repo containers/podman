@@ -10,7 +10,7 @@ import (
 
 func TestValidateSCPArgs(t *testing.T) {
 	type args struct {
-		locations []*entities.ImageScpOptions
+		locations []*entities.ScpTransferImageOptions
 	}
 	tests := []struct {
 		name    string
@@ -20,7 +20,7 @@ func TestValidateSCPArgs(t *testing.T) {
 		{
 			name: "test args length more than 2",
 			args: args{
-				locations: []*entities.ImageScpOptions{
+				locations: []*entities.ScpTransferImageOptions{
 					{
 						Image: "source image one",
 					},
@@ -40,7 +40,7 @@ func TestValidateSCPArgs(t *testing.T) {
 		{
 			name: "test source image is empty",
 			args: args{
-				locations: []*entities.ImageScpOptions{
+				locations: []*entities.ScpTransferImageOptions{
 					{
 						Image: "",
 					},
@@ -54,7 +54,7 @@ func TestValidateSCPArgs(t *testing.T) {
 		{
 			name: "test target image is empty",
 			args: args{
-				locations: []*entities.ImageScpOptions{
+				locations: []*entities.ScpTransferImageOptions{
 					{
 						Image: "source image",
 					},
