@@ -692,6 +692,7 @@ rootless_integration_test_task:
 podman_machine_task:
     name: *std_name_fmt
     alias: podman_machine
+    trigger_type: manual
     # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
     # only when: - main rules (see doc above); or
     #            - machine code files are changed
@@ -721,6 +722,7 @@ podman_machine_task:
 podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
+    trigger_type: manual
     only_if: *only_if_machine_test
     depends_on: *build
     ec2_instance:
@@ -745,6 +747,7 @@ podman_machine_aarch64_task:
 podman_machine_windows_task:
     name: *std_name_fmt
     alias: podman_machine_windows
+    trigger_type: manual
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_machine_test
     # Special case, we do not run macos/windows builds on rhel branches.
@@ -779,6 +782,7 @@ podman_machine_windows_task:
 podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
+    trigger_type: manual
     only_if: *only_if_machine_test
     skip: *skip_rhel_release
     depends_on: *build
