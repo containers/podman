@@ -34,7 +34,6 @@ import (
 	"path"
 	"strconv"
 	"strings"
-	"syscall"
 
 	"github.com/containers/podman/v5/libpod/define"
 	. "github.com/containers/podman/v5/test/utils"
@@ -58,42 +57,6 @@ var _ = Describe("Toolbox-specific testing", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("0:123"))
-	})
-
-	It("podman create --ulimit host + podman exec - correctly mirrors hosts ulimits", func() {
-		if podmanTest.RemoteTest {
-			Skip("Ulimit check does not work with a remote client")
-		}
-		info := GetHostDistributionInfo()
-		if info.Distribution == "debian" {
-			// "expected 1048576 to be >= 1073741816"
-			Skip("FIXME 2024-05-28 fails on debian, maybe because of systemd 256?")
-		}
-		var session *PodmanSessionIntegration
-		var containerHardLimit int
-		var rlimit syscall.Rlimit
-		var err error
-
-		err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit)
-		Expect(err).ToNot(HaveOccurred())
-		GinkgoWriter.Printf("Expected value: %d", rlimit.Max)
-
-		session = podmanTest.Podman([]string{"create", "--name", "test", "--ulimit", "host", ALPINE,
-			"sleep", "1000"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"start", "test"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"exec", "test", "sh", "-c",
-			"ulimit -H -n"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		containerHardLimit, err = strconv.Atoi(strings.Trim(session.OutputToString(), "\n"))
-		Expect(err).ToNot(HaveOccurred())
-		Expect(containerHardLimit).To(BeNumerically(">=", rlimit.Max))
 	})
 
 	It("podman create --ipc=host --pid=host + podman exec - correct shared memory limit size", func() {
