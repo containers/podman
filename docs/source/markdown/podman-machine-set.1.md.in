@@ -15,6 +15,8 @@ then the settings will be applied to `podman-machine-default`.
 
 Rootless only.
 
+Default Podman machine settings can be set via the [machine] section in the containers.conf(5) file.
+
 ## OPTIONS
 
 #### **--cpus**=*number*
@@ -93,7 +95,7 @@ $ podman machine set --rootful myvm
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**, **containers.conf(5)**
 
 ## HISTORY
 February 2022, Originally compiled by Jason Greene <jason.greene@redhat.com>

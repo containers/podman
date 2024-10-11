@@ -52,6 +52,8 @@ Fedora CoreOS upgrades come out every 14 days and are detected and installed aut
 For more information on updates and advanced configuration,
 see the Fedora CoreOS documentation about [auto-updates](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [update strategies](https://coreos.github.io/zincati/usage/updates-strategy/).
 
+Default Podman machine settings can be set via the [machine] section in the containers.conf(5) file.
+
 ## OPTIONS
 
 #### **--cpus**=*number*
@@ -208,7 +210,7 @@ $ podman machine init --usb bus=1,devnum=3
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**, **containers.conf(5)**
 
 ## HISTORY
 March 2021, Originally compiled by Ashley Cui <acui@redhat.com>
