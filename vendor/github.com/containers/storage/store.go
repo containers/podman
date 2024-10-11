@@ -1611,7 +1611,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 						CreationDate: i.Created,
 						Digest:       i.Digest,
 						Digests:      copyDigestSlice(i.Digests),
-						NamesHistory: slices.Clone(i.NamesHistory),
+						NamesHistory: copyStringSlice(i.NamesHistory),
 					}
 					for _, key := range i.BigDataNames {
 						data, err := store.BigData(id, key)

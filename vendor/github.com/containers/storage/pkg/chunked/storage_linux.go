@@ -143,11 +143,13 @@ func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *o
 }
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
+// If it returns an error that implements IsErrFallbackToOrdinaryLayerDownload, the caller can
+// retry the operation with a different method.
 func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
 	pullOptions := store.PullOptions()
 
 	if !parseBooleanPullOption(pullOptions, "enable_partial_images", true) {
-		return nil, errors.New("enable_partial_images not configured")
+		return nil, newErrFallbackToOrdinaryLayerDownload(errors.New("partial images are disabled"))
 	}
 
 	zstdChunkedTOCDigestString, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
@@ -157,29 +159,54 @@ func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Diges
 		return nil, errors.New("both zstd:chunked and eStargz TOC found")
 	}
 
-	if hasZstdChunkedTOC {
-		zstdChunkedTOCDigest, err := digest.Parse(zstdChunkedTOCDigestString)
-		if err != nil {
-			return nil, fmt.Errorf("parsing zstd:chunked TOC digest %q: %w", zstdChunkedTOCDigestString, err)
-		}
-		return makeZstdChunkedDiffer(store, blobSize, zstdChunkedTOCDigest, annotations, iss, pullOptions)
-	}
-	if hasEstargzTOC {
-		estargzTOCDigest, err := digest.Parse(estargzTOCDigestString)
-		if err != nil {
-			return nil, fmt.Errorf("parsing estargz TOC digest %q: %w", estargzTOCDigestString, err)
-		}
-		return makeEstargzChunkedDiffer(store, blobSize, estargzTOCDigest, iss, pullOptions)
+	convertImages := parseBooleanPullOption(pullOptions, "convert_images", false)
+
+	if !hasZstdChunkedTOC && !hasEstargzTOC && !convertImages {
+		return nil, newErrFallbackToOrdinaryLayerDownload(errors.New("no TOC found and convert_images is not configured"))
 	}
 
-	return makeConvertFromRawDiffer(store, blobDigest, blobSize, iss, pullOptions)
+	var err error
+	var differ graphdriver.Differ
+	// At this point one of hasZstdChunkedTOC, hasEstargzTOC or convertImages is true.
+	if hasZstdChunkedTOC {
+		zstdChunkedTOCDigest, err2 := digest.Parse(zstdChunkedTOCDigestString)
+		if err2 != nil {
+			return nil, err2
+		}
+		differ, err = makeZstdChunkedDiffer(store, blobSize, zstdChunkedTOCDigest, annotations, iss, pullOptions)
+		if err == nil {
+			logrus.Debugf("Created zstd:chunked differ for blob %q", blobDigest)
+			return differ, err
+		}
+	} else if hasEstargzTOC {
+		estargzTOCDigest, err2 := digest.Parse(estargzTOCDigestString)
+		if err2 != nil {
+			return nil, err
+		}
+		differ, err = makeEstargzChunkedDiffer(store, blobSize, estargzTOCDigest, iss, pullOptions)
+		if err == nil {
+			logrus.Debugf("Created eStargz differ for blob %q", blobDigest)
+			return differ, err
+		}
+	}
+	// If convert_images is enabled, always attempt to convert it instead of returning an error or falling back to a different method.
+	if convertImages {
+		logrus.Debugf("Created differ to convert blob %q", blobDigest)
+		return makeConvertFromRawDiffer(store, blobDigest, blobSize, iss, pullOptions)
+	}
+
+	logrus.Debugf("Could not create differ for blob %q: %v", blobDigest, err)
+
+	// If the error is a bad request to the server, then signal to the caller that it can try a different method.  This can be done
+	// only when convert_images is disabled.
+	var badRequestErr ErrBadRequest
+	if errors.As(err, &badRequestErr) {
+		err = newErrFallbackToOrdinaryLayerDownload(err)
+	}
+	return nil, err
 }
 
 func makeConvertFromRawDiffer(store storage.Store, blobDigest digest.Digest, blobSize int64, iss ImageSourceSeekable, pullOptions map[string]string) (*chunkedDiffer, error) {
-	if !parseBooleanPullOption(pullOptions, "convert_images", false) {
-		return nil, errors.New("convert_images not configured")
-	}
-
 	layersCache, err := getLayersCache(store)
 	if err != nil {
 		return nil, err
@@ -947,11 +974,9 @@ func (c *chunkedDiffer) retrieveMissingFiles(stream ImageSourceSeekable, dirfd i
 		}
 
 		if _, ok := err.(ErrBadRequest); ok {
-			// If the server cannot handle at least 64 chunks in a single request, just give up.
-			if len(chunksToRequest) < 64 {
+			if len(chunksToRequest) == 1 {
 				return err
 			}
-
 			// Merge more chunks to request
 			missingParts = mergeMissingChunks(missingParts, len(chunksToRequest)/2)
 			calculateChunksToRequest()
