@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
 func setRLimits() error {
@@ -25,7 +26,7 @@ func setUMask() {
 
 func earlyInitHook() {
 	if err := setRLimits(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to set rlimits: %s\n", err.Error())
+		logrus.Errorf("Failed to set rlimits: %v", err)
 	}
 
 	setUMask()
