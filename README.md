@@ -91,7 +91,7 @@ Podman uses OCI projects and best of breed libraries for different aspects:
 - Runtime: We use the [OCI runtime tools](https://github.com/opencontainers/runtime-tools) to generate OCI runtime configurations that can be used with any OCI-compliant runtime, like [crun](https://github.com/containers/crun/) and [runc](https://github.com/opencontainers/runc/).
 - Images: Image management uses the [containers/image](https://github.com/containers/image) library.
 - Storage: Container and image storage is managed by [containers/storage](https://github.com/containers/storage).
-- Networking: Networking support through use of [Netavark](https://github.com/containers/netavark) and [Aardvark](https://github.com/containers/aardvark-dns).  Rootless networking is handled via [slirp4netns](https://github.com/rootless-containers/slirp4netns).
+- Networking: Networking support through use of [Netavark](https://github.com/containers/netavark) and [Aardvark](https://github.com/containers/aardvark-dns).  Rootless networking is handled via [pasta](https://passt.top/passt) or [slirp4netns](https://github.com/rootless-containers/slirp4netns).
 - Builds: Builds are supported via [Buildah](https://github.com/containers/buildah).
 - Conmon: [Conmon](https://github.com/containers/conmon) is a tool for monitoring OCI runtimes, used by both Podman and CRI-O.
 - Seccomp: A unified [Seccomp](https://github.com/containers/common/blob/main/pkg/seccomp/seccomp.json) policy for Podman, Buildah, and CRI-O.
