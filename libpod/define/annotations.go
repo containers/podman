@@ -18,6 +18,12 @@ const (
 	// the two supported boolean values (InspectResponseTrue and
 	// InspectResponseFalse) it will be used in the output of Inspect().
 	InspectAnnotationAutoremove = "io.podman.annotations.autoremove"
+	// InspectAnnotationAutoremoveImage is used by Inspect to identify
+	// containers which will automatically remove the image used by the
+	// container. If an annotation with this key is found in the OCI spec and
+	// is one of the two supported boolean values (InspectResponseTrue and
+	// InspectResponseFalse) it will be used in the output of Inspect().
+	InspectAnnotationAutoremoveImage = "io.podman.annotations.autoremove-image"
 	// InspectAnnotationPrivileged is used by Inspect to identify containers
 	// which are privileged (IE, running with elevated privileges).
 	// It is expected to be a boolean, populated by one of

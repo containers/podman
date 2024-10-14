@@ -159,6 +159,12 @@ type ContainerBasicConfig struct {
 	// and exits.
 	// Optional.
 	Remove *bool `json:"remove,omitempty"`
+	// RemoveImage indicates that the container should remove the image it
+	// was created from after it exits.
+	// Only allowed if Remove is set to true and Image, not Rootfs, is in
+	// use.
+	// Optional.
+	RemoveImage *bool `json:"removeImage,omitempty"`
 	// ContainerCreateCommand is the command that was used to create this
 	// container.
 	// This will be shown in the output of Inspect() on the container, and
