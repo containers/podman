@@ -360,8 +360,14 @@ func CheckProcessRunning(processName string, pid int) error {
 		return fmt.Errorf("failed to read %s process status: %w", processName, err)
 	}
 	if pid > 0 {
-		// child exited
-		return fmt.Errorf("%s exited unexpectedly with exit code %d", processName, status.ExitStatus())
+		// Child exited, process is no longer running
+		if status.Exited() {
+			return fmt.Errorf("%s exited unexpectedly with exit code %d", processName, status.ExitStatus())
+		}
+		if status.Signaled() {
+			return fmt.Errorf("%s was terminated by signal: %s", processName, status.Signal().String())
+		}
+		return fmt.Errorf("%s exited unexpectedly", processName)
 	}
 	return nil
 }
