@@ -355,7 +355,15 @@ EOF
     local cname=c-$1-$(safename)
     t0=$(date --iso-8601=seconds)
 
-    CONTAINERS_CONF_OVERRIDE=$containersConf run_podman create --name=$cname $IMAGE
+    # Create a base image, airgapped from $IMAGE so this test is
+    # isolated from tag/label changes.
+    baseimage=i-$1-$(safename)
+    run_podman create -q $IMAGE true
+    local tmpcid=$output
+    run_podman commit -q $tmpcid $baseimage
+    run_podman rm $tmpcid
+
+    CONTAINERS_CONF_OVERRIDE=$containersConf run_podman create --name=$cname $baseimage
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman container inspect --size=true $cname
     inspect_json=$(jq -r --tab . <<< "$output")
 
@@ -379,6 +387,7 @@ EOF
     assert "$output" != ".*EffectiveCaps.*"
 
     run_podman rm $cname
+    run_podman rmi $baseimage
 }
 
 # bats test_tags=ci:parallel
