@@ -388,7 +388,7 @@ bindings_task:
         cd /tmp
         echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tar.zst"
         time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tar.zst
-        time tar --zstd -xf /tmp/repo.tar.zst -C $GOSRC
+        time tar -xf /tmp/repo.tar.zst -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
@@ -741,7 +741,7 @@ podman_machine_aarch64_task:
         cd /tmp
         echo "$ARTCURL/build_aarch64/repo/repo.tar.zst"
         time $ARTCURL/build_aarch64/repo/repo.tar.zst
-        time tar --zstd -xf /tmp/repo.tar.zst -C $GOSRC
+        time tar -xf /tmp/repo.tar.zst -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -804,7 +804,7 @@ podman_machine_mac_task:
         - mkdir -p $CIRRUS_WORKING_DIR
         - cd $CIRRUS_WORKING_DIR
         - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tar.zst
-        - tar --zstd -xf repo.tar.zst
+        - tar -xf repo.tar.zst
     # This host is/was shared with potentially many other CI tasks.
     # The previous task may have been canceled or aborted.
     prep_script: *mac_cleanup
@@ -1114,19 +1114,19 @@ artifacts_task:
         - mkdir -p /tmp/fed
         - cd /tmp/fed
         - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tar.zst
-        - tar --zstd -xf repo.tar.zst
+        - tar -xf repo.tar.zst
         - cp ./bin/* $CIRRUS_WORKING_DIR/
     win_binaries_script:
         - mkdir -p /tmp/win
         - cd /tmp/win
         - $ARTCURL/Windows%20Cross/repo/repo.tar.zst
-        - tar --zstd -xf repo.tar.zst
+        - tar -xf repo.tar.zst
         - mv ./podman-remote*.zip $CIRRUS_WORKING_DIR/
     osx_binaries_script:
         - mkdir -p /tmp/osx
         - cd /tmp/osx
         - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tar.zst
-        - tar --zstd -xf repo.tar.zst
+        - tar -xf repo.tar.zst
         - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
         - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/
     always:
