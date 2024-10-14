@@ -467,6 +467,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	errMap, err := parallelctr.ContainerOp(ctx, libpodContainers, func(c *libpod.Container) error {
 		mapMutex.Lock()
 		if _, ok := ctrsMap[c.ID()]; ok {
+			mapMutex.Unlock()
 			return nil
 		}
 		mapMutex.Unlock()
