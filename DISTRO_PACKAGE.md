@@ -1,101 +1,111 @@
 # Podman Packaging
 
-This document is currently written with Fedora as a reference, intended for use
-by packagers of other distros as well as package users.
+This document is intended for Podman *packagers*: those very few individuals
+responsible for building and shipping Podman on Linux distributions.
 
-## Fedora Users
-Podman v4 is available as an official Fedora package on Fedora 36 and rawhide.
-This version of Podman brings with it a new container stack called
-Netavark which serves as a replacement for CNI plugins
-(containernetworking-plugins on Fedora), as well as Aardvark-dns, the
-authoritative DNS server for container records.
+Document verified accurate as of Podman 5.2, 2024-10-16.
 
-Both Netavark and Aardvark-dns are available as official Fedora packages on
-Fedora 35 and newer versions and form the default network stack for new
-installations of Podman 4.0.
+## Building Podman
 
-On Fedora 36 and newer, fresh installations of Podman v4 will
-automatically install Aardvark-dns along with Netavark.
+This document assumes you are able to build executables up to and
+including `make install`.
+See [Building from Source](https://podman.io/docs/installation#building-from-source)
+on podman.io for possibly-outdated instructions.
 
-To install Podman v4:
+## Package contents
 
-```console
-$ sudo dnf install podman
+Everything installed by `make install`, obviously.
+
+Upstream splits Podman into multiple subpackages and we encourage you
+to consider doing likewise: some users may not want `podman-remote`
+or `-machine` or the test suite.
+
+The best starting point is the
+[RPM spec file](https://github.com/containers/podman/blob/main/rpm/podman.spec).
+This illustrates the subpackage breakdown as well as top-level dependencies.
+
+
+## Dependencies
+
+Podman requires a *runtime*, a *runtime monitor*, a *pause process*,
+and *networking tools*. In Fedora, some of these requirements are indirectly
+specified via [containers-common](https://github.com/containers/common);
+the nested tree looks like this:
+```
+    Podman
+    ├── Requires: catatonit
+    ├── Requires: conmon
+    └── Requires: containers-common-extra
+        ├── Requires: crun
+        ├── Requires: netavark
+        └── Requires: passt
 ```
 
-To update Podman from an older version to v4:
+### Runtime: crun
 
-```console
-$ sudo dnf update podman
-```
+The only runtime supported upstream is [crun](https://github.com/containers/crun),
+but different distros may wish to offer other options to their users. Your package
+must, directly or indirectly, list a runtime prerequisite.
 
-**NOTE:** Fedora 35 users will not be able to install Podman v4 using the default yum
-repositories and are recommended to use the COPR repo below:
+Heads up: you may end up being responsible for packaging this runtime, or at the
+very least working closely with the package maintainer. The best starting point
+for crun is its
+[RPM spec file](https://github.com/containers/crun/blob/main/rpm/crun.spec).
 
-```console
-$ sudo dnf copr enable rhcontainerbot/podman4
 
-# install or update per your needs
-$ sudo dnf install podman
-```
+### Pause process: catatonit
 
-After installation, if you would like to migrate all your containers to use
-Netavark, you will need to set `network_backend = "netavark"` under
-the `[network]` section in your containers.conf, typically located at:
-`/usr/share/containers/containers.conf`
+The pause process serves as a container `init`, reaping PIDs and handling signals.
 
-### Testing the latest development version`
+As of this writing, Podman uses an external tool,
+[catatonit](https://github.com/openSUSE/catatonit). This may be subject
+to change in future Podman versions.
 
-If you would like to test the latest unreleased upstream code, try the
-podman-next COPR
+If you need to package catatonit, a good starting point might be its
+[Fedora specfile](https://src.fedoraproject.org/rpms/catatonit/blob/rawhide/f/catatonit.spec).
 
-```console
-$ sudo dnf copr enable rhcontainerbot/podman-next
 
-$ sudo dnf install podman
-```
+### Runtime Monitor: conmon
 
-**CAUTION:** The podman-next COPR provides the latest unreleased sources of Podman,
-Netavark and Aardvark-dns as rpms which would override the versions provided by
-the official packages.
+The only working monitor is [conmon](https://github.com/containers/conmon).
+There is a Rust implementation in the works,
+[conmon-rs](https://github.com/containers/conmon-rs), but efforts
+to make it work with Podman have stalled for years.
 
-## Distro Packagers
+Heads up: you may end up being responsible for packaging conmon.
+The best starting point is its
+[RPM spec file](https://github.com/containers/conmon/blob/main/rpm/conmon.spec).
 
-The Fedora packaging sources for Podman are available at the [Podman
-dist-git](https://src.fedoraproject.org/rpms/podman).
 
-The main `podman` package no longer explicitly depends on
-containernetworking-plugins. The network stack dependencies are now handled in
-the [containers-common](https://src.fedoraproject.org/rpms/containers-common)
-package which allows for a single point of dependency maintenance for Podman
-and Buildah.
+### Networking Tools: netavark, aardvark-dns, passt
 
-- containers-common
-```
-Requires: container-network-stack
-Recommends: netavark
-```
+Networking differs between *root* and *rootless*: [passt](https://passt.top/)
+(also referred to as "pasta") is only needed for rootless.
+[netavark](https://github.com/containers/netavark/) and
+[aardvark-dns](https://github.com/containers/aardvark-dns/)
+are needed for both root and rootless podman.
 
-- netavark
-```
-Provides: container-network-stack = 2
-```
+Heads up: you will probably end up being responsible for packaging
+at least some of these. The best starting points are their respective
+RPM spec files:
+[netavark](https://github.com/containers/netavark/blob/main/rpm/netavark.spec),
+[aardvark-dns](https://github.com/containers/aardvark-dns/blob/main/rpm/aardvark-dns.spec).
 
-- containernetworking-plugins
-```
-Provides: container-network-stack = 1
-```
+Netavark and aardvark-dns must be packaged in lockstep down
+to the major-minor level: version `X.Y` of either is only
+guaranteed to work with `X.Y` of the other. If you are responsible
+for packaging these, make sure you set up interpackage dependencies
+appropriately to prevent version mismatches between them.
 
-This configuration ensures:
-- New installations of Podman will always install netavark by default.
-- The containernetworking-plugins package will not conflict with netavark and
-users can install them together.
+## Metapackage: containers-common
 
-## Listing bundled dependencies
-If you need to list the bundled dependencies in your packaging sources, you can
-process the `go.mod` file in the upstream source.
-For example, Fedora's packaging source uses:
+This package provides config files, man pages, and (at the
+packaging level) dependencies. There are good reasons for
+keeping this as a separate package, the most important one
+being that `buildah` and `skopeo` rely on this same content.
+Also important is the ability for individual distros to
+fine-tune config settings and dependencies.
 
-```
-$ awk '{print "Provides: bundled(golang("$1")) = "$2}' go.mod | sort | uniq | sed -e 's/-/_/g' -e '/bundled(golang())/d' -e '/bundled(golang(go\|module\|replace\|require))/d'
-```
+You will probably be responsible for packaging this.
+The best starting point is its
+[RPM spec file](https://github.com/containers/common/blob/main/rpm/containers-common.spec).
