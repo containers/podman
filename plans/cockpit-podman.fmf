@@ -7,6 +7,12 @@ adjust+:
   when: revdeps == yes
   enabled: true
 
+  # counteract https://issues.redhat.com/browse/TFT-2564
+  prepare+:
+  - how: shell
+    script: |
+      rm --force --verbose /etc/yum.repos.d/fedora.repo
+
 discover:
     how: fmf
     url: https://github.com/cockpit-project/cockpit-podman

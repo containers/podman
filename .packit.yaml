@@ -110,6 +110,26 @@ jobs:
             context:
               revdeps: "yes"
 
+  - job: tests
+    identifier: cockpit-revdeps
+    trigger: pull_request
+    packages: [podman-centos]
+    notifications:
+      failure_comment:
+        message: "Cockpit tests failed for commit {commit_sha}. @martinpitt, @jelly, @mvollmer please check."
+    targets:
+      - centos-stream-10-x86_64
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/g/cockpit/main-builds/repo/centos-stream-$releasever/group_cockpit-main-builds-centos-stream-$releasever.repo
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/centos-stream-$releasever/rhcontainerbot-podman-next-centos-stream-$releasever.repo
+          tmt:
+            context:
+              revdeps: "yes"
+
   - job: propose_downstream
     trigger: release
     update_release: false
