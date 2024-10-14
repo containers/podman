@@ -1,5 +1,4 @@
 //go:build linux && !exclude_disk_quota && cgo
-// +build linux,!exclude_disk_quota,cgo
 
 //
 // projectquota.go - implements XFS project quota controls
@@ -19,6 +18,16 @@ package quota
 #include <linux/quota.h>
 #include <linux/dqblk_xfs.h>
 
+#ifndef FS_XFLAG_PROJINHERIT
+struct fsxattr {
+	__u32		fsx_xflags;
+	__u32		fsx_extsize;
+	__u32		fsx_nextents;
+	__u32		fsx_projid;
+	unsigned char	fsx_pad[12];
+};
+#define FS_XFLAG_PROJINHERIT	0x00000200
+#endif
 #ifndef FS_IOC_FSGETXATTR
 #define FS_IOC_FSGETXATTR		_IOR ('X', 31, struct fsxattr)
 #endif
@@ -160,6 +169,11 @@ func NewControl(basePath string) (*Control, error) {
 	}
 
 	if err := q.setProjectQuota(minProjectID, quota); err != nil {
+		return nil, err
+	}
+
+	// Clear inherit flag from top-level directory if necessary.
+	if err := stripProjectInherit(basePath); err != nil {
 		return nil, err
 	}
 
@@ -340,6 +354,8 @@ func setProjectID(targetPath string, projectID uint32) error {
 	}
 	defer closeDir(dir)
 
+	logrus.Debugf("Setting quota project ID %d on %s", projectID, targetPath)
+
 	var fsx C.struct_fsxattr
 	_, _, errno := unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSGETXATTR,
 		uintptr(unsafe.Pointer(&fsx)))
@@ -347,12 +363,43 @@ func setProjectID(targetPath string, projectID uint32) error {
 		return fmt.Errorf("failed to get projid for %s: %w", targetPath, errno)
 	}
 	fsx.fsx_projid = C.__u32(projectID)
+	fsx.fsx_xflags |= C.FS_XFLAG_PROJINHERIT
 	_, _, errno = unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSSETXATTR,
 		uintptr(unsafe.Pointer(&fsx)))
 	if errno != 0 {
 		return fmt.Errorf("failed to set projid for %s: %w", targetPath, errno)
 	}
 
+	return nil
+}
+
+// stripProjectInherit strips the project inherit flag from a directory.
+// Used on the top-level directory to ensure project IDs are only inherited for
+// files in directories we set quotas on - not the directories we want to set
+// the quotas on, as that would make everything use the same project ID.
+func stripProjectInherit(targetPath string) error {
+	dir, err := openDir(targetPath)
+	if err != nil {
+		return err
+	}
+	defer closeDir(dir)
+
+	var fsx C.struct_fsxattr
+	_, _, errno := unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSGETXATTR,
+		uintptr(unsafe.Pointer(&fsx)))
+	if errno != 0 {
+		return fmt.Errorf("failed to get xfs attrs for %s: %w", targetPath, errno)
+	}
+	if fsx.fsx_xflags&C.FS_XFLAG_PROJINHERIT != 0 {
+		// Flag is set, need to clear it.
+		logrus.Debugf("Clearing PROJINHERIT flag from directory %s", targetPath)
+		fsx.fsx_xflags = fsx.fsx_xflags &^ C.FS_XFLAG_PROJINHERIT
+		_, _, errno = unix.Syscall(unix.SYS_IOCTL, getDirFd(dir), C.FS_IOC_FSSETXATTR,
+			uintptr(unsafe.Pointer(&fsx)))
+		if errno != 0 {
+			return fmt.Errorf("failed to clear PROJINHERIT for %s: %w", targetPath, errno)
+		}
+	}
 	return nil
 }
 
