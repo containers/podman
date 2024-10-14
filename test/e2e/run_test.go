@@ -762,6 +762,16 @@ USER bin`, BB)
 		Expect(err).ToNot(HaveOccurred())
 
 		Expect(ulimitCtr).Should(BeNumerically(">=", l.Max))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--ulimit", "host", fedoraMinimal, "ulimit", "-Sn"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		ulimitCtrStr = strings.TrimSpace(session.OutputToString())
+		ulimitCtr, err = strconv.ParseUint(ulimitCtrStr, 10, 0)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(ulimitCtr).Should(BeNumerically("<", l.Max))
 	})
 
 	It("podman run with cidfile", func() {

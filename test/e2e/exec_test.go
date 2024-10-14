@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
+	"syscall"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -307,6 +309,39 @@ var _ = Describe("Podman exec", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("0000000000000000"))
+	})
+
+	It("podman exec limits host test", func() {
+		SkipIfRemote("This can only be used for local tests")
+
+		var l syscall.Rlimit
+
+		err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &l)
+		Expect(err).ToNot(HaveOccurred())
+
+		setup := podmanTest.RunTopContainerWithArgs("test1", []string{"--ulimit", "host"})
+		setup.WaitWithDefaultTimeout()
+		Expect(setup).Should(ExitCleanly())
+
+		session := podmanTest.Podman([]string{"exec", "test1", "sh", "-c", "ulimit -H -n"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		ulimitCtrStr := strings.TrimSpace(session.OutputToString())
+		ulimitCtr, err := strconv.ParseUint(ulimitCtrStr, 10, 0)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(ulimitCtr).Should(BeNumerically("==", l.Max))
+
+		session = podmanTest.Podman([]string{"exec", "test1", "sh", "-c", "ulimit -S -n"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		ulimitCtrStr = strings.TrimSpace(session.OutputToString())
+		ulimitCtr, err = strconv.ParseUint(ulimitCtrStr, 10, 0)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(ulimitCtr).Should(BeNumerically("<", l.Max))
 	})
 
 	// #10927 ("no logs from conmon"), one of our nastiest flakes

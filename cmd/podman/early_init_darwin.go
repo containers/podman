@@ -1,28 +1,21 @@
 package main
 
 import (
-	"fmt"
-	"os"
 	"syscall"
+
+	"github.com/sirupsen/logrus"
 )
 
-func setRLimitsNoFile() error {
+func checkRLimits() {
 	var rLimitNoFile syscall.Rlimit
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimitNoFile); err != nil {
-		return fmt.Errorf("getting RLIMITS_NOFILE: %w", err)
+		logrus.Debugf("Error getting RLIMITS_NOFILE: %s", err)
+		return
 	}
-	err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &syscall.Rlimit{
-		Max: rLimitNoFile.Max,
-		Cur: rLimitNoFile.Max,
-	})
-	if err != nil {
-		return fmt.Errorf("setting new RLIMITS_NOFILE: %w", err)
-	}
-	return nil
+
+	logrus.Debugf("Got RLIMITS_NOFILE: cur=%d, max=%d", rLimitNoFile.Cur, rLimitNoFile.Max)
 }
 
 func earlyInitHook() {
-	if err := setRLimitsNoFile(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to set RLIMITS_NOFILE: %s\n", err.Error())
-	}
+	checkRLimits()
 }
