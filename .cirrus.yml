@@ -129,10 +129,10 @@ validate-source_task:
 build_task:
     alias: 'build'
     name: 'Build for $DISTRO_NV' # N/B: Referenced by URLencoded strings elsewhere
-    gce_instance: &standardvm
+    gce_instance: &fastvm
         image_project: libpod-218412
         zone: "us-central1-a"
-        cpu: 2
+        cpu: 4
         memory: "4Gb"
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.
@@ -178,9 +178,9 @@ build_task:
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
     repo_prep_script: &repo_prep >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
+        tar --zstd -cf /tmp/repo.tar.zst -C $GOSRC . && mv /tmp/repo.tar.zst $GOSRC/
     repo_artifacts: &repo_artifacts
-        path: ./repo.tbz
+        path: ./repo.tar.zst
         type: application/octet-stream
     always: &runner_stats
         runner_stats_artifacts:
@@ -210,11 +210,8 @@ build_aarch64_task:
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
-    repo_prep_script: &repo_prep_aarch64 >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
-    repo_artifacts: &repo_artifacts_aarch64
-        path: ./repo.tbz
-        type: application/octet-stream
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
     always: *runner_stats
 
 
@@ -232,7 +229,7 @@ alt_build_task:
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
-    gce_instance: *standardvm
+    gce_instance: *fastvm
     matrix:
       - env:
             ALT_NAME: 'Build Each Commit'
@@ -250,11 +247,11 @@ alt_build_task:
             ALT_NAME: 'Alt Arch. MIPS64 Cross'
       - env:
             ALT_NAME: 'Alt Arch. Other Cross'
-    # This task cannot make use of the shared repo.tbz artifact.
+    # This task cannot make use of the shared repo.tar.zst artifact.
     clone_script: *full_clone
     setup_script: *setup
     main_script: *main
-    # Produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    # Produce a new repo.tar.zst artifact for consumption by 'artifacts' task.
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
     always: *runner_stats
@@ -301,7 +298,7 @@ osx_alt_build_task:
     # The Mac tests rely this Podman binary to run, and the CI Mac is ARM-based
     build_arm64_script:
         - make podman-remote-release-darwin_arm64.zip
-    # Produce a new repo.tbz artifact for consumption by dependent tasks.
+    # Produce a new repo.tar.zst artifact for consumption by dependent tasks.
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
     # This host is/was shared with potentially many other CI tasks.
@@ -329,11 +326,11 @@ freebsd_alt_build_task:
     freebsd_instance:
         image_family: freebsd-13-3
     setup_script:
-        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf
+        - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf zstd
     build_amd64_script:
         - gmake podman-release
-    # This task cannot make use of the shared repo.tbz artifact and must
-    # produce a new repo.tbz artifact for consumption by 'artifacts' task.
+    # This task cannot make use of the shared repo.tar.zst artifact and must
+    # produce a new repo.tar.zst artifact for consumption by 'artifacts' task.
     repo_prep_script: *repo_prep
     repo_artifacts: *repo_artifacts
 
@@ -380,16 +377,18 @@ bindings_task:
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
     depends_on: &build
         - build_success
-    gce_instance: *standardvm
+    gce_instance: &standardvm
+      <<: *fastvm
+      cpu: 2
     env:
         <<: *stdenvars
         TEST_FLAVOR: bindings
     # N/B: This script depends on ${DISTRO_NV} being defined for the task.
     clone_script: &get_gosrc |
         cd /tmp
-        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
-        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
-        time tar xjf /tmp/repo.tbz -C $GOSRC
+        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tar.zst"
+        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tar.zst
+        time tar -xf /tmp/repo.tar.zst -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: &logs_artifacts
@@ -466,11 +465,11 @@ win_installer_task:
         $ProgressPreference = 'SilentlyContinue'
         New-Item -ItemType Directory -Force -Path "$ENV:CIRRUS_WORKING_DIR"
         Set-Location "$ENV:CIRRUS_WORKING_DIR"
-        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tbz"
+        $uri = "${ENV:ART_URL}/Windows Cross/repo/repo.tar.zst"
         Write-Host "Downloading $uri"
         For($i = 0;;) {
             Try {
-                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tbz2" `
+                Invoke-WebRequest -UseBasicParsing -ErrorAction Stop -OutFile "repo.tar.zst" `
                   -Uri "$uri"
                 Break
             } Catch {
@@ -481,11 +480,19 @@ win_installer_task:
                 Start-Sleep -Seconds 10
             }
         }
-        arc unarchive repo.tbz2 .\
+        Write-Host "zstd -d repo.tar.zst"
+        zstd -d repo.tar.zst
         if ($LASTEXITCODE -ne 0) {
-            throw "Unarchive repo.tbz2 failed"
+            throw "Extract repo.tar.zst failed"
             Exit 1
         }
+        Write-Host "arc unarchive repo.tar .\"
+        arc unarchive repo.tar .\repo
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unarchive repo.tar failed"
+            Exit 1
+        }
+        Get-ChildItem -Path .
         Get-ChildItem -Path .\repo
     main_script: ".\\repo\\contrib\\cirrus\\win-installer-main.ps1"
 
@@ -626,9 +633,7 @@ local_integration_test_task: &local_integration_test_task
     matrix: *platform_axis
     # integration tests scale well with cpu as they are parallelized
     # so we give these tests 4 cores to make them faster
-    gce_instance: &fastvm
-      <<: *standardvm
-      cpu: 4
+    gce_instance: *fastvm
     env:
         TEST_FLAVOR: int
     clone_script: *get_gosrc
@@ -734,9 +739,9 @@ podman_machine_aarch64_task:
         VM_IMAGE_NAME: "${FEDORA_AARCH64_AMI}"
     clone_script: &get_gosrc_aarch64 |
         cd /tmp
-        echo "$ARTCURL/build_aarch64/repo/repo.tbz"
-        time $ARTCURL/build_aarch64/repo/repo.tbz
-        time tar xjf /tmp/repo.tbz -C $GOSRC
+        echo "$ARTCURL/build_aarch64/repo/repo.tar.zst"
+        time $ARTCURL/build_aarch64/repo/repo.tar.zst
+        time tar -xf /tmp/repo.tar.zst -C $GOSRC
     setup_script: *setup
     main_script: *main
     always: *int_logs_artifacts
@@ -798,8 +803,8 @@ podman_machine_mac_task:
     clone_script:  # artifacts from osx_alt_build_task
         - mkdir -p $CIRRUS_WORKING_DIR
         - cd $CIRRUS_WORKING_DIR
-        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tbz
-        - tar xjf repo.tbz
+        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tar.zst
+        - tar -xf repo.tar.zst
     # This host is/was shared with potentially many other CI tasks.
     # The previous task may have been canceled or aborted.
     prep_script: *mac_cleanup
@@ -1108,20 +1113,20 @@ artifacts_task:
     fedora_binaries_script:
         - mkdir -p /tmp/fed
         - cd /tmp/fed
-        - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tbz
-        - tar xjf repo.tbz
+        - $ARTCURL/Build%20for%20${FEDORA_NAME}/repo/repo.tar.zst
+        - tar -xf repo.tar.zst
         - cp ./bin/* $CIRRUS_WORKING_DIR/
     win_binaries_script:
         - mkdir -p /tmp/win
         - cd /tmp/win
-        - $ARTCURL/Windows%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
+        - $ARTCURL/Windows%20Cross/repo/repo.tar.zst
+        - tar -xf repo.tar.zst
         - mv ./podman-remote*.zip $CIRRUS_WORKING_DIR/
     osx_binaries_script:
         - mkdir -p /tmp/osx
         - cd /tmp/osx
-        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tbz
-        - tar xjf repo.tbz
+        - $ARTCURL/Build%20for%20MacOS%20amd64%2Barm64/repo/repo.tar.zst
+        - tar -xf repo.tar.zst
         - mv ./podman-remote-release-darwin_*.zip $CIRRUS_WORKING_DIR/
         - mv ./contrib/pkginstaller/out/podman-installer-macos-*.pkg $CIRRUS_WORKING_DIR/
     always:
