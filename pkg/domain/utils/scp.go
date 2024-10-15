@@ -17,23 +17,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) (*entities.ImageLoadReport, *entities.ImageScpOptions, *entities.ImageScpOptions, []string, error) {
-	source := entities.ImageScpOptions{}
-	dest := entities.ImageScpOptions{}
+func ExecuteTransfer(src, dst string, opts entities.ScpExecuteTransferOptions) (*entities.ScpExecuteTransferReport, error) {
+	source := entities.ScpTransferImageOptions{}
+	dest := entities.ScpTransferImageOptions{}
 	sshInfo := entities.ImageScpConnections{}
-	report := entities.ImageLoadReport{Names: []string{}}
+	loadReport := entities.ScpLoadReport{Names: []string{}}
 
 	podman, err := os.Executable()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	f, err := os.CreateTemp("", "podman") // open temp file for load/save output
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	locations := []*entities.ImageScpOptions{}
+	locations := []*entities.ScpTransferImageOptions{}
 	cliConnections := []string{}
 	args := []string{src}
 	if len(dst) > 0 {
@@ -42,7 +42,7 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 	for _, arg := range args {
 		loc, connect, err := ParseImageSCPArg(arg)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 		locations = append(locations, loc)
 		cliConnections = append(cliConnections, connect...)
@@ -51,19 +51,19 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 	switch {
 	case len(locations) > 1:
 		if err = ValidateSCPArgs(locations); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 		dest = *locations[1]
 	case len(locations) == 1:
 		switch {
 		case len(locations[0].Image) == 0:
-			return nil, nil, nil, nil, fmt.Errorf("no source image specified: %w", define.ErrInvalidArg)
+			return nil, fmt.Errorf("no source image specified: %w", define.ErrInvalidArg)
 		case len(locations[0].Image) > 0 && !locations[0].Remote && len(locations[0].User) == 0: // if we have podman image scp $IMAGE
-			return nil, nil, nil, nil, fmt.Errorf("must specify a destination: %w", define.ErrInvalidArg)
+			return nil, fmt.Errorf("must specify a destination: %w", define.ErrInvalidArg)
 		}
 	}
 
-	source.Quiet = quiet
+	source.Quiet = opts.Quiet
 	source.File = f.Name() // after parsing the arguments, set the file for the save/load
 	dest.File = source.File
 	defer os.Remove(source.File)
@@ -81,59 +81,83 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 
 	cfg, err := config.Default()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 	err = GetServiceInformation(&sshInfo, cliConnections, cfg)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
-	saveCmd, loadCmd := CreateCommands(source, dest, parentFlags, podman)
+	createCommandOpts := entities.ScpCreateCommandsOptions{}
+	createCommandOpts.ParentFlags = opts.ParentFlags
+	createCommandOpts.Podman = podman
+	saveCmd, loadCmd := CreateCommands(source, dest, createCommandOpts)
 
 	switch {
 	case source.Remote: // if we want to load FROM the remote, dest can either be local or remote in this case
-		err = SaveToRemote(source.Image, source.File, "", sshInfo.URI[0], sshInfo.Identities[0], sshMode)
+		saveToRemoteOpts := entities.ScpSaveToRemoteOptions{}
+		saveToRemoteOpts.Image = source.Image
+		saveToRemoteOpts.LocalFile = source.File
+		saveToRemoteOpts.Tag = ""
+		saveToRemoteOpts.URL = sshInfo.URI[0]
+		saveToRemoteOpts.Iden = sshInfo.Identities[0]
+		saveToRemoteOpts.SSHMode = opts.SSHMode
+		_, err = SaveToRemote(saveToRemoteOpts)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 		if dest.Remote { // we want to load remote -> remote, both source and dest are remote
-			rep, id, err := LoadToRemote(dest, dest.File, "", sshInfo.URI[1], sshInfo.Identities[1], sshMode)
+			loadToRemoteOpts := entities.ScpLoadToRemoteOptions{}
+			loadToRemoteOpts.Dest = dest
+			loadToRemoteOpts.LocalFile = dest.File
+			loadToRemoteOpts.Tag = ""
+			loadToRemoteOpts.URL = sshInfo.URI[1]
+			loadToRemoteOpts.Iden = sshInfo.Identities[1]
+			loadToRemoteOpts.SSHMode = opts.SSHMode
+			loadToRemoteRep, err := LoadToRemote(loadToRemoteOpts)
 			if err != nil {
-				return nil, nil, nil, nil, err
+				return nil, err
 			}
-			if len(rep) > 0 {
-				fmt.Println(rep)
+			if len(loadToRemoteRep.Response) > 0 {
+				fmt.Println(loadToRemoteRep.Response)
 			}
-			if len(id) > 0 {
-				report.Names = append(report.Names, id)
+			if len(loadToRemoteRep.ID) > 0 {
+				loadReport.Names = append(loadReport.Names, loadToRemoteRep.ID)
 			}
 			break
 		}
 		id, err := ExecPodman(dest, podman, loadCmd)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 		if len(id) > 0 {
-			report.Names = append(report.Names, id)
+			loadReport.Names = append(loadReport.Names, id)
 		}
 	case dest.Remote: // remote host load, implies source is local
 		_, err = ExecPodman(dest, podman, saveCmd)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 
-		rep, id, err := LoadToRemote(dest, source.File, "", sshInfo.URI[0], sshInfo.Identities[0], sshMode)
+		loadToRemoteOpts := entities.ScpLoadToRemoteOptions{}
+		loadToRemoteOpts.Dest = dest
+		loadToRemoteOpts.LocalFile = source.File
+		loadToRemoteOpts.Tag = ""
+		loadToRemoteOpts.URL = sshInfo.URI[0]
+		loadToRemoteOpts.Iden = sshInfo.Identities[0]
+		loadToRemoteOpts.SSHMode = opts.SSHMode
+		loadToRemoteRep, err := LoadToRemote(loadToRemoteOpts)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
-		if len(rep) > 0 {
-			fmt.Println(rep)
+		if len(loadToRemoteRep.Response) > 0 {
+			fmt.Println(loadToRemoteRep.Response)
 		}
-		if len(id) > 0 {
-			report.Names = append(report.Names, id)
+		if len(loadToRemoteRep.ID) > 0 {
+			loadReport.Names = append(loadReport.Names, loadToRemoteRep.ID)
 		}
 		if err = os.Remove(source.File); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	default: // else native load, both source and dest are local and transferring between users
 		if source.User == "" { // source user has to be set, destination does not
@@ -141,15 +165,21 @@ func ExecuteTransfer(src, dst string, parentFlags []string, quiet bool, sshMode 
 			if source.User == "" {
 				u, err := user.Current()
 				if err != nil {
-					return nil, nil, nil, nil, fmt.Errorf("could not obtain user, make sure the environmental variable $USER is set: %w", err)
+					return nil, fmt.Errorf("could not obtain user, make sure the environmental variable $USER is set: %w", err)
 				}
 				source.User = u.Username
 			}
 		}
-		return nil, &source, &dest, parentFlags, nil // transfer needs to be done in ABI due to cross issues
+		rep := entities.ScpExecuteTransferReport{}
+		rep.Source = &source
+		rep.Dest = &dest
+		rep.ParentFlags = opts.ParentFlags
+		return &rep, nil // transfer needs to be done in ABI due to cross issues
 	}
 
-	return &report, nil, nil, nil, nil
+	rep := entities.ScpExecuteTransferReport{}
+	rep.LoadReport = &loadReport
+	return &rep, nil
 }
 
 // CreateSCPCommand takes an existing command, appends the given arguments and returns a configured podman command for image scp
@@ -162,7 +192,7 @@ func CreateSCPCommand(cmd *exec.Cmd, command []string) *exec.Cmd {
 }
 
 // ScpTag is a helper function for native podman to tag an image after a local load from image SCP
-func ScpTag(cmd *exec.Cmd, podman string, dest entities.ImageScpOptions) error {
+func ScpTag(cmd *exec.Cmd, podman string, dest entities.ScpTransferImageOptions) error {
 	cmd.Stdout = nil
 	out, err := cmd.Output() // this function captures the output temporarily in order to execute the next command
 	if err != nil {
@@ -201,91 +231,88 @@ func LoginUser(user string) (*exec.Cmd, error) {
 	return cmd, err
 }
 
-// loadToRemote takes image and remote connection information. it connects to the specified client
+// LoadToRemote takes image and remote connection information. it connects to the specified client
 // and copies the saved image dir over to the remote host and then loads it onto the machine
-// returns a string containing output or an error
-func LoadToRemote(dest entities.ImageScpOptions, localFile string, tag string, url *url.URL, iden string, sshEngine ssh.EngineMode) (string, string, error) {
+// returns a report containing ssh response string and the id of the loaded image, or an error
+func LoadToRemote(opts entities.ScpLoadToRemoteOptions) (*entities.ScpLoadToRemoteReport, error) {
 	port := 0
-	urlPort := url.Port()
+	urlPort := opts.URL.Port()
 	if urlPort != "" {
 		var err error
-		port, err = strconv.Atoi(url.Port())
+		port, err = strconv.Atoi(opts.URL.Port())
 		if err != nil {
-			return "", "", err
+			return nil, err
 		}
 	}
 
-	input, err := os.Open(localFile)
+	input, err := os.Open(opts.LocalFile)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	defer input.Close()
 
-	out, err := ssh.ExecWithInput(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"podman", "image", "load"}}, sshEngine, input)
+	out, err := ssh.ExecWithInput(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"podman", "image", "load"}}, opts.SSHMode, input)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
-	if tag != "" {
-		return "", "", fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
+	if opts.Tag != "" {
+		return nil, fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 	rep := strings.TrimSuffix(out, "\n")
 	outArr := strings.Split(rep, " ")
 	id := outArr[len(outArr)-1]
-	if len(dest.Tag) > 0 { // tag the remote image using the output ID
-		_, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: url.String(), Identity: iden, Port: port, User: url.User, Args: []string{"podman", "image", "tag", id, dest.Tag}}, sshEngine)
+	if len(opts.Dest.Tag) > 0 { // tag the remote image using the output ID
+		_, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"podman", "image", "tag", id, opts.Dest.Tag}}, opts.SSHMode)
 		if err != nil {
-			return "", "", err
-		}
-		if err != nil {
-			return "", "", err
+			return nil, err
 		}
 	}
-	return rep, id, nil
+	return &entities.ScpLoadToRemoteReport{Response: rep, ID: id}, nil
 }
 
-// saveToRemote takes image information and remote connection information. it connects to the specified client
+// SaveToRemote takes image information and remote connection information. it connects to the specified client
 // and saves the specified image on the remote machine and then copies it to the specified local location
 // returns an error if one occurs.
-func SaveToRemote(image, localFile string, tag string, uri *url.URL, iden string, sshEngine ssh.EngineMode) error {
-	if tag != "" {
-		return fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
+func SaveToRemote(opts entities.ScpSaveToRemoteOptions) (*entities.ScpSaveToRemoteReport, error) {
+	if opts.Tag != "" {
+		return nil, fmt.Errorf("renaming of an image is currently not supported: %w", define.ErrInvalidArg)
 	}
 
 	port := 0
-	urlPort := uri.Port()
+	urlPort := opts.URL.Port()
 	if urlPort != "" {
 		var err error
-		port, err = strconv.Atoi(uri.Port())
+		port, err = strconv.Atoi(opts.URL.Port())
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: uri.String(), Identity: iden, Port: port, User: uri.User, Args: []string{"mktemp"}}, sshEngine)
+	remoteFile, err := ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"mktemp"}}, opts.SSHMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: uri.String(), Identity: iden, Port: port, User: uri.User, Args: []string{"podman", "image", "save", image, "--format", "oci-archive", "--output", remoteFile}}, sshEngine)
+	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"podman", "image", "save", opts.Image, "--format", "oci-archive", "--output", remoteFile}}, opts.SSHMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	opts := ssh.ConnectionScpOptions{User: uri.User, Identity: iden, Port: port, Source: "ssh://" + uri.User.String() + "@" + uri.Hostname() + ":" + remoteFile, Destination: localFile}
-	scpRep, err := ssh.Scp(&opts, sshEngine)
+	scpConnOpts := ssh.ConnectionScpOptions{User: opts.URL.User, Identity: opts.Iden, Port: port, Source: "ssh://" + opts.URL.User.String() + "@" + opts.URL.Hostname() + ":" + remoteFile, Destination: opts.LocalFile}
+	scpRep, err := ssh.Scp(&scpConnOpts, opts.SSHMode)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: uri.String(), Identity: iden, Port: port, User: uri.User, Args: []string{"rm", scpRep}}, sshEngine)
+	_, err = ssh.Exec(&ssh.ConnectionExecOptions{Host: opts.URL.String(), Identity: opts.Iden, Port: port, User: opts.URL.User, Args: []string{"rm", scpRep}}, opts.SSHMode)
 	if err != nil {
 		logrus.Errorf("Removing file on endpoint: %v", err)
 	}
 
-	return nil
+	return &entities.ScpSaveToRemoteReport{}, nil
 }
 
 // execPodman executes the podman save/load command given the podman binary
-func ExecPodman(dest entities.ImageScpOptions, podman string, command []string) (string, error) {
+func ExecPodman(dest entities.ScpTransferImageOptions, podman string, command []string) (string, error) {
 	cmd := exec.Command(podman)
 	CreateSCPCommand(cmd, command[1:])
 	logrus.Debugf("Executing podman command: %q", cmd)
@@ -304,27 +331,27 @@ func ExecPodman(dest entities.ImageScpOptions, podman string, command []string) 
 	return "", cmd.Run()
 }
 
-// createCommands forms the podman save and load commands used by SCP
-func CreateCommands(source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string, podman string) ([]string, []string) {
+// CreateCommands forms the podman save and load commands used by SCP
+func CreateCommands(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts entities.ScpCreateCommandsOptions) ([]string, []string) {
 	var parentString string
 	quiet := ""
 	if source.Quiet {
 		quiet = "-q "
 	}
-	if len(parentFlags) > 0 {
-		parentString = strings.Join(parentFlags, " ") + " " // if there are parent args, an extra space needs to be added
+	if len(opts.ParentFlags) > 0 {
+		parentString = strings.Join(opts.ParentFlags, " ") + " " // if there are parent args, an extra space needs to be added
 	} else {
-		parentString = strings.Join(parentFlags, " ")
+		parentString = strings.Join(opts.ParentFlags, " ")
 	}
-	loadCmd := strings.Split(fmt.Sprintf("%s %sload %s--input %s", podman, parentString, quiet, dest.File), " ")
-	saveCmd := strings.Split(fmt.Sprintf("%s %vsave %s--output %s %s", podman, parentString, quiet, source.File, source.Image), " ")
+	loadCmd := strings.Split(fmt.Sprintf("%s %sload %s--input %s", opts.Podman, parentString, quiet, dest.File), " ")
+	saveCmd := strings.Split(fmt.Sprintf("%s %vsave %s--output %s %s", opts.Podman, parentString, quiet, source.File, source.Image), " ")
 	return saveCmd, loadCmd
 }
 
 // parseImageSCPArg returns the valid connection, and source/destination data based off of the information provided by the user
 // arg is a string containing one of the cli arguments returned is a filled out source/destination options structs as well as a connections array and an error if applicable
-func ParseImageSCPArg(arg string) (*entities.ImageScpOptions, []string, error) {
-	location := entities.ImageScpOptions{}
+func ParseImageSCPArg(arg string) (*entities.ScpTransferImageOptions, []string, error) {
+	location := entities.ScpTransferImageOptions{}
 	var err error
 	cliConnections := []string{}
 
@@ -349,7 +376,7 @@ func ParseImageSCPArg(arg string) (*entities.ImageScpOptions, []string, error) {
 	return &location, cliConnections, nil
 }
 
-func ValidateImagePortion(location entities.ImageScpOptions, arg string) (entities.ImageScpOptions, error) {
+func ValidateImagePortion(location entities.ScpTransferImageOptions, arg string) (entities.ScpTransferImageOptions, error) {
 	if RemoteArgLength(arg, 1) > 0 {
 		before := strings.Split(arg, "::")[1]
 		name := ValidateImageName(before)
@@ -376,7 +403,7 @@ func ValidateImageName(input string) string {
 }
 
 // validateSCPArgs takes the array of source and destination options and checks for common errors
-func ValidateSCPArgs(locations []*entities.ImageScpOptions) error {
+func ValidateSCPArgs(locations []*entities.ScpTransferImageOptions) error {
 	if len(locations) > 2 {
 		return fmt.Errorf("cannot specify more than two arguments: %w", define.ErrInvalidArg)
 	}

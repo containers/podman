@@ -23,7 +23,6 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libimage/filter"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -772,36 +771,39 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	return nil, nil
 }
 
-func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
-	rep, source, dest, flags, err := domainUtils.ExecuteTransfer(src, dst, parentFlags, quiet, sshMode)
+func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, opts entities.ImageScpOptions) (*entities.ImageScpReport, error) {
+	report, err := domainUtils.ExecuteTransfer(src, dst, opts.ScpExecuteTransferOptions)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	if (rep == nil && err == nil) && (source != nil && dest != nil) { // we need to execute the transfer
-		err := Transfer(ctx, *source, *dest, flags)
+	if (report.LoadReport == nil && err == nil) && (report.Source != nil && report.Dest != nil) { // we need to execute the transfer
+		transferOpts := entities.ScpTransferOptions{}
+		transferOpts.ParentFlags = report.ParentFlags
+		_, err := Transfer(ctx, *report.Source, *report.Dest, transferOpts)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	return nil
+	return &entities.ImageScpReport{}, nil
 }
 
-func Transfer(ctx context.Context, source entities.ImageScpOptions, dest entities.ImageScpOptions, parentFlags []string) error {
+func Transfer(ctx context.Context, source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, opts entities.ScpTransferOptions) (*entities.ScpTransferReport, error) {
 	if source.User == "" {
-		return fmt.Errorf("you must define a user when transferring from root to rootless storage: %w", define.ErrInvalidArg)
+		return nil, fmt.Errorf("you must define a user when transferring from root to rootless storage: %w", define.ErrInvalidArg)
 	}
 	podman, err := os.Executable()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	rep := entities.ScpTransferReport{}
 	if rootless.IsRootless() && (len(dest.User) == 0 || dest.User == "root") { // if we are rootless and do not have a destination user we can just use sudo
-		return transferRootless(source, dest, podman, parentFlags)
+		return &rep, transferRootless(source, dest, podman, opts.ParentFlags)
 	}
-	return transferRootful(source, dest, podman, parentFlags)
+	return &rep, transferRootful(source, dest, podman, opts.ParentFlags)
 }
 
 // TransferRootless creates new podman processes using exec.Command and sudo, transferring images between the given source and destination users
-func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
+func transferRootless(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, podman string, parentFlags []string) error {
 	var cmdSave *exec.Cmd
 	saveCommand, loadCommand := parentFlags, parentFlags
 	saveCommand = append(saveCommand, []string{"save"}...)
@@ -842,7 +844,7 @@ func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOpt
 }
 
 // transferRootful creates new podman processes using exec.Command and a new uid/gid alongside a cleared environment
-func transferRootful(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
+func transferRootful(source entities.ScpTransferImageOptions, dest entities.ScpTransferImageOptions, podman string, parentFlags []string) error {
 	basicCommand := make([]string, 0, len(parentFlags)+1)
 	basicCommand = append(basicCommand, podman)
 	basicCommand = append(basicCommand, parentFlags...)
