@@ -169,6 +169,12 @@ See [**Environment**](#environment) note below for precedence and examples.
 
 @@option health-interval
 
+@@option health-log-destination
+
+@@option health-max-log-count
+
+@@option health-max-log-size
+
 @@option health-on-failure
 
 @@option health-retries

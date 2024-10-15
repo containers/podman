@@ -134,135 +134,138 @@ const (
 )
 
 type ContainerCreateOptions struct {
-	Annotation         []string
-	Attach             []string
-	Authfile           string
-	BlkIOWeight        string
-	BlkIOWeightDevice  []string
-	CapAdd             []string
-	CapDrop            []string
-	CgroupNS           string
-	CgroupsMode        string
-	CgroupParent       string `json:"cgroup_parent,omitempty"`
-	CIDFile            string
-	ConmonPIDFile      string `json:"container_conmon_pidfile,omitempty"`
-	CPUPeriod          uint64
-	CPUQuota           int64
-	CPURTPeriod        uint64
-	CPURTRuntime       int64
-	CPUShares          uint64
-	CPUS               float64 `json:"cpus,omitempty"`
-	CPUSetCPUs         string  `json:"cpuset_cpus,omitempty"`
-	CPUSetMems         string
-	Devices            []string `json:"devices,omitempty"`
-	DeviceCgroupRule   []string
-	DeviceReadBPs      []string `json:"device_read_bps,omitempty"`
-	DeviceReadIOPs     []string
-	DeviceWriteBPs     []string
-	DeviceWriteIOPs    []string
-	Entrypoint         *string `json:"container_command,omitempty"`
-	Env                []string
-	EnvHost            bool
-	EnvFile            []string
-	Expose             []string
-	GIDMap             []string
-	GPUs               []string
-	GroupAdd           []string
-	HealthCmd          string
-	HealthInterval     string
-	HealthRetries      uint
-	HealthStartPeriod  string
-	HealthTimeout      string
-	HealthOnFailure    string
-	Hostname           string `json:"hostname,omitempty"`
-	HTTPProxy          bool
-	HostUsers          []string
-	ImageVolume        string
-	Init               bool
-	InitContainerType  string
-	InitPath           string
-	IntelRdtClosID     string
-	Interactive        bool
-	IPC                string
-	Label              []string
-	LabelFile          []string
-	LogDriver          string
-	LogOptions         []string
-	Memory             string
-	MemoryReservation  string
-	MemorySwap         string
-	MemorySwappiness   int64
-	Name               string `json:"container_name"`
-	NoHealthCheck      bool
-	OOMKillDisable     bool
-	OOMScoreAdj        *int
-	Arch               string
-	OS                 string
-	Variant            string
-	PID                string `json:"pid,omitempty"`
-	PIDsLimit          *int64
-	Platform           string
-	Pod                string
-	PodIDFile          string
-	Personality        string
-	PreserveFDs        uint
-	PreserveFD         []uint
-	Privileged         bool
-	PublishAll         bool
-	Pull               string
-	Quiet              bool
-	ReadOnly           bool
-	ReadWriteTmpFS     bool
-	Restart            string
-	Replace            bool
-	Requires           []string
-	Retry              *uint  `json:"retry,omitempty"`
-	RetryDelay         string `json:"retry_delay,omitempty"`
-	Rm                 bool
-	RootFS             bool
-	Secrets            []string
-	SecurityOpt        []string `json:"security_opt,omitempty"`
-	SdNotifyMode       string
-	ShmSize            string
-	ShmSizeSystemd     string
-	SignaturePolicy    string
-	StartupHCCmd       string
-	StartupHCInterval  string
-	StartupHCRetries   uint
-	StartupHCSuccesses uint
-	StartupHCTimeout   string
-	StopSignal         string
-	StopTimeout        uint
-	StorageOpts        []string
-	SubGIDName         string
-	SubUIDName         string
-	Sysctl             []string `json:"sysctl,omitempty"`
-	Systemd            string
-	Timeout            uint
-	TLSVerify          commonFlag.OptionalBool
-	TmpFS              []string
-	TTY                bool
-	Timezone           string
-	Umask              string
-	EnvMerge           []string
-	UnsetEnv           []string
-	UnsetEnvAll        bool
-	UIDMap             []string
-	Ulimit             []string
-	User               string
-	UserNS             string `json:"-"`
-	UTS                string
-	Mount              []string
-	Volume             []string `json:"volume,omitempty"`
-	VolumesFrom        []string `json:"volumes_from,omitempty"`
-	Workdir            string
-	SeccompPolicy      string
-	PidFile            string
-	ChrootDirs         []string
-	IsInfra            bool
-	IsClone            bool
-	DecryptionKeys     []string
-	Net                *NetOptions `json:"net,omitempty"`
+	Annotation           []string
+	Attach               []string
+	Authfile             string
+	BlkIOWeight          string
+	BlkIOWeightDevice    []string
+	CapAdd               []string
+	CapDrop              []string
+	CgroupNS             string
+	CgroupsMode          string
+	CgroupParent         string `json:"cgroup_parent,omitempty"`
+	CIDFile              string
+	ConmonPIDFile        string `json:"container_conmon_pidfile,omitempty"`
+	CPUPeriod            uint64
+	CPUQuota             int64
+	CPURTPeriod          uint64
+	CPURTRuntime         int64
+	CPUShares            uint64
+	CPUS                 float64 `json:"cpus,omitempty"`
+	CPUSetCPUs           string  `json:"cpuset_cpus,omitempty"`
+	CPUSetMems           string
+	Devices              []string `json:"devices,omitempty"`
+	DeviceCgroupRule     []string
+	DeviceReadBPs        []string `json:"device_read_bps,omitempty"`
+	DeviceReadIOPs       []string
+	DeviceWriteBPs       []string
+	DeviceWriteIOPs      []string
+	Entrypoint           *string `json:"container_command,omitempty"`
+	Env                  []string
+	EnvHost              bool
+	EnvFile              []string
+	Expose               []string
+	GIDMap               []string
+	GPUs                 []string
+	GroupAdd             []string
+	HealthCmd            string
+	HealthInterval       string
+	HealthRetries        uint
+	HealthLogDestination string
+	HealthMaxLogCount    uint
+	HealthMaxLogSize     uint
+	HealthStartPeriod    string
+	HealthTimeout        string
+	HealthOnFailure      string
+	Hostname             string `json:"hostname,omitempty"`
+	HTTPProxy            bool
+	HostUsers            []string
+	ImageVolume          string
+	Init                 bool
+	InitContainerType    string
+	InitPath             string
+	IntelRdtClosID       string
+	Interactive          bool
+	IPC                  string
+	Label                []string
+	LabelFile            []string
+	LogDriver            string
+	LogOptions           []string
+	Memory               string
+	MemoryReservation    string
+	MemorySwap           string
+	MemorySwappiness     int64
+	Name                 string `json:"container_name"`
+	NoHealthCheck        bool
+	OOMKillDisable       bool
+	OOMScoreAdj          *int
+	Arch                 string
+	OS                   string
+	Variant              string
+	PID                  string `json:"pid,omitempty"`
+	PIDsLimit            *int64
+	Platform             string
+	Pod                  string
+	PodIDFile            string
+	Personality          string
+	PreserveFDs          uint
+	PreserveFD           []uint
+	Privileged           bool
+	PublishAll           bool
+	Pull                 string
+	Quiet                bool
+	ReadOnly             bool
+	ReadWriteTmpFS       bool
+	Restart              string
+	Replace              bool
+	Requires             []string
+	Retry                *uint  `json:"retry,omitempty"`
+	RetryDelay           string `json:"retry_delay,omitempty"`
+	Rm                   bool
+	RootFS               bool
+	Secrets              []string
+	SecurityOpt          []string `json:"security_opt,omitempty"`
+	SdNotifyMode         string
+	ShmSize              string
+	ShmSizeSystemd       string
+	SignaturePolicy      string
+	StartupHCCmd         string
+	StartupHCInterval    string
+	StartupHCRetries     uint
+	StartupHCSuccesses   uint
+	StartupHCTimeout     string
+	StopSignal           string
+	StopTimeout          uint
+	StorageOpts          []string
+	SubGIDName           string
+	SubUIDName           string
+	Sysctl               []string `json:"sysctl,omitempty"`
+	Systemd              string
+	Timeout              uint
+	TLSVerify            commonFlag.OptionalBool
+	TmpFS                []string
+	TTY                  bool
+	Timezone             string
+	Umask                string
+	EnvMerge             []string
+	UnsetEnv             []string
+	UnsetEnvAll          bool
+	UIDMap               []string
+	Ulimit               []string
+	User                 string
+	UserNS               string `json:"-"`
+	UTS                  string
+	Mount                []string
+	Volume               []string `json:"volume,omitempty"`
+	VolumesFrom          []string `json:"volumes_from,omitempty"`
+	Workdir              string
+	SeccompPolicy        string
+	PidFile              string
+	ChrootDirs           []string
+	IsInfra              bool
+	IsClone              bool
+	DecryptionKeys       []string
+	Net                  *NetOptions `json:"net,omitempty"`
 
 	CgroupConf []string
 
