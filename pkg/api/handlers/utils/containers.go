@@ -137,9 +137,11 @@ func WaitContainerLibpod(w http.ResponseWriter, r *http.Request) {
 			// However we keep the exit code around for longer than the container so
 			// we can just look it up here. Of course this only works when we get a
 			// full id as param but podman-remote will do that
-			if code, err := runtime.GetContainerExitCode(name); err == nil {
-				WriteResponse(w, http.StatusOK, strconv.Itoa(int(code)))
-				return
+			if len(opts.Conditions) == 0 {
+				if code, err := runtime.GetContainerExitCode(name); err == nil {
+					WriteResponse(w, http.StatusOK, strconv.Itoa(int(code)))
+					return
+				}
 			}
 			ContainerNotFound(w, name, err)
 			return
