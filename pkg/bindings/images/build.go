@@ -583,7 +583,8 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 				for _, token := range secretOpt {
 					opt, val, hasVal := strings.Cut(token, "=")
 					if hasVal {
-						if opt == "src" {
+						switch opt {
+						case "src":
 							// read specified secret into a tmp file
 							// move tmp file to tar and change secret source to relative tmp file
 							tmpSecretFile, err := os.CreateTemp(options.ContextDirectory, "podman-build-secret")
@@ -607,13 +608,16 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 							modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFile.Name()))
 							modifiedOpt = append(modifiedOpt, modifiedSrc)
-						} else if opt == "env" {
+						case "env":
 							// read specified env var into a tmp file
 							// move tmp file to tar and change secret source to relative tmp file
 							data := []byte(os.Getenv(val))
 
 							tmpSecretFile, err := os.CreateTemp(options.ContextDirectory, "podman-build-secret")
-							_, err = io.WriteString(tmpSecretFile, string(data))
+							if err != nil {
+								return nil, err
+							}
+							_, err = io.Writer.Write(tmpSecretFile, data)
 							if err != nil {
 								return nil, err
 							}
@@ -623,7 +627,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 							modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFile.Name()))
 							modifiedOpt = append(modifiedOpt, modifiedSrc)
-						} else {
+						default:
 							modifiedOpt = append(modifiedOpt, token)
 						}
 					}
