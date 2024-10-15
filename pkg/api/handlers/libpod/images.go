@@ -403,10 +403,10 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer os.Remove(tmpfile.Name())
-		defer tmpfile.Close()
 
 		if _, err := io.Copy(tmpfile, r.Body); err != nil && err != io.EOF {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to write archive to temporary file: %w", err))
+			tmpfile.Close()
 			return
 		}
 
