@@ -1140,10 +1140,10 @@ EOF
     # Generate a test image and push it to the registry.
     # For safety in parallel runs, test image must be isolated
     # from $IMAGE. A simple add-tag will not work. (#23756)
-    tmpcname=c-tmp-$(safename)
-    run_podman run --name $tmpcname $IMAGE true
-    run_podman commit -q $tmpcname $image_for_test
-    run_podman rm $tmpcname
+    run_podman create -q $IMAGE true
+    local tmpcid=$output
+    run_podman commit -q $tmpcid $image_for_test
+    run_podman rm $tmpcid
     run_podman image push --tls-verify=false --authfile=$authfile $image_for_test
 
     # Remove the local image to make sure it will be pulled again
@@ -1440,10 +1440,10 @@ EOF
     # Generate a test image, save it into a file, and remove it.
     # For safety in parallel runs, test image must be isolated
     # from $IMAGE. A simple add-tag will not work. (#23756)
-    tmpcname=c-tmp-$(safename)
-    run_podman run --name $tmpcname $IMAGE true
-    run_podman commit -q $tmpcname $image_for_test
-    run_podman rm $tmpcname
+    run_podman create -q $IMAGE true
+    local tmpcid=$output
+    run_podman commit -q $tmpcid $image_for_test
+    run_podman rm $tmpcid
     run_podman image save --format docker-archive --output $archive_file $image_for_test
     run_podman image rm $image_for_test
 
