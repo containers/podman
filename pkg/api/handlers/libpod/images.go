@@ -410,7 +410,6 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tmpfile.Close()
 		source = tmpfile.Name()
 	}
 
