@@ -118,9 +118,8 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
-		All        bool `schema:"all"`
-		External   bool `schema:"external"`
-		BuildCache bool `schema:"buildcache"`
+		All      bool `schema:"all"`
+		External bool `schema:"external"`
 	}{
 		// override any golang type defaults
 	}
@@ -158,10 +157,9 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	pruneOptions := entities.ImagePruneOptions{
-		All:        query.All,
-		External:   query.External,
-		Filter:     libpodFilters,
-		BuildCache: query.BuildCache,
+		All:      query.All,
+		External: query.External,
+		Filter:   libpodFilters,
 	}
 	imagePruneReports, err := imageEngine.Prune(r.Context(), pruneOptions)
 	if err != nil {
@@ -403,13 +401,14 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer os.Remove(tmpfile.Name())
-		defer tmpfile.Close()
 
 		if _, err := io.Copy(tmpfile, r.Body); err != nil && err != io.EOF {
 			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to write archive to temporary file: %w", err))
+			tmpfile.Close()
 			return
 		}
 
+		tmpfile.Close()
 		source = tmpfile.Name()
 	}
 
