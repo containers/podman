@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -803,7 +804,8 @@ func Transfer(ctx context.Context, source entities.ImageScpOptions, dest entitie
 // TransferRootless creates new podman processes using exec.Command and sudo, transferring images between the given source and destination users
 func transferRootless(source entities.ImageScpOptions, dest entities.ImageScpOptions, podman string, parentFlags []string) error {
 	var cmdSave *exec.Cmd
-	saveCommand, loadCommand := parentFlags, parentFlags
+	saveCommand := slices.Clone(parentFlags)
+	loadCommand := slices.Clone(parentFlags)
 	saveCommand = append(saveCommand, []string{"save"}...)
 	loadCommand = append(loadCommand, []string{"load"}...)
 	if source.Quiet {
