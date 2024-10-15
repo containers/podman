@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
 )
 
@@ -73,7 +74,14 @@ func scp(cmd *cobra.Command, args []string) (finalErr error) {
 	}
 
 	sshEngine := ssh.DefineMode(sshType)
-	err = registry.ImageEngine().Scp(registry.Context(), src, dst, parentFlags, quiet, sshEngine)
+	err = registry.ImageEngine().Scp(registry.Context(), src, dst, entities.ImageScpBaseOptions{
+		ImageExecuteTransferOptions: entities.ImageExecuteTransferOptions{
+			ParentFlags:          parentFlags,
+			Quiet:                quiet,
+			SshMode:              sshEngine,
+			TarCompressionFormat: "gzip",
+		},
+	})
 	if err != nil {
 		return err
 	}

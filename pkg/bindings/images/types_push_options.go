@@ -123,6 +123,36 @@ func (o *PushOptions) GetAddCompression() []string {
 	return o.AddCompression
 }
 
+// WithTarCompressionFormat set field TarCompressionFormat to given value
+func (o *PushOptions) WithTarCompressionFormat(value string) *PushOptions {
+	o.TarCompressionFormat = &value
+	return o
+}
+
+// GetTarCompressionFormat returns value of field TarCompressionFormat
+func (o *PushOptions) GetTarCompressionFormat() string {
+	if o.TarCompressionFormat == nil {
+		var z string
+		return z
+	}
+	return *o.TarCompressionFormat
+}
+
+// WithTarCompressionLevel set field TarCompressionLevel to given value
+func (o *PushOptions) WithTarCompressionLevel(value int) *PushOptions {
+	o.TarCompressionLevel = &value
+	return o
+}
+
+// GetTarCompressionLevel returns value of field TarCompressionLevel
+func (o *PushOptions) GetTarCompressionLevel() int {
+	if o.TarCompressionLevel == nil {
+		var z int
+		return z
+	}
+	return *o.TarCompressionLevel
+}
+
 // WithFormat set field Format to given value
 func (o *PushOptions) WithFormat(value string) *PushOptions {
 	o.Format = &value

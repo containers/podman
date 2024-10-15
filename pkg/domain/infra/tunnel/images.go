@@ -12,7 +12,6 @@ import (
 	bdefine "github.com/containers/buildah/define"
 	"github.com/containers/common/libimage/filter"
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
@@ -264,10 +263,14 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	}
 
 	options := new(images.PushOptions)
-	options.WithAll(opts.All).WithCompress(opts.Compress).WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile).WithFormat(opts.Format).WithRemoveSignatures(opts.RemoveSignatures).WithQuiet(opts.Quiet).WithCompressionFormat(opts.CompressionFormat).WithProgressWriter(opts.Writer).WithForceCompressionFormat(opts.ForceCompressionFormat)
+	options.WithAll(opts.All).WithCompress(opts.Compress).WithUsername(opts.Username).WithPassword(opts.Password).WithAuthfile(opts.Authfile).WithFormat(opts.Format).WithRemoveSignatures(opts.RemoveSignatures).WithQuiet(opts.Quiet).WithCompressionFormat(opts.CompressionFormat).WithProgressWriter(opts.Writer).WithForceCompressionFormat(opts.ForceCompressionFormat).WithTarCompressionFormat(opts.TarCompressionFormat)
 
 	if opts.CompressionLevel != nil {
 		options.WithCompressionLevel(*opts.CompressionLevel)
+	}
+
+	if opts.TarCompressionLevel != nil {
+		options.WithTarCompressionLevel(*opts.TarCompressionLevel)
 	}
 
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
@@ -294,8 +297,12 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 		f   *os.File
 		err error
 	)
-	options := new(images.ExportOptions).WithFormat(opts.Format).WithCompress(opts.Compress)
+	options := new(images.ExportOptions).WithFormat(opts.Format).WithCompress(opts.Compress).WithTarCompressionFormat(opts.TarCompressionFormat)
 	options = options.WithOciAcceptUncompressedLayers(opts.OciAcceptUncompressedLayers)
+
+	if opts.TarCompressionLevel != nil {
+		options.WithTarCompressionLevel(*opts.TarCompressionLevel)
+	}
 
 	switch opts.Format {
 	case "oci-dir", "docker-dir":
@@ -415,15 +422,17 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 	return nil, errors.New("not implemented yet")
 }
 
-func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, parentFlags []string, quiet bool, sshMode ssh.EngineMode) error {
+func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, opts entities.ImageScpBaseOptions) error {
 	options := new(images.ScpOptions)
 
 	var destination *string
 	if len(dst) > 1 {
 		destination = &dst
 	}
-	options.Quiet = &quiet
+	options.Quiet = &opts.Quiet
 	options.Destination = destination
+	options.TarCompressionFormat = &opts.TarCompressionFormat
+	options.TarCompressionLevel = opts.TarCompressionLevel
 
 	rep, err := images.Scp(ir.ClientCtx, &src, destination, *options)
 	if err != nil {

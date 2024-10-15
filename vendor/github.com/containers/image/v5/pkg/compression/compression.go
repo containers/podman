@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/image/v5/pkg/compression/internal"
 	"github.com/containers/image/v5/pkg/compression/types"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chunked/compressor"
 	"github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
@@ -162,4 +163,25 @@ func AutoDecompress(stream io.Reader) (io.ReadCloser, bool, error) {
 		res = io.NopCloser(stream)
 	}
 	return res, decompressor != nil, nil
+}
+
+// ToArchiveCompression takes an Algorithm
+// and returns the corresponding archive.Compression from c/storage.
+// Returns error if no match is found.
+func ToArchiveCompression(algo *Algorithm) (archive.Compression, error) {
+	if algo == nil {
+		return archive.Uncompressed, nil
+	}
+	switch n := algo.Name(); n {
+	case types.GzipAlgorithmName:
+		return archive.Gzip, nil
+	case types.Bzip2AlgorithmName:
+		return archive.Bzip2, nil
+	case types.XzAlgorithmName:
+		return archive.Xz, nil
+	case types.ZstdAlgorithmName:
+		return archive.Zstd, nil
+	default:
+		return 0, fmt.Errorf("no c/storage compression found for algorithm %q", n)
+	}
 }
