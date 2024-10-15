@@ -436,7 +436,7 @@ func layerLocation(l *Layer) layerLocations {
 func copyLayer(l *Layer) *Layer {
 	return &Layer{
 		ID:                 l.ID,
-		Names:              slices.Clone(l.Names),
+		Names:              copyStringSlice(l.Names),
 		Parent:             l.Parent,
 		Metadata:           l.Metadata,
 		MountLabel:         l.MountLabel,
@@ -451,7 +451,7 @@ func copyLayer(l *Layer) *Layer {
 		CompressionType:    l.CompressionType,
 		ReadOnly:           l.ReadOnly,
 		volatileStore:      l.volatileStore,
-		BigDataNames:       slices.Clone(l.BigDataNames),
+		BigDataNames:       copyStringSlice(l.BigDataNames),
 		Flags:              maps.Clone(l.Flags),
 		UIDMap:             copyIDMap(l.UIDMap),
 		GIDMap:             copyIDMap(l.GIDMap),

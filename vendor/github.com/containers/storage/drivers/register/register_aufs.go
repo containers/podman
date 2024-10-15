@@ -1,5 +1,4 @@
 //go:build !exclude_graphdriver_aufs && linux
-// +build !exclude_graphdriver_aufs,linux
 
 package register
 

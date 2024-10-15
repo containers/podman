@@ -164,11 +164,11 @@ type containerStore struct {
 func copyContainer(c *Container) *Container {
 	return &Container{
 		ID:             c.ID,
-		Names:          slices.Clone(c.Names),
+		Names:          copyStringSlice(c.Names),
 		ImageID:        c.ImageID,
 		LayerID:        c.LayerID,
 		Metadata:       c.Metadata,
-		BigDataNames:   slices.Clone(c.BigDataNames),
+		BigDataNames:   copyStringSlice(c.BigDataNames),
 		BigDataSizes:   maps.Clone(c.BigDataSizes),
 		BigDataDigests: maps.Clone(c.BigDataDigests),
 		Created:        c.Created,
