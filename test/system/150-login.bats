@@ -149,9 +149,8 @@ EOF
 }
 
 function _push_search_test() {
-    # Preserve image ID for later comparison against push/pulled image
-    run_podman inspect --format '{{.Id}}' $IMAGE
-    iid=$output
+    # Look up image config digest for later comparison against push/pulled image
+    local icd=$(image_config_digest $IMAGE)
 
     destname=ok-$(random_string 10 | tr A-Z a-z)-ok
     # Use command-line credentials
@@ -188,8 +187,8 @@ function _push_search_test() {
                localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Compare to original image
-    run_podman inspect --format '{{.Id}}' $destname
-    is "$output" "$iid" "Image ID of pulled image == original IID"
+    local icd2=$(image_config_digest localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname)
+    assert "$icd2" = "$icd" "config digest of pulled image == original digest"
 
     run_podman rmi $destname
 }
@@ -345,12 +344,12 @@ function _test_skopeo_credential_sharing() {
         $image1
     run_podman rmi $image1
 
-    run_podman images $IMAGE --format {{.ID}}
-    local podman_image_id=$output
+    local podman_image_cd=$(image_config_digest $IMAGE)
 
     run_podman pull -q --retry 4 --retry-delay "0s" --authfile=$authfile \
         --tls-verify=false $image1
-    assert "${output:0:12}" = "$podman_image_id" "First pull (before stopping registry)"
+    local pulled_image_cd=$(image_config_digest $output)
+    assert "$pulled_image_cd" = "$podman_image_cd" "First pull (before stopping registry)"
     run_podman rmi $image1
 
     # This actually STOPs the registry, so the port is unbound...
@@ -360,7 +359,8 @@ function _test_skopeo_credential_sharing() {
     run_podman 0+w pull -q --retry 4 --retry-delay "5s" --authfile=$authfile \
             --tls-verify=false $image1
     assert "$output" =~ "Failed, retrying in 5s.*Error: initializing.* connection refused"
-    assert "${lines[-1]:0:12}" = "$podman_image_id" "push should succeed via retry"
+    local pulled_image_cd2=$(image_config_digest "${lines[-1]:0:12}")
+    assert "$pulled_image_cd2" = "$podman_image_cd" "push should succeed via retry"
     unpause_registry
 
     run_podman rmi $image1

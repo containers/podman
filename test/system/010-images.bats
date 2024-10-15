@@ -384,10 +384,17 @@ EOF
     is "${lines[-1]}" "$IMAGE true" "image from readwrite store"
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Id}}"
-    id=${lines[-1]}
+    local cd=$(image_config_digest $IMAGE) # Without $sconf, i.e. from the read-write store.
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman pull -q $IMAGE
-    is "$output" "$id" "pull -q $IMAGE, using storage.conf"
+    local cd2=$(CONTAINERS_STORAGE_CONF=$sconf image_config_digest $IMAGE)
+    assert "$cd2" = "$cd" "pull -q $IMAGE, using storage.conf"
+
+    # $IMAGE might now be reusing layers from the additional store;
+    # stopping to use the additional store can result in dangling layer references.
+    # Try to fix that up.
+    CONTAINERS_STORAGE_CONF=$sconf run_podman rmi $IMAGE
+    _prefetch $IMAGE
 
     run_podman --root $imstore/root rmi --all
 }
