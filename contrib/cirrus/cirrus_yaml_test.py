@@ -60,6 +60,17 @@ class TestDependsOn(TestCaseBase):
                 msg=('No success aggregation task depends_on "{0}"'.format(task_name))
                 self.assertIn(task_name, success_deps, msg=msg)
 
+    def test_duplicate_depends(self):
+        """Check for duplicate names in depends_on"""
+        for task_name in self.ALL_TASK_NAMES:
+            task = self.CIRRUS_YAML[task_name + '_task']
+            if 'depends_on' in task:
+                depends_on = task['depends_on']
+                seen = set()
+                for x in depends_on:
+                    self.assertNotIn(x,seen, msg=f"depends_on contains duplicated names in task {task_name}")
+                    seen.add(x)
+
     def test_only_if(self):
         """2024-07 PR#23174: ugly but necessary duplication in only_if conditions. Prevent typos or unwanted changes."""
         # N/B: This giant string is white space sensitive, take care when updating/modifying
