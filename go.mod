@@ -11,7 +11,7 @@ require (
 	github.com/buger/goterm v1.0.4
 	github.com/checkpoint-restore/checkpointctl v1.2.1
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
-	github.com/containernetworking/plugins v1.5.1
+	github.com/containernetworking/plugins v1.6.0
 	github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed
 	github.com/containers/common v0.60.1-0.20241001171026-c3edf18f3339
 	github.com/containers/conmon v2.0.20+incompatible
