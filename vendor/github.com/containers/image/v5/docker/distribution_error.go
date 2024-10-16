@@ -24,7 +24,6 @@ import (
 	"slices"
 
 	"github.com/docker/distribution/registry/api/errcode"
-	dockerChallenge "github.com/docker/distribution/registry/client/auth/challenge"
 )
 
 // errNoErrorsInBody is returned when an HTTP response body parses to an empty
@@ -114,10 +113,11 @@ func mergeErrors(err1, err2 error) error {
 // UnexpectedHTTPStatusError returned for response code outside of expected
 // range.
 func handleErrorResponse(resp *http.Response) error {
-	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+	switch {
+	case resp.StatusCode == http.StatusUnauthorized:
 		// Check for OAuth errors within the `WWW-Authenticate` header first
 		// See https://tools.ietf.org/html/rfc6750#section-3
-		for _, c := range dockerChallenge.ResponseChallenges(resp) {
+		for _, c := range parseAuthHeader(resp.Header) {
 			if c.Scheme == "bearer" {
 				var err errcode.Error
 				// codes defined at https://tools.ietf.org/html/rfc6750#section-3.1
@@ -138,6 +138,8 @@ func handleErrorResponse(resp *http.Response) error {
 				return mergeErrors(err, parseHTTPErrorResponse(resp.StatusCode, resp.Body))
 			}
 		}
+		fallthrough
+	case resp.StatusCode >= 400 && resp.StatusCode < 500:
 		err := parseHTTPErrorResponse(resp.StatusCode, resp.Body)
 		if uErr, ok := err.(*unexpectedHTTPResponseError); ok && resp.StatusCode == 401 {
 			return errcode.ErrorCodeUnauthorized.WithDetail(uErr.Response)

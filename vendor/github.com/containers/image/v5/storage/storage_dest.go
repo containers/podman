@@ -975,9 +975,11 @@ func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.D
 		return nil, fmt.Errorf("internal inconsistency: layer (%d, %q) not found", index, layerDigest)
 	}
 	var trustedOriginalDigest digest.Digest // For storage.LayerOptions
+	var trustedOriginalSize *int64
 	if gotFilename {
 		// The code setting .filenames[trusted.blobDigest] is responsible for ensuring that the file contents match trusted.blobDigest.
 		trustedOriginalDigest = trusted.blobDigest
+		trustedOriginalSize = nil // It’s s.lockProtected.fileSizes[trusted.blobDigest], but we don’t hold the lock now, and the consumer can compute it at trivial cost.
 	} else {
 		// Try to find the layer with contents matching the data we use.
 		var layer *storage.Layer // = nil
@@ -1032,22 +1034,36 @@ func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.D
 		if trusted.diffID == "" && layer.UncompressedDigest != "" {
 			trusted.diffID = layer.UncompressedDigest // This data might have been unavailable in tryReusingBlobAsPending, and is only known now.
 		}
-		// The stream we have is uncompressed, and it matches trusted.diffID (if known).
+
+		// Set the layer’s CompressedDigest/CompressedSize to relevant values if known, to allow more layer reuse.
+		// But we don’t want to just use the size from the manifest if we never saw the compressed blob,
+		// so that we don’t propagate mistakes / attacks.
 		//
-		// FIXME? trustedOriginalDigest could be set to trusted.blobDigest if known, to allow more layer reuse.
-		// But for c/storage to reasonably use it (as a CompressedDigest value), we should also ensure the CompressedSize of the created
-		// layer is correct, and the API does not currently make it possible (.CompressedSize is set from the input stream).
-		//
-		// We can legitimately set storage.LayerOptions.OriginalDigest to "",
-		// but that would just result in PutLayer computing the digest of the input stream == trusted.diffID.
-		// So, instead, set .OriginalDigest to the value we know already, to avoid that digest computation.
-		trustedOriginalDigest = trusted.diffID
+		// s.lockProtected.fileSizes[trusted.blobDigest] is not set, otherwise we would have found gotFilename.
+		// So, check if the layer we found contains that metadata. (If that layer continues to exist, there’s no benefit
+		// to us propagating the metadata; but that layer could be removed, and in that case propagating the metadata to
+		// this new layer copy can help.)
+		if trusted.blobDigest != "" && layer.CompressedDigest == trusted.blobDigest && layer.CompressedSize > 0 {
+			trustedOriginalDigest = trusted.blobDigest
+			sizeCopy := layer.CompressedSize
+			trustedOriginalSize = &sizeCopy
+		} else {
+			// The stream we have is uncompressed, and it matches trusted.diffID (if known).
+			//
+			// We can legitimately set storage.LayerOptions.OriginalDigest to "",
+			// but that would just result in PutLayer computing the digest of the input stream == trusted.diffID.
+			// So, instead, set .OriginalDigest to the value we know already, to avoid that digest computation.
+			trustedOriginalDigest = trusted.diffID
+			trustedOriginalSize = nil // Probably layer.UncompressedSize, but the consumer can compute it at trivial cost.
+		}
 
 		// Allow using the already-collected layer contents without extracting the layer again.
 		//
 		// This only matches against the uncompressed digest.
-		// We don’t have the original compressed data here to trivially set filenames[layerDigest].
-		// In particular we can’t achieve the correct Layer.CompressedSize value with the current c/storage API.
+		// If we have trustedOriginalDigest == trusted.blobDigest, we could arrange to reuse the
+		// same uncompressed stream for future calls of createNewLayer; but for the non-layer blobs (primarily the config),
+		// we assume that the file at filenames[someDigest] matches someDigest _exactly_; we would need to differentiate
+		// between “original files” and “possibly uncompressed files”.
 		// Within-image layer reuse is probably very rare, for now we prefer to avoid that complexity.
 		if trusted.diffID != "" {
 			s.lock.Lock()
@@ -1067,6 +1083,7 @@ func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.D
 	// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 	layer, _, err := s.imageRef.transport.store.PutLayer(newLayerID, parentLayer, nil, "", false, &storage.LayerOptions{
 		OriginalDigest: trustedOriginalDigest,
+		OriginalSize:   trustedOriginalSize, // nil in many cases
 		// This might be "" if trusted.layerIdentifiedByTOC; in that case PutLayer will compute the value from the stream.
 		UncompressedDigest: trusted.diffID,
 	}, file)

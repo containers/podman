@@ -23,21 +23,19 @@ var errAlignmentOverflow = errors.New("integer overflow when calculating alignme
 
 // nextAligned finds the next offset that satisfies alignment.
 func nextAligned(offset int64, alignment int) (int64, error) {
-	align64 := uint64(alignment)
-	offset64 := uint64(offset)
+	align64 := int64(alignment)
 
-	if align64 <= 0 || offset64%align64 == 0 {
+	if align64 <= 0 || offset%align64 == 0 {
 		return offset, nil
 	}
 
-	offset64 += (align64 - offset64%align64)
+	align64 -= offset % align64
 
-	if offset64 > math.MaxInt64 {
+	if (math.MaxInt64 - offset) < align64 {
 		return 0, errAlignmentOverflow
 	}
 
-	//nolint:gosec // Overflow handled above.
-	return int64(offset64), nil
+	return offset + align64, nil
 }
 
 // writeDataObjectAt writes the data object described by di to ws, using time t, recording details
