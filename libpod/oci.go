@@ -141,6 +141,10 @@ type OCIRuntime interface { //nolint:interfacebloat
 	// exec session in the given container.
 	// TODO: Probably should be made internal.
 	ExecAttachSocketPath(ctr *Container, sessionID string) (string, error)
+
+	// PersistDir is the path to a container's dir for oom & exit files.
+	PersistDir(ctr *Container) (string, error)
+
 	// ExitFilePath is the path to a container's exit file.
 	// All runtime implementations must create an exit file when containers
 	// exit, containing the exit code of the container (as a string).
