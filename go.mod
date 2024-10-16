@@ -228,3 +228,5 @@ require (
 )
 
 replace github.com/containers/common => github.com/mtrmac/common v0.8.2-0.20241015204126-78c8c087610a
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241016195457-6045533dd9a2
