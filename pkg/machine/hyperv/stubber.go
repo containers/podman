@@ -451,7 +451,7 @@ func (h HyperVStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) erro
 }
 
 func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
-	resize := exec.Command("powershell", []string{"-command", fmt.Sprintf("Resize-VHD %s %d", imagePath.GetPath(), newSize.ToBytes())}...)
+	resize := exec.Command("powershell", []string{"-command", fmt.Sprintf("Resize-VHD \"%s\" %d", imagePath.GetPath(), newSize.ToBytes())}...)
 	logrus.Debug(resize.Args)
 	resize.Stdout = os.Stdout
 	resize.Stderr = os.Stderr
