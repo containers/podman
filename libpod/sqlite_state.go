@@ -321,14 +321,14 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
         );`
 
 	var (
-		dbOS, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
-		runtimeOS                                                            = goruntime.GOOS
-		runtimeStaticDir                                                     = filepath.Clean(s.runtime.config.Engine.StaticDir)
-		runtimeTmpDir                                                        = filepath.Clean(s.runtime.config.Engine.TmpDir)
-		runtimeGraphRoot                                                     = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
-		runtimeRunRoot                                                       = filepath.Clean(s.runtime.StorageConfig().RunRoot)
-		runtimeGraphDriver                                                   = s.runtime.StorageConfig().GraphDriverName
-		runtimeVolumePath                                                    = filepath.Clean(s.runtime.config.Engine.VolumePath)
+		dbOS, graphDriver  string
+		runtimeOS          = goruntime.GOOS
+		runtimeStaticDir   = filepath.Clean(s.runtime.config.Engine.StaticDir)
+		runtimeTmpDir      = filepath.Clean(s.runtime.config.Engine.TmpDir)
+		runtimeGraphRoot   = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
+		runtimeRunRoot     = filepath.Clean(s.runtime.StorageConfig().RunRoot)
+		runtimeGraphDriver = s.runtime.StorageConfig().GraphDriverName
+		runtimeVolumePath  = filepath.Clean(s.runtime.config.Engine.VolumePath)
 	)
 
 	// Some fields may be empty, indicating they are set to the default.
@@ -363,9 +363,9 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		}
 	}()
 
-	row := tx.QueryRow("SELECT Os, StaticDir, TmpDir, GraphRoot, RunRoot, GraphDriver, VolumeDir FROM DBConfig;")
+	row := tx.QueryRow("SELECT Os, GraphDriver FROM DBConfig;")
 
-	if err := row.Scan(&dbOS, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
+	if err := row.Scan(&dbOS, &graphDriver); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if _, err := tx.Exec(createRow, 1, schemaVersion, runtimeOS,
 				runtimeStaticDir, runtimeTmpDir, runtimeGraphRoot,
@@ -383,29 +383,7 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return fmt.Errorf("retrieving DB config: %w", err)
 	}
 
-	checkField := func(fieldName, dbVal, ourVal string, isPath bool) error {
-		if isPath {
-			// Tolerate symlinks when possible - most relevant for OStree systems
-			// and rootless containers, where we want to put containers in /home,
-			// which is symlinked to /var/home.
-			// Ignore ENOENT as reasonable, as some paths may not exist in early Libpod
-			// init.
-			if dbVal != "" {
-				checkedVal, err := evalSymlinksIfExists(dbVal)
-				if err != nil {
-					return fmt.Errorf("cannot evaluate symlinks on DB %s path %q: %w", fieldName, dbVal, err)
-				}
-				dbVal = checkedVal
-			}
-			if ourVal != "" {
-				checkedVal, err := evalSymlinksIfExists(ourVal)
-				if err != nil {
-					return fmt.Errorf("cannot evaluate symlinks on our %s path %q: %w", fieldName, ourVal, err)
-				}
-				ourVal = checkedVal
-			}
-		}
-
+	checkField := func(fieldName, dbVal, ourVal string) error {
 		if dbVal != ourVal {
 			return fmt.Errorf("database %s %q does not match our %s %q: %w", fieldName, dbVal, fieldName, ourVal, define.ErrDBBadConfig)
 		}
@@ -413,25 +391,10 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return nil
 	}
 
-	if err := checkField("os", dbOS, runtimeOS, false); err != nil {
+	if err := checkField("os", dbOS, runtimeOS); err != nil {
 		return err
 	}
-	if err := checkField("static dir", staticDir, runtimeStaticDir, true); err != nil {
-		return err
-	}
-	if err := checkField("tmp dir", tmpDir, runtimeTmpDir, true); err != nil {
-		return err
-	}
-	if err := checkField("graph root", graphRoot, runtimeGraphRoot, true); err != nil {
-		return err
-	}
-	if err := checkField("run root", runRoot, runtimeRunRoot, true); err != nil {
-		return err
-	}
-	if err := checkField("graph driver", graphDriver, runtimeGraphDriver, false); err != nil {
-		return err
-	}
-	if err := checkField("volume path", volumePath, runtimeVolumePath, true); err != nil {
+	if err := checkField("graph driver", graphDriver, runtimeGraphDriver); err != nil {
 		return err
 	}
 
