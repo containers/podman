@@ -14,7 +14,7 @@ PODMAN_RUNTIME=
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
-PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20240123"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20241011"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 
 # Larger image containing systemd tools.
@@ -560,7 +560,7 @@ function run_podman() {
     if [ "$status" -eq 124 ]; then
         if expr "$output" : ".*timeout: sending" >/dev/null; then
             # It's possible for a subtest to _want_ a timeout
-            if [[ "$expected_rc" != "124" ]]; then
+            if [[ -n "$expected_rc" ]] && [[ "$expected_rc" != "124" ]]; then
                 echo "*** TIMED OUT ***"
                 false
             fi

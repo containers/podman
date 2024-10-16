@@ -33,12 +33,7 @@ function setup() {
     basic_setup
 }
 
-function teardown() {
-    run_podman '?' volume rm myvol
-
-    basic_teardown
-}
-
+# bats test_tags=ci:parallel
 @test "podman checkpoint - basic test" {
     run_podman run -d $IMAGE sh -c 'while :;do cat /proc/uptime; sleep 0.1;done'
     local cid="$output"
@@ -114,6 +109,7 @@ function teardown() {
     run_podman rm -t 0 -f $cid
 }
 
+# CANNOT BE PARALLELIZED: checkpoint -a
 @test "podman checkpoint/restore print IDs or raw input" {
     # checkpoint/restore -a must print the IDs
     run_podman run -d $IMAGE top
@@ -124,7 +120,7 @@ function teardown() {
     is "$output" "$ctrID"
 
     # checkpoint/restore $input must print $input
-    cname=$(random_string)
+    cname=c-$(safename)
     run_podman run -d --name $cname $IMAGE top
     run_podman container checkpoint $cname
     is "$output" $cname
@@ -134,6 +130,7 @@ function teardown() {
     run_podman rm -t 0 -f $ctrID $cname
 }
 
+# bats test_tags=ci:parallel
 @test "podman checkpoint --export, with volumes" {
     skip_if_remote "Test uses --root/--runroot, which are N/A over remote"
 
@@ -143,12 +140,13 @@ function teardown() {
     run_podman $p_opts load -i $PODMAN_TMPDIR/image.tar
 
     # Create a volume, find unused network port, and create a webserv container
-    run_podman $p_opts volume create myvol
-    local cname=c_$(random_string 10)
+    volname=v-$(safename)
+    run_podman $p_opts volume create $volname
+    local cname=c-$(safename)
     local host_port=$(random_free_port)
     local server=http://127.0.0.1:$host_port
 
-    run_podman $p_opts run -d --name $cname --volume myvol:/myvol \
+    run_podman $p_opts run -d --name $cname --volume $volname:/myvol \
                -p $host_port:80 \
                -w /myvol \
                $IMAGE sh -c "/bin/busybox-extras httpd -p 80;echo $cname >cname;echo READY;while :;do cat /proc/uptime >mydate.tmp;mv -f mydate.tmp mydate;sleep 0.1;done"
@@ -192,11 +190,12 @@ function teardown() {
     is "$output" "$cname" "volume transferred fine"
 
     run_podman rm -t 0 -f $cid
-    run_podman volume rm -f myvol
+    run_podman volume rm -f $volname
 }
 
 # FIXME: test --leave-running
 
+# bats test_tags=ci:parallel
 @test "podman checkpoint --file-locks" {
     action='flock test.lock sh -c "while [ -e /wait ];do sleep 0.5;done;for i in 1 2 3;do echo \$i;sleep 0.5;done"'
     run_podman run -d $IMAGE sh -c "touch /wait; touch test.lock; echo READY; $action & $action & wait"
@@ -232,10 +231,11 @@ function teardown() {
     run_podman rm $cid
 }
 
+# bats test_tags=ci:parallel
 @test "podman checkpoint/restore ip and mac handling" {
     # Refer to https://github.com/containers/podman/issues/16666#issuecomment-1337860545
     # for the correct behavior, this should cover all cases listed there.
-    local netname=net-$(random_string)
+    local netname="net-$(safename)"
     local subnet="$(random_rfc1918_subnet)"
     run_podman network create --subnet "$subnet.0/24" $netname
 
@@ -319,7 +319,8 @@ function teardown() {
     # now restore it again but with --name this time, it should not keep the
     # mac and ip to allow restoring the same container with different names
     # at the same time
-    run_podman container restore --import "$archive" --name "newcon"
+    newname="newc-$(safename)"
+    run_podman container restore --import "$archive" --name $newname
     cid="$output"
 
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").IPAddress}}"
@@ -422,6 +423,7 @@ function teardown() {
 }
 
 # rhbz#2177611 : podman breaks checkpoint/restore
+# CANNOT BE PARALLELIZED: --latest
 @test "podman checkpoint/restore the latest container" {
     skip_if_remote "podman-remote does not support --latest option"
     # checkpoint/restore -l must print the IDs

@@ -12,3 +12,4 @@
 #
 # Format is one FQIN per line. Enumerate them below:
 #
+quay.io/libpod/testimage:20241011

@@ -858,6 +858,7 @@ json-file | f
     # exactly 10 seconds. Give it some leeway.
     delta_t=$(( $t1 - $t0 ))
     assert "$delta_t" -gt 1 "podman stop: ran too quickly!"
+    # FIXME: can fail under load, take 7 seconds
     assert "$delta_t" -le 6 "podman stop: took too long"
 
     run_podman rm $cname
