@@ -1,8 +1,8 @@
 ![PODMAN logo](https://raw.githubusercontent.com/containers/common/main/logos/podman-logo-full-vert.png)
 # Contributing to Podman
 
-We'd love to have you join the community! Below summarizes the processes
-that we follow.
+We'd love to have you join the community!
+Below summarizes the processes that we follow.
 
 ## Topics
 
@@ -15,70 +15,69 @@ that we follow.
 
 ## Reporting Issues
 
-Before reporting an issue, check our backlog of
-[open issues](https://github.com/containers/podman/issues)
-to see if someone else has already reported it. If so, feel free to add
-your scenario, or additional information, to the discussion. Or simply
-"subscribe" to it to be notified when it is updated.
+Before reporting an issue, check our backlog of [open issues](https://github.com/containers/podman/issues) to see if someone else has already reported it.
+If so, feel free to add your scenario, or additional information, to the discussion.
+Or simply "subscribe" to it to be notified when it is updated.
+Please do not add comments like "+1" or "I have this issue as well" without adding any new information.
+Instead, please add a thumbs-up emoji to the original report.
 
-Note: Older closed issues/PRs are automatically locked, if you have a similar
-problem please open a new issue instead of commenting.
+Note: Older closed issues/PRs are automatically locked.
+If you have a similar problem please open a new issue instead of commenting.
 
-If you find a new issue with the project we'd love to hear about it! The most
-important aspect of a bug report is that it includes enough information for
-us to reproduce it. To make this easier, there are three types of issue
-templates you can use, if you have a bug to report, please use *Bug Report*
-template or if you have an idea to propose, please use the *Feature Request*
-template or if your issue is something else, please use the default template.
-Please include as much detail as possible and try to remove the extra stuff
-that doesn't really relate to the issue itself. The easier it is for us to
-reproduce it, the faster it'll be fixed!
+If you find a new issue with the project we'd love to hear about it!
+The most important aspect of a bug report is that it includes enough information for us to reproduce it.
+To make this easier, there are three types of issue templates you can use.
+* If you have a bug to report, please use *Bug Report* template.
+* If you have an idea to propose, please use the *Feature Request* template.
+* If your issue is something else, please use the default *Blank issue* template.
+Please include as much detail as possible, including all requested fields in the template.
+Not having all requested information - for example, a full `podman info` - makes it much harder to find and fix issues.
+A reproducer is the best thing you can include.
+Reproducers make finding and fixing issues much easier for maintainers.
+The easier it is for us to reproduce a bug, the faster it'll be fixed!
 
 Please don't include any private/sensitive information in your issue!
+Security issues should NOT be reported via Github and should instead be reported via the process described [here](https://github.com/containers/common/blob/main/SECURITY.md).
 
 ## Working On Issues
 
-Once you have decided to contribute to Podman by working on an issue, check our
-backlog of [open issues](https://github.com/containers/podman/issues) looking
-for any that do not have an "In Progress" label attached to it.  Often issues
-will be assigned to someone, to be worked on at a later time.  If you have the
-time to work on the issue now add yourself as an assignee, and set the
-"In Progress" label if you’re a member of the “Containers” GitHub organization.
-If you can not set the label, just  add a quick comment in the issue asking that
-the “In Progress” label be set and a member will do so for you.
+Once you have decided to contribute to Podman by working on an issue, check our backlog of [open issues](https://github.com/containers/podman/issues) looking for any that are unassigned.
+If you want to work on a specific issue that is already assigned but does not appear to be actively being worked on, please ping the assignee in the issue and ask if you can take over.
+If they do not respond after several days, you can notify a maintainer to have the issue reassigned.
+When working on an issue, please assign it to yourself.
+You can use the `/assign` bot command in a comment on an issue to assign it to yourself.
+If you lack permissions to do so, you can ping the `@containers/podman-maintainers` group to have a maintainer set you as assignee.
 
 ## Contributing to Podman
 
-This section describes how to start a contribution to Podman. These instructions are geared towards using a Linux development machine, which is required for doing development on the Podman backend. Check out these instructions for building the Podman client on [MacOSX](./build_osx.md) or
-[Windows](./build_windows.md).
+This section describes how to make a contribution to Podman.
+These instructions are geared towards using a Linux development machine, which is required for doing development on the Podman backend.
+Development for the Windows and Mac clients can also be done on those operating systems.
+Check out these instructions for building the Podman client on [MacOSX](./build_osx.md) or [Windows](./build_windows.md).
 
 ### Prepare your environment
 
 Read the [install documentation to see how to install dependencies](https://podman.io/getting-started/installation#build-and-run-dependencies).
 
 The install documentation will illustrate the following steps:
-- install libs and tools
-- check installed versions
-- configure network
-- how to install Podman from sources
+- Installation of required libraries and tools
+- Installing Podman from source
+
+The minimum version of Golang required to build Podman is contained in [go.mod](https://github.com/containers/podman/blob/main/go.mod#L5).
+You will need to make sure your system's Go compiler is at least this version using the `go version` command.
 
 ### Fork and clone Podman
 
-First you need to fork this project on GitHub.
-
-Be sure to have [defined your `$GOPATH` environment variable](https://github.com/golang/go/wiki/GOPATH).
-
-Create a path that corresponds to the go import paths of Podman: `mkdir -p $GOPATH/src/github.com/containers`.
-
+First, you need to fork this project on GitHub.
 Then clone your fork locally:
 ```shell
-$ git clone git@github.com:<you>/podman $GOPATH/src/github.com/containers/podman
-$ cd $GOPATH/src/github.com/containers/podman
+$ git clone git@github.com:<you>/podman
+$ cd ./podman/
 ```
 
-### Deal with make
+### Using the Makefile
 
-Podman uses a Makefile to realize common actions like building etc...
+Podman uses a Makefile for common actions such as compiling Podman, building the documentation, and linting.
 
 You can list available actions by using:
 ```shell
@@ -87,113 +86,155 @@ Usage: make <target>
 ...output...
 ```
 
-### Install tools
+### Install required tools
 
-Makefile allow you to install needed tools:
+Makefile allow you to install needed development tools (e.g. the linter):
 ```shell
 $ make install.tools
 ```
 
-### Building binaries and test your changes
+### Building binaries
 
-To test your changes do `make binaries` to generate your binaries.
-
-Your binaries are created inside the `bin/` directory and you can test your changes:
-```shell
-$ bin/podman --help
-bin/podman --help
-NAME:
-   podman - manage pods and images
-
-USAGE:
-   podman [global options] command [command options] [arguments...]
-
-VERSION:
-   1.0.1-dev
-
-COMMANDS:
-     attach           Attach to a running container
-     build            Build an image using instructions from Dockerfiles
-     commit           Create new image based on the changed container
-     container        Manage Containers
-     cp               Copy files/folders between a container and the local filesystem
-```
-
-Well, you can now create your own branch, apply changes on it, and then submitting your pull request.
+To build Podman binaries, you can run `make binaries`.
+Built binaries will be placed in the `bin/` directory.
+You can manually test to verify that Podman is working by running the binaries.
 
 For further reading about branching [you can read this document](https://herve.beraud.io/containers/linux/podman/isolate/environment/2019/02/06/how-to-hack-on-podman.html).
 
+### Building docs
+
+To build Podman's manpages, you can run `make docs`.
+Built documentation will be placed in the `docs/build/man` directory.
+Markdown versions can be viewed in the `docs/source/markdown` directory.
+Files suffixed with `.in` are preliminary versions that are compiled into the final markdown files.
+
+## Libraries
+
+Podman uses a large amount of vendored library code, contained in the `vendor/` directory.
+This code is included in the Podman repository, but is actually maintained elsewhere.
+Pull requests that change the vendor/ directory directly will not be accepted.
+Instead, changes should be submitted to the original package (defined by the path in `vendor/`; for example, `vendor/github.com/containers/storage` is the [containers/storage library](https://github.com/containers/storage/).
+Once the changes have been merged into the original package, Podman's vendor directory can be updated by using `go get` on the appropriate version of the package, then running `make vendor` or `make vendor-in-container`.
+
+## Testing
+
+Podman provides an extensive suite of regression tests in the `test/` directory.
+There is a [readme](https://github.com/containers/podman/blob/main/test/README.md) file available with details about the tests and how to run them.
+All pull requests should be accompanied by test changes covering the changes in the PR.
+Pull requests without tests will receive additional scrutiny from maintainers and may be blocked from merging unless tests are added.
+Maintainers will decide if tests are not necessary during review.
+
+### Types of Tests
+
+There are several types of tests run by Podman's upstream CI.
+* Build testing (including cross-build tests, and testing to verify each commit in a PR builds on its own)
+* Go format/lint checking
+* Unit testing
+* Integration testing (run on several operating systems, both root and rootless)
+* System testing (again, run on several operating systems, root and rootless)
+* API testing (validates the Podman REST API)
+* Machine testing (validates `podman machine` on Windows and Mac hosts)
+
+Changes will usually only need to be tested in one of these.
+For example, if you were to make a change to `podman run`, you could test this in either the system tests or the integration tests.
+It is not necessary to test a single change in multiple places.
+
+### Go Format and lint
+
+All code changes must pass ``make validatepr``.
+
+### Integration Tests
+
+Our primary means of performing integration testing for Podman is with the [Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework.
+This allows us to use native Golang to perform our tests and there is a strong affiliation between Ginkgo and the Go test framework.
+Adequate test cases are expected to be provided with PRs.
+
+For details on how to run the tests for Podman in your test environment, see the testing [README.md](test/README.md).
+
+The integration tests are located in the `test/e2e/` directory.
+
+### System Tests
+
+The system tests are written in Bash using the BATS framework.
+They provide less comprehensive coverage than the integration tests.
+They are intended to validate Podman builds before they are shipped by distributions.
+
+The system tests are located in the `test/system/` directory.
+
 ## Documentation
 
-Make sure to update the documentation if needed. You can find the man pages under `docs/source/markdown`. The syntax for the formatting of all man pages can be found [here](docs/MANPAGE_SYNTAX.md).
+Make sure to update the documentation if needed.
+Podman is primarily documented via its manpages, which are located under `docs/source/markdown`.
+There are a number of automated tests to make sure the manpages are up to date.
+These tests run on all submitted pull requests.
+Full details on working with the manpages can be found in the [README](https://github.com/containers/podman/blob/main/docs/README.md) for the docs.
+
+Podman also provides Swagger documentation for the REST API.
+Swagger is generated from comments on registered handlers located in the `pkg/api/server/` directory.
+All API changes should update these Swagger comments to ensure the documentation remains accurate.
 
 ## Submitting Pull Requests
 
-No Pull Request (PR) is too small! Typos, additional comments in the code,
-new test cases, bug fixes, new features, more documentation, ... it's all
-welcome!
+No Pull Request (PR) is too small!
+Typos, additional comments in the code, new test cases, bug fixes, new features, more documentation, ... it's all welcome!
 
-While bug fixes can first be identified via an "issue", that is not required.
-It's ok to just open up a PR with the fix, but make sure you include the same
-information you would have included in an issue - like how to reproduce it.
+While bug fixes can first be identified via an "issue" in Github, that is not required.
+It's ok to just open up a PR with the fix, but make sure you include the same information you would have included in an issue - like how to reproduce it.
 
-PRs for new features should include some background on what use cases the
-new code is trying to address. When possible and when it makes sense, try to break-up
-larger PRs into smaller ones - it's easier to review smaller
-code changes. But only if those smaller ones make sense as stand-alone PRs.
+PRs for new features should include some background on what use cases the new code is trying to address.
+When possible and when it makes sense, try to break-up larger PRs into smaller ones - it's easier to review smaller code changes.
+But only if those smaller ones make sense as stand-alone PRs.
 
 Regardless of the type of PR, all PRs should include:
-* well documented code changes.
-* additional testcases. Ideally, they should fail w/o your code change applied.
+* Well-documented code changes, both through comments in the code itself and high-quality commit messages.
+* Additional tests. Ideally, they should fail w/o your code change applied.
   (With a few exceptions, CI hooks will block your PR unless your change
   includes files named `*_test.go` or under the `test/` subdirectory. Repo
   admins may bypass this restriction by setting the 'No New Tests' GitHub
   label on the PR).
-* documentation changes.
+* Documentation updates to reflect the changes made in the pull request.
 
-Squash your commits into logical pieces of work that might want to be reviewed
-separate from the rest of the PRs. But, squashing down to just one commit is ok
-too since in the end the entire PR will be reviewed anyway. When in doubt,
-squash.
+Squash your commits into logical pieces of work that might want to be reviewed separate from the rest of the PRs.
+Squashing down to just one commit is also acceptable since in the end the entire PR will be reviewed anyway.
+When in doubt, squash.
 
-PRs that fix issues should include a reference like `Closes #XXXX` in the
-commit message so that GitHub will automatically close the referenced issue
-when the PR is merged.
+When your PR fixes an issue, please note that by including `Fixes: #00000` in the commit description.
+More details on this are below, in the "Describe your changes in Commit Messages" section.
 
+The Podman repo follows a two-ack policy for merges.
 PRs will be approved by an [approver][owners] listed in [`OWNERS`](OWNERS).
+They will then be merged by a repo owner.
+Two reviews are required for a pull request to merge.
 
 ### Describe your Changes in Commit Messages
 
-Describe your problem. Whether your patch is a one-line bug fix or 5000 lines
-of a new feature, there must be an underlying problem that motivated you to do
-this work. Convince the reviewer that there is a problem worth fixing and that
-it makes sense for them to read past the first paragraph.
+Describe your problem.
+Whether your patch is a one-line bug fix or 5000 lines of a new feature, there must be an underlying problem that motivated you to do this work.
+Convince the reviewer that there is a problem worth fixing and that it makes sense for them to read past the first paragraph.
 
-Describe user-visible impact. Straight up crashes and lockups are pretty
-convincing, but not all bugs are that blatant. Even if the problem was spotted
-during code review, describe the impact you think it can have on users. Keep in
-mind that the majority of users run packages provided by distributions, so
-include anything that could help route your change downstream.
+Describe user-visible impact.
+Straight up crashes and lockups are pretty convincing, but not all bugs are that blatant.
+Even if the problem was spotted during code review, describe the impact you think it can have on users.
+Keep in mind that the majority of users run packages provided by distributions, so include anything that could help route your change downstream.
 
-Quantify optimizations and trade-offs. If you claim improvements in
-performance, memory consumption, stack footprint, or binary size, include
-numbers that back them up. But also describe non-obvious costs. Optimizations
-usually aren’t free but trade-offs between CPU, memory, and readability; or,
-when it comes to heuristics, between different workloads. Describe the expected
-downsides of your optimization so that the reviewer can weigh costs against
+Quantify optimizations and trade-offs.
+If you claim improvements in performance, memory consumption, stack footprint, or binary size, include
+numbers that back them up.
+But also describe non-obvious costs.
+Optimizations usually aren’t free but trade-offs between CPU, memory, and readability; or, when it comes to heuristics, between different workloads.
+Describe the expected downsides of your optimization so that the reviewer can weigh costs against
 benefits.
 
-Once the problem is established, describe what you are actually doing about it
-in technical detail. It’s important to describe the change in plain English for
-the reviewer to verify that the code is behaving as you intend it to.
+Once the problem is established, describe what you are actually doing about it in technical detail.
+It’s important to describe the change in plain English for the reviewer to verify that the code is behaving as you intend it to.
 
-Solve only one problem per patch. If your description starts to get long,
-that’s a sign that you probably need to split up your patch.
+Solve only one problem per patch.
+If your description starts to get long, that’s a sign that you probably need to split up your patch.
 
-If the patch fixes a logged bug entry, refer to that bug entry by number and
-URL. If the patch follows from a mailing list discussion, give a URL to the
-mailing list archive. Please format these lines as `Fixes:` followed by the URL
-or, for Github bugs, the bug number preceded by a #. For example:
+If the patch fixes a logged bug entry, refer to that bug entry by number and URL.
+If the patch follows from a mailing list discussion, give a URL to the mailing list archive.
+Please format these lines as `Fixes:` followed by the URL or, for Github bugs, the bug number preceded by a #.
+For example:
 
 ```
 Fixes: #00000
@@ -202,36 +243,23 @@ Fixes: https://issues.redhat.com/browse/RHEL-00000
 Fixes: RHEL-00000
 ```
 
-However, try to make your explanation understandable without external
-resources. In addition to giving a URL to a mailing list archive or bug,
-summarize the relevant points of the discussion that led to the patch as
-submitted.
+However, try to make your explanation understandable without external resources.
+In addition to giving a URL to a mailing list archive or bug, summarize the relevant points of the discussion that led to the patch as submitted.
 
-If you want to refer to a specific commit, don’t just refer to the SHA-1 ID of
-the commit. Please also include the oneline summary of the commit, to make it
-easier for reviewers to know what it is about. Example:
+If you want to refer to a specific commit, don’t just refer to the SHA-1 ID of the commit.
+Please also include the oneline summary of the commit, to make it easier for reviewers to know what it is about. If the commit was merged in Github, referring to a Github PR number is also a good option, as that will retain all discussion from development, and makes including a summary less critical.
+Examples:
 
 ```
 Commit f641c2d9384e ("fix bug in rm -fa parallel deletes") [...]
+PR #00000
 ```
 
-You should also be sure to use at least the first twelve characters of the
-SHA-1 ID. The Podman repository holds a lot of objects, making collisions with
-shorter IDs a real possibility. Bear in mind that, even if there is no
-collision with your six-character ID now, that condition may change five years
-from now.
+When referring to a commit by SHA, you should also be sure to use at least the first twelve characters of the SHA-1 ID.
+The Podman repository holds a lot of objects, making collisions with shorter IDs a real possibility.
+Bear in mind that, even if there is no collision with your six-character ID now, that condition may change five years from now.
 
-If your patch fixes a bug in a specific commit, e.g. you found an issue using
-git bisect, please use the ‘Fixes:’ tag with the first 12 characters of the
-SHA-1 ID, and the one line summary. If the bug you are fixing also has a Github
-issue, please include that as well in a separate `Fixes:` line. For example:
-
-```
-Fixes: f641c2d9384e ("fix bug in rm -fa parallel deletes")
-```
-
-The following git config settings can be used to add a pretty format for
-outputting the above style in the git log or git show commands:
+The following git config settings can be used to add a pretty format for outputting the above style in the git log or git show commands:
 
 ```
 [core]
@@ -242,10 +270,9 @@ outputting the above style in the git log or git show commands:
 
 ### Sign your PRs
 
-The sign-off is a line at the end of the explanation for the patch. Your
-signature certifies that you wrote the patch or otherwise have the right to pass
-it on as an open-source patch. The rules are simple: if you can certify
-the below (from [developercertificate.org](https://developercertificate.org/)):
+The sign-off is a line at the end of the explanation for the patch.
+Your signature certifies that you wrote the patch or otherwise have the right to pass it on as an open-source patch.
+The rules are simple: if you can certify the below (from [developercertificate.org](https://developercertificate.org/)):
 
 ```
 Developer Certificate of Origin
@@ -289,43 +316,27 @@ Then you just add a line to every git commit message:
 
     Signed-off-by: Joe Smith <joe.smith@email.com>
 
-Use your real name (sorry, no pseudonyms or anonymous contributions.)
+Use your real name (sorry, no pseudonyms or anonymous contributions).
 
-If you set your `user.name` and `user.email` git configs, you can sign your
-commit automatically with `git commit -s`.
+If you set your `user.name` and `user.email` git configs, you can sign your commit automatically with `git commit -s`.
 
-### Go Format and lint
+### Continuous Integration
 
-All code changes must pass ``make validatepr``.
+All pull requests automatically run Podman's test suite.
+The tests have been configured such that only tests relevant to the code changed will be run.
+For example, a documentation-only PR with no code changes will run a substantially reduced set of tests.
+To force a PR to run all tests, you can include the string `[CI:ALL]` in the PR title, but this is almost never necessary.
 
-### Integration Tests
+There is always additional complexity added by automation, and so it sometimes can fail for any number of reasons.
+This includes post-merge testing on all branches, which you may occasionally see [red bars on the status graph](https://cirrus-ci.com/github/containers/podman/main).
 
-Our primary means of performing integration testing for Podman is with the
-[Ginkgo](https://github.com/onsi/ginkgo) BDD testing framework. This allows
-us to use native Golang to perform our tests and there is a strong affiliation
-between Ginkgo and the Go test framework.  Adequate test cases are expected to
-be provided with PRs.
+Most notably, the tests will occasionally flake.
+If you see a single test on your PR has failed, and you do not believe it is caused by your changes, you can rerun the tests.
+If you lack permissions to rerun the tests, please ping the maintainers using the `@containers/podman-maintainers` group and request that the failing test be rerun.
 
-For details on how to run the tests for Podman in your test environment, see the
-testing [README.md](test/README.md).
-
-## Continuous Integration
-
-All pull requests and branch-merges automatically run:
-
-* Go format/lint checking
-* Unit testing
-* Integration Testing
-* Special testing (like running inside a container, or as a regular user)
-
-There is always additional complexity added by automation, and so it sometimes
-can fail for any number of reasons.  This includes post-merge testing on all
-branches, which you may occasionally see [red bars on the status graph
-.](https://cirrus-ci.com/github/containers/podman/main)
-
-When the graph shows mostly green bars on the right, it's a good indication
-the main branch is currently stable.  Alternating red/green bars is indicative
-of a testing "flake", and should be examined (anybody can do this):
+If you see multiple test failures, you may wish to check the status graph mentioned above.
+When the graph shows mostly green bars on the right, it's a good indication the main branch is currently stable.
+Alternating red/green bars is indicative of a testing "flake", and should be examined (anybody can do this):
 
 * *One or a small handful of tests, on a single task, (i.e. specific distro/version)
   where all others ran successfully:*  Frequently the cause is networking or a brief
@@ -346,12 +357,11 @@ a ***very bad*** sign.  It means additional merges are occurring despite an unco
 or persistently faulty condition.  This risks additional bugs being introduced
 and further complication of necessary corrective measures.  Most likely people
 are aware and working on this, but it doesn't hurt [to confirm and/or try and help
-if possible.](#communications)
+if possible.](#communications).
 
 ## Communications
 
-For general questions and discussion, please use the
-IRC `#podman` channel on `irc.libera.chat`.
+If you need help, you can contact the maintainers using the channels mentioned in Podman's [communications](https://github.com/containers/podman/blob/main/README.md#communications) document.
 
 For discussions around issues/bugs and features, you can use the GitHub
 [issues](https://github.com/containers/podman/issues)
@@ -359,14 +369,12 @@ and
 [PRs](https://github.com/containers/podman/pulls)
 tracking system.
 
-There is also a [mailing list](https://lists.podman.io/archives/) at `lists.podman.io`.
-You can subscribe by sending a message to `podman@lists.podman.io` with the subject `subscribe`.
-
 ### Bot Interactions
 
-The primary human-interface is through comments in pull-requests.  Some of these are outlined
-below, along with their meaning and intended usage.  Some of them require the comment
-author hold special privileges on the github repository.  Others can be used by anyone.
+The primary human-interface is through comments in pull-requests.
+Some of these are outlined below, along with their meaning and intended usage.
+Some of them require the comment author hold special privileges on the github repository.
+Others can be used by anyone.
 
 * ``/close``: Closes an issue or PR.
 
@@ -393,4 +401,5 @@ author hold special privileges on the github repository.  Others can be used by 
   protection.**
 
 [The complete list may be found on the command-help page.](https://prow.k8s.io/command-help)
-However, not all commands are implemented for this repository.  If in doubt, ask a maintainer.
+However, not all commands are implemented for this repository.
+If in doubt, ask a maintainer.
