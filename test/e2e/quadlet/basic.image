@@ -1,6 +1,6 @@
 ## assert-podman-final-args localhost/imagename
-## assert-key-is "Unit" "After" "network-online.target"
-## assert-key-is "Unit" "Wants" "network-online.target"
+## assert-key-is-regex "Unit" "After" "network-online.target|podman-user-wait-network-online.service"
+## assert-key-is-regex "Unit" "Wants" "network-online.target|podman-user-wait-network-online.service"
 ## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"
 ## assert-key-is "Service" "Type" "oneshot"
 ## assert-key-is "Service" "RemainAfterExit" "yes"

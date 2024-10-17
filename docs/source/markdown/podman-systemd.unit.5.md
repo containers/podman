@@ -238,9 +238,14 @@ that limit the output to only the units you are debugging.
 
 ### Implicit network dependencies
 
-In the case of Container, Image and Build units, Quadlet will add dependencies on the `network-online.target`
-by adding `After=` and `Wants=` properties to the unit. This is to ensure that the network is reachable if
-an image needs to be pulled.
+In the case of Container, Image and Build units, Quadlet will add dependencies on the `network-online.target` (as root)
+or `podman-user-wait-network-online.service` (as user) by adding `After=` and `Wants=` properties to the unit.
+This is to ensure that the network is reachable if an image needs to be pulled and by the time the container is started.
+
+The special case `podman-user-wait-network-online.service` unit is needed as user because user units are unable to wait
+for system (root) units so `network-online.target` doesn't do anything there and is instead ignored. As this caused
+a significant amount of issues we decided to work around this with our own special purpose unit that simply checks if
+the `network-online.target` unit is active with `systemctl is-active network-online.target`.
 
 This behavior can be disabled by adding `DefaultDependencies=false` in the `Quadlet` section.
 
@@ -1791,10 +1796,10 @@ exists on the host, pulling it if needed.
 Using image units allows containers and volumes to depend on images being automatically pulled. This is
 particularly interesting when using special options to control image pulls.
 
-Note: The generated service have a dependency on `network-online.target` assuring the network is reachable if
-an image needs to be pulled.
-If the image service needs to run without available network (e.g. early in boot), the requirement can be
-overridden simply by adding an empty `After=` in the unit file. This will unset all previously set After's.
+Note: The generated service have a dependency on `network-online.target` or
+`podman-user-wait-network-online.service` assuring the network is reachable if an image needs to be pulled.
+If the image service needs to run without available network (e.g. early in boot), this behavior
+can be disabled by adding `DefaultDependencies=false` in the `Quadlet` section.
 
 Valid options for `[Image]` are listed below:
 
@@ -1936,7 +1941,8 @@ Valid options for `[Quadlet]` are listed below:
 
 Add Quadlet's default network dependencies to the unit (default is `true`).
 
-When set to false, Quadlet will **not** add a dependency (After=, Wants=) to `network-online.target` to the generated unit.
+When set to false, Quadlet will **not** add a dependency (After=, Wants=) to
+`network-online.target`/`podman-user-wait-network-online.service` to the generated unit.
 
 ## EXAMPLES
 
