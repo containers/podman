@@ -79,8 +79,6 @@ github.com/containernetworking/plugins v1.5.1 h1:T5ji+LPYjjgW0QM+KyrigZbLsZ8jaX+
 github.com/containernetworking/plugins v1.5.1/go.mod h1:MIQfgMayGuHYs0XdNudf31cLLAC+i242hNm6KuDGqCM=
 github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed h1:qiE4J6RukT5+a2wV+Xeimu0c4Xx6DZrdt8JiP3c9CY8=
 github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed/go.mod h1:ytj7qYHUdP/p+2lAXVaFSHDyYFJZ3y1ikpFERypXbCI=
-github.com/containers/common v0.60.1-0.20241011155906-25644f144d66 h1:3Op65/b+uB4ech61GRBHNggW5aGDoChPUDG2++tkHB8=
-github.com/containers/common v0.60.1-0.20241011155906-25644f144d66/go.mod h1:GRT29AbW4CdqEWP/jSxHyUvV5fprOzsCdhsFhqJiU4s=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.7.5 h1:bTy4u3DOmmUPwurL6me2rsgfypAFDhyeJleUcQmBR/E=
@@ -382,6 +380,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
 github.com/morikuni/aec v1.0.0/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
+github.com/mtrmac/common v0.8.2-0.20241016204223-72dbc99f1898 h1:ohyVzuJ7y/DVuc5vVa/wZT8uwBiZU+eLkLQ0vujyf4E=
+github.com/mtrmac/common v0.8.2-0.20241016204223-72dbc99f1898/go.mod h1:T8vpUWd7AspK7CMELf/c+NCZB6bKrRkLriRCspdFGyQ=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=
