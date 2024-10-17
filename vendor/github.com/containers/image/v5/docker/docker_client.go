@@ -42,7 +42,6 @@ const (
 	dockerRegistry   = "registry-1.docker.io"
 
 	resolvedPingV2URL       = "%s://%s/v2/"
-	resolvedPingV1URL       = "%s://%s/v1/_ping"
 	tagsPath                = "/v2/%s/tags/list"
 	manifestPath            = "/v2/%s/manifests/%s"
 	blobsPath               = "/v2/%s/blobs/%s"
@@ -936,34 +935,6 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	}
 	if err != nil {
 		err = fmt.Errorf("pinging container registry %s: %w", c.registry, err)
-		if c.sys != nil && c.sys.DockerDisableV1Ping {
-			return err
-		}
-		// best effort to understand if we're talking to a V1 registry
-		pingV1 := func(scheme string) bool {
-			pingURL, err := url.Parse(fmt.Sprintf(resolvedPingV1URL, scheme, c.registry))
-			if err != nil {
-				return false
-			}
-			resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, pingURL, nil, nil, -1, noAuth, nil)
-			if err != nil {
-				logrus.Debugf("Ping %s err %s (%#v)", pingURL.Redacted(), err.Error(), err)
-				return false
-			}
-			defer resp.Body.Close()
-			logrus.Debugf("Ping %s status %d", pingURL.Redacted(), resp.StatusCode)
-			if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
-				return false
-			}
-			return true
-		}
-		isV1 := pingV1("https")
-		if !isV1 && c.tlsClientConfig.InsecureSkipVerify {
-			isV1 = pingV1("http")
-		}
-		if isV1 {
-			err = ErrV1NotSupported
-		}
 	}
 	return err
 }

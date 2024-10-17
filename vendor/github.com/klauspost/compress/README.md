@@ -16,6 +16,13 @@ This package provides various compression algorithms.
 
 # changelog
 
+* Sep 23rd, 2024 - [1.17.10](https://github.com/klauspost/compress/releases/tag/v1.17.10)
+	* gzhttp: Add TransportAlwaysDecompress option. https://github.com/klauspost/compress/pull/978
+	* gzhttp: Add supported decompress request body by @mirecl in https://github.com/klauspost/compress/pull/1002
+	* s2: Add EncodeBuffer buffer recycling callback https://github.com/klauspost/compress/pull/982
+	* zstd: Improve memory usage on small streaming encodes https://github.com/klauspost/compress/pull/1007
+	* flate: read data written with partial flush by @vajexal in https://github.com/klauspost/compress/pull/996
+
 * Jun 12th, 2024 - [1.17.9](https://github.com/klauspost/compress/releases/tag/v1.17.9)
 	* s2: Reduce ReadFrom temporary allocations https://github.com/klauspost/compress/pull/949
 	* flate, zstd: Shave some bytes off amd64 matchLen by @greatroar in https://github.com/klauspost/compress/pull/963

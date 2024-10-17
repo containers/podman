@@ -153,7 +153,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
-	github.com/klauspost/compress v1.17.10 // indirect
+	github.com/klauspost/compress v1.17.11 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
@@ -228,3 +228,5 @@ require (
 )
 
 replace github.com/containers/common => github.com/mtrmac/common v0.8.2-0.20241016204223-72dbc99f1898
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241016195457-6045533dd9a2
