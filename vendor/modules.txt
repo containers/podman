@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.55.1-0.20241016074337-b417e8d6376d
+# github.com/containers/storage v1.55.1-0.20241016074337-b417e8d6376d => github.com/mtrmac/storage v0.0.0-20241017234338-b057acd7a73d
 ## explicit; go 1.22.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1386,3 +1386,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 tags.cncf.io/container-device-interface/specs-go
 # github.com/containers/common => github.com/mtrmac/common v0.8.2-0.20241015204126-78c8c087610a
 # github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241016195457-6045533dd9a2
+# github.com/containers/storage => github.com/mtrmac/storage v0.0.0-20241017234338-b057acd7a73d

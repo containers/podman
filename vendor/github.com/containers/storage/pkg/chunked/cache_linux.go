@@ -274,7 +274,7 @@ func (c *layersCache) load() error {
 	var newLayers []*layer
 	for _, r := range allLayers {
 		// The layer is present in the store and it is already loaded.  Attempt to
-		// re-use it if mmap'ed.
+		// reuse it if mmap'ed.
 		if l, found := loadedLayers[r.ID]; found {
 			// If the layer is not marked for re-load, move it to newLayers.
 			if !l.reloadWithMmap {
