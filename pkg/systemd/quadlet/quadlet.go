@@ -782,7 +782,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		return nil, err
 	}
 
-	if err := handleUserMappings(container, ContainerGroup, podman, isUser, true); err != nil {
+	if err := handleUserMappings(container, ContainerGroup, podman, true); err != nil {
 		return nil, err
 	}
 
@@ -1224,7 +1224,7 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 	handleLogDriver(kube, KubeGroup, execStart)
 	handleLogOpt(kube, KubeGroup, execStart)
 
-	if err := handleUserMappings(kube, KubeGroup, execStart, isUser, false); err != nil {
+	if err := handleUserMappings(kube, KubeGroup, execStart, false); err != nil {
 		return nil, err
 	}
 
@@ -1613,7 +1613,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		"--replace",
 	)
 
-	if err := handleUserMappings(podUnit, PodGroup, execStartPre, isUser, true); err != nil {
+	if err := handleUserMappings(podUnit, PodGroup, execStartPre, true); err != nil {
 		return nil, err
 	}
 
@@ -1684,7 +1684,7 @@ func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdli
 	return nil
 }
 
-func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
+func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, supportManual bool) error {
 	mappingsDefined := false
 
 	if userns, ok := unitFile.Lookup(groupName, KeyUserNS); ok && len(userns) > 0 {
@@ -1724,10 +1724,10 @@ func handleUserMappings(unitFile *parser.UnitFile, groupName string, podman *Pod
 		return nil
 	}
 
-	return handleUserRemap(unitFile, groupName, podman, isUser, supportManual)
+	return handleUserRemap(unitFile, groupName, podman, supportManual)
 }
 
-func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, isUser, supportManual bool) error {
+func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline, supportManual bool) error {
 	uidMaps := unitFile.LookupAllStrv(groupName, KeyRemapUid)
 	gidMaps := unitFile.LookupAllStrv(groupName, KeyRemapGid)
 	remapUsers, _ := unitFile.LookupLast(groupName, KeyRemapUsers)
@@ -1765,10 +1765,6 @@ func handleUserRemap(unitFile *parser.UnitFile, groupName string, podman *Podman
 
 		podman.add("--userns", usernsOpts("auto", autoOpts))
 	case "keep-id":
-		if !isUser {
-			return fmt.Errorf("RemapUsers=keep-id is unsupported for system units")
-		}
-
 		keepidOpts := make([]string, 0)
 		if len(uidMaps) > 0 {
 			if len(uidMaps) > 1 {
