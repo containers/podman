@@ -1000,6 +1000,9 @@ install.systemd: $(PODMAN_GENERATED_UNIT_FILES)
 		install ${SELINUXOPT} -m 644 $$unit $(DESTDIR)${USERSYSTEMDDIR}/$$(basename $$unit); \
 		install ${SELINUXOPT} -m 644 $$unit $(DESTDIR)${SYSTEMDDIR}/$$(basename $$unit); \
 	done
+	# Important this unit should only be installed for the user session and is thus not added to the loop above.
+	install ${SELINUXOPT} -m 644 contrib/systemd/user/podman-user-wait-network-online.service \
+		$(DESTDIR)${USERSYSTEMDDIR}/podman-user-wait-network-online.service
 	rm -f $^
 else
 install.systemd:
