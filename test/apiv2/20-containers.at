@@ -213,7 +213,7 @@ iid=$(jq -r '.Id' <<<"$output")
 t GET libpod/images/$iid/json 200 \
   .RepoTags[0]=null \
   .Author="" \
-  .Comment=""
+  .Comment~"FROM docker\.io/.*"
 
 # Commit a new image w/o tag
 cparam="repo=newrepo&comment=foo&author=bob&format=docker"

@@ -85,19 +85,45 @@ t GET libpod/images/nonesuch/history 404
 for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG; do
   t GET libpod/images/$i/history 200 \
     .[0].Id=$iid \
+    .[1].Id="<missing>" \
+    .[2].Id="<missing>" \
+    .[3].Id="<missing>" \
     .[0].Created~[0-9]\\{10\\} \
     .[0].Tags[0]="$IMAGE" \
     .[0].Size=1024 \
-    .[0].Comment="FROM localhost/interim-image:latest"
+    .[1].Size=0 \
+    .[2].Size=0 \
+    .[3].Size=0 \
+    .[0].Comment="" \
+    .[1].Comment="" \
+    .[2].Comment="" \
+    .[3].Comment="FROM localhost/interim-image:latest" \
+    .[0].CreatedBy~".*/echo.*This container is intended for podman CI testing.*" \
+    .[1].CreatedBy~".* WORKDIR /home/podman" \
+    .[2].CreatedBy~".* LABEL created_at=.*" \
+    .[3].CreatedBy~".* LABEL created_by=test/system/build-testimage"
 done
 
 for i in $iid ${iid:0:12} $PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG; do
   t GET images/$i/history 200 \
-    .[0].Id="sha256:"$iid \
+    .[0].Id="sha256:$iid" \
+    .[1].Id="sha256:<missing>" \
+    .[2].Id="sha256:<missing>" \
+    .[3].Id="sha256:<missing>" \
     .[0].Created~[0-9]\\{10\\} \
     .[0].Tags[0]="$IMAGE" \
     .[0].Size=1024 \
-    .[0].Comment="FROM localhost/interim-image:latest"
+    .[1].Size=0 \
+    .[2].Size=0 \
+    .[3].Size=0 \
+    .[0].Comment="" \
+    .[1].Comment="" \
+    .[2].Comment="" \
+    .[3].Comment="FROM localhost/interim-image:latest" \
+    .[0].CreatedBy~".*/echo.*This container is intended for podman CI testing.*" \
+    .[1].CreatedBy~".* WORKDIR /home/podman" \
+    .[2].CreatedBy~".* LABEL created_at=.*" \
+    .[3].CreatedBy~".* LABEL created_by=test/system/build-testimage"
 done
 
 # compat api pull image unauthorized message error
