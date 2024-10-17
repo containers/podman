@@ -81,6 +81,12 @@ var _ = Describe("Podman volumes", func() {
 		err = volumes.Remove(connText, vol.Name, nil)
 		Expect(err).ToNot(HaveOccurred())
 
+		// removing partial name should result in 404
+		err = volumes.Remove(connText, vol.Name[:3], nil)
+		code, err = bindings.CheckResponseCode(err)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(code).To(BeNumerically("==", http.StatusNotFound))
+
 		// Removing a volume that is being used without force should be 409
 		vol, err = volumes.Create(connText, entities.VolumeCreateOptions{}, nil)
 		Expect(err).ToNot(HaveOccurred())
