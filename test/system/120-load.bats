@@ -234,11 +234,21 @@ verify_img_config_digest_and_name() {
             -v $archive:/var/www/image.tar:Z \
             -w /var/www \
             $IMAGE /bin/busybox-extras httpd -f -p 80
-
+    # We now have $IMAGE pointing at the image, possibly using a zstd:chunked (TOC-based) pull
     run_podman load -i $SERVER/image.tar
-    verify_img_config_digest_and_name $img_name
 
+    # This should move the $img_name tag ( = $IMAGE) to the result of loading the image;
+    # this is a non-TOC-based load, so it might or might not deduplicate the loaded image with
+    # the one for myweb.
+    # So, if we have an untagged image, it’s probably the one for myweb, and try to remove it.
     run_podman rm -f -t0 myweb
+    run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
+    local myweb_iid=$(echo "$output" | sed -n '/<none>:<none>/s/ .*$//p')
+    if [[ -n "$myweb_iid" ]]; then
+        run_podman rmi $myweb_iid
+    fi
+
+    verify_img_config_digest_and_name $img_name
 }
 
 @test "podman load - redirect corrupt payload" {
