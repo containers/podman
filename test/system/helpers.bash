@@ -14,7 +14,7 @@ PODMAN_RUNTIME=
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
 PODMAN_TEST_IMAGE_USER=${PODMAN_TEST_IMAGE_USER:-"libpod"}
 PODMAN_TEST_IMAGE_NAME=${PODMAN_TEST_IMAGE_NAME:-"testimage"}
-PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20241011"}
+PODMAN_TEST_IMAGE_TAG=${PODMAN_TEST_IMAGE_TAG:-"20241010"}
 PODMAN_TEST_IMAGE_FQN="$PODMAN_TEST_IMAGE_REGISTRY/$PODMAN_TEST_IMAGE_USER/$PODMAN_TEST_IMAGE_NAME:$PODMAN_TEST_IMAGE_TAG"
 
 # Larger image containing systemd tools.
@@ -845,6 +845,21 @@ function _ensure_container_running() {
     done
 
     die "Timed out waiting for container $1 to enter state running=$2"
+}
+
+# Return the config digest of an image in containers-storage.
+# The input can be a named reference, or an @imageID (including shorter imageID prefixes)
+# Historically, the image ID was a good indicator of “the same” image;
+# with zstd:chunked, the same image might have different IDs depending on whether
+# creating layers happened based on the TOC (and per-file operations) or the full layer tarball
+function image_config_digest() {
+    echo "image_config_digest $1" >&2
+    local config=$(skopeo inspect --raw --config "containers-storage:$1")
+    echo "===config\n$config\n===" >&2
+    local sha_output=$(printf "%s" "$config" | sha256sum)
+    echo "sha_output $sha_output" >&2
+    echo "returning ${sha_output%% *}" >&2
+    echo "${sha_output%% *}"
 }
 
 ###########################
