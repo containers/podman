@@ -2201,7 +2201,7 @@ func (s *store) ImageSize(id string) (int64, error) {
 			}
 			// The UncompressedSize is only valid if there's a digest to go with it.
 			n := layer.UncompressedSize
-			if layer.UncompressedDigest == "" {
+			if layer.UncompressedDigest == "" || n == -1 {
 				// Compute the size.
 				n, err = layerStore.DiffSize("", layer.ID)
 				if err != nil {

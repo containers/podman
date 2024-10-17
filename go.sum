@@ -93,8 +93,8 @@ github.com/containers/ocicrypt v1.2.0 h1:X14EgRK3xNFvJEfI5O4Qn4T3E25ANudSOZz/sir
 github.com/containers/ocicrypt v1.2.0/go.mod h1:ZNviigQajtdlxIZGibvblVuIFBKIuUI2M0QM12SD31U=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.55.1-0.20241008185503-a397602515fd h1:Yh3v4wrVxMpccXjA451OsF4CdKuQEEGCNDHtK84y+10=
-github.com/containers/storage v1.55.1-0.20241008185503-a397602515fd/go.mod h1:H3XVD+Fwqe26DEP+Ev3s9VmdtXlAd9rV/WFC+dgALSI=
+github.com/containers/storage v1.55.1-0.20241016074337-b417e8d6376d h1:pEpS4UWW++IMwvWHLOVRYPofnRWFora35fHx/XwM18c=
+github.com/containers/storage v1.55.1-0.20241016074337-b417e8d6376d/go.mod h1:1Yv4k1PJCLjKLhQ5N4TdH7+5ntDjRcy/dHcZQKRQ4fg=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-oidc/v3 v3.11.0 h1:Ia3MxdwpSw702YW0xgfmP1GVCMA9aEFWu12XUZ3/OtI=
