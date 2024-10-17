@@ -383,9 +383,13 @@ EOF
     assert "${lines[-2]}" =~ ".*$IMAGE false" "image from readwrite store"
     assert "${lines[-1]}" =~ ".*$IMAGE true" "image from readonly store"
     id=${lines[-2]%% *}
+    local cd; cd=$(image_config_digest "@$id") # Without $sconf, i.e. from the read-write store.
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman pull -q $IMAGE
-    is "$output" "$id" "pull -q $IMAGE, using storage.conf"
+    # This is originally a regression test, (podman pull) used to output multiple image IDs. Ensure it only prints one.
+    [[ $(printf '%s' "$output" | wc -l) -le 1 ]]
+    local cd2; cd2=$(image_config_digest "@$output")
+    assert "$cd2" = "$cd" "pull -q $IMAGE, using storage.conf"
 
     run_podman --root $imstore/root rmi --all
 }
