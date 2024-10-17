@@ -201,6 +201,15 @@ EOF
     run_quadlet "$quadlet_file"
     service_setup $QUADLET_SERVICE_NAME
 
+    run -0 systemctl show --property=Wants --property=After "$QUADLET_SERVICE_NAME"
+    service="network-online.target"
+    if is_rootless; then
+        service="podman-user-wait-network-online.service"
+    fi
+    assert "${lines[0]}" == "Wants=$service" "quadlet unit Wants network dependency"
+    # Note systemd adds some other default services to After= so no exact match possible
+    assert "${lines[1]}" =~ "After=.*$service.*" "quadlet unit After network dependency"
+
     # Check that we can read the logs from the container with podman logs even
     # with the `passthrough` driver.  The log may need a short period of time
     # to bubble up into the journal logs, so wait for it.
