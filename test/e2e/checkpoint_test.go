@@ -711,12 +711,13 @@ var _ = Describe("Podman checkpoint", func() {
 		session := podmanTest.Podman([]string{"run", "--network=none", "-d", "--rm", ALPINE, "top"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
+		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1), "# of running containers at start")
 		cid := session.OutputToString()
 		fileName := filepath.Join(podmanTest.TempDir, "/checkpoint-"+cid+".tar.gz")
 
 		// Change the container's root file-system
-		result := podmanTest.Podman([]string{"exec", cid, "/bin/sh", "-c", "echo test" + cid + "test > /test.output"})
+		signalFile := "/test.output"
+		result := podmanTest.Podman([]string{"exec", cid, "touch", signalFile})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 
@@ -725,23 +726,32 @@ var _ = Describe("Podman checkpoint", func() {
 		result.WaitWithDefaultTimeout()
 
 		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToString()).To(ContainSubstring(cid))
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
-		Expect(podmanTest.NumberOfContainers()).To(Equal(0))
+		Expect(result.OutputToString()).To(Equal(cid), "checkpoint output")
+		// Allow a few seconds for --rm to take effect
+		ncontainers := podmanTest.NumberOfContainers()
+		for try := 0; try < 4; try++ {
+			if ncontainers == 0 {
+				break
+			}
+			time.Sleep(time.Second)
+			ncontainers = podmanTest.NumberOfContainers()
+		}
+		Expect(ncontainers).To(Equal(0), "# of containers (total) after checkpoint")
 
 		// Restore the container
 		result = podmanTest.Podman([]string{"container", "restore", "--ignore-rootfs", "-i", fileName})
 		result.WaitWithDefaultTimeout()
-
 		Expect(result).Should(ExitCleanly())
-		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(1))
-		Expect(podmanTest.NumberOfContainers()).To(Equal(1))
-		Expect(podmanTest.GetContainerStatus()).To(ContainSubstring("Up"))
+
+		runCheck := podmanTest.Podman([]string{"ps", "-a", "--noheading", "--no-trunc", "--format", "{{.ID}} {{.State}}"})
+		runCheck.WaitWithDefaultTimeout()
+		Expect(runCheck).Should(ExitCleanly())
+		Expect(runCheck.OutputToString()).To(Equal(cid+" running"), "podman ps, after restore")
 
 		// Verify the changes to the container's root file-system
-		result = podmanTest.Podman([]string{"exec", cid, "cat", "/test.output"})
+		result = podmanTest.Podman([]string{"exec", cid, "cat", signalFile})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitWithError(1, "cat: can't open '/test.output': No such file or directory"))
+		Expect(result).Should(ExitWithError(1, "cat: can't open '"+signalFile+"': No such file or directory"))
 
 		// Remove exported checkpoint
 		os.Remove(fileName)
