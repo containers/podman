@@ -180,6 +180,13 @@ gofix_task:
     build_script: go fix ./...
     test_script: git diff --exit-code
 
+codespell_task:
+    alias: codespell
+    container:
+        image: python
+    build_script: pip install codespell
+    test_script: codespell
+
 
 # Status aggregator for all tests.  This task simply ensures a defined
 # set of tasks all passed, and allows confirming that based on the status
@@ -197,6 +204,7 @@ success_task:
         - vendor
         - cross
         - gofix
+        - codespell
     container:
         image: golang:1.21
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed
