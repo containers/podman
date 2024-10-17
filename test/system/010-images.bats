@@ -391,6 +391,12 @@ EOF
     local config_digest2; config_digest2=$(image_config_digest "@$output")
     assert "$config_digest2" = "$config_digest" "pull -q $IMAGE, using storage.conf"
 
+    # $IMAGE might now be reusing layers from the additional store;
+    # Removing the additional store underneath can result in dangling layer references.
+    # Try to fix that up.
+    CONTAINERS_STORAGE_CONF=$sconf run_podman rmi $IMAGE
+    _prefetch $IMAGE
+
     run_podman --root $imstore/root rmi --all
 }
 
