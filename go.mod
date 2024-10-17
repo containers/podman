@@ -12,7 +12,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.2.1
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed
+	github.com/containers/buildah v1.37.1-0.20241017111151-551877457433
 	github.com/containers/common v0.60.1-0.20241011155906-25644f144d66
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.7.5
@@ -104,7 +104,7 @@ require (
 	github.com/containerd/typeurl/v2 v2.2.0 // indirect
 	github.com/containernetworking/cni v1.2.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
-	github.com/containers/luksy v0.0.0-20240812184316-2e7307c02f06 // indirect
+	github.com/containers/luksy v0.0.0-20241007190014-e2530d691420 // indirect
 	github.com/coreos/go-oidc/v3 v3.11.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f // indirect
