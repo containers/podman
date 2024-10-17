@@ -373,10 +373,7 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			return errors.New("COPY --parents is not supported")
 		}
 		if len(cp.Excludes) > 0 {
-			if cp.Download {
-				return errors.New("ADD --excludes is not supported")
-			}
-			return errors.New("COPY --excludes is not supported")
+			excludes = append(slices.Clone(excludes), cp.Excludes...)
 		}
 	}
 	s.builder.ContentDigester.Restart()
@@ -1325,12 +1322,12 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// Also check the chmod and the chown flags for validity.
 		for _, flag := range step.Flags {
 			command := strings.ToUpper(step.Command)
-			// chmod, chown and from flags should have an '=' sign, '--chmod=', '--chown=' or '--from='
-			if command == "COPY" && (flag == "--chmod" || flag == "--chown" || flag == "--from") {
-				return "", nil, false, fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> and the --from=<image|stage> flags")
+			// chmod, chown and from flags should have an '=' sign, '--chmod=', '--chown=' or '--from=' or '--exclude='
+			if command == "COPY" && (flag == "--chmod" || flag == "--chown" || flag == "--from" || flag == "--exclude") {
+				return "", nil, false, fmt.Errorf("COPY only supports the --chmod=<permissions> --chown=<uid:gid> --from=<image|stage> and the --exclude=<pattern> flags")
 			}
-			if command == "ADD" && (flag == "--chmod" || flag == "--chown" || flag == "--checksum") {
-				return "", nil, false, fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> flags")
+			if command == "ADD" && (flag == "--chmod" || flag == "--chown" || flag == "--checksum" || flag == "--exclude") {
+				return "", nil, false, fmt.Errorf("ADD only supports the --chmod=<permissions>, --chown=<uid:gid>, and --checksum=<checksum> --exclude=<pattern> flags")
 			}
 			if strings.Contains(flag, "--from") && command == "COPY" {
 				arr := strings.Split(flag, "=")
