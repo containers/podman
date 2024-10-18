@@ -847,6 +847,21 @@ function _ensure_container_running() {
     die "Timed out waiting for container $1 to enter state running=$2"
 }
 
+# Return the config digest of an image in containers-storage.
+# The input can be a named reference, or an @imageID (including shorter imageID prefixes)
+# Historically, the image ID was a good indicator of “the same” image;
+# with zstd:chunked, the same image might have different IDs depending on whether
+# creating layers happened based on the TOC (and per-file operations) or the full layer tarball
+function image_config_digest() {
+    echo "image_config_digest $1" >&2
+    local config; config=$(skopeo inspect --raw --config "containers-storage:$1")
+    echo "config contents:[[[$config]]]" >&2
+    local sha_output; sha_output=$(printf "%s" "$config" | sha256sum)
+    echo "sha_output $sha_output" >&2
+    echo "returning ${sha_output%% *}" >&2
+    echo "${sha_output%% *}"
+}
+
 ###########################
 #  _add_label_if_missing  #  make sure skip messages include rootless/remote
 ###########################
