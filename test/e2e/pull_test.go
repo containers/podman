@@ -265,9 +265,10 @@ var _ = Describe("Podman pull", func() {
 	It("podman pull by tag (image list)", func() {
 		SkipIfRemote("podman-remote does not support disabling external imagestore")
 
-		session := podmanTest.Podman([]string{"pull", "-q", "--arch=arm64", ALPINELISTTAG})
+		session := podmanTest.Podman([]string{"--log-level=debug", "pull", "-q", "--arch=arm64", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		GinkgoWriter.Printf("=== DEBUG pull log\n%s=== END pull log", session.Err.Contents())
 		// inspect using the tag we used for pulling
 		session = podmanTest.PodmanNoCache([]string{"inspect", "--format", "{{.RepoTags}}", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()

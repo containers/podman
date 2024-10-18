@@ -257,9 +257,10 @@ WORKDIR /test
 		// the additional image store we're using.  Pull the same image by another name to
 		// copy an entry for the image into read-write storage so that the name can be
 		// attached to it.
-		session := podmanTest.Podman([]string{"pull", "-q", ALPINELISTTAG})
+		session := podmanTest.Podman([]string{"--log-level=debug", "pull", "-q", ALPINELISTTAG})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		GinkgoWriter.Printf("=== DEBUG pull log\n%s=== END pull log", session.Err.Contents())
 		digestPullAndList(false)
 
 		// Now remove all names from the read-write image record, re-pull by digest and
