@@ -524,13 +524,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	service := container.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
-	// Add a dependency on network-online.target so the image pull does not happen
-	// before network is ready
-	// https://github.com/containers/podman/issues/21873
-	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
-		service.PrependUnitLine(UnitGroup, "After", "network-online.target")
-		service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
-	}
+	addDefaultDependencies(service, isUser)
 
 	if container.Path != "" {
 		service.Add(UnitGroup, "SourcePath", container.Path)
@@ -888,7 +882,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 // The original Network group is kept around as X-Network.
 // Also returns the canonical network name, either auto-generated or user-defined via the
 // NetworkName key-value.
-func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[network.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing network %s", network.Filename)
@@ -896,6 +890,8 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 
 	service := network.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if network.Path != "" {
 		service.Add(UnitGroup, "SourcePath", network.Path)
@@ -998,7 +994,7 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 // The original Volume group is kept around as X-Volume.
 // Also returns the canonical volume name, either auto-generated or user-defined via the VolumeName
 // key-value.
-func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[volume.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing network %s", volume.Filename)
@@ -1006,6 +1002,8 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	service := volume.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if volume.Path != "" {
 		service.Add(UnitGroup, "SourcePath", volume.Path)
@@ -1148,6 +1146,8 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 	service := kube.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
+	addDefaultDependencies(service, isUser)
+
 	if kube.Path != "" {
 		service.Add(UnitGroup, "SourcePath", kube.Path)
 	}
@@ -1282,7 +1282,7 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 	return service, nil
 }
 
-func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[image.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing network %s", image.Filename)
@@ -1291,13 +1291,7 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	service := image.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
-	// Add a dependency on network-online.target so the image pull does not happen
-	// before network is ready
-	// https://github.com/containers/podman/issues/21873
-	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
-		service.PrependUnitLine(UnitGroup, "After", "network-online.target")
-		service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
-	}
+	addDefaultDependencies(service, isUser)
 
 	if image.Path != "" {
 		service.Add(UnitGroup, "SourcePath", image.Path)
@@ -1365,7 +1359,7 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	return service, nil
 }
 
-func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[build.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing network %s", build.Filename)
@@ -1379,13 +1373,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) (*p
 	service := build.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
-	// Add a dependency on network-online.target so the image pull does not happen
-	// before network is ready
-	// https://github.com/containers/podman/issues/21873
-	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
-		service.PrependUnitLine(UnitGroup, "After", "network-online.target")
-		service.PrependUnitLine(UnitGroup, "Wants", "network-online.target")
-	}
+	addDefaultDependencies(service, isUser)
 
 	/* Rename old Build group to X-Build so that systemd ignores it */
 	service.RenameGroup(BuildGroup, XBuildGroup)
@@ -1549,6 +1537,8 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	service := podUnit.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if podUnit.Path != "" {
 		service.Add(UnitGroup, "SourcePath", podUnit.Path)
@@ -2183,4 +2173,23 @@ func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName str
 	}
 
 	return nil
+}
+
+func addDefaultDependencies(service *parser.UnitFile, isUser bool) {
+	// Add a dependency on network-online.target so the image pull container startup
+	// does not happen before network is ready.
+	// https://github.com/containers/podman/issues/21873
+	if service.LookupBooleanWithDefault(QuadletGroup, KeyDefaultDependencies, true) {
+		networkUnit := "network-online.target"
+		// network-online.target only exists as root and user session cannot wait for it
+		// https://github.com/systemd/systemd/issues/3312
+		// Given this is a bad problem with pasta which can fail to start or use the
+		// wrong interface if the network is not fully set up we need to work around
+		// that: https://github.com/containers/podman/issues/22197.
+		if isUser {
+			networkUnit = "podman-user-wait-network-online.service"
+		}
+		service.PrependUnitLine(UnitGroup, "After", networkUnit)
+		service.PrependUnitLine(UnitGroup, "Wants", networkUnit)
+	}
 }

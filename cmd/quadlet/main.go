@@ -732,16 +732,16 @@ func process() error {
 			service, err = quadlet.ConvertContainer(unit, isUserFlag, unitsInfoMap)
 		case strings.HasSuffix(unit.Filename, ".volume"):
 			warnIfAmbiguousName(unit, quadlet.VolumeGroup)
-			service, err = quadlet.ConvertVolume(unit, unit.Filename, unitsInfoMap)
+			service, err = quadlet.ConvertVolume(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".kube"):
 			service, err = quadlet.ConvertKube(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".network"):
-			service, err = quadlet.ConvertNetwork(unit, unit.Filename, unitsInfoMap)
+			service, err = quadlet.ConvertNetwork(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".image"):
 			warnIfAmbiguousName(unit, quadlet.ImageGroup)
-			service, err = quadlet.ConvertImage(unit, unitsInfoMap)
+			service, err = quadlet.ConvertImage(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".build"):
-			service, err = quadlet.ConvertBuild(unit, unitsInfoMap)
+			service, err = quadlet.ConvertBuild(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			service, err = quadlet.ConvertPod(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		default:
