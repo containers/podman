@@ -1,5 +1,14 @@
 # Release Notes
 
+## 5.2.5
+### Security
+- This release addresses [CVE-2024-9675](https://access.redhat.com/security/cve/cve-2024-9675), which allows arbitrary access to the host filesystem from `RUN --mount type=cache` arguments to a Dockerfile being built.
+- This release also addresses [CVE-2024-9676](https://access.redhat.com/security/cve/cve-2024-9676), which allows malicious images with a symlink `/etc/passwd` or `/etc/group` to potentially cause a denial of service through reading a FIFO on the host.
+
+### Misc
+- Updated Buildah to v1.37.5
+- Updated the containers/storage library to v1.55.1
+
 ## 5.2.4
 ### Security
 - This release addresses [CVE-2024-9407](https://github.com/advisories/GHSA-fhqq-8f65-5xfc), which allows arbitrary access to the host filesystem from `RUN --mount` arguments to a Dockerfile being built.
