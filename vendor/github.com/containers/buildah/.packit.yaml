@@ -102,6 +102,7 @@ jobs:
   # Fedora Koji build
   - job: koji_build
     trigger: commit
+    packages: [buildah-fedora]
     sidetag_group: podman-releases
     # Dependents are not rpm dependencies, but the package whose bodhi update
     # should include this package.
