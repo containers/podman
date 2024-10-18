@@ -51,28 +51,39 @@ func (err InvalidPolicyFormatError) Error() string {
 // NOTE: When this function returns an error, report it to the user and abort.
 // DO NOT hard-code fallback policies in your application.
 func DefaultPolicy(sys *types.SystemContext) (*Policy, error) {
-	return NewPolicyFromFile(defaultPolicyPath(sys))
+	policyPath, err := defaultPolicyPath(sys)
+	if err != nil {
+		return nil, err
+	}
+	return NewPolicyFromFile(policyPath)
 }
 
-// defaultPolicyPath returns a path to the default policy of the system.
-func defaultPolicyPath(sys *types.SystemContext) string {
-	return defaultPolicyPathWithHomeDir(sys, homedir.Get())
+// defaultPolicyPath returns a path to the relevant policy of the system, or an error if the policy is missing.
+func defaultPolicyPath(sys *types.SystemContext) (string, error) {
+	policyFilePath, err := defaultPolicyPathWithHomeDir(sys, homedir.Get(), systemDefaultPolicyPath)
+	if err != nil {
+		return "", err
+	}
+	return policyFilePath, nil
 }
 
 // defaultPolicyPathWithHomeDir is an internal implementation detail of defaultPolicyPath,
-// it exists only to allow testing it with an artificial home directory.
-func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string) string {
+// it exists only to allow testing it with artificial paths.
+func defaultPolicyPathWithHomeDir(sys *types.SystemContext, homeDir string, systemPolicyPath string) (string, error) {
 	if sys != nil && sys.SignaturePolicyPath != "" {
-		return sys.SignaturePolicyPath
+		return sys.SignaturePolicyPath, nil
 	}
 	userPolicyFilePath := filepath.Join(homeDir, userPolicyFile)
 	if err := fileutils.Exists(userPolicyFilePath); err == nil {
-		return userPolicyFilePath
+		return userPolicyFilePath, nil
 	}
 	if sys != nil && sys.RootForImplicitAbsolutePaths != "" {
-		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemDefaultPolicyPath)
+		return filepath.Join(sys.RootForImplicitAbsolutePaths, systemPolicyPath), nil
 	}
-	return systemDefaultPolicyPath
+	if err := fileutils.Exists(systemPolicyPath); err == nil {
+		return systemPolicyPath, nil
+	}
+	return "", fmt.Errorf("no policy.json file found at any of the following: %q, %q", userPolicyFilePath, systemPolicyPath)
 }
 
 // NewPolicyFromFile returns a policy configured in the specified file.
