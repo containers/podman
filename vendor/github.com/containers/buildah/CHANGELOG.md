@@ -2,6 +2,12 @@
 
 # Changelog
 
+## v1.37.5 (2024-10-17)
+
+    Bump the containers/storage library to v1.55.1
+    Properly validate cache IDs and sources
+    Packit: constrain koji job to fedora package to avoid dupes
+
 ## v1.37.4 (2024-10-07)
 
     Fixed CVE-2024-9407 and CVE-2024-934
