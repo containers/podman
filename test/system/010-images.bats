@@ -378,16 +378,24 @@ EOF
 
     # IMPORTANT! Use -2/-1 indices, not 0/1, because $SYSTEMD_IMAGE may be
     # present in store, and if it is it will precede $IMAGE.
-    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Repository}}:{{.Tag}} {{.ReadOnly}}"
+    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.ID}} {{.Repository}}:{{.Tag}} {{.ReadOnly}}"
     assert "${#lines[*]}" -ge 2 "at least 2 lines from 'podman images'"
-    is "${lines[-2]}" "$IMAGE false" "image from readonly store"
-    is "${lines[-1]}" "$IMAGE true" "image from readwrite store"
-
-    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Id}}"
-    id=${lines[-1]}
+    assert "${lines[-2]}" =~ ".*$IMAGE false" "image from readwrite store"
+    assert "${lines[-1]}" =~ ".*$IMAGE true" "image from readonly store"
+    id=${lines[-2]%% *}
+    local cd; cd=$(image_config_digest "@$id") # Without $sconf, i.e. from the read-write store.
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman pull -q $IMAGE
-    is "$output" "$id" "pull -q $IMAGE, using storage.conf"
+    # This is originally a regression test, (podman pull) used to output multiple image IDs. Ensure it only prints one.
+    [[ $(printf '%s' "$output" | wc -l) -le 1 ]]
+    local cd2; cd2=$(image_config_digest "@$output")
+    assert "$cd2" = "$cd" "pull -q $IMAGE, using storage.conf"
+
+    # $IMAGE might now be reusing layers from the additional store;
+    # Removing the additional store underneath can result in dangling layer references.
+    # Try to fix that up.
+    CONTAINERS_STORAGE_CONF=$sconf run_podman rmi $IMAGE
+    _prefetch $IMAGE
 
     run_podman --root $imstore/root rmi --all
 }

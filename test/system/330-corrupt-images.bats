@@ -23,7 +23,9 @@ function setup() {
     # DANGER! This completely changes the behavior of run_podman,
     # forcing it to use a quarantined directory. Make certain that
     # it gets unset in teardown.
-    _PODMAN_TEST_OPTS="--storage-driver=vfs $(podman_isolation_opts ${PODMAN_CORRUPT_TEST_WORKDIR})"
+    #
+    # --pull-option=convert_images=true is incompatible with VFS, and can be set when testing composefs.
+    _PODMAN_TEST_OPTS="--storage-driver=vfs --pull-option=convert_images=false $(podman_isolation_opts ${PODMAN_CORRUPT_TEST_WORKDIR})"
 }
 
 function teardown() {

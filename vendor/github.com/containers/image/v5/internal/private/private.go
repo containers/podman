@@ -53,8 +53,9 @@ type ImageDestinationInternalOnly interface {
 	// PutBlobPartial attempts to create a blob using the data that is already present
 	// at the destination. chunkAccessor is accessed in a non-sequential way to retrieve the missing chunks.
 	// It is available only if SupportsPutBlobPartial().
-	// Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
-	// should fall back to PutBlobWithOptions.
+	// Even if SupportsPutBlobPartial() returns true, the call can fail.
+	// If the call fails with ErrFallbackToOrdinaryLayerDownload, the caller can fall back to PutBlobWithOptions.
+	// The fallback _must not_ be done otherwise.
 	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, options PutBlobPartialOptions) (UploadedBlob, error)
 
 	// TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
@@ -182,4 +183,23 @@ type UnparsedImage interface {
 	types.UnparsedImage
 	// UntrustedSignatures is like ImageSource.GetSignaturesWithFormat, but the result is cached; it is OK to call this however often you need.
 	UntrustedSignatures(ctx context.Context) ([]signature.Signature, error)
+}
+
+// ErrFallbackToOrdinaryLayerDownload is a custom error type returned by PutBlobPartial.
+// It suggests to the caller that a fallback mechanism can be used instead of a hard failure;
+// otherwise the caller of PutBlobPartial _must not_ fall back to PutBlob.
+type ErrFallbackToOrdinaryLayerDownload struct {
+	err error
+}
+
+func (c ErrFallbackToOrdinaryLayerDownload) Error() string {
+	return c.err.Error()
+}
+
+func (c ErrFallbackToOrdinaryLayerDownload) Unwrap() error {
+	return c.err
+}
+
+func NewErrFallbackToOrdinaryLayerDownload(err error) error {
+	return ErrFallbackToOrdinaryLayerDownload{err: err}
 }
