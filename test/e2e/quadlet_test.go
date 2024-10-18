@@ -818,6 +818,8 @@ BOGUS=foo
 				"[X-Kube]",
 				"Yaml=deployment.yml",
 				"[Unit]",
+				"Wants=network-online.target",
+				"After=network-online.target",
 				fmt.Sprintf("SourcePath=%s/basic.kube", quadletDir),
 				"RequiresMountsFor=%t/containers",
 				"[Service]",

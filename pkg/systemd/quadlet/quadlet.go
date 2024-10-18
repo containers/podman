@@ -882,7 +882,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 // The original Network group is kept around as X-Network.
 // Also returns the canonical network name, either auto-generated or user-defined via the
 // NetworkName key-value.
-func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[network.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing network %s", network.Filename)
@@ -890,6 +890,8 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 
 	service := network.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if network.Path != "" {
 		service.Add(UnitGroup, "SourcePath", network.Path)
@@ -992,7 +994,7 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 // The original Volume group is kept around as X-Volume.
 // Also returns the canonical volume name, either auto-generated or user-defined via the VolumeName
 // key-value.
-func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo) (*parser.UnitFile, error) {
+func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
 	unitInfo, ok := unitsInfoMap[volume.Filename]
 	if !ok {
 		return nil, fmt.Errorf("internal error while processing network %s", volume.Filename)
@@ -1000,6 +1002,8 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	service := volume.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if volume.Path != "" {
 		service.Add(UnitGroup, "SourcePath", volume.Path)
@@ -1141,6 +1145,8 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 
 	service := kube.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if kube.Path != "" {
 		service.Add(UnitGroup, "SourcePath", kube.Path)
@@ -1531,6 +1537,8 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	service := podUnit.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	addDefaultDependencies(service, isUser)
 
 	if podUnit.Path != "" {
 		service.Add(UnitGroup, "SourcePath", podUnit.Path)

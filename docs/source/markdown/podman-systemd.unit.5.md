@@ -238,9 +238,9 @@ that limit the output to only the units you are debugging.
 
 ### Implicit network dependencies
 
-In the case of Container, Image and Build units, Quadlet will add dependencies on the `network-online.target` (as root)
-or `podman-user-wait-network-online.service` (as user) by adding `After=` and `Wants=` properties to the unit.
-This is to ensure that the network is reachable if an image needs to be pulled and by the time the container is started.
+Quadlet will add dependencies on the `network-online.target` (as root) or `podman-user-wait-network-online.service`
+(as user) by adding `After=` and `Wants=` properties to the unit. This is to ensure that the network is reachable
+if an image needs to be pulled and by the time the container is started.
 
 The special case `podman-user-wait-network-online.service` unit is needed as user because user units are unable to wait
 for system (root) units so `network-online.target` doesn't do anything there and is instead ignored. As this caused
@@ -1795,11 +1795,6 @@ exists on the host, pulling it if needed.
 
 Using image units allows containers and volumes to depend on images being automatically pulled. This is
 particularly interesting when using special options to control image pulls.
-
-Note: The generated service have a dependency on `network-online.target` or
-`podman-user-wait-network-online.service` assuring the network is reachable if an image needs to be pulled.
-If the image service needs to run without available network (e.g. early in boot), this behavior
-can be disabled by adding `DefaultDependencies=false` in the `Quadlet` section.
 
 Valid options for `[Image]` are listed below:
 
