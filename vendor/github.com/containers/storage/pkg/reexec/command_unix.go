@@ -1,4 +1,5 @@
 //go:build solaris || darwin
+// +build solaris darwin
 
 package reexec
 

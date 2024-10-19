@@ -83,12 +83,6 @@ func untarHandler(tarArchive io.Reader, dest string, options *archive.TarOptions
 		}
 	}
 
-	destVal, err := newUnpackDestination(root, dest)
-	if err != nil {
-		return err
-	}
-	defer destVal.Close()
-
 	r := tarArchive
 	if decompress {
 		decompressedArchive, err := archive.DecompressStream(tarArchive)
@@ -99,7 +93,7 @@ func untarHandler(tarArchive io.Reader, dest string, options *archive.TarOptions
 		r = decompressedArchive
 	}
 
-	return invokeUnpack(r, destVal, options)
+	return invokeUnpack(r, dest, options, root)
 }
 
 // Tar tars the requested path while chrooted to the specified root.

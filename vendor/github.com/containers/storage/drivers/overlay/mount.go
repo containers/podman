@@ -1,4 +1,5 @@
 //go:build linux
+// +build linux
 
 package overlay
 
@@ -102,20 +103,20 @@ func mountOverlayFromMain() {
 	// paths, but we don't want to mess with other options.
 	var upperk, upperv, workk, workv, lowerk, lowerv, labelk, labelv, others string
 	for _, arg := range strings.Split(options.Label, ",") {
-		key, val, _ := strings.Cut(arg, "=")
-		switch key {
+		kv := strings.SplitN(arg, "=", 2)
+		switch kv[0] {
 		case "upperdir":
 			upperk = "upperdir="
-			upperv = val
+			upperv = kv[1]
 		case "workdir":
 			workk = "workdir="
-			workv = val
+			workv = kv[1]
 		case "lowerdir":
 			lowerk = "lowerdir="
-			lowerv = val
+			lowerv = kv[1]
 		case "label":
 			labelk = "label="
-			labelv = val
+			labelv = kv[1]
 		default:
 			if others == "" {
 				others = arg

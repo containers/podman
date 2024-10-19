@@ -6,11 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
-	"slices"
 	"strings"
 	"sync"
 	"syscall"
@@ -84,20 +82,6 @@ type ApplyStagedLayerOptions struct {
 
 	DiffOutput  *drivers.DriverWithDifferOutput  // Mandatory
 	DiffOptions *drivers.ApplyDiffWithDifferOpts // Mandatory
-}
-
-// MultiListOptions contains options to pass to MultiList
-type MultiListOptions struct {
-	Images     bool // if true, Images will be listed in the result
-	Layers     bool // if true, layers will be listed in the result
-	Containers bool // if true, containers will be listed in the result
-}
-
-// MultiListResult contains slices of Images, Layers or Containers listed by MultiList method
-type MultiListResult struct {
-	Images     []Image
-	Layers     []Layer
-	Containers []Container
 }
 
 // An roBigDataStore wraps up the read-only big-data related methods of the
@@ -341,16 +325,10 @@ type Store interface {
 	//   }
 	ApplyDiff(to string, diff io.Reader) (int64, error)
 
-	// ApplyDiffWithDiffer applies a diff to a layer.
+	// ApplyDiffer applies a diff to a layer.
 	// It is the caller responsibility to clean the staging directory if it is not
-	// successfully applied with ApplyStagedLayer.
-	// Deprecated: Use PrepareStagedLayer instead.  ApplyDiffWithDiffer is going to be removed in a future release
+	// successfully applied with ApplyDiffFromStagingDirectory.
 	ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
-
-	// PrepareStagedLayer applies a diff to a layer.
-	// It is the caller responsibility to clean the staging directory if it is not
-	// successfully applied with ApplyStagedLayer.
-	PrepareStagedLayer(options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
 
 	// ApplyStagedLayer combines the functions of creating a layer and using the staging
 	// directory to populate it.
@@ -583,12 +561,6 @@ type Store interface {
 	// usually by deleting layers and images which are damaged.  If the
 	// right options are set, it will remove containers as well.
 	Repair(report CheckReport, options *RepairOptions) []error
-
-	// MultiList returns a MultiListResult structure that contains layer, image, or container
-	// extracts according to the values in MultiListOptions.
-	// MultiList returns consistent values as of a single point in time.
-	// WARNING: The values may already be out of date by the time they are returned to the caller.
-	MultiList(MultiListOptions) (MultiListResult, error)
 }
 
 // AdditionalLayer represents a layer that is contained in the additional layer store
@@ -947,7 +919,9 @@ func (s *store) GraphOptions() []string {
 
 func (s *store) PullOptions() map[string]string {
 	cp := make(map[string]string, len(s.pullOptions))
-	maps.Copy(cp, s.pullOptions)
+	for k, v := range s.pullOptions {
+		cp[k] = v
+	}
 	return cp
 }
 
@@ -1470,7 +1444,7 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 	if lOptions != nil {
 		options = *lOptions
 		options.BigData = copyLayerBigDataOptionSlice(lOptions.BigData)
-		options.Flags = maps.Clone(lOptions.Flags)
+		options.Flags = copyStringInterfaceMap(lOptions.Flags)
 	}
 	if options.HostUIDMapping {
 		options.UIDMap = nil
@@ -1628,7 +1602,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 							Digest: dataDigest,
 						})
 					}
-					namesToAddAfterCreating = dedupeStrings(slices.Concat(i.Names, names))
+					namesToAddAfterCreating = dedupeStrings(append(append([]string{}, i.Names...), names...))
 					break
 				}
 			}
@@ -1642,16 +1616,18 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 			if iOptions.Digest != "" {
 				options.Digest = iOptions.Digest
 			}
-			options.Digests = append(options.Digests, iOptions.Digests...)
+			options.Digests = append(options.Digests, copyDigestSlice(iOptions.Digests)...)
 			if iOptions.Metadata != "" {
 				options.Metadata = iOptions.Metadata
 			}
 			options.BigData = append(options.BigData, copyImageBigDataOptionSlice(iOptions.BigData)...)
-			options.NamesHistory = append(options.NamesHistory, iOptions.NamesHistory...)
+			options.NamesHistory = append(options.NamesHistory, copyStringSlice(iOptions.NamesHistory)...)
 			if options.Flags == nil {
 				options.Flags = make(map[string]interface{})
 			}
-			maps.Copy(options.Flags, iOptions.Flags)
+			for k, v := range iOptions.Flags {
+				options.Flags[k] = v
+			}
 		}
 
 		if options.CreationDate.IsZero() {
@@ -1786,7 +1762,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		options.IDMappingOptions.UIDMap = copyIDMap(cOptions.IDMappingOptions.UIDMap)
 		options.IDMappingOptions.GIDMap = copyIDMap(cOptions.IDMappingOptions.GIDMap)
 		options.LabelOpts = copyStringSlice(cOptions.LabelOpts)
-		options.Flags = maps.Clone(cOptions.Flags)
+		options.Flags = copyStringInterfaceMap(cOptions.Flags)
 		options.MountOpts = copyStringSlice(cOptions.MountOpts)
 		options.StorageOpt = copyStringStringMap(cOptions.StorageOpt)
 		options.BigData = copyContainerBigDataOptionSlice(cOptions.BigData)
@@ -2967,10 +2943,6 @@ func (s *store) Changes(from, to string) ([]archive.Change, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// While the general rules require the layer store to only be locked RO (apart from known LOCKING BUGs)
-	// the overlay driver requires the primary layer store to be locked RW; see
-	// drivers/overlay.Driver.getMergedDir.
 	if err := rlstore.startWriting(); err != nil {
 		return nil, err
 	}
@@ -3027,9 +2999,6 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 		return nil, err
 	}
 
-	// While the general rules require the layer store to only be locked RO (apart from known LOCKING BUGs)
-	// the overlay driver requires the primary layer store to be locked RW; see
-	// drivers/overlay.Driver.getMergedDir.
 	if err := rlstore.startWriting(); err != nil {
 		return nil, err
 	}
@@ -3109,19 +3078,13 @@ func (s *store) CleanupStagedLayer(diffOutput *drivers.DriverWithDifferOutput) e
 	return err
 }
 
-func (s *store) PrepareStagedLayer(options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error) {
-	rlstore, err := s.getLayerStore()
-	if err != nil {
-		return nil, err
-	}
-	return rlstore.applyDiffWithDifferNoLock(options, differ)
-}
-
 func (s *store) ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error) {
-	if to != "" {
-		return nil, fmt.Errorf("ApplyDiffWithDiffer does not support non-empty 'layer' parameter")
-	}
-	return s.PrepareStagedLayer(options, differ)
+	return writeToLayerStore(s, func(rlstore rwLayerStore) (*drivers.DriverWithDifferOutput, error) {
+		if to != "" && !rlstore.Exists(to) {
+			return nil, ErrLayerUnknown
+		}
+		return rlstore.ApplyDiffWithDiffer(to, options, differ)
+	})
 }
 
 func (s *store) DifferTarget(id string) (string, error) {
@@ -3693,6 +3656,22 @@ func copyStringSlice(slice []string) []string {
 	return ret
 }
 
+func copyStringInt64Map(m map[string]int64) map[string]int64 {
+	ret := make(map[string]int64, len(m))
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
+}
+
+func copyStringDigestMap(m map[string]digest.Digest) map[string]digest.Digest {
+	ret := make(map[string]digest.Digest, len(m))
+	for k, v := range m {
+		ret[k] = v
+	}
+	return ret
+}
+
 func copyStringStringMap(m map[string]string) map[string]string {
 	ret := make(map[string]string, len(m))
 	for k, v := range m {
@@ -3730,7 +3709,7 @@ func copyImageBigDataOptionSlice(slice []ImageBigDataOption) []ImageBigDataOptio
 	ret := make([]ImageBigDataOption, len(slice))
 	for i := range slice {
 		ret[i].Key = slice[i].Key
-		ret[i].Data = slices.Clone(slice[i].Data)
+		ret[i].Data = append([]byte{}, slice[i].Data...)
 		ret[i].Digest = slice[i].Digest
 	}
 	return ret
@@ -3740,7 +3719,7 @@ func copyContainerBigDataOptionSlice(slice []ContainerBigDataOption) []Container
 	ret := make([]ContainerBigDataOption, len(slice))
 	for i := range slice {
 		ret[i].Key = slice[i].Key
-		ret[i].Data = slices.Clone(slice[i].Data)
+		ret[i].Data = append([]byte{}, slice[i].Data...)
 	}
 	return ret
 }
@@ -3794,8 +3773,10 @@ func GetMountOptions(driver string, graphDriverOptions []string) ([]string, erro
 			return nil, err
 		}
 		key = strings.ToLower(key)
-		if slices.Contains(mountOpts, key) {
-			return strings.Split(val, ","), nil
+		for _, m := range mountOpts {
+			if m == key {
+				return strings.Split(val, ","), nil
+			}
 		}
 	}
 	return nil, nil
@@ -3803,8 +3784,11 @@ func GetMountOptions(driver string, graphDriverOptions []string) ([]string, erro
 
 // Free removes the store from the list of stores
 func (s *store) Free() {
-	if i := slices.Index(stores, s); i != -1 {
-		stores = slices.Delete(stores, i, i+1)
+	for i := 0; i < len(stores); i++ {
+		if stores[i] == s {
+			stores = append(stores[:i], stores[i+1:]...)
+			return
+		}
 	}
 }
 
@@ -3830,56 +3814,4 @@ func (s *store) GarbageCollect() error {
 	}
 
 	return firstErr
-}
-
-// List returns a MultiListResult structure that contains layer, image, or container
-// extracts according to the values in MultiListOptions.
-func (s *store) MultiList(options MultiListOptions) (MultiListResult, error) {
-	// TODO: Possible optimization: Deduplicate content from multiple stores.
-	out := MultiListResult{}
-
-	if options.Layers {
-		layerStores, err := s.allLayerStores()
-		if err != nil {
-			return MultiListResult{}, err
-		}
-		for _, roStore := range layerStores {
-			if err := roStore.startReading(); err != nil {
-				return MultiListResult{}, err
-			}
-			defer roStore.stopReading()
-			layers, err := roStore.Layers()
-			if err != nil {
-				return MultiListResult{}, err
-			}
-			out.Layers = append(out.Layers, layers...)
-		}
-	}
-
-	if options.Images {
-		for _, roStore := range s.allImageStores() {
-			if err := roStore.startReading(); err != nil {
-				return MultiListResult{}, err
-			}
-			defer roStore.stopReading()
-
-			images, err := roStore.Images()
-			if err != nil {
-				return MultiListResult{}, err
-			}
-			out.Images = append(out.Images, images...)
-		}
-	}
-
-	if options.Containers {
-		containers, _, err := readContainerStore(s, func() ([]Container, bool, error) {
-			res, err := s.containerStore.Containers()
-			return res, true, err
-		})
-		if err != nil {
-			return MultiListResult{}, err
-		}
-		out.Containers = append(out.Containers, containers...)
-	}
-	return out, nil
 }

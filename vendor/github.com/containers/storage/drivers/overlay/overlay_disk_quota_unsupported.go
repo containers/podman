@@ -1,4 +1,6 @@
 //go:build linux && (!cgo || exclude_disk_quota)
+// +build linux
+// +build !cgo exclude_disk_quota
 
 package overlay
 

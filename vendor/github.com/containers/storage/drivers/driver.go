@@ -254,8 +254,8 @@ type Differ interface {
 type DriverWithDiffer interface {
 	Driver
 	// ApplyDiffWithDiffer applies the changes using the callback function.
-	// The staging directory created by this function is guaranteed to be usable with ApplyDiffFromStagingDirectory.
-	ApplyDiffWithDiffer(options *ApplyDiffWithDifferOpts, differ Differ) (output DriverWithDifferOutput, err error)
+	// If id is empty, then a staging directory is created.  The staging directory is guaranteed to be usable with ApplyDiffFromStagingDirectory.
+	ApplyDiffWithDiffer(id, parent string, options *ApplyDiffWithDifferOpts, differ Differ) (output DriverWithDifferOutput, err error)
 	// ApplyDiffFromStagingDirectory applies the changes using the diffOutput target directory.
 	ApplyDiffFromStagingDirectory(id, parent string, diffOutput *DriverWithDifferOutput, options *ApplyDiffWithDifferOpts) error
 	// CleanupStagingDirectory cleanups the staging directory.  It can be used to cleanup the staging directory on errors
@@ -496,7 +496,7 @@ func driverPut(driver ProtoDriver, id string, mainErr *error) {
 		if *mainErr == nil {
 			*mainErr = err
 		} else {
-			logrus.Error(err)
+			logrus.Errorf(err.Error())
 		}
 	}
 }

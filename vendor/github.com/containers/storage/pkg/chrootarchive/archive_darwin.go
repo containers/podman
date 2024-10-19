@@ -6,26 +6,12 @@ import (
 	"github.com/containers/storage/pkg/archive"
 )
 
-type unpackDestination struct {
-	dest string
-}
-
-func (dst *unpackDestination) Close() error {
-	return nil
-}
-
-// newUnpackDestination is a no-op on this platform
-func newUnpackDestination(root, dest string) (*unpackDestination, error) {
-	return &unpackDestination{
-		dest: dest,
-	}, nil
-}
-
 func invokeUnpack(decompressedArchive io.Reader,
-	dest *unpackDestination,
-	options *archive.TarOptions,
+	dest string,
+	options *archive.TarOptions, root string,
 ) error {
-	return archive.Unpack(decompressedArchive, dest.dest, options)
+	_ = root // Restricting the operation to this root is not implemented on macOS
+	return archive.Unpack(decompressedArchive, dest, options)
 }
 
 func invokePack(srcPath string, options *archive.TarOptions, root string) (io.ReadCloser, error) {

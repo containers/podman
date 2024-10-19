@@ -1,4 +1,5 @@
 //go:build !windows
+// +build !windows
 
 package mount
 
@@ -10,7 +11,7 @@ import (
 
 func unmount(target string, flags int) error {
 	var err error
-	for range 50 {
+	for i := 0; i < 50; i++ {
 		err = unix.Unmount(target, flags)
 		switch err {
 		case unix.EBUSY:

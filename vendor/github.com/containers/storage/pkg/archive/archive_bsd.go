@@ -1,4 +1,5 @@
 //go:build netbsd || freebsd || darwin
+// +build netbsd freebsd darwin
 
 package archive
 

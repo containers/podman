@@ -1,4 +1,5 @@
 //go:build solaris && cgo
+// +build solaris,cgo
 
 package graphdriver
 

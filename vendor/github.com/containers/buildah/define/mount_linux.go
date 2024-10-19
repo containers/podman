@@ -1,4 +1,5 @@
 //go:build linux
+// +build linux
 
 package define
 
@@ -10,5 +11,7 @@ const (
 	TempDir = "/dev/shm"
 )
 
-// Mount potions for bind
-var BindOptions = []string{"bind"}
+var (
+	// Mount potions for bind
+	BindOptions = []string{"bind"}
+)

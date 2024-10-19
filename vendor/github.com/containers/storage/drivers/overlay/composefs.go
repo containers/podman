@@ -1,4 +1,5 @@
 //go:build linux && cgo
+// +build linux,cgo
 
 package overlay
 
@@ -7,6 +8,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -53,26 +55,29 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 		return fmt.Errorf("failed to find mkcomposefs: %w", err)
 	}
 
-	outFile, err := os.OpenFile(destFile, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o644)
+	fd, err := unix.Openat(unix.AT_FDCWD, destFile, unix.O_WRONLY|unix.O_CREAT|unix.O_TRUNC|unix.O_EXCL|unix.O_CLOEXEC, 0o644)
 	if err != nil {
-		return err
+		return &fs.PathError{Op: "openat", Path: destFile, Err: err}
 	}
+	outFd := os.NewFile(uintptr(fd), "outFd")
 
-	roFile, err := os.Open(fmt.Sprintf("/proc/self/fd/%d", outFile.Fd()))
+	fd, err = unix.Open(fmt.Sprintf("/proc/self/fd/%d", outFd.Fd()), unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		outFile.Close()
-		return fmt.Errorf("failed to reopen %s as read-only: %w", destFile, err)
+		outFd.Close()
+		return fmt.Errorf("failed to dup output file: %w", err)
 	}
+	newFd := os.NewFile(uintptr(fd), "newFd")
+	defer newFd.Close()
 
 	err = func() error {
-		// a scope to close outFile before setting fsverity on the read-only fd.
-		defer outFile.Close()
+		// a scope to close outFd before setting fsverity on the read-only fd.
+		defer outFd.Close()
 
 		errBuf := &bytes.Buffer{}
-		cmd := exec.Command(writerJson, "--from-file", "-", "-")
+		cmd := exec.Command(writerJson, "--from-file", "-", "/proc/self/fd/3")
+		cmd.ExtraFiles = []*os.File{outFd}
 		cmd.Stderr = errBuf
 		cmd.Stdin = dumpReader
-		cmd.Stdout = outFile
 		if err := cmd.Run(); err != nil {
 			rErr := fmt.Errorf("failed to convert json to erofs: %w", err)
 			exitErr := &exec.ExitError{}
@@ -87,7 +92,7 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 		return err
 	}
 
-	if err := fsverity.EnableVerity("manifest file", int(roFile.Fd())); err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
+	if err := fsverity.EnableVerity("manifest file", int(newFd.Fd())); err != nil && !errors.Is(err, unix.ENOTSUP) && !errors.Is(err, unix.ENOTTY) {
 		logrus.Warningf("%s", err)
 	}
 
@@ -109,94 +114,45 @@ struct lcfs_erofs_header_s {
 
 // hasACL returns true if the erofs blob has ACLs enabled
 func hasACL(path string) (bool, error) {
-	const (
-		LCFS_EROFS_FLAGS_HAS_ACL = (1 << 0)
-		versionNumberSize        = 4
-		magicNumberSize          = 4
-		flagsSize                = 4
-	)
+	const LCFS_EROFS_FLAGS_HAS_ACL = (1 << 0)
 
-	file, err := os.Open(path)
+	fd, err := unix.Openat(unix.AT_FDCWD, path, unix.O_RDONLY|unix.O_CLOEXEC, 0)
 	if err != nil {
-		return false, err
+		return false, &fs.PathError{Op: "openat", Path: path, Err: err}
 	}
-	defer file.Close()
-
+	defer unix.Close(fd)
 	// do not worry about checking the magic number, if the file is invalid
 	// we will fail to mount it anyway
-	buffer := make([]byte, versionNumberSize+magicNumberSize+flagsSize)
-	nread, err := file.Read(buffer)
+	flags := make([]byte, 4)
+	nread, err := unix.Pread(fd, flags, 8)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("pread %q: %w", path, err)
 	}
-	if nread != len(buffer) {
+	if nread != 4 {
 		return false, fmt.Errorf("failed to read flags from %q", path)
 	}
-	flags := buffer[versionNumberSize+magicNumberSize:]
 	return binary.LittleEndian.Uint32(flags)&LCFS_EROFS_FLAGS_HAS_ACL != 0, nil
 }
 
-func openComposefsMount(dataDir string) (int, error) {
+func mountComposefsBlob(dataDir, mountPoint string) error {
 	blobFile := getComposefsBlob(dataDir)
 	loop, err := loopback.AttachLoopDeviceRO(blobFile)
 	if err != nil {
-		return -1, err
+		return err
 	}
 	defer loop.Close()
 
 	hasACL, err := hasACL(blobFile)
 	if err != nil {
-		return -1, err
-	}
-
-	fsfd, err := unix.Fsopen("erofs", 0)
-	if err != nil {
-		return -1, fmt.Errorf("failed to open erofs filesystem: %w", err)
-	}
-	defer unix.Close(fsfd)
-
-	if err := unix.FsconfigSetString(fsfd, "source", loop.Name()); err != nil {
-		return -1, fmt.Errorf("failed to set source for erofs filesystem: %w", err)
-	}
-
-	if err := unix.FsconfigSetFlag(fsfd, "ro"); err != nil {
-		return -1, fmt.Errorf("failed to set erofs filesystem read-only: %w", err)
-	}
-
-	if !hasACL {
-		if err := unix.FsconfigSetFlag(fsfd, "noacl"); err != nil {
-			return -1, fmt.Errorf("failed to set noacl for erofs filesystem: %w", err)
-		}
-	}
-
-	if err := unix.FsconfigCreate(fsfd); err != nil {
-		buffer := make([]byte, 4096)
-		if n, _ := unix.Read(fsfd, buffer); n > 0 {
-			return -1, fmt.Errorf("failed to create erofs filesystem: %s: %w", string(buffer[:n]), err)
-		}
-		return -1, fmt.Errorf("failed to create erofs filesystem: %w", err)
-	}
-
-	mfd, err := unix.Fsmount(fsfd, 0, unix.MOUNT_ATTR_RDONLY)
-	if err != nil {
-		buffer := make([]byte, 4096)
-		if n, _ := unix.Read(fsfd, buffer); n > 0 {
-			return -1, fmt.Errorf("failed to mount erofs filesystem: %s: %w", string(buffer[:n]), err)
-		}
-		return -1, fmt.Errorf("failed to mount erofs filesystem: %w", err)
-	}
-	return mfd, nil
-}
-
-func mountComposefsBlob(dataDir, mountPoint string) error {
-	mfd, err := openComposefsMount(dataDir)
-	if err != nil {
 		return err
 	}
-	defer unix.Close(mfd)
+	mountOpts := "ro"
+	if !hasACL {
+		mountOpts += ",noacl"
+	}
 
-	if err := unix.MoveMount(mfd, "", unix.AT_FDCWD, mountPoint, unix.MOVE_MOUNT_F_EMPTY_PATH); err != nil {
-		return fmt.Errorf("failed to move mount: %w", err)
+	if err := unix.Mount(loop.Name(), mountPoint, "erofs", unix.MS_RDONLY, mountOpts); err != nil {
+		return fmt.Errorf("failed to mount erofs image at %q: %w", mountPoint, err)
 	}
 	return nil
 }

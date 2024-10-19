@@ -1,4 +1,5 @@
 //go:build freebsd && seccomp
+// +build freebsd,seccomp
 
 package chroot
 

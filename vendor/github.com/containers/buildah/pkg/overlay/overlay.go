@@ -1,13 +1,14 @@
 package overlay
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
+
+	"errors"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
@@ -53,7 +54,7 @@ type Options struct {
 // TempDir generates an overlay Temp directory in the container content
 func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 	contentDir := filepath.Join(containerDir, "overlay")
-	if err := idtools.MkdirAllAs(contentDir, 0o700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(contentDir, 0700, rootUID, rootGID); err != nil {
 		return "", fmt.Errorf("failed to create the overlay %s directory: %w", contentDir, err)
 	}
 
@@ -68,7 +69,7 @@ func TempDir(containerDir string, rootUID, rootGID int) (string, error) {
 // GenerateStructure generates an overlay directory structure for container content
 func GenerateStructure(containerDir, containerID, name string, rootUID, rootGID int) (string, error) {
 	contentDir := filepath.Join(containerDir, "overlay-containers", containerID, name)
-	if err := idtools.MkdirAllAs(contentDir, 0o700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(contentDir, 0700, rootUID, rootGID); err != nil {
 		return "", fmt.Errorf("failed to create the overlay %s directory: %w", contentDir, err)
 	}
 
@@ -79,14 +80,14 @@ func GenerateStructure(containerDir, containerID, name string, rootUID, rootGID 
 func generateOverlayStructure(containerDir string, rootUID, rootGID int) (string, error) {
 	upperDir := filepath.Join(containerDir, "upper")
 	workDir := filepath.Join(containerDir, "work")
-	if err := idtools.MkdirAllAs(upperDir, 0o700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(upperDir, 0700, rootUID, rootGID); err != nil {
 		return "", fmt.Errorf("failed to create the overlay %s directory: %w", upperDir, err)
 	}
-	if err := idtools.MkdirAllAs(workDir, 0o700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(workDir, 0700, rootUID, rootGID); err != nil {
 		return "", fmt.Errorf("failed to create the overlay %s directory: %w", workDir, err)
 	}
 	mergeDir := filepath.Join(containerDir, "merge")
-	if err := idtools.MkdirAllAs(mergeDir, 0o700, rootUID, rootGID); err != nil {
+	if err := idtools.MkdirAllAs(mergeDir, 0700, rootUID, rootGID); err != nil {
 		return "", fmt.Errorf("failed to create the overlay %s directory: %w", mergeDir, err)
 	}
 
