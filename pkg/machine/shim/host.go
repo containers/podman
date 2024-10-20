@@ -196,12 +196,15 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
 		err = ignBuilder.BuildWithIgnitionFile(opts.IgnitionPath)
-		return err
-	}
 
-	err = ignBuilder.GenerateIgnitionConfig()
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
+	} else {
+		err = ignBuilder.GenerateIgnitionConfig()
+		if err != nil {
+			return err
+		}
 	}
 
 	readyIgnOpts, err := mp.PrepareIgnition(mc, &ignBuilder)
@@ -245,9 +248,10 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		return err
 	}
 
-	err = ignBuilder.Build()
-	if err != nil {
-		return err
+	if len(opts.IgnitionPath) == 0 {
+		if err := ignBuilder.Build(); err != nil {
+			return err
+		}
 	}
 
 	return mc.Write()
