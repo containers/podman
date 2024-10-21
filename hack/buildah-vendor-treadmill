@@ -457,21 +457,14 @@ sub build_and_check_podman {
     warn <<"END_WARN";
 $ME: Errors found. I have to stop now for you to fix them.
     Your best bet now is:
-      1) Find and fix whatever needs to be fixed; then
-      2) git commit -am'fixme-fixme'; then
-      3) git rebase -i main:
-         a) you are now in an editor window
-         b) move the new fixme-fixme commit up a line, to between the
-            'buildah vendor treadmill' and 'vendor in buildah @ ...' lines
-         c) change 'pick' to 'squash' (or just 's')
-         d) save & quit to continue the rebase
-         e) back to a new editor window
-         f) change the commit message: remove fixme-fixme, add a description
-            of what you actually fixed. If possible, reference the PR (buildah
-            or podman) that introduced the failure
-         g) save & quit to continue the rebase
+      1) START A NEW TERMINAL! So you can refer back here.
 
-    Now, for good measure, rerun this script.
+      2) Find and fix whatever needs to be fixed. There may
+         be hint messages above. You may need to cd to the
+         new `test-buildah-SOMETHING` directory
+      3) git commit --amend ANY-FILES-THAT-YOU-CHANGED
+
+    Rerun this script, possibly with `--force-testing`
 
     For full documentation, refer to
 
