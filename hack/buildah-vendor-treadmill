@@ -285,7 +285,7 @@ END_FAIL_INSTRUCTIONS
         exit 1;
     };
     progress('Reapplying treadmill patches');
-    git('cherry-pick', '--allow-empty', $treadmill_commit);
+    git('cherry-pick', '--allow-empty', '--empty=keep', $treadmill_commit);
 
     # It worked! Clean up: remove our local die() handler and the saved branch
     undef $SIG{__DIE__};
