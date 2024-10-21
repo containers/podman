@@ -26,6 +26,7 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
+	"github.com/containers/buildah/internal/tmpdir"
 	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
@@ -1735,7 +1736,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	if id == "" {
 		return nil, "", errInvalidSyntax
 	}
-	// Default location for secretis is /run/secrets/id
+	// Default location for secrets is /run/secrets/id
 	if target == "" {
 		target = "/run/secrets/" + id
 	}
@@ -1743,7 +1744,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	secr, ok := secrets[id]
 	if !ok {
 		if required {
-			return nil, "", fmt.Errorf("secret required but no secret with id %s found", id)
+			return nil, "", fmt.Errorf("secret required but no secret with id %q found", id)
 		}
 		return nil, "", nil
 	}
@@ -1754,7 +1755,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	switch secr.SourceType {
 	case "env":
 		data = []byte(os.Getenv(secr.Source))
-		tmpFile, err := os.CreateTemp(define.TempDir, "buildah*")
+		tmpFile, err := os.CreateTemp(tmpdir.GetTempDir(), "buildah*")
 		if err != nil {
 			return nil, "", err
 		}
@@ -1774,7 +1775,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 		if err != nil {
 			return nil, "", err
 		}
-		ctrFileOnHost = filepath.Join(containerWorkingDir, "secrets", id)
+		ctrFileOnHost = filepath.Join(containerWorkingDir, "secrets", digest.FromString(id).Encoded()[:16])
 	default:
 		return nil, "", errors.New("invalid source secret type")
 	}
@@ -1818,7 +1819,7 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 	var id, target string
 	var required bool
 	var uid, gid uint32
-	var mode uint32 = 400
+	var mode uint32 = 0o600
 	for _, val := range tokens {
 		kv := strings.SplitN(val, "=", 2)
 		if len(kv) < 2 {
@@ -1863,7 +1864,7 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 	if id == "" {
 		id = "default"
 	}
-	// Default location for secretis is /run/buildkit/ssh_agent.{i}
+	// Default location for secrets is /run/buildkit/ssh_agent.{i}
 	if target == "" {
 		target = fmt.Sprintf("/run/buildkit/ssh_agent.%d", count)
 	}

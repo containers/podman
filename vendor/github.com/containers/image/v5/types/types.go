@@ -643,6 +643,7 @@ type SystemContext struct {
 	// if true, a V1 ping attempt isn't done to give users a better error. Default is false.
 	// Note that this field is used mainly to integrate containers/image into projectatomic/docker
 	// in order to not break any existing docker's integration tests.
+	// Deprecated: The V1 container registry detection is no longer performed, so setting this flag has no effect.
 	DockerDisableV1Ping bool
 	// If true, dockerImageDestination.SupportedManifestMIMETypes will omit the Schema1 media types from the supported list
 	DockerDisableDestSchema1MIMETypes bool

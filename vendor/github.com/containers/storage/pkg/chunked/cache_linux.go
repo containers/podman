@@ -182,6 +182,9 @@ func makeBinaryDigest(stringDigest string) ([]byte, error) {
 	return buf, nil
 }
 
+// loadLayerCache attempts to load the cache file for the specified layer.
+// If the cache file is not present or it it using a different cache file version, then
+// the function returns (nil, nil).
 func (c *layersCache) loadLayerCache(layerID string) (_ *layer, errRet error) {
 	buffer, mmapBuffer, err := c.loadLayerBigData(layerID, cacheKey)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -201,6 +204,9 @@ func (c *layersCache) loadLayerCache(layerID string) (_ *layer, errRet error) {
 	cacheFile, err := readCacheFileFromMemory(buffer)
 	if err != nil {
 		return nil, err
+	}
+	if cacheFile == nil {
+		return nil, nil
 	}
 	return c.createLayer(layerID, cacheFile, mmapBuffer)
 }
@@ -268,7 +274,7 @@ func (c *layersCache) load() error {
 	var newLayers []*layer
 	for _, r := range allLayers {
 		// The layer is present in the store and it is already loaded.  Attempt to
-		// re-use it if mmap'ed.
+		// reuse it if mmap'ed.
 		if l, found := loadedLayers[r.ID]; found {
 			// If the layer is not marked for re-load, move it to newLayers.
 			if !l.reloadWithMmap {
@@ -618,6 +624,8 @@ func writeCache(manifest []byte, format graphdriver.DifferOutputFormat, id strin
 	}, nil
 }
 
+// readCacheFileFromMemory reads a cache file from a buffer.
+// It can return (nil, nil) if the cache file uses a different file version that the one currently supported.
 func readCacheFileFromMemory(bigDataBuffer []byte) (*cacheFile, error) {
 	bigData := bytes.NewReader(bigDataBuffer)
 

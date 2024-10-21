@@ -819,11 +819,16 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				logrus.Debugf("Retrieved partial blob %v", srcInfo.Digest)
 				return true, updatedBlobInfoFromUpload(srcInfo, uploadedBlob), nil
 			}
-			logrus.Debugf("Failed to retrieve partial blob: %v", err)
-			return false, types.BlobInfo{}, nil
+			// On a "partial content not available" error, ignore it and retrieve the whole layer.
+			var perr private.ErrFallbackToOrdinaryLayerDownload
+			if errors.As(err, &perr) {
+				logrus.Debugf("Failed to retrieve partial blob: %v", err)
+				return false, types.BlobInfo{}, nil
+			}
+			return false, types.BlobInfo{}, err
 		}()
 		if err != nil {
-			return types.BlobInfo{}, "", err
+			return types.BlobInfo{}, "", fmt.Errorf("reading blob %s: %w", srcInfo.Digest, err)
 		}
 		if reused {
 			return blobInfo, cachedDiffID, nil

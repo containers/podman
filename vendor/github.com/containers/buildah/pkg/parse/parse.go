@@ -57,6 +57,8 @@ const (
 	BuildahCacheDir = "buildah-cache"
 )
 
+var errInvalidSecretSyntax = errors.New("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV][,type=file|env]")
+
 // RepoNamesToNamedReferences parse the raw string to Named reference
 func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
 	var result []reference.Named
@@ -1240,7 +1242,6 @@ func GetTempDir() string {
 
 // Secrets parses the --secret flag
 func Secrets(secrets []string) (map[string]define.Secret, error) {
-	invalidSyntax := fmt.Errorf("incorrect secret flag format: should be --secret id=foo,src=bar[,env=ENV,type=file|env]")
 	parsed := make(map[string]define.Secret)
 	for _, secret := range secrets {
 		tokens := strings.Split(secret, ",")
@@ -1260,10 +1261,12 @@ func Secrets(secrets []string) (map[string]define.Secret, error) {
 					return nil, errors.New("invalid secret type, must be file or env")
 				}
 				typ = kv[1]
+			default:
+				return nil, errInvalidSecretSyntax
 			}
 		}
 		if id == "" {
-			return nil, invalidSyntax
+			return nil, errInvalidSecretSyntax
 		}
 		if src == "" {
 			src = id
@@ -1288,6 +1291,7 @@ func Secrets(secrets []string) (map[string]define.Secret, error) {
 			src = fullPath
 		}
 		newSecret := define.Secret{
+			ID:         id,
 			Source:     src,
 			SourceType: typ,
 		}
