@@ -338,14 +338,19 @@ sub pull_main {
 }
 
 #############################
-#  tweak_cirrus_test_order  #  Run bud tests first, to fail fast & early
+#  tweak_cirrus_test_order  #  Two edits to Cirrus tasks
 #############################
+#
+#  1. Run bud tests first, to fail fast & early
+#  2. Run rootless bud tests. These don't run in regular CI,
+#     so this is our only chance to catch problems.
+#
 sub tweak_cirrus_test_order {
     my $cirrus_yml = '.cirrus.yml';
     my $tmpfile = "$cirrus_yml.tmp.$$";
     unlink $tmpfile;
 
-    progress("Tweaking test order in $cirrus_yml to run bud tests early");
+    progress("Tweaking test order in $cirrus_yml");
     open my $in, '<', $cirrus_yml
         or do {
             warn "$ME: Cannot read $cirrus_yml: $!\n";
@@ -355,39 +360,22 @@ sub tweak_cirrus_test_order {
     open my $out, '>'. $tmpfile
         or die "$ME: Cannot create $tmpfile: $!\n";
     my $current_task = '';
-    my $in_depend;
     while (my $line = <$in>) {
         chomp $line;
         if ($line =~ /^(\S+)_task:$/) {
             $current_task = $1;
-            undef $in_depend;
         }
-        elsif ($line =~ /^(\s+)depends_on:$/) {
-            $in_depend = $1;
-        }
-        elsif ($in_depend && $line =~ /^($in_depend\s+-\s+)(\S+)/) {
-            my $indent = $1;
-
-            # Run the buildah-bud tests early: that's the entire point
+        elsif ($line =~ /^(\s+)depends_on:\s+\*build$/) {
+            # Run the buildah-bud tests early: that's much of the point
             # of the treadmill PR. Here we switch Cirrus task dependencies
-            # such that bud tests run as early as possible.
-            if ($current_task =~ /buildah_bud_test/) {
-                # Buildah bud now depends only on validate...
-                $line = "${indent}validate";
-            }
-            elsif ($2 eq 'validate' && $current_task ne 'success') {
-                # ...and all other tests that relied on validate now rely on
-                # bud tests instead. The point of the treadmill PR is to
-                # run the bud tests and only then, if everything passes,
-                # run normal tests. (Reason: bud tests are the only ones
-                # likely to fail on a buildah revendor, and we want to see
-                # failures early).
-                $line = "${indent}buildah_bud_test";
+            # such that bud tests run as early as possible, and all other
+            # tests will only run if bud tests pass.
+            my $indent = $1;
+            if ($current_task !~ /buildah_bud_test/) {
+                $line = "${indent}depends_on:\n${indent}  - buildah_bud_test";
             }
         }
         else {
-            undef $in_depend;
-
             # FIXME THIS IS HORRIBLE!
             # Add rootless jobs to the buildah bud test matrix.
             # This is incredibly fragile; it relies on the fact
@@ -914,8 +902,10 @@ sub assert_buildah_vendor_commit {
 
     my @deltas = git('diff', '--name-only', "$ref^", $ref);
 
-    # It's OK if there are no deltas, e.g. immediately after a buildah vendor PR
-    return if !@deltas;
+    # It's OK if there are no deltas or if the only delta is to Cirrus.
+    # This is expected immediately after buildah gets vendored and
+    # there is nothing new to vendor in.
+    return if !@deltas || "@deltas" eq ".cirrus.yml";
 
     # It's OK if there are more modified files than just these.
     # It's not OK if any of these are missing.
@@ -934,7 +924,7 @@ sub assert_buildah_vendor_commit {
     return if !@missing;
 
     warn "$ME: $ref does not look like a buildah vendor commit:\n";
-    warn "$ME:  - $_\n" for @missing;
+    warn "      - $_\n" for @missing;
     die "$ME: Cannot continue\n";
 }
 
