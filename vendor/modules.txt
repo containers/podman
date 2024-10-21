@@ -138,7 +138,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.37.1-0.20241002152719-c68e17b4ffed
+# github.com/containers/buildah v1.37.1-0.20241018144937-2551c8f3d110
 ## explicit; go 1.22.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -169,7 +169,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20241011155906-25644f144d66
+# github.com/containers/common v0.60.1-0.20241018183244-7e6f2b4d6de7
 ## explicit; go 1.22.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -242,7 +242,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.7.5
 ## explicit; go 1.21
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.32.3-0.20240923171149-9e1153a28c46
+# github.com/containers/image/v5 v5.32.3-0.20241016192323-a66152c1cdf6
 ## explicit; go 1.22.6
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -323,7 +323,7 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20240812184316-2e7307c02f06
+# github.com/containers/luksy v0.0.0-20241007190014-e2530d691420
 ## explicit; go 1.20
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.0
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.55.1-0.20241008185503-a397602515fd
+# github.com/containers/storage v1.55.1-0.20241017155235-4db236377c55
 ## explicit; go 1.22.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -722,7 +722,7 @@ github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
-# github.com/klauspost/compress v1.17.10
+# github.com/klauspost/compress v1.17.11
 ## explicit; go 1.21
 github.com/klauspost/compress
 github.com/klauspost/compress/flate

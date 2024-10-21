@@ -136,9 +136,12 @@ type Layer struct {
 	TOCDigest digest.Digest `json:"toc-digest,omitempty"`
 
 	// UncompressedSize is the length of the blob that was last passed to
-	// ApplyDiff() or create(), after we decompressed it.  If
-	// UncompressedDigest is not set, this should be treated as if it were
-	// an uninitialized value.
+	// ApplyDiff() or create(), after we decompressed it.
+	//
+	//   - If UncompressedDigest is set, this must be set to a valid value.
+	//   - Otherwise, if TOCDigest is set, this is either valid or -1.
+	//   - If neither of this digests is set, this should be treated as if it were
+	//     an uninitialized value.
 	UncompressedSize int64 `json:"diff-size,omitempty"`
 
 	// CompressionType is the type of compression which we detected on the blob
@@ -1214,8 +1217,8 @@ func (r *layerStore) Size(name string) (int64, error) {
 	// We use the presence of a non-empty digest as an indicator that the size value was intentionally set, and that
 	// a zero value is not just present because it was never set to anything else (which can happen if the layer was
 	// created by a version of this library that didn't keep track of digest and size information).
-	if layer.TOCDigest != "" || layer.UncompressedDigest != "" {
-		return layer.UncompressedSize, nil
+	if layer.UncompressedDigest != "" || layer.TOCDigest != "" {
+		return layer.UncompressedSize, nil // This may return -1 if only TOCDigest is set
 	}
 	return -1, nil
 }
@@ -2510,7 +2513,7 @@ func (r *layerStore) applyDiffFromStagingDirectory(id string, diffOutput *driver
 		return err
 	}
 
-	if len(diffOutput.TarSplit) != 0 {
+	if diffOutput.TarSplit != nil {
 		tsdata := bytes.Buffer{}
 		compressor, err := pgzip.NewWriterLevel(&tsdata, pgzip.BestSpeed)
 		if err != nil {

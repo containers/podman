@@ -367,7 +367,7 @@ func checkChownErr(err error, name string, uid, gid int) error {
 	return err
 }
 
-// Stat contains file states that can be overriden with ContainersOverrideXattr.
+// Stat contains file states that can be overridden with ContainersOverrideXattr.
 type Stat struct {
 	IDs  IDPair
 	Mode os.FileMode
