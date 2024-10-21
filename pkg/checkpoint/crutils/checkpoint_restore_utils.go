@@ -229,7 +229,18 @@ func CRRuntimeSupportsCheckpointRestore(runtimePath string) bool {
 func CRRuntimeSupportsPodCheckpointRestore(runtimePath string) bool {
 	cmd := exec.Command(runtimePath, "restore", "--lsm-mount-context")
 	out, _ := cmd.CombinedOutput()
-	return bytes.Contains(out, []byte("flag needs an argument"))
+
+	// check for runc
+	if bytes.Contains(out, []byte("flag needs an argument")) {
+		return true
+	}
+
+	// check for crun
+	if bytes.Contains(out, []byte("requires an argument")) {
+		return true
+	}
+
+	return false
 }
 
 // CRGetRuntimeFromArchive extracts the checkpoint metadata from the
