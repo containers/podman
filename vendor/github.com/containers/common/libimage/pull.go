@@ -235,7 +235,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
+	defer c.close()
 
 	// Figure out a name for the storage destination.
 	var storageName, imageName string
@@ -321,7 +321,7 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		return nil, fmt.Errorf("parsing %q: %w", storageName, err)
 	}
 
-	_, err = c.Copy(ctx, ref, destRef)
+	_, err = c.copy(ctx, ref, destRef)
 	return []string{imageName}, err
 }
 
@@ -391,7 +391,7 @@ func (r *Runtime) copyFromDockerArchiveReaderReference(ctx context.Context, read
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
+	defer c.close()
 
 	// Get a slice of storage references we can copy.
 	references, destNames, err := r.storageReferencesReferencesFromArchiveReader(ctx, readerRef, reader)
@@ -401,7 +401,7 @@ func (r *Runtime) copyFromDockerArchiveReaderReference(ctx context.Context, read
 
 	// Now copy all of the images.  Use readerRef for performance.
 	for _, destRef := range references {
-		if _, err := c.Copy(ctx, readerRef, destRef); err != nil {
+		if _, err := c.copy(ctx, readerRef, destRef); err != nil {
 			return nil, err
 		}
 	}
@@ -640,7 +640,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	if err != nil {
 		return nil, err
 	}
-	defer c.Close()
+	defer c.close()
 
 	var pullErrors []error
 	for _, candidate := range resolved.PullCandidates {
@@ -678,7 +678,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 			}
 		}
 		var manifestBytes []byte
-		if manifestBytes, err = c.Copy(ctx, srcRef, destRef); err != nil {
+		if manifestBytes, err = c.copy(ctx, srcRef, destRef); err != nil {
 			logrus.Debugf("Error pulling candidate %s: %v", candidateString, err)
 			pullErrors = append(pullErrors, err)
 			continue
