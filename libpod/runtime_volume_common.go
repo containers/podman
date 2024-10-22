@@ -201,7 +201,11 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 				Inodes: volume.config.Inodes,
 				Size:   volume.config.Size,
 			}
-			if err := q.SetQuota(fullVolPath, quota); err != nil {
+			// Must use volPathRoot not fullVolPath, as we need the
+			// base path for the volume - without the `_data`
+			// subdirectory - so the quota ID assignment logic works
+			// properly.
+			if err := q.SetQuota(volPathRoot, quota); err != nil {
 				return nil, fmt.Errorf("failed to set size quota size=%d inodes=%d for volume directory %q: %w", volume.config.Size, volume.config.Inodes, fullVolPath, err)
 			}
 		}
