@@ -232,7 +232,7 @@ default-docker:
 		if len(ids) > 3 {
 			ids = ids[:3]
 		}
-		multiImageSave(podmanTest, ids)
+		multiImageSave(podmanTest, ids) //FIXME: This expects the loaded IDs to match
 	})
 })
 

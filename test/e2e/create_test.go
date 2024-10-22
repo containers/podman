@@ -287,7 +287,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID)) // FIXME
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -302,7 +302,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID)) // FIXME
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -316,7 +316,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID)) // FIXME
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -330,7 +330,7 @@ var _ = Describe("Podman create", func() {
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Image}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID))
+		Expect(string(session.Out.Contents())).To(ContainSubstring(ALPINEARM64ID)) // FIXME
 		session = podmanTest.Podman([]string{"inspect", "--format", "{{.ImageName}}", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

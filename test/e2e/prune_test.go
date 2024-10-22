@@ -156,7 +156,7 @@ var _ = Describe("Podman prune", func() {
 		none.WaitWithDefaultTimeout()
 		Expect(none).Should(ExitCleanly())
 		hasNone, result := none.GrepString("<none>")
-		Expect(result).To(HaveLen(2))
+		Expect(result).To(HaveLen(2)) // FIXME:???
 		Expect(hasNone).To(BeTrue())
 
 		prune := podmanTest.Podman([]string{"image", "prune", "-f"})

@@ -69,13 +69,13 @@ func verifyInstanceCompression(descriptor []imgspecv1.Descriptor, compression st
 
 var _ = Describe("Podman manifest", func() {
 
-	const (
+	var (
 		imageList                      = "docker://quay.io/libpod/testimage:00000004"
-		imageListInstance              = "docker://quay.io/libpod/testimage@sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa"
-		imageListARM64InstanceDigest   = "sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa"
-		imageListAMD64InstanceDigest   = "sha256:1462c8e885d567d534d82004656c764263f98deda813eb379689729658a133fb"
-		imageListPPC64LEInstanceDigest = "sha256:9b7c3300f5f7cfe94e3101a28d1f0a28728f8dbc854fb16dd545b7e5aa351785"
-		imageListS390XInstanceDigest   = "sha256:cb68b7bfd2f4f7d36006efbe3bef04b57a343e0839588476ca336d9ff9240dbf"
+		imageListARM64InstanceDigest   = digestOrCachedArch("quay.io/libpod/testimage:00000004", "arm64", "sha256:1385ce282f3a959d0d6baf45636efe686c1e14c3e7240eb31907436f7bc531fa")
+		imageListInstance              = "docker://quay.io/libpod/testimage" + imageListARM64InstanceDigest
+		imageListAMD64InstanceDigest   = digestOrCachedArch("quay.io/libpod/testimage:00000004", "amd64", "sha256:1462c8e885d567d534d82004656c764263f98deda813eb379689729658a133fb")
+		imageListPPC64LEInstanceDigest = digestOrCachedArch("quay.io/libpod/testimage:00000004", "ppc64le", "sha256:9b7c3300f5f7cfe94e3101a28d1f0a28728f8dbc854fb16dd545b7e5aa351785")
+		imageListS390XInstanceDigest   = digestOrCachedArch("quay.io/libpod/testimage:00000004", "s390x", "sha256:cb68b7bfd2f4f7d36006efbe3bef04b57a343e0839588476ca336d9ff9240dbf")
 	)
 
 	It("create w/o image and attempt push w/o dest", func() {
@@ -120,7 +120,7 @@ var _ = Describe("Podman manifest", func() {
 		Expect(session).Should(ExitCleanly())
 
 		// inspect manifest of single image
-		session = podmanTest.Podman([]string{"manifest", "inspect", "quay.io/libpod/busybox@sha256:6655df04a3df853b029a5fac8836035ac4fab117800c9a6c4b69341bb5306c3d"})
+		session = podmanTest.Podman([]string{"manifest", "inspect", BUSYBOXARMDIGEST})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		// yet another warning message that is not seen by remote client
