@@ -71,7 +71,7 @@ func (m *Manager) Apply(pid int) error {
 		if m.config.Rootless {
 			if m.config.Path == "" {
 				if blNeed, nErr := needAnyControllers(m.config.Resources); nErr == nil && !blNeed {
-					return nil
+					return cgroups.ErrRootless
 				}
 				return fmt.Errorf("rootless needs no limits + no cgrouppath when no permission is granted for cgroups: %w", err)
 			}

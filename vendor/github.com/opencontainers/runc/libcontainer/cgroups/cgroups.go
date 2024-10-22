@@ -11,6 +11,11 @@ var (
 	// is not configured to set device rules.
 	ErrDevicesUnsupported = errors.New("cgroup manager is not configured to set device rules")
 
+	// ErrRootless is returned by [Manager.Apply] when there is an error
+	// creating cgroup directory, and cgroup.Rootless is set. In general,
+	// this error is to be ignored.
+	ErrRootless = errors.New("cgroup manager can not access cgroup (rootless container)")
+
 	// DevicesSetV1 and DevicesSetV2 are functions to set devices for
 	// cgroup v1 and v2, respectively. Unless
 	// [github.com/opencontainers/runc/libcontainer/cgroups/devices]

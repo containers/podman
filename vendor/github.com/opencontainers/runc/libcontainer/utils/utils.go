@@ -1,13 +1,11 @@
 package utils
 
 import (
-	"encoding/binary"
 	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -15,20 +13,6 @@ import (
 const (
 	exitSignalOffset = 128
 )
-
-// NativeEndian is the native byte order of the host system.
-var NativeEndian binary.ByteOrder
-
-func init() {
-	// Copied from <golang.org/x/net/internal/socket/sys.go>.
-	i := uint32(1)
-	b := (*[4]byte)(unsafe.Pointer(&i))
-	if b[0] == 1 {
-		NativeEndian = binary.LittleEndian
-	} else {
-		NativeEndian = binary.BigEndian
-	}
-}
 
 // ExitStatus returns the correct exit status for a process based on if it
 // was signaled or exited cleanly
@@ -117,14 +101,14 @@ func SearchLabels(labels []string, key string) (string, bool) {
 func Annotations(labels []string) (bundle string, userAnnotations map[string]string) {
 	userAnnotations = make(map[string]string)
 	for _, l := range labels {
-		parts := strings.SplitN(l, "=", 2)
-		if len(parts) < 2 {
+		name, value, ok := strings.Cut(l, "=")
+		if !ok {
 			continue
 		}
-		if parts[0] == "bundle" {
-			bundle = parts[1]
+		if name == "bundle" {
+			bundle = value
 		} else {
-			userAnnotations[parts[0]] = parts[1]
+			userAnnotations[name] = value
 		}
 	}
 	return
