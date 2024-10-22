@@ -255,4 +255,185 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     done
 }
 
+function _create_container_with_health_log_settings {
+    local ctrname="$1"
+    local msg="$2"
+    local format="$3"
+    local flag="$4"
+    local expect="$5"
+    local expect_msg="$6"
+
+    run_podman run -d --name $ctrname   \
+               --health-cmd "echo $msg" \
+               $flag                    \
+               $IMAGE /home/podman/pause
+    cid="$output"
+
+    run_podman inspect $ctrname --format $format
+    is "$output" "$expect" "$expect_msg"
+
+    output=$cid
+}
+
+function _check_health_log {
+    local ctrname="$1"
+    local expect_msg="$2"
+    local comparison=$3
+    local expect_count="$4"
+
+    run_podman inspect $ctrname --format "{{.State.Health.Log}}"
+    count=$(grep -co "$expect_msg" <<< "$output")
+    assert "$count" $comparison $expect_count "Number of matching health log messages"
+}
+
+@test "podman healthcheck --health-max-log-count default value (5)" {
+    local msg="healthmsg-$(random_string)"
+    local ctrname="c-h-$(safename)"
+    _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthMaxLogCount}}" "" "5" "HealthMaxLogCount is the expected default"
+
+    for i in $(seq 1 10);
+    do
+        run_podman healthcheck run $ctrname
+        is "$output" "" "unexpected output from podman healthcheck run (pass $i)"
+    done
+
+    _check_health_log $ctrname $msg -eq 5
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+@test "podman healthcheck --health-max-log-count infinite value (0)" {
+    local repeat_count=10
+    local msg="healthmsg-$(random_string)"
+    local ctrname="c-h-$(safename)"
+    _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthMaxLogCount}}" "--health-max-log-count 0" "0" "HealthMaxLogCount"
+
+    # This is run one more time than repeat_count to check that the cap is working.
+    for i in $(seq 1 $(($repeat_count + 1)));
+    do
+        run_podman healthcheck run $ctrname
+        is "$output" "" "unexpected output from podman healthcheck run (pass $i)"
+    done
+
+    # The healthcheck is triggered by the podman when the container is started, but its execution depends on systemd.
+    # And since `run_podman healthcheck run` is also run manually, it will result in two runs.
+    _check_health_log $ctrname $msg -ge 11
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+
+@test "podman healthcheck --health-max-log-count 10" {
+    local repeat_count=10
+    local msg="healthmsg-$(random_string)"
+    local ctrname="c-h-$(safename)"
+    _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthMaxLogCount}}" "--health-max-log-count  $repeat_count" "$repeat_count" "HealthMaxLogCount"
+
+    # This is run one more time than repeat_count to check that the cap is working.
+    for i in $(seq 1 $(($repeat_count + 1)));
+    do
+        run_podman healthcheck run $ctrname
+        is "$output" "" "unexpected output from podman healthcheck run (pass $i)"
+    done
+
+    _check_health_log $ctrname $msg -eq $repeat_count
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+@test "podman healthcheck --health-max-log-size 10" {
+    local msg="healthmsg-$(random_string)"
+    local ctrname="c-h-$(safename)"
+    _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthMaxLogSize}}" "--health-max-log-size 10" "10" "HealthMaxLogSize"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    local substr=${msg:0:10}
+    _check_health_log $ctrname "$substr}]\$" -eq 1
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+@test "podman healthcheck --health-max-log-size infinite value (0)" {
+    local s=$(printf "healthmsg-%1000s")
+    local long_msg=${s// /$(random_string)}
+    local ctrname="c-h-$(safename)"
+    _create_container_with_health_log_settings $ctrname $long_msg "{{.Config.HealthMaxLogSize}}" "--health-max-log-size 0" "0" "HealthMaxLogSize"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    # The healthcheck is triggered by the podman when the container is started, but its execution depends on systemd.
+    # And since `run_podman healthcheck run` is also run manually, it will result in two runs.
+    _check_health_log $ctrname "$long_msg" -ge 1
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+@test "podman healthcheck --health-max-log-size default value (500)" {
+    local s=$(printf "healthmsg-%1000s")
+    local long_msg=${s// /$(random_string)}
+    local ctrname="c-h-$(safename)"
+    _create_container_with_health_log_settings $ctrname $long_msg "{{.Config.HealthMaxLogSize}}" "" "500" "HealthMaxLogSize is the expected default"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    local expect_msg="${long_msg:0:500}"
+    _check_health_log $ctrname "$expect_msg}]\$" -eq 1
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+
+@test "podman healthcheck --health-log-destination file" {
+    local TMP_DIR_HEALTHCHECK="$PODMAN_TMPDIR/healthcheck"
+    mkdir $TMP_DIR_HEALTHCHECK
+    local ctrname="c-h-$(safename)"
+    local msg="healthmsg-$(random_string)"
+    _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthLogDestination}}" "--health-log-destination $TMP_DIR_HEALTHCHECK" "$TMP_DIR_HEALTHCHECK" "HealthLogDestination"
+    cid="$output"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    healthcheck_log_path="${TMP_DIR_HEALTHCHECK}/${cid}-healthcheck.log"
+    # The healthcheck is triggered by the podman when the container is started, but its execution depends on systemd.
+    # And since `run_podman healthcheck run` is also run manually, it will result in two runs.
+    count=$(grep -co "$msg" $healthcheck_log_path)
+    assert "$count" -ge 1 "Number of matching health log messages"
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+
+@test "podman healthcheck --health-log-destination journal" {
+    skip_if_remote "We cannot read journalctl over remote."
+
+    # We can't use journald on RHEL as rootless, either: rhbz#1895105
+    skip_if_journald_unavailable
+
+    local ctrname="c-h-$(safename)"
+    local msg="healthmsg-$(random_string)"
+    _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthLogDestination}}" "--health-log-destination events_logger" "events_logger" "HealthLogDestination"
+    cid="$output"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    cmd="journalctl --output cat --output-fields=PODMAN_HEALTH_LOG PODMAN_ID=$cid"
+    echo "$_LOG_PROMPT $cmd"
+    run $cmd
+    echo "$output"
+    assert "$status" -eq 0 "exit status of journalctl"
+
+    # The healthcheck is triggered by the podman when the container is started, but its execution depends on systemd.
+    # And since `run_podman healthcheck run` is also run manually, it will result in two runs.
+    count=$(grep -co "$msg" <<< "$output")
+    assert "$count" -ge 1 "Number of matching health log messages"
+
+    run_podman rm -t 0 -f $ctrname
+}
+
 # vim: filetype=sh

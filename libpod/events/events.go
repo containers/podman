@@ -76,8 +76,10 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		if e.PodID != "" {
 			humanFormat += fmt.Sprintf(", pod_id=%s", e.PodID)
 		}
-		if e.HealthStatus != "" {
+		if e.Status == HealthStatus {
 			humanFormat += fmt.Sprintf(", health_status=%s", e.HealthStatus)
+			humanFormat += fmt.Sprintf(", health_failing_streak=%d", e.HealthFailingStreak)
+			humanFormat += fmt.Sprintf(", health_log=%s", e.HealthLog)
 		}
 		// check if the container has labels and add it to the output
 		if len(e.Attributes) > 0 {

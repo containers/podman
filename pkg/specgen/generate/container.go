@@ -444,6 +444,10 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 		}
 	}
 
+	specg.HealthLogDestination = conf.HealthLogDestination
+	specg.HealthMaxLogCount = conf.HealthMaxLogCount
+	specg.HealthMaxLogSize = conf.HealthMaxLogSize
+
 	specg.IDMappings = &conf.IDMappings
 	specg.ContainerCreateCommand = conf.CreateCommand
 	if len(specg.Rootfs) == 0 {
