@@ -23,6 +23,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
+	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 )
@@ -100,6 +101,12 @@ func GetBindMount(ctx *types.SystemContext, args []string, contextDir string, st
 		case "bind-propagation":
 			if len(kv) == 1 {
 				return newMount, "", fmt.Errorf("%v: %w", kv[0], errBadOptionArg)
+			}
+			switch kv[1] {
+			default:
+				return newMount, "", fmt.Errorf("%v: %q: %w", kv[0], kv[1], errBadMntOption)
+			case "shared", "rshared", "private", "rprivate", "slave", "rslave":
+				// this should be the relevant parts of the same list of options we accepted above
 			}
 			newMount.Options = append(newMount.Options, kv[1])
 		case "src", "source":
@@ -276,6 +283,12 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			if len(kv) == 1 {
 				return newMount, nil, fmt.Errorf("%v: %w", kv[0], errBadOptionArg)
 			}
+			switch kv[1] {
+			default:
+				return newMount, nil, fmt.Errorf("%v: %q: %w", kv[0], kv[1], errBadMntOption)
+			case "shared", "rshared", "private", "rprivate", "slave", "rslave":
+				// this should be the relevant parts of the same list of options we accepted above
+			}
 			newMount.Options = append(newMount.Options, kv[1])
 		case "id":
 			if len(kv) == 1 {
@@ -361,7 +374,11 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			return newMount, nil, fmt.Errorf("no stage found with name %s", fromStage)
 		}
 		// path should be /contextDir/specified path
-		newMount.Source = filepath.Join(mountPoint, filepath.Clean(string(filepath.Separator)+newMount.Source))
+		evaluated, err := copier.Eval(mountPoint, string(filepath.Separator)+newMount.Source, copier.EvalOptions{})
+		if err != nil {
+			return newMount, nil, err
+		}
+		newMount.Source = evaluated
 	} else {
 		// we need to create cache on host if no image is being used
 
@@ -378,11 +395,15 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 		}
 
 		if id != "" {
-			newMount.Source = filepath.Join(cacheParent, filepath.Clean(id))
-			buildahLockFilesDir = filepath.Join(BuildahCacheLockfileDir, filepath.Clean(id))
+			// Don't let the user control where we place the directory.
+			dirID := digest.FromString(id).Encoded()[:16]
+			newMount.Source = filepath.Join(cacheParent, dirID)
+			buildahLockFilesDir = filepath.Join(BuildahCacheLockfileDir, dirID)
 		} else {
-			newMount.Source = filepath.Join(cacheParent, filepath.Clean(newMount.Destination))
-			buildahLockFilesDir = filepath.Join(BuildahCacheLockfileDir, filepath.Clean(newMount.Destination))
+			// Don't let the user control where we place the directory.
+			dirID := digest.FromString(newMount.Destination).Encoded()[:16]
+			newMount.Source = filepath.Join(cacheParent, dirID)
+			buildahLockFilesDir = filepath.Join(BuildahCacheLockfileDir, dirID)
 		}
 		idPair := idtools.IDPair{
 			UID: uid,
