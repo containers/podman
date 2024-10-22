@@ -180,7 +180,7 @@ sub do_sync {
 
     # Looks good so far.
     my $buildah_old = vendored_buildah();
-    print "-> buildah old = $buildah_old\n";
+    progress("::: buildah OLD = $buildah_old :::\n");
 
     # Pull main, and pivot back to this branch
     pull_main();
@@ -241,7 +241,7 @@ END_FAIL_INSTRUCTIONS
     showrun('make', 'vendor') == 0
         or die "$ME: make vendor failed";
     my $buildah_new = vendored_buildah();
-    print "-> buildah new = $buildah_new\n";
+    progress("::: buildah NEW = $buildah_new :::\n");
 
     # Tweak .cirrus.yml so we run bud tests first in CI (to fail fast).
     tweak_cirrus_test_order();
