@@ -497,17 +497,14 @@ func portsToString(ports []types.PortMapping, exposedPorts map[uint16][]string) 
 		if hostIP == "" {
 			hostIP = "0.0.0.0"
 		}
-		protocols := strings.Split(port.Protocol, ",")
-		for _, protocol := range protocols {
-			if port.Range > 1 {
-				fmt.Fprintf(sb, "%s:%d-%d->%d-%d/%s, ",
-					hostIP, port.HostPort, port.HostPort+port.Range-1,
-					port.ContainerPort, port.ContainerPort+port.Range-1, protocol)
-			} else {
-				fmt.Fprintf(sb, "%s:%d->%d/%s, ",
-					hostIP, port.HostPort,
-					port.ContainerPort, protocol)
-			}
+		if port.Range > 1 {
+			fmt.Fprintf(sb, "%s:%d-%d->%d-%d/%s, ",
+				hostIP, port.HostPort, port.HostPort+port.Range-1,
+				port.ContainerPort, port.ContainerPort+port.Range-1, port.Protocol)
+		} else {
+			fmt.Fprintf(sb, "%s:%d->%d/%s, ",
+				hostIP, port.HostPort,
+				port.ContainerPort, port.Protocol)
 		}
 	}
 
