@@ -166,6 +166,14 @@ var _ = Describe("Podman inspect", func() {
 		session := podmanTest.Podman([]string{"inspect", "--format=json", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
 		imageData := session.InspectImageJSON()
+		switch imageData[0].ManifestType {
+		case "application/vnd.docker.distribution.manifest.v2+json":
+			// Proceed
+		case "application/vnd.oci.image.manifest.v1+json": // The image was converted to OCI. This rather defeats the point of the test.
+			Skip("Test image was converted to OCI")
+		default:
+			Fail(fmt.Sprintf("Unexpected manifest type %q", imageData[0].ManifestType))
+		}
 		Expect(imageData[0].HealthCheck.Timeout).To(BeNumerically("==", 3000000000))
 		Expect(imageData[0].HealthCheck.Interval).To(BeNumerically("==", 60000000000))
 		Expect(imageData[0].HealthCheck).To(HaveField("Test", []string{"CMD-SHELL", "curl -f http://localhost/ || exit 1"}))

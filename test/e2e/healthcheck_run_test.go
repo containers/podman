@@ -67,10 +67,23 @@ var _ = Describe("Podman healthcheck run", func() {
 		session := podmanTest.Podman([]string{"create", "-q", "--name", "hc", "quay.io/libpod/healthcheck:config-only", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"image", "inspect", "quay.io/libpod/healthcheck:config-only", "--format", "{{.ManifestType}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		manifestType := inspect.OutputToString()
+
 		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck}}", "hc"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(ExitCleanly())
-		Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 0s 5m0s 3s 0}"))
+		switch manifestType {
+		case "application/vnd.docker.distribution.manifest.v2+json":
+			Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 0s 5m0s 3s 0}"))
+		case "application/vnd.oci.image.manifest.v1+json": // The image was converted to OCI. This rather defeats the point of the test.
+			Expect(hc.OutputToString()).To(Equal("<nil>"))
+		default:
+			Fail(fmt.Sprintf("Unexpected manifest type %q", manifestType))
+		}
 	})
 
 	It("podman disable healthcheck with --health-cmd=none on valid container", func() {
@@ -112,6 +125,19 @@ var _ = Describe("Podman healthcheck run", func() {
 		session := podmanTest.Podman([]string{"run", "-q", "-dt", "--name", "hc", "quay.io/libpod/badhealthcheck:latest"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+
+		inspect := podmanTest.Podman([]string{"image", "inspect", "quay.io/libpod/badhealthcheck:latest", "--format", "{{.ManifestType}}"})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		manifestType := inspect.OutputToString()
+		switch manifestType {
+		case "application/vnd.docker.distribution.manifest.v2+json":
+			// Proceed
+		case "application/vnd.oci.image.manifest.v1+json": // The image was converted to OCI. This rather defeats the point of the test.
+			Skip("Test image was converted to OCI")
+		default:
+			Fail(fmt.Sprintf("Unexpected manifest type %q", manifestType))
+		}
 
 		hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 		hc.WaitWithDefaultTimeout()
