@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.29.4 (2024-10-17)
+
+    Properly validate cache IDs and sources
+
 ## v1.29.3 (2024-03-26)
 
     [release-1.29] Bump google.golang.org/protobuf to v1.33.0
