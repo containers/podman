@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/opencontainers/runc/libcontainer/userns"
+	"github.com/moby/sys/userns"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
