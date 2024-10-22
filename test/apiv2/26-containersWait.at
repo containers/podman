@@ -15,6 +15,12 @@ t POST "containers/nonExistent/wait?condition=next-exit" 404
 # Make sure to test a non-zero exit code (see #18889)
 podman create --name "${CTR}" "${IMAGE}" sh -c "exit 3"
 
+t GET libpod/containers/${CTR}/json 200 \
+  .Id~[0-9a-f]\\{64\\}
+
+# We need the cid for the wait test at the end
+cid=$(jq -r '.Id' <<<"$output")
+
 t POST "containers/${CTR}/wait?condition=non-existent-cond" 400
 
 t POST "containers/${CTR}/wait?condition=not-running" 200
@@ -49,3 +55,12 @@ t POST "containers/${CTR}/wait?condition=removed" 200 \
 # work correctly.
 t POST "containers/${CTR}/wait?condition=next-exit" 404
 wait "${child_pid}"
+
+t POST "libpod/containers/${CTR}/wait?condition=running" 404
+t POST "libpod/containers/${cid}/wait?condition=running" 404
+# The container no longer exists but we want to ensure the remote client
+# can still fetch the exit code correctly until the exit code is pruned
+# (after 5 mins) but only by the container id and not the name.
+t POST "libpod/containers/${CTR}/wait" 404
+t POST "libpod/containers/${cid}/wait" 200 \
+ "3"
