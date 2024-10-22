@@ -1315,7 +1315,7 @@ EOF
     default_value=$output
 
     # Set the current ulimit smaller than the default value
-    ulimit -n -H $((default_value - 1))
+    ulimit -n -SH $((default_value - 1))
 
     run_podman run --rm $IMAGE sh -c 'ulimit -n -H'
 
