@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v5/version"
 	"github.com/sirupsen/logrus"
+	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/net/proxy"
 )
 
@@ -79,6 +80,28 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 	return NewConnectionWithIdentity(ctx, uri, "", false)
 }
 
+// NewConnectionWithSshClient creates a new service connection with an existing SSH client
+// connection
+func NewConnectionWithSSHClient(ctx context.Context, sshClient *gossh.Client, relativePath string) (context.Context, error) {
+	_url, err := url.Parse(relativePath)
+	if err != nil {
+		return nil, fmt.Errorf("value of relativePath is not a valid url: %s: %w", relativePath, err)
+	}
+	_url.Scheme = "ssh"
+	_url.Host = sshClient.RemoteAddr().String()
+	_url.User = url.User(sshClient.User())
+
+	connection := Connection{URI: _url}
+	connection.Client = &http.Client{
+		Transport: &http.Transport{
+			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				return ssh.DialNet(sshClient, "unix", _url)
+			},
+		}}
+
+	return newConnection(ctx, connection)
+}
+
 // NewConnectionWithIdentity takes a URI as a string and returns a context with the
 // Connection embedded as a value.  This context needs to be passed to each
 // endpoint to work correctly.
@@ -133,6 +156,10 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
 	}
 
+	return newConnection(ctx, connection)
+}
+
+func newConnection(ctx context.Context, connection Connection) (context.Context, error) {
 	ctx = context.WithValue(ctx, clientKey, &connection)
 	serviceVersion, err := pingNewConnection(ctx)
 	if err != nil {
