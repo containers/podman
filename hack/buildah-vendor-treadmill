@@ -41,12 +41,14 @@ our $API_URL = 'https://api.github.com/graphql';
 # Use colors if available and if stdout is a tty
 our $C_Highlight = '';
 our $C_Warning = '';
+our $C_LogCmd = '';
 our $C_Reset = '';
 eval '
     use Term::ANSIColor;
     if (-t 1) {
         $C_Highlight = color("green");
         $C_Warning   = color("bold red");
+        $C_LogCmd    = color("blue");
         $C_Reset     = color("reset");
 
     }
@@ -234,9 +236,9 @@ END_FAIL_INSTRUCTIONS
 
     # This does have a high possibility of failing.
     progress("Vendoring in buildah...");
-    system('go', 'mod', 'edit', '--require' => "${Buildah}\@main") == 0
+    showrun('go', 'mod', 'edit', '--require' => "${Buildah}\@main") == 0
         or die "$ME: go mod edit failed";
-    system('make', 'vendor') == 0
+    showrun('make', 'vendor') == 0
         or die "$ME: make vendor failed";
     my $buildah_new = vendored_buildah();
     print "-> buildah new = $buildah_new\n";
@@ -418,7 +420,7 @@ sub build_and_check_podman {
 
     # Confirm that we can still build podman
     progress("Running 'make' to confirm that podman builds cleanly...");
-    system('make') == 0
+    showrun('make') == 0
         or die "$ME: 'make' failed with new buildah. Cannot continue.\n";
 
     # See if any new options need man pages. (C_Warning will highlight errs)
@@ -431,14 +433,14 @@ sub build_and_check_podman {
     # the name of the directory created by the bud-tests script.
     progress("Confirming that buildah-bud-tests patches still apply...");
     system('rm -rf test-buildah-*');
-    if (system('test/buildah-bud/run-buildah-bud-tests', '--no-test')) {
+    if (showrun('test/buildah-bud/run-buildah-bud-tests', '--no-test')) {
         # Error
         ++$errs;
         warn "$ME: Leaving test-buildah- directory for you to investigate\n";
     }
     else {
         # Patches apply cleanly. Clean up
-        system('rm -rf test-buildah-*');
+        showrun('rm -rf test-buildah-*');
     }
 
     return if !$errs;
@@ -892,6 +894,14 @@ sub git {
         or die "$ME: command failed: @cmd\n";
 
     return wantarray ? @results : join("\n", @results);
+}
+
+#############
+#  showrun  #  Given a command, print it then run it. Return value is system()
+#############
+sub showrun {
+    print "\$ ${C_LogCmd}@_${C_Reset}\n";
+    system(@_);
 }
 
 ##################################
