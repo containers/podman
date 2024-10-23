@@ -129,7 +129,7 @@ function pasta_test_do() {
     local tests_run=${BATS_FILE_TMPDIR}/tests_run
     touch ${tests_run}
     local testid="IPv${ip_ver} $proto $iftype $bind_type range=$range delta=$delta bytes=$bytes"
-    if grep -q -F -- "$testid" ${tests_run}; then
+    if grep -q -F -x -- "$testid" ${tests_run}; then
         die "Duplicate test! Have already run $testid"
     fi
     echo "$testid" >>${tests_run}
