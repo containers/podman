@@ -46,6 +46,7 @@ By default cirrus will trigger task depending on the source changes.
 
 It is implemented using the `only_if` field for the cirrus tasks, this logic
 uses the following main rules:
+ - Never run on rhel branches `$CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' && $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'`
  - Never skip on cron runs: `$CIRRUS_PR == ''`
  - Never skip when using the special `CI:ALL` title: `$CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*'`, see below.
  - Never skip when a danger file is changed, these files contain things that can
