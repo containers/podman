@@ -20,7 +20,7 @@ Podman command.
 
 If the _image_ is not already loaded then **podman run** will pull the _image_, and
 all image dependencies, from the repository in the same way running **podman
-pull** _image_ , before it starts the container from that image.
+pull** _image_, before it starts the container from that image.
 
 Several files will be automatically created within the container. These include
 _/etc/hosts_, _/etc/hostname_, and _/etc/resolv.conf_ to manage networking.
