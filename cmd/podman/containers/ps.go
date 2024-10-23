@@ -1,6 +1,7 @@
 package containers
 
 import (
+	"cmp"
 	"errors"
 	"fmt"
 	"os"
@@ -491,40 +492,84 @@ func portsToString(ports []types.PortMapping, exposedPorts map[uint16][]string) 
 	if len(ports) == 0 && len(exposedPorts) == 0 {
 		return ""
 	}
+	portMap := make(map[string]struct{})
+
 	sb := &strings.Builder{}
 	for _, port := range ports {
 		hostIP := port.HostIP
 		if hostIP == "" {
 			hostIP = "0.0.0.0"
 		}
-		protocols := strings.Split(port.Protocol, ",")
-		for _, protocol := range protocols {
-			if port.Range > 1 {
-				fmt.Fprintf(sb, "%s:%d-%d->%d-%d/%s, ",
-					hostIP, port.HostPort, port.HostPort+port.Range-1,
-					port.ContainerPort, port.ContainerPort+port.Range-1, protocol)
-			} else {
-				fmt.Fprintf(sb, "%s:%d->%d/%s, ",
-					hostIP, port.HostPort,
-					port.ContainerPort, protocol)
+		if port.Range > 1 {
+			fmt.Fprintf(sb, "%s:%d-%d->%d-%d/%s, ",
+				hostIP, port.HostPort, port.HostPort+port.Range-1,
+				port.ContainerPort, port.ContainerPort+port.Range-1, port.Protocol)
+			for i := range port.Range {
+				portMap[fmt.Sprintf("%d/%s", port.ContainerPort+i, port.Protocol)] = struct{}{}
 			}
+		} else {
+			fmt.Fprintf(sb, "%s:%d->%d/%s, ",
+				hostIP, port.HostPort,
+				port.ContainerPort, port.Protocol)
+			portMap[fmt.Sprintf("%d/%s", port.ContainerPort, port.Protocol)] = struct{}{}
 		}
 	}
 
-	// iterating a map is not deterministic so let's convert slice first and sort by port to make it deterministic
-	sortedPorts := make([]uint16, 0, len(exposedPorts))
-	for port := range exposedPorts {
-		sortedPorts = append(sortedPorts, port)
-	}
-	slices.Sort(sortedPorts)
-	for _, port := range sortedPorts {
-		for _, protocol := range exposedPorts[port] {
-			// exposed ports do not have a host part and are just written as "NUM/PROTO"
-			fmt.Fprintf(sb, "%d/%s, ", port, protocol)
+	// iterating a map is not deterministic so let's convert slice first and sort by protocol and port to make it deterministic
+	sortedPorts := make([]exposedPort, 0, len(exposedPorts))
+	for port, protocols := range exposedPorts {
+		for _, proto := range protocols {
+			sortedPorts = append(sortedPorts, exposedPort{num: port, protocol: proto})
 		}
+	}
+	slices.SortFunc(sortedPorts, func(a, b exposedPort) int {
+		protoCmp := cmp.Compare(a.protocol, b.protocol)
+		if protoCmp != 0 {
+			return protoCmp
+		}
+		return cmp.Compare(a.num, b.num)
+	})
+
+	var prevPort *exposedPort
+	for _, port := range sortedPorts {
+		// only if it was not published already so we do not have duplicates
+		if _, ok := portMap[fmt.Sprintf("%d/%s", port.num, port.protocol)]; ok {
+			continue
+		}
+
+		if prevPort != nil {
+			// if the prevPort is one below us we know it is a range, do not print it and just increase the range by one
+			if prevPort.protocol == port.protocol && prevPort.num == port.num-prevPort.portRange-1 {
+				prevPort.portRange++
+				continue
+			}
+			// the new port is not a range with the previous one so print it
+			printExposedPort(prevPort, sb)
+		}
+		prevPort = &port
+	}
+	// do not forget to print the last port
+	if prevPort != nil {
+		printExposedPort(prevPort, sb)
 	}
 
 	display := sb.String()
 	// make sure to trim the last ", " of the string
 	return display[:len(display)-2]
+}
+
+type exposedPort struct {
+	num      uint16
+	protocol string
+	// portRange is 0 indexed
+	portRange uint16
+}
+
+func printExposedPort(port *exposedPort, sb *strings.Builder) {
+	// exposed ports do not have a host part and are just written as "NUM[-RANGE]/PROTO"
+	if port.portRange > 0 {
+		fmt.Fprintf(sb, "%d-%d/%s, ", port.num, port.num+port.portRange, port.protocol)
+	} else {
+		fmt.Fprintf(sb, "%d/%s, ", port.num, port.protocol)
+	}
 }

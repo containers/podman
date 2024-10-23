@@ -377,8 +377,18 @@ var _ = Describe("Podman run networking", func() {
 	})
 
 	It("podman run --expose port range", func() {
+		session := podmanTest.Podman([]string{"run", "-d", "--expose", "1000-9999", ALPINE})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--format", "{{.Ports}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// This must use Equal() to ensure we do not see anything extra
+		Expect(session.OutputToString()).To(Equal("1000-9999/tcp"))
+
 		name := "testctr"
-		session := podmanTest.Podman([]string{"run", "-d", "--expose", "222-223", "-P", "--name", name, ALPINE, "sleep", "100"})
+		session = podmanTest.Podman([]string{"run", "-d", "--expose", "222-223", "-P", "--name", name, ALPINE, "sleep", "100"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		inspectOut := podmanTest.InspectContainer(name)
@@ -396,12 +406,20 @@ var _ = Describe("Podman run networking", func() {
 		name := "testctr"
 		session := podmanTest.Podman([]string{"create", "-t", "--expose", "80", "-p", "80", "--name", name, ALPINE, "/bin/sh"})
 		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		inspectOut := podmanTest.InspectContainer(name)
 		Expect(inspectOut).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports).To(HaveLen(1))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"]).To(HaveLen(1))
-		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort).To(Not(Equal("80")))
+		hostPort := inspectOut[0].NetworkSettings.Ports["80/tcp"][0].HostPort
+		Expect(hostPort).To(Not(Equal("80")))
 		Expect(inspectOut[0].NetworkSettings.Ports["80/tcp"][0]).To(HaveField("HostIP", "0.0.0.0"))
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--format", "{{.Ports}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// This must use Equal() to ensure we do not see the extra ", 80/tcp" from the exposed port
+		Expect(session.OutputToString()).To(Equal("0.0.0.0:" + hostPort + "->80/tcp"))
 	})
 
 	It("podman run --publish-all with EXPOSE port ranges in Dockerfile", func() {
@@ -417,6 +435,7 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		// Verify that the buildah is just passing through the EXPOSE keys
 		inspect := podmanTest.Podman([]string{"inspect", imageName})
 		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
 		image := inspect.InspectImageJSON()
 		Expect(image).To(HaveLen(1))
 		Expect(image[0].Config.ExposedPorts).To(HaveLen(3))
@@ -424,9 +443,20 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(image[0].Config.ExposedPorts).To(HaveKey("2001-2003/tcp"))
 		Expect(image[0].Config.ExposedPorts).To(HaveKey("2004-2005/tcp"))
 
-		containerName := "testcontainer"
-		session := podmanTest.Podman([]string{"create", "--publish-all", "--name", containerName, imageName, "true"})
+		session := podmanTest.Podman([]string{"create", imageName})
 		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"ps", "-a", "--format", "{{.Ports}}"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// This must use Equal() to ensure we do not see anything extra
+		Expect(session.OutputToString()).To(Equal("2001-2005/tcp"))
+
+		containerName := "testcontainer"
+		session = podmanTest.Podman([]string{"create", "--publish-all", "--name", containerName, imageName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		inspectOut := podmanTest.InspectContainer(containerName)
 		Expect(inspectOut).To(HaveLen(1))
 
