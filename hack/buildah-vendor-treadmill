@@ -41,12 +41,14 @@ our $API_URL = 'https://api.github.com/graphql';
 # Use colors if available and if stdout is a tty
 our $C_Highlight = '';
 our $C_Warning = '';
+our $C_LogCmd = '';
 our $C_Reset = '';
 eval '
     use Term::ANSIColor;
     if (-t 1) {
         $C_Highlight = color("green");
         $C_Warning   = color("bold red");
+        $C_LogCmd    = color("blue");
         $C_Reset     = color("reset");
 
     }
@@ -178,7 +180,7 @@ sub do_sync {
 
     # Looks good so far.
     my $buildah_old = vendored_buildah();
-    print "-> buildah old = $buildah_old\n";
+    progress("::: buildah OLD = $buildah_old :::\n");
 
     # Pull main, and pivot back to this branch
     pull_main();
@@ -234,12 +236,12 @@ END_FAIL_INSTRUCTIONS
 
     # This does have a high possibility of failing.
     progress("Vendoring in buildah...");
-    system('go', 'mod', 'edit', '--require' => "${Buildah}\@main") == 0
+    showrun('go', 'mod', 'edit', '--require' => "${Buildah}\@main") == 0
         or die "$ME: go mod edit failed";
-    system('make', 'vendor') == 0
+    showrun('make', 'vendor') == 0
         or die "$ME: make vendor failed";
     my $buildah_new = vendored_buildah();
-    print "-> buildah new = $buildah_new\n";
+    progress("::: buildah NEW = $buildah_new :::\n");
 
     # Tweak .cirrus.yml so we run bud tests first in CI (to fail fast).
     tweak_cirrus_test_order();
@@ -285,7 +287,7 @@ END_FAIL_INSTRUCTIONS
         exit 1;
     };
     progress('Reapplying treadmill patches');
-    git('cherry-pick', '--allow-empty', $treadmill_commit);
+    git('cherry-pick', '--allow-empty', '--empty=keep', $treadmill_commit);
 
     # It worked! Clean up: remove our local die() handler and the saved branch
     undef $SIG{__DIE__};
@@ -338,14 +340,19 @@ sub pull_main {
 }
 
 #############################
-#  tweak_cirrus_test_order  #  Run bud tests first, to fail fast & early
+#  tweak_cirrus_test_order  #  Two edits to Cirrus tasks
 #############################
+#
+#  1. Run bud tests first, to fail fast & early
+#  2. Run rootless bud tests. These don't run in regular CI,
+#     so this is our only chance to catch problems.
+#
 sub tweak_cirrus_test_order {
     my $cirrus_yml = '.cirrus.yml';
     my $tmpfile = "$cirrus_yml.tmp.$$";
     unlink $tmpfile;
 
-    progress("Tweaking test order in $cirrus_yml to run bud tests early");
+    progress("Tweaking test order in $cirrus_yml");
     open my $in, '<', $cirrus_yml
         or do {
             warn "$ME: Cannot read $cirrus_yml: $!\n";
@@ -355,39 +362,22 @@ sub tweak_cirrus_test_order {
     open my $out, '>'. $tmpfile
         or die "$ME: Cannot create $tmpfile: $!\n";
     my $current_task = '';
-    my $in_depend;
     while (my $line = <$in>) {
         chomp $line;
         if ($line =~ /^(\S+)_task:$/) {
             $current_task = $1;
-            undef $in_depend;
         }
-        elsif ($line =~ /^(\s+)depends_on:$/) {
-            $in_depend = $1;
-        }
-        elsif ($in_depend && $line =~ /^($in_depend\s+-\s+)(\S+)/) {
-            my $indent = $1;
-
-            # Run the buildah-bud tests early: that's the entire point
+        elsif ($line =~ /^(\s+)depends_on:\s+\*build$/) {
+            # Run the buildah-bud tests early: that's much of the point
             # of the treadmill PR. Here we switch Cirrus task dependencies
-            # such that bud tests run as early as possible.
-            if ($current_task =~ /buildah_bud_test/) {
-                # Buildah bud now depends only on validate...
-                $line = "${indent}validate";
-            }
-            elsif ($2 eq 'validate' && $current_task ne 'success') {
-                # ...and all other tests that relied on validate now rely on
-                # bud tests instead. The point of the treadmill PR is to
-                # run the bud tests and only then, if everything passes,
-                # run normal tests. (Reason: bud tests are the only ones
-                # likely to fail on a buildah revendor, and we want to see
-                # failures early).
-                $line = "${indent}buildah_bud_test";
+            # such that bud tests run as early as possible, and all other
+            # tests will only run if bud tests pass.
+            my $indent = $1;
+            if ($current_task !~ /buildah_bud_test/) {
+                $line = "${indent}depends_on:\n${indent}  - buildah_bud_test";
             }
         }
         else {
-            undef $in_depend;
-
             # FIXME THIS IS HORRIBLE!
             # Add rootless jobs to the buildah bud test matrix.
             # This is incredibly fragile; it relies on the fact
@@ -430,7 +420,7 @@ sub build_and_check_podman {
 
     # Confirm that we can still build podman
     progress("Running 'make' to confirm that podman builds cleanly...");
-    system('make') == 0
+    showrun('make') == 0
         or die "$ME: 'make' failed with new buildah. Cannot continue.\n";
 
     # See if any new options need man pages. (C_Warning will highlight errs)
@@ -443,35 +433,28 @@ sub build_and_check_podman {
     # the name of the directory created by the bud-tests script.
     progress("Confirming that buildah-bud-tests patches still apply...");
     system('rm -rf test-buildah-*');
-    if (system('test/buildah-bud/run-buildah-bud-tests', '--no-test')) {
+    if (showrun('test/buildah-bud/run-buildah-bud-tests', '--no-test')) {
         # Error
         ++$errs;
         warn "$ME: Leaving test-buildah- directory for you to investigate\n";
     }
     else {
         # Patches apply cleanly. Clean up
-        system('rm -rf test-buildah-*');
+        showrun('rm -rf test-buildah-*');
     }
 
     return if !$errs;
     warn <<"END_WARN";
 $ME: Errors found. I have to stop now for you to fix them.
     Your best bet now is:
-      1) Find and fix whatever needs to be fixed; then
-      2) git commit -am'fixme-fixme'; then
-      3) git rebase -i main:
-         a) you are now in an editor window
-         b) move the new fixme-fixme commit up a line, to between the
-            'buildah vendor treadmill' and 'vendor in buildah @ ...' lines
-         c) change 'pick' to 'squash' (or just 's')
-         d) save & quit to continue the rebase
-         e) back to a new editor window
-         f) change the commit message: remove fixme-fixme, add a description
-            of what you actually fixed. If possible, reference the PR (buildah
-            or podman) that introduced the failure
-         g) save & quit to continue the rebase
+      1) START A NEW TERMINAL! So you can refer back here.
 
-    Now, for good measure, rerun this script.
+      2) Find and fix whatever needs to be fixed. There may
+         be hint messages above. You may need to cd to the
+         new `test-buildah-SOMETHING` directory
+      3) git commit --amend ANY-FILES-THAT-YOU-CHANGED
+
+    Rerun this script, possibly with `--force-testing`
 
     For full documentation, refer to
 
@@ -913,6 +896,14 @@ sub git {
     return wantarray ? @results : join("\n", @results);
 }
 
+#############
+#  showrun  #  Given a command, print it then run it. Return value is system()
+#############
+sub showrun {
+    print "\$ ${C_LogCmd}@_${C_Reset}\n";
+    system(@_);
+}
+
 ##################################
 #  assert_buildah_vendor_commit  #  Fails if input arg is not a buildah vendor
 ##################################
@@ -921,8 +912,10 @@ sub assert_buildah_vendor_commit {
 
     my @deltas = git('diff', '--name-only', "$ref^", $ref);
 
-    # It's OK if there are no deltas, e.g. immediately after a buildah vendor PR
-    return if !@deltas;
+    # It's OK if there are no deltas or if the only delta is to Cirrus.
+    # This is expected immediately after buildah gets vendored and
+    # there is nothing new to vendor in.
+    return if !@deltas || "@deltas" eq ".cirrus.yml";
 
     # It's OK if there are more modified files than just these.
     # It's not OK if any of these are missing.
@@ -941,7 +934,7 @@ sub assert_buildah_vendor_commit {
     return if !@missing;
 
     warn "$ME: $ref does not look like a buildah vendor commit:\n";
-    warn "$ME:  - $_\n" for @missing;
+    warn "      - $_\n" for @missing;
     die "$ME: Cannot continue\n";
 }
 

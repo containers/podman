@@ -199,11 +199,20 @@ if [[ -n $do_checkout ]]; then
 Error applying patch file. This can happen when you vendor in a new buildah.
 You will want to:
 
-  - look for 'test/*.rej'
+  *** START A NEW TERMINAL WINDOW!              ***
+  *** ...so you can refer to these instructions ***
+
+  - cd test-buildah-*   (into the buildah-bud test directory)
+
+  - look for 'tests/*.rej'
   - resolve conflicts manually
-  - git add test/helpers.bash
+  - git add tests/helpers.bash
   - git am --continue
   - ./make-new-buildah-diffs
+
+  - cd .. (back to podman source dir)
+
+...and git-commit the new .diff file as part of your podman PR.
 "
     (set -x;git am --reject <$PATCHES)
 
