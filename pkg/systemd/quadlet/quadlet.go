@@ -876,6 +876,21 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	return service, nil
 }
 
+func defaultOneshotServiceGroup(service *parser.UnitFile, remainAfterExit bool) {
+	// The default syslog identifier is the exec basename (podman) which isn't very useful here
+	if _, ok := service.Lookup(ServiceGroup, "SyslogIdentifier"); !ok {
+		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
+	}
+	if _, ok := service.Lookup(ServiceGroup, "Type"); !ok {
+		service.Set(ServiceGroup, "Type", "oneshot")
+	}
+	if remainAfterExit {
+		if _, ok := service.Lookup(ServiceGroup, "RemainAfterExit"); !ok {
+			service.Set(ServiceGroup, "RemainAfterExit", "yes")
+		}
+	}
+}
+
 // Convert a quadlet network file (unit file with a Network group) to a systemd
 // service file (unit file with Service group) based on the options in the
 // Network group.
@@ -976,12 +991,7 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman) which isn't very useful here
-		"SyslogIdentifier", "%N")
+	defaultOneshotServiceGroup(service, true)
 
 	// Store the name of the created resource
 	unitInfo.ResourceName = networkName
@@ -1124,12 +1134,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman) which isn't very useful here
-		"SyslogIdentifier", "%N")
+	defaultOneshotServiceGroup(service, true)
 
 	// Store the name of the created resource
 	unitInfo.ResourceName = volumeName
@@ -1342,12 +1347,7 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman) which isn't very useful here
-		"SyslogIdentifier", "%N")
+	defaultOneshotServiceGroup(service, true)
 
 	if name, ok := image.Lookup(ImageGroup, KeyImageTag); ok && len(name) > 0 {
 		imageName = name
@@ -1475,14 +1475,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman)
-		// which isn't very useful here
-		"SyslogIdentifier", "%N")
-
+	defaultOneshotServiceGroup(service, false)
 	return service, nil
 }
 
