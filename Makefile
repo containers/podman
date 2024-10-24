@@ -677,6 +677,9 @@ ginkgo-run: .install.ginkgo
 
 .PHONY: ginkgo
 ginkgo:
+	echo '=== cache registry contents'
+	ls -gGR /var/cache/local-registry/docker/registry/v2/repositories || :
+	echo '==='
 	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS)"
 
 .PHONY: ginkgo-remote

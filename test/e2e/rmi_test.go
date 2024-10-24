@@ -153,7 +153,7 @@ var _ = Describe("Podman rmi", func() {
 		session = podmanTest.Podman([]string{"images", "-q"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES) + 1))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES) + 1)) // FIXME:???
 	})
 
 	It("podman rmi with cached images", func() {

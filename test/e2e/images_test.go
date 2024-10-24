@@ -58,7 +58,7 @@ var _ = Describe("Podman images", func() {
 		session = podmanTest.Podman([]string{"images", "-qn"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES)))
+		Expect(session.OutputToStringArray()).To(HaveLen(len(CACHE_IMAGES))) // FIXME: ALPINE and quay.io/libpod/alpine may have different IDs
 	})
 
 	It("podman images with digests", func() {

@@ -150,61 +150,89 @@ func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Diges
 	pullOptions := store.PullOptions()
 
 	if !parseBooleanPullOption(pullOptions, "enable_partial_images", true) {
+		// If convertImages is set, the two options disagree whether fallback is permissible.
+		// Right now, we enable it, but that’s not a promise; rather, such a configuration should ideally be rejected.
 		return nil, newErrFallbackToOrdinaryLayerDownload(errors.New("partial images are disabled"))
 	}
+	// convertImages also serves as a “must not fallback to non-partial pull” option (?!)
+	convertImages := parseBooleanPullOption(pullOptions, "convert_images", false)
 
+	graphDriver, err := store.GraphDriver()
+	if err != nil {
+		return nil, err
+	}
+	if _, partialSupported := graphDriver.(graphdriver.DriverWithDiffer); !partialSupported {
+		if convertImages {
+			return nil, fmt.Errorf("graph driver %s does not support partial pull but convert_images requires that", graphDriver.String())
+		}
+		return nil, newErrFallbackToOrdinaryLayerDownload(fmt.Errorf("graph driver %s does not support partial pull", graphDriver.String()))
+	}
+
+	differ, canFallback, err := getProperDiffer(store, blobDigest, blobSize, annotations, iss, pullOptions)
+	if err != nil {
+		if !canFallback {
+			return nil, err
+		}
+		// If convert_images is enabled, always attempt to convert it instead of returning an error or falling back to a different method.
+		if convertImages {
+			logrus.Debugf("Created differ to convert blob %q", blobDigest)
+			return makeConvertFromRawDiffer(store, blobDigest, blobSize, iss, pullOptions)
+		}
+		return nil, newErrFallbackToOrdinaryLayerDownload(err)
+	}
+
+	return differ, nil
+}
+
+// getProperDiffer is an implementation detail of GetDiffer.
+// It returns a “proper” differ (not a convert_images one) if possible.
+// On error, the second parameter is true if a fallback to an alternative (either the makeConverToRaw differ, or a non-partial pull)
+// is permissible.
+func getProperDiffer(store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable, pullOptions map[string]string) (graphdriver.Differ, bool, error) {
 	zstdChunkedTOCDigestString, hasZstdChunkedTOC := annotations[internal.ManifestChecksumKey]
 	estargzTOCDigestString, hasEstargzTOC := annotations[estargz.TOCJSONDigestAnnotation]
 
-	if hasZstdChunkedTOC && hasEstargzTOC {
-		return nil, errors.New("both zstd:chunked and eStargz TOC found")
-	}
+	switch {
+	case hasZstdChunkedTOC && hasEstargzTOC:
+		return nil, false, errors.New("both zstd:chunked and eStargz TOC found")
 
-	convertImages := parseBooleanPullOption(pullOptions, "convert_images", false)
-
-	if !hasZstdChunkedTOC && !hasEstargzTOC && !convertImages {
-		return nil, newErrFallbackToOrdinaryLayerDownload(errors.New("no TOC found and convert_images is not configured"))
-	}
-
-	var err error
-	var differ graphdriver.Differ
-	// At this point one of hasZstdChunkedTOC, hasEstargzTOC or convertImages is true.
-	if hasZstdChunkedTOC {
-		zstdChunkedTOCDigest, err2 := digest.Parse(zstdChunkedTOCDigestString)
-		if err2 != nil {
-			return nil, err2
+	case hasZstdChunkedTOC:
+		zstdChunkedTOCDigest, err := digest.Parse(zstdChunkedTOCDigestString)
+		if err != nil {
+			return nil, false, err
 		}
-		differ, err = makeZstdChunkedDiffer(store, blobSize, zstdChunkedTOCDigest, annotations, iss, pullOptions)
-		if err == nil {
-			logrus.Debugf("Created zstd:chunked differ for blob %q", blobDigest)
-			return differ, err
+		differ, err := makeZstdChunkedDiffer(store, blobSize, zstdChunkedTOCDigest, annotations, iss, pullOptions)
+		if err != nil {
+			logrus.Debugf("Could not create zstd:chunked differ for blob %q: %v", blobDigest, err)
+			// If the error is a bad request to the server, then signal to the caller that it can try a different method.
+			var badRequestErr ErrBadRequest
+			return nil, errors.As(err, &badRequestErr), err
 		}
-	} else if hasEstargzTOC {
-		estargzTOCDigest, err2 := digest.Parse(estargzTOCDigestString)
-		if err2 != nil {
-			return nil, err
-		}
-		differ, err = makeEstargzChunkedDiffer(store, blobSize, estargzTOCDigest, iss, pullOptions)
-		if err == nil {
-			logrus.Debugf("Created eStargz differ for blob %q", blobDigest)
-			return differ, err
-		}
-	}
-	// If convert_images is enabled, always attempt to convert it instead of returning an error or falling back to a different method.
-	if convertImages {
-		logrus.Debugf("Created differ to convert blob %q", blobDigest)
-		return makeConvertFromRawDiffer(store, blobDigest, blobSize, iss, pullOptions)
-	}
+		logrus.Debugf("Created zstd:chunked differ for blob %q", blobDigest)
+		return differ, false, nil
 
-	logrus.Debugf("Could not create differ for blob %q: %v", blobDigest, err)
+	case hasEstargzTOC:
+		estargzTOCDigest, err := digest.Parse(estargzTOCDigestString)
+		if err != nil {
+			return nil, false, err
+		}
+		differ, err := makeEstargzChunkedDiffer(store, blobSize, estargzTOCDigest, iss, pullOptions)
+		if err != nil {
+			logrus.Debugf("Could not create estargz differ for blob %q: %v", blobDigest, err)
+			// If the error is a bad request to the server, then signal to the caller that it can try a different method.
+			var badRequestErr ErrBadRequest
+			return nil, errors.As(err, &badRequestErr), err
+		}
+		logrus.Debugf("Created eStargz differ for blob %q", blobDigest)
+		return differ, false, nil
 
-	// If the error is a bad request to the server, then signal to the caller that it can try a different method.  This can be done
-	// only when convert_images is disabled.
-	var badRequestErr ErrBadRequest
-	if errors.As(err, &badRequestErr) {
-		err = newErrFallbackToOrdinaryLayerDownload(err)
+	default: // no TOC
+		convertImages := parseBooleanPullOption(pullOptions, "convert_images", false)
+		if !convertImages {
+			return nil, true, errors.New("no TOC found and convert_images is not configured")
+		}
+		return nil, true, errors.New("no TOC found")
 	}
-	return nil, err
 }
 
 func makeConvertFromRawDiffer(store storage.Store, blobDigest digest.Digest, blobSize int64, iss ImageSourceSeekable, pullOptions map[string]string) (*chunkedDiffer, error) {
