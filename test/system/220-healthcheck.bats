@@ -67,6 +67,9 @@ function _check_health {
     run_podman inspect $ctrname --format "{{.Config.HealthcheckOnFailureAction}}"
     is "$output" "kill" "on-failure action is set to kill"
 
+    run_podman inspect $ctrname --format "{{.Config.StartupHealthCheck.Test}}"
+    is "$output" "[CMD-SHELL /home/podman/healthcheck]" ".Config.StartupHealthCheck.Test"
+
     current_time=$(date --iso-8601=ns)
     # We can't check for 'starting' because a 1-second interval is too
     # short; it could run healthcheck before we get to our first check.
