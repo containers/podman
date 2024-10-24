@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.systemd
 
 # bats test_tags=ci:parallel
 @test "podman rm" {
@@ -193,6 +194,14 @@ function __run_healthcheck_container() {
             if kill -0 $pid; then
                 die "Container $cname process is still running (pid $pid)"
             fi
+
+            # FIXME: #24351, leak in --health-startup-cmd
+            # FIXME: or maybe not. Maybe this is a different leak? And
+            #        if so, maybe it can be fixed, or maybe it can't?
+            #        Anyhow, worry about 24351 first.
+            # FIXME: also remove "load helpers.systemd" above if this is fixed.
+            systemctl reset-failed "${cid}-*"
+
             return
         fi
 

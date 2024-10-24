@@ -31,6 +31,7 @@ function teardown() {
             echo "# WARNING: systemctl stop failed in teardown: $output" >&3
         fi
 
+        run systemctl reset-failed "$SERVICE_NAME"
         rm -f "$UNIT_FILE"
         systemctl daemon-reload
     fi
@@ -96,6 +97,8 @@ function service_cleanup() {
 
     run systemctl disable "$SERVICE_NAME"
     assert $status -eq 0 "Error disabling systemd unit $SERVICE_NAME: $output"
+
+    run systemctl reset-failed "$SERVICE_NAME"
 
     rm -f "$UNIT_FILE"
     systemctl daemon-reload
@@ -272,6 +275,8 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run systemctl stop "$INSTANCE"
     assert $status -eq 0 "Error stopping systemd unit $INSTANCE: $output"
 
+    run systemctl reset-failed "$INSTANCE"
+
     rm -f $TEMPLATE_FILE
     systemctl daemon-reload
 }
@@ -372,6 +377,7 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
     run_podman exec $cname touch /uh-oh
 
     # healthcheck should now fail, with exit status 1 and 'unhealthy' output
+    # FIXME: race: on high load, we can get "Error: no container with ID xxxx"
     run_podman 1 healthcheck run $cname
     is "$output" "unhealthy" "output from 'podman healthcheck run'"
 

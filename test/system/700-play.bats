@@ -6,6 +6,7 @@
 load helpers
 load helpers.network
 load helpers.registry
+load helpers.systemd
 
 # helper function: writes a yaml file with customizable values
 function _write_test_yaml() {
@@ -158,7 +159,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
+        $PODMAN --syslog play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
 
     # Wait for the container to be running
     container_a=$PODCTRNAME
@@ -200,7 +201,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "true"
 
     # Restart the pod, make sure the service is running again
-    run_podman pod restart $PODNAME
+    run_podman --syslog pod restart $PODNAME
     run_podman container inspect $service_container --format "{{.State.Running}}"
     is "$output" "true"
 
@@ -211,13 +212,13 @@ RELABEL="system_u:object_r:container_file_t:s0"
     is "$output" "Error: container .* is the service container of pod(s) .* and cannot be removed without removing the pod(s)"
 
     # Kill the pod and make sure the service is not running
-    run_podman pod kill $PODNAME
+    run_podman --syslog pod kill $PODNAME
     _ensure_container_running $service_container false
 
     run_podman network ls
 
     # Remove the pod and make sure the service is removed along with it
-    run_podman pod rm $PODNAME
+    run_podman --syslog pod rm $PODNAME
     run_podman 1 container exists $service_container
 }
 
@@ -660,17 +661,35 @@ spec:
       image: $IMAGE
       command:
       - top
+      - -b
 " > $fname
 
-    # force a timeout to happen so that the kube play command is killed
-    # and expect the timeout code 124 to happen so that we can clean up
+    # Run in background, then wait for pod to start running.
+    # This guarantees that when we send the signal (below) we do so
+    # on a running container; signaling during initialization
+    # results in undefined behavior.
+    logfile=$PODMAN_TMPDIR/kube-play.log
+    $PODMAN kube play --wait $fname &> $logfile &
+    local kidpid=$!
+
+    for try in {1..10}; do
+        run_podman '?' container inspect --format '{{.State.Running}}' "$podname-$ctrname"
+        if [[ $status -eq 0 ]] && [[ "$output" = "true" ]]; then
+            break
+        fi
+        sleep 1
+    done
+    wait_for_output "Mem:" "$podname-$ctrname"
+
+    # Send SIGINT to container, and see how long it takes to exit.
     local t0=$SECONDS
-    PODMAN_TIMEOUT=2 run_podman 124 kube play --wait $fname
+    kill -2 $kidpid
+    wait $kidpid
     local t1=$SECONDS
     local delta_t=$((t1 - t0))
 
     # Expectation (in seconds) of when we should time out. When running
-    # parallel, allow 4 more seconds due to system load
+    # parallel, allow longer time due to system load
     local expect=4
     if [[ -n "$PARALLEL_JOBSLOT" ]]; then
         expect=$((expect + 4))
@@ -678,7 +697,8 @@ spec:
     assert $delta_t -le $expect \
            "podman kube play did not get killed within $expect seconds"
     # Make sure we actually got SIGTERM and podman printed its message.
-    assert "$output" =~ "Cleaning up containers, pods, and volumes" "kube play printed sigterm message"
+    assert "$(< $logfile)" =~ "Cleaning up containers, pods, and volumes" \
+           "kube play printed sigterm message"
 
     # there should be no containers running or created
     run_podman ps -a --noheading
@@ -911,6 +931,10 @@ EOF
         run_podman kube play $fname
         ctrName="$podname-$ctrname"
 
+        # We need container ID to clean up a leaked unit file from healthcheck
+        run_podman container inspect --format '{{.ID}}' $ctrName
+        cid=$output
+
         # Collect status every half-second until it goes into the desired state.
         local i=1
         local full_log=""
@@ -948,6 +972,13 @@ EOF
         run_podman '?' stop -t0 $ctrName
 
         run_podman kube down $fname
+
+        # FIXME: #24351, leak in --health-startup-cmd
+        # FIXME: or maybe not. Maybe this is a different leak? And
+        #        if so, maybe it can be fixed, or maybe it can't?
+        #        Anyhow, worry about 24351 first.
+        # FIXME: also remove "load helpers.systemd" above if this is fixed.
+        systemctl reset-failed "${cid}-*"
     done
 }
 

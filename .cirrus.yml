@@ -226,6 +226,7 @@ alt_build_task:
     only_if: &no_rhel_release |
         $CIRRUS_BRANCH !=~ 'v[0-9\.]+-rhel' &&
         $CIRRUS_BASE_BRANCH !=~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     env:
         <<: *stdenvars
         TEST_FLAVOR: "altbuild"
@@ -263,6 +264,7 @@ osx_alt_build_task:
     alias: osx_alt_build
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *no_rhel_release  # RHEL never releases podman mac installer binary
+    skip: $CI == $CI
     persistent_worker: &mac_pw
         labels:
             os: darwin
@@ -443,6 +445,7 @@ win_installer_task:
             CONTAINERS_MACHINE_PROVIDER: 'hyperv'
     alias: win_installer
     only_if: *no_rhel_release
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance: &windows
         image: "${WINDOWS_AMI}"
@@ -629,6 +632,7 @@ local_integration_test_task: &local_integration_test_task
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/e2e/**', 'test/utils/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+    skip: $CI == $CI
     depends_on: *build
     matrix: *platform_axis
     # integration tests scale well with cpu as they are parallelized
@@ -652,6 +656,7 @@ local_integration_test_task: &local_integration_test_task
 remote_integration_test_task:
     <<: *local_integration_test_task
     alias: remote_integration_test
+    skip: $CI == $CI
     env:
         TEST_FLAVOR: int
         PODBIN_NAME: remote
@@ -664,6 +669,7 @@ container_integration_test_task:
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
+    skip: $CI == $CI
     depends_on: *build
     gce_instance: *fastvm
     env:
@@ -682,6 +688,7 @@ rootless_integration_test_task:
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
+    skip: $CI == $CI
     depends_on: *build
     matrix: *platform_axis
     gce_instance: *fastvm
@@ -705,6 +712,7 @@ podman_machine_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
@@ -727,6 +735,7 @@ podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
     only_if: *only_if_machine_test
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
@@ -757,9 +766,10 @@ podman_machine_windows_task:
     # everywhere to do so here it would mean we would need duplicate the
     # full big only_if condition which is more difficult to maintain so
     # use the skip here.
-    skip: &skip_rhel_release |
-        $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
-        $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
+#    skip: &skip_rhel_release |
+#        $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
+#        $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
+    skip: $CI == $CI
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -785,7 +795,8 @@ podman_machine_mac_task:
     name: *std_name_fmt
     alias: podman_machine_mac
     only_if: *only_if_machine_test
-    skip: *skip_rhel_release
+#    skip: *skip_rhel_release
+    skip: $CI == $CI
     depends_on: *build
     persistent_worker: *mac_pw
     timeout_in: 35m
@@ -960,6 +971,7 @@ buildah_bud_test_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('**/*build*.go', 'test/buildah-bud/**')
+    skip: $CI == $CI
     depends_on: *build
     env:
         <<: *stdenvars
@@ -989,6 +1001,7 @@ upgrade_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/upgrade/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+    skip: $CI == $CI
     depends_on: *build
     matrix:
         - env:

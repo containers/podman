@@ -127,6 +127,8 @@ function service_cleanup() {
                "state of service $service after systemctl stop"
     fi
 
+    # reset-failed necessary to clean up stray systemd cruft
+    run systemctl reset-failed "$service"
     rm -f "$UNIT_DIR/$service"
     systemctl daemon-reload
 }
@@ -908,6 +910,8 @@ EOF
 
     run_podman exec $QUADLET_CONTAINER_NAME cat /test_content/$file_name
     is "$output" "$file_content" "contents of testfile in container volume"
+
+    service_cleanup $QUADLET_SERVICE_NAME
 
     rm -rf $tmp_path
 }
