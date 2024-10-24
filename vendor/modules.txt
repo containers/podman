@@ -169,7 +169,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20241018183244-7e6f2b4d6de7
+# github.com/containers/common v0.60.1-0.20241018183244-7e6f2b4d6de7 => github.com/l0rd/containers-common v0.0.0-20241022154342-ca63ba0b720f
 ## explicit; go 1.22.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -1018,6 +1018,9 @@ github.com/sigstore/sigstore/pkg/signature/payload
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/syslog
+# github.com/skeema/knownhosts v1.3.0
+## explicit; go 1.17
+github.com/skeema/knownhosts
 # github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 ## explicit
 github.com/skratchdot/open-golang/open
