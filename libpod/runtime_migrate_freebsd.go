@@ -1,4 +1,4 @@
-//go:build !remote && !linux && !freebsd
+//go:build !remote
 
 package libpod
 
@@ -7,7 +7,7 @@ import (
 )
 
 func (r *Runtime) stopPauseProcess() error {
-	return errors.New("not implemented (*Runtime) stopPauseProcess")
+	return nil
 }
 
 func (r *Runtime) Migrate(newRuntime string) error {
