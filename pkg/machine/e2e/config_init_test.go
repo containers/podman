@@ -90,6 +90,11 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 			if strings.Contains(session.errorToString(), "VM does not exist") {
 				return
 			}
+
+			// FIXME:#24344 work-around for custom ignition removal
+			if strings.Contains(session.errorToString(), "failed to remove machines files: unable to find connection named") {
+				return
+			}
 		}
 		Expect(session).To(Exit(0))
 	})

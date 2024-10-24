@@ -196,30 +196,38 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
 		err = ignBuilder.BuildWithIgnitionFile(opts.IgnitionPath)
-		return err
-	}
 
-	err = ignBuilder.GenerateIgnitionConfig()
-	if err != nil {
-		return err
-	}
+		if err != nil {
+			return err
+		}
+	} else {
+		err = ignBuilder.GenerateIgnitionConfig()
+		if err != nil {
+			return err
+		}
 
-	readyIgnOpts, err := mp.PrepareIgnition(mc, &ignBuilder)
-	if err != nil {
-		return err
-	}
+		readyIgnOpts, err := mp.PrepareIgnition(mc, &ignBuilder)
+		if err != nil {
+			return err
+		}
 
-	readyUnitFile, err := ignition.CreateReadyUnitFile(mp.VMType(), readyIgnOpts)
-	if err != nil {
-		return err
-	}
+		readyUnitFile, err := ignition.CreateReadyUnitFile(mp.VMType(), readyIgnOpts)
+		if err != nil {
+			return err
+		}
 
-	readyUnit := ignition.Unit{
-		Enabled:  ignition.BoolToPtr(true),
-		Name:     "ready.service",
-		Contents: ignition.StrToPtr(readyUnitFile),
+		readyUnit := ignition.Unit{
+			Enabled:  ignition.BoolToPtr(true),
+			Name:     "ready.service",
+			Contents: ignition.StrToPtr(readyUnitFile),
+		}
+		ignBuilder.WithUnit(readyUnit)
+
+		err = ignBuilder.Build()
+		if err != nil {
+			return err
+		}
 	}
-	ignBuilder.WithUnit(readyUnit)
 
 	// Mounts
 	if mp.VMType() != machineDefine.WSLVirt {
@@ -241,11 +249,6 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	callbackFuncs.Add(cleanup)
 
 	err = mp.CreateVM(createOpts, mc, &ignBuilder)
-	if err != nil {
-		return err
-	}
-
-	err = ignBuilder.Build()
 	if err != nil {
 		return err
 	}
