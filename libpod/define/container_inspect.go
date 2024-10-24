@@ -57,6 +57,8 @@ type InspectContainerConfig struct {
 	Annotations map[string]string `json:"Annotations"`
 	// Container stop signal
 	StopSignal string `json:"StopSignal"`
+	// Configured startup healthcheck for the container
+	StartupHealthCheck *StartupHealthCheck `json:"StartupHealthCheck,omitempty"`
 	// Configured healthcheck for the container
 	Healthcheck *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
 	// HealthcheckOnFailureAction defines an action to take once the container turns unhealthy.

@@ -427,6 +427,8 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	ctrConfig.StopSignal = signal.ToDockerFormat(c.config.StopSignal)
 	// TODO: should JSON deep copy this to ensure internal pointers don't
 	// leak.
+	ctrConfig.StartupHealthCheck = c.config.StartupHealthCheckConfig
+
 	ctrConfig.Healthcheck = c.config.HealthCheckConfig
 
 	ctrConfig.HealthcheckOnFailureAction = c.config.HealthCheckOnFailureAction.String()
