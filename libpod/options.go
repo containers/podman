@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
-	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -1521,25 +1519,11 @@ func WithHealthCheckLogDestination(destination string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		switch destination {
-		case define.HealthCheckEventsLoggerDestination, define.DefaultHealthCheckLocalDestination:
-			ctr.config.HealthLogDestination = destination
-		default:
-			fileInfo, err := os.Stat(destination)
-			if err != nil {
-				return fmt.Errorf("HealthCheck Log '%s' destination error: %w", destination, err)
-			}
-			mode := fileInfo.Mode()
-			if !mode.IsDir() {
-				return fmt.Errorf("HealthCheck Log '%s' destination must be directory", destination)
-			}
-
-			absPath, err := filepath.Abs(destination)
-			if err != nil {
-				return err
-			}
-			ctr.config.HealthLogDestination = absPath
+		dest, err := define.GetValidHealthCheckDestination(destination)
+		if err != nil {
+			return err
 		}
+		ctr.config.HealthLogDestination = dest
 		return nil
 	}
 }

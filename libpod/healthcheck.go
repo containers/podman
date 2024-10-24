@@ -258,18 +258,6 @@ func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
 	}
 
 	if recreateTimer {
-		logrus.Infof("Startup healthcheck for container %s passed, recreating timer", c.ID())
-
-		oldUnit := c.state.HCUnitName
-		// Create the new, standard healthcheck timer first.
-		if err := c.createTimer(c.HealthCheckConfig().Interval.String(), false); err != nil {
-			logrus.Errorf("Error recreating container %s healthcheck: %v", c.ID(), err)
-			return
-		}
-		if err := c.startTimer(false); err != nil {
-			logrus.Errorf("Error restarting container %s healthcheck timer: %v", c.ID(), err)
-		}
-
 		// This kills the process the healthcheck is running.
 		// Which happens to be us.
 		// So this has to be last - after this, systemd serves us a
@@ -281,10 +269,31 @@ func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
 		// is the case here as we should not alter the exit code of another process that just
 		// happened to call this.
 		shutdown.SetExitCode(0)
-		if err := c.removeTransientFiles(ctx, true, oldUnit); err != nil {
-			logrus.Errorf("Error removing container %s healthcheck: %v", c.ID(), err)
-			return
-		}
+		c.recreateHealthCheckTimer(ctx, false, true)
+	}
+}
+
+func (c *Container) recreateHealthCheckTimer(ctx context.Context, isStartup bool, isStartupRemoved bool) {
+	logrus.Infof("Startup healthcheck for container %s passed, recreating timer", c.ID())
+
+	oldUnit := c.state.HCUnitName
+	// Create the new, standard healthcheck timer first.
+	interval := c.HealthCheckConfig().Interval.String()
+	if isStartup {
+		interval = c.config.StartupHealthCheckConfig.StartInterval.String()
+	}
+
+	if err := c.createTimer(interval, isStartup); err != nil {
+		logrus.Errorf("Error recreating container %s (isStartup: %t) healthcheck: %v", c.ID(), isStartup, err)
+		return
+	}
+	if err := c.startTimer(isStartup); err != nil {
+		logrus.Errorf("Error restarting container %s (isStartup: %t) healthcheck timer: %v", c.ID(), isStartup, err)
+	}
+
+	if err := c.removeTransientFiles(ctx, isStartupRemoved, oldUnit); err != nil {
+		logrus.Errorf("Error removing container %s healthcheck: %v", c.ID(), err)
+		return
 	}
 }
 

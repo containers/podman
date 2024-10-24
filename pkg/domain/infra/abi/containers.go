@@ -1806,13 +1806,14 @@ func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *e
 	if len(containers) != 1 {
 		return "", fmt.Errorf("container not found")
 	}
+	container := containers[0].Container
 
 	var restartPolicy *string
 	if updateOptions.Specgen.RestartPolicy != "" {
 		restartPolicy = &updateOptions.Specgen.RestartPolicy
 	}
 
-	if err = containers[0].Update(updateOptions.Specgen.ResourceLimits, restartPolicy, updateOptions.Specgen.RestartRetries); err != nil {
+	if err = container.Update(updateOptions.Specgen.ResourceLimits, restartPolicy, updateOptions.Specgen.RestartRetries, updateOptions.ChangedHealthCheckConfiguration); err != nil {
 		return "", err
 	}
 	return containers[0].ID(), nil

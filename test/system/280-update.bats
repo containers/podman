@@ -161,4 +161,152 @@ device-write-iops   = /dev/zero:4000 | - | -                                    
     run_podman rm -f -t0 testctr
 }
 
+# HealthCheck configuration
+
+function nrand() {
+   # 1-59 seconds. Don't exceed 59, because podman then shows as "1mXXs"
+    echo $((1 + RANDOM % 58))
+}
+
+# bats test_tags=ci:parallel
+@test "podman update - test all HealthCheck flags" {
+    local ctrname="c-h-$(safename)"
+    local msg="healthmsg-$(random_string)"
+    local TMP_DIR_HEALTHCHECK="$PODMAN_TMPDIR/healthcheck"
+    mkdir $TMP_DIR_HEALTHCHECK
+
+    # flag-name      | value                | inspect format, .Config.Xxx
+    tests="
+    cmd              | echo $msg            | Healthcheck.Test
+    interval         | $(nrand)s            | Healthcheck.Interval
+    log-destination  | $TMP_DIR_HEALTHCHECK | HealthLogDestination
+    max-log-count    | $(nrand)             | HealthMaxLogCount
+    max-log-size     | $(nrand)             | HealthMaxLogSize
+    on-failure       | restart              | HealthcheckOnFailureAction
+    retries          | $(nrand)             | Healthcheck.Retries
+    timeout          | $(nrand)s            | Healthcheck.Timeout
+    start-period     | $(nrand)s            | Healthcheck.StartPeriod
+    startup-cmd      | echo $msg            | StartupHealthCheck.Test
+    startup-interval | $(nrand)s            | StartupHealthCheck.Interval
+    startup-retries  | $(nrand)             | StartupHealthCheck.Retries
+    startup-success  | $(nrand)             | StartupHealthCheck.Successes
+    startup-timeout  | $(nrand)s            | StartupHealthCheck.Timeout
+    "
+
+    run_podman run -d --name $ctrname $IMAGE top
+    cid="$output"
+
+    # Pass 1: read the table above, gather up the options, format and expected values
+    local -a opts
+    local -A formats
+    local -A checks
+    while read opt value format ; do
+        fullopt="--health-$opt=$value"
+        opts+=("$fullopt")
+        formats["$fullopt"]="{{.Config.$format}}"
+        expected=$value
+        # Special case for commands
+        if [[ $opt =~ cmd ]]; then
+            expected="[CMD-SHELL $value]"
+        fi
+        checks["$fullopt"]=$expected
+    done < <(parse_table "$tests")
+
+    # Now do the update in one fell swoop
+    run_podman update "${opts[@]}" $ctrname
+
+    # ...and check one by one
+    defer-assertion-failures
+    for opt in "${opts[@]}"; do
+        run_podman inspect $ctrname --format "${formats[$opt]}"
+        assert "$output" == "${checks[$opt]}" "$opt"
+    done
+    immediate-assertion-failures
+
+    # Clean up
+    run_podman rm -f -t0 $cid
+}
+
+# bats test_tags=ci:parallel
+@test "podman update - test HealthCheck flags without HealthCheck commands" {
+    local ctrname="c-h-$(safename)"
+
+    # flag-name=value
+    tests="
+    interval=10s
+    retries=5
+    timeout=10s
+    start-period=10s
+    startup-interval=10s
+    startup-retries=5
+    startup-success=10
+    startup-timeout=10s
+    "
+
+    run_podman run -d --name $ctrname $IMAGE top
+    cid="$output"
+
+    defer-assertion-failures
+    for opt in $tests; do
+        run_podman 125 update "--health-$opt" $ctrname
+        assert "$output" =~ "healthcheck command is not set" "--$opt with no startup"
+    done
+    immediate-assertion-failures
+
+    run_podman rm -f -t0 $cid
+}
+
+# bats test_tags=ci:parallel
+@test "podman update - --no-healthcheck" {
+    local msg="healthmsg-$(random_string)"
+    local ctrname="c-h-$(safename)"
+
+    run_podman run -d --name $ctrname                    \
+                --health-cmd "echo $msg"                 \
+                --health-startup-cmd "echo startup$msg"  \
+                $IMAGE /home/podman/pause
+    cid="$output"
+
+    run_podman update $ctrname --no-healthcheck
+
+    run_podman inspect $ctrname --format {{.Config.Healthcheck.Test}}
+    assert "$output" == "[NONE]" "HealthCheck command is disabled"
+
+    run_podman inspect $ctrname --format {{.Config.StartupHealthCheck}}
+    assert "$output" == "<nil>" "startup HealthCheck command is disabled"
+
+    run_podman rm -t 0 -f $ctrname
+}
+
+# bats test_tags=ci:parallel
+@test "podman update - check behavior - change cmd and destination healthcheck" {
+    local TMP_DIR_HEALTHCHECK="$PODMAN_TMPDIR/healthcheck"
+    mkdir $TMP_DIR_HEALTHCHECK
+    local ctrname="c-h-$(safename)"
+    local msg="healthmsg-$(random_string)"
+
+    run_podman run -d --name $ctrname     \
+                --health-cmd "echo $msg"  \
+                $IMAGE /home/podman/pause
+    cid="$output"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    # Run podman update in two separate runs to make sure HealthCheck is overwritten correctly.
+    run_podman update $ctrname --health-cmd "echo healthmsg-new"
+
+    run_podman update $ctrname --health-log-destination $TMP_DIR_HEALTHCHECK
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    healthcheck_log_path="${TMP_DIR_HEALTHCHECK}/${cid}-healthcheck.log"
+    # The healthcheck is triggered by the podman when the container is started, but its execution depends on systemd.
+    # And since `run_podman healthcheck run` is also run manually, it will result in two runs.
+    count=$(grep -co "healthmsg-new" $healthcheck_log_path)
+    assert "$count" -ge 1 "Number of matching health log messages"
+
+    run_podman rm -t 0 -f $ctrname
+}
 # vim: filetype=sh
