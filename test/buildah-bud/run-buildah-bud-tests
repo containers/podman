@@ -182,6 +182,8 @@ if [[ -n $do_checkout ]]; then
     (set -x;make bin/buildah)
     failhint="error building buildah's copy helper. This should never happen."
     (set -x;make bin/copy)
+    failhint="error building buildah's inet helper. This should never happen."
+    (set -x;make bin/inet)
 
     # The upcoming patch may fail. Before we try it, create a helper script
     # for a developer to push a new set of diffs to podman-land.
@@ -259,5 +261,6 @@ review the test failure and double-check your changes.
                  REMOTE=$REMOTE \
                  BUILDAH_BINARY=$(pwd)/bin/buildah \
                  COPY_BINARY=$(pwd)/bin/copy \
+                 INET_BINARY=$(pwd)/bin/inet \
                  bats "${bats_filter[@]}" tests/bud.bats)
 fi
