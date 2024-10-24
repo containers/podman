@@ -98,7 +98,11 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 
     # Check that we now we do have valid podman units with this
     # name so that the leak check below does not turn into a NOP without noticing.
-    assert "$(systemctl list-units --type timer | grep $cid)" =~ "podman" "Healthcheck systemd unit exists"
+    run -0 systemctl list-units
+    cidmatch=$(grep "$cid" <<<"$output")
+    echo "$cidmatch"
+    assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run $cid" \
+           "Healthcheck systemd unit exists"
 
     current_time=$(date --iso-8601=ns)
     # After three successive failures, container should no longer be healthy
@@ -115,9 +119,16 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     # Clean up
     run_podman rm -t 0 -f $ctrname
 
+    # FIXME: #24351, leak in --health-startup-cmd
+    run systemctl reset-failed "${cid}-startup-*"
+
     # Important check for https://github.com/containers/podman/issues/22884
     # We never should leak the unit files, healthcheck uses the cid in name so just grep that.
-    assert "$(systemctl list-units --type timer | grep $cid)" == "" "Healthcheck systemd unit cleanup"
+    # (Ignore .scope units, those are conmon and can linger for 5 minutes)
+    # (Ignore var-lib-etc-etc-userdata-shm.mount, too. No clue what those are.)
+    run -0 systemctl list-units
+    except_scope_shm=$(grep -vF ".scope " <<<"$output" | grep -vF "userdata-shm.mount")
+    assert "$except_scope_shm" !~ "$cid" "Healthcheck systemd unit cleanup: no units leaked"
 }
 
 @test "podman healthcheck - restart cleans up old state" {

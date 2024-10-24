@@ -6,6 +6,7 @@
 load helpers
 load helpers.network
 load helpers.registry
+load helpers.systemd
 
 # helper function: writes a yaml file with customizable values
 function _write_test_yaml() {
@@ -911,6 +912,10 @@ EOF
         run_podman kube play $fname
         ctrName="$podname-$ctrname"
 
+        # We need container ID to clean up a leaked unit file from healthcheck
+        run_podman container inspect --format '{{.ID}}' $ctrName
+        cid=$output
+
         # Collect status every half-second until it goes into the desired state.
         local i=1
         local full_log=""
@@ -948,6 +953,13 @@ EOF
         run_podman '?' stop -t0 $ctrName
 
         run_podman kube down $fname
+
+        # FIXME: #24351, leak in --health-startup-cmd
+        # FIXME: or maybe not. Maybe this is a different leak? And
+        #        if so, maybe it can be fixed, or maybe it can't?
+        #        Anyhow, worry about 24351 first.
+        # FIXME: also remove "load helpers.systemd" above if this is fixed.
+        systemctl reset-failed "${cid}-*"
     done
 }
 
