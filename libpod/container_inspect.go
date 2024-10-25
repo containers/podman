@@ -450,7 +450,7 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 		}
 	}
 	for _, mapping := range c.config.PortMappings {
-		for i := range mapping.Range {
+		for i := uint16(0); i < mapping.Range; i++ {
 			exposedPorts[fmt.Sprintf("%d/%s", mapping.ContainerPort+i, mapping.Protocol)] = struct{}{}
 		}
 	}

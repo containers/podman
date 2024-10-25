@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"fmt"
+
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/annotations"
 	. "github.com/containers/podman/v4/test/utils"
