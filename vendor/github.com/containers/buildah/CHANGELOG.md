@@ -2,6 +2,22 @@
 
 # Changelog
 
+## v1.33.11 (2024-10-25)
+
+    [release-1.33] Bump c/storage to v1.51.2, fixes CVE-2024-9676
+
+## v1.33.10 (2024-10-17)
+
+    [release-1.33] Properly validate cache IDs and sources
+    vendor: update c/common to v0.57.7
+    [release-1.33] Bump to v1.33.9
+    [release-1.33] Fixes Listing tags in JFrog Artifactory may fail
+    Cross-build on Fedora
+
+## v1.33.9 (2024-07-16)
+
+    [release-1.33] Fixes Listing tags in JFrog Artifactory may fail
+
 ## v1.33.8 (2024-05-17)
 
     [release-1.33] Bump c/image v5.29.3, c/common v0.57.5, CVE-2024-3727
