@@ -112,7 +112,7 @@ func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet, subnetPools []config.Su
 // GetFreeIPv6NetworkSubnet returns a unused ipv6 subnet
 func GetFreeIPv6NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
 	// FIXME: Is 10000 fine as limit? We should prevent an endless loop.
-	for range 10000 {
+	for i := 0; i < 10000; i++ {
 		// RFC4193: Choose the ipv6 subnet random and NOT sequentially.
 		network, err := getRandomIPv6Subnet()
 		if err != nil {

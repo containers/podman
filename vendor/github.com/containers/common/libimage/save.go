@@ -123,9 +123,9 @@ func (r *Runtime) saveSingleImage(ctx context.Context, name, format, path string
 	if err != nil {
 		return err
 	}
-	defer c.Close()
+	defer c.close()
 
-	_, err = c.Copy(ctx, srcRef, destRef)
+	_, err = c.copy(ctx, srcRef, destRef)
 	return err
 }
 
@@ -208,7 +208,7 @@ func (r *Runtime) saveDockerArchive(ctx context.Context, names []string, path st
 		if err != nil {
 			return err
 		}
-		defer c.Close()
+		defer c.close()
 
 		destRef, err := writer.NewReference(nil)
 		if err != nil {
@@ -220,7 +220,7 @@ func (r *Runtime) saveDockerArchive(ctx context.Context, names []string, path st
 			return err
 		}
 
-		if _, err := c.Copy(ctx, srcRef, destRef); err != nil {
+		if _, err := c.copy(ctx, srcRef, destRef); err != nil {
 			return err
 		}
 	}

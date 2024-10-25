@@ -108,9 +108,9 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 	if err != nil {
 		return "", err
 	}
-	defer c.Close()
+	defer c.close()
 
-	if _, err := c.Copy(ctx, srcRef, destRef); err != nil {
+	if _, err := c.copy(ctx, srcRef, destRef); err != nil {
 		return "", err
 	}
 

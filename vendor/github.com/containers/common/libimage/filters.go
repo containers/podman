@@ -19,22 +19,19 @@ import (
 
 // filterFunc is a prototype for a positive image filter.  Returning `true`
 // indicates that the image matches the criteria.
-type filterFunc func(*Image, *layerTree) (bool, error)
-
-type compiledFilters map[string][]filterFunc
+type filterFunc func(*Image) (bool, error)
 
 // Apply the specified filters.  All filters of each key must apply.
-// tree must be provided if compileImageFilters indicated it is necessary.
-func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree *layerTree) (bool, error) {
+func (i *Image) applyFilters(ctx context.Context, filters map[string][]filterFunc) (bool, error) {
 	for key := range filters {
 		for _, filter := range filters[key] {
-			matches, err := filter(i, tree)
+			matches, err := filter(i)
 			if err != nil {
 				// Some images may have been corrupted in the
 				// meantime, so do an extra check and make the
 				// error non-fatal (see containers/podman/issues/12582).
 				if errCorrupted := i.isCorrupted(ctx, ""); errCorrupted != nil {
-					logrus.Error(errCorrupted.Error())
+					logrus.Errorf(errCorrupted.Error())
 					return false, nil
 				}
 				return false, err
@@ -50,11 +47,18 @@ func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree 
 
 // filterImages returns a slice of images which are passing all specified
 // filters.
-// tree must be provided if compileImageFilters indicated it is necessary.
-func (r *Runtime) filterImages(ctx context.Context, images []*Image, filters compiledFilters, tree *layerTree) ([]*Image, error) {
+func (r *Runtime) filterImages(ctx context.Context, images []*Image, options *ListImagesOptions) ([]*Image, error) {
+	if len(options.Filters) == 0 || len(images) == 0 {
+		return images, nil
+	}
+
+	filters, err := r.compileImageFilters(ctx, options)
+	if err != nil {
+		return nil, err
+	}
 	result := []*Image{}
 	for i := range images {
-		match, err := images[i].applyFilters(ctx, filters, tree)
+		match, err := images[i].applyFilters(ctx, filters)
 		if err != nil {
 			return nil, err
 		}
@@ -69,19 +73,25 @@ func (r *Runtime) filterImages(ctx context.Context, images []*Image, filters com
 // required format is `key=value` with the following supported keys:
 //
 //	after, since, before, containers, dangling, id, label, readonly, reference, intermediate
-//
-// compileImageFilters returns: compiled filters, if LayerTree is needed, error
-func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) (compiledFilters, bool, error) {
+func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) (map[string][]filterFunc, error) {
 	logrus.Tracef("Parsing image filters %s", options.Filters)
-	if len(options.Filters) == 0 {
-		return nil, false, nil
+
+	var tree *layerTree
+	getTree := func() (*layerTree, error) {
+		if tree == nil {
+			t, err := r.layerTree(ctx, nil)
+			if err != nil {
+				return nil, err
+			}
+			tree = t
+		}
+		return tree, nil
 	}
 
 	filterInvalidValue := `invalid image filter %q: must be in the format "filter=value or filter!=value"`
 
 	var wantedReferenceMatches, unwantedReferenceMatches []string
-	filters := compiledFilters{}
-	needsLayerTree := false
+	filters := map[string][]filterFunc{}
 	duplicate := map[string]string{}
 	for _, f := range options.Filters {
 		var key, value string
@@ -93,7 +103,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		} else {
 			split = strings.SplitN(f, "=", 2)
 			if len(split) != 2 {
-				return nil, false, fmt.Errorf(filterInvalidValue, f)
+				return nil, fmt.Errorf(filterInvalidValue, f)
 			}
 		}
 
@@ -103,7 +113,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		case "after", "since":
 			img, err := r.time(key, value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			key = "since"
 			filter = filterAfter(img.Created())
@@ -111,23 +121,27 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		case "before":
 			img, err := r.time(key, value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			filter = filterBefore(img.Created())
 
 		case "containers":
 			if err := r.containers(duplicate, key, value, options.IsExternalContainerFunc); err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			filter = filterContainers(value, options.IsExternalContainerFunc)
 
 		case "dangling":
 			dangling, err := r.bool(duplicate, key, value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
-			needsLayerTree = true
-			filter = filterDangling(ctx, dangling)
+			t, err := getTree()
+			if err != nil {
+				return nil, err
+			}
+
+			filter = filterDangling(ctx, dangling, t)
 
 		case "id":
 			filter = filterID(value)
@@ -135,31 +149,35 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		case "digest":
 			f, err := filterDigest(value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			filter = f
 
 		case "intermediate":
 			intermediate, err := r.bool(duplicate, key, value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
-			needsLayerTree = true
-			filter = filterIntermediate(ctx, intermediate)
+			t, err := getTree()
+			if err != nil {
+				return nil, err
+			}
+
+			filter = filterIntermediate(ctx, intermediate, t)
 
 		case "label":
 			filter = filterLabel(ctx, value)
 		case "readonly":
 			readOnly, err := r.bool(duplicate, key, value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			filter = filterReadOnly(readOnly)
 
 		case "manifest":
 			manifest, err := r.bool(duplicate, key, value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			filter = filterManifest(ctx, manifest)
 
@@ -174,12 +192,12 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		case "until":
 			until, err := r.until(value)
 			if err != nil {
-				return nil, false, err
+				return nil, err
 			}
 			filter = filterBefore(until)
 
 		default:
-			return nil, false, fmt.Errorf(filterInvalidValue, key)
+			return nil, fmt.Errorf(filterInvalidValue, key)
 		}
 		if negate {
 			filter = negateFilter(filter)
@@ -192,12 +210,12 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 	filter := filterReferences(r, wantedReferenceMatches, unwantedReferenceMatches)
 	filters["reference"] = append(filters["reference"], filter)
 
-	return filters, needsLayerTree, nil
+	return filters, nil
 }
 
 func negateFilter(f filterFunc) filterFunc {
-	return func(img *Image, tree *layerTree) (bool, error) {
-		b, err := f(img, tree)
+	return func(img *Image) (bool, error) {
+		b, err := f(img)
 		return !b, err
 	}
 }
@@ -254,7 +272,7 @@ func (r *Runtime) bool(duplicate map[string]string, key, value string) (bool, er
 
 // filterManifest filters whether or not the image is a manifest list
 func filterManifest(ctx context.Context, value bool) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		isManifestList, err := img.IsManifestList(ctx)
 		if err != nil {
 			return false, err
@@ -266,7 +284,7 @@ func filterManifest(ctx context.Context, value bool) filterFunc {
 // filterReferences creates a reference filter for matching the specified wantedReferenceMatches value (OR logic)
 // and for matching the unwantedReferenceMatches values (AND logic)
 func filterReferences(r *Runtime, wantedReferenceMatches, unwantedReferenceMatches []string) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		// Empty reference filters, return true
 		if len(wantedReferenceMatches) == 0 && len(unwantedReferenceMatches) == 0 {
 			return true, nil
@@ -358,7 +376,7 @@ func imageMatchesReferenceFilter(r *Runtime, img *Image, value string) (bool, er
 
 // filterLabel creates a label for matching the specified value.
 func filterLabel(ctx context.Context, value string) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		labels, err := img.Labels(ctx)
 		if err != nil {
 			return false, err
@@ -369,28 +387,28 @@ func filterLabel(ctx context.Context, value string) filterFunc {
 
 // filterAfter creates an after filter for matching the specified value.
 func filterAfter(value time.Time) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		return img.Created().After(value), nil
 	}
 }
 
 // filterBefore creates a before filter for matching the specified value.
 func filterBefore(value time.Time) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		return img.Created().Before(value), nil
 	}
 }
 
 // filterReadOnly creates a readonly filter for matching the specified value.
 func filterReadOnly(value bool) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		return img.IsReadOnly() == value, nil
 	}
 }
 
 // filterContainers creates a container filter for matching the specified value.
 func filterContainers(value string, fn IsExternalContainerFunc) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		ctrs, err := img.Containers()
 		if err != nil {
 			return false, err
@@ -415,8 +433,8 @@ func filterContainers(value string, fn IsExternalContainerFunc) filterFunc {
 }
 
 // filterDangling creates a dangling filter for matching the specified value.
-func filterDangling(ctx context.Context, value bool) filterFunc {
-	return func(img *Image, tree *layerTree) (bool, error) {
+func filterDangling(ctx context.Context, value bool, tree *layerTree) filterFunc {
+	return func(img *Image) (bool, error) {
 		isDangling, err := img.isDangling(ctx, tree)
 		if err != nil {
 			return false, err
@@ -427,7 +445,7 @@ func filterDangling(ctx context.Context, value bool) filterFunc {
 
 // filterID creates an image-ID filter for matching the specified value.
 func filterID(value string) filterFunc {
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		return strings.HasPrefix(img.ID(), value), nil
 	}
 }
@@ -437,7 +455,7 @@ func filterDigest(value string) (filterFunc, error) {
 	if !strings.HasPrefix(value, "sha256:") {
 		return nil, fmt.Errorf("invalid value %q for digest filter", value)
 	}
-	return func(img *Image, _ *layerTree) (bool, error) {
+	return func(img *Image) (bool, error) {
 		return img.containsDigestPrefix(value), nil
 	}, nil
 }
@@ -445,8 +463,8 @@ func filterDigest(value string) (filterFunc, error) {
 // filterIntermediate creates an intermediate filter for images.  An image is
 // considered to be an intermediate image if it is dangling (i.e., no tags) and
 // has no children (i.e., no other image depends on it).
-func filterIntermediate(ctx context.Context, value bool) filterFunc {
-	return func(img *Image, tree *layerTree) (bool, error) {
+func filterIntermediate(ctx context.Context, value bool, tree *layerTree) filterFunc {
+	return func(img *Image) (bool, error) {
 		isIntermediate, err := img.isIntermediate(ctx, tree)
 		if err != nil {
 			return false, err
