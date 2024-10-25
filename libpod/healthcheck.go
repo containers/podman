@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -273,6 +274,13 @@ func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
 		// Which happens to be us.
 		// So this has to be last - after this, systemd serves us a
 		// SIGTERM and we exit.
+		// Special case, via SIGTERM we exit(1) which means systemd logs a failure in the unit.
+		// We do not want this as the unit will be leaked on failure states unless "reset-failed"
+		// is called. Fundamentally this is expected so switch it to exit 0.
+		// NOTE: This is only safe while being called from "podman healthcheck run" which we know
+		// is the case here as we should not alter the exit code of another process that just
+		// happened to call this.
+		shutdown.SetExitCode(0)
 		if err := c.removeTransientFiles(ctx, true, oldUnit); err != nil {
 			logrus.Errorf("Error removing container %s healthcheck: %v", c.ID(), err)
 			return
