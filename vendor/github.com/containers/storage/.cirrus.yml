@@ -119,7 +119,7 @@ lint_task:
     env:
         CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
     container:
-        image: golang
+        image: golang:1.19
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod

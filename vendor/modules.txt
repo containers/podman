@@ -147,7 +147,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.3.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.33.10
+# github.com/containers/buildah v1.33.11
 ## explicit; go 1.20
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -353,7 +353,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.51.1
+# github.com/containers/storage v1.51.2
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers
