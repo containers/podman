@@ -14,9 +14,24 @@ For installing Podman, see the [installation instructions](https://podman.io/get
 
 For building Podman, see the [build instructions](https://podman.io/getting-started/installation#building-from-scratch).
 
-### Install `slirp4netns`
+### Networking configuration
 
-The [slirp4netns](https://github.com/rootless-containers/slirp4netns) package provides user-mode networking for unprivileged network namespaces and must be installed on the machine in order for Podman to run in a rootless environment.  The package is available on most Linux distributions via their package distribution software such as `yum`, `dnf`, `apt`, `zypper`, etc.  If the package is not available, you can build and install `slirp4netns` from [GitHub](https://github.com/rootless-containers/slirp4netns).
+A user-mode networking tool for unprivileged network namespaces must be installed on the machine in order for Podman to run in a rootless environment.
+
+Podman supports two rootless networking tools: [pasta](https://passt.top/passt/about/#pasta) (provided by [passt](https://passt.top/passt/about/)) and [slirp4netns](https://github.com/rootless-containers/slirp4netns).
+
+pasta is the default since Podman 5.0, while slirp4netns was the default for previous versions. Passt is a more modern replacement for SLIRP that amongst other things fully supports IPv6 and is more secure architecturally (runs in a separate process, uses modern Linux mechanisms for isolation etc).
+
+Passt is [available on most Linux distributions](https://passt.top/passt/about/#availability) via their package distribution software such as `yum`, `dnf`, `apt`, `zypper`, etc. under the name `passt`.  If the package is not available, you can build and install `passt` from [its upstream](https://passt.top/passt/about/#try-it).
+
+Alternatively, slirp4netns can be installed in the same fashion either from your distribution's repositories or by following [the instructions](https://github.com/rootless-containers/slirp4netns?tab=readme-ov-file#install) provided on its GitHub.
+
+The major user-facing difference between the two is outlined in [Shortcomings of Rootless Podman](https://github.com/containers/podman/blob/main/rootless.md?plain=1#L11) and expanded upon in **[podman-network(1)](https://github.com/containers/podman/blob/main/docs/source/markdown/podman-network.1.md#pasta)**.
+
+> [!note]
+> pasta's default situation of not being being able to communicate between the container and the host has been fixed in Podman 5.3: see [Podman 5.3 changes for improved networking experience with pasta](https://blog.podman.io/2024/10/podman-5-3-changes-for-improved-networking-experience-with-pasta/).
+
+The default rootless networking tool can be selected in **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** under the `[network]` section with `default_rootless_network_cmd`, which can be set to `pasta` (default) or `slirp4netns`.
 
 ### `/etc/subuid` and `/etc/subgid` configuration
 
