@@ -310,6 +310,7 @@ load helpers.network
 }
 
 # CANNOT BE PARALLELIZED due to iptables/nft commands
+# bats test_tags=distro-integration
 @test "podman network reload" {
     skip_if_remote "podman network reload does not have remote support"
 
