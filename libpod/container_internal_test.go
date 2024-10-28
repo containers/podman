@@ -206,6 +206,36 @@ func TestPostDeleteHooks(t *testing.T) {
 	assert.Equal(t, strings.TrimSuffix(string(content), "\n"), dir)
 }
 
+func TestRemoveConmonFiles(t *testing.T) {
+	c := &Container{
+		state: &ContainerState{
+			RunDir: t.TempDir(),
+		},
+	}
+
+	exitsFilePath := filepath.Join(c.state.RunDir, "exits")
+	randomFilePath := filepath.Join(c.state.RunDir, "random")
+
+	err := os.WriteFile(exitsFilePath, []byte{}, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = os.WriteFile(randomFilePath, []byte{}, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.FileExists(t, exitsFilePath)
+	assert.FileExists(t, randomFilePath)
+
+	err = c.removeConmonFiles()
+	assert.Nil(t, err)
+
+	assert.NoFileExists(t, exitsFilePath)
+	assert.NoFileExists(t, randomFilePath)
+}
+
 func init() {
 	if runtime.GOOS != "windows" {
 		hookPath = "/bin/sh"

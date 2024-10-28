@@ -765,7 +765,7 @@ func (c *Container) removeConmonFiles() error {
 		return err
 	}
 	if err := os.RemoveAll(persistDir); err != nil {
-		return fmt.Errorf("removing container %s perist dir with exit & oom files %q: %w", c.ID(), persistDir, err)
+		return fmt.Errorf("removing container %s persist dir with exit & oom files %q: %w", c.ID(), persistDir, err)
 	}
 
 	return nil
