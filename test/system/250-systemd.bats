@@ -31,6 +31,7 @@ function teardown() {
             echo "# WARNING: systemctl stop failed in teardown: $output" >&3
         fi
 
+        run systemctl reset-failed "$SERVICE_NAME"
         rm -f "$UNIT_FILE"
         systemctl daemon-reload
     fi
@@ -96,6 +97,8 @@ function service_cleanup() {
 
     run systemctl disable "$SERVICE_NAME"
     assert $status -eq 0 "Error disabling systemd unit $SERVICE_NAME: $output"
+
+    run systemctl reset-failed "$SERVICE_NAME"
 
     rm -f "$UNIT_FILE"
     systemctl daemon-reload
@@ -271,6 +274,8 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 
     run systemctl stop "$INSTANCE"
     assert $status -eq 0 "Error stopping systemd unit $INSTANCE: $output"
+
+    run systemctl reset-failed "$INSTANCE"
 
     rm -f $TEMPLATE_FILE
     systemctl daemon-reload
