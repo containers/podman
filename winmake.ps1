@@ -279,7 +279,7 @@ switch ($target) {
         if ($args.Count -gt 1) {
             $ref = $args[1]
         }
-        Win-SSHProxy -Ref $ref
+        Win-SSHProxy($ref)
     }
     'installer' {
         if ($args.Count -gt 1) {
