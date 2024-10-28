@@ -32,7 +32,7 @@ fi
 if [[ ! $ROUTE =~ default\ via ]]; then
 	exit 3
 fi
-nohup $GVFORWARDER -iface podman-usermode -stop-if-exist ignore -url "stdio:$GVPROXY?listen-stdio=accept" > /var/log/vm.log 2> /var/log/vm.err  < /dev/null &
+nohup $GVFORWARDER -iface podman-usermode -stop-if-exist ignore -url "stdio:$GVPROXY?listen-stdio=accept&ssh-port=-1" > /var/log/vm.log 2> /var/log/vm.err  < /dev/null &
 echo $! > $STATE/vm.pid
 sleep 1
 ps -eo args | grep -q -m1 ^$GVFORWARDER || exit 42
