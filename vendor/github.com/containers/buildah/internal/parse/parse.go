@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
+	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
@@ -306,7 +307,11 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 			return newMount, lockedTargets, fmt.Errorf("no stage found with name %s", fromStage)
 		}
 		// path should be /contextDir/specified path
-		newMount.Source = filepath.Join(mountPoint, filepath.Clean(string(filepath.Separator)+newMount.Source))
+		evaluated, err := copier.Eval(mountPoint, string(filepath.Separator)+newMount.Source, copier.EvalOptions{})
+		if err != nil {
+			return newMount, nil, err
+		}
+		newMount.Source = evaluated
 	} else {
 		// we need to create cache on host if no image is being used
 
@@ -323,9 +328,13 @@ func GetCacheMount(args []string, store storage.Store, imageMountLabel string, a
 		}
 
 		if id != "" {
-			newMount.Source = filepath.Join(cacheParent, filepath.Clean(id))
+			// Don't let the user control where we place the directory.
+			dirID := digest.FromString(id).Encoded()[:16]
+			newMount.Source = filepath.Join(cacheParent, dirID)
 		} else {
-			newMount.Source = filepath.Join(cacheParent, filepath.Clean(newMount.Destination))
+			// Don't let the user control where we place the directory.
+			dirID := digest.FromString(newMount.Destination).Encoded()[:16]
+			newMount.Source = filepath.Join(cacheParent, dirID)
 		}
 		idPair := idtools.IDPair{
 			UID: uid,
