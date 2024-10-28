@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.33.11 (2024-10-25)
+
+    [release-1.33] Bump c/storage to v1.51.2, fixes CVE-2024-9676
+
 ## v1.33.10 (2024-10-17)
 
     [release-1.33] Properly validate cache IDs and sources
