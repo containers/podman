@@ -891,7 +891,7 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run --hostuser tests" {
-    skip_if_not_rootless "test whether hostuser is successfully added"
+    skip_if_not_rootless "--hostuser is only meaningful when rootless"
     user=$(id -un)
     run_podman 1 run --rm $IMAGE grep $user /etc/passwd
     run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
