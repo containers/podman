@@ -20,8 +20,6 @@ func (et EventerType) String() string {
 		return "file"
 	case Journald:
 		return "journald"
-	case Memory:
-		return "memory"
 	case Null:
 		return "none"
 	default:
@@ -35,8 +33,6 @@ func IsValidEventer(eventer string) bool {
 	case LogFile.String():
 		return true
 	case Journald.String():
-		return true
-	case Memory.String():
 		return true
 	case Null.String():
 		return true

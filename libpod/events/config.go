@@ -16,8 +16,6 @@ const (
 	Journald EventerType = iota
 	// Null is a no-op events logger. It does not read or write events.
 	Null EventerType = iota
-	// Memory indicates the event logger will hold events in memory
-	Memory EventerType = iota
 )
 
 // Event describes the attributes of a libpod event
