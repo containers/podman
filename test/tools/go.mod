@@ -1,5 +1,8 @@
 module github.com/containers/podman/test/tools
 
+// Warning: if there is a "toolchain" directive anywhere in this file (and most of the
+// time there shouldn't be), its version must be an exact match to the "go" directive.
+
 go 1.22.0
 
 require (

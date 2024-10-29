@@ -12,6 +12,7 @@ vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+	$(GO) mod edit -toolchain none
 
 .PHONY: clean
 clean:
