@@ -2,6 +2,7 @@ package e2e_test
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -44,8 +45,12 @@ var _ = Describe("podman machine init - windows only", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(inspectSession).To(Exit(0))
 		Expect(inspectSession.outputToString()).To(Equal("true"))
-	})
 
+		// Ensure port 2222 is free
+		listener, err := net.Listen("tcp", "0.0.0.0:2222")
+		Expect(err).ToNot(HaveOccurred())
+		defer listener.Close()
+	})
 	It("init should not should not overwrite existing HyperV vms", func() {
 		skipIfNotVmtype(define.HyperVVirt, "HyperV test only")
 		name := randomString()
