@@ -1065,7 +1065,7 @@ func WithDependencyCtrs(ctrs []*Container) CtrCreateOption {
 // namespace with a minimal configuration.
 // An optional array of port mappings can be provided.
 // Conflicts with WithNetNSFrom().
-func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]string, postConfigureNetNS bool, netmode string, networks map[string]nettypes.PerNetworkOptions) CtrCreateOption {
+func WithNetNS(portMappings []nettypes.PortMapping, postConfigureNetNS bool, netmode string, networks map[string]nettypes.PerNetworkOptions) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1075,12 +1075,25 @@ func WithNetNS(portMappings []nettypes.PortMapping, exposedPorts map[uint16][]st
 		ctr.config.NetMode = namespaces.NetworkMode(netmode)
 		ctr.config.CreateNetNS = true
 		ctr.config.PortMappings = portMappings
-		ctr.config.ExposedPorts = exposedPorts
 
 		if !ctr.config.NetMode.IsBridge() && len(networks) > 0 {
 			return errors.New("cannot use networks when network mode is not bridge")
 		}
 		ctr.config.Networks = networks
+
+		return nil
+	}
+}
+
+// WithExposedPorts includes a set of ports that were exposed by the image in
+// the container config, e.g. for display when the container is inspected.
+func WithExposedPorts(exposedPorts map[uint16][]string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.ExposedPorts = exposedPorts
 
 		return nil
 	}
