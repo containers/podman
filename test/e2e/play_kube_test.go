@@ -2143,7 +2143,7 @@ func getHostPathVolume(vType, vPath string) *Volume {
 	}
 }
 
-// getHostPathVolume takes a name for a Persistentvolumeclaim
+// getPersistentVolumeClaimVolume takes a name for a Persistentvolumeclaim
 // volume giving it a default name of volName
 func getPersistentVolumeClaimVolume(vName string) *Volume {
 	return &Volume{
