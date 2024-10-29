@@ -6,7 +6,6 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
-	"sync"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
@@ -187,7 +186,7 @@ func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error 
 
 // GetEvents reads the event log and returns events based on input filters
 func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Event, error) {
-	eventChannel := make(chan *events.Event)
+	eventChannel := make(chan events.ReadResult)
 	options := events.ReadOptions{
 		EventChannel: eventChannel,
 		Filters:      filters,
@@ -195,45 +194,21 @@ func (r *Runtime) GetEvents(ctx context.Context, filters []string) ([]*events.Ev
 		Stream:       false,
 	}
 
-	logEvents := make([]*events.Event, 0, len(eventChannel))
-	readLock := sync.Mutex{}
-	readLock.Lock()
-	go func() {
-		for e := range eventChannel {
-			logEvents = append(logEvents, e)
-		}
-		readLock.Unlock()
-	}()
-
-	readErr := r.eventer.Read(ctx, options)
-	readLock.Lock() // Wait for the events to be consumed.
-	return logEvents, readErr
-}
-
-// GetLastContainerEvent takes a container name or ID and an event status and returns
-// the last occurrence of the container event
-func (r *Runtime) GetLastContainerEvent(ctx context.Context, nameOrID string, containerEvent events.Status) (*events.Event, error) {
-	// FIXME: events should be read in reverse order!
-	// https://github.com/containers/podman/issues/14579
-
-	// check to make sure the event.Status is valid
-	if _, err := events.StringToStatus(containerEvent.String()); err != nil {
-		return nil, err
-	}
-	filters := []string{
-		fmt.Sprintf("container=%s", nameOrID),
-		fmt.Sprintf("event=%s", containerEvent),
-		"type=container",
-	}
-	containerEvents, err := r.GetEvents(ctx, filters)
+	err := r.eventer.Read(ctx, options)
 	if err != nil {
 		return nil, err
 	}
-	if len(containerEvents) < 1 {
-		return nil, fmt.Errorf("%s not found: %w", containerEvent.String(), events.ErrEventNotFound)
+
+	logEvents := make([]*events.Event, 0, len(eventChannel))
+	for evt := range eventChannel {
+		// we ignore any error here, this is only used on the backup
+		// GetExecDiedEvent() died path as best effort anyway
+		if evt.Error == nil {
+			logEvents = append(logEvents, evt.Event)
+		}
 	}
-	// return the last element in the slice
-	return containerEvents[len(containerEvents)-1], nil
+
+	return logEvents, nil
 }
 
 // GetExecDiedEvent takes a container name or ID, exec session ID, and returns

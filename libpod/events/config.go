@@ -85,10 +85,15 @@ type Eventer interface {
 	String() string
 }
 
+type ReadResult struct {
+	Event *Event
+	Error error
+}
+
 // ReadOptions describe the attributes needed to read event logs
 type ReadOptions struct {
 	// EventChannel is the comm path back to user
-	EventChannel chan *Event
+	EventChannel chan ReadResult
 	// Filters are key/value pairs that describe to limit output
 	Filters []string
 	// FromStart means you start reading from the start of the logs

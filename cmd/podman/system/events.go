@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -139,9 +140,8 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 	if len(eventOptions.Since) > 0 || len(eventOptions.Until) > 0 {
 		eventOptions.FromStart = true
 	}
-	eventChannel := make(chan *events.Event, 1)
+	eventChannel := make(chan events.ReadResult, 1)
 	eventOptions.EventChan = eventChannel
-	errChannel := make(chan error)
 
 	var (
 		rpt    *report.Formatter
@@ -161,40 +161,31 @@ func eventsCmd(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
-	go func() {
-		errChannel <- registry.ContainerEngine().Events(context.Background(), eventOptions)
-		close(errChannel)
-	}()
+	err := registry.ContainerEngine().Events(context.Background(), eventOptions)
+	if err != nil {
+		return err
+	}
 
-	for {
-		select {
-		case event, ok := <-eventChannel:
-			if !ok {
-				// channel was closed we can exit
-				// read the error channel blocking to make sure we are not missing any errors (#23165)
-				return <-errChannel
-			}
-			switch {
-			case doJSON:
-				e := newEventFromLibpodEvent(event)
-				jsonStr, err := e.ToJSONString()
-				if err != nil {
-					return err
-				}
-				fmt.Println(jsonStr)
-			case cmd.Flags().Changed("format"):
-				if err := rpt.Execute(newEventFromLibpodEvent(event)); err != nil {
-					return err
-				}
-			default:
-				fmt.Println(event.ToHumanReadable(!noTrunc))
-			}
-		case err := <-errChannel:
-			// only exit in case of an error,
-			// otherwise keep reading events until the event channel is closed
+	for evt := range eventChannel {
+		if evt.Error != nil {
+			logrus.Errorf("Failed to read event: %v", evt.Error)
+			continue
+		}
+		switch {
+		case doJSON:
+			e := newEventFromLibpodEvent(evt.Event)
+			jsonStr, err := e.ToJSONString()
 			if err != nil {
 				return err
 			}
+			fmt.Println(jsonStr)
+		case cmd.Flags().Changed("format"):
+			if err := rpt.Execute(newEventFromLibpodEvent(evt.Event)); err != nil {
+				return err
+			}
+		default:
+			fmt.Println(evt.Event.ToHumanReadable(!noTrunc))
 		}
 	}
+	return nil
 }

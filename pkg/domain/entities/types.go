@@ -90,7 +90,7 @@ type DiffReport struct {
 
 type EventsOptions struct {
 	FromStart bool
-	EventChan chan *events.Event
+	EventChan chan events.ReadResult
 	Filter    []string
 	Stream    bool
 	Since     string
