@@ -85,6 +85,8 @@ type InspectContainerConfig struct {
 	SdNotifyMode string `json:"sdNotifyMode,omitempty"`
 	// SdNotifySocket is the NOTIFY_SOCKET in use by/configured for the container.
 	SdNotifySocket string `json:"sdNotifySocket,omitempty"`
+	// ExposedPorts includes ports the container has exposed.
+	ExposedPorts map[string]struct{} `json:"ExposedPorts,omitempty"`
 }
 
 // InspectRestartPolicy holds information about the container's restart policy.

@@ -206,6 +206,11 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		return nil, err
 	}
 	data.NetworkSettings = networkConfig
+	// Ports in NetworkSettings includes exposed ports for network modes that are not host,
+	// and not container.
+	if !(c.config.NetNsCtr != "" || c.NetworkMode() == "host") {
+		addInspectPortsExpose(c.config.ExposedPorts, data.NetworkSettings.Ports)
+	}
 
 	inspectConfig := c.generateInspectContainerConfig(ctrSpec)
 	data.Config = inspectConfig
@@ -434,6 +439,25 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	ctrConfig.SdNotifyMode = c.config.SdNotifyMode
 	ctrConfig.SdNotifySocket = c.config.SdNotifySocket
+
+	// Exosed ports consists of all exposed ports and all port mappings for
+	// this container. It does *NOT* follow to another container if we share
+	// the network namespace.
+	exposedPorts := make(map[string]struct{})
+	for port, protocols := range c.config.ExposedPorts {
+		for _, proto := range protocols {
+			exposedPorts[fmt.Sprintf("%d/%s", port, proto)] = struct{}{}
+		}
+	}
+	for _, mapping := range c.config.PortMappings {
+		for i := uint16(0); i < mapping.Range; i++ {
+			exposedPorts[fmt.Sprintf("%d/%s", mapping.ContainerPort+i, mapping.Protocol)] = struct{}{}
+		}
+	}
+	if len(exposedPorts) > 0 {
+		ctrConfig.ExposedPorts = exposedPorts
+	}
+
 	return ctrConfig
 }
 

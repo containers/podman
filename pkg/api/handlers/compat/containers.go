@@ -522,19 +522,6 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	}
 	stopTimeout := int(l.StopTimeout())
 
-	exposedPorts := make(nat.PortSet)
-	for ep := range inspect.NetworkSettings.Ports {
-		splitp := strings.SplitN(ep, "/", 2)
-		if len(splitp) != 2 {
-			return nil, fmt.Errorf("PORT/PROTOCOL Format required for %q", ep)
-		}
-		exposedPort, err := nat.NewPort(splitp[1], splitp[0])
-		if err != nil {
-			return nil, err
-		}
-		exposedPorts[exposedPort] = struct{}{}
-	}
-
 	var healthcheck *container.HealthConfig
 	if inspect.Config.Healthcheck != nil {
 		healthcheck = &container.HealthConfig{
@@ -543,6 +530,16 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 			Timeout:     inspect.Config.Healthcheck.Timeout,
 			StartPeriod: inspect.Config.Healthcheck.StartPeriod,
 			Retries:     inspect.Config.Healthcheck.Retries,
+		}
+	}
+
+	// Apparently the compiler can't convert a map[string]struct{} into a nat.PortSet
+	// (Despite a nat.PortSet being that exact struct with some types added)
+	var exposedPorts nat.PortSet
+	if len(inspect.Config.ExposedPorts) > 0 {
+		exposedPorts = make(nat.PortSet)
+		for p := range inspect.Config.ExposedPorts {
+			exposedPorts[nat.Port(p)] = struct{}{}
 		}
 	}
 
