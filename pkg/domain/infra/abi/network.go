@@ -14,6 +14,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	netutil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 )
 
@@ -127,7 +128,6 @@ func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, op
 
 func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, options entities.NetworkRmOptions) ([]*entities.NetworkRmReport, error) {
 	reports := make([]*entities.NetworkRmReport, 0, len(namesOrIds))
-
 	for _, name := range namesOrIds {
 		report := entities.NetworkRmReport{Name: name}
 		containers, err := ic.Libpod.GetAllContainers()
@@ -164,8 +164,15 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 				}
 			}
 		}
+		net, err := ic.Libpod.Network().NetworkInspect(name)
+		if err != nil && !errors.Is(err, define.ErrNoSuchNetwork) {
+			return reports, err
+		}
 		if err := ic.Libpod.Network().NetworkRemove(name); err != nil {
 			report.Err = err
+		}
+		if len(net.Name) != 0 {
+			ic.Libpod.NewNetworkEvent(events.Remove, net.Name, net.ID, net.Driver)
 		}
 		reports = append(reports, &report)
 	}
@@ -180,6 +187,7 @@ func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Netw
 	if err != nil {
 		return nil, err
 	}
+	ic.Libpod.NewNetworkEvent(events.Create, network.Name, network.ID, network.Driver)
 	return &network, nil
 }
 

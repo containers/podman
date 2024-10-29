@@ -89,7 +89,13 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		}
 		humanFormat += ")"
 	case Network:
-		humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", e.Time, e.Type, e.Status, id, id, e.Network)
+		if e.Status == Create || e.Status == Remove {
+			if netdriver, exists := e.Attributes["driver"]; exists {
+				humanFormat = fmt.Sprintf("%s %s %s %s (name=%s, type=%s)", e.Time, e.Type, e.Status, e.ID, e.Network, netdriver)
+			}
+		} else {
+			humanFormat = fmt.Sprintf("%s %s %s %s (container=%s, name=%s)", e.Time, e.Type, e.Status, id, id, e.Network)
+		}
 	case Image:
 		humanFormat = fmt.Sprintf("%s %s %s %s %s", e.Time, e.Type, e.Status, id, e.Name)
 		if e.Error != "" {
