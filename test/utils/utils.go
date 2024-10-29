@@ -244,7 +244,7 @@ func WaitForContainer(p PodmanTestCommon) bool {
 	return p.WaitForContainer()
 }
 
-// WaitForContainerReady is a wrapper function for accept inheritance PodmanTest struct.
+// WaitContainerReady is a wrapper function for accept inheritance PodmanTest struct.
 func WaitContainerReady(p PodmanTestCommon, id string, expStr string, timeout int, step int) bool {
 	return p.WaitContainerReady(id, expStr, timeout, step)
 }

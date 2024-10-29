@@ -27,7 +27,7 @@ func NewTestFramework(
 	}
 }
 
-// NilFn is a convenience function which simply does nothing
+// NilFunc is a convenience function which simply does nothing
 func NilFunc(f *TestFramework) error {
 	return nil
 }
