@@ -11,11 +11,11 @@ import (
 
 // ParseKeyValueOpt parses and validates the specified string as a key/value pair (key=value)
 func ParseKeyValueOpt(opt string) (string, string, error) {
-	k, v, ok := strings.Cut(opt, "=")
-	if !ok {
+	parts := strings.SplitN(opt, "=", 2)
+	if len(parts) != 2 {
 		return "", "", fmt.Errorf("unable to parse key/value option: %s", opt)
 	}
-	return strings.TrimSpace(k), strings.TrimSpace(v), nil
+	return strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1]), nil
 }
 
 // ParseUintList parses and validates the specified string as the value
@@ -42,19 +42,19 @@ func ParseUintList(val string) (map[int]bool, error) {
 	errInvalidFormat := fmt.Errorf("invalid format: %s", val)
 
 	for _, r := range split {
-		minS, maxS, ok := strings.Cut(r, "-")
-		if !ok {
+		if !strings.Contains(r, "-") {
 			v, err := strconv.Atoi(r)
 			if err != nil {
 				return nil, errInvalidFormat
 			}
 			availableInts[v] = true
 		} else {
-			min, err := strconv.Atoi(minS)
+			split := strings.SplitN(r, "-", 2)
+			min, err := strconv.Atoi(split[0])
 			if err != nil {
 				return nil, errInvalidFormat
 			}
-			max, err := strconv.Atoi(maxS)
+			max, err := strconv.Atoi(split[1])
 			if err != nil {
 				return nil, errInvalidFormat
 			}

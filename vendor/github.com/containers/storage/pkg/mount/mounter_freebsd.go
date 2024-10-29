@@ -1,4 +1,5 @@
 //go:build freebsd && cgo
+// +build freebsd,cgo
 
 package mount
 
@@ -39,9 +40,13 @@ func mount(device, target, mType string, flag uintptr, data string) error {
 				isNullFS = true
 				continue
 			}
-			name, val, _ := strings.Cut(x, "=")
-			options = append(options, name)
-			options = append(options, val)
+			opt := strings.SplitN(x, "=", 2)
+			options = append(options, opt[0])
+			if len(opt) == 2 {
+				options = append(options, opt[1])
+			} else {
+				options = append(options, "")
+			}
 		}
 	}
 

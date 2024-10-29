@@ -107,6 +107,9 @@ github.com/chzyer/readline
 # github.com/containerd/cgroups/v3 v3.0.3
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
+# github.com/containerd/containerd v1.7.21
+## explicit; go 1.21
+github.com/containerd/containerd/platforms
 # github.com/containerd/errdefs v0.1.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -138,8 +141,8 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.37.1-0.20241018144937-2551c8f3d110
-## explicit; go 1.22.0
+# github.com/containers/buildah v1.37.5
+## explicit; go 1.21.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -156,7 +159,6 @@ github.com/containers/buildah/internal/sbom
 github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util
 github.com/containers/buildah/internal/volumes
-github.com/containers/buildah/pkg/binfmt
 github.com/containers/buildah/pkg/blobcache
 github.com/containers/buildah/pkg/chrootuser
 github.com/containers/buildah/pkg/cli
@@ -169,8 +171,8 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20241018183244-7e6f2b4d6de7
-## explicit; go 1.22.0
+# github.com/containers/common v0.60.4
+## explicit; go 1.21.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -353,8 +355,8 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.55.1-0.20241017155235-4db236377c55
-## explicit; go 1.22.0
+# github.com/containers/storage v1.55.1
+## explicit; go 1.21
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs

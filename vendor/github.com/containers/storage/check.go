@@ -8,7 +8,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -770,9 +769,12 @@ func (s *store) Repair(report CheckReport, options *RepairOptions) []error {
 		return d
 	}
 	isUnaccounted := func(errs []error) bool {
-		return slices.ContainsFunc(errs, func(err error) bool {
-			return errors.Is(err, ErrLayerUnaccounted)
-		})
+		for _, err := range errs {
+			if errors.Is(err, ErrLayerUnaccounted) {
+				return true
+			}
+		}
+		return false
 	}
 	sort.Slice(layersToDelete, func(i, j int) bool {
 		// we've not heard of either of them, so remove them in the order the driver suggested
@@ -1003,12 +1005,12 @@ func (c *checkDirectory) remove(path string) {
 func (c *checkDirectory) header(hdr *tar.Header) {
 	name := path.Clean(hdr.Name)
 	dir, base := path.Split(name)
-	if file, ok := strings.CutPrefix(base, archive.WhiteoutPrefix); ok {
+	if strings.HasPrefix(base, archive.WhiteoutPrefix) {
 		if base == archive.WhiteoutOpaqueDir {
 			c.remove(path.Clean(dir))
 			c.add(path.Clean(dir), tar.TypeDir, hdr.Uid, hdr.Gid, hdr.Size, os.FileMode(hdr.Mode), hdr.ModTime.Unix())
 		} else {
-			c.remove(path.Join(dir, file))
+			c.remove(path.Join(dir, base[len(archive.WhiteoutPrefix):]))
 		}
 	} else {
 		if hdr.Typeflag == tar.TypeLink {
@@ -1042,7 +1044,7 @@ func (c *checkDirectory) header(hdr *tar.Header) {
 
 // headers updates a checkDirectory using information from the passed-in header slice
 func (c *checkDirectory) headers(hdrs []*tar.Header) {
-	hdrs = slices.Clone(hdrs)
+	hdrs = append([]*tar.Header{}, hdrs...)
 	// sort the headers from the diff to ensure that whiteouts appear
 	// before content when they both appear in the same directory, per
 	// https://github.com/opencontainers/image-spec/blob/main/layer.md#whiteouts

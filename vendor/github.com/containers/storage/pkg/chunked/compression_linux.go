@@ -2,7 +2,6 @@ package chunked
 
 import (
 	archivetar "archive/tar"
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -15,8 +14,6 @@ import (
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/archive/tar"
-	"github.com/vbatts/tar-split/tar/asm"
-	"github.com/vbatts/tar-split/tar/storage"
 	expMaps "golang.org/x/exp/maps"
 )
 
@@ -139,7 +136,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 }
 
 // readZstdChunkedManifest reads the zstd:chunked manifest from the seekable stream blobStream.
-// Returns (manifest blob, parsed manifest, tar-split blob or nil, manifest offset).
+// Returns (manifest blob, parsed manifest, tar-split blob, manifest offset).
 func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Digest, annotations map[string]string) ([]byte, *internal.TOC, []byte, int64, error) {
 	offsetMetadata := annotations[internal.ManifestInfoKey]
 	if offsetMetadata == "" {
@@ -214,7 +211,7 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, tocDigest digest.Di
 		return nil, nil, nil, 0, fmt.Errorf("unmarshaling TOC: %w", err)
 	}
 
-	var decodedTarSplit []byte = nil
+	decodedTarSplit := []byte{}
 	if toc.TarSplitDigest != "" {
 		if tarSplitChunk.Offset <= 0 {
 			return nil, nil, nil, 0, fmt.Errorf("TOC requires a tar-split, but the %s annotation does not describe a position", internal.TarSplitInfoKey)
@@ -259,8 +256,7 @@ func ensureTOCMatchesTarSplit(toc *internal.TOC, tarSplit []byte) error {
 		}
 	}
 
-	unpacker := storage.NewJSONUnpacker(bytes.NewReader(tarSplit))
-	if err := asm.IterateHeaders(unpacker, func(hdr *tar.Header) error {
+	if err := iterateTarSplit(tarSplit, func(hdr *tar.Header) error {
 		e, ok := pendingFiles[hdr.Name]
 		if !ok {
 			return fmt.Errorf("tar-split contains an entry for %q missing in TOC", hdr.Name)
@@ -286,36 +282,6 @@ func ensureTOCMatchesTarSplit(toc *internal.TOC, tarSplit []byte) error {
 		return fmt.Errorf("TOC contains entries not present in tar-split, incl. %q", remaining)
 	}
 	return nil
-}
-
-// tarSizeFromTarSplit computes the total tarball size, using only the tarSplit metadata
-func tarSizeFromTarSplit(tarSplit []byte) (int64, error) {
-	var res int64 = 0
-
-	unpacker := storage.NewJSONUnpacker(bytes.NewReader(tarSplit))
-	for {
-		entry, err := unpacker.Next()
-		if err != nil {
-			if err == io.EOF {
-				break
-			}
-			return -1, fmt.Errorf("reading tar-split entries: %w", err)
-		}
-		switch entry.Type {
-		case storage.SegmentType:
-			res += int64(len(entry.Payload))
-		case storage.FileType:
-			// entry.Size is the “logical size”, which might not be the physical size for sparse entries;
-			// but the way tar-split/tar/asm.WriteOutputTarStream combines FileType entries and returned files contents,
-			// sparse files are not supported.
-			// Also https://github.com/opencontainers/image-spec/blob/main/layer.md says
-			// > Sparse files SHOULD NOT be used because they lack consistent support across tar implementations.
-			res += entry.Size
-		default:
-			return -1, fmt.Errorf("unexpected tar-split entry type %q", entry.Type)
-		}
-	}
-	return res, nil
 }
 
 // ensureTimePointersMatch ensures that a and b are equal

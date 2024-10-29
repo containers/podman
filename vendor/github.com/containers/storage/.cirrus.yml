@@ -23,7 +23,7 @@ env:
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20241010t105554z-f40f39d13"
+    IMAGE_SUFFIX: "c20240529t141726z-f40f39d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 
@@ -120,7 +120,7 @@ lint_task:
     env:
         CIRRUS_WORKING_DIR: "/go/src/github.com/containers/storage"
     container:
-        image: golang
+        image: golang:1.21
     modules_cache:
         fingerprint_script: cat go.sum
         folder: $GOPATH/pkg/mod
@@ -167,25 +167,12 @@ vendor_task:
     build_script: make vendor
     test_script: hack/tree_status.sh
 
+
 cross_task:
     alias: cross
     container:
-        image: golang:1.22
+        image: golang:1.21
     build_script: make cross
-
-gofix_task:
-    alias: gofix
-    container:
-        image: golang:1.22
-    build_script: go fix ./...
-    test_script: git diff --exit-code
-
-codespell_task:
-    alias: codespell
-    container:
-        image: python
-    build_script: pip install codespell
-    test_script: codespell
 
 
 # Status aggregator for all tests.  This task simply ensures a defined
@@ -203,8 +190,6 @@ success_task:
         - meta
         - vendor
         - cross
-        - gofix
-        - codespell
     container:
         image: golang:1.21
     clone_script: 'mkdir -p "$CIRRUS_WORKING_DIR"'  # Source code not needed

@@ -1,4 +1,5 @@
 //go:build !freebsd && !linux
+// +build !freebsd,!linux
 
 package overlay
 

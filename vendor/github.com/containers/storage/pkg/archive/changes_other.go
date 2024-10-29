@@ -1,4 +1,5 @@
 //go:build !linux
+// +build !linux
 
 package archive
 
@@ -30,7 +31,7 @@ func collectFileInfoForChanges(oldDir, newDir string, oldIDMap, newIDMap *idtool
 	}()
 
 	// block until both routines have returned
-	for range 2 {
+	for i := 0; i < 2; i++ {
 		if err := <-errs; err != nil {
 			return nil, nil, err
 		}

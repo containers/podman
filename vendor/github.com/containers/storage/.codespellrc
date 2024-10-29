@@ -1,3 +1,0 @@
-[codespell]
-skip = ./.git,./vendor,./tests/tools/vendor,AUTHORS
-ignore-words-list = afile,flate,prevend,Plack,worl

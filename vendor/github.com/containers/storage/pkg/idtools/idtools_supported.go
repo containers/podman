@@ -1,4 +1,5 @@
 //go:build linux && cgo && libsubid
+// +build linux,cgo,libsubid
 
 package idtools
 
