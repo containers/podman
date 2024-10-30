@@ -14,6 +14,12 @@ build:
 sphinx:
   configuration: docs/source/conf.py
 
+# Optionally build your docs in additional formats
+formats:
+  - htmlzip
+  - epub
+  - pdf
+
 # We recommend specifying your dependencies to enable reproducible builds:
 # https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
 python:
