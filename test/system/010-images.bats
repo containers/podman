@@ -396,13 +396,9 @@ EOF
     assert "${lines[-2]}" =~ ".*$IMAGE false" "image from readwrite store"
     assert "${lines[-1]}" =~ ".*$IMAGE true" "image from readonly store"
     id=${lines[-2]%% *}
-    local config_digest; config_digest=$(image_config_digest "@$id") # Without $sconf, i.e. from the read-write store.
 
     CONTAINERS_STORAGE_CONF=$sconf run_podman pull -q $IMAGE
-    # This is originally a regression test, (podman pull) used to output multiple image IDs. Ensure it only prints one.
-    assert "${#lines[*]}" -le 1 "Number of output lines from podman pull"
-    local config_digest2; config_digest2=$(image_config_digest "@$output")
-    assert "$config_digest2" = "$config_digest" "pull -q $IMAGE, using storage.conf"
+    is "$output" "$id" "pull -q $IMAGE, using storage.conf"
 
     # $IMAGE might now be reusing layers from the additional store;
     # Removing the additional store underneath can result in dangling layer references.

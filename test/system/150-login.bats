@@ -149,8 +149,9 @@ EOF
 }
 
 function _push_search_test() {
-    # Look up image config digest for later comparison against push/pulled image
-    local img_config_digest; img_config_digest=$(image_config_digest $IMAGE)
+    # Preserve image ID for later comparison against push/pulled image
+    run_podman inspect --format '{{.Id}}' $IMAGE
+    iid=$output
 
     destname=ok-$(random_string 10 | tr A-Z a-z)-ok
     # Use command-line credentials
@@ -187,8 +188,8 @@ function _push_search_test() {
                localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Compare to original image
-    local img_config_digest2; img_config_digest2=$(image_config_digest localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname)
-    assert "$img_config_digest2" = "$img_config_digest" "config digest of pulled image == original digest"
+    run_podman inspect --format '{{.Id}}' $destname
+    is "$output" "$iid" "Image ID of pulled image == original IID"
 
     run_podman rmi $destname
 }
@@ -344,12 +345,12 @@ function _test_skopeo_credential_sharing() {
         $image1
     run_podman rmi $image1
 
-    local podman_image_config_digest=$(image_config_digest $IMAGE)
+    run_podman images $IMAGE --format {{.ID}}
+    local podman_image_id=$output
 
     run_podman pull -q --retry 4 --retry-delay "0s" --authfile=$authfile \
         --tls-verify=false $image1
-    local pulled_image_config_digest; pulled_image_config_digest=$(image_config_digest @$output)
-    assert "$pulled_image_config_digest" = "$podman_image_config_digest" "First pull (before stopping registry)"
+    assert "${output:0:12}" = "$podman_image_id" "First pull (before stopping registry)"
     run_podman rmi $image1
 
     # This actually STOPs the registry, so the port is unbound...
@@ -359,8 +360,7 @@ function _test_skopeo_credential_sharing() {
     run_podman 0+w pull -q --retry 4 --retry-delay "5s" --authfile=$authfile \
             --tls-verify=false $image1
     assert "$output" =~ "Failed, retrying in 5s.*Error: initializing.* connection refused"
-    local pulled_image_config_digest2; pulled_image_config_digest2=$(image_config_digest "@${lines[-1]}")
-    assert "$pulled_image_config_digest2" = "$podman_image_config_digest" "push should succeed via retry"
+    assert "${lines[-1]:0:12}" = "$podman_image_id" "push should succeed via retry"
     unpause_registry
 
     run_podman rmi $image1
