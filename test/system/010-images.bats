@@ -391,7 +391,7 @@ EOF
 
     # IMPORTANT! Use -2/-1 indices, not 0/1, because $SYSTEMD_IMAGE may be
     # present in store, and if it is it will precede $IMAGE.
-    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.ID}} {{.Repository}}:{{.Tag}} {{.ReadOnly}}"
+    CONTAINERS_STORAGE_CONF=$sconf run_podman images -a -n --format "{{.Id}} {{.Repository}}:{{.Tag}} {{.ReadOnly}}"
     assert "${#lines[*]}" -ge 2 "at least 2 lines from 'podman images'"
     assert "${lines[-2]}" =~ ".*$IMAGE false" "image from readwrite store"
     assert "${lines[-1]}" =~ ".*$IMAGE true" "image from readonly store"
