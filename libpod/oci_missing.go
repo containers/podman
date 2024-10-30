@@ -220,6 +220,10 @@ func (r *MissingRuntime) ExitFilePath(ctr *Container) (string, error) {
 	return filepath.Join(r.exitsDir, ctr.ID()), nil
 }
 
+func (r *MissingRuntime) PersistExitFilePath(ctr *Container) (string, error) {
+	return filepath.Join(r.persistDir, ctr.ID(), "exit"), nil
+}
+
 // OOMFilePath returns the oom file path for a container.
 // The oom file will only exist if the container was oom killed.
 func (r *MissingRuntime) OOMFilePath(ctr *Container) (string, error) {

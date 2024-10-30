@@ -149,6 +149,10 @@ func (c *Container) exitFilePath() (string, error) {
 	return c.ociRuntime.ExitFilePath(c)
 }
 
+func (c *Container) persistExitFilePath() (string, error) {
+	return c.ociRuntime.PersistExitFilePath(c)
+}
+
 func (c *Container) oomFilePath() (string, error) {
 	return c.ociRuntime.OOMFilePath(c)
 }
@@ -759,6 +763,7 @@ func (c *Container) removeConmonFiles() error {
 
 	// Remove the exit file so we don't leak memory in tmpfs
 	exitFile, err := c.exitFilePath()
+
 	if err != nil {
 		return err
 	}
@@ -773,6 +778,15 @@ func (c *Container) removeConmonFiles() error {
 	}
 	if err := os.Remove(oomFile); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("removing container %s oom file: %w", c.ID(), err)
+	}
+
+	// Remove exit file from persistent storage
+	persistExitFilePath, err := c.persistExitFilePath()
+	if err != nil {
+		return err
+	}
+	if err := os.Remove(persistExitFilePath); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return fmt.Errorf("removing container %s persist exit file: %w", c.ID(), err)
 	}
 
 	return nil
