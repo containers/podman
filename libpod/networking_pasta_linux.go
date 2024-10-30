@@ -12,7 +12,7 @@ package libpod
 import "github.com/containers/common/libnetwork/pasta"
 
 func (r *Runtime) setupPasta(ctr *Container, netns string) error {
-	res, err := pasta.Setup2(&pasta.SetupOptions{
+	res, err := pasta.Setup(&pasta.SetupOptions{
 		Config:       r.config,
 		Netns:        netns,
 		Ports:        ctr.convertPortMappings(),
