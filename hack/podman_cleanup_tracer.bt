@@ -149,3 +149,17 @@ tracepoint:syscalls:sys_enter_write
         $offset += $len
     }
 }
+
+// HACK: debug for https://github.com/containers/podman/issues/23913
+// The test uses "ebpf-debug-23913" volume name and because and volume rm
+// will delete the path we can trap the process here to find out who actually
+// deletes it.
+tracepoint:syscalls:sys_enter_unlink*
+/ strcontains(str(args.pathname), "ebpf-debug-23913") /
+{
+    printf("Special issue 23913 volume deleted by pid %d: ", pid);
+    // This can fail to open the file it is done in user space and
+    // thus racy if the process exits quickly.
+    cat("/proc/%d/cmdline", pid);
+    print("");
+}
