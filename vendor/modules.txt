@@ -755,7 +755,7 @@ github.com/letsencrypt/boulder/identifier
 github.com/letsencrypt/boulder/probs
 github.com/letsencrypt/boulder/revocation
 github.com/letsencrypt/boulder/strictyaml
-# github.com/linuxkit/virtsock v0.0.0-20220523201153-1a23e78aa7a2
+# github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
 ## explicit; go 1.17
 github.com/linuxkit/virtsock/pkg/hvsock
 # github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0

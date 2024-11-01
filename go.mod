@@ -45,7 +45,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/klauspost/pgzip v1.2.6
-	github.com/linuxkit/virtsock v0.0.0-20220523201153-1a23e78aa7a2
+	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
 	github.com/mattn/go-shellwords v1.0.12
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/mdlayher/vsock v1.2.1
