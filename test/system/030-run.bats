@@ -534,6 +534,11 @@ json-file | f
     expect="$output"
     TZ=Pacific/Chatham run_podman run --rm --tz=local $IMAGE date -Iseconds -r $testfile
     is "$output" "$expect" "podman run with --tz=local, matches host"
+
+    # Force a TZDIR env as local should not try to use the TZDIR at all, #23550.
+    # This used to fail with: stat /usr/share/zoneinfo/local: no such file or directory.
+    TZDIR=/usr/share/zoneinfo run_podman run --rm --tz=local $IMAGE date -Iseconds -r $testfile
+    is "$output" "$expect" "podman run with --tz=local ignored TZDIR"
 }
 
 # bats test_tags=ci:parallel
