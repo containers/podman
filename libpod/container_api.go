@@ -543,6 +543,8 @@ func (c *Container) Wait(ctx context.Context) (int32, error) {
 
 // WaitForExit blocks until the container exits and returns its exit code. The
 // argument is the interval at which checks the container's status.
+// If the argument is less than or equal to 0 Nanoseconds a default interval is
+// used.
 func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration) (int32, error) {
 	id := c.ID()
 	if !c.valid {
@@ -591,6 +593,10 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 	conmonPidFd := c.getConmonPidFd()
 	if conmonPidFd > -1 {
 		defer unix.Close(conmonPidFd)
+	}
+
+	if pollInterval <= 0 {
+		pollInterval = DefaultWaitInterval
 	}
 
 	// we cannot wait locked as we would hold the lock forever, so we unlock and then lock again
