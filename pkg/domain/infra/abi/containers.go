@@ -1736,6 +1736,10 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		spec.Name = generate.CheckName(ic.Libpod, n, true)
 	}
 
+	spec.HealthLogDestination = define.DefaultHealthCheckLocalDestination
+	spec.HealthMaxLogCount = define.DefaultHealthMaxLogCount
+	spec.HealthMaxLogSize = define.DefaultHealthMaxLogSize
+
 	rtSpec, spec, opts, err := generate.MakeContainer(context.Background(), ic.Libpod, spec, true, c)
 	if err != nil {
 		return nil, err

@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -1509,6 +1511,57 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 			return define.ErrCtrFinalized
 		}
 		ctr.config.HealthCheckConfig = healthCheck
+		return nil
+	}
+}
+
+// WithHealthCheckLogDestination adds the healthLogDestination to the container config
+func WithHealthCheckLogDestination(destination string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		switch destination {
+		case define.HealthCheckEventsLoggerDestination, define.DefaultHealthCheckLocalDestination:
+			ctr.config.HealthLogDestination = destination
+		default:
+			fileInfo, err := os.Stat(destination)
+			if err != nil {
+				return fmt.Errorf("HealthCheck Log '%s' destination error: %w", destination, err)
+			}
+			mode := fileInfo.Mode()
+			if !mode.IsDir() {
+				return fmt.Errorf("HealthCheck Log '%s' destination must be directory", destination)
+			}
+
+			absPath, err := filepath.Abs(destination)
+			if err != nil {
+				return err
+			}
+			ctr.config.HealthLogDestination = absPath
+		}
+		return nil
+	}
+}
+
+// WithHealthCheckMaxLogCount adds the healthMaxLogCount to the container config
+func WithHealthCheckMaxLogCount(maxLogCount uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HealthMaxLogCount = maxLogCount
+		return nil
+	}
+}
+
+// WithHealthCheckMaxLogSize adds the healthMaxLogSize to the container config
+func WithHealthCheckMaxLogSize(maxLogSize uint) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.HealthMaxLogSize = maxLogSize
 		return nil
 	}
 }

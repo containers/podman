@@ -61,6 +61,14 @@ type InspectContainerConfig struct {
 	Healthcheck *manifest.Schema2HealthConfig `json:"Healthcheck,omitempty"`
 	// HealthcheckOnFailureAction defines an action to take once the container turns unhealthy.
 	HealthcheckOnFailureAction string `json:"HealthcheckOnFailureAction,omitempty"`
+	// HealthLogDestination defines the destination where the log is stored
+	HealthLogDestination string `json:"HealthLogDestination,omitempty"`
+	// HealthMaxLogCount is maximum number of attempts in the HealthCheck log file.
+	// ('0' value means an infinite number of attempts in the log file)
+	HealthMaxLogCount uint `json:"HealthcheckMaxLogCount,omitempty"`
+	// HealthMaxLogSize is the maximum length in characters of stored HealthCheck log
+	// ("0" value means an infinite log length)
+	HealthMaxLogSize uint `json:"HealthcheckMaxLogSize,omitempty"`
 	// CreateCommand is the full command plus arguments of the process the
 	// container has been created with.
 	CreateCommand []string `json:"CreateCommand,omitempty"`

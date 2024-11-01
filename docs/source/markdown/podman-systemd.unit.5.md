@@ -267,6 +267,9 @@ Valid options for `[Container]` are listed below:
 | GroupAdd=keep-groups                 | --group-add=keep-groups                              |
 | HealthCmd=/usr/bin/command           | --health-cmd=/usr/bin/command                        |
 | HealthInterval=2m                    | --health-interval=2m                                 |
+| HealthLogDestination=/foo/log        | --health-log-destination=/foo/log                    |
+| HealthMaxLogCount=5                  | --health-max-log-count=5                             |
+| HealthMaxLogSize=500                 | --health-max-log-size=500                            |
 | HealthOnFailure=kill                 | --health-on-failure=kill                             |
 | HealthRetries=5                      | --health-retries=5                                   |
 | HealthStartPeriod=1m                 | --health-start-period=period=1m                      |
@@ -474,6 +477,28 @@ Equivalent to the Podman `--health-cmd` option.
 
 Set an interval for the healthchecks. An interval of disable results in no automatic timer setup.
 Equivalent to the Podman `--health-interval` option.
+
+### `HealthLogDestination=`
+
+Set the destination of the HealthCheck log. Directory path, local or events_logger (local use container state file)
+(Default: local)
+Equivalent to the Podman `--health-log-destination` option.
+
+* `local`: (default) HealthCheck logs are stored in overlay containers. (For example: `$runroot/healthcheck.log`)
+* `directory`: creates a log file named `<container-ID>-healthcheck.log` with HealthCheck logs in the specified directory.
+* `events_logger`: The log will be written with logging mechanism set by events_logger. It also saves the log to a default directory, for performance on a system with a large number of logs.
+
+### `HealthMaxLogCount=`
+
+Set maximum number of attempts in the HealthCheck log file. ('0' value means an infinite number of attempts in the log file)
+(Default: 5 attempts)
+Equivalent to the Podman `--Health-max-log-count` option.
+
+### `HealthMaxLogSize=`
+
+Set maximum length in characters of stored HealthCheck log. ("0" value means an infinite log length)
+(Default: 500 characters)
+Equivalent to the Podman `--Health-max-log-size` option.
 
 ### `HealthOnFailure=`
 
