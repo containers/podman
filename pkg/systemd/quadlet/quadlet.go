@@ -1874,7 +1874,7 @@ func handleLogOpt(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 	}
 }
 
-func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo) (string, error) {
+func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo, checkImage bool) (string, error) {
 	if source[0] == '.' {
 		var err error
 		source, err = getAbsolutePath(quadletUnitFile, source)
@@ -1885,18 +1885,18 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	if source[0] == '/' {
 		// Absolute path
 		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
-	} else if strings.HasSuffix(source, ".volume") {
-		volumeUnitInfo, ok := unitsInfoMap[source]
+	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) {
+		sourceUnitInfo, ok := unitsInfoMap[source]
 		if !ok {
-			return "", fmt.Errorf("requested Quadlet image %s was not found", source)
+			return "", fmt.Errorf("requested Quadlet source %s was not found", source)
 		}
 
 		// the systemd unit name is $serviceName.service
-		volumeServiceName := volumeUnitInfo.ServiceFileName()
-		serviceUnitFile.Add(UnitGroup, "Requires", volumeServiceName)
-		serviceUnitFile.Add(UnitGroup, "After", volumeServiceName)
+		sourceServiceName := sourceUnitInfo.ServiceFileName()
+		serviceUnitFile.Add(UnitGroup, "Requires", sourceServiceName)
+		serviceUnitFile.Add(UnitGroup, "After", sourceServiceName)
 
-		source = volumeUnitInfo.ResourceName
+		source = sourceUnitInfo.ResourceName
 	}
 
 	return source, nil
@@ -2053,7 +2053,13 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 	}
 
 	// Source resolution is required only for these types of mounts
-	if !(mountType == "volume" || mountType == "bind" || mountType == "glob") {
+	sourceResultionRequired := map[string]struct{}{
+		"volume": {},
+		"bind":   {},
+		"glob":   {},
+		"image":  {},
+	}
+	if _, ok := sourceResultionRequired[mountType]; !ok {
 		return mount, nil
 	}
 
@@ -2070,7 +2076,7 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 		}
 	}
 
-	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap)
+	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap, true)
 	if err != nil {
 		return "", err
 	}
@@ -2158,7 +2164,7 @@ func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName str
 
 		if source != "" {
 			var err error
-			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, unitsInfoMap)
+			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, unitsInfoMap, false)
 			if err != nil {
 				return err
 			}
