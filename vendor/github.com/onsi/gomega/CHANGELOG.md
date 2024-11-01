@@ -1,3 +1,8 @@
+## 1.35.1
+
+### Fixes
+- Export EnforceDefaultTimeoutsWhenUsingContexts and DisableDefaultTimeoutsWhenUsingContext [ca36da1]
+
 ## 1.35.0
 
 ### Features
