@@ -20,22 +20,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Destination is a partial implementation of private.ImageDestination for writing to an io.Writer.
+// Destination is a partial implementation of private.ImageDestination for writing to a Writer.
 type Destination struct {
 	impl.Compat
 	impl.PropertyMethodsInitialize
 	stubs.NoPutBlobPartialInitialize
 	stubs.NoSignaturesInitialize
 
-	archive  *Writer
-	repoTags []reference.NamedTagged
+	archive           *Writer
+	commitWithOptions func(ctx context.Context, options private.CommitOptions) error
+	repoTags          []reference.NamedTagged
 	// Other state.
 	config []byte
 	sysCtx *types.SystemContext
 }
 
 // NewDestination returns a tarfile.Destination adding images to the specified Writer.
-func NewDestination(sys *types.SystemContext, archive *Writer, transportName string, ref reference.NamedTagged) *Destination {
+// commitWithOptions implements ImageDestination.CommitWithOptions.
+func NewDestination(sys *types.SystemContext, archive *Writer, transportName string, ref reference.NamedTagged,
+	commitWithOptions func(ctx context.Context, options private.CommitOptions) error) *Destination {
 	repoTags := []reference.NamedTagged{}
 	if ref != nil {
 		repoTags = append(repoTags, ref)
@@ -57,9 +60,10 @@ func NewDestination(sys *types.SystemContext, archive *Writer, transportName str
 		NoPutBlobPartialInitialize: stubs.NoPutBlobPartialRaw(transportName),
 		NoSignaturesInitialize:     stubs.NoSignatures("Storing signatures for docker tar files is not supported"),
 
-		archive:  archive,
-		repoTags: repoTags,
-		sysCtx:   sys,
+		archive:           archive,
+		commitWithOptions: commitWithOptions,
+		repoTags:          repoTags,
+		sysCtx:            sys,
 	}
 	dest.Compat = impl.AddCompat(dest)
 	return dest
@@ -178,4 +182,14 @@ func (d *Destination) PutManifest(ctx context.Context, m []byte, instanceDigest 
 	}
 
 	return d.archive.ensureManifestItemLocked(man.LayersDescriptors, man.ConfigDescriptor.Digest, d.repoTags)
+}
+
+// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
+// WARNING: This does not have any transactional semantics:
+// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+func (d *Destination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
+	// This indirection exists because impl.Compat expects all ImageDestinationInternalOnly methods
+	// to be implemented in one place.
+	return d.commitWithOptions(ctx, options)
 }

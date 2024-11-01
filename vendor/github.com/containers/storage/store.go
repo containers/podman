@@ -877,8 +877,8 @@ func GetStore(options types.StoreOptions) (Store, error) {
 		graphOptions:        options.GraphDriverOptions,
 		imageStoreDir:       options.ImageStore,
 		pullOptions:         options.PullOptions,
-		uidMap:              copyIDMap(options.UIDMap),
-		gidMap:              copyIDMap(options.GIDMap),
+		uidMap:              copySlicePreferringNil(options.UIDMap),
+		gidMap:              copySlicePreferringNil(options.GIDMap),
 		autoUsernsUser:      options.RootAutoNsUser,
 		autoNsMinSize:       autoNsMinSize,
 		autoNsMaxSize:       autoNsMaxSize,
@@ -895,30 +895,6 @@ func GetStore(options types.StoreOptions) (Store, error) {
 	stores = append(stores, s)
 
 	return s, nil
-}
-
-func copyUint32Slice(slice []uint32) []uint32 {
-	m := []uint32{}
-	if slice != nil {
-		m = make([]uint32, len(slice))
-		copy(m, slice)
-	}
-	if len(m) > 0 {
-		return m[:]
-	}
-	return nil
-}
-
-func copyIDMap(idmap []idtools.IDMap) []idtools.IDMap {
-	m := []idtools.IDMap{}
-	if idmap != nil {
-		m = make([]idtools.IDMap, len(idmap))
-		copy(m, idmap)
-	}
-	if len(m) > 0 {
-		return m[:]
-	}
-	return nil
 }
 
 func (s *store) RunRoot() string {
@@ -952,11 +928,11 @@ func (s *store) PullOptions() map[string]string {
 }
 
 func (s *store) UIDMap() []idtools.IDMap {
-	return copyIDMap(s.uidMap)
+	return copySlicePreferringNil(s.uidMap)
 }
 
 func (s *store) GIDMap() []idtools.IDMap {
-	return copyIDMap(s.gidMap)
+	return copySlicePreferringNil(s.gidMap)
 }
 
 // This must only be called when constructing store; it writes to fields that are assumed to be constant after construction.
@@ -1469,8 +1445,8 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 	var options LayerOptions
 	if lOptions != nil {
 		options = *lOptions
-		options.BigData = copyLayerBigDataOptionSlice(lOptions.BigData)
-		options.Flags = maps.Clone(lOptions.Flags)
+		options.BigData = slices.Clone(lOptions.BigData)
+		options.Flags = copyMapPreferringNil(lOptions.Flags)
 	}
 	if options.HostUIDMapping {
 		options.UIDMap = nil
@@ -1541,8 +1517,8 @@ func (s *store) putLayer(rlstore rwLayerStore, rlstores []roLayerStore, id, pare
 		options.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: options.HostUIDMapping,
 			HostGIDMapping: options.HostGIDMapping,
-			UIDMap:         copyIDMap(uidMap),
-			GIDMap:         copyIDMap(gidMap),
+			UIDMap:         copySlicePreferringNil(uidMap),
+			GIDMap:         copySlicePreferringNil(gidMap),
 		}
 	}
 	return rlstore.create(id, parentLayer, names, mountLabel, nil, &options, writeable, diff, slo)
@@ -1610,8 +1586,8 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 						Metadata:     i.Metadata,
 						CreationDate: i.Created,
 						Digest:       i.Digest,
-						Digests:      copyDigestSlice(i.Digests),
-						NamesHistory: copyStringSlice(i.NamesHistory),
+						Digests:      copySlicePreferringNil(i.Digests),
+						NamesHistory: copySlicePreferringNil(i.NamesHistory),
 					}
 					for _, key := range i.BigDataNames {
 						data, err := store.BigData(id, key)
@@ -1760,8 +1736,8 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 		layerOptions.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: options.HostUIDMapping,
 			HostGIDMapping: options.HostGIDMapping,
-			UIDMap:         copyIDMap(options.UIDMap),
-			GIDMap:         copyIDMap(options.GIDMap),
+			UIDMap:         copySlicePreferringNil(options.UIDMap),
+			GIDMap:         copySlicePreferringNil(options.GIDMap),
 		}
 	}
 	layerOptions.TemplateLayer = layer.ID
@@ -1783,12 +1759,12 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 	var options ContainerOptions
 	if cOptions != nil {
 		options = *cOptions
-		options.IDMappingOptions.UIDMap = copyIDMap(cOptions.IDMappingOptions.UIDMap)
-		options.IDMappingOptions.GIDMap = copyIDMap(cOptions.IDMappingOptions.GIDMap)
-		options.LabelOpts = copyStringSlice(cOptions.LabelOpts)
-		options.Flags = maps.Clone(cOptions.Flags)
-		options.MountOpts = copyStringSlice(cOptions.MountOpts)
-		options.StorageOpt = copyStringStringMap(cOptions.StorageOpt)
+		options.IDMappingOptions.UIDMap = copySlicePreferringNil(cOptions.IDMappingOptions.UIDMap)
+		options.IDMappingOptions.GIDMap = copySlicePreferringNil(cOptions.IDMappingOptions.GIDMap)
+		options.LabelOpts = copySlicePreferringNil(cOptions.LabelOpts)
+		options.Flags = copyMapPreferringNil(cOptions.Flags)
+		options.MountOpts = copySlicePreferringNil(cOptions.MountOpts)
+		options.StorageOpt = copyMapPreferringNil(cOptions.StorageOpt)
 		options.BigData = copyContainerBigDataOptionSlice(cOptions.BigData)
 	}
 	if options.HostUIDMapping {
@@ -1913,8 +1889,8 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		layerOptions.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: idMappingsOptions.HostUIDMapping,
 			HostGIDMapping: idMappingsOptions.HostGIDMapping,
-			UIDMap:         copyIDMap(uidMap),
-			GIDMap:         copyIDMap(gidMap),
+			UIDMap:         copySlicePreferringNil(uidMap),
+			GIDMap:         copySlicePreferringNil(gidMap),
 		}
 	}
 	if options.Flags == nil {
@@ -1951,8 +1927,8 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		options.IDMappingOptions = types.IDMappingOptions{
 			HostUIDMapping: len(options.UIDMap) == 0,
 			HostGIDMapping: len(options.GIDMap) == 0,
-			UIDMap:         copyIDMap(options.UIDMap),
-			GIDMap:         copyIDMap(options.GIDMap),
+			UIDMap:         copySlicePreferringNil(options.UIDMap),
+			GIDMap:         copySlicePreferringNil(options.GIDMap),
 		}
 		container, err := s.containerStore.create(id, names, imageID, layer, &options)
 		if err != nil || container == nil {
@@ -2450,10 +2426,10 @@ func (s *store) updateNames(id string, names []string, op updateNameOperation) e
 			options := ImageOptions{
 				CreationDate: i.Created,
 				Digest:       i.Digest,
-				Digests:      copyDigestSlice(i.Digests),
+				Digests:      copySlicePreferringNil(i.Digests),
 				Metadata:     i.Metadata,
-				NamesHistory: copyStringSlice(i.NamesHistory),
-				Flags:        copyStringInterfaceMap(i.Flags),
+				NamesHistory: copySlicePreferringNil(i.NamesHistory),
+				Flags:        copyMapPreferringNil(i.Flags),
 			}
 			for _, key := range i.BigDataNames {
 				data, err := store.BigData(id, key)
@@ -3674,55 +3650,39 @@ func makeBigDataBaseName(key string) string {
 }
 
 func stringSliceWithoutValue(slice []string, value string) []string {
-	modified := make([]string, 0, len(slice))
-	for _, v := range slice {
-		if v == value {
-			continue
-		}
-		modified = append(modified, v)
-	}
-	return modified
+	return slices.DeleteFunc(slices.Clone(slice), func(v string) bool {
+		return v == value
+	})
 }
 
-func copyStringSlice(slice []string) []string {
-	if len(slice) == 0 {
+// copySlicePreferringNil returns a copy of the slice.
+// If s is empty, a nil is returned.
+func copySlicePreferringNil[S ~[]E, E any](s S) S {
+	if len(s) == 0 {
 		return nil
 	}
-	ret := make([]string, len(slice))
-	copy(ret, slice)
-	return ret
+	return slices.Clone(s)
 }
 
-func copyStringStringMap(m map[string]string) map[string]string {
-	ret := make(map[string]string, len(m))
+// copyMapPreferringNil returns a shallow clone of map m.
+// If m is empty, a nil is returned.
+//
+// (As of, e.g., Go 1.23, maps.Clone preserves nil, but that’s not a documented promise;
+// and this function turns even non-nil empty maps into nil.)
+func copyMapPreferringNil[K comparable, V any](m map[K]V) map[K]V {
+	if len(m) == 0 {
+		return nil
+	}
+	return maps.Clone(m)
+}
+
+// newMapFrom returns a shallow clone of map m.
+// If m is empty, an empty map is allocated and returned.
+func newMapFrom[K comparable, V any](m map[K]V) map[K]V {
+	ret := make(map[K]V, len(m))
 	for k, v := range m {
 		ret[k] = v
 	}
-	return ret
-}
-
-func copyDigestSlice(slice []digest.Digest) []digest.Digest {
-	if len(slice) == 0 {
-		return nil
-	}
-	ret := make([]digest.Digest, len(slice))
-	copy(ret, slice)
-	return ret
-}
-
-// copyStringInterfaceMap still forces us to assume that the interface{} is
-// a non-pointer scalar value
-func copyStringInterfaceMap(m map[string]interface{}) map[string]interface{} {
-	ret := make(map[string]interface{}, len(m))
-	for k, v := range m {
-		ret[k] = v
-	}
-	return ret
-}
-
-func copyLayerBigDataOptionSlice(slice []LayerBigDataOption) []LayerBigDataOption {
-	ret := make([]LayerBigDataOption, len(slice))
-	copy(ret, slice)
 	return ret
 }
 

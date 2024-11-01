@@ -307,6 +307,10 @@ func (d *blobCacheDestination) PutSignaturesWithFormat(ctx context.Context, sign
 	return d.destination.PutSignaturesWithFormat(ctx, signatures, instanceDigest)
 }
 
-func (d *blobCacheDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
-	return d.destination.Commit(ctx, unparsedToplevel)
+// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
+// WARNING: This does not have any transactional semantics:
+// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+func (d *blobCacheDestination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
+	return d.destination.CommitWithOptions(ctx, options)
 }

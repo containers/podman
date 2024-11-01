@@ -128,6 +128,7 @@ func (gdw *NaiveDiffDriver) Changes(id string, idMappings *idtools.IDMappings, p
 
 	options := MountOpts{
 		MountLabel: mountLabel,
+		Options:    []string{"ro"},
 	}
 	layerFs, err := driver.Get(id, options)
 	if err != nil {
@@ -138,10 +139,6 @@ func (gdw *NaiveDiffDriver) Changes(id string, idMappings *idtools.IDMappings, p
 	parentFs := ""
 
 	if parent != "" {
-		options := MountOpts{
-			MountLabel: mountLabel,
-			Options:    []string{"ro"},
-		}
 		parentFs, err = driver.Get(parent, options)
 		if err != nil {
 			return nil, err

@@ -589,7 +589,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			m := os.FileMode(mask)
 			o.forceMask = &m
 		default:
-			return nil, fmt.Errorf("overlay: Unknown option %s", key)
+			return nil, fmt.Errorf("overlay: unknown option %s", key)
 		}
 	}
 	return o, nil
@@ -1579,7 +1579,6 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	}()
 
 	composeFsLayers := []string{}
-	composeFsLayersDir := filepath.Join(dir, "composefs-layers")
 	maybeAddComposefsMount := func(lowerID string, i int, readWrite bool) (string, error) {
 		composefsBlob := d.getComposefsData(lowerID)
 		if err := fileutils.Exists(composefsBlob); err != nil {
@@ -1594,7 +1593,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			return "", fmt.Errorf("cannot mount a composefs layer as writeable")
 		}
 
-		dest := filepath.Join(composeFsLayersDir, strconv.Itoa(i))
+		dest := d.getStorePrivateDirectory(id, dir, fmt.Sprintf("composefs-layers/%d", i), inAdditionalStore)
 		if err := os.MkdirAll(dest, 0o700); err != nil {
 			return "", err
 		}
@@ -1878,6 +1877,16 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	return mergedDir, nil
 }
 
+// getStorePrivateDirectory returns a directory path for storing data that requires exclusive access.
+// If 'inAdditionalStore' is true, the path will be under the rundir, otherwise it will be placed in
+// the primary store.
+func (d *Driver) getStorePrivateDirectory(id, layerDir, subdir string, inAdditionalStore bool) string {
+	if inAdditionalStore {
+		return path.Join(d.runhome, id, subdir)
+	}
+	return path.Join(layerDir, subdir)
+}
+
 // getMergedDir returns the directory path that should be used as the mount point for the overlayfs.
 func (d *Driver) getMergedDir(id, dir string, inAdditionalStore bool) string {
 	// Ordinarily, .Get() (layer mounting) callers are supposed to guarantee exclusion.
@@ -1897,10 +1906,7 @@ func (d *Driver) getMergedDir(id, dir string, inAdditionalStore bool) string {
 	// TO DO: LOCKING BUG: the .DiffSize operation does not currently hold an exclusive lock on the primary store.
 	// (_Some_ of the callers might be better ported to use a metadata-only size computation instead of DiffSize,
 	// but DiffSize probably needs to remain for computing sizes of container’s RW layers.)
-	if inAdditionalStore {
-		return path.Join(d.runhome, id, "merged")
-	}
-	return path.Join(dir, "merged")
+	return d.getStorePrivateDirectory(id, dir, "merged", inAdditionalStore)
 }
 
 // Put unmounts the mount path created for the give id.
