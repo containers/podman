@@ -22,7 +22,7 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-const GOMEGA_VERSION = "1.35.0"
+const GOMEGA_VERSION = "1.35.1"
 
 const nilGomegaPanic = `You are trying to make an assertion, but haven't registered Gomega's fail handler.
 If you're using Ginkgo then you probably forgot to put your assertion in an It().
@@ -501,6 +501,16 @@ func SetDefaultConsistentlyDuration(t time.Duration) {
 // SetDefaultConsistentlyPollingInterval sets the default polling interval for Consistently.
 func SetDefaultConsistentlyPollingInterval(t time.Duration) {
 	Default.SetDefaultConsistentlyPollingInterval(t)
+}
+
+// EnforceDefaultTimeoutsWhenUsingContexts forces `Eventually` to apply a default timeout even when a context is provided.
+func EnforceDefaultTimeoutsWhenUsingContexts() {
+	Default.EnforceDefaultTimeoutsWhenUsingContexts()
+}
+
+// DisableDefaultTimeoutsWhenUsingContext disables the default timeout when a context is provided to `Eventually`.
+func DisableDefaultTimeoutsWhenUsingContext() {
+	Default.DisableDefaultTimeoutsWhenUsingContext()
 }
 
 // AsyncAssertion is returned by Eventually and Consistently and polls the actual value passed into Eventually against
