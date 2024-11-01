@@ -124,10 +124,16 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
+	workDir := b.WorkDir()
 	if options.WorkingDir != "" {
 		g.SetProcessCwd(options.WorkingDir)
+		workDir = options.WorkingDir
 	} else if b.WorkDir() != "" {
 		g.SetProcessCwd(b.WorkDir())
+		workDir = b.WorkDir()
+	}
+	if workDir == "" {
+		workDir = string(os.PathSeparator)
 	}
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
@@ -249,6 +255,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	runMountInfo := runMountInfo{
+		WorkDir:          workDir,
 		ContextDir:       options.ContextDir,
 		Secrets:          options.Secrets,
 		SSHSources:       options.SSHSources,

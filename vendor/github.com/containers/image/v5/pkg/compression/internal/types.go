@@ -3,6 +3,15 @@ package internal
 import "io"
 
 // CompressorFunc writes the compressed stream to the given writer using the specified compression level.
+//
+// Compressing a stream may create integrity data that allows consuming the compressed byte stream
+// while only using subsets of the compressed data (if the compressed data is seekable and most
+// of the uncompressed data is already present via other means), while still protecting integrity
+// of the compressed stream against unwanted modification. (In OCI container images, this metadata
+// is usually carried in manifest annotations.)
+//
+// If the compression generates such metadata, it is written to the provided metadata map.
+//
 // The caller must call Close() on the stream (even if the input stream does not need closing!).
 type CompressorFunc func(io.Writer, map[string]string, *int) (io.WriteCloser, error)
 

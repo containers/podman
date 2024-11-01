@@ -435,7 +435,11 @@ func (d *ostreeImageDestination) PutSignaturesWithFormat(ctx context.Context, si
 	return nil
 }
 
-func (d *ostreeImageDestination) Commit(context.Context, types.UnparsedImage) error {
+// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
+// WARNING: This does not have any transactional semantics:
+// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+func (d *ostreeImageDestination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 

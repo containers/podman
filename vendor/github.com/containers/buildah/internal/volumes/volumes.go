@@ -531,6 +531,7 @@ func GetVolumes(ctx *types.SystemContext, store storage.Store, volumes []string,
 // getMounts takes user-provided input from the --mount flag and creates OCI
 // spec mounts.
 // buildah run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
+// buildah run --mount type=cache,target=/var/cache ...
 // buildah run --mount type=tmpfs,target=/dev/shm ...
 //
 // If this function succeeds, the caller must unlock the returned *lockfile.LockFile s if any (when??).
@@ -590,7 +591,7 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, c
 			}
 			finalMounts[mount.Destination] = mount
 		case TypeTmpfs:
-			mount, err := GetTmpfsMount(tokens)
+			mount, err := GetTmpfsMount(tokens, workDir)
 			if err != nil {
 				return nil, mountedImages, nil, err
 			}
@@ -608,7 +609,7 @@ func getMounts(ctx *types.SystemContext, store storage.Store, mounts []string, c
 }
 
 // GetTmpfsMount parses a single tmpfs mount entry from the --mount flag
-func GetTmpfsMount(args []string) (specs.Mount, error) {
+func GetTmpfsMount(args []string, workDir string) (specs.Mount, error) {
 	newMount := specs.Mount{
 		Type:   TypeTmpfs,
 		Source: TypeTmpfs,
@@ -646,10 +647,14 @@ func GetTmpfsMount(args []string) (specs.Mount, error) {
 			if !hasArgValue {
 				return newMount, fmt.Errorf("%v: %w", argName, errBadOptionArg)
 			}
-			if err := parse.ValidateVolumeCtrDir(argValue); err != nil {
+			targetPath := argValue
+			if !path.IsAbs(targetPath) {
+				targetPath = filepath.Join(workDir, targetPath)
+			}
+			if err := parse.ValidateVolumeCtrDir(targetPath); err != nil {
 				return newMount, err
 			}
-			newMount.Destination = argValue
+			newMount.Destination = targetPath
 			setDest = true
 		default:
 			return newMount, fmt.Errorf("%v: %w", argName, errBadMntOption)
