@@ -197,7 +197,7 @@ func (br *bodyReader) Read(p []byte) (int, error) {
 		consumedBody = true
 		br.body = res.Body
 		br.lastRetryOffset = br.offset
-		br.lastRetryTime = time.Time{}
+		br.lastRetryTime = time.Now()
 		return n, nil
 
 	default:

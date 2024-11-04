@@ -828,7 +828,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			return false, types.BlobInfo{}, err
 		}()
 		if err != nil {
-			return types.BlobInfo{}, "", fmt.Errorf("reading blob %s: %w", srcInfo.Digest, err)
+			return types.BlobInfo{}, "", fmt.Errorf("partial pull of blob %s: %w", srcInfo.Digest, err)
 		}
 		if reused {
 			return blobInfo, cachedDiffID, nil

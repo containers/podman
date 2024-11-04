@@ -335,7 +335,7 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 
 	out, err := s.imageRef.transport.store.PrepareStagedLayer(nil, differ)
 	if err != nil {
-		return private.UploadedBlob{}, err
+		return private.UploadedBlob{}, fmt.Errorf("staging a partially-pulled layer: %w", err)
 	}
 	succeeded := false
 	defer func() {
@@ -930,7 +930,7 @@ func (s *storageImageDestination) createNewLayer(index int, layerDigest digest.D
 
 		flags := make(map[string]interface{})
 		if untrustedUncompressedDigest != "" {
-			flags[expectedLayerDiffIDFlag] = untrustedUncompressedDigest
+			flags[expectedLayerDiffIDFlag] = untrustedUncompressedDigest.String()
 			logrus.Debugf("Setting uncompressed digest to %q for layer %q", untrustedUncompressedDigest, newLayerID)
 		}
 

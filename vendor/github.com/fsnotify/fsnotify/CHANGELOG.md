@@ -1,8 +1,36 @@
 # Changelog
 
-Unreleased
-----------
-Nothing yet.
+1.8.0 2023-10-31
+----------------
+
+### Additions
+
+- all: add `FSNOTIFY_DEBUG` to print debug logs to stderr ([#619])
+
+### Changes and fixes
+
+- windows: fix behaviour of `WatchList()` to be consistent with other platforms ([#610])
+
+- kqueue: ignore events with Ident=0 ([#590])
+
+- kqueue: set O_CLOEXEC to prevent passing file descriptors to children ([#617])
+
+- kqueue: emit events as "/path/dir/file" instead of "path/link/file" when watching a symlink ([#625])
+
+- inotify: don't send event for IN_DELETE_SELF when also watching the parent ([#620])
+
+- inotify: fix panic when calling Remove() in a goroutine ([#650])
+
+- fen: allow watching subdirectories of watched directories ([#621])
+
+[#590]: https://github.com/fsnotify/fsnotify/pull/590
+[#610]: https://github.com/fsnotify/fsnotify/pull/610
+[#617]: https://github.com/fsnotify/fsnotify/pull/617
+[#619]: https://github.com/fsnotify/fsnotify/pull/619
+[#620]: https://github.com/fsnotify/fsnotify/pull/620
+[#621]: https://github.com/fsnotify/fsnotify/pull/621
+[#625]: https://github.com/fsnotify/fsnotify/pull/625
+[#650]: https://github.com/fsnotify/fsnotify/pull/650
 
 1.7.0 - 2023-10-22
 ------------------

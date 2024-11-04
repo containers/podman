@@ -99,8 +99,18 @@ func CompressStream(dest io.Writer, algo Algorithm, level *int) (io.WriteCloser,
 	return internal.AlgorithmCompressor(algo)(dest, m, level)
 }
 
-// CompressStreamWithMetadata returns the compressor by its name.  If the compression
-// generates any metadata, it is written to the provided metadata map.
+// CompressStreamWithMetadata returns the compressor by its name.
+//
+// Compressing a stream may create integrity data that allows consuming the compressed byte stream
+// while only using subsets of the compressed data (if the compressed data is seekable and most
+// of the uncompressed data is already present via other means), while still protecting integrity
+// of the compressed stream against unwanted modification. (In OCI container images, this metadata
+// is usually carried in manifest annotations.)
+//
+// Such a partial decompression is not implemented by this package; it is consumed e.g. by
+// github.com/containers/storage/pkg/chunked .
+//
+// If the compression generates such metadata, it is written to the provided metadata map.
 func CompressStreamWithMetadata(dest io.Writer, metadata map[string]string, algo Algorithm, level *int) (io.WriteCloser, error) {
 	return internal.AlgorithmCompressor(algo)(dest, metadata, level)
 }
