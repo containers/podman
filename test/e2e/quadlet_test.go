@@ -1094,7 +1094,7 @@ BOGUS=foo
 
 			runSuccessQuadletTestCase(fileName)
 		},
-		Entry("Container - Mount", "mount.container", []string{"basic.volume"}),
+		Entry("Container - Mount", "mount.container", []string{"basic.image", "basic.volume"}),
 		Entry("Container - Quadlet Network", "network.quadlet.container", []string{"basic.network"}),
 		Entry("Container - Quadlet Volume", "volume.container", []string{"basic.volume"}),
 		Entry("Container - Mount overriding service name", "mount.servicename.container", []string{"service-name.volume"}),
