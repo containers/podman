@@ -348,6 +348,7 @@ vendor:
 	$(GO) mod tidy
 	$(GO) mod vendor
 	$(GO) mod verify
+	$(GO) mod edit -toolchain none
 
 
 # We define *-in-container targets for the following make targets. This allow the targets to be run in a container.
