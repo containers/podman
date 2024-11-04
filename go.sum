@@ -87,8 +87,6 @@ github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6J
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.0 h1:Z8ZEWb+Lio0d+lXexONdUWT4rm9lF91vH0g3ARnMy7o=
 github.com/containers/gvisor-tap-vsock v0.8.0/go.mod h1:LVwnMiNvhxyGfhaMEQcXKJhNnN4h8woB9U3wf8rYOPc=
-github.com/containers/image/v5 v5.32.3-0.20241025210258-94e0c4fd8e9d h1:85nEVd7gWGP2I35hHHjF/3zYPnLI+VKvsxRsYKBOb9k=
-github.com/containers/image/v5 v5.32.3-0.20241025210258-94e0c4fd8e9d/go.mod h1:mMysUPpcUwWuq2EgENF+GLr4nrKBPOUcKZnJ0SpdxEA=
 github.com/containers/libhvee v0.7.1 h1:dWGF5GLq9DZvXo3P8aDp3cNieL5eCaSell4UmeA/jY4=
 github.com/containers/libhvee v0.7.1/go.mod h1:fRKB3AyIqHMvq6xaeYhTpckM2cdoq0oecolyoiuLP7M=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -386,6 +384,8 @@ github.com/modern-go/reflect2 v1.0.2 h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9G
 github.com/modern-go/reflect2 v1.0.2/go.mod h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=
 github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
 github.com/morikuni/aec v1.0.0/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
+github.com/mtrmac/image/v5 v5.0.0-20241104162921-6ba898f74fd4 h1:sJtBTSqAR+NbEK02XHYXm7jJSwxXBbDaCOEL6e5oydE=
+github.com/mtrmac/image/v5 v5.0.0-20241104162921-6ba898f74fd4/go.mod h1:qsONoo3ZvAnrwa2+49bY6m3ewtJO5+A1AaELCtGuDKc=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=

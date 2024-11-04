@@ -1124,26 +1124,23 @@ func (s *storageImageDestination) untrustedLayerDiffID(layerIndex int) (digest.D
 	return s.untrustedDiffIDValues[layerIndex], nil
 }
 
-// Commit marks the process of storing the image as successful and asks for the image to be persisted.
-// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
-// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
-// original manifest list digest, if desired.
+// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
 // WARNING: This does not have any transactional semantics:
-// - Uploaded data MAY be visible to others before Commit() is called
-// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
+// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+func (s *storageImageDestination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
 	// This function is outside of the scope of HasThreadSafePutBlob, so we don’t need to hold s.lock.
 
 	if len(s.manifest) == 0 {
-		return errors.New("Internal error: storageImageDestination.Commit() called without PutManifest()")
+		return errors.New("Internal error: storageImageDestination.CommitWithOptions() called without PutManifest()")
 	}
-	toplevelManifest, _, err := unparsedToplevel.Manifest(ctx)
+	toplevelManifest, _, err := options.UnparsedToplevel.Manifest(ctx)
 	if err != nil {
 		return fmt.Errorf("retrieving top-level manifest: %w", err)
 	}
 	// If the name we're saving to includes a digest, then check that the
 	// manifests that we're about to save all either match the one from the
-	// unparsedToplevel, or match the digest in the name that we're using.
+	// options.UnparsedToplevel, or match the digest in the name that we're using.
 	if s.imageRef.named != nil {
 		if digested, ok := s.imageRef.named.(reference.Digested); ok {
 			matches, err := manifest.MatchesDigest(s.manifest, digested.Digest())
@@ -1176,24 +1173,24 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		}, blob.Size); err != nil {
 			return err
 		} else if stopQueue {
-			return fmt.Errorf("Internal error: storageImageDestination.Commit(): commitLayer() not ready to commit for layer %q", blob.Digest)
+			return fmt.Errorf("Internal error: storageImageDestination.CommitWithOptions(): commitLayer() not ready to commit for layer %q", blob.Digest)
 		}
 	}
 	var lastLayer string
 	if len(layerBlobs) > 0 { // Zero-layer images rarely make sense, but it is technically possible, and may happen for non-image artifacts.
 		prev, ok := s.indexToStorageID[len(layerBlobs)-1]
 		if !ok {
-			return fmt.Errorf("Internal error: storageImageDestination.Commit(): previous layer %d hasn't been committed (lastLayer == nil)", len(layerBlobs)-1)
+			return fmt.Errorf("Internal error: storageImageDestination.CommitWithOptions(): previous layer %d hasn't been committed (lastLayer == nil)", len(layerBlobs)-1)
 		}
 		lastLayer = prev
 	}
 
 	// If one of those blobs was a configuration blob, then we can try to dig out the date when the image
 	// was originally created, in case we're just copying it.  If not, no harm done.
-	options := &storage.ImageOptions{}
+	imgOptions := &storage.ImageOptions{}
 	if inspect, err := man.Inspect(s.getConfigBlob); err == nil && inspect.Created != nil {
 		logrus.Debugf("setting image creation date to %s", inspect.Created)
-		options.CreationDate = *inspect.Created
+		imgOptions.CreationDate = *inspect.Created
 	}
 
 	// Set up to save the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
@@ -1210,13 +1207,13 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		if err != nil {
 			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
 		}
-		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+		imgOptions.BigData = append(imgOptions.BigData, storage.ImageBigDataOption{
 			Key:    blob.String(),
 			Data:   v,
 			Digest: digest.Canonical.FromBytes(v),
 		})
 	}
-	// Set up to save the unparsedToplevel's manifest if it differs from
+	// Set up to save the options.UnparsedToplevel's manifest if it differs from
 	// the per-platform one, which is saved below.
 	if len(toplevelManifest) != 0 && !bytes.Equal(toplevelManifest, s.manifest) {
 		manifestDigest, err := manifest.Digest(toplevelManifest)
@@ -1227,7 +1224,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		if err != nil {
 			return err
 		}
-		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+		imgOptions.BigData = append(imgOptions.BigData, storage.ImageBigDataOption{
 			Key:    key,
 			Data:   toplevelManifest,
 			Digest: manifestDigest,
@@ -1240,19 +1237,19 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 	if err != nil {
 		return err
 	}
-	options.BigData = append(options.BigData, storage.ImageBigDataOption{
+	imgOptions.BigData = append(imgOptions.BigData, storage.ImageBigDataOption{
 		Key:    key,
 		Data:   s.manifest,
 		Digest: s.manifestDigest,
 	})
-	options.BigData = append(options.BigData, storage.ImageBigDataOption{
+	imgOptions.BigData = append(imgOptions.BigData, storage.ImageBigDataOption{
 		Key:    storage.ImageDigestBigDataKey,
 		Data:   s.manifest,
 		Digest: s.manifestDigest,
 	})
 	// Set up to save the signatures, if we have any.
 	if len(s.signatures) > 0 {
-		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+		imgOptions.BigData = append(imgOptions.BigData, storage.ImageBigDataOption{
 			Key:    "signatures",
 			Data:   s.signatures,
 			Digest: digest.Canonical.FromBytes(s.signatures),
@@ -1263,7 +1260,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		if err != nil {
 			return err
 		}
-		options.BigData = append(options.BigData, storage.ImageBigDataOption{
+		imgOptions.BigData = append(imgOptions.BigData, storage.ImageBigDataOption{
 			Key:    key,
 			Data:   signatures,
 			Digest: digest.Canonical.FromBytes(signatures),
@@ -1276,7 +1273,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		return fmt.Errorf("encoding metadata for image: %w", err)
 	}
 	if len(metadata) != 0 {
-		options.Metadata = string(metadata)
+		imgOptions.Metadata = string(metadata)
 	}
 
 	// Create the image record, pointing to the most-recently added layer.
@@ -1288,7 +1285,7 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		}
 	}
 	oldNames := []string{}
-	img, err := s.imageRef.transport.store.CreateImage(intendedID, nil, lastLayer, "", options)
+	img, err := s.imageRef.transport.store.CreateImage(intendedID, nil, lastLayer, "", imgOptions)
 	if err != nil {
 		if !errors.Is(err, storage.ErrDuplicateID) {
 			logrus.Debugf("error creating image: %q", err)
@@ -1309,21 +1306,21 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		// sizes (tracked in the metadata) which might have already
 		// been present with new values, when ideally we'd find a way
 		// to merge them since they all apply to the same image
-		for _, data := range options.BigData {
+		for _, data := range imgOptions.BigData {
 			if err := s.imageRef.transport.store.SetImageBigData(img.ID, data.Key, data.Data, manifest.Digest); err != nil {
 				logrus.Debugf("error saving big data %q for image %q: %v", data.Key, img.ID, err)
 				return fmt.Errorf("saving big data %q for image %q: %w", data.Key, img.ID, err)
 			}
 		}
-		if options.Metadata != "" {
-			if err := s.imageRef.transport.store.SetMetadata(img.ID, options.Metadata); err != nil {
+		if imgOptions.Metadata != "" {
+			if err := s.imageRef.transport.store.SetMetadata(img.ID, imgOptions.Metadata); err != nil {
 				logrus.Debugf("error saving metadata for image %q: %v", img.ID, err)
 				return fmt.Errorf("saving metadata for image %q: %w", img.ID, err)
 			}
-			logrus.Debugf("saved image metadata %q", options.Metadata)
+			logrus.Debugf("saved image metadata %q", imgOptions.Metadata)
 		}
 	} else {
-		logrus.Debugf("created new image ID %q with metadata %q", img.ID, options.Metadata)
+		logrus.Debugf("created new image ID %q with metadata %q", img.ID, imgOptions.Metadata)
 	}
 
 	// Clean up the unfinished image on any error.
@@ -1345,6 +1342,21 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 			return fmt.Errorf("adding names %v to image %q: %w", name, img.ID, err)
 		}
 		logrus.Debugf("added name %q to image %q", name, img.ID)
+	}
+	if options.ReportResolvedReference != nil {
+		// FIXME? This is using nil for the named reference.
+		// It would be better to also  use s.imageRef.named, because that allows us to resolve to the right
+		// digest / manifest (and corresponding signatures).
+		// The problem with that is that resolving such a reference fails if the s.imageRef.named name is moved to a different image
+		// (because it is a tag that moved, or because we have pulled “the same” image for a different architecture).
+		// Right now (2024-11), ReportResolvedReference is only used in c/common/libimage, where the caller only extracts the image ID,
+		// so the name does not matter; to give us options, copy.Options.ReportResolvedReference is explicitly refusing to document
+		// whether the value contains a name.
+		resolved, err := newReference(s.imageRef.transport, nil, intendedID)
+		if err != nil {
+			return fmt.Errorf("creating a resolved reference for (%s, %s): %w", s.imageRef.StringWithinTransport(), intendedID, err)
+		}
+		*options.ReportResolvedReference = resolved
 	}
 
 	commitSucceeded = true

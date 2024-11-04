@@ -70,6 +70,12 @@ type ImageDestinationInternalOnly interface {
 	// (when the primary manifest is a manifest list); this should always be nil if the primary manifest is not a manifest list.
 	// MUST be called after PutManifest (signatures may reference manifest contents).
 	PutSignaturesWithFormat(ctx context.Context, signatures []signature.Signature, instanceDigest *digest.Digest) error
+
+	// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
+	// WARNING: This does not have any transactional semantics:
+	// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+	// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+	CommitWithOptions(ctx context.Context, options CommitOptions) error
 }
 
 // ImageDestination is an internal extension to the types.ImageDestination
@@ -144,6 +150,19 @@ type ReusedBlob struct {
 	CompressionAnnotations map[string]string
 
 	MatchedByTOCDigest bool // Whether the layer was reused/matched by TOC digest. Used only for UI purposes.
+}
+
+// CommitOptions are used in CommitWithOptions
+type CommitOptions struct {
+	// UnparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
+	// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
+	// original manifest list digest, if desired.
+	UnparsedToplevel types.UnparsedImage
+	// ReportResolvedReference, if set, asks the transport to store a “resolved” (more detailed) reference to the created image
+	// into the value this option points to.
+	// What “resolved” means is transport-specific.
+	// Transports which don’t support reporting resolved references can ignore the field; the generic copy code writes "nil" into the value.
+	ReportResolvedReference *types.ImageReference
 }
 
 // ImageSourceChunk is a portion of a blob.

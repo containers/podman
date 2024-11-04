@@ -231,3 +231,5 @@ require (
 )
 
 replace github.com/containers/common => github.com/Luap99/common v0.20.3-0.20241104152339-f0f87a93a145
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241104162921-6ba898f74fd4

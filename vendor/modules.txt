@@ -247,7 +247,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.0
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.32.3-0.20241025210258-94e0c4fd8e9d
+# github.com/containers/image/v5 v5.32.3-0.20241025210258-94e0c4fd8e9d => github.com/mtrmac/image/v5 v5.0.0-20241104162921-6ba898f74fd4
 ## explicit; go 1.22.6
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -1392,3 +1392,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
 # github.com/containers/common => github.com/Luap99/common v0.20.3-0.20241104152339-f0f87a93a145
+# github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241104162921-6ba898f74fd4
