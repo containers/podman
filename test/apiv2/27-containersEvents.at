@@ -32,4 +32,8 @@ t GET "events?stream=false&since=$START&type=remove"  200  \
   'select(.status | contains("remove")).Action=remove' \
   'select(.status | contains("remove")).Actor.Attributes.containerExitCode=1'
 
+APIV2_TEST_EXPECT_TIMEOUT=1 t GET "events?stream=true" 999
+like "$(<$WORKDIR/curl.headers.out)" ".*HTTP.* 200 OK.*" \
+     "Received headers from /events"
+
 # vim: filetype=sh

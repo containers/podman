@@ -21,8 +21,6 @@ func NewEventer(options EventerOptions) (Eventer, error) {
 		return newLogFileEventer(options)
 	case strings.ToUpper(Null.String()):
 		return newNullEventer(), nil
-	case strings.ToUpper(Memory.String()):
-		return NewMemoryEventer(), nil
 	default:
 		return nil, fmt.Errorf("unknown event logger type: %s", strings.ToUpper(options.EventerType))
 	}
