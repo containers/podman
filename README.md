@@ -36,11 +36,7 @@ At a high level, the scope of Podman and libpod is the following:
 
 ## Roadmap
 
-1. Further improvements to `podman machine` to better support Podman Desktop and other developer usecases.
-1. Support for [conmon-rs](https://github.com/containers/conmon-rs), which will improve container logging.
-1. Support for the BuildKit API.
-1. Performance and stability improvements.
-1. Reductions to the size of the Podman binary.
+The future of Podman feature development can be found in its **[roadmap](ROADMAP.md)**.
 
 ## Communications
 
