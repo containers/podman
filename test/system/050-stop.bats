@@ -152,8 +152,13 @@ load helpers
         is "$output" "0" "Exit code of stopped container"
 
         # The 'stop' command should return almost instantaneously
+        local howlong=2
+        # ...unless running parallel, due to high system load.
+        if [[ -n "$PARALLEL_JOBSLOT" ]]; then
+            howlong=4
+        fi
         delta_t=$(( $t1 - $t0 ))
-        assert $delta_t -le 2 "podman stop: took too long"
+        assert $delta_t -le $howlong "podman stop: took too long"
 
         run_podman rm $cid
     done
