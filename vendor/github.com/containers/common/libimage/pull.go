@@ -17,15 +17,14 @@ import (
 	dockerArchiveTransport "github.com/containers/image/v5/docker/archive"
 	dockerDaemonTransport "github.com/containers/image/v5/docker/daemon"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/manifest"
 	ociArchiveTransport "github.com/containers/image/v5/oci/archive"
 	ociTransport "github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/pkg/shortnames"
 	storageTransport "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	digest "github.com/opencontainers/go-digest"
 	ociSpec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -231,7 +230,7 @@ func nameFromAnnotations(annotations map[string]string) string {
 // copyFromDefault is the default copier for a number of transports.  Other
 // transports require some specific dancing, sometimes Yoga.
 func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference, options *CopyOptions) ([]string, error) {
-	c, err := r.newCopier(options)
+	c, err := r.newCopier(options, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +386,7 @@ func (r *Runtime) copyFromDockerArchive(ctx context.Context, ref types.ImageRefe
 
 // copyFromDockerArchiveReaderReference copies the specified readerRef from reader.
 func (r *Runtime) copyFromDockerArchiveReaderReference(ctx context.Context, reader *dockerArchiveTransport.Reader, readerRef types.ImageReference, options *CopyOptions) ([]string, error) {
-	c, err := r.newCopier(options)
+	c, err := r.newCopier(options, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -421,7 +420,11 @@ func (r *Runtime) copyFromRegistry(ctx context.Context, ref types.ImageReference
 	}
 
 	if !options.AllTags {
-		return r.copySingleImageFromRegistry(ctx, inputName, pullPolicy, options)
+		pulled, err := r.copySingleImageFromRegistry(ctx, inputName, pullPolicy, options)
+		if err != nil {
+			return nil, err
+		}
+		return []string{pulled}, nil
 	}
 
 	// Copy all tags
@@ -447,68 +450,19 @@ func (r *Runtime) copyFromRegistry(ctx context.Context, ref types.ImageReference
 		if err != nil {
 			return nil, err
 		}
-		pulledIDs = append(pulledIDs, pulled...)
+		pulledIDs = append(pulledIDs, pulled)
 	}
 
 	return pulledIDs, nil
 }
 
-// imageIDsForManifest() parses the manifest of the copied image and then looks
-// up the IDs of the matching image.  There's a small slice of time, between
-// when we copy the image into local storage and when we go to look for it
-// using the name that we gave it when we copied it, when the name we wanted to
-// assign to the image could have been moved, but the image's ID will remain
-// the same until it is deleted.
-func (r *Runtime) imagesIDsForManifest(manifestBytes []byte, sys *types.SystemContext) ([]string, error) {
-	var imageDigest digest.Digest
-	manifestType := manifest.GuessMIMEType(manifestBytes)
-	if manifest.MIMETypeIsMultiImage(manifestType) {
-		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
-		if err != nil {
-			return nil, fmt.Errorf("parsing manifest list: %w", err)
-		}
-		d, err := list.ChooseInstance(sys)
-		if err != nil {
-			return nil, fmt.Errorf("choosing instance from manifest list: %w", err)
-		}
-		imageDigest = d
-	} else {
-		d, err := manifest.Digest(manifestBytes)
-		if err != nil {
-			return nil, errors.New("digesting manifest")
-		}
-		imageDigest = d
-	}
-	images, err := r.store.ImagesByDigest(imageDigest)
-	if err != nil {
-		return nil, fmt.Errorf("listing images by manifest digest: %w", err)
-	}
-
-	// If you have additionStores defined and the same image stored in
-	// both storage and additional store, it can be output twice.
-	// Fixes github.com/containers/podman/issues/18647
-	results := []string{}
-	imageMap := map[string]bool{}
-	for _, image := range images {
-		if imageMap[image.ID] {
-			continue
-		}
-		imageMap[image.ID] = true
-		results = append(results, image.ID)
-	}
-	if len(results) == 0 {
-		return nil, fmt.Errorf("identifying new image by manifest digest: %w", storage.ErrImageUnknown)
-	}
-	return results, nil
-}
-
 // copySingleImageFromRegistry pulls the specified, possibly unqualified, name
 // from a registry.  On successful pull it returns the ID of the image in local
-// storage.
-func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName string, pullPolicy config.PullPolicy, options *PullOptions) ([]string, error) { //nolint:gocyclo
+// storage (or, FIXME, a name/ID? that could be resolved in local storage)
+func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName string, pullPolicy config.PullPolicy, options *PullOptions) (string, error) { //nolint:gocyclo
 	// Sanity check.
 	if err := pullPolicy.Validate(); err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var (
@@ -533,6 +487,14 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	if options.OS != runtime.GOOS {
 		lookupImageOptions.OS = options.OS
 	}
+	// FIXME: We sometimes return resolvedImageName from this function.
+	// The function documentation says this returns an image ID, resolvedImageName is frequently not an image ID.
+	//
+	// Ultimately Runtime.Pull looks up the returned name... again, possibly finding some other match
+	// than we did.
+	//
+	// This should be restructured so that the image we found here is returned to the caller of Pull
+	// directly, without another image -> name -> image round-trip and possible inconsistency.
 	localImage, resolvedImageName, err = r.LookupImage(imageName, lookupImageOptions)
 	if err != nil && !errors.Is(err, storage.ErrImageUnknown) {
 		logrus.Errorf("Looking up %s in local storage: %v", imageName, err)
@@ -563,23 +525,23 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	if pullPolicy == config.PullPolicyNever {
 		if localImage != nil {
 			logrus.Debugf("Pull policy %q and %s resolved to local image %s", pullPolicy, imageName, resolvedImageName)
-			return []string{resolvedImageName}, nil
+			return resolvedImageName, nil
 		}
 		logrus.Debugf("Pull policy %q but no local image has been found for %s", pullPolicy, imageName)
-		return nil, fmt.Errorf("%s: %w", imageName, storage.ErrImageUnknown)
+		return "", fmt.Errorf("%s: %w", imageName, storage.ErrImageUnknown)
 	}
 
 	if pullPolicy == config.PullPolicyMissing && localImage != nil {
-		return []string{resolvedImageName}, nil
+		return resolvedImageName, nil
 	}
 
 	// If we looked up the image by ID, we cannot really pull from anywhere.
 	if localImage != nil && strings.HasPrefix(localImage.ID(), imageName) {
 		switch pullPolicy {
 		case config.PullPolicyAlways:
-			return nil, fmt.Errorf("pull policy is always but image has been referred to by ID (%s)", imageName)
+			return "", fmt.Errorf("pull policy is always but image has been referred to by ID (%s)", imageName)
 		default:
-			return []string{resolvedImageName}, nil
+			return resolvedImageName, nil
 		}
 	}
 
@@ -604,9 +566,9 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	resolved, err := shortnames.Resolve(sys, imageName)
 	if err != nil {
 		if localImage != nil && pullPolicy == config.PullPolicyNewer {
-			return []string{resolvedImageName}, nil
+			return resolvedImageName, nil
 		}
-		return nil, err
+		return "", err
 	}
 
 	// NOTE: Below we print the description from the short-name resolution.
@@ -636,9 +598,10 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 	if socketPath, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
 		options.extendTimeoutSocket = socketPath
 	}
-	c, err := r.newCopier(&options.CopyOptions)
+	var resolvedReference types.ImageReference
+	c, err := r.newCopier(&options.CopyOptions, &resolvedReference)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	defer c.Close()
 
@@ -648,7 +611,7 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		logrus.Debugf("Attempting to pull candidate %s for %s", candidateString, imageName)
 		srcRef, err := registryTransport.NewReference(candidate.Value)
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		if pullPolicy == config.PullPolicyNewer && localImage != nil {
@@ -666,19 +629,18 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 
 		destRef, err := storageTransport.Transport.ParseStoreReference(r.store, candidate.Value.String())
 		if err != nil {
-			return nil, err
+			return "", err
 		}
 
 		if err := writeDesc(); err != nil {
-			return nil, err
+			return "", err
 		}
 		if options.Writer != nil {
 			if _, err := io.WriteString(options.Writer, fmt.Sprintf("Trying to pull %s...\n", candidateString)); err != nil {
-				return nil, err
+				return "", err
 			}
 		}
-		var manifestBytes []byte
-		if manifestBytes, err = c.Copy(ctx, srcRef, destRef); err != nil {
+		if _, err := c.Copy(ctx, srcRef, destRef); err != nil {
 			logrus.Debugf("Error pulling candidate %s: %v", candidateString, err)
 			pullErrors = append(pullErrors, err)
 			continue
@@ -691,19 +653,23 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		}
 
 		logrus.Debugf("Pulled candidate %s successfully", candidateString)
-		if ids, err := r.imagesIDsForManifest(manifestBytes, sys); err == nil {
-			return ids, nil
+		if resolvedReference == nil { // resolvedReference should always be set for storageTransport destinations
+			return "", fmt.Errorf("internal error: After pulling %s, resolvedReference is nil", candidateString)
 		}
-		return []string{candidate.Value.String()}, nil
+		_, image, err := storageTransport.ResolveReference(resolvedReference)
+		if err != nil {
+			return "", fmt.Errorf("resolving an already-resolved reference %q to the pulled image: %w", transports.ImageName(resolvedReference), err)
+		}
+		return image.ID, nil
 	}
 
 	if localImage != nil && pullPolicy == config.PullPolicyNewer {
-		return []string{resolvedImageName}, nil
+		return resolvedImageName, nil
 	}
 
 	if len(pullErrors) == 0 {
-		return nil, fmt.Errorf("internal error: no image pulled (pull policy %s)", pullPolicy)
+		return "", fmt.Errorf("internal error: no image pulled (pull policy %s)", pullPolicy)
 	}
 
-	return nil, resolved.FormatPullErrors(pullErrors)
+	return "", resolved.FormatPullErrors(pullErrors)
 }

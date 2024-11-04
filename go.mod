@@ -230,6 +230,6 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 )
 
-replace github.com/containers/common => github.com/Luap99/common v0.20.3-0.20241104152339-f0f87a93a145
+replace github.com/containers/common => github.com/mtrmac/common v0.8.2-0.20241104190907-cdf35b8d0e5e
 
 replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241104162921-6ba898f74fd4
