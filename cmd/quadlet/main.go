@@ -615,9 +615,9 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 		}
 
 		unitsInfoMap[unit.Filename] = &quadlet.UnitInfo{
-			ServiceName:  serviceName,
-			Containers:   containers,
-			ResourceName: resourceName,
+			ServiceName:       serviceName,
+			ContainersToStart: containers,
+			ResourceName:      resourceName,
 		}
 	}
 

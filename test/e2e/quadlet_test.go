@@ -227,6 +227,10 @@ func (t *quadletTestcase) assertKeyContains(args []string, unit *parser.UnitFile
 	return ok && strings.Contains(realValue, value)
 }
 
+func (t *quadletTestcase) assertKeyNotContains(args []string, unit *parser.UnitFile) bool {
+	return !t.assertKeyContains(args, unit)
+}
+
 func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
 	podmanArgs, _ := unit.LookupLastArgs("Service", key)
 	if globalOnly {
@@ -516,6 +520,8 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertKeyIsRegex(args, unit)
 	case "assert-key-contains":
 		ok = t.assertKeyContains(args, unit)
+	case "assert-key-not-contains":
+		ok = t.assertKeyNotContains(args, unit)
 	case "assert-last-key-is-regex":
 		ok = t.assertLastKeyIsRegex(args, unit)
 	case "assert-podman-args":
@@ -1122,6 +1128,7 @@ BOGUS=foo
 		Entry("Pod - Quadlet Volume", "volume.pod", []string{"basic.volume"}),
 		Entry("Pod - Quadlet Network overriding service name", "network.servicename.quadlet.pod", []string{"service-name.network"}),
 		Entry("Pod - Quadlet Volume overriding service name", "volume.servicename.pod", []string{"service-name.volume"}),
+		Entry("Pod - Do not autostart a container with pod", "startwithpod.pod", []string{"startwithpod_no.container", "startwithpod_yes.container"}),
 	)
 
 })

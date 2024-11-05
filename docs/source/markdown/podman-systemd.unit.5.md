@@ -333,6 +333,7 @@ Valid options for `[Container]` are listed below:
 | SecurityLabelNested=true             | --security-opt label=nested                          |
 | SecurityLabelType=spc_t              | --security-opt label=type:spc_t                      |
 | ShmSize=100m                         | --shm-size=100m                                      |
+| StartWithPod=true                    | If Pod= is defined, container is started by pod      |
 | StopSignal=SIGINT                    | --stop-signal=SIGINT                                 |
 | StopTimeout=20                       | --stop-timeout=20                                    |
 | SubGIDMap=gtest                      | --subgidname=gtest                                   |
@@ -813,6 +814,16 @@ Set the label process type for the container processes.
 Size of /dev/shm.
 
 This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
+
+### `StartWithPod=`
+
+Start the container after the associated pod is created. Default to **true**.
+
+If `true`, container will be started/stopped/restarted alongside the pod.
+
+If `false`, the container will not be started when the pod starts. The container will be stopped with the pod. Restarting the pod will also restart the container as long as the container was also running before.
+
+Note, the container can still be started manually or through a target by configuring the `[Install]` section. The pod will be started as needed in any case.
 
 ### `StopSignal=`
 

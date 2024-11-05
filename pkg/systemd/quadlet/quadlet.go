@@ -154,6 +154,7 @@ const (
 	KeyServiceName           = "ServiceName"
 	KeySetWorkingDirectory   = "SetWorkingDirectory"
 	KeyShmSize               = "ShmSize"
+	KeyStartWithPod          = "StartWithPod"
 	KeyStopSignal            = "StopSignal"
 	KeyStopTimeout           = "StopTimeout"
 	KeySubGIDMap             = "SubGIDMap"
@@ -185,8 +186,8 @@ type UnitInfo struct {
 	ResourceName string
 
 	// For .pod units
-	// List of containers in a pod
-	Containers []string
+	// List of containers to start with the pod
+	ContainersToStart []string
 }
 
 var (
@@ -267,6 +268,7 @@ var (
 		KeyServiceName:           true,
 		KeyShmSize:               true,
 		KeyStopSignal:            true,
+		KeyStartWithPod:          true,
 		KeyStopTimeout:           true,
 		KeySubGIDMap:             true,
 		KeySubUIDMap:             true,
@@ -1556,7 +1558,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	for _, containerService := range unitInfo.Containers {
+	for _, containerService := range unitInfo.ContainersToStart {
 		service.Add(UnitGroup, "Wants", containerService)
 		service.Add(UnitGroup, "Before", containerService)
 	}
@@ -2132,7 +2134,11 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 		serviceUnitFile.Add(UnitGroup, "BindsTo", podServiceName)
 		serviceUnitFile.Add(UnitGroup, "After", podServiceName)
 
-		podInfo.Containers = append(podInfo.Containers, serviceUnitFile.Filename)
+		// If we want to start the container with the pod, we add it to this list.
+		// This creates corresponding Wants=/Before= statements in the pod service.
+		if quadletUnitFile.LookupBooleanWithDefault(groupName, KeyStartWithPod, true) {
+			podInfo.ContainersToStart = append(podInfo.ContainersToStart, serviceUnitFile.Filename)
+		}
 	}
 	return nil
 }
