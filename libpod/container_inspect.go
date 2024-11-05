@@ -258,6 +258,7 @@ func (c *Container) GetMounts(namedVolumes []*ContainerNamedVolume, imageVolumes
 		mountStruct.Type = "volume"
 		mountStruct.Destination = volume.Dest
 		mountStruct.Name = volume.Name
+		mountStruct.SubPath = volume.SubPath
 
 		// For src and driver, we need to look up the named
 		// volume.
@@ -284,6 +285,7 @@ func (c *Container) GetMounts(namedVolumes []*ContainerNamedVolume, imageVolumes
 		mountStruct.Destination = volume.Dest
 		mountStruct.Source = volume.Source
 		mountStruct.RW = volume.ReadWrite
+		mountStruct.SubPath = volume.SubPath
 
 		inspectMounts = append(inspectMounts, mountStruct)
 	}
