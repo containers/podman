@@ -285,6 +285,9 @@ type InspectMount struct {
 	// Mount propagation for the mount. Can be empty if not specified, but
 	// is always printed - no omitempty.
 	Propagation string `json:"Propagation"`
+	// SubPath object from the volume. Specified as a path within
+	// the source volume to be mounted at the Destination.
+	SubPath string `json:"SubPath,omitempty"`
 }
 
 // InspectContainerState provides a detailed record of a container's current
