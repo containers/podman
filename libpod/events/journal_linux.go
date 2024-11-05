@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"runtime"
 	"strconv"
 	"time"
 
@@ -99,8 +98,6 @@ func (e EventJournalD) Write(ee Event) error {
 
 // Read reads events from the journal and sends qualified events to the event channel
 func (e EventJournalD) Read(ctx context.Context, options ReadOptions) (retErr error) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
 	filterMap, err := generateEventFilters(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return fmt.Errorf("failed to parse event filters: %w", err)
