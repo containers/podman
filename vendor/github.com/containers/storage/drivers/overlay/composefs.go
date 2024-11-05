@@ -199,7 +199,8 @@ func openComposefsMount(dataDir string) (int, error) {
 		return -1, err
 	}
 
-	if !skipMountViaFile.Load() {
+	_ = skipMountViaFile
+	if false {
 		fd, err := openBlobFile(blobFile, hasACL, false)
 		if err == nil || !errors.Is(err, unix.ENOTBLK) {
 			return fd, err
