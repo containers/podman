@@ -32,11 +32,6 @@ BUILDFLAGS := -tags "$(AUTOTAGS) $(TAGS)" $(FLAGS)
 GO ?= go
 TESTFLAGS := $(shell $(GO) test -race $(BUILDFLAGS) ./pkg/stringutils 2>&1 > /dev/null && echo -race)
 
-# N/B: This value is managed by Renovate, manual changes are
-# possible, as long as they don't disturb the formatting
-# (i.e. DO NOT ADD A 'v' prefix!)
-GOLANGCI_LINT_VERSION := 1.61.0
-
 default all: local-binary docs local-validate local-cross ## validate all checks, build and cross-build\nbinaries and docs
 
 clean: ## remove all built files
@@ -46,7 +41,7 @@ containers-storage: ## build using gc on the host
 	$(GO) build -compiler gc $(BUILDFLAGS) ./cmd/containers-storage
 
 codespell:
-	codespell
+	codespell -S Makefile,build,buildah,buildah.spec,imgtype,copy,AUTHORS,bin,vendor,.git,go.sum,CHANGELOG.md,changelog.txt,seccomp.json,.cirrus.yml,"*.xz,*.gz,*.tar,*.tgz,*ico,*.png,*.1,*.5,*.orig,*.rej" -L plack,worl,flate,uint,iff,od,ERRO -w
 
 binary local-binary: containers-storage
 
@@ -79,7 +74,7 @@ local-validate validate: install.tools ## validate DCO on the host
 	@./hack/git-validation.sh
 
 install.tools:
-	$(MAKE) -C tests/tools GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION)
+	$(MAKE) -C tests/tools
 
 install.docs: docs
 	$(MAKE) -C docs install

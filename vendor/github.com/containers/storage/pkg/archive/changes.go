@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -98,7 +97,8 @@ func aufsDeletedFile(root, path string, fi os.FileInfo) (string, error) {
 	f := filepath.Base(path)
 
 	// If there is a whiteout, then the file was removed
-	if originalFile, ok := strings.CutPrefix(f, WhiteoutPrefix); ok {
+	if strings.HasPrefix(f, WhiteoutPrefix) {
+		originalFile := f[len(WhiteoutPrefix):]
 		return filepath.Join(filepath.Dir(path), originalFile), nil
 	}
 
@@ -319,7 +319,9 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 	// otherwise any previous delete/change is considered recursive
 	oldChildren := make(map[string]*FileInfo)
 	if oldInfo != nil && info.isDir() {
-		maps.Copy(oldChildren, oldInfo.children)
+		for k, v := range oldInfo.children {
+			oldChildren[k] = v
+		}
 	}
 
 	for name, newChild := range info.children {
