@@ -392,3 +392,33 @@ func (o *PlayOptions) GetServiceContainer() bool {
 	}
 	return *o.ServiceContainer
 }
+
+// WithBuild set field Build to given value
+func (o *PlayOptions) WithBuild(value bool) *PlayOptions {
+	o.Build = &value
+	return o
+}
+
+// GetBuild returns value of field Build
+func (o *PlayOptions) GetBuild() bool {
+	if o.Build == nil {
+		var z bool
+		return z
+	}
+	return *o.Build
+}
+
+// WithContextDir set field ContextDir to given value
+func (o *PlayOptions) WithContextDir(value string) *PlayOptions {
+	o.ContextDir = &value
+	return o
+}
+
+// GetContextDir returns value of field ContextDir
+func (o *PlayOptions) GetContextDir() string {
+	if o.ContextDir == nil {
+		var z string
+		return z
+	}
+	return *o.ContextDir
+}

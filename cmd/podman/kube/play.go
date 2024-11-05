@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
+	"path/filepath"
 	"strings"
 	"syscall"
 
@@ -174,6 +176,13 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
 	_ = flags.MarkHidden(noTruncFlagName)
 
+	buildFlagName := "build"
+	flags.BoolVar(&playOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
+
+	contextDirFlagName := "context-dir"
+	flags.StringVar(&playOptions.ContextDir, contextDirFlagName, "", "Path to top level of context directory")
+	_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -182,13 +191,6 @@ func playFlags(cmd *cobra.Command) {
 		seccompProfileRootFlagName := "seccomp-profile-root"
 		flags.StringVar(&playOptions.SeccompProfileRoot, seccompProfileRootFlagName, defaultSeccompRoot, "Directory path for seccomp profiles")
 		_ = cmd.RegisterFlagCompletionFunc(seccompProfileRootFlagName, completion.AutocompleteDefault)
-
-		buildFlagName := "build"
-		flags.BoolVar(&playOptions.BuildCLI, buildFlagName, false, "Build all images in a YAML (given Containerfiles exist)")
-
-		contextDirFlagName := "context-dir"
-		flags.StringVar(&playOptions.ContextDir, contextDirFlagName, "", "Path to top level of context directory")
-		_ = cmd.RegisterFlagCompletionFunc(contextDirFlagName, completion.AutocompleteDefault)
 
 		flags.StringVar(&playOptions.SignaturePolicy, "signature-policy", "", "`Pathname` of signature policy file (not usually used)")
 
@@ -228,6 +230,16 @@ func play(cmd *cobra.Command, args []string) error {
 				return err
 			}
 			playOptions.SystemContext = systemContext
+			// if we specified --build=true but did not provide any context dir, default to directory of args[0]
+			if playOptions.ContextDir == "" {
+				parentDir := path.Dir(args[0])
+				if _, err := os.Stat(parentDir); err == nil {
+					playOptions.ContextDir, err = filepath.Abs(parentDir)
+					if err != nil {
+						return err
+					}
+				}
+			}
 		}
 	}
 	if cmd.Flags().Changed("authfile") {

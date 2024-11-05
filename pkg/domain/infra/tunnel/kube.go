@@ -75,6 +75,10 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, opts en
 	options.WithPublishPorts(opts.PublishPorts)
 	options.WithPublishAllPorts(opts.PublishAllPorts)
 	options.WithNoTrunc(opts.UseLongAnnotations)
+	if build := opts.Build; build != types.OptionalBoolUndefined {
+		options.WithBuild(build == types.OptionalBoolTrue)
+	}
+	options.WithContextDir(opts.ContextDir)
 	return play.KubeWithBody(ic.ClientCtx, body, options)
 }
 

@@ -14,6 +14,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/podman/v5/pkg/util"
+
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	k8sAPI "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -30,7 +32,7 @@ func (ic *ContainerEngine) KubeApply(ctx context.Context, body io.Reader, option
 	}
 
 	// Split the yaml file
-	documentList, err := splitMultiDocYAML(content)
+	documentList, err := util.SplitMultiDocYAML(content)
 	if err != nil {
 		return err
 	}
@@ -60,7 +62,7 @@ func (ic *ContainerEngine) KubeApply(ctx context.Context, body io.Reader, option
 	}
 
 	for _, document := range documentList {
-		kind, err := getKubeKind(document)
+		kind, err := util.GetKubeKind(document)
 		if err != nil {
 			return fmt.Errorf("unable to read kube YAML: %w", err)
 		}
