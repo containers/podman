@@ -284,6 +284,8 @@ type ContainerImageVolume struct {
 	ReadWrite bool `json:"rw"`
 	// SubPath determines which part of the image will be mounted into the container.
 	SubPath string `json:"subPath,omitempty"`
+	// Options holds image volume options.
+	Options []string `json:"options,omitempty"`
 }
 
 // ContainerSecret is a secret that is mounted in a container

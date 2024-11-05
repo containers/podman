@@ -617,6 +617,12 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 			default:
 				return nil, fmt.Errorf("invalid rw value %q: %w", value, util.ErrBadMntOption)
 			}
+		case "idmap":
+			if hasValue {
+				newVolume.Options = append(newVolume.Options, fmt.Sprintf("idmap=%s", value))
+			} else {
+				newVolume.Options = append(newVolume.Options, "idmap")
+			}
 		case "subpath":
 			if !hasValue {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)

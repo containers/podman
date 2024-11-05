@@ -449,7 +449,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		if err != nil {
 			return nil, nil, fmt.Errorf("creating image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
-		mountPoint, err := img.Mount(ctx, nil, "")
+		mountPoint, err := img.Mount(ctx, volume.Options, "")
 		if err != nil {
 			return nil, nil, fmt.Errorf("mounting image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}

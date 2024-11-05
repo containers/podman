@@ -56,6 +56,8 @@ type ImageVolume struct {
 	// SubPath mounts a particular path within the image.
 	// If empty, the whole image is mounted.
 	SubPath string `json:"subPath,omitempty"`
+	// Options for image volume mounts
+	Options []string `json:"options,omitempty"`
 }
 
 // GenVolumeMounts parses user input into mounts, volumes and overlay volumes
