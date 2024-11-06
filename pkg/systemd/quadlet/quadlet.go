@@ -154,6 +154,7 @@ const (
 	KeyServiceName           = "ServiceName"
 	KeySetWorkingDirectory   = "SetWorkingDirectory"
 	KeyShmSize               = "ShmSize"
+	KeyStartWithPod          = "StartWithPod"
 	KeyStopSignal            = "StopSignal"
 	KeyStopTimeout           = "StopTimeout"
 	KeySubGIDMap             = "SubGIDMap"
@@ -185,8 +186,8 @@ type UnitInfo struct {
 	ResourceName string
 
 	// For .pod units
-	// List of containers in a pod
-	Containers []string
+	// List of containers to start with the pod
+	ContainersToStart []string
 }
 
 var (
@@ -267,6 +268,7 @@ var (
 		KeyServiceName:           true,
 		KeyShmSize:               true,
 		KeyStopSignal:            true,
+		KeyStartWithPod:          true,
 		KeyStopTimeout:           true,
 		KeySubGIDMap:             true,
 		KeySubUIDMap:             true,
@@ -876,6 +878,21 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	return service, nil
 }
 
+func defaultOneshotServiceGroup(service *parser.UnitFile, remainAfterExit bool) {
+	// The default syslog identifier is the exec basename (podman) which isn't very useful here
+	if _, ok := service.Lookup(ServiceGroup, "SyslogIdentifier"); !ok {
+		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
+	}
+	if _, ok := service.Lookup(ServiceGroup, "Type"); !ok {
+		service.Set(ServiceGroup, "Type", "oneshot")
+	}
+	if remainAfterExit {
+		if _, ok := service.Lookup(ServiceGroup, "RemainAfterExit"); !ok {
+			service.Set(ServiceGroup, "RemainAfterExit", "yes")
+		}
+	}
+}
+
 // Convert a quadlet network file (unit file with a Network group) to a systemd
 // service file (unit file with Service group) based on the options in the
 // Network group.
@@ -976,12 +993,7 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman) which isn't very useful here
-		"SyslogIdentifier", "%N")
+	defaultOneshotServiceGroup(service, true)
 
 	// Store the name of the created resource
 	unitInfo.ResourceName = networkName
@@ -1124,12 +1136,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman) which isn't very useful here
-		"SyslogIdentifier", "%N")
+	defaultOneshotServiceGroup(service, true)
 
 	// Store the name of the created resource
 	unitInfo.ResourceName = volumeName
@@ -1342,12 +1349,7 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman) which isn't very useful here
-		"SyslogIdentifier", "%N")
+	defaultOneshotServiceGroup(service, true)
 
 	if name, ok := image.Lookup(ImageGroup, KeyImageTag); ok && len(name) > 0 {
 		imageName = name
@@ -1475,14 +1477,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
-	service.Setv(ServiceGroup,
-		"Type", "oneshot",
-		"RemainAfterExit", "yes",
-
-		// The default syslog identifier is the exec basename (podman)
-		// which isn't very useful here
-		"SyslogIdentifier", "%N")
-
+	defaultOneshotServiceGroup(service, false)
 	return service, nil
 }
 
@@ -1563,7 +1558,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
-	for _, containerService := range unitInfo.Containers {
+	for _, containerService := range unitInfo.ContainersToStart {
 		service.Add(UnitGroup, "Wants", containerService)
 		service.Add(UnitGroup, "Before", containerService)
 	}
@@ -1874,7 +1869,7 @@ func handleLogOpt(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 	}
 }
 
-func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo) (string, error) {
+func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo, checkImage bool) (string, error) {
 	if source[0] == '.' {
 		var err error
 		source, err = getAbsolutePath(quadletUnitFile, source)
@@ -1885,18 +1880,18 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	if source[0] == '/' {
 		// Absolute path
 		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
-	} else if strings.HasSuffix(source, ".volume") {
-		volumeUnitInfo, ok := unitsInfoMap[source]
+	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) {
+		sourceUnitInfo, ok := unitsInfoMap[source]
 		if !ok {
-			return "", fmt.Errorf("requested Quadlet image %s was not found", source)
+			return "", fmt.Errorf("requested Quadlet source %s was not found", source)
 		}
 
 		// the systemd unit name is $serviceName.service
-		volumeServiceName := volumeUnitInfo.ServiceFileName()
-		serviceUnitFile.Add(UnitGroup, "Requires", volumeServiceName)
-		serviceUnitFile.Add(UnitGroup, "After", volumeServiceName)
+		sourceServiceName := sourceUnitInfo.ServiceFileName()
+		serviceUnitFile.Add(UnitGroup, "Requires", sourceServiceName)
+		serviceUnitFile.Add(UnitGroup, "After", sourceServiceName)
 
-		source = volumeUnitInfo.ResourceName
+		source = sourceUnitInfo.ResourceName
 	}
 
 	return source, nil
@@ -2053,7 +2048,13 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 	}
 
 	// Source resolution is required only for these types of mounts
-	if !(mountType == "volume" || mountType == "bind" || mountType == "glob") {
+	sourceResultionRequired := map[string]struct{}{
+		"volume": {},
+		"bind":   {},
+		"glob":   {},
+		"image":  {},
+	}
+	if _, ok := sourceResultionRequired[mountType]; !ok {
 		return mount, nil
 	}
 
@@ -2070,7 +2071,7 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 		}
 	}
 
-	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap)
+	resolvedSource, err := handleStorageSource(containerUnitFile, serviceUnitFile, originalSource, unitsInfoMap, true)
 	if err != nil {
 		return "", err
 	}
@@ -2133,7 +2134,11 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 		serviceUnitFile.Add(UnitGroup, "BindsTo", podServiceName)
 		serviceUnitFile.Add(UnitGroup, "After", podServiceName)
 
-		podInfo.Containers = append(podInfo.Containers, serviceUnitFile.Filename)
+		// If we want to start the container with the pod, we add it to this list.
+		// This creates corresponding Wants=/Before= statements in the pod service.
+		if quadletUnitFile.LookupBooleanWithDefault(groupName, KeyStartWithPod, true) {
+			podInfo.ContainersToStart = append(podInfo.ContainersToStart, serviceUnitFile.Filename)
+		}
 	}
 	return nil
 }
@@ -2158,7 +2163,7 @@ func addVolumes(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName str
 
 		if source != "" {
 			var err error
-			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, unitsInfoMap)
+			source, err = handleStorageSource(quadletUnitFile, serviceUnitFile, source, unitsInfoMap, false)
 			if err != nil {
 				return err
 			}

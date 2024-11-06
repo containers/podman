@@ -11,8 +11,6 @@ import (
 	"syscall"
 	"time"
 	"unsafe"
-
-	"github.com/pkg/errors"
 )
 
 // Make sure Winsock2 is initialised
@@ -54,7 +52,7 @@ func Dial(raddr Addr) (Conn, error) {
 	}
 
 	if err := sys_connect(fd, ptr, n); err != nil {
-		return nil, errors.Wrapf(err, "connect(%s) failed", raddr)
+		return nil, fmt.Errorf("connect(%s) failed: %w", raddr, err)
 	}
 
 	return newHVsockConn(fd, Addr{VMID: GUIDZero, ServiceID: GUIDZero}, raddr)
@@ -78,7 +76,7 @@ func Listen(addr Addr) (net.Listener, error) {
 
 	err = syscall.Listen(fd, syscall.SOMAXCONN)
 	if err != nil {
-		return nil, errors.Wrapf(err, "listen(%s) failed", addr)
+		return nil, fmt.Errorf("listen(%s) failed: %w", addr, err)
 	}
 
 	return &hvsockListener{fd, addr}, nil

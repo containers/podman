@@ -9,8 +9,9 @@
 - Quadlets can now disable their implicit dependency on `network-online.target` via a new key, `DefaultDependencies`, supported by all Quadlet files ([#24193](https://github.com/containers/podman/issues/24193)).
 - Quadlet `.container` and `.pod` files now support a new key, `AddHost`, to add hosts to the container or pod.
 - The `PublishPort` key in Quadlet `.container` and `.pod` files can now accept variables in its value ([#24081](https://github.com/containers/podman/issues/24081)).
-- Quadlet `.container` files now support a new key, `CgroupsMode`, to configure cgroups for the container ([#23664](https://github.com/containers/podman/issues/23664)).
+- Quadlet `.container` files now support two new keys, `CgroupsMode` and `StartWithPod`, to configure cgroups for the container and whether the container will be started with the pod it is part of ([#23664](https://github.com/containers/podman/issues/23664) and [#24401](https://github.com/containers/podman/issues/24401)).
 - Quadlet `.container` files can now use the network of another container by specifying the `.container` file of the container to share with in the `Network` key.
+- Quadlet `.container` files can now mount images managed by `.image` files into the container by using the `Mount=type=image` key with a `.image` target.
 - Quadlet `.pod` files now support six new keys, `DNS`, `DNSOption`, `DNSSearch`, `IP`, `IP6`, and `UserNS`, to configure DNS, static IPs, and user namespace settings for the pod ([#23692](https://github.com/containers/podman/issues/23692)).
 - Quadlet `.image` files can now give an image multiple times by specifying the `ImageTag` key multiple times ([#23781](https://github.com/containers/podman/issues/23781)).
 - Quadlets can now be placed in the `/run/containers/systemd` directory as well as existing directories like `$HOME/containers/systemd` and `/etc/containers/systemd/users`.
@@ -38,6 +39,7 @@
 - Podman no longer explicitly sets rlimits to their default value, as this could lower the actual value available to containers if it had been set higher previously.
 - Quadlet user units now correctly wait for the network to be ready to use via a new service, `podman-user-wait-network-online.service`, instead of the user session's nonfunctional `network-online.target`.
 - Exposed ports in the output of `podman ps` are now correctly grouped and deduplicated when they are also published ([#23317](https://github.com/containers/podman/issues/23317)).
+- Quadlet build units no longer use `RemainAfterExit=yes` by default.
 
 ### Bugfixes
 - Fixed a bug where the `--build-context` option to `podman build` did not function properly on Windows, breaking compatibility with Visual Studio Dev Containers ([#17313](https://github.com/containers/podman/issues/17313)).
@@ -61,12 +63,14 @@
 - Fixed a bug where `podman machine` on Windows could fail to run VMs for certain usernames containing special characters.
 - Fixed a bug where Quadlet would reject `RemapUsers=keep-id` when run as root.
 - Fixed a bug where XFS quotas on volumes were not unique, meaning that all volumes using a quota shared the same maximum size and inodes (set by the most recent volume with a quota to be created).
+- Fixed a bug where `Service` section of Quadlet files would only use defaults and not respect user input ([#24322](https://github.com/containers/podman/issues/24322)).
 
 ### API
 - The Play API for Kubernetes YAML now supports `application/x-tar` compressed context directories ([#24015](https://github.com/containers/podman/pull/24015)).
 - Fixed a bug in the Attach API for Containers (for both Compat and Libpod endpoints) which could cause inconsistent failures due to a race condition ([#23757](https://github.com/containers/podman/issues/23757)).
 - Fixed a bug where the output for the Compat Top API for Containers did not properly split the output into an array ([#23981](https://github.com/containers/podman/issues/23981)).
 - Fixed a bug where the Info API could fail when running `podman system service` via a socket-activated systemd service ([#24152](https://github.com/containers/podman/issues/24152)).
+- Fixed a bug where the Events and Logs endpoints for Containers now send status codes immediately, as opposed to when the first event or log line is sent ([#23712](https://github.com/containers/podman/issues/23712)).
 
 ### Misc
 - Podman now requires Golang 1.22 or higher to build.

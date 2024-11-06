@@ -45,7 +45,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	"golang.org/x/sys/unix"
 )
 
@@ -135,7 +134,7 @@ func Listen(addr Addr) (net.Listener, error) {
 
 	err = syscall.Listen(fd, syscall.SOMAXCONN)
 	if err != nil {
-		return nil, errors.Wrapf(err, "listen(%s) failed", addr)
+		return nil, fmt.Errorf("listen(%s) failed: %w", addr, err)
 	}
 	return &hvsockListener{fd, addr}, nil
 }
@@ -157,7 +156,7 @@ func (v *hvsockListener) Accept() (net.Conn, error) {
 	acceptSALen = C.sizeof_struct_sockaddr_hv
 	fd, err := C.accept_hv(C.int(v.fd), &acceptSA, &acceptSALen)
 	if err != nil {
-		return nil, errors.Wrapf(err, "accept(%s) failed", v.local)
+		return nil, fmt.Errorf("accept(%s) failed: %w", v.local, err)
 	}
 
 	remote := &Addr{VMID: guidFromC(acceptSA.shv_vm_id), ServiceID: guidFromC(acceptSA.shv_service_id)}

@@ -82,6 +82,8 @@ func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer common.PdhCloseQuery.Call(uintptr(counter.Query))
+
 	usedPercent, err := counter.GetValue()
 	if err != nil {
 		return nil, err

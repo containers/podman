@@ -32,7 +32,8 @@ cd $CIRRUS_WORKING_DIR
 
 # Note, make completions and make vendor will already be run in _run_build()
 # so do not run them again for no reason. This just makes CI slower.
-SUGGESTION="run 'make vendor' or 'make completions' and commit all changes" ./hack/tree_status.sh
+showrun make -C test/tools vendor
+SUGGESTION="run 'make vendor', 'make -C test/tools vendor' and 'make completions' and commit all changes" ./hack/tree_status.sh
 
 showrun make .install.goimports
 showrun make generate-bindings

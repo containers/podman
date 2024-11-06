@@ -270,7 +270,8 @@ function _check_no_suggestions() {
     random_image_name="i-$(safename)"
     random_image_tag=$(random_string 5)
     random_network_name="n-$(safename)"
-    random_volume_name="v-$(safename)"
+    # Do not change the suffix, it is special debug for #23913
+    random_volume_name="v-$(safename)-ebpf-debug-23913"
     random_secret_name="s-$(safename)"
     random_secret_content=$(random_string 30)
     secret_file=$PODMAN_TMPDIR/$(random_string 10)

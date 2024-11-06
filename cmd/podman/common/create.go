@@ -279,7 +279,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.BoolVarP(
 			&cf.Interactive,
 			"interactive", "i", false,
-			"Keep STDIN open even if not attached",
+			"Make STDIN available to the contained process",
 		)
 		ipcFlagName := "ipc"
 		createFlags.String(

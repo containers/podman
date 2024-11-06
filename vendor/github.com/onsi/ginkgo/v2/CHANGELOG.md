@@ -1,3 +1,18 @@
+## 2.21.0
+
+
+  ### Features
+  - add support for GINKGO_TIME_FORMAT [a69eb39]
+  - add GINKGO_NO_COLOR to disable colors via environment variables [bcab9c8]
+
+  ### Fixes
+  - increase threshold in timeline matcher [e548367]
+  - Fix the document by replacing `SpecsThatWillBeRun` with `SpecsThatWillRun`
+  [c2c4d3c]
+
+  ### Maintenance
+  - bump various dependencies [7e65a00]
+
 ## 2.20.2
 
 Require Go 1.22+

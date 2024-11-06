@@ -3,9 +3,7 @@ package system
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"time"
 
@@ -31,7 +29,6 @@ func Events(ctx context.Context, eventChan chan types.Event, cancelChan chan boo
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
 
 	if cancelChan != nil {
 		go func() {
@@ -43,26 +40,23 @@ func Events(ctx context.Context, eventChan chan types.Event, cancelChan chan boo
 	}
 
 	if response.StatusCode != http.StatusOK {
+		defer response.Body.Close()
 		return response.Process(nil)
 	}
 
-	dec := json.NewDecoder(response.Body)
-	for err = (error)(nil); err == nil; {
-		var e = types.Event{}
-		err = dec.Decode(&e)
-		if err == nil {
-			eventChan <- e
+	go func() {
+		defer response.Body.Close()
+		defer close(eventChan)
+		dec := json.NewDecoder(response.Body)
+		for err = (error)(nil); err == nil; {
+			var e = types.Event{}
+			err = dec.Decode(&e)
+			if err == nil {
+				eventChan <- e
+			}
 		}
-	}
-	close(eventChan)
-	switch {
-	case err == nil:
-		return nil
-	case errors.Is(err, io.EOF):
-		return nil
-	default:
-		return fmt.Errorf("unable to decode event response: %w", err)
-	}
+	}()
+	return nil
 }
 
 // Prune removes all unused system data.

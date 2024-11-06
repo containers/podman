@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/bindings/system"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 )
@@ -23,7 +24,7 @@ func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptio
 	binChan := make(chan entities.Event)
 	go func() {
 		for e := range binChan {
-			opts.EventChan <- entities.ConvertToLibpodEvent(e)
+			opts.EventChan <- events.ReadResult{Event: entities.ConvertToLibpodEvent(e)}
 		}
 		close(opts.EventChan)
 	}()
