@@ -60,6 +60,9 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 	for _, v := range vols {
 		mp, err := v.MountPoint()
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchVolume) {
+				continue
+			}
 			utils.InternalServerError(w, err)
 			return
 		}
