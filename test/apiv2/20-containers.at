@@ -150,6 +150,13 @@ podman run --name $CTRNAME -d $IMAGE sleep 25
 t GET containers/$CTRNAME/top?stream=false 200 \
   .Processes.[0].[6]="00:00:00" \
   .Processes.[0].[7]="sleep 25"
+
+# check logs output, IMPORTANT the container should write no logs to reproduce #23712
+APIV2_TEST_EXPECT_TIMEOUT=1 t GET "containers/${CTRNAME}/logs?follow=true&stdout=true&stderr=true" 999
+is "" "$(<$WORKDIR/curl.result.out)" "Container MUST NOT log output"
+like "$(<$WORKDIR/curl.headers.out)" ".*HTTP.* 200 OK.*" \
+     "Received headers from /container/<id>/logs"
+
 podman rm -f -t0 $CTRNAME
 
 CTRNAME=test123

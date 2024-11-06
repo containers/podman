@@ -5,7 +5,7 @@
 ## assert-key-is "Unit" "RequiresMountsFor" "%t/containers"
 ## assert-key-is-regex "Service" "WorkingDirectory" "/.*/podman-e2e-.*/subtest-.*/quadlet"
 ## assert-key-is "Service" "Type" "oneshot"
-## assert-key-is "Service" "RemainAfterExit" "yes"
+## !assert-key-is "Service" "RemainAfterExit" "yes"
 ## assert-key-is "Service" "SyslogIdentifier" "%N"
 
 [Build]

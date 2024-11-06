@@ -97,8 +97,7 @@ func (e EventJournalD) Write(ee Event) error {
 }
 
 // Read reads events from the journal and sends qualified events to the event channel
-func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
-	defer close(options.EventChannel)
+func (e EventJournalD) Read(ctx context.Context, options ReadOptions) (retErr error) {
 	filterMap, err := generateEventFilters(options.Filters, options.Since, options.Until)
 	if err != nil {
 		return fmt.Errorf("failed to parse event filters: %w", err)
@@ -117,13 +116,15 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		return err
 	}
 	defer func() {
-		if err := j.Close(); err != nil {
-			logrus.Errorf("Unable to close journal :%v", err)
+		if retErr != nil {
+			if err := j.Close(); err != nil {
+				logrus.Errorf("Unable to close journal :%v", err)
+			}
 		}
 	}()
 	err = j.SetDataThreshold(0)
 	if err != nil {
-		logrus.Warnf("cannot set data threshold: %v", err)
+		return fmt.Errorf("cannot set data threshold for journal: %v", err)
 	}
 	// match only podman journal entries
 	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
@@ -158,30 +159,40 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		}
 	}
 
-	for {
-		entry, err := GetNextEntry(ctx, j, options.Stream, untilTime)
-		if err != nil {
-			return err
-		}
-		// no entry == we hit the end
-		if entry == nil {
-			return nil
-		}
-
-		newEvent, err := newEventFromJournalEntry(entry)
-		if err != nil {
-			// We can't decode this event.
-			// Don't fail hard - that would make events unusable.
-			// Instead, log and continue.
-			if !errors.Is(err, ErrEventTypeBlank) {
-				logrus.Errorf("Unable to decode event: %v", err)
+	go func() {
+		defer close(options.EventChannel)
+		defer func() {
+			if err := j.Close(); err != nil {
+				logrus.Errorf("Unable to close journal :%v", err)
 			}
-			continue
+		}()
+		for {
+			entry, err := GetNextEntry(ctx, j, options.Stream, untilTime)
+			if err != nil {
+				options.EventChannel <- ReadResult{Error: err}
+				break
+			}
+			// no entry == we hit the end
+			if entry == nil {
+				break
+			}
+
+			newEvent, err := newEventFromJournalEntry(entry)
+			if err != nil {
+				// We can't decode this event.
+				// Don't fail hard - that would make events unusable.
+				// Instead, log and continue.
+				if !errors.Is(err, ErrEventTypeBlank) {
+					options.EventChannel <- ReadResult{Error: fmt.Errorf("unable to decode event: %v", err)}
+				}
+				continue
+			}
+			if applyFilters(newEvent, filterMap) {
+				options.EventChannel <- ReadResult{Event: newEvent}
+			}
 		}
-		if applyFilters(newEvent, filterMap) {
-			options.EventChannel <- newEvent
-		}
-	}
+	}()
+	return nil
 }
 
 func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {

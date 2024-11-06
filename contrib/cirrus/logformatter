@@ -878,11 +878,14 @@ END_SYNOPSIS
                                 _a("{CIRRUS_BUILD_ID}", "https://cirrus-ci.com/build/{CIRRUS_BUILD_ID}"),
                                 _a("{CIRRUS_TASK_ID}", "https://cirrus-ci.com/task/{CIRRUS_TASK_ID}")));
 
-    # Logs: link to original (unformatted) log; journal; and, if remote, server
+    # Logs: link to original (unformatted) log; journal; cleanup tracer; and, if remote, server
     my @logs;
     push @logs, _a("main", sprintf("https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/%s.log",
                                    ($is_mac ? 'test' : 'main')));
     push @logs, _a("journal", "https://api.cirrus-ci.com/v1/task/{CIRRUS_TASK_ID}/logs/journal.log")
+        unless $is_mac;
+
+    push @logs, _a("cleanup tracer", "https://api.cirrus-ci.com/v1/artifact/task/{CIRRUS_TASK_ID}/cleanup_tracer/podman-cleanup-tracer.log")
         unless $is_mac;
 
     # System tests are single-threaded, and have a server log available

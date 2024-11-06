@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"slices"
 	"strconv"
 	"strings"
@@ -50,7 +49,6 @@ type machineTestBuilder struct {
 	names        []string
 	podmanBinary string
 	timeout      time.Duration
-	isInit       bool
 }
 
 // waitWithTimeout waits for a command to complete for a given
@@ -141,10 +139,6 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 		m.names = append(m.names, m.name)
 	}
 	m.cmd = mc.buildCmd(m)
-
-	_, ok := mc.(*initMachine)
-	m.isInit = ok
-
 	return m
 }
 
@@ -173,27 +167,6 @@ func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
 	s, err := runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
-	// debug for the slow init on macos
-	// The image file is not consistent, sometimes it is sparse sometimes not.
-	if m.isInit && runtime.GOOS == "darwin" {
-		c := exec.Command("du", "-ah", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
-		c.Stderr = os.Stderr
-		c.Stdout = os.Stdout
-		GinkgoWriter.Println(c.Args)
-		_ = c.Run()
-
-		c = exec.Command("ls", "-lh", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv"))
-		c.Stderr = os.Stderr
-		c.Stdout = os.Stdout
-		GinkgoWriter.Println(c.Args)
-		_ = c.Run()
-
-		c = exec.Command("stat", filepath.Join(os.Getenv("HOME"), ".local/share/containers/podman/machine/applehv", m.name+"-arm64.raw"))
-		c.Stderr = os.Stderr
-		c.Stdout = os.Stdout
-		GinkgoWriter.Println(c.Args)
-		_ = c.Run()
-	}
 	return s, err
 }
 

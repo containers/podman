@@ -194,9 +194,9 @@ Initialize the specified Podman machine overriding its memory size, pulling the 
 $ podman machine init --memory=1024 myvm
 ```
 
-Initialize the default Podman machine with the host directory `/Users` mounted into the VM at `/mnt/Users`.
+Initialize the default Podman machine with the host directory `/Users` mounted into the VM at `/Users`.
 ```
-$ podman machine init -v /Users:/mnt/Users
+$ podman machine init -v /Users:/Users
 ```
 
 Initialize the default Podman machine with a usb device passthrough specified with options. Only supported for QEMU Machines.

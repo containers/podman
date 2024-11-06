@@ -48,21 +48,21 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse filters for %s: %w", r.URL.String(), err))
 		return
 	}
-	eventChannel := make(chan *events.Event)
-	errorChannel := make(chan error)
+	eventChannel := make(chan events.ReadResult)
 
-	// Start reading events.
-	go func() {
-		readOpts := events.ReadOptions{
-			FromStart:    fromStart,
-			Stream:       query.Stream,
-			Filters:      libpodFilters,
-			EventChannel: eventChannel,
-			Since:        query.Since,
-			Until:        query.Until,
-		}
-		errorChannel <- runtime.Events(r.Context(), readOpts)
-	}()
+	readOpts := events.ReadOptions{
+		FromStart:    fromStart,
+		Stream:       query.Stream,
+		Filters:      libpodFilters,
+		EventChannel: eventChannel,
+		Since:        query.Since,
+		Until:        query.Until,
+	}
+	err = runtime.Events(r.Context(), readOpts)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
 
 	flush := func() {}
 	if flusher, ok := w.(http.Flusher); ok {
@@ -70,31 +70,29 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	wroteContent := false
-	defer func() {
-		if !wroteContent {
-			w.WriteHeader(http.StatusOK)
-			flush()
-		}
-	}()
+	w.WriteHeader(http.StatusOK)
+	flush()
 
 	coder := json.NewEncoder(w)
 	coder.SetEscapeHTML(true)
 
 	for {
 		select {
-		case err := <-errorChannel:
-			if err != nil {
-				utils.InternalServerError(w, err)
-				wroteContent = true
-			}
+		case <-r.Context().Done():
 			return
-		case evt := <-eventChannel:
-			if evt == nil {
+		case evt, ok := <-eventChannel:
+			if !ok {
+				return
+			}
+			if evt.Error != nil {
+				logrus.Errorf("Unable to read event: %q", err)
+				continue
+			}
+			if evt.Event == nil {
 				continue
 			}
 
-			e := entities.ConvertToEntitiesEvent(*evt)
+			e := entities.ConvertToEntitiesEvent(*evt.Event)
 			// Some events differ between Libpod and Docker endpoints.
 			// Handle these differences for Docker-compat.
 			if !utils.IsLibpodRequest(r) && e.Type == "image" && e.Status == "remove" {
@@ -110,10 +108,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			if err := coder.Encode(e); err != nil {
 				logrus.Errorf("Unable to write json: %q", err)
 			}
-			wroteContent = true
 			flush()
-		case <-r.Context().Done():
-			return
 		}
 	}
 }

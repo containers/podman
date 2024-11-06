@@ -328,7 +328,7 @@ var ParallelConfigFlags = GinkgoFlags{
 // ReporterConfigFlags provides flags for the Ginkgo test process, and CLI
 var ReporterConfigFlags = GinkgoFlags{
 	{KeyPath: "R.NoColor", Name: "no-color", SectionKey: "output", DeprecatedName: "noColor", DeprecatedDocLink: "changed-command-line-flags",
-		Usage: "If set, suppress color output in default reporter."},
+		Usage: "If set, suppress color output in default reporter.  You can also set the environment variable GINKGO_NO_COLOR=TRUE"},
 	{KeyPath: "R.Verbose", Name: "v", SectionKey: "output",
 		Usage: "If set, emits more output including GinkgoWriter contents."},
 	{KeyPath: "R.VeryVerbose", Name: "vv", SectionKey: "output",

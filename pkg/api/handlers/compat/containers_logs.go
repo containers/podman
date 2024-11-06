@@ -106,6 +106,13 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+	flush()
+
 	var frame strings.Builder
 	header := make([]byte, 8)
 
@@ -167,8 +174,6 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.WriteString(w, frame.String()); err != nil {
 			log.Errorf("unable to write frame string: %q", err)
 		}
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
-		}
+		flush()
 	}
 }
