@@ -147,6 +147,11 @@ case "$OS_RELEASE_ID" in
             msg "Enabling container_manage_cgroup"
             showrun setsebool container_manage_cgroup true
         fi
+
+        # Test nftables driver, https://fedoraproject.org/wiki/Changes/NetavarkNftablesDefault
+        # We can drop this once this implemented and pushed into fedora stable. We cannot test it on
+        # debian because the netavark version there is way to old for nftables support.
+        printf "[network]\nfirewall_driver=\"nftables\"\n" > /etc/containers/containers.conf.d/90-nftables.conf
         ;;
     *) die_unknown OS_RELEASE_ID
 esac
