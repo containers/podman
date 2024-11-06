@@ -439,7 +439,7 @@ func layerLocation(l *Layer) layerLocations {
 func copyLayer(l *Layer) *Layer {
 	return &Layer{
 		ID:                 l.ID,
-		Names:              copyStringSlice(l.Names),
+		Names:              copySlicePreferringNil(l.Names),
 		Parent:             l.Parent,
 		Metadata:           l.Metadata,
 		MountLabel:         l.MountLabel,
@@ -454,12 +454,12 @@ func copyLayer(l *Layer) *Layer {
 		CompressionType:    l.CompressionType,
 		ReadOnly:           l.ReadOnly,
 		volatileStore:      l.volatileStore,
-		BigDataNames:       copyStringSlice(l.BigDataNames),
-		Flags:              maps.Clone(l.Flags),
-		UIDMap:             copyIDMap(l.UIDMap),
-		GIDMap:             copyIDMap(l.GIDMap),
-		UIDs:               copyUint32Slice(l.UIDs),
-		GIDs:               copyUint32Slice(l.GIDs),
+		BigDataNames:       copySlicePreferringNil(l.BigDataNames),
+		Flags:              copyMapPreferringNil(l.Flags),
+		UIDMap:             copySlicePreferringNil(l.UIDMap),
+		GIDMap:             copySlicePreferringNil(l.GIDMap),
+		UIDs:               copySlicePreferringNil(l.UIDs),
+		GIDs:               copySlicePreferringNil(l.GIDs),
 	}
 }
 
@@ -1406,9 +1406,9 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 		CompressionType:    templateCompressionType,
 		UIDs:               templateUIDs,
 		GIDs:               templateGIDs,
-		Flags:              copyStringInterfaceMap(moreOptions.Flags),
-		UIDMap:             copyIDMap(moreOptions.UIDMap),
-		GIDMap:             copyIDMap(moreOptions.GIDMap),
+		Flags:              newMapFrom(moreOptions.Flags),
+		UIDMap:             copySlicePreferringNil(moreOptions.UIDMap),
+		GIDMap:             copySlicePreferringNil(moreOptions.GIDMap),
 		BigDataNames:       []string{},
 		volatileStore:      moreOptions.Volatile,
 	}
@@ -1843,7 +1843,7 @@ func (r *layerStore) BigDataNames(id string) ([]string, error) {
 	if !ok {
 		return nil, fmt.Errorf("locating layer with ID %q to retrieve bigdata names: %w", id, ErrImageUnknown)
 	}
-	return copyStringSlice(layer.BigDataNames), nil
+	return copySlicePreferringNil(layer.BigDataNames), nil
 }
 
 // Requires startReading or startWriting.
