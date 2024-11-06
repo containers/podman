@@ -121,33 +121,13 @@ func ListVolumes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	volumeFilters := []libpod.VolumeFilter{}
-	for filter, filterValues := range *filterMap {
-		filterFunc, err := filters.GenerateVolumeFilters(filter, filterValues, runtime)
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		volumeFilters = append(volumeFilters, filterFunc)
-	}
-
-	vols, err := runtime.Volumes(volumeFilters...)
+	ic := abi.ContainerEngine{Libpod: runtime}
+	volumeConfigs, err := ic.VolumeList(r.Context(), entities.VolumeListOptions{Filter: *filterMap})
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
-	volumeConfigs := make([]*entities.VolumeListReport, 0, len(vols))
-	for _, v := range vols {
-		inspectOut, err := v.Inspect()
-		if err != nil {
-			utils.InternalServerError(w, err)
-			return
-		}
-		config := entities.VolumeConfigResponse{
-			InspectVolumeData: *inspectOut,
-		}
-		volumeConfigs = append(volumeConfigs, &entities.VolumeListReport{VolumeConfigResponse: config})
-	}
+
 	utils.WriteResponse(w, http.StatusOK, volumeConfigs)
 }
 
