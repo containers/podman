@@ -135,6 +135,19 @@ func (c *Container) newExecDiedEvent(sessionID string, exitCode int) {
 	}
 }
 
+// newNetworkEvent creates a new event based on a network create/remove
+func (r *Runtime) NewNetworkEvent(status events.Status, netName, netID, netDriver string) {
+	e := events.NewEvent(status)
+	e.Network = netName
+	e.ID = netID
+	e.Attributes = make(map[string]string)
+	e.Attributes["driver"] = netDriver
+	e.Type = events.Network
+	if err := r.eventer.Write(e); err != nil {
+		logrus.Errorf("Unable to write network event: %q", err)
+	}
+}
+
 // newNetworkEvent creates a new event based on a network connect/disconnect
 func (c *Container) newNetworkEvent(status events.Status, netName string) {
 	e := events.NewEvent(status)
