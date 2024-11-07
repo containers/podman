@@ -24,7 +24,7 @@ require (
 	github.com/containers/storage v1.55.2-0.20241104201357-ad5f2a48e9e9
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
-	github.com/coreos/stream-metadata-go v0.4.4
+	github.com/coreos/stream-metadata-go v0.4.5
 	github.com/crc-org/crc/v2 v2.38.0
 	github.com/crc-org/vfkit v0.5.1
 	github.com/cyphar/filepath-securejoin v0.3.4
