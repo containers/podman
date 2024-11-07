@@ -1,6 +1,7 @@
 package sftp
 
 import (
+	"context"
 	"encoding"
 	"fmt"
 	"io"
@@ -128,14 +129,19 @@ type idmarshaler interface {
 	encoding.BinaryMarshaler
 }
 
-func (c *clientConn) sendPacket(ch chan result, p idmarshaler) (byte, []byte, error) {
+func (c *clientConn) sendPacket(ctx context.Context, ch chan result, p idmarshaler) (byte, []byte, error) {
 	if cap(ch) < 1 {
 		ch = make(chan result, 1)
 	}
 
 	c.dispatchRequest(ch, p)
-	s := <-ch
-	return s.typ, s.data, s.err
+
+	select {
+	case <-ctx.Done():
+		return 0, nil, ctx.Err()
+	case s := <-ch:
+		return s.typ, s.data, s.err
+	}
 }
 
 // dispatchRequest should ideally only be called by race-detection tests outside of this file,

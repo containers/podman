@@ -3,7 +3,6 @@ package sftp
 // Methods on the Request object to make working with the Flags bitmasks and
 // Attr(ibutes) byte blob easier. Use Pflags() when working with an Open/Write
 // request and AttrFlags() and Attributes() when working with SetStat requests.
-import "os"
 
 // FileOpenFlags defines Open and Write Flags. Correlate directly with with os.OpenFile flags
 // (https://golang.org/pkg/os/#pkg-constants).
@@ -50,14 +49,9 @@ func (r *Request) AttrFlags() FileAttrFlags {
 	return newFileAttrFlags(r.Flags)
 }
 
-// FileMode returns the Mode SFTP file attributes wrapped as os.FileMode
-func (a FileStat) FileMode() os.FileMode {
-	return os.FileMode(a.Mode)
-}
-
 // Attributes parses file attributes byte blob and return them in a
 // FileStat object.
 func (r *Request) Attributes() *FileStat {
-	fs, _ := unmarshalFileStat(r.Flags, r.Attrs)
+	fs, _, _ := unmarshalFileStat(r.Flags, r.Attrs)
 	return fs
 }

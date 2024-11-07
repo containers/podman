@@ -34,16 +34,17 @@ func newImageDestination(sys *types.SystemContext, ref archiveReference) (privat
 		writer = w
 		closeWriter = true
 	}
-	tarDest := tarfile.NewDestination(sys, writer.archive, ref.Transport().Name(), ref.ref)
-	if sys != nil && sys.DockerArchiveAdditionalTags != nil {
-		tarDest.AddRepoTags(sys.DockerArchiveAdditionalTags)
-	}
-	return &archiveImageDestination{
-		Destination: tarDest,
+	d := &archiveImageDestination{
 		ref:         ref,
 		writer:      writer,
 		closeWriter: closeWriter,
-	}, nil
+	}
+	tarDest := tarfile.NewDestination(sys, writer.archive, ref.Transport().Name(), ref.ref, d.CommitWithOptions)
+	if sys != nil && sys.DockerArchiveAdditionalTags != nil {
+		tarDest.AddRepoTags(sys.DockerArchiveAdditionalTags)
+	}
+	d.Destination = tarDest
+	return d, nil
 }
 
 // Reference returns the reference used to set up this destination.  Note that this should directly correspond to user's intent,
@@ -60,14 +61,11 @@ func (d *archiveImageDestination) Close() error {
 	return nil
 }
 
-// Commit marks the process of storing the image as successful and asks for the image to be persisted.
-// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
-// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
-// original manifest list digest, if desired.
+// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
 // WARNING: This does not have any transactional semantics:
-// - Uploaded data MAY be visible to others before Commit() is called
-// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *archiveImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
+// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+func (d *archiveImageDestination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
 	d.writer.imageCommitted()
 	if d.closeWriter {
 		// We could do this only in .Close(), but failures in .Close() are much more likely to be

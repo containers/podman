@@ -1359,6 +1359,7 @@ func (s *Server) processUnaryRPC(ctx context.Context, t transport.ServerTranspor
 		}
 		return err
 	}
+	defer d.Free()
 	if channelz.IsOn() {
 		t.IncrMsgRecv()
 	}

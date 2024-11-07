@@ -50,11 +50,6 @@ type SetupOptions struct {
 	ExtraOptions []string
 }
 
-// Setup2 alias for Setup()
-func Setup2(opts *SetupOptions) (*SetupResult, error) {
-	return Setup(opts)
-}
-
 // Setup start the pasta process for the given netns.
 // The pasta binary is looked up in the HelperBinariesDir and $PATH.
 // Note that there is no need for any special cleanup logic, the pasta

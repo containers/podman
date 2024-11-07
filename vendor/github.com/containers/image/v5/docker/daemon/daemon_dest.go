@@ -56,16 +56,17 @@ func newImageDestination(ctx context.Context, sys *types.SystemContext, ref daem
 	goroutineContext, goroutineCancel := context.WithCancel(ctx)
 	go imageLoadGoroutine(goroutineContext, c, reader, statusChannel)
 
-	return &daemonImageDestination{
+	d := &daemonImageDestination{
 		ref:                ref,
 		mustMatchRuntimeOS: mustMatchRuntimeOS,
-		Destination:        tarfile.NewDestination(sys, archive, ref.Transport().Name(), namedTaggedRef),
 		archive:            archive,
 		goroutineCancel:    goroutineCancel,
 		statusChannel:      statusChannel,
 		writer:             writer,
 		committed:          false,
-	}, nil
+	}
+	d.Destination = tarfile.NewDestination(sys, archive, ref.Transport().Name(), namedTaggedRef, d.CommitWithOptions)
+	return d, nil
 }
 
 // imageLoadGoroutine accepts tar stream on reader, sends it to c, and reports error or success by writing to statusChannel
@@ -146,7 +147,7 @@ func (d *daemonImageDestination) Close() error {
 		// immediately, and hopefully, through terminating the sending which uses "Transfer-Encoding: chunked"" without sending
 		// the terminating zero-length chunk, prevent the docker daemon from processing the tar stream at all.
 		// Whether that works or not, closing the PipeWriter seems desirable in any case.
-		if err := d.writer.CloseWithError(errors.New("Aborting upload, daemonImageDestination closed without a previous .Commit()")); err != nil {
+		if err := d.writer.CloseWithError(errors.New("Aborting upload, daemonImageDestination closed without a previous .CommitWithOptions()")); err != nil {
 			return err
 		}
 	}
@@ -159,14 +160,11 @@ func (d *daemonImageDestination) Reference() types.ImageReference {
 	return d.ref
 }
 
-// Commit marks the process of storing the image as successful and asks for the image to be persisted.
-// unparsedToplevel contains data about the top-level manifest of the source (which may be a single-arch image or a manifest list
-// if PutManifest was only called for the single-arch image with instanceDigest == nil), primarily to allow lookups by the
-// original manifest list digest, if desired.
+// CommitWithOptions marks the process of storing the image as successful and asks for the image to be persisted.
 // WARNING: This does not have any transactional semantics:
-// - Uploaded data MAY be visible to others before Commit() is called
-// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
-func (d *daemonImageDestination) Commit(ctx context.Context, unparsedToplevel types.UnparsedImage) error {
+// - Uploaded data MAY be visible to others before CommitWithOptions() is called
+// - Uploaded data MAY be removed or MAY remain around if Close() is called without CommitWithOptions() (i.e. rollback is allowed but not guaranteed)
+func (d *daemonImageDestination) CommitWithOptions(ctx context.Context, options private.CommitOptions) error {
 	logrus.Debugf("docker-daemon: Closing tar stream")
 	if err := d.archive.Close(); err != nil {
 		return err

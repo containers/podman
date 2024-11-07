@@ -201,7 +201,7 @@ func (n *Netns) setupPasta(nsPath string) error {
 		Netns:        nsPath,
 		ExtraOptions: []string{"--pid", pidPath},
 	}
-	res, err := pasta.Setup2(&pastaOpts)
+	res, err := pasta.Setup(&pastaOpts)
 	if err != nil {
 		return fmt.Errorf("setting up Pasta: %w", err)
 	}

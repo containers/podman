@@ -13,15 +13,15 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.3.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.37.1-0.20241018144937-2551c8f3d110
-	github.com/containers/common v0.60.1-0.20241018183244-7e6f2b4d6de7
+	github.com/containers/buildah v1.37.1-0.20241104213057-0dc5f958934a
+	github.com/containers/common v0.60.1-0.20241106101802-8130e31c0832
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.0
-	github.com/containers/image/v5 v5.32.3-0.20241016192323-a66152c1cdf6
+	github.com/containers/image/v5 v5.32.3-0.20241105183637-59417aed3db1
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.55.1-0.20241017155235-4db236377c55
+	github.com/containers/storage v1.55.2-0.20241104201357-ad5f2a48e9e9
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
@@ -89,7 +89,7 @@ require (
 require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.12.7 // indirect
+	github.com/Microsoft/hcsshim v0.12.9 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
 	github.com/aead/serpent v0.0.0-20160714141033-fba169763ea6 // indirect
@@ -99,7 +99,8 @@ require (
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/containerd/cgroups/v3 v3.0.3 // indirect
-	github.com/containerd/errdefs v0.1.0 // indirect
+	github.com/containerd/errdefs v0.3.0 // indirect
+	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.15.1 // indirect
@@ -117,7 +118,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.8.2 // indirect
 	github.com/ebitengine/purego v0.8.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/fsnotify/fsnotify v1.7.0 // indirect
+	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/fsouza/go-dockerclient v1.12.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
@@ -170,11 +171,11 @@ require (
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/moby/buildkit v0.16.0 // indirect
+	github.com/moby/buildkit v0.17.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
-	github.com/moby/sys/sequential v0.5.0 // indirect
+	github.com/moby/sys/sequential v0.6.0 // indirect
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -184,7 +185,8 @@ require (
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.6 // indirect
+	github.com/pkg/sftp v1.13.7 // indirect
+	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/proglottis/gpgme v0.1.3 // indirect
@@ -195,6 +197,7 @@ require (
 	github.com/sigstore/fulcio v1.6.4 // indirect
 	github.com/sigstore/rekor v1.3.6 // indirect
 	github.com/sigstore/sigstore v1.8.9 // indirect
+	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.19.1 // indirect
@@ -222,8 +225,8 @@ require (
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240823204242-4ba0660f739c // indirect
-	google.golang.org/grpc v1.66.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
+	google.golang.org/grpc v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect

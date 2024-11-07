@@ -792,7 +792,7 @@ func (m *ManifestList) Push(ctx context.Context, destination string, options *Ma
 	// NOTE: we're using the logic in copier to create a proper
 	// types.SystemContext. This prevents us from having an error prone
 	// code duplicate here.
-	copier, err := m.image.runtime.newCopier(&options.CopyOptions)
+	copier, err := m.image.runtime.newCopier(&options.CopyOptions, nil)
 	if err != nil {
 		return "", err
 	}

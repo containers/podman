@@ -237,6 +237,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		workDir = options.WorkingDir
 	} else if b.WorkDir() != "" {
 		g.SetProcessCwd(b.WorkDir())
+		workDir = b.WorkDir()
+	}
+	if workDir == "" {
+		workDir = string(os.PathSeparator)
 	}
 	setupSelinux(g, b.ProcessLabel, b.MountLabel)
 	mountPoint, err := b.Mount(b.MountLabel)
