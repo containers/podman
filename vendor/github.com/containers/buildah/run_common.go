@@ -1605,7 +1605,7 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 				mountImages = append(mountImages, image)
 			}
 		case "tmpfs":
-			mountSpec, err = b.getTmpfsMount(tokens, idMaps)
+			mountSpec, err = b.getTmpfsMount(tokens, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1665,9 +1665,9 @@ func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContex
 	return &volumes[0], image, nil
 }
 
-func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*specs.Mount, error) {
+func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps, workDir string) (*specs.Mount, error) {
 	var optionMounts []specs.Mount
-	mount, err := volumes.GetTmpfsMount(tokens)
+	mount, err := volumes.GetTmpfsMount(tokens, workDir)
 	if err != nil {
 		return nil, err
 	}

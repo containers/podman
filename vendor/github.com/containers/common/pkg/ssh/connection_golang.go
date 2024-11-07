@@ -16,14 +16,20 @@ import (
 	"strings"
 	"time"
 
+	// We are using skeema/knownhosts rather than
+	// golang.org/x/crypto/ssh/knownhosts because the
+	// latter has an issue when the first key returned
+	// by the server doesn't match the one in known_hosts:
+	// https://github.com/golang/go/issues/29286
+	// https://github.com/containers/podman/issues/23575
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/pkg/sftp"
 	"github.com/sirupsen/logrus"
+	"github.com/skeema/knownhosts"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/crypto/ssh/knownhosts"
 	"golang.org/x/exp/maps"
 )
 
@@ -301,46 +307,44 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 		return nil, err
 	}
 
+	keyFilePath := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
+	known, err := knownhosts.NewDB(keyFilePath)
+	if err != nil {
+		if !errors.Is(err, os.ErrNotExist) {
+			return nil, err
+		}
+		keyDir := path.Dir(keyFilePath)
+		if err := fileutils.Exists(keyDir); errors.Is(err, os.ErrNotExist) {
+			if err := os.Mkdir(keyDir, 0o700); err != nil {
+				return nil, err
+			}
+		}
+		k, err := os.OpenFile(keyFilePath, os.O_RDWR|os.O_CREATE, 0o600)
+		if err != nil {
+			return nil, err
+		}
+		k.Close()
+		known, err = knownhosts.NewDB(keyFilePath)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	var callback ssh.HostKeyCallback
 	if insecureIsMachineConnection {
 		callback = ssh.InsecureIgnoreHostKey()
 	} else {
 		callback = ssh.HostKeyCallback(func(host string, remote net.Addr, pubKey ssh.PublicKey) error {
-			keyFilePath := filepath.Join(homedir.Get(), ".ssh", "known_hosts")
-			known, err := knownhosts.New(keyFilePath)
-			if err != nil {
-				if !errors.Is(err, os.ErrNotExist) {
-					return err
-				}
-				keyDir := path.Dir(keyFilePath)
-				if err := fileutils.Exists(keyDir); errors.Is(err, os.ErrNotExist) {
-					if err := os.Mkdir(keyDir, 0o700); err != nil {
-						return err
-					}
-				}
-				k, err := os.OpenFile(keyFilePath, os.O_RDWR|os.O_CREATE, 0o600)
-				if err != nil {
-					return err
-				}
-				k.Close()
-				known, err = knownhosts.New(keyFilePath)
-				if err != nil {
-					return err
-				}
-			}
 			// we need to check if there is an error from reading known hosts for this public key and if there is an error, what is it, and why is it happening?
 			// if it is a key mismatch we want to error since we know the host using another key
 			// however, if it is a general error not because of a known key, we want to add our key to the known_hosts file
-			hErr := known(host, remote, pubKey)
-			var keyErr *knownhosts.KeyError
-			// if keyErr.Want is not empty, we are receiving a different key meaning the host is known but we are using the wrong key
-			as := errors.As(hErr, &keyErr)
+			hErr := known.HostKeyCallback()(host, remote, pubKey)
 			switch {
-			case as && len(keyErr.Want) > 0:
+			case knownhosts.IsHostKeyChanged(hErr):
 				logrus.Warnf("ssh host key mismatch for host %s, got key %s of type %s", host, ssh.FingerprintSHA256(pubKey), pubKey.Type())
-				return keyErr
+				return hErr
 			// if keyErr.Want is empty that just means we do not know this host yet, add it.
-			case as && len(keyErr.Want) == 0:
+			case knownhosts.IsHostUnknown(hErr):
 				// write to known_hosts
 				err := addKnownHostsEntry(host, pubKey)
 				if err != nil {
@@ -358,10 +362,11 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 	}
 
 	cfg := &ssh.ClientConfig{
-		User:            uri.User.Username(),
-		Auth:            authMethods,
-		HostKeyCallback: callback,
-		Timeout:         tick,
+		User:              uri.User.Username(),
+		Auth:              authMethods,
+		HostKeyCallback:   callback,
+		Timeout:           tick,
+		HostKeyAlgorithms: known.HostKeyAlgorithms(uri.Host),
 	}
 	return cfg, nil
 }

@@ -575,7 +575,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				Destination: volume.MountPath,
 				ReadWrite:   false,
 				Source:      volumeSource.Source,
-				SubPath:     "",
+				SubPath:     volume.SubPath,
 			}
 			s.ImageVolumes = append(s.ImageVolumes, &imageVolume)
 		default:

@@ -164,6 +164,9 @@ func (ic *ContainerEngine) VolumeList(ctx context.Context, opts entities.VolumeL
 	for _, v := range vols {
 		inspectOut, err := v.Inspect()
 		if err != nil {
+			if errors.Is(err, define.ErrNoSuchVolume) {
+				continue
+			}
 			return nil, err
 		}
 		config := entities.VolumeConfigResponse{

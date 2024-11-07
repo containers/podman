@@ -175,8 +175,8 @@ type Copier struct {
 // newCopier creates a Copier based on a runtime's system context.
 // Note that fields in options *may* overwrite the counterparts of
 // the specified system context.  Please make sure to call `(*Copier).Close()`.
-func (r *Runtime) newCopier(options *CopyOptions) (*Copier, error) {
-	return NewCopier(options, r.SystemContext())
+func (r *Runtime) newCopier(options *CopyOptions, reportResolvedReference *types.ImageReference) (*Copier, error) {
+	return NewCopier(options, r.SystemContext(), reportResolvedReference)
 }
 
 // storageAllowedPolicyScopes overrides the policy for local storage
@@ -223,7 +223,7 @@ func getDockerAuthConfig(name, passwd, creds, idToken string) (*types.DockerAuth
 // NewCopier creates a Copier based on a provided system context.
 // Note that fields in options *may* overwrite the counterparts of
 // the specified system context.  Please make sure to call `(*Copier).Close()`.
-func NewCopier(options *CopyOptions, sc *types.SystemContext) (*Copier, error) {
+func NewCopier(options *CopyOptions, sc *types.SystemContext, reportResolvedReference *types.ImageReference) (*Copier, error) {
 	c := Copier{extendTimeoutSocket: options.extendTimeoutSocket}
 	sysContextCopy := *sc
 	c.systemContext = &sysContextCopy
@@ -330,6 +330,7 @@ func NewCopier(options *CopyOptions, sc *types.SystemContext) (*Copier, error) {
 	c.imageCopyOptions.SignBySigstorePrivateKeyFile = options.SignBySigstorePrivateKeyFile
 	c.imageCopyOptions.SignSigstorePrivateKeyPassphrase = options.SignSigstorePrivateKeyPassphrase
 	c.imageCopyOptions.ReportWriter = options.Writer
+	c.imageCopyOptions.ReportResolvedReference = reportResolvedReference
 
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
