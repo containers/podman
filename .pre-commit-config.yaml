@@ -8,11 +8,12 @@ repos:
       # trailing whitespace as part of its format. We can work around that,
       # but unfortunately the buildah repo has some files with tabs, which
       # git-diff formats as '[+/-]<space><tab>', which these hooks choke on.
-      # `contrib/systemd/user` is a symlink but for some reason, on windows,
-      # pre-commit consider it as a regular file and tries to fix it.
-      # Just disable checks on these files as a special case.
+      # `contrib/systemd/user` and `test/python/requirements.txt` are symlinks
+      # but for some reason, on windows, pre-commit consider it as a regular
+      # file and tries to fix it. Just disable checks on these files as a
+      # special case.
       - id: end-of-file-fixer
-        exclude: test/buildah-bud/buildah-tests.diff|contrib/systemd/user
+        exclude: test/buildah-bud/buildah-tests.diff|contrib/systemd/user|test/python/requirements.txt
       - id: trailing-whitespace
         exclude: test/buildah-bud/buildah-tests.diff|test/e2e/quadlet/remap-keep-id2.container|test/e2e/quadlet/line-continuation-whitespace.container
       - id: mixed-line-ending
