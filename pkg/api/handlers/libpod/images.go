@@ -410,7 +410,10 @@ func ImagesImport(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		tmpfile.Close()
+		if err := tmpfile.Close(); err != nil {
+			utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to close tempfile: %w", err))
+			return
+		}
 		source = tmpfile.Name()
 	}
 
