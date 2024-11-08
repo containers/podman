@@ -4,6 +4,15 @@
 
 package sha3
 
+import (
+	"crypto/subtle"
+	"encoding/binary"
+	"errors"
+	"unsafe"
+
+	"golang.org/x/sys/cpu"
+)
+
 // spongeDirection indicates the direction bytes are flowing through the sponge.
 type spongeDirection int
 
@@ -14,16 +23,13 @@ const (
 	spongeSqueezing
 )
 
-const (
-	// maxRate is the maximum size of the internal buffer. SHAKE-256
-	// currently needs the largest buffer.
-	maxRate = 168
-)
-
 type state struct {
-	// Generic sponge components.
-	a    [25]uint64 // main state of the hash
-	rate int        // the number of bytes of state to use
+	a [1600 / 8]byte // main state of the hash
+
+	// a[n:rate] is the buffer. If absorbing, it's the remaining space to XOR
+	// into before running the permutation. If squeezing, it's the remaining
+	// output to produce before running the permutation.
+	n, rate int
 
 	// dsbyte contains the "domain separation" bits and the first bit of
 	// the padding. Sections 6.1 and 6.2 of [1] separate the outputs of the
@@ -39,10 +45,6 @@ type state struct {
 	//      Extendable-Output Functions (May 2014)"
 	dsbyte byte
 
-	i, n    int // storage[i:n] is the buffer, i is only used while squeezing
-	storage [maxRate]byte
-
-	// Specific to SHA-3 and SHAKE.
 	outputLen int             // the default output size in bytes
 	state     spongeDirection // whether the sponge is absorbing or squeezing
 }
@@ -61,7 +63,7 @@ func (d *state) Reset() {
 		d.a[i] = 0
 	}
 	d.state = spongeAbsorbing
-	d.i, d.n = 0, 0
+	d.n = 0
 }
 
 func (d *state) clone() *state {
@@ -69,22 +71,25 @@ func (d *state) clone() *state {
 	return &ret
 }
 
-// permute applies the KeccakF-1600 permutation. It handles
-// any input-output buffering.
+// permute applies the KeccakF-1600 permutation.
 func (d *state) permute() {
-	switch d.state {
-	case spongeAbsorbing:
-		// If we're absorbing, we need to xor the input into the state
-		// before applying the permutation.
-		xorIn(d, d.storage[:d.rate])
-		d.n = 0
-		keccakF1600(&d.a)
-	case spongeSqueezing:
-		// If we're squeezing, we need to apply the permutation before
-		// copying more output.
-		keccakF1600(&d.a)
-		d.i = 0
-		copyOut(d, d.storage[:d.rate])
+	var a *[25]uint64
+	if cpu.IsBigEndian {
+		a = new([25]uint64)
+		for i := range a {
+			a[i] = binary.LittleEndian.Uint64(d.a[i*8:])
+		}
+	} else {
+		a = (*[25]uint64)(unsafe.Pointer(&d.a))
+	}
+
+	keccakF1600(a)
+	d.n = 0
+
+	if cpu.IsBigEndian {
+		for i := range a {
+			binary.LittleEndian.PutUint64(d.a[i*8:], a[i])
+		}
 	}
 }
 
@@ -92,53 +97,36 @@ func (d *state) permute() {
 // the multi-bitrate 10..1 padding rule, and permutes the state.
 func (d *state) padAndPermute() {
 	// Pad with this instance's domain-separator bits. We know that there's
-	// at least one byte of space in d.buf because, if it were full,
+	// at least one byte of space in the sponge because, if it were full,
 	// permute would have been called to empty it. dsbyte also contains the
 	// first one bit for the padding. See the comment in the state struct.
-	d.storage[d.n] = d.dsbyte
-	d.n++
-	for d.n < d.rate {
-		d.storage[d.n] = 0
-		d.n++
-	}
+	d.a[d.n] ^= d.dsbyte
 	// This adds the final one bit for the padding. Because of the way that
 	// bits are numbered from the LSB upwards, the final bit is the MSB of
 	// the last byte.
-	d.storage[d.rate-1] ^= 0x80
+	d.a[d.rate-1] ^= 0x80
 	// Apply the permutation
 	d.permute()
 	d.state = spongeSqueezing
-	d.n = d.rate
-	copyOut(d, d.storage[:d.rate])
 }
 
 // Write absorbs more data into the hash's state. It panics if any
 // output has already been read.
-func (d *state) Write(p []byte) (written int, err error) {
+func (d *state) Write(p []byte) (n int, err error) {
 	if d.state != spongeAbsorbing {
 		panic("sha3: Write after Read")
 	}
-	written = len(p)
+
+	n = len(p)
 
 	for len(p) > 0 {
-		if d.n == 0 && len(p) >= d.rate {
-			// The fast path; absorb a full "rate" bytes of input and apply the permutation.
-			xorIn(d, p[:d.rate])
-			p = p[d.rate:]
-			keccakF1600(&d.a)
-		} else {
-			// The slow path; buffer the input until we can fill the sponge, and then xor it in.
-			todo := d.rate - d.n
-			if todo > len(p) {
-				todo = len(p)
-			}
-			d.n += copy(d.storage[d.n:], p[:todo])
-			p = p[todo:]
+		x := subtle.XORBytes(d.a[d.n:d.rate], d.a[d.n:d.rate], p)
+		d.n += x
+		p = p[x:]
 
-			// If the sponge is full, apply the permutation.
-			if d.n == d.rate {
-				d.permute()
-			}
+		// If the sponge is full, apply the permutation.
+		if d.n == d.rate {
+			d.permute()
 		}
 	}
 
@@ -156,14 +144,14 @@ func (d *state) Read(out []byte) (n int, err error) {
 
 	// Now, do the squeezing.
 	for len(out) > 0 {
-		n := copy(out, d.storage[d.i:d.n])
-		d.i += n
-		out = out[n:]
-
 		// Apply the permutation if we've squeezed the sponge dry.
-		if d.i == d.rate {
+		if d.n == d.rate {
 			d.permute()
 		}
+
+		x := copy(out, d.a[d.n:d.rate])
+		d.n += x
+		out = out[x:]
 	}
 
 	return
@@ -182,4 +170,75 @@ func (d *state) Sum(in []byte) []byte {
 	hash := make([]byte, dup.outputLen, 64) // explicit cap to allow stack allocation
 	dup.Read(hash)
 	return append(in, hash...)
+}
+
+const (
+	magicSHA3   = "sha\x08"
+	magicShake  = "sha\x09"
+	magicCShake = "sha\x0a"
+	magicKeccak = "sha\x0b"
+	// magic || rate || main state || n || sponge direction
+	marshaledSize = len(magicSHA3) + 1 + 200 + 1 + 1
+)
+
+func (d *state) MarshalBinary() ([]byte, error) {
+	return d.AppendBinary(make([]byte, 0, marshaledSize))
+}
+
+func (d *state) AppendBinary(b []byte) ([]byte, error) {
+	switch d.dsbyte {
+	case dsbyteSHA3:
+		b = append(b, magicSHA3...)
+	case dsbyteShake:
+		b = append(b, magicShake...)
+	case dsbyteCShake:
+		b = append(b, magicCShake...)
+	case dsbyteKeccak:
+		b = append(b, magicKeccak...)
+	default:
+		panic("unknown dsbyte")
+	}
+	// rate is at most 168, and n is at most rate.
+	b = append(b, byte(d.rate))
+	b = append(b, d.a[:]...)
+	b = append(b, byte(d.n), byte(d.state))
+	return b, nil
+}
+
+func (d *state) UnmarshalBinary(b []byte) error {
+	if len(b) != marshaledSize {
+		return errors.New("sha3: invalid hash state")
+	}
+
+	magic := string(b[:len(magicSHA3)])
+	b = b[len(magicSHA3):]
+	switch {
+	case magic == magicSHA3 && d.dsbyte == dsbyteSHA3:
+	case magic == magicShake && d.dsbyte == dsbyteShake:
+	case magic == magicCShake && d.dsbyte == dsbyteCShake:
+	case magic == magicKeccak && d.dsbyte == dsbyteKeccak:
+	default:
+		return errors.New("sha3: invalid hash state identifier")
+	}
+
+	rate := int(b[0])
+	b = b[1:]
+	if rate != d.rate {
+		return errors.New("sha3: invalid hash state function")
+	}
+
+	copy(d.a[:], b)
+	b = b[len(d.a):]
+
+	n, state := int(b[0]), spongeDirection(b[1])
+	if n > d.rate {
+		return errors.New("sha3: invalid hash state")
+	}
+	d.n = n
+	if state != spongeAbsorbing && state != spongeSqueezing {
+		return errors.New("sha3: invalid hash state")
+	}
+	d.state = state
+
+	return nil
 }

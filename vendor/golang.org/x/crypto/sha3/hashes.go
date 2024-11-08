@@ -48,33 +48,52 @@ func init() {
 	crypto.RegisterHash(crypto.SHA3_512, New512)
 }
 
+const (
+	dsbyteSHA3   = 0b00000110
+	dsbyteKeccak = 0b00000001
+	dsbyteShake  = 0b00011111
+	dsbyteCShake = 0b00000100
+
+	// rateK[c] is the rate in bytes for Keccak[c] where c is the capacity in
+	// bits. Given the sponge size is 1600 bits, the rate is 1600 - c bits.
+	rateK256  = (1600 - 256) / 8
+	rateK448  = (1600 - 448) / 8
+	rateK512  = (1600 - 512) / 8
+	rateK768  = (1600 - 768) / 8
+	rateK1024 = (1600 - 1024) / 8
+)
+
 func new224Generic() *state {
-	return &state{rate: 144, outputLen: 28, dsbyte: 0x06}
+	return &state{rate: rateK448, outputLen: 28, dsbyte: dsbyteSHA3}
 }
 
 func new256Generic() *state {
-	return &state{rate: 136, outputLen: 32, dsbyte: 0x06}
+	return &state{rate: rateK512, outputLen: 32, dsbyte: dsbyteSHA3}
 }
 
 func new384Generic() *state {
-	return &state{rate: 104, outputLen: 48, dsbyte: 0x06}
+	return &state{rate: rateK768, outputLen: 48, dsbyte: dsbyteSHA3}
 }
 
 func new512Generic() *state {
-	return &state{rate: 72, outputLen: 64, dsbyte: 0x06}
+	return &state{rate: rateK1024, outputLen: 64, dsbyte: dsbyteSHA3}
 }
 
 // NewLegacyKeccak256 creates a new Keccak-256 hash.
 //
 // Only use this function if you require compatibility with an existing cryptosystem
 // that uses non-standard padding. All other users should use New256 instead.
-func NewLegacyKeccak256() hash.Hash { return &state{rate: 136, outputLen: 32, dsbyte: 0x01} }
+func NewLegacyKeccak256() hash.Hash {
+	return &state{rate: rateK512, outputLen: 32, dsbyte: dsbyteKeccak}
+}
 
 // NewLegacyKeccak512 creates a new Keccak-512 hash.
 //
 // Only use this function if you require compatibility with an existing cryptosystem
 // that uses non-standard padding. All other users should use New512 instead.
-func NewLegacyKeccak512() hash.Hash { return &state{rate: 72, outputLen: 64, dsbyte: 0x01} }
+func NewLegacyKeccak512() hash.Hash {
+	return &state{rate: rateK1024, outputLen: 64, dsbyte: dsbyteKeccak}
+}
 
 // Sum224 returns the SHA3-224 digest of the data.
 func Sum224(data []byte) (digest [28]byte) {
