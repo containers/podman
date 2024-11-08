@@ -109,8 +109,6 @@ github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f h1:JOrtw2xFKzlg+
 github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f/go.mod h1:F5haX7vjVVG0kc13fIWeqUViNPyEJxv/OmvnBo0Yme4=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
-github.com/coreos/stream-metadata-go v0.4.4 h1:PM/6iNhofKGydsatiY1zdnMMHBT34skb5P7nfEFR4GU=
-github.com/coreos/stream-metadata-go v0.4.4/go.mod h1:fMObQqQm8Ku91G04btKzEH3AsdP1mrAb986z9aaK0tE=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/crc-org/crc/v2 v2.38.0 h1:8QcoH4hYksfKUQOLXHZw4jIY1aNS162WraZR4mzQzC8=
 github.com/crc-org/crc/v2 v2.38.0/go.mod h1:HPY6grOaExM4Bhmd3T4RSkP0eizWsb8wSgoSwNsV5+k=
