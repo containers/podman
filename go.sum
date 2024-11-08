@@ -99,8 +99,6 @@ github.com/containers/ocicrypt v1.2.0 h1:X14EgRK3xNFvJEfI5O4Qn4T3E25ANudSOZz/sir
 github.com/containers/ocicrypt v1.2.0/go.mod h1:ZNviigQajtdlxIZGibvblVuIFBKIuUI2M0QM12SD31U=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.55.2-0.20241104201357-ad5f2a48e9e9 h1:qB+KgM08F5GEGzdzrWLUHs41NU6d/+TUMEP2xMeyjGs=
-github.com/containers/storage v1.55.2-0.20241104201357-ad5f2a48e9e9/go.mod h1:c6WKowcAlED/DkWGNuL9bvGYqIWCVy7isRMdCSKWNjk=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-oidc/v3 v3.11.0 h1:Ia3MxdwpSw702YW0xgfmP1GVCMA9aEFWu12XUZ3/OtI=
@@ -173,6 +171,8 @@ github.com/gin-contrib/sse v0.1.0 h1:Y/yl/+YNO8GZSjAhjMsSuLt29uWRFHdHYUb5lYOV9qE
 github.com/gin-contrib/sse v0.1.0/go.mod h1:RHrZQHXnP2xjPF+u1gW/2HnVO7nvIa9PG3Gm+fLHvGI=
 github.com/gin-gonic/gin v1.9.1 h1:4idEAncQnU5cB7BeOkPtxjfCSye0AAm1R0RVIqJ+Jmg=
 github.com/gin-gonic/gin v1.9.1/go.mod h1:hPrL7YrpYKXt5YId3A/Tnip5kqbEAP+KLuI3SUcPTeU=
+github.com/giuseppe/storage v1.19.2-0.20241108090144-d8f279cbe504 h1:vf5gjW4Q28lQCNKXSYFUrEsi6I05wCtVnCj+PzEvYYc=
+github.com/giuseppe/storage v1.19.2-0.20241108090144-d8f279cbe504/go.mod h1:c6WKowcAlED/DkWGNuL9bvGYqIWCVy7isRMdCSKWNjk=
 github.com/go-jose/go-jose/v3 v3.0.3 h1:fFKWeig/irsp7XD2zBxvnmA/XaRWp5V3CBsZXJF7G7k=
 github.com/go-jose/go-jose/v3 v3.0.3/go.mod h1:5b+7YgP7ZICgJDBdfjZaIt+H/9L9T/YQrVfLAMboGkQ=
 github.com/go-jose/go-jose/v4 v4.0.4 h1:VsjPI33J0SB9vQM6PLmNjoHqMQNGPiZ0rHL7Ni7Q6/E=
