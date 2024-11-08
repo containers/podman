@@ -23,6 +23,6 @@ repos:
       - id: check-yaml
   - repo: https://github.com/codespell-project/codespell
     # Configuration for codespell is in .codespellrc
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
     - id: codespell

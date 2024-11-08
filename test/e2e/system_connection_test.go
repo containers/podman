@@ -3,7 +3,9 @@
 package integration
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -422,8 +424,13 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 		})
 	})
 
-	Context("sshd and API services required", func() {
-		BeforeEach(func() {
+	// Using "Ordered" or tests would concurrently access
+	// the ~/.ssh/know_host file with unexpected results
+	Context("sshd and API services required", Ordered, func() {
+		var khCopyPath, khPath string
+		var u *user.User
+
+		BeforeAll(func() {
 			// These tests are unique in as much as they require podman, podman-remote, systemd and sshd.
 			// podman-remote commands will be executed by ginkgo directly.
 			SkipIfContainerized("sshd is not available when running in a container")
@@ -431,12 +438,23 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 			SkipIfNotRootless(fmt.Sprintf("FIXME: set up ssh keys when root. uid(%d) euid(%d)", os.Getuid(), os.Geteuid()))
 			SkipIfSystemdNotRunning("cannot test connection heuristic if systemd is not running")
 			SkipIfNotActive("sshd", "cannot test connection heuristic if sshd is not running")
+
+			// If the file ~/.ssh/known_host exists, temporarily remove it so that the tests are deterministics
+			var err error
+			u, err = user.Current()
+			Expect(err).ShouldNot(HaveOccurred())
+			khPath = filepath.Join(u.HomeDir, ".ssh", "known_hosts")
+			khCopyPath = khPath + ".copy"
+			err = os.Rename(khPath, khCopyPath)
+			Expect(err == nil || errors.Is(err, os.ErrNotExist)).To(BeTrue(), fmt.Sprintf("failed to rename %s to %s", khPath, khCopyPath))
+		})
+
+		AfterAll(func() { // codespell:ignore afterall
+			err = os.Rename(khCopyPath, khPath)
+			Expect(err == nil || errors.Is(err, os.ErrNotExist)).To(BeTrue(), fmt.Sprintf("failed to rename %s to %s", khCopyPath, khPath))
 		})
 
 		It("add ssh:// socket path using connection heuristic", func() {
-			u, err := user.Current()
-			Expect(err).ShouldNot(HaveOccurred())
-
 			// Ensure that the remote end uses our built podman
 			if os.Getenv("PODMAN_BINARY") == "" {
 				err = os.Setenv("PODMAN_BINARY", podmanTest.PodmanBinary)
@@ -446,7 +464,6 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 					os.Unsetenv("PODMAN_BINARY")
 				}()
 			}
-
 			cmd := exec.Command(podmanTest.RemotePodmanBinary,
 				"system", "connection", "add",
 				"--default",
@@ -487,6 +504,120 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 			lsSession.Wait(DefaultWaitTimeout)
 			Expect(lsSession).Should(Exit(0))
 			Expect(string(lsSession.Out.Contents())).To(Equal("QA " + uri.String() + " " + filepath.Join(u.HomeDir, ".ssh", "id_ed25519") + " true true\n"))
+		})
+
+		Describe("add ssh:// with known_hosts", func() {
+			var (
+				initialKnownHostFilesLines map[string][]string
+				currentSSHServerHostname   string
+			)
+
+			BeforeAll(func() {
+				currentSSHServerHostname = "localhost"
+
+				// Retrieve current SSH server first two public keys
+				// with the command `ssh-keyscan localhost`
+				cmd := exec.Command("ssh-keyscan", currentSSHServerHostname)
+				session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
+				Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("`ssh-keyscan %s` failed to execute", currentSSHServerHostname))
+				Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+				Expect(session.Out.Contents()).ShouldNot(BeEmpty(), fmt.Sprintf("`ssh-keyscan %s` output is empty", currentSSHServerHostname))
+				serverKeys := bytes.Split(session.Out.Contents(), []byte("\n"))
+				Expect(len(serverKeys)).Should(BeNumerically(">=", 2), fmt.Sprintf("`ssh-keyscan %s` returned less then 2 keys", currentSSHServerHostname))
+
+				initialKnownHostFilesLines = map[string][]string{
+					"serverFirstKey":   {string(serverKeys[0])},
+					"serverSecondKey":  {string(serverKeys[1])},
+					"fakeKey":          {currentSSHServerHostname + " ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGnBlHlwqleAtyzT01mLa+DXQFyxX8T0oa8odcEZ2/07"},
+					"differentHostKey": {"differentserver ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGnBlHlwqleAtyzT01mLa+DXQFyxX8T0oa8odcEZ2/07"},
+					"empty":            {},
+				}
+			})
+
+			DescribeTable("->",
+				func(label string, shouldFail bool, shouldAddKey bool) {
+					initialKhLines, ok := initialKnownHostFilesLines[label]
+					Expect(ok).To(BeTrue(), fmt.Sprintf("label %q not found in kh", label))
+					// Create known_hosts file if needed
+					if len(initialKhLines) > 0 {
+						khFile, err := os.Create(khPath)
+						Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to create %s", khPath))
+						defer khFile.Close()
+						err = os.WriteFile(khPath, []byte(strings.Join(initialKhLines, "\n")), 0600)
+						Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("failed to write to %s", khPath))
+					}
+					// Ensure that the remote end uses our built podman
+					if os.Getenv("PODMAN_BINARY") == "" {
+						err = os.Setenv("PODMAN_BINARY", podmanTest.PodmanBinary)
+						Expect(err).ShouldNot(HaveOccurred())
+
+						defer func() {
+							os.Unsetenv("PODMAN_BINARY")
+						}()
+					}
+					// Run podman system connection add
+					cmd := exec.Command(podmanTest.RemotePodmanBinary,
+						"system", "connection", "add",
+						"--default",
+						"--identity", filepath.Join(u.HomeDir, ".ssh", "id_ed25519"),
+						"QA",
+						fmt.Sprintf("ssh://%s@%s", u.Username, currentSSHServerHostname))
+					session, err := Start(cmd, GinkgoWriter, GinkgoWriter)
+					Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("%q failed to execute", podmanTest.RemotePodmanBinary))
+					Expect(session.Out.Contents()).Should(BeEmpty())
+					if shouldFail {
+						Eventually(session, DefaultWaitTimeout).Should(Exit(125))
+						Expect(session.Err.Contents()).ShouldNot(BeEmpty())
+					} else {
+						Eventually(session, DefaultWaitTimeout).Should(Exit(0))
+						Expect(session.Err.Contents()).Should(BeEmpty())
+					}
+					// If the known_hosts file didn't exist, it should
+					// have been created
+					if len(initialKhLines) == 0 {
+						Expect(khPath).To(BeAnExistingFile())
+						defer os.Remove(khPath)
+					}
+					// If the known_hosts file didn't contain the SSH server
+					// public key it should have been added
+					if shouldAddKey {
+						khFileContent, err := os.ReadFile(khPath)
+						Expect(err).ToNot(HaveOccurred())
+						khLines := bytes.Split(khFileContent, []byte("\n"))
+						Expect(len(khLines)).To(BeNumerically(">", len(initialKhLines)))
+					}
+				},
+				Entry(
+					"with a public key of the SSH server that matches the SSH server first key",
+					"serverFirstKey",
+					false,
+					false,
+				),
+				Entry(
+					"with a public key of the SSH server that matches SSH server second key",
+					"serverSecondKey",
+					false,
+					false,
+				),
+				Entry(
+					"with a fake public key of the SSH server that doesn't match any of the SSH server keys (should fail)",
+					"fakeKey",
+					true,
+					false,
+				),
+				Entry(
+					"with no public key for the SSH server (new key should be added)",
+					"differentHostKey",
+					false,
+					true,
+				),
+				Entry(
+					"not existing (should be created and a new key should be added)",
+					"empty",
+					false,
+					true,
+				),
+			)
 		})
 	})
 })
