@@ -423,12 +423,6 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/coreos/stream-metadata-go v0.4.4
-## explicit; go 1.18
-github.com/coreos/stream-metadata-go/fedoracoreos
-github.com/coreos/stream-metadata-go/fedoracoreos/internals
-github.com/coreos/stream-metadata-go/stream
-github.com/coreos/stream-metadata-go/stream/rhcos
 # github.com/crc-org/crc/v2 v2.38.0
 ## explicit; go 1.21
 github.com/crc-org/crc/v2/pkg/crc/logging
