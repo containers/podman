@@ -76,8 +76,8 @@ require (
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/net v0.30.0
 	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.26.0
-	golang.org/x/term v0.25.0
+	golang.org/x/sys v0.27.0
+	golang.org/x/term v0.26.0
 	golang.org/x/text v0.19.0
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/inf.v0 v0.9.1
