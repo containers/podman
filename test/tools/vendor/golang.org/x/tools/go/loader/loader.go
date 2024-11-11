@@ -23,7 +23,6 @@ import (
 
 	"golang.org/x/tools/go/ast/astutil"
 	"golang.org/x/tools/go/internal/cgo"
-	"golang.org/x/tools/internal/versions"
 )
 
 var ignoreVendor build.ImportMode
@@ -341,13 +340,12 @@ func (conf *Config) addImport(path string, tests bool) {
 func (prog *Program) PathEnclosingInterval(start, end token.Pos) (pkg *PackageInfo, path []ast.Node, exact bool) {
 	for _, info := range prog.AllPackages {
 		for _, f := range info.Files {
-			if f.Pos() == token.NoPos {
-				// This can happen if the parser saw
-				// too many errors and bailed out.
-				// (Use parser.AllErrors to prevent that.)
+			if f.FileStart == token.NoPos {
+				// Workaround for #70162 (undefined FileStart).
+				// TODO(adonovan): delete once go1.24 is assured.
 				continue
 			}
-			if !tokenFileContainsPos(prog.Fset.File(f.Pos()), start) {
+			if !tokenFileContainsPos(prog.Fset.File(f.FileStart), start) {
 				continue
 			}
 			if path, exact := astutil.PathEnclosingInterval(f, start, end); path != nil {
@@ -1029,18 +1027,18 @@ func (imp *importer) newPackageInfo(path, dir string) *PackageInfo {
 	info := &PackageInfo{
 		Pkg: pkg,
 		Info: types.Info{
-			Types:      make(map[ast.Expr]types.TypeAndValue),
-			Defs:       make(map[*ast.Ident]types.Object),
-			Uses:       make(map[*ast.Ident]types.Object),
-			Implicits:  make(map[ast.Node]types.Object),
-			Instances:  make(map[*ast.Ident]types.Instance),
-			Scopes:     make(map[ast.Node]*types.Scope),
-			Selections: make(map[*ast.SelectorExpr]*types.Selection),
+			Types:        make(map[ast.Expr]types.TypeAndValue),
+			Defs:         make(map[*ast.Ident]types.Object),
+			Uses:         make(map[*ast.Ident]types.Object),
+			Implicits:    make(map[ast.Node]types.Object),
+			Instances:    make(map[*ast.Ident]types.Instance),
+			Scopes:       make(map[ast.Node]*types.Scope),
+			Selections:   make(map[*ast.SelectorExpr]*types.Selection),
+			FileVersions: make(map[*ast.File]string),
 		},
 		errorFunc: imp.conf.TypeChecker.Error,
 		dir:       dir,
 	}
-	versions.InitFileVersions(&info.Info)
 
 	// Copy the types.Config so we can vary it across PackageInfos.
 	tc := imp.conf.TypeChecker

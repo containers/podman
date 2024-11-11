@@ -180,7 +180,9 @@ func (in *Inspector) WithStack(types []ast.Node, f func(n ast.Node, push bool, s
 // traverse builds the table of events representing a traversal.
 func traverse(files []*ast.File) []event {
 	// Preallocate approximate number of events
-	// based on source file extent.
+	// based on source file extent of the declarations.
+	// (We use End-Pos not FileStart-FileEnd to neglect
+	// the effect of long doc comments.)
 	// This makes traverse faster by 4x (!).
 	var extent int
 	for _, f := range files {
