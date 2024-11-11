@@ -56,16 +56,16 @@ type Capabilities interface {
 	// outstanding changes.
 	Load() error
 
-	// Apply apply the capabilities settings, so all changes will take
-	// effect.
+	// Apply apply the capabilities settings, so all changes made by
+	// [Set], [Unset], [Fill], or [Clear] will take effect.
 	Apply(kind CapType) error
 }
 
 // NewPid initializes a new [Capabilities] object for given pid when
 // it is nonzero, or for the current process if pid is 0.
 //
-// Deprecated: Replace with [NewPid2] followed by [Capabilities.Load].
-// For example, replace:
+// Deprecated: replace with [NewPid2] followed by optional [Capabilities.Load]
+// (only if needed). For example, replace:
 //
 //	c, err := NewPid(0)
 //	if err != nil {
@@ -93,16 +93,16 @@ func NewPid(pid int) (Capabilities, error) {
 
 // NewPid2 initializes a new [Capabilities] object for given pid when
 // it is nonzero, or for the current process if pid is 0. This
-// does not load the process's current capabilities; to do that you
-// must call [Capabilities.Load] explicitly.
+// does not load the process's current capabilities; if needed,
+// call [Capabilities.Load].
 func NewPid2(pid int) (Capabilities, error) {
 	return newPid(pid)
 }
 
 // NewFile initializes a new Capabilities object for given file path.
 //
-// Deprecated: Replace with [NewFile2] followed by [Capabilities.Load].
-// For example, replace:
+// Deprecated: replace with [NewFile2] followed by optional [Capabilities.Load]
+// (only if needed). For example, replace:
 //
 //	c, err := NewFile(path)
 //	if err != nil {
@@ -130,7 +130,7 @@ func NewFile(path string) (Capabilities, error) {
 
 // NewFile2 creates a new initialized [Capabilities] object for given
 // file path. This does not load the process's current capabilities;
-// to do that you must call [Capabilities.Load] explicitly.
+// if needed, call [Capabilities.Load].
 func NewFile2(path string) (Capabilities, error) {
 	return newFile(path)
 }
@@ -141,4 +141,36 @@ func NewFile2(path string) (Capabilities, error) {
 // See also: [ListSupported].
 func LastCap() (Cap, error) {
 	return lastCap()
+}
+
+// GetAmbient determines if a specific ambient capability is raised in the
+// calling thread.
+func GetAmbient(c Cap) (bool, error) {
+	return getAmbient(c)
+}
+
+// SetAmbient raises or lowers specified ambient capabilities for the calling
+// thread. To complete successfully, the prevailing effective capability set
+// must have a raised CAP_SETPCAP. Further, to raise a specific ambient
+// capability the inheritable and permitted sets of the calling thread must
+// already contain the specified capability.
+func SetAmbient(raise bool, caps ...Cap) error {
+	return setAmbient(raise, caps...)
+}
+
+// ResetAmbient resets all of the ambient capabilities for the calling thread
+// to their lowered value.
+func ResetAmbient() error {
+	return resetAmbient()
+}
+
+// GetBound determines if a specific bounding capability is raised in the
+// calling thread.
+func GetBound(c Cap) (bool, error) {
+	return getBound(c)
+}
+
+// DropBound lowers the specified bounding set capability.
+func DropBound(caps ...Cap) error {
+	return dropBound(caps...)
 }
