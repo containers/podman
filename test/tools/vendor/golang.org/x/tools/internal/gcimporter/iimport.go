@@ -558,6 +558,14 @@ type importReader struct {
 	prevColumn int64
 }
 
+// markBlack is redefined in iimport_go123.go, to work around golang/go#69912.
+//
+// If TypeNames are not marked black (in the sense of go/types cycle
+// detection), they may be mutated when dot-imported. Fix this by punching a
+// hole through the type, when compiling with Go 1.23. (The bug has been fixed
+// for 1.24, but the fix was not worth back-porting).
+var markBlack = func(name *types.TypeName) {}
+
 func (r *importReader) obj(name string) {
 	tag := r.byte()
 	pos := r.pos()
@@ -570,6 +578,7 @@ func (r *importReader) obj(name string) {
 		}
 		typ := r.typ()
 		obj := aliases.NewAlias(r.p.aliases, pos, r.currPkg, name, typ, tparams)
+		markBlack(obj) // workaround for golang/go#69912
 		r.declare(obj)
 
 	case constTag:
@@ -590,6 +599,9 @@ func (r *importReader) obj(name string) {
 		// declaration before recursing.
 		obj := types.NewTypeName(pos, r.currPkg, name, nil)
 		named := types.NewNamed(obj, nil, nil)
+
+		markBlack(obj) // workaround for golang/go#69912
+
 		// Declare obj before calling r.tparamList, so the new type name is recognized
 		// if used in the constraint of one of its own typeparams (see #48280).
 		r.declare(obj)
