@@ -8,7 +8,7 @@ type listSystemConnection struct {
 	format string
 }
 
-func (l listSystemConnection) buildCmd(m *machineTestBuilder) []string {
+func (l *listSystemConnection) buildCmd(m *machineTestBuilder) []string {
 	cmd := []string{"system", "connection", "list"}
 	if len(l.format) > 0 {
 		cmd = append(cmd, "--format", l.format)

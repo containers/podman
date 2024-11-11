@@ -319,7 +319,7 @@ func (d *dfSummary) Reclaimable() string {
 	return fmt.Sprintf("%s (%d%%)", units.HumanSize(float64(d.RawReclaimable)), percent)
 }
 
-func (d dfSummary) MarshalJSON() ([]byte, error) {
+func (d *dfSummary) MarshalJSON() ([]byte, error) {
 	// need to create a new type here to prevent infinite recursion in MarshalJSON() call
 	type rawDf dfSummary
 
@@ -329,5 +329,5 @@ func (d dfSummary) MarshalJSON() ([]byte, error) {
 		TotalCount  int
 		Size        string
 		Reclaimable string
-	}{rawDf(d), d.Total, d.Size(), d.Reclaimable()})
+	}{rawDf(*d), d.Total, d.Size(), d.Reclaimable()})
 }

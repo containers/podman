@@ -23,13 +23,13 @@ func handleError(data []byte, unmarshalErrorInto interface{}) error {
 
 // Process drains the response body, and processes the HTTP status code
 // Note: Closing the response.Body is left to the caller
-func (h APIResponse) Process(unmarshalInto interface{}) error {
+func (h *APIResponse) Process(unmarshalInto interface{}) error {
 	return h.ProcessWithError(unmarshalInto, &errorhandling.ErrorModel{})
 }
 
 // ProcessWithError drains the response body, and processes the HTTP status code
 // Note: Closing the response.Body is left to the caller
-func (h APIResponse) ProcessWithError(unmarshalInto interface{}, unmarshalErrorInto interface{}) error {
+func (h *APIResponse) ProcessWithError(unmarshalInto interface{}, unmarshalErrorInto interface{}) error {
 	data, err := io.ReadAll(h.Response.Body)
 	if err != nil {
 		return fmt.Errorf("unable to process API response: %w", err)

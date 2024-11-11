@@ -52,10 +52,10 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 	return errors.New("unshare is not supported on remote clients")
 }
 
-func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
+func (ic *ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 	return system.Version(ic.ClientCtx, nil)
 }
 
-func (ic ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, error) {
+func (ic *ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, error) {
 	return nil, errors.New("locks is not supported on remote clients")
 }

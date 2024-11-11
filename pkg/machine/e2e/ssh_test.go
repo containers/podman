@@ -11,7 +11,7 @@ var _ = Describe("podman machine ssh", func() {
 
 	It("bad machine name", func() {
 		name := randomString()
-		ssh := sshMachine{}
+		ssh := &sshMachine{}
 		session, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(125))
@@ -25,7 +25,7 @@ var _ = Describe("podman machine ssh", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		ssh := sshMachine{}
+		ssh := &sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession.errorToString()).To(ContainSubstring("is not running"))
@@ -40,7 +40,7 @@ var _ = Describe("podman machine ssh", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		ssh := sshMachine{}
+		ssh := &sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"cat", "/etc/os-release"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(0))
