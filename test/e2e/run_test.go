@@ -1035,6 +1035,7 @@ echo -n madeit-$teststring >$tmpfile
 	})
 
 	It("podman run with FIPS mode secrets", func() {
+		Skip("FIPS mode not enabled in this branch as of November, 2024, Skipping")
 		SkipIfRootless("rootless can not manipulate system-fips file")
 		fipsFile := "/etc/system-fips"
 		err = os.WriteFile(fipsFile, []byte{}, 0755)
