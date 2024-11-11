@@ -928,7 +928,12 @@ sub assert_buildah_vendor_commit {
     }
 
     if (! grep { m!^vendor/\Q$Buildah\E/! } @deltas) {
-        push @missing, "no changes under $Buildah";
+        # There's an infrequent corner case: changes in buildah are only in
+        # the tests and/or vendor dirs, which are not checked out in our tree.
+        my @go_mod_diffs = git('diff', '-U0', "$ref^", "$ref", "--", "go.mod");
+        if (! grep { /^[-+]\s+$Buildah\s/ } @go_mod_diffs) {
+            push @missing, "no changes under $Buildah";
+        }
     }
 
     return if !@missing;
