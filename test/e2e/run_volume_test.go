@@ -1069,4 +1069,24 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 
 		mountVolumeAndCheckDirectory(volName, "/test3", "test2", imgName)
 	})
+
+	It("podman run --mount type=volume,subpath=", func() {
+		volName := "testvol"
+		mkvol := podmanTest.Podman([]string{"volume", "create", volName})
+		mkvol.WaitWithDefaultTimeout()
+		Expect(mkvol).Should(ExitCleanly())
+
+		subvol := "/test/test2/"
+		pathInCtr := "/mnt"
+		pathToCreate := filepath.Join(pathInCtr, subvol)
+		popvol := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/mnt", volName), ALPINE, "sh", "-c", fmt.Sprintf("mkdir -p %s; touch %s; touch %s", pathToCreate, filepath.Join(pathToCreate, "foo"), filepath.Join(pathToCreate, "bar"))})
+		popvol.WaitWithDefaultTimeout()
+		Expect(popvol).Should(ExitCleanly())
+
+		checkCtr := podmanTest.Podman([]string{"run", "--mount", fmt.Sprintf("type=volume,source=%s,target=%s,subpath=%s", volName, pathInCtr, subvol), ALPINE, "ls", pathInCtr})
+		checkCtr.WaitWithDefaultTimeout()
+		Expect(checkCtr).To(ExitCleanly())
+		Expect(checkCtr.OutputToString()).To(ContainSubstring("foo"))
+		Expect(checkCtr.OutputToString()).To(ContainSubstring("bar"))
+	})
 })
