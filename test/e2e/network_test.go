@@ -5,6 +5,7 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"path/filepath"
 	"time"
 
@@ -295,6 +296,27 @@ var _ = Describe("Podman network", func() {
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
 		rmAll.WaitWithDefaultTimeout()
 		Expect(rmAll).Should(ExitCleanly())
+	})
+
+	It("podman run container host interface name", func() {
+		Skip("FIXME: We need netavark >= v1.14 for host interface support")
+
+		ctrName := "testCtr"
+		vethName := "my_veth" + stringid.GenerateRandomID()[:8]
+		container := podmanTest.Podman([]string{"run", "-dt", "--network", "bridge:host_interface_name=" + vethName, "--name", ctrName, ALPINE, "top"})
+		container.WaitWithDefaultTimeout()
+		Expect(container).Should(ExitCleanly())
+
+		if !isRootless() {
+			veth, err := net.InterfaceByName(vethName)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(veth.Name).To(Equal(vethName))
+		} else {
+			session := podmanTest.Podman([]string{"unshare", "--rootless-netns", "ip", "link", "show", vethName})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(ContainSubstring(vethName))
+		}
 	})
 
 	It("podman inspect container two CNI networks (container not running)", func() {
