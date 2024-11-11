@@ -65,13 +65,18 @@ install_kube_template() {
     # If running from a podman source directory, build and use the source
     # version of the play-kube-@ unit file
     unit_name="podman-kube@.service"
-    unit_file="contrib/systemd/system/${unit_name}"
-    if [[ -e ${unit_file}.in ]]; then
-        echo "# [Building & using $unit_name from source]" >&3
-        # Force regenerating unit file (existing one may have /usr/bin path)
-        rm -f $unit_file
-        BINDIR=$(dirname $PODMAN) make $unit_file
-        cp $unit_file $UNIT_DIR/$unit_name
+    unit_file_in="contrib/systemd/system/${unit_name}.in"
+    if [[ -e $unit_file_in ]]; then
+        unit_file_out=$UNIT_DIR/$unit_name
+        sed -e "s;@@PODMAN@@;$PODMAN;g" <$unit_file_in >$unit_file_out.tmp.$$ \
+            && mv $unit_file_out.tmp.$$ $unit_file_out
+    elif [[ "$PODMAN" = "/usr/bin/podman" ]]; then
+        # Not running from a source directory. This is expected in gating,
+        # and is probably OK, but it could fail on a misinstalled setup.
+        # Maintainer will only see this warning in case of test failure.
+        echo "WARNING: Test will rely on system-installed unit files." >&2
+    else
+        skip "No $unit_file_in, and PODMAN=$PODMAN"
     fi
 }
 
