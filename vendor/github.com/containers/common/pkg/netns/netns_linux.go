@@ -260,34 +260,37 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 // UnmountNS unmounts the given netns path
 func UnmountNS(nsPath string) error {
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
-	if !strings.HasPrefix(nsPath, "/proc/") {
-		// EINVAL means the path exists but is not mounted, just try to remove the path below
-		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) {
-			// If path does not exists we can return without error as we have nothing to do.
+	if strings.HasPrefix(nsPath, "/proc/") {
+		return nil
+	}
+	// EINVAL means the path exists but is not mounted, just try to remove the path below
+	if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) {
+		// If path does not exists we can return without error as we have nothing to do.
+		if errors.Is(err, unix.ENOENT) {
+			return nil
+		}
+
+		return fmt.Errorf("failed to unmount NS: at %s: %w", nsPath, err)
+	}
+
+	var err error
+	// wait for up to 60s in the loop
+	for range 6000 {
+		if err = os.Remove(nsPath); err != nil {
+			if errors.Is(err, unix.EBUSY) {
+				// mount is still busy, sleep a moment and try again to remove
+				logrus.Debugf("Netns %s still busy, try removing it again in 10ms", nsPath)
+				time.Sleep(10 * time.Millisecond)
+				continue
+			}
+			// If path does not exists we can return without error.
 			if errors.Is(err, unix.ENOENT) {
 				return nil
 			}
-
-			return fmt.Errorf("failed to unmount NS: at %s: %w", nsPath, err)
+			return fmt.Errorf("failed to remove ns path: %w", err)
 		}
-
-		for {
-			if err := os.Remove(nsPath); err != nil {
-				if errors.Is(err, unix.EBUSY) {
-					// mount is still busy, sleep a moment and try again to remove
-					logrus.Debugf("Netns %s still busy, try removing it again in 10ms", nsPath)
-					time.Sleep(10 * time.Millisecond)
-					continue
-				}
-				// If path does not exists we can return without error.
-				if errors.Is(err, unix.ENOENT) {
-					break
-				}
-				return fmt.Errorf("failed to remove ns path: %w", err)
-			}
-			break
-		}
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to remove ns path (timeout after 60s): %w", err)
 }
