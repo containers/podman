@@ -13,15 +13,15 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.3.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/buildah v1.37.1-0.20241104213057-0dc5f958934a
-	github.com/containers/common v0.60.1-0.20241106101802-8130e31c0832
+	github.com/containers/buildah v1.38.0
+	github.com/containers/common v0.61.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.0
-	github.com/containers/image/v5 v5.32.3-0.20241105183637-59417aed3db1
+	github.com/containers/image/v5 v5.33.0
 	github.com/containers/libhvee v0.7.1
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.55.2-0.20241104201357-ad5f2a48e9e9
+	github.com/containers/storage v1.56.0
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/coreos/stream-metadata-go v0.4.4
@@ -72,13 +72,13 @@ require (
 	github.com/vbauerster/mpb/v8 v8.8.3
 	github.com/vishvananda/netlink v1.3.0
 	go.etcd.io/bbolt v1.3.11
-	golang.org/x/crypto v0.28.0
+	golang.org/x/crypto v0.29.0
 	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
 	golang.org/x/net v0.30.0
-	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.26.0
-	golang.org/x/term v0.25.0
-	golang.org/x/text v0.19.0
+	golang.org/x/sync v0.9.0
+	golang.org/x/sys v0.27.0
+	golang.org/x/term v0.26.0
+	golang.org/x/text v0.20.0
 	google.golang.org/protobuf v1.35.1
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -171,7 +171,7 @@ require (
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/moby/buildkit v0.17.0 // indirect
+	github.com/moby/buildkit v0.17.1 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.2 // indirect
