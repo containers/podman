@@ -1,6 +1,0 @@
-linters:
-  enable:
-    - unconvert
-    - unparam
-    - gofumpt
-    - errorlint

@@ -24,3 +24,23 @@ func newFile(_ string) (Capabilities, error) {
 func lastCap() (Cap, error) {
 	return -1, errNotSup
 }
+
+func getAmbient(_ Cap) (bool, error) {
+	return false, errNotSup
+}
+
+func setAmbient(_ bool, _ ...Cap) error {
+	return errNotSup
+}
+
+func resetAmbient() error {
+	return errNotSup
+}
+
+func getBound(_ Cap) (bool, error) {
+	return false, errNotSup
+}
+
+func dropBound(_ ...Cap) error {
+	return errNotSup
+}

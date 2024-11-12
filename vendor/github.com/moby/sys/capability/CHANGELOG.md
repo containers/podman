@@ -5,6 +5,30 @@ from https://github.com/syndtr/gocapability/commit/42c35b4376354fd5.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2024-11-11
+
+### Added
+* New separate API for ambient ([GetAmbient], [SetAmbient], [ResetAmbient])
+  and bound ([GetBound], [DropBound]) capabilities, modelled after libcap. (#176)
+
+### Fixed
+* [Apply] now returns an error if called for non-zero `pid`. Before this change,
+  it could silently change some capabilities of the current process, instead of
+  the one identified by the `pid`. (#168, #174)
+* Fixed tests that change capabilities to be run in a separate process. (#173)
+* Other improvements in tests. (#169, #170)
+
+### Changed
+* Use raw syscalls (which are slightly faster). (#176)
+* Most tests are now limited to testing the public API of the package. (#162)
+* Simplify parsing /proc/*pid*/status, add a test case. (#162)
+* Optimize the number of syscall to set ambient capabilities in Apply
+  by clearing them first; add a test case. (#163, #164)
+* Better documentation for [Apply], [NewFile], [NewFile2], [NewPid], [NewPid2]. (#175)
+
+### Removed
+* `.golangci.yml` and `.codespellrc` are no longer part of the package. (#158)
+
 ## [0.3.0] - 2024-09-25
 
 ### Added
@@ -63,14 +87,24 @@ This is an initial release since the fork.
  * Removed init function so programs that use this package start faster. [#6]
  * Removed `CAP_LAST_CAP` (use [LastCap] instead). [#6]
 
-<!-- Doc links. -->
+<!-- Doc links (please keep sorted). -->
 [Apply]: https://pkg.go.dev/github.com/moby/sys/capability#Capabilities.Apply
+[DropBound]: https://pkg.go.dev/github.com/moby/sys/capability#DropBound
+[GetAmbient]: https://pkg.go.dev/github.com/moby/sys/capability#GetAmbient
+[GetBound]: https://pkg.go.dev/github.com/moby/sys/capability#GetBound
 [LastCap]: https://pkg.go.dev/github.com/moby/sys/capability#LastCap
-[List]: https://pkg.go.dev/github.com/moby/sys/capability#List
 [ListKnown]: https://pkg.go.dev/github.com/moby/sys/capability#ListKnown
 [ListSupported]: https://pkg.go.dev/github.com/moby/sys/capability#ListSupported
+[List]: https://pkg.go.dev/github.com/moby/sys/capability#List
+[NewFile2]: https://pkg.go.dev/github.com/moby/sys/capability#NewFile2
+[NewFile]: https://pkg.go.dev/github.com/moby/sys/capability#NewFile
+[NewPid2]: https://pkg.go.dev/github.com/moby/sys/capability#NewPid2
+[NewPid]: https://pkg.go.dev/github.com/moby/sys/capability#NewPid
+[ResetAmbient]: https://pkg.go.dev/github.com/moby/sys/capability#ResetAmbient
+[SetAmbient]: https://pkg.go.dev/github.com/moby/sys/capability#SetAmbient
 
 <!-- Minor releases. -->
+[0.4.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.4.0
 [0.3.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.3.0
 [0.2.0]: https://github.com/moby/sys/releases/tag/capability%2Fv0.2.0
 [0.1.1]: https://github.com/kolyshkin/capability/compare/v0.1.0...v0.1.1

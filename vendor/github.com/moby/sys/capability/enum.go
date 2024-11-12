@@ -316,7 +316,7 @@ func ListKnown() []Cap {
 	return list()
 }
 
-// ListSupported retuns the list of all capabilities known to the package,
+// ListSupported returns the list of all capabilities known to the package,
 // except those that are not supported by the currently running Linux kernel.
 func ListSupported() ([]Cap, error) {
 	last, err := LastCap()
