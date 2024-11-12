@@ -855,7 +855,7 @@ func (cs *clientStream) Trailer() metadata.MD {
 	// directions -- it will prevent races and should not meaningfully impact
 	// performance.
 	cs.commitAttempt()
-	if cs.attempt.s == nil {
+	if cs.attempt == nil || cs.attempt.s == nil {
 		return nil
 	}
 	return cs.attempt.s.Trailer()
