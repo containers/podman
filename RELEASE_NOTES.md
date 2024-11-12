@@ -20,6 +20,7 @@
 - The output of the `podman inspect` command for containers now includes a new field, `HostConfig.AutoRemoveImage`, which shows whether a container was created with the `--rmi` option set.
 - The output of the `podman inspect` command for containers now includes a new field, `Config.ExposedPorts`, which includes all exposed ports from the container, improving Docker compatibility.
 - The output of the `podman inspect` command for containers now includes a new field, `Config.StartupHealthCheck`, which shows the container's startup healthcheck configuration.
+- The output of the `podman inspect` command for containers now includes a new field in `Mounts`, `SubPath`, which contains any subpath set for image or named volumes.
 - The `podman machine list` command now supports a new option, `--all-providers`, which lists machines from all supported VM providers, not just the one currently in use.
 - VMs run by `podman machine` on Windows will now provide API access by exposing a Unix socket on the host filesystem which forwards into the VM ([#23408](https://github.com/containers/podman/issues/23408)).
 - The `podman buildx prune` and `podman image prune` commands now support a new option, `--build-cache`, which will also clean the build cache.
@@ -64,6 +65,8 @@
 - Fixed a bug where Quadlet would reject `RemapUsers=keep-id` when run as root.
 - Fixed a bug where XFS quotas on volumes were not unique, meaning that all volumes using a quota shared the same maximum size and inodes (set by the most recent volume with a quota to be created).
 - Fixed a bug where `Service` section of Quadlet files would only use defaults and not respect user input ([#24322](https://github.com/containers/podman/issues/24322)).
+- Fixed a bug where `podman volume ls` would sometimes fail when a volume was removed at the same time it was run.
+- Fixed a bug where the `--tz=local` option could not be used when the `TZDIR` environment variable was set.
 
 ### API
 - The Play API for Kubernetes YAML now supports `application/x-tar` compressed context directories ([#24015](https://github.com/containers/podman/pull/24015)).
@@ -78,6 +81,10 @@
 - Quadlet will no longer log spurious ENOENT errors when resolving unit directories ([#23620](https://github.com/containers/podman/issues/23620)).
 - The Docker alias shell script will now also honor the presence of `$XDG_CONFIG_HOME/containers/nodocker` when considering whether it should print its warning message that Podman is in use.
 - The podman-auto-update systemd unit files have been moved into the `contrib/systemd/system` directory in the repo for consistency with our other unit files.
+- Updated Buildah to v1.38.0
+- Updated the containers/common library to v0.61.0
+- Updated the containers/storage library to v1.56.0
+- Updated the containers/image library to v5.33.0
 
 ## 5.2.5
 ### Security
