@@ -47,44 +47,38 @@ const (
 	// InvalidNS is an invalid namespace
 	InvalidNS LinuxNS = iota
 	// IPCNS is the IPC namespace
-	IPCNS LinuxNS = iota
+	IPCNS
 	// MountNS is the mount namespace
-	MountNS LinuxNS = iota
+	MountNS
 	// NetNS is the network namespace
-	NetNS LinuxNS = iota
+	NetNS
 	// PIDNS is the PID namespace
-	PIDNS LinuxNS = iota
+	PIDNS
 	// UserNS is the user namespace
-	UserNS LinuxNS = iota
+	UserNS
 	// UTSNS is the UTS namespace
-	UTSNS LinuxNS = iota
+	UTSNS
 	// CgroupNS is the Cgroup namespace
-	CgroupNS LinuxNS = iota
+	CgroupNS
 )
 
 // String returns a string representation of a Linux namespace
 // It is guaranteed to be the name of the namespace in /proc for valid ns types
 func (ns LinuxNS) String() string {
-	switch ns {
-	case InvalidNS:
-		return "invalid"
-	case IPCNS:
-		return "ipc"
-	case MountNS:
-		return "mnt"
-	case NetNS:
-		return "net"
-	case PIDNS:
-		return "pid"
-	case UserNS:
-		return "user"
-	case UTSNS:
-		return "uts"
-	case CgroupNS:
-		return "cgroup"
-	default:
-		return "unknown"
+	s := [...]string{
+		InvalidNS: "invalid",
+		IPCNS:     "ipc",
+		MountNS:   "mnt",
+		NetNS:     "net",
+		PIDNS:     "pid",
+		UserNS:    "user",
+		UTSNS:     "uts",
+		CgroupNS:  "cgroup",
 	}
+	if ns >= 0 && int(ns) < len(s) {
+		return s[ns]
+	}
+	return "unknown"
 }
 
 // Container is a single OCI container.
