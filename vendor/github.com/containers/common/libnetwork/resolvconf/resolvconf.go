@@ -32,11 +32,12 @@ var (
 	// ipLocalhost is a regex pattern for IPv4 or IPv6 loopback range.
 	ipLocalhost = `((127\.([0-9]{1,3}\.){2}[0-9]{1,3})|(::1)$)`
 
-	localhostNSRegexp = regexp.Delayed(`(?m)^nameserver\s+` + ipLocalhost + `\s*\n*`)
-	nsIPv6Regexp      = regexp.Delayed(`(?m)^nameserver\s+` + ipv6Address + `\s*\n*`)
-	nsRegexp          = regexp.Delayed(`^\s*nameserver\s*((` + ipv4Address + `)|(` + ipv6Address + `))\s*$`)
-	searchRegexp      = regexp.Delayed(`^\s*search\s*(([^\s]+\s*)*)$`)
-	optionsRegexp     = regexp.Delayed(`^\s*options\s*(([^\s]+\s*)*)$`)
+	localhostNSRegexp     = regexp.Delayed(`(?m)^nameserver\s+` + ipLocalhost + `\s*\n*`)
+	nsIPv6Regexp          = regexp.Delayed(`(?m)^nameserver\s+` + ipv6Address + `\s*\n*`)
+	nsIPv6LinkLocalRegexp = regexp.Delayed(`(?m)^nameserver\s+` + ipv6Address + `%.*\s*\n*`)
+	nsRegexp              = regexp.Delayed(`^\s*nameserver\s*((` + ipv4Address + `)|(` + ipv6Address + `))\s*$`)
+	searchRegexp          = regexp.Delayed(`^\s*search\s*(([^\s]+\s*)*)$`)
+	optionsRegexp         = regexp.Delayed(`^\s*options\s*(([^\s]+\s*)*)$`)
 )
 
 // filterResolvDNS cleans up the config in resolvConf.  It has two main jobs:
@@ -54,6 +55,10 @@ func filterResolvDNS(resolvConf []byte, ipv6Enabled bool, netnsEnabled bool) []b
 	// if IPv6 is not enabled, also clean out any IPv6 address nameserver
 	if !ipv6Enabled {
 		cleanedResolvConf = nsIPv6Regexp.ReplaceAll(cleanedResolvConf, []byte{})
+	} else {
+		// If ipv6 is we still must remove any ipv6 link-local addresses as
+		// the zone will never match the interface name or index in the container.
+		cleanedResolvConf = nsIPv6LinkLocalRegexp.ReplaceAll(cleanedResolvConf, []byte{})
 	}
 	// if the resulting resolvConf has no more nameservers defined, add appropriate
 	// default DNS servers for IPv4 and (optionally) IPv6
