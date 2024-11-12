@@ -143,8 +143,8 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.37.1-0.20241104213057-0dc5f958934a
-## explicit; go 1.22.0
+# github.com/containers/buildah v1.38.0
+## explicit; go 1.22.6
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -174,7 +174,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.60.1-0.20241106101802-8130e31c0832
+# github.com/containers/common v0.61.0
 ## explicit; go 1.22.6
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -247,7 +247,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.0
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.32.3-0.20241105183637-59417aed3db1
+# github.com/containers/image/v5 v5.33.0
 ## explicit; go 1.22.6
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -358,7 +358,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.55.2-0.20241104201357-ad5f2a48e9e9
+# github.com/containers/storage v1.56.0
 ## explicit; go 1.22.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -801,7 +801,7 @@ github.com/mistifyio/go-zfs/v3
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/buildkit v0.17.0
+# github.com/moby/buildkit v0.17.1
 ## explicit; go 1.22.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
