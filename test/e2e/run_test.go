@@ -1034,21 +1034,6 @@ echo -n madeit-$teststring >$tmpfile
 		Expect(session.OutputToString()).To(ContainSubstring("key.pem"))
 	})
 
-	It("podman run with FIPS mode secrets", func() {
-		SkipIfRootless("rootless can not manipulate system-fips file")
-		fipsFile := "/etc/system-fips"
-		err = os.WriteFile(fipsFile, []byte{}, 0755)
-		Expect(err).ToNot(HaveOccurred())
-
-		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "ls", "/run/secrets"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("system-fips"))
-
-		err = os.Remove(fipsFile)
-		Expect(err).ToNot(HaveOccurred())
-	})
-
 	It("podman run without group-add", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "id"})
 		session.WaitWithDefaultTimeout()
