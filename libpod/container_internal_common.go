@@ -662,7 +662,6 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	// setup rlimits
 	nofileSet := false
 	nprocSet := false
-	isRootless := rootless.IsRootless()
 	isRunningInUserNs := unshare.IsRootless()
 	if isRunningInUserNs && g.Config.Process != nil && g.Config.Process.OOMScoreAdj != nil {
 		var err error
@@ -682,7 +681,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	if !nofileSet {
 		max := rlimT(define.RLimitDefaultValue)
 		current := rlimT(define.RLimitDefaultValue)
-		if isRootless {
+		if isRunningInUserNs {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err != nil {
 				logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
@@ -699,7 +698,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	if !nprocSet {
 		max := rlimT(define.RLimitDefaultValue)
 		current := rlimT(define.RLimitDefaultValue)
-		if isRootless {
+		if isRunningInUserNs {
 			var rlimit unix.Rlimit
 			if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err != nil {
 				logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
