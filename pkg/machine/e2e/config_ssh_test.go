@@ -9,7 +9,7 @@ type sshMachine struct {
 	sshCommand []string
 }
 
-func (s sshMachine) buildCmd(m *machineTestBuilder) []string {
+func (s *sshMachine) buildCmd(m *machineTestBuilder) []string {
 	cmd := []string{"machine", "ssh"}
 	if len(m.name) > 0 {
 		cmd = append(cmd, m.name)

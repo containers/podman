@@ -27,7 +27,6 @@ linters:
     - wsl
     - godox
     - tparallel
-    - gomnd
     - nlreturn
     - noctx
     - nestif
@@ -62,7 +61,6 @@ linters:
     - nonamedreturns
     - exhaustruct
     # deprecated linters
-    - execinquery
     - exportloopref
 linters-settings:
   errcheck:
@@ -90,3 +88,8 @@ issues:
     - dependencies
   exclude-files:
     - swagger.go
+  exclude-rules:
+    # Exclude recvcheck from running on the imported k8s files, to much failures
+    - path: pkg/k8s.io/
+      linters:
+        - recvcheck

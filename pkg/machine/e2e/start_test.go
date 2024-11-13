@@ -143,7 +143,7 @@ var _ = Describe("podman machine start", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session2).To(Exit(0))
 
-		s := startMachine{}
+		s := &startMachine{}
 		session3, err := mb.setName(startme).setCmd(s).setTimeout(time.Minute * 10).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session3).Should(Exit(0))
@@ -181,14 +181,14 @@ var _ = Describe("podman machine start", func() {
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			s := startMachine{}
+			s := &startMachine{}
 			startSession1, err = mb.setName(machine1).setCmd(s).setTimeout(time.Minute * 10).run()
 			Expect(err).ToNot(HaveOccurred())
 		}()
 		go func() {
 			defer GinkgoRecover()
 			defer wg.Done()
-			s := startMachine{}
+			s := &startMachine{}
 			// ok this is a hack and should not be needed but the way these test are setup they all
 			// share "mb" which stores the name that is used for the VM, thus running two parallel
 			// can overwrite the name from the other, work around that by creating a new mb for the

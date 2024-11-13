@@ -324,7 +324,7 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 	return unshare()
 }
 
-func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
+func (ic *ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
 	var report entities.SystemVersionReport
 	v, err := define.GetVersion()
 	if err != nil {
@@ -334,7 +334,7 @@ func (ic ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionR
 	return &report, err
 }
 
-func (ic ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, error) {
+func (ic *ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, error) {
 	var report entities.LocksReport
 	conflicts, held, err := ic.Libpod.LockConflicts()
 	if err != nil {
@@ -345,7 +345,7 @@ func (ic ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, err
 	return &report, nil
 }
 
-func (ic ContainerEngine) SystemCheck(ctx context.Context, options entities.SystemCheckOptions) (*entities.SystemCheckReport, error) {
+func (ic *ContainerEngine) SystemCheck(ctx context.Context, options entities.SystemCheckOptions) (*entities.SystemCheckReport, error) {
 	report, err := ic.Libpod.SystemCheck(ctx, options)
 	if err != nil {
 		return nil, err

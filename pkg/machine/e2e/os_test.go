@@ -26,7 +26,7 @@ package e2e_test
 // 		Expect(err).ToNot(HaveOccurred())
 // 		Expect(foo1).To(Exit(0))
 
-// 		ssh := sshMachine{}
+// 		ssh := &sshMachine{}
 // 		sshSession, err := mb.setName("foo1").setCmd(ssh.withSSHComand([]string{"podman", "pull", "quay.io/baude/podman_next"})).run()
 // 		Expect(err).ToNot(HaveOccurred())
 // 		Expect(sshSession).To(Exit(0))

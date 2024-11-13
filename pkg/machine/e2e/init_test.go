@@ -111,7 +111,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(inspectBefore).ToNot(BeEmpty())
 		Expect(inspectBefore[0].Name).To(Equal(mb.names[0]))
 
-		s := startMachine{}
+		s := &startMachine{}
 		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ssession).Should(Exit(0))
@@ -217,7 +217,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		ssh := sshMachine{}
+		ssh := &sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"ls /very-long-test-mount-dir-path-more-than-thirty-six-bytes"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(0))
@@ -231,7 +231,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		s := startMachine{}
+		s := &startMachine{}
 		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ssession).Should(Exit(0))
@@ -254,7 +254,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		s := startMachine{}
+		s := &startMachine{}
 		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ssession).Should(Exit(0))
@@ -386,7 +386,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		s := startMachine{}
+		s := &startMachine{}
 		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ssession).Should(Exit(0))
@@ -437,7 +437,7 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
-		s := startMachine{}
+		s := &startMachine{}
 		ssession, err := mb.setCmd(s).setTimeout(time.Minute * 10).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(ssession).Should(Exit(0))

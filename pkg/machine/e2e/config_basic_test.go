@@ -4,7 +4,7 @@ type basicMachine struct {
 	args []string
 }
 
-func (s basicMachine) buildCmd(m *machineTestBuilder) []string {
+func (s *basicMachine) buildCmd(m *machineTestBuilder) []string {
 	cmd := []string{"-r"}
 	if len(s.args) > 0 {
 		cmd = append(cmd, s.args...)

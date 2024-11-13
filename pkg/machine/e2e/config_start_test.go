@@ -8,7 +8,7 @@ type startMachine struct {
 	noInfo bool
 }
 
-func (s startMachine) buildCmd(m *machineTestBuilder) []string {
+func (s *startMachine) buildCmd(m *machineTestBuilder) []string {
 	cmd := []string{"machine", "start"}
 	if len(m.name) > 0 {
 		cmd = append(cmd, m.name)
@@ -22,12 +22,12 @@ func (s startMachine) buildCmd(m *machineTestBuilder) []string {
 	return cmd
 }
 
-func (s startMachine) withQuiet() startMachine {
+func (s *startMachine) withQuiet() *startMachine {
 	s.quiet = true
 	return s
 }
 
-func (s startMachine) withNoInfo() startMachine {
+func (s *startMachine) withNoInfo() *startMachine {
 	s.noInfo = true
 	return s
 }
