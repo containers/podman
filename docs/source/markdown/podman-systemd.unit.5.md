@@ -477,8 +477,7 @@ more arguments after a `podman run <image> <arguments>` invocation.
 The format is the same as for [systemd command lines](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines),
 However, unlike the usage scenario for similarly-named systemd `ExecStart=` verb
 which operates on the ambient root filesystem, it is very common for container
-images to have their own `ENTRYPOINT` or `CMD` metadata which this
-which this interacts with.
+images to have their own `ENTRYPOINT` or `CMD` metadata which this interacts with.
 
 The default expectation for many images is that the image will include an `ENTRYPOINT`
 with a default binary, and this field will add arguments to that entrypoint.
