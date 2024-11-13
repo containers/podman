@@ -2,6 +2,7 @@
 
 load helpers
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - basic output" {
     headings="REPOSITORY *TAG *IMAGE ID *CREATED *SIZE"
 
@@ -17,6 +18,7 @@ load helpers
     fi
 }
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - custom formats" {
     tests="
 {{.ID}}                  |        [0-9a-f]\\\{12\\\}\\\$
@@ -37,6 +39,7 @@ load helpers
     is "$output" "sha256:[0-9a-f]\\{64\\}\$" "podman images --no-trunc"
 }
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - json" {
     # 'created': podman includes fractional seconds, podman-remote does not
     tests="
@@ -58,6 +61,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     done < <(parse_table "$tests")
 }
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - history output" {
     # podman history is persistent: it permanently alters our base image.
     # Create a dummy image here so we leave our setup as we found it.
@@ -91,6 +95,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman rm $cname
 }
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - filter" {
     # Multiple --format options confirm command-line override (last one wins)
     run_podman inspect --format '{{.XYZ}}' --format '{{.ID}}' $IMAGE
@@ -133,6 +138,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 
 # Regression test for https://github.com/containers/podman/issues/7651
 # in which "podman pull image-with-sha" causes "images -a" to crash
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images -a, after pulling by sha " {
     # This test requires that $IMAGE be 100% the same as the registry one
     run_podman rmi -a -f
@@ -190,6 +196,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 # Tests #7199 (Restore "table" --format from V1)
 #
 # Tag our image with different-length strings; confirm table alignment
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - table format" {
     # Craft two tags such that they will bracket $IMAGE on either side (above
     # and below). This assumes that $IMAGE is quay.io or foo.com or simply
@@ -244,6 +251,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman rmi ${aaa_name}:${aaa_tag} ${zzz_name}:${zzz_tag}
 }
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - rmi -af removes all containers and pods" {
     pname=p_$(safename)
     run_podman create --pod new:$pname $IMAGE
@@ -280,6 +288,7 @@ Deleted: $pauseID" "infra images gets removed as well"
     run_podman rmi $pauseImage
 }
 
+# CANNOT BE PARALLELIZED: relies on exact output from podman images
 @test "podman images - rmi -f can remove infra images" {
     pname=p_$(safename)
     run_podman create --pod new:$pname $IMAGE
@@ -305,6 +314,7 @@ Deleted: $pauseID"
     run_podman image exists $IMAGE
 }
 
+# bats test_tags=ci:parallel
 @test "podman rmi --ignore" {
     random_image_name=i_$(safename)
     run_podman 1 rmi $random_image_name
@@ -313,6 +323,7 @@ Deleted: $pauseID"
     is "$output" ""
 }
 
+# bats test_tags=ci:parallel
 @test "podman image rm --force bogus" {
     run_podman 1 image rm bogus
     is "$output" "Error: bogus: image not known" "Should print error"
@@ -328,6 +339,7 @@ Deleted: $pauseID"
     assert "$output" !~ "$random_image_name" "image must be removed"
 }
 
+# bats test_tags=ci:parallel
 @test "podman images - commit docker with comment" {
     cname=c_$(safename)
     iname=i_$(safename)
@@ -351,6 +363,7 @@ Deleted: $pauseID"
     run_podman rm $cname --force -t 0
 }
 
+# CANNOT BE PARALLELIZED: relies on exact set of images in store
 @test "podman pull image with additional store" {
     skip_if_remote "only works on local"
 
@@ -400,6 +413,7 @@ EOF
     run_podman --root $imstore/root rmi --all
 }
 
+# bats test_tags=ci:parallel
 @test "podman images with concurrent removal" {
     skip_if_remote "following test is not supported for remote clients"
     local count=5
@@ -410,7 +424,7 @@ EOF
 FROM $IMAGE
 RUN echo $i
 EOF
-        run_podman build -q -t i$i $PODMAN_TMPDIR
+        run_podman build -q -t img-$i-$(safename) $PODMAN_TMPDIR
     done
 
     run_podman images
@@ -418,15 +432,12 @@ EOF
     # that listing all images does not fail (see BZ 2216700).
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
-                $PODMAN rmi i$i &
+                $PODMAN rmi img-$i-$(safename) &
     done
 
     tries=100
-    while [[ ${#lines[*]} -gt 1 ]] && [[ $tries -gt 0 ]]; do
-        # Prior to #18980, 'podman images' during rmi could fail with 'image not known'
-        # '0+w' because we sometimes get warnings.
-        run_podman 0+w images --format "{{.ID}} {{.Names}}"
-        allow_warnings "Top layer .* of image .* not found in layer tree"
+    while [[ "$output" =~ "$(safename)" ]] && [[ $tries -gt 0 ]]; do
+        run_podman images --format "{{.ID}} {{.Names}}"
         tries=$((tries - 1))
     done
 
