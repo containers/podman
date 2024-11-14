@@ -157,6 +157,12 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 		delete(baseMounts, dest)
 	}
 
+	// Overlays are neither mounts nor volumes but should supersede both.
+	for dest := range unifiedOverlays {
+		delete(baseVolumes, dest)
+		delete(baseMounts, dest)
+	}
+
 	// Supersede volumes-from/image volumes with unified volumes from above.
 	// This is an unconditional replacement.
 	for dest, mount := range unifiedMounts {
@@ -169,15 +175,21 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// TODO: Investigate moving readonlyTmpfs into here. Would be more
 	// correct.
 
-	// Check for conflicts between named volumes and mounts
+	// Check for conflicts between named volumes, mounts, and overlays
 	for dest := range baseMounts {
 		if _, ok := baseVolumes[dest]; ok {
 			return nil, nil, nil, fmt.Errorf("baseMounts conflict at mount destination %v: %w", dest, specgen.ErrDuplicateDest)
+		}
+		if _, ok := unifiedOverlays[dest]; ok {
+			return nil, nil, nil, fmt.Errorf("baseMounts conflict with overlay mount at mount destination %v: %w", dest, specgen.ErrDuplicateDest)
 		}
 	}
 	for dest := range baseVolumes {
 		if _, ok := baseMounts[dest]; ok {
 			return nil, nil, nil, fmt.Errorf("baseVolumes conflict at mount destination %v: %w", dest, specgen.ErrDuplicateDest)
+		}
+		if _, ok := unifiedOverlays[dest]; ok {
+			return nil, nil, nil, fmt.Errorf("baseVolumes conflict with overlay mount at mount destination %v: %w", dest, specgen.ErrDuplicateDest)
 		}
 	}
 
