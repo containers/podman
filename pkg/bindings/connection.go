@@ -170,6 +170,7 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	// ssh_config
 	alias := _url.Hostname()
 	cfg := ssh_config.DefaultUserSettings
+	cfg.IgnoreErrors = true
 	found := false
 	if val := cfg.Get(alias, "User"); val != "" {
 		userinfo = url.User(val)
