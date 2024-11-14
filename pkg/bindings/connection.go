@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -205,10 +206,15 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 
 	if identity == "" {
 		if val := cfg.Get(alias, "IdentityFile"); val != "" {
-			if val != ssh_config.Default("IdentityFile") {
-				identity = strings.Trim(val, "\"")
-				found = true
+			identity = strings.Trim(val, "\"")
+			if strings.HasPrefix(identity, "~/") {
+				homedir, err := os.UserHomeDir()
+				if err != nil {
+					return connection, fmt.Errorf("failed to find home dir: %w", err)
+				}
+				identity = filepath.Join(homedir, identity[2:])
 			}
+			found = true
 		}
 	}
 
