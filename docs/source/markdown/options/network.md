@@ -14,6 +14,9 @@ Valid _mode_ values are:
     - **ip6=**_IPv6_: Specify a static IPv6 address for this container.
     - **mac=**_MAC_: Specify a static MAC address for this container.
     - **interface_name=**_name_: Specify a name for the created network interface inside the container.
+    - **host_interface_name=**_name_: Specify a name for the created network interface outside the container.
+
+    Any other options will be passed through to netavark without validation. This can be useful to pass arguments to netavark plugins.
 
     For example, to set a static ipv4 address and a static mac address, use `--network bridge:ip=10.88.0.10,mac=44:33:22:11:00:99`.
 
