@@ -224,6 +224,50 @@ var _ = Describe("podman machine init", func() {
 		Expect(sshSession.outputToString()).To(ContainSubstring("example"))
 	})
 
+	It("machine init with ignition path", func() {
+		skipIfWSL("Ignition is not compatible with WSL machines since they are not based on Fedora CoreOS")
+
+		tmpDir, err := os.MkdirTemp("", "")
+		defer func() { _ = utils.GuardedRemoveAll(tmpDir) }()
+		Expect(err).ToNot(HaveOccurred())
+
+		tmpFile, err := os.CreateTemp(tmpDir, "test-ignition-*.ign")
+		Expect(err).ToNot(HaveOccurred())
+
+		mockIgnitionContent := `{"ignition":{"version":"3.4.0"},"passwd":{"users":[{"name":"core"}]}}`
+
+		_, err = tmpFile.WriteString(mockIgnitionContent)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tmpFile.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withIgnitionPath(tmpFile.Name())).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		configDir := filepath.Join(testDir, ".config", "containers", "podman", "machine", testProvider.VMType().String())
+
+		// test that all required machine files are created
+		fileExtensions := []string{".lock", ".json", ".ign"}
+		for _, ext := range fileExtensions {
+			filename := filepath.Join(configDir, fmt.Sprintf("%s%s", name, ext))
+
+			_, err := os.Stat(filename)
+			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("file %v does not exist", filename))
+		}
+
+		// enforce that the raw ignition is copied over verbatim
+		createdIgn := filepath.Join(configDir, fmt.Sprintf("%s%s", name, ".ign"))
+		contentWanted, err := os.ReadFile(tmpFile.Name())
+		Expect(err).ToNot(HaveOccurred())
+		contentGot, err := os.ReadFile(createdIgn)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(contentWanted).To(Equal(contentGot), "The ignition file provided and the ignition file created do not match")
+	})
+
 	It("machine init rootless docker.sock check", func() {
 		i := initMachine{}
 		name := randomString()
