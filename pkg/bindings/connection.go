@@ -147,20 +147,14 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 
 func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connection, error) {
 	var (
-		err error
+		err  error
+		port int
 	)
 	connection := Connection{
 		URI: _url,
 	}
 	userinfo := _url.User
-	if _url.User == nil {
-		u, err := user.Current()
-		if err != nil {
-			return connection, fmt.Errorf("current user could not be determined: %w", err)
-		}
-		userinfo = url.User(u.Username)
-	}
-	port := 22
+
 	if _url.Port() != "" {
 		port, err = strconv.Atoi(_url.Port())
 		if err != nil {
@@ -172,29 +166,52 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	cfg := ssh_config.DefaultUserSettings
 	cfg.IgnoreErrors = true
 	found := false
-	if val := cfg.Get(alias, "User"); val != "" {
-		userinfo = url.User(val)
-		found = true
+
+	if userinfo == nil {
+		if val := cfg.Get(alias, "User"); val != "" {
+			userinfo = url.User(val)
+			found = true
+		}
 	}
+	// not in url or ssh_config so default to current user
+	if userinfo == nil {
+		u, err := user.Current()
+		if err != nil {
+			return connection, fmt.Errorf("current user could not be determined: %w", err)
+		}
+		userinfo = url.User(u.Username)
+	}
+
 	if val := cfg.Get(alias, "Hostname"); val != "" {
 		uri = val
 		found = true
 	}
-	if val := cfg.Get(alias, "Port"); val != "" {
-		if val != ssh_config.Default("Port") {
-			port, err = strconv.Atoi(val)
-			if err != nil {
-				return connection, fmt.Errorf("port is not an int: %s: %w", val, err)
+
+	if port == 0 {
+		if val := cfg.Get(alias, "Port"); val != "" {
+			if val != ssh_config.Default("Port") {
+				port, err = strconv.Atoi(val)
+				if err != nil {
+					return connection, fmt.Errorf("port is not an int: %s: %w", val, err)
+				}
+				found = true
 			}
-			found = true
 		}
 	}
-	if val := cfg.Get(alias, "IdentityFile"); val != "" {
-		if val != ssh_config.Default("IdentityFile") {
-			identity = strings.Trim(val, "\"")
-			found = true
+	// not in ssh config or url so use default 22 port
+	if port == 0 {
+		port = 22
+	}
+
+	if identity == "" {
+		if val := cfg.Get(alias, "IdentityFile"); val != "" {
+			if val != ssh_config.Default("IdentityFile") {
+				identity = strings.Trim(val, "\"")
+				found = true
+			}
 		}
 	}
+
 	if found {
 		logrus.Debugf("ssh_config alias found: %s", alias)
 		logrus.Debugf("  User: %s", userinfo.Username())
