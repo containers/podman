@@ -624,7 +624,7 @@ func (c *Container) addSpecialDNS(nameservers []string) []string {
 	switch {
 	case c.config.NetMode.IsBridge():
 		info, err := c.runtime.network.RootlessNetnsInfo()
-		if err == nil {
+		if err == nil && info != nil {
 			nameservers = append(nameservers, info.DnsForwardIps...)
 		}
 	case c.pastaResult != nil:
