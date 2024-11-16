@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -22,6 +23,7 @@ import (
 	"github.com/containers/podman/v5/pkg/api/server/idle"
 	"github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/util"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -38,6 +40,9 @@ type APIServer struct {
 	CorsHeaders        string        // Inject Cross-Origin Resource Sharing (CORS) headers
 	PProfAddr          string        // Binding network address for pprof profiles
 	idleTracker        *idle.Tracker // Track connections to support idle shutdown
+	tlsCertFile        string        // TLS serving certificate PEM file
+	tlsKeyFile         string        // TLS serving certificate private key PEM file
+	tlsClientCAFile    string        // TLS client certifiicate CA bundle PEM file
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
@@ -76,10 +81,13 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 			Handler:     router,
 			IdleTimeout: opts.Timeout * 2,
 		},
-		CorsHeaders: opts.CorsHeaders,
-		Listener:    listener,
-		PProfAddr:   opts.PProfAddr,
-		idleTracker: tracker,
+		CorsHeaders:     opts.CorsHeaders,
+		Listener:        listener,
+		PProfAddr:       opts.PProfAddr,
+		idleTracker:     tracker,
+		tlsCertFile:     opts.TLSCertFile,
+		tlsKeyFile:      opts.TLSKeyFile,
+		tlsClientCAFile: opts.TLSClientCAFile,
 	}
 
 	server.BaseContext = func(l net.Listener) context.Context {
@@ -88,6 +96,18 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 		ctx = context.WithValue(ctx, types.RuntimeKey, runtime)
 		ctx = context.WithValue(ctx, types.IdleTrackerKey, tracker)
 		return ctx
+	}
+
+	if opts.TLSClientCAFile != "" {
+		logrus.Debugf("will validate client certs against %s", opts.TLSClientCAFile)
+		pool, err := util.ReadCertBundle(opts.TLSClientCAFile)
+		if err != nil {
+			return nil, err
+		}
+		server.TLSConfig = &tls.Config{
+			ClientCAs:  pool,
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		}
 	}
 
 	// Capture panics and print stack traces for diagnostics,
@@ -217,7 +237,15 @@ func (s *APIServer) Serve() error {
 	errChan := make(chan error, 1)
 	s.setupSystemd()
 	go func() {
-		err := s.Server.Serve(s.Listener)
+		var err error
+		if s.tlsClientCAFile != "" || (s.tlsCertFile != "" && s.tlsKeyFile != "") {
+			if s.tlsCertFile != "" && s.tlsKeyFile != "" {
+				logrus.Debugf("serving TLS with cert %s and key %s", s.tlsCertFile, s.tlsKeyFile)
+			}
+			err = s.Server.ServeTLS(s.Listener, s.tlsCertFile, s.tlsKeyFile)
+		} else {
+			err = s.Server.Serve(s.Listener)
+		}
 		if err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("failed to start API service: %w", err)
 			return

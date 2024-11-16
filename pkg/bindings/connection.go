@@ -3,6 +3,7 @@ package bindings
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/common/pkg/ssh"
+	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/version"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/kevinburke/ssh_config"
@@ -33,6 +35,7 @@ type APIResponse struct {
 type Connection struct {
 	URI    *url.URL
 	Client *http.Client
+	tls    bool
 }
 
 type valueKey string
@@ -93,6 +96,10 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock
 func NewConnectionWithIdentity(ctx context.Context, uri string, identity string, machine bool) (context.Context, error) {
+	return NewConnectionWithIdentityOrTLS(ctx, uri, identity, "", "", "", machine)
+}
+
+func NewConnectionWithIdentityOrTLS(ctx context.Context, uri string, identity string, tlsCertFile, tlsKeyFile, tlsCAFile string, machine bool) (context.Context, error) {
 	var err error
 	if v, found := os.LookupEnv("CONTAINER_HOST"); found && uri == "" {
 		uri = v
@@ -100,6 +107,18 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 
 	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identity) == 0 {
 		identity = v
+	}
+
+	if v, found := os.LookupEnv("CONTAINER_TLS_CERT"); found && len(tlsCertFile) == 0 {
+		tlsCertFile = v
+	}
+
+	if v, found := os.LookupEnv("CONTAINER_TLS_KEY"); found && len(tlsKeyFile) == 0 {
+		tlsKeyFile = v
+	}
+
+	if v, found := os.LookupEnv("CONTAINER_TLS_CA"); found && len(tlsCAFile) == 0 {
+		tlsCAFile = v
 	}
 
 	_url, err := url.Parse(uri)
@@ -127,7 +146,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		conn, err := tcpClient(_url)
+		conn, err := tcpClient(_url, tlsCertFile, tlsKeyFile, tlsCAFile)
 		if err != nil {
 			return nil, newConnectError(err)
 		}
@@ -278,7 +297,7 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	return connection, nil
 }
 
-func tcpClient(_url *url.URL) (Connection, error) {
+func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connection, error) {
 	connection := Connection{
 		URI: _url,
 	}
@@ -310,11 +329,31 @@ func tcpClient(_url *url.URL) (Connection, error) {
 			}
 		}
 	}
+	transport := http.Transport{
+		DialContext:        dialContext,
+		DisableCompression: true,
+	}
+	if len(tlsCAFile) != 0 || len(tlsCertFile) != 0 || len(tlsKeyFile) != 0 {
+		logrus.Debugf("using TLS cert=%s key=%s ca=%s", tlsCertFile, tlsKeyFile, tlsCAFile)
+		transport.TLSClientConfig = &tls.Config{}
+		connection.tls = true
+	}
+	if len(tlsCAFile) != 0 {
+		pool, err := util.ReadCertBundle(tlsCAFile)
+		if err != nil {
+			return connection, fmt.Errorf("unable to read CA bundle: %w", err)
+		}
+		transport.TLSClientConfig.RootCAs = pool
+	}
+	if len(tlsCertFile) != 0 && len(tlsKeyFile) != 0 {
+		keyPair, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+		if err != nil {
+			return connection, fmt.Errorf("unable to read TLS key pair: %w", err)
+		}
+		transport.TLSClientConfig.Certificates = append(transport.TLSClientConfig.Certificates, keyPair)
+	}
 	connection.Client = &http.Client{
-		Transport: &http.Transport{
-			DialContext:        dialContext,
-			DisableCompression: true,
-		},
+		Transport: &transport,
 	}
 	return connection, nil
 }
@@ -395,8 +434,14 @@ func (c *Connection) DoRequest(ctx context.Context, httpBody io.Reader, httpMeth
 
 	baseURL := "http://d"
 	if c.URI.Scheme == "tcp" {
+		var scheme string
+		if c.tls {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
 		// Allow path prefixes for tcp connections to match Docker behavior
-		baseURL = "http://" + c.URI.Host + c.URI.Path
+		baseURL = scheme + "://" + c.URI.Host + c.URI.Path
 	}
 	uri := fmt.Sprintf(baseURL+"/v%s/libpod"+endpoint, params...)
 	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)
