@@ -27,6 +27,18 @@ Path to ssh identity file. If the identity file has been encrypted, Podman promp
 If no identity file is provided and no user is given, Podman defaults to the user running the podman command.
 Podman prompts for the login password on the remote server.
 
+#### --tls-cert=path
+
+Path to a PEM file containing the TLS client certificate to present to the server. `--tls-key` must also be provided.
+
+#### --tls-key=path
+
+Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
+
+#### --tls-ca=path
+
+Path to a PEM file containing the certificate authority bundle to verify the server's certificate against.
+
 #### **--port**, **-p**=*port*
 
 Port for ssh destination. The default value is `22`.
@@ -55,6 +67,10 @@ $ podman system connection add testing unix:///run/podman/podman.sock
 Add a named system connection to local tcp socket:
 ```
 $ podman system connection add debug tcp://localhost:8080
+```
+Add a named system connection to remote tcp socket secured via TLS:
+```
+$ podman system connection add secure-debug --tls-cert=tls.crt --tls-key=tls.key --tls-ca=ca.crt tcp://podman.example.com:8443
 ```
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**
