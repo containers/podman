@@ -27,7 +27,7 @@ var (
   "destination" is one of the form:
     [user@]hostname (will default to ssh)
     ssh://[user@]hostname[:port][/path] (will obtain socket path from service, if not given.)
-    tcp://hostname:port (not secured)
+    tcp://hostname:port (not secured without TLS enabled)
     unix://path (absolute path required)
 `,
 		RunE:              add,
@@ -36,6 +36,7 @@ var (
   podman system connection add --identity ~/.ssh/dev_rsa testing ssh://root@server.fubar.com:2222
   podman system connection add --identity ~/.ssh/dev_rsa --port 22 production root@server.fubar.com
   podman system connection add debug tcp://localhost:8080
+  podman system connection add production-tls --tls-ca=ca.crt --tls-cert=tls.crt --tls-key=tls.key tcp://localhost:8080
   `,
 	}
 
@@ -51,11 +52,14 @@ var (
 	dockerPath string
 
 	cOpts = struct {
-		Identity string
-		Port     int
-		UDSPath  string
-		Default  bool
-		Farm     string
+		Identity    string
+		Port        int
+		UDSPath     string
+		Default     bool
+		Farm        string
+		TLSCertFile string
+		TLSKeyFile  string
+		TLSCAFile   string
 	}{}
 )
 
@@ -73,6 +77,18 @@ func init() {
 	identityFlagName := "identity"
 	flags.StringVar(&cOpts.Identity, identityFlagName, "", "path to SSH identity file")
 	_ = addCmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
+
+	tlsCertFileFlagName := "tls-cert"
+	flags.StringVar(&cOpts.TLSCertFile, tlsCertFileFlagName, "", "path to TLS client certificate PEM file")
+	_ = addCmd.RegisterFlagCompletionFunc(tlsCertFileFlagName, completion.AutocompleteDefault)
+
+	tlsKeyFileFlagName := "tls-key"
+	flags.StringVar(&cOpts.TLSKeyFile, tlsKeyFileFlagName, "", "path to TLS client certificate private key PEM file")
+	_ = addCmd.RegisterFlagCompletionFunc(tlsKeyFileFlagName, completion.AutocompleteDefault)
+
+	tlsCAFileFlagName := "tls-ca"
+	flags.StringVar(&cOpts.TLSCAFile, tlsCAFileFlagName, "", "path to TLS certificate Authority PEM file")
+	_ = addCmd.RegisterFlagCompletionFunc(tlsCAFileFlagName, completion.AutocompleteDefault)
 
 	socketPathFlagName := "socket-path"
 	flags.StringVar(&cOpts.UDSPath, socketPathFlagName, "", "path to podman socket on remote host. (default '/run/podman/podman.sock' or '/run/user/{uid}/podman/podman.sock)")
@@ -141,10 +157,28 @@ func add(cmd *cobra.Command, args []string) error {
 
 	switch uri.Scheme {
 	case "ssh":
+		if cmd.Flags().Changed("tls-cert") {
+			return errors.New("--tls-cert option not supported for ssh scheme")
+		}
+		if cmd.Flags().Changed("tls-key") {
+			return errors.New("--tls-key option not supported for ssh scheme")
+		}
+		if cmd.Flags().Changed("tls-ca") {
+			return errors.New("--tls-ca option not supported for ssh scheme")
+		}
 		return ssh.Create(entities, sshMode)
 	case "unix":
 		if cmd.Flags().Changed("identity") {
 			return errors.New("--identity option not supported for unix scheme")
+		}
+		if cmd.Flags().Changed("tls-cert") {
+			return errors.New("--tls-cert option not supported for unix scheme")
+		}
+		if cmd.Flags().Changed("tls-key") {
+			return errors.New("--tls-key option not supported for unix scheme")
+		}
+		if cmd.Flags().Changed("tls-ca") {
+			return errors.New("--tls-ca option not supported for unix scheme")
 		}
 
 		if cmd.Flags().Changed("socket-path") {
@@ -169,6 +203,9 @@ func add(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("identity") {
 			return errors.New("--identity option not supported for tcp scheme")
 		}
+		if cmd.Flags().Changed("tls-cert") != cmd.Flags().Changed("tls-key") {
+			return errors.New("--tls-cert and --tls-key options must be both provided if one is provided")
+		}
 		if uri.Port() == "" {
 			return errors.New("tcp scheme requires a port either via --port or in destination URL")
 		}
@@ -177,8 +214,11 @@ func add(cmd *cobra.Command, args []string) error {
 	}
 
 	dst := config.Destination{
-		URI:      uri.String(),
-		Identity: cOpts.Identity,
+		URI:         uri.String(),
+		Identity:    cOpts.Identity,
+		TLSCertFile: cOpts.TLSCertFile,
+		TLSKeyFile:  cOpts.TLSKeyFile,
+		TLSCAFile:   cOpts.TLSCAFile,
 	}
 
 	connection := args[0]

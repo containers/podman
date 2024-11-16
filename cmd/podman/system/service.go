@@ -36,13 +36,19 @@ Enable a listening service for API access to Podman commands.
 		RunE:              service,
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman system service --time=0 unix:///tmp/podman.sock
-  podman system service --time=0 tcp://localhost:8888`,
+  podman system service --time=0 tcp://localhost:8888
+  podman system service --time=0 --tls-cert=tls.crt --tls-key=tls.key tcp://localhost:8888
+  podman system service --time=0 --tls-cert=tls.crt --tls-key=tls.key --tls-client-ca=ca.crt tcp://localhost:8888
+    `,
 	}
 
 	srvArgs = struct {
-		CorsHeaders string
-		PProfAddr   string
-		Timeout     uint
+		CorsHeaders     string
+		PProfAddr       string
+		Timeout         uint
+		TLSCertFile     string
+		TLSKeyFile      string
+		TLSClientCAFile string
 	}{}
 )
 
@@ -67,6 +73,16 @@ func init() {
 	flags.StringVarP(&srvArgs.PProfAddr, "pprof-address", "", "",
 		"Binding network address for pprof profile endpoints, default: do not expose endpoints")
 	_ = flags.MarkHidden("pprof-address")
+
+	flags.StringVarP(&srvArgs.TLSCertFile, "tls-cert", "", "",
+		"PEM file containing TLS serving certificate.")
+	_ = srvCmd.RegisterFlagCompletionFunc("tls-cert", completion.AutocompleteDefault)
+	flags.StringVarP(&srvArgs.TLSKeyFile, "tls-key", "", "",
+		"PEM file containing TLS serving certificate private key")
+	_ = srvCmd.RegisterFlagCompletionFunc("tls-key", completion.AutocompleteDefault)
+	flags.StringVarP(&srvArgs.TLSClientCAFile, "tls-client-ca", "", "",
+		"Only trust client connections with certificates signed by this CA PEM file")
+	_ = srvCmd.RegisterFlagCompletionFunc("tls-client-ca", completion.AutocompleteDefault)
 }
 
 func aliasTimeoutFlag(_ *pflag.FlagSet, name string) pflag.NormalizedName {
@@ -100,10 +116,13 @@ func service(cmd *cobra.Command, args []string) error {
 	}
 
 	return restService(cmd.Flags(), registry.PodmanConfig(), entities.ServiceOptions{
-		CorsHeaders: srvArgs.CorsHeaders,
-		PProfAddr:   srvArgs.PProfAddr,
-		Timeout:     time.Duration(srvArgs.Timeout) * time.Second,
-		URI:         apiURI,
+		CorsHeaders:     srvArgs.CorsHeaders,
+		PProfAddr:       srvArgs.PProfAddr,
+		Timeout:         time.Duration(srvArgs.Timeout) * time.Second,
+		URI:             apiURI,
+		TLSCertFile:     srvArgs.TLSCertFile,
+		TLSKeyFile:      srvArgs.TLSKeyFile,
+		TLSClientCAFile: srvArgs.TLSClientCAFile,
 	})
 }
 
