@@ -70,16 +70,30 @@ To access the API service inside a container:
 
 Please note that the API grants full access to all Podman functionality, and thus allows arbitrary code execution as the user running the API, with no ability to limit or audit this access.
 The API's security model is built upon access via a Unix socket with access restricted via standard file permissions, ensuring that only the user running the service will be able to access it.
-We *strongly* recommend against making the API socket available via the network (IE, bindings the service to a *tcp* URL).
+TLS can be used to secure this socket by requiring clients to present a certificate signed by a trusted certificate authority ("CA"), as well as to allow the client to verify the identity of the API.
+We *strongly* recommend against making the API socket available via the network (IE, bindings the service to a *tcp* URL) without enabling mutual TLS to authenticate the client.
 Even access via Localhost carries risks - anyone with access to the system will be able to access the API.
 If remote access is required, we instead recommend forwarding the API socket via SSH, and limiting access on the remote machine to the greatest extent possible.
-If a *tcp* URL must be used, using the *--cors* option is recommended to improve security.
+If a *tcp* URL must be used without TLS, using the *--cors* option is recommended to improve security.
 
 ## OPTIONS
 
 #### **--cors**
 
 CORS headers to inject to the HTTP response. The default value is empty string which disables CORS headers.
+
+#### --tls-cert=path
+
+Path to a PEM file containing the TLS certificate to present to clients. `--tls-key` must also be provided.
+
+#### --tls-key=path
+
+Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
+
+#### --tls-client-ca=path
+
+Path to a PEM file containing the TLS certificate bundle to validate client connections against.
+Connections that present no certificate or a certificate not signed by one of these certificates will be rejected.
 
 #### **--help**, **-h**
 
