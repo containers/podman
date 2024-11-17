@@ -523,6 +523,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      TBD Extra hosts to add to /etc/hosts
 	//      (As of version 1.xx)
 	//  - in: query
+	//    name: nohosts
+	//    type: boolean
+	//    default:
+	//    description: |
+	//      Not to create /etc/hosts when building the image
+	//  - in: query
 	//    name: remote
 	//    type: string
 	//    default:
@@ -1501,6 +1507,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      TBD Extra hosts to add to /etc/hosts
 	//      (As of version 1.xx)
+	//  - in: query
+	//    name: nohosts
+	//    type: boolean
+	//    default:
+	//    description: |
+	//      Not to create /etc/hosts when building the image
 	//  - in: query
 	//    name: remote
 	//    type: string
