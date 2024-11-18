@@ -140,7 +140,7 @@ func parsePullOptions(store storage.Store) pullOptions {
 		name         string
 		defaultValue bool
 	}{
-		{&res.enablePartialImages, "enable_partial_images", false},
+		{&res.enablePartialImages, "enable_partial_images", true},
 		{&res.convertImages, "convert_images", false},
 		{&res.useHardLinks, "use_hard_links", false},
 		{&res.insecureAllowUnpredictableImageContents, "insecure_allow_unpredictable_image_contents", false},
