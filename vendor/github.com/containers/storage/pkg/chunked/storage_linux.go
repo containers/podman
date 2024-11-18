@@ -149,7 +149,7 @@ func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *o
 func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
 	pullOptions := store.PullOptions()
 
-	if !parseBooleanPullOption(pullOptions, "enable_partial_images", false) {
+	if !parseBooleanPullOption(pullOptions, "enable_partial_images", true) {
 		// If convertImages is set, the two options disagree whether fallback is permissible.
 		// Right now, we enable it, but that’s not a promise; rather, such a configuration should ideally be rejected.
 		return nil, newErrFallbackToOrdinaryLayerDownload(errors.New("partial images are disabled"))
