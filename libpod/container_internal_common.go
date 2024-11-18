@@ -2323,7 +2323,7 @@ func (c *Container) addHosts() error {
 		// not be routed to the host.
 		// https://github.com/containers/podman/issues/22653
 		info, err := c.runtime.network.RootlessNetnsInfo()
-		if err == nil {
+		if err == nil && info != nil {
 			exclude = info.IPAddresses
 			if len(info.MapGuestIps) > 0 {
 				// we used --map-guest-addr to setup pasta so prefer this address
