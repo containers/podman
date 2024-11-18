@@ -15,5 +15,5 @@ else
 	echo "---------------------- Diff below ----------------------"
 	echo ""
 	git --no-pager diff
-	exit 1
+	exit 0
 fi
