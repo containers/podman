@@ -233,6 +233,8 @@ Print usage statement
 
 @@option hostname.container
 
+@@option hosts-file
+
 @@option hostuser
 
 @@option http-proxy

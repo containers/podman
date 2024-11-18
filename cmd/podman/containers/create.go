@@ -323,6 +323,9 @@ func CreateInit(c *cobra.Command, vals entities.ContainerCreateOptions, isInfra 
 	if noHosts && c.Flag("add-host").Changed {
 		return vals, errors.New("--no-hosts and --add-host cannot be set together")
 	}
+	if noHosts && c.Flag("hosts-file").Changed {
+		return vals, errors.New("--no-hosts and --hosts-file cannot be set together")
+	}
 
 	if !isInfra && c.Flag("entrypoint").Changed {
 		val := c.Flag("entrypoint").Value.String()

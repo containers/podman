@@ -663,14 +663,14 @@ func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSe
 
 // BuildImage uses podman build and buildah to build an image
 // called imageName based on a string dockerfile
-func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers string) string {
-	return p.buildImage(dockerfile, imageName, layers, "")
+func (p *PodmanTestIntegration) BuildImage(dockerfile, imageName string, layers string, extraOptions ...string) string {
+	return p.buildImage(dockerfile, imageName, layers, "", extraOptions)
 }
 
 // BuildImageWithLabel uses podman build and buildah to build an image
 // called imageName based on a string dockerfile, adds desired label to paramset
-func (p *PodmanTestIntegration) BuildImageWithLabel(dockerfile, imageName string, layers string, label string) string {
-	return p.buildImage(dockerfile, imageName, layers, label)
+func (p *PodmanTestIntegration) BuildImageWithLabel(dockerfile, imageName string, layers string, label string, extraOptions ...string) string {
+	return p.buildImage(dockerfile, imageName, layers, label, extraOptions)
 }
 
 // PodmanPID execs podman and returns its PID
@@ -1299,7 +1299,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 	return strings.TrimRight(out.String(), "\n"), err
 }
 
-func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string) string {
+func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string, extraOptions []string) string {
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile-"+stringid.GenerateRandomID())
 	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
 	Expect(err).ToNot(HaveOccurred())
@@ -1309,6 +1309,9 @@ func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers 
 	}
 	if len(imageName) > 0 {
 		cmd = append(cmd, []string{"-t", imageName}...)
+	}
+	if len(extraOptions) > 0 {
+		cmd = append(cmd, extraOptions...)
 	}
 	cmd = append(cmd, p.TempDir)
 	session := p.Podman(cmd)

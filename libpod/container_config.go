@@ -290,11 +290,10 @@ type ContainerNetworkConfig struct {
 	// bind-mounted inside the container.
 	// Conflicts with HostAdd.
 	UseImageHosts bool
-	// BaseHostsFile is the path to a hosts file, the entries from this file
-	// are added to the containers hosts file. As special value "image" is
-	// allowed which uses the /etc/hosts file from within the image and "none"
-	// which uses no base file at all. If it is empty we should default
-	// to the base_hosts_file configuration in containers.conf.
+	// BaseHostsFile is the base file to create the `/etc/hosts` file inside the container.
+	// This must either be an absolute path to a file on the host system, or one of the
+	// special flags `image` or `none`.
+	// If it is empty it defaults to the base_hosts_file configuration in containers.conf.
 	BaseHostsFile string `json:"baseHostsFile,omitempty"`
 	// Hosts to add in container
 	// Will be appended to host's host file
