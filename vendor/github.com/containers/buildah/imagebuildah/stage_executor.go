@@ -800,7 +800,7 @@ func (s *StageExecutor) Run(run imagebuilder.Run, config docker.Config) error {
 		NamespaceOptions:     namespaceOptions,
 		NoHostname:           s.executor.noHostname,
 		NoHosts:              s.executor.noHosts,
-		NoPivot:              os.Getenv("BUILDAH_NOPIVOT") != "",
+		NoPivot:              os.Getenv("BUILDAH_NOPIVOT") != "" || s.executor.noPivotRoot,
 		Quiet:                s.executor.quiet,
 		CompatBuiltinVolumes: types.OptionalBoolFalse,
 		RunMounts:            run.Mounts,

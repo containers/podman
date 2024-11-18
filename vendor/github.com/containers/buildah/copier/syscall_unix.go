@@ -77,12 +77,12 @@ func sameDevice(a, b os.FileInfo) bool {
 	if aSys == nil || bSys == nil {
 		return true
 	}
-	au, aok := aSys.(*syscall.Stat_t)
-	bu, bok := bSys.(*syscall.Stat_t)
-	if !aok || !bok {
+	uA, okA := aSys.(*syscall.Stat_t)
+	uB, okB := bSys.(*syscall.Stat_t)
+	if !okA || !okB {
 		return true
 	}
-	return au.Dev == bu.Dev
+	return uA.Dev == uB.Dev
 }
 
 const (
