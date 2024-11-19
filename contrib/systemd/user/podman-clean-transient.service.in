@@ -10,8 +10,6 @@
 Description=Clean up podman transient data
 RequiresMountsFor=%t/containers
 Documentation=man:podman-system-prune(1)
-Requires=boot-complete.target
-After=local-fs.target boot-complete.target
 
 [Service]
 Type=oneshot
