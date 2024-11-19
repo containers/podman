@@ -9,7 +9,7 @@
     <Variable Name="InstallFolder" Type="formatted" Value="[ProgramFiles64Folder]RedHat\Podman" bal:Overridable="yes" />
     <Variable Name="VERSION" Value="$(var.VERSION)" />
     <Variable Name="MachineProvider" Type="string" Value="wsl" bal:Overridable="yes" />
-    <Variable Name="WSLCheckbox" Type="numeric" Value="1" bal:Overridable="yes" />
+    <Variable Name="WSLCheckbox" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="HyperVCheckbox" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="AllowOldWin" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="LaunchTarget" Value="explorer.exe" />
