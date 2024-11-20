@@ -9,7 +9,7 @@ if ($Env:CI -eq "true") {
     $WIN_INST_FOLDER = "$PSScriptRoot\..\win-installer"
     $ENV:WIN_INST_VER = "9.9.9"
     $RELEASE_DIR = "$PSScriptRoot\..\..\contrib\win-installer\current"
-    $ENV:CONTAINERS_MACHINE_PROVIDER = "wsl"
+    if ($null -eq $ENV:CONTAINERS_MACHINE_PROVIDER) { $ENV:CONTAINERS_MACHINE_PROVIDER = 'wsl' }
 }
 
 Push-Location $WIN_INST_FOLDER
@@ -21,7 +21,6 @@ Run-Command ".\build.ps1 $Env:WIN_INST_VER dev `"$RELEASE_DIR`""
 Pop-Location
 
 # Run the installer silently and WSL/HyperV install options disabled (prevent reboots)
-# We need -skipWinVersionCheck for server 2019 (cirrus image), can be dropped after server 2022
 $command = "$WIN_INST_FOLDER\test-installer.ps1 "
 $command += "-scenario all "
 $command += "-provider $ENV:CONTAINERS_MACHINE_PROVIDER "

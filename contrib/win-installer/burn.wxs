@@ -9,7 +9,7 @@
     <Variable Name="InstallFolder" Type="formatted" Value="[ProgramFiles64Folder]RedHat\Podman" bal:Overridable="yes" />
     <Variable Name="VERSION" Value="$(var.VERSION)" />
     <Variable Name="MachineProvider" Type="string" Value="wsl" bal:Overridable="yes" />
-    <Variable Name="WSLCheckbox" Type="numeric" Value="1" bal:Overridable="yes" />
+    <Variable Name="WSLCheckbox" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="HyperVCheckbox" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="AllowOldWin" Type="numeric" Value="0" bal:Overridable="yes" />
     <Variable Name="LaunchTarget" Value="explorer.exe" />
@@ -30,7 +30,7 @@
         <MsiProperty Name="WITH_HYPERV" Value="[HyperVCheckbox]" />
         <MsiProperty Name="SKIP_CONFIG_FILE_CREATION" Value="[SkipConfigFileCreation]" />
       </MsiPackage>
-      <ExePackage DisplayName="WSL Kernel Install" InstallCondition="(MachineProvider = &quot;wsl&quot;) AND (WSLCheckbox = 1)" SourceFile="artifacts\podman-wslkerninst.exe" DetectCondition="" Permanent="true" />
+      <ExePackage DisplayName="WSL Kernel Install" InstallCondition="(MachineProvider = &quot;wsl&quot;) AND (WSLCheckbox = 1) AND (NOT PreviousInstallFolder)" SourceFile="artifacts\podman-wslkerninst.exe" DetectCondition="" Permanent="true" />
     </Chain>
     <OptionalUpdateRegistration />
   </Bundle>
