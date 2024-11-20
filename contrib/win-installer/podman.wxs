@@ -35,36 +35,36 @@
 		</Property>
 
 		<!--
-      Property WSL_INSTALL is set at runtime and used as the condition to run the `WSLFeatureComponent` Component:
-      WSL is installed only if all these conditions are met:
-        - WSL isn't already installed
-        - The user has set property `MACHINE_PROVIDER` to "wsl"
-        - The user hasn't set property `WITH_WSL` to 0
-     -->
+		Property WSL_INSTALL is set at runtime and used as the condition to run the `WSLFeatureComponent` Component:
+		WSL is installed only if all these conditions are met:
+			- WSL isn't already installed
+			- The user has set property `MACHINE_PROVIDER` to "wsl"
+			- The user hasn't set property `WITH_WSL` to 0
+		-->
 		<SetProperty Id="WSL_INSTALL" Before="AppSearch" Value="1" Sequence="first" Condition="(HAS_WSLFEATURE = 0) AND (MACHINE_PROVIDER = &quot;wsl&quot;) AND (NOT (WITH_WSL = 0))" />
 		<!--
-      Property HYPERV_INSTALL is set at runtime and used as the condition to run the `HyperVFeatureComponent` Component:
-      HyperV is installed only if all these conditions are met:
-        - HyperV isn't already installed
-        - The user has set property `MACHINE_PROVIDER` to "hyperv"
-        - The user hasn't set property `WITH_HYPERV` to 0
-     -->
+		Property HYPERV_INSTALL is set at runtime and used as the condition to run the `HyperVFeatureComponent` Component:
+		HyperV is installed only if all these conditions are met:
+			- HyperV isn't already installed
+			- The user has set property `MACHINE_PROVIDER` to "hyperv"
+			- The user hasn't set property `WITH_HYPERV` to 0
+		-->
 		<SetProperty Id="HYPERV_INSTALL" Before="AppSearch" Value="1" Sequence="first" Condition="(HAS_HYPERVFEATURE = 0) AND (MACHINE_PROVIDER = &quot;hyperv&quot;) AND (NOT (WITH_HYPERV = 0))" />
 		<!--
-      Property CREATE_MACHINE_PROVIDER_CONFIG_FILE is set at runtime and used as the condition to run the `MachineProviderConfigFile` Component:
-      The machine provider config file is created (or is not deleted if it already exist) if these conditions are met:
-        - The user hasn't set property `SKIP_CONFIG_FILE_CREATION` to 1
-        - The main executable file ($PROGRAMDATA/RedHat/Podman/podman.exe) doesn't exist or, if it exists, the machine provider config file exists
-     -->
+		Property CREATE_MACHINE_PROVIDER_CONFIG_FILE is set at runtime and used as the condition to run the `MachineProviderConfigFile` Component:
+		The machine provider config file is created (or is not deleted if it already exist) if these conditions are met:
+			- The user hasn't set property `SKIP_CONFIG_FILE_CREATION` to 1
+			- The main executable file ($PROGRAMDATA/RedHat/Podman/podman.exe) doesn't exist or, if it exists, the machine provider config file exists
+		-->
 		<SetProperty Id="CREATE_MACHINE_PROVIDER_CONFIG_FILE" After="AppSearch" Value="1" Sequence="first" Condition="(NOT (SKIP_CONFIG_FILE_CREATION = 1)) AND ((NOT MAIN_EXECUTABLE_FILE_PATH) OR (MACHINE_PROVIDER_CONFIG_FILE_PATH))" />
 		<!--
-      Property HIDE_PROVIDER_CHOICE is set at runtime and used as the condition to hide the Machine Provider
-      choice from the MSI GUI (the Radio Button Group and other related controls):
-      The machine provider choice isn't shown to the user if one of these conditions are met:
-        - The user has set the property `SKIP_CONFIG_FILE_CREATION` to 1
-        - The machine provider config file ($PROGRAMDATA/containers/containers.conf.d/99-podman-machine-provider.conf) exists
-        - The main executable file ($PROGRAMDATA/RedHat/Podman/podman.exe) exists
-     -->
+		Property HIDE_PROVIDER_CHOICE is set at runtime and used as the condition to hide the Machine Provider
+		choice from the MSI GUI (the Radio Button Group and other related controls):
+		The machine provider choice isn't shown to the user if one of these conditions are met:
+			- The user has set the property `SKIP_CONFIG_FILE_CREATION` to 1
+			- The machine provider config file ($PROGRAMDATA/containers/containers.conf.d/99-podman-machine-provider.conf) exists
+			- The main executable file ($PROGRAMDATA/RedHat/Podman/podman.exe) exists
+		-->
 		<SetProperty Id="HIDE_PROVIDER_CHOICE" After="AppSearch" Value="1" Sequence="first" Condition="(SKIP_CONFIG_FILE_CREATION = 1) OR (MACHINE_PROVIDER_CONFIG_FILE_PATH) OR (MAIN_EXECUTABLE_FILE_PATH)" />
 
 		<CustomAction Id="OpenGuide" DllEntry="WixShellExec" Impersonate="yes" BinaryRef="Wix4UtilCA_X86" />
@@ -72,14 +72,14 @@
 		<CustomAction Id="CheckHyperV" Execute="firstSequence" DllEntry="CheckHyperV" BinaryRef="PodmanHooks" />
 		<util:BroadcastEnvironmentChange />
 		<ComponentGroup Id="WSLFeature" Directory="INSTALLDIR">
-			<Component Id="WSLFeatureComponent" Guid="F6A693BC-186C-4E64-8015-C3073013B3A8" Condition="(NOT Installed) AND WSL_INSTALL = 1">
+			<Component Id="WSLFeatureComponent" Guid="F6A693BC-186C-4E64-8015-C3073013B3A8" Condition="(NOT WIX_UPGRADE_DETECTED) AND (WSL_INSTALL = 1)">
 				<CreateFolder />
 				<PanelSW:Dism EnableFeature="VirtualMachinePlatform" ErrorHandling="prompt" />
 				<PanelSW:Dism EnableFeature="Microsoft-Windows-Subsystem-Linux" ErrorHandling="prompt" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="HyperVFeature" Directory="INSTALLDIR">
-			<Component Id="HyperVFeatureComponent" Guid="F7B2D4C9-6C89-46BB-B4EA-FF39424972F3" Condition="(NOT Installed) AND HYPERV_INSTALL = 1">
+			<Component Id="HyperVFeatureComponent" Guid="F7B2D4C9-6C89-46BB-B4EA-FF39424972F3" Condition="(NOT WIX_UPGRADE_DETECTED) AND (HYPERV_INSTALL = 1)">
 				<CreateFolder />
 				<PanelSW:Dism EnableFeature="Microsoft-Hyper-V" ErrorHandling="prompt" />
 			</Component>
@@ -110,13 +110,13 @@
 		<WixVariable Id="WixUIDialogBmp" Value="resources\podman-dialog.png" />
 		<UIRef Id="PodmanUI" />
 		<UI>
-			<Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenGuide" Condition="WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 and NOT Installed" />
+			<Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenGuide" Condition="(WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1) AND (NOT WIX_UPGRADE_DETECTED)" />
 		</UI>
 
 		<InstallExecuteSequence>
 			<Custom Action="CheckWSL" Before="SetWSL_INSTALL" />
 			<Custom Action="CheckHyperV" Before="SetHYPERV_INSTALL" />
-			<ForceReboot Before="StopServices" Condition="(NOT Installed) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
+			<ForceReboot Before="StopServices" Condition="(NOT WIX_UPGRADE_DETECTED) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
 		</InstallExecuteSequence>
 		<Binary Id="PodmanHooks" SourceFile="artifacts/podman-msihooks.dll" />
 
@@ -147,10 +147,10 @@
 			</Directory>
 		</StandardDirectory>
 		<!--
-        The following code creates the `containers/containers.conf.d` folder under the system wide
-        `$CommonAppDataFolder`. That's preferred to the user specific `$AppDataFolder` to avoid the
-        Windows Installer ICE91 warning https://learn.microsoft.com/en-us/windows/win32/msi/ice91.
-      -->
+			The following code creates the `containers/containers.conf.d` folder under the system wide
+			`$CommonAppDataFolder`. That's preferred to the user specific `$AppDataFolder` to avoid the
+			Windows Installer ICE91 warning https://learn.microsoft.com/en-us/windows/win32/msi/ice91.
+		-->
 		<StandardDirectory Id="CommonAppDataFolder">
 			<Directory Id="CONFIGDIR" Name="containers">
 				<Directory Id="ContainersConfigSubDir" Name="containers.conf.d">

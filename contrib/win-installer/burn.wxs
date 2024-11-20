@@ -30,7 +30,7 @@
         <MsiProperty Name="WITH_HYPERV" Value="[HyperVCheckbox]" />
         <MsiProperty Name="SKIP_CONFIG_FILE_CREATION" Value="[SkipConfigFileCreation]" />
       </MsiPackage>
-      <ExePackage DisplayName="WSL Kernel Install" InstallCondition="(MachineProvider = &quot;wsl&quot;) AND (WSLCheckbox = 1)" SourceFile="artifacts\podman-wslkerninst.exe" DetectCondition="" Permanent="true" />
+      <ExePackage DisplayName="WSL Kernel Install" InstallCondition="(MachineProvider = &quot;wsl&quot;) AND (WSLCheckbox = 1) AND (NOT PreviousInstallFolder)" SourceFile="artifacts\podman-wslkerninst.exe" DetectCondition="" Permanent="true" />
     </Chain>
     <OptionalUpdateRegistration />
   </Bundle>
