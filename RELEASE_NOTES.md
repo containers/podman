@@ -1,5 +1,13 @@
 # Release Notes
 
+## 5.3.1
+### Bugfixes
+- Fixed a bug where the `--ignition-path` option to `podman machine init` would prevent creation of necessary files for the VM, rendering it unusable ([#23544](https://github.com/containers/podman/issues/23544)).
+- Fixed a bug where rootless containers using the `bridge` networking mode would be unable to start due to a panic caused by a nil pointer dereference ([#24566](https://github.com/containers/podman/issues/24566)).
+- Fixed a bug where Podman containers would try to set increased rlimits when started in a user namespace, rendering containers unable to start ([#24508](https://github.com/containers/podman/issues/24508)).
+- Fixed a bug where certain SSH configurations would make the remote Podman client unable to connect to the server ([#24567](https://github.com/containers/podman/issues/24567)).
+- Fixed a bug where the Windows installer could install WSLv2 when upgrading an existing Podman installation that used the Hyper-V virtualization backend.
+
 ## 5.3.0
 ### Features
 - The `podman kube generate` and `podman kube play` commands can now create and run Kubernetes Job YAML ([#17011](https://github.com/containers/podman/issues/17011)).
