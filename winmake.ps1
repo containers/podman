@@ -184,8 +184,8 @@ function Lint{
         Exit 1
     }
 
-    Run-Command "golangci-lint run --timeout=10m --build-tags=`"$remotetags`" $PSScriptRoot\cmd\podman"
     Run-Command "pre-commit run --all-files"
+    Run-Command "golangci-lint run --timeout=10m --build-tags=`"$remotetags`" $PSScriptRoot\cmd\podman"
 }
 
 # Helpers
@@ -246,11 +246,7 @@ function Build-Distribution-Zip-File{
 function Get-Podman-Version{
     $versionSrc = "$PSScriptRoot\test\version\"
     $versionBin = "$PSScriptRoot\test\version\version.exe"
-
-    # If version.exe doesn't exist, build it
-    if (-Not (Test-Path -Path "$versionBin" -PathType Leaf)) {
-        Run-Command "go build --o `"$versionBin`" `"$versionSrc`""
-    }
+    Run-Command "go build --o `"$versionBin`" `"$versionSrc`""
     $version = Invoke-Expression "$versionBin"
     # Remove the '-dev' suffix from the version
     $version = $version -replace "-.*", ""
@@ -323,7 +319,7 @@ switch ($target) {
         Write-Host " .\winmake installer"
         Write-Host
         Write-Host "Example: Run windows installer tests"
-        Write-Host " .\winmake installertest"
+        Write-Host " .\winmake installertest hyperv"
         Write-Host
         Write-Host "Example: Generate the documetation artifacts"
         Write-Host " .\winmake docs"
