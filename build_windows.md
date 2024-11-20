@@ -367,13 +367,30 @@ contrib\win-installer\podman-5.1.0-dev-setup.exe /install `
                       MachineProvider=wsl WSLCheckbox=0 HyperVCheckbox=0
 ```
 
+:information_source: If uninstallation fails, the installer may end up in an
+inconsistent state. Podman results as uninstalled, but some install packages are
+still tracked in the Windows registry and will affect further tentative to
+re-install Podman. When this is the case, trying to re-install Podman results in
+the installer returning zero (success) but no action is executed. The trailing
+packages `GID` can be found in installation logs:
+
+```
+Detected related package: {<GID>}
+```
+
+To fix this problem remove the related packages:
+
+```pwsh
+msiexec /x "{<GID>}"
+```
+
 #### Run the Windows installer automated tests
 
 The following command executes a number of tests of the windows installer. Running
 it requires an administrator terminal.
 
 ```pwsh
-.\winmake.ps1 installertest
+.\winmake.ps1 installertest [wsl|hyperv]
 ```
 
 ### Build and test the standalone `podman.msi` file
@@ -443,7 +460,12 @@ $env:PATH | Select-String -Pattern "Podman"
 
 :information_source: Podman CI uses script
 `contrib\cirrus\win-installer-main.ps1`. Use it locally, too, to build and test
-the installer.
+the installer:
+
+```pwsh
+$ENV:CONTAINERS_MACHINE_PROVIDER='wsl'; .\contrib\cirrus\win-installer-main.ps1
+$ENV:CONTAINERS_MACHINE_PROVIDER='hyperv'; .\contrib\cirrus\win-installer-main.ps1
+```
 
 ### Uninstall and clean-up
 
@@ -513,5 +535,6 @@ MacOS and Windows and then performs the same checks as the `lint` target plus
 many more.
 
 :information_source: Create and start a Podman machine before running
-`winmake.ps1 lint`. Configure the Podman machine with at least 4GB of memory:
+`winmake.ps1 validatepr`. Configure the Podman machine with at least 4GB of
+memory:
 `podman machine init -m 4096`.

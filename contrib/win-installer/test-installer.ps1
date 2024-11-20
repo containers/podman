@@ -1,9 +1,19 @@
 #!/usr/bin/env pwsh
 
+# Example usage:
+# rm .\contrib\win-installer\*.log &&
+# rm .\contrib\win-installer\*.exe &&
+# rm .\contrib\win-installer\*.wixpdb &&
+# .\winmake.ps1 installer 9.9.9 &&
+# .\contrib\win-installer\test-installer.ps1 `
+#     -scenario update-without-user-changes `
+#     -setupExePath ".\contrib\win-installer\podman-9.9.9-dev-setup.exe" `
+#     -provider hyperv
+
 # The Param statement must be the first statement, except for comments and any #Require statements.
 param (
     [Parameter(Mandatory)]
-    [ValidateSet("installation-green-field", "installation-skip-config-creation-flag", "installation-with-pre-existing-podman-exe", "update-without-user-changes", "update-with-user-changed-config-file", "update-with-user-removed-config-file", "all")]
+    [ValidateSet("test-objects-exist", "test-objects-exist-not", "installation-green-field", "installation-skip-config-creation-flag", "installation-with-pre-existing-podman-exe", "update-without-user-changes", "update-with-user-changed-config-file", "update-with-user-removed-config-file", "all")]
     [string]$scenario,
     [ValidateScript({Test-Path $_ -PathType Leaf})]
     [string]$setupExePath,
@@ -26,7 +36,7 @@ $WindowsPathsToTest = @($PodmanExePath,
 
 function Install-Podman {
     param (
-        # [Parameter(Mandatory)]
+        [Parameter(Mandatory)]
         [ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$setupExePath
     )
@@ -54,12 +64,42 @@ function Install-Podman {
     Write-Host "Installation completed successfully!`n"
 }
 
+# Install-Podman-With-Defaults is used to test updates. That's because when
+# using the installer GUI the user can't change the default values.
+function Install-Podman-With-Defaults {
+    param (
+        [Parameter(Mandatory)]
+        [ValidateScript({Test-Path $_ -PathType Leaf})]
+        [string]$setupExePath
+    )
+
+    Write-Host "Running the installer using defaults ($setupExePath)..."
+    $ret = Start-Process -Wait `
+                            -PassThru "$setupExePath" `
+                            -ArgumentList "/install /quiet `
+                                /log $PSScriptRoot\podman-setup.log"
+    if ($ret.ExitCode -ne 0) {
+        Write-Host "Install failed, dumping log"
+        Get-Content $PSScriptRoot\podman-setup.log
+        throw "Exit code is $($ret.ExitCode)"
+    }
+    Write-Host "Installation completed successfully!`n"
+}
+
 function Install-Previous-Podman {
     Install-Podman -setupExePath $previousSetupExePath
 }
 
+function Install-Previous-Podman-With-Defaults {
+    Install-Podman-With-Defaults -setupExePath $previousSetupExePath
+}
+
 function Install-Current-Podman {
     Install-Podman -setupExePath $setupExePath
+}
+
+function Install-Current-Podman-With-Defaults {
+    Install-Podman-With-Defaults -setupExePath $setupExePath
 }
 
 function Test-Podman-Objects-Exist {
@@ -222,7 +262,7 @@ function Start-Scenario-Update-Without-User-Changes {
     Test-Podman-Objects-Exist
     Test-Podman-Machine-Conf-Exist
     Test-Podman-Machine-Conf-Content
-    Install-Current-Podman
+    Install-Current-Podman-With-Defaults
     Test-Podman-Objects-Exist
     Test-Podman-Machine-Conf-Exist
     Test-Podman-Machine-Conf-Content
@@ -240,7 +280,7 @@ function Start-Scenario-Update-With-User-Changed-Config-File {
     Test-Podman-Machine-Conf-Exist
     Test-Podman-Machine-Conf-Content
     $newProvider = Switch-Podman-Machine-Conf-Content
-    Install-Current-Podman
+    Install-Current-Podman-With-Defaults
     Test-Podman-Objects-Exist
     Test-Podman-Machine-Conf-Exist
     Test-Podman-Machine-Conf-Content -expected $newProvider
@@ -258,7 +298,7 @@ function Start-Scenario-Update-With-User-Removed-Config-File {
     Test-Podman-Machine-Conf-Exist
     Test-Podman-Machine-Conf-Content
     Remove-Podman-Machine-Conf
-    Install-Current-Podman
+    Install-Current-Podman-With-Defaults
     Test-Podman-Objects-Exist
     Test-Podman-Machine-Conf-Exist-Not
     Uninstall-Current-Podman
@@ -267,6 +307,12 @@ function Start-Scenario-Update-With-User-Removed-Config-File {
 }
 
 switch ($scenario) {
+    'test-objects-exist' {
+        Test-Podman-Objects-Exist
+    }
+    'test-objects-exist-not' {
+        Test-Podman-Objects-Exist-Not
+    }
     'installation-green-field' {
         Start-Scenario-Installation-Green-Field
     }
@@ -277,12 +323,21 @@ switch ($scenario) {
         Start-Scenario-Installation-With-Pre-Existing-Podman-Exe
     }
     'update-without-user-changes' {
+        if (!$previousSetupExePath) {
+            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
+        }
         Start-Scenario-Update-Without-User-Changes
     }
     'update-with-user-changed-config-file' {
+        if (!$previousSetupExePath) {
+            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
+        }
         Start-Scenario-Update-With-User-Changed-Config-File
     }
     'update-with-user-removed-config-file' {
+        if (!$previousSetupExePath) {
+            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
+        }
         Start-Scenario-Update-With-User-Removed-Config-File
     }
     'all' {
