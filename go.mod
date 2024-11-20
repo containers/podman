@@ -3,7 +3,7 @@ module github.com/containers/podman/v5
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.22.6
+go 1.22.8
 
 require (
 	github.com/BurntSushi/toml v1.4.0
@@ -195,11 +195,11 @@ require (
 	github.com/segmentio/ksuid v1.0.4 // indirect
 	github.com/sigstore/fulcio v1.6.4 // indirect
 	github.com/sigstore/rekor v1.3.6 // indirect
-	github.com/sigstore/sigstore v1.8.9 // indirect
+	github.com/sigstore/sigstore v1.8.10 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
 	github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
-	github.com/sylabs/sif/v2 v2.19.1 // indirect
+	github.com/sylabs/sif/v2 v2.20.0 // indirect
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635 // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
@@ -221,7 +221,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	golang.org/x/arch v0.7.0 // indirect
 	golang.org/x/mod v0.21.0 // indirect
-	golang.org/x/oauth2 v0.23.0 // indirect
+	golang.org/x/oauth2 v0.24.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
 	golang.org/x/tools v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
@@ -230,3 +230,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 )
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20241119161310-880817fc8147
