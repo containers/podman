@@ -241,6 +241,9 @@ func NewNode(deprecationTracker *types.DeprecationTracker, nodeType types.NodeTy
 			}
 		case t == reflect.TypeOf(Serial):
 			node.MarkedSerial = bool(arg.(serialType))
+			if !labelsSeen["Serial"] {
+				node.Labels = append(node.Labels, "Serial")
+			}
 			if !nodeType.Is(types.NodeTypesForContainerAndIt) {
 				appendError(types.GinkgoErrors.InvalidDecoratorForNodeType(node.CodeLocation, nodeType, "Serial"))
 			}
