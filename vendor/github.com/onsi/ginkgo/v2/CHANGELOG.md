@@ -1,3 +1,13 @@
+## 2.22.0
+
+### Features
+- Add label to serial nodes [0fcaa08]
+
+This allows serial tests to be filtered using the `label-filter`
+
+### Maintenance
+Various doc fixes
+
 ## 2.21.0
 
 
