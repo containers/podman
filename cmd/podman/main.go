@@ -1,3 +1,4 @@
+//go:debug winsymlink=0
 package main
 
 import (
