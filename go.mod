@@ -24,7 +24,7 @@ require (
 	github.com/containers/storage v1.56.0
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
-	github.com/crc-org/crc/v2 v2.43.0
+	github.com/crc-org/crc/v2 v2.44.0
 	github.com/crc-org/vfkit v0.5.1
 	github.com/cyphar/filepath-securejoin v0.3.4
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
@@ -156,7 +156,7 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.17.11 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.8 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect

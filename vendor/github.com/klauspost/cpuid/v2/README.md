@@ -281,6 +281,7 @@ Exit Code 1
 | AMXBF16            | Tile computational operations on BFLOAT16 numbers                                                                                                                                  |
 | AMXINT8            | Tile computational operations on 8-bit integers                                                                                                                                    |
 | AMXFP16            | Tile computational operations on FP16 numbers                                                                                                                                      |
+| AMXFP8             | Tile computational operations on FP8 numbers                                                                                                                                      |
 | AMXTILE            | Tile architecture                                                                                                                                                                  |
 | APX_F              | Intel APX                                                                                                                                                                          |
 | AVX                | AVX functions                                                                                                                                                                      |

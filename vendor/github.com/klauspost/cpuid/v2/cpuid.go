@@ -55,6 +55,12 @@ const (
 	Qualcomm
 	Marvell
 
+	QEMU
+	QNX
+	ACRN
+	SRE
+	Apple
+
 	lastVendor
 )
 
@@ -75,6 +81,7 @@ const (
 	AMXBF16                              // Tile computational operations on BFLOAT16 numbers
 	AMXFP16                              // Tile computational operations on FP16 numbers
 	AMXINT8                              // Tile computational operations on 8-bit integers
+	AMXFP8                               // Tile computational operations on FP8 numbers
 	AMXTILE                              // Tile architecture
 	APX_F                                // Intel APX
 	AVX                                  // AVX functions
@@ -296,20 +303,22 @@ const (
 
 // CPUInfo contains information about the detected system CPU.
 type CPUInfo struct {
-	BrandName      string  // Brand name reported by the CPU
-	VendorID       Vendor  // Comparable CPU vendor ID
-	VendorString   string  // Raw vendor string.
-	featureSet     flagSet // Features of the CPU
-	PhysicalCores  int     // Number of physical processor cores in your CPU. Will be 0 if undetectable.
-	ThreadsPerCore int     // Number of threads per physical core. Will be 1 if undetectable.
-	LogicalCores   int     // Number of physical cores times threads that can run on each core through the use of hyperthreading. Will be 0 if undetectable.
-	Family         int     // CPU family number
-	Model          int     // CPU model number
-	Stepping       int     // CPU stepping info
-	CacheLine      int     // Cache line size in bytes. Will be 0 if undetectable.
-	Hz             int64   // Clock speed, if known, 0 otherwise. Will attempt to contain base clock speed.
-	BoostFreq      int64   // Max clock speed, if known, 0 otherwise
-	Cache          struct {
+	BrandName              string  // Brand name reported by the CPU
+	VendorID               Vendor  // Comparable CPU vendor ID
+	VendorString           string  // Raw vendor string.
+	HypervisorVendorID     Vendor  // Hypervisor vendor
+	HypervisorVendorString string  // Raw hypervisor vendor string
+	featureSet             flagSet // Features of the CPU
+	PhysicalCores          int     // Number of physical processor cores in your CPU. Will be 0 if undetectable.
+	ThreadsPerCore         int     // Number of threads per physical core. Will be 1 if undetectable.
+	LogicalCores           int     // Number of physical cores times threads that can run on each core through the use of hyperthreading. Will be 0 if undetectable.
+	Family                 int     // CPU family number
+	Model                  int     // CPU model number
+	Stepping               int     // CPU stepping info
+	CacheLine              int     // Cache line size in bytes. Will be 0 if undetectable.
+	Hz                     int64   // Clock speed, if known, 0 otherwise. Will attempt to contain base clock speed.
+	BoostFreq              int64   // Max clock speed, if known, 0 otherwise
+	Cache                  struct {
 		L1I int // L1 Instruction Cache (per core or shared). Will be -1 if undetected
 		L1D int // L1 Data Cache (per core or shared). Will be -1 if undetected
 		L2  int // L2 Cache (per core or shared). Will be -1 if undetected
@@ -318,8 +327,9 @@ type CPUInfo struct {
 	SGX              SGXSupport
 	AMDMemEncryption AMDMemEncryptionSupport
 	AVX10Level       uint8
-	maxFunc          uint32
-	maxExFunc        uint32
+
+	maxFunc   uint32
+	maxExFunc uint32
 }
 
 var cpuid func(op uint32) (eax, ebx, ecx, edx uint32)
@@ -503,7 +513,7 @@ func (c CPUInfo) FeatureSet() []string {
 // Uses the RDTSCP instruction. The value 0 is returned
 // if the CPU does not support the instruction.
 func (c CPUInfo) RTCounter() uint64 {
-	if !c.Supports(RDTSCP) {
+	if !c.Has(RDTSCP) {
 		return 0
 	}
 	a, _, _, d := rdtscpAsm()
@@ -515,11 +525,20 @@ func (c CPUInfo) RTCounter() uint64 {
 // about the current cpu/core the code is running on.
 // If the RDTSCP instruction isn't supported on the CPU, the value 0 is returned.
 func (c CPUInfo) Ia32TscAux() uint32 {
-	if !c.Supports(RDTSCP) {
+	if !c.Has(RDTSCP) {
 		return 0
 	}
 	_, _, ecx, _ := rdtscpAsm()
 	return ecx
+}
+
+// SveLengths returns arm SVE vector and predicate lengths.
+// Will return 0, 0 if SVE is not enabled or otherwise unable to detect.
+func (c CPUInfo) SveLengths() (vl, pl uint64) {
+	if !c.Has(SVE) {
+		return 0, 0
+	}
+	return getVectorLength()
 }
 
 // LogicalCPU will return the Logical CPU the code is currently executing on.
@@ -781,11 +800,16 @@ func threadsPerCore() int {
 	_, b, _, _ := cpuidex(0xb, 0)
 	if b&0xffff == 0 {
 		if vend == AMD {
-			// Workaround for AMD returning 0, assume 2 if >= Zen 2
-			// It will be more correct than not.
+			// if >= Zen 2 0x8000001e EBX 15-8 bits means threads per core.
+			// The number of threads per core is ThreadsPerCore+1
+			// See PPR for AMD Family 17h Models 00h-0Fh (page 82)
 			fam, _, _ := familyModel()
 			_, _, _, d := cpuid(1)
 			if (d&(1<<28)) != 0 && fam >= 23 {
+				if maxExtendedFunction() >= 0x8000001e {
+					_, b, _, _ := cpuid(0x8000001e)
+					return int((b>>8)&0xff) + 1
+				}
 				return 2
 			}
 		}
@@ -877,7 +901,9 @@ var vendorMapping = map[string]Vendor{
 	"GenuineTMx86": Transmeta,
 	"Geode by NSC": NSC,
 	"VIA VIA VIA ": VIA,
-	"KVMKVMKVMKVM": KVM,
+	"KVMKVMKVM":    KVM,
+	"Linux KVM Hv": KVM,
+	"TCGTCGTCGTCG": QEMU,
 	"Microsoft Hv": MSVM,
 	"VMwareVMware": VMware,
 	"XenVMMXenVMM": XenHVM,
@@ -887,11 +913,26 @@ var vendorMapping = map[string]Vendor{
 	"SiS SiS SiS ": SiS,
 	"RiseRiseRise": SiS,
 	"Genuine  RDC": RDC,
+	"QNXQVMBSQG":   QNX,
+	"ACRNACRNACRN": ACRN,
+	"SRESRESRESRE": SRE,
+	"Apple VZ":     Apple,
 }
 
 func vendorID() (Vendor, string) {
 	_, b, c, d := cpuid(0)
 	v := string(valAsString(b, d, c))
+	vend, ok := vendorMapping[v]
+	if !ok {
+		return VendorUnknown, v
+	}
+	return vend, v
+}
+
+func hypervisorVendorID() (Vendor, string) {
+	// https://lwn.net/Articles/301888/
+	_, b, c, d := cpuid(0x40000000)
+	v := string(valAsString(b, c, d))
 	vend, ok := vendorMapping[v]
 	if !ok {
 		return VendorUnknown, v
@@ -1271,6 +1312,7 @@ func support() flagSet {
 				fs.setIf(ebx&(1<<31) != 0, AVX512VL)
 				// ecx
 				fs.setIf(ecx&(1<<1) != 0, AVX512VBMI)
+				fs.setIf(ecx&(1<<3) != 0, AMXFP8)
 				fs.setIf(ecx&(1<<6) != 0, AVX512VBMI2)
 				fs.setIf(ecx&(1<<11) != 0, AVX512VNNI)
 				fs.setIf(ecx&(1<<12) != 0, AVX512BITALG)
