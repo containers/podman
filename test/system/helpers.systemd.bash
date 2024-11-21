@@ -89,6 +89,8 @@ quadlet_to_service_name() {
         suffix="-image"
     elif [ "$extension" == "pod" ]; then
         suffix="-pod"
+    elif [ "$extension" == "build" ]; then
+        suffix="-build"
     fi
 
     echo "$filename$suffix.service"
