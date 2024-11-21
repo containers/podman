@@ -24,3 +24,13 @@ TEXT ·getInstAttributes(SB), 7, $0
 	MOVD R1, instAttrReg1+8(FP)
 	RET
 
+TEXT ·getVectorLength(SB), 7, $0
+	WORD $0xd2800002  // mov   x2, #0
+	WORD $0x04225022  // addvl x2, x2, #1
+	WORD $0xd37df042  // lsl   x2, x2, #3
+	WORD $0xd2800003  // mov   x3, #0
+	WORD $0x04635023  // addpl x3, x3, #1
+	WORD $0xd37df063  // lsl   x3, x3, #3
+	MOVD R2, vl+0(FP)
+	MOVD R3, pl+8(FP)
+	RET
