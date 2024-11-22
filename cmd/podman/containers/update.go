@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	updateDescription = `Updates the cgroup configuration of a given container`
+	updateDescription = `Updates the configuration of an existing container, allowing changes to resource limits and healthchecks`
 
 	updateCommand = &cobra.Command{
 		Use:               "update [options] CONTAINER",
@@ -61,6 +61,58 @@ func init() {
 	updateFlags(containerUpdateCommand)
 }
 
+func GetChangedHealthCheckConfiguration(cmd *cobra.Command, vals *entities.ContainerCreateOptions) define.UpdateHealthCheckConfig {
+	updateHealthCheckConfig := define.UpdateHealthCheckConfig{}
+
+	if cmd.Flags().Changed("health-log-destination") {
+		updateHealthCheckConfig.HealthLogDestination = &vals.HealthLogDestination
+	}
+	if cmd.Flags().Changed("health-max-log-size") {
+		updateHealthCheckConfig.HealthMaxLogSize = &vals.HealthMaxLogSize
+	}
+	if cmd.Flags().Changed("health-max-log-count") {
+		updateHealthCheckConfig.HealthMaxLogCount = &vals.HealthMaxLogCount
+	}
+	if cmd.Flags().Changed("health-on-failure") {
+		updateHealthCheckConfig.HealthOnFailure = &vals.HealthOnFailure
+	}
+	if cmd.Flags().Changed("no-healthcheck") {
+		updateHealthCheckConfig.NoHealthCheck = &vals.NoHealthCheck
+	}
+	if cmd.Flags().Changed("health-cmd") {
+		updateHealthCheckConfig.HealthCmd = &vals.HealthCmd
+	}
+	if cmd.Flags().Changed("health-interval") {
+		updateHealthCheckConfig.HealthInterval = &vals.HealthInterval
+	}
+	if cmd.Flags().Changed("health-retries") {
+		updateHealthCheckConfig.HealthRetries = &vals.HealthRetries
+	}
+	if cmd.Flags().Changed("health-timeout") {
+		updateHealthCheckConfig.HealthTimeout = &vals.HealthTimeout
+	}
+	if cmd.Flags().Changed("health-start-period") {
+		updateHealthCheckConfig.HealthStartPeriod = &vals.HealthStartPeriod
+	}
+	if cmd.Flags().Changed("health-startup-cmd") {
+		updateHealthCheckConfig.HealthStartupCmd = &vals.StartupHCCmd
+	}
+	if cmd.Flags().Changed("health-startup-interval") {
+		updateHealthCheckConfig.HealthStartupInterval = &vals.StartupHCInterval
+	}
+	if cmd.Flags().Changed("health-startup-retries") {
+		updateHealthCheckConfig.HealthStartupRetries = &vals.StartupHCRetries
+	}
+	if cmd.Flags().Changed("health-startup-timeout") {
+		updateHealthCheckConfig.HealthStartupTimeout = &vals.StartupHCTimeout
+	}
+	if cmd.Flags().Changed("health-startup-success") {
+		updateHealthCheckConfig.HealthStartupSuccess = &vals.StartupHCSuccesses
+	}
+
+	return updateHealthCheckConfig
+}
+
 func update(cmd *cobra.Command, args []string) error {
 	var err error
 	// use a specgen since this is the easiest way to hold resource info
@@ -89,9 +141,15 @@ func update(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	healthCheckConfig := GetChangedHealthCheckConfiguration(cmd, &updateOpts)
+	if err != nil {
+		return err
+	}
+
 	opts := &entities.ContainerUpdateOptions{
-		NameOrID: strings.TrimPrefix(args[0], "/"),
-		Specgen:  s,
+		NameOrID:                        strings.TrimPrefix(args[0], "/"),
+		Specgen:                         s,
+		ChangedHealthCheckConfiguration: &healthCheckConfig,
 	}
 	rep, err := registry.ContainerEngine().ContainerUpdate(context.Background(), opts)
 	if err != nil {

@@ -1778,8 +1778,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//   - containers
-	// summary: Update an existing containers cgroup configuration
-	// description: Update an existing containers cgroup configuration.
+	// summary: Updates the configuration of an existing container, allowing changes to resource limits and healthchecks
+	// description: Updates the configuration of an existing container, allowing changes to resource limits and healthchecks.
 	// parameters:
 	//  - in: path
 	//    name: name

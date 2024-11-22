@@ -36,6 +36,7 @@ type ContainerStatsReport struct {
 }
 
 type ContainerUpdateOptions struct {
-	NameOrID string
-	Specgen  *specgen.SpecGenerator
+	NameOrID                        string
+	Specgen                         *specgen.SpecGenerator
+	ChangedHealthCheckConfiguration *define.UpdateHealthCheckConfig
 }

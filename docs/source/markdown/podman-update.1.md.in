@@ -10,8 +10,7 @@ podman\-update - Update the configuration of a given container
 
 ## DESCRIPTION
 
-Updates the configuration of an already existing container, allowing different resource limits to be set.
-The currently supported options are a subset of the podman create/run resource limit options.
+Updates the configuration of an existing container, allowing changes to resource limits and healthchecks.
 
 ## OPTIONS
 
@@ -43,6 +42,40 @@ The currently supported options are a subset of the podman create/run resource l
 
 @@option device-write-iops
 
+@@option health-cmd
+
+@@option health-interval
+
+Changing this setting resets the timer.
+
+@@option health-log-destination
+
+Warning: Changing this setting may cause the loss of previous logs.
+
+@@option health-max-log-count
+
+@@option health-max-log-size
+
+@@option health-on-failure
+
+@@option health-retries
+
+@@option health-start-period
+
+@@option health-startup-cmd
+
+@@option health-startup-interval
+
+Changing this setting resets the timer, depending on the state of the container.
+
+@@option health-startup-retries
+
+@@option health-startup-success
+
+@@option health-startup-timeout
+
+@@option health-timeout
+
 @@option memory
 
 @@option memory-reservation
@@ -50,6 +83,8 @@ The currently supported options are a subset of the podman create/run resource l
 @@option memory-swap
 
 @@option memory-swappiness
+
+@@option no-healthcheck
 
 @@option pids-limit
 
