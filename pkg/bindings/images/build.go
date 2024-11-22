@@ -611,13 +611,16 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 						case "env":
 							// read specified env var into a tmp file
 							// move tmp file to tar and change secret source to relative tmp file
-							data := []byte(os.Getenv(val))
+							data, found := os.LookupEnv(val)
+							if !found {
+								return nil, fmt.Errorf("env var %s not found", val)
+							}
 
 							tmpSecretFile, err := os.CreateTemp(options.ContextDirectory, "podman-build-secret")
 							if err != nil {
 								return nil, err
 							}
-							_, err = io.Writer.Write(tmpSecretFile, data)
+							_, err = io.Writer.Write(tmpSecretFile, []byte(data))
 							if err != nil {
 								return nil, err
 							}
@@ -627,6 +630,9 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 							modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFile.Name()))
 							modifiedOpt = append(modifiedOpt, modifiedSrc)
+
+							// tidy up the tmp file
+							defer os.RemoveAll(tmpSecretFile.Name())
 						default:
 							modifiedOpt = append(modifiedOpt, token)
 						}

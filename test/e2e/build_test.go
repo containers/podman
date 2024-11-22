@@ -127,6 +127,19 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
+	It("podman build with a secret from env var", func() {
+		os.Setenv("MYSECRET", "somesecret")
+
+		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-env-secret", "-t", "secret-test", "--mount", "type=secret,id=mysecret", "build/"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("somesecret"))
+
+		session = podmanTest.Podman([]string{"rmi", "env-secret-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
 	It("podman build with not found Containerfile or Dockerfile", func() {
 		targetPath := filepath.Join(podmanTest.TempDir, "notfound")
 		err = os.Mkdir(targetPath, 0755)
