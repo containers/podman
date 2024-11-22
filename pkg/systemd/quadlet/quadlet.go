@@ -1397,10 +1397,15 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	podman := createBasePodmanCommand(build, BuildGroup)
 	podman.add("build")
 
+	// The `--pull` flag has to be handled separately and the `=` sign must be present
+	// See https://github.com/containers/podman/issues/24599 for details
+	if val, ok := build.Lookup(BuildGroup, KeyPull); ok && len(val) > 0 {
+		podman.addf("--pull=%s", val)
+	}
+
 	stringKeys := map[string]string{
 		KeyArch:     "--arch",
 		KeyAuthFile: "--authfile",
-		KeyPull:     "--pull",
 		KeyTarget:   "--target",
 		KeyVariant:  "--variant",
 	}

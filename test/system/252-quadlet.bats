@@ -1699,4 +1699,31 @@ EOF
         fi
     done < <(parse_table "${dropin_files}")
 }
+
+# Following issue: https://github.com/containers/podman/issues/24599
+# Make sure future changes do not break
+@test "quadlet - build with pull" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+
+    mkdir $quadlet_tmpdir
+
+    local container_file_path=$quadlet_tmpdir/Containerfile
+    cat >$container_file_path << EOF
+FROM $IMAGE
+EOF
+
+    local image_tag=quay.io/i-$(safename):$(random_string)
+    local quadlet_file=$PODMAN_TMPDIR/pull_$(safename).build
+    cat >$quadlet_file << EOF
+[Build]
+ImageTag=$image_tag
+File=$container_file_path
+Pull=never
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME "wait"
+
+    run_podman rmi -i $image_tag
+}
 # vim: filetype=sh
