@@ -21,7 +21,7 @@ import (
 func (c *Container) statOnHost(mountPoint string, containerPath string) (*copier.StatForItem, string, string, error) {
 	// Now resolve the container's path.  It may hit a volume, it may hit a
 	// bind mount, it may be relative.
-	resolvedRoot, resolvedPath, err := c.resolvePath(mountPoint, containerPath)
+	resolvedRoot, resolvedPath, _, err := c.resolvePath(mountPoint, containerPath)
 	if err != nil {
 		return nil, "", "", err
 	}

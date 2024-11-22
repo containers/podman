@@ -4,7 +4,9 @@ package libpod
 
 import (
 	"errors"
+	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -12,9 +14,11 @@ import (
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/util"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/stringid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -25,7 +29,9 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 		resolvedRoot string
 		resolvedPath string
 		unmount      func()
+		cleanupFuncs []func()
 		err          error
+		locked       bool = true
 	)
 
 	// Make sure that "/" copies the *contents* of the mount point and not
@@ -44,17 +50,144 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 		if err != nil {
 			return nil, err
 		}
+		c.state.Mountpoint = mountPoint
+		if err := c.save(); err != nil {
+			return nil, err
+		}
+
 		unmount = func() {
+			if !locked {
+				c.lock.Lock()
+				defer c.lock.Unlock()
+			}
+
+			if err := c.syncContainer(); err != nil {
+				logrus.Errorf("Unable to sync container %s state: %v", c.ID(), err)
+				return
+			}
+
+			// These have to be first, some of them rely on container rootfs still being mounted.
+			for _, cleanupFunc := range cleanupFuncs {
+				cleanupFunc()
+			}
 			if err := c.unmount(false); err != nil {
 				logrus.Errorf("Failed to unmount container: %v", err)
+			}
+
+			if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
+				c.state.Mountpoint = ""
+				if err := c.save(); err != nil {
+					logrus.Errorf("Writing container %s state: %v", c.ID(), err)
+				}
+			}
+		}
+
+		// Before we proceed, mount all named volumes associated with the
+		// container.
+		// This solves two issues:
+		// Firstly, it ensures that if the volume actually requires a mount, we
+		// will mount it for safe use.
+		// (For example, image volumes, volume plugins).
+		// Secondly, it copies up into the volume if necessary.
+		// This ensures that permissions are correct for copies into volumes on
+		// containers that have never started.
+		if len(c.config.NamedVolumes) > 0 {
+			for _, v := range c.config.NamedVolumes {
+				vol, err := c.mountNamedVolume(v, mountPoint)
+				if err != nil {
+					unmount()
+					return nil, err
+				}
+
+				volUnmountName := fmt.Sprintf("volume unmount %s %s", vol.Name(), stringid.GenerateNonCryptoID()[0:12])
+
+				// The unmount function can be called in two places:
+				// First, from unmount(), our generic cleanup function that gets
+				// called on success or on failure by error.
+				// Second, from the shutdown handler on receipt of a SIGTERM
+				// or similar.
+				volUnmountFunc := func() error {
+					vol.lock.Lock()
+					defer vol.lock.Unlock()
+
+					if err := vol.unmount(false); err != nil {
+						return err
+					}
+
+					return nil
+				}
+
+				cleanupFuncs = append(cleanupFuncs, func() {
+					_ = shutdown.Unregister(volUnmountName)
+
+					if err := volUnmountFunc(); err != nil {
+						logrus.Errorf("Unmounting container %s volume %s: %v", c.ID(), vol.Name(), err)
+					}
+				})
+
+				if err := shutdown.Register(volUnmountName, func(_ os.Signal) error {
+					return volUnmountFunc()
+				}); err != nil && !errors.Is(err, shutdown.ErrHandlerExists) {
+					return nil, fmt.Errorf("adding shutdown handler for volume %s unmount: %w", vol.Name(), err)
+				}
 			}
 		}
 	}
 
-	resolvedRoot, resolvedPath, err = c.resolveCopyTarget(mountPoint, path)
+	resolvedRoot, resolvedPath, volume, err := c.resolveCopyTarget(mountPoint, path)
 	if err != nil {
 		unmount()
 		return nil, err
+	}
+
+	if volume != nil {
+		// This must be the first cleanup function so it fires before volume unmounts happen.
+		cleanupFuncs = append([]func(){func() {
+			// This is a gross hack to ensure correct permissions
+			// on a volume that was copied into that needed, but did
+			// not receive, a copy-up.
+			// Why do we need this?
+			// Basically: fixVolumePermissions is needed to ensure
+			// the volume has the right permissions.
+			// However, fixVolumePermissions only fires on a volume
+			// that is not empty iff a copy-up occurred.
+			// In this case, the volume is not empty as we just
+			// copied into it, so in order to get
+			// fixVolumePermissions to actually run, we must
+			// convince it that a copy-up occurred - even if it did
+			// not.
+			// At the same time, clear NeedsCopyUp as we just
+			// populated the volume and that will block a future
+			// copy-up.
+			volume.lock.Lock()
+
+			if err := volume.update(); err != nil {
+				logrus.Errorf("Unable to update volume %s status: %v", volume.Name(), err)
+				volume.lock.Unlock()
+				return
+			}
+
+			if volume.state.NeedsCopyUp && volume.state.NeedsChown {
+				volume.state.NeedsCopyUp = false
+				volume.state.CopiedUp = true
+				if err := volume.save(); err != nil {
+					logrus.Errorf("Unable to save volume %s state: %v", volume.Name(), err)
+					volume.lock.Unlock()
+					return
+				}
+
+				volume.lock.Unlock()
+
+				for _, namedVol := range c.config.NamedVolumes {
+					if namedVol.Name == volume.Name() {
+						if err := c.fixVolumePermissions(namedVol); err != nil {
+							logrus.Errorf("Unable to fix volume %s permissions: %v", volume.Name(), err)
+						}
+						return
+					}
+				}
+			}
+		}}, cleanupFuncs...)
 	}
 
 	var idPair *idtools.IDPair
@@ -73,6 +206,8 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 		unmount()
 		return nil, err
 	}
+
+	locked = false
 
 	logrus.Debugf("Container copy *to* %q (resolved: %q) on container %q (ID: %s)", path, resolvedPath, c.Name(), c.ID())
 

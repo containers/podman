@@ -79,12 +79,12 @@ func (c *Container) joinMountAndExec(f func() error) error {
 	return <-errChan
 }
 
-func (c *Container) resolveCopyTarget(mountPoint string, containerPath string) (string, string, error) {
+func (c *Container) resolveCopyTarget(mountPoint string, containerPath string) (string, string, *Volume, error) {
 	// If the container is running, we will execute the copy
 	// inside the container's mount namespace so we return a path
 	// relative to the container's root.
 	if c.state.State == define.ContainerStateRunning {
-		return "/", c.pathAbs(containerPath), nil
+		return "/", c.pathAbs(containerPath), nil, nil
 	}
 	return c.resolvePath(mountPoint, containerPath)
 }

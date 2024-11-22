@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"os/user"
@@ -260,5 +261,41 @@ var _ = Describe("Podman cp", func() {
 		Expect(lsOutput).To(ContainSubstring("var"))
 		Expect(lsOutput).To(ContainSubstring("bin"))
 		Expect(lsOutput).To(ContainSubstring("usr"))
+	})
+
+	It("podman cp to volume in container that is not running", func() {
+		volName := "testvol"
+		ctrName := "testctr"
+		imgName := "testimg"
+		ctrVolPath := "/test/"
+
+		dockerfile := fmt.Sprintf(`FROM %s
+RUN mkdir %s
+RUN chown 9999:9999 %s`, ALPINE, ctrVolPath, ctrVolPath)
+
+		podmanTest.BuildImage(dockerfile, imgName, "false")
+
+		srcFile, err := os.CreateTemp("", "")
+		Expect(err).ToNot(HaveOccurred())
+		defer srcFile.Close()
+		defer os.Remove(srcFile.Name())
+
+		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
+		volCreate.WaitWithDefaultTimeout()
+		Expect(volCreate).Should(ExitCleanly())
+
+		ctrCreate := podmanTest.Podman([]string{"create", "--name", ctrName, "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), imgName, "sh"})
+		ctrCreate.WaitWithDefaultTimeout()
+		Expect(ctrCreate).To(ExitCleanly())
+
+		cp := podmanTest.Podman([]string{"cp", srcFile.Name(), fmt.Sprintf("%s:%s", ctrName, ctrVolPath)})
+		cp.WaitWithDefaultTimeout()
+		Expect(cp).To(ExitCleanly())
+
+		ls := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), ALPINE, "ls", "-al", ctrVolPath})
+		ls.WaitWithDefaultTimeout()
+		Expect(ls).To(ExitCleanly())
+		Expect(ls.OutputToString()).To(ContainSubstring("9999 9999"))
+		Expect(ls.OutputToString()).To(ContainSubstring(filepath.Base(srcFile.Name())))
 	})
 })
