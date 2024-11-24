@@ -55,9 +55,10 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 		nameservers = append(nameservers, ip.String())
 	}
 	opts := types.NetworkOptions{
-		ContainerID:   c.config.ID,
-		ContainerName: getNetworkPodName(c),
-		DNSServers:    nameservers,
+		ContainerID:       c.config.ID,
+		ContainerName:     getNetworkPodName(c),
+		DNSServers:        nameservers,
+		ContainerHostname: c.NetworkHostname(),
 	}
 	opts.PortMappings = c.convertPortMappings()
 

@@ -666,8 +666,12 @@ func (c *Container) RuntimeName() string {
 // Runtime spec accessors
 // Unlocked
 
-// Hostname gets the container's hostname
-func (c *Container) Hostname() string {
+// hostname determines the container's hostname.
+// If 'network' is true and the container isn't running in a
+// private UTS namespoace, an empty string will be returned
+// instead of the host's hostname because we never want to
+// send the host's hostname to a DHCP or DNS server.
+func (c *Container) hostname(network bool) string {
 	if c.config.UTSNsCtr != "" {
 		utsNsCtr, err := c.runtime.GetContainer(c.config.UTSNsCtr)
 		if err != nil {
@@ -677,23 +681,64 @@ func (c *Container) Hostname() string {
 		}
 		return utsNsCtr.Hostname()
 	}
+
 	if c.config.Spec.Hostname != "" {
 		return c.config.Spec.Hostname
 	}
 
-	// if the container is not running in a private UTS namespace,
-	// return the host's hostname.
+	// If the container is not running in a private UTS namespace,
+	// return the host's hostname unless 'network' is true in which
+	// case we return an empty string.
 	privateUTS := c.hasPrivateUTS()
 	if !privateUTS {
 		hostname, err := os.Hostname()
 		if err == nil {
+			if network {
+				return ""
+			}
 			return hostname
 		}
+		logrus.Errorf("unable to get host's hostname for container %s: %v", c.ID(), err)
+		return ""
 	}
+
+	// If container_name_as_hostname is set in the CONTAINERS table in
+	// containers.conf, use a sanitized version of the container's name
+	// as the hostname.  Since the container name must already match
+	// the set '[a-zA-Z0-9][a-zA-Z0-9_.-]*', we can just remove any
+	// underscores and limit it to 253 characters to make it a valid
+	// hostname.
+	if c.runtime.config.Containers.ContainerNameAsHostName {
+		sanitizedHostname := strings.ReplaceAll(c.Name(), "_", "")
+		if len(sanitizedHostname) <= 253 {
+			return sanitizedHostname
+		}
+		return sanitizedHostname[:253]
+	}
+
+	// Otherwise use the container's short ID as the hostname.
 	if len(c.ID()) < 11 {
 		return c.ID()
 	}
 	return c.ID()[:12]
+}
+
+// Hostname gets the container's hostname
+func (c *Container) Hostname() string {
+	return c.hostname(false)
+}
+
+// If the container isn't running in a private UTS namespace, Hostname()
+// will return the host's hostname as the container's hostname. If netavark
+// were to try and obtain a DHCP lease with the host's hostname in an environment
+// where DDNS was active, bad things could happen. NetworkHostname() on the
+// other hand, will return an empty string if the container isn't running
+// in a private UTS namespace.
+//
+// This function should only be used to populate the ContainerHostname member
+// of the common.libnetwork.types.NetworkOptions struct.
+func (c *Container) NetworkHostname() string {
+	return c.hostname(true)
 }
 
 // WorkingDir returns the containers working dir
