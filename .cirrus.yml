@@ -413,7 +413,8 @@ bindings_task:
 swagger_task:
     name: "Test Swagger"
     alias: swagger
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -441,7 +442,8 @@ win_installer_task:
             CONTAINERS_MACHINE_PROVIDER: 'hyperv'
     alias: win_installer
     only_if: *no_rhel_release
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     ec2_instance: &windows
         image: "${WINDOWS_AMI}"
         type: m5.large
@@ -509,7 +511,8 @@ docker-py_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/python/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -536,7 +539,8 @@ unit_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('**/*_test.go') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix:
         - env: *stdenvars
         # Special-case: Rootless on latest Fedora (standard) VM
@@ -566,7 +570,8 @@ apiv2_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/apiv2/**', 'test/python/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -595,7 +600,8 @@ compose_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/compose/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     gce_instance: *standardvm
     matrix:
       - env:
@@ -627,7 +633,8 @@ local_integration_test_task: &local_integration_test_task
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/e2e/**', 'test/utils/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix: *platform_axis
     # integration tests scale well with cpu as they are parallelized
     # so we give these tests 4 cores to make them faster
@@ -662,7 +669,8 @@ container_integration_test_task:
     alias: container_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix: &fedora_vm_axis
         - env:
               DISTRO_NV: ${FEDORA_NAME}
@@ -689,7 +697,8 @@ rootless_integration_test_task:
     alias: rootless_integration_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix: *platform_axis
     gce_instance: *fastvm
     env:
@@ -712,7 +721,8 @@ podman_machine_task:
         $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     ec2_instance:
         image: "${VM_IMAGE_NAME}"
         type: "${EC2_INST_TYPE}"
@@ -734,7 +744,8 @@ podman_machine_aarch64_task:
     name: *std_name_fmt
     alias: podman_machine_aarch64
     only_if: *only_if_machine_test
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     ec2_instance:
         <<: *standard_build_ec2_aarch64
     timeout_in: 30m
@@ -767,7 +778,8 @@ podman_machine_windows_task:
     skip: &skip_rhel_release |
         $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
         $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     ec2_instance:
         <<: *windows
         type: m5zn.metal
@@ -793,7 +805,8 @@ podman_machine_mac_task:
     alias: podman_machine_mac
     only_if: *only_if_machine_test
     skip: *skip_rhel_release
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     persistent_worker: *mac_pw
     timeout_in: 35m
     env:
@@ -849,7 +862,8 @@ local_system_test_task: &local_system_test_task
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/system/**') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix: *platform_axis
     gce_instance: *fastvm
     timeout_in: 25m
@@ -866,7 +880,8 @@ local_system_test_aarch64_task: &local_system_test_task_aarch64
     alias: local_system_test_aarch64
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_system_test
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     ec2_instance: *standard_build_ec2_aarch64
     timeout_in: 35m
     env:
@@ -918,7 +933,8 @@ rootless_system_test_task:
     alias: rootless_system_test
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_system_test
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix: *platform_axis
     gce_instance: *fastvm
     timeout_in: 25m
@@ -944,7 +960,8 @@ farm_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/farm/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     gce_instance: *standardvm
     env:
         <<: *stdenvars
@@ -976,7 +993,13 @@ buildah_bud_test_task:
             PODBIN_NAME: podman
         - env:
             PODBIN_NAME: remote
-    gce_instance: *standardvm
+        - env:
+            PODBIN_NAME: podman
+            PRIV_NAME: rootless
+        - env:
+            PODBIN_NAME: remote
+            PRIV_NAME: rootless
+    gce_instance: *fastvm
     timeout_in: 45m
     clone_script: *get_gosrc
     setup_script: *setup
@@ -996,7 +1019,8 @@ upgrade_test_task:
         changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
         changesInclude('test/upgrade/**', 'test/system/*.bash') ||
         (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
-    depends_on: *build
+    depends_on:
+      - buildah_bud_test
     matrix:
         - env:
               # 2024-02: as long as possible/reasonable, try to keep
