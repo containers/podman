@@ -70,6 +70,14 @@ Because it bypasses the host network stack no additional restrictions can be set
 privileged container is run it can set a default route themselves. If this is a concern then the
 container connections should be blocked on your actual network gateway.
 
+Using the `bridge` driver with this option has the following effects:
+ - Global IP forwarding sysctls will not be changed in the host network namespace.
+ - IP forwarding is disabled on the bridge interface instead of setting up a firewall.
+ - No default route will be added to the container.
+
+In all cases, aardvark-dns will only resolve container names with this option enabled.
+Other queries will be answered with `NXDOMAIN`.
+
 #### **--ip-range**=*range*
 
 Allocate container IP from a range. The range must be a either a complete subnet in CIDR notation or be in
