@@ -187,6 +187,11 @@ skip "podman-build fails with 'context must be a directory'" \
 skip "does not pass in Podman CI: needs investigation" \
      "bud with --no-hostname"
 
+# 2024-11-22 not really a useful test of podman (the push/pull uses buildah binary)
+#            and it flakes when run in parallel. We choose to go with CI speed.
+skip "not a useful podman test, and it breaks when run parallel" \
+     "bud: build push with --force-compression"
+
 ###############################################################################
 # BEGIN tests which are skipped because they make no sense under podman-remote
 
