@@ -737,6 +737,31 @@ RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`, CITEST_IMA
 		Expect(session.OutputToString()).To(ContainSubstring("SYMLNKOK"))
 	})
 
+	It("podman build --no-hosts", func() {
+		targetPath := podmanTest.TempDir
+
+		containerFile := filepath.Join(targetPath, "Containerfile")
+		content := `FROM scratch
+RUN echo '56.78.12.34 image.example.com' > /etc/hosts`
+
+		Expect(os.WriteFile(containerFile, []byte(content), 0755)).To(Succeed())
+
+		defer func() {
+			Expect(os.RemoveAll(containerFile)).To(Succeed())
+		}()
+
+		session := podmanTest.Podman([]string{
+			"build", "--pull-never", "-t", "hosts_test", "--no-hosts", "--from", CITEST_IMAGE, targetPath,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"run", "--no-hosts", "--rm", "hosts_test", "cat", "/etc/hosts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(Equal("56.78.12.34 image.example.com"))
+	})
+
 	It("podman build --from, --add-host, --cap-drop, --cap-add", func() {
 		targetPath := podmanTest.TempDir
 

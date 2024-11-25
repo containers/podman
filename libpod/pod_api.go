@@ -709,6 +709,9 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			infraConfig.HostAdd = make([]string, 0, len(infra.config.HostAdd))
 			infraConfig.HostAdd = append(infraConfig.HostAdd, infra.config.HostAdd...)
 		}
+		if len(infra.config.BaseHostsFile) > 0 {
+			infraConfig.HostsFile = infra.config.BaseHostsFile
+		}
 
 		networks, err := infra.networks()
 		if err != nil {

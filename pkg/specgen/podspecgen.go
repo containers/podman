@@ -170,6 +170,13 @@ type PodNetworkConfig struct {
 	// Conflicts with NoInfra=true and NoManageHosts.
 	// Optional.
 	HostAdd []string `json:"hostadd,omitempty"`
+	// HostsFile is the base file to create the `/etc/hosts` file inside the infra container.
+	// This must either be an absolute path to a file on the host system, or one of the
+	// special flags `image` or `none`.
+	// If it is empty it defaults to the base_hosts_file configuration in containers.conf.
+	// Conflicts with NoInfra=true and NoManageHosts.
+	// Optional.
+	HostsFile string `json:"hostsFile,omitempty"`
 	// NetworkOptions are additional options for each network
 	// Optional.
 	NetworkOptions map[string][]string `json:"network_options,omitempty"`

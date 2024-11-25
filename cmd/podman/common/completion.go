@@ -716,6 +716,13 @@ func AutocompleteNetworks(cmd *cobra.Command, args []string, toComplete string) 
 	return getNetworks(cmd, toComplete, completeDefault)
 }
 
+// AutocompleteHostsFile - Autocomplete hosts file options.
+// -> "image", "none", paths
+func AutocompleteHostsFile(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	hostsFileModes := []string{"image", "none"}
+	return hostsFileModes, cobra.ShellCompDirectiveDefault
+}
+
 // AutocompleteDefaultOneArg - Autocomplete path only for the first argument.
 func AutocompleteDefaultOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {

@@ -587,6 +587,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	if c.Net != nil {
 		s.HostAdd = c.Net.AddHosts
+		s.BaseHostsFile = c.Net.HostsFile
 		s.UseImageResolvConf = &c.Net.UseImageResolvConf
 		s.DNSServers = c.Net.DNSServers
 		s.DNSSearch = c.Net.DNSSearch

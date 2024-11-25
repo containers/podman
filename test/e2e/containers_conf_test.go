@@ -21,7 +21,9 @@ import (
 var _ = Describe("Verify podman containers.conf usage", func() {
 
 	BeforeEach(func() {
-		os.Setenv("CONTAINERS_CONF", "config/containers.conf")
+		confPath, err := filepath.Abs("config/containers.conf")
+		Expect(err).ToNot(HaveOccurred())
+		os.Setenv("CONTAINERS_CONF", confPath)
 		if IsRemote() {
 			podmanTest.RestartRemoteService()
 		}
@@ -461,6 +463,79 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(ContainSubstring("test"))
+	})
+
+	Describe("base_hosts_file in containers.conf", func() {
+		var baseHostsFile string
+		var session *PodmanSessionIntegration
+
+		JustBeforeEach(func() {
+			conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+			err = os.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nbase_hosts_file=\"%s\"\nno_hosts=false\n", baseHostsFile)), 0755)
+			Expect(err).ToNot(HaveOccurred())
+			os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+			if IsRemote() {
+				podmanTest.RestartRemoteService()
+			}
+
+			dockerfile := strings.Join([]string{
+				`FROM quay.io/libpod/alpine:latest`,
+				`RUN echo '56.78.12.34 image.example.com' > /etc/hosts`,
+			}, "\n")
+			podmanTest.BuildImage(dockerfile, "foobar.com/hosts_test:latest", "false", "--no-hosts")
+
+			session = podmanTest.Podman([]string{"run", "--name", "hosts_test", "--hostname", "hosts_test.dev", "--rm", "foobar.com/hosts_test:latest", "cat", "/etc/hosts"})
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+		})
+
+		Describe("base_hosts_file=path", func() {
+			BeforeEach(func() {
+				hostsPath := filepath.Join(podmanTest.TempDir, "hosts")
+				err := os.WriteFile(hostsPath, []byte("12.34.56.78 file.example.com"), 0755)
+				Expect(err).ToNot(HaveOccurred())
+				baseHostsFile = hostsPath
+			})
+
+			It("should use the hosts file from the file path", func() {
+				Expect(session.OutputToString()).ToNot(ContainSubstring("56.78.12.34 image.example.com"))
+				Expect(session.OutputToString()).To(ContainSubstring("12.34.56.78 file.example.com"))
+				Expect(session.OutputToString()).To(ContainSubstring("127.0.0.1 localhost"))
+				Expect(session.OutputToString()).To(ContainSubstring("::1 localhost"))
+				Expect(session.OutputToString()).To(ContainSubstring("host.containers.internal host.docker.internal"))
+				Expect(session.OutputToString()).To(ContainSubstring("hosts_test.dev hosts_test"))
+			})
+		})
+
+		Describe("base_hosts_file=image", func() {
+			BeforeEach(func() {
+				baseHostsFile = "image"
+			})
+
+			It("should use the hosts file from the container image", func() {
+				Expect(session.OutputToString()).To(ContainSubstring("56.78.12.34 image.example.com"))
+				Expect(session.OutputToString()).ToNot(ContainSubstring("12.34.56.78 file.example.com"))
+				Expect(session.OutputToString()).To(ContainSubstring("127.0.0.1 localhost"))
+				Expect(session.OutputToString()).To(ContainSubstring("::1 localhost"))
+				Expect(session.OutputToString()).To(ContainSubstring("host.containers.internal host.docker.internal"))
+				Expect(session.OutputToString()).To(ContainSubstring("hosts_test.dev hosts_test"))
+			})
+		})
+
+		Describe("base_hosts_file=none", func() {
+			BeforeEach(func() {
+				baseHostsFile = "none"
+			})
+
+			It("should not use any hosts files", func() {
+				Expect(session.OutputToString()).ToNot(ContainSubstring("56.78.12.34 image.example.com"))
+				Expect(session.OutputToString()).ToNot(ContainSubstring("12.34.56.78 file.example.com"))
+				Expect(session.OutputToString()).To(ContainSubstring("127.0.0.1 localhost"))
+				Expect(session.OutputToString()).To(ContainSubstring("::1 localhost"))
+				Expect(session.OutputToString()).To(ContainSubstring("host.containers.internal host.docker.internal"))
+				Expect(session.OutputToString()).To(ContainSubstring("hosts_test.dev hosts_test"))
+			})
+		})
 	})
 
 	It("seccomp profile path", func() {

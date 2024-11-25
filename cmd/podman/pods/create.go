@@ -265,6 +265,7 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 		podSpec.InfraContainerSpec = specgen.NewSpecGenerator(imageName, false)
 		podSpec.InfraContainerSpec.RawImageName = rawImageName
+		podSpec.InfraContainerSpec.BaseHostsFile = podSpec.PodNetworkConfig.HostsFile
 		podSpec.InfraContainerSpec.NetworkOptions = podSpec.NetworkOptions
 		podSpec.InfraContainerSpec.RestartPolicy = podSpec.RestartPolicy
 		err = specgenutil.FillOutSpecGen(podSpec.InfraContainerSpec, &infraOptions, []string{})

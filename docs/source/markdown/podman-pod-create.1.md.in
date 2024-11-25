@@ -88,6 +88,8 @@ Print usage statement.
 
 @@option hostname.pod
 
+@@option hosts-file
+
 #### **--infra**
 
 Create an infra container and associate it with the pod. An infra container is a lightweight container used to coordinate the shared kernel namespace of a pod. Default: true.

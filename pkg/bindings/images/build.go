@@ -335,6 +335,9 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	if options.NoCache {
 		params.Set("nocache", "1")
 	}
+	if options.CommonBuildOpts.NoHosts {
+		params.Set("nohosts", "1")
+	}
 	if t := options.Output; len(t) > 0 {
 		params.Set("output", t)
 	}

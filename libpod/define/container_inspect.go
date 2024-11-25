@@ -443,6 +443,8 @@ type InspectContainerHostConfig struct {
 	// ExtraHosts contains hosts that will be added to the container's
 	// /etc/hosts.
 	ExtraHosts []string `json:"ExtraHosts"`
+	// HostsFile is the base file to create the `/etc/hosts` file inside the container.
+	HostsFile string `json:"HostsFile"`
 	// GroupAdd contains groups that the user inside the container will be
 	// added to.
 	GroupAdd []string `json:"GroupAdd"`

@@ -58,6 +58,9 @@ func (p *PodSpecGenerator) Validate() error {
 		if len(p.HostAdd) > 0 {
 			return exclusivePodOptions("NoInfra", "HostAdd")
 		}
+		if len(p.HostsFile) > 0 {
+			return exclusivePodOptions("NoInfra", "HostsFile")
+		}
 		if p.NoManageResolvConf {
 			return exclusivePodOptions("NoInfra", "NoManageResolvConf")
 		}
@@ -79,8 +82,13 @@ func (p *PodSpecGenerator) Validate() error {
 			return exclusivePodOptions("NoManageResolvConf", "DNSOption")
 		}
 	}
-	if p.NoManageHosts && len(p.HostAdd) > 0 {
-		return exclusivePodOptions("NoManageHosts", "HostAdd")
+	if p.NoManageHosts {
+		if len(p.HostAdd) > 0 {
+			return exclusivePodOptions("NoManageHosts", "HostAdd")
+		}
+		if len(p.HostsFile) > 0 {
+			return exclusivePodOptions("NoManageHosts", "HostsFile")
+		}
 	}
 
 	return nil

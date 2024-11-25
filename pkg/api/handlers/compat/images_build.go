@@ -142,6 +142,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Memory                  int64    `schema:"memory"`
 		NamespaceOptions        string   `schema:"nsoptions"`
 		NoCache                 bool     `schema:"nocache"`
+		NoHosts                 bool     `schema:"nohosts"`
 		OmitHistory             bool     `schema:"omithistory"`
 		OSFeatures              []string `schema:"osfeature"`
 		OSVersion               string   `schema:"osversion"`
@@ -720,6 +721,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			LabelOpts:          labelOpts,
 			Memory:             query.Memory,
 			MemorySwap:         query.MemSwap,
+			NoHosts:            query.NoHosts,
 			OmitHistory:        query.OmitHistory,
 			SeccompProfilePath: seccomp,
 			ShmSize:            strconv.Itoa(query.ShmSize),
