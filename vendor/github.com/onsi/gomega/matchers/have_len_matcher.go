@@ -13,7 +13,7 @@ type HaveLenMatcher struct {
 func (matcher *HaveLenMatcher) Match(actual interface{}) (success bool, err error) {
 	length, ok := lengthOf(actual)
 	if !ok {
-		return false, fmt.Errorf("HaveLen matcher expects a string/array/map/channel/slice.  Got:\n%s", format.Object(actual, 1))
+		return false, fmt.Errorf("HaveLen matcher expects a string/array/map/channel/slice/iterator.  Got:\n%s", format.Object(actual, 1))
 	}
 
 	return length == matcher.Count, nil

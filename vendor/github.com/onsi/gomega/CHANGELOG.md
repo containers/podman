@@ -1,3 +1,12 @@
+## 1.36.0
+
+### Features
+- new: make collection-related matchers Go 1.23 iterator aware [4c964c6]
+
+### Maintenance
+- Replace min/max helpers with built-in min/max [ece6872]
+- Fix some typos in docs [8e924d7]
+
 ## 1.35.1
 
 ### Fixes

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/matchers/internal/miter"
 	"github.com/onsi/gomega/matchers/support/goraph/bipartitegraph"
 )
 
@@ -13,8 +14,8 @@ type ContainElementsMatcher struct {
 }
 
 func (matcher *ContainElementsMatcher) Match(actual interface{}) (success bool, err error) {
-	if !isArrayOrSlice(actual) && !isMap(actual) {
-		return false, fmt.Errorf("ContainElements matcher expects an array/slice/map.  Got:\n%s", format.Object(actual, 1))
+	if !isArrayOrSlice(actual) && !isMap(actual) && !miter.IsIter(actual) {
+		return false, fmt.Errorf("ContainElements matcher expects an array/slice/map/iter.Seq/iter.Seq2.  Got:\n%s", format.Object(actual, 1))
 	}
 
 	matchers := matchers(matcher.Elements)

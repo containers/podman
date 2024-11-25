@@ -7,6 +7,7 @@ import (
 	"reflect"
 
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/matchers/internal/miter"
 )
 
 type HaveKeyMatcher struct {
@@ -14,13 +15,27 @@ type HaveKeyMatcher struct {
 }
 
 func (matcher *HaveKeyMatcher) Match(actual interface{}) (success bool, err error) {
-	if !isMap(actual) {
-		return false, fmt.Errorf("HaveKey matcher expects a map.  Got:%s", format.Object(actual, 1))
+	if !isMap(actual) && !miter.IsSeq2(actual) {
+		return false, fmt.Errorf("HaveKey matcher expects a map/iter.Seq2.  Got:%s", format.Object(actual, 1))
 	}
 
 	keyMatcher, keyIsMatcher := matcher.Key.(omegaMatcher)
 	if !keyIsMatcher {
 		keyMatcher = &EqualMatcher{Expected: matcher.Key}
+	}
+
+	if miter.IsSeq2(actual) {
+		var success bool
+		var err error
+		miter.IterateKV(actual, func(k, v reflect.Value) bool {
+			success, err = keyMatcher.Match(k.Interface())
+			if err != nil {
+				err = fmt.Errorf("HaveKey's key matcher failed with:\n%s%s", format.Indent, err.Error())
+				return false
+			}
+			return !success
+		})
+		return success, err
 	}
 
 	keys := reflect.ValueOf(actual).MapKeys()
