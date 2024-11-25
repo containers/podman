@@ -15,26 +15,13 @@ var ErrNoJournaldLogging = errors.New("no support for journald logging")
 
 // String returns a string representation of EventerType
 func (et EventerType) String() string {
-	switch et {
-	case LogFile:
-		return "file"
-	case Journald:
-		return "journald"
-	case Null:
-		return "none"
-	default:
-		return "invalid"
-	}
+	return string(et)
 }
 
 // IsValidEventer checks if the given string is a valid eventer type.
 func IsValidEventer(eventer string) bool {
-	switch eventer {
-	case LogFile.String():
-		return true
-	case Journald.String():
-		return true
-	case Null.String():
+	switch EventerType(eventer) {
+	case LogFile, Journald, Null:
 		return true
 	default:
 		return false
