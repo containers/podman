@@ -94,6 +94,10 @@ function validate_instance_compression {
         --tls-verify=false $mid \
         $manifest1
     run_podman manifest rm $manifest1
+    run_podman 1 manifest rm $manifest1
+    is "$output" "Error: $manifest1: image not known" "Missing manifest is reported"
+    run_podman manifest rm --ignore $manifest1
+    is "$output" "" "Missing manifest is ignored"
 
     # Default is to require TLS; also test explicit opts
     for opt in '' '--insecure=false' '--tls-verify=true' "--authfile=$authfile"; do

@@ -668,6 +668,7 @@ func ImagesRemove(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Force          bool `schema:"force"`
 		LookupManifest bool `schema:"lookupManifest"`
+		Ignore         bool `schema:"ignore"`
 	}{
 		Force: false,
 	}
@@ -677,7 +678,7 @@ func ImagesRemove(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	opts := entities.ImageRemoveOptions{Force: query.Force, LookupManifest: query.LookupManifest}
+	opts := entities.ImageRemoveOptions{Force: query.Force, LookupManifest: query.LookupManifest, Ignore: query.Ignore}
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 	rmReport, rmErrors := imageEngine.Remove(r.Context(), []string{utils.GetName(r)}, opts)
 

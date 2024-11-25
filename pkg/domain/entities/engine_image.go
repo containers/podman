@@ -45,7 +45,7 @@ type ImageEngine interface { //nolint:interfacebloat
 	ManifestAddArtifact(ctx context.Context, name string, files []string, opts ManifestAddArtifactOptions) (string, error)
 	ManifestAnnotate(ctx context.Context, names, image string, opts ManifestAnnotateOptions) (string, error)
 	ManifestRemoveDigest(ctx context.Context, names, image string) (string, error)
-	ManifestRm(ctx context.Context, names []string) (*ImageRemoveReport, []error)
+	ManifestRm(ctx context.Context, names []string, imageRmOpts ImageRemoveOptions) (*ImageRemoveReport, []error)
 	ManifestPush(ctx context.Context, name, destination string, imagePushOpts ImagePushOptions) (string, error)
 	ManifestListClear(ctx context.Context, name string) (string, error)
 	Sign(ctx context.Context, names []string, options SignOptions) (*SignReport, error)

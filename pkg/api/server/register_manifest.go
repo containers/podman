@@ -322,6 +322,10 @@ func (s *APIServer) registerManifestHandlers(r *mux.Router) error {
 	//    type: string
 	//    required: true
 	//    description: The name or ID of the  list to be deleted
+	//  - in: query
+	//    name: ignore
+	//    description: Ignore if a specified manifest does not exist and do not throw an error.
+	//    type: boolean
 	// responses:
 	//   200:
 	//     $ref: "#/responses/imagesRemoveResponseLibpod"

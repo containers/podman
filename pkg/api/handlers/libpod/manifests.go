@@ -745,20 +745,43 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 
 // ManifestDelete removes a manifest list from storage
 func ManifestDelete(w http.ResponseWriter, r *http.Request) {
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	name := utils.GetName(r)
-	if _, err := runtime.LibimageRuntime().LookupManifestList(name); err != nil {
-		utils.Error(w, http.StatusNotFound, err)
-		return
+	query := struct {
+		Ignore bool `schema:"ignore"`
+	}{
+		// Add defaults here once needed.
 	}
 
-	results, errs := imageEngine.ManifestRm(r.Context(), []string{name})
-	errsString := errorhandling.ErrorsToStrings(errs)
-	report := handlers.LibpodImagesRemoveReport{
-		ImageRemoveReport: *results,
-		Errors:            errsString,
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest,
+			fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
 	}
-	utils.WriteResponse(w, http.StatusOK, report)
+	opts := entities.ImageRemoveOptions{
+		Ignore: query.Ignore,
+	}
+
+	name := utils.GetName(r)
+	rmReport, rmErrors := imageEngine.ManifestRm(r.Context(), []string{name}, opts)
+	// In contrast to batch-removal, where we're only setting the exit
+	// code, we need to have another closer look at the errors here and set
+	// the appropriate http status code.
+
+	switch rmReport.ExitCode {
+	case 0:
+		report := handlers.LibpodImagesRemoveReport{ImageRemoveReport: *rmReport, Errors: []string{}}
+		utils.WriteResponse(w, http.StatusOK, report)
+	case 1:
+		// 404 - no such image
+		utils.Error(w, http.StatusNotFound, errorhandling.JoinErrors(rmErrors))
+	case 2:
+		// 409 - conflict error (in use by containers)
+		utils.Error(w, http.StatusConflict, errorhandling.JoinErrors(rmErrors))
+	default:
+		// 500 - internal error
+		utils.Error(w, http.StatusInternalServerError, errorhandling.JoinErrors(rmErrors))
+	}
 }

@@ -4,10 +4,16 @@
 podman\-manifest\-rm - Remove manifest list or image index from local storage
 
 ## SYNOPSIS
-**podman manifest rm** *list-or-index* [...]
+**podman manifest rm** [*options*] *list-or-index* [...]
 
 ## DESCRIPTION
 Removes one or more locally stored manifest lists.
+
+## OPTIONS
+
+#### **--ignore**, **-i**
+
+If a specified manifest does not exist in the local storage, ignore it and do not throw an error.
 
 ## EXAMPLE
 
