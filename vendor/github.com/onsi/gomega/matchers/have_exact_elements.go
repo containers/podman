@@ -2,8 +2,10 @@ package matchers
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/onsi/gomega/format"
+	"github.com/onsi/gomega/matchers/internal/miter"
 )
 
 type mismatchFailure struct {
@@ -21,16 +23,57 @@ type HaveExactElementsMatcher struct {
 func (matcher *HaveExactElementsMatcher) Match(actual interface{}) (success bool, err error) {
 	matcher.resetState()
 
-	if isMap(actual) {
-		return false, fmt.Errorf("error")
+	if isMap(actual) || miter.IsSeq2(actual) {
+		return false, fmt.Errorf("HaveExactElements matcher doesn't work on map or iter.Seq2.  Got:\n%s", format.Object(actual, 1))
 	}
 
 	matchers := matchers(matcher.Elements)
-	values := valuesOf(actual)
-
 	lenMatchers := len(matchers)
-	lenValues := len(values)
+
 	success = true
+
+	if miter.IsIter(actual) {
+		// In the worst case, we need to see everything before we can give our
+		// verdict. The only exception is fast fail.
+		i := 0
+		miter.IterateV(actual, func(v reflect.Value) bool {
+			if i >= lenMatchers {
+				// the iterator produces more values than we got matchers: this
+				// is not good.
+				matcher.extraIndex = i
+				success = false
+				return false
+			}
+
+			elemMatcher := matchers[i].(omegaMatcher)
+			match, err := elemMatcher.Match(v.Interface())
+			if err != nil {
+				matcher.mismatchFailures = append(matcher.mismatchFailures, mismatchFailure{
+					index:   i,
+					failure: err.Error(),
+				})
+				success = false
+			} else if !match {
+				matcher.mismatchFailures = append(matcher.mismatchFailures, mismatchFailure{
+					index:   i,
+					failure: elemMatcher.FailureMessage(v.Interface()),
+				})
+				success = false
+			}
+			i++
+			return true
+		})
+		if i < len(matchers) {
+			// the iterator produced less values than we got matchers: this is
+			// no good, no no no.
+			matcher.missingIndex = i
+			success = false
+		}
+		return success, nil
+	}
+
+	values := valuesOf(actual)
+	lenValues := len(values)
 
 	for i := 0; i < lenMatchers || i < lenValues; i++ {
 		if i >= lenMatchers {

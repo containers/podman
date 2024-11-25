@@ -15,6 +15,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+
+	"github.com/onsi/gomega/matchers/internal/miter"
 )
 
 type omegaMatcher interface {
@@ -152,6 +154,17 @@ func lengthOf(a interface{}) (int, bool) {
 	switch reflect.TypeOf(a).Kind() {
 	case reflect.Map, reflect.Array, reflect.String, reflect.Chan, reflect.Slice:
 		return reflect.ValueOf(a).Len(), true
+	case reflect.Func:
+		if !miter.IsIter(a) {
+			return 0, false
+		}
+		var l int
+		if miter.IsSeq2(a) {
+			miter.IterateKV(a, func(k, v reflect.Value) bool { l++; return true })
+		} else {
+			miter.IterateV(a, func(v reflect.Value) bool { l++; return true })
+		}
+		return l, true
 	default:
 		return 0, false
 	}
