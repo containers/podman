@@ -10,12 +10,12 @@ import (
 // NewEventer creates an eventer based on the eventer type
 func NewEventer(options EventerOptions) (Eventer, error) {
 	logrus.Debugf("Initializing event backend %s", options.EventerType)
-	switch strings.ToUpper(options.EventerType) {
-	case strings.ToUpper(LogFile.String()):
+	switch EventerType(strings.ToLower(options.EventerType)) {
+	case LogFile:
 		return EventLogFile{options}, nil
-	case strings.ToUpper(Null.String()):
+	case Null:
 		return newNullEventer(), nil
 	default:
-		return nil, fmt.Errorf("unknown event logger type: %s", strings.ToUpper(options.EventerType))
+		return nil, fmt.Errorf("unknown event logger type: %s", strings.ToLower(options.EventerType))
 	}
 }

@@ -6,16 +6,17 @@ import (
 	"time"
 )
 
-// EventerType ...
-type EventerType int
+// EventerType describes the type of event logger
+// The string values for EventerType should be entirely lowercase.
+type EventerType string
 
 const (
 	// LogFile indicates the event logger will be a logfile
-	LogFile EventerType = iota
+	LogFile EventerType = "file"
 	// Journald indicates journald should be used to log events
-	Journald EventerType = iota
+	Journald EventerType = "journald"
 	// Null is a no-op events logger. It does not read or write events.
-	Null EventerType = iota
+	Null EventerType = "none"
 )
 
 // Event describes the attributes of a libpod event
