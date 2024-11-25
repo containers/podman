@@ -207,6 +207,10 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				if len(value) == 0 {
 					return nil, errors.New("invalid vrf name")
 				}
+			case types.ModeOption:
+				if !slices.Contains(types.ValidBridgeModes, value) {
+					return nil, fmt.Errorf("unknown bridge mode %q", value)
+				}
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}
