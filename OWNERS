@@ -3,7 +3,6 @@ approvers:
   - TomSweeneyRedHat
   - ashley-cui
   - baude
-  - edsantiago
   - giuseppe
   - l0rd
   - lsm5
@@ -17,7 +16,6 @@ reviewers:
   - TomSweeneyRedHat
   - alexlarsson
   - baude
-  - edsantiago
   - flouthoc
   - giuseppe
   - jakecorrenti
