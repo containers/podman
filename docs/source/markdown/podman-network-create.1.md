@@ -70,6 +70,14 @@ Because it bypasses the host network stack no additional restrictions can be set
 privileged container is run it can set a default route themselves. If this is a concern then the
 container connections should be blocked on your actual network gateway.
 
+Using the `bridge` driver with this option has the following effects:
+ - Global IP forwarding sysctls will not be changed in the host network namespace.
+ - IP forwarding is disabled on the bridge interface instead of setting up a firewall.
+ - No default route will be added to the container.
+
+In all cases, aardvark-dns will only resolve container names with this option enabled.
+Other queries will be answered with `NXDOMAIN`.
+
 #### **--ip-range**=*range*
 
 Allocate container IP from a range. The range must be a either a complete subnet in CIDR notation or be in
@@ -118,6 +126,9 @@ Additionally the `bridge` driver supports the following options:
 - `com.docker.network.bridge.name`: This option assigns the given name to the created Linux Bridge
 - `com.docker.network.driver.mtu`: Sets the Maximum Transmission Unit (MTU) and takes an integer value.
 - `vrf`: This option assigns a VRF to the bridge interface. It accepts the name of the VRF and defaults to none. Can only be used with the Netavark network backend.
+- `mode`: This option sets the specified bridge mode on the interface. Defaults to `managed`. Supported values:
+  - `managed`: Podman creates and deletes the bridge and changes sysctls of it. It adds firewall rules to masquerade outgoing traffic, as well as setup port forwarding for incoming traffic using DNAT.
+  - `unmanaged`: Podman uses an existing bridge. It must exist by the time you want to start a container which uses the network. There will be no NAT or port forwarding, even if such options were passed while creating the container.
 
 The `macvlan` and `ipvlan` driver support the following options:
 
