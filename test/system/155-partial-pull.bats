@@ -25,7 +25,7 @@ function setup() {
 @test "push and pull zstd chunked image" {
     image1=localhost:${PODMAN_LOGIN_REGISTRY_PORT}/img1-$(safename)
 
-    globalargs="--pull-option enable_partial_pulls=true"
+    globalargs="--pull-option enable_partial_images=true"
     pushpullargs="--cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
                   --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}"
 
@@ -161,7 +161,7 @@ function mount_image_and_take_digest() {
 
     image=localhost:${PODMAN_LOGIN_REGISTRY_PORT}/img-$(safename)
 
-    globalargs="--storage-driver $(podman_storage_driver) --pull-option enable_partial_pulls=true"
+    globalargs="--storage-driver $(podman_storage_driver) --pull-option enable_partial_images=true"
     pushpullargs="--cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
                   --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}"
 
