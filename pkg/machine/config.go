@@ -87,18 +87,6 @@ type ResetOptions struct {
 
 type InspectOptions struct{}
 
-// TODO This can be removed when WSL is refactored into podman 5
-type VM interface {
-	Init(opts define.InitOptions) (bool, error)
-	Inspect() (*InspectInfo, error)
-	Remove(name string, opts RemoveOptions) (string, func() error, error)
-	Set(name string, opts define.SetOptions) ([]error, error)
-	SSH(name string, opts SSHOptions) error
-	Start(name string, opts StartOptions) error
-	State(bypass bool) (define.Status, error)
-	Stop(name string, opts StopOptions) error
-}
-
 type DistributionDownload interface {
 	HasUsableCache() (bool, error)
 	Get() *Download
