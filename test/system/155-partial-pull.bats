@@ -84,9 +84,12 @@ EOF
 
     run_podman $globalargs rmi $image2 $image3
 
-    run_podman $globalargs pull \
+    run_podman --log-level debug $globalargs pull \
                $pushpullargs \
                $image2
+    if [ "$(podman_storage_driver)" != vfs ]; then # VFS does not implement partial pulls
+        assert "$output" =~ "Retrieved partial blob" # A spot check that we are really using the partial-pull code path
+    fi
 
     run -0 skopeo inspect containers-storage:$image2
     assert "$output" =~ "application/vnd.oci.image.layer.v1.tar\+zstd" "pulled image must be zstd-compressed"
@@ -182,9 +185,12 @@ EOF
 
     run_podman $globalargs rmi $image
 
-    run_podman $globalargs pull \
+    run_podman --log-level debug $globalargs pull \
                $pushpullargs \
                $image
+    if [ "$(podman_storage_driver)" != vfs ]; then # VFS does not implement partial pulls
+        assert "$output" =~ "Retrieved partial blob" # A spot check that we are really using the partial-pull code path
+    fi
 
     # expect that the image contains exactly the same data as before
     mount_image_and_take_digest $image
