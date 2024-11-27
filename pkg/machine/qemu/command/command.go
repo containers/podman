@@ -10,7 +10,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/storage/pkg/fileutils"
 )
@@ -31,14 +30,6 @@ type QemuCmd []string
 func NewQemuBuilder(binary string, options []string) QemuCmd {
 	q := QemuCmd{binary}
 	return append(q, options...)
-}
-
-// SetMemory adds the specified amount of memory for the machine
-func (q *QemuCmd) SetMemory(m strongunits.MiB) {
-	serializedMem := strconv.FormatUint(uint64(m), 10)
-	// In order to use virtiofsd, we must enable shared memory
-	*q = append(*q, "-object", fmt.Sprintf("memory-backend-memfd,id=mem,size=%sM,share=on", serializedMem))
-	*q = append(*q, "-m", serializedMem)
 }
 
 // SetCPUs adds the number of CPUs the machine will have
