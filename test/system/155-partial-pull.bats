@@ -11,7 +11,7 @@ load helpers.registry
 # BEGIN filtering - none of these tests will work with podman-remote
 
 function setup() {
-    skip_if_remote "none of these tests work with podman-remote"
+    skip_if_remote "zstd:chunked tests depend on start_registry (requires changing storage options); and on setting specific storage options. Neither works with podman-remote"
 
     basic_setup
     start_registry
@@ -160,6 +160,7 @@ function mount_image_and_take_digest() {
 }
 
 @test "zstd chunked does not modify image content" {
+    skip_if_remote "need to mount an image" # remote tests are already skipped in setup, this is one more reason.
     skip_if_rootless "need to mount the image without unshare"
 
     image=localhost:${PODMAN_LOGIN_REGISTRY_PORT}/img-$(safename)
