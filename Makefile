@@ -737,8 +737,11 @@ remotesystem:
 			exit 1;\
 		fi;\
 		env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags '!ci:parallel' test/system/ ;\
-		env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags ci:parallel -j $$(nproc) test/system/ ;\
-		rc=$$?;\
+		rc=$$?; \
+		if [ $$rc -eq 0 ]]; then \
+		   env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags ci:parallel -j $$(nproc) test/system/ ;\
+		   rc=$$?;\
+		fi; \
 		kill %1;\
 	else \
 		echo "Skipping $@: 'timeout -v' unavailable'";\
