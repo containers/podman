@@ -2332,7 +2332,7 @@ WORKDIR /madethis`, BB)
 		session = podmanTest.Podman([]string{"run", "--tls-verify=false", imgPath})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, "Trying to pull "+imgPath))
-		Expect(session.ErrorToString()).To(ContainSubstring("invalid tar header"))
+		Expect(session.ErrorToString()).To(Or(ContainSubstring("invalid tar header"), ContainSubstring("does not match config's DiffID")))
 
 		// With
 		session = podmanTest.Podman([]string{"run", "--tls-verify=false", "--decryption-key", privateKeyFileName, imgPath})
