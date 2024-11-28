@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	graphdriver "github.com/containers/storage/drivers"
+	"github.com/containers/storage/internal/dedup"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fileutils"
@@ -347,4 +348,20 @@ func (d *Driver) Diff(id string, idMappings *idtools.IDMappings, parent string, 
 // relative to its base filesystem directory.
 func (d *Driver) DiffSize(id string, idMappings *idtools.IDMappings, parent string, parentMappings *idtools.IDMappings, mountLabel string) (size int64, err error) {
 	return d.naiveDiff.DiffSize(id, idMappings, parent, parentMappings, mountLabel)
+}
+
+// Dedup performs deduplication of the driver's storage.
+func (d *Driver) Dedup(req graphdriver.DedupArgs) (graphdriver.DedupResult, error) {
+	var dirs []string
+	for _, layer := range req.Layers {
+		dir := d.dir2(layer, false)
+		if err := fileutils.Exists(dir); err == nil {
+			dirs = append(dirs, dir)
+		}
+	}
+	r, err := dedup.DedupDirs(dirs, req.Options)
+	if err != nil {
+		return graphdriver.DedupResult{}, err
+	}
+	return graphdriver.DedupResult{Deduped: r.Deduped}, nil
 }

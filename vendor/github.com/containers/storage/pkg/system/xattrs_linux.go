@@ -12,7 +12,7 @@ const (
 	E2BIG unix.Errno = unix.E2BIG
 
 	// Operation not supported
-	EOPNOTSUPP unix.Errno = unix.EOPNOTSUPP
+	ENOTSUP unix.Errno = unix.ENOTSUP
 
 	// Value is too small or too large for maximum size allowed
 	EOVERFLOW unix.Errno = unix.EOVERFLOW

@@ -12,7 +12,7 @@ const (
 	E2BIG unix.Errno = unix.E2BIG
 
 	// Operation not supported
-	EOPNOTSUPP unix.Errno = unix.EOPNOTSUPP
+	ENOTSUP unix.Errno = unix.ENOTSUP
 )
 
 // Lgetxattr retrieves the value of the extended attribute identified by attr

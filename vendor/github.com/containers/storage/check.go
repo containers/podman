@@ -80,7 +80,7 @@ type CheckOptions struct {
 // layer to the contents that we'd expect it to have to ignore certain
 // discrepancies
 type checkIgnore struct {
-	ownership, timestamps, permissions bool
+	ownership, timestamps, permissions, filetype bool
 }
 
 // CheckMost returns a CheckOptions with mostly just "quick" checks enabled.
@@ -139,8 +139,10 @@ func (s *store) Check(options *CheckOptions) (CheckReport, error) {
 		if strings.Contains(o, "ignore_chown_errors=true") {
 			ignore.ownership = true
 		}
-		if strings.HasPrefix(o, "force_mask=") {
+		if strings.Contains(o, "force_mask=") {
+			ignore.ownership = true
 			ignore.permissions = true
+			ignore.filetype = true
 		}
 	}
 	for o := range s.pullOptions {
@@ -833,7 +835,7 @@ func (s *store) Repair(report CheckReport, options *RepairOptions) []error {
 // compareFileInfo returns a string summarizing what's different between the two checkFileInfos
 func compareFileInfo(a, b checkFileInfo, idmap *idtools.IDMappings, ignore checkIgnore) string {
 	var comparison []string
-	if a.typeflag != b.typeflag {
+	if a.typeflag != b.typeflag && !ignore.filetype {
 		comparison = append(comparison, fmt.Sprintf("filetype:%v￫%v", a.typeflag, b.typeflag))
 	}
 	if idmap != nil && !idmap.Empty() {

@@ -83,7 +83,7 @@ func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContai
 	}
 	if uid != int(st.Uid) || gid != int(st.Gid) {
 		capability, err := system.Lgetxattr(path, "security.capability")
-		if err != nil && !errors.Is(err, system.EOPNOTSUPP) && err != system.ErrNotSupportedPlatform {
+		if err != nil && !errors.Is(err, system.ENOTSUP) && err != system.ErrNotSupportedPlatform {
 			return fmt.Errorf("%s: %w", os.Args[0], err)
 		}
 
