@@ -163,7 +163,7 @@ func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig)
 		podmanConfig.URI = con.URI
 		podmanConfig.Identity = con.Identity
 		podmanConfig.MachineMode = con.IsMachine
-	case url.Changed:
+	case url != nil && url.Changed:
 		podmanConfig.URI = url.Value.String()
 	case contextConn != nil && contextConn.Changed:
 		service := contextConn.Value.String()
@@ -176,7 +176,7 @@ func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig)
 			podmanConfig.Identity = con.Identity
 			podmanConfig.MachineMode = con.IsMachine
 		}
-	case host.Changed:
+	case host != nil && host.Changed:
 		podmanConfig.URI = host.Value.String()
 	default:
 		// No cli options set, in case CONTAINER_CONNECTION was set to something
