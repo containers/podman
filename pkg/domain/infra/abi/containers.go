@@ -1633,7 +1633,8 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 						// update the container state
 						// https://github.com/containers/podman/issues/23334
 						(errors.Is(err, define.ErrCtrRemoved) || errors.Is(err, define.ErrNoSuchCtr) ||
-							errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped)) {
+							errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrCtrStopped) ||
+							errors.Is(err, define.ErrNoCgroups)) {
 						continue
 					}
 					return nil, err

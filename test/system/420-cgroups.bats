@@ -52,6 +52,19 @@ load helpers
     # --cgroupns=host is required to have full visibility of the cgroup path inside the container
     run_podman run --cgroups=disabled --cgroupns=host --rm $IMAGE cat /proc/self/cgroup
     is "$output" $current_cgroup "--cgroups=disabled must not change the current cgroup"
+
+    ctr1="c1-$(safename)"
+    ctr2="c2-$(safename)"
+
+    # verify that "podman stats --all" works when there is a container with --cgroups=disabled
+    run_podman run --cgroups=disabled --name $ctr1 -d $IMAGE top
+    run_podman run --name $ctr2 -d $IMAGE top
+
+    run_podman stats -a --no-stream --no-reset
+    assert "$output" !~ "$ctr1" "ctr1 not in stats output"
+    assert "$output" =~ "$ctr2" "ctr2 in stats output"
+
+    run_podman rm -f -t 0 $ctr1 $ctr2
 }
 
 # vim: filetype=sh
