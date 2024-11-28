@@ -8,5 +8,5 @@ Type=oneshot
 # Set a timeout as by default oneshot does not have one and in case network-online.target
 # never comes online we do not want to block forever, 90s is the default systemd unit timeout.
 TimeoutStartSec=90s
-ExecStart=sh -c 'until systemctl is-active network-online.target; do sleep 0.5; done'
+ExecStart=/bin/sh -c 'until systemctl is-active network-online.target; do sleep 0.5; done'
 RemainAfterExit=yes
