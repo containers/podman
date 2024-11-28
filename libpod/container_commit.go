@@ -72,10 +72,10 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		OverrideConfig:        options.CommitOptions.OverrideConfig,
 	}
 	importBuilder, err := buildah.ImportBuilder(ctx, c.runtime.store, builderOptions)
-	importBuilder.Format = options.PreferredManifestType
 	if err != nil {
 		return nil, err
 	}
+	importBuilder.Format = options.PreferredManifestType
 	if options.Author != "" {
 		importBuilder.SetMaintainer(options.Author)
 	}
