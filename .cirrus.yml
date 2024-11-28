@@ -146,12 +146,6 @@ build_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_DATABASE: boltdb
-              CI_DESIRED_STORAGE: vfs
-        - env:
               <<: *stdenvars
               DISTRO_NV: ${RAWHIDE_NAME}
               VM_IMAGE_NAME: ${RAWHIDE_CACHE_IMAGE_NAME}
@@ -668,11 +662,6 @@ container_integration_test_task:
               DISTRO_NV: ${FEDORA_NAME}
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
     env:
         TEST_FLAVOR: int
