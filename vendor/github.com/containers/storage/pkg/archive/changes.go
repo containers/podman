@@ -270,6 +270,7 @@ type FileInfo struct {
 	capability []byte
 	added      bool
 	xattrs     map[string]string
+	target     string
 }
 
 // LookUp looks up the file information of a file.
@@ -336,6 +337,7 @@ func (info *FileInfo) addChanges(oldInfo *FileInfo, changes *[]Change) {
 			// back mtime
 			if statDifferent(oldStat, oldInfo, newStat, info) ||
 				!bytes.Equal(oldChild.capability, newChild.capability) ||
+				oldChild.target != newChild.target ||
 				!reflect.DeepEqual(oldChild.xattrs, newChild.xattrs) {
 				change := Change{
 					Path: newChild.path(),
@@ -390,6 +392,7 @@ func newRootFileInfo(idMappings *idtools.IDMappings) *FileInfo {
 		name:       string(os.PathSeparator),
 		idMappings: idMappings,
 		children:   make(map[string]*FileInfo),
+		target:     "",
 	}
 	return root
 }

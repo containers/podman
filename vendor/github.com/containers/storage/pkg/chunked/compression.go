@@ -4,18 +4,18 @@ import (
 	"io"
 
 	"github.com/containers/storage/pkg/chunked/compressor"
-	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/internal/minimal"
 )
 
 const (
-	TypeReg     = internal.TypeReg
-	TypeChunk   = internal.TypeChunk
-	TypeLink    = internal.TypeLink
-	TypeChar    = internal.TypeChar
-	TypeBlock   = internal.TypeBlock
-	TypeDir     = internal.TypeDir
-	TypeFifo    = internal.TypeFifo
-	TypeSymlink = internal.TypeSymlink
+	TypeReg     = minimal.TypeReg
+	TypeChunk   = minimal.TypeChunk
+	TypeLink    = minimal.TypeLink
+	TypeChar    = minimal.TypeChar
+	TypeBlock   = minimal.TypeBlock
+	TypeDir     = minimal.TypeDir
+	TypeFifo    = minimal.TypeFifo
+	TypeSymlink = minimal.TypeSymlink
 )
 
 // ZstdCompressor is a CompressorFunc for the zstd compression algorithm.

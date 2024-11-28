@@ -336,6 +336,9 @@ type rwLayerStore interface {
 
 	// Clean up unreferenced layers
 	GarbageCollect() error
+
+	// Dedup deduplicates layers in the store.
+	dedup(drivers.DedupArgs) (drivers.DedupResult, error)
 }
 
 type multipleLockFile struct {
@@ -913,22 +916,31 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 		// user of this storage area marked for deletion but didn't manage to
 		// actually delete.
 		var incompleteDeletionErrors error // = nil
+		var layersToDelete []*Layer
 		for _, layer := range r.layers {
 			if layer.Flags == nil {
 				layer.Flags = make(map[string]interface{})
 			}
 			if layerHasIncompleteFlag(layer) {
-				logrus.Warnf("Found incomplete layer %#v, deleting it", layer.ID)
-				err := r.deleteInternal(layer.ID)
-				if err != nil {
-					// Don't return the error immediately, because deleteInternal does not saveLayers();
-					// Even if deleting one incomplete layer fails, call saveLayers() so that other possible successfully
-					// deleted incomplete layers have their metadata correctly removed.
-					incompleteDeletionErrors = multierror.Append(incompleteDeletionErrors,
-						fmt.Errorf("deleting layer %#v: %w", layer.ID, err))
-				}
-				modifiedLocations |= layerLocation(layer)
+				// Important: Do not call r.deleteInternal() here. It modifies r.layers
+				// which causes unexpected side effects while iterating over r.layers here.
+				// The range loop has no idea that the underlying elements where shifted
+				// around.
+				layersToDelete = append(layersToDelete, layer)
 			}
+		}
+		// Now actually delete the layers
+		for _, layer := range layersToDelete {
+			logrus.Warnf("Found incomplete layer %q, deleting it", layer.ID)
+			err := r.deleteInternal(layer.ID)
+			if err != nil {
+				// Don't return the error immediately, because deleteInternal does not saveLayers();
+				// Even if deleting one incomplete layer fails, call saveLayers() so that other possible successfully
+				// deleted incomplete layers have their metadata correctly removed.
+				incompleteDeletionErrors = multierror.Append(incompleteDeletionErrors,
+					fmt.Errorf("deleting layer %#v: %w", layer.ID, err))
+			}
+			modifiedLocations |= layerLocation(layer)
 		}
 		if err := r.saveLayers(modifiedLocations); err != nil {
 			return false, err
@@ -2590,6 +2602,11 @@ func (r *layerStore) LayersByUncompressedDigest(d digest.Digest) ([]Layer, error
 // Requires startReading or startWriting.
 func (r *layerStore) LayersByTOCDigest(d digest.Digest) ([]Layer, error) {
 	return r.layersByDigestMap(r.bytocsum, d)
+}
+
+// Requires startWriting.
+func (r *layerStore) dedup(req drivers.DedupArgs) (drivers.DedupResult, error) {
+	return r.driver.Dedup(req)
 }
 
 func closeAll(closes ...func() error) (rErr error) {

@@ -1,4 +1,4 @@
-package internal
+package minimal
 
 // NOTE: This is used from github.com/containers/image by callers that
 // don't otherwise use containers/storage, so don't make this depend on any

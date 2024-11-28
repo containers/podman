@@ -1,4 +1,4 @@
-//go:build linux && cgo
+//go:build linux
 
 package overlay
 
@@ -27,7 +27,7 @@ var (
 	composeFsHelperErr  error
 
 	// skipMountViaFile is used to avoid trying to mount EROFS directly via the file if we already know the current kernel
-	// does not support it.  Mounting directly via a file will be supported in kernel 6.12.
+	// does not support it.  Mounting directly via a file is supported from Linux 6.12.
 	skipMountViaFile atomic.Bool
 )
 

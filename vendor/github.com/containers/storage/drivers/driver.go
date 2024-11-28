@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/storage/internal/dedup"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fileutils"
@@ -81,6 +82,23 @@ type ApplyDiffWithDifferOpts struct {
 	Flags map[string]interface{}
 }
 
+// DedupArgs contains the information to perform storage deduplication.
+type DedupArgs struct {
+	// Layers is the list of layers to deduplicate.
+	Layers []string
+
+	// Options that are passed directly to the pkg/dedup.DedupDirs function.
+	Options dedup.DedupOptions
+}
+
+// DedupResult contains the result of the Dedup() call.
+type DedupResult struct {
+	// Deduped represents the total number of bytes saved by deduplication.
+	// This value accounts also for all previously deduplicated data, not only the savings
+	// from the last run.
+	Deduped uint64
+}
+
 // InitFunc initializes the storage driver.
 type InitFunc func(homedir string, options Options) (Driver, error)
 
@@ -139,6 +157,8 @@ type ProtoDriver interface {
 	// AdditionalImageStores returns additional image stores supported by the driver
 	// This API is experimental and can be changed without bumping the major version number.
 	AdditionalImageStores() []string
+	// Dedup performs deduplication of the driver's storage.
+	Dedup(DedupArgs) (DedupResult, error)
 }
 
 // DiffDriver is the interface to use to implement graph diffs
@@ -211,8 +231,8 @@ const (
 	// DifferOutputFormatDir means the output is a directory and it will
 	// keep the original layout.
 	DifferOutputFormatDir = iota
-	// DifferOutputFormatFlat will store the files by their checksum, in the form
-	// checksum[0:2]/checksum[2:]
+	// DifferOutputFormatFlat will store the files by their checksum, per
+	// pkg/chunked/internal/composefs.RegularFilePathForValidatedDigest.
 	DifferOutputFormatFlat
 )
 
