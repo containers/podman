@@ -185,6 +185,7 @@ Requires: %{name} = %{epoch}:%{version}-%{release}
 Requires: gvisor-tap-vsock
 Requires: qemu
 Requires: virtiofsd
+ExclusiveArch: x86_64 aarch64
 
 %description machine
 This subpackage installs the dependencies for %{name} machine, for more see:
