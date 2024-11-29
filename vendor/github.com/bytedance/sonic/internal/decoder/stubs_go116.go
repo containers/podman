@@ -22,12 +22,12 @@ import (
     `unsafe`
     `reflect`
 
-    _ `github.com/chenzhuoyu/base64x`
+    _ `github.com/cloudwego/base64x`
 
     `github.com/bytedance/sonic/internal/rt`
 )
 
-//go:linkname _subr__b64decode github.com/chenzhuoyu/base64x._subr__b64decode
+//go:linkname _subr__b64decode github.com/cloudwego/base64x._subr__b64decode
 var _subr__b64decode uintptr
 
 // runtime.maxElementSize

@@ -831,7 +831,7 @@ func (self *_Compiler) compileStructFieldZero(p *_Program, vt reflect.Type) {
         case reflect.Float32   : p.add(_OP_is_zero_4)
         case reflect.Float64   : p.add(_OP_is_zero_8)
         case reflect.String    : p.add(_OP_is_nil_p1)
-        case reflect.Interface : p.add(_OP_is_nil_p1)
+        case reflect.Interface : p.add(_OP_is_nil)
         case reflect.Map       : p.add(_OP_is_zero_map)
         case reflect.Ptr       : p.add(_OP_is_nil)
         case reflect.Slice     : p.add(_OP_is_nil_p1)

@@ -2,9 +2,13 @@
 
 **A parser for URNs**.
 
-> As seen on [RFC 2141](https://tools.ietf.org/html/rfc2141#ref-1).
+> As seen on [RFC 2141](https://datatracker.ietf.org/doc/html/rfc2141), [RFC 7643](https://datatracker.ietf.org/doc/html/rfc7643#section-10), and on [RFC 8141](https://datatracker.ietf.org/doc/html/rfc8141).
 
 [API documentation](https://godoc.org/github.com/leodido/go-urn).
+
+Starting with version 1.3 this library also supports [RFC 7643 SCIM URNs](https://datatracker.ietf.org/doc/html/rfc7643#section-10).
+
+Starting with version 1.4 this library also supports [RFC 8141 URNs (2017)](https://datatracker.ietf.org/doc/html/rfc8141).
 
 ## Installation
 
@@ -12,11 +16,20 @@
 go get github.com/leodido/go-urn
 ```
 
+## Features
+
+1. RFC 2141 URNs parsing (default)
+2. RFC 8141 URNs parsing (supersedes RFC 2141)
+3. RFC 7643 SCIM URNs parsing
+4. Normalization as per RFCs
+5. Lexical equivalence as per RFCs
+6. Precise, fine-grained errors
+
 ## Performances
 
 This implementation results to be really fast.
 
-Usually below ½ microsecond on my machine<sup>[1](#mymachine)</sup>.
+Usually below 400 ns on my machine<sup>[1](#mymachine)</sup>.
 
 Notice it also performs, while parsing:
 
@@ -24,35 +37,36 @@ Notice it also performs, while parsing:
 2. specific-string normalization
 
 ```
-ok/00/urn:a:b______________________________________/-4      20000000      265 ns/op      182 B/op      6 allocs/op
-ok/01/URN:foo:a123,456_____________________________/-4      30000000      296 ns/op      200 B/op      6 allocs/op
-ok/02/urn:foo:a123%2c456___________________________/-4      20000000      331 ns/op      208 B/op      6 allocs/op
-ok/03/urn:ietf:params:scim:schemas:core:2.0:User___/-4      20000000      430 ns/op      280 B/op      6 allocs/op
-ok/04/urn:ietf:params:scim:schemas:extension:enterp/-4      20000000      411 ns/op      312 B/op      6 allocs/op
-ok/05/urn:ietf:params:scim:schemas:extension:enterp/-4      20000000      472 ns/op      344 B/op      6 allocs/op
-ok/06/urn:burnout:nss______________________________/-4      30000000      257 ns/op      192 B/op      6 allocs/op
-ok/07/urn:abcdefghilmnopqrstuvzabcdefghilm:x_______/-4      20000000      375 ns/op      213 B/op      6 allocs/op
-ok/08/urn:urnurnurn:urn____________________________/-4      30000000      265 ns/op      197 B/op      6 allocs/op
-ok/09/urn:ciao:@!=%2c(xyz)+a,b.*@g=$_'_____________/-4      20000000      307 ns/op      248 B/op      6 allocs/op
-ok/10/URN:x:abc%1dz%2f%3az_________________________/-4      30000000      259 ns/op      212 B/op      6 allocs/op
-no/11/URN:-xxx:x___________________________________/-4      20000000      445 ns/op      320 B/op      6 allocs/op
-no/12/urn::colon:nss_______________________________/-4      20000000      461 ns/op      320 B/op      6 allocs/op
-no/13/urn:abcdefghilmnopqrstuvzabcdefghilmn:specifi/-4      10000000      660 ns/op      320 B/op      6 allocs/op
-no/14/URN:a!?:x____________________________________/-4      20000000      507 ns/op      320 B/op      6 allocs/op
-no/15/urn:urn:NSS__________________________________/-4      20000000      429 ns/op      288 B/op      6 allocs/op
-no/16/urn:white_space:NSS__________________________/-4      20000000      482 ns/op      320 B/op      6 allocs/op
-no/17/urn:concat:no_spaces_________________________/-4      20000000      539 ns/op      328 B/op      7 allocs/op
-no/18/urn:a:/______________________________________/-4      20000000      470 ns/op      320 B/op      7 allocs/op
-no/19/urn:UrN:NSS__________________________________/-4      20000000      399 ns/op      288 B/op      6 allocs/op
+ok/00/urn:a:b______________________________________/-10    51372006    109.0 ns/op    275 B/op    3 allocs/op
+ok/01/URN:foo:a123,456_____________________________/-10    36024072    160.8 ns/op    296 B/op    6 allocs/op
+ok/02/urn:foo:a123%2C456___________________________/-10    31901007    188.4 ns/op    320 B/op    7 allocs/op
+ok/03/urn:ietf:params:scim:schemas:core:2.0:User___/-10    22736756    266.6 ns/op    376 B/op    6 allocs/op
+ok/04/urn:ietf:params:scim:schemas:extension:enterp/-10    18291859    335.2 ns/op    408 B/op    6 allocs/op
+ok/05/urn:ietf:params:scim:schemas:extension:enterp/-10    15283087    379.4 ns/op    440 B/op    6 allocs/op
+ok/06/urn:burnout:nss______________________________/-10    39407593    155.1 ns/op    288 B/op    6 allocs/op
+ok/07/urn:abcdefghilmnopqrstuvzabcdefghilm:x_______/-10    27832718    211.4 ns/op    307 B/op    4 allocs/op
+ok/08/urn:urnurnurn:urn____________________________/-10    33269596    168.1 ns/op    293 B/op    6 allocs/op
+ok/09/urn:ciao:!!*_________________________________/-10    41100675    148.8 ns/op    288 B/op    6 allocs/op
+ok/10/urn:ciao:=@__________________________________/-10    37214253    149.7 ns/op    284 B/op    6 allocs/op
+ok/11/urn:ciao:@!=%2C(xyz)+a,b.*@g=$_'_____________/-10    26534240    229.8 ns/op    336 B/op    7 allocs/op
+ok/12/URN:x:abc%1Dz%2F%3az_________________________/-10    28166396    211.8 ns/op    336 B/op    7 allocs/op
+no/13/URN:---xxx:x_________________________________/-10    23635159    255.6 ns/op    419 B/op    5 allocs/op
+no/14/urn::colon:nss_______________________________/-10    23594779    258.4 ns/op    419 B/op    5 allocs/op
+no/15/URN:@,:x_____________________________________/-10    23742535    261.5 ns/op    419 B/op    5 allocs/op
+no/16/URN:URN:NSS__________________________________/-10    27432714    223.3 ns/op    371 B/op    5 allocs/op
+no/17/urn:UrN:NSS__________________________________/-10    26922117    224.9 ns/op    371 B/op    5 allocs/op
+no/18/urn:a:%______________________________________/-10    24926733    224.6 ns/op    371 B/op    5 allocs/op
+no/19/urn:urn:NSS__________________________________/-10    27652641    220.7 ns/op    371 B/op    5 allocs/op
 ```
 
----
+* <a name="mymachine">[1]</a>: Apple M1 Pro
 
-* <a name="mymachine">[1]</a>: Intel Core i7-7600U CPU @ 2.80GHz
-
----
 
 ## Example
+
+For more examples take a look at the [examples file](examples_test.go).
+
+
 ```go
 package main
 
@@ -64,6 +78,35 @@ import (
 func main() {
 	var uid = "URN:foo:a123,456"
 
+    // Parse the input string as a RFC 2141 URN only
+	u, e := urn.NewMachine().Parse(uid)
+	if e != nil {
+		fmt.Errorf(err)
+
+		return
+	}
+
+	fmt.Println(u.ID)
+	fmt.Println(u.SS)
+
+	// Output:
+	// foo
+	// a123,456
+}
+```
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/leodido/go-urn"
+)
+
+func main() {
+	var uid = "URN:foo:a123,456"
+
+    // Parse the input string as a RFC 2141 URN only
 	u, ok := urn.Parse([]byte(uid))
 	if !ok {
 		panic("error parsing urn")
@@ -78,4 +121,33 @@ func main() {
 }
 ```
 
-[![Analytics](https://ga-beacon.appspot.com/UA-49657176-1/go-urn?flat)](https://github.com/igrigorik/ga-beacon)
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/leodido/go-urn"
+)
+
+func main() {
+	input := "urn:ietf:params:scim:api:messages:2.0:ListResponse"
+
+	// Parsing the input string as a RFC 7643 SCIM URN
+	u, ok := urn.Parse([]byte(input), urn.WithParsingMode(urn.RFC7643Only))
+	if !ok {
+		panic("error parsing urn")
+	}
+
+	fmt.Println(u.IsSCIM())
+	scim := u.SCIM()
+	fmt.Println(scim.Type.String())
+	fmt.Println(scim.Name)
+	fmt.Println(scim.Other)
+
+	// Output:
+	// true
+	// api
+	// messages
+	// 2.0:ListResponse
+}
+```

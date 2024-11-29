@@ -1,4 +1,4 @@
-GOCMD=GO111MODULE=on go
+GOCMD=go
 
 linters-install:
 	@golangci-lint --version >/dev/null 2>&1 || { \

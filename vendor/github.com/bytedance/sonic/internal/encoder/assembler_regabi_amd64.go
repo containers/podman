@@ -1,5 +1,4 @@
-//go:build go1.17 && !go1.22
-// +build go1.17,!go1.22
+// +build go1.17,!go1.23
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -129,6 +128,7 @@ var (
 
 var (
     _X0 = jit.Reg("X0")
+    _X15 = jit.Reg("X15")
     _Y0 = jit.Reg("Y0")
 )
 
@@ -513,6 +513,7 @@ func (self *_Assembler) call_c(pc obj.Addr) {
     self.call(pc)               // CALL $pc
     self.xload(_REG_ffi...)     // LOAD $REG_ffi
     self.Emit("XCHGQ", _SP_p, _BX)
+    self.Emit("XORPS", _X15, _X15)
 }
 
 func (self *_Assembler) call_go(pc obj.Addr) {

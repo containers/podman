@@ -25,7 +25,7 @@ import (
 // Visitor handles the callbacks during preorder traversal of a JSON AST.
 //
 // According to the JSON RFC8259, a JSON AST can be defined by
-// the following rules without seperator / whitespace tokens.
+// the following rules without separator / whitespace tokens.
 //
 //  JSON-AST  = value
 //  value     = false / null / true / object / array / number / string

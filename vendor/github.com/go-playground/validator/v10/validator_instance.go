@@ -80,20 +80,21 @@ type internalValidationFuncWrapper struct {
 
 // Validate contains the validator settings and cache
 type Validate struct {
-	tagName               string
-	pool                  *sync.Pool
-	tagNameFunc           TagNameFunc
-	structLevelFuncs      map[reflect.Type]StructLevelFuncCtx
-	customFuncs           map[reflect.Type]CustomTypeFunc
-	aliases               map[string]string
-	validations           map[string]internalValidationFuncWrapper
-	transTagFunc          map[ut.Translator]map[string]TranslationFunc // map[<locale>]map[<tag>]TranslationFunc
-	rules                 map[reflect.Type]map[string]string
-	tagCache              *tagCache
-	structCache           *structCache
-	hasCustomFuncs        bool
-	hasTagNameFunc        bool
-	requiredStructEnabled bool
+	tagName                string
+	pool                   *sync.Pool
+	tagNameFunc            TagNameFunc
+	structLevelFuncs       map[reflect.Type]StructLevelFuncCtx
+	customFuncs            map[reflect.Type]CustomTypeFunc
+	aliases                map[string]string
+	validations            map[string]internalValidationFuncWrapper
+	transTagFunc           map[ut.Translator]map[string]TranslationFunc // map[<locale>]map[<tag>]TranslationFunc
+	rules                  map[reflect.Type]map[string]string
+	tagCache               *tagCache
+	structCache            *structCache
+	hasCustomFuncs         bool
+	hasTagNameFunc         bool
+	requiredStructEnabled  bool
+	privateFieldValidation bool
 }
 
 // New returns a new instance of 'validate' with sane defaults.

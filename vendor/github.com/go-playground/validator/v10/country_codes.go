@@ -54,6 +54,15 @@ var iso3166_1_alpha2 = map[string]bool{
 	"EH": true, "YE": true, "ZM": true, "ZW": true, "XK": true,
 }
 
+var iso3166_1_alpha2_eu = map[string]bool{
+	"AT": true, "BE": true, "BG": true, "HR": true, "CY": true,
+	"CZ": true, "DK": true, "EE": true, "FI": true, "FR": true,
+	"DE": true, "GR": true, "HU": true, "IE": true, "IT": true,
+	"LV": true, "LT": true, "LU": true, "MT": true, "NL": true,
+	"PL": true, "PT": true, "RO": true, "SK": true, "SI": true,
+	"ES": true, "SE": true,
+}
+
 var iso3166_1_alpha3 = map[string]bool{
 	// see: https://www.iso.org/iso-3166-country-codes.html
 	"AFG": true, "ALB": true, "DZA": true, "ASM": true, "AND": true,
@@ -107,6 +116,15 @@ var iso3166_1_alpha3 = map[string]bool{
 	"VNM": true, "VGB": true, "VIR": true, "WLF": true, "ESH": true,
 	"YEM": true, "ZMB": true, "ZWE": true, "ALA": true, "UNK": true,
 }
+
+var iso3166_1_alpha3_eu = map[string]bool{
+	"AUT": true, "BEL": true, "BGR": true, "HRV": true, "CYP": true,
+	"CZE": true, "DNK": true, "EST": true, "FIN": true, "FRA": true,
+	"DEU": true, "GRC": true, "HUN": true, "IRL": true, "ITA": true,
+	"LVA": true, "LTU": true, "LUX": true, "MLT": true, "NLD": true,
+	"POL": true, "PRT": true, "ROU": true, "SVK": true, "SVN": true,
+	"ESP": true, "SWE": true,
+}
 var iso3166_1_alpha_numeric = map[int]bool{
 	// see: https://www.iso.org/iso-3166-country-codes.html
 	4: true, 8: true, 12: true, 16: true, 20: true,
@@ -159,6 +177,15 @@ var iso3166_1_alpha_numeric = map[int]bool{
 	840: true, 858: true, 860: true, 548: true, 862: true,
 	704: true, 92: true, 850: true, 876: true, 732: true,
 	887: true, 894: true, 716: true, 248: true, 153: true,
+}
+
+var iso3166_1_alpha_numeric_eu = map[int]bool{
+	40: true, 56: true, 100: true, 191: true, 196: true,
+	200: true, 208: true, 233: true, 246: true, 250: true,
+	276: true, 300: true, 348: true, 372: true, 380: true,
+	428: true, 440: true, 442: true, 470: true, 528: true,
+	616: true, 620: true, 642: true, 703: true, 705: true,
+	724: true, 752: true,
 }
 
 var iso3166_2 = map[string]bool{

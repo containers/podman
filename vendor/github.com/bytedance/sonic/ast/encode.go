@@ -193,20 +193,9 @@ func (self *Node) encodeArray(buf *[]byte) error {
     
     *buf = append(*buf, '[')
 
-    var s = (*linkedNodes)(self.p)
     var started bool
-    if nb > 0 {
-        n := s.At(0)
-        if n.Exists() {
-            if err := n.encode(buf); err != nil {
-                return err
-            }
-            started = true
-        }
-    }
-
-    for i := 1; i < nb; i++ {
-        n := s.At(i)
+    for i := 0; i < nb; i++ {
+        n := self.nodeAt(i)
         if !n.Exists() {
             continue
         }
@@ -250,21 +239,10 @@ func (self *Node) encodeObject(buf *[]byte) error {
     
     *buf = append(*buf, '{')
 
-    var s = (*linkedPairs)(self.p)
     var started bool
-    if nb > 0 {
-        n := s.At(0)
-        if n.Value.Exists() {
-            if err := n.encode(buf); err != nil {
-                return err
-            }
-            started = true
-        }
-    }
-
-    for i := 1; i < nb; i++ {
-        n := s.At(i)
-        if !n.Value.Exists() {
+    for i := 0; i < nb; i++ {
+        n := self.pairAt(i)
+        if n == nil || !n.Value.Exists() {
             continue
         }
         if started {

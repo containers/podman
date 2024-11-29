@@ -126,7 +126,7 @@ func (v *Validate) extractStructCache(current reflect.Value, sName string) *cStr
 
 		fld = typ.Field(i)
 
-		if !fld.Anonymous && len(fld.PkgPath) > 0 {
+		if !v.privateFieldValidation && !fld.Anonymous && len(fld.PkgPath) > 0 {
 			continue
 		}
 

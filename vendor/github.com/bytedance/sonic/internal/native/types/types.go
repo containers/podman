@@ -29,6 +29,8 @@ type SearchingError uint
 // NOTE: !NOT MODIFIED ONLY.
 // This definitions are followed in native/types.h.
 
+const BufPaddingSize int     = 64
+
 const (
     V_EOF     ValueType = 1
     V_NULL    ValueType = 2

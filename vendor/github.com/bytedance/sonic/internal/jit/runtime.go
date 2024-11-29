@@ -24,11 +24,6 @@ import (
     `github.com/twitchyliquid64/golang-asm/obj`
 )
 
-//go:noescape
-//go:linkname getitab runtime.getitab
-//goland:noinspection ALL
-func getitab(inter *rt.GoType, typ *rt.GoType, canfail bool) *rt.GoItab
-
 func Func(f interface{}) obj.Addr {
     if p := rt.UnpackEface(f); p.Type.Kind() != reflect.Func {
         panic("f is not a function")
@@ -42,7 +37,7 @@ func Type(t reflect.Type) obj.Addr {
 }
 
 func Itab(i *rt.GoType, t reflect.Type) obj.Addr {
-    return Imm(int64(uintptr(unsafe.Pointer(getitab(i, rt.UnpackType(t), false)))))
+    return Imm(int64(uintptr(unsafe.Pointer(rt.Getitab(rt.IfaceType(i), rt.UnpackType(t), false)))))
 }
 
 func Gitab(i *rt.GoItab) obj.Addr {

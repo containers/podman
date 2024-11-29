@@ -1,5 +1,4 @@
-//go:build go1.17 && !go1.22
-// +build go1.17,!go1.22
+// +build go1.17,!go1.23
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -135,6 +134,7 @@ var (
     _R9 = jit.Reg("R9")
     _X0 = jit.Reg("X0")
     _X1 = jit.Reg("X1")
+    _X15 = jit.Reg("X15")
 )
 
 var (
@@ -422,6 +422,7 @@ func (self *_Assembler) call_go(fn obj.Addr) {
 func (self *_Assembler) callc(fn obj.Addr) {
     self.save(_IP)
     self.call(fn)
+    self.Emit("XORPS", _X15, _X15)
     self.load(_IP)
 }
 
@@ -606,7 +607,6 @@ func (self *_Assembler) skip_one() {
     self.Emit("TESTQ", _AX, _AX)                // TESTQ   AX, AX
     self.Sjmp("JS"   , _LB_parsing_error_v)     // JS      _parse_error_v
     self.Emit("MOVQ" , _VAR_pc, _R9)            // MOVQ    pc, R9
-    // self.Byte(0xcc)
     self.Rjmp("JMP"  , _R9)                     // JMP     (R9)
 }
 

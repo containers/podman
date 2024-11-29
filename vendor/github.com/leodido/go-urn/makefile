@@ -15,18 +15,24 @@ clean:
 .PHONY: images
 images: docs/urn.png
 
+.PHONY: snake2camel
+snake2camel:
+	@cd ./tools/snake2camel; go build -o ../../snake2camel .
+
 .PHONY: removecomments
 removecomments:
 	@cd ./tools/removecomments; go build -o ../../removecomments .
 
 machine.go: machine.go.rl
 
+machine.go: snake2camel
+
 machine.go: removecomments
 
 machine.go:
-	$(RAGEL) -Z -G2 -e -o $@ $<
+	$(RAGEL) -Z -G1 -e -o $@ $<
 	@./removecomments $@
-	$(MAKE) -s file=$@ snake2camel
+	@./snake2camel $@
 	$(GOFMT) $@
 
 docs/urn.dot: machine.go.rl
@@ -41,13 +47,5 @@ bench: *_test.go machine.go
 	go test -bench=. -benchmem -benchtime=5s ./...
 
 .PHONY: tests
-tests: *_test.go 
+tests: *_test.go
 	$(GO_TEST) ./...
-
-.PHONY: snake2camel
-snake2camel:
-	@awk -i inplace '{ \
-	while ( match($$0, /(.*)([a-z]+[0-9]*)_([a-zA-Z0-9])(.*)/, cap) ) \
-	$$0 = cap[1] cap[2] toupper(cap[3]) cap[4]; \
-	print \
-	}' $(file)

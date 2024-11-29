@@ -23,13 +23,15 @@ type Options struct {
 	LogLevel string
 
 	UseGUI bool
+
+	IgnitionPath string
 }
 
 const DefaultRestfulURI = "none://"
 
 func AddFlags(cmd *cobra.Command, opts *Options) {
-	cmd.Flags().StringVarP(&opts.VmlinuzPath, "kernel", "k", "", "path to the virtual machine linux kernel")
-	cmd.Flags().StringVarP(&opts.KernelCmdline, "kernel-cmdline", "C", "", "linux kernel command line")
+	cmd.Flags().StringVarP(&opts.VmlinuzPath, "kernel", "k", "", "path to the virtual machine Linux kernel")
+	cmd.Flags().StringVarP(&opts.KernelCmdline, "kernel-cmdline", "C", "", "Linux kernel command line")
 	cmd.Flags().StringVarP(&opts.InitrdPath, "initrd", "i", "", "path to the virtual machine initrd")
 
 	cmd.Flags().VarP(&opts.Bootloader, "bootloader", "b", "bootloader configuration")
@@ -48,6 +50,8 @@ func AddFlags(cmd *cobra.Command, opts *Options) {
 	cmd.Flags().StringArrayVarP(&opts.Devices, "device", "d", []string{}, "devices")
 
 	cmd.Flags().StringVar(&opts.LogLevel, "log-level", "", "set log level")
-	cmd.Flags().StringVar(&opts.RestfulURI, "restful-uri", DefaultRestfulURI, "URI address for RestFul services")
+	cmd.Flags().StringVar(&opts.RestfulURI, "restful-uri", DefaultRestfulURI, "URI address for RESTful services")
+
+	cmd.Flags().StringVar(&opts.IgnitionPath, "ignition", "", "path to the ignition file")
 
 }

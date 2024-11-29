@@ -491,7 +491,6 @@ func (self *Node) StrictFloat64() (float64, error) {
 
 // Len returns children count of a array|object|string node
 // WARN: For partially loaded node, it also works but only counts the parsed children
-// WARN: For ARRAY|OBJECT nodes which has been conducted `UnsetXX()`, its length WON'T change
 func (self *Node) Len() (int, error) {
     if err := self.checkRaw(); err != nil {
         return 0, err
@@ -534,10 +533,12 @@ func (self *Node) Set(key string, node Node) (bool, error) {
     if err := node.Check(); err != nil {
         return false, err 
     }
-
+    
     if self.t == _V_NONE || self.t == types.V_NULL {
         *self = NewObject([]Pair{{key, node}})
         return false, nil
+    } else if self.itype() != types.V_OBJECT {
+        return false, ErrUnsupportType
     }
 
     p := self.Get(key)
@@ -548,7 +549,7 @@ func (self *Node) Set(key string, node Node) (bool, error) {
             *self = newObject(new(linkedPairs))
         }
         s := (*linkedPairs)(self.p)
-        s.Add(Pair{key, node})
+        s.Push(Pair{key, node})
         self.l++
         return false, nil
 
@@ -565,10 +566,13 @@ func (self *Node) SetAny(key string, val interface{}) (bool, error) {
     return self.Set(key, NewAny(val))
 }
 
-// Unset RESET the node of given key under object parent, and reports if the key has existed.
-// WARN: After conducting `UnsetXX()`, the node's length WON'T change
+// Unset REMOVE (soft) the node of given key under object parent, and reports if the key has existed.
 func (self *Node) Unset(key string) (bool, error) {
     if err := self.should(types.V_OBJECT, "an object"); err != nil {
+        return false, err
+    }
+    // NOTICE: must get acurate length before deduct
+    if err := self.skipAllKey(); err != nil {
         return false, err
     }
     p, i := self.skipKey(key)
@@ -577,8 +581,7 @@ func (self *Node) Unset(key string) (bool, error) {
     } else if err := p.Check(); err != nil {
         return false, err
     }
-    
-    self.removePair(i)
+    self.removePairAt(i)
     return true, nil
 }
 
@@ -614,22 +617,28 @@ func (self *Node) SetAnyByIndex(index int, val interface{}) (bool, error) {
     return self.SetByIndex(index, NewAny(val))
 }
 
-// UnsetByIndex remove the node of given index
-// WARN: After conducting `UnsetXX()`, the node's length WON'T change
+// UnsetByIndex REOMVE (softly) the node of given index.
+//
+// WARN: this will change address of elements, which is a dangerous action.
+// Use Unset() for object or Pop() for array instead.
 func (self *Node) UnsetByIndex(index int) (bool, error) {
-    if err := self.Check(); err != nil {
+    if err := self.checkRaw(); err != nil {
         return false, err
     }
 
     var p *Node
     it := self.itype()
+
     if it == types.V_ARRAY {
-        p = self.Index(index)
-    }else if it == types.V_OBJECT {
-        if err := self.checkRaw(); err != nil {
+        if err := self.skipAllIndex(); err != nil {
             return false, err
         }
-        pr := self.skipIndexPair(index)
+        p = self.nodeAt(index)
+    } else if it == types.V_OBJECT {
+        if err := self.skipAllKey(); err != nil {
+            return false, err
+        }
+        pr := self.pairAt(index)
         if pr == nil {
            return false, ErrNotExist
         }
@@ -642,6 +651,12 @@ func (self *Node) UnsetByIndex(index int) (bool, error) {
         return false, ErrNotExist
     }
 
+    // last elem
+    if index == self.len() - 1 {
+        return true, self.Pop()
+    }
+
+    // not last elem, self.len() change but linked-chunk not change
     if it == types.V_ARRAY {
         self.removeNode(index)
     }else if it == types.V_OBJECT {
@@ -665,16 +680,101 @@ func (self *Node) Add(node Node) error {
     if err := self.should(types.V_ARRAY, "an array"); err != nil {
         return err
     }
+
     s, err := self.unsafeArray()
     if err != nil {
         return err
     }
 
-    s.Add(node)
+    // Notice: array won't have unset node in tail
+    s.Push(node)
     self.l++
     return nil
 }
 
+// Pop remove the last child of the V_Array or V_Object node.
+func (self *Node) Pop() error {
+    if err := self.checkRaw(); err != nil {
+        return err
+    }
+
+    if it := self.itype(); it == types.V_ARRAY {
+        s, err := self.unsafeArray()
+        if err != nil {
+            return err
+        }
+        // remove tail unset nodes
+        for i := s.Len()-1; i >= 0; i-- {
+            if s.At(i).Exists() {
+                s.Pop()
+                self.l--
+                break
+            }
+            s.Pop()
+        }
+
+    } else if it == types.V_OBJECT {
+        s, err := self.unsafeMap()
+        if err != nil {
+            return err
+        }
+        // remove tail unset nodes
+        for i := s.Len()-1; i >= 0; i-- {
+            if p := s.At(i); p != nil && p.Value.Exists() {
+                s.Pop()
+                self.l--
+                break
+            }
+            s.Pop()
+        }
+
+    } else {
+        return ErrUnsupportType
+    }
+
+    return nil
+}
+
+// Move moves the child at src index to dst index,
+// meanwhile slides sliblings from src+1 to dst.
+// 
+// WARN: this will change address of elements, which is a dangerous action.
+func (self *Node) Move(dst, src int) error {
+    if err := self.should(types.V_ARRAY, "an array"); err != nil {
+        return err
+    }
+
+    s, err := self.unsafeArray()
+    if err != nil {
+        return err
+    }
+
+    // check if any unset node exists
+    if l :=  s.Len(); self.len() != l {
+        di, si := dst, src
+        // find real pos of src and dst
+        for i := 0; i < l; i++ {
+            if s.At(i).Exists() {
+                di--
+                si--
+            }
+            if di == -1 {
+                dst = i
+                di--
+            } 
+            if si == -1 {
+                src = i
+                si--
+            }
+            if di == -2 && si == -2 {
+                break
+            }
+        }
+    }
+
+    s.MoveOne(src, dst)
+    return nil
+}
 
 // SetAny wraps val with V_ANY node, and Add() the node.
 func (self *Node) AddAny(val interface{}) error {
@@ -721,8 +821,6 @@ func (self *Node) Get(key string) *Node {
 
 // Index indexies node at given idx,
 // node type CAN be either V_OBJECT or V_ARRAY
-// WARN: After conducting `UnsetXX()`, the node's length WON'T change,
-// thus its children's indexing WON'T change too
 func (self *Node) Index(idx int) *Node {
     if err := self.checkRaw(); err != nil {
         return unwrapError(err)
@@ -746,8 +844,6 @@ func (self *Node) Index(idx int) *Node {
 
 // IndexPair indexies pair at given idx,
 // node type MUST be either V_OBJECT
-// WARN: After conducting `UnsetXX()`, the node's length WON'T change,
-// thus its children's indexing WON'T change too
 func (self *Node) IndexPair(idx int) *Pair {
     if err := self.should(types.V_OBJECT, "an object"); err != nil {
         return nil
@@ -755,19 +851,30 @@ func (self *Node) IndexPair(idx int) *Pair {
     return self.skipIndexPair(idx)
 }
 
-// IndexOrGet firstly use idx to index a value and check if its key matches
-// If not, then use the key to search value
-func (self *Node) IndexOrGet(idx int, key string) *Node {
+func (self *Node) indexOrGet(idx int, key string) (*Node, int) {
     if err := self.should(types.V_OBJECT, "an object"); err != nil {
-        return unwrapError(err)
+        return unwrapError(err), idx
     }
 
     pr := self.skipIndexPair(idx)
     if pr != nil && pr.Key == key {
-        return &pr.Value
+        return &pr.Value, idx
     }
-    n, _ := self.skipKey(key)
-    return n
+
+    return self.skipKey(key)
+}
+
+// IndexOrGet firstly use idx to index a value and check if its key matches
+// If not, then use the key to search value
+func (self *Node) IndexOrGet(idx int, key string) *Node {
+    node, _ := self.indexOrGet(idx, key)
+    return node
+}
+
+// IndexOrGetWithIdx attempts to retrieve a node by index and key, returning the node and its correct index.
+// If the key does not match at the given index, it searches by key and returns the node with its updated index.
+func (self *Node) IndexOrGetWithIdx(idx int, key string) (*Node, int) {
+    return self.indexOrGet(idx, key)
 }
 
 /** Generic Value Converters **/
@@ -864,7 +971,7 @@ func (self *Node) SortKeys(recurse bool) error {
     }
     if self.itype() == types.V_OBJECT {
         return self.sortKeys(recurse)
-    } else {
+    } else if self.itype() == types.V_ARRAY {
         var err error
         err2 := self.ForEach(func(path Sequence, node *Node) bool {
             it := node.itype()
@@ -880,10 +987,16 @@ func (self *Node) SortKeys(recurse bool) error {
             return err
         }
         return err2
+    } else {
+        return nil
     }
 }
 
 func (self *Node) sortKeys(recurse bool) (err error) {
+    // check raw node first
+    if err := self.checkRaw(); err != nil {
+        return err
+    }
     ps, err := self.unsafeMap()
     if err != nil {
         return err
@@ -1172,6 +1285,19 @@ func (self *Node) nodeAt(i int) *Node {
         p = &stack.v
     } else {
         p = (*linkedNodes)(self.p)
+        if l := p.Len(); l != self.len() {
+            // some nodes got unset, iterate to skip them
+            for j:=0; j<l; j++ {
+                v := p.At(j)
+                if v.Exists() {
+                    i--
+                }
+                if i < 0 {
+                    return v
+                }
+            }
+            return nil
+        } 
     }
     return p.At(i)
 }
@@ -1183,6 +1309,19 @@ func (self *Node) pairAt(i int) *Pair {
         p = &stack.v
     } else {
         p = (*linkedPairs)(self.p)
+        if l := p.Len(); l != self.len() {
+            // some nodes got unset, iterate to skip them
+            for j:=0; j<l; j++ {
+                v := p.At(j)
+                if v != nil && v.Value.Exists() {
+                    i--
+                }
+                if i < 0 {
+                    return v
+                }
+            }
+           return nil
+       } 
     }
     return p.At(i)
 }
@@ -1334,8 +1473,8 @@ func (self *Node) removeNode(i int) {
         return
     }
     *node = Node{}
-    // NOTICE: for consistency with linkedNodes, we DOSEN'T reduce size here
-    // self.l--
+    // NOTICE: not be consistent with linkedNode.Len()
+    self.l--
 }
 
 func (self *Node) removePair(i int) {
@@ -1344,8 +1483,18 @@ func (self *Node) removePair(i int) {
         return
     }
     *last = Pair{}
-    // NOTICE: for consistency with linkedNodes, we DOSEN'T reduce size here
-    // self.l--
+    // NOTICE: should be consistent with linkedPair.Len()
+    self.l--
+}
+
+func (self *Node) removePairAt(i int) {
+    p := (*linkedPairs)(self.p).At(i)
+    if p == nil {
+        return
+    }
+    *p = Pair{}
+    // NOTICE: should be consistent with linkedPair.Len()
+    self.l--
 }
 
 func (self *Node) toGenericArray() ([]interface{}, error) {
@@ -1353,17 +1502,16 @@ func (self *Node) toGenericArray() ([]interface{}, error) {
     if nb == 0 {
         return []interface{}{}, nil
     }
-    ret := make([]interface{}, nb)
+    ret := make([]interface{}, 0, nb)
     
     /* convert each item */
-    var s = (*linkedNodes)(self.p)
-    for i := 0; i < nb; i++ {
-        p := s.At(i)
-        x, err := p.Interface()
+    it := self.values()
+    for v := it.next(); v != nil; v = it.next() {
+        vv, err := v.Interface()
         if err != nil {
             return nil, err
         }
-        ret[i] = x
+        ret = append(ret, vv)
     }
 
     /* all done */
@@ -1375,17 +1523,16 @@ func (self *Node) toGenericArrayUseNumber() ([]interface{}, error) {
     if nb == 0 {
         return []interface{}{}, nil
     }
-    ret := make([]interface{}, nb)
+    ret := make([]interface{}, 0, nb)
 
     /* convert each item */
-    var s = (*linkedNodes)(self.p)
-    for i := 0; i < nb; i++ {
-        p := s.At(i)
-        x, err := p.InterfaceUseNumber()
+    it := self.values()
+    for v := it.next(); v != nil; v = it.next() {
+        vv, err := v.InterfaceUseNumber()
         if err != nil {
             return nil, err
         }
-        ret[i] = x
+        ret = append(ret, vv)
     }
 
     /* all done */
@@ -1413,14 +1560,13 @@ func (self *Node) toGenericObject() (map[string]interface{}, error) {
     ret := make(map[string]interface{}, nb)
 
     /* convert each item */
-    var s = (*linkedPairs)(self.p)
-    for i := 0; i < nb; i++ {
-        p := s.At(i)
-        x, err := p.Value.Interface()
+    it := self.properties()
+    for v := it.next(); v != nil; v = it.next() {
+        vv, err := v.Value.Interface()
         if err != nil {
             return nil, err
         }
-        ret[p.Key] = x
+        ret[v.Key] = vv
     }
 
     /* all done */
@@ -1436,14 +1582,13 @@ func (self *Node) toGenericObjectUseNumber() (map[string]interface{}, error) {
     ret := make(map[string]interface{}, nb)
 
     /* convert each item */
-    var s = (*linkedPairs)(self.p)
-    for i := 0; i < nb; i++ {
-        p := s.At(i)
-        x, err := p.Value.InterfaceUseNumber()
+    it := self.properties()
+    for v := it.next(); v != nil; v = it.next() {
+        vv, err := v.Value.InterfaceUseNumber()
         if err != nil {
             return nil, err
         }
-        ret[p.Key] = x
+        ret[v.Key] = vv
     }
 
     /* all done */
