@@ -29,6 +29,12 @@
 #
 #base_hosts_file = ""
 
+# When no hostname is set for a container, use the container's name, with
+# characters not valid for a hostname removed, as the hostname instead of
+# the first 12 characters of the container's ID.
+#
+#container_name_as_hostname = false
+
 # The database backend of Podman.  Supported values are "" (default), "boltdb"
 # and "sqlite". An empty value means it will check whenever a boltdb already
 # exists and use it when it does, otherwise it will use sqlite as default

@@ -12,6 +12,7 @@ import (
 	dockerDaemonTransport "github.com/containers/image/v5/docker/daemon"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
+	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/sirupsen/logrus"
 )
@@ -86,8 +87,16 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 		destRef = dockerRef
 	}
 
-	// docker-archive and only DockerV2Schema2MediaType support Gzip compression
-	if options.CompressionFormat != nil &&
+	// docker-archive and DockerV2Schema2MediaType support only Gzip compression
+	// If the CompressionFormat has come from containers.conf (set as a default),
+	// but isn't supported for this push, we want to ignore it.
+	// If the CompressionFormat has come from the CLI (ForceCompressionFormat
+	// requires CompressionFormat to be set), we want to strip the invalid value
+	// so that the push attempt fails.
+	//
+	// Ideally this should all happen at a much higher layer, where the code can differentiate
+	// between a value coming from containers.conf vs. the CLI.
+	if options.CompressionFormat != nil && options.CompressionFormat.Name() != compressiontypes.GzipAlgorithmName &&
 		(destRef.Transport().Name() == dockerArchiveTransport.Transport.Name() ||
 			destRef.Transport().Name() == dockerDaemonTransport.Transport.Name() ||
 			options.ManifestMIMEType == manifest.DockerV2Schema2MediaType) {

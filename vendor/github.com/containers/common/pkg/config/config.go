@@ -96,6 +96,13 @@ type ContainersConfig struct {
 	// "memory.high=1073741824" sets the memory.high limit to 1GB.
 	CgroupConf attributedstring.Slice `toml:"cgroup_conf,omitempty"`
 
+	// When no hostname is set for a container, use the container's name, with
+	// characters not valid for a hostname removed, as the hostname instead of
+	// the first 12 characters of the container's ID. Containers not running
+	// in a private UTS namespace will have their hostname set to the host's
+	// hostname regardless of this setting.
+	ContainerNameAsHostName bool `toml:"container_name_as_hostname,omitempty"`
+
 	// Capabilities to add to all containers.
 	DefaultCapabilities attributedstring.Slice `toml:"default_capabilities,omitempty"`
 

@@ -277,7 +277,7 @@ type PerNetworkOptions struct {
 type NetworkOptions struct {
 	// ContainerID is the container id, used for iptables comments and ipam allocation.
 	ContainerID string `json:"container_id"`
-	// ContainerName is the container name, used as dns name.
+	// ContainerName is the container name.
 	ContainerName string `json:"container_name"`
 	// PortMappings contains the port mappings for this container
 	PortMappings []PortMapping `json:"port_mappings,omitempty"`
@@ -287,6 +287,8 @@ type NetworkOptions struct {
 	// List of custom DNS server for podman's DNS resolver.
 	// Priority order will be kept as defined by user in the configuration.
 	DNSServers []string `json:"dns_servers,omitempty"`
+	// ContainerHostname is the configured DNS hostname of the container.
+	ContainerHostname string `json:"container_hostname"`
 }
 
 // PortMapping is one or more ports that will be mapped into the container.
