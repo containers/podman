@@ -18,16 +18,23 @@ type Bootloader interface {
 // LinuxBootloader determines which kernel/initrd/kernel args to use when starting
 // the virtual machine.
 type LinuxBootloader struct {
-	VmlinuzPath   string
-	KernelCmdLine string
-	InitrdPath    string
+	VmlinuzPath   string `json:"vmlinuzPath"`
+	KernelCmdLine string `json:"kernelCmdLine"`
+	InitrdPath    string `json:"initrdPath"`
 }
 
 // EFIBootloader allows to set a few options related to EFI variable storage
 type EFIBootloader struct {
-	EFIVariableStorePath string
+	EFIVariableStorePath string `json:"efiVariableStorePath"`
 	// TODO: virtualization framework allow both create and overwrite
-	CreateVariableStore bool
+	CreateVariableStore bool `json:"createVariableStore"`
+}
+
+// MacOSBootloader provides necessary objects for booting macOS guests
+type MacOSBootloader struct {
+	MachineIdentifierPath string `json:"machineIdentifierPath"`
+	HardwareModelPath     string `json:"hardwareModelPath"`
+	AuxImagePath          string `json:"auxImagePath"`
 }
 
 // NewLinuxBootloader creates a new bootloader to start a VM with the file at
@@ -52,7 +59,7 @@ func (bootloader *LinuxBootloader) FromOptions(options []option) error {
 		case "initrd":
 			bootloader.InitrdPath = option.value
 		default:
-			return fmt.Errorf("unknown option for linux bootloaders: %s", option.key)
+			return fmt.Errorf("unknown option for Linux bootloaders: %s", option.key)
 		}
 	}
 	return nil
@@ -120,6 +127,28 @@ func (bootloader *EFIBootloader) ToCmdLine() ([]string, error) {
 	return []string{"--bootloader", builder.String()}, nil
 }
 
+func (bootloader *MacOSBootloader) FromOptions(options []option) error {
+	for _, option := range options {
+		switch option.key {
+		case "machineIdentifierPath":
+			bootloader.MachineIdentifierPath = option.value
+		case "hardwareModelPath":
+			bootloader.HardwareModelPath = option.value
+		case "auxImagePath":
+			bootloader.AuxImagePath = option.value
+		default:
+			return fmt.Errorf("unknown option for macOS bootloaders: %s", option.key)
+		}
+	}
+	return nil
+}
+
+func (bootloader *MacOSBootloader) ToCmdLine() ([]string, error) {
+	args := []string{}
+
+	return args, nil
+}
+
 func BootloaderFromCmdLine(optsStrv []string) (Bootloader, error) {
 	var bootloader Bootloader
 
@@ -132,6 +161,8 @@ func BootloaderFromCmdLine(optsStrv []string) (Bootloader, error) {
 		bootloader = &EFIBootloader{}
 	case "linux":
 		bootloader = &LinuxBootloader{}
+	case "macos":
+		bootloader = &MacOSBootloader{}
 	default:
 		return nil, fmt.Errorf("unknown bootloader type: %s", bootloaderType)
 	}

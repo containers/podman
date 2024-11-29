@@ -1,5 +1,5 @@
-//go:build go1.21 && !go1.22
-// +build go1.21,!go1.22
+//go:build go1.21 && !go1.23
+// +build go1.21,!go1.23
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -21,7 +21,7 @@ package loader
 
 import (
     `unsafe`
-    `github.com/bytedance/sonic/internal/rt`
+    `github.com/bytedance/sonic/loader/internal/rt`
 )
 
 const (

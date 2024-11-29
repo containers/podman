@@ -43,6 +43,10 @@ const BodyBytesKey = "_gin-gonic/gin/bodybyteskey"
 // ContextKey is the key that a Context returns itself for.
 const ContextKey = "_gin-gonic/gin/contextkey"
 
+type ContextKeyType int
+
+const ContextRequestKey ContextKeyType = 0
+
 // abortIndex represents a typical value used in abort functions.
 const abortIndex int8 = math.MaxInt8 >> 1
 
@@ -113,20 +117,27 @@ func (c *Context) Copy() *Context {
 	cp := Context{
 		writermem: c.writermem,
 		Request:   c.Request,
-		Params:    c.Params,
 		engine:    c.engine,
 	}
+
 	cp.writermem.ResponseWriter = nil
 	cp.Writer = &cp.writermem
 	cp.index = abortIndex
 	cp.handlers = nil
-	cp.Keys = map[string]any{}
-	for k, v := range c.Keys {
+	cp.fullPath = c.fullPath
+
+	cKeys := c.Keys
+	cp.Keys = make(map[string]any, len(cKeys))
+	c.mu.RLock()
+	for k, v := range cKeys {
 		cp.Keys[k] = v
 	}
-	paramCopy := make([]Param, len(cp.Params))
-	copy(paramCopy, cp.Params)
-	cp.Params = paramCopy
+	c.mu.RUnlock()
+
+	cParams := c.Params
+	cp.Params = make([]Param, len(cParams))
+	copy(cp.Params, cParams)
+
 	return &cp
 }
 
@@ -386,7 +397,7 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 //
 //	router.GET("/user/:id", func(c *gin.Context) {
 //	    // a GET request to /user/john
-//	    id := c.Param("id") // id == "/john"
+//	    id := c.Param("id") // id == "john"
 //	    // a GET request to /user/john/
 //	    id := c.Param("id") // id == "/john/"
 //	})
@@ -728,7 +739,7 @@ func (c *Context) ShouldBindHeader(obj any) error {
 
 // ShouldBindUri binds the passed struct pointer using the specified binding engine.
 func (c *Context) ShouldBindUri(obj any) error {
-	m := make(map[string][]string)
+	m := make(map[string][]string, len(c.Params))
 	for _, v := range c.Params {
 		m[v.Key] = []string{v.Value}
 	}
@@ -761,6 +772,26 @@ func (c *Context) ShouldBindBodyWith(obj any, bb binding.BindingBody) (err error
 		c.Set(BodyBytesKey, body)
 	}
 	return bb.BindBody(body, obj)
+}
+
+// ShouldBindBodyWithJSON is a shortcut for c.ShouldBindBodyWith(obj, binding.JSON).
+func (c *Context) ShouldBindBodyWithJSON(obj any) error {
+	return c.ShouldBindBodyWith(obj, binding.JSON)
+}
+
+// ShouldBindBodyWithXML is a shortcut for c.ShouldBindBodyWith(obj, binding.XML).
+func (c *Context) ShouldBindBodyWithXML(obj any) error {
+	return c.ShouldBindBodyWith(obj, binding.XML)
+}
+
+// ShouldBindBodyWithYAML is a shortcut for c.ShouldBindBodyWith(obj, binding.YAML).
+func (c *Context) ShouldBindBodyWithYAML(obj any) error {
+	return c.ShouldBindBodyWith(obj, binding.YAML)
+}
+
+// ShouldBindBodyWithTOML is a shortcut for c.ShouldBindBodyWith(obj, binding.TOML).
+func (c *Context) ShouldBindBodyWithTOML(obj any) error {
+	return c.ShouldBindBodyWith(obj, binding.TOML)
 }
 
 // ClientIP implements one best effort algorithm to return the real client IP.
@@ -873,6 +904,9 @@ func (c *Context) GetHeader(key string) string {
 
 // GetRawData returns stream data.
 func (c *Context) GetRawData() ([]byte, error) {
+	if c.Request.Body == nil {
+		return nil, errors.New("cannot read nil body")
+	}
 	return io.ReadAll(c.Request.Body)
 }
 
@@ -1215,7 +1249,7 @@ func (c *Context) Err() error {
 // if no value is associated with key. Successive calls to Value with
 // the same key returns the same result.
 func (c *Context) Value(key any) any {
-	if key == 0 {
+	if key == ContextRequestKey {
 		return c.Request
 	}
 	if key == ContextKey {

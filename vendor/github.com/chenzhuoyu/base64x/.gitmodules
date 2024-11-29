@@ -1,3 +1,0 @@
-[submodule "tools/asm2asm"]
-	path = tools/asm2asm
-	url = https://github.com/chenzhuoyu/asm2asm

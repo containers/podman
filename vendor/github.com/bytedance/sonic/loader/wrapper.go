@@ -20,8 +20,8 @@ import (
 	`reflect`
 	`unsafe`
 
-	`github.com/bytedance/sonic/internal/abi`
-	`github.com/bytedance/sonic/internal/rt`
+	`github.com/bytedance/sonic/loader/internal/abi`
+	`github.com/bytedance/sonic/loader/internal/rt`
 )
 
 var _C_Redzone = []bool{false, false, false, false}

@@ -916,6 +916,15 @@ according to the RFC 2141 spec.
 
 	Usage: urn_rfc2141
 
+# Base32 String
+
+This validates that a string value contains a valid bas324 value.
+Although an empty string is valid base32 this will report an empty string
+as an error, if you wish to accept an empty string as valid you can use
+this with the omitempty tag.
+
+	Usage: base32
+
 # Base64 String
 
 This validates that a string value contains a valid base64 value.

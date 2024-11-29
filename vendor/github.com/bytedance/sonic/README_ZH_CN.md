@@ -6,9 +6,13 @@
 
 ## 依赖
 
-- Go 1.16~1.21
+- Go 1.16~1.22
 - Linux / MacOS / Windows（需要 Go1.17 以上）
 - Amd64 架构
+
+## 接口
+
+详见 [go.dev](https://pkg.go.dev/github.com/bytedance/sonic)
 
 ## 特色
 
@@ -19,7 +23,9 @@
 ## 基准测试
 
 对于**所有大小**的 json 和**所有使用场景**， **Sonic 表现均为最佳**。
+
 - [中型](https://github.com/bytedance/sonic/blob/main/decoder/testdata_test.go#L19) (13kB, 300+ 键, 6 层)
+
 ```powershell
 goversion: 1.17.1
 goos: darwin
@@ -84,6 +90,7 @@ BenchmarkLoadNode_Parallel/LoadAll()-16                 5493 ns/op        2370.6
 BenchmarkLoadNode/Interface()-16                       17722 ns/op         734.85 MB/s       13323 B/op         88 allocs/op
 BenchmarkLoadNode_Parallel/Interface()-16              10330 ns/op        1260.70 MB/s       15178 B/op         88 allocs/op
 ```
+
 - [小型](https://github.com/bytedance/sonic/blob/main/testdata/small.go) (400B, 11 个键, 3 层)
 ![small benchmarks](./docs/imgs/bench-small.png)
 - [大型](https://github.com/bytedance/sonic/blob/main/testdata/twitter.json) (635kB, 10000+ 个键, 6 层)
@@ -100,6 +107,7 @@ BenchmarkLoadNode_Parallel/Interface()-16              10330 ns/op        1260.7
 ### 序列化/反序列化
 
 默认的行为基本上与 `encoding/json` 相一致，除了 HTML 转义形式（参见 [Escape HTML](https://github.com/bytedance/sonic/blob/main/README.md#escape-html)) 和 `SortKeys` 功能（参见 [Sort Keys](https://github.com/bytedance/sonic/blob/main/README.md#sort-keys)）**没有**遵循 [RFC8259](https://datatracker.ietf.org/doc/html/rfc8259) 。
+
  ```go
 import "github.com/bytedance/sonic"
 
@@ -113,7 +121,9 @@ err := sonic.Unmarshal(output, &data)
 ### 流式输入输出
 
 Sonic 支持解码 `io.Reader` 中输入的 json，或将对象编码为 json 后输出至 `io.Writer`，以处理多个值并减少内存消耗。
+
 - 编码器
+
 ```go
 var o1 = map[string]interface{}{
     "a": "b",
@@ -128,7 +138,9 @@ fmt.Println(w.String())
 // {"a":"b"}
 // 1
 ```
+
 - 解码器
+
 ```go
 var o =  map[string]interface{}{}
 var r = strings.NewReader(`{"a":"b"}{"1":"2"}`)
@@ -172,6 +184,7 @@ fm := root.Interface().(float64) // jn == jm
 ### 对键排序
 
 考虑到排序带来的性能损失（约 10% ）， sonic 默认不会启用这个功能。如果你的组件依赖这个行为（如 [zstd](https://github.com/facebook/zstd)) ，可以仿照下面的例子：
+
 ```go
 import "github.com/bytedance/sonic"
 import "github.com/bytedance/sonic/encoder"
@@ -188,6 +201,7 @@ err := root.SortKeys()
 ### HTML 转义
 
 考虑到性能损失（约15%）， sonic 默认不会启用这个功能。你可以使用 `encoder.EscapeHTML` 选项来开启（与 `encoding/json.HTMLEscape` 行为一致）。
+
 ```go
 import "github.com/bytedance/sonic"
 
@@ -196,11 +210,13 @@ ret, err := Encode(v, EscapeHTML) // ret == `{"\u0026\u0026":{"X":"\u003c\u003e"
 ```
 
 ### 紧凑格式
+
 Sonic 默认将基本类型（ `struct` ， `map` 等）编码为紧凑格式的 JSON ，除非使用 `json.RawMessage` or `json.Marshaler` 进行编码： sonic 确保输出的 JSON 合法，但出于性能考虑，**不会**加工成紧凑格式。我们提供选项 `encoder.CompactMarshaler` 来添加此过程，
 
 ### 打印错误
 
 如果输入的 JSON 存在无效的语法，sonic 将返回 `decoder.SyntaxError`，该错误支持错误位置的美化输出。
+
 ```go
 import "github.com/bytedance/sonic"
 import "github.com/bytedance/sonic/decoder"
@@ -228,6 +244,7 @@ if err != nil {
 #### 类型不匹配 [Sonic v1.6.0]
 
 如果给定键中存在**类型不匹配**的值， sonic 会抛出 `decoder.MismatchTypeError` （如果有多个，只会报告最后一个），但仍会跳过错误的值并解码下一个 JSON 。
+
 ```go
 import "github.com/bytedance/sonic"
 import "github.com/bytedance/sonic/decoder"
@@ -240,6 +257,7 @@ err := UnmarshalString(`{"A":"1","B":1}`, &data)
 println(err.Error())    // Mismatch type int with value string "at index 5: mismatched type with value\n\n\t{\"A\":\"1\",\"B\":1}\n\t.....^.........\n"
 fmt.Printf("%+v", data) // {A:0 B:1}
 ```
+
 ### `Ast.Node`
 
 Sonic/ast.Node 是完全独立的 JSON 抽象语法树库。它实现了序列化和反序列化，并提供了获取和修改通用数据的鲁棒的 API。
@@ -247,6 +265,7 @@ Sonic/ast.Node 是完全独立的 JSON 抽象语法树库。它实现了序列�
 #### 查找/索引
 
 通过给定的路径搜索 JSON 片段，路径必须为非负整数，字符串或 `nil` 。
+
 ```go
 import "github.com/bytedance/sonic"
 
@@ -260,11 +279,13 @@ raw := root.Raw() // == string(input)
 root, err := sonic.Get(input, "key1", 1, "key2")
 sub := root.Get("key3").Index(2).Int64() // == 3
 ```
+
 **注意**：由于 `Index()` 使用偏移量来定位数据，比使用扫描的 `Get()` 要快的多，建议尽可能的使用 `Index` 。 Sonic 也提供了另一个 API， `IndexOrGet()` ，以偏移量为基础并且也确保键的匹配。
 
 #### 修改
 
-使用 ` Set()` / `Unset()` 修改 json 的内容
+使用 `Set()` / `Unset()` 修改 json 的内容
+
 ```go
 import "github.com/bytedance/sonic"
 
@@ -281,7 +302,9 @@ println(root.Get("key4").Check()) // "value not exist"
 ```
 
 #### 序列化
+
 要将 `ast.Node` 编码为 json ，使用 `MarshalJson()` 或者 `json.Marshal()` （必须传递指向节点的指针）
+
 ```go
 import (
     "encoding/json"
@@ -295,6 +318,7 @@ println(string(buf) == string(exp)) // true
 ```
 
 #### APIs
+
 - 合法性检查： `Check()`, `Error()`, `Valid()`, `Exist()`
 - 索引： `Index()`, `Get()`, `IndexPair()`, `IndexOrGet()`, `GetByPath()`
 - 转换至 go 内置类型： `Int64()`, `Float64()`, `String()`, `Number()`, `Bool()`, `Map[UseNumber|UseNode]()`, `Array[UseNumber|UseNode]()`, `Interface[UseNumber|UseNode]()`
@@ -303,7 +327,9 @@ println(string(buf) == string(exp)) // true
 - 修改： `Set()`, `SetByIndex()`, `Add()`
 
 ### `Ast.Visitor`
+
 Sonic 提供了一个高级的 API 用于直接全量解析 JSON 到非标准容器里 (既不是 `struct` 也不是 `map[string]interface{}`) 且不需要借助任何中间表示 (`ast.Node` 或 `interface{}`)。举个例子，你可能定义了下述的类型，它们看起来像 `interface{}`，但实际上并不是：
+
 ```go
 type UserNode interface {}
 
@@ -318,7 +344,9 @@ type (
     UserArray   struct{ Value []UserNode }
 )
 ```
+
 Sonic 提供了下述的 API 来返回 **“对 JSON AST 的前序遍历”**。`ast.Visitor` 是一个 SAX 风格的接口，这在某些 C++ 的 JSON 解析库中被使用到。你需要自己实现一个 `ast.Visitor`，将它传递给 `ast.Preorder()` 方法。在你的实现中你可以使用自定义的类型来表示 JSON 的值。在你的 `ast.Visitor` 中，可能需要有一个 O(n) 空间复杂度的容器（比如说栈）来记录 object / array 的层级。
+
 ```go
 func Preorder(str string, visitor Visitor, opts *VisitorOptions) error
 
@@ -335,15 +363,18 @@ type Visitor interface {
     OnArrayEnd() error
 }
 ```
+
 详细用法参看 [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go)，我们还为 `UserNode` 实现了一个示例 `ast.Visitor`，你可以在 [ast/visitor_test.go](https://github.com/bytedance/sonic/blob/main/ast/visitor_test.go) 中找到它。
 
 ## 兼容性
+
 由于开发高性能代码的困难性， Sonic **不**保证对所有环境的支持。对于在不同环境中使用 Sonic 构建应用程序的开发者，我们有以下建议：
 
 - 在 **Mac M1** 上开发：确保在您的计算机上安装了 Rosetta 2，并在构建时设置 `GOARCH=amd64` 。 Rosetta 2 可以自动将 x86 二进制文件转换为 arm64 二进制文件，并在 Mac M1 上运行 x86 应用程序。
 - 在 **Linux arm64** 上开发：您可以安装 qemu 并使用 `qemu-x86_64 -cpu max` 命令来将 x86 二进制文件转换为 arm64 二进制文件。qemu可以实现与Mac M1上的Rosetta 2类似的转换效果。
 
 对于希望在不使用 qemu 下使用 sonic 的开发者，或者希望处理 JSON 时与 `encoding/JSON` 严格保持一致的开发者，我们在 `sonic.API` 中提供了一些兼容性 API
+
 - `ConfigDefault`: 在支持 sonic 的环境下 sonic 的默认配置（`EscapeHTML=false`，`SortKeys=false`等）。行为与具有相应配置的 `encoding/json` 一致，一些选项，如 `SortKeys=false` 将无效。
 - `ConfigStd`: 在支持 sonic 的环境下与标准库兼容的配置（`EscapeHTML=true`，`SortKeys=true`等）。行为与 `encoding/json` 一致。
 - `ConfigFastest`: 在支持 sonic 的环境下运行最快的配置（`NoQuoteTextMarshaler=true`）。行为与具有相应配置的 `encoding/json` 一致，某些选项将无效。
@@ -351,7 +382,9 @@ type Visitor interface {
 ## 注意事项
 
 ### 预热
+
 由于 Sonic 使用 [golang-asm](https://github.com/twitchyliquid64/golang-asm) 作为 JIT 汇编器，这个库并不适用于运行时编译，第一次运行一个大型模式可能会导致请求超时甚至进程内存溢出。为了更好地稳定性，我们建议在运行大型模式或在内存有限的应用中，在使用 `Marshal()/Unmarshal()` 前运行 `Pretouch()`。
+
 ```go
 import (
     "reflect"
@@ -381,16 +414,17 @@ func init() {
 当解码 **没有转义字符的字符串**时， sonic 会从原始的 JSON 缓冲区内引用而不是复制到新的一个缓冲区中。这对 CPU 的性能方面很有帮助，但是可能因此在解码后对象仍在使用的时候将整个 JSON 缓冲区保留在内存中。实践中我们发现，通过引用 JSON 缓冲区引入的额外内存通常是解码后对象的 20% 至 80% ，一旦应用长期保留这些对象（如缓存以备重用），服务器所使用的内存可能会增加。我们提供了选项 `decoder.CopyString()` 供用户选择，不引用 JSON 缓冲区。这可能在一定程度上降低 CPU 性能。
 
 ### 传递字符串还是字节数组？
+
 为了和 `encoding/json` 保持一致，我们提供了传递 `[]byte` 作为参数的 API ，但考虑到安全性，字符串到字节的复制是同时进行的，这在原始 JSON 非常大时可能会导致性能损失。因此，你可以使用 `UnmarshalString()` 和 `GetFromString()` 来传递字符串，只要你的原始数据是字符串，或**零拷贝类型转换**对于你的字节数组是安全的。我们也提供了 `MarshalString()` 的 API ，以便对编码的 JSON 字节数组进行**零拷贝类型转换**，因为 sonic 输出的字节始终是重复并且唯一的，所以这样是安全的。
 
 ### 加速 `encoding.TextMarshaler`
 
 为了保证数据安全性， `sonic.Encoder` 默认会对来自 `encoding.TextMarshaler` 接口的字符串进行引用和转义，如果大部分数据都是这种形式那可能会导致很大的性能损失。我们提供了 `encoder.NoQuoteTextMarshaler` 选项来跳过这些操作，但你**必须**保证他们的输出字符串依照 [RFC8259](https://datatracker.ietf.org/doc/html/rfc8259) 进行了转义和引用。
 
-
 ### 泛型的性能优化
 
 在 **完全解析**的场景下， `Unmarshal()` 表现得比 `Get()`+`Node.Interface()` 更好。但是如果你只有特定 JSON 的部分模式，你可以将 `Get()` 和 `Unmarshal()` 结合使用：
+
 ```go
 import "github.com/bytedance/sonic"
 
@@ -398,7 +432,9 @@ node, err := sonic.GetFromString(_TwitterJson, "statuses", 3, "user")
 var user User // your partial schema...
 err = sonic.UnmarshalString(node.Raw(), &user)
 ```
+
 甚至如果你没有任何模式，可以用 `ast.Node` 代替 `map` 或 `interface` 作为泛型的容器：
+
 ```go
 import "github.com/bytedance/sonic"
 
@@ -409,7 +445,9 @@ err = user.Check()
 // err = user.LoadAll() // only call this when you want to use 'user' concurrently...
 go someFunc(user)
 ```
+
 为什么？因为 `ast.Node` 使用 `array` 来存储其子节点：
+
 - 在插入（反序列化）和扫描（序列化）数据时，`Array` 的性能比 `Map` **好得多**；
 - **哈希**（`map[x]`）的效率不如**索引**（`array[x]`）高效，而 `ast.Node` 可以在数组和对象上使用索引；
 - 使用 `Interface()` / `Map()` 意味着 sonic 必须解析所有的底层值，而 `ast.Node` 可以**按需解析**它们。
@@ -417,6 +455,7 @@ go someFunc(user)
 **注意**：由于 `ast.Node` 的惰性加载设计，其**不能**直接保证并发安全性，但你可以调用 `Node.Load()` / `Node.LoadAll()` 来实现并发安全。尽管可能会带来性能损失，但仍比转换成 `map` 或 `interface{}` 更为高效。
 
 ### 使用 `ast.Node` 还是 `ast.Visitor`？
+
 对于泛型数据的解析，`ast.Node` 在大多数场景上应该能够满足你的需求。
 
 然而，`ast.Node` 是一种针对部分解析 JSON 而设计的泛型容器，它包含一些特殊设计，比如惰性加载，如果你希望像 `Unmarshal()` 那样直接解析整个 JSON，这些设计可能并不合适。尽管 `ast.Node` 相较于 `map` 或 `interface{}` 来说是更好的一种泛型容器，但它毕竟也是一种中间表示，如果你的最终类型是自定义的，你还得在解析完成后将上述类型转化成你自定义的类型。

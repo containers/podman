@@ -1,4 +1,4 @@
-// +build !amd64 !go1.16 go1.22
+// +build !amd64 !go1.16 go1.23
 
 /*
 * Copyright 2023 ByteDance Inc.
@@ -28,8 +28,11 @@ import (
 )
 
 func init() {
-    println("WARNING: sonic only supports Go1.16~1.20 && CPU amd64, but your environment is not suitable")
+    println("WARNING:(encoder) sonic only supports Go1.16~1.22 && CPU amd64, but your environment is not suitable")
 }
+
+// EnableFallback indicates if encoder use fallback
+const EnableFallback = true
 
 // Options is a set of encoding options.
 type Options uint64
@@ -42,6 +45,7 @@ const (
     bitNoNullSliceOrMap
     bitValidateString
     bitNoValidateJSONMarshaler
+    bitNoEncoderNewline
 
     // used for recursive compile
     bitPointerValue = 63
@@ -77,6 +81,9 @@ const (
     // NoValidateJSONMarshaler indicates that the encoder should not validate the output string
     // after encoding the JSONMarshaler to JSON.
     NoValidateJSONMarshaler Options = 1 << bitNoValidateJSONMarshaler
+
+    // NoEncoderNewline indicates that the encoder should not add a newline after every message
+    NoEncoderNewline Options = 1 << bitNoEncoderNewline
   
     // CompatibleWithStd is used to be compatible with std encoder.
     CompatibleWithStd Options = SortMapKeys | EscapeHTML | CompactMarshaler
@@ -130,6 +137,15 @@ func (self *Encoder) SetNoValidateJSONMarshaler(f bool) {
     }
 }
 
+// SetNoEncoderNewline specifies if option NoEncoderNewline opens
+func (self *Encoder) SetNoEncoderNewline(f bool) {
+    if f {
+        self.Opts |= NoEncoderNewline
+    } else {
+        self.Opts &= ^NoEncoderNewline
+    }
+}
+
 // SetCompactMarshaler specifies if option CompactMarshaler opens
 func (self *Encoder) SetCompactMarshaler(f bool) {
     if f {
@@ -175,15 +191,19 @@ func Encode(val interface{}, opts Options) ([]byte, error) {
 // EncodeInto is like Encode but uses a user-supplied buffer instead of allocating
 // a new one.
 func EncodeInto(buf *[]byte, val interface{}, opts Options) error {
-   if buf == nil {
-       panic("user-supplied buffer buf is nil")
-   }
-   w := bytes.NewBuffer(*buf)
-   enc := json.NewEncoder(w)
-   enc.SetEscapeHTML((opts & EscapeHTML) != 0)
-   err := enc.Encode(val)
-   *buf = w.Bytes()
-   return err
+    if buf == nil {
+        panic("user-supplied buffer buf is nil")
+    }
+    w := bytes.NewBuffer(*buf)
+    enc := json.NewEncoder(w)
+    enc.SetEscapeHTML((opts & EscapeHTML) != 0)
+    err := enc.Encode(val)
+    *buf = w.Bytes()
+    l := len(*buf)
+    if l > 0 && (opts & NoEncoderNewline != 0) && (*buf)[l-1] == '\n' {
+        *buf = (*buf)[:l-1]
+    }
+    return err
 }
 
 // HTMLEscape appends to dst the JSON-encoded src with <, >, &, U+2028 and U+2029

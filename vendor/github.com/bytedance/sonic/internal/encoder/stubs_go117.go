@@ -21,12 +21,12 @@ package encoder
 import (
     `unsafe`
 
-    _ `github.com/chenzhuoyu/base64x`
+    _ `github.com/cloudwego/base64x`
 
     `github.com/bytedance/sonic/internal/rt`
 )
 
-//go:linkname _subr__b64encode github.com/chenzhuoyu/base64x._subr__b64encode
+//go:linkname _subr__b64encode github.com/cloudwego/base64x._subr__b64encode
 var _subr__b64encode uintptr
 
 //go:noescape
@@ -37,10 +37,6 @@ func memmove(to unsafe.Pointer, from unsafe.Pointer, n uintptr)
 //go:linkname growslice runtime.growslice
 //goland:noinspection GoUnusedParameter
 func growslice(et *rt.GoType, old rt.GoSlice, cap int) rt.GoSlice
-
-//go:linkname assertI2I runtime.assertI2I2
-//goland:noinspection GoUnusedParameter
-func assertI2I(inter *rt.GoType, i rt.GoIface) rt.GoIface
 
 //go:linkname mapiternext runtime.mapiternext
 //goland:noinspection GoUnusedParameter
