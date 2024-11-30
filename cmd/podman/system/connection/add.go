@@ -155,32 +155,24 @@ func add(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid ssh mode")
 	}
 
-	switch uri.Scheme {
-	case "ssh":
+	if uri.Scheme != "tcp" {
 		if cmd.Flags().Changed("tls-cert") {
-			return errors.New("--tls-cert option not supported for ssh scheme")
+			return fmt.Errorf("--tls-cert option not supported for %s scheme", uri.Scheme)
 		}
 		if cmd.Flags().Changed("tls-key") {
-			return errors.New("--tls-key option not supported for ssh scheme")
+			return fmt.Errorf("--tls-key option not supported for %s scheme", uri.Scheme)
 		}
 		if cmd.Flags().Changed("tls-ca") {
-			return errors.New("--tls-ca option not supported for ssh scheme")
+			return fmt.Errorf("--tls-ca option not supported for %s scheme", uri.Scheme)
 		}
+	}
+	switch uri.Scheme {
+	case "ssh":
 		return ssh.Create(entities, sshMode)
 	case "unix":
 		if cmd.Flags().Changed("identity") {
 			return errors.New("--identity option not supported for unix scheme")
 		}
-		if cmd.Flags().Changed("tls-cert") {
-			return errors.New("--tls-cert option not supported for unix scheme")
-		}
-		if cmd.Flags().Changed("tls-key") {
-			return errors.New("--tls-key option not supported for unix scheme")
-		}
-		if cmd.Flags().Changed("tls-ca") {
-			return errors.New("--tls-ca option not supported for unix scheme")
-		}
-
 		if cmd.Flags().Changed("socket-path") {
 			uri.Path = cmd.Flag("socket-path").Value.String()
 		}
