@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/podman/v5/pkg/util/tlsutil"
 	"github.com/containers/podman/v5/version"
 	"github.com/kevinburke/ssh_config"
 	"github.com/sirupsen/logrus"
@@ -349,11 +349,14 @@ func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connec
 		connection.tls = true
 	}
 	if len(tlsCAFile) != 0 {
-		pool, err := util.ReadCertBundle(tlsCAFile)
+		pool, err := tlsutil.ReadCertBundle(tlsCAFile)
 		if err != nil {
 			return connection, fmt.Errorf("unable to read CA bundle: %w", err)
 		}
 		transport.TLSClientConfig.RootCAs = pool
+	}
+	if (len(tlsCertFile) == 0) != (len(tlsKeyFile) == 0) {
+		return connection, fmt.Errorf("TLS Key and Certificate must both or neither be provided")
 	}
 	if len(tlsCertFile) != 0 && len(tlsKeyFile) != 0 {
 		keyPair, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)

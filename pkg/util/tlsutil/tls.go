@@ -1,4 +1,4 @@
-package util
+package tlsutil
 
 import (
 	"crypto/x509"
