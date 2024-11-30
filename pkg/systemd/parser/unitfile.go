@@ -241,6 +241,12 @@ func lineIsKeyValuePair(line string) bool {
 		return false
 	}
 
+	// Comment lines
+	o := strings.IndexAny(line, "#:")
+	if 0 <= o && o < p {
+		return false
+	}
+
 	return true
 }
 
