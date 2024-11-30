@@ -539,15 +539,15 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
 
 	tlsCertFileFlagName := "tls-cert"
-	lFlags.StringVar(&podmanConfig.TLSCertFile, tlsCertFileFlagName, "", "path to TLS client certificate PEM file for remote, (CONTAINER_TLS_CERT)")
+	lFlags.StringVar(&podmanConfig.TLSCertFile, tlsCertFileFlagName, podmanConfig.TLSCertFile, "path to TLS client certificate PEM file for remote, (CONTAINER_TLS_CERT)")
 	_ = cmd.RegisterFlagCompletionFunc(tlsCertFileFlagName, completion.AutocompleteDefault)
 
 	tlsKeyFileFlagName := "tls-key"
-	lFlags.StringVar(&podmanConfig.TLSKeyFile, tlsKeyFileFlagName, "", "path to TLS client certificate private key PEM file for remote, (CONTAINER_TLS_KEY)")
+	lFlags.StringVar(&podmanConfig.TLSKeyFile, tlsKeyFileFlagName, podmanConfig.TLSKeyFile, "path to TLS client certificate private key PEM file for remote, (CONTAINER_TLS_KEY)")
 	_ = cmd.RegisterFlagCompletionFunc(tlsKeyFileFlagName, completion.AutocompleteDefault)
 
 	tlsCAFileFlagName := "tls-ca"
-	lFlags.StringVar(&podmanConfig.TLSCAFile, tlsCAFileFlagName, "", "path to TLS certificate Authority PEM file for remote, (CONTAINER_TLS_CA)")
+	lFlags.StringVar(&podmanConfig.TLSCAFile, tlsCAFileFlagName, podmanConfig.TLSCAFile, "path to TLS certificate Authority PEM file for remote, (CONTAINER_TLS_CA)")
 	_ = cmd.RegisterFlagCompletionFunc(tlsCAFileFlagName, completion.AutocompleteDefault)
 
 	// Flags that control or influence any kind of output.

@@ -23,7 +23,7 @@ import (
 	"github.com/containers/podman/v5/pkg/api/server/idle"
 	"github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/podman/v5/pkg/util/tlsutil"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -100,7 +100,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 
 	if opts.TLSClientCAFile != "" {
 		logrus.Debugf("will validate client certs against %s", opts.TLSClientCAFile)
-		pool, err := util.ReadCertBundle(opts.TLSClientCAFile)
+		pool, err := tlsutil.ReadCertBundle(opts.TLSClientCAFile)
 		if err != nil {
 			return nil, err
 		}

@@ -118,7 +118,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 		rpt, err = rpt.Parse(report.OriginUser, format)
 	} else {
 		rpt, err = rpt.Parse(report.OriginPodman,
-			"{{range .}}{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.Default}}\t{{.ReadWrite}}\n{{end -}}")
+			"{{range .}}{{.Name}}\t{{.URI}}\t{{.Identity}}\t{{.TLSCAFile}}\t{{.TLSCertFile}}\t{{.TLSKeyFile}}\t{{.Default}}\t{{.ReadWrite}}\n{{end -}}")
 	}
 	if err != nil {
 		return err
@@ -126,11 +126,14 @@ func inspect(cmd *cobra.Command, args []string) error {
 
 	if rpt.RenderHeaders {
 		err = rpt.Execute([]map[string]string{{
-			"Default":   "Default",
-			"Identity":  "Identity",
-			"Name":      "Name",
-			"URI":       "URI",
-			"ReadWrite": "ReadWrite",
+			"Default":     "Default",
+			"Identity":    "Identity",
+			"TLSCAFile":   "TLSCAFile",
+			"TLSCertFile": "TLSCertFile",
+			"TLSKeyFile":  "TLSKeyFile",
+			"Name":        "Name",
+			"URI":         "URI",
+			"ReadWrite":   "ReadWrite",
 		}})
 		if err != nil {
 			return err

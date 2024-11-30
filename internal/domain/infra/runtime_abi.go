@@ -19,7 +19,7 @@ func NewTestingEngine(facts *entities.PodmanConfig) (ientities.TestingEngine, er
 		r, err := NewLibpodTestingRuntime(facts.FlagSet, facts)
 		return r, err
 	case entities.TunnelMode:
-		ctx, err := bindings.NewConnectionWithIdentity(context.Background(), facts.URI, facts.Identity, facts.MachineMode)
+		ctx, err := bindings.NewConnectionWithIdentityOrTLS(context.Background(), facts.URI, facts.Identity, facts.TLSCertFile, facts.TLSKeyFile, facts.TLSCAFile, facts.MachineMode)
 		return &tunnel.TestingEngine{ClientCtx: ctx}, err
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
