@@ -72,7 +72,7 @@ require (
 	github.com/vishvananda/netlink v1.3.0
 	go.etcd.io/bbolt v1.3.11
 	golang.org/x/crypto v0.29.0
-	golang.org/x/exp v0.0.0-20241009180824-f66d83c29e7c
+	golang.org/x/exp v0.0.0-20241108190413-2d47ceb2692f
 	golang.org/x/net v0.31.0
 	golang.org/x/sync v0.9.0
 	golang.org/x/sys v0.27.0
@@ -224,7 +224,7 @@ require (
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/time v0.6.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/tools v0.27.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/grpc v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
