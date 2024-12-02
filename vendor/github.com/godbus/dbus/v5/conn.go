@@ -3,6 +3,7 @@ package dbus
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -500,15 +501,26 @@ func (conn *Conn) sendMessageAndIfClosed(msg *Message, ifClosed func()) error {
 	return err
 }
 
+func isEncodingError(err error) bool {
+	switch err.(type) {
+	case FormatError:
+		return true
+	case InvalidMessageError:
+		return true
+	}
+	return false
+}
+
 func (conn *Conn) handleSendError(msg *Message, err error) {
 	if msg.Type == TypeMethodCall {
 		conn.calls.handleSendError(msg, err)
 	} else if msg.Type == TypeMethodReply {
-		if _, ok := err.(FormatError); ok {
+		if isEncodingError(err) {
 			// Make sure that the caller gets some kind of error response if
 			// the application code tried to respond, but the resulting message
 			// was malformed in the end
-			conn.sendError(err, msg.Headers[FieldDestination].value.(string), msg.Headers[FieldReplySerial].value.(uint32))
+			returnedErr := fmt.Errorf("destination tried to respond with invalid message (%w)", err)
+			conn.sendError(returnedErr, msg.Headers[FieldDestination].value.(string), msg.Headers[FieldReplySerial].value.(uint32))
 		}
 	}
 	conn.serialGen.RetireSerial(msg.serial)
