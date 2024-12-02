@@ -166,7 +166,7 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 	var buffer bytes.Buffer
 	buffer.WriteString(fmt.Sprintf("%.0fh %.0fm %.2fs",
 		uptime.hours,
-		math.Mod(uptime.seconds, 3600)/60,
+		math.Mod(uptime.minutes, 60),
 		math.Mod(uptime.seconds, 60),
 	))
 	if int64(uptime.hours) > 0 {
