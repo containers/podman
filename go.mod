@@ -59,7 +59,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/opencontainers/runc v1.2.2
 	github.com/opencontainers/runtime-spec v1.2.0
-	github.com/opencontainers/runtime-tools v0.9.1-0.20241001195557-6c9570a1678f
+	github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271
 	github.com/opencontainers/selinux v1.11.1
 	github.com/openshift/imagebuilder v1.2.15
 	github.com/rootless-containers/rootlesskit/v2 v2.3.1

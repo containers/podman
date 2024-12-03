@@ -916,7 +916,7 @@ github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.2.0
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20241001195557-6c9570a1678f
+# github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271
 ## explicit; go 1.19
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
