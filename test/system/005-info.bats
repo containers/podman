@@ -182,6 +182,19 @@ host.slirp4netns.executable | $expr_path
     is "$output" ".*graphOptions: {}" "output includes graphOptions: {}"
 }
 
+@test "podman info - additional image stores" {
+    skip_if_remote "--storage-opt flag is not supported for remote"
+    driver=$(podman_storage_driver)
+    store1=$PODMAN_TMPDIR/store1
+    store2=$PODMAN_TMPDIR/store2
+    mkdir -p $store1 $store2
+    run_podman info --storage-opt=$driver'.imagestore='$store1 \
+                    --storage-opt=$driver'.imagestore='$store2 \
+                    --format '{{index .Store.GraphOptions "'$driver'.additionalImageStores"}}\n{{index .Store.GraphOptions "'$driver'.imagestore"}}'
+    assert "${lines[0]}" == "["$store1" "$store2"]" "output includes additional image stores"
+    assert "${lines[1]}" == "$store2" "old imagestore output"
+}
+
 @test "podman info netavark " {
     # Confirm netavark in use when explicitly required by execution environment.
     if [[ "$NETWORK_BACKEND" == "netavark" ]]; then
