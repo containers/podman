@@ -107,7 +107,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	options := &libimage.InspectOptions{WithParent: true, WithSize: true}
 	inspect, err := newImage.Inspect(r.Context(), options)
 	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed in inspect image %s: %w", inspect.ID, err))
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed in inspect image %s: %w", name, err))
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, inspect)
