@@ -32,11 +32,11 @@ jobs:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
     targets:
-      - fedora-all-x86_64
-      - fedora-all-aarch64
+      - fedora-all-s390x
+      - fedora-all-ppc64le
 
   - job: copr_build
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-eln]
     notifications: *packit_build_failure_notification
     enable_net: true
@@ -49,7 +49,7 @@ jobs:
           - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/aarch64/"
 
   - job: copr_build
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-centos]
     notifications: *packit_build_failure_notification
     enable_net: true
@@ -73,7 +73,7 @@ jobs:
 
   - job: tests
     identifier: cockpit-revdeps
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications:
       failure_comment:

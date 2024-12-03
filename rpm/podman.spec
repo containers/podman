@@ -55,10 +55,10 @@ Epoch: 5
 # If that's what you're reading, Version must be 0, and will be updated by Packit for
 # copr and koji builds.
 # If you're reading this on dist-git, the version is automatically filled in by Packit.
-Version: 0
+Version: 5.4.0~dev
 # The `AND` needs to be uppercase in the License for SPDX compatibility
 License: Apache-2.0 AND BSD-2-Clause AND BSD-3-Clause AND ISC AND MIT AND MPL-2.0
-Release: %autorelease
+Release: 1.20241203164927346628.machine.arch.287.e7bbcbfbf%{?dist}
 %if %{defined golang_arches_future}
 ExclusiveArch: %{golang_arches_future}
 %else
@@ -67,7 +67,7 @@ ExclusiveArch: aarch64 ppc64le s390x x86_64
 Summary: Manage Pods, Containers and Container Images
 URL: https://%{name}.io/
 # All SourceN files fetched from upstream
-Source0: %{git0}/archive/v%{version_no_tilde}.tar.gz
+Source0: podman-5.4.0-dev.tar.gz
 Provides: %{name}-manpages = %{epoch}:%{version}-%{release}
 BuildRequires: %{_bindir}/envsubst
 %if %{defined build_with_btrfs}
@@ -197,7 +197,7 @@ https://docs.podman.io/en/latest/markdown/podman-machine.1.html
 %endif
 
 %prep
-%autosetup -Sgit -n %{name}-%{version_no_tilde}
+%autosetup -Sgit -n %{name}-5.4.0-dev
 sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
 
 # cgroups-v1 is supported on rhel9
@@ -208,7 +208,7 @@ sed -i '/DELETE ON RHEL9/,/DELETE ON RHEL9/d' libpod/runtime.go
 # These changes are only meant for copr builds
 %if %{defined copr_build}
 # podman --version should show short sha
-sed -i "s/^const RawVersion = .*/const RawVersion = \"##VERSION##-##SHORT_SHA##\"/" version/rawversion/version.go
+sed -i "s/^const RawVersion = .*/const RawVersion = \"5.4.0-dev-e7bbcbfbf\"/" version/rawversion/version.go
 # use ParseTolerant to allow short sha in version
 sed -i "s/^var Version.*/var Version, err = semver.ParseTolerant(rawversion.RawVersion)/" version/version.go
 %endif
