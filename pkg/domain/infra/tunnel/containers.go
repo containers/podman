@@ -1061,13 +1061,6 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 
 // ContainerUpdate finds and updates the given container's cgroup config with the specified options
 func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *entities.ContainerUpdateOptions) (string, error) {
-	err := specgen.WeightDevices(updateOptions.Specgen)
-	if err != nil {
-		return "", err
-	}
-	err = specgen.FinishThrottleDevices(updateOptions.Specgen)
-	if err != nil {
-		return "", err
-	}
+	updateOptions.ProcessSpecgen()
 	return containers.Update(ic.ClientCtx, updateOptions)
 }

@@ -686,18 +686,56 @@ t GET libpod/containers/$cname/json 200 \
 
 if root; then
   podman run -dt --name=updateCtr alpine
-  echo '{"Memory":{"Limit":500000}, "CPU":{"Shares":123}}' >${TMPD}/update.json
+  echo '{
+    "Memory":{"Limit":500000},
+    "CPU":{"Shares":123},
+    "DeviceReadBPs": [{ "Path": "/dev/zero", "Rate": 10485760 }],
+    "DeviceWriteBPs": [{ "Path": "/dev/zero", "Rate": 31457280 }],
+    "DeviceReadIOPs": [{ "Path": "/dev/zero", "Rate": 2000 }],
+    "DeviceWriteIOPs": [{ "Path": "/dev/zero", "Rate": 4000 }]
+    }' >${TMPD}/update.json
   t POST libpod/containers/updateCtr/update ${TMPD}/update.json 201
 
   cgroupPath=/sys/fs/cgroup/cpu.weight
   # 002 is the byte length
   cpu_weight_expect=$'\001\0025'
 
-  # Verify
+  # Verify CPU weight
   echo '{ "AttachStdout":true,"Cmd":["cat", "'$cgroupPath'"]}' >${TMPD}/exec.json
   t POST containers/updateCtr/exec ${TMPD}/exec.json 201 .Id~[0-9a-f]\\{64\\}
   eid=$(jq -r '.Id' <<<"$output")
   t POST exec/$eid/start 200 $cpu_weight_expect
+
+  BlkioDeviceReadBps_expected='[
+  {
+    "Path": "/dev/zero",
+    "Rate": 10485760
+  }
+]'
+  BlkioDeviceWriteBPs_expected='[
+  {
+    "Path": "/dev/zero",
+    "Rate": 31457280
+  }
+]'
+  BlkioDeviceReadIOPs_expected='[
+  {
+    "Path": "/dev/zero",
+    "Rate": 2000
+  }
+]'
+  BlkioDeviceWriteIOPs_expected='[
+  {
+    "Path": "/dev/zero",
+    "Rate": 4000
+  }
+]'
+  # Verify Device limits
+  t GET containers/updateCtr/json 200 \
+  .HostConfig.BlkioDeviceReadBps="$BlkioDeviceReadBps_expected"     \
+  .HostConfig.BlkioDeviceWriteBps="$BlkioDeviceWriteBPs_expected"   \
+  .HostConfig.BlkioDeviceReadIOps="$BlkioDeviceReadIOPs_expected"   \
+  .HostConfig.BlkioDeviceWriteIOps="$BlkioDeviceWriteIOPs_expected" \
 
   # Now use the compat API
   echo '{ "Memory": 536870912 }' >${TMPD}/compatupdate.json

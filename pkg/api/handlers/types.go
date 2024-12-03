@@ -76,6 +76,7 @@ type LibpodContainersRmReport struct {
 type UpdateEntities struct {
 	specs.LinuxResources
 	define.UpdateHealthCheckConfig
+	define.UpdateContainerDevicesLimits
 }
 
 type Info struct {

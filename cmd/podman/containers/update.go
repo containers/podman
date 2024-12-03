@@ -113,6 +113,16 @@ func GetChangedHealthCheckConfiguration(cmd *cobra.Command, vals *entities.Conta
 	return updateHealthCheckConfig
 }
 
+func GetChangedDeviceLimits(s *specgen.SpecGenerator) *define.UpdateContainerDevicesLimits {
+	updateDevicesLimits := define.UpdateContainerDevicesLimits{}
+	updateDevicesLimits.SetBlkIOWeightDevice(s.WeightDevice)
+	updateDevicesLimits.SetDeviceReadBPs(s.ThrottleReadBpsDevice)
+	updateDevicesLimits.SetDeviceWriteBPs(s.ThrottleWriteBpsDevice)
+	updateDevicesLimits.SetDeviceReadIOPs(s.ThrottleReadIOPSDevice)
+	updateDevicesLimits.SetDeviceWriteIOPs(s.ThrottleWriteIOPSDevice)
+	return &updateDevicesLimits
+}
+
 func update(cmd *cobra.Command, args []string) error {
 	var err error
 	// use a specgen since this is the easiest way to hold resource info
@@ -124,33 +134,35 @@ func update(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if updateOpts.Restart != "" {
-		policy, retries, err := util.ParseRestartPolicy(updateOpts.Restart)
-		if err != nil {
-			return err
-		}
-		s.RestartPolicy = policy
-		if policy == define.RestartPolicyOnFailure {
-			s.RestartRetries = &retries
-		}
-	}
-
-	// we need to pass the whole specgen since throttle devices are parsed later due to cross compat.
 	s.ResourceLimits, err = specgenutil.GetResources(s, &updateOpts)
 	if err != nil {
 		return err
 	}
 
-	healthCheckConfig := GetChangedHealthCheckConfiguration(cmd, &updateOpts)
-	if err != nil {
-		return err
+	if s.ResourceLimits == nil {
+		s.ResourceLimits = &specs.LinuxResources{}
 	}
+
+	healthCheckConfig := GetChangedHealthCheckConfiguration(cmd, &updateOpts)
 
 	opts := &entities.ContainerUpdateOptions{
 		NameOrID:                        strings.TrimPrefix(args[0], "/"),
-		Specgen:                         s,
+		Resources:                       s.ResourceLimits,
 		ChangedHealthCheckConfiguration: &healthCheckConfig,
+		DevicesLimits:                   GetChangedDeviceLimits(s),
 	}
+
+	if cmd.Flags().Changed("restart") {
+		policy, retries, err := util.ParseRestartPolicy(updateOpts.Restart)
+		if err != nil {
+			return err
+		}
+		opts.RestartPolicy = &policy
+		if policy == define.RestartPolicyOnFailure {
+			opts.RestartRetries = &retries
+		}
+	}
+
 	rep, err := registry.ContainerEngine().ContainerUpdate(context.Background(), opts)
 	if err != nil {
 		return err

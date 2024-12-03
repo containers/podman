@@ -18,6 +18,7 @@ import (
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
+	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
@@ -447,7 +448,14 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("decode(): %w", err))
 		return
 	}
-	err = ctr.Update(&options.LinuxResources, restartPolicy, restartRetries, &options.UpdateHealthCheckConfig)
+
+	resourceLimits, err := specgenutil.UpdateMajorAndMinorNumbers(&options.LinuxResources, &options.UpdateContainerDevicesLimits)
+	if err != nil {
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	err = ctr.Update(resourceLimits, restartPolicy, restartRetries, &options.UpdateHealthCheckConfig)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
