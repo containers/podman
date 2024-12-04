@@ -154,6 +154,22 @@ func setup() (string, *machineTestBuilder) {
 	if err := os.Setenv("PODMAN_CONNECTIONS_CONF", filepath.Join(homeDir, "connections.json")); err != nil {
 		Fail("failed to set PODMAN_CONNECTIONS_CONF")
 	}
+	if err := os.Setenv("PODMAN_COMPOSE_WARNING_LOGS", "false"); err != nil {
+		Fail("failed to set PODMAN_COMPOSE_WARNING_LOGS")
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		Fail("unable to get working directory")
+	}
+	var fakeComposeBin string
+	if runtime.GOOS != "windows" {
+		fakeComposeBin = "fake_compose"
+	} else {
+		fakeComposeBin = "fake_compose.bat"
+	}
+	if err := os.Setenv("PODMAN_COMPOSE_PROVIDER", filepath.Join(cwd, "scripts", fakeComposeBin)); err != nil {
+		Fail("failed to set PODMAN_COMPOSE_PROVIDER")
+	}
 	mb, err := newMB()
 	if err != nil {
 		Fail(fmt.Sprintf("failed to create machine test: %q", err))
