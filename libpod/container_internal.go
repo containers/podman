@@ -2674,7 +2674,12 @@ func (c *Container) update(resources *spec.LinuxResources, restartPolicy *string
 		return fmt.Errorf("must provide restart policy if updating restart retries: %w", define.ErrInvalidArg)
 	}
 
-	oldResources := c.config.Spec.Linux.Resources
+	oldResources := new(spec.LinuxResources)
+	if c.config.Spec.Linux.Resources != nil {
+		if err := JSONDeepCopy(c.config.Spec.Linux.Resources, oldResources); err != nil {
+			return err
+		}
+	}
 	oldRestart := c.config.RestartPolicy
 	oldRetries := c.config.RestartRetries
 
@@ -2701,7 +2706,15 @@ func (c *Container) update(resources *spec.LinuxResources, restartPolicy *string
 		if c.config.Spec.Linux == nil {
 			c.config.Spec.Linux = new(spec.Linux)
 		}
-		c.config.Spec.Linux.Resources = resources
+
+		resourcesToUpdate, err := json.Marshal(resources)
+		if err != nil {
+			return err
+		}
+		if err := json.Unmarshal(resourcesToUpdate, c.config.Spec.Linux.Resources); err != nil {
+			return err
+		}
+		resources = c.config.Spec.Linux.Resources
 	}
 
 	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {

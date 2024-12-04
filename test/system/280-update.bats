@@ -309,4 +309,21 @@ function nrand() {
 
     run_podman rm -t 0 -f $ctrname
 }
+
+# bats test_tags=ci:parallel
+@test "podman update - resources on update are not changed unless requested" {
+    local ctrname="c-h-$(safename)"
+    run_podman run -d --name $ctrname \
+                --pids-limit 1024     \
+                $IMAGE /home/podman/pause
+
+    run_podman update $ctrname --memory 100M
+
+    # A Pid check is performed to ensure that other resource settings are not unset. https://github.com/containers/podman/issues/24610
+    run_podman inspect $ctrname --format "{{.HostConfig.Memory}}\n{{.HostConfig.PidsLimit}}"
+    assert ${lines[0]} == "104857600" ".HostConfig.Memory"
+    assert ${lines[1]} == "1024" ".HostConfig.PidsLimit"
+
+    run_podman rm -t 0 -f $ctrname
+}
 # vim: filetype=sh
