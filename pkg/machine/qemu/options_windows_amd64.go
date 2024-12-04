@@ -1,4 +1,4 @@
-//go:build tempoff
+//go:build windows && amd64
 
 package qemu
 
