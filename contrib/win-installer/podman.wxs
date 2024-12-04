@@ -72,14 +72,14 @@
 		<CustomAction Id="CheckHyperV" Execute="firstSequence" DllEntry="CheckHyperV" BinaryRef="PodmanHooks" />
 		<util:BroadcastEnvironmentChange />
 		<ComponentGroup Id="WSLFeature" Directory="INSTALLDIR">
-			<Component Id="WSLFeatureComponent" Guid="F6A693BC-186C-4E64-8015-C3073013B3A8" Condition="(NOT WIX_UPGRADE_DETECTED) AND (WSL_INSTALL = 1)">
+			<Component Id="WSLFeatureComponent" Guid="F6A693BC-186C-4E64-8015-C3073013B3A8" Condition="(NOT Installed) AND (WSL_INSTALL = 1)">
 				<CreateFolder />
 				<PanelSW:Dism EnableFeature="VirtualMachinePlatform" ErrorHandling="prompt" />
 				<PanelSW:Dism EnableFeature="Microsoft-Windows-Subsystem-Linux" ErrorHandling="prompt" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="HyperVFeature" Directory="INSTALLDIR">
-			<Component Id="HyperVFeatureComponent" Guid="F7B2D4C9-6C89-46BB-B4EA-FF39424972F3" Condition="(NOT WIX_UPGRADE_DETECTED) AND (HYPERV_INSTALL = 1)">
+			<Component Id="HyperVFeatureComponent" Guid="F7B2D4C9-6C89-46BB-B4EA-FF39424972F3" Condition="(NOT Installed) AND (HYPERV_INSTALL = 1)">
 				<CreateFolder />
 				<PanelSW:Dism EnableFeature="Microsoft-Hyper-V" ErrorHandling="prompt" />
 			</Component>
@@ -110,13 +110,13 @@
 		<WixVariable Id="WixUIDialogBmp" Value="resources\podman-dialog.png" />
 		<UIRef Id="PodmanUI" />
 		<UI>
-			<Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenGuide" Condition="(WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1) AND (NOT WIX_UPGRADE_DETECTED)" />
+			<Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenGuide" Condition="(WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1) AND (NOT Installed) AND (NOT UpdateStarted)" />
 		</UI>
 
 		<InstallExecuteSequence>
 			<Custom Action="CheckWSL" Before="SetWSL_INSTALL" />
 			<Custom Action="CheckHyperV" Before="SetHYPERV_INSTALL" />
-			<ForceReboot Before="StopServices" Condition="(NOT WIX_UPGRADE_DETECTED) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
+			<ForceReboot Before="StopServices" Condition="(NOT Installed) AND (NOT UpdateStarted) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
 		</InstallExecuteSequence>
 		<Binary Id="PodmanHooks" SourceFile="artifacts/podman-msihooks.dll" />
 

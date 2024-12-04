@@ -1,6 +1,11 @@
 #!/usr/bin/env pwsh
 
-# Example usage:
+# Usage examples:
+#
+# 1) Build a v9.9.9 installer and run `update-without-user-chages`
+#    scenario without specifying the previous setup exe (it will download from
+#    GitHub):
+#
 # rm .\contrib\win-installer\*.log &&
 # rm .\contrib\win-installer\*.exe &&
 # rm .\contrib\win-installer\*.wixpdb &&
@@ -92,10 +97,10 @@ function Install-Podman-With-Defaults {
     $ret = Start-Process -Wait `
                             -PassThru "$setupExePath" `
                             -ArgumentList "/install /quiet `
-                                /log $PSScriptRoot\podman-setup.log"
+                                /log $PSScriptRoot\podman-setup-default.log"
     if ($ret.ExitCode -ne 0) {
         Write-Host "Install failed, dumping log"
-        Get-Content $PSScriptRoot\podman-setup.log
+        Get-Content $PSScriptRoot\podman-setup-default.log
         throw "Exit code is $($ret.ExitCode)"
     }
     Write-Host "Installation completed successfully!`n"
