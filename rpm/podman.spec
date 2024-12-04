@@ -43,6 +43,10 @@
 # podman-machine subpackage will be present only on these architectures
 %global machine_arches x86_64 aarch64
 
+%if %{defined fedora}
+%define qemu 1
+%endif
+
 Name: podman
 %if %{defined copr_build}
 Epoch: 102
@@ -187,7 +191,9 @@ when `%{_bindir}/%{name}sh` is set as a login shell or set as os.Args[0].
 Summary: Metapackage for setting up %{name} machine
 Requires: %{name} = %{epoch}:%{version}-%{release}
 Requires: gvisor-tap-vsock
+%if %{defined qemu}
 Requires: qemu
+%endif
 Requires: virtiofsd
 
 %description machine
