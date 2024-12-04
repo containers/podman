@@ -1,6 +1,11 @@
 #!/usr/bin/env pwsh
 
-# Example usage:
+# Usage examples:
+#
+# 1) Build a v9.9.9 installer and run `update-without-user-chages`
+#    scenario without specifying the previous setup exe (it will download from
+#    GitHub):
+#
 # rm .\contrib\win-installer\*.log &&
 # rm .\contrib\win-installer\*.exe &&
 # rm .\contrib\win-installer\*.wixpdb &&
@@ -9,6 +14,21 @@
 #     -scenario update-without-user-changes `
 #     -setupExePath ".\contrib\win-installer\podman-9.9.9-dev-setup.exe" `
 #     -provider hyperv
+#
+# 2) Build v5.4.0 and v9.9.9 installers and run
+#    `update-without-user-chages` scenario from v5.4.0 to v9.9.9:
+#
+# rm .\contrib\win-installer\*.log &&
+# rm .\contrib\win-installer\*.exe &&
+# rm .\contrib\win-installer\*.wixpdb &&
+# .\winmake.ps1 installer 5.4.0 &&
+# .\winmake.ps1 installer 9.9.9 &&
+# .\contrib\win-installer\test-installer.ps1 `
+#     -scenario update-without-user-changes `
+#     -previousSetupExePath ".\contrib\win-installer\podman-5.4.0-dev-setup.exe" `
+#     -setupExePath ".\contrib\win-installer\podman-9.9.9-dev-setup.exe" `
+#     -provider hyperv
+#
 
 # The Param statement must be the first statement, except for comments and any #Require statements.
 param (
@@ -77,10 +97,10 @@ function Install-Podman-With-Defaults {
     $ret = Start-Process -Wait `
                             -PassThru "$setupExePath" `
                             -ArgumentList "/install /quiet `
-                                /log $PSScriptRoot\podman-setup.log"
+                                /log $PSScriptRoot\podman-setup-default.log"
     if ($ret.ExitCode -ne 0) {
         Write-Host "Install failed, dumping log"
-        Get-Content $PSScriptRoot\podman-setup.log
+        Get-Content $PSScriptRoot\podman-setup-default.log
         throw "Exit code is $($ret.ExitCode)"
     }
     Write-Host "Installation completed successfully!`n"
