@@ -22,7 +22,7 @@ func pullOCITestDisk(finalDir string, vmType define.VMType) error {
 		return err
 	}
 	dirs := define.MachineDirs{ImageCacheDir: imageCacheDir}
-	ociArtPull, err := ocipull.NewOCIArtifactPull(context.Background(), &dirs, "", "e2emachine", vmType, unusedFinalPath)
+	ociArtPull, err := ocipull.NewOCIArtifactPull(context.Background(), &dirs, "docker://quay.io/podman/stage-podman-machine:5.4", "e2emachine", vmType, unusedFinalPath)
 	if err != nil {
 		return err
 	}
