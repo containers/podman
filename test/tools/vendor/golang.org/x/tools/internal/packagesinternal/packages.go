@@ -5,7 +5,6 @@
 // Package packagesinternal exposes internal-only fields from go/packages.
 package packagesinternal
 
-var GetForTest = func(p interface{}) string { return "" }
 var GetDepsErrors = func(p interface{}) []*PackageError { return nil }
 
 type PackageError struct {
@@ -16,7 +15,6 @@ type PackageError struct {
 
 var TypecheckCgo int
 var DepsErrors int // must be set as a LoadMode to call GetDepsErrors
-var ForTest int    // must be set as a LoadMode to call GetForTest
 
 var SetModFlag = func(config interface{}, value string) {}
 var SetModFile = func(config interface{}, value string) {}
