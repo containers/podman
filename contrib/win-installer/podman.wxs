@@ -12,7 +12,7 @@
 
 	<Package Name="podman" Manufacturer="Red Hat Inc." Version="$(VERSION)" UpgradeCode="a6a9dd9c-0732-44ba-9279-ffe22ea50671">
 		<Media Id="1" Cabinet="Podman.cab" EmbedCab="yes" />
-		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." RemoveFeatures="Complete" Schedule="afterInstallExecute" />
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." RemoveFeatures="ExecutablesDocsAndWindowsFeatures" Schedule="afterInstallExecute" IgnoreRemoveFailure="true" />
 		<Property Id="DiskPrompt" Value="Red Hat's Podman $(VERSION) Installation" />
 		<Property Id="MACHINE_PROVIDER" Value="wsl" />
 		<Property Id="MACHINE_PROVIDER_CONFIG_FILE_PATH">
@@ -84,7 +84,7 @@
 				<PanelSW:Dism EnableFeature="Microsoft-Hyper-V" ErrorHandling="prompt" />
 			</Component>
 		</ComponentGroup>
-		<Feature Id="Complete" Level="1">
+		<Feature Id="ExecutablesDocsAndWindowsFeatures" Level="1">
 			<ComponentRef Id="INSTALLDIR_Component" />
 			<ComponentRef Id="EnvEntriesComponent" />
 			<ComponentRef Id="MainExecutable" />
