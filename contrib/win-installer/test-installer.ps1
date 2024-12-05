@@ -221,11 +221,13 @@ function Remove-Podman-Machine-Conf {
 }
 
 function Get-Latest-Podman-Setup-From-GitHub {
-    $tag = "5.3.0"
-    Write-Host "Downloading the $tag Podman windows setup from GitHub..."
-    $downloadUrl = "https://github.com/containers/podman/releases/download/v$tag/podman-$tag-setup.exe"
+    Write-Host "Downloading the latest Podman windows setup from GitHub..."
+    $apiUrl = "https://api.github.com/repos/containers/podman/releases/latest"
+    $response = Invoke-RestMethod -Uri $apiUrl -Headers @{"User-Agent"="PowerShell"} -ErrorAction Stop
+    $downloadUrl = $response.assets[0].browser_download_url
     Write-Host "Downloading URL: $downloadUrl"
-    $destinationPath = "$PSScriptRoot\podman-$tag-setup.exe"
+    $latestTag = $response.tag_name
+    $destinationPath = "$PSScriptRoot\podman-$latestTag-setup.exe"
     Write-Host "Destination Path: $destinationPath"
     Invoke-WebRequest -Uri $downloadUrl -OutFile $destinationPath
     Write-Host "Command completed successfully!`n"
