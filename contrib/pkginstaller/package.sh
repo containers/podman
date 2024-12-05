@@ -14,12 +14,17 @@ tmpBin="contrib/pkginstaller/tmp-bin"
 
 binDir="${BASEDIR}/root/podman/bin"
 libDir="${BASEDIR}/root/podman/lib"
+docDir="${BASEDIR}/root/podman/docs/man/man1"
 
 version=$(cat "${BASEDIR}/VERSION")
 arch=$(cat "${BASEDIR}/ARCH")
 
 function build_podman() {
   pushd "$1"
+
+  make podman-remote-darwin-docs
+  mkdir -p "contrib/pkginstaller/out/packaging/${docDir}"
+  cp -v docs/build/remote/darwin/*.1 "contrib/pkginstaller/out/packaging/${docDir}"
 
   case ${goArch} in
   universal)
