@@ -204,18 +204,6 @@ function Remove-Podman-Machine-Conf {
     Write-Host "Deletion successful!`n"
 }
 
-function Get-Latest-Podman-Setup-From-GitHub {
-    $tag = "5.3.0"
-    Write-Host "Downloading the $tag Podman windows setup from GitHub..."
-    $downloadUrl = "https://github.com/containers/podman/releases/download/v$tag/podman-$tag-setup.exe"
-    Write-Host "Downloading URL: $downloadUrl"
-    $destinationPath = "$PSScriptRoot\podman-$tag-setup.exe"
-    Write-Host "Destination Path: $destinationPath"
-    Invoke-WebRequest -Uri $downloadUrl -OutFile $destinationPath
-    Write-Host "Command completed successfully!`n"
-    return $destinationPath
-}
-
 function Test-Installation {
     param (
         [ValidateSet("wsl", "hyperv")]
