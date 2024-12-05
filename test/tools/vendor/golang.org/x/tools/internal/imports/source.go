@@ -59,5 +59,5 @@ type Source interface {
 	// candidates satisfy all missing references for that package name. It is up
 	// to each data source to select the best result for each entry in the
 	// missing map.
-	ResolveReferences(ctx context.Context, filename string, missing References) (map[PackageName]*Result, error)
+	ResolveReferences(ctx context.Context, filename string, missing References) ([]*Result, error)
 }

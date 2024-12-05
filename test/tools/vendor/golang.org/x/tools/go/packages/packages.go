@@ -43,6 +43,20 @@ import (
 // ID and Errors (if present) will always be filled.
 // [Load] may return more information than requested.
 //
+// The Mode flag is a union of several bits named NeedName,
+// NeedFiles, and so on, each of which determines whether
+// a given field of Package (Name, Files, etc) should be
+// populated.
+//
+// For convenience, we provide named constants for the most
+// common combinations of Need flags:
+//
+//	[LoadFiles]     lists of files in each package
+//	[LoadImports]   ... plus imports
+//	[LoadTypes]     ... plus type information
+//	[LoadSyntax]    ... plus type-annotated syntax
+//	[LoadAllSyntax] ... for all dependencies
+//
 // Unfortunately there are a number of open bugs related to
 // interactions among the LoadMode bits:
 //   - https://github.com/golang/go/issues/56633
@@ -55,7 +69,7 @@ const (
 	// NeedName adds Name and PkgPath.
 	NeedName LoadMode = 1 << iota
 
-	// NeedFiles adds GoFiles, OtherFiles, and IgnoredFiles
+	// NeedFiles adds Dir, GoFiles, OtherFiles, and IgnoredFiles
 	NeedFiles
 
 	// NeedCompiledGoFiles adds CompiledGoFiles.
@@ -86,9 +100,10 @@ const (
 	// needInternalDepsErrors adds the internal deps errors field for use by gopls.
 	needInternalDepsErrors
 
-	// needInternalForTest adds the internal forTest field.
+	// NeedForTest adds ForTest.
+	//
 	// Tests must also be set on the context for this field to be populated.
-	needInternalForTest
+	NeedForTest
 
 	// typecheckCgo enables full support for type checking cgo. Requires Go 1.15+.
 	// Modifies CompiledGoFiles and Types, and has no effect on its own.
@@ -108,33 +123,18 @@ const (
 
 const (
 	// LoadFiles loads the name and file names for the initial packages.
-	//
-	// Deprecated: LoadFiles exists for historical compatibility
-	// and should not be used. Please directly specify the needed fields using the Need values.
 	LoadFiles = NeedName | NeedFiles | NeedCompiledGoFiles
 
 	// LoadImports loads the name, file names, and import mapping for the initial packages.
-	//
-	// Deprecated: LoadImports exists for historical compatibility
-	// and should not be used. Please directly specify the needed fields using the Need values.
 	LoadImports = LoadFiles | NeedImports
 
 	// LoadTypes loads exported type information for the initial packages.
-	//
-	// Deprecated: LoadTypes exists for historical compatibility
-	// and should not be used. Please directly specify the needed fields using the Need values.
 	LoadTypes = LoadImports | NeedTypes | NeedTypesSizes
 
 	// LoadSyntax loads typed syntax for the initial packages.
-	//
-	// Deprecated: LoadSyntax exists for historical compatibility
-	// and should not be used. Please directly specify the needed fields using the Need values.
 	LoadSyntax = LoadTypes | NeedSyntax | NeedTypesInfo
 
 	// LoadAllSyntax loads typed syntax for the initial packages and all dependencies.
-	//
-	// Deprecated: LoadAllSyntax exists for historical compatibility
-	// and should not be used. Please directly specify the needed fields using the Need values.
 	LoadAllSyntax = LoadSyntax | NeedDeps
 
 	// Deprecated: NeedExportsFile is a historical misspelling of NeedExportFile.
@@ -434,6 +434,12 @@ type Package struct {
 	// PkgPath is the package path as used by the go/types package.
 	PkgPath string
 
+	// Dir is the directory associated with the package, if it exists.
+	//
+	// For packages listed by the go command, this is the directory containing
+	// the package files.
+	Dir string
+
 	// Errors contains any errors encountered querying the metadata
 	// of the package, or while parsing or type-checking its files.
 	Errors []Error
@@ -521,8 +527,8 @@ type Package struct {
 
 	// -- internal --
 
-	// forTest is the package under test, if any.
-	forTest string
+	// ForTest is the package under test, if any.
+	ForTest string
 
 	// depsErrors is the DepsErrors field from the go list response, if any.
 	depsErrors []*packagesinternal.PackageError
@@ -551,9 +557,6 @@ type ModuleError struct {
 }
 
 func init() {
-	packagesinternal.GetForTest = func(p interface{}) string {
-		return p.(*Package).forTest
-	}
 	packagesinternal.GetDepsErrors = func(p interface{}) []*packagesinternal.PackageError {
 		return p.(*Package).depsErrors
 	}
@@ -565,7 +568,6 @@ func init() {
 	}
 	packagesinternal.TypecheckCgo = int(typecheckCgo)
 	packagesinternal.DepsErrors = int(needInternalDepsErrors)
-	packagesinternal.ForTest = int(needInternalForTest)
 }
 
 // An Error describes a problem with a package's metadata, syntax, or types.

@@ -161,6 +161,8 @@ func FindPkg(path, srcDir string) (filename, id string) {
 // Import imports a gc-generated package given its import path and srcDir, adds
 // the corresponding package object to the packages map, and returns the object.
 // The packages map must contain all packages already imported.
+//
+// TODO(taking): Import is only used in tests. Move to gcimporter_test.
 func Import(packages map[string]*types.Package, path, srcDir string, lookup func(path string) (io.ReadCloser, error)) (pkg *types.Package, err error) {
 	var rc io.ReadCloser
 	var filename, id string
@@ -210,58 +212,50 @@ func Import(packages map[string]*types.Package, path, srcDir string, lookup func
 	}
 	defer rc.Close()
 
-	var hdr string
 	var size int64
 	buf := bufio.NewReader(rc)
-	if hdr, size, err = FindExportData(buf); err != nil {
+	if size, err = FindExportData(buf); err != nil {
 		return
 	}
 
-	switch hdr {
-	case "$$B\n":
-		var data []byte
-		data, err = io.ReadAll(buf)
-		if err != nil {
-			break
-		}
-
-		// TODO(gri): allow clients of go/importer to provide a FileSet.
-		// Or, define a new standard go/types/gcexportdata package.
-		fset := token.NewFileSet()
-
-		// Select appropriate importer.
-		if len(data) > 0 {
-			switch data[0] {
-			case 'v', 'c', 'd':
-				// binary: emitted by cmd/compile till go1.10; obsolete.
-				return nil, fmt.Errorf("binary (%c) import format is no longer supported", data[0])
-
-			case 'i':
-				// indexed: emitted by cmd/compile till go1.19;
-				// now used only for serializing go/types.
-				// See https://github.com/golang/go/issues/69491.
-				_, pkg, err := IImportData(fset, packages, data[1:], id)
-				return pkg, err
-
-			case 'u':
-				// unified: emitted by cmd/compile since go1.20.
-				_, pkg, err := UImportData(fset, packages, data[1:size], id)
-				return pkg, err
-
-			default:
-				l := len(data)
-				if l > 10 {
-					l = 10
-				}
-				return nil, fmt.Errorf("unexpected export data with prefix %q for path %s", string(data[:l]), id)
-			}
-		}
-
-	default:
-		err = fmt.Errorf("unknown export data header: %q", hdr)
+	var data []byte
+	data, err = io.ReadAll(buf)
+	if err != nil {
+		return
+	}
+	if len(data) == 0 {
+		return nil, fmt.Errorf("no data to load a package from for path %s", id)
 	}
 
-	return
+	// TODO(gri): allow clients of go/importer to provide a FileSet.
+	// Or, define a new standard go/types/gcexportdata package.
+	fset := token.NewFileSet()
+
+	// Select appropriate importer.
+	switch data[0] {
+	case 'v', 'c', 'd':
+		// binary: emitted by cmd/compile till go1.10; obsolete.
+		return nil, fmt.Errorf("binary (%c) import format is no longer supported", data[0])
+
+	case 'i':
+		// indexed: emitted by cmd/compile till go1.19;
+		// now used only for serializing go/types.
+		// See https://github.com/golang/go/issues/69491.
+		_, pkg, err := IImportData(fset, packages, data[1:], id)
+		return pkg, err
+
+	case 'u':
+		// unified: emitted by cmd/compile since go1.20.
+		_, pkg, err := UImportData(fset, packages, data[1:size], id)
+		return pkg, err
+
+	default:
+		l := len(data)
+		if l > 10 {
+			l = 10
+		}
+		return nil, fmt.Errorf("unexpected export data with prefix %q for path %s", string(data[:l]), id)
+	}
 }
 
 type byPath []*types.Package
