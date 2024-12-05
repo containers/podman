@@ -93,7 +93,6 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman uidmapping and gidmapping with an idmapped volume", func() {
 		SkipIfRunc(podmanTest, "Test not supported yet with runc (issue 17433, wontfix)")
-		SkipOnOSVersion("fedora", "36")
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/foo:Z,idmap", "alpine", "stat", "-c", "#%u:%g#", "/foo"})
 		session.WaitWithDefaultTimeout()
 		if strings.Contains(session.ErrorToString(), "Operation not permitted") {
@@ -108,7 +107,6 @@ var _ = Describe("Podman UserNS support", func() {
 
 	It("podman uidmapping and gidmapping with an idmapped volume on existing directory", func() {
 		SkipIfRunc(podmanTest, "Test not supported yet with runc (issue 17433, wontfix)")
-		SkipOnOSVersion("fedora", "36")
 		// The directory /mnt already exists in the image
 		session := podmanTest.Podman([]string{"run", "--uidmap=0:1:500", "--gidmap=0:200:5000", "-v", "my-foo-volume:/mnt:Z,idmap", "alpine", "stat", "-c", "#%u:%g#", "/mnt"})
 		session.WaitWithDefaultTimeout()
