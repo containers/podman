@@ -45,6 +45,11 @@ var (
 	debug    bool
 )
 
+type infoReport struct {
+	define.Info
+	Client *define.Version `json:",omitempty" yaml:",omitempty"`
+}
+
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: infoCommand,
@@ -74,12 +79,21 @@ func info(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
+	remote := registry.IsRemote()
+	info.Host.ServiceIsRemote = remote
 
-	info.Host.ServiceIsRemote = registry.IsRemote()
+	infoReport := infoReport{
+		Info: *info,
+	}
+
+	if remote {
+		clientVers, _ := define.GetVersion()
+		infoReport.Client = &clientVers
+	}
 
 	switch {
 	case report.IsJSON(inFormat):
-		b, err := json.MarshalIndent(info, "", "  ")
+		b, err := json.MarshalIndent(infoReport, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -94,9 +108,9 @@ func info(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return err
 		}
-		return rpt.Execute(info)
+		return rpt.Execute(infoReport)
 	default:
-		b, err := yaml.Marshal(info)
+		b, err := yaml.Marshal(infoReport)
 		if err != nil {
 			return err
 		}

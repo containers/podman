@@ -291,4 +291,16 @@ var _ = Describe("Podman Info", func() {
 		Expect(info).ToNot(ExitCleanly())
 		podmanTest.StartRemoteService() // Start service again so teardown runs clean
 	})
+
+	It("Podman info: check client information", func() {
+		info := podmanTest.Podman([]string{"info", "--format", "{{ .Client }}"})
+		info.WaitWithDefaultTimeout()
+		Expect(info).To(ExitCleanly())
+		// client info should only appear when using the remote client
+		if IsRemote() {
+			Expect(info.OutputToString()).ToNot(Equal("<nil>"))
+		} else {
+			Expect(info.OutputToString()).To(Equal("<nil>"))
+		}
+	})
 })

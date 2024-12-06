@@ -119,6 +119,7 @@ GOFLAGS ?= -trimpath
 LDFLAGS_PODMAN ?= \
 	$(if $(GIT_COMMIT),-X $(LIBPOD)/define.gitCommit=$(GIT_COMMIT),) \
 	$(if $(BUILD_INFO),-X $(LIBPOD)/define.buildInfo=$(BUILD_INFO),) \
+	$(if $(BUILD_ORIGIN),-X $(LIBPOD)/define.buildOrigin=$(BUILD_ORIGIN),) \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
