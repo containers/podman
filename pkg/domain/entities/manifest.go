@@ -82,9 +82,9 @@ type ManifestAnnotateOptions struct {
 	// Variant for the item in the manifest list
 	Variant string `json:"variant" schema:"variant"`
 	// IndexAnnotation is a slice of key=value annotations to add to the manifest list itself
-	IndexAnnotation []string `json:"index_annotation" schema:"annotation"`
+	IndexAnnotation []string `json:"index_annotation" schema:"index_annotation"`
 	// IndexAnnotations is a map of key:value annotations to add to the manifest list itself, by a map which is preferred over IndexAnnotation
-	IndexAnnotations map[string]string `json:"index_annotations" schema:"annotations"`
+	IndexAnnotations map[string]string `json:"index_annotations" schema:"index_annotations"`
 	// IndexSubject is a subject value to set in the manifest list itself
 	IndexSubject string `json:"subject" schema:"subject"`
 }

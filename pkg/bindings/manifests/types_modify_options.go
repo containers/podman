@@ -63,6 +63,21 @@ func (o *ModifyOptions) GetAnnotations() map[string]string {
 	return o.Annotations
 }
 
+// WithIndexAnnotations set annotations to add to the manifest list as a whole
+func (o *ModifyOptions) WithIndexAnnotations(value map[string]string) *ModifyOptions {
+	o.IndexAnnotations = value
+	return o
+}
+
+// GetIndexAnnotations returns value of annotations to add to the manifest list as a whole
+func (o *ModifyOptions) GetIndexAnnotations() map[string]string {
+	if o.IndexAnnotations == nil {
+		var z map[string]string
+		return z
+	}
+	return o.IndexAnnotations
+}
+
 // WithArch set arch overrides the architecture for the image
 func (o *ModifyOptions) WithArch(value string) *ModifyOptions {
 	o.Arch = &value

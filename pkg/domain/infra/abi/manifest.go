@@ -49,9 +49,10 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 		}
 	}
 
-	annotateOptions := &libimage.ManifestListAnnotateOptions{}
 	if len(opts.Annotations) != 0 {
-		annotateOptions.IndexAnnotations = opts.Annotations
+		annotateOptions := &libimage.ManifestListAnnotateOptions{
+			IndexAnnotations: opts.Annotations,
+		}
 		if err := manifestList.AnnotateInstance("", annotateOptions); err != nil {
 			return "", err
 		}
@@ -230,18 +231,14 @@ func (ir *ImageEngine) ManifestAdd(ctx context.Context, name string, images []st
 			Variant:      opts.Variant,
 			Subject:      opts.IndexSubject,
 		}
-		if len(opts.Annotation) != 0 {
-			annotations := make(map[string]string)
-			for _, annotationSpec := range opts.Annotation {
-				key, val, hasVal := strings.Cut(annotationSpec, "=")
-				if !hasVal {
-					return "", fmt.Errorf("no value given for annotation %q", key)
-				}
-				annotations[key] = val
-			}
-			opts.Annotations = envLib.Join(opts.Annotations, annotations)
+
+		if annotateOptions.Annotations, err = mergeAnnotations(opts.Annotations, opts.Annotation); err != nil {
+			return "", err
 		}
-		annotateOptions.Annotations = opts.Annotations
+
+		if annotateOptions.IndexAnnotations, err = mergeAnnotations(opts.IndexAnnotations, opts.IndexAnnotation); err != nil {
+			return "", err
+		}
 
 		if err := manifestList.AnnotateInstance(instanceDigest, annotateOptions); err != nil {
 			return "", err
@@ -380,10 +377,12 @@ func (ir *ImageEngine) ManifestAddArtifact(ctx context.Context, name string, fil
 		Variant:      opts.Variant,
 		Subject:      opts.IndexSubject,
 	}
-	if annotateOptions.Annotations, err = mergeAnnotations(opts.Annotations, opts.Annotation); err != nil {
+
+	if annotateOptions.Annotations, err = mergeAnnotations(opts.ManifestAnnotateOptions.Annotations, opts.ManifestAnnotateOptions.Annotation); err != nil {
 		return "", err
 	}
-	if annotateOptions.IndexAnnotations, err = mergeAnnotations(opts.IndexAnnotations, opts.IndexAnnotation); err != nil {
+
+	if annotateOptions.IndexAnnotations, err = mergeAnnotations(opts.ManifestAnnotateOptions.IndexAnnotations, opts.ManifestAnnotateOptions.IndexAnnotation); err != nil {
 		return "", err
 	}
 
