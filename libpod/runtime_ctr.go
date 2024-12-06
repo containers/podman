@@ -1246,11 +1246,21 @@ func (r *Runtime) GetContainers(loadState bool, filters ...ContainerFilter) ([]*
 		return nil, err
 	}
 
-	ctrsFiltered := make([]*Container, 0, len(ctrs))
+	ctrsFiltered := applyContainersFilters(ctrs, filters...)
 
-	for _, ctr := range ctrs {
+	return ctrsFiltered, nil
+}
+
+// Applies container filters on bunch of containers
+func applyContainersFilters(containers []*Container, filters ...ContainerFilter) []*Container {
+	ctrsFiltered := make([]*Container, 0, len(containers))
+
+	for _, ctr := range containers {
 		include := true
 		for _, filter := range filters {
+			if filter == nil {
+				continue
+			}
 			include = include && filter(ctr)
 		}
 
@@ -1259,7 +1269,7 @@ func (r *Runtime) GetContainers(loadState bool, filters ...ContainerFilter) ([]*
 		}
 	}
 
-	return ctrsFiltered, nil
+	return ctrsFiltered
 }
 
 // GetAllContainers is a helper function for GetContainers

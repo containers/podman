@@ -14,6 +14,8 @@ import (
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/storage"
 )
 
 // GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
@@ -282,6 +284,10 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			}
 			return false
 		}, filterValueError
+	case "command":
+		return func(c *libpod.Container) bool {
+			return util.StringMatchRegexSlice(c.Command()[0], filterValues)
+		}, nil
 	}
 	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
@@ -314,4 +320,113 @@ func prepareUntilFilterFunc(filterValues []string) (func(container *libpod.Conta
 		}
 		return false
 	}, nil
+}
+
+// GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
+func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, r *libpod.Runtime) (func(listContainer *types.ListContainer) bool, error) {
+	switch filter {
+	case "id":
+		return func(listContainer *types.ListContainer) bool {
+			return filters.FilterID(listContainer.ContainerID(), filterValues)
+		}, nil
+	case "name":
+		// we only have to match one name
+		return func(listContainer *types.ListContainer) bool {
+			namesList := listContainer.NamesList()
+
+			for _, f := range filterValues {
+				f = strings.ReplaceAll(f, "/", "")
+				if util.StringMatchRegexSlice(f, namesList) {
+					return true
+				}
+			}
+
+			return false
+		}, nil
+	case "command":
+		return func(listContainer *types.ListContainer) bool {
+			return util.StringMatchRegexSlice(listContainer.Commands()[0], filterValues)
+		}, nil
+	case "ancestor":
+		// This needs to refine to match docker
+		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
+		return func(listContainer *types.ListContainer) bool {
+			for _, filterValue := range filterValues {
+				rootfsImageID, rootfsImageName := listContainer.ImageInfo()
+				var imageTag string
+				var imageNameWithoutTag string
+				// Compare with ImageID, ImageName
+				// Will match ImageName if running image has tag latest for other tags exact complete filter must be given
+				name, tag, hasColon := strings.Cut(rootfsImageName, ":")
+				if hasColon {
+					imageNameWithoutTag = name
+					imageTag = tag
+				}
+
+				if (rootfsImageID == filterValue) ||
+					util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
+					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "before":
+		var createTime time.Time
+		var externCons []storage.Container
+		externCons, err := r.StorageContainers()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, filterValue := range filterValues {
+			for _, ctr := range externCons {
+				if slices.Contains(ctr.Names, filterValue) {
+					if createTime.IsZero() || createTime.After(ctr.Created) {
+						createTime = ctr.Created
+					}
+				}
+			}
+		}
+
+		return func(listContainer *types.ListContainer) bool {
+			return createTime.After(listContainer.CreatedTime())
+		}, nil
+	case "since":
+		var createTime time.Time
+		var externCons []storage.Container
+		externCons, err := r.StorageContainers()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, filterValue := range filterValues {
+			for _, ctr := range externCons {
+				if slices.Contains(ctr.Names, filterValue) {
+					if createTime.IsZero() || createTime.After(ctr.Created) {
+						createTime = ctr.Created
+					}
+				}
+			}
+		}
+
+		return func(listContainer *types.ListContainer) bool {
+			return createTime.Before(listContainer.CreatedTime())
+		}, nil
+	case "until":
+		until, err := filters.ComputeUntilTimestamp(filterValues)
+		if err != nil {
+			return nil, err
+		}
+		return func(listContainer *types.ListContainer) bool {
+			if !until.IsZero() && listContainer.CreatedTime().Before(until) {
+				return true
+			}
+			return false
+		}, nil
+	case "restart-policy", "network", "pod", "volume", "health", "label", "exited", "status":
+		return nil, fmt.Errorf("filter %s is not applicable for external containers", filter)
+	}
+
+	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
