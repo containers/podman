@@ -78,6 +78,9 @@ SED=sed
 GREP=grep
 MAN_L=	man -l
 endif
+PODMAN ?= $(CURDIR)/bin/podman
+PODMAN_REMOTE ?= $(CURDIR)/bin/podman-remote
+QUADLET ?= $(CURDIR)/bin/quadlet
 
 # This isn't what we actually build; it's a superset, used for target
 # dependencies. Basically: all *.go and *.c files, except *_test.go,
@@ -706,8 +709,8 @@ localmachine:
 localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags '!ci:parallel' test/system/
-	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
+	PODMAN=$(PODMAN) QUADLET=$(QUADLET) bats -T --filter-tags '!ci:parallel' test/system/
+	PODMAN=$(PODMAN) QUADLET=$(QUADLET) bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
 
 .PHONY: remotesystem
 remotesystem:
@@ -720,24 +723,24 @@ remotesystem:
 	# . Stop server.
 	rc=0;\
 	if timeout -v 1 true; then \
-		if ./bin/podman-remote info; then \
+		if $(PODMAN_REMOTE) info; then \
 			echo "Error: podman system service (not ours) is already running" >&2;\
 			exit 1;\
 		fi;\
-		./bin/podman system service --timeout=0 > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
+		$(PODMAN) system service --timeout=0 > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
 		retry=5;\
 		while [ $$retry -ge 0 ]; do\
 			echo Waiting for server...;\
 			sleep 1;\
-			./bin/podman-remote info >/dev/null 2>&1 && break;\
+			$(PODMAN_REMOTE) info >/dev/null 2>&1 && break;\
 			retry=$$(expr $$retry - 1);\
 		done;\
 		if [ $$retry -lt 0 ]; then\
-			echo "Error: ./bin/podman system service did not come up" >&2;\
+			echo "Error: $(PODMAN) system service did not come up" >&2;\
 			exit 1;\
 		fi;\
-		env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags '!ci:parallel' test/system/ ;\
-		env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags ci:parallel -j $$(nproc) test/system/ ;\
+		env PODMAN="$(PODMAN_REMOTE)" bats -T --filter-tags '!ci:parallel' test/system/ ;\
+		env PODMAN="$(PODMAN_REMOTE)" bats -T --filter-tags ci:parallel -j $$(nproc) test/system/ ;\
 		rc=$$?;\
 		kill %1;\
 	else \

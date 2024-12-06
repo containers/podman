@@ -5,6 +5,23 @@
 downstream_package_name: podman
 upstream_tag_template: v{version}
 
+# These files get synced from upstream to downstream (Fedora / CentOS Stream) on every
+# propose-downstream job. This is done so tests maintained upstream can be run
+# downstream in Zuul CI and Bodhi.
+# Ref: https://packit.dev/docs/configuration#files_to_sync
+files_to_sync:
+  - src: rpm/gating.yaml
+    dest: gating.yaml
+    delete: true
+  - src: plans/
+    dest: plans/
+    delete: true
+    mkpath: true
+  - src: .fmf/
+    dest: .fmf/
+    delete: true
+  - .packit.yaml
+
 packages:
   podman-fedora:
     pkg_tool: fedpkg
@@ -31,7 +48,7 @@ jobs:
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     enable_net: true
-    targets:
+    targets: &fedora_copr_targets
       - fedora-all-x86_64
       - fedora-all-aarch64
 
@@ -53,7 +70,7 @@ jobs:
     packages: [podman-centos]
     notifications: *packit_build_failure_notification
     enable_net: true
-    targets:
+    targets: &centos_copr_targets
       - centos-stream-9-x86_64
       - centos-stream-9-aarch64
       - centos-stream-10-x86_64
@@ -70,6 +87,32 @@ jobs:
     owner: rhcontainerbot
     project: podman-next
     enable_net: true
+
+  - job: tests
+    trigger: pull_request
+    packages: [podman-fedora]
+    targets: *fedora_copr_targets
+    require: &dev_tests
+      label:
+        absent:
+          - release
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-$releasever/rhcontainerbot-podman-next-fedora-$releasever.repo
+    identifier: "dev"
+
+  - job: tests
+    trigger: pull_request
+    packages: [podman-fedora]
+    targets: *fedora_copr_targets
+    require: &release_tests
+      label:
+        present:
+          - release
+    preserve_project: true
+    identifier: "release"
 
   - job: tests
     identifier: cockpit-revdeps

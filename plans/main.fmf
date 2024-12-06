@@ -1,0 +1,40 @@
+discover:
+    how: fmf
+execute:
+    how: tmt
+environment:
+    PODMAN: /usr/bin/podman
+    PODMAN_REMOTE: /usr/bin/podman-remote
+    PODMAN_TESTING: /usr/bin/podman-testing
+    QUADLET: /usr/libexec/podman/quadlet
+    ROOTLESS_USER: fedora
+    PODMAN_SOURCE_DIR: $TMT_TREE
+adjust:
+    environment+:
+        PODMAN_SOURCE_DIR: $TMT_SOURCE_DIR
+    when: initiator != packit or initiator != human
+
+prepare:
+    how: shell
+    script: |
+        rm -f /etc/yum.repos.d/tag-repository.repo
+        loginctl enable-linger fedora
+
+/upstream:
+    summary: Run tests on upstream PRs
+    discover+:
+        filter: tag:upstream
+    adjust+:
+        enabled: false
+        when: initiator is not defined or initiator != packit
+
+/downstream:
+    summary: Run tests on bodhi / errata and dist-git PRs
+    discover+:
+        filter: tag:downstream
+        dist-git-install-builddeps: true
+        dist-git-source: true
+        dist-git-remove-fmf-root: true
+    adjust+:
+        enabled: false
+        when: initiator == packit
