@@ -97,6 +97,7 @@ API Version:\t{{.APIVersion}}
 Go Version:\t{{.GoVersion}}
 {{if .GitCommit -}}Git Commit:\t{{.GitCommit}}\n{{end -}}
 Built:\t{{.BuiltTime}}
+{{if .BuildOrigin -}}Build Origin:\t{{.BuildOrigin}}\n{{end -}}
 OS/Arch:\t{{.OsArch}}
 {{- end}}
 
@@ -108,6 +109,7 @@ API Version:\t{{.APIVersion}}
 Go Version:\t{{.GoVersion}}
 {{if .GitCommit -}}Git Commit:\t{{.GitCommit}}\n{{end -}}
 Built:\t{{.BuiltTime}}
+{{if .BuildOrigin -}}Build Origin:\t{{.BuildOrigin}}\n{{end -}}
 OS/Arch:\t{{.OsArch}}
 {{- end}}{{- end}}
 `
