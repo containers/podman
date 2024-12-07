@@ -1109,6 +1109,8 @@ BOGUS=foo
 		Entry("Container - Quadlet build with multiple tags", "build.multiple-tags.container", []string{"multiple-tags.build"}),
 		Entry("Container - Reuse another container's network", "network.reuse.container", []string{"basic.container"}),
 		Entry("Container - Reuse another named container's network", "network.reuse.name.container", []string{"name.container"}),
+		Entry("Container - Reuse another container's network", "a.network.reuse.container", []string{"basic.container"}),
+		Entry("Container - Reuse another named container's network", "a.network.reuse.name.container", []string{"name.container"}),
 
 		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", []string{"basic.build"}),
 		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", []string{"basic.image"}),
