@@ -2,7 +2,7 @@
 Package client is a Go client for the Docker Engine API.
 
 For more information about the Engine API, see the documentation:
-https://docs.docker.com/engine/api/
+https://docs.docker.com/reference/api/engine/
 
 # Usage
 
@@ -247,6 +247,14 @@ func (cli *Client) tlsConfig() *tls.Config {
 
 func defaultHTTPClient(hostURL *url.URL) (*http.Client, error) {
 	transport := &http.Transport{}
+	// Necessary to prevent long-lived processes using the
+	// client from leaking connections due to idle connections
+	// not being released.
+	// TODO: see if we can also address this from the server side,
+	// or in go-connections.
+	// see: https://github.com/moby/moby/issues/45539
+	transport.MaxIdleConns = 6
+	transport.IdleConnTimeout = 30 * time.Second
 	err := sockets.ConfigureTransport(transport, hostURL.Scheme, hostURL.Host)
 	if err != nil {
 		return nil, err
