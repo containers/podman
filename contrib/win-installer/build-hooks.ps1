@@ -17,7 +17,7 @@ function Build-MSIHooks {
     if ( Get-MingW ) {
         Build-MSIHooks-Using-MingW $msiHooksFolder $artifactsFolder
     } elseif ( Get-VSBuildTools ) {
-        $vsinstance = Get-VSSetupInstance | Select-VSSetupInstance -Product  Microsoft.VisualStudio.Product.BuildTools
+        $vsinstance = Get-VSSetupInstance | Select-VSSetupInstance -Product  Microsoft.VisualStudio.Product.BuildTools -Latest
         Build-MSIHooks-Using-VSBuildTools $msiHooksFolder $artifactsFolder $vsinstance
     } else {
         $msg = "A C/C++ compiler is required to build `"$msiHooksFolder\check.c`". "
