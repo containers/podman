@@ -10,12 +10,16 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage/define"
+	"github.com/containers/image/v5/docker/reference"
+	manifest "github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/transports/alltransports"
 	podmanRegistry "github.com/containers/podman/v5/hack/podman-registry-go"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -368,7 +372,7 @@ add_compression = ["zstd"]`), 0o644)
 	})
 
 	It("annotate", func() {
-		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session := podmanTest.Podman([]string{"manifest", "create", "--annotation", "up=down", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"manifest", "add", "foo", imageListInstance})
@@ -377,12 +381,50 @@ add_compression = ["zstd"]`), 0o644)
 		session = podmanTest.Podman([]string{"manifest", "annotate", "--annotation", "hello=world,withcomma", "--arch", "bar", "foo", imageListARM64InstanceDigest})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
+		session = podmanTest.Podman([]string{"manifest", "annotate", "--index", "--annotation", "top=bottom", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"manifest", "inspect", "foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring(`"architecture": "bar"`))
-		// Check added annotation
-		Expect(session.OutputToString()).To(ContainSubstring(`"hello": "world,withcomma"`))
+		// Extract the digest from the name of the image that we just added to the list
+		ref, err := alltransports.ParseImageName(imageListInstance)
+		Expect(err).ToNot(HaveOccurred())
+		dockerReference := ref.DockerReference()
+		referenceWithDigest, ok := dockerReference.(reference.Canonical)
+		Expect(ok).To(BeTrueBecause("we started with a canonical reference"))
+		// Check that the index has all of the information we've just added to it
+		encoded, err := json.Marshal(&imgspecv1.Index{
+			Versioned: imgspec.Versioned{
+				SchemaVersion: 2,
+			},
+			// media type forced because we need to be able to represent annotations
+			MediaType: imgspecv1.MediaTypeImageIndex,
+			Manifests: []imgspecv1.Descriptor{
+				{
+					// from imageListInstance
+					MediaType: manifest.DockerV2Schema2MediaType,
+					Digest:    referenceWithDigest.Digest(),
+					Size:      527,
+					// OS from imageListInstance(?), Architecture/Variant as above
+					Platform: &imgspecv1.Platform{
+						Architecture: "bar",
+						OS:           "linux",
+					},
+					// added above
+					Annotations: map[string]string{
+						"hello": "world,withcomma",
+					},
+				},
+			},
+			// added above
+			Annotations: map[string]string{
+				"top": "bottom",
+				"up":  "down",
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session.OutputToString()).To(MatchJSON(encoded))
 	})
 
 	It("remove digest", func() {

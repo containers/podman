@@ -119,7 +119,7 @@ func annotate(cmd *cobra.Command, args []string) error {
 	} else {
 		opts.Annotations = annotations
 	}
-	id, err := registry.ImageEngine().ManifestAnnotate(registry.Context(), args[0], args[1], opts)
+	id, err := registry.ImageEngine().ManifestAnnotate(registry.Context(), listImageSpec, instanceSpec, opts)
 	if err != nil {
 		return err
 	}

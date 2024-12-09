@@ -19,7 +19,7 @@ type InspectOptions struct {
 type CreateOptions struct {
 	All        *bool
 	Amend      *bool
-	Annotation map[string]string
+	Annotation map[string]string `json:"annotations" schema:"annotations"`
 }
 
 // ExistsOptions are optional options for checking
@@ -35,7 +35,7 @@ type ExistsOptions struct {
 type AddOptions struct {
 	All *bool
 
-	Annotation map[string]string
+	Annotation map[string]string `json:"annotations" schema:"annotations"`
 	Arch       *string
 	Features   []string
 	OS         *string
@@ -54,7 +54,7 @@ type AddOptions struct {
 //
 //go:generate go run ../generator/generator.go AddArtifactOptions
 type AddArtifactOptions struct {
-	Annotation map[string]string
+	Annotation map[string]string `json:"annotations" schema:"annotations"`
 	Arch       *string
 	Features   []string
 	OS         *string
@@ -87,13 +87,14 @@ type ModifyOptions struct {
 	Operation *string
 	All       *bool // All when true, operate on all images in a manifest list that may be included in Images
 
-	Annotations map[string]string // Annotations to add to the entries for Images in the manifest list
-	Arch        *string           // Arch overrides the architecture for the image
-	Features    []string          // Feature list for the image
-	OS          *string           // OS overrides the operating system for the image
-	OSFeatures  []string          `json:"os_features" schema:"os_features"` // OSFeatures overrides the OS features for the image
-	OSVersion   *string           `json:"os_version" schema:"os_version"`   // OSVersion overrides the operating system version for the image
-	Variant     *string           // Variant overrides the architecture variant for the image
+	Annotations      map[string]string // Annotations to add to the entries for Images in the manifest list
+	IndexAnnotations map[string]string `json:"index_annotations" schema:"index_annotations"` // Annotations to add to the manifest list as a whole
+	Arch             *string           // Arch overrides the architecture for the image
+	Features         []string          // Feature list for the image
+	OS               *string           // OS overrides the operating system for the image
+	OSFeatures       []string          `json:"os_features" schema:"os_features"` // OSFeatures overrides the OS features for the image
+	OSVersion        *string           `json:"os_version" schema:"os_version"`   // OSVersion overrides the operating system version for the image
+	Variant          *string           // Variant overrides the architecture variant for the image
 
 	Images        []string // Images is an optional list of images to add/remove to/from manifest list depending on operation
 	Authfile      *string
