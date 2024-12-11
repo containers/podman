@@ -14,8 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func removeShares(mc *vmconfigs.MachineConfig) error {
-	var removalErr error
+func getVsockShares(mc *vmconfigs.MachineConfig) []vsock.HVSockRegistryEntry {
+	entries := []vsock.HVSockRegistryEntry{}
 
 	for _, mount := range mc.Mounts {
 		if mount.VSockNumber == nil {
@@ -29,15 +29,10 @@ func removeShares(mc *vmconfigs.MachineConfig) error {
 			continue
 		}
 
-		if err := vsockReg.Remove(); err != nil {
-			if removalErr != nil {
-				logrus.Errorf("Error removing vsock: %v", removalErr)
-			}
-			removalErr = fmt.Errorf("removing vsock %d for mountpoint %s: %w", *mount.VSockNumber, mount.Target, err)
-		}
+		entries = append(entries, *vsockReg)
 	}
 
-	return removalErr
+	return entries
 }
 
 func startShares(mc *vmconfigs.MachineConfig) error {
@@ -70,14 +65,16 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func createShares(mc *vmconfigs.MachineConfig) (err error) {
+func createShares(mc *vmconfigs.MachineConfig) ([]vsock.HVSockRegistryEntry, error) {
+	vsockEntries := []vsock.HVSockRegistryEntry{}
 	for _, mount := range mc.Mounts {
-		testVsock, err := vsock.NewHVSockRegistryEntry(mc.Name, vsock.Fileserver)
+		testVsock, err := vsock.CreateHVSockRegistryEntry(mc.Name, vsock.Fileserver)
 		if err != nil {
-			return err
+			return nil, err
 		}
+		vsockEntries = append(vsockEntries, *testVsock)
 		mount.VSockNumber = &testVsock.Port
 		logrus.Debugf("Going to share directory %s via 9p on vsock %d", mount.Source, testVsock.Port)
 	}
-	return nil
+	return vsockEntries, nil
 }

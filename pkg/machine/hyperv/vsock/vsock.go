@@ -7,10 +7,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
+	"os/exec"
 	"strings"
+	"syscall"
 
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/podman/v5/pkg/machine/sockets"
+	"github.com/containers/podman/v5/pkg/machine/windows"
 	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows/registry"
@@ -82,49 +86,6 @@ type HVSockRegistryEntry struct {
 	Key         registry.Key  `json:"key,omitempty"`
 }
 
-// Add creates a new Windows registry entry with string values from the
-// HVSockRegistryEntry.
-func (hv *HVSockRegistryEntry) Add() error {
-	if err := hv.validate(); err != nil {
-		return err
-	}
-	exists, err := hv.exists()
-	if err != nil {
-		return err
-	}
-	if exists {
-		return fmt.Errorf("%q: %s", ErrVSockRegistryEntryExists, hv.KeyName)
-	}
-	parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
-	defer func() {
-		if err := parentKey.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	if err != nil {
-		return err
-	}
-	newKey, _, err := registry.CreateKey(parentKey, hv.KeyName, registry.WRITE)
-	defer func() {
-		if err := newKey.Close(); err != nil {
-			logrus.Error(err)
-		}
-	}()
-	if err != nil {
-		return err
-	}
-
-	if err := newKey.SetStringValue(HvsockPurpose, hv.Purpose.string()); err != nil {
-		return err
-	}
-	return newKey.SetStringValue(HvsockMachineName, hv.MachineName)
-}
-
-// Remove deletes the registry key and its string values
-func (hv *HVSockRegistryEntry) Remove() error {
-	return registry.DeleteKey(registry.LOCAL_MACHINE, hv.fqPath())
-}
-
 func (hv *HVSockRegistryEntry) fqPath() string {
 	return fmt.Sprintf("%s\\%s", VsockRegistryPath, hv.KeyName)
 }
@@ -186,9 +147,9 @@ func findOpenHVSockPort() (uint64, error) {
 	return 0, errors.New("unable to find a free port for hvsock use")
 }
 
-// NewHVSockRegistryEntry is a constructor to make a new registry entry in Windows.  After making the new
-// object, you must call the add() method to *actually* add it to the Windows registry.
-func NewHVSockRegistryEntry(machineName string, purpose HVSockPurpose) (*HVSockRegistryEntry, error) {
+// CreateHVSockRegistryEntry is a constructor to make an instance of a registry entry in Windows. After making the new
+// object, you must call the add() method or AddHVSockRegistryEntries(...) to *actually* add it to the Windows registry.
+func CreateHVSockRegistryEntry(machineName string, purpose HVSockPurpose) (*HVSockRegistryEntry, error) {
 	// a so-called wildcard entry ... everything from FACB -> 6D3 is MS special sauce
 	// for a " linux vm".  this first segment is hexi for the hvsock port number
 	// 00000400-FACB-11E6-BD58-64006A7986D3
@@ -202,10 +163,84 @@ func NewHVSockRegistryEntry(machineName string, purpose HVSockPurpose) (*HVSockR
 		Port:        port,
 		MachineName: machineName,
 	}
-	if err := r.Add(); err != nil {
-		return nil, err
-	}
+
 	return &r, nil
+}
+
+// it adds multiple registry entries to the Windows registry
+//
+// This func supports bulk insertion so the user is asked for elevated rights only once
+func ElevateAndAddEntries(entries []HVSockRegistryEntry) error {
+	// create a script which will be executed with elevated rights
+	script := ""
+	for _, entry := range entries {
+		if err := entry.validate(); err != nil {
+			return err
+		}
+		exists, err := entry.exists()
+		if err != nil {
+			return err
+		}
+		if exists {
+			return fmt.Errorf("%q: %s", ErrVSockRegistryEntryExists, entry.KeyName)
+		}
+		parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
+		defer func() {
+			if err := parentKey.Close(); err != nil {
+				logrus.Error(err)
+			}
+		}()
+		if err != nil {
+			return err
+		}
+
+		// for each entry it adds a purpose and machineName property
+		registryPath := fmt.Sprintf("HKLM:\\%s", VsockRegistryPath)
+		keyPath := fmt.Sprintf("%s\\%s", registryPath, entry.KeyName)
+
+		createRegistryKeyCmd := fmt.Sprintf("New-Item -Path '%s' -Name '%s'", registryPath, entry.KeyName)
+		addPurposePropertyCmd := fmt.Sprintf("New-ItemProperty -Path '%s' -Name '%s' -Value '%s' -PropertyType String", keyPath, HvsockPurpose, entry.Purpose.string())
+		addMachinePropertyCmd := fmt.Sprintf("New-ItemProperty -Path '%s' -Name '%s' -Value '%s' -PropertyType String", keyPath, HvsockMachineName, entry.MachineName)
+
+		script += fmt.Sprintf("%s; %s; %s;", createRegistryKeyCmd, addPurposePropertyCmd, addMachinePropertyCmd)
+	}
+
+	// launch the script in elevated mode
+	return launchElevated(script)
+}
+
+// It removes multiple registry entries from the Windows registry
+//
+// This func supports bulk deletion so the user is asked for elevated rights only once
+func ElevateAndRemoveEntries(entries []HVSockRegistryEntry) error {
+	// create a script which will be executed with elevated rights
+	script := ""
+	for _, entry := range entries {
+		// for each entry it calculate the path and the script to remove it
+		registryPath := fmt.Sprintf("HKLM:\\%s", VsockRegistryPath)
+		keyPath := fmt.Sprintf("%s\\%s", registryPath, entry.KeyName)
+
+		removeRegistryKeyCmd := fmt.Sprintf("Remove-Item -Path '%s' -Force -Recurse", keyPath)
+
+		script += fmt.Sprintf("%s;", removeRegistryKeyCmd)
+	}
+
+	// launch the script in elevated mode
+	return launchElevated(script)
+}
+
+func launchElevated(args string) error {
+	psPath, err := exec.LookPath("powershell.exe")
+	if err != nil {
+		return err
+	}
+
+	d, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	return windows.LaunchElevatedWaitWithWindowMode(psPath, d, args, syscall.SW_HIDE)
 }
 
 func portToKeyName(port uint64) string {

@@ -34,8 +34,11 @@ func Get() (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
-		if !wsl.HasAdminRights() {
-			return nil, fmt.Errorf("hyperv machines require admin authority")
+		// to manage hyper-v on a local computer the user account must belong to
+		// the Administrators group or the Hyper-V Administrators group
+		// https://learn.microsoft.com/en-us/windows-server/virtualization/hyper-v/manage/remotely-manage-hyper-v-hosts#manage-hyper-v-on-a-local-computer
+		if !hyperv.HasHyperVAdminRights() && !wsl.HasAdminRights() {
+			return nil, fmt.Errorf("hyperv machines require hyperv admin authority or admin authority")
 		}
 		return new(hyperv.HyperVStubber), nil
 	default:

@@ -295,8 +295,9 @@ When `machine init` completes, run `machine start`:
 .\bin\windows\podman.exe machine start
 ```
 
-:information_source: If the virtualization provider is Hyperv-V, execute the
-above commands in an administrator terminal.
+:information_source: If the virtualization provider is Hyperv-V, you will be asked
+to elevate privileges to add/remove specific Windows Registry Podman settings.
+Additionally, you must be a member of the Hyper-V Administrators group.
 
 ### Run a container using podman
 
