@@ -116,7 +116,7 @@
 		<InstallExecuteSequence>
 			<Custom Action="CheckWSL" Before="SetWSL_INSTALL" />
 			<Custom Action="CheckHyperV" Before="SetHYPERV_INSTALL" />
-			<ForceReboot Before="StopServices" Condition="(NOT Installed) AND (NOT UpdateStarted) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
+			<ForceReboot After="DismX86" Condition="(NOT Installed) AND (NOT UpdateStarted) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
 		</InstallExecuteSequence>
 		<Binary Id="PodmanHooks" SourceFile="artifacts/podman-msihooks.dll" />
 
