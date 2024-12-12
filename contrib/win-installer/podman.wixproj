@@ -1,4 +1,4 @@
-<Project Sdk="WixToolset.Sdk/5.0.0">
+<Project Sdk="WixToolset.Sdk/5.0.2">
 	<PropertyGroup>
 		<InstallerPlatform>x64</InstallerPlatform>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
@@ -13,9 +13,9 @@
 		<Compile Include="podman.wxs;podman-ui.wxs;welcome-install-dlg.wxs" />
 	</ItemGroup>
 	<ItemGroup>
-		<PackageReference Include="PanelSwWixExtension4" Version="5.1.1.375" />
-		<PackageReference Include="WixToolset.Heat" Version="5.0.0" />
-		<PackageReference Include="WixToolset.UI.wixext" Version="5.0.0" />
-		<PackageReference Include="WixToolset.Util.wixext" Version="5.0.0" />
+		<PackageReference Include="PanelSwWixExtension4" Version="5.4.5.422" />
+		<PackageReference Include="WixToolset.Heat" Version="5.0.2" />
+		<PackageReference Include="WixToolset.UI.wixext" Version="5.0.2" />
+		<PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
 	 </ItemGroup>
 </Project>
