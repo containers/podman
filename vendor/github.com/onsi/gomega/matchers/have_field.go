@@ -40,7 +40,12 @@ func extractField(actual interface{}, field string, matchername string) (any, er
 			extractedValue = actualValue.Addr().MethodByName(strings.TrimSuffix(fields[0], "()"))
 		}
 		if extractedValue == (reflect.Value{}) {
-			return nil, missingFieldError(fmt.Sprintf("%s could not find method named '%s' in struct of type %T.", matchername, fields[0], actual))
+			ptr := reflect.New(actualValue.Type())
+			ptr.Elem().Set(actualValue)
+			extractedValue = ptr.MethodByName(strings.TrimSuffix(fields[0], "()"))
+			if extractedValue == (reflect.Value{}) {
+				return nil, missingFieldError(fmt.Sprintf("%s could not find method named '%s' in struct of type %T.", matchername, fields[0], actual))
+			}
 		}
 		t := extractedValue.Type()
 		if t.NumIn() != 0 || t.NumOut() != 1 {

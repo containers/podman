@@ -1,3 +1,9 @@
+## 1.36.1
+
+### Fixes
+- Fix https://github.com/onsi/gomega/issues/803 [1c6c112]
+- resolves onsi/gomega#696: make HaveField great on pointer receivers given only a non-addressable value [4feb9d7]
+
 ## 1.36.0
 
 ### Features
