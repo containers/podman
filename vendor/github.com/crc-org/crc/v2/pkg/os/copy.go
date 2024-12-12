@@ -2,6 +2,7 @@ package os
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"os"
 )
@@ -22,7 +23,7 @@ func copyFile(src, dst string, sparse bool) error {
 	defer out.Close()
 
 	if sparse {
-		if _, err = CopySparse(out, in); err != nil {
+		if _, err = CopySparse(context.TODO(), out, in); err != nil {
 			return err
 		}
 	} else {
@@ -51,9 +52,13 @@ func CopyFileSparse(src, dst string) error {
 	return copyFile(src, dst, true)
 }
 
-func CopySparse(dst io.WriteSeeker, src io.Reader) (int64, error) {
+func CopySparse(ctx context.Context, dst io.WriteSeeker, src io.Reader) (int64, error) {
 	copyBuf := make([]byte, copyChunkSize)
-	sparseWriter := newSparseWriter(dst)
+
+	if ctx == nil {
+		panic("ctx is nil, this should not happen")
+	}
+	sparseWriter := newSparseWriter(ctx, dst)
 
 	bytesWritten, err := io.CopyBuffer(sparseWriter, src, copyBuf)
 	if err != nil {
@@ -64,12 +69,13 @@ func CopySparse(dst io.WriteSeeker, src io.Reader) (int64, error) {
 }
 
 type sparseWriter struct {
+	context         context.Context
 	writer          io.WriteSeeker
 	lastChunkSparse bool
 }
 
-func newSparseWriter(writer io.WriteSeeker) *sparseWriter {
-	return &sparseWriter{writer: writer}
+func newSparseWriter(ctx context.Context, writer io.WriteSeeker) *sparseWriter {
+	return &sparseWriter{context: ctx, writer: writer}
 }
 
 const copyChunkSize = 4096
@@ -84,18 +90,23 @@ func isEmptyChunk(p []byte) bool {
 }
 
 func (w *sparseWriter) Write(p []byte) (n int, err error) {
-	if isEmptyChunk(p) {
-		offset, err := w.writer.Seek(int64(len(p)), io.SeekCurrent)
-		if err != nil {
-			w.lastChunkSparse = false
-			return 0, err
+	select {
+	case <-w.context.Done(): // Context cancelled
+		return 0, w.context.Err()
+	default:
+		if isEmptyChunk(p) {
+			offset, err := w.writer.Seek(int64(len(p)), io.SeekCurrent)
+			if err != nil {
+				w.lastChunkSparse = false
+				return 0, err
+			}
+			_ = offset
+			w.lastChunkSparse = true
+			return len(p), nil
 		}
-		_ = offset
-		w.lastChunkSparse = true
-		return len(p), nil
+		w.lastChunkSparse = false
+		return w.writer.Write(p)
 	}
-	w.lastChunkSparse = false
-	return w.writer.Write(p)
 }
 
 func (w *sparseWriter) Close() error {
