@@ -315,7 +315,7 @@ The Podman Windows installer (e.g., `podman-5.1.0-dev-setup.exe`) is a bundle
 that includes an msi package (`podman.msi`) and installs the WSL kernel
 (`podman-wslkerninst.exe`). It's built using the
 [WiX Toolset](https://wixtoolset.org/) and the
-[PanelSwWixExtension](https://github.com/nirbar/PanelSwWixExtension/tree/wix3-v3.11.1.353)
+[PanelSwWixExtension](https://github.com/nirbar/PanelSwWixExtension/tree/master5)
 WiX extension. The source code is in the folder `contrib\win-installer`.
 
 ### Build the Windows installer
