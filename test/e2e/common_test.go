@@ -923,10 +923,10 @@ func SkipIfNotSystemd(manager, reason string) {
 	}
 }
 
-func SkipOnOSVersion(os, version string) {
+func SkipOnOSVersion(os, version string, reason string) {
 	info := GetHostDistributionInfo()
 	if info.Distribution == os && info.Version == version {
-		Skip(fmt.Sprintf("Test doesn't work on %s %s", os, version))
+		Skip(fmt.Sprintf("[%s %s]: %s", os, version, reason))
 	}
 }
 
