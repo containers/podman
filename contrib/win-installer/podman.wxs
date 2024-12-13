@@ -10,7 +10,7 @@
 	<?define UseGVProxy = ""?>
 	<?endif?>
 
-	<Package Name="podman" Manufacturer="Red Hat Inc." Version="$(VERSION)" UpgradeCode="a6a9dd9c-0732-44ba-9279-ffe22ea50671">
+	<Package Name="podman" Manufacturer="Red Hat Inc." Version="$(VERSION)" UpgradeCode="a6a9dd9c-0732-44ba-9279-ffe22ea50671" ProductCode="18107131-1820-4878-8AEE-65AAE37BC1E3">
 		<Media Id="1" Cabinet="Podman.cab" EmbedCab="yes" />
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." RemoveFeatures="Complete" Schedule="afterInstallExecute" />
 		<Property Id="DiskPrompt" Value="Red Hat's Podman $(VERSION) Installation" />
@@ -72,14 +72,14 @@
 		<CustomAction Id="CheckHyperV" Execute="firstSequence" DllEntry="CheckHyperV" BinaryRef="PodmanHooks" />
 		<util:BroadcastEnvironmentChange />
 		<ComponentGroup Id="WSLFeature" Directory="INSTALLDIR">
-			<Component Id="WSLFeatureComponent" Guid="F6A693BC-186C-4E64-8015-C3073013B3A8" Condition="(NOT WIX_UPGRADE_DETECTED) AND (WSL_INSTALL = 1)">
+			<Component Id="WSLFeatureComponent" Guid="F6A693BC-186C-4E64-8015-C3073013B3A8" Condition="(NOT Installed) AND (WSL_INSTALL = 1)">
 				<CreateFolder />
 				<PanelSW:Dism EnableFeature="VirtualMachinePlatform" ErrorHandling="prompt" />
 				<PanelSW:Dism EnableFeature="Microsoft-Windows-Subsystem-Linux" ErrorHandling="prompt" />
 			</Component>
 		</ComponentGroup>
 		<ComponentGroup Id="HyperVFeature" Directory="INSTALLDIR">
-			<Component Id="HyperVFeatureComponent" Guid="F7B2D4C9-6C89-46BB-B4EA-FF39424972F3" Condition="(NOT WIX_UPGRADE_DETECTED) AND (HYPERV_INSTALL = 1)">
+			<Component Id="HyperVFeatureComponent" Guid="F7B2D4C9-6C89-46BB-B4EA-FF39424972F3" Condition="(NOT Installed) AND (HYPERV_INSTALL = 1)">
 				<CreateFolder />
 				<PanelSW:Dism EnableFeature="Microsoft-Hyper-V" ErrorHandling="prompt" />
 			</Component>
@@ -110,13 +110,13 @@
 		<WixVariable Id="WixUIDialogBmp" Value="resources\podman-dialog.png" />
 		<UIRef Id="PodmanUI" />
 		<UI>
-			<Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenGuide" Condition="(WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1) AND (NOT WIX_UPGRADE_DETECTED)" />
+			<Publish Dialog="ExitDialog" Control="Finish" Event="DoAction" Value="OpenGuide" Condition="(WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1) AND (NOT Installed) AND (NOT UpdateStarted)" />
 		</UI>
 
 		<InstallExecuteSequence>
 			<Custom Action="CheckWSL" Before="SetWSL_INSTALL" />
 			<Custom Action="CheckHyperV" Before="SetHYPERV_INSTALL" />
-			<ForceReboot Before="StopServices" Condition="(NOT WIX_UPGRADE_DETECTED) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
+			<ForceReboot After="DismX86" Condition="(NOT Installed) AND (NOT UpdateStarted) AND (NOT BURNMSIUNINSTALL) AND ((WSL_INSTALL = 1) OR (HYPERV_INSTALL = 1)) AND (NOT AFTERREBOOT)" />
 		</InstallExecuteSequence>
 		<Binary Id="PodmanHooks" SourceFile="artifacts/podman-msihooks.dll" />
 
@@ -154,7 +154,7 @@
 		<StandardDirectory Id="CommonAppDataFolder">
 			<Directory Id="CONFIGDIR" Name="containers">
 				<Directory Id="ContainersConfigSubDir" Name="containers.conf.d">
-					<Component Id="MachineProviderConfigFile" Guid="C32C0040-D9AF-4155-AC7E-465B63B6BE3B" Condition="CREATE_MACHINE_PROVIDER_CONFIG_FILE">
+					<Component Id="MachineProviderConfigFile" Guid="C32C0040-D9AF-4155-AC7E-465B63B6BE3B" Condition="CREATE_MACHINE_PROVIDER_CONFIG_FILE" Transitive="true">
 						<CreateFolder />
 						<IniFile Id="MachineProviderConfigFile" Action="createLine" Directory="ContainersConfigSubDir" Section="machine" Name="99-podman-machine-provider.conf" Key="provider" Value="&quot;[MACHINE_PROVIDER]&quot;" />
 					</Component>
