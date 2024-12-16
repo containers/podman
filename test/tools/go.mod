@@ -6,7 +6,7 @@ module github.com/containers/podman/test/tools
 go 1.22.0
 
 require (
-	github.com/cpuguy83/go-md2man/v2 v2.0.5
+	github.com/cpuguy83/go-md2man/v2 v2.0.6
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/onsi/ginkgo/v2 v2.22.0
 	github.com/vbatts/git-validation v1.2.1
