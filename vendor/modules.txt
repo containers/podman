@@ -178,7 +178,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.61.1-0.20241202111335-2d4a9a65dd81
+# github.com/containers/common v0.61.1-0.20241211190400-a56e85d51c4e
 ## explicit; go 1.22.6
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring

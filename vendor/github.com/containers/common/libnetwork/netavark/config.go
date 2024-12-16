@@ -30,6 +30,9 @@ func sliceRemoveDuplicates(strList []string) []string {
 }
 
 func (n *netavarkNetwork) commitNetwork(network *types.Network) error {
+	if err := os.MkdirAll(n.networkConfigDir, 0o755); err != nil {
+		return nil
+	}
 	confPath := filepath.Join(n.networkConfigDir, network.Name+".json")
 	f, err := os.Create(confPath)
 	if err != nil {
