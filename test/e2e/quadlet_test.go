@@ -1074,6 +1074,7 @@ BOGUS=foo
 		Entry("Build - File Key relative no WD", "file-rel-no-wd.build", "converting \"file-rel-no-wd.build\": relative path in File key requires SetWorkingDirectory key to be set"),
 		Entry("Build - Neither WorkingDirectory nor File Key", "neither-workingdirectory-nor-file.build", "converting \"neither-workingdirectory-nor-file.build\": neither SetWorkingDirectory, nor File key specified"),
 		Entry("Build - No ImageTag Key", "no-imagetag.build", "converting \"no-imagetag.build\": no ImageTag key specified"),
+		Entry("emptyline.container", "emptyline.container", "converting \"emptyline.container\": no Image or Rootfs key specified"),
 	)
 
 	DescribeTable("Running success quadlet with ServiceName test case",
