@@ -168,10 +168,10 @@ function check_shell_completion() {
 
                 *REGISTRY*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
-                    ### FIXME how can we get the configured registries?
                     _check_completion_end NoFileComp
-                    ### FIXME this fails if no registries are configured
                     assert "${#lines[@]}" -gt 2 "$* $cmd: No REGISTRIES found in suggestions"
+                    # We can assume quay.io as we force our own CONTAINERS_REGISTRIES_CONF below.
+                    assert "${lines[0]}" == "quay.io" "unqualified-search-registries from registries.conf listed"
 
                     match=true
                     # resume
@@ -310,6 +310,11 @@ function _check_no_suggestions() {
 
     # create secret
     run_podman secret create $random_secret_name $secret_file
+
+    # create our own registries.conf so we know what registry is set
+    local CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf"
+    echo 'unqualified-search-registries = ["quay.io"]' > "$CONTAINERS_REGISTRIES_CONF"
+    export CONTAINERS_REGISTRIES_CONF
 
     # Called with no args -- start with 'podman --help'. check_shell_completion() will
     # recurse for any subcommands.
