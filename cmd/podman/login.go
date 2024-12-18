@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
@@ -99,6 +100,10 @@ func login(cmd *cobra.Command, args []string) error {
 		DockerInsecureSkipTLSVerify: skipTLS,
 	}
 	common.SetRegistriesConfPath(sysCtx)
+	registriesFromFile, _ := sysregistriesv2.UnqualifiedSearchRegistries(sysCtx)
+	if len(registriesFromFile) > 1 {
+		return errors.New("multiple registries in registry.conf, a registry must be provided")
+	}
 	loginOptions.GetLoginSet = cmd.Flag("get-login").Changed
 	return auth.Login(context.Background(), sysCtx, &loginOptions.LoginOptions, args)
 }
