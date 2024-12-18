@@ -5820,8 +5820,6 @@ definitions:
           type: "string"
         example:
           - "WARNING: No memory limit support"
-          - "WARNING: bridge-nf-call-iptables is disabled"
-          - "WARNING: bridge-nf-call-ip6tables is disabled"
       CDISpecDirs:
         description: |
           List of directories where (Container Device Interface) CDI
@@ -9563,7 +9561,7 @@ paths:
             type: "string"
             example: "OK"
           headers:
-            API-Version:
+            Api-Version:
               type: "string"
               description: "Max API Version the server supports"
             Builder-Version:
@@ -9619,7 +9617,7 @@ paths:
             type: "string"
             example: "(empty)"
           headers:
-            API-Version:
+            Api-Version:
               type: "string"
               description: "Max API Version the server supports"
             Builder-Version:
