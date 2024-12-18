@@ -1188,14 +1188,15 @@ func generateKubePersistentVolumeClaim(v *ContainerNamedVolume) (v1.VolumeMount,
 	ro := slices.Contains(v.Options, "ro")
 
 	// To avoid naming conflicts with any host path mounts, add a unique suffix to the volume's name.
-	name := v.Name + "-pvc"
+	vName := strings.ToLower(v.Name)
+	name := vName + "-pvc"
 
 	vm := v1.VolumeMount{}
 	vm.Name = name
 	vm.MountPath = v.Dest
 	vm.ReadOnly = ro
 
-	pvc := v1.PersistentVolumeClaimVolumeSource{ClaimName: v.Name, ReadOnly: ro}
+	pvc := v1.PersistentVolumeClaimVolumeSource{ClaimName: vName, ReadOnly: ro}
 	vs := v1.VolumeSource{}
 	vs.PersistentVolumeClaim = &pvc
 	vo := v1.Volume{Name: name, VolumeSource: vs}
@@ -1274,7 +1275,7 @@ func convertVolumePathToName(hostSourcePath string) (string, error) {
 	}
 	// First, trim trailing slashes, then replace slashes with dashes.
 	// Thus, /mnt/data/ will become mnt-data
-	return strings.ReplaceAll(strings.Trim(hostSourcePath, "/"), "/", "-"), nil
+	return strings.ToLower(strings.ReplaceAll(strings.Trim(hostSourcePath, "/"), "/", "-")), nil
 }
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {
