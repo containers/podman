@@ -1188,7 +1188,7 @@ func generateKubePersistentVolumeClaim(v *ContainerNamedVolume) (v1.VolumeMount,
 	ro := slices.Contains(v.Options, "ro")
 
 	// To avoid naming conflicts with any host path mounts, add a unique suffix to the volume's name.
-	vName := strings.ToLower(v.Name)
+	vName := fixKubeVolumeName(v.Name)
 	name := vName + "-pvc"
 
 	vm := v1.VolumeMount{}
@@ -1262,6 +1262,15 @@ func isHostPathDirectory(hostPathSource string) (bool, error) {
 	return info.Mode().IsDir(), nil
 }
 
+func fixKubeVolumeName(source string) string {
+	// Trim trailing slashes,
+	// Replace slashes with dashes.
+	// Replace underscores with dashes.
+	// Force all letters to lower case
+	// Thus, /mnt/data/ will become mnt-data
+	return strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(strings.Trim(source, "/"), "/", "-"), "_", "-"))
+}
+
 func convertVolumePathToName(hostSourcePath string) (string, error) {
 	if len(hostSourcePath) == 0 {
 		return "", errors.New("hostSourcePath must be specified to generate volume name")
@@ -1273,9 +1282,7 @@ func convertVolumePathToName(hostSourcePath string) (string, error) {
 		// add special case name
 		return "root", nil
 	}
-	// First, trim trailing slashes, then replace slashes with dashes.
-	// Thus, /mnt/data/ will become mnt-data
-	return strings.ToLower(strings.ReplaceAll(strings.Trim(hostSourcePath, "/"), "/", "-")), nil
+	return fixKubeVolumeName(hostSourcePath), nil
 }
 
 func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v1.Capabilities {

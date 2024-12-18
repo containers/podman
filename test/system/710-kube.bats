@@ -99,12 +99,12 @@ status                           | =  | null
       KUBE=$PODMAN_TMPDIR/kube.yaml
       source=$PODMAN_TMPDIR/Upper/Case/Path
       mkdir -p ${source}
-      run_podman create --name $cname -v $source:/mnt -v UPPERCASEVolume:/volume $IMAGE
+      run_podman create --name $cname -v $source:/mnt -v UPPERCASE_Volume:/volume $IMAGE
       run_podman kube generate $cname -f $KUBE
-      assert "$(< $KUBE)" =~ "name: uppercasevolume-pvc" "Lowercase volume name"
+      assert "$(< $KUBE)" =~ "name: uppercase-volume-pvc" "Lowercase volume name"
       assert "$(< $KUBE)" =~ "upper-case-path" "Lowercase volume paths"
       run_podman rm $cname
-      run_podman volume rm UPPERCASEVolume
+      run_podman volume rm UPPERCASE_Volume
 }
 
 @test "podman kube generate - pod" {
