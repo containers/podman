@@ -3,6 +3,7 @@ package types
 import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/specgen"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 type ContainerCopyFunc func() error
@@ -36,7 +37,50 @@ type ContainerStatsReport struct {
 }
 
 type ContainerUpdateOptions struct {
-	NameOrID                        string
+	NameOrID string
+	// This individual items of Specgen are used to update container configuration:
+	// - ResourceLimits
+	// - RestartPolicy
+	// - RestartRetries
+	//
+	// Deprecated: Specgen should not be used to change the container configuration.
+	// Specgen is processed first, so values will be overwritten by values from other fields.
+	//
+	// To change configuration use other fields in ContainerUpdateOptions struct:
+	// - Resources to change resource configuration
+	// - DevicesLimits to Limit device
+	// - RestartPolicy to change restart policy
+	// - RestartRetries to change restart retries
 	Specgen                         *specgen.SpecGenerator
+	Resources                       *specs.LinuxResources
+	DevicesLimits                   *define.UpdateContainerDevicesLimits
 	ChangedHealthCheckConfiguration *define.UpdateHealthCheckConfig
+	RestartPolicy                   *string
+	RestartRetries                  *uint
+}
+
+func (u *ContainerUpdateOptions) ProcessSpecgen() {
+	if u.Specgen == nil {
+		return
+	}
+
+	if u.Resources == nil {
+		u.Resources = u.Specgen.ResourceLimits
+	}
+
+	if u.DevicesLimits == nil {
+		u.DevicesLimits = new(define.UpdateContainerDevicesLimits)
+		u.DevicesLimits.SetBlkIOWeightDevice(u.Specgen.WeightDevice)
+		u.DevicesLimits.SetDeviceReadBPs(u.Specgen.ThrottleReadBpsDevice)
+		u.DevicesLimits.SetDeviceWriteBPs(u.Specgen.ThrottleWriteBpsDevice)
+		u.DevicesLimits.SetDeviceReadIOPs(u.Specgen.ThrottleReadIOPSDevice)
+		u.DevicesLimits.SetDeviceWriteIOPs(u.Specgen.ThrottleWriteIOPSDevice)
+	}
+
+	if u.RestartPolicy == nil {
+		u.RestartPolicy = &u.Specgen.RestartPolicy
+	}
+	if u.RestartRetries == nil {
+		u.RestartRetries = u.Specgen.RestartRetries
+	}
 }

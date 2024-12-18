@@ -1297,3 +1297,27 @@ func GetResources(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) 
 	}
 	return s.ResourceLimits, nil
 }
+
+func UpdateMajorAndMinorNumbers(resources *specs.LinuxResources, devicesLimits *define.UpdateContainerDevicesLimits) (*specs.LinuxResources, error) {
+	spec := specgen.SpecGenerator{}
+	spec.ResourceLimits = &specs.LinuxResources{}
+	if resources != nil {
+		spec.ResourceLimits = resources
+	}
+
+	spec.WeightDevice = devicesLimits.GetMapOfLinuxWeightDevice()
+	spec.ThrottleReadBpsDevice = devicesLimits.GetMapOfDeviceReadBPs()
+	spec.ThrottleWriteBpsDevice = devicesLimits.GetMapOfDeviceWriteBPs()
+	spec.ThrottleReadIOPSDevice = devicesLimits.GetMapOfDeviceReadIOPs()
+	spec.ThrottleWriteIOPSDevice = devicesLimits.GetMapOfDeviceWriteIOPs()
+
+	err := specgen.WeightDevices(&spec)
+	if err != nil {
+		return nil, err
+	}
+	err = specgen.FinishThrottleDevices(&spec)
+	if err != nil {
+		return nil, err
+	}
+	return spec.ResourceLimits, nil
+}

@@ -1792,14 +1792,7 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 
 // ContainerUpdate finds and updates the given container's cgroup config with the specified options
 func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *entities.ContainerUpdateOptions) (string, error) {
-	err := specgen.WeightDevices(updateOptions.Specgen)
-	if err != nil {
-		return "", err
-	}
-	err = specgen.FinishThrottleDevices(updateOptions.Specgen)
-	if err != nil {
-		return "", err
-	}
+	updateOptions.ProcessSpecgen()
 	containers, err := getContainers(ic.Libpod, getContainersOptions{names: []string{updateOptions.NameOrID}})
 	if err != nil {
 		return "", err
@@ -1809,12 +1802,12 @@ func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *e
 	}
 	container := containers[0].Container
 
-	var restartPolicy *string
-	if updateOptions.Specgen.RestartPolicy != "" {
-		restartPolicy = &updateOptions.Specgen.RestartPolicy
+	resourceLimits, err := specgenutil.UpdateMajorAndMinorNumbers(updateOptions.Resources, updateOptions.DevicesLimits)
+	if err != nil {
+		return "", err
 	}
 
-	if err = container.Update(updateOptions.Specgen.ResourceLimits, restartPolicy, updateOptions.Specgen.RestartRetries, updateOptions.ChangedHealthCheckConfiguration); err != nil {
+	if err = container.Update(resourceLimits, updateOptions.RestartPolicy, updateOptions.RestartRetries, updateOptions.ChangedHealthCheckConfiguration); err != nil {
 		return "", err
 	}
 	return containers[0].ID(), nil

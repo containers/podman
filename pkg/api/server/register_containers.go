@@ -1804,9 +1804,8 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	// produces:
 	// - application/json
 	// responses:
-	//   responses:
-	//     201:
-	//       $ref: "#/responses/containerUpdateResponse"
+	//   201:
+	//     $ref: "#/responses/containerUpdateResponse"
 	//   400:
 	//     $ref: "#/responses/badParamError"
 	//   404:

@@ -20,15 +20,16 @@ func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string,
 	}
 
 	params := url.Values{}
-	if options.Specgen.RestartPolicy != "" {
-		params.Set("restartPolicy", options.Specgen.RestartPolicy)
-		if options.Specgen.RestartRetries != nil {
-			params.Set("restartRetries", strconv.Itoa(int(*options.Specgen.RestartRetries)))
+	if options.RestartPolicy != nil {
+		params.Set("restartPolicy", *options.RestartPolicy)
+		if options.RestartRetries != nil {
+			params.Set("restartRetries", strconv.Itoa(int(*options.RestartRetries)))
 		}
 	}
 	updateEntities := &handlers.UpdateEntities{
-		LinuxResources:          *options.Specgen.ResourceLimits,
-		UpdateHealthCheckConfig: *options.ChangedHealthCheckConfiguration,
+		LinuxResources:               *options.Resources,
+		UpdateHealthCheckConfig:      *options.ChangedHealthCheckConfiguration,
+		UpdateContainerDevicesLimits: *options.DevicesLimits,
 	}
 	requestData, err := jsoniter.MarshalToString(updateEntities)
 	if err != nil {
