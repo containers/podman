@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
+	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
@@ -276,7 +277,9 @@ func getSecrets(cmd *cobra.Command, toComplete string, cType completeType) ([]st
 }
 
 func getRegistries() ([]string, cobra.ShellCompDirective) {
-	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(nil)
+	sysCtx := &imageTypes.SystemContext{}
+	SetRegistriesConfPath(sysCtx)
+	regs, err := sysregistriesv2.UnqualifiedSearchRegistries(sysCtx)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp

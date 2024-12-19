@@ -1001,6 +1001,14 @@ _EOF
     # Remove the local image to make sure it will be pulled again
     run_podman image rm --ignore $from_image
 
+    # The error below assumes unqualified-search registries exist, however the default
+    # distro config may not set some and thus resulting in a different error message.
+    # We could try to match a third or or simply force a know static config to trigger
+    # the right error.
+    local CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf"
+    echo 'unqualified-search-registries = ["quay.io"]' > "$CONTAINERS_REGISTRIES_CONF"
+    export CONTAINERS_REGISTRIES_CONF
+
     _write_test_yaml command=id image=$userimage
     run_podman 125 play kube --build --start=false $TESTYAML
     assert "$output" "=~" \
