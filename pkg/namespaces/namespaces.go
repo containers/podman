@@ -20,7 +20,7 @@ const (
 	pastaType     = "pasta"
 )
 
-// KeepIDUserNsOptions defines how to keepIDmatically create a user namespace.
+// KeepIDUserNsOptions defines how to create a user namespace using keep-id.
 type KeepIDUserNsOptions struct {
 	// UID is the target uid in the user namespace.
 	UID *uint32

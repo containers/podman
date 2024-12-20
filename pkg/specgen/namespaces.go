@@ -56,7 +56,7 @@ const (
 	// Pasta indicates that a pasta network stack should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Pasta NamespaceMode = "pasta"
-	// KeepId indicates a user namespace to keep the owner uid inside
+	// KeepID indicates a user namespace to keep the owner uid inside
 	// of the namespace itself.
 	// Only used with the user namespace, invalid otherwise.
 	KeepID NamespaceMode = "keep-id"
