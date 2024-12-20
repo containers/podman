@@ -11,6 +11,8 @@
 
 %if %{defined fedora}
 %define build_with_btrfs 1
+# No machine stuff for rhel
+%define machine 1
 %endif
 
 %if %{defined copr_username}

@@ -6,3 +6,5 @@ kind/api-change:
 machine:
   - changed-files:
     - any-glob-to-any-file: pkg/machine/**
+release:
+  - base-branch: [^v?(0|[1-9]\d*).(0|[1-9]\d*)$]

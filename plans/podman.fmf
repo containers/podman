@@ -1,0 +1,26 @@
+discover:
+    how: fmf
+execute:
+    how: tmt
+adjust:
+    when: "initiator == packit"
+    because: "We need to test with updated packages from rhcontainerbot/podman-net copr"
+    prepare+:
+        how: shell
+        script: sed -i -n '/^priority=/!p;$apriority=5' /etc/yum.repos.d/*:rhcontainerbot:podman-next.repo
+
+/upstream:
+    summary: Run tests on upstream PRs
+    discover+:
+        filter: tag:upstream
+    adjust+:
+        enabled: false
+        when: revdeps == yes or initiator is not defined or initiator != packit
+
+/downstream:
+    summary: Run tests on bodhi / errata and dist-git PRs
+    discover+:
+        filter: tag:downstream
+    adjust+:
+        enabled: false
+        when: initiator == packit

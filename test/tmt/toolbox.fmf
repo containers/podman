@@ -1,0 +1,8 @@
+require:
+    - toolbox-tests
+
+/rootless:
+    tag: [ downstream ]
+    summary: rootless test
+    test: bash ./toolbox-test.sh
+    duration: 60m
