@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/namespaces"
+	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
@@ -513,6 +514,9 @@ func SetupUserNS(idmappings *storageTypes.IDMappingOptions, userns Namespace, g 
 		opts, err := namespaces.UsernsMode(userns.String()).GetKeepIDOptions()
 		if err != nil {
 			return user, err
+		}
+		if opts.MaxSize != nil && !rootless.IsRootless() {
+			return user, fmt.Errorf("cannot set max size for user namespace when not running rootless")
 		}
 		mappings, uid, gid, err := util.GetKeepIDMapping(opts)
 		if err != nil {

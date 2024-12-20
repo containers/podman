@@ -40,7 +40,7 @@ Podman allocates unique ranges of UIDs and GIDs from the `containers` subordinat
 
 The option `--userns=keep-id` uses all the subuids and subgids of the user.
 The option `--userns=nomap` uses all the subuids and subgids of the user except the user's own ID.
-Using `--userns=auto` when starting new containers does not work as long as any containers exist that were started with `--userns=keep-id` or `--userns=nomap`.
+Using `--userns=auto` when starting new containers does not work as long as any containers exist that were started with `--userns=nomap` or `--userns=keep-id` without limiting the user namespace size.
 
   Valid `auto` options:
 
@@ -62,6 +62,7 @@ For details see **--uidmap**.
 
   - *uid*=UID: override the UID inside the container that is used to map the current user to.
   - *gid*=GID: override the GID inside the container that is used to map the current user to.
+  - *size*=SIZE: override the size of the configured user namespace.  It is useful to not saturate all the available IDs.  Not supported when running as root.
 
 **nomap**: creates a user namespace where the current rootless user's UID:GID are not mapped into the container. This option is not allowed for containers created by the root user.
 
