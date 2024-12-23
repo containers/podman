@@ -9,18 +9,32 @@ adjust:
         how: shell
         script: sed -i -n '/^priority=/!p;$apriority=5' /etc/yum.repos.d/*:rhcontainerbot:podman-next.repo
 
-/upstream:
-    summary: Run tests on upstream PRs
-    discover+:
-        filter: tag:upstream
-    adjust+:
-        enabled: false
-        when: revdeps == yes or initiator is not defined or initiator != packit
+provision:
+    - name: local-root
+      how: virtual
+    - name: local-rootless
+      how: virtual
+    - name: remote-root
+      how: virtual
+    - name: remote-rootless
+      how: virtual
 
-/downstream:
-    summary: Run tests on bodhi / errata and dist-git PRs
+/local-root:
     discover+:
-        filter: tag:downstream
-    adjust+:
-        enabled: false
-        when: initiator == packit
+        filter: 'tag:local & tag:root'
+        where: local-root
+
+/local-rootless:
+    discover+:
+        filter: 'tag:local & tag:rootless'
+        where: local-rootless
+
+/remote-root:
+    discover+:
+        filter: 'tag:remote & tag:root'
+        where: remote-root
+
+/remote-rootless:
+    discover+:
+        filter: 'tag:remote & tag:rootless'
+        where: remote-rootless

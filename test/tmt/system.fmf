@@ -14,32 +14,30 @@ adjust+:
         ROOTLESS_USER: "ec2-user"
     when: distro == centos-stream
 
-/local-root:
-    tag: [ downstream, upstream ]
-    summary: local rootful test
-    test: bash ./system.sh
-    duration: 60m
+/local:
+    summary: Local tests
+    /root:
+        tag: [local, root]
+        summary: Rootful test
+        test: bash ./system.sh
+        duration: 60m
+    /rootless:
+        tag: [local, rootless]
+        summary: Rootless test
+        test: bash ./system.sh rootless
+        duration: 60m
 
-/local-rootless:
-    tag: [ downstream, upstream ]
-    summary: rootless test
-    test: bash ./system.sh rootless
-    duration: 60m
-
-/remote-root:
-    tag: [ downstream, upstream ]
-    summary: remote rootful test
-    test: bash ./system.sh
-    duration: 60m
-    adjust+:
-        environment+:
-            PODMAN: /usr/bin/podman-remote
-
-/remote-rootless:
-    tag: [ downstream, upstream ]
-    summary: remote rootless test
-    test: bash ./system.sh rootless
-    duration: 60m
-    adjust+:
-        environment+:
-            PODMAN: /usr/bin/podman-remote
+/remote:
+    summary: Remote tests
+    environment+:
+        PODMAN: /usr/bin/podman-remote
+    /root:
+        tag: [remote, root]
+        summary: Rootful test
+        test: bash ./system.sh
+        duration: 60m
+    /rootless:
+        tag: [remote, rootless]
+        summary: Rootless test
+        test: bash ./system.sh rootless
+        duration: 60m
