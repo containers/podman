@@ -8,7 +8,7 @@ go 1.22.0
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.6
 	github.com/go-swagger/go-swagger v0.30.5
-	github.com/onsi/ginkgo/v2 v2.22.0
+	github.com/onsi/ginkgo/v2 v2.22.1
 	github.com/vbatts/git-validation v1.2.1
 	golang.org/x/tools v0.28.0
 )
@@ -33,7 +33,7 @@ require (
 	github.com/go-openapi/swag v0.22.4 // indirect
 	github.com/go-openapi/validate v0.22.1 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
-	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
+	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/hashicorp/go-version v1.3.0 // indirect

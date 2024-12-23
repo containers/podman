@@ -1,3 +1,16 @@
+## 2.22.1
+
+### Fixes
+Fix CSV encoding
+- Update tests [aab3da6]
+- Properly encode CSV rows [c09df39]
+- Add test case for proper csv escaping [96a80fc]
+- Add meta-test [43dad69]
+
+### Maintenance
+- ensure *.test files are gitignored so we don't accidentally commit compiled tests again [c88c634]
+- remove golang.org/x/net/context in favour of stdlib context [4df44bf]
+
 ## 2.22.0
 
 ### Features
