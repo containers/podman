@@ -52,6 +52,13 @@ If the "sudo su -" command was used to switch to a root shell as described above
 [core@localhost ~]$ exit
 ```
 
+If the certificates are still not accepted, it might be necessary to restart the Podman machine. To do this, issue the following commands on the host (and not inside the Podman machine):
+
+```
+podman machine stop
+podman machine start
+```
+
 ### Alternative Method
 
 If the above method is for some reason not practical or desirable, the certificate may be created using vi.
