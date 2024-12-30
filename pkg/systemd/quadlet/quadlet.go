@@ -413,6 +413,7 @@ var (
 		KeyRemapUidSize:         true,
 		KeyRemapUsers:           true,
 		KeyServiceName:          true,
+		KeyShmSize:              true,
 		KeySubGIDMap:            true,
 		KeySubUIDMap:            true,
 		KeyUIDMap:               true,
@@ -1629,10 +1630,11 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	}
 
 	stringsKeys := map[string]string{
-		KeyIP:  "--ip",
-		KeyIP6: "--ip6",
+		KeyIP:      "--ip",
+		KeyIP6:     "--ip6",
+		KeyShmSize: "--shm-size",
 	}
-	lookupAndAddAllStrings(podUnit, PodGroup, stringsKeys, execStartPre)
+	lookupAndAddString(podUnit, PodGroup, stringsKeys, execStartPre)
 
 	allStringsKeys := map[string]string{
 		KeyNetworkAlias: "--network-alias",

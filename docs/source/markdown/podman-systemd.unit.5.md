@@ -953,6 +953,7 @@ Valid options for `[Pod]` are listed below:
 | PodName=name                        | --name=name                            |
 | PublishPort=8080:80                 | --publish 8080:80                      |
 | ServiceName=name                    | Name the systemd unit `name.service`   |
+| ShmSize=100m                        | --shm-size=100m                        |
 | SubGIDMap=gtest                     | --subgidname=gtest                     |
 | SubUIDMap=utest                     | --subuidname=utest                     |
 | UIDMap=0:10000:10                   | --uidmap=0:10000:10                    |
@@ -1091,6 +1092,12 @@ By default, Quadlet will name the systemd service unit by appending `-pod` to th
 Setting this key overrides this behavior by instructing Quadlet to use the provided name.
 
 Note, the name should not include the `.service` file extension
+
+### `ShmSize=`
+
+Size of /dev/shm.
+
+This is equivalent to the Podman `--shm-size` option and generally has the form `number[unit]`
 
 ### `SubGIDMap=`
 

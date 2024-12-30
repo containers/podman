@@ -1042,6 +1042,7 @@ BOGUS=foo
 		Entry("Pod - Remap auto2", "remap-auto2.pod"),
 		Entry("Pod - Remap keep-id", "remap-keep-id.pod"),
 		Entry("Pod - Remap manual", "remap-manual.pod"),
+		Entry("Pod - Shm Size", "shmsize.pod"),
 	)
 
 	DescribeTable("Running expected warning quadlet test case",
