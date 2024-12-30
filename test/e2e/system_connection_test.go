@@ -5,6 +5,7 @@ package integration
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"net"
@@ -37,16 +38,20 @@ func setupConnectionsConf() {
 	os.Setenv("PODMAN_CONNECTIONS_CONF", file)
 }
 
-var systemConnectionListCmd = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.Identity}} {{.Default}} {{.ReadWrite}}"}
-var farmListCmd = []string{"farm", "ls", "--format", "{{.Name}} {{.Connections}} {{.Default}} {{.ReadWrite}}"}
+var (
+	systemConnectionListCmd     = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.Identity}} {{.Default}} {{.ReadWrite}}"}
+	systemConnectionListTLSCmd  = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.TLSCAFile}} {{.Default}} {{.ReadWrite}}"}
+	systemConnectionListmTLSCmd = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.TLSCAFile}} {{.TLSCertFile}} {{.TLSKeyFile}} {{.Default}} {{.ReadWrite}}"}
+	farmListCmd                 = []string{"farm", "ls", "--format", "{{.Name}} {{.Connections}} {{.Default}} {{.ReadWrite}}"}
+)
 
 var _ = Describe("podman system connection", func() {
-
 	BeforeEach(setupConnectionsConf)
 
 	Context("without running API service", func() {
 		It("add ssh://", func() {
-			cmd := []string{"system", "connection", "add",
+			cmd := []string{
+				"system", "connection", "add",
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"QA",
@@ -62,7 +67,8 @@ var _ = Describe("podman system connection", func() {
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(Equal("QA ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa true true"))
 
-			cmd = []string{"system", "connection", "rename",
+			cmd = []string{
+				"system", "connection", "rename",
 				"QA",
 				"QE",
 			}
@@ -77,7 +83,8 @@ var _ = Describe("podman system connection", func() {
 		})
 
 		It("add UDS", func() {
-			cmd := []string{"system", "connection", "add",
+			cmd := []string{
+				"system", "connection", "add",
 				"QA-UDS",
 				"unix:///run/podman/podman.sock",
 			}
@@ -93,7 +100,8 @@ var _ = Describe("podman system connection", func() {
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(Equal("QA-UDS unix:///run/podman/podman.sock true true"))
 
-			cmd = []string{"system", "connection", "add",
+			cmd = []string{
+				"system", "connection", "add",
 				"QA-UDS1",
 				"--socket-path", "/run/user/podman/podman.sock",
 				"unix:///run/podman/podman.sock",
@@ -112,7 +120,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 		})
 
 		It("add tcp", func() {
-			cmd := []string{"system", "connection", "add",
+			cmd := []string{
+				"system", "connection", "add",
 				"QA-TCP",
 				"tcp://localhost:8888",
 			}
@@ -127,8 +136,47 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 			Expect(session.OutputToString()).To(Equal("QA-TCP tcp://localhost:8888 true true"))
 		})
 
+		It("add tcp w/ TLS", func() {
+			cmd := []string{
+				"system", "connection", "add",
+				"QA-TCP-TLS",
+				"tcp://localhost:8888",
+				"--tls-ca", "ca.pem",
+			}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			session = podmanTest.Podman(systemConnectionListTLSCmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(Equal("QA-TCP-TLS tcp://localhost:8888 ca.pem true true"))
+		})
+
+		It("add tcp w/ mTLS", func() {
+			cmd := []string{
+				"system", "connection", "add",
+				"QA-TCP-MTLS",
+				"tcp://localhost:8888",
+				"--tls-ca", "ca.pem",
+				"--tls-cert", "tls.crt",
+				"--tls-key", "tls.key",
+			}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out.Contents()).Should(BeEmpty())
+
+			session = podmanTest.Podman(systemConnectionListmTLSCmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(Equal("QA-TCP-MTLS tcp://localhost:8888 ca.pem tls.crt tls.key true true"))
+		})
+
 		It("add tcp to reverse proxy path", func() {
-			cmd := []string{"system", "connection", "add",
+			cmd := []string{
+				"system", "connection", "add",
 				"QA-TCP-RP",
 				"tcp://localhost:8888/reverse/proxy/path/prefix",
 			}
@@ -144,7 +192,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 		})
 
 		It("add to new farm", func() {
-			cmd := []string{"system", "connection", "add",
+			cmd := []string{
+				"system", "connection", "add",
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"--farm", "farm1",
@@ -174,7 +223,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 			Expect(session).Should(ExitCleanly())
 			Expect(session.Out.Contents()).Should(ContainSubstring("Farm \"empty-farm\" created"))
 
-			cmd = []string{"system", "connection", "add",
+			cmd = []string{
+				"system", "connection", "add",
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"--farm", "empty-farm",
@@ -197,7 +247,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 		})
 
 		It("removing connection should remove from farm also", func() {
-			cmd := []string{"system", "connection", "add",
+			cmd := []string{
+				"system", "connection", "add",
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"--farm", "farm1",
@@ -235,7 +286,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 		})
 
 		It("remove", func() {
-			session := podmanTest.Podman([]string{"system", "connection", "add",
+			session := podmanTest.Podman([]string{
+				"system", "connection", "add",
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"QA",
@@ -259,7 +311,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 		})
 
 		It("remove --all", func() {
-			session := podmanTest.Podman([]string{"system", "connection", "add",
+			session := podmanTest.Podman([]string{
+				"system", "connection", "add",
 				"--default",
 				"--identity", "~/.ssh/id_rsa",
 				"QA",
@@ -282,7 +335,8 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 
 		It("default", func() {
 			for _, name := range []string{"devl", "qe"} {
-				cmd := []string{"system", "connection", "add",
+				cmd := []string{
+					"system", "connection", "add",
 					"--default",
 					"--identity", "~/.ssh/id_rsa",
 					name,
@@ -310,7 +364,7 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
-			Expect(session.Out).Should(Say("Name *URI *Identity *Default"))
+			Expect(session.Out).Should(Say("Name *URI *Identity *TLSCAFile *TLSCertFile *TLSKeyFile *Default"))
 		})
 
 		It("failed default", func() {
@@ -351,20 +405,39 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 			proxy := http.NewServeMux()
 			proxy.Handle(pathPrefix+"/", &httputil.ReverseProxy{
 				Rewrite: func(pr *httputil.ProxyRequest) {
+					defer GinkgoRecover()
 					proxyGotUsed = true
 					pr.Out.URL.Path = strings.TrimPrefix(pr.Out.URL.Path, pathPrefix)
 					pr.Out.URL.RawPath = strings.TrimPrefix(pr.Out.URL.RawPath, pathPrefix)
-					baseURL, _ := url.Parse("http://d")
+					scheme := "http"
+					if podmanTest.RemoteTLSServerCAFile != "" {
+						scheme = "https"
+					}
+					baseURL, err := url.Parse(scheme + "://localhost")
+					Expect(err).ToNot(HaveOccurred())
 					pr.SetURL(baseURL)
 				},
 				Transport: &http.Transport{
 					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+						defer GinkgoRecover()
 						By("Proxying to " + podmanTest.RemoteSocket)
 						url, err := url.Parse(podmanTest.RemoteSocket)
 						if err != nil {
 							return nil, err
 						}
-						return (&net.Dialer{}).DialContext(ctx, "unix", url.Path)
+						switch podmanTest.RemoteSocketScheme {
+						case "unix":
+							return (&net.Dialer{}).DialContext(ctx, podmanTest.RemoteSocketScheme, url.Path)
+						case "tcp":
+							return (&net.Dialer{}).DialContext(ctx, podmanTest.RemoteSocketScheme, url.Host)
+						default:
+							Fail("Unexpected remote socket scheme")
+							panic("")
+						}
+					},
+					TLSClientConfig: &tls.Config{
+						RootCAs:      podmanTest.RemoteTLSServerCAPool,
+						Certificates: podmanTest.RemoteTLSClientCerts,
 					},
 				},
 			})
