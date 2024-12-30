@@ -48,7 +48,7 @@ func resetRegistriesConfigEnv() {
 }
 
 func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
-	return PodmanTestCreateUtil(tempDir, false)
+	return PodmanTestCreateUtil(tempDir, PodmanTestCreateUtilTargetLocal)
 }
 
 // RestoreArtifact puts the cached image into our test store
