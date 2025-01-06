@@ -14,6 +14,7 @@ class NetworkTestCase(APITestCase):
             self.podman_url + "/v1.40/networks/create", json={"Name": "TestDefaultNetwork"}
         )
         self.assertEqual(net_default.status_code, 201, net_default.text)
+        net_id = net_default.json()["Id"]
 
         create = requests.post(
             self.podman_url + "/v1.40/containers/create?name=postCreateConnect",
@@ -59,7 +60,7 @@ class NetworkTestCase(APITestCase):
         self.assertFalse(payload["Config"].get("NetworkDisabled", False))
 
         self.assertEqual(
-            "TestDefaultNetwork",
+            net_id,
             payload["NetworkSettings"]["Networks"]["TestDefaultNetwork"]["NetworkID"],
         )
         # TODO restore this to test, when joining multiple networks possible
@@ -79,6 +80,7 @@ class NetworkTestCase(APITestCase):
             self.podman_url + "/v1.40/networks/create", json={"Name": "TestNetwork"}
         )
         self.assertEqual(net.status_code, 201, net.text)
+        net_id = net.json()["Id"]
 
         create = requests.post(
             self.podman_url + "/v1.40/containers/create?name=postCreate",
@@ -99,7 +101,7 @@ class NetworkTestCase(APITestCase):
         payload = inspect.json()
         self.assertFalse(payload["Config"].get("NetworkDisabled", False))
         self.assertEqual(
-            "TestNetwork",
+            net_id,
             payload["NetworkSettings"]["Networks"]["TestNetwork"]["NetworkID"],
         )
     def test_inspect(self):

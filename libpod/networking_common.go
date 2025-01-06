@@ -212,11 +212,19 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		return nil, err
 	}
 
+	getNetworkID := func(nameOrID string) string {
+		network, err := c.runtime.network.NetworkInspect(nameOrID)
+		if err == nil && network.ID != "" {
+			return network.ID
+		}
+		return nameOrID
+	}
+
 	setDefaultNetworks := func() {
 		settings.Networks = make(map[string]*define.InspectAdditionalNetwork, 1)
 		name := c.NetworkMode()
 		addedNet := new(define.InspectAdditionalNetwork)
-		addedNet.NetworkID = name
+		addedNet.NetworkID = getNetworkID(name)
 		settings.Networks[name] = addedNet
 	}
 
@@ -244,7 +252,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 			settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
 			for net, opts := range networks {
 				cniNet := new(define.InspectAdditionalNetwork)
-				cniNet.NetworkID = net
+				cniNet.NetworkID = getNetworkID(net)
 				cniNet.Aliases = opts.Aliases
 				settings.Networks[net] = cniNet
 			}
@@ -275,7 +283,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		for name, opts := range networks {
 			result := netStatus[name]
 			addedNet := new(define.InspectAdditionalNetwork)
-			addedNet.NetworkID = name
+			addedNet.NetworkID = getNetworkID(name)
 			addedNet.Aliases = opts.Aliases
 			addedNet.InspectBasicNetworkConfig = resultToBasicNetworkConfig(result)
 

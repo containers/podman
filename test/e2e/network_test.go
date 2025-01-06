@@ -275,6 +275,10 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(netName)
 		Expect(network).Should(ExitCleanly())
 
+		session := podmanTest.Podman([]string{"network", "inspect", netName, "--format", "{{.Id}}"})
+		session.WaitWithDefaultTimeout()
+		netID := session.OutputToString()
+
 		ctrName := "testCtr"
 		container := podmanTest.Podman([]string{"run", "-dt", "--network", netName, "--name", ctrName, ALPINE, "top"})
 		container.WaitWithDefaultTimeout()
@@ -288,7 +292,7 @@ var _ = Describe("Podman network", func() {
 		Expect(conData[0].NetworkSettings.Networks).To(HaveLen(1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName))
 		net := conData[0].NetworkSettings.Networks[netName]
-		Expect(net).To(HaveField("NetworkID", netName))
+		Expect(net).To(HaveField("NetworkID", netID))
 		Expect(net).To(HaveField("IPPrefixLen", 24))
 		Expect(net.IPAddress).To(HavePrefix("10.50.50."))
 
@@ -332,6 +336,14 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(netName2)
 		Expect(network2).Should(ExitCleanly())
 
+		session := podmanTest.Podman([]string{"network", "inspect", netName1, "--format", "{{.Id}}"})
+		session.WaitWithDefaultTimeout()
+		netID1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"network", "inspect", netName2, "--format", "{{.Id}}"})
+		session.WaitWithDefaultTimeout()
+		netID2 := session.OutputToString()
+
 		ctrName := "testCtr"
 		container := podmanTest.Podman([]string{"create", "--network", fmt.Sprintf("%s,%s", netName1, netName2), "--name", ctrName, ALPINE, "top"})
 		container.WaitWithDefaultTimeout()
@@ -346,9 +358,9 @@ var _ = Describe("Podman network", func() {
 		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName2))
 		net1 := conData[0].NetworkSettings.Networks[netName1]
-		Expect(net1).To(HaveField("NetworkID", netName1))
+		Expect(net1).To(HaveField("NetworkID", netID1))
 		net2 := conData[0].NetworkSettings.Networks[netName2]
-		Expect(net2).To(HaveField("NetworkID", netName2))
+		Expect(net2).To(HaveField("NetworkID", netID2))
 
 		// Necessary to ensure the CNI network is removed cleanly
 		rmAll := podmanTest.Podman([]string{"rm", "-t", "0", "-f", ctrName})
@@ -369,6 +381,14 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(netName2)
 		Expect(network2).Should(ExitCleanly())
 
+		session := podmanTest.Podman([]string{"network", "inspect", netName1, "--format", "{{.Id}}"})
+		session.WaitWithDefaultTimeout()
+		netID1 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"network", "inspect", netName2, "--format", "{{.Id}}"})
+		session.WaitWithDefaultTimeout()
+		netID2 := session.OutputToString()
+
 		ctrName := "testCtr"
 		container := podmanTest.Podman([]string{"run", "-dt", "--network", fmt.Sprintf("%s,%s", netName1, netName2), "--name", ctrName, ALPINE, "top"})
 		container.WaitWithDefaultTimeout()
@@ -383,11 +403,11 @@ var _ = Describe("Podman network", func() {
 		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName1))
 		Expect(conData[0].NetworkSettings.Networks).To(HaveKey(netName2))
 		net1 := conData[0].NetworkSettings.Networks[netName1]
-		Expect(net1).To(HaveField("NetworkID", netName1))
+		Expect(net1).To(HaveField("NetworkID", netID1))
 		Expect(net1).To(HaveField("IPPrefixLen", 25))
 		Expect(net1.IPAddress).To(HavePrefix("10.50.51."))
 		net2 := conData[0].NetworkSettings.Networks[netName2]
-		Expect(net2).To(HaveField("NetworkID", netName2))
+		Expect(net2).To(HaveField("NetworkID", netID2))
 		Expect(net2).To(HaveField("IPPrefixLen", 26))
 		Expect(net2.IPAddress).To(HavePrefix("10.50.51."))
 
