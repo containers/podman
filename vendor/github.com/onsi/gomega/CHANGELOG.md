@@ -1,3 +1,11 @@
+## 1.36.2
+
+### Maintenance
+- Bump google.golang.org/protobuf from 1.35.1 to 1.36.1 (#810) [9a7609d]
+- Bump golang.org/x/net from 0.30.0 to 0.33.0 (#807) [b6cb028]
+- Bump github.com/onsi/ginkgo/v2 from 2.20.1 to 2.22.1 (#808) [5756529]
+- Bump nokogiri from 1.16.3 to 1.16.5 in /docs (#757) [dabc12e]
+
 ## 1.36.1
 
 ### Fixes
