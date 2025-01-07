@@ -817,6 +817,7 @@ func (p *Process) KillWithContext(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	defer process.Release()
 	return process.Kill()
 }
 

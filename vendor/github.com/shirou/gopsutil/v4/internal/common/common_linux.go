@@ -5,7 +5,7 @@ package common
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -102,7 +102,7 @@ func BootTimeWithContext(ctx context.Context, enableCache bool) (uint64, error) 
 	currentTime := float64(time.Now().UnixNano()) / float64(time.Second)
 
 	if len(lines) != 1 {
-		return 0, fmt.Errorf("wrong uptime format")
+		return 0, errors.New("wrong uptime format")
 	}
 	f := strings.Fields(lines[0])
 	b, err := strconv.ParseFloat(f[0], 64)
@@ -142,7 +142,7 @@ func readBootTimeStat(ctx context.Context) (uint64, error) {
 	if strings.HasPrefix(line, "btime") {
 		f := strings.Fields(line)
 		if len(f) != 2 {
-			return 0, fmt.Errorf("wrong btime format")
+			return 0, errors.New("wrong btime format")
 		}
 		b, err := strconv.ParseInt(f[1], 10, 64)
 		if err != nil {
@@ -151,7 +151,7 @@ func readBootTimeStat(ctx context.Context) (uint64, error) {
 		t := uint64(b)
 		return t, nil
 	}
-	return 0, fmt.Errorf("could not find btime")
+	return 0, errors.New("could not find btime")
 }
 
 func Virtualization() (string, string, error) {

@@ -6,6 +6,7 @@ package process
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
 	"errors"
 	"path/filepath"
 	"sort"
@@ -14,9 +15,9 @@ import (
 
 	"golang.org/x/sys/unix"
 
-	cpu "github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/internal/common"
-	net "github.com/shirou/gopsutil/v4/net"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
 func pidsWithContext(ctx context.Context) ([]int32, error) {
@@ -66,7 +67,24 @@ func (p *Process) NameWithContext(ctx context.Context) (string, error) {
 }
 
 func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
-	return "", common.ErrNotImplementedError
+	mib := []int32{CTLKern, KernProc, KernProcCwd, p.Pid}
+	buf, length, err := common.CallSyscall(mib)
+	if err != nil {
+		return "", err
+	}
+
+	if length != sizeOfKinfoFile {
+		return "", errors.New("unexpected size of KinfoFile")
+	}
+
+	var k kinfoFile
+	br := bytes.NewReader(buf)
+	if err := common.Read(br, binary.LittleEndian, &k); err != nil {
+		return "", err
+	}
+	cwd := common.IntToString(k.Path[:])
+
+	return cwd, nil
 }
 
 func (p *Process) ExeWithContext(ctx context.Context) (string, error) {

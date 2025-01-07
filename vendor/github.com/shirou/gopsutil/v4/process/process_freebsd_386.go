@@ -11,6 +11,7 @@ const (
 	KernProcProc     = 8
 	KernProcPathname = 12
 	KernProcArgs     = 7
+	KernProcCwd      = 42
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 const (
 	sizeOfKinfoVmentry = 0x488
 	sizeOfKinfoProc    = 0x300
+	sizeOfKinfoFile    = 0x570 // TODO: should be changed by running on the target machine
 )
 
 const (
@@ -190,4 +192,27 @@ type KinfoVmentry struct {
 	Status           uint16
 	X_kve_ispare     [12]int32
 	Path             [1024]int8
+}
+
+// TODO: should be changed by running on the target machine
+type kinfoFile struct {
+	Structsize     int32
+	Type           int32
+	Fd             int32
+	Ref_count      int32
+	Flags          int32
+	Pad0           int32
+	Offset         int64
+	Anon0          [304]byte
+	Status         uint16
+	Pad1           uint16
+	X_kf_ispare0   int32
+	Cap_rights     capRights
+	X_kf_cap_spare uint64
+	Path           [1024]int8 // changed from uint8 by hand
+}
+
+// TODO: should be changed by running on the target machine
+type capRights struct {
+	Rights [2]uint64
 }

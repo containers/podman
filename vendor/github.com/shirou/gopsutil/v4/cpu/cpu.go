@@ -4,6 +4,7 @@ package cpu
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math"
 	"runtime"
@@ -195,7 +196,7 @@ func percentUsedFromLastCallWithContext(ctx context.Context, percpu bool) ([]flo
 	}
 
 	if lastTimes == nil {
-		return nil, fmt.Errorf("error getting times for cpu percent. lastTimes was nil")
+		return nil, errors.New("error getting times for cpu percent. lastTimes was nil")
 	}
 	return calculateAllBusy(lastTimes, cpuTimes)
 }
