@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/http"
 
@@ -18,7 +19,6 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
-	"golang.org/x/exp/maps"
 
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/sirupsen/logrus"

@@ -2,7 +2,6 @@ package compression
 
 import (
 	"os"
-	"path/filepath"
 	"testing"
 
 	crcOs "github.com/crc-org/crc/v2/pkg/os"
@@ -11,11 +10,9 @@ import (
 func TestCopyFile(t *testing.T) {
 	testStr := "test-machine"
 
-	srcFile, err := os.CreateTemp("", "machine-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-	srcFi, err := srcFile.Stat()
+	tmpDir := t.TempDir()
+
+	srcFile, err := os.CreateTemp(tmpDir, "machine-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,27 +20,18 @@ func TestCopyFile(t *testing.T) {
 	_, _ = srcFile.Write([]byte(testStr)) //nolint:mirror
 	srcFile.Close()
 
-	srcFilePath := filepath.Join(os.TempDir(), srcFi.Name())
-
-	destFile, err := os.CreateTemp("", "machine-copy-test-")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	destFi, err := destFile.Stat()
+	destFile, err := os.CreateTemp(tmpDir, "machine-copy-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	destFile.Close()
 
-	destFilePath := filepath.Join(os.TempDir(), destFi.Name())
-
-	if err := crcOs.CopyFile(srcFilePath, destFilePath); err != nil {
+	if err := crcOs.CopyFile(srcFile.Name(), destFile.Name()); err != nil {
 		t.Fatal(err)
 	}
 
-	data, err := os.ReadFile(destFilePath)
+	data, err := os.ReadFile(destFile.Name())
 	if err != nil {
 		t.Fatal(err)
 	}

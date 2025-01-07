@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,7 +34,6 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
 func ManifestCreate(w http.ResponseWriter, r *http.Request) {

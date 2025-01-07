@@ -6,10 +6,9 @@ package env
 import (
 	"bufio"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
-
-	"golang.org/x/exp/maps"
 )
 
 const whiteSpaces = " \t"
