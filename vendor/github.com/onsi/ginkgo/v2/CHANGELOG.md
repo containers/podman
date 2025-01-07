@@ -1,3 +1,10 @@
+## 2.22.2
+
+### Maintenance
+- Bump github.com/onsi/gomega from 1.36.1 to 1.36.2 (#1499) [cc553ce]
+- Bump golang.org/x/crypto (#1498) [2170370]
+- Bump golang.org/x/net from 0.32.0 to 0.33.0 (#1496) [a96c44f]
+
 ## 2.22.1
 
 ### Fixes
@@ -1035,7 +1042,7 @@ New Features:
 - `ginkgo -tags=TAG_LIST` passes a list of tags down to the `go build` command.
 - `ginkgo --failFast` aborts the test suite after the first failure.
 - `ginkgo generate file_1 file_2` can take multiple file arguments.
-- Ginkgo now summarizes any spec failures that occurred at the end of the test run. 
+- Ginkgo now summarizes any spec failures that occurred at the end of the test run.
 - `ginkgo --randomizeSuites` will run tests *suites* in random order using the generated/passed-in seed.
 
 Improvements:
@@ -1069,7 +1076,7 @@ Bug Fixes:
 Breaking changes:
 
 - `thirdparty/gomocktestreporter` is gone.  Use `GinkgoT()` instead
-- Modified the Reporter interface 
+- Modified the Reporter interface
 - `watch` is now a subcommand, not a flag.
 
 DSL changes:

@@ -135,10 +135,6 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		return nil, fmt.Errorf("failed to parse default subnet: %w", err)
 	}
 
-	if err := os.MkdirAll(conf.NetworkConfigDir, 0o755); err != nil {
-		return nil, err
-	}
-
 	if err := os.MkdirAll(conf.NetworkRunDir, 0o755); err != nil {
 		return nil, err
 	}
@@ -187,6 +183,21 @@ func (n *netavarkNetwork) loadNetworks() error {
 	// check the mod time of the config dir
 	f, err := os.Stat(n.networkConfigDir)
 	if err != nil {
+		// the directory may not exists which is fine. It will be created on the first network create
+		if errors.Is(err, os.ErrNotExist) {
+			// networks are already loaded
+			if n.networks != nil {
+				return nil
+			}
+			networks := make(map[string]*types.Network, 1)
+			networkInfo, err := n.createDefaultNetwork()
+			if err != nil {
+				return fmt.Errorf("failed to create default network %s: %w", n.defaultNetwork, err)
+			}
+			networks[n.defaultNetwork] = networkInfo
+			n.networks = networks
+			return nil
+		}
 		return err
 	}
 	modTime := f.ModTime()

@@ -54,6 +54,21 @@ func (p7 *PKCS7) VerifyWithChainAtTime(truststore *x509.CertPool, currentTime ti
 	return nil
 }
 
+// SigningTimeNotValidError is returned when the signing time attribute
+// falls outside of the signer certificate validity.
+type SigningTimeNotValidError struct {
+	SigningTime time.Time
+	NotBefore   time.Time // NotBefore of signer
+	NotAfter    time.Time // NotAfter of signer
+}
+
+func (e *SigningTimeNotValidError) Error() string {
+	return fmt.Sprintf("pkcs7: signing time %q is outside of certificate validity %q to %q",
+		e.SigningTime.Format(time.RFC3339),
+		e.NotBefore.Format(time.RFC3339),
+		e.NotAfter.Format(time.RFC3339))
+}
+
 func verifySignatureAtTime(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool, currentTime time.Time) (err error) {
 	signedData := p7.Content
 	ee := getCertFromCertsByIssuerAndSerial(p7.Certificates, signer.IssuerAndSerialNumber)
@@ -91,10 +106,11 @@ func verifySignatureAtTime(p7 *PKCS7, signer signerInfo, truststore *x509.CertPo
 		if err == nil {
 			// signing time found, performing validity check
 			if signingTime.After(ee.NotAfter) || signingTime.Before(ee.NotBefore) {
-				return fmt.Errorf("pkcs7: signing time %q is outside of certificate validity %q to %q",
-					signingTime.Format(time.RFC3339),
-					ee.NotBefore.Format(time.RFC3339),
-					ee.NotAfter.Format(time.RFC3339))
+				return &SigningTimeNotValidError{
+					SigningTime: signingTime,
+					NotBefore:   ee.NotBefore,
+					NotAfter:    ee.NotAfter,
+				}
 			}
 		}
 	}
@@ -146,10 +162,11 @@ func verifySignature(p7 *PKCS7, signer signerInfo, truststore *x509.CertPool) (e
 		if err == nil {
 			// signing time found, performing validity check
 			if signingTime.After(ee.NotAfter) || signingTime.Before(ee.NotBefore) {
-				return fmt.Errorf("pkcs7: signing time %q is outside of certificate validity %q to %q",
-					signingTime.Format(time.RFC3339),
-					ee.NotBefore.Format(time.RFC3339),
-					ee.NotAfter.Format(time.RFC3339))
+				return &SigningTimeNotValidError{
+					SigningTime: signingTime,
+					NotBefore:   ee.NotBefore,
+					NotAfter:    ee.NotAfter,
+				}
 			}
 		}
 	}
@@ -210,8 +227,13 @@ func parseSignedData(data []byte) (*PKCS7, error) {
 	// Compound octet string
 	if compound.IsCompound {
 		if compound.Tag == 4 {
-			if _, err = asn1.Unmarshal(compound.Bytes, &content); err != nil {
-				return nil, err
+			for len(compound.Bytes) > 0 {
+				var cdata asn1.RawValue
+				if _, err = asn1.Unmarshal(compound.Bytes, &cdata); err != nil {
+					return nil, err
+				}
+				content = append(content, cdata.Bytes...)
+				compound.Bytes = compound.Bytes[len(cdata.FullBytes):]
 			}
 		} else {
 			content = compound.Bytes
@@ -278,13 +300,13 @@ func getSignatureAlgorithm(digestEncryption, digest pkix.AlgorithmIdentifier) (x
 		digestEncryption.Algorithm.Equal(OIDEncryptionAlgorithmRSASHA384),
 		digestEncryption.Algorithm.Equal(OIDEncryptionAlgorithmRSASHA512):
 		switch {
-		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA1):
+		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA1), digest.Algorithm.Equal(OIDEncryptionAlgorithmRSASHA1):
 			return x509.SHA1WithRSA, nil
-		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA256):
+		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA256), digest.Algorithm.Equal(OIDEncryptionAlgorithmRSASHA256):
 			return x509.SHA256WithRSA, nil
-		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA384):
+		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA384), digest.Algorithm.Equal(OIDEncryptionAlgorithmRSASHA384):
 			return x509.SHA384WithRSA, nil
-		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA512):
+		case digest.Algorithm.Equal(OIDDigestAlgorithmSHA512), digest.Algorithm.Equal(OIDEncryptionAlgorithmRSASHA512):
 			return x509.SHA512WithRSA, nil
 		default:
 			return -1, fmt.Errorf("pkcs7: unsupported digest %q for encryption algorithm %q",

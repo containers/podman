@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"os/user"
-	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -313,7 +312,7 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 		if !errors.Is(err, os.ErrNotExist) {
 			return nil, err
 		}
-		keyDir := path.Dir(keyFilePath)
+		keyDir := filepath.Dir(keyFilePath)
 		if err := fileutils.Exists(keyDir); errors.Is(err, os.ErrNotExist) {
 			if err := os.Mkdir(keyDir, 0o700); err != nil {
 				return nil, err
