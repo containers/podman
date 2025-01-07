@@ -55,10 +55,10 @@ func getFrequency() (float64, error) {
 			break
 		}
 
-		buf := make([]byte, 512)
-		ioRegistryEntryGetName(service, &buf[0])
+		buf := common.NewCStr(512)
+		ioRegistryEntryGetName(service, buf)
 
-		if common.GoString(&buf[0]) == "pmgr" {
+		if buf.GoString() == "pmgr" {
 			pCoreRef := ioRegistryEntryCreateCFProperty(service, uintptr(pCorekey), common.KCFAllocatorDefault, common.KNilOptions)
 			length := cfDataGetLength(uintptr(pCoreRef))
 			data := cfDataGetBytePtr(uintptr(pCoreRef))

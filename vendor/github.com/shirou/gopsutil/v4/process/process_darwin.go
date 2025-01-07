@@ -310,14 +310,14 @@ func (p *Process) ExeWithContext(ctx context.Context) (string, error) {
 	}
 	defer lib.Close()
 
-	buf := make([]byte, common.PROC_PIDPATHINFO_MAXSIZE)
-	ret := procPidPath(p.Pid, uintptr(unsafe.Pointer(&buf[0])), common.PROC_PIDPATHINFO_MAXSIZE)
+	buf := common.NewCStr(common.PROC_PIDPATHINFO_MAXSIZE)
+	ret := procPidPath(p.Pid, buf.Addr(), common.PROC_PIDPATHINFO_MAXSIZE)
 
 	if ret <= 0 {
 		return "", fmt.Errorf("unknown error: proc_pidpath returned %d", ret)
 	}
 
-	return common.GoString(&buf[0]), nil
+	return buf.GoString(), nil
 }
 
 // sys/proc_info.h
@@ -339,6 +339,7 @@ func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
 	}
 	defer lib.Close()
 
+	// Lock OS thread to ensure the errno does not change
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -366,6 +367,8 @@ func procArgs(pid int32) ([]byte, int, error) {
 	if err != nil {
 		return nil, 0, err
 	}
+
+	// The first 4 bytes indicate the number of arguments.
 	nargs := procargs[:4]
 	return procargs, int(binary.LittleEndian.Uint32(nargs)), nil
 }
@@ -434,8 +437,7 @@ func (p *Process) NumThreadsWithContext(ctx context.Context) (int32, error) {
 	defer lib.Close()
 
 	var ti ProcTaskInfo
-	const tiSize = int32(unsafe.Sizeof(ti))
-	procPidInfo(p.Pid, common.PROC_PIDTASKINFO, 0, uintptr(unsafe.Pointer(&ti)), tiSize)
+	procPidInfo(p.Pid, common.PROC_PIDTASKINFO, 0, uintptr(unsafe.Pointer(&ti)), int32(unsafe.Sizeof(ti)))
 
 	return int32(ti.Threadnum), nil
 }
@@ -448,8 +450,7 @@ func (p *Process) TimesWithContext(ctx context.Context) (*cpu.TimesStat, error) 
 	defer lib.Close()
 
 	var ti ProcTaskInfo
-	const tiSize = int32(unsafe.Sizeof(ti))
-	procPidInfo(p.Pid, common.PROC_PIDTASKINFO, 0, uintptr(unsafe.Pointer(&ti)), tiSize)
+	procPidInfo(p.Pid, common.PROC_PIDTASKINFO, 0, uintptr(unsafe.Pointer(&ti)), int32(unsafe.Sizeof(ti)))
 
 	timescaleToNanoSeconds := getTimeScaleToNanoSeconds()
 	ret := &cpu.TimesStat{
@@ -468,8 +469,7 @@ func (p *Process) MemoryInfoWithContext(ctx context.Context) (*MemoryInfoStat, e
 	defer lib.Close()
 
 	var ti ProcTaskInfo
-	const tiSize = int32(unsafe.Sizeof(ti))
-	procPidInfo(p.Pid, common.PROC_PIDTASKINFO, 0, uintptr(unsafe.Pointer(&ti)), tiSize)
+	procPidInfo(p.Pid, common.PROC_PIDTASKINFO, 0, uintptr(unsafe.Pointer(&ti)), int32(unsafe.Sizeof(ti)))
 
 	ret := &MemoryInfoStat{
 		RSS:  uint64(ti.Resident_size),

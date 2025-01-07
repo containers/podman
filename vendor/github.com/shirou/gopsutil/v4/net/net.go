@@ -272,3 +272,85 @@ func getIOCountersAll(n []IOCountersStat) ([]IOCountersStat, error) {
 
 	return []IOCountersStat{r}, nil
 }
+
+// NetIOCounters returns network I/O statistics for every network
+// interface installed on the system.  If pernic argument is false,
+// return only sum of all information (which name is 'all'). If true,
+// every network interface installed on the system is returned
+// separately.
+func IOCounters(pernic bool) ([]IOCountersStat, error) {
+	return IOCountersWithContext(context.Background(), pernic)
+}
+
+func IOCountersByFile(pernic bool, filename string) ([]IOCountersStat, error) {
+	return IOCountersByFileWithContext(context.Background(), pernic, filename)
+}
+
+// ProtoCounters returns network statistics for the entire system
+// If protocols is empty then all protocols are returned, otherwise
+// just the protocols in the list are returned.
+// Available protocols:
+// [ip,icmp,icmpmsg,tcp,udp,udplite]
+// Not Implemented for FreeBSD, Windows, OpenBSD, Darwin
+func ProtoCounters(protocols []string) ([]ProtoCountersStat, error) {
+	return ProtoCountersWithContext(context.Background(), protocols)
+}
+
+// NetFilterCounters returns iptables conntrack statistics
+// the currently in use conntrack count and the max.
+// If the file does not exist or is invalid it will return nil.
+func FilterCounters() ([]FilterStat, error) {
+	return FilterCountersWithContext(context.Background())
+}
+
+// ConntrackStats returns more detailed info about the conntrack table
+func ConntrackStats(percpu bool) ([]ConntrackStat, error) {
+	return ConntrackStatsWithContext(context.Background(), percpu)
+}
+
+// Return a list of network connections opened.
+func Connections(kind string) ([]ConnectionStat, error) {
+	return ConnectionsWithContext(context.Background(), kind)
+}
+
+// Return a list of network connections opened returning at most `max`
+// connections for each running process.
+func ConnectionsMax(kind string, maxConn int) ([]ConnectionStat, error) {
+	return ConnectionsMaxWithContext(context.Background(), kind, maxConn)
+}
+
+// Return a list of network connections opened, omitting `Uids`.
+// WithoutUids functions are reliant on implementation details. They may be altered to be an alias for Connections or be
+// removed from the API in the future.
+func ConnectionsWithoutUids(kind string) ([]ConnectionStat, error) {
+	return ConnectionsWithoutUidsWithContext(context.Background(), kind)
+}
+
+// Return a list of network connections opened by a process.
+func ConnectionsPid(kind string, pid int32) ([]ConnectionStat, error) {
+	return ConnectionsPidWithContext(context.Background(), kind, pid)
+}
+
+// Return a list of network connections opened, omitting `Uids`.
+// WithoutUids functions are reliant on implementation details. They may be altered to be an alias for Connections or be
+// removed from the API in the future.
+func ConnectionsPidWithoutUids(kind string, pid int32) ([]ConnectionStat, error) {
+	return ConnectionsPidWithoutUidsWithContext(context.Background(), kind, pid)
+}
+
+func ConnectionsPidMaxWithoutUids(kind string, pid int32, maxConn int) ([]ConnectionStat, error) {
+	return ConnectionsPidMaxWithoutUidsWithContext(context.Background(), kind, pid, maxConn)
+}
+
+// Return up to `max` network connections opened by a process.
+func ConnectionsPidMax(kind string, pid int32, maxConn int) ([]ConnectionStat, error) {
+	return ConnectionsPidMaxWithContext(context.Background(), kind, pid, maxConn)
+}
+
+// Pids retunres all pids.
+// Note: this is a copy of process_linux.Pids()
+// FIXME: Import process occures import cycle.
+// move to common made other platform breaking. Need consider.
+func Pids() ([]int32, error) {
+	return PidsWithContext(context.Background())
+}
