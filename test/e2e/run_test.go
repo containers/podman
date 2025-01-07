@@ -1406,6 +1406,13 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		Expect(session.OutputToString()).To(ContainSubstring("1001-123"))
 	})
 
+	It("podman run --mount type=devpts,target=/dev/pts with ptmxmode", func() {
+		session := podmanTest.Podman([]string{"run", "--mount", "type=devpts,target=/dev/pts,ptmxmode=0444", fedoraMinimal, "findmnt", "-noOPTIONS", "/dev/pts"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("ptmxmode=444"))
+	})
+
 	It("podman run --pod automatically", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--pod", "new:foobar", ALPINE, "nc", "-l", "-p", "8686"})
 		session.WaitWithDefaultTimeout()
