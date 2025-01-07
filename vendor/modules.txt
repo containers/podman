@@ -335,8 +335,8 @@ github.com/containers/libtrust
 # github.com/containers/luksy v0.0.0-20241007190014-e2530d691420
 ## explicit; go 1.20
 github.com/containers/luksy
-# github.com/containers/ocicrypt v1.2.0
-## explicit; go 1.21
+# github.com/containers/ocicrypt v1.2.1
+## explicit; go 1.22
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
 github.com/containers/ocicrypt/config
@@ -1035,6 +1035,10 @@ github.com/skeema/knownhosts
 # github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
 ## explicit
 github.com/skratchdot/open-golang/open
+# github.com/smallstep/pkcs7 v0.1.1
+## explicit; go 1.14
+github.com/smallstep/pkcs7
+github.com/smallstep/pkcs7/internal/legacy/x509
 # github.com/spf13/cobra v1.8.1
 ## explicit; go 1.15
 github.com/spf13/cobra
@@ -1131,9 +1135,6 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352
-## explicit; go 1.11
-go.mozilla.org/pkcs7
 # go.opencensus.io v0.24.0
 ## explicit; go 1.13
 go.opencensus.io
@@ -1180,6 +1181,8 @@ golang.org/x/crypto/blake2b
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
 golang.org/x/crypto/chacha20
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
@@ -1277,8 +1280,8 @@ golang.org/x/tools/go/ast/inspector
 # google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/rpc/status
-# google.golang.org/grpc v1.67.0
-## explicit; go 1.21
+# google.golang.org/grpc v1.68.1
+## explicit; go 1.22
 google.golang.org/grpc
 google.golang.org/grpc/attributes
 google.golang.org/grpc/backoff
@@ -1286,6 +1289,8 @@ google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/grpclb/state
 google.golang.org/grpc/balancer/pickfirst
+google.golang.org/grpc/balancer/pickfirst/internal
+google.golang.org/grpc/balancer/pickfirst/pickfirstleaf
 google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/binarylog/grpc_binarylog_v1
 google.golang.org/grpc/channelz

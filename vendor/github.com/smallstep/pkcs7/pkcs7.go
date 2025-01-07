@@ -13,8 +13,11 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"sync"
 
 	_ "crypto/sha1" // for crypto.SHA1
+
+	legacyx509 "github.com/smallstep/pkcs7/internal/legacy/x509"
 )
 
 // PKCS7 Represents a PKCS7 structure
@@ -31,7 +34,7 @@ type contentInfo struct {
 	Content     asn1.RawValue `asn1:"explicit,optional,tag:0"`
 }
 
-// ErrUnsupportedContentType is returned when a PKCS7 content is not supported.
+// ErrUnsupportedContentType is returned when a PKCS7 content type is not supported.
 // Currently only Data (1.2.840.113549.1.7.1), Signed Data (1.2.840.113549.1.7.2),
 // and Enveloped Data are supported (1.2.840.113549.1.7.3)
 var ErrUnsupportedContentType = errors.New("pkcs7: cannot parse data: unimplemented content type")
@@ -53,6 +56,7 @@ var (
 	OIDDigestAlgorithmSHA256 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 1}
 	OIDDigestAlgorithmSHA384 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 2}
 	OIDDigestAlgorithmSHA512 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 3}
+	OIDDigestAlgorithmSHA224 = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 2, 4}
 
 	OIDDigestAlgorithmDSA     = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 1}
 	OIDDigestAlgorithmDSASHA1 = asn1.ObjectIdentifier{1, 2, 840, 10040, 4, 3}
@@ -63,23 +67,28 @@ var (
 	OIDDigestAlgorithmECDSASHA512 = asn1.ObjectIdentifier{1, 2, 840, 10045, 4, 3, 4}
 
 	// Signature Algorithms
-	OIDEncryptionAlgorithmRSA       = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
-	OIDEncryptionAlgorithmRSASHA1   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}
-	OIDEncryptionAlgorithmRSASHA256 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
-	OIDEncryptionAlgorithmRSASHA384 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 12}
-	OIDEncryptionAlgorithmRSASHA512 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 13}
+	OIDEncryptionAlgorithmRSAMD5    = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 4}  // see https://www.rfc-editor.org/rfc/rfc8017#appendix-A.2.4
+	OIDEncryptionAlgorithmRSASHA1   = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 5}  // ditto
+	OIDEncryptionAlgorithmRSASHA256 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11} // ditto
+	OIDEncryptionAlgorithmRSASHA384 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 12} // ditto
+	OIDEncryptionAlgorithmRSASHA512 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 13} // ditto
+	OIDEncryptionAlgorithmRSASHA224 = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 14} // ditto
 
 	OIDEncryptionAlgorithmECDSAP256 = asn1.ObjectIdentifier{1, 2, 840, 10045, 3, 1, 7}
 	OIDEncryptionAlgorithmECDSAP384 = asn1.ObjectIdentifier{1, 3, 132, 0, 34}
 	OIDEncryptionAlgorithmECDSAP521 = asn1.ObjectIdentifier{1, 3, 132, 0, 35}
 
-	// Encryption Algorithms
-	OIDEncryptionAlgorithmDESCBC     = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 7}
-	OIDEncryptionAlgorithmDESEDE3CBC = asn1.ObjectIdentifier{1, 2, 840, 113549, 3, 7}
-	OIDEncryptionAlgorithmAES256CBC  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42}
-	OIDEncryptionAlgorithmAES128GCM  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 6}
-	OIDEncryptionAlgorithmAES128CBC  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 2}
-	OIDEncryptionAlgorithmAES256GCM  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 46}
+	// Asymmetric Encryption Algorithms
+	OIDEncryptionAlgorithmRSA       = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1} // see https://www.rfc-editor.org/rfc/rfc8017#appendix-A.2.2
+	OIDEncryptionAlgorithmRSAESOAEP = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 7} // see https://www.rfc-editor.org/rfc/rfc8017#appendix-A.2.1
+
+	// Symmetric Encryption Algorithms
+	OIDEncryptionAlgorithmDESCBC     = asn1.ObjectIdentifier{1, 3, 14, 3, 2, 7}               // see https://www.rfc-editor.org/rfc/rfc8018.html#appendix-B.2.1
+	OIDEncryptionAlgorithmDESEDE3CBC = asn1.ObjectIdentifier{1, 2, 840, 113549, 3, 7}         // see https://www.rfc-editor.org/rfc/rfc8018.html#appendix-B.2.2
+	OIDEncryptionAlgorithmAES256CBC  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 42} // see https://www.rfc-editor.org/rfc/rfc3565.html#section-4.1
+	OIDEncryptionAlgorithmAES128GCM  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 6}  // see https://www.rfc-editor.org/rfc/rfc5084.html#section-3.2
+	OIDEncryptionAlgorithmAES128CBC  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 2}  // see https://www.rfc-editor.org/rfc/rfc8018.html#appendix-B.2.5
+	OIDEncryptionAlgorithmAES256GCM  = asn1.ObjectIdentifier{2, 16, 840, 1, 101, 3, 4, 1, 46} // see https://www.rfc-editor.org/rfc/rfc5084.html#section-3.2
 )
 
 func getHashForOID(oid asn1.ObjectIdentifier) (crypto.Hash, error) {
@@ -114,11 +123,11 @@ func getDigestOIDForSignatureAlgorithm(digestAlg x509.SignatureAlgorithm) (asn1.
 	return nil, fmt.Errorf("pkcs7: cannot convert hash to oid, unknown hash algorithm")
 }
 
-// getOIDForEncryptionAlgorithm takes the private key type of the signer and
+// getOIDForEncryptionAlgorithm takes the public or private key type of the signer and
 // the OID of a digest algorithm to return the appropriate signerInfo.DigestEncryptionAlgorithm
-func getOIDForEncryptionAlgorithm(pkey crypto.PrivateKey, OIDDigestAlg asn1.ObjectIdentifier) (asn1.ObjectIdentifier, error) {
-	switch pkey.(type) {
-	case *rsa.PrivateKey:
+func getOIDForEncryptionAlgorithm(pkey interface{}, OIDDigestAlg asn1.ObjectIdentifier) (asn1.ObjectIdentifier, error) {
+	switch k := pkey.(type) {
+	case *rsa.PrivateKey, *rsa.PublicKey:
 		switch {
 		default:
 			return OIDEncryptionAlgorithmRSA, nil
@@ -133,7 +142,7 @@ func getOIDForEncryptionAlgorithm(pkey crypto.PrivateKey, OIDDigestAlg asn1.Obje
 		case OIDDigestAlg.Equal(OIDDigestAlgorithmSHA512):
 			return OIDEncryptionAlgorithmRSASHA512, nil
 		}
-	case *ecdsa.PrivateKey:
+	case *ecdsa.PrivateKey, *ecdsa.PublicKey:
 		switch {
 		case OIDDigestAlg.Equal(OIDDigestAlgorithmSHA1):
 			return OIDDigestAlgorithmECDSASHA1, nil
@@ -144,8 +153,13 @@ func getOIDForEncryptionAlgorithm(pkey crypto.PrivateKey, OIDDigestAlg asn1.Obje
 		case OIDDigestAlg.Equal(OIDDigestAlgorithmSHA512):
 			return OIDDigestAlgorithmECDSASHA512, nil
 		}
-	case *dsa.PrivateKey:
+	case *dsa.PrivateKey, *dsa.PublicKey:
 		return OIDDigestAlgorithmDSA, nil
+	case crypto.Signer:
+		// This generic case is here to cover types from other packages. It
+		// was specifically added to handle the private keyRSA type in the
+		// github.com/go-piv/piv-go/piv package.
+		return getOIDForEncryptionAlgorithm(k.Public(), OIDDigestAlg)
 	}
 	return nil, fmt.Errorf("pkcs7: cannot convert encryption algorithm to oid, unknown private key type %T", pkey)
 
@@ -202,6 +216,40 @@ func parseEncryptedData(data []byte) (*PKCS7, error) {
 	}, nil
 }
 
+// SetFallbackLegacyX509CertificateParserEnabled enables parsing certificates
+// embedded in a PKCS7 message using the logic from crypto/x509 from before
+// Go 1.23. Go 1.23 introduced a breaking change in case a certificate contains
+// a critical authority key identifier, which is the correct thing to do based
+// on RFC 5280, but it breaks Windows devices performing the Simple Certificate
+// Enrolment Protocol (SCEP), as the certificates embedded in those requests
+// apparently have authority key identifier extensions marked critical.
+//
+// See https://go-review.googlesource.com/c/go/+/562341 for the change in the
+// Go source.
+//
+// When [SetFallbackLegacyX509CertificateParserEnabled] is called with true, it
+// enables parsing using the legacy crypto/x509 certificate parser. It'll first
+// try to parse the certificates using the regular Go crypto/x509 package, but
+// if it fails on the above case, it'll retry parsing the certificates using a
+// copy of the crypto/x509 package based on Go 1.23, but skips checking the
+// authority key identifier extension being critical or not.
+func SetFallbackLegacyX509CertificateParserEnabled(v bool) {
+	legacyX509CertificateParser.Lock()
+	legacyX509CertificateParser.enabled = v
+	legacyX509CertificateParser.Unlock()
+}
+
+var legacyX509CertificateParser struct {
+	sync.RWMutex
+	enabled bool
+}
+
+func isLegacyX509ParserEnabled() bool {
+	legacyX509CertificateParser.RLock()
+	defer legacyX509CertificateParser.RUnlock()
+	return legacyX509CertificateParser.enabled
+}
+
 func (raw rawCertificates) Parse() ([]*x509.Certificate, error) {
 	if len(raw.Raw) == 0 {
 		return nil, nil
@@ -212,7 +260,14 @@ func (raw rawCertificates) Parse() ([]*x509.Certificate, error) {
 		return nil, err
 	}
 
-	return x509.ParseCertificates(val.Bytes)
+	certificates, err := x509.ParseCertificates(val.Bytes)
+	if err != nil && err.Error() == "x509: authority key identifier incorrectly marked critical" {
+		if isLegacyX509ParserEnabled() {
+			certificates, err = legacyx509.ParseCertificates(val.Bytes)
+		}
+	}
+
+	return certificates, err
 }
 
 func isCertMatchForIssuerAndSerial(cert *x509.Certificate, ias issuerAndSerial) bool {

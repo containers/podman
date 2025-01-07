@@ -2,6 +2,7 @@ package pkcs7
 
 import (
 	"bytes"
+	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/des"
@@ -65,6 +66,24 @@ var ContentEncryptionAlgorithm = EncryptionAlgorithmDESCBC
 // ErrUnsupportedEncryptionAlgorithm is returned when attempting to encrypt
 // content with an unsupported algorithm.
 var ErrUnsupportedEncryptionAlgorithm = errors.New("pkcs7: cannot encrypt content: only DES-CBC, AES-CBC, and AES-GCM supported")
+
+// KeyEncryptionAlgorithm determines the algorithm used to encrypt a
+// content key. Change the value of this variable to change which
+// algorithm is used in the Encrypt() function.
+var KeyEncryptionAlgorithm = OIDEncryptionAlgorithmRSA
+
+// ErrUnsupportedKeyEncryptionAlgorithm is returned when an
+// unsupported key encryption algorithm OID is provided.
+var ErrUnsupportedKeyEncryptionAlgorithm = errors.New("pkcs7: unsupported key encryption algorithm provided")
+
+// KeyEncryptionHash determines the crypto.Hash algorithm to use
+// when encrypting a content key. Change the value of this variable
+// to change which algorithm is used in the Encrypt() function.
+var KeyEncryptionHash = crypto.SHA256
+
+// ErrUnsupportedKeyEncryptionHash is returned when an
+// unsupported key encryption hash is provided.
+var ErrUnsupportedKeyEncryptionHash = errors.New("pkcs7: unsupported key encryption hash provided")
 
 // ErrPSKNotProvided is returned when attempting to encrypt
 // using a PSK without actually providing the PSK.
@@ -256,7 +275,7 @@ func encryptAESCBC(content []byte, key []byte) ([]byte, *encryptedContentInfo, e
 // value is EncryptionAlgorithmDESCBC. To use a different algorithm, change the
 // value before calling Encrypt(). For example:
 //
-//     ContentEncryptionAlgorithm = EncryptionAlgorithmAES128GCM
+//	ContentEncryptionAlgorithm = EncryptionAlgorithmAES256GCM
 //
 // TODO(fullsailor): Add support for encrypting content with other algorithms
 func Encrypt(content []byte, recipients []*x509.Certificate) ([]byte, error) {
@@ -288,7 +307,27 @@ func Encrypt(content []byte, recipients []*x509.Certificate) ([]byte, error) {
 	// Prepare each recipient's encrypted cipher key
 	recipientInfos := make([]recipientInfo, len(recipients))
 	for i, recipient := range recipients {
-		encrypted, err := encryptKey(key, recipient)
+		algorithm := KeyEncryptionAlgorithm
+		hash := KeyEncryptionHash
+		var kea pkix.AlgorithmIdentifier
+		switch {
+		case algorithm.Equal(OIDEncryptionAlgorithmRSAESOAEP):
+			parameters, err := getParametersForKeyEncryptionAlgorithm(algorithm, hash)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get parameters for key encryption: %v", err)
+			}
+			kea = pkix.AlgorithmIdentifier{
+				Algorithm:  algorithm,
+				Parameters: parameters,
+			}
+		case algorithm.Equal(OIDEncryptionAlgorithmRSA):
+			kea = pkix.AlgorithmIdentifier{
+				Algorithm: algorithm,
+			}
+		default:
+			return nil, ErrUnsupportedKeyEncryptionAlgorithm
+		}
+		encrypted, err := encryptKey(key, recipient, algorithm, hash)
 		if err != nil {
 			return nil, err
 		}
@@ -297,12 +336,10 @@ func Encrypt(content []byte, recipients []*x509.Certificate) ([]byte, error) {
 			return nil, err
 		}
 		info := recipientInfo{
-			Version:               0,
-			IssuerAndSerialNumber: ias,
-			KeyEncryptionAlgorithm: pkix.AlgorithmIdentifier{
-				Algorithm: OIDEncryptionAlgorithmRSA,
-			},
-			EncryptedKey: encrypted,
+			Version:                0,
+			IssuerAndSerialNumber:  ias,
+			KeyEncryptionAlgorithm: kea,
+			EncryptedKey:           encrypted,
 		}
 		recipientInfos[i] = info
 	}
@@ -325,6 +362,37 @@ func Encrypt(content []byte, recipients []*x509.Certificate) ([]byte, error) {
 	}
 
 	return asn1.Marshal(wrapper)
+}
+
+func getParametersForKeyEncryptionAlgorithm(algorithm asn1.ObjectIdentifier, hash crypto.Hash) (asn1.RawValue, error) {
+	if !algorithm.Equal(OIDEncryptionAlgorithmRSAESOAEP) {
+		return asn1.RawValue{}, nil // return empty; not used
+	}
+
+	params := rsaOAEPAlgorithmParameters{}
+	switch hash {
+	case crypto.SHA1:
+		params.HashFunc = pkix.AlgorithmIdentifier{Algorithm: OIDDigestAlgorithmSHA1}
+	case crypto.SHA224:
+		params.HashFunc = pkix.AlgorithmIdentifier{Algorithm: OIDDigestAlgorithmSHA224}
+	case crypto.SHA256:
+		params.HashFunc = pkix.AlgorithmIdentifier{Algorithm: OIDDigestAlgorithmSHA256}
+	case crypto.SHA384:
+		params.HashFunc = pkix.AlgorithmIdentifier{Algorithm: OIDDigestAlgorithmSHA384}
+	case crypto.SHA512:
+		params.HashFunc = pkix.AlgorithmIdentifier{Algorithm: OIDDigestAlgorithmSHA512}
+	default:
+		return asn1.RawValue{}, ErrUnsupportedAlgorithm
+	}
+
+	b, err := asn1.Marshal(params)
+	if err != nil {
+		return asn1.RawValue{}, fmt.Errorf("failed marshaling key encryption parameters: %v", err)
+	}
+
+	return asn1.RawValue{
+		FullBytes: b,
+	}, nil
 }
 
 // EncryptUsingPSK creates and returns an encrypted data PKCS7 structure,
@@ -375,15 +443,23 @@ func EncryptUsingPSK(content []byte, key []byte) ([]byte, error) {
 }
 
 func marshalEncryptedContent(content []byte) asn1.RawValue {
-	asn1Content, _ := asn1.Marshal(content)
-	return asn1.RawValue{Tag: 0, Class: 2, Bytes: asn1Content, IsCompound: true}
+	return asn1.RawValue{Bytes: content, Class: 2, IsCompound: false}
 }
 
-func encryptKey(key []byte, recipient *x509.Certificate) ([]byte, error) {
-	if pub := recipient.PublicKey.(*rsa.PublicKey); pub != nil {
-		return rsa.EncryptPKCS1v15(rand.Reader, pub, key)
+func encryptKey(key []byte, recipient *x509.Certificate, algorithm asn1.ObjectIdentifier, hash crypto.Hash) ([]byte, error) {
+	pub, ok := recipient.PublicKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, ErrUnsupportedKeyType
 	}
-	return nil, ErrUnsupportedAlgorithm
+
+	switch {
+	case algorithm.Equal(OIDEncryptionAlgorithmRSA):
+		return rsa.EncryptPKCS1v15(rand.Reader, pub, key)
+	case algorithm.Equal(OIDEncryptionAlgorithmRSAESOAEP):
+		return rsa.EncryptOAEP(hash.New(), rand.Reader, pub, key, nil)
+	default:
+		return nil, ErrUnsupportedKeyEncryptionAlgorithm
+	}
 }
 
 func pad(data []byte, blocklen int) ([]byte, error) {
