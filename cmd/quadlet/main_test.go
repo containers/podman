@@ -95,11 +95,7 @@ func TestUnitDirs(t *testing.T) {
 		unitDirs = getUnitDirs(false)
 		assert.Equal(t, []string{}, unitDirs)
 
-		name, err := os.MkdirTemp("", "dir")
-		assert.Nil(t, err)
-		// remove the temporary directory at the end of the program
-		defer os.RemoveAll(name)
-
+		name := t.TempDir()
 		t.Setenv("QUADLET_UNIT_DIRS", name)
 		unitDirs = getUnitDirs(false)
 		assert.Equal(t, []string{name}, unitDirs, "rootful should use environment variable")
@@ -107,10 +103,7 @@ func TestUnitDirs(t *testing.T) {
 		unitDirs = getUnitDirs(true)
 		assert.Equal(t, []string{name}, unitDirs, "rootless should use environment variable")
 
-		symLinkTestBaseDir, err := os.MkdirTemp("", "podman-symlinktest")
-		assert.Nil(t, err)
-		// remove the temporary directory at the end of the program
-		defer os.RemoveAll(symLinkTestBaseDir)
+		symLinkTestBaseDir := t.TempDir()
 
 		actualDir := filepath.Join(symLinkTestBaseDir, "actual")
 		err = os.Mkdir(actualDir, 0755)
@@ -152,10 +145,7 @@ func TestUnitDirs(t *testing.T) {
 			assert.Nil(t, err)
 		}
 
-		symLinkRecursiveTestBaseDir, err := os.MkdirTemp("", "podman-symlink-recursive-test")
-		assert.Nil(t, err)
-		// remove the temporary directory at the end of the program
-		defer os.RemoveAll(symLinkRecursiveTestBaseDir)
+		symLinkRecursiveTestBaseDir := t.TempDir()
 
 		expectedDirs := make([]string, 0)
 		// Create <BASE>/unitDir
@@ -214,9 +204,7 @@ func TestUnitDirs(t *testing.T) {
 	} else {
 		fmt.Println(os.Args)
 
-		symLinkTestBaseDir, err := os.MkdirTemp("", "podman-symlinktest2")
-		assert.Nil(t, err)
-		defer os.RemoveAll(symLinkTestBaseDir)
+		symLinkTestBaseDir := t.TempDir()
 		rootF, err := os.Open("/")
 		assert.Nil(t, err)
 		defer rootF.Close()

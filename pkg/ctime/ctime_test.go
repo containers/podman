@@ -9,17 +9,16 @@ import (
 func TestCreated(t *testing.T) {
 	before := time.Now()
 
-	fileA, err := os.CreateTemp("", "ctime-test-")
+	tmpDir := t.TempDir()
+	fileA, err := os.CreateTemp(tmpDir, "ctime-test-")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.Remove(fileA.Name())
 
-	fileB, err := os.CreateTemp("", "ctime-test-")
+	fileB, err := os.CreateTemp(tmpDir, "ctime-test-")
 	if err != nil {
 		t.Error(err)
 	}
-	defer os.Remove(fileB.Name())
 
 	after := time.Now()
 

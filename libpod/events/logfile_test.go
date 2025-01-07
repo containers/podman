@@ -30,10 +30,10 @@ func TestRotateLog(t *testing.T) {
 		{1000, 600, 1500, true},
 	}
 
+	tmpDir := t.TempDir()
 	for _, test := range tests {
-		tmp, err := os.CreateTemp("", "log-rotation-")
+		tmp, err := os.CreateTemp(tmpDir, "log-rotation-")
 		require.NoError(t, err)
-		defer os.Remove(tmp.Name())
 		defer tmp.Close()
 
 		// Create dummy file and content.
@@ -80,9 +80,8 @@ func TestTruncationOutput(t *testing.T) {
 10
 `
 	// Create dummy file
-	tmp, err := os.CreateTemp("", "log-rotation")
+	tmp, err := os.CreateTemp(t.TempDir(), "log-rotation")
 	require.NoError(t, err)
-	defer os.Remove(tmp.Name())
 	defer tmp.Close()
 
 	// Write content before truncation to dummy file
@@ -114,10 +113,11 @@ func TestRenameLog(t *testing.T) {
 4
 5
 `
+	tmpDir := t.TempDir()
 	// Create two dummy files
-	source, err := os.CreateTemp("", "removing")
+	source, err := os.CreateTemp(tmpDir, "removing")
 	require.NoError(t, err)
-	target, err := os.CreateTemp("", "renaming")
+	target, err := os.CreateTemp(tmpDir, "renaming")
 	require.NoError(t, err)
 
 	// Write to source dummy file
