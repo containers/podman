@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"strings"
 
 	"golang.org/x/sys/unix"
@@ -93,7 +92,7 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode int) (_ *os.File, Err
 	}
 
 	remainingParts := strings.Split(remainingPath, string(filepath.Separator))
-	if slices.Contains(remainingParts, "..") {
+	if slices_Contains(remainingParts, "..") {
 		// The path contained ".." components after the end of the "real"
 		// components. We could try to safely resolve ".." here but that would
 		// add a bunch of extra logic for something that it's not clear even
@@ -127,8 +126,12 @@ func MkdirAllHandle(root *os.File, unsafePath string, mode int) (_ *os.File, Err
 		if err := unix.Mkdirat(int(currentDir.Fd()), part, uint32(mode)); err != nil && !errors.Is(err, unix.EEXIST) {
 			err = &os.PathError{Op: "mkdirat", Path: currentDir.Name() + "/" + part, Err: err}
 			// Make the error a bit nicer if the directory is dead.
-			if err2 := isDeadInode(currentDir); err2 != nil {
-				err = fmt.Errorf("%w (%w)", err, err2)
+			if deadErr := isDeadInode(currentDir); deadErr != nil {
+				// TODO: Once we bump the minimum Go version to 1.20, we can use
+				// multiple %w verbs for this wrapping. For now we need to use a
+				// compatibility shim for older Go versions.
+				//err = fmt.Errorf("%w (%w)", err, deadErr)
+				err = wrapBaseError(err, deadErr)
 			}
 			return nil, err
 		}
