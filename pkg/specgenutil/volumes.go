@@ -560,7 +560,7 @@ func getDevptsMount(args []string) (spec.Mount, error) {
 	for _, arg := range args {
 		name, value, hasValue := strings.Cut(arg, "=")
 		switch name {
-		case "uid", "gid", "mode", "ptxmode", "newinstance", "max":
+		case "uid", "gid", "mode", "ptmxmode", "newinstance", "max":
 			newMount.Options = append(newMount.Options, arg)
 		case "target", "dst", "destination":
 			if !hasValue {
