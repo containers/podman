@@ -141,6 +141,7 @@ func CRCreateRootFsDiffTar(changes *[]archive.Change, mountPoint, destination st
 			deletedFiles = append(deletedFiles, file.Path)
 			continue
 		}
+		// this is likely broken. Should be statting filepath.Join(mountPoint, file.Path)
 		fileName, err := os.Stat(file.Path)
 		if err != nil {
 			continue
