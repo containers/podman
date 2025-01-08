@@ -153,7 +153,9 @@ func (s *storageReference) resolveImage(sys *types.SystemContext) (*storage.Imag
 	}
 	if s.id == "" {
 		logrus.Debugf("reference %q does not resolve to an image ID", s.StringWithinTransport())
-		return nil, fmt.Errorf("reference %q does not resolve to an image ID: %w", s.StringWithinTransport(), ErrNoSuchImage)
+		// %.0w makes the error visible to error.Unwrap() without including any text.
+		// ErrNoSuchImage ultimately is “identifier is not an image”, which is not helpful for identifying the root cause.
+		return nil, fmt.Errorf("reference %q does not resolve to an image ID%.0w", s.StringWithinTransport(), ErrNoSuchImage)
 	}
 	if loadedImage == nil {
 		img, err := s.transport.store.Image(s.id)

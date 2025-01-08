@@ -24,6 +24,7 @@ import (
 type Destination struct {
 	impl.Compat
 	impl.PropertyMethodsInitialize
+	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 	stubs.NoSignaturesInitialize
 

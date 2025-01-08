@@ -13,3 +13,12 @@ func (err InvalidSignatureError) Error() string {
 func NewInvalidSignatureError(msg string) InvalidSignatureError {
 	return InvalidSignatureError{msg: msg}
 }
+
+// JSONFormatToInvalidSignatureError converts JSONFormatError to InvalidSignatureError.
+// All other errors are returned as is.
+func JSONFormatToInvalidSignatureError(err error) error {
+	if formatErr, ok := err.(JSONFormatError); ok {
+		err = NewInvalidSignatureError(formatErr.Error())
+	}
+	return err
+}

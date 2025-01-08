@@ -129,7 +129,7 @@ github.com/containerd/platforms
 ## explicit; go 1.19
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
-# github.com/containerd/typeurl/v2 v2.2.0
+# github.com/containerd/typeurl/v2 v2.2.3
 ## explicit; go 1.21
 github.com/containerd/typeurl/v2
 # github.com/containernetworking/cni v1.2.3
@@ -251,8 +251,8 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.1
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.33.0
-## explicit; go 1.22.6
+# github.com/containers/image/v5 v5.33.1-0.20250107140133-43c2a741242f
+## explicit; go 1.22.8
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
 github.com/containers/image/v5/directory/explicitfilepath
@@ -277,6 +277,7 @@ github.com/containers/image/v5/internal/multierr
 github.com/containers/image/v5/internal/pkg/platform
 github.com/containers/image/v5/internal/private
 github.com/containers/image/v5/internal/putblobdigest
+github.com/containers/image/v5/internal/reflink
 github.com/containers/image/v5/internal/rootless
 github.com/containers/image/v5/internal/set
 github.com/containers/image/v5/internal/signature
@@ -468,7 +469,6 @@ github.com/distribution/reference
 ## explicit
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
-github.com/docker/distribution/registry/client/auth/challenge
 # github.com/docker/docker v27.4.1+incompatible
 ## explicit
 github.com/docker/docker/api
@@ -966,8 +966,8 @@ github.com/pmezard/go-difflib/difflib
 # github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c
 ## explicit; go 1.14
 github.com/power-devops/perfstat
-# github.com/proglottis/gpgme v0.1.3
-## explicit; go 1.11
+# github.com/proglottis/gpgme v0.1.4
+## explicit; go 1.17
 github.com/proglottis/gpgme
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
@@ -989,7 +989,7 @@ github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil
 # github.com/seccomp/libseccomp-golang v0.10.0
 ## explicit; go 1.14
 github.com/seccomp/libseccomp-golang
-# github.com/secure-systems-lab/go-securesystemslib v0.8.0
+# github.com/secure-systems-lab/go-securesystemslib v0.9.0
 ## explicit; go 1.20
 github.com/secure-systems-lab/go-securesystemslib/encrypted
 # github.com/segmentio/ksuid v1.0.4
@@ -1017,8 +1017,8 @@ github.com/sigstore/rekor/pkg/generated/client/pubkey
 github.com/sigstore/rekor/pkg/generated/client/tlog
 github.com/sigstore/rekor/pkg/generated/models
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v1.8.9
-## explicit; go 1.22.5
+# github.com/sigstore/sigstore v1.8.11
+## explicit; go 1.22.0
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauth
 github.com/sigstore/sigstore/pkg/oauthflow
@@ -1053,8 +1053,8 @@ github.com/stefanberger/go-pkcs11uri
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/assert/yaml
 github.com/stretchr/testify/require
-# github.com/sylabs/sif/v2 v2.19.1
-## explicit; go 1.22.5
+# github.com/sylabs/sif/v2 v2.20.2
+## explicit; go 1.22.0
 github.com/sylabs/sif/v2/pkg/sif
 # github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 ## explicit
@@ -1228,7 +1228,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.23.0
+# golang.org/x/oauth2 v0.25.0
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal

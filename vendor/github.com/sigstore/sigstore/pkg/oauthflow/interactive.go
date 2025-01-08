@@ -134,7 +134,7 @@ func (i *InteractiveIDTokenGetter) doOobFlow(cfg *oauth2.Config, stateToken stri
 	fmt.Fprintln(i.GetOutput(), "Go to the following link in a browser:\n\n\t", authURL)
 	fmt.Fprintf(i.GetOutput(), "Enter verification code: ")
 	var code string
-	fmt.Fscanf(i.GetInput(), "%s", &code)
+	_, _ = fmt.Fscanf(i.GetInput(), "%s", &code)
 	// New line in case read input doesn't move cursor to next line.
 	fmt.Fprintln(i.GetOutput())
 	return code

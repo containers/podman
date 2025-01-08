@@ -10,11 +10,9 @@ extern ssize_t gogpgme_readfunc(void *handle, void *buffer, size_t size);
 extern ssize_t gogpgme_writefunc(void *handle, void *buffer, size_t size);
 extern off_t gogpgme_seekfunc(void *handle, off_t offset, int whence);
 extern gpgme_error_t gogpgme_passfunc(void *hook, char *uid_hint, char *passphrase_info, int prev_was_bad, int fd);
-extern gpgme_error_t gogpgme_data_new_from_cbs(gpgme_data_t *dh, gpgme_data_cbs_t cbs, uintptr_t handle);
-extern void gogpgme_set_passphrase_cb(gpgme_ctx_t ctx, gpgme_passphrase_cb_t cb, uintptr_t handle);
 extern gpgme_off_t gogpgme_data_seek(gpgme_data_t dh, gpgme_off_t offset, int whence);
 
-extern gpgme_error_t gogpgme_op_assuan_transact_ext(gpgme_ctx_t ctx, char *cmd, uintptr_t data_h, uintptr_t inquiry_h , uintptr_t status_h, gpgme_error_t *operr);
+extern gpgme_error_t gogpgme_op_assuan_transact_ext(gpgme_ctx_t ctx, char *cmd, void *data_h, void *inquiry_h , void *status_h, gpgme_error_t *operr);
 
 extern gpgme_error_t gogpgme_assuan_data_callback(void *opaque, void* data, size_t datalen );
 extern gpgme_error_t gogpgme_assuan_inquiry_callback(void *opaque, char* name, char* args);

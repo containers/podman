@@ -29,6 +29,7 @@ var ErrNotContainerImageDir = errors.New("not a containers image directory, don'
 type dirImageDestination struct {
 	impl.Compat
 	impl.PropertyMethodsInitialize
+	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 	stubs.AlwaysSupportsSignatures
 

@@ -41,6 +41,7 @@ import (
 type dockerImageDestination struct {
 	impl.Compat
 	impl.PropertyMethodsInitialize
+	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 
 	ref dockerReference

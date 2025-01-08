@@ -40,15 +40,6 @@ type UntrustedRekorPayload struct {
 // A compile-time check that UntrustedRekorSET implements json.Unmarshaler
 var _ json.Unmarshaler = (*UntrustedRekorSET)(nil)
 
-// JSONFormatToInvalidSignatureError converts JSONFormatError to InvalidSignatureError.
-// All other errors are returned as is.
-func JSONFormatToInvalidSignatureError(err error) error {
-	if formatErr, ok := err.(JSONFormatError); ok {
-		err = NewInvalidSignatureError(formatErr.Error())
-	}
-	return err
-}
-
 // UnmarshalJSON implements the json.Unmarshaler interface
 func (s *UntrustedRekorSET) UnmarshalJSON(data []byte) error {
 	return JSONFormatToInvalidSignatureError(s.strictUnmarshalJSON(data))
