@@ -449,8 +449,9 @@ func ChangesSize(newDir string, changes []Change) int64 {
 func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMap) (io.ReadCloser, error) {
 	reader, writer := io.Pipe()
 	go func() {
-		ta := newTarWriter(idtools.NewIDMappingsFromMaps(uidMaps, gidMaps), writer, nil)
-
+		tw := tar.NewWriter(writer)
+		ta := newTarWriter(idtools.NewIDMappingsFromMaps(uidMaps, gidMaps), tw, nil)
+		defer tw.Close()
 		// this buffer is needed for the duration of this piped stream
 		defer pools.BufioWriter32KPool.Put(ta.Buffer)
 
