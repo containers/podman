@@ -416,6 +416,15 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	return i
 }
 
+// PodmanExitCleanly runs a podman command with args, and expects it to ExitCleanly within the default timeout.
+// It returns the session (to allow consuming output if desired).
+func (p *PodmanTestIntegration) PodmanExitCleanly(args ...string) *PodmanSessionIntegration {
+	session := p.Podman(args)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(ExitCleanly())
+	return session
+}
+
 // InspectContainer returns a container's inspect data in JSON format
 func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectContainerData {
 	cmd := []string{"inspect", name}
@@ -430,6 +439,31 @@ func processTestResult(f GinkgoTestDescription) {
 	testResultsMutex.Lock()
 	testResults = append(testResults, tr)
 	testResultsMutex.Unlock()
+}
+
+// Check that the contents of a single file in the given container matches the expected value.
+func (p *PodmanTestIntegration) CheckFileInContainer(name, filepath, expected string) {
+	exec := p.Podman([]string{"exec", name, "cat", filepath})
+	exec.WaitWithDefaultTimeout()
+	ExpectWithOffset(1, exec).Should(Exit(0))
+	ExpectWithOffset(1, exec.OutputToString()).To(Equal(expected))
+}
+
+// Check that the contents of a single file in the given container contains the given value.
+func (p *PodmanTestIntegration) CheckFileInContainerSubstring(name, filepath, expected string) {
+	exec := p.Podman([]string{"exec", name, "cat", filepath})
+	exec.WaitWithDefaultTimeout()
+	ExpectWithOffset(1, exec).Should(Exit(0))
+	ExpectWithOffset(1, exec.OutputToString()).To(ContainSubstring(expected))
+}
+
+// StopContainer stops a container with no timeout, ensuring a fast test.
+func (p *PodmanTestIntegration) StopContainer(nameOrID string) {
+	p.PodmanExitCleanly("stop", "-t0", nameOrID)
+}
+
+func (p *PodmanTestIntegration) StopPod(nameOrID string) {
+	p.PodmanExitCleanly("pod", "stop", "-t0", nameOrID)
 }
 
 func GetPortLock(port string) storage.Locker {
@@ -469,8 +503,15 @@ func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []stri
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
 	podmanArgs = append(podmanArgs, args...)
-	podmanArgs = append(podmanArgs, "-d", ALPINE, "top")
-	return p.Podman(podmanArgs)
+	podmanArgs = append(podmanArgs, "-d", ALPINE, "top", "-b")
+	session := p.PodmanExitCleanly(podmanArgs...)
+	cid := session.OutputToString()
+	// Output indicates that top is running, which means it's safe
+	// for our caller to invoke `podman stop`
+	if !WaitContainerReady(p, cid, "Mem:", 20, 1) {
+		Fail("Could not start a top container")
+	}
+	return session
 }
 
 // RunLsContainer runs a simple container in the background that
