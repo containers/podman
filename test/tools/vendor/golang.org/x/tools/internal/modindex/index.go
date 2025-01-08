@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"testing"
 	"time"
 )
 
@@ -85,6 +86,28 @@ type Entry struct {
 	Names []string // exported names and information
 }
 
+// IndexDir is where the module index is stored.
+var IndexDir string
+
+// Set IndexDir
+func init() {
+	var dir string
+	var err error
+	if testing.Testing() {
+		dir = os.TempDir()
+	} else {
+		dir, err = os.UserCacheDir()
+		// shouldn't happen, but TempDir is better than
+		// creating ./go/imports
+		if err != nil {
+			dir = os.TempDir()
+		}
+	}
+	dir = filepath.Join(dir, "go", "imports")
+	os.MkdirAll(dir, 0777)
+	IndexDir = dir
+}
+
 // ReadIndex reads the latest version of the on-disk index
 // for the cache directory cd.
 // It returns (nil, nil) if there is no index, but returns
@@ -95,10 +118,7 @@ func ReadIndex(cachedir string) (*Index, error) {
 		return nil, err
 	}
 	cd := Abspath(cachedir)
-	dir, err := IndexDir()
-	if err != nil {
-		return nil, err
-	}
+	dir := IndexDir
 	base := indexNameBase(cd)
 	iname := filepath.Join(dir, base)
 	buf, err := os.ReadFile(iname)
@@ -185,12 +205,8 @@ func readIndexFrom(cd Abspath, bx io.Reader) (*Index, error) {
 
 // write the index as a text file
 func writeIndex(cachedir Abspath, ix *Index) error {
-	dir, err := IndexDir()
-	if err != nil {
-		return err
-	}
 	ipat := fmt.Sprintf("index-%d-*", CurrentVersion)
-	fd, err := os.CreateTemp(dir, ipat)
+	fd, err := os.CreateTemp(IndexDir, ipat)
 	if err != nil {
 		return err // can this happen?
 	}
@@ -201,7 +217,7 @@ func writeIndex(cachedir Abspath, ix *Index) error {
 	content := fd.Name()
 	content = filepath.Base(content)
 	base := indexNameBase(cachedir)
-	nm := filepath.Join(dir, base)
+	nm := filepath.Join(IndexDir, base)
 	err = os.WriteFile(nm, []byte(content), 0666)
 	if err != nil {
 		return err
@@ -239,18 +255,6 @@ func writeIndexToFile(x *Index, fd *os.File) error {
 		return err
 	}
 	return nil
-}
-
-// tests can override this
-var IndexDir = indexDir
-
-// IndexDir computes the directory containing the index
-func indexDir() (string, error) {
-	dir, err := os.UserCacheDir()
-	if err != nil {
-		return "", fmt.Errorf("cannot open UserCacheDir, %w", err)
-	}
-	return filepath.Join(dir, "go", "imports"), nil
 }
 
 // return the base name of the file containing the name of the current index

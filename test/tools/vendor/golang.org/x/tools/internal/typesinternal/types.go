@@ -82,6 +82,7 @@ func NameRelativeTo(pkg *types.Package) types.Qualifier {
 type NamedOrAlias interface {
 	types.Type
 	Obj() *types.TypeName
+	// TODO(hxjiang): add method TypeArgs() *types.TypeList after stop supporting go1.22.
 }
 
 // TypeParams is a light shim around t.TypeParams().
