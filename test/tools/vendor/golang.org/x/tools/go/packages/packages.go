@@ -118,6 +118,9 @@ const (
 	// NeedEmbedPatterns adds EmbedPatterns.
 	NeedEmbedPatterns
 
+	// NeedTarget adds Target.
+	NeedTarget
+
 	// Be sure to update loadmode_string.go when adding new items!
 )
 
@@ -478,6 +481,10 @@ type Package struct {
 	// ExportFile is the absolute path to a file containing type
 	// information for the package as provided by the build system.
 	ExportFile string
+
+	// Target is the absolute install path of the .a file, for libraries,
+	// and of the executable file, for binaries.
+	Target string
 
 	// Imports maps import paths appearing in the package's Go source files
 	// to corresponding loaded Packages.

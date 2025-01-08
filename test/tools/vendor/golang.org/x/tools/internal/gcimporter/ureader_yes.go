@@ -11,7 +11,6 @@ import (
 	"go/token"
 	"go/types"
 	"sort"
-	"strings"
 
 	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/pkgbits"
@@ -71,7 +70,6 @@ func UImportData(fset *token.FileSet, imports map[string]*types.Package, data []
 	}
 
 	s := string(data)
-	s = s[:strings.LastIndex(s, "\n$$\n")]
 	input := pkgbits.NewPkgDecoder(path, s)
 	pkg = readUnifiedPackage(fset, nil, imports, input)
 	return
@@ -266,7 +264,12 @@ func (pr *pkgReader) pkgIdx(idx pkgbits.Index) *types.Package {
 func (r *reader) doPkg() *types.Package {
 	path := r.String()
 	switch path {
-	case "":
+	// cmd/compile emits path="main" for main packages because
+	// that's the linker symbol prefix it used; but we need
+	// the package's path as it would be reported by go list,
+	// hence "main" below.
+	// See test at go/packages.TestMainPackagePathInModeTypes.
+	case "", "main":
 		path = r.p.PkgPath()
 	case "builtin":
 		return nil // universe

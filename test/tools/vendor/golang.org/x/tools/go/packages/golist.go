@@ -322,6 +322,7 @@ type jsonPackage struct {
 	ImportPath        string
 	Dir               string
 	Name              string
+	Target            string
 	Export            string
 	GoFiles           []string
 	CompiledGoFiles   []string
@@ -506,6 +507,7 @@ func (state *golistState) createDriverResponse(words ...string) (*DriverResponse
 			Name:            p.Name,
 			ID:              p.ImportPath,
 			Dir:             p.Dir,
+			Target:          p.Target,
 			GoFiles:         absJoin(p.Dir, p.GoFiles, p.CgoFiles),
 			CompiledGoFiles: absJoin(p.Dir, p.CompiledGoFiles),
 			OtherFiles:      absJoin(p.Dir, otherFiles(p)...),
@@ -810,6 +812,9 @@ func jsonFlag(cfg *Config, goVersion int) string {
 	}
 	if cfg.Mode&NeedEmbedPatterns != 0 {
 		addFields("EmbedPatterns")
+	}
+	if cfg.Mode&NeedTarget != 0 {
+		addFields("Target")
 	}
 	return "-json=" + strings.Join(fields, ",")
 }

@@ -16,6 +16,7 @@ type Candidate struct {
 	Dir        string
 	ImportPath string
 	Type       LexType
+	Deprecated bool
 	// information for Funcs
 	Results int16   // how many results
 	Sig     []Field // arg names and types
@@ -79,8 +80,9 @@ func (ix *Index) Lookup(pkg, name string, prefix bool) []Candidate {
 				Dir:        string(e.Dir),
 				ImportPath: e.ImportPath,
 				Type:       asLexType(flds[1][0]),
+				Deprecated: len(flds[1]) > 1 && flds[1][1] == 'D',
 			}
-			if flds[1] == "F" {
+			if px.Type == Func {
 				n, err := strconv.Atoi(flds[2])
 				if err != nil {
 					continue // should never happen
@@ -111,6 +113,7 @@ func toFields(sig []string) []Field {
 }
 
 // benchmarks show this is measurably better than strings.Split
+// split into first 4 fields separated by single space
 func fastSplit(x string) []string {
 	ans := make([]string, 0, 4)
 	nxt := 0
