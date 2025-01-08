@@ -766,7 +766,7 @@ func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
 			break
 		}
 		if resolvedSymlink != "" {
-			_, resolvedSymlinkWorkdir, err := c.resolvePath(c.state.Mountpoint, resolvedSymlink)
+			_, resolvedSymlinkWorkdir, _, err := c.resolvePath(c.state.Mountpoint, resolvedSymlink)
 			if isPathOnVolume(c, resolvedSymlinkWorkdir) || isPathOnMount(c, resolvedSymlinkWorkdir) {
 				// Resolved symlink exists on external volume or mount
 				return true
@@ -805,7 +805,7 @@ func (c *Container) resolveWorkDir() error {
 		return nil
 	}
 
-	_, resolvedWorkdir, err := c.resolvePath(c.state.Mountpoint, workdir)
+	_, resolvedWorkdir, _, err := c.resolvePath(c.state.Mountpoint, workdir)
 	if err != nil {
 		return err
 	}
@@ -2988,7 +2988,11 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 			return nil
 		}
 
-		st, err := os.Lstat(filepath.Join(c.state.Mountpoint, v.Dest))
+		finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, v.Dest)
+		if err != nil {
+			return err
+		}
+		st, err := os.Lstat(finalPath)
 		if err == nil {
 			if stat, ok := st.Sys().(*syscall.Stat_t); ok {
 				uid, gid := int(stat.Uid), int(stat.Gid)

@@ -140,3 +140,29 @@ func Register(name string, handler func(os.Signal) error) error {
 
 	return nil
 }
+
+// Unregister un-registers a given shutdown handler.
+func Unregister(name string) error {
+	handlerLock.Lock()
+	defer handlerLock.Unlock()
+
+	if handlers == nil {
+		return nil
+	}
+
+	if _, ok := handlers[name]; !ok {
+		return nil
+	}
+
+	delete(handlers, name)
+
+	newOrder := []string{}
+	for _, checkName := range handlerOrder {
+		if checkName != name {
+			newOrder = append(newOrder, checkName)
+		}
+	}
+	handlerOrder = newOrder
+
+	return nil
+}
