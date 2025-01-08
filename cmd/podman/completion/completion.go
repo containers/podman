@@ -13,7 +13,7 @@ import (
 
 const (
 	completionDescription = `Generate shell autocompletions.
-  Valid arguments are bash, zsh, and fish.
+  Valid arguments are bash, zsh, fish, and powershell.
   Please refer to the man page to see how you can load these completions.`
 )
 
