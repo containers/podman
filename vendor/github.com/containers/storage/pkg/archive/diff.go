@@ -107,7 +107,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 					}
 					defer os.RemoveAll(aufsTempdir)
 				}
-				if err := createTarFile(filepath.Join(aufsTempdir, basename), dest, hdr, tr, true, nil, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
+				if err := extractTarFileEntry(filepath.Join(aufsTempdir, basename), dest, hdr, tr, true, nil, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
 					return 0, err
 				}
 			}
@@ -176,7 +176,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 			// We always reset the immutable flag (if present) to allow metadata
 			// changes and to allow directory modification. The flag will be
 			// re-applied based on the contents of hdr either at the end for
-			// directories or in createTarFile otherwise.
+			// directories or in extractTarFileEntry otherwise.
 			if fi, err := os.Lstat(path); err == nil {
 				if err := resetImmutable(path, &fi); err != nil {
 					return 0, err
@@ -212,7 +212,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				return 0, err
 			}
 
-			if err := createTarFile(path, dest, srcHdr, srcData, true, nil, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
+			if err := extractTarFileEntry(path, dest, srcHdr, srcData, true, nil, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
 				return 0, err
 			}
 
