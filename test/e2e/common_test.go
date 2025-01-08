@@ -484,6 +484,16 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	return i
 }
 
+// PodmanExitCleanly runs a podman command with args, and expects it to ExitCleanly within the default timeout.
+// It returns the session (to allow consuming output if desired).
+func (p *PodmanTestIntegration) PodmanExitCleanly(args ...string) *PodmanSessionIntegration {
+	GinkgoHelper()
+	session := p.Podman(args)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(ExitCleanly())
+	return session
+}
+
 // InspectContainer returns a container's inspect data in JSON format
 func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectContainerData {
 	cmd := []string{"inspect", name}
@@ -520,15 +530,11 @@ func (p *PodmanTestIntegration) CheckFileInContainerSubstring(name, filepath, ex
 
 // StopContainer stops a container with no timeout, ensuring a fast test.
 func (p *PodmanTestIntegration) StopContainer(nameOrID string) {
-	stop := p.Podman([]string{"stop", "-t0", nameOrID})
-	stop.WaitWithDefaultTimeout()
-	Expect(stop).Should(ExitCleanly())
+	p.PodmanExitCleanly("stop", "-t0", nameOrID)
 }
 
 func (p *PodmanTestIntegration) StopPod(nameOrID string) {
-	stop := p.Podman([]string{"pod", "stop", "-t0", nameOrID})
-	stop.WaitWithDefaultTimeout()
-	Expect(stop).Should(ExitCleanly())
+	p.PodmanExitCleanly("pod", "stop", "-t0", nameOrID)
 }
 
 func processTestResult(r SpecReport) {
@@ -586,9 +592,7 @@ func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []stri
 	}
 	podmanArgs = append(podmanArgs, args...)
 	podmanArgs = append(podmanArgs, "-d", ALPINE, "top", "-b")
-	session := p.Podman(podmanArgs)
-	session.WaitWithDefaultTimeout()
-	Expect(session).To(ExitCleanly())
+	session := p.PodmanExitCleanly(podmanArgs...)
 	cid := session.OutputToString()
 	// Output indicates that top is running, which means it's safe
 	// for our caller to invoke `podman stop`
