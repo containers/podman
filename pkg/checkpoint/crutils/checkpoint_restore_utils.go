@@ -73,7 +73,7 @@ func CRImportCheckpointConfigOnly(destination, input string) error {
 
 // CRRemoveDeletedFiles loads the list of deleted files and if
 // it exists deletes all files listed.
-func CRRemoveDeletedFiles(id, baseDirectory, containerRootDirectory string) error {
+func xCRRemoveDeletedFiles(id, baseDirectory, containerRootDirectory string) error {
 	deletedFiles, _, err := metadata.ReadContainerCheckpointDeletedFiles(baseDirectory)
 	if os.IsNotExist(err) {
 		// No files to delete. Just return
@@ -97,7 +97,7 @@ func CRRemoveDeletedFiles(id, baseDirectory, containerRootDirectory string) erro
 
 // CRApplyRootFsDiffTar applies the tar archive found in baseDirectory with the
 // root file system changes on top of containerRootDirectory
-func CRApplyRootFsDiffTar(baseDirectory, containerRootDirectory string) error {
+func xCRApplyRootFsDiffTar(baseDirectory, containerRootDirectory string) error {
 	rootfsDiffPath := filepath.Join(baseDirectory, metadata.RootFsDiffTar)
 	// Only do this if a rootfs-diff.tar actually exists
 	rootfsDiffFile, err := os.Open(rootfsDiffPath)
@@ -122,7 +122,7 @@ func CRApplyRootFsDiffTar(baseDirectory, containerRootDirectory string) error {
 // With these two files it is possible to restore the container file system to the same
 // state it was during checkpointing.
 // Changes to directories (owner, mode) are not handled.
-func CRCreateRootFsDiffTar(changes *[]archive.Change, mountPoint, destination string) (includeFiles []string, err error) {
+func xCRCreateRootFsDiffTar(changes *[]archive.Change, mountPoint, destination string) (includeFiles []string, err error) {
 	if len(*changes) == 0 {
 		return includeFiles, nil
 	}

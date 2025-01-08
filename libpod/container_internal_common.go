@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"archive/tar"
 	"context"
 	"errors"
 	"fmt"
@@ -1060,6 +1061,8 @@ func (c *Container) createCheckpointImage(ctx context.Context, options Container
 	return nil
 }
 
+const rootFsDiffDir = "rootfs-diff"
+
 func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	if len(c.Dependencies()) == 1 {
 		// Check if the dependency is an infra container. If it is we can checkpoint
@@ -1104,20 +1107,31 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		includeFiles = append(includeFiles, metadata.CheckpointDirectory)
 	}
 	// Get root file-system changes included in the checkpoint archive
-	var addToTarFiles []string
+	var rootFSFiles []string
+	var deletedFiles []string
 	if !options.IgnoreRootfs {
 		// To correctly track deleted files, let's go through the output of 'podman diff'
 		rootFsChanges, err := c.runtime.GetDiff("", c.ID(), define.DiffContainer)
 		if err != nil {
 			return fmt.Errorf("exporting root file-system diff for %q: %w", c.ID(), err)
 		}
+		for _, file := range rootFsChanges {
+			// needed for RebaseNames to work correctly.
+			p := strings.TrimLeft(file.Path, "/") // filepath.Sep ?
 
-		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
-		if err != nil {
-			return err
+			switch file.Kind {
+			case archive.ChangeAdd, archive.ChangeModify:
+				if file.Kind == archive.ChangeModify {
+					if info, err := os.Stat(filepath.Join(c.state.Mountpoint, p)); err != nil || info.IsDir() {
+						continue
+					}
+				}
+
+				rootFSFiles = append(rootFSFiles, p)
+			case archive.ChangeDelete:
+				deletedFiles = append(deletedFiles, p)
+			}
 		}
-
-		includeFiles = append(includeFiles, addToTarFiles...)
 	}
 
 	// Folder containing archived volumes that will be included in the export
@@ -1158,7 +1172,6 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 			if err != nil {
 				return fmt.Errorf("reading volume directory %q: %w", v.Dest, err)
 			}
-
 			_, err = io.Copy(volumeTarFile, input)
 			if err != nil {
 				return err
@@ -1169,40 +1182,68 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		}
 	}
 
-	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
-		Compression:      options.Compression,
-		IncludeSourceDir: true,
-		IncludeFiles:     includeFiles,
-	})
-
-	if err != nil {
-		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
-	}
-
 	outFile, err := os.Create(options.TargetFile)
 	if err != nil {
 		return fmt.Errorf("creating checkpoint export file %q: %w", options.TargetFile, err)
 	}
 	defer outFile.Close()
 
+	// TODO: use os.OpenFile(... , 0600) above instead.
 	if err := os.Chmod(options.TargetFile, 0600); err != nil {
 		return err
 	}
 
-	_, err = io.Copy(outFile, input)
-	if err != nil {
+	tw := tar.NewWriter(outFile)
+
+	// TODO handle options.Compression.
+	if err := archive.TarWithOptionsTo(c.bundlePath(), tw, &archive.TarOptions{
+		IncludeSourceDir: true,
+		IncludeFiles:     includeFiles,
+	}); err != nil {
+		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
+	}
+
+	// marker for the next section.
+	if err := tw.WriteHeader(&tar.Header{
+		Name: rootFsDiffDir + "/",
+	}); err != nil {
 		return err
 	}
 
-	for _, file := range addToTarFiles {
-		os.Remove(filepath.Join(c.bundlePath(), file))
+	renames := make(map[string]string, len(rootFSFiles))
+	for _, fn := range rootFSFiles {
+		renames[fn] = filepath.Join(rootFsDiffDir, fn)
+	}
+	if err := archive.TarWithOptionsTo(c.state.Mountpoint, tw, &archive.TarOptions{
+		IncludeSourceDir: true,
+		IncludeFiles:     rootFSFiles,
+		RebaseNames:      renames,
+	}); err != nil {
+		return err
+	}
+
+	if len(deletedFiles) > 0 {
+		delJSON, err := json.MarshalIndent(deletedFiles, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := tw.WriteHeader(&tar.Header{
+			Name: metadata.DeletedFilesFile,
+			Size: int64(len(delJSON)),
+			Mode: syscall.S_IFREG | 0644,
+		}); err != nil {
+			return err
+		}
+		if _, err := tw.Write(delJSON); err != nil {
+			return err
+		}
 	}
 
 	if !options.IgnoreVolumes {
 		os.RemoveAll(expVolDir)
 	}
 
-	return nil
+	return tw.Close()
 }
 
 func (c *Container) checkpointRestoreSupported(version int) error {
@@ -1415,14 +1456,6 @@ func (c *Container) importCheckpointImage(ctx context.Context, imageID string) e
 	return c.generateContainerSpec()
 }
 
-func (c *Container) importCheckpointTar(input string) error {
-	if err := crutils.CRImportCheckpointWithoutConfig(c.bundlePath(), input); err != nil {
-		return err
-	}
-
-	return c.generateContainerSpec()
-}
-
 func (c *Container) importPreCheckpoint(input string) error {
 	archiveFile, err := os.Open(input)
 	if err != nil {
@@ -1463,8 +1496,30 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 		}
 	}
 
+	var checkpointTar *tar.Reader
 	if options.TargetFile != "" {
-		if err := c.importCheckpointTar(options.TargetFile); err != nil {
+		f, err := os.Open(options.TargetFile)
+		if err != nil {
+			return nil, 0, err
+		}
+		defer f.Close()
+
+		checkpointTar = tar.NewReader(f)
+		tarOptions := &archive.TarOptions{
+			ExcludePatterns: []string{
+				// Import everything else besides the container config
+				metadata.ConfigDumpFile,
+				metadata.SpecDumpFile,
+			},
+			StopExtraction: func(hdr *tar.Header) bool {
+				return hdr.Name == rootFsDiffDir+"/"
+			},
+		}
+		if err = archive.UnpackTarReader(checkpointTar, c.bundlePath(), tarOptions); err != nil {
+			return nil, 0, fmt.Errorf("unpacking of checkpoint archive %s failed: %w", options.TargetFile, err)
+		}
+
+		if err := c.generateContainerSpec(); err != nil {
 			return nil, 0, err
 		}
 	} else if options.CheckpointImageID != "" {
@@ -1741,13 +1796,31 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Before actually restarting the container, apply the root file-system changes
-	if !options.IgnoreRootfs {
-		if err := crutils.CRApplyRootFsDiffTar(c.bundlePath(), c.state.Mountpoint); err != nil {
+	if !options.IgnoreRootfs && checkpointTar != nil {
+		var stop *tar.Header
+		if err := archive.UnpackTarReader(checkpointTar, c.state.Mountpoint, &archive.TarOptions{
+			StopExtraction: func(hdr *tar.Header) bool {
+				if hdr.Name == metadata.DeletedFilesFile {
+					stop = hdr
+					return true
+				}
+				return false
+			},
+			StripPrefixCount: 1,
+		}); err != nil {
 			return nil, 0, err
 		}
 
-		if err := crutils.CRRemoveDeletedFiles(c.ID(), c.bundlePath(), c.state.Mountpoint); err != nil {
-			return nil, 0, err
+		if stop != nil {
+			var fs []string
+			if err := json.NewDecoder(checkpointTar).Decode(&fs); err != nil {
+				return nil, 0, err
+			}
+			for _, f := range fs {
+				if err := os.RemoveAll(filepath.Join(c.state.Mountpoint, f)); err != nil {
+					return nil, 0, err
+				}
+			}
 		}
 	}
 
