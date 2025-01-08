@@ -59,7 +59,11 @@ type (
 		// For each include when creating an archive, the included name will be
 		// replaced with the matching name from this map.
 		RebaseNames map[string]string
-		InUserNS    bool
+
+		// Remove this many leading directory components on extraction.
+		StripPrefixCount int
+
+		InUserNS bool
 		// CopyPass indicates that the contents of any archive we're creating
 		// will instantly be extracted and written to disk, so we can deviate
 		// from the traditional behavior/format to get features like subsecond
@@ -67,6 +71,11 @@ type (
 		CopyPass bool
 		// ForceMask, if set, indicates the permission mask used for created files.
 		ForceMask *os.FileMode
+
+		// Extraction functions that loop over a
+		// `*tar.Reader`, will stop early if StopExtraction is
+		// defined and returns true for the header.
+		StopExtraction func(*tar.Header) bool
 	}
 )
 
@@ -1029,6 +1038,11 @@ func TarWithOptionsTo(srcPath string, tw *tar.Writer, options *TarOptions) error
 // Unpack unpacks the decompressedArchive to dest with options.
 func Unpack(decompressedArchive io.Reader, dest string, options *TarOptions) error {
 	tr := tar.NewReader(decompressedArchive)
+	return UnpackTarReader(tr, dest, options)
+}
+
+// UnpackTarReader loops over the tar reader provider provided.
+func UnpackTarReader(tr *tar.Reader, dest string, options *TarOptions) error {
 	trBuf := pools.BufioReader32KPool.Get(nil)
 	defer pools.BufioReader32KPool.Put(trBuf)
 
@@ -1057,10 +1071,23 @@ loop:
 			return err
 		}
 
+		if options.StopExtraction != nil && options.StopExtraction(hdr) {
+			break
+		}
+
 		// Normalize name, for safety and for a simple is-root check
 		// This keeps "../" as-is, but normalizes "/../" to "/". Or Windows:
 		// This keeps "..\" as-is, but normalizes "\..\" to "\".
 		hdr.Name = filepath.Clean(hdr.Name)
+
+		// Should this be before or after the filepath.Clean call?
+		for i := 0; i < options.StripPrefixCount; i++ {
+			n := strings.Index(hdr.Name, "/")
+			if n < 0 {
+				break
+			}
+			hdr.Name = hdr.Name[n+1:]
+		}
 
 		for _, exclude := range options.ExcludePatterns {
 			if strings.HasPrefix(hdr.Name, exclude) {
