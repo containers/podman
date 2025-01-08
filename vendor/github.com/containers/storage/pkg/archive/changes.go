@@ -447,6 +447,7 @@ func ChangesSize(newDir string, changes []Change) int64 {
 
 // ExportChanges produces an Archive from the provided changes, relative to dir.
 func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMap) (io.ReadCloser, error) {
+	// breaks zero-copy.
 	reader, writer := io.Pipe()
 	go func() {
 		ta := newTarAppender(idtools.NewIDMappingsFromMaps(uidMaps, gidMaps), writer, nil)

@@ -195,6 +195,7 @@ func DecompressStream(archive io.Reader) (_ io.ReadCloser, Err error) {
 	compression := DetectCompression(bs)
 	switch compression {
 	case Uncompressed:
+		// breaking zero-copy.
 		readBufWrapper := p.NewReadCloserWrapper(buf, buf)
 		return readBufWrapper, nil
 	case Gzip:
@@ -274,6 +275,7 @@ type TarModifierFunc func(path string, header *tar.Header, content io.Reader) (*
 // ReplaceFileTarWrapper converts inputTarStream to a new tar stream. Files in the
 // tar stream are modified if they match any of the keys in mods.
 func ReplaceFileTarWrapper(inputTarStream io.ReadCloser, mods map[string]TarModifierFunc) io.ReadCloser {
+	// breaking zero-copy.
 	pipeReader, pipeWriter := io.Pipe()
 
 	go func() {
@@ -633,6 +635,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 			return err
 		}
 
+		// breaking zero-copy.
 		ta.Buffer.Reset(ta.TarWriter)
 		defer ta.Buffer.Reset(nil)
 		_, err = io.Copy(ta.Buffer, file)
@@ -843,6 +846,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 		return nil, err
 	}
 
+	// breaking zero-copy.
 	pipeReader, pipeWriter := io.Pipe()
 
 	compressWriter, err := CompressStream(pipeWriter, options.Compression)
