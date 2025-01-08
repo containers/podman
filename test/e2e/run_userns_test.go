@@ -158,6 +158,18 @@ var _ = Describe("Podman UserNS support", func() {
 		Expect(session.OutputToString()).To(Equal("0"))
 	})
 
+	It("podman --userns=keep-id:size", func() {
+		session := podmanTest.Podman([]string{"run", "--userns=keep-id:size=10", ALPINE, "sh", "-c", "(awk 'BEGIN{SUM=0} {SUM += $3} END{print SUM}' < /proc/self/uid_map)"})
+		session.WaitWithDefaultTimeout()
+
+		if isRootless() {
+			Expect(session).Should(ExitCleanly())
+			Expect(session.OutputToString()).To(Equal("10"))
+		} else {
+			Expect(session).Should(ExitWithError(125, "cannot set max size for user namespace when not running rootless"))
+		}
+	})
+
 	It("podman --userns=keep-id --user root:root", func() {
 		session := podmanTest.Podman([]string{"run", "--userns=keep-id", "--user", "root:root", "alpine", "id", "-u"})
 		session.WaitWithDefaultTimeout()

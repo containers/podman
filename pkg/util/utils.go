@@ -173,7 +173,7 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 	return sig, nil
 }
 
-func getRootlessKeepIDMapping(uid, gid int, uids, gids []idtools.IDMap) (*stypes.IDMappingOptions, int, int, error) {
+func getRootlessKeepIDMapping(uid, gid int, uids, gids []idtools.IDMap, maxSize int) (*stypes.IDMappingOptions, int, int, error) {
 	options := stypes.IDMappingOptions{
 		HostUIDMapping: false,
 		HostGIDMapping: false,
@@ -184,6 +184,11 @@ func getRootlessKeepIDMapping(uid, gid int, uids, gids []idtools.IDMap) (*stypes
 	}
 	for _, g := range gids {
 		maxGID += g.Size
+	}
+	if maxSize > 0 {
+		// If maxSize is set, we need to ensure that the mappings are within the available range
+		maxUID = min(maxUID, maxSize-1)
+		maxGID = min(maxGID, maxSize-1)
 	}
 
 	options.UIDMap, options.GIDMap = nil, nil
@@ -240,13 +245,17 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 	if opts.GID != nil {
 		gid = int(*opts.GID)
 	}
+	maxSize := 0
+	if opts.MaxSize != nil {
+		maxSize = int(*opts.MaxSize)
+	}
 
 	uids, gids, err := rootless.GetConfiguredMappings(true)
 	if err != nil {
 		return nil, -1, -1, fmt.Errorf("cannot read mappings: %w", err)
 	}
 
-	return getRootlessKeepIDMapping(uid, gid, uids, gids)
+	return getRootlessKeepIDMapping(uid, gid, uids, gids, maxSize)
 }
 
 // GetNoMapMapping returns the mappings and the user to use when nomap is used

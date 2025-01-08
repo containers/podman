@@ -595,6 +595,7 @@ func TestGetRootlessKeepIDMapping(t *testing.T) {
 	tests := []struct {
 		uid, gid                 int
 		uids, gids               []idtools.IDMap
+		size                     int
 		expectedOptions          *stypes.IDMappingOptions
 		expectedUID, expectedGID int
 		expectedError            error
@@ -627,10 +628,70 @@ func TestGetRootlessKeepIDMapping(t *testing.T) {
 			expectedUID: 0,
 			expectedGID: 0,
 		},
+		{
+			uid:  0,
+			gid:  0,
+			uids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			gids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			expectedOptions: &stypes.IDMappingOptions{
+				HostUIDMapping: false,
+				HostGIDMapping: false,
+				UIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}, {ContainerID: 1, HostID: 1, Size: 1023}},
+				GIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}, {ContainerID: 1, HostID: 1, Size: 1023}},
+			},
+			expectedUID: 0,
+			expectedGID: 0,
+			size:        1024,
+		},
+		{
+			uid:  0,
+			gid:  0,
+			uids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			gids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			expectedOptions: &stypes.IDMappingOptions{
+				HostUIDMapping: false,
+				HostGIDMapping: false,
+				UIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}},
+				GIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}},
+			},
+			expectedUID: 0,
+			expectedGID: 0,
+			size:        1,
+		},
+		{
+			uid:  0,
+			gid:  0,
+			uids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			gids: []idtools.IDMap{{ContainerID: 0, HostID: 100000, Size: 65536}},
+			expectedOptions: &stypes.IDMappingOptions{
+				HostUIDMapping: false,
+				HostGIDMapping: false,
+				UIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}, {ContainerID: 1, HostID: 1, Size: 1}},
+				GIDMap:         []idtools.IDMap{{ContainerID: 0, HostID: 0, Size: 1}, {ContainerID: 1, HostID: 1, Size: 1}},
+			},
+			expectedUID: 0,
+			expectedGID: 0,
+			size:        2,
+		},
+		{
+			uid:  1000,
+			gid:  1000,
+			uids: []idtools.IDMap{},
+			gids: []idtools.IDMap{},
+			expectedOptions: &stypes.IDMappingOptions{
+				HostUIDMapping: false,
+				HostGIDMapping: false,
+				UIDMap:         []idtools.IDMap{{ContainerID: 1000, HostID: 0, Size: 1}},
+				GIDMap:         []idtools.IDMap{{ContainerID: 1000, HostID: 0, Size: 1}},
+			},
+			expectedUID: 1000,
+			expectedGID: 1000,
+			size:        1000000,
+		},
 	}
 
 	for _, test := range tests {
-		options, uid, gid, err := getRootlessKeepIDMapping(test.uid, test.gid, test.uids, test.gids)
+		options, uid, gid, err := getRootlessKeepIDMapping(test.uid, test.gid, test.uids, test.gids, test.size)
 		assert.Nil(t, err)
 		assert.Equal(t, test.expectedOptions, options)
 		assert.Equal(t, test.expectedUID, uid)

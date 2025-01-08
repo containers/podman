@@ -20,12 +20,14 @@ const (
 	pastaType     = "pasta"
 )
 
-// KeepIDUserNsOptions defines how to keepIDmatically create a user namespace.
+// KeepIDUserNsOptions defines how to create a user namespace using keep-id.
 type KeepIDUserNsOptions struct {
 	// UID is the target uid in the user namespace.
 	UID *uint32
 	// GID is the target uid in the user namespace.
 	GID *uint32
+	// MaxSize is the maximum size of the user namespace.
+	MaxSize *uint32
 }
 
 // CgroupMode represents cgroup mode in the container.
@@ -148,6 +150,13 @@ func (n UsernsMode) GetKeepIDOptions() (*KeepIDUserNsOptions, error) {
 			}
 			v := uint32(s)
 			options.GID = &v
+		case "size":
+			s, err := strconv.ParseUint(val, 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			v := uint32(s)
+			options.MaxSize = &v
 		default:
 			return nil, fmt.Errorf("unknown option specified: %q", opt)
 		}

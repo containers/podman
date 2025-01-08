@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/namespaces"
+	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/unshare"
@@ -56,7 +57,7 @@ const (
 	// Pasta indicates that a pasta network stack should be used.
 	// Only used with the network namespace, invalid otherwise.
 	Pasta NamespaceMode = "pasta"
-	// KeepId indicates a user namespace to keep the owner uid inside
+	// KeepID indicates a user namespace to keep the owner uid inside
 	// of the namespace itself.
 	// Only used with the user namespace, invalid otherwise.
 	KeepID NamespaceMode = "keep-id"
@@ -513,6 +514,9 @@ func SetupUserNS(idmappings *storageTypes.IDMappingOptions, userns Namespace, g 
 		opts, err := namespaces.UsernsMode(userns.String()).GetKeepIDOptions()
 		if err != nil {
 			return user, err
+		}
+		if opts.MaxSize != nil && !rootless.IsRootless() {
+			return user, fmt.Errorf("cannot set max size for user namespace when not running rootless")
 		}
 		mappings, uid, gid, err := util.GetKeepIDMapping(opts)
 		if err != nil {
