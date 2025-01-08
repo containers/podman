@@ -450,8 +450,9 @@ func ExportChanges(dir string, changes []Change, uidMaps, gidMaps []idtools.IDMa
 	// breaks zero-copy.
 	reader, writer := io.Pipe()
 	go func() {
-		ta := newTarWriter(idtools.NewIDMappingsFromMaps(uidMaps, gidMaps), writer, nil)
-
+		tw := tar.NewWriter(writer)
+		ta := newTarWriter(idtools.NewIDMappingsFromMaps(uidMaps, gidMaps), tw, nil)
+		defer tw.Close()
 		// this buffer is needed for the duration of this piped stream
 		defer pools.BufioWriter32KPool.Put(ta.Buffer)
 
