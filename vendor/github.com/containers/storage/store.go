@@ -20,6 +20,7 @@ import (
 	_ "github.com/containers/storage/drivers/register"
 
 	drivers "github.com/containers/storage/drivers"
+	"github.com/containers/storage/internal/dedup"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
@@ -165,6 +166,26 @@ type flaggableStore interface {
 }
 
 type StoreOptions = types.StoreOptions
+
+type DedupHashMethod = dedup.DedupHashMethod
+
+const (
+	DedupHashInvalid  = dedup.DedupHashInvalid
+	DedupHashCRC      = dedup.DedupHashCRC
+	DedupHashFileSize = dedup.DedupHashFileSize
+	DedupHashSHA256   = dedup.DedupHashSHA256
+)
+
+type (
+	DedupOptions = dedup.DedupOptions
+	DedupResult  = dedup.DedupResult
+)
+
+// DedupArgs is used to pass arguments to the Dedup command.
+type DedupArgs struct {
+	// Options that are passed directly to the internal/dedup.DedupDirs function.
+	Options DedupOptions
+}
 
 // Store wraps up the various types of file-based stores that we use into a
 // singleton object that initializes and manages them all together.
@@ -589,6 +610,9 @@ type Store interface {
 	// MultiList returns consistent values as of a single point in time.
 	// WARNING: The values may already be out of date by the time they are returned to the caller.
 	MultiList(MultiListOptions) (MultiListResult, error)
+
+	// Dedup deduplicates layers in the store.
+	Dedup(DedupArgs) (drivers.DedupResult, error)
 }
 
 // AdditionalLayer represents a layer that is contained in the additional layer store
@@ -3842,4 +3866,44 @@ func (s *store) MultiList(options MultiListOptions) (MultiListResult, error) {
 		out.Containers = append(out.Containers, containers...)
 	}
 	return out, nil
+}
+
+// Dedup deduplicates layers in the store.
+func (s *store) Dedup(req DedupArgs) (drivers.DedupResult, error) {
+	imgs, err := s.Images()
+	if err != nil {
+		return drivers.DedupResult{}, err
+	}
+	var topLayers []string
+	for _, i := range imgs {
+		topLayers = append(topLayers, i.TopLayer)
+		topLayers = append(topLayers, i.MappedTopLayers...)
+	}
+	return writeToLayerStore(s, func(rlstore rwLayerStore) (drivers.DedupResult, error) {
+		layers := make(map[string]struct{})
+		for _, i := range topLayers {
+			cur := i
+			for cur != "" {
+				if _, visited := layers[cur]; visited {
+					break
+				}
+				l, err := rlstore.Get(cur)
+				if err != nil {
+					if err == ErrLayerUnknown {
+						break
+					}
+					return drivers.DedupResult{}, err
+				}
+				layers[cur] = struct{}{}
+				cur = l.Parent
+			}
+		}
+		r := drivers.DedupArgs{
+			Options: req.Options,
+		}
+		for l := range layers {
+			r.Layers = append(r.Layers, l)
+		}
+		return rlstore.dedup(r)
+	})
 }

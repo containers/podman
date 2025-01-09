@@ -3,7 +3,7 @@ package toc
 import (
 	"errors"
 
-	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/internal/minimal"
 	digest "github.com/opencontainers/go-digest"
 )
 
@@ -19,7 +19,7 @@ const tocJSONDigestAnnotation = "containerd.io/snapshot/stargz/toc.digest"
 // This is an experimental feature and may be changed/removed in the future.
 func GetTOCDigest(annotations map[string]string) (*digest.Digest, error) {
 	d1, ok1 := annotations[tocJSONDigestAnnotation]
-	d2, ok2 := annotations[internal.ManifestChecksumKey]
+	d2, ok2 := annotations[minimal.ManifestChecksumKey]
 	switch {
 	case ok1 && ok2:
 		return nil, errors.New("both zstd:chunked and eStargz TOC found")

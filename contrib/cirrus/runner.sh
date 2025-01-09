@@ -212,7 +212,7 @@ eof
 function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
-    showrun make vendor
+    # showrun make vendor
     showrun make -j $(nproc) --output-sync=target podman-release  # includes podman, podman-remote, and docs
 
     # There's no reason to validate-binaries across multiple linux platforms

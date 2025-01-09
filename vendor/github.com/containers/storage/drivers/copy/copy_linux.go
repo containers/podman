@@ -106,7 +106,7 @@ func legacyCopy(srcFile io.Reader, dstFile io.Writer) error {
 
 func copyXattr(srcPath, dstPath, attr string) error {
 	data, err := system.Lgetxattr(srcPath, attr)
-	if err != nil && !errors.Is(err, unix.EOPNOTSUPP) {
+	if err != nil && !errors.Is(err, system.ENOTSUP) {
 		return err
 	}
 	if data != nil {
@@ -279,7 +279,7 @@ func doCopyXattrs(srcPath, dstPath string) error {
 	}
 
 	xattrs, err := system.Llistxattr(srcPath)
-	if err != nil && !errors.Is(err, unix.EOPNOTSUPP) {
+	if err != nil && !errors.Is(err, system.ENOTSUP) {
 		return err
 	}
 
