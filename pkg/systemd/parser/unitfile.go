@@ -204,7 +204,7 @@ func (f *UnitFile) Dup() *UnitFile {
 }
 
 func lineIsComment(line string) bool {
-	return len(line) == 0 || line[0] == '#' || line[0] == ':'
+	return len(line) == 0 || line[0] == '#' || line[0] == ';'
 }
 
 func lineIsGroup(line string) bool {

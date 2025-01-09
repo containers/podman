@@ -314,6 +314,33 @@ func TestUnitDropinPaths_Search(t *testing.T) {
 	}
 }
 
+func TestCommentsIgnored(t *testing.T) {
+	unitWithComments := `[Container]
+# comment
+Name=my-container
+; another comment
+`
+	f := NewUnitFile()
+	if e := f.Parse(unitWithComments); e != nil {
+		panic(e)
+	}
+
+	groups := f.ListGroups()
+	assert.Len(t, groups, 1)
+	assert.Equal(t, "Container", groups[0])
+
+	comments := make([]string, 0, 2)
+	for _, line := range f.groups[0].lines {
+		if line.isComment {
+			comments = append(comments, line.value)
+		}
+	}
+
+	assert.Len(t, comments, 2)
+	assert.Equal(t, "# comment", comments[0])
+	assert.Equal(t, "; another comment", comments[1])
+}
+
 func FuzzParser(f *testing.F) {
 	for _, sample := range samples {
 		f.Add([]byte(sample))
