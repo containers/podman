@@ -340,6 +340,10 @@ func handle206Response(streams chan io.ReadCloser, errs chan error, body io.Read
 			}
 			return
 		}
+		if parts >= len(chunks) {
+			errs <- errors.New("too many parts returned by the server")
+			break
+		}
 		s := signalCloseReader{
 			closed: make(chan struct{}),
 			stream: p,

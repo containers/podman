@@ -17,6 +17,7 @@ import (
 	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
+	"github.com/containers/image/v5/internal/reflink"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/fileutils"
 	digest "github.com/opencontainers/go-digest"
@@ -27,6 +28,7 @@ import (
 type ociImageDestination struct {
 	impl.Compat
 	impl.PropertyMethodsInitialize
+	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 	stubs.NoSignaturesInitialize
 
@@ -37,6 +39,9 @@ type ociImageDestination struct {
 
 // newImageDestination returns an ImageDestination for writing to an existing directory.
 func newImageDestination(sys *types.SystemContext, ref ociReference) (private.ImageDestination, error) {
+	if ref.sourceIndex != -1 {
+		return nil, fmt.Errorf("Destination reference must not contain a manifest index @%d", ref.sourceIndex)
+	}
 	var index *imgspecv1.Index
 	if indexExists(ref) {
 		var err error
@@ -137,8 +142,20 @@ func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	if inputInfo.Size != -1 && size != inputInfo.Size {
 		return private.UploadedBlob{}, fmt.Errorf("Size mismatch when copying %s, expected %d, got %d", blobDigest, inputInfo.Size, size)
 	}
-	if err := blobFile.Sync(); err != nil {
+
+	if err := d.blobFileSyncAndRename(blobFile, blobDigest, &explicitClosed); err != nil {
 		return private.UploadedBlob{}, err
+	}
+	succeeded = true
+	return private.UploadedBlob{Digest: blobDigest, Size: size}, nil
+}
+
+// blobFileSyncAndRename syncs the specified blobFile on the filesystem and renames it to the
+// specific blob path determined by the blobDigest. The closed pointer indicates to the caller
+// whether blobFile has been closed or not.
+func (d *ociImageDestination) blobFileSyncAndRename(blobFile *os.File, blobDigest digest.Digest, closed *bool) error {
+	if err := blobFile.Sync(); err != nil {
+		return err
 	}
 
 	// On POSIX systems, blobFile was created with mode 0600, so we need to make it readable.
@@ -147,26 +164,27 @@ func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	// always fails on Windows.
 	if runtime.GOOS != "windows" {
 		if err := blobFile.Chmod(0644); err != nil {
-			return private.UploadedBlob{}, err
+			return err
 		}
 	}
 
 	blobPath, err := d.ref.blobPath(blobDigest, d.sharedBlobDir)
 	if err != nil {
-		return private.UploadedBlob{}, err
+		return err
 	}
 	if err := ensureParentDirectoryExists(blobPath); err != nil {
-		return private.UploadedBlob{}, err
+		return err
 	}
 
-	// need to explicitly close the file, since a rename won't otherwise not work on Windows
+	// need to explicitly close the file, since a rename won't otherwise work on Windows
 	blobFile.Close()
-	explicitClosed = true
+	*closed = true
+
 	if err := os.Rename(blobFile.Name(), blobPath); err != nil {
-		return private.UploadedBlob{}, err
+		return err
 	}
-	succeeded = true
-	return private.UploadedBlob{Digest: blobDigest, Size: size}, nil
+
+	return nil
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
@@ -297,6 +315,67 @@ func (d *ociImageDestination) CommitWithOptions(ctx context.Context, options pri
 		return err
 	}
 	return os.WriteFile(d.ref.indexPath(), indexJSON, 0644)
+}
+
+// PutBlobFromLocalFileOption is unused but may receive functionality in the future.
+type PutBlobFromLocalFileOption struct{}
+
+// PutBlobFromLocalFile arranges the data from path to be used as blob with digest.
+// It computes, and returns, the digest and size of the used file.
+//
+// This function can be used instead of dest.PutBlob() where the ImageDestination requires PutBlob() to be called.
+func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file string, options ...PutBlobFromLocalFileOption) (digest.Digest, int64, error) {
+	d, ok := dest.(*ociImageDestination)
+	if !ok {
+		return "", -1, errors.New("internal error: PutBlobFromLocalFile called with a non-oci: destination")
+	}
+
+	succeeded := false
+	blobFileClosed := false
+	blobFile, err := os.CreateTemp(d.ref.dir, "oci-put-blob")
+	if err != nil {
+		return "", -1, err
+	}
+	defer func() {
+		if !blobFileClosed {
+			blobFile.Close()
+		}
+		if !succeeded {
+			os.Remove(blobFile.Name())
+		}
+	}()
+
+	srcFile, err := os.Open(file)
+	if err != nil {
+		return "", -1, err
+	}
+	defer srcFile.Close()
+
+	err = reflink.LinkOrCopy(srcFile, blobFile)
+	if err != nil {
+		return "", -1, err
+	}
+
+	_, err = blobFile.Seek(0, io.SeekStart)
+	if err != nil {
+		return "", -1, err
+	}
+	blobDigest, err := digest.FromReader(blobFile)
+	if err != nil {
+		return "", -1, err
+	}
+
+	fileInfo, err := blobFile.Stat()
+	if err != nil {
+		return "", -1, err
+	}
+
+	if err := d.blobFileSyncAndRename(blobFile, blobDigest, &blobFileClosed); err != nil {
+		return "", -1, err
+	}
+
+	succeeded = true
+	return blobDigest, fileInfo.Size(), nil
 }
 
 func ensureDirectoryExists(path string) error {

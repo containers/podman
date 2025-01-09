@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	digest "github.com/opencontainers/go-digest"
+	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -101,6 +102,14 @@ func (d *ociArchiveImageDestination) HasThreadSafePutBlob() bool {
 // SupportsPutBlobPartial returns true if PutBlobPartial is supported.
 func (d *ociArchiveImageDestination) SupportsPutBlobPartial() bool {
 	return d.unpackedDest.SupportsPutBlobPartial()
+}
+
+// NoteOriginalOCIConfig provides the config of the image, as it exists on the source, BUT converted to OCI format,
+// or an error obtaining that value (e.g. if the image is an artifact and not a container image).
+// The destination can use it in its TryReusingBlob/PutBlob implementations
+// (otherwise it only obtains the final config after all layers are written).
+func (d *ociArchiveImageDestination) NoteOriginalOCIConfig(ociConfig *imgspecv1.Image, configErr error) error {
+	return d.unpackedDest.NoteOriginalOCIConfig(ociConfig, configErr)
 }
 
 // PutBlobWithOptions writes contents of stream and returns data representing the result.

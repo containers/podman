@@ -35,13 +35,14 @@ type storageImageSource struct {
 	impl.PropertyMethodsInitialize
 	stubs.NoGetBlobAtInitialize
 
-	imageRef              storageReference
-	image                 *storage.Image
-	systemContext         *types.SystemContext // SystemContext used in GetBlob() to create temporary files
-	metadata              storageImageMetadata
-	cachedManifest        []byte     // A cached copy of the manifest, if already known, or nil
-	getBlobMutex          sync.Mutex // Mutex to sync state for parallel GetBlob executions
-	getBlobMutexProtected getBlobMutexProtected
+	imageRef               storageReference
+	image                  *storage.Image
+	systemContext          *types.SystemContext // SystemContext used in GetBlob() to create temporary files
+	metadata               storageImageMetadata
+	cachedManifest         []byte     // A cached copy of the manifest, if already known, or nil
+	cachedManifestMIMEType string     // Valid if cachedManifest != nil
+	getBlobMutex           sync.Mutex // Mutex to sync state for parallel GetBlob executions
+	getBlobMutexProtected  getBlobMutexProtected
 }
 
 // getBlobMutexProtected contains storageImageSource data protected by getBlobMutex.
@@ -247,7 +248,7 @@ func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *di
 		}
 		return blob, manifest.GuessMIMEType(blob), err
 	}
-	if len(s.cachedManifest) == 0 {
+	if s.cachedManifest == nil {
 		// The manifest is stored as a big data item.
 		// Prefer the manifest corresponding to the user-specified digest, if available.
 		if s.imageRef.named != nil {
@@ -267,15 +268,16 @@ func (s *storageImageSource) GetManifest(ctx context.Context, instanceDigest *di
 		}
 		// If the user did not specify a digest, or this is an old image stored before manifestBigDataKey was introduced, use the default manifest.
 		// Note that the manifest may not match the expected digest, and that is likely to fail eventually, e.g. in c/image/image/UnparsedImage.Manifest().
-		if len(s.cachedManifest) == 0 {
+		if s.cachedManifest == nil {
 			cachedBlob, err := s.imageRef.transport.store.ImageBigData(s.image.ID, storage.ImageDigestBigDataKey)
 			if err != nil {
 				return nil, "", err
 			}
 			s.cachedManifest = cachedBlob
 		}
+		s.cachedManifestMIMEType = manifest.GuessMIMEType(s.cachedManifest)
 	}
-	return s.cachedManifest, manifest.GuessMIMEType(s.cachedManifest), err
+	return s.cachedManifest, s.cachedManifestMIMEType, err
 }
 
 // LayerInfosForCopy() returns the list of layer blobs that make up the root filesystem of

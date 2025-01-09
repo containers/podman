@@ -74,20 +74,20 @@ func (list *Schema2ListPublic) Instance(instanceDigest digest.Digest) (ListUpdat
 
 // UpdateInstances updates the sizes, digests, and media types of the manifests
 // which the list catalogs.
-func (index *Schema2ListPublic) UpdateInstances(updates []ListUpdate) error {
+func (list *Schema2ListPublic) UpdateInstances(updates []ListUpdate) error {
 	editInstances := []ListEdit{}
 	for i, instance := range updates {
 		editInstances = append(editInstances, ListEdit{
-			UpdateOldDigest: index.Manifests[i].Digest,
+			UpdateOldDigest: list.Manifests[i].Digest,
 			UpdateDigest:    instance.Digest,
 			UpdateSize:      instance.Size,
 			UpdateMediaType: instance.MediaType,
 			ListOperation:   ListOpUpdate})
 	}
-	return index.editInstances(editInstances)
+	return list.editInstances(editInstances)
 }
 
-func (index *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
+func (list *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 	addedEntries := []Schema2ManifestDescriptor{}
 	for i, editInstance := range editInstances {
 		switch editInstance.ListOperation {
@@ -98,21 +98,21 @@ func (index *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 			if err := editInstance.UpdateDigest.Validate(); err != nil {
 				return fmt.Errorf("Schema2List.EditInstances: Modified digest %s is an invalid digest: %w", editInstance.UpdateDigest, err)
 			}
-			targetIndex := slices.IndexFunc(index.Manifests, func(m Schema2ManifestDescriptor) bool {
+			targetIndex := slices.IndexFunc(list.Manifests, func(m Schema2ManifestDescriptor) bool {
 				return m.Digest == editInstance.UpdateOldDigest
 			})
 			if targetIndex == -1 {
 				return fmt.Errorf("Schema2List.EditInstances: digest %s not found", editInstance.UpdateOldDigest)
 			}
-			index.Manifests[targetIndex].Digest = editInstance.UpdateDigest
+			list.Manifests[targetIndex].Digest = editInstance.UpdateDigest
 			if editInstance.UpdateSize < 0 {
 				return fmt.Errorf("update %d of %d passed to Schema2List.UpdateInstances had an invalid size (%d)", i+1, len(editInstances), editInstance.UpdateSize)
 			}
-			index.Manifests[targetIndex].Size = editInstance.UpdateSize
+			list.Manifests[targetIndex].Size = editInstance.UpdateSize
 			if editInstance.UpdateMediaType == "" {
-				return fmt.Errorf("update %d of %d passed to Schema2List.UpdateInstances had no media type (was %q)", i+1, len(editInstances), index.Manifests[i].MediaType)
+				return fmt.Errorf("update %d of %d passed to Schema2List.UpdateInstances had no media type (was %q)", i+1, len(editInstances), list.Manifests[i].MediaType)
 			}
-			index.Manifests[targetIndex].MediaType = editInstance.UpdateMediaType
+			list.Manifests[targetIndex].MediaType = editInstance.UpdateMediaType
 		case ListOpAdd:
 			if editInstance.AddPlatform == nil {
 				// Should we create a struct with empty fields instead?
@@ -135,13 +135,13 @@ func (index *Schema2ListPublic) editInstances(editInstances []ListEdit) error {
 	if len(addedEntries) != 0 {
 		// slices.Clone() here to ensure a private backing array;
 		// an external caller could have manually created Schema2ListPublic with a slice with extra capacity.
-		index.Manifests = append(slices.Clone(index.Manifests), addedEntries...)
+		list.Manifests = append(slices.Clone(list.Manifests), addedEntries...)
 	}
 	return nil
 }
 
-func (index *Schema2List) EditInstances(editInstances []ListEdit) error {
-	return index.editInstances(editInstances)
+func (list *Schema2List) EditInstances(editInstances []ListEdit) error {
+	return list.editInstances(editInstances)
 }
 
 func (list *Schema2ListPublic) ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {
@@ -280,12 +280,12 @@ func schema2ListFromPublic(public *Schema2ListPublic) *Schema2List {
 	return &Schema2List{*public}
 }
 
-func (index *Schema2List) CloneInternal() List {
-	return schema2ListFromPublic(Schema2ListPublicClone(&index.Schema2ListPublic))
+func (list *Schema2List) CloneInternal() List {
+	return schema2ListFromPublic(Schema2ListPublicClone(&list.Schema2ListPublic))
 }
 
-func (index *Schema2List) Clone() ListPublic {
-	return index.CloneInternal()
+func (list *Schema2List) Clone() ListPublic {
+	return list.CloneInternal()
 }
 
 // Schema2ListFromManifest creates a Schema2 manifest list instance from marshalled
