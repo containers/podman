@@ -81,6 +81,7 @@ func (matcher *ExitMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
 }
 
 // ExitCleanly asserts that a PodmanSession exits 0 and with no stderr
+// Consider using PodmanTestIntegration.PodmanExitCleanly instead of directly using this matcher.
 func ExitCleanly() types.GomegaMatcher {
 	return &exitCleanlyMatcher{}
 }
