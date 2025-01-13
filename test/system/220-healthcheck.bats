@@ -466,4 +466,35 @@ function _check_health_log {
     run_podman rm -t 0 -f $ctrname
 }
 
+@test "podman healthcheck - stop container when healthcheck runs" {
+    ctr="c-h-$(safename)"
+    msg="hc-msg-$(random_string)"
+
+    run_podman run -d --name $ctr             \
+           --health-cmd "sleep 20; echo $msg" \
+           $IMAGE /home/podman/pause
+
+    timeout --foreground -v --kill=10 60 \
+        $PODMAN healthcheck run $ctr &
+    hc_pid=$!
+
+    run_podman inspect $ctr --format "{{.State.Status}}"
+    assert "$output" == "running" "Container is running"
+
+    run_podman stop $ctr
+
+    # Wait for background healthcheck to finish and make sure the exit status is 1
+    rc=0
+    wait -n $hc_pid || rc=$?
+    assert $rc -eq 1 "exit status check of healthcheck command"
+
+    run_podman inspect $ctr --format "{{.State.Status}}"
+    assert "$output" == "exited" "Container is stopped"
+
+    run_podman inspect $ctr --format "{{.State.Health.Log}}"
+    assert "$output" !~ "$msg" "Health log message not found"
+
+    run_podman rm -f -t0 $ctr
+}
+
 # vim: filetype=sh
