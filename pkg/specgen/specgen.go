@@ -534,6 +534,10 @@ type ContainerNetworkConfig struct {
 	// Conflicts with UseImageResolvConf.
 	// Optional.
 	DNSOptions []string `json:"dns_option,omitempty"`
+	// UseImageHostname indicates that /etc/hostname should not be managed by
+	// Podman, and instead sourced from the image.
+	// Optional.
+	UseImageHostname *bool `json:"use_image_hostname,omitempty"`
 	// UseImageHosts indicates that /etc/hosts should not be managed by
 	// Podman, and instead sourced from the image.
 	// Conflicts with HostAdd.

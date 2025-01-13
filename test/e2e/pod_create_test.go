@@ -123,6 +123,22 @@ var _ = Describe("Podman pod create", func() {
 		Expect(podResolvConf.OutputToString()).To(Equal(alpineResolvConf.OutputToString()))
 	})
 
+	It("podman create pod with --no-hostname", func() {
+		name := "test"
+		podCreate := podmanTest.Podman([]string{"pod", "create", "--no-hostname", "--name", name})
+		podCreate.WaitWithDefaultTimeout()
+		Expect(podCreate).Should(ExitCleanly())
+
+		alpineHostname := podmanTest.Podman([]string{"run", "--rm", "--no-hostname", ALPINE, "cat", "/etc/hostname"})
+		alpineHostname.WaitWithDefaultTimeout()
+		Expect(alpineHostname).Should(ExitCleanly())
+
+		podHostname := podmanTest.Podman([]string{"run", "--pod", name, "--rm", ALPINE, "cat", "/etc/hostname"})
+		podHostname.WaitWithDefaultTimeout()
+		Expect(podHostname).Should(ExitCleanly())
+		Expect(podHostname.OutputToString()).To(Equal(alpineHostname.OutputToString()))
+	})
+
 	It("podman create pod with --no-hosts and no infra should fail", func() {
 		name := "test"
 		podCreate := podmanTest.Podman([]string{"pod", "create", "--no-hosts", "--name", name, "--infra=false"})

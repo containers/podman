@@ -287,6 +287,8 @@ If used together with **--pod**, the container joins the pod's network namespace
 
 @@option no-healthcheck
 
+@@option no-hostname
+
 @@option no-hosts
 
 This option conflicts with **--add-host**.

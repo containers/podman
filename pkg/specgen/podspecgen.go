@@ -159,6 +159,10 @@ type PodNetworkConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	DNSOption []string `json:"dns_option,omitempty"`
+	// NoManageHostname indicates that /etc/hostname should not be managed
+	//  by the pod. Instead, each container will create a separate
+	// /etc/hostname as they would if not in a pod.
+	NoManageHostname bool `json:"no_manage_hostname,omitempty"`
 	// NoManageHosts indicates that /etc/hosts should not be managed by the
 	// pod. Instead, each container will create a separate /etc/hosts as
 	// they would if not in a pod.

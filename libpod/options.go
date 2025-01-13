@@ -1389,6 +1389,19 @@ func WithUseImageResolvConf() CtrCreateOption {
 	}
 }
 
+// WithUseImageHostname tells the container not to bind-mount /etc/hostname in.
+func WithUseImageHostname() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.UseImageHostname = true
+
+		return nil
+	}
+}
+
 // WithUseImageHosts tells the container not to bind-mount /etc/hosts in.
 // This conflicts with WithHosts().
 func WithUseImageHosts() CtrCreateOption {

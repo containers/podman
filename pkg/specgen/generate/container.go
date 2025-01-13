@@ -495,6 +495,8 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	specg.Networks = conf.Networks
 	specg.ShmSize = &conf.ShmSize
 	specg.ShmSizeSystemd = &conf.ShmSizeSystemd
+	specg.UseImageHostname = &conf.UseImageHostname
+	specg.UseImageHosts = &conf.UseImageHosts
 
 	mapSecurityConfig(conf, specg)
 

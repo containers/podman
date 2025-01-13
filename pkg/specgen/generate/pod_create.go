@@ -272,6 +272,9 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 	if p.NoManageHosts {
 		spec.UseImageHosts = &p.NoManageHosts
 	}
+	if p.NoManageHostname {
+		spec.UseImageHostname = &p.NoManageHostname
+	}
 
 	if len(p.InfraConmonPidFile) > 0 {
 		spec.ConmonPidFile = p.InfraConmonPidFile

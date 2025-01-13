@@ -1711,4 +1711,21 @@ search               | $IMAGE           |
     run_podman rm -f -t0 $cname
 }
 
+# bats test_tags=ci:parallel
+@test "podman run - no-hostname" {
+    randomname=c_$(safename)
+    echo "\
+from $IMAGE
+RUN umount /etc/hostname; rm /etc/hostname
+" > $PODMAN_TMPDIR/Containerfile
+    run_podman build -t $randomname --cap-add SYS_ADMIN ${PODMAN_TMPDIR}
+
+    run_podman run --rm $randomname ls /etc/hostname
+
+    run_podman 1 run --no-hostname --rm $randomname ls /etc/hostname
+    is "$output" "ls: /etc/hostname: No such file or directory" "container did not add /etc/hostname"
+
+    run_podman rmi $randomname
+}
+
 # vim: filetype=sh

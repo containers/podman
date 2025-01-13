@@ -27,6 +27,9 @@ type PlayKubeOptions struct {
 	ExitCodePropagation string
 	// Replace indicates whether to delete and recreate a yaml file
 	Replace bool
+	// Do not create /etc/hostname within the pod's containers,
+	// instead use the version from the image
+	NoHostname bool
 	// Do not create /etc/hosts within the pod's containers,
 	// instead use the version from the image
 	NoHosts bool

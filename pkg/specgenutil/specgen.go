@@ -593,6 +593,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.DNSSearch = c.Net.DNSSearch
 		s.DNSOptions = c.Net.DNSOptions
 		s.NetworkOptions = c.Net.NetworkOptions
+		s.UseImageHostname = &c.Net.NoHostname
 		s.UseImageHosts = &c.Net.NoHosts
 	}
 	if len(s.HostUsers) == 0 || len(c.HostUsers) != 0 {

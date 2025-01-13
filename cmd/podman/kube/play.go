@@ -98,6 +98,7 @@ func init() {
 func playFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.SetNormalizeFunc(utils.AliasFlags)
+	podmanConfig := registry.PodmanConfig()
 
 	annotationFlagName := "annotation"
 	flags.StringArrayVar(
@@ -139,7 +140,8 @@ func playFlags(cmd *cobra.Command) {
 	)
 	_ = cmd.RegisterFlagCompletionFunc(usernsFlagName, common.AutocompleteUserNamespace)
 
-	flags.BoolVar(&playOptions.NoHosts, "no-hosts", false, "Do not create /etc/hosts within the pod's containers, instead use the version from the image")
+	flags.BoolVar(&playOptions.NoHostname, "no-hostname", false, "Do not create /etc/hostname within the container, instead use the version from the image")
+	flags.BoolVar(&playOptions.NoHosts, "no-hosts", podmanConfig.ContainersConfDefaultsRO.Containers.NoHosts, "Do not create /etc/hosts within the pod's containers, instead use the version from the image")
 	flags.BoolVarP(&playOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&playOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&playOptions.StartCLI, "start", true, "Start the pod after creating it")

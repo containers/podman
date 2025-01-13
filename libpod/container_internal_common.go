@@ -2098,7 +2098,7 @@ rootless=%d
 		}
 	}
 
-	return c.makePlatformBindMounts()
+	return c.makeHostnameBindMount()
 }
 
 // createResolvConf create the resolv.conf file and bind mount it

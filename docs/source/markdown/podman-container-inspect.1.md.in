@@ -62,6 +62,10 @@ Valid placeholders for the Go template are listed below:
 | .SizeRw                  | Size of upper (R/W) container layer, in bytes [1]  |
 | .State ...               | Container state info (struct)                      |
 | .StaticDir               | Path to container metadata dir (string)            |
+| .UseImageHostname        | Use /etc/hostname from the image if it exists? (string: true/false)
+|
+| .UseImageHosts           | Use /etc/hosts from the image? (string: true/false)
+|
 
 [1] This format specifier requires the **--size** option
 

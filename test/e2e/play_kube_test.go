@@ -2384,26 +2384,37 @@ var _ = Describe("Podman kube play", func() {
 		Expect(label).To(ContainSubstring("unconfined_u:system_r:spc_t:s0"))
 	})
 
-	It("--no-host", func() {
+	It("--no-hostname", func() {
 		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--no-hosts", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--no-hostname", kubeYaml)
+		alpineHostname := podmanTest.PodmanExitCleanly("run", "--rm", "--no-hostname", ALPINE, "cat", "/etc/hostname")
 
-		podInspect := podmanTest.Podman([]string{"pod", "inspect", "check-infra-image"})
-		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect).Should(ExitCleanly())
+		podInspect := podmanTest.PodmanExitCleanly("pod", "inspect", "check-infra-image")
 
 		data := podInspect.InspectPodToJSON()
 		for _, ctr := range data.Containers {
 			if strings.HasSuffix(ctr.Name, "-infra") {
 				continue
 			}
-			exec := podmanTest.Podman([]string{"exec", ctr.ID, "cat", "/etc/hosts"})
-			exec.WaitWithDefaultTimeout()
-			Expect(exec).Should(ExitCleanly())
+			exec := podmanTest.PodmanExitCleanly("exec", ctr.ID, "cat", "/etc/hostname")
+			Expect(exec.OutputToString()).To(Equal(alpineHostname.OutputToString()))
+		}
+	})
+
+	It("--no-host", func() {
+		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.PodmanExitCleanly("kube", "play", "--no-hosts", kubeYaml)
+		podInspect := podmanTest.PodmanExitCleanly("pod", "inspect", "check-infra-image")
+		data := podInspect.InspectPodToJSON()
+		for _, ctr := range data.Containers {
+			if strings.HasSuffix(ctr.Name, "-infra") {
+				continue
+			}
+			exec := podmanTest.PodmanExitCleanly("exec", ctr.ID, "cat", "/etc/hosts")
 			Expect(exec.OutputToString()).To(Not(ContainSubstring("check-infra-image")))
 		}
 	})
