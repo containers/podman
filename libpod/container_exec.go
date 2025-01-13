@@ -158,34 +158,20 @@ type legacyExecSession struct {
 	PID     int      `json:"pid"`
 }
 
-// ExecCreate creates a new exec session for the container.
-// The session is not started. The ID of the new exec session will be returned.
-func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return "", err
-		}
-	}
-
-	// Verify our config
+func (c *Container) verifyExecConfig(config *ExecConfig) error {
 	if config == nil {
-		return "", fmt.Errorf("must provide a configuration to ExecCreate: %w", define.ErrInvalidArg)
+		return fmt.Errorf("must provide a configuration to ExecCreate: %w", define.ErrInvalidArg)
 	}
 	if len(config.Command) == 0 {
-		return "", fmt.Errorf("must provide a non-empty command to start an exec session: %w", define.ErrInvalidArg)
+		return fmt.Errorf("must provide a non-empty command to start an exec session: %w", define.ErrInvalidArg)
 	}
 	if config.ExitCommandDelay > 0 && len(config.ExitCommand) == 0 {
-		return "", fmt.Errorf("must provide a non-empty exit command if giving an exit command delay: %w", define.ErrInvalidArg)
+		return fmt.Errorf("must provide a non-empty exit command if giving an exit command delay: %w", define.ErrInvalidArg)
 	}
+	return nil
+}
 
-	// Verify that we are in a good state to continue
-	if !c.ensureState(define.ContainerStateRunning) {
-		return "", fmt.Errorf("can only create exec sessions on running containers: %w", define.ErrCtrStateInvalid)
-	}
-
+func (c *Container) getUniqueExecSessionID() string {
 	// Generate an ID for our new exec session
 	sessionID := stringid.GenerateRandomID()
 	found := true
@@ -202,19 +188,51 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 			sessionID = stringid.GenerateRandomID()
 		}
 	}
+	return sessionID
+}
 
-	// Make our new exec session
+func (c *Container) createExecSession(config *ExecConfig) (*ExecSession, error) {
 	session := new(ExecSession)
-	session.Id = sessionID
+	session.Id = c.getUniqueExecSessionID()
 	session.ContainerId = c.ID()
 	session.State = define.ExecStateCreated
 	session.Config = new(ExecConfig)
 	if err := JSONDeepCopy(config, session.Config); err != nil {
-		return "", fmt.Errorf("copying exec configuration into exec session: %w", err)
+		return nil, fmt.Errorf("copying exec configuration into exec session: %w", err)
 	}
 
 	if len(session.Config.ExitCommand) > 0 {
 		session.Config.ExitCommand = append(session.Config.ExitCommand, []string{session.ID(), c.ID()}...)
+	}
+	return session, nil
+}
+
+// ExecCreate creates a new exec session for the container.
+// The session is not started. The ID of the new exec session will be returned.
+func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return "", err
+		}
+	}
+
+	// Verify our config
+	if err := c.verifyExecConfig(config); err != nil {
+		return "", err
+	}
+
+	// Verify that we are in a good state to continue
+	if !c.ensureState(define.ContainerStateRunning) {
+		return "", fmt.Errorf("can only create exec sessions on running containers: %w", define.ErrCtrStateInvalid)
+	}
+
+	// Make our new exec session
+	session, err := c.createExecSession(config)
+	if err != nil {
+		return "", err
 	}
 
 	if c.state.ExecSessions == nil {
@@ -232,7 +250,7 @@ func (c *Container) ExecCreate(config *ExecConfig) (string, error) {
 
 	logrus.Infof("Created exec session %s in container %s", session.ID(), c.ID())
 
-	return sessionID, nil
+	return session.Id, nil
 }
 
 // ExecStart starts an exec session in the container, but does not attach to it.
@@ -773,6 +791,68 @@ func (c *Container) ExecResize(sessionID string, newSize resize.TerminalSize) er
 	// Make sure the exec session is still running.
 
 	return c.ociRuntime.ExecAttachResize(c, sessionID, newSize)
+}
+
+func (c *Container) healthCheckExec(config *ExecConfig, streams *define.AttachStreams) (int, error) {
+	unlock := true
+	if !c.batched {
+		c.lock.Lock()
+		defer func() {
+			if unlock {
+				c.lock.Unlock()
+			}
+		}()
+
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
+	}
+
+	if err := c.verifyExecConfig(config); err != nil {
+		return -1, err
+	}
+
+	if !c.ensureState(define.ContainerStateRunning) {
+		return -1, fmt.Errorf("can only create exec sessions on running containers: %w", define.ErrCtrStateInvalid)
+	}
+
+	session, err := c.createExecSession(config)
+	if err != nil {
+		return -1, err
+	}
+
+	if c.state.ExecSessions == nil {
+		c.state.ExecSessions = make(map[string]*ExecSession)
+	}
+	c.state.ExecSessions[session.ID()] = session
+	defer delete(c.state.ExecSessions, session.ID())
+
+	opts, err := prepareForExec(c, session)
+	if err != nil {
+		return -1, err
+	}
+	defer func() {
+		if err := c.cleanupExecBundle(session.ID()); err != nil {
+			logrus.Errorf("Container %s light exec session cleanup error: %v", c.ID(), err)
+		}
+	}()
+
+	pid, attachErrChan, err := c.ociRuntime.ExecContainer(c, session.ID(), opts, streams, nil)
+	if err != nil {
+		return -1, err
+	}
+
+	if !c.batched {
+		c.lock.Unlock()
+		unlock = false
+	}
+
+	err = <-attachErrChan
+	if err != nil {
+		return -1, fmt.Errorf("container %s light exec session with pid: %d error: %v", c.ID(), pid, err)
+	}
+
+	return c.readExecExitCode(session.ID())
 }
 
 func (c *Container) Exec(config *ExecConfig, streams *define.AttachStreams, resize <-chan resize.TerminalSize) (int, error) {

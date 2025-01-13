@@ -97,7 +97,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	hcResult := define.HealthCheckSuccess
 	config := new(ExecConfig)
 	config.Command = newCommand
-	exitCode, hcErr := c.exec(config, streams, nil, true)
+	exitCode, hcErr := c.healthCheckExec(config, streams)
 	if hcErr != nil {
 		hcResult = define.HealthCheckFailure
 		if errors.Is(hcErr, define.ErrOCIRuntimeNotFound) ||
