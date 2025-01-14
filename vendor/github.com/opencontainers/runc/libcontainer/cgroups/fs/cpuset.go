@@ -11,7 +11,6 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type CpusetGroup struct{}
@@ -20,11 +19,11 @@ func (s *CpusetGroup) Name() string {
 	return "cpuset"
 }
 
-func (s *CpusetGroup) Apply(path string, r *configs.Resources, pid int) error {
+func (s *CpusetGroup) Apply(path string, r *cgroups.Resources, pid int) error {
 	return s.ApplyDir(path, r, pid)
 }
 
-func (s *CpusetGroup) Set(path string, r *configs.Resources) error {
+func (s *CpusetGroup) Set(path string, r *cgroups.Resources) error {
 	if r.CpusetCpus != "" {
 		if err := cgroups.WriteFile(path, "cpuset.cpus", r.CpusetCpus); err != nil {
 			return err
@@ -141,7 +140,7 @@ func (s *CpusetGroup) GetStats(path string, stats *cgroups.Stats) error {
 	return nil
 }
 
-func (s *CpusetGroup) ApplyDir(dir string, r *configs.Resources, pid int) error {
+func (s *CpusetGroup) ApplyDir(dir string, r *cgroups.Resources, pid int) error {
 	// This might happen if we have no cpuset cgroup mounted.
 	// Just do nothing and don't fail.
 	if dir == "" {
@@ -237,7 +236,7 @@ func isEmptyCpuset(str string) bool {
 	return str == "" || str == "\n"
 }
 
-func (s *CpusetGroup) ensureCpusAndMems(path string, r *configs.Resources) error {
+func (s *CpusetGroup) ensureCpusAndMems(path string, r *cgroups.Resources) error {
 	if err := s.Set(path, r); err != nil {
 		return err
 	}

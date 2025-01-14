@@ -2,14 +2,13 @@ package fs2
 
 import (
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func isCpusetSet(r *configs.Resources) bool {
+func isCpusetSet(r *cgroups.Resources) bool {
 	return r.CpusetCpus != "" || r.CpusetMems != ""
 }
 
-func setCpuset(dirPath string, r *configs.Resources) error {
+func setCpuset(dirPath string, r *cgroups.Resources) error {
 	if !isCpusetSet(r) {
 		return nil
 	}

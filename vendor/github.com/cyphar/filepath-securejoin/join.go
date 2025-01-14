@@ -1,5 +1,5 @@
 // Copyright (C) 2014-2015 Docker Inc & Go Authors. All rights reserved.
-// Copyright (C) 2017-2024 SUSE LLC. All rights reserved.
+// Copyright (C) 2017-2025 SUSE LLC. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -24,6 +24,10 @@ func IsNotExist(err error) bool {
 	return errors.Is(err, os.ErrNotExist) || errors.Is(err, syscall.ENOTDIR) || errors.Is(err, syscall.ENOENT)
 }
 
+// errUncleanRoot is returned if the user provides SecureJoinVFS with a path
+// that is not filepath.Clean'd.
+var errUncleanRoot = errors.New("root path provided to SecureJoin was not filepath.Clean")
+
 // SecureJoinVFS joins the two given path components (similar to [filepath.Join]) except
 // that the returned path is guaranteed to be scoped inside the provided root
 // path (when evaluated). Any symbolic links in the path are evaluated with the
@@ -46,7 +50,21 @@ func IsNotExist(err error) bool {
 // provided via direct input or when evaluating symlinks. Therefore:
 //
 // "C:\Temp" + "D:\path\to\file.txt" results in "C:\Temp\path\to\file.txt"
+//
+// If the provided root is not [filepath.Clean] then an error will be returned,
+// as such root paths are bordering on somewhat unsafe and using such paths is
+// not best practice. We also strongly suggest that any root path is first
+// fully resolved using [filepath.EvalSymlinks] or otherwise constructed to
+// avoid containing symlink components. Of course, the root also *must not* be
+// attacker-controlled.
 func SecureJoinVFS(root, unsafePath string, vfs VFS) (string, error) {
+	// The root path needs to be clean, otherwise when we join the subpath we
+	// will end up with a weird path. We could work around this but users
+	// should not be giving us unclean paths in the first place.
+	if filepath.Clean(root) != root {
+		return "", errUncleanRoot
+	}
+
 	// Use the os.* VFS implementation if none was specified.
 	if vfs == nil {
 		vfs = osVFS{}

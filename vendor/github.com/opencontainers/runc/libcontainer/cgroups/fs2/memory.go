@@ -12,7 +12,6 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 // numToStr converts an int64 value to a string for writing to a
@@ -32,11 +31,11 @@ func numToStr(value int64) (ret string) {
 	return ret
 }
 
-func isMemorySet(r *configs.Resources) bool {
+func isMemorySet(r *cgroups.Resources) bool {
 	return r.MemoryReservation != 0 || r.Memory != 0 || r.MemorySwap != 0
 }
 
-func setMemory(dirPath string, r *configs.Resources) error {
+func setMemory(dirPath string, r *cgroups.Resources) error {
 	if !isMemorySet(r) {
 		return nil
 	}

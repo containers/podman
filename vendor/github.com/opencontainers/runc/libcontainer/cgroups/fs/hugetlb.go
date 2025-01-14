@@ -7,7 +7,6 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type HugetlbGroup struct{}
@@ -16,11 +15,11 @@ func (s *HugetlbGroup) Name() string {
 	return "hugetlb"
 }
 
-func (s *HugetlbGroup) Apply(path string, _ *configs.Resources, pid int) error {
+func (s *HugetlbGroup) Apply(path string, _ *cgroups.Resources, pid int) error {
 	return apply(path, pid)
 }
 
-func (s *HugetlbGroup) Set(path string, r *configs.Resources) error {
+func (s *HugetlbGroup) Set(path string, r *cgroups.Resources) error {
 	const suffix = ".limit_in_bytes"
 	skipRsvd := false
 

@@ -10,7 +10,6 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 var subsystems = []subsystem{
@@ -49,22 +48,22 @@ type subsystem interface {
 	// Apply creates and joins a cgroup, adding pid into it. Some
 	// subsystems use resources to pre-configure the cgroup parents
 	// before creating or joining it.
-	Apply(path string, r *configs.Resources, pid int) error
+	Apply(path string, r *cgroups.Resources, pid int) error
 	// Set sets the cgroup resources.
-	Set(path string, r *configs.Resources) error
+	Set(path string, r *cgroups.Resources) error
 }
 
 type Manager struct {
 	mu      sync.Mutex
-	cgroups *configs.Cgroup
+	cgroups *cgroups.Cgroup
 	paths   map[string]string
 }
 
-func NewManager(cg *configs.Cgroup, paths map[string]string) (*Manager, error) {
+func NewManager(cg *cgroups.Cgroup, paths map[string]string) (*Manager, error) {
 	// Some v1 controllers (cpu, cpuset, and devices) expect
 	// cgroups.Resources to not be nil in Apply.
 	if cg.Resources == nil {
-		return nil, errors.New("cgroup v1 manager needs configs.Resources to be set during manager creation")
+		return nil, errors.New("cgroup v1 manager needs cgroups.Resources to be set during manager creation")
 	}
 	if cg.Resources.Unified != nil {
 		return nil, cgroups.ErrV1NoUnified
@@ -168,7 +167,7 @@ func (m *Manager) GetStats() (*cgroups.Stats, error) {
 	return stats, nil
 }
 
-func (m *Manager) Set(r *configs.Resources) error {
+func (m *Manager) Set(r *cgroups.Resources) error {
 	if r == nil {
 		return nil
 	}
@@ -203,7 +202,7 @@ func (m *Manager) Set(r *configs.Resources) error {
 
 // Freeze toggles the container's freezer cgroup depending on the state
 // provided
-func (m *Manager) Freeze(state configs.FreezerState) error {
+func (m *Manager) Freeze(state cgroups.FreezerState) error {
 	path := m.Path("freezer")
 	if path == "" {
 		return errors.New("cannot toggle freezer: cgroups not configured for container")
@@ -233,15 +232,15 @@ func (m *Manager) GetPaths() map[string]string {
 	return m.paths
 }
 
-func (m *Manager) GetCgroups() (*configs.Cgroup, error) {
+func (m *Manager) GetCgroups() (*cgroups.Cgroup, error) {
 	return m.cgroups, nil
 }
 
-func (m *Manager) GetFreezerState() (configs.FreezerState, error) {
+func (m *Manager) GetFreezerState() (cgroups.FreezerState, error) {
 	dir := m.Path("freezer")
 	// If the container doesn't have the freezer cgroup, say it's undefined.
 	if dir == "" {
-		return configs.Undefined, nil
+		return cgroups.Undefined, nil
 	}
 	freezer := &FreezerGroup{}
 	return freezer.GetState(dir)
