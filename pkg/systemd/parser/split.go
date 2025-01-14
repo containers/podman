@@ -170,14 +170,7 @@ func cUnescapeOne(p string, acceptNul bool) (int, rune, bool) {
 
 		ret = rune(c)
 		count = 9
-	case '0':
-	case '1':
-	case '2':
-	case '3':
-	case '4':
-	case '5':
-	case '6':
-	case '7':
+	case '0', '1', '2', '3', '4', '5', '6', '7':
 		/* octal encoding */
 
 		if len(p) < 3 {
@@ -189,12 +182,12 @@ func cUnescapeOne(p string, acceptNul bool) (int, rune, bool) {
 			return -1, 0, false
 		}
 
-		b := unoctchar(p[0])
+		b := unoctchar(p[1])
 		if b < 0 {
 			return -1, 0, false
 		}
 
-		c := unoctchar(p[0])
+		c := unoctchar(p[2])
 		if c < 0 {
 			return -1, 0, false
 		}
