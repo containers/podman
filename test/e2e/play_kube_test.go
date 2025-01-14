@@ -2407,7 +2407,7 @@ var _ = Describe("Podman kube play", func() {
 		err := writeYaml(checkInfraImagePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.PodmanExitCleanly("kube", "play", "--no-hosts", kubeYaml)
+		podmanTest.PodmanExitCleanly("kube", "play", "--no-hosts", kubeYaml)
 		podInspect := podmanTest.PodmanExitCleanly("pod", "inspect", "check-infra-image")
 		data := podInspect.InspectPodToJSON()
 		for _, ctr := range data.Containers {
@@ -3989,18 +3989,11 @@ VOLUME %s`, CITEST_IMAGE, hostPathDir+"/")
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		cmData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
-		cmData.WaitWithDefaultTimeout()
-		Expect(cmData).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		cmData := podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/test/FOO")
 		Expect(cmData.OutputToString()).To(Equal("foobar"))
 
-		inspect := podmanTest.Podman([]string{"volume", "inspect", volumeName, "--format", "{{.Mountpoint}}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", volumeName, "--format", "{{.Mountpoint}}")
 		Expect(inspect.OutputToStringArray()).To(HaveLen(1))
 		path := inspect.OutputToString()
 
@@ -4041,18 +4034,11 @@ spec:
 
 		err := writeYaml(cmYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		cmData := podmanTest.Podman([]string{"exec", "youthfulshaw-pod-youthfulshaw", "cat", "/test/foo"})
-		cmData.WaitWithDefaultTimeout()
-		Expect(cmData).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		cmData := podmanTest.PodmanExitCleanly("exec", "youthfulshaw-pod-youthfulshaw", "cat", "/test/foo")
 		Expect(cmData.OutputToString()).To(Equal("bar"))
 
-		inspect := podmanTest.Podman([]string{"volume", "inspect", "example-configmap", "--format", "{{.Mountpoint}}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", "example-configmap", "--format", "{{.Mountpoint}}")
 		Expect(inspect.OutputToStringArray()).To(HaveLen(1))
 		path := inspect.OutputToString()
 
@@ -4072,30 +4058,15 @@ spec:
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("exec", podName+"-"+ctrName1, "ls", "/test-emptydir")
+		podmanTest.PodmanExitCleanly("exec", podName+"-"+ctrName2, "ls", "/test-emptydir-2")
 
-		emptyDirCheck1 := podmanTest.Podman([]string{"exec", podName + "-" + ctrName1, "ls", "/test-emptydir"})
-		emptyDirCheck1.WaitWithDefaultTimeout()
-		Expect(emptyDirCheck1).Should(ExitCleanly())
-
-		emptyDirCheck2 := podmanTest.Podman([]string{"exec", podName + "-" + ctrName2, "ls", "/test-emptydir-2"})
-		emptyDirCheck2.WaitWithDefaultTimeout()
-		Expect(emptyDirCheck2).Should(ExitCleanly())
-
-		volList1 := podmanTest.Podman([]string{"volume", "ls", "-q"})
-		volList1.WaitWithDefaultTimeout()
-		Expect(volList1).Should(ExitCleanly())
+		volList1 := podmanTest.PodmanExitCleanly("volume", "ls", "-q")
 		Expect(volList1.OutputToString()).To(Equal(defaultVolName))
 
-		remove := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
-		remove.WaitWithDefaultTimeout()
-		Expect(remove).Should(ExitCleanly())
-
-		volList2 := podmanTest.Podman([]string{"volume", "ls", "-q"})
-		volList2.WaitWithDefaultTimeout()
-		Expect(volList2).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("pod", "rm", "-f", podName)
+		volList2 := podmanTest.PodmanExitCleanly("volume", "ls", "-q")
 		Expect(volList2.OutputToString()).To(Equal(""))
 	})
 
@@ -4121,9 +4092,7 @@ spec:
 
 		correctLabels := expectedLabelKey + ":" + expectedLabelValue
 		pod := getPodNameInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "'{{ .Labels }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("pod", "inspect", pod.Name, "--format", "'{{ .Labels }}'")
 		Expect(inspect.OutputToString()).To(ContainSubstring(correctLabels))
 	})
 
@@ -4163,13 +4132,11 @@ spec:
 		}
 
 		pod := getPodNameInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `
+		inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(&pod), "--format", `
 CpuPeriod: {{ .HostConfig.CpuPeriod }}
 CpuQuota: {{ .HostConfig.CpuQuota }}
 Memory: {{ .HostConfig.Memory }}
-MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+MemoryReservation: {{ .HostConfig.MemoryReservation }}`)
 		Expect(inspect.OutputToString()).To(ContainSubstring(fmt.Sprintf("%s: %d", "CpuQuota", expectedCPUQuota)))
 		Expect(inspect.OutputToString()).To(ContainSubstring("MemoryReservation: " + expectedMemoryRequest))
 		Expect(inspect.OutputToString()).To(ContainSubstring("Memory: " + expectedMemoryLimit))
@@ -4192,15 +4159,9 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err := generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		pod := getPodNameInDeployment(deployment)
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(&pod), "--format", `{{ .HostConfig.CpuPeriod }}:{{ .HostConfig.CpuQuota }}`})
-
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(&pod), "--format", `{{ .HostConfig.CpuPeriod }}:{{ .HostConfig.CpuQuota }}`)
 
 		parts := strings.Split(strings.Trim(inspect.OutputToString(), "\n"), ":")
 		Expect(parts).To(HaveLen(2))
@@ -4233,18 +4194,12 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--log-opt=max-size=10k", "--log-driver", "journald", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--log-opt=max-size=10k", "--log-driver", "journald", kubeYaml)
 
 		cid := getCtrNameInPod(pod)
-		inspect := podmanTest.Podman([]string{"inspect", cid, "--format", "'{{ .HostConfig.LogConfig.Type }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", cid, "--format", "'{{ .HostConfig.LogConfig.Type }}'")
 		Expect(inspect.OutputToString()).To(ContainSubstring("journald"))
-		inspect = podmanTest.Podman([]string{"container", "inspect", "--format", "{{.HostConfig.LogConfig.Size}}", cid})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("container", "inspect", "--format", "{{.HostConfig.LogConfig.Size}}", cid)
 		Expect(inspect.OutputToString()).To(Equal("10kB"))
 	})
 
@@ -4253,13 +4208,8 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--start=false", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "{{ .State.Running }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--start=false", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "{{ .State.Running }}")
 		Expect(inspect.OutputToString()).To(Equal("false"))
 	})
 
@@ -4268,13 +4218,8 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{ .InfraConfig.HostNetwork }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", pod.Name, "--format", "{{ .InfraConfig.HostNetwork }}")
 		Expect(inspect.OutputToString()).To(Equal("true"))
 
 		ns := SystemExec("readlink", []string{"/proc/self/ns/net"})
@@ -4283,9 +4228,7 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		netns := ns.OutputToString()
 		Expect(netns).ToNot(BeEmpty())
 
-		logs := podmanTest.Podman([]string{"logs", getCtrNameInPod(pod)})
-		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(ExitCleanly())
+		logs := podmanTest.PodmanExitCleanly("logs", getCtrNameInPod(pod))
 		Expect(logs.OutputToString()).To(Equal(netns))
 	})
 
@@ -4294,13 +4237,8 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", pod.Name, "--format", "{{ .InfraConfig.Networks }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", pod.Name, "--format", "{{ .InfraConfig.Networks }}")
 		Expect(inspect.OutputToString()).To(Equal("[podman-default-kube-network]"))
 	})
 
@@ -4317,17 +4255,12 @@ MemoryReservation: {{ .HostConfig.MemoryReservation }}`})
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", volName, "--format", `
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", volName, "--format", `
 Name: {{ .Name }}
 Device: {{ .Options.device }}
 Type: {{ .Options.type }}
-o: {{ .Options.o }}`})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+o: {{ .Options.o }}`)
 		Expect(inspect.OutputToString()).To(ContainSubstring("Name: " + volName))
 		Expect(inspect.OutputToString()).To(ContainSubstring("Device: " + volDevice))
 		Expect(inspect.OutputToString()).To(ContainSubstring("Type: " + volType))
@@ -4356,13 +4289,11 @@ o: {{ .Options.o }}`})
 		}
 		Expect(kube).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"inspect", volName, "--format", `
+		inspect := podmanTest.PodmanExitCleanly("inspect", volName, "--format", `
 {
 	"Name": "{{ .Name }}",
 	"Mountpoint": "{{ .Mountpoint }}"
-}`})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+}`)
 		mp := make(map[string]string)
 		err = json.Unmarshal([]byte(inspect.OutputToString()), &mp)
 		Expect(err).ToNot(HaveOccurred())
@@ -4383,18 +4314,13 @@ o: {{ .Options.o }}`})
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", volName, "--format", `
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", volName, "--format", `
 {
 	"Name": "{{ .Name }}",
 	"Driver": "{{ .Driver }}",
 	"Image": "{{ .Options.image }}"
-}`})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+}`)
 		mp := make(map[string]string)
 		err = json.Unmarshal([]byte(inspect.OutputToString()), &mp)
 		Expect(err).ToNot(HaveOccurred())
@@ -4450,23 +4376,14 @@ spec:
 		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspectVolume := podmanTest.Podman([]string{"inspect", volName, "--format", "'{{ .Name }}'"})
-		inspectVolume.WaitWithDefaultTimeout()
-		Expect(inspectVolume).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspectVolume := podmanTest.PodmanExitCleanly("inspect", volName, "--format", "'{{ .Name }}'")
 		Expect(inspectVolume.OutputToString()).To(ContainSubstring(volName))
 
-		inspectPod := podmanTest.Podman([]string{"inspect", podName + "-pod", "--format", "'{{ .State }}'"})
-		inspectPod.WaitWithDefaultTimeout()
-		Expect(inspectPod).Should(ExitCleanly())
+		inspectPod := podmanTest.PodmanExitCleanly("inspect", podName+"-pod", "--format", "'{{ .State }}'")
 		Expect(inspectPod.OutputToString()).To(ContainSubstring(`Running`))
 
-		inspectMounts := podmanTest.Podman([]string{"inspect", podName + "-pod-" + ctrName, "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}"})
-		inspectMounts.WaitWithDefaultTimeout()
-		Expect(inspectMounts).Should(ExitCleanly())
+		inspectMounts := podmanTest.PodmanExitCleanly("inspect", podName+"-pod-"+ctrName, "--format", "{{ (index .Mounts 0).Type }}:{{ (index .Mounts 0).Name }}")
 
 		correct := fmt.Sprintf("volume:%s", volName)
 		Expect(inspectMounts.OutputToString()).To(Equal(correct))
@@ -4522,14 +4439,9 @@ spec:
 		err = generateMultiDocKubeYaml(yamlDocs, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		for _, n := range podNames {
-			inspect := podmanTest.Podman([]string{"inspect", n, "--format", "'{{ .State }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			inspect := podmanTest.PodmanExitCleanly("inspect", n, "--format", "'{{ .State }}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(`Running`))
 		}
 	})
@@ -4591,15 +4503,9 @@ invalid kube kind
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		for _, ctr := range []string{podName + "-" + ctr01Name, podName + "-" + ctr02Name} {
-			inspect := podmanTest.Podman([]string{"inspect", ctr, "--format", "'{{.Config.Labels}}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
-
+			inspect := podmanTest.PodmanExitCleanly("inspect", ctr, "--format", "'{{.Config.Labels}}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(autoUpdateRegistry + ":" + autoUpdateRegistryValue))
 			Expect(inspect.OutputToString()).To(ContainSubstring(autoUpdateAuthfile + ":" + autoUpdateAuthfileValue))
 		}
@@ -4627,20 +4533,14 @@ invalid kube kind
 		err = generateKubeYaml("deployment", deployment, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 
 		podName := getPodNameInDeployment(deployment).Name
 
-		inspect := podmanTest.Podman([]string{"inspect", podName + "-" + ctr01Name, "--format", "'{{.Config.Labels}}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", podName+"-"+ctr01Name, "--format", "'{{.Config.Labels}}'")
 		Expect(inspect.OutputToString()).To(ContainSubstring(autoUpdateRegistry + ":" + autoUpdateRegistryValue))
 
-		inspect = podmanTest.Podman([]string{"inspect", podName + "-" + ctr02Name, "--format", "'{{.Config.Labels}}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", podName+"-"+ctr02Name, "--format", "'{{.Config.Labels}}'")
 		Expect(inspect.OutputToString()).NotTo(ContainSubstring(autoUpdateRegistry + ":" + autoUpdateRegistryValue))
 	})
 
@@ -4649,27 +4549,15 @@ invalid kube kind
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
-		ls.WaitWithDefaultTimeout()
-		Expect(ls).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		ls := podmanTest.PodmanExitCleanly("pod", "ps", "--format", "'{{.ID}}'")
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
-		teardown := podmanTest.Podman([]string{"kube", "play", "--down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", kubeYaml)
 		// Removing a 2nd time to make sure no "no such error" is returned (see #19711)
-		teardown = podmanTest.Podman([]string{"kube", "play", "--down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", kubeYaml)
 
-		checkls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
-		checkls.WaitWithDefaultTimeout()
-		Expect(checkls).Should(ExitCleanly())
+		checkls := podmanTest.PodmanExitCleanly("pod", "ps", "--format", "'{{.ID}}'")
 		Expect(checkls.OutputToStringArray()).To(BeEmpty())
 	})
 
@@ -4677,28 +4565,16 @@ invalid kube kind
 		err := writeYaml(secretYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		ls := podmanTest.Podman([]string{"secret", "ls", "--format", "{{.ID}}"})
-		ls.WaitWithDefaultTimeout()
-		Expect(ls).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		ls := podmanTest.PodmanExitCleanly("secret", "ls", "--format", "{{.ID}}")
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
-		teardown := podmanTest.Podman([]string{"kube", "down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
+		teardown := podmanTest.PodmanExitCleanly("kube", "down", kubeYaml)
 		Expect(teardown.OutputToString()).Should(ContainSubstring(ls.OutputToString()))
 
 		// Removing a 2nd time to make sure no "no such error" is returned (see #19711)
-		teardown = podmanTest.Podman([]string{"kube", "down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
-
-		checkls := podmanTest.Podman([]string{"secret", "ls", "--format", "'{{.ID}}'"})
-		checkls.WaitWithDefaultTimeout()
-		Expect(checkls).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "down", kubeYaml)
+		checkls := podmanTest.PodmanExitCleanly("secret", "ls", "--format", "'{{.ID}}'")
 		Expect(checkls.OutputToStringArray()).To(BeEmpty())
 	})
 
@@ -4706,9 +4582,7 @@ invalid kube kind
 		err := writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		teardown := podmanTest.Podman([]string{"kube", "play", "--down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", kubeYaml)
 	})
 
 	It("teardown volume --force", func() {
@@ -4725,35 +4599,18 @@ invalid kube kind
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		exists := podmanTest.Podman([]string{"volume", "exists", volName})
-		exists.WaitWithDefaultTimeout()
-		Expect(exists).To(ExitCleanly())
-
-		teardown := podmanTest.Podman([]string{"kube", "play", "--down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).To(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("volume", "exists", volName)
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", kubeYaml)
 		// volume should not be deleted on teardown without --force
-		exists = podmanTest.Podman([]string{"volume", "exists", volName})
-		exists.WaitWithDefaultTimeout()
-		Expect(exists).To(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("volume", "exists", volName)
 		// volume gets deleted with --force
-		teardown = podmanTest.Podman([]string{"kube", "play", "--down", "--force", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).To(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", "--force", kubeYaml)
 		// Removing a 2nd should succeed as well even if no volume matches
-		teardown = podmanTest.Podman([]string{"kube", "play", "--down", "--force", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).To(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", "--force", kubeYaml)
 
 		// volume should not be deleted on teardown
-		exists = podmanTest.Podman([]string{"volume", "exists", volName})
+		exists := podmanTest.Podman([]string{"volume", "exists", volName})
 		exists.WaitWithDefaultTimeout()
 		Expect(exists).To(ExitWithError(1, ""))
 	})
@@ -4772,26 +4629,12 @@ invalid kube kind
 		err = generateKubeYaml("persistentVolumeClaim", pvc, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		exists := podmanTest.Podman([]string{"volume", "exists", volName})
-		exists.WaitWithDefaultTimeout()
-		Expect(exists).To(ExitCleanly())
-
-		teardown := podmanTest.Podman([]string{"kube", "play", "--down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).To(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("volume", "exists", volName)
+		podmanTest.PodmanExitCleanly("kube", "play", "--down", kubeYaml)
 		// volume should not be deleted on teardown
-		exists = podmanTest.Podman([]string{"volume", "exists", volName})
-		exists.WaitWithDefaultTimeout()
-		Expect(exists).To(ExitCleanly())
-
-		restart := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		restart.WaitWithDefaultTimeout()
-		Expect(restart).To(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "exists", volName)
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 	})
 
 	It("use network mode from config", func() {
@@ -4806,18 +4649,11 @@ invalid kube kind
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("pod", "inspect", pod.Name, "--format", "{{.InfraContainerID}}")
+		infraID := inspect.OutputToString()
 
-		podInspect := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "{{.InfraContainerID}}"})
-		podInspect.WaitWithDefaultTimeout()
-		Expect(podInspect).To(ExitCleanly())
-		infraID := podInspect.OutputToString()
-
-		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.NetworkMode}}", infraID})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).To(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", "--format", "{{.HostConfig.NetworkMode}}", infraID)
 		Expect(inspect.OutputToString()).To(Equal("bridge"))
 	})
 
@@ -4826,18 +4662,11 @@ invalid kube kind
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
-		ls.WaitWithDefaultTimeout()
-		Expect(ls).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		ls := podmanTest.PodmanExitCleanly("pod", "ps", "--format", "'{{.ID}}'")
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 
-		containerLen := podmanTest.Podman([]string{"pod", "inspect", pod.Name, "--format", "{{len .Containers}}"})
-		containerLen.WaitWithDefaultTimeout()
-		Expect(containerLen).Should(ExitCleanly())
+		containerLen := podmanTest.PodmanExitCleanly("pod", "inspect", pod.Name, "--format", "{{len .Containers}}")
 		Expect(containerLen.OutputToString()).To(Equal("2"))
 		ctr01Name := "ctr01"
 		ctr02Name := "ctr02"
@@ -4852,13 +4681,8 @@ invalid kube kind
 		err = generateKubeYaml("pod", newPod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		replace := podmanTest.Podman([]string{"kube", "play", "--replace", kubeYaml})
-		replace.WaitWithDefaultTimeout()
-		Expect(replace).Should(ExitCleanly())
-
-		newContainerLen := podmanTest.Podman([]string{"pod", "inspect", newPod.Name, "--format", "{{len .Containers}}"})
-		newContainerLen.WaitWithDefaultTimeout()
-		Expect(newContainerLen).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--replace", kubeYaml)
+		newContainerLen := podmanTest.PodmanExitCleanly("pod", "inspect", newPod.Name, "--format", "{{len .Containers}}")
 		Expect(newContainerLen.OutputToString()).NotTo(Equal(containerLen.OutputToString()))
 	})
 
@@ -4867,13 +4691,8 @@ invalid kube kind
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		replace := podmanTest.Podman([]string{"kube", "play", "--replace", kubeYaml})
-		replace.WaitWithDefaultTimeout()
-		Expect(replace).Should(ExitCleanly())
-
-		ls := podmanTest.Podman([]string{"pod", "ps", "--format", "'{{.ID}}'"})
-		ls.WaitWithDefaultTimeout()
-		Expect(ls).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--replace", kubeYaml)
+		ls := podmanTest.PodmanExitCleanly("pod", "ps", "--format", "'{{.ID}}'")
 		Expect(ls.OutputToStringArray()).To(HaveLen(1))
 	})
 
@@ -4894,18 +4713,13 @@ invalid kube kind
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		cmd := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		cmd.WaitWithDefaultTimeout()
-		Expect(cmd).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		// we expect the user:group as configured for the container
-		inspect := podmanTest.Podman([]string{"container", "inspect", "--format", "'{{.Config.User}}'", makeCtrNameInPod(pod, ctr1Name)})
-		inspect.WaitWithDefaultTimeout()
+		inspect := podmanTest.PodmanExitCleanly("container", "inspect", "--format", "'{{.Config.User}}'", makeCtrNameInPod(pod, ctr1Name))
 		Expect(inspect.OutputToString()).To(Equal("'101:102'"))
 
 		// we expect the user:group as configured for the pod
-		inspect = podmanTest.Podman([]string{"container", "inspect", "--format", "'{{.Config.User}}'", makeCtrNameInPod(pod, ctr2Name)})
-		inspect.WaitWithDefaultTimeout()
+		inspect = podmanTest.PodmanExitCleanly("container", "inspect", "--format", "'{{.Config.User}}'", makeCtrNameInPod(pod, ctr2Name))
 		Expect(inspect.OutputToString()).To(Equal("'103:104'"))
 	})
 
@@ -4935,14 +4749,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			pod := getPod(withCtr(ctnr))
 			Expect(generateKubeYaml("pod", pod, kubeYaml)).Should(Succeed())
 
-			play := podmanTest.Podman([]string{"kube", "play", "--start", kubeYaml})
-			play.WaitWithDefaultTimeout()
-			Expect(play).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"container", "inspect", "--format=json", getCtrNameInPod(pod)})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
-
+			podmanTest.PodmanExitCleanly("kube", "play", "--start", kubeYaml)
+			inspect := podmanTest.PodmanExitCleanly("container", "inspect", "--format=json", getCtrNameInPod(pod))
 			contents := string(inspect.Out.Contents())
 			Expect(contents).To(ContainSubstring(javaToolOptions))
 			Expect(contents).To(ContainSubstring(openj9JavaOptions))
@@ -4965,13 +4773,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+			inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
 		})
 
@@ -5010,13 +4813,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+			inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "'{{ range .Config.Env }}[{{ . }}]{{end}}'")
 			Expect(inspect.OutputToString()).To(Not(ContainSubstring(`[FOO=]`)))
 		})
 
@@ -5034,13 +4832,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+			inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO1=foo1`))
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO2=foo2`))
 		})
@@ -5060,13 +4853,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"inspect", fmt.Sprintf("%s-%s-%s", deployment.Name, "pod", defaultCtrName), "--format", "'{{ .Config }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+			inspect := podmanTest.PodmanExitCleanly("inspect", fmt.Sprintf("%s-%s-%s", deployment.Name, "pod", defaultCtrName), "--format", "'{{ .Config }}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
 
 		})
@@ -5102,9 +4890,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			_, err = play.Kube(podmanConnection, kubeYaml, nil)
 			Expect(err).ToNot(HaveOccurred())
 
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'")
 			Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=foo`))
 		})
 	})
@@ -5133,13 +4919,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--configmap", fsCmYamlPathname})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml, "--configmap", fsCmYamlPathname)
+			inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'")
 			Expect(inspect.OutputToString()).To(And(
 				ContainSubstring(`FOO=foo`),
 				ContainSubstring(`FOO_FS=fooFS`),
@@ -5174,13 +4955,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			err = generateMultiDocKubeYaml(yamls, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--configmap", fsCmYamlPathname})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(ExitCleanly())
-
-			inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'"})
-			inspect.WaitWithDefaultTimeout()
-			Expect(inspect).Should(ExitCleanly())
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml, "--configmap", fsCmYamlPathname)
+			inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod), "--format", "'{{ .Config.Env }}'")
 			Expect(inspect.OutputToString()).To(And(
 				ContainSubstring(`FOO_1=foo1`),
 				ContainSubstring(`FOO_2=foo2`),
@@ -5226,17 +5002,9 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml, "--log-driver", "journald", "--log-opt", "tag={{.ImageName}},withcomma"})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		start := podmanTest.Podman([]string{"start", getCtrNameInPod(pod)})
-		start.WaitWithDefaultTimeout()
-		Expect(start).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", getCtrNameInPod(pod)})
-		inspect.WaitWithDefaultTimeout()
-		Expect(start).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml, "--log-driver", "journald", "--log-opt", "tag={{.ImageName}},withcomma")
+		podmanTest.PodmanExitCleanly("start", getCtrNameInPod(pod))
+		inspect := podmanTest.PodmanExitCleanly("inspect", getCtrNameInPod(pod))
 		Expect((inspect.InspectContainerToJSON()[0]).HostConfig.LogConfig.Tag).To(Equal("{{.ImageName}},withcomma"))
 	})
 
@@ -5270,33 +5038,21 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		usernsInCtr := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map"})
-		usernsInCtr.WaitWithDefaultTimeout()
-		Expect(usernsInCtr).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		usernsInCtr := podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map")
 		// the conversion to string is needed for better error messages
 		Expect(string(usernsInCtr.Out.Contents())).To(Equal(string(initialUsernsConfig)))
 
 		// -q necessary for ExitCleanly() because --replace pulls image
-		kube = podmanTest.Podman([]string{"kube", "play", "-q", "--replace", "--userns=auto", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map"})
-		usernsInCtr.WaitWithDefaultTimeout()
-		Expect(usernsInCtr).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "-q", "--replace", "--userns=auto", kubeYaml)
+		usernsInCtr = podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map")
 		Expect(string(usernsInCtr.Out.Contents())).To(Not(Equal(string(initialUsernsConfig))))
 
-		kube = podmanTest.PodmanNoCache([]string{"kube", "play", "-q", "--replace", "--userns=keep-id", kubeYaml})
+		kube := podmanTest.PodmanNoCache([]string{"kube", "play", "-q", "--replace", "--userns=keep-id", kubeYaml})
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "id", "-u"})
-		usernsInCtr.WaitWithDefaultTimeout()
-		Expect(usernsInCtr).Should(ExitCleanly())
+		usernsInCtr = podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "id", "-u")
 		uid := strconv.Itoa(os.Geteuid())
 		Expect(string(usernsInCtr.Out.Contents())).To(ContainSubstring(uid))
 
@@ -5304,9 +5060,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(ExitCleanly())
 
-		usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "sh", "-c", "echo $(id -u):$(id -g)"})
-		usernsInCtr.WaitWithDefaultTimeout()
-		Expect(usernsInCtr).Should(ExitCleanly())
+		usernsInCtr = podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "sh", "-c", "echo $(id -u):$(id -g)")
 		Expect(string(usernsInCtr.Out.Contents())).To(ContainSubstring("10:12"))
 
 		// Now try with hostUsers in the pod spec
@@ -5319,9 +5073,7 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 			kube.WaitWithDefaultTimeout()
 			Expect(kube).Should(ExitCleanly())
 
-			usernsInCtr = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map"})
-			usernsInCtr.WaitWithDefaultTimeout()
-			Expect(usernsInCtr).Should(ExitCleanly())
+			usernsInCtr = podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/proc/self/uid_map")
 			if hostUsers {
 				Expect(string(usernsInCtr.Out.Contents())).To(Equal(string(initialUsernsConfig)))
 			} else {
@@ -5352,20 +5104,13 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		// Container should be in running state
-		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", "--format", "{{.State.Status}}", "testPod-"+defaultCtrName)
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
 
 		// Container should have a block device /dev/loop1
-		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.Devices}}", "testPod-" + defaultCtrName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", "--format", "{{.HostConfig.Devices}}", "testPod-"+defaultCtrName)
 		Expect(inspect.OutputToString()).To(ContainSubstring(devicePath))
 	})
 
@@ -5391,20 +5136,13 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		// Container should be in running state
-		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}}", "testPod-" + defaultCtrName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", "--format", "{{.State.Status}}", "testPod-"+defaultCtrName)
 		Expect(inspect.OutputToString()).To(ContainSubstring("running"))
 
 		// Container should have a block device /dev/loop1
-		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.HostConfig.Devices}}", "testPod-" + defaultCtrName})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect = podmanTest.PodmanExitCleanly("inspect", "--format", "{{.HostConfig.Devices}}", "testPod-"+defaultCtrName)
 		Expect(inspect.OutputToString()).To(ContainSubstring(devicePath))
 	})
 
@@ -5486,42 +5224,28 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		// do not remove newsecret to test that we auto remove on collision
 
 		yamls = []string{secretYaml, complexSecretYaml}
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube = podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		err = writeYaml(secretPodYamlTwo, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube = podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		exec := podmanTest.PodmanExitCleanly("exec", "mypod2-myctr", "cat", "/etc/foo/username")
 
-		exec := podmanTest.Podman([]string{"exec", "mypod2-myctr", "cat", "/etc/foo/username"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
 		username, _ := base64.StdEncoding.DecodeString("dXNlcg==")
 		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
 
-		exec = podmanTest.Podman([]string{"exec", "mypod2-myctr", "cat", "/etc/bar/username"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec = podmanTest.PodmanExitCleanly("exec", "mypod2-myctr", "cat", "/etc/bar/username")
 		username, _ = base64.StdEncoding.DecodeString("Y2RvZXJu")
 		Expect(exec.OutputToString()).Should(ContainSubstring(string(username)))
 
-		exec = podmanTest.Podman([]string{"exec", "mypod2-myctr", "cat", "/etc/baz/plain_note"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec = podmanTest.PodmanExitCleanly("exec", "mypod2-myctr", "cat", "/etc/baz/plain_note")
 		Expect(exec.OutputToString()).Should(ContainSubstring("This is a test"))
 
 	})
@@ -5551,13 +5275,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		secretData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
-		secretData.WaitWithDefaultTimeout()
-		Expect(secretData).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		secretData := podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/test/FOO")
 		Expect(secretData.OutputToString()).To(Equal("testuser"))
 	})
 
@@ -5579,13 +5298,8 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		secretData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/BAR"})
-		secretData.WaitWithDefaultTimeout()
-		Expect(secretData).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		secretData := podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/test/BAR")
 		Expect(secretData.OutputToString()).To(Equal("foobar"))
 
 		secretData = podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
@@ -5609,18 +5323,11 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		err = generateMultiDocKubeYaml(yamls, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		secretData := podmanTest.Podman([]string{"exec", getCtrNameInPod(pod), "cat", "/test/FOO"})
-		secretData.WaitWithDefaultTimeout()
-		Expect(secretData).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		secretData := podmanTest.PodmanExitCleanly("exec", getCtrNameInPod(pod), "cat", "/test/FOO")
 		Expect(secretData.OutputToString()).To(Equal("testuser"))
 
-		inspect := podmanTest.Podman([]string{"volume", "inspect", volumeName, "--format", "{{.Mountpoint}}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", volumeName, "--format", "{{.Mountpoint}}")
 		Expect(inspect.OutputToStringArray()).To(HaveLen(1))
 		path := inspect.OutputToString()
 
@@ -5662,13 +5369,8 @@ spec:
 
 		err := writeYaml(secretYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"volume", "inspect", "newsecret", "--format", "{{.Mountpoint}}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("volume", "inspect", "newsecret", "--format", "{{.Mountpoint}}")
 		Expect(inspect.OutputToStringArray()).To(HaveLen(1))
 		path := inspect.OutputToString()
 
@@ -5693,9 +5395,7 @@ cgroups="disabled"`), 0644)
 		err = writeYaml(simplePodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 	})
 
 	It("podman kube --quiet with error", func() {
@@ -5758,80 +5458,49 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).To(ExitWithError(125, "multi doc yaml could not be split: yaml: line 5: found character that cannot start any token"))
 
-		ps := podmanTest.Podman([]string{"pod", "ps", "-q"})
-		ps.WaitWithDefaultTimeout()
-		Expect(ps).Should(ExitCleanly())
+		ps := podmanTest.PodmanExitCleanly("pod", "ps", "-q")
 		Expect(ps.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("with named volume subpaths", func() {
 		SkipIfRemote("volume export does not exist on remote")
-		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol1"})
-		volumeCreate.WaitWithDefaultTimeout()
-		Expect(volumeCreate).Should(ExitCleanly())
-
-		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", CITEST_IMAGE, "sh", "-c", "mkdir -p /data/testing/onlythis && touch /data/testing/onlythis/123.txt && echo hi >> /data/testing/onlythis/123.txt"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "create", "testvol1")
+		podmanTest.PodmanExitCleanly("run", "--volume", "testvol1:/data", CITEST_IMAGE, "sh", "-c", "mkdir -p /data/testing/onlythis && touch /data/testing/onlythis/123.txt && echo hi >> /data/testing/onlythis/123.txt")
 
 		tar := filepath.Join(podmanTest.TempDir, "out.tar")
-		session = podmanTest.Podman([]string{"volume", "export", "--output", tar, "testvol1"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "export", "--output", tar, "testvol1")
 
-		volumeCreate = podmanTest.Podman([]string{"volume", "create", "testvol"})
-		volumeCreate.WaitWithDefaultTimeout()
-		Expect(volumeCreate).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "create", "testvol")
 
-		volumeImp := podmanTest.Podman([]string{"volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar")})
-		volumeImp.WaitWithDefaultTimeout()
-		Expect(volumeImp).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar"))
 
 		err = writeYaml(subpathTestNamedVolume, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 
-		exec := podmanTest.Podman([]string{"exec", "testpod-testctr", "cat", "/var/123.txt"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec := podmanTest.PodmanExitCleanly("exec", "testpod-testctr", "cat", "/var/123.txt")
 		Expect(exec.OutputToString()).Should(Equal("hi"))
 
-		teardown := podmanTest.Podman([]string{"kube", "down", "--force", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
+		teardown := podmanTest.PodmanExitCleanly("kube", "down", "--force", kubeYaml)
 		Expect(teardown.OutputToString()).Should(ContainSubstring("testvol"))
 
 		// kube down --force should remove volumes
 		// specified in the manifest but not externally
 		// created volumes, testvol1 in this case
-		checkVol := podmanTest.Podman([]string{"volume", "ls", "--format", "{{.Name}}"})
-		checkVol.WaitWithDefaultTimeout()
-		Expect(checkVol).Should(ExitCleanly())
+		checkVol := podmanTest.PodmanExitCleanly("volume", "ls", "--format", "{{.Name}}")
 		Expect(checkVol.OutputToString()).To(Equal("testvol1"))
 	})
 
 	It("with graceful shutdown", func() {
 
-		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol"})
-		volumeCreate.WaitWithDefaultTimeout()
-		Expect(volumeCreate).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("volume", "create", "testvol")
 		err = writeYaml(signalTest, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(ExitCleanly())
-
-		teardown := podmanTest.Podman([]string{"kube", "down", kubeYaml})
-		teardown.WaitWithDefaultTimeout()
-		Expect(teardown).Should(ExitCleanly())
-
-		session := podmanTest.Podman([]string{"run", "--volume", "testvol:/testvol", CITEST_IMAGE, "sh", "-c", "cat /testvol/termfile"})
-		session.WaitWithDefaultTimeout()
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("kube", "down", kubeYaml)
+		session := podmanTest.PodmanExitCleanly("run", "--volume", "testvol:/testvol", CITEST_IMAGE, "sh", "-c", "cat /testvol/termfile")
 		Expect(session.OutputToString()).Should(ContainSubstring("TERMINATED"))
 	})
 
@@ -5855,37 +5524,21 @@ spec:
 
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(Not(HaveOccurred()))
-		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(ExitCleanly())
-		exec := podmanTest.Podman([]string{"exec", "testpod-testctr", "ls", "/var"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		exec := podmanTest.PodmanExitCleanly("exec", "testpod-testctr", "ls", "/var")
 		Expect(exec.OutputToString()).Should(ContainSubstring("123.txt"))
 	})
 
 	It("with unsafe subpaths", func() {
 		SkipIfRemote("volume export does not exist on remote")
-		volumeCreate := podmanTest.Podman([]string{"volume", "create", "testvol1"})
-		volumeCreate.WaitWithDefaultTimeout()
-		Expect(volumeCreate).Should(ExitCleanly())
-
-		session := podmanTest.Podman([]string{"run", "--volume", "testvol1:/data", CITEST_IMAGE, "sh", "-c", "mkdir -p /data/testing && ln -s /etc /data/testing/onlythis"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "create", "testvol1")
+		podmanTest.PodmanExitCleanly("run", "--volume", "testvol1:/data", CITEST_IMAGE, "sh", "-c", "mkdir -p /data/testing && ln -s /etc /data/testing/onlythis")
 
 		tar := filepath.Join(podmanTest.TempDir, "out.tar")
-		session = podmanTest.Podman([]string{"volume", "export", "--output", tar, "testvol1"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "export", "--output", tar, "testvol1")
 
-		volumeCreate = podmanTest.Podman([]string{"volume", "create", "testvol"})
-		volumeCreate.WaitWithDefaultTimeout()
-		Expect(volumeCreate).Should(ExitCleanly())
-
-		volumeImp := podmanTest.Podman([]string{"volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar")})
-		volumeImp.WaitWithDefaultTimeout()
-		Expect(volumeImp).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("volume", "create", "testvol")
+		podmanTest.PodmanExitCleanly("volume", "import", "testvol", filepath.Join(podmanTest.TempDir, "out.tar"))
 
 		err = writeYaml(subpathTestNamedVolume, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
@@ -5936,9 +5589,7 @@ spec:
 		kube.WaitWithDefaultTimeout()
 		Expect(kube).Should(Exit(0), string(out))
 
-		exec := podmanTest.Podman([]string{"exec", "testpod-testctr", "ls", "/etc/"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec := podmanTest.PodmanExitCleanly("exec", "testpod-testctr", "ls", "/etc/")
 		Expect(exec.OutputToString()).ShouldNot(HaveLen(3))
 		Expect(exec.OutputToString()).Should(ContainSubstring("BAR"))
 		// we want to check that we can mount a subpath but not replace the entire dir
@@ -5948,10 +5599,7 @@ spec:
 		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		curlTest := podmanTest.Podman([]string{"run", "--network", "host", NGINX_IMAGE, "curl", "-s", "localhost:19000"})
 		curlTest.WaitWithDefaultTimeout()
 		Expect(curlTest).Should(ExitWithError(7, ""))
@@ -5961,10 +5609,7 @@ spec:
 		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19002:80", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19002:80", kubeYaml)
 		testHTTPServer("19002", false, "podman rulez")
 	})
 
@@ -5984,10 +5629,7 @@ spec:
 			err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(Exit(0))
-
+			podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 			testHTTPServer("80", true, "connection refused")
 		})
 
@@ -5996,10 +5638,7 @@ spec:
 			err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
 			Expect(err).ToNot(HaveOccurred())
 
-			kube := podmanTest.Podman([]string{"kube", "play", "--publish-all=true", kubeYaml})
-			kube.WaitWithDefaultTimeout()
-			Expect(kube).Should(Exit(0))
-
+			podmanTest.PodmanExitCleanly("kube", "play", "--publish-all=true", kubeYaml)
 			testHTTPServer("80", false, "podman rulez")
 		})
 	})
@@ -6008,10 +5647,7 @@ spec:
 		err := writeYaml(publishPortsPodWithContainerPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19003:80", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19003:80", kubeYaml)
 		testHTTPServer("19003", false, "podman rulez")
 	})
 
@@ -6019,10 +5655,7 @@ spec:
 		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19004:80", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19004:80", kubeYaml)
 		testHTTPServer("19004", false, "podman rulez")
 	})
 
@@ -6030,10 +5663,7 @@ spec:
 		err := writeYaml(publishPortsPodWithContainerHostPort, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19005:80", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19005:80", kubeYaml)
 		testHTTPServer("19001", true, "connection refused")
 		testHTTPServer("19005", false, "podman rulez")
 	})
@@ -6042,10 +5672,7 @@ spec:
 		err := writeYaml(publishPortsPodWithoutPorts, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19006:80", "--publish", "19007:80", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19006:80", "--publish", "19007:80", kubeYaml)
 		testHTTPServer("19006", false, "podman rulez")
 		testHTTPServer("19007", false, "podman rulez")
 	})
@@ -6054,10 +5681,7 @@ spec:
 		err := writeYaml(publishPortsEchoWithHostPortUDP, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19010:19008/tcp", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19010:19008/tcp", kubeYaml)
 		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{0.0.0.0 19010}]", "19008/udp:[{0.0.0.0 19009}]")
 	})
 
@@ -6065,9 +5689,7 @@ spec:
 		err := writeYaml(publishPortsEchoWithHostPortTCP, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", "--publish", "19012:19008/udp", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", "--publish", "19012:19008/udp", kubeYaml)
 
 		verifyPodPorts(podmanTest, "network-echo", "19008/tcp:[{0.0.0.0 19011}]", "19008/udp:[{0.0.0.0 19012}]")
 	})
@@ -6094,18 +5716,11 @@ spec:
 		err := writeYaml(podWithHostPIDDefined, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostpid-testimage", "test-hostpid"})
-		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		logs := podmanTest.PodmanExitCleanly("pod", "logs", "-c", "test-hostpid-testimage", "test-hostpid")
 		Expect(logs.OutputToString()).To(Not(Equal("1")), "PID should never be 1 because of host pidns")
 
-		inspect := podmanTest.Podman([]string{"inspect", "test-hostpid-testimage", "--format", "{{ .HostConfig.PidMode }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", "test-hostpid-testimage", "--format", "{{ .HostConfig.PidMode }}")
 		Expect(inspect.OutputToString()).To(Equal("host"))
 	})
 
@@ -6113,17 +5728,9 @@ spec:
 		err := writeYaml(podWithHostIPCDefined, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		wait := podmanTest.Podman([]string{"wait", "test-hostipc-testimage"})
-		wait.WaitWithDefaultTimeout()
-		Expect(wait).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", "test-hostipc-testimage", "--format", "{{ .HostConfig.IpcMode }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("wait", "test-hostipc-testimage")
+		inspect := podmanTest.PodmanExitCleanly("inspect", "test-hostipc-testimage", "--format", "{{ .HostConfig.IpcMode }}")
 		Expect(inspect.OutputToString()).To(Equal("host"))
 
 		cmd := exec.Command("ls", "-l", "/proc/self/ns/ipc")
@@ -6132,9 +5739,7 @@ spec:
 		fields := strings.Split(string(res), " ")
 		hostIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
-		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-hostipc-testimage", "test-hostipc"})
-		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(ExitCleanly())
+		logs := podmanTest.PodmanExitCleanly("pod", "logs", "-c", "test-hostipc-testimage", "test-hostipc")
 		fields = strings.Split(logs.OutputToString(), " ")
 		ctrIpcNS := strings.TrimSuffix(fields[len(fields)-1], "\n")
 
@@ -6144,26 +5749,14 @@ spec:
 	It("with ctrName should be in network alias", func() {
 		ctrName := "test-ctr"
 		ctrNameInKubePod := ctrName + "-pod-" + ctrName
-		session1 := podmanTest.Podman([]string{"run", "-d", "--name", ctrName, CITEST_IMAGE, "top"})
-		session1.WaitWithDefaultTimeout()
-		Expect(session1).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, CITEST_IMAGE, "top")
 
 		outputFile := filepath.Join(podmanTest.RunRoot, "pod.yaml")
-		kube := podmanTest.Podman([]string{"kube", "generate", ctrName, "-f", outputFile})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "generate", ctrName, "-f", outputFile)
+		podmanTest.PodmanExitCleanly("pod", "rm", "-t", "0", "-f", ctrName)
 
-		rm := podmanTest.Podman([]string{"pod", "rm", "-t", "0", "-f", ctrName})
-		rm.WaitWithDefaultTimeout()
-		Expect(rm).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", ctrNameInKubePod})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", ctrNameInKubePod)
 		Expect(inspect.OutputToString()).To(ContainSubstring("\"Aliases\": [ \"" + ctrName + "\""))
 	})
 
@@ -6172,17 +5765,9 @@ spec:
 		err := writeYaml(podWithSysctlDefined, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		wait := podmanTest.Podman([]string{"wait", "test-sysctl-testimage"})
-		wait.WaitWithDefaultTimeout()
-		Expect(wait).Should(ExitCleanly())
-
-		logs := podmanTest.Podman([]string{"pod", "logs", "-c", "test-sysctl-testimage", "test-sysctl"})
-		logs.WaitWithDefaultTimeout()
-		Expect(logs).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("wait", "test-sysctl-testimage")
+		logs := podmanTest.PodmanExitCleanly("pod", "logs", "-c", "test-sysctl-testimage", "test-sysctl")
 		Expect(logs.OutputToString()).To(ContainSubstring("kernel.msgmax = 65535"))
 		Expect(logs.OutputToString()).To(ContainSubstring("net.core.somaxconn = 65535"))
 	})
@@ -6216,9 +5801,7 @@ spec:
 		err := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 	})
 
 	It("test pod with volumes-from annotation in yaml", func() {
@@ -6231,37 +5814,19 @@ spec:
 		err := os.MkdirAll(vol1, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"create", "--name", ctr1, "-v", vol1, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("create", "--name", ctr1, "-v", vol1, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("create", "--volumes-from", ctr1, "--name", ctr2, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "-f", outputFile, ctr2)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
 
-		session = podmanTest.Podman([]string{"create", "--volumes-from", ctr1, "--name", ctr2, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, ctr2})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		inspectCtr2 := podmanTest.Podman([]string{"inspect", "-f", "'{{ .HostConfig.Binds }}'", ctrNameInKubePod})
-		inspectCtr2.WaitWithDefaultTimeout()
-		Expect(inspectCtr2).Should(ExitCleanly())
+		inspectCtr2 := podmanTest.PodmanExitCleanly("inspect", "-f", "'{{ .HostConfig.Binds }}'", ctrNameInKubePod)
 		Expect(inspectCtr2.OutputToString()).To(ContainSubstring(":" + vol1 + ":rw"))
 
-		inspectCtr1 := podmanTest.Podman([]string{"inspect", "-f", "'{{ .HostConfig.Binds }}'", ctr1})
-		inspectCtr1.WaitWithDefaultTimeout()
-		Expect(inspectCtr1).Should(ExitCleanly())
-
+		inspectCtr1 := podmanTest.PodmanExitCleanly("inspect", "-f", "'{{ .HostConfig.Binds }}'", ctr1)
 		Expect(inspectCtr2.OutputToString()).To(Equal(inspectCtr1.OutputToString()))
 
 		// see https://github.com/containers/podman/pull/19637, we should not see any warning/errors here
-		podrm := podmanTest.Podman([]string{"kube", "down", outputFile})
-		podrm.WaitWithDefaultTimeout()
-		Expect(podrm).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "down", outputFile)
 	})
 
 	It("test volumes-from annotation with source containers external", func() {
@@ -6283,13 +5848,8 @@ spec:
 		err2 := os.MkdirAll(vol2, 0755)
 		Expect(err2).ToNot(HaveOccurred())
 
-		session := podmanTest.Podman([]string{"create", "--name", srcctr1, "-v", vol1, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"create", "--name", srcctr2, "-v", vol2, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("create", "--name", srcctr1, "-v", vol1, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("create", "--name", srcctr2, "-v", vol2, CITEST_IMAGE)
 
 		podName := tgtctr
 		pod := getPod(
@@ -6300,19 +5860,14 @@ spec:
 		err3 := generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err3).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 		// Assert volumes are accessible inside the target container
 		ctrNameInKubePod := podName + "-" + tgtctr
 
 		inspect := podmanTest.InspectContainer(ctrNameInKubePod)
 		Expect(inspect).To(HaveLen(1))
 
-		exec := podmanTest.Podman([]string{"exec", ctrNameInKubePod, "ls", "-d", vol1, vol2})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec := podmanTest.PodmanExitCleanly("exec", ctrNameInKubePod, "ls", "-d", vol1, vol2)
 		Expect(exec.OutputToString()).To(ContainSubstring(vol1))
 		Expect(exec.OutputToString()).To(ContainSubstring(vol2))
 	})
@@ -6331,9 +5886,7 @@ spec:
 		err := writeYaml(volumesFromPodYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 
 		inspect := podmanTest.InspectContainer(tgtctrInKubePod)
 		Expect(inspect).To(HaveLen(1))
@@ -6343,18 +5896,11 @@ spec:
 		// the target container.
 		volFile := filepath.Join(vol, RandomString(10)+".txt")
 
-		exec := podmanTest.Podman([]string{"exec", srcctrInKubePod, "touch", volFile})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
-
-		exec = podmanTest.Podman([]string{"exec", srcctrInKubePod, "ls", volFile})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("exec", srcctrInKubePod, "touch", volFile)
+		exec := podmanTest.PodmanExitCleanly("exec", srcctrInKubePod, "ls", volFile)
 		Expect(exec.OutputToString()).To(ContainSubstring(volFile))
 
-		exec = podmanTest.Podman([]string{"exec", tgtctrInKubePod, "ls", volFile})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec = podmanTest.PodmanExitCleanly("exec", tgtctrInKubePod, "ls", volFile)
 		Expect(exec.OutputToString()).To(ContainSubstring(volFile))
 	})
 
@@ -6376,22 +5922,12 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--rm", "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("create", "--rm", "--name", ctr, CITEST_IMAGE)
 
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.AutoRemove }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("true"))
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.AutoRemove }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("true"))
 	})
 
 	It("test with reserved privileged annotation in yaml", func() {
@@ -6399,22 +5935,11 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--privileged", "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.Privileged }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("true"))
+		podmanTest.PodmanExitCleanly("create", "--privileged", "--name", ctr, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.Privileged }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("true"))
 	})
 
 	It("test with reserved init annotation in yaml", func() {
@@ -6422,22 +5947,11 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--init", "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .Path }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("/run/podman-init"))
+		podmanTest.PodmanExitCleanly("create", "--init", "--name", ctr, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .Path }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("/run/podman-init"))
 	})
 
 	It("test with reserved CIDFile annotation in yaml", func() {
@@ -6446,22 +5960,11 @@ spec:
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 		cidFile := filepath.Join(podmanTest.TempDir, RandomString(10)+".txt")
 
-		session := podmanTest.Podman([]string{"create", "--cidfile", cidFile, "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.ContainerIDFile }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal(cidFile))
+		podmanTest.PodmanExitCleanly("create", "--cidfile", cidFile, "--name", ctr, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.ContainerIDFile }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal(cidFile))
 
 	})
 
@@ -6470,22 +5973,11 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "seccomp=unconfined", "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("[seccomp=unconfined]"))
+		podmanTest.PodmanExitCleanly("create", "--security-opt", "seccomp=unconfined", "--name", ctr, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("[seccomp=unconfined]"))
 	})
 
 	It("test with reserved Apparmor annotation in yaml", func() {
@@ -6493,22 +5985,11 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "apparmor=unconfined", "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("[apparmor=unconfined]"))
+		podmanTest.PodmanExitCleanly("create", "--security-opt", "apparmor=unconfined", "--name", ctr, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("[apparmor=unconfined]"))
 	})
 
 	It("test with reserved Label annotation in yaml", func() {
@@ -6516,22 +5997,11 @@ spec:
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--security-opt", "label=level:s0", "--name", ctr, CITEST_IMAGE})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("[label=level:s0]"))
+		podmanTest.PodmanExitCleanly("create", "--security-opt", "label=level:s0", "--name", ctr, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.SecurityOpt }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("[label=level:s0]"))
 	})
 
 	It("test with reserved PublishAll annotation in yaml", func() {
@@ -6544,8 +6014,7 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		podmanTest.BuildImage(dockerfile, imageName, "false")
 
 		// Verify that the buildah is just passing through the EXPOSE keys
-		inspect := podmanTest.Podman([]string{"inspect", imageName})
-		inspect.WaitWithDefaultTimeout()
+		inspect := podmanTest.PodmanExitCleanly("inspect", imageName)
 		image := inspect.InspectImageJSON()
 		Expect(image).To(HaveLen(1))
 		Expect(image[0].Config.ExposedPorts).To(HaveLen(3))
@@ -6557,22 +6026,11 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		ctrNameInKubePod := ctr + "-pod-" + ctr
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		session := podmanTest.Podman([]string{"create", "--publish-all", "--name", ctr, imageName, "true"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "generate", "--podman-only", "-f", outputFile, ctr})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"inspect", "-f", "{{ .HostConfig.PublishAllPorts }}", ctrNameInKubePod})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("true"))
+		podmanTest.PodmanExitCleanly("create", "--publish-all", "--name", ctr, imageName, "true")
+		podmanTest.PodmanExitCleanly("kube", "generate", "--podman-only", "-f", outputFile, ctr)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect = podmanTest.PodmanExitCleanly("inspect", "-f", "{{ .HostConfig.PublishAllPorts }}", ctrNameInKubePod)
+		Expect(inspect.OutputToString()).To(Equal("true"))
 	})
 
 	It("test with valid Umask value", func() {
@@ -6581,26 +6039,13 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		ctrNameInPod := "ctr-pod-ctr"
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		create := podmanTest.Podman([]string{"create", "-t", "--restart", "never", "--name", ctrName, CITEST_IMAGE, "top"})
-		create.WaitWithDefaultTimeout()
-		Expect(create).Should(ExitCleanly())
-
-		generate := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, ctrName})
-		generate.WaitWithDefaultTimeout()
-		Expect(generate).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		exec := podmanTest.Podman([]string{"exec", ctrNameInPod, "/bin/sh", "-c", "umask"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("create", "-t", "--restart", "never", "--name", ctrName, CITEST_IMAGE, "top")
+		podmanTest.PodmanExitCleanly("kube", "generate", "-f", outputFile, ctrName)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		exec := podmanTest.PodmanExitCleanly("exec", ctrNameInPod, "/bin/sh", "-c", "umask")
 		Expect(exec.OutputToString()).To(Equal(defaultUmask))
 
-		inspect := podmanTest.Podman([]string{"inspect", ctrNameInPod, "-f", "{{ .Config.Umask }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		inspect := podmanTest.PodmanExitCleanly("inspect", ctrNameInPod, "-f", "{{ .Config.Umask }}")
 		Expect(inspect.OutputToString()).To(Equal(defaultUmask))
 	})
 
@@ -6609,34 +6054,18 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		infraName := "infra-ctr"
 		podName := "mypod"
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
-		pod := podmanTest.Podman([]string{"pod", "create", "--infra-name", infraName, podName})
-		pod.WaitWithDefaultTimeout()
-		Expect(pod).Should(ExitCleanly())
-
-		ctr := podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "top"})
-		ctr.WaitWithDefaultTimeout()
-		Expect(ctr).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("pod", "create", "--infra-name", infraName, podName)
+		podmanTest.PodmanExitCleanly("create", "--pod", podName, CITEST_IMAGE, "top")
 		// Generate kube yaml and it should have the infra name annotation set
-		gen := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, podName})
-		gen.WaitWithDefaultTimeout()
-		Expect(gen).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "generate", "-f", outputFile, podName)
 		//  Remove the pod so it can be recreated via kube play
-		rm := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
-		rm.WaitWithDefaultTimeout()
-		Expect(rm).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "play", outputFile})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
+		podmanTest.PodmanExitCleanly("pod", "rm", "-f", podName)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
 		// Expect the number of containers created to be 2, infra, and regular container
 		numOfCtrs := podmanTest.NumberOfContainers()
 		Expect(numOfCtrs).To(Equal(2))
 
-		ps := podmanTest.Podman([]string{"ps", "--format", "{{.Names}}"})
-		ps.WaitWithDefaultTimeout()
-		Expect(ps).Should(ExitCleanly())
+		ps := podmanTest.PodmanExitCleanly("ps", "--format", "{{.Names}}")
 		Expect(ps.OutputToString()).To(ContainSubstring(infraName))
 	})
 
@@ -6644,39 +6073,23 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 	It("test with default infra name", func() {
 		podName := "mypod"
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
-		pod := podmanTest.Podman([]string{"pod", "create", podName})
-		pod.WaitWithDefaultTimeout()
-		Expect(pod).Should(ExitCleanly())
-
-		ctr := podmanTest.Podman([]string{"create", "--pod", podName, CITEST_IMAGE, "top"})
-		ctr.WaitWithDefaultTimeout()
-		Expect(ctr).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("pod", "create", podName)
+		podmanTest.PodmanExitCleanly("create", "--pod", podName, CITEST_IMAGE, "top")
 
 		// Generate kube yaml and it should have the infra name annotation set
-		gen := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, podName})
-		gen.WaitWithDefaultTimeout()
-		Expect(gen).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "generate", "-f", outputFile, podName)
 		//  Remove the pod so it can be recreated via kube play
-		rm := podmanTest.Podman([]string{"pod", "rm", "-f", podName})
-		rm.WaitWithDefaultTimeout()
-		Expect(rm).Should(ExitCleanly())
-
-		kube := podmanTest.Podman([]string{"kube", "play", outputFile})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("pod", "rm", "-f", podName)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
 
 		// Expect the number of containers created to be 2, infra, and regular container
 		numOfCtrs := podmanTest.NumberOfContainers()
 		Expect(numOfCtrs).To(Equal(2))
 
-		podPs := podmanTest.Podman([]string{"pod", "ps", "-q"})
-		podPs.WaitWithDefaultTimeout()
-		Expect(podPs).Should(ExitCleanly())
+		podPs := podmanTest.PodmanExitCleanly("pod", "ps", "-q")
 		podID := podPs.OutputToString()
 
-		ps := podmanTest.Podman([]string{"ps", "--format", "{{.Names}}"})
-		ps.WaitWithDefaultTimeout()
-		Expect(ps).Should(ExitCleanly())
+		ps := podmanTest.PodmanExitCleanly("ps", "--format", "{{.Names}}")
 		Expect(ps.OutputToString()).To(ContainSubstring(podID[:12] + "-infra"))
 	})
 
@@ -6685,13 +6098,8 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		err = writeYaml(listPodAndConfigMap, listYamlPathname)
 		Expect(err).ToNot(HaveOccurred())
 
-		kube := podmanTest.Podman([]string{"kube", "play", listYamlPathname})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", "test-list-pod-container", "--format", "'{{ .Config.Env }}'"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", listYamlPathname)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "test-list-pod-container", "--format", "'{{ .Config.Env }}'")
 		Expect(inspect.OutputToString()).To(ContainSubstring(`FOO=bar`))
 	})
 
@@ -6700,21 +6108,10 @@ EXPOSE 2004-2005/tcp`, CITEST_IMAGE)
 		ctrNameInPod := "ctr-pod-ctr"
 		outputFile := filepath.Join(podmanTest.TempDir, "pod.yaml")
 
-		create := podmanTest.Podman([]string{"create", "--restart", "never", "--stop-timeout", "20", "--name", ctrName, CITEST_IMAGE})
-		create.WaitWithDefaultTimeout()
-		Expect(create).Should(ExitCleanly())
-
-		generate := podmanTest.Podman([]string{"kube", "generate", "-f", outputFile, ctrName})
-		generate.WaitWithDefaultTimeout()
-		Expect(generate).Should(ExitCleanly())
-
-		play := podmanTest.Podman([]string{"kube", "play", outputFile})
-		play.WaitWithDefaultTimeout()
-		Expect(play).Should(ExitCleanly())
-
-		inspect := podmanTest.Podman([]string{"inspect", ctrNameInPod, "-f", "{{ .Config.StopTimeout }}"})
-		inspect.WaitWithDefaultTimeout()
-		Expect(inspect).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("create", "--restart", "never", "--stop-timeout", "20", "--name", ctrName, CITEST_IMAGE)
+		podmanTest.PodmanExitCleanly("kube", "generate", "-f", outputFile, ctrName)
+		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
+		inspect := podmanTest.PodmanExitCleanly("inspect", ctrNameInPod, "-f", "{{ .Config.StopTimeout }}")
 		Expect(inspect.OutputToString()).To(Equal("20"))
 	})
 
@@ -6737,26 +6134,20 @@ spec:
 
 		err := writeYaml(netYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 
 		// Get the name of the host
 		hostname, err := os.Hostname()
 		Expect(err).ToNot(HaveOccurred())
 
-		exec := podmanTest.Podman([]string{"exec", "test-pod-alpine", "hostname"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec := podmanTest.PodmanExitCleanly("exec", "test-pod-alpine", "hostname")
 		Expect(exec.OutputToString()).To(Equal(hostname))
 
 		// Check that the UTS namespace is set to host also
 		hostUts := SystemExec("ls", []string{"-l", "/proc/self/ns/uts"})
 		Expect(hostUts).Should(ExitCleanly())
 		arr := strings.Split(hostUts.OutputToString(), " ")
-		exec = podmanTest.Podman([]string{"exec", "test-pod-alpine", "ls", "-l", "/proc/self/ns/uts"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec = podmanTest.PodmanExitCleanly("exec", "test-pod-alpine", "ls", "-l", "/proc/self/ns/uts")
 		execArr := strings.Split(exec.OutputToString(), " ")
 		Expect(execArr[len(execArr)-1]).To(ContainSubstring(arr[len(arr)-1]))
 	})
@@ -6778,22 +6169,15 @@ spec:
 
 		err := writeYaml(netYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
-		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		kube.WaitWithDefaultTimeout()
-		Expect(kube).Should(ExitCleanly())
-
-		exec := podmanTest.Podman([]string{"exec", "test-pod-alpine", "hostname"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		exec := podmanTest.PodmanExitCleanly("exec", "test-pod-alpine", "hostname")
 		Expect(exec.OutputToString()).To(Equal("test-pod"))
 
 		// Check that the UTS namespace is set to host also
 		hostUts := SystemExec("ls", []string{"-l", "/proc/self/ns/uts"})
 		Expect(hostUts).Should(ExitCleanly())
 		arr := strings.Split(hostUts.OutputToString(), " ")
-		exec = podmanTest.Podman([]string{"exec", "test-pod-alpine", "ls", "-l", "/proc/self/ns/uts"})
-		exec.WaitWithDefaultTimeout()
-		Expect(exec).Should(ExitCleanly())
+		exec = podmanTest.PodmanExitCleanly("exec", "test-pod-alpine", "ls", "-l", "/proc/self/ns/uts")
 		execArr := strings.Split(exec.OutputToString(), " ")
 		Expect(execArr[len(execArr)-1]).To(Not(ContainSubstring(arr[len(arr)-1])))
 	})
