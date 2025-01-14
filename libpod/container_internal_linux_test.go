@@ -18,7 +18,7 @@ func TestGenerateUserPasswdEntry(t *testing.T) {
 			},
 		},
 		state: &ContainerState{
-			Mountpoint: "/does/not/exist/tmp/",
+			Mountpoint: t.TempDir(),
 		},
 	}
 	user, err := c.generateUserPasswdEntry(0)
@@ -44,7 +44,7 @@ func TestGenerateUserGroupEntry(t *testing.T) {
 			},
 		},
 		state: &ContainerState{
-			Mountpoint: "/does/not/exist/tmp/",
+			Mountpoint: t.TempDir(),
 		},
 	}
 	group, err := c.generateUserGroupEntry(0)
