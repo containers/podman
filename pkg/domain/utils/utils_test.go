@@ -82,34 +82,34 @@ func TestParseSCPArgs(t *testing.T) {
 	var dest *entities.ScpTransferImageOptions
 	var err error
 	source, _, err = ParseImageSCPArg(args[0])
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, source.Image, "alpine")
 
 	dest, _, err = ParseImageSCPArg(args[1])
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, dest.Image, "")
 	assert.Equal(t, dest.User, "root")
 
 	args = []string{"root@localhost::alpine"}
 	source, _, err = ParseImageSCPArg(args[0])
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, source.User, "root")
 	assert.Equal(t, source.Image, "alpine")
 
 	args = []string{"charliedoern@192.168.68.126::alpine", "foobar@192.168.68.126::"}
 	source, _, err = ParseImageSCPArg(args[0])
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, source.Remote)
 	assert.Equal(t, source.Image, "alpine")
 
 	dest, _, err = ParseImageSCPArg(args[1])
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, dest.Remote)
 	assert.Equal(t, dest.Image, "")
 
 	args = []string{"charliedoern@192.168.68.126::alpine"}
 	source, _, err = ParseImageSCPArg(args[0])
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, source.Remote)
 	assert.Equal(t, source.Image, "alpine")
 }

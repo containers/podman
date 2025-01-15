@@ -448,7 +448,7 @@ func TestEnvVarValue(t *testing.T) {
 	stringNumCPUs := strconv.Itoa(runtime.NumCPU())
 
 	mi, err := meminfo.Read()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	stringMemTotal := strconv.FormatInt(mi.MemTotal, 10)
 
 	tests := []struct {

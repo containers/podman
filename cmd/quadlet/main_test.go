@@ -55,9 +55,9 @@ func TestIsUnambiguousName(t *testing.T) {
 
 func TestUnitDirs(t *testing.T) {
 	u, err := user.Current()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	uidInt, err := strconv.Atoi(u.Uid)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	if os.Getenv("_UNSHARED") != "true" {
 		unitDirs := getUnitDirs(false)
@@ -71,7 +71,7 @@ func TestUnitDirs(t *testing.T) {
 		assert.Equal(t, rootfulPaths.sorted, unitDirs, "rootful unit dirs should match")
 
 		configDir, err := os.UserConfigDir()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		rootlessPaths := newSearchPaths()
 
@@ -106,13 +106,13 @@ func TestUnitDirs(t *testing.T) {
 
 		actualDir := filepath.Join(symLinkTestBaseDir, "actual")
 		err = os.Mkdir(actualDir, 0755)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		innerDir := filepath.Join(actualDir, "inner")
 		err = os.Mkdir(innerDir, 0755)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		symlink := filepath.Join(symLinkTestBaseDir, "symlink")
 		err = os.Symlink(actualDir, symlink)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		t.Setenv("QUADLET_UNIT_DIRS", symlink)
 		unitDirs = getUnitDirs(true)
 		assert.Equal(t, []string{actualDir, innerDir}, unitDirs, "directory resolution should follow symlink")
@@ -133,7 +133,7 @@ func TestUnitDirs(t *testing.T) {
 			dirName := filepath.Join(path, name)
 			assert.NotContains(t, dirs, dirName)
 			err = os.Mkdir(dirName, 0755)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			dirs = append(dirs, dirName)
 			return dirName, dirs
 		}
@@ -141,7 +141,7 @@ func TestUnitDirs(t *testing.T) {
 		linkDir := func(path, name, target string) {
 			linkName := filepath.Join(path, name)
 			err = os.Symlink(target, linkName)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		}
 
 		symLinkRecursiveTestBaseDir := t.TempDir()
@@ -199,39 +199,39 @@ func TestUnitDirs(t *testing.T) {
 		}
 		c.Env = append(os.Environ(), "_UNSHARED=true")
 		err = c.Run()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 	} else {
 		fmt.Println(os.Args)
 
 		symLinkTestBaseDir := t.TempDir()
 		rootF, err := os.Open("/")
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		defer rootF.Close()
 		defer func() {
 			err := rootF.Chdir()
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			err = syscall.Chroot(".")
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		}()
 		err = syscall.Chroot(symLinkTestBaseDir)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		err = os.MkdirAll(quadlet.UnitDirAdmin, 0755)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		err = os.RemoveAll(quadlet.UnitDirAdmin)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 
 		createDir := func(path, name string) string {
 			dirName := filepath.Join(path, name)
 			err = os.Mkdir(dirName, 0755)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 			return dirName
 		}
 
 		linkDir := func(path, name, target string) {
 			linkName := filepath.Join(path, name)
 			err = os.Symlink(target, linkName)
-			assert.Nil(t, err)
+			assert.NoError(t, err)
 		}
 
 		systemdDir := createDir("/", "systemd")
