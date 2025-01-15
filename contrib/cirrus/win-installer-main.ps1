@@ -17,18 +17,13 @@ Push-Location $WIN_INST_FOLDER
 
 # Build and test the windows installer
 
-# Download v5.3.1 installer as `build.ps1` uses it to build the patch
-# (podman.msp). `build.ps1` reads `$env:V531_SETUP_EXE_PATH` to get its path.
-# The v5.3.1 installer is also used to test the "v5.3.1 -> current" version minor
-# update (with patch).
-if (!$env:V531_SETUP_EXE_PATH) {
-    $env:V531_SETUP_EXE_PATH = Get-Podman-Setup-From-GitHub -version "tags/v5.3.1"
-}
+# Download the previous installer to test a major update
 
-# Download the previous installer to test a major update (without patch)
-# After v5.3.2 release we should download latest instead of v5.3.0 (i.e.
-# `Get-Latest-Podman-Setup-From-GitHub`)
 if (!$env:PREV_SETUP_EXE_PATH) {
+    # After v5.3.2 is released we should replace
+    #     `Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"`
+    # with
+    #     `Get-Latest-Podman-Setup-From-GitHub`
     $env:PREV_SETUP_EXE_PATH = Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"
 }
 
@@ -48,5 +43,4 @@ $command += "-provider $ENV:CONTAINERS_MACHINE_PROVIDER "
 $command += "-setupExePath `"$WIN_INST_FOLDER\podman-$ENV:WIN_INST_VER-dev-setup.exe`""
 $command += "-previousSetupExePath `"$env:PREV_SETUP_EXE_PATH`""
 $command += "-nextSetupExePath `"$WIN_INST_FOLDER\podman-$NEXT_WIN_INST_VER-dev-setup.exe`""
-$command += "-v531SetupExePath `"$env:V531_SETUP_EXE_PATH`""
 Run-Command "${command}"

@@ -16,7 +16,6 @@
 #     -previousSetupExePath ".\contrib\win-installer\podman-5.3.0-dev-setup.exe" `
 #     -setupExePath ".\contrib\win-installer\podman-5.4.0-dev-setup.exe" `
 #     -nextSetupExePath ".\contrib\win-installer\podman-9.9.9-dev-setup.exe" `
-#     -v531SetupExePath ".\contrib\win-installer\podman-5.3.1-dev-setup.exe" `
 #     -provider hyperv
 #
 
@@ -25,7 +24,6 @@ param (
     [Parameter(Mandatory)]
     [ValidateSet("test-objects-exist", "test-objects-exist-not", "installation-green-field", "installation-skip-config-creation-flag", "installation-with-pre-existing-podman-exe",
                  "update-without-user-changes", "update-with-user-changed-config-file", "update-with-user-removed-config-file",
-                 "update-without-user-changes-from-531", "update-with-user-changed-config-file-from-531", "update-with-user-removed-config-file-from-531",
                  "update-without-user-changes-to-next", "update-with-user-changed-config-file-to-next", "update-with-user-removed-config-file-to-next",
                  "all")]
     [string]$scenario,
@@ -35,8 +33,6 @@ param (
     [string]$previousSetupExePath,
     [ValidateScript({Test-Path $_ -PathType Leaf})]
     [string]$nextSetupExePath,
-    [ValidateScript({Test-Path $_ -PathType Leaf})]
-    [string]$v531SetupExePath,
     [ValidateSet("wsl", "hyperv")]
     [string]$provider="wsl",
     [switch]$installWSL=$false,
@@ -263,7 +259,7 @@ function Start-Scenario-Installation-With-Pre-Existing-Podman-Exe {
 
 function Start-Scenario-Update-Without-User-Changes {
     param (
-        [ValidateSet("From-Previous", "From-531", "To-Next")]
+        [ValidateSet("From-Previous", "To-Next")]
         [string]$mode="From-Previous"
     )
     Write-Host "`n======================================================"
@@ -271,7 +267,6 @@ function Start-Scenario-Update-Without-User-Changes {
     Write-Host "======================================================"
     switch ($mode) {
         'From-Previous' {$i = $previousSetupExePath; $u = $setupExePath}
-        'From-531' {$i = $v531SetupExePath; $u = $setupExePath}
         'To-Next' {$i = $setupExePath; $u = $nextSetupExePath}
     }
     Install-Podman -setupExePath $i
@@ -282,17 +277,13 @@ function Start-Scenario-Update-Without-User-Changes {
     Test-Uninstallation
 }
 
-function Start-Scenario-Update-Without-User-Changes-From-531 {
-    Start-Scenario-Update-Without-User-Changes -mode "From-531"
-}
-
 function Start-Scenario-Update-Without-User-Changes-To-Next {
     Start-Scenario-Update-Without-User-Changes -mode "To-Next"
 }
 
 function Start-Scenario-Update-With-User-Changed-Config-File {
     param (
-        [ValidateSet("From-Previous", "From-531", "To-Next")]
+        [ValidateSet("From-Previous", "To-Next")]
         [string]$mode="From-Previous"
     )
     Write-Host "`n=============================================================="
@@ -300,7 +291,6 @@ function Start-Scenario-Update-With-User-Changed-Config-File {
     Write-Host "=============================================================="
     switch ($mode) {
         'From-Previous' {$i = $previousSetupExePath; $u = $setupExePath}
-        'From-531' {$i = $v531SetupExePath; $u = $setupExePath}
         'To-Next' {$i = $setupExePath; $u = $nextSetupExePath}
     }
     Install-Podman -setupExePath $i
@@ -312,17 +302,13 @@ function Start-Scenario-Update-With-User-Changed-Config-File {
     Test-Uninstallation
 }
 
-function Start-Scenario-Update-With-User-Changed-Config-File-From-531 {
-    Start-Scenario-Update-With-User-Changed-Config-File -mode "From-531"
-}
-
 function Start-Scenario-Update-With-User-Changed-Config-File-To-Next {
     Start-Scenario-Update-With-User-Changed-Config-File -mode "To-Next"
 }
 
 function Start-Scenario-Update-With-User-Removed-Config-File {
     param (
-        [ValidateSet("From-Previous", "From-531", "To-Next")]
+        [ValidateSet("From-Previous", "To-Next")]
         [string]$mode="From-Previous"
     )
     Write-Host "`n=============================================================="
@@ -330,7 +316,6 @@ function Start-Scenario-Update-With-User-Removed-Config-File {
     Write-Host "=============================================================="
     switch ($mode) {
         'From-Previous' {$i = $previousSetupExePath; $u = $setupExePath}
-        'From-531' {$i = $v531SetupExePath; $u = $setupExePath}
         'To-Next' {$i = $setupExePath; $u = $nextSetupExePath}
     }
     Install-Podman -setupExePath $i
@@ -340,10 +325,6 @@ function Start-Scenario-Update-With-User-Removed-Config-File {
     Test-Installation-No-Config
     Uninstall-Podman -setupExePath $u
     Test-Uninstallation
-}
-
-function Start-Scenario-Update-With-User-Removed-Config-File-From-531 {
-    Start-Scenario-Update-With-User-Removed-Config-File -mode "From-531"
 }
 
 function Start-Scenario-Update-With-User-Removed-Config-File-To-Next {
@@ -368,15 +349,13 @@ switch ($scenario) {
     }
     'update-without-user-changes' {
         if (!$previousSetupExePath) {
-            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
+            # After v5.3.2 is released we should replace
+            #     `Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"`
+            # with
+            #     `Get-Latest-Podman-Setup-From-GitHub`
+            $previousSetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"
         }
         Start-Scenario-Update-Without-User-Changes
-    }
-    'update-without-user-changes-from-531' {
-        if (!$v531SetupExePath) {
-            $v531SetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.1"
-        }
-        Start-Scenario-Update-Without-User-Changes-From-531
     }
     'update-without-user-changes-to-next' {
         if (!$nextSetupExePath) {
@@ -386,15 +365,13 @@ switch ($scenario) {
     }
     'update-with-user-changed-config-file' {
         if (!$previousSetupExePath) {
-            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
+            # After v5.3.2 is released we should replace
+            #     `Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"`
+            # with
+            #     `Get-Latest-Podman-Setup-From-GitHub`
+            $previousSetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"
         }
         Start-Scenario-Update-With-User-Changed-Config-File
-    }
-    'update-with-user-changed-config-file-from-531' {
-        if (!$v531SetupExePath) {
-            $v531SetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.1"
-        }
-        Start-Scenario-Update-With-User-Changed-Config-File-From-531
     }
     'update-with-user-changed-config-file-to-next' {
         if (!$nextSetupExePath) {
@@ -404,15 +381,13 @@ switch ($scenario) {
     }
     'update-with-user-removed-config-file' {
         if (!$previousSetupExePath) {
-            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
+            # After v5.3.2 is released we should replace
+            #     `Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"`
+            # with
+            #     `Get-Latest-Podman-Setup-From-GitHub`
+            $previousSetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"
         }
         Start-Scenario-Update-With-User-Removed-Config-File
-    }
-    'update-with-user-removed-config-file-from-531' {
-        if (!$v531SetupExePath) {
-            $v531SetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.1"
-        }
-        Start-Scenario-Update-With-User-Removed-Config-File-From-531
     }
     'update-with-user-removed-config-file-to-next' {
         if (!$nextSetupExePath) {
@@ -425,22 +400,20 @@ switch ($scenario) {
             throw "Next version installer path is not defined. Use '-nextSetupExePath <setup-exe-path>' to define it."
         }
         if (!$previousSetupExePath) {
-            $previousSetupExePath = Get-Latest-Podman-Setup-From-GitHub
-        }
-        if (!$v531SetupExePath) {
-            $v531SetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.1"
+            # After v5.3.2 is released we should replace
+            #     `Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"`
+            # with
+            #     `Get-Latest-Podman-Setup-From-GitHub`
+            $previousSetupExePath = Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"
         }
         Start-Scenario-Installation-Green-Field
         Start-Scenario-Installation-Skip-Config-Creation-Flag
         Start-Scenario-Installation-With-Pre-Existing-Podman-Exe
         Start-Scenario-Update-Without-User-Changes
-        Start-Scenario-Update-Without-User-Changes-From-531
         Start-Scenario-Update-Without-User-Changes-To-Next
         Start-Scenario-Update-With-User-Changed-Config-File
-        Start-Scenario-Update-With-User-Changed-Config-File-From-531
         Start-Scenario-Update-With-User-Changed-Config-File-To-Next
         Start-Scenario-Update-With-User-Removed-Config-File
-        Start-Scenario-Update-With-User-Removed-Config-File-From-531
         Start-Scenario-Update-With-User-Removed-Config-File-To-Next
     }
 }

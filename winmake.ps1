@@ -39,7 +39,7 @@ function Win-SSHProxy {
 
     New-Item -ItemType Directory -Force -Path "./bin/windows"
     if (-Not $Version) {
-        $Version = "v0.7.2"
+        $Version = "v0.8.1"
     }
     curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windowsgui.exe"
     curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy.exe"
