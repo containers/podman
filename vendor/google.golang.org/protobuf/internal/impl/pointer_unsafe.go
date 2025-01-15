@@ -22,7 +22,7 @@ type Pointer unsafe.Pointer
 type offset uintptr
 
 // offsetOf returns a field offset for the struct field.
-func offsetOf(f reflect.StructField, x exporter) offset {
+func offsetOf(f reflect.StructField) offset {
 	return offset(f.Offset)
 }
 

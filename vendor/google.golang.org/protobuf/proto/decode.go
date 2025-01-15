@@ -172,7 +172,7 @@ func (o UnmarshalOptions) unmarshalMessageSlow(b []byte, m protoreflect.Message)
 		var err error
 		if fd == nil {
 			err = errUnknown
-		} else if flags.ProtoLegacy {
+		} else if flags.ProtoLegacyWeak {
 			if fd.IsWeak() && fd.Message().IsPlaceholder() {
 				err = errUnknown // weak referent is not linked in
 			}
