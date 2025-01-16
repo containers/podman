@@ -47,6 +47,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/version"
 	"github.com/containers/storage/pkg/archive"
+	tar "github.com/containers/storage/pkg/archive/hacktar"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
@@ -1106,13 +1107,20 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 	// Get root file-system changes included in the checkpoint archive
 	var addToTarFiles []string
 	if !options.IgnoreRootfs {
+		t := archive.Timer("getdiff", 0)
 		// To correctly track deleted files, let's go through the output of 'podman diff'
 		rootFsChanges, err := c.runtime.GetDiff("", c.ID(), define.DiffContainer)
 		if err != nil {
 			return fmt.Errorf("exporting root file-system diff for %q: %w", c.ID(), err)
 		}
+		t()
 
-		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
+		// TODO - this hack is not production quality
+		mp := c.state.Mountpoint
+		if filepath.Base(mp) == "merged" {
+			mp = filepath.Join(filepath.Dir(mp), "diff")
+		}
+		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, mp, c.bundlePath())
 		if err != nil {
 			return err
 		}
@@ -1151,6 +1159,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 				return fmt.Errorf("volume %s is not mounted, cannot export: %w", volume.Name(), define.ErrInternal)
 			}
 
+			// TODO - should also use TarWithOptionsTo
 			input, err := archive.TarWithOptions(mp, &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
@@ -1169,28 +1178,35 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 		}
 	}
 
-	input, err := archive.TarWithOptions(c.bundlePath(), &archive.TarOptions{
-		Compression:      options.Compression,
-		IncludeSourceDir: true,
-		IncludeFiles:     includeFiles,
-	})
-
-	if err != nil {
-		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
-	}
-
 	outFile, err := os.Create(options.TargetFile)
 	if err != nil {
 		return fmt.Errorf("creating checkpoint export file %q: %w", options.TargetFile, err)
 	}
-	defer outFile.Close()
+	defer outFile.Close() // error handling?
 
-	if err := os.Chmod(options.TargetFile, 0600); err != nil {
-		return err
+	var dest io.WriteCloser
+	dest = outFile
+
+	opts := &archive.TarOptions{
+		IncludeSourceDir: true,
+		IncludeFiles:     includeFiles,
+	}
+	if options.Compression != archive.Uncompressed {
+		dest, err = archive.CompressStream(dest, options.Compression)
+		if err != nil {
+			return err
+		}
+		defer dest.Close()
+	} else {
+		opts.AlignBlockFile = outFile
+	}
+	tw := tar.NewWriter(dest)
+	defer tw.Close()
+	if err := archive.TarWithOptionsTo(c.bundlePath(), tw, opts); err != nil {
+		return fmt.Errorf("reading checkpoint directory %q: %w", c.ID(), err)
 	}
 
-	_, err = io.Copy(outFile, input)
-	if err != nil {
+	if err := os.Chmod(options.TargetFile, 0600); err != nil {
 		return err
 	}
 
@@ -1253,17 +1269,19 @@ func (c *Container) checkpoint(ctx context.Context, options ContainerCheckpointO
 		if err != nil {
 			return nil, 0, err
 		}
-		defer shmDirTarFile.Close()
 
-		input, err := archive.TarWithOptions(c.config.ShmDir, &archive.TarOptions{
+		tw := tar.NewWriter(shmDirTarFile)
+		if err := archive.TarWithOptionsTo(c.config.ShmDir, tw, &archive.TarOptions{
 			Compression:      archive.Uncompressed,
 			IncludeSourceDir: true,
-		})
-		if err != nil {
+			AlignBlockFile:   shmDirTarFile,
+		}); err != nil {
 			return nil, 0, err
 		}
-
-		if _, err = io.Copy(shmDirTarFile, input); err != nil {
+		if err := tw.Close(); err != nil {
+			return nil, 0, err
+		}
+		if err := shmDirTarFile.Close(); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -1464,9 +1482,13 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	if options.TargetFile != "" {
+		fi, _ := os.Stat(options.TargetFile)
+		t := archive.Timer(options.TargetFile, int(fi.Size()))
+
 		if err := c.importCheckpointTar(options.TargetFile); err != nil {
 			return nil, 0, err
 		}
+		t()
 	} else if options.CheckpointImageID != "" {
 		if err := c.importCheckpointImage(ctx, options.CheckpointImageID); err != nil {
 			return nil, 0, err
@@ -1742,7 +1764,12 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 
 	// Before actually restarting the container, apply the root file-system changes
 	if !options.IgnoreRootfs {
-		if err := crutils.CRApplyRootFsDiffTar(c.bundlePath(), c.state.Mountpoint); err != nil {
+		mp := c.state.Mountpoint
+		// TODO - this is not production quality
+		if filepath.Base(mp) == "merged" {
+			mp = filepath.Join(filepath.Dir(mp), "diff")
+		}
+		if err := crutils.CRApplyRootFsDiffTar(c.bundlePath(), mp); err != nil {
 			return nil, 0, err
 		}
 
