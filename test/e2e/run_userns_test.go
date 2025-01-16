@@ -284,7 +284,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		output := session.OutputToString()
-		Expect(output).To(MatchRegexp("\\s0\\s0\\s1"))
+		Expect(output).To(MatchRegexp(`(^|\s)0\s+0\s+1(\s|$)`))
 
 		session = podmanTest.Podman([]string{"run", "--userns=auto:size=8192,uidmapping=0:0:1", "alpine", "cat", "/proc/self/uid_map"})
 		session.WaitWithDefaultTimeout()
@@ -313,7 +313,7 @@ var _ = Describe("Podman UserNS support", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		output := session.OutputToString()
-		Expect(output).To(MatchRegexp("\\s0\\s0\\s1"))
+		Expect(output).To(MatchRegexp(`(^|\s)0\s+0\s+1(\s|$)`))
 
 		session = podmanTest.Podman([]string{"run", "--userns=auto:size=8192,gidmapping=0:0:1", "alpine", "cat", "/proc/self/gid_map"})
 		session.WaitWithDefaultTimeout()

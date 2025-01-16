@@ -799,7 +799,7 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		output := session.OutputToString()
-		Expect(output).To(MatchRegexp("\\s0\\s0\\s1"))
+		Expect(output).To(MatchRegexp(`(^|\s)0\s+0\s+1(\s|$)`))
 
 		podName = "testPod-1"
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--userns=auto:size=8192,uidmapping=0:0:1", "--name", podName})
@@ -836,7 +836,7 @@ ENTRYPOINT ["sleep","99999"]
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		output := session.OutputToString()
-		Expect(output).To(MatchRegexp("\\s0\\s0\\s1"))
+		Expect(output).To(MatchRegexp(`(^|\s)0\s+0\s+1(\s|$)`))
 
 		podName = "testPod-1"
 		podCreate = podmanTest.Podman([]string{"pod", "create", "--userns=auto:size=8192,gidmapping=0:0:1", "--name", podName})
