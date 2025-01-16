@@ -228,6 +228,8 @@ Note: When joining multiple networks use the **--network name:mac=\<mac\>** synt
 
 When no network option is specified and *host* network mode is not configured in the YAML file, a new network stack is created and pods are attached to it making possible pod to pod communication.
 
+@@option no-hostname
+
 @@option no-hosts
 
 This option conflicts with host added in the Kubernetes YAML.

@@ -625,7 +625,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 
 	podOpt := entities.PodCreateOptions{
 		Infra:      true,
-		Net:        &entities.NetOptions{NoHosts: options.NoHosts},
+		Net:        &entities.NetOptions{NoHosts: options.NoHosts, NoHostname: options.NoHostname},
 		ExitPolicy: string(config.PodExitPolicyStop),
 	}
 	podOpt, err = kube.ToPodOpt(ctx, podName, podOpt, options.PublishAllPorts, podYAML)

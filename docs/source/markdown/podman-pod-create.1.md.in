@@ -128,6 +128,8 @@ Invalid if using **--dns**, **--dns-option**, or **--dns-search** with **--netwo
 
 @@option network-alias
 
+@@option no-hostname
+
 @@option no-hosts
 
 This option conflicts with **--add-host**.

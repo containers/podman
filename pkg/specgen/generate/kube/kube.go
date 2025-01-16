@@ -43,7 +43,7 @@ import (
 )
 
 func ToPodOpt(ctx context.Context, podName string, p entities.PodCreateOptions, publishAllPorts bool, podYAML *v1.PodTemplateSpec) (entities.PodCreateOptions, error) {
-	p.Net = &entities.NetOptions{NoHosts: p.Net.NoHosts}
+	p.Net = &entities.NetOptions{NoHosts: p.Net.NoHosts, NoHostname: p.Net.NoHostname}
 
 	p.Name = podName
 	p.Labels = podYAML.ObjectMeta.Labels

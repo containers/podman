@@ -268,6 +268,8 @@ If used together with **--pod**, the container does not join the pod's network n
 
 @@option no-healthcheck
 
+@@option no-hostname
+
 @@option no-hosts
 
 This option conflicts with **--add-host**.

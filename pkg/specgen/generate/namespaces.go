@@ -366,6 +366,9 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	} else if len(s.HostAdd) > 0 {
 		toReturn = append(toReturn, libpod.WithHosts(s.HostAdd))
 	}
+	if s.UseImageHostname != nil && *s.UseImageHostname {
+		toReturn = append(toReturn, libpod.WithUseImageHostname())
+	}
 	if len(s.DNSSearch) > 0 {
 		toReturn = append(toReturn, libpod.WithDNSSearch(s.DNSSearch))
 	}

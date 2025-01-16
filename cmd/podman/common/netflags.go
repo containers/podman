@@ -96,6 +96,10 @@ func DefineNetFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(publishFlagName, completion.AutocompleteNone)
 
 	netFlags.Bool(
+		"no-hostname", false, "Do not create /etc/hostname within the container, instead use the version from the image",
+	)
+
+	netFlags.Bool(
 		"no-hosts", podmanConfig.ContainersConfDefaultsRO.Containers.NoHosts,
 		"Do not create /etc/hosts within the container, instead use the version from the image",
 	)
@@ -190,6 +194,11 @@ func NetFlagsToNetOptions(opts *entities.NetOptions, flags pflag.FlagSet) (*enti
 				return nil, err
 			}
 		}
+	}
+
+	opts.NoHostname, err = flags.GetBool("no-hostname")
+	if err != nil {
+		return nil, err
 	}
 
 	opts.NoHosts, err = flags.GetBool("no-hosts")

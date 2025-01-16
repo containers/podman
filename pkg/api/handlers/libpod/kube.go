@@ -109,6 +109,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		LogDriver        string            `schema:"logDriver"`
 		LogOptions       []string          `schema:"logOptions"`
 		Network          []string          `schema:"network"`
+		NoHostname       bool              `schema:"noHostname"`
 		NoHosts          bool              `schema:"noHosts"`
 		NoTrunc          bool              `schema:"noTrunc"`
 		Replace          bool              `schema:"replace"`
@@ -182,6 +183,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		LogDriver:          logDriver,
 		LogOptions:         query.LogOptions,
 		Networks:           query.Network,
+		NoHostname:         query.NoHostname,
 		NoHosts:            query.NoHosts,
 		Password:           password,
 		PublishPorts:       query.PublishPorts,
