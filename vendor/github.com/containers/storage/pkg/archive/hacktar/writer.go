@@ -491,7 +491,7 @@ func (tw *Writer) Write(b []byte) (int, error) {
 //
 // TODO(dsnet): Re-export this when adding sparse file support.
 // See https://golang.org/issue/22735
-func (tw *Writer) readFrom(r io.Reader) (int64, error) {
+func (tw *Writer) ReadFrom(r io.Reader) (int64, error) {
 	if tw.err != nil {
 		return 0, tw.err
 	}
@@ -550,6 +550,14 @@ func (fw *regFileWriter) Write(b []byte) (n int, err error) {
 }
 
 func (fw *regFileWriter) ReadFrom(r io.Reader) (int64, error) {
+	if rf, ok := fw.w.(io.ReaderFrom); ok {
+		n, err := rf.ReadFrom(r)
+		if n > fw.nb {
+			return n, fmt.Errorf("read %d bytes, beyond max %d", n, fw.nb)
+		}
+		fw.nb -= n
+		return n, err
+	}
 	return io.Copy(struct{ io.Writer }{fw}, r)
 }
 
