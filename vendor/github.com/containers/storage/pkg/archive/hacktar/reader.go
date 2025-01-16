@@ -649,7 +649,7 @@ func (tr *Reader) Read(b []byte) (int, error) {
 //
 // TODO(dsnet): Re-export this when adding sparse file support.
 // See https://golang.org/issue/22735
-func (tr *Reader) writeTo(w io.Writer) (int64, error) {
+func (tr *Reader) WriteTo(w io.Writer) (int64, error) {
 	if tr.err != nil {
 		return 0, tr.err
 	}
@@ -685,6 +685,13 @@ func (fr *regFileReader) Read(b []byte) (n int, err error) {
 }
 
 func (fr *regFileReader) WriteTo(w io.Writer) (int64, error) {
+	_, ok1 := fr.r.(io.WriterTo)
+	wrf, ok2 := w.(io.ReaderFrom)
+	if ok1 && ok2 {
+		n, err := wrf.ReadFrom(&io.LimitedReader{R: fr.r, N: fr.nb})
+		fr.nb -= n
+		return n, err
+	}
 	return io.Copy(w, struct{ io.Reader }{fr})
 }
 
