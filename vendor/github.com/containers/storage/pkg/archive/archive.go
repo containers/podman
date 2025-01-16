@@ -67,6 +67,11 @@ type (
 		CopyPass bool
 		// ForceMask, if set, indicates the permission mask used for created files.
 		ForceMask *os.FileMode
+
+		// If set, insert dummy entries to align file starts
+		// with preferred block size. The file should be the
+		// destination file of the tar writer.
+		AlignBlockFile *os.File
 	}
 )
 
@@ -170,8 +175,38 @@ func DetectCompression(source []byte) Compression {
 	return Uncompressed
 }
 
-// DecompressStream decompresses the archive and returns a ReaderCloser with the decompressed archive.
+// Returns the ideal block size to use for archiving the given file.
+func blockAlignment(f *os.File) (sz int64, blksize int64, err error) {
+	fi, err := f.Stat()
+	if err != nil {
+		return 0, 0, err
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+
+	// TODO use fstatfs to decide if the filesystem supports
+	// reflink, and return based on that.
+	return st.Size, st.Blksize, nil
+}
+
+// DecompressStream decompresses the archive and returns a
+// ReaderCloser with the decompressed archive.  An uncompressed
+// *os.File is returned unchanged.
 func DecompressStream(archive io.Reader) (_ io.ReadCloser, Err error) {
+	if s, ok := archive.(io.ReadSeekCloser); ok {
+		var head [10]byte
+		n, err := s.Read(head[:])
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.Seek(0, 0); err != nil {
+			return nil, err
+		}
+		compression := DetectCompression(head[:n])
+		if compression == Uncompressed {
+			return s, nil
+		}
+	}
+
 	p := pools.BufioReader32KPool
 	buf := p.Get(archive)
 	bs, err := buf.Peek(10)
@@ -494,6 +529,8 @@ type tarWriter struct {
 	// from the traditional behavior/format to get features like subsecond
 	// precision in timestamps.
 	CopyPass bool
+
+	blockAlignFile *os.File
 }
 
 func newTarWriter(idMapping *idtools.IDMappings, writer *tar.Writer, chownOpts *idtools.IDPair) *tarWriter {
@@ -519,6 +556,13 @@ func canonicalTarName(name string, isDir bool) (string, error) {
 		name += "/"
 	}
 	return name, nil
+}
+
+func headerSize(hdr *tar.Header) int64 {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	tw.WriteHeader(hdr)
+	return int64(buf.Len())
 }
 
 // addFile adds a file from `path` as `name` to the tar archive.
@@ -624,8 +668,45 @@ func (ta *tarWriter) addFile(path, name string) error {
 		}
 	}
 
+	if ta.blockAlignFile != nil {
+		if err := ta.TarWriter.Flush(); err != nil {
+			return err
+		}
+
+		size, blksize, err := blockAlignment(ta.blockAlignFile)
+		if err != nil {
+			return err
+		}
+
+		padding := blksize - (size%blksize + headerSize(hdr))
+		for padding < 0 {
+			padding += blksize
+		}
+
+		for i := 0; i < int(padding/tarBlockSize); i++ {
+			if err := ta.TarWriter.WriteHeader(&tar.Header{
+				Typeflag: tar.TypeChar,
+				Name:     "",
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := ta.TarWriter.WriteHeader(hdr); err != nil {
 		return err
+	}
+
+	if ta.blockAlignFile != nil {
+		// paranoia; can probably drop this.
+		size, blksize, err := blockAlignment(ta.blockAlignFile)
+		if err != nil {
+			return err
+		}
+
+		if size%blksize != 0 {
+			logrus.Panicf("alignment %d", size%blksize)
+		}
 	}
 
 	if hdr.Typeflag == tar.TypeReg && hdr.Size > 0 {
@@ -872,14 +953,18 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 	return pipeReader, nil
 }
 
+const tarBlockSize = 512
+
 // TarWithOptionsTo populates `tw` with files from `srcPath`. It does
-// not close `tw`, so further files can be added to it afterwards.
+// not close `tw`, so further files can be added to it afterwards. If
+// non-nil, `dest` should be underlying file for `tw`.
 func TarWithOptionsTo(srcPath string, tw *tar.Writer, options *TarOptions) error {
 	ta := newTarWriter(
 		idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
 		tw,
 		options.ChownOpts,
 	)
+	ta.blockAlignFile = options.AlignBlockFile
 
 	pm, err := fileutils.NewPatternMatcher(options.ExcludePatterns)
 	if err != nil {
@@ -1051,6 +1136,10 @@ loop:
 		}
 		if err != nil {
 			return err
+		}
+		if hdr.Name == "" && hdr.Typeflag == tar.TypeChar {
+			// padding.
+			continue
 		}
 
 		// Normalize name, for safety and for a simple is-root check
