@@ -224,6 +224,14 @@ View the generated files and/or error messages with:
 /usr/lib/systemd/system-generators/podman-system-generator {--user} --dryrun
 ```
 
+Alternatively, show only the errors with:
+```
+systemd-analyze {--user} --generators=true verify example.service
+```
+
+That command also performs additional checks on the generated service unit.
+For details, see systemd-analyze(1) man page.
+
 #### Debugging a limited set of unit files
 
 If you would like to debug a limited set of unit files, you can copy them to a separate directory and set the
@@ -2086,7 +2094,7 @@ Options=iam_role,endpoint=${AWS_REGION},use_xattr,listobjectsv2,del_cache,use_ca
 ## SEE ALSO
 **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**,
 **[systemd.service(5)](https://www.freedesktop.org/software/systemd/man/systemd.service.html)**,
+**[systemd-analyze(1)](https://www.freedesktop.org/software/systemd/man/latest/systemd-analyze.html)**,
 **[podman-run(1)](podman-run.1.md)**,
 **[podman-network-create(1)](podman-network-create.1.md)**,
 **[podman-auto-update(1)](podman-auto-update.1.md)**
-**[systemd.unit(5)]**
