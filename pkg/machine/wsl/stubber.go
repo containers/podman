@@ -68,7 +68,7 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	}
 
 	fmt.Println("Configuring system...")
-	if err = configureSystem(mc, dist); err != nil {
+	if err = configureSystem(mc, dist, mc.Ansible); err != nil {
 		return err
 	}
 

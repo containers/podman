@@ -3,6 +3,7 @@ package define
 import "net/url"
 
 type InitOptions struct {
+	PlaybookPath       string
 	CPUS               uint64
 	DiskSize           uint64
 	IgnitionPath       string
