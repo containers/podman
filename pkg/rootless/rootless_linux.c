@@ -352,9 +352,6 @@ get_cmd_line_args (int *argc_out)
 
   argv[argc] = NULL;
 
-  /* Move ownership.  */
-  buffer = NULL;
-
   if (argc_out)
     *argc_out = argc;
 
