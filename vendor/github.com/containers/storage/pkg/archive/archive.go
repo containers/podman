@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
@@ -710,6 +711,7 @@ func (ta *tarWriter) addFile(path, name string) error {
 	}
 
 	if hdr.Typeflag == tar.TypeReg && hdr.Size > 0 {
+		t := Timer(hdr.Name, int(hdr.Size))
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -726,12 +728,26 @@ func (ta *tarWriter) addFile(path, name string) error {
 		if err != nil {
 			return err
 		}
+		t()
 	}
 
 	return nil
 }
 
+func Timer(fn string, size int) func() {
+	start := time.Now()
+	return func() {
+		dt := time.Now().Sub(start)
+		logrus.Infof("processed %s (%d byte) in %v: %f gb/s", fn, size, dt, gbyteps(size, dt))
+	}
+}
+
+func gbyteps(n int, d time.Duration) float64 {
+	return float64(n) / float64(1<<30) / d.Seconds()
+}
+
 func extractTarFileEntry(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, forceMask *os.FileMode, buffer []byte) error {
+	defer Timer(hdr.Name, int(hdr.Size))()
 	// hdr.Mode is in linux format, which we can use for sycalls,
 	// but for os.Foo() calls we need the mode converted to os.FileMode,
 	// so use hdrInfo.Mode() (they differ for e.g. setuid bits)
