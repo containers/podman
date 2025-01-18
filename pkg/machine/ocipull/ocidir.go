@@ -1,7 +1,7 @@
 package ocipull
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"context"
 	"errors"
 	"fmt"

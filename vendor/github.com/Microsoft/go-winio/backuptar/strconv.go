@@ -3,7 +3,7 @@
 package backuptar
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"fmt"
 	"strconv"
 	"strings"

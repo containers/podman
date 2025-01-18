@@ -1,7 +1,7 @@
 package chunked
 
 import (
-	archivetar "archive/tar"
+	archivetar "github.com/containers/storage/pkg/archive/hacktar"
 	"bytes"
 	"errors"
 	"fmt"

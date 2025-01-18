@@ -23,7 +23,7 @@
 package estargz
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"hash"
 	"io"
 	"os"

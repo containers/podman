@@ -3,7 +3,7 @@
 package archive // import "github.com/docker/docker/pkg/archive"
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"errors"
 	"os"
 	"path/filepath"

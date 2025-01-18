@@ -1,7 +1,7 @@
 package chrootarchive
 
 import (
-	stdtar "archive/tar"
+	stdtar "github.com/containers/storage/pkg/archive/hacktar"
 	"fmt"
 	"io"
 	"os"

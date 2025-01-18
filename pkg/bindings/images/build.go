@@ -1,7 +1,7 @@
 package images
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"context"
 	"encoding/json"
 	"errors"

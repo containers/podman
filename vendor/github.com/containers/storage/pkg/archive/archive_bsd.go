@@ -3,7 +3,7 @@
 package archive
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"os"
 
 	"golang.org/x/sys/unix"
