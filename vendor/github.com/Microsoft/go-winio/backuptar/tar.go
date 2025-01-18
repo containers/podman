@@ -4,7 +4,7 @@
 package backuptar
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"encoding/base64"
 	"fmt"
 	"io"

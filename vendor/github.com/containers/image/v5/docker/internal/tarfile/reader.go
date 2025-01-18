@@ -1,7 +1,7 @@
 package tarfile
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"encoding/json"
 	"errors"
 	"fmt"

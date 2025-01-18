@@ -1,7 +1,7 @@
 package archive
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"bufio"
 	"bytes"
 	"compress/bzip2"

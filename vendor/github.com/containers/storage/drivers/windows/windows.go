@@ -4,7 +4,7 @@
 package windows
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"bufio"
 	"bytes"
 	"errors"

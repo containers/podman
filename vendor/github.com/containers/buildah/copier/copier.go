@@ -1,7 +1,7 @@
 package copier
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"bytes"
 	"encoding/json"
 	"errors"
