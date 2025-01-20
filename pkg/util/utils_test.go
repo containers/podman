@@ -692,7 +692,7 @@ func TestGetRootlessKeepIDMapping(t *testing.T) {
 
 	for _, test := range tests {
 		options, uid, gid, err := getRootlessKeepIDMapping(test.uid, test.gid, test.uids, test.gids, test.size)
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, test.expectedOptions, options)
 		assert.Equal(t, test.expectedUID, uid)
 		assert.Equal(t, test.expectedGID, gid)
@@ -817,7 +817,7 @@ func TestProcessOptions(t *testing.T) {
 			if tt.expectErr {
 				assert.NotNil(t, err)
 			} else {
-				assert.Nil(t, err)
+				assert.NoError(t, err)
 				sort.Strings(opts)
 				sort.Strings(tt.expected)
 				assert.Equal(t, opts, tt.expected)

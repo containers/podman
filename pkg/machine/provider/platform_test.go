@@ -25,14 +25,14 @@ func TestSupportedProviders(t *testing.T) {
 
 func TestInstalledProviders(t *testing.T) {
 	installed, err := InstalledProviders()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	switch runtime.GOOS {
 	case "darwin":
 		// TODO: need to verify if an arm64 machine reports {applehv, libkrun}
 		assert.Equal(t, []define.VMType{define.AppleHvVirt}, installed)
 	case "windows":
 		provider, err := Get()
-		assert.Nil(t, err)
+		assert.NoError(t, err)
 		assert.Contains(t, installed, provider)
 	case "linux":
 		assert.Equal(t, []define.VMType{define.QemuVirt}, installed)
@@ -41,7 +41,7 @@ func TestInstalledProviders(t *testing.T) {
 
 func TestHasPermsForProvider(t *testing.T) {
 	provider, err := Get()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.True(t, HasPermsForProvider(provider.VMType()))
 }
 
@@ -72,7 +72,7 @@ func TestBadSupportedProviders(t *testing.T) {
 
 func TestBadInstalledProviders(t *testing.T) {
 	installed, err := InstalledProviders()
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	switch runtime.GOOS {
 	case "darwin":
 		assert.NotEqual(t, []define.VMType{define.QemuVirt}, installed)

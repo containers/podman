@@ -59,7 +59,7 @@ func TestWinPath(t *testing.T) {
 			assert.NotNil(t, err, msg)
 			continue
 		}
-		if !assert.Nil(t, err, msg) {
+		if !assert.NoError(t, err, msg) {
 			continue
 		}
 		if test.isN {
@@ -80,14 +80,14 @@ func TestWinPath(t *testing.T) {
 
 func TestParseLinuxResourcesDeviceAccess(t *testing.T) {
 	d, err := parseLinuxResourcesDeviceAccess("a *:* rwm")
-	assert.Nil(t, err, "err is nil")
+	assert.NoError(t, err, "err is nil")
 	assert.True(t, d.Allow, "allow is true")
 	assert.Equal(t, d.Type, "a", "type is 'a'")
 	assert.Nil(t, d.Minor, "minor is nil")
 	assert.Nil(t, d.Major, "major is nil")
 
 	d, err = parseLinuxResourcesDeviceAccess("b 3:* rwm")
-	assert.Nil(t, err, "err is nil")
+	assert.NoError(t, err, "err is nil")
 	assert.True(t, d.Allow, "allow is true")
 	assert.Equal(t, d.Type, "b", "type is 'b'")
 	assert.Nil(t, d.Minor, "minor is nil")
@@ -95,7 +95,7 @@ func TestParseLinuxResourcesDeviceAccess(t *testing.T) {
 	assert.Equal(t, *d.Major, int64(3), "major is 3")
 
 	d, err = parseLinuxResourcesDeviceAccess("a *:3 rwm")
-	assert.Nil(t, err, "err is nil")
+	assert.NoError(t, err, "err is nil")
 	assert.True(t, d.Allow, "allow is true")
 	assert.Equal(t, d.Type, "a", "type is 'a'")
 	assert.Nil(t, d.Major, "major is nil")
@@ -103,7 +103,7 @@ func TestParseLinuxResourcesDeviceAccess(t *testing.T) {
 	assert.Equal(t, *d.Minor, int64(3), "minor is 3")
 
 	d, err = parseLinuxResourcesDeviceAccess("c 1:2 rwm")
-	assert.Nil(t, err, "err is nil")
+	assert.NoError(t, err, "err is nil")
 	assert.True(t, d.Allow, "allow is true")
 	assert.Equal(t, d.Type, "c", "type is 'c'")
 	assert.NotNil(t, d.Major, "minor is not nil")
