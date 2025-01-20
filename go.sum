@@ -94,8 +94,6 @@ github.com/containers/ocicrypt v1.2.1 h1:0qIOTT9DoYwcKmxSt8QJt+VzMY18onl9jUXsxpV
 github.com/containers/ocicrypt v1.2.1/go.mod h1:aD0AAqfMp0MtwqWgHM1bUwe1anx0VazI108CRrSKINQ=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.56.2-0.20250115211129-aef3f600e98a h1:uI+56Dwcg8ftnSgDZ9KeIcZ7XC+NYhVO98XzsOaNPxU=
-github.com/containers/storage v1.56.2-0.20250115211129-aef3f600e98a/go.mod h1:e5HPoNuyl89WGaNW4Et3KdEkFDJkWQFyI7wXWnaILVE=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-oidc/v3 v3.12.0 h1:sJk+8G2qq94rDI6ehZ71Bol3oUHy63qNYmkiSjrc/Jo=
@@ -383,6 +381,8 @@ github.com/morikuni/aec v1.0.0 h1:nP9CBfwrvYnBRgY6qfDQkygYDmYwOilePFkwzv4dU8A=
 github.com/morikuni/aec v1.0.0/go.mod h1:BbKIizmSmc5MMPqRYbxO4ZU0S0+P200+tUnFx7PXmsc=
 github.com/mtrmac/image/v5 v5.0.0-20250115213620-0db6be6ebf70 h1:e19jNiKpQjykk187lGExxgWebM5B5w0ZPe0Quhd/e+c=
 github.com/mtrmac/image/v5 v5.0.0-20250115213620-0db6be6ebf70/go.mod h1:8F5r/JB/mBBaCqLmZGhDe3qs3uEcyjC1ORhW0pCh/1M=
+github.com/mtrmac/storage v0.0.0-20250120171344-ab30d56ff66c h1:qSrGGwqCKro45M5D8QLrdDIXK8TQJtazpZA0m9M+uGI=
+github.com/mtrmac/storage v0.0.0-20250120171344-ab30d56ff66c/go.mod h1:KbGwnyB0b3cwwiPuAiB9XqSYfsEhRb/ALIPgfqpmLLA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/nxadm/tail v1.4.11 h1:8feyoE3OzPrcshW5/MJ4sGESc5cqmGkGCWlco4l0bqY=

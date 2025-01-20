@@ -235,3 +235,5 @@ require (
 replace github.com/opencontainers/runc => github.com/cyphar/runc v0.0.0-20250113075447-165f564c94d9
 
 replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20250115213620-0db6be6ebf70
+
+replace github.com/containers/storage => github.com/mtrmac/storage v0.0.0-20250120171344-ab30d56ff66c
