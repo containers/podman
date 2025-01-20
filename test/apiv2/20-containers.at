@@ -74,7 +74,7 @@ t GET libpod/containers/json?all=true 200 \
 # Test compat API for Network Settings (.Network is N/A when rootless)
 network_expect="Networks.pasta.NetworkID=pasta"
 if root; then
-    network_expect="Networks.podman.NetworkID=podman"
+    network_expect="Networks.podman.NetworkID=2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9"
 fi
 t GET /containers/json?all=true 200 \
   length=1 \
@@ -335,7 +335,7 @@ t GET containers/${cid_top}/json 200 \
   .Config.Cmd='[]' \
   .Config.StopTimeout="10" \
   .Path="top" \
-  .NetworkSettings.Networks.podman.NetworkID=podman
+  .NetworkSettings.Networks.podman.NetworkID=2f259bab93aaaaa2542ba43ef33eb990d0999ee1b9924b557b7be53c0b7a1bb9
 t POST  containers/${cid_top}/start 204
 # make sure the container is running
 t GET containers/${cid_top}/json 200 \
