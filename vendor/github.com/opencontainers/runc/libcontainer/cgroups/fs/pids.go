@@ -6,7 +6,6 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type PidsGroup struct{}
@@ -15,11 +14,11 @@ func (s *PidsGroup) Name() string {
 	return "pids"
 }
 
-func (s *PidsGroup) Apply(path string, _ *configs.Resources, pid int) error {
+func (s *PidsGroup) Apply(path string, _ *cgroups.Resources, pid int) error {
 	return apply(path, pid)
 }
 
-func (s *PidsGroup) Set(path string, r *configs.Resources) error {
+func (s *PidsGroup) Set(path string, r *cgroups.Resources) error {
 	if r.PidsLimit != 0 {
 		// "max" is the fallback value.
 		limit := "max"

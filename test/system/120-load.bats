@@ -23,24 +23,22 @@ function teardown() {
 # Custom helpers for this test only. These just save us having to duplicate
 # the same thing four times (two tests, each with -i and stdin).
 #
-# initialize, read image ID, image config digest, and name
-get_img_ids_and_name() {
+# initialize, read image ID and name
+get_iid_and_name() {
     run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
     read iid img_name <<<"$output"
-    img_config_digest=$(image_config_digest "@$iid")
 
     archive=$PODMAN_TMPDIR/myimage-$(random_string 8).tar
 }
 
-# Simple verification of image config digest and name
-verify_img_config_digest_and_name() {
+# Simple verification of image ID and name
+verify_iid_and_name() {
     run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
     read new_iid new_img_name < <(echo "$output")
-    new_img_config_digest=$(image_config_digest "@$new_iid")
 
     # Verify
-    is "$new_img_config_digest" "$img_config_digest" "Image config digest of loaded image == original"
-    is "$new_img_name"          "$1"                 "Name & tag of restored image"
+    is "$new_iid"      "$iid" "Image ID of loaded image == original"
+    is "$new_img_name" "$1"   "Name & tag of restored image"
 }
 
 @test "podman load invalid file" {
@@ -180,7 +178,7 @@ verify_img_config_digest_and_name() {
 
 @test "podman load - by image ID" {
     # FIXME: how to build a simple archive instead?
-    get_img_ids_and_name
+    get_iid_and_name
 
     # Save image by ID, and remove it.
     run_podman save $iid -o $archive
@@ -188,41 +186,41 @@ verify_img_config_digest_and_name() {
 
     # Load using -i; IID should be preserved, but name is not.
     run_podman load -i $archive
-    verify_img_config_digest_and_name "<none>:<none>"
+    verify_iid_and_name "<none>:<none>"
 
     # Same as above, using stdin
     run_podman rmi $iid
     run_podman load < $archive
-    verify_img_config_digest_and_name "<none>:<none>"
+    verify_iid_and_name "<none>:<none>"
 
     # Same as above, using stdin but with `podman image load`
     run_podman rmi $iid
     run_podman image load < $archive
-    verify_img_config_digest_and_name "<none>:<none>"
+    verify_iid_and_name "<none>:<none>"
 }
 
 @test "podman load - by image name" {
-    get_img_ids_and_name
+    get_iid_and_name
     run_podman save $img_name -o $archive
     run_podman rmi $iid
 
     # Load using -i; this time the image should be tagged.
     run_podman load -i $archive
-    verify_img_config_digest_and_name $img_name
+    verify_iid_and_name $img_name
     run_podman rmi $iid
 
     # Also make sure that `image load` behaves the same.
     run_podman image load -i $archive
-    verify_img_config_digest_and_name $img_name
+    verify_iid_and_name $img_name
     run_podman rmi $iid
 
     # Same as above, using stdin
     run_podman load < $archive
-    verify_img_config_digest_and_name $img_name
+    verify_iid_and_name $img_name
 }
 
 @test "podman load - from URL" {
-    get_img_ids_and_name
+    get_iid_and_name
     run_podman save $img_name -o $archive
     run_podman rmi $iid
 
@@ -234,21 +232,11 @@ verify_img_config_digest_and_name() {
             -v $archive:/var/www/image.tar:Z \
             -w /var/www \
             $IMAGE /bin/busybox-extras httpd -f -p 80
-    # We now have $IMAGE pointing at the image, possibly using a zstd:chunked (TOC-based) pull
+
     run_podman load -i $SERVER/image.tar
+    verify_iid_and_name $img_name
 
-    # This should move the $img_name tag ( = $IMAGE) to the result of loading the image;
-    # this is a non-TOC-based load, so it might or might not deduplicate the loaded image with
-    # the one for myweb.
-    # So, if we have an untagged image, it’s probably the one for myweb, and try to remove it.
     run_podman rm -f -t0 myweb
-    run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}'
-    local myweb_iid=$(echo "$output" | sed -n '/<none>:<none>/s/ .*$//p')
-    if [[ -n "$myweb_iid" ]]; then
-        run_podman rmi $myweb_iid
-    fi
-
-    verify_img_config_digest_and_name $img_name
 }
 
 @test "podman load - redirect corrupt payload" {

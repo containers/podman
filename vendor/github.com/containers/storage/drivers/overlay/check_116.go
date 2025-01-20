@@ -10,7 +10,6 @@ import (
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/system"
-	"golang.org/x/sys/unix"
 )
 
 func scanForMountProgramIndicators(home string) (detected bool, err error) {
@@ -28,7 +27,7 @@ func scanForMountProgramIndicators(home string) (detected bool, err error) {
 		}
 		if d.IsDir() {
 			xattrs, err := system.Llistxattr(path)
-			if err != nil && !errors.Is(err, unix.EOPNOTSUPP) {
+			if err != nil && !errors.Is(err, system.ENOTSUP) {
 				return err
 			}
 			for _, xattr := range xattrs {

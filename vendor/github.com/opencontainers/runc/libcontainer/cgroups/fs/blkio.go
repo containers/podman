@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type BlkioGroup struct {
@@ -20,11 +19,11 @@ func (s *BlkioGroup) Name() string {
 	return "blkio"
 }
 
-func (s *BlkioGroup) Apply(path string, _ *configs.Resources, pid int) error {
+func (s *BlkioGroup) Apply(path string, _ *cgroups.Resources, pid int) error {
 	return apply(path, pid)
 }
 
-func (s *BlkioGroup) Set(path string, r *configs.Resources) error {
+func (s *BlkioGroup) Set(path string, r *cgroups.Resources) error {
 	s.detectWeightFilenames(path)
 	if r.BlkioWeight != 0 {
 		if err := cgroups.WriteFile(path, s.weightFilename, strconv.FormatUint(uint64(r.BlkioWeight), 10)); err != nil {

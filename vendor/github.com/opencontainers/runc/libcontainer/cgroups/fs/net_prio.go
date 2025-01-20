@@ -2,7 +2,6 @@ package fs
 
 import (
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type NetPrioGroup struct{}
@@ -11,11 +10,11 @@ func (s *NetPrioGroup) Name() string {
 	return "net_prio"
 }
 
-func (s *NetPrioGroup) Apply(path string, _ *configs.Resources, pid int) error {
+func (s *NetPrioGroup) Apply(path string, _ *cgroups.Resources, pid int) error {
 	return apply(path, pid)
 }
 
-func (s *NetPrioGroup) Set(path string, r *configs.Resources) error {
+func (s *NetPrioGroup) Set(path string, r *cgroups.Resources) error {
 	for _, prioMap := range r.NetPrioIfpriomap {
 		if err := cgroups.WriteFile(path, "net_prio.ifpriomap", prioMap.CgroupString()); err != nil {
 			return err

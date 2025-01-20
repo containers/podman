@@ -9,10 +9,11 @@ import (
 	"io"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"time"
 
-	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/internal/minimal"
+	storagePath "github.com/containers/storage/pkg/chunked/internal/path"
+	"github.com/opencontainers/go-digest"
 	"golang.org/x/sys/unix"
 )
 
@@ -85,17 +86,17 @@ func escapedOptional(val []byte, escape int) string {
 
 func getStMode(mode uint32, typ string) (uint32, error) {
 	switch typ {
-	case internal.TypeReg, internal.TypeLink:
+	case minimal.TypeReg, minimal.TypeLink:
 		mode |= unix.S_IFREG
-	case internal.TypeChar:
+	case minimal.TypeChar:
 		mode |= unix.S_IFCHR
-	case internal.TypeBlock:
+	case minimal.TypeBlock:
 		mode |= unix.S_IFBLK
-	case internal.TypeDir:
+	case minimal.TypeDir:
 		mode |= unix.S_IFDIR
-	case internal.TypeFifo:
+	case minimal.TypeFifo:
 		mode |= unix.S_IFIFO
-	case internal.TypeSymlink:
+	case minimal.TypeSymlink:
 		mode |= unix.S_IFLNK
 	default:
 		return 0, fmt.Errorf("unknown type %s", typ)
@@ -103,24 +104,14 @@ func getStMode(mode uint32, typ string) (uint32, error) {
 	return mode, nil
 }
 
-func sanitizeName(name string) string {
-	path := filepath.Clean(name)
-	if path == "." {
-		path = "/"
-	} else if path[0] != '/' {
-		path = "/" + path
-	}
-	return path
-}
-
-func dumpNode(out io.Writer, added map[string]*internal.FileMetadata, links map[string]int, verityDigests map[string]string, entry *internal.FileMetadata) error {
-	path := sanitizeName(entry.Name)
+func dumpNode(out io.Writer, added map[string]*minimal.FileMetadata, links map[string]int, verityDigests map[string]string, entry *minimal.FileMetadata) error {
+	path := storagePath.CleanAbsPath(entry.Name)
 
 	parent := filepath.Dir(path)
 	if _, found := added[parent]; !found && path != "/" {
-		parentEntry := &internal.FileMetadata{
+		parentEntry := &minimal.FileMetadata{
 			Name: parent,
-			Type: internal.TypeDir,
+			Type: minimal.TypeDir,
 			Mode: 0o755,
 		}
 		if err := dumpNode(out, added, links, verityDigests, parentEntry); err != nil {
@@ -143,7 +134,7 @@ func dumpNode(out io.Writer, added map[string]*internal.FileMetadata, links map[
 
 	nlinks := links[entry.Name] + links[entry.Linkname] + 1
 	link := ""
-	if entry.Type == internal.TypeLink {
+	if entry.Type == minimal.TypeLink {
 		link = "@"
 	}
 
@@ -169,16 +160,21 @@ func dumpNode(out io.Writer, added map[string]*internal.FileMetadata, links map[
 
 	var payload string
 	if entry.Linkname != "" {
-		if entry.Type == internal.TypeSymlink {
+		if entry.Type == minimal.TypeSymlink {
 			payload = entry.Linkname
 		} else {
-			payload = sanitizeName(entry.Linkname)
+			payload = storagePath.CleanAbsPath(entry.Linkname)
 		}
-	} else {
-		if len(entry.Digest) > 10 {
-			d := strings.Replace(entry.Digest, "sha256:", "", 1)
-			payload = d[:2] + "/" + d[2:]
+	} else if entry.Digest != "" {
+		d, err := digest.Parse(entry.Digest)
+		if err != nil {
+			return fmt.Errorf("invalid digest %q for %q: %w", entry.Digest, entry.Name, err)
 		}
+		path, err := storagePath.RegularFilePathForValidatedDigest(d)
+		if err != nil {
+			return fmt.Errorf("determining physical file path for %q: %w", entry.Name, err)
+		}
+		payload = path
 	}
 
 	if _, err := fmt.Fprint(out, escapedOptional([]byte(payload), ESCAPE_LONE_DASH)); err != nil {
@@ -219,7 +215,7 @@ func dumpNode(out io.Writer, added map[string]*internal.FileMetadata, links map[
 
 // GenerateDump generates a dump of the TOC in the same format as `composefs-info dump`
 func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader, error) {
-	toc, ok := tocI.(*internal.TOC)
+	toc, ok := tocI.(*minimal.TOC)
 	if !ok {
 		return nil, fmt.Errorf("invalid TOC type")
 	}
@@ -235,21 +231,21 @@ func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader,
 		}()
 
 		links := make(map[string]int)
-		added := make(map[string]*internal.FileMetadata)
+		added := make(map[string]*minimal.FileMetadata)
 		for _, e := range toc.Entries {
 			if e.Linkname == "" {
 				continue
 			}
-			if e.Type == internal.TypeSymlink {
+			if e.Type == minimal.TypeSymlink {
 				continue
 			}
 			links[e.Linkname] = links[e.Linkname] + 1
 		}
 
 		if len(toc.Entries) == 0 {
-			root := &internal.FileMetadata{
+			root := &minimal.FileMetadata{
 				Name: "/",
-				Type: internal.TypeDir,
+				Type: minimal.TypeDir,
 				Mode: 0o755,
 			}
 
@@ -261,7 +257,7 @@ func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader,
 		}
 
 		for _, e := range toc.Entries {
-			if e.Type == internal.TypeChunk {
+			if e.Type == minimal.TypeChunk {
 				continue
 			}
 			if err := dumpNode(w, added, links, verityDigests, &e); err != nil {

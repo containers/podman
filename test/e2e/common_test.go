@@ -112,7 +112,10 @@ var (
 	_ = BeforeEach(func() {
 		tempdir, err = os.MkdirTemp(GlobalTmpDir, "subtest-")
 		Expect(err).ToNot(HaveOccurred())
-		podmanTest = PodmanTestCreate(tempdir)
+		podmanTempDir := filepath.Join(tempdir, "p")
+		err = os.Mkdir(podmanTempDir, 0o700)
+		Expect(err).ToNot(HaveOccurred())
+		podmanTest = PodmanTestCreate(podmanTempDir)
 		podmanTest.Setup()
 		// see GetSafeIPAddress() below
 		safeIPOctets[0] = uint8(GinkgoT().ParallelProcess()) + 128

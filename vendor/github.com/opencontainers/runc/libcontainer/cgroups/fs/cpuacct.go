@@ -8,7 +8,6 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
-	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 const (
@@ -34,11 +33,11 @@ func (s *CpuacctGroup) Name() string {
 	return "cpuacct"
 }
 
-func (s *CpuacctGroup) Apply(path string, _ *configs.Resources, pid int) error {
+func (s *CpuacctGroup) Apply(path string, _ *cgroups.Resources, pid int) error {
 	return apply(path, pid)
 }
 
-func (s *CpuacctGroup) Set(_ string, _ *configs.Resources) error {
+func (s *CpuacctGroup) Set(_ string, _ *cgroups.Resources) error {
 	return nil
 }
 

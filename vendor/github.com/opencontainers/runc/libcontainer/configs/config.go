@@ -286,12 +286,6 @@ func ToSchedAttr(scheduler *Scheduler) (*unix.SchedAttr, error) {
 	}, nil
 }
 
-var IOPrioClassMapping = map[specs.IOPriorityClass]int{
-	specs.IOPRIO_CLASS_RT:   1,
-	specs.IOPRIO_CLASS_BE:   2,
-	specs.IOPRIO_CLASS_IDLE: 3,
-}
-
 type IOPriority = specs.LinuxIOPriority
 
 type (
@@ -331,6 +325,19 @@ const (
 	// Poststop commands are called in the Runtime Namespace.
 	Poststop HookName = "poststop"
 )
+
+// HasHook checks if config has any hooks with any given names configured.
+func (c *Config) HasHook(names ...HookName) bool {
+	if c.Hooks == nil {
+		return false
+	}
+	for _, h := range names {
+		if len(c.Hooks[h]) > 0 {
+			return true
+		}
+	}
+	return false
+}
 
 // KnownHookNames returns the known hook names.
 // Used by `runc features`.
@@ -427,6 +434,16 @@ func (hooks Hooks) Run(name HookName, state *specs.State) error {
 	return nil
 }
 
+// SetDefaultEnv sets the environment for those CommandHook entries
+// that do not have one set.
+func (hooks HookList) SetDefaultEnv(env []string) {
+	for _, h := range hooks {
+		if ch, ok := h.(CommandHook); ok && len(ch.Env) == 0 {
+			ch.Env = env
+		}
+	}
+}
+
 type Hook interface {
 	// Run executes the hook with the provided state.
 	Run(*specs.State) error
@@ -456,17 +473,17 @@ type Command struct {
 }
 
 // NewCommandHook will execute the provided command when the hook is run.
-func NewCommandHook(cmd Command) CommandHook {
+func NewCommandHook(cmd *Command) CommandHook {
 	return CommandHook{
 		Command: cmd,
 	}
 }
 
 type CommandHook struct {
-	Command
+	*Command
 }
 
-func (c Command) Run(s *specs.State) error {
+func (c *Command) Run(s *specs.State) error {
 	b, err := json.Marshal(s)
 	if err != nil {
 		return err
