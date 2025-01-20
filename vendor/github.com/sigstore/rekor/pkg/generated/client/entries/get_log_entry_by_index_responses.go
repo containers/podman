@@ -22,6 +22,7 @@ package entries
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -108,11 +109,13 @@ func (o *GetLogEntryByIndexOK) Code() int {
 }
 
 func (o *GetLogEntryByIndexOK) Error() string {
-	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexOK %s", 200, payload)
 }
 
 func (o *GetLogEntryByIndexOK) String() string {
-	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexOK %s", 200, payload)
 }
 
 func (o *GetLogEntryByIndexOK) GetPayload() models.LogEntry {
@@ -173,11 +176,11 @@ func (o *GetLogEntryByIndexNotFound) Code() int {
 }
 
 func (o *GetLogEntryByIndexNotFound) Error() string {
-	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexNotFound ", 404)
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexNotFound", 404)
 }
 
 func (o *GetLogEntryByIndexNotFound) String() string {
-	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexNotFound ", 404)
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndexNotFound", 404)
 }
 
 func (o *GetLogEntryByIndexNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -234,11 +237,13 @@ func (o *GetLogEntryByIndexDefault) Code() int {
 }
 
 func (o *GetLogEntryByIndexDefault) Error() string {
-	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndex default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndex default %s", o._statusCode, payload)
 }
 
 func (o *GetLogEntryByIndexDefault) String() string {
-	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndex default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/entries][%d] getLogEntryByIndex default %s", o._statusCode, payload)
 }
 
 func (o *GetLogEntryByIndexDefault) GetPayload() *models.Error {

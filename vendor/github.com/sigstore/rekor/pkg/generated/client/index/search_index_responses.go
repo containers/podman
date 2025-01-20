@@ -22,6 +22,7 @@ package index
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -108,11 +109,13 @@ func (o *SearchIndexOK) Code() int {
 }
 
 func (o *SearchIndexOK) Error() string {
-	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexOK %s", 200, payload)
 }
 
 func (o *SearchIndexOK) String() string {
-	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexOK %s", 200, payload)
 }
 
 func (o *SearchIndexOK) GetPayload() []string {
@@ -174,11 +177,13 @@ func (o *SearchIndexBadRequest) Code() int {
 }
 
 func (o *SearchIndexBadRequest) Error() string {
-	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexBadRequest %s", 400, payload)
 }
 
 func (o *SearchIndexBadRequest) String() string {
-	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndexBadRequest %s", 400, payload)
 }
 
 func (o *SearchIndexBadRequest) GetPayload() *models.Error {
@@ -246,11 +251,13 @@ func (o *SearchIndexDefault) Code() int {
 }
 
 func (o *SearchIndexDefault) Error() string {
-	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndex default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndex default %s", o._statusCode, payload)
 }
 
 func (o *SearchIndexDefault) String() string {
-	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndex default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/index/retrieve][%d] searchIndex default %s", o._statusCode, payload)
 }
 
 func (o *SearchIndexDefault) GetPayload() *models.Error {

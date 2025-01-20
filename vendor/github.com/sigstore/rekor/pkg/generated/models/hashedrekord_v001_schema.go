@@ -277,7 +277,7 @@ type HashedrekordV001SchemaDataHash struct {
 
 	// The hashing function used to compute the hash value
 	// Required: true
-	// Enum: [sha256 sha384 sha512]
+	// Enum: ["sha256","sha384","sha512"]
 	Algorithm *string `json:"algorithm"`
 
 	// The hash value for the content, as represented by a lower case hexadecimal string
