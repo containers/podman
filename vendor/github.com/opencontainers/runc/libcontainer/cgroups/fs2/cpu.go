@@ -10,14 +10,15 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func isCPUSet(r *cgroups.Resources) bool {
+func isCpuSet(r *configs.Resources) bool {
 	return r.CpuWeight != 0 || r.CpuQuota != 0 || r.CpuPeriod != 0 || r.CPUIdle != nil || r.CpuBurst != nil
 }
 
-func setCPU(dirPath string, r *cgroups.Resources) error {
-	if !isCPUSet(r) {
+func setCpu(dirPath string, r *configs.Resources) error {
+	if !isCpuSet(r) {
 		return nil
 	}
 

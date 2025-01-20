@@ -7,13 +7,14 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func isHugeTlbSet(r *cgroups.Resources) bool {
+func isHugeTlbSet(r *configs.Resources) bool {
 	return len(r.HugetlbLimit) > 0
 }
 
-func setHugeTlb(dirPath string, r *cgroups.Resources) error {
+func setHugeTlb(dirPath string, r *configs.Resources) error {
 	if !isHugeTlbSet(r) {
 		return nil
 	}

@@ -10,13 +10,14 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func isPidsSet(r *cgroups.Resources) bool {
+func isPidsSet(r *configs.Resources) bool {
 	return r.PidsLimit != 0
 }
 
-func setPids(dirPath string, r *cgroups.Resources) error {
+func setPids(dirPath string, r *configs.Resources) error {
 	if !isPidsSet(r) {
 		return nil
 	}

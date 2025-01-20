@@ -1,4 +1,4 @@
-package cgroups
+package configs
 
 type HugepageLimit struct {
 	// which type of hugepage to limit.

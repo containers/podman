@@ -9,6 +9,7 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"golang.org/x/sys/unix"
 )
 
@@ -18,7 +19,7 @@ func (s *CpuGroup) Name() string {
 	return "cpu"
 }
 
-func (s *CpuGroup) Apply(path string, r *cgroups.Resources, pid int) error {
+func (s *CpuGroup) Apply(path string, r *configs.Resources, pid int) error {
 	if err := os.MkdirAll(path, 0o755); err != nil {
 		return err
 	}
@@ -33,7 +34,7 @@ func (s *CpuGroup) Apply(path string, r *cgroups.Resources, pid int) error {
 	return cgroups.WriteCgroupProc(path, pid)
 }
 
-func (s *CpuGroup) SetRtSched(path string, r *cgroups.Resources) error {
+func (s *CpuGroup) SetRtSched(path string, r *configs.Resources) error {
 	var period string
 	if r.CpuRtPeriod != 0 {
 		period = strconv.FormatUint(r.CpuRtPeriod, 10)
@@ -63,7 +64,7 @@ func (s *CpuGroup) SetRtSched(path string, r *cgroups.Resources) error {
 	return nil
 }
 
-func (s *CpuGroup) Set(path string, r *cgroups.Resources) error {
+func (s *CpuGroup) Set(path string, r *configs.Resources) error {
 	if r.CpuShares != 0 {
 		shares := r.CpuShares
 		if err := cgroups.WriteFile(path, "cpu.shares", strconv.FormatUint(shares, 10)); err != nil {

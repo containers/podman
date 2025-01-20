@@ -8,12 +8,13 @@ import (
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/fscommon"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 type parseError = fscommon.ParseError
 
 type Manager struct {
-	config *cgroups.Cgroup
+	config *configs.Cgroup
 	// dirPath is like "/sys/fs/cgroup/user.slice/user-1001.slice/session-1.scope"
 	dirPath string
 	// controllers is content of "cgroup.controllers" file.
@@ -24,7 +25,7 @@ type Manager struct {
 // NewManager creates a manager for cgroup v2 unified hierarchy.
 // dirPath is like "/sys/fs/cgroup/user.slice/user-1001.slice/session-1.scope".
 // If dirPath is empty, it is automatically set using config.
-func NewManager(config *cgroups.Cgroup, dirPath string) (*Manager, error) {
+func NewManager(config *configs.Cgroup, dirPath string) (*Manager, error) {
 	if dirPath == "" {
 		var err error
 		dirPath, err = defaultDirPath(config)
@@ -142,7 +143,7 @@ func (m *Manager) GetStats() (*cgroups.Stats, error) {
 	return st, nil
 }
 
-func (m *Manager) Freeze(state cgroups.FreezerState) error {
+func (m *Manager) Freeze(state configs.FreezerState) error {
 	if m.config.Resources == nil {
 		return errors.New("cannot toggle freezer: cgroups not configured for container")
 	}
@@ -161,7 +162,7 @@ func (m *Manager) Path(_ string) string {
 	return m.dirPath
 }
 
-func (m *Manager) Set(r *cgroups.Resources) error {
+func (m *Manager) Set(r *configs.Resources) error {
 	if r == nil {
 		return nil
 	}
@@ -181,7 +182,7 @@ func (m *Manager) Set(r *cgroups.Resources) error {
 		return err
 	}
 	// cpu (since kernel 4.15)
-	if err := setCPU(m.dirPath, r); err != nil {
+	if err := setCpu(m.dirPath, r); err != nil {
 		return err
 	}
 	// devices (since kernel 4.15, pseudo-controller)
@@ -217,7 +218,7 @@ func (m *Manager) Set(r *cgroups.Resources) error {
 	return nil
 }
 
-func setDevices(dirPath string, r *cgroups.Resources) error {
+func setDevices(dirPath string, r *configs.Resources) error {
 	if cgroups.DevicesSetV2 == nil {
 		if len(r.Devices) > 0 {
 			return cgroups.ErrDevicesUnsupported
@@ -259,11 +260,11 @@ func (m *Manager) GetPaths() map[string]string {
 	return paths
 }
 
-func (m *Manager) GetCgroups() (*cgroups.Cgroup, error) {
+func (m *Manager) GetCgroups() (*configs.Cgroup, error) {
 	return m.config, nil
 }
 
-func (m *Manager) GetFreezerState() (cgroups.FreezerState, error) {
+func (m *Manager) GetFreezerState() (configs.FreezerState, error) {
 	return getFreezer(m.dirPath)
 }
 
@@ -284,7 +285,7 @@ func (m *Manager) OOMKillCount() (uint64, error) {
 	return c, err
 }
 
-func CheckMemoryUsage(dirPath string, r *cgroups.Resources) error {
+func CheckMemoryUsage(dirPath string, r *configs.Resources) error {
 	if !r.MemoryCheckBeforeUpdate {
 		return nil
 	}

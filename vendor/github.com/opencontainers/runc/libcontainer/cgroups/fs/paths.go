@@ -9,6 +9,7 @@ import (
 	"golang.org/x/sys/unix"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/utils"
 )
 
@@ -20,7 +21,7 @@ var (
 
 const defaultCgroupRoot = "/sys/fs/cgroup"
 
-func initPaths(cg *cgroups.Cgroup) (map[string]string, error) {
+func initPaths(cg *configs.Cgroup) (map[string]string, error) {
 	root, err := rootPath()
 	if err != nil {
 		return nil, err
@@ -135,7 +136,7 @@ func rootPath() (string, error) {
 	return cgroupRoot, nil
 }
 
-func innerPath(c *cgroups.Cgroup) (string, error) {
+func innerPath(c *configs.Cgroup) (string, error) {
 	if (c.Name != "" || c.Parent != "") && c.Path != "" {
 		return "", errors.New("cgroup: either Path or Name and Parent should be used")
 	}

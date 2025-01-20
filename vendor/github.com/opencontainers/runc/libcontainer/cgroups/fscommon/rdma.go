@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/sys/unix"
-
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	"golang.org/x/sys/unix"
 )
 
 // parseRdmaKV parses raw string to RdmaEntry.
@@ -99,7 +99,7 @@ func RdmaGetStats(path string, stats *cgroups.Stats) error {
 	return nil
 }
 
-func createCmdString(device string, limits cgroups.LinuxRdma) string {
+func createCmdString(device string, limits configs.LinuxRdma) string {
 	cmdString := device
 	if limits.HcaHandles != nil {
 		cmdString += " hca_handle=" + strconv.FormatUint(uint64(*limits.HcaHandles), 10)
@@ -111,7 +111,7 @@ func createCmdString(device string, limits cgroups.LinuxRdma) string {
 }
 
 // RdmaSet sets RDMA resources.
-func RdmaSet(path string, r *cgroups.Resources) error {
+func RdmaSet(path string, r *configs.Resources) error {
 	for device, limits := range r.Rdma {
 		if err := cgroups.WriteFile(path, "rdma.max", createCmdString(device, limits)); err != nil {
 			return err

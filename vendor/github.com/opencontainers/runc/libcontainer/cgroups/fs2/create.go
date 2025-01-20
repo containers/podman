@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
 func supportedControllers() (string, error) {
@@ -17,7 +18,7 @@ func supportedControllers() (string, error) {
 // based on (1) controllers available and (2) resources that are being set.
 // We don't check "pseudo" controllers such as
 // "freezer" and "devices".
-func needAnyControllers(r *cgroups.Resources) (bool, error) {
+func needAnyControllers(r *configs.Resources) (bool, error) {
 	if r == nil {
 		return false, nil
 	}
@@ -47,7 +48,7 @@ func needAnyControllers(r *cgroups.Resources) (bool, error) {
 	if isIoSet(r) && have("io") {
 		return true, nil
 	}
-	if isCPUSet(r) && have("cpu") {
+	if isCpuSet(r) && have("cpu") {
 		return true, nil
 	}
 	if isCpusetSet(r) && have("cpuset") {
@@ -63,12 +64,12 @@ func needAnyControllers(r *cgroups.Resources) (bool, error) {
 // containsDomainController returns whether the current config contains domain controller or not.
 // Refer to: http://man7.org/linux/man-pages/man7/cgroups.7.html
 // As at Linux 4.19, the following controllers are threaded: cpu, perf_event, and pids.
-func containsDomainController(r *cgroups.Resources) bool {
-	return isMemorySet(r) || isIoSet(r) || isCPUSet(r) || isHugeTlbSet(r)
+func containsDomainController(r *configs.Resources) bool {
+	return isMemorySet(r) || isIoSet(r) || isCpuSet(r) || isHugeTlbSet(r)
 }
 
 // CreateCgroupPath creates cgroupv2 path, enabling all the supported controllers.
-func CreateCgroupPath(path string, c *cgroups.Cgroup) (Err error) {
+func CreateCgroupPath(path string, c *configs.Cgroup) (Err error) {
 	if !strings.HasPrefix(path, UnifiedMountpoint) {
 		return fmt.Errorf("invalid cgroup path %s", path)
 	}

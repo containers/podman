@@ -26,7 +26,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/crc-org/crc/v2 v2.45.0
 	github.com/crc-org/vfkit v0.6.0
-	github.com/cyphar/filepath-securejoin v0.4.0
+	github.com/cyphar/filepath-securejoin v0.3.6
 	github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v27.5.0+incompatible
@@ -231,8 +231,6 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 )
-
-replace github.com/opencontainers/runc => github.com/cyphar/runc v0.0.0-20250113075447-165f564c94d9
 
 replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20250120171603-ea84b108c893
 

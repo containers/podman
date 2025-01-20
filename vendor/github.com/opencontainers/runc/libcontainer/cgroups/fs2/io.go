@@ -11,9 +11,10 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/configs"
 )
 
-func isIoSet(r *cgroups.Resources) bool {
+func isIoSet(r *configs.Resources) bool {
 	return r.BlkioWeight != 0 ||
 		len(r.BlkioWeightDevice) > 0 ||
 		len(r.BlkioThrottleReadBpsDevice) > 0 ||
@@ -36,7 +37,7 @@ func bfqDeviceWeightSupported(bfq *os.File) bool {
 	return err != nil
 }
 
-func setIo(dirPath string, r *cgroups.Resources) error {
+func setIo(dirPath string, r *configs.Resources) error {
 	if !isIoSet(r) {
 		return nil
 	}
