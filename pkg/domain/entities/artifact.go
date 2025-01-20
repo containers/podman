@@ -9,7 +9,8 @@ import (
 	"github.com/opencontainers/go-digest"
 )
 
-type ArtifactAddoptions struct {
+type ArtifactAddOptions struct {
+	Annotations  map[string]string
 	ArtifactType string
 }
 
