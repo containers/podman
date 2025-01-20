@@ -19,10 +19,15 @@ added.
 
 ## OPTIONS
 
+@@option annotation.manifest
+
 #### **--help**
 
 Print usage statement.
 
+#### **--type**
+
+Set a type for the artifact being added.
 
 ## EXAMPLES
 
@@ -39,6 +44,10 @@ $ podman artifact add quay.io/myartifact/myml:latest /tmp/foobar1.ml /tmp/foobar
 1487acae11b5a30948c50762882036b41ac91a7b9514be8012d98015c95ddb78
 ```
 
+Set an annotation for an artifact
+```
+$ podman artifact add --annotation date=2025-01-30 quay.io/myartifact/myml:latest /tmp/foobar1.ml
+```
 
 
 ## SEE ALSO
