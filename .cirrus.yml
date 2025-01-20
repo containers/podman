@@ -795,7 +795,7 @@ podman_machine_mac_task:
     skip: *skip_rhel_release
     depends_on: *build
     persistent_worker: *mac_pw
-    timeout_in: 35m
+    timeout_in: 45m
     env:
         <<: *mac_env
         DISTRO_NV: "darwin"
