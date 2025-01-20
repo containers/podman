@@ -76,3 +76,18 @@ func (o *PruneOptions) GetExternal() bool {
 	}
 	return *o.External
 }
+
+// WithBuild set field Build to given value
+func (o *PruneOptions) WithBuild(value bool) *PruneOptions {
+	o.Build = &value
+	return o
+}
+
+// GetBuild returns value of field Build
+func (o *PruneOptions) GetBuild() bool {
+	if o.Build == nil {
+		var z bool
+		return z
+	}
+	return *o.Build
+}

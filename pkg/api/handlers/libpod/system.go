@@ -25,6 +25,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 		All      bool `schema:"all"`
 		Volumes  bool `schema:"volumes"`
 		External bool `schema:"external"`
+		Build    bool `schema:"build"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -46,6 +47,7 @@ func SystemPrune(w http.ResponseWriter, r *http.Request) {
 		Volume:   query.Volumes,
 		Filters:  *filterMap,
 		External: query.External,
+		Build:    query.Build,
 	}
 	report, err := containerEngine.SystemPrune(r.Context(), pruneOptions)
 	if err != nil {

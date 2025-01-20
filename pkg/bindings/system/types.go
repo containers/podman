@@ -18,6 +18,7 @@ type PruneOptions struct {
 	Filters  map[string][]string
 	Volumes  *bool
 	External *bool
+	Build    *bool
 }
 
 // VersionOptions are optional options for getting version info
