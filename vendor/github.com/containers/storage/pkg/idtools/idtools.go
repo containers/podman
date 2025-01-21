@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/user"
 	"runtime"
@@ -369,27 +370,66 @@ func checkChownErr(err error, name string, uid, gid int) error {
 
 // Stat contains file states that can be overridden with ContainersOverrideXattr.
 type Stat struct {
-	IDs  IDPair
-	Mode os.FileMode
+	IDs   IDPair
+	Mode  os.FileMode
+	Major int
+	Minor int
 }
 
 // FormatContainersOverrideXattr will format the given uid, gid, and mode into a string
 // that can be used as the value for the ContainersOverrideXattr xattr.
 func FormatContainersOverrideXattr(uid, gid, mode int) string {
-	return fmt.Sprintf("%d:%d:0%o", uid, gid, mode&0o7777)
+	return FormatContainersOverrideXattrDevice(uid, gid, fs.FileMode(mode), 0, 0)
+}
+
+// FormatContainersOverrideXattrDevice will format the given uid, gid, and mode into a string
+// that can be used as the value for the ContainersOverrideXattr xattr.  For devices, it also
+// needs the major and minor numbers.
+func FormatContainersOverrideXattrDevice(uid, gid int, mode fs.FileMode, major, minor int) string {
+	typ := ""
+	switch mode & os.ModeType {
+	case os.ModeDir:
+		typ = "dir"
+	case os.ModeSymlink:
+		typ = "symlink"
+	case os.ModeNamedPipe:
+		typ = "pipe"
+	case os.ModeSocket:
+		typ = "socket"
+	case os.ModeDevice:
+		typ = fmt.Sprintf("block-%d-%d", major, minor)
+	case os.ModeDevice | os.ModeCharDevice:
+		typ = fmt.Sprintf("char-%d-%d", major, minor)
+	default:
+		typ = "file"
+	}
+	unixMode := mode & os.ModePerm
+	if mode&os.ModeSetuid != 0 {
+		unixMode |= 0o4000
+	}
+	if mode&os.ModeSetgid != 0 {
+		unixMode |= 0o2000
+	}
+	if mode&os.ModeSticky != 0 {
+		unixMode |= 0o1000
+	}
+	return fmt.Sprintf("%d:%d:%04o:%s", uid, gid, unixMode, typ)
 }
 
 // GetContainersOverrideXattr will get and decode ContainersOverrideXattr.
 func GetContainersOverrideXattr(path string) (Stat, error) {
-	var stat Stat
 	xstat, err := system.Lgetxattr(path, ContainersOverrideXattr)
 	if err != nil {
-		return stat, err
+		return Stat{}, err
 	}
+	return parseOverrideXattr(xstat) // This will fail if (xstat, err) == (nil, nil), i.e. the xattr does not exist.
+}
 
+func parseOverrideXattr(xstat []byte) (Stat, error) {
+	var stat Stat
 	attrs := strings.Split(string(xstat), ":")
-	if len(attrs) != 3 {
-		return stat, fmt.Errorf("The number of clons in %s does not equal to 3",
+	if len(attrs) < 3 {
+		return stat, fmt.Errorf("The number of parts in %s is less than 3",
 			ContainersOverrideXattr)
 	}
 
@@ -397,47 +437,105 @@ func GetContainersOverrideXattr(path string) (Stat, error) {
 	if err != nil {
 		return stat, fmt.Errorf("Failed to parse UID: %w", err)
 	}
-
 	stat.IDs.UID = int(value)
 
-	value, err = strconv.ParseUint(attrs[0], 10, 32)
+	value, err = strconv.ParseUint(attrs[1], 10, 32)
 	if err != nil {
 		return stat, fmt.Errorf("Failed to parse GID: %w", err)
 	}
-
 	stat.IDs.GID = int(value)
 
 	value, err = strconv.ParseUint(attrs[2], 8, 32)
 	if err != nil {
 		return stat, fmt.Errorf("Failed to parse mode: %w", err)
 	}
+	stat.Mode = os.FileMode(value) & os.ModePerm
+	if value&0o1000 != 0 {
+		stat.Mode |= os.ModeSticky
+	}
+	if value&0o2000 != 0 {
+		stat.Mode |= os.ModeSetgid
+	}
+	if value&0o4000 != 0 {
+		stat.Mode |= os.ModeSetuid
+	}
 
-	stat.Mode = os.FileMode(value)
-
+	if len(attrs) > 3 {
+		typ := attrs[3]
+		if strings.HasPrefix(typ, "file") {
+		} else if strings.HasPrefix(typ, "dir") {
+			stat.Mode |= os.ModeDir
+		} else if strings.HasPrefix(typ, "symlink") {
+			stat.Mode |= os.ModeSymlink
+		} else if strings.HasPrefix(typ, "pipe") {
+			stat.Mode |= os.ModeNamedPipe
+		} else if strings.HasPrefix(typ, "socket") {
+			stat.Mode |= os.ModeSocket
+		} else if strings.HasPrefix(typ, "block") {
+			stat.Mode |= os.ModeDevice
+			stat.Major, stat.Minor, err = parseDevice(typ)
+			if err != nil {
+				return stat, err
+			}
+		} else if strings.HasPrefix(typ, "char") {
+			stat.Mode |= os.ModeDevice | os.ModeCharDevice
+			stat.Major, stat.Minor, err = parseDevice(typ)
+			if err != nil {
+				return stat, err
+			}
+		} else {
+			return stat, fmt.Errorf("Invalid file type %s", typ)
+		}
+	}
 	return stat, nil
+}
+
+func parseDevice(typ string) (int, int, error) {
+	parts := strings.Split(typ, "-")
+	// If there are more than 3 parts, just ignore them to be forward compatible
+	if len(parts) < 3 {
+		return 0, 0, fmt.Errorf("Invalid device type %s", typ)
+	}
+	if parts[0] != "block" && parts[0] != "char" {
+		return 0, 0, fmt.Errorf("Invalid device type %s", typ)
+	}
+	major, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return 0, 0, fmt.Errorf("Failed to parse major number: %w", err)
+	}
+	minor, err := strconv.Atoi(parts[2])
+	if err != nil {
+		return 0, 0, fmt.Errorf("Failed to parse minor number: %w", err)
+	}
+	return major, minor, nil
 }
 
 // SetContainersOverrideXattr will encode and set ContainersOverrideXattr.
 func SetContainersOverrideXattr(path string, stat Stat) error {
-	value := FormatContainersOverrideXattr(stat.IDs.UID, stat.IDs.GID, int(stat.Mode))
+	value := FormatContainersOverrideXattrDevice(stat.IDs.UID, stat.IDs.GID, stat.Mode, stat.Major, stat.Minor)
 	return system.Lsetxattr(path, ContainersOverrideXattr, []byte(value), 0)
 }
 
 func SafeChown(name string, uid, gid int) error {
 	if runtime.GOOS == "darwin" {
-		var mode os.FileMode = 0o0700
-		xstat, err := system.Lgetxattr(name, ContainersOverrideXattr)
-		if err == nil {
-			attrs := strings.Split(string(xstat), ":")
-			if len(attrs) == 3 {
-				val, err := strconv.ParseUint(attrs[2], 8, 32)
-				if err == nil {
-					mode = os.FileMode(val)
-				}
-			}
+		stat := Stat{
+			Mode: os.FileMode(0o0700),
 		}
-		value := Stat{IDPair{uid, gid}, mode}
-		if err = SetContainersOverrideXattr(name, value); err != nil {
+		xstat, err := system.Lgetxattr(name, ContainersOverrideXattr)
+		if err == nil && xstat != nil {
+			stat, err = parseOverrideXattr(xstat)
+			if err != nil {
+				return err
+			}
+		} else {
+			st, err := os.Stat(name) // Ideally we would share this with system.Stat below, but then we would need to convert Mode.
+			if err != nil {
+				return err
+			}
+			stat.Mode = st.Mode()
+		}
+		stat.IDs = IDPair{UID: uid, GID: gid}
+		if err = SetContainersOverrideXattr(name, stat); err != nil {
 			return err
 		}
 		uid = os.Getuid()
@@ -453,19 +551,24 @@ func SafeChown(name string, uid, gid int) error {
 
 func SafeLchown(name string, uid, gid int) error {
 	if runtime.GOOS == "darwin" {
-		var mode os.FileMode = 0o0700
-		xstat, err := system.Lgetxattr(name, ContainersOverrideXattr)
-		if err == nil {
-			attrs := strings.Split(string(xstat), ":")
-			if len(attrs) == 3 {
-				val, err := strconv.ParseUint(attrs[2], 8, 32)
-				if err == nil {
-					mode = os.FileMode(val)
-				}
-			}
+		stat := Stat{
+			Mode: os.FileMode(0o0700),
 		}
-		value := Stat{IDPair{uid, gid}, mode}
-		if err = SetContainersOverrideXattr(name, value); err != nil {
+		xstat, err := system.Lgetxattr(name, ContainersOverrideXattr)
+		if err == nil && xstat != nil {
+			stat, err = parseOverrideXattr(xstat)
+			if err != nil {
+				return err
+			}
+		} else {
+			st, err := os.Lstat(name) // Ideally we would share this with system.Stat below, but then we would need to convert Mode.
+			if err != nil {
+				return err
+			}
+			stat.Mode = st.Mode()
+		}
+		stat.IDs = IDPair{UID: uid, GID: gid}
+		if err = SetContainersOverrideXattr(name, stat); err != nil {
 			return err
 		}
 		uid = os.Getuid()

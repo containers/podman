@@ -14,6 +14,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/storage/pkg/fileutils"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -740,7 +741,13 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 
 	session, found := os.LookupEnv("DBUS_SESSION_BUS_ADDRESS")
 	if !found {
-		sessionAddr := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "bus")
+		xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR")
+		if xdgRuntimeDir == "" {
+			if dir, err := homedir.GetRuntimeDir(); err == nil {
+				xdgRuntimeDir = dir
+			}
+		}
+		sessionAddr := filepath.Join(xdgRuntimeDir, "bus")
 		if err := fileutils.Exists(sessionAddr); err == nil {
 			sessionAddr, err = filepath.EvalSymlinks(sessionAddr)
 			if err == nil {

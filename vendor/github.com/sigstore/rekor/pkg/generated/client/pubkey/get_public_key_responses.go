@@ -22,6 +22,7 @@ package pubkey
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -102,11 +103,13 @@ func (o *GetPublicKeyOK) Code() int {
 }
 
 func (o *GetPublicKeyOK) Error() string {
-	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKeyOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKeyOK %s", 200, payload)
 }
 
 func (o *GetPublicKeyOK) String() string {
-	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKeyOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKeyOK %s", 200, payload)
 }
 
 func (o *GetPublicKeyOK) GetPayload() string {
@@ -172,11 +175,13 @@ func (o *GetPublicKeyDefault) Code() int {
 }
 
 func (o *GetPublicKeyDefault) Error() string {
-	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKey default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKey default %s", o._statusCode, payload)
 }
 
 func (o *GetPublicKeyDefault) String() string {
-	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKey default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKey default %s", o._statusCode, payload)
 }
 
 func (o *GetPublicKeyDefault) GetPayload() *models.Error {

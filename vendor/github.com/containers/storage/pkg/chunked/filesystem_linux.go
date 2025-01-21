@@ -15,7 +15,8 @@ import (
 
 	driversCopy "github.com/containers/storage/drivers/copy"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/internal/minimal"
+	storagePath "github.com/containers/storage/pkg/chunked/internal/path"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/vbatts/tar-split/archive/tar"
 	"golang.org/x/sys/unix"
@@ -34,14 +35,14 @@ func procPathForFd(fd int) string {
 	return fmt.Sprintf("/proc/self/fd/%d", fd)
 }
 
-// fileMetadata is a wrapper around internal.FileMetadata with additional private fields that
+// fileMetadata is a wrapper around minimal.FileMetadata with additional private fields that
 // are not part of the TOC document.
 // Type: TypeChunk entries are stored in Chunks, the primary [fileMetadata] entries never use TypeChunk.
 type fileMetadata struct {
-	internal.FileMetadata
+	minimal.FileMetadata
 
 	// chunks stores the TypeChunk entries relevant to this entry when FileMetadata.Type == TypeReg.
-	chunks []*internal.FileMetadata
+	chunks []*minimal.FileMetadata
 
 	// skipSetAttrs is set when the file attributes must not be
 	// modified, e.g. it is a hard link from a different source,
@@ -49,10 +50,37 @@ type fileMetadata struct {
 	skipSetAttrs bool
 }
 
+// splitPath takes a file path as input and returns two components: dir and base.
+// Differently than filepath.Split(), this function handles some edge cases.
+// If the path refers to a file in the root directory, the returned dir is "/".
+// The returned base value is never empty, it never contains any slash and the
+// value "..".
+func splitPath(path string) (string, string, error) {
+	path = storagePath.CleanAbsPath(path)
+	dir, base := filepath.Split(path)
+	if base == "" {
+		base = "."
+	}
+	// Remove trailing slashes from dir, but make sure that "/" is preserved.
+	dir = strings.TrimSuffix(dir, "/")
+	if dir == "" {
+		dir = "/"
+	}
+
+	if strings.Contains(base, "/") {
+		// This should never happen, but be safe as the base is passed to *at syscalls.
+		return "", "", fmt.Errorf("internal error: splitPath(%q) contains a slash", path)
+	}
+	return dir, base, nil
+}
+
 func doHardLink(dirfd, srcFd int, destFile string) error {
-	destDir, destBase := filepath.Split(destFile)
+	destDir, destBase, err := splitPath(destFile)
+	if err != nil {
+		return err
+	}
 	destDirFd := dirfd
-	if destDir != "" && destDir != "." {
+	if destDir != "/" {
 		f, err := openOrCreateDirUnderRoot(dirfd, destDir, 0)
 		if err != nil {
 			return err
@@ -72,7 +100,7 @@ func doHardLink(dirfd, srcFd int, destFile string) error {
 		return nil
 	}
 
-	err := doLink()
+	err = doLink()
 
 	// if the destination exists, unlink it first and try again
 	if err != nil && os.IsExist(err) {
@@ -281,8 +309,11 @@ func openFileUnderRootFallback(dirfd int, name string, flags uint64, mode os.Fil
 	// If O_NOFOLLOW is specified in the flags, then resolve only the parent directory and use the
 	// last component as the path to openat().
 	if hasNoFollow {
-		dirName, baseName := filepath.Split(name)
-		if dirName != "" && dirName != "." {
+		dirName, baseName, err := splitPath(name)
+		if err != nil {
+			return -1, err
+		}
+		if dirName != "/" {
 			newRoot, err := securejoin.SecureJoin(root, dirName)
 			if err != nil {
 				return -1, err
@@ -409,7 +440,8 @@ func openOrCreateDirUnderRoot(dirfd int, name string, mode os.FileMode) (*os.Fil
 
 	if errors.Is(err, unix.ENOENT) {
 		parent := filepath.Dir(name)
-		if parent != "" {
+		// do not create the root directory, it should always exist
+		if parent != name {
 			pDir, err2 := openOrCreateDirUnderRoot(dirfd, parent, mode)
 			if err2 != nil {
 				return nil, err
@@ -448,9 +480,12 @@ func appendHole(fd int, name string, size int64) error {
 }
 
 func safeMkdir(dirfd int, mode os.FileMode, name string, metadata *fileMetadata, options *archive.TarOptions) error {
-	parent, base := filepath.Split(name)
+	parent, base, err := splitPath(name)
+	if err != nil {
+		return err
+	}
 	parentFd := dirfd
-	if parent != "" && parent != "." {
+	if parent != "/" {
 		parentFile, err := openOrCreateDirUnderRoot(dirfd, parent, 0)
 		if err != nil {
 			return err
@@ -506,9 +541,12 @@ func safeLink(dirfd int, mode os.FileMode, metadata *fileMetadata, options *arch
 }
 
 func safeSymlink(dirfd int, metadata *fileMetadata) error {
-	destDir, destBase := filepath.Split(metadata.Name)
+	destDir, destBase, err := splitPath(metadata.Name)
+	if err != nil {
+		return err
+	}
 	destDirFd := dirfd
-	if destDir != "" && destDir != "." {
+	if destDir != "/" {
 		f, err := openOrCreateDirUnderRoot(dirfd, destDir, 0)
 		if err != nil {
 			return err
@@ -542,9 +580,12 @@ func (d whiteoutHandler) Setxattr(path, name string, value []byte) error {
 }
 
 func (d whiteoutHandler) Mknod(path string, mode uint32, dev int) error {
-	dir, base := filepath.Split(path)
+	dir, base, err := splitPath(path)
+	if err != nil {
+		return err
+	}
 	dirfd := d.Dirfd
-	if dir != "" && dir != "." {
+	if dir != "/" {
 		dir, err := openOrCreateDirUnderRoot(d.Dirfd, dir, 0)
 		if err != nil {
 			return err

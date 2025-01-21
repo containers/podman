@@ -22,6 +22,7 @@ package entries
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 
@@ -126,11 +127,13 @@ func (o *CreateLogEntryCreated) Code() int {
 }
 
 func (o *CreateLogEntryCreated) Error() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryCreated %s", 201, payload)
 }
 
 func (o *CreateLogEntryCreated) String() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryCreated %s", 201, payload)
 }
 
 func (o *CreateLogEntryCreated) GetPayload() models.LogEntry {
@@ -210,11 +213,13 @@ func (o *CreateLogEntryBadRequest) Code() int {
 }
 
 func (o *CreateLogEntryBadRequest) Error() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryBadRequest %s", 400, payload)
 }
 
 func (o *CreateLogEntryBadRequest) String() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryBadRequest %s", 400, payload)
 }
 
 func (o *CreateLogEntryBadRequest) GetPayload() *models.Error {
@@ -280,11 +285,13 @@ func (o *CreateLogEntryConflict) Code() int {
 }
 
 func (o *CreateLogEntryConflict) Error() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryConflict %s", 409, payload)
 }
 
 func (o *CreateLogEntryConflict) String() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntryConflict %s", 409, payload)
 }
 
 func (o *CreateLogEntryConflict) GetPayload() *models.Error {
@@ -363,11 +370,13 @@ func (o *CreateLogEntryDefault) Code() int {
 }
 
 func (o *CreateLogEntryDefault) Error() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntry default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntry default %s", o._statusCode, payload)
 }
 
 func (o *CreateLogEntryDefault) String() string {
-	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntry default  %+v", o._statusCode, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /api/v1/log/entries][%d] createLogEntry default %s", o._statusCode, payload)
 }
 
 func (o *CreateLogEntryDefault) GetPayload() *models.Error {

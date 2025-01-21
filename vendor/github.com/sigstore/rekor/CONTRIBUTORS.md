@@ -109,6 +109,12 @@ to github):
     git push origin your-branch --force
 
 Alternatively, a core member can squash your commits within Github.
+
+## DCO Signoff
+
+Make sure to sign the [Developer Certificate of
+Origin](https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff).
+
 ## Code of Conduct
 
 Rekor adheres to and enforces the [Contributor Covenant](http://contributor-covenant.org/version/1/4/) Code of Conduct.

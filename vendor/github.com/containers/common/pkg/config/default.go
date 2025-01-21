@@ -46,7 +46,6 @@ var (
 		"/proc/scsi",
 		"/proc/timer_list",
 		"/proc/timer_stats",
-		"/sys/dev/block",
 		"/sys/devices/virtual/powercap",
 		"/sys/firmware",
 		"/sys/fs/selinux",

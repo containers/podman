@@ -7,9 +7,13 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"slices"
+	"strings"
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconvutil"
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
+	"go.opentelemetry.io/otel/metric/noop"
 	semconv "go.opentelemetry.io/otel/semconv/v1.20.0"
 )
 
@@ -71,4 +75,118 @@ func (o oldHTTPServer) Route(route string) attribute.KeyValue {
 // This is a temporary function needed by metrics.  This will be removed when MetricsRequest is added.
 func HTTPStatusCode(status int) attribute.KeyValue {
 	return semconv.HTTPStatusCode(status)
+}
+
+// Server HTTP metrics.
+const (
+	serverRequestSize  = "http.server.request.size"  // Incoming request bytes total
+	serverResponseSize = "http.server.response.size" // Incoming response bytes total
+	serverDuration     = "http.server.duration"      // Incoming end to end duration, milliseconds
+)
+
+func (h oldHTTPServer) createMeasures(meter metric.Meter) (metric.Int64Counter, metric.Int64Counter, metric.Float64Histogram) {
+	if meter == nil {
+		return noop.Int64Counter{}, noop.Int64Counter{}, noop.Float64Histogram{}
+	}
+	var err error
+	requestBytesCounter, err := meter.Int64Counter(
+		serverRequestSize,
+		metric.WithUnit("By"),
+		metric.WithDescription("Measures the size of HTTP request messages."),
+	)
+	handleErr(err)
+
+	responseBytesCounter, err := meter.Int64Counter(
+		serverResponseSize,
+		metric.WithUnit("By"),
+		metric.WithDescription("Measures the size of HTTP response messages."),
+	)
+	handleErr(err)
+
+	serverLatencyMeasure, err := meter.Float64Histogram(
+		serverDuration,
+		metric.WithUnit("ms"),
+		metric.WithDescription("Measures the duration of inbound HTTP requests."),
+	)
+	handleErr(err)
+
+	return requestBytesCounter, responseBytesCounter, serverLatencyMeasure
+}
+
+func (o oldHTTPServer) MetricAttributes(server string, req *http.Request, statusCode int, additionalAttributes []attribute.KeyValue) []attribute.KeyValue {
+	n := len(additionalAttributes) + 3
+	var host string
+	var p int
+	if server == "" {
+		host, p = splitHostPort(req.Host)
+	} else {
+		// Prioritize the primary server name.
+		host, p = splitHostPort(server)
+		if p < 0 {
+			_, p = splitHostPort(req.Host)
+		}
+	}
+	hostPort := requiredHTTPPort(req.TLS != nil, p)
+	if hostPort > 0 {
+		n++
+	}
+	protoName, protoVersion := netProtocol(req.Proto)
+	if protoName != "" {
+		n++
+	}
+	if protoVersion != "" {
+		n++
+	}
+
+	if statusCode > 0 {
+		n++
+	}
+
+	attributes := slices.Grow(additionalAttributes, n)
+	attributes = append(attributes,
+		o.methodMetric(req.Method),
+		o.scheme(req.TLS != nil),
+		semconv.NetHostName(host))
+
+	if hostPort > 0 {
+		attributes = append(attributes, semconv.NetHostPort(hostPort))
+	}
+	if protoName != "" {
+		attributes = append(attributes, semconv.NetProtocolName(protoName))
+	}
+	if protoVersion != "" {
+		attributes = append(attributes, semconv.NetProtocolVersion(protoVersion))
+	}
+
+	if statusCode > 0 {
+		attributes = append(attributes, semconv.HTTPStatusCode(statusCode))
+	}
+	return attributes
+}
+
+func (o oldHTTPServer) methodMetric(method string) attribute.KeyValue {
+	method = strings.ToUpper(method)
+	switch method {
+	case http.MethodConnect, http.MethodDelete, http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace:
+	default:
+		method = "_OTHER"
+	}
+	return semconv.HTTPMethod(method)
+}
+
+func (o oldHTTPServer) scheme(https bool) attribute.KeyValue { // nolint:revive
+	if https {
+		return semconv.HTTPSchemeHTTPS
+	}
+	return semconv.HTTPSchemeHTTP
+}
+
+type oldHTTPClient struct{}
+
+func (o oldHTTPClient) RequestTraceAttrs(req *http.Request) []attribute.KeyValue {
+	return semconvutil.HTTPClientRequest(req)
+}
+
+func (o oldHTTPClient) ResponseTraceAttrs(resp *http.Response) []attribute.KeyValue {
+	return semconvutil.HTTPClientResponse(resp)
 }

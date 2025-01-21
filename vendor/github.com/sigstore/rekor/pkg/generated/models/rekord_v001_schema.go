@@ -281,7 +281,7 @@ type RekordV001SchemaDataHash struct {
 
 	// The hashing function used to compute the hash value
 	// Required: true
-	// Enum: [sha256]
+	// Enum: ["sha256"]
 	Algorithm *string `json:"algorithm"`
 
 	// The hash value for the content
@@ -396,7 +396,7 @@ type RekordV001SchemaSignature struct {
 
 	// Specifies the format of the signature
 	// Required: true
-	// Enum: [pgp minisign x509 ssh]
+	// Enum: ["pgp","minisign","x509","ssh"]
 	Format *string `json:"format"`
 
 	// public key
