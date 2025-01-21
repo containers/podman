@@ -495,8 +495,8 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			wg.Add(1)
 			if sourceIsGit(src) {
 				go func() {
-					var cloneDir string
-					cloneDir, _, getErr = define.TempDirForURL(tmpdir.GetTempDir(), "", src)
+					var cloneDir, subdir string
+					cloneDir, subdir, getErr = define.TempDirForURL(tmpdir.GetTempDir(), "", src)
 					getOptions := copier.GetOptions{
 						UIDMap:         srcUIDMap,
 						GIDMap:         srcGIDMap,
@@ -511,7 +511,8 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						StripStickyBit: options.StripStickyBit,
 					}
 					writer := io.WriteCloser(pipeWriter)
-					getErr = copier.Get(cloneDir, cloneDir, getOptions, []string{"."}, writer)
+					repositoryDir := filepath.Join(cloneDir, subdir)
+					getErr = copier.Get(repositoryDir, repositoryDir, getOptions, []string{"."}, writer)
 					pipeWriter.Close()
 					wg.Done()
 				}()
