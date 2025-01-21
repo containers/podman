@@ -192,8 +192,13 @@ var _ = Describe("podman machine list", func() {
 		os.Setenv("CONTAINERS_MACHINE_PROVIDER", getOtherProvider())
 		defer os.Setenv("CONTAINERS_MACHINE_PROVIDER", currprovider)
 
-		// this may take a long time - we're not pre-fetching this image
 		othermach := new(initMachine)
+		if !isWSL() && !isVmtype(define.HyperVVirt) {
+			// This would need to fetch a new image as we cannot use the image from the other provider,
+			// to avoid big pulls which are slow and flaky use /dev/null which works on macos and qemu
+			// as we never run the image if we do not start it.
+			othermach.withImage(os.DevNull)
+		}
 		session, err := mb.setName("otherprovider").setCmd(othermach).run()
 		// make sure to remove machine from other provider later
 		defer func() {
@@ -222,8 +227,7 @@ var _ = Describe("podman machine list", func() {
 		listNames := listSession.outputToStringSlice()
 		stripAsterisk(listNames)
 		Expect(listNames).To(HaveLen(2))
-		Expect(slices.Contains(listNames, "otherprovider")).To(BeTrue())
-		Expect(slices.Contains(listNames, name)).To(BeTrue())
+		Expect(listNames).To(ContainElements("otherprovider", name))
 	})
 })
 
