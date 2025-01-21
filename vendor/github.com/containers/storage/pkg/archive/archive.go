@@ -1,7 +1,7 @@
 package archive
 
 import (
-	"archive/tar"
+	"github.com/containers/storage/pkg/archive/hacktar"
 	"bufio"
 	"bytes"
 	"compress/bzip2"
@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
@@ -67,6 +68,11 @@ type (
 		CopyPass bool
 		// ForceMask, if set, indicates the permission mask used for created files.
 		ForceMask *os.FileMode
+
+		// If set, insert dummy entries to align file starts
+		// with preferred block size. The file should be the
+		// destination file of the tar writer.
+		AlignBlockFile *os.File
 	}
 )
 
@@ -170,14 +176,45 @@ func DetectCompression(source []byte) Compression {
 	return Uncompressed
 }
 
-// DecompressStream decompresses the archive and returns a ReaderCloser with the decompressed archive.
+// Returns the ideal block size to use for archiving the given file.
+func blockAlignment(f *os.File) (sz int64, blksize int64, err error) {
+	fi, err := f.Stat()
+	if err != nil {
+		return 0, 0, err
+	}
+	st := fi.Sys().(*syscall.Stat_t)
+
+	// TODO use fstatfs to decide if the filesystem supports
+	// reflink, and return based on that.
+	return st.Size, st.Blksize, nil
+}
+
+// DecompressStream decompresses the archive and returns a
+// ReaderCloser with the decompressed archive.  An uncompressed
+// *os.File is returned unchanged.
 func DecompressStream(archive io.Reader) (_ io.ReadCloser, Err error) {
+	if s, ok := archive.(io.ReadSeekCloser); ok {
+		var head [10]byte
+		n, err := s.Read(head[:])
+		if err != nil {
+			return nil, err
+		}
+		if _, err := s.Seek(0, 0); err != nil {
+			return nil, err
+		}
+		compression := DetectCompression(head[:n])
+		if compression == Uncompressed {
+			return s, nil
+		}
+	}
+
 	p := pools.BufioReader32KPool
 	buf := p.Get(archive)
 	bs, err := buf.Peek(10)
 
 	defer func() {
 		if Err != nil {
+			// In the normal case, the buffer is embedded in the ReadCloser return.
 			p.Put(buf)
 		}
 	}()
@@ -474,7 +511,7 @@ type TarWhiteoutConverter interface {
 	ConvertReadWithHandler(*tar.Header, string, TarWhiteoutHandler) (bool, error)
 }
 
-type tarAppender struct {
+type tarWriter struct {
 	TarWriter *tar.Writer
 	Buffer    *bufio.Writer
 
@@ -493,12 +530,14 @@ type tarAppender struct {
 	// from the traditional behavior/format to get features like subsecond
 	// precision in timestamps.
 	CopyPass bool
+
+	blockAlignFile *os.File
 }
 
-func newTarAppender(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair) *tarAppender {
-	return &tarAppender{
+func newTarWriter(idMapping *idtools.IDMappings, writer *tar.Writer, chownOpts *idtools.IDPair) *tarWriter {
+	return &tarWriter{
 		SeenFiles:  make(map[uint64]string),
-		TarWriter:  tar.NewWriter(writer),
+		TarWriter:  writer,
 		Buffer:     pools.BufioWriter32KPool.Get(nil),
 		IDMappings: idMapping,
 		ChownOpts:  chownOpts,
@@ -520,8 +559,15 @@ func canonicalTarName(name string, isDir bool) (string, error) {
 	return name, nil
 }
 
-// addTarFile adds to the tar archive a file from `path` as `name`
-func (ta *tarAppender) addTarFile(path, name string) error {
+func headerSize(hdr *tar.Header) int64 {
+	var buf bytes.Buffer
+	tw := tar.NewWriter(&buf)
+	tw.WriteHeader(hdr)
+	return int64(buf.Len())
+}
+
+// addFile adds a file from `path` as `name` to the tar archive.
+func (ta *tarWriter) addFile(path, name string) error {
 	fi, err := os.Lstat(path)
 	if err != nil {
 		return err
@@ -623,11 +669,49 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 		}
 	}
 
+	if ta.blockAlignFile != nil {
+		if err := ta.TarWriter.Flush(); err != nil {
+			return err
+		}
+
+		size, blksize, err := blockAlignment(ta.blockAlignFile)
+		if err != nil {
+			return err
+		}
+
+		padding := blksize - (size%blksize + headerSize(hdr))
+		for padding < 0 {
+			padding += blksize
+		}
+
+		for i := 0; i < int(padding/tarBlockSize); i++ {
+			if err := ta.TarWriter.WriteHeader(&tar.Header{
+				Typeflag: tar.TypeChar,
+				Name:     "",
+			}); err != nil {
+				return err
+			}
+		}
+	}
+
 	if err := ta.TarWriter.WriteHeader(hdr); err != nil {
 		return err
 	}
 
+	if ta.blockAlignFile != nil {
+		// paranoia; can probably drop this.
+		size, blksize, err := blockAlignment(ta.blockAlignFile)
+		if err != nil {
+			return err
+		}
+
+		if size%blksize != 0 {
+			logrus.Panicf("alignment %d", size%blksize)
+		}
+	}
+
 	if hdr.Typeflag == tar.TypeReg && hdr.Size > 0 {
+		t := Timer(hdr.Name, int(hdr.Size))
 		file, err := os.Open(path)
 		if err != nil {
 			return err
@@ -644,12 +728,26 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 		if err != nil {
 			return err
 		}
+		t()
 	}
 
 	return nil
 }
 
-func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, forceMask *os.FileMode, buffer []byte) error {
+func Timer(fn string, size int) func() {
+	start := time.Now()
+	return func() {
+		dt := time.Now().Sub(start)
+		logrus.Infof("processed %s (%d byte) in %v: %f gb/s", fn, size, dt, gbyteps(size, dt))
+	}
+}
+
+func gbyteps(n int, d time.Duration) float64 {
+	return float64(n) / float64(1<<30) / d.Seconds()
+}
+
+func extractTarFileEntry(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, forceMask *os.FileMode, buffer []byte) error {
+	defer Timer(hdr.Name, int(hdr.Size))()
 	// hdr.Mode is in linux format, which we can use for sycalls,
 	// but for os.Foo() calls we need the mode converted to os.FileMode,
 	// so use hdrInfo.Mode() (they differ for e.g. setuid bits)
@@ -838,8 +936,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 	// on platforms other than Windows.
 	srcPath = fixVolumePathPrefix(srcPath)
 
-	pm, err := fileutils.NewPatternMatcher(options.ExcludePatterns)
-	if err != nil {
+	if _, err := fileutils.NewPatternMatcher(options.ExcludePatterns); err != nil {
 		return nil, err
 	}
 
@@ -850,18 +947,11 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 		return nil, err
 	}
 
+	tw := tar.NewWriter(compressWriter)
 	go func() {
-		ta := newTarAppender(
-			idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
-			compressWriter,
-			options.ChownOpts,
-		)
-		ta.WhiteoutConverter = GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
-		ta.CopyPass = options.CopyPass
-
 		defer func() {
 			// Make sure to check the error on Close.
-			if err := ta.TarWriter.Close(); err != nil {
+			if err := tw.Close(); err != nil {
 				logrus.Errorf("Can't close tar writer: %s", err)
 			}
 			if err := compressWriter.Close(); err != nil {
@@ -872,141 +962,165 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			}
 		}()
 
-		// this buffer is needed for the duration of this piped stream
-		defer pools.BufioWriter32KPool.Put(ta.Buffer)
+		if err := TarWithOptionsTo(srcPath, tw, options); err != nil {
+			logrus.Errorf("TarWithOptionsTo: %v", err)
+		}
+	}()
+	return pipeReader, nil
+}
 
-		// In general we log errors here but ignore them because
-		// during e.g. a diff operation the container can continue
-		// mutating the filesystem and we can see transient errors
-		// from this
+const tarBlockSize = 512
 
-		stat, err := os.Lstat(srcPath)
-		if err != nil {
-			return
+// TarWithOptionsTo populates `tw` with files from `srcPath`. It does
+// not close `tw`, so further files can be added to it afterwards. If
+// non-nil, `dest` should be underlying file for `tw`.
+func TarWithOptionsTo(srcPath string, tw *tar.Writer, options *TarOptions) error {
+	ta := newTarWriter(
+		idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
+		tw,
+		options.ChownOpts,
+	)
+	ta.blockAlignFile = options.AlignBlockFile
+
+	pm, err := fileutils.NewPatternMatcher(options.ExcludePatterns)
+	if err != nil {
+		return err
+	}
+	ta.WhiteoutConverter = GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
+	ta.CopyPass = options.CopyPass
+
+	// this buffer is needed for the duration of this piped stream
+	defer pools.BufioWriter32KPool.Put(ta.Buffer)
+
+	// In general we log errors here but ignore them because
+	// during e.g. a diff operation the container can continue
+	// mutating the filesystem and we can see transient errors
+	// from this
+
+	stat, err := os.Lstat(srcPath)
+	if err != nil {
+		return nil
+	}
+
+	if !stat.IsDir() {
+		// We can't later join a non-dir with any includes because the
+		// 'walk' will error if "file/." is stat-ed and "file" is not a
+		// directory. So, we must split the source path and use the
+		// basename as the include.
+		if len(options.IncludeFiles) > 0 {
+			logrus.Warn("Tar: Can't archive a file with includes")
 		}
 
-		if !stat.IsDir() {
-			// We can't later join a non-dir with any includes because the
-			// 'walk' will error if "file/." is stat-ed and "file" is not a
-			// directory. So, we must split the source path and use the
-			// basename as the include.
-			if len(options.IncludeFiles) > 0 {
-				logrus.Warn("Tar: Can't archive a file with includes")
+		dir, base := SplitPathDirEntry(srcPath)
+		srcPath = dir
+		options.IncludeFiles = []string{base}
+	}
+
+	if len(options.IncludeFiles) == 0 {
+		options.IncludeFiles = []string{"."}
+	}
+
+	seen := make(map[string]bool)
+
+	for _, include := range options.IncludeFiles {
+		rebaseName := options.RebaseNames[include]
+
+		walkRoot := getWalkRoot(srcPath, include)
+		if err := filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
+			if err != nil {
+				logrus.Errorf("Tar: Can't stat file %s to tar: %s", srcPath, err)
+				return nil
 			}
 
-			dir, base := SplitPathDirEntry(srcPath)
-			srcPath = dir
-			options.IncludeFiles = []string{base}
-		}
+			relFilePath, err := filepath.Rel(srcPath, filePath)
+			if err != nil || (!options.IncludeSourceDir && relFilePath == "." && d.IsDir()) {
+				// Error getting relative path OR we are looking
+				// at the source directory path. Skip in both situations.
+				return nil //nolint: nilerr
+			}
 
-		if len(options.IncludeFiles) == 0 {
-			options.IncludeFiles = []string{"."}
-		}
+			if options.IncludeSourceDir && include == "." && relFilePath != "." {
+				relFilePath = strings.Join([]string{".", relFilePath}, string(filepath.Separator))
+			}
 
-		seen := make(map[string]bool)
+			skip := false
 
-		for _, include := range options.IncludeFiles {
-			rebaseName := options.RebaseNames[include]
-
-			walkRoot := getWalkRoot(srcPath, include)
-			if err := filepath.WalkDir(walkRoot, func(filePath string, d fs.DirEntry, err error) error {
+			// If "include" is an exact match for the current file
+			// then even if there's an "excludePatterns" pattern that
+			// matches it, don't skip it. IOW, assume an explicit 'include'
+			// is asking for that file no matter what - which is true
+			// for some files, like .dockerignore and Dockerfile (sometimes)
+			if include != relFilePath {
+				matches, err := pm.IsMatch(relFilePath)
 				if err != nil {
-					logrus.Errorf("Tar: Can't stat file %s to tar: %s", srcPath, err)
+					return fmt.Errorf("matching %s: %w", relFilePath, err)
+				}
+				skip = matches
+			}
+
+			if skip {
+				// If we want to skip this file and its a directory
+				// then we should first check to see if there's an
+				// excludes pattern (e.g. !dir/file) that starts with this
+				// dir. If so then we can't skip this dir.
+
+				// Its not a dir then so we can just return/skip.
+				if !d.IsDir() {
 					return nil
 				}
 
-				relFilePath, err := filepath.Rel(srcPath, filePath)
-				if err != nil || (!options.IncludeSourceDir && relFilePath == "." && d.IsDir()) {
-					// Error getting relative path OR we are looking
-					// at the source directory path. Skip in both situations.
-					return nil //nolint: nilerr
-				}
-
-				if options.IncludeSourceDir && include == "." && relFilePath != "." {
-					relFilePath = strings.Join([]string{".", relFilePath}, string(filepath.Separator))
-				}
-
-				skip := false
-
-				// If "include" is an exact match for the current file
-				// then even if there's an "excludePatterns" pattern that
-				// matches it, don't skip it. IOW, assume an explicit 'include'
-				// is asking for that file no matter what - which is true
-				// for some files, like .dockerignore and Dockerfile (sometimes)
-				if include != relFilePath {
-					matches, err := pm.IsMatch(relFilePath)
-					if err != nil {
-						return fmt.Errorf("matching %s: %w", relFilePath, err)
-					}
-					skip = matches
-				}
-
-				if skip {
-					// If we want to skip this file and its a directory
-					// then we should first check to see if there's an
-					// excludes pattern (e.g. !dir/file) that starts with this
-					// dir. If so then we can't skip this dir.
-
-					// Its not a dir then so we can just return/skip.
-					if !d.IsDir() {
-						return nil
-					}
-
-					// No exceptions (!...) in patterns so just skip dir
-					if !pm.Exclusions() {
-						return filepath.SkipDir
-					}
-
-					dirSlash := relFilePath + string(filepath.Separator)
-
-					for _, pat := range pm.Patterns() {
-						if !pat.Exclusion() {
-							continue
-						}
-						if strings.HasPrefix(pat.String()+string(filepath.Separator), dirSlash) {
-							// found a match - so can't skip this dir
-							return nil
-						}
-					}
-
-					// No matching exclusion dir so just skip dir
+				// No exceptions (!...) in patterns so just skip dir
+				if !pm.Exclusions() {
 					return filepath.SkipDir
 				}
 
-				if seen[relFilePath] {
-					return nil
-				}
-				seen[relFilePath] = true
+				dirSlash := relFilePath + string(filepath.Separator)
 
-				// Rename the base resource.
-				if rebaseName != "" {
-					var replacement string
-					if rebaseName != string(filepath.Separator) {
-						// Special case the root directory to replace with an
-						// empty string instead so that we don't end up with
-						// double slashes in the paths.
-						replacement = rebaseName
+				for _, pat := range pm.Patterns() {
+					if !pat.Exclusion() {
+						continue
 					}
-
-					relFilePath = strings.Replace(relFilePath, include, replacement, 1)
-				}
-
-				if err := ta.addTarFile(filePath, relFilePath); err != nil {
-					logrus.Errorf("Can't add file %s to tar: %s", filePath, err)
-					// if pipe is broken, stop writing tar stream to it
-					if err == io.ErrClosedPipe {
-						return err
+					if strings.HasPrefix(pat.String()+string(filepath.Separator), dirSlash) {
+						// found a match - so can't skip this dir
+						return nil
 					}
 				}
-				return nil
-			}); err != nil {
-				logrus.Errorf("%s", err)
-				return
+
+				// No matching exclusion dir so just skip dir
+				return filepath.SkipDir
 			}
-		}
-	}()
 
-	return pipeReader, nil
+			if seen[relFilePath] {
+				return nil
+			}
+			seen[relFilePath] = true
+
+			// Rename the base resource.
+			if rebaseName != "" {
+				var replacement string
+				if rebaseName != string(filepath.Separator) {
+					// Special case the root directory to replace with an
+					// empty string instead so that we don't end up with
+					// double slashes in the paths.
+					replacement = rebaseName
+				}
+
+				relFilePath = strings.Replace(relFilePath, include, replacement, 1)
+			}
+
+			if err := ta.addFile(filePath, relFilePath); err != nil {
+				logrus.Errorf("Can't add file %s to tar: %s", filePath, err)
+				// if pipe is broken, stop writing tar stream to it
+				if err == io.ErrClosedPipe {
+					return err
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Unpack unpacks the decompressedArchive to dest with options.
@@ -1038,6 +1152,10 @@ loop:
 		}
 		if err != nil {
 			return err
+		}
+		if hdr.Name == "" && hdr.Typeflag == tar.TypeChar {
+			// padding.
+			continue
 		}
 
 		// Normalize name, for safety and for a simple is-root check
@@ -1126,7 +1244,7 @@ loop:
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
 
-		if err = createTarFile(path, dest, hdr, trBuf, doChown, chownOpts, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
+		if err = extractTarFileEntry(path, dest, hdr, trBuf, doChown, chownOpts, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
 			return err
 		}
 

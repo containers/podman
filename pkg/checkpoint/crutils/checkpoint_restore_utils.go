@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v7/stats"
 	"github.com/containers/storage/pkg/archive"
+	tar "github.com/containers/storage/pkg/archive/hacktar"
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
@@ -108,6 +108,8 @@ func CRApplyRootFsDiffTar(baseDirectory, containerRootDirectory string) error {
 		return fmt.Errorf("failed to open root file-system diff file: %w", err)
 	}
 	defer rootfsDiffFile.Close()
+	fi, _ := rootfsDiffFile.Stat()
+	defer archive.Timer("rootfsdiff", int(fi.Size()))()
 
 	if err := archive.Untar(rootfsDiffFile, containerRootDirectory, nil); err != nil {
 		return fmt.Errorf("failed to apply root file-system diff file %s: %w", rootfsDiffPath, err)
@@ -152,21 +154,19 @@ func CRCreateRootFsDiffTar(changes *[]archive.Change, mountPoint, destination st
 	}
 
 	if len(rootfsIncludeFiles) > 0 {
-		rootfsTar, err := archive.TarWithOptions(mountPoint, &archive.TarOptions{
-			Compression:      archive.Uncompressed,
-			IncludeSourceDir: true,
-			IncludeFiles:     rootfsIncludeFiles,
-		})
-		if err != nil {
-			return includeFiles, fmt.Errorf("exporting root file-system diff to %q: %w", rootfsDiffPath, err)
-		}
 		rootfsDiffFile, err := os.Create(rootfsDiffPath)
 		if err != nil {
 			return includeFiles, fmt.Errorf("creating root file-system diff file %q: %w", rootfsDiffPath, err)
 		}
-		defer rootfsDiffFile.Close()
-		if _, err = io.Copy(rootfsDiffFile, rootfsTar); err != nil {
-			return includeFiles, err
+		defer rootfsDiffFile.Close() // error handling?
+		tw := tar.NewWriter(rootfsDiffFile)
+		defer tw.Close()
+		if err := archive.TarWithOptionsTo(mountPoint, tw, &archive.TarOptions{
+			IncludeSourceDir: true,
+			IncludeFiles:     rootfsIncludeFiles,
+			AlignBlockFile:   rootfsDiffFile,
+		}); err != nil {
+			return includeFiles, fmt.Errorf("exporting root file-system diff to %q: %w", rootfsDiffPath, err)
 		}
 
 		includeFiles = append(includeFiles, metadata.RootFsDiffTar)

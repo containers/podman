@@ -36,9 +36,9 @@ func (r *writeCloserWrapper) Close() error {
 }
 
 // NewWriteCloserWrapper returns a new io.WriteCloser.
-func NewWriteCloserWrapper(r io.Writer, closer func() error) io.WriteCloser {
+func NewWriteCloserWrapper(w io.Writer, closer func() error) io.WriteCloser {
 	return &writeCloserWrapper{
-		Writer: r,
+		Writer: w,
 		closer: closer,
 	}
 }

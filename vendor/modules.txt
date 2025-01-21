@@ -378,6 +378,7 @@ github.com/containers/storage/drivers/vfs
 github.com/containers/storage/drivers/windows
 github.com/containers/storage/drivers/zfs
 github.com/containers/storage/pkg/archive
+github.com/containers/storage/pkg/archive/hacktar
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/chunked
 github.com/containers/storage/pkg/chunked/compressor
