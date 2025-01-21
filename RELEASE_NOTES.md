@@ -1,5 +1,16 @@
 # Release Notes
 
+## 5.3.2
+### Bugfixes
+- Fixed a bug where Quadlet `.build` files could create an invalid podman command line when `Pull=` was used ([#24599](https://github.com/containers/podman/issues/24599)).
+- Fixed a bug where the Mac installer did not install the Podman manpages ([#24756](https://github.com/containers/podman/issues/24756)).
+
+### Misc
+- Updated Buildah to v1.38.1
+- Updated the containers/common library to v0.61.1
+- Updated the containers/storage library to v1.56.1
+- Updated the containers/image library to v5.33.1
+
 ## 5.3.1
 ### Bugfixes
 - Fixed a bug where the `--ignition-path` option to `podman machine init` would prevent creation of necessary files for the VM, rendering it unusable ([#23544](https://github.com/containers/podman/issues/23544)).
