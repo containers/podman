@@ -1056,6 +1056,15 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerReference, desc imgspecv1.Descriptor, maxSize int, cache types.BlobInfoCache) ([]byte, error) {
 	// Note that this copies all kinds of attachments: attestations, and whatever else is there,
 	// not just signatures. We leave the signature consumers to decide based on the MIME type.
+
+	if err := desc.Digest.Validate(); err != nil { // .Algorithm() might panic without this check
+		return nil, fmt.Errorf("invalid digest %q: %w", desc.Digest.String(), err)
+	}
+	digestAlgorithm := desc.Digest.Algorithm()
+	if !digestAlgorithm.Available() {
+		return nil, fmt.Errorf("invalid digest %q: unsupported digest algorithm %q", desc.Digest.String(), digestAlgorithm.String())
+	}
+
 	reader, _, err := c.getBlob(ctx, ref, manifest.BlobInfoFromOCI1Descriptor(desc), cache)
 	if err != nil {
 		return nil, err
@@ -1064,6 +1073,10 @@ func (c *dockerClient) getOCIDescriptorContents(ctx context.Context, ref dockerR
 	payload, err := iolimits.ReadAtMost(reader, maxSize)
 	if err != nil {
 		return nil, fmt.Errorf("reading blob %s in %s: %w", desc.Digest.String(), ref.ref.Name(), err)
+	}
+	actualDigest := digestAlgorithm.FromBytes(payload)
+	if actualDigest != desc.Digest {
+		return nil, fmt.Errorf("digest mismatch, expected %q, got %q", desc.Digest.String(), actualDigest.String())
 	}
 	return payload, nil
 }
