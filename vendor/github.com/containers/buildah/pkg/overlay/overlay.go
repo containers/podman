@@ -10,6 +10,7 @@ import (
 	"syscall"
 
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -48,6 +49,12 @@ type Options struct {
 	RootUID int
 	// RootGID is not used yet but keeping it here for legacy reasons.
 	RootGID int
+	// Force overlay mounting and return a bind mount, rather than
+	// attempting to optimize by having the runtime actually mount and
+	// manage the overlay filesystem.
+	ForceMount bool
+	// MountLabel is a label to force for the overlay filesystem.
+	MountLabel string
 }
 
 // TempDir generates an overlay Temp directory in the container content
@@ -142,6 +149,12 @@ func mountWithMountProgram(mountProgram, overlayOptions, mergeDir string) error 
 		return fmt.Errorf("exec %s: %w", mountProgram, err)
 	}
 	return nil
+}
+
+// mountNatively mounts an overlay at mergeDir using the kernel's mount()
+// system call.
+func mountNatively(overlayOptions, mergeDir string) error {
+	return mount.Mount("overlay", mergeDir, "overlay", overlayOptions)
 }
 
 // Convert ":" to "\:", the path which will be overlay mounted need to be escaped

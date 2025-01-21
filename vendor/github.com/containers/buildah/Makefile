@@ -41,7 +41,7 @@ LIBSECCOMP_COMMIT := release-2.3
 
 EXTRA_LDFLAGS ?=
 BUILDAH_LDFLAGS := $(GO_LDFLAGS) '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go internal/config/*.go internal/mkcw/*.go internal/mkcw/types/*.go internal/parse/*.go internal/sbom/*.go internal/source/*.go internal/tmpdir/*.go internal/*.go internal/util/*.go internal/volumes/*.go manifests/*.go pkg/binfmt/*.go pkg/blobcache/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/jail/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go pkg/volumes/*.go util/*.go
+SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go internal/config/*.go internal/mkcw/*.go internal/mkcw/types/*.go internal/open/*.go internal/parse/*.go internal/sbom/*.go internal/source/*.go internal/tmpdir/*.go internal/*.go internal/util/*.go internal/volumes/*.go manifests/*.go pkg/binfmt/*.go pkg/blobcache/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/jail/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go pkg/volumes/*.go util/*.go
 
 LINTFLAGS ?=
 
