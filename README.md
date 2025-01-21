@@ -158,8 +158,8 @@ into other tools.
 
 Podman specializes in all of the commands and functions that help you to maintain and modify
 OCI images, such as pulling and tagging.  It also allows you to create, run, and maintain those containers
-created from those images.  For building container images via Dockerfiles, Podman uses Buildah's
-golang API and can be installed independently from Buildah.
+created from those images.  Podman is capable of building images from Dockerfiles by using the Buildah's API.
+It is not necessary to install Buildah to use the `podman build` command to build images.
 
 A major difference between Podman and Buildah is their concept of a container.  Podman
 allows users to create "traditional containers" where the intent of these containers is
