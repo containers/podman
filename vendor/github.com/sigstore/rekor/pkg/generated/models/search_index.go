@@ -45,7 +45,7 @@ type SearchIndex struct {
 	Hash string `json:"hash,omitempty"`
 
 	// operator
-	// Enum: [and or]
+	// Enum: ["and","or"]
 	Operator string `json:"operator,omitempty"`
 
 	// public key
@@ -227,7 +227,7 @@ type SearchIndexPublicKey struct {
 
 	// format
 	// Required: true
-	// Enum: [pgp x509 minisign ssh tuf]
+	// Enum: ["pgp","x509","minisign","ssh","tuf"]
 	Format *string `json:"format"`
 
 	// url

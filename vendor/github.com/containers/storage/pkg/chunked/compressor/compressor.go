@@ -9,7 +9,7 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/internal/minimal"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
@@ -213,7 +213,7 @@ func newTarSplitData(level int) (*tarSplitData, error) {
 	compressed := bytes.NewBuffer(nil)
 	digester := digest.Canonical.Digester()
 
-	zstdWriter, err := internal.ZstdWriterWithLevel(io.MultiWriter(compressed, digester.Hash()), level)
+	zstdWriter, err := minimal.ZstdWriterWithLevel(io.MultiWriter(compressed, digester.Hash()), level)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +254,7 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 
 	buf := make([]byte, 4096)
 
-	zstdWriter, err := internal.ZstdWriterWithLevel(dest, level)
+	zstdWriter, err := minimal.ZstdWriterWithLevel(dest, level)
 	if err != nil {
 		return err
 	}
@@ -276,7 +276,7 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 		return offset, nil
 	}
 
-	var metadata []internal.FileMetadata
+	var metadata []minimal.FileMetadata
 	for {
 		hdr, err := tr.Next()
 		if err != nil {
@@ -341,9 +341,9 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 
 				chunkSize := rcReader.WrittenOut - lastChunkOffset
 				if chunkSize > 0 {
-					chunkType := internal.ChunkTypeData
+					chunkType := minimal.ChunkTypeData
 					if rcReader.IsLastChunkZeros {
-						chunkType = internal.ChunkTypeZeros
+						chunkType = minimal.ChunkTypeZeros
 					}
 
 					chunks = append(chunks, chunk{
@@ -368,17 +368,17 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 			}
 		}
 
-		mainEntry, err := internal.NewFileMetadata(hdr)
+		mainEntry, err := minimal.NewFileMetadata(hdr)
 		if err != nil {
 			return err
 		}
 		mainEntry.Digest = checksum
 		mainEntry.Offset = startOffset
 		mainEntry.EndOffset = lastOffset
-		entries := []internal.FileMetadata{mainEntry}
+		entries := []minimal.FileMetadata{mainEntry}
 		for i := 1; i < len(chunks); i++ {
-			entries = append(entries, internal.FileMetadata{
-				Type:        internal.TypeChunk,
+			entries = append(entries, minimal.FileMetadata{
+				Type:        minimal.TypeChunk,
 				Name:        hdr.Name,
 				ChunkOffset: chunks[i].ChunkOffset,
 			})
@@ -424,13 +424,13 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 	}
 	tarSplitData.zstd = nil
 
-	ts := internal.TarSplitData{
+	ts := minimal.TarSplitData{
 		Data:             tarSplitData.compressed.Bytes(),
 		Digest:           tarSplitData.digester.Digest(),
 		UncompressedSize: tarSplitData.uncompressedCounter.Count,
 	}
 
-	return internal.WriteZstdChunkedManifest(dest, outMetadata, uint64(dest.Count), &ts, metadata, level)
+	return minimal.WriteZstdChunkedManifest(dest, outMetadata, uint64(dest.Count), &ts, metadata, level)
 }
 
 type zstdChunkedWriter struct {

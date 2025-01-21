@@ -326,7 +326,7 @@ type HelmV001SchemaChartHash struct {
 
 	// The hashing function used to compute the hash value
 	// Required: true
-	// Enum: [sha256]
+	// Enum: ["sha256"]
 	Algorithm *string `json:"algorithm"`
 
 	// The hash value for the chart

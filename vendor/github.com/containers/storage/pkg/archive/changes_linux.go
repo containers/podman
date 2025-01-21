@@ -79,6 +79,7 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 		children:   make(map[string]*FileInfo),
 		parent:     parent,
 		idMappings: root.idMappings,
+		target:     "",
 	}
 	cpath := filepath.Join(dir, path)
 	stat, err := system.FromStatT(fi.Sys().(*syscall.Stat_t))
@@ -87,11 +88,11 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 	}
 	info.stat = stat
 	info.capability, err = system.Lgetxattr(cpath, "security.capability") // lgetxattr(2): fs access
-	if err != nil && !errors.Is(err, system.EOPNOTSUPP) {
+	if err != nil && !errors.Is(err, system.ENOTSUP) {
 		return err
 	}
 	xattrs, err := system.Llistxattr(cpath)
-	if err != nil && !errors.Is(err, system.EOPNOTSUPP) {
+	if err != nil && !errors.Is(err, system.ENOTSUP) {
 		return err
 	}
 	for _, key := range xattrs {
@@ -108,6 +109,12 @@ func walkchunk(path string, fi os.FileInfo, dir string, root *FileInfo) error {
 				info.xattrs = make(map[string]string)
 			}
 			info.xattrs[key] = string(value)
+		}
+	}
+	if fi.Mode()&os.ModeSymlink != 0 {
+		info.target, err = os.Readlink(cpath)
+		if err != nil {
+			return err
 		}
 	}
 	parent.children[info.name] = info

@@ -16,7 +16,7 @@ import (
 
 	storage "github.com/containers/storage"
 	graphdriver "github.com/containers/storage/drivers"
-	"github.com/containers/storage/pkg/chunked/internal"
+	"github.com/containers/storage/pkg/chunked/internal/minimal"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
 	jsoniter "github.com/json-iterator/go"
@@ -710,7 +710,7 @@ func prepareCacheFile(manifest []byte, format graphdriver.DifferOutputFormat) ([
 	switch format {
 	case graphdriver.DifferOutputFormatDir:
 	case graphdriver.DifferOutputFormatFlat:
-		entries, err = makeEntriesFlat(entries)
+		entries, err = makeEntriesFlat(entries, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -848,12 +848,12 @@ func (c *layersCache) findFileInOtherLayers(file *fileMetadata, useHardLinks boo
 	return "", "", nil
 }
 
-func (c *layersCache) findChunkInOtherLayers(chunk *internal.FileMetadata) (string, string, int64, error) {
+func (c *layersCache) findChunkInOtherLayers(chunk *minimal.FileMetadata) (string, string, int64, error) {
 	return c.findDigestInternal(chunk.ChunkDigest)
 }
 
-func unmarshalToc(manifest []byte) (*internal.TOC, error) {
-	var toc internal.TOC
+func unmarshalToc(manifest []byte) (*minimal.TOC, error) {
+	var toc minimal.TOC
 
 	iter := jsoniter.ParseBytes(jsoniter.ConfigFastest, manifest)
 
@@ -864,7 +864,7 @@ func unmarshalToc(manifest []byte) (*internal.TOC, error) {
 
 		case "entries":
 			for iter.ReadArray() {
-				var m internal.FileMetadata
+				var m minimal.FileMetadata
 				for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
 					switch strings.ToLower(field) {
 					case "type":

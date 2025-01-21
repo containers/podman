@@ -312,7 +312,7 @@ type DSSEV001SchemaEnvelopeHash struct {
 
 	// The hashing function used to compute the hash value
 	// Required: true
-	// Enum: [sha256]
+	// Enum: ["sha256"]
 	Algorithm *string `json:"algorithm"`
 
 	// The value of the computed digest over the entire envelope
@@ -422,7 +422,7 @@ type DSSEV001SchemaPayloadHash struct {
 
 	// The hashing function used to compute the hash value
 	// Required: true
-	// Enum: [sha256]
+	// Enum: ["sha256"]
 	Algorithm *string `json:"algorithm"`
 
 	// The value of the computed digest over the payload within the envelope
