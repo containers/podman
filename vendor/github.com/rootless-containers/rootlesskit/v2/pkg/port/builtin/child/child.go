@@ -123,6 +123,11 @@ func (d *childDriver) handleConnectRequest(c *net.UnixConn, req *msg.Request) er
 	ip := req.IP
 	if ip == "" {
 		ip = "127.0.0.1"
+		if req.ParentIP != "" {
+			if req.ParentIP != req.HostGatewayIP && req.ParentIP != "0.0.0.0" {
+				ip = req.ParentIP
+			}
+		}
 	} else {
 		p := net.ParseIP(ip)
 		if p == nil {
