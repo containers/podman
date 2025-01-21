@@ -292,7 +292,7 @@ type ContainerNetworkConfig struct {
 	// UseImageHosts indicates that /etc/hosts should not be
 	// bind-mounted inside the container.
 	// Conflicts with HostAdd.
-	UseImageHosts bool `json:"useImageHosts"`
+	UseImageHosts bool
 	// BaseHostsFile is the base file to create the `/etc/hosts` file inside the container.
 	// This must either be an absolute path to a file on the host system, or one of the
 	// special flags `image` or `none`.
