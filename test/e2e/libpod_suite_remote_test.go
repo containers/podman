@@ -24,32 +24,34 @@ func IsRemote() bool {
 
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
-	args = p.makeOptions(args, PodmanExecOptions{})
-	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{})
+	options := PodmanExecOptions{}
+	args = p.makeOptions(args, options)
+	podmanSession := p.PodmanExecBaseWithOptions(args, options)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanSystemdScope runs the podman command in a new systemd scope
 func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSessionIntegration {
-	args = p.makeOptions(args, PodmanExecOptions{})
-
 	wrapper := []string{"systemd-run", "--scope"}
 	if isRootless() {
 		wrapper = []string{"systemd-run", "--scope", "--user"}
 	}
-
-	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+	options := PodmanExecOptions{
 		Wrapper: wrapper,
-	})
+	}
+
+	args = p.makeOptions(args, options)
+	podmanSession := p.PodmanExecBaseWithOptions(args, options)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	args = p.makeOptions(args, PodmanExecOptions{})
-	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+	options := PodmanExecOptions{
 		ExtraFiles: extraFiles,
-	})
+	}
+	args = p.makeOptions(args, options)
+	podmanSession := p.PodmanExecBaseWithOptions(args, options)
 	return &PodmanSessionIntegration{podmanSession}
 }
 
