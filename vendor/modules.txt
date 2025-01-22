@@ -147,7 +147,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.3.0
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.33.11
+# github.com/containers/buildah v1.33.12
 ## explicit; go 1.20
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -160,6 +160,7 @@ github.com/containers/buildah/internal
 github.com/containers/buildah/internal/config
 github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
+github.com/containers/buildah/internal/open
 github.com/containers/buildah/internal/parse
 github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util

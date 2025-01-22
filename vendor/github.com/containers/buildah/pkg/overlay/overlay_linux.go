@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
 // MountWithOptions creates a subdir of the contentDir based on the source directory
@@ -52,6 +53,9 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 		}
 		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", escapeColon(source), upperDir, workDir)
 	}
+	if opts.MountLabel != "" {
+		overlayOptions = overlayOptions + "," + label.FormatMountLabel("", opts.MountLabel)
+	}
 
 	mountProgram := findMountProgram(opts.GraphOpts)
 	if mountProgram != "" {
@@ -75,6 +79,18 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 	mount.Destination = dest
 	mount.Type = "overlay"
 	mount.Options = strings.Split(overlayOptions, ",")
+
+	if opts.ForceMount {
+		if err := mountNatively(overlayOptions, mergeDir); err != nil {
+			return mount, err
+		}
+
+		mount.Source = mergeDir
+		mount.Destination = dest
+		mount.Type = "bind"
+		mount.Options = []string{"bind", "slave"}
+		return mount, nil
+	}
 
 	return mount, nil
 }

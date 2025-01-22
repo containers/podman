@@ -39,6 +39,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/go-units"
@@ -46,6 +47,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 )
 
@@ -349,7 +351,7 @@ rootless=%d
 	}
 
 	defer func() {
-		if err := b.cleanupRunMounts(options.SystemContext, mountPoint, runArtifacts); err != nil {
+		if err := b.cleanupRunMounts(mountPoint, runArtifacts); err != nil {
 			options.Logger.Errorf("unable to cleanup run mounts %v", err)
 		}
 	}()
@@ -950,7 +952,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 				RootGID:                idMaps.rootGID,
 				UpperDirOptionFragment: upperDir,
 				WorkDirOptionFragment:  workDir,
-				GraphOpts:              b.store.GraphOptions(),
+				GraphOpts:              slices.Clone(b.store.GraphOptions()),
 			}
 
 			overlayMount, err := overlay.MountWithOptions(contentDir, host, container, &overlayOpts)
@@ -959,7 +961,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			}
 
 			// If chown true, add correct ownership to the overlay temp directories.
-			if foundU {
+			if err == nil && foundU {
 				if err := chown.ChangeHostPathOwnership(contentDir, true, idMaps.processUID, idMaps.processGID); err != nil {
 					return specs.Mount{}, err
 				}
@@ -1217,24 +1219,39 @@ func checkIdsGreaterThan5(ids []specs.LinuxIDMapping) bool {
 	return false
 }
 
-// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*specs.Mount, *lockfile.LockFile, error) {
+// Returns a Mount to add to the runtime spec's list of mounts, an optional
+// path of a mounted filesystem, unmounted, and an optional lock, or an error.
+//
+// The caller is expected to, after the command which uses the mount exits,
+// unmount the mounted filesystem (if we provided the path to its mountpoint)
+// and remove its mountpoint, , and release the lock (if we took one).
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir, tmpDir string) (*specs.Mount, string, *lockfile.LockFile, error) {
 	var optionMounts []specs.Mount
-	mount, targetLock, err := volumes.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
+	optionMount, intermediateMount, targetLock, err := volumes.GetCacheMount(tokens, stageMountPoints, workDir, tmpDir)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 	succeeded := false
 	defer func() {
-		if !succeeded && targetLock != nil {
-			targetLock.Unlock()
+		if !succeeded {
+			if intermediateMount != "" {
+				if err := mount.Unmount(intermediateMount); err != nil {
+					b.Logger.Debugf("unmounting %q: %v", intermediateMount, err)
+				}
+				if err := os.Remove(intermediateMount); err != nil {
+					b.Logger.Debugf("removing should-be-empty directory %q: %v", intermediateMount, err)
+				}
+			}
+			if targetLock != nil {
+				targetLock.Unlock()
+			}
 		}
 	}()
-	optionMounts = append(optionMounts, mount)
+	optionMounts = append(optionMounts, optionMount)
 	volumes, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
 	if err != nil {
-		return nil, nil, err
+		return nil, "", nil, err
 	}
 	succeeded = true
-	return &volumes[0], targetLock, nil
+	return &volumes[0], intermediateMount, targetLock, nil
 }
