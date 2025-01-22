@@ -25,7 +25,7 @@ func IsRemote() bool {
 // Podman is the exec call to podman on the filesystem
 func (p *PodmanTestIntegration) Podman(args []string) *PodmanSessionIntegration {
 	args = p.makeOptions(args, PodmanExecOptions{})
-	podmanSession := p.PodmanBase(args, false, false)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{})
 	return &PodmanSessionIntegration{podmanSession}
 }
 

@@ -441,7 +441,10 @@ func (p *PodmanTestIntegration) pullImage(image string, toCache bool) {
 		}()
 	}
 	for try := 0; try < 3; try++ {
-		podmanSession := p.PodmanBase([]string{"pull", image}, toCache, true)
+		podmanSession := p.PodmanExecBaseWithOptions([]string{"pull", image}, PodmanExecOptions{
+			NoEvents: toCache,
+			NoCache:  true,
+		})
 		pull := PodmanSessionIntegration{podmanSession}
 		pull.Wait(440)
 		if pull.ExitCode() == 0 {
@@ -1124,7 +1127,9 @@ func rmAll(podmanBin string, path string) {
 
 // PodmanNoCache calls the podman command with no configured imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, false, true)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		NoCache: true,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -1135,7 +1140,10 @@ func PodmanTestSetup(tempDir string) *PodmanTestIntegration {
 // PodmanNoEvents calls the Podman command without an imagecache and without an
 // events backend. It is used mostly for caching and uncaching images.
 func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, true, true)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		NoEvents: true,
+		NoCache:  true,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 

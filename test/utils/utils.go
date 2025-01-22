@@ -157,14 +157,6 @@ func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExec
 	return &PodmanSession{session}
 }
 
-// PodmanBase exec podman with default env.
-func (p *PodmanTest) PodmanBase(args []string, noEvents, noCache bool) *PodmanSession {
-	return p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
-		NoEvents: noEvents,
-		NoCache:  noCache,
-	})
-}
-
 // WaitForContainer waits on a started container
 func (p *PodmanTest) WaitForContainer() bool {
 	for i := 0; i < 10; i++ {
@@ -181,7 +173,9 @@ func (p *PodmanTest) WaitForContainer() bool {
 // containers are currently running.
 func (p *PodmanTest) NumberOfContainersRunning() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-q"}, false, true)
+	ps := p.PodmanExecBaseWithOptions([]string{"ps", "-q"}, PodmanExecOptions{
+		NoCache: true,
+	})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps).Should(Exit(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -196,7 +190,9 @@ func (p *PodmanTest) NumberOfContainersRunning() int {
 // containers are currently defined.
 func (p *PodmanTest) NumberOfContainers() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-aq"}, false, true)
+	ps := p.PodmanExecBaseWithOptions([]string{"ps", "-aq"}, PodmanExecOptions{
+		NoCache: true,
+	})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -211,7 +207,9 @@ func (p *PodmanTest) NumberOfContainers() int {
 // pods are currently defined.
 func (p *PodmanTest) NumberOfPods() int {
 	var pods []string
-	ps := p.PodmanBase([]string{"pod", "ps", "-q"}, false, true)
+	ps := p.PodmanExecBaseWithOptions([]string{"pod", "ps", "-q"}, PodmanExecOptions{
+		NoCache: true,
+	})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -227,7 +225,9 @@ func (p *PodmanTest) NumberOfPods() int {
 func (p *PodmanTest) GetContainerStatus() string {
 	var podmanArgs = []string{"ps"}
 	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
-	session := p.PodmanBase(podmanArgs, false, true)
+	session := p.PodmanExecBaseWithOptions(podmanArgs, PodmanExecOptions{
+		NoCache: true,
+	})
 	session.WaitWithDefaultTimeout()
 	return session.OutputToString()
 }
@@ -235,7 +235,9 @@ func (p *PodmanTest) GetContainerStatus() string {
 // WaitContainerReady waits process or service inside container start, and ready to be used.
 func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, step int) bool {
 	startTime := time.Now()
-	s := p.PodmanBase([]string{"logs", id}, false, true)
+	s := p.PodmanExecBaseWithOptions([]string{"logs", id}, PodmanExecOptions{
+		NoCache: true,
+	})
 	s.WaitWithDefaultTimeout()
 
 	for {
@@ -248,7 +250,9 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 			return false
 		}
 		time.Sleep(time.Duration(step) * time.Second)
-		s = p.PodmanBase([]string{"logs", id}, false, true)
+		s = p.PodmanExecBaseWithOptions([]string{"logs", id}, PodmanExecOptions{
+			NoCache: true,
+		})
 		s.WaitWithDefaultTimeout()
 	}
 }
