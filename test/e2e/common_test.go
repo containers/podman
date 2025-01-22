@@ -492,7 +492,14 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 // It returns the session (to allow consuming output if desired).
 func (p *PodmanTestIntegration) PodmanExitCleanly(args ...string) *PodmanSessionIntegration {
 	GinkgoHelper()
-	session := p.Podman(args)
+	return p.PodmanExitCleanlyWithOptions(PodmanExecOptions{}, args...)
+}
+
+// PodmanExitCleanlyWithOptions runs a podman command with (optinos, args), and expects it to ExitCleanly within the default timeout.
+// It returns the session (to allow consuming output if desired).
+func (p *PodmanTestIntegration) PodmanExitCleanlyWithOptions(options PodmanExecOptions, args ...string) *PodmanSessionIntegration {
+	GinkgoHelper()
+	session := p.PodmanWithOptions(options, args...)
 	session.WaitWithDefaultTimeout()
 	Expect(session).Should(ExitCleanly())
 	return session
