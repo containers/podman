@@ -200,7 +200,7 @@ func ExecStartHandler(w http.ResponseWriter, r *http.Request) {
 		t := r.Context().Value(api.IdleTrackerKey).(*idle.Tracker)
 		defer t.Close()
 
-		if err != nil {
+		if err != nil && !errors.Is(err, define.ErrDetach) {
 			// Cannot report error to client as a 500 as the Upgrade set status to 101
 			logErr(err)
 		}
