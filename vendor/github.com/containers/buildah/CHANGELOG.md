@@ -2,6 +2,19 @@
 
 # Changelog
 
+## v1.38.1 (2025-01-20)
+
+    Fix TOCTOU error when bind and cache mounts use "src" values
+    define.TempDirForURL(): always use an intermediate subdirectory
+    internal/volume.GetBindMount(): discard writes in bind mounts
+    pkg/overlay: add a MountLabel flag to Options
+    pkg/overlay: add a ForceMount flag to Options
+    Add internal/volumes.bindFromChroot()
+    Add an internal/open package
+    Allow cache mounts to be stages or additional build contexts
+    [release-1.38][CI:DOCS] Touch up changelogs
+    [release-1.38] Bump c/storage v1.56.1, c/image v5.33.1, c/common v0.61.1
+
 ## v1.38.0 (2024-11-08)
 
     Bump to c/common v0.61.0, c/image v5.33.0, c/storage v1.56.0
@@ -123,7 +136,7 @@
     Add PrependedLinkedLayers/AppendedLinkedLayers to CommitOptions
     integration tests: teach starthttpd() about TLS and pid files
 
-## vv1.37.0 (2024-07-26)
+## v1.37.0 (2024-07-26)
 
     Bump c/storage, c/image, c/common for v1.37.0
     "build with basename resolving user arg" tests: correct ARG use

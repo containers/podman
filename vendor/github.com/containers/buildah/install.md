@@ -194,8 +194,11 @@ In Fedora, you can use this command:
 Then to install Buildah on Fedora follow the steps in this example:
 
 ```
-  git clone https://github.com/containers/buildah
-  cd buildah
+  mkdir ~/buildah
+  cd ~/buildah
+  export GOPATH=`pwd`
+  git clone https://github.com/containers/buildah ./src/github.com/containers/buildah
+  cd ./src/github.com/containers/buildah
   make
   sudo make install
   buildah --help
@@ -249,10 +252,18 @@ In Ubuntu 22.10 (Karmic) or Debian 12 (Bookworm) you can use these commands:
 
 ```
   sudo apt-get -y -qq update
-  sudo apt-get -y install bats btrfs-progs git go-md2man golang libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev make runc skopeo libbtrfs-dev
+  sudo apt-get -y install bats btrfs-progs git go-md2man golang libapparmor-dev libglib2.0-dev libgpgme11-dev libseccomp-dev libselinux1-dev make skopeo libbtrfs-dev
 ```
 
-The build steps for Buildah on Debian or Ubuntu are the same as for Fedora, above.
+Then to install Buildah follow the steps in this example:
+
+```
+  git clone https://github.com/containers/buildah
+  cd buildah
+  make runc all SECURITYTAGS="apparmor seccomp"
+  sudo make install install.runc
+  buildah --help
+```
 
 ## Vendoring - Dependency Management
 

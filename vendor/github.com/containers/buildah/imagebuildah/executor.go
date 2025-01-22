@@ -163,7 +163,6 @@ type Executor struct {
 	compatSetParent                         types.OptionalBool
 	compatVolumes                           types.OptionalBool
 	compatScratchConfig                     types.OptionalBool
-	noPivotRoot                             bool
 }
 
 type imageTypeAndHistoryAndDiffIDs struct {
@@ -323,7 +322,6 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		compatSetParent:                         options.CompatSetParent,
 		compatVolumes:                           options.CompatVolumes,
 		compatScratchConfig:                     options.CompatScratchConfig,
-		noPivotRoot:                             options.NoPivotRoot,
 	}
 	if exec.err == nil {
 		exec.err = os.Stderr
