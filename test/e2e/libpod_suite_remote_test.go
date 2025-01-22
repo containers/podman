@@ -34,17 +34,6 @@ func (p *PodmanTestIntegration) PodmanWithOptions(options PodmanExecOptions, arg
 	return &PodmanSessionIntegration{podmanSession}
 }
 
-// PodmanSystemdScope runs the podman command in a new systemd scope
-func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSessionIntegration {
-	wrapper := []string{"systemd-run", "--scope"}
-	if isRootless() {
-		wrapper = []string{"systemd-run", "--scope", "--user"}
-	}
-	return p.PodmanWithOptions(PodmanExecOptions{
-		Wrapper: wrapper,
-	}, args...)
-}
-
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := "registries.conf"
 	if UsingCacheRegistry() {
