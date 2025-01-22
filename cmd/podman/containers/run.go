@@ -206,6 +206,10 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 	s.RawImageName = rawImageName
+
+	// Include the command used to create the container.
+	s.ContainerCreateCommand = os.Args
+
 	s.ImageOS = cliVals.OS
 	s.ImageArch = cliVals.Arch
 	s.ImageVariant = cliVals.Variant

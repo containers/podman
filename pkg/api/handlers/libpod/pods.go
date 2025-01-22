@@ -73,7 +73,6 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		// a few extra that do not have the same json tags
 		psg.InfraContainerSpec.Name = psg.InfraName
 		psg.InfraContainerSpec.ConmonPidFile = psg.InfraConmonPidFile
-		psg.InfraContainerSpec.ContainerCreateCommand = psg.InfraCommand
 		psg.InfraContainerSpec.Image = psg.InfraImage
 		psg.InfraContainerSpec.RawImageName = psg.InfraImage
 	}
