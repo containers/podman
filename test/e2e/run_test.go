@@ -1849,7 +1849,9 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		files := []*os.File{
 			devNull,
 		}
-		session := podmanTest.PodmanExtraFiles([]string{"run", "--preserve-fds", "1", ALPINE, "ls"}, files)
+		session := podmanTest.PodmanWithOptions(PodmanExecOptions{
+			ExtraFiles: files,
+		}, "run", "--preserve-fds", "1", ALPINE, "ls")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})

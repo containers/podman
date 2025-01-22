@@ -45,13 +45,6 @@ func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSession
 	}, args...)
 }
 
-// PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
-func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	return p.PodmanWithOptions(PodmanExecOptions{
-		ExtraFiles: extraFiles,
-	}, args...)
-}
-
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := "registries.conf"
 	if UsingCacheRegistry() {
