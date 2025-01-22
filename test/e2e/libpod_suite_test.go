@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -26,13 +27,17 @@ func (p *PodmanTestIntegration) PodmanSystemdScope(args []string) *PodmanSession
 	if isRootless() {
 		wrapper = []string{"systemd-run", "--scope", "--user"}
 	}
-	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, wrapper, nil)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		Wrapper: wrapper,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // PodmanExtraFiles is the exec call to podman on the filesystem and passes down extra files
 func (p *PodmanTestIntegration) PodmanExtraFiles(args []string, extraFiles []*os.File) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, 0, 0, "", nil, false, false, nil, extraFiles)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		ExtraFiles: extraFiles,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 

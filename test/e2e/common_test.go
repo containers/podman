@@ -1060,7 +1060,12 @@ func SkipIfNetavark(p *PodmanTestIntegration) {
 
 // PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
 func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil, nil)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		UID: uid,
+		GID: gid,
+		CWD: cwd,
+		Env: env,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 

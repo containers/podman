@@ -94,16 +94,28 @@ func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string
 	return p.PodmanMakeOptions(args, noEvents, noCache)
 }
 
-// PodmanAsUserBase exec podman as user. uid and gid is set for credentials usage. env is used
-// to record the env for debugging
-func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, noEvents, noCache bool, wrapper []string, extraFiles []*os.File) *PodmanSession {
+// PodmanExecOptions modify behavior of PodmanTest.PodmanExecBaseWithOptions and its callers.
+// Users should typically leave most fields default-initialized, and only set those that are relevant to them.
+type PodmanExecOptions struct {
+	UID, GID   uint32   // default: inherited form the current process
+	CWD        string   // default: inherited form the current process
+	Env        []string // default: inherited form the current process
+	NoEvents   bool
+	NoCache    bool
+	Wrapper    []string // A command to run, receiving the Podman command line. default: none
+	ExtraFiles []*os.File
+}
+
+// PodmanExecBaseWithOptions execs podman with the specified args, and in an environment defined by options
+func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExecOptions) *PodmanSession {
 	var command *exec.Cmd
-	podmanOptions := p.MakeOptions(args, noEvents, noCache)
+	podmanOptions := p.MakeOptions(args, options.NoEvents, options.NoCache)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
 	}
 
+	runCmd := options.Wrapper
 	if timeDir := os.Getenv(EnvTimeDir); timeDir != "" {
 		timeFile, err := os.CreateTemp(timeDir, ".time")
 		if err != nil {
@@ -111,18 +123,17 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		}
 		timeArgs := []string{"-f", "%M", "-o", timeFile.Name()}
 		timeCmd := append([]string{"/usr/bin/time"}, timeArgs...)
-		wrapper = append(timeCmd, wrapper...)
+		runCmd = append(timeCmd, runCmd...)
 	}
-	runCmd := wrapper
 	runCmd = append(runCmd, podmanBinary)
 
-	if env == nil {
+	if options.Env == nil {
 		GinkgoWriter.Printf("Running: %s %s\n", strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	} else {
-		GinkgoWriter.Printf("Running: (env: %v) %s %s\n", env, strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
+		GinkgoWriter.Printf("Running: (env: %v) %s %s\n", options.Env, strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	}
-	if uid != 0 || gid != 0 {
-		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", gid, uid, cwd)
+	if options.UID != 0 || options.GID != 0 {
+		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", options.GID, options.UID, options.CWD)
 		runCmd = append(runCmd, podmanOptions...)
 		nsEnterOpts := append([]string{"-c", pythonCmd}, runCmd...)
 		command = exec.Command("python", nsEnterOpts...)
@@ -130,14 +141,14 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		runCmd = append(runCmd, podmanOptions...)
 		command = exec.Command(runCmd[0], runCmd[1:]...)
 	}
-	if env != nil {
-		command.Env = env
+	if options.Env != nil {
+		command.Env = options.Env
 	}
-	if cwd != "" {
-		command.Dir = cwd
+	if options.CWD != "" {
+		command.Dir = options.CWD
 	}
 
-	command.ExtraFiles = extraFiles
+	command.ExtraFiles = options.ExtraFiles
 
 	session, err := Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
@@ -148,7 +159,10 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 
 // PodmanBase exec podman with default env.
 func (p *PodmanTest) PodmanBase(args []string, noEvents, noCache bool) *PodmanSession {
-	return p.PodmanAsUserBase(args, 0, 0, "", nil, noEvents, noCache, nil, nil)
+	return p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		NoEvents: noEvents,
+		NoCache:  noCache,
+	})
 }
 
 // WaitForContainer waits on a started container
