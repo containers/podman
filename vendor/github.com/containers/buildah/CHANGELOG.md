@@ -2,10 +2,24 @@
 
 # Changelog
 
+## v1.37.6 (2025-01-20)
+
+    Fix TOCTOU error when bind and cache mounts use "src" values
+    define.TempDirForURL(): always use an intermediate subdirectory
+    internal/volume.GetBindMount(): discard writes in bind mounts
+    pkg/overlay: add a MountLabel flag to Options
+    pkg/overlay: add a ForceMount flag to Options
+    Add internal/volumes.bindFromChroot()
+    Add an internal/open package
+    Allow cache mounts to be stages or additional build contexts
+    [release-1.37][CI:DOCS] Touch up changelogs
+    [release-1.37][CI:DOCS] touchup changelog
+    Update CHANGELOG.md
+
 ## v1.37.5 (2024-10-17)
 
-    Bump the containers/storage library to v1.55.1
-    Properly validate cache IDs and sources
+    Bump the containers/storage library to v1.55.1 - Resolves CVE-2024-9676
+    Properly validate cache IDs and sources - Resolves CVE-2024-9675
     Packit: constrain koji job to fedora package to avoid dupes
 
 ## v1.37.4 (2024-10-07)
@@ -29,7 +43,7 @@
 
     [release-1.37] Bump c/common v0.60.1, c/image v5.32.1
 
-## vv1.37.0 (2024-07-26)
+## v1.37.0 (2024-07-26)
 
     Bump c/storage, c/image, c/common for v1.37.0
     "build with basename resolving user arg" tests: correct ARG use
