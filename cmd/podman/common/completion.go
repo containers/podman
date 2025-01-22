@@ -317,6 +317,29 @@ func getNetworks(cmd *cobra.Command, toComplete string, cType completeType) ([]s
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
+func getArtifacts(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
+	suggestions := []string{}
+	listOptions := entities.ArtifactListOptions{}
+
+	engine, err := setupImageEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	artifacts, err := engine.ArtifactList(registry.GetContext(), listOptions)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	for _, artifact := range artifacts {
+		if strings.HasPrefix(artifact.Name, toComplete) {
+			suggestions = append(suggestions, artifact.Name)
+		}
+	}
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
+}
+
 func fdIsNotDir(f *os.File) bool {
 	stat, err := f.Stat()
 	if err != nil {
@@ -492,6 +515,24 @@ func getBoolCompletion(_ string) ([]string, cobra.ShellCompDirective) {
 }
 
 /* Autocomplete Functions for cobra ValidArgsFunction */
+
+func AutocompleteArtifacts(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return getArtifacts(cmd, toComplete)
+}
+
+func AutocompleteArtifactAdd(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	if len(args) == 0 {
+		// first argument accepts the name reference
+		return getArtifacts(cmd, toComplete)
+	}
+	return nil, cobra.ShellCompDirectiveDefault
+}
 
 // AutocompleteContainers - Autocomplete all container names.
 func AutocompleteContainers(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {

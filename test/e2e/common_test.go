@@ -27,6 +27,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/inspect"
 	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
@@ -1536,4 +1537,50 @@ func CopySymLink(source, dest string) error {
 
 func UsingCacheRegistry() bool {
 	return os.Getenv("CI_USE_REGISTRY_CACHE") != ""
+}
+
+func setupRegistry(portOverride *int) (*lockfile.LockFile, string, error) {
+	var port string
+	if isRootless() {
+		if err := podmanTest.RestoreArtifact(REGISTRY_IMAGE); err != nil {
+			return nil, "", err
+		}
+	}
+
+	if portOverride != nil {
+		port = strconv.Itoa(*portOverride)
+	} else {
+		p, err := utils.GetRandomPort()
+		if err != nil {
+			return nil, "", err
+		}
+		port = strconv.Itoa(p)
+	}
+
+	lock := GetPortLock(port)
+
+	session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", fmt.Sprintf("%s:5000", port), REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(ExitCleanly())
+
+	if !WaitContainerReady(podmanTest, "registry", "listening on", 20, 1) {
+		lock.Unlock()
+		Skip("Cannot start docker registry.")
+	}
+	return lock, port, nil
+}
+
+func createArtifactFile(numBytes int64) (string, error) {
+	artifactDir := filepath.Join(podmanTest.TempDir, "artifacts")
+	if err := os.MkdirAll(artifactDir, 0755); err != nil {
+		return "", err
+	}
+	filename := RandomString(8)
+	outFile := filepath.Join(artifactDir, filename)
+	session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/artifacts:z", artifactDir), ALPINE, "dd", "if=/dev/urandom", fmt.Sprintf("of=%s", filepath.Join("/artifacts", filename)), "bs=1b", fmt.Sprintf("count=%d", numBytes)})
+	session.WaitWithDefaultTimeout()
+	if session.ExitCode() != 0 {
+		return "", errors.New("unable to generate artifact file")
+	}
+	return outFile, nil
 }

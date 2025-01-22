@@ -1,3 +1,5 @@
+podman-artifact-pull.1.md
+podman-artifact-push.1.md
 podman-attach.1.md
 podman-auto-update.1.md
 podman-build.1.md
