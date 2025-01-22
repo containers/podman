@@ -284,11 +284,7 @@ func (c *Container) ExecStart(sessionID string) error {
 	return c.save()
 }
 
-func (c *Container) ExecStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *resize.TerminalSize) error {
-	return c.execStartAndAttach(sessionID, streams, newSize, false)
-}
-
-// ExecStartAndAttach starts and attaches to an exec session in a container.
+// execStartAndAttach starts and attaches to an exec session in a container.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *resize.TerminalSize, isHealthcheck bool) error {
 	if !c.batched {
