@@ -618,7 +618,7 @@ RUN touch /file
 	It("authenticated push", func() {
 		registryOptions := &podmanRegistry.Options{
 			PodmanPath: podmanTest.PodmanBinary,
-			PodmanArgs: podmanTest.MakeOptions(nil, false, false),
+			PodmanArgs: podmanTest.MakeOptions(nil, PodmanExecOptions{}),
 			Image:      "docker-archive:" + imageTarPath(REGISTRY_IMAGE),
 		}
 

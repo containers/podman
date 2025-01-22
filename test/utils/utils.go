@@ -55,7 +55,7 @@ var (
 // PodmanTestCommon contains common functions will be updated later in
 // the inheritance structs
 type PodmanTestCommon interface {
-	MakeOptions(args []string, noEvents, noCache bool) []string
+	MakeOptions(args []string, options PodmanExecOptions) []string
 	WaitForContainer() bool
 	WaitContainerReady(id string, expStr string, timeout int, step int) bool
 }
@@ -67,7 +67,7 @@ type PodmanTest struct {
 	NetworkBackend     NetworkBackend
 	DatabaseBackend    string
 	PodmanBinary       string
-	PodmanMakeOptions  func(args []string, noEvents, noCache bool) []string
+	PodmanMakeOptions  func(args []string, options PodmanExecOptions) []string
 	RemoteCommand      *exec.Cmd
 	RemotePodmanBinary string
 	RemoteSession      *os.Process
@@ -90,8 +90,8 @@ type HostOS struct {
 }
 
 // MakeOptions assembles all podman options
-func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string {
-	return p.PodmanMakeOptions(args, noEvents, noCache)
+func (p *PodmanTest) MakeOptions(args []string, options PodmanExecOptions) []string {
+	return p.PodmanMakeOptions(args, options)
 }
 
 // PodmanExecOptions modify behavior of PodmanTest.PodmanExecBaseWithOptions and its callers.
@@ -109,7 +109,7 @@ type PodmanExecOptions struct {
 // PodmanExecBaseWithOptions execs podman with the specified args, and in an environment defined by options
 func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExecOptions) *PodmanSession {
 	var command *exec.Cmd
-	podmanOptions := p.MakeOptions(args, options.NoEvents, options.NoCache)
+	podmanOptions := p.MakeOptions(args, options)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary

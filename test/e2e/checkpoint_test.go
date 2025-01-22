@@ -1559,8 +1559,8 @@ var _ = Describe("Podman checkpoint", func() {
 		// Prevent --runtime arg from being set to force using default
 		// runtime unless explicitly set through passed args.
 		preservedMakeOptions := podmanTest.PodmanMakeOptions
-		podmanTest.PodmanMakeOptions = func(args []string, noEvents, noCache bool) []string {
-			defaultArgs := preservedMakeOptions(args, noEvents, noCache)
+		podmanTest.PodmanMakeOptions = func(args []string, options PodmanExecOptions) []string {
+			defaultArgs := preservedMakeOptions(args, options)
 			for i := range args {
 				// Runtime is set explicitly, so we should keep --runtime arg.
 				if args[i] == "--runtime" {

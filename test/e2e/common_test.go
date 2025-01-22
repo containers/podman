@@ -679,7 +679,7 @@ func (p *PodmanTestIntegration) BuildImageWithLabel(dockerfile, imageName string
 
 // PodmanPID execs podman and returns its PID
 func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
-	podmanOptions := p.MakeOptions(args, false, false)
+	podmanOptions := p.MakeOptions(args, PodmanExecOptions{})
 	GinkgoWriter.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
@@ -1140,7 +1140,7 @@ func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionInte
 }
 
 // MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOptions) []string {
 	if p.RemoteTest {
 		if !slices.Contains(args, "--remote") {
 			return append([]string{"--remote", "--url", p.RemoteSocket}, args...)
@@ -1154,7 +1154,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 	}
 
 	eventsType := "file"
-	if noEvents {
+	if options.NoEvents {
 		eventsType = "none"
 	}
 
@@ -1162,7 +1162,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType, p.DatabaseBackend), " ")
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
-	if !noCache {
+	if !options.NoCache {
 		cacheOptions := []string{"--storage-opt",
 			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
 		podmanOptions = append(cacheOptions, podmanOptions...)
