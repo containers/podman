@@ -19,10 +19,12 @@ const (
 
 // Request and Response are encoded as JSON with uint32le length header.
 type Request struct {
-	Type  string // "init" or "connect"
-	Proto string // "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6"
-	IP    string
-	Port  int
+	Type          string // "init" or "connect"
+	Proto         string // "tcp", "tcp4", "tcp6", "udp", "udp4", "udp6"
+	IP            string
+	Port          int
+	ParentIP      string
+	HostGatewayIP string
 }
 
 // Reply may contain FD as OOB
@@ -48,14 +50,33 @@ func Initiate(c *net.UnixConn) error {
 	return c.CloseRead()
 }
 
+func hostGatewayIP() string {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+
+	for _, addr := range addrs {
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			if ipnet.IP.To4() != nil {
+				return ipnet.IP.String()
+			}
+		}
+	}
+
+	return ""
+}
+
 // ConnectToChild connects to the child UNIX socket, and obtains TCP or UDP socket FD
 // that corresponds to the port spec.
 func ConnectToChild(c *net.UnixConn, spec port.Spec) (int, error) {
 	req := Request{
-		Type:  RequestTypeConnect,
-		Proto: spec.Proto,
-		Port:  spec.ChildPort,
-		IP:    spec.ChildIP,
+		Type:          RequestTypeConnect,
+		Proto:         spec.Proto,
+		Port:          spec.ChildPort,
+		IP:            spec.ChildIP,
+		ParentIP:      spec.ParentIP,
+		HostGatewayIP: hostGatewayIP(),
 	}
 	if _, err := lowlevelmsgutil.MarshalToWriter(c, &req); err != nil {
 		return 0, err

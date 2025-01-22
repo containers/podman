@@ -159,8 +159,7 @@ func (d *driver) AddPort(ctx context.Context, spec port.Spec) (*port.Status, err
 	case "udp", "udp4", "udp6":
 		err = udp.Run(d.socketPath, spec, routineStopCh, routineStoppedCh, d.logWriter)
 	default:
-		// NOTREACHED
-		return nil, errors.New("spec was not validated?")
+		return nil, fmt.Errorf("unsupported port protocol %s", spec.Proto)
 	}
 	if err != nil {
 		if isEPERM(err) {
