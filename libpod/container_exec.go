@@ -287,9 +287,14 @@ func (c *Container) ExecStart(sessionID string) error {
 // execStartAndAttach starts and attaches to an exec session in a container.
 // newSize resizes the tty to this size before the process is started, must be nil if the exec session has no tty
 func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachStreams, newSize *resize.TerminalSize, isHealthcheck bool) error {
+	unlock := true
 	if !c.batched {
 		c.lock.Lock()
-		defer c.lock.Unlock()
+		defer func() {
+			if unlock {
+				c.lock.Unlock()
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -344,6 +349,12 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 	}
 
 	tmpErr := <-attachChan
+	// user detached
+	if errors.Is(tmpErr, define.ErrDetach) {
+		// ensure we the defer does not unlock as we are not locked here
+		unlock = false
+		return tmpErr
+	}
 	if lastErr != nil {
 		logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 	}
@@ -431,9 +442,14 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 		close(hijackDone)
 	}()
 
+	unlock := true
 	if !c.batched {
 		c.lock.Lock()
-		defer c.lock.Unlock()
+		defer func() {
+			if unlock {
+				c.lock.Unlock()
+			}
+		}()
 
 		if err := c.syncContainer(); err != nil {
 			return err
@@ -514,6 +530,12 @@ func (c *Container) ExecHTTPStartAndAttach(sessionID string, r *http.Request, w 
 	}
 
 	tmpErr := <-attachChan
+	// user detached
+	if errors.Is(tmpErr, define.ErrDetach) {
+		// ensure we the defer does not unlock as we are not locked here
+		unlock = false
+		return tmpErr
+	}
 	if lastErr != nil {
 		logrus.Errorf("Container %s exec session %s error: %v", c.ID(), session.ID(), lastErr)
 	}
@@ -765,11 +787,14 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 	if err != nil {
 		return -1, err
 	}
+	cleanup := true
 	defer func() {
-		if err := c.ExecRemove(sessionID, false); err != nil {
-			if retErr == nil && !errors.Is(err, define.ErrNoSuchExecSession) {
-				exitCode = -1
-				retErr = err
+		if cleanup {
+			if err := c.ExecRemove(sessionID, false); err != nil {
+				if retErr == nil && !errors.Is(err, define.ErrNoSuchExecSession) {
+					exitCode = -1
+					retErr = err
+				}
 			}
 		}
 	}()
@@ -803,6 +828,11 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 	}
 
 	if err := c.execStartAndAttach(sessionID, streams, size, isHealthcheck); err != nil {
+		// user detached, there will be no exit just exit without reporting an error
+		if errors.Is(err, define.ErrDetach) {
+			cleanup = false
+			return 0, nil
+		}
 		return -1, err
 	}
 
