@@ -2,6 +2,28 @@
 
 # Changelog
 
+## v1.33.12 (2025-01-20)
+
+    Fix TOCTOU error when bind and cache mounts use "src" values
+    define.TempDirForURL(): always use an intermediate subdirectory
+    internal/volume.GetBindMount(): discard writes in bind mounts
+    pkg/overlay: add a MountLabel flag to Options
+    pkg/overlay: add a ForceMount flag to Options
+    Add internal/volumes.bindFromChroot()
+    Add an internal/open package
+    Allow cache mounts to be stages or additional build contexts
+    Disable most packit copr targets
+    Integration tests: switch some base images
+    [release-1.33] Bump to Buildah v1.33.11
+    [release-1.33] Bump c/storage to v1.51.2, fixes CVE-2024-9676
+    [release-1.33] Bump Buildah to v1.33.10
+    [release-1.33] CVE-2024-9407: validate "bind-propagation" flag settings
+    [release-1.33] Properly validate cache IDs and sources
+    vendor: update c/common to v0.57.7
+    [release-1.33] Bump to v1.33.9
+    [release-1.33] Fixes Listing tags in JFrog Artifactory may fail
+    Cross-build on Fedora
+
 ## v1.33.11 (2024-10-25)
 
     [release-1.33] Bump c/storage to v1.51.2, fixes CVE-2024-9676

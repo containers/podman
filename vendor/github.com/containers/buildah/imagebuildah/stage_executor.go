@@ -597,7 +597,12 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 							// to `mountPoint` replaced from additional
 							// build-context. Reason: Parser will use this
 							//  `from` to refer from stageMountPoints map later.
-							stageMountPoints[from] = internal.StageMountDetails{IsStage: false, DidExecute: true, MountPoint: mountPoint}
+							stageMountPoints[from] = internal.StageMountDetails{
+								IsAdditionalBuildContext: true,
+								IsImage:                  true,
+								DidExecute:               true,
+								MountPoint:               mountPoint,
+							}
 							break
 						} else {
 							// Most likely this points to path on filesystem
@@ -629,7 +634,11 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 									mountPoint = additionalBuildContext.DownloadedCache
 								}
 							}
-							stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: true, MountPoint: mountPoint}
+							stageMountPoints[from] = internal.StageMountDetails{
+								IsAdditionalBuildContext: true,
+								DidExecute:               true,
+								MountPoint:               mountPoint,
+							}
 							break
 						}
 					}
@@ -640,14 +649,22 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 						return nil, err
 					}
 					if otherStage, ok := s.executor.stages[from]; ok && otherStage.index < s.index {
-						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: otherStage.didExecute, MountPoint: otherStage.mountPoint}
+						stageMountPoints[from] = internal.StageMountDetails{
+							IsStage:    true,
+							DidExecute: otherStage.didExecute,
+							MountPoint: otherStage.mountPoint,
+						}
 						break
 					} else {
 						mountPoint, err := s.getImageRootfs(s.ctx, from)
 						if err != nil {
 							return nil, fmt.Errorf("%s from=%s: no stage or image found with that name", flag, from)
 						}
-						stageMountPoints[from] = internal.StageMountDetails{IsStage: false, DidExecute: true, MountPoint: mountPoint}
+						stageMountPoints[from] = internal.StageMountDetails{
+							IsImage:    true,
+							DidExecute: true,
+							MountPoint: mountPoint,
+						}
 						break
 					}
 				default:
