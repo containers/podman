@@ -21,6 +21,7 @@ import (
 )
 
 var ErrVSockRegistryEntryExists = errors.New("registry entry already exists")
+var rOpenKey = registry.OpenKey
 
 const (
 	// HvsockMachineName is the string identifier for the machine name in a registry entry
@@ -74,7 +75,7 @@ func toHVSockPurpose(p string) (HVSockPurpose, error) {
 }
 
 func openVSockRegistryEntry(entry string) (registry.Key, error) {
-	return registry.OpenKey(registry.LOCAL_MACHINE, entry, registry.QUERY_VALUE)
+	return rOpenKey(registry.LOCAL_MACHINE, entry, registry.QUERY_VALUE)
 }
 
 // HVSockRegistryEntry describes a registry entry used in Windows for HVSOCK implementations
@@ -147,13 +148,15 @@ func findOpenHVSockPort() (uint64, error) {
 	return 0, errors.New("unable to find a free port for hvsock use")
 }
 
+var hfindOpenHVSockPort = findOpenHVSockPort
+
 // CreateHVSockRegistryEntry is a constructor to make an instance of a registry entry in Windows. After making the new
 // object, you must call the add() method or AddHVSockRegistryEntries(...) to *actually* add it to the Windows registry.
 func CreateHVSockRegistryEntry(machineName string, purpose HVSockPurpose) (*HVSockRegistryEntry, error) {
 	// a so-called wildcard entry ... everything from FACB -> 6D3 is MS special sauce
 	// for a " linux vm".  this first segment is hexi for the hvsock port number
 	// 00000400-FACB-11E6-BD58-64006A7986D3
-	port, err := findOpenHVSockPort()
+	port, err := hfindOpenHVSockPort()
 	if err != nil {
 		return nil, err
 	}
@@ -184,15 +187,15 @@ func ElevateAndAddEntries(entries []HVSockRegistryEntry) error {
 		if exists {
 			return fmt.Errorf("%q: %s", ErrVSockRegistryEntryExists, entry.KeyName)
 		}
-		parentKey, err := registry.OpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
+		parentKey, err := rOpenKey(registry.LOCAL_MACHINE, VsockRegistryPath, registry.QUERY_VALUE)
+		if err != nil {
+			return err
+		}
 		defer func() {
 			if err := parentKey.Close(); err != nil {
 				logrus.Error(err)
 			}
 		}()
-		if err != nil {
-			return err
-		}
 
 		// for each entry it adds a purpose and machineName property
 		registryPath := fmt.Sprintf("HKLM:\\%s", VsockRegistryPath)
@@ -229,6 +232,8 @@ func ElevateAndRemoveEntries(entries []HVSockRegistryEntry) error {
 	return launchElevated(script)
 }
 
+var wLaunchElevatedWaitWithWindowMode = windows.LaunchElevatedWaitWithWindowMode
+
 func launchElevated(args string) error {
 	psPath, err := exec.LookPath("powershell.exe")
 	if err != nil {
@@ -240,7 +245,7 @@ func launchElevated(args string) error {
 		return err
 	}
 
-	return windows.LaunchElevatedWaitWithWindowMode(psPath, d, args, syscall.SW_HIDE)
+	return wLaunchElevatedWaitWithWindowMode(psPath, d, args, syscall.SW_HIDE)
 }
 
 func portToKeyName(port uint64) string {

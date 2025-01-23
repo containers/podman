@@ -49,10 +49,20 @@ func LaunchElevatedWait(exe string, cwd string, args string) error {
 }
 
 func LaunchElevatedWaitWithWindowMode(exe string, cwd string, args string, windowMode int) error {
+	verb, _ := syscall.UTF16PtrFromString("runas")
+	return launchWaitWithWindowMode(exe, cwd, args, windowMode, verb)
+}
+
+// this func is used for testing
+func LaunchWaitWithWindowMode(exe string, cwd string, args string, windowMode int) error {
+	verb, _ := syscall.UTF16PtrFromString("open")
+	return launchWaitWithWindowMode(exe, cwd, args, windowMode, verb)
+}
+
+func launchWaitWithWindowMode(exe string, cwd string, args string, windowMode int, verb *uint16) error {
 	exePtr, _ := syscall.UTF16PtrFromString(exe)
 	cwdPtr, _ := syscall.UTF16PtrFromString(cwd)
 	arg, _ := syscall.UTF16PtrFromString(args)
-	verb, _ := syscall.UTF16PtrFromString("runas")
 
 	shell32 := syscall.NewLazyDLL("shell32.dll")
 
