@@ -251,7 +251,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.2
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.33.1-0.20250116221711-317a9885aed9
+# github.com/containers/image/v5 v5.33.2-0.20250122201336-16f7e1e0e1fd
 ## explicit; go 1.22.8
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -1104,7 +1104,7 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/vbatts/tar-split v0.11.6
+# github.com/vbatts/tar-split v0.11.7
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm

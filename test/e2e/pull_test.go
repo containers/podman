@@ -624,7 +624,8 @@ var _ = Describe("Podman pull", func() {
 			// Pulling encrypted image without key should fail
 			session = podmanTest.Podman([]string{"pull", "--tls-verify=false", imgPath})
 			session.WaitWithDefaultTimeout()
-			Expect(session).Should(ExitWithError(125, "invalid tar header"))
+			Expect(session).Should(ExitWithError(125, " ")) // " ", not "" - stderr can be not empty, and we will match actual contents below.
+			Expect(session.ErrorToString()).To(Or(ContainSubstring("invalid tar header"), ContainSubstring("does not match config's DiffID")))
 
 			// Pulling encrypted image with wrong key should fail
 			session = podmanTest.Podman([]string{"pull", "-q", "--decryption-key", wrongPrivateKeyFileName, "--tls-verify=false", imgPath})

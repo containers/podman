@@ -17,7 +17,7 @@ require (
 	github.com/containers/common v0.61.1-0.20250120135258-06628cb958e9
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.2
-	github.com/containers/image/v5 v5.33.1-0.20250116221711-317a9885aed9
+	github.com/containers/image/v5 v5.33.2-0.20250122201336-16f7e1e0e1fd
 	github.com/containers/libhvee v0.9.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
@@ -211,7 +211,7 @@ require (
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
-	github.com/vbatts/tar-split v0.11.6 // indirect
+	github.com/vbatts/tar-split v0.11.7 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
