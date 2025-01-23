@@ -457,9 +457,9 @@ var _ = Describe("Podman exec", func() {
 		files := []*os.File{
 			devNull,
 		}
-		session := podmanTest.PodmanExtraFiles([]string{"exec", "--preserve-fds", "1", "test1", "ls"}, files)
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanlyWithOptions(PodmanExecOptions{
+			ExtraFiles: files,
+		}, "exec", "--preserve-fds", "1", "test1", "ls")
 	})
 
 	It("podman exec preserves --group-add groups", func() {

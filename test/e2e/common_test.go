@@ -441,7 +441,10 @@ func (p *PodmanTestIntegration) pullImage(image string, toCache bool) {
 		}()
 	}
 	for try := 0; try < 3; try++ {
-		podmanSession := p.PodmanBase([]string{"pull", image}, toCache, true)
+		podmanSession := p.PodmanExecBaseWithOptions([]string{"pull", image}, PodmanExecOptions{
+			NoEvents: toCache,
+			NoCache:  true,
+		})
 		pull := PodmanSessionIntegration{podmanSession}
 		pull.Wait(440)
 		if pull.ExitCode() == 0 {
@@ -489,7 +492,14 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 // It returns the session (to allow consuming output if desired).
 func (p *PodmanTestIntegration) PodmanExitCleanly(args ...string) *PodmanSessionIntegration {
 	GinkgoHelper()
-	session := p.Podman(args)
+	return p.PodmanExitCleanlyWithOptions(PodmanExecOptions{}, args...)
+}
+
+// PodmanExitCleanlyWithOptions runs a podman command with (optinos, args), and expects it to ExitCleanly within the default timeout.
+// It returns the session (to allow consuming output if desired).
+func (p *PodmanTestIntegration) PodmanExitCleanlyWithOptions(options PodmanExecOptions, args ...string) *PodmanSessionIntegration {
+	GinkgoHelper()
+	session := p.PodmanWithOptions(options, args...)
 	session.WaitWithDefaultTimeout()
 	Expect(session).Should(ExitCleanly())
 	return session
@@ -679,7 +689,7 @@ func (p *PodmanTestIntegration) BuildImageWithLabel(dockerfile, imageName string
 
 // PodmanPID execs podman and returns its PID
 func (p *PodmanTestIntegration) PodmanPID(args []string) (*PodmanSessionIntegration, int) {
-	podmanOptions := p.MakeOptions(args, false, false)
+	podmanOptions := p.MakeOptions(args, PodmanExecOptions{})
 	GinkgoWriter.Printf("Running: %s %s\n", p.PodmanBinary, strings.Join(podmanOptions, " "))
 
 	command := exec.Command(p.PodmanBinary, podmanOptions...)
@@ -1060,7 +1070,12 @@ func SkipIfNetavark(p *PodmanTestIntegration) {
 
 // PodmanAsUser is the exec call to podman on the filesystem with the specified uid/gid and environment
 func (p *PodmanTestIntegration) PodmanAsUser(args []string, uid, gid uint32, cwd string, env []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanAsUserBase(args, uid, gid, cwd, env, false, false, nil, nil)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		UID: uid,
+		GID: gid,
+		CWD: cwd,
+		Env: env,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -1119,7 +1134,9 @@ func rmAll(podmanBin string, path string) {
 
 // PodmanNoCache calls the podman command with no configured imagecache
 func (p *PodmanTestIntegration) PodmanNoCache(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, false, true)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		NoCache: true,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 
@@ -1130,12 +1147,15 @@ func PodmanTestSetup(tempDir string) *PodmanTestIntegration {
 // PodmanNoEvents calls the Podman command without an imagecache and without an
 // events backend. It is used mostly for caching and uncaching images.
 func (p *PodmanTestIntegration) PodmanNoEvents(args []string) *PodmanSessionIntegration {
-	podmanSession := p.PodmanBase(args, true, true)
+	podmanSession := p.PodmanExecBaseWithOptions(args, PodmanExecOptions{
+		NoEvents: true,
+		NoCache:  true,
+	})
 	return &PodmanSessionIntegration{podmanSession}
 }
 
 // MakeOptions assembles all the podman main options
-func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache bool) []string {
+func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOptions) []string {
 	if p.RemoteTest {
 		if !slices.Contains(args, "--remote") {
 			return append([]string{"--remote", "--url", p.RemoteSocket}, args...)
@@ -1149,7 +1169,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 	}
 
 	eventsType := "file"
-	if noEvents {
+	if options.NoEvents {
 		eventsType = "none"
 	}
 
@@ -1157,7 +1177,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, noEvents, noCache boo
 		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType, p.DatabaseBackend), " ")
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
-	if !noCache {
+	if !options.NoCache {
 		cacheOptions := []string{"--storage-opt",
 			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
 		podmanOptions = append(cacheOptions, podmanOptions...)

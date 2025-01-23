@@ -49,7 +49,7 @@ var _ = Describe("Systemd activate", func() {
 		Expect(err).ToNot(HaveOccurred())
 		addr := net.JoinHostPort(host, strconv.Itoa(port))
 
-		podmanOptions := podmanTest.makeOptions(nil, false, false)
+		podmanOptions := podmanTest.makeOptions(nil, testUtils.PodmanExecOptions{})
 
 		systemdArgs := []string{
 			"-E", "http_proxy", "-E", "https_proxy", "-E", "no_proxy",

@@ -36,7 +36,7 @@ var _ = Describe("Podman mount", func() {
 
 		// command: podman <options> unshare podman <options> mount cid
 		args := []string{"unshare", podmanTest.PodmanBinary}
-		opts := podmanTest.PodmanMakeOptions([]string{"mount", cid}, false, false)
+		opts := podmanTest.PodmanMakeOptions([]string{"mount", cid}, PodmanExecOptions{})
 		args = append(args, opts...)
 
 		// container root file system location is podmanTest.TempDir/...
@@ -59,7 +59,7 @@ var _ = Describe("Podman mount", func() {
 
 		// command: podman <options> unshare podman <options> image mount IMAGE
 		args := []string{"unshare", podmanTest.PodmanBinary}
-		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", CITEST_IMAGE}, false, false)
+		opts := podmanTest.PodmanMakeOptions([]string{"image", "mount", CITEST_IMAGE}, PodmanExecOptions{})
 		args = append(args, opts...)
 
 		// image location is podmanTest.TempDir/... because "--root podmanTest.TempDir/..."

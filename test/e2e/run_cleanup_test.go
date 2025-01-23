@@ -61,7 +61,7 @@ var _ = Describe("Podman run exit", func() {
 
 		// command: podman <options> unshare podman <options> image mount ALPINE
 		args := []string{"unshare", podmanTest.PodmanBinary}
-		opts := podmanTest.PodmanMakeOptions([]string{"mount", "--no-trunc"}, false, false)
+		opts := podmanTest.PodmanMakeOptions([]string{"mount", "--no-trunc"}, PodmanExecOptions{})
 		args = append(args, opts...)
 
 		pmount := podmanTest.Podman(args)

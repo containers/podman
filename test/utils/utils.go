@@ -55,7 +55,7 @@ var (
 // PodmanTestCommon contains common functions will be updated later in
 // the inheritance structs
 type PodmanTestCommon interface {
-	MakeOptions(args []string, noEvents, noCache bool) []string
+	MakeOptions(args []string, options PodmanExecOptions) []string
 	WaitForContainer() bool
 	WaitContainerReady(id string, expStr string, timeout int, step int) bool
 }
@@ -67,7 +67,7 @@ type PodmanTest struct {
 	NetworkBackend     NetworkBackend
 	DatabaseBackend    string
 	PodmanBinary       string
-	PodmanMakeOptions  func(args []string, noEvents, noCache bool) []string
+	PodmanMakeOptions  func(args []string, options PodmanExecOptions) []string
 	RemoteCommand      *exec.Cmd
 	RemotePodmanBinary string
 	RemoteSession      *os.Process
@@ -90,20 +90,32 @@ type HostOS struct {
 }
 
 // MakeOptions assembles all podman options
-func (p *PodmanTest) MakeOptions(args []string, noEvents, noCache bool) []string {
-	return p.PodmanMakeOptions(args, noEvents, noCache)
+func (p *PodmanTest) MakeOptions(args []string, options PodmanExecOptions) []string {
+	return p.PodmanMakeOptions(args, options)
 }
 
-// PodmanAsUserBase exec podman as user. uid and gid is set for credentials usage. env is used
-// to record the env for debugging
-func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string, env []string, noEvents, noCache bool, wrapper []string, extraFiles []*os.File) *PodmanSession {
+// PodmanExecOptions modify behavior of PodmanTest.PodmanExecBaseWithOptions and its callers.
+// Users should typically leave most fields default-initialized, and only set those that are relevant to them.
+type PodmanExecOptions struct {
+	UID, GID   uint32   // default: inherited form the current process
+	CWD        string   // default: inherited form the current process
+	Env        []string // default: inherited form the current process
+	NoEvents   bool
+	NoCache    bool
+	Wrapper    []string // A command to run, receiving the Podman command line. default: none
+	ExtraFiles []*os.File
+}
+
+// PodmanExecBaseWithOptions execs podman with the specified args, and in an environment defined by options
+func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExecOptions) *PodmanSession {
 	var command *exec.Cmd
-	podmanOptions := p.MakeOptions(args, noEvents, noCache)
+	podmanOptions := p.MakeOptions(args, options)
 	podmanBinary := p.PodmanBinary
 	if p.RemoteTest {
 		podmanBinary = p.RemotePodmanBinary
 	}
 
+	runCmd := options.Wrapper
 	if timeDir := os.Getenv(EnvTimeDir); timeDir != "" {
 		timeFile, err := os.CreateTemp(timeDir, ".time")
 		if err != nil {
@@ -111,18 +123,17 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		}
 		timeArgs := []string{"-f", "%M", "-o", timeFile.Name()}
 		timeCmd := append([]string{"/usr/bin/time"}, timeArgs...)
-		wrapper = append(timeCmd, wrapper...)
+		runCmd = append(timeCmd, runCmd...)
 	}
-	runCmd := wrapper
 	runCmd = append(runCmd, podmanBinary)
 
-	if env == nil {
+	if options.Env == nil {
 		GinkgoWriter.Printf("Running: %s %s\n", strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	} else {
-		GinkgoWriter.Printf("Running: (env: %v) %s %s\n", env, strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
+		GinkgoWriter.Printf("Running: (env: %v) %s %s\n", options.Env, strings.Join(runCmd, " "), strings.Join(podmanOptions, " "))
 	}
-	if uid != 0 || gid != 0 {
-		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", gid, uid, cwd)
+	if options.UID != 0 || options.GID != 0 {
+		pythonCmd := fmt.Sprintf("import os; import sys; uid = %d; gid = %d; cwd = '%s'; os.setgid(gid); os.setuid(uid); os.chdir(cwd) if len(cwd)>0 else True; os.execv(sys.argv[1], sys.argv[1:])", options.GID, options.UID, options.CWD)
 		runCmd = append(runCmd, podmanOptions...)
 		nsEnterOpts := append([]string{"-c", pythonCmd}, runCmd...)
 		command = exec.Command("python", nsEnterOpts...)
@@ -130,25 +141,20 @@ func (p *PodmanTest) PodmanAsUserBase(args []string, uid, gid uint32, cwd string
 		runCmd = append(runCmd, podmanOptions...)
 		command = exec.Command(runCmd[0], runCmd[1:]...)
 	}
-	if env != nil {
-		command.Env = env
+	if options.Env != nil {
+		command.Env = options.Env
 	}
-	if cwd != "" {
-		command.Dir = cwd
+	if options.CWD != "" {
+		command.Dir = options.CWD
 	}
 
-	command.ExtraFiles = extraFiles
+	command.ExtraFiles = options.ExtraFiles
 
 	session, err := Start(command, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run podman command: %s\n%v", strings.Join(podmanOptions, " "), err))
 	}
 	return &PodmanSession{session}
-}
-
-// PodmanBase exec podman with default env.
-func (p *PodmanTest) PodmanBase(args []string, noEvents, noCache bool) *PodmanSession {
-	return p.PodmanAsUserBase(args, 0, 0, "", nil, noEvents, noCache, nil, nil)
 }
 
 // WaitForContainer waits on a started container
@@ -167,7 +173,9 @@ func (p *PodmanTest) WaitForContainer() bool {
 // containers are currently running.
 func (p *PodmanTest) NumberOfContainersRunning() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-q"}, false, true)
+	ps := p.PodmanExecBaseWithOptions([]string{"ps", "-q"}, PodmanExecOptions{
+		NoCache: true,
+	})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps).Should(Exit(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -182,7 +190,9 @@ func (p *PodmanTest) NumberOfContainersRunning() int {
 // containers are currently defined.
 func (p *PodmanTest) NumberOfContainers() int {
 	var containers []string
-	ps := p.PodmanBase([]string{"ps", "-aq"}, false, true)
+	ps := p.PodmanExecBaseWithOptions([]string{"ps", "-aq"}, PodmanExecOptions{
+		NoCache: true,
+	})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -197,7 +207,9 @@ func (p *PodmanTest) NumberOfContainers() int {
 // pods are currently defined.
 func (p *PodmanTest) NumberOfPods() int {
 	var pods []string
-	ps := p.PodmanBase([]string{"pod", "ps", "-q"}, false, true)
+	ps := p.PodmanExecBaseWithOptions([]string{"pod", "ps", "-q"}, PodmanExecOptions{
+		NoCache: true,
+	})
 	ps.WaitWithDefaultTimeout()
 	Expect(ps.ExitCode()).To(Equal(0))
 	for _, i := range ps.OutputToStringArray() {
@@ -213,7 +225,9 @@ func (p *PodmanTest) NumberOfPods() int {
 func (p *PodmanTest) GetContainerStatus() string {
 	var podmanArgs = []string{"ps"}
 	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
-	session := p.PodmanBase(podmanArgs, false, true)
+	session := p.PodmanExecBaseWithOptions(podmanArgs, PodmanExecOptions{
+		NoCache: true,
+	})
 	session.WaitWithDefaultTimeout()
 	return session.OutputToString()
 }
@@ -221,7 +235,9 @@ func (p *PodmanTest) GetContainerStatus() string {
 // WaitContainerReady waits process or service inside container start, and ready to be used.
 func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, step int) bool {
 	startTime := time.Now()
-	s := p.PodmanBase([]string{"logs", id}, false, true)
+	s := p.PodmanExecBaseWithOptions([]string{"logs", id}, PodmanExecOptions{
+		NoCache: true,
+	})
 	s.WaitWithDefaultTimeout()
 
 	for {
@@ -234,7 +250,9 @@ func (p *PodmanTest) WaitContainerReady(id string, expStr string, timeout int, s
 			return false
 		}
 		time.Sleep(time.Duration(step) * time.Second)
-		s = p.PodmanBase([]string{"logs", id}, false, true)
+		s = p.PodmanExecBaseWithOptions([]string{"logs", id}, PodmanExecOptions{
+			NoCache: true,
+		})
 		s.WaitWithDefaultTimeout()
 	}
 }
