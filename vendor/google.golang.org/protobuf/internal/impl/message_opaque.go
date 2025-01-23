@@ -142,7 +142,7 @@ func (mi *MessageInfo) fieldInfoForMapOpaque(si opaqueStructInfo, fd protoreflec
 	if ft.Kind() != reflect.Map {
 		panic(fmt.Sprintf("invalid type: got %v, want map kind", ft))
 	}
-	fieldOffset := offsetOf(fs, mi.Exporter)
+	fieldOffset := offsetOf(fs)
 	conv := NewConverter(ft, fd)
 	return fieldInfo{
 		fieldDesc: fd,
@@ -196,7 +196,7 @@ func (mi *MessageInfo) fieldInfoForScalarListOpaque(si opaqueStructInfo, fd prot
 		panic(fmt.Sprintf("invalid type: got %v, want slice kind", ft))
 	}
 	conv := NewConverter(reflect.PtrTo(ft), fd)
-	fieldOffset := offsetOf(fs, mi.Exporter)
+	fieldOffset := offsetOf(fs)
 	index, _ := presenceIndex(mi.Desc, fd)
 	return fieldInfo{
 		fieldDesc: fd,
@@ -246,7 +246,7 @@ func (mi *MessageInfo) fieldInfoForMessageListOpaque(si opaqueStructInfo, fd pro
 		panic(fmt.Sprintf("invalid type: got %v, want slice kind", ft))
 	}
 	conv := NewConverter(ft, fd)
-	fieldOffset := offsetOf(fs, mi.Exporter)
+	fieldOffset := offsetOf(fs)
 	index, _ := presenceIndex(mi.Desc, fd)
 	fieldNumber := fd.Number()
 	return fieldInfo{
@@ -339,7 +339,7 @@ func (mi *MessageInfo) fieldInfoForMessageListOpaqueNoPresence(si opaqueStructIn
 		panic(fmt.Sprintf("invalid type: got %v, want slice kind", ft))
 	}
 	conv := NewConverter(ft, fd)
-	fieldOffset := offsetOf(fs, mi.Exporter)
+	fieldOffset := offsetOf(fs)
 	return fieldInfo{
 		fieldDesc: fd,
 		has: func(p pointer) bool {
@@ -411,7 +411,7 @@ func (mi *MessageInfo) fieldInfoForScalarOpaque(si opaqueStructInfo, fd protoref
 		deref = true
 	}
 	conv := NewConverter(ft, fd)
-	fieldOffset := offsetOf(fs, mi.Exporter)
+	fieldOffset := offsetOf(fs)
 	index, _ := presenceIndex(mi.Desc, fd)
 	var getter func(p pointer) protoreflect.Value
 	if !nullable {
@@ -480,7 +480,7 @@ func (mi *MessageInfo) fieldInfoForScalarOpaque(si opaqueStructInfo, fd protoref
 func (mi *MessageInfo) fieldInfoForMessageOpaque(si opaqueStructInfo, fd protoreflect.FieldDescriptor, fs reflect.StructField) fieldInfo {
 	ft := fs.Type
 	conv := NewConverter(ft, fd)
-	fieldOffset := offsetOf(fs, mi.Exporter)
+	fieldOffset := offsetOf(fs)
 	index, _ := presenceIndex(mi.Desc, fd)
 	fieldNumber := fd.Number()
 	elemType := fs.Type.Elem()
