@@ -47,6 +47,7 @@ var (
 type runUsingChrootSubprocOptions struct {
 	Spec        *specs.Spec
 	BundlePath  string
+	NoPivot     bool
 	UIDMappings []syscall.SysProcIDMap
 	GIDMappings []syscall.SysProcIDMap
 }
@@ -224,8 +225,57 @@ func makeRlimit(limit specs.POSIXRlimit) unix.Rlimit {
 	return unix.Rlimit{Cur: limit.Soft, Max: limit.Hard}
 }
 
-func createPlatformContainer(_ runUsingChrootExecSubprocOptions) error {
-	return errors.New("unsupported createPlatformContainer")
+func createPlatformContainer(options runUsingChrootExecSubprocOptions) error {
+	if options.NoPivot {
+		return errors.New("not using pivot_root()")
+	}
+	// borrowing a technique from runc, who credit the LXC maintainers for this
+	// open descriptors for the old and new root directories so that we can use fchdir()
+	oldRootFd, err := unix.Open("/", unix.O_DIRECTORY, 0)
+	if err != nil {
+		return fmt.Errorf("opening host root directory: %w", err)
+	}
+	defer func() {
+		if err := unix.Close(oldRootFd); err != nil {
+			logrus.Warnf("closing host root directory: %v", err)
+		}
+	}()
+	newRootFd, err := unix.Open(options.Spec.Root.Path, unix.O_DIRECTORY, 0)
+	if err != nil {
+		return fmt.Errorf("opening container root directory: %w", err)
+	}
+	defer func() {
+		if err := unix.Close(newRootFd); err != nil {
+			logrus.Warnf("closing container root directory: %v", err)
+		}
+	}()
+	// change to the new root directory
+	if err := unix.Fchdir(newRootFd); err != nil {
+		return fmt.Errorf("changing to container root directory: %w", err)
+	}
+	// this makes the current directory the root directory. not actually
+	// sure what happens to the other one
+	if err := unix.PivotRoot(".", "."); err != nil {
+		return fmt.Errorf("pivot_root: %w", err)
+	}
+	// go back and clean up the old one
+	if err := unix.Fchdir(oldRootFd); err != nil {
+		return fmt.Errorf("changing to host root directory: %w", err)
+	}
+	// make sure we only unmount things under this tree
+	if err := unix.Mount(".", ".", "bind", unix.MS_BIND|unix.MS_SLAVE|unix.MS_REC, ""); err != nil {
+		return fmt.Errorf("tweaking mount flags on host root directory before unmounting from mount namespace: %w", err)
+	}
+	// detach this (unnamed?) old directory
+	if err := unix.Unmount(".", unix.MNT_DETACH); err != nil {
+		return fmt.Errorf("unmounting host root directory in mount namespace: %w", err)
+	}
+	// go back to a named root directory
+	if err := unix.Fchdir(newRootFd); err != nil {
+		return fmt.Errorf("changing to container root directory at last: %w", err)
+	}
+	logrus.Debugf("pivot_root()ed into %q", options.Spec.Root.Path)
+	return nil
 }
 
 func mountFlagsForFSFlags(fsFlags uintptr) uintptr {

@@ -12,8 +12,6 @@ packages:
   buildah-centos:
     pkg_tool: centpkg
     specfile_path: rpm/buildah.spec
-  buildah-rhel:
-    specfile_path: rpm/buildah.spec
   buildah-eln:
     specfile_path: rpm/buildah.spec
 
@@ -28,14 +26,8 @@ jobs:
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
     targets:
-      - fedora-development-x86_64
-      - fedora-development-aarch64
-      - fedora-latest-x86_64
-      - fedora-latest-aarch64
-      - fedora-latest-stable-x86_64
-      - fedora-latest-stable-aarch64
-      - fedora-40-x86_64
-      - fedora-40-aarch64
+      - fedora-all-x86_64
+      - fedora-all-aarch64
     enable_net: true
 
   - job: copr_build
@@ -61,16 +53,6 @@ jobs:
       - centos-stream-10-x86_64
       - centos-stream-10-aarch64
     enable_net: true
-
-  # Disabled until there is go 1.22 in epel-9
-  # - job: copr_build
-  #   trigger: pull_request
-  #   packages: [buildah-rhel]
-  #   notifications: *copr_build_failure_notification
-  #   targets:
-  #     - epel-9-x86_64
-  #     - epel-9-aarch64
-  #   enable_net: true
 
   # Run on commit to main branch
   - job: copr_build

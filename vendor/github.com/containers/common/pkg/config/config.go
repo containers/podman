@@ -14,7 +14,6 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -96,13 +95,6 @@ type ContainersConfig struct {
 	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
 	// "memory.high=1073741824" sets the memory.high limit to 1GB.
 	CgroupConf attributedstring.Slice `toml:"cgroup_conf,omitempty"`
-
-	// When no hostname is set for a container, use the container's name, with
-	// characters not valid for a hostname removed, as the hostname instead of
-	// the first 12 characters of the container's ID. Containers not running
-	// in a private UTS namespace will have their hostname set to the host's
-	// hostname regardless of this setting.
-	ContainerNameAsHostName bool `toml:"container_name_as_hostname,omitempty"`
 
 	// Capabilities to add to all containers.
 	DefaultCapabilities attributedstring.Slice `toml:"default_capabilities,omitempty"`
@@ -741,13 +733,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 
 	session, found := os.LookupEnv("DBUS_SESSION_BUS_ADDRESS")
 	if !found {
-		xdgRuntimeDir := os.Getenv("XDG_RUNTIME_DIR")
-		if xdgRuntimeDir == "" {
-			if dir, err := homedir.GetRuntimeDir(); err == nil {
-				xdgRuntimeDir = dir
-			}
-		}
-		sessionAddr := filepath.Join(xdgRuntimeDir, "bus")
+		sessionAddr := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "bus")
 		if err := fileutils.Exists(sessionAddr); err == nil {
 			sessionAddr, err = filepath.EvalSymlinks(sessionAddr)
 			if err == nil {

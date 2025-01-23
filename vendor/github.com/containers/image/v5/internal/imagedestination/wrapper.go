@@ -14,7 +14,6 @@ import (
 // wrapped provides the private.ImageDestination operations
 // for a destination that only implements types.ImageDestination
 type wrapped struct {
-	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 
 	types.ImageDestination

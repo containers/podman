@@ -62,6 +62,8 @@ type CommonBuildOptions struct {
 	// LabelOpts is a slice of the fields of an SELinux context, given in "field:pair" format, or "disable".
 	// Recognized field names are "role", "type", and "level".
 	LabelOpts []string
+	// Paths to mask
+	Masks []string
 	// MemorySwap limits the amount of memory and swap together.
 	MemorySwap int64
 	// NoHostname tells the builder not to create /etc/hostname content when running
@@ -109,6 +111,8 @@ type CommonBuildOptions struct {
 	SSHSources []string
 	// OCIHooksDir is the location of OCI hooks for the build containers
 	OCIHooksDir []string
+	// Paths to unmask
+	Unmasks []string
 }
 
 // BuildOptions can be used to alter how an image is built.

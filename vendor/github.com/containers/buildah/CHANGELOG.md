@@ -123,7 +123,7 @@
     Add PrependedLinkedLayers/AppendedLinkedLayers to CommitOptions
     integration tests: teach starthttpd() about TLS and pid files
 
-## vv1.37.0 (2024-07-26)
+## v1.37.0 (2024-07-26)
 
     Bump c/storage, c/image, c/common for v1.37.0
     "build with basename resolving user arg" tests: correct ARG use

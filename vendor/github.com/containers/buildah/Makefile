@@ -38,7 +38,12 @@ CNI_COMMIT := $(shell sed -n 's;^$(COMMENT) github.com/containernetworking/cni \
 
 EXTRA_LDFLAGS ?=
 BUILDAH_LDFLAGS := $(GO_LDFLAGS) '-X main.GitCommit=$(GIT_COMMIT) -X main.buildInfo=$(SOURCE_DATE_EPOCH) -X main.cniVersion=$(CNI_COMMIT) $(EXTRA_LDFLAGS)'
-SOURCES=*.go imagebuildah/*.go bind/*.go chroot/*.go copier/*.go define/*.go docker/*.go internal/config/*.go internal/mkcw/*.go internal/mkcw/types/*.go internal/parse/*.go internal/sbom/*.go internal/source/*.go internal/tmpdir/*.go internal/*.go internal/util/*.go internal/volumes/*.go manifests/*.go pkg/binfmt/*.go pkg/blobcache/*.go pkg/chrootuser/*.go pkg/cli/*.go pkg/completion/*.go pkg/formats/*.go pkg/jail/*.go pkg/overlay/*.go pkg/parse/*.go pkg/rusage/*.go pkg/sshagent/*.go pkg/umask/*.go pkg/util/*.go pkg/volumes/*.go util/*.go
+
+# This isn't what we actually build; it's a superset, used for target
+# dependencies. Basically: all *.go and *.c files, except *_test.go,
+# and except anything in a dot subdirectory. If any of these files is
+# newer than our target (bin/buildah), a rebuild is triggered.
+SOURCES=$(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
 
 LINTFLAGS ?=
 
@@ -68,7 +73,7 @@ static:
 	mkdir -p ./bin
 	cp -rfp ./result/bin/* ./bin/
 
-bin/buildah: $(SOURCES) cmd/buildah/*.go internal/mkcw/embed/entrypoint_amd64.gz
+bin/buildah: $(SOURCES) internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 	test -z "${SELINUXOPT}" || chcon --verbose -t $(SELINUXTYPE) $@
 
@@ -94,17 +99,17 @@ FREEBSD_CROSS_TARGETS := $(filter bin/buildah.freebsd.%,$(ALL_CROSS_TARGETS))
 .PHONY: cross
 cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $(FREEBSD_CROSS_TARGETS)
 
-bin/buildah.%:
+bin/buildah.%: $(SOURCES)
 	mkdir -p ./bin
 	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
 
-bin/imgtype: $(SOURCES) tests/imgtype/imgtype.go
+bin/imgtype: $(SOURCES)
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go
 
-bin/copy: $(SOURCES) tests/copy/copy.go
+bin/copy: $(SOURCES)
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/copy/copy.go
 
-bin/tutorial: $(SOURCES) tests/tutorial/tutorial.go
+bin/tutorial: $(SOURCES)
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/tutorial/tutorial.go
 
 bin/inet: tests/inet/inet.go
@@ -127,7 +132,6 @@ validate: install.tools
 	./tests/validate/whitespace.sh
 	./hack/xref-helpmsgs-manpages
 	./tests/validate/pr-should-include-tests
-	./hack/makefile_sources
 
 .PHONY: install.tools
 install.tools:

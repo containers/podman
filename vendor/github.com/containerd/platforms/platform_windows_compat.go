@@ -16,9 +16,16 @@
 
 package platforms
 
-// osVersion is a wrapper for Windows version information
+import (
+	"strconv"
+	"strings"
+
+	specs "github.com/opencontainers/image-spec/specs-go/v1"
+)
+
+// windowsOSVersion is a wrapper for Windows version information
 // https://msdn.microsoft.com/en-us/library/windows/desktop/ms724439(v=vs.85).aspx
-type osVersion struct {
+type windowsOSVersion struct {
 	Version      uint32
 	MajorVersion uint8
 	MinorVersion uint8
@@ -55,7 +62,7 @@ var compatLTSCReleases = []uint16{
 // Every release after WS 2022 will support the previous ltsc
 // container image. Stable ABI is in preview mode for windows 11 client.
 // Refer: https://learn.microsoft.com/en-us/virtualization/windowscontainers/deploy-containers/version-compatibility?tabs=windows-server-2022%2Cwindows-10#windows-server-host-os-compatibility
-func checkHostAndContainerCompat(host, ctr osVersion) bool {
+func checkWindowsHostAndContainerCompat(host, ctr windowsOSVersion) bool {
 	// check major minor versions of host and guest
 	if host.MajorVersion != ctr.MajorVersion ||
 		host.MinorVersion != ctr.MinorVersion {
@@ -75,4 +82,75 @@ func checkHostAndContainerCompat(host, ctr osVersion) bool {
 		}
 	}
 	return ctr.Build >= supportedLtscRelease && ctr.Build <= host.Build
+}
+
+func getWindowsOSVersion(osVersionPrefix string) windowsOSVersion {
+	if strings.Count(osVersionPrefix, ".") < 2 {
+		return windowsOSVersion{}
+	}
+
+	major, extra, _ := strings.Cut(osVersionPrefix, ".")
+	minor, extra, _ := strings.Cut(extra, ".")
+	build, _, _ := strings.Cut(extra, ".")
+
+	majorVersion, err := strconv.ParseUint(major, 10, 8)
+	if err != nil {
+		return windowsOSVersion{}
+	}
+
+	minorVersion, err := strconv.ParseUint(minor, 10, 8)
+	if err != nil {
+		return windowsOSVersion{}
+	}
+	buildNumber, err := strconv.ParseUint(build, 10, 16)
+	if err != nil {
+		return windowsOSVersion{}
+	}
+
+	return windowsOSVersion{
+		MajorVersion: uint8(majorVersion),
+		MinorVersion: uint8(minorVersion),
+		Build:        uint16(buildNumber),
+	}
+}
+
+func winRevision(v string) int {
+	parts := strings.Split(v, ".")
+	if len(parts) < 4 {
+		return 0
+	}
+	r, err := strconv.Atoi(parts[3])
+	if err != nil {
+		return 0
+	}
+	return r
+}
+
+type windowsVersionMatcher struct {
+	windowsOSVersion
+}
+
+func (m windowsVersionMatcher) Match(v string) bool {
+	if m.isEmpty() || v == "" {
+		return true
+	}
+	osv := getWindowsOSVersion(v)
+	return checkWindowsHostAndContainerCompat(m.windowsOSVersion, osv)
+}
+
+func (m windowsVersionMatcher) isEmpty() bool {
+	return m.MajorVersion == 0 && m.MinorVersion == 0 && m.Build == 0
+}
+
+type windowsMatchComparer struct {
+	Matcher
+}
+
+func (c *windowsMatchComparer) Less(p1, p2 specs.Platform) bool {
+	m1, m2 := c.Match(p1), c.Match(p2)
+	if m1 && m2 {
+		r1, r2 := winRevision(p1.OSVersion), winRevision(p2.OSVersion)
+		return r1 > r2
+	}
+	return m1 && !m2
 }

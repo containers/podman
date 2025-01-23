@@ -109,7 +109,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		}
 	}
 
-	if err := prepareImageConfigForDest(ctx, c.options.DestinationCtx, src, c.dest); err != nil {
+	if err := checkImageDestinationForCurrentRuntime(ctx, c.options.DestinationCtx, src, c.dest); err != nil {
 		return copySingleImageResult{}, err
 	}
 
@@ -316,15 +316,12 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	return res, nil
 }
 
-// prepareImageConfigForDest enforces dest.MustMatchRuntimeOS and handles dest.NoteOriginalOCIConfig, if necessary.
-func prepareImageConfigForDest(ctx context.Context, sys *types.SystemContext, src types.Image, dest private.ImageDestination) error {
-	ociConfig, configErr := src.OCIConfig(ctx)
-	// Do not fail on configErr here, this might be an artifact
-	// and maybe nothing needs this to be a container image and to process the config.
-
+// checkImageDestinationForCurrentRuntime enforces dest.MustMatchRuntimeOS, if necessary.
+func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.SystemContext, src types.Image, dest types.ImageDestination) error {
 	if dest.MustMatchRuntimeOS() {
-		if configErr != nil {
-			return fmt.Errorf("parsing image configuration: %w", configErr)
+		c, err := src.OCIConfig(ctx)
+		if err != nil {
+			return fmt.Errorf("parsing image configuration: %w", err)
 		}
 		wantedPlatforms := platform.WantedPlatforms(sys)
 
@@ -334,7 +331,7 @@ func prepareImageConfigForDest(ctx context.Context, sys *types.SystemContext, sr
 			// For a transitional period, this might trigger warnings because the Variant
 			// field was added to OCI config only recently. If this turns out to be too noisy,
 			// revert this check to only look for (OS, Architecture).
-			if platform.MatchesPlatform(ociConfig.Platform, wantedPlatform) {
+			if platform.MatchesPlatform(c.Platform, wantedPlatform) {
 				match = true
 				break
 			}
@@ -342,14 +339,9 @@ func prepareImageConfigForDest(ctx context.Context, sys *types.SystemContext, sr
 		}
 		if !match {
 			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q+%q, expecting one of %q",
-				ociConfig.OS, ociConfig.Architecture, ociConfig.Variant, strings.Join(options.list, ", "))
+				c.OS, c.Architecture, c.Variant, strings.Join(options.list, ", "))
 		}
 	}
-
-	if err := dest.NoteOriginalOCIConfig(ociConfig, configErr); err != nil {
-		return err
-	}
-
 	return nil
 }
 
