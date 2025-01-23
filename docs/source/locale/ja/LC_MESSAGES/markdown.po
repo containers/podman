@@ -1108,14 +1108,14 @@ msgid ""
 "container or Kubernetes workloads must run inside a systemd unit. After a"
 " successful update of an image, the containers using the image get "
 "updated by restarting the systemd units they run in. Please refer to "
-"`quadlet(5)` on how to run Podman under systemd."
+"`podman-systemd.unit(5)` on how to run Podman under systemd."
 msgstr ""
 
 #: ../../source/markdown/podman-auto-update.1.md:16
 msgid ""
 "To configure a container for auto updates, it must be created with the "
 "`io.containers.autoupdate` label or the `AutoUpdate` field in "
-"`quadlet(5)` with one of the following two values:"
+"`podman-systemd.unit(5)` with one of the following two values:"
 msgstr ""
 
 #: ../../source/markdown/podman-auto-update.1.md:18
@@ -1148,7 +1148,7 @@ msgstr ""
 #: ../../source/markdown/podman-auto-update.1.md:31
 msgid ""
 "Podman supports auto updates for Kubernetes workloads.  The auto-update "
-"policy can be configured directly via `quadlet(5)` or inside the "
+"policy can be configured directly via `podman-systemd.unit(5)` or inside the "
 "Kubernetes YAML with the Podman-specific annotations mentioned below:"
 msgstr ""
 
@@ -32151,7 +32151,7 @@ msgstr ""
 #: ../../source/markdown/podmansh.1.md:130
 msgid ""
 "**[podman(1)](podman.1.md)**, **[podman-exec(1)](podman-exec.1.md)**, "
-"**quadlet(5)**"
+"**[podman-systemd.unit(5)](podman-systemd.unit.5.md)**"
 msgstr ""
 
 #: ../../source/markdown/podmansh.1.md:133
