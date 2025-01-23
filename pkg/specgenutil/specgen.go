@@ -550,12 +550,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Entrypoint = entrypoint
 	}
 
-	// Include the command used to create the container.
-
-	if len(s.ContainerCreateCommand) == 0 {
-		s.ContainerCreateCommand = os.Args
-	}
-
 	if len(inputCommand) > 0 {
 		s.Command = inputCommand
 	}

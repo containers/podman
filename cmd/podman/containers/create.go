@@ -161,6 +161,9 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	s.RawImageName = rawImageName
 
+	// Include the command used to create the container.
+	s.ContainerCreateCommand = os.Args
+
 	if err := createPodIfNecessary(cmd, s, cliVals.Net); err != nil {
 		return err
 	}

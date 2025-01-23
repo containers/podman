@@ -191,12 +191,15 @@ cid=$(jq -r '.Id' <<<"$output")
 t POST   libpod/containers/${cid}/start 204
 # Container should exit almost immediately. Wait for it, confirm successful run
 t POST   "libpod/containers/${cid}/wait?condition=stopped&condition=exited"  200 '0'
+
+# Regression check for #15036 (Umask) and #25026 (CreateCommand)
 t GET    libpod/containers/${cid}/json 200 \
   .Id=$cid \
   .State.Status~\\\(exited\\\|stopped\\\) \
   .State.Running=false \
   .State.ExitCode=0 \
-  .Config.Umask=0022 # regression check for #15036
+  .Config.Umask=0022 \
+  .Config.CreateCommand=null
 t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 CNAME=myfoo
@@ -309,6 +312,11 @@ t GET containers/$cid/json 200 \
   .Path="echo" \
   .Args[0]="param1" \
   .Args[1]="param2"
+# Regression check for #25026 (CreateCommand)
+t GET    libpod/containers/${cid}/json 200 \
+  .Id=$cid \
+  .Config.CreateCommand=null
+
 t DELETE containers/$cid 204
 
 # test only set the entrypoint, Cmd should be []
