@@ -24,9 +24,6 @@ const (
 	// DefaultSubnet is the subnet that will be used for the default CNI network.
 	DefaultSubnet = "10.88.0.0/16"
 
-	BridgeModeManaged   = "managed"
-	BridgeModeUnmanaged = "unmanaged"
-
 	// valid macvlan driver mode values
 	MacVLANModeBridge   = "bridge"
 	MacVLANModePrivate  = "private"
@@ -55,9 +52,6 @@ const (
 	CNI      NetworkBackend = "cni"
 	Netavark NetworkBackend = "netavark"
 )
-
-// ValidBridgeModes is the list of valid mode options for the bridge driver
-var ValidBridgeModes = []string{BridgeModeManaged, BridgeModeUnmanaged}
 
 // ValidMacVLANModes is the list of valid mode options for the macvlan driver
 var ValidMacVLANModes = []string{MacVLANModeBridge, MacVLANModePrivate, MacVLANModeVepa, MacVLANModePassthru}

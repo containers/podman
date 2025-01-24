@@ -30,9 +30,6 @@ func sliceRemoveDuplicates(strList []string) []string {
 }
 
 func (n *netavarkNetwork) commitNetwork(network *types.Network) error {
-	if err := os.MkdirAll(n.networkConfigDir, 0o755); err != nil {
-		return nil
-	}
 	confPath := filepath.Join(n.networkConfigDir, network.Name+".json")
 	f, err := os.Create(confPath)
 	if err != nil {
@@ -209,10 +206,6 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 			case types.VRFOption:
 				if len(value) == 0 {
 					return nil, errors.New("invalid vrf name")
-				}
-			case types.ModeOption:
-				if !slices.Contains(types.ValidBridgeModes, value) {
-					return nil, fmt.Errorf("unknown bridge mode %q", value)
 				}
 			default:
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)

@@ -379,6 +379,4 @@ type BuildOptions struct {
 	// provides a minimal initial configuration with a working directory
 	// set in it.
 	CompatScratchConfig types.OptionalBool
-	// NoPivotRoot inhibits the usage of pivot_root when setting up the rootfs
-	NoPivotRoot bool
 }

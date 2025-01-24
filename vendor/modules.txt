@@ -147,7 +147,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.38.1-0.20241119213149-52437ef15d33
+# github.com/containers/buildah v1.38.1
 ## explicit; go 1.22.6
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -160,6 +160,7 @@ github.com/containers/buildah/internal
 github.com/containers/buildah/internal/config
 github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
+github.com/containers/buildah/internal/open
 github.com/containers/buildah/internal/parse
 github.com/containers/buildah/internal/sbom
 github.com/containers/buildah/internal/tmpdir
@@ -178,7 +179,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.61.1-0.20250120135258-06628cb958e9
+# github.com/containers/common v0.61.1
 ## explicit; go 1.22.6
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
