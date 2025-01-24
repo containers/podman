@@ -1,7 +1,6 @@
 package define
 
 import (
-	"bufio"
 	"io"
 
 	"github.com/containers/common/libnetwork/types"
@@ -55,7 +54,7 @@ type AttachStreams struct {
 	// ErrorStream will be attached to container's STDERR
 	ErrorStream io.Writer
 	// InputStream will be attached to container's STDIN
-	InputStream *bufio.Reader
+	InputStream io.Reader
 	// AttachOutput is whether to attach to STDOUT
 	// If false, stdout will not be attached
 	AttachOutput bool
