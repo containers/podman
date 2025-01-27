@@ -10,7 +10,7 @@
 	<?define UseGVProxy = ""?>
 	<?endif?>
 
-	<Package Name="podman" Manufacturer="Red Hat Inc." Version="$(VERSION)" UpgradeCode="a6a9dd9c-0732-44ba-9279-ffe22ea50671" ProductCode="18107131-1820-4878-8AEE-65AAE37BC1E3">
+	<Package Name="podman" Manufacturer="Red Hat Inc." Version="$(VERSION)" UpgradeCode="a6a9dd9c-0732-44ba-9279-ffe22ea50671">
 		<Media Id="1" Cabinet="Podman.cab" EmbedCab="yes" />
 		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." RemoveFeatures="Complete" Schedule="afterInstallExecute" />
 		<Property Id="DiskPrompt" Value="Red Hat's Podman $(VERSION) Installation" />
