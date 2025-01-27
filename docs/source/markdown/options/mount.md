@@ -31,6 +31,7 @@ Options specific to type=**volume**:
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
 
 - *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
+  The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmaped file systems for unprivileged users.
   The idmap option supports a custom mapping that can be different than the user namespace used by the container.
   The mapping can be specified after the idmap option like: `idmap=uids=0-1-10#10-11-10;gids=0-100-10`.  For each triplet, the first value is the
   start of the backing file system IDs that are mapped to the second value on the host.  The length of this mapping is given in the third value.
@@ -53,7 +54,7 @@ Options specific to **bind** and **glob**:
 
 - *relabel*: *shared*, *private*.
 
-- *idmap*: *true* or *false* (default if unspecified: *false*).  If true, create an idmapped mount to the target user namespace in the container.
+- *idmap*: *true* or *false* (default if unspecified: *false*).  If true, create an idmapped mount to the target user namespace in the container. The idmap option is only supported by Podman in rootful mode.
 
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
 
