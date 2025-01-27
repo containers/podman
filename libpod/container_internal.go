@@ -1546,6 +1546,14 @@ func (c *Container) pause() error {
 		}
 	}
 
+	if c.state.HCUnitName != "" {
+		if err := c.removeTransientFiles(context.Background(),
+			c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed,
+			c.state.HCUnitName); err != nil {
+			return fmt.Errorf("failed to remove HealthCheck timer: %v", err)
+		}
+	}
+
 	if err := c.ociRuntime.PauseContainer(c); err != nil {
 		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
@@ -1554,6 +1562,7 @@ func (c *Container) pause() error {
 	logrus.Debugf("Paused container %s", c.ID())
 
 	c.state.State = define.ContainerStatePaused
+	c.state.HCUnitName = ""
 
 	return c.save()
 }
@@ -1567,6 +1576,28 @@ func (c *Container) unpause() error {
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {
 		// TODO when using docker-py there is some sort of race/incompatibility here
 		return err
+	}
+
+	isStartupHealthCheck := c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed
+	isHealthCheckEnabled := c.config.HealthCheckConfig != nil &&
+		!(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE")
+	if isHealthCheckEnabled || isStartupHealthCheck {
+		timer := c.config.HealthCheckConfig.Interval.String()
+		if isStartupHealthCheck {
+			timer = c.config.StartupHealthCheckConfig.Interval.String()
+		}
+		if err := c.createTimer(timer, isStartupHealthCheck); err != nil {
+			return err
+		}
+	}
+
+	if isHealthCheckEnabled {
+		if err := c.updateHealthStatus(define.HealthCheckReset); err != nil {
+			return err
+		}
+		if err := c.startTimer(isStartupHealthCheck); err != nil {
+			return err
+		}
 	}
 
 	logrus.Debugf("Unpaused container %s", c.ID())
