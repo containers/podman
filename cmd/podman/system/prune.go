@@ -48,6 +48,7 @@ func init() {
 	flags.BoolVarP(&force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
 	flags.BoolVarP(&pruneOptions.All, "all", "a", false, "Remove all unused data")
 	flags.BoolVar(&pruneOptions.External, "external", false, "Remove container data in storage not controlled by podman")
+	flags.BoolVar(&pruneOptions.Build, "build", false, "Remove build containers")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
@@ -64,8 +65,12 @@ func prune(cmd *cobra.Command, args []string) error {
 			volumeString = `
 	- all volumes not used by at least one container`
 		}
-
-		fmt.Printf(createPruneWarningMessage(pruneOptions), volumeString, "Are you sure you want to continue? [y/N] ")
+		buildString := ""
+		if pruneOptions.Build {
+			buildString = `
+	- all build containers`
+		}
+		fmt.Printf(createPruneWarningMessage(pruneOptions), volumeString, buildString, "Are you sure you want to continue? [y/N] ")
 
 		answer, err := reader.ReadString('\n')
 		if err != nil {
@@ -124,7 +129,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	if pruneOpts.All {
 		return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s
+	- all networks not used by at least one container%s%s
 	- all images without at least one container associated with them
 	- all build cache
 
@@ -132,7 +137,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	}
 	return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s
+	- all networks not used by at least one container%s%s
 	- all dangling images
 	- all dangling build cache
 

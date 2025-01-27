@@ -43,6 +43,7 @@ type SystemPruneOptions struct {
 	Volume   bool
 	Filters  map[string][]string `json:"filters" schema:"filters"`
 	External bool
+	Build    bool
 }
 
 // SystemPruneReport provides report after system prune is executed.
