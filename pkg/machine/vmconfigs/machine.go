@@ -303,24 +303,6 @@ func (mc *MachineConfig) LogFile() (*define.VMFile, error) {
 	return rtDir.AppendToNewVMFile(mc.Name+".log", nil)
 }
 
-func (mc *MachineConfig) Kind() (define.VMType, error) {
-	// Not super in love with this approach
-	if mc.QEMUHypervisor != nil {
-		return define.QemuVirt, nil
-	}
-	if mc.AppleHypervisor != nil {
-		return define.AppleHvVirt, nil
-	}
-	if mc.HyperVHypervisor != nil {
-		return define.HyperVVirt, nil
-	}
-	if mc.WSLHypervisor != nil {
-		return define.WSLVirt, nil
-	}
-
-	return define.UnknownVirt, nil
-}
-
 func (mc *MachineConfig) IsFirstBoot() (bool, error) {
 	never, err := time.Parse(time.RFC3339, "0001-01-01T00:00:00Z")
 	if err != nil {
