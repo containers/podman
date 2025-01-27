@@ -66,6 +66,9 @@ t POST "/v4.0.0/libpod/manifests/xyz:latest/registry/localhost:$REGISTRY_PORT%2F
 # /v3.x cannot delete a manifest list
 t DELETE /v4.0.0/libpod/manifests/$id_abc 200
 t DELETE /v4.0.0/libpod/manifests/$id_xyz 200
+t GET /v4.0.0/libpod/manifests/$id_xyz/exists 404
+t DELETE /v4.0.0/libpod/manifests/$id_xyz 404
+t DELETE /v4.0.0/libpod/manifests/$id_xyz?ignore=true 200
 
 # manifest add --artifact tests
 truncate -s 20M $WORKDIR/zeroes

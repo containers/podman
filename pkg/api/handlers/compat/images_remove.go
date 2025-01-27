@@ -22,6 +22,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Force   bool `schema:"force"`
 		NoPrune bool `schema:"noprune"`
+		Ignore  bool `schema:"ignore"`
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -42,6 +43,7 @@ func RemoveImage(w http.ResponseWriter, r *http.Request) {
 	options := entities.ImageRemoveOptions{
 		Force:   query.Force,
 		NoPrune: query.NoPrune,
+		Ignore:  query.Ignore,
 	}
 	report, rmerrors := imageEngine.Remove(r.Context(), []string{possiblyNormalizedName}, options)
 	if len(rmerrors) > 0 && rmerrors[0] != nil {
