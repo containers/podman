@@ -8,12 +8,9 @@ import (
 )
 
 var (
-	ErrNoSuchVM         = errors.New("VM does not exist")
-	ErrWrongState       = errors.New("VM in wrong state to perform action")
-	ErrVMAlreadyExists  = errors.New("VM already exists")
-	ErrVMAlreadyRunning = errors.New("VM already running or starting")
-	ErrMultipleActiveVM = errors.New("only one VM can be active at a time")
-	ErrNotImplemented   = errors.New("functionality not implemented")
+	ErrWrongState      = errors.New("VM in wrong state to perform action")
+	ErrVMAlreadyExists = errors.New("VM already exists")
+	ErrNotImplemented  = errors.New("functionality not implemented")
 )
 
 type ErrVMRunningCannotDestroyed struct {
@@ -48,4 +45,17 @@ type ErrIncompatibleMachineConfig struct {
 
 func (err *ErrIncompatibleMachineConfig) Error() string {
 	return fmt.Sprintf("incompatible machine config %q (%s) for this version of Podman", err.Path, err.Name)
+}
+
+type ErrMultipleActiveVM struct {
+	Name     string
+	Provider string
+}
+
+func (err *ErrMultipleActiveVM) Error() string {
+	msg := ""
+	if err.Provider != "" {
+		msg = " on the " + err.Provider + " provider"
+	}
+	return fmt.Sprintf("%s already starting or running%s: only one VM can be active at a time", err.Name, msg)
 }
