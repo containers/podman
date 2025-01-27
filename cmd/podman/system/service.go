@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -43,6 +44,7 @@ Enable a listening service for API access to Podman commands.
 		CorsHeaders string
 		PProfAddr   string
 		Timeout     uint
+		Umask       string
 	}{}
 )
 
@@ -60,6 +62,8 @@ func init() {
 		"Time until the service session expires in seconds.  Use 0 to disable the timeout")
 	_ = srvCmd.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
 	flags.SetNormalizeFunc(aliasTimeoutFlag)
+
+	flags.StringVarP(&srvArgs.Umask, "umask", "u", "0177", "umask in octal to apply before socket creation")
 
 	flags.StringVarP(&srvArgs.CorsHeaders, "cors", "", "", "Set CORS Headers")
 	_ = srvCmd.RegisterFlagCompletionFunc("cors", completion.AutocompleteNone)
@@ -94,7 +98,13 @@ func service(cmd *cobra.Command, args []string) error {
 			if err := syscall.Unlink(uri.Path); err != nil && !os.IsNotExist(err) {
 				return err
 			}
-			mask := syscall.Umask(0177)
+
+			sockMask, err := strconv.ParseInt(srvArgs.Umask, 8, 32)
+			if err != nil {
+				return err
+			}
+
+			mask := syscall.Umask(int(sockMask))
 			defer syscall.Umask(mask)
 		}
 	}
