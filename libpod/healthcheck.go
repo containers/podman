@@ -3,7 +3,6 @@
 package libpod
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -85,7 +84,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	streams := new(define.AttachStreams)
 	output := &bytes.Buffer{}
 
-	streams.InputStream = bufio.NewReader(os.Stdin)
+	streams.InputStream = os.Stdin
 	streams.OutputStream = output
 	streams.ErrorStream = output
 	streams.AttachOutput = true

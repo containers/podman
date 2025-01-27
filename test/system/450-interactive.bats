@@ -39,7 +39,7 @@ function teardown() {
         kill $PODMAN_SOCAT_PID
         PODMAN_SOCAT_PID=
     fi
-    rm -f $PODMAN_TEST_PTY $PODMAN_DUMMY_PTY
+    rm -f $PODMAN_TEST_PTY $PODMAN_DUMMY
 
     basic_teardown
 }
@@ -122,6 +122,61 @@ function teardown() {
 
     run_podman run --rm -v/dev:/dev --log-driver=passthrough-tty $IMAGE tty <$PODMAN_TEST_PTY
     is "$output" "$expected_tty" "passthrough-tty: tty matches"
+}
+
+@test "podman run detach keys" {
+    local cname1=c1-$(safename)
+    local cname2=c2-$(safename)
+
+    local msg=$(random_string)
+    # First "type" a command then send CTRL-p,CTRL-q sequence to the run command.
+    # We must send that sequence in two echo commands if I use a single echo it
+    # doesn't work, I don't know why.
+    # If the detach does not work podman run will hang and timeout.
+    # The sleep is needed to ensure the output can be printed before we detach.
+    (echo "echo $msg" > $PODMAN_DUMMY; sleep 1; echo -n $'\cp' > $PODMAN_DUMMY; echo -n $'\cq' > $PODMAN_DUMMY ) &
+    run_podman run -it --name $cname1 $IMAGE sh <$PODMAN_TEST_PTY
+    # Because we print to a terminal it appends "\r"
+    assert "$output" =~ "$msg"$'\r' "run output contains message"
+
+    # The container should still be running
+    run_podman inspect --format {{.State.Status}} $cname1
+    assert "$output" == "running" "container status"
+
+    # Now a second test with --detach-keys to make sure the cli option works
+    (echo "echo $msg" > $PODMAN_DUMMY; sleep 1; echo -n $'\cc' > $PODMAN_DUMMY; echo -n $'J' > $PODMAN_DUMMY ) &
+    run_podman run -it --name $cname2 --detach-keys ctrl-c,J $IMAGE sh <$PODMAN_TEST_PTY
+    assert "$output" =~ "$msg"$'\r' "run output with --detach-keys contains message"
+
+    run_podman rm -f -t0 $cname1 $cname2
+}
+
+@test "podman exec detach keys" {
+    skip_if_remote "FIXME #25089: podman-remote exec detach broken"
+
+    local cname=c-$(safename)
+    run_podman run -d --name $cname $IMAGE sleep inf
+
+    local msg=$(random_string)
+    # First "type" a command then send CTRL-p,CTRL-q sequence to the exec command.
+    # If the detach does not work podman exec will hang and timeout.
+    # The sleep is needed to ensure the output can be printed before we detach.
+    (echo "echo $msg" > $PODMAN_DUMMY; sleep 1; echo -n $'\cp' > $PODMAN_DUMMY; echo -n $'\cq' > $PODMAN_DUMMY ) &
+    run_podman exec -it $cname sh <$PODMAN_TEST_PTY
+    # Because we print to a terminal it appends "\r"
+    assert "$output" =~ "$msg"$'\r' "exec output contains message"
+
+    # The previous exec session/process should still be running
+    run_podman exec $cname ps aux
+    # Match PID=2 USER=root and COMMAND=sh from the ps output
+    assert "$output" =~ "2 root.*sh" "sh exec process still running"
+
+    # Now a second test with --detach-keys to make sure the cli option works
+    (echo "echo $msg" > $PODMAN_DUMMY; sleep 1; echo -n $'\ct' > $PODMAN_DUMMY; echo -n $'f' > $PODMAN_DUMMY ) &
+    run_podman exec -it --detach-keys ctrl-t,f $cname sh <$PODMAN_TEST_PTY
+    assert "$output" =~ "$msg"$'\r' "exec output with --detach-keys contains message"
+
+    run_podman rm -f -t0 $cname
 }
 
 # vim: filetype=sh

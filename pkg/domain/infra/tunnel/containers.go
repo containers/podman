@@ -1,6 +1,7 @@
 package tunnel
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"errors"
@@ -610,7 +611,7 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	startAndAttachOptions := new(containers.ExecStartAndAttachOptions)
 	startAndAttachOptions.WithOutputStream(streams.OutputStream).WithErrorStream(streams.ErrorStream)
 	if streams.InputStream != nil {
-		startAndAttachOptions.WithInputStream(*streams.InputStream)
+		startAndAttachOptions.WithInputStream(*bufio.NewReader(streams.InputStream))
 	}
 	startAndAttachOptions.WithAttachError(streams.AttachError).WithAttachOutput(streams.AttachOutput).WithAttachInput(streams.AttachInput)
 	if err := containers.ExecStartAndAttach(ic.ClientCtx, sessionID, startAndAttachOptions); err != nil {
@@ -666,6 +667,7 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigPro
 	go func() {
 		err := containers.Attach(ic.ClientCtx, name, input, output, errput, attachReady, options)
 		attachErr <- err
+		close(attachErr)
 	}()
 	// Wait for the attach to actually happen before starting
 	// the container.
@@ -683,13 +685,36 @@ func startAndAttach(ic *ContainerEngine, name string, detachKeys *string, sigPro
 			return -1, err
 		}
 
-		// call wait immediately after start to avoid racing against container removal when it was created with --rm
-		exitCode, err := containers.Wait(cancelCtx, name, nil)
-		if err != nil {
-			return -1, err
-		}
-		code = int(exitCode)
+		// Call wait immediately after start to avoid racing against container removal when it was created with --rm.
+		// It must be run in a separate goroutine to so we do not block when attach returns early, i.e. user
+		// detaches in which case wait would not return.
+		waitChan := make(chan error)
+		go func() {
+			defer close(waitChan)
 
+			exitCode, err := containers.Wait(cancelCtx, name, nil)
+			if err != nil {
+				waitChan <- fmt.Errorf("wait for container: %w", err)
+				return
+			}
+			code = int(exitCode)
+		}()
+
+		select {
+		case err := <-waitChan:
+			if err != nil {
+				return -1, err
+			}
+		case err := <-attachErr:
+			if err != nil {
+				return -1, err
+			}
+			// also wait for the wait to be complete in this case
+			err = <-waitChan
+			if err != nil {
+				return -1, err
+			}
+		}
 	case err := <-attachErr:
 		return -1, err
 	}

@@ -84,7 +84,9 @@ load helpers
     dd if=/dev/urandom of=$bigfile bs=1024 count=1500
     expect=$(sha512sum $bigfile | awk '{print $1}')
     # Transfer it to container, via exec, make sure correct #bytes are sent
-    run_podman exec -i $cid dd of=/tmp/bigfile bs=512 <$bigfile
+    # Note using --detach-keys "" to disable the detach sequence, otherwise
+    # the byte sequence may randomly appear in the stream and could cause flakes.
+    run_podman exec -i --detach-keys "" $cid dd of=/tmp/bigfile bs=512 <$bigfile
     is "${lines[0]}" "3000+0 records in"  "dd: number of records in"
     is "${lines[1]}" "3000+0 records out" "dd: number of records out"
     # Verify sha. '% *' strips off the path, keeping only the SHA
