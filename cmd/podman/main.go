@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	_ "github.com/containers/podman/v5/cmd/podman/completion"
@@ -97,6 +98,19 @@ func main() {
 
 	rootCmd = parseCommands()
 	logrus.SetFormatter(&LogFormat{time.StampMilli})
+	if os.Getuid() != os.Geteuid() && os.Geteuid() == 0 {
+		// otherwise, we get "Failed to obtain podman
+		// configuration: path "$HOME/.config" exists and it
+		// is not owned by the current user". This comes from
+		// the global init, so we're too late to change the
+		// environment.
+		logrus.Info("Setting UID=0. Need startup with _CONTAINERS_ROOTLESS_UID=0 _CONTAINERS_ROOTLESS_GID=0")
+		logrus.Warning(". Running podman SUID root is not secure.")
+		if err := syscall.Setuid(0); err != nil {
+			logrus.Errorf("Setuid: %v", err)
+		}
+	}
+
 	Execute()
 	os.Exit(0)
 }
