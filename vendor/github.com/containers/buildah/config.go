@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"os"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -19,8 +21,6 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // unmarshalConvertedConfig obtains the config blob of img valid for the wantedManifestMIMEType format

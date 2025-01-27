@@ -144,7 +144,7 @@ func (o oldHTTPServer) MetricAttributes(server string, req *http.Request, status
 
 	attributes := slices.Grow(additionalAttributes, n)
 	attributes = append(attributes,
-		o.methodMetric(req.Method),
+		standardizeHTTPMethodMetric(req.Method),
 		o.scheme(req.TLS != nil),
 		semconv.NetHostName(host))
 
@@ -164,16 +164,6 @@ func (o oldHTTPServer) MetricAttributes(server string, req *http.Request, status
 	return attributes
 }
 
-func (o oldHTTPServer) methodMetric(method string) attribute.KeyValue {
-	method = strings.ToUpper(method)
-	switch method {
-	case http.MethodConnect, http.MethodDelete, http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace:
-	default:
-		method = "_OTHER"
-	}
-	return semconv.HTTPMethod(method)
-}
-
 func (o oldHTTPServer) scheme(https bool) attribute.KeyValue { // nolint:revive
 	if https {
 		return semconv.HTTPSchemeHTTPS
@@ -189,4 +179,96 @@ func (o oldHTTPClient) RequestTraceAttrs(req *http.Request) []attribute.KeyValue
 
 func (o oldHTTPClient) ResponseTraceAttrs(resp *http.Response) []attribute.KeyValue {
 	return semconvutil.HTTPClientResponse(resp)
+}
+
+func (o oldHTTPClient) MetricAttributes(req *http.Request, statusCode int, additionalAttributes []attribute.KeyValue) []attribute.KeyValue {
+	/* The following semantic conventions are returned if present:
+	http.method                     string
+	http.status_code             int
+	net.peer.name                   string
+	net.peer.port                   int
+	*/
+
+	n := 2 // method, peer name.
+	var h string
+	if req.URL != nil {
+		h = req.URL.Host
+	}
+	var requestHost string
+	var requestPort int
+	for _, hostport := range []string{h, req.Header.Get("Host")} {
+		requestHost, requestPort = splitHostPort(hostport)
+		if requestHost != "" || requestPort > 0 {
+			break
+		}
+	}
+
+	port := requiredHTTPPort(req.URL != nil && req.URL.Scheme == "https", requestPort)
+	if port > 0 {
+		n++
+	}
+
+	if statusCode > 0 {
+		n++
+	}
+
+	attributes := slices.Grow(additionalAttributes, n)
+	attributes = append(attributes,
+		standardizeHTTPMethodMetric(req.Method),
+		semconv.NetPeerName(requestHost),
+	)
+
+	if port > 0 {
+		attributes = append(attributes, semconv.NetPeerPort(port))
+	}
+
+	if statusCode > 0 {
+		attributes = append(attributes, semconv.HTTPStatusCode(statusCode))
+	}
+	return attributes
+}
+
+// Client HTTP metrics.
+const (
+	clientRequestSize  = "http.client.request.size"  // Incoming request bytes total
+	clientResponseSize = "http.client.response.size" // Incoming response bytes total
+	clientDuration     = "http.client.duration"      // Incoming end to end duration, milliseconds
+)
+
+func (o oldHTTPClient) createMeasures(meter metric.Meter) (metric.Int64Counter, metric.Int64Counter, metric.Float64Histogram) {
+	if meter == nil {
+		return noop.Int64Counter{}, noop.Int64Counter{}, noop.Float64Histogram{}
+	}
+	requestBytesCounter, err := meter.Int64Counter(
+		clientRequestSize,
+		metric.WithUnit("By"),
+		metric.WithDescription("Measures the size of HTTP request messages."),
+	)
+	handleErr(err)
+
+	responseBytesCounter, err := meter.Int64Counter(
+		clientResponseSize,
+		metric.WithUnit("By"),
+		metric.WithDescription("Measures the size of HTTP response messages."),
+	)
+	handleErr(err)
+
+	latencyMeasure, err := meter.Float64Histogram(
+		clientDuration,
+		metric.WithUnit("ms"),
+		metric.WithDescription("Measures the duration of outbound HTTP requests."),
+	)
+	handleErr(err)
+
+	return requestBytesCounter, responseBytesCounter, latencyMeasure
+}
+
+func standardizeHTTPMethodMetric(method string) attribute.KeyValue {
+	method = strings.ToUpper(method)
+	switch method {
+	case http.MethodConnect, http.MethodDelete, http.MethodGet, http.MethodHead, http.MethodOptions, http.MethodPatch, http.MethodPost, http.MethodPut, http.MethodTrace:
+	default:
+		method = "_OTHER"
+	}
+	return semconv.HTTPMethod(method)
 }

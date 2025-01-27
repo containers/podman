@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unsafe"
 
@@ -26,15 +27,14 @@ import (
 	nettypes "github.com/containers/common/libnetwork/types"
 	netUtil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sys/unix"
 )
 
@@ -73,6 +73,24 @@ func setChildProcess() error {
 }
 
 func (b *Builder) Run(command []string, options RunOptions) error {
+	var runArtifacts *runMountArtifacts
+	if len(options.ExternalImageMounts) > 0 {
+		defer func() {
+			if runArtifacts == nil {
+				// we didn't add ExternalImageMounts to the
+				// list of images that we're going to unmount
+				// yet and make a deferred call that cleans
+				// them up, but the caller is expecting us to
+				// unmount these for them because we offered to
+				for _, image := range options.ExternalImageMounts {
+					if _, err := b.store.UnmountImage(image, false); err != nil {
+						logrus.Debugf("umounting image %q: %v", image, err)
+					}
+				}
+			}
+		}()
+	}
+
 	p, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
 	if err != nil {
 		return err
@@ -263,7 +281,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		SystemContext:    options.SystemContext,
 	}
 
-	runArtifacts, err := b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, options.CompatBuiltinVolumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
+	runArtifacts, err = b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, options.CompatBuiltinVolumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
 	if err != nil {
 		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}
@@ -280,7 +298,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	defer func() {
-		if err := b.cleanupRunMounts(options.SystemContext, mountPoint, runArtifacts); err != nil {
+		if err := b.cleanupRunMounts(mountPoint, runArtifacts); err != nil {
 			options.Logger.Errorf("unable to cleanup run mounts %v", err)
 		}
 	}()
@@ -328,7 +346,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		}
 		err = b.runUsingRuntimeSubproc(isolation, options, configureNetwork, networkString, moreCreateArgs, spec, mountPoint, path, containerName, b.Container, hostsFile, resolvFile)
 	case IsolationChroot:
-		err = chroot.RunUsingChroot(spec, path, homeDir, options.Stdin, options.Stdout, options.Stderr)
+		err = chroot.RunUsingChroot(spec, path, homeDir, options.Stdin, options.Stdout, options.Stderr, options.NoPivot)
 	default:
 		err = errors.New("don't know how to run this command")
 	}
@@ -351,13 +369,17 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 
 // setupSpecialMountSpecChanges creates special mounts for depending
 // on the namespaces - nothing yet for freebsd
-func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Mount, error) {
+func setupSpecialMountSpecChanges(spec *specs.Spec, shmSize string) ([]specs.Mount, error) {
 	return spec.Mounts, nil
 }
 
-// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, *lockfile.LockFile, error) {
-	return nil, nil, errors.New("cache mounts not supported on freebsd")
+// If this succeeded, the caller would be expected to, after the command which
+// uses the mount exits, clean up the overlay filesystem (if we returned one),
+// unmount the mounted filesystem (if we provided the path to its mountpoint)
+// and remove its mountpoint, unmount the image (if we mounted one), and
+// release the lock (if we took one).
+func (b *Builder) getCacheMount(tokens []string, sys *types.SystemContext, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir, tmpDir string) (*specs.Mount, string, string, string, *lockfile.LockFile, error) {
+	return nil, "", "", "", nil, errors.New("cache mounts not supported on freebsd")
 }
 
 func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount, idMaps IDMaps) (mounts []specs.Mount, Err error) {

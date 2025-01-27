@@ -9,13 +9,18 @@ import (
 
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
-// MountWithOptions creates a subdir of the contentDir based on the source directory
-// from the source system.  It then mounts up the source directory on to the
-// generated mount point and returns the mount point to the caller.
-// But allows api to set custom workdir, upperdir and other overlay options
-// Following API is being used by podman at the moment
+// MountWithOptions creates ${contentDir}/merge, where ${contentDir} was
+// presumably created and returned by a call to TempDir(), and either mounts a
+// filesystem there and returns a mounts.Spec which bind-mounts the mountpoint
+// to ${dest}, or returns a mounts.Spec which mounts a filesystem at ${dest}.
+// Options allows the caller to configure a custom workdir and upperdir,
+// indicate whether or not the overlay should be read-only, and provide the
+// graph driver options that we'll search to determine whether or not we should
+// be using a mount helper (i.e., fuse-overlayfs).
+// This API is used by podman.
 func MountWithOptions(contentDir, source, dest string, opts *Options) (mount specs.Mount, Err error) {
 	if opts == nil {
 		opts = &Options{}
@@ -25,7 +30,7 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 	// Create overlay mount options for rw/ro.
 	var overlayOptions string
 	if opts.ReadOnly {
-		// Read-only overlay mounts require two lower layer.
+		// Read-only overlay mounts require two lower layers.
 		lowerTwo := filepath.Join(contentDir, "lower")
 		if err := os.Mkdir(lowerTwo, 0o755); err != nil {
 			return mount, err
@@ -38,7 +43,13 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 
 		if opts.WorkDirOptionFragment != "" && opts.UpperDirOptionFragment != "" {
 			workDir = opts.WorkDirOptionFragment
+			if !filepath.IsAbs(workDir) {
+				workDir = filepath.Join(contentDir, workDir)
+			}
 			upperDir = opts.UpperDirOptionFragment
+			if !filepath.IsAbs(upperDir) {
+				upperDir = filepath.Join(contentDir, upperDir)
+			}
 		}
 
 		st, err := os.Stat(source)
@@ -55,6 +66,9 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 		}
 		overlayOptions = fmt.Sprintf("lowerdir=%s,upperdir=%s,workdir=%s,private", escapeColon(source), upperDir, workDir)
 	}
+	if opts.MountLabel != "" {
+		overlayOptions = overlayOptions + "," + label.FormatMountLabel("", opts.MountLabel)
+	}
 
 	mountProgram := findMountProgram(opts.GraphOpts)
 	if mountProgram != "" {
@@ -70,7 +84,7 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 	}
 
 	if unshare.IsRootless() {
-		/* If a mount_program is not specified, fallback to try mounting native overlay.  */
+		// If a mount_program is not specified, fallback to try mounting native overlay.
 		overlayOptions = fmt.Sprintf("%s,userxattr", overlayOptions)
 	}
 
@@ -78,6 +92,18 @@ func MountWithOptions(contentDir, source, dest string, opts *Options) (mount spe
 	mount.Destination = dest
 	mount.Type = "overlay"
 	mount.Options = strings.Split(overlayOptions, ",")
+
+	if opts.ForceMount {
+		if err := mountNatively(overlayOptions, mergeDir); err != nil {
+			return mount, err
+		}
+
+		mount.Source = mergeDir
+		mount.Destination = dest
+		mount.Type = "bind"
+		mount.Options = []string{"bind", "slave"}
+		return mount, nil
+	}
 
 	return mount, nil
 }

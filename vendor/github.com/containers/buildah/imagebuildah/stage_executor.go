@@ -9,7 +9,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -44,7 +44,6 @@ import (
 	"github.com/openshift/imagebuilder/dockerfile/command"
 	"github.com/openshift/imagebuilder/dockerfile/parser"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // StageExecutor bundles up what we need to know when executing one stage of a
@@ -639,7 +638,12 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 							// to `mountPoint` replaced from additional
 							// build-context. Reason: Parser will use this
 							//  `from` to refer from stageMountPoints map later.
-							stageMountPoints[from] = internal.StageMountDetails{IsStage: false, DidExecute: true, MountPoint: mountPoint}
+							stageMountPoints[from] = internal.StageMountDetails{
+								IsAdditionalBuildContext: true,
+								IsImage:                  true,
+								DidExecute:               true,
+								MountPoint:               mountPoint,
+							}
 							break
 						}
 						// Most likely this points to path on filesystem
@@ -671,7 +675,11 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 								mountPoint = additionalBuildContext.DownloadedCache
 							}
 						}
-						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: true, MountPoint: mountPoint}
+						stageMountPoints[from] = internal.StageMountDetails{
+							IsAdditionalBuildContext: true,
+							DidExecute:               true,
+							MountPoint:               mountPoint,
+						}
 						break
 					}
 					// If the source's name corresponds to the
@@ -683,7 +691,11 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 					// If the source's name is a stage, return a
 					// pointer to its rootfs.
 					if otherStage, ok := s.executor.stages[from]; ok && otherStage.index < s.index {
-						stageMountPoints[from] = internal.StageMountDetails{IsStage: true, DidExecute: otherStage.didExecute, MountPoint: otherStage.mountPoint}
+						stageMountPoints[from] = internal.StageMountDetails{
+							IsStage:    true,
+							DidExecute: otherStage.didExecute,
+							MountPoint: otherStage.mountPoint,
+						}
 						break
 					} else {
 						// Treat the source's name as the name of an image.
@@ -691,7 +703,11 @@ func (s *StageExecutor) runStageMountPoints(mountList []string) (map[string]inte
 						if err != nil {
 							return nil, fmt.Errorf("%s from=%s: no stage or image found with that name", flag, from)
 						}
-						stageMountPoints[from] = internal.StageMountDetails{IsStage: false, DidExecute: true, MountPoint: mountPoint}
+						stageMountPoints[from] = internal.StageMountDetails{
+							IsImage:    true,
+							DidExecute: true,
+							MountPoint: mountPoint,
+						}
 						break
 					}
 				default:
@@ -1263,7 +1279,11 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// No base image means there's nothing to put in a
 			// layer, so don't create one.
 			emptyLayer := (s.builder.FromImageID == "")
-			if imgID, ref, err = s.commit(ctx, s.getCreatedBy(nil, ""), emptyLayer, s.output, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage); err != nil {
+			createdBy, err := s.getCreatedBy(nil, "")
+			if err != nil {
+				return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
+			}
+			if imgID, ref, err = s.commit(ctx, createdBy, emptyLayer, s.output, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage); err != nil {
 				return "", nil, false, fmt.Errorf("committing base container: %w", err)
 			}
 		} else {
@@ -1410,7 +1430,11 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				if s.executor.timestamp != nil {
 					timestamp = *s.executor.timestamp
 				}
-				s.builder.AddPrependedEmptyLayer(&timestamp, s.getCreatedBy(node, addedContentSummary), "", "")
+				createdBy, err := s.getCreatedBy(node, addedContentSummary)
+				if err != nil {
+					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
+				}
+				s.builder.AddPrependedEmptyLayer(&timestamp, createdBy, "", "")
 				continue
 			}
 			// This is the last instruction for this stage,
@@ -1420,7 +1444,11 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// stage.
 			if lastStage || imageIsUsedLater {
 				logCommit(s.output, i)
-				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), false, s.output, s.executor.squash, lastStage && lastInstruction)
+				createdBy, err := s.getCreatedBy(node, addedContentSummary)
+				if err != nil {
+					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
+				}
+				imgID, ref, err = s.commit(ctx, createdBy, false, s.output, s.executor.squash, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
 				}
@@ -1474,7 +1502,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			return "", nil, false, err
 		}
 		for _, mountPoint := range stageMountPoints {
-			if mountPoint.DidExecute {
+			if mountPoint.DidExecute && mountPoint.IsStage {
 				avoidLookingCache = true
 			}
 		}
@@ -1641,6 +1669,10 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// We're not going to find any more cache hits, so we
 			// can stop looking for them.
 			checkForLayers = false
+			createdBy, err := s.getCreatedBy(node, addedContentSummary)
+			if err != nil {
+				return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
+			}
 			// Create a new image, maybe with a new layer, with the
 			// name for this stage if it's the last instruction.
 			logCommit(s.output, i)
@@ -1648,7 +1680,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// because at this point we want to save history for
 			// layers even if its a squashed build so that they
 			// can be part of the build cache.
-			imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, false, lastStage && lastInstruction)
+			imgID, ref, err = s.commit(ctx, createdBy, !s.stepRequiresLayer(step), commitName, false, lastStage && lastInstruction)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
 			}
@@ -1679,12 +1711,16 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 		if lastInstruction && lastStage {
 			if s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.sbomScanOptions) != 0 {
+				createdBy, err := s.getCreatedBy(node, addedContentSummary)
+				if err != nil {
+					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
+				}
 				// If this is the last instruction of the last stage,
 				// create a squashed or confidential workload
 				// version of the image if that's what we're after,
 				// or a normal one if we need to scan the image while
 				// committing it.
-				imgID, ref, err = s.commit(ctx, s.getCreatedBy(node, addedContentSummary), !s.stepRequiresLayer(step), commitName, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage && lastInstruction)
+				imgID, ref, err = s.commit(ctx, createdBy, !s.stepRequiresLayer(step), commitName, s.executor.squash || s.executor.confidentialWorkload.Convert, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("committing final squash step %+v: %w", *step, err)
 				}
@@ -1776,54 +1812,58 @@ func historyEntriesEqual(base, derived v1.History) bool {
 // that we're comparing.
 // Used to verify whether a cache of the intermediate image exists and whether
 // to run the build again.
-func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDiffIDs []digest.Digest, child *parser.Node, history []v1.History, diffIDs []digest.Digest, addedContentSummary string, buildAddsLayer bool) bool {
+func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDiffIDs []digest.Digest, child *parser.Node, history []v1.History, diffIDs []digest.Digest, addedContentSummary string, buildAddsLayer bool) (bool, error) {
 	// our history should be as long as the base's, plus one entry for what
 	// we're doing
 	if len(history) != len(baseHistory)+1 {
-		return false
+		return false, nil
 	}
 	// check that each entry in the base history corresponds to an entry in
 	// our history, and count how many of them add a layer diff
 	expectedDiffIDs := 0
 	for i := range baseHistory {
 		if !historyEntriesEqual(baseHistory[i], history[i]) {
-			return false
+			return false, nil
 		}
 		if !baseHistory[i].EmptyLayer {
 			expectedDiffIDs++
 		}
 	}
 	if len(baseDiffIDs) != expectedDiffIDs {
-		return false
+		return false, nil
 	}
 	if buildAddsLayer {
 		// we're adding a layer, so we should have exactly one more
 		// layer than the base image
 		if len(diffIDs) != expectedDiffIDs+1 {
-			return false
+			return false, nil
 		}
 	} else {
 		// we're not adding a layer, so we should have exactly the same
 		// layers as the base image
 		if len(diffIDs) != expectedDiffIDs {
-			return false
+			return false, nil
 		}
 	}
 	// compare the diffs for the layers that we should have in common
 	for i := range baseDiffIDs {
 		if diffIDs[i] != baseDiffIDs[i] {
-			return false
+			return false, nil
 		}
 	}
-	return history[len(baseHistory)].CreatedBy == s.getCreatedBy(child, addedContentSummary)
+	createdBy, err := s.getCreatedBy(child, addedContentSummary)
+	if err != nil {
+		return false, fmt.Errorf("unable to get createdBy for the node: %w", err)
+	}
+	return history[len(baseHistory)].CreatedBy == createdBy, nil
 }
 
 // getCreatedBy returns the command the image at node will be created by.  If
 // the passed-in CompositeDigester is not nil, it is assumed to have the digest
 // information for the content if the node is ADD or COPY.
-func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary string) string {
+func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary string) (string, error) {
 	if node == nil {
-		return "/bin/sh"
+		return "/bin/sh", nil
 	}
 	switch strings.ToUpper(node.Value) {
 	case "ARG":
@@ -1833,15 +1873,72 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 			}
 		}
 		buildArgs := s.getBuildArgsKey()
-		return "/bin/sh -c #(nop) ARG " + buildArgs
+		return "/bin/sh -c #(nop) ARG " + buildArgs, nil
 	case "RUN":
 		shArg := ""
 		buildArgs := s.getBuildArgsResolvedForRun()
+		appendCheckSum := ""
+		for _, flag := range node.Flags {
+			var err error
+			mountOptionSource := ""
+			mountOptionFrom := ""
+			mountCheckSum := ""
+			if strings.HasPrefix(flag, "--mount=") {
+				mountInfo := getFromAndSourceKeysFromMountFlag(flag)
+				if mountInfo.Type != "bind" {
+					continue
+				}
+				mountOptionSource = mountInfo.Source
+				mountOptionFrom = mountInfo.From
+				// If source is not specified then default is '.'
+				if mountOptionSource == "" {
+					mountOptionSource = "."
+				}
+			}
+			// Source specificed is part of stage, image or additional-build-context.
+			if mountOptionFrom != "" {
+				// If this is not a stage then get digest of image or additional build context
+				if _, ok := s.executor.stages[mountOptionFrom]; !ok {
+					if builder, ok := s.executor.containerMap[mountOptionFrom]; ok {
+						// Found valid image, get image digest.
+						mountCheckSum = builder.FromImageDigest
+					} else {
+						if s.executor.additionalBuildContexts[mountOptionFrom].IsImage {
+							if builder, ok := s.executor.containerMap[s.executor.additionalBuildContexts[mountOptionFrom].Value]; ok {
+								// Found valid image, get image digest.
+								mountCheckSum = builder.FromImageDigest
+							}
+						} else {
+							// Found additional build context, get directory sha.
+							basePath := s.executor.additionalBuildContexts[mountOptionFrom].Value
+							if s.executor.additionalBuildContexts[mountOptionFrom].IsURL {
+								basePath = s.executor.additionalBuildContexts[mountOptionFrom].DownloadedCache
+							}
+							mountCheckSum, err = generatePathChecksum(filepath.Join(basePath, mountOptionSource))
+							if err != nil {
+								return "", fmt.Errorf("generating checksum for directory %q in %q: %w", mountOptionSource, basePath, err)
+							}
+						}
+					}
+				}
+			} else {
+				if mountOptionSource != "" {
+					mountCheckSum, err = generatePathChecksum(filepath.Join(s.executor.contextDir, mountOptionSource))
+					if err != nil {
+						return "", fmt.Errorf("generating checksum for directory %q in %q: %w", mountOptionSource, s.executor.contextDir, err)
+					}
+				}
+			}
+			if mountCheckSum != "" {
+				// add a separator to appendCheckSum
+				appendCheckSum += ":" + mountCheckSum
+			}
+		}
 		if len(node.Original) > 4 {
 			shArg = node.Original[4:]
 		}
 		if buildArgs != "" {
-			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + shArg
+			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + shArg + appendCheckSum, nil
 		}
 		result := "/bin/sh -c " + shArg
 		if len(node.Heredocs) > 0 {
@@ -1850,15 +1947,15 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 				result = result + "\n" + heredocContent
 			}
 		}
-		return result
+		return result + appendCheckSum, nil
 	case "ADD", "COPY":
 		destination := node
 		for destination.Next != nil {
 			destination = destination.Next
 		}
-		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentSummary + " in " + destination.Value + " "
+		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentSummary + " in " + destination.Value + " ", nil
 	default:
-		return "/bin/sh -c #(nop) " + node.Original
+		return "/bin/sh -c #(nop) " + node.Original, nil
 	}
 }
 
@@ -1914,7 +2011,7 @@ func (s *StageExecutor) getBuildArgsResolvedForRun() string {
 			}
 		}
 	}
-	sort.Strings(envs)
+	slices.Sort(envs)
 	return strings.Join(envs, " ")
 }
 
@@ -1927,7 +2024,7 @@ func (s *StageExecutor) getBuildArgsKey() string {
 			args = append(args, key)
 		}
 	}
-	sort.Strings(args)
+	slices.Sort(args)
 	return strings.Join(args, " ")
 }
 
@@ -2007,7 +2104,10 @@ func (s *StageExecutor) generateCacheKey(ctx context.Context, currNode *parser.N
 			fmt.Fprintln(hash, diffIDs[i].String())
 		}
 	}
-	createdBy := s.getCreatedBy(currNode, addedContentDigest)
+	createdBy, err := s.getCreatedBy(currNode, addedContentDigest)
+	if err != nil {
+		return "", err
+	}
 	fmt.Fprintf(hash, "%t", buildAddsLayer)
 	fmt.Fprintln(hash, createdBy)
 	fmt.Fprintln(hash, manifestType)
@@ -2187,7 +2287,11 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 			continue
 		}
 		// children + currNode is the point of the Dockerfile we are currently at.
-		if s.historyAndDiffIDsMatch(baseHistory, baseDiffIDs, currNode, history, diffIDs, addedContentDigest, buildAddsLayer) {
+		foundMatch, err := s.historyAndDiffIDsMatch(baseHistory, baseDiffIDs, currNode, history, diffIDs, addedContentDigest, buildAddsLayer)
+		if err != nil {
+			return "", err
+		}
+		if foundMatch {
 			return image.ID, nil
 		}
 	}

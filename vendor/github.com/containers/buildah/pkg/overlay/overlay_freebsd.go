@@ -12,11 +12,11 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
-// MountWithOptions creates a subdir of the contentDir based on the source directory
-// from the source system.  It then mounts up the source directory on to the
-// generated mount point and returns the mount point to the caller.
-// But allows api to set custom workdir, upperdir and other overlay options
-// Following API is being used by podman at the moment
+// MountWithOptions returns a specs.Mount which makes the contents of ${source}
+// visible at ${dest} in the container.
+// Options allows the caller to configure whether or not the mount should be
+// read-only.
+// This API is used by podman.
 func MountWithOptions(contentDir, source, dest string, opts *Options) (mount specs.Mount, Err error) {
 	if opts == nil {
 		opts = &Options{}

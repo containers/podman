@@ -249,6 +249,18 @@ func parseSecurityOpts(securityOpts []string, commonOpts *define.CommonBuildOpti
 			commonOpts.ApparmorProfile = con[1]
 		case "seccomp":
 			commonOpts.SeccompProfilePath = con[1]
+		case "mask":
+			commonOpts.Masks = append(commonOpts.Masks, strings.Split(con[1], ":")...)
+		case "unmask":
+			unmasks := strings.Split(con[1], ":")
+			for _, unmask := range unmasks {
+				matches, _ := filepath.Glob(unmask)
+				if len(matches) > 0 {
+					commonOpts.Unmasks = append(commonOpts.Unmasks, matches...)
+					continue
+				}
+				commonOpts.Unmasks = append(commonOpts.Unmasks, unmask)
+			}
 		default:
 			return fmt.Errorf("invalid --security-opt 2: %q", opt)
 		}

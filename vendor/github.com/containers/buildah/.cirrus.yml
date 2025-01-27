@@ -9,6 +9,7 @@ env:
     DEST_BRANCH: "main"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
+    GOCACHE: "/tmp/go-build"
     # Overrides default location (/tmp/cirrus) for repo clone
     CIRRUS_WORKING_DIR: "${GOSRC}"
     # Shell used to execute all script commands
@@ -32,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20241107t210000z-f41f40d13"
+    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -56,7 +57,7 @@ gce_instance: &standardvm
     image_project: "${IMAGE_PROJECT}"
     zone: "us-central1-c"  # Required by Cirrus for the time being
     cpu: 2
-    memory: "4Gb"
+    memory: "4G"
     disk: 200  # Gigabytes, do not set less than 200 per obscure GCE docs re: I/O performance
     image_name: "${FEDORA_CACHE_IMAGE_NAME}"
 
@@ -69,7 +70,7 @@ meta_task:
     container:
         image: "quay.io/libpod/imgts:latest"
         cpu: 1
-        memory: 1
+        memory: "1G"
 
     env:
         # Space-separated list of images used by this repository state
@@ -93,10 +94,11 @@ smoke_task:
     name: "Smoke Test"
 
     gce_instance:
-        memory: "12Gb"
+        memory: "12G"
+        cpu: 4
 
     # Don't bother running on branches (including cron), or for tags.
-    only_if: $CIRRUS_PR != ''
+    skip: $CIRRUS_PR == ''
 
     timeout_in: 30m
 
@@ -135,15 +137,17 @@ vendor_task:
 # Confirm cross-compile ALL architectures on a Mac OS-X VM.
 cross_build_task:
     name: "Cross Compile"
+    gce_instance:
+        cpu: 8
+        memory: "24G"
     alias: cross_build
-    only_if: >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*'
+    skip: >-
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*'
     env:
         HOME: /root
     script:
         - go version
-        - make cross CGO_ENABLED=0
-
+        - make -j cross CGO_ENABLED=0
     binary_artifacts:
         path: ./bin/*
 
@@ -151,13 +155,12 @@ cross_build_task:
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
     alias: unit
-    only_if: &not_build_docs >-
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:DOCS.*' &&
-        $CIRRUS_CHANGE_TITLE !=~ '.*CI:BUILD.*'
-    depends_on: &smoke_vendor_cross
+    skip: &not_build_docs >-
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:BUILD.*'
+    depends_on: &smoke_vendor
       - smoke
       - vendor
-      - cross_build
 
     timeout_in: 90m
 
@@ -168,18 +171,14 @@ unit_task:
               STORAGE_DRIVER: 'overlay'
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
-    build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
     unit_test_script: '${SCRIPT_BASE}/test.sh unit |& ${_TIMESTAMP}'
-
-    binary_artifacts:
-        path: ./bin/*
 
 
 conformance_task:
     name: 'Debian Conformance w/ $STORAGE_DRIVER'
     alias: conformance
-    only_if: *not_build_docs
-    depends_on: *smoke_vendor_cross
+    skip: *not_build_docs
+    depends_on: *smoke_vendor
 
     gce_instance:
         image_name: "${DEBIAN_CACHE_IMAGE_NAME}"
@@ -200,8 +199,8 @@ conformance_task:
 integration_task:
     name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration
-    only_if: *not_build_docs
-    depends_on: *smoke_vendor_cross
+    skip: *not_build_docs
+    depends_on: *smoke_vendor
 
     matrix:
         # VFS
@@ -257,8 +256,8 @@ integration_task:
 integration_rootless_task:
     name: "Integration rootless $DISTRO_NV w/ $STORAGE_DRIVER"
     alias: integration_rootless
-    only_if: *not_build_docs
-    depends_on: *smoke_vendor_cross
+    skip: *not_build_docs
+    depends_on: *smoke_vendor
 
     matrix:
         # Running rootless tests on overlay
@@ -297,8 +296,8 @@ integration_rootless_task:
 in_podman_task:
     name: "Containerized Integration"
     alias: in_podman
-    only_if: *not_build_docs
-    depends_on: *smoke_vendor_cross
+    skip: *not_build_docs
+    depends_on: *smoke_vendor
 
     env:
         # This is key, cause the scripts to re-execute themselves inside a container.
