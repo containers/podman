@@ -10,7 +10,7 @@ Type=oneshot
 RemainAfterExit=true
 Environment=LOGGING="--log-level=info"
 ExecStart=@@PODMAN@@ $LOGGING start --all --filter restart-policy=always
-ExecStop=/bin/sh -c '@@PODMAN@@ $LOGGING stop $(@@PODMAN@@ container ls --filter restart-policy=always -q)'
+ExecStop=@@PODMAN@@  $LOGGING stop  --all --filter restart-policy=always
 
 [Install]
 WantedBy=default.target
