@@ -384,20 +384,21 @@ EOF
 
     mount --type tmpfs -o "context=\"$LABEL\"" tmpfs $tmpdir
 
-    run ls -dZ ${tmpdir}
-    is "$output" "${LABEL} ${tmpdir}" "No Relabel Correctly"
+    run getfattr --only-values --absolute-names -n security.selinux ${tmpdir}
+    is "$output" "${LABEL}" "No Relabel Correctly"
+
     run_podman run --rm -v $tmpdir:/test:z --privileged $IMAGE true
-    run ls -dZ $tmpdir
-    is "$output" "${LABEL} $tmpdir" "Ignored shared relabel Correctly"
+    run getfattr --only-values --absolute-names -n security.selinux ${tmpdir}
+    is "$output" "${LABEL}" "Ignored shared relabel Correctly"
 
     run_podman run --rm -v $tmpdir:/test:Z --privileged $IMAGE true
-    run ls -dZ $tmpdir
-    is "$output" "${LABEL} $tmpdir" "Ignored private relabel Correctly"}
+    run getfattr --only-values --absolute-names -n security.selinux ${tmpdir}
+    is "$output" "${LABEL}" "Ignored private relabel Correctly"
     umount $tmpdir
 
     run_podman run --rm -v $tmpdir:/test:z --privileged $IMAGE true
-    run ls -dZ $tmpdir
-    is "$output" "${RELABEL} $tmpdir" "Ignored private relabel Correctly"}
+    run getfattr --only-values --absolute-names -n security.selinux ${tmpdir}
+    is "$output" "${RELABEL}" "Ignored private relabel Correctly"
 }
 
 # vim: filetype=sh
