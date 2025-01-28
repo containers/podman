@@ -22,6 +22,11 @@
     <util:RegistrySearch Id="CurrentBuild" Variable="CBNumber" Result="value" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion" Value="CurrentBuildNumber" />
     <bal:Condition Message="Windows 10 (19041) or later is required to run this application." Condition="VersionNT &gt;= v10.0 AND (CBNumber &gt;= 19041 OR AllowOldWin = 1)" />
     <bal:Condition Message="You have an installed development, pre-release version, or alternative build identifying as the same version of this installer. You must uninstall the existing version of Podman first, before proceeding." Condition="WixBundleInstalled OR WixBundleForcedRestartPackage OR PreviousVersion &lt;&gt; VERSION" />
+    <!-- Next condition blocks upgrades from v5.3.1. That's because that version
+         of the installer has a bug (that got patched in v5.3.2) and upgrading
+         from v5.3.1 requires upgrading to v5.3.2 first.
+         c.f. https://github.com/containers/podman/issues/24735 -->
+    <bal:Condition Message="You have v5.3.1 of Podman installed and upgrading to this version is not allowed. You must upgrade to v5.3.2 first." Condition="PreviousVersion &lt;&gt; v5.3.1" />
     <Chain>
       <MsiPackage Id="Setup" SourceFile="en-US\podman.msi" Vital="yes">
         <MsiProperty Name="INSTALLDIR" Value="[InstallFolder]" />

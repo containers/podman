@@ -20,11 +20,7 @@ Push-Location $WIN_INST_FOLDER
 # Download the previous installer to test a major update
 
 if (!$env:PREV_SETUP_EXE_PATH) {
-    # After v5.3.2 is released we should replace
-    #     `Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"`
-    # with
-    #     `Get-Latest-Podman-Setup-From-GitHub`
-    $env:PREV_SETUP_EXE_PATH = Get-Podman-Setup-From-GitHub -version "tags/v5.3.0"
+    $env:PREV_SETUP_EXE_PATH = Get-Latest-Podman-Setup-From-GitHub
 }
 
 # Note: consumes podman-remote-release-windows_amd64.zip from repo.tar.zst
