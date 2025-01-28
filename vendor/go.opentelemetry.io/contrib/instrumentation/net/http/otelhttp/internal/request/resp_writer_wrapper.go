@@ -44,7 +44,9 @@ func (w *RespWriterWrapper) Write(p []byte) (int, error) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 
-	w.writeHeader(http.StatusOK)
+	if !w.wroteHeader {
+		w.writeHeader(http.StatusOK)
+	}
 
 	n, err := w.ResponseWriter.Write(p)
 	n1 := int64(n)
@@ -80,7 +82,12 @@ func (w *RespWriterWrapper) writeHeader(statusCode int) {
 
 // Flush implements [http.Flusher].
 func (w *RespWriterWrapper) Flush() {
-	w.WriteHeader(http.StatusOK)
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if !w.wroteHeader {
+		w.writeHeader(http.StatusOK)
+	}
 
 	if f, ok := w.ResponseWriter.(http.Flusher); ok {
 		f.Flush()

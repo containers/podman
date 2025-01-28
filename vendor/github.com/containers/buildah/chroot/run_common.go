@@ -48,12 +48,13 @@ func init() {
 type runUsingChrootExecSubprocOptions struct {
 	Spec       *specs.Spec
 	BundlePath string
+	NoPivot    bool
 }
 
 // RunUsingChroot runs a chrooted process, using some of the settings from the
 // passed-in spec, and using the specified bundlePath to hold temporary files,
 // directories, and mountpoints.
-func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reader, stdout, stderr io.Writer) (err error) {
+func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reader, stdout, stderr io.Writer, noPivot bool) (err error) {
 	var confwg sync.WaitGroup
 	var homeFound bool
 	for _, env := range spec.Process.Env {
@@ -97,6 +98,7 @@ func RunUsingChroot(spec *specs.Spec, bundlePath, homeDir string, stdin io.Reade
 	config, conferr := json.Marshal(runUsingChrootSubprocOptions{
 		Spec:       spec,
 		BundlePath: bundlePath,
+		NoPivot:    noPivot,
 	})
 	if conferr != nil {
 		return fmt.Errorf("encoding configuration for %q: %w", runUsingChrootCommand, conferr)
@@ -196,6 +198,7 @@ func runUsingChrootMain() {
 		fmt.Fprintf(os.Stderr, "invalid options spec in runUsingChrootMain\n")
 		os.Exit(1)
 	}
+	noPivot := options.NoPivot
 
 	// Prepare to shuttle stdio back and forth.
 	rootUID32, rootGID32, err := util.GetHostRootIDs(options.Spec)
@@ -442,7 +445,7 @@ func runUsingChrootMain() {
 	}()
 
 	// Set up mounts and namespaces, and run the parent subprocess.
-	status, err := runUsingChroot(options.Spec, options.BundlePath, ctty, stdin, stdout, stderr, closeOnceRunning)
+	status, err := runUsingChroot(options.Spec, options.BundlePath, ctty, stdin, stdout, stderr, noPivot, closeOnceRunning)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running subprocess: %v\n", err)
 		os.Exit(1)
@@ -463,7 +466,7 @@ func runUsingChrootMain() {
 // runUsingChroot, still in the grandparent process, sets up various bind
 // mounts and then runs the parent process in its own user namespace with the
 // necessary ID mappings.
-func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io.Reader, stdout, stderr io.Writer, closeOnceRunning []*os.File) (wstatus unix.WaitStatus, err error) {
+func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io.Reader, stdout, stderr io.Writer, noPivot bool, closeOnceRunning []*os.File) (wstatus unix.WaitStatus, err error) {
 	var confwg sync.WaitGroup
 
 	// Create a new mount namespace for ourselves and bind mount everything to a new location.
@@ -496,6 +499,7 @@ func runUsingChroot(spec *specs.Spec, bundlePath string, ctty *os.File, stdin io
 	config, conferr := json.Marshal(runUsingChrootExecSubprocOptions{
 		Spec:       spec,
 		BundlePath: bundlePath,
+		NoPivot:    noPivot,
 	})
 	if conferr != nil {
 		fmt.Fprintf(os.Stderr, "error re-encoding configuration for %q\n", runUsingChrootExecCommand)
@@ -619,8 +623,10 @@ func runUsingChrootExecMain() {
 	// Try to chroot into the root.  Do this before we potentially
 	// block the syscall via the seccomp profile. Allow the
 	// platform to override this - on FreeBSD, we use a simple
-	// jail to set the hostname in the container
+	// jail to set the hostname in the container, and on Linux
+	// we attempt to pivot_root.
 	if err := createPlatformContainer(options); err != nil {
+		logrus.Debugf("createPlatformContainer: %v", err)
 		var oldst, newst unix.Stat_t
 		if err := unix.Stat(options.Spec.Root.Path, &oldst); err != nil {
 			fmt.Fprintf(os.Stderr, "error stat()ing intended root directory %q: %v\n", options.Spec.Root.Path, err)

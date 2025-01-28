@@ -81,12 +81,6 @@ func (h *middleware) configure(c *config) {
 	h.semconv = semconv.NewHTTPServer(c.Meter)
 }
 
-func handleErr(err error) {
-	if err != nil {
-		otel.Handle(err)
-	}
-}
-
 // serveHTTP sets up tracing and calls the given next http.Handler with the span
 // context injected into the request context.
 func (h *middleware) serveHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
@@ -190,14 +184,18 @@ func (h *middleware) serveHTTP(w http.ResponseWriter, r *http.Request, next http
 	// Use floating point division here for higher precision (instead of Millisecond method).
 	elapsedTime := float64(time.Since(requestStartTime)) / float64(time.Millisecond)
 
-	h.semconv.RecordMetrics(ctx, semconv.MetricData{
-		ServerName:           h.server,
-		Req:                  r,
-		StatusCode:           statusCode,
-		AdditionalAttributes: labeler.Get(),
-		RequestSize:          bw.BytesRead(),
-		ResponseSize:         bytesWritten,
-		ElapsedTime:          elapsedTime,
+	h.semconv.RecordMetrics(ctx, semconv.ServerMetricData{
+		ServerName:   h.server,
+		ResponseSize: bytesWritten,
+		MetricAttributes: semconv.MetricAttributes{
+			Req:                  r,
+			StatusCode:           statusCode,
+			AdditionalAttributes: labeler.Get(),
+		},
+		MetricData: semconv.MetricData{
+			RequestSize: bw.BytesRead(),
+			ElapsedTime: elapsedTime,
+		},
 	})
 }
 

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/containers/buildah/define"
@@ -13,7 +14,6 @@ import (
 	"github.com/mattn/go-shellwords"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 func stringSliceReplaceAll(slice []string, replacements map[string]string, important []string) (built []string, replacedAnImportantValue bool) {

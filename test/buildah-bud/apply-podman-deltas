@@ -271,6 +271,11 @@ skip_if_remote "different error messages between podman & podman-remote" \
                "bud with .dockerignore #2" \
                "bud with .dockerignore #4"
 
+# 2025-01-27: https://github.com/containers/podman/issues/25138
+skip_if_remote "FIXME #25138: mount cache not working one remote" \
+               "bud --layers with --mount type bind should burst cache if content is changed" \
+               "bud --layers with --mount type bind should burst and multiple mounts cache if content is changed"
+
 # END   tests which are skipped due to actual podman or podman-remote bugs.
 ###############################################################################
 # BEGIN temporary workarounds that must be reevaluated periodically

@@ -13,11 +13,9 @@ import (
 
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/request"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconv"
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp/internal/semconvutil"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/propagation"
 
 	"go.opentelemetry.io/otel/trace"
@@ -29,7 +27,6 @@ type Transport struct {
 	rt http.RoundTripper
 
 	tracer             trace.Tracer
-	meter              metric.Meter
 	propagators        propagation.TextMapPropagator
 	spanStartOptions   []trace.SpanStartOption
 	filters            []Filter
@@ -37,10 +34,7 @@ type Transport struct {
 	clientTrace        func(context.Context) *httptrace.ClientTrace
 	metricAttributesFn func(*http.Request) []attribute.KeyValue
 
-	semconv              semconv.HTTPClient
-	requestBytesCounter  metric.Int64Counter
-	responseBytesCounter metric.Int64Counter
-	latencyMeasure       metric.Float64Histogram
+	semconv semconv.HTTPClient
 }
 
 var _ http.RoundTripper = &Transport{}
@@ -57,8 +51,7 @@ func NewTransport(base http.RoundTripper, opts ...Option) *Transport {
 	}
 
 	t := Transport{
-		rt:      base,
-		semconv: semconv.NewHTTPClient(),
+		rt: base,
 	}
 
 	defaultOpts := []Option{
@@ -68,44 +61,19 @@ func NewTransport(base http.RoundTripper, opts ...Option) *Transport {
 
 	c := newConfig(append(defaultOpts, opts...)...)
 	t.applyConfig(c)
-	t.createMeasures()
 
 	return &t
 }
 
 func (t *Transport) applyConfig(c *config) {
 	t.tracer = c.Tracer
-	t.meter = c.Meter
 	t.propagators = c.Propagators
 	t.spanStartOptions = c.SpanStartOptions
 	t.filters = c.Filters
 	t.spanNameFormatter = c.SpanNameFormatter
 	t.clientTrace = c.ClientTrace
+	t.semconv = semconv.NewHTTPClient(c.Meter)
 	t.metricAttributesFn = c.MetricAttributesFn
-}
-
-func (t *Transport) createMeasures() {
-	var err error
-	t.requestBytesCounter, err = t.meter.Int64Counter(
-		clientRequestSize,
-		metric.WithUnit("By"),
-		metric.WithDescription("Measures the size of HTTP request messages."),
-	)
-	handleErr(err)
-
-	t.responseBytesCounter, err = t.meter.Int64Counter(
-		clientResponseSize,
-		metric.WithUnit("By"),
-		metric.WithDescription("Measures the size of HTTP response messages."),
-	)
-	handleErr(err)
-
-	t.latencyMeasure, err = t.meter.Float64Histogram(
-		clientDuration,
-		metric.WithUnit("ms"),
-		metric.WithDescription("Measures the duration of outbound HTTP requests."),
-	)
-	handleErr(err)
 }
 
 func defaultTransportFormatter(_ string, r *http.Request) string {
@@ -177,16 +145,15 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	}
 
 	// metrics
-	metricAttrs := append(append(labeler.Get(), semconvutil.HTTPClientRequestMetrics(r)...), t.metricAttributesFromRequest(r)...)
-	if res.StatusCode > 0 {
-		metricAttrs = append(metricAttrs, semconv.HTTPStatusCode(res.StatusCode))
-	}
-	o := metric.WithAttributeSet(attribute.NewSet(metricAttrs...))
+	metricOpts := t.semconv.MetricOptions(semconv.MetricAttributes{
+		Req:                  r,
+		StatusCode:           res.StatusCode,
+		AdditionalAttributes: append(labeler.Get(), t.metricAttributesFromRequest(r)...),
+	})
 
-	t.requestBytesCounter.Add(ctx, bw.BytesRead(), o)
 	// For handling response bytes we leverage a callback when the client reads the http response
 	readRecordFunc := func(n int64) {
-		t.responseBytesCounter.Add(ctx, n, o)
+		t.semconv.RecordResponseSize(ctx, n, metricOpts.AddOptions())
 	}
 
 	// traces
@@ -198,9 +165,12 @@ func (t *Transport) RoundTrip(r *http.Request) (*http.Response, error) {
 	// Use floating point division here for higher precision (instead of Millisecond method).
 	elapsedTime := float64(time.Since(requestStartTime)) / float64(time.Millisecond)
 
-	t.latencyMeasure.Record(ctx, elapsedTime, o)
+	t.semconv.RecordMetrics(ctx, semconv.MetricData{
+		RequestSize: bw.BytesRead(),
+		ElapsedTime: elapsedTime,
+	}, metricOpts)
 
-	return res, err
+	return res, nil
 }
 
 func (t *Transport) metricAttributesFromRequest(r *http.Request) []attribute.KeyValue {

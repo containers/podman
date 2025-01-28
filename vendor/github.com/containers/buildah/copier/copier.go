@@ -35,6 +35,8 @@ const (
 	cISUID = 0o4000 // Set uid, from archive/tar
 	cISGID = 0o2000 // Set gid, from archive/tar
 	cISVTX = 0o1000 // Save text (sticky bit), from archive/tar
+	// xattrs in the PAXRecords map are namespaced with this prefix
+	xattrPAXRecordNamespace = "SCHILY.xattr."
 )
 
 func init() {
@@ -711,7 +713,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 		return nil, fmt.Errorf("%v: %w", step, err)
 	}
 	if err = encoder.Encode(req); err != nil {
-		return killAndReturn(err, "error encoding request for copier subprocess")
+		return killAndReturn(err, "error encoding work request for copier subprocess")
 	}
 	if err = decoder.Decode(&resp); err != nil {
 		if errors.Is(err, io.EOF) && errorBuffer.Len() > 0 {
@@ -720,7 +722,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 		return killAndReturn(err, "error decoding response from copier subprocess")
 	}
 	if err = encoder.Encode(&request{Request: requestQuit}); err != nil {
-		return killAndReturn(err, "error encoding request for copier subprocess")
+		return killAndReturn(err, "error encoding quit request for copier subprocess")
 	}
 	stdinWrite.Close()
 	stdinWrite = nil
@@ -1427,6 +1429,23 @@ func handleRename(rename map[string]string, name string) string {
 	return name
 }
 
+// mapWithPrefixedKeysWithoutKeyPrefix returns a map containing every element
+// of m that had p as a prefix in its (string) key, with that prefix stripped
+// from its key. items are shallow-copied using assignment. if m is nil, the
+// returned map will be nil, otherwise it will at least have been allocated
+func mapWithPrefixedKeysWithoutKeyPrefix[K any](m map[string]K, p string) map[string]K {
+	if m == nil {
+		return m
+	}
+	cloned := make(map[string]K, len(m))
+	for k, v := range m {
+		if strings.HasPrefix(k, p) {
+			cloned[strings.TrimPrefix(k, p)] = v
+		}
+	}
+	return cloned
+}
+
 func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath string, options GetOptions, tw *tar.Writer, hardlinkChecker *hardlinkChecker, idMappings *idtools.IDMappings) error {
 	// build the header using the name provided
 	hdr, err := tar.FileInfoHeader(srcfi, symlinkTarget)
@@ -1455,8 +1474,13 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		if err != nil {
 			return fmt.Errorf("getting extended attributes for %q: %w", contentPath, err)
 		}
+		if len(xattrs) > 0 && hdr.PAXRecords == nil {
+			hdr.PAXRecords = make(map[string]string, len(xattrs))
+		}
 	}
-	hdr.Xattrs = xattrs // nolint:staticcheck
+	for k, v := range xattrs {
+		hdr.PAXRecords[xattrPAXRecordNamespace+k] = v
+	}
 	if hdr.Typeflag == tar.TypeReg {
 		// if it's an archive and we're extracting archives, read the
 		// file and spool out its contents in-line.  (if we just
@@ -1959,7 +1983,8 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			}
 			// set xattrs, including some that might have been reset by chown()
 			if !req.PutOptions.StripXattrs {
-				if err = Lsetxattrs(path, hdr.Xattrs); err != nil { // nolint:staticcheck
+				xattrs := mapWithPrefixedKeysWithoutKeyPrefix(hdr.PAXRecords, xattrPAXRecordNamespace)
+				if err = Lsetxattrs(path, xattrs); err != nil { // nolint:staticcheck
 					if !req.PutOptions.IgnoreXattrErrors {
 						return fmt.Errorf("copier: put: error setting extended attributes on %q: %w", path, err)
 					}

@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"syscall"
@@ -24,7 +25,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -42,7 +42,7 @@ var RegistryDefaultPathPrefix = map[string]string{
 	"docker.io":       "library",
 }
 
-// StringInSlice is deprecated, use golang.org/x/exp/slices.Contains
+// StringInSlice is deprecated, use slices.Contains
 func StringInSlice(s string, slice []string) bool {
 	return slices.Contains(slice, s)
 }

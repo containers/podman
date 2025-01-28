@@ -1,8 +1,9 @@
 package bind
 
 import (
+	"slices"
+
 	"github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/exp/slices"
 )
 
 const (
