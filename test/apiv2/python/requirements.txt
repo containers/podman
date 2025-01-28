@@ -4,5 +4,5 @@ setuptools~=75.8.0
 python-dateutil~=2.9.0
 PyYAML~=6.0.0
 openapi-schema-validator~=0.6.2
-pytest==8.1.2
+pytest==8.3.4
 docker~=6.1.0
