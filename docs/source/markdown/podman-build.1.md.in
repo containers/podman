@@ -566,6 +566,23 @@ Build image using the specified network when running containers during the build
 $ podman build --network mynet .
 ```
 
+Build an image using a secret stored in an environment variable or file named `mysecret` to be used with the instruction `RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`:
+```
+$ podman build --secret=id=mysecret .
+```
+
+Build an image using a secret stored in an environment variable named `MYSECRET` to be used with the instruction `RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`:
+```
+$ podman build --secret=id=mysecret,env=MYSECRET .
+$ podman build --secret=id=mysecret,src=MYSECRET,type=env .
+```
+
+Build an image using a secret stored in a file named `.mysecret` to be used with the instruction `RUN --mount=type=secret,id=mysecret cat /run/secrets/mysecret`:
+```
+$ podman build --secret=id=mysecret,src=.mysecret .
+$ podman build --secret=id=mysecret,src=.mysecret,type=file .
+```
+
 ### Building a multi-architecture image using the --manifest option (requires emulation software)
 
 Build image using the specified architectures and link to a single manifest on successful completion:

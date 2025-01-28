@@ -325,7 +325,7 @@ validate: validate-source validate-binaries
 # not automated right now.  The hope is that eventually the quay.io/libpod/fedora_podman is multiarch and can replace this
 # image in the future.
 .PHONY: validatepr
-validatepr:
+validatepr: ## Go Format and lint, which all code changes must pass
 	$(PODMANCMD) run --rm \
 		-v $(CURDIR):/go/src/github.com/containers/podman \
 		--security-opt label=disable \
