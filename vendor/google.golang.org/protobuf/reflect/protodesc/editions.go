@@ -11,6 +11,7 @@ import (
 
 	"google.golang.org/protobuf/internal/editiondefaults"
 	"google.golang.org/protobuf/internal/filedesc"
+	"google.golang.org/protobuf/internal/genid"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
@@ -128,23 +129,39 @@ func mergeEditionFeatures(parentDesc protoreflect.Descriptor, child *descriptorp
 	// We must not use proto.GetExtension(child, gofeaturespb.E_Go)
 	// because that only works for messages we generated, but not for
 	// dynamicpb messages. See golang/protobuf#1669.
+	//
+	// Further, we harden this code against adversarial inputs: a
+	// service which accepts descriptors from a possibly malicious
+	// source shouldn't crash.
 	goFeatures := child.ProtoReflect().Get(gofeaturespb.E_Go.TypeDescriptor())
 	if !goFeatures.IsValid() {
 		return parentFS
 	}
+	gf, ok := goFeatures.Interface().(protoreflect.Message)
+	if !ok {
+		return parentFS
+	}
 	// gf.Interface() could be *dynamicpb.Message or *gofeaturespb.GoFeatures.
-	gf := goFeatures.Message()
 	fields := gf.Descriptor().Fields()
 
-	if fd := fields.ByName("legacy_unmarshal_json_enum"); gf.Has(fd) {
+	if fd := fields.ByNumber(genid.GoFeatures_LegacyUnmarshalJsonEnum_field_number); fd != nil &&
+		!fd.IsList() &&
+		fd.Kind() == protoreflect.BoolKind &&
+		gf.Has(fd) {
 		parentFS.GenerateLegacyUnmarshalJSON = gf.Get(fd).Bool()
 	}
 
-	if fd := fields.ByName("strip_enum_prefix"); gf.Has(fd) {
+	if fd := fields.ByNumber(genid.GoFeatures_StripEnumPrefix_field_number); fd != nil &&
+		!fd.IsList() &&
+		fd.Kind() == protoreflect.EnumKind &&
+		gf.Has(fd) {
 		parentFS.StripEnumPrefix = int(gf.Get(fd).Enum())
 	}
 
-	if fd := fields.ByName("api_level"); gf.Has(fd) {
+	if fd := fields.ByNumber(genid.GoFeatures_ApiLevel_field_number); fd != nil &&
+		!fd.IsList() &&
+		fd.Kind() == protoreflect.EnumKind &&
+		gf.Has(fd) {
 		parentFS.APILevel = int(gf.Get(fd).Enum())
 	}
 
