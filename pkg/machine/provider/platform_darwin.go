@@ -2,6 +2,7 @@ package provider
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,6 +37,9 @@ func Get() (vmconfigs.VMProvider, error) {
 	case define.AppleHvVirt:
 		return new(applehv.AppleHVStubber), nil
 	case define.LibKrun:
+		if runtime.GOARCH == "amd64" {
+			return nil, errors.New("libkrun is not supported on Intel based machines. Please revert to the applehv provider")
+		}
 		return new(libkrun.LibKrunStubber), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
