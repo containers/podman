@@ -43,10 +43,11 @@ func Get() (vmconfigs.VMProvider, error) {
 }
 
 func GetAll() []vmconfigs.VMProvider {
-	return []vmconfigs.VMProvider{
-		new(applehv.AppleHVStubber),
-		new(libkrun.LibKrunStubber),
+	configs := []vmconfigs.VMProvider{new(applehv.AppleHVStubber)}
+	if runtime.GOARCH == "arm64" {
+		configs = append(configs, new(libkrun.LibKrunStubber))
 	}
+	return configs
 }
 
 // SupportedProviders returns the providers that are supported on the host operating system
