@@ -3,6 +3,7 @@ package common
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -1646,8 +1647,8 @@ func AutocompleteContainersConfModules(cmd *cobra.Command, args []string, toComp
 	for _, d := range dirs {
 		cleanedD := filepath.Clean(d)
 		moduleD := cleanedD + string(os.PathSeparator)
-		_ = filepath.Walk(d,
-			func(path string, f os.FileInfo, err error) error {
+		_ = filepath.WalkDir(d,
+			func(path string, d fs.DirEntry, err error) error {
 				if err != nil {
 					return err
 				}
@@ -1657,7 +1658,7 @@ func AutocompleteContainersConfModules(cmd *cobra.Command, args []string, toComp
 					return nil
 				}
 
-				if filepath.Clean(path) == cleanedD || f.IsDir() {
+				if filepath.Clean(path) == cleanedD || d.IsDir() {
 					return nil
 				}
 
