@@ -4,6 +4,7 @@
 #
 
 load helpers
+load helpers.systemd
 
 # bats test_tags=distro-integration, ci:parallel
 @test "podman pause/unpause" {
@@ -85,5 +86,53 @@ load helpers
     is "$output" "${cid:0:12} $cname Up.*" "podman ps on resumed container"
 
     run_podman rm -t 0 -f $cname $cname_notrunning
+}
+
+# bats test_tags=ci:parallel
+@test "podman pause/unpause with HealthCheck interval" {
+    if is_rootless && ! is_cgroupsv2; then
+        skip "'podman pause' (rootless) only works with cgroups v2"
+    fi
+
+    local ctrname="c-$(safename)"
+    local msg="healthmsg-$(random_string)"
+
+    run_podman run -d --name $ctrname     \
+                --health-cmd "echo $msg"  \
+                --health-interval 1s      \
+                $IMAGE /home/podman/pause
+    cid="$output"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    run -0 systemctl status $cid-*.{service,timer}
+    assert "$output" =~ "active" "service should be running"
+
+    run_podman --noout pause $ctrname
+    assert "$output" == "" "output should be empty"
+
+    run -0 systemctl status $cid-*.{service,timer}
+    assert "$output" == "" "service should not be running"
+
+    run_podman --noout unpause $ctrname
+    assert "$output" == "" "output should be empty"
+
+    run_podman healthcheck run $ctrname
+    is "$output" "" "output from 'podman healthcheck run'"
+
+    run -0 systemctl status $cid-*.{service,timer}
+    assert "$output" =~ "active" "service should be running"
+
+    run_podman rm -t 0 -f $ctrname
+
+    # Important check for https://github.com/containers/podman/issues/22884
+    # We never should leak the unit files, healthcheck uses the cid in name so just grep that.
+    # (Ignore .scope units, those are conmon and can linger for 5 minutes)
+    # (Ignore .mount, too. They are created/removed by systemd based on the actual real mounts
+    #  on the host and that is async and might be slow enough in CI to cause failures.)
+    run -0 systemctl list-units --quiet "*$cid*"
+    except_scope_mount=$(grep -vF ".scope " <<<"$output" | { grep -vF ".mount" || true; } )
+    assert "$except_scope_mount" == "" "Healthcheck systemd unit cleanup: no units leaked"
 }
 # vim: filetype=sh
