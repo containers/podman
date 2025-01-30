@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -16,7 +15,6 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/events"
-	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -58,9 +56,6 @@ func machinePreRunE(c *cobra.Command, args []string) error {
 	provider, err = provider2.Get()
 	if err != nil {
 		return err
-	}
-	if provider.VMType() == define.LibKrun && runtime.GOARCH == "amd64" {
-		return errors.New("libkrun is not supported on Intel based machines. Please revert to the applehv provider")
 	}
 	return rootlessOnly(c, args)
 }
