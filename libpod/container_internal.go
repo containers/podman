@@ -2114,6 +2114,62 @@ func (c *Container) cleanupStorage() error {
 	return cleanupErr
 }
 
+// fullCleanup performs all cleanup tasks, including handling restart policy.
+func (c *Container) fullCleanup(ctx context.Context, onlyStopped bool) error {
+	// Check if state is good
+	if !c.ensureState(define.ContainerStateConfigured, define.ContainerStateCreated, define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
+		return fmt.Errorf("container %s is running or paused, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+	if onlyStopped && !c.ensureState(define.ContainerStateStopped) {
+		return fmt.Errorf("container %s is not stopped and only cleanup for a stopped container was requested: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+
+	// if the container was not created in the oci runtime or was already cleaned up, then do nothing
+	if c.ensureState(define.ContainerStateConfigured, define.ContainerStateExited) {
+		return nil
+	}
+
+	// Handle restart policy.
+	// Returns a bool indicating whether we actually restarted.
+	// If we did, don't proceed to cleanup - just exit.
+	didRestart, err := c.handleRestartPolicy(ctx)
+	if err != nil {
+		return err
+	}
+	if didRestart {
+		return nil
+	}
+
+	// If we didn't restart, we perform a normal cleanup
+
+	// make sure all the container processes are terminated if we are running without a pid namespace.
+	hasPidNs := false
+	if c.config.Spec.Linux != nil {
+		for _, i := range c.config.Spec.Linux.Namespaces {
+			if i.Type == spec.PIDNamespace {
+				hasPidNs = true
+				break
+			}
+		}
+	}
+	if !hasPidNs {
+		// do not fail on errors
+		_ = c.ociRuntime.KillContainer(c, uint(unix.SIGKILL), true)
+	}
+
+	// Check for running exec sessions
+	sessions, err := c.getActiveExecSessions()
+	if err != nil {
+		return err
+	}
+	if len(sessions) > 0 {
+		return fmt.Errorf("container %s has active exec sessions, refusing to clean up: %w", c.ID(), define.ErrCtrStateInvalid)
+	}
+
+	defer c.newContainerEvent(events.Cleanup)
+	return c.cleanup(ctx)
+}
+
 // Unmount the container and free its resources
 func (c *Container) cleanup(ctx context.Context) error {
 	var lastError error

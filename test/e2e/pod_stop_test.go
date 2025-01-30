@@ -4,6 +4,7 @@ package integration
 
 import (
 	"path/filepath"
+	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -230,5 +231,28 @@ var _ = Describe("Podman pod stop", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(0))
+	})
+
+	It("podman pod stop orders container stop", func() {
+		podName := "testpod"
+		infraName := "testpod-infra"
+		podmanTest.PodmanExitCleanly("pod", "create", "--infra-name", infraName, podName)
+
+		ctrName := "testctr"
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, "--pod", podName, ALPINE, "top")
+
+		podmanTest.PodmanExitCleanly("pod", "stop", podName)
+
+		ctrStop := podmanTest.PodmanExitCleanly("inspect", "--format", "{{ .State.FinishedAt }}", ctrName)
+		infraStop := podmanTest.PodmanExitCleanly("inspect", "--format", "{{ .State.FinishedAt }}", infraName)
+
+		timeFormat := "2006-01-02 15:04:05.999999999 -0700 MST"
+
+		ctrStopTime, err := time.Parse(timeFormat, ctrStop.OutputToString())
+		Expect(err).ShouldNot(HaveOccurred())
+		infraStopTime, err := time.Parse(timeFormat, infraStop.OutputToString())
+		Expect(err).ShouldNot(HaveOccurred())
+
+		Expect(infraStopTime).To(BeTemporally(">", ctrStopTime))
 	})
 })
