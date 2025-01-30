@@ -85,34 +85,23 @@ func (c *Container) initUnlocked(ctx context.Context, recursive bool) error {
 // Start requires that all dependency containers (e.g. pod infra containers) are
 // running before starting the container. The recursive parameter, if set, will start all
 // dependencies before starting this container.
-func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		// defer's are executed LIFO so we are locked here
-		// as long as we call this after the defer unlock()
-		defer func() {
-			if finalErr != nil {
-				if err := saveContainerError(c, finalErr); err != nil {
-					logrus.Debug(err)
-				}
-			}
-		}()
-
-		if err := c.syncContainer(); err != nil {
-			return err
+func (c *Container) Start(ctx context.Context, recursive bool) error {
+	// Have to lock the pod the container is a part of.
+	// This prevents running `podman start` at the same time a
+	// `podman pod stop` is running, which could lead to wierd races.
+	// Pod locks come before container locks, so do this first.
+	if c.config.Pod != "" {
+		// If we get an error, the pod was probably removed.
+		// So we get an expected ErrCtrRemoved instead of ErrPodRemoved,
+		// just ignore this and move on to syncing the container.
+		pod, _ := c.runtime.state.Pod(c.config.Pod)
+		if pod != nil {
+			pod.lock.Lock()
+			defer pod.lock.Unlock()
 		}
 	}
-	if err := c.prepareToStart(ctx, recursive); err != nil {
-		return err
-	}
 
-	// Start the container
-	if err := c.start(); err != nil {
-		return err
-	}
-	return c.waitForHealthy(ctx)
+	return c.startNoPodLock(ctx, recursive)
 }
 
 // Update updates the given container.
@@ -294,6 +283,21 @@ func (c *Container) Stop() error {
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
 func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
+	// Have to lock the pod the container is a part of.
+	// This prevents running `podman stop` at the same time a
+	// `podman pod start` is running, which could lead to wierd races.
+	// Pod locks come before container locks, so do this first.
+	if c.config.Pod != "" {
+		// If we get an error, the pod was probably removed.
+		// So we get an expected ErrCtrRemoved instead of ErrPodRemoved,
+		// just ignore this and move on to syncing the container.
+		pod, _ := c.runtime.state.Pod(c.config.Pod)
+		if pod != nil {
+			pod.lock.Lock()
+			defer pod.lock.Unlock()
+		}
+	}
+
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()

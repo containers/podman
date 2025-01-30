@@ -1260,6 +1260,40 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	return c.waitForHealthy(ctx)
 }
 
+// Internal function to start a container without taking the pod lock.
+// Please note that this DOES take the container lock.
+// Intended to be used in pod-related functions.
+func (c *Container) startNoPodLock(ctx context.Context, recursive bool) (finalErr error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		// defer's are executed LIFO so we are locked here
+		// as long as we call this after the defer unlock()
+		defer func() {
+			if finalErr != nil {
+				if err := saveContainerError(c, finalErr); err != nil {
+					logrus.Debug(err)
+				}
+			}
+		}()
+
+		if err := c.syncContainer(); err != nil {
+			return err
+		}
+	}
+
+	if err := c.prepareToStart(ctx, recursive); err != nil {
+		return err
+	}
+
+	// Start the container
+	if err := c.start(); err != nil {
+		return err
+	}
+	return c.waitForHealthy(ctx)
+}
+
 // Internal, non-locking function to start a container
 func (c *Container) start() error {
 	if c.config.Spec.Process != nil {
