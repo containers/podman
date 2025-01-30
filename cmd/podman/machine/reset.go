@@ -47,15 +47,8 @@ func init() {
 }
 
 func reset(_ *cobra.Command, _ []string) error {
-	var (
-		err error
-	)
-
-	providers := provider2.GetAll()
-	if err != nil {
-		return err
-	}
-	for _, p := range providers {
+	allProviders := provider2.GetAll()
+	for _, p := range allProviders {
 		hasPerms := provider2.HasPermsForProvider(p.VMType())
 		isInstalled, err := provider2.IsInstalled(p.VMType())
 		if !hasPerms && (isInstalled || err != nil) && !resetOptions.Force {
@@ -65,7 +58,7 @@ func reset(_ *cobra.Command, _ []string) error {
 	}
 
 	if !resetOptions.Force {
-		listResponse, err := shim.List(providers, machine.ListOptions{})
+		listResponse, err := shim.List(allProviders, machine.ListOptions{})
 		if err != nil {
 			return err
 		}
@@ -82,7 +75,7 @@ func reset(_ *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
-	return shim.Reset(providers, resetOptions)
+	return shim.Reset(allProviders, resetOptions)
 }
 
 func resetConfirmationMessage(listResponse []*machine.ListResponse) {
