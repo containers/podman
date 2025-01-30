@@ -34,6 +34,7 @@ import (
 	hooksExec "github.com/containers/common/pkg/hooks/exec"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
+	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/go-units"
@@ -342,7 +343,7 @@ rootless=%d
 	}
 
 	defer func() {
-		if err := b.cleanupRunMounts(options.SystemContext, mountPoint, runArtifacts); err != nil {
+		if err := b.cleanupRunMounts(mountPoint, runArtifacts); err != nil {
 			options.Logger.Errorf("unable to cleanup run mounts %v", err)
 		}
 	}()
@@ -869,12 +870,15 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 				return specs.Mount{}, fmt.Errorf("failed to create TempDir in the %s directory: %w", containerDir, err)
 			}
 
+			graphOptions := b.store.GraphOptions()
+			graphOptsCopy := make([]string, len(graphOptions))
+			copy(graphOptsCopy, graphOptions)
 			overlayOpts := overlay.Options{
 				RootUID:                idMaps.rootUID,
 				RootGID:                idMaps.rootGID,
 				UpperDirOptionFragment: upperDir,
 				WorkDirOptionFragment:  workDir,
-				GraphOpts:              b.store.GraphOptions(),
+				GraphOpts:              graphOptsCopy,
 			}
 
 			overlayMount, err := overlay.MountWithOptions(contentDir, host, container, &overlayOpts)
@@ -883,7 +887,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 			}
 
 			// If chown true, add correct ownership to the overlay temp directories.
-			if foundU {
+			if err == nil && foundU {
 				if err := chown.ChangeHostPathOwnership(contentDir, true, idMaps.processUID, idMaps.processGID); err != nil {
 					return specs.Mount{}, err
 				}
@@ -1161,18 +1165,33 @@ func checkIdsGreaterThan5(ids []spec.LinuxIDMapping) bool {
 	return false
 }
 
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, []string, error) {
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, tmpDir string) (*spec.Mount, string, []string, error) {
 	var optionMounts []specs.Mount
-	mount, lockedTargets, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints)
+	optionMount, intermediateMount, lockedTargets, err := internalParse.GetCacheMount(tokens, stageMountPoints, tmpDir)
 	if err != nil {
-		return nil, lockedTargets, err
+		return nil, "", nil, err
 	}
-	optionMounts = append(optionMounts, mount)
+	succeeded := false
+	defer func() {
+		if !succeeded {
+			if intermediateMount != "" {
+				if err := mount.Unmount(intermediateMount); err != nil {
+					b.Logger.Debugf("ummounting %q: %v", intermediateMount, err)
+				}
+				if err := os.Remove(intermediateMount); err != nil {
+					b.Logger.Debugf("removing should-be-empty directory %q: %v", intermediateMount, err)
+				}
+			}
+			internalParse.UnlockLockArray(lockedTargets)
+		}
+	}()
+	optionMounts = append(optionMounts, optionMount)
 	volumes, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
 	if err != nil {
-		return nil, lockedTargets, err
+		return nil, "", nil, err
 	}
-	return &volumes[0], lockedTargets, nil
+	succeeded = true
+	return &volumes[0], intermediateMount, lockedTargets, nil
 }
 
 // setPdeathsig sets a parent-death signal for the process
