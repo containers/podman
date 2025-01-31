@@ -308,6 +308,9 @@ ln -s ../virtiofsd %{buildroot}%{_libexecdir}/%{name}
 #define license tag if not already defined
 %{!?_licensedir:%global license %doc}
 
+# Include empty check to silence rpmlint warning
+%check
+
 %files -f %{name}.file-list
 %license LICENSE vendor/modules.txt
 %doc README.md CONTRIBUTING.md install.md transfer.md
