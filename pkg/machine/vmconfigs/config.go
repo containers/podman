@@ -57,7 +57,8 @@ type MachineConfig struct {
 
 	ImportNativeCA bool
 
-	CloudInit bool
+	CloudInit    bool
+	Capabilities *define.MachineCapabilities
 }
 
 type VMProvider interface { //nolint:interfacebloat
