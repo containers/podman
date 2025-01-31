@@ -29,6 +29,7 @@ import (
 	"github.com/containers/podman/v5/pkg/channel"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
+	domainUtils "github.com/containers/podman/v5/pkg/domain/utils"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -520,24 +521,17 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	annotationsFromAnnotationSlice := func(annotation []string) map[string]string {
-		annotations := make(map[string]string)
-		for _, annotationSpec := range annotation {
-			key, val, hasVal := strings.Cut(annotationSpec, "=")
-			if !hasVal {
-				utils.Error(w, http.StatusBadRequest, fmt.Errorf("no value given for annotation %q", key))
-				return nil
-			}
-			annotations[key] = val
-		}
-		return annotations
-	}
 	if len(body.ManifestAddOptions.Annotation) != 0 {
 		if len(body.ManifestAddOptions.Annotations) != 0 {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("can not set both Annotation and Annotations"))
 			return
 		}
-		body.ManifestAddOptions.Annotations = annotationsFromAnnotationSlice(body.ManifestAddOptions.Annotation)
+		annots, err := domainUtils.ParseAnnotations(body.ManifestAddOptions.Annotation)
+		if err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+		body.ManifestAddOptions.Annotations = annots
 		body.ManifestAddOptions.Annotation = nil
 	}
 	if len(body.ManifestAddOptions.IndexAnnotation) != 0 {
@@ -545,7 +539,12 @@ func ManifestModify(w http.ResponseWriter, r *http.Request) {
 			utils.Error(w, http.StatusBadRequest, fmt.Errorf("can not set both IndexAnnotation and IndexAnnotations"))
 			return
 		}
-		body.ManifestAddOptions.IndexAnnotations = annotationsFromAnnotationSlice(body.ManifestAddOptions.IndexAnnotation)
+		annots, err := domainUtils.ParseAnnotations(body.ManifestAddOptions.IndexAnnotation)
+		if err != nil {
+			utils.Error(w, http.StatusBadRequest, err)
+			return
+		}
+		body.ManifestAddOptions.IndexAnnotations = annots
 		body.ManifestAddOptions.IndexAnnotation = nil
 	}
 

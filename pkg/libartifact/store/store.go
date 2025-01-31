@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -160,7 +161,8 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 
 // Add takes one or more local files and adds them to the local artifact store.  The empty
 // string input is for possible custom artifact types.
-func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ string) (*digest.Digest, error) {
+func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, options *libartTypes.AddOptions) (*digest.Digest, error) {
+	annots := maps.Clone(options.Annotations)
 	if len(dest) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
@@ -191,6 +193,13 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ 
 	defer imageDest.Close()
 
 	for _, path := range paths {
+		// currently we don't allow override of the filename ; if a user requirement emerges,
+		// we could seemingly accommodate but broadens possibilities of something bad happening
+		// for things like `artifact extract`
+		if _, hasTitle := options.Annotations[specV1.AnnotationTitle]; hasTitle {
+			return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
+		}
+
 		// get the new artifact into the local store
 		newBlobDigest, newBlobSize, err := layout.PutBlobFromLocalFile(ctx, imageDest, path)
 		if err != nil {
@@ -200,14 +209,16 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ 
 		if err != nil {
 			return nil, err
 		}
-		newArtifactAnnotations := map[string]string{}
-		newArtifactAnnotations[specV1.AnnotationTitle] = filepath.Base(path)
+
+		annots[specV1.AnnotationTitle] = filepath.Base(path)
+
 		newLayer := specV1.Descriptor{
 			MediaType:   detectedType,
 			Digest:      newBlobDigest,
 			Size:        newBlobSize,
-			Annotations: newArtifactAnnotations,
+			Annotations: annots,
 		}
+
 		artifactManifestLayers = append(artifactManifestLayers, newLayer)
 	}
 
@@ -215,10 +226,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ 
 		Versioned: specs.Versioned{SchemaVersion: 2},
 		MediaType: specV1.MediaTypeImageManifest,
 		// TODO This should probably be configurable once the CLI is capable
-		ArtifactType: "",
-		Config:       specV1.DescriptorEmptyJSON,
-		Layers:       artifactManifestLayers,
+		Config: specV1.DescriptorEmptyJSON,
+		Layers: artifactManifestLayers,
 	}
+
+	artifactManifest.ArtifactType = options.ArtifactType
 
 	rawData, err := json.Marshal(artifactManifest)
 	if err != nil {
