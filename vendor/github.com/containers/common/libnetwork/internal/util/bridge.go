@@ -10,11 +10,13 @@ import (
 	"github.com/containers/common/pkg/config"
 )
 
-func CreateBridge(n NetUtil, network *types.Network, usedNetworks []*net.IPNet, subnetPools []config.SubnetPool) error {
+func CreateBridge(n NetUtil, network *types.Network, usedNetworks []*net.IPNet, subnetPools []config.SubnetPool, checkBridgeConflict bool) error {
 	if network.NetworkInterface != "" {
-		bridges := GetBridgeInterfaceNames(n)
-		if slices.Contains(bridges, network.NetworkInterface) {
-			return fmt.Errorf("bridge name %s already in use", network.NetworkInterface)
+		if checkBridgeConflict {
+			bridges := GetBridgeInterfaceNames(n)
+			if slices.Contains(bridges, network.NetworkInterface) {
+				return fmt.Errorf("bridge name %s already in use", network.NetworkInterface)
+			}
 		}
 		if !types.NameRegex.MatchString(network.NetworkInterface) {
 			return fmt.Errorf("bridge name %s invalid: %w", network.NetworkInterface, types.RegexError)
