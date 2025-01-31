@@ -13,5 +13,5 @@ import (
 
 // GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
 func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
-	return nil, errors.New("format not supported on this system")
+	return nil, newErrFallbackToOrdinaryLayerDownload(errors.New("format not supported on this system"))
 }

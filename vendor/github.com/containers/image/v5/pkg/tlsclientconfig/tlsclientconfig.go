@@ -3,6 +3,7 @@ package tlsclientconfig
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -36,12 +37,9 @@ func SetupCertificates(dir string, tlsc *tls.Config) error {
 			logrus.Debugf(" crt: %s", fullPath)
 			data, err := os.ReadFile(fullPath)
 			if err != nil {
-				if os.IsNotExist(err) {
-					// Dangling symbolic link?
-					// Race with someone who deleted the
-					// file after we read the directory's
-					// list of contents?
-					logrus.Warnf("error reading certificate %q: %v", fullPath, err)
+				if errors.Is(err, os.ErrNotExist) {
+					// file must have been removed between the directory listing
+					// and the open call, ignore that as it is a expected race
 					continue
 				}
 				return err

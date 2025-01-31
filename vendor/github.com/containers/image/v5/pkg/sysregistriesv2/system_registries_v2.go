@@ -1,6 +1,7 @@
 package sysregistriesv2
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -744,6 +745,11 @@ func tryUpdatingCache(ctx *types.SystemContext, wrapper configWrapper) (*parsedC
 		// Enforce v2 format for drop-in-configs.
 		dropIn, err := loadConfigFile(path, true)
 		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				// file must have been removed between the directory listing
+				// and the open call, ignore that as it is a expected race
+				continue
+			}
 			return nil, fmt.Errorf("loading drop-in registries configuration %q: %w", path, err)
 		}
 		config.updateWithConfigurationFrom(dropIn)
