@@ -1,3 +1,5 @@
+podman-artifact-add.1.md
+podman-artifact-ls.1.md
 podman-artifact-pull.1.md
 podman-artifact-push.1.md
 podman-attach.1.md

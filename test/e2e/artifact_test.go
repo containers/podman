@@ -22,7 +22,7 @@ var _ = Describe("Podman artifact", func() {
 		artifact1File, err := createArtifactFile(4192)
 		Expect(err).ToNot(HaveOccurred())
 		artifact1Name := "localhost/test/artifact1"
-		podmanTest.PodmanExitCleanly([]string{"artifact", "add", artifact1Name, artifact1File}...)
+		add1 := podmanTest.PodmanExitCleanly([]string{"artifact", "add", artifact1Name, artifact1File}...)
 
 		artifact2File, err := createArtifactFile(10240)
 		Expect(err).ToNot(HaveOccurred())
@@ -43,6 +43,18 @@ var _ = Describe("Podman artifact", func() {
 		// Make sure the names are what we expect
 		Expect(output).To(ContainElement(artifact1Name))
 		Expect(output).To(ContainElement(artifact2Name))
+
+		// Check default digest length (should be 12)
+		defaultFormatSession := podmanTest.PodmanExitCleanly([]string{"artifact", "ls", "--format", "{{.Digest}}"}...)
+		defaultOutput := defaultFormatSession.OutputToStringArray()[0]
+		Expect(defaultOutput).To(HaveLen(12))
+
+		// Check with --no-trunc and verify the len of the digest is the same as the len what was returned when the artifact
+		// was added
+		noTruncSession := podmanTest.PodmanExitCleanly([]string{"artifact", "ls", "--no-trunc", "--format", "{{.Digest}}"}...)
+		truncOutput := noTruncSession.OutputToStringArray()[0]
+		Expect(truncOutput).To(HaveLen(len(add1.OutputToString())))
+
 	})
 
 	It("podman artifact simple add", func() {
