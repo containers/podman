@@ -2,6 +2,9 @@
 
 set -eo pipefail
 
+# shellcheck source=contrib/cirrus/lib.sh
+source $(dirname $0)/lib.sh
+
 # Skip this entire script when run under nightly treadmill cron job.
 #
 # Treadmill vendors in containers/<many>, which may bring in new versions
