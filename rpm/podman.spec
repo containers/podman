@@ -24,6 +24,8 @@
 
 %if %{defined fedora}
 %define build_with_btrfs 1
+# qemu-system* isn't packageed for CentOS Stream / RHEL
+%define qemu 1
 %endif
 
 %if %{defined copr_username}
@@ -187,7 +189,17 @@ when `%{_bindir}/%{name}sh` is set as a login shell or set as os.Args[0].
 Summary: Metapackage for setting up %{name} machine
 Requires: %{name} = %{epoch}:%{version}-%{release}
 Requires: gvisor-tap-vsock
-Requires: qemu
+%if %{defined qemu}
+%ifarch aarch64
+Requires: qemu-system-aarch64-core
+%endif
+%ifarch x86_64
+Requires: qemu-system-x86-core
+%endif
+%else
+Requires: qemu-kvm
+%endif
+Requires: qemu-img
 Requires: virtiofsd
 ExclusiveArch: x86_64 aarch64
 
