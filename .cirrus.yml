@@ -320,8 +320,6 @@ alt_build_task:
       - env:
             ALT_NAME: 'Build Each Commit'
       - env:
-            ALT_NAME: 'Windows Cross'
-      - env:
             ALT_NAME: 'Build Without CGO'
       - env:
             ALT_NAME: 'Test build RPM'
@@ -835,12 +833,6 @@ artifacts_task:
         - $ARTCURL/Alt%20Arch.%20Cross/repo/repo.tbz
         - tar xjf repo.tbz
         - mv ./*.tar.gz $CIRRUS_WORKING_DIR/
-    win_binaries_script:
-        - mkdir -p /tmp/win
-        - cd /tmp/win
-        - $ARTCURL/Windows%20Cross/repo/repo.tbz
-        - tar xjf repo.tbz
-        - mv ./podman-remote*.zip ./*.msi $CIRRUS_WORKING_DIR/
     osx_binaries_script:
         - mkdir -p /tmp/osx
         - cd /tmp/osx
