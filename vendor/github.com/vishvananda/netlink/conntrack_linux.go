@@ -159,13 +159,18 @@ func (h *Handle) ConntrackDeleteFilter(table ConntrackTableType, family InetFami
 // ConntrackDeleteFilters deletes entries on the specified table matching any of the specified filters using the netlink handle passed
 // conntrack -D [table] parameters         Delete conntrack or expectation
 func (h *Handle) ConntrackDeleteFilters(table ConntrackTableType, family InetFamily, filters ...CustomConntrackFilter) (uint, error) {
+	var errMsgs []string
 	res, err := h.dumpConntrackTable(table, family)
 	if err != nil {
-		return 0, err
+		if !errors.Is(err, ErrDumpInterrupted) {
+			return 0, err
+		}
+		// This allows us to at least do a best effort to try to clean the
+		// entries matching the filter.
+		errMsgs = append(errMsgs, err.Error())
 	}
 
 	var matched uint
-	var errMsgs []string
 	for _, dataRaw := range res {
 		flow := parseRawData(dataRaw)
 		for _, filter := range filters {
