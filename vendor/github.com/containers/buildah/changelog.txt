@@ -1,3 +1,93 @@
+- Changelog for v1.39.0 (2025-01-31)
+  * Bump c/storage v1.57.1, c/image 5.34.0,  c/common v0.62.0
+  * Update module github.com/containers/storage to v1.57.0
+  * CI, .cirrus: parallelize containerized integration
+  * ed's comment: cleanup
+  * use seperate blobinfocache for flaky test
+  * bump CI VMs to 4 CPUs (was: 2) for integration tests
+  * cleanup, debug, and disable parallel in blobcache tests
+  * bats tests - parallelize
+  * pkg/overlay: cleanups
+  * RPM: include check section to silence rpmlint
+  * RPM: use default gobuild macro on RHEL
+  * tests: remove masked /sys/dev/block check
+  * vendor to latest c/{common,image,storage}
+  * build, run: record hash or digest in image history
+  * Accept image names as sources for cache mounts
+  * Run(): always clean up options.ExternalImageMounts
+  * refactor: replace golang.org/x/exp with stdlib
+  * Update to c/image @main
+  * fix broken doc link
+  * run_freebsd.go: only import runtime-spec once
+  * fix(deps): update module github.com/docker/docker to v27.5.1+incompatible
+  * bump github.com/vbatts/tar-split
+  * Add more checks to the --mount flag parsing logic
+  * chroot mount flags integration test: copy binaries
+  * fix(deps): update module github.com/moby/buildkit to v0.19.0
+  * relabel(): correct a misleading parameter name
+  * Fix TOCTOU error when bind and cache mounts use "src" values
+  * define.TempDirForURL(): always use an intermediate subdirectory
+  * internal/volume.GetBindMount(): discard writes in bind mounts
+  * pkg/overlay: add a MountLabel flag to Options
+  * pkg/overlay: add a ForceMount flag to Options
+  * Add internal/volumes.bindFromChroot()
+  * Add an internal/open package
+  * fix(deps): update module github.com/containers/common to v0.61.1
+  * fix(deps): update module github.com/containers/image/v5 to v5.33.1
+  * [CI:DOCS] Touch up changelogs
+  * fix(deps): update module github.com/docker/docker to v27.5.0+incompatible
+  * copy-preserving-extended-attributes: use a different base image
+  * fix(deps): update github.com/containers/luksy digest to a3a812d
+  * chore(deps): update module golang.org/x/net to v0.33.0 [security]
+  * fix(deps): update module golang.org/x/crypto to v0.32.0
+  * New VM Images
+  * fix(deps): update module github.com/opencontainers/runc to v1.2.4
+  * fix(deps): update module github.com/docker/docker to v27.4.1+incompatible
+  * fix(deps): update module github.com/containers/ocicrypt to v1.2.1
+  * Add support for --security-opt mask and unmask
+  * Allow cache mounts to be stages or additional build contexts
+  * [skip-ci] RPM: cleanup changelog conditionals
+  * fix(deps): update module github.com/cyphar/filepath-securejoin to v0.3.6
+  * fix(deps): update module github.com/moby/buildkit to v0.18.2
+  * Fix an error message in the chroot unit test
+  * copier: use .PAXRecords instead of .Xattrs
+  * chroot: on Linux, try to pivot_root before falling back to chroot
+  * manifest add: add --artifact-annotation
+  * Add context to an error message
+  * Update module golang.org/x/crypto to v0.31.0
+  * Update module github.com/opencontainers/runc to v1.2.3
+  * Update module github.com/docker/docker to v27.4.0+incompatible
+  * Update module github.com/cyphar/filepath-securejoin to v0.3.5
+  * CI: don't build a binary in the unit tests task
+  * CI: use /tmp for $GOCACHE
+  * CI: remove dependencies on the cross-build task
+  * CI: run cross-compile task with make -j
+  * Update module github.com/docker/docker to v27.4.0-rc.4+incompatible
+  * Update module github.com/moby/buildkit to v0.18.1
+  * Update module golang.org/x/crypto to v0.30.0
+  * Update golang.org/x/exp digest to 2d47ceb
+  * Update github.com/opencontainers/runtime-tools digest to f7e3563
+  * [skip-ci] Packit: remove rhel copr build jobs
+  * [skip-ci] Packit: switch to fedora-all for copr
+  * Update module github.com/stretchr/testify to v1.10.0
+  * Update module github.com/moby/buildkit to v0.17.2
+  * Makefile: use `find` to detect source files
+  * Tests: make _prefetch() parallel-safe
+  * Update module github.com/opencontainers/runc to v1.2.2
+  * executor: allow to specify --no-pivot-root
+  * Update module github.com/moby/sys/capability to v0.4.0
+  * Makefile: mv codespell config to .codespellrc
+  * Fix some codespell errors
+  * Makefile,install.md: rm gopath stuff
+  * Makefile: rm targets working on ..
+  * build: rm exclude_graphdriver_devicemapper tag
+  * Makefile: rm unused var
+  * Finish updating to go 1.22
+  * CI VMs: bump again
+  * Bump to Buidah v1.39.0-dev
+  * stage_executor: set avoidLookingCache only if mounting stage
+  * imagebuildah: additionalContext is not a local built stage
+
 - Changelog for v1.38.0 (2024-11-08)
   * Bump to c/common v0.61.0, c/image v5.33.0, c/storage v1.56.0
   * fix(deps): update module golang.org/x/crypto to v0.29.0

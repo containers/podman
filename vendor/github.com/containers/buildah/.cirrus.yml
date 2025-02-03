@@ -234,6 +234,7 @@ integration_task:
 
     gce_instance:
         image_name: "$IMAGE_NAME"
+        cpu: 4
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -281,6 +282,7 @@ integration_rootless_task:
 
     gce_instance:
         image_name: "$IMAGE_NAME"
+        cpu: 4
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -298,6 +300,9 @@ in_podman_task:
     alias: in_podman
     skip: *not_build_docs
     depends_on: *smoke_vendor
+
+    gce_instance:
+        cpu: 4
 
     env:
         # This is key, cause the scripts to re-execute themselves inside a container.
