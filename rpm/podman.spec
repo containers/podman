@@ -144,6 +144,7 @@ Requires: %{name} = %{epoch}:%{version}-%{release}
 %if %{defined fedora}
 Requires: bats
 %endif
+Requires: attr
 Requires: jq
 Requires: skopeo
 Requires: nmap-ncat
