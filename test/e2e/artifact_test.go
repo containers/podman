@@ -55,6 +55,12 @@ var _ = Describe("Podman artifact", func() {
 		truncOutput := noTruncSession.OutputToStringArray()[0]
 		Expect(truncOutput).To(HaveLen(len(add1.OutputToString())))
 
+		// check with --noheading and verify the header is not present through a line count AND substring match
+		noHeaderSession := podmanTest.PodmanExitCleanly([]string{"artifact", "ls", "--noheading"}...)
+		noHeaderOutput := noHeaderSession.OutputToStringArray()
+		Expect(noHeaderOutput).To(HaveLen(2))
+		Expect(noHeaderOutput).ToNot(ContainElement("REPOSITORY"))
+
 	})
 
 	It("podman artifact simple add", func() {
