@@ -2,6 +2,18 @@
 
 # Changelog
 
+## v1.27.6 (2025-01-30)
+
+    Fix cache locks with multiple mounts
+    Fix TOCTOU error when bind and cache mounts use "src" values
+    define.TempDirForURL(): always use an intermediate subdirectory
+    internal/volume.GetBindMount(): discard writes in bind mounts
+    pkg/overlay: add a MountLabel flag to Options
+    pkg/overlay: add a ForceMount flag to Options
+    Add internal/volumes.bindFromChroot()
+    Add an internal/open package
+    Allow cache mounts to be stages or additional build contexts
+
 ## v1.27.5 (2024-10-24)
 
     Properly validate cache IDs and sources

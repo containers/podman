@@ -12,6 +12,8 @@ const (
 // StageExecutor has ability to mount stages/images in current context and
 // automatically clean them up.
 type StageMountDetails struct {
-	IsStage    bool   // tells if mountpoint returned from stage executor is stage or image
-	MountPoint string // mountpoint of stage/image
+	IsStage                  bool   // true if the mountpoint is a stage's rootfs
+	IsImage                  bool   // true if the mountpoint is an image's rootfs
+	IsAdditionalBuildContext bool   // true if the mountpoint is an additional build context
+	MountPoint               string // mountpoint of stage/image or image's root directory or path of the additional build context
 }
