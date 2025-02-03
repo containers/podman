@@ -28,6 +28,7 @@ import (
 	"github.com/containers/podman/v5/pkg/inspect"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
@@ -1187,19 +1188,21 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 }
 
 func writeConf(conf []byte, confPath string) {
-	if _, err := os.Stat(filepath.Dir(confPath)); os.IsNotExist(err) {
-		if err := os.MkdirAll(filepath.Dir(confPath), 0o777); err != nil {
-			GinkgoWriter.Println(err)
-		}
-	}
-	if err := os.WriteFile(confPath, conf, 0o777); err != nil {
-		GinkgoWriter.Println(err)
-	}
+	GinkgoHelper()
+	err := os.MkdirAll(filepath.Dir(confPath), 0o755)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = ioutils.AtomicWriteFile(confPath, conf, 0o644)
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func removeConf(confPath string) {
-	if err := os.Remove(confPath); err != nil {
-		GinkgoWriter.Println(err)
+	GinkgoHelper()
+	err := os.Remove(confPath)
+	// Network remove test will remove the config and then this can fail.
+	// If the config does not exists no reason to hard error here.
+	if !errors.Is(err, os.ErrNotExist) {
+		Expect(err).ToNot(HaveOccurred())
 	}
 }
 
