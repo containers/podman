@@ -135,6 +135,15 @@ func (n *Netns) getOrCreateNetns() (ns.NetNS, bool, error) {
 		}
 		// In case of errors continue and setup the network cmd again.
 	} else {
+		// Special case, the file might exist already but is not a valid netns.
+		// One reason could be that a previous setup was killed between creating
+		// the file and mounting it. Or if the file is not on tmpfs (deleted on boot)
+		// you might run into it as well: https://github.com/containers/podman/issues/25144
+		// We have to do this because NewNSAtPath fails with EEXIST otherwise
+		if errors.As(err, &ns.NSPathNotNSErr{}) {
+			// We don't care if this fails, NewNSAtPath() should return the real error.
+			_ = os.Remove(nsPath)
+		}
 		logrus.Debugf("Creating rootless network namespace at %q", nsPath)
 		// We have to create the netns dir again here because it is possible
 		// that cleanup() removed it.

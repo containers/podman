@@ -3,6 +3,7 @@ package docker
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"os"
 	"path"
@@ -129,6 +130,11 @@ func loadAndMergeConfig(dirPath string) (*registryConfiguration, error) {
 		configPath := filepath.Join(dirPath, configName)
 		configBytes, err := os.ReadFile(configPath)
 		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				// file must have been removed between the directory listing
+				// and the open call, ignore that as it is a expected race
+				continue
+			}
 			return nil, err
 		}
 

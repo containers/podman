@@ -169,11 +169,9 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	switch newNetwork.Driver {
 	case types.BridgeNetworkDriver:
 		internalutil.MapDockerBridgeDriverOptions(newNetwork)
-		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools)
-		if err != nil {
-			return nil, err
-		}
-		// validate the given options, we do not need them but just check to make sure they are valid
+
+		var vlan int
+		// validate the given options,
 		for key, value := range newNetwork.Options {
 			switch key {
 			case types.MTUOption:
@@ -183,7 +181,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				}
 
 			case types.VLANOption:
-				_, err = internalutil.ParseVlan(value)
+				vlan, err = internalutil.ParseVlan(value)
 				if err != nil {
 					return nil, err
 				}
@@ -218,6 +216,17 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 				return nil, fmt.Errorf("unsupported bridge network option %s", key)
 			}
 		}
+
+		// If there is no vlan there should be no other config with the same bridge.
+		// However with vlan we want to allow that so that you can have different
+		// configs on the same bridge but different vlans
+		// https://github.com/containers/common/issues/2095
+		checkBridgeConflict := vlan == 0
+		err = internalutil.CreateBridge(n, newNetwork, usedNetworks, n.defaultsubnetPools, checkBridgeConflict)
+		if err != nil {
+			return nil, err
+		}
+
 	case types.MacVLANNetworkDriver, types.IPVLANNetworkDriver:
 		err = createIpvlanOrMacvlan(newNetwork)
 		if err != nil {
