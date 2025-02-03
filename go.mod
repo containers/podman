@@ -69,7 +69,7 @@ require (
 	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/vbauerster/mpb/v8 v8.9.1
-	github.com/vishvananda/netlink v1.3.1-0.20240922070040-084abd93d350
+	github.com/vishvananda/netlink v1.3.1-0.20250128002108-7c2350bd140f
 	go.etcd.io/bbolt v1.3.11
 	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329
