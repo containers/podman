@@ -14,14 +14,14 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
 	github.com/containers/buildah v1.38.1-0.20250125114111-92015b7f4301
-	github.com/containers/common v0.61.1-0.20250124131345-fa339b6b6eda
+	github.com/containers/common v0.62.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.2
-	github.com/containers/image/v5 v5.33.2-0.20250122233652-b5c6aff95ca7
+	github.com/containers/image/v5 v5.34.0
 	github.com/containers/libhvee v0.9.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.56.2-0.20250123125217-80d3c0e77d29
+	github.com/containers/storage v1.57.1
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/crc-org/crc/v2 v2.45.0
@@ -66,7 +66,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.24.12
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.1
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6
 	github.com/stretchr/testify v1.10.0
 	github.com/vbauerster/mpb/v8 v8.9.1
 	github.com/vishvananda/netlink v1.3.1-0.20240922070040-084abd93d350

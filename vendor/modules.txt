@@ -179,7 +179,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.61.1-0.20250124131345-fa339b6b6eda
+# github.com/containers/common v0.62.0
 ## explicit; go 1.22.8
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -252,7 +252,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.2
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.33.2-0.20250122233652-b5c6aff95ca7
+# github.com/containers/image/v5 v5.34.0
 ## explicit; go 1.22.8
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -364,7 +364,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.56.2-0.20250123125217-80d3c0e77d29
+# github.com/containers/storage v1.57.1
 ## explicit; go 1.22.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1045,7 +1045,7 @@ github.com/smallstep/pkcs7/internal/legacy/x509
 # github.com/spf13/cobra v1.8.1
 ## explicit; go 1.15
 github.com/spf13/cobra
-# github.com/spf13/pflag v1.0.5
+# github.com/spf13/pflag v1.0.6
 ## explicit; go 1.12
 github.com/spf13/pflag
 # github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6
