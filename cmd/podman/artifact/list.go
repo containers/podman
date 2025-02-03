@@ -31,8 +31,9 @@ var (
 )
 
 type listFlagType struct {
-	format  string
-	noTrunc bool
+	format    string
+	noHeading bool
+	noTrunc   bool
 }
 
 type artifactListOutput struct {
@@ -55,6 +56,7 @@ func init() {
 	formatFlagName := "format"
 	flags.StringVar(&listFlag.format, formatFlagName, defaultArtifactListOutputFormat, "Format volume output using JSON or a Go template")
 	_ = listCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&artifactListOutput{}))
+	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print column headings")
 	flags.BoolVar(&listFlag.noTrunc, "no-trunc", false, "Do not truncate output")
 }
 
@@ -132,7 +134,7 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 		return err
 	}
 
-	if rpt.RenderHeaders {
+	if rpt.RenderHeaders && !listFlag.noHeading {
 		if err := rpt.Execute(headers); err != nil {
 			return fmt.Errorf("failed to write report column headers: %w", err)
 		}
