@@ -85,6 +85,32 @@ var _ = Describe("Podman artifact", func() {
 		Expect(addAgain.ErrorToString()).To(Equal(fmt.Sprintf("Error: artifact %s already exists", artifact1Name)))
 	})
 
+	It("podman artifact add with options", func() {
+		artifact1Name := "localhost/test/artifact1"
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifactType := "octet/foobar"
+		annotation1 := "color=blue"
+		annotation2 := "flavor=lemon"
+
+		podmanTest.PodmanExitCleanly([]string{"artifact", "add", "--type", artifactType, "--annotation", annotation1, "--annotation", annotation2, artifact1Name, artifact1File}...)
+		inspectSingleSession := podmanTest.PodmanExitCleanly([]string{"artifact", "inspect", artifact1Name}...)
+		a := libartifact.Artifact{}
+		err = json.Unmarshal([]byte(inspectSingleSession.OutputToString()), &a)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.Manifest.ArtifactType).To(Equal(artifactType))
+		Expect(a.Manifest.Layers[0].Annotations["color"]).To(Equal("blue"))
+		Expect(a.Manifest.Layers[0].Annotations["flavor"]).To(Equal("lemon"))
+
+		failSession := podmanTest.Podman([]string{"artifact", "add", "--annotation", "org.opencontainers.image.title=foobar", "foobar", artifact1File})
+		failSession.WaitWithDefaultTimeout()
+		Expect(failSession).Should(Exit(125))
+		Expect(failSession.ErrorToString()).Should(Equal("Error: cannot override filename with org.opencontainers.image.title annotation"))
+	})
+
+
 	It("podman artifact add multiple", func() {
 		artifact1File1, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
@@ -103,11 +129,7 @@ var _ = Describe("Podman artifact", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(a.Name).To(Equal(artifact1Name))
 
-		var layerCount int
-		for _, layer := range a.Manifests {
-			layerCount += len(layer.Layers)
-		}
-		Expect(layerCount).To(Equal(2))
+		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
 
 	It("podman artifact push and pull", func() {
