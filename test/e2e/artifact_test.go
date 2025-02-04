@@ -100,9 +100,9 @@ var _ = Describe("Podman artifact", func() {
 		err = json.Unmarshal([]byte(inspectSingleSession.OutputToString()), &a)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(a.Name).To(Equal(artifact1Name))
-		Expect(a.Manifests[0].ArtifactType).To(Equal(artifactType))
-		Expect(a.Manifests[0].Layers[0].Annotations["color"]).To(Equal("blue"))
-		Expect(a.Manifests[0].Layers[0].Annotations["flavor"]).To(Equal("lemon"))
+		Expect(a.Manifest.ArtifactType).To(Equal(artifactType))
+		Expect(a.Manifest.Layers[0].Annotations["color"]).To(Equal("blue"))
+		Expect(a.Manifest.Layers[0].Annotations["flavor"]).To(Equal("lemon"))
 
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--annotation", "org.opencontainers.image.title=foobar", "foobar", artifact1File})
 		failSession.WaitWithDefaultTimeout()
@@ -128,11 +128,7 @@ var _ = Describe("Podman artifact", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(a.Name).To(Equal(artifact1Name))
 
-		var layerCount int
-		for _, layer := range a.Manifests {
-			layerCount += len(layer.Layers)
-		}
-		Expect(layerCount).To(Equal(2))
+		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
 
 	It("podman artifact push and pull", func() {
