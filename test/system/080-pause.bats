@@ -106,7 +106,11 @@ load helpers.systemd
     run_podman healthcheck run $ctrname
     is "$output" "" "output from 'podman healthcheck run'"
 
-    run -0 systemctl status $cid-*.{service,timer}
+    # We checking only timer because checking of service caused unexpected exit code 3 of systemctl status.
+    # Since the status check can be executed when HealthCheck was exited, this caused a termination error code 3
+    # for systemctl status. Because service was in dead state because HealthCheck exited.
+    # https://github.com/containers/podman/issues/25204
+    run -0 systemctl status $cid-*.timer
     assert "$output" =~ "active" "service should be running"
 
     run_podman --noout pause $ctrname
@@ -121,7 +125,7 @@ load helpers.systemd
     run_podman healthcheck run $ctrname
     is "$output" "" "output from 'podman healthcheck run'"
 
-    run -0 systemctl status $cid-*.{service,timer}
+    run -0 systemctl status $cid-*.timer
     assert "$output" =~ "active" "service should be running"
 
     run_podman rm -t 0 -f $ctrname
