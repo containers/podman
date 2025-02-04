@@ -7,6 +7,7 @@
 - The `--mount type=volume` option for the `podman run`, `podman create`, and `podman volume create` commands now supports a new option, `subpath=`, to make only a subset of the volume visible in the container ([#20661](https://github.com/containers/podman/issues/20661)).
 - The `--userns=keep-id` option for the `podman run`, `podman create`, and `podman pod create` commands now supports a new option, `--userns=keep-id:size=`, to configure the size of the user namespace ([#24387](https://github.com/containers/podman/issues/24837)).
 - The `podman kube play` command now supports Container Device Interface (CDI) devices ([#17833](https://github.com/containers/podman/issues/17833)).
+- The `podman machine init` command now supports a new option, `--playbook`, to run an Ansible playbook in the created VM on first boot for initial configuration.
 - Quadlet `.pod` files now support a new field, `ShmSize`, to specify the size of the pod's shared SHM ([#22915](https://github.com/containers/podman/issues/22915)).
 - The `podman run`, `podman create`, and `podman pod create` commands now support a new option, `--hosts-file`, to define the base file used for `/etc/hosts` in the container.
 - The `podman run`, `podman create`, and `podman pod create` commands now support a new option, `--no-hostname`, which disables the creation of `/etc/hostname` in the container ([#25002](https://github.com/containers/podman/issues/25002)).
@@ -23,6 +24,7 @@
 ### Changes
 - Podman now passes container hostnames to Netavark, which will use them for any DHCP requests for the container.
 - Partial pulls of `zstd:chunked` images now only happen for images that have a `RootFS.DiffID` entry in the image's OCI config JSON, and require the layer contents to match. This resolves issues with image ID ambiguity when partial pulls were enabled.
+- Packagers can now set the `BUILD_ORIGIN` environment variable when building podman from the `Makefile`. This provides information on who built the Podman binary, and is displayed in `podman version` and  `podman info`. This will help upstream bug reports, allowing maintainers to trace how and where the binary was built and installed from.
 
 ### Bugfixes
 - Fixed a bug where `podman machine` VMs on WSL could fail to start when using usermode networking could fail to start due to a port conflict ([#20327](https://github.com/containers/podman/issues/20327)).
@@ -46,13 +48,20 @@
 - Fixed a bug where the output of `podman inspect` on containers did not include the ID of the network the container was joined to, improving Docker compatibility ([#24910](https://github.com/containers/podman/issues/24910)).
 - Fixed a bug where containers created with the remote API incorrectly included a create command ([#25026](https://github.com/containers/podman/issues/25026)).
 - Fixed a bug where it was possible to specify the `libkrun` backend for VMs on Intel Macs (`libkrun` only supports Arm systems).
+- Fixed a bug where `libkrun` and `applehv` VMs from `podman machine` could be started at the same time on Macs ([#25112](https://github.com/containers/podman/issues/25112)).
+- Fixed a bug where `podman exec` commands could not detach from the exec session using the detach keys ([#24895](https://github.com/containers/podman/issues/24895)).
 
 ### API
 - The Compat and Libpod Build APIs for Images now support a new query parameter, `nohosts`, which (when set to true) does not create `/etc/hosts` in the image when building.
+- Fixed a bug where the Compat Create API for Containers did not honor CDI devices, preventing (among other things) the use of GPUs with `docker compose` ([#19338](https://github.com/containers/podman/issues/19338)).
 
 ### Misc
 - The Docker alias script has been fixed to better handle variable substitution.
 - Fixed a bug where `podman-restart.service` functioned incorrectly when no containers were present.
+- Updated Buildah to v1.39.0
+- Updated the containers/common library to v0.62.0
+- Updated the containers/storage library to v1.57.1
+- Updated the containers/image library to v5.34.0
 
 ## 5.3.2
 ### Security
