@@ -12,6 +12,11 @@ const containersConf = `[containers]
 
 [engine]
 cgroup_manager = "cgroupfs"
+
+# Using iptables until we fix nftables on WSL:
+# https://github.com/containers/podman/issues/25201
+[network]
+firewall_driver="iptables"
 `
 
 const registriesConf = `unqualified-search-registries=["docker.io"]
