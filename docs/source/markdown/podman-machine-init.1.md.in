@@ -80,6 +80,8 @@ is copied into the user's CONF_DIR and renamed.  Additionally, no SSH keys are g
 Fully qualified registry, path, or URL to a VM image.
 Registry target must be in the form of `docker://registry/repo/image:version`.
 
+Note: Only images provided by podman will be supported.
+
 #### **--memory**, **-m**=*number*
 
 Memory (in MiB). Note: 1024MiB = 1GiB.
@@ -87,6 +89,13 @@ Memory (in MiB). Note: 1024MiB = 1GiB.
 #### **--now**
 
 Start the virtual machine immediately after it has been initialized.
+
+#### **--playbook**
+
+Add the provided Ansible playbook to the machine and execute it after the first boot.
+
+Note: The playbook will be executed with the same privileges given to the user in the virtual machine. The playbook provided cannot include other files from the host system, as they will not be copied.
+Use of the `--playbook` flag will require the image to include Ansible. The default image provided will have Ansible included.
 
 #### **--rootful**
 
