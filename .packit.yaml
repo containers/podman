@@ -19,10 +19,6 @@ srpm_build_deps:
   - git-archive-all
   - make
 
-actions:
-  fix-spec-file:
-    - "bash .packit.sh"
-
 jobs:
   - job: copr_build
     trigger: pull_request
@@ -70,6 +66,9 @@ jobs:
     owner: rhcontainerbot
     project: podman-next
     enable_net: true
+    actions:
+      fix-spec-file:
+        - "bash .packit.sh"
 
   - job: tests
     identifier: cockpit-revdeps
