@@ -53,6 +53,8 @@ type MachineConfig struct {
 	Starting bool
 
 	Rosetta bool
+
+	Ansible *AnsibleConfig
 }
 
 type machineImage interface { //nolint:unused
@@ -147,4 +149,10 @@ type VMStats struct {
 	Created time.Time
 	// LastUp contains the last recorded uptime
 	LastUp time.Time
+}
+
+type AnsibleConfig struct {
+	PlaybookPath string
+	Contents     string
+	User         string
 }

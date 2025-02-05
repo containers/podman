@@ -9,7 +9,7 @@ import (
 
 // TODO For now, no remote support has been added. We need the API to firm up first.
 
-func ArtifactAdd(ctx context.Context, path, name string, opts entities.ArtifactAddoptions) error {
+func ArtifactAdd(ctx context.Context, path, name string, opts entities.ArtifactAddOptions) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -33,6 +33,6 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []string, opts entities.ArtifactAddoptions) (*entities.ArtifactAddReport, error) {
+func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []string, opts *entities.ArtifactAddOptions) (*entities.ArtifactAddReport, error) {
 	return nil, fmt.Errorf("not implemented")
 }

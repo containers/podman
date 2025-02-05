@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/libartifact/store"
+	"github.com/containers/podman/v5/pkg/libartifact/types"
 )
 
 func getDefaultArtifactStore(ir *ImageEngine) string {
@@ -152,12 +153,18 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 	err = artStore.Push(ctx, name, name, copyOpts)
 	return &entities.ArtifactPushReport{}, err
 }
-func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []string, opts entities.ArtifactAddoptions) (*entities.ArtifactAddReport, error) {
+func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []string, opts *entities.ArtifactAddOptions) (*entities.ArtifactAddReport, error) {
 	artStore, err := store.NewArtifactStore(getDefaultArtifactStore(ir), ir.Libpod.SystemContext())
 	if err != nil {
 		return nil, err
 	}
-	artifactDigest, err := artStore.Add(ctx, name, paths, opts.ArtifactType)
+
+	addOptions := types.AddOptions{
+		Annotations:  opts.Annotations,
+		ArtifactType: opts.ArtifactType,
+	}
+
+	artifactDigest, err := artStore.Add(ctx, name, paths, &addOptions)
 	if err != nil {
 		return nil, err
 	}

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -204,6 +205,32 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		err = ignBuilder.GenerateIgnitionConfig()
 		if err != nil {
 			return err
+		}
+	}
+
+	if len(opts.PlaybookPath) > 0 {
+		f, err := os.Open(opts.PlaybookPath)
+		if err != nil {
+			return err
+		}
+		s, err := io.ReadAll(f)
+		if err != nil {
+			return fmt.Errorf("read playbook: %w", err)
+		}
+
+		playbookDest := fmt.Sprintf("/home/%s/%s", userName, "playbook.yaml")
+
+		if mp.VMType() != machineDefine.WSLVirt {
+			err = ignBuilder.AddPlaybook(string(s), playbookDest, userName)
+			if err != nil {
+				return err
+			}
+		}
+
+		mc.Ansible = &vmconfigs.AnsibleConfig{
+			PlaybookPath: playbookDest,
+			Contents:     string(s),
+			User:         userName,
 		}
 	}
 
@@ -540,6 +567,16 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 			if err := mc.Write(); err != nil {
 				logrus.Error(err)
 			}
+		}
+	}
+
+	isFirstBoot, err := mc.IsFirstBoot()
+	if err != nil {
+		logrus.Error(err)
+	}
+	if mp.VMType() == machineDefine.WSLVirt && mc.Ansible != nil && isFirstBoot {
+		if err := machine.CommonSSHSilent(mc.Ansible.User, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"ansible-playbook", mc.Ansible.PlaybookPath}); err != nil {
+			logrus.Error(err)
 		}
 	}
 

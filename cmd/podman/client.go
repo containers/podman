@@ -3,9 +3,10 @@ package main
 import "github.com/containers/podman/v5/libpod/define"
 
 type clientInfo struct {
-	OSArch   string `json:"OS"`
-	Provider string `json:"provider"`
-	Version  string `json:"version"`
+	OSArch      string `json:"OS"`
+	Provider    string `json:"provider"`
+	Version     string `json:"version"`
+	BuildOrigin string `json:"buildOrigin,omitempty" yaml:",omitempty"`
 }
 
 func getClientInfo() (*clientInfo, error) {
@@ -18,8 +19,9 @@ func getClientInfo() (*clientInfo, error) {
 		return nil, err
 	}
 	return &clientInfo{
-		OSArch:   vinfo.OsArch,
-		Provider: p,
-		Version:  vinfo.Version,
+		OSArch:      vinfo.OsArch,
+		Provider:    p,
+		Version:     vinfo.Version,
+		BuildOrigin: vinfo.BuildOrigin,
 	}, nil
 }

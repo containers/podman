@@ -11,17 +11,17 @@ import (
 )
 
 type Artifact struct {
-	Manifests []manifest.OCI1
-	Name      string
+	// Manifest is the OCI manifest for the artifact with the name.
+	// In a valid artifact the Manifest is guaranteed to not be nil.
+	Manifest *manifest.OCI1
+	Name     string
 }
 
 // TotalSizeBytes returns the total bytes of the all the artifact layers
 func (a *Artifact) TotalSizeBytes() int64 {
 	var s int64
-	for _, artifact := range a.Manifests {
-		for _, layer := range artifact.Layers {
-			s += layer.Size
-		}
+	for _, layer := range a.Manifest.Layers {
+		s += layer.Size
 	}
 	return s
 }
@@ -45,13 +45,7 @@ func (a *Artifact) SetName(name string) {
 }
 
 func (a *Artifact) GetDigest() (*digest.Digest, error) {
-	if len(a.Manifests) > 1 {
-		return nil, fmt.Errorf("not supported: multiple manifests found in artifact")
-	}
-	if len(a.Manifests) < 1 {
-		return nil, fmt.Errorf("not supported: no manifests found in artifact")
-	}
-	b, err := json.Marshal(a.Manifests[0])
+	b, err := json.Marshal(a.Manifest)
 	if err != nil {
 		return nil, err
 	}
@@ -72,17 +66,13 @@ func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, 
 	}
 	// Before giving up, check by digest
 	for _, artifact := range al {
-		// TODO Here we have to assume only a single manifest for the artifact; this will
-		// need to evolve
-		if len(artifact.Manifests) > 0 {
-			artifactDigest, err := artifact.GetDigest()
-			if err != nil {
-				return nil, false, err
-			}
-			// If the artifact's digest matches or is a prefix of ...
-			if artifactDigest.Encoded() == nameOrDigest || strings.HasPrefix(artifactDigest.Encoded(), nameOrDigest) {
-				return artifact, true, nil
-			}
+		artifactDigest, err := artifact.GetDigest()
+		if err != nil {
+			return nil, false, err
+		}
+		// If the artifact's digest matches or is a prefix of ...
+		if artifactDigest.Encoded() == nameOrDigest || strings.HasPrefix(artifactDigest.Encoded(), nameOrDigest) {
+			return artifact, true, nil
 		}
 	}
 	return nil, false, fmt.Errorf("no artifact found with name or digest of %s", nameOrDigest)

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -160,7 +161,8 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 
 // Add takes one or more local files and adds them to the local artifact store.  The empty
 // string input is for possible custom artifact types.
-func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ string) (*digest.Digest, error) {
+func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, options *libartTypes.AddOptions) (*digest.Digest, error) {
+	annots := maps.Clone(options.Annotations)
 	if len(dest) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
@@ -191,6 +193,13 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ 
 	defer imageDest.Close()
 
 	for _, path := range paths {
+		// currently we don't allow override of the filename ; if a user requirement emerges,
+		// we could seemingly accommodate but broadens possibilities of something bad happening
+		// for things like `artifact extract`
+		if _, hasTitle := options.Annotations[specV1.AnnotationTitle]; hasTitle {
+			return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
+		}
+
 		// get the new artifact into the local store
 		newBlobDigest, newBlobSize, err := layout.PutBlobFromLocalFile(ctx, imageDest, path)
 		if err != nil {
@@ -200,14 +209,16 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ 
 		if err != nil {
 			return nil, err
 		}
-		newArtifactAnnotations := map[string]string{}
-		newArtifactAnnotations[specV1.AnnotationTitle] = filepath.Base(path)
+
+		annots[specV1.AnnotationTitle] = filepath.Base(path)
+
 		newLayer := specV1.Descriptor{
 			MediaType:   detectedType,
 			Digest:      newBlobDigest,
 			Size:        newBlobSize,
-			Annotations: newArtifactAnnotations,
+			Annotations: annots,
 		}
+
 		artifactManifestLayers = append(artifactManifestLayers, newLayer)
 	}
 
@@ -215,10 +226,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, _ 
 		Versioned: specs.Versioned{SchemaVersion: 2},
 		MediaType: specV1.MediaTypeImageManifest,
 		// TODO This should probably be configurable once the CLI is capable
-		ArtifactType: "",
-		Config:       specV1.DescriptorEmptyJSON,
-		Layers:       artifactManifestLayers,
+		Config: specV1.DescriptorEmptyJSON,
+		Layers: artifactManifestLayers,
 	}
+
+	artifactManifest.ArtifactType = options.ArtifactType
 
 	rawData, err := json.Marshal(artifactManifest)
 	if err != nil {
@@ -287,13 +299,13 @@ func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArti
 		if err != nil {
 			return nil, err
 		}
-		manifests, err := getManifests(ctx, imgSrc, nil)
+		manifest, err := getManifest(ctx, imgSrc)
 		imgSrc.Close()
 		if err != nil {
 			return nil, err
 		}
 		artifact := libartifact.Artifact{
-			Manifests: manifests,
+			Manifest: manifest,
 		}
 		if val, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
 			artifact.SetName(val)
@@ -304,41 +316,25 @@ func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArti
 	return al, nil
 }
 
-// getManifests takes an imgSrc and starting digest (nil means "top") and collects all the manifests "under"
-// it.  this func calls itself recursively with a new startingDigest assuming that we are dealing with
-// an index list
-func getManifests(ctx context.Context, imgSrc types.ImageSource, startingDigest *digest.Digest) ([]manifest.OCI1, error) {
-	var (
-		manifests []manifest.OCI1
-	)
-	b, manifestType, err := imgSrc.GetManifest(ctx, startingDigest)
+// getManifest takes an imgSrc and returns the manifest for the imgSrc.
+// A OCI index list is not supported and will return an error.
+func getManifest(ctx context.Context, imgSrc types.ImageSource) (*manifest.OCI1, error) {
+	b, manifestType, err := imgSrc.GetManifest(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	// this assumes that there are only single, and multi-images
-	if !manifest.MIMETypeIsMultiImage(manifestType) {
-		// these are the keepers
-		mani, err := manifest.OCI1FromManifest(b)
-		if err != nil {
-			return nil, err
-		}
-		manifests = append(manifests, *mani)
-		return manifests, nil
+	// We only support a single flat manifest and not an oci index list
+	if manifest.MIMETypeIsMultiImage(manifestType) {
+		return nil, fmt.Errorf("manifest %q is index list", imgSrc.Reference().StringWithinTransport())
 	}
-	// We are dealing with an oci index list
-	maniList, err := manifest.OCI1IndexFromManifest(b)
+
+	// parse the single manifest
+	mani, err := manifest.OCI1FromManifest(b)
 	if err != nil {
 		return nil, err
 	}
-	for _, m := range maniList.Manifests {
-		iterManifests, err := getManifests(ctx, imgSrc, &m.Digest)
-		if err != nil {
-			return nil, err
-		}
-		manifests = append(manifests, iterManifests...)
-	}
-	return manifests, nil
+	return mani, nil
 }
 
 func createEmptyStanza(path string) error {
