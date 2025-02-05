@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"maps"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/manifest"
@@ -252,6 +254,166 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 		logrus.Errorf("failed to check or write empty stanza file: %v", err)
 	}
 	return &artifactManifestDigest, nil
+}
+
+// Inspect an artifact in a local store
+func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
+	if len(options.Digest) > 0 && len(options.Title) > 0 {
+		return errors.New("cannot specify both digest and title")
+	}
+	if len(nameOrDigest) == 0 {
+		return ErrEmptyArtifactName
+	}
+
+	artifacts, err := as.getArtifacts(ctx, nil)
+	if err != nil {
+		return err
+	}
+
+	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(nameOrDigest)
+	if err != nil {
+		return err
+	}
+	name := nameOrDigest
+	if nameIsDigest {
+		name = arty.Name
+	}
+
+	if len(arty.Manifest.Layers) == 0 {
+		return fmt.Errorf("the artifact has no blobs, nothing to extract")
+	}
+
+	ir, err := layout.NewReference(as.storePath, name)
+	if err != nil {
+		return err
+	}
+	imgSrc, err := ir.NewImageSource(ctx, as.SystemContext)
+	if err != nil {
+		return err
+	}
+	defer imgSrc.Close()
+
+	// check if dest is a dir to know if we can copy more than one blob
+	destIsFile := true
+	stat, err := os.Stat(target)
+	if err == nil {
+		destIsFile = !stat.IsDir()
+	} else if !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+
+	if destIsFile {
+		var digest digest.Digest
+		if len(arty.Manifest.Layers) > 1 {
+			if len(options.Digest) == 0 && len(options.Title) == 0 {
+				return fmt.Errorf("the artifact consists of several blobs and the target %q is not a directory and neither digest or title was specified to only copy a single blob", target)
+			}
+			digest, err = findDigest(arty, options)
+			if err != nil {
+				return err
+			}
+		} else {
+			digest = arty.Manifest.Layers[0].Digest
+		}
+
+		return copyImageBlobToFile(ctx, imgSrc, digest, target)
+	}
+
+	if len(options.Digest) > 0 || len(options.Title) > 0 {
+		digest, err := findDigest(arty, options)
+		if err != nil {
+			return err
+		}
+		// In case the digest is set we always use it as target name
+		// so we do not have to get the actual title annotation form the blob.
+		// Passing options.Title is enough because we know it is empty when digest
+		// is set as we only allow either one.
+		filename, err := generateArtifactBlobName(options.Title, digest)
+		if err != nil {
+			return err
+		}
+		return copyImageBlobToFile(ctx, imgSrc, digest, filepath.Join(target, filename))
+	}
+
+	for _, l := range arty.Manifest.Layers {
+		title := l.Annotations[specV1.AnnotationTitle]
+		filename, err := generateArtifactBlobName(title, l.Digest)
+		if err != nil {
+			return err
+		}
+		err = copyImageBlobToFile(ctx, imgSrc, l.Digest, filepath.Join(target, filename))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func generateArtifactBlobName(title string, digest digest.Digest) (string, error) {
+	filename := title
+	if len(filename) == 0 {
+		// No filename given, use the digest. But because ":" is not a valid path char
+		// on all platforms replace it with "-".
+		filename = strings.ReplaceAll(digest.String(), ":", "-")
+	}
+
+	// Important: A potentially malicious artifact could contain a title name with "/"
+	// and could try via relative paths such as "../" try to overwrite files on the host
+	// the user did not intend. As there is no use for directories in this path we
+	// disallow all of them and not try to "make it safe" via securejoin or others.
+	// We must use os.IsPathSeparator() as on Windows it checks both "\\" and "/".
+	for i := 0; i < len(filename); i++ {
+		if os.IsPathSeparator(filename[i]) {
+			return "", fmt.Errorf("invalid name: %q cannot contain %c", filename, filename[i])
+		}
+	}
+	return filename, nil
+}
+
+func findDigest(arty *libartifact.Artifact, options *libartTypes.ExtractOptions) (digest.Digest, error) {
+	var digest digest.Digest
+	for _, l := range arty.Manifest.Layers {
+		if options.Digest == l.Digest.String() {
+			if len(digest.String()) > 0 {
+				return digest, fmt.Errorf("more than one match for the digest %q", options.Digest)
+			}
+			digest = l.Digest
+		}
+		if len(options.Title) > 0 {
+			if val, ok := l.Annotations[specV1.AnnotationTitle]; ok &&
+				val == options.Title {
+				if len(digest.String()) > 0 {
+					return digest, fmt.Errorf("more than one match for the title %q", options.Title)
+				}
+				digest = l.Digest
+			}
+		}
+	}
+	if len(digest.String()) == 0 {
+		if len(options.Title) > 0 {
+			return digest, fmt.Errorf("no blob with the title %q", options.Title)
+		}
+		return digest, fmt.Errorf("no blob with the digest %q", options.Digest)
+	}
+	return digest, nil
+}
+
+func copyImageBlobToFile(ctx context.Context, imgSrc types.ImageSource, digest digest.Digest, target string) error {
+	src, _, err := imgSrc.GetBlob(ctx, types.BlobInfo{Digest: digest}, nil)
+	if err != nil {
+		return fmt.Errorf("failed to get artifact file: %w", err)
+	}
+	defer src.Close()
+	dest, err := os.Create(target)
+	if err != nil {
+		return fmt.Errorf("failed to create target file: %w", err)
+	}
+	defer dest.Close()
+
+	// TODO use reflink is possible
+	_, err = io.Copy(dest, src)
+	return err
 }
 
 // readIndex is currently unused but I want to keep this around until

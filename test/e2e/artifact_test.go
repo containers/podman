@@ -5,12 +5,26 @@ package integration
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/containers/podman/v5/pkg/libartifact"
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+)
+
+const (
+	//nolint:revive,stylecheck
+	ARTIFACT_SINGLE = "quay.io/libpod/testartifact:20250206-single"
+	//nolint:revive,stylecheck
+	ARTIFACT_MULTI = "quay.io/libpod/testartifact:20250206-multi"
+	//nolint:revive,stylecheck
+	ARTIFACT_MULTI_NO_TITLE = "quay.io/libpod/testartifact:20250206-multi-no-title"
+	//nolint:revive,stylecheck
+	ARTIFACT_EVIL = "quay.io/libpod/testartifact:20250206-evil"
 )
 
 var _ = Describe("Podman artifact", func() {
@@ -196,4 +210,173 @@ var _ = Describe("Podman artifact", func() {
 		podmanTest.PodmanExitCleanly([]string{"artifact", "inspect", artifactDigest[:12]}...)
 
 	})
+
+	It("podman artifact extract single", func() {
+		podmanTest.PodmanExitCleanly("artifact", "pull", ARTIFACT_SINGLE)
+
+		const (
+			artifactContent = "mRuO9ykak1Q2j\n"
+			artifactDigest  = "sha256:e9510923578af3632946ecf5ae479c1b5f08b47464e707b5cbab9819272a9752"
+			artifactTitle   = "testfile"
+		)
+
+		path := filepath.Join(podmanTest.TempDir, "testfile")
+		// Extract to non existing file
+		podmanTest.PodmanExitCleanly("artifact", "extract", ARTIFACT_SINGLE, path)
+		Expect(readFileToString(path)).To(Equal(artifactContent))
+
+		// Extract to existing file will overwrite file
+		path = filepath.Join(podmanTest.TempDir, "abcd")
+		f, err := os.Create(path)
+		Expect(err).ToNot(HaveOccurred())
+		f.Close()
+		podmanTest.PodmanExitCleanly("artifact", "extract", ARTIFACT_SINGLE, path)
+		Expect(readFileToString(path)).To(Equal(artifactContent))
+
+		tests := []struct {
+			name      string
+			filename  string
+			extraArgs []string
+		}{
+			{
+				name:     "extract to dir",
+				filename: artifactTitle,
+			},
+			{
+				name:      "extract to dir by digest",
+				filename:  digestToFilename(artifactDigest),
+				extraArgs: []string{"--digest", artifactDigest},
+			},
+			{
+				name:      "extract to dir by title",
+				filename:  artifactTitle,
+				extraArgs: []string{"--title", artifactTitle},
+			},
+		}
+
+		for _, tt := range tests {
+			By(tt.name)
+			dir := makeTempDirInDir(podmanTest.TempDir)
+			args := append([]string{"artifact", "extract"}, tt.extraArgs...)
+			args = append(args, ARTIFACT_SINGLE, dir)
+			podmanTest.PodmanExitCleanly(args...)
+			Expect(readFileToString(filepath.Join(dir, tt.filename))).To(Equal(artifactContent))
+		}
+
+		// invalid digest
+		session := podmanTest.Podman([]string{"artifact", "extract", "--digest", "blah", ARTIFACT_SINGLE, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, `no blob with the digest "blah"`))
+
+		// invalid title
+		session = podmanTest.Podman([]string{"artifact", "extract", "--title", "abcd", ARTIFACT_SINGLE, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, `no blob with the title "abcd"`))
+	})
+
+	It("podman artifact extract multi", func() {
+		podmanTest.PodmanExitCleanly("artifact", "pull", ARTIFACT_MULTI)
+		podmanTest.PodmanExitCleanly("artifact", "pull", ARTIFACT_MULTI_NO_TITLE)
+
+		const (
+			artifactContent1 = "xuHWedtC0ADST\n"
+			artifactDigest1  = "sha256:8257bba28b9d19ac353c4b713b470860278857767935ef7e139afd596cb1bb2d"
+			artifactTitle1   = "test1"
+			artifactContent2 = "tAyZczFlgFsi4\n"
+			artifactDigest2  = "sha256:63700c54129c6daaafe3a20850079f82d6d658d69de73d6158d81f920c6fbdd7"
+			artifactTitle2   = "test2"
+		)
+
+		type expect struct {
+			filename string
+			content  string
+		}
+		tests := []struct {
+			name      string
+			image     string
+			extraArgs []string
+			expect    []expect
+		}{
+			{
+				name:  "extract multi blob to dir",
+				image: ARTIFACT_MULTI,
+				expect: []expect{
+					{filename: artifactTitle1, content: artifactContent1},
+					{filename: artifactTitle2, content: artifactContent2},
+				},
+			},
+			{
+				name:  "extract multi blob to dir without title",
+				image: ARTIFACT_MULTI_NO_TITLE,
+				expect: []expect{
+					{filename: digestToFilename(artifactDigest1), content: artifactContent1},
+					{filename: digestToFilename(artifactDigest2), content: artifactContent2},
+				},
+			},
+			{
+				name:      "extract multi blob to dir with --title",
+				image:     ARTIFACT_MULTI,
+				extraArgs: []string{"--title", artifactTitle1},
+				expect: []expect{
+					{filename: artifactTitle1, content: artifactContent1},
+				},
+			},
+			{
+				name:      "extract multi blob to dir with --digest",
+				image:     ARTIFACT_MULTI,
+				extraArgs: []string{"--digest", artifactDigest2},
+				expect: []expect{
+					{filename: digestToFilename(artifactDigest2), content: artifactContent2},
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			By(tt.name)
+			dir := makeTempDirInDir(podmanTest.TempDir)
+			args := append([]string{"artifact", "extract"}, tt.extraArgs...)
+			args = append(args, tt.image, dir)
+			podmanTest.PodmanExitCleanly(args...)
+			files, err := os.ReadDir(dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(files).To(HaveLen(len(tt.expect)))
+			for _, expect := range tt.expect {
+				Expect(readFileToString(filepath.Join(dir, expect.filename))).To(Equal(expect.content))
+			}
+		}
+	})
+
+	It("podman artifact extract evil", func() {
+		path := filepath.Join(podmanTest.TempDir, "testfile")
+		podmanTest.PodmanExitCleanly("artifact", "pull", ARTIFACT_EVIL)
+
+		const (
+			artifactContent = "RM5eA27F9psa2\n"
+			artifactDigest  = "sha256:4c29da41ff27fcbf273653bcfba58ed69efa4aefec7b6c486262711cb1dfd050"
+		)
+
+		// Extract to file is fine as we are not using the malicious title
+		podmanTest.PodmanExitCleanly("artifact", "extract", ARTIFACT_EVIL, path)
+		Expect(readFileToString(path)).To(Equal(artifactContent))
+
+		// This must fail for security reasons we do not allow a title with /
+		session := podmanTest.Podman([]string{"artifact", "extract", ARTIFACT_EVIL, podmanTest.TempDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, `invalid name: "../../../../tmp/evil" cannot contain /`))
+
+		// Extracting by digest should be fine too
+		podmanTest.PodmanExitCleanly("artifact", "extract", "--digest", artifactDigest, ARTIFACT_EVIL, podmanTest.TempDir)
+		Expect(readFileToString(filepath.Join(podmanTest.TempDir, digestToFilename(artifactDigest)))).To(Equal(artifactContent))
+	})
 })
+
+func digestToFilename(digest string) string {
+	return strings.ReplaceAll(digest, ":", "-")
+}
+
+func readFileToString(path string) string {
+	GinkgoHelper()
+	b, err := os.ReadFile(path)
+	Expect(err).ToNot(HaveOccurred())
+	return string(b)
+}
