@@ -7,20 +7,7 @@
 %global debug_package %{nil}
 %endif
 
-# RHEL's default %%gobuild macro doesn't account for the BUILDTAGS variable, so we
-# set it separately here and do not depend on RHEL's go-[s]rpm-macros package
-# until that's fixed.
-# c9s bz: https://bugzilla.redhat.com/show_bug.cgi?id=2227328
-%if %{defined rhel} && 0%{?rhel} < 10
-%define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback libtrust_openssl ${BUILDTAGS:-}" -ldflags "-linkmode=external -compressdwarf=false ${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
-%endif
-
 %global gomodulesmode GO111MODULE=on
-
-%if %{defined rhel}
-# _user_tmpfiles.d currently undefined on rhel
-%global _user_tmpfilesdir %{_datadir}/user-tmpfiles.d
-%endif
 
 %if %{defined fedora}
 %define build_with_btrfs 1
@@ -30,6 +17,11 @@
 
 %if %{defined copr_username}
 %define copr_build 1
+%endif
+
+# Only RHEL and CentOS Stream rpms are built with fips-enabled go compiler
+%if %{defined rhel}
+%define fips_enabled 1
 %endif
 
 %global container_base_path github.com/containers
@@ -250,6 +242,14 @@ LDFLAGS="-X %{ld_libpod}/define.buildInfo=${SOURCE_DATE_EPOCH:-$(date +%s)} \
 %gobuild -o bin/rootlessport ./cmd/rootlessport
 
 export BASEBUILDTAGS="seccomp exclude_graphdriver_devicemapper $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh)"
+
+# libtrust_openssl buildtag switches to using the FIPS-compatible func
+# `ecdsa.HashSign`.
+# Ref 1: https://github.com/golang-fips/go/blob/main/patches/015-add-hash-sign-verify.patch#L22
+# Ref 2: https://github.com/containers/libtrust/blob/main/ec_key_openssl.go#L23
+%if %{defined fips_enabled}
+export BASEBUILDTAGS="$BASEBUILDTAGS libtrust_openssl"
+%endif
 
 # build %%{name}
 export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh)"
