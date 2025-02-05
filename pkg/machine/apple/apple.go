@@ -148,8 +148,8 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 	if err != nil {
 		return nil, nil, err
 	}
-	// Set user networking with gvproxy
 
+	// Set user networking with gvproxy
 	gvproxySocket, err := mc.GVProxySocket()
 	if err != nil {
 		return nil, nil, err
