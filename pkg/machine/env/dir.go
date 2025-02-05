@@ -43,7 +43,11 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 		return nil, err
 	}
 
-	rtDir = filepath.Join(rtDir, "podman")
+	// The runtime directory can be customized using the PODMAN_RUNTIME_DIR env variable
+	// Its default value will be podman
+	// When used by macadam it can be customized to use a different path like macadam
+	runtimeDir := GetRuntimeDirSuffix()
+	rtDir = filepath.Join(rtDir, runtimeDir)
 	configDir, err := GetConfDir(vmType)
 	if err != nil {
 		return nil, err
@@ -96,12 +100,16 @@ func GetMachineDirs(vmType define.VMType) (*define.MachineDirs, error) {
 }
 
 // DataDirPrefix returns the path prefix for all machine data files
+// The config directory can be customized using the PODMAN_DATA_DIR env variable
+// Its default value will be /podman/machine
+// When used by macadam it can be customized to use a different path like /macadam/machine
 func DataDirPrefix() (string, error) {
 	data, err := homedir.GetDataHome()
 	if err != nil {
 		return "", err
 	}
-	dataDir := filepath.Join(data, "containers", "podman", "machine")
+	machineDataDir := getDataDirSuffix()
+	dataDir := filepath.Join(data, "containers", machineDataDir)
 	return dataDir, nil
 }
 
@@ -121,12 +129,16 @@ func GetConfDir(vmType define.VMType) (string, error) {
 }
 
 // ConfDirPrefix returns the path prefix for all machine config files
+// The config directory can be customized using the PODMAN_DATA_DIR env variable
+// Its default value will be /podman/machine
+// When used by macadam it can be customized to use a different path like /macadam/machine
 func ConfDirPrefix() (string, error) {
 	conf, err := homedir.GetConfigHome()
 	if err != nil {
 		return "", err
 	}
-	confDir := filepath.Join(conf, "containers", "podman", "machine")
+	machineDataDir := getDataDirSuffix()
+	confDir := filepath.Join(conf, "containers", machineDataDir)
 	return confDir, nil
 }
 
@@ -144,4 +156,20 @@ func WithPodmanPrefix(name string) string {
 		name = "podman-" + name
 	}
 	return name
+}
+
+func getDataDirSuffix() string {
+	machineDir := os.Getenv("PODMAN_DATA_DIR")
+	if machineDir == "" {
+		machineDir = filepath.Join("podman", "machine")
+	}
+	return machineDir
+}
+
+func GetRuntimeDirSuffix() string {
+	runtimeDir := os.Getenv("PODMAN_RUNTIME_DIR")
+	if runtimeDir == "" {
+		runtimeDir = filepath.Join("podman")
+	}
+	return runtimeDir
 }
