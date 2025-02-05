@@ -22,7 +22,7 @@ var _ = Describe("Podman run with volumes", func() {
 		containerStorageDir = filepath.Join(podmanTest.Root, podmanTest.ImageCacheFS+"-containers")
 		dbDir = filepath.Join(podmanTest.Root, "libpod")
 		runContainerStorageDir = filepath.Join(podmanTest.RunRoot, podmanTest.ImageCacheFS+"-containers")
-		runDBDir = tempdir
+		runDBDir = podmanTest.TempDir
 	})
 
 	It("podman run with no transient-store", func() {
