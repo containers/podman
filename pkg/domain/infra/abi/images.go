@@ -38,6 +38,7 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -157,6 +158,28 @@ func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entit
 	listMountsOnly := false
 	var images []*libimage.Image
 	var err error
+
+	hasCapSysAdmin, err := unshare.HasCapSysAdmin()
+	if err != nil {
+		return nil, err
+	}
+
+	if os.Geteuid() != 0 || !hasCapSysAdmin {
+		if driver := ir.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
+			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
+			// of the mount command.
+			return nil, fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
+		}
+
+		became, ret, err := rootless.BecomeRootInUserNS("")
+		if err != nil {
+			return nil, err
+		}
+		if became {
+			os.Exit(ret)
+		}
+	}
+
 	switch {
 	case opts.All && len(nameOrIDs) > 0:
 		return nil, errors.New("cannot mix --all with images")
@@ -175,22 +198,6 @@ func (ir *ImageEngine) Mount(ctx context.Context, nameOrIDs []string, opts entit
 		images, err = ir.Libpod.LibimageRuntime().ListImages(ctx, listImagesOptions)
 		if err != nil {
 			return nil, err
-		}
-	}
-
-	if os.Geteuid() != 0 {
-		if driver := ir.Libpod.StorageConfig().GraphDriverName; driver != "vfs" {
-			// Do not allow to mount a graphdriver that is not vfs if we are creating the userns as part
-			// of the mount command.
-			return nil, fmt.Errorf("cannot mount using driver %s in rootless mode", driver)
-		}
-
-		became, ret, err := rootless.BecomeRootInUserNS("")
-		if err != nil {
-			return nil, err
-		}
-		if became {
-			os.Exit(ret)
 		}
 	}
 
