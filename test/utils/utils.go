@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -97,13 +98,14 @@ func (p *PodmanTest) MakeOptions(args []string, options PodmanExecOptions) []str
 // PodmanExecOptions modify behavior of PodmanTest.PodmanExecBaseWithOptions and its callers.
 // Users should typically leave most fields default-initialized, and only set those that are relevant to them.
 type PodmanExecOptions struct {
-	UID, GID   uint32   // default: inherited form the current process
-	CWD        string   // default: inherited form the current process
-	Env        []string // default: inherited form the current process
-	NoEvents   bool
-	NoCache    bool
-	Wrapper    []string // A command to run, receiving the Podman command line. default: none
-	ExtraFiles []*os.File
+	UID, GID         uint32   // default: inherited form the current process
+	CWD              string   // default: inherited form the current process
+	Env              []string // default: inherited form the current process
+	NoEvents         bool
+	NoCache          bool
+	Wrapper          []string  // A command to run, receiving the Podman command line. default: none
+	FullOutputWriter io.Writer // Receives the full output (stdout+stderr) of the command, in _approximately_ correct order. default: GinkgoWriter
+	ExtraFiles       []*os.File
 }
 
 // PodmanExecBaseWithOptions execs podman with the specified args, and in an environment defined by options
@@ -150,7 +152,11 @@ func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExec
 
 	command.ExtraFiles = options.ExtraFiles
 
-	session, err := Start(command, GinkgoWriter, GinkgoWriter)
+	var fullOutputWriter io.Writer = GinkgoWriter
+	if options.FullOutputWriter != nil {
+		fullOutputWriter = options.FullOutputWriter
+	}
+	session, err := Start(command, fullOutputWriter, fullOutputWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("unable to run podman command: %s\n%v", strings.Join(podmanOptions, " "), err))
 	}
