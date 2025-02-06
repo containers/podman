@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/containers/podman/v5/pkg/specgen"
+
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/bindings"
@@ -48,6 +50,15 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	}
 	if options.Start != nil {
 		params.Set("start", strconv.FormatBool(options.GetStart()))
+	}
+	if options.GetBuild() {
+		absContext, err := specgen.ConvertWinMountPath(options.GetContextDir())
+		if err != nil {
+			return nil, err
+		}
+
+		params.Set("build", "true")
+		params.Set("context", absContext)
 	}
 
 	// For the remote case, read any configMaps passed and append it to the main yaml content

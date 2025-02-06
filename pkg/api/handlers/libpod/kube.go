@@ -80,28 +80,6 @@ func extractPlayReader(anchorDir string, r *http.Request) (io.Reader, error) {
 }
 
 func KubePlay(w http.ResponseWriter, r *http.Request) {
-	// create a tmp directory
-	contextDirectory, err := os.MkdirTemp("", "libpod_kube")
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-
-	// cleanup the tmp directory
-	defer func() {
-		err := os.RemoveAll(contextDirectory)
-		if err != nil {
-			logrus.Warn(fmt.Errorf("failed to remove libpod_kube tmp directory %q: %w", contextDirectory, err))
-		}
-	}()
-
-	// extract the reader
-	reader, err := extractPlayReader(contextDirectory, r)
-	if err != nil {
-		utils.InternalServerError(w, err)
-		return
-	}
-
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	query := struct {
@@ -123,6 +101,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		Userns           string            `schema:"userns"`
 		Wait             bool              `schema:"wait"`
 		Build            bool              `schema:"build"`
+		Context          string            `schema:"context"`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -130,6 +109,35 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	// check if the client provided a context
+	contextDirectory := ""
+	if _, found := r.URL.Query()["context"]; found {
+		// if the client provide a context let's use it
+		contextDirectory = query.Context
+	} else {
+		// if the client didn't provide a context, let's create a tmp directory
+		contextDirectory, err := os.MkdirTemp("", "libpod_kube")
+		if err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+
+		// cleanup the tmp directory
+		defer func() {
+			err := os.RemoveAll(contextDirectory)
+			if err != nil {
+				logrus.Warn(fmt.Errorf("failed to remove libpod_kube tmp directory %q: %w", contextDirectory, err))
+			}
+		}()
+	}
+
+	// extract the reader
+	reader, err := extractPlayReader(contextDirectory, r)
+	if err != nil {
+		utils.InternalServerError(w, err)
 		return
 	}
 
