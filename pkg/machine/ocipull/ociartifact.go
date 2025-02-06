@@ -101,8 +101,10 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 		imageName := artifactImageName
 		if vmType == define.WSLVirt {
 			imageName = artifactImageNameWSL
+			endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, "mloriedo", imageName, "5.5-next")
+		} else {
+			endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, imageName, artifactVersion.majorMinor())
 		}
-		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, imageName, artifactVersion.majorMinor())
 		cache = true
 	}
 
