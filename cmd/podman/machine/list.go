@@ -62,7 +62,7 @@ func init() {
 	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListReporter{}))
 	flags.BoolVarP(&listFlag.noHeading, "noheading", "n", false, "Do not print headers")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Show only machine names")
-	flags.BoolVar(&listFlag.allProviders, "all-providers", false, "Show machines from all providers")
+	flags.BoolVar(&listFlag.allProviders, "all-providers", true, "Show machines from all providers")
 }
 
 func list(cmd *cobra.Command, args []string) error {
