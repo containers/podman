@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for taking the time to fill out this bug report!
+        Thanks for taking the time to fill out this bug report!  For extended guidelines on reporting issues, please consult the [issue reporting](https://github.com/containers/podman/blob/main/ISSUE.md) documentation. You should also familiarize yourself with our [support](https://github.com/containers/podman/blob/main/SUPPORT.md) documentation.
 
         **NOTE** A large number of issues reported against Podman are often found to already be fixed in more current versions of the project.  Before reporting an issue, please verify the version you are running with `podman version` and compare it to the latest release documented on the top of Podman's [README.md](https://github.com/containers/podman#readme). If they differ, please update your version of Podman to the latest possible and retry your command before creating an issue.
 
