@@ -15,7 +15,7 @@ var (
 	_ AverageDecorator = (*averageETA)(nil)
 )
 
-// TimeNormalizer interface. Implementors could be passed into
+// TimeNormalizer interface. Implementers could be passed into
 // MovingAverageETA, in order to affect i.e. normalize its output.
 type TimeNormalizer interface {
 	Normalize(time.Duration) time.Duration

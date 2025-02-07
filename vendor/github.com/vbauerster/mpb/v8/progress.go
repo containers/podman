@@ -17,8 +17,8 @@ import (
 const defaultRefreshRate = 150 * time.Millisecond
 const defaultHmQueueLength = 128
 
-// DoneError represents use after `(*Progress).Wait()` error.
-var DoneError = fmt.Errorf("%T instance can't be reused after %[1]T.Wait()", (*Progress)(nil))
+// ErrDone represents use after `(*Progress).Wait()` error.
+var ErrDone = fmt.Errorf("%T instance can't be reused after %[1]T.Wait()", (*Progress)(nil))
 
 // Progress represents a container that renders one or more progress bars.
 type Progress struct {
@@ -39,7 +39,7 @@ type pState struct {
 	idCount     int
 	popPriority int
 
-	// following are provided/overrided by user
+	// following are provided/overrode by user
 	hmQueueLen       int
 	reqWidth         int
 	refreshRate      time.Duration
@@ -149,7 +149,7 @@ func (p *Progress) MustAdd(total int64, filler BarFiller, options ...BarOption) 
 // Add creates a bar which renders itself by provided BarFiller.
 // If `total <= 0` triggering complete event by increment methods
 // is disabled. If called after `(*Progress).Wait()` then
-// `(nil, DoneError)` is returned.
+// `(nil, ErrDone)` is returned.
 func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) (*Bar, error) {
 	if filler == nil {
 		filler = NopStyle().Build()
@@ -171,7 +171,7 @@ func (p *Progress) Add(total int64, filler BarFiller, options ...BarOption) (*Ba
 	}:
 		return <-ch, nil
 	case <-p.done:
-		return nil, DoneError
+		return nil, ErrDone
 	}
 }
 
@@ -205,8 +205,7 @@ func (p *Progress) UpdateBarPriority(b *Bar, priority int, lazy bool) {
 // Write is implementation of io.Writer.
 // Writing to `*Progress` will print lines above a running bar.
 // Writes aren't flushed immediately, but at next refresh cycle.
-// If called after `(*Progress).Wait()` then `(0, DoneError)`
-// is returned.
+// If called after `(*Progress).Wait()` then `(0, ErrDone)` is returned.
 func (p *Progress) Write(b []byte) (int, error) {
 	type result struct {
 		n   int
@@ -221,7 +220,7 @@ func (p *Progress) Write(b []byte) (int, error) {
 		res := <-ch
 		return res.n, res.err
 	case <-p.done:
-		return 0, DoneError
+		return 0, ErrDone
 	}
 }
 
