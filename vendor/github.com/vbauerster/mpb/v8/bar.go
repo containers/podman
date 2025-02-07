@@ -117,7 +117,7 @@ func (b *Bar) ProxyWriter(w io.Writer) io.WriteCloser {
 	}
 }
 
-// ID returs id of the bar.
+// ID returns id of the bar.
 func (b *Bar) ID() int {
 	result := make(chan int)
 	select {
@@ -180,7 +180,7 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 }
 
 // EnableTriggerComplete enables triggering complete event. It's effective
-// only for bars which were constructed with `total <= 0`. If `curren >= total`
+// only for bars which were constructed with `total <= 0`. If `current >= total`
 // at the moment of call, complete event is triggered right away.
 func (b *Bar) EnableTriggerComplete() {
 	select {
@@ -493,7 +493,7 @@ func (b *Bar) wSyncTable() syncTable {
 func (s *bState) draw(stat decor.Statistics) (_ io.Reader, err error) {
 	decorFiller := func(buf *bytes.Buffer, decorators []decor.Decorator) (err error) {
 		for _, d := range decorators {
-			// need to call Decor in any case becase of width synchronization
+			// need to call Decor in any case because of width synchronization
 			str, width := d.Decor(stat)
 			if err != nil {
 				continue
