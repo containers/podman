@@ -39,8 +39,6 @@
             </RadioButtons>
             <Hypertext Name="EulaHyperlink" X="185" Y="-111" Width="-11" Height="17" TabStop="yes" FontId="3" HideWhenDisabled="yes">#(loc.InstallLicenseLinkText)</Hypertext>
             <Label Name="InstallVersion" X="510" Y="-50" Width="-11" Height="17" FontId="3" DisablePrefix="yes" VisibleCondition="WixStdBAShowVersion">#(loc.InstallVersion)</Label>
-            <Checkbox Name="WSLCheckbox" VisibleCondition="(MachineProvider = &quot;wsl&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="320" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallWSLCheckbox)</Checkbox>
-            <Checkbox Name="HyperVCheckbox" VisibleCondition="(MachineProvider = &quot;hyperv&quot;) AND (NOT PreviousInstallFolder)" X="185" Y="320" Width="-11" Height="17" TabStop="yes" FontId="6" HideWhenDisabled="yes">#(loc.InstallHypervCheckbox)</Checkbox>
             <Button Name="OptionsButton" X="-171" Y="-11" Width="75" Height="23" TabStop="yes" FontId="0" VisibleCondition="NOT WixStdBASuppressOptionsUI">
                 <Text>#(loc.InstallOptionsButton)</Text>
                 <ChangePageAction Page="Options" />

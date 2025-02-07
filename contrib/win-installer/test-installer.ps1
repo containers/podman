@@ -9,7 +9,6 @@
 # .\winmake.ps1 installer 9.9.9 &&
 # .\contrib\win-installer\test-installer.ps1 `
 #     -scenario all `
-#     -previousSetupExePath ".\contrib\win-installer\podman-5.3.0-dev-setup.exe" `
 #     -setupExePath ".\contrib\win-installer\podman-5.4.0-dev-setup.exe" `
 #     -nextSetupExePath ".\contrib\win-installer\podman-9.9.9-dev-setup.exe" `
 #     -provider hyperv
@@ -32,8 +31,6 @@ param (
     [string]$nextSetupExePath,
     [ValidateSet("wsl", "hyperv")]
     [string]$provider="wsl",
-    [switch]$installWSL=$false,
-    [switch]$installHyperV=$false,
     [switch]$skipWinVersionCheck=$false,
     [switch]$skipConfigFileCreation=$false
 )
@@ -53,19 +50,15 @@ function Install-Podman {
         [ValidateScript({Test-Path $_ -PathType Leaf})]
         [string]$setupExePath
     )
-    if ($installWSL) {$wslCheckboxVar = "1"} else {$wslCheckboxVar = "0"}
-    if ($installHyperV) {$hypervCheckboxVar = "1"} else {$hypervCheckboxVar = "0"}
     if ($skipWinVersionCheck) {$allowOldWinVar = "1"} else {$allowOldWinVar = "0"}
     if ($skipConfigFileCreation) {$skipConfigFileCreationVar = "1"} else {$skipConfigFileCreationVar = "0"}
 
     Write-Host "Running the installer ($setupExePath)..."
-    Write-Host "(provider=`"$provider`", WSLCheckbox=`"$wslCheckboxVar`", HyperVCheckbox=`"$hypervCheckboxVar`", AllowOldWin=`"$allowOldWinVar`", SkipConfigFileCreation=`"$skipConfigFileCreationVar`")"
+    Write-Host "(provider=`"$provider`", AllowOldWin=`"$allowOldWinVar`", SkipConfigFileCreation=`"$skipConfigFileCreationVar`")"
     $ret = Start-Process -Wait `
                             -PassThru "$setupExePath" `
                             -ArgumentList "/install /quiet `
                                 MachineProvider=${provider} `
-                                WSLCheckbox=${wslCheckboxVar} `
-                                HyperVCheckbox=${hypervCheckboxVar} `
                                 AllowOldWin=${allowOldWinVar} `
                                 SkipConfigFileCreation=${skipConfigFileCreationVar} `
                                 /log $PSScriptRoot\podman-setup.log"
