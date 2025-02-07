@@ -6,7 +6,7 @@
 package flags
 
 // ProtoLegacy specifies whether to enable support for legacy functionality
-// such as MessageSets, weak fields, and various other obscure behavior
+// such as MessageSets, and various other obscure behavior
 // that is necessary to maintain backwards compatibility with proto1 or
 // the pre-release variants of proto2 and proto3.
 //
@@ -22,8 +22,3 @@ const ProtoLegacy = protoLegacy
 // extension fields at unmarshal time, but defers creating the message
 // structure until the extension is first accessed.
 const LazyUnmarshalExtensions = ProtoLegacy
-
-// ProtoLegacyWeak specifies whether to enable support for weak fields.
-// This flag was split out of ProtoLegacy in preparation for removing
-// support for weak fields (independent of the other protolegacy features).
-const ProtoLegacyWeak = ProtoLegacy
