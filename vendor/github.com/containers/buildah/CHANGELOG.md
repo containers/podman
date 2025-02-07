@@ -2,6 +2,20 @@
 
 # Changelog
 
+## v1.29.5 (2025-02-06)
+
+    Backport testing of CVE-2024-9407 fix
+    Changes based on review feedback
+    Disable windows cross-build in CI
+    Fix TOCTOU error when bind and cache mounts use "src" values
+    define.TempDirForURL(): always use an intermediate subdirectory
+    internal/volume.GetBindMount(): discard writes in bind mounts
+    pkg/overlay: add a MountLabel flag to Options
+    pkg/overlay: add a ForceMount flag to Options
+    Add internal/volumes.bindFromChroot()
+    Add an internal/open package
+    Allow cache mounts to be stages or additional build contexts
+
 ## v1.29.4 (2024-10-17)
 
     Properly validate cache IDs and sources
