@@ -603,10 +603,12 @@ function stop_registry() {
 }
 
 #################
-#  random_port  #  Random open port; arg is range (min-max), default 5000-5999
+#  random_port  #  Random open port; arg is range (min-max), default 5001-5999
 #################
 function random_port() {
-    local range=${1:-5000-5999}
+    # Note port 5001 is chosen because 5000 is trusted per test/registries.conf.
+    # The tests try to push without SSL and that must fail so we cannot use that port.
+    local range=${1:-5001-5999}
 
     local port
     for port in $(shuf -i ${range}); do
