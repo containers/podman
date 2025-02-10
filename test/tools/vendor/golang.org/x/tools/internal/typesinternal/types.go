@@ -120,3 +120,8 @@ func Origin(t NamedOrAlias) NamedOrAlias {
 	}
 	return t
 }
+
+// IsPackageLevel reports whether obj is a package-level symbol.
+func IsPackageLevel(obj types.Object) bool {
+	return obj.Pkg() != nil && obj.Parent() == obj.Pkg().Scope()
+}

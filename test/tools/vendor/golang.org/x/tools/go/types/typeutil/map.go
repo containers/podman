@@ -257,10 +257,13 @@ func (h hasher) hash(t types.Type) uint32 {
 		}
 
 		tparams := t.TypeParams()
-		for i := range tparams.Len() {
-			h.inGenericSig = true
-			tparam := tparams.At(i)
-			hash += 7 * h.hash(tparam.Constraint())
+		if n := tparams.Len(); n > 0 {
+			h.inGenericSig = true // affects constraints, params, and results
+
+			for i := range n {
+				tparam := tparams.At(i)
+				hash += 7 * h.hash(tparam.Constraint())
+			}
 		}
 
 		return hash + 3*h.hashTuple(t.Params()) + 5*h.hashTuple(t.Results())

@@ -671,7 +671,9 @@ func (r *importReader) obj(name string) {
 	case varTag:
 		typ := r.typ()
 
-		r.declare(types.NewVar(pos, r.currPkg, name, typ))
+		v := types.NewVar(pos, r.currPkg, name, typ)
+		typesinternal.SetVarKind(v, typesinternal.PackageVar)
+		r.declare(v)
 
 	default:
 		errorf("unexpected tag: %v", tag)

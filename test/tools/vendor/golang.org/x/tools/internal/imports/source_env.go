@@ -67,7 +67,7 @@ func (s *ProcessEnvSource) ResolveReferences(ctx context.Context, filename strin
 				// same package name. Don't try to import ourselves.
 				return false
 			}
-			if !canUse(filename, pkg.dir) {
+			if !CanUse(filename, pkg.dir) {
 				return false
 			}
 			mu.Lock()
