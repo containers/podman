@@ -410,3 +410,8 @@ func (c *Container) hasPrivateUTS() bool {
 	// specification.
 	return true
 }
+
+// hasCapSysResource returns whether the current process has CAP_SYS_RESOURCE.
+func hasCapSysResource() (bool, error) {
+	return true, nil
+}

@@ -18,7 +18,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -53,7 +52,6 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	"github.com/moby/sys/capability"
 	runcuser "github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -178,18 +176,6 @@ func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
 	}
 	return upperDir, workDir, nil
 }
-
-// hasCapSysResource returns whether the current process has CAP_SYS_RESOURCE.
-var hasCapSysResource = sync.OnceValues(func() (bool, error) {
-	currentCaps, err := capability.NewPid2(0)
-	if err != nil {
-		return false, err
-	}
-	if err = currentCaps.Load(); err != nil {
-		return false, err
-	}
-	return currentCaps.Get(capability.EFFECTIVE, capability.CAP_SYS_RESOURCE), nil
-})
 
 // Generate spec for a container
 // Accepts a map of the container's dependencies
