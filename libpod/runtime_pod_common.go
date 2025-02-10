@@ -215,8 +215,10 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 		return nil, fmt.Errorf("pod %s contains containers and cannot be removed: %w", p.ID(), define.ErrCtrExists)
 	}
 
-	var removalErr error
-	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
+	var (
+		removalErr      error
+		ctrNamedVolumes map[string]*ContainerNamedVolume
+	)
 
 	// Build a graph of all containers in the pod.
 	graph, err := BuildContainerGraph(ctrs)
@@ -235,11 +237,14 @@ func (r *Runtime) removePod(ctx context.Context, p *Pod, removeCtrs, force bool,
 			return removedCtrs, err
 		}
 	} else {
-		ctrErrors := make(map[string]error)
-		ctrsVisited := make(map[string]bool)
+		var (
+			ctrErrors   map[string]error
+			ctrsVisited map[string]bool
+		)
 
-		for _, node := range graph.notDependedOnNodes {
-			removeNode(ctx, node, p, force, timeout, false, ctrErrors, ctrsVisited, ctrNamedVolumes)
+		ctrNamedVolumes, ctrsVisited, ctrErrors, err = removeContainerGraph(ctx, graph, p, timeout, force)
+		if err != nil {
+			return nil, err
 		}
 
 		// Finalize the removed containers list
