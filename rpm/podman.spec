@@ -45,6 +45,12 @@
 # podman-machine subpackage will be present only on these architectures
 %global machine_arches x86_64 aarch64
 
+%if %{defined copr_build}
+%define build_origin Copr: %{?copr_username}/%{?copr_projectname}
+%else
+%define build_origin %{?packager}
+%endif
+
 Name: podman
 %if %{defined copr_build}
 Epoch: 102
@@ -242,6 +248,7 @@ export CGO_CFLAGS+=" -m64 -mtune=generic -fcf-protection=full"
 export GOPROXY=direct
 
 LDFLAGS="-X %{ld_libpod}/define.buildInfo=${SOURCE_DATE_EPOCH:-$(date +%s)} \
+         -X "%{ld_libpod}/define.buildOrigin=%{build_origin}" \
          -X %{ld_libpod}/config._installPrefix=%{_prefix} \
          -X %{ld_libpod}/config._etcDir=%{_sysconfdir} \
          -X %{ld_project}/pkg/systemd/quadlet._binDir=%{_bindir}"
