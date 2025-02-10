@@ -12,10 +12,7 @@
                         <RadioButton Text="Windows Linux Subsystem (WSLv2)" Height="15" Value="wsl" Width="226" X="10" Y="0" />
                         <RadioButton Text="Windows Hyper-V" Height="15" Value="hyperv" Width="226" X="10" Y="15" />
                     </RadioButtonGroup>
-
                 </Control>
-                <Control Id="WSLInstallCheckbox" Type="CheckBox" X="135" Y="190" Width="226" Height="18" CheckBoxValue="1" Property="WSL_INSTALL" Default="no" Text="Install WSL if needed (requires reboot)" ShowCondition="MACHINE_PROVIDER = &quot;wsl&quot;" HideCondition="(MACHINE_PROVIDER = &quot;hyperv&quot; OR HIDE_PROVIDER_CHOICE) OR (HAS_WSLFEATURE = 1)" />
-                <Control Id="HyperVInstallCheckbox" Type="CheckBox" X="135" Y="190" Width="226" Height="18" CheckBoxValue="1" Property="HYPERV_INSTALL" Default="no" Text="Install Hyper-V if needed (requires reboot)" ShowCondition="MACHINE_PROVIDER = &quot;hyperv&quot;" HideCondition="(MACHINE_PROVIDER = &quot;wsl&quot; OR HIDE_PROVIDER_CHOICE) OR (HAS_HYPERVFEATURE = 1)" />
                 <Control Id="Back" Type="PushButton" X="156" Y="243" Width="56" Height="17" Disabled="yes" Text="!(loc.WixUIBack)" />
                 <Control Id="Install" Type="PushButton" ElevationShield="yes" X="212" Y="243" Width="80" Height="17" Default="yes" Text="!(loc.WelcomeEulaDlgInstall)">
                     <Publish Event="SpawnWaitDialog" Value="WaitForCostingDlg" Condition="!(wix.WixUICostingPopupOptOut) OR CostingComplete = 1" />

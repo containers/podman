@@ -356,15 +356,12 @@ which include detailed installation information, in the current directory.
 
 Run it in `quiet` mode to automate the installation and avoid interacting with
 the GUI. Open the terminal **as an administrator**, add the `/quiet` option, and
-set the bundle variables `MachineProvider` (`wsl` or `hyperv`), `WSLCheckbox`
-(`1` to install WSL as part of the installation, `0` otherwise), and
-`HyperVCheckbox` (`1` to install Hyper-V as part of the installation, `0`
-otherwise):
+set the bundle variable `MachineProvider` (`wsl` or `hyperv`):
 
 ```pwsh
 contrib\win-installer\podman-5.1.0-dev-setup.exe /install `
                       /log podman-setup.log /quiet `
-                      MachineProvider=wsl WSLCheckbox=0 HyperVCheckbox=0
+                      MachineProvider=wsl
 ```
 
 :information_source: If uninstallation fails, the installer may end up in an
@@ -418,13 +415,11 @@ msiexec /package contrib\win-installer\en-US\podman.msi /l*v podman-msi.log
 ```
 
 To run it in quiet, non-interactive mode, open the terminal **as an
-administrator**, add the `/quiet` option, and set the MSI properties
-`MACHINE_PROVIDER` (`wsl` or `hyperv`), `WITH_WSL` (`1` to install WSL as part
-of the installation, `0` otherwise) and `WITH_HYPERV` (`1` to install Hyper-V as
-part of the installation, `0` otherwise):
+administrator**, add the `/quiet` option, and set the MSI property
+`MACHINE_PROVIDER` (`wsl` or `hyperv`):
 
 ```pwsh
-msiexec /package contrib\win-installer\en-US\podman.msi /l*v podman-msi.log /quiet MACHINE_PROVIDER=wsl WITH_WSL=0 WITH_HYPERV=0
+msiexec /package contrib\win-installer\en-US\podman.msi /l*v podman-msi.log /quiet MACHINE_PROVIDER=wsl
 ```
 
 :information_source: `podman.msi` GUI dialogs, defined in the file
