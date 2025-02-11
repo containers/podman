@@ -50,6 +50,7 @@
 - Fixed a bug where it was possible to specify the `libkrun` backend for VMs on Intel Macs (`libkrun` only supports Arm systems).
 - Fixed a bug where `libkrun` and `applehv` VMs from `podman machine` could be started at the same time on Macs ([#25112](https://github.com/containers/podman/issues/25112)).
 - Fixed a bug where `podman exec` commands could not detach from the exec session using the detach keys ([#24895](https://github.com/containers/podman/issues/24895)).
+- Fixed a bug where Podman would fail to start due to a database configuration mismatch when certain fields were configured to the empty string ([#24738](https://github.com/containers/podman/issues/24738)).
 
 ### API
 - The Compat and Libpod Build APIs for Images now support a new query parameter, `nohosts`, which (when set to true) does not create `/etc/hosts` in the image when building.

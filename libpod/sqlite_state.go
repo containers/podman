@@ -383,6 +383,30 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return fmt.Errorf("retrieving DB config: %w", err)
 	}
 
+	// Sometimes, for as-yet unclear reasons, the database value ends up set
+	// to the empty string. If it does, this evaluation is always going to
+	// fail, and libpod will be unusable.
+	// At this point, the check is effectively meaningless - we don't
+	// actually know the settings we should be checking against. The best
+	// thing we can do (and what BoltDB did in this case) is to compare
+	// against the default, on the assumption that is what was in use.
+	// TODO: We can't remove this code without breaking existing SQLite DBs
+	// that already have incorrect values in the database, but we should
+	// investigate why this is happening and try and prevent the creation of
+	// new databases with these garbage checks.
+	if graphRoot == "" {
+		logrus.Debugf("Database uses empty-string graph root, substituting default %q", storeOpts.GraphRoot)
+		graphRoot = storeOpts.GraphRoot
+	}
+	if runRoot == "" {
+		logrus.Debugf("Database uses empty-string run root, substituting default %q", storeOpts.RunRoot)
+		runRoot = storeOpts.RunRoot
+	}
+	if graphDriver == "" {
+		logrus.Debugf("Database uses empty-string graph driver, substituting default %q", storeOpts.GraphDriverName)
+		graphDriver = storeOpts.GraphDriverName
+	}
+
 	checkField := func(fieldName, dbVal, ourVal string, isPath bool) error {
 		if isPath {
 			// Tolerate symlinks when possible - most relevant for OStree systems
