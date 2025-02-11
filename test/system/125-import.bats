@@ -49,14 +49,6 @@ load helpers
 # Integration tag to catch future breakage in tar, e.g. #19407
 # bats test_tags=distro-integration, ci:parallel
 @test "podman export, alter tarball, re-import" {
-    # FIXME: #21373 - tar < 1.35 is broken.
-    # Remove this skip once all VMs are updated to 1.35.2 or above
-    # (.2, because of #19407)
-    tar_version=$(tar --version | head -1 | awk '{print $NF}' | tr -d .)
-    if [[ $tar_version -lt 135 ]]; then
-        skip "test requires tar >= 1.35 (you have: $tar_version)"
-    fi
-
     # Create a test file following test
     mkdir $PODMAN_TMPDIR/tmp
     touch $PODMAN_TMPDIR/testfile1
