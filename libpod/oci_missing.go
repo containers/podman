@@ -226,6 +226,12 @@ func (r *MissingRuntime) OOMFilePath(ctr *Container) (string, error) {
 	return filepath.Join(r.persistDir, ctr.ID(), "oom"), nil
 }
 
+// PersistDirectoryPath is the path to the container's persist directory.
+// It may include files like the exit file and OOM file.
+func (r *MissingRuntime) PersistDirectoryPath(ctr *Container) (string, error) {
+	return filepath.Join(r.persistDir, ctr.ID()), nil
+}
+
 // RuntimeInfo returns information on the missing runtime
 func (r *MissingRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
 	ocirt := define.OCIRuntimeInfo{
