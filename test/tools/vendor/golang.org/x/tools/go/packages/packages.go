@@ -59,10 +59,10 @@ import (
 //
 // Unfortunately there are a number of open bugs related to
 // interactions among the LoadMode bits:
-//   - https://github.com/golang/go/issues/56633
-//   - https://github.com/golang/go/issues/56677
-//   - https://github.com/golang/go/issues/58726
-//   - https://github.com/golang/go/issues/63517
+//   - https://go.dev/issue/56633
+//   - https://go.dev/issue/56677
+//   - https://go.dev/issue/58726
+//   - https://go.dev/issue/63517
 type LoadMode int
 
 const (

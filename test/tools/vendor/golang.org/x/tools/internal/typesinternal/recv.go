@@ -12,7 +12,8 @@ import (
 // type of recv, which may be of the form N or *N, or aliases thereof.
 // It also reports whether a Pointer was present.
 //
-// The named result may be nil in ill-typed code.
+// The named result may be nil if recv is from a method on an
+// anonymous interface or struct types or in ill-typed code.
 func ReceiverNamed(recv *types.Var) (isPtr bool, named *types.Named) {
 	t := recv.Type()
 	if ptr, ok := types.Unalias(t).(*types.Pointer); ok {
