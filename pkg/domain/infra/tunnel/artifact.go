@@ -9,7 +9,7 @@ import (
 
 // TODO For now, no remote support has been added. We need the API to firm up first.
 
-func ArtifactAdd(ctx context.Context, path, name string, opts entities.ArtifactAddOptions) error {
+func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target string, opts *entities.ArtifactExtractOptions) error {
 	return fmt.Errorf("not implemented")
 }
 

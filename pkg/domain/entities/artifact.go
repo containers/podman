@@ -14,6 +14,15 @@ type ArtifactAddOptions struct {
 	ArtifactType string
 }
 
+type ArtifactExtractOptions struct {
+	// Title annotation value to extract only a single blob matching that name.
+	// Conflicts with Digest. Optional.
+	Title string
+	// Digest of the blob to extract.
+	// Conflicts with Title. Optional.
+	Digest string
+}
+
 type ArtifactInspectOptions struct {
 	Remote bool
 }

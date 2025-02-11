@@ -9,3 +9,10 @@ type AddOptions struct {
 	Annotations  map[string]string `json:"annotations,omitempty"`
 	ArtifactType string            `json:",omitempty"`
 }
+
+type ExtractOptions struct {
+	// Title annotation value to extract only a single blob matching that name. Optional.
+	Title string
+	// Digest of the blob to extract. Optional.
+	Digest string
+}

@@ -172,3 +172,16 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []str
 		ArtifactDigest: artifactDigest,
 	}, nil
 }
+
+func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target string, opts *entities.ArtifactExtractOptions) error {
+	artStore, err := store.NewArtifactStore(getDefaultArtifactStore(ir), ir.Libpod.SystemContext())
+	if err != nil {
+		return err
+	}
+	extractOpt := &types.ExtractOptions{
+		Digest: opts.Digest,
+		Title:  opts.Title,
+	}
+
+	return artStore.Extract(ctx, name, target, extractOpt)
+}

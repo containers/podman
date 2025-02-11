@@ -1610,3 +1610,10 @@ func createArtifactFile(numBytes int64) (string, error) {
 	}
 	return outFile, nil
 }
+
+func makeTempDirInDir(dir string) string {
+	GinkgoHelper()
+	path, err := os.MkdirTemp(dir, "podman-test")
+	Expect(err).ToNot(HaveOccurred())
+	return path
+}
