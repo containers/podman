@@ -33,6 +33,8 @@ var (
 	ErrEmptyArtifactName = errors.New("artifact name cannot be empty")
 )
 
+const ManifestSchemaVersion = 2
+
 type ArtifactStore struct {
 	SystemContext *types.SystemContext
 	storePath     string
@@ -164,12 +166,20 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 // Add takes one or more local files and adds them to the local artifact store.  The empty
 // string input is for possible custom artifact types.
 func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, options *libartTypes.AddOptions) (*digest.Digest, error) {
-	annots := maps.Clone(options.Annotations)
 	if len(dest) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
 
-	artifactManifestLayers := make([]specV1.Descriptor, 0)
+	if options.Append && len(options.ArtifactType) > 0 {
+		return nil, errors.New("append option is not compatible with ArtifactType option")
+	}
+
+	// currently we don't allow override of the filename ; if a user requirement emerges,
+	// we could seemingly accommodate but broadens possibilities of something bad happening
+	// for things like `artifact extract`
+	if _, hasTitle := options.Annotations[specV1.AnnotationTitle]; hasTitle {
+		return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
+	}
 
 	// Check if artifact already exists
 	artifacts, err := as.getArtifacts(ctx, nil)
@@ -177,10 +187,49 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 		return nil, err
 	}
 
-	// Check if artifact exists; in GetByName not getting an
-	// error means it exists
-	if _, _, err := artifacts.GetByNameOrDigest(dest); err == nil {
-		return nil, fmt.Errorf("artifact %s already exists", dest)
+	var artifactManifest specV1.Manifest
+	var oldDigest *digest.Digest
+	fileNames := map[string]struct{}{}
+
+	if !options.Append {
+		// Check if artifact exists; in GetByName not getting an
+		// error means it exists
+		_, _, err := artifacts.GetByNameOrDigest(dest)
+		if err == nil {
+			return nil, fmt.Errorf("artifact %s already exists", dest)
+		}
+		artifactManifest = specV1.Manifest{
+			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
+			MediaType:    specV1.MediaTypeImageManifest,
+			ArtifactType: options.ArtifactType,
+			// TODO This should probably be configurable once the CLI is capable
+			Config: specV1.DescriptorEmptyJSON,
+			Layers: make([]specV1.Descriptor, 0),
+		}
+	} else {
+		artifact, _, err := artifacts.GetByNameOrDigest(dest)
+		if err != nil {
+			return nil, err
+		}
+		artifactManifest = artifact.Manifest.Manifest
+		oldDigest, err = artifact.GetDigest()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, layer := range artifactManifest.Layers {
+			if value, ok := layer.Annotations[specV1.AnnotationTitle]; ok && value != "" {
+				fileNames[value] = struct{}{}
+			}
+		}
+	}
+
+	for _, path := range paths {
+		fileName := filepath.Base(path)
+		if _, ok := fileNames[fileName]; ok {
+			return nil, fmt.Errorf("file: %q already exists in artifact", fileName)
+		}
+		fileNames[fileName] = struct{}{}
 	}
 
 	ir, err := layout.NewReference(as.storePath, dest)
@@ -194,14 +243,9 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	}
 	defer imageDest.Close()
 
+	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
+	// This works for the oci/layout transport we hard-code.
 	for _, path := range paths {
-		// currently we don't allow override of the filename ; if a user requirement emerges,
-		// we could seemingly accommodate but broadens possibilities of something bad happening
-		// for things like `artifact extract`
-		if _, hasTitle := options.Annotations[specV1.AnnotationTitle]; hasTitle {
-			return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
-		}
-
 		// get the new artifact into the local store
 		newBlobDigest, newBlobSize, err := layout.PutBlobFromLocalFile(ctx, imageDest, path)
 		if err != nil {
@@ -212,27 +256,16 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 			return nil, err
 		}
 
-		annots[specV1.AnnotationTitle] = filepath.Base(path)
-
+		annotations := maps.Clone(options.Annotations)
+		annotations[specV1.AnnotationTitle] = filepath.Base(path)
 		newLayer := specV1.Descriptor{
 			MediaType:   detectedType,
 			Digest:      newBlobDigest,
 			Size:        newBlobSize,
-			Annotations: annots,
+			Annotations: annotations,
 		}
-
-		artifactManifestLayers = append(artifactManifestLayers, newLayer)
+		artifactManifest.Layers = append(artifactManifest.Layers, newLayer)
 	}
-
-	artifactManifest := specV1.Manifest{
-		Versioned: specs.Versioned{SchemaVersion: 2},
-		MediaType: specV1.MediaTypeImageManifest,
-		// TODO This should probably be configurable once the CLI is capable
-		Config: specV1.DescriptorEmptyJSON,
-		Layers: artifactManifestLayers,
-	}
-
-	artifactManifest.ArtifactType = options.ArtifactType
 
 	rawData, err := json.Marshal(artifactManifest)
 	if err != nil {
@@ -241,6 +274,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	if err := imageDest.PutManifest(ctx, rawData, nil); err != nil {
 		return nil, err
 	}
+
 	unparsed := newUnparsedArtifactImage(ir, artifactManifest)
 	if err := imageDest.Commit(ctx, unparsed); err != nil {
 		return nil, err
@@ -252,6 +286,27 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	// to be created
 	if err := createEmptyStanza(filepath.Join(as.storePath, specV1.ImageBlobsDir, artifactManifestDigest.Algorithm().String(), artifactManifest.Config.Digest.Encoded())); err != nil {
 		logrus.Errorf("failed to check or write empty stanza file: %v", err)
+	}
+
+	// Clean up after append. Remove previous artifact from store.
+	if oldDigest != nil {
+		lrs, err := layout.List(as.storePath)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, l := range lrs {
+			if oldDigest.String() == l.ManifestDescriptor.Digest.String() {
+				if _, ok := l.ManifestDescriptor.Annotations[specV1.AnnotationRefName]; ok {
+					continue
+				}
+
+				if err := l.Reference.DeleteImage(ctx, as.SystemContext); err != nil {
+					return nil, err
+				}
+				break
+			}
+		}
 	}
 	return &artifactManifestDigest, nil
 }
@@ -431,7 +486,7 @@ func (as ArtifactStore) readIndex() (*specV1.Index, error) { //nolint:unused
 func (as ArtifactStore) createEmptyManifest() error {
 	index := specV1.Index{
 		MediaType: specV1.MediaTypeImageIndex,
-		Versioned: specs.Versioned{SchemaVersion: 2},
+		Versioned: specs.Versioned{SchemaVersion: ManifestSchemaVersion},
 	}
 	rawData, err := json.Marshal(&index)
 	if err != nil {

@@ -8,6 +8,8 @@ type GetArtifactOptions struct{}
 type AddOptions struct {
 	Annotations  map[string]string `json:"annotations,omitempty"`
 	ArtifactType string            `json:",omitempty"`
+	// append option is not compatible with ArtifactType option
+	Append bool `json:",omitempty"`
 }
 
 type ExtractOptions struct {

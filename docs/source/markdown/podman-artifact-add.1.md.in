@@ -21,6 +21,12 @@ added.
 
 @@option annotation.manifest
 
+Note: Set annotations for each file being added.
+
+#### **--append**, **-a**
+
+Append files to an existing artifact. This option cannot be used with the **--type** option.
+
 #### **--help**
 
 Print usage statement.
