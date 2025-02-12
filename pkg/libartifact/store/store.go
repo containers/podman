@@ -411,7 +411,12 @@ func copyImageBlobToFile(ctx context.Context, imgSrc types.ImageSource, digest d
 	}
 	defer dest.Close()
 
-	// TODO use reflink is possible
+	// By default the c/image oci layout API for GetBlob() should always return a os.File in our usage here.
+	// And since it is a file we can try to reflink it. In case it is not we should default to the normal copy.
+	if file, ok := src.(*os.File); ok {
+		return fileutils.ReflinkOrCopy(file, dest)
+	}
+
 	_, err = io.Copy(dest, src)
 	return err
 }
