@@ -185,6 +185,10 @@ PRs for new features should include some background on what use cases the new co
 When possible and when it makes sense, try to break-up larger PRs into smaller ones - it's easier to review smaller code changes.
 But only if those smaller ones make sense as stand-alone PRs.
 
+Pull requests should be submitted to the main branch of the Podman repository. Bug fixes may be cherry-picked or back-ported
+to Podman release branches but must first be merged upstream. Maintainers reserve the right to not accept any pull requests
+to any release branches.
+
 Regardless of the type of PR, all PRs should include:
 * Well-documented code changes, both through comments in the code itself and high-quality commit messages.
 * Additional tests. Ideally, they should fail w/o your code change applied.
