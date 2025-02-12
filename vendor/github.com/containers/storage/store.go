@@ -18,6 +18,7 @@ import (
 
 	// register all of the built-in drivers
 	_ "github.com/containers/storage/drivers/register"
+	"golang.org/x/sync/errgroup"
 
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/internal/dedup"
@@ -30,7 +31,6 @@ import (
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/types"
-	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -2744,7 +2744,7 @@ func (s *store) DeleteContainer(id string) error {
 			}
 		}
 
-		var wg multierror.Group
+		var wg errgroup.Group
 
 		middleDir := s.graphDriverName + "-containers"
 
@@ -2759,7 +2759,7 @@ func (s *store) DeleteContainer(id string) error {
 		})
 
 		if multierr := wg.Wait(); multierr != nil {
-			return multierr.ErrorOrNil()
+			return multierr
 		}
 		return s.containerStore.Delete(id)
 	})

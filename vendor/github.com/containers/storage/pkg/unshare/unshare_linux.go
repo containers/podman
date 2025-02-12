@@ -98,7 +98,7 @@ func IsSetID(path string, modeid os.FileMode, capid capability.Cap) (bool, error
 	return cap.Get(capability.EFFECTIVE, capid), nil
 }
 
-func (c *Cmd) Start() error {
+func (c *Cmd) Start() (retErr error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -166,6 +166,15 @@ func (c *Cmd) Start() error {
 	if err != nil {
 		return err
 	}
+
+	// If the function fails from here, we need to make sure the
+	// child process is killed and properly cleaned up.
+	defer func() {
+		if retErr != nil {
+			_ = c.Cmd.Process.Kill()
+			_ = c.Cmd.Wait()
+		}
+	}()
 
 	// Close the ends of the pipes that the parent doesn't need.
 	continueRead.Close()
