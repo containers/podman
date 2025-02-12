@@ -60,6 +60,7 @@ var _ = Describe("Podman logs", func() {
 			results.WaitWithDefaultTimeout()
 			Expect(results).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results = podmanTest.Podman([]string{"logs", cid})
 				results.WaitWithDefaultTimeout()
@@ -81,6 +82,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--tail", "2", cid})
 				results.WaitWithDefaultTimeout()
@@ -121,6 +123,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--tail", "99", name})
 				results.WaitWithDefaultTimeout()
@@ -153,6 +156,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--tail", "800", cid})
 				results.WaitWithDefaultTimeout()
@@ -173,6 +177,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--tail", "2", "-t", cid})
 				results.WaitWithDefaultTimeout()
@@ -193,6 +198,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--since", "2017-08-07T10:10:09.056611202-04:00", cid})
 				results.WaitWithDefaultTimeout()
@@ -213,6 +219,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--since", "10m", cid})
 				results.WaitWithDefaultTimeout()
@@ -233,6 +240,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "--until", "10m", cid})
 				results.WaitWithDefaultTimeout()
@@ -253,6 +261,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				now := time.Now()
 				now = now.Add(time.Minute * 1)
@@ -391,6 +400,7 @@ var _ = Describe("Podman logs", func() {
 			Expect(inspect).To(ExitCleanly())
 			Expect(inspect.OutputToString()).To(Equal("10kB"))
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", cid})
 				results.WaitWithDefaultTimeout()
@@ -410,6 +420,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", "test"})
 				results.WaitWithDefaultTimeout()
@@ -433,6 +444,7 @@ var _ = Describe("Podman logs", func() {
 			wait.WaitWithDefaultTimeout()
 			Expect(wait).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"logs", cname})
 				results.WaitWithDefaultTimeout()
@@ -455,6 +467,7 @@ var _ = Describe("Podman logs", func() {
 			// However this test must make sure that there is no such extra newline.
 			Expect(string(logc.Out.Contents())).To(Equal(content))
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				logs := podmanTest.Podman([]string{"logs", cname})
 				logs.WaitWithDefaultTimeout()
@@ -489,6 +502,7 @@ var _ = Describe("Podman logs", func() {
 			ctr.WaitWithDefaultTimeout()
 			Expect(ctr).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"pod", "logs", "-l"})
 				results.WaitWithDefaultTimeout()
@@ -524,6 +538,7 @@ var _ = Describe("Podman logs", func() {
 			log2.WaitWithDefaultTimeout()
 			Expect(log2).To(ExitCleanly())
 
+			//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 			Eventually(func(g Gomega) {
 				results := podmanTest.Podman([]string{"pod", "logs", "-l"})
 				results.WaitWithDefaultTimeout()
@@ -546,6 +561,7 @@ var _ = Describe("Podman logs", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).To(ExitCleanly())
 
+		//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 		Eventually(func(g Gomega) {
 			cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 			out, err := cmd.CombinedOutput()
@@ -566,6 +582,7 @@ var _ = Describe("Podman logs", func() {
 		wait.WaitWithDefaultTimeout()
 		Expect(wait).To(ExitCleanly())
 
+		//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 		Eventually(func(g Gomega) {
 			cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_NAME", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
 			out, err := cmd.CombinedOutput()
@@ -632,6 +649,7 @@ var _ = Describe("Podman logs", func() {
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(ExitCleanly())
 
+		//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 		Eventually(func(g Gomega) {
 			results := podmanTest.Podman([]string{"pod", "logs", "--names", podName})
 			results.WaitWithDefaultTimeout()
@@ -658,6 +676,7 @@ var _ = Describe("Podman logs", func() {
 		log2.WaitWithDefaultTimeout()
 		Expect(log2).To(ExitCleanly())
 
+		//nolint:ginkgolinter // false positive https://github.com/golangci/golangci-lint/issues/5398
 		Eventually(func(g Gomega) {
 			results := podmanTest.Podman([]string{"pod", "logs", "--color", podName})
 			results.WaitWithDefaultTimeout()
