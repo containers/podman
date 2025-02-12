@@ -12,6 +12,8 @@ set -eo pipefail
 set -a
 source /etc/automation_environment
 source $AUTOMATION_LIB_PATH/common_lib.sh
+# shellcheck source=contrib/cirrus/lib.sh
+source $(dirname $0)/lib.sh
 set +a
 
 req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
