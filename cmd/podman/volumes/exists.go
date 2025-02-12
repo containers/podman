@@ -27,7 +27,7 @@ func init() {
 }
 
 func volumeExists(cmd *cobra.Command, args []string) error {
-	response, err := registry.ContainerEngine().VolumeExists(registry.GetContext(), args[0])
+	response, err := registry.ContainerEngine().VolumeExists(registry.Context(), args[0])
 	if err != nil {
 		return err
 	}

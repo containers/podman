@@ -76,7 +76,7 @@ func prune(cmd *cobra.Command, args []string) error {
 			pruneOpts.Filter = append(pruneOpts.Filter, fmt.Sprintf("%s=%s", k, val))
 		}
 	}
-	results, err := registry.ImageEngine().Prune(registry.GetContext(), pruneOpts)
+	results, err := registry.ImageEngine().Prune(registry.Context(), pruneOpts)
 	if err != nil {
 		return err
 	}

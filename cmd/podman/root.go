@@ -116,7 +116,7 @@ func init() {
 }
 
 func Execute() {
-	if err := rootCmd.ExecuteContext(registry.GetContextWithOptions()); err != nil {
+	if err := rootCmd.ExecuteContext(registry.Context()); err != nil {
 		if registry.GetExitCode() == 0 {
 			registry.SetExitCode(define.ExecErrorCodeGeneric)
 		}

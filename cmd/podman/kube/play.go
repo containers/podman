@@ -398,7 +398,7 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 		volRmErrors   utils.OutputErrors
 		secRmErrors   utils.OutputErrors
 	)
-	reports, err := registry.ContainerEngine().PlayKubeDown(registry.GetContext(), body, options)
+	reports, err := registry.ContainerEngine().PlayKubeDown(registry.Context(), body, options)
 	if err != nil {
 		return err
 	}
@@ -465,7 +465,7 @@ func teardown(body io.Reader, options entities.PlayKubeDownOptions) error {
 }
 
 func kubeplay(body io.Reader) error {
-	report, err := registry.ContainerEngine().PlayKube(registry.GetContext(), body, playOptions.PlayKubeOptions)
+	report, err := registry.ContainerEngine().PlayKube(registry.Context(), body, playOptions.PlayKubeOptions)
 	if err != nil {
 		return err
 	}
@@ -478,7 +478,7 @@ func kubeplay(body io.Reader) error {
 
 	// If --wait=true, we need wait for the service container to exit so that we know that the pod has exited and we can clean up
 	if playOptions.Wait {
-		_, err := registry.ContainerEngine().ContainerWait(registry.GetContext(), []string{report.ServiceContainerID}, entities.WaitOptions{})
+		_, err := registry.ContainerEngine().ContainerWait(registry.Context(), []string{report.ServiceContainerID}, entities.WaitOptions{})
 		if err != nil {
 			return err
 		}

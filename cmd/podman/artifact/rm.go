@@ -41,7 +41,7 @@ func init() {
 }
 
 func rm(cmd *cobra.Command, args []string) error {
-	artifactRemoveReport, err := registry.ImageEngine().ArtifactRm(registry.GetContext(), args[0], entities.ArtifactRemoveOptions{})
+	artifactRemoveReport, err := registry.ImageEngine().ArtifactRm(registry.Context(), args[0], entities.ArtifactRemoveOptions{})
 	if err != nil {
 		return err
 	}

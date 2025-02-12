@@ -84,5 +84,5 @@ func attach(cmd *cobra.Command, args []string) error {
 	}
 	attachOpts.Stdout = os.Stdout
 	attachOpts.Stderr = os.Stderr
-	return registry.ContainerEngine().ContainerAttach(registry.GetContext(), name, attachOpts)
+	return registry.ContainerEngine().ContainerAttach(registry.Context(), name, attachOpts)
 }

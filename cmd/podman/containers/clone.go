@@ -77,7 +77,7 @@ func clone(cmd *cobra.Command, args []string) error {
 
 	ctrClone.ID = args[0]
 	ctrClone.CreateOpts.IsClone = true
-	rep, err := registry.ContainerEngine().ContainerClone(registry.GetContext(), ctrClone)
+	rep, err := registry.ContainerEngine().ContainerClone(registry.Context(), ctrClone)
 	if err != nil {
 		return err
 	}
