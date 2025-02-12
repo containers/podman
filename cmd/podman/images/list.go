@@ -123,7 +123,7 @@ func images(cmd *cobra.Command, args []string) error {
 			listFlag.sort, sortFields.String())
 	}
 
-	summaries, err := registry.ImageEngine().List(registry.GetContext(), listOptions)
+	summaries, err := registry.ImageEngine().List(registry.Context(), listOptions)
 	if err != nil {
 		return err
 	}

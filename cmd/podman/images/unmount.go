@@ -58,7 +58,7 @@ func unmount(cmd *cobra.Command, args []string) error {
 	if len(args) > 0 && unmountOpts.All {
 		return errors.New("when using the --all switch, you may not pass any image names or IDs")
 	}
-	reports, err := registry.ImageEngine().Unmount(registry.GetContext(), args, unmountOpts)
+	reports, err := registry.ImageEngine().Unmount(registry.Context(), args, unmountOpts)
 	if err != nil {
 		return err
 	}

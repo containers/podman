@@ -43,7 +43,7 @@ func init() {
 
 func inspect(cmd *cobra.Command, args []string) error {
 	artifactOptions := entities.ArtifactInspectOptions{}
-	inspectData, err := registry.ImageEngine().ArtifactInspect(registry.GetContext(), args[0], artifactOptions)
+	inspectData, err := registry.ImageEngine().ArtifactInspect(registry.Context(), args[0], artifactOptions)
 	if err != nil {
 		return err
 	}

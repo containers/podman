@@ -96,7 +96,7 @@ func build(cmd *cobra.Command, args []string) error {
 			}
 		}()
 	}
-	report, err := registry.ImageEngine().Build(registry.GetContext(), apiBuildOpts.ContainerFiles, *apiBuildOpts)
+	report, err := registry.ImageEngine().Build(registry.Context(), apiBuildOpts.ContainerFiles, *apiBuildOpts)
 
 	if err != nil {
 		exitCode := buildahCLI.ExecErrorCodeGeneric

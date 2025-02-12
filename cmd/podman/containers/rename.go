@@ -52,5 +52,5 @@ func rename(cmd *cobra.Command, args []string) error {
 	renameOpts := entities.ContainerRenameOptions{
 		NewName: args[1],
 	}
-	return registry.ContainerEngine().ContainerRename(registry.GetContext(), args[0], renameOpts)
+	return registry.ContainerEngine().ContainerRename(registry.Context(), args[0], renameOpts)
 }
