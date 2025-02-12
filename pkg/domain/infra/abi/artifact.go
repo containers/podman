@@ -162,6 +162,7 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []str
 	addOptions := types.AddOptions{
 		Annotations:  opts.Annotations,
 		ArtifactType: opts.ArtifactType,
+		Append:       opts.Append,
 	}
 
 	artifactDigest, err := artStore.Add(ctx, name, paths, &addOptions)

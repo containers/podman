@@ -12,6 +12,7 @@ import (
 type ArtifactAddOptions struct {
 	Annotations  map[string]string
 	ArtifactType string
+	Append       bool
 }
 
 type ArtifactExtractOptions struct {

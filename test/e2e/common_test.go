@@ -5,6 +5,7 @@ package integration
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/inspect"
+	"github.com/containers/podman/v5/pkg/libartifact"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/ioutils"
@@ -492,6 +494,15 @@ func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	return i
 }
 
+// InspectArtifactToJSON takes the session output of an artifact inspect and returns json
+func (s *PodmanSessionIntegration) InspectArtifactToJSON() libartifact.Artifact {
+	a := libartifact.Artifact{}
+	inspectOut := s.OutputToString()
+	err := json.Unmarshal([]byte(inspectOut), &a)
+	Expect(err).ToNot(HaveOccurred())
+	return a
+}
+
 // PodmanExitCleanly runs a podman command with args, and expects it to ExitCleanly within the default timeout.
 // It returns the session (to allow consuming output if desired).
 func (p *PodmanTestIntegration) PodmanExitCleanly(args ...string) *PodmanSessionIntegration {
@@ -516,6 +527,15 @@ func (p *PodmanTestIntegration) InspectContainer(name string) []define.InspectCo
 	session.WaitWithDefaultTimeout()
 	Expect(session).Should(Exit(0))
 	return session.InspectContainerToJSON()
+}
+
+// InspectArtifact returns an artifact's inspect data in JSON format
+func (p *PodmanTestIntegration) InspectArtifact(name string) libartifact.Artifact {
+	cmd := []string{"artifact", "inspect", name}
+	session := p.Podman(cmd)
+	session.WaitWithDefaultTimeout()
+	Expect(session).Should(Exit(0))
+	return session.InspectArtifactToJSON()
 }
 
 // Pull a single field from a container using `podman inspect --format {{ field }}`,

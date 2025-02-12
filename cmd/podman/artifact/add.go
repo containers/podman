@@ -27,6 +27,7 @@ var (
 type artifactAddOptions struct {
 	ArtifactType string
 	Annotations  []string
+	Append       bool
 }
 
 var (
@@ -41,12 +42,15 @@ func init() {
 	flags := addCmd.Flags()
 
 	annotationFlagName := "annotation"
-	flags.StringArrayVar(&addOpts.Annotations, annotationFlagName, nil, "set an `annotation` for the specified artifact")
+	flags.StringArrayVar(&addOpts.Annotations, annotationFlagName, nil, "set an `annotation` for the specified files of artifact")
 	_ = addCmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 
 	addTypeFlagName := "type"
 	flags.StringVar(&addOpts.ArtifactType, addTypeFlagName, "", "Use type to describe an artifact")
 	_ = addCmd.RegisterFlagCompletionFunc(addTypeFlagName, completion.AutocompleteNone)
+
+	appendFlagName := "append"
+	flags.BoolVarP(&addOpts.Append, appendFlagName, "a", false, "Append files to an existing artifact")
 }
 
 func add(cmd *cobra.Command, args []string) error {
@@ -58,6 +62,8 @@ func add(cmd *cobra.Command, args []string) error {
 	}
 	opts.Annotations = annots
 	opts.ArtifactType = addOpts.ArtifactType
+	opts.Append = addOpts.Append
+
 	report, err := registry.ImageEngine().ArtifactAdd(registry.Context(), args[0], args[1:], opts)
 	if err != nil {
 		return err
