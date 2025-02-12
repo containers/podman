@@ -14,7 +14,7 @@ import (
 )
 
 func Diff(_ *cobra.Command, args []string, options entities.DiffOptions) error {
-	results, err := registry.ContainerEngine().Diff(registry.GetContext(), args, options)
+	results, err := registry.ContainerEngine().Diff(registry.Context(), args, options)
 	if err != nil {
 		return err
 	}

@@ -21,7 +21,7 @@ type CliCommand struct {
 }
 
 var (
-	cliCtx          context.Context
+	cliCtx          = context.Background()
 	containerEngine entities.ContainerEngine
 	exitCode        = 0
 	imageEngine     entities.ImageEngine
@@ -81,28 +81,8 @@ func NewContainerEngine(cmd *cobra.Command, args []string) (entities.ContainerEn
 	return containerEngine, nil
 }
 
-type PodmanOptionsKey struct{}
-
 func Context() context.Context {
-	if cliCtx == nil {
-		cliCtx = ContextWithOptions(context.Background())
-	}
 	return cliCtx
-}
-
-func ContextWithOptions(ctx context.Context) context.Context {
-	cliCtx = context.WithValue(ctx, PodmanOptionsKey{}, podmanOptions)
-	return cliCtx
-}
-
-// GetContextWithOptions deprecated, use  NewContextWithOptions()
-func GetContextWithOptions() context.Context {
-	return ContextWithOptions(context.Background())
-}
-
-// GetContext deprecated, use  Context()
-func GetContext() context.Context {
-	return Context()
 }
 
 func DefaultAPIAddress() string {

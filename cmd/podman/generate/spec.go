@@ -51,7 +51,7 @@ func init() {
 
 func spec(cmd *cobra.Command, args []string) error {
 	opts.ID = args[0]
-	report, err := registry.ContainerEngine().GenerateSpec(registry.GetContext(), opts)
+	report, err := registry.ContainerEngine().GenerateSpec(registry.Context(), opts)
 	if err != nil {
 		return err
 	}

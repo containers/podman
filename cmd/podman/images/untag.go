@@ -44,5 +44,5 @@ func init() {
 }
 
 func untag(cmd *cobra.Command, args []string) error {
-	return registry.ImageEngine().Untag(registry.GetContext(), args[0], args[1:], entities.ImageUntagOptions{})
+	return registry.ImageEngine().Untag(registry.Context(), args[0], args[1:], entities.ImageUntagOptions{})
 }

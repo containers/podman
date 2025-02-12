@@ -36,7 +36,7 @@ func init() {
 
 func volumeMount(cmd *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
-	reports, err := registry.ContainerEngine().VolumeMount(registry.GetContext(), args)
+	reports, err := registry.ContainerEngine().VolumeMount(registry.Context(), args)
 	if err != nil {
 		return err
 	}

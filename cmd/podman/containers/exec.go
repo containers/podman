@@ -178,12 +178,12 @@ func exec(cmd *cobra.Command, args []string) error {
 		streams.AttachOutput = true
 		streams.AttachError = true
 
-		exitCode, err := registry.ContainerEngine().ContainerExec(registry.GetContext(), nameOrID, execOpts, streams)
+		exitCode, err := registry.ContainerEngine().ContainerExec(registry.Context(), nameOrID, execOpts, streams)
 		registry.SetExitCode(exitCode)
 		return err
 	}
 
-	id, err := registry.ContainerEngine().ContainerExecDetached(registry.GetContext(), nameOrID, execOpts)
+	id, err := registry.ContainerEngine().ContainerExecDetached(registry.Context(), nameOrID, execOpts)
 	if err != nil {
 		return err
 	}

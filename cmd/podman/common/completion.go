@@ -103,7 +103,7 @@ func getContainers(cmd *cobra.Command, toComplete string, cType completeType, st
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	containers, err := engine.ContainerList(registry.GetContext(), listOpts)
+	containers, err := engine.ContainerList(registry.Context(), listOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -138,7 +138,7 @@ func getPods(cmd *cobra.Command, toComplete string, cType completeType, statuses
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	pods, err := engine.PodPs(registry.GetContext(), listOpts)
+	pods, err := engine.PodPs(registry.Context(), listOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -168,7 +168,7 @@ func getVolumes(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCom
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	volumes, err := engine.VolumeList(registry.GetContext(), lsOpts)
+	volumes, err := engine.VolumeList(registry.Context(), lsOpts)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -191,7 +191,7 @@ func getImages(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellComp
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	images, err := engine.List(registry.GetContext(), listOptions)
+	images, err := engine.List(registry.Context(), listOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -235,7 +235,7 @@ func getManifestListMembers(cmd *cobra.Command, list, toComplete string) ([]stri
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	listData, err := engine.ManifestInspect(registry.GetContext(), list, inspectOptions)
+	listData, err := engine.ManifestInspect(registry.Context(), list, inspectOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -257,7 +257,7 @@ func getSecrets(cmd *cobra.Command, toComplete string, cType completeType) ([]st
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	secrets, err := engine.SecretList(registry.GetContext(), entities.SecretListRequest{})
+	secrets, err := engine.SecretList(registry.Context(), entities.SecretListRequest{})
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
@@ -327,7 +327,7 @@ func getArtifacts(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellC
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp
 	}
-	artifacts, err := engine.ArtifactList(registry.GetContext(), listOptions)
+	artifacts, err := engine.ArtifactList(registry.Context(), listOptions)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
 		return nil, cobra.ShellCompDirectiveNoFileComp

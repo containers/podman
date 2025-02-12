@@ -61,7 +61,7 @@ func init() {
 }
 
 func list(cmd *cobra.Command, _ []string) error {
-	reports, err := registry.ImageEngine().ArtifactList(registry.GetContext(), entities.ArtifactListOptions{})
+	reports, err := registry.ImageEngine().ArtifactList(registry.Context(), entities.ArtifactListOptions{})
 	if err != nil {
 		return err
 	}

@@ -126,5 +126,5 @@ func logs(_ *cobra.Command, args []string) error {
 	if len(args) > 0 {
 		podName = args[0]
 	}
-	return registry.ContainerEngine().PodLogs(registry.GetContext(), podName, logsPodOptions.PodLogsOptions)
+	return registry.ContainerEngine().PodLogs(registry.Context(), podName, logsPodOptions.PodLogsOptions)
 }

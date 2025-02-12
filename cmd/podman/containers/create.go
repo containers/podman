@@ -174,7 +174,7 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	report, err := registry.ContainerEngine().ContainerCreate(registry.GetContext(), s)
+	report, err := registry.ContainerEngine().ContainerCreate(registry.Context(), s)
 	if err != nil {
 		// if pod was created as part of run
 		// remove it in case ctr creation fails
@@ -401,7 +401,7 @@ func pullImage(cmd *cobra.Command, imageName string, cliVals *entities.Container
 		pullOptions.RetryDelay = val
 	}
 
-	pullReport, pullErr := registry.ImageEngine().Pull(registry.GetContext(), imageName, pullOptions)
+	pullReport, pullErr := registry.ImageEngine().Pull(registry.Context(), imageName, pullOptions)
 	if pullErr != nil {
 		return "", pullErr
 	}

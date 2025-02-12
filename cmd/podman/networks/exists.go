@@ -27,7 +27,7 @@ func init() {
 }
 
 func networkExists(cmd *cobra.Command, args []string) error {
-	response, err := registry.ContainerEngine().NetworkExists(registry.GetContext(), args[0])
+	response, err := registry.ContainerEngine().NetworkExists(registry.Context(), args[0])
 	if err != nil {
 		return err
 	}

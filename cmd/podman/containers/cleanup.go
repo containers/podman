@@ -77,7 +77,7 @@ func cleanup(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	responses, err := registry.ContainerEngine().ContainerCleanup(registry.GetContext(), args, cleanupOptions)
+	responses, err := registry.ContainerEngine().ContainerCleanup(registry.Context(), args, cleanupOptions)
 	if err != nil {
 		// `podman container cleanup` is almost always run in the
 		// background. Our only way of relaying information to the user

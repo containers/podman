@@ -61,7 +61,7 @@ linters:
     - nonamedreturns
     - exhaustruct
     # deprecated linters
-    - exportloopref
+    - tenv
 linters-settings:
   errcheck:
     check-blank: false

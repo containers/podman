@@ -77,7 +77,7 @@ func autoUpdate(cmd *cobra.Command, args []string) error {
 		autoUpdateOptions.InsecureSkipTLSVerify = types.NewOptionalBool(!autoUpdateOptions.tlsVerify)
 	}
 
-	allReports, failures := registry.ContainerEngine().AutoUpdate(registry.GetContext(), autoUpdateOptions.AutoUpdateOptions)
+	allReports, failures := registry.ContainerEngine().AutoUpdate(registry.Context(), autoUpdateOptions.AutoUpdateOptions)
 	if allReports == nil {
 		return errorhandling.JoinErrors(failures)
 	}
