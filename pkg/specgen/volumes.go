@@ -115,7 +115,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 			}
 		}
 
-		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") || isHostWinPath(src) {
+		if strings.HasPrefix(src, "/") || strings.HasPrefix(src, ".") || IsHostWinPath(src) {
 			// This is not a named volume
 			overlayFlag := false
 			chownFlag := false
