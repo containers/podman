@@ -114,12 +114,7 @@ func commonNativeSSH(username, identityPath, name string, sshPort int, inputArgs
 	port := strconv.Itoa(sshPort)
 	interactive := true
 
-	args := []string{"-i", identityPath, "-p", port, sshDestination,
-		"-o", "IdentitiesOnly=yes",
-		"-o", "StrictHostKeyChecking=no",
-		"-o", "UserKnownHostsFile=" + os.DevNull,
-		"-o", "CheckHostIP=no",
-		"-o", "LogLevel=ERROR", "-o", "SetEnv=LC_ALL="}
+	args := append([]string{"-i", identityPath, "-p", port, sshDestination}, CommonSSHArgs()...)
 	if len(inputArgs) > 0 {
 		interactive = false
 		args = append(args, inputArgs...)
@@ -137,4 +132,14 @@ func commonNativeSSH(username, identityPath, name string, sshPort int, inputArgs
 	}
 
 	return cmd.Run()
+}
+
+func CommonSSHArgs() []string {
+	return []string{
+		"-o", "IdentitiesOnly=yes",
+		"-o", "StrictHostKeyChecking=no",
+		"-o", "UserKnownHostsFile=" + os.DevNull,
+		"-o", "CheckHostIP=no",
+		"-o", "LogLevel=ERROR",
+		"-o", "SetEnv=LC_ALL="}
 }
