@@ -218,16 +218,16 @@ func SplitVolumeString(vol string) []string {
 		n = 4
 	}
 
-	// Determine if the last part is an option (e.g., "ro", "z")
-	hasOption := !strings.HasPrefix(parts[len(parts)-1], "/")
+	// Determine if the last part is an absolute path (if true, it means we don't have any options such as ro, rw etc.)
+	lastPartIsPath := strings.HasPrefix(parts[len(parts)-1], "/")
 
 	// Case: Volume or relative host path (e.g., "vol-name:/container" or "./hello:/container")
-	if !hasOption && len(parts) == 2 {
+	if lastPartIsPath && len(parts) == 2 {
 		return parts
 	}
 
 	// Case: Volume or relative host path with options (e.g., "vol-name:/container:ro" or "./hello:/container:ro")
-	if hasOption && len(parts) == 3 {
+	if !lastPartIsPath && len(parts) == 3 {
 		return parts
 	}
 
