@@ -203,8 +203,9 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 	return mounts, volumes, overlayVolumes, nil
 }
 
-// Splits a volume string, accounting for Win drive paths
+// SplitVolumeString Splits a volume string, accounting for Win drive paths
 // when running as a WSL linux guest or Windows client
+// Format: [[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]
 func SplitVolumeString(vol string) []string {
 	parts := strings.Split(vol, ":")
 	if !shouldResolveWinPaths() {
@@ -217,6 +218,20 @@ func SplitVolumeString(vol string) []string {
 		n = 4
 	}
 
+	// Determine if the last part is an option (e.g., "ro", "z")
+	hasOption := !strings.HasPrefix(parts[len(parts)-1], "/")
+
+	// Case: Volume or relative host path (e.g., "vol-name:/container" or "./hello:/container")
+	if !hasOption && len(parts) == 2 {
+		return parts
+	}
+
+	// Case: Volume or relative host path with options (e.g., "vol-name:/container:ro" or "./hello:/container:ro")
+	if hasOption && len(parts) == 3 {
+		return parts
+	}
+
+	// Case: Windows absolute path (e.g., "C:/Users:/mnt:ro")
 	if hasWinDriveScheme(vol, n) {
 		first := parts[0] + ":" + parts[1]
 		parts = parts[1:]
