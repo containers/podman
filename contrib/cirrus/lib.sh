@@ -36,6 +36,25 @@ fi
 # Managed by setup_environment.sh; holds task-specific definitions.
 if [[ -r "/etc/ci_environment" ]]; then source /etc/ci_environment; fi
 
+# Set DEST_BRANCH automatically, this var used for many checks,
+# i.e. to find out the merge base to do build/commit checks.
+# To avoid having to set it manually for each branch try to
+# generate based of the CIRRUS env.
+# shellcheck disable=SC2154
+if [[ -z "$CIRRUS_PR" ]]; then
+    # shellcheck disable=SC2154
+    DEST_BRANCH="$CIRRUS_BRANCH"
+else
+    # shellcheck disable=SC2154
+    DEST_BRANCH="$CIRRUS_BASE_BRANCH"
+fi
+if [[ -z "${DEST_BRANCH}" ]]; then
+    die "DEST_BRANCH is undefined, not running under cirrus?"
+fi
+msg "DEST_BRANCH is $DEST_BRANCH"
+export DEST_BRANCH
+
+
 # This is normally set from .cirrus.yml but default is necessary when
 # running under hack/get_ci_vm.sh since it cannot infer the value.
 DISTRO_NV="${DISTRO_NV:-$OS_REL_VER}"

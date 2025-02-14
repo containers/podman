@@ -5,8 +5,6 @@ env:
     ####
     #### Global variables used for all tasks
     ####
-    # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
     # Sane (default) value for GOPROXY and GOSUMDB.
     GOPROXY: "https://proxy.golang.org,direct"
     GOSUMDB: "sum.golang.org"
@@ -106,6 +104,11 @@ validate-source_task:
           cd /
           rm -rf $CIRRUS_WORKING_DIR
           mkdir -p $CIRRUS_WORKING_DIR
+          if [[ -z "$CIRRUS_PR" ]]; then
+            DEST_BRANCH="$CIRRUS_BRANCH"
+          else
+            DEST_BRANCH="$CIRRUS_BASE_BRANCH"
+          fi
           git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
           cd $CIRRUS_WORKING_DIR
           git remote update origin
@@ -772,7 +775,7 @@ podman_machine_windows_task:
         <<: *windows
         type: m5zn.metal
         platform: windows
-    timeout_in: 45m
+    timeout_in: 60m
     env: *winenv
     matrix:
       - env:
@@ -795,7 +798,7 @@ podman_machine_mac_task:
     skip: *skip_rhel_release
     depends_on: *build
     persistent_worker: *mac_pw
-    timeout_in: 45m
+    timeout_in: 60m
     env:
         <<: *mac_env
         DISTRO_NV: "darwin"
