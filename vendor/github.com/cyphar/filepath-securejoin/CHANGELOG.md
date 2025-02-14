@@ -6,6 +6,51 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased] ##
 
+## [0.4.1] - 2025-01-28 ##
+
+### Fixed ###
+- The restrictions added for `root` paths passed to `SecureJoin` in 0.4.0 was
+  found to be too strict and caused some regressions when folks tried to
+  update, so this restriction has been relaxed to only return an error if the
+  path contains a `..` component. We still recommend users use `filepath.Clean`
+  (and even `filepath.EvalSymlinks`) on the `root` path they are using, but at
+  least you will no longer be punished for "trivial" unclean paths.
+
+## [0.4.0] - 2025-01-13 ##
+
+### Breaking ####
+- `SecureJoin(VFS)` will now return an error if the provided `root` is not a
+  `filepath.Clean`'d path.
+
+  While it is ultimately the responsibility of the caller to ensure the root is
+  a safe path to use, passing a path like `/symlink/..` as a root would result
+  in the `SecureJoin`'d path being placed in `/` even though `/symlink/..`
+  might be a different directory, and so we should more strongly discourage
+  such usage.
+
+  All major users of `securejoin.SecureJoin` already ensure that the paths they
+  provide are safe (and this is ultimately a question of user error), but
+  removing this foot-gun is probably a good idea. Of course, this is
+  necessarily a breaking API change (though we expect no real users to be
+  affected by it).
+
+  Thanks to [Erik Sjölund](https://github.com/eriksjolund), who initially
+  reported this issue as a possible security issue.
+
+- `MkdirAll` and `MkdirHandle` now take an `os.FileMode`-style mode argument
+  instead of a raw `unix.S_*`-style mode argument, which may cause compile-time
+  type errors depending on how you use `filepath-securejoin`. For most users,
+  there will be no change in behaviour aside from the type change (as the
+  bottom `0o777` bits are the same in both formats, and most users are probably
+  only using those bits).
+
+  However, if you were using `unix.S_ISVTX` to set the sticky bit with
+  `MkdirAll(Handle)` you will need to switch to `os.ModeSticky` otherwise you
+  will get a runtime error with this update. In addition, the error message you
+  will get from passing `unix.S_ISUID` and `unix.S_ISGID` will be different as
+  they are treated as invalid bits now (note that previously passing said bits
+  was also an error).
+
 ## [0.3.6] - 2024-12-17 ##
 
 ### Compatibility ###
@@ -193,7 +238,9 @@ This is our first release of `github.com/cyphar/filepath-securejoin`,
 containing a full implementation with a coverage of 93.5% (the only missing
 cases are the error cases, which are hard to mocktest at the moment).
 
-[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.6...HEAD
+[Unreleased]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/cyphar/filepath-securejoin/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/cyphar/filepath-securejoin/compare/v0.3.3...v0.3.4
