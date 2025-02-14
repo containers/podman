@@ -15,8 +15,15 @@
 %define qemu 1
 %endif
 
-%if %{defined copr_username}
+# Generic conditional for all copr builds, for e.g. copr builds in
+# Packit jobs on PRs.
+%if %{defined copr_username} && %{defined copr_projectname}
 %define copr_build 1
+%endif
+
+# Macro specific to copr: rhcontainerbot/podman-next
+%if %{defined copr_build} && "%{copr_username}" == "rhcontainerbot" && "%{copr_projectname}" == "%{name}-next"
+%define next_build 1
 %endif
 
 # Only RHEL and CentOS Stream rpms are built with fips-enabled go compiler
@@ -44,7 +51,7 @@
 %endif
 
 Name: podman
-%if %{defined copr_build}
+%if %{defined next_build}
 Epoch: 102
 %else
 Epoch: 5
@@ -216,8 +223,8 @@ sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
 sed -i '/DELETE ON RHEL9/,/DELETE ON RHEL9/d' libpod/runtime.go
 %endif
 
-# These changes are only meant for copr builds
-%if %{defined copr_build}
+# These changes are only meant for rhcontaienrbot/podman-next copr build
+%if %{defined next_build}
 # podman --version should show short sha
 sed -i "s/^const RawVersion = .*/const RawVersion = \"##VERSION##-##SHORT_SHA##\"/" version/rawversion/version.go
 # use ParseTolerant to allow short sha in version
