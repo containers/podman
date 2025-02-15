@@ -178,6 +178,7 @@ func DecompressStream(archive io.Reader) (_ io.ReadCloser, Err error) {
 
 	defer func() {
 		if Err != nil {
+			// In the normal case, the buffer is embedded in the ReadCloser return.
 			p.Put(buf)
 		}
 	}()
@@ -474,7 +475,7 @@ type TarWhiteoutConverter interface {
 	ConvertReadWithHandler(*tar.Header, string, TarWhiteoutHandler) (bool, error)
 }
 
-type tarAppender struct {
+type tarWriter struct {
 	TarWriter *tar.Writer
 	Buffer    *bufio.Writer
 
@@ -495,8 +496,8 @@ type tarAppender struct {
 	CopyPass bool
 }
 
-func newTarAppender(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair) *tarAppender {
-	return &tarAppender{
+func newTarWriter(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair) *tarWriter {
+	return &tarWriter{
 		SeenFiles:  make(map[uint64]string),
 		TarWriter:  tar.NewWriter(writer),
 		Buffer:     pools.BufioWriter32KPool.Get(nil),
@@ -520,8 +521,8 @@ func canonicalTarName(name string, isDir bool) (string, error) {
 	return name, nil
 }
 
-// addTarFile adds to the tar archive a file from `path` as `name`
-func (ta *tarAppender) addTarFile(path, name string) error {
+// addFile adds a file from `path` as `name` to the tar archive.
+func (ta *tarWriter) addFile(path, name string) error {
 	fi, err := os.Lstat(path)
 	if err != nil {
 		return err
@@ -649,7 +650,7 @@ func (ta *tarAppender) addTarFile(path, name string) error {
 	return nil
 }
 
-func createTarFile(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, forceMask *os.FileMode, buffer []byte) error {
+func extractTarFileEntry(path, extractDir string, hdr *tar.Header, reader io.Reader, Lchown bool, chownOpts *idtools.IDPair, inUserns, ignoreChownErrors bool, forceMask *os.FileMode, buffer []byte) error {
 	// hdr.Mode is in linux format, which we can use for sycalls,
 	// but for os.Foo() calls we need the mode converted to os.FileMode,
 	// so use hdrInfo.Mode() (they differ for e.g. setuid bits)
@@ -861,7 +862,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 	}
 
 	go func() {
-		ta := newTarAppender(
+		ta := newTarWriter(
 			idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
 			compressWriter,
 			options.ChownOpts,
@@ -1001,7 +1002,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 					relFilePath = strings.Replace(relFilePath, include, replacement, 1)
 				}
 
-				if err := ta.addTarFile(filePath, relFilePath); err != nil {
+				if err := ta.addFile(filePath, relFilePath); err != nil {
 					logrus.Errorf("Can't add file %s to tar: %s", filePath, err)
 					// if pipe is broken, stop writing tar stream to it
 					if err == io.ErrClosedPipe {
@@ -1136,7 +1137,7 @@ loop:
 			chownOpts = &idtools.IDPair{UID: hdr.Uid, GID: hdr.Gid}
 		}
 
-		if err = createTarFile(path, dest, hdr, trBuf, doChown, chownOpts, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
+		if err = extractTarFileEntry(path, dest, hdr, trBuf, doChown, chownOpts, options.InUserNS, options.IgnoreChownErrors, options.ForceMask, buffer); err != nil {
 			return err
 		}
 

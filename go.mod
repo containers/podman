@@ -21,7 +21,7 @@ require (
 	github.com/containers/libhvee v0.9.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.57.2-0.20250211190637-7aa96daee0a3
+	github.com/containers/storage v1.57.2-0.20250214174508-b6f6fb27264f
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/crc-org/crc/v2 v2.45.0
