@@ -166,7 +166,10 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			logrus.Debugf("Copying STDIN to socket")
 
 			_, err := detach.Copy(socket, stdin, detachKeysInBytes)
-			if err != nil && err != define.ErrDetach {
+			// Ignore "closed network connection" as it occurs when the container ends, which is expected.
+			// This avoids noisy logs but does not fix the goroutine leak
+			// https://github.com/containers/podman/issues/25344
+			if err != nil && err != define.ErrDetach && !errors.Is(err, net.ErrClosed) {
 				logrus.Errorf("Failed to write input to service: %v", err)
 			}
 			if err == nil {
@@ -392,6 +395,12 @@ func setRawTerminal(file *os.File) (*terminal.State, error) {
 }
 
 // ExecStartAndAttach starts and attaches to a given exec session.
+//
+// NOTE: When options.GetAttachInput() is true, this function currently leaks a goroutine reading from that stream
+// even if the ctx is cancelled. The goroutine will only exit if the input stream is closed. For example,
+// if stdin is `os.Stdin` attached to a tty, the goroutine will consume a chunk of user input from the
+// terminal even after the exec session has exited. In this scenario the os.Stdin stream will not be expected
+// to be closed.
 func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStartAndAttachOptions) error {
 	if options == nil {
 		options = new(ExecStartAndAttachOptions)
@@ -504,14 +513,19 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		go func() {
 			logrus.Debugf("Copying STDIN to socket")
 			_, err := detach.Copy(socket, options.InputStream, []byte{})
-			if err != nil {
+			// Ignore "closed network connection" as it occurs when the exec ends, which is expected.
+			// This avoids noisy logs but does not fix the goroutine leak
+			// https://github.com/containers/podman/issues/25344
+			if err != nil && !errors.Is(err, net.ErrClosed) {
 				logrus.Errorf("Failed to write input to service: %v", err)
 			}
 
-			if closeWrite, ok := socket.(CloseWriter); ok {
-				logrus.Debugf("Closing STDIN")
-				if err := closeWrite.CloseWrite(); err != nil {
-					logrus.Warnf("Failed to close STDIN for writing: %v", err)
+			if err == nil {
+				if closeWrite, ok := socket.(CloseWriter); ok {
+					logrus.Debugf("Closing STDIN")
+					if err := closeWrite.CloseWrite(); err != nil {
+						logrus.Warnf("Failed to close STDIN for writing: %v", err)
+					}
 				}
 			}
 		}()
