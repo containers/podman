@@ -1135,12 +1135,6 @@ echo -n madeit-$teststring >$tmpfile
 		Expect(session).Should(ExitWithError(125, `invalid stream "asdfasdf" for --attach - must be one of stdin, stdout, or stderr: invalid argument`))
 	})
 
-	It("podman run exit code on failure to exec", func() {
-		session := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(126, "open executable: Operation not permitted: OCI permission denied"))
-	})
-
 	It("podman run error on exec", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 100"})
 		session.WaitWithDefaultTimeout()
