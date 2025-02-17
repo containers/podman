@@ -18,7 +18,7 @@ CMD []
 		podmanTest.BuildImage(dockerfile, "foobar.com/entrypoint:latest", "false")
 		session := podmanTest.Podman([]string{"run", "foobar.com/entrypoint:latest"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(126, "open executable: Operation not permitted: OCI permission denied"))
+		Expect(session).Should(ExitWithErrorRegex(126, ".*(open executable|executable path is empty): Operation not permitted: OCI permission denied.*"))
 	})
 
 	It("podman run entrypoint == [\"\"]", func() {
