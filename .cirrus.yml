@@ -979,8 +979,7 @@ buildah_bud_test_task:
             PODBIN_NAME: podman
         - env:
             PODBIN_NAME: remote
-    gce_instance: *standardvm
-    timeout_in: 45m
+    gce_instance: *fastvm
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
