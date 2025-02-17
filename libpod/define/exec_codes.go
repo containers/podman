@@ -46,6 +46,7 @@ func ExitCode(err error) int {
 	e := strings.ToLower(err.Error())
 	logrus.Debugf("ExitCode msg: %q", e)
 	if strings.Contains(e, "not found") ||
+		strings.Contains(e, "executable path is empty") ||
 		strings.Contains(e, "no such file") {
 		return ExecErrorCodeNotFound
 	}

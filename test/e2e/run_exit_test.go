@@ -22,7 +22,7 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit ExecErrorCodeCannotInvoke", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitWithError(define.ExecErrorCodeCannotInvoke, "open executable: Operation not permitted: OCI permission denied"))
+		Expect(result).Should(ExitWithErrorRegex(define.ExecErrorCodeCannotInvoke, ".*(open executable|the path `/etc` is not a regular file): Operation not permitted: OCI permission denied.*"))
 	})
 
 	It("podman run exit ExecErrorCodeNotFound", func() {

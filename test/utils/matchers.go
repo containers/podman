@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/onsi/gomega/format"
@@ -17,16 +18,23 @@ type podmanSession interface {
 
 type ExitMatcher struct {
 	types.GomegaMatcher
-	ExpectedExitCode int
-	ExitCode         int
-	ExpectedStderr   string
-	msg              string
+	ExpectedExitCode    int
+	ExitCode            int
+	ExpectedStderr      string
+	ExpectedStderrRegex string
+	msg                 string
 }
 
 // ExitWithError checks both exit code and stderr, fails if either does not match
 // Modeled after the gomega Exit() matcher and also operates on sessions.
 func ExitWithError(expectExitCode int, expectStderr string) *ExitMatcher {
 	return &ExitMatcher{ExpectedExitCode: expectExitCode, ExpectedStderr: expectStderr}
+}
+
+// ExitWithErrorRegex checks both exit code and the stderr regex, fails if either does not match
+// Modeled after the gomega Exit() matcher and also operates on sessions.
+func ExitWithErrorRegex(expectExitCode int, expectStderrRegex string) *ExitMatcher {
+	return &ExitMatcher{ExpectedExitCode: expectExitCode, ExpectedStderrRegex: expectStderrRegex}
 }
 
 // Match follows gexec.Matcher interface.
@@ -49,12 +57,23 @@ func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) 
 		return false, nil
 	}
 
-	if matcher.ExpectedStderr != "" {
+	switch {
+	case matcher.ExpectedStderrRegex != "":
+		matched, err := regexp.MatchString(matcher.ExpectedStderrRegex, session.ErrorToString())
+		if err != nil {
+			matcher.msg = fmt.Sprintf("Invalid regex pattern: %s", err)
+			return false, err
+		}
+		if !matched {
+			matcher.msg = fmt.Sprintf("Command exited %d as expected, but stderr did not match regex '%s'", matcher.ExitCode, matcher.ExpectedStderrRegex)
+			return false, nil
+		}
+	case matcher.ExpectedStderr != "":
 		if !strings.Contains(session.ErrorToString(), matcher.ExpectedStderr) {
 			matcher.msg = fmt.Sprintf("Command exited %d as expected, but did not emit '%s'", matcher.ExitCode, matcher.ExpectedStderr)
 			return false, nil
 		}
-	} else {
+	default:
 		if session.ErrorToString() != "" {
 			matcher.msg = "Command exited with expected exit status, but emitted unwanted stderr"
 			return false, nil
