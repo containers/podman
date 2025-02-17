@@ -122,6 +122,7 @@ const (
 	KeyLogDriver             = "LogDriver"
 	KeyLogOpt                = "LogOpt"
 	KeyMask                  = "Mask"
+	KeyMemory                = "Memory"
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
 	KeyNetworkAlias          = "NetworkAlias"
@@ -240,6 +241,7 @@ var (
 		KeyLogDriver:             true,
 		KeyLogOpt:                true,
 		KeyMask:                  true,
+		KeyMemory:                true,
 		KeyMount:                 true,
 		KeyNetwork:               true,
 		KeyNetworkAlias:          true,
@@ -635,6 +637,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		KeyStopSignal:  "--stop-signal",
 		KeyStopTimeout: "--stop-timeout",
 		KeyPull:        "--pull",
+		KeyMemory:      "--memory",
 	}
 	lookupAndAddString(container, ContainerGroup, stringKeys, podman)
 

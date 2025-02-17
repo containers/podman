@@ -319,6 +319,7 @@ Valid options for `[Container]` are listed below:
 | LogDriver=journald                   | --log-driver journald                                |
 | LogOpt=path=/var/log/mykube\.json    | --log-opt path=/var/log/mykube\.json                 |
 | Mask=/proc/sys/foo\:/proc/sys/bar    | --security-opt mask=/proc/sys/foo:/proc/sys/bar      |
+| Memory=20g                           | --memory 20g                                         |
 | Mount=type=...                       | --mount type=...                                     |
 | Network=host                         | --network host                                       |
 | NetworkAlias=name                    | --network-alias name                                 |
@@ -658,6 +659,10 @@ This key can be listed multiple times.
 ### `Mask=`
 
 Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`. A masked path cannot be accessed inside the container.
+
+### `Memory=`
+
+Specify the amount of memory for the container.
 
 ### `Mount=`
 
