@@ -876,6 +876,7 @@ BOGUS=foo
 		Entry("logdriver.container", "logdriver.container"),
 		Entry("logopt.container", "logopt.container"),
 		Entry("mask.container", "mask.container"),
+		Entry("memory.container", "memory.container"),
 		Entry("name.container", "name.container"),
 		Entry("nestedselinux.container", "nestedselinux.container"),
 		Entry("network.container", "network.container"),
