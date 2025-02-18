@@ -22,13 +22,15 @@ var _ = Describe("Podman run exit", func() {
 	It("podman run exit ExecErrorCodeCannotInvoke", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "/etc"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitWithErrorRegex(define.ExecErrorCodeCannotInvoke, ".*(open executable|the path `/etc` is not a regular file): Operation not permitted: OCI permission denied.*"))
+		expected := ".*(exec: \"/etc\": is a directory|(open executable|the path `/etc` is not a regular file): Operation not permitted: OCI permission denied).*"
+		Expect(result).Should(ExitWithErrorRegex(define.ExecErrorCodeCannotInvoke, expected))
 	})
 
 	It("podman run exit ExecErrorCodeNotFound", func() {
 		result := podmanTest.Podman([]string{"run", ALPINE, "foobar"})
 		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitWithError(define.ExecErrorCodeNotFound, "executable file `foobar` not found in $PATH: No such file or directory: OCI runtime attempted to invoke a command that was not found"))
+		expected := ".*(executable file not found in \\$PATH|executable file `foobar` not found in \\$PATH: No such file or directory: OCI runtime attempted to invoke a command that was not found).*"
+		Expect(result).Should(ExitWithErrorRegex(define.ExecErrorCodeNotFound, expected))
 	})
 
 	It("podman run exit 0", func() {

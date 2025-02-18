@@ -1657,7 +1657,7 @@ search               | $IMAGE           |
     # runc and crun emit different diagnostics
     runtime=$(podman_runtime)
     case "$runtime" in
-        crun) expect='\(executable file `` not found in $PATH: No such file or directory: OCI runtime attempted to invoke a command that was not found\|executable path is empty\)' ;;
+        crun) expect='\(executable file `` not found in $PATH\|cannot find `` in $PATH\): No such file or directory: OCI runtime attempted to invoke a command that was not found' ;;
         runc) expect='runc: runc create failed: unable to start container process: exec: "": executable file not found in $PATH: OCI runtime attempted to invoke a command that was not found' ;;
         *)    skip "Unknown runtime '$runtime'" ;;
     esac
