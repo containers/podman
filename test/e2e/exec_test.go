@@ -400,17 +400,14 @@ var _ = Describe("Podman exec", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
 
-		expect := "chdir to `/missing`: No such file or directory"
-		if podmanTest.OCIRuntime == "runc" {
-			expect = "chdir to cwd"
-		}
+		expect := ".*(chdir to cwd|chdir to `/missing`: No such file or directory).*"
 		session := podmanTest.Podman([]string{"exec", "--workdir", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(127, expect))
+		Expect(session).To(ExitWithErrorRegex(127, expect))
 
 		session = podmanTest.Podman([]string{"exec", "-w", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(127, expect))
+		Expect(session).To(ExitWithErrorRegex(127, expect))
 	})
 
 	It("podman exec cannot be invoked", func() {

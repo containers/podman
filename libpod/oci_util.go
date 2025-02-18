@@ -152,7 +152,7 @@ func getOCIRuntimeError(name, runtimeMsg string) error {
 		}
 		return fmt.Errorf("%s: %s: %w", name, strings.Trim(errStr, "\n"), define.ErrOCIRuntimePermissionDenied)
 	}
-	if match := regexp.MustCompile("(?i).*executable file not found in.*|.*no such file or directory.*").FindString(runtimeMsg); match != "" {
+	if match := regexp.MustCompile("(?i).*executable file not found in.*|.*no such file or directory.*|.*open executable.*").FindString(runtimeMsg); match != "" {
 		errStr := match
 		if includeFullOutput {
 			errStr = runtimeMsg
