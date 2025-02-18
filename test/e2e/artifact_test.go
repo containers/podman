@@ -175,12 +175,41 @@ var _ = Describe("Podman artifact", func() {
 		// Removing that artifact should work
 		rmWorks := podmanTest.PodmanExitCleanly("artifact", "rm", artifact1Name)
 		// The digests printed by removal should be the same as the digest that was added
-		Expect(addArtifact1.OutputToString()).To(Equal(rmWorks.OutputToString()))
+		Expect(rmWorks.OutputToString()).To(ContainSubstring(addArtifact1.OutputToString()))
 
 		// Inspecting that the removed artifact should fail
 		inspectArtifact := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
 		inspectArtifact.WaitWithDefaultTimeout()
 		Expect(inspectArtifact).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+
+		// Add some artifacts back in
+		artifact2File, err := createArtifactFile(8096)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2Name := "localhost/test/artifact2"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact2Name, artifact2File)
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		// Using -a and an arg should trigger an error
+		failArgs := podmanTest.Podman([]string{"artifact", "rm", "-a", artifact1Name})
+		failArgs.WaitWithDefaultTimeout()
+		Expect(failArgs).Should(ExitWithError(125, "Error: when using the --all switch, you may not pass any artifact names or digests"))
+
+		// No args is an error
+		failNoArgs := podmanTest.Podman([]string{"artifact", "rm"})
+		failNoArgs.WaitWithDefaultTimeout()
+		Expect(failNoArgs).Should(ExitWithError(125, "Error: a single artifact name or digest must be specified"))
+
+		// Multiple args is an error
+		multipleArgs := podmanTest.Podman([]string{"artifact", "rm", artifact1Name, artifact2File})
+		multipleArgs.WaitWithDefaultTimeout()
+		Expect(multipleArgs).Should(ExitWithError(125, "Error: too many arguments: only accepts one artifact name or digest"))
+
+		// Remove all
+		podmanTest.PodmanExitCleanly("artifact", "rm", "-a")
+
+		// There should be no artifacts in the store
+		rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
+		Expect(rmAll.OutputToString()).To(BeEmpty())
 	})
 
 	It("podman artifact inspect with full or partial digest", func() {

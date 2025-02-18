@@ -59,6 +59,8 @@ type ArtifactPushOptions struct {
 }
 
 type ArtifactRemoveOptions struct {
+	// Remove all artifacts
+	All bool
 }
 
 type ArtifactPullReport struct{}
@@ -79,5 +81,5 @@ type ArtifactAddReport struct {
 }
 
 type ArtifactRemoveReport struct {
-	ArtfactDigest *digest.Digest
+	ArtifactDigests []*digest.Digest
 }

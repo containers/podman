@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/libartifact/store"
 	"github.com/containers/podman/v5/pkg/libartifact/types"
+	"github.com/opencontainers/go-digest"
 )
 
 func getDefaultArtifactStore(ir *ImageEngine) string {
@@ -86,17 +87,45 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 	return nil, artStore.Pull(ctx, name, *pullOptions)
 }
 
-func (ir *ImageEngine) ArtifactRm(ctx context.Context, name string, _ entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
+func (ir *ImageEngine) ArtifactRm(ctx context.Context, name string, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
+	var (
+		namesOrDigests []string
+	)
+	artifactDigests := make([]*digest.Digest, 0, len(namesOrDigests))
 	artStore, err := store.NewArtifactStore(getDefaultArtifactStore(ir), ir.Libpod.SystemContext())
 	if err != nil {
 		return nil, err
 	}
-	artifactDigest, err := artStore.Remove(ctx, name)
-	if err != nil {
-		return nil, err
+
+	if opts.All {
+		allArtifacts, err := artStore.List(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, art := range allArtifacts {
+			// Using the digest here instead of name to protect against
+			// an artifact that lacks a name
+			manifestDigest, err := art.GetDigest()
+			if err != nil {
+				return nil, err
+			}
+			namesOrDigests = append(namesOrDigests, manifestDigest.Encoded())
+		}
+	}
+
+	if name != "" {
+		namesOrDigests = append(namesOrDigests, name)
+	}
+
+	for _, namesOrDigest := range namesOrDigests {
+		artifactDigest, err := artStore.Remove(ctx, namesOrDigest)
+		if err != nil {
+			return nil, err
+		}
+		artifactDigests = append(artifactDigests, artifactDigest)
 	}
 	artifactRemoveReport := entities.ArtifactRemoveReport{
-		ArtfactDigest: artifactDigest,
+		ArtifactDigests: artifactDigests,
 	}
 	return &artifactRemoveReport, err
 }
