@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/parallel"
+	"github.com/containers/podman/v5/pkg/syncmap"
 	"github.com/sirupsen/logrus"
 )
 
@@ -290,18 +291,16 @@ func startNode(ctx context.Context, node *containerNode, setError bool, ctrError
 
 // Contains all details required for traversing the container graph.
 type nodeTraversal struct {
-	// Protects reads and writes to the two maps.
-	lock sync.Mutex
 	// Optional. but *MUST* be locked.
 	// Should NOT be changed once a traversal is started.
 	pod *Pod
 	// Function to execute on the individual container being acted on.
 	// Should NOT be changed once a traversal is started.
 	actionFunc func(ctr *Container, pod *Pod) error
-	// Shared list of errors for all containers currently acted on.
-	ctrErrors map[string]error
-	// Shared list of what containers have been visited.
-	ctrsVisited map[string]bool
+	// Shared set of errors for all containers currently acted on.
+	ctrErrors *syncmap.Map[string, error]
+	// Shared set of what containers have been visited.
+	ctrsVisited *syncmap.Map[string, bool]
 }
 
 // Perform a traversal of the graph in an inwards direction - meaning from nodes
@@ -311,9 +310,7 @@ func traverseNodeInwards(node *containerNode, nodeDetails *nodeTraversal, setErr
 	node.lock.Lock()
 
 	// If we already visited this node, we're done.
-	nodeDetails.lock.Lock()
-	visited := nodeDetails.ctrsVisited[node.id]
-	nodeDetails.lock.Unlock()
+	visited := nodeDetails.ctrsVisited.Exists(node.id)
 	if visited {
 		node.lock.Unlock()
 		return
@@ -322,10 +319,8 @@ func traverseNodeInwards(node *containerNode, nodeDetails *nodeTraversal, setErr
 	// Someone who depends on us failed.
 	// Mark us as failed and recurse.
 	if setError {
-		nodeDetails.lock.Lock()
-		nodeDetails.ctrsVisited[node.id] = true
-		nodeDetails.ctrErrors[node.id] = fmt.Errorf("a container that depends on container %s could not be stopped: %w", node.id, define.ErrCtrStateInvalid)
-		nodeDetails.lock.Unlock()
+		nodeDetails.ctrsVisited.Put(node.id, true)
+		nodeDetails.ctrErrors.Put(node.id, fmt.Errorf("a container that depends on container %s could not be stopped: %w", node.id, define.ErrCtrStateInvalid))
 
 		node.lock.Unlock()
 
@@ -343,9 +338,7 @@ func traverseNodeInwards(node *containerNode, nodeDetails *nodeTraversal, setErr
 	for _, dep := range node.dependedOn {
 		// The container that depends on us hasn't been removed yet.
 		// OK to continue on
-		nodeDetails.lock.Lock()
-		ok := nodeDetails.ctrsVisited[dep.id]
-		nodeDetails.lock.Unlock()
+		ok := nodeDetails.ctrsVisited.Exists(dep.id)
 		if !ok {
 			node.lock.Unlock()
 			return
@@ -355,9 +348,7 @@ func traverseNodeInwards(node *containerNode, nodeDetails *nodeTraversal, setErr
 	ctrErrored := false
 	if err := nodeDetails.actionFunc(node.container, nodeDetails.pod); err != nil {
 		ctrErrored = true
-		nodeDetails.lock.Lock()
-		nodeDetails.ctrErrors[node.id] = err
-		nodeDetails.lock.Unlock()
+		nodeDetails.ctrErrors.Put(node.id, err)
 	}
 
 	// Mark as visited *only after* finished with operation.
@@ -367,9 +358,7 @@ func traverseNodeInwards(node *containerNode, nodeDetails *nodeTraversal, setErr
 	// Same with the node lock - we don't want to release it until we are
 	// marked as visited.
 	if !ctrErrored {
-		nodeDetails.lock.Lock()
-		nodeDetails.ctrsVisited[node.id] = true
-		nodeDetails.lock.Unlock()
+		nodeDetails.ctrsVisited.Put(node.id, true)
 
 		node.lock.Unlock()
 	}
@@ -385,9 +374,7 @@ func traverseNodeInwards(node *containerNode, nodeDetails *nodeTraversal, setErr
 	// and perform its operation before it was marked failed by the
 	// traverseNodeInwards triggered by this process.
 	if ctrErrored {
-		nodeDetails.lock.Lock()
-		nodeDetails.ctrsVisited[node.id] = true
-		nodeDetails.lock.Unlock()
+		nodeDetails.ctrsVisited.Put(node.id, true)
 
 		node.lock.Unlock()
 	}
@@ -404,8 +391,8 @@ func stopContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, ti
 
 	nodeDetails := new(nodeTraversal)
 	nodeDetails.pod = pod
-	nodeDetails.ctrErrors = make(map[string]error)
-	nodeDetails.ctrsVisited = make(map[string]bool)
+	nodeDetails.ctrErrors = syncmap.New[string, error]()
+	nodeDetails.ctrsVisited = syncmap.New[string, bool]()
 
 	traversalFunc := func(ctr *Container, pod *Pod) error {
 		ctr.lock.Lock()
@@ -452,7 +439,7 @@ func stopContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, ti
 		<-doneChan
 	}
 
-	return nodeDetails.ctrErrors, nil
+	return nodeDetails.ctrErrors.Underlying(), nil
 }
 
 // Remove all containers in the given graph
@@ -466,10 +453,10 @@ func removeContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, 
 
 	nodeDetails := new(nodeTraversal)
 	nodeDetails.pod = pod
-	nodeDetails.ctrErrors = make(map[string]error)
-	nodeDetails.ctrsVisited = make(map[string]bool)
+	nodeDetails.ctrErrors = syncmap.New[string, error]()
+	nodeDetails.ctrsVisited = syncmap.New[string, bool]()
 
-	ctrNamedVolumes := make(map[string]*ContainerNamedVolume)
+	ctrNamedVolumes := syncmap.New[string, *ContainerNamedVolume]()
 
 	traversalFunc := func(ctr *Container, pod *Pod) error {
 		ctr.lock.Lock()
@@ -480,7 +467,7 @@ func removeContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, 
 		}
 
 		for _, vol := range ctr.config.NamedVolumes {
-			ctrNamedVolumes[vol.Name] = vol
+			ctrNamedVolumes.Put(vol.Name, vol)
 		}
 
 		if pod != nil && pod.state.InfraContainerID == ctr.ID() {
@@ -524,5 +511,6 @@ func removeContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, 
 		<-doneChan
 	}
 
-	return ctrNamedVolumes, nodeDetails.ctrsVisited, nodeDetails.ctrErrors, nil
+	// Safe to use Underlying as the SyncMap passes out of scope as we return
+	return ctrNamedVolumes.Underlying(), nodeDetails.ctrsVisited.Underlying(), nodeDetails.ctrErrors.Underlying(), nil
 }
