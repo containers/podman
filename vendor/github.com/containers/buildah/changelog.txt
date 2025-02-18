@@ -1,3 +1,19 @@
+- Changelog for v1.29.5 (2025-02-06)
+  * Backport testing of CVE-2024-9407 fix
+  * Changes based on review feedback
+  * Disable windows cross-build in CI
+  * Fix TOCTOU error when bind and cache mounts use "src" values
+  * define.TempDirForURL(): always use an intermediate subdirectory
+  * internal/volume.GetBindMount(): discard writes in bind mounts
+  * pkg/overlay: add a MountLabel flag to Options
+  * pkg/overlay: add a ForceMount flag to Options
+  * Add internal/volumes.bindFromChroot()
+  * Add an internal/open package
+  * Allow cache mounts to be stages or additional build contexts
+
+- Changelog for v1.29.4 (2024-10-17)
+  * Properly validate cache IDs and sources
+
 - Changelog for v1.29.3 (2024-03-26)
   * [release-1.29] Bump google.golang.org/protobuf to v1.33.0
   * [release-1.29] conformance tests: don't break on trailing zeroes
