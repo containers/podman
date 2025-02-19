@@ -911,6 +911,7 @@ BOGUS=foo
 		Entry("sysctl.container", "sysctl.container"),
 		Entry("timezone.container", "timezone.container"),
 		Entry("ulimit.container", "ulimit.container"),
+		Entry("umask.container", "umask.container"),
 		Entry("unmask.container", "unmask.container"),
 		Entry("user.container", "user.container"),
 		Entry("userns.container", "userns.container"),
