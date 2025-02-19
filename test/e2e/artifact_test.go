@@ -130,6 +130,13 @@ var _ = Describe("Podman artifact", func() {
 	})
 
 	It("podman artifact push and pull", func() {
+		// Before starting a registry, try to pull a bogus image from a bogus registry
+		// using retry-delay
+		retrySession := podmanTest.Podman([]string{"artifact", "pull", "--retry", "1", "--retry-delay", "100ms", "127.0.0.1/mybadimagename"})
+		retrySession.WaitWithDefaultTimeout()
+		Expect(retrySession).Should(ExitWithError(125, "connect: connection refused"))
+		Expect(retrySession.ErrorToString()).To(ContainSubstring("retrying in 100ms ..."))
+
 		artifact1File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
 
