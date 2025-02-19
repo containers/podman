@@ -196,7 +196,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 		// error means it exists
 		_, _, err := artifacts.GetByNameOrDigest(dest)
 		if err == nil {
-			return nil, fmt.Errorf("artifact %s already exists", dest)
+			return nil, fmt.Errorf("%s: %w", dest, libartTypes.ErrArtifactAlreadyExists)
 		}
 		artifactManifest = specV1.Manifest{
 			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
@@ -227,7 +227,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	for _, path := range paths {
 		fileName := filepath.Base(path)
 		if _, ok := fileNames[fileName]; ok {
-			return nil, fmt.Errorf("file: %q already exists in artifact", fileName)
+			return nil, fmt.Errorf("%s: %w", fileName, libartTypes.ErrArtifactFileExists)
 		}
 		fileNames[fileName] = struct{}{}
 	}
