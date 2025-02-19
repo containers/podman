@@ -216,14 +216,6 @@ sed -i 's;@@PODMAN@@\;$(BINDIR);@@PODMAN@@\;%{_bindir};' Makefile
 sed -i '/DELETE ON RHEL9/,/DELETE ON RHEL9/d' libpod/runtime.go
 %endif
 
-# These changes are only meant for copr builds
-%if %{defined copr_build}
-# podman --version should show short sha
-sed -i "s/^const RawVersion = .*/const RawVersion = \"##VERSION##-##SHORT_SHA##\"/" version/rawversion/version.go
-# use ParseTolerant to allow short sha in version
-sed -i "s/^var Version.*/var Version, err = semver.ParseTolerant(rawversion.RawVersion)/" version/version.go
-%endif
-
 %build
 %set_build_flags
 export CGO_CFLAGS=$CFLAGS
@@ -244,6 +236,13 @@ LDFLAGS="-X %{ld_libpod}/define.buildInfo=${SOURCE_DATE_EPOCH:-$(date +%s)} \
          -X %{ld_libpod}/config._installPrefix=%{_prefix} \
          -X %{ld_libpod}/config._etcDir=%{_sysconfdir} \
          -X %{ld_project}/pkg/systemd/quadlet._binDir=%{_bindir}"
+
+%if %{defined copr_build}
+# ##GIT_COMMIT## is set by `.packit.sh` in Packit's Copr RPM build jobs.
+# Has no effect on Koji builds.
+GIT_COMMIT="##GIT_COMMIT##"
+LDFLAGS="$LDFLAGS -X %{ld_libpod}/define.gitCommit=$GIT_COMMIT"
+%endif
 
 # build rootlessport first
 %gobuild -o bin/rootlessport ./cmd/rootlessport
