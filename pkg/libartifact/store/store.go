@@ -312,23 +312,22 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	return &artifactManifestDigest, nil
 }
 
-// Extract an artifact to local file or directory
-func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
+func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, nameOrDigest string, options *libartTypes.FilterBlobOptions) (*libartifact.Artifact, types.ImageSource, error) {
 	if len(options.Digest) > 0 && len(options.Title) > 0 {
-		return errors.New("cannot specify both digest and title")
+		return nil, nil, errors.New("cannot specify both digest and title")
 	}
 	if len(nameOrDigest) == 0 {
-		return ErrEmptyArtifactName
+		return nil, nil, ErrEmptyArtifactName
 	}
 
 	artifacts, err := as.getArtifacts(ctx, nil)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(nameOrDigest)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	name := nameOrDigest
 	if nameIsDigest {
@@ -336,14 +335,20 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 	}
 
 	if len(arty.Manifest.Layers) == 0 {
-		return fmt.Errorf("the artifact has no blobs, nothing to extract")
+		return nil, nil, fmt.Errorf("the artifact has no blobs, nothing to extract")
 	}
 
 	ir, err := layout.NewReference(as.storePath, name)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	imgSrc, err := ir.NewImageSource(ctx, as.SystemContext)
+	return arty, imgSrc, err
+}
+
+// Extract an artifact to local file or directory
+func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
+	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
 	if err != nil {
 		return err
 	}
