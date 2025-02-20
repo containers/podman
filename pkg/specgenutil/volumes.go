@@ -23,17 +23,19 @@ var (
 )
 
 type containerMountSlice struct {
-	mounts         []spec.Mount
-	volumes        []*specgen.NamedVolume
-	overlayVolumes []*specgen.OverlayVolume
-	imageVolumes   []*specgen.ImageVolume
+	mounts          []spec.Mount
+	volumes         []*specgen.NamedVolume
+	overlayVolumes  []*specgen.OverlayVolume
+	imageVolumes    []*specgen.ImageVolume
+	artifactVolumes []*specgen.ArtifactVolume
 }
 
 // containerMountMap contains the container mounts with the destination path as map key
 type containerMountMap struct {
-	mounts       map[string]spec.Mount
-	volumes      map[string]*specgen.NamedVolume
-	imageVolumes map[string]*specgen.ImageVolume
+	mounts          map[string]spec.Mount
+	volumes         map[string]*specgen.NamedVolume
+	imageVolumes    map[string]*specgen.ImageVolume
+	artifactVolumes map[string]*specgen.ArtifactVolume
 }
 
 type universalMount struct {
@@ -131,6 +133,11 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 			return nil, err
 		}
 	}
+	for dest := range unifiedContainerMounts.artifactVolumes {
+		if err := testAndSet(dest); err != nil {
+			return nil, err
+		}
+	}
 
 	// Final step: maps to arrays
 	finalMounts := make([]spec.Mount, 0, len(unifiedContainerMounts.mounts))
@@ -156,12 +163,17 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 	for _, volume := range unifiedContainerMounts.imageVolumes {
 		finalImageVolumes = append(finalImageVolumes, volume)
 	}
+	finalArtifactVolumes := make([]*specgen.ArtifactVolume, 0, len(unifiedContainerMounts.artifactVolumes))
+	for _, volume := range unifiedContainerMounts.artifactVolumes {
+		finalArtifactVolumes = append(finalArtifactVolumes, volume)
+	}
 
 	return &containerMountSlice{
-		mounts:         finalMounts,
-		volumes:        finalVolumes,
-		overlayVolumes: finalOverlayVolume,
-		imageVolumes:   finalImageVolumes,
+		mounts:          finalMounts,
+		volumes:         finalVolumes,
+		overlayVolumes:  finalOverlayVolume,
+		imageVolumes:    finalImageVolumes,
+		artifactVolumes: finalArtifactVolumes,
 	}, nil
 }
 
@@ -170,10 +182,12 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ...
 // podman run --mount type=volume,source=test-volume, ...
+// podman run --mount type=artifact,source=$artifact,dest=...
 func mounts(mountFlag []string, configMounts []string) (*containerMountMap, error) {
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
 	finalImageVolumes := make(map[string]*specgen.ImageVolume)
+	finalArtifactVolumes := make(map[string]*specgen.ArtifactVolume)
 	parseMounts := func(mounts []string, ignoreDup bool) error {
 		for _, mount := range mounts {
 			// TODO: Docker defaults to "volume" if no mount type is specified.
@@ -244,6 +258,18 @@ func mounts(mountFlag []string, configMounts []string) (*containerMountMap, erro
 					return fmt.Errorf("%v: %w", volume.Destination, specgen.ErrDuplicateDest)
 				}
 				finalImageVolumes[volume.Destination] = volume
+			case "artifact":
+				volume, err := getArtifactVolume(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalArtifactVolumes[volume.Destination]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", volume.Destination, specgen.ErrDuplicateDest)
+				}
+				finalArtifactVolumes[volume.Destination] = volume
 			case "volume":
 				volume, err := getNamedVolume(tokens)
 				if err != nil {
@@ -276,9 +302,10 @@ func mounts(mountFlag []string, configMounts []string) (*containerMountMap, erro
 	}
 
 	return &containerMountMap{
-		mounts:       finalMounts,
-		volumes:      finalNamedVolumes,
-		imageVolumes: finalImageVolumes,
+		mounts:          finalMounts,
+		volumes:         finalNamedVolumes,
+		imageVolumes:    finalImageVolumes,
+		artifactVolumes: finalArtifactVolumes,
 	}, nil
 }
 
@@ -678,6 +705,50 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 
 	if len(newVolume.Source)*len(newVolume.Destination) == 0 {
 		return nil, errors.New("must set source and destination for image volume")
+	}
+
+	return newVolume, nil
+}
+
+// Parse the arguments into an artifact volume. An artifact volume creates mounts
+// based on an existing artifact in the store.
+func getArtifactVolume(args []string) (*specgen.ArtifactVolume, error) {
+	newVolume := new(specgen.ArtifactVolume)
+
+	for _, arg := range args {
+		name, value, hasValue := strings.Cut(arg, "=")
+		switch name {
+		case "src", "source":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Source = value
+		case "target", "dst", "destination":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			if err := parse.ValidateVolumeCtrDir(value); err != nil {
+				return nil, err
+			}
+			newVolume.Destination = unixPathClean(value)
+		case "title":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Title = value
+
+		case "digest":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Digest = value
+		default:
+			return nil, fmt.Errorf("%s: %w", name, util.ErrBadMntOption)
+		}
+	}
+
+	if len(newVolume.Source)*len(newVolume.Destination) == 0 {
+		return nil, errors.New("must set source and destination for artifact volume")
 	}
 
 	return newVolume, nil

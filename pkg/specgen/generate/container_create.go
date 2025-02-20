@@ -507,6 +507,19 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithImageVolumes(vols))
 	}
 
+	if len(s.ArtifactVolumes) != 0 {
+		vols := make([]*libpod.ContainerArtifactVolume, 0, len(s.ArtifactVolumes))
+		for _, v := range s.ArtifactVolumes {
+			vols = append(vols, &libpod.ContainerArtifactVolume{
+				Dest:   v.Destination,
+				Source: v.Source,
+				Digest: v.Digest,
+				Title:  v.Title,
+			})
+		}
+		options = append(options, libpod.WithArtifactVolumes(vols))
+	}
+
 	if s.Command != nil {
 		options = append(options, libpod.WithCommand(s.Command))
 	}
