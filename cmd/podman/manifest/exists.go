@@ -26,7 +26,7 @@ func init() {
 }
 
 func exists(cmd *cobra.Command, args []string) error {
-	found, err := registry.ImageEngine().ManifestExists(registry.GetContext(), args[0])
+	found, err := registry.ImageEngine().ManifestExists(registry.Context(), args[0])
 	if err != nil {
 		return err
 	}

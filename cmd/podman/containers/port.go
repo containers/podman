@@ -108,7 +108,7 @@ func port(_ *cobra.Command, args []string) error {
 		userProto = fields[1]
 	}
 
-	reports, err := registry.ContainerEngine().ContainerPort(registry.GetContext(), container, portOpts)
+	reports, err := registry.ContainerEngine().ContainerPort(registry.Context(), container, portOpts)
 	if err != nil {
 		return err
 	}

@@ -105,7 +105,7 @@ func restore(cmd *cobra.Command, args []string) error {
 	// Check if the container exists (#15055)
 	exists := &entities.BoolReport{Value: false}
 	for _, ctr := range args {
-		exists, e = registry.ContainerEngine().ContainerExists(registry.GetContext(), ctr, entities.ContainerExistsOptions{})
+		exists, e = registry.ContainerEngine().ContainerExists(registry.Context(), ctr, entities.ContainerExistsOptions{})
 		if e != nil {
 			return e
 		}

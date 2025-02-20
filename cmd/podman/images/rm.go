@@ -75,7 +75,7 @@ func rm(cmd *cobra.Command, args []string) error {
 
 	// Note: certain image-removal errors are non-fatal.  Hence, the report
 	// might be set even if err != nil.
-	report, rmErrors := registry.ImageEngine().Remove(registry.GetContext(), args, imageOpts)
+	report, rmErrors := registry.ImageEngine().Remove(registry.Context(), args, imageOpts)
 	if report != nil {
 		for _, u := range report.Untagged {
 			fmt.Println("Untagged: " + u)

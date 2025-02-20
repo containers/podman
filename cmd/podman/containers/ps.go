@@ -173,7 +173,7 @@ func quietOut(responses []entities.ListContainer) {
 }
 
 func getResponses() ([]entities.ListContainer, error) {
-	responses, err := registry.ContainerEngine().ContainerList(registry.GetContext(), listOpts)
+	responses, err := registry.ContainerEngine().ContainerList(registry.Context(), listOpts)
 	if err != nil {
 		return nil, err
 	}

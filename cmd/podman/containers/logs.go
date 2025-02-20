@@ -142,5 +142,5 @@ func logs(_ *cobra.Command, args []string) error {
 	}
 	logsOptions.StdoutWriter = os.Stdout
 	logsOptions.StderrWriter = os.Stderr
-	return registry.ContainerEngine().ContainerLogs(registry.GetContext(), args, logsOptions.ContainerLogsOptions)
+	return registry.ContainerEngine().ContainerLogs(registry.Context(), args, logsOptions.ContainerLogsOptions)
 }
