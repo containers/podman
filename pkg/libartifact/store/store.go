@@ -312,7 +312,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	return &artifactManifestDigest, nil
 }
 
-// Inspect an artifact in a local store
+// Extract an artifact to local file or directory
 func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
 	if len(options.Digest) > 0 && len(options.Title) > 0 {
 		return errors.New("cannot specify both digest and title")
