@@ -364,7 +364,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 			if len(options.Digest) == 0 && len(options.Title) == 0 {
 				return fmt.Errorf("the artifact consists of several blobs and the target %q is not a directory and neither digest or title was specified to only copy a single blob", target)
 			}
-			digest, err = findDigest(arty, options)
+			digest, err = findDigest(arty, &options.FilterBlobOptions)
 			if err != nil {
 				return err
 			}
@@ -376,7 +376,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 	}
 
 	if len(options.Digest) > 0 || len(options.Title) > 0 {
-		digest, err := findDigest(arty, options)
+		digest, err := findDigest(arty, &options.FilterBlobOptions)
 		if err != nil {
 			return err
 		}
@@ -427,7 +427,7 @@ func generateArtifactBlobName(title string, digest digest.Digest) (string, error
 	return filename, nil
 }
 
-func findDigest(arty *libartifact.Artifact, options *libartTypes.ExtractOptions) (digest.Digest, error) {
+func findDigest(arty *libartifact.Artifact, options *libartTypes.FilterBlobOptions) (digest.Digest, error) {
 	var digest digest.Digest
 	for _, l := range arty.Manifest.Layers {
 		if options.Digest == l.Digest.String() {
