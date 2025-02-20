@@ -790,6 +790,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	if len(s.ImageVolumes) == 0 {
 		s.ImageVolumes = containerMounts.imageVolumes
 	}
+	if len(s.ArtifactVolumes) == 0 {
+		s.ArtifactVolumes = containerMounts.artifactVolumes
+	}
 
 	devices := c.Devices
 	for _, gpu := range c.GPUs {
