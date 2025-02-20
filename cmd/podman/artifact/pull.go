@@ -116,28 +116,6 @@ func artifactPull(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// TODO Once we have a decision about the flag removal above, this should be safe to delete
-	/*
-		platform, err := cmd.Flags().GetString("platform")
-		if err != nil {
-			return err
-		}
-		if platform != "" {
-			if pullOptions.Arch != "" || pullOptions.OS != "" {
-				return errors.New("--platform option can not be specified with --arch or --os")
-			}
-
-			specs := strings.Split(platform, "/")
-			pullOptions.OS = specs[0] // may be empty
-			if len(specs) > 1 {
-				pullOptions.Arch = specs[1]
-				if len(specs) > 2 {
-					pullOptions.Variant = specs[2]
-				}
-			}
-		}
-	*/
-
 	if pullOptions.CredentialsCLI != "" {
 		creds, err := util.ParseRegistryCreds(pullOptions.CredentialsCLI)
 		if err != nil {

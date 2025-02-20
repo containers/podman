@@ -63,12 +63,18 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 	pullOptions.CertDirPath = opts.CertDirPath
 	pullOptions.Username = opts.Username
 	pullOptions.Password = opts.Password
-	// pullOptions.Architecture = opts.Arch
 	pullOptions.SignaturePolicyPath = opts.SignaturePolicyPath
 	pullOptions.InsecureSkipTLSVerify = opts.InsecureSkipTLSVerify
 	pullOptions.Writer = opts.Writer
 	pullOptions.OciDecryptConfig = opts.OciDecryptConfig
 	pullOptions.MaxRetries = opts.MaxRetries
+	if opts.RetryDelay != "" {
+		duration, err := time.ParseDuration(opts.RetryDelay)
+		if err != nil {
+			return nil, err
+		}
+		pullOptions.RetryDelay = &duration
+	}
 
 	if !opts.Quiet && pullOptions.Writer == nil {
 		pullOptions.Writer = os.Stderr
