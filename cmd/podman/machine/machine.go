@@ -68,6 +68,40 @@ func autocompleteMachineSSH(cmd *cobra.Command, args []string, toComplete string
 	return nil, cobra.ShellCompDirectiveDefault
 }
 
+// autocompleteMachineCp - Autocomplete machine cp command.
+func autocompleteMachineCp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if len(args) < 2 {
+		if i := strings.IndexByte(toComplete, ':'); i > -1 {
+			// the user already set the machine name, so don't use the host file autocompletion
+			return nil, cobra.ShellCompDirectiveNoFileComp
+		}
+
+		suffixCompSlice := func(suf string, slice []string) []string {
+			for i := range slice {
+				key, val, hasVal := strings.Cut(slice[i], "\t")
+				if hasVal {
+					slice[i] = key + suf + "\t" + val
+				} else {
+					slice[i] += suf
+				}
+			}
+			return slice
+		}
+
+		// suggest machine when they match the input otherwise normal shell completion is used
+		machines, _ := getMachines(toComplete)
+		for _, machine := range machines {
+			if strings.HasPrefix(machine, toComplete) {
+				return suffixCompSlice(":", machines), cobra.ShellCompDirectiveNoSpace
+			}
+		}
+
+		return nil, cobra.ShellCompDirectiveNoSpace
+	}
+	// don't complete more than 2 args
+	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
 // autocompleteMachine - Autocomplete machines.
 func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {

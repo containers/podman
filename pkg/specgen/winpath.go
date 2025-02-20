@@ -7,7 +7,7 @@ import (
 	"unicode"
 )
 
-func isHostWinPath(path string) bool {
+func IsHostWinPath(path string) bool {
 	return shouldResolveWinPaths() && strings.HasPrefix(path, `\\`) || hasWinDriveScheme(path, 0) || winPathExists(path)
 }
 

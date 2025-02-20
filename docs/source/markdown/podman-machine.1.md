@@ -24,22 +24,23 @@ Podman machine behaviour can be modified via the [machine] section in the contai
 
 ## SUBCOMMANDS
 
-| Command | Man Page                                                 | Description                           |
-|---------|----------------------------------------------------------|---------------------------------------|
-| info    | [podman-machine-info(1)](podman-machine-info.1.md)       | Display machine host info             |
-| init    | [podman-machine-init(1)](podman-machine-init.1.md)       | Initialize a new virtual machine      |
-| inspect | [podman-machine-inspect(1)](podman-machine-inspect.1.md) | Inspect one or more virtual machines  |
-| list    | [podman-machine-list(1)](podman-machine-list.1.md)       | List virtual machines                 |
-| os      | [podman-machine-os(1)](podman-machine-os.1.md)           | Manage a Podman virtual machine's OS  |
-| reset   | [podman-machine-reset(1)](podman-machine-reset.1.md)     | Reset Podman machines and environment |
-| rm      | [podman-machine-rm(1)](podman-machine-rm.1.md)           | Remove a virtual machine              |
-| set     | [podman-machine-set(1)](podman-machine-set.1.md)         | Set a virtual machine setting         |
-| ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)         | SSH into a virtual machine            |
-| start   | [podman-machine-start(1)](podman-machine-start.1.md)     | Start a virtual machine               |
-| stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)       | Stop a virtual machine                |
+| Command | Man Page                                                 | Description                                                     |
+|---------|----------------------------------------------------------|-----------------------------------------------------------------|
+| cp      | [podman-machine-cp(1)](podman-machine-cp.1.md)           | Securely copy contents between the host and the virtual machine |
+| info    | [podman-machine-info(1)](podman-machine-info.1.md)       | Display machine host info                                       |
+| init    | [podman-machine-init(1)](podman-machine-init.1.md)       | Initialize a new virtual machine                                |
+| inspect | [podman-machine-inspect(1)](podman-machine-inspect.1.md) | Inspect one or more virtual machines                            |
+| list    | [podman-machine-list(1)](podman-machine-list.1.md)       | List virtual machines                                           |
+| os      | [podman-machine-os(1)](podman-machine-os.1.md)           | Manage a Podman virtual machine's OS                            |
+| reset   | [podman-machine-reset(1)](podman-machine-reset.1.md)     | Reset Podman machines and environment                           |
+| rm      | [podman-machine-rm(1)](podman-machine-rm.1.md)           | Remove a virtual machine                                        |
+| set     | [podman-machine-set(1)](podman-machine-set.1.md)         | Set a virtual machine setting                                   |
+| ssh     | [podman-machine-ssh(1)](podman-machine-ssh.1.md)         | SSH into a virtual machine                                      |
+| start   | [podman-machine-start(1)](podman-machine-start.1.md)     | Start a virtual machine                                         |
+| stop    | [podman-machine-stop(1)](podman-machine-stop.1.md)       | Stop a virtual machine                                          |
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-machine-info(1)](podman-machine-info.1.md)**, **[podman-machine-init(1)](podman-machine-init.1.md)**, **[podman-machine-list(1)](podman-machine-list.1.md)**, **[podman-machine-os(1)](podman-machine-os.1.md)**, **[podman-machine-rm(1)](podman-machine-rm.1.md)**, **[podman-machine-ssh(1)](podman-machine-ssh.1.md)**, **[podman-machine-start(1)](podman-machine-start.1.md)**, **[podman-machine-stop(1)](podman-machine-stop.1.md)**, **[podman-machine-inspect(1)](podman-machine-inspect.1.md)**, **[podman-machine-reset(1)](podman-machine-reset.1.md)**, **containers.conf(5)**
+**[podman(1)](podman.1.md)**, **[podman-machine-cp(1)](podman-machine-cp.1.md)**, **[podman-machine-info(1)](podman-machine-info.1.md)**, **[podman-machine-init(1)](podman-machine-init.1.md)**, **[podman-machine-list(1)](podman-machine-list.1.md)**, **[podman-machine-os(1)](podman-machine-os.1.md)**, **[podman-machine-rm(1)](podman-machine-rm.1.md)**, **[podman-machine-ssh(1)](podman-machine-ssh.1.md)**, **[podman-machine-start(1)](podman-machine-start.1.md)**, **[podman-machine-stop(1)](podman-machine-stop.1.md)**, **[podman-machine-inspect(1)](podman-machine-inspect.1.md)**, **[podman-machine-reset(1)](podman-machine-reset.1.md)**, **containers.conf(5)**
 
 ### Troubleshooting
 
