@@ -1070,7 +1070,6 @@ release-artifacts: clean-binaries
 	$(MAKE) podman-remote-static-linux_arm64
 	tar -cvzf podman-remote-static-linux_arm64.tar.gz bin/podman-remote-static-linux_arm64
 	mv podman-remote-static-linux*.tar.gz release/
-	cd release/; sha256sum *.zip *.tar.gz > shasums
 
 .PHONY: uninstall
 uninstall:
