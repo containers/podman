@@ -215,8 +215,10 @@ func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target 
 		return err
 	}
 	extractOpt := &types.ExtractOptions{
-		Digest: opts.Digest,
-		Title:  opts.Title,
+		FilterBlobOptions: types.FilterBlobOptions{
+			Digest: opts.Digest,
+			Title:  opts.Title,
+		},
 	}
 
 	return artStore.Extract(ctx, name, target, extractOpt)
