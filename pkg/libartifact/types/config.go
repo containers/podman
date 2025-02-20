@@ -25,3 +25,15 @@ type FilterBlobOptions struct {
 type ExtractOptions struct {
 	FilterBlobOptions
 }
+
+type BlobMountPathOptions struct {
+	FilterBlobOptions
+}
+
+// BlobMountPath contains the info on how the artifact must be mounted
+type BlobMountPath struct {
+	// Source path of the blob, i.e. full path in the blob dir.
+	SourcePath string
+	// Name of the file in the container.
+	Name string
+}
