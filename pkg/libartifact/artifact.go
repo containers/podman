@@ -2,11 +2,11 @@ package libartifact
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/containers/image/v5/manifest"
+	"github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/opencontainers/go-digest"
 )
 
@@ -33,7 +33,7 @@ func (a *Artifact) GetName() (string, error) {
 	}
 	// We don't have a concept of None for artifacts yet, but if we do,
 	// then we should probably not error but return `None`
-	return "", errors.New("artifact is unnamed")
+	return "", types.ErrArtifactUnamed
 }
 
 // SetName is a accessor for setting the artifact name
@@ -75,5 +75,5 @@ func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, 
 			return artifact, true, nil
 		}
 	}
-	return nil, false, fmt.Errorf("no artifact found with name or digest of %s", nameOrDigest)
+	return nil, false, fmt.Errorf("%s: %w", nameOrDigest, types.ErrArtifactNotExist)
 }

@@ -88,7 +88,7 @@ var _ = Describe("Podman artifact", func() {
 		// Adding an artifact with an existing name should fail
 		addAgain := podmanTest.Podman([]string{"artifact", "add", artifact1Name, artifact1File})
 		addAgain.WaitWithDefaultTimeout()
-		Expect(addAgain).Should(ExitWithError(125, fmt.Sprintf("Error: artifact %s already exists", artifact1Name)))
+		Expect(addAgain).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact already exists", artifact1Name)))
 	})
 
 	It("podman artifact add with options", func() {
@@ -164,7 +164,7 @@ var _ = Describe("Podman artifact", func() {
 		// Trying to remove an image that does not exist should fail
 		rmFail := podmanTest.Podman([]string{"artifact", "rm", "foobar"})
 		rmFail.WaitWithDefaultTimeout()
-		Expect(rmFail).Should(ExitWithError(125, fmt.Sprintf("Error: no artifact found with name or digest of %s", "foobar")))
+		Expect(rmFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", "foobar")))
 
 		// Add an artifact to remove later
 		artifact1File, err := createArtifactFile(4192)
@@ -180,7 +180,7 @@ var _ = Describe("Podman artifact", func() {
 		// Inspecting that the removed artifact should fail
 		inspectArtifact := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
 		inspectArtifact.WaitWithDefaultTimeout()
-		Expect(inspectArtifact).Should(ExitWithError(125, fmt.Sprintf("Error: no artifact found with name or digest of %s", artifact1Name)))
+		Expect(inspectArtifact).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
 	})
 
 	It("podman artifact inspect with full or partial digest", func() {
@@ -440,7 +440,8 @@ var _ = Describe("Podman artifact", func() {
 
 		appendFail := podmanTest.Podman([]string{"artifact", "add", "--append", artifact1Name, artifact1File})
 		appendFail.WaitWithDefaultTimeout()
-		Expect(appendFail).Should(ExitWithError(125, fmt.Sprintf("Error: file: \"%s\" already exists in artifact", filepath.Base(artifact1File))))
+		//  Error: PJYjLgoU: file already exists in artifact
+		Expect(appendFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: file already exists in artifact", filepath.Base(artifact1File))))
 
 		a := podmanTest.InspectArtifact(artifact1Name)
 
@@ -456,11 +457,11 @@ var _ = Describe("Podman artifact", func() {
 
 		addFail := podmanTest.Podman([]string{"artifact", "add", artifact1Name, artifact1File, artifact1File})
 		addFail.WaitWithDefaultTimeout()
-		Expect(addFail).Should(ExitWithError(125, fmt.Sprintf("Error: file: \"%s\" already exists in artifact", filepath.Base(artifact1File))))
+		Expect(addFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: file already exists in artifact", filepath.Base(artifact1File))))
 
 		inspectFail := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
 		inspectFail.WaitWithDefaultTimeout()
-		Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: no artifact found with name or digest of %s", artifact1Name)))
+		Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
 	})
 
 	It("podman artifact add --append file already exists in artifact", func() {
@@ -472,7 +473,7 @@ var _ = Describe("Podman artifact", func() {
 
 		appendFail := podmanTest.Podman([]string{"artifact", "add", "--append", artifact1Name, artifact1File})
 		appendFail.WaitWithDefaultTimeout()
-		Expect(appendFail).Should(ExitWithError(125, fmt.Sprintf("Error: file: \"%s\" already exists in artifact", filepath.Base(artifact1File))))
+		Expect(appendFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: file already exists in artifact", filepath.Base(artifact1File))))
 		a := podmanTest.InspectArtifact(artifact1Name)
 
 		Expect(a.Manifest.Layers).To(HaveLen(1))
