@@ -166,10 +166,11 @@ func (m *OCI1) UpdateLayerInfos(layerInfos []types.BlobInfo) error {
 // getEncryptedMediaType will return the mediatype to its encrypted counterpart and return
 // an error if the mediatype does not support encryption
 func getEncryptedMediaType(mediatype string) (string, error) {
-	if slices.Contains(strings.Split(mediatype, "+")[1:], "encrypted") {
+	parts := strings.Split(mediatype, "+")
+	if slices.Contains(parts[1:], "encrypted") {
 		return "", fmt.Errorf("unsupported mediaType: %q already encrypted", mediatype)
 	}
-	unsuffixedMediatype := strings.Split(mediatype, "+")[0]
+	unsuffixedMediatype := parts[0]
 	switch unsuffixedMediatype {
 	case DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayer,
 		imgspecv1.MediaTypeImageLayerNonDistributable: //nolint:staticcheck // NonDistributable layers are deprecated, but we want to continue to support manipulating pre-existing images.
