@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
@@ -67,6 +68,8 @@ type (
 		CopyPass bool
 		// ForceMask, if set, indicates the permission mask used for created files.
 		ForceMask *os.FileMode
+		// Timestamp, if set, will be set in each header as create/mod/access time
+		Timestamp *time.Time
 	}
 )
 
@@ -494,15 +497,19 @@ type tarWriter struct {
 	// from the traditional behavior/format to get features like subsecond
 	// precision in timestamps.
 	CopyPass bool
+
+	// Timestamp, if set, will be set in each header as create/mod/access time
+	Timestamp *time.Time
 }
 
-func newTarWriter(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair) *tarWriter {
+func newTarWriter(idMapping *idtools.IDMappings, writer io.Writer, chownOpts *idtools.IDPair, timestamp *time.Time) *tarWriter {
 	return &tarWriter{
 		SeenFiles:  make(map[uint64]string),
 		TarWriter:  tar.NewWriter(writer),
 		Buffer:     pools.BufioWriter32KPool.Get(nil),
 		IDMappings: idMapping,
 		ChownOpts:  chownOpts,
+		Timestamp:  timestamp,
 	}
 }
 
@@ -598,6 +605,13 @@ func (ta *tarWriter) addFile(path, name string) error {
 		// and they unnecessarily give recipients of the tar file potentially private data.
 		hdr.Uname = ""
 		hdr.Gname = ""
+	}
+
+	// if override timestamp set, replace all times with this
+	if ta.Timestamp != nil {
+		hdr.ModTime = *ta.Timestamp
+		hdr.AccessTime = *ta.Timestamp
+		hdr.ChangeTime = *ta.Timestamp
 	}
 
 	maybeTruncateHeaderModTime(hdr)
@@ -866,6 +880,7 @@ func TarWithOptions(srcPath string, options *TarOptions) (io.ReadCloser, error) 
 			idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps),
 			compressWriter,
 			options.ChownOpts,
+			options.Timestamp,
 		)
 		ta.WhiteoutConverter = GetWhiteoutConverter(options.WhiteoutFormat, options.WhiteoutData)
 		ta.CopyPass = options.CopyPass
