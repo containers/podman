@@ -17,13 +17,13 @@ var (
 	connection      *context.Context
 )
 
-func newConnection(uri string, identity, farmNodeName string, machine bool) (context.Context, error) {
+func newConnection(uri string, identity, tlsCertFile, tlsKeyFile, tlsCAFile, farmNodeName string, machine bool) (context.Context, error) {
 	connectionMutex.Lock()
 	defer connectionMutex.Unlock()
 
 	// if farmNodeName given, then create a connection with the node so that we can send builds there
 	if connection == nil || farmNodeName != "" {
-		ctx, err := bindings.NewConnectionWithIdentity(context.Background(), uri, identity, machine)
+		ctx, err := bindings.NewConnectionWithIdentityOrTLS(context.Background(), uri, identity, tlsCertFile, tlsKeyFile, tlsCAFile, machine)
 		if err != nil {
 			return ctx, err
 		}
@@ -37,7 +37,7 @@ func NewContainerEngine(facts *entities.PodmanConfig) (entities.ContainerEngine,
 	case entities.ABIMode:
 		return nil, fmt.Errorf("direct runtime not supported")
 	case entities.TunnelMode:
-		ctx, err := newConnection(facts.URI, facts.Identity, "", facts.MachineMode)
+		ctx, err := newConnection(facts.URI, facts.Identity, facts.TLSCertFile, facts.TLSKeyFile, facts.TLSCAFile, "", facts.MachineMode)
 		return &tunnel.ContainerEngine{ClientCtx: ctx}, err
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)
@@ -49,7 +49,7 @@ func NewImageEngine(facts *entities.PodmanConfig) (entities.ImageEngine, error) 
 	case entities.ABIMode:
 		return nil, fmt.Errorf("direct image runtime not supported")
 	case entities.TunnelMode:
-		ctx, err := newConnection(facts.URI, facts.Identity, facts.FarmNodeName, facts.MachineMode)
+		ctx, err := newConnection(facts.URI, facts.Identity, facts.TLSCertFile, facts.TLSKeyFile, facts.TLSCAFile, facts.FarmNodeName, facts.MachineMode)
 		return &tunnel.ImageEngine{ClientCtx: ctx, FarmNode: tunnel.FarmNode{NodeName: facts.FarmNodeName}}, err
 	}
 	return nil, fmt.Errorf("runtime mode '%v' is not supported", facts.EngineMode)

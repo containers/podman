@@ -48,7 +48,7 @@ var _ = Describe("Podman logs", func() {
 			}
 		}
 
-		It("all lines: "+log, func() {
+		It("all lines: "+log, Label("remote-spot-check"), func() {
 			skipIfJournaldInContainer()
 
 			logc := podmanTest.Podman([]string{"run", "--log-driver", log, "-dt", ALPINE, "sh", "-c", "echo podman; echo podman; echo podman"})
@@ -315,7 +315,7 @@ var _ = Describe("Podman logs", func() {
 			Expect(results).To(ExitCleanly())
 		})
 
-		It("streaming output: "+log, func() {
+		It("streaming output: "+log, Label("remote-spot-check"), func() {
 			skipIfJournaldInContainer()
 
 			containerName := "logs-f"
