@@ -4,8 +4,20 @@
 # that they are caught and remedied, even if it requires discarding some
 # data in read-write layers.
 #
+# DO NOT PARALLELIZE. All of these tests require complete control of images.
+#
 
 load helpers
+
+function setup_file() {
+    # Pristine setup: no pods, containers, volumes, images
+    run_podman pod rm -a -f
+    run_podman rm -f -a -t0
+    run_podman volume rm -a
+    run_podman image rm -f -a
+
+    _prefetch $IMAGE
+}
 
 @test "podman system check - unmanaged layers" {
     run_podman_testing create-storage-layer
