@@ -1,15 +1,15 @@
 //go:build !windows
 
-package images
+package util
 
 import (
 	"os"
 	"syscall"
 )
 
-func checkHardLink(fi os.FileInfo) (devino, bool) {
+func CheckHardLink(fi os.FileInfo) (Devino, bool) {
 	st := fi.Sys().(*syscall.Stat_t)
-	return devino{
+	return Devino{
 		Dev: uint64(st.Dev), //nolint: unconvert
 		Ino: st.Ino,
 	}, st.Nlink > 1

@@ -3,7 +3,6 @@
 package abi
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -31,7 +30,6 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/infra/abi/internal/expansion"
 	v1apps "github.com/containers/podman/v5/pkg/k8s.io/api/apps/v1"
 	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
-	metav1 "github.com/containers/podman/v5/pkg/k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgen/generate"
 	"github.com/containers/podman/v5/pkg/specgen/generate/kube"
@@ -39,12 +37,10 @@ import (
 	"github.com/containers/podman/v5/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/utils"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-	yamlv3 "gopkg.in/yaml.v3"
 	"sigs.k8s.io/yaml"
 )
 
@@ -267,7 +263,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	}
 
 	// split yaml document
-	documentList, err := splitMultiDocYAML(content)
+	documentList, err := util.SplitMultiDocYAML(content)
 	if err != nil {
 		return nil, err
 	}
@@ -305,7 +301,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	// create pod on each document if it is a pod or deployment
 	// any other kube kind will be skipped
 	for _, document := range documentList {
-		kind, err := getKubeKind(document)
+		kind, err := util.GetKubeKind(document)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read kube YAML: %w", err)
 		}
@@ -1191,7 +1187,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 //   - A Dockerfile or Containerfile exists in that folder
 //   - The image doesn't exist locally OR the user explicitly provided the option `--build`
 func (ic *ContainerEngine) buildImageFromContainerfile(ctx context.Context, cwd string, writer io.Writer, image string, options entities.PlayKubeOptions) (*libimage.Image, error) {
-	buildFile, err := getBuildFile(image, cwd)
+	buildFile, err := util.GetBuildFile(image, cwd)
 	if err != nil {
 		return nil, err
 	}
@@ -1490,13 +1486,13 @@ func readConfigMapFromFile(r io.Reader) ([]v1.ConfigMap, error) {
 	}
 
 	// split yaml document
-	documentList, err := splitMultiDocYAML(content)
+	documentList, err := util.SplitMultiDocYAML(content)
 	if err != nil {
 		return nil, fmt.Errorf("unable to read as kube YAML: %w", err)
 	}
 
 	for _, document := range documentList {
-		kind, err := getKubeKind(document)
+		kind, err := util.GetKubeKind(document)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read as kube YAML: %w", err)
 		}
@@ -1515,79 +1511,13 @@ func readConfigMapFromFile(r io.Reader) ([]v1.ConfigMap, error) {
 	return configMaps, nil
 }
 
-// splitMultiDocYAML reads multiple documents in a YAML file and
-// returns them as a list.
-func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
-	var documentList [][]byte
-
-	d := yamlv3.NewDecoder(bytes.NewReader(yamlContent))
-	for {
-		var o interface{}
-		// read individual document
-		err := d.Decode(&o)
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return nil, fmt.Errorf("multi doc yaml could not be split: %w", err)
-		}
-
-		if o == nil {
-			continue
-		}
-
-		// back to bytes
-		document, err := yamlv3.Marshal(o)
-		if err != nil {
-			return nil, fmt.Errorf("individual doc yaml could not be marshalled: %w", err)
-		}
-
-		kind, err := getKubeKind(document)
-		if err != nil {
-			return nil, fmt.Errorf("couldn't get object kind: %w", err)
-		}
-
-		// The items in a document of kind "List" are fully qualified resources
-		// So, they can be treated as separate documents
-		if kind == "List" {
-			var kubeList metav1.List
-			if err := yaml.Unmarshal(document, &kubeList); err != nil {
-				return nil, err
-			}
-			for _, item := range kubeList.Items {
-				itemDocument, err := yamlv3.Marshal(item)
-				if err != nil {
-					return nil, fmt.Errorf("individual doc yaml could not be marshalled: %w", err)
-				}
-
-				documentList = append(documentList, itemDocument)
-			}
-		} else {
-			documentList = append(documentList, document)
-		}
-	}
-
-	return documentList, nil
-}
-
-// getKubeKind unmarshals a kube YAML document and returns its kind.
-func getKubeKind(obj []byte) (string, error) {
-	var kubeObject v1.ObjectReference
-
-	if err := yaml.Unmarshal(obj, &kubeObject); err != nil {
-		return "", err
-	}
-
-	return kubeObject.Kind, nil
-}
-
 // sortKubeKinds adds the correct creation order for the kube kinds.
 // Any pod dependency will be created first like volumes, secrets, etc.
 func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
 	var sortedDocumentList [][]byte
 
 	for _, document := range documentList {
-		kind, err := getKubeKind(document)
+		kind, err := util.GetKubeKind(document)
 		if err != nil {
 			return nil, err
 		}
@@ -1601,52 +1531,6 @@ func sortKubeKinds(documentList [][]byte) ([][]byte, error) {
 	}
 
 	return sortedDocumentList, nil
-}
-
-func imageNamePrefix(imageName string) string {
-	prefix := imageName
-	s := strings.Split(prefix, ":")
-	if len(s) > 0 {
-		prefix = s[0]
-	}
-	s = strings.Split(prefix, "/")
-	if len(s) > 0 {
-		prefix = s[len(s)-1]
-	}
-	s = strings.Split(prefix, "@")
-	if len(s) > 0 {
-		prefix = s[0]
-	}
-	return prefix
-}
-
-func getBuildFile(imageName string, cwd string) (string, error) {
-	buildDirName := imageNamePrefix(imageName)
-	containerfilePath := filepath.Join(cwd, buildDirName, "Containerfile")
-	dockerfilePath := filepath.Join(cwd, buildDirName, "Dockerfile")
-
-	err := fileutils.Exists(containerfilePath)
-	if err == nil {
-		logrus.Debugf("Building %s with %s", imageName, containerfilePath)
-		return containerfilePath, nil
-	}
-	// If the error is not because the file does not exist, take
-	// a mulligan and try Dockerfile.  If that also fails, return that
-	// error
-	if err != nil && !os.IsNotExist(err) {
-		logrus.Error(err.Error())
-	}
-
-	err = fileutils.Exists(dockerfilePath)
-	if err == nil {
-		logrus.Debugf("Building %s with %s", imageName, dockerfilePath)
-		return dockerfilePath, nil
-	}
-	// Strike two
-	if os.IsNotExist(err) {
-		return "", nil
-	}
-	return "", err
 }
 
 func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, options entities.PlayKubeDownOptions) (*entities.PlayKubeReport, error) {
@@ -1664,7 +1548,7 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	}
 
 	// split yaml document
-	documentList, err := splitMultiDocYAML(content)
+	documentList, err := util.SplitMultiDocYAML(content)
 	if err != nil {
 		return nil, err
 	}
@@ -1676,7 +1560,7 @@ func (ic *ContainerEngine) PlayKubeDown(ctx context.Context, body io.Reader, opt
 	}
 
 	for _, document := range documentList {
-		kind, err := getKubeKind(document)
+		kind, err := util.GetKubeKind(document)
 		if err != nil {
 			return nil, fmt.Errorf("unable to read as kube YAML: %w", err)
 		}
