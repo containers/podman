@@ -8,16 +8,14 @@ approvers:
   - lsm5
   - mheon
   - mtrmac
-  - rhatdan
-  - vrothberg
   - ygalblum
 reviewers:
   - Luap99
   - TomSweeneyRedHat
-  - alexlarsson
   - baude
   - flouthoc
   - giuseppe
+  - honny1
   - jakecorrenti
   - jwhonce
   - l0rd
