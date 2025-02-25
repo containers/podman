@@ -10,31 +10,29 @@ import (
 // BarOption is a func option to alter default behavior of a bar.
 type BarOption func(*bState)
 
-func inspect(decorators []decor.Decorator) (dest []decor.Decorator) {
-	for _, decorator := range decorators {
-		if decorator == nil {
-			continue
-		}
-		dest = append(dest, decorator)
-	}
-	return
-}
-
 // PrependDecorators let you inject decorators to the bar's left side.
 func PrependDecorators(decorators ...decor.Decorator) BarOption {
-	decorators = inspect(decorators)
+	var group []decor.Decorator
+	for _, decorator := range decorators {
+		if decorator != nil {
+			group = append(group, decorator)
+		}
+	}
 	return func(s *bState) {
-		s.populateEwmaDecorators(decorators)
-		s.decorators[0] = decorators
+		s.decorGroups[0] = group
 	}
 }
 
 // AppendDecorators let you inject decorators to the bar's right side.
 func AppendDecorators(decorators ...decor.Decorator) BarOption {
-	decorators = inspect(decorators)
+	var group []decor.Decorator
+	for _, decorator := range decorators {
+		if decorator != nil {
+			group = append(group, decorator)
+		}
+	}
 	return func(s *bState) {
-		s.populateEwmaDecorators(decorators)
-		s.decorators[1] = decorators
+		s.decorGroups[1] = group
 	}
 }
 
