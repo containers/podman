@@ -1,0 +1,193 @@
+# Contributor Ladder Template
+
+* [Contributor Ladder](#contributor-ladder-template)
+    * [Contributor](#contributor)
+    * [Reviewer](#reviewer)
+    * [Maintainer](#maintainer)
+    * [Core Maintainer](#coremaintainer)
+    * [Community Manager](#communitymanager)
+* [Inactivity](#inactivity)
+* [Involuntary Removal](#involuntary-removal-or-demotion)
+* [Stepping Down/Emeritus Process](#stepping-downemeritus-process)
+* [Updates to this Document](#updates-to-this-document)
+* [Contact](#contact)
+
+
+## Contributor Ladder
+
+Hello! We are excited that you want to learn more about our project contributor ladder! This contributor ladder outlines the different contributor roles within the project, along with the responsibilities and privileges that come with them. Community members generally start at the first levels of the "ladder" and advance as their involvement in the project grows.  Our project members are happy to help you advance along the contributor ladder.  At all levels, contributors are required to follow the CNCF Code of Conduct (COC).
+
+Each of the project member roles below is organized into lists of three types of things.
+
+* "Responsibilities" – functions of a member
+* "Requirements" –  qualifications of a member
+* "Privileges" –  entitlements of member
+
+
+### Contributor
+Description: A Contributor contributes directly to the project and adds value to it. Contributions need not be code. People at the Contributor level may be new contributors, or they may only contribute occasionally.
+
+* Responsibilities include:
+    * Follow the CNCF CoC
+    * Follow the project contributing guide
+* Requirements (one or several of the below):
+    * Report and sometimes resolve issues against any of the project’s repositories
+    * Occasionally submit PRs against any of the project’s repositories
+    * Contribute to project documentation, including the manpages, tutorials, and Podman.io
+    * Attend community meetings when reasonable
+    * Answer questions from other community members on the mailing list, Slack, Matrix, and other communication channels
+    * Assist in triaging issues
+    * Assist in reviewing pull requests, including testing patches when applicable
+    * Test release candidates and provide feedback
+    * Promote the project in public
+    * Help run the project infrastructure
+* Privileges:
+    * Invitations to contributor events
+    * Eligible to become a Reviewer
+
+### Reviewer
+Description: A Reviewer has responsibility for the triage of issues and review of pull requests on the Podman project or a subproject, consisting of one or more of the Git repositories that form the project. They are collectively responsible, with other Reviewers, for reviewing changes to the repository or repositories and indicating whether those changes are ready to merge. They have a track record of contribution and review in the project.
+
+Reviewers have all the rights and responsibilities of a Contributor, plus:
+
+* Responsibilities include:
+    * Regular contribution of pull requests to the Podman project or its subprojects
+    * Triage of Github issues on the Podman project or its subprojects
+    * Regularly fixing Github issues on the Podman project or its subprojects
+    * Following the [reviewing guide](./REVIEWING.md)
+    * A sustained high level of pull request reviews on the Podman project or one of its subprojects
+    * Assisting new Contributors with the process of contributing
+    * Helping other contributors become reviewers
+* Requirements:
+    * Has a proven record of good-faith contributions to the project as a Contributor for a period of at least 6 months. The time requirement may be overridden by a supermajority vote of Maintainers.
+    * Has participated in pull request review and/or issue triage on the project for at least 6 months. The time requirement may be overridden by a supermajority vote of Maintainers.
+    * Is supportive of new and occasional contributors and helps get useful PRs in shape to merge
+* Additional privileges:
+    * Has rights to approve pull requests in the Podman project or a subproject, marking them as ready for a Maintainer to review and merge
+    * Can recommend and review other contributors to become Reviewers
+
+All Reviewers are listed in the OWNERS file of the repository or repositories they have review authority over.
+
+
+#### The process of becoming a Reviewer is:
+1. The contributor must be sponsored by a Maintainer. That sponsor will open a PR against the appropriate repository, which adds the contributor to the MAINTAINERS.md file as a reviewer.
+2. The contributor will add a comment to the pull request indicating their willingness to assume the responsibilities of a Reviewer.
+3. At least two Maintainers of the repository must concur to merge the PR.
+
+### Maintainer
+Description: Maintainers are very established contributors with deep technical knowledge of the Podman project and/or one of its subprojects. Maintainers are granted the authority to merge pull requests, and are expected to participate in making decisions about the strategy and priorities of the project. Maintainers are responsible for code review and merging in a single repository or subproject. It is possible to become Maintainer of additional repositories or subprojects, but each additional repository or project will require a separate application and vote. They are able to participate in all maintainer activities, including Core Maintainer meetings, but do not have a vote at Core Maintainer meetings.
+
+In repositories using an OWNERS file, Maintainers are listed as Approvers in that file.
+
+A Maintainer must meet the responsibilities and requirements of a Reviewer, plus:
+* Responsibilities include:
+    * Sustained high level of reviews of pull requests to the project or subproject, with a goal of one or more a week when averaged across the year.
+    * Merging pull requests which pass review
+    * Mentoring new Reviewers
+    * Participating in CNCF maintainer activities for the projects they are maintainers of
+    * Assisting Core Maintainers in determining strategy and policy for the project
+    * Participating in, and leading, community meetings
+* Requirements
+    * Experience as a Reviewer for at least 6 months, or status as an Emeritus Maintainer. The time requirement may be overridden by a supermajority vote of Maintainers.
+    * Demonstrates a broad knowledge of the project or one or more of its subprojects
+    * Is able to exercise judgment for the good of the project, independent of their employer, friends, or team
+    * Mentors contributors, reviewers, and new maintainers
+    * Collaborates with other Maintainers to work on complex contributions
+    * Can commit to maintaining a high level of contribution to the project or one of its subprojects
+* Additional privileges:
+    * Represent the project in public as a senior project member
+    * Communicate with the CNCF on behalf of the project
+    * Have a voice, but not a vote, in Core Maintainer decision-making meetings
+
+#### Process of becoming a maintainer:
+1. A current reviewer must be sponsored by a Maintainer of the repository in question. The Maintainer will open a PR against the repository and add the nominee as an Approver in the MAINTAINERS.md file. The need for a sponsor is removed for Emeritus Maintainers, who may open this pull request themselves.
+2. The nominee will add a comment to the PR confirming that they agree to all requirements and responsibilities of becoming a Maintainer.
+3. A majority of the current Maintainers of the repository or subproject must then approve the PR. The need for a majority is removed for Emeritus Maintainers, who require only 2 current maintainers to approve their return.
+
+### Core Maintainer
+Description: As the Podman project is composed of a number of subprojects, most maintainers will not have full knowledge of the full project and all its technical aspects. Those that do are eligible to become Core Maintainers, responsible for decisions affecting the entire project. Core Maintainers may act as a maintainer in all repositories and subprojects of the Podman Project.
+
+* Responsibilities include:
+    * All responsibilities of a maintainer
+    * Determining strategy and policy for the project
+    * Participating in, and leading, community meetings
+* Requirements
+    * Experience as a Maintainer for at least 3 months
+    * Demonstrates a broad knowledge of all components, repositories, and subprojects of the Podman project.
+    * Is able to exercise judgment for the good of the project, independent of their employer, friends, or team
+    * Mentors new Maintainers and Core Maintainers
+    * Able to make decisions and contributions affecting the whole project, including multiple subprojects and repositories
+    * Can commit to maintaining a high level of contribution to the project as a whole
+* Additional privileges:
+    * Represent the project in public as a senior project member
+    * Communicate with the CNCF on behalf of the project
+    * Have a vote in Core Maintainer decision-making meetings
+
+#### Process of becoming a Core Maintainer Member:
+1. A current maintainer must be sponsored by Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Core Maintainer in the MAINTAINERS.md file.
+2. The nominee will add a comment to the PR confirming that they agree to all requirements and responsibilities of becoming a Core Maintainer.
+3. A majority of the current Core Maintainers must then approve the PR.
+4. If, for some reason, all existing members are inactive according to the Inactivity policy below or there are no Core Maintainers due to resignations, a supermajority vote of maintainers can bypass this process and approve new Core Maintainers directly.
+
+### Community Manager
+Community managers are responsible for the project’s community interactions, including project social media, website maintenance, gathering metrics, managing the new contributor process, ensuring documentation is easy to use and welcoming to new users, and managing the project’s interactions with the CNCF. This is a nontechnical role, and as such does not require technical contribution to the project.
+
+* Responsibilities include:
+    * Participating in CNCF maintainer activities
+    * Arranging, participating in, and leading, community meetings
+    * Managing the project website and gathering associated metrics
+    * Managing the project’s social media accounts and mailing lists and gathering associated metrics
+* Requirements
+    * Sustained high level of contribution to the community, including attending and engaging in community meetings, contributions to the website, and contributions to documentation, for at least six months
+    * Is able to exercise judgment for the good of the project, independent of their employer, friends, or team
+    * Can commit to maintaining a high level of contribution to the project's community, website, and social media presence
+    * Advocates for the community in Maintainer and Core Maintainer meetings
+* Additional privileges:
+    * Represent the project in public
+    * Communicate with the CNCF on behalf of the project
+    * Have a voice, but not a vote, in Core Maintainer decision-making meetings
+
+#### Process of becoming a Community Manager:
+1. Community Managers must be sponsored by a Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Community Manager in the MAINTAINERS.md file.
+2. The nominee will add a comment to the PR confirming that they agree to all requirements and responsibilities of becoming a Community Manager.
+3. A majority of the current Core Maintainers must then approve the PR.
+
+### Emeritus Maintainer
+Emeritus Maintainers are former Maintainers or Core Maintainers whose status has lapsed, either voluntarily or through inactivity. We recognize that these former maintainers still have valuable experience and insights, and maintain Emeritus status as a way of recognizing this. Emeritus Maintainer also offers a fast-tracked path to becoming a Maintainer again, should the contributor wish to return to the project.
+
+Emeritus Maintainers have no responsibilities or requirements beyond those of an ordinary Contributor.
+
+#### Process of becoming an Emeritus Maintainer:
+1. A current Maintainer or Core Maintainer may voluntarily resign from their position by making a pull request changing their role in the OWNERS file. They may choose to remove themselves entirely or to change their role to Emeritus Maintainer.
+2. Maintainers and Core Maintainers removed due to the Inactivity policy below may be moved to Emeritus Status.
+
+## Maintainers File
+
+The definitive source of truth for maintainers of a repository is the MAINTAINERS.md file in that repository. The MAINTAINERS.md file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have an OWNERS file, used by the CI system to map users to roles. Any changes to the OWNERS file must make a corresponding change to the MAINTAINERS.md file to ensure that file maintains up to date. Most changes to MAINTAINERS.md will require a change to the repository’s OWNERS file (e.g. adding a Reviewer) but some will not (e.g. promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
+
+## Inactivity
+
+* Inactivity is measured by one or more of the following:
+    * Periods of no contribution of code, pull request review, or participation in issue triage for longer than 12 months
+    * Periods of no communication for longer than 3 months
+* Consequences of being inactive include:
+    * Involuntary removal or demotion
+    * Being asked to move to Emeritus status
+
+## Involuntary Removal or Demotion
+
+Involuntary removal/demotion of a contributor happens when responsibilities and requirements aren't being met. This may include repeated patterns of inactivity, an extended period of inactivity, a period of failing to meet the requirements of your role, and/or a violation of the Code of Conduct. This process is important because it protects the community and its deliverables while also opening up opportunities for new contributors to step in.
+
+Involuntary removal or demotion of Maintainers and Reviewers is handled through a vote by a majority of the current Maintainers. Core Maintainers may be involuntarily removed by a majority vote of current Core Maintainers or, if all Core Maintainers have stepped down or are inactive according to the inactivity policy, by a supermajority (66%) vote of maintainers.
+
+## Stepping Down/Emeritus Process
+If and when contributors' commitment levels change, contributors can consider stepping down (moving down the contributor ladder) vs moving to emeritus status (completely stepping away from the project).
+
+Maintainers and Reviewers should contact the Maintainers about changing to Emeritus status, or reducing your contributor level. Core Maintainers should contact other Core Maintainers.
+
+## Updates to this document
+Updates to this Governance document require approval from a majority vote of the Core Maintainers.
+
+## Contact
+* For inquiries, please reach out to:
+    *  [Tom Sweeney, Community Manager](tsweeney@redhat.com)
