@@ -475,7 +475,7 @@ var _ = Describe("Podman artifact", func() {
 		a := podmanTest.InspectArtifact(artifact1Name)
 
 		Expect(a.Manifest.Layers).To(HaveLen(1))
-		Expect(a.TotalSizeBytes()).To(Equal(int64(524288)))
+		Expect(a.TotalSizeBytes()).To(Equal(int64(1024)))
 	})
 
 	It("podman artifact add file already exists in artifact", func() {
@@ -506,7 +506,7 @@ var _ = Describe("Podman artifact", func() {
 		a := podmanTest.InspectArtifact(artifact1Name)
 
 		Expect(a.Manifest.Layers).To(HaveLen(1))
-		Expect(a.TotalSizeBytes()).To(Equal(int64(1048576)))
+		Expect(a.TotalSizeBytes()).To(Equal(int64(2048)))
 	})
 
 	It("podman artifact add with --append and --type", func() {
