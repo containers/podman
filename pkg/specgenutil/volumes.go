@@ -37,7 +37,7 @@ type universalMount struct {
 func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
 	// Get mounts from the --mounts flag.
 	// TODO: The runtime config part of this needs to move into pkg/specgen/generate to avoid querying containers.conf on the client.
-	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag, rtc.Mounts())
+	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := mounts(mountFlag, rtc.Mounts())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -146,12 +146,12 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 	return finalMounts, finalVolumes, finalOverlayVolume, finalImageVolumes, nil
 }
 
-// Mounts takes user-provided input from the --mount flag as well as Mounts
+// mounts takes user-provided input from the --mount flag as well as mounts
 // specified in containers.conf and creates OCI spec mounts and Libpod named volumes.
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ...
 // podman run --mount type=volume,source=test-volume, ...
-func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
+func mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
 	finalImageVolumes := make(map[string]*specgen.ImageVolume)
