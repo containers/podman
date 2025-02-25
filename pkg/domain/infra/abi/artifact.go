@@ -85,7 +85,6 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, name string, opts entitie
 	var (
 		namesOrDigests []string
 	)
-	artifactDigests := make([]*digest.Digest, 0, len(namesOrDigests))
 	artStore, err := ir.Libpod.ArtifactStore()
 	if err != nil {
 		return nil, err
@@ -111,6 +110,7 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, name string, opts entitie
 		namesOrDigests = append(namesOrDigests, name)
 	}
 
+	artifactDigests := make([]*digest.Digest, 0, len(namesOrDigests))
 	for _, namesOrDigest := range namesOrDigests {
 		artifactDigest, err := artStore.Remove(ctx, namesOrDigest)
 		if err != nil {
