@@ -1,3 +1,23 @@
+# 1.6.0 (June 28, 2022)
+
+FEATURES:
+
+- Add `Prerelease` function to `Constraint` to return true if the version includes a prerelease field ([#100](https://github.com/hashicorp/go-version/pull/100))
+
+# 1.5.0 (May 18, 2022)
+
+FEATURES:
+
+- Use `encoding` `TextMarshaler` & `TextUnmarshaler` instead of JSON equivalents ([#95](https://github.com/hashicorp/go-version/pull/95))
+- Add JSON handlers to allow parsing from/to JSON ([#93](https://github.com/hashicorp/go-version/pull/93))
+
+# 1.4.0 (January 5, 2022)
+
+FEATURES:
+
+ - Introduce `MustConstraints()` ([#87](https://github.com/hashicorp/go-version/pull/87))
+ - `Constraints`: Introduce `Equals()` and `sort.Interface` methods ([#88](https://github.com/hashicorp/go-version/pull/88))
+
 # 1.3.0 (March 31, 2021)
 
 Please note that CHANGELOG.md does not exist in the source code prior to this release.

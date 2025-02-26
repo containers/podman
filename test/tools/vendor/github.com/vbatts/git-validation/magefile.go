@@ -57,7 +57,7 @@ func Vet() error {
 func Lint() error {
 	mg.Deps(InstallToolsLint)
 	fmt.Println("Linting...")
-	cmd := exec.Command("golangci-lint", "run")
+	cmd := exec.Command("golangci-lint", "run", "--skip-dirs", "(^|/).gvm/gos($|/)", "--skip-dirs", "(^|/)go/pkg/mod($|/)")
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
 	return cmd.Run()
@@ -97,7 +97,7 @@ func InstallTools() error {
 
 func InstallToolsLint() error {
 	fmt.Println("Installing Deps...")
-	cmd := exec.Command("go", "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.51.2")
+	cmd := exec.Command("go", "install", "github.com/golangci/golangci-lint/cmd/golangci-lint@v1.55.0")
 	cmd.Stdout = Stdout
 	cmd.Stderr = Stderr
 	return cmd.Run()

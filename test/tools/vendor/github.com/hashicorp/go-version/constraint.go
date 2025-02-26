@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 )
 
@@ -11,8 +12,13 @@ import (
 // ">= 1.0".
 type Constraint struct {
 	f        constraintFunc
+	op       operator
 	check    *Version
 	original string
+}
+
+func (c *Constraint) Equals(con *Constraint) bool {
+	return c.op == con.op && c.check.Equal(con.check)
 }
 
 // Constraints is a slice of constraints. We make a custom type so that
@@ -21,20 +27,25 @@ type Constraints []*Constraint
 
 type constraintFunc func(v, c *Version) bool
 
-var constraintOperators map[string]constraintFunc
+var constraintOperators map[string]constraintOperation
+
+type constraintOperation struct {
+	op operator
+	f  constraintFunc
+}
 
 var constraintRegexp *regexp.Regexp
 
 func init() {
-	constraintOperators = map[string]constraintFunc{
-		"":   constraintEqual,
-		"=":  constraintEqual,
-		"!=": constraintNotEqual,
-		">":  constraintGreaterThan,
-		"<":  constraintLessThan,
-		">=": constraintGreaterThanEqual,
-		"<=": constraintLessThanEqual,
-		"~>": constraintPessimistic,
+	constraintOperators = map[string]constraintOperation{
+		"":   {op: equal, f: constraintEqual},
+		"=":  {op: equal, f: constraintEqual},
+		"!=": {op: notEqual, f: constraintNotEqual},
+		">":  {op: greaterThan, f: constraintGreaterThan},
+		"<":  {op: lessThan, f: constraintLessThan},
+		">=": {op: greaterThanEqual, f: constraintGreaterThanEqual},
+		"<=": {op: lessThanEqual, f: constraintLessThanEqual},
+		"~>": {op: pessimistic, f: constraintPessimistic},
 	}
 
 	ops := make([]string, 0, len(constraintOperators))
@@ -66,6 +77,16 @@ func NewConstraint(v string) (Constraints, error) {
 	return Constraints(result), nil
 }
 
+// MustConstraints is a helper that wraps a call to a function
+// returning (Constraints, error) and panics if error is non-nil.
+func MustConstraints(c Constraints, err error) Constraints {
+	if err != nil {
+		panic(err)
+	}
+
+	return c
+}
+
 // Check tests if a version satisfies all the constraints.
 func (cs Constraints) Check(v *Version) bool {
 	for _, c := range cs {
@@ -75,6 +96,56 @@ func (cs Constraints) Check(v *Version) bool {
 	}
 
 	return true
+}
+
+// Equals compares Constraints with other Constraints
+// for equality. This may not represent logical equivalence
+// of compared constraints.
+// e.g. even though '>0.1,>0.2' is logically equivalent
+// to '>0.2' it is *NOT* treated as equal.
+//
+// Missing operator is treated as equal to '=', whitespaces
+// are ignored and constraints are sorted before comaparison.
+func (cs Constraints) Equals(c Constraints) bool {
+	if len(cs) != len(c) {
+		return false
+	}
+
+	// make copies to retain order of the original slices
+	left := make(Constraints, len(cs))
+	copy(left, cs)
+	sort.Stable(left)
+	right := make(Constraints, len(c))
+	copy(right, c)
+	sort.Stable(right)
+
+	// compare sorted slices
+	for i, con := range left {
+		if !con.Equals(right[i]) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (cs Constraints) Len() int {
+	return len(cs)
+}
+
+func (cs Constraints) Less(i, j int) bool {
+	if cs[i].op < cs[j].op {
+		return true
+	}
+	if cs[i].op > cs[j].op {
+		return false
+	}
+
+	return cs[i].check.LessThan(cs[j].check)
+}
+
+func (cs Constraints) Swap(i, j int) {
+	cs[i], cs[j] = cs[j], cs[i]
 }
 
 // Returns the string format of the constraints
@@ -92,6 +163,12 @@ func (c *Constraint) Check(v *Version) bool {
 	return c.f(v, c.check)
 }
 
+// Prerelease returns true if the version underlying this constraint
+// contains a prerelease field.
+func (c *Constraint) Prerelease() bool {
+	return len(c.check.Prerelease()) > 0
+}
+
 func (c *Constraint) String() string {
 	return c.original
 }
@@ -107,8 +184,11 @@ func parseSingle(v string) (*Constraint, error) {
 		return nil, err
 	}
 
+	cop := constraintOperators[matches[1]]
+
 	return &Constraint{
-		f:        constraintOperators[matches[1]],
+		f:        cop.f,
+		op:       cop.op,
 		check:    check,
 		original: v,
 	}, nil
@@ -137,6 +217,18 @@ func prereleaseCheck(v, c *Version) bool {
 //-------------------------------------------------------------------
 // Constraint functions
 //-------------------------------------------------------------------
+
+type operator rune
+
+const (
+	equal            operator = '='
+	notEqual         operator = '≠'
+	greaterThan      operator = '>'
+	lessThan         operator = '<'
+	greaterThanEqual operator = '≥'
+	lessThanEqual    operator = '≤'
+	pessimistic      operator = '~'
+)
 
 func constraintEqual(v, c *Version) bool {
 	return v.Equal(c)
