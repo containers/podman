@@ -20,6 +20,9 @@ const (
 	HealthCheckStarting string = "starting"
 	// HealthCheckReset describes reset of HealthCheck logs
 	HealthCheckReset string = "reset"
+	// HealthCheckStopped describes the time when container was stopped during HealthCheck
+	// and HealthCheck was terminated
+	HealthCheckStopped string = "stopped"
 )
 
 // HealthCheckStatus represents the current state of a container
@@ -48,6 +51,19 @@ const (
 	// either within the startup HC or the startup period of the healthcheck
 	HealthCheckStartup HealthCheckStatus = iota
 )
+
+func (s HealthCheckStatus) String() string {
+	switch s {
+	case HealthCheckSuccess:
+		return HealthCheckHealthy
+	case HealthCheckStartup:
+		return HealthCheckStarting
+	case HealthCheckContainerStopped:
+		return HealthCheckStopped
+	default:
+		return HealthCheckUnhealthy
+	}
+}
 
 // Healthcheck defaults.  These are used both in the cli as well in
 // libpod and were moved from cmd/podman/common

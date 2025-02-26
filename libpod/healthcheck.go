@@ -146,9 +146,13 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		hcErr = fmt.Errorf("healthcheck command exceeded timeout of %s", c.HealthCheckConfig().Timeout.String())
 	}
 
+	if exitCode != 0 && c.ensureCurrentState(define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
+		hcResult = define.HealthCheckContainerStopped
+	}
+
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
 
-	healthCheckResult, err := c.updateHealthCheckLog(hcl, inStartPeriod, isStartup)
+	healthCheckResult, err := c.updateHealthCheckLog(hcl, hcResult, inStartPeriod, isStartup)
 	if err != nil {
 		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.config.HealthLogDestination, c.ID(), err)
 	}
@@ -371,7 +375,7 @@ func (c *Container) isUnhealthy() (bool, error) {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod, isStartup bool) (define.HealthCheckResults, error) {
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, hcResult define.HealthCheckStatus, inStartPeriod, isStartup bool) (define.HealthCheckResults, error) {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
@@ -394,6 +398,7 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 		if len(healthCheck.Status) < 1 {
 			healthCheck.Status = define.HealthCheckHealthy
 		}
+		oldFailingStreak := healthCheck.FailingStreak
 		if !inStartPeriod {
 			// increment failing streak
 			healthCheck.FailingStreak++
@@ -401,6 +406,10 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 			if healthCheck.FailingStreak >= c.HealthCheckConfig().Retries {
 				healthCheck.Status = define.HealthCheckUnhealthy
 			}
+		}
+		if hcResult == define.HealthCheckContainerStopped {
+			healthCheck.Status = define.HealthCheckStopped
+			healthCheck.FailingStreak = oldFailingStreak
 		}
 	}
 	healthCheck.Log = append(healthCheck.Log, hcl)

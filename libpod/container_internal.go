@@ -356,6 +356,23 @@ func (c *Container) ensureState(states ...define.ContainerStatus) bool {
 	return false
 }
 
+// ensureCurrentState sync container and ensure that
+// the container is in a specific state or state.
+// Returns true if the container is in one of
+// the given states, or false otherwise.
+func (c *Container) ensureCurrentState(states ...define.ContainerStatus) bool {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
+			return false
+		}
+	}
+	return c.ensureState(states...)
+}
+
 // Sync this container with on-disk state and runtime status
 // Should only be called with container lock held
 // This function should suffice to ensure a container's state is accurate and
