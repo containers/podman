@@ -57,7 +57,7 @@ func checkRevList(commitrange string) (string, error) {
 		// no issues, return now
 		return commitrange, nil
 	}
-	cmdArgs = []string{"git", "log", "--pretty=oneline"}
+	cmdArgs = []string{"git", "log", "--pretty=oneline", "--no-show-signature"}
 	if debug() {
 		logrus.Infof("[git] cmd: %q", strings.Join(cmdArgs, " "))
 	}
@@ -135,6 +135,15 @@ func gitVersionNewerThan(otherV string) (bool, error) {
 // Check warns if changes introduce whitespace errors.
 // Returns non-zero if any issues are found.
 func Check(commit string) ([]byte, error) {
+	logs, err := LogUntil(commit)
+	if err != nil {
+		return nil, err
+	}
+	if len(logs) == 1 {
+		logrus.Debugf("[git.Check] %q is the initial commit. Skipping.", commit)
+		return []byte{}, nil
+	}
+
 	args := []string{
 		"--no-pager", "log", "--check",
 		fmt.Sprintf("%s^..%s", commit, commit),
@@ -177,6 +186,21 @@ func Show(commit string) ([]byte, error) {
 // CommitEntry represents a single commit's information from `git`.
 // See also FieldNames
 type CommitEntry map[string]string
+
+// LogUntil returns the array of oneline commits from initial until the provided commit
+func LogUntil(commit string) ([]string, error) {
+	cmd := exec.Command("git", "--no-pager", "log", "--oneline", "--no-show-signature", commit)
+	if debug() {
+		logrus.Infof("[git] cmd: %q", strings.Join(cmd.Args, " "))
+	}
+	cmd.Stderr = os.Stderr
+	out, err := cmd.Output()
+	if err != nil {
+		logrus.Errorf("[git] cmd: %q", strings.Join(cmd.Args, " "))
+		return nil, err
+	}
+	return strings.Split(strings.TrimSpace(string(out)), "\n"), nil
+}
 
 // LogCommit assembles the full information on a commit from its commit hash
 func LogCommit(commit string) (*CommitEntry, error) {

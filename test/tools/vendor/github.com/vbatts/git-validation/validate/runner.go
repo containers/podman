@@ -47,6 +47,7 @@ func NewRunner(root string, rules []Rule, commitrange string, verbose bool) (*Ru
 			}
 		}
 	}
+	logrus.Debugf("[NewRunner] commitrange: %q", commitrange)
 	return &Runner{
 		Root:        newroot,
 		Rules:       rules,
