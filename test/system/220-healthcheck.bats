@@ -469,13 +469,14 @@ function _check_health_log {
 @test "podman healthcheck - stop container when healthcheck runs" {
     ctr="c-h-$(safename)"
     msg="hc-msg-$(random_string)"
+    hcStatus=$PODMAN_TMPDIR/hcStatus
 
     run_podman run -d --name $ctr             \
            --health-cmd "sleep 20; echo $msg" \
            $IMAGE /home/podman/pause
 
     timeout --foreground -v --kill=10 60 \
-        $PODMAN healthcheck run $ctr &
+        $PODMAN healthcheck run $ctr &> $hcStatus &
     hc_pid=$!
 
     run_podman inspect $ctr --format "{{.State.Status}}"
@@ -487,9 +488,10 @@ function _check_health_log {
     rc=0
     wait -n $hc_pid || rc=$?
     assert $rc -eq 1 "exit status check of healthcheck command"
+    assert $(< $hcStatus) == "stopped" "Health status"
 
-    run_podman inspect $ctr --format "{{.State.Status}}"
-    assert "$output" == "exited" "Container is stopped"
+    run_podman inspect $ctr --format "{{.State.Status}}--{{.State.Health.Status}}--{{.State.Health.FailingStreak}}"
+    assert "$output" == "exited--stopped--0" "Container is stopped -- Health status -- failing streak"
 
     run_podman inspect $ctr --format "{{.State.Health.Log}}"
     assert "$output" !~ "$msg" "Health log message not found"

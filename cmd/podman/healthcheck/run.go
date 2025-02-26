@@ -35,7 +35,8 @@ func run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return err
 	}
-	if response.Status == define.HealthCheckUnhealthy || response.Status == define.HealthCheckStarting {
+	switch response.Status {
+	case define.HealthCheckUnhealthy, define.HealthCheckStarting, define.HealthCheckStopped:
 		registry.SetExitCode(1)
 		fmt.Println(response.Status)
 	}

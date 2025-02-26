@@ -113,6 +113,14 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		returnCode = 1
 	}
 
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return define.HealthCheckInternalError, "", err
+		}
+	}
+
 	// Handle startup HC
 	if isStartup {
 		inStartPeriod = true
@@ -122,6 +130,10 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		} else {
 			c.incrementStartupHCSuccessCounter(ctx)
 		}
+	}
+
+	if exitCode != 0 && c.ensureState(define.ContainerStateStopped, define.ContainerStateStopping, define.ContainerStateExited) {
+		hcResult = define.HealthCheckContainerStopped
 	}
 
 	timeEnd := time.Now()
@@ -148,7 +160,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
 
-	healthCheckResult, err := c.updateHealthCheckLog(hcl, inStartPeriod, isStartup)
+	healthCheckResult, err := c.updateHealthCheckLog(hcl, hcResult, inStartPeriod, isStartup)
 	if err != nil {
 		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.config.HealthLogDestination, c.ID(), err)
 	}
@@ -216,17 +228,8 @@ func checkHealthCheckCanBeRun(c *Container) (define.HealthCheckStatus, error) {
 // Increment the current startup healthcheck success counter.
 // Can stop the startup HC and start the regular HC if the startup HC has enough
 // consecutive successes.
+// NOTE: The caller must lock and sync the container.
 func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
-			return
-		}
-	}
-
 	// We don't have a startup HC, can't do anything
 	if c.config.StartupHealthCheckConfig == nil {
 		return
@@ -299,17 +302,8 @@ func (c *Container) recreateHealthCheckTimer(ctx context.Context, isStartup bool
 
 // Increment the current startup healthcheck failure counter.
 // Can restart the container if the HC fails enough times consecutively.
+// NOTE: The caller must lock and sync the container.
 func (c *Container) incrementStartupHCFailureCounter(ctx context.Context) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
-			return
-		}
-	}
-
 	// We don't have a startup HC, can't do anything
 	if c.config.StartupHealthCheckConfig == nil {
 		return
@@ -371,10 +365,8 @@ func (c *Container) isUnhealthy() (bool, error) {
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log
-func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPeriod, isStartup bool) (define.HealthCheckResults, error) {
-	c.lock.Lock()
-	defer c.lock.Unlock()
-
+// NOTE: The caller must lock the container.
+func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, hcResult define.HealthCheckStatus, inStartPeriod, isStartup bool) (define.HealthCheckResults, error) {
 	// If we are playing a kube yaml then let's honor the start period time for
 	// both failing and succeeding cases to match kube behavior.
 	// So don't update the health check log till the start period is over
@@ -394,7 +386,9 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 		if len(healthCheck.Status) < 1 {
 			healthCheck.Status = define.HealthCheckHealthy
 		}
-		if !inStartPeriod {
+		if hcResult == define.HealthCheckContainerStopped {
+			healthCheck.Status = define.HealthCheckStopped
+		} else if !inStartPeriod {
 			// increment failing streak
 			healthCheck.FailingStreak++
 			// if failing streak > retries, then status to unhealthy
