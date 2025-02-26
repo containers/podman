@@ -16,6 +16,7 @@ github.com/Microsoft/go-winio/backuptar
 github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
+github.com/Microsoft/go-winio/pkg/bindfilter
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/vhd
 # github.com/Microsoft/hcsshim v0.12.9
@@ -57,6 +58,9 @@ github.com/aead/serpent
 # github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
+# github.com/beorn7/perks v1.0.1
+## explicit; go 1.11
+github.com/beorn7/perks/quantile
 # github.com/blang/semver/v4 v4.0.0
 ## explicit; go 1.14
 github.com/blang/semver/v4
@@ -90,6 +94,9 @@ github.com/bytedance/sonic/utf8
 github.com/bytedance/sonic/loader
 github.com/bytedance/sonic/loader/internal/abi
 github.com/bytedance/sonic/loader/internal/rt
+# github.com/cespare/xxhash/v2 v2.3.0
+## explicit; go 1.11
+github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.3.0
 ## explicit; go 1.21
 github.com/checkpoint-restore/checkpointctl/lib
@@ -111,6 +118,29 @@ github.com/cloudwego/iasm/x86_64
 # github.com/containerd/cgroups/v3 v3.0.3
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
+# github.com/containerd/containerd v1.7.23
+## explicit; go 1.21
+github.com/containerd/containerd/archive/compression
+github.com/containerd/containerd/containers
+github.com/containerd/containerd/content
+github.com/containerd/containerd/contrib/seccomp/kernelversion
+github.com/containerd/containerd/errdefs
+github.com/containerd/containerd/filters
+github.com/containerd/containerd/identifiers
+github.com/containerd/containerd/images
+github.com/containerd/containerd/labels
+github.com/containerd/containerd/mount
+github.com/containerd/containerd/namespaces
+github.com/containerd/containerd/oci
+github.com/containerd/containerd/pkg/cap
+github.com/containerd/containerd/pkg/randutil
+github.com/containerd/containerd/remotes
+github.com/containerd/containerd/snapshots
+# github.com/containerd/continuity v0.4.5
+## explicit; go 1.21
+github.com/containerd/continuity/devices
+github.com/containerd/continuity/fs
+github.com/containerd/continuity/sysx
 # github.com/containerd/errdefs v1.0.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
@@ -129,6 +159,9 @@ github.com/containerd/platforms
 ## explicit; go 1.22.0
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
+# github.com/containerd/ttrpc v1.2.7
+## explicit; go 1.19
+github.com/containerd/ttrpc
 # github.com/containerd/typeurl/v2 v2.2.3
 ## explicit; go 1.21
 github.com/containerd/typeurl/v2
@@ -470,8 +503,21 @@ github.com/disiqueira/gotree/v3
 github.com/distribution/reference
 # github.com/docker/distribution v2.8.3+incompatible
 ## explicit
+github.com/docker/distribution
+github.com/docker/distribution/manifest
+github.com/docker/distribution/manifest/manifestlist
+github.com/docker/distribution/manifest/ocischema
+github.com/docker/distribution/manifest/schema1
+github.com/docker/distribution/manifest/schema2
+github.com/docker/distribution/metrics
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
+github.com/docker/distribution/registry/client
+github.com/docker/distribution/registry/client/auth
+github.com/docker/distribution/registry/client/auth/challenge
+github.com/docker/distribution/registry/client/transport
+github.com/docker/distribution/registry/storage/cache
+github.com/docker/distribution/registry/storage/cache/memory
 # github.com/docker/docker v27.5.1+incompatible
 ## explicit
 github.com/docker/docker/api
@@ -494,9 +540,24 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
+github.com/docker/docker/daemon/graphdriver
+github.com/docker/docker/distribution
+github.com/docker/docker/distribution/metadata
+github.com/docker/docker/distribution/xfer
+github.com/docker/docker/dockerversion
 github.com/docker/docker/errdefs
+github.com/docker/docker/image
+github.com/docker/docker/image/v1
+github.com/docker/docker/internal/mounttree
 github.com/docker/docker/internal/multierror
+github.com/docker/docker/internal/rootless/mountopts
+github.com/docker/docker/internal/sliceutil
+github.com/docker/docker/internal/unshare
+github.com/docker/docker/layer
+github.com/docker/docker/oci
+github.com/docker/docker/oci/caps
 github.com/docker/docker/pkg/archive
+github.com/docker/docker/pkg/chrootarchive
 github.com/docker/docker/pkg/homedir
 github.com/docker/docker/pkg/idtools
 github.com/docker/docker/pkg/ioutils
@@ -504,11 +565,21 @@ github.com/docker/docker/pkg/jsonmessage
 github.com/docker/docker/pkg/meminfo
 github.com/docker/docker/pkg/namesgenerator
 github.com/docker/docker/pkg/parsers
+github.com/docker/docker/pkg/parsers/kernel
+github.com/docker/docker/pkg/plugingetter
+github.com/docker/docker/pkg/plugins
+github.com/docker/docker/pkg/plugins/transport
 github.com/docker/docker/pkg/pools
 github.com/docker/docker/pkg/progress
+github.com/docker/docker/pkg/rootless
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/streamformatter
+github.com/docker/docker/pkg/stringid
 github.com/docker/docker/pkg/system
+github.com/docker/docker/pkg/useragent
+github.com/docker/docker/plugin/v2
+github.com/docker/docker/reference
+github.com/docker/docker/registry
 # github.com/docker/docker-credential-helpers v0.8.2
 ## explicit; go 1.19
 github.com/docker/docker-credential-helpers/client
@@ -518,6 +589,9 @@ github.com/docker/docker-credential-helpers/credentials
 github.com/docker/go-connections/nat
 github.com/docker/go-connections/sockets
 github.com/docker/go-connections/tlsconfig
+# github.com/docker/go-metrics v0.0.1
+## explicit; go 1.11
+github.com/docker/go-metrics
 # github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8
 ## explicit
 github.com/docker/go-plugins-helpers/sdk
@@ -525,6 +599,9 @@ github.com/docker/go-plugins-helpers/volume
 # github.com/docker/go-units v0.5.0
 ## explicit
 github.com/docker/go-units
+# github.com/docker/libtrust v0.0.0-20160708172513-aabc10ec26b7
+## explicit
+github.com/docker/libtrust
 # github.com/ebitengine/purego v0.8.2
 ## explicit; go 1.18
 github.com/ebitengine/purego
@@ -818,15 +895,24 @@ github.com/moby/buildkit/util/stack
 # github.com/moby/docker-image-spec v1.3.1
 ## explicit; go 1.18
 github.com/moby/docker-image-spec/specs-go/v1
+# github.com/moby/locker v1.0.1
+## explicit; go 1.13
+github.com/moby/locker
 # github.com/moby/patternmatcher v0.6.0
 ## explicit; go 1.19
 github.com/moby/patternmatcher
 # github.com/moby/sys/capability v0.4.0
 ## explicit; go 1.21
 github.com/moby/sys/capability
+# github.com/moby/sys/mount v0.3.4
+## explicit; go 1.17
+github.com/moby/sys/mount
 # github.com/moby/sys/mountinfo v0.7.2
 ## explicit; go 1.17
 github.com/moby/sys/mountinfo
+# github.com/moby/sys/reexec v0.1.0
+## explicit; go 1.18
+github.com/moby/sys/reexec
 # github.com/moby/sys/sequential v0.6.0
 ## explicit; go 1.17
 github.com/moby/sys/sequential
@@ -849,6 +935,9 @@ github.com/modern-go/reflect2
 # github.com/morikuni/aec v1.0.0
 ## explicit
 github.com/morikuni/aec
+# github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
+## explicit
+github.com/munnerz/goautoneg
 # github.com/nxadm/tail v1.4.11
 ## explicit; go 1.13
 github.com/nxadm/tail
@@ -901,6 +990,7 @@ github.com/onsi/gomega/types
 # github.com/opencontainers/go-digest v1.0.0
 ## explicit; go 1.13
 github.com/opencontainers/go-digest
+github.com/opencontainers/go-digest/digestset
 # github.com/opencontainers/image-spec v1.1.0
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
@@ -972,6 +1062,25 @@ github.com/power-devops/perfstat
 # github.com/proglottis/gpgme v0.1.4
 ## explicit; go 1.17
 github.com/proglottis/gpgme
+# github.com/prometheus/client_golang v1.20.5
+## explicit; go 1.20
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil
+github.com/prometheus/client_golang/internal/github.com/golang/gddo/httputil/header
+github.com/prometheus/client_golang/prometheus
+github.com/prometheus/client_golang/prometheus/internal
+github.com/prometheus/client_golang/prometheus/promhttp
+# github.com/prometheus/client_model v0.6.1
+## explicit; go 1.19
+github.com/prometheus/client_model/go
+# github.com/prometheus/common v0.57.0
+## explicit; go 1.20
+github.com/prometheus/common/expfmt
+github.com/prometheus/common/model
+# github.com/prometheus/procfs v0.15.1
+## explicit; go 1.20
+github.com/prometheus/procfs
+github.com/prometheus/procfs/internal/fs
+github.com/prometheus/procfs/internal/util
 # github.com/rivo/uniseg v0.4.7
 ## explicit; go 1.18
 github.com/rivo/uniseg
@@ -1074,6 +1183,9 @@ github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.6.1
 ## explicit; go 1.13
 github.com/tklauser/numcpus
+# github.com/tonistiigi/go-archvariant v1.0.0
+## explicit; go 1.17
+github.com/tonistiigi/go-archvariant
 # github.com/twitchyliquid64/golang-asm v0.15.1
 ## explicit; go 1.13
 github.com/twitchyliquid64/golang-asm/asm/arch
@@ -1345,6 +1457,7 @@ google.golang.org/grpc/status
 google.golang.org/grpc/tap
 # google.golang.org/protobuf v1.36.5
 ## explicit; go 1.21
+google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
 google.golang.org/protobuf/encoding/protowire

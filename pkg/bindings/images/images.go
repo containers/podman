@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	registrytypes "github.com/docker/docker/api/types/registry"
 )
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
@@ -325,4 +326,39 @@ func Scp(ctx context.Context, source, destination *string, options ScpOptions) (
 	defer response.Body.Close()
 
 	return rep, response.Process(&rep)
+}
+
+// todo: replace SearchOptions
+func GetDistribution(ctx context.Context, nameOrID string, options *SearchOptions) (*registrytypes.DistributionInspect, error) {
+	if options == nil {
+		options = new(SearchOptions)
+	}
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	params, err := options.ToParams()
+	if err != nil {
+		return nil, err
+	}
+
+	// SkipTLSVerify is special.  It's not being serialized by ToParams()
+	// because we need to flip the boolean.
+	if options.SkipTLSVerify != nil {
+		params.Set("tlsVerify", strconv.FormatBool(!options.GetSkipTLSVerify()))
+	}
+
+	header, err := auth.MakeXRegistryAuthHeader(&imageTypes.SystemContext{AuthFilePath: options.GetAuthfile()}, options.GetUsername(), options.GetPassword())
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/distribution/%s/json", params, header, nameOrID)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	var inspect registrytypes.DistributionInspect
+	return &inspect, response.Process(&inspect)
 }
