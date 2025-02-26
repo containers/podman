@@ -56,6 +56,8 @@ type MachineConfig struct {
 	Ansible *AnsibleConfig
 
 	ImportNativeCA bool
+
+	CloudInit bool
 }
 
 type VMProvider interface { //nolint:interfacebloat

@@ -29,4 +29,5 @@ type InitOptions struct {
 	SkipTlsVerify      types.OptionalBool
 	ImportNativeCA     bool
 	ImagePuller        ImagePuller
+	CloudInit          bool
 }

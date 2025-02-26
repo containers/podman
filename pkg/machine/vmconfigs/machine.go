@@ -99,6 +99,7 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	mc.Created = time.Now()
 
 	mc.HostUser = HostUser{UID: getHostUID(), Rootful: opts.Rootful}
+	mc.CloudInit = opts.CloudInit
 
 	return mc, nil
 }
