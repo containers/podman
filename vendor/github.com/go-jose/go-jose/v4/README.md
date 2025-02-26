@@ -9,14 +9,6 @@ Package jose aims to provide an implementation of the Javascript Object Signing
 and Encryption set of standards. This includes support for JSON Web Encryption,
 JSON Web Signature, and JSON Web Token standards.
 
-**Disclaimer**: This library contains encryption software that is subject to
-the U.S. Export Administration Regulations. You may not export, re-export,
-transfer or download this code or any part of it in violation of any United
-States law, directive or regulation. In particular this software may not be
-exported or re-exported in any form or on any media to Iran, North Sudan,
-Syria, Cuba, or North Korea, or to denied persons or entities mentioned on any
-US maintained blocked list.
-
 ## Overview
 
 The implementation follows the
@@ -109,6 +101,6 @@ allows attaching a key id.
 
 Examples can be found in the Godoc
 reference for this package. The
-[`jose-util`](https://github.com/go-jose/go-jose/tree/v4/jose-util)
+[`jose-util`](https://github.com/go-jose/go-jose/tree/main/jose-util)
 subdirectory also contains a small command-line utility which might be useful
 as an example as well.
