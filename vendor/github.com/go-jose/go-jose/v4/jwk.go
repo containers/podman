@@ -239,10 +239,10 @@ func (k *JSONWebKey) UnmarshalJSON(data []byte) (err error) {
 				keyPub = key
 			}
 		} else {
-			err = fmt.Errorf("go-jose/go-jose: unknown curve %s'", raw.Crv)
+			return fmt.Errorf("go-jose/go-jose: unknown curve %s'", raw.Crv)
 		}
 	default:
-		err = fmt.Errorf("go-jose/go-jose: unknown json web key type '%s'", raw.Kty)
+		return fmt.Errorf("go-jose/go-jose: unknown json web key type '%s'", raw.Kty)
 	}
 
 	if err != nil {
