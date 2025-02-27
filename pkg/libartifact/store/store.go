@@ -47,6 +47,10 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 	if storePath == "" {
 		return nil, errors.New("store path cannot be empty")
 	}
+	if !filepath.IsAbs(storePath) {
+		return nil, fmt.Errorf("store path %q must be absolute", storePath)
+	}
+
 	logrus.Debugf("Using artifact store path: %s", storePath)
 
 	artifactStore := &ArtifactStore{
