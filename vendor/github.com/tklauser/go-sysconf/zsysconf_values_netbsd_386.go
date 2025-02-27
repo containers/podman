@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_netbsd.go
 
 //go:build netbsd && 386
-// +build netbsd,386
 
 package sysconf
 

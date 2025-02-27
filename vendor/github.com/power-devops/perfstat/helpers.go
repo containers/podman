@@ -1,3 +1,4 @@
+//go:build aix
 // +build aix
 
 package perfstat
@@ -7,6 +8,7 @@ package perfstat
 
 #include <libperfstat.h>
 #include <sys/proc.h>
+#include <sys/dr.h>
 
 #include "c_helpers.h"
 */
@@ -754,11 +756,64 @@ func fsinfo2filesystem(n *C.struct_fsinfo) FileSystem {
 	i.Device = C.GoString(n.devname)
 	i.MountPoint = C.GoString(n.fsname)
 	i.FSType = int(n.fstype)
-	i.Flags = int(n.flags)
+	i.Flags = uint(n.flags)
 	i.TotalBlocks = int64(n.totalblks)
 	i.FreeBlocks = int64(n.freeblks)
 	i.TotalInodes = int64(n.totalinodes)
 	i.FreeInodes = int64(n.freeinodes)
+
+	return i
+}
+
+func lparinfo2partinfo(n C.lpar_info_format2_t) PartitionInfo {
+	var i PartitionInfo
+
+	i.Version = int(n.version)
+	i.OnlineMemory = uint64(n.online_memory)
+	i.TotalDispatchTime = uint64(n.tot_dispatch_time)
+	i.PoolIdleTime = uint64(n.pool_idle_time)
+	i.DispatchLatency = uint64(n.dispatch_latency)
+	i.LparFlags = uint(n.lpar_flags)
+	i.PCpusInSys = uint(n.pcpus_in_sys)
+	i.OnlineVCpus = uint(n.online_vcpus)
+	i.OnlineLCpus = uint(n.online_lcpus)
+	i.PCpusInPool = uint(n.pcpus_in_pool)
+	i.UnallocCapacity = uint(n.unalloc_capacity)
+	i.EntitledCapacity = uint(n.entitled_capacity)
+	i.VariableWeight = uint(n.variable_weight)
+	i.UnallocWeight = uint(n.unalloc_weight)
+	i.MinReqVCpuCapacity = uint(n.min_req_vcpu_capacity)
+	i.GroupId = uint8(n.group_id)
+	i.PoolId = uint8(n.pool_id)
+	i.ShCpusInSys = uint(n.shcpus_in_sys)
+	i.MaxPoolCapacity = uint(n.max_pool_capacity)
+	i.EntitledPoolCapacity = uint(n.entitled_pool_capacity)
+	i.PoolMaxTime = uint64(n.pool_max_time)
+	i.PoolBusyTime = uint64(n.pool_busy_time)
+	i.PoolScaledBusyTime = uint64(n.pool_scaled_busy_time)
+	i.ShCpuTotalTime = uint64(n.shcpu_tot_time)
+	i.ShCpuBusyTime = uint64(n.shcpu_busy_time)
+	i.ShCpuScaledBusyTime = uint64(n.shcpu_scaled_busy_time)
+	i.EntMemCapacity = uint64(n.ent_mem_capacity)
+	i.PhysMem = uint64(n.phys_mem)
+	i.VrmPoolPhysMem = uint64(n.vrm_pool_physmem)
+	i.HypPageSize = uint(n.hyp_pagesize)
+	i.VrmPoolId = int(n.vrm_pool_id)
+	i.VrmGroupId = int(n.vrm_group_id)
+	i.VarMemWeight = int(n.var_mem_weight)
+	i.UnallocVarMemWeight = int(n.unalloc_var_mem_weight)
+	i.UnallocEntMemCapacity = uint64(n.unalloc_ent_mem_capacity)
+	i.TrueOnlineMemory = uint64(n.true_online_memory)
+	i.AmeOnlineMemory = uint64(n.ame_online_memory)
+	i.AmeType = uint8(n.ame_type)
+	i.SpecExecMode = uint8(n.spec_exec_mode)
+	i.AmeFactor = uint(n.ame_factor)
+	i.EmPartMajorCode = uint(n.em_part_major_code)
+	i.EmPartMinorCode = uint(n.em_part_minor_code)
+	i.BytesCoalesced = uint64(n.bytes_coalesced)
+	i.BytesCoalescedMemPool = uint64(n.bytes_coalesced_mempool)
+	i.PurrCoalescing = uint64(n.purr_coalescing)
+	i.SpurrCoalescing = uint64(n.spurr_coalescing)
 
 	return i
 }

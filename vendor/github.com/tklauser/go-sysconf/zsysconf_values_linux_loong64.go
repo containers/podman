@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_linux.go
 
 //go:build linux && loong64
-// +build linux,loong64
 
 package sysconf
 

@@ -1,3 +1,4 @@
+//go:build !aix
 // +build !aix
 
 // Copyright 2020 Power-Devops.com. All rights reserved.
@@ -36,24 +37,24 @@ func DisableLVMStat() {}
 // CpuStat() returns array of CPU structures with information about
 // logical CPUs on the system.
 // IBM documentation:
-//   * https://www.ibm.com/support/knowledgecenter/ssw_aix_72/performancetools/idprftools_perfstat_int_cpu.html
-//   * https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/p_bostechref/perfstat_cpu.html
+//   - https://www.ibm.com/support/knowledgecenter/ssw_aix_72/performancetools/idprftools_perfstat_int_cpu.html
+//   - https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/p_bostechref/perfstat_cpu.html
 func CpuStat() ([]CPU, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // CpuTotalStat() returns general information about CPUs on the system.
 // IBM documentation:
-//   * https://www.ibm.com/support/knowledgecenter/ssw_aix_72/performancetools/idprftools_perfstat_glob_cpu.html
-//   * https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/p_bostechref/perfstat_cputot.html
+//   - https://www.ibm.com/support/knowledgecenter/ssw_aix_72/performancetools/idprftools_perfstat_glob_cpu.html
+//   - https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/p_bostechref/perfstat_cputot.html
 func CpuTotalStat() (*CPUTotal, error) {
 	return nil, fmt.Errorf("not implemented")
 }
 
 // CpuUtilStat() calculates CPU utilization.
 // IBM documentation:
-//   * https://www.ibm.com/support/knowledgecenter/ssw_aix_72/performancetools/idprftools_perfstat_cpu_util.html
-//   * https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/p_bostechref/perfstat_cpu_util.html
+//   - https://www.ibm.com/support/knowledgecenter/ssw_aix_72/performancetools/idprftools_perfstat_cpu_util.html
+//   - https://www.ibm.com/support/knowledgecenter/en/ssw_aix_72/p_bostechref/perfstat_cpu_util.html
 func CpuUtilStat(intvl time.Duration) (*CPUUtil, error) {
 	return nil, fmt.Errorf("not implemented")
 }

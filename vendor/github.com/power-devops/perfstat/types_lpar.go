@@ -66,3 +66,64 @@ type PartitionConfig struct {
 	TargetMemExpSize         int64          /* Expanded Memory Size in MB */
 	SubProcessorMode         int32          /* Split core mode, its value can be 0,1,2 or 4. 0 for unsupported, 1 for capable but not enabled, 2 or 4 for enabled*/
 }
+
+const (
+	AME_TYPE_V1           = 0x1
+	AME_TYPE_V2           = 0x2
+	LPAR_INFO_CAPPED      = 0x01 /* Parition Capped */
+	LPAR_INFO_AUTH_PIC    = 0x02 /* Authority granted for poolidle*/
+	LPAR_INFO_SMT_ENABLED = 0x04 /* SMT Enabled */
+	LPAR_INFO_WPAR_ACTIVE = 0x08 /* Process Running Within a WPAR */
+	LPAR_INFO_EXTENDED    = 0x10 /* Extended shared processor pool information */
+	LPAR_INFO_AME_ENABLED = 0x20 /* Active Mem. Expansion (AME) enabled*/
+	LPAR_INFO_SEM_ENABLED = 0x40 /* Speculative Execution Mode enabled */
+)
+
+type PartitionInfo struct {
+	Version               int    /* version for this structure */
+	OnlineMemory          uint64 /* MB of currently online memory */
+	TotalDispatchTime     uint64 /* Total lpar dispatch time in nsecs */
+	PoolIdleTime          uint64 /* Idle time of shared CPU pool nsecs*/
+	DispatchLatency       uint64 /* Max latency inbetween dispatches of this LPAR on physCPUS in nsecs */
+	LparFlags             uint   /* LPAR flags */
+	PCpusInSys            uint   /* # of active licensed physical CPUs in system */
+	OnlineVCpus           uint   /* # of current online virtual CPUs */
+	OnlineLCpus           uint   /* # of current online logical CPUs */
+	PCpusInPool           uint   /* # physical CPUs in shared pool */
+	UnallocCapacity       uint   /* Unallocated Capacity available in shared pool */
+	EntitledCapacity      uint   /* Entitled Processor Capacity for this partition */
+	VariableWeight        uint   /* Variable Processor Capacity Weight */
+	UnallocWeight         uint   /* Unallocated Variable Weight available for this partition */
+	MinReqVCpuCapacity    uint   /* OS minimum required virtual processor capacity. */
+	GroupId               uint8  /* ID of a LPAR group/aggregation */
+	PoolId                uint8  /* ID of a shared pool */
+	ShCpusInSys           uint   /* # of physical processors allocated for shared processor use */
+	MaxPoolCapacity       uint   /* Maximum processor capacity of partition's pool */
+	EntitledPoolCapacity  uint   /* Entitled processor capacity of partition's pool */
+	PoolMaxTime           uint64 /* Summation of maximum time that could be consumed by the pool, in nanoseconds */
+	PoolBusyTime          uint64 /* Summation of busy time accumulated across all partitions in the pool, in nanoseconds */
+	PoolScaledBusyTime    uint64 /* Scaled summation of busy time accumulated across all partitions in the pool, in nanoseconds */
+	ShCpuTotalTime        uint64 /* Summation of total time across all physical processors allocated for shared processor use, in nanoseconds */
+	ShCpuBusyTime         uint64 /* Summation of busy time accumulated across all shared processor partitions, in nanoseconds */
+	ShCpuScaledBusyTime   uint64 /* Scaled summation of busy time accumulated across all shared processor partitions, in nanoseconds */
+	EntMemCapacity        uint64 /* Partition's current entitlement memory capacity setting */
+	PhysMem               uint64 /* Amount of physical memory, in bytes, currently backing the partition's logical memory */
+	VrmPoolPhysMem        uint64 /* Total amount of physical memory in the VRM pool */
+	HypPageSize           uint   /* Page size hypervisor is using to virtualize partition's memory */
+	VrmPoolId             int    /* ID of VRM pool */
+	VrmGroupId            int    /* eWLM VRM group to which partition belongs */
+	VarMemWeight          int    /* Partition's current variable memory capacity weighting setting */
+	UnallocVarMemWeight   int    /* Amount of unallocated variable memory capacity weight available to LPAR's group */
+	UnallocEntMemCapacity uint64 /* Amount of unallocated I/O memory entitlement available to LPAR's group */
+	TrueOnlineMemory      uint64 /* true MB of currently online memory */
+	AmeOnlineMemory       uint64 /* AME MB of currently online memory  */
+	AmeType               uint8
+	SpecExecMode          uint8  /* Speculative Execution Mode */
+	AmeFactor             uint   /* memory expansion factor for LPAR */
+	EmPartMajorCode       uint   /* Major and minor codes for our    */
+	EmPartMinorCode       uint   /*   current energy management mode */
+	BytesCoalesced        uint64 /* The number of bytes of the calling partition.s logical real memory  coalesced because they contained duplicated data */
+	BytesCoalescedMemPool uint64 /* If the calling partition is authorized to see pool wide statistics then the number of bytes of logical real memory coalesced because they contained duplicated data in the calling partition.s memory pool else set to zero.*/
+	PurrCoalescing        uint64 /* If the calling partition is authorized to see pool wide statistics then  PURR cycles consumed to coalesce data else set to zero.*/
+	SpurrCoalescing       uint64 /* If the calling partition is authorized to see pool wide statistics then SPURR cycles consumed to coalesce data else set to zero.*/
+}
