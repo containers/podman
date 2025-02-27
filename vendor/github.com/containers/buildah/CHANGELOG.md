@@ -2,6 +2,11 @@
 
 # Changelog
 
+## v1.39.1 (2025-02-25)
+
+    chroot createPlatformContainer: use MS_REMOUNT
+    chore(deps): update module github.com/go-jose/go-jose/v4 to v4.0.5 [security]
+
 ## v1.39.0 (2025-01-31)
 
     Bump c/storage v1.57.1, c/image 5.34.0,  c/common v0.62.0
