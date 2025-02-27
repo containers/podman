@@ -263,7 +263,7 @@ func createPlatformContainer(options runUsingChrootExecSubprocOptions) error {
 		return fmt.Errorf("changing to host root directory: %w", err)
 	}
 	// make sure we only unmount things under this tree
-	if err := unix.Mount(".", ".", "bind", unix.MS_BIND|unix.MS_SLAVE|unix.MS_REC, ""); err != nil {
+	if err := unix.Mount(".", ".", "bind", unix.MS_REMOUNT|unix.MS_BIND|unix.MS_SLAVE|unix.MS_REC, ""); err != nil {
 		return fmt.Errorf("tweaking mount flags on host root directory before unmounting from mount namespace: %w", err)
 	}
 	// detach this (unnamed?) old directory
