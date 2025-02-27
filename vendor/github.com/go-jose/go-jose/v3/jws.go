@@ -275,10 +275,11 @@ func (parsed *rawJSONWebSignature) sanitized() (*JSONWebSignature, error) {
 
 // parseSignedCompact parses a message in compact format.
 func parseSignedCompact(input string, payload []byte) (*JSONWebSignature, error) {
-	parts := strings.Split(input, ".")
-	if len(parts) != 3 {
+	// Three parts is two separators
+	if strings.Count(input, ".") != 2 {
 		return nil, fmt.Errorf("go-jose/go-jose: compact JWS format must have three parts")
 	}
+	parts := strings.SplitN(input, ".", 3)
 
 	if parts[1] != "" && payload != nil {
 		return nil, fmt.Errorf("go-jose/go-jose: payload is not detached")
