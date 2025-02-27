@@ -139,9 +139,7 @@ pages and %{name}.
 Summary: Tests for %{name}
 
 Requires: %{name} = %{epoch}:%{version}-%{release}
-%if %{defined fedora}
 Requires: bats
-%endif
 Requires: attr
 Requires: jq
 Requires: skopeo
@@ -155,7 +153,8 @@ Requires: gnupg
 %description tests
 %{summary}
 
-This package contains system tests for %{name}
+This package contains system tests for %{name}. Only intended to be used for
+gating tests. Not supported for end users / customers.
 
 %package remote
 Summary: (Experimental) Remote client for managing %{name} containers
