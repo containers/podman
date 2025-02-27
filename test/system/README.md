@@ -92,6 +92,7 @@ Requirements
 - socat
 - buildah
 - gnupg
+- xfsprogs
 
 
 Further Details
