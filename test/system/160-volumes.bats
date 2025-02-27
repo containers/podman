@@ -619,4 +619,42 @@ EOF
     run_podman volume rm $volume_name --force
 }
 
+@test "podman volumes with XFS quotas" {
+    skip_if_rootless "Quotas are only possible with root"
+
+    loop=$PODMAN_TMPDIR/loopdevice
+    dd if=/dev/zero of=$(loopfile) bs=1M count=25
+    loop_dev=$(losetup -f)
+    losetup $loop_dev $loop
+    mkfs.xfs $loop_dev
+
+    safe_opts=$(podman_isolation_opts ${PODMAN_TMPDIR})
+    vol_path=$PODMAN_TMPDIR/volpath
+    safe_opts="$safe_opts --volumepath=$vol_path"
+    mount -t xfs -o defaults,pquota $loop_dev $vol_path
+
+    vol_one="testvol1"
+    run_podman $safe_opts volume create --opt o=size=2m $vol_one
+
+    vol_two="testvol2"
+    run_podman $safe_opts volume create --opt o=size=4m $vol_two
+
+    ctrname="testctr"
+    run_podman $safe_opts run --name=$ctrname -t -i -v $vol_one:/one -v $vol_two:/two $IMAGE top
+
+    run_podman $safe_opts exec $ctrname dd if=/dev/zero of=/one/onemb bs=1M count=1
+    run_podman 2 $safe_opts exec $ctrname dd if=/dev/zero of=/one/twomb bs=1M count=1
+    assert "$output" =~ "No space left on device"
+    run_podman $safe_opts exec $ctrname dd if=/dev/zero of=/two/threemb bs=1M count=3
+    run_podman 2 $safe_opts exec $ctrname dd if=/dev/zero of=/two/onemb bs=1M count=1
+    assert "$output" =~ "No space left on device"
+
+    run_podman rm -f -t 0 $ctrname
+    run_podman $safe_opts volume rm -af
+
+    umount $vol_path
+    losetup -d $loop_dev
+    rm -f $loop
+}
+
 # vim: filetype=sh
