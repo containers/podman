@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"math/bits"
 	"os"
 	"path"
 	"path/filepath"
@@ -46,11 +47,13 @@ const (
 
 type layerLocations uint8
 
-// The backing store is split in two json files, one (the volatile)
-// that is written without fsync() meaning it isn't as robust to
-// unclean shutdown
+// The backing store is split in three json files.
+// The volatile store is written without fsync() meaning it isn't as robust to unclean shutdown.
+// Optionally, an image store can be configured to store RO layers.
+// The stable store is used for the remaining layers that don't go into the other stores.
 const (
 	stableLayerLocation layerLocations = 1 << iota
+	imageStoreLayerLocation
 	volatileLayerLocation
 
 	numLayerLocationIndex = iota
@@ -58,6 +61,10 @@ const (
 
 func layerLocationFromIndex(index int) layerLocations {
 	return 1 << index
+}
+
+func indexFromLayerLocation(location layerLocations) int {
+	return bits.TrailingZeros(uint(location))
 }
 
 // A Layer is a record of a copy-on-write layer that's stored by the lower
@@ -164,8 +171,8 @@ type Layer struct {
 	// ReadOnly is true if this layer resides in a read-only layer store.
 	ReadOnly bool `json:"-"`
 
-	// volatileStore is true if the container is from the volatile json file
-	volatileStore bool `json:"-"`
+	// location is the location of the store where the layer is present.
+	location layerLocations `json:"-"`
 
 	// BigDataNames is a list of names of data items that we keep for the
 	// convenience of the caller.  They can be large, and are only in
@@ -430,14 +437,6 @@ type layerStore struct {
 	driver drivers.Driver
 }
 
-// The caller must hold r.inProcessLock for reading.
-func layerLocation(l *Layer) layerLocations {
-	if l.volatileStore {
-		return volatileLayerLocation
-	}
-	return stableLayerLocation
-}
-
 func copyLayer(l *Layer) *Layer {
 	return &Layer{
 		ID:                 l.ID,
@@ -455,7 +454,7 @@ func copyLayer(l *Layer) *Layer {
 		TOCDigest:          l.TOCDigest,
 		CompressionType:    l.CompressionType,
 		ReadOnly:           l.ReadOnly,
-		volatileStore:      l.volatileStore,
+		location:           l.location,
 		BigDataNames:       copySlicePreferringNil(l.BigDataNames),
 		Flags:              copyMapPreferringNil(l.Flags),
 		UIDMap:             copySlicePreferringNil(l.UIDMap),
@@ -658,7 +657,11 @@ func (r *layerStore) layersModified() (lockfile.LastWrite, bool, error) {
 	// modified manually, then we have to reload the storage in
 	// any case.
 	for locationIndex := 0; locationIndex < numLayerLocationIndex; locationIndex++ {
-		info, err := os.Stat(r.jsonPath[locationIndex])
+		rpath := r.jsonPath[locationIndex]
+		if rpath == "" {
+			continue
+		}
+		info, err := os.Stat(rpath)
 		if err != nil && !os.IsNotExist(err) {
 			return lockfile.LastWrite{}, false, fmt.Errorf("stat layers file: %w", err)
 		}
@@ -794,6 +797,9 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 	for locationIndex := 0; locationIndex < numLayerLocationIndex; locationIndex++ {
 		location := layerLocationFromIndex(locationIndex)
 		rpath := r.jsonPath[locationIndex]
+		if rpath == "" {
+			continue
+		}
 		info, err := os.Stat(rpath)
 		if err != nil {
 			if !os.IsNotExist(err) {
@@ -820,9 +826,7 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 				continue // skip invalid duplicated layer
 			}
 			// Remember where the layer came from
-			if location == volatileLayerLocation {
-				layer.volatileStore = true
-			}
+			layer.location = location
 			layers = append(layers, layer)
 			ids[layer.ID] = layer
 		}
@@ -843,7 +847,7 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 			if conflict, ok := names[name]; ok {
 				r.removeName(conflict, name)
 				errorToResolveBySaving = ErrDuplicateLayerNames
-				modifiedLocations |= layerLocation(conflict)
+				modifiedLocations |= conflict.location
 			}
 			names[name] = layers[n]
 		}
@@ -939,7 +943,7 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 				incompleteDeletionErrors = errors.Join(incompleteDeletionErrors,
 					fmt.Errorf("deleting layer %#v: %w", layer.ID, err))
 			}
-			modifiedLocations |= layerLocation(layer)
+			modifiedLocations |= layer.location
 		}
 		if err := r.saveLayers(modifiedLocations); err != nil {
 			return false, err
@@ -1008,7 +1012,7 @@ func (r *layerStore) save(saveLocations layerLocations) error {
 // The caller must hold r.lockfile locked for writing.
 // The caller must hold r.inProcessLock for WRITING.
 func (r *layerStore) saveFor(modifiedLayer *Layer) error {
-	return r.save(layerLocation(modifiedLayer))
+	return r.save(modifiedLayer.location)
 }
 
 // The caller must hold r.lockfile locked for writing.
@@ -1033,12 +1037,15 @@ func (r *layerStore) saveLayers(saveLocations layerLocations) error {
 			continue
 		}
 		rpath := r.jsonPath[locationIndex]
+		if rpath == "" {
+			return fmt.Errorf("internal error: no path for location %v", location)
+		}
 		if err := os.MkdirAll(filepath.Dir(rpath), 0o700); err != nil {
 			return err
 		}
 		subsetLayers := make([]*Layer, 0, len(r.layers))
 		for _, layer := range r.layers {
-			if layerLocation(layer) == location {
+			if layer.location == location {
 				subsetLayers = append(subsetLayers, layer)
 			}
 		}
@@ -1138,12 +1145,17 @@ func (s *store) newLayerStore(rundir, layerdir, imagedir string, driver drivers.
 	if transient {
 		volatileDir = rundir
 	}
+	layersImageDir := ""
+	if imagedir != "" {
+		layersImageDir = filepath.Join(imagedir, "layers.json")
+	}
 	rlstore := layerStore{
 		lockfile:       newMultipleLockFile(lockFiles...),
 		mountsLockfile: mountsLockfile,
 		rundir:         rundir,
 		jsonPath: [numLayerLocationIndex]string{
 			filepath.Join(layerdir, "layers.json"),
+			layersImageDir,
 			filepath.Join(volatileDir, "volatile-layers.json"),
 		},
 		layerdir: layerdir,
@@ -1181,6 +1193,7 @@ func newROLayerStore(rundir string, layerdir string, driver drivers.Driver) (roL
 		rundir:         rundir,
 		jsonPath: [numLayerLocationIndex]string{
 			filepath.Join(layerdir, "layers.json"),
+			"",
 			filepath.Join(layerdir, "volatile-layers.json"),
 		},
 		layerdir: layerdir,
@@ -1329,6 +1342,17 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 	return copyLayer(layer), nil
 }
 
+func (r *layerStore) pickStoreLocation(volatile, writeable bool) layerLocations {
+	switch {
+	case volatile:
+		return volatileLayerLocation
+	case !writeable && r.jsonPath[indexFromLayerLocation(imageStoreLayerLocation)] != "":
+		return imageStoreLayerLocation
+	default:
+		return stableLayerLocation
+	}
+}
+
 // Requires startWriting.
 func (r *layerStore) create(id string, parentLayer *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, diff io.Reader, slo *stagedLayerOptions) (layer *Layer, size int64, err error) {
 	if moreOptions == nil {
@@ -1421,7 +1445,7 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 		UIDMap:             copySlicePreferringNil(moreOptions.UIDMap),
 		GIDMap:             copySlicePreferringNil(moreOptions.GIDMap),
 		BigDataNames:       []string{},
-		volatileStore:      moreOptions.Volatile,
+		location:           r.pickStoreLocation(moreOptions.Volatile, writeable),
 	}
 	layer.Flags[incompleteFlag] = true
 
