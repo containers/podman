@@ -151,6 +151,7 @@ Requires: openssl
 Requires: socat
 Requires: buildah
 Requires: gnupg
+Requires: xfsprogs
 
 %description tests
 %{summary}
