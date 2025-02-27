@@ -26,7 +26,7 @@ import (
 
 var _ = Describe("Podman run", func() {
 
-	It("podman run a container based on local image", func() {
+	It("podman run a container based on local image", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -1106,7 +1106,7 @@ echo -n madeit-$teststring >$tmpfile
 		Expect("1000").To(Equal(groups))
 	})
 
-	It("podman run with attach stdin outputs container ID", func() {
+	It("podman run with attach stdin outputs container ID", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"run", "--attach", "stdin", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -1116,13 +1116,13 @@ echo -n madeit-$teststring >$tmpfile
 		Expect(ps.OutputToString()).To(ContainSubstring(session.OutputToString()))
 	})
 
-	It("podman run with attach stdout does not print stderr", func() {
+	It("podman run with attach stdout does not print stderr", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stdout", ALPINE, "ls", "/doesnotexist"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Equal(""))
 	})
 
-	It("podman run with attach stderr does not print stdout", func() {
+	It("podman run with attach stderr does not print stdout", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stderr", ALPINE, "ls", "/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
