@@ -131,6 +131,8 @@ const (
 	Volume Type = "volume"
 	// Machine - event is related to machine VM's
 	Machine Type = "machine"
+	// Secret - event is related to secrets
+	Secret Type = "secret"
 
 	// Attach ...
 	Attach Status = "attach"

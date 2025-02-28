@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/secrets"
+	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/utils"
 )
@@ -55,6 +56,8 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	if err != nil {
 		return nil, err
 	}
+
+	ic.Libpod.NewSecretEvent(events.Create, secretID)
 
 	return &entities.SecretCreateReport{
 		ID: secretID,
@@ -146,6 +149,9 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 			continue
 		}
 		reports = append(reports, &entities.SecretRmReport{Err: err, ID: deletedID})
+		if err == nil {
+			ic.Libpod.NewSecretEvent(events.Remove, deletedID)
+		}
 	}
 
 	return reports, nil

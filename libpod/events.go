@@ -191,6 +191,16 @@ func (v *Volume) newVolumeEvent(status events.Status) {
 	}
 }
 
+// NewSecretEvent creates a new event for a libpod secret
+func (r *Runtime) NewSecretEvent(status events.Status, secretID string) {
+	e := events.NewEvent(status)
+	e.ID = secretID
+	e.Type = events.Secret
+	if err := r.eventer.Write(e); err != nil {
+		logrus.Errorf("Unable to write secret event: %q", err)
+	}
+}
+
 // Events is a wrapper function for everyone to begin tailing the events log
 // with options
 func (r *Runtime) Events(ctx context.Context, options events.ReadOptions) error {
