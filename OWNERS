@@ -9,12 +9,10 @@ approvers:
   - mheon
   - mtrmac
   - rhatdan
-  - vrothberg
   - ygalblum
 reviewers:
   - Luap99
   - TomSweeneyRedHat
-  - alexlarsson
   - baude
   - flouthoc
   - giuseppe
