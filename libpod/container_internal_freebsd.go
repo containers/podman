@@ -13,6 +13,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/rootless"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
@@ -414,4 +415,21 @@ func (c *Container) hasPrivateUTS() bool {
 // hasCapSysResource returns whether the current process has CAP_SYS_RESOURCE.
 func hasCapSysResource() (bool, error) {
 	return true, nil
+}
+
+// containerPathIsFile returns true if the given containerPath is a file
+func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) {
+	// Note freebsd does not have support for OpenInRoot() so us the less safe way
+	// with the old SecureJoin(), but given this is only called before the container
+	// is started it is not subject to race conditions with the container process.
+	path, err := securejoin.SecureJoin(unsafeRoot, containerPath)
+	if err != nil {
+		return false, err
+	}
+
+	st, err := os.Lstat(path)
+	if err == nil && !st.IsDir() {
+		return true, nil
+	}
+	return false, err
 }

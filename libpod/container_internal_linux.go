@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/rootless"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/moby/sys/capability"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -848,3 +849,18 @@ var hasCapSysResource = sync.OnceValues(func() (bool, error) {
 	}
 	return currentCaps.Get(capability.EFFECTIVE, capability.CAP_SYS_RESOURCE), nil
 })
+
+// containerPathIsFile returns true if the given containerPath is a file
+func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) {
+	f, err := securejoin.OpenInRoot(unsafeRoot, containerPath)
+	if err != nil {
+		return false, err
+	}
+	defer f.Close()
+
+	st, err := f.Stat()
+	if err == nil && !st.IsDir() {
+		return true, nil
+	}
+	return false, err
+}

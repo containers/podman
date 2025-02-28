@@ -98,19 +98,19 @@ func (e *fastEncL4) Encode(dst *tokens, src []byte) {
 			e.bTable[nextHashL] = entry
 
 			t = lCandidate.offset - e.cur
-			if s-t < maxMatchOffset && uint32(cv) == load3232(src, lCandidate.offset-e.cur) {
+			if s-t < maxMatchOffset && uint32(cv) == load3232(src, t) {
 				// We got a long match. Use that.
 				break
 			}
 
 			t = sCandidate.offset - e.cur
-			if s-t < maxMatchOffset && uint32(cv) == load3232(src, sCandidate.offset-e.cur) {
+			if s-t < maxMatchOffset && uint32(cv) == load3232(src, t) {
 				// Found a 4 match...
 				lCandidate = e.bTable[hash7(next, tableBits)]
 
 				// If the next long is a candidate, check if we should use that instead...
-				lOff := nextS - (lCandidate.offset - e.cur)
-				if lOff < maxMatchOffset && load3232(src, lCandidate.offset-e.cur) == uint32(next) {
+				lOff := lCandidate.offset - e.cur
+				if nextS-lOff < maxMatchOffset && load3232(src, lOff) == uint32(next) {
 					l1, l2 := matchLen(src[s+4:], src[t+4:]), matchLen(src[nextS+4:], src[nextS-lOff+4:])
 					if l2 > l1 {
 						s = nextS
@@ -127,7 +127,7 @@ func (e *fastEncL4) Encode(dst *tokens, src []byte) {
 		// them as literal bytes.
 
 		// Extend the 4-byte match as long as possible.
-		l := e.matchlenLong(s+4, t+4, src) + 4
+		l := e.matchlenLong(int(s+4), int(t+4), src) + 4
 
 		// Extend backwards
 		for t > 0 && s > nextEmit && src[t-1] == src[s-1] {

@@ -34,6 +34,7 @@ import (
 	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
+	artStore "github.com/containers/podman/v5/pkg/libartifact/store"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/systemd"
 	"github.com/containers/podman/v5/pkg/util"
@@ -82,6 +83,9 @@ type Runtime struct {
 	libimageRuntime        *libimage.Runtime
 	libimageEventsShutdown chan bool
 	lockManager            lock.Manager
+
+	// ArtifactStore returns the artifact store created from the runtime.
+	ArtifactStore func() (*artStore.ArtifactStore, error)
 
 	// Worker
 	workerChannel chan func()
@@ -533,6 +537,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		}
 		runtime.config.Network.NetworkBackend = string(netBackend)
 		runtime.network = netInterface
+
+		// Using sync once value to only init the store exactly once and only when it will be actually be used.
+		runtime.ArtifactStore = sync.OnceValues(func() (*artStore.ArtifactStore, error) {
+			return artStore.NewArtifactStore(filepath.Join(runtime.storageConfig.GraphRoot, "artifacts"), runtime.SystemContext())
+		})
 	}
 
 	// We now need to see if the system has restarted

@@ -17,7 +17,6 @@ import (
 	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/reflink"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/fileutils"
 	digest "github.com/opencontainers/go-digest"
@@ -327,7 +326,7 @@ type PutBlobFromLocalFileOption struct{}
 func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file string, options ...PutBlobFromLocalFileOption) (digest.Digest, int64, error) {
 	d, ok := dest.(*ociImageDestination)
 	if !ok {
-		return "", -1, errors.New("internal error: PutBlobFromLocalFile called with a non-oci: destination")
+		return "", -1, errors.New("caller error: PutBlobFromLocalFile called with a non-oci: destination")
 	}
 
 	succeeded := false
@@ -351,7 +350,7 @@ func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file
 	}
 	defer srcFile.Close()
 
-	err = reflink.LinkOrCopy(srcFile, blobFile)
+	err = fileutils.ReflinkOrCopy(srcFile, blobFile)
 	if err != nil {
 		return "", -1, err
 	}
