@@ -26,6 +26,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/signature"
@@ -716,7 +717,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 					logrus.Errorf("Unable to close %s image source %q", srcRef.DockerReference().Name(), err)
 				}
 			}()
-			topManifestBlob, manifestType, err := rawSource.GetManifest(ctx, nil)
+			topManifestBlob, manifestType, err := image.UnparsedInstance(rawSource, nil).Manifest(ctx)
 			if err != nil {
 				return fmt.Errorf("getting manifest blob: %w", err)
 			}
@@ -757,7 +758,7 @@ func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entitie
 				instanceDigests := list.Instances()
 				for _, instanceDigest := range instanceDigests {
 					digest := instanceDigest
-					man, _, err := rawSource.GetManifest(ctx, &digest)
+					man, _, err := image.UnparsedInstance(rawSource, &digest).Manifest(ctx)
 					if err != nil {
 						return err
 					}

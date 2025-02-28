@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/libimage"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/transports/alltransports"
@@ -545,7 +546,7 @@ func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArti
 // getManifest takes an imgSrc and returns the manifest for the imgSrc.
 // A OCI index list is not supported and will return an error.
 func getManifest(ctx context.Context, imgSrc types.ImageSource) (*manifest.OCI1, error) {
-	b, manifestType, err := imgSrc.GetManifest(ctx, nil)
+	b, manifestType, err := image.UnparsedInstance(imgSrc, nil).Manifest(ctx)
 	if err != nil {
 		return nil, err
 	}
