@@ -92,6 +92,8 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 		}
 	case Volume, Machine:
 		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, e.Name)
+	case Secret:
+		humanFormat = fmt.Sprintf("%s %s %s %s", e.Time, e.Type, e.Status, id)
 	}
 	return humanFormat
 }
@@ -133,6 +135,8 @@ func StringToType(name string) (Type, error) {
 		return System, nil
 	case Volume.String():
 		return Volume, nil
+	case Secret.String():
+		return Secret, nil
 	case "":
 		return "", ErrEventTypeBlank
 	}

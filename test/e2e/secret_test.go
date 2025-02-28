@@ -29,6 +29,13 @@ var _ = Describe("Podman secret", func() {
 		secrID := session.OutputToString()
 		Expect(session).Should(ExitCleanly())
 
+		result := podmanTest.Podman([]string{"events", "--stream=false"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		events := result.OutputToStringArray()
+		Expect(events).ToNot(BeEmpty(), "Number of events")
+		Expect(events).To(ContainElement(ContainSubstring(" secret create %s", secrID)))
+
 		inspect := podmanTest.Podman([]string{"secret", "inspect", "--format", "{{.ID}}", secrID})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect).Should(ExitCleanly())
@@ -304,6 +311,13 @@ var _ = Describe("Podman secret", func() {
 		removed.WaitWithDefaultTimeout()
 		Expect(removed).Should(ExitCleanly())
 		Expect(removed.OutputToString()).To(Equal(secrID))
+
+		result := podmanTest.Podman([]string{"events", "--stream=false"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		events := result.OutputToStringArray()
+		Expect(events).ToNot(BeEmpty(), "Number of events")
+		Expect(events).To(ContainElement(ContainSubstring(" secret remove %s", secrID)))
 
 		session = podmanTest.Podman([]string{"secret", "ls"})
 		session.WaitWithDefaultTimeout()

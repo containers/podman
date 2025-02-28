@@ -1522,7 +1522,7 @@ func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete strin
 	}
 	eventTypes := func(_ string) ([]string, cobra.ShellCompDirective) {
 		return []string{events.Container.String(), events.Image.String(), events.Network.String(),
-			events.Pod.String(), events.System.String(), events.Volume.String(),
+			events.Pod.String(), events.System.String(), events.Volume.String(), events.Secret.String(),
 		}, cobra.ShellCompDirectiveNoFileComp
 	}
 	kv := keyValueCompletion{

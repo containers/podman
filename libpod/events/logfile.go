@@ -173,7 +173,7 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 				continue
 			}
 			switch event.Type {
-			case Image, Volume, Pod, Container, Network:
+			case Image, Volume, Pod, Container, Network, Secret:
 				//	no-op
 			case System:
 				begin, end, err := e.readRotateEvent(event)
