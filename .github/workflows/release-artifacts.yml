@@ -1,8 +1,6 @@
-name: Upload Release Artifacts
+name: Upload Release Artifacts [DEPRECATED]
 
 on:
-  release:
-    types: [published]
   workflow_dispatch:
     inputs:
       version:
@@ -196,16 +194,6 @@ jobs:
 
           # WARNING: This should only be set when 'notification' job should be triggered
           echo "complete=true" >> $GITHUB_OUTPUT
-
-      - name: Trigger Windows Installer
-        if: >-
-            steps.check.outputs.windows_amd == 'true' ||
-            steps.actual_dryrun.outputs.dryrun == 'false'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run upload-win-installer.yml -f version=${{steps.getversion.outputs.version}} -f dryrun=false
-
     outputs:
       uploaded: ${{ steps.upload.outputs.complete }}
       version: ${{ steps.getversion.outputs.version }}
