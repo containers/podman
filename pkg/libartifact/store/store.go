@@ -371,7 +371,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 			digest = arty.Manifest.Layers[0].Digest
 		}
 
-		return copyImageBlobToFile(ctx, imgSrc, digest, target)
+		return copyTrustedImageBlobToFile(ctx, imgSrc, digest, target)
 	}
 
 	if len(options.Digest) > 0 || len(options.Title) > 0 {
@@ -387,7 +387,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 		if err != nil {
 			return err
 		}
-		return copyImageBlobToFile(ctx, imgSrc, digest, filepath.Join(target, filename))
+		return copyTrustedImageBlobToFile(ctx, imgSrc, digest, filepath.Join(target, filename))
 	}
 
 	for _, l := range arty.Manifest.Layers {
@@ -396,7 +396,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 		if err != nil {
 			return err
 		}
-		err = copyImageBlobToFile(ctx, imgSrc, l.Digest, filepath.Join(target, filename))
+		err = copyTrustedImageBlobToFile(ctx, imgSrc, l.Digest, filepath.Join(target, filename))
 		if err != nil {
 			return err
 		}
@@ -454,7 +454,11 @@ func findDigest(arty *libartifact.Artifact, options *libartTypes.ExtractOptions)
 	return digest, nil
 }
 
-func copyImageBlobToFile(ctx context.Context, imgSrc types.ImageSource, digest digest.Digest, target string) error {
+// copyTrustedImageBlobToFile copies blob identified by digest in imgSrc to file target.
+//
+// WARNING: This does not validate the contents against the expected digest, so it should only
+// be used to read from trusted sources!
+func copyTrustedImageBlobToFile(ctx context.Context, imgSrc types.ImageSource, digest digest.Digest, target string) error {
 	src, _, err := imgSrc.GetBlob(ctx, types.BlobInfo{Digest: digest}, nil)
 	if err != nil {
 		return fmt.Errorf("failed to get artifact file: %w", err)
