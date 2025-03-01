@@ -123,8 +123,8 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e h1:SCnqm8SjSa0QqRxXbo5YY//S+OryeJioe17nK+iDZpg=
 github.com/digitalocean/go-libvirt v0.0.0-20220804181439-8648fbde413e/go.mod h1:o129ljs6alsIQTc8d6eweihqpmmrbxZ2g1jhgjhPykI=
-github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e h1:x5PInTuXLddHWHlePCNAcM8QtUfOGx44f3UmYPMtDcI=
-github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e/go.mod h1:K4+o74YGNjOb9N6yyG+LPj1NjHtk+Qz0IYQPvirbaLs=
+github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242 h1:rh6rt8pF5U4iyQ86h6lRDenJoX4ht2wFnZXB9ogIrIM=
+github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242/go.mod h1:LGHUtlhsY4vRGM6AHejEQKVI5e3eHbSylMHwTSpQtVw=
 github.com/disiqueira/gotree/v3 v3.0.2 h1:ik5iuLQQoufZBNPY518dXhiO5056hyNBIK9lWhkNRq8=
 github.com/disiqueira/gotree/v3 v3.0.2/go.mod h1:ZuyjE4+mUQZlbpkI24AmruZKhg3VHEgPLDY8Qk+uUu8=
 github.com/distribution/reference v0.6.0 h1:0IXCQ5g4/QMHHkarYzh5l+u8T3t73zM5QvfrDyIgxBk=
