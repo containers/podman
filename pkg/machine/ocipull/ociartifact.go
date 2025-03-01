@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/compression"
@@ -310,7 +311,7 @@ func (o *OCIArtifactDisk) decompress() error {
 }
 
 func getOriginalFileName(ctx context.Context, imgSrc types.ImageSource, artifactDigest digest.Digest) (string, error) {
-	v1RawMannyfest, _, err := imgSrc.GetManifest(ctx, &artifactDigest)
+	v1RawMannyfest, _, err := image.UnparsedInstance(imgSrc, &artifactDigest).Manifest(ctx)
 	if err != nil {
 		return "", err
 	}
