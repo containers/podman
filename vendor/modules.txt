@@ -459,7 +459,7 @@ github.com/digitalocean/go-libvirt/internal/event
 github.com/digitalocean/go-libvirt/internal/go-xdr/xdr2
 github.com/digitalocean/go-libvirt/socket
 github.com/digitalocean/go-libvirt/socket/dialers
-# github.com/digitalocean/go-qemu v0.0.0-20230711162256-2e3d0186973e
+# github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
 ## explicit; go 1.18
 github.com/digitalocean/go-qemu/qmp
 # github.com/disiqueira/gotree/v3 v3.0.2
