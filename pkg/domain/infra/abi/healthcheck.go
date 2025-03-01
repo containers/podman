@@ -14,14 +14,8 @@ func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrID string, 
 	if err != nil {
 		return nil, err
 	}
-	hcStatus := define.HealthCheckUnhealthy
-	if status == define.HealthCheckSuccess {
-		hcStatus = define.HealthCheckHealthy
-	} else if status == define.HealthCheckStartup {
-		hcStatus = define.HealthCheckStarting
-	}
 	report := define.HealthCheckResults{
-		Status: hcStatus,
+		Status: status.String(),
 	}
 	return &report, nil
 }

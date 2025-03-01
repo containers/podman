@@ -31,14 +31,8 @@ func RunHealthCheck(w http.ResponseWriter, r *http.Request) {
 		utils.InternalServerError(w, err)
 		return
 	}
-	hcStatus := define.HealthCheckUnhealthy
-	if status == define.HealthCheckSuccess {
-		hcStatus = define.HealthCheckHealthy
-	} else if status == define.HealthCheckStartup {
-		hcStatus = define.HealthCheckStarting
-	}
 	report := define.HealthCheckResults{
-		Status: hcStatus,
+		Status: status.String(),
 	}
 	utils.WriteResponse(w, http.StatusOK, report)
 }
