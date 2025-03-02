@@ -58,7 +58,7 @@ load helpers
 
 @test "podman --ipc=container@test" {
     hostipc="$(readlink /proc/self/ns/ipc)"
-    run_podman run -d --name test $IMAGE sleep 100
+    run_podman run -d --ipc=shareable --name test $IMAGE sleep 100
     containerid=$output
     run_podman inspect test --format '{{ .HostConfig.IpcMode }}'
     is "$output" "shareable" "shareable mode should be selected"
