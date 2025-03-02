@@ -124,6 +124,7 @@ EOF
 
 @test "podman build - global runtime flags test" {
     skip_if_remote "--runtime-flag flag not supported for remote"
+    skip_if_chroot "--runtime-flag flag not used for chroot isolation"
 
     rand_content=$(random_string 50)
 
