@@ -255,7 +255,7 @@ func InterfacesWithContext(ctx context.Context) (InterfaceStatList, error) {
 	return ret, nil
 }
 
-func getIOCountersAll(n []IOCountersStat) ([]IOCountersStat, error) {
+func getIOCountersAll(n []IOCountersStat) []IOCountersStat {
 	r := IOCountersStat{
 		Name: "all",
 	}
@@ -270,7 +270,7 @@ func getIOCountersAll(n []IOCountersStat) ([]IOCountersStat, error) {
 		r.Dropout += nic.Dropout
 	}
 
-	return []IOCountersStat{r}, nil
+	return []IOCountersStat{r}
 }
 
 // NetIOCounters returns network I/O statistics for every network

@@ -5,6 +5,7 @@ package common
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -306,7 +307,7 @@ const (
 
 func NewSMC(ioKit *Library) (*SMC, error) {
 	if ioKit.path != IOKit {
-		return nil, fmt.Errorf("library is not IOKit")
+		return nil, errors.New("library is not IOKit")
 	}
 
 	ioServiceGetMatchingService := GetFunc[IOServiceGetMatchingServiceFunc](ioKit, IOServiceGetMatchingServiceSym)
@@ -324,7 +325,7 @@ func NewSMC(ioKit *Library) (*SMC, error) {
 
 	var conn uint32
 	if result := ioServiceOpen(service, machTaskSelf(), 0, &conn); result != 0 {
-		return nil, fmt.Errorf("ERROR: IOServiceOpen failed")
+		return nil, errors.New("ERROR: IOServiceOpen failed")
 	}
 
 	ioObjectRelease(service)
@@ -343,7 +344,7 @@ func (s *SMC) Close() error {
 	ioServiceClose := GetFunc[IOServiceCloseFunc](s.lib, IOServiceCloseSym)
 
 	if result := ioServiceClose(s.conn); result != 0 {
-		return fmt.Errorf("ERROR: IOServiceClose failed")
+		return errors.New("ERROR: IOServiceClose failed")
 	}
 	return nil
 }
@@ -367,8 +368,8 @@ func (s CStr) Ptr() *byte {
 	return &s[0]
 }
 
-func (c CStr) Addr() uintptr {
-	return uintptr(unsafe.Pointer(c.Ptr()))
+func (s CStr) Addr() uintptr {
+	return uintptr(unsafe.Pointer(s.Ptr()))
 }
 
 func (s CStr) GoString() string {

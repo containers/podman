@@ -6,11 +6,13 @@ package cpu
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"unsafe"
 
-	"github.com/shirou/gopsutil/v4/internal/common"
 	"github.com/yusufpapurcu/wmi"
 	"golang.org/x/sys/windows"
+
+	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
 var procGetNativeSystemInfo = common.Modkernel32.NewProc("GetNativeSystemInfo")
@@ -110,7 +112,7 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 
 		cpu := InfoStat{
 			CPU:        int32(i),
-			Family:     fmt.Sprintf("%d", l.Family),
+			Family:     strconv.FormatUint(uint64(l.Family), 10),
 			VendorID:   l.Manufacturer,
 			ModelName:  l.Name,
 			Cores:      int32(l.NumberOfLogicalProcessors),

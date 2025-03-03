@@ -8,7 +8,6 @@ import (
 	"context"
 	"encoding/binary"
 	"errors"
-	"fmt"
 	"io"
 	"path/filepath"
 	"sort"
@@ -16,11 +15,12 @@ import (
 	"strings"
 	"unsafe"
 
-	cpu "github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/internal/common"
-	mem "github.com/shirou/gopsutil/v4/mem"
-	net "github.com/shirou/gopsutil/v4/net"
 	"golang.org/x/sys/unix"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/internal/common"
+	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
 func pidsWithContext(ctx context.Context) ([]int32, error) {
@@ -130,7 +130,7 @@ func readPtr(r io.Reader) (uintptr, error) {
 		}
 		return uintptr(p), nil
 	default:
-		return 0, fmt.Errorf("unsupported pointer size")
+		return 0, errors.New("unsupported pointer size")
 	}
 }
 

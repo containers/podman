@@ -311,7 +311,7 @@ func IntContains(target []int, src int) bool {
 
 // get struct attributes.
 // This method is used only for debugging platform dependent code.
-func attributes(m interface{}) map[string]reflect.Type {
+func attributes(m any) map[string]reflect.Type {
 	typ := reflect.TypeOf(m)
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()

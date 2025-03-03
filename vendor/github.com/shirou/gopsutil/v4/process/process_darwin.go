@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -348,7 +349,7 @@ func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
 	ret := procPidInfo(p.Pid, common.PROC_PIDVNODEPATHINFO, 0, uintptr(unsafe.Pointer(&vpi)), vpiSize)
 	errno, _ := lib.Dlsym("errno")
 	err = *(**unix.Errno)(unsafe.Pointer(&errno))
-	if err == unix.EPERM {
+	if errors.Is(err, unix.EPERM) {
 		return "", ErrorNotPermitted
 	}
 
@@ -373,11 +374,11 @@ func procArgs(pid int32) ([]byte, int, error) {
 	return procargs, int(binary.LittleEndian.Uint32(nargs)), nil
 }
 
-func (p *Process) CmdlineSliceWithContext(ctx context.Context) ([]string, error) {
-	return p.cmdlineSliceWithContext(ctx, true)
+func (p *Process) CmdlineSliceWithContext(_ context.Context) ([]string, error) {
+	return p.cmdlineSlice()
 }
 
-func (p *Process) cmdlineSliceWithContext(ctx context.Context, fallback bool) ([]string, error) {
+func (p *Process) cmdlineSlice() ([]string, error) {
 	pargs, nargs, err := procArgs(p.Pid)
 	if err != nil {
 		return nil, err
@@ -408,8 +409,8 @@ func (p *Process) cmdlineSliceWithContext(ctx context.Context, fallback bool) ([
 }
 
 // cmdNameWithContext returns the command name (including spaces) without any arguments
-func (p *Process) cmdNameWithContext(ctx context.Context) (string, error) {
-	r, err := p.cmdlineSliceWithContext(ctx, false)
+func (p *Process) cmdNameWithContext(_ context.Context) (string, error) {
+	r, err := p.cmdlineSlice()
 	if err != nil {
 		return "", err
 	}

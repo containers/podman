@@ -10,8 +10,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/shirou/gopsutil/v4/internal/common"
 	"golang.org/x/sys/unix"
+
+	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
 func GetPageSize() (uint64, error) {
