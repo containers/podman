@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/libimage/define"
 	cp "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/pkg/shortnames"
@@ -148,7 +149,7 @@ func (ir *ImageEngine) remoteManifestInspect(ctx context.Context, name string, o
 		}
 		defer src.Close()
 
-		manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
+		manifestBytes, manifestType, err := image.UnparsedInstance(src, nil).Manifest(ctx)
 		if err != nil {
 			appendErr(fmt.Errorf("loading manifest %q: %w", transports.ImageName(ref), err))
 			continue
@@ -429,7 +430,7 @@ func (ir *ImageEngine) digestFromDigestOrManifestListMember(ctx context.Context,
 		return "", fmt.Errorf("reading local image %q to check if it's in the manifest list: %w", name, err)
 	}
 	defer src.Close()
-	manifestBytes, _, err := src.GetManifest(ctx, nil)
+	manifestBytes, _, err := image.UnparsedInstance(src, nil).Manifest(ctx)
 	if err != nil {
 		return "", fmt.Errorf("locating image named %q to check if it's in the manifest list: %w", name, err)
 	}
