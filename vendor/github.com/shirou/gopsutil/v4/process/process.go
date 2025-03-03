@@ -408,6 +408,11 @@ func (p *Process) Cmdline() (string, error) {
 
 // CmdlineSlice returns the command line arguments of the process as a slice with each
 // element being an argument.
+//
+// On Windows, this assumes the command line is encoded according to the convention accepted by
+// [golang.org/x/sys/windows.CmdlineToArgv] (the most common convention). If this is not suitable,
+// you should instead use [Process.Cmdline] and parse the command line according to your specific
+// requirements.
 func (p *Process) CmdlineSlice() ([]string, error) {
 	return p.CmdlineSliceWithContext(context.Background())
 }

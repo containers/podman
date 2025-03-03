@@ -11,8 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/shirou/gopsutil/v4/internal/common"
 	"github.com/tklauser/go-sysconf"
+
+	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
 // VirtualMemory for Solaris is a minimal implementation which only returns
@@ -24,17 +25,17 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 	result := &VirtualMemoryStat{}
 
-	zoneName, err := zoneName()
+	zoneName, err := zoneName() //nolint:contextcheck //FIXME
 	if err != nil {
 		return nil, err
 	}
 
 	if zoneName == "global" {
-		cap, err := globalZoneMemoryCapacity()
+		capacity, err := globalZoneMemoryCapacity() //nolint:contextcheck //FIXME
 		if err != nil {
 			return nil, err
 		}
-		result.Total = cap
+		result.Total = capacity
 		freemem, err := globalZoneFreeMemory(ctx)
 		if err != nil {
 			return nil, err
@@ -43,11 +44,11 @@ func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 		result.Free = freemem
 		result.Used = result.Total - result.Free
 	} else {
-		cap, err := nonGlobalZoneMemoryCapacity()
+		capacity, err := nonGlobalZoneMemoryCapacity() //nolint:contextcheck //FIXME
 		if err != nil {
 			return nil, err
 		}
-		result.Total = cap
+		result.Total = capacity
 	}
 
 	return result, nil

@@ -8,8 +8,9 @@ import (
 	"syscall"
 	"unsafe"
 
-	"github.com/shirou/gopsutil/v4/internal/common"
 	"golang.org/x/sys/windows"
+
+	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
 type PROCESS_MEMORY_COUNTERS struct {
@@ -39,30 +40,27 @@ func queryPebAddress(procHandle syscall.Handle, is32BitProcess bool) (uint64, er
 		)
 		if status := windows.NTStatus(ret); status == windows.STATUS_SUCCESS {
 			return uint64(info.PebBaseAddress), nil
-		} else {
-			return 0, windows.NTStatus(ret)
 		}
-	} else {
-		// we are on a 32-bit process reading an external 64-bit process
-		if common.ProcNtWow64QueryInformationProcess64.Find() == nil { // avoid panic
-			var info processBasicInformation64
-
-			ret, _, _ := common.ProcNtWow64QueryInformationProcess64.Call(
-				uintptr(procHandle),
-				uintptr(common.ProcessBasicInformation),
-				uintptr(unsafe.Pointer(&info)),
-				uintptr(unsafe.Sizeof(info)),
-				uintptr(0),
-			)
-			if status := windows.NTStatus(ret); status == windows.STATUS_SUCCESS {
-				return info.PebBaseAddress, nil
-			} else {
-				return 0, windows.NTStatus(ret)
-			}
-		} else {
-			return 0, errors.New("can't find API to query 64 bit process from 32 bit")
-		}
+		return 0, windows.NTStatus(ret)
 	}
+	// we are on a 32-bit process reading an external 64-bit process
+	if common.ProcNtWow64QueryInformationProcess64.Find() != nil {
+		return 0, errors.New("can't find API to query 64 bit process from 32 bit")
+	}
+	// avoid panic
+	var info processBasicInformation64
+
+	ret, _, _ := common.ProcNtWow64QueryInformationProcess64.Call(
+		uintptr(procHandle),
+		uintptr(common.ProcessBasicInformation),
+		uintptr(unsafe.Pointer(&info)),
+		uintptr(unsafe.Sizeof(info)),
+		uintptr(0),
+	)
+	if status := windows.NTStatus(ret); status == windows.STATUS_SUCCESS {
+		return info.PebBaseAddress, nil
+	}
+	return 0, windows.NTStatus(ret)
 }
 
 func readProcessMemory(h syscall.Handle, is32BitProcess bool, address uint64, size uint) []byte {

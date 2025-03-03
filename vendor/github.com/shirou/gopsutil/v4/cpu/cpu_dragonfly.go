@@ -11,9 +11,10 @@ import (
 	"strings"
 	"unsafe"
 
-	"github.com/shirou/gopsutil/v4/internal/common"
 	"github.com/tklauser/go-sysconf"
 	"golang.org/x/sys/unix"
+
+	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
 var (
@@ -135,7 +136,7 @@ func parseDmesgBoot(fileName string) (InfoStat, error) {
 			c.VendorID = matches[1]
 			t, err := strconv.ParseInt(matches[2], 10, 32)
 			if err != nil {
-				return c, fmt.Errorf("unable to parse DragonflyBSD CPU stepping information from %q: %v", line, err)
+				return c, fmt.Errorf("unable to parse DragonflyBSD CPU stepping information from %q: %w", line, err)
 			}
 			c.Stepping = int32(t)
 		} else if matches := featuresMatch.FindStringSubmatch(line); matches != nil {

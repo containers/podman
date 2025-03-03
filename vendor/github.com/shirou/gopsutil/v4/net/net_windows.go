@@ -5,14 +5,16 @@ package net
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"syscall"
 	"unsafe"
 
-	"github.com/shirou/gopsutil/v4/internal/common"
 	"golang.org/x/sys/windows"
+
+	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
 var (
@@ -191,13 +193,13 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	}
 
 	if !pernic {
-		return getIOCountersAll(counters)
+		return getIOCountersAll(counters), nil
 	}
 	return counters, nil
 }
 
 func IOCountersByFileWithContext(ctx context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
-	return IOCounters(pernic)
+	return IOCounters(pernic) //nolint:contextcheck //FIXME
 }
 
 func ConnectionsWithContext(ctx context.Context, kind string) ([]ConnectionStat, error) {
@@ -238,7 +240,7 @@ func getProcInet(kinds []netConnectionKindType, pid int32) ([]ConnectionStat, er
 
 func getNetStatWithKind(kindType netConnectionKindType) ([]ConnectionStat, error) {
 	if kindType.filename == "" {
-		return nil, fmt.Errorf("kind filename must be required")
+		return nil, errors.New("kind filename must be required")
 	}
 
 	switch kindType.filename {
@@ -326,7 +328,7 @@ func getTableUintptr(family uint32, buf []byte) uintptr {
 	return p
 }
 
-func getTableInfo(filename string, table interface{}) (index, step, length int) {
+func getTableInfo(filename string, table any) (index, step, length int) {
 	switch filename {
 	case kindTCP4.filename:
 		index = int(unsafe.Sizeof(table.(pmibTCPTableOwnerPidAll).DwNumEntries))
@@ -360,7 +362,7 @@ func getTCPConnections(family uint32) ([]ConnectionStat, error) {
 	)
 
 	if family == 0 {
-		return nil, fmt.Errorf("faimly must be required")
+		return nil, errors.New("faimly must be required")
 	}
 
 	for {
@@ -390,7 +392,7 @@ func getTCPConnections(family uint32) ([]ConnectionStat, error) {
 		if err == nil {
 			break
 		}
-		if err != windows.ERROR_INSUFFICIENT_BUFFER {
+		if !errors.Is(err, windows.ERROR_INSUFFICIENT_BUFFER) {
 			return nil, err
 		}
 		buf = make([]byte, size)
@@ -441,7 +443,7 @@ func getUDPConnections(family uint32) ([]ConnectionStat, error) {
 	)
 
 	if family == 0 {
-		return nil, fmt.Errorf("faimly must be required")
+		return nil, errors.New("faimly must be required")
 	}
 
 	for {
@@ -473,7 +475,7 @@ func getUDPConnections(family uint32) ([]ConnectionStat, error) {
 		if err == nil {
 			break
 		}
-		if err != windows.ERROR_INSUFFICIENT_BUFFER {
+		if !errors.Is(err, windows.ERROR_INSUFFICIENT_BUFFER) {
 			return nil, err
 		}
 		buf = make([]byte, size)

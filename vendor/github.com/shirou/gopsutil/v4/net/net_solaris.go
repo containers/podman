@@ -5,6 +5,7 @@ package net
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"runtime"
@@ -29,7 +30,7 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 
 	lines := strings.Split(strings.TrimSpace(string(kstatSysOut)), "\n")
 	if len(lines) == 0 {
-		return nil, fmt.Errorf("no interface found")
+		return nil, errors.New("no interface found")
 	}
 	rbytes64arr := make(map[string]uint64)
 	ipackets64arr := make(map[string]uint64)
@@ -104,7 +105,7 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	}
 
 	if !pernic {
-		return getIOCountersAll(ret)
+		return getIOCountersAll(ret), nil
 	}
 
 	return ret, nil

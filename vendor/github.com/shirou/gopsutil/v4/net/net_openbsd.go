@@ -150,15 +150,15 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 		ret = append(ret, ioc)
 	}
 
-	if pernic == false {
-		return getIOCountersAll(ret)
+	if !pernic {
+		return getIOCountersAll(ret), nil
 	}
 
 	return ret, nil
 }
 
 func IOCountersByFileWithContext(ctx context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
-	return IOCounters(pernic)
+	return IOCounters(pernic) //nolint:contextcheck //FIXME
 }
 
 func FilterCountersWithContext(ctx context.Context) ([]FilterStat, error) {
