@@ -212,10 +212,6 @@ func replaceContainer(name string) error {
 func createOrUpdateFlags(cmd *cobra.Command, vals *entities.ContainerCreateOptions) error {
 	if cmd.Flags().Changed("pids-limit") {
 		val := cmd.Flag("pids-limit").Value.String()
-		// Convert -1 to 0, so that -1 maps to unlimited pids limit
-		if val == "-1" {
-			val = "0"
-		}
 		pidsLimit, err := strconv.ParseInt(val, 10, 32)
 		if err != nil {
 			return err
