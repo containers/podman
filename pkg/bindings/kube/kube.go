@@ -3,10 +3,16 @@ package kube
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
+
+	util2 "github.com/containers/podman/v5/pkg/bindings/internal/util"
+	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
+	"github.com/containers/podman/v5/pkg/util"
 
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/auth"
@@ -14,6 +20,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings/generate"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
 )
 
 func Play(ctx context.Context, path string, options *PlayOptions) (*entitiesTypes.KubePlayReport, error) {
@@ -75,6 +82,21 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 		return nil, err
 	}
 
+	if options.GetBuild() && len(options.GetContextDir()) == 0 {
+		return nil, fmt.Errorf("build option may be specified only with context-dir")
+	}
+
+	if options.GetBuild() {
+		// specify the content type
+		header.Set("Content-Type", "application/x-tar")
+		tar, err := getTarKubePlayContext(body, options.GetContextDir())
+		if err != nil {
+			return nil, err
+		}
+		defer tar.Close()
+		body = tar
+	}
+
 	response, err := conn.DoRequest(ctx, body, http.MethodPost, "/play/kube", params, header)
 	if err != nil {
 		return nil, err
@@ -86,6 +108,85 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	}
 
 	return &report, nil
+}
+
+func getTarKubePlayContext(reader io.Reader, contextDir string) (io.ReadCloser, error) {
+	// read the document
+	yamlBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	// split yaml document
+	documentList, err := util.SplitMultiDocYAML(yamlBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new TarBuilder
+	tb := util2.NewTarBuilder()
+
+	// Iterate over the documents
+	for _, document := range documentList {
+		// Get the kind
+		kind, err := util.GetKubeKind(document)
+		if err != nil {
+			return nil, fmt.Errorf("unable to read kube YAML: %w", err)
+		}
+
+		// ignore non-pod resources
+		if kind != "Pod" {
+			continue
+		}
+
+		var podYAML v1.Pod
+		if err := yaml.Unmarshal(document, &podYAML); err != nil {
+			return nil, fmt.Errorf("unable to read YAML as Kube Pod: %w", err)
+		}
+
+		for _, container := range podYAML.Spec.Containers {
+			buildFile, err := util.GetBuildFile(container.Image, contextDir)
+			if err != nil {
+				return nil, err
+			}
+
+			if len(buildFile) == 0 {
+				continue
+			}
+
+			// add the context directory of the container image to the tar
+			err = tb.Add(filepath.Dir(buildFile), container.Image)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// create a tmp directory
+	tmp, err := os.MkdirTemp(os.TempDir(), "kube")
+	if err != nil {
+		return nil, err
+	}
+
+	// create a tmp file for the yaml document
+	playYaml := filepath.Join(tmp, "play.yaml")
+	err = os.WriteFile(playYaml, yamlBytes, 0644)
+	if err != nil {
+		return nil, err
+	}
+
+	err = tb.Add(playYaml, "play.yaml")
+	if err != nil {
+		return nil, err
+	}
+
+	tarfile, err := tb.Build()
+	if err != nil {
+		logrus.Errorf("Cannot tar entries %v error: %v", contextDir, err)
+		return nil, err
+	}
+
+	return tarfile, nil
 }
 
 func Down(ctx context.Context, path string, options DownOptions) (*entitiesTypes.KubePlayReport, error) {

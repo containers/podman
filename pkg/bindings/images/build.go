@@ -16,6 +16,8 @@ import (
 	"strconv"
 	"strings"
 
+	util2 "github.com/containers/podman/v5/pkg/bindings/internal/util"
+
 	"github.com/containers/buildah/define"
 	imageTypes "github.com/containers/image/v5/types"
 	ldefine "github.com/containers/podman/v5/libpod/define"
@@ -34,11 +36,6 @@ import (
 	gzip "github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 )
-
-type devino struct {
-	Dev uint64
-	Ino uint64
-}
 
 var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)
 
@@ -726,7 +723,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 		defer pw.Close()
 		defer gw.Close()
 		defer tw.Close()
-		seen := make(map[devino]string)
+		seen := make(map[util2.Devino]string)
 		for i, src := range sources {
 			source, err := filepath.Abs(src)
 			if err != nil {
@@ -789,7 +786,7 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 					if err != nil {
 						return err
 					}
-					di, isHardLink := checkHardLink(info)
+					di, isHardLink := util2.CheckHardLink(info)
 					if err != nil {
 						return err
 					}
