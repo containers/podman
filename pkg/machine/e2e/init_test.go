@@ -79,6 +79,23 @@ var _ = Describe("podman machine init", func() {
 		Expect(badMemSession).To(Exit(125))
 	})
 
+	It("init volume check", func() {
+		skipIfWSL("WSL does not use volume mounts")
+		// Check that mounting to certain target directories like /tmp at the / level is NOT ok
+		tmpVol := initMachine{}
+		targetMount := "/tmp"
+		tmpVolSession, err := mb.setCmd(tmpVol.withVolume(fmt.Sprintf("/whatever:%s", targetMount))).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(tmpVolSession).To(Exit(125))
+		Expect(tmpVolSession.errorToString()).To(ContainSubstring(fmt.Sprintf("Error: machine mount destination cannot be %q: consider another location or a subdirectory of an existing location", targetMount)))
+
+		// Mounting to /tmp/foo (subdirectory) is OK
+		tmpSubdir := initMachine{}
+		tmpSubDirSession, err := mb.setCmd(tmpSubdir.withVolume("/whatever:/tmp/foo")).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(tmpSubDirSession).To(Exit(0))
+	})
+
 	It("simple init", func() {
 		i := new(initMachine)
 		session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
