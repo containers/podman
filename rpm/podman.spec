@@ -237,12 +237,10 @@ LDFLAGS="-X %{ld_libpod}/define.buildInfo=${SOURCE_DATE_EPOCH:-$(date +%s)} \
          -X %{ld_libpod}/config._etcDir=%{_sysconfdir} \
          -X %{ld_project}/pkg/systemd/quadlet._binDir=%{_bindir}"
 
-%if %{defined copr_build}
-# ##GIT_COMMIT## is set by `.packit.sh` in Packit's Copr RPM build jobs.
-# Has no effect on Koji builds.
-GIT_COMMIT="##GIT_COMMIT##"
+# This variable will be set by Packit actions. See .packit.yaml in the root dir
+# of the repo (upstream as well as Fedora dist-git).
+GIT_COMMIT=""
 LDFLAGS="$LDFLAGS -X %{ld_libpod}/define.gitCommit=$GIT_COMMIT"
-%endif
 
 # build rootlessport first
 %gobuild -o bin/rootlessport ./cmd/rootlessport
