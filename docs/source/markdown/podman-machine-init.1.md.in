@@ -149,6 +149,12 @@ options are:
 * **rw**: mount volume read/write (default)
 * **security_model=[model]**: specify 9p security model (see below)
 
+Note: The following destinations are forbidden for volumes: `/bin`, `/boot`, `/dev`, `/etc`,
+`/home`, `/proc`, `/root`, `/run`, `/sbin`, `/sys`, `/tmp`, `/usr`, and `/var`. Subdirectories
+of these destinations are allowed but users should be careful to not mount to important directories
+as unexpected results may occur.
+
+
 The 9p security model [determines] https://wiki.qemu.org/Documentation/9psetup#Starting_the_Guest_directly
 if and how the 9p filesystem translates some filesystem operations before
 actual storage on the host.

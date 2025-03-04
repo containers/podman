@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -116,6 +117,18 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 
 	if umn := opts.UserModeNetworking; umn != nil {
 		createOpts.UserModeNetworking = *umn
+	}
+
+	// Mounts
+	if mp.VMType() != machineDefine.WSLVirt {
+		mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
+	}
+
+	// Issue #18230 ... do not mount over important directories at the / level (subdirs are fine)
+	for _, mnt := range mc.Mounts {
+		if err := validateDestinationPaths(mnt.Target); err != nil {
+			return err
+		}
 	}
 
 	// Get Image
@@ -250,11 +263,6 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		Contents: ignition.StrToPtr(readyUnitFile),
 	}
 	ignBuilder.WithUnit(readyUnit)
-
-	// Mounts
-	if mp.VMType() != machineDefine.WSLVirt {
-		mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
-	}
 
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
 	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
@@ -773,4 +781,28 @@ func Reset(mps []vmconfigs.VMProvider, opts machine.ResetOptions) error {
 		}
 	}
 	return resetErrors.ErrorOrNil()
+}
+
+func validateDestinationPaths(dest string) error {
+	// illegalMounts are locations at the / level of the podman machine where we do want users mounting directly over
+	illegalMounts := map[string]struct{}{
+		"/bin":  {},
+		"/boot": {},
+		"/dev":  {},
+		"/etc":  {},
+		"/home": {},
+		"/proc": {},
+		"/root": {},
+		"/run":  {},
+		"/sbin": {},
+		"/sys":  {},
+		"/tmp":  {},
+		"/usr":  {},
+		"/var":  {},
+	}
+	mountTarget := path.Clean(dest)
+	if _, ok := illegalMounts[mountTarget]; ok {
+		return fmt.Errorf("machine mount destination cannot be %q: consider another location or a subdirectory of an existing location", mountTarget)
+	}
+	return nil
 }
