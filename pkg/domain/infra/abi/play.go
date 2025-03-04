@@ -1143,7 +1143,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 		}
 		for id, err := range podStartErrors {
 			playKubePod.ContainerErrors = append(playKubePod.ContainerErrors, fmt.Errorf("starting container %s: %w", id, err).Error())
-			fmt.Println(playKubePod.ContainerErrors)
 		}
 
 		// Wait for each proxy to receive a READY message. Use a wait
