@@ -499,4 +499,34 @@ function _check_health_log {
     run_podman rm -f -t0 $ctr
 }
 
+# https://github.com/containers/podman/issues/25034
+@test "podman healthcheck - start errors" {
+    skip_if_remote '$PATH overwrite not working via remote'
+    ctr1="c1-h-$(safename)"
+    ctr2="c2-h-$(safename)"
+
+    local systemd_run="$PODMAN_TMPDIR/systemd-run"
+    touch $systemd_run
+    chmod +x $systemd_run
+
+    # Set custom PATH to force our stub to be called instead of the real systemd-run.
+    PATH="$PODMAN_TMPDIR:$PATH" run_podman 126 run -d --name $ctr1 \
+           --health-cmd "true" $IMAGE /home/podman/pause
+    assert "$output" =~ "create healthcheck: failed to execute systemd-run: fork/exec $systemd_run: exec format error" "error on invalid systemd-run"
+
+    local systemd_run="$PODMAN_TMPDIR/systemd-run"
+    cat > $systemd_run <<EOF
+#!/bin/bash
+echo stdout
+echo stderr >&2
+exit 2
+EOF
+    PATH="$PODMAN_TMPDIR:$PATH" run_podman 126 run -d --name $ctr2 \
+           --health-cmd "true" $IMAGE /home/podman/pause
+    assert "$output" =~ "create healthcheck: systemd-run failed: exit status 2: output: stdout
+stderr" "systemd-run error message"
+
+    run_podman rm -f -t0 $ctr1 $ctr2
+}
+
 # vim: filetype=sh

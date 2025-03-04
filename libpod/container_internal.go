@@ -1144,7 +1144,7 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 			timer = c.config.StartupHealthCheckConfig.Interval.String()
 		}
 		if err := c.createTimer(timer, c.config.StartupHealthCheckConfig != nil); err != nil {
-			logrus.Error(err)
+			return fmt.Errorf("create healthcheck: %w", err)
 		}
 	}
 
@@ -1333,10 +1333,10 @@ func (c *Container) start() error {
 	// to update status in such case.
 	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
-			logrus.Error(err)
+			return fmt.Errorf("update healthcheck status: %w", err)
 		}
 		if err := c.startTimer(c.config.StartupHealthCheckConfig != nil); err != nil {
-			logrus.Error(err)
+			return fmt.Errorf("start healthcheck: %w", err)
 		}
 	}
 
@@ -1627,7 +1627,7 @@ func (c *Container) unpause() error {
 			timer = c.config.StartupHealthCheckConfig.Interval.String()
 		}
 		if err := c.createTimer(timer, isStartupHealthCheck); err != nil {
-			return err
+			return fmt.Errorf("create healthcheck: %w", err)
 		}
 	}
 
@@ -2895,7 +2895,9 @@ func (c *Container) resetHealthCheckTimers(noHealthCheck bool, changedTimer bool
 
 	if !isStartup {
 		if c.state.StartupHCPassed || c.config.StartupHealthCheckConfig == nil {
-			c.recreateHealthCheckTimer(context.Background(), false, false)
+			if err := c.recreateHealthCheckTimer(context.Background(), false, false); err != nil {
+				return err
+			}
 		}
 		return nil
 	}
@@ -2908,7 +2910,9 @@ func (c *Container) resetHealthCheckTimers(noHealthCheck bool, changedTimer bool
 			return err
 		}
 		if wasEnabledHealthCheck {
-			c.recreateHealthCheckTimer(context.Background(), true, true)
+			if err := c.recreateHealthCheckTimer(context.Background(), true, true); err != nil {
+				return err
+			}
 		}
 		return nil
 	}

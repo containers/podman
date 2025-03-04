@@ -126,9 +126,13 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		inStartPeriod = true
 		if hcErr != nil || exitCode != 0 {
 			hcResult = define.HealthCheckStartup
-			c.incrementStartupHCFailureCounter(ctx)
+			if err := c.incrementStartupHCFailureCounter(ctx); err != nil {
+				return define.HealthCheckInternalError, "", err
+			}
 		} else {
-			c.incrementStartupHCSuccessCounter(ctx)
+			if err := c.incrementStartupHCSuccessCounter(ctx); err != nil {
+				return define.HealthCheckInternalError, "", err
+			}
 		}
 	}
 
@@ -229,15 +233,15 @@ func checkHealthCheckCanBeRun(c *Container) (define.HealthCheckStatus, error) {
 // Can stop the startup HC and start the regular HC if the startup HC has enough
 // consecutive successes.
 // NOTE: The caller must lock and sync the container.
-func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
+func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) error {
 	// We don't have a startup HC, can't do anything
 	if c.config.StartupHealthCheckConfig == nil {
-		return
+		return nil
 	}
 
 	// Race: someone else got here first
 	if c.state.StartupHCPassed {
-		return
+		return nil
 	}
 
 	// Increment the success counter
@@ -256,27 +260,27 @@ func (c *Container) incrementStartupHCSuccessCounter(ctx context.Context) {
 	}
 
 	if err := c.save(); err != nil {
-		logrus.Errorf("Error saving container %s state: %v", c.ID(), err)
-		return
+		return err
 	}
 
-	if recreateTimer {
-		// This kills the process the healthcheck is running.
-		// Which happens to be us.
-		// So this has to be last - after this, systemd serves us a
-		// SIGTERM and we exit.
-		// Special case, via SIGTERM we exit(1) which means systemd logs a failure in the unit.
-		// We do not want this as the unit will be leaked on failure states unless "reset-failed"
-		// is called. Fundamentally this is expected so switch it to exit 0.
-		// NOTE: This is only safe while being called from "podman healthcheck run" which we know
-		// is the case here as we should not alter the exit code of another process that just
-		// happened to call this.
-		shutdown.SetExitCode(0)
-		c.recreateHealthCheckTimer(ctx, false, true)
+	if !recreateTimer {
+		return nil
 	}
+	// This kills the process the healthcheck is running.
+	// Which happens to be us.
+	// So this has to be last - after this, systemd serves us a
+	// SIGTERM and we exit.
+	// Special case, via SIGTERM we exit(1) which means systemd logs a failure in the unit.
+	// We do not want this as the unit will be leaked on failure states unless "reset-failed"
+	// is called. Fundamentally this is expected so switch it to exit 0.
+	// NOTE: This is only safe while being called from "podman healthcheck run" which we know
+	// is the case here as we should not alter the exit code of another process that just
+	// happened to call this.
+	shutdown.SetExitCode(0)
+	return c.recreateHealthCheckTimer(ctx, false, true)
 }
 
-func (c *Container) recreateHealthCheckTimer(ctx context.Context, isStartup bool, isStartupRemoved bool) {
+func (c *Container) recreateHealthCheckTimer(ctx context.Context, isStartup bool, isStartupRemoved bool) error {
 	logrus.Infof("Startup healthcheck for container %s passed, recreating timer", c.ID())
 
 	oldUnit := c.state.HCUnitName
@@ -287,31 +291,30 @@ func (c *Container) recreateHealthCheckTimer(ctx context.Context, isStartup bool
 	}
 
 	if err := c.createTimer(interval, isStartup); err != nil {
-		logrus.Errorf("Error recreating container %s (isStartup: %t) healthcheck: %v", c.ID(), isStartup, err)
-		return
+		return fmt.Errorf("recreating container %s (isStartup: %t) healthcheck: %v", c.ID(), isStartup, err)
 	}
 	if err := c.startTimer(isStartup); err != nil {
-		logrus.Errorf("Error restarting container %s (isStartup: %t) healthcheck timer: %v", c.ID(), isStartup, err)
+		return fmt.Errorf("restarting container %s (isStartup: %t) healthcheck timer: %v", c.ID(), isStartup, err)
 	}
 
 	if err := c.removeTransientFiles(ctx, isStartupRemoved, oldUnit); err != nil {
-		logrus.Errorf("Error removing container %s healthcheck: %v", c.ID(), err)
-		return
+		return fmt.Errorf("removing container %s healthcheck: %v", c.ID(), err)
 	}
+	return nil
 }
 
 // Increment the current startup healthcheck failure counter.
 // Can restart the container if the HC fails enough times consecutively.
 // NOTE: The caller must lock and sync the container.
-func (c *Container) incrementStartupHCFailureCounter(ctx context.Context) {
+func (c *Container) incrementStartupHCFailureCounter(ctx context.Context) error {
 	// We don't have a startup HC, can't do anything
 	if c.config.StartupHealthCheckConfig == nil {
-		return
+		return nil
 	}
 
 	// Race: someone else got here first
 	if c.state.StartupHCPassed {
-		return
+		return nil
 	}
 
 	c.state.StartupHCFailureCount++
@@ -322,14 +325,12 @@ func (c *Container) incrementStartupHCFailureCounter(ctx context.Context) {
 		logrus.Infof("Restarting container %s as startup healthcheck failed", c.ID())
 		// Restart the container
 		if err := c.restartWithTimeout(ctx, c.config.StopTimeout); err != nil {
-			logrus.Errorf("Error restarting container %s after healthcheck failure: %v", c.ID(), err)
+			return fmt.Errorf("restarting container %s after healthcheck failure: %v", c.ID(), err)
 		}
-		return
+		return nil
 	}
 
-	if err := c.save(); err != nil {
-		logrus.Errorf("Error saving container %s state: %v", c.ID(), err)
-	}
+	return c.save()
 }
 
 func newHealthCheckLog(start, end time.Time, exitCode int, log string) define.HealthCheckLog {
