@@ -24,15 +24,25 @@ type LoadOptions struct {
 
 // doLoadReference does the heavy lifting for LoadReference() and Load(),
 // without adding debug messages or handling defaults.
-func (r *Runtime) doLoadReference(ctx context.Context, ref types.ImageReference, options *LoadOptions) (images []string, transportName string, err error) {
+func (r *Runtime) doLoadReference(ctx context.Context, ref types.ImageReference, options *LoadOptions) (names []string, transportName string, err error) {
 	transportName = ref.Transport().Name()
+	var images []*Image
 	switch transportName {
 	case dockerArchiveTransport.Transport.Name():
-		images, err = r.loadMultiImageDockerArchive(ctx, ref, &options.CopyOptions)
+		names, err = r.loadMultiImageDockerArchive(ctx, ref, &options.CopyOptions)
 	default:
 		images, err = r.copyFromDefault(ctx, ref, &options.CopyOptions)
+		for _, img := range images {
+			if len(img.Names()) > 0 {
+				names = append(names, img.Names()...)
+			} else {
+				// If no name is specified for this image
+				// then return its ID()
+				names = append(names, "sha256:"+img.ID())
+			}
+		}
 	}
-	return images, ref.Transport().Name(), err
+	return names, ref.Transport().Name(), err
 }
 
 // LoadReference loads one or more images from the specified location.
@@ -142,7 +152,21 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	// should.
 	path := ref.StringWithinTransport()
 	if err := fileutils.Exists(path); err != nil {
-		return r.copyFromDockerArchive(ctx, ref, options)
+		images, err := r.copyFromDockerArchive(ctx, ref, options)
+		if err != nil {
+			return nil, err
+		}
+		names := []string{}
+		for _, img := range images {
+			if len(img.Names()) > 0 {
+				names = append(names, img.Names()...)
+			} else {
+				// If no name is specified for this image
+				// then return its ID()
+				names = append(names, "sha256:"+img.ID())
+			}
+		}
+		return names, nil
 	}
 
 	reader, err := dockerArchiveTransport.NewReader(r.systemContextCopy(), path)
@@ -163,13 +187,34 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	var copiedImages []string
 	for _, list := range refLists {
 		for _, listRef := range list {
-			names, err := r.copyFromDockerArchiveReaderReference(ctx, reader, listRef, options)
+			images, err := r.copyFromDockerArchiveReaderReference(ctx, reader, listRef, options)
 			if err != nil {
 				return nil, err
 			}
-			copiedImages = append(copiedImages, names...)
+			names := []string{}
+			for _, img := range images {
+				if len(img.Names()) > 0 {
+					names = append(names, img.Names()...)
+				} else {
+					// If no name is specified for this image
+					// then return its ID()
+					names = append(names, "sha256:"+img.ID())
+				}
+			}
+			for _, name := range names {
+				copiedImages = appendIfNotPresent(copiedImages, name)
+			}
 		}
 	}
 
 	return copiedImages, nil
+}
+
+func appendIfNotPresent(slice []string, element string) []string {
+	for _, v := range slice {
+		if v == element {
+			return slice // Element already exists, return unchanged slice
+		}
+	}
+	return append(slice, element) // Element not found, append it
 }
