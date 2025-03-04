@@ -459,7 +459,10 @@ func (obj JSONWebEncryption) Decrypt(decryptionKey interface{}) ([]byte, error) 
 		return nil, fmt.Errorf("go-jose/go-jose: unsupported crit header")
 	}
 
-	key := tryJWKS(decryptionKey, obj.Header)
+	key, err := tryJWKS(decryptionKey, obj.Header)
+	if err != nil {
+		return nil, err
+	}
 	decrypter, err := newDecrypter(key)
 	if err != nil {
 		return nil, err
@@ -529,7 +532,10 @@ func (obj JSONWebEncryption) DecryptMulti(decryptionKey interface{}) (int, Heade
 		return -1, Header{}, nil, fmt.Errorf("go-jose/go-jose: unsupported crit header")
 	}
 
-	key := tryJWKS(decryptionKey, obj.Header)
+	key, err := tryJWKS(decryptionKey, obj.Header)
+	if err != nil {
+		return -1, Header{}, nil, err
+	}
 	decrypter, err := newDecrypter(key)
 	if err != nil {
 		return -1, Header{}, nil, err
