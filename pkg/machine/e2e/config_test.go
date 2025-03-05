@@ -141,6 +141,7 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 		m.names = append(m.names, m.name)
 	}
 	m.cmd = mc.buildCmd(m)
+	m.stdin = nil
 	return m
 }
 
@@ -174,9 +175,6 @@ func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
 }
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
-	defer func() {
-		m.stdin = nil
-	}()
 	s, err := runWrapper(m.podmanBinary, m.cmd, m.stdin, m.timeout, true)
 	return s, err
 }
