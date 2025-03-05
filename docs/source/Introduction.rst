@@ -34,28 +34,42 @@ There’s an old saying that “nobody runs an operating system just to run an o
 
 Sometimes we can find a publicly available container image for the exact workload we’re looking for and it will already be packaged exactly how we want. But, more often than not, there’s something that we want to add, remove, or customize. It can be as simple as a configuration setting for security or performance, or as complex as adding a complex workload. Either way, containers make it fairly easy to make the changes we need.
 
-Container Images aren’t actually images, they’re repositories often made up of multiple layers. These layers can easily be added, saved, and shared with others by using a Containerfile (Dockerfile). This single file often contains all the instructions needed to build a new container image and can easily be shared with others publicly using tools like GitHub.
+Container Images aren’t actually images. They are repositories often made up of multiple layers. These layers can easily be added, saved, and shared with others by using a Containerfile (Dockerfile). This single file often contains all the instructions needed to build a new container image and can easily be shared with others publicly using tools like GitHub.
 
-Here's an example of how to build a Nginx web server on top of a Debian base image using the Dockerfile maintained by Nginx and published in GitHub::
+Here's an example of how to build a build a container image from content that resides in a git repository:
 
-    podman build -t nginx https://git.io/Jf8ol
-
+    podman build -t hello https://github.com/containers/PodmanHello.git
 Once, the image build completes, it’s easy to run the new image from our local cache::
 
-    podman run -d -p 8080:80 nginx
-    curl localhost:8080
+    podman run -it hello
 
 Output::
+    !... Hello Podman World ...!
 
-    ...
-    <p><em>Thank you for using nginx.</em></p>
+         .--"--.
+       / -     - \
+      / (O)   (O) \
+   ~~~| -=(,Y,)=- |
+    .---. /`  \   |~~
+ ~/  o  o \~~~~.----. ~~
+  | =(X)= |~  / (O (O) \
+   ~~~~~~~  ~| =(Y_)=-  |
+  ~~~~    ~~~|   U      |~~
+
+Project:   https://github.com/containers/podman
+Website:   https://podman.io
+Desktop:   https://podman-desktop.io
+Documents: https://docs.podman.io
+YouTube:   https://youtube.com/@Podman
+X/Twitter: @Podman_io
+Mastodon:  @Podman_io@fosstodon.org
     ...
 
-Building new images is great, but sharing our work with others lets them review our work, critique how we built them, and offer improved versions. Our newly built Nginx image can be published at quay.io or docker.io to share it with the world. Everything needed to run the Nginx application is provided in the container image. Others can easily pull it down and use it, or make improvements to it.
+Building new images is great, but sharing our work with others lets them review our work, critique how we built them, and offer improved versions. Our newly built `hello` image can be published at quay.io or docker.io to share it with the world. Everything needed to run the `hello` application is provided in the container image. Others can easily pull it down and use it, or make improvements to it.
 
 Standardizing on container images and `Container Registries`_ enable a new level of collaboration through simple consumption. This simple consumption model is possible because every major Container Engine and Registry Server uses the Open Containers Initiative (OCI_) format. This allows users to find, run, build, share and deploy containers anywhere they want. Podman and other `Container Engines`_ like CRI-O, Docker, or containerd can create and consume container images from docker.io, quay.io, an on premise registry or even one provided by a cloud provider. The OCI image format facilitates this ecosystem through a single standard.
 
-For example, if we wanted to share our newly built Nginx container image on quay.io it’s easy. First log in to quay::
+For example, if we wanted to share our newly built `hello` container image on quay.io it’s easy. First log in to quay::
 
     podman login quay.io
 Input::
@@ -66,36 +80,31 @@ Input::
 
 Next, tag the image so that we can push it into our user account::
 
-    podman tag localhost/nginx quay.io/USERNAME/nginx
+    podman tag localhost/hello quay.io/USERNAME/hello
 
 Finally, push the image::
 
-    podman push quay.io/USERNAME/nginx
+    podman push quay.io/USERNAME/hello
 
 Output::
 
     Getting image source signatures
-    Copying blob 38c40d6c2c85 done
-    Copying blob fee76a531659 done
-    Copying blob c2adabaecedb done
-    Copying config 7f3589c0b8 done
+    Copying blob bf62b9b17289 done   |
+    Copying config 17a4bf5a30 done   |
     Writing manifest to image destination
-    Copying config 7f3589c0b8 done
-    Writing manifest to image destination
-    Storing signatures
 
-Notice that we pushed four layers to our registry and now it’s available for others to share. Take a quick look::
+Notice that we pushed one layer to our registry and now it’s available for others to share. Take a quick look::
 
-    podman inspect quay.io/USERNAME/nginx
+    podman inspect quay.io/USERNAME/hello
 
 Output::
 
     [
         {
-            "Id": "7f3589c0b8849a9e1ff52ceb0fcea2390e2731db9d1a7358c2f5fad216a48263",
-            "Digest": "sha256:7822b5ba4c2eaabdd0ff3812277cfafa8a25527d1e234be028ed381a43ad5498",
+            "Id": "17a4bf5a301a374771ac66dd09c33d1d765af5265d20d6b4da7ac578381efd87",
+            "Digest": "sha256:ee693991b0c8c8c12dfe0e90c25db1b73867e672478fd7a187a2fae31f72531a",
             "RepoTags": [
-                "quay.io/USERNAME/nginx:latest",
+                "quay.io/USERNAME/hello:latest",
     ...
 
 To summarize, Podman makes it easy to find, run, build and share containers.
