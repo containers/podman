@@ -345,10 +345,15 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 		isStdin = true
 	}
 
-	// Make sure that host path exists.
-	hostInfo, err := copy.ResolveHostPath(hostPath)
-	if err != nil {
-		return fmt.Errorf("%q could not be found on the host: %w", hostPath, err)
+	hostInfo := &copy.FileInfo{}
+	var err error
+
+	if !isStdin {
+		// Make sure that host path exists if not copying from stdin.
+		hostInfo, err = copy.ResolveHostPath(hostPath)
+		if err != nil {
+			return fmt.Errorf("%q could not be found on the host: %w", hostPath, err)
+		}
 	}
 
 	containerBaseName, containerInfo, containerResolvedToParentDir, err := resolvePathOnDestinationContainer(container, containerPath, isStdin)
