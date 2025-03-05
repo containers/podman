@@ -1,6 +1,8 @@
 package e2e_test
 
 import (
+	"archive/tar"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -252,6 +254,62 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(run).To(Exit(0))
 		Expect(build.outputToString()).To(ContainSubstring(name))
+	})
+
+	It("Copy ops", func() {
+		var (
+			stdinDirectory = "stdin-dir"
+			stdinFile      = "file.txt"
+		)
+
+		now := time.Now()
+
+		tarBuffer := &bytes.Buffer{}
+		tw := tar.NewWriter(tarBuffer)
+
+		err := tw.WriteHeader(&tar.Header{
+			Name:       path.Join(stdinDirectory, stdinFile),
+			Mode:       0755,
+			Size:       0,
+			ModTime:    now,
+			ChangeTime: now,
+			AccessTime: now,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tw.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+		imgs, err := mb.setCmd(bm.withPodmanCommand([]string{"images", "-q"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(imgs).To(Exit(0))
+		Expect(imgs.outputToStringSlice()).To(BeEmpty())
+
+		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", "quay.io/libpod/alpine_nginx"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newImgs).To(Exit(0))
+		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
+
+		createAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"create", "quay.io/libpod/alpine_nginx", "ls", "/tmp/stdin-dir"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(createAlp).To(Exit(0))
+		Expect(createAlp.outputToStringSlice()).To(HaveLen(1))
+
+		containerId := createAlp.outputToStringSlice()[0]
+		cpTar, err := mb.setCmd(bm.withPodmanCommand([]string{"cp", "-", containerId + ":/tmp"})).setStdin(tarBuffer).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cpTar).To(Exit(0))
+
+		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"start", containerId})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
 	})
 })
 

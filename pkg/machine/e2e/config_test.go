@@ -1,6 +1,7 @@
 package e2e_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -44,6 +45,7 @@ type machineSession struct {
 
 type machineTestBuilder struct {
 	cmd          []string
+	stdin        *bytes.Buffer
 	imagePath    string
 	name         string
 	names        []string
@@ -142,6 +144,12 @@ func (m *machineTestBuilder) setCmd(mc machineCommand) *machineTestBuilder {
 	return m
 }
 
+// setStdin sets the stdin for the next command to be run
+func (m *machineTestBuilder) setStdin(data *bytes.Buffer) *machineTestBuilder {
+	m.stdin = data
+	return m
+}
+
 func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuilder { //nolint: unparam
 	m.timeout = timeout
 	return m
@@ -152,7 +160,7 @@ func (m *machineTestBuilder) setTimeout(timeout time.Duration) *machineTestBuild
 func (m *machineTestBuilder) toQemuInspectInfo() ([]machine.InspectInfo, int, error) {
 	args := []string{"machine", "inspect"}
 	args = append(args, m.names...)
-	session, err := runWrapper(m.podmanBinary, args, defaultTimeout, true)
+	session, err := runWrapper(m.podmanBinary, args, nil, defaultTimeout, true)
 	if err != nil {
 		return nil, -1, err
 	}
@@ -162,20 +170,27 @@ func (m *machineTestBuilder) toQemuInspectInfo() ([]machine.InspectInfo, int, er
 }
 
 func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
-	return runWrapper(m.podmanBinary, m.cmd, m.timeout, false)
+	return runWrapper(m.podmanBinary, m.cmd, m.stdin, m.timeout, false)
 }
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
-	s, err := runWrapper(m.podmanBinary, m.cmd, m.timeout, true)
+	defer func() {
+		m.stdin = nil
+	}()
+	s, err := runWrapper(m.podmanBinary, m.cmd, m.stdin, m.timeout, true)
 	return s, err
 }
 
-func runWrapper(podmanBinary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
+func runWrapper(podmanBinary string, cmdArgs []string, stdinData *bytes.Buffer, timeout time.Duration, wait bool) (*machineSession, error) {
 	if len(os.Getenv("DEBUG")) > 0 {
 		cmdArgs = append([]string{"--log-level=debug"}, cmdArgs...)
 	}
 	GinkgoWriter.Println(podmanBinary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(podmanBinary, cmdArgs...)
+	if stdinData != nil {
+		c.Stdin = stdinData
+	}
+
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
 	if err != nil {
 		Fail(fmt.Sprintf("Unable to start session: %q", err))
