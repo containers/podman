@@ -47,6 +47,10 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 	if storePath == "" {
 		return nil, errors.New("store path cannot be empty")
 	}
+	if !filepath.IsAbs(storePath) {
+		return nil, fmt.Errorf("store path %q must be absolute", storePath)
+	}
+
 	logrus.Debugf("Using artifact store path: %s", storePath)
 
 	artifactStore := &ArtifactStore{
@@ -312,23 +316,22 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	return &artifactManifestDigest, nil
 }
 
-// Inspect an artifact in a local store
-func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
+func getArtifactAndImageSource(ctx context.Context, as ArtifactStore, nameOrDigest string, options *libartTypes.FilterBlobOptions) (*libartifact.Artifact, types.ImageSource, error) {
 	if len(options.Digest) > 0 && len(options.Title) > 0 {
-		return errors.New("cannot specify both digest and title")
+		return nil, nil, errors.New("cannot specify both digest and title")
 	}
 	if len(nameOrDigest) == 0 {
-		return ErrEmptyArtifactName
+		return nil, nil, ErrEmptyArtifactName
 	}
 
 	artifacts, err := as.getArtifacts(ctx, nil)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	arty, nameIsDigest, err := artifacts.GetByNameOrDigest(nameOrDigest)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	name := nameOrDigest
 	if nameIsDigest {
@@ -336,14 +339,70 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 	}
 
 	if len(arty.Manifest.Layers) == 0 {
-		return fmt.Errorf("the artifact has no blobs, nothing to extract")
+		return nil, nil, fmt.Errorf("the artifact has no blobs, nothing to extract")
 	}
 
 	ir, err := layout.NewReference(as.storePath, name)
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 	imgSrc, err := ir.NewImageSource(ctx, as.SystemContext)
+	return arty, imgSrc, err
+}
+
+// BlobMountPaths allows the caller to access the file names from the store and how they should be mounted.
+func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string, options *libartTypes.BlobMountPathOptions) ([]libartTypes.BlobMountPath, error) {
+	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
+	if err != nil {
+		return nil, err
+	}
+	defer imgSrc.Close()
+
+	if len(options.Digest) > 0 || len(options.Title) > 0 {
+		digest, err := findDigest(arty, &options.FilterBlobOptions)
+		if err != nil {
+			return nil, err
+		}
+		// In case the digest is set we always use it as target name
+		// so we do not have to get the actual title annotation form the blob.
+		// Passing options.Title is enough because we know it is empty when digest
+		// is set as we only allow either one.
+		filename, err := generateArtifactBlobName(options.Title, digest)
+		if err != nil {
+			return nil, err
+		}
+		path, err := layout.GetLocalBlobPath(ctx, imgSrc, digest)
+		if err != nil {
+			return nil, err
+		}
+		return []libartTypes.BlobMountPath{{
+			SourcePath: path,
+			Name:       filename,
+		}}, nil
+	}
+
+	mountPaths := make([]libartTypes.BlobMountPath, 0, len(arty.Manifest.Layers))
+	for _, l := range arty.Manifest.Layers {
+		title := l.Annotations[specV1.AnnotationTitle]
+		filename, err := generateArtifactBlobName(title, l.Digest)
+		if err != nil {
+			return nil, err
+		}
+		path, err := layout.GetLocalBlobPath(ctx, imgSrc, l.Digest)
+		if err != nil {
+			return nil, err
+		}
+		mountPaths = append(mountPaths, libartTypes.BlobMountPath{
+			SourcePath: path,
+			Name:       filename,
+		})
+	}
+	return mountPaths, nil
+}
+
+// Extract an artifact to local file or directory
+func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
+	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)
 	if err != nil {
 		return err
 	}
@@ -364,7 +423,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 			if len(options.Digest) == 0 && len(options.Title) == 0 {
 				return fmt.Errorf("the artifact consists of several blobs and the target %q is not a directory and neither digest or title was specified to only copy a single blob", target)
 			}
-			digest, err = findDigest(arty, options)
+			digest, err = findDigest(arty, &options.FilterBlobOptions)
 			if err != nil {
 				return err
 			}
@@ -376,7 +435,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 	}
 
 	if len(options.Digest) > 0 || len(options.Title) > 0 {
-		digest, err := findDigest(arty, options)
+		digest, err := findDigest(arty, &options.FilterBlobOptions)
 		if err != nil {
 			return err
 		}
@@ -427,7 +486,7 @@ func generateArtifactBlobName(title string, digest digest.Digest) (string, error
 	return filename, nil
 }
 
-func findDigest(arty *libartifact.Artifact, options *libartTypes.ExtractOptions) (digest.Digest, error) {
+func findDigest(arty *libartifact.Artifact, options *libartTypes.FilterBlobOptions) (digest.Digest, error) {
 	var digest digest.Digest
 	for _, l := range arty.Manifest.Layers {
 		if options.Digest == l.Digest.String() {
