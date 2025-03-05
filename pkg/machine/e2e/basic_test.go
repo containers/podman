@@ -302,12 +302,12 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(createAlp).To(Exit(0))
 		Expect(createAlp.outputToStringSlice()).To(HaveLen(1))
 
-		containerId := createAlp.outputToStringSlice()[0]
-		cpTar, err := mb.setCmd(bm.withPodmanCommand([]string{"cp", "-", containerId + ":/tmp"})).setStdin(tarBuffer).run()
+		containerID := createAlp.outputToStringSlice()[0]
+		cpTar, err := mb.setCmd(bm.withPodmanCommand([]string{"cp", "-", containerID + ":/tmp"})).setStdin(tarBuffer).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cpTar).To(Exit(0))
 
-		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"start", containerId})).run()
+		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"start", containerID})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exec).To(Exit(0))
 	})
