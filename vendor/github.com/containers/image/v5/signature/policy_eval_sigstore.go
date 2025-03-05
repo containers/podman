@@ -97,11 +97,64 @@ func (f *prSigstoreSignedFulcio) prepareTrustRoot() (*fulcioTrustRoot, error) {
 	return &fulcio, nil
 }
 
+// prepareTrustRoot creates a pkiTrustRoot from the input data.
+// (This also prevents external implementations of this interface, ensuring that prSigstoreSignedPKI is the only one.)
+func (p *prSigstoreSignedPKI) prepareTrustRoot() (*pkiTrustRoot, error) {
+	caRootsCertPEMs, err := loadBytesFromConfigSources(configBytesSources{
+		inconsistencyErrorMessage: `Internal inconsistency: both "caRootsPath" and "caRootsData" specified`,
+		path:                      p.CARootsPath,
+		data:                      p.CARootsData,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(caRootsCertPEMs) != 1 {
+		return nil, errors.New(`Internal inconsistency: PKI specified with not exactly one of "caRootsPath" nor "caRootsData"`)
+	}
+	rootsCerts := x509.NewCertPool()
+	if ok := rootsCerts.AppendCertsFromPEM(caRootsCertPEMs[0]); !ok {
+		return nil, errors.New("error loading PKI CA Roots certificates")
+	}
+	pki := pkiTrustRoot{
+		caRootsCertificates: rootsCerts,
+		subjectEmail:        p.SubjectEmail,
+		subjectHostname:     p.SubjectHostname,
+	}
+	caIntermediateCertPEMs, err := loadBytesFromConfigSources(configBytesSources{
+		inconsistencyErrorMessage: `Internal inconsistency: both "caIntermediatesPath" and "caIntermediatesData" specified`,
+		path:                      p.CAIntermediatesPath,
+		data:                      p.CAIntermediatesData,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if caIntermediateCertPEMs != nil {
+		if len(caIntermediateCertPEMs) != 1 {
+			return nil, errors.New(`Internal inconsistency: PKI specified with invalid value from "caIntermediatesPath" or "caIntermediatesData"`)
+		}
+		intermediatePool := x509.NewCertPool()
+		trustedIntermediates, err := cryptoutils.UnmarshalCertificatesFromPEM(caIntermediateCertPEMs[0])
+		if err != nil {
+			return nil, internal.NewInvalidSignatureError(fmt.Sprintf("loading trusted intermediate certificates: %v", err))
+		}
+		for _, trustedIntermediateCert := range trustedIntermediates {
+			intermediatePool.AddCert(trustedIntermediateCert)
+		}
+		pki.caIntermediateCertificates = intermediatePool
+	}
+
+	if err := pki.validate(); err != nil {
+		return nil, err
+	}
+	return &pki, nil
+}
+
 // sigstoreSignedTrustRoot contains an already parsed version of the prSigstoreSigned policy
 type sigstoreSignedTrustRoot struct {
 	publicKeys      []crypto.PublicKey
 	fulcio          *fulcioTrustRoot
 	rekorPublicKeys []*ecdsa.PublicKey
+	pki             *pkiTrustRoot
 }
 
 func (pr *prSigstoreSigned) prepareTrustRoot() (*sigstoreSignedTrustRoot, error) {
@@ -166,6 +219,14 @@ func (pr *prSigstoreSigned) prepareTrustRoot() (*sigstoreSignedTrustRoot, error)
 		}
 	}
 
+	if pr.PKI != nil {
+		p, err := pr.PKI.prepareTrustRoot()
+		if err != nil {
+			return nil, err
+		}
+		res.pki = p
+	}
+
 	return &res, nil
 }
 
@@ -189,13 +250,23 @@ func (pr *prSigstoreSigned) isSignatureAccepted(ctx context.Context, image priva
 	}
 	untrustedPayload := sig.UntrustedPayload()
 
+	keySources := 0
+	if trustRoot.publicKeys != nil {
+		keySources++
+	}
+	if trustRoot.fulcio != nil {
+		keySources++
+	}
+	if trustRoot.pki != nil {
+		keySources++
+	}
+
 	var publicKeys []crypto.PublicKey
 	switch {
-	case trustRoot.publicKeys != nil && trustRoot.fulcio != nil: // newPRSigstoreSigned rejects such combinations.
-		return sarRejected, errors.New("Internal inconsistency: Both a public key and Fulcio CA specified")
-	case trustRoot.publicKeys == nil && trustRoot.fulcio == nil: // newPRSigstoreSigned rejects such combinations.
-		return sarRejected, errors.New("Internal inconsistency: Neither a public key nor a Fulcio CA specified")
-
+	case keySources > 1: // newPRSigstoreSigned rejects more than one key sources.
+		return sarRejected, errors.New("Internal inconsistency: More than one of public key, Fulcio, or PKI specified")
+	case keySources == 0: // newPRSigstoreSigned rejects empty key sources.
+		return sarRejected, errors.New("Internal inconsistency: A public key, Fulcio, or PKI must be specified.")
 	case trustRoot.publicKeys != nil:
 		if trustRoot.rekorPublicKeys != nil {
 			untrustedSET, ok := untrustedAnnotations[signature.SigstoreSETAnnotationKey]
@@ -250,6 +321,24 @@ func (pr *prSigstoreSigned) isSignatureAccepted(ctx context.Context, image priva
 		}
 		pk, err := verifyRekorFulcio(trustRoot.rekorPublicKeys, trustRoot.fulcio,
 			[]byte(untrustedSET), []byte(untrustedCert), untrustedIntermediateChainBytes, untrustedBase64Signature, untrustedPayload)
+		if err != nil {
+			return sarRejected, err
+		}
+		publicKeys = []crypto.PublicKey{pk}
+
+	case trustRoot.pki != nil:
+		if trustRoot.rekorPublicKeys != nil { // newPRSigstoreSigned rejects such combinations.
+			return sarRejected, errors.New("Internal inconsistency: PKI specified with a Rekor public key")
+		}
+		untrustedCert, ok := untrustedAnnotations[signature.SigstoreCertificateAnnotationKey]
+		if !ok {
+			return sarRejected, fmt.Errorf("missing %s annotation", signature.SigstoreCertificateAnnotationKey)
+		}
+		var untrustedIntermediateChainBytes []byte
+		if untrustedIntermediateChain, ok := untrustedAnnotations[signature.SigstoreIntermediateCertificateChainAnnotationKey]; ok {
+			untrustedIntermediateChainBytes = []byte(untrustedIntermediateChain)
+		}
+		pk, err := verifyPKI(trustRoot.pki, []byte(untrustedCert), untrustedIntermediateChainBytes)
 		if err != nil {
 			return sarRejected, err
 		}
