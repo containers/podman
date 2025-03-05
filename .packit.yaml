@@ -20,8 +20,8 @@ srpm_build_deps:
   - make
 
 actions:
-  fix-spec-file:
-    - "bash .packit.sh"
+  fix-spec-file: "bash .packit-copr-rpm.sh"
+  pre-sync: "bash .packit-rpm-git-commit.sh"
 
 jobs:
   - job: copr_build
