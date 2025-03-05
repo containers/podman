@@ -1,4 +1,4 @@
-name: Upload Windows Installer
+name: Upload Windows Installer [DEPRECATED]
 
 on:
   workflow_dispatch:

@@ -1,0 +1,326 @@
+name: Release
+on:
+  push:
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version to build and upload (e.g. "v9.8.7")'
+        required: true
+      buildonly:
+        description: 'Build only: Do not create release'
+        default: "true"  # 'choice' type requires string value
+        type: choice
+        options:
+          - "true"  # Must be quoted string, boolean value not supported.
+          - "false"
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+    - name: Determine Version
+      id: getversion
+      run: |
+        if [[ -z "${{ inputs.version }}" ]]
+        then
+              VERSION=${{ github.ref_name }}
+        else
+              VERSION=${{ inputs.version }}
+        fi
+        if ! grep -Eq 'v[0-9]+(\.[0-9]+(\.[0-9]+(-.+)?)?)?$' <<<"$VERSION"
+          then
+            echo "Unable to parse release version '$VERSION' from github event JSON, or workflow 'version' input."
+            exit 1
+          fi
+
+          if grep -Eq '.+-dev$' <<<"$VERSION"
+          then
+            echo "Refusing to process a "-dev" version '$VERSION'"
+            exit 1
+          fi
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "::notice::Building $VERSION"
+    - name: Determine release
+      id: buildonly
+      run: |
+        # The 'tag' trigger will not have a 'buildonly' input set. Handle
+        # this case in a readable/maintainable way.
+        if [[ -z "${{ inputs.buildonly }}" ]]
+        then
+          BUILDONLY=false
+        else
+          BUILDONLY=${{ inputs.buildonly }}
+        fi
+        echo "buildonly=$BUILDONLY" >> $GITHUB_OUTPUT
+        echo "::notice::This will be build-only: $BUILDONLY"
+    outputs:
+      version: ${{ steps.getversion.outputs.version }}
+      buildonly: ${{ steps.buildonly.outputs.buildonly }}
+
+  build-artifacts:
+    name: Build Artifacts
+    runs-on: ubuntu-latest
+    needs: check
+    steps:
+    - name: Checkout Version
+      uses: actions/checkout@v4
+      with:
+        ref: ${{needs.check.outputs.version}}
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+    - name: Set up pandoc
+      run: |
+          sudo apt-get install -y pandoc
+    - name: Build Artifacts
+      run: |
+          make release-artifacts
+    - name: Upload to Actions as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts
+        path: release/*
+
+  mac-pkg:
+    name: Build MacOS pkginstaller
+    needs: check
+    runs-on: macos-latest
+    env:
+      APPLICATION_CERTIFICATE: ${{ secrets.MACOS_APPLICATION_CERT }}
+      CODESIGN_IDENTITY: ${{ secrets.MACOS_APPLICATION_IDENTITY }}
+      INSTALLER_CERTIFICATE: ${{ secrets.MACOS_INSTALLER_CERT }}
+      PRODUCTSIGN_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
+      CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+
+      NOTARIZE_TEAM: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
+      NOTARIZE_USERNAME: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+      NOTARIZE_PASSWORD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
+
+      KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
+    steps:
+    - name: Checkout Version
+      uses: actions/checkout@v4
+      with:
+        ref: ${{needs.check.outputs.version}}
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+    - name: Create Keychain
+      run: |
+        echo $APPLICATION_CERTIFICATE | base64 --decode -o appcert.p12
+        echo $INSTALLER_CERTIFICATE | base64 --decode -o instcert.p12
+
+        security create-keychain -p "$KEYCHAIN_PWD" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "$KEYCHAIN_PWD" build.keychain
+        security import appcert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/codesign
+        security import instcert.p12 -k build.keychain -P "$CERTIFICATE_PWD" -T /usr/bin/productsign
+        security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PWD" build.keychain &> /dev/null
+
+        xcrun notarytool store-credentials "notarytool-profile" --apple-id "$NOTARIZE_USERNAME" --team-id "$NOTARIZE_TEAM" --password "$NOTARIZE_PASSWORD" &> /dev/null
+    - name: Build and Sign ARM
+      working-directory: contrib/pkginstaller
+      run: |
+        make ARCH=aarch64 notarize &> /dev/null
+    - name: Build and Sign AMD
+      working-directory: contrib/pkginstaller
+      run: |
+        make ARCH=amd64 notarize &> /dev/null
+    - name: Build and Sign Universal
+      working-directory: contrib/pkginstaller
+      run: |
+        make ARCH=universal notarize &> /dev/null
+    - name: Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: mac-installers
+        path: |
+          contrib/pkginstaller/out/podman-installer-macos-*.pkg
+
+  windows-installer:
+    name: Build Windows Installer
+    runs-on: windows-latest
+    needs: [check, build-artifacts]
+    env:
+      FETCH_BASE_URL: ${{ github.server_url }}/${{ github.repository }}
+    steps:
+    - name: Determine version
+      id: getversion
+      run: |
+        $version = "${{ needs.check.outputs.version }}"
+        if ($version[0] -eq "v") {
+              $version = $version.Substring(1)
+          }
+        Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+    - name: Checkout Podman
+      uses: actions/checkout@v4
+    - name: Download Windows zip artifact
+      uses: actions/download-artifact@v4
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: stable
+    - name: Set up WiX
+      run: dotnet tool install --global wix
+    - name: Setup Signature Tooling
+      run: |
+        dotnet tool install --global AzureSignTool --version 3.0.0
+        echo "CERT_NAME=${{secrets.AZ_CERT_NAME}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "VAULT_ID=${{secrets.AZ_VAULT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "APP_ID=${{secrets.AZ_APP_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "TENANT_ID=${{secrets.AZ_TENANT_ID}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+        echo "CLIENT_SECRET=${{secrets.AZ_CLIENT_SECRET}}" | Out-File -FilePath $env:GITHUB_ENV -Append
+    - name: Pandoc Setup
+      uses: r-lib/actions/setup-pandoc@v2
+      with:
+        pandoc-version: '3.1.11'
+    # Note: Windows assigns a UUID to the installer at build time, it's assumed
+    # by windows that one release version == one UUID (always).  Breaking this assumption
+    # has some rather nasty side-effects in windows, such as possibly breaking 'uninstall'
+    # functionality. We should avoid clobbering or re-building windows installers in most cases,
+    # For build-only, the .exe is saved in the workflow artifacts for a human
+    # to judge.
+    - name: Build
+      id: build
+      run: |
+        Push-Location contrib\win-installer
+        .\build.ps1 ${{steps.getversion.outputs.version}} prod ${{ github.workspace }}\release-artifacts
+        $code = $LASTEXITCODE
+        if ($code -eq 2) {
+          Write-Output "artifact-missing=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Pop-Location
+          Exit 0
+        }
+        Pop-Location
+        Exit $code
+    - name: Display structure of downloaded files
+      run: |
+        Push-Location contrib\win-installer
+        Get-ChildItem
+        Pop-Location
+    - name: Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: win-installer
+        path: |
+          .\contrib\win-installer\podman-${{steps.getversion.outputs.version}}-setup.exe
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: needs.check.outputs.buildonly == 'false'
+    needs: [check, build-artifacts, mac-pkg, windows-installer]
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{needs.check.outputs.version}}
+    steps:
+    - name: Checkout Version
+      uses: actions/checkout@v4
+      with:
+        ref: ${{needs.check.outputs.version}}
+    - name: Get release notes
+      run: |
+        ver="$(echo "$VERSION" | sed -e "s/^v//" -e "s/-rc.*//")"
+        releasenotes="$VERSION-release-notes.md"
+        awk -v ver=$ver '/^## / { if (p) { exit }; if ($2 == ver) { p=1; next } } p' RELEASE_NOTES.md > $releasenotes
+        if [[ -z $(grep '[^[:space:]]' $releasenotes) ]]; then
+          if [[ $VERSION != *-rc* ]]; then
+              echo "::notice:: Release does not have release notes"
+              exit 1
+          else
+          echo "This is a release candidate of Podman v$ver. Full release notes will be available with a later RC." > $releasenotes
+          fi
+        fi
+    - name: Display release notes
+      run: cat $VERSION-release-notes.md
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+    - name: Show artifacts
+      run: |
+        mv win-installer/* release-artifacts
+        mv mac-installers/* release-artifacts
+        pushd release-artifacts
+        sha256sum * > shasums
+        popd
+    - name: Create release
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        title=$VERSION
+        if [[ $VERSION == *-rc* ]]; then
+          RC="--prerelease"
+          title="${title/rc/"RC"}"
+        else
+          # check if this version should not be marked latest
+          prevrelease=$(curl --retry 3 --silent -m 10 --connect-timeout 5 "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          prevvers=$(echo "$prevrelease" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/' | sed -e "s/^v//")
+          vers=${VERSION#"v"}
+          echo "${prevvers},${vers}"
+          # sort -V -C returns 0 if args are ascending version order
+          if !(echo "${prevvers},${vers}" | tr ',' '\n' | sort -V -C)
+          then
+            LATEST="--latest=false"
+          fi
+        fi
+
+        gh release create $VERSION \
+            -t $title \
+            --notes-file $VERSION-release-notes.md \
+            --verify-tag \
+            $RC \
+            $LATEST \
+            release-artifacts/*
+
+  notification:
+    name: Email notification
+    runs-on: ubuntu-latest
+    needs: [check, release]
+    if: needs.check.outputs.buildonly == 'false'
+    steps:
+      - name: Format release email
+        id: format
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          if grep -Eq '.+-rc' <<<"$VERSION"
+          then
+            RC_PREFIX="candidate "
+          fi
+
+          echo "mail_subj=Podman ${RC_PREFIX}${VERSION} Released" >> $GITHUB_OUTPUT
+
+          cat <<EOF>email_body.txt
+          Hi all,
+
+          Podman ${RC_PREFIX}${VERSION} is now available.  You may view the full details at
+          https://github.com/${{ github.repository }}/releases/tag/$VERSION
+
+          Release ${RC_PREFIX}Notes:
+          --------------
+          EOF
+
+          echo ${{ secrets.GITHUB_TOKEN }} | gh auth login --with-token
+          gh release view $VERSION \
+            --repo ${{ github.repository }} --json=body --jq '.body' >> email_body.txt
+
+      # If job fails, permit operator to observe contents in case helpful.
+      - name: Provide release e-mail contents for examination
+        run: cat email_body.txt
+      - name: Send release notification e-mail
+        # Ref: https://github.com/dawidd6/action-send-mail
+        uses: dawidd6/action-send-mail@v3.12.0
+        with:
+          server_address: ${{secrets.ACTION_MAIL_SERVER}}
+          server_port: 465
+          username: ${{secrets.ACTION_MAIL_USERNAME}}
+          password: ${{secrets.ACTION_MAIL_PASSWORD}}
+          subject: ${{ steps.format.outputs.mail_subj }}
+          to: Podman List <podman@lists.podman.io>
+          from: ${{secrets.ACTION_MAIL_SENDER}}
+          body: file://./email_body.txt
