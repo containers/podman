@@ -363,6 +363,9 @@ and further complication of necessary corrective measures.  Most likely people
 are aware and working on this, but it doesn't hurt [to confirm and/or try and help
 if possible.](#communications).
 
+NOTE: Jobs triggered by Packit are not merge blockers and should be considered of secondary importance.
+Contributors and maintainers should feel free to ignore failure status on such jobs.
+
 ## Communications
 
 If you need help, you can contact the maintainers using the channels mentioned in Podman's [communications](https://github.com/containers/podman/blob/main/README.md#communications) document.
