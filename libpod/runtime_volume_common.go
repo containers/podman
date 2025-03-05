@@ -168,16 +168,11 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 		if err := idtools.SafeChown(volPathRoot, volume.config.UID, volume.config.GID); err != nil {
 			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", volPathRoot, volume.config.UID, volume.config.GID, err)
 		}
-		fullVolPath := filepath.Join(volPathRoot, "_data")
-		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
-			return nil, fmt.Errorf("creating volume directory %q: %w", fullVolPath, err)
-		}
-		if err := idtools.SafeChown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
-			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", fullVolPath, volume.config.UID, volume.config.GID, err)
-		}
-		if err := LabelVolumePath(fullVolPath, volume.config.MountLabel); err != nil {
-			return nil, err
-		}
+
+		// Setting quotas must happen *before* the _data inner directory
+		// is created, as the volume must be empty for the quota to be
+		// properly applied - if any subdirectories exist before the
+		// quota is applied, the quota will not be applied to them.
 		switch {
 		case volume.config.DisableQuota:
 			if volume.config.Size > 0 || volume.config.Inodes > 0 {
@@ -206,10 +201,20 @@ func (r *Runtime) newVolume(ctx context.Context, noCreatePluginVolume bool, opti
 			// subdirectory - so the quota ID assignment logic works
 			// properly.
 			if err := q.SetQuota(volPathRoot, quota); err != nil {
-				return nil, fmt.Errorf("failed to set size quota size=%d inodes=%d for volume directory %q: %w", volume.config.Size, volume.config.Inodes, fullVolPath, err)
+				return nil, fmt.Errorf("failed to set size quota size=%d inodes=%d for volume directory %q: %w", volume.config.Size, volume.config.Inodes, volPathRoot, err)
 			}
 		}
 
+		fullVolPath := filepath.Join(volPathRoot, "_data")
+		if err := os.MkdirAll(fullVolPath, 0755); err != nil {
+			return nil, fmt.Errorf("creating volume directory %q: %w", fullVolPath, err)
+		}
+		if err := idtools.SafeChown(fullVolPath, volume.config.UID, volume.config.GID); err != nil {
+			return nil, fmt.Errorf("chowning volume directory %q to %d:%d: %w", fullVolPath, volume.config.UID, volume.config.GID, err)
+		}
+		if err := LabelVolumePath(fullVolPath, volume.config.MountLabel); err != nil {
+			return nil, err
+		}
 		volume.config.MountPoint = fullVolPath
 	}
 
