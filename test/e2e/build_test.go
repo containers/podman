@@ -21,7 +21,7 @@ import (
 var _ = Describe("Podman build", func() {
 	// Let's first do the most simple build possible to make sure stuff is
 	// happy and then clean up after ourselves to make sure that works too.
-	It("podman build and remove basic alpine", func() {
+	It("podman build and remove basic alpine", Label("remote-spot-check"), func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
@@ -72,7 +72,7 @@ var _ = Describe("Podman build", func() {
 		}
 	})
 
-	It("podman build and remove basic alpine with TMPDIR as relative", func() {
+	It("podman build and remove basic alpine with TMPDIR as relative", Label("remote-spot-check"), func() {
 		// preserve TMPDIR if it was originally set
 		if cacheDir, found := os.LookupEnv("TMPDIR"); found {
 			defer os.Setenv("TMPDIR", cacheDir)
@@ -170,7 +170,7 @@ var _ = Describe("Podman build", func() {
 
 	// If the context directory is pointing at a file and not a directory,
 	// that's a no no, fail out.
-	It("podman build context directory a file", func() {
+	It("podman build context directory a file", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"build", "--pull=never", "build/context_dir_a_file"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, "context must be a directory:"))
