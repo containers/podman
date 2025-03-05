@@ -715,9 +715,6 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	}
 
 	p := specgen.NewPodSpecGenerator()
-	if err != nil {
-		return nil, nil, err
-	}
 
 	p, err = entities.ToPodSpecGen(*p, &podOpt)
 	if err != nil {
@@ -1632,7 +1629,7 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 	// If the error is not because the file does not exist, take
 	// a mulligan and try Dockerfile.  If that also fails, return that
 	// error
-	if err != nil && !os.IsNotExist(err) {
+	if !errors.Is(err, os.ErrNotExist) {
 		logrus.Error(err.Error())
 	}
 
@@ -1642,7 +1639,7 @@ func getBuildFile(imageName string, cwd string) (string, error) {
 		return dockerfilePath, nil
 	}
 	// Strike two
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return "", nil
 	}
 	return "", err
