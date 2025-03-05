@@ -474,6 +474,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 				Source:      v.Source,
 				Destination: v.Dest,
 				ReadWrite:   v.ReadWrite,
+				Options:     v.Options,
 			})
 		}
 	}
