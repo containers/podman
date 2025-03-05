@@ -145,6 +145,19 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(session).To(ExitWithError(125, fmt.Sprintf("%s: duplicate mount destination", dest)))
 	})
 
+	It("podman run with single character volume", func() {
+		// 1. create single character volume
+		session := podmanTest.Podman([]string{"volume", "create", "a"})
+		session.WaitWithDefaultTimeout()
+		volName := session.OutputToString()
+		Expect(session).Should(ExitCleanly())
+
+		// 2. create container with volume
+		session = podmanTest.Podman([]string{"run", "--volume", volName + ":/data", ALPINE, "sh", "-c", "echo hello world"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
 	It("podman run with conflict between image volume and user mount succeeds", func() {
 		err = podmanTest.RestoreArtifact(REDIS_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
