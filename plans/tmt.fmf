@@ -1,0 +1,21 @@
+summary: Run tmt container provision test (downstream only)
+
+enabled: false
+adjust+:
+    - enabled: true
+      when: initiator != packit and distro != rhel
+
+discover:
+    how: fmf
+    filter: 'tag:tmt & tag:downstream'
+
+execute:
+    how: tmt
+
+prepare:
+    - when: distro == centos-stream or distro == rhel
+      how: shell
+      script: |
+        dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm --eval '%{?rhel}').noarch.rpm
+        dnf -y config-manager --set-enabled epel
+      order: 10
