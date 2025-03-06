@@ -27,9 +27,9 @@ jobs:
   - job: copr_build
     trigger: pull_request
     packages: [podman-fedora]
-    notifications: &packit_build_failure_notification
+    notifications: &packit_generic_failure_notification
       failure_comment:
-        message: "Ephemeral COPR build failed. @containers/packit-build please check."
+        message: "[NON-BLOCKING] Packit jobs failed. @containers/packit-build please check. Everyone else, feel free to ignore."
     enable_net: true
     targets:
       - fedora-all-x86_64
@@ -38,7 +38,7 @@ jobs:
   - job: copr_build
     trigger: pull_request
     packages: [podman-eln]
-    notifications: *packit_build_failure_notification
+    notifications: *packit_generic_failure_notification
     enable_net: true
     targets:
       fedora-eln-x86_64:
@@ -51,7 +51,7 @@ jobs:
   - job: copr_build
     trigger: pull_request
     packages: [podman-centos]
-    notifications: *packit_build_failure_notification
+    notifications: *packit_generic_failure_notification
     enable_net: true
     targets:
       - centos-stream-9-x86_64
