@@ -771,6 +771,12 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 						// This allows callers to actually wait for the ctr to be removed.
 						if wantedStates[define.ContainerStateRemoving] &&
 							(errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
+							// check if the exit code was recorded in the db to return it
+							exitCode, err := c.runtime.state.GetContainerExitCode(c.ID())
+							if err == nil {
+								trySend(exitCode, nil)
+							}
+
 							trySend(-1, nil)
 							return
 						}
