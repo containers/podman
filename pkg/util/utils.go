@@ -428,20 +428,6 @@ func parseTriple(spec []string, parentMapping []ruser.IDMap, mapSetting string) 
 	return mappings, flags, nil
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 // Remove any conflicting mapping from mapping present in extension, so
 // extension can be appended to mapping without conflicts.
 // Returns the resulting mapping, with extension appended to it.
