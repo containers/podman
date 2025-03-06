@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no"?>
 <installer-script minSpecVersion="1.000000">
     <title>Podman __VERSION__</title>
-    <background mime-type="image/png" file="banner.png" scaling="proportional"/>
+    <background mime-type="image/svg+xml" file="banner.svg" scaling="proportional"/>
     <welcome file="welcome.html" mime-type="text/html" />
     <conclusion file="conclusion.html" mime-type="text/html" />
     <license file="LICENSE.txt"/>
