@@ -598,7 +598,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			if errors.Is(err, define.ErrNoSuchCtr) {
+			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 				// if the container is not valid at this point as it was deleted,
 				// check if the exit code was recorded in the db.
 				exitCode, err := c.runtime.state.GetContainerExitCode(id)
@@ -645,7 +645,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 
 	// we locked again so we must sync the state
 	if err := c.syncContainer(); err != nil {
-		if errors.Is(err, define.ErrNoSuchCtr) {
+		if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 			// if the container is not valid at this point as it was deleted,
 			// check if the exit code was recorded in the db.
 			exitCode, err := c.runtime.state.GetContainerExitCode(id)
