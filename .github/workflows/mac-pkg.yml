@@ -1,8 +1,6 @@
-name: Sign and Upload Mac Installer
+name: Sign and Upload Mac Installer [DEPRECATED]
 
 on:
-  release:
-    types: [created, published]
   workflow_dispatch:
     inputs:
       version:
