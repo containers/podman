@@ -6,7 +6,7 @@ ifeq ($(ARCH), aarch64)
 else
 	GOARCH:=$(ARCH)
 endif
-GVPROXY_VERSION ?= 0.8.3
+GVPROXY_VERSION ?= 0.8.4
 VFKIT_VERSION ?= 0.6.0
 KRUNKIT_VERSION ?= 0.1.4
 GVPROXY_RELEASE_URL ?= https://github.com/containers/gvisor-tap-vsock/releases/download/v$(GVPROXY_VERSION)/gvproxy-darwin
