@@ -205,7 +205,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		}
 
 		// Read the default manifest for the image.
-		manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
+		manifestBytes, manifestType, err := image.UnparsedInstance(src, nil).Manifest(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("reading default manifest from image %q: %w", transports.ImageName(ref), err)
 		}
@@ -261,7 +261,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		}
 
 		// Read the instance's manifest.
-		manifestBytes, manifestType, err := manifestToRead.src.GetManifest(ctx, manifestToRead.instance)
+		manifestBytes, manifestType, err := image.UnparsedInstance(manifestToRead.src, manifestToRead.instance).Manifest(ctx)
 		if err != nil {
 			// if errors.Is(err, storage.ErrImageUnknown) || errors.Is(err, os.ErrNotExist) {
 			// Trust that we either don't need it, or that it's in another reference.

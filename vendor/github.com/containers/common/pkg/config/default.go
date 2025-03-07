@@ -539,7 +539,7 @@ func (c *Config) NetNS() string {
 	return c.Containers.NetNS
 }
 
-func (c EngineConfig) EventsLogMaxSize() uint64 {
+func (c *EngineConfig) EventsLogMaxSize() uint64 {
 	return uint64(c.EventsLogFileMaxSize)
 }
 
