@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_netbsd.go
 
 //go:build netbsd && amd64
-// +build netbsd,amd64
 
 package sysconf
 

@@ -73,3 +73,26 @@ func GetPossible() (int, error) {
 func GetPresent() (int, error) {
 	return getPresent()
 }
+
+// ListOffline returns the list of offline CPUs. See [GetOffline] for details on
+// when a CPU is considered offline.
+func ListOffline() ([]int, error) {
+	return listOffline()
+}
+
+// ListOnline returns the list of CPUs that are online and being scheduled.
+func ListOnline() ([]int, error) {
+	return listOnline()
+}
+
+// ListPossible returns the list of possible CPUs. See [GetPossible] for
+// details on when a CPU is considered possible.
+func ListPossible() ([]int, error) {
+	return listPossible()
+}
+
+// ListPresent returns the list of present CPUs. See [GetPresent] for
+// details on when a CPU is considered present.
+func ListPresent() ([]int, error) {
+	return listPresent()
+}
