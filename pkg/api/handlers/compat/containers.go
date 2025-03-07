@@ -486,6 +486,10 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	}
 	sort.Strings(hc.Binds)
 
+	// Docker reports null instead of 0 for unset Swappiness
+	if *hc.MemorySwappiness == -1 {
+		hc.MemorySwappiness = nil
+	}
 	// k8s-file == json-file
 	if hc.LogConfig.Type == define.KubernetesLogging {
 		hc.LogConfig.Type = define.JSONLogging
