@@ -3,8 +3,11 @@
 package integration
 
 import (
+	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -19,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
@@ -427,6 +431,102 @@ add_compression = ["zstd"]`), 0o644)
 		Expect(session.OutputToString()).To(MatchJSON(encoded))
 	})
 
+	It("artifact", func() {
+		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// generate some random data
+		tmpData := make([]byte, 1024)
+		nRead, err := rand.Read(tmpData)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(nRead).To(Equal(len(tmpData)))
+		// put that random data into a file
+		tmpFile, err := os.CreateTemp(podmanTest.TmpDir, "artifact-test")
+		Expect(err).ToNot(HaveOccurred())
+		nCopied, err := io.Copy(tmpFile, bytes.NewReader(tmpData))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(int(nCopied)).To(Equal(len(tmpData)))
+		tmpFileName := tmpFile.Name()
+		err = tmpFile.Close()
+		Expect(err).ToNot(HaveOccurred())
+		configData := `{"key2":"value"}`
+		configFile, err := os.CreateTemp(podmanTest.TmpDir, "artifact-test")
+		Expect(err).ToNot(HaveOccurred())
+		nCopied, err = io.Copy(configFile, strings.NewReader(configData))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(int(nCopied)).To(Equal(len(configData)))
+		configFileName := configFile.Name()
+		err = configFile.Close()
+		Expect(err).ToNot(HaveOccurred())
+		// add that file to the list as an artifact
+		artifactType := "application/x-custom"
+		artifactConfigType := "text/json"
+		artifactLayerType := "text/plain"
+		session = podmanTest.Podman([]string{"manifest", "add", "foo", tmpFileName,
+			"--artifact",
+			"--artifact-type", artifactType,
+			"--artifact-annotation", "key1=value",
+			"--artifact-config", configFileName,
+			"--artifact-config-type", artifactConfigType,
+			"--artifact-layer-type", artifactLayerType,
+		})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// push the list to an OCI layout
+		layoutDir, err := os.MkdirTemp(podmanTest.TmpDir, "artifact-test")
+		Expect(err).ToNot(HaveOccurred())
+		session = podmanTest.Podman([]string{"manifest", "push", "-q", "foo", "oci:" + layoutDir})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// start following the breadcrumbs
+		var topIndex, builtIndex imgspecv1.Index
+		topIndexBytes, err := os.ReadFile(filepath.Join(layoutDir, "index.json"))
+		Expect(err).ToNot(HaveOccurred())
+		err = json.Unmarshal(topIndexBytes, &topIndex)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(topIndex.Manifests).To(HaveLen(1))
+		// only thing in the layout is the index we built
+		builtIndexDigest := topIndex.Manifests[0].Digest
+		builtIndexBytes, err := os.ReadFile(filepath.Join(layoutDir, "blobs", builtIndexDigest.Algorithm().String(), builtIndexDigest.Encoded()))
+		Expect(err).ToNot(HaveOccurred())
+		err = json.Unmarshal(builtIndexBytes, &builtIndex)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(builtIndex.Manifests).To(HaveLen(1))
+		// only thing in the index is the artifact manifest we built
+		artifactManifestDigest := builtIndex.Manifests[0].Digest
+		artifactManifestBytes, err := os.ReadFile(filepath.Join(layoutDir, "blobs", artifactManifestDigest.Algorithm().String(), artifactManifestDigest.Encoded()))
+		Expect(err).ToNot(HaveOccurred())
+		// construct what we think we've been building
+		expected, err := json.Marshal(&imgspecv1.Manifest{
+			Versioned: imgspec.Versioned{
+				SchemaVersion: 2,
+			},
+			MediaType:    imgspecv1.MediaTypeImageManifest,
+			ArtifactType: artifactType,
+			Config: imgspecv1.Descriptor{
+				MediaType: artifactConfigType,
+				Digest:    digest.FromBytes([]byte(configData)),
+				Size:      int64(len(configData)),
+				Data:      []byte(configData),
+			},
+			Layers: []imgspecv1.Descriptor{
+				{
+					MediaType: artifactLayerType,
+					Digest:    digest.FromBytes(tmpData),
+					Size:      int64(len(tmpData)),
+					Annotations: map[string]string{
+						imgspecv1.AnnotationTitle: filepath.Base(tmpFileName),
+					},
+				},
+			},
+			Annotations: map[string]string{
+				"key1": "value",
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(artifactManifestBytes).To(MatchJSON(expected))
+	})
+
 	It("remove digest", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "foo"})
 		session.WaitWithDefaultTimeout()
@@ -450,8 +550,10 @@ add_compression = ["zstd"]`), 0o644)
 				ContainSubstring(imageListPPC64LEInstanceDigest),
 				ContainSubstring(imageListS390XInstanceDigest),
 				Not(
-					ContainSubstring(imageListARM64InstanceDigest)),
-			))
+					ContainSubstring(imageListARM64InstanceDigest),
+				),
+			),
+		)
 	})
 
 	It("remove not-found", func() {
