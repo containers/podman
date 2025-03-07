@@ -7,7 +7,11 @@ podman\-system\-df - Show podman disk usage
 **podman system df** [*options*]
 
 ## DESCRIPTION
-Show podman disk usage
+Show podman disk usage for images, containers and volumes.
+
+Note: The RECLAIMABLE size that is reported for images can be incorrect. It might
+report that it can reclaim more than a prune would actually free. This will happen
+if you are using different images that share some layers.
 
 ## OPTIONS
 #### **--format**=*format*
