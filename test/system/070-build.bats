@@ -6,7 +6,7 @@
 
 load helpers
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman build - basic test" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -35,6 +35,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman buildx - basic test" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -94,6 +95,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build test -f -" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -122,6 +124,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build - global runtime flags test" {
     skip_if_remote "--runtime-flag flag not supported for remote"
 
@@ -139,6 +142,7 @@ EOF
     is "$output" ".*invalidflag" "failed when passing undefined flags to the runtime"
 }
 
+# bats test_tags=ci:parallel
 @test "podman build - set runtime" {
     skip_if_remote "--runtime flag not supported for remote"
     # Test on the CLI and via containers.conf
@@ -171,6 +175,7 @@ EOF
 }
 
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6
+# bats test_tags=ci:parallel
 @test "podman build - cache (#3920)" {
     # Make an empty test directory, with a subdirectory used for tar
     tmpdir=$PODMAN_TMPDIR/build-test
@@ -215,6 +220,7 @@ EOF
     run_podman rmi -f $imgname $iid
 }
 
+# bats test_tags=ci:parallel
 @test "podman build test -f ./relative" {
     rand_filename=$(random_string 20)
     rand_content=$(random_string 50)
@@ -243,6 +249,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman parallel build should not race" {
     skip_if_remote "following test is not supported for remote clients"
 
@@ -275,6 +282,7 @@ EOF
     run_podman rmi $(seq --format "$imgbase-%02g" 1 $count)
 }
 
+# bats test_tags=ci:parallel
 @test "podman build - URLs" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -296,7 +304,7 @@ EOF
 }
 
 
-# bats test_tags=distro-integration
+# bats test_tags=distro-integration, ci:parallel
 @test "podman build - workdir, cmd, env, label" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -563,6 +571,7 @@ Labels.\"io.buildah.version\" | $buildah_version
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build - COPY with ignore" {
     local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
     mkdir -p $tmpdir/subdir{1,2}
@@ -652,6 +661,7 @@ EOF
 # Regression test for #9867 and #13529
 # Make sure that if you exclude everything in context dir, that
 # the Containerfile/Dockerfile in the context dir are used
+# bats test_tags=ci:parallel
 @test "podman build with ignore '*'" {
     local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
     mkdir -p $tmpdir
@@ -692,6 +702,7 @@ EOF
 }
 
 # Regression test for #20259
+# bats test_tags=ci:parallel
 @test "podman build with ignore '*' and containerfile outside of build context" {
     local tmpdir=$PODMAN_TMPDIR/build-test-$(random_string 10)
     mkdir -p $tmpdir
@@ -712,6 +723,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build - stdin test" {
     # Random workdir, and random string to verify build output
     workdir=/$(random_string 10)
@@ -734,6 +746,7 @@ EOF
 }
 
 # #8092 - podman build should not gobble stdin (Fixes: #8066)
+# bats test_tags=ci:parallel
 @test "podman build - does not gobble stdin that does not belong to it" {
     random1=random1-$(random_string 12)
     random2=random2-$(random_string 15)
@@ -791,6 +804,7 @@ a${random3}z"
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --layers test" {
     rand_content=$(random_string 50)
     tmpdir=$PODMAN_TMPDIR/build-test
@@ -838,7 +852,7 @@ EOF
 # Caveat lector: this test was mostly copy-pasted from buildah in #9275.
 # It's not entirely clear what it's testing, or if the 'mount' section is
 # necessary.
-# NOT PARALLELIZABLE because it pulls alpine and runs prune -f
+# FIXME: NOT PARALLELIZABLE because it pulls alpine and has prune -f
 @test "build with copy-from referencing the base image" {
   target="derived-$(safename)"
   target_mt="derived-mt-$(safename)"
@@ -900,6 +914,7 @@ EOF
   run_podman image prune -f
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --pull-never" {
     local tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -929,6 +944,7 @@ EOF
        "--pull-never fails with expected error message"
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --logfile test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -946,6 +962,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build check_label" {
     skip_if_no_selinux
     tmpdir=$PODMAN_TMPDIR/build-test
@@ -965,6 +982,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build check_seccomp_ulimits" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -988,11 +1006,13 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --authfile bogus test" {
     run_podman 125 build --authfile=/tmp/bogus - <<< "from scratch"
     is "$output" ".*/tmp/bogus: no such file or directory"
 }
 
+# bats test_tags=ci:parallel
 @test "podman build COPY hardlinks " {
     local build_dir=$PODMAN_TMPDIR/build-test
 
@@ -1034,6 +1054,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build -f test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     subdir=$tmpdir/subdir
@@ -1062,6 +1083,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build .dockerignore failure test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     subdir=$tmpdir/subdir
@@ -1081,6 +1103,7 @@ EOF
     is "$output" ".*Error: building at STEP \"COPY subdir ./\"" ".dockerignore was ignored"
 }
 
+# bats test_tags=ci:parallel
 @test "podman build .containerignore and .dockerignore test" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
@@ -1100,6 +1123,7 @@ EOF
     is "$output" ".*test1" "test1 should exists in the final image"
 }
 
+# bats test_tags=ci:parallel
 @test "podman build build context ownership" {
     tmpdir=$PODMAN_TMPDIR/build-test
     subdir=$tmpdir/subdir
@@ -1131,6 +1155,7 @@ EOF
     run_podman rmi $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build build context is a symlink to a directory" {
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir/target
@@ -1144,6 +1169,7 @@ EOF
     run_podman rmi $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --squash --squash-all should conflict" {
     echo FROM scratch > $PODMAN_TMPDIR/Dockerfile
 
@@ -1152,6 +1178,7 @@ EOF
     is "$output" "Error: cannot specify --squash-all with --squash" "--squash and --sqaush-all should conflict"
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --volumes-from conflict" {
     rand_content=$(random_string 50)
 
@@ -1176,6 +1203,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build empty context dir" {
     buildcontextdir=$PODMAN_TMPDIR/emptydir
     mkdir -p $buildcontextdir
@@ -1189,6 +1217,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
+# bats test_tags=ci:parallel
 @test "podman build --file=https" {
     imgname="b-$(safename)"
     run_podman build -t $imgname --file=https://raw.githubusercontent.com/containers/podman/main/test/build/from-scratch/Dockerfile $PODMAN_TMPDIR
@@ -1196,19 +1225,7 @@ EOF
     run_podman rmi -f $imgname
 }
 
-function teardown() {
-    # A timeout or other error in 'build' can leave behind stale images
-    # that podman can't even see and which will cascade into subsequent
-    # test failures. Try a last-ditch force-rm in cleanup, ignoring errors.
-    run_podman '?' rm -t 0 -a -f
-    run_podman '?' rmi -f b-$(safename)
-
-    # Many of the tests above leave interim layers behind. Clean them up.
-    run_podman '?' image prune -f
-
-    basic_teardown
-}
-
+# bats test_tags=ci:parallel
 @test "podman build --help defaults" {
     run_podman build --help
     assert "$output" =~ "--pull.*(default \"missing\")" "pull should default to missing"
