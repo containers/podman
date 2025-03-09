@@ -274,6 +274,11 @@ failed    | exited     | 17
     done < <(parse_table "$tests")
 }
 
+@test "inspect - HealthCheck Defaults" {
+    run_podman inspect --format '{{.Config.HealthMaxLogSize}}--{{.Config.HealthMaxLogCount}}--{{.Config.HealthLogDestination}}' myrunningcontainer
+    assert "$output" == "500--5--local" "HealthCheck Default values of Log size, count and destination"
+}
+
 @test "network - curl" {
     run -0 curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
     is "$output" "$RANDOM_STRING_1" "curl on running container"
