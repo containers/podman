@@ -136,6 +136,9 @@ EOF
         fi
     done
 
+    # If the image does not exists, the pull output will make the test below fail
+    _prefetch $IMAGE
+
     # Run 'stat' on all the files, plus /dev/null. Get path, file type,
     # number of links, major, and minor (see below for why). Do it all
     # in one go, to avoid multiple podman-runs
