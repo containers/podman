@@ -45,6 +45,8 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 		},
 		ContainerHealthCheckConfig: specgen.ContainerHealthCheckConfig{
 			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+			HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+			HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
 		},
 	}
 

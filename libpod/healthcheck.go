@@ -136,8 +136,8 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	}
 
 	eventLog := output.String()
-	if c.config.HealthMaxLogSize != 0 && len(eventLog) > int(c.config.HealthMaxLogSize) {
-		eventLog = eventLog[:c.config.HealthMaxLogSize]
+	if c.HealthCheckMaxLogSize() != 0 && len(eventLog) > int(c.HealthCheckMaxLogSize()) {
+		eventLog = eventLog[:c.HealthCheckMaxLogSize()]
 	}
 
 	if timeEnd.Sub(timeStart) > c.HealthCheckConfig().Timeout {
@@ -150,7 +150,7 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 
 	healthCheckResult, err := c.updateHealthCheckLog(hcl, inStartPeriod, isStartup)
 	if err != nil {
-		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.config.HealthLogDestination, c.ID(), err)
+		return hcResult, "", fmt.Errorf("unable to update health check log %s for %s: %w", c.getHealthCheckLogDestination(), c.ID(), err)
 	}
 
 	// Write HC event with appropriate status as the last thing before we
@@ -404,7 +404,7 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, inStartPerio
 		}
 	}
 	healthCheck.Log = append(healthCheck.Log, hcl)
-	if c.config.HealthMaxLogCount != 0 && len(healthCheck.Log) > int(c.config.HealthMaxLogCount) {
+	if c.HealthCheckMaxLogCount() != 0 && len(healthCheck.Log) > int(c.HealthCheckMaxLogCount()) {
 		healthCheck.Log = healthCheck.Log[1:]
 	}
 	return healthCheck, c.writeHealthCheckLog(healthCheck)
@@ -420,11 +420,11 @@ func (c *Container) witeToFileHealthCheckResults(path string, result define.Heal
 
 func (c *Container) getHealthCheckLogDestination() string {
 	var destination string
-	switch c.config.HealthLogDestination {
+	switch c.HealthCheckLogDestination() {
 	case define.DefaultHealthCheckLocalDestination, define.HealthCheckEventsLoggerDestination, "":
 		destination = filepath.Join(filepath.Dir(c.state.RunDir), "healthcheck.log")
 	default:
-		destination = filepath.Join(c.config.HealthLogDestination, c.ID()+"-healthcheck.log")
+		destination = filepath.Join(c.HealthCheckLogDestination(), c.ID()+"-healthcheck.log")
 	}
 	return destination
 }
