@@ -437,11 +437,11 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 
 	ctrConfig.HealthcheckOnFailureAction = c.config.HealthCheckOnFailureAction.String()
 
-	ctrConfig.HealthLogDestination = c.config.HealthLogDestination
+	ctrConfig.HealthLogDestination = c.HealthCheckLogDestination()
 
-	ctrConfig.HealthMaxLogCount = c.config.HealthMaxLogCount
+	ctrConfig.HealthMaxLogCount = c.HealthCheckMaxLogCount()
 
-	ctrConfig.HealthMaxLogSize = c.config.HealthMaxLogSize
+	ctrConfig.HealthMaxLogSize = c.HealthCheckMaxLogSize()
 
 	ctrConfig.CreateCommand = c.config.CreateCommand
 

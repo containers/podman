@@ -199,7 +199,10 @@ t GET    libpod/containers/${cid}/json 200 \
   .State.Running=false \
   .State.ExitCode=0 \
   .Config.Umask=0022 \
-  .Config.CreateCommand=null
+  .Config.CreateCommand=null \
+  .Config.HealthLogDestination=local \
+  .Config.HealthcheckMaxLogCount=5 \
+  .Config.HealthcheckMaxLogSize=500
 t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 CNAME=myfoo
