@@ -417,9 +417,6 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	s.Annotations[define.KubeHealthCheckAnnotation] = "true"
-	s.HealthLogDestination = define.DefaultHealthCheckLocalDestination
-	s.HealthMaxLogCount = define.DefaultHealthMaxLogCount
-	s.HealthMaxLogSize = define.DefaultHealthMaxLogSize
 
 	// Environment Variables
 	envs := map[string]string{}

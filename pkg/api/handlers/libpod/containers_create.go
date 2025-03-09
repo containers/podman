@@ -34,6 +34,10 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 	noHosts := conf.Containers.NoHosts
 	privileged := conf.Containers.Privileged
 
+	defaultHealthLogDestination := define.DefaultHealthCheckLocalDestination
+	defaultHealthLogCount := define.DefaultHealthMaxLogCount
+	defaultHealthLogSize := define.DefaultHealthMaxLogSize
+
 	// we have to set the default before we decode to make sure the correct default is set when the field is unset
 	sg := specgen.SpecGenerator{
 		ContainerNetworkConfig: specgen.ContainerNetworkConfig{
@@ -44,7 +48,9 @@ func CreateContainer(w http.ResponseWriter, r *http.Request) {
 			Privileged: &privileged,
 		},
 		ContainerHealthCheckConfig: specgen.ContainerHealthCheckConfig{
-			HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+			HealthLogDestination: &defaultHealthLogDestination,
+			HealthMaxLogCount:    &defaultHealthLogCount,
+			HealthMaxLogSize:     &defaultHealthLogSize,
 		},
 	}
 

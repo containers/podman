@@ -292,25 +292,31 @@ func (u *UpdateHealthCheckConfig) SetNewHealthCheckConfigTo(healthCheckOptions *
 	return changed
 }
 
-func GetValidHealthCheckDestination(destination string) (string, error) {
-	if destination == HealthCheckEventsLoggerDestination || destination == DefaultHealthCheckLocalDestination {
+func GetValidHealthCheckDestination(destination *string) (*string, error) {
+	if destination == nil {
+		defaultPath := DefaultHealthCheckLocalDestination
+		return &defaultPath, nil
+	}
+
+	if *destination == HealthCheckEventsLoggerDestination || *destination == DefaultHealthCheckLocalDestination {
 		return destination, nil
 	}
 
-	fileInfo, err := os.Stat(destination)
+	path := *destination
+	fileInfo, err := os.Stat(path)
 	if err != nil {
-		return "", fmt.Errorf("HealthCheck Log '%s' destination error: %w", destination, err)
+		return nil, fmt.Errorf("HealthCheck Log '%s' destination error: %w", path, err)
 	}
 	mode := fileInfo.Mode()
 	if !mode.IsDir() {
-		return "", fmt.Errorf("HealthCheck Log '%s' destination must be directory", destination)
+		return nil, fmt.Errorf("HealthCheck Log '%s' destination must be directory", path)
 	}
 
-	absPath, err := filepath.Abs(destination)
+	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return absPath, nil
+	return &absPath, nil
 }
 
 func (u *UpdateHealthCheckConfig) GetNewGlobalHealthCheck() (GlobalHealthCheckOptions, error) {
@@ -318,11 +324,11 @@ func (u *UpdateHealthCheckConfig) GetNewGlobalHealthCheck() (GlobalHealthCheckOp
 
 	healthLogDestination := u.HealthLogDestination
 	if u.HealthLogDestination != nil {
-		dest, err := GetValidHealthCheckDestination(*u.HealthLogDestination)
+		dest, err := GetValidHealthCheckDestination(u.HealthLogDestination)
 		if err != nil {
 			return GlobalHealthCheckOptions{}, err
 		}
-		healthLogDestination = &dest
+		healthLogDestination = dest
 	}
 	globalOptions.HealthLogDestination = healthLogDestination
 
