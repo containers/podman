@@ -118,3 +118,31 @@ func (l ListContainer) USERNS() string {
 func (l ListContainer) UTS() string {
 	return l.Namespaces.UTS
 }
+
+func (l ListContainer) Commands() []string {
+	return l.Command
+}
+
+func (l ListContainer) ContainerID() string {
+	return l.ID
+}
+
+func (l ListContainer) LabelsList() map[string]string {
+	return l.Labels
+}
+
+func (l ListContainer) NamesList() []string {
+	return l.Names
+}
+
+func (l ListContainer) ImageInfo() (string, string) {
+	return l.ImageID, l.Image
+}
+
+func (l ListContainer) CreatedTime() time.Time {
+	return l.Created
+}
+
+func (l ListContainer) StatusInfo() string {
+	return l.Status
+}
