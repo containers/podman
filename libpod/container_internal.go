@@ -2845,11 +2845,11 @@ func (c *Container) updateGlobalHealthCheckConfiguration(globalOptions define.Gl
 	}
 
 	if globalOptions.HealthMaxLogCount != nil {
-		c.config.HealthMaxLogCount = *globalOptions.HealthMaxLogCount
+		c.config.HealthMaxLogCount = globalOptions.HealthMaxLogCount
 	}
 
 	if globalOptions.HealthMaxLogSize != nil {
-		c.config.HealthMaxLogSize = *globalOptions.HealthMaxLogSize
+		c.config.HealthMaxLogSize = globalOptions.HealthMaxLogSize
 	}
 
 	if globalOptions.HealthLogDestination != nil {
@@ -2857,7 +2857,7 @@ func (c *Container) updateGlobalHealthCheckConfiguration(globalOptions define.Gl
 		if err != nil {
 			return err
 		}
-		c.config.HealthLogDestination = dest
+		c.config.HealthLogDestination = &dest
 	}
 
 	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {

@@ -1291,6 +1291,27 @@ func (c *Container) HealthCheckConfig() *manifest.Schema2HealthConfig {
 	return c.config.HealthCheckConfig
 }
 
+func (c *Container) HealthCheckLogDestination() string {
+	if c.config.HealthLogDestination == nil {
+		return define.DefaultHealthCheckLocalDestination
+	}
+	return *c.config.HealthLogDestination
+}
+
+func (c *Container) HealthCheckMaxLogCount() uint {
+	if c.config.HealthMaxLogCount == nil {
+		return define.DefaultHealthMaxLogCount
+	}
+	return *c.config.HealthMaxLogCount
+}
+
+func (c *Container) HealthCheckMaxLogSize() uint {
+	if c.config.HealthMaxLogSize == nil {
+		return define.DefaultHealthMaxLogSize
+	}
+	return *c.config.HealthMaxLogSize
+}
+
 // AutoRemove indicates whether the container will be removed after it is executed
 func (c *Container) AutoRemove() bool {
 	spec := c.config.Spec

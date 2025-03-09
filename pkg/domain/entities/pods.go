@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	commonFlag "github.com/containers/common/pkg/flag"
+	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
@@ -275,9 +276,12 @@ type ContainerCreateOptions struct {
 
 func NewInfraContainerCreateOptions() ContainerCreateOptions {
 	options := ContainerCreateOptions{
-		IsInfra:          true,
-		ImageVolume:      "anonymous",
-		MemorySwappiness: -1,
+		IsInfra:              true,
+		ImageVolume:          "anonymous",
+		MemorySwappiness:     -1,
+		HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+		HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+		HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
 	}
 	return options
 }

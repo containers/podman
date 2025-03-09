@@ -404,6 +404,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		s.Annotations[define.InspectAnnotationInit] = init
 	}
 
+	s.HealthLogDestination = define.DefaultHealthCheckLocalDestination
+	s.HealthMaxLogCount = define.DefaultHealthMaxLogCount
+	s.HealthMaxLogSize = define.DefaultHealthMaxLogSize
+
 	if publishAll, ok := opts.Annotations[define.InspectAnnotationPublishAll+"/"+opts.Container.Name]; ok {
 		if opts.IsInfra {
 			publishAllAsBool, err := strconv.ParseBool(publishAll)
@@ -417,9 +421,6 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	s.Annotations[define.KubeHealthCheckAnnotation] = "true"
-	s.HealthLogDestination = define.DefaultHealthCheckLocalDestination
-	s.HealthMaxLogCount = define.DefaultHealthMaxLogCount
-	s.HealthMaxLogSize = define.DefaultHealthMaxLogSize
 
 	// Environment Variables
 	envs := map[string]string{}
