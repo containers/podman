@@ -14,18 +14,20 @@ import (
 
 // ServiceInspectWithRaw returns the service information and the raw data.
 func (cli *Client) ServiceInspectWithRaw(ctx context.Context, serviceID string, opts types.ServiceInspectOptions) (swarm.Service, []byte, error) {
-	if serviceID == "" {
-		return swarm.Service{}, nil, objectNotFoundError{object: "service", id: serviceID}
-	}
-	query := url.Values{}
-	query.Set("insertDefaults", fmt.Sprintf("%v", opts.InsertDefaults))
-	serverResp, err := cli.get(ctx, "/services/"+serviceID, query, nil)
-	defer ensureReaderClosed(serverResp)
+	serviceID, err := trimID("service", serviceID)
 	if err != nil {
 		return swarm.Service{}, nil, err
 	}
 
-	body, err := io.ReadAll(serverResp.body)
+	query := url.Values{}
+	query.Set("insertDefaults", fmt.Sprintf("%v", opts.InsertDefaults))
+	resp, err := cli.get(ctx, "/services/"+serviceID, query, nil)
+	defer ensureReaderClosed(resp)
+	if err != nil {
+		return swarm.Service{}, nil, err
+	}
+
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return swarm.Service{}, nil, err
 	}
