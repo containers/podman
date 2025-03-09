@@ -110,4 +110,35 @@ var _ = Describe("podman system reset", Serial, func() {
 		session2.WaitWithDefaultTimeout()
 		Expect(session2).Should(ExitCleanly())
 	})
+
+	It("system reset - restart socket", func() {
+		SkipIfRemote("system reset not supported on podman --remote")
+		SkipIfNotActive("podman.socket", "podman.socket is not active")
+
+		// It is possible that other tests could remove podman.sock file
+		// so we need to restart the socket before running the test to ensure it exists
+		flags := []string{"restart", "podman.socket"}
+		if isRootless() {
+			flags = append([]string{"--user"}, flags...)
+		}
+
+		systemctlRestartSocket := StartSystemExec("systemctl", flags)
+		systemctlRestartSocket.WaitWithDefaultTimeout()
+		Expect(systemctlRestartSocket).Should(ExitCleanly())
+
+		session := podmanTest.PodmanExitCleanly("info", "--format", "{{.Host.RemoteSocket.Path}}")
+		socketPath := session.OutputToString()
+
+		curlBeforeReset := StartSystemExec("curl", []string{"-s", "--max-time", "3", "--unix-socket", socketPath, "http://localhost/libpod/_ping"})
+		curlBeforeReset.WaitWithDefaultTimeout()
+		Expect(curlBeforeReset).Should(ExitCleanly())
+		Expect(curlBeforeReset.OutputToString()).Should(Equal("OK"))
+
+		podmanTest.PodmanExitCleanly("system", "reset", "--force")
+
+		curlAfterReset := StartSystemExec("curl", []string{"-s", "--max-time", "3", "--unix-socket", socketPath, "http://localhost/libpod/_ping"})
+		curlAfterReset.WaitWithDefaultTimeout()
+		Expect(curlAfterReset).Should(ExitCleanly())
+		Expect(curlAfterReset.OutputToString()).Should(Equal("OK"))
+	})
 })

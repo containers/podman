@@ -12,6 +12,9 @@ import (
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
+	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/systemd"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -44,6 +47,18 @@ func init() {
 }
 
 func reset(cmd *cobra.Command, args []string) {
+	remoteSocket := &define.RemoteSocket{}
+	isLocalSocket := false
+	info, err := registry.ContainerEngine().Info(registry.Context())
+	if err != nil {
+		logrus.Error(err)
+	} else {
+		remoteSocket = info.Host.RemoteSocket
+		path := strings.TrimPrefix(remoteSocket.Path, "unix://")
+		err := fileutils.Exists(path)
+		isLocalSocket = err == nil
+	}
+
 	// Get all the external containers in use
 	listCtn, err := registry.ContainerEngine().ContainerListExternal(registry.Context())
 	if err != nil {
@@ -101,5 +116,29 @@ func reset(cmd *cobra.Command, args []string) {
 		logrus.Error(err)
 	}
 
+	// Restart podman.socket
+	if remoteSocket.Exists && isLocalSocket {
+		if err := resetPodmanSocket(); err != nil {
+			logrus.Error(err)
+		}
+	}
+
 	os.Exit(0)
+}
+
+func resetPodmanSocket() error {
+	conn, err := systemd.ConnectToDBUS()
+	if err != nil {
+		return fmt.Errorf("unable to get systemd connection to reset podman.socket: %w", err)
+	}
+	defer conn.Close()
+
+	ch := make(chan string)
+	if _, err := conn.RestartUnitContext(registry.Context(), "podman.socket", "replace", ch); err != nil {
+		return err
+	}
+	if msg := <-ch; msg != "done" {
+		return fmt.Errorf("expected %q but received %q", "done", msg)
+	}
+	return nil
 }
