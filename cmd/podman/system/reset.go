@@ -20,6 +20,7 @@ var (
 	systemResetDescription = `Reset podman storage back to default state
 
   All containers will be stopped and removed, and all images, volumes, networks and container content will be removed.
+  This command does not restart podman.service and podman.socket systemd units. You may need to manually restart it after running this command.
 `
 	systemResetCommand = &cobra.Command{
 		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},

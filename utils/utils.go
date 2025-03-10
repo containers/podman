@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -117,6 +118,27 @@ func GuardedRemoveAll(path string) error {
 		return fmt.Errorf("refusing to recursively delete `%s`", path)
 	}
 	return os.RemoveAll(path)
+}
+
+// RemoveFilesExcept removes all files in a directory except for the one specified
+// by excludeFile and will not delete certain catastrophic paths.
+func RemoveFilesExcept(path string, excludeFile string) error {
+	if path == "" || path == "/" {
+		return fmt.Errorf("refusing to recursively delete `%s`", path)
+	}
+
+	files, err := os.ReadDir(path)
+	if err != nil {
+		return err
+	}
+	for _, file := range files {
+		if file.Name() != excludeFile {
+			if err := os.RemoveAll(filepath.Join(path, file.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func ProgressBar(prefix string, size int64, onComplete string) (*mpb.Progress, *mpb.Bar) {

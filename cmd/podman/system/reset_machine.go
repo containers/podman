@@ -67,7 +67,7 @@ func resetMachine() error {
 		logrus.Errorf("unable to remove machine data dir %q: %q", dirs.DataDir.GetPath(), err)
 	}
 
-	if err := utils.GuardedRemoveAll(dirs.RuntimeDir.GetPath()); err != nil {
+	if err := utils.RemoveFilesExcept(dirs.RuntimeDir.GetPath(), "podman.sock"); err != nil {
 		logrus.Errorf("unable to remove machine runtime dir %q: %q", dirs.RuntimeDir.GetPath(), err)
 	}
 
