@@ -25,9 +25,9 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage"
-	docker "github.com/docker/docker/api/types"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerImage "github.com/docker/docker/api/types/image"
+	dockerStorage "github.com/docker/docker/api/types/storage"
 	"github.com/docker/go-connections/nat"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -371,7 +371,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		StopSignal:   info.Config.StopSignal,
 	}
 
-	rootfs := docker.RootFS{}
+	rootfs := dockerImage.RootFS{}
 	if info.RootFS != nil {
 		rootfs.Type = info.RootFS.Type
 		rootfs.Layers = make([]string, 0, len(info.RootFS.Layers))
@@ -380,7 +380,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		}
 	}
 
-	graphDriver := docker.GraphDriverData{
+	graphDriver := dockerStorage.DriverData{
 		Name: info.GraphDriver.Name,
 		Data: info.GraphDriver.Data,
 	}
@@ -389,7 +389,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 	cc.Hostname = info.ID[0:11] // short ID is the hostname
 	cc.Volumes = info.Config.Volumes
 
-	dockerImageInspect := docker.ImageInspect{
+	dockerImageInspect := dockerImage.InspectResponse{
 		Architecture:    info.Architecture,
 		Author:          info.Author,
 		Comment:         info.Comment,
@@ -410,7 +410,7 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		Variant:         "",
 		VirtualSize:     info.VirtualSize,
 	}
-	return &handlers.ImageInspect{ImageInspect: dockerImageInspect}, nil
+	return &handlers.ImageInspect{InspectResponse: dockerImageInspect}, nil
 }
 
 // portsToPortSet converts libpod's exposed ports to docker's structs

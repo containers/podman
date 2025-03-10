@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/volume"
 )
@@ -44,9 +45,9 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 		imgs[i] = &t
 	}
 
-	ctnrs := make([]*docker.Container, len(df.Containers))
+	ctnrs := make([]*container.Summary, len(df.Containers))
 	for i, o := range df.Containers {
-		t := docker.Container{
+		t := container.Summary{
 			ID:         o.ContainerID,
 			Names:      []string{o.Names},
 			Image:      o.Image,

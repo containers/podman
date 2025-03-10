@@ -169,6 +169,7 @@ loop: // break out of for/select infinite loop
 				report.Status = "Downloading"
 				report.Progress.Current = int64(e.Offset)
 				report.Progress.Total = e.Artifact.Size
+				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
 				report.ProgressMessage = report.Progress.String()
 			case types.ProgressEventSkipped:
 				report.Status = "Already exists"
@@ -193,6 +194,7 @@ loop: // break out of for/select infinite loop
 				report.Error = &jsonmessage.JSONError{
 					Message: msg,
 				}
+				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
 				report.ErrorMessage = msg
 			} else {
 				pulledImages := pullRes.images
@@ -205,6 +207,7 @@ loop: // break out of for/select infinite loop
 					report.Error = &jsonmessage.JSONError{
 						Message: msg,
 					}
+					//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
 					report.ErrorMessage = msg
 					writeStatusCode(http.StatusInternalServerError)
 				}
