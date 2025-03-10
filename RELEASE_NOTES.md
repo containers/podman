@@ -12,6 +12,11 @@
 ### API
 - Fixed a bug where the Compat DF endpoint did not correctly report total size of all images.
 
+### Misc
+- Updated Buildah to v1.39.2
+- Updated the containers/common library to v0.62.1
+- Updated the containers/image library to v5.34.1
+
 ## 5.4.0
 ### Features
 - A preview of Podman's support for OCI artifacts has been added through the `podman artifact` suite of commands, including `add`, `inspect`, `ls`, `pull`, `push`, and `rm`. This support is very early and not fully complete, and the command line interface for these tools has not been finalized. We welcome feedback on the new artifact experience through our issue tracker!
