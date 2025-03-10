@@ -2970,15 +2970,15 @@ func (c *Container) updateGlobalHealthCheckConfiguration(globalOptions define.Gl
 	}
 
 	if globalOptions.HealthMaxLogCount != nil {
-		c.config.HealthMaxLogCount = *globalOptions.HealthMaxLogCount
+		c.config.HealthMaxLogCount = globalOptions.HealthMaxLogCount
 	}
 
 	if globalOptions.HealthMaxLogSize != nil {
-		c.config.HealthMaxLogSize = *globalOptions.HealthMaxLogSize
+		c.config.HealthMaxLogSize = globalOptions.HealthMaxLogSize
 	}
 
 	if globalOptions.HealthLogDestination != nil {
-		dest, err := define.GetValidHealthCheckDestination(*globalOptions.HealthLogDestination)
+		dest, err := define.GetValidHealthCheckDestination(globalOptions.HealthLogDestination)
 		if err != nil {
 			return err
 		}

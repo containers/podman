@@ -1527,7 +1527,7 @@ func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption 
 }
 
 // WithHealthCheckLogDestination adds the healthLogDestination to the container config
-func WithHealthCheckLogDestination(destination string) CtrCreateOption {
+func WithHealthCheckLogDestination(destination *string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1542,7 +1542,7 @@ func WithHealthCheckLogDestination(destination string) CtrCreateOption {
 }
 
 // WithHealthCheckMaxLogCount adds the healthMaxLogCount to the container config
-func WithHealthCheckMaxLogCount(maxLogCount uint) CtrCreateOption {
+func WithHealthCheckMaxLogCount(maxLogCount *uint) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1553,7 +1553,7 @@ func WithHealthCheckMaxLogCount(maxLogCount uint) CtrCreateOption {
 }
 
 // WithHealthCheckMaxLogSize adds the healthMaxLogSize to the container config
-func WithHealthCheckMaxLogSize(maxLogSize uint) CtrCreateOption {
+func WithHealthCheckMaxLogSize(maxLogSize *uint) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized

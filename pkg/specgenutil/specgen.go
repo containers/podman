@@ -370,11 +370,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	s.HealthCheckOnFailureAction = onFailureAction
 
-	s.HealthLogDestination = c.HealthLogDestination
+	s.HealthLogDestination = &c.HealthLogDestination
 
-	s.HealthMaxLogCount = c.HealthMaxLogCount
+	s.HealthMaxLogCount = &c.HealthMaxLogCount
 
-	s.HealthMaxLogSize = c.HealthMaxLogSize
+	s.HealthMaxLogSize = &c.HealthMaxLogSize
 
 	if c.StartupHCCmd != "" {
 		if c.NoHealthCheck {
