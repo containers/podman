@@ -1,3 +1,5 @@
+//go:build !windows
+
 // most of these validate and parse functions have been taken from projectatomic/docker
 // and modified for cri-o
 package parse

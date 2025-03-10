@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"math"
+	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -827,6 +828,9 @@ func TestProcessOptions(t *testing.T) {
 }
 
 func TestGetRootlessPauseProcessPidPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Not implemented on Windows")
+	}
 	dir, err := GetRootlessPauseProcessPidPath()
 	assert.NoError(t, err)
 	assert.NotEqual(t, dir, "libpod/tmp/pause.pid")
