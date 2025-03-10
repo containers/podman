@@ -49,7 +49,7 @@ var _ = Describe("Podman attach", func() {
 		Expect(results).Should(ExitWithError(125, " attach` accepts at most one argument"))
 	})
 
-	It("podman attach to a running container", func() {
+	It("podman attach to a running container", Label("remote-spot-check"), func() {
 		podmanTest.PodmanExitCleanly("run", "-d", "--name", "test", CITEST_IMAGE, "/bin/sh", "-c", "while true; do echo test; sleep 1; done")
 
 		results := podmanTest.Podman([]string{"attach", "test"})
@@ -74,7 +74,7 @@ var _ = Describe("Podman attach", func() {
 		Expect(podmanTest.NumberOfContainersRunning()).To(Equal(2))
 	})
 
-	It("podman attach to a container with --sig-proxy set to false", func() {
+	It("podman attach to a container with --sig-proxy set to false", Label("remote-spot-check"), func() {
 		podmanTest.PodmanExitCleanly("run", "-d", "--name", "test", CITEST_IMAGE, "/bin/sh", "-c", "while true; do echo test; sleep 1; done")
 
 		results := podmanTest.Podman([]string{"attach", "--sig-proxy=false", "test"})

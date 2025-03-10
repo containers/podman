@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("Podman images", func() {
 
-	It("podman images", func() {
+	It("podman images", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -34,7 +34,7 @@ var _ = Describe("Podman images", func() {
 		Expect(session.OutputToStringArray()).To(ContainElement(HavePrefix("quay.io/libpod/busybox")))
 	})
 
-	It("podman images with multiple tags", func() {
+	It("podman images with multiple tags", Label("remote-spot-check"), func() {
 		// tag "docker.io/library/alpine:latest" to "foo:{a,b,c}"
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"tag", ALPINE, "foo:a", "foo:b", "foo:c"})
@@ -77,7 +77,7 @@ var _ = Describe("Podman images", func() {
 		Expect(session.OutputToString()).To(BeValidJSON())
 	})
 
-	It("podman images in JSON format", func() {
+	It("podman images in JSON format", Label("remote-spot-check"), func() {
 		session := podmanTest.Podman([]string{"images", "--format=json"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
