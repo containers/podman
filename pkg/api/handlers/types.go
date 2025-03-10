@@ -19,7 +19,7 @@ type AuthConfig struct {
 }
 
 type ImageInspect struct {
-	docker.ImageInspect
+	dockerImage.InspectResponse
 	// Container is for backwards compat but is basically unused
 	Container string
 }
