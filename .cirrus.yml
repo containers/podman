@@ -558,6 +558,44 @@ unit_test_task:
     always: *logs_artifacts
 
 
+unit_test_windows_task:
+    name: "Unit tests on Windows"
+    alias: unit_test_windows
+    # Docs: ./contrib/cirrus/CIModes.md (Cirrus Task contexts and runtime modes)
+    # only when: - main rules (see doc above); or
+    #            - unit test files are changed (contains a false positves such as test/e2e/
+    #              but that should not be an issue, it only runs when it doesn't have to)
+    #            - actual source code changed
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('winmake.ps1') ||
+        changesInclude('**/*_test.go') ||
+        (changesInclude('**/*.go', '**/*.c', '**/*.h') && !changesIncludeOnly('test/**', 'pkg/machine/e2e/**'))
+    # Special case, we do not run macos/windows builds on rhel branches.
+    # Thus the machine task should not be run too, while we use only_if
+    # everywhere to do so here it would mean we would need duplicate the
+    # full big only_if condition which is more difficult to maintain so
+    # use the skip here.
+    skip: &skip_rhel_release |
+        $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
+        $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
+    depends_on: *build
+    ec2_instance: *windows
+    timeout_in: 20m
+    env:
+         <<: *winenv
+         TEST_FLAVOR: unit
+    clone_script: *winclone
+    main_script: ".\\repo\\contrib\\cirrus\\win-unit-main.ps1"
+    always:
+        # Required for `contrib/cirrus/logformatter` to work properly
+        html_artifacts:
+            path: ./*.html
+            type: text/html
+
+
 apiv2_test_task:
     name: "APIv2 test on $DISTRO_NV ($PRIV_NAME)"
     alias: apiv2_test
@@ -760,9 +798,7 @@ podman_machine_windows_task:
     # everywhere to do so here it would mean we would need duplicate the
     # full big only_if condition which is more difficult to maintain so
     # use the skip here.
-    skip: &skip_rhel_release |
-        $CIRRUS_BRANCH =~ 'v[0-9\.]+-rhel' ||
-        $CIRRUS_BASE_BRANCH =~ 'v[0-9\.]+-rhel'
+    skip: *skip_rhel_release
     depends_on: *build
     ec2_instance:
         <<: *windows
@@ -1060,6 +1096,7 @@ success_task:
         - win_installer
         - docker-py_test
         - unit_test
+        - unit_test_windows
         - apiv2_test
         - compose_test
         - local_integration_test
