@@ -1048,6 +1048,7 @@ BOGUS=foo
 
 	DescribeTable("Running expected warning quadlet test case",
 		runWarningQuadletTestCase,
+		Entry("label-unsupported-escape.container", "label-unsupported-escape.container", "unsupported escape char"),
 		Entry("shortname.container", "shortname.container", "Warning: shortname.container specifies the image \"shortname\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details."),
 	)
 

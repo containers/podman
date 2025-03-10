@@ -631,15 +631,15 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 }
 
 func main() {
-	if err := process(); err != nil {
-		Logf("%s", err.Error())
+	if processErred := process(); processErred {
+		Logf("processing encountered some errors")
 		os.Exit(1)
 	}
 	os.Exit(0)
 }
 
-func process() error {
-	var prevError error
+func process() bool {
+	var processErred bool
 
 	prgname := path.Base(os.Args[0])
 	isUserFlag = strings.Contains(prgname, "user")
@@ -648,7 +648,7 @@ func process() error {
 
 	if versionFlag {
 		fmt.Printf("%s\n", rawversion.RawVersion)
-		return prevError
+		return processErred
 	}
 
 	if verboseFlag || dryRunFlag {
@@ -660,15 +660,13 @@ func process() error {
 	}
 
 	reportError := func(err error) {
-		if prevError != nil {
-			err = fmt.Errorf("%s\n%s", prevError, err)
-		}
-		prevError = err
+		Logf("%s", err.Error())
+		processErred = true
 	}
 
 	if !dryRunFlag && flag.NArg() < 1 {
 		reportError(errors.New("missing output directory argument"))
-		return prevError
+		return processErred
 	}
 
 	var outputPath string
@@ -694,7 +692,7 @@ func process() error {
 		// containers/podman/issues/17374: exit cleanly but log that we
 		// had nothing to do
 		Debugf("No files parsed from %s", sourcePathsMap)
-		return prevError
+		return processErred
 	}
 
 	for _, unit := range units {
@@ -707,7 +705,7 @@ func process() error {
 		err := os.MkdirAll(outputPath, os.ModePerm)
 		if err != nil {
 			reportError(err)
-			return prevError
+			return processErred
 		}
 	}
 
@@ -730,29 +728,33 @@ func process() error {
 
 	for _, unit := range units {
 		var service *parser.UnitFile
-		var err error
+		var warnings, err error
 
 		switch {
 		case strings.HasSuffix(unit.Filename, ".container"):
 			warnIfAmbiguousName(unit, quadlet.ContainerGroup)
-			service, err = quadlet.ConvertContainer(unit, isUserFlag, unitsInfoMap)
+			service, warnings, err = quadlet.ConvertContainer(unit, isUserFlag, unitsInfoMap)
 		case strings.HasSuffix(unit.Filename, ".volume"):
 			warnIfAmbiguousName(unit, quadlet.VolumeGroup)
-			service, err = quadlet.ConvertVolume(unit, unit.Filename, unitsInfoMap, isUserFlag)
+			service, warnings, err = quadlet.ConvertVolume(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".kube"):
 			service, err = quadlet.ConvertKube(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".network"):
-			service, err = quadlet.ConvertNetwork(unit, unit.Filename, unitsInfoMap, isUserFlag)
+			service, warnings, err = quadlet.ConvertNetwork(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".image"):
 			warnIfAmbiguousName(unit, quadlet.ImageGroup)
 			service, err = quadlet.ConvertImage(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".build"):
-			service, err = quadlet.ConvertBuild(unit, unitsInfoMap, isUserFlag)
+			service, warnings, err = quadlet.ConvertBuild(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			service, err = quadlet.ConvertPod(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		default:
 			Logf("Unsupported file type %q", unit.Filename)
 			continue
+		}
+
+		if warnings != nil {
+			Logf("%s", warnings.Error())
 		}
 
 		if err != nil {
@@ -776,7 +778,7 @@ func process() error {
 		}
 		enableServiceFile(outputPath, service)
 	}
-	return prevError
+	return processErred
 }
 
 func init() {
