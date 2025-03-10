@@ -66,7 +66,7 @@ func PruneImages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := handlers.ImagesPruneReport{
-		ImagesPruneReport: dockerImage.PruneReport{
+		PruneReport: dockerImage.PruneReport{
 			ImagesDeleted:  idr,
 			SpaceReclaimed: reclaimedSpace,
 		},

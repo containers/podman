@@ -92,6 +92,13 @@ type ContainerStatsConfig struct {
 	OutStream func() io.Writer
 }
 
+// ContainerInspectOptions defines options for the backend.ContainerInspect
+// call.
+type ContainerInspectOptions struct {
+	// Size controls whether to propagate the container's size fields.
+	Size bool
+}
+
 // ExecStartConfig holds the options to start container's exec.
 type ExecStartConfig struct {
 	Stdin       io.Reader
@@ -141,7 +148,11 @@ type CreateImageConfig struct {
 // from the backend.
 type GetImageOpts struct {
 	Platform *ocispec.Platform
-	Details  bool
+}
+
+// ImageInspectOpts holds parameters to inspect an image.
+type ImageInspectOpts struct {
+	Manifests bool
 }
 
 // CommitConfig is the configuration for creating an image as part of a build.

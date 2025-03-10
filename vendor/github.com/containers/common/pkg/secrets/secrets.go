@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/common/pkg/secrets/define"
@@ -12,7 +13,6 @@ import (
 	"github.com/containers/common/pkg/secrets/passdriver"
 	"github.com/containers/common/pkg/secrets/shelldriver"
 	"github.com/containers/storage/pkg/lockfile"
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/containers/storage/pkg/stringid"
 	"golang.org/x/exp/maps"
 )
@@ -49,10 +49,6 @@ var errDataSize = errors.New("secret data must be larger than 0 and less than 51
 
 // secretsFile is the name of the file that the secrets database will be stored in
 var secretsFile = "secrets.json"
-
-// secretNameRegexp matches valid secret names
-// Allowed: 253 characters, excluding ,/=\0
-var secretNameRegexp = regexp.Delayed("^[^,/=\000]+$")
 
 // SecretsManager holds information on handling secrets
 //
@@ -320,9 +316,7 @@ func (s *SecretsManager) LookupSecretData(nameOrID string) (*Secret, []byte, err
 
 // validateSecretName checks if the secret name is valid.
 func validateSecretName(name string) error {
-	if len(name) == 0 ||
-		len(name) > 253 ||
-		!secretNameRegexp.MatchString(name) {
+	if len(name) == 0 || len(name) > 253 || strings.ContainsAny(name, ",/=\000") {
 		return fmt.Errorf("secret name %q can not include '=', '/', ',', or the '\\0' (NULL) and be between 1 and 253 characters: %w", name, errInvalidSecretName)
 	}
 	return nil

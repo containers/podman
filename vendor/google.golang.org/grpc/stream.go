@@ -1766,7 +1766,7 @@ func (ss *serverStream) RecvMsg(m any) (err error) {
 			return err
 		}
 		if err == io.ErrUnexpectedEOF {
-			err = status.Errorf(codes.Internal, io.ErrUnexpectedEOF.Error())
+			err = status.Error(codes.Internal, io.ErrUnexpectedEOF.Error())
 		}
 		return toRPCErr(err)
 	}
