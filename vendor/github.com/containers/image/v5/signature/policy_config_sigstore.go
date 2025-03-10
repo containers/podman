@@ -71,6 +71,17 @@ func PRSigstoreSignedWithFulcio(fulcio PRSigstoreSignedFulcio) PRSigstoreSignedO
 	}
 }
 
+// PRSigstoreSignedWithPKI specifies a value for the "pki" field when calling NewPRSigstoreSigned.
+func PRSigstoreSignedWithPKI(p PRSigstoreSignedPKI) PRSigstoreSignedOption {
+	return func(pr *prSigstoreSigned) error {
+		if pr.PKI != nil {
+			return InvalidPolicyFormatError(`"pki" already specified`)
+		}
+		pr.PKI = p
+		return nil
+	}
+}
+
 // PRSigstoreSignedWithRekorPublicKeyPath specifies a value for the "rekorPublicKeyPath" field when calling NewPRSigstoreSigned.
 func PRSigstoreSignedWithRekorPublicKeyPath(rekorPublicKeyPath string) PRSigstoreSignedOption {
 	return func(pr *prSigstoreSigned) error {
@@ -159,8 +170,11 @@ func newPRSigstoreSigned(options ...PRSigstoreSignedOption) (*prSigstoreSigned, 
 	if res.Fulcio != nil {
 		keySources++
 	}
+	if res.PKI != nil {
+		keySources++
+	}
 	if keySources != 1 {
-		return nil, InvalidPolicyFormatError("exactly one of keyPath, keyPaths, keyData, keyDatas and fulcio must be specified")
+		return nil, InvalidPolicyFormatError("exactly one of keyPath, keyPaths, keyData, keyDatas, fulcio, and pki must be specified")
 	}
 
 	rekorSources := 0
@@ -181,6 +195,9 @@ func newPRSigstoreSigned(options ...PRSigstoreSignedOption) (*prSigstoreSigned, 
 	}
 	if res.Fulcio != nil && rekorSources == 0 {
 		return nil, InvalidPolicyFormatError("At least one of rekorPublickeyPath, rekorPublicKeyPaths, rekorPublickeyData and rekorPublicKeyDatas must be specified if fulcio is used")
+	}
+	if res.PKI != nil && rekorSources > 0 {
+		return nil, InvalidPolicyFormatError("rekorPublickeyPath, rekorPublicKeyPaths, rekorPublickeyData and rekorPublicKeyDatas are not supported for pki")
 	}
 
 	if res.SignedIdentity == nil {
@@ -218,9 +235,10 @@ var _ json.Unmarshaler = (*prSigstoreSigned)(nil)
 func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
 	*pr = prSigstoreSigned{}
 	var tmp prSigstoreSigned
-	var gotKeyPath, gotKeyPaths, gotKeyData, gotKeyDatas, gotFulcio bool
+	var gotKeyPath, gotKeyPaths, gotKeyData, gotKeyDatas, gotFulcio, gotPKI bool
 	var gotRekorPublicKeyPath, gotRekorPublicKeyPaths, gotRekorPublicKeyData, gotRekorPublicKeyDatas bool
 	var fulcio prSigstoreSignedFulcio
+	var pki prSigstoreSignedPKI
 	var signedIdentity json.RawMessage
 	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) any {
 		switch key {
@@ -253,6 +271,9 @@ func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
 		case "rekorPublicKeyDatas":
 			gotRekorPublicKeyDatas = true
 			return &tmp.RekorPublicKeyDatas
+		case "pki":
+			gotPKI = true
+			return &pki
 		case "signedIdentity":
 			return &signedIdentity
 		default:
@@ -302,6 +323,9 @@ func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
 	}
 	if gotRekorPublicKeyDatas {
 		opts = append(opts, PRSigstoreSignedWithRekorPublicKeyDatas(tmp.RekorPublicKeyDatas))
+	}
+	if gotPKI {
+		opts = append(opts, PRSigstoreSignedWithPKI(&pki))
 	}
 	opts = append(opts, PRSigstoreSignedWithSignedIdentity(tmp.SignedIdentity))
 
@@ -438,5 +462,169 @@ func (f *prSigstoreSignedFulcio) UnmarshalJSON(data []byte) error {
 	}
 
 	*f = *res
+	return nil
+}
+
+// PRSigstoreSignedPKIOption is a way to pass values to NewPRSigstoreSignedPKI
+type PRSigstoreSignedPKIOption func(*prSigstoreSignedPKI) error
+
+// PRSigstoreSignedPKIWithCARootsPath specifies a value for the "caRootsPath" field when calling NewPRSigstoreSignedPKI
+func PRSigstoreSignedPKIWithCARootsPath(caRootsPath string) PRSigstoreSignedPKIOption {
+	return func(p *prSigstoreSignedPKI) error {
+		if p.CARootsPath != "" {
+			return InvalidPolicyFormatError(`"caRootsPath" already specified`)
+		}
+		p.CARootsPath = caRootsPath
+		return nil
+	}
+}
+
+// PRSigstoreSignedPKIWithCARootsData specifies a value for the "caRootsData" field when calling NewPRSigstoreSignedPKI
+func PRSigstoreSignedPKIWithCARootsData(caRootsData []byte) PRSigstoreSignedPKIOption {
+	return func(p *prSigstoreSignedPKI) error {
+		if p.CARootsData != nil {
+			return InvalidPolicyFormatError(`"caRootsData" already specified`)
+		}
+		p.CARootsData = caRootsData
+		return nil
+	}
+}
+
+// PRSigstoreSignedPKIWithCAIntermediatesPath specifies a value for the "caIntermediatesPath" field when calling NewPRSigstoreSignedPKI
+func PRSigstoreSignedPKIWithCAIntermediatesPath(caIntermediatesPath string) PRSigstoreSignedPKIOption {
+	return func(p *prSigstoreSignedPKI) error {
+		if p.CAIntermediatesPath != "" {
+			return InvalidPolicyFormatError(`"caIntermediatesPath" already specified`)
+		}
+		p.CAIntermediatesPath = caIntermediatesPath
+		return nil
+	}
+}
+
+// PRSigstoreSignedPKIWithCAIntermediatesData specifies a value for the "caIntermediatesData" field when calling NewPRSigstoreSignedPKI
+func PRSigstoreSignedPKIWithCAIntermediatesData(caIntermediatesData []byte) PRSigstoreSignedPKIOption {
+	return func(p *prSigstoreSignedPKI) error {
+		if p.CAIntermediatesData != nil {
+			return InvalidPolicyFormatError(`"caIntermediatesData" already specified`)
+		}
+		p.CAIntermediatesData = caIntermediatesData
+		return nil
+	}
+}
+
+// PRSigstoreSignedPKIWithSubjectEmail specifies a value for the "subjectEmail" field when calling NewPRSigstoreSignedPKI
+func PRSigstoreSignedPKIWithSubjectEmail(subjectEmail string) PRSigstoreSignedPKIOption {
+	return func(p *prSigstoreSignedPKI) error {
+		if p.SubjectEmail != "" {
+			return InvalidPolicyFormatError(`"subjectEmail" already specified`)
+		}
+		p.SubjectEmail = subjectEmail
+		return nil
+	}
+}
+
+// PRSigstoreSignedPKIWithSubjectHostname specifies a value for the "subjectHostname" field when calling NewPRSigstoreSignedPKI
+func PRSigstoreSignedPKIWithSubjectHostname(subjectHostname string) PRSigstoreSignedPKIOption {
+	return func(p *prSigstoreSignedPKI) error {
+		if p.SubjectHostname != "" {
+			return InvalidPolicyFormatError(`"subjectHostname" already specified`)
+		}
+		p.SubjectHostname = subjectHostname
+		return nil
+	}
+}
+
+// newPRSigstoreSignedPKI is NewPRSigstoreSignedPKI, except it returns the private type
+func newPRSigstoreSignedPKI(options ...PRSigstoreSignedPKIOption) (*prSigstoreSignedPKI, error) {
+	res := prSigstoreSignedPKI{}
+	for _, o := range options {
+		if err := o(&res); err != nil {
+			return nil, err
+		}
+	}
+
+	if res.CARootsPath != "" && res.CARootsData != nil {
+		return nil, InvalidPolicyFormatError("caRootsPath and caRootsData cannot be used simultaneously")
+	}
+	if res.CARootsPath == "" && res.CARootsData == nil {
+		return nil, InvalidPolicyFormatError("At least one of caRootsPath and caRootsData must be specified")
+	}
+
+	if res.CAIntermediatesPath != "" && res.CAIntermediatesData != nil {
+		return nil, InvalidPolicyFormatError("caIntermediatesPath and caIntermediatesData cannot be used simultaneously")
+	}
+
+	if res.SubjectEmail == "" && res.SubjectHostname == "" {
+		return nil, InvalidPolicyFormatError("At least one of subjectEmail, subjectHostname must be specified")
+	}
+
+	return &res, nil
+}
+
+// NewPRSigstoreSignedPKI returns a PRSigstoreSignedPKI based on options.
+func NewPRSigstoreSignedPKI(options ...PRSigstoreSignedPKIOption) (PRSigstoreSignedPKI, error) {
+	return newPRSigstoreSignedPKI(options...)
+}
+
+// Compile-time check that prSigstoreSignedPKI implements json.Unmarshaler.
+var _ json.Unmarshaler = (*prSigstoreSignedPKI)(nil)
+
+func (p *prSigstoreSignedPKI) UnmarshalJSON(data []byte) error {
+	*p = prSigstoreSignedPKI{}
+	var tmp prSigstoreSignedPKI
+	var gotCARootsPath, gotCARootsData, gotCAIntermediatesPath, gotCAIntermediatesData, gotSubjectEmail, gotSubjectHostname bool
+	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) any {
+		switch key {
+		case "caRootsPath":
+			gotCARootsPath = true
+			return &tmp.CARootsPath
+		case "caRootsData":
+			gotCARootsData = true
+			return &tmp.CARootsData
+		case "caIntermediatesPath":
+			gotCAIntermediatesPath = true
+			return &tmp.CAIntermediatesPath
+		case "caIntermediatesData":
+			gotCAIntermediatesData = true
+			return &tmp.CAIntermediatesData
+		case "subjectEmail":
+			gotSubjectEmail = true
+			return &tmp.SubjectEmail
+		case "subjectHostname":
+			gotSubjectHostname = true
+			return &tmp.SubjectHostname
+		default:
+			return nil
+		}
+	}); err != nil {
+		return err
+	}
+
+	var opts []PRSigstoreSignedPKIOption
+	if gotCARootsPath {
+		opts = append(opts, PRSigstoreSignedPKIWithCARootsPath(tmp.CARootsPath))
+	}
+	if gotCARootsData {
+		opts = append(opts, PRSigstoreSignedPKIWithCARootsData(tmp.CARootsData))
+	}
+	if gotCAIntermediatesPath {
+		opts = append(opts, PRSigstoreSignedPKIWithCAIntermediatesPath(tmp.CAIntermediatesPath))
+	}
+	if gotCAIntermediatesData {
+		opts = append(opts, PRSigstoreSignedPKIWithCAIntermediatesData(tmp.CAIntermediatesData))
+	}
+	if gotSubjectEmail {
+		opts = append(opts, PRSigstoreSignedPKIWithSubjectEmail(tmp.SubjectEmail))
+	}
+	if gotSubjectHostname {
+		opts = append(opts, PRSigstoreSignedPKIWithSubjectHostname(tmp.SubjectHostname))
+	}
+
+	res, err := newPRSigstoreSignedPKI(opts...)
+	if err != nil {
+		return err
+	}
+
+	*p = *res
 	return nil
 }

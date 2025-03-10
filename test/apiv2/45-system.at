@@ -34,6 +34,10 @@ t POST containers/create Image=$IMAGE Volumes='{"/test":{}}' HostConfig='{"Binds
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
 
+# Verify image takes size
+t GET system/df 200 '.LayersSize=12180391'
+t GET libpod/system/df 200 '.ImagesSize=12180391'
+
 # Verify that one container references the volume
 t GET system/df 200 '.Volumes[0].UsageData.RefCount=1'
 
