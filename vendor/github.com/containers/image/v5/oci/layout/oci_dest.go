@@ -17,7 +17,6 @@ import (
 	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/reflink"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/fileutils"
 	digest "github.com/opencontainers/go-digest"
@@ -116,7 +115,7 @@ func (d *ociImageDestination) Close() error {
 // WARNING: The contents of stream are being verified on the fly.  Until stream.Read() returns io.EOF, the contents of the data SHOULD NOT be available
 // to any other readers for download using the supplied digest.
 // If stream.Read() at any time, ESPECIALLY at end of input, returns an error, PutBlobWithOptions MUST 1) fail, and 2) delete any data stored so far.
-func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (private.UploadedBlob, error) {
+func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.Reader, inputInfo types.BlobInfo, options private.PutBlobOptions) (_ private.UploadedBlob, retErr error) {
 	blobFile, err := os.CreateTemp(d.ref.dir, "oci-put-blob")
 	if err != nil {
 		return private.UploadedBlob{}, err
@@ -125,7 +124,10 @@ func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 	explicitClosed := false
 	defer func() {
 		if !explicitClosed {
-			blobFile.Close()
+			closeErr := blobFile.Close()
+			if retErr == nil {
+				retErr = closeErr
+			}
 		}
 		if !succeeded {
 			os.Remove(blobFile.Name())
@@ -177,7 +179,10 @@ func (d *ociImageDestination) blobFileSyncAndRename(blobFile *os.File, blobDiges
 	}
 
 	// need to explicitly close the file, since a rename won't otherwise work on Windows
-	blobFile.Close()
+	err = blobFile.Close()
+	if err != nil {
+		return err
+	}
 	*closed = true
 
 	if err := os.Rename(blobFile.Name(), blobPath); err != nil {
@@ -324,10 +329,10 @@ type PutBlobFromLocalFileOption struct{}
 // It computes, and returns, the digest and size of the used file.
 //
 // This function can be used instead of dest.PutBlob() where the ImageDestination requires PutBlob() to be called.
-func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file string, options ...PutBlobFromLocalFileOption) (digest.Digest, int64, error) {
+func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file string, options ...PutBlobFromLocalFileOption) (_ digest.Digest, _ int64, retErr error) {
 	d, ok := dest.(*ociImageDestination)
 	if !ok {
-		return "", -1, errors.New("internal error: PutBlobFromLocalFile called with a non-oci: destination")
+		return "", -1, errors.New("caller error: PutBlobFromLocalFile called with a non-oci: destination")
 	}
 
 	succeeded := false
@@ -338,7 +343,10 @@ func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file
 	}
 	defer func() {
 		if !blobFileClosed {
-			blobFile.Close()
+			closeErr := blobFile.Close()
+			if retErr == nil {
+				retErr = closeErr
+			}
 		}
 		if !succeeded {
 			os.Remove(blobFile.Name())
@@ -351,7 +359,7 @@ func PutBlobFromLocalFile(ctx context.Context, dest types.ImageDestination, file
 	}
 	defer srcFile.Close()
 
-	err = reflink.LinkOrCopy(srcFile, blobFile)
+	err = fileutils.ReflinkOrCopy(srcFile, blobFile)
 	if err != nil {
 		return "", -1, err
 	}

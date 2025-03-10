@@ -1,4 +1,4 @@
-package archive // import "github.com/docker/docker/pkg/archive"
+package archive
 
 import (
 	"archive/tar"
@@ -11,8 +11,6 @@ import (
 	"strings"
 
 	"github.com/containerd/log"
-	"github.com/docker/docker/pkg/pools"
-	"github.com/docker/docker/pkg/system"
 )
 
 // UnpackLayer unpack `layer` to a `dest`. The stream `layer` can be
@@ -20,8 +18,6 @@ import (
 // Returns the size in bytes of the contents of the layer.
 func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64, err error) {
 	tr := tar.NewReader(layer)
-	trBuf := pools.BufioReader32KPool.Get(tr)
-	defer pools.BufioReader32KPool.Put(trBuf)
 
 	var dirs []*tar.Header
 	unpackedPaths := make(map[string]struct{})
@@ -160,8 +156,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 				}
 			}
 
-			trBuf.Reset(tr)
-			srcData := io.Reader(trBuf)
+			srcData := io.Reader(tr)
 			srcHdr := hdr
 
 			// Hard links into /.wh..wh.plnk don't work, as we don't extract that directory, so
@@ -200,7 +195,7 @@ func UnpackLayer(dest string, layer io.Reader, options *TarOptions) (size int64,
 	for _, hdr := range dirs {
 		// #nosec G305 -- The header was checked for path traversal before it was appended to the dirs slice.
 		path := filepath.Join(dest, hdr.Name)
-		if err := system.Chtimes(path, hdr.AccessTime, hdr.ModTime); err != nil {
+		if err := chtimes(path, hdr.AccessTime, hdr.ModTime); err != nil {
 			return 0, err
 		}
 	}

@@ -29,9 +29,11 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 				return err
 			}
 
+			//nolint:errcheck
+			stat := f.Sys().(*syscall.Stat_t)
 			// Get current ownership
-			currentUID := int(f.Sys().(*syscall.Stat_t).Uid)
-			currentGID := int(f.Sys().(*syscall.Stat_t).Gid)
+			currentUID := int(stat.Uid)
+			currentGID := int(stat.Gid)
 
 			if uid != currentUID || gid != currentGID {
 				return os.Lchown(filePath, uid, gid)
@@ -49,9 +51,11 @@ func ChangeHostPathOwnership(path string, recursive bool, uid, gid int) error {
 			return fmt.Errorf("failed to get host path information: %w", err)
 		}
 
+		//nolint:errcheck
+		stat := f.Sys().(*syscall.Stat_t)
 		// Get current ownership
-		currentUID := int(f.Sys().(*syscall.Stat_t).Uid)
-		currentGID := int(f.Sys().(*syscall.Stat_t).Gid)
+		currentUID := int(stat.Uid)
+		currentGID := int(stat.Gid)
 
 		if uid != currentUID || gid != currentGID {
 			if err := os.Lchown(path, uid, gid); err != nil {

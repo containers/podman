@@ -148,6 +148,13 @@ type Options struct {
 	// so that storage.ResolveReference returns exactly the created image.
 	// WARNING: It is unspecified whether the reference also contains a reference.Named element.
 	ReportResolvedReference *types.ImageReference
+
+	// DestinationTimestamp, if set, will force timestamps of content created in the destination to this value.
+	// Most transports don't support this.
+	//
+	// In oci-archive: destinations, this will set the create/mod/access timestamps in each tar entry
+	// (but not a timestamp of the created archive file).
+	DestinationTimestamp *time.Time
 }
 
 // OptionCompressionVariant allows to supply information about
@@ -354,6 +361,7 @@ func Image(ctx context.Context, policyContext *signature.PolicyContext, destRef,
 	if err := c.dest.CommitWithOptions(ctx, private.CommitOptions{
 		UnparsedToplevel:        c.unparsedToplevel,
 		ReportResolvedReference: options.ReportResolvedReference,
+		Timestamp:               options.DestinationTimestamp,
 	}); err != nil {
 		return nil, fmt.Errorf("committing the finished image: %w", err)
 	}

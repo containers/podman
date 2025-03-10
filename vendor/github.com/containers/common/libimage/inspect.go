@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -159,7 +160,7 @@ func (i *Image) Inspect(ctx context.Context, options *InspectOptions) (*ImageDat
 	if err != nil {
 		return nil, err
 	}
-	manifestRaw, manifestType, err := src.GetManifest(ctx, nil)
+	manifestRaw, manifestType, err := image.UnparsedInstance(src, nil).Manifest(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,10 @@
 
 package loopback
 
+import (
+	"golang.org/x/sys/unix"
+)
+
 type loopInfo64 struct {
 	loDevice         uint64 /* ioctl r/o */
 	loInode          uint64 /* ioctl r/o */
@@ -20,19 +24,19 @@ type loopInfo64 struct {
 
 // IOCTL consts
 const (
-	LoopSetFd       = 0x4C00
-	LoopCtlGetFree  = 0x4C82
-	LoopGetStatus64 = 0x4C05
-	LoopSetStatus64 = 0x4C04
-	LoopClrFd       = 0x4C01
-	LoopSetCapacity = 0x4C07
+	LoopSetFd       = unix.LOOP_SET_FD
+	LoopCtlGetFree  = unix.LOOP_CTL_GET_FREE
+	LoopGetStatus64 = unix.LOOP_GET_STATUS64
+	LoopSetStatus64 = unix.LOOP_SET_STATUS64
+	LoopClrFd       = unix.LOOP_CLR_FD
+	LoopSetCapacity = unix.LOOP_SET_CAPACITY
 )
 
 // LOOP consts.
 const (
-	LoFlagsAutoClear = 0x4C07
-	LoFlagsReadOnly  = 1
-	LoFlagsPartScan  = 8
-	LoKeySize        = 32
-	LoNameSize       = 64
+	LoFlagsAutoClear = unix.LO_FLAGS_AUTOCLEAR
+	LoFlagsReadOnly  = unix.LO_FLAGS_READ_ONLY
+	LoFlagsPartScan  = unix.LO_FLAGS_PARTSCAN
+	LoKeySize        = unix.LO_KEY_SIZE
+	LoNameSize       = unix.LO_NAME_SIZE
 )

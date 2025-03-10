@@ -26,7 +26,7 @@ func (n *netavarkNetwork) execUpdate(networkName string, networkDNSServers []str
 
 // Setup will setup the container network namespace. It returns
 // a map of StatusBlocks, the key is the network name.
-func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions) (map[string]types.StatusBlock, error) {
+func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions) (_ map[string]types.StatusBlock, retErr error) {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 	err := n.loadNetworks()
@@ -44,6 +44,15 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		// In case the setup failed for whatever reason podman will not start the
+		// container so we must free the allocated ips again to not leak them.
+		if retErr != nil {
+			if err := n.deallocIPs(&options.NetworkOptions); err != nil {
+				logrus.Error(err)
+			}
+		}
+	}()
 
 	netavarkOpts, needPlugin, err := n.convertNetOpts(options.NetworkOptions)
 	if err != nil {
@@ -72,15 +81,7 @@ func (n *netavarkNetwork) Setup(namespacePath string, options types.SetupOptions
 
 	result := map[string]types.StatusBlock{}
 	setup := func() error {
-		err := n.execNetavark([]string{"setup", namespacePath}, needPlugin, netavarkOpts, &result)
-		if err != nil {
-			// lets dealloc ips to prevent leaking
-			if err := n.deallocIPs(&options.NetworkOptions); err != nil {
-				logrus.Error(err)
-			}
-			return err
-		}
-		return nil
+		return n.execNetavark([]string{"setup", namespacePath}, needPlugin, netavarkOpts, &result)
 	}
 
 	if n.rootlessNetns != nil {

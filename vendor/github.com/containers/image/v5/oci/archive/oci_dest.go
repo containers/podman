@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"github.com/containers/image/v5/internal/imagedestination"
 	"github.com/containers/image/v5/internal/imagedestination/impl"
@@ -172,16 +173,19 @@ func (d *ociArchiveImageDestination) CommitWithOptions(ctx context.Context, opti
 	src := d.tempDirRef.tempDirectory
 	// path to save tarred up file
 	dst := d.ref.resolvedFile
-	return tarDirectory(src, dst)
+	return tarDirectory(src, dst, options.Timestamp)
 }
 
 // tar converts the directory at src and saves it to dst
-func tarDirectory(src, dst string) error {
+// if contentModTimes is non-nil, tar header entries times are set to this
+func tarDirectory(src, dst string, contentModTimes *time.Time) (retErr error) {
 	// input is a stream of bytes from the archive of the directory at path
 	input, err := archive.TarWithOptions(src, &archive.TarOptions{
 		Compression: archive.Uncompressed,
 		// Don’t include the data about the user account this code is running under.
 		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
+		// override tar header timestamps
+		Timestamp: contentModTimes,
 	})
 	if err != nil {
 		return fmt.Errorf("retrieving stream of bytes from %q: %w", src, err)
@@ -193,7 +197,14 @@ func tarDirectory(src, dst string) error {
 	if err != nil {
 		return fmt.Errorf("creating tar file %q: %w", dst, err)
 	}
-	defer outFile.Close()
+
+	// since we are writing to this file, make sure we handle errors
+	defer func() {
+		closeErr := outFile.Close()
+		if retErr == nil {
+			retErr = closeErr
+		}
+	}()
 
 	// copies the contents of the directory to the tar file
 	// TODO: This can take quite some time, and should ideally be cancellable using a context.Context.
