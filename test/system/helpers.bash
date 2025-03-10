@@ -1361,5 +1361,16 @@ function make_random_file() {
     dd if=/dev/urandom of="$1" bs=1 count=${2:-$((${RANDOM} % 8192 + 1024))} status=none
 }
 
+###########################
+# ensure there is no mount point at the specified path
+###########################
+function ensure_no_mountpoint() {
+    local path="$1"
+    if findmnt "$path"; then
+        die "there is a mountpoint at $path"
+    fi
+}
+
+
 # END   miscellaneous tools
 ###############################################################################

@@ -309,9 +309,7 @@ EOF
 
     # umount, and make sure mountpoint no longer exists
     run_podman umount $external_cname
-    if findmnt "$mount_path" >/dev/null ; then
-        die "'podman umount' did not umount $mount_path"
-    fi
+    ensure_no_mountpoint "$mount_path"
     buildah rm $external_cname
 }
 
