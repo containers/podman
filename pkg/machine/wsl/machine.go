@@ -317,12 +317,12 @@ func checkAndInstallWSL(reExec bool) (bool, error) {
 
 	admin := HasAdminRights()
 
-	if !IsWSLFeatureEnabled() {
+	if !wutil.IsWSLFeatureEnabled() {
 		return false, attemptFeatureInstall(reExec, admin)
 	}
 
 	skip := false
-	if reExec && !admin {
+	if !reExec && !admin {
 		fmt.Println("Launching WSL Kernel Install...")
 		if err := launchElevate(wslInstallKernel); err != nil {
 			return false, err
@@ -363,11 +363,11 @@ func attemptFeatureInstall(reExec, admin bool) error {
 	message += "NOTE: A system reboot will be required as part of this process. " +
 		"If you prefer, you may abort now, and perform a manual installation using the \"wsl --install\" command."
 
-	if reExec && MessageBox(message, "Podman Machine", false) != 1 {
+	if !reExec && MessageBox(message, "Podman Machine", false) != 1 {
 		return errors.New("the WSL installation aborted")
 	}
 
-	if reExec && !admin {
+	if !reExec && !admin {
 		return launchElevate("install the Windows WSL Features")
 	}
 
@@ -620,10 +620,6 @@ func obtainGlobalConfigLock() (*fileLock, error) {
 	// Lock file needs to be above all backends
 	// TODO: This should be changed to a common.Config lock mechanism when available
 	return lockFile(filepath.Join(lockDir, "podman-config.lck"))
-}
-
-func IsWSLFeatureEnabled() bool {
-	return wutil.SilentExec(wutil.FindWSL(), "--set-default-version", "2") == nil
 }
 
 func isWSLRunning(dist string) (bool, error) {

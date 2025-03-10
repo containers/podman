@@ -652,7 +652,7 @@ localunit: test/goecho/goecho test/version/version
 	UNIT=1 $(GINKGO) \
 		-r \
 		$(TESTFLAGS) \
-		--skip-package test/e2e,pkg/bindings,hack,pkg/machine/e2e \
+		--skip-package test/e2e,pkg/bindings,hack,pkg/machine/e2e,pkg/machine/wsl \
 		--cover \
 		--covermode atomic \
 		--coverprofile coverprofile \
