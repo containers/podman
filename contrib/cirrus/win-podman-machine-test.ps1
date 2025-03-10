@@ -33,5 +33,8 @@ Run-Command ".\bin\windows\podman.exe --version"
 New-Item -ItemType "directory" -Path "$env:AppData\containers"
 Copy-Item -Path pkg\machine\ocipull\policy.json -Destination "$env:AppData\containers"
 
+Write-Host "`nRunning podman-machine unit tests"
+Run-Command ".\winmake localunit"
+
 Write-Host "`nRunning podman-machine e2e tests"
 Run-Command ".\winmake localmachine"

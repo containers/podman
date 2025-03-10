@@ -44,6 +44,12 @@ function Make-Clean{
     }
 }
 
+function Local-Unit {
+    Build-Ginkgo
+    $skippackages="pkg\machine\apple,pkg\machine\applehv,pkg\machine\e2e,pkg\machine\libkrun,pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu"
+    Run-Command "./test/tools/build/ginkgo.exe -vv -r --tags `"$remotetags`" -timeout=90m --trace --no-color --skip-package `"$skippackages`" pkg\machine"
+}
+
 function Local-Machine {
     param (
     [string]$files
@@ -219,9 +225,7 @@ function Build-Ginkgo{
         return
     }
     Write-Host "Building Ginkgo"
-    Push-Location ./test/tools
-    Run-Command "go build -o build/ginkgo.exe ./vendor/github.com/onsi/ginkgo/v2/ginkgo"
-    Pop-Location
+    Run-Command "go build -o ./test/tools/build/ginkgo.exe ./vendor/github.com/onsi/ginkgo/v2/ginkgo"
 }
 
 function Git-Commit{
@@ -287,6 +291,9 @@ switch ($target) {
     {$_ -in '', 'podman-remote', 'podman'} {
         Podman-Remote
     }
+    'localunit' {
+        Local-Unit
+    }
     'localmachine' {
         if ($args.Count -gt 1) {
             $files = $args[1]
@@ -330,6 +337,9 @@ switch ($target) {
         Write-Host
         Write-Host "Example: Build podman-remote "
         Write-Host " .\winmake podman-remote"
+        Write-Host
+        Write-Host "Example: Run all unit tests "
+        Write-Host " .\winmake localunit"
         Write-Host
         Write-Host "Example: Run all machine tests "
         Write-Host " .\winmake localmachine"
