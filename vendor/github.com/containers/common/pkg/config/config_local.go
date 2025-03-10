@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/containers/storage/pkg/fileutils"
@@ -97,8 +97,9 @@ func (c *ContainersConfig) validateTZ() error {
 }
 
 func (c *ContainersConfig) validateUmask() error {
-	validUmask := regexp.MustCompile(`^[0-7]{1,4}$`)
-	if !validUmask.MatchString(c.Umask) {
+	// Valid values are 0 to 7777 octal.
+	_, err := strconv.ParseUint(c.Umask, 8, 12)
+	if err != nil {
 		return fmt.Errorf("not a valid umask %s", c.Umask)
 	}
 	return nil

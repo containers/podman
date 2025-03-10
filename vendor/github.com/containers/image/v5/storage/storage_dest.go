@@ -272,43 +272,56 @@ func (s *storageImageDestination) putBlobToPendingFile(stream io.Reader, blobinf
 	if err != nil {
 		return private.UploadedBlob{}, fmt.Errorf("creating temporary file %q: %w", filename, err)
 	}
-	defer file.Close()
-	counter := ioutils.NewWriteCounter(file)
-	stream = io.TeeReader(stream, counter)
-	digester, stream := putblobdigest.DigestIfUnknown(stream, blobinfo)
-	decompressed, err := archive.DecompressStream(stream)
-	if err != nil {
-		return private.UploadedBlob{}, fmt.Errorf("setting up to decompress blob: %w", err)
-	}
+	blobDigest, diffID, count, err := func() (_, _ digest.Digest, _ int64, retErr error) { // A scope for defer
+		// since we are writing to this file, make sure we handle err on Close()
+		defer func() {
+			closeErr := file.Close()
+			if retErr == nil {
+				retErr = closeErr
+			}
+		}()
+		counter := ioutils.NewWriteCounter(file)
+		stream = io.TeeReader(stream, counter)
+		digester, stream := putblobdigest.DigestIfUnknown(stream, blobinfo)
+		decompressed, err := archive.DecompressStream(stream)
+		if err != nil {
+			return "", "", 0, fmt.Errorf("setting up to decompress blob: %w", err)
 
-	diffID := digest.Canonical.Digester()
-	// Copy the data to the file.
-	// TODO: This can take quite some time, and should ideally be cancellable using context.Context.
-	_, err = io.Copy(diffID.Hash(), decompressed)
-	decompressed.Close()
+		}
+		defer decompressed.Close()
+
+		diffID := digest.Canonical.Digester()
+		// Copy the data to the file.
+		// TODO: This can take quite some time, and should ideally be cancellable using context.Context.
+		_, err = io.Copy(diffID.Hash(), decompressed)
+		if err != nil {
+			return "", "", 0, fmt.Errorf("storing blob to file %q: %w", filename, err)
+		}
+
+		return digester.Digest(), diffID.Digest(), counter.Count, nil
+	}()
 	if err != nil {
-		return private.UploadedBlob{}, fmt.Errorf("storing blob to file %q: %w", filename, err)
+		return private.UploadedBlob{}, err
 	}
 
 	// Determine blob properties, and fail if information that we were given about the blob
 	// is known to be incorrect.
-	blobDigest := digester.Digest()
 	blobSize := blobinfo.Size
 	if blobSize < 0 {
-		blobSize = counter.Count
-	} else if blobinfo.Size != counter.Count {
+		blobSize = count
+	} else if blobinfo.Size != count {
 		return private.UploadedBlob{}, ErrBlobSizeMismatch
 	}
 
 	// Record information about the blob.
 	s.lock.Lock()
-	s.lockProtected.blobDiffIDs[blobDigest] = diffID.Digest()
-	s.lockProtected.fileSizes[blobDigest] = counter.Count
+	s.lockProtected.blobDiffIDs[blobDigest] = diffID
+	s.lockProtected.fileSizes[blobDigest] = count
 	s.lockProtected.filenames[blobDigest] = filename
 	s.lock.Unlock()
 	// This is safe because we have just computed diffID, and blobDigest was either computed
 	// by us, or validated by the caller (usually copy.digestingReader).
-	options.Cache.RecordDigestUncompressedPair(blobDigest, diffID.Digest())
+	options.Cache.RecordDigestUncompressedPair(blobDigest, diffID)
 	return private.UploadedBlob{
 		Digest: blobDigest,
 		Size:   blobSize,

@@ -685,6 +685,10 @@ func openSlirp4netnsPort(apiSocket, proto, hostip string, hostport, guestport ui
 	if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
 		return fmt.Errorf("cannot write to control socket %s: %w", apiSocket, err)
 	}
+	//nolint:errcheck // This cast should never fail, if it does we get a interface
+	// conversion panic and a stack trace on how we ended up here which is more
+	// valuable than returning a human friendly error test as we don't know how it
+	// happened.
 	if err := conn.(*net.UnixConn).CloseWrite(); err != nil {
 		return fmt.Errorf("cannot shutdown the socket %s: %w", apiSocket, err)
 	}

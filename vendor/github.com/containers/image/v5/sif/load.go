@@ -186,12 +186,18 @@ func convertSIFToElements(ctx context.Context, sifImage *sif.FileImage, tempDir 
 	// has an -o option that allows extracting a squashfs from the SIF file directly,
 	// but that version is not currently available in RHEL 8.
 	logrus.Debugf("Creating a temporary squashfs image %s ...", squashFSPath)
-	if err := func() error { // A scope for defer
+	if err := func() (retErr error) { // A scope for defer
 		f, err := os.Create(squashFSPath)
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		// since we are writing to this file, make sure we handle err on Close()
+		defer func() {
+			closeErr := f.Close()
+			if retErr == nil {
+				retErr = closeErr
+			}
+		}()
 		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
 		if _, err := io.CopyN(f, rootFS.GetReader(), rootFS.Size()); err != nil {
 			return err

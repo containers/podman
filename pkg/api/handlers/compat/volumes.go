@@ -311,7 +311,7 @@ func PruneVolumes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	payload := handlers.VolumesPruneReport{
-		VolumesPruneReport: volume.PruneReport{
+		PruneReport: volume.PruneReport{
 			VolumesDeleted: prunedIds,
 			SpaceReclaimed: reclaimedSpace,
 		},

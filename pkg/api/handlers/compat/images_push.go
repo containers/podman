@@ -165,6 +165,7 @@ loop: // break out of for/select infinite loop
 					Current: int64(e.Offset),
 					Total:   e.Artifact.Size,
 				}
+				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
 				report.ProgressMessage = report.Progress.String()
 			case types.ProgressEventSkipped:
 				report.Status = "Layer already exists"
@@ -190,6 +191,7 @@ loop: // break out of for/select infinite loop
 				report.Error = &jsonmessage.JSONError{
 					Message: msg,
 				}
+				//nolint:staticcheck // Deprecated field, but because consumers might still read it keep it.
 				report.ErrorMessage = msg
 				if err := enc.Encode(report); err != nil {
 					logrus.Warnf("Failed to json encode error %q", err.Error())

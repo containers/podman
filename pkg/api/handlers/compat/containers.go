@@ -24,10 +24,10 @@ import (
 	"github.com/containers/podman/v5/pkg/ps"
 	"github.com/containers/podman/v5/pkg/signal"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/docker/docker/api/types"
 	dockerBackend "github.com/docker/docker/api/types/backend"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/network"
+	"github.com/docker/docker/api/types/storage"
 	"github.com/docker/go-connections/nat"
 	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
@@ -347,9 +347,9 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		return nil, err
 	}
 
-	ports := make([]types.Port, len(portMappings))
+	ports := make([]container.Port, len(portMappings))
 	for idx, portMapping := range portMappings {
-		ports[idx] = types.Port{
+		ports[idx] = container.Port{
 			IP:          portMapping.HostIP,
 			PrivatePort: portMapping.ContainerPort,
 			PublicPort:  portMapping.HostPort,
@@ -365,7 +365,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	if err != nil {
 		return nil, err
 	}
-	networkSettings := types.SummaryNetworkSettings{}
+	networkSettings := container.NetworkSettingsSummary{}
 	if err := json.Unmarshal(n, &networkSettings); err != nil {
 		return nil, err
 	}
@@ -374,13 +374,13 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	if err != nil {
 		return nil, err
 	}
-	mounts := []types.MountPoint{}
+	mounts := []container.MountPoint{}
 	if err := json.Unmarshal(m, &mounts); err != nil {
 		return nil, err
 	}
 
 	return &handlers.Container{
-		Container: types.Container{
+		Container: container.Summary{
 			ID:         l.ID(),
 			Names:      []string{fmt.Sprintf("/%s", l.Name())},
 			Image:      imageName,
@@ -408,7 +408,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	}, nil
 }
 
-func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *types.NetworkSettings) {
+func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *container.NetworkSettings) {
 	for index, ip := range input.SecondaryIPAddresses {
 		output.SecondaryIPAddresses[index].PrefixLen = ip.PrefixLength
 	}
@@ -417,7 +417,7 @@ func convertSecondaryIPPrefixLen(input *define.InspectNetworkSettings, output *t
 	}
 }
 
-func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, error) {
+func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResponse, error) {
 	imageID, imageName := l.Image()
 	inspect, err := l.Inspect(sz)
 	if err != nil {
@@ -432,7 +432,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if err != nil {
 		return nil, err
 	}
-	state := types.ContainerState{}
+	state := container.State{}
 	if err := json.Unmarshal(i, &state); err != nil {
 		return nil, err
 	}
@@ -448,14 +448,14 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	}
 
 	if l.HasHealthCheck() && state.Status != "created" {
-		state.Health = &types.Health{}
+		state.Health = &container.Health{}
 		if inspect.State.Health != nil {
 			state.Health.Status = inspect.State.Health.Status
 			state.Health.FailingStreak = inspect.State.Health.FailingStreak
 			log := inspect.State.Health.Log
 
 			for _, item := range log {
-				res := &types.HealthcheckResult{}
+				res := &container.HealthcheckResult{}
 				s, err := time.Parse(time.RFC3339Nano, item.Start)
 				if err != nil {
 					return nil, err
@@ -490,16 +490,13 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if hc.LogConfig.Type == define.KubernetesLogging {
 		hc.LogConfig.Type = define.JSONLogging
 	}
-	g, err := json.Marshal(inspect.GraphDriver)
-	if err != nil {
-		return nil, err
-	}
-	graphDriver := types.GraphDriverData{}
-	if err := json.Unmarshal(g, &graphDriver); err != nil {
-		return nil, err
+
+	graphDriver := storage.DriverData{
+		Name: inspect.GraphDriver.Name,
+		Data: inspect.GraphDriver.Data,
 	}
 
-	cb := types.ContainerJSONBase{
+	cb := container.ContainerJSONBase{
 		ID:              l.ID(),
 		Created:         l.CreatedTime().UTC().Format(time.RFC3339Nano), // Docker uses UTC
 		Path:            inspect.Path,
@@ -510,7 +507,6 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		HostnamePath:    inspect.HostnamePath,
 		HostsPath:       inspect.HostsPath,
 		LogPath:         l.LogPath(),
-		Node:            nil,
 		Name:            fmt.Sprintf("/%s", l.Name()),
 		RestartCount:    int(inspect.RestartCount),
 		Driver:          inspect.Driver,
@@ -588,7 +584,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 	if err != nil {
 		return nil, err
 	}
-	mounts := []types.MountPoint{}
+	mounts := []container.MountPoint{}
 	if err := json.Unmarshal(m, &mounts); err != nil {
 		return nil, err
 	}
@@ -607,7 +603,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		return nil, err
 	}
 
-	networkSettings := types.NetworkSettings{}
+	networkSettings := container.NetworkSettings{}
 	if err := json.Unmarshal(n, &networkSettings); err != nil {
 		return nil, err
 	}
@@ -619,7 +615,7 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*types.ContainerJSON, 
 		networkSettings.Networks = map[string]*network.EndpointSettings{}
 	}
 
-	c := types.ContainerJSON{
+	c := container.InspectResponse{
 		ContainerJSONBase: &cb,
 		Mounts:            mounts,
 		Config:            &config,
@@ -791,6 +787,6 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	responseStruct := container.ContainerUpdateOKBody{}
+	responseStruct := container.UpdateResponse{}
 	utils.WriteResponse(w, http.StatusOK, responseStruct)
 }

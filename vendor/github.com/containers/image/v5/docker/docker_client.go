@@ -475,7 +475,7 @@ func (c *dockerClient) resolveRequestURL(path string) (*url.URL, error) {
 }
 
 // Checks if the auth headers in the response contain an indication of a failed
-// authorizdation because of an "insufficient_scope" error. If that's the case,
+// authorization because of an "insufficient_scope" error. If that's the case,
 // returns the required scope to be used for fetching a new token.
 func needsRetryWithUpdatedScope(res *http.Response) (bool, *authScope) {
 	if res.StatusCode == http.StatusUnauthorized {
