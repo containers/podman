@@ -1419,17 +1419,23 @@ EOF
         # Any other error is fatal
         die "Cannot create idmap mount: $output"
     fi
+    ensure_no_mountpoint "$romount"
 
-    run_podman run --security-opt label=disable --rm --uidmap=0:1000:10000 --rootfs $romount:idmap stat -c %u:%g /bin
+    mkdir -p $PODMAN_TMPDIR/shared-volume
+    # test that there are no mount leaks also when a shared volume is used (with a shared volume the rootfs propagation is set to shared).
+    run_podman run --security-opt label=disable --rm --uidmap=0:1000:10000 -v $PODMAN_TMPDIR/shared-volume:/a-shared-volume:shared --rootfs $romount:idmap stat -c %u:%g /bin
     is "$output" "0:0"
+    ensure_no_mountpoint "$romount"
 
     run_podman run --security-opt label=disable --uidmap=0:1000:10000 --rm --rootfs "$romount:idmap=uids=0-1001-10000;gids=0-1002-10000" stat -c %u:%g /bin
     is "$output" "1:2"
+    ensure_no_mountpoint "$romount"
 
     touch $romount/testfile
     chown 2000:2000 $romount/testfile
     run_podman run --security-opt label=disable --uidmap=0:1000:200 --rm --rootfs "$romount:idmap=uids=@2000-1-1;gids=@2000-1-1" stat -c %u:%g /testfile
     is "$output" "1:1"
+    ensure_no_mountpoint "$romount"
 
     # verify that copyup with an empty idmap volume maintains the original ownership with different mappings and --rootfs
     myvolume=my-volume-$(safename)
@@ -1439,6 +1445,7 @@ EOF
     for FROM in 1000 2000; do
         run_podman run --security-opt label=disable --rm --uidmap=0:$FROM:10000 -v $myvolume:/volume:idmap --rootfs $romount stat -c %u:%g /volume
         is "$output" "0:0"
+        ensure_no_mountpoint "$romount"
     done
     run_podman volume rm $myvolume
 
