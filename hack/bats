@@ -131,6 +131,9 @@ export PODMAN_ROOTLESS_USER=$(id -un)
 # Make sure to always check for leaks when running locally
 export PODMAN_BATS_LEAK_CHECK=1
 
+# FIXME
+export BATS_LOGDIR=$(mktemp -d --tmpdir podman-bats-logs.XXXXXXXXX)
+
 # Root
 if [[ "$TEST_ROOT" ]]; then
     echo "# bats ${bats_opts[*]} ${bats_filter[*]} $TESTS"
@@ -140,7 +143,9 @@ if [[ "$TEST_ROOT" ]]; then
             --preserve-env=OCI_RUNTIME \
             --preserve-env=CONTAINERS_HELPER_BINARY_DIR \
             --preserve-env=PODMAN_ROOTLESS_USER \
-            bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
+            --preserve-env=BATS_LOGDIR \
+            bats "${bats_opts[@]}" "${bats_filter[@]}" \
+                 --gather-test-outputs-in "$BATS_LOGDIR/root" $TESTS
     rc=$?
 fi
 
@@ -148,7 +153,8 @@ fi
 if [[ "$TEST_ROOTLESS" && "$(id -u)" != 0 ]]; then
     echo "--------------------------------------------------"
     echo "\$ bats ${bats_opts[*]} ${bats_filter[*]} $TESTS"
-    bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
+    bats "${bats_opts[@]}" "${bats_filter[@]}" \
+         --gather-test-outputs-in "$BATS_LOGDIR/rootless" $TESTS
     rc=$((rc | $?))
 fi
 
