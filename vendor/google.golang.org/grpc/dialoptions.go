@@ -428,6 +428,11 @@ func WithTimeout(d time.Duration) DialOption {
 // returned by f, gRPC checks the error's Temporary() method to decide if it
 // should try to reconnect to the network address.
 //
+// Note that gRPC by default performs name resolution on the target passed to
+// NewClient. To bypass name resolution and cause the target string to be
+// passed directly to the dialer here instead, use the "passthrough" resolver
+// by specifying it in the target string, e.g. "passthrough:target".
+//
 // Note: All supported releases of Go (as of December 2023) override the OS
 // defaults for TCP keepalive time and interval to 15s. To enable TCP keepalive
 // with OS defaults for keepalive time and interval, use a net.Dialer that sets

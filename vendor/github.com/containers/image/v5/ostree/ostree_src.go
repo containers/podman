@@ -250,9 +250,7 @@ func newOSTreePathFileGetter(repo *C.struct_OstreeRepo, commit string) (*ostreeP
 
 func (o ostreePathFileGetter) Get(filename string) (io.ReadCloser, error) {
 	var file *C.GFile
-	if strings.HasPrefix(filename, "./") {
-		filename = filename[2:]
-	}
+	filename, _ = strings.CutPrefix(filename, "./")
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 

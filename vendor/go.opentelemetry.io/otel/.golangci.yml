@@ -127,8 +127,6 @@ linters-settings:
           - "**/metric/**/*.go"
           - "**/bridge/*.go"
           - "**/bridge/**/*.go"
-          - "**/example/*.go"
-          - "**/example/**/*.go"
           - "**/trace/*.go"
           - "**/trace/**/*.go"
           - "**/log/*.go"
