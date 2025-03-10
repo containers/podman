@@ -11,26 +11,26 @@ import (
 
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/bindings/images"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/storage/pkg/regexp"
-	dockerAPI "github.com/docker/docker/api/types"
 )
 
 var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)
 
 // Commit creates a container image from a container.  The container is defined by nameOrID.  Use
 // the CommitOptions for finer grain control on characteristics of the resulting image.
-func Commit(ctx context.Context, nameOrID string, options *CommitOptions) (dockerAPI.IDResponse, error) {
+func Commit(ctx context.Context, nameOrID string, options *CommitOptions) (types.IDResponse, error) {
 	if options == nil {
 		options = new(CommitOptions)
 	}
-	id := dockerAPI.IDResponse{}
+	id := types.IDResponse{}
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return id, err
 	}
 	params, err := options.ToParams()
 	if err != nil {
-		return dockerAPI.IDResponse{}, err
+		return types.IDResponse{}, err
 	}
 	params.Set("container", nameOrID)
 	var requestBody io.Reader

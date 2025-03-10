@@ -24,7 +24,7 @@ profile {{.Name}} flags=(attach_disconnected,mediate_deleted) {
   # Allow certain signals from OCI runtimes (podman, runc and crun)
   signal (receive) peer={/usr/bin/,/usr/sbin/,}runc,
   signal (receive) peer={/usr/bin/,/usr/sbin/,}crun*,
-  signal (receive) set=(int, quit, kill, term) peer={/usr/bin/,/usr/sbin/,}podman,
+  signal (receive) peer={/usr/bin/,/usr/sbin/,}podman,
 {{end}}
 
   deny @{PROC}/* w,   # deny write for all files directly in /proc (not in a subdir)

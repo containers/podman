@@ -328,19 +328,16 @@ func prepareImageConfigForDest(ctx context.Context, sys *types.SystemContext, sr
 		}
 		wantedPlatforms := platform.WantedPlatforms(sys)
 
-		options := newOrderedSet()
-		match := false
-		for _, wantedPlatform := range wantedPlatforms {
+		if !slices.ContainsFunc(wantedPlatforms, func(wantedPlatform imgspecv1.Platform) bool {
 			// For a transitional period, this might trigger warnings because the Variant
 			// field was added to OCI config only recently. If this turns out to be too noisy,
 			// revert this check to only look for (OS, Architecture).
-			if platform.MatchesPlatform(ociConfig.Platform, wantedPlatform) {
-				match = true
-				break
+			return platform.MatchesPlatform(ociConfig.Platform, wantedPlatform)
+		}) {
+			options := newOrderedSet()
+			for _, p := range wantedPlatforms {
+				options.append(fmt.Sprintf("%s+%s+%q", p.OS, p.Architecture, p.Variant))
 			}
-			options.append(fmt.Sprintf("%s+%s+%q", wantedPlatform.OS, wantedPlatform.Architecture, wantedPlatform.Variant))
-		}
-		if !match {
 			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q+%q, expecting one of %q",
 				ociConfig.OS, ociConfig.Architecture, ociConfig.Variant, strings.Join(options.list, ", "))
 		}

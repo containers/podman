@@ -77,3 +77,11 @@ type BuildReport struct {
 	// Format to save the image in
 	SaveFormat string
 }
+
+// swagger:model
+type IDResponse struct {
+
+	// The id of the newly created object.
+	// Required: true
+	ID string `json:"Id"`
+}
