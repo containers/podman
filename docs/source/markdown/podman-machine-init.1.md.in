@@ -24,9 +24,9 @@ but can be optionally used on Linux.
 SSH keys are automatically generated to access the VM, and system connections to the root account
 and a user account inside the VM are added.
 
-By default, the VM distribution is [Fedora CoreOS](https://getfedora.org/en/coreos?stream=testing) except for
-WSL which is based on a custom Fedora image.  While Fedora CoreOS upgrades come out every 14 days, the automatic
-update mechanism Zincata is disabled by Podman machine.
+By default, the VM distribution is a custom [Fedora CoreOS](https://getfedora.org/en/coreos?stream=stable)
+based image pushed to quay.io/podman/machine-os (build in https://github.com/containers/podman-machine-os).
+WSL is an exception and is based on a custom Fedora image.
 
 To check if there is an upgrade available for your machine os, you can run the following command:
 
@@ -38,19 +38,18 @@ If an update is available, you can rerun the above command and remove the `--che
 be updated.  After updating, you must stop and start your machine with `podman machine stop && podman machine start` for
 it to take effect.
 
+The above mechanism is only used to update patch (Z) versions of podman. For updates to new major and minor
+version (X.Y) use the **[podman machine os apply](podman-machine-os-apply.1.md)** command, see the docs there for
+more information.
+
 Note: Updating as described above can result in version mismatches between Podman on the host and Podman in the
 machine.  Executing `podman info` should reveal versions of both.  A configuration where the Podman host and machine
 mismatch are unsupported.
 
-For more information on updates and advanced configuration,
-see the Fedora CoreOS documentation about [auto-updates](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [update strategies](https://coreos.github.io/zincati/usage/updates-strategy/).
-
-
-
-
-Fedora CoreOS upgrades come out every 14 days and are detected and installed automatically. The VM is rebooted during the upgrade.
-For more information on updates and advanced configuration,
-see the Fedora CoreOS documentation about [auto-updates](https://docs.fedoraproject.org/en-US/fedora-coreos/auto-updates/) and [update strategies](https://coreos.github.io/zincati/usage/updates-strategy/).
+To update the WSL image you must run dnf update inside, use the following command:
+```
+$ podman machine ssh dnf update
+```
 
 Default Podman machine settings can be set via the [machine] section in the containers.conf(5) file.
 
