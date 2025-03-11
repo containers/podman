@@ -89,14 +89,16 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 					}
 				}
 
-				// do not propagate the bind mount on the parent mount namespace
-				if err := unix.Mount("", parentMount, "", unix.MS_SLAVE, ""); err != nil {
-					return 0, fmt.Errorf("failed to make %s slave: %w", parentMount, err)
-				}
-
 				// bind mount the containers' mount path to the path where the OCI runtime expects it to be
-				if err := unix.Mount(ctr.state.Mountpoint, rootPath, "", unix.MS_BIND, ""); err != nil {
-					return 0, fmt.Errorf("failed to bind mount %s to %s: %w", ctr.state.Mountpoint, rootPath, err)
+				// if the container is already mounted at the expected path, do not cover the mountpoint.
+				if filepath.Clean(ctr.state.Mountpoint) != filepath.Clean(rootPath) {
+					// do not propagate the bind mount on the parent mount namespace
+					if err := unix.Mount("", parentMount, "", unix.MS_SLAVE, ""); err != nil {
+						return 0, fmt.Errorf("failed to make %s slave: %w", parentMount, err)
+					}
+					if err := unix.Mount(ctr.state.Mountpoint, rootPath, "", unix.MS_BIND, ""); err != nil {
+						return 0, fmt.Errorf("failed to bind mount %s to %s: %w", ctr.state.Mountpoint, rootPath, err)
+					}
 				}
 
 				if isShared {

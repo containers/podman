@@ -1,9 +1,9 @@
 package flate
 
 import (
-	"encoding/binary"
 	"fmt"
-	"math/bits"
+
+	"github.com/klauspost/compress/internal/le"
 )
 
 // fastGen maintains the table for matches,
@@ -77,6 +77,7 @@ func (e *fastEncL1) Encode(dst *tokens, src []byte) {
 
 		nextS := s
 		var candidate tableEntry
+		var t int32
 		for {
 			nextHash := hashLen(cv, tableBits, hashBytes)
 			candidate = e.table[nextHash]
@@ -88,9 +89,8 @@ func (e *fastEncL1) Encode(dst *tokens, src []byte) {
 			now := load6432(src, nextS)
 			e.table[nextHash] = tableEntry{offset: s + e.cur}
 			nextHash = hashLen(now, tableBits, hashBytes)
-
-			offset := s - (candidate.offset - e.cur)
-			if offset < maxMatchOffset && uint32(cv) == load3232(src, candidate.offset-e.cur) {
+			t = candidate.offset - e.cur
+			if s-t < maxMatchOffset && uint32(cv) == load3232(src, t) {
 				e.table[nextHash] = tableEntry{offset: nextS + e.cur}
 				break
 			}
@@ -103,8 +103,8 @@ func (e *fastEncL1) Encode(dst *tokens, src []byte) {
 			now >>= 8
 			e.table[nextHash] = tableEntry{offset: s + e.cur}
 
-			offset = s - (candidate.offset - e.cur)
-			if offset < maxMatchOffset && uint32(cv) == load3232(src, candidate.offset-e.cur) {
+			t = candidate.offset - e.cur
+			if s-t < maxMatchOffset && uint32(cv) == load3232(src, t) {
 				e.table[nextHash] = tableEntry{offset: nextS + e.cur}
 				break
 			}
@@ -120,36 +120,10 @@ func (e *fastEncL1) Encode(dst *tokens, src []byte) {
 			// literal bytes prior to s.
 
 			// Extend the 4-byte match as long as possible.
-			t := candidate.offset - e.cur
-			var l = int32(4)
-			if false {
-				l = e.matchlenLong(s+4, t+4, src) + 4
-			} else {
-				// inlined:
-				a := src[s+4:]
-				b := src[t+4:]
-				for len(a) >= 8 {
-					if diff := binary.LittleEndian.Uint64(a) ^ binary.LittleEndian.Uint64(b); diff != 0 {
-						l += int32(bits.TrailingZeros64(diff) >> 3)
-						break
-					}
-					l += 8
-					a = a[8:]
-					b = b[8:]
-				}
-				if len(a) < 8 {
-					b = b[:len(a)]
-					for i := range a {
-						if a[i] != b[i] {
-							break
-						}
-						l++
-					}
-				}
-			}
+			l := e.matchlenLong(int(s+4), int(t+4), src) + 4
 
 			// Extend backwards
-			for t > 0 && s > nextEmit && src[t-1] == src[s-1] {
+			for t > 0 && s > nextEmit && le.Load8(src, t-1) == le.Load8(src, s-1) {
 				s--
 				t--
 				l++
@@ -221,8 +195,8 @@ func (e *fastEncL1) Encode(dst *tokens, src []byte) {
 			candidate = e.table[currHash]
 			e.table[currHash] = tableEntry{offset: o + 2}
 
-			offset := s - (candidate.offset - e.cur)
-			if offset > maxMatchOffset || uint32(x) != load3232(src, candidate.offset-e.cur) {
+			t = candidate.offset - e.cur
+			if s-t > maxMatchOffset || uint32(x) != load3232(src, t) {
 				cv = x >> 8
 				s++
 				break
