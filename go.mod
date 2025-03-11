@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.39.2
 	github.com/containers/common v0.62.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/gvisor-tap-vsock v0.8.3
+	github.com/containers/gvisor-tap-vsock v0.8.4
 	github.com/containers/image/v5 v5.34.1
 	github.com/containers/libhvee v0.9.0
 	github.com/containers/ocicrypt v1.2.1
