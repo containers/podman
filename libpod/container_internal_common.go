@@ -374,6 +374,27 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				// Podman decided for --no-dereference as many
 				// bin-utils tools (e..g, touch, chown, cp) do.
 				options = append(options, "copy-symlink")
+			// TODO: this also ends up checking non-user mounts
+			case "ro", "rro":
+				// There are 2 cases:
+				// 1. User requests `rro`
+				// 		* Return error if runtime does not support `rro`
+				// 2. User requests `ro`
+				// 		* Use `rro` if runtime supports `rro`
+				// 		* Use `ro` if runtime does not support `rro`
+				rro := true
+				if err := util.SupportsRecursiveReadonly(c.ociRuntime.Features()); err != nil {
+					rro = false
+					if o == "rro" {
+						return nil, nil, err
+					}
+				}
+
+				if rro {
+					options = append(options, "rro")
+				} else {
+					options = append(options, "ro")
+				}
 			default:
 				options = append(options, o)
 			}

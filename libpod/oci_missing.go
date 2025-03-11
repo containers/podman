@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
 	"github.com/sirupsen/logrus"
 )
 
@@ -192,6 +193,11 @@ func (r *MissingRuntime) SupportsNoCgroups() bool {
 // without KVM separation
 func (r *MissingRuntime) SupportsKVM() bool {
 	return false
+}
+
+// Features returns nil since this is a missing runtime
+func (r *MissingRuntime) Features() *features.Features {
+	return nil
 }
 
 // AttachSocketPath does not work as there is no runtime to attach to.

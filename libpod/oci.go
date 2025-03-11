@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
 )
 
 // OCIRuntime is an implementation of an OCI runtime.
@@ -130,6 +131,9 @@ type OCIRuntime interface { //nolint:interfacebloat
 	// SupportsKVM os whether the OCI runtime supports running containers
 	// without KVM separation
 	SupportsKVM() bool
+
+	// Features returns the features struct from the OCI runtime
+	Features() *features.Features
 
 	// AttachSocketPath is the path to the socket to attach to a given
 	// container.
