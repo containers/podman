@@ -64,7 +64,7 @@ func waitOnProcess(processID int) error {
 		return nil
 	}
 
-	if err := p.Kill(); err != nil {
+	if err := p.Terminate(); err != nil {
 		if errors.Is(err, syscall.ESRCH) {
 			logrus.Debugf("Gvproxy already dead, exiting cleanly")
 			return nil
