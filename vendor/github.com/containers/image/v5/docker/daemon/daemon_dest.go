@@ -92,7 +92,7 @@ func imageLoadGoroutine(ctx context.Context, c *client.Client, reader *io.PipeRe
 
 // imageLoad accepts tar stream on reader and sends it to c
 func imageLoad(ctx context.Context, c *client.Client, reader *io.PipeReader) error {
-	resp, err := c.ImageLoad(ctx, reader, true)
+	resp, err := c.ImageLoad(ctx, reader, client.ImageLoadWithQuiet(true))
 	if err != nil {
 		return fmt.Errorf("starting a load operation in docker engine: %w", err)
 	}

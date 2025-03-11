@@ -564,7 +564,7 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
 			t.logger.Infof("Aborting the stream early: %v", errMsg)
 		}
 		t.controlBuf.put(&earlyAbortStream{
-			httpStatus:     405,
+			httpStatus:     http.StatusMethodNotAllowed,
 			streamID:       streamID,
 			contentSubtype: s.contentSubtype,
 			status:         status.New(codes.Internal, errMsg),
@@ -585,7 +585,7 @@ func (t *http2Server) operateHeaders(ctx context.Context, frame *http2.MetaHeade
 				stat = status.New(codes.PermissionDenied, err.Error())
 			}
 			t.controlBuf.put(&earlyAbortStream{
-				httpStatus:     200,
+				httpStatus:     http.StatusOK,
 				streamID:       s.id,
 				contentSubtype: s.contentSubtype,
 				status:         stat,

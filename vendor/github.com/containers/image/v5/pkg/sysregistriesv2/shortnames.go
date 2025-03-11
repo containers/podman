@@ -134,7 +134,7 @@ func ResolveShortNameAlias(ctx *types.SystemContext, name string) (reference.Nam
 // editShortNameAlias loads the aliases.conf file and changes it. If value is
 // set, it adds the name-value pair as a new alias. Otherwise, it will remove
 // name from the config.
-func editShortNameAlias(ctx *types.SystemContext, name string, value *string) error {
+func editShortNameAlias(ctx *types.SystemContext, name string, value *string) (retErr error) {
 	if err := validateShortName(name); err != nil {
 		return err
 	}
@@ -178,7 +178,13 @@ func editShortNameAlias(ctx *types.SystemContext, name string, value *string) er
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	// since we are writing to this file, make sure we handle err on Close()
+	defer func() {
+		closeErr := f.Close()
+		if retErr == nil {
+			retErr = closeErr
+		}
+	}()
 
 	encoder := toml.NewEncoder(f)
 	return encoder.Encode(conf)

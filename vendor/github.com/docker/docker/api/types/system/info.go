@@ -29,8 +29,8 @@ type Info struct {
 	CPUSet             bool
 	PidsLimit          bool
 	IPv4Forwarding     bool
-	BridgeNfIptables   bool
-	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"`
+	BridgeNfIptables   bool `json:"BridgeNfIptables"`  // Deprecated: netfilter module is now loaded on-demand and no longer during daemon startup, making this field obsolete. This field is always false and will be removed in the next release.
+	BridgeNfIP6tables  bool `json:"BridgeNfIp6tables"` // Deprecated: netfilter module is now loaded on-demand and no longer during daemon startup, making this field obsolete. This field is always false and will be removed in the next release.
 	Debug              bool
 	NFd                int
 	OomKillDisable     bool
@@ -137,8 +137,13 @@ type PluginsInfo struct {
 // Commit holds the Git-commit (SHA1) that a binary was built from, as reported
 // in the version-string of external tools, such as containerd, or runC.
 type Commit struct {
-	ID       string // ID is the actual commit ID of external tool.
-	Expected string // Expected is the commit ID of external tool expected by dockerd as set at build time.
+	// ID is the actual commit ID or version of external tool.
+	ID string
+
+	// Expected is the commit ID of external tool expected by dockerd as set at build time.
+	//
+	// Deprecated: this field is no longer used in API v1.49, but kept for backward-compatibility with older API versions.
+	Expected string
 }
 
 // NetworkAddressPool is a temp struct used by [Info] struct.

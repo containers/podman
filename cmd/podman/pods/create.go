@@ -21,7 +21,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/docker/docker/pkg/parsers"
+	"github.com/containers/storage/pkg/parsers"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

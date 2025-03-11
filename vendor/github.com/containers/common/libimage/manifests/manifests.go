@@ -526,7 +526,7 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 	var instanceInfos []instanceInfo
 	var manifestDigest digest.Digest
 
-	primaryManifestBytes, primaryManifestType, err := src.GetManifest(ctx, nil)
+	primaryManifestBytes, primaryManifestType, err := image.UnparsedInstance(src, nil).Manifest(ctx)
 	if err != nil {
 		return "", fmt.Errorf("reading manifest from %q: %w", transports.ImageName(ref), err)
 	}
@@ -613,7 +613,8 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 
 	knownConfigTypes := []string{manifest.DockerV2Schema2ConfigMediaType, v1.MediaTypeImageConfig}
 	for _, instanceInfo := range instanceInfos {
-		manifestBytes, manifestType, err := src.GetManifest(ctx, instanceInfo.instanceDigest)
+		unparsedInstance := image.UnparsedInstance(src, instanceInfo.instanceDigest)
+		manifestBytes, manifestType, err := unparsedInstance.Manifest(ctx)
 		if err != nil {
 			return "", fmt.Errorf("reading manifest from %q, instance %q: %w", transports.ImageName(ref), instanceInfo.instanceDigest, err)
 		}
@@ -625,7 +626,7 @@ func (l *list) Add(ctx context.Context, sys *types.SystemContext, ref types.Imag
 		hasPlatformConfig := instanceInfo.ArtifactType == "" && slices.Contains(knownConfigTypes, instanceInfo.ConfigInfo.MediaType)
 		needToParsePlatformConfig := (instanceInfo.OS == "" || instanceInfo.Architecture == "")
 		if hasPlatformConfig && needToParsePlatformConfig {
-			img, err := image.FromUnparsedImage(ctx, sys, image.UnparsedInstance(src, instanceInfo.instanceDigest))
+			img, err := image.FromUnparsedImage(ctx, sys, unparsedInstance)
 			if err != nil {
 				return "", fmt.Errorf("reading configuration blob from %q: %w", transports.ImageName(ref), err)
 			}
@@ -712,12 +713,12 @@ func (l *list) AddArtifact(ctx context.Context, sys *types.SystemContext, option
 	// reason.
 	var subject *v1.Descriptor
 	if options.SubjectReference != nil {
-		subjectReference, err := options.SubjectReference.NewImageSource(ctx, sys)
+		subjectSource, err := options.SubjectReference.NewImageSource(ctx, sys)
 		if err != nil {
 			return "", fmt.Errorf("setting up to read manifest and configuration from subject %q: %w", transports.ImageName(options.SubjectReference), err)
 		}
-		defer subjectReference.Close()
-		subjectManifestBytes, subjectManifestType, err := subjectReference.GetManifest(ctx, nil)
+		defer subjectSource.Close()
+		subjectManifestBytes, subjectManifestType, err := image.UnparsedInstance(subjectSource, nil).Manifest(ctx)
 		if err != nil {
 			return "", fmt.Errorf("reading manifest from subject %q: %w", transports.ImageName(options.SubjectReference), err)
 		}

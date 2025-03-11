@@ -1,4 +1,4 @@
-package archive // import "github.com/docker/docker/pkg/archive"
+package archive
 
 import (
 	"archive/tar"
@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/containerd/log"
-	"github.com/docker/docker/pkg/system"
 )
 
 // Errors used or returned by this file.
@@ -20,6 +20,17 @@ var (
 	ErrCannotCopyDir     = errors.New("cannot copy directory")
 	ErrInvalidCopySource = errors.New("invalid copy source content")
 )
+
+var copyPool = sync.Pool{
+	New: func() interface{} { s := make([]byte, 32*1024); return &s },
+}
+
+func copyWithBuffer(dst io.Writer, src io.Reader) (written int64, err error) {
+	buf := copyPool.Get().(*[]byte)
+	written, err = io.CopyBuffer(dst, src, *buf)
+	copyPool.Put(buf)
+	return
+}
 
 // PreserveTrailingDotOrSeparator returns the given cleaned path (after
 // processing using any utility functions from the path or filepath stdlib
@@ -203,7 +214,7 @@ func CopyInfoDestinationPath(path string) (info CopyInfo, err error) {
 			return CopyInfo{}, err
 		}
 
-		if !system.IsAbs(linkTarget) {
+		if !filepath.IsAbs(linkTarget) {
 			// Join with the parent directory.
 			dstParent, _ := SplitPathDirEntry(path)
 			linkTarget = filepath.Join(dstParent, linkTarget)
