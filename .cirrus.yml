@@ -25,36 +25,42 @@ env:
 
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
-    #### Comment out fedora-35 for podman 4.x branches.
     ####
-    FEDORA_NAME: "fedora-37"
+    FEDORA_NAME: "fedora-41"
     FEDORA_AARCH64_NAME: "${FEDORA_NAME}-aarch64"
-    PRIOR_FEDORA_NAME: "fedora-36"
-    UBUNTU_NAME: "ubuntu-2204"
+    PRIOR_FEDORA_NAME: "fedora-40"
+    RAWHIDE_NAME: "rawhide"
+    DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c6447802205601792"
+    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
+
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
     FEDORA_AARCH64_AMI: "fedora-podman-aws-arm64-${IMAGE_SUFFIX}"
     # GCP Images
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
-    #UBUNTU_CACHE_IMAGE_NAME: "ubuntu-${IMAGE_SUFFIX}"
+    RAWHIDE_CACHE_IMAGE_NAME: "rawhide-${IMAGE_SUFFIX}"
+    DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
     # Container FQIN's
     FEDORA_CONTAINER_FQIN: "quay.io/libpod/fedora_podman:${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CONTAINER_FQIN: "quay.io/libpod/prior-fedora_podman:${IMAGE_SUFFIX}"
+    WINDOWS_AMI: "win-server-wsl-${IMAGE_SUFFIX}"
     ####
     #### Control variables that determine what to run and how to run it.
     #### N/B: Required ALL of these are set for every single task.
     ####
     TEST_FLAVOR:             # int, sys, ext_svc, validate, automation, etc.
-    TEST_ENVIRON: host       # 'host', or 'container'
+    TEST_ENVIRON: host       # 'host', or 'container'.
     PODBIN_NAME: podman      # 'podman' or 'remote'
     PRIV_NAME: root          # 'root' or 'rootless'
-    DISTRO_NV:               # any {PRIOR_,}{FEDORA,UBUNTU}_NAME value
+    DISTRO_NV:               # any {PRIOR_,}{FEDORA,DEBIAN}_NAME value
     VM_IMAGE_NAME:           # One of the "Google-cloud VM Images" (above)
     CTR_FQIN:                # One of the "Container FQIN's" (above)
+    CI_DESIRED_RUNTIME: crun    # As of 2024-05-28 there are no other supported runtimes
+    CI_DESIRED_DATABASE: sqlite # 'sqlite' or 'boltdb'
+    CI_DESIRED_STORAGE: overlay # overlay, vfs, or composefs (which is actually overlay)
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
@@ -65,13 +71,12 @@ env:
 
 
 # Default timeout for each task
-timeout_in: 60m
+timeout_in: 20m
 
 
 gcp_credentials: ENCRYPTED[a28959877b2c9c36f151781b0a05407218cda646c7d047fc556e42f55e097e897ab63ee78369dae141dcf0b46a9d0cdd]
 
 aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241e895dbf1737580b4d84eed27a311a2b74287ef9f79f]
-
 
 # N/B: This matrix of build tasks are critical to CI, along with the following
 # aarch64 task. They build binaries for all CI platforms, and versions. On
@@ -80,14 +85,11 @@ aws_credentials: ENCRYPTED[4ca070bffe28eb9b27d63c568b52970dd46f119c3a83b8e443241
 # otherwise duplicative effort in most tasks.
 build_task:
     alias: 'build'
-    name: 'Build for $DISTRO_NV'
-    # Multiarch doesn't depend on buildability in this automation context
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: "$CIRRUS_CRON != 'multiarch'"
-    gce_instance: &standardvm
+    name: 'Build for $DISTRO_NV' # N/B: Referenced by URLencoded strings elsewhere
+    gce_instance: &fastvm
         image_project: libpod-218412
         zone: "us-central1-a"
-        cpu: 2
+        cpu: 4
         memory: "4Gb"
         # Required to be 200gig, do not modify - has i/o performance impact
         # according to gcloud CLI tool warning messages.
@@ -100,21 +102,6 @@ build_task:
               # Not used here, is used in other tasks
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-              # ID for re-use of build output
-              CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: netavark
-        - env: &priorfedora_envvars
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_RUNTIME: crun
-              CI_DESIRED_NETWORK: cni
-        #- env: &ubuntu_envvars
-        #      DISTRO_NV: ${UBUNTU_NAME}
-        #      VM_IMAGE_NAME: ${UBUNTU_CACHE_IMAGE_NAME}
-        #      CTR_FQIN: ${UBUNTU_CONTAINER_FQIN}
-        #      CI_DESIRED_RUNTIME: runc
-        #      CI_DESIRED_NETWORK: whatever
     env:
         TEST_FLAVOR: build
     # NOTE: The default way Cirrus-CI clones is *NOT* compatible with
@@ -122,9 +109,15 @@ build_task:
     #       the 'origin' remote must be defined, and all remote branches/tags
     #       must be available for reference from CI scripts.
     clone_script: &full_clone |
+          set -exo pipefail
           cd /
           rm -rf $CIRRUS_WORKING_DIR
           mkdir -p $CIRRUS_WORKING_DIR
+          if [[ -z "$CIRRUS_PR" ]]; then
+            DEST_BRANCH="$CIRRUS_BRANCH"
+          else
+            DEST_BRANCH="$CIRRUS_BASE_BRANCH"
+          fi
           git clone --recursive --branch=$DEST_BRANCH https://x-access-token:${CIRRUS_REPO_CLONE_TOKEN}@github.com/${CIRRUS_REPO_FULL_NAME}.git $CIRRUS_WORKING_DIR
           cd $CIRRUS_WORKING_DIR
           git remote update origin
@@ -134,33 +127,12 @@ build_task:
           else
               git reset --hard $CIRRUS_CHANGE_IN_REPO
           fi
-          # Some test operations & checks require a git "identity"
-          _gc='git config --file /root/.gitconfig'
-          $_gc user.email "TMcTestFace@example.com"
-          $_gc user.name "Testy McTestface"
-          # Nightly dependency-bump job: fetch latest versions of the
-          # Big Three dependencies, and run full CI test suite. Notification
-          # email will go out to monitor-list upon failure.
-          if [[ "$CIRRUS_CRON" = "treadmill" ]]; then
-              for pkg in common image/v5 storage; do
-                  echo "go mod edit --require containers/$pkg@main"
-                  go mod edit --require github.com/containers/$pkg@main
-                  make vendor
-              done
-              git add vendor
-              # Show what changed.
-              echo "git diff go.mod, then git diff --stat:"
-              git diff go.mod
-              git diff --stat
-              HOME=/root git commit --allow-empty -asm"Bump containers/common,image,storage"
-          fi
     # Attempt to prevent flakes by confirming basic environment expectations,
     # network service connectivity and essential container image availability.
+    # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
     prebuild_script: &prebuild $SCRIPT_BASE/prebuild.sh
     # Standard setup stage call, used by nearly every task in CI.
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
-    # Attempt to prevent flakes by confirming automation environment and
-    # all required external/3rd-party services are available and functional.
     # Standard main execution stage call, used by nearly every task in CI.
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
     # Attempt to catch code-quality and vendoring problems early.
@@ -168,21 +140,19 @@ build_task:
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
     repo_prep_script: &repo_prep >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
+        tar --zstd -cf /tmp/repo.tar.zst -C $GOSRC . && mv /tmp/repo.tar.zst $GOSRC/
     repo_artifacts: &repo_artifacts
-        path: ./repo.tbz
+        path: ./repo.tar.zst
         type: application/octet-stream
     always: &runner_stats
         runner_stats_artifacts:
             path: ./*-${STATS_LOGFILE_SFX}
             type: text/plain
 
+
 build_aarch64_task:
     alias: 'build_aarch64'
     name: 'Build for $DISTRO_NV'
-    # Multiarch doesn't depend on buildability in this automation context
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: "$CIRRUS_CRON != 'multiarch'"
     ec2_instance: &standard_build_ec2_aarch64
         image: ${VM_IMAGE_NAME}
         type: ${EC2_INST_TYPE}
@@ -193,56 +163,17 @@ build_aarch64_task:
         DISTRO_NV: ${FEDORA_AARCH64_NAME}
         VM_IMAGE_NAME: ${FEDORA_AARCH64_AMI}
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        CI_DESIRED_RUNTIME: crun
-        CI_DESIRED_NETWORK: netavark
         TEST_FLAVOR: build
     clone_script: *full_clone
+    # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
     prebuild_script: *prebuild
     setup_script: *setup
     postbuild_script: *postbuild
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
-    repo_prep_script: &repo_prep_aarch64 >-
-        tar cjf /tmp/repo.tbz -C $GOSRC . && mv /tmp/repo.tbz $GOSRC/
-    repo_artifacts: &repo_artifacts_aarch64
-        path: ./repo.tbz
-        type: application/octet-stream
-    always: *runner_stats
-
-
-# Confirm the result of building on at least one platform appears sane.
-# This confirms the binaries can be executed, checks --help vs docs, and
-# other essential post-build validation checks.
-validate_task:
-    name: "Validate $DISTRO_NV Build"
-    alias: validate
-    # This task is primarily intended to catch human-errors early on, in a
-    # PR.  Skip it for branch-push, branch-create, and tag-push to improve
-    # automation reliability/speed in those contexts.  Any missed errors due
-    # to nonsequential PR merging practices, will be caught on a future PR,
-    # build or test task failures.
-    # Docs: ./contrib/cirrus/CIModes.md
-    only_if: &is_pr "$CIRRUS_PR != ''"
-    depends_on:
-        - build
-    # golangci-lint is a very, very hungry beast.
-    gce_instance: &bigvm
-        <<: *standardvm
-        cpu: 8
-        memory: "16Gb"
-    env:
-        <<: *stdenvars
-        DISTRO_NV: ${FEDORA_NAME}
-        TEST_FLAVOR: validate
-    # N/B: This script depends on ${DISTRO_NV} being defined for the task.
-    clone_script: &get_gosrc |
-        cd /tmp
-        echo "$ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz"
-        time $ARTCURL/Build%20for%20${DISTRO_NV}/repo/repo.tbz
-        time tar xjf /tmp/repo.tbz -C $GOSRC
-    setup_script: *setup
-    main_script: *main
+    repo_prep_script: *repo_prep
+    repo_artifacts: *repo_artifacts
     always: *runner_stats
 
 # This task is critical.  It updates the "last-used by" timestamp stored
@@ -257,45 +188,44 @@ meta_task:
         image: quay.io/libpod/imgts:latest
     env:
         # Space-separated list of images used by this repository state
-        # DISABLED:
-        #   ${UBUNTU_CACHE_IMAGE_NAME}
         IMGNAMES: >-
             ${FEDORA_CACHE_IMAGE_NAME}
             ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-            build-push-${IMAGE_SUFFIX}
+            ${RAWHIDE_CACHE_IMAGE_NAME}
+            ${DEBIAN_CACHE_IMAGE_NAME}
         EC2IMGNAMES: >-
           ${FEDORA_AARCH64_AMI}
           ${FEDORA_AMI}
+          ${WINDOWS_AMI}
         BUILDID: "${CIRRUS_BUILD_ID}"
         REPOREF: "${CIRRUS_REPO_NAME}"
         AWSINI: ENCRYPTED[21b2db557171b11eb5abdbccae593f48c9caeba86dfcc4d4ff109edee9b4656ab6720a110dadfcd51e88cc59a71cc7af]
         GCPJSON: ENCRYPTED[3a198350077849c8df14b723c0f4c9fece9ebe6408d35982e7adf2105a33f8e0e166ed3ed614875a0887e1af2b8775f4]
         GCPNAME: ENCRYPTED[2f9738ef295a706f66a13891b40e8eaa92a89e0e87faf8bed66c41eca72bf76cfd190a6f2d0e8444c631fdf15ed32ef6]
         GCPPROJECT: libpod-218412
-    clone_script: &noop mkdir -p $CIRRUS_WORKING_DIR
+    clone_script:  &noop mkdir -p "$CIRRUS_WORKING_DIR"
     script: /usr/local/bin/entrypoint.sh
 
 
-# Status aggregator for all tests.  This task simply ensures a defined
-# set of tasks all passed, and allows confirming that based on the status
-# of this task.
+# Status aggregator for all tests.  This task ensures a defined set of tasks
+# all passed, and allows confirming that based on the status of this task.
 success_task:
+    # N/B: The prow merge-bot (tide) is sensitized to this exact name, DO NOT CHANGE IT.
+    # Ref: https://github.com/openshift/release/pull/48855
     name: "Total Success"
     alias: success
     # N/B: ALL tasks must be listed here, minus their '_task' suffix.
     depends_on:
         - build
         - build_aarch64
-        - validate
         - meta
+    env:
+        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
     container: &smallcontainer
         image: ${CTR_FQIN}
         # Resources are limited across ALL currently executing tasks
         # ref: https://cirrus-ci.org/guide/linux/#linux-containers
-        cpu: 2
-        memory: 2
-    env:
-        CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        TEST_ENVIRON: container
+        cpu: 1
+        memory: 1
     clone_script: *noop
     script: *noop
