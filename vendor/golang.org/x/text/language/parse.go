@@ -6,6 +6,7 @@ package language
 
 import (
 	"errors"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -58,7 +59,7 @@ func (c CanonType) Parse(s string) (t Tag, err error) {
 	if changed {
 		tt.RemakeString()
 	}
-	return makeTag(tt), err
+	return makeTag(tt), nil
 }
 
 // Compose creates a Tag from individual parts, which may be of type Tag, Base,
@@ -206,7 +207,7 @@ func ParseAcceptLanguage(s string) (tag []Tag, q []float32, err error) {
 		tag = append(tag, t)
 		q = append(q, float32(w))
 	}
-	sortStable(&tagSort{tag, q})
+	sort.Stable(&tagSort{tag, q})
 	return tag, q, nil
 }
 
