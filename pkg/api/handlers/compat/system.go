@@ -89,7 +89,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, handlers.DiskUsage{DiskUsage: docker.DiskUsage{
-		LayersSize:  0,
+		LayersSize:  df.ImagesSize,
 		Images:      imgs,
 		Containers:  ctnrs,
 		Volumes:     vols,

@@ -1107,6 +1107,59 @@ EOF
     service_cleanup $QUADLET_SERVICE_NAME inactive
 }
 
+# https://github.com/containers/podman/issues/20667
+@test "quadlet kube - start error" {
+    local port=$(random_free_port)
+    # Create the YAMl file
+    pod_name="p-$(safename)"
+    container_name="c-$(safename)"
+    yaml_source="$PODMAN_TMPDIR/start_err$(safename).yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $pod_name
+spec:
+  containers:
+  - command:
+    - "top"
+    image: $IMAGE
+    name: $container_name
+    ports:
+    - containerPort: 80
+      hostPort: $port
+EOF
+
+    # Bind the port to force a an error when starting the pod
+    timeout --foreground -v --kill=10 10 nc -l 127.0.0.1 $port &
+    nc_pid=$!
+
+    # Create the Quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/start_err_$(safename).kube
+    cat > $quadlet_file <<EOF
+[Kube]
+Yaml=${yaml_source}
+EOF
+
+    run_quadlet "$quadlet_file"
+
+    run -0 systemctl daemon-reload
+
+    echo "$_LOG_PROMPT systemctl start $QUADLET_SERVICE_NAME"
+    run systemctl start $QUADLET_SERVICE_NAME
+    echo $output
+    assert $status -eq 1 "systemctl start should report failure"
+
+    run -0 systemctl show --property=ActiveState $QUADLET_SERVICE_NAME
+    assert "$output" == "ActiveState=failed" "unit must be in failed state"
+
+    echo "$_LOG_PROMPT journalctl -u $QUADLET_SERVICE_NAME"
+    run -0 journalctl -eu $QUADLET_SERVICE_NAME
+    assert "$output" =~ "$port: bind: address already in use" "journal contains the real podman start error"
+
+    kill "$nc_pid"
+}
+
 @test "quadlet - image files" {
     local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
 
