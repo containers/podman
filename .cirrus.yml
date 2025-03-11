@@ -129,14 +129,10 @@ build_task:
           fi
     # Attempt to prevent flakes by confirming basic environment expectations,
     # network service connectivity and essential container image availability.
-    # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
-    prebuild_script: &prebuild $SCRIPT_BASE/prebuild.sh
     # Standard setup stage call, used by nearly every task in CI.
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
     # Standard main execution stage call, used by nearly every task in CI.
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
-    # Attempt to catch code-quality and vendoring problems early.
-    postbuild_script: &postbuild $SCRIPT_BASE/postbuild.sh
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
     repo_prep_script: &repo_prep >-
@@ -165,10 +161,7 @@ build_aarch64_task:
         CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         TEST_FLAVOR: build
     clone_script: *full_clone
-    # TODO: Rename to "ci-sanity" and move into task that runs in parallel to build
-    prebuild_script: *prebuild
     setup_script: *setup
-    postbuild_script: *postbuild
     main_script: *main
     # Cirrus-CI is very slow uploading one file at time, and the repo contains
     # thousands of files.  Speed this up by archiving into tarball first.
