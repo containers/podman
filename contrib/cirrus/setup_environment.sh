@@ -158,16 +158,6 @@ case "$OS_RELEASE_ID" in
     *) die_unknown OS_RELEASE_ID
 esac
 
-# Networking: force CNI or Netavark as requested in .cirrus.yml
-# (this variable is mandatory).
-# shellcheck disable=SC2154
-showrun echo "about to set up for CI_DESIRED_NETWORK [=$CI_DESIRED_NETWORK]"
-case "$CI_DESIRED_NETWORK" in
-    netavark)   use_netavark ;;
-    cni)        use_cni ;;
-    *)          die_unknown CI_DESIRED_NETWORK ;;
-esac
-
 # Database: force SQLite or BoltDB as requested in .cirrus.yml.
 # If unset, will default to SQLite.
 # shellcheck disable=SC2154
