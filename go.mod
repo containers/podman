@@ -3,7 +3,7 @@ module github.com/containers/podman/v5
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.22.8
+go 1.23.0
 
 require (
 	github.com/BurntSushi/toml v1.4.0
@@ -71,13 +71,13 @@ require (
 	github.com/vbauerster/mpb/v8 v8.9.1
 	github.com/vishvananda/netlink v1.3.1-0.20240922070040-084abd93d350
 	go.etcd.io/bbolt v1.3.11
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.36.0
 	golang.org/x/exp v0.0.0-20250103183323-7d7fa50e5329
 	golang.org/x/net v0.34.0
-	golang.org/x/sync v0.10.0
-	golang.org/x/sys v0.29.0
-	golang.org/x/term v0.28.0
-	golang.org/x/text v0.21.0
+	golang.org/x/sync v0.12.0
+	golang.org/x/sys v0.31.0
+	golang.org/x/term v0.30.0
+	golang.org/x/text v0.23.0
 	google.golang.org/protobuf v1.36.3
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
