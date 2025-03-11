@@ -32,8 +32,8 @@ jobs:
         message: "[NON-BLOCKING] Packit jobs failed. @containers/packit-build please check. Everyone else, feel free to ignore."
     enable_net: true
     targets:
-      - fedora-all-x86_64
-      - fedora-all-aarch64
+      - fedora-latest-stable-x86_64
+      - fedora-development-aarch64
 
   - job: copr_build
     trigger: pull_request
