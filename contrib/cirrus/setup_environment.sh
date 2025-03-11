@@ -129,15 +129,6 @@ case "$OS_RELEASE_ID" in
     *) die_unknown OS_RELEASE_ID
 esac
 
-# Networking: force CNI or Netavark as requested in .cirrus.yml
-# (this variable is mandatory).
-# shellcheck disable=SC2154
-case "$CI_DESIRED_NETWORK" in
-    netavark)   use_netavark ;;
-    cni)        use_cni ;;
-    *)          die_unknown CI_DESIRED_NETWORK ;;
-esac
-
 # Required to be defined by caller: The environment where primary testing happens
 # shellcheck disable=SC2154
 case "$TEST_ENVIRON" in
