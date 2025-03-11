@@ -119,9 +119,6 @@ func (mi *MessageInfo) makeCoderMethods(t reflect.Type, si structInfo) {
 			}
 		case isOneof:
 			fieldOffset = offsetOf(fs)
-		case fd.IsWeak():
-			fieldOffset = si.weakOffset
-			funcs = makeWeakMessageFieldCoder(fd)
 		default:
 			fieldOffset = offsetOf(fs)
 			childMessage, funcs = fieldCoder(fd, ft)

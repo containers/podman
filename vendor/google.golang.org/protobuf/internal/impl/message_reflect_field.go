@@ -8,11 +8,8 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"sync"
 
-	"google.golang.org/protobuf/internal/flags"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
 type fieldInfo struct {
@@ -328,79 +325,6 @@ func fieldInfoForScalar(fd protoreflect.FieldDescriptor, fs reflect.StructField,
 		},
 		newField: func() protoreflect.Value {
 			return conv.New()
-		},
-	}
-}
-
-func fieldInfoForWeakMessage(fd protoreflect.FieldDescriptor, weakOffset offset) fieldInfo {
-	if !flags.ProtoLegacyWeak {
-		panic("no support for proto1 weak fields")
-	}
-
-	var once sync.Once
-	var messageType protoreflect.MessageType
-	lazyInit := func() {
-		once.Do(func() {
-			messageName := fd.Message().FullName()
-			messageType, _ = protoregistry.GlobalTypes.FindMessageByName(messageName)
-			if messageType == nil {
-				panic(fmt.Sprintf("weak message %v for field %v is not linked in", messageName, fd.FullName()))
-			}
-		})
-	}
-
-	num := fd.Number()
-	return fieldInfo{
-		fieldDesc: fd,
-		has: func(p pointer) bool {
-			if p.IsNil() {
-				return false
-			}
-			_, ok := p.Apply(weakOffset).WeakFields().get(num)
-			return ok
-		},
-		clear: func(p pointer) {
-			p.Apply(weakOffset).WeakFields().clear(num)
-		},
-		get: func(p pointer) protoreflect.Value {
-			lazyInit()
-			if p.IsNil() {
-				return protoreflect.ValueOfMessage(messageType.Zero())
-			}
-			m, ok := p.Apply(weakOffset).WeakFields().get(num)
-			if !ok {
-				return protoreflect.ValueOfMessage(messageType.Zero())
-			}
-			return protoreflect.ValueOfMessage(m.ProtoReflect())
-		},
-		set: func(p pointer, v protoreflect.Value) {
-			lazyInit()
-			m := v.Message()
-			if m.Descriptor() != messageType.Descriptor() {
-				if got, want := m.Descriptor().FullName(), messageType.Descriptor().FullName(); got != want {
-					panic(fmt.Sprintf("field %v has mismatching message descriptor: got %v, want %v", fd.FullName(), got, want))
-				}
-				panic(fmt.Sprintf("field %v has mismatching message descriptor: %v", fd.FullName(), m.Descriptor().FullName()))
-			}
-			p.Apply(weakOffset).WeakFields().set(num, m.Interface())
-		},
-		mutable: func(p pointer) protoreflect.Value {
-			lazyInit()
-			fs := p.Apply(weakOffset).WeakFields()
-			m, ok := fs.get(num)
-			if !ok {
-				m = messageType.New().Interface()
-				fs.set(num, m)
-			}
-			return protoreflect.ValueOfMessage(m.ProtoReflect())
-		},
-		newMessage: func() protoreflect.Message {
-			lazyInit()
-			return messageType.New()
-		},
-		newField: func() protoreflect.Value {
-			lazyInit()
-			return protoreflect.ValueOfMessage(messageType.New())
 		},
 	}
 }

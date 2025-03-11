@@ -56,9 +56,6 @@ func opaqueInitHook(mi *MessageInfo) bool {
 		usePresence, _ := usePresenceForField(si, fd)
 
 		switch {
-		case fd.IsWeak():
-			// Weak fields are no different for opaque.
-			fi = fieldInfoForWeakMessage(fd, si.weakOffset)
 		case fd.ContainingOneof() != nil && !fd.ContainingOneof().IsSynthetic():
 			// Oneofs are no different for opaque.
 			fi = fieldInfoForOneof(fd, si.oneofsByName[fd.ContainingOneof().Name()], mi.Exporter, si.oneofWrappersByNumber[fd.Number()])
@@ -619,8 +616,6 @@ func usePresenceForField(si opaqueStructInfo, fd protoreflect.FieldDescriptor) (
 	usesPresenceArray := fd.HasPresence() && fd.Message() == nil && (fd.ContainingOneof() == nil || fd.ContainingOneof().IsSynthetic())
 	switch {
 	case fd.ContainingOneof() != nil && !fd.ContainingOneof().IsSynthetic():
-		return false, false
-	case fd.IsWeak():
 		return false, false
 	case fd.IsMap():
 		return false, false
