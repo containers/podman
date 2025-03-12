@@ -400,7 +400,7 @@ type iimporter struct {
 	indent int // for tracing support
 }
 
-func (p *iimporter) trace(format string, args ...interface{}) {
+func (p *iimporter) trace(format string, args ...any) {
 	if !trace {
 		// Call sites should also be guarded, but having this check here allows
 		// easily enabling/disabling debug trace statements.

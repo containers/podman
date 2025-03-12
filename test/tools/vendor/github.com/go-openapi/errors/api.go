@@ -55,9 +55,15 @@ func (a apiError) MarshalJSON() ([]byte, error) {
 // New creates a new API error with a code and a message
 func New(code int32, message string, args ...interface{}) Error {
 	if len(args) > 0 {
-		return &apiError{code, fmt.Sprintf(message, args...)}
+		return &apiError{
+			code:    code,
+			message: fmt.Sprintf(message, args...),
+		}
 	}
-	return &apiError{code, message}
+	return &apiError{
+		code:    code,
+		message: message,
+	}
 }
 
 // NotFound creates a new not found error
@@ -130,10 +136,14 @@ func flattenComposite(errs *CompositeError) *CompositeError {
 // MethodNotAllowed creates a new method not allowed error
 func MethodNotAllowed(requested string, allow []string) Error {
 	msg := fmt.Sprintf("method %s is not allowed, but [%s] are", requested, strings.Join(allow, ","))
-	return &MethodNotAllowedError{code: http.StatusMethodNotAllowed, Allowed: allow, message: msg}
+	return &MethodNotAllowedError{
+		code:    http.StatusMethodNotAllowed,
+		Allowed: allow,
+		message: msg,
+	}
 }
 
-// ServeError the error handler interface implementation
+// ServeError implements the http error handler interface
 func ServeError(rw http.ResponseWriter, r *http.Request, err error) {
 	rw.Header().Set("Content-Type", "application/json")
 	switch e := err.(type) {

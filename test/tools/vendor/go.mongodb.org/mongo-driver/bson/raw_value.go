@@ -26,16 +26,21 @@ var ErrNilContext = errors.New("DecodeContext cannot be nil")
 // ErrNilRegistry is returned when the provided registry is nil.
 var ErrNilRegistry = errors.New("Registry cannot be nil")
 
-// RawValue represents a BSON value in byte form. It can be used to hold unprocessed BSON or to
-// defer processing of BSON. Type is the BSON type of the value and Value are the raw bytes that
-// represent the element.
+// RawValue is a raw encoded BSON value. It can be used to delay BSON value decoding or precompute
+// BSON encoded value. Type is the BSON type of the value and Value is the raw encoded BSON value.
 //
-// This type wraps bsoncore.Value for most of it's functionality.
+// A RawValue must be an individual BSON value. Use the Raw type for full BSON documents.
 type RawValue struct {
 	Type  bsontype.Type
 	Value []byte
 
 	r *bsoncodec.Registry
+}
+
+// IsZero reports whether the RawValue is zero, i.e. no data is present on
+// the RawValue. It returns true if Type is 0 and Value is empty or nil.
+func (rv RawValue) IsZero() bool {
+	return rv.Type == 0x00 && len(rv.Value) == 0
 }
 
 // Unmarshal deserializes BSON into the provided val. If RawValue cannot be unmarshaled into val, an
@@ -268,10 +273,16 @@ func (rv RawValue) Int32OK() (int32, bool) { return convertToCoreValue(rv).Int32
 
 // AsInt32 returns a BSON number as an int32. If the BSON type is not a numeric one, this method
 // will panic.
+//
+// Deprecated: Use AsInt64 instead. If an int32 is required, convert the returned value to an int32
+// and perform any required overflow/underflow checking.
 func (rv RawValue) AsInt32() int32 { return convertToCoreValue(rv).AsInt32() }
 
 // AsInt32OK is the same as AsInt32, except that it returns a boolean instead of
 // panicking.
+//
+// Deprecated: Use AsInt64OK instead. If an int32 is required, convert the returned value to an
+// int32 and perform any required overflow/underflow checking.
 func (rv RawValue) AsInt32OK() (int32, bool) { return convertToCoreValue(rv).AsInt32OK() }
 
 // Timestamp returns the BSON timestamp value the Value represents. It panics if the value is a

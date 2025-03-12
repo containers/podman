@@ -586,7 +586,7 @@ func rewriteRange(i string) string {
 	}
 	o := i
 	for _, v := range m {
-		t := fmt.Sprintf(">= %s, <= %s", v[1], v[11])
+		t := fmt.Sprintf(">= %s, <= %s ", v[1], v[11])
 		o = strings.Replace(o, v[0], t, 1)
 	}
 

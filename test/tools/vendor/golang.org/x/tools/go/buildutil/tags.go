@@ -51,7 +51,7 @@ func (v *TagsFlag) Set(s string) error {
 	return nil
 }
 
-func (v *TagsFlag) Get() interface{} { return *v }
+func (v *TagsFlag) Get() any { return *v }
 
 func splitQuotedFields(s string) ([]string, error) {
 	// See $GOROOT/src/cmd/internal/quoted/quoted.go (Split)

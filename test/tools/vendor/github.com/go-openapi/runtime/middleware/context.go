@@ -18,6 +18,8 @@ import (
 	stdContext "context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"sync"
 
@@ -35,12 +37,21 @@ import (
 
 // Debug when true turns on verbose logging
 var Debug = logger.DebugEnabled()
+
+// Logger is the standard libray logger used for printing debug messages
 var Logger logger.Logger = logger.StandardLogger{}
 
-func debugLog(format string, args ...interface{}) {
-	if Debug {
-		Logger.Printf(format, args...)
+func debugLogfFunc(lg logger.Logger) func(string, ...any) {
+	if logger.DebugEnabled() {
+		if lg == nil {
+			return Logger.Debugf
+		}
+
+		return lg.Debugf
 	}
+
+	// muted logger
+	return func(_ string, _ ...any) {}
 }
 
 // A Builder can create middlewares
@@ -73,10 +84,11 @@ func (fn ResponderFunc) WriteResponse(rw http.ResponseWriter, pr runtime.Produce
 // used throughout to store request context with the standard context attached
 // to the http.Request
 type Context struct {
-	spec     *loads.Document
-	analyzer *analysis.Spec
-	api      RoutableAPI
-	router   Router
+	spec      *loads.Document
+	analyzer  *analysis.Spec
+	api       RoutableAPI
+	router    Router
+	debugLogf func(string, ...any) // a logging function to debug context and all components using it
 }
 
 type routableUntypedAPI struct {
@@ -162,7 +174,7 @@ func (r *routableUntypedAPI) HandlerFor(method, path string) (http.Handler, bool
 	r.hlock.Unlock()
 	return handler, ok
 }
-func (r *routableUntypedAPI) ServeErrorFor(operationID string) func(http.ResponseWriter, *http.Request, error) {
+func (r *routableUntypedAPI) ServeErrorFor(_ string) func(http.ResponseWriter, *http.Request, error) {
 	return r.api.ServeError
 }
 func (r *routableUntypedAPI) ConsumersFor(mediaTypes []string) map[string]runtime.Consumer {
@@ -189,7 +201,9 @@ func (r *routableUntypedAPI) DefaultConsumes() string {
 	return r.defaultConsumes
 }
 
-// NewRoutableContext creates a new context for a routable API
+// NewRoutableContext creates a new context for a routable API.
+//
+// If a nil Router is provided, the DefaultRouter (denco-based) will be used.
 func NewRoutableContext(spec *loads.Document, routableAPI RoutableAPI, routes Router) *Context {
 	var an *analysis.Spec
 	if spec != nil {
@@ -199,26 +213,40 @@ func NewRoutableContext(spec *loads.Document, routableAPI RoutableAPI, routes Ro
 	return NewRoutableContextWithAnalyzedSpec(spec, an, routableAPI, routes)
 }
 
-// NewRoutableContextWithAnalyzedSpec is like NewRoutableContext but takes in input the analysed spec too
+// NewRoutableContextWithAnalyzedSpec is like NewRoutableContext but takes as input an already analysed spec.
+//
+// If a nil Router is provided, the DefaultRouter (denco-based) will be used.
 func NewRoutableContextWithAnalyzedSpec(spec *loads.Document, an *analysis.Spec, routableAPI RoutableAPI, routes Router) *Context {
 	// Either there are no spec doc and analysis, or both of them.
 	if !((spec == nil && an == nil) || (spec != nil && an != nil)) {
 		panic(errors.New(http.StatusInternalServerError, "routable context requires either both spec doc and analysis, or none of them"))
 	}
 
-	ctx := &Context{spec: spec, api: routableAPI, analyzer: an, router: routes}
-	return ctx
+	return &Context{
+		spec:      spec,
+		api:       routableAPI,
+		analyzer:  an,
+		router:    routes,
+		debugLogf: debugLogfFunc(nil),
+	}
 }
 
-// NewContext creates a new context wrapper
+// NewContext creates a new context wrapper.
+//
+// If a nil Router is provided, the DefaultRouter (denco-based) will be used.
 func NewContext(spec *loads.Document, api *untyped.API, routes Router) *Context {
 	var an *analysis.Spec
 	if spec != nil {
 		an = analysis.New(spec.Spec())
 	}
-	ctx := &Context{spec: spec, analyzer: an}
+	ctx := &Context{
+		spec:      spec,
+		analyzer:  an,
+		router:    routes,
+		debugLogf: debugLogfFunc(nil),
+	}
 	ctx.api = newRoutableUntypedAPI(spec, api, ctx)
-	ctx.router = routes
+
 	return ctx
 }
 
@@ -282,6 +310,13 @@ func (c *Context) BasePath() string {
 	return c.spec.BasePath()
 }
 
+// SetLogger allows for injecting a logger to catch debug entries.
+//
+// The logger is enabled in DEBUG mode only.
+func (c *Context) SetLogger(lg logger.Logger) {
+	c.debugLogf = debugLogfFunc(lg)
+}
+
 // RequiredProduces returns the accepted content types for responses
 func (c *Context) RequiredProduces() []string {
 	return c.analyzer.RequiredProduces()
@@ -299,6 +334,7 @@ func (c *Context) BindValidRequest(request *http.Request, route *MatchedRoute, b
 		if err != nil {
 			res = append(res, err)
 		} else {
+			c.debugLogf("validating content type for %q against [%s]", ct, strings.Join(route.Consumes, ", "))
 			if err := validateContentType(route.Consumes, ct); err != nil {
 				res = append(res, err)
 			}
@@ -397,16 +433,16 @@ func (c *Context) ResponseFormat(r *http.Request, offers []string) (string, *htt
 	var rCtx = r.Context()
 
 	if v, ok := rCtx.Value(ctxResponseFormat).(string); ok {
-		debugLog("[%s %s] found response format %q in context", r.Method, r.URL.Path, v)
+		c.debugLogf("[%s %s] found response format %q in context", r.Method, r.URL.Path, v)
 		return v, r
 	}
 
 	format := NegotiateContentType(r, offers, "")
 	if format != "" {
-		debugLog("[%s %s] set response format %q in context", r.Method, r.URL.Path, format)
+		c.debugLogf("[%s %s] set response format %q in context", r.Method, r.URL.Path, format)
 		r = r.WithContext(stdContext.WithValue(rCtx, ctxResponseFormat, format))
 	}
-	debugLog("[%s %s] negotiated response format %q", r.Method, r.URL.Path, format)
+	c.debugLogf("[%s %s] negotiated response format %q", r.Method, r.URL.Path, format)
 	return format, r
 }
 
@@ -469,7 +505,7 @@ func (c *Context) BindAndValidate(request *http.Request, matched *MatchedRoute) 
 	var rCtx = request.Context()
 
 	if v, ok := rCtx.Value(ctxBoundParams).(*validation); ok {
-		debugLog("got cached validation (valid: %t)", len(v.result) == 0)
+		c.debugLogf("got cached validation (valid: %t)", len(v.result) == 0)
 		if len(v.result) > 0 {
 			return v.bound, request, errors.CompositeValidationError(v.result...)
 		}
@@ -481,7 +517,7 @@ func (c *Context) BindAndValidate(request *http.Request, matched *MatchedRoute) 
 	if len(result.result) > 0 {
 		return result.bound, request, errors.CompositeValidationError(result.result...)
 	}
-	debugLog("no validation errors found")
+	c.debugLogf("no validation errors found")
 	return result.bound, request, nil
 }
 
@@ -492,7 +528,7 @@ func (c *Context) NotFound(rw http.ResponseWriter, r *http.Request) {
 
 // Respond renders the response after doing some content negotiation
 func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []string, route *MatchedRoute, data interface{}) {
-	debugLog("responding to %s %s with produces: %v", r.Method, r.URL.Path, produces)
+	c.debugLogf("responding to %s %s with produces: %v", r.Method, r.URL.Path, produces)
 	offers := []string{}
 	for _, mt := range produces {
 		if mt != c.api.DefaultProduces() {
@@ -501,7 +537,7 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 	}
 	// the default producer is last so more specific producers take precedence
 	offers = append(offers, c.api.DefaultProduces())
-	debugLog("offers: %v", offers)
+	c.debugLogf("offers: %v", offers)
 
 	var format string
 	format, r = c.ResponseFormat(r, offers)
@@ -516,7 +552,7 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 			prods := c.api.ProducersFor(normalizeOffers([]string{c.api.DefaultProduces()}))
 			pr, ok := prods[c.api.DefaultProduces()]
 			if !ok {
-				panic(errors.New(http.StatusInternalServerError, "can't find a producer for "+format))
+				panic(errors.New(http.StatusInternalServerError, cantFindProducer(format)))
 			}
 			prod = pr
 		}
@@ -542,14 +578,14 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 	}
 
 	if route == nil || route.Operation == nil {
-		rw.WriteHeader(200)
-		if r.Method == "HEAD" {
+		rw.WriteHeader(http.StatusOK)
+		if r.Method == http.MethodHead {
 			return
 		}
 		producers := c.api.ProducersFor(normalizeOffers(offers))
 		prod, ok := producers[format]
 		if !ok {
-			panic(errors.New(http.StatusInternalServerError, "can't find a producer for "+format))
+			panic(errors.New(http.StatusInternalServerError, cantFindProducer(format)))
 		}
 		if err := prod.Produce(rw, data); err != nil {
 			panic(err) // let the recovery middleware deal with this
@@ -559,7 +595,7 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 
 	if _, code, ok := route.Operation.SuccessResponse(); ok {
 		rw.WriteHeader(code)
-		if code == 204 || r.Method == "HEAD" {
+		if code == http.StatusNoContent || r.Method == http.MethodHead {
 			return
 		}
 
@@ -570,7 +606,7 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 				prods := c.api.ProducersFor(normalizeOffers([]string{c.api.DefaultProduces()}))
 				pr, ok := prods[c.api.DefaultProduces()]
 				if !ok {
-					panic(errors.New(http.StatusInternalServerError, "can't find a producer for "+format))
+					panic(errors.New(http.StatusInternalServerError, cantFindProducer(format)))
 				}
 				prod = pr
 			}
@@ -584,45 +620,92 @@ func (c *Context) Respond(rw http.ResponseWriter, r *http.Request, produces []st
 	c.api.ServeErrorFor(route.Operation.ID)(rw, r, errors.New(http.StatusInternalServerError, "can't produce response"))
 }
 
-func (c *Context) APIHandlerSwaggerUI(builder Builder) http.Handler {
+// APIHandlerSwaggerUI returns a handler to serve the API.
+//
+// This handler includes a swagger spec, router and the contract defined in the swagger spec.
+//
+// A spec UI (SwaggerUI) is served at {API base path}/docs and the spec document at /swagger.json
+// (these can be modified with uiOptions).
+func (c *Context) APIHandlerSwaggerUI(builder Builder, opts ...UIOption) http.Handler {
 	b := builder
 	if b == nil {
 		b = PassthroughBuilder
 	}
 
-	var title string
-	sp := c.spec.Spec()
-	if sp != nil && sp.Info != nil && sp.Info.Title != "" {
-		title = sp.Info.Title
-	}
+	specPath, uiOpts, specOpts := c.uiOptionsForHandler(opts)
+	var swaggerUIOpts SwaggerUIOpts
+	fromCommonToAnyOptions(uiOpts, &swaggerUIOpts)
 
-	swaggerUIOpts := SwaggerUIOpts{
-		BasePath: c.BasePath(),
-		Title:    title,
-	}
-
-	return Spec("", c.spec.Raw(), SwaggerUI(swaggerUIOpts, c.RoutesHandler(b)))
+	return Spec(specPath, c.spec.Raw(), SwaggerUI(swaggerUIOpts, c.RoutesHandler(b)), specOpts...)
 }
 
-// APIHandler returns a handler to serve the API, this includes a swagger spec, router and the contract defined in the swagger spec
-func (c *Context) APIHandler(builder Builder) http.Handler {
+// APIHandlerRapiDoc returns a handler to serve the API.
+//
+// This handler includes a swagger spec, router and the contract defined in the swagger spec.
+//
+// A spec UI (RapiDoc) is served at {API base path}/docs and the spec document at /swagger.json
+// (these can be modified with uiOptions).
+func (c *Context) APIHandlerRapiDoc(builder Builder, opts ...UIOption) http.Handler {
 	b := builder
 	if b == nil {
 		b = PassthroughBuilder
 	}
 
+	specPath, uiOpts, specOpts := c.uiOptionsForHandler(opts)
+	var rapidocUIOpts RapiDocOpts
+	fromCommonToAnyOptions(uiOpts, &rapidocUIOpts)
+
+	return Spec(specPath, c.spec.Raw(), RapiDoc(rapidocUIOpts, c.RoutesHandler(b)), specOpts...)
+}
+
+// APIHandler returns a handler to serve the API.
+//
+// This handler includes a swagger spec, router and the contract defined in the swagger spec.
+//
+// A spec UI (Redoc) is served at {API base path}/docs and the spec document at /swagger.json
+// (these can be modified with uiOptions).
+func (c *Context) APIHandler(builder Builder, opts ...UIOption) http.Handler {
+	b := builder
+	if b == nil {
+		b = PassthroughBuilder
+	}
+
+	specPath, uiOpts, specOpts := c.uiOptionsForHandler(opts)
+	var redocOpts RedocOpts
+	fromCommonToAnyOptions(uiOpts, &redocOpts)
+
+	return Spec(specPath, c.spec.Raw(), Redoc(redocOpts, c.RoutesHandler(b)), specOpts...)
+}
+
+func (c Context) uiOptionsForHandler(opts []UIOption) (string, uiOptions, []SpecOption) {
 	var title string
 	sp := c.spec.Spec()
 	if sp != nil && sp.Info != nil && sp.Info.Title != "" {
 		title = sp.Info.Title
 	}
 
-	redocOpts := RedocOpts{
-		BasePath: c.BasePath(),
-		Title:    title,
+	// default options (may be overridden)
+	optsForContext := []UIOption{
+		WithUIBasePath(c.BasePath()),
+		WithUITitle(title),
+	}
+	optsForContext = append(optsForContext, opts...)
+	uiOpts := uiOptionsWithDefaults(optsForContext)
+
+	// If spec URL is provided, there is a non-default path to serve the spec.
+	// This makes sure that the UI middleware is aligned with the Spec middleware.
+	u, _ := url.Parse(uiOpts.SpecURL)
+	var specPath string
+	if u != nil {
+		specPath = u.Path
 	}
 
-	return Spec("", c.spec.Raw(), Redoc(redocOpts, c.RoutesHandler(b)))
+	pth, doc := path.Split(specPath)
+	if pth == "." {
+		pth = ""
+	}
+
+	return pth, uiOpts, []SpecOption{WithSpecDocument(doc)}
 }
 
 // RoutesHandler returns a handler to serve the API, just the routes and the contract defined in the swagger spec
@@ -632,4 +715,8 @@ func (c *Context) RoutesHandler(builder Builder) http.Handler {
 		b = PassthroughBuilder
 	}
 	return NewRouter(c, b(NewOperationExecutor(c)))
+}
+
+func cantFindProducer(format string) string {
+	return "can't find a producer for " + format
 }

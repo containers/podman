@@ -310,7 +310,7 @@ func IImportShallow(fset *token.FileSet, getPackages GetPackagesFunc, data []byt
 }
 
 // ReportFunc is the type of a function used to report formatted bugs.
-type ReportFunc = func(string, ...interface{})
+type ReportFunc = func(string, ...any)
 
 // Current bundled export format version. Increase with each format change.
 // 0: initial implementation
@@ -597,7 +597,7 @@ type filePositions struct {
 	needed []uint64 // unordered list of needed file offsets
 }
 
-func (p *iexporter) trace(format string, args ...interface{}) {
+func (p *iexporter) trace(format string, args ...any) {
 	if !trace {
 		// Call sites should also be guarded, but having this check here allows
 		// easily enabling/disabling debug trace statements.
@@ -1583,6 +1583,6 @@ func (e internalError) Error() string { return "gcimporter: " + string(e) }
 // "internalErrorf" as the former is used for bugs, whose cause is
 // internal inconsistency, whereas the latter is used for ordinary
 // situations like bad input, whose cause is external.
-func internalErrorf(format string, args ...interface{}) error {
+func internalErrorf(format string, args ...any) error {
 	return internalError(fmt.Sprintf(format, args...))
 }

@@ -1,8 +1,7 @@
-# Strfmt [![Build Status](https://travis-ci.org/go-openapi/strfmt.svg?branch=master)](https://travis-ci.org/go-openapi/strfmt) [![codecov](https://codecov.io/gh/go-openapi/strfmt/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/strfmt) [![Slack Status](https://slackin.goswagger.io/badge.svg)](https://slackin.goswagger.io)
-
+# Strfmt [![Build Status](https://github.com/go-openapi/strfmt/actions/workflows/go-test.yml/badge.svg)](https://github.com/go-openapi/strfmt/actions?query=workflow%3A"go+test") [![codecov](https://codecov.io/gh/go-openapi/strfmt/branch/master/graph/badge.svg)](https://codecov.io/gh/go-openapi/strfmt)
+[![Slack Status](https://slackin.goswagger.io/badge.svg)](https://slackin.goswagger.io)
 [![license](http://img.shields.io/badge/license-Apache%20v2-orange.svg)](https://raw.githubusercontent.com/go-openapi/strfmt/master/LICENSE)
 [![GoDoc](https://godoc.org/github.com/go-openapi/strfmt?status.svg)](http://godoc.org/github.com/go-openapi/strfmt)
-[![GolangCI](https://golangci.com/badges/github.com/go-openapi/strfmt.svg)](https://golangci.com)
 [![Go Report Card](https://goreportcard.com/badge/github.com/go-openapi/strfmt)](https://goreportcard.com/report/github.com/go-openapi/strfmt)
 
 This package exposes a registry of data types to support string formats in the go-openapi toolkit.

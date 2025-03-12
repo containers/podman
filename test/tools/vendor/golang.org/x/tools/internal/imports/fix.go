@@ -559,7 +559,7 @@ func fixImportsDefault(fset *token.FileSet, f *ast.File, filename string, env *P
 		return err
 	}
 	apply(fset, f, fixes)
-	return err
+	return nil
 }
 
 // getFixes gets the import fixes that need to be made to f in order to fix the imports.
@@ -1030,7 +1030,7 @@ func (e *ProcessEnv) GetResolver() (Resolver, error) {
 		//
 		// For gopls, we can optionally explicitly choose a resolver type, since we
 		// already know the view type.
-		if len(e.Env["GOMOD"]) == 0 && len(e.Env["GOWORK"]) == 0 {
+		if e.Env["GOMOD"] == "" && (e.Env["GOWORK"] == "" || e.Env["GOWORK"] == "off") {
 			e.resolver = newGopathResolver(e)
 			e.logf("created gopath resolver")
 		} else if r, err := newModuleResolver(e, e.ModCache); err != nil {

@@ -203,7 +203,7 @@ func envList(key, def string) []string {
 
 // stringList's arguments should be a sequence of string or []string values.
 // stringList flattens them into a single []string.
-func stringList(args ...interface{}) []string {
+func stringList(args ...any) []string {
 	var x []string
 	for _, arg := range args {
 		switch arg := arg.(type) {

@@ -4,56 +4,58 @@ linters-settings:
   golint:
     min-confidence: 0
   gocyclo:
-    min-complexity: 31
+    min-complexity: 45
   maligned:
     suggest-new: true
   dupl:
-    threshold: 100
+    threshold: 200
   goconst:
     min-len: 2
-    min-occurrences: 4
+    min-occurrences: 3
 
 linters:
-  enable:
-    - revive
-    - goimports
-    - gosec
+  enable-all: true
+  disable:
+    - maligned
     - unparam
-    - unconvert
-    - predeclared
-    - prealloc
-    - misspell
-
-  # disable:
-  #   - maligned
-  #   - lll
-  #   - gochecknoinits
-  #   - gochecknoglobals
-  #   - godox
-  #   - gocognit
-  #   - whitespace
-  #   - wsl
-  #   - funlen
-  #   - wrapcheck
-  #   - testpackage
-  #   - nlreturn
-  #   - gofumpt
-  #   - goerr113
-  #   - gci
-  #   - gomnd
-  #   - godot
-  #   - exhaustivestruct
-  #   - paralleltest
-  #   - varnamelen
-  #   - ireturn
-  #   - exhaustruct
-  #   #- thelper
-
-issues:
-  exclude-rules:
-    - path: bson.go
-      text: "should be .*ObjectID"
-      linters:
-        - golint
-        - stylecheck
-
+    - lll
+    - gochecknoinits
+    - gochecknoglobals
+    - funlen
+    - godox
+    - gocognit
+    - whitespace
+    - wsl
+    - wrapcheck
+    - testpackage
+    - nlreturn
+    - gomnd
+    - exhaustivestruct
+    - goerr113
+    - errorlint
+    - nestif
+    - godot
+    - gofumpt
+    - paralleltest
+    - tparallel
+    - thelper
+    - ifshort
+    - exhaustruct
+    - varnamelen
+    - gci
+    - depguard
+    - errchkjson
+    - inamedparam
+    - nonamedreturns
+    - musttag
+    - ireturn
+    - forcetypeassert
+    - cyclop
+    # deprecated linters
+    - deadcode
+    - interfacer
+    - scopelint
+    - varcheck
+    - structcheck
+    - golint
+    - nosnakecase

@@ -129,7 +129,7 @@ func (e Element) String() string {
 	if !valid {
 		return ""
 	}
-	return fmt.Sprintf(`"%s": %v`, key, val)
+	return "\"" + string(key) + "\": " + val.String()
 }
 
 // DebugString outputs a human readable version of RawElement. It will attempt to stringify the
