@@ -10,7 +10,7 @@
 // References:
 //
 //	[PROTOCOL.agent]: https://tools.ietf.org/html/draft-miller-ssh-agent-00
-package agent // import "golang.org/x/crypto/ssh/agent"
+package agent
 
 import (
 	"bytes"
