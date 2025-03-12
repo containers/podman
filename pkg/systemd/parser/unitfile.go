@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -838,21 +839,26 @@ func (f *UnitFile) LookupLastArgs(groupName string, key string) ([]string, bool)
 }
 
 // Look up 'Environment' style key-value keys
-func (f *UnitFile) LookupAllKeyVal(groupName string, key string) map[string]string {
+func (f *UnitFile) LookupAllKeyVal(groupName string, key string) (map[string]string, error) {
+	var warnings error
 	res := make(map[string]string)
 	allKeyvals := f.LookupAll(groupName, key)
 	for _, keyvals := range allKeyvals {
 		assigns, err := splitString(keyvals, WhitespaceSeparators, SplitRelax|SplitUnquote|SplitCUnescape)
-		if err == nil {
-			for _, assign := range assigns {
-				key, value, found := strings.Cut(assign, "=")
-				if found {
-					res[key] = value
-				}
+		if err != nil {
+			warnings = errors.Join(warnings, err)
+			continue
+		}
+		for _, assign := range assigns {
+			key, value, found := strings.Cut(assign, "=")
+			if found {
+				res[key] = value
+			} else {
+				warnings = errors.Join(warnings, fmt.Errorf("separator was not found for %s", assign))
 			}
 		}
 	}
-	return res
+	return res, warnings
 }
 
 func (f *UnitFile) Set(groupName string, key string, value string) {
