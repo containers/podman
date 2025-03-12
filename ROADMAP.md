@@ -7,24 +7,38 @@ quarterly.  Podman maintainers then prioritize these features.   Top features ar
 one or more engineers.
 
 
-## Future feature focus
+## Future feature considerations
+
+The following features are of general importantance to Podman.  While these features have no timeline
+associated with them yet, they will likely be on future quarterly milestones.
 
 * Further improvements to `podman machine` to better support Podman Desktop and other developer usecases.
   - Smoother upgrade process for Podman machine operating system (OS) images
-  - Release and pipeline automation for Podman machine OS images
-  - Performance improvements
   - Convergence of WSL technologies with other providers including its OS
-* OCI artifact support
+* Remote client support for OCI artifacts and its RESTFUL API
 * Integration of composefs
-* Partial pull support (zstd:chunked)
+* Ongoing work around partial pull support (zstd:chunked)
 * Improved support for the BuildKit API.
 * Performance and stability improvements.
 * Reductions to the size of the Podman binary.
 
-## Previous quarterly feature prioritizations
+## Milestones and commitments by quarter
 
-This section is a historical account of what features were prioritized by quarter.  Results of the prioritization will be added before at the beginning of each quarter (Jan, Apr, July, Oct).
+This section is a historical account of what features were prioritized by quarter.  Results of the prioritization will be added at start of each quarter (Jan, Apr, July, Oct).
 
-**2025 Q1**
+### 2025 Q1 ####
 
-* TBD
+#### Releases ####
+- [x] Release Podman 5.4
+- [x] Podman release automation
+
+#### Features ####
+- [x] Artifact add --append
+- [x] Artifact extract
+- [x] Artifact add --options
+- [x] Mount OCI artifacts inside containers
+- [x] Determine strategy for configuration files when remote
+
+#### CNCF ####
+- [x] Create Maintainers file
+- [x] Create Governance documentation
