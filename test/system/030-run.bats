@@ -863,6 +863,7 @@ json-file | f
     # exactly 10 seconds. Give it some leeway.
     delta_t=$(( $t1 - $t0 ))
     assert "$delta_t" -gt 1 "podman stop: ran too quickly!"
+    # FIXME: can fail under load, take 7 seconds
     assert "$delta_t" -le 6 "podman stop: took too long"
 
     run_podman rm $cname
@@ -890,7 +891,7 @@ EOF
 
 # bats test_tags=ci:parallel
 @test "podman run --hostuser tests" {
-    skip_if_not_rootless "test whether hostuser is successfully added"
+    skip_if_not_rootless "--hostuser is only meaningful when rootless"
     user=$(id -un)
     run_podman 1 run --rm $IMAGE grep $user /etc/passwd
     run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd

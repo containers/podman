@@ -553,7 +553,14 @@ none | false | false | 0
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/notify-$(safename).sock
     _start_socat
 
+    echo "ls -l $PODMAN_TMPDIR/"
+    ls -l $PODMAN_TMPDIR/
+
     run_podman push $registry_flags $IMAGE $image_on_local_registry
+
+    # Again
+    echo "ls -l $PODMAN_TMPDIR/"
+    ls -l $PODMAN_TMPDIR/
 
     run_podman pull $registry_flags $image_on_local_registry
     is "${lines[1]}" "Pulling image //$image_on_local_registry inside systemd: setting pull timeout to 5m0s" "NOTIFY_SOCKET is passed to container"
