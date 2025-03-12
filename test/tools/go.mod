@@ -10,7 +10,7 @@ require (
 	github.com/go-swagger/go-swagger v0.30.5
 	github.com/onsi/ginkgo/v2 v2.22.1
 	github.com/vbatts/git-validation v1.2.2
-	golang.org/x/tools v0.30.0
+	golang.org/x/tools v0.31.0
 )
 
 require (
