@@ -149,9 +149,11 @@ build_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              # Note, this is changed to FEDORA_NAME temporarily as f40 contains a to old golang
+              # Once we bump our images to f42/41 this must be turned back to PRIOR_FEDORA_NAME
+              DISTRO_NV: ${FEDORA_NAME}
+              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_DATABASE: boltdb
               CI_DESIRED_STORAGE: vfs
         - env:
@@ -666,18 +668,9 @@ container_integration_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
     depends_on: *build
-    matrix: &fedora_vm_axis
-        - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
     env:
+        <<: *stdenvars
         TEST_FLAVOR: int
         TEST_ENVIRON: container
     clone_script: *get_gosrc
