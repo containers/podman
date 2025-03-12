@@ -12,6 +12,7 @@ if ($Env:CI -eq "true") {
     $RELEASE_DIR = "$PSScriptRoot\..\..\contrib\win-installer\current"
     if ($null -eq $ENV:CONTAINERS_MACHINE_PROVIDER) { $ENV:CONTAINERS_MACHINE_PROVIDER = 'wsl' }
 }
+$ENV:LATEST_GH_RELEASE_ID = "199677288" # v5.4.0
 
 Push-Location $WIN_INST_FOLDER
 
@@ -20,7 +21,7 @@ Push-Location $WIN_INST_FOLDER
 # Download the previous installer to test a major update
 
 if (!$env:PREV_SETUP_EXE_PATH) {
-    $env:PREV_SETUP_EXE_PATH = Get-Latest-Podman-Setup-From-GitHub
+    $env:PREV_SETUP_EXE_PATH = Get-Podman-Setup-From-GitHub $ENV:LATEST_GH_RELEASE_ID
 }
 
 # Note: consumes podman-remote-release-windows_amd64.zip from repo.tar.zst
