@@ -8,6 +8,7 @@ import (
 
 	"github.com/containers/storage"
 	storageTypes "github.com/containers/storage/types"
+	digest "github.com/opencontainers/go-digest"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
@@ -22,6 +23,8 @@ type layerTree struct {
 	// emptyImages do not have any top-layer so we cannot create a
 	// *layerNode for them.
 	emptyImages []*Image
+
+	manifestListDigests map[digest.Digest]bool
 }
 
 // node returns a layerNode for the specified layerID.
@@ -90,20 +93,21 @@ func (l *layerNode) repoTags() ([]string, error) {
 }
 
 // newFreshLayerTree extracts a layerTree from consistent layers and images in the local storage.
-func (r *Runtime) newFreshLayerTree() (*layerTree, error) {
+func (r *Runtime) newFreshLayerTree(ctx context.Context) (*layerTree, error) {
 	images, layers, err := r.getImagesAndLayers()
 	if err != nil {
 		return nil, err
 	}
-	return r.newLayerTreeFromData(images, layers)
+	return r.newLayerTreeFromData(ctx, images, layers)
 }
 
 // newLayerTreeFromData extracts a layerTree from the given the layers and images.
 // The caller is responsible for (layers, images) being consistent.
-func (r *Runtime) newLayerTreeFromData(images []*Image, layers []storage.Layer) (*layerTree, error) {
+func (r *Runtime) newLayerTreeFromData(ctx context.Context, images []*Image, layers []storage.Layer) (*layerTree, error) {
 	tree := layerTree{
-		nodes:    make(map[string]*layerNode),
-		ociCache: make(map[string]*ociv1.Image),
+		nodes:               make(map[string]*layerNode),
+		ociCache:            make(map[string]*ociv1.Image),
+		manifestListDigests: make(map[digest.Digest]bool),
 	}
 
 	// First build a tree purely based on layer information.
@@ -124,6 +128,15 @@ func (r *Runtime) newLayerTreeFromData(images []*Image, layers []storage.Layer) 
 		topLayer := img.TopLayer()
 		if topLayer == "" {
 			tree.emptyImages = append(tree.emptyImages, img)
+			if manifestList, _ := img.IsManifestList(ctx); manifestList {
+				mlist, err := img.ToManifestList()
+				if err != nil {
+					return nil, err
+				}
+				for _, digest := range mlist.list.Digests() {
+					tree.manifestListDigests[digest] = true
+				}
+			}
 			continue
 		}
 		node, exists := tree.nodes[topLayer]
@@ -139,19 +152,6 @@ func (r *Runtime) newLayerTreeFromData(images []*Image, layers []storage.Layer) 
 	}
 
 	return &tree, nil
-}
-
-// layersOf returns all storage layers of the specified image.
-func (t *layerTree) layersOf(image *Image) []*storage.Layer {
-	var layers []*storage.Layer
-	node := t.node(image.TopLayer())
-	for node != nil {
-		if node.layer != nil {
-			layers = append(layers, node.layer)
-		}
-		node = node.parent
-	}
-	return layers
 }
 
 // children returns the child images of parent. Child images are images with

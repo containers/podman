@@ -50,6 +50,7 @@ type List interface {
 
 	findDocker(instanceDigest digest.Digest) (*manifest.Schema2ManifestDescriptor, error)
 	findOCIv1(instanceDigest digest.Digest) (*v1.Descriptor, error)
+	Digests() []digest.Digest
 }
 
 type list struct {
@@ -676,4 +677,13 @@ func (l *list) Instances() []digest.Digest {
 		instances = append(instances, instance.Digest)
 	}
 	return instances
+}
+
+func (l *list) Digests() []digest.Digest {
+	digests := make([]digest.Digest, 0)
+
+	for i := range l.docker.Manifests {
+		digests = append(digests, l.docker.Manifests[i].Digest)
+	}
+	return digests
 }

@@ -365,7 +365,7 @@ var ReporterConfigFlags = GinkgoFlags{
 func BuildTestSuiteFlagSet(suiteConfig *SuiteConfig, reporterConfig *ReporterConfig) (GinkgoFlagSet, error) {
 	flags := SuiteConfigFlags.CopyAppend(ParallelConfigFlags...).CopyAppend(ReporterConfigFlags...)
 	flags = flags.WithPrefix("ginkgo")
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S": suiteConfig,
 		"R": reporterConfig,
 		"D": &deprecatedConfig{},
@@ -646,7 +646,7 @@ func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, packageToBuild strin
 	args := []string{"test", "-c", packageToBuild}
 	goArgs, err := GenerateFlagArgs(
 		GoBuildFlags,
-		map[string]interface{}{
+		map[string]any{
 			"Go": &goFlagsConfig,
 		},
 	)
@@ -665,7 +665,7 @@ func GenerateGinkgoTestRunArgs(suiteConfig SuiteConfig, reporterConfig ReporterC
 	flags = flags.CopyAppend(ParallelConfigFlags.WithPrefix("ginkgo")...)
 	flags = flags.CopyAppend(ReporterConfigFlags.WithPrefix("ginkgo")...)
 	flags = flags.CopyAppend(GoRunFlags.WithPrefix("test")...)
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  &suiteConfig,
 		"R":  &reporterConfig,
 		"Go": &goFlagsConfig,
@@ -677,7 +677,7 @@ func GenerateGinkgoTestRunArgs(suiteConfig SuiteConfig, reporterConfig ReporterC
 // GenerateGoTestRunArgs is used by the Ginkgo CLI to generate command line arguments to pass to the compiled non-Ginkgo test binary
 func GenerateGoTestRunArgs(goFlagsConfig GoFlagsConfig) ([]string, error) {
 	flags := GoRunFlags.WithPrefix("test")
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"Go": &goFlagsConfig,
 	}
 
@@ -699,7 +699,7 @@ func BuildRunCommandFlagSet(suiteConfig *SuiteConfig, reporterConfig *ReporterCo
 	flags = flags.CopyAppend(GoBuildFlags...)
 	flags = flags.CopyAppend(GoRunFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  suiteConfig,
 		"R":  reporterConfig,
 		"C":  cliConfig,
@@ -720,7 +720,7 @@ func BuildWatchCommandFlagSet(suiteConfig *SuiteConfig, reporterConfig *Reporter
 	flags = flags.CopyAppend(GoBuildFlags...)
 	flags = flags.CopyAppend(GoRunFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  suiteConfig,
 		"R":  reporterConfig,
 		"C":  cliConfig,
@@ -736,7 +736,7 @@ func BuildBuildCommandFlagSet(cliConfig *CLIConfig, goFlagsConfig *GoFlagsConfig
 	flags := GinkgoCLISharedFlags
 	flags = flags.CopyAppend(GoBuildFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"C":  cliConfig,
 		"Go": goFlagsConfig,
 		"D":  &deprecatedConfig{},
@@ -760,7 +760,7 @@ func BuildBuildCommandFlagSet(cliConfig *CLIConfig, goFlagsConfig *GoFlagsConfig
 func BuildLabelsCommandFlagSet(cliConfig *CLIConfig) (GinkgoFlagSet, error) {
 	flags := GinkgoCLISharedFlags.SubsetWithNames("r", "skip-package")
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"C": cliConfig,
 	}
 
