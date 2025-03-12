@@ -4,16 +4,16 @@
 
 // Derived from go/internal/gcimporter/ureader.go
 
-//go:build go1.18
-// +build go1.18
-
 package gcimporter
 
 import (
+	"fmt"
 	"go/token"
 	"go/types"
+	"sort"
 	"strings"
 
+	"golang.org/x/tools/internal/aliases"
 	"golang.org/x/tools/internal/pkgbits"
 )
 
@@ -26,6 +26,7 @@ type pkgReader struct {
 
 	ctxt    *types.Context
 	imports map[string]*types.Package // previously imported packages, indexed by path
+	aliases bool                      // create types.Alias nodes
 
 	// lazily initialized arrays corresponding to the unified IR
 	// PosBase, Pkg, and Type sections, respectively.
@@ -62,6 +63,14 @@ type typeInfo struct {
 }
 
 func UImportData(fset *token.FileSet, imports map[string]*types.Package, data []byte, path string) (_ int, pkg *types.Package, err error) {
+	if !debug {
+		defer func() {
+			if x := recover(); x != nil {
+				err = fmt.Errorf("internal error in importing %q (%v); please report an issue", path, x)
+			}
+		}()
+	}
+
 	s := string(data)
 	s = s[:strings.LastIndex(s, "\n$$\n")]
 	input := pkgbits.NewPkgDecoder(path, s)
@@ -91,6 +100,7 @@ func readUnifiedPackage(fset *token.FileSet, ctxt *types.Context, imports map[st
 
 		ctxt:    ctxt,
 		imports: imports,
+		aliases: aliases.Enabled(),
 
 		posBases: make([]string, input.NumElems(pkgbits.RelocPosBase)),
 		pkgs:     make([]*types.Package, input.NumElems(pkgbits.RelocPkg)),
@@ -120,6 +130,16 @@ func readUnifiedPackage(fset *token.FileSet, ctxt *types.Context, imports map[st
 	for _, iface := range pr.ifaces {
 		iface.Complete()
 	}
+
+	// Imports() of pkg are all of the transitive packages that were loaded.
+	var imps []*types.Package
+	for _, imp := range pr.pkgs {
+		if imp != nil && imp != pkg {
+			imps = append(imps, imp)
+		}
+	}
+	sort.Sort(byPath(imps))
+	pkg.SetImports(imps)
 
 	pkg.MarkComplete()
 	return pkg
@@ -260,37 +280,7 @@ func (r *reader) doPkg() *types.Package {
 	pkg := types.NewPackage(path, name)
 	r.p.imports[path] = pkg
 
-	imports := make([]*types.Package, r.Len())
-	for i := range imports {
-		imports[i] = r.pkg()
-	}
-	pkg.SetImports(flattenImports(imports))
-
 	return pkg
-}
-
-// flattenImports returns the transitive closure of all imported
-// packages rooted from pkgs.
-func flattenImports(pkgs []*types.Package) []*types.Package {
-	var res []*types.Package
-	seen := make(map[*types.Package]struct{})
-	for _, pkg := range pkgs {
-		if _, ok := seen[pkg]; ok {
-			continue
-		}
-		seen[pkg] = struct{}{}
-		res = append(res, pkg)
-
-		// pkg.Imports() is already flattened.
-		for _, pkg := range pkg.Imports() {
-			if _, ok := seen[pkg]; ok {
-				continue
-			}
-			seen[pkg] = struct{}{}
-			res = append(res, pkg)
-		}
-	}
-	return res
 }
 
 // @@@ Types
@@ -536,7 +526,7 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types.Package, string) {
 		case pkgbits.ObjAlias:
 			pos := r.pos()
 			typ := r.typ()
-			declare(types.NewTypeName(pos, objPkg, objName, typ))
+			declare(aliases.NewAlias(r.p.aliases, pos, objPkg, objName, typ))
 
 		case pkgbits.ObjConst:
 			pos := r.pos()
@@ -563,7 +553,7 @@ func (pr *pkgReader) objIdx(idx pkgbits.Index) (*types.Package, string) {
 				// If the underlying type is an interface, we need to
 				// duplicate its methods so we can replace the receiver
 				// parameter's type (#49906).
-				if iface, ok := underlying.(*types.Interface); ok && iface.NumExplicitMethods() != 0 {
+				if iface, ok := aliases.Unalias(underlying).(*types.Interface); ok && iface.NumExplicitMethods() != 0 {
 					methods := make([]*types.Func, iface.NumExplicitMethods())
 					for i := range methods {
 						fn := iface.ExplicitMethod(i)

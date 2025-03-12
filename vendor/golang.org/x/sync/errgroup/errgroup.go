@@ -4,6 +4,9 @@
 
 // Package errgroup provides synchronization, error propagation, and Context
 // cancelation for groups of goroutines working on subtasks of a common task.
+//
+// [errgroup.Group] is related to [sync.WaitGroup] but adds handling of tasks
+// returning errors.
 package errgroup
 
 import (
@@ -20,7 +23,7 @@ type token struct{}
 // A zero Group is valid, has no limit on the number of active goroutines,
 // and does not cancel on error.
 type Group struct {
-	cancel func()
+	cancel func(error)
 
 	wg sync.WaitGroup
 
@@ -43,7 +46,7 @@ func (g *Group) done() {
 // returns a non-nil error or the first time Wait returns, whichever occurs
 // first.
 func WithContext(ctx context.Context) (*Group, context.Context) {
-	ctx, cancel := context.WithCancel(ctx)
+	ctx, cancel := context.WithCancelCause(ctx)
 	return &Group{cancel: cancel}, ctx
 }
 
@@ -52,7 +55,7 @@ func WithContext(ctx context.Context) (*Group, context.Context) {
 func (g *Group) Wait() error {
 	g.wg.Wait()
 	if g.cancel != nil {
-		g.cancel()
+		g.cancel(g.err)
 	}
 	return g.err
 }
@@ -76,7 +79,7 @@ func (g *Group) Go(f func() error) {
 			g.errOnce.Do(func() {
 				g.err = err
 				if g.cancel != nil {
-					g.cancel()
+					g.cancel(g.err)
 				}
 			})
 		}
@@ -105,7 +108,7 @@ func (g *Group) TryGo(f func() error) bool {
 			g.errOnce.Do(func() {
 				g.err = err
 				if g.cancel != nil {
-					g.cancel()
+					g.cancel(g.err)
 				}
 			})
 		}
@@ -115,6 +118,7 @@ func (g *Group) TryGo(f func() error) bool {
 
 // SetLimit limits the number of active goroutines in this group to at most n.
 // A negative value indicates no limit.
+// A limit of zero will prevent any new goroutines from being added.
 //
 // Any subsequent call to the Go method will block until it can add an active
 // goroutine without exceeding the configured limit.
