@@ -39,8 +39,8 @@ annotation) will be used as filename and joined to the path. If the annotation
 does not exist the digest will be used as filename instead. This results in all blobs
 of the artifact mounted into the container at the given path.
 
-However if the *dst* path is a existing file in the container then the blob will be
-mounted directly on it. This only works when the artifact contains of a single blob
+However, if the *dst* path is an existing file in the container, then the blob will be
+mounted directly on it. This only works when the artifact contains a single blob
 or when either *digest* or *title* are specified.
 
 Options specific to type=**volume**:
