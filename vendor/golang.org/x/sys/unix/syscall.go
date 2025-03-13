@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris zos
 
 // Package unix contains an interface to the low-level operating system
 // primitives. OS details vary depending on the underlying system, and
@@ -28,6 +29,8 @@ import (
 	"bytes"
 	"strings"
 	"unsafe"
+
+	"golang.org/x/sys/internal/unsafeheader"
 )
 
 // ByteSliceFromString returns a NUL-terminated slice of bytes
@@ -79,7 +82,13 @@ func BytePtrToString(p *byte) string {
 		ptr = unsafe.Pointer(uintptr(ptr) + 1)
 	}
 
-	return string(unsafe.Slice(p, n))
+	var s []byte
+	h := (*unsafeheader.Slice)(unsafe.Pointer(&s))
+	h.Data = unsafe.Pointer(p)
+	h.Len = n
+	h.Cap = n
+
+	return string(s)
 }
 
 // Single-word zero for use when we need a valid pointer to 0 bytes.

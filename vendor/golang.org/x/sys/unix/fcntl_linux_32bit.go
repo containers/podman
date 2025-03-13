@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build (linux && 386) || (linux && arm) || (linux && mips) || (linux && mipsle) || (linux && ppc)
+// +build linux,386 linux,arm linux,mips linux,mipsle linux,ppc
 
 package unix
 

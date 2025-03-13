@@ -3,12 +3,13 @@
 // license that can be found in the LICENSE file.
 
 //go:build aix || darwin || dragonfly || freebsd || linux || netbsd || openbsd || solaris || zos
+// +build aix darwin dragonfly freebsd linux netbsd openbsd solaris zos
 
 package unix
 
 import "time"
 
-// TimespecToNsec returns the time stored in ts as nanoseconds.
+// TimespecToNSec returns the time stored in ts as nanoseconds.
 func TimespecToNsec(ts Timespec) int64 { return ts.Nano() }
 
 // NsecToTimespec converts a number of nanoseconds into a Timespec.

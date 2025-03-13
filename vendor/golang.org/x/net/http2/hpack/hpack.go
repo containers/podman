@@ -59,7 +59,7 @@ func (hf HeaderField) String() string {
 
 // Size returns the size of an entry per RFC 7541 section 4.1.
 func (hf HeaderField) Size() uint32 {
-	// https://httpwg.org/specs/rfc7541.html#rfc.section.4.1
+	// http://http2.github.io/http2-spec/compression.html#rfc.section.4.1
 	// "The size of the dynamic table is the sum of the size of
 	// its entries. The size of an entry is the sum of its name's
 	// length in octets (as defined in Section 5.2), its value's
@@ -158,7 +158,7 @@ func (d *Decoder) SetAllowedMaxDynamicTableSize(v uint32) {
 }
 
 type dynamicTable struct {
-	// https://httpwg.org/specs/rfc7541.html#rfc.section.2.3.2
+	// http://http2.github.io/http2-spec/compression.html#rfc.section.2.3.2
 	table          headerFieldTable
 	size           uint32 // in bytes
 	maxSize        uint32 // current maxSize
@@ -211,7 +211,7 @@ func (d *Decoder) at(i uint64) (hf HeaderField, ok bool) {
 	return dt.ents[dt.len()-(int(i)-staticTable.len())], true
 }
 
-// DecodeFull decodes an entire block.
+// Decode decodes an entire block.
 //
 // TODO: remove this method and make it incremental later? This is
 // easier for debugging now.
@@ -307,27 +307,27 @@ func (d *Decoder) parseHeaderFieldRepr() error {
 	case b&128 != 0:
 		// Indexed representation.
 		// High bit set?
-		// https://httpwg.org/specs/rfc7541.html#rfc.section.6.1
+		// http://http2.github.io/http2-spec/compression.html#rfc.section.6.1
 		return d.parseFieldIndexed()
 	case b&192 == 64:
 		// 6.2.1 Literal Header Field with Incremental Indexing
 		// 0b10xxxxxx: top two bits are 10
-		// https://httpwg.org/specs/rfc7541.html#rfc.section.6.2.1
+		// http://http2.github.io/http2-spec/compression.html#rfc.section.6.2.1
 		return d.parseFieldLiteral(6, indexedTrue)
 	case b&240 == 0:
 		// 6.2.2 Literal Header Field without Indexing
 		// 0b0000xxxx: top four bits are 0000
-		// https://httpwg.org/specs/rfc7541.html#rfc.section.6.2.2
+		// http://http2.github.io/http2-spec/compression.html#rfc.section.6.2.2
 		return d.parseFieldLiteral(4, indexedFalse)
 	case b&240 == 16:
 		// 6.2.3 Literal Header Field never Indexed
 		// 0b0001xxxx: top four bits are 0001
-		// https://httpwg.org/specs/rfc7541.html#rfc.section.6.2.3
+		// http://http2.github.io/http2-spec/compression.html#rfc.section.6.2.3
 		return d.parseFieldLiteral(4, indexedNever)
 	case b&224 == 32:
 		// 6.3 Dynamic Table Size Update
 		// Top three bits are '001'.
-		// https://httpwg.org/specs/rfc7541.html#rfc.section.6.3
+		// http://http2.github.io/http2-spec/compression.html#rfc.section.6.3
 		return d.parseDynamicTableSizeUpdate()
 	}
 
@@ -359,7 +359,6 @@ func (d *Decoder) parseFieldLiteral(n uint8, it indexType) error {
 
 	var hf HeaderField
 	wantStr := d.emitEnabled || it.indexed()
-	var undecodedName undecodedString
 	if nameIdx > 0 {
 		ihf, ok := d.at(nameIdx)
 		if !ok {
@@ -367,26 +366,14 @@ func (d *Decoder) parseFieldLiteral(n uint8, it indexType) error {
 		}
 		hf.Name = ihf.Name
 	} else {
-		undecodedName, buf, err = d.readString(buf)
+		hf.Name, buf, err = d.readString(buf, wantStr)
 		if err != nil {
 			return err
 		}
 	}
-	undecodedValue, buf, err := d.readString(buf)
+	hf.Value, buf, err = d.readString(buf, wantStr)
 	if err != nil {
 		return err
-	}
-	if wantStr {
-		if nameIdx <= 0 {
-			hf.Name, err = d.decodeString(undecodedName)
-			if err != nil {
-				return err
-			}
-		}
-		hf.Value, err = d.decodeString(undecodedValue)
-		if err != nil {
-			return err
-		}
 	}
 	d.buf = buf
 	if it.indexed() {
@@ -433,7 +420,7 @@ var errVarintOverflow = DecodingError{errors.New("varint integer overflow")}
 
 // readVarInt reads an unsigned variable length integer off the
 // beginning of p. n is the parameter as described in
-// https://httpwg.org/specs/rfc7541.html#rfc.section.5.1.
+// http://http2.github.io/http2-spec/compression.html#rfc.section.5.1.
 //
 // n must always be between 1 and 8.
 //
@@ -472,52 +459,46 @@ func readVarInt(n byte, p []byte) (i uint64, remain []byte, err error) {
 	return 0, origP, errNeedMore
 }
 
-// readString reads an hpack string from p.
+// readString decodes an hpack string from p.
 //
-// It returns a reference to the encoded string data to permit deferring decode costs
-// until after the caller verifies all data is present.
-func (d *Decoder) readString(p []byte) (u undecodedString, remain []byte, err error) {
+// wantStr is whether s will be used. If false, decompression and
+// []byte->string garbage are skipped if s will be ignored
+// anyway. This does mean that huffman decoding errors for non-indexed
+// strings past the MAX_HEADER_LIST_SIZE are ignored, but the server
+// is returning an error anyway, and because they're not indexed, the error
+// won't affect the decoding state.
+func (d *Decoder) readString(p []byte, wantStr bool) (s string, remain []byte, err error) {
 	if len(p) == 0 {
-		return u, p, errNeedMore
+		return "", p, errNeedMore
 	}
 	isHuff := p[0]&128 != 0
 	strLen, p, err := readVarInt(7, p)
 	if err != nil {
-		return u, p, err
+		return "", p, err
 	}
 	if d.maxStrLen != 0 && strLen > uint64(d.maxStrLen) {
-		// Returning an error here means Huffman decoding errors
-		// for non-indexed strings past the maximum string length
-		// are ignored, but the server is returning an error anyway
-		// and because the string is not indexed the error will not
-		// affect the decoding state.
-		return u, nil, ErrStringLength
+		return "", nil, ErrStringLength
 	}
 	if uint64(len(p)) < strLen {
-		return u, p, errNeedMore
+		return "", p, errNeedMore
 	}
-	u.isHuff = isHuff
-	u.b = p[:strLen]
-	return u, p[strLen:], nil
-}
-
-type undecodedString struct {
-	isHuff bool
-	b      []byte
-}
-
-func (d *Decoder) decodeString(u undecodedString) (string, error) {
-	if !u.isHuff {
-		return string(u.b), nil
+	if !isHuff {
+		if wantStr {
+			s = string(p[:strLen])
+		}
+		return s, p[strLen:], nil
 	}
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset() // don't trust others
-	var s string
-	err := huffmanDecode(buf, d.maxStrLen, u.b)
-	if err == nil {
+
+	if wantStr {
+		buf := bufPool.Get().(*bytes.Buffer)
+		buf.Reset() // don't trust others
+		defer bufPool.Put(buf)
+		if err := huffmanDecode(buf, d.maxStrLen, p[:strLen]); err != nil {
+			buf.Reset()
+			return "", nil, err
+		}
 		s = buf.String()
+		buf.Reset() // be nice to GC
 	}
-	buf.Reset() // be nice to GC
-	bufPool.Put(buf)
-	return s, err
+	return s, p[strLen:], nil
 }

@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build (darwin && race) || (linux && race) || (freebsd && race)
+// +build darwin,race linux,race freebsd,race
 
 package unix
 

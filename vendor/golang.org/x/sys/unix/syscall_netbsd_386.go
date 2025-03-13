@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build 386 && netbsd
+// +build 386,netbsd
 
 package unix
 

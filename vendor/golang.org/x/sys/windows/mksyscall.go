@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build generate
+// +build generate
 
 package windows
 

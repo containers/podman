@@ -13,6 +13,7 @@ import (
 	"crypto/rsa"
 	"crypto/sha1"
 	"io"
+	"io/ioutil"
 	"math/big"
 	"strconv"
 	"time"
@@ -132,7 +133,7 @@ func (pk *PrivateKey) parse(r io.Reader) (err error) {
 		}
 	}
 
-	pk.encryptedData, err = io.ReadAll(r)
+	pk.encryptedData, err = ioutil.ReadAll(r)
 	if err != nil {
 		return
 	}

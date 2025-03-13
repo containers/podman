@@ -5,7 +5,7 @@
 package cpu
 
 import (
-	"os"
+	"io/ioutil"
 )
 
 const (
@@ -24,22 +24,7 @@ var hwCap uint
 var hwCap2 uint
 
 func readHWCAP() error {
-	// For Go 1.21+, get auxv from the Go runtime.
-	if a := getAuxv(); len(a) > 0 {
-		for len(a) >= 2 {
-			tag, val := a[0], uint(a[1])
-			a = a[2:]
-			switch tag {
-			case _AT_HWCAP:
-				hwCap = val
-			case _AT_HWCAP2:
-				hwCap2 = val
-			}
-		}
-		return nil
-	}
-
-	buf, err := os.ReadFile(procAuxv)
+	buf, err := ioutil.ReadFile(procAuxv)
 	if err != nil {
 		// e.g. on android /proc/self/auxv is not accessible, so silently
 		// ignore the error and leave Initialized = false. On some

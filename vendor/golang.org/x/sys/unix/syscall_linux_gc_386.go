@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build linux && gc && 386
+// +build linux,gc,386
 
 package unix
 

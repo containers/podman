@@ -7,6 +7,8 @@ package cmp
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/google/go-cmp/cmp/internal/value"
 )
 
 // numContextRecords is the number of surrounding equal records to print.
@@ -115,7 +117,7 @@ func (opts formatOptions) FormatDiff(v *valueNode, ptrs *pointerReferences) (out
 
 	// For leaf nodes, format the value based on the reflect.Values alone.
 	// As a special case, treat equal []byte as a leaf nodes.
-	isBytes := v.Type.Kind() == reflect.Slice && v.Type.Elem() == byteType
+	isBytes := v.Type.Kind() == reflect.Slice && v.Type.Elem() == reflect.TypeOf(byte(0))
 	isEqualBytes := isBytes && v.NumDiff+v.NumIgnored+v.NumTransformed == 0
 	if v.MaxDepth == 0 || isEqualBytes {
 		switch opts.DiffMode {
@@ -246,11 +248,11 @@ func (opts formatOptions) formatDiffList(recs []reportRecord, k reflect.Kind, pt
 				var isZero bool
 				switch opts.DiffMode {
 				case diffIdentical:
-					isZero = r.Value.ValueX.IsZero() || r.Value.ValueY.IsZero()
+					isZero = value.IsZero(r.Value.ValueX) || value.IsZero(r.Value.ValueY)
 				case diffRemoved:
-					isZero = r.Value.ValueX.IsZero()
+					isZero = value.IsZero(r.Value.ValueX)
 				case diffInserted:
-					isZero = r.Value.ValueY.IsZero()
+					isZero = value.IsZero(r.Value.ValueY)
 				}
 				if isZero {
 					continue

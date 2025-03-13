@@ -3,6 +3,7 @@
 // license that can be found in the LICENSE file.
 
 //go:build mips || mipsle
+// +build mips mipsle
 
 package cpu
 

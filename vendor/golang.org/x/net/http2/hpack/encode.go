@@ -116,11 +116,6 @@ func (e *Encoder) SetMaxDynamicTableSize(v uint32) {
 	e.dynTab.setMaxSize(v)
 }
 
-// MaxDynamicTableSize returns the current dynamic header table size.
-func (e *Encoder) MaxDynamicTableSize() (v uint32) {
-	return e.dynTab.maxSize
-}
-
 // SetMaxDynamicTableSizeLimit changes the maximum value that can be
 // specified in SetMaxDynamicTableSize to v. By default, it is set to
 // 4096, which is the same size of the default dynamic header table
@@ -196,7 +191,7 @@ func appendTableSize(dst []byte, v uint32) []byte {
 // bit prefix, to dst and returns the extended buffer.
 //
 // See
-// https://httpwg.org/specs/rfc7541.html#integer.representation
+// http://http2.github.io/http2-spec/compression.html#integer.representation
 func appendVarInt(dst []byte, n byte, i uint64) []byte {
 	k := uint64((1 << n) - 1)
 	if i < k {

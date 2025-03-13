@@ -50,7 +50,7 @@ func (id Language) Canonicalize() (Language, AliasType) {
 	return normLang(id)
 }
 
-// normLang returns the mapped langID of id according to mapping m.
+// mapLang returns the mapped langID of id according to mapping m.
 func normLang(id Language) (Language, AliasType) {
 	k := sort.Search(len(AliasMap), func(i int) bool {
 		return AliasMap[i].From >= uint16(id)

@@ -3,6 +3,8 @@
 // license that can be found in the LICENSE file.
 
 //go:build riscv64 && gc
+// +build riscv64
+// +build gc
 
 #include "textflag.h"
 
