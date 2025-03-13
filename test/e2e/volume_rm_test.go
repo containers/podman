@@ -54,7 +54,11 @@ var _ = Describe("Podman volume rm", func() {
 	It("podman volume remove bogus", func() {
 		session := podmanTest.Podman([]string{"volume", "rm", "bogus"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitWithError(1, `no volume with name "bogus" found: no such volume`))
+		expected := "Error: no such volume"
+		if podmanTest.DatabaseBackend == "boltdb" {
+			expected = "Error: volume with name bogus not found: no such volume"
+		}
+		Expect(session).Should(ExitWithError(1, expected))
 	})
 
 	It("podman rm with --all flag", func() {
@@ -76,42 +80,25 @@ var _ = Describe("Podman volume rm", func() {
 		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
-	It("podman volume rm by partial name", func() {
-		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
+	It("podman volume remove require exact name", func() {
+		session := podmanTest.Podman([]string{"volume", "create", defaultVolName})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
+		nameStart := defaultVolName[:3]
+		session = podmanTest.Podman([]string{"volume", "rm", nameStart})
 		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"volume", "ls"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
-	})
-
-	It("podman volume rm by nonunique partial name", func() {
-		session := podmanTest.Podman([]string{"volume", "create", "myvol1"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"volume", "create", "myvol2"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"volume", "rm", "myv"})
-		session.WaitWithDefaultTimeout()
-		expect := "more than one result for volume name myv: volume already exists"
+		expectedRm := "Error: no such volume"
 		if podmanTest.DatabaseBackend == "boltdb" {
-			// boltdb issues volume name in quotes
-			expect = `more than one result for volume name "myv": volume already exists`
+			expectedRm = fmt.Sprintf("Error: volume with name %s not found: no such volume", nameStart)
 		}
-		Expect(session).To(ExitWithError(125, expect))
+		Expect(session).Should(ExitWithError(1, expectedRm))
 
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2))
+		output := session.OutputToStringArray()
+		expectedLs := []string{"DRIVER      VOLUME NAME", fmt.Sprintf("local       %s", defaultVolName)}
+		Expect(output).To(Equal(expectedLs))
 	})
 })
