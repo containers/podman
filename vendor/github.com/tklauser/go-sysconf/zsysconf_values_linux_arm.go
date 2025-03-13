@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_linux.go
 
 //go:build linux && arm
-// +build linux,arm
 
 package sysconf
 
