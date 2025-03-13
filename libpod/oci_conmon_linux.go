@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 
 	runcconfig "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/opencontainers/runc/libcontainer/devices"
@@ -61,11 +62,17 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 					logrus.Errorf("Unable to reset the previous mount namespace: %q", err)
 				}
 			}()
-			mounts, err := pmount.GetMounts()
-			if err != nil {
-				return 0, err
-			}
-			if rootPath != "" {
+
+			getMounts := sync.OnceValues(pmount.GetMounts)
+
+			// bind mount the containers' mount path to the path where the OCI runtime expects it to be
+			// if the container is already mounted at the expected path, do not cover the mountpoint.
+			if rootPath != "" && filepath.Clean(ctr.state.Mountpoint) != filepath.Clean(rootPath) {
+				mounts, err := getMounts()
+				if err != nil {
+					return 0, err
+				}
+
 				byMountpoint := make(map[string]*pmount.Info)
 				for _, m := range mounts {
 					byMountpoint[m.Mountpoint] = m
@@ -89,18 +96,13 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 					}
 				}
 
-				// bind mount the containers' mount path to the path where the OCI runtime expects it to be
-				// if the container is already mounted at the expected path, do not cover the mountpoint.
-				if filepath.Clean(ctr.state.Mountpoint) != filepath.Clean(rootPath) {
-					// do not propagate the bind mount on the parent mount namespace
-					if err := unix.Mount("", parentMount, "", unix.MS_SLAVE, ""); err != nil {
-						return 0, fmt.Errorf("failed to make %s slave: %w", parentMount, err)
-					}
-					if err := unix.Mount(ctr.state.Mountpoint, rootPath, "", unix.MS_BIND, ""); err != nil {
-						return 0, fmt.Errorf("failed to bind mount %s to %s: %w", ctr.state.Mountpoint, rootPath, err)
-					}
+				// do not propagate the bind mount on the parent mount namespace
+				if err := unix.Mount("", parentMount, "", unix.MS_SLAVE, ""); err != nil {
+					return 0, fmt.Errorf("failed to make %s slave: %w", parentMount, err)
 				}
-
+				if err := unix.Mount(ctr.state.Mountpoint, rootPath, "", unix.MS_BIND, ""); err != nil {
+					return 0, fmt.Errorf("failed to bind mount %s to %s: %w", ctr.state.Mountpoint, rootPath, err)
+				}
 				if isShared {
 					// we need to restore the shared propagation of the parent mount so that we don't break -v $SRC:$DST:shared in the container
 					// if $SRC is on the same mount as the root path
@@ -117,6 +119,10 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 				err = unix.Mount("/sys", "/sys", "none", unix.MS_REC|unix.MS_SLAVE, "")
 				if err != nil {
 					return 0, fmt.Errorf("cannot make /sys slave: %w", err)
+				}
+				mounts, err := getMounts()
+				if err != nil {
+					return 0, err
 				}
 				for _, m := range mounts {
 					if !strings.HasPrefix(m.Mountpoint, "/sys/kernel") {
