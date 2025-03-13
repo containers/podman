@@ -1,6 +1,6 @@
 module github.com/containers/podman/v4
 
-go 1.23.0
+go 1.17
 
 require (
 	github.com/BurntSushi/toml v1.2.0
@@ -61,11 +61,11 @@ require (
 	github.com/vbauerster/mpb/v7 v7.4.2
 	github.com/vishvananda/netlink v1.1.1-0.20220115184804-dd687eb2f2d4
 	go.etcd.io/bbolt v1.3.6
-	golang.org/x/crypto v0.36.0
-	golang.org/x/sync v0.12.0
-	golang.org/x/sys v0.31.0
-	golang.org/x/term v0.30.0
-	golang.org/x/text v0.23.0
+	golang.org/x/crypto v0.23.0
+	golang.org/x/sync v0.11.0
+	golang.org/x/sys v0.30.0
+	golang.org/x/term v0.29.0
+	golang.org/x/text v0.22.0
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -155,3 +155,5 @@ require (
 
 // See https://github.com/projectatomic/runc/blob/podman-v4.2.0-rhel/README.branch for details.
 replace github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8
+
+replace golang.org/x/crypto => github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581
