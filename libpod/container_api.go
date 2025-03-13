@@ -775,6 +775,7 @@ func (c *Container) WaitForConditionWithInterval(ctx context.Context, waitTimeou
 							exitCode, err := c.runtime.state.GetContainerExitCode(c.ID())
 							if err == nil {
 								trySend(exitCode, nil)
+								return
 							}
 
 							trySend(-1, nil)
