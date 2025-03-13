@@ -14,14 +14,14 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.5.1
 	github.com/containers/buildah v1.39.2
-	github.com/containers/common v0.62.2-0.20250306142925-6e82793fd29d
+	github.com/containers/common v0.62.2
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.4
-	github.com/containers/image/v5 v5.34.2-0.20250306154130-12497efe55ac
+	github.com/containers/image/v5 v5.34.2
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a
+	github.com/containers/storage 2b84c2a846e6
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/crc-org/crc/v2 v2.45.0
