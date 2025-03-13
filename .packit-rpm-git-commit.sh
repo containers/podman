@@ -14,4 +14,4 @@ SPEC_FILE=rpm/$PACKAGE.spec
 GIT_COMMIT=$(git rev-parse HEAD)
 
 # Update LDFLAGS to show commit id for Copr builds
-sed -i "s/^GIT_COMMIT=*/GIT_COMMIT=\"$GIT_COMMIT\"/" $SPEC_FILE
+sed -i "s/^GIT_COMMIT=.*/GIT_COMMIT=\"$GIT_COMMIT\"/" $SPEC_FILE
