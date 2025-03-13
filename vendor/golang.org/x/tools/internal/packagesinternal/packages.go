@@ -5,6 +5,10 @@
 // Package packagesinternal exposes internal-only fields from go/packages.
 package packagesinternal
 
+import (
+	"golang.org/x/tools/internal/gocommand"
+)
+
 var GetForTest = func(p interface{}) string { return "" }
 var GetDepsErrors = func(p interface{}) []*PackageError { return nil }
 
@@ -13,6 +17,10 @@ type PackageError struct {
 	Pos         string   // position of error (if present, file:line:col)
 	Err         string   // the error itself
 }
+
+var GetGoCmdRunner = func(config interface{}) *gocommand.Runner { return nil }
+
+var SetGoCmdRunner = func(config interface{}, runner *gocommand.Runner) {}
 
 var TypecheckCgo int
 var DepsErrors int // must be set as a LoadMode to call GetDepsErrors

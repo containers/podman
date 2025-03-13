@@ -47,7 +47,7 @@ import (
 func Find(importPath, srcDir string) (filename, path string) {
 	cmd := exec.Command("go", "list", "-json", "-export", "--", importPath)
 	cmd.Dir = srcDir
-	out, err := cmd.Output()
+	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", ""
 	}
