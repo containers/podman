@@ -11,7 +11,7 @@ import (
 )
 
 func setupMachineSockets(mc *vmconfigs.MachineConfig, _ *define.MachineDirs) ([]string, string, machine.APIForwardingState, error) {
-	machinePipe := env.WithPodmanPrefix(mc.Name)
+	machinePipe := env.WithToolPrefix(mc.Name)
 	if !machine.PipeNameAvailable(machinePipe, machine.MachineNameWait) {
 		return nil, "", 0, fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}

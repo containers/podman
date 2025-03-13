@@ -2,14 +2,24 @@ package env
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/storage/pkg/fileutils"
 	"go.podman.io/storage/pkg/homedir"
 )
+
+var getToolName = sync.OnceValue(func() string {
+	toolName := os.Getenv("PODMAN_TOOL_PREFIX")
+	if toolName == "" {
+		toolName = "podman"
+	}
+	return toolName
+})
 
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
@@ -151,9 +161,10 @@ func GetSSHIdentityPath(name string) (string, error) {
 	return filepath.Join(datadir, name), nil
 }
 
-func WithPodmanPrefix(name string) string {
-	if !strings.HasPrefix(name, "podman") {
-		name = "podman-" + name
+func WithToolPrefix(name string) string {
+	toolName := getToolName()
+	if !strings.HasPrefix(name, toolName) {
+		name = fmt.Sprintf("%s-%s", toolName, name)
 	}
 	return name
 }

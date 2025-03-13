@@ -126,7 +126,7 @@ func LaunchWinProxy(opts WinProxyOpts, noInfo bool) {
 }
 
 func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
-	machinePipe := env.WithPodmanPrefix(opts.Name)
+	machinePipe := env.WithToolPrefix(opts.Name)
 	if !PipeNameAvailable(machinePipe, MachineNameWait) {
 		return false, "", fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}

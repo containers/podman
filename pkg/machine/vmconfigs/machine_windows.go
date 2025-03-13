@@ -6,6 +6,6 @@ import (
 )
 
 func getPipe(name string) *define.VMFile {
-	pipeName := env.WithPodmanPrefix(name)
+	pipeName := env.WithToolPrefix(name)
 	return &define.VMFile{Path: `\\.\pipe\` + pipeName}
 }

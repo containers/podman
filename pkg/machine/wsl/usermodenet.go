@@ -108,7 +108,7 @@ func startUserModeNetworking(mc *vmconfigs.MachineConfig) error {
 		}
 	}
 
-	if err := createUserModeResolvConf(env.WithPodmanPrefix(mc.Name)); err != nil {
+	if err := createUserModeResolvConf(env.WithToolPrefix(mc.Name)); err != nil {
 		return err
 	}
 
@@ -278,7 +278,7 @@ func addUserModeNetEntry(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 
-	path := filepath.Join(entriesDir, env.WithPodmanPrefix(mc.Name))
+	path := filepath.Join(entriesDir, env.WithToolPrefix(mc.Name))
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o644)
 	if err != nil {
 		return fmt.Errorf("could not add user-mode networking registration: %w", err)
@@ -293,7 +293,7 @@ func removeUserModeNetEntry(name string) error {
 		return err
 	}
 
-	path := filepath.Join(entriesDir, env.WithPodmanPrefix(name))
+	path := filepath.Join(entriesDir, env.WithToolPrefix(name))
 	return os.Remove(path)
 }
 
