@@ -287,7 +287,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	setRanContainers := func(r *entities.PlayKubeReport) {
 		if !ranContainers {
 			for _, p := range r.Pods {
-				// If the list of container errors is less then the total number of pod containers then we know it didn't start.
+				// If the list of container errors is less then the total number of pod containers then we know it did start.
 				if len(p.ContainerErrors) < len(p.Containers)+len(p.InitContainers) {
 					ranContainers = true
 					break
