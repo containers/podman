@@ -305,6 +305,8 @@ type ContainerStorageConfig struct {
 	// Image volumes bind-mount a container-image mount into the container.
 	// Optional.
 	ImageVolumes []*ImageVolume `json:"image_volumes,omitempty"`
+	// ArtifactVolumes volumes based on an existing artifact.
+	ArtifactVolumes []*ArtifactVolume `json:"artifact_volumes,omitempty"`
 	// Devices are devices that will be added to the container.
 	// Optional.
 	Devices []spec.LinuxDevice `json:"devices,omitempty"`

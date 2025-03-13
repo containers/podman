@@ -162,6 +162,8 @@ type ContainerRootFSConfig struct {
 	// moved out of Libpod into pkg/specgen).
 	// Please DO NOT reuse the `imageVolumes` name in container JSON again.
 	ImageVolumes []*ContainerImageVolume `json:"ctrImageVolumes,omitempty"`
+	// ArtifactVolumes lists the artifact volumes to mount into the container.
+	ArtifactVolumes []*ContainerArtifactVolume `json:"artifactVolumes,omitempty"`
 	// CreateWorkingDir indicates that Libpod should create the container's
 	// working directory if it does not exist. Some OCI runtimes do this by
 	// default, but others do not.

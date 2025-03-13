@@ -22,6 +22,22 @@ var (
 	errNoDest    = errors.New("must set volume destination")
 )
 
+type containerMountSlice struct {
+	mounts          []spec.Mount
+	volumes         []*specgen.NamedVolume
+	overlayVolumes  []*specgen.OverlayVolume
+	imageVolumes    []*specgen.ImageVolume
+	artifactVolumes []*specgen.ArtifactVolume
+}
+
+// containerMountMap contains the container mounts with the destination path as map key
+type containerMountMap struct {
+	mounts          map[string]spec.Mount
+	volumes         map[string]*specgen.NamedVolume
+	imageVolumes    map[string]*specgen.ImageVolume
+	artifactVolumes map[string]*specgen.ArtifactVolume
+}
+
 type universalMount struct {
 	mount spec.Mount
 	// Used only with Named Volume type mounts
@@ -34,57 +50,57 @@ type universalMount struct {
 // Does not handle image volumes, init, and --volumes-from flags.
 // Can also add tmpfs mounts from read-only tmpfs.
 // TODO: handle options parsing/processing via containers/storage/pkg/mount
-func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string) ([]spec.Mount, []*specgen.NamedVolume, []*specgen.OverlayVolume, []*specgen.ImageVolume, error) {
+func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string) (*containerMountSlice, error) {
 	// Get mounts from the --mounts flag.
 	// TODO: The runtime config part of this needs to move into pkg/specgen/generate to avoid querying containers.conf on the client.
-	unifiedMounts, unifiedVolumes, unifiedImageVolumes, err := Mounts(mountFlag, rtc.Mounts())
+	unifiedContainerMounts, err := mounts(mountFlag, rtc.Mounts())
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	// Next --volumes flag.
 	volumeMounts, volumeVolumes, overlayVolumes, err := specgen.GenVolumeMounts(volumeFlag)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	// Next --tmpfs flag.
 	tmpfsMounts, err := getTmpfsMounts(tmpfsFlag)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, err
 	}
 
 	// Unify mounts from --mount, --volume, --tmpfs.
 	// Start with --volume.
 	for dest, mount := range volumeMounts {
-		if vol, ok := unifiedMounts[dest]; ok {
+		if vol, ok := unifiedContainerMounts.mounts[dest]; ok {
 			if mount.Source == vol.Source &&
 				specgen.StringSlicesEqual(vol.Options, mount.Options) {
 				continue
 			}
-			return nil, nil, nil, nil, fmt.Errorf("%v: %w", dest, specgen.ErrDuplicateDest)
+			return nil, fmt.Errorf("%v: %w", dest, specgen.ErrDuplicateDest)
 		}
-		unifiedMounts[dest] = mount
+		unifiedContainerMounts.mounts[dest] = mount
 	}
 	for dest, volume := range volumeVolumes {
-		if vol, ok := unifiedVolumes[dest]; ok {
+		if vol, ok := unifiedContainerMounts.volumes[dest]; ok {
 			if volume.Name == vol.Name &&
 				specgen.StringSlicesEqual(vol.Options, volume.Options) {
 				continue
 			}
-			return nil, nil, nil, nil, fmt.Errorf("%v: %w", dest, specgen.ErrDuplicateDest)
+			return nil, fmt.Errorf("%v: %w", dest, specgen.ErrDuplicateDest)
 		}
-		unifiedVolumes[dest] = volume
+		unifiedContainerMounts.volumes[dest] = volume
 	}
 	// Now --tmpfs
 	for dest, tmpfs := range tmpfsMounts {
-		if vol, ok := unifiedMounts[dest]; ok {
+		if vol, ok := unifiedContainerMounts.mounts[dest]; ok {
 			if vol.Type != define.TypeTmpfs {
-				return nil, nil, nil, nil, fmt.Errorf("%v: %w", dest, specgen.ErrDuplicateDest)
+				return nil, fmt.Errorf("%v: %w", dest, specgen.ErrDuplicateDest)
 			}
 			continue
 		}
-		unifiedMounts[dest] = tmpfs
+		unifiedContainerMounts.mounts[dest] = tmpfs
 	}
 
 	// Check for conflicts between named volumes, overlay & image volumes,
@@ -97,64 +113,81 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 		allMounts[dest] = true
 		return nil
 	}
-	for dest := range unifiedMounts {
+	for dest := range unifiedContainerMounts.mounts {
 		if err := testAndSet(dest); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	}
-	for dest := range unifiedVolumes {
+	for dest := range unifiedContainerMounts.volumes {
 		if err := testAndSet(dest); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	}
 	for dest := range overlayVolumes {
 		if err := testAndSet(dest); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 	}
-	for dest := range unifiedImageVolumes {
+	for dest := range unifiedContainerMounts.imageVolumes {
 		if err := testAndSet(dest); err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
+		}
+	}
+	for dest := range unifiedContainerMounts.artifactVolumes {
+		if err := testAndSet(dest); err != nil {
+			return nil, err
 		}
 	}
 
 	// Final step: maps to arrays
-	finalMounts := make([]spec.Mount, 0, len(unifiedMounts))
-	for _, mount := range unifiedMounts {
+	finalMounts := make([]spec.Mount, 0, len(unifiedContainerMounts.mounts))
+	for _, mount := range unifiedContainerMounts.mounts {
 		if mount.Type == define.TypeBind {
 			absSrc, err := specgen.ConvertWinMountPath(mount.Source)
 			if err != nil {
-				return nil, nil, nil, nil, fmt.Errorf("getting absolute path of %s: %w", mount.Source, err)
+				return nil, fmt.Errorf("getting absolute path of %s: %w", mount.Source, err)
 			}
 			mount.Source = absSrc
 		}
 		finalMounts = append(finalMounts, mount)
 	}
-	finalVolumes := make([]*specgen.NamedVolume, 0, len(unifiedVolumes))
-	for _, volume := range unifiedVolumes {
+	finalVolumes := make([]*specgen.NamedVolume, 0, len(unifiedContainerMounts.volumes))
+	for _, volume := range unifiedContainerMounts.volumes {
 		finalVolumes = append(finalVolumes, volume)
 	}
-	finalOverlayVolume := make([]*specgen.OverlayVolume, 0)
+	finalOverlayVolume := make([]*specgen.OverlayVolume, 0, len(overlayVolumes))
 	for _, volume := range overlayVolumes {
 		finalOverlayVolume = append(finalOverlayVolume, volume)
 	}
-	finalImageVolumes := make([]*specgen.ImageVolume, 0, len(unifiedImageVolumes))
-	for _, volume := range unifiedImageVolumes {
+	finalImageVolumes := make([]*specgen.ImageVolume, 0, len(unifiedContainerMounts.imageVolumes))
+	for _, volume := range unifiedContainerMounts.imageVolumes {
 		finalImageVolumes = append(finalImageVolumes, volume)
 	}
+	finalArtifactVolumes := make([]*specgen.ArtifactVolume, 0, len(unifiedContainerMounts.artifactVolumes))
+	for _, volume := range unifiedContainerMounts.artifactVolumes {
+		finalArtifactVolumes = append(finalArtifactVolumes, volume)
+	}
 
-	return finalMounts, finalVolumes, finalOverlayVolume, finalImageVolumes, nil
+	return &containerMountSlice{
+		mounts:          finalMounts,
+		volumes:         finalVolumes,
+		overlayVolumes:  finalOverlayVolume,
+		imageVolumes:    finalImageVolumes,
+		artifactVolumes: finalArtifactVolumes,
+	}, nil
 }
 
-// Mounts takes user-provided input from the --mount flag as well as Mounts
+// mounts takes user-provided input from the --mount flag as well as mounts
 // specified in containers.conf and creates OCI spec mounts and Libpod named volumes.
 // podman run --mount type=bind,src=/etc/resolv.conf,target=/etc/resolv.conf ...
 // podman run --mount type=tmpfs,target=/dev/shm ...
 // podman run --mount type=volume,source=test-volume, ...
-func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, map[string]*specgen.NamedVolume, map[string]*specgen.ImageVolume, error) {
+// podman run --mount type=artifact,source=$artifact,dest=...
+func mounts(mountFlag []string, configMounts []string) (*containerMountMap, error) {
 	finalMounts := make(map[string]spec.Mount)
 	finalNamedVolumes := make(map[string]*specgen.NamedVolume)
 	finalImageVolumes := make(map[string]*specgen.ImageVolume)
+	finalArtifactVolumes := make(map[string]*specgen.ArtifactVolume)
 	parseMounts := func(mounts []string, ignoreDup bool) error {
 		for _, mount := range mounts {
 			// TODO: Docker defaults to "volume" if no mount type is specified.
@@ -225,6 +258,18 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 					return fmt.Errorf("%v: %w", volume.Destination, specgen.ErrDuplicateDest)
 				}
 				finalImageVolumes[volume.Destination] = volume
+			case "artifact":
+				volume, err := getArtifactVolume(tokens)
+				if err != nil {
+					return err
+				}
+				if _, ok := finalArtifactVolumes[volume.Destination]; ok {
+					if ignoreDup {
+						continue
+					}
+					return fmt.Errorf("%v: %w", volume.Destination, specgen.ErrDuplicateDest)
+				}
+				finalArtifactVolumes[volume.Destination] = volume
 			case "volume":
 				volume, err := getNamedVolume(tokens)
 				if err != nil {
@@ -246,17 +291,22 @@ func Mounts(mountFlag []string, configMounts []string) (map[string]spec.Mount, m
 
 	// Parse mounts passed in from the user
 	if err := parseMounts(mountFlag, false); err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	// If user specified a mount flag that conflicts with a containers.conf flag, then ignore
 	// the duplicate. This means that the parsing of the containers.conf configMounts should always
 	// happen second.
 	if err := parseMounts(configMounts, true); err != nil {
-		return nil, nil, nil, fmt.Errorf("parsing containers.conf mounts: %w", err)
+		return nil, fmt.Errorf("parsing containers.conf mounts: %w", err)
 	}
 
-	return finalMounts, finalNamedVolumes, finalImageVolumes, nil
+	return &containerMountMap{
+		mounts:          finalMounts,
+		volumes:         finalNamedVolumes,
+		imageVolumes:    finalImageVolumes,
+		artifactVolumes: finalArtifactVolumes,
+	}, nil
 }
 
 func parseMountOptions(mountType string, args []string) (*universalMount, error) {
@@ -655,6 +705,50 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 
 	if len(newVolume.Source)*len(newVolume.Destination) == 0 {
 		return nil, errors.New("must set source and destination for image volume")
+	}
+
+	return newVolume, nil
+}
+
+// Parse the arguments into an artifact volume. An artifact volume creates mounts
+// based on an existing artifact in the store.
+func getArtifactVolume(args []string) (*specgen.ArtifactVolume, error) {
+	newVolume := new(specgen.ArtifactVolume)
+
+	for _, arg := range args {
+		name, value, hasValue := strings.Cut(arg, "=")
+		switch name {
+		case "src", "source":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Source = value
+		case "target", "dst", "destination":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			if err := parse.ValidateVolumeCtrDir(value); err != nil {
+				return nil, err
+			}
+			newVolume.Destination = unixPathClean(value)
+		case "title":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Title = value
+
+		case "digest":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Digest = value
+		default:
+			return nil, fmt.Errorf("%s: %w", name, util.ErrBadMntOption)
+		}
+	}
+
+	if len(newVolume.Source)*len(newVolume.Destination) == 0 {
+		return nil, errors.New("must set source and destination for artifact volume")
 	}
 
 	return newVolume, nil

@@ -5,6 +5,7 @@ package integration
 import (
 	"bufio"
 	"bytes"
+	crand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1390,6 +1391,7 @@ func writeYaml(content string, fileName string) error {
 func GetPort() int {
 	portMin := 5000
 	portMax := 5999
+
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// Avoid dup-allocation races between parallel ginkgo processes
@@ -1617,16 +1619,22 @@ func setupRegistry(portOverride *int) (*lockfile.LockFile, string, error) {
 }
 
 func createArtifactFile(numBytes int64) (string, error) {
+	GinkgoHelper()
 	artifactDir := filepath.Join(podmanTest.TempDir, "artifacts")
 	if err := os.MkdirAll(artifactDir, 0755); err != nil {
 		return "", err
 	}
 	filename := RandomString(8)
 	outFile := filepath.Join(artifactDir, filename)
-	session := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:/artifacts:z", artifactDir), ALPINE, "dd", "if=/dev/urandom", fmt.Sprintf("of=%s", filepath.Join("/artifacts", filename)), "bs=1b", fmt.Sprintf("count=%d", numBytes)})
-	session.WaitWithDefaultTimeout()
-	if session.ExitCode() != 0 {
-		return "", errors.New("unable to generate artifact file")
+
+	f, err := os.Create(filepath.Join(artifactDir, filename))
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	_, err = io.CopyN(f, crand.Reader, numBytes)
+	if err != nil {
+		return "", err
 	}
 	return outFile, nil
 }

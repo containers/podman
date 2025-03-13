@@ -41,6 +41,7 @@ import (
 	"github.com/containers/podman/v5/pkg/annotations"
 	"github.com/containers/podman/v5/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v5/pkg/criu"
+	libartTypes "github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/containers/podman/v5/pkg/lookup"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
@@ -481,6 +482,52 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)
 		}
 		g.AddMount(overlayMount)
+	}
+
+	if len(c.config.ArtifactVolumes) > 0 {
+		artStore, err := c.runtime.ArtifactStore()
+		if err != nil {
+			return nil, nil, err
+		}
+		for _, artifactMount := range c.config.ArtifactVolumes {
+			paths, err := artStore.BlobMountPaths(ctx, artifactMount.Source, &libartTypes.BlobMountPathOptions{
+				FilterBlobOptions: libartTypes.FilterBlobOptions{
+					Title:  artifactMount.Title,
+					Digest: artifactMount.Digest,
+				},
+			})
+			if err != nil {
+				return nil, nil, err
+			}
+
+			// Ignore the error, destIsFile will return false with errors so if the file does not exist
+			// we treat it as dir, the oci runtime will always create the target bind mount path.
+			destIsFile, _ := containerPathIsFile(c.state.Mountpoint, artifactMount.Dest)
+			if destIsFile && len(paths) > 1 {
+				return nil, nil, fmt.Errorf("artifact %q contains more than one blob and container path %q is a file", artifactMount.Source, artifactMount.Dest)
+			}
+
+			for _, path := range paths {
+				var dest string
+				if destIsFile {
+					dest = artifactMount.Dest
+				} else {
+					dest = filepath.Join(artifactMount.Dest, path.Name)
+				}
+
+				logrus.Debugf("Mounting artifact %q in container %s, mount blob %q to %q", artifactMount.Source, c.ID(), path.SourcePath, dest)
+
+				g.AddMount(spec.Mount{
+					Destination: dest,
+					Source:      path.SourcePath,
+					Type:        define.TypeBind,
+					// Important: This must always be mounted read only here, we are using
+					// the source in the artifact store directly and because that is digest
+					// based a write will break the layout.
+					Options: []string{define.TypeBind, "ro"},
+				})
+			}
+		}
 	}
 
 	err = c.setHomeEnvIfNeeded()

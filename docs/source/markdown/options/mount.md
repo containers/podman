@@ -6,12 +6,12 @@
 
 Attach a filesystem mount to the container
 
-Current supported mount TYPEs are **bind**, **devpts**, **glob**, **image**, **ramfs**, **tmpfs** and **volume**.
+Current supported mount TYPEs are **artifact**, **bind**, **devpts**, **glob**, **image**, **ramfs**, **tmpfs** and **volume**.
 
 Options common to all mount types:
 
 - *src*, *source*: mount source spec for **bind**, **glob**, and **volume**.
-  Mandatory for **bind** and **glob**.
+  Mandatory for **artifact**, **bind**, **glob**, **image** and **volume**.
 
 - *dst*, *destination*, *target*: mount destination spec.
 
@@ -23,6 +23,25 @@ on the destination directory are mounted. The option
 `type=glob,src=/foo*,destination=/tmp/bar` tells container engines
 to mount host files matching /foo* to the /tmp/bar/
 directory in the container.
+
+Options specific to type=**artifact**:
+
+- *digest*: If the artifact source contains multiple blobs a digest can be
+  specified to only mount the one specific blob with the digest.
+
+- *title*: If the artifact source contains multiple blobs a title can be set
+  which is compared against `org.opencontainers.image.title` annotation.
+
+The *src* argument contains the name of the artifact, it must already exist locally.
+The *dst* argument contains the target path, if the path in the container is a
+directory or does not exist the blob title (`org.opencontainers.image.title`
+annotation) will be used as filename and joined to the path. If the annotation
+does not exist the digest will be used as filename instead. This results in all blobs
+of the artifact mounted into the container at the given path.
+
+However if the *dst* path is a existing file in the container then the blob will be
+mounted directly on it. This only works when the artifact contains of a single blob
+or when either *digest* or *title* are specified.
 
 Options specific to type=**volume**:
 
@@ -104,4 +123,6 @@ Examples:
 
 - `type=tmpfs,destination=/path/in/container,noswap`
 
-- `type=volume,source=vol1,destination=/path/in/container,ro=true`
+- `type=artifact,src=quay.io/libpod/testartifact:20250206-single,dst=/data`
+
+- `type=artifact,src=quay.io/libpod/testartifact:20250206-multi,dst=/data,title=test1`

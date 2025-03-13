@@ -1515,6 +1515,19 @@ func WithImageVolumes(volumes []*ContainerImageVolume) CtrCreateOption {
 	}
 }
 
+// WithImageVolumes adds the given image volumes to the container.
+func WithArtifactVolumes(volumes []*ContainerArtifactVolume) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.ArtifactVolumes = volumes
+
+		return nil
+	}
+}
+
 // WithHealthCheck adds the healthcheck to the container config
 func WithHealthCheck(healthCheck *manifest.Schema2HealthConfig) CtrCreateOption {
 	return func(ctr *Container) error {
