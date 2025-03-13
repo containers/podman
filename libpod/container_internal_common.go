@@ -570,6 +570,10 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		return nil, nil, err
 	}
 	g.SetRootPath(rootPath)
+
+	// do not use a sub-cgroup with crun
+	g.AddAnnotation("run.oci.systemd.subgroup", "")
+
 	g.AddAnnotation("org.opencontainers.image.stopSignal", strconv.FormatUint(uint64(c.config.StopSignal), 10))
 
 	if c.config.StopSignal != 0 {
