@@ -818,8 +818,6 @@ func decode(packet []byte) (interface{}, error) {
 		return new(userAuthSuccessMsg), nil
 	case msgUserAuthFailure:
 		msg = new(userAuthFailureMsg)
-	case msgUserAuthBanner:
-		msg = new(userAuthBannerMsg)
 	case msgUserAuthPubKeyOk:
 		msg = new(userAuthPubKeyOkMsg)
 	case msgGlobalRequest:

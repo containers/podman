@@ -188,8 +188,6 @@ type Generator struct {
 
 	trimPrefix  string
 	lineComment bool
-
-	logf func(format string, args ...interface{}) // test logging hook; nil when not testing
 }
 
 func (g *Generator) Printf(format string, args ...interface{}) {
@@ -223,14 +221,13 @@ func (g *Generator) parsePackage(patterns []string, tags []string) {
 		// in a separate pass? For later.
 		Tests:      false,
 		BuildFlags: []string{fmt.Sprintf("-tags=%s", strings.Join(tags, " "))},
-		Logf:       g.logf,
 	}
 	pkgs, err := packages.Load(cfg, patterns...)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if len(pkgs) != 1 {
-		log.Fatalf("error: %d packages matching %v", len(pkgs), strings.Join(patterns, " "))
+		log.Fatalf("error: %d packages found", len(pkgs))
 	}
 	g.addPackage(pkgs[0])
 }

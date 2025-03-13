@@ -377,12 +377,6 @@ type Flock_t struct {
 	Pid    int32
 }
 
-type F_cnvrt struct {
-	Cvtcmd int32
-	Pccsid int16
-	Fccsid int16
-}
-
 type Termios struct {
 	Cflag uint32
 	Iflag uint32
