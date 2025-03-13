@@ -38,7 +38,7 @@ var X86 struct {
 	HasAVX512F          bool // Advanced vector extension 512 Foundation Instructions
 	HasAVX512CD         bool // Advanced vector extension 512 Conflict Detection Instructions
 	HasAVX512ER         bool // Advanced vector extension 512 Exponential and Reciprocal Instructions
-	HasAVX512PF         bool // Advanced vector extension 512 Prefetch Instructions Instructions
+	HasAVX512PF         bool // Advanced vector extension 512 Prefetch Instructions
 	HasAVX512VL         bool // Advanced vector extension 512 Vector Length Extensions
 	HasAVX512BW         bool // Advanced vector extension 512 Byte and Word Instructions
 	HasAVX512DQ         bool // Advanced vector extension 512 Doubleword and Quadword Instructions
@@ -54,6 +54,9 @@ var X86 struct {
 	HasAVX512VBMI2      bool // Advanced vector extension 512 Vector Byte Manipulation Instructions 2
 	HasAVX512BITALG     bool // Advanced vector extension 512 Bit Algorithms
 	HasAVX512BF16       bool // Advanced vector extension 512 BFloat16 Instructions
+	HasAMXTile          bool // Advanced Matrix Extension Tile instructions
+	HasAMXInt8          bool // Advanced Matrix Extension Int8 instructions
+	HasAMXBF16          bool // Advanced Matrix Extension BFloat16 instructions
 	HasBMI1             bool // Bit manipulation instruction set 1
 	HasBMI2             bool // Bit manipulation instruction set 2
 	HasCX16             bool // Compare and exchange 16 Bytes
@@ -69,6 +72,9 @@ var X86 struct {
 	HasSSSE3            bool // Supplemental streaming SIMD extension 3
 	HasSSE41            bool // Streaming SIMD extension 4 and 4.1
 	HasSSE42            bool // Streaming SIMD extension 4 and 4.2
+	HasAVXIFMA          bool // Advanced vector extension Integer Fused Multiply Add
+	HasAVXVNNI          bool // Advanced vector extension Vector Neural Network Instructions
+	HasAVXVNNIInt8      bool // Advanced vector extension Vector Neural Network Int8 instructions
 	_                   CacheLinePad
 }
 
@@ -100,7 +106,10 @@ var ARM64 struct {
 	HasASIMDDP  bool // Advanced SIMD double precision instruction set
 	HasSHA512   bool // SHA512 hardware implementation
 	HasSVE      bool // Scalable Vector Extensions
+	HasSVE2     bool // Scalable Vector Extensions 2
 	HasASIMDFHM bool // Advanced SIMD multiplication FP16 to FP32
+	HasDIT      bool // Data Independent Timing support
+	HasI8MM     bool // Advanced SIMD Int8 matrix multiplication instructions
 	_           CacheLinePad
 }
 
@@ -193,6 +202,25 @@ var S390X struct {
 	HasVX     bool // vector facility
 	HasVXE    bool // vector-enhancements facility 1
 	_         CacheLinePad
+}
+
+// RISCV64 contains the supported CPU features and performance characteristics for riscv64
+// platforms. The booleans in RISCV64, with the exception of HasFastMisaligned, indicate
+// the presence of RISC-V extensions.
+//
+// It is safe to assume that all the RV64G extensions are supported and so they are omitted from
+// this structure. As riscv64 Go programs require at least RV64G, the code that populates
+// this structure cannot run successfully if some of the RV64G extensions are missing.
+// The struct is padded to avoid false sharing.
+var RISCV64 struct {
+	_                 CacheLinePad
+	HasFastMisaligned bool // Fast misaligned accesses
+	HasC              bool // Compressed instruction-set extension
+	HasV              bool // Vector extension compatible with RVV 1.0
+	HasZba            bool // Address generation instructions extension
+	HasZbb            bool // Basic bit-manipulation extension
+	HasZbs            bool // Single-bit instructions extension
+	_                 CacheLinePad
 }
 
 func init() {
