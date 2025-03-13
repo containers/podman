@@ -59,7 +59,7 @@ func (c CanonType) Parse(s string) (t Tag, err error) {
 	if changed {
 		tt.RemakeString()
 	}
-	return makeTag(tt), nil
+	return makeTag(tt), err
 }
 
 // Compose creates a Tag from individual parts, which may be of type Tag, Base,
