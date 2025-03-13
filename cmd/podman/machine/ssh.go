@@ -4,7 +4,6 @@ package machine
 
 import (
 	"fmt"
-	"net/url"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
@@ -100,13 +99,6 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if !validVM && sshOpts.Username == "" {
-		sshOpts.Username, err = remoteConnectionUsername()
-		if err != nil {
-			return err
-		}
-	}
-
 	state, err := provider.State(mc, false)
 	if err != nil {
 		return err
@@ -115,25 +107,14 @@ func ssh(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("vm %q is not running", mc.Name)
 	}
 
-	username := sshOpts.Username
-	if username == "" {
-		username = mc.SSH.RemoteUsername
+	if sshOpts.Username == "" {
+		if mc.HostUser.Rootful {
+			sshOpts.Username = "root"
+		} else {
+			sshOpts.Username = mc.SSH.RemoteUsername
+		}
 	}
 
-	err = machine.CommonSSHShell(username, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, sshOpts.Args)
+	err = machine.CommonSSHShell(sshOpts.Username, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, sshOpts.Args)
 	return utils.HandleOSExecError(err)
-}
-
-func remoteConnectionUsername() (string, error) {
-	con, err := registry.PodmanConfig().ContainersConfDefaultsRO.GetConnection("", true)
-	if err != nil {
-		return "", err
-	}
-
-	uri, err := url.Parse(con.URI)
-	if err != nil {
-		return "", err
-	}
-	username := uri.User.String()
-	return username, nil
 }
