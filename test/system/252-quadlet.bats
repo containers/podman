@@ -1131,7 +1131,7 @@ spec:
 EOF
 
     # Bind the port to force a an error when starting the pod
-    timeout --foreground -v --kill=10 10 nc -l 127.0.0.1 $port &
+    timeout --foreground -v --kill=10 10 ncat -l 127.0.0.1 $port &
     nc_pid=$!
 
     # Create the Quadlet file
