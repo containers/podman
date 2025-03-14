@@ -4,6 +4,7 @@ package integration
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -68,8 +69,8 @@ var _ = Describe("Podman pod create", func() {
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(ExitCleanly())
 
-		check := SystemExec("nc", []string{"-z", "localhost", "80"})
-		Expect(check).Should(ExitWithError(1, ""))
+		_, err := net.Dial("tcp", "localhost:80")
+		Expect(err).To(HaveOccurred())
 	})
 
 	It("podman create pod with network portbindings", func() {
@@ -83,7 +84,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod", pod, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(ExitCleanly())
-		Expect(ncz(port)).To(BeTrue(), "port %d is up", port)
+		testPortConnection(port)
 	})
 
 	It("podman create pod with id file with network portbindings", func() {
@@ -97,7 +98,7 @@ var _ = Describe("Podman pod create", func() {
 		webserver := podmanTest.Podman([]string{"run", "--pod-id-file", file, "-dt", NGINX_IMAGE})
 		webserver.WaitWithDefaultTimeout()
 		Expect(webserver).Should(ExitCleanly())
-		Expect(ncz(port)).To(BeTrue(), "port %d is up", port)
+		testPortConnection(port)
 	})
 
 	It("podman create pod with no infra but portbindings should fail", func() {
