@@ -10,10 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// RawElement represents a BSON element in byte form. This type provides a simple way to
-// transform a slice of bytes into a BSON element and extract information from it.
-//
-// RawElement is a thin wrapper around a bsoncore.Element.
+// RawElement is a raw encoded BSON document or array element.
 type RawElement []byte
 
 // Key returns the key for this element. If the element is not valid, this method returns an empty
@@ -36,7 +33,7 @@ func (re RawElement) ValueErr() (RawValue, error) {
 // Validate ensures re is a valid BSON element.
 func (re RawElement) Validate() error { return bsoncore.Element(re).Validate() }
 
-// String implements the fmt.Stringer interface. The output will be in extended JSON format.
+// String returns the BSON element encoded as Extended JSON.
 func (re RawElement) String() string {
 	doc := bsoncore.BuildDocument(nil, re)
 	j, err := MarshalExtJSON(Raw(doc), true, false)

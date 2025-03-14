@@ -17,18 +17,43 @@ import (
 )
 
 // UIntCodec is the Codec used for uint values.
+//
+// Deprecated: UIntCodec will not be directly configurable in Go Driver 2.0. To
+// configure the uint encode and decode behavior, use the configuration methods
+// on a [go.mongodb.org/mongo-driver/bson.Encoder] or
+// [go.mongodb.org/mongo-driver/bson.Decoder]. To configure the uint encode and
+// decode behavior for a mongo.Client, use
+// [go.mongodb.org/mongo-driver/mongo/options.ClientOptions.SetBSONOptions].
+//
+// For example, to configure a mongo.Client to marshal Go uint values as the
+// minimum BSON int size that can represent the value, use:
+//
+//	opt := options.Client().SetBSONOptions(&options.BSONOptions{
+//	    IntMinSize: true,
+//	})
+//
+// See the deprecation notice for each field in UIntCodec for the corresponding
+// settings.
 type UIntCodec struct {
+	// EncodeToMinSize causes EncodeValue to marshal Go uint values (excluding uint64) as the
+	// minimum BSON int size (either 32-bit or 64-bit) that can represent the integer value.
+	//
+	// Deprecated: Use bson.Encoder.IntMinSize or options.BSONOptions.IntMinSize instead.
 	EncodeToMinSize bool
 }
 
 var (
 	defaultUIntCodec = NewUIntCodec()
 
-	_ ValueCodec  = defaultUIntCodec
+	// Assert that defaultUIntCodec satisfies the typeDecoder interface, which allows it to be used
+	// by collection type decoders (e.g. map, slice, etc) to set individual values in a collection.
 	_ typeDecoder = defaultUIntCodec
 )
 
 // NewUIntCodec returns a UIntCodec with options opts.
+//
+// Deprecated: NewUIntCodec will not be available in Go Driver 2.0. See
+// [UIntCodec] for more details.
 func NewUIntCodec(opts ...*bsonoptions.UIntCodecOptions) *UIntCodec {
 	uintOpt := bsonoptions.MergeUIntCodecOptions(opts...)
 

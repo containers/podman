@@ -17,10 +17,12 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	fpath "path"
 	"regexp"
 	"strings"
 
+	"github.com/go-openapi/runtime/logger"
 	"github.com/go-openapi/runtime/security"
 	"github.com/go-openapi/swag"
 
@@ -67,10 +69,10 @@ func (r RouteParams) GetOK(name string) ([]string, bool, bool) {
 	return nil, false, false
 }
 
-// NewRouter creates a new context aware router middleware
+// NewRouter creates a new context-aware router middleware
 func NewRouter(ctx *Context, next http.Handler) http.Handler {
 	if ctx.router == nil {
-		ctx.router = DefaultRouter(ctx.spec, ctx.api)
+		ctx.router = DefaultRouter(ctx.spec, ctx.api, WithDefaultRouterLoggerFunc(ctx.debugLogf))
 	}
 
 	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
@@ -103,41 +105,75 @@ type RoutableAPI interface {
 	DefaultConsumes() string
 }
 
-// Router represents a swagger aware router
+// Router represents a swagger-aware router
 type Router interface {
 	Lookup(method, path string) (*MatchedRoute, bool)
 	OtherMethods(method, path string) []string
 }
 
 type defaultRouteBuilder struct {
-	spec     *loads.Document
-	analyzer *analysis.Spec
-	api      RoutableAPI
-	records  map[string][]denco.Record
+	spec      *loads.Document
+	analyzer  *analysis.Spec
+	api       RoutableAPI
+	records   map[string][]denco.Record
+	debugLogf func(string, ...any) // a logging function to debug context and all components using it
 }
 
 type defaultRouter struct {
-	spec    *loads.Document
-	routers map[string]*denco.Router
+	spec      *loads.Document
+	routers   map[string]*denco.Router
+	debugLogf func(string, ...any) // a logging function to debug context and all components using it
 }
 
-func newDefaultRouteBuilder(spec *loads.Document, api RoutableAPI) *defaultRouteBuilder {
+func newDefaultRouteBuilder(spec *loads.Document, api RoutableAPI, opts ...DefaultRouterOpt) *defaultRouteBuilder {
+	var o defaultRouterOpts
+	for _, apply := range opts {
+		apply(&o)
+	}
+	if o.debugLogf == nil {
+		o.debugLogf = debugLogfFunc(nil) // defaults to standard logger
+	}
+
 	return &defaultRouteBuilder{
-		spec:     spec,
-		analyzer: analysis.New(spec.Spec()),
-		api:      api,
-		records:  make(map[string][]denco.Record),
+		spec:      spec,
+		analyzer:  analysis.New(spec.Spec()),
+		api:       api,
+		records:   make(map[string][]denco.Record),
+		debugLogf: o.debugLogf,
 	}
 }
 
-// DefaultRouter creates a default implemenation of the router
-func DefaultRouter(spec *loads.Document, api RoutableAPI) Router {
-	builder := newDefaultRouteBuilder(spec, api)
+// DefaultRouterOpt allows to inject optional behavior to the default router.
+type DefaultRouterOpt func(*defaultRouterOpts)
+
+type defaultRouterOpts struct {
+	debugLogf func(string, ...any)
+}
+
+// WithDefaultRouterLogger sets the debug logger for the default router.
+//
+// This is enabled only in DEBUG mode.
+func WithDefaultRouterLogger(lg logger.Logger) DefaultRouterOpt {
+	return func(o *defaultRouterOpts) {
+		o.debugLogf = debugLogfFunc(lg)
+	}
+}
+
+// WithDefaultRouterLoggerFunc sets a logging debug method for the default router.
+func WithDefaultRouterLoggerFunc(fn func(string, ...any)) DefaultRouterOpt {
+	return func(o *defaultRouterOpts) {
+		o.debugLogf = fn
+	}
+}
+
+// DefaultRouter creates a default implementation of the router
+func DefaultRouter(spec *loads.Document, api RoutableAPI, opts ...DefaultRouterOpt) Router {
+	builder := newDefaultRouteBuilder(spec, api, opts...)
 	if spec != nil {
 		for method, paths := range builder.analyzer.Operations() {
 			for path, operation := range paths {
 				fp := fpath.Join(spec.BasePath(), path)
-				debugLog("adding route %s %s %q", method, fp, operation.ID)
+				builder.debugLogf("adding route %s %s %q", method, fp, operation.ID)
 				builder.AddRoute(method, fp, operation)
 			}
 		}
@@ -319,24 +355,24 @@ func (m *MatchedRoute) NeedsAuth() bool {
 
 func (d *defaultRouter) Lookup(method, path string) (*MatchedRoute, bool) {
 	mth := strings.ToUpper(method)
-	debugLog("looking up route for %s %s", method, path)
+	d.debugLogf("looking up route for %s %s", method, path)
 	if Debug {
 		if len(d.routers) == 0 {
-			debugLog("there are no known routers")
+			d.debugLogf("there are no known routers")
 		}
 		for meth := range d.routers {
-			debugLog("got a router for %s", meth)
+			d.debugLogf("got a router for %s", meth)
 		}
 	}
 	if router, ok := d.routers[mth]; ok {
 		if m, rp, ok := router.Lookup(fpath.Clean(path)); ok && m != nil {
 			if entry, ok := m.(*routeEntry); ok {
-				debugLog("found a route for %s %s with %d parameters", method, path, len(entry.Parameters))
+				d.debugLogf("found a route for %s %s with %d parameters", method, path, len(entry.Parameters))
 				var params RouteParams
 				for _, p := range rp {
-					v, err := pathUnescape(p.Value)
+					v, err := url.PathUnescape(p.Value)
 					if err != nil {
-						debugLog("failed to escape %q: %v", p.Value, err)
+						d.debugLogf("failed to escape %q: %v", p.Value, err)
 						v = p.Value
 					}
 					// a workaround to handle fragment/composing parameters until they are supported in denco router
@@ -356,10 +392,10 @@ func (d *defaultRouter) Lookup(method, path string) (*MatchedRoute, bool) {
 				return &MatchedRoute{routeEntry: *entry, Params: params}, true
 			}
 		} else {
-			debugLog("couldn't find a route by path for %s %s", method, path)
+			d.debugLogf("couldn't find a route by path for %s %s", method, path)
 		}
 	} else {
-		debugLog("couldn't find a route by method for %s %s", method, path)
+		d.debugLogf("couldn't find a route by method for %s %s", method, path)
 	}
 	return nil, false
 }
@@ -376,6 +412,10 @@ func (d *defaultRouter) OtherMethods(method, path string) []string {
 		}
 	}
 	return methods
+}
+
+func (d *defaultRouter) SetLogger(lg logger.Logger) {
+	d.debugLogf = debugLogfFunc(lg)
 }
 
 // convert swagger parameters per path segment into a denco parameter as multiple parameters per segment are not supported in denco
@@ -413,7 +453,7 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 		bp = bp[:len(bp)-1]
 	}
 
-	debugLog("operation: %#v", *operation)
+	d.debugLogf("operation: %#v", *operation)
 	if handler, ok := d.api.HandlerFor(method, strings.TrimPrefix(path, bp)); ok {
 		consumes := d.analyzer.ConsumesFor(operation)
 		produces := d.analyzer.ProducesFor(operation)
@@ -428,6 +468,8 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 			produces = append(produces, defProduces)
 		}
 
+		requestBinder := NewUntypedRequestBinder(parameters, d.spec.Spec(), d.api.Formats())
+		requestBinder.setDebugLogf(d.debugLogf)
 		record := denco.NewRecord(pathConverter.ReplaceAllString(path, ":$1"), &routeEntry{
 			BasePath:       bp,
 			PathPattern:    path,
@@ -439,7 +481,7 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 			Producers:      d.api.ProducersFor(normalizeOffers(produces)),
 			Parameters:     parameters,
 			Formats:        d.api.Formats(),
-			Binder:         NewUntypedRequestBinder(parameters, d.spec.Spec(), d.api.Formats()),
+			Binder:         requestBinder,
 			Authenticators: d.buildAuthenticators(operation),
 			Authorizer:     d.api.Authorizer(),
 		})
@@ -449,11 +491,11 @@ func (d *defaultRouteBuilder) AddRoute(method, path string, operation *spec.Oper
 
 func (d *defaultRouteBuilder) buildAuthenticators(operation *spec.Operation) RouteAuthenticators {
 	requirements := d.analyzer.SecurityRequirementsFor(operation)
-	var auths []RouteAuthenticator
+	auths := make([]RouteAuthenticator, 0, len(requirements))
 	for _, reqs := range requirements {
-		var schemes []string
+		schemes := make([]string, 0, len(reqs))
 		scopes := make(map[string][]string, len(reqs))
-		var scopeSlices [][]string
+		scopeSlices := make([][]string, 0, len(reqs))
 		for _, req := range reqs {
 			schemes = append(schemes, req.Name)
 			scopes[req.Name] = req.Scopes
@@ -482,7 +524,8 @@ func (d *defaultRouteBuilder) Build() *defaultRouter {
 		routers[method] = router
 	}
 	return &defaultRouter{
-		spec:    d.spec,
-		routers: routers,
+		spec:      d.spec,
+		routers:   routers,
+		debugLogf: d.debugLogf,
 	}
 }

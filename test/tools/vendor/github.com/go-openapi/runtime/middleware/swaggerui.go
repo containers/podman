@@ -8,40 +8,65 @@ import (
 	"path"
 )
 
-// SwaggerUIOpts configures the Swaggerui middlewares
+// SwaggerUIOpts configures the SwaggerUI middleware
 type SwaggerUIOpts struct {
-	// BasePath for the UI path, defaults to: /
+	// BasePath for the API, defaults to: /
 	BasePath string
-	// Path combines with BasePath for the full UI path, defaults to: docs
+
+	// Path combines with BasePath to construct the path to the UI, defaults to: "docs".
 	Path string
-	// SpecURL the url to find the spec for
+
+	// SpecURL is the URL of the spec document.
+	//
+	// Defaults to: /swagger.json
 	SpecURL string
+
+	// Title for the documentation site, default to: API documentation
+	Title string
+
+	// Template specifies a custom template to serve the UI
+	Template string
+
 	// OAuthCallbackURL the url called after OAuth2 login
 	OAuthCallbackURL string
 
 	// The three components needed to embed swagger-ui
-	SwaggerURL       string
+
+	// SwaggerURL points to the js that generates the SwaggerUI site.
+	//
+	// Defaults to: https://unpkg.com/swagger-ui-dist/swagger-ui-bundle.js
+	SwaggerURL string
+
 	SwaggerPresetURL string
 	SwaggerStylesURL string
 
 	Favicon32 string
 	Favicon16 string
-
-	// Title for the documentation site, default to: API documentation
-	Title string
 }
 
 // EnsureDefaults in case some options are missing
 func (r *SwaggerUIOpts) EnsureDefaults() {
-	if r.BasePath == "" {
-		r.BasePath = "/"
+	r.ensureDefaults()
+
+	if r.Template == "" {
+		r.Template = swaggeruiTemplate
 	}
-	if r.Path == "" {
-		r.Path = "docs"
+}
+
+func (r *SwaggerUIOpts) EnsureDefaultsOauth2() {
+	r.ensureDefaults()
+
+	if r.Template == "" {
+		r.Template = swaggerOAuthTemplate
 	}
-	if r.SpecURL == "" {
-		r.SpecURL = "/swagger.json"
-	}
+}
+
+func (r *SwaggerUIOpts) ensureDefaults() {
+	common := toCommonUIOptions(r)
+	common.EnsureDefaults()
+	fromCommonToAnyOptions(common, r)
+
+	// swaggerui-specifics
 	if r.OAuthCallbackURL == "" {
 		r.OAuthCallbackURL = path.Join(r.BasePath, r.Path, "oauth2-callback")
 	}
@@ -60,40 +85,22 @@ func (r *SwaggerUIOpts) EnsureDefaults() {
 	if r.Favicon32 == "" {
 		r.Favicon32 = swaggerFavicon32Latest
 	}
-	if r.Title == "" {
-		r.Title = "API documentation"
-	}
 }
 
 // SwaggerUI creates a middleware to serve a documentation site for a swagger spec.
+//
 // This allows for altering the spec before starting the http listener.
 func SwaggerUI(opts SwaggerUIOpts, next http.Handler) http.Handler {
 	opts.EnsureDefaults()
 
 	pth := path.Join(opts.BasePath, opts.Path)
-	tmpl := template.Must(template.New("swaggerui").Parse(swaggeruiTemplate))
+	tmpl := template.Must(template.New("swaggerui").Parse(opts.Template))
+	assets := bytes.NewBuffer(nil)
+	if err := tmpl.Execute(assets, opts); err != nil {
+		panic(fmt.Errorf("cannot execute template: %w", err))
+	}
 
-	buf := bytes.NewBuffer(nil)
-	_ = tmpl.Execute(buf, &opts)
-	b := buf.Bytes()
-
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		if path.Join(r.URL.Path) == pth {
-			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-			rw.WriteHeader(http.StatusOK)
-
-			_, _ = rw.Write(b)
-			return
-		}
-
-		if next == nil {
-			rw.Header().Set("Content-Type", "text/plain")
-			rw.WriteHeader(http.StatusNotFound)
-			_, _ = rw.Write([]byte(fmt.Sprintf("%q not found", pth)))
-			return
-		}
-		next.ServeHTTP(rw, r)
-	})
+	return serveUI(pth, assets.Bytes(), next)
 }
 
 const (

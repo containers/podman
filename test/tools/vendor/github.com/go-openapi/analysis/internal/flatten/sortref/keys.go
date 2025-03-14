@@ -69,7 +69,7 @@ func KeyParts(key string) SplitKey {
 	return res
 }
 
-// SplitKey holds of the parts of a /-separated key, soi that their location may be determined.
+// SplitKey holds of the parts of a /-separated key, so that their location may be determined.
 type SplitKey []string
 
 // IsDefinition is true when the split key is in the #/definitions section of a spec

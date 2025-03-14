@@ -53,7 +53,7 @@ import (
 // collisions.
 func Mixin(primary *spec.Swagger, mixins ...*spec.Swagger) []string {
 	skipped := make([]string, 0, len(mixins))
-	opIds := getOpIds(primary)
+	opIDs := getOpIDs(primary)
 	initPrimary(primary)
 
 	for i, m := range mixins {
@@ -74,7 +74,7 @@ func Mixin(primary *spec.Swagger, mixins ...*spec.Swagger) []string {
 		skipped = append(skipped, mergeDefinitions(primary, m)...)
 
 		// merging paths requires a map of operationIDs to work with
-		skipped = append(skipped, mergePaths(primary, m, opIds, i)...)
+		skipped = append(skipped, mergePaths(primary, m, opIDs, i)...)
 
 		skipped = append(skipped, mergeParameters(primary, m)...)
 
@@ -84,9 +84,9 @@ func Mixin(primary *spec.Swagger, mixins ...*spec.Swagger) []string {
 	return skipped
 }
 
-// getOpIds extracts all the paths.<path>.operationIds from the given
+// getOpIDs extracts all the paths.<path>.operationIds from the given
 // spec and returns them as the keys in a map with 'true' values.
-func getOpIds(s *spec.Swagger) map[string]bool {
+func getOpIDs(s *spec.Swagger) map[string]bool {
 	rv := make(map[string]bool)
 	if s.Paths == nil {
 		return rv
@@ -179,7 +179,7 @@ func mergeDefinitions(primary *spec.Swagger, m *spec.Swagger) (skipped []string)
 	return
 }
 
-func mergePaths(primary *spec.Swagger, m *spec.Swagger, opIds map[string]bool, mixIndex int) (skipped []string) {
+func mergePaths(primary *spec.Swagger, m *spec.Swagger, opIDs map[string]bool, mixIndex int) (skipped []string) {
 	if m.Paths != nil {
 		for k, v := range m.Paths.Paths {
 			if _, exists := primary.Paths.Paths[k]; exists {
@@ -198,10 +198,10 @@ func mergePaths(primary *spec.Swagger, m *spec.Swagger, opIds map[string]bool, m
 			// all the proivded specs are already unique.
 			piops := pathItemOps(v)
 			for _, piop := range piops {
-				if opIds[piop.ID] {
+				if opIDs[piop.ID] {
 					piop.ID = fmt.Sprintf("%v%v%v", piop.ID, "Mixin", mixIndex)
 				}
-				opIds[piop.ID] = true
+				opIDs[piop.ID] = true
 			}
 			primary.Paths.Paths[k] = v
 		}
@@ -367,7 +367,7 @@ func mergeSwaggerProps(primary *spec.Swagger, m *spec.Swagger) []string {
 	return skipped
 }
 
-// nolint: unparam
+//nolint:unparam
 func mergeExternalDocs(primary *spec.ExternalDocumentation, m *spec.ExternalDocumentation) []string {
 	if primary.Description == "" {
 		primary.Description = m.Description

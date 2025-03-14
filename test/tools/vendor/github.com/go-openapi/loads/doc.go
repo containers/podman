@@ -12,10 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/*
-Package loads provides document loading methods for swagger (OAI) specifications.
-
-It is used by other go-openapi packages to load and run analysis on local or remote spec documents.
-
-*/
+// Package loads provides document loading methods for swagger (OAI) specifications.
+//
+// It is used by other go-openapi packages to load and run analysis on local or remote spec documents.
 package loads

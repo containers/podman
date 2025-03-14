@@ -9,6 +9,9 @@ package bsonoptions
 var defaultOverwriteDuplicatedInlinedFields = true
 
 // StructCodecOptions represents all possible options for struct encoding and decoding.
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 type StructCodecOptions struct {
 	DecodeZeroStruct                 *bool // Specifies if structs should be zeroed before decoding into them. Defaults to false.
 	DecodeDeepZeroInline             *bool // Specifies if structs should be recursively zeroed when a inline value is decoded. Defaults to false.
@@ -18,17 +21,24 @@ type StructCodecOptions struct {
 }
 
 // StructCodec creates a new *StructCodecOptions
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 func StructCodec() *StructCodecOptions {
 	return &StructCodecOptions{}
 }
 
 // SetDecodeZeroStruct specifies if structs should be zeroed before decoding into them. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.ZeroStructs] instead.
 func (t *StructCodecOptions) SetDecodeZeroStruct(b bool) *StructCodecOptions {
 	t.DecodeZeroStruct = &b
 	return t
 }
 
 // SetDecodeDeepZeroInline specifies if structs should be zeroed before decoding into them. Defaults to false.
+//
+// Deprecated: DecodeDeepZeroInline will not be supported in Go Driver 2.0.
 func (t *StructCodecOptions) SetDecodeDeepZeroInline(b bool) *StructCodecOptions {
 	t.DecodeDeepZeroInline = &b
 	return t
@@ -36,6 +46,8 @@ func (t *StructCodecOptions) SetDecodeDeepZeroInline(b bool) *StructCodecOptions
 
 // SetEncodeOmitDefaultStruct specifies if default structs should be considered empty by omitempty. A default struct has all
 // its values set to their default value. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.OmitZeroStruct] instead.
 func (t *StructCodecOptions) SetEncodeOmitDefaultStruct(b bool) *StructCodecOptions {
 	t.EncodeOmitDefaultStruct = &b
 	return t
@@ -45,18 +57,26 @@ func (t *StructCodecOptions) SetEncodeOmitDefaultStruct(b bool) *StructCodecOpti
 // same bson key. When true and decoding, values will be written to the outermost struct with a matching key, and when
 // encoding, keys will have the value of the top-most matching field. When false, decoding and encoding will error if
 // there are duplicate keys after the struct is inlined. Defaults to true.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Encoder.ErrorOnInlineDuplicates] instead.
 func (t *StructCodecOptions) SetOverwriteDuplicatedInlinedFields(b bool) *StructCodecOptions {
 	t.OverwriteDuplicatedInlinedFields = &b
 	return t
 }
 
 // SetAllowUnexportedFields specifies if unexported fields should be marshaled/unmarshaled. Defaults to false.
+//
+// Deprecated: AllowUnexportedFields does not work on recent versions of Go and will not be
+// supported in Go Driver 2.0.
 func (t *StructCodecOptions) SetAllowUnexportedFields(b bool) *StructCodecOptions {
 	t.AllowUnexportedFields = &b
 	return t
 }
 
 // MergeStructCodecOptions combines the given *StructCodecOptions into a single *StructCodecOptions in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeStructCodecOptions(opts ...*StructCodecOptions) *StructCodecOptions {
 	s := &StructCodecOptions{
 		OverwriteDuplicatedInlinedFields: &defaultOverwriteDuplicatedInlinedFields,

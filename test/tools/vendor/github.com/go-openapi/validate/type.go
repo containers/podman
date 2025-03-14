@@ -25,11 +25,34 @@ import (
 )
 
 type typeValidator struct {
+	Path     string
+	In       string
 	Type     spec.StringOrArray
 	Nullable bool
 	Format   string
-	In       string
-	Path     string
+	Options  *SchemaValidatorOptions
+}
+
+func newTypeValidator(path, in string, typ spec.StringOrArray, nullable bool, format string, opts *SchemaValidatorOptions) *typeValidator {
+	if opts == nil {
+		opts = new(SchemaValidatorOptions)
+	}
+
+	var t *typeValidator
+	if opts.recycleValidators {
+		t = pools.poolOfTypeValidators.BorrowValidator()
+	} else {
+		t = new(typeValidator)
+	}
+
+	t.Path = path
+	t.In = in
+	t.Type = typ
+	t.Nullable = nullable
+	t.Format = format
+	t.Options = opts
+
+	return t
 }
 
 func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
@@ -90,7 +113,7 @@ func (t *typeValidator) schemaInfoForType(data interface{}) (string, string) {
 	default:
 		val := reflect.ValueOf(data)
 		tpe := val.Type()
-		switch tpe.Kind() {
+		switch tpe.Kind() { //nolint:exhaustive
 		case reflect.Bool:
 			return booleanType, ""
 		case reflect.String:
@@ -125,23 +148,33 @@ func (t *typeValidator) SetPath(path string) {
 	t.Path = path
 }
 
-func (t *typeValidator) Applies(source interface{}, kind reflect.Kind) bool {
+func (t *typeValidator) Applies(source interface{}, _ reflect.Kind) bool {
 	// typeValidator applies to Schema, Parameter and Header objects
-	stpe := reflect.TypeOf(source)
-	r := (len(t.Type) > 0 || t.Format != "") && (stpe == specSchemaType || stpe == specParameterType || stpe == specHeaderType)
-	debugLog("type validator for %q applies %t for %T (kind: %v)\n", t.Path, r, source, kind)
-	return r
+	switch source.(type) {
+	case *spec.Schema:
+	case *spec.Parameter:
+	case *spec.Header:
+	default:
+		return false
+	}
+
+	return (len(t.Type) > 0 || t.Format != "")
 }
 
 func (t *typeValidator) Validate(data interface{}) *Result {
-	result := new(Result)
-	result.Inc()
+	if t.Options.recycleValidators {
+		defer func() {
+			t.redeem()
+		}()
+	}
+
 	if data == nil {
 		// nil or zero value for the passed structure require Type: null
 		if len(t.Type) > 0 && !t.Type.Contains(nullType) && !t.Nullable { // TODO: if a property is not required it also passes this
-			return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), nullType))
+			return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), nullType), t.Options.recycleResult)
 		}
-		return result
+
+		return emptyResult
 	}
 
 	// check if the type matches, should be used in every validator chain as first item
@@ -150,8 +183,6 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 
 	// infer schema type (JSON) and format from passed data type
 	schType, format := t.schemaInfoForType(data)
-
-	debugLog("path: %s, schType: %s,  format: %s, expType: %s, expFmt: %s, kind: %s", t.Path, schType, format, t.Type, t.Format, val.Kind().String())
 
 	// check numerical types
 	// TODO: check unsigned ints
@@ -163,15 +194,20 @@ func (t *typeValidator) Validate(data interface{}) *Result {
 
 	if kind != reflect.String && kind != reflect.Slice && t.Format != "" && !(t.Type.Contains(schType) || format == t.Format || isFloatInt || isIntFloat || isLowerInt || isLowerFloat) {
 		// TODO: test case
-		return errorHelp.sErr(errors.InvalidType(t.Path, t.In, t.Format, format))
+		return errorHelp.sErr(errors.InvalidType(t.Path, t.In, t.Format, format), t.Options.recycleResult)
 	}
 
 	if !(t.Type.Contains(numberType) || t.Type.Contains(integerType)) && t.Format != "" && (kind == reflect.String || kind == reflect.Slice) {
-		return result
+		return emptyResult
 	}
 
 	if !(t.Type.Contains(schType) || isFloatInt || isIntFloat) {
-		return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), schType))
+		return errorHelp.sErr(errors.InvalidType(t.Path, t.In, strings.Join(t.Type, ","), schType), t.Options.recycleResult)
 	}
-	return result
+
+	return emptyResult
+}
+
+func (t *typeValidator) redeem() {
+	pools.poolOfTypeValidators.RedeemValidator(t)
 }

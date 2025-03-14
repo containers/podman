@@ -6,8 +6,9 @@
 
 // Package bson is a library for reading, writing, and manipulating BSON. BSON is a binary serialization format used to
 // store documents and make remote procedure calls in MongoDB. The BSON specification is located at https://bsonspec.org.
-// The BSON library handles marshalling and unmarshalling of values through a configurable codec system. For a description
-// of the codec system and examples of registering custom codecs, see the bsoncodec package.
+// The BSON library handles marshaling and unmarshaling of values through a configurable codec system. For a description
+// of the codec system and examples of registering custom codecs, see the bsoncodec package. For additional information
+// and usage examples, check out the [Work with BSON] page in the Go Driver docs site.
 //
 // # Raw BSON
 //
@@ -37,7 +38,7 @@
 //	bson.D{{"foo", "bar"}, {"hello", "world"}, {"pi", 3.14159}}
 //	bson.M{"foo": "bar", "hello": "world", "pi": 3.14159}
 //
-// When decoding BSON to a D or M, the following type mappings apply when unmarshalling:
+// When decoding BSON to a D or M, the following type mappings apply when unmarshaling:
 //
 //  1. BSON int32 unmarshals to an int32.
 //  2. BSON int64 unmarshals to an int64.
@@ -61,81 +62,78 @@
 //  20. BSON DBPointer unmarshals to a primitive.DBPointer.
 //  21. BSON symbol unmarshals to a primitive.Symbol.
 //
-// The above mappings also apply when marshalling a D or M to BSON. Some other useful marshalling mappings are:
+// The above mappings also apply when marshaling a D or M to BSON. Some other useful marshaling mappings are:
 //
 //  1. time.Time marshals to a BSON datetime.
 //  2. int8, int16, and int32 marshal to a BSON int32.
 //  3. int marshals to a BSON int32 if the value is between math.MinInt32 and math.MaxInt32, inclusive, and a BSON int64
 //     otherwise.
-//  4. int64 marshals to BSON int64.
+//  4. int64 marshals to BSON int64 (unless [Encoder.IntMinSize] is set).
 //  5. uint8 and uint16 marshal to a BSON int32.
-//  6. uint, uint32, and uint64 marshal to a BSON int32 if the value is between math.MinInt32 and math.MaxInt32,
-//     inclusive, and BSON int64 otherwise.
-//  7. BSON null and undefined values will unmarshal into the zero value of a field (e.g. unmarshalling a BSON null or
+//  6. uint, uint32, and uint64 marshal to a BSON int64 (unless [Encoder.IntMinSize] is set).
+//  7. BSON null and undefined values will unmarshal into the zero value of a field (e.g. unmarshaling a BSON null or
 //     undefined value into a string will yield the empty string.).
 //
 // # Structs
 //
-// Structs can be marshalled/unmarshalled to/from BSON or Extended JSON. When transforming structs to/from BSON or Extended
+// Structs can be marshaled/unmarshaled to/from BSON or Extended JSON. When transforming structs to/from BSON or Extended
 // JSON, the following rules apply:
 //
-//  1. Only exported fields in structs will be marshalled or unmarshalled.
+//  1. Only exported fields in structs will be marshaled or unmarshaled.
 //
-//  2. When marshalling a struct, each field will be lowercased to generate the key for the corresponding BSON element.
+//  2. When marshaling a struct, each field will be lowercased to generate the key for the corresponding BSON element.
 //     For example, a struct field named "Foo" will generate key "foo". This can be overridden via a struct tag (e.g.
 //     `bson:"fooField"` to generate key "fooField" instead).
 //
-//  3. An embedded struct field is marshalled as a subdocument. The key will be the lowercased name of the field's type.
+//  3. An embedded struct field is marshaled as a subdocument. The key will be the lowercased name of the field's type.
 //
-//  4. A pointer field is marshalled as the underlying type if the pointer is non-nil. If the pointer is nil, it is
-//     marshalled as a BSON null value.
+//  4. A pointer field is marshaled as the underlying type if the pointer is non-nil. If the pointer is nil, it is
+//     marshaled as a BSON null value.
 //
-//  5. When unmarshalling, a field of type interface{} will follow the D/M type mappings listed above. BSON documents
-//     unmarshalled into an interface{} field will be unmarshalled as a D.
+//  5. When unmarshaling, a field of type interface{} will follow the D/M type mappings listed above. BSON documents
+//     unmarshaled into an interface{} field will be unmarshaled as a D.
 //
 // The encoding of each struct field can be customized by the "bson" struct tag.
 //
 // This tag behavior is configurable, and different struct tag behavior can be configured by initializing a new
-// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON tags
-// are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
+// bsoncodec.StructCodec with the desired tag parser and registering that StructCodec onto the Registry. By default, JSON
+// tags are not honored, but that can be enabled by creating a StructCodec with JSONFallbackStructTagParser, like below:
 //
 // Example:
 //
 //	structcodec, _ := bsoncodec.NewStructCodec(bsoncodec.JSONFallbackStructTagParser)
 //
 // The bson tag gives the name of the field, possibly followed by a comma-separated list of options.
-// The name may be empty in order to specify options without overriding the default field name. The following options can be used
-// to configure behavior:
+// The name may be empty in order to specify options without overriding the default field name. The following options can
+// be used to configure behavior:
 //
-//  1. omitempty: If the omitempty struct tag is specified on a field, the field will not be marshalled if it is set to
-//     the zero value. Fields with language primitive types such as integers, booleans, and strings are considered empty if
-//     their value is equal to the zero value for the type (i.e. 0 for integers, false for booleans, and "" for strings).
-//     Slices, maps, and arrays are considered empty if they are of length zero. Interfaces and pointers are considered
-//     empty if their value is nil. By default, structs are only considered empty if the struct type implements the
-//     bsoncodec.Zeroer interface and the IsZero method returns true. Struct fields whose types do not implement Zeroer are
-//     never considered empty and will be marshalled as embedded documents.
+//  1. omitempty: If the omitempty struct tag is specified on a field, the field will be omitted from the marshaling if
+//     the field has an empty value, defined as false, 0, a nil pointer, a nil interface value, and any empty array,
+//     slice, map, or string.
 //     NOTE: It is recommended that this tag be used for all slice and map fields.
 //
 //  2. minsize: If the minsize struct tag is specified on a field of type int64, uint, uint32, or uint64 and the value of
-//     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For other
-//     types, this tag is ignored.
+//     the field can fit in a signed int32, the field will be serialized as a BSON int32 rather than a BSON int64. For
+//     other types, this tag is ignored.
 //
-//  3. truncate: If the truncate struct tag is specified on a field with a non-float numeric type, BSON doubles unmarshalled
-//     into that field will be truncated at the decimal point. For example, if 3.14 is unmarshalled into a field of type int,
-//     it will be unmarshalled as 3. If this tag is not specified, the decoder will throw an error if the value cannot be
-//     decoded without losing precision. For float64 or non-numeric types, this tag is ignored.
+//  3. truncate: If the truncate struct tag is specified on a field with a non-float numeric type, BSON doubles
+//     unmarshaled into that field will be truncated at the decimal point. For example, if 3.14 is unmarshaled into a
+//     field of type int, it will be unmarshaled as 3. If this tag is not specified, the decoder will throw an error if
+//     the value cannot be decoded without losing precision. For float64 or non-numeric types, this tag is ignored.
 //
 //  4. inline: If the inline struct tag is specified for a struct or map field, the field will be "flattened" when
-//     marshalling and "un-flattened" when unmarshalling. This means that all of the fields in that struct/map will be
-//     pulled up one level and will become top-level fields rather than being fields in a nested document. For example, if a
-//     map field named "Map" with value map[string]interface{}{"foo": "bar"} is inlined, the resulting document will be
-//     {"foo": "bar"} instead of {"map": {"foo": "bar"}}. There can only be one inlined map field in a struct. If there are
-//     duplicated fields in the resulting document when an inlined struct is marshalled, the inlined field will be overwritten.
-//     If there are duplicated fields in the resulting document when an inlined map is marshalled, an error will be returned.
-//     This tag can be used with fields that are pointers to structs. If an inlined pointer field is nil, it will not be
-//     marshalled. For fields that are not maps or structs, this tag is ignored.
+//     marshaling and "un-flattened" when unmarshaling. This means that all of the fields in that struct/map will be
+//     pulled up one level and will become top-level fields rather than being fields in a nested document. For example,
+//     if a map field named "Map" with value map[string]interface{}{"foo": "bar"} is inlined, the resulting document will
+//     be {"foo": "bar"} instead of {"map": {"foo": "bar"}}. There can only be one inlined map field in a struct. If
+//     there are duplicated fields in the resulting document when an inlined struct is marshaled, the inlined field will
+//     be overwritten. If there are duplicated fields in the resulting document when an inlined map is marshaled, an
+//     error will be returned. This tag can be used with fields that are pointers to structs. If an inlined pointer field
+//     is nil, it will not be marshaled. For fields that are not maps or structs, this tag is ignored.
 //
-// # Marshalling and Unmarshalling
+// # Marshaling and Unmarshaling
 //
-// Manually marshalling and unmarshalling can be done with the Marshal and Unmarshal family of functions.
+// Manually marshaling and unmarshaling can be done with the Marshal and Unmarshal family of functions.
+//
+// [Work with BSON]: https://www.mongodb.com/docs/drivers/go/current/fundamentals/bson/
 package bson

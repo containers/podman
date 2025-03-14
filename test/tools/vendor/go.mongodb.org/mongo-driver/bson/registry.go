@@ -6,19 +6,30 @@
 
 package bson
 
-import "go.mongodb.org/mongo-driver/bson/bsoncodec"
+import (
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+)
 
 // DefaultRegistry is the default bsoncodec.Registry. It contains the default codecs and the
 // primitive codecs.
-var DefaultRegistry = NewRegistryBuilder().Build()
+var DefaultRegistry = NewRegistry()
 
 // NewRegistryBuilder creates a new RegistryBuilder configured with the default encoders and
 // decoders from the bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the
 // PrimitiveCodecs type in this package.
+//
+// Deprecated: Use NewRegistry instead.
 func NewRegistryBuilder() *bsoncodec.RegistryBuilder {
 	rb := bsoncodec.NewRegistryBuilder()
 	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(rb)
 	bsoncodec.DefaultValueDecoders{}.RegisterDefaultDecoders(rb)
 	primitiveCodecs.RegisterPrimitiveCodecs(rb)
 	return rb
+}
+
+// NewRegistry creates a new Registry configured with the default encoders and decoders from the
+// bsoncodec.DefaultValueEncoders and bsoncodec.DefaultValueDecoders types and the PrimitiveCodecs
+// type in this package.
+func NewRegistry() *bsoncodec.Registry {
+	return NewRegistryBuilder().Build()
 }
