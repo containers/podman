@@ -2,6 +2,10 @@
 
 # Changelog
 
+## v1.39.3 (2025-03-12)
+
+    [release-1.39] Bump c/storage to v1.57.2, c/image v5.34.2, c/common v0.62.2
+
 ## v1.39.2 (2025-03-03)
 
     [release-1.39] Bump c/image to v5.34.1, c/common v0.62.1

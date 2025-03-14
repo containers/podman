@@ -35,7 +35,7 @@ TESTFLAGS := $(shell $(GO) test -race $(BUILDFLAGS) ./pkg/stringutils 2>&1 > /de
 # N/B: This value is managed by Renovate, manual changes are
 # possible, as long as they don't disturb the formatting
 # (i.e. DO NOT ADD A 'v' prefix!)
-GOLANGCI_LINT_VERSION := 1.63.4
+GOLANGCI_LINT_VERSION := 1.64.5
 
 default all: local-binary docs local-validate local-cross ## validate all checks, build and cross-build\nbinaries and docs
 
