@@ -160,10 +160,10 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 			// populated the volume and that will block a future
 			// copy-up.
 			volume.lock.Lock()
+			defer volume.lock.Unlock()
 
 			if err := volume.update(); err != nil {
 				logrus.Errorf("Unable to update volume %s status: %v", volume.Name(), err)
-				volume.lock.Unlock()
 				return
 			}
 
@@ -172,15 +172,12 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 				volume.state.CopiedUp = true
 				if err := volume.save(); err != nil {
 					logrus.Errorf("Unable to save volume %s state: %v", volume.Name(), err)
-					volume.lock.Unlock()
 					return
 				}
 
-				volume.lock.Unlock()
-
 				for _, namedVol := range c.config.NamedVolumes {
 					if namedVol.Name == volume.Name() {
-						if err := c.fixVolumePermissions(namedVol); err != nil {
+						if err := c.fixVolumePermissionsUnlocked(namedVol, volume); err != nil {
 							logrus.Errorf("Unable to fix volume %s permissions: %v", volume.Name(), err)
 						}
 						return
