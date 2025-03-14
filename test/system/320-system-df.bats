@@ -186,7 +186,7 @@ EOF
     assert "${lines[0]}" =~ '1[0-9].[0-9]+MB \(100%\)' "Reclaimable size before prune"
 
     # Prune the images to get rid of $IMAGE which is the shared parent
-    run_podman image prune -af
+    # run_podman image prune -af
 
     run_podman system df --format '{{.Reclaimable}}'
     # Note this used to return something negative per #24452
