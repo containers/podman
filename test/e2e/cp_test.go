@@ -280,22 +280,18 @@ RUN chown 9999:9999 %s`, ALPINE, ctrVolPath, ctrVolPath)
 		defer srcFile.Close()
 		defer os.Remove(srcFile.Name())
 
-		volCreate := podmanTest.Podman([]string{"volume", "create", volName})
-		volCreate.WaitWithDefaultTimeout()
-		Expect(volCreate).Should(ExitCleanly())
+		_ = podmanTest.PodmanExitCleanly("volume", "create", volName)
+		_ = podmanTest.PodmanExitCleanly("create", "--name", ctrName, "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), imgName, "sh")
 
-		ctrCreate := podmanTest.Podman([]string{"create", "--name", ctrName, "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), imgName, "sh"})
-		ctrCreate.WaitWithDefaultTimeout()
-		Expect(ctrCreate).To(ExitCleanly())
+		_ = podmanTest.PodmanExitCleanly("cp", srcFile.Name(), fmt.Sprintf("%s:%s", ctrName, ctrVolPath))
 
-		cp := podmanTest.Podman([]string{"cp", srcFile.Name(), fmt.Sprintf("%s:%s", ctrName, ctrVolPath)})
-		cp.WaitWithDefaultTimeout()
-		Expect(cp).To(ExitCleanly())
-
-		ls := podmanTest.Podman([]string{"run", "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), ALPINE, "ls", "-al", ctrVolPath})
-		ls.WaitWithDefaultTimeout()
-		Expect(ls).To(ExitCleanly())
+		ls := podmanTest.PodmanExitCleanly("run", "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), ALPINE, "ls", "-al", ctrVolPath)
 		Expect(ls.OutputToString()).To(ContainSubstring("9999 9999"))
 		Expect(ls.OutputToString()).To(ContainSubstring(filepath.Base(srcFile.Name())))
+
+		// Test for #25585
+		_ = podmanTest.PodmanExitCleanly("rm", ctrName)
+		_ = podmanTest.PodmanExitCleanly("create", "--name", ctrName, "-v", fmt.Sprintf("%s:%s", volName, ctrVolPath), imgName, "sh")
+		_ = podmanTest.PodmanExitCleanly("cp", srcFile.Name(), fmt.Sprintf("%s:%sfile2", ctrName, ctrVolPath))
 	})
 })
