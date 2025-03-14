@@ -181,7 +181,10 @@ t GET    libpod/containers/${cid}/json 200 \
   .State.Status~\\\(exited\\\|stopped\\\) \
   .State.Running=false \
   .State.ExitCode=0 \
-  .Config.Umask=0022 # regression check for #15036
+  .Config.Umask=0022 \
+  .Config.HealthLogDestination=local \
+  .Config.HealthcheckMaxLogCount=5 \
+  .Config.HealthcheckMaxLogSize=500
 t DELETE libpod/containers/$cid 200 .[0].Id=$cid
 
 CNAME=myfoo

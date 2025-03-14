@@ -59,7 +59,12 @@ func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.Gene
 	} else if p, err := ic.Libpod.LookupPod(opts.ID); err == nil {
 		pspec = &specgen.PodSpecGenerator{}
 		pspec.Name = p.Name()
-		_, err := generateUtils.PodConfigToSpec(ic.Libpod, pspec, &entities.ContainerCreateOptions{}, opts.ID)
+		_, err := generateUtils.PodConfigToSpec(ic.Libpod, pspec,
+			&entities.ContainerCreateOptions{
+				HealthLogDestination: define.DefaultHealthCheckLocalDestination,
+				HealthMaxLogCount:    define.DefaultHealthMaxLogCount,
+				HealthMaxLogSize:     define.DefaultHealthMaxLogSize,
+			}, opts.ID)
 		if err != nil {
 			return nil, err
 		}
