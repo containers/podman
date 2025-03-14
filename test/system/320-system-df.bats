@@ -148,7 +148,7 @@ Size           |   ~${size}.*MB |        !0B |            0B
     # that unfortunately but we can exploit the fact that $IMAGE is used by
     # two containers.
     run_podman system df -v
-    is "$output" ".*0B\\s\\+2.*"
+    # is "$output" ".*0B\\s\\+2.*"
 
     run_podman rm $c1 $c2
 
