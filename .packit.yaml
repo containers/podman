@@ -33,6 +33,8 @@ jobs:
     enable_net: true
     targets:
       - fedora-latest-stable-x86_64
+      - fedora-latest-stable-aarch64
+      - fedora-development-x86_64
       - fedora-development-aarch64
 
   - job: copr_build
