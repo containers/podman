@@ -5,14 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 
 	"github.com/containers/common/pkg/secrets/define"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/lockfile"
-	"golang.org/x/exp/maps"
 )
 
 // secretsDataFile is the file where secrets data/payload will be stored
@@ -53,9 +53,7 @@ func (d *Driver) List() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	allID := maps.Keys(secretData)
-	sort.Strings(allID)
-	return allID, err
+	return slices.Sorted(maps.Keys(secretData)), nil
 }
 
 // Lookup returns the bytes associated with a secret ID

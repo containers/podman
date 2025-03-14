@@ -206,7 +206,7 @@ func (i *Image) isDangling(ctx context.Context, tree *layerTree) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return len(children) == 0, nil
+	return (len(children) == 0 && !tree.manifestListDigests[i.Digest()]), nil
 }
 
 // IsIntermediate returns true if the image is an intermediate image, that is
@@ -258,7 +258,7 @@ func (i *Image) TopLayer() string {
 
 // Parent returns the parent image or nil if there is none
 func (i *Image) Parent(ctx context.Context) (*Image, error) {
-	tree, err := i.runtime.newFreshLayerTree()
+	tree, err := i.runtime.newFreshLayerTree(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -292,7 +292,7 @@ func (i *Image) Children(ctx context.Context) ([]*Image, error) {
 // created for this invocation only.
 func (i *Image) getChildren(ctx context.Context, all bool, tree *layerTree) ([]*Image, error) {
 	if tree == nil {
-		t, err := i.runtime.newFreshLayerTree()
+		t, err := i.runtime.newFreshLayerTree(ctx)
 		if err != nil {
 			return nil, err
 		}
