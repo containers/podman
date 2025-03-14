@@ -2,7 +2,7 @@ module github.com/containers/podman/v5
 
 // Warning: Ensure the "go" and "toolchain" versions match exactly to prevent unwanted auto-updates
 
-go 1.23.0
+go 1.21.0
 
 require (
 	github.com/BurntSushi/toml v1.4.0
@@ -70,13 +70,13 @@ require (
 	github.com/vbauerster/mpb/v8 v8.7.5
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	go.etcd.io/bbolt v1.3.10
-	golang.org/x/crypto v0.36.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/net v0.28.0
-	golang.org/x/sync v0.12.0
-	golang.org/x/sys v0.31.0
-	golang.org/x/term v0.30.0
-	golang.org/x/text v0.23.0
+	golang.org/x/sync v0.11.0
+	golang.org/x/sys v0.30.0
+	golang.org/x/term v0.29.0
+	golang.org/x/text v0.22.0
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
@@ -226,3 +226,5 @@ require (
 )
 
 replace github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20240131200429-02120488a4c0
+
+replace golang.org/x/crypto => github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581
