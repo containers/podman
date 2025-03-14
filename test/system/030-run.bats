@@ -1401,12 +1401,20 @@ EOF
     # the TMPDIR must be accessible by different users as the following tests use different mappings
     chmod 755 $PODMAN_TMPDIR
 
+    _prefetch $IMAGE
+
+    # debug
+    run_podman image inspect $IMAGE
+
     run_podman image mount $IMAGE
     src="$output"
 
     # we cannot use idmap on top of overlay, so we need a copy
     romount=$PODMAN_TMPDIR/rootfs
     cp -a "$src" "$romount"
+
+    # debug
+    find "$romount"
 
     run_podman image unmount $IMAGE
 
@@ -1416,6 +1424,8 @@ EOF
         if [[ "$output" =~ "failed to create idmapped mount: invalid argument" ]]; then
             skip "idmapped mounts not supported"
         fi
+
+        findmnt
         # Any other error is fatal
         die "Cannot create idmap mount: $output"
     fi
