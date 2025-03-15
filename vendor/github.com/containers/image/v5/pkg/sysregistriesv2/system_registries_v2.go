@@ -430,8 +430,7 @@ func (config *V2RegistriesConf) postProcessRegistries() error {
 			return fmt.Errorf("pull-from-mirror must not be set for a non-mirror registry %q", reg.Prefix)
 		}
 		// make sure mirrors are valid
-		for j := range reg.Mirrors {
-			mir := &reg.Mirrors[j]
+		for _, mir := range reg.Mirrors {
 			mir.Location, err = parseLocation(mir.Location)
 			if err != nil {
 				return err

@@ -18,7 +18,6 @@ import (
 	"github.com/containers/common/pkg/supplemented"
 	imageCopy "github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/signature"
@@ -371,12 +370,11 @@ func (i *Image) IsManifestList(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	imgSrc, err := ref.NewImageSource(ctx, i.runtime.systemContextCopy())
+	imgRef, err := ref.NewImageSource(ctx, i.runtime.systemContextCopy())
 	if err != nil {
 		return false, err
 	}
-	defer imgSrc.Close()
-	_, manifestType, err := image.UnparsedInstance(imgSrc, nil).Manifest(ctx)
+	_, manifestType, err := imgRef.GetManifest(ctx, nil)
 	if err != nil {
 		return false, err
 	}
@@ -719,7 +717,7 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 			return err
 		}
 		defer src.Close()
-		subjectManifestBytes, subjectManifestType, err := image.UnparsedInstance(src, nil).Manifest(ctx)
+		subjectManifestBytes, subjectManifestType, err := src.GetManifest(ctx, nil)
 		if err != nil {
 			return err
 		}
