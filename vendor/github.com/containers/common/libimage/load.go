@@ -30,7 +30,7 @@ func (r *Runtime) doLoadReference(ctx context.Context, ref types.ImageReference,
 	case dockerArchiveTransport.Transport.Name():
 		images, err = r.loadMultiImageDockerArchive(ctx, ref, &options.CopyOptions)
 	default:
-		images, err = r.copyFromDefault(ctx, ref, &options.CopyOptions)
+		_, images, err = r.copyFromDefault(ctx, ref, &options.CopyOptions)
 	}
 	return images, ref.Transport().Name(), err
 }
@@ -142,7 +142,8 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	// should.
 	path := ref.StringWithinTransport()
 	if err := fileutils.Exists(path); err != nil {
-		return r.copyFromDockerArchive(ctx, ref, options)
+		_, names, err := r.copyFromDockerArchive(ctx, ref, options)
+		return names, err
 	}
 
 	reader, err := dockerArchiveTransport.NewReader(r.systemContextCopy(), path)
@@ -163,7 +164,7 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	var copiedImages []string
 	for _, list := range refLists {
 		for _, listRef := range list {
-			names, err := r.copyFromDockerArchiveReaderReference(ctx, reader, listRef, options)
+			_, names, err := r.copyFromDockerArchiveReaderReference(ctx, reader, listRef, options)
 			if err != nil {
 				return nil, err
 			}
