@@ -12,7 +12,6 @@ import (
 	"github.com/containers/image/v5/directory/explicitfilepath"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/image"
-	"github.com/containers/image/v5/internal/manifest"
 	"github.com/containers/image/v5/oci/internal"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
@@ -235,7 +234,7 @@ func (ref ociReference) getManifestDescriptor() (imgspecv1.Descriptor, int, erro
 		var unsupportedMIMETypes []string
 		for i, md := range index.Manifests {
 			if refName, ok := md.Annotations[imgspecv1.AnnotationRefName]; ok && refName == ref.image {
-				if md.MediaType == imgspecv1.MediaTypeImageManifest || md.MediaType == imgspecv1.MediaTypeImageIndex || md.MediaType == manifest.DockerV2Schema2MediaType || md.MediaType == manifest.DockerV2ListMediaType {
+				if md.MediaType == imgspecv1.MediaTypeImageManifest || md.MediaType == imgspecv1.MediaTypeImageIndex {
 					return md, i, nil
 				}
 				unsupportedMIMETypes = append(unsupportedMIMETypes, md.MediaType)

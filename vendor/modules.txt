@@ -147,7 +147,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.39.2
+# github.com/containers/buildah v1.39.3
 ## explicit; go 1.22.8
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -179,7 +179,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.62.2-0.20250306142925-6e82793fd29d
+# github.com/containers/common v0.62.2
 ## explicit; go 1.22.8
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -252,7 +252,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.4
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.34.2-0.20250306154130-12497efe55ac
+# github.com/containers/image/v5 v5.34.2
 ## explicit; go 1.22.8
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -278,6 +278,7 @@ github.com/containers/image/v5/internal/multierr
 github.com/containers/image/v5/internal/pkg/platform
 github.com/containers/image/v5/internal/private
 github.com/containers/image/v5/internal/putblobdigest
+github.com/containers/image/v5/internal/reflink
 github.com/containers/image/v5/internal/rootless
 github.com/containers/image/v5/internal/set
 github.com/containers/image/v5/internal/signature
@@ -506,6 +507,7 @@ github.com/docker/docker/pkg/ioutils
 github.com/docker/docker/pkg/jsonmessage
 github.com/docker/docker/pkg/meminfo
 github.com/docker/docker/pkg/namesgenerator
+github.com/docker/docker/pkg/parsers
 github.com/docker/docker/pkg/progress
 github.com/docker/docker/pkg/stdcopy
 github.com/docker/docker/pkg/streamformatter

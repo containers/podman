@@ -180,18 +180,18 @@ type PRSigstoreSignedPKI interface {
 // prSigstoreSignedPKI contains non-fulcio certificate PKI configuration options for prSigstoreSigned
 type prSigstoreSignedPKI struct {
 	// CARootsPath a path to a file containing accepted CA root certificates, in PEM format. Exactly one of CARootsPath and CARootsData must be specified.
-	CARootsPath string `json:"caRootsPath,omitempty"`
+	CARootsPath string `json:"caRootsPath"`
 	// CARootsData contains accepted CA root certificates in PEM format, all of that base64-encoded. Exactly one of CARootsPath and CARootsData must be specified.
-	CARootsData []byte `json:"caRootsData,omitempty"`
+	CARootsData []byte `json:"caRootsData"`
 	// CAIntermediatesPath a path to a file containing accepted CA intermediate certificates, in PEM format. Only one of CAIntermediatesPath or CAIntermediatesData can be specified, not both.
-	CAIntermediatesPath string `json:"caIntermediatesPath,omitempty"`
+	CAIntermediatesPath string `json:"caIntermediatesPath"`
 	// CAIntermediatesData contains accepted CA intermediate certificates in PEM format, all of that base64-encoded. Only one of CAIntermediatesPath or CAIntermediatesData can be specified, not both.
-	CAIntermediatesData []byte `json:"caIntermediatesData,omitempty"`
+	CAIntermediatesData []byte `json:"caIntermediatesData"`
 
 	// SubjectEmail specifies the expected email address imposed on the subject to which the certificate was issued. At least one of SubjectEmail and SubjectHostname must be specified.
-	SubjectEmail string `json:"subjectEmail,omitempty"`
+	SubjectEmail string `json:"subjectEmail"`
 	// SubjectHostname specifies the expected hostname imposed on the subject to which the certificate was issued. At least one of SubjectEmail and SubjectHostname must be specified.
-	SubjectHostname string `json:"subjectHostname,omitempty"`
+	SubjectHostname string `json:"subjectHostname"`
 }
 
 // PolicyReferenceMatch specifies a set of image identities accepted in PolicyRequirement.

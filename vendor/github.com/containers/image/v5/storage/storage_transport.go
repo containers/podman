@@ -362,14 +362,15 @@ func (s storageTransport) ValidatePolicyConfigurationScope(scope string) error {
 	}
 	storeSpec := scope[1:closeIndex]
 	scope = scope[closeIndex+1:]
-	if a, b, ok := strings.Cut(storeSpec, "@"); ok && a != "" && b != "" {
-		// Two components: the driver type and the graph root.
-		if !filepath.IsAbs(b) {
+	storeInfo := strings.SplitN(storeSpec, "@", 2)
+	if len(storeInfo) == 1 && storeInfo[0] != "" {
+		// One component: the graph root.
+		if !filepath.IsAbs(storeInfo[0]) {
 			return ErrPathNotAbsolute
 		}
-	} else if !ok && a != "" {
-		// One component: the graph root.
-		if !filepath.IsAbs(storeSpec) {
+	} else if len(storeInfo) == 2 && storeInfo[0] != "" && storeInfo[1] != "" {
+		// Two components: the driver type and the graph root.
+		if !filepath.IsAbs(storeInfo[1]) {
 			return ErrPathNotAbsolute
 		}
 	} else {
