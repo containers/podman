@@ -1536,7 +1536,7 @@ func WithHealthCheckLogDestination(destination string) CtrCreateOption {
 		if err != nil {
 			return err
 		}
-		ctr.config.HealthLogDestination = dest
+		ctr.config.HealthLogDestination = &dest
 		return nil
 	}
 }
@@ -1547,7 +1547,7 @@ func WithHealthCheckMaxLogCount(maxLogCount uint) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		ctr.config.HealthMaxLogCount = maxLogCount
+		ctr.config.HealthMaxLogCount = &maxLogCount
 		return nil
 	}
 }
@@ -1558,7 +1558,7 @@ func WithHealthCheckMaxLogSize(maxLogSize uint) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		ctr.config.HealthMaxLogSize = maxLogSize
+		ctr.config.HealthMaxLogSize = &maxLogSize
 		return nil
 	}
 }
