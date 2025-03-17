@@ -144,11 +144,13 @@ Size           |   ~${size}.*MB |        !0B |            0B
     run_podman system df --format '{{.Reclaimable}}'
     is "${lines[0]}" ".* (100%)" "100 percent of image data is reclaimable because $IMAGE has unique size of 0"
 
-    # Make sure the unique size is now really 0.  We cannot use --format for
-    # that unfortunately but we can exploit the fact that $IMAGE is used by
-    # two containers.
+    # Note unique size is basically never 0, that is because we count certain image metadata that is always added.
+    # The unique size is not 100% stable either as the generated metadata seems to differ a few bytes each run,
+    # as such we just match any number and just check that MB/kB seems to line up.
+    #   regex for:       SHARED SIZE      |         UNIQUE SIZE       |   CONTAINERS
     run_podman system df -v
-    is "$output" ".*0B\\s\\+2.*"
+    assert "$output" =~ '[0-9]+.[0-9]+MB\s+[0-9]+.[0-9]+kB\s+2' "Shared and Unique Size 2"
+    assert "$output" =~ "[0-9]+.[0-9]+MB\s+[0-9]+.[0-9]+kB\s+0" "Shared and Unique Size 0"
 
     run_podman rm $c1 $c2
 
@@ -157,6 +159,41 @@ Size           |   ~${size}.*MB |        !0B |            0B
 
     run_podman rmi $image
     run_podman volume rm -a
+}
+
+# https://github.com/containers/podman/issues/24452
+@test "podman system df - Reclaimable is not negative" {
+    local c1="c1-$(safename)"
+    local c2="c2-$(safename)"
+    for t in "$c1" "$c2"; do
+        dir="${PODMAN_TMPDIR}${t}"
+        mkdir "$dir"
+        cat <<EOF >"$dir/Dockerfile"
+FROM $IMAGE
+RUN echo "${t}" >${t}.txt
+CMD ["sleep", "inf"]
+EOF
+
+    run_podman build --tag "${t}:latest" "$dir"
+    run_podman run -d --name $t "${t}:latest"
+    done
+
+    run_podman system df --format '{{.Reclaimable}}'
+    # Size might not be exactly static so match a range.
+    # Also note if you wondering why we claim 100% can be freed even though containers
+    # are using the images this value is simply broken.
+    # It always considers shared sizes as something that can be freed.
+    assert "${lines[0]}" =~ '1[0-9].[0-9]+MB \(100%\)' "Reclaimable size before prune"
+
+    # Prune the images to get rid of $IMAGE which is the shared parent
+    run_podman image prune -af
+
+    run_podman system df --format '{{.Reclaimable}}'
+    # Note this used to return something negative per #24452
+    assert "${lines[0]}" =~ '1[0-9].[0-9]+MB \(100%\)' "Reclaimable size after prune"
+
+    run_podman rm -f -t0 $c1 $c2
+    run_podman rmi  $c1 $c2
 }
 
 # vim: filetype=sh
