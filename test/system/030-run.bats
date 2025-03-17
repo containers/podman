@@ -1398,10 +1398,6 @@ EOF
 
     grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
 
-    if [[ "$(podman_storage_driver)" == "vfs" ]]; then
-        skip "FIXME #25572: image mount with uidmapping and vfs not consistent and can fail"
-    fi
-
     # the TMPDIR must be accessible by different users as the following tests use different mappings
     chmod 755 $PODMAN_TMPDIR
 
