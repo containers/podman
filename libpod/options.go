@@ -1523,7 +1523,7 @@ func WithHealthCheckLogDestination(destination string) CtrCreateOption {
 		}
 		switch destination {
 		case define.HealthCheckEventsLoggerDestination, define.DefaultHealthCheckLocalDestination:
-			ctr.config.HealthLogDestination = destination
+			ctr.config.HealthLogDestination = &destination
 		default:
 			fileInfo, err := os.Stat(destination)
 			if err != nil {
@@ -1538,7 +1538,7 @@ func WithHealthCheckLogDestination(destination string) CtrCreateOption {
 			if err != nil {
 				return err
 			}
-			ctr.config.HealthLogDestination = absPath
+			ctr.config.HealthLogDestination = &absPath
 		}
 		return nil
 	}
@@ -1550,7 +1550,7 @@ func WithHealthCheckMaxLogCount(maxLogCount uint) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		ctr.config.HealthMaxLogCount = maxLogCount
+		ctr.config.HealthMaxLogCount = &maxLogCount
 		return nil
 	}
 }
@@ -1561,7 +1561,7 @@ func WithHealthCheckMaxLogSize(maxLogSize uint) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		ctr.config.HealthMaxLogSize = maxLogSize
+		ctr.config.HealthMaxLogSize = &maxLogSize
 		return nil
 	}
 }
