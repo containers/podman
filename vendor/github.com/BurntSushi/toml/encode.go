@@ -402,31 +402,30 @@ func (enc *Encoder) eMap(key Key, rv reflect.Value, inline bool) {
 
 	// Sort keys so that we have deterministic output. And write keys directly
 	// underneath this key first, before writing sub-structs or sub-maps.
-	var mapKeysDirect, mapKeysSub []string
+	var mapKeysDirect, mapKeysSub []reflect.Value
 	for _, mapKey := range rv.MapKeys() {
-		k := mapKey.String()
 		if typeIsTable(tomlTypeOfGo(eindirect(rv.MapIndex(mapKey)))) {
-			mapKeysSub = append(mapKeysSub, k)
+			mapKeysSub = append(mapKeysSub, mapKey)
 		} else {
-			mapKeysDirect = append(mapKeysDirect, k)
+			mapKeysDirect = append(mapKeysDirect, mapKey)
 		}
 	}
 
-	var writeMapKeys = func(mapKeys []string, trailC bool) {
-		sort.Strings(mapKeys)
+	writeMapKeys := func(mapKeys []reflect.Value, trailC bool) {
+		sort.Slice(mapKeys, func(i, j int) bool { return mapKeys[i].String() < mapKeys[j].String() })
 		for i, mapKey := range mapKeys {
-			val := eindirect(rv.MapIndex(reflect.ValueOf(mapKey)))
+			val := eindirect(rv.MapIndex(mapKey))
 			if isNil(val) {
 				continue
 			}
 
 			if inline {
-				enc.writeKeyValue(Key{mapKey}, val, true)
+				enc.writeKeyValue(Key{mapKey.String()}, val, true)
 				if trailC || i != len(mapKeys)-1 {
 					enc.wf(", ")
 				}
 			} else {
-				enc.encode(key.add(mapKey), val)
+				enc.encode(key.add(mapKey.String()), val)
 			}
 		}
 	}
@@ -440,8 +439,6 @@ func (enc *Encoder) eMap(key Key, rv reflect.Value, inline bool) {
 		enc.wf("}")
 	}
 }
-
-const is32Bit = (32 << (^uint(0) >> 63)) == 32
 
 func pointerTo(t reflect.Type) reflect.Type {
 	if t.Kind() == reflect.Ptr {
@@ -477,15 +474,14 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 
 			frv := eindirect(rv.Field(i))
 
-			if is32Bit {
-				// Copy so it works correct on 32bit archs; not clear why this
-				// is needed. See #314, and https://www.reddit.com/r/golang/comments/pnx8v4
-				// This also works fine on 64bit, but 32bit archs are somewhat
-				// rare and this is a wee bit faster.
-				copyStart := make([]int, len(start))
-				copy(copyStart, start)
-				start = copyStart
-			}
+			// Need to make a copy because ... ehm, I don't know why... I guess
+			// allocating a new array can cause it to fail(?)
+			//
+			// Done for: https://github.com/BurntSushi/toml/issues/430
+			// Previously only on 32bit for: https://github.com/BurntSushi/toml/issues/314
+			copyStart := make([]int, len(start))
+			copy(copyStart, start)
+			start = copyStart
 
 			// Treat anonymous struct fields with tag names as though they are
 			// not anonymous, like encoding/json does.
@@ -507,7 +503,7 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 	}
 	addFields(rt, rv, nil)
 
-	writeFields := func(fields [][]int) {
+	writeFields := func(fields [][]int, totalFields int) {
 		for _, fieldIndex := range fields {
 			fieldType := rt.FieldByIndex(fieldIndex)
 			fieldVal := rv.FieldByIndex(fieldIndex)
@@ -537,7 +533,7 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 
 			if inline {
 				enc.writeKeyValue(Key{keyName}, fieldVal, true)
-				if fieldIndex[0] != len(fields)-1 {
+				if fieldIndex[0] != totalFields-1 {
 					enc.wf(", ")
 				}
 			} else {
@@ -549,8 +545,10 @@ func (enc *Encoder) eStruct(key Key, rv reflect.Value, inline bool) {
 	if inline {
 		enc.wf("{")
 	}
-	writeFields(fieldsDirect)
-	writeFields(fieldsSub)
+
+	l := len(fieldsDirect) + len(fieldsSub)
+	writeFields(fieldsDirect, l)
+	writeFields(fieldsSub, l)
 	if inline {
 		enc.wf("}")
 	}

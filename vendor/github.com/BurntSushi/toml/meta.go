@@ -135,9 +135,6 @@ func (k Key) maybeQuoted(i int) string {
 
 // Like append(), but only increase the cap by 1.
 func (k Key) add(piece string) Key {
-	if cap(k) > len(k) {
-		return append(k, piece)
-	}
 	newKey := make(Key, len(k)+1)
 	copy(newKey, k)
 	newKey[len(k)] = piece

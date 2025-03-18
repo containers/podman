@@ -180,7 +180,7 @@ EOF
 sdf=
 EOF
     XDG_CONFIG_HOME=$fake_home run_podman 1 --module $module_name
-    is "$output" "Failed to obtain podman configuration: reading additional config \"$conf_tmp\": decode configuration $conf_tmp: toml: line 3 (last key \"containers.sdf\"): expected value but found '\n' instead" \
+    is "$output" "Failed to obtain podman configuration: reading additional config \"$conf_tmp\": decode configuration $conf_tmp: toml: line 2 (last key \"containers.sdf\"): expected value but found '\n' instead" \
        "Corrupt module file"
 
     # Nonexistent module name
