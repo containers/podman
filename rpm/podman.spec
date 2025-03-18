@@ -62,7 +62,7 @@ Release: %autorelease
 %if %{defined golang_arches_future}
 ExclusiveArch: %{golang_arches_future}
 %else
-ExclusiveArch: aarch64 ppc64le s390x x86_64
+ExclusiveArch: aarch64 ppc64le s390x x86_64 riscv64
 %endif
 Summary: Manage Pods, Containers and Container Images
 URL: https://%{name}.io/
