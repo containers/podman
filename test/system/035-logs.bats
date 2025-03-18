@@ -336,6 +336,14 @@ function _log_test_follow_since() {
     run_podman ${events_backend} run --log-driver=$driver --name $cname -d $IMAGE \
         sh -c "sleep 1; while :; do echo $content && sleep 1; done"
 
+    # FIXME FIXME: TEMPORARY! For debugging a bug I don't even remember any more
+    logpath=
+    if [[ "$driver" = "k8s-file" ]]; then
+        run_podman inspect --format '{{.HostConfig.LogConfig.Path}}' $cname
+        logpath="$output"
+    fi
+    # FIXME FIXME
+
     # sleep is required to make sure the podman event backend no longer sees the start event in the log
     # This value must be greater or equal than the value given in --since below
     sleep 0.2
