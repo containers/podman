@@ -7,6 +7,7 @@ import (
 )
 
 type MachineCapabilities struct {
+	HasReadyUnit   bool
 	ForwardSockets bool
 }
 
@@ -16,6 +17,14 @@ func (caps *MachineCapabilities) GetForwardSockets() bool {
 		return true
 	}
 	return caps.ForwardSockets
+}
+
+func (caps *MachineCapabilities) GetHasReadyUnit() bool {
+	if caps == nil {
+		// if there are no known capabilities, honor default podman-machine behaviour
+		return true
+	}
+	return caps.HasReadyUnit
 }
 
 type InitOptions struct {

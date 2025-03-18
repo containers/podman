@@ -240,18 +240,20 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		cmd.Args = append(cmd.Args, firstBootCli...)
 	}
 
-	logrus.Debugf("listening for ready on: %s", readySocket.GetPath())
-	if err := readySocket.Delete(); err != nil {
-		logrus.Warnf("unable to delete previous ready socket: %q", err)
-	}
-	readyListen, err := net.Listen("unix", readySocket.GetPath())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	logrus.Debug("waiting for ready notification")
 	readyChan := make(chan error)
-	go sockets.ListenAndWaitOnSocket(readyChan, readyListen)
+	if readySocket != nil {
+		logrus.Debugf("listening for ready on: %s", readySocket.GetPath())
+		if err := readySocket.Delete(); err != nil {
+			logrus.Warnf("unable to delete previous ready socket: %q", err)
+		}
+		readyListen, err := net.Listen("unix", readySocket.GetPath())
+		if err != nil {
+			return nil, nil, err
+		}
+
+		logrus.Debug("waiting for ready notification")
+		go sockets.ListenAndWaitOnSocket(readyChan, readyListen)
+	}
 
 	logrus.Debugf("helper command-line: %v", cmd.Args)
 

@@ -32,16 +32,20 @@ func GetDefaultDevices(mc *vmconfigs.MachineConfig) ([]vfConfig.VirtioDevice, *d
 		return nil, nil, err
 	}
 
-	readySocket, err := mc.ReadySocket()
-	if err != nil {
-		return nil, nil, err
+	devices = append(devices, disk, rng)
+	var readySocket *define.VMFile
+	if mc.Capabilities.GetHasReadyUnit() {
+		readySocket, err = mc.ReadySocket()
+		if err != nil {
+			return nil, nil, err
+		}
+		readyDevice, err := vfConfig.VirtioVsockNew(1025, readySocket.GetPath(), true)
+		if err != nil {
+			return nil, nil, err
+		}
+		devices = append(devices, readyDevice)
 	}
 
-	readyDevice, err := vfConfig.VirtioVsockNew(1025, readySocket.GetPath(), true)
-	if err != nil {
-		return nil, nil, err
-	}
-	devices = append(devices, disk, rng, readyDevice)
 	if mc.LibKrunHypervisor == nil || !logrus.IsLevelEnabled(logrus.DebugLevel) {
 		// If libkrun is the provider and we want to show the debug console,
 		// don't add a virtio serial device to avoid redirecting the output.

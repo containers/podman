@@ -92,6 +92,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	if opts.Capabilities == nil {
 		var defaultCapabilities *machineDefine.MachineCapabilities = nil
 		opts.Capabilities = &machineDefine.MachineCapabilities{
+			HasReadyUnit:   defaultCapabilities.GetHasReadyUnit(),
 			ForwardSockets: defaultCapabilities.GetForwardSockets(),
 		}
 	}
@@ -434,12 +435,14 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 	}
 
 	// Remove Ready Socket
-	readySocket, err := mc.ReadySocket()
-	if err != nil {
-		return err
-	}
-	if err := readySocket.Delete(); err != nil {
-		return err
+	if mc.Capabilities.GetHasReadyUnit() {
+		readySocket, err := mc.ReadySocket()
+		if err != nil {
+			return err
+		}
+		if err := readySocket.Delete(); err != nil {
+			return err
+		}
 	}
 
 	// Stop GvProxy and remove PID file
@@ -604,12 +607,14 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		return err
 	}
 
-	if WaitForReady == nil {
-		return errors.New("no valid wait function returned")
-	}
+	if mc.Capabilities.GetHasReadyUnit() {
+		if WaitForReady == nil {
+			return errors.New("no valid wait function returned")
+		}
 
-	if err := WaitForReady(); err != nil {
-		return err
+		if err := WaitForReady(); err != nil {
+			return err
+		}
 	}
 
 	if releaseCmd != nil && releaseCmd() != nil { // some providers can return nil here (hyperv)
