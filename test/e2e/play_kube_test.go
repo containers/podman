@@ -5545,7 +5545,7 @@ spec:
 
 		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(ExitWithError(125, fmt.Sprintf(`subpath "testing/onlythis" is outside of the volume "%s/root/volumes/testvol/_data`, podmanTest.TempDir)))
+		Expect(playKube).Should(ExitWithError(125, fmt.Sprintf("securejoin.OpenInRoot testing/onlythis: openat2 %s/root/volumes/testvol/_data/testing/onlythis: no such file or directory", podmanTest.TempDir)))
 	})
 
 	It("with unsafe hostPath subpaths", func() {
@@ -5559,9 +5559,7 @@ spec:
 		err = generateKubeYaml("pod", pod, kubeYaml)
 		Expect(err).To(Not(HaveOccurred()))
 
-		playKube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
-		playKube.WaitWithDefaultTimeout()
-		Expect(playKube).Should(ExitWithError(125, fmt.Sprintf(`subpath "testing/symlink" is outside of the volume "%s"`, hostPathLocation)))
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
 	})
 
 	It("with configMap subpaths", func() {
