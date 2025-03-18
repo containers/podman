@@ -275,7 +275,9 @@ func (lx *lexer) errorPos(start, length int, err error) stateFn {
 func (lx *lexer) errorf(format string, values ...any) stateFn {
 	if lx.atEOF {
 		pos := lx.getPos()
-		pos.Line--
+		if lx.pos >= 1 && lx.input[lx.pos-1] == '\n' {
+			pos.Line--
+		}
 		pos.Len = 1
 		pos.Start = lx.pos - 1
 		lx.items <- item{typ: itemError, pos: pos, err: fmt.Errorf(format, values...)}
@@ -492,6 +494,9 @@ func lexKeyEnd(lx *lexer) stateFn {
 		lx.emit(itemKeyEnd)
 		return lexSkip(lx, lexValue)
 	default:
+		if r == '\n' {
+			return lx.errorPrevLine(fmt.Errorf("expected '.' or '=', but got %q instead", r))
+		}
 		return lx.errorf("expected '.' or '=', but got %q instead", r)
 	}
 }
@@ -559,6 +564,9 @@ func lexValue(lx *lexer) stateFn {
 	}
 	if r == eof {
 		return lx.errorf("unexpected EOF; expected value")
+	}
+	if r == '\n' {
+		return lx.errorPrevLine(fmt.Errorf("expected value but found %q instead", r))
 	}
 	return lx.errorf("expected value but found %q instead", r)
 }
@@ -1111,7 +1119,7 @@ func lexBaseNumberOrDate(lx *lexer) stateFn {
 	case 'x':
 		r = lx.peek()
 		if !isHex(r) {
-			lx.errorf("not a hexidecimal number: '%s%c'", lx.current(), r)
+			lx.errorf("not a hexadecimal number: '%s%c'", lx.current(), r)
 		}
 		return lexHexInteger
 	}
@@ -1259,23 +1267,6 @@ func isBinary(r rune) bool { return r == '0' || r == '1' }
 func isOctal(r rune) bool  { return r >= '0' && r <= '7' }
 func isHex(r rune) bool    { return (r >= '0' && r <= '9') || (r|0x20 >= 'a' && r|0x20 <= 'f') }
 func isBareKeyChar(r rune, tomlNext bool) bool {
-	if tomlNext {
-		return (r >= 'A' && r <= 'Z') ||
-			(r >= 'a' && r <= 'z') ||
-			(r >= '0' && r <= '9') ||
-			r == '_' || r == '-' ||
-			r == 0xb2 || r == 0xb3 || r == 0xb9 || (r >= 0xbc && r <= 0xbe) ||
-			(r >= 0xc0 && r <= 0xd6) || (r >= 0xd8 && r <= 0xf6) || (r >= 0xf8 && r <= 0x037d) ||
-			(r >= 0x037f && r <= 0x1fff) ||
-			(r >= 0x200c && r <= 0x200d) || (r >= 0x203f && r <= 0x2040) ||
-			(r >= 0x2070 && r <= 0x218f) || (r >= 0x2460 && r <= 0x24ff) ||
-			(r >= 0x2c00 && r <= 0x2fef) || (r >= 0x3001 && r <= 0xd7ff) ||
-			(r >= 0xf900 && r <= 0xfdcf) || (r >= 0xfdf0 && r <= 0xfffd) ||
-			(r >= 0x10000 && r <= 0xeffff)
-	}
-
-	return (r >= 'A' && r <= 'Z') ||
-		(r >= 'a' && r <= 'z') ||
-		(r >= '0' && r <= '9') ||
-		r == '_' || r == '-'
+	return (r >= 'A' && r <= 'Z') || (r >= 'a' && r <= 'z') ||
+		(r >= '0' && r <= '9') || r == '_' || r == '-'
 }
