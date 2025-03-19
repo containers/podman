@@ -741,41 +741,22 @@ func (s *safeMountInfo) Close() {
 // The caller is responsible for closing the file descriptor and unmounting the subpath
 // when it's no longer needed.
 func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountInfo, err error) {
-	joinedPath := filepath.Clean(filepath.Join(mountPoint, subpath))
-	fd, err := unix.Open(joinedPath, unix.O_RDONLY|unix.O_PATH, 0)
+	file, err := securejoin.OpenInRoot(mountPoint, subpath)
 	if err != nil {
 		return nil, err
-	}
-	f := os.NewFile(uintptr(fd), joinedPath)
-	defer func() {
-		if err != nil {
-			f.Close()
-		}
-	}()
-
-	// Once we got the file descriptor, we need to check that the subpath is a valid.  We
-	// refer to the open FD so there won't be other path lookups (and no risk to follow a symlink).
-	fdPath := fmt.Sprintf("/proc/%d/fd/%d", os.Getpid(), f.Fd())
-	p, err := os.Readlink(fdPath)
-	if err != nil {
-		return nil, err
-	}
-	relPath, err := filepath.Rel(mountPoint, p)
-	if err != nil {
-		return nil, err
-	}
-	if relPath == ".." || strings.HasPrefix(relPath, "../") {
-		return nil, fmt.Errorf("subpath %q is outside of the volume %q", subpath, mountPoint)
 	}
 
-	fi, err := os.Stat(fdPath)
+	// we need to always reference the file by its fd, that points inside the mountpoint.
+	fname := fmt.Sprintf("/proc/self/fd/%d", int(file.Fd()))
+
+	fi, err := os.Stat(fname)
 	if err != nil {
 		return nil, err
 	}
 	var npath string
 	switch {
 	case fi.Mode()&fs.ModeSymlink != 0:
-		return nil, fmt.Errorf("file %q is a symlink", joinedPath)
+		return nil, fmt.Errorf("file %q is a symlink", filepath.Join(mountPoint, subpath))
 	case fi.IsDir():
 		npath, err = os.MkdirTemp(c.state.RunDir, "subpath")
 		if err != nil {
@@ -789,11 +770,12 @@ func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountIn
 		tmp.Close()
 		npath = tmp.Name()
 	}
-	if err := unix.Mount(fdPath, npath, "", unix.MS_BIND|unix.MS_REC, ""); err != nil {
+
+	if err := unix.Mount(fname, npath, "", unix.MS_BIND|unix.MS_REC, ""); err != nil {
 		return nil, err
 	}
 	return &safeMountInfo{
-		file:       f,
+		file:       file,
 		mountPoint: npath,
 	}, nil
 }
