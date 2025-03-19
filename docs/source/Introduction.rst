@@ -36,34 +36,35 @@ Sometimes we can find a publicly available container image for the exact workloa
 
 Container Images aren’t actually images. They are repositories often made up of multiple layers. These layers can easily be added, saved, and shared with others by using a Containerfile (Dockerfile). This single file often contains all the instructions needed to build a new container image and can easily be shared with others publicly using tools like GitHub.
 
-Here's an example of how to build a build a container image from content that resides in a git repository:
+Here's an example of how to build a build a container image from content that resides in a git repository::
 
     podman build -t hello https://github.com/containers/PodmanHello.git
+
 Once, the image build completes, it’s easy to run the new image from our local cache::
 
     podman run -it hello
 
 Output::
+
     !... Hello Podman World ...!
 
-         .--"--.
-       / -     - \
-      / (O)   (O) \
-   ~~~| -=(,Y,)=- |
-    .---. /`  \   |~~
- ~/  o  o \~~~~.----. ~~
-  | =(X)= |~  / (O (O) \
-   ~~~~~~~  ~| =(Y_)=-  |
-  ~~~~    ~~~|   U      |~~
+             .--"--.
+           / -     - \
+          / (O)   (O) \
+       ~~~| -=(,Y,)=- |
+        .---. /`  \   |~~
+     ~/  o  o \~~~~.----. ~~
+      | =(X)= |~  / (O (O) \
+       ~~~~~~~  ~| =(Y_)=-  |
+      ~~~~    ~~~|   U      |~~
 
-Project:   https://github.com/containers/podman
-Website:   https://podman.io
-Desktop:   https://podman-desktop.io
-Documents: https://docs.podman.io
-YouTube:   https://youtube.com/@Podman
-X/Twitter: @Podman_io
-Mastodon:  @Podman_io@fosstodon.org
-    ...
+    Project:   https://github.com/containers/podman
+    Website:   https://podman.io
+    Desktop:   https://podman-desktop.io
+    Documents: https://docs.podman.io
+    YouTube:   https://youtube.com/@Podman
+    X/Twitter: @Podman_io
+    Mastodon:  @Podman_io@fosstodon.org
 
 Building new images is great, but sharing our work with others lets them review our work, critique how we built them, and offer improved versions. Our newly built `hello` image can be published at quay.io or docker.io to share it with the world. Everything needed to run the `hello` application is provided in the container image. Others can easily pull it down and use it, or make improvements to it.
 
@@ -72,6 +73,7 @@ Standardizing on container images and `Container Registries`_ enable a new level
 For example, if we wanted to share our newly built `hello` container image on quay.io it’s easy. First log in to quay::
 
     podman login quay.io
+
 Input::
 
     Username: USERNAME
