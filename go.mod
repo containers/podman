@@ -1,5 +1,8 @@
 module github.com/containers/podman/v3
 
+// N/B: If/when bumping the go version below, please revisit the replaced
+// vendoring of golang.org/x/crypto from the temporary containers/golang-crypto
+// fork.  It's likely a newer official release will successfully build with podman.
 go 1.13
 
 require (
@@ -69,3 +72,5 @@ require (
 	k8s.io/api v0.21.0
 	k8s.io/apimachinery v0.21.0
 )
+
+replace golang.org/x/crypto => github.com/containers/golang-crypto v0.0.0-v323-rhel-podman.1
