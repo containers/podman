@@ -144,8 +144,8 @@ github.com/containernetworking/cni/pkg/types/create
 github.com/containernetworking/cni/pkg/types/internal
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v1.5.1
-## explicit; go 1.20
+# github.com/containernetworking/plugins v1.6.2
+## explicit; go 1.23
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/buildah v1.39.2
 ## explicit; go 1.22.8
@@ -179,8 +179,8 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.62.2-0.20250311121556-b27979403716
-## explicit; go 1.22.8
+# github.com/containers/common v0.62.2-0.20250311121556-b27979403716 => github.com/giuseppe/common v0.0.8-0.20250319204725-e61913562e80
+## explicit; go 1.23.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
 github.com/containers/common/libimage
@@ -252,7 +252,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.4
 ## explicit; go 1.22.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.34.2-0.20250306154130-12497efe55ac
+# github.com/containers/image/v5 v5.34.3-0.20250311194052-d84dbab374e7
 ## explicit; go 1.22.8
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -363,8 +363,8 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a
-## explicit; go 1.22.0
+# github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a => github.com/giuseppe/storage v1.19.2-0.20250324220436-0b13549eb7b3
+## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -795,8 +795,8 @@ github.com/mattn/go-shellwords
 # github.com/mattn/go-sqlite3 v1.14.24
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
-# github.com/mdlayher/socket v0.5.0
-## explicit; go 1.21
+# github.com/mdlayher/socket v0.5.1
+## explicit; go 1.20
 github.com/mdlayher/socket
 # github.com/mdlayher/vsock v1.2.1
 ## explicit; go 1.20
@@ -860,8 +860,8 @@ github.com/nxadm/tail/winfile
 # github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
-# github.com/onsi/ginkgo/v2 v2.22.2
-## explicit; go 1.22.0
+# github.com/onsi/ginkgo/v2 v2.23.0
+## explicit; go 1.23.0
 github.com/onsi/ginkgo/v2
 github.com/onsi/ginkgo/v2/config
 github.com/onsi/ginkgo/v2/formatter
@@ -957,7 +957,7 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pkg/sftp v1.13.7
+# github.com/pkg/sftp v1.13.8
 ## explicit; go 1.15
 github.com/pkg/sftp
 github.com/pkg/sftp/internal/encoding/ssh/filexfer
@@ -1217,7 +1217,7 @@ golang.org/x/crypto/xts
 # golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c
 ## explicit; go 1.22.0
 golang.org/x/exp/maps
-# golang.org/x/mod v0.22.0
+# golang.org/x/mod v0.23.0
 ## explicit; go 1.22.0
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
@@ -1281,10 +1281,11 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.9.0
 ## explicit; go 1.18
 golang.org/x/time/rate
-# golang.org/x/tools v0.29.0
+# golang.org/x/tools v0.30.0
 ## explicit; go 1.22.0
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/inspector
+golang.org/x/tools/internal/astutil/edge
 # google.golang.org/genproto/googleapis/api v0.0.0-20241209162323-e6fa225c2576
 ## explicit; go 1.21
 google.golang.org/genproto/googleapis/api
@@ -1415,3 +1416,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/storage => github.com/giuseppe/storage v1.19.2-0.20250324220436-0b13549eb7b3
+# github.com/containers/common => github.com/giuseppe/common v0.0.8-0.20250319204725-e61913562e80

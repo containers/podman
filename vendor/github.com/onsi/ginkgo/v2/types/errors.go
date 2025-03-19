@@ -88,7 +88,7 @@ body of a {{bold}}Describe{{/}}, {{bold}}Context{{/}}, or {{bold}}When{{/}}.`, n
 	}
 }
 
-func (g ginkgoErrors) CaughtPanicDuringABuildPhase(caughtPanic interface{}, cl CodeLocation) error {
+func (g ginkgoErrors) CaughtPanicDuringABuildPhase(caughtPanic any, cl CodeLocation) error {
 	return GinkgoError{
 		Heading: "Assertion or Panic detected during tree construction",
 		Message: formatter.F(
@@ -189,7 +189,7 @@ func (g ginkgoErrors) InvalidDeclarationOfFlakeAttemptsAndMustPassRepeatedly(cl 
 	}
 }
 
-func (g ginkgoErrors) UnknownDecorator(cl CodeLocation, nodeType NodeType, decorator interface{}) error {
+func (g ginkgoErrors) UnknownDecorator(cl CodeLocation, nodeType NodeType, decorator any) error {
 	return GinkgoError{
 		Heading:      "Unknown Decorator",
 		Message:      formatter.F(`[%s] node was passed an unknown decorator: '%#v'`, nodeType, decorator),
@@ -345,7 +345,7 @@ func (g ginkgoErrors) PushingCleanupInCleanupNode(cl CodeLocation) error {
 }
 
 /* ReportEntry errors */
-func (g ginkgoErrors) TooManyReportEntryValues(cl CodeLocation, arg interface{}) error {
+func (g ginkgoErrors) TooManyReportEntryValues(cl CodeLocation, arg any) error {
 	return GinkgoError{
 		Heading:      "Too Many ReportEntry Values",
 		Message:      formatter.F(`{{bold}}AddGinkgoReport{{/}} can only be given one value. Got unexpected value: %#v`, arg),
@@ -539,7 +539,7 @@ func (g ginkgoErrors) SynchronizedBeforeSuiteDisappearedOnProc1() error {
 
 /* Configuration errors */
 
-func (g ginkgoErrors) UnknownTypePassedToRunSpecs(value interface{}) error {
+func (g ginkgoErrors) UnknownTypePassedToRunSpecs(value any) error {
 	return GinkgoError{
 		Heading: "Unknown Type passed to RunSpecs",
 		Message: fmt.Sprintf("RunSpecs() accepts labels, and configuration of type types.SuiteConfig and/or types.ReporterConfig.\n You passed in: %v", value),

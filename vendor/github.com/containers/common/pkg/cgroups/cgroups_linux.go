@@ -8,9 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,7 +27,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sys/unix"
 )
 
@@ -503,7 +504,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 		return fs2.CreateCgroupPath(path, c.config)
 	}
 
-	names := maps.Keys(handlers)
+	names := slices.Collect(maps.Keys(handlers))
 
 	for _, c := range c.additionalControllers {
 		if !c.symlink {

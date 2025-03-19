@@ -101,6 +101,9 @@ func NewReference(path string, ref reference.NamedTagged) (types.ImageReference,
 
 // NewIndexReference returns a Docker archive reference for a path and a zero-based source manifest index.
 func NewIndexReference(path string, sourceIndex int) (types.ImageReference, error) {
+	if sourceIndex < 0 {
+		return nil, fmt.Errorf("invalid call to NewIndexReference with negative index %d", sourceIndex)
+	}
 	return newReference(path, nil, sourceIndex, nil, nil)
 }
 
