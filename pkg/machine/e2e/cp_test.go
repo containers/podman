@@ -43,13 +43,17 @@ var _ = Describe("podman machine cp", func() {
 			guestToHostDir  = "guest-foo-dir"
 		)
 
-		_, err := os.Create(filePath)
+		f, err := os.Create(filePath)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		err = os.MkdirAll(directoryPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = os.Create(fileInDirectoryPath)
+		f, err = os.Create(fileInDirectoryPath)
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Close()
 		Expect(err).ToNot(HaveOccurred())
 
 		name := randomString()
