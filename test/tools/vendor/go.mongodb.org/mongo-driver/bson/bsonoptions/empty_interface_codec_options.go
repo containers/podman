@@ -7,22 +7,33 @@
 package bsonoptions
 
 // EmptyInterfaceCodecOptions represents all possible options for interface{} encoding and decoding.
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 type EmptyInterfaceCodecOptions struct {
 	DecodeBinaryAsSlice *bool // Specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
 }
 
 // EmptyInterfaceCodec creates a new *EmptyInterfaceCodecOptions
+//
+// Deprecated: Use the bson.Encoder and bson.Decoder configuration methods to set the desired BSON marshal
+// and unmarshal behavior instead.
 func EmptyInterfaceCodec() *EmptyInterfaceCodecOptions {
 	return &EmptyInterfaceCodecOptions{}
 }
 
 // SetDecodeBinaryAsSlice specifies if Old and Generic type binarys should default to []slice instead of primitive.Binary. Defaults to false.
+//
+// Deprecated: Use [go.mongodb.org/mongo-driver/bson.Decoder.BinaryAsSlice] instead.
 func (e *EmptyInterfaceCodecOptions) SetDecodeBinaryAsSlice(b bool) *EmptyInterfaceCodecOptions {
 	e.DecodeBinaryAsSlice = &b
 	return e
 }
 
 // MergeEmptyInterfaceCodecOptions combines the given *EmptyInterfaceCodecOptions into a single *EmptyInterfaceCodecOptions in a last one wins fashion.
+//
+// Deprecated: Merging options structs will not be supported in Go Driver 2.0. Users should create a
+// single options struct instead.
 func MergeEmptyInterfaceCodecOptions(opts ...*EmptyInterfaceCodecOptions) *EmptyInterfaceCodecOptions {
 	e := EmptyInterfaceCodec()
 	for _, opt := range opts {

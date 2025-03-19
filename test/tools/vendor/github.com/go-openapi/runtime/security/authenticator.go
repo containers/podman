@@ -25,12 +25,13 @@ import (
 )
 
 const (
-	query  = "query"
-	header = "header"
+	query            = "query"
+	header           = "header"
+	accessTokenParam = "access_token"
 )
 
 // HttpAuthenticator is a function that authenticates a HTTP request
-func HttpAuthenticator(handler func(*http.Request) (bool, interface{}, error)) runtime.Authenticator {
+func HttpAuthenticator(handler func(*http.Request) (bool, interface{}, error)) runtime.Authenticator { //nolint:revive,stylecheck
 	return runtime.AuthenticatorFunc(func(params interface{}) (bool, interface{}, error) {
 		if request, ok := params.(*http.Request); ok {
 			return handler(request)
@@ -158,7 +159,7 @@ func APIKeyAuth(name, in string, authenticate TokenAuthentication) runtime.Authe
 	inl := strings.ToLower(in)
 	if inl != query && inl != header {
 		// panic because this is most likely a typo
-		panic(errors.New(500, "api key auth: in value needs to be either \"query\" or \"header\"."))
+		panic(errors.New(500, "api key auth: in value needs to be either \"query\" or \"header\""))
 	}
 
 	var getToken func(*http.Request) string
@@ -186,7 +187,7 @@ func APIKeyAuthCtx(name, in string, authenticate TokenAuthenticationCtx) runtime
 	inl := strings.ToLower(in)
 	if inl != query && inl != header {
 		// panic because this is most likely a typo
-		panic(errors.New(500, "api key auth: in value needs to be either \"query\" or \"header\"."))
+		panic(errors.New(500, "api key auth: in value needs to be either \"query\" or \"header\""))
 	}
 
 	var getToken func(*http.Request) string
@@ -226,12 +227,12 @@ func BearerAuth(name string, authenticate ScopedTokenAuthentication) runtime.Aut
 		}
 		if token == "" {
 			qs := r.Request.URL.Query()
-			token = qs.Get("access_token")
+			token = qs.Get(accessTokenParam)
 		}
 		//#nosec
 		ct, _, _ := runtime.ContentType(r.Request.Header)
 		if token == "" && (ct == "application/x-www-form-urlencoded" || ct == "multipart/form-data") {
-			token = r.Request.FormValue("access_token")
+			token = r.Request.FormValue(accessTokenParam)
 		}
 
 		if token == "" {
@@ -256,12 +257,12 @@ func BearerAuthCtx(name string, authenticate ScopedTokenAuthenticationCtx) runti
 		}
 		if token == "" {
 			qs := r.Request.URL.Query()
-			token = qs.Get("access_token")
+			token = qs.Get(accessTokenParam)
 		}
 		//#nosec
 		ct, _, _ := runtime.ContentType(r.Request.Header)
 		if token == "" && (ct == "application/x-www-form-urlencoded" || ct == "multipart/form-data") {
-			token = r.Request.FormValue("access_token")
+			token = r.Request.FormValue(accessTokenParam)
 		}
 
 		if token == "" {

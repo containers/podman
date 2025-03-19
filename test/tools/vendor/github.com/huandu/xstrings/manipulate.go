@@ -79,10 +79,12 @@ func Slice(str string, start, end int) string {
 // The return value is a slice of strings with head, match and tail.
 //
 // If str contains sep, for example "hello" and "l", Partition returns
-//     "he", "l", "lo"
+//
+//	"he", "l", "lo"
 //
 // If str doesn't contain sep, for example "hello" and "x", Partition returns
-//     "hello", "", ""
+//
+//	"hello", "", ""
 func Partition(str, sep string) (head, match, tail string) {
 	index := strings.Index(str, sep)
 
@@ -101,10 +103,12 @@ func Partition(str, sep string) (head, match, tail string) {
 // The return value is a slice of strings with head, match and tail.
 //
 // If str contains sep, for example "hello" and "l", LastPartition returns
-//     "hel", "l", "o"
+//
+//	"hel", "l", "o"
 //
 // If str doesn't contain sep, for example "hello" and "x", LastPartition returns
-//     "", "", "hello"
+//
+//	"", "", "hello"
 func LastPartition(str, sep string) (head, match, tail string) {
 	index := strings.LastIndex(str, sep)
 

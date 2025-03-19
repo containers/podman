@@ -101,9 +101,17 @@ type errorHelper struct {
 	// A collection of unexported helpers for error construction
 }
 
-func (h *errorHelper) sErr(err errors.Error) *Result {
+func (h *errorHelper) sErr(err errors.Error, recycle bool) *Result {
 	// Builds a Result from standard errors.Error
-	return &Result{Errors: []error{err}}
+	var result *Result
+	if recycle {
+		result = pools.poolOfResults.BorrowResult()
+	} else {
+		result = new(Result)
+	}
+	result.Errors = []error{err}
+
+	return result
 }
 
 func (h *errorHelper) addPointerError(res *Result, err error, ref string, fromPath string) *Result {
@@ -157,7 +165,7 @@ func (h *valueHelper) asInt64(val interface{}) int64 {
 	// Number conversion function for int64, without error checking
 	// (implements an implicit type upgrade).
 	v := reflect.ValueOf(val)
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return v.Int()
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -174,7 +182,7 @@ func (h *valueHelper) asUint64(val interface{}) uint64 {
 	// Number conversion function for uint64, without error checking
 	// (implements an implicit type upgrade).
 	v := reflect.ValueOf(val)
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return uint64(v.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -192,7 +200,7 @@ func (h *valueHelper) asFloat64(val interface{}) float64 {
 	// Number conversion function for float64, without error checking
 	// (implements an implicit type upgrade).
 	v := reflect.ValueOf(val)
-	switch v.Kind() {
+	switch v.Kind() { //nolint:exhaustive
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		return float64(v.Int())
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
@@ -225,7 +233,7 @@ func (h *paramHelper) safeExpandedParamsFor(path, method, operationID string, re
 		operation.Parameters = resolvedParams
 
 		for _, ppr := range s.expandedAnalyzer().SafeParamsFor(method, path,
-			func(p spec.Parameter, err error) bool {
+			func(_ spec.Parameter, err error) bool {
 				// since params have already been expanded, there are few causes for error
 				res.AddErrors(someParametersBrokenMsg(path, method, operationID))
 				// original error from analyzer
@@ -250,7 +258,7 @@ func (h *paramHelper) resolveParam(path, method, operationID string, param *spec
 
 	}
 	if err != nil { // Safeguard
-		// NOTE: we may enter enter here when the whole parameter is an unresolved $ref
+		// NOTE: we may enter here when the whole parameter is an unresolved $ref
 		refPath := strings.Join([]string{"\"" + path + "\"", method}, ".")
 		errorHelp.addPointerError(res, err, param.Ref.String(), refPath)
 		return nil, res
@@ -306,6 +314,7 @@ func (r *responseHelper) expandResponseRef(
 		errorHelp.addPointerError(res, err, response.Ref.String(), path)
 		return nil, res
 	}
+
 	return response, res
 }
 

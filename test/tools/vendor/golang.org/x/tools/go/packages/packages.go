@@ -141,6 +141,8 @@ const (
 	LoadAllSyntax = LoadSyntax | NeedDeps
 
 	// Deprecated: NeedExportsFile is a historical misspelling of NeedExportFile.
+	//
+	//go:fix inline
 	NeedExportsFile = NeedExportFile
 )
 
@@ -161,7 +163,7 @@ type Config struct {
 	// If the user provides a logger, debug logging is enabled.
 	// If the GOPACKAGESDEBUG environment variable is set to true,
 	// but the logger is nil, default to log.Printf.
-	Logf func(format string, args ...interface{})
+	Logf func(format string, args ...any)
 
 	// Dir is the directory in which to run the build system's query tool
 	// that provides information about the packages.
@@ -564,13 +566,13 @@ type ModuleError struct {
 }
 
 func init() {
-	packagesinternal.GetDepsErrors = func(p interface{}) []*packagesinternal.PackageError {
+	packagesinternal.GetDepsErrors = func(p any) []*packagesinternal.PackageError {
 		return p.(*Package).depsErrors
 	}
-	packagesinternal.SetModFile = func(config interface{}, value string) {
+	packagesinternal.SetModFile = func(config any, value string) {
 		config.(*Config).modFile = value
 	}
-	packagesinternal.SetModFlag = func(config interface{}, value string) {
+	packagesinternal.SetModFlag = func(config any, value string) {
 		config.(*Config).modFlag = value
 	}
 	packagesinternal.TypecheckCgo = int(typecheckCgo)
@@ -739,7 +741,7 @@ func newLoader(cfg *Config) *loader {
 		if debug {
 			ld.Config.Logf = log.Printf
 		} else {
-			ld.Config.Logf = func(format string, args ...interface{}) {}
+			ld.Config.Logf = func(format string, args ...any) {}
 		}
 	}
 	if ld.Config.Mode == 0 {
