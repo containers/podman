@@ -16,7 +16,7 @@ require (
 	github.com/containers/buildah v1.39.2
 	github.com/containers/common v0.62.2-0.20250311121556-b27979403716
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/gvisor-tap-vsock v0.8.4
+	github.com/containers/gvisor-tap-vsock v0.8.5
 	github.com/containers/image/v5 v5.34.2-0.20250306154130-12497efe55ac
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
@@ -222,7 +222,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
-	golang.org/x/mod v0.22.0 // indirect
+	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/oauth2 v0.26.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	golang.org/x/tools v0.29.0 // indirect
