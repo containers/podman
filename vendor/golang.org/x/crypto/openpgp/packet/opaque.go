@@ -7,6 +7,7 @@ package packet
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 
 	"golang.org/x/crypto/openpgp/errors"
 )
@@ -25,7 +26,7 @@ type OpaquePacket struct {
 }
 
 func (op *OpaquePacket) parse(r io.Reader) (err error) {
-	op.Contents, err = io.ReadAll(r)
+	op.Contents, err = ioutil.ReadAll(r)
 	return
 }
 

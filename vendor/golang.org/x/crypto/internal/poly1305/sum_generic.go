@@ -7,10 +7,7 @@
 
 package poly1305
 
-import (
-	"encoding/binary"
-	"math/bits"
-)
+import "encoding/binary"
 
 // Poly1305 [RFC 7539] is a relatively simple algorithm: the authentication tag
 // for a 64 bytes message is approximately
@@ -117,13 +114,13 @@ type uint128 struct {
 }
 
 func mul64(a, b uint64) uint128 {
-	hi, lo := bits.Mul64(a, b)
+	hi, lo := bitsMul64(a, b)
 	return uint128{lo, hi}
 }
 
 func add128(a, b uint128) uint128 {
-	lo, c := bits.Add64(a.lo, b.lo, 0)
-	hi, c := bits.Add64(a.hi, b.hi, c)
+	lo, c := bitsAdd64(a.lo, b.lo, 0)
+	hi, c := bitsAdd64(a.hi, b.hi, c)
 	if c != 0 {
 		panic("poly1305: unexpected overflow")
 	}
@@ -158,8 +155,8 @@ func updateGeneric(state *macState, msg []byte) {
 		// hide leading zeroes. For full chunks, that's 1 << 128, so we can just
 		// add 1 to the most significant (2¹²⁸) limb, h2.
 		if len(msg) >= TagSize {
-			h0, c = bits.Add64(h0, binary.LittleEndian.Uint64(msg[0:8]), 0)
-			h1, c = bits.Add64(h1, binary.LittleEndian.Uint64(msg[8:16]), c)
+			h0, c = bitsAdd64(h0, binary.LittleEndian.Uint64(msg[0:8]), 0)
+			h1, c = bitsAdd64(h1, binary.LittleEndian.Uint64(msg[8:16]), c)
 			h2 += c + 1
 
 			msg = msg[TagSize:]
@@ -168,8 +165,8 @@ func updateGeneric(state *macState, msg []byte) {
 			copy(buf[:], msg)
 			buf[len(msg)] = 1
 
-			h0, c = bits.Add64(h0, binary.LittleEndian.Uint64(buf[0:8]), 0)
-			h1, c = bits.Add64(h1, binary.LittleEndian.Uint64(buf[8:16]), c)
+			h0, c = bitsAdd64(h0, binary.LittleEndian.Uint64(buf[0:8]), 0)
+			h1, c = bitsAdd64(h1, binary.LittleEndian.Uint64(buf[8:16]), c)
 			h2 += c
 
 			msg = nil
@@ -222,9 +219,9 @@ func updateGeneric(state *macState, msg []byte) {
 		m3 := h2r1
 
 		t0 := m0.lo
-		t1, c := bits.Add64(m1.lo, m0.hi, 0)
-		t2, c := bits.Add64(m2.lo, m1.hi, c)
-		t3, _ := bits.Add64(m3.lo, m2.hi, c)
+		t1, c := bitsAdd64(m1.lo, m0.hi, 0)
+		t2, c := bitsAdd64(m2.lo, m1.hi, c)
+		t3, _ := bitsAdd64(m3.lo, m2.hi, c)
 
 		// Now we have the result as 4 64-bit limbs, and we need to reduce it
 		// modulo 2¹³⁰ - 5. The special shape of this Crandall prime lets us do
@@ -246,14 +243,14 @@ func updateGeneric(state *macState, msg []byte) {
 
 		// To add c * 5 to h, we first add cc = c * 4, and then add (cc >> 2) = c.
 
-		h0, c = bits.Add64(h0, cc.lo, 0)
-		h1, c = bits.Add64(h1, cc.hi, c)
+		h0, c = bitsAdd64(h0, cc.lo, 0)
+		h1, c = bitsAdd64(h1, cc.hi, c)
 		h2 += c
 
 		cc = shiftRightBy2(cc)
 
-		h0, c = bits.Add64(h0, cc.lo, 0)
-		h1, c = bits.Add64(h1, cc.hi, c)
+		h0, c = bitsAdd64(h0, cc.lo, 0)
+		h1, c = bitsAdd64(h1, cc.hi, c)
 		h2 += c
 
 		// h2 is at most 3 + 1 + 1 = 5, making the whole of h at most
@@ -290,9 +287,9 @@ func finalize(out *[TagSize]byte, h *[3]uint64, s *[2]uint64) {
 	// in constant time, we compute t = h - (2¹³⁰ - 5), and select h as the
 	// result if the subtraction underflows, and t otherwise.
 
-	hMinusP0, b := bits.Sub64(h0, p0, 0)
-	hMinusP1, b := bits.Sub64(h1, p1, b)
-	_, b = bits.Sub64(h2, p2, b)
+	hMinusP0, b := bitsSub64(h0, p0, 0)
+	hMinusP1, b := bitsSub64(h1, p1, b)
+	_, b = bitsSub64(h2, p2, b)
 
 	// h = h if h < p else h - p
 	h0 = select64(b, h0, hMinusP0)
@@ -304,8 +301,8 @@ func finalize(out *[TagSize]byte, h *[3]uint64, s *[2]uint64) {
 	//
 	// by just doing a wide addition with the 128 low bits of h and discarding
 	// the overflow.
-	h0, c := bits.Add64(h0, s[0], 0)
-	h1, _ = bits.Add64(h1, s[1], c)
+	h0, c := bitsAdd64(h0, s[0], 0)
+	h1, _ = bitsAdd64(h1, s[1], c)
 
 	binary.LittleEndian.PutUint64(out[0:8], h0)
 	binary.LittleEndian.PutUint64(out[8:16], h1)
