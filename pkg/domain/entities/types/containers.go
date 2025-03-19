@@ -51,12 +51,16 @@ type ContainerUpdateOptions struct {
 	// - DevicesLimits to Limit device
 	// - RestartPolicy to change restart policy
 	// - RestartRetries to change restart retries
+	// - Env to change the environment variables.
+	// - UntsetEnv to unset the environment variables.
 	Specgen                         *specgen.SpecGenerator
 	Resources                       *specs.LinuxResources
 	DevicesLimits                   *define.UpdateContainerDevicesLimits
 	ChangedHealthCheckConfiguration *define.UpdateHealthCheckConfig
 	RestartPolicy                   *string
 	RestartRetries                  *uint
+	Env                             []string
+	UnsetEnv                        []string
 }
 
 func (u *ContainerUpdateOptions) ProcessSpecgen() {

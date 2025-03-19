@@ -79,6 +79,8 @@ type UpdateEntities struct {
 	specs.LinuxResources
 	define.UpdateHealthCheckConfig
 	define.UpdateContainerDevicesLimits
+	Env      []string
+	UnsetEnv []string
 }
 
 type Info struct {

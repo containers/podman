@@ -1803,12 +1803,12 @@ func (ic *ContainerEngine) ContainerUpdate(ctx context.Context, updateOptions *e
 	}
 	container := containers[0].Container
 
-	resourceLimits, err := specgenutil.UpdateMajorAndMinorNumbers(updateOptions.Resources, updateOptions.DevicesLimits)
+	updateOptions.Resources, err = specgenutil.UpdateMajorAndMinorNumbers(updateOptions.Resources, updateOptions.DevicesLimits)
 	if err != nil {
 		return "", err
 	}
 
-	if err = container.Update(resourceLimits, updateOptions.RestartPolicy, updateOptions.RestartRetries, updateOptions.ChangedHealthCheckConfiguration); err != nil {
+	if err = container.Update(updateOptions); err != nil {
 		return "", err
 	}
 	return containers[0].ID(), nil

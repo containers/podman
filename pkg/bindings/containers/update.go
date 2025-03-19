@@ -30,6 +30,8 @@ func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string,
 		LinuxResources:               *options.Resources,
 		UpdateHealthCheckConfig:      *options.ChangedHealthCheckConfiguration,
 		UpdateContainerDevicesLimits: *options.DevicesLimits,
+		Env:                          options.Env,
+		UnsetEnv:                     options.UnsetEnv,
 	}
 	requestData, err := jsoniter.MarshalToString(updateEntities)
 	if err != nil {

@@ -114,21 +114,6 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		)
 		_ = cmd.RegisterFlagCompletionFunc(envMergeFlagName, completion.AutocompleteNone)
 
-		envFlagName := "env"
-		createFlags.StringArrayP(
-			envFlagName, "e", Env(),
-			"Set environment variables in container",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
-
-		unsetenvFlagName := "unsetenv"
-		createFlags.StringArrayVar(
-			&cf.UnsetEnv,
-			unsetenvFlagName, []string{},
-			"Unset environment default variables in container",
-		)
-		_ = cmd.RegisterFlagCompletionFunc(unsetenvFlagName, completion.AutocompleteNone)
-
 		createFlags.BoolVar(
 			&cf.UnsetEnvAll,
 			"unsetenv-all", false,
@@ -554,6 +539,21 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			"no-healthcheck", false,
 			"Disable healthchecks on container",
 		)
+
+		envFlagName := "env"
+		createFlags.StringArrayP(
+			envFlagName, "e", Env(),
+			"Set environment variables in container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(envFlagName, completion.AutocompleteNone)
+
+		unsetenvFlagName := "unsetenv"
+		createFlags.StringArrayVar(
+			&cf.UnsetEnv,
+			unsetenvFlagName, []string{},
+			"Unset environment default variables in container",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(unsetenvFlagName, completion.AutocompleteNone)
 
 		healthCmdFlagName := "health-cmd"
 		createFlags.StringVar(

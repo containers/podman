@@ -782,7 +782,14 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		restartRetries = &localRetries
 	}
 
-	if err := ctr.Update(resources, restartPolicy, restartRetries, &define.UpdateHealthCheckConfig{}); err != nil {
+	updateOptions := &entities.ContainerUpdateOptions{
+		Resources:                       resources,
+		ChangedHealthCheckConfiguration: &define.UpdateHealthCheckConfig{},
+		RestartPolicy:                   restartPolicy,
+		RestartRetries:                  restartRetries,
+	}
+
+	if err := ctr.Update(updateOptions); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("updating container: %w", err))
 		return
 	}
