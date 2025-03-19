@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -703,15 +704,11 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		pspec.Cwd = options.Cwd
 	}
 
-	var addGroups []string
-	var sgids []uint32
-
 	// if the user is empty, we should inherit the user that the container is currently running with
 	user := options.User
 	if user == "" {
 		logrus.Debugf("Set user to %s", c.config.User)
 		user = c.config.User
-		addGroups = c.config.Groups
 	}
 
 	overrides := c.getUserOverrides()
@@ -720,29 +717,32 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		return nil, err
 	}
 
-	if len(addGroups) > 0 {
-		sgids, err = lookup.GetContainerGroups(addGroups, c.state.Mountpoint, overrides)
+	// The additional groups must always contain the user's primary group.
+	sgids := []uint32{uint32(execUser.Gid)}
+
+	for _, sgid := range execUser.Sgids {
+		sgids = append(sgids, uint32(sgid))
+	}
+
+	// Always add the groups added through --group-add, no matter the exec UID:GID.
+	if len(c.config.Groups) > 0 {
+		additionalSgids, err := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, overrides)
 		if err != nil {
 			return nil, fmt.Errorf("looking up supplemental groups for container %s exec session %s: %w", c.ID(), sessionID, err)
 		}
+		sgids = append(sgids, additionalSgids...)
 	}
 
-	// If user was set, look it up in the container to get a UID to use on
-	// the host
-	if user != "" || len(sgids) > 0 {
-		if user != "" {
-			for _, sgid := range execUser.Sgids {
-				sgids = append(sgids, uint32(sgid))
-			}
-		}
-		processUser := spec.User{
-			UID:            uint32(execUser.Uid),
-			GID:            uint32(execUser.Gid),
-			AdditionalGids: sgids,
-		}
+	// Avoid duplicates
+	slices.Sort(sgids)
+	sgids = slices.Compact(sgids)
 
-		pspec.User = processUser
+	processUser := spec.User{
+		UID:            uint32(execUser.Uid),
+		GID:            uint32(execUser.Gid),
+		AdditionalGids: sgids,
 	}
+	pspec.User = processUser
 
 	if c.config.Umask != "" {
 		umask, err := c.umask()

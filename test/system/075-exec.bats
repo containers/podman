@@ -253,4 +253,60 @@ load helpers
     run_podman rm -f -t0 $cid
 }
 
+# bats test_tags=ci:parallel
+@test "podman exec - additional groups" {
+    run_podman run -d $IMAGE top
+    cid="$output"
+
+    run_podman exec $cid id -g nobody
+    nobody_id="$output"
+
+    run_podman exec $cid grep -h ^Groups: /proc/1/status /proc/self/status
+    assert "${lines[0]}" = "${lines[1]}" "must have the same additional groups"
+
+    run_podman exec --user root $cid grep -h ^Groups: /proc/1/status /proc/self/status
+    assert "${lines[0]}" = "${lines[1]}" "must have the same additional groups"
+
+    run_podman exec --user root:root $cid id -G
+    assert "${output}" = "0" "must have only 0 gid"
+
+    run_podman exec --user nobody $cid id -G
+    assert "${output}" = "${nobody_id}" "must have only nobody gid"
+
+    run_podman exec --user nobody:nobody $cid id -G
+    assert "${output}" = "${nobody_id}" "must have only nobody gid"
+
+    run_podman rm -f -t0 $cid
+
+    # Now test with --group-add
+
+    run_podman run --group-add 1,2,3,4,5,6,7,8,9,10 -d $IMAGE top
+    cid="$output"
+
+    run_podman exec $cid grep -h ^Groups: /proc/1/status /proc/self/status
+    assert "${lines[0]}" = "${lines[1]}" "must have the same additional groups"
+
+    run_podman exec --user 0 $cid grep -h ^Groups: /proc/1/status /proc/self/status
+    assert "${lines[0]}" = "${lines[1]}" "must have the same additional groups"
+
+    run_podman exec --user root $cid grep -h ^Groups: /proc/1/status /proc/self/status
+    assert "${lines[0]}" = "${lines[1]}" "must have the same additional groups"
+
+    run_podman exec --user root:root $cid id -G
+    assert "$output" = "0 1 2 3 4 5 6 7 8 9 10" "must have only the explicit groups added and 0"
+
+    run_podman exec --user 0:0 $cid id -G
+    assert "$output" = "0 1 2 3 4 5 6 7 8 9 10" "must have only the explicit groups added and 0"
+
+    run_podman exec --user nobody $cid id -G
+    assert "$output" = "$nobody_id 1 2 3 4 5 6 7 8 9 10" "must have only the explicit groups added and nobody"
+
+    run_podman exec --user nobody:nobody $cid id -G
+    assert "$output" = "$nobody_id 1 2 3 4 5 6 7 8 9 10" "must have only the explicit groups added and nobody"
+
+    run_podman exec --user root:nobody $cid id -G
+    assert "$output" = "$nobody_id 1 2 3 4 5 6 7 8 9 10" "must have only the explicit groups added and 0"
+
+    run_podman rm -f -t0 $cid
+}
 # vim: filetype=sh
