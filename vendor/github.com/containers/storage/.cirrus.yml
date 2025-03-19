@@ -170,13 +170,13 @@ vendor_task:
 cross_task:
     alias: cross
     container:
-        image: golang:1.22
+        image: golang:1.23
     build_script: make cross
 
 gofix_task:
     alias: gofix
     container:
-        image: golang:1.22
+        image: golang:1.23
     build_script: go fix ./...
     test_script: git diff --exit-code
 

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v0.5.1
+
+- [Improvement]: revert `go.mod` to Go 1.20 to [resolve an issue around Go
+  module version upgrades](https://github.com/mdlayher/socket/issues/13).
+
 ## v0.5.0
 
 **This is the first release of package socket that only supports Go 1.21+.

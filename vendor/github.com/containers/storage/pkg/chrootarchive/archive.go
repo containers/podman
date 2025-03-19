@@ -69,9 +69,6 @@ func untarHandler(tarArchive io.Reader, dest string, options *archive.TarOptions
 		options = &archive.TarOptions{}
 		options.InUserNS = unshare.IsRootless()
 	}
-	if options.ExcludePatterns == nil {
-		options.ExcludePatterns = []string{}
-	}
 
 	idMappings := idtools.NewIDMappingsFromMaps(options.UIDMaps, options.GIDMaps)
 	rootIDs := idMappings.RootPair()

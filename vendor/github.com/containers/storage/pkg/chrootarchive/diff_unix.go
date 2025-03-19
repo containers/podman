@@ -98,9 +98,6 @@ func applyLayerHandler(dest string, layer io.Reader, options *archive.TarOptions
 			options.InUserNS = true
 		}
 	}
-	if options.ExcludePatterns == nil {
-		options.ExcludePatterns = []string{}
-	}
 
 	data, err := json.Marshal(options)
 	if err != nil {
