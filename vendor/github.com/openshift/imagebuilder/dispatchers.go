@@ -41,18 +41,11 @@ var builtinArgDefaults = map[string]string{
 	"TARGETPLATFORM": localspec.OS + "/" + localspec.Architecture,
 	"TARGETOS":       localspec.OS,
 	"TARGETARCH":     localspec.Architecture,
-	"TARGETVARIANT":  localspec.Variant,
+	"TARGETVARIANT":  "",
 	"BUILDPLATFORM":  localspec.OS + "/" + localspec.Architecture,
 	"BUILDOS":        localspec.OS,
 	"BUILDARCH":      localspec.Architecture,
-	"BUILDVARIANT":   localspec.Variant,
-}
-
-func init() {
-	if localspec.Variant != "" {
-		builtinArgDefaults["TARGETPLATFORM"] = builtinArgDefaults["TARGETPLATFORM"] + "/" + localspec.Variant
-		builtinArgDefaults["BUILDPLATFORM"] = builtinArgDefaults["BUILDPLATFORM"] + "/" + localspec.Variant
-	}
+	"BUILDVARIANT":   "",
 }
 
 // ENV foo bar

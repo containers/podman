@@ -14,7 +14,6 @@ import (
 	"github.com/containerd/platforms"
 	"github.com/containers/common/libimage/platform"
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
@@ -1003,7 +1002,7 @@ func (i *Image) Manifest(ctx context.Context) (rawManifest []byte, mimeType stri
 	if err != nil {
 		return nil, "", err
 	}
-	return image.UnparsedInstance(src, nil).Manifest(ctx)
+	return src.GetManifest(ctx, nil)
 }
 
 // getImageID creates an image object and uses the hex value of the config
