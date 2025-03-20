@@ -182,13 +182,12 @@ default_sysctls = [
 #
 #log_tag = ""
 
-# Default way to to create a Network namespace for the container
-# Options are:
-# `private` Create private Network Namespace for the container.
-# `host`    Share host Network Namespace with the container.
-# `none`    Containers do not use the network
+# Default way to create a NET namespace for the container.
+# The option is mapped to the **--network** argument for the podman commands, it accepts the same values as that option.
+# For example it can be set to `bridge`, `host`, `none`, `pasta` and more, see the podman-create(1)
+# manual for all available options.
 #
-#netns = "private"
+#netns = ""
 
 # Create /etc/hosts for the container.  By default, container engine manage
 # /etc/hosts, automatically adding  the container's  own  IP  address.
@@ -292,14 +291,17 @@ default_sysctls = [
 #	"/usr/lib/netavark",
 #]
 
-# The network name of the default network to attach pods to.
+# The name of the default network as seen in `podman network ls`. This option only effects the network assignment when
+# the bridge network mode is selected, i.e. `--network bridge`. It is the default for rootful containers but not as
+# rootless. To change the default network mode use the **netns** option under the `[containers]` table.
+#
+# Note: This should not be changed while you have any containers using this network.
 #
 #default_network = "podman"
 
 # The default subnet for the default network given in default_network.
-# If a network with that name does not exist, a new network using that name and
-# this subnet will be created.
-# Must be a valid IPv4 CIDR prefix.
+#
+# Note: This should not be changed if any containers are currently running on the default network.
 #
 #default_subnet = "10.88.0.0/16"
 

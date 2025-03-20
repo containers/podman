@@ -13,15 +13,14 @@ import (
 	"strings"
 	"sync"
 
-	runcconfig "github.com/opencontainers/runc/libcontainer/configs"
-	"github.com/opencontainers/runc/libcontainer/devices"
-
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/systemd"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/rootless"
 	pmount "github.com/containers/storage/pkg/mount"
+	runcconfig "github.com/opencontainers/cgroups"
+	devices "github.com/opencontainers/cgroups/devices/config"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"

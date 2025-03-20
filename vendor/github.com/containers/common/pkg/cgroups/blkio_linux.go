@@ -11,10 +11,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/fs"
+	"github.com/opencontainers/cgroups/fs2"
 )
 
 type linuxBlkioHandler struct {
@@ -26,7 +25,7 @@ func getBlkioHandler() *linuxBlkioHandler {
 }
 
 // Apply set the specified constraints
-func (c *linuxBlkioHandler) Apply(ctr *CgroupControl, res *configs.Resources) error {
+func (c *linuxBlkioHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
 	if ctr.cgroup2 {
 		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
 		if err != nil {

@@ -8,10 +8,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/fs"
+	"github.com/opencontainers/cgroups/fs2"
 )
 
 type linuxCPUHandler struct {
@@ -23,7 +22,7 @@ func getCPUHandler() *linuxCPUHandler {
 }
 
 // Apply set the specified constraints
-func (c *linuxCPUHandler) Apply(ctr *CgroupControl, res *configs.Resources) error {
+func (c *linuxCPUHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
 	if ctr.cgroup2 {
 		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
 		if err != nil {

@@ -142,7 +142,7 @@ OUTER_LOOP:
 			}
 
 			if !endTime.IsZero() {
-				r.suiteConfig.Timeout = endTime.Sub(time.Now())
+				r.suiteConfig.Timeout = time.Until(endTime)
 				if r.suiteConfig.Timeout <= 0 {
 					suites[suiteIdx].State = internal.TestSuiteStateFailedDueToTimeout
 					opc.StopAndDrain()

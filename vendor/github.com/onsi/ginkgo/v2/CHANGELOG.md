@@ -1,3 +1,41 @@
+## 2.23.1
+
+## 🚨 For users on MacOS 🚨
+
+A long-standing Ginkgo performance issue on MacOS seems to be due to mac's antimalware XProtect.  You can follow the instructions [here](https://onsi.github.io/ginkgo/#if-you-are-running-on-macos) to disable it in your terminal.  Doing so sped up Ginkgo's own test suite from 1m8s to 47s.
+
+### Fixes
+
+Ginkgo's CLI is now a bit clearer if you pass flags in incorrectly:
+
+- make it clearer that you need to pass a filename to the various profile flags, not an absolute directory [a0e52ff]
+- emit an error and exit if the ginkgo invocation includes flags after positional arguments [b799d8d]
+
+This might cause existing CI builds to fail.  If so then it's likely that your CI build was misconfigured and should be corrected.  Open an issue if you need help.
+
+## 2.23.0
+
+Ginkgo 2.23.0 adds a handful of methods to `GinkgoT()` to make it compatible with the `testing.TB` interface in Go 1.24.  `GinkgoT().Context()`, in particular, is a useful shorthand for generating a new context that will clean itself up in a `DeferCleanup()`.  This has subtle behavior differences from the golang implementation but should make sense in a Ginkgo... um... context.
+
+### Features
+- bump to go 1.24.0 - support new testing.TB methods and add a test to cover testing.TB regressions [37a511b]
+
+### Fixes
+- fix edge case where build -o is pointing at an explicit file, not a directory [7556a86]
+- Fix binary paths when precompiling multiple suites. [4df06c6]
+
+### Maintenance
+- Fix: Correct Markdown list rendering in MIGRATING_TO_V2.md [cbcf39a]
+- docs: fix test workflow badge (#1512) [9b261ff]
+- Bump golang.org/x/net in /integration/_fixtures/version_mismatch_fixture (#1516) [00f19c8]
+- Bump golang.org/x/tools from 0.28.0 to 0.30.0 (#1515) [e98a4df]
+- Bump activesupport from 6.0.6.1 to 6.1.7.5 in /docs (#1504) [60cc4e2]
+- Bump github-pages from 231 to 232 in /docs (#1447) [fea6f2d]
+- Bump rexml from 3.2.8 to 3.3.9 in /docs (#1497) [31d7813]
+- Bump webrick from 1.8.1 to 1.9.1 in /docs (#1501) [fc3bbd6]
+- Code linting (#1500) [aee0d56]
+- change interface{} to any (#1502) [809a710]
+
 ## 2.22.2
 
 ### Maintenance
@@ -630,7 +668,7 @@ Ginkgo also uses this progress reporting infrastructure under the hood when hand
 ### Features
 - `BeforeSuite`, `AfterSuite`, `SynchronizedBeforeSuite`, `SynchronizedAfterSuite`, and `ReportAfterSuite` now support (the relevant subset of) decorators.  These can be passed in _after_ the callback functions that are usually passed into these nodes.
 
-  As a result the **signature of these methods has changed** and now includes a trailing `args ...interface{}`.  For most users simply using the DSL, this change is transparent.  However if you were assigning one of these functions to a custom variable (or passing it around) then your code may need to change to reflect the new signature.
+  As a result the **signature of these methods has changed** and now includes a trailing `args ...any`.  For most users simply using the DSL, this change is transparent.  However if you were assigning one of these functions to a custom variable (or passing it around) then your code may need to change to reflect the new signature.
 
 ### Maintenance
 - Modernize the invocation of Ginkgo in github actions [0ffde58]

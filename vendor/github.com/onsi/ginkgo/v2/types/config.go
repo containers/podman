@@ -257,8 +257,12 @@ var FlagSections = GinkgoFlagSections{
 	{Key: "filter", Style: "{{cyan}}", Heading: "Filtering Tests"},
 	{Key: "failure", Style: "{{red}}", Heading: "Failure Handling"},
 	{Key: "output", Style: "{{magenta}}", Heading: "Controlling Output Formatting"},
-	{Key: "code-and-coverage-analysis", Style: "{{orange}}", Heading: "Code and Coverage Analysis"},
-	{Key: "performance-analysis", Style: "{{coral}}", Heading: "Performance Analysis"},
+	{Key: "code-and-coverage-analysis", Style: "{{orange}}", Heading: "Code and Coverage Analysis",
+		Description: "When generating a cover files, please pass a filename {{bold}}not{{/}} a path.  To specify a different directory use {{magenta}}--output-dir{{/}}.",
+	},
+	{Key: "performance-analysis", Style: "{{coral}}", Heading: "Performance Analysis",
+		Description: "When generating profile files, please pass filenames {{bold}}not{{/}} a path.  Ginkgo will generate a profile file with the given name in the package's directory.  To specify a different directory use {{magenta}}--output-dir{{/}}.",
+	},
 	{Key: "debug", Style: "{{blue}}", Heading: "Debugging Tests",
 		Description: "In addition to these flags, Ginkgo supports a few debugging environment variables.  To change the parallel server protocol set {{blue}}GINKGO_PARALLEL_PROTOCOL{{/}} to {{bold}}HTTP{{/}}.  To avoid pruning callstacks set {{blue}}GINKGO_PRUNE_STACK{{/}} to {{bold}}FALSE{{/}}."},
 	{Key: "watch", Style: "{{light-yellow}}", Heading: "Controlling Ginkgo Watch"},
@@ -365,7 +369,7 @@ var ReporterConfigFlags = GinkgoFlags{
 func BuildTestSuiteFlagSet(suiteConfig *SuiteConfig, reporterConfig *ReporterConfig) (GinkgoFlagSet, error) {
 	flags := SuiteConfigFlags.CopyAppend(ParallelConfigFlags...).CopyAppend(ReporterConfigFlags...)
 	flags = flags.WithPrefix("ginkgo")
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S": suiteConfig,
 		"R": reporterConfig,
 		"D": &deprecatedConfig{},
@@ -572,7 +576,7 @@ var GoBuildFlags = GinkgoFlags{
 // GoRunFlags provides flags for the Ginkgo CLI  run, and watch commands that capture go's run-time flags.  These are passed to the compiled test binary by the ginkgo CLI
 var GoRunFlags = GinkgoFlags{
 	{KeyPath: "Go.CoverProfile", Name: "coverprofile", UsageArgument: "file", SectionKey: "code-and-coverage-analysis",
-		Usage: `Write a coverage profile to the file after all tests have passed. Sets -cover.`},
+		Usage: `Write a coverage profile to the file after all tests have passed. Sets -cover.  Must be passed a filename, not a path.  Use output-dir to control the location of the output.`},
 	{KeyPath: "Go.BlockProfile", Name: "blockprofile", UsageArgument: "file", SectionKey: "performance-analysis",
 		Usage: `Write a goroutine blocking profile to the specified file when all tests are complete. Preserves test binary.`},
 	{KeyPath: "Go.BlockProfileRate", Name: "blockprofilerate", UsageArgument: "rate", SectionKey: "performance-analysis",
@@ -598,6 +602,22 @@ func VetAndInitializeCLIAndGoConfig(cliConfig CLIConfig, goFlagsConfig GoFlagsCo
 
 	if cliConfig.Repeat > 0 && cliConfig.UntilItFails {
 		errors = append(errors, GinkgoErrors.BothRepeatAndUntilItFails())
+	}
+
+	if strings.ContainsRune(goFlagsConfig.CoverProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--coverprofile", goFlagsConfig.CoverProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.CPUProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--cpuprofile", goFlagsConfig.CPUProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.MemProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--memprofile", goFlagsConfig.MemProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.BlockProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--blockprofile", goFlagsConfig.BlockProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.MutexProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--mutexprofile", goFlagsConfig.MutexProfile))
 	}
 
 	//initialize the output directory
@@ -646,7 +666,7 @@ func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, packageToBuild strin
 	args := []string{"test", "-c", packageToBuild}
 	goArgs, err := GenerateFlagArgs(
 		GoBuildFlags,
-		map[string]interface{}{
+		map[string]any{
 			"Go": &goFlagsConfig,
 		},
 	)
@@ -665,7 +685,7 @@ func GenerateGinkgoTestRunArgs(suiteConfig SuiteConfig, reporterConfig ReporterC
 	flags = flags.CopyAppend(ParallelConfigFlags.WithPrefix("ginkgo")...)
 	flags = flags.CopyAppend(ReporterConfigFlags.WithPrefix("ginkgo")...)
 	flags = flags.CopyAppend(GoRunFlags.WithPrefix("test")...)
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  &suiteConfig,
 		"R":  &reporterConfig,
 		"Go": &goFlagsConfig,
@@ -677,7 +697,7 @@ func GenerateGinkgoTestRunArgs(suiteConfig SuiteConfig, reporterConfig ReporterC
 // GenerateGoTestRunArgs is used by the Ginkgo CLI to generate command line arguments to pass to the compiled non-Ginkgo test binary
 func GenerateGoTestRunArgs(goFlagsConfig GoFlagsConfig) ([]string, error) {
 	flags := GoRunFlags.WithPrefix("test")
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"Go": &goFlagsConfig,
 	}
 
@@ -699,7 +719,7 @@ func BuildRunCommandFlagSet(suiteConfig *SuiteConfig, reporterConfig *ReporterCo
 	flags = flags.CopyAppend(GoBuildFlags...)
 	flags = flags.CopyAppend(GoRunFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  suiteConfig,
 		"R":  reporterConfig,
 		"C":  cliConfig,
@@ -720,7 +740,7 @@ func BuildWatchCommandFlagSet(suiteConfig *SuiteConfig, reporterConfig *Reporter
 	flags = flags.CopyAppend(GoBuildFlags...)
 	flags = flags.CopyAppend(GoRunFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  suiteConfig,
 		"R":  reporterConfig,
 		"C":  cliConfig,
@@ -736,7 +756,7 @@ func BuildBuildCommandFlagSet(cliConfig *CLIConfig, goFlagsConfig *GoFlagsConfig
 	flags := GinkgoCLISharedFlags
 	flags = flags.CopyAppend(GoBuildFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"C":  cliConfig,
 		"Go": goFlagsConfig,
 		"D":  &deprecatedConfig{},
@@ -760,7 +780,7 @@ func BuildBuildCommandFlagSet(cliConfig *CLIConfig, goFlagsConfig *GoFlagsConfig
 func BuildLabelsCommandFlagSet(cliConfig *CLIConfig) (GinkgoFlagSet, error) {
 	flags := GinkgoCLISharedFlags.SubsetWithNames("r", "skip-package")
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"C": cliConfig,
 	}
 

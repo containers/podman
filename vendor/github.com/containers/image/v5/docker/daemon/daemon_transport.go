@@ -87,10 +87,13 @@ func ParseReference(refString string) (types.ImageReference, error) {
 
 // NewReference returns a docker-daemon reference for either the supplied image ID (config digest) or the supplied reference (which must satisfy !reference.IsNameOnly)
 func NewReference(id digest.Digest, ref reference.Named) (types.ImageReference, error) {
-	if id != "" && ref != nil {
+	switch {
+	case id != "" && ref != nil:
 		return nil, errors.New("docker-daemon: reference must not have an image ID and a reference string specified at the same time")
-	}
-	if ref != nil {
+	case id == "" && ref == nil:
+		return nil, errors.New("docker-daemon: reference must have at least one of an image ID and a reference string")
+
+	case ref != nil:
 		if reference.IsNameOnly(ref) {
 			return nil, fmt.Errorf("docker-daemon: reference %s has neither a tag nor a digest", reference.FamiliarString(ref))
 		}

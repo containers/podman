@@ -15,7 +15,7 @@ import (
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/storage/pkg/system"
 	"github.com/docker/docker/api/types/container"
-	runccgroups "github.com/opencontainers/runc/libcontainer/cgroups"
+	runccgroups "github.com/opencontainers/cgroups"
 	"github.com/sirupsen/logrus"
 )
 
