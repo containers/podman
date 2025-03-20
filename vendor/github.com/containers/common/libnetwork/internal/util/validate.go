@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
+	"unicode"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
@@ -156,6 +158,26 @@ func validatePerNetworkOpts(network *types.Network, netOpts *types.PerNetworkOpt
 			}
 			return fmt.Errorf("requested static ip %s not in any subnet on network %s", ip.String(), network.Name)
 		}
+	}
+	return nil
+}
+
+// ValidateInterfaceName validates the interface name based on the following rules:
+// 1. The name must be less than MaxInterfaceNameLength characters
+// 2. The name must not be "." or ".."
+// 3. The name must not contain / or : or any whitespace characters
+// ref to https://github.com/torvalds/linux/blob/81e4f8d68c66da301bb881862735bd74c6241a19/include/uapi/linux/if.h#L33C18-L33C20
+func ValidateInterfaceName(ifName string) error {
+	if len(ifName) > types.MaxInterfaceNameLength {
+		return fmt.Errorf("interface name is too long: interface names must be %d characters or less: %w", types.MaxInterfaceNameLength, types.ErrInvalidArg)
+	}
+	if ifName == "." || ifName == ".." {
+		return fmt.Errorf("interface name is . or ..: %w", types.ErrInvalidArg)
+	}
+	if strings.ContainsFunc(ifName, func(r rune) bool {
+		return r == '/' || r == ':' || unicode.IsSpace(r)
+	}) {
+		return fmt.Errorf("interface name contains / or : or whitespace characters: %w", types.ErrInvalidArg)
 	}
 	return nil
 }

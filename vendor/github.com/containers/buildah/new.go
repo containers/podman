@@ -195,7 +195,8 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			return nil, fmt.Errorf("instantiating image for %q: %w", transports.ImageName(ref), err)
 		}
 		defer srcSrc.Close()
-		manifestBytes, manifestType, err := srcSrc.GetManifest(ctx, nil)
+		unparsedTop := image.UnparsedInstance(srcSrc, nil)
+		manifestBytes, manifestType, err := unparsedTop.Manifest(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("loading image manifest for %q: %w", transports.ImageName(ref), err)
 		}
@@ -203,6 +204,7 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 			imageDigest = manifestDigest.String()
 		}
 		var instanceDigest *digest.Digest
+		unparsedInstance := unparsedTop // for instanceDigest
 		if manifest.MIMETypeIsMultiImage(manifestType) {
 			list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 			if err != nil {
@@ -213,8 +215,9 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 				return nil, fmt.Errorf("finding an appropriate image in manifest list %q: %w", transports.ImageName(ref), err)
 			}
 			instanceDigest = &instance
+			unparsedInstance = image.UnparsedInstance(srcSrc, instanceDigest)
 		}
-		src, err = image.FromUnparsedImage(ctx, systemContext, image.UnparsedInstance(srcSrc, instanceDigest))
+		src, err = image.FromUnparsedImage(ctx, systemContext, unparsedInstance)
 		if err != nil {
 			return nil, fmt.Errorf("instantiating image for %q instance %q: %w", transports.ImageName(ref), instanceDigest, err)
 		}

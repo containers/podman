@@ -97,7 +97,7 @@ func DevicesFromPath(g *generate.Generator, devicePath string) error {
 
 func BlockAccessToKernelFilesystems(privileged, pidModeIsHost bool, mask, unmask []string, g *generate.Generator) {
 	if !privileged {
-		for _, mp := range config.DefaultMaskedPaths {
+		for _, mp := range config.DefaultMaskedPaths() {
 			// check that the path to mask is not in the list of paths to unmask
 			if shouldMask(mp, unmask) {
 				g.AddLinuxMaskedPaths(mp)

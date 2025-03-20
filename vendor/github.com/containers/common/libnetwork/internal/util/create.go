@@ -39,6 +39,13 @@ func CommonNetworkCreate(n NetUtil, network *types.Network) error {
 			network.NetworkInterface = name
 		}
 	}
+
+	// Validate interface name if specified
+	if network.NetworkInterface != "" {
+		if err := ValidateInterfaceName(network.NetworkInterface); err != nil {
+			return fmt.Errorf("network interface name %s invalid: %w", network.NetworkInterface, err)
+		}
+	}
 	return nil
 }
 

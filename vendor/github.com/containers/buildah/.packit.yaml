@@ -5,6 +5,27 @@
 downstream_package_name: buildah
 upstream_tag_template: v{version}
 
+# These files get synced from upstream to downstream (Fedora / CentOS Stream) on every
+# propose-downstream job. This is done so tests maintained upstream can be run
+# downstream in Zuul CI and Bodhi.
+# Ref: https://packit.dev/docs/configuration#files_to_sync
+files_to_sync:
+  - src: rpm/gating.yaml
+    dest: gating.yaml
+    delete: true
+  - src: plans/
+    dest: plans/
+    delete: true
+    mkpath: true
+  - src: tests/tmt/
+    dest: tests/tmt/
+    delete: true
+    mkpath: true
+  - src: .fmf/
+    dest: .fmf/
+    delete: true
+  - .packit.yaml
+
 packages:
   buildah-fedora:
     pkg_tool: fedpkg
@@ -25,9 +46,13 @@ jobs:
     notifications: &copr_build_failure_notification
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
-    targets:
-      - fedora-all-x86_64
-      - fedora-all-aarch64
+    targets: &fedora_copr_targets
+    # f40 ships go 1.22 and we require go 1.23 now. This should be revert to fedora-all
+    # once either f40 is rebased to go 1.23 or f42 is released and f40 EOL.
+      - fedora-latest-stable-x86_64
+      - fedora-latest-stable-aarch64
+      - fedora-development-x86_64
+      - fedora-development-aarch64
     enable_net: true
 
   - job: copr_build
@@ -47,7 +72,7 @@ jobs:
     trigger: pull_request
     packages: [buildah-centos]
     notifications: *copr_build_failure_notification
-    targets:
+    targets: &centos_copr_targets
       - centos-stream-9-x86_64
       - centos-stream-9-aarch64
       - centos-stream-10-x86_64
@@ -65,6 +90,33 @@ jobs:
     owner: rhcontainerbot
     project: podman-next
     enable_net: true
+
+  # Tests on Fedora for main branch PRs
+  - job: tests
+    trigger: pull_request
+    packages: [buildah-fedora]
+    targets: &fedora_copr_test_targets
+    # See the other comment above, this should be reverted to fedora-all when possible.
+      - fedora-latest-stable-x86_64
+      - fedora-development-x86_64
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-$releasever/rhcontainerbot-podman-next-fedora-$releasever.repo
+
+  # Tests on CentOS Stream for main branch PRs
+  - job: tests
+    trigger: pull_request
+    packages: [buildah-centos]
+    targets: &centos_copr_test_targets
+      - centos-stream-9-x86_64
+      - centos-stream-10-x86_64
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/centos-stream-$releasever/rhcontainerbot-podman-next-centos-stream-$releasever.repo
 
   # Sync to Fedora
   - job: propose_downstream

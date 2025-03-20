@@ -557,14 +557,19 @@ func GetCacheMount(sys *types.SystemContext, args []string, store storage.Store,
 			return newMount, "", "", "", nil, fmt.Errorf("unable to create build cache directory: %w", err)
 		}
 
+		ownerInfo := fmt.Sprintf(":%d:%d", uid, gid)
 		if id != "" {
-			// Don't let the user control where we place the directory.
-			dirID := digest.FromString(id).Encoded()[:16]
+			// Don't let the user try to inject pathname components by directly using
+			// the ID when constructing the cache directory location; distinguish
+			// between caches by ID and ownership
+			dirID := digest.FromString(id + ownerInfo).Encoded()[:16]
 			thisCacheRoot = filepath.Join(cacheParent, dirID)
 			buildahLockFilesDir = filepath.Join(cacheParent, BuildahCacheLockfileDir, dirID)
 		} else {
-			// Don't let the user control where we place the directory.
-			dirID := digest.FromString(newMount.Destination).Encoded()[:16]
+			// Don't let the user try to inject pathname components by directly using
+			// the target path when constructing the cache directory location;
+			// distinguish between caches by mount target location and ownership
+			dirID := digest.FromString(newMount.Destination + ownerInfo).Encoded()[:16]
 			thisCacheRoot = filepath.Join(cacheParent, dirID)
 			buildahLockFilesDir = filepath.Join(cacheParent, BuildahCacheLockfileDir, dirID)
 		}

@@ -39,7 +39,8 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 	defer src.Close()
 
 	imageDigest := ""
-	manifestBytes, manifestType, err := src.GetManifest(ctx, nil)
+	unparsedTop := image.UnparsedInstance(src, nil)
+	manifestBytes, manifestType, err := unparsedTop.Manifest(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("loading image manifest for %q: %w", transports.ImageName(ref), err)
 	}
@@ -48,6 +49,7 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 	}
 
 	var instanceDigest *digest.Digest
+	unparsedInstance := unparsedTop // for instanceDigest
 	if manifest.MIMETypeIsMultiImage(manifestType) {
 		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 		if err != nil {
@@ -58,9 +60,10 @@ func importBuilderDataFromImage(ctx context.Context, store storage.Store, system
 			return nil, fmt.Errorf("finding an appropriate image in manifest list %q: %w", transports.ImageName(ref), err)
 		}
 		instanceDigest = &instance
+		unparsedInstance = image.UnparsedInstance(src, instanceDigest)
 	}
 
-	image, err := image.FromUnparsedImage(ctx, systemContext, image.UnparsedInstance(src, instanceDigest))
+	image, err := image.FromUnparsedImage(ctx, systemContext, unparsedInstance)
 	if err != nil {
 		return nil, fmt.Errorf("instantiating image for %q instance %q: %w", transports.ImageName(ref), instanceDigest, err)
 	}

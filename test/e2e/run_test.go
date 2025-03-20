@@ -375,7 +375,7 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "-d", "--name=maskCtr", ALPINE, "sleep", "200"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		for _, mask := range config.DefaultMaskedPaths {
+		for _, mask := range config.DefaultMaskedPaths() {
 			if st, err := os.Stat(mask); err == nil {
 				if st.IsDir() {
 					session = podmanTest.Podman([]string{"exec", "maskCtr", "ls", mask})
