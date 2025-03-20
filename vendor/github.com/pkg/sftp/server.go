@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -21,6 +22,18 @@ const (
 	SftpServerWorkerCount = 8
 )
 
+type file interface {
+	Stat() (os.FileInfo, error)
+	ReadAt(b []byte, off int64) (int, error)
+	WriteAt(b []byte, off int64) (int, error)
+	Readdir(int) ([]os.FileInfo, error)
+	Name() string
+	Truncate(int64) error
+	Chmod(mode fs.FileMode) error
+	Chown(uid, gid int) error
+	Close() error
+}
+
 // Server is an SSH File Transfer Protocol (sftp) server.
 // This is intended to provide the sftp subsystem to an ssh server daemon.
 // This implementation currently supports most of sftp server protocol version 3,
@@ -30,14 +43,15 @@ type Server struct {
 	debugStream   io.Writer
 	readOnly      bool
 	pktMgr        *packetManager
-	openFiles     map[string]*os.File
+	openFiles     map[string]file
 	openFilesLock sync.RWMutex
 	handleCount   int
 	workDir       string
+	winRoot       bool
 	maxTxPacket   uint32
 }
 
-func (svr *Server) nextHandle(f *os.File) string {
+func (svr *Server) nextHandle(f file) string {
 	svr.openFilesLock.Lock()
 	defer svr.openFilesLock.Unlock()
 	svr.handleCount++
@@ -57,7 +71,7 @@ func (svr *Server) closeHandle(handle string) error {
 	return EBADF
 }
 
-func (svr *Server) getHandle(handle string) (*os.File, bool) {
+func (svr *Server) getHandle(handle string) (file, bool) {
 	svr.openFilesLock.RLock()
 	defer svr.openFilesLock.RUnlock()
 	f, ok := svr.openFiles[handle]
@@ -86,7 +100,7 @@ func NewServer(rwc io.ReadWriteCloser, options ...ServerOption) (*Server, error)
 		serverConn:  svrConn,
 		debugStream: ioutil.Discard,
 		pktMgr:      newPktMgr(svrConn),
-		openFiles:   make(map[string]*os.File),
+		openFiles:   make(map[string]file),
 		maxTxPacket: defaultMaxTxPacket,
 	}
 
@@ -114,6 +128,14 @@ func WithDebug(w io.Writer) ServerOption {
 func ReadOnly() ServerOption {
 	return func(s *Server) error {
 		s.readOnly = true
+		return nil
+	}
+}
+
+// WindowsRootEnumeratesDrives configures a Server to serve a virtual '/' for windows that lists all drives
+func WindowsRootEnumeratesDrives() ServerOption {
+	return func(s *Server) error {
+		s.winRoot = true
 		return nil
 	}
 }
@@ -215,7 +237,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 		}
 	case *sshFxpLstatPacket:
 		// stat the requested file
-		info, err := os.Lstat(s.toLocalPath(p.Path))
+		info, err := s.lstat(s.toLocalPath(p.Path))
 		rpkt = &sshFxpStatResponse{
 			ID:   p.ID,
 			info: info,
@@ -289,7 +311,7 @@ func handlePacket(s *Server, p orderedRequest) error {
 	case *sshFxpOpendirPacket:
 		lp := s.toLocalPath(p.Path)
 
-		if stat, err := os.Stat(lp); err != nil {
+		if stat, err := s.stat(lp); err != nil {
 			rpkt = statusFromError(p.ID, err)
 		} else if !stat.IsDir() {
 			rpkt = statusFromError(p.ID, &os.PathError{
@@ -493,7 +515,7 @@ func (p *sshFxpOpenPacket) respond(svr *Server) responsePacket {
 		mode = fs.FileMode() & os.ModePerm
 	}
 
-	f, err := os.OpenFile(svr.toLocalPath(p.Path), osFlags, mode)
+	f, err := svr.openfile(svr.toLocalPath(p.Path), osFlags, mode)
 	if err != nil {
 		return statusFromError(p.ID, err)
 	}

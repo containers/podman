@@ -5,6 +5,7 @@ package idtools
 import (
 	"errors"
 	"os/user"
+	"sync"
 	"unsafe"
 )
 
@@ -13,22 +14,24 @@ import (
 #include <shadow/subid.h>
 #include <stdlib.h>
 #include <stdio.h>
-const char *Prog = "storage";
-FILE *shadow_logfd = NULL;
 
 struct subid_range get_range(struct subid_range *ranges, int i)
 {
-	shadow_logfd = stderr;
-	return ranges[i];
+    return ranges[i];
 }
 
 #if !defined(SUBID_ABI_MAJOR) || (SUBID_ABI_MAJOR < 4)
+# define subid_init libsubid_init
 # define subid_get_uid_ranges get_subuid_ranges
 # define subid_get_gid_ranges get_subgid_ranges
 #endif
 
 */
 import "C"
+
+var (
+	onceInit sync.Once
+)
 
 func readSubid(username string, isUser bool) (ranges, error) {
 	var ret ranges
@@ -41,6 +44,10 @@ func readSubid(username string, isUser bool) (ranges, error) {
 	if u, err := user.Lookup(username); err == nil {
 		uidstr = u.Uid
 	}
+
+	onceInit.Do(func() {
+		C.subid_init(C.CString("storage"), C.stderr)
+	})
 
 	cUsername := C.CString(username)
 	defer C.free(unsafe.Pointer(cUsername))

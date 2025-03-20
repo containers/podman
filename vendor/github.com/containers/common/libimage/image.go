@@ -256,6 +256,10 @@ func (i *Image) TopLayer() string {
 	return i.storageImage.TopLayer
 }
 
+func (i *Image) mappedTopLayers() []string {
+	return i.storageImage.MappedTopLayers
+}
+
 // Parent returns the parent image or nil if there is none
 func (i *Image) Parent(ctx context.Context) (*Image, error) {
 	tree, err := i.runtime.newFreshLayerTree()
@@ -789,27 +793,25 @@ func (i *Image) Mount(_ context.Context, mountOptions []string, mountLabel strin
 // Mountpoint returns the path to image's mount point.  The path is empty if
 // the image is not mounted.
 func (i *Image) Mountpoint() (string, error) {
-	mountedTimes, err := i.runtime.store.Mounted(i.TopLayer())
-	if err != nil || mountedTimes == 0 {
-		if errors.Is(err, storage.ErrLayerUnknown) {
-			// Can happen, Podman did it, but there's no
-			// explanation why.
-			err = nil
+	for _, layerID := range append([]string{i.TopLayer()}, i.mappedTopLayers()...) {
+		mountedTimes, err := i.runtime.store.Mounted(layerID)
+		if err != nil {
+			if errors.Is(err, storage.ErrLayerUnknown) {
+				// Can happen, Podman did it, but there's no
+				// explanation why.
+				continue
+			}
+			return "", err
 		}
-		return "", err
+		if mountedTimes > 0 {
+			layer, err := i.runtime.store.Layer(layerID)
+			if err != nil {
+				return "", err
+			}
+			return filepath.EvalSymlinks(layer.MountPoint)
+		}
 	}
-
-	layer, err := i.runtime.store.Layer(i.TopLayer())
-	if err != nil {
-		return "", err
-	}
-
-	mountPoint, err := filepath.EvalSymlinks(layer.MountPoint)
-	if err != nil {
-		return "", err
-	}
-
-	return mountPoint, nil
+	return "", nil
 }
 
 // Unmount the image.  Use force to ignore the reference counter and forcefully

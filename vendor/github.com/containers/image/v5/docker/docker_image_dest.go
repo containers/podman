@@ -243,8 +243,12 @@ func (d *dockerImageDestination) blobExists(ctx context.Context, repo reference.
 	defer res.Body.Close()
 	switch res.StatusCode {
 	case http.StatusOK:
+		size, err := getBlobSize(res)
+		if err != nil {
+			return false, -1, fmt.Errorf("determining size of blob %s in %s: %w", digest, repo.Name(), err)
+		}
 		logrus.Debugf("... already exists")
-		return true, getBlobSize(res), nil
+		return true, size, nil
 	case http.StatusUnauthorized:
 		logrus.Debugf("... not authorized")
 		return false, -1, fmt.Errorf("checking whether a blob %s exists in %s: %w", digest, repo.Name(), registryHTTPResponseToError(res))

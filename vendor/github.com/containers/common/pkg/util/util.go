@@ -15,7 +15,7 @@ import (
 
 // StringInSlice determines if a string is in a string slice, returns bool.
 //
-// Deprecated: Use [golang.org/x/exp/slices.Contains] instead.
+// Deprecated: Use [slices.Contains] instead.
 func StringInSlice(s string, sl []string) bool {
 	return slices.Contains(sl, s)
 }
