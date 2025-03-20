@@ -9,7 +9,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroupv2"
 	"github.com/containers/storage/pkg/fileutils"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/cgroups"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )

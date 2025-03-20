@@ -11,6 +11,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"go.etcd.io/bbolt"
+	boltErrors "go.etcd.io/bbolt/errors"
 )
 
 // IPAM boltdb structure
@@ -371,7 +372,7 @@ func (n *netavarkNetwork) removeNetworkIPAMBucket(network *types.Network) error 
 	return db.Update(func(tx *bbolt.Tx) error {
 		// Ignore ErrBucketNotFound, can happen if the network never allocated any ips,
 		// i.e. because no container was started.
-		if err := tx.DeleteBucket([]byte(network.Name)); err != nil && !errors.Is(err, bbolt.ErrBucketNotFound) {
+		if err := tx.DeleteBucket([]byte(network.Name)); err != nil && !errors.Is(err, boltErrors.ErrBucketNotFound) {
 			return err
 		}
 		return nil

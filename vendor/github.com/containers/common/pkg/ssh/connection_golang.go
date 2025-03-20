@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"net/url"
 	"os"
 	"os/user"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -29,7 +31,6 @@ import (
 	"github.com/skeema/knownhosts"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
-	"golang.org/x/exp/maps"
 )
 
 func golangConnectionCreate(options ConnectionCreateOptions) error {
@@ -287,7 +288,7 @@ func ValidateAndConfigure(uri *url.URL, iden string, insecureIsMachineConnection
 			dedup[fp] = s
 		}
 
-		uniq := maps.Values(dedup)
+		uniq := slices.Collect(maps.Values(dedup))
 		authMethods = append(authMethods, ssh.PublicKeysCallback(func() ([]ssh.Signer, error) {
 			return uniq, nil
 		}))

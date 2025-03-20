@@ -14,7 +14,7 @@ import (
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/godbus/dbus/v5"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
 )
 
 type BlkioDev struct {
@@ -22,7 +22,7 @@ type BlkioDev struct {
 	Bytes  uint64
 }
 
-func systemdCreate(resources *configs.Resources, path string, c *systemdDbus.Conn) error {
+func systemdCreate(resources *cgroups.Resources, path string, c *systemdDbus.Conn) error {
 	slice, name := filepath.Split(path)
 	slice = strings.TrimSuffix(slice, "/")
 
@@ -150,7 +150,7 @@ func systemdDestroyConn(path string, c *systemdDbus.Conn) error {
 	return nil
 }
 
-func resourcesToProps(res *configs.Resources, v2 bool) (map[string]uint64, map[string]string, map[string][]byte, map[string]int64, map[string][]BlkioDev, error) {
+func resourcesToProps(res *cgroups.Resources, v2 bool) (map[string]uint64, map[string]string, map[string][]byte, map[string]int64, map[string][]BlkioDev, error) {
 	bMap := make(map[string][]byte)
 	// this array is not used but will be once more resource limits are added
 	sMap := make(map[string]string)
