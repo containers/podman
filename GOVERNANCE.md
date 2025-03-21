@@ -14,11 +14,11 @@
 * [Updates to this Document](#updates-to-this-document)
 * [Contact](#contact)
 
-## Podman Project
+# Podman Project
 
 This document defines the governance of the Podman Project, including its subprojects. It defines the various roles our maintainers fill, how to become a maintainer, and how project-level decisions are made.
 
-## Contributor Ladder
+# Contributor Ladder
 
 The Podman project has a number of maintainer roles arranged in a ladder. Each role is a rung on the ladder, with different responsibilities and privileges. Community members generally start at the first levels of the "ladder" and advance as their involvement in the project grows. Our project members are happy to help you advance along the contributor ladder. At all levels, contributors are required to follow the CNCF Code of Conduct (COC).
 
@@ -165,11 +165,13 @@ Emeritus Maintainers have no responsibilities or requirements beyond those of an
 
 ---
 
-## Maintainers File
+# Maintainers File
 
 The definitive source of truth for maintainers of a repository is the MAINTAINERS.md file in that repository. The MAINTAINERS.md file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have an OWNERS file, used by the CI system to map users to roles. Any changes to the OWNERS file must make a corresponding change to the MAINTAINERS.md file to ensure that file maintains up to date. Most changes to MAINTAINERS.md will require a change to the repository’s OWNERS file (e.g. adding a Reviewer) but some will not (e.g. promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
 
-## Inactivity
+---
+
+# Inactivity
 
 * Inactivity is measured by one or more of the following:
     * Periods of no contribution of code, pull request review, or participation in issue triage for longer than 12 months
@@ -178,20 +180,26 @@ The definitive source of truth for maintainers of a repository is the MAINTAINER
     * Involuntary removal or demotion
     * Being asked to move to Emeritus status
 
-## Involuntary Removal or Demotion
+---
+
+# Involuntary Removal or Demotion
 
 Involuntary removal/demotion of a contributor happens when responsibilities and requirements aren't being met. This may include repeated patterns of inactivity, an extended period of inactivity, a period of failing to meet the requirements of your role, and/or a violation of the Code of Conduct. This process is important because it protects the community and its deliverables while also opening up opportunities for new contributors to step in.
 
 Involuntary removal or demotion of Maintainers and Reviewers is handled through a vote by a majority of the current Maintainers. Core Maintainers may be involuntarily removed by a majority vote of current Core Maintainers or, if all Core Maintainers have stepped down or are inactive according to the inactivity policy, by a supermajority (66%) vote of maintainers.
 
-## Stepping Down/Emeritus Process
+---
+
+# Stepping Down/Emeritus Process
 If and when contributors' commitment levels change, contributors can consider stepping down (moving down the contributor ladder) vs moving to emeritus status (completely stepping away from the project).
 
 Maintainers and Reviewers should contact the Maintainers about changing to Emeritus status, or reducing your contributor level. Core Maintainers should contact other Core Maintainers.
 
-## Updates to this document
+---
+
+# Updates to this document
 Updates to this Governance document require approval from a supermajority (66%) vote of the Core Maintainers.
 
-## Contact
+# Contact
 * For inquiries, please reach out to:
     *  [Tom Sweeney, Community Manager](tsweeney@redhat.com)
