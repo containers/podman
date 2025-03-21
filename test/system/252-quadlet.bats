@@ -1865,4 +1865,5 @@ EOF
 
     run_podman rmi -i $image_tag
 }
+
 # vim: filetype=sh

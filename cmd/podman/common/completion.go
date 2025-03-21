@@ -173,6 +173,28 @@ func getPods(cmd *cobra.Command, toComplete string, cType completeType, statuses
 	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
+func getQuadlets(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
+	suggestions := []string{}
+	lsOpts := entities.QuadletListOptions{}
+	engine, err := setupContainerEngine(cmd)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	quadlets, err := engine.QuadletList(registry.Context(), lsOpts)
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+
+	for _, q := range quadlets {
+		if strings.HasPrefix(q.Name, toComplete) {
+			suggestions = append(suggestions, q.Name)
+		}
+	}
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
+}
+
 func getVolumes(cmd *cobra.Command, toComplete string) ([]string, cobra.ShellCompDirective) {
 	suggestions := []string{}
 	lsOpts := entities.VolumeListOptions{}
@@ -730,6 +752,14 @@ func AutocompleteImages(cmd *cobra.Command, args []string, toComplete string) ([
 	return getImages(cmd, toComplete)
 }
 
+// AutocompleteQuadlets - Autocomplete quadlets.
+func AutocompleteQuadlets(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	if !validCurrentCmdLine(cmd, args, toComplete) {
+		return nil, cobra.ShellCompDirectiveNoFileComp
+	}
+	return getQuadlets(cmd, toComplete)
+}
+
 // AutocompleteManifestListAndMember - Autocomplete names of manifest lists and digests of items in them.
 func AutocompleteManifestListAndMember(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
@@ -825,6 +855,11 @@ func AutocompleteDefaultOneArg(cmd *cobra.Command, args []string, toComplete str
 		return nil, cobra.ShellCompDirectiveDefault
 	}
 	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+// AutocompleteDefaultManyArg - Autocomplete for many args.
+func AutocompleteDefaultManyArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return nil, cobra.ShellCompDirectiveDefault
 }
 
 // AutocompleteCommitCommand - Autocomplete podman commit command args.
@@ -1771,6 +1806,14 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 		},
 		"until=":  nil,
 		"volume=": func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteQuadletFilters - Autocomplete quadlet filter options.
+func AutocompleteQuadletFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	kv := keyValueCompletion{
+		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getQuadlets(cmd, s) },
 	}
 	return completeKeyValues(toComplete, kv)
 }
