@@ -78,8 +78,8 @@ github.com/containernetworking/plugins v1.6.2 h1:pqP8Mq923TLyef5g97XfJ/xpDeVek4y
 github.com/containernetworking/plugins v1.6.2/go.mod h1:SP5UG3jDO9LtmfbBJdP+nl3A1atOtbj2MBOYsnaxy64=
 github.com/containers/buildah v1.39.1-0.20250321123219-bc4d7eb70fe3 h1:F5qpz8HsQ/nxhArveDEgskbyOjFuSsEahevt4JHAePQ=
 github.com/containers/buildah v1.39.1-0.20250321123219-bc4d7eb70fe3/go.mod h1:kCk5Le5CiMazPfGhF8yg43LQa1YLKqBZNnI4PTq+W/U=
-github.com/containers/common v0.62.3-0.20250320215058-fa53559b5062 h1:aIOZMBptfl13GutH4jt7Sa3K3pIJO80I9Kjz7Pe5o7M=
-github.com/containers/common v0.62.3-0.20250320215058-fa53559b5062/go.mod h1:IW8fUkTIwJkeclyROeASOV5FvFBpHjtQj/XBXffhuBk=
+github.com/containers/common v0.62.3-0.20250321171839-dbeb17e40c80 h1:U605lFaEyA0zsy4+gqZxth9V2Dl1UXBfcamA3cnQ33E=
+github.com/containers/common v0.62.3-0.20250321171839-dbeb17e40c80/go.mod h1:IW8fUkTIwJkeclyROeASOV5FvFBpHjtQj/XBXffhuBk=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.4 h1:z7MqcldnXYGaU6uTaKVl7RFxTmbhNsd2UL0CyM3fdBs=

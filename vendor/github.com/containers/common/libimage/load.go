@@ -30,7 +30,7 @@ func (r *Runtime) doLoadReference(ctx context.Context, ref types.ImageReference,
 	case dockerArchiveTransport.Transport.Name():
 		images, err = r.loadMultiImageDockerArchive(ctx, ref, &options.CopyOptions)
 	default:
-		images, err = r.copyFromDefault(ctx, ref, &options.CopyOptions)
+		_, images, err = r.copyFromDefault(ctx, ref, &options.CopyOptions)
 	}
 	return images, ref.Transport().Name(), err
 }
@@ -49,6 +49,9 @@ func (r *Runtime) LoadReference(ctx context.Context, ref types.ImageReference, o
 // Load loads one or more images (depending on the transport) from the
 // specified path.  The path may point to an image the following transports:
 // oci, oci-archive, dir, docker-archive.
+//
+// Load returns a string slice with names of recently loaded images.
+// If images are unnamed in the source, it returns a string slice of image IDs instead.
 func (r *Runtime) Load(ctx context.Context, path string, options *LoadOptions) ([]string, error) {
 	logrus.Debugf("Loading image from %q", path)
 
@@ -142,7 +145,8 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	// should.
 	path := ref.StringWithinTransport()
 	if err := fileutils.Exists(path); err != nil {
-		return r.copyFromDockerArchive(ctx, ref, options)
+		_, names, err := r.copyFromDockerArchive(ctx, ref, options)
+		return names, err
 	}
 
 	reader, err := dockerArchiveTransport.NewReader(r.systemContextCopy(), path)
@@ -163,7 +167,7 @@ func (r *Runtime) loadMultiImageDockerArchive(ctx context.Context, ref types.Ima
 	var copiedImages []string
 	for _, list := range refLists {
 		for _, listRef := range list {
-			names, err := r.copyFromDockerArchiveReaderReference(ctx, reader, listRef, options)
+			_, names, err := r.copyFromDockerArchiveReaderReference(ctx, reader, listRef, options)
 			if err != nil {
 				return nil, err
 			}
