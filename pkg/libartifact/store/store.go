@@ -435,6 +435,42 @@ func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string,
 	return mountPaths, nil
 }
 
+// Get the layers of the artifact given by nameOrDigest.
+// Returns a map of intended filename (which is set to hash if not available) to path on disk.
+func (as ArtifactStore) GetLayers(ctx context.Context, nameOrDigest string) (map[string]string, error) {
+	options := new(libartTypes.FilterBlobOptions)
+	artifact, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, options)
+	if err != nil {
+		return nil, err
+	}
+	defer imgSrc.Close()
+
+	layers := make(map[string]string, len(artifact.Manifest.Layers))
+
+	for _, layer := range artifact.Manifest.Layers {
+		title := layer.Annotations[specV1.AnnotationTitle]
+		filename, err := generateArtifactBlobName(title, layer.Digest)
+		if err != nil {
+			return nil, err
+		}
+
+		src, _, err := imgSrc.GetBlob(ctx, types.BlobInfo{Digest: layer.Digest}, nil)
+		if err != nil {
+			return nil, fmt.Errorf("retrieving artifact %s blob %s: %w", nameOrDigest, layer.Digest, err)
+		}
+
+		// Source should be an os.File, allowing us to get path on disk.
+		file, ok := src.(*os.File)
+		if !ok {
+			return nil, fmt.Errorf("source of artifact %s blob %s is not a file", nameOrDigest, layer.Digest)
+		}
+
+		layers[filename] = file.Name()
+	}
+
+	return layers, nil
+}
+
 // Extract an artifact to local file or directory
 func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target string, options *libartTypes.ExtractOptions) error {
 	arty, imgSrc, err := getArtifactAndImageSource(ctx, as, nameOrDigest, &options.FilterBlobOptions)

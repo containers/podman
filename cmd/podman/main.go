@@ -19,6 +19,7 @@ import (
 	_ "github.com/containers/podman/v5/cmd/podman/manifest"
 	_ "github.com/containers/podman/v5/cmd/podman/networks"
 	_ "github.com/containers/podman/v5/cmd/podman/pods"
+	_ "github.com/containers/podman/v5/cmd/podman/quadlet"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	_ "github.com/containers/podman/v5/cmd/podman/secrets"
 	_ "github.com/containers/podman/v5/cmd/podman/system"
