@@ -12,11 +12,11 @@ import (
 )
 
 type ContainElementMatcher struct {
-	Element interface{}
-	Result  []interface{}
+	Element any
+	Result  []any
 }
 
-func (matcher *ContainElementMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ContainElementMatcher) Match(actual any) (success bool, err error) {
 	if !isArrayOrSlice(actual) && !isMap(actual) && !miter.IsIter(actual) {
 		return false, fmt.Errorf("ContainElement matcher expects an array/slice/map/iterator.  Got:\n%s", format.Object(actual, 1))
 	}
@@ -132,14 +132,14 @@ func (matcher *ContainElementMatcher) Match(actual interface{}) (success bool, e
 	var lastError error
 
 	if !miter.IsIter(actual) {
-		var valueAt func(int) interface{}
+		var valueAt func(int) any
 		var foundAt func(int)
 		// We're dealing with an array/slice/map, so in all cases we can iterate
 		// over the elements in actual using indices (that can be considered
 		// keys in case of maps).
 		if isMap(actual) {
 			keys := value.MapKeys()
-			valueAt = func(i int) interface{} {
+			valueAt = func(i int) any {
 				return value.MapIndex(keys[i]).Interface()
 			}
 			if result.Kind() != reflect.Invalid {
@@ -150,7 +150,7 @@ func (matcher *ContainElementMatcher) Match(actual interface{}) (success bool, e
 				}
 			}
 		} else {
-			valueAt = func(i int) interface{} {
+			valueAt = func(i int) any {
 				return value.Index(i).Interface()
 			}
 			if result.Kind() != reflect.Invalid {
@@ -251,7 +251,7 @@ func (matcher *ContainElementMatcher) Match(actual interface{}) (success bool, e
 	}
 
 	// pick up any findings the test is interested in as it specified a non-nil
-	// result reference. However, the expection always is that there are at
+	// result reference. However, the expectation always is that there are at
 	// least one or multiple findings. So, if a result is expected, but we had
 	// no findings, then this is an error.
 	findings := getFindings()
@@ -284,10 +284,10 @@ func (matcher *ContainElementMatcher) Match(actual interface{}) (success bool, e
 	return true, nil
 }
 
-func (matcher *ContainElementMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *ContainElementMatcher) FailureMessage(actual any) (message string) {
 	return format.Message(actual, "to contain element matching", matcher.Element)
 }
 
-func (matcher *ContainElementMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *ContainElementMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "not to contain element matching", matcher.Element)
 }

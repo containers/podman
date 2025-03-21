@@ -12,12 +12,12 @@ import (
 )
 
 type ConsistOfMatcher struct {
-	Elements        []interface{}
-	missingElements []interface{}
-	extraElements   []interface{}
+	Elements        []any
+	missingElements []any
+	extraElements   []any
 }
 
-func (matcher *ConsistOfMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ConsistOfMatcher) Match(actual any) (success bool, err error) {
 	if !isArrayOrSlice(actual) && !isMap(actual) && !miter.IsIter(actual) {
 		return false, fmt.Errorf("ConsistOf matcher expects an array/slice/map/iter.Seq/iter.Seq2.  Got:\n%s", format.Object(actual, 1))
 	}
@@ -35,19 +35,19 @@ func (matcher *ConsistOfMatcher) Match(actual interface{}) (success bool, err er
 		return true, nil
 	}
 
-	var missingMatchers []interface{}
+	var missingMatchers []any
 	matcher.extraElements, missingMatchers = bipartiteGraph.FreeLeftRight(edges)
 	matcher.missingElements = equalMatchersToElements(missingMatchers)
 
 	return false, nil
 }
 
-func neighbours(value, matcher interface{}) (bool, error) {
+func neighbours(value, matcher any) (bool, error) {
 	match, err := matcher.(omegaMatcher).Match(value)
 	return match && err == nil, nil
 }
 
-func equalMatchersToElements(matchers []interface{}) (elements []interface{}) {
+func equalMatchersToElements(matchers []any) (elements []any) {
 	for _, matcher := range matchers {
 		if equalMatcher, ok := matcher.(*EqualMatcher); ok {
 			elements = append(elements, equalMatcher.Expected)
@@ -60,7 +60,7 @@ func equalMatchersToElements(matchers []interface{}) (elements []interface{}) {
 	return
 }
 
-func flatten(elems []interface{}) []interface{} {
+func flatten(elems []any) []any {
 	if len(elems) != 1 ||
 		!(isArrayOrSlice(elems[0]) ||
 			(miter.IsIter(elems[0]) && !miter.IsSeq2(elems[0]))) {
@@ -77,14 +77,14 @@ func flatten(elems []interface{}) []interface{} {
 	}
 
 	value := reflect.ValueOf(elems[0])
-	flattened := make([]interface{}, value.Len())
+	flattened := make([]any, value.Len())
 	for i := 0; i < value.Len(); i++ {
 		flattened[i] = value.Index(i).Interface()
 	}
 	return flattened
 }
 
-func matchers(expectedElems []interface{}) (matchers []interface{}) {
+func matchers(expectedElems []any) (matchers []any) {
 	for _, e := range flatten(expectedElems) {
 		if e == nil {
 			matchers = append(matchers, &BeNilMatcher{})
@@ -97,11 +97,11 @@ func matchers(expectedElems []interface{}) (matchers []interface{}) {
 	return
 }
 
-func presentable(elems []interface{}) interface{} {
+func presentable(elems []any) any {
 	elems = flatten(elems)
 
 	if len(elems) == 0 {
-		return []interface{}{}
+		return []any{}
 	}
 
 	sv := reflect.ValueOf(elems)
@@ -125,9 +125,9 @@ func presentable(elems []interface{}) interface{} {
 	return ss.Interface()
 }
 
-func valuesOf(actual interface{}) []interface{} {
+func valuesOf(actual any) []any {
 	value := reflect.ValueOf(actual)
-	values := []interface{}{}
+	values := []any{}
 	if miter.IsIter(actual) {
 		if miter.IsSeq2(actual) {
 			miter.IterateKV(actual, func(k, v reflect.Value) bool {
@@ -154,7 +154,7 @@ func valuesOf(actual interface{}) []interface{} {
 	return values
 }
 
-func (matcher *ConsistOfMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *ConsistOfMatcher) FailureMessage(actual any) (message string) {
 	message = format.Message(actual, "to consist of", presentable(matcher.Elements))
 	message = appendMissingElements(message, matcher.missingElements)
 	if len(matcher.extraElements) > 0 {
@@ -164,7 +164,7 @@ func (matcher *ConsistOfMatcher) FailureMessage(actual interface{}) (message str
 	return
 }
 
-func appendMissingElements(message string, missingElements []interface{}) string {
+func appendMissingElements(message string, missingElements []any) string {
 	if len(missingElements) == 0 {
 		return message
 	}
@@ -172,6 +172,6 @@ func appendMissingElements(message string, missingElements []interface{}) string
 		format.Object(presentable(missingElements), 1))
 }
 
-func (matcher *ConsistOfMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *ConsistOfMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "not to consist of", presentable(matcher.Elements))
 }

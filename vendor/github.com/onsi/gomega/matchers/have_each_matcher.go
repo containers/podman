@@ -9,10 +9,10 @@ import (
 )
 
 type HaveEachMatcher struct {
-	Element interface{}
+	Element any
 }
 
-func (matcher *HaveEachMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *HaveEachMatcher) Match(actual any) (success bool, err error) {
 	if !isArrayOrSlice(actual) && !isMap(actual) && !miter.IsIter(actual) {
 		return false, fmt.Errorf("HaveEach matcher expects an array/slice/map/iter.Seq/iter.Seq2.  Got:\n%s",
 			format.Object(actual, 1))
@@ -61,14 +61,14 @@ func (matcher *HaveEachMatcher) Match(actual interface{}) (success bool, err err
 			format.Object(actual, 1))
 	}
 
-	var valueAt func(int) interface{}
+	var valueAt func(int) any
 	if isMap(actual) {
 		keys := value.MapKeys()
-		valueAt = func(i int) interface{} {
+		valueAt = func(i int) any {
 			return value.MapIndex(keys[i]).Interface()
 		}
 	} else {
-		valueAt = func(i int) interface{} {
+		valueAt = func(i int) any {
 			return value.Index(i).Interface()
 		}
 	}
@@ -89,11 +89,11 @@ func (matcher *HaveEachMatcher) Match(actual interface{}) (success bool, err err
 }
 
 // FailureMessage returns a suitable failure message.
-func (matcher *HaveEachMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *HaveEachMatcher) FailureMessage(actual any) (message string) {
 	return format.Message(actual, "to contain element matching", matcher.Element)
 }
 
 // NegatedFailureMessage returns a suitable negated failure message.
-func (matcher *HaveEachMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *HaveEachMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "not to contain element matching", matcher.Element)
 }

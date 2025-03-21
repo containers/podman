@@ -7,7 +7,6 @@ Subsequent matches against the buffer will only operate against data that appear
 
 The read cursor is an opaque implementation detail that you cannot access.  You should use the Say matcher to sift through the buffer.  You can always
 access the entire buffer's contents with Contents().
-
 */
 package gbytes
 
@@ -29,7 +28,7 @@ type Buffer struct {
 	contents     []byte
 	readCursor   uint64
 	lock         *sync.Mutex
-	detectCloser chan interface{}
+	detectCloser chan any
 	closed       bool
 }
 
@@ -167,19 +166,25 @@ You could do something like:
 
 select {
 case <-buffer.Detect("You are not logged in"):
+
 	//log in
+
 case <-buffer.Detect("Success"):
+
 	//carry on
+
 case <-time.After(time.Second):
-	//welp
-}
+
+		//welp
+	}
+
 buffer.CancelDetects()
 
 You should always call CancelDetects after using Detect.  This will close any channels that have not detected and clean up the goroutines that were spawned to support them.
 
 Finally, you can pass detect a format string followed by variadic arguments.  This will construct the regexp using fmt.Sprintf.
 */
-func (b *Buffer) Detect(desired string, args ...interface{}) chan bool {
+func (b *Buffer) Detect(desired string, args ...any) chan bool {
 	formattedRegexp := desired
 	if len(args) > 0 {
 		formattedRegexp = fmt.Sprintf(desired, args...)
@@ -190,7 +195,7 @@ func (b *Buffer) Detect(desired string, args ...interface{}) chan bool {
 	defer b.lock.Unlock()
 
 	if b.detectCloser == nil {
-		b.detectCloser = make(chan interface{})
+		b.detectCloser = make(chan any)
 	}
 
 	closer := b.detectCloser

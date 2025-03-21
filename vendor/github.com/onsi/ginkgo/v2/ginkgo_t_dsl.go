@@ -130,6 +130,12 @@ type GinkgoTBWrapper struct {
 func (g *GinkgoTBWrapper) Cleanup(f func()) {
 	g.GinkgoT.Cleanup(f)
 }
+func (g *GinkgoTBWrapper) Chdir(dir string) {
+	g.GinkgoT.Chdir(dir)
+}
+func (g *GinkgoTBWrapper) Context() context.Context {
+	return g.GinkgoT.Context()
+}
 func (g *GinkgoTBWrapper) Error(args ...any) {
 	g.GinkgoT.Error(args...)
 }

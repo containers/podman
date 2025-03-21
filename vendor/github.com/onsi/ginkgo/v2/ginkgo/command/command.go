@@ -25,7 +25,7 @@ func (c Command) Run(args []string, additionalArgs []string) {
 		AbortWithUsage(err.Error())
 	}
 	for _, arg := range args {
-		if strings.HasPrefix(arg, "-") {
+		if len(arg) > 1 && strings.HasPrefix(arg, "-") {
 			AbortWith(types.GinkgoErrors.FlagAfterPositionalParameter().Error())
 		}
 	}

@@ -1,3 +1,11 @@
+## 2.23.3
+
+### Fixes
+
+- allow `-` as a standalone argument [cfcc1a5]
+- Bug Fix: Add GinkoTBWrapper.Chdir() and GinkoTBWrapper.Context() [feaf292]
+- ignore exit code for symbol test on linux [88e2282]
+
 ## 2.23.2
 
 🎉🎉🎉

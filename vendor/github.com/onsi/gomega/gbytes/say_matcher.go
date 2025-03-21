@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/gomega/format"
 )
 
-//Objects satisfying the BufferProvider can be used with the Say matcher.
+// Objects satisfying the BufferProvider can be used with the Say matcher.
 type BufferProvider interface {
 	Buffer() *Buffer
 }
@@ -37,7 +37,7 @@ In such cases, Say simply operates on the *gbytes.Buffer returned by Buffer()
 
 If the buffer is closed, the Say matcher will tell Eventually to abort.
 */
-func Say(expected string, args ...interface{}) *sayMatcher {
+func Say(expected string, args ...any) *sayMatcher {
 	if len(args) > 0 {
 		expected = fmt.Sprintf(expected, args...)
 	}
@@ -51,7 +51,7 @@ type sayMatcher struct {
 	receivedSayings []byte
 }
 
-func (m *sayMatcher) buffer(actual interface{}) (*Buffer, bool) {
+func (m *sayMatcher) buffer(actual any) (*Buffer, bool) {
 	var buffer *Buffer
 
 	switch x := actual.(type) {
@@ -66,7 +66,7 @@ func (m *sayMatcher) buffer(actual interface{}) (*Buffer, bool) {
 	return buffer, true
 }
 
-func (m *sayMatcher) Match(actual interface{}) (success bool, err error) {
+func (m *sayMatcher) Match(actual any) (success bool, err error) {
 	buffer, ok := m.buffer(actual)
 	if !ok {
 		return false, fmt.Errorf("Say must be passed a *gbytes.Buffer or BufferProvider.  Got:\n%s", format.Object(actual, 1))
@@ -78,7 +78,7 @@ func (m *sayMatcher) Match(actual interface{}) (success bool, err error) {
 	return didSay, nil
 }
 
-func (m *sayMatcher) FailureMessage(actual interface{}) (message string) {
+func (m *sayMatcher) FailureMessage(actual any) (message string) {
 	return fmt.Sprintf(
 		"Got stuck at:\n%s\nWaiting for:\n%s",
 		format.IndentString(string(m.receivedSayings), 1),
@@ -86,7 +86,7 @@ func (m *sayMatcher) FailureMessage(actual interface{}) (message string) {
 	)
 }
 
-func (m *sayMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (m *sayMatcher) NegatedFailureMessage(actual any) (message string) {
 	return fmt.Sprintf(
 		"Saw:\n%s\nWhich matches the unexpected:\n%s",
 		format.IndentString(string(m.receivedSayings), 1),
@@ -94,7 +94,7 @@ func (m *sayMatcher) NegatedFailureMessage(actual interface{}) (message string) 
 	)
 }
 
-func (m *sayMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
+func (m *sayMatcher) MatchMayChangeInTheFuture(actual any) bool {
 	switch x := actual.(type) {
 	case *Buffer:
 		return !x.Closed()

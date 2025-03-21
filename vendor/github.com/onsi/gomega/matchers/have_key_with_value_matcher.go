@@ -11,11 +11,11 @@ import (
 )
 
 type HaveKeyWithValueMatcher struct {
-	Key   interface{}
-	Value interface{}
+	Key   any
+	Value any
 }
 
-func (matcher *HaveKeyWithValueMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *HaveKeyWithValueMatcher) Match(actual any) (success bool, err error) {
 	if !isMap(actual) && !miter.IsSeq2(actual) {
 		return false, fmt.Errorf("HaveKeyWithValue matcher expects a map/iter.Seq2.  Got:%s", format.Object(actual, 1))
 	}
@@ -70,7 +70,7 @@ func (matcher *HaveKeyWithValueMatcher) Match(actual interface{}) (success bool,
 	return false, nil
 }
 
-func (matcher *HaveKeyWithValueMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *HaveKeyWithValueMatcher) FailureMessage(actual any) (message string) {
 	str := "to have {key: value}"
 	if _, ok := matcher.Key.(omegaMatcher); ok {
 		str += " matching"
@@ -78,12 +78,12 @@ func (matcher *HaveKeyWithValueMatcher) FailureMessage(actual interface{}) (mess
 		str += " matching"
 	}
 
-	expect := make(map[interface{}]interface{}, 1)
+	expect := make(map[any]any, 1)
 	expect[matcher.Key] = matcher.Value
 	return format.Message(actual, str, expect)
 }
 
-func (matcher *HaveKeyWithValueMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *HaveKeyWithValueMatcher) NegatedFailureMessage(actual any) (message string) {
 	kStr := "not to have key"
 	if _, ok := matcher.Key.(omegaMatcher); ok {
 		kStr = "not to have key matching"
