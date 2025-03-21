@@ -118,7 +118,7 @@ func (r *Runtime) Push(ctx context.Context, source, destination string, options 
 		}
 	}
 
-	c, err := r.newCopier(&options.CopyOptions, nil)
+	c, err := r.newCopier(&options.CopyOptions)
 	if err != nil {
 		return nil, err
 	}
