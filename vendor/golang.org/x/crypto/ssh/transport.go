@@ -17,8 +17,7 @@ import (
 const debugTransport = false
 
 const (
-	gcm128CipherID = "aes128-gcm@openssh.com"
-	gcm256CipherID = "aes256-gcm@openssh.com"
+	gcmCipherID    = "aes128-gcm@openssh.com"
 	aes128cbcID    = "aes128-cbc"
 	tripledescbcID = "3des-cbc"
 )
@@ -49,9 +48,6 @@ type transport struct {
 	rand      io.Reader
 	isClient  bool
 	io.Closer
-
-	strictMode     bool
-	initialKEXDone bool
 }
 
 // packetCipher represents a combination of SSH encryption/MAC
@@ -75,18 +71,6 @@ type connectionState struct {
 	seqNum           uint32
 	dir              direction
 	pendingKeyChange chan packetCipher
-}
-
-func (t *transport) setStrictMode() error {
-	if t.reader.seqNum != 1 {
-		return errors.New("ssh: sequence number != 1 when strict KEX mode requested")
-	}
-	t.strictMode = true
-	return nil
-}
-
-func (t *transport) setInitialKEXDone() {
-	t.initialKEXDone = true
 }
 
 // prepareKeyChange sets up key material for a keychange. The key changes in
@@ -127,12 +111,11 @@ func (t *transport) printPacket(p []byte, write bool) {
 // Read and decrypt next packet.
 func (t *transport) readPacket() (p []byte, err error) {
 	for {
-		p, err = t.reader.readPacket(t.bufReader, t.strictMode)
+		p, err = t.reader.readPacket(t.bufReader)
 		if err != nil {
 			break
 		}
-		// in strict mode we pass through DEBUG and IGNORE packets only during the initial KEX
-		if len(p) == 0 || (t.strictMode && !t.initialKEXDone) || (p[0] != msgIgnore && p[0] != msgDebug) {
+		if len(p) == 0 || (p[0] != msgIgnore && p[0] != msgDebug) {
 			break
 		}
 	}
@@ -143,7 +126,7 @@ func (t *transport) readPacket() (p []byte, err error) {
 	return p, err
 }
 
-func (s *connectionState) readPacket(r *bufio.Reader, strictMode bool) ([]byte, error) {
+func (s *connectionState) readPacket(r *bufio.Reader) ([]byte, error) {
 	packet, err := s.packetCipher.readCipherPacket(s.seqNum, r)
 	s.seqNum++
 	if err == nil && len(packet) == 0 {
@@ -156,9 +139,6 @@ func (s *connectionState) readPacket(r *bufio.Reader, strictMode bool) ([]byte, 
 			select {
 			case cipher := <-s.pendingKeyChange:
 				s.packetCipher = cipher
-				if strictMode {
-					s.seqNum = 0
-				}
 			default:
 				return nil, errors.New("ssh: got bogus newkeys message")
 			}
@@ -189,10 +169,10 @@ func (t *transport) writePacket(packet []byte) error {
 	if debugTransport {
 		t.printPacket(packet, true)
 	}
-	return t.writer.writePacket(t.bufWriter, t.rand, packet, t.strictMode)
+	return t.writer.writePacket(t.bufWriter, t.rand, packet)
 }
 
-func (s *connectionState) writePacket(w *bufio.Writer, rand io.Reader, packet []byte, strictMode bool) error {
+func (s *connectionState) writePacket(w *bufio.Writer, rand io.Reader, packet []byte) error {
 	changeKeys := len(packet) > 0 && packet[0] == msgNewKeys
 
 	err := s.packetCipher.writeCipherPacket(s.seqNum, w, rand, packet)
@@ -207,9 +187,6 @@ func (s *connectionState) writePacket(w *bufio.Writer, rand io.Reader, packet []
 		select {
 		case cipher := <-s.pendingKeyChange:
 			s.packetCipher = cipher
-			if strictMode {
-				s.seqNum = 0
-			}
 		default:
 			panic("ssh: no key material for msgNewKeys")
 		}

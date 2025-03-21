@@ -9,6 +9,7 @@ import (
 	"image"
 	"image/jpeg"
 	"io"
+	"io/ioutil"
 )
 
 const UserAttrImageSubpacket = 1
@@ -55,7 +56,7 @@ func NewUserAttribute(contents ...*OpaqueSubpacket) *UserAttribute {
 
 func (uat *UserAttribute) parse(r io.Reader) (err error) {
 	// RFC 4880, section 5.13
-	b, err := io.ReadAll(r)
+	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return
 	}

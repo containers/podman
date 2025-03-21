@@ -3,9 +3,11 @@
 // license that can be found in the LICENSE file.
 
 //go:build !purego
+// +build !purego
 
-// Package alias implements memory aliasing tests.
-package alias
+// Package subtle implements functions that are often useful in cryptographic
+// code but require careful thought to use correctly.
+package subtle // import "golang.org/x/crypto/internal/subtle"
 
 import "unsafe"
 

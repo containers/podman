@@ -1,5 +1,8 @@
 module github.com/containers/podman/v4
 
+// N/B: If/when bumping the go version below, please revisit the replaced
+// vendoring of golang.org/x/crypto from the temporary containers/golang-crypto
+// fork.  It's likely a newer official release will successfully build with podman.
 go 1.17
 
 require (
@@ -156,4 +159,4 @@ require (
 // See https://github.com/projectatomic/runc/blob/podman-v4.2.0-rhel/README.branch for details.
 replace github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8
 
-replace golang.org/x/crypto => github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581
+replace golang.org/x/crypto => github.com/containers/golang-crypto v0.0.0-v420-rhel-podman.1
