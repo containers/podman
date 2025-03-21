@@ -40,6 +40,7 @@ type playKubeOptionsWrapper struct {
 	BuildCLI       bool
 	annotations    []string
 	macs           []string
+	pidsLimit      int64
 }
 
 var (
@@ -176,6 +177,13 @@ func playFlags(cmd *cobra.Command) {
 	flags.BoolVar(&playOptions.UseLongAnnotations, noTruncFlagName, false, "Use annotations that are not truncated to the Kubernetes maximum length of 63 characters")
 	_ = flags.MarkHidden(noTruncFlagName)
 
+	pidsLimitFlagName := "pids-limit"
+	flags.Int64Var(
+		&playOptions.pidsLimit, pidsLimitFlagName, 0,
+		"Tune pods pids limit (set -1 for unlimited)",
+	)
+	_ = cmd.RegisterFlagCompletionFunc(pidsLimitFlagName, completion.AutocompleteNone)
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&playOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -236,6 +244,9 @@ func play(cmd *cobra.Command, args []string) error {
 		if err := auth.CheckAuthFile(playOptions.Authfile); err != nil {
 			return err
 		}
+	}
+	if cmd.Flags().Changed("pids-limit") {
+		playOptions.PIDsLimit = &playOptions.pidsLimit
 	}
 	if playOptions.ContextDir != "" && playOptions.Build != types.OptionalBoolTrue {
 		return errors.New("--build must be specified when using --context-dir option")

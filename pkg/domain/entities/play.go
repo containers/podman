@@ -81,6 +81,8 @@ type PlayKubeOptions struct {
 	Wait bool
 	// SystemContext - used when building the image
 	SystemContext *types.SystemContext
+	// Pids Limit
+	PIDsLimit *int64
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube

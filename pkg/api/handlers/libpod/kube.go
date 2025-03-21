@@ -123,6 +123,7 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 		Userns           string            `schema:"userns"`
 		Wait             bool              `schema:"wait"`
 		Build            bool              `schema:"build"`
+		PIDsLimit        int64             `schema:"PIDsLimit"`
 	}{
 		TLSVerify: true,
 		Start:     true,
@@ -207,6 +208,9 @@ func KubePlay(w http.ResponseWriter, r *http.Request) {
 	}
 	if _, found := r.URL.Query()["start"]; found {
 		options.Start = types.NewOptionalBool(query.Start)
+	}
+	if _, found := r.URL.Query()["PIDsLimit"]; found {
+		options.PIDsLimit = &query.PIDsLimit
 	}
 	report, err := containerEngine.PlayKube(r.Context(), reader, options)
 	if err != nil {

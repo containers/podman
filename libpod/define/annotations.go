@@ -169,6 +169,9 @@ const (
 	// KubeImageAutomountAnnotation
 	KubeImageAutomountAnnotation = "io.podman.annotations.kube.image.volumes.mount"
 
+	// PIDsLimitAnnotation is used to limit the number of PIDs
+	PIDsLimitAnnotation = "io.podman.annotations.pids-limit"
+
 	// TotalAnnotationSizeLimitB is the max length of annotations allowed by Kubernetes.
 	TotalAnnotationSizeLimitB int = 256 * (1 << 10) // 256 kB
 )

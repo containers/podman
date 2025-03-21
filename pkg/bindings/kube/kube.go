@@ -49,6 +49,9 @@ func PlayWithBody(ctx context.Context, body io.Reader, options *PlayOptions) (*e
 	if options.Start != nil {
 		params.Set("start", strconv.FormatBool(options.GetStart()))
 	}
+	if options.PIDsLimit != nil {
+		params.Set("PIDsLimit", strconv.FormatInt(*options.PIDsLimit, 10))
+	}
 
 	// For the remote case, read any configMaps passed and append it to the main yaml content
 	if options.ConfigMaps != nil {

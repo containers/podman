@@ -407,3 +407,18 @@ func (o *PlayOptions) GetServiceContainer() bool {
 	}
 	return *o.ServiceContainer
 }
+
+// WithPIDsLimit set field PIDsLimit to given value
+func (o *PlayOptions) WithPIDsLimit(value int64) *PlayOptions {
+	o.PIDsLimit = &value
+	return o
+}
+
+// GetPIDsLimit returns value of field PIDsLimit
+func (o *PlayOptions) GetPIDsLimit() int64 {
+	if o.PIDsLimit == nil {
+		var z int64
+		return z
+	}
+	return *o.PIDsLimit
+}
