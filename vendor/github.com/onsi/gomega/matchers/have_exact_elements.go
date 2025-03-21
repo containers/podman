@@ -14,13 +14,13 @@ type mismatchFailure struct {
 }
 
 type HaveExactElementsMatcher struct {
-	Elements         []interface{}
+	Elements         []any
 	mismatchFailures []mismatchFailure
 	missingIndex     int
 	extraIndex       int
 }
 
-func (matcher *HaveExactElementsMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *HaveExactElementsMatcher) Match(actual any) (success bool, err error) {
 	matcher.resetState()
 
 	if isMap(actual) || miter.IsSeq2(actual) {
@@ -108,7 +108,7 @@ func (matcher *HaveExactElementsMatcher) Match(actual interface{}) (success bool
 	return success, nil
 }
 
-func (matcher *HaveExactElementsMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *HaveExactElementsMatcher) FailureMessage(actual any) (message string) {
 	message = format.Message(actual, "to have exact elements with", presentable(matcher.Elements))
 	if matcher.missingIndex > 0 {
 		message = fmt.Sprintf("%s\nthe missing elements start from index %d", message, matcher.missingIndex)
@@ -125,7 +125,7 @@ func (matcher *HaveExactElementsMatcher) FailureMessage(actual interface{}) (mes
 	return
 }
 
-func (matcher *HaveExactElementsMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *HaveExactElementsMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "not to contain elements", presentable(matcher.Elements))
 }
 

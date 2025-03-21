@@ -43,7 +43,7 @@ type Exiter interface {
 	ExitCode() int
 }
 
-func (m *exitMatcher) Match(actual interface{}) (success bool, err error) {
+func (m *exitMatcher) Match(actual any) (success bool, err error) {
 	exiter, ok := actual.(Exiter)
 	if !ok {
 		return false, fmt.Errorf("Exit must be passed a gexec.Exiter (Missing method ExitCode() int) Got:\n%s", format.Object(actual, 1))
@@ -61,14 +61,14 @@ func (m *exitMatcher) Match(actual interface{}) (success bool, err error) {
 	return m.exitCode == m.actualExitCode, nil
 }
 
-func (m *exitMatcher) FailureMessage(actual interface{}) (message string) {
+func (m *exitMatcher) FailureMessage(actual any) (message string) {
 	if m.actualExitCode == -1 {
 		return "Expected process to exit.  It did not."
 	}
 	return format.Message(m.actualExitCode, "to match exit code:", m.exitCode)
 }
 
-func (m *exitMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (m *exitMatcher) NegatedFailureMessage(actual any) (message string) {
 	if m.actualExitCode == -1 {
 		return "you really shouldn't be able to see this!"
 	} else {
@@ -79,7 +79,7 @@ func (m *exitMatcher) NegatedFailureMessage(actual interface{}) (message string)
 	}
 }
 
-func (m *exitMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
+func (m *exitMatcher) MatchMayChangeInTheFuture(actual any) bool {
 	session, ok := actual.(*Session)
 	if ok {
 		return session.ExitCode() == -1
