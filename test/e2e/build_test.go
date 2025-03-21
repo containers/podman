@@ -972,4 +972,19 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, `building at STEP "RUN --mount=type=cache,target=/test,z cat /test/world": while running runtime: exit status 1`))
 	})
+	It("podman build with sbom flags", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+		session := podmanTest.Podman([]string{"build", "-t", "sbom-img", "--sbom-output=localsbom.txt", "--sbom-purl-output=localpurl.txt", "--sbom-image-output=/root/sbom.txt", "--sbom-image-purl-output=/root/purl.txt",
+			"--sbom-scanner-image=alpine", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED ROOT {ROOTFS} > {OUTPUT}'", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED BUILD CONTEXT {CONTEXT} > {OUTPUT}'",
+			"--sbom-merge-strategy=cat", "build/basicalpine"})
+
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"run", "--rm", "sbom-img", "ls", "/root"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(ContainSubstring("purl.txt"))
+		Expect(session.OutputToString()).To(ContainSubstring("sbom.txt"))
+	})
 })
