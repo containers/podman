@@ -65,7 +65,7 @@ func CheckAllLatestAndPodIDFile(c *cobra.Command, args []string, ignoreArgLen bo
 }
 
 // CheckAllLatestAndIDFile checks that --all and --latest are used correctly for containers and pods
-// If idFileFlag is set is set, also checks for the --cidfile or --pod-id-file flag.
+// If idFileFlag is set, also checks for the --cidfile or --pod-id-file flag.
 func CheckAllLatestAndIDFile(c *cobra.Command, args []string, ignoreArgLen bool, idFileFlag string) error {
 	var specifiedLatest bool
 	argLen := len(args)

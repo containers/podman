@@ -50,6 +50,7 @@ var (
 	envInput, envFile []string
 	execOpts          entities.ExecOptions
 	execDetach        bool
+	execCidFile       string
 )
 
 func execFlags(cmd *cobra.Command) {
@@ -62,6 +63,10 @@ func execFlags(cmd *cobra.Command) {
 	detachKeysFlagName := "detach-keys"
 	flags.StringVar(&execOpts.DetachKeys, detachKeysFlagName, containerConfig.DetachKeys(), "Select the key sequence for detaching a container. Format is a single character [a-Z] or ctrl-<value> where <value> is one of: a-z, @, ^, [, , or _")
 	_ = cmd.RegisterFlagCompletionFunc(detachKeysFlagName, common.AutocompleteDetachKeys)
+
+	cidfileFlagName := "cidfile"
+	flags.StringVar(&execCidFile, cidfileFlagName, "", "File to read the container ID from")
+	_ = cmd.RegisterFlagCompletionFunc(cidfileFlagName, completion.AutocompleteDefault)
 
 	envFlagName := "env"
 	flags.StringArrayVarP(&envInput, envFlagName, "e", []string{}, "Set environment variables")
@@ -116,16 +121,12 @@ func init() {
 }
 
 func exec(cmd *cobra.Command, args []string) error {
-	var nameOrID string
+	nameOrID, command, err := determineTargetCtrAndCmd(args, execOpts.Latest, execCidFile != "")
+	if err != nil {
+		return err
+	}
+	execOpts.Cmd = command
 
-	if len(args) == 0 && !execOpts.Latest {
-		return errors.New("exec requires the name or ID of a container or the --latest flag")
-	}
-	execOpts.Cmd = args
-	if !execOpts.Latest {
-		execOpts.Cmd = args[1:]
-		nameOrID = strings.TrimPrefix(args[0], "/")
-	}
 	// Validate given environment variables
 	execOpts.Envs = make(map[string]string)
 	for _, f := range envFile {
@@ -189,6 +190,33 @@ func exec(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Println(id)
 	return nil
+}
+
+// determineTargetCtrAndCmd determines which command exec should run in which container
+func determineTargetCtrAndCmd(args []string, latestSpecified bool, execCidFileProvided bool) (string, []string, error) {
+	var nameOrID string
+	var command []string
+
+	if len(args) == 0 && !latestSpecified && !execCidFileProvided {
+		return "", nil, errors.New("exec requires the name or ID of a container or the --latest or --cidfile flag")
+	} else if latestSpecified && execCidFileProvided {
+		return "", nil, errors.New("--latest and --cidfile can not be used together")
+	}
+	command = args
+	if !latestSpecified {
+		if !execCidFileProvided {
+			// assume first arg to be name or ID
+			command = args[1:]
+			nameOrID = strings.TrimPrefix(args[0], "/")
+		} else {
+			content, err := os.ReadFile(execCidFile)
+			if err != nil {
+				return "", nil, fmt.Errorf("reading CIDFile: %w", err)
+			}
+			nameOrID = strings.Split(string(content), "\n")[0]
+		}
+	}
+	return nameOrID, command, nil
 }
 
 func execWait(ctr string, seconds int32) error {
