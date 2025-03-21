@@ -231,6 +231,10 @@ func (g GoFlagsConfig) BinaryMustBePreserved() bool {
 	return g.BlockProfile != "" || g.CPUProfile != "" || g.MemProfile != "" || g.MutexProfile != ""
 }
 
+func (g GoFlagsConfig) NeedsSymbols() bool {
+	return g.BinaryMustBePreserved()
+}
+
 // Configuration that were deprecated in 2.0
 type deprecatedConfig struct {
 	DebugParallel                   bool
@@ -640,7 +644,7 @@ func VetAndInitializeCLIAndGoConfig(cliConfig CLIConfig, goFlagsConfig GoFlagsCo
 }
 
 // GenerateGoTestCompileArgs is used by the Ginkgo CLI to generate command line arguments to pass to the go test -c command when compiling the test
-func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, packageToBuild string, pathToInvocationPath string) ([]string, error) {
+func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, packageToBuild string, pathToInvocationPath string, preserveSymbols bool) ([]string, error) {
 	// if the user has set the CoverProfile run-time flag make sure to set the build-time cover flag to make sure
 	// the built test binary can generate a coverprofile
 	if goFlagsConfig.CoverProfile != "" {
@@ -661,6 +665,10 @@ func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, packageToBuild strin
 			}
 		}
 		goFlagsConfig.CoverPkg = strings.Join(adjustedCoverPkgs, ",")
+	}
+
+	if !goFlagsConfig.NeedsSymbols() && goFlagsConfig.LDFlags == "" && !preserveSymbols {
+		goFlagsConfig.LDFlags = "-w -s"
 	}
 
 	args := []string{"test", "-c", packageToBuild}

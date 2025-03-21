@@ -991,7 +991,17 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 		} else if b.Hostname() != "" {
 			g.SetHostname(b.Hostname())
 		} else {
-			g.SetHostname(stringid.TruncateID(b.ContainerID))
+			hostname := stringid.TruncateID(b.ContainerID)
+			defConfig, err := config.Default()
+			if err != nil {
+				return false, "", fmt.Errorf("failed to get container config: %w", err)
+			}
+			if defConfig.Containers.ContainerNameAsHostName {
+				if mapped := mapContainerNameToHostname(b.Container); mapped != "" {
+					hostname = mapped
+				}
+			}
+			g.SetHostname(hostname)
 		}
 	} else {
 		g.SetHostname("")
@@ -1223,9 +1233,17 @@ func setupMaskedPaths(g *generate.Generator, opts *define.CommonBuildOptions) {
 	if slices.Contains(opts.Unmasks, "all") {
 		return
 	}
-	for _, mp := range append(config.DefaultMaskedPaths, opts.Masks...) {
-		if slices.Contains(opts.Unmasks, mp) {
-			continue
+nextMaskedPath:
+	for _, mp := range append(config.DefaultMaskedPaths(), opts.Masks...) {
+		for _, unmask := range opts.Unmasks {
+			match, err := filepath.Match(unmask, mp)
+			if err != nil {
+				logrus.Warnf("Invalid unmask pattern %q: %v", unmask, err)
+				continue
+			}
+			if match {
+				continue nextMaskedPath
+			}
 		}
 		g.AddLinuxMaskedPaths(mp)
 	}

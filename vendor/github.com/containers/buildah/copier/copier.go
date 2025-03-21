@@ -13,6 +13,7 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -350,6 +351,7 @@ type GetOptions struct {
 	ChmodDirs          *os.FileMode      // set permissions on directories. no effect on archives being extracted
 	ChownFiles         *idtools.IDPair   // set ownership of files. no effect on archives being extracted
 	ChmodFiles         *os.FileMode      // set permissions on files. no effect on archives being extracted
+	Parents            bool              // maintain the sources parent directory in the destination
 	StripSetuidBit     bool              // strip the setuid bit off of items being copied. no effect on archives being extracted
 	StripSetgidBit     bool              // strip the setgid bit off of items being copied. no effect on archives being extracted
 	StripStickyBit     bool              // strip the sticky bit off of items being copied. no effect on archives being extracted
@@ -1182,6 +1184,49 @@ func errorIsPermission(err error) bool {
 	return errors.Is(err, os.ErrPermission) || strings.Contains(err.Error(), "permission denied")
 }
 
+func getParents(path string, stopPath string) []string {
+	out := []string{}
+	for path != "/" && path != "." && path != stopPath {
+		path = filepath.Dir(path)
+		if path == stopPath {
+			continue
+		}
+		out = append(out, path)
+	}
+	slices.Reverse(out)
+	return out
+}
+
+func checkLinks(item string, req request, info os.FileInfo) (string, os.FileInfo, error) {
+	// chase links. if we hit a dead end, we should just fail
+	oldItem := item
+	followedLinks := 0
+	const maxFollowedLinks = 16
+	for !req.GetOptions.NoDerefSymlinks && info.Mode()&os.ModeType == os.ModeSymlink && followedLinks < maxFollowedLinks {
+		path, err := os.Readlink(item)
+		if err != nil {
+			continue
+		}
+		if filepath.IsAbs(path) || looksLikeAbs(path) {
+			path = filepath.Join(req.Root, path)
+		} else {
+			path = filepath.Join(filepath.Dir(item), path)
+		}
+		item = path
+		if _, err = convertToRelSubdirectory(req.Root, item); err != nil {
+			return "", nil, fmt.Errorf("copier: get: computing path of %q(%q) relative to %q: %w", oldItem, item, req.Root, err)
+		}
+		if info, err = os.Lstat(item); err != nil {
+			return "", nil, fmt.Errorf("copier: get: lstat %q(%q): %w", oldItem, item, err)
+		}
+		followedLinks++
+	}
+	if followedLinks >= maxFollowedLinks {
+		return "", nil, fmt.Errorf("copier: get: resolving symlink %q(%q): %w", oldItem, item, syscall.ELOOP)
+	}
+	return item, info, nil
+}
+
 func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) (*response, func() error, error) {
 	statRequest := req
 	statRequest.Request = requestStat
@@ -1196,15 +1241,25 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 		return errorResponse("copier: get: expected at least one glob pattern, got 0")
 	}
 	// build a queue of items by globbing
-	var queue []string
+	type queueItem struct {
+		glob    string
+		parents []string
+	}
+	var queue []queueItem
 	globMatchedCount := 0
 	for _, glob := range req.Globs {
 		globMatched, err := extendedGlob(glob)
 		if err != nil {
 			return errorResponse("copier: get: glob %q: %v", glob, err)
 		}
-		globMatchedCount += len(globMatched)
-		queue = append(queue, globMatched...)
+		for _, path := range globMatched {
+			var parents []string
+			if req.GetOptions.Parents {
+				parents = getParents(path, req.Directory)
+			}
+			globMatchedCount++
+			queue = append(queue, queueItem{glob: path, parents: parents})
+		}
 	}
 	// no matches -> error
 	if len(queue) == 0 {
@@ -1219,7 +1274,9 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 		defer tw.Close()
 		hardlinkChecker := new(hardlinkChecker)
 		itemsCopied := 0
-		for i, item := range queue {
+		addedParents := map[string]struct{}{}
+		for i, qItem := range queue {
+			item := qItem.glob
 			// if we're not discarding the names of individual directories, keep track of this one
 			relNamePrefix := ""
 			if req.GetOptions.KeepDirectoryNames {
@@ -1230,31 +1287,53 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 			if err != nil {
 				return fmt.Errorf("copier: get: lstat %q: %w", item, err)
 			}
-			// chase links. if we hit a dead end, we should just fail
-			followedLinks := 0
-			const maxFollowedLinks = 16
-			for !req.GetOptions.NoDerefSymlinks && info.Mode()&os.ModeType == os.ModeSymlink && followedLinks < maxFollowedLinks {
-				path, err := os.Readlink(item)
+			if req.GetOptions.Parents && info.Mode().IsDir() {
+				if !slices.Contains(qItem.parents, item) {
+					qItem.parents = append(qItem.parents, item)
+				}
+			}
+			// Copy parents in to tarball first if exists
+			for _, parent := range qItem.parents {
+				oldParent := parent
+				parentInfo, err := os.Lstat(parent)
 				if err != nil {
+					return fmt.Errorf("copier: get: lstat %q: %w", parent, err)
+				}
+				parent, parentInfo, err = checkLinks(parent, req, parentInfo)
+				if err != nil {
+					return err
+				}
+				parentName, err := convertToRelSubdirectory(req.Directory, oldParent)
+				if err != nil {
+					return fmt.Errorf("copier: get: error computing path of %q relative to %q: %w", parent, req.Directory, err)
+				}
+				if parentName == "" || parentName == "." {
+					// skip the "." entry
 					continue
 				}
-				if filepath.IsAbs(path) || looksLikeAbs(path) {
-					path = filepath.Join(req.Root, path)
-				} else {
-					path = filepath.Join(filepath.Dir(item), path)
+
+				if _, ok := addedParents[parentName]; ok {
+					continue
 				}
-				item = path
-				if _, err = convertToRelSubdirectory(req.Root, item); err != nil {
-					return fmt.Errorf("copier: get: computing path of %q(%q) relative to %q: %w", queue[i], item, req.Root, err)
+				addedParents[parentName] = struct{}{}
+
+				if err := copierHandlerGetOne(parentInfo, "", parentName, parent, req.GetOptions, tw, hardlinkChecker, idMappings); err != nil {
+					if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
+						continue
+					} else if errors.Is(err, os.ErrNotExist) {
+						logrus.Warningf("copier: file disappeared while reading: %q", parent)
+						return nil
+					}
+					return fmt.Errorf("copier: get: %q: %w", queue[i].glob, err)
 				}
-				if info, err = os.Lstat(item); err != nil {
-					return fmt.Errorf("copier: get: lstat %q(%q): %w", queue[i], item, err)
-				}
-				followedLinks++
+				itemsCopied++
 			}
-			if followedLinks >= maxFollowedLinks {
-				return fmt.Errorf("copier: get: resolving symlink %q(%q): %w", queue[i], item, syscall.ELOOP)
+
+			item, info, err = checkLinks(item, req, info)
+			if err != nil {
+				return err
 			}
+
 			// evaluate excludes relative to the root directory
 			if info.Mode().IsDir() {
 				// we don't expand any of the contents that are archives
@@ -1354,6 +1433,12 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 							ok = filepath.SkipDir
 						}
 					}
+					if req.GetOptions.Parents {
+						rel, err = convertToRelSubdirectory(req.Directory, path)
+						if err != nil {
+							return fmt.Errorf("copier: get: error computing path of %q relative to %q: %w", path, req.Root, err)
+						}
+					}
 					// add the item to the outgoing tar stream
 					if err := copierHandlerGetOne(info, symlinkTarget, rel, path, options, tw, hardlinkChecker, idMappings); err != nil {
 						if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
@@ -1368,7 +1453,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				}
 				// walk the directory tree, checking/adding items individually
 				if err := filepath.WalkDir(item, walkfn); err != nil {
-					return fmt.Errorf("copier: get: %q(%q): %w", queue[i], item, err)
+					return fmt.Errorf("copier: get: %q(%q): %w", queue[i].glob, item, err)
 				}
 				itemsCopied++
 			} else {
@@ -1379,15 +1464,24 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 				if skip {
 					continue
 				}
-				// add the item to the outgoing tar stream.  in
-				// cases where this was a symlink that we
-				// dereferenced, be sure to use the name of the
-				// link.
-				if err := copierHandlerGetOne(info, "", filepath.Base(queue[i]), item, req.GetOptions, tw, hardlinkChecker, idMappings); err != nil {
+
+				name := filepath.Base(queue[i].glob)
+				if req.GetOptions.Parents {
+					name, err = convertToRelSubdirectory(req.Directory, queue[i].glob)
+					if err != nil {
+						return fmt.Errorf("copier: get: error computing path of %q relative to %q: %w", item, req.Root, err)
+					}
+					if name == "" || name == "." {
+						// skip the "." entry
+						continue
+					}
+				}
+
+				if err := copierHandlerGetOne(info, "", name, item, req.GetOptions, tw, hardlinkChecker, idMappings); err != nil {
 					if req.GetOptions.IgnoreUnreadable && errorIsPermission(err) {
 						continue
 					}
-					return fmt.Errorf("copier: get: %q: %w", queue[i], err)
+					return fmt.Errorf("copier: get: %q: %w", queue[i].glob, err)
 				}
 				itemsCopied++
 			}

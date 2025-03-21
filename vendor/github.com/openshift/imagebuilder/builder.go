@@ -3,6 +3,7 @@ package imagebuilder
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
@@ -716,14 +717,14 @@ var builtinAllowedBuildArgs = map[string]bool{
 	"no_proxy":    true,
 }
 
-// ParseIgnore returns a list of the excludes in the specified path
-// path should be a file with the .dockerignore format
+// ParseIgnoreReader returns a list of the excludes in the provided file
+// which uses the .dockerignore format
 // extracted from fsouza/go-dockerclient and modified to drop comments and
 // empty lines.
-func ParseIgnore(path string) ([]string, error) {
+func ParseIgnoreReader(r io.Reader) ([]string, error) {
 	var excludes []string
 
-	ignores, err := ioutil.ReadFile(path)
+	ignores, err := io.ReadAll(r)
 	if err != nil {
 		return excludes, err
 	}
@@ -737,6 +738,18 @@ func ParseIgnore(path string) ([]string, error) {
 		}
 	}
 	return excludes, nil
+}
+
+// ParseIgnore returns a list returned by having ParseIgnoreReader() read the
+// specified path
+func ParseIgnore(path string) ([]string, error) {
+	var excludes []string
+
+	ignores, err := ioutil.ReadFile(path)
+	if err != nil {
+		return excludes, err
+	}
+	return ParseIgnoreReader(bytes.NewReader(ignores))
 }
 
 // ParseDockerIgnore returns a list of the excludes in the .containerignore or .dockerignore file.

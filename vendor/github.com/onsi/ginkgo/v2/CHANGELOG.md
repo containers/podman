@@ -1,3 +1,15 @@
+## 2.23.2
+
+🎉🎉🎉
+
+At long last, some long-standing performance gaps between `ginkgo` and `go test` have been resolved!
+
+Ginkgo operates by running `go test -c` to generate test binaries, and then running those binaries.  It turns out that the compilation step of `go test -c` is slower than `go test`'s compilation step because `go test` strips out debug symbols (`ldflags=-w`) whereas `go test -c` does not.
+
+Ginkgo now passes the appropriate `ldflags` to `go test -c` when running specs to strip out symbols.  This is only done when it is safe to do so and symbols are preferred when profiling is enabled and when `ginkgo build` is called explicitly.
+
+This, coupled, with the [instructions for disabling XProtect on MacOS](https://onsi.github.io/ginkgo/#if-you-are-running-on-macos) yields a much better performance experience with Ginkgo.
+
 ## 2.23.1
 
 ## 🚨 For users on MacOS 🚨
