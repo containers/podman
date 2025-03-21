@@ -143,12 +143,6 @@ func (s *asmState) Write(b []byte) (int, error) {
 
 // Read squeezes an arbitrary number of bytes from the sponge.
 func (s *asmState) Read(out []byte) (n int, err error) {
-	// The 'compute last message digest' instruction only stores the digest
-	// at the first operand (dst) for SHAKE functions.
-	if s.function != shake_128 && s.function != shake_256 {
-		panic("sha3: can only call Read for SHAKE functions")
-	}
-
 	n = len(out)
 
 	// need to pad if we were absorbing
@@ -208,17 +202,8 @@ func (s *asmState) Sum(b []byte) []byte {
 
 	// Hash the buffer. Note that we don't clear it because we
 	// aren't updating the state.
-	switch s.function {
-	case sha3_224, sha3_256, sha3_384, sha3_512:
-		klmd(s.function, &a, nil, s.buf)
-		return append(b, a[:s.outputLen]...)
-	case shake_128, shake_256:
-		d := make([]byte, s.outputLen, 64)
-		klmd(s.function, &a, d, s.buf)
-		return append(b, d[:s.outputLen]...)
-	default:
-		panic("sha3: unknown function")
-	}
+	klmd(s.function, &a, nil, s.buf)
+	return append(b, a[:s.outputLen]...)
 }
 
 // Reset resets the Hash to its initial state.
@@ -248,56 +233,56 @@ func (s *asmState) Clone() ShakeHash {
 	return s.clone()
 }
 
-// new224 returns an assembly implementation of SHA3-224 if available,
-// otherwise it returns a generic implementation.
-func new224() hash.Hash {
+// new224Asm returns an assembly implementation of SHA3-224 if available,
+// otherwise it returns nil.
+func new224Asm() hash.Hash {
 	if cpu.S390X.HasSHA3 {
 		return newAsmState(sha3_224)
 	}
-	return new224Generic()
+	return nil
 }
 
-// new256 returns an assembly implementation of SHA3-256 if available,
-// otherwise it returns a generic implementation.
-func new256() hash.Hash {
+// new256Asm returns an assembly implementation of SHA3-256 if available,
+// otherwise it returns nil.
+func new256Asm() hash.Hash {
 	if cpu.S390X.HasSHA3 {
 		return newAsmState(sha3_256)
 	}
-	return new256Generic()
+	return nil
 }
 
-// new384 returns an assembly implementation of SHA3-384 if available,
-// otherwise it returns a generic implementation.
-func new384() hash.Hash {
+// new384Asm returns an assembly implementation of SHA3-384 if available,
+// otherwise it returns nil.
+func new384Asm() hash.Hash {
 	if cpu.S390X.HasSHA3 {
 		return newAsmState(sha3_384)
 	}
-	return new384Generic()
+	return nil
 }
 
-// new512 returns an assembly implementation of SHA3-512 if available,
-// otherwise it returns a generic implementation.
-func new512() hash.Hash {
+// new512Asm returns an assembly implementation of SHA3-512 if available,
+// otherwise it returns nil.
+func new512Asm() hash.Hash {
 	if cpu.S390X.HasSHA3 {
 		return newAsmState(sha3_512)
 	}
-	return new512Generic()
+	return nil
 }
 
-// newShake128 returns an assembly implementation of SHAKE-128 if available,
-// otherwise it returns a generic implementation.
-func newShake128() ShakeHash {
+// newShake128Asm returns an assembly implementation of SHAKE-128 if available,
+// otherwise it returns nil.
+func newShake128Asm() ShakeHash {
 	if cpu.S390X.HasSHA3 {
 		return newAsmState(shake_128)
 	}
-	return newShake128Generic()
+	return nil
 }
 
-// newShake256 returns an assembly implementation of SHAKE-256 if available,
-// otherwise it returns a generic implementation.
-func newShake256() ShakeHash {
+// newShake256Asm returns an assembly implementation of SHAKE-256 if available,
+// otherwise it returns nil.
+func newShake256Asm() ShakeHash {
 	if cpu.S390X.HasSHA3 {
 		return newAsmState(shake_256)
 	}
-	return newShake256Generic()
+	return nil
 }
