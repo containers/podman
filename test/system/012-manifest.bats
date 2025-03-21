@@ -324,4 +324,30 @@ function manifestListAddArtifactOnce() {
         manifestListAddArtifactOnce
     done
 }
+
+@test "manifest list images should not be marked as dangling" {
+      # build image and attach it to a manifest list
+      mlist=m-$(safename)
+      run_podman build -q -f -  <<< "from scratch"
+      iid=${output}
+      run_podman manifest create ${mlist} ${iid}
+
+      # verify image is not dangling, and is not remove via prune
+      run_podman images --filter dangling=true
+      assert "$output" != "sha256:${iid}" "Verify the filter dangling does not list the image"
+      run_podman image prune --force
+      assert "$output" != "${iid}" "Verify the prune does not remove the non dangling image"
+      run_podman image exists ${iid}
+
+      # Remove manifes
+      run_podman manifest rm ${mlist}
+
+      # verify the image is now dangling, and is removed via prune
+      run_podman images -q --filter dangling=true --no-trunc
+      assert "$output" == "sha256:${iid}" "Verify the filter dangling does list the image"
+      run_podman image prune --force
+      assert "$output" == "${iid}" "Verify that prune does not remove the dangling image"
+      run_podman 1 image exists ${iid}
+}
+
 # vim: filetype=sh

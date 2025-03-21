@@ -235,3 +235,5 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+replace github.com/containers/common => github.com/rhatdan/common v0.47.1-0.20250318135319-2242b2e1f465

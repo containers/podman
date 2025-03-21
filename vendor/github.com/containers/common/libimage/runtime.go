@@ -634,7 +634,7 @@ func (r *Runtime) ListImages(ctx context.Context, options *ListImagesOptions) ([
 
 	var tree *layerTree
 	if needsLayerTree {
-		tree, err = r.newLayerTreeFromData(images, snapshot.Layers)
+		tree, err = r.newLayerTreeFromData(ctx, images, snapshot.Layers, true)
 		if err != nil {
 			return nil, err
 		}

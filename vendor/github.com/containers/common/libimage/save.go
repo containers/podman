@@ -119,7 +119,7 @@ func (r *Runtime) saveSingleImage(ctx context.Context, name, format, path string
 		return err
 	}
 
-	c, err := r.newCopier(&options.CopyOptions)
+	c, err := r.newCopier(&options.CopyOptions, nil)
 	if err != nil {
 		return err
 	}
@@ -204,7 +204,7 @@ func (r *Runtime) saveDockerArchive(ctx context.Context, names []string, path st
 		copyOpts := options.CopyOptions
 		copyOpts.dockerArchiveAdditionalTags = local.tags
 
-		c, err := r.newCopier(&copyOpts)
+		c, err := r.newCopier(&copyOpts, nil)
 		if err != nil {
 			return err
 		}
