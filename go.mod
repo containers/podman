@@ -62,7 +62,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271
 	github.com/opencontainers/selinux v1.11.1
 	github.com/openshift/imagebuilder v1.2.15
-	github.com/rootless-containers/rootlesskit/v2 v2.3.2
+	github.com/rootless-containers/rootlesskit/v2 v2.3.4
 	github.com/shirou/gopsutil/v4 v4.25.2
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
