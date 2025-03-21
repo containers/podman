@@ -1865,4 +1865,164 @@ EOF
 
     run_podman rmi -i $image_tag
 }
+
+@test "quadlet verb - install, list, rm" {
+    # Create a test quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/alpine-quadlet.container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+Notify=yes
+LogDriver=passthrough
+EOF
+    # Clean all quadlets
+    run_podman quadlet rm --all -f
+    assert $status -eq 0 "all quadlets should be cleaned"
+
+    # Test quadlet install
+    run_podman quadlet install $quadlet_file
+    assert $status -eq 0 "quadlet install should succeed"
+
+    # Test quadlet list
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list should succeed"
+    assert "$output" =~ "alpine-quadlet.container" "list should contain alpine-quadlet.container"
+
+    # Test quadlet list with filter
+    run_podman quadlet list --filter name=something*
+    assert $status -eq 0 "quadlet list with filter should succeed"
+    assert "$output" !~ "alpine-quadlet.container" "filtered list should not contain alpine-quadlet.container"
+
+    # Test quadlet list with matching filter
+    run_podman quadlet list --filter name=alpine*
+    assert $status -eq 0 "quadlet list with matching filter should succeed"
+    assert "$output" =~ "alpine-quadlet.container" "matching filter should contain alpine-quadlet.container"
+
+    # Test quadlet print
+    run_podman quadlet print alpine-quadlet.container
+    assert $status -eq 0 "quadlet print should succeed"
+    assert "$output" =~ "\[Container\]" "print should show container section"
+    assert "$output" =~ "Image=$IMAGE" "print should show correct image"
+
+    # Test quadlet rm
+    run_podman quadlet rm alpine-quadlet.container
+    assert $status -eq 0 "quadlet rm should succeed"
+
+    # Verify removal
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list after removal should succeed"
+    assert "$output" !~ "alpine-quadlet.container" "list should not contain removed container"
+}
+
+# bats test_tags=distro-integration
+@test "quadlet verb - install multiple files from directory" {
+    # Create a directory for multiple quadlet files
+    local quadlet_dir=$PODMAN_TMPDIR/quadlet-multi
+    mkdir -p $quadlet_dir
+
+    # Create multiple quadlet files with different configurations
+    cat > $quadlet_dir/alpine1.container <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER 1; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+Notify=yes
+LogDriver=passthrough
+EOF
+
+    cat > $quadlet_dir/alpine2.container <<EOF
+[Container]
+Image=$IMAGE
+Exec=sh -c "echo STARTED CONTAINER 2; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+Notify=yes
+LogDriver=passthrough
+EOF
+
+    cat > $quadlet_dir/nginx.container <<EOF
+[Container]
+Image=quay.io/libpod/nginx:latest
+Exec=sh -c "echo STARTED NGINX; trap 'exit' SIGTERM; while :; do sleep 0.1; done"
+Notify=yes
+LogDriver=passthrough
+EOF
+    # Clean all quadlets
+    run_podman quadlet rm --all -f
+    assert $status -eq 0 "all quadlets should be cleaned"
+
+    # Test quadlet install with directory
+    run_podman quadlet install $quadlet_dir
+    assert $status -eq 0 "quadlet install with directory should succeed"
+
+    # Test quadlet list to verify all containers were installed
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list should succeed"
+    assert "$output" =~ "alpine1.container" "list should contain alpine1.container"
+    assert "$output" =~ "alpine2.container" "list should contain alpine2.container"
+    assert "$output" =~ "nginx.container" "list should contain nginx.container"
+
+    # Test quadlet list with filter for alpine containers
+    run_podman quadlet list --filter name=alpine*
+    assert $status -eq 0 "quadlet list with filter should succeed"
+    assert "$output" =~ "alpine1.container" "filtered list should contain alpine1.container"
+    assert "$output" =~ "alpine2.container" "filtered list should contain alpine2.container"
+    assert "$output" !~ "nginx.container" "filtered list should not contain nginx.container"
+
+    # Test quadlet print for each container
+    run_podman quadlet print alpine1.container
+    assert $status -eq 0 "quadlet print should succeed for alpine1"
+    assert "$output" =~ "Image=$IMAGE" "print should show correct image for alpine1"
+
+    run_podman quadlet print alpine2.container
+    assert $status -eq 0 "quadlet print should succeed for alpine2"
+    assert "$output" =~ "Image=$IMAGE" "print should show correct image for alpine2"
+
+    run_podman quadlet print nginx.container
+    assert $status -eq 0 "quadlet print should succeed for nginx"
+    assert "$output" =~ "Image=quay.io/libpod/nginx:latest" "print should show correct image for nginx"
+
+    # Test quadlet rm for all containers
+    run_podman quadlet rm alpine1.container alpine2.container nginx.container
+    assert $status -eq 0 "quadlet rm should succeed for all containers"
+
+    # Verify all containers were removed
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list after removal should succeed"
+    assert "$output" !~ "alpine1.container" "list should not contain removed container alpine1"
+    assert "$output" !~ "alpine2.container" "list should not contain removed container alpine2"
+    assert "$output" !~ "nginx.container" "list should not contain removed container nginx"
+}
+
+# bats test_tags=distro-integration
+@test "quadlet verb - install from URL" {
+    # Clean all quadlets
+    run_podman quadlet rm --all -f
+    assert $status -eq 0 "all quadlets should be cleaned"
+
+    # Test quadlet install from URL and capture the output
+    run_podman quadlet install https://raw.githubusercontent.com/containers/podman/main/test/e2e/quadlet/basic.container
+    assert $status -eq 0 "quadlet install from URL should succeed"
+    # Extract just the basename from the full path
+    quadlet_name=$(basename "$output")
+
+    # Test quadlet list to verify the container was installed
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list should succeed"
+    assert "$output" =~ "$quadlet_name" "list should contain $quadlet_name"
+
+    # Test quadlet print to verify the configuration
+    run_podman quadlet print "$quadlet_name"
+    assert $status -eq 0 "quadlet print should succeed"
+    assert "$output" =~ "\[Container\]" "print should show container section"
+    assert "$output" =~ "Image=" "print should show image configuration"
+
+    # Test quadlet rm
+    run_podman quadlet rm "$quadlet_name"
+    assert $status -eq 0 "quadlet rm should succeed"
+
+    # Verify removal
+    run_podman quadlet list
+    assert $status -eq 0 "quadlet list after removal should succeed"
+    assert "$output" !~ "$quadlet_name" "list should not contain removed container"
+}
+
 # vim: filetype=sh
