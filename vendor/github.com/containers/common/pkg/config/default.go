@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
 
 	"github.com/containers/common/internal/attributedstring"
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -37,8 +36,8 @@ const (
 	defaultInitName = "catatonit"
 )
 
-func getMaskedPaths() ([]string, error) {
-	maskedPaths := []string{
+var (
+	DefaultMaskedPaths = []string{
 		"/proc/acpi",
 		"/proc/kcore",
 		"/proc/keys",
@@ -50,34 +49,8 @@ func getMaskedPaths() ([]string, error) {
 		"/sys/devices/virtual/powercap",
 		"/sys/firmware",
 		"/sys/fs/selinux",
-		"/proc/interrupts",
-	}
-	maskedPathsToGlob := []string{
-		"/sys/devices/system/cpu/cpu*/thermal_throttle",
 	}
 
-	for _, p := range maskedPathsToGlob {
-		matches, err := filepath.Glob(p)
-		if err != nil {
-			return nil, err
-		}
-		maskedPaths = append(maskedPaths, matches...)
-	}
-	return maskedPaths, nil
-}
-
-var DefaultMaskedPaths = sync.OnceValue(func() []string {
-	maskedPaths, err := getMaskedPaths()
-	// this should never happen, the only error possible
-	// is ErrBadPattern and the patterns that were added must be valid
-	if err != nil {
-		panic(err)
-	}
-
-	return maskedPaths
-})
-
-var (
 	DefaultReadOnlyPaths = []string{
 		"/proc/asound",
 		"/proc/bus",
