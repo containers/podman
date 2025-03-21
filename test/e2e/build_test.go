@@ -4,7 +4,9 @@ package integration
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -971,5 +973,26 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 		session = podmanTest.Podman([]string{"build", "--pull-never", "--file", "build/cache/Dockerfilecacheread", "build/cache/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, `building at STEP "RUN --mount=type=cache,target=/test,z cat /test/world": while running runtime: exit status 1`))
+	})
+	It("podman build with sbom flags", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		podmanTest.PodmanExitCleanly("build", "-t", "sbom-img", "--sbom-output=localsbom.txt", "--sbom-purl-output=localpurl.txt", "--sbom-image-output=/tmp/sbom.txt", "--sbom-image-purl-output=/tmp/purl.txt",
+			"--sbom-scanner-image=alpine", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED ROOT {ROOTFS} > {OUTPUT}'", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED BUILD CONTEXT {CONTEXT} > {OUTPUT}'",
+			"--sbom-merge-strategy=cat", "build/basicalpine")
+
+		defer os.Remove("./localsbom.txt")
+		if _, err := os.Stat("./localsbom.txt"); err != nil {
+			Expect(errors.Is(err, fs.ErrNotExist)).To(BeFalse())
+		}
+
+		defer os.Remove("./localpurl.txt")
+		if _, err := os.Stat("./localpurl.txt"); err != nil {
+			Expect(errors.Is(err, fs.ErrNotExist)).To(BeFalse())
+		}
+
+		session := podmanTest.PodmanExitCleanly("run", "--rm", "sbom-img", "ls", "/tmp")
+		Expect(session.OutputToString()).To(ContainSubstring("purl.txt"))
+		Expect(session.OutputToString()).To(ContainSubstring("sbom.txt"))
 	})
 })
