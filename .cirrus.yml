@@ -59,6 +59,7 @@ env:
     CI_DESIRED_RUNTIME: crun    # As of 2024-05-28 there are no other supported runtimes
     CI_DESIRED_DATABASE: sqlite # 'sqlite' or 'boltdb'
     CI_DESIRED_STORAGE: overlay # overlay, vfs, or composefs (which is actually overlay)
+    CI_DESIRED_NETWORK_BACKEND: netavark # 'netavark' or 'cni'
 
     # Curl-command prefix for downloading task artifacts, simply add the
     # the url-encoded task name, artifact name, and path as a suffix.
