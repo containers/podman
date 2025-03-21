@@ -42,6 +42,8 @@ Updates the configuration of an existing container, allowing changes to resource
 
 @@option device-write-iops
 
+@@option env.update
+
 @@option health-cmd
 
 @@option health-interval
@@ -89,6 +91,8 @@ Changing this setting resets the timer, depending on the state of the container.
 @@option pids-limit
 
 @@option restart
+
+@@option unsetenv.update
 
 
 ## EXAMPLEs

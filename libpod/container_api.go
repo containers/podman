@@ -14,8 +14,8 @@ import (
 	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/storage/pkg/archive"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -106,10 +106,10 @@ func (c *Container) Start(ctx context.Context, recursive bool) error {
 
 // Update updates the given container.
 // Either resource limits, restart policies, or HealthCheck configuration can be updated.
-// Either resources, restartPolicy or changedHealthCheckConfiguration must not be nil.
+// Either resources, restartPolicy or changedHealthCheckConfiguration must not be nil in the updateOptions.
 // If restartRetries is not nil, restartPolicy must be set and must be "on-failure".
 // Nil values of changedHealthCheckConfiguration are not updated.
-func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string, restartRetries *uint, changedHealthCheckConfiguration *define.UpdateHealthCheckConfig) error {
+func (c *Container) Update(updateOptions *entities.ContainerUpdateOptions) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -123,7 +123,7 @@ func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string
 		return fmt.Errorf("container %s is being removed, cannot update: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
-	healthCheckConfig, changedHealthCheck, err := GetNewHealthCheckConfig(&HealthCheckConfig{Schema2HealthConfig: c.HealthCheckConfig()}, *changedHealthCheckConfiguration)
+	healthCheckConfig, changedHealthCheck, err := GetNewHealthCheckConfig(&HealthCheckConfig{Schema2HealthConfig: c.HealthCheckConfig()}, *updateOptions.ChangedHealthCheckConfiguration)
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string
 		}
 	}
 
-	startupHealthCheckConfig, changedStartupHealthCheck, err := GetNewHealthCheckConfig(&StartupHealthCheckConfig{StartupHealthCheck: c.Config().StartupHealthCheckConfig}, *changedHealthCheckConfiguration)
+	startupHealthCheckConfig, changedStartupHealthCheck, err := GetNewHealthCheckConfig(&StartupHealthCheckConfig{StartupHealthCheck: c.Config().StartupHealthCheckConfig}, *updateOptions.ChangedHealthCheckConfiguration)
 	if err != nil {
 		return err
 	}
@@ -149,7 +149,7 @@ func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string
 		}
 	}
 
-	globalHealthCheckOptions, err := changedHealthCheckConfiguration.GetNewGlobalHealthCheck()
+	globalHealthCheckOptions, err := updateOptions.ChangedHealthCheckConfiguration.GetNewGlobalHealthCheck()
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (c *Container) Update(resources *spec.LinuxResources, restartPolicy *string
 	}
 
 	defer c.newContainerEvent(events.Update)
-	return c.update(resources, restartPolicy, restartRetries)
+	return c.update(updateOptions)
 }
 
 // Attach to a container.

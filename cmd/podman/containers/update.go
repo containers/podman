@@ -163,6 +163,22 @@ func update(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if cmd.Flags().Changed("env") {
+		env, err := cmd.Flags().GetStringArray("env")
+		if err != nil {
+			return err
+		}
+		opts.Env = env
+	}
+
+	if cmd.Flags().Changed("unsetenv") {
+		env, err := cmd.Flags().GetStringArray("unsetenv")
+		if err != nil {
+			return err
+		}
+		opts.UnsetEnv = env
+	}
+
 	rep, err := registry.ContainerEngine().ContainerUpdate(context.Background(), opts)
 	if err != nil {
 		return err

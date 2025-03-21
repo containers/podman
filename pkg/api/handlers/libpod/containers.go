@@ -455,7 +455,16 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ctr.Update(resourceLimits, restartPolicy, restartRetries, &options.UpdateHealthCheckConfig)
+	updateOptions := &entities.ContainerUpdateOptions{
+		Resources:                       resourceLimits,
+		ChangedHealthCheckConfiguration: &options.UpdateHealthCheckConfig,
+		RestartPolicy:                   restartPolicy,
+		RestartRetries:                  restartRetries,
+		Env:                             options.Env,
+		UnsetEnv:                        options.UnsetEnv,
+	}
+
+	err = ctr.Update(updateOptions)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return

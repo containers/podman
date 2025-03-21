@@ -34,6 +34,8 @@ import (
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/ctime"
+	"github.com/containers/podman/v5/pkg/domain/entities"
+	envLib "github.com/containers/podman/v5/pkg/env"
 	"github.com/containers/podman/v5/pkg/lookup"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/selinux"
@@ -2793,11 +2795,11 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 
 // Update a container's resources or restart policy after creation.
 // At least one of resources or restartPolicy must not be nil.
-func (c *Container) update(resources *spec.LinuxResources, restartPolicy *string, restartRetries *uint) error {
-	if resources == nil && restartPolicy == nil {
+func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error {
+	if updateOptions.Resources == nil && updateOptions.RestartPolicy == nil {
 		return fmt.Errorf("must provide at least one of resources and restartPolicy to update a container: %w", define.ErrInvalidArg)
 	}
-	if restartRetries != nil && restartPolicy == nil {
+	if updateOptions.RestartRetries != nil && updateOptions.RestartPolicy == nil {
 		return fmt.Errorf("must provide restart policy if updating restart retries: %w", define.ErrInvalidArg)
 	}
 
@@ -2810,38 +2812,50 @@ func (c *Container) update(resources *spec.LinuxResources, restartPolicy *string
 	oldRestart := c.config.RestartPolicy
 	oldRetries := c.config.RestartRetries
 
-	if restartPolicy != nil {
-		if err := define.ValidateRestartPolicy(*restartPolicy); err != nil {
+	if updateOptions.RestartPolicy != nil {
+		if err := define.ValidateRestartPolicy(*updateOptions.RestartPolicy); err != nil {
 			return err
 		}
 
-		if restartRetries != nil {
-			if *restartPolicy != define.RestartPolicyOnFailure {
+		if updateOptions.RestartRetries != nil {
+			if *updateOptions.RestartPolicy != define.RestartPolicyOnFailure {
 				return fmt.Errorf("cannot set restart policy retries unless policy is on-failure: %w", define.ErrInvalidArg)
 			}
 		}
 
-		c.config.RestartPolicy = *restartPolicy
-		if restartRetries != nil {
-			c.config.RestartRetries = *restartRetries
+		c.config.RestartPolicy = *updateOptions.RestartPolicy
+		if updateOptions.RestartRetries != nil {
+			c.config.RestartRetries = *updateOptions.RestartRetries
 		} else {
 			c.config.RestartRetries = 0
 		}
 	}
 
-	if resources != nil {
+	if updateOptions.Resources != nil {
 		if c.config.Spec.Linux == nil {
 			c.config.Spec.Linux = new(spec.Linux)
 		}
 
-		resourcesToUpdate, err := json.Marshal(resources)
+		resourcesToUpdate, err := json.Marshal(updateOptions.Resources)
 		if err != nil {
 			return err
 		}
 		if err := json.Unmarshal(resourcesToUpdate, c.config.Spec.Linux.Resources); err != nil {
 			return err
 		}
-		resources = c.config.Spec.Linux.Resources
+		updateOptions.Resources = c.config.Spec.Linux.Resources
+	}
+
+	if len(updateOptions.Env) != 0 {
+		c.config.Spec.Process.Env = envLib.Slice(envLib.Join(envLib.Map(c.config.Spec.Process.Env), envLib.Map(updateOptions.Env)))
+	}
+
+	if len(updateOptions.UnsetEnv) != 0 {
+		envMap := envLib.Map(c.config.Spec.Process.Env)
+		for _, e := range updateOptions.UnsetEnv {
+			delete(envMap, e)
+		}
+		c.config.Spec.Process.Env = envLib.Slice(envMap)
 	}
 
 	if err := c.runtime.state.SafeRewriteContainerConfig(c, "", "", c.config); err != nil {
@@ -2852,22 +2866,28 @@ func (c *Container) update(resources *spec.LinuxResources, restartPolicy *string
 		return err
 	}
 
-	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused) && resources != nil {
+	if c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStatePaused) &&
+		(updateOptions.Resources != nil || updateOptions.Env != nil || updateOptions.UnsetEnv != nil) {
 		// So `podman inspect` on running containers sources its OCI spec from disk.
 		// To keep inspect accurate we need to update the on-disk OCI spec.
 		onDiskSpec, err := c.specFromState()
 		if err != nil {
 			return fmt.Errorf("retrieving on-disk OCI spec to update: %w", err)
 		}
-		if onDiskSpec.Linux == nil {
-			onDiskSpec.Linux = new(spec.Linux)
+		if updateOptions.Resources != nil {
+			if onDiskSpec.Linux == nil {
+				onDiskSpec.Linux = new(spec.Linux)
+			}
+			onDiskSpec.Linux.Resources = updateOptions.Resources
 		}
-		onDiskSpec.Linux.Resources = resources
+		if len(updateOptions.Env) != 0 || len(updateOptions.UnsetEnv) != 0 {
+			onDiskSpec.Process.Env = c.config.Spec.Process.Env
+		}
 		if err := c.saveSpec(onDiskSpec); err != nil {
 			logrus.Errorf("Unable to update container %s OCI spec - `podman inspect` may not be accurate until container is restarted: %v", c.ID(), err)
 		}
 
-		if err := c.ociRuntime.UpdateContainer(c, resources); err != nil {
+		if err := c.ociRuntime.UpdateContainer(c, updateOptions.Resources); err != nil {
 			return err
 		}
 	}
