@@ -282,7 +282,9 @@ Exit Code 1
 | AMXINT8            | Tile computational operations on 8-bit integers                                                                                                                                    |
 | AMXFP16            | Tile computational operations on FP16 numbers                                                                                                                                      |
 | AMXFP8             | Tile computational operations on FP8 numbers                                                                                                                                      |
+| AMXCOMPLEX         | Tile computational operations on complex numbers                                                                                                                                   |
 | AMXTILE            | Tile architecture                                                                                                                                                                  |
+| AMXTF32            | Matrix Multiplication of TF32 Tiles into Packed Single Precision Tile                                                                                                              |
 | APX_F              | Intel APX                                                                                                                                                                          |
 | AVX                | AVX functions                                                                                                                                                                      |
 | AVX10              | If set the Intel AVX10 Converged Vector ISA is supported                                                                                                                           |
@@ -480,12 +482,16 @@ Exit Code 1
 | DCPOP        | Data cache clean to Point of Persistence (DC CVAP)               |
 | EVTSTRM      | Generic timer                                                    |
 | FCMA         | Floatin point complex number addition and multiplication         |
+| FHM          | FMLAL and FMLSL instructions                                     |
 | FP           | Single-precision and double-precision floating point             |
 | FPHP         | Half-precision floating point                                    |
 | GPA          | Generic Pointer Authentication                                   |
 | JSCVT        | Javascript-style double->int convert (FJCVTZS)                   |
 | LRCPC        | Weaker release consistency (LDAPR, etc)                          |
 | PMULL        | Polynomial Multiply instructions (PMULL/PMULL2)                  |
+| RNDR         | Random Number instructions                                       |
+| TLB          | Outer Shareable and TLB range maintenance instructions           |
+| TS           | Flag manipulation instructions                                   |
 | SHA1         | SHA-1 instructions (SHA1C, etc)                                  |
 | SHA2         | SHA-2 instructions (SHA256H, etc)                                |
 | SHA3         | SHA-3 instructions (EOR3, RAXI, XAR, BCAX)                       |

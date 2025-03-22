@@ -1,5 +1,4 @@
-# This is an example goreleaser.yaml file with some sane defaults.
-# Make sure to check the documentation at http://goreleaser.com
+version: 2
 
 builds:
   -
@@ -27,16 +26,7 @@ builds:
 archives:
   -
     id: cpuid
-    name_template: "cpuid-{{ .Os }}_{{ .Arch }}_{{ .Version }}"
-    replacements:
-      aix: AIX
-      darwin: OSX
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: x86_64
-      freebsd: FreeBSD
-      netbsd: NetBSD
+    name_template: "cpuid-{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     format_overrides:
       - goos: windows
         format: zip
@@ -44,8 +34,6 @@ archives:
       - LICENSE
 checksum:
   name_template: 'checksums.txt'
-snapshot:
-  name_template: "{{ .Tag }}-next"
 changelog:
   sort: asc
   filters:
@@ -58,7 +46,7 @@ changelog:
 
 nfpms:
   -
-    file_name_template: "cpuid_package_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    file_name_template: "cpuid_package_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}"
     vendor: Klaus Post
     homepage: https://github.com/klauspost/cpuid
     maintainer: Klaus Post <klauspost@gmail.com>
@@ -67,8 +55,3 @@ nfpms:
     formats:
       - deb
       - rpm
-    replacements:
-      darwin: Darwin
-      linux: Linux
-      freebsd: FreeBSD
-      amd64: x86_64

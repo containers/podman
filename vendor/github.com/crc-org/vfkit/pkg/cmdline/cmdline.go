@@ -25,6 +25,8 @@ type Options struct {
 	UseGUI bool
 
 	IgnitionPath string
+
+	CloudInitFiles stringSliceValue
 }
 
 const DefaultRestfulURI = "none://"
@@ -53,5 +55,5 @@ func AddFlags(cmd *cobra.Command, opts *Options) {
 	cmd.Flags().StringVar(&opts.RestfulURI, "restful-uri", DefaultRestfulURI, "URI address for RESTful services")
 
 	cmd.Flags().StringVar(&opts.IgnitionPath, "ignition", "", "path to the ignition file")
-
+	cmd.Flags().VarP(&opts.CloudInitFiles, "cloud-init", "", "path to user-data and meta-data cloud-init configuration files")
 }

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build darwin || dragonfly || freebsd || linux || openbsd
-// +build darwin dragonfly freebsd linux openbsd
 
 package sysconf
 
