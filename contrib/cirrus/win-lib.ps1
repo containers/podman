@@ -9,7 +9,6 @@ $ErrorActionPreference = 'Stop'
 
 # Any golang compilation needs to know what it's building for.
 $Env:GOOS = "windows"
-$Env:GOARCH = "amd64"
 
 # Unnecessary and intrusive.  They claim parameter/variable
 # values aren't collected, but there could be a bug leading
