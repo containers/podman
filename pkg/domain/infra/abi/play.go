@@ -996,6 +996,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			VolumesFrom:        volumesFrom,
 			ImageVolumes:       automountImages,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
+			PIDsLimit:          options.PIDsLimit,
 		}
 		specGen, err := kube.ToSpecGen(ctx, &specgenOpts)
 		if err != nil {
@@ -1087,6 +1088,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			VolumesFrom:        volumesFrom,
 			ImageVolumes:       automountImages,
 			UtsNSIsHost:        p.UtsNs.IsHost(),
+			PIDsLimit:          options.PIDsLimit,
 		}
 
 		if podYAML.Spec.TerminationGracePeriodSeconds != nil {

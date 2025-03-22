@@ -184,6 +184,8 @@ type CtrSpecGenOptions struct {
 	PodSecurityContext *v1.PodSecurityContext
 	// TerminationGracePeriodSeconds is the grace period given to a container to stop before being forcefully killed
 	TerminationGracePeriodSeconds *int64
+	// PIDsLimit
+	PIDsLimit *int64
 }
 
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
@@ -361,6 +363,9 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	if opts.PodInfraID != "" {
 		annotations[ann.SandboxID] = opts.PodInfraID
 	}
+	if opts.PIDsLimit != nil {
+		annotations[define.PIDsLimitAnnotation+"/"+opts.Container.Name] = strconv.FormatInt(*opts.PIDsLimit, 10)
+	}
 	s.Annotations = annotations
 
 	if containerCIDFile, ok := opts.Annotations[define.InspectAnnotationCIDFile+"/"+opts.Container.Name]; ok {
@@ -373,6 +378,20 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	if apparmor, ok := opts.Annotations[define.InspectAnnotationApparmor+"/"+opts.Container.Name]; ok {
 		s.Annotations[define.InspectAnnotationApparmor] = apparmor
+	}
+
+	if pidslimit, ok := annotations[define.PIDsLimitAnnotation+"/"+opts.Container.Name]; ok {
+		s.Annotations[define.PIDsLimitAnnotation] = pidslimit
+		pidslimitAsInt, err := strconv.ParseInt(pidslimit, 10, 0)
+		if err != nil {
+			return nil, err
+		}
+		if s.ResourceLimits == nil {
+			s.ResourceLimits = &spec.LinuxResources{}
+		}
+		s.ResourceLimits.Pids = &spec.LinuxPids{
+			Limit: pidslimitAsInt,
+		}
 	}
 
 	if label, ok := opts.Annotations[define.InspectAnnotationLabel+"/"+opts.Container.Name]; ok {
