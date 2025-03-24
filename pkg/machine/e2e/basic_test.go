@@ -12,6 +12,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -19,6 +20,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
+
+const TESTIMAGE = "quay.io/libpod/testimage:20241011"
 
 var _ = Describe("run basic podman commands", func() {
 
@@ -37,19 +40,19 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(imgs).To(Exit(0))
 		Expect(imgs.outputToStringSlice()).To(BeEmpty())
 
-		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", "quay.io/libpod/alpine_nginx"})).run()
+		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", TESTIMAGE})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(newImgs).To(Exit(0))
 		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
 
-		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "quay.io/libpod/alpine_nginx", "cat", "/etc/os-release"})).run()
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", TESTIMAGE, "cat", "/etc/os-release"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 		Expect(runAlp.outputToString()).To(ContainSubstring("Alpine Linux"))
 
 		contextDir := GinkgoT().TempDir()
 		cfile := filepath.Join(contextDir, "Containerfile")
-		err = os.WriteFile(cfile, []byte("FROM quay.io/libpod/alpine_nginx\nRUN ip addr\n"), 0o644)
+		err = os.WriteFile(cfile, []byte("FROM "+TESTIMAGE+"\nRUN ip addr\n"), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", contextDir})).run()
@@ -86,13 +89,13 @@ var _ = Describe("run basic podman commands", func() {
 
 		bm := basicMachine{}
 		// Test relabel works on all platforms
-		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", tDir + ":/test:Z", "quay.io/libpod/alpine_nginx", "ls", "/test/attr-test-file"})).run()
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", tDir + ":/test:Z", TESTIMAGE, "ls", "/test/attr-test-file"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 
 		// Test build with --volume option
 		cf := filepath.Join(tDir, "Containerfile")
-		err = os.WriteFile(cf, []byte("FROM quay.io/libpod/alpine_nginx\nRUN ls /test/attr-test-file\n"), 0o644)
+		err = os.WriteFile(cf, []byte("FROM "+TESTIMAGE+"\nRUN ls /test/attr-test-file\n"), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", "-t", name, "-v", tDir + ":/test", tDir})).run()
 		Expect(err).ToNot(HaveOccurred())
@@ -162,10 +165,13 @@ var _ = Describe("run basic podman commands", func() {
 
 		ctrName := "test"
 		bm := basicMachine{}
-		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-dt", "--name", ctrName, "-p", "62544:80", "quay.io/libpod/alpine_nginx"})).run()
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-dt", "--name", ctrName, "-p", "62544:80",
+			"--stop-signal", "SIGKILL", TESTIMAGE,
+			"/bin/busybox-extras", "httpd", "-f", "-p", "80"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
-		testHTTPServer("62544", false, "podman rulez")
+		_, id, _ := strings.Cut(TESTIMAGE, ":")
+		testHTTPServer("62544", false, id+"\n")
 
 		// Test exec in machine scenario: https://github.com/containers/podman/issues/20821
 		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"exec", ctrName, "true"})).run()
@@ -237,7 +243,7 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		cfile = filepath.Join(mainContextDir, "Containerfile")
-		err = os.WriteFile(cfile, []byte("FROM quay.io/libpod/alpine_nginx\nCOPY test1 /\nCOPY --from=test-context test2 /\n"), 0o644)
+		err = os.WriteFile(cfile, []byte("FROM "+TESTIMAGE+"\nCOPY test1 /\nCOPY --from=test-context test2 /\n"), 0o644)
 		Expect(err).ToNot(HaveOccurred())
 
 		bm := basicMachine{}
@@ -301,12 +307,12 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(session).To(Exit(0))
 
 		bm := basicMachine{}
-		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", "quay.io/libpod/alpine_nginx"})).run()
+		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", TESTIMAGE})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(newImgs).To(Exit(0))
 		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
 
-		createAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"create", "quay.io/libpod/alpine_nginx"})).run()
+		createAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"create", TESTIMAGE, "top"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(createAlp).To(Exit(0))
 		Expect(createAlp.outputToStringSlice()).To(HaveLen(1))
@@ -349,7 +355,7 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	var err error
 	var resp *http.Response
 	for i := 0; i < 6; i++ {
-		resp, err = http.Get(address.String())
+		resp, err = http.Get(address.String() + "/testimage-id")
 		if err != nil && shouldErr {
 			Expect(err.Error()).To(ContainSubstring(expectedResponse))
 			return
