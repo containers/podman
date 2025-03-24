@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rootless"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -105,7 +106,7 @@ func assembleSystemdCgroupName(baseSlice, newSlice string) (string, error) {
 
 var lvpRelabel = label.Relabel
 var lvpInitLabels = label.InitLabels
-var lvpReleaseLabel = label.ReleaseLabel
+var lvpReleaseLabel = selinux.ReleaseLabel
 
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not
@@ -114,9 +115,7 @@ func LabelVolumePath(path string) error {
 	if err != nil {
 		return fmt.Errorf("getting default mountlabels: %w", err)
 	}
-	if err := lvpReleaseLabel(mountLabel); err != nil {
-		return fmt.Errorf("releasing label %q: %w", mountLabel, err)
-	}
+	lvpReleaseLabel(mountLabel)
 
 	if err := lvpRelabel(path, mountLabel, true); err != nil {
 		if err == syscall.ENOTSUP {
