@@ -44,6 +44,14 @@ function Make-Clean{
     }
 }
 
+function Local-Unit {
+    Build-Ginkgo
+    $skippackages="hack,internal\domain\infra\abi,internal\domain\infra\tunnel,libpod\lock\shm,pkg\api\handlers\libpod,pkg\api\handlers\utils,pkg\bindings,"
+    $skippackages+="pkg\domain\infra\abi,pkg\emulation,pkg\machine\apple,pkg\machine\applehv,pkg\machine\e2e,pkg\machine\libkrun,"
+    $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils"
+    Run-Command "./test/tools/build/ginkgo.exe -vv -r --tags `"$remotetags`" --timeout=15m --trace --no-color --skip-package `"$skippackages`""
+}
+
 function Local-Machine {
     param (
     [string]$files
@@ -53,7 +61,7 @@ function Local-Machine {
          $files = " --focus-file $files "
     }
 
-    Run-Command "./test/tools/build/ginkgo.exe -vv  --tags `"$remotetags`" -timeout=90m --trace --no-color $files pkg/machine/e2e/."
+    Run-Command "./test/tools/build/ginkgo.exe -vv  --tags `"$remotetags`" --timeout=90m --trace --no-color $files pkg/machine/e2e/."
 }
 
 # Expect starting directory to be /podman
@@ -219,9 +227,7 @@ function Build-Ginkgo{
         return
     }
     Write-Host "Building Ginkgo"
-    Push-Location ./test/tools
-    Run-Command "go build -o build/ginkgo.exe ./vendor/github.com/onsi/ginkgo/v2/ginkgo"
-    Pop-Location
+    Run-Command "go build -o ./test/tools/build/ginkgo.exe ./vendor/github.com/onsi/ginkgo/v2/ginkgo"
 }
 
 function Git-Commit{
@@ -287,6 +293,9 @@ switch ($target) {
     {$_ -in '', 'podman-remote', 'podman'} {
         Podman-Remote
     }
+    'localunit' {
+        Local-Unit
+    }
     'localmachine' {
         if ($args.Count -gt 1) {
             $files = $args[1]
@@ -330,6 +339,9 @@ switch ($target) {
         Write-Host
         Write-Host "Example: Build podman-remote "
         Write-Host " .\winmake podman-remote"
+        Write-Host
+        Write-Host "Example: Run all unit tests "
+        Write-Host " .\winmake localunit"
         Write-Host
         Write-Host "Example: Run all machine tests "
         Write-Host " .\winmake localmachine"

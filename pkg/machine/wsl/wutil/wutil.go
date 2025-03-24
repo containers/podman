@@ -19,16 +19,26 @@ import (
 )
 
 var (
-	once    sync.Once
-	wslPath string
+	onceFind, onceStatus    sync.Once
+	wslPath                 string
+	status                  wslStatus
+	wslNotInstalledMessages = []string{"kernel file is not found", "The Windows Subsystem for Linux is not installed"}
+	vmpDisabledMessages     = []string{"enable the Virtual Machine Platform Windows feature", "Enable \"Virtual Machine Platform\""}
+	wslDisabledMessages     = []string{"enable the \"Windows Subsystem for Linux\" optional component"}
 )
+
+type wslStatus struct {
+	installed         bool
+	vmpFeatureEnabled bool
+	wslFeatureEnabled bool
+}
 
 func FindWSL() string {
 	// At the time of this writing, a defect appeared in the OS preinstalled WSL executable
 	// where it no longer reliably locates the preferred Windows App Store variant.
 	//
 	// Manually discover (and cache) the wsl.exe location to bypass the problem
-	once.Do(func() {
+	onceFind.Do(func() {
 		var locs []string
 
 		// Prefer Windows App Store version
@@ -87,24 +97,44 @@ func SilentExecCmd(command string, args ...string) *exec.Cmd {
 	return cmd
 }
 
+func parseWSLStatus() wslStatus {
+	onceStatus.Do(func() {
+		status = wslStatus{
+			installed:         false,
+			vmpFeatureEnabled: false,
+			wslFeatureEnabled: false,
+		}
+		cmd := SilentExecCmd(FindWSL(), "--status")
+		out, err := cmd.StdoutPipe()
+		cmd.Stderr = nil
+		if err != nil {
+			return
+		}
+		if err = cmd.Start(); err != nil {
+			return
+		}
+
+		status = matchOutputLine(out)
+
+		if err := cmd.Wait(); err != nil {
+			return
+		}
+	})
+
+	return status
+}
+
 func IsWSLInstalled() bool {
-	cmd := SilentExecCmd(FindWSL(), "--status")
-	out, err := cmd.StdoutPipe()
-	cmd.Stderr = nil
-	if err != nil {
+	status := parseWSLStatus()
+	return status.installed && status.vmpFeatureEnabled
+}
+
+func IsWSLFeatureEnabled() bool {
+	if SilentExec(FindWSL(), "--set-default-version", "2") != nil {
 		return false
 	}
-	if err = cmd.Start(); err != nil {
-		return false
-	}
-
-	kernelNotFound := matchOutputLine(out, "kernel file is not found")
-
-	if err := cmd.Wait(); err != nil {
-		return false
-	}
-
-	return !kernelNotFound
+	status := parseWSLStatus()
+	return status.vmpFeatureEnabled
 }
 
 func IsWSLStoreVersionInstalled() bool {
@@ -118,13 +148,30 @@ func IsWSLStoreVersionInstalled() bool {
 	return true
 }
 
-func matchOutputLine(output io.ReadCloser, match string) bool {
+func matchOutputLine(output io.ReadCloser) wslStatus {
+	status := wslStatus{
+		installed:         true,
+		vmpFeatureEnabled: true,
+		wslFeatureEnabled: true,
+	}
 	scanner := bufio.NewScanner(transform.NewReader(output, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.Contains(line, match) {
-			return true
+		for _, match := range wslNotInstalledMessages {
+			if strings.Contains(line, match) {
+				status.installed = false
+			}
+		}
+		for _, match := range vmpDisabledMessages {
+			if strings.Contains(line, match) {
+				status.vmpFeatureEnabled = false
+			}
+		}
+		for _, match := range wslDisabledMessages {
+			if strings.Contains(line, match) {
+				status.wslFeatureEnabled = false
+			}
 		}
 	}
-	return false
+	return status
 }
