@@ -30,7 +30,4 @@ var (
 	// NotHexRegex is a regular expression to check if a string is
 	// a hexadecimal string.
 	NotHexRegex = regexp.Delayed(`[^0-9a-fA-F]`)
-
-	// MaxInterfaceNameLength is the maximum length of a network interface name
-	MaxInterfaceNameLength = 15
 )
