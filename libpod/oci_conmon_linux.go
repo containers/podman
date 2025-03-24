@@ -43,7 +43,7 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 	pmount "github.com/containers/storage/pkg/mount"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -344,6 +344,26 @@ func (r *ConmonOCIRuntime) UpdateContainerStatus(ctr *Container) error {
 	}
 
 	return nil
+}
+
+// Run the closure with the container's socket label set
+func (r *ConmonOCIRuntime) withContainerSocketLabel(ctr *Container, closure func() error) error {
+	runtime.LockOSThread()
+	if err := selinux.SetSocketLabel(ctr.ProcessLabel()); err != nil {
+		return err
+	}
+	err := closure()
+	// Ignore error returned from SetSocketLabel("") call,
+	// can't recover.
+	if labelErr := selinux.SetSocketLabel(""); labelErr == nil {
+		// Unlock the thread only if the process label could be restored
+		// successfully.  Otherwise leave the thread locked and the Go runtime
+		// will terminate it once it returns to the threads pool.
+		runtime.UnlockOSThread()
+	} else {
+		logrus.Errorf("Unable to reset socket label: %q", labelErr)
+	}
+	return err
 }
 
 // StartContainer starts the given container.
@@ -813,7 +833,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	}
 
 	runtime.LockOSThread()
-	if err := label.SetSocketLabel(ctr.ProcessLabel()); err != nil {
+	if err := selinux.SetSocketLabel(ctr.ProcessLabel()); err != nil {
 		return 0, err
 	}
 
@@ -821,7 +841,7 @@ func (r *ConmonOCIRuntime) CheckpointContainer(ctr *Container, options Container
 	err = utils.ExecCmdWithStdStreams(os.Stdin, os.Stdout, os.Stderr, env, r.path, args...)
 	// Ignore error returned from SetSocketLabel("") call,
 	// can't recover.
-	if labelErr := label.SetSocketLabel(""); labelErr == nil {
+	if labelErr := selinux.SetSocketLabel(""); labelErr == nil {
 		// Unlock the thread only if the process label could be restored
 		// successfully.  Otherwise leave the thread locked and the Go runtime
 		// will terminate it once it returns to the threads pool.
