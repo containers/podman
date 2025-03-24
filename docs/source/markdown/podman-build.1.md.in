@@ -699,15 +699,15 @@ mechanism:
 Exclude all doc files except Help.doc from the image.
 
 This functionality is compatible with the handling of .containerignore files
-described here:
+described here: **[containerignore(5)](https://github.com/containers/common/blob/main/docs/containerignore.5.md)**
 
-https://github.com/containers/common/blob/main/docs/containerignore.5.md
-
-**registries.conf** (`/etc/containers/registries.conf`)
+### registries.conf (`/etc/containers/registries.conf`)
 
 registries.conf is the configuration file which specifies which container
 registries is consulted when completing image names which do not include
 a registry or domain portion.
+See **[containers-registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md)**
+
 
 ## Troubleshooting
 
