@@ -849,6 +849,57 @@ var _ = Describe("Podman kube generate", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring(vol1))
 	})
 
+	It("with subpath volume", func() {
+		// We want to verify that generating Volume's subPath is working properly
+		// https://kubernetes.io/docs/concepts/storage/volumes/#using-subpath
+		// by creating a volume with two directories and mounthing them separately
+		volName := "vol-test1"
+		pvcName := fmt.Sprintf("%s-pvc", volName)
+		podmanTest.PodmanExitCleanly("volume", "create", volName)
+
+		mountPoint := "/mnt"
+
+		etcFile := "etcfile"
+		etcDirPath := filepath.Join(mountPoint, "etc")
+		etcSubPath := filepath.Join("/etc", etcFile)
+		etcMountSubPath := filepath.Join(mountPoint, etcSubPath)
+		populateEtcCmd := fmt.Sprintf("mkdir -p %s; touch %s", etcDirPath, etcMountSubPath)
+
+		varFile := "varfile"
+		varDirPath := filepath.Join(mountPoint, "var")
+		varSubPath := filepath.Join("/var", varFile)
+		varMountSubPath := filepath.Join(mountPoint, varSubPath)
+		populateVarCmd := fmt.Sprintf("mkdir -p %s; touch %s", varDirPath, varMountSubPath)
+
+		cmd := fmt.Sprintf("%s; %s", populateEtcCmd, populateVarCmd)
+		vol := fmt.Sprintf("%s:%s", volName, mountPoint)
+		podmanTest.PodmanExitCleanly("run", "-v", vol, ALPINE, "sh", "-c", cmd)
+
+		etcTargetPath := filepath.Join(mountPoint, etcFile)
+		varTargetPath := filepath.Join(mountPoint, varFile)
+		mountTemplate := "type=volume,source=%s,volume-subpath=%s,target=%s"
+		podmanTest.PodmanExitCleanly("run", "-d", "--pod", "new:test1", "--name", "test-ctr",
+			"--mount", fmt.Sprintf(mountTemplate, volName, etcSubPath, etcTargetPath),
+			"--mount", fmt.Sprintf(mountTemplate, volName, varSubPath, varTargetPath),
+			CITEST_IMAGE, "top")
+
+		kube := podmanTest.PodmanExitCleanly("kube", "generate", "test1")
+
+		pod := new(v1.Pod)
+		err = yaml.Unmarshal(kube.Out.Contents(), pod)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(pod.Spec.Containers[0].VolumeMounts).To(ContainElements(v1.VolumeMount{
+			Name:      pvcName,
+			MountPath: etcTargetPath,
+			SubPath:   etcSubPath,
+		}, v1.VolumeMount{
+			Name:      pvcName,
+			MountPath: varTargetPath,
+			SubPath:   varSubPath,
+		}),
+		)
+	})
+
 	It("when bind-mounting '/' and '/root' at the same time ", func() {
 		// Fixes https://github.com/containers/podman/issues/9764
 
