@@ -14,7 +14,7 @@ Create accepts a path to a file, or `-`, which tells podman to read the secret f
 
 A secret is a blob of sensitive data which a container needs at runtime but
 is not stored in the image or in source control, such as usernames and passwords,
-TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 500 kb in size).
+TLS certificates and keys, SSH keys or other important generic strings or binary content (up to 512 kB in size).
 
 Secrets are not committed to an image with `podman commit`, and do not get committed in the archive created by a `podman export` command.
 
