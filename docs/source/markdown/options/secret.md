@@ -27,8 +27,8 @@ Secret Options
                         For mounted secrets, this is the path to the secret inside the container.
                         If a fully qualified path is provided, the secret is mounted at that location.
                         Otherwise, the secret is mounted to
-                        `/run/secrets/target` for linux containers or
-                        `/var/run/secrets/target` for freebsd containers.
+                        `/run/secrets/target` for Linux containers or
+                        `/var/run/secrets/target` for FreeBSD containers.
                         If the target is not set, the secret is mounted to `/run/secrets/secretname` by default.
                         For env secrets, this is the environment variable key. Defaults to `secretname`.
 - `uid=0`             : UID of secret. Defaults to 0. Mount secret type only.

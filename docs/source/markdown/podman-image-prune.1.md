@@ -19,7 +19,7 @@ Remove dangling images and images that have no associated containers.
 
 #### **--build-cache**
 
-Remove persistent build cache create for `--mount=type=cache`.
+Remove persistent build cache created for `--mount=type=cache`.
 
 #### **--external**
 
