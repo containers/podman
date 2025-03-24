@@ -13,7 +13,7 @@ import (
 type BeEmptyMatcher struct {
 }
 
-func (matcher *BeEmptyMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *BeEmptyMatcher) Match(actual any) (success bool, err error) {
 	// short-circuit the iterator case, as we only need to see the first
 	// element, if any.
 	if miter.IsIter(actual) {
@@ -34,10 +34,10 @@ func (matcher *BeEmptyMatcher) Match(actual interface{}) (success bool, err erro
 	return length == 0, nil
 }
 
-func (matcher *BeEmptyMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *BeEmptyMatcher) FailureMessage(actual any) (message string) {
 	return format.Message(actual, "to be empty")
 }
 
-func (matcher *BeEmptyMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *BeEmptyMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "not to be empty")
 }

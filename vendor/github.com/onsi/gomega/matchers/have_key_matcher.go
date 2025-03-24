@@ -11,10 +11,10 @@ import (
 )
 
 type HaveKeyMatcher struct {
-	Key interface{}
+	Key any
 }
 
-func (matcher *HaveKeyMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *HaveKeyMatcher) Match(actual any) (success bool, err error) {
 	if !isMap(actual) && !miter.IsSeq2(actual) {
 		return false, fmt.Errorf("HaveKey matcher expects a map/iter.Seq2.  Got:%s", format.Object(actual, 1))
 	}
@@ -52,7 +52,7 @@ func (matcher *HaveKeyMatcher) Match(actual interface{}) (success bool, err erro
 	return false, nil
 }
 
-func (matcher *HaveKeyMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *HaveKeyMatcher) FailureMessage(actual any) (message string) {
 	switch matcher.Key.(type) {
 	case omegaMatcher:
 		return format.Message(actual, "to have key matching", matcher.Key)
@@ -61,7 +61,7 @@ func (matcher *HaveKeyMatcher) FailureMessage(actual interface{}) (message strin
 	}
 }
 
-func (matcher *HaveKeyMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *HaveKeyMatcher) NegatedFailureMessage(actual any) (message string) {
 	switch matcher.Key.(type) {
 	case omegaMatcher:
 		return format.Message(actual, "not to have key matching", matcher.Key)
