@@ -225,6 +225,13 @@ func run(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	if s.HealthConfig == nil {
+		s.HealthConfig, err = common.GetHealthCheckOverrideConfig(cmd, &cliVals)
+		if err != nil {
+			return err
+		}
+	}
+
 	report, err := registry.ContainerEngine().ContainerRun(registry.Context(), runOpts)
 	// report.ExitCode is set by ContainerRun even it returns an error
 	if report != nil {
