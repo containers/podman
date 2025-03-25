@@ -269,6 +269,10 @@ skip_if_remote "--cert-dir option not working via remote and retry warnings are 
 skip_if_remote "Weird. This used to work remote, until Ed set TMPDIR in #5804" \
                "bud-with-mount-cache-like-buildkit with buildah prune should clear the cache"
 
+# https://github.com/containers/podman/issues/25414
+skip_if_remote "This test needs unique TMPDIR for the test and podman-remote does not propagates ENV from client-side to server-end" \
+            "bud-with-mount-cache-like-buildkit"
+
 ###############################################################################
 # BEGIN tests which are skipped due to actual podman or podman-remote bugs.
 
