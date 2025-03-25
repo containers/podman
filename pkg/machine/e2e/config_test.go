@@ -175,7 +175,9 @@ func (m *machineTestBuilder) runWithoutWait() (*machineSession, error) {
 }
 
 func (m *machineTestBuilder) run() (*machineSession, error) {
+	t := time.Now()
 	s, err := runWrapper(m.podmanBinary, m.cmd, m.stdin, m.timeout, true)
+	fmt.Println("run completed: ", time.Since(t).String())
 	return s, err
 }
 
