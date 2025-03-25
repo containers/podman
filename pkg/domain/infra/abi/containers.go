@@ -1733,6 +1733,11 @@ func (ic *ContainerEngine) ContainerClone(ctx context.Context, ctrCloneOpts enti
 		}
 	}
 
+	ctrCloneOpts.CreateOpts.HealthOnFailure = spec.HealthCheckOnFailureAction.String()
+	ctrCloneOpts.CreateOpts.HealthLogDestination = spec.HealthLogDestination
+	ctrCloneOpts.CreateOpts.HealthMaxLogCount = spec.HealthMaxLogCount
+	ctrCloneOpts.CreateOpts.HealthMaxLogSize = spec.HealthMaxLogSize
+
 	err = specgenutil.FillOutSpecGen(spec, &ctrCloneOpts.CreateOpts, []string{})
 	if err != nil {
 		return nil, err
