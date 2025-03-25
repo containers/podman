@@ -15,6 +15,10 @@ body:
           $ podman version
           $ podman info
           $ rpm -q podman
+
+        If running on Mac or Windows, please be sure to report information about the operating system.  In the case of Mac, knowing about the hardware in more detail can be helpful.  Consider running the following utilities and redact any personal information:
+          $ sw_vers
+          $ system_profiler SPHardwareDataType
   - type: textarea
     id: description
     attributes:
