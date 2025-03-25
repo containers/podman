@@ -802,7 +802,7 @@ podman_machine_windows_task:
     depends_on: *build
     ec2_instance:
         <<: *windows
-        type: m5zn.metal
+        type: z1d.metal
         platform: windows
     timeout_in: 60m
     env: *winenv
@@ -812,6 +812,23 @@ podman_machine_windows_task:
       - env:
           TEST_FLAVOR: "machine-hyperv"
     clone_script: *winclone
+    # This depends on an instance with an local NVMe storage so we can make use of fast IO
+    # Our machine tests are IO bound so this is rather imporant to speed them up a lot.
+    setup_disk_script: |
+        echo "Get-Disk"
+        Get-Disk | Ft -autosize | out-string -width 4096
+        # Hard coded to disk 0, assume that this is always the case for our ec2 instance.
+        # It is not clear to me how I would filter by name because we still have two disks
+        # with the same name.
+        echo "Format and mount disk 0"
+        $disk = Get-Disk 0
+        $disk | Initialize-Disk -PartitionStyle MBR
+        $disk | New-Partition -UseMaximumSize -MbrType IFS
+        $Partition = Get-Partition -DiskNumber $disk.Number
+        $Partition | Format-Volume -FileSystem NTFS -Confirm:$false
+        $Partition | Add-PartitionAccessPath -AccessPath "Z:\"
+        echo "Get-Volume"
+        Get-Volume
     main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
     always:
         # Required for `contrib/cirrus/logformatter` to work properly
