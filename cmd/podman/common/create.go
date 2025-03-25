@@ -1,9 +1,13 @@
 package common
 
 import (
+	"errors"
+	"time"
+
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
 	commonFlag "github.com/containers/common/pkg/flag"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -1052,4 +1056,44 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		"Block IO weight (relative device weight, format: `DEVICE_NAME:WEIGHT`)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(blkioWeightDeviceFlagName, completion.AutocompleteDefault)
+}
+
+func GetHealthCheckOverrideConfig(cmd *cobra.Command, vals *entities.ContainerCreateOptions) (*manifest.Schema2HealthConfig, error) {
+	healthcheck := manifest.Schema2HealthConfig{}
+
+	if cmd.Flags().Changed("health-interval") {
+		if vals.HealthInterval == "disable" {
+			vals.HealthInterval = "-1s"
+		}
+		hct, err := time.ParseDuration(vals.HealthInterval)
+		if err != nil {
+			return nil, err
+		}
+		healthcheck.Interval = hct
+	}
+	if cmd.Flags().Changed("health-retries") {
+		healthcheck.Retries = int(vals.HealthRetries)
+	}
+	if cmd.Flags().Changed("health-timeout") {
+		hct, err := time.ParseDuration(vals.HealthTimeout)
+		if err != nil {
+			return nil, err
+		}
+		if hct < time.Duration(1) {
+			return nil, errors.New("healthcheck-timeout must be at least 1 second")
+		}
+		healthcheck.Timeout = hct
+	}
+	if cmd.Flags().Changed("health-start-period") {
+		hct, err := time.ParseDuration(vals.HealthStartPeriod)
+		if err != nil {
+			return nil, err
+		}
+		if hct < time.Duration(0) {
+			return nil, errors.New("healthcheck-start-period must be 0 seconds or greater")
+		}
+		healthcheck.StartPeriod = hct
+	}
+
+	return &healthcheck, nil
 }

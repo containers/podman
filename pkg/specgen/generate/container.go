@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	ann "github.com/containers/podman/v5/pkg/annotations"
@@ -61,6 +62,66 @@ func getImageFromSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGen
 	return image, resolvedName, inspectData, err
 }
 
+func applyHealthCheckOverrides(s *specgen.SpecGenerator, healthCheckFromImage *manifest.Schema2HealthConfig) error {
+	overrideHealthCheckConfig := s.HealthConfig
+	s.HealthConfig = healthCheckFromImage
+
+	if s.HealthConfig == nil {
+		return nil
+	}
+
+	if overrideHealthCheckConfig != nil {
+		if overrideHealthCheckConfig.Interval != 0 {
+			s.HealthConfig.Interval = overrideHealthCheckConfig.Interval
+		}
+		if overrideHealthCheckConfig.Retries != 0 {
+			s.HealthConfig.Retries = overrideHealthCheckConfig.Retries
+		}
+		if overrideHealthCheckConfig.Timeout != 0 {
+			s.HealthConfig.Timeout = overrideHealthCheckConfig.Timeout
+		}
+		if overrideHealthCheckConfig.StartPeriod != 0 {
+			s.HealthConfig.StartPeriod = overrideHealthCheckConfig.StartPeriod
+		}
+	}
+
+	disableInterval := false
+	if s.HealthConfig.Interval < 0 {
+		s.HealthConfig.Interval = 0
+		disableInterval = true
+	}
+
+	// NOTE: Zero means inherit.
+	if s.HealthConfig.Timeout == 0 {
+		hct, err := time.ParseDuration(define.DefaultHealthCheckTimeout)
+		if err != nil {
+			return err
+		}
+		s.HealthConfig.Timeout = hct
+	}
+	if s.HealthConfig.Interval == 0 && !disableInterval {
+		hct, err := time.ParseDuration(define.DefaultHealthCheckInterval)
+		if err != nil {
+			return err
+		}
+		s.HealthConfig.Interval = hct
+	}
+
+	if s.HealthConfig.Retries == 0 {
+		s.HealthConfig.Retries = int(define.DefaultHealthCheckRetries)
+	}
+
+	if s.HealthConfig.StartPeriod == 0 {
+		hct, err := time.ParseDuration(define.DefaultHealthCheckStartPeriod)
+		if err != nil {
+			return err
+		}
+		s.HealthConfig.StartPeriod = hct
+	}
+
+	return nil
+}
+
 // Fill any missing parts of the spec generator (e.g. from the image).
 // Returns a set of warnings or any fatal error that occurred.
 func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerator) ([]string, error) {
@@ -70,25 +131,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		return nil, err
 	}
 	if inspectData != nil {
-		if s.HealthConfig == nil {
-			// NOTE: the health check is only set for Docker images
-			// but inspect will take care of it.
-			s.HealthConfig = inspectData.HealthCheck
-			if s.HealthConfig != nil {
-				if s.HealthConfig.Timeout == 0 {
-					hct, err := time.ParseDuration(define.DefaultHealthCheckTimeout)
-					if err != nil {
-						return nil, err
-					}
-					s.HealthConfig.Timeout = hct
-				}
-				if s.HealthConfig.Interval == 0 {
-					hct, err := time.ParseDuration(define.DefaultHealthCheckInterval)
-					if err != nil {
-						return nil, err
-					}
-					s.HealthConfig.Interval = hct
-				}
+		if s.HealthConfig == nil || len(s.HealthConfig.Test) == 0 {
+			if err := applyHealthCheckOverrides(s, inspectData.HealthCheck); err != nil {
+				return nil, err
 			}
 		}
 

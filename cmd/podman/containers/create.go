@@ -174,6 +174,13 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	if s.HealthConfig == nil {
+		s.HealthConfig, err = common.GetHealthCheckOverrideConfig(cmd, &cliVals)
+		if err != nil {
+			return err
+		}
+	}
+
 	report, err := registry.ContainerEngine().ContainerCreate(registry.Context(), s)
 	if err != nil {
 		// if pod was created as part of run

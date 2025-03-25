@@ -10,3 +10,5 @@ to be applied. A value of **none** disables existing healthchecks.
 
 Multiple options can be passed in the form of a JSON array; otherwise, the command is interpreted
 as an argument to **/bin/sh -c**.
+
+Note: The default values are used even if healthcheck is configured in the image.
