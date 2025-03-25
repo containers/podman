@@ -16,7 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 )
 
@@ -24,19 +24,19 @@ import (
 // input.
 func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig specgen.Namespace, ipcConfig specgen.Namespace) error {
 	if !runtime.EnableLabeling() || s.IsPrivileged() {
-		s.SelinuxOpts = label.DisableSecOpt()
+		s.SelinuxOpts = selinux.DisableSecOpt()
 		return nil
 	}
 
 	var labelOpts []string
 	if pidConfig.IsHost() {
-		labelOpts = append(labelOpts, label.DisableSecOpt()...)
+		labelOpts = append(labelOpts, selinux.DisableSecOpt()...)
 	} else if pidConfig.IsContainer() {
 		ctr, err := runtime.LookupContainer(pidConfig.Value)
 		if err != nil {
 			return fmt.Errorf("container %q not found: %w", pidConfig.Value, err)
 		}
-		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		secopts, err := selinux.DupSecOpt(ctr.ProcessLabel())
 		if err != nil {
 			return fmt.Errorf("failed to duplicate label %q : %w", ctr.ProcessLabel(), err)
 		}
@@ -44,13 +44,13 @@ func setLabelOpts(s *specgen.SpecGenerator, runtime *libpod.Runtime, pidConfig s
 	}
 
 	if ipcConfig.IsHost() {
-		labelOpts = append(labelOpts, label.DisableSecOpt()...)
+		labelOpts = append(labelOpts, selinux.DisableSecOpt()...)
 	} else if ipcConfig.IsContainer() {
 		ctr, err := runtime.LookupContainer(ipcConfig.Value)
 		if err != nil {
 			return fmt.Errorf("container %q not found: %w", ipcConfig.Value, err)
 		}
-		secopts, err := label.DupSecOpt(ctr.ProcessLabel())
+		secopts, err := selinux.DupSecOpt(ctr.ProcessLabel())
 		if err != nil {
 			return fmt.Errorf("failed to duplicate label %q : %w", ctr.ProcessLabel(), err)
 		}

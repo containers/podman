@@ -418,17 +418,6 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		if options.SystemContext.VariantChoice != "" {
 			builtinArgDefaults["TARGETPLATFORM"] += "/" + options.SystemContext.VariantChoice
 		}
-	} else {
-		// fill them in using values for the default platform
-		defaultPlatform := platforms.DefaultSpec()
-		builtinArgDefaults["TARGETOS"] = defaultPlatform.OS
-		builtinArgDefaults["TARGETVARIANT"] = defaultPlatform.Variant
-		builtinArgDefaults["TARGETARCH"] = defaultPlatform.Architecture
-		builtinArgDefaults["TARGETPLATFORM"] = defaultPlatform.OS + "/" + defaultPlatform.Architecture
-		builtinArgDefaults["TARGETPLATFORM"] = defaultPlatform.OS + "/" + defaultPlatform.Architecture
-		if defaultPlatform.Variant != "" {
-			builtinArgDefaults["TARGETPLATFORM"] += "/" + defaultPlatform.Variant
-		}
 	}
 	delete(options.Args, "TARGETPLATFORM")
 

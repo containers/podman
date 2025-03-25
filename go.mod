@@ -13,8 +13,8 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.3.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.6.2
-	github.com/containers/buildah v1.39.1-0.20250321123219-bc4d7eb70fe3
-	github.com/containers/common v0.62.3-0.20250321171839-dbeb17e40c80
+	github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265
+	github.com/containers/common v0.62.3-0.20250324121725-e360699fb3e3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.5
 	github.com/containers/image/v5 v5.34.3-0.20250311194052-d84dbab374e7
@@ -60,7 +60,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271
-	github.com/opencontainers/selinux v1.11.1
+	github.com/opencontainers/selinux v1.12.0
 	github.com/openshift/imagebuilder v1.2.16-0.20250220150830-7ebfb09d364e
 	github.com/rootless-containers/rootlesskit/v2 v2.3.2
 	github.com/shirou/gopsutil/v4 v4.25.2
@@ -81,7 +81,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.4.0
-	tags.cncf.io/container-device-interface v1.0.0
+	tags.cncf.io/container-device-interface v1.0.1
 )
 
 require (
@@ -232,6 +232,5 @@ require (
 	google.golang.org/grpc v1.70.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )

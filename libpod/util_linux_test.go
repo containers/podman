@@ -31,9 +31,7 @@ func TestLabelVolumePath(t *testing.T) {
 		mLabel := "system_u:object_r:container_file_t:s0:c1,c2"
 		return pLabel, mLabel, nil
 	}
-	lvpReleaseLabel = func(label string) error {
-		return nil
-	}
+	lvpReleaseLabel = func(label string) {}
 
 	// LabelVolumePath should not return an error if the operation is unsupported.
 	err := LabelVolumePath("/foo/bar", "")
