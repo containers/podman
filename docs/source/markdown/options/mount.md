@@ -4,7 +4,7 @@
 ####> are applicable to all of those.
 #### **--mount**=*type=TYPE,TYPE-SPECIFIC-OPTION[,...]*
 
-Attach a filesystem mount to the container
+Attach a filesystem mount to the container.
 
 Current supported mount TYPEs are **artifact**, **bind**, **devpts**, **glob**, **image**, **ramfs**, **tmpfs** and **volume**.
 
@@ -32,7 +32,7 @@ Options specific to type=**artifact**:
 - *title*: If the artifact source contains multiple blobs a title can be set
   which is compared against `org.opencontainers.image.title` annotation.
 
-The *src* argument contains the name of the artifact, it must already exist locally.
+The *src* argument contains the name of the artifact, which must already exist locally.
 The *dst* argument contains the target path, if the path in the container is a
 directory or does not exist the blob title (`org.opencontainers.image.title`
 annotation) will be used as filename and joined to the path. If the annotation
@@ -50,11 +50,11 @@ Options specific to type=**volume**:
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
 
 - *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
-  The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmaped file systems for unprivileged users.
+  The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmapped file systems for unprivileged users.
   The idmap option supports a custom mapping that can be different than the user namespace used by the container.
   The mapping can be specified after the idmap option like: `idmap=uids=0-1-10#10-11-10;gids=0-100-10`.  For each triplet, the first value is the
   start of the backing file system IDs that are mapped to the second value on the host.  The length of this mapping is given in the third value.
-  Multiple ranges are separated with #.  If the specified mapping is prepended with a '@' then the mapping is considered relative to the container
+  Multiple ranges are separated with #.  If the specified mapping is prepended with a '@', then the mapping is considered relative to the container
   user namespace. The host ID for the mapping is changed to account for the relative position of the container user in the container user namespace.
 
 Options specific to type=**image**:

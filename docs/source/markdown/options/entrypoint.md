@@ -15,4 +15,4 @@ passed in via the COMMAND. But, if a user wants to run
 something else inside the container, the **--entrypoint** option allows a new
 ENTRYPOINT to be specified.
 
-Specify multi option commands in the form of a json string.
+Specify multi option commands in the form of a JSON string.
