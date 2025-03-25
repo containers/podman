@@ -1195,6 +1195,7 @@ func generateKubePersistentVolumeClaim(v *ContainerNamedVolume) (v1.VolumeMount,
 	vm.Name = name
 	vm.MountPath = v.Dest
 	vm.ReadOnly = ro
+	vm.SubPath = v.SubPath
 
 	pvc := v1.PersistentVolumeClaimVolumeSource{ClaimName: vName, ReadOnly: ro}
 	vs := v1.VolumeSource{}
