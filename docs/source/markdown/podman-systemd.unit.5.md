@@ -129,7 +129,7 @@ For example, to start a container on boot, add something like this to the file:
 WantedBy=default.target
 ```
 
-Currently, only the `Alias`, `WantedBy` and `RequiredBy` keys are supported.
+Currently, only the `Alias`, `WantedBy`, `RequiredBy`, and `UpheldBy` keys are supported.
 
 The Install section can be part of the main file, or it can be in a
 separate drop-in file as described above. The latter allows you to

@@ -7,6 +7,9 @@
 ## assert-symlink req1.service.requires/install.service ../install.service
 ## assert-symlink req2.service.requires/install.service ../install.service
 ## assert-symlink req3.service.requires/install.service ../install.service
+## assert-symlink up1.service.upholds/install.service ../install.service
+## assert-symlink up2.service.upholds/install.service ../install.service
+## assert-symlink up3.service.upholds/install.service ../install.service
 
 [Container]
 Image=localhost/imagename
@@ -19,3 +22,5 @@ WantedBy=want1.service want2.service
 WantedBy=want3.service
 RequiredBy=req1.service req2.service
 RequiredBy=req3.service
+UpheldBy=up1.service up2.service
+UpheldBy=up3.service
