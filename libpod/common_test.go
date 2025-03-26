@@ -27,7 +27,16 @@ func getTestContainer(id, name string, manager lock.Manager) (*Container, error)
 				RootfsImageID:   id,
 				RootfsImageName: "testimg",
 				StaticDir:       "/does/not/exist/",
-				Mounts:          []string{"/does/not/exist"},
+    			Mounts: []define.InspectMount{
+    			    {
+    			        Type:        "bind",
+    			        Source:      "/does/not/exist",
+    			        Destination: "/does/not/exist",
+    			        Mode:        "",
+    			        RW:          true,
+    			        Propagation: "rprivate",
+    			    },
+    			},
 			},
 			ContainerMiscConfig: ContainerMiscConfig{
 				LogPath:     "/does/not/exist/",

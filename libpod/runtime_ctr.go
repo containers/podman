@@ -557,7 +557,13 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				return nil, fmt.Errorf("unable to create shm dir: %w", err)
 			}
 		}
-		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
+		ctr.config.Mounts = append(ctr.config.Mounts, define.InspectMount{ // HERE I ADDED SOME DEFAULT VALUES. MUST THEY BE CHANGED? If yes, where should I take those values?
+		    Type:        "bind",                // default mount type
+		    Source:      "/opt",       // assuming source is same as destination, or set appropriately
+		    Destination: ctr.config.ShmDir,       // the destination in the container
+		    RW:          true,                  // default read/write setting
+		    Propagation: "rprivate",            // default propagation
+		})
 	}
 
 	// Add the container to the state
@@ -1167,7 +1173,7 @@ func (r *Runtime) evictContainer(ctx context.Context, idOrName string, removeVol
 
 	// Unmount container mount points
 	for _, mount := range c.config.Mounts {
-		Unmount(mount)
+		Unmount(mount.Destination)
 	}
 
 	// Remove container from c/storage

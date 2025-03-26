@@ -333,7 +333,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	tmpMounts := conf.Mounts
 
 	conf.Systemd = nil
-	conf.Mounts = []string{}
+	conf.Mounts = []define.InspectMount{}
 
 	if specg == nil {
 		specg = &specgen.SpecGenerator{}
@@ -461,10 +461,6 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	} else {
 		specg.HealthMaxLogSize = define.DefaultHealthMaxLogSize
 	}
-
-	specg.HealthConfig = conf.HealthCheckConfig
-	specg.StartupHealthConfig = conf.StartupHealthCheckConfig
-	specg.HealthCheckOnFailureAction = conf.HealthCheckOnFailureAction
 
 	specg.IDMappings = &conf.IDMappings
 	specg.ContainerCreateCommand = conf.CreateCommand

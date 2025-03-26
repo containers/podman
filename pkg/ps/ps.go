@@ -22,6 +22,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
@@ -153,6 +154,10 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		healthStatus                            string
 		restartCount                            uint
 		podName                                 string
+		ctrSpec                                 *spec.Spec
+		namedVolumes                            []*libpod.ContainerNamedVolume
+		mounts                                  []spec.Mount
+		inspectMounts                           []define.InspectMount
 	)
 
 	batchErr := ctr.Batch(func(c *libpod.Container) error {
@@ -202,6 +207,17 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		}
 
 		restartCount, err = c.RestartCount()
+		if err != nil {
+			return err
+		}
+
+		ctrSpec, err = c.SpecFromState()
+		if err != nil {
+			return err
+		}
+		
+		namedVolumes, mounts = c.SortUserVolumes(ctrSpec)
+		inspectMounts, err = c.GetMounts(namedVolumes, conConfig.ImageVolumes, mounts)
 		if err != nil {
 			return err
 		}
@@ -260,7 +276,7 @@ func ListContainerBatch(rt *libpod.Runtime, ctr *libpod.Container, opts entities
 		ImageID:      conConfig.RootfsImageID,
 		IsInfra:      conConfig.IsInfra,
 		Labels:       conConfig.Labels,
-		Mounts:       ctr.UserVolumes(),
+		Mounts:       inspectMounts,
 		Names:        []string{conConfig.Name},
 		Networks:     networks,
 		Pid:          pid,

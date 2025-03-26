@@ -5,6 +5,7 @@ import (
 
 	netTypes "github.com/containers/common/libnetwork/types"
 	define "github.com/containers/podman/v5/pkg/ps/define"
+	pod_define "github.com/containers/podman/v5/libpod/define"
 )
 
 // ListContainer describes a container suitable for listing
@@ -41,7 +42,7 @@ type ListContainer struct {
 	// Labels for container
 	Labels map[string]string
 	// User volume mounts
-	Mounts []string
+	Mounts []pod_define.InspectMount
 	// The names assigned to the container
 	Names []string
 	// Namespaces the container belongs to.  Requires the
