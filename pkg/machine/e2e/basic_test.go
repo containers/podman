@@ -102,6 +102,32 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(build).To(Exit(0))
 	})
 
+	It("Single character volume mount", func() {
+		// Get a tmp directory
+		tDir, err := filepath.Abs(GinkgoT().TempDir())
+		Expect(err).ToNot(HaveOccurred())
+		name := randomString()
+		i := new(initMachine).withImage(mb.imagePath).withNow()
+
+		// All other platforms have an implicit mount for the temp area
+		if isVmtype(define.QemuVirt) {
+			i.withVolume(tDir)
+		}
+		session, err := mb.setName(name).setCmd(i).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+
+		volumeCreate, err := mb.setCmd(bm.withPodmanCommand([]string{"volume", "create", "a"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(volumeCreate).To(Exit(0))
+
+		run, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", "a:/test:Z", "quay.io/libpod/alpine_nginx", "true"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(run).To(Exit(0))
+	})
+
 	It("Volume should be virtiofs", func() {
 		// In theory this could run on MacOS too, but we know virtiofs works for that now,
 		// this is just testing linux
