@@ -147,7 +147,7 @@ type ContainerRootFSConfig struct {
 	// Mounts contains all additional mounts into the container rootfs.
 	// It is presently only used for the container's SHM directory.
 	// These must be unmounted before the container's rootfs is unmounted.
-	Mounts []string `json:"mounts,omitempty"`
+	Mounts []define.InspectMount `json:"mounts,omitempty"`
 	// NamedVolumes lists the Libpod named volumes to mount into the
 	// container. Each named volume is guaranteed to exist so long as this
 	// container exists.
