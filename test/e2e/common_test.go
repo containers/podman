@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/inspect"
@@ -35,7 +36,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
-	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -68,8 +68,10 @@ type PodmanTestIntegration struct {
 	TmpDir              string
 }
 
-var GlobalTmpDir string // Single top-level tmpdir for all tests
-var LockTmpDir string
+var (
+	GlobalTmpDir string // Single top-level tmpdir for all tests
+	LockTmpDir   string
+)
 
 // PodmanSessionIntegration struct for command line session
 type PodmanSessionIntegration struct {
@@ -490,7 +492,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 // image and returns json
 func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	var i []inspect.ImageData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := sonic.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
 }
@@ -622,7 +624,7 @@ func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionInteg
 // runs top.  If the name passed != "", it will have a name, command args can also be passed in
 func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []string) *PodmanSessionIntegration {
 	// In proxy environment, some tests need to the --http-proxy=false option (#16684)
-	var podmanArgs = []string{"run", "--http-proxy=false"}
+	podmanArgs := []string{"run", "--http-proxy=false"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -641,7 +643,7 @@ func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []stri
 // RunLsContainer runs a simple container in the background that
 // simply runs ls. If the name passed != "", it will have a name
 func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"run"}
+	podmanArgs := []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -660,7 +662,7 @@ func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionInteg
 
 // RunNginxWithHealthCheck runs the alpine nginx container with an optional name and adds a healthcheck into it
 func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSessionIntegration, string) {
-	var podmanArgs = []string{"run"}
+	podmanArgs := []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -673,7 +675,7 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 
 // RunContainerWithNetworkTest runs the fedoraMinimal curl with the specified network mode.
 func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *PodmanSessionIntegration {
-	var podmanArgs = []string{"run"}
+	podmanArgs := []string{"run"}
 	if mode != "" {
 		podmanArgs = append(podmanArgs, "--network", mode)
 	}
@@ -683,7 +685,7 @@ func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *Podman
 }
 
 func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"run", "--pod", pod}
+	podmanArgs := []string{"run", "--pod", pod}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -819,7 +821,7 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 // container and returns json
 func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectContainerData {
 	var i []define.InspectContainerData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := sonic.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
 }
@@ -827,7 +829,7 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	var i []define.InspectPodData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := sonic.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(i).To(HaveLen(1))
 	return i[0]
@@ -836,7 +838,7 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 // InspectPodToJSON takes the sessions output from an inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData {
 	var i []define.InspectPodData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := sonic.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
 }
@@ -844,7 +846,7 @@ func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData
 // CreatePod creates a pod with no infra container
 // it optionally takes a pod name
 func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanSessionIntegration, int, string) {
-	var args = []string{"pod", "create", "--infra=false", "--share", ""}
+	args := []string{"pod", "create", "--infra=false", "--share", ""}
 	for k, values := range options {
 		for _, v := range values {
 			args = append(args, k+"="+v)
@@ -857,7 +859,7 @@ func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanS
 }
 
 func (p *PodmanTestIntegration) CreateVolume(options map[string][]string) (*PodmanSessionIntegration, int, string) {
-	var args = []string{"volume", "create"}
+	args := []string{"volume", "create"}
 	for k, values := range options {
 		for _, v := range values {
 			args = append(args, k+"="+v)
@@ -1203,8 +1205,10 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {
-		cacheOptions := []string{"--storage-opt",
-			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
+		cacheOptions := []string{
+			"--storage-opt",
+			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir),
+		}
 		podmanOptions = append(cacheOptions, podmanOptions...)
 	}
 	podmanOptions = append(podmanOptions, args...)

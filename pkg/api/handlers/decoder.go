@@ -49,7 +49,7 @@ func NewCompatAPIDecoder() *schema.Decoder {
 //		"dangling": {"true"},
 //	}
 //
-//	payload, err := jsoniter.MarshalToString(v)
+//	payload, err := sonic.ConfigStd.MarshalToString(v)
 //	if err != nil {
 //		panic(err)
 //	}

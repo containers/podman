@@ -14,16 +14,16 @@ import (
 	"sync"
 	"time"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+var json = sonic.ConfigStd
 
 // Copied from docker/go-plugins-helpers/volume/api.go - not exported, so we
 // need to do this to get at them.

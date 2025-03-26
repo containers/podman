@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"strings"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/bindings"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func CreatePodFromSpec(ctx context.Context, spec *entitiesTypes.PodSpec) (*entitiesTypes.PodCreateReport, error) {
@@ -22,7 +22,7 @@ func CreatePodFromSpec(ctx context.Context, spec *entitiesTypes.PodSpec) (*entit
 	if err != nil {
 		return nil, err
 	}
-	specString, err := jsoniter.MarshalToString(spec.PodSpecGen)
+	specString, err := sonic.ConfigStd.MarshalToString(spec.PodSpecGen)
 	if err != nil {
 		return nil, err
 	}

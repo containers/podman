@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"net/http"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/util"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,7 +22,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 		fromStart bool
 		decoder   = utils.GetDecoder(r)
 		runtime   = r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
-		json      = jsoniter.ConfigCompatibleWithStandardLibrary // FIXME: this should happen on the package level
+		json      = sonic.ConfigStd // FIXME: this should happen on the package level
 	)
 
 	// NOTE: the "filters" parameter is extracted separately for backwards

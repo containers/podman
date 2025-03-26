@@ -8,12 +8,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"unsafe"
 
 	"github.com/blang/semver/v4"
+	sonic "github.com/bytedance/sonic"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 
 	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
@@ -70,48 +69,7 @@ func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
 	}
 }
 
-func init() {
-	jsoniter.RegisterTypeEncoderFunc("error", MarshalErrorJSON, MarshalErrorJSONIsEmpty)
-	jsoniter.RegisterTypeEncoderFunc("[]error", MarshalErrorSliceJSON, MarshalErrorSliceJSONIsEmpty)
-}
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
-
-// MarshalErrorJSON writes error to stream as string
-func MarshalErrorJSON(ptr unsafe.Pointer, stream *jsoniter.Stream) {
-	p := *((*error)(ptr))
-	if p == nil {
-		stream.WriteNil()
-	} else {
-		stream.WriteString(p.Error())
-	}
-}
-
-// MarshalErrorSliceJSON writes []error to stream as []string JSON blob
-func MarshalErrorSliceJSON(ptr unsafe.Pointer, stream *jsoniter.Stream) {
-	a := *((*[]error)(ptr))
-	switch {
-	case len(a) == 0:
-		stream.WriteNil()
-	default:
-		stream.WriteArrayStart()
-		for i, e := range a {
-			if i > 0 {
-				stream.WriteMore()
-			}
-			stream.WriteString(e.Error())
-		}
-		stream.WriteArrayEnd()
-	}
-}
-
-func MarshalErrorJSONIsEmpty(ptr unsafe.Pointer) bool {
-	return *((*error)(ptr)) == nil
-}
-
-func MarshalErrorSliceJSONIsEmpty(ptr unsafe.Pointer) bool {
-	return len(*((*[]error)(ptr))) == 0
-}
+var json = sonic.ConfigStd
 
 // WriteJSON writes an interface value encoded as JSON to w
 func WriteJSON(w http.ResponseWriter, code int, value interface{}) {

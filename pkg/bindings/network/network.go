@@ -6,10 +6,10 @@ import (
 	"net/url"
 	"strings"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/bindings"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
-	jsoniter "github.com/json-iterator/go"
 )
 
 // Create makes a new network configuration
@@ -36,7 +36,7 @@ func CreateWithOptions(ctx context.Context, network *types.Network, extraCreateO
 	if network == nil {
 		network = &types.Network{}
 	}
-	networkConfig, err := jsoniter.MarshalToString(*network)
+	networkConfig, err := sonic.ConfigStd.MarshalToString(*network)
 	if err != nil {
 		return report, err
 	}
@@ -56,7 +56,7 @@ func Update(ctx context.Context, netNameOrID string, options *UpdateOptions) err
 	if err != nil {
 		return err
 	}
-	networkConfig, err := jsoniter.MarshalToString(options)
+	networkConfig, err := sonic.ConfigStd.MarshalToString(options)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func Disconnect(ctx context.Context, networkName string, containerNameOrID strin
 		disconnect.Force = force
 	}
 
-	body, err := jsoniter.MarshalToString(disconnect)
+	body, err := sonic.ConfigStd.MarshalToString(disconnect)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func Connect(ctx context.Context, networkName string, containerNameOrID string, 
 		PerNetworkOptions: *options,
 	}
 
-	body, err := jsoniter.MarshalToString(connect)
+	body, err := sonic.ConfigStd.MarshalToString(connect)
 	if err != nil {
 		return err
 	}
@@ -220,9 +220,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entitiesTypes.Network
 	if err != nil {
 		return nil, err
 	}
-	var (
-		prunedNetworks []*entitiesTypes.NetworkPruneReport
-	)
+	var prunedNetworks []*entitiesTypes.NetworkPruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

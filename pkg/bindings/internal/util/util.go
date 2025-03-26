@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	sonic "github.com/bytedance/sonic"
 )
 
 func IsSimpleType(f reflect.Value) bool {
@@ -56,7 +56,7 @@ func ToParams(o interface{}) (url.Values, error) {
 	if o == nil || reflect.ValueOf(o).IsNil() {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
+	json := sonic.ConfigStd
 	s := reflect.ValueOf(o)
 	if reflect.Ptr == s.Kind() {
 		s = s.Elem()

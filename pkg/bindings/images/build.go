@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/buildah/define"
 	imageTypes "github.com/containers/image/v5/types"
 	ldefine "github.com/containers/podman/v5/libpod/define"
@@ -30,7 +31,6 @@ import (
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
-	jsoniter "github.com/json-iterator/go"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
 )
@@ -95,7 +95,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	params := url.Values{}
 
 	if caps := options.AddCapabilities; len(caps) > 0 {
-		c, err := jsoniter.MarshalToString(caps)
+		c, err := sonic.ConfigStd.MarshalToString(caps)
 		if err != nil {
 			return nil, err
 		}
@@ -103,7 +103,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	if annotations := options.Annotations; len(annotations) > 0 {
-		l, err := jsoniter.MarshalToString(annotations)
+		l, err := sonic.ConfigStd.MarshalToString(annotations)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +111,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	if cppflags := options.CPPFlags; len(cppflags) > 0 {
-		l, err := jsoniter.MarshalToString(cppflags)
+		l, err := sonic.ConfigStd.MarshalToString(cppflags)
 		if err != nil {
 			return nil, err
 		}
@@ -131,28 +131,28 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		// For the time being we make our best to make them accessible on remote
 		// machines too (i.e. on macOS and Windows).
 		convertAdditionalBuildContexts(additionalBuildContexts)
-		additionalBuildContextMap, err := jsoniter.Marshal(additionalBuildContexts)
+		additionalBuildContextMap, err := sonic.Marshal(additionalBuildContexts)
 		if err != nil {
 			return nil, err
 		}
 		params.Set("additionalbuildcontexts", string(additionalBuildContextMap))
 	}
 	if options.IDMappingOptions != nil {
-		idmappingsOptions, err := jsoniter.Marshal(options.IDMappingOptions)
+		idmappingsOptions, err := sonic.Marshal(options.IDMappingOptions)
 		if err != nil {
 			return nil, err
 		}
 		params.Set("idmappingoptions", string(idmappingsOptions))
 	}
 	if buildArgs := options.Args; len(buildArgs) > 0 {
-		bArgs, err := jsoniter.MarshalToString(buildArgs)
+		bArgs, err := sonic.ConfigStd.MarshalToString(buildArgs)
 		if err != nil {
 			return nil, err
 		}
 		params.Set("buildargs", bArgs)
 	}
 	if excludes := options.Excludes; len(excludes) > 0 {
-		bArgs, err := jsoniter.MarshalToString(excludes)
+		bArgs, err := sonic.ConfigStd.MarshalToString(excludes)
 		if err != nil {
 			return nil, err
 		}
@@ -181,7 +181,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	params.Set("outputformat", options.OutputFormat)
 
 	if devices := options.Devices; len(devices) > 0 {
-		d, err := jsoniter.MarshalToString(devices)
+		d, err := sonic.ConfigStd.MarshalToString(devices)
 		if err != nil {
 			return nil, err
 		}
@@ -189,21 +189,21 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	if dnsservers := options.CommonBuildOpts.DNSServers; len(dnsservers) > 0 {
-		c, err := jsoniter.MarshalToString(dnsservers)
+		c, err := sonic.ConfigStd.MarshalToString(dnsservers)
 		if err != nil {
 			return nil, err
 		}
 		params.Add("dnsservers", c)
 	}
 	if dnsoptions := options.CommonBuildOpts.DNSOptions; len(dnsoptions) > 0 {
-		c, err := jsoniter.MarshalToString(dnsoptions)
+		c, err := sonic.ConfigStd.MarshalToString(dnsoptions)
 		if err != nil {
 			return nil, err
 		}
 		params.Add("dnsoptions", c)
 	}
 	if dnssearch := options.CommonBuildOpts.DNSSearch; len(dnssearch) > 0 {
-		c, err := jsoniter.MarshalToString(dnssearch)
+		c, err := sonic.ConfigStd.MarshalToString(dnssearch)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +211,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	if caps := options.DropCapabilities; len(caps) > 0 {
-		c, err := jsoniter.MarshalToString(caps)
+		c, err := sonic.ConfigStd.MarshalToString(caps)
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +245,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Set("jobs", strconv.FormatUint(uint64(*options.Jobs), 10))
 	}
 	if labels := options.Labels; len(labels) > 0 {
-		l, err := jsoniter.MarshalToString(labels)
+		l, err := sonic.ConfigStd.MarshalToString(labels)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +253,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	if opt := options.CommonBuildOpts.LabelOpts; len(opt) > 0 {
-		o, err := jsoniter.MarshalToString(opt)
+		o, err := sonic.ConfigStd.MarshalToString(opt)
 		if err != nil {
 			return nil, err
 		}
@@ -292,7 +292,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		for _, cacheSrc := range options.CacheFrom {
 			cacheFrom = append(cacheFrom, cacheSrc.String())
 		}
-		cacheFromJSON, err := jsoniter.MarshalToString(cacheFrom)
+		cacheFromJSON, err := sonic.ConfigStd.MarshalToString(cacheFrom)
 		if err != nil {
 			return nil, err
 		}
@@ -311,7 +311,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		for _, cacheSrc := range options.CacheTo {
 			cacheTo = append(cacheTo, cacheSrc.String())
 		}
-		cacheToJSON, err := jsoniter.MarshalToString(cacheTo)
+		cacheToJSON, err := sonic.ConfigStd.MarshalToString(cacheTo)
 		if err != nil {
 			return nil, err
 		}
@@ -412,14 +412,14 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	}
 
 	if hosts := options.CommonBuildOpts.AddHost; len(hosts) > 0 {
-		h, err := jsoniter.MarshalToString(hosts)
+		h, err := sonic.ConfigStd.MarshalToString(hosts)
 		if err != nil {
 			return nil, err
 		}
 		params.Set("extrahosts", h)
 	}
 	if nsoptions := options.NamespaceOptions; len(nsoptions) > 0 {
-		ns, err := jsoniter.MarshalToString(nsoptions)
+		ns, err := sonic.ConfigStd.MarshalToString(nsoptions)
 		if err != nil {
 			return nil, err
 		}
@@ -461,9 +461,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Add("unsetlabel", ulabel)
 	}
 
-	var (
-		headers http.Header
-	)
+	var headers http.Header
 	if options.SystemContext != nil {
 		if options.SystemContext.DockerAuthConfig != nil {
 			headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
@@ -619,7 +617,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 			}
 		}
 
-		c, err := jsoniter.MarshalToString(secretsForRemote)
+		c, err := sonic.ConfigStd.MarshalToString(secretsForRemote)
 		if err != nil {
 			return nil, err
 		}

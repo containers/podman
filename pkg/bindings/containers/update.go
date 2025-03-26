@@ -7,10 +7,10 @@ import (
 	"strconv"
 	"strings"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string, error) {
@@ -33,7 +33,7 @@ func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string,
 		Env:                          options.Env,
 		UnsetEnv:                     options.UnsetEnv,
 	}
-	requestData, err := jsoniter.MarshalToString(updateEntities)
+	requestData, err := sonic.ConfigStd.MarshalToString(updateEntities)
 	if err != nil {
 		return "", err
 	}

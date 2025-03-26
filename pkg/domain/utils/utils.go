@@ -5,10 +5,10 @@ import (
 	"net/url"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	sonic "github.com/bytedance/sonic"
 )
 
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+var json = sonic.ConfigStd
 
 // DeepCopy does a deep copy of a structure
 // Error checking of parameters delegated to json engine

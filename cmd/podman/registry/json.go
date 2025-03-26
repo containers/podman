@@ -3,18 +3,18 @@ package registry
 import (
 	"sync"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/bytedance/sonic"
 )
 
 var (
-	json     jsoniter.API
+	json     sonic.API
 	jsonSync sync.Once
 )
 
 // JSONLibrary provides a "encoding/json" compatible API
-func JSONLibrary() jsoniter.API {
+func JSONLibrary() sonic.API {
 	jsonSync.Do(func() {
-		json = jsoniter.ConfigCompatibleWithStandardLibrary
+		json = sonic.ConfigStd
 	})
 	return json
 }

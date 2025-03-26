@@ -3,15 +3,14 @@ package e2e_test
 import (
 	"strconv"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman machine info", func() {
-
 	It("machine info", func() {
 		info := new(infoMachine)
 		infoSession, err := mb.setCmd(info).run()
@@ -44,7 +43,7 @@ var _ = Describe("podman machine info", func() {
 		Expect(infoSession).Should(Exit(0))
 
 		infoReport := &entities.MachineInfo{}
-		err = jsoniter.Unmarshal(infoSession.Bytes(), infoReport)
+		err = sonic.Unmarshal(infoSession.Bytes(), infoReport)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

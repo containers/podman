@@ -3,8 +3,8 @@ package e2e_test
 import (
 	"runtime"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/podman/v5/pkg/machine"
-	jsoniter "github.com/json-iterator/go"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -12,7 +12,6 @@ import (
 )
 
 var _ = Describe("podman inspect stop", func() {
-
 	It("inspect bad name", func() {
 		i := inspectMachine{}
 		reallyLongName := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -54,7 +53,7 @@ var _ = Describe("podman inspect stop", func() {
 		Expect(inspectSession).To(Exit(0))
 
 		var inspectInfo []machine.InspectInfo
-		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+		err = sonic.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 
 		if runtime.GOOS == "windows" {
@@ -94,7 +93,7 @@ var _ = Describe("podman inspect stop", func() {
 			Expect(inspectSession).To(Exit(0))
 
 			var inspectInfo []machine.InspectInfo
-			err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+			err = sonic.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 			Expect(err).ToNot(HaveOccurred())
 			socks = append(socks, inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath())
 		}

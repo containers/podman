@@ -15,7 +15,7 @@ import (
 
 // jsonNumber is the interface of the encoding/json.Number datatype.
 // Repeating the interface here avoids a dependency on encoding/json, and also
-// supports other libraries like jsoniter, which use a similar datatype with
+// supports other libraries like sonic, which use a similar datatype with
 // the same interface. Detecting this interface is useful when dealing with
 // structures containing json.Number, which is a string under the hood. The
 // encoder should prefer the use of Int64(), Float64() and string(), in that

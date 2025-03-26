@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"strings"
 
+	sonic "github.com/bytedance/sonic"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *CreateOptions) (types.ContainerCreateResponse, error) {
@@ -21,7 +21,7 @@ func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *Crea
 	if err != nil {
 		return ccr, err
 	}
-	specgenString, err := jsoniter.MarshalToString(s)
+	specgenString, err := sonic.ConfigStd.MarshalToString(s)
 	if err != nil {
 		return ccr, err
 	}

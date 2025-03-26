@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/bytedance/sonic"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/network"
@@ -44,13 +45,12 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/hashicorp/go-multierror"
-	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
 
 // Set up the JSON library for all of Libpod
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
+var json = sonic.ConfigStd
 
 // A RuntimeOption is a functional option which alters the Runtime created by
 // NewRuntime
