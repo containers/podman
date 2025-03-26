@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/shutdown"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -410,7 +411,7 @@ func (c *Container) witeToFileHealthCheckResults(path string, result define.Heal
 	if err != nil {
 		return fmt.Errorf("unable to marshall healthchecks for writing: %w", err)
 	}
-	return os.WriteFile(path, newResults, 0700)
+	return os.WriteFile(path, newResults, 0o700)
 }
 
 func (c *Container) getHealthCheckLogDestination() string {

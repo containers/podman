@@ -8,6 +8,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 
@@ -26,9 +27,7 @@ var (
 	}
 )
 
-var (
-	showTrustOptions entities.ShowTrustOptions
-)
+var showTrustOptions entities.ShowTrustOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

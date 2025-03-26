@@ -85,6 +85,7 @@ func (d *ptrDecoder) Decode(ctx *RuntimeContext, cursor, depth int64, p unsafe.P
 	}
 	c, err := d.dec.Decode(ctx, cursor, depth, newptr)
 	if err != nil {
+		*(*unsafe.Pointer)(p) = nil
 		return 0, err
 	}
 	cursor = c

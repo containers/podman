@@ -14,6 +14,7 @@ import (
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/truncindex"
+	"github.com/goccy/go-json"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )

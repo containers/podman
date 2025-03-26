@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 
 	// SQLite backend for database/sql

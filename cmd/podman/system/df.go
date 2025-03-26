@@ -15,6 +15,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/go-units"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 
@@ -34,9 +35,7 @@ var (
 	}
 )
 
-var (
-	dfOptions entities.SystemDfOptions
-)
+var dfOptions entities.SystemDfOptions
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

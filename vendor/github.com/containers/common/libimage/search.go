@@ -217,7 +217,7 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 	paramsArr := []SearchResult{}
 	for i := range limit {
 		// Check whether query matches filters
-		if !(filterMatchesAutomatedFilter(&options.Filter, results[i]) && filterMatchesOfficialFilter(&options.Filter, results[i]) && filterMatchesStarFilter(&options.Filter, results[i])) {
+		if !filterMatchesAutomatedFilter(&options.Filter, results[i]) || !filterMatchesOfficialFilter(&options.Filter, results[i]) || !filterMatchesStarFilter(&options.Filter, results[i]) {
 			continue
 		}
 		official := ""

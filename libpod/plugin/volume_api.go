@@ -19,11 +19,9 @@ import (
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/go-plugins-helpers/sdk"
 	"github.com/docker/go-plugins-helpers/volume"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // Copied from docker/go-plugins-helpers/volume/api.go - not exported, so we
 // need to do this to get at them.

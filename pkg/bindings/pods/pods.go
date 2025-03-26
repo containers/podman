@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 func CreatePodFromSpec(ctx context.Context, spec *entitiesTypes.PodSpec) (*entitiesTypes.PodCreateReport, error) {
@@ -22,11 +22,11 @@ func CreatePodFromSpec(ctx context.Context, spec *entitiesTypes.PodSpec) (*entit
 	if err != nil {
 		return nil, err
 	}
-	specString, err := jsoniter.MarshalToString(spec.PodSpecGen)
+	specString, err := json.Marshal(spec.PodSpecGen)
 	if err != nil {
 		return nil, err
 	}
-	stringReader := strings.NewReader(specString)
+	stringReader := strings.NewReader(string(specString))
 	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/pods/create", nil, nil)
 	if err != nil {
 		return nil, err

@@ -15,6 +15,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/goccy/go-json"
 )
 
 type applyLayerResponse struct {

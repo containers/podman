@@ -682,7 +682,7 @@ func openSlirp4netnsPort(apiSocket, proto, hostip string, hostport, guestport ui
 	if err != nil {
 		return fmt.Errorf("cannot marshal JSON for slirp4netns: %w", err)
 	}
-	if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", data))); err != nil {
+	if _, err := fmt.Fprintf(conn, "%s\n", data); err != nil {
 		return fmt.Errorf("cannot write to control socket %s: %w", apiSocket, err)
 	}
 	//nolint:errcheck // This cast should never fail, if it does we get a interface

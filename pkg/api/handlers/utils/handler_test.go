@@ -4,6 +4,8 @@ package utils
 
 import (
 	"testing"
+
+	"github.com/goccy/go-json"
 )
 
 func TestErrorEncoderFuncOmit(t *testing.T) {

@@ -9,14 +9,13 @@ import (
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman machine list", func() {
-
 	It("list machine", func() {
 		list := new(listMachine)
 		firstList, err := mb.setCmd(list).run()
@@ -139,7 +138,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(listSession2.outputToString()).To(BeValidJSON())
 
 		var listResponse []*entities.ListReporter
-		err = jsoniter.Unmarshal(listSession2.Bytes(), &listResponse)
+		err = json.Unmarshal(listSession2.Bytes(), &listResponse)
 		Expect(err).ToNot(HaveOccurred())
 
 		// table format includes the header
@@ -161,7 +160,7 @@ var _ = Describe("podman machine list", func() {
 		listSession, err := mb.setCmd(list).run()
 		Expect(err).NotTo(HaveOccurred())
 		var listResponse []*entities.ListReporter
-		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
+		err = json.Unmarshal(listSession.Bytes(), &listResponse)
 		Expect(err).NotTo(HaveOccurred())
 		for _, reporter := range listResponse {
 			memory, err := strconv.Atoi(reporter.Memory)

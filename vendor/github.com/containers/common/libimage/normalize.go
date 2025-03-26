@@ -30,7 +30,7 @@ func NormalizeName(name string) (reference.Named, error) {
 
 	// Enforce "localhost" if needed.
 	registry := reference.Domain(named)
-	if !(strings.ContainsAny(registry, ".:") || registry == "localhost") {
+	if !strings.ContainsAny(registry, ".:") && registry != "localhost" {
 		name = toLocalImageName(ref.String())
 	}
 

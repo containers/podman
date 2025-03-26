@@ -7,6 +7,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 
@@ -426,7 +427,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			timezoneFlagName, cf.Timezone,
 			"Set timezone in container",
 		)
-		_ = cmd.RegisterFlagCompletionFunc(timezoneFlagName, completion.AutocompleteNone) //TODO: add timezone completion
+		_ = cmd.RegisterFlagCompletionFunc(timezoneFlagName, completion.AutocompleteNone) // TODO: add timezone completion
 
 		umaskFlagName := "umask"
 		createFlags.StringVar(
@@ -713,7 +714,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			sysctlFlagName, []string{},
 			"Sysctl options",
 		)
-		//TODO: Add function for sysctl completion.
+		// TODO: Add function for sysctl completion.
 		_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
 
 		securityOptFlagName := "security-opt"

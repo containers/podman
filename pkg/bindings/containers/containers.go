@@ -14,11 +14,10 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/goccy/go-json"
 )
 
-var (
-	ErrLostSync = errors.New("lost synchronization with multiplexed stream")
-)
+var ErrLostSync = errors.New("lost synchronization with multiplexed stream")
 
 // List obtains a list of containers in local storage.  All parameters to this method are optional.
 // The filters are used to determine which containers are listed. The last parameter indicates to only return

@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -47,11 +48,11 @@ func version(cmd *cobra.Command, args []string) error {
 	}
 
 	if report.IsJSON(versionFormat) {
-		s, err := json.MarshalToString(versions)
+		s, err := json.Marshal(versions)
 		if err != nil {
 			return err
 		}
-		fmt.Println(s)
+		fmt.Println(string(s))
 		return nil
 	}
 

@@ -47,7 +47,7 @@ func IfNecessary(ctx context.Context, operation func() error, options *Options) 
 		logrus.Warnf("Failed, retrying in %s ... (%d/%d). Error: %v", delay, attempt+1, options.MaxRetry, err)
 		select {
 		case <-time.After(delay):
-			break
+			// Do nothing.
 		case <-ctx.Done():
 			return err
 		}

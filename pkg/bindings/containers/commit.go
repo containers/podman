@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/storage/pkg/regexp"
+	"github.com/goccy/go-json"
 )
 
 var iidRegex = regexp.Delayed(`^[0-9a-f]{12}`)

@@ -20,10 +20,10 @@ import (
 // It returns the path of the created /etc/localtime file if needed.
 func ConfigureContainerTimeZone(timezone, containerRunDir, mountPoint, etcPath, containerID string) (localTimePath string, err error) {
 	var timezonePath string
-	switch {
-	case timezone == "":
+	switch timezone {
+	case "":
 		return "", nil
-	case timezone == "local":
+	case "local":
 		timezonePath, err = filepath.EvalSymlinks("/etc/localtime")
 		if err != nil {
 			return "", fmt.Errorf("finding local timezone for container %s: %w", containerID, err)

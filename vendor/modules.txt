@@ -179,7 +179,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.62.3-0.20250326101258-442957aa798d
+# github.com/containers/common v0.62.3-0.20250326101258-442957aa798d => github.com/giuseppe/common v0.0.8-0.20250327091628-9b97caea09e7
 ## explicit; go 1.23.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -363,7 +363,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.57.3-0.20250325222852-4d1ae4a7983d
+# github.com/containers/storage v1.57.3-0.20250325222852-4d1ae4a7983d => github.com/giuseppe/storage v1.19.2-0.20250327144920-1bcbc60bbfea
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -634,8 +634,8 @@ github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
-# github.com/goccy/go-json v0.10.2
-## explicit; go 1.12
+# github.com/goccy/go-json v0.10.5
+## explicit; go 1.19
 github.com/goccy/go-json
 github.com/goccy/go-json/internal/decoder
 github.com/goccy/go-json/internal/encoder
@@ -651,8 +651,8 @@ github.com/godbus/dbus/v5
 # github.com/gogo/protobuf v1.3.2
 ## explicit; go 1.15
 github.com/gogo/protobuf/proto
-# github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
-## explicit
+# github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8
+## explicit; go 1.20
 github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.4
 ## explicit; go 1.17
@@ -1421,3 +1421,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/common => github.com/giuseppe/common v0.0.8-0.20250327091628-9b97caea09e7
+# github.com/containers/storage => github.com/giuseppe/storage v1.19.2-0.20250327144920-1bcbc60bbfea

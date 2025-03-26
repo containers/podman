@@ -17,6 +17,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/storage/pkg/fileutils"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
 )
@@ -94,7 +95,7 @@ func NewBoltState(path string, runtime *Runtime) (State, error) {
 		logrus.Debugf("Allowing deprecated database backend due to CI_DESIRED_DATABASE.")
 	}
 
-	db, err := bolt.Open(path, 0600, nil)
+	db, err := bolt.Open(path, 0o600, nil)
 	if err != nil {
 		return nil, fmt.Errorf("opening database %s: %w", path, err)
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/docker/go-units"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 

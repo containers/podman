@@ -52,7 +52,7 @@ func (e *Encoder) EncodeContext(ctx context.Context, v interface{}, optFuncs ...
 	rctx.Option.Flag |= encoder.ContextOption
 	rctx.Option.Context = ctx
 
-	err := e.encodeWithOption(rctx, v, optFuncs...)
+	err := e.encodeWithOption(rctx, v, optFuncs...) //nolint: contextcheck
 
 	encoder.ReleaseRuntimeContext(rctx)
 	return err
@@ -120,7 +120,7 @@ func marshalContext(ctx context.Context, v interface{}, optFuncs ...EncodeOption
 		optFunc(rctx.Option)
 	}
 
-	buf, err := encode(rctx, v)
+	buf, err := encode(rctx, v) //nolint: contextcheck
 	if err != nil {
 		encoder.ReleaseRuntimeContext(rctx)
 		return nil, err

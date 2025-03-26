@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"unicode"
 	"unsafe"
@@ -17,22 +18,27 @@ var (
 	typeAddr         *runtime.TypeAddr
 	cachedDecoderMap unsafe.Pointer // map[uintptr]decoder
 	cachedDecoder    []Decoder
+	initOnce         sync.Once
 )
 
-func init() {
-	typeAddr = runtime.AnalyzeTypeAddr()
-	if typeAddr == nil {
-		typeAddr = &runtime.TypeAddr{}
-	}
-	cachedDecoder = make([]Decoder, typeAddr.AddrRange>>typeAddr.AddrShift+1)
+func initDecoder() {
+	initOnce.Do(func() {
+		typeAddr = runtime.AnalyzeTypeAddr()
+		if typeAddr == nil {
+			typeAddr = &runtime.TypeAddr{}
+		}
+		cachedDecoder = make([]Decoder, typeAddr.AddrRange>>typeAddr.AddrShift+1)
+	})
 }
 
 func loadDecoderMap() map[uintptr]Decoder {
+	initDecoder()
 	p := atomic.LoadPointer(&cachedDecoderMap)
 	return *(*map[uintptr]Decoder)(unsafe.Pointer(&p))
 }
 
 func storeDecoder(typ uintptr, dec Decoder, m map[uintptr]Decoder) {
+	initDecoder()
 	newDecoderMap := make(map[uintptr]Decoder, len(m)+1)
 	newDecoderMap[typ] = dec
 

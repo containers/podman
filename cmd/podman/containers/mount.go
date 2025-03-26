@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 
@@ -49,9 +50,7 @@ var (
 	}
 )
 
-var (
-	mountOpts entities.ContainerMountOptions
-)
+var mountOpts entities.ContainerMountOptions
 
 func mountFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()

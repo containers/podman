@@ -17,28 +17,25 @@ import (
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
 
 var infoDescription = `Display information pertaining to the machine host.`
 
-var (
-	infoCmd = &cobra.Command{
-		Use:               "info [options]",
-		Short:             "Display machine host info",
-		Long:              infoDescription,
-		PersistentPreRunE: machinePreRunE,
-		RunE:              info,
-		Args:              validate.NoArgs,
-		ValidArgsFunction: completion.AutocompleteNone,
-		Example:           `podman machine info`,
-	}
-)
+var infoCmd = &cobra.Command{
+	Use:               "info [options]",
+	Short:             "Display machine host info",
+	Long:              infoDescription,
+	PersistentPreRunE: machinePreRunE,
+	RunE:              info,
+	Args:              validate.NoArgs,
+	ValidArgsFunction: completion.AutocompleteNone,
+	Example:           `podman machine info`,
+}
 
-var (
-	inFormat string
-)
+var inFormat string
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

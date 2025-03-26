@@ -25,6 +25,7 @@ import (
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/regexp"
+	"github.com/goccy/go-json"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
@@ -2083,7 +2084,7 @@ func WithPodRestartPolicy(policy string) PodCreateOption {
 		}
 
 		switch policy {
-		//TODO: v5.0 if no restart policy is set, follow k8s convention and default to Always
+		// TODO: v5.0 if no restart policy is set, follow k8s convention and default to Always
 		case define.RestartPolicyNone, define.RestartPolicyNo, define.RestartPolicyOnFailure, define.RestartPolicyAlways, define.RestartPolicyUnlessStopped:
 			pod.config.RestartPolicy = policy
 		default:

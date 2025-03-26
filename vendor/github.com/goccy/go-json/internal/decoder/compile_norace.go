@@ -10,6 +10,7 @@ import (
 )
 
 func CompileToGetDecoder(typ *runtime.Type) (Decoder, error) {
+	initDecoder()
 	typeptr := uintptr(unsafe.Pointer(typ))
 	if typeptr > typeAddr.MaxTypeAddr {
 		return compileToGetDecoderSlowPath(typeptr, typ)

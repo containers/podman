@@ -5,10 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
-
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // DeepCopy does a deep copy of a structure
 // Error checking of parameters delegated to json engine

@@ -19,13 +19,9 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	deepcopy "github.com/jinzhu/copier"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
-
-// Faster than the standard library, see https://github.com/json-iterator/go.
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // tmpdir returns a path to a temporary directory.
 func tmpdir() (string, error) {

@@ -252,7 +252,6 @@ func IfaceIndir(*Type) bool
 //go:noescape
 func RType2Type(t *Type) reflect.Type
 
-//go:nolint structcheck
 type emptyInterface struct {
 	_   *Type
 	ptr unsafe.Pointer

@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 

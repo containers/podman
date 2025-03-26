@@ -7,9 +7,6 @@ import (
 )
 
 var (
-	// Pull in configured json library
-	json = registry.JSONLibrary()
-
 	// Command: podman _volume_
 	volumeCmd = &cobra.Command{
 		Use:   "volume",

@@ -406,6 +406,11 @@ func AppendMarshalJSON(ctx *RuntimeContext, code *Opcode, b []byte, v interface{
 			rv = newV
 		}
 	}
+
+	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return AppendNull(ctx, b), nil
+	}
+
 	v = rv.Interface()
 	var bb []byte
 	if (code.Flags & MarshalerContextFlags) != 0 {

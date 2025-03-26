@@ -166,7 +166,7 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 		return "", err
 	}
 
-	if !(len(data) > 0 && len(data) < maxSecretSize) {
+	if len(data) == 0 || len(data) >= maxSecretSize {
 		return "", errDataSize
 	}
 	var secr *Secret

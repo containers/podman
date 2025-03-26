@@ -2,7 +2,6 @@ package manifests
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -24,7 +23,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 // Create creates a manifest for the given name.  Optional images to be associated with
@@ -333,11 +332,11 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 	if err != nil {
 		return "", err
 	}
-	opts, err := jsoniter.MarshalToString(options)
+	opts, err := json.Marshal(options)
 	if err != nil {
 		return "", err
 	}
-	reader := io.Reader(strings.NewReader(opts))
+	reader := io.Reader(strings.NewReader(string(opts)))
 	if options.Body != nil {
 		reader = io.MultiReader(reader, *options.Body)
 	}
@@ -441,7 +440,7 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 
 	if response.IsSuccess() || response.IsRedirection() {
 		var report entitiesTypes.ManifestModifyReport
-		if err = jsoniter.Unmarshal(data, &report); err != nil {
+		if err = json.Unmarshal(data, &report); err != nil {
 			return "", fmt.Errorf("unable to decode API response: %w", err)
 		}
 
@@ -460,7 +459,7 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 	errModel := errorhandling.ErrorModel{
 		ResponseCode: response.StatusCode,
 	}
-	if err = jsoniter.Unmarshal(data, &errModel); err != nil {
+	if err = json.Unmarshal(data, &errModel); err != nil {
 		return "", fmt.Errorf("unable to decode API response: %w", err)
 	}
 	return "", &errModel

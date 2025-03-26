@@ -44,13 +44,9 @@ import (
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
 	"github.com/hashicorp/go-multierror"
-	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
-
-// Set up the JSON library for all of Libpod
-var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // A RuntimeOption is a functional option which alters the Runtime created by
 // NewRuntime
@@ -357,7 +353,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	// Make the static files directory if it does not exist
-	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
+	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0o700); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
 			return fmt.Errorf("creating runtime static files directory %q: %w", runtime.config.Engine.StaticDir, err)
@@ -365,7 +361,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	}
 
 	// Create the TmpDir if needed
-	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0751); err != nil {
+	if err := os.MkdirAll(runtime.config.Engine.TmpDir, 0o751); err != nil {
 		return fmt.Errorf("creating runtime temporary files directory: %w", err)
 	}
 
@@ -373,7 +369,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 	// This is not strictly necessary at this point, but the path not
 	// existing can cause troubles with DB path validation on OSTree based
 	// systems. Ref: https://github.com/containers/podman/issues/23515
-	if err := os.MkdirAll(runtime.config.Engine.VolumePath, 0700); err != nil {
+	if err := os.MkdirAll(runtime.config.Engine.VolumePath, 0o700); err != nil {
 		return fmt.Errorf("creating runtime volume path directory: %w", err)
 	}
 
@@ -895,7 +891,7 @@ func (r *Runtime) refresh(ctx context.Context, alivePath string) error {
 	}
 
 	// Create a file indicating the runtime is alive and ready
-	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0644)
+	file, err := os.OpenFile(alivePath, os.O_RDONLY|os.O_CREATE, 0o644)
 	if err != nil {
 		return fmt.Errorf("creating runtime status file: %w", err)
 	}

@@ -15,6 +15,7 @@ import (
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
+	"github.com/goccy/go-json"
 
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/sirupsen/logrus"

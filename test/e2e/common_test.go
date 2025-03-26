@@ -6,7 +6,6 @@ import (
 	"bufio"
 	"bytes"
 	crand "crypto/rand"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -35,7 +34,7 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/stringid"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -68,8 +67,10 @@ type PodmanTestIntegration struct {
 	TmpDir              string
 }
 
-var GlobalTmpDir string // Single top-level tmpdir for all tests
-var LockTmpDir string
+var (
+	GlobalTmpDir string // Single top-level tmpdir for all tests
+	LockTmpDir   string
+)
 
 // PodmanSessionIntegration struct for command line session
 type PodmanSessionIntegration struct {
@@ -174,7 +175,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 
 	// make cache dir
 	ImageCacheDir = filepath.Join(globalTmpDir, imageCacheDir)
-	err = os.MkdirAll(ImageCacheDir, 0700)
+	err = os.MkdirAll(ImageCacheDir, 0o700)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Cache images
@@ -189,7 +190,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		podman.createArtifact(image)
 	}
 
-	if err := os.MkdirAll(filepath.Join(ImageCacheDir, podman.ImageCacheFS+"-images"), 0777); err != nil {
+	if err := os.MkdirAll(filepath.Join(ImageCacheDir, podman.ImageCacheFS+"-images"), 0o777); err != nil {
 		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
 	}
@@ -198,7 +199,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	// tests are remote, this is a no-op
 	populateCache(podman)
 
-	if err := os.MkdirAll(filepath.Join(globalTmpDir, lockdir), 0700); err != nil {
+	if err := os.MkdirAll(filepath.Join(globalTmpDir, lockdir), 0o700); err != nil {
 		GinkgoWriter.Printf("%q\n", err)
 		os.Exit(1)
 	}
@@ -334,11 +335,11 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		}
 	}
 
-	if err := os.MkdirAll(root, 0755); err != nil {
+	if err := os.MkdirAll(root, 0o755); err != nil {
 		panic(err)
 	}
 
-	if err := os.MkdirAll(networkConfigDir, 0755); err != nil {
+	if err := os.MkdirAll(networkConfigDir, 0o755); err != nil {
 		panic(err)
 	}
 
@@ -399,7 +400,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		for {
 			uuid := stringid.GenerateRandomID()
 			lockPath := fmt.Sprintf("%s-%s.sock-lock", pathPrefix, uuid)
-			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0700)
+			lockFile, err := os.OpenFile(lockPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o700)
 			if err == nil {
 				lockFile.Close()
 				p.RemoteSocketLock = lockPath
@@ -490,7 +491,7 @@ func (p *PodmanTestIntegration) createArtifact(image string) {
 // image and returns json
 func (s *PodmanSessionIntegration) InspectImageJSON() []inspect.ImageData {
 	var i []inspect.ImageData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
 }
@@ -622,7 +623,7 @@ func (p *PodmanTestIntegration) RunTopContainer(name string) *PodmanSessionInteg
 // runs top.  If the name passed != "", it will have a name, command args can also be passed in
 func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []string) *PodmanSessionIntegration {
 	// In proxy environment, some tests need to the --http-proxy=false option (#16684)
-	var podmanArgs = []string{"run", "--http-proxy=false"}
+	podmanArgs := []string{"run", "--http-proxy=false"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -641,7 +642,7 @@ func (p *PodmanTestIntegration) RunTopContainerWithArgs(name string, args []stri
 // RunLsContainer runs a simple container in the background that
 // simply runs ls. If the name passed != "", it will have a name
 func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"run"}
+	podmanArgs := []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -660,7 +661,7 @@ func (p *PodmanTestIntegration) RunLsContainer(name string) (*PodmanSessionInteg
 
 // RunNginxWithHealthCheck runs the alpine nginx container with an optional name and adds a healthcheck into it
 func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSessionIntegration, string) {
-	var podmanArgs = []string{"run"}
+	podmanArgs := []string{"run"}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -673,7 +674,7 @@ func (p *PodmanTestIntegration) RunNginxWithHealthCheck(name string) (*PodmanSes
 
 // RunContainerWithNetworkTest runs the fedoraMinimal curl with the specified network mode.
 func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *PodmanSessionIntegration {
-	var podmanArgs = []string{"run"}
+	podmanArgs := []string{"run"}
 	if mode != "" {
 		podmanArgs = append(podmanArgs, "--network", mode)
 	}
@@ -683,7 +684,7 @@ func (p *PodmanTestIntegration) RunContainerWithNetworkTest(mode string) *Podman
 }
 
 func (p *PodmanTestIntegration) RunLsContainerInPod(name, pod string) (*PodmanSessionIntegration, int, string) {
-	var podmanArgs = []string{"run", "--pod", pod}
+	podmanArgs := []string{"run", "--pod", pod}
 	if name != "" {
 		podmanArgs = append(podmanArgs, "--name", name)
 	}
@@ -819,7 +820,7 @@ func (p *PodmanTestIntegration) CleanupSecrets() {
 // container and returns json
 func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectContainerData {
 	var i []define.InspectContainerData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
 }
@@ -827,7 +828,7 @@ func (s *PodmanSessionIntegration) InspectContainerToJSON() []define.InspectCont
 // InspectPodToJSON takes the sessions output from a pod inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 	var i []define.InspectPodData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(i).To(HaveLen(1))
 	return i[0]
@@ -836,7 +837,7 @@ func (s *PodmanSessionIntegration) InspectPodToJSON() define.InspectPodData {
 // InspectPodToJSON takes the sessions output from an inspect and returns json
 func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData {
 	var i []define.InspectPodData
-	err := jsoniter.Unmarshal(s.Out.Contents(), &i)
+	err := json.Unmarshal(s.Out.Contents(), &i)
 	Expect(err).ToNot(HaveOccurred())
 	return i
 }
@@ -844,7 +845,7 @@ func (s *PodmanSessionIntegration) InspectPodArrToJSON() []define.InspectPodData
 // CreatePod creates a pod with no infra container
 // it optionally takes a pod name
 func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanSessionIntegration, int, string) {
-	var args = []string{"pod", "create", "--infra=false", "--share", ""}
+	args := []string{"pod", "create", "--infra=false", "--share", ""}
 	for k, values := range options {
 		for _, v := range values {
 			args = append(args, k+"="+v)
@@ -857,7 +858,7 @@ func (p *PodmanTestIntegration) CreatePod(options map[string][]string) (*PodmanS
 }
 
 func (p *PodmanTestIntegration) CreateVolume(options map[string][]string) (*PodmanSessionIntegration, int, string) {
-	var args = []string{"volume", "create"}
+	args := []string{"volume", "create"}
 	for k, values := range options {
 		for _, v := range values {
 			args = append(args, k+"="+v)
@@ -1203,8 +1204,10 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {
-		cacheOptions := []string{"--storage-opt",
-			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir)}
+		cacheOptions := []string{
+			"--storage-opt",
+			fmt.Sprintf("%s.imagestore=%s", p.PodmanTest.ImageCacheFS, p.PodmanTest.ImageCacheDir),
+		}
 		podmanOptions = append(cacheOptions, podmanOptions...)
 	}
 	podmanOptions = append(podmanOptions, args...)
@@ -1352,7 +1355,7 @@ func (s *PodmanSessionIntegration) jq(jqCommand string) (string, error) {
 
 func (p *PodmanTestIntegration) buildImage(dockerfile, imageName string, layers string, label string, extraOptions []string) string {
 	dockerfilePath := filepath.Join(p.TempDir, "Dockerfile-"+stringid.GenerateRandomID())
-	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0755)
+	err := os.WriteFile(dockerfilePath, []byte(dockerfile), 0o755)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := []string{"build", "--pull-never", "--layers=" + layers, "--file", dockerfilePath}
 	if label != "" {
@@ -1526,7 +1529,7 @@ func CopyDirectory(srcDir, dest string) error {
 
 		switch fileInfo.Mode() & os.ModeType {
 		case os.ModeDir:
-			if err := os.MkdirAll(destPath, 0755); err != nil {
+			if err := os.MkdirAll(destPath, 0o755); err != nil {
 				return fmt.Errorf("failed to create directory: %q, error: %q", destPath, err.Error())
 			}
 			if err := CopyDirectory(sourcePath, destPath); err != nil {
@@ -1624,7 +1627,7 @@ func setupRegistry(portOverride *int) (*lockfile.LockFile, string, error) {
 func createArtifactFile(numBytes int64) (string, error) {
 	GinkgoHelper()
 	artifactDir := filepath.Join(podmanTest.TempDir, "artifacts")
-	if err := os.MkdirAll(artifactDir, 0755); err != nil {
+	if err := os.MkdirAll(artifactDir, 0o755); err != nil {
 		return "", err
 	}
 	filename := RandomString(8)

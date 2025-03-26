@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/parsers"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

@@ -25,6 +25,7 @@ import (
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 )
 
@@ -489,7 +490,7 @@ func (c *Copier) copyToStorage(ctx context.Context, source, destination types.Im
 	var resolvedReference types.ImageReference
 	_, err := c.copyInternal(ctx, source, destination, &resolvedReference)
 	if err != nil {
-		return nil, fmt.Errorf("internal error: unable to copy from source %s: %w", source, err)
+		return nil, fmt.Errorf("internal error: unable to copy from source %s: %w", transports.ImageName(source), err)
 	}
 	if resolvedReference == nil {
 		return nil, fmt.Errorf("internal error: After attempting to copy %s, resolvedReference is nil", source)

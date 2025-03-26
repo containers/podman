@@ -4,14 +4,13 @@ import (
 	"strconv"
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
 var _ = Describe("podman machine info", func() {
-
 	It("machine info", func() {
 		info := new(infoMachine)
 		infoSession, err := mb.setCmd(info).run()
@@ -44,7 +43,7 @@ var _ = Describe("podman machine info", func() {
 		Expect(infoSession).Should(Exit(0))
 
 		infoReport := &entities.MachineInfo{}
-		err = jsoniter.Unmarshal(infoSession.Bytes(), infoReport)
+		err = json.Unmarshal(infoSession.Bytes(), infoReport)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

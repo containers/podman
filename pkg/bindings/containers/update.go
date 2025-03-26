@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string, error) {
@@ -33,11 +33,11 @@ func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string,
 		Env:                          options.Env,
 		UnsetEnv:                     options.UnsetEnv,
 	}
-	requestData, err := jsoniter.MarshalToString(updateEntities)
+	requestData, err := json.Marshal(updateEntities)
 	if err != nil {
 		return "", err
 	}
-	stringReader := strings.NewReader(requestData)
+	stringReader := strings.NewReader(string(requestData))
 	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/containers/%s/update", params, nil, options.NameOrID)
 	if err != nil {
 		return "", err

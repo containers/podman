@@ -50,6 +50,7 @@ import (
 	"github.com/containers/storage/pkg/mount"
 	"github.com/coreos/go-systemd/v22/daemon"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/goccy/go-json"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -60,7 +61,7 @@ import (
 const (
 	// name of the directory holding the artifacts
 	artifactsDir      = "artifacts"
-	execDirPermission = 0755
+	execDirPermission = 0o755
 	preCheckpointDir  = "pre-checkpoint"
 )
 
@@ -564,7 +565,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 
 	artifacts := filepath.Join(c.config.StaticDir, artifactsDir)
-	if err := os.MkdirAll(artifacts, 0755); err != nil {
+	if err := os.MkdirAll(artifacts, 0o755); err != nil {
 		return fmt.Errorf("creating artifacts directory: %w", err)
 	}
 
@@ -694,11 +695,11 @@ func (c *Container) refresh() error {
 		if err != nil {
 			return err
 		}
-		if err := os.Chmod(c.runtime.config.Engine.TmpDir, info.Mode()|0111); err != nil {
+		if err := os.Chmod(c.runtime.config.Engine.TmpDir, info.Mode()|0o111); err != nil {
 			return err
 		}
 		root := filepath.Join(c.runtime.config.Engine.TmpDir, "containers-root", c.ID())
-		if err := os.MkdirAll(root, 0755); err != nil {
+		if err := os.MkdirAll(root, 0o755); err != nil {
 			return fmt.Errorf("creating userNS tmpdir for container %s: %w", c.ID(), err)
 		}
 		if err := idtools.SafeChown(root, c.RootUID(), c.RootGID()); err != nil {
@@ -1809,7 +1810,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 			return "", fmt.Errorf("unable to get host UID and host GID: %w", err)
 		}
 
-		//note: this should not be recursive, if using external rootfs users should be responsible on configuring ownership.
+		// note: this should not be recursive, if using external rootfs users should be responsible on configuring ownership.
 		if err := chown.ChangeHostPathOwnership(mountPoint, false, int(hostUID), int(hostGID)); err != nil {
 			return "", err
 		}
@@ -1837,7 +1838,7 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	}
 	defer unix.Close(dirfd)
 
-	err = unix.Mkdirat(dirfd, "etc", 0755)
+	err = unix.Mkdirat(dirfd, "etc", 0o755)
 	if err != nil && !os.IsExist(err) {
 		return "", fmt.Errorf("create /etc: %w", err)
 	}
@@ -2447,7 +2448,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 	if err != nil {
 		return fmt.Errorf("exporting runtime spec for container %s to JSON: %w", c.ID(), err)
 	}
-	if err := os.WriteFile(jsonPath, fileJSON, 0644); err != nil {
+	if err := os.WriteFile(jsonPath, fileJSON, 0o644); err != nil {
 		return fmt.Errorf("writing runtime spec JSON for container %s to disk: %w", c.ID(), err)
 	}
 
@@ -2546,7 +2547,7 @@ func (c *Container) recreateIntermediateMountpointUser() (string, error) {
 			tmpDir = "/tmp"
 		}
 		dir := filepath.Join(tmpDir, fmt.Sprintf("intermediate-mountpoint-%d.%d", rootless.GetRootlessUID(), i))
-		err := os.Mkdir(dir, 0755)
+		err := os.Mkdir(dir, 0o755)
 		if err != nil {
 			if !errors.Is(err, os.ErrExist) {
 				return "", err
@@ -2777,7 +2778,7 @@ func (c *Container) extractSecretToCtrStorage(secr *ContainerSecret) error {
 	if err != nil {
 		return fmt.Errorf("unable to extract secret: %w", err)
 	}
-	err = os.WriteFile(secretFile, data, 0644)
+	err = os.WriteFile(secretFile, data, 0o644)
 	if err != nil {
 		return fmt.Errorf("unable to create %s: %w", secretFile, err)
 	}

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 func IsSimpleType(f reflect.Value) bool {
@@ -56,7 +56,6 @@ func ToParams(o interface{}) (url.Values, error) {
 	if o == nil || reflect.ValueOf(o).IsNil() {
 		return params, nil
 	}
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	s := reflect.ValueOf(o)
 	if reflect.Ptr == s.Kind() {
 		s = s.Elem()
@@ -97,12 +96,12 @@ func ToParams(o interface{}) (url.Values, error) {
 			for iter.Next() {
 				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface()
 			}
-			s, err := json.MarshalToString(lowerCaseKeys)
+			s, err := json.Marshal(lowerCaseKeys)
 			if err != nil {
 				return nil, err
 			}
 
-			params.Set(paramName, s)
+			params.Set(paramName, string(s))
 		}
 	}
 	return params, nil

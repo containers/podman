@@ -248,7 +248,7 @@ func (n *netavarkNetwork) loadNetworks() error {
 		}
 
 		if !types.NameRegex.MatchString(network.Name) {
-			logrus.Warnf("Network config %q has invalid name: %q, skipping: %v", path, network.Name, types.RegexError)
+			logrus.Warnf("Network config %q has invalid name: %q, skipping: %v", path, network.Name, types.ErrInvalidName)
 			continue
 		}
 

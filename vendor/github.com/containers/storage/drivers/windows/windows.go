@@ -33,6 +33,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	"github.com/containers/storage/pkg/system"
 	units "github.com/docker/go-units"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
 )

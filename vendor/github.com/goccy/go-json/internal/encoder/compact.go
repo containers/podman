@@ -213,8 +213,8 @@ func compactString(dst, src []byte, cursor int64, escape bool) ([]byte, int64, e
 				dst = append(dst, src[start:cursor]...)
 				dst = append(dst, `\u202`...)
 				dst = append(dst, hex[src[cursor+2]&0xF])
-				cursor += 2
 				start = cursor + 3
+				cursor += 2
 			}
 		}
 		switch c {

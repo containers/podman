@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,7 +14,6 @@ import (
 )
 
 var _ = Describe("podman machine compose", func() {
-
 	It("compose test environment variable setup", func() {
 		name := randomString()
 		i := new(initMachine)
@@ -28,7 +27,7 @@ var _ = Describe("podman machine compose", func() {
 		Expect(inspectSession).To(Exit(0))
 
 		var inspectInfo []machine.InspectInfo
-		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+		err = json.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 
 		compose := new(fakeCompose)
@@ -44,5 +43,4 @@ var _ = Describe("podman machine compose", func() {
 		}
 		Expect(strings.TrimSuffix(lines[1], "\r")).To(Equal("0"))
 	})
-
 })

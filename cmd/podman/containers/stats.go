@@ -16,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/go-units"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 

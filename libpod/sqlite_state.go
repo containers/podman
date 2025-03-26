@@ -15,6 +15,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/storage"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 
 	// SQLite backend for database/sql
@@ -63,7 +64,7 @@ func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
 	// c/storage is set up *after* the DB - so even though we use the c/s
 	// root (or, for transient, runroot) dir, we need to make the dir
 	// ourselves.
-	if err := os.MkdirAll(basePath, 0700); err != nil {
+	if err := os.MkdirAll(basePath, 0o700); err != nil {
 		return nil, fmt.Errorf("creating root directory: %w", err)
 	}
 
@@ -131,9 +132,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer ctrRows.Close()
 
 	for ctrRows.Next() {
-		var (
-			id, stateJSON string
-		)
+		var id, stateJSON string
 		if err := ctrRows.Scan(&id, &stateJSON); err != nil {
 			return fmt.Errorf("scanning container state row: %w", err)
 		}
@@ -165,9 +164,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer podRows.Close()
 
 	for podRows.Next() {
-		var (
-			id, stateJSON string
-		)
+		var id, stateJSON string
 		if err := podRows.Scan(&id, &stateJSON); err != nil {
 			return fmt.Errorf("scanning pod state row: %w", err)
 		}
@@ -199,9 +196,7 @@ func (s *SQLiteState) Refresh() (defErr error) {
 	defer volRows.Close()
 
 	for volRows.Next() {
-		var (
-			name, stateJSON string
-		)
+		var name, stateJSON string
 
 		if err := volRows.Scan(&name, &stateJSON); err != nil {
 			return fmt.Errorf("scanning volume state row: %w", err)

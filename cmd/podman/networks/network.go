@@ -7,9 +7,6 @@ import (
 )
 
 var (
-	// Pull in configured json library
-	json = registry.JSONLibrary()
-
 	// Command: podman _network_
 	networkCmd = &cobra.Command{
 		Use:   "network",

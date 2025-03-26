@@ -9,7 +9,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/bindings"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 // Create makes a new network configuration
@@ -36,11 +36,11 @@ func CreateWithOptions(ctx context.Context, network *types.Network, extraCreateO
 	if network == nil {
 		network = &types.Network{}
 	}
-	networkConfig, err := jsoniter.MarshalToString(*network)
+	networkConfig, err := json.Marshal(*network)
 	if err != nil {
 		return report, err
 	}
-	reader := strings.NewReader(networkConfig)
+	reader := strings.NewReader(string(networkConfig))
 	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/networks/create", params, nil)
 	if err != nil {
 		return report, err
@@ -56,11 +56,11 @@ func Update(ctx context.Context, netNameOrID string, options *UpdateOptions) err
 	if err != nil {
 		return err
 	}
-	networkConfig, err := jsoniter.MarshalToString(options)
+	networkConfig, err := json.Marshal(options)
 	if err != nil {
 		return err
 	}
-	reader := strings.NewReader(networkConfig)
+	reader := strings.NewReader(string(networkConfig))
 	response, err := conn.DoRequest(ctx, reader, http.MethodPost, "/networks/%s/update", nil, nil, netNameOrID)
 	if err != nil {
 		return err
@@ -153,11 +153,11 @@ func Disconnect(ctx context.Context, networkName string, containerNameOrID strin
 		disconnect.Force = force
 	}
 
-	body, err := jsoniter.MarshalToString(disconnect)
+	body, err := json.Marshal(disconnect)
 	if err != nil {
 		return err
 	}
-	stringReader := strings.NewReader(body)
+	stringReader := strings.NewReader(string(body))
 	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/disconnect", nil, nil, networkName)
 	if err != nil {
 		return err
@@ -182,11 +182,11 @@ func Connect(ctx context.Context, networkName string, containerNameOrID string, 
 		PerNetworkOptions: *options,
 	}
 
-	body, err := jsoniter.MarshalToString(connect)
+	body, err := json.Marshal(connect)
 	if err != nil {
 		return err
 	}
-	stringReader := strings.NewReader(body)
+	stringReader := strings.NewReader(string(body))
 	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/networks/%s/connect", nil, nil, networkName)
 	if err != nil {
 		return err
@@ -220,9 +220,7 @@ func Prune(ctx context.Context, options *PruneOptions) ([]*entitiesTypes.Network
 	if err != nil {
 		return nil, err
 	}
-	var (
-		prunedNetworks []*entitiesTypes.NetworkPruneReport
-	)
+	var prunedNetworks []*entitiesTypes.NetworkPruneReport
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

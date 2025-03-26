@@ -8,7 +8,7 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/docker/docker/client"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -19,7 +19,6 @@ const (
 )
 
 var _ = Describe("run podman API test calls", func() {
-
 	It("client connect to machine socket", func() {
 		if runtime.GOOS == "windows" {
 			Skip("Go docker client doesn't support unix socket on Windows")
@@ -36,7 +35,7 @@ var _ = Describe("run podman API test calls", func() {
 		Expect(inspectSession).To(Exit(0))
 
 		var inspectInfo []machine.InspectInfo
-		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+		err = json.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 		sockPath := inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()
 
@@ -62,7 +61,7 @@ var _ = Describe("run podman API test calls", func() {
 		Expect(inspectSession).To(Exit(0))
 
 		var inspectInfo []machine.InspectInfo
-		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+		err = json.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 		pipePath := inspectInfo[0].ConnectionInfo.PodmanPipe.GetPath()
 
@@ -85,7 +84,7 @@ var _ = Describe("run podman API test calls", func() {
 		Expect(inspectSession).To(Exit(0))
 
 		var inspectInfo []machine.InspectInfo
-		err = jsoniter.Unmarshal(inspectSession.Bytes(), &inspectInfo)
+		err = json.Unmarshal(inspectSession.Bytes(), &inspectInfo)
 		Expect(err).ToNot(HaveOccurred())
 		sockPath := inspectInfo[0].ConnectionInfo.PodmanSocket.GetPath()
 

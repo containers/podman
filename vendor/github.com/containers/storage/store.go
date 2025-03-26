@@ -18,7 +18,6 @@ import (
 
 	// register all of the built-in drivers
 	_ "github.com/containers/storage/drivers/register"
-	"golang.org/x/sync/errgroup"
 
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/internal/dedup"
@@ -31,9 +30,11 @@ import (
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/types"
+	"github.com/goccy/go-json"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 )
 
 type updateNameOperation int

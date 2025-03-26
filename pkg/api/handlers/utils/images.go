@@ -22,6 +22,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/docker/docker/pkg/jsonmessage"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 )
 

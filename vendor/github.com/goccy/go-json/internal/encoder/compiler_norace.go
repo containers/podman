@@ -4,6 +4,7 @@
 package encoder
 
 func CompileToGetCodeSet(ctx *RuntimeContext, typeptr uintptr) (*OpcodeSet, error) {
+	initEncoder()
 	if typeptr > typeAddr.MaxTypeAddr || typeptr < typeAddr.BaseTypeAddr {
 		codeSet, err := compileToGetCodeSetSlowPath(typeptr)
 		if err != nil {

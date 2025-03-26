@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/goccy/go-json"
 	"golang.org/x/sys/unix"
 )
 

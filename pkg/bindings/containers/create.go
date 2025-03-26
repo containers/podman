@@ -8,7 +8,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
-	jsoniter "github.com/json-iterator/go"
+	"github.com/goccy/go-json"
 )
 
 func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *CreateOptions) (types.ContainerCreateResponse, error) {
@@ -21,11 +21,11 @@ func CreateWithSpec(ctx context.Context, s *specgen.SpecGenerator, options *Crea
 	if err != nil {
 		return ccr, err
 	}
-	specgenString, err := jsoniter.MarshalToString(s)
+	specgenString, err := json.Marshal(s)
 	if err != nil {
 		return ccr, err
 	}
-	stringReader := strings.NewReader(specgenString)
+	stringReader := strings.NewReader(string(specgenString))
 	response, err := conn.DoRequest(ctx, stringReader, http.MethodPost, "/containers/create", nil, nil)
 	if err != nil {
 		return ccr, err

@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
 	"github.com/containers/storage/pkg/fileutils"
+	"github.com/goccy/go-json"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -232,7 +233,7 @@ func makeInspectPortBindings(bindings []types.PortMapping) map[string][]define.I
 			for i := uint16(0); i < port.Range; i++ {
 				key := fmt.Sprintf("%d/%s", port.ContainerPort+i, protocol)
 				hostPorts := portBindings[key]
-				var hostIP = port.HostIP
+				hostIP := port.HostIP
 				if len(port.HostIP) == 0 {
 					hostIP = "0.0.0.0"
 				}

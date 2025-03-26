@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/system"
 	"github.com/containers/podman/v5/cmd/podman/validate"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 
@@ -107,7 +108,7 @@ func inspect(cmd *cobra.Command, args []string) error {
 	defer rpt.Flush()
 
 	if report.IsJSON(format) {
-		buf, err := registry.JSONLibrary().MarshalIndent(rows, "", "    ")
+		buf, err := json.MarshalIndent(rows, "", "    ")
 		if err == nil {
 			fmt.Println(string(buf))
 		}

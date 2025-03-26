@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/goccy/go-json"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -149,10 +150,10 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.persistDir = filepath.Join(runtime.tmpDir, "persist")
 
 	// Create the exit files and attach sockets directories
-	if err := os.MkdirAll(runtime.exitsDir, 0750); err != nil {
+	if err := os.MkdirAll(runtime.exitsDir, 0o750); err != nil {
 		return nil, fmt.Errorf("creating OCI runtime exit files directory: %w", err)
 	}
-	if err := os.MkdirAll(runtime.persistDir, 0750); err != nil {
+	if err := os.MkdirAll(runtime.persistDir, 0o750); err != nil {
 		return nil, fmt.Errorf("creating OCI runtime persist directory: %w", err)
 	}
 	return runtime, nil
@@ -1283,7 +1284,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	// This is needed as conmon writes the exit and oom file in the given persist directory path as just "exit" and "oom"
 	// So creating a directory with the container ID under the persist dir will help keep track of which container the
 	// exit and oom files belong to.
-	if err := os.MkdirAll(persistDir, 0750); err != nil {
+	if err := os.MkdirAll(persistDir, 0o750); err != nil {
 		return nil, fmt.Errorf("creating OCI runtime oom files directory for ctr %q: %w", ctr.ID(), err)
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 )

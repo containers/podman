@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/goccy/go-json"
 	"github.com/opencontainers/selinux/pkg/pwalkdir"
 )
 

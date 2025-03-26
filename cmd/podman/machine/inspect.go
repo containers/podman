@@ -12,6 +12,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/goccy/go-json"
 	"github.com/spf13/cobra"
 )
 
@@ -45,9 +46,7 @@ func init() {
 }
 
 func inspect(cmd *cobra.Command, args []string) error {
-	var (
-		errs utils.OutputErrors
-	)
+	var errs utils.OutputErrors
 	dirs, err := env.GetMachineDirs(provider.VMType())
 	if err != nil {
 		return err

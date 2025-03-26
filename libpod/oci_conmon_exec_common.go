@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/lookup"
+	"github.com/goccy/go-json"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -86,7 +87,8 @@ func (r *ConmonOCIRuntime) ExecContainer(c *Container, sessionID string, options
 // ExecContainerHTTP executes a new command in an existing container and
 // forwards its standard streams over an attach
 func (r *ConmonOCIRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize) (int, chan error, error) {
+	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize,
+) (int, chan error, error) {
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
 			return -1, nil, fmt.Errorf("must provide at least one stream to attach to: %w", define.ErrInvalidArg)
@@ -772,7 +774,7 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		return nil, err
 	}
 
-	if err := os.WriteFile(f.Name(), processJSON, 0644); err != nil {
+	if err := os.WriteFile(f.Name(), processJSON, 0o644); err != nil {
 		return nil, err
 	}
 	return f, nil

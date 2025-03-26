@@ -19,14 +19,12 @@ import (
 	provider2 "github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
-	// Pull in configured json library
-	json = registry.JSONLibrary()
-
 	openEventSock sync.Once  // Singleton support for opening sockets as needed
 	sockets       []net.Conn // Opened sockets, if any
 
@@ -41,9 +39,7 @@ var (
 	}
 )
 
-var (
-	provider vmconfigs.VMProvider
-)
+var provider vmconfigs.VMProvider
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

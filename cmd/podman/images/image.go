@@ -6,18 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// Pull in configured json library
-	json = registry.JSONLibrary()
-
-	// Command: podman _image_
-	imageCmd = &cobra.Command{
-		Use:   "image",
-		Short: "Manage images",
-		Long:  "Manage images",
-		RunE:  validate.SubCommandExists,
-	}
-)
+// Command: podman _image_
+var imageCmd = &cobra.Command{
+	Use:   "image",
+	Short: "Manage images",
+	Long:  "Manage images",
+	RunE:  validate.SubCommandExists,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{

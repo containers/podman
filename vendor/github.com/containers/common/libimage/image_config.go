@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/signal"
+	"github.com/goccy/go-json"
 	ociv1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 

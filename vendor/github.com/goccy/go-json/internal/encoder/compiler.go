@@ -5,6 +5,7 @@ import (
 	"encoding"
 	"encoding/json"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"unsafe"
 
@@ -24,14 +25,17 @@ var (
 	cachedOpcodeSets       []*OpcodeSet
 	cachedOpcodeMap        unsafe.Pointer // map[uintptr]*OpcodeSet
 	typeAddr               *runtime.TypeAddr
+	initEncoderOnce        sync.Once
 )
 
-func init() {
-	typeAddr = runtime.AnalyzeTypeAddr()
-	if typeAddr == nil {
-		typeAddr = &runtime.TypeAddr{}
-	}
-	cachedOpcodeSets = make([]*OpcodeSet, typeAddr.AddrRange>>typeAddr.AddrShift+1)
+func initEncoder() {
+	initEncoderOnce.Do(func() {
+		typeAddr = runtime.AnalyzeTypeAddr()
+		if typeAddr == nil {
+			typeAddr = &runtime.TypeAddr{}
+		}
+		cachedOpcodeSets = make([]*OpcodeSet, typeAddr.AddrRange>>typeAddr.AddrShift+1)
+	})
 }
 
 func loadOpcodeMap() map[uintptr]*OpcodeSet {
@@ -480,7 +484,7 @@ func (c *Compiler) mapCode(typ *runtime.Type) (*MapCode, error) {
 
 func (c *Compiler) listElemCode(typ *runtime.Type) (Code, error) {
 	switch {
-	case c.isPtrMarshalJSONType(typ):
+	case c.implementsMarshalJSONType(typ) || c.implementsMarshalJSONType(runtime.PtrTo(typ)):
 		return c.marshalJSONCode(typ)
 	case !typ.Implements(marshalTextType) && runtime.PtrTo(typ).Implements(marshalTextType):
 		return c.marshalTextCode(typ)

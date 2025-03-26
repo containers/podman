@@ -18,6 +18,7 @@ import (
 	"github.com/containers/common/pkg/detach"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/bindings"
+	"github.com/goccy/go-json"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
 	terminal "golang.org/x/term"

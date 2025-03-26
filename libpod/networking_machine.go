@@ -16,6 +16,7 @@ import (
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/machine"
+	"github.com/goccy/go-json"
 	"github.com/sirupsen/logrus"
 )
 
