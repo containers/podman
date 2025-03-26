@@ -14,7 +14,7 @@ import (
 	semconvNew "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
-type newHTTPServer struct{}
+type CurrentHTTPServer struct{}
 
 // TraceRequest returns trace attributes for an HTTP request received by a
 // server.
@@ -32,18 +32,18 @@ type newHTTPServer struct{}
 //
 // If the primary server name is not known, server should be an empty string.
 // The req Host will be used to determine the server instead.
-func (n newHTTPServer) RequestTraceAttrs(server string, req *http.Request) []attribute.KeyValue {
+func (n CurrentHTTPServer) RequestTraceAttrs(server string, req *http.Request) []attribute.KeyValue {
 	count := 3 // ServerAddress, Method, Scheme
 
 	var host string
 	var p int
 	if server == "" {
-		host, p = splitHostPort(req.Host)
+		host, p = SplitHostPort(req.Host)
 	} else {
 		// Prioritize the primary server name.
-		host, p = splitHostPort(server)
+		host, p = SplitHostPort(server)
 		if p < 0 {
-			_, p = splitHostPort(req.Host)
+			_, p = SplitHostPort(req.Host)
 		}
 	}
 
@@ -59,7 +59,7 @@ func (n newHTTPServer) RequestTraceAttrs(server string, req *http.Request) []att
 
 	scheme := n.scheme(req.TLS != nil)
 
-	if peer, peerPort := splitHostPort(req.RemoteAddr); peer != "" {
+	if peer, peerPort := SplitHostPort(req.RemoteAddr); peer != "" {
 		// The Go HTTP server sets RemoteAddr to "IP:port", this will not be a
 		// file-path that would be interpreted with a sock family.
 		count++
@@ -104,7 +104,7 @@ func (n newHTTPServer) RequestTraceAttrs(server string, req *http.Request) []att
 		attrs = append(attrs, methodOriginal)
 	}
 
-	if peer, peerPort := splitHostPort(req.RemoteAddr); peer != "" {
+	if peer, peerPort := SplitHostPort(req.RemoteAddr); peer != "" {
 		// The Go HTTP server sets RemoteAddr to "IP:port", this will not be a
 		// file-path that would be interpreted with a sock family.
 		attrs = append(attrs, semconvNew.NetworkPeerAddress(peer))
@@ -135,7 +135,7 @@ func (n newHTTPServer) RequestTraceAttrs(server string, req *http.Request) []att
 	return attrs
 }
 
-func (n newHTTPServer) method(method string) (attribute.KeyValue, attribute.KeyValue) {
+func (n CurrentHTTPServer) method(method string) (attribute.KeyValue, attribute.KeyValue) {
 	if method == "" {
 		return semconvNew.HTTPRequestMethodGet, attribute.KeyValue{}
 	}
@@ -150,7 +150,7 @@ func (n newHTTPServer) method(method string) (attribute.KeyValue, attribute.KeyV
 	return semconvNew.HTTPRequestMethodGet, orig
 }
 
-func (n newHTTPServer) scheme(https bool) attribute.KeyValue { // nolint:revive
+func (n CurrentHTTPServer) scheme(https bool) attribute.KeyValue { // nolint:revive
 	if https {
 		return semconvNew.URLScheme("https")
 	}
@@ -160,7 +160,7 @@ func (n newHTTPServer) scheme(https bool) attribute.KeyValue { // nolint:revive
 // TraceResponse returns trace attributes for telemetry from an HTTP response.
 //
 // If any of the fields in the ResponseTelemetry are not set the attribute will be omitted.
-func (n newHTTPServer) ResponseTraceAttrs(resp ResponseTelemetry) []attribute.KeyValue {
+func (n CurrentHTTPServer) ResponseTraceAttrs(resp ResponseTelemetry) []attribute.KeyValue {
 	var count int
 
 	if resp.ReadBytes > 0 {
@@ -195,14 +195,14 @@ func (n newHTTPServer) ResponseTraceAttrs(resp ResponseTelemetry) []attribute.Ke
 }
 
 // Route returns the attribute for the route.
-func (n newHTTPServer) Route(route string) attribute.KeyValue {
+func (n CurrentHTTPServer) Route(route string) attribute.KeyValue {
 	return semconvNew.HTTPRoute(route)
 }
 
-type newHTTPClient struct{}
+type CurrentHTTPClient struct{}
 
 // RequestTraceAttrs returns trace attributes for an HTTP request made by a client.
-func (n newHTTPClient) RequestTraceAttrs(req *http.Request) []attribute.KeyValue {
+func (n CurrentHTTPClient) RequestTraceAttrs(req *http.Request) []attribute.KeyValue {
 	/*
 	   below attributes are returned:
 	   - http.request.method
@@ -222,7 +222,7 @@ func (n newHTTPClient) RequestTraceAttrs(req *http.Request) []attribute.KeyValue
 	var requestHost string
 	var requestPort int
 	for _, hostport := range []string{urlHost, req.Header.Get("Host")} {
-		requestHost, requestPort = splitHostPort(hostport)
+		requestHost, requestPort = SplitHostPort(hostport)
 		if requestHost != "" || requestPort > 0 {
 			break
 		}
@@ -284,7 +284,7 @@ func (n newHTTPClient) RequestTraceAttrs(req *http.Request) []attribute.KeyValue
 }
 
 // ResponseTraceAttrs returns trace attributes for an HTTP response made by a client.
-func (n newHTTPClient) ResponseTraceAttrs(resp *http.Response) []attribute.KeyValue {
+func (n CurrentHTTPClient) ResponseTraceAttrs(resp *http.Response) []attribute.KeyValue {
 	/*
 	   below attributes are returned:
 	   - http.response.status_code
@@ -311,7 +311,7 @@ func (n newHTTPClient) ResponseTraceAttrs(resp *http.Response) []attribute.KeyVa
 	return attrs
 }
 
-func (n newHTTPClient) ErrorType(err error) attribute.KeyValue {
+func (n CurrentHTTPClient) ErrorType(err error) attribute.KeyValue {
 	t := reflect.TypeOf(err)
 	var value string
 	if t.PkgPath() == "" && t.Name() == "" {
@@ -328,7 +328,7 @@ func (n newHTTPClient) ErrorType(err error) attribute.KeyValue {
 	return semconvNew.ErrorTypeKey.String(value)
 }
 
-func (n newHTTPClient) method(method string) (attribute.KeyValue, attribute.KeyValue) {
+func (n CurrentHTTPClient) method(method string) (attribute.KeyValue, attribute.KeyValue) {
 	if method == "" {
 		return semconvNew.HTTPRequestMethodGet, attribute.KeyValue{}
 	}
