@@ -332,6 +332,8 @@ Valid options for `[Container]` are listed below:
 | Pull=never                           | --pull never                                         |
 | ReadOnly=true                        | --read-only                                          |
 | ReadOnlyTmpfs=true                   | --read-only-tmpfs                                    |
+| Retry=5                              | --retry=5                                            |
+| RetryDelay=5s                        | --retry-delay=5s                                     |
 | Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
 | RunInit=true                         | --init                                               |
 | SeccompProfile=/tmp/s.json           | --security-opt seccomp=/tmp/s.json                   |
@@ -780,6 +782,14 @@ If enabled, makes the image read-only.
 ### `ReadOnlyTmpfs=` (defaults to `true`)
 
 If ReadOnly is set to `true`, mount a read-write tmpfs on /dev, /dev/shm, /run, /tmp, and /var/tmp.
+
+### `Retry=`
+
+Number of times to retry the image pull when a HTTP error occurs. Equivalent to the Podman `--retry` option.
+
+### `RetryDelay=`
+
+Delay between retries. Equivalent to the Podman `--retry-delay` option.
 
 ### `Rootfs=`
 
@@ -1611,6 +1621,8 @@ Valid options for `[Build]` are listed below:
 | Network=host                        | --network=host                              |
 | PodmanArgs=--pull never             | --pull never                                |
 | Pull=never                          | --pull never                                |
+| Retry=5                             | --retry=5                                   |
+| RetryDelay=10s                      | --retry-delay=10s                           |
 | Secret=secret                       | --secret=id=mysecret,src=path               |
 | SetWorkingDirectory=unit            | Set `WorkingDirectory` of systemd unit file |
 | Target=my-app                       | --target=my-app                             |
@@ -1757,6 +1769,14 @@ Set the image pull policy.
 
 This is equivalent to the `--pull` option of `podman build`.
 
+### `Retry=`
+
+Number of times to retry the image pull when a HTTP error occurs. Equivalent to the Podman `--retry` option.
+
+### `RetryDelay=`
+
+Delay between retries. Equivalent to the Podman `--retry-delay` option.
+
 ### `Secret=`
 
 Pass secret information used in Containerfile build stages in a safe way.
@@ -1843,6 +1863,8 @@ Valid options for `[Image]` are listed below:
 | ImageTag=quay\.io/centos/centos:latest | Use this name when resolving `.image` references |
 | OS=windows                             | --os=windows                                     |
 | PodmanArgs=--os=linux                  | --os=linux                                       |
+| Retry=5                                | --retry=5                                        |
+| RetryDelay=10s                         | --retry-delay=10s                                |
 | TLSVerify=false                        | --tls-verify=false                               |
 | Variant=arm/v7                         | --variant=arm/v7                                 |
 
@@ -1940,6 +1962,14 @@ The format of this is a space separated list of arguments, which can optionally 
 escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
+
+### `Retry=`
+
+Number of times to retry the image pull when a HTTP error occurs. Equivalent to the Podman `--retry` option.
+
+### `RetryDelay=`
+
+Delay between retries. Equivalent to the Podman `--retry-delay` option.
 
 ### `TLSVerify=`
 

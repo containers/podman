@@ -925,6 +925,7 @@ BOGUS=foo
 		Entry("NetworkAlias", "network-alias.container"),
 		Entry("CgroupMode", "cgroups-mode.container"),
 		Entry("Container - No Default Dependencies", "no_deps.container"),
+		Entry("retry.container", "retry.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("device-copy.volume", "device-copy.volume"),
@@ -994,6 +995,7 @@ BOGUS=foo
 		Entry("Image - Containers Conf Modules", "containersconfmodule.image"),
 		Entry("Image - Unit After Override", "unit-after-override.image"),
 		Entry("Image - No Default Dependencies", "no_deps.image"),
+		Entry("Image - Retry", "retry.image"),
 
 		Entry("Build - Basic", "basic.build"),
 		Entry("Build - Annotation Key", "annotation.build"),
@@ -1028,6 +1030,7 @@ BOGUS=foo
 		Entry("Build - TLSVerify Key", "tls-verify.build"),
 		Entry("Build - Variant Key", "variant.build"),
 		Entry("Build - No Default Dependencies", "no_deps.build"),
+		Entry("Build - Retry", "retry.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
 		Entry("Pod - DNS", "dns.pod"),

@@ -143,6 +143,8 @@ const (
 	KeyRemapUid              = "RemapUid"     //nolint:stylecheck // deprecated
 	KeyRemapUidSize          = "RemapUidSize" //nolint:stylecheck // deprecated
 	KeyRemapUsers            = "RemapUsers"   // deprecated
+	KeyRetry                 = "Retry"
+	KeyRetryDelay            = "RetryDelay"
 	KeyRootfs                = "Rootfs"
 	KeyRunInit               = "RunInit"
 	KeySeccompProfile        = "SeccompProfile"
@@ -258,6 +260,8 @@ var (
 		KeyRemapUid:              true,
 		KeyRemapUidSize:          true,
 		KeyRemapUsers:            true,
+		KeyRetry:                 true,
+		KeyRetryDelay:            true,
 		KeyRootfs:                true,
 		KeyRunInit:               true,
 		KeySeccompProfile:        true,
@@ -362,6 +366,8 @@ var (
 		KeyImageTag:             true,
 		KeyOS:                   true,
 		KeyPodmanArgs:           true,
+		KeyRetry:                true,
+		KeyRetryDelay:           true,
 		KeyServiceName:          true,
 		KeyTLSVerify:            true,
 		KeyVariant:              true,
@@ -386,6 +392,8 @@ var (
 		KeyNetwork:              true,
 		KeyPodmanArgs:           true,
 		KeyPull:                 true,
+		KeyRetry:                true,
+		KeyRetryDelay:           true,
 		KeySecret:               true,
 		KeyServiceName:          true,
 		KeySetWorkingDirectory:  true,
@@ -641,6 +649,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		KeyStopTimeout: "--stop-timeout",
 		KeyPull:        "--pull",
 		KeyMemory:      "--memory",
+		KeyRetry:       "--retry",
+		KeyRetryDelay:  "--retry-delay",
 	}
 	lookupAndAddString(container, ContainerGroup, stringKeys, podman)
 
@@ -1365,6 +1375,8 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 		KeyDecryptionKey: "--decryption-key",
 		KeyOS:            "--os",
 		KeyVariant:       "--variant",
+		KeyRetry:         "--retry",
+		KeyRetryDelay:    "--retry-delay",
 	}
 	lookupAndAddString(image, ImageGroup, stringKeys, podman)
 
@@ -1437,10 +1449,12 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	}
 
 	stringKeys := map[string]string{
-		KeyArch:     "--arch",
-		KeyAuthFile: "--authfile",
-		KeyTarget:   "--target",
-		KeyVariant:  "--variant",
+		KeyArch:       "--arch",
+		KeyAuthFile:   "--authfile",
+		KeyTarget:     "--target",
+		KeyVariant:    "--variant",
+		KeyRetry:      "--retry",
+		KeyRetryDelay: "--retry-delay",
 	}
 	lookupAndAddString(build, BuildGroup, stringKeys, podman)
 
