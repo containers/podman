@@ -304,4 +304,33 @@ var _ = Describe("Podman container clone", func() {
 		Expect(session.OutputToString()).Should(ContainSubstring("12=3"))
 
 	})
+
+	It("podman container clone container with healthcheck", func() {
+		podmanTest.PodmanExitCleanly(
+			"run", "-d", "--rm",
+			"--health-cmd", "true", "--health-start-period", "10s", "--health-interval", "10s", "--health-timeout", "10s", "--health-retries", "2",
+			"--health-startup-cmd", "true", "--health-startup-interval", "10s", "--health-startup-timeout", "10s", "--health-startup-retries", "2", "--health-startup-success", "1",
+			"--health-on-failure", "stop", "--health-max-log-count", "1", "--health-max-log-size", "1", "--health-log-destination", podmanTest.TempDir,
+			"--name", "parent", ALPINE, "sleep", "200",
+		)
+
+		podmanTest.PodmanExitCleanly("healthcheck", "run", "parent")
+		podmanTest.PodmanExitCleanly("container", "clone", "--run", "parent", "clone", ALPINE)
+		podmanTest.PodmanExitCleanly("healthcheck", "run", "clone")
+
+		parentInspect := podmanTest.PodmanExitCleanly("inspect", "parent")
+		parentData := parentInspect.InspectContainerToJSON()[0]
+
+		cloneInspect := podmanTest.PodmanExitCleanly("inspect", "clone")
+		cloneData := cloneInspect.InspectContainerToJSON()[0]
+
+		Expect(parentData.Config.HealthcheckOnFailureAction).To(Equal(cloneData.Config.HealthcheckOnFailureAction))
+		Expect(*parentData.Config.Healthcheck).To(Equal(*cloneData.Config.Healthcheck))
+		Expect(*parentData.Config.StartupHealthCheck).To(Equal(*cloneData.Config.StartupHealthCheck))
+		Expect(parentData.Config.HealthcheckOnFailureAction).To(Equal(cloneData.Config.HealthcheckOnFailureAction))
+		Expect(parentData.Config.HealthLogDestination).To(Equal(cloneData.Config.HealthLogDestination))
+		Expect(parentData.Config.HealthMaxLogCount).To(Equal(cloneData.Config.HealthMaxLogCount))
+		Expect(parentData.Config.HealthMaxLogSize).To(Equal(cloneData.Config.HealthMaxLogSize))
+
+	})
 })
