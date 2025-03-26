@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"iter"
+	"maps"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -93,9 +95,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 				// Credential helpers in the auth file have a
 				// direct mapping to a registry, so we can just
 				// walk the map.
-				for registry := range fileContents.CredHelpers {
-					allKeys.Add(registry)
-				}
+				allKeys.AddSeq(maps.Keys(fileContents.CredHelpers))
 				for key := range fileContents.AuthConfigs {
 					key := normalizeAuthFileKey(key, path.legacyFormat)
 					if key == normalizedDockerIORegistry {
@@ -115,16 +115,14 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 					return nil, err
 				}
 			}
-			for registry := range creds {
-				allKeys.Add(registry)
-			}
+			allKeys.AddSeq(maps.Keys(creds))
 		}
 	}
 
 	// Now use `GetCredentials` to the specific auth configs for each
 	// previously listed registry.
 	allCreds := make(map[string]types.DockerAuthConfig)
-	for _, key := range allKeys.Values() {
+	for key := range allKeys.All() {
 		creds, err := GetCredentials(sys, key)
 		if err != nil {
 			// Note: we rely on the logging in `GetCredentials`.
@@ -818,16 +816,10 @@ func findCredentialsInFile(key, registry string, path authPath) (types.DockerAut
 	// Support sub-registry namespaces in auth.
 	// (This is not a feature of ~/.docker/config.json; we support it even for
 	// those files as an extension.)
-	var keys []string
-	if !path.legacyFormat {
-		keys = authKeysForKey(key)
-	} else {
-		keys = []string{registry}
-	}
-
+	//
 	// Repo or namespace keys are only supported as exact matches. For registry
 	// keys we prefer exact matches as well.
-	for _, key := range keys {
+	for key := range authKeyLookupOrder(key, registry, path.legacyFormat) {
 		if val, exists := fileContents.AuthConfigs[key]; exists {
 			return decodeDockerAuth(path.path, key, val)
 		}
@@ -854,25 +846,33 @@ func findCredentialsInFile(key, registry string, path authPath) (types.DockerAut
 	return types.DockerAuthConfig{}, nil
 }
 
-// authKeysForKey returns the keys matching a provided auth file key, in order
-// from the best match to worst. For example,
+// authKeyLookupOrder returns a sequence for lookup keys matching (key or registry)
+// in file with legacyFormat, in order from the best match to worst.
+// For example, in a non-legacy file,
 // when given a repository key "quay.io/repo/ns/image", it returns
 // - quay.io/repo/ns/image
 // - quay.io/repo/ns
 // - quay.io/repo
 // - quay.io
-func authKeysForKey(key string) (res []string) {
-	for {
-		res = append(res, key)
-
-		lastSlash := strings.LastIndex(key, "/")
-		if lastSlash == -1 {
-			break
+func authKeyLookupOrder(key, registry string, legacyFormat bool) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		if legacyFormat {
+			_ = yield(registry) // We stop in any case
+			return
 		}
-		key = key[:lastSlash]
-	}
 
-	return res
+		for {
+			if !yield(key) {
+				return
+			}
+
+			lastSlash := strings.LastIndex(key, "/")
+			if lastSlash == -1 {
+				break
+			}
+			key = key[:lastSlash]
+		}
+	}
 }
 
 // decodeDockerAuth decodes the username and password from conf,

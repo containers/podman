@@ -83,7 +83,7 @@ func platformCompressionMap(list internalManifest.List, instanceDigests []digest
 			platformSet = set.New[string]()
 			res[platform] = platformSet
 		}
-		platformSet.AddSlice(instanceDetails.ReadOnly.CompressionAlgorithmNames)
+		platformSet.AddSeq(slices.Values(instanceDetails.ReadOnly.CompressionAlgorithmNames))
 	}
 	return res, nil
 }

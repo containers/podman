@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -479,8 +480,7 @@ func (c *dockerClient) resolveRequestURL(path string) (*url.URL, error) {
 // returns the required scope to be used for fetching a new token.
 func needsRetryWithUpdatedScope(res *http.Response) (bool, *authScope) {
 	if res.StatusCode == http.StatusUnauthorized {
-		challenges := parseAuthHeader(res.Header)
-		for _, challenge := range challenges {
+		for challenge := range iterateAuthHeader(res.Header) {
 			if challenge.Scheme == "bearer" {
 				if errmsg, ok := challenge.Parameters["error"]; ok && errmsg == "insufficient_scope" {
 					if scope, ok := challenge.Parameters["scope"]; ok && scope != "" {
@@ -907,6 +907,10 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 	}
 	tr := tlsclientconfig.NewTransport()
 	tr.TLSClientConfig = c.tlsClientConfig
+	// if set DockerProxyURL explicitly, use the DockerProxyURL instead of system proxy
+	if c.sys != nil && c.sys.DockerProxyURL != nil {
+		tr.Proxy = http.ProxyURL(c.sys.DockerProxyURL)
+	}
 	c.client = &http.Client{Transport: tr}
 
 	ping := func(scheme string) error {
@@ -924,7 +928,7 @@ func (c *dockerClient) detectPropertiesHelper(ctx context.Context) error {
 		if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusUnauthorized {
 			return registryHTTPResponseToError(resp)
 		}
-		c.challenges = parseAuthHeader(resp.Header)
+		c.challenges = slices.Collect(iterateAuthHeader(resp.Header))
 		c.scheme = scheme
 		c.supportsSignatures = resp.Header.Get("X-Registry-Supports-Signatures") == "1"
 		return nil
@@ -992,7 +996,7 @@ func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.R
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
-			err := fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
+			err := fmt.Errorf("error fetching external blob from %q: %w", u, newUnexpectedHTTPStatusError(resp))
 			remoteErrors = append(remoteErrors, err)
 			logrus.Debug(err)
 			resp.Body.Close()

@@ -136,3 +136,24 @@ func LoadVerifierFromPEMFileWithOpts(path string, opts ...LoadOption) (Verifier,
 
 	return LoadVerifierWithOpts(pubKey, opts...)
 }
+
+// LoadDefaultVerifier returns a signature.Verifier based on the public key.
+// Each public key has a corresponding PublicKeyDetails associated in the
+// Sigstore ecosystem, see Algorithm Registry for more details.
+func LoadDefaultVerifier(publicKey crypto.PublicKey, opts ...LoadOption) (Verifier, error) {
+	algorithmDetails, err := GetDefaultAlgorithmDetails(publicKey, opts...)
+	if err != nil {
+		return nil, err
+	}
+	filteredOpts := []LoadOption{options.WithHash(algorithmDetails.hashType)}
+	for _, opt := range opts {
+		var useED25519ph bool
+		var rsaPSSOptions *rsa.PSSOptions
+		opt.ApplyED25519ph(&useED25519ph)
+		opt.ApplyRSAPSS(&rsaPSSOptions)
+		if useED25519ph || rsaPSSOptions != nil {
+			filteredOpts = append(filteredOpts, opt)
+		}
+	}
+	return LoadVerifierWithOpts(publicKey, filteredOpts...)
+}
