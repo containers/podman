@@ -527,6 +527,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Annotations[define.UserNsAnnotation] = c.UserNS
 	}
 
+	if c.PIDsLimit != nil {
+		s.Annotations[define.PIDsLimitAnnotation] = strconv.FormatInt(*c.PIDsLimit, 10)
+	}
+
 	if len(c.StorageOpts) > 0 {
 		opts := make(map[string]string, len(c.StorageOpts))
 		for _, opt := range c.StorageOpts {

@@ -6180,4 +6180,18 @@ spec:
 		Expect(execArr[len(execArr)-1]).To(Not(ContainSubstring(arr[len(arr)-1])))
 	})
 
+	It("test pids-limit annotation", func() {
+		ctrAnnotation := "io.podman.annotations.pids-limit/" + defaultCtrName
+		pod := getPod(withAnnotation(ctrAnnotation, "10"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		exec := podmanTest.PodmanExitCleanly("exec", "testPod-"+defaultCtrName, "cat", "/sys/fs/cgroup/pids.max")
+		Expect(exec.OutputToString()).To(Equal("10"))
+	})
+
 })

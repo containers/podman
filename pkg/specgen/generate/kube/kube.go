@@ -375,6 +375,20 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		s.Annotations[define.InspectAnnotationApparmor] = apparmor
 	}
 
+	if pidslimit, ok := annotations[define.PIDsLimitAnnotation+"/"+opts.Container.Name]; ok {
+		s.Annotations[define.PIDsLimitAnnotation] = pidslimit
+		pidslimitAsInt, err := strconv.ParseInt(pidslimit, 10, 0)
+		if err != nil {
+			return nil, err
+		}
+		if s.ResourceLimits == nil {
+			s.ResourceLimits = &spec.LinuxResources{}
+		}
+		s.ResourceLimits.Pids = &spec.LinuxPids{
+			Limit: pidslimitAsInt,
+		}
+	}
+
 	if label, ok := opts.Annotations[define.InspectAnnotationLabel+"/"+opts.Container.Name]; ok {
 		if label == "nested" {
 			s.ContainerSecurityConfig.LabelNested = &localTrue
