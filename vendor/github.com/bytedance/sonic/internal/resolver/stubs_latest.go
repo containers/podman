@@ -1,4 +1,5 @@
-// +build go1.21
+//go:build go1.24
+// +build go1.24
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -33,6 +34,8 @@ type StdField struct {
     index       []int
     typ         reflect.Type
     omitEmpty   bool
+    omitZero    bool
+    isZero      func(reflect.Value) bool
     quoted      bool
     encoder     func()
 }
@@ -46,3 +49,11 @@ type StdStructFields struct {
 //go:noescape
 //go:linkname typeFields encoding/json.typeFields
 func typeFields(_ reflect.Type) StdStructFields
+
+func handleOmitZero(fv StdField, fm *FieldMeta) {
+    if fv.omitZero {
+        fm.Opts |= F_omitzero
+        fm.IsZero = fv.isZero
+    }
+}
+

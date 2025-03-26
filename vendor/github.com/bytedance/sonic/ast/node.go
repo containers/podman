@@ -17,13 +17,15 @@
 package ast
 
 import (
-    `encoding/json`
-    `fmt`
-    `strconv`
-    `unsafe`
-    
-    `github.com/bytedance/sonic/internal/native/types`
-    `github.com/bytedance/sonic/internal/rt`
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"sync"
+	"sync/atomic"
+	"unsafe"
+
+	"github.com/bytedance/sonic/internal/native/types"
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 const (
@@ -36,7 +38,7 @@ const (
     _V_ARRAY_LAZY                   = _V_LAZY | types.V_ARRAY
     _V_OBJECT_LAZY                  = _V_LAZY | types.V_OBJECT
     _MASK_LAZY                      = _V_LAZY - 1
-    _MASK_RAW                       = _V_RAW - 1
+    _MASK_RAW                      = _V_RAW - 1
 )
 
 const (
@@ -56,6 +58,7 @@ type Node struct {
     t types.ValueType
     l uint
     p unsafe.Pointer
+    m *sync.RWMutex
 }
 
 // UnmarshalJSON is just an adapter to json.Unmarshaler.
@@ -68,7 +71,7 @@ func (self *Node) UnmarshalJSON(data []byte) (err error) {
 /** Node Type Accessor **/
 
 // Type returns json type represented by the node
-// It will be one of belows:
+// It will be one of bellows:
 //    V_NONE   = 0 (empty node, key not exists)
 //    V_ERROR  = 1 (error node)
 //    V_NULL   = 2 (json value `null`, key exists)
@@ -79,17 +82,39 @@ func (self *Node) UnmarshalJSON(data []byte) (err error) {
 //    V_STRING = 7 (json value string)
 //    V_NUMBER = 33 (json value number )
 //    V_ANY    = 34 (golang interface{})
+//
+// Deprecated: not concurrent safe. Use TypeSafe instead
 func (self Node) Type() int {
     return int(self.t & _MASK_LAZY & _MASK_RAW)
 }
 
-func (self Node) itype() types.ValueType {
+// Type concurrently-safe returns json type represented by the node
+// It will be one of bellows:
+//    V_NONE   = 0 (empty node, key not exists)
+//    V_ERROR  = 1 (error node)
+//    V_NULL   = 2 (json value `null`, key exists)
+//    V_TRUE   = 3 (json value `true`)
+//    V_FALSE  = 4 (json value `false`)
+//    V_ARRAY  = 5 (json value array)
+//    V_OBJECT = 6 (json value object)
+//    V_STRING = 7 (json value string)
+//    V_NUMBER = 33 (json value number )
+//    V_ANY    = 34 (golang interface{})
+func (self *Node) TypeSafe() int {
+    return int(self.loadt() & _MASK_LAZY & _MASK_RAW)
+}
+
+func (self *Node) itype() types.ValueType {
     return self.t & _MASK_LAZY & _MASK_RAW
 }
 
 // Exists returns false only if the self is nil or empty node V_NONE
 func (self *Node) Exists() bool {
-    return self.Valid() && self.t != _V_NONE
+    if self == nil {
+        return false
+    }
+    t := self.loadt()
+    return t != V_ERROR && t != _V_NONE
 }
 
 // Valid reports if self is NOT V_ERROR or nil
@@ -97,7 +122,7 @@ func (self *Node) Valid() bool {
     if self == nil {
         return false
     }
-    return self.t != V_ERROR
+    return self.loadt() != V_ERROR
 }
 
 // Check checks if the node itself is valid, and return:
@@ -106,24 +131,31 @@ func (self *Node) Valid() bool {
 func (self *Node)  Check() error {
     if self == nil {
         return ErrNotExist
-    } else if self.t != V_ERROR {
+    } else if self.loadt() != V_ERROR {
         return nil
     } else {
         return self
     }
 }
 
-// IsRaw returns true if node's underlying value is raw json
+// isRaw returns true if node's underlying value is raw json
+//
+// Deprecated: not concurrent safe
 func (self Node) IsRaw() bool {
-    return self.t&_V_RAW != 0
+    return self.t & _V_RAW != 0
+}
+
+// IsRaw returns true if node's underlying value is raw json
+func (self *Node) isRaw() bool {
+    return self.loadt() & _V_RAW != 0
 }
 
 func (self *Node) isLazy() bool {
-    return self != nil && self.t&_V_LAZY != 0
+    return self != nil && self.t & _V_LAZY != 0
 }
 
 func (self *Node) isAny() bool {
-    return self != nil && self.t == _V_ANY
+    return self != nil && self.loadt() == _V_ANY
 }
 
 /** Simple Value Methods **/
@@ -133,18 +165,26 @@ func (self *Node) Raw() (string, error) {
     if self == nil {
         return "", ErrNotExist
     }
-    if !self.IsRaw() {
+    lock := self.rlock()
+    if !self.isRaw() {
+        if lock {
+            self.runlock()
+        }
         buf, err := self.MarshalJSON()
         return rt.Mem2Str(buf), err
     }
-    return self.toString(), nil
+    ret := self.toString()
+    if lock {
+        self.runlock()
+    }
+    return ret, nil
 }
 
 func (self *Node) checkRaw() error {
     if err := self.Check(); err != nil {
         return err
     }
-    if self.IsRaw() {
+    if self.isRaw() {
         self.parseRaw(false)
     }
     return self.Check()
@@ -400,7 +440,7 @@ func (self *Node) String() (string, error) {
     }
 }
 
-// StrictString returns string value (unescaped), includeing V_STRING, V_ANY of string.
+// StrictString returns string value (unescaped), including V_STRING, V_ANY of string.
 // In other cases, it will return empty string.
 func (self *Node) StrictString() (string, error) {
     if err := self.checkRaw(); err != nil {
@@ -469,7 +509,7 @@ func (self *Node) Float64() (float64, error) {
     }
 }
 
-// Float64 exports underlying float64 value, includeing V_NUMBER, V_ANY 
+// Float64 exports underlying float64 value, including V_NUMBER, V_ANY
 func (self *Node) StrictFloat64() (float64, error) {
     if err := self.checkRaw(); err != nil {
         return 0.0, err
@@ -487,7 +527,7 @@ func (self *Node) StrictFloat64() (float64, error) {
     }
 }
 
-/** Sequencial Value Methods **/
+/** Sequential Value Methods **/
 
 // Len returns children count of a array|object|string node
 // WARN: For partially loaded node, it also works but only counts the parsed children
@@ -504,7 +544,7 @@ func (self *Node) Len() (int, error) {
     }
 }
 
-func (self Node) len() int {
+func (self *Node) len() int {
     return int(self.l)
 }
 
@@ -527,7 +567,7 @@ func (self *Node) Cap() (int, error) {
 //
 // If self is V_NONE or V_NULL, it becomes V_OBJECT and sets the node at the key.
 func (self *Node) Set(key string, node Node) (bool, error) {
-    if err := self.Check(); err != nil {
+    if err := self.checkRaw(); err != nil {
         return false, err
     }
     if err := node.Check(); err != nil {
@@ -535,7 +575,7 @@ func (self *Node) Set(key string, node Node) (bool, error) {
     }
     
     if self.t == _V_NONE || self.t == types.V_NULL {
-        *self = NewObject([]Pair{{key, node}})
+        *self = NewObject([]Pair{NewPair(key, node)})
         return false, nil
     } else if self.itype() != types.V_OBJECT {
         return false, ErrUnsupportType
@@ -549,7 +589,7 @@ func (self *Node) Set(key string, node Node) (bool, error) {
             *self = newObject(new(linkedPairs))
         }
         s := (*linkedPairs)(self.p)
-        s.Push(Pair{key, node})
+        s.Push(NewPair(key, node))
         self.l++
         return false, nil
 
@@ -568,10 +608,10 @@ func (self *Node) SetAny(key string, val interface{}) (bool, error) {
 
 // Unset REMOVE (soft) the node of given key under object parent, and reports if the key has existed.
 func (self *Node) Unset(key string) (bool, error) {
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return false, err
     }
-    // NOTICE: must get acurate length before deduct
+    // NOTICE: must get accurate length before deduct
     if err := self.skipAllKey(); err != nil {
         return false, err
     }
@@ -589,7 +629,7 @@ func (self *Node) Unset(key string) (bool, error) {
 //
 // The index must be within self's children.
 func (self *Node) SetByIndex(index int, node Node) (bool, error) {
-    if err := self.Check(); err != nil {
+    if err := self.checkRaw(); err != nil {
         return false, err 
     }
     if err := node.Check(); err != nil {
@@ -617,7 +657,7 @@ func (self *Node) SetAnyByIndex(index int, val interface{}) (bool, error) {
     return self.SetByIndex(index, NewAny(val))
 }
 
-// UnsetByIndex REOMVE (softly) the node of given index.
+// UnsetByIndex REMOVE (softly) the node of given index.
 //
 // WARN: this will change address of elements, which is a dangerous action.
 // Use Unset() for object or Pop() for array instead.
@@ -669,7 +709,7 @@ func (self *Node) UnsetByIndex(index int) (bool, error) {
 //
 // If self is V_NONE or V_NULL, it becomes V_ARRAY and sets the node at index 0.
 func (self *Node) Add(node Node) error {
-    if err := self.Check(); err != nil {
+    if err := self.checkRaw(); err != nil {
         return err
     }
 
@@ -677,7 +717,7 @@ func (self *Node) Add(node Node) error {
         *self = NewArray([]Node{node})
         return nil
     }
-    if err := self.should(types.V_ARRAY, "an array"); err != nil {
+    if err := self.should(types.V_ARRAY); err != nil {
         return err
     }
 
@@ -740,7 +780,7 @@ func (self *Node) Pop() error {
 // 
 // WARN: this will change address of elements, which is a dangerous action.
 func (self *Node) Move(dst, src int) error {
-    if err := self.should(types.V_ARRAY, "an array"); err != nil {
+    if err := self.should(types.V_ARRAY); err != nil {
         return err
     }
 
@@ -812,7 +852,7 @@ func (self *Node) GetByPath(path ...interface{}) *Node {
 
 // Get loads given key of an object node on demands
 func (self *Node) Get(key string) *Node {
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return unwrapError(err)
     }
     n, _ := self.skipKey(key)
@@ -845,14 +885,14 @@ func (self *Node) Index(idx int) *Node {
 // IndexPair indexies pair at given idx,
 // node type MUST be either V_OBJECT
 func (self *Node) IndexPair(idx int) *Pair {
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return nil
     }
     return self.skipIndexPair(idx)
 }
 
 func (self *Node) indexOrGet(idx int, key string) (*Node, int) {
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return unwrapError(err), idx
     }
 
@@ -889,10 +929,10 @@ func (self *Node) Map() (map[string]interface{}, error) {
             return nil, ErrUnsupportType
         }
     }
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return nil, err
     }
-    if err := self.loadAllKey(); err != nil {
+    if err := self.loadAllKey(false); err != nil {
         return nil, err
     }
     return self.toGenericObject()
@@ -908,16 +948,16 @@ func (self *Node) MapUseNumber() (map[string]interface{}, error) {
             return nil, ErrUnsupportType
         }
     }
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return nil, err
     }
-    if err := self.loadAllKey(); err != nil {
+    if err := self.loadAllKey(false); err != nil {
         return nil, err
     }
     return self.toGenericObjectUseNumber()
 }
 
-// MapUseNode scans both parsed and non-parsed chidren nodes, 
+// MapUseNode scans both parsed and non-parsed children nodes,
 // and map them by their keys
 func (self *Node) MapUseNode() (map[string]Node, error) {
     if self.isAny() {
@@ -928,7 +968,7 @@ func (self *Node) MapUseNode() (map[string]Node, error) {
             return nil, ErrUnsupportType
         }
     }
-    if err := self.should(types.V_OBJECT, "an object"); err != nil {
+    if err := self.should(types.V_OBJECT); err != nil {
         return nil, err
     }
     if err := self.skipAllKey(); err != nil {
@@ -1034,10 +1074,10 @@ func (self *Node) Array() ([]interface{}, error) {
             return nil, ErrUnsupportType
         }
     }
-    if err := self.should(types.V_ARRAY, "an array"); err != nil {
+    if err := self.should(types.V_ARRAY); err != nil {
         return nil, err
     }
-    if err := self.loadAllIndex(); err != nil {
+    if err := self.loadAllIndex(false); err != nil {
         return nil, err
     }
     return self.toGenericArray()
@@ -1053,16 +1093,16 @@ func (self *Node) ArrayUseNumber() ([]interface{}, error) {
             return nil, ErrUnsupportType
         }
     }
-    if err := self.should(types.V_ARRAY, "an array"); err != nil {
+    if err := self.should(types.V_ARRAY); err != nil {
         return nil, err
     }
-    if err := self.loadAllIndex(); err != nil {
+    if err := self.loadAllIndex(false); err != nil {
         return nil, err
     }
     return self.toGenericArrayUseNumber()
 }
 
-// ArrayUseNode copys both parsed and non-parsed chidren nodes, 
+// ArrayUseNode copies both parsed and non-parsed children nodes,
 // and indexes them by original order
 func (self *Node) ArrayUseNode() ([]Node, error) {
     if self.isAny() {
@@ -1073,7 +1113,7 @@ func (self *Node) ArrayUseNode() ([]Node, error) {
             return nil, ErrUnsupportType
         }
     }
-    if err := self.should(types.V_ARRAY, "an array"); err != nil {
+    if err := self.should(types.V_ARRAY); err != nil {
         return nil, err
     }
     if err := self.skipAllIndex(); err != nil {
@@ -1107,9 +1147,9 @@ func (self *Node) unsafeArray() (*linkedNodes, error) {
     return (*linkedNodes)(self.p), nil
 }
 
-// Interface loads all children under all pathes from this node,
+// Interface loads all children under all paths from this node,
 // and converts itself as generic type.
-// WARN: all numberic nodes are casted to float64
+// WARN: all numeric nodes are casted to float64
 func (self *Node) Interface() (interface{}, error) {
     if err := self.checkRaw(); err != nil {
         return nil, err
@@ -1129,12 +1169,12 @@ func (self *Node) Interface() (interface{}, error) {
             }
             return v, nil
         case _V_ARRAY_LAZY   :
-            if err := self.loadAllIndex(); err != nil {
+            if err := self.loadAllIndex(false); err != nil {
                 return nil, err
             }
             return self.toGenericArray()
         case _V_OBJECT_LAZY  :
-            if err := self.loadAllKey(); err != nil {
+            if err := self.loadAllKey(false); err != nil {
                 return nil, err
             }
             return self.toGenericObject()
@@ -1153,7 +1193,7 @@ func (self *Node) packAny() interface{} {
 }
 
 // InterfaceUseNumber works same with Interface()
-// except numberic nodes  are casted to json.Number
+// except numeric nodes are casted to json.Number
 func (self *Node) InterfaceUseNumber() (interface{}, error) {
     if err := self.checkRaw(); err != nil {
         return nil, err
@@ -1168,12 +1208,12 @@ func (self *Node) InterfaceUseNumber() (interface{}, error) {
         case types.V_STRING  : return self.toString(), nil
         case _V_NUMBER       : return self.toNumber(), nil
         case _V_ARRAY_LAZY   :
-            if err := self.loadAllIndex(); err != nil {
+            if err := self.loadAllIndex(false); err != nil {
                 return nil, err
             }
             return self.toGenericArrayUseNumber()
         case _V_OBJECT_LAZY  :
-            if err := self.loadAllKey(); err != nil {
+            if err := self.loadAllKey(false); err != nil {
                 return nil, err
             }
             return self.toGenericObjectUseNumber()
@@ -1205,70 +1245,30 @@ func (self *Node) InterfaceUseNode() (interface{}, error) {
     }
 }
 
-// LoadAll loads all the node's children and children's children as parsed.
-// After calling it, the node can be safely used on concurrency
+// LoadAll loads the node's children 
+// and ensure all its children can be READ concurrently (include its children's children)
 func (self *Node) LoadAll() error {
-    if self.IsRaw() {
-        self.parseRaw(true)
-        return self.Check()
-    }
-
-    switch self.itype() {
-    case types.V_ARRAY:
-        e := self.len()
-        if err := self.loadAllIndex(); err != nil {
-            return err
-        }
-        for i := 0; i < e; i++ {
-            n := self.nodeAt(i)
-            if n.IsRaw() {
-                n.parseRaw(true)
-            }
-            if err := n.Check(); err != nil {
-                return err
-            }
-        }
-        return nil
-    case types.V_OBJECT:
-        e := self.len()
-        if err := self.loadAllKey(); err != nil {
-            return err
-        }
-        for i := 0; i < e; i++ {
-            n := self.pairAt(i)
-            if n.Value.IsRaw() {
-                n.Value.parseRaw(true)
-            }
-            if err := n.Value.Check(); err != nil {
-                return err
-            }
-        }
-        return nil
-    default:
-        return self.Check()
-    }
+    return self.Load()
 }
 
 // Load loads the node's children as parsed.
-// After calling it, only the node itself can be used on concurrency (not include its children)
+// and ensure all its children can be READ concurrently (include its children's children)
 func (self *Node) Load() error {
-    if err := self.checkRaw(); err != nil {
-        return err
-    }
-
     switch self.t {
-    case _V_ARRAY_LAZY:
-        return self.skipAllIndex()
-    case _V_OBJECT_LAZY:
-        return self.skipAllKey()
-    default:
-        return self.Check()
+        case _V_ARRAY_LAZY: self.loadAllIndex(true)
+        case _V_OBJECT_LAZY: self.loadAllKey(true)
+        case V_ERROR: return self
+        case V_NONE: return nil
     }
+    if self.m == nil {
+        self.m = new(sync.RWMutex)
+    }
+    return self.checkRaw()
 }
 
 /**---------------------------------- Internal Helper Methods ----------------------------------**/
 
-func (self *Node) should(t types.ValueType, s string) error {
+func (self *Node) should(t types.ValueType) error {
     if err := self.checkRaw(); err != nil {
         return err
     }
@@ -1439,13 +1439,17 @@ func (self *Node) skipIndexPair(index int) *Pair {
     return nil
 }
 
-func (self *Node) loadAllIndex() error {
+func (self *Node) loadAllIndex(loadOnce bool) error {
     if !self.isLazy() {
         return nil
     }
     var err types.ParsingError
     parser, stack := self.getParserAndArrayStack()
-    parser.noLazy = true
+    if !loadOnce {
+        parser.noLazy = true
+    } else {
+        parser.loadOnce = true
+    }
     *self, err = parser.decodeArray(&stack.v)
     if err != 0 {
         return parser.ExportError(err)
@@ -1453,14 +1457,19 @@ func (self *Node) loadAllIndex() error {
     return nil
 }
 
-func (self *Node) loadAllKey() error {
+func (self *Node) loadAllKey(loadOnce bool) error {
     if !self.isLazy() {
         return nil
     }
     var err types.ParsingError
     parser, stack := self.getParserAndObjectStack()
-    parser.noLazy = true
-    *self, err = parser.decodeObject(&stack.v)
+    if !loadOnce {
+        parser.noLazy = true
+        *self, err = parser.decodeObject(&stack.v)
+    } else {
+        parser.loadOnce = true
+        *self, err = parser.decodeObject(&stack.v)
+    }
     if err != 0 {
         return parser.ExportError(err)
     }
@@ -1629,7 +1638,23 @@ func NewRaw(json string) Node {
     if it == _V_NONE {
         return Node{}
     }
-    return newRawNode(parser.s[start:parser.p], it)
+    return newRawNode(parser.s[start:parser.p], it, false)
+}
+
+// NewRawConcurrentRead creates a node of raw json, which can be READ 
+// (GetByPath/Get/Index/GetOrIndex/Int64/Bool/Float64/String/Number/Interface/Array/Map/Raw/MarshalJSON) concurrently.
+// If the input json is invalid, NewRaw returns a error Node.
+func NewRawConcurrentRead(json string) Node {
+    parser := NewParserObj(json)
+    start, err := parser.skip()
+    if err != 0 {
+        return *newError(err, err.Message()) 
+    }
+    it := switchRawType(parser.s[start])
+    if it == _V_NONE {
+        return Node{}
+    }
+    return newRawNode(parser.s[start:parser.p], it, true)
 }
 
 // NewAny creates a node of type V_ANY if any's type isn't Node or *Node, 
@@ -1653,7 +1678,7 @@ func NewBytes(src []byte) Node {
     if len(src) == 0 {
         panic("empty src bytes")
     }
-    out := encodeBase64(src)
+    out := rt.EncodeBase64ToString(src)
     return NewString(out)
 }
 
@@ -1689,15 +1714,15 @@ func NewNumber(v string) Node {
     }
 }
 
-func (node Node) toNumber() json.Number {
+func (node *Node) toNumber() json.Number {
     return json.Number(rt.StrFrom(node.p, int64(node.l)))
 }
 
-func (self Node) toString() string {
+func (self *Node) toString() string {
     return rt.StrFrom(self.p, int64(self.l))
 }
 
-func (node Node) toFloat64() (float64, error) {
+func (node *Node) toFloat64() (float64, error) {
     ret, err := node.toNumber().Float64()
     if err != nil {
         return 0, err
@@ -1705,7 +1730,7 @@ func (node Node) toFloat64() (float64, error) {
     return ret, nil
 }
 
-func (node Node) toInt64() (int64, error) {
+func (node *Node) toInt64() (int64, error) {
     ret,err := node.toNumber().Int64()
     if err != nil {
         return 0, err
@@ -1741,6 +1766,8 @@ func NewArray(v []Node) Node {
     return newArray(s)
 }
 
+const _Threshold_Index = 16
+
 func newArray(v *linkedNodes) Node {
     return Node{
         t: types.V_ARRAY,
@@ -1764,6 +1791,9 @@ func NewObject(v []Pair) Node {
 }
 
 func newObject(v *linkedPairs) Node {
+    if v.size > _Threshold_Index {
+        v.BuildIndex()
+    }
     return Node{
         t: types.V_OBJECT,
         l: uint(v.Len()),
@@ -1772,53 +1802,42 @@ func newObject(v *linkedPairs) Node {
 }
 
 func (self *Node) setObject(v *linkedPairs) {
+    if v.size > _Threshold_Index {
+        v.BuildIndex()
+    }
     self.t = types.V_OBJECT
     self.l = uint(v.Len())
     self.p = unsafe.Pointer(v)
 }
 
-func newRawNode(str string, typ types.ValueType) Node {
-    return Node{
-        t: _V_RAW | typ,
-        p: rt.StrPtr(str),
-        l: uint(len(str)),
-    }
-}
-
 func (self *Node) parseRaw(full bool) {
+    lock := self.lock()
+    defer self.unlock()
+    if !self.isRaw() {
+        return
+    }
     raw := self.toString()
     parser := NewParserObj(raw)
+    var e types.ParsingError
     if full {
         parser.noLazy = true
-        parser.skipValue = false
+        *self, e = parser.Parse()
+    } else if lock {
+        var n Node
+        parser.noLazy = true
+        parser.loadOnce = true
+        n, e = parser.Parse()
+        self.assign(n)
+    } else {
+        *self, e = parser.Parse()
     }
-    var e types.ParsingError
-    *self, e = parser.Parse()
     if e != 0 {
         *self = *newSyntaxError(parser.syntaxError(e))
     }
 }
 
-var typeJumpTable = [256]types.ValueType{
-    '"' : types.V_STRING,
-    '-' : _V_NUMBER,
-    '0' : _V_NUMBER,
-    '1' : _V_NUMBER,
-    '2' : _V_NUMBER,
-    '3' : _V_NUMBER,
-    '4' : _V_NUMBER,
-    '5' : _V_NUMBER,
-    '6' : _V_NUMBER,
-    '7' : _V_NUMBER,
-    '8' : _V_NUMBER,
-    '9' : _V_NUMBER,
-    '[' : types.V_ARRAY,
-    'f' : types.V_FALSE,
-    'n' : types.V_NULL,
-    't' : types.V_TRUE,
-    '{' : types.V_OBJECT,
-}
-
-func switchRawType(c byte) types.ValueType {
-    return typeJumpTable[c]
+func (self *Node) assign(n Node) {
+    self.l = n.l
+    self.p = n.p
+    atomic.StoreInt64(&self.t, n.t)
 }

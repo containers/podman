@@ -23,6 +23,16 @@ import (
     `github.com/bytedance/sonic/internal/rt`
 )
 
+const (
+    // UseStdJSON indicates you are using fallback implementation (encoding/json)
+	UseStdJSON = iota
+    // UseSonicJSON indicates you are using real sonic implementation
+	UseSonicJSON
+)
+
+// APIKind is the kind of API, 0 is std json, 1 is sonic.
+const APIKind = apiKind
+
 // Config is a combination of sonic/encoder.Options and sonic/decoder.Options
 type Config struct {
     // EscapeHTML indicates encoder to escape all HTML characters 
@@ -67,16 +77,26 @@ type Config struct {
     // CopyString indicates decoder to decode string values by copying instead of referring.
     CopyString                    bool
 
-    // ValidateString indicates decoder and encoder to valid string values: decoder will return errors 
+    // ValidateString indicates decoder and encoder to validate string values: decoder will return errors 
     // when unescaped control chars(\u0000-\u001f) in the string value of JSON.
     ValidateString                bool
 
     // NoValidateJSONMarshaler indicates that the encoder should not validate the output string
     // after encoding the JSONMarshaler to JSON.
     NoValidateJSONMarshaler       bool
+
+    // NoValidateJSONSkip indicates the decoder should not validate the JSON value when skipping it,
+    // such as unknown-fields, mismatched-type, redundant elements..
+    NoValidateJSONSkip bool
     
     // NoEncoderNewline indicates that the encoder should not add a newline after every message
     NoEncoderNewline bool
+
+    // Encode Infinity or Nan float into `null`, instead of returning an error.
+    EncodeNullForInfOrNan bool
+
+    // CaseSensitive indicates that the decoder should not ignore the case of object keys.
+    CaseSensitive bool
 }
  
 var (
@@ -94,15 +114,15 @@ var (
  
     // ConfigFastest is the fastest config of APIs, aiming at speed.
     ConfigFastest = Config{
-        NoQuoteTextMarshaler: true,
         NoValidateJSONMarshaler: true,
+        NoValidateJSONSkip: true,
     }.Froze()
 )
  
  
 // API is a binding of specific config.
 // This interface is inspired by github.com/json-iterator/go,
-// and has same behaviors under equavilent config.
+// and has same behaviors under equivalent config.
 type API interface {
     // MarshalToString returns the JSON encoding string of v
     MarshalToString(v interface{}) (string, error)
@@ -157,6 +177,13 @@ func Marshal(val interface{}) ([]byte, error) {
     return ConfigDefault.Marshal(val)
 }
 
+// MarshalIndent is like Marshal but applies Indent to format the output.
+// Each JSON element in the output will begin on a new line beginning with prefix
+// followed by one or more copies of indent according to the indentation nesting.
+func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
+    return ConfigDefault.MarshalIndent(v, prefix, indent)
+}
+
 // MarshalString returns the JSON encoding string of v.
 func MarshalString(val interface{}) (string, error) {
     return ConfigDefault.MarshalToString(val)
@@ -187,6 +214,14 @@ func UnmarshalString(buf string, val interface{}) error {
 // Considering memory safety, the returned JSON is **Copied** from the input
 func Get(src []byte, path ...interface{}) (ast.Node, error) {
     return GetCopyFromString(rt.Mem2Str(src), path...)
+}
+
+//GetWithOptions searches and locates the given path from src json,
+// with specific options of ast.Searcher
+func GetWithOptions(src []byte, opts ast.SearchOptions, path ...interface{}) (ast.Node, error) {
+    s := ast.NewSearcher(rt.Mem2Str(src))
+    s.SearchOptions = opts
+    return s.GetByPath(path...)
 }
 
 // GetFromString is same with Get except src is string.

@@ -1697,8 +1697,8 @@ LBB0_350:
 LBB0_351:
 	WORD $0x3840173b  // ldrb	w27, [x25], #1
 	WORD $0x3400015b  // cbz	w27, LBB0_356 $40(%rip)
-	WORD $0x3940035c  // ldrb	w28, [x26]
-	WORD $0x6b1b039f  // cmp	w28, w27
+	WORD $0x3940035e  // ldrb	w30, [x26]
+	WORD $0x6b1b03df  // cmp	w30, w27
 	WORD $0x540013e1  // b.ne	LBB0_396 $636(%rip)
 	WORD $0x9100075a  // add	x26, x26, #1
 	WORD $0xf1000718  // subs	x24, x24, #1
@@ -1886,7 +1886,7 @@ LBB0_395:
 	WORD $0x52800013  // mov	w19, #0
 	WORD $0x17ffffb7  // b	LBB0_376 $-292(%rip)
 LBB0_396:
-	WORD $0x13001f96  // sxtb	w22, w28
+	WORD $0x13001fd6  // sxtb	w22, w30
 	WORD $0x6b3b82df  // cmp	w22, w27, sxtb
 	WORD $0x54ffecab  // b.lt	LBB0_355 $-620(%rip)
 	WORD $0x17ffff65  // b	LBB0_356 $-620(%rip)

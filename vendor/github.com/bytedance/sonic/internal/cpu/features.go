@@ -24,7 +24,6 @@ import (
 )
 
 var (
-    HasAVX  = cpuid.CPU.Has(cpuid.AVX)
     HasAVX2 = cpuid.CPU.Has(cpuid.AVX2)
     HasSSE = cpuid.CPU.Has(cpuid.SSE)
 )
@@ -33,7 +32,8 @@ func init() {
     switch v := os.Getenv("SONIC_MODE"); v {
         case ""       : break
         case "auto"   : break
-        case "noavx"  : HasAVX = false; fallthrough
+        case "noavx"  : HasAVX2 = false
+        // will also disable avx, act as `noavx`, we remain it to make sure forward compatibility
         case "noavx2" : HasAVX2 = false
         default       : panic(fmt.Sprintf("invalid mode: '%s', should be one of 'auto', 'noavx', 'noavx2'", v))
     }

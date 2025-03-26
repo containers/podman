@@ -23,16 +23,12 @@ import (
 )
 
 var (
-    V_strhash = rt.UnpackEface(strhash)
+    V_strhash = rt.UnpackEface(rt.Strhash)
     S_strhash = *(*uintptr)(V_strhash.Value)
 )
 
-//go:noescape
-//go:linkname strhash runtime.strhash
-func strhash(_ unsafe.Pointer, _ uintptr) uintptr
-
 func StrHash(s string) uint64 {
-    if v := strhash(unsafe.Pointer(&s), 0); v == 0 {
+    if v := rt.Strhash(unsafe.Pointer(&s), 0); v == 0 {
         return 1
     } else {
         return uint64(v)

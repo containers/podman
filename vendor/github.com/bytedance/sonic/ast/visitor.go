@@ -18,6 +18,7 @@ package ast
 
 import (
     `encoding/json`
+    `errors`
 
     `github.com/bytedance/sonic/internal/native/types`
 )
@@ -174,6 +175,19 @@ func (self *traverser) decodeArray() error {
     sp := self.parser.p
     ns := len(self.parser.s)
 
+    /* allocate array space and parse every element */
+    if err := self.visitor.OnArrayBegin(_DEFAULT_NODE_CAP); err != nil {
+        if err == VisitOPSkip {
+            // NOTICE: for user needs to skip entiry object
+            self.parser.p -= 1
+            if _, e := self.parser.skipFast(); e != 0 {
+                return e
+            }
+            return self.visitor.OnArrayEnd()
+        }
+        return err
+    }
+
     /* check for EOF */
     self.parser.p = self.parser.lspace(sp)
     if self.parser.p >= ns {
@@ -183,16 +197,9 @@ func (self *traverser) decodeArray() error {
     /* check for empty array */
     if self.parser.s[self.parser.p] == ']' {
         self.parser.p++
-        if err := self.visitor.OnArrayBegin(0); err != nil {
-            return err
-        }
         return self.visitor.OnArrayEnd()
     }
 
-    /* allocate array space and parse every element */
-    if err := self.visitor.OnArrayBegin(_DEFAULT_NODE_CAP); err != nil {
-        return err
-    }
     for {
         /* decode the value */
         if err := self.decodeValue(); err != nil {
@@ -223,6 +230,19 @@ func (self *traverser) decodeObject() error {
     sp := self.parser.p
     ns := len(self.parser.s)
 
+    /* allocate object space and decode each pair */
+    if err := self.visitor.OnObjectBegin(_DEFAULT_NODE_CAP); err != nil {
+        if err == VisitOPSkip {
+            // NOTICE: for user needs to skip entiry object
+            self.parser.p -= 1
+            if _, e := self.parser.skipFast(); e != 0 {
+                return e
+            }
+            return self.visitor.OnObjectEnd()
+        }
+        return err
+    }
+
     /* check for EOF */
     self.parser.p = self.parser.lspace(sp)
     if self.parser.p >= ns {
@@ -232,16 +252,9 @@ func (self *traverser) decodeObject() error {
     /* check for empty object */
     if self.parser.s[self.parser.p] == '}' {
         self.parser.p++
-        if err := self.visitor.OnObjectBegin(0); err != nil {
-            return err
-        }
         return self.visitor.OnObjectEnd()
     }
 
-    /* allocate object space and decode each pair */
-    if err := self.visitor.OnObjectBegin(_DEFAULT_NODE_CAP); err != nil {
-        return err
-    }
     for {
         var njs types.JsonState
         var err types.ParsingError
@@ -313,3 +326,7 @@ func (self *traverser) decodeString(iv int64, ep int) error {
     }
     return self.visitor.OnString(out)
 }
+
+// If visitor return this error on `OnObjectBegin()` or `OnArrayBegin()`,
+// the transverer will skip entiry object or array
+var VisitOPSkip = errors.New("")

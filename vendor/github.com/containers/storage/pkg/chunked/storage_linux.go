@@ -30,7 +30,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/system"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
@@ -1466,7 +1465,6 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		Format: differOpts.Format,
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	lcdBigData, err := json.Marshal(lcd)
 	if err != nil {
 		return graphdriver.DriverWithDifferOutput{}, err

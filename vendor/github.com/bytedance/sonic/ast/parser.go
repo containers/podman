@@ -17,14 +17,16 @@
 package ast
 
 import (
-    `fmt`
+	"fmt"
+	"sync"
+	"sync/atomic"
 
-    `github.com/bytedance/sonic/internal/native/types`
-    `github.com/bytedance/sonic/internal/rt`
+	"github.com/bytedance/sonic/internal/native/types"
+	"github.com/bytedance/sonic/internal/rt"
 )
 
 const (
-    _DEFAULT_NODE_CAP int = 8
+    _DEFAULT_NODE_CAP int = 16
     _APPEND_GROW_SHIFT = 1
 )
 
@@ -45,6 +47,7 @@ type Parser struct {
     p           int
     s           string
     noLazy      bool
+    loadOnce  bool
     skipValue   bool
     dbuf        *byte
 }
@@ -115,6 +118,10 @@ func (self *Parser) lspace(sp int) int {
     return sp
 }
 
+func (self *Parser) backward() {
+    for ; self.p >= 0 && isSpace(self.s[self.p]); self.p-=1 {}
+}
+
 func (self *Parser) decodeArray(ret *linkedNodes) (Node, types.ParsingError) {
     sp := self.p
     ns := len(self.s)
@@ -148,7 +155,7 @@ func (self *Parser) decodeArray(ret *linkedNodes) (Node, types.ParsingError) {
             if t == _V_NONE {
                 return Node{}, types.ERR_INVALID_CHAR
             }
-            val = newRawNode(self.s[start:self.p], t)
+            val = newRawNode(self.s[start:self.p], t, false)
         }else{
             /* decode the value */
             if val, err = self.Parse(); err != 0 {
@@ -234,7 +241,7 @@ func (self *Parser) decodeObject(ret *linkedPairs) (Node, types.ParsingError) {
             if t == _V_NONE {
                 return Node{}, types.ERR_INVALID_CHAR
             }
-            val = newRawNode(self.s[start:self.p], t)
+            val = newRawNode(self.s[start:self.p], t, false)
         } else {
             /* decode the value */
             if val, err = self.Parse(); err != 0 {
@@ -244,7 +251,7 @@ func (self *Parser) decodeObject(ret *linkedPairs) (Node, types.ParsingError) {
 
         /* add the value to result */
         // FIXME: ret's address may change here, thus previous referred node in ret may be invalid !!
-        ret.Push(Pair{Key: key, Value: val})
+        ret.Push(NewPair(key, val))
         self.p = self.lspace(self.p)
 
         /* check for EOF */
@@ -291,6 +298,10 @@ func (self *Parser) Pos() int {
     return self.p
 }
 
+
+// Parse returns a ast.Node representing the parser's JSON.
+// NOTICE: the specific parsing lazy dependens parser's option
+// It only parse first layer and first child for Object or Array be default
 func (self *Parser) Parse() (Node, types.ParsingError) {
     switch val := self.decodeValue(); val.Vt {
         case types.V_EOF     : return Node{}, types.ERR_EOF
@@ -299,21 +310,47 @@ func (self *Parser) Parse() (Node, types.ParsingError) {
         case types.V_FALSE   : return falseNode, 0
         case types.V_STRING  : return self.decodeString(val.Iv, val.Ep)
         case types.V_ARRAY:
+            s := self.p - 1;
             if p := skipBlank(self.s, self.p); p >= self.p && self.s[p] == ']' {
                 self.p = p + 1
                 return Node{t: types.V_ARRAY}, 0
             }
             if self.noLazy {
+                if self.loadOnce {
+                    self.noLazy = false
+                }
                 return self.decodeArray(new(linkedNodes))
+            }
+            // NOTICE: loadOnce always keep raw json for object or array
+            if self.loadOnce {
+                self.p = s
+                s, e := self.skipFast()
+                if e != 0 {
+                    return Node{}, e
+                }
+                return newRawNode(self.s[s:self.p], types.V_ARRAY, true), 0
             }
             return newLazyArray(self), 0
         case types.V_OBJECT:
+            s := self.p - 1;
             if p := skipBlank(self.s, self.p); p >= self.p && self.s[p] == '}' {
                 self.p = p + 1
                 return Node{t: types.V_OBJECT}, 0
             }
+            // NOTICE: loadOnce always keep raw json for object or array
             if self.noLazy {
+                if self.loadOnce {
+                    self.noLazy = false
+                }
                 return self.decodeObject(new(linkedPairs))
+            }
+            if self.loadOnce {
+                self.p = s
+                s, e := self.skipFast()
+                if e != 0 {
+                    return Node{}, e
+                }
+                return newRawNode(self.s[s:self.p], types.V_OBJECT, true), 0
             }
             return newLazyObject(self), 0
         case types.V_DOUBLE  : return NewNumber(self.s[val.Ep:self.p]), 0
@@ -471,7 +508,7 @@ func (self *Node) skipNextNode() *Node {
         if t == _V_NONE {
             return newSyntaxError(parser.syntaxError(types.ERR_INVALID_CHAR))
         }
-        val = newRawNode(parser.s[start:parser.p], t)
+        val = newRawNode(parser.s[start:parser.p], t, false)
     }
 
     /* add the value to result */
@@ -510,7 +547,7 @@ func (self *Node) skipNextPair() (*Pair) {
 
     /* check for EOF */
     if parser.p = parser.lspace(sp); parser.p >= ns {
-        return &Pair{"", *newSyntaxError(parser.syntaxError(types.ERR_EOF))}
+        return newErrorPair(parser.syntaxError(types.ERR_EOF))
     }
 
     /* check for empty object */
@@ -527,7 +564,7 @@ func (self *Node) skipNextPair() (*Pair) {
 
     /* decode the key */
     if njs = parser.decodeValue(); njs.Vt != types.V_STRING {
-        return &Pair{"", *newSyntaxError(parser.syntaxError(types.ERR_INVALID_CHAR))}
+        return newErrorPair(parser.syntaxError(types.ERR_INVALID_CHAR))
     }
 
     /* extract the key */
@@ -537,34 +574,34 @@ func (self *Node) skipNextPair() (*Pair) {
     /* check for escape sequence */
     if njs.Ep != -1 {
         if key, err = unquote(key); err != 0 {
-            return &Pair{key, *newSyntaxError(parser.syntaxError(err))}
+            return newErrorPair(parser.syntaxError(err))
         }
     }
 
     /* expect a ':' delimiter */
     if err = parser.delim(); err != 0 {
-        return &Pair{key, *newSyntaxError(parser.syntaxError(err))}
+        return newErrorPair(parser.syntaxError(err))
     }
 
     /* skip the value */
     if start, err := parser.skipFast(); err != 0 {
-        return &Pair{key, *newSyntaxError(parser.syntaxError(err))}
+        return newErrorPair(parser.syntaxError(err))
     } else {
         t := switchRawType(parser.s[start])
         if t == _V_NONE {
-            return &Pair{key, *newSyntaxError(parser.syntaxError(types.ERR_INVALID_CHAR))}
+            return newErrorPair(parser.syntaxError(types.ERR_INVALID_CHAR))
         }
-        val = newRawNode(parser.s[start:parser.p], t)
+        val = newRawNode(parser.s[start:parser.p], t, false)
     }
 
     /* add the value to result */
-    ret.Push(Pair{Key: key, Value: val})
+    ret.Push(NewPair(key, val))
     self.l++
     parser.p = parser.lspace(parser.p)
 
     /* check for EOF */
     if parser.p >= ns {
-        return &Pair{key, *newSyntaxError(parser.syntaxError(types.ERR_EOF))}
+        return newErrorPair(parser.syntaxError(types.ERR_EOF))
     }
 
     /* check for the next character */
@@ -577,7 +614,7 @@ func (self *Node) skipNextPair() (*Pair) {
         self.setObject(ret)
         return ret.At(ret.Len()-1)
     default:
-        return &Pair{key, *newSyntaxError(parser.syntaxError(types.ERR_INVALID_CHAR))}
+        return newErrorPair(parser.syntaxError(types.ERR_INVALID_CHAR))
     }
 }
 
@@ -657,4 +694,73 @@ func (self *Parser) ExportError(err types.ParsingError) error {
 func backward(src string, i int) int {
     for ; i>=0 && isSpace(src[i]); i-- {}
     return i
+}
+
+
+func newRawNode(str string, typ types.ValueType, lock bool) Node {
+    ret := Node{
+        t: typ | _V_RAW,
+        p: rt.StrPtr(str),
+        l: uint(len(str)),
+    }
+    if lock {
+        ret.m = new(sync.RWMutex)
+    }
+    return ret
+}
+
+var typeJumpTable = [256]types.ValueType{
+    '"' : types.V_STRING,
+    '-' : _V_NUMBER,
+    '0' : _V_NUMBER,
+    '1' : _V_NUMBER,
+    '2' : _V_NUMBER,
+    '3' : _V_NUMBER,
+    '4' : _V_NUMBER,
+    '5' : _V_NUMBER,
+    '6' : _V_NUMBER,
+    '7' : _V_NUMBER,
+    '8' : _V_NUMBER,
+    '9' : _V_NUMBER,
+    '[' : types.V_ARRAY,
+    'f' : types.V_FALSE,
+    'n' : types.V_NULL,
+    't' : types.V_TRUE,
+    '{' : types.V_OBJECT,
+}
+
+func switchRawType(c byte) types.ValueType {
+    return typeJumpTable[c]
+}
+
+func (self *Node) loadt() types.ValueType {
+    return (types.ValueType)(atomic.LoadInt64(&self.t))
+}
+
+func (self *Node) lock() bool {
+    if m := self.m; m != nil {
+        m.Lock()
+        return true
+    }
+    return false
+}
+
+func (self *Node) unlock() {
+    if m := self.m; m != nil {
+        m.Unlock()
+    }
+}
+
+func (self *Node) rlock() bool {
+    if m := self.m; m != nil {
+        m.RLock()
+        return true
+    }
+    return false
+}
+
+func (self *Node) runlock() {
+    if m := self.m; m != nil {
+        m.RUnlock()
+    }
 }

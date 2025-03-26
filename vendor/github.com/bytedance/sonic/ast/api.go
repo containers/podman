@@ -1,5 +1,5 @@
-//go:build (amd64 && go1.16 && !go1.23) || (arm64 && go1.20 && !go1.23)
-// +build amd64,go1.16,!go1.23 arm64,go1.20,!go1.23
+//go:build (amd64 && go1.17 && !go1.25) || (arm64 && go1.20 && !go1.25)
+// +build amd64,go1.17,!go1.25 arm64,go1.20,!go1.25
 
 /*
  * Copyright 2022 ByteDance Inc.
@@ -61,7 +61,7 @@ func quote(buf *[]byte, val string) {
         }
 
         // double buf size
-        *b = growslice(typeByte, *b, b.Cap*2)
+        *b = rt.GrowSlice(typeByte, *b, b.Cap*2)
         // ret is the complement of consumed input
         ret = ^ret
         // update input buffer

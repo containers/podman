@@ -1,4 +1,4 @@
-// +build !amd64,!arm64 go1.23 !go1.16 arm64,!go1.20
+// +build !amd64,!arm64 go1.25 !go1.17 arm64,!go1.20
 
 /*
 * Copyright 2022 ByteDance Inc.
@@ -24,17 +24,18 @@ import (
 
     `github.com/bytedance/sonic/internal/native/types`
     `github.com/bytedance/sonic/internal/rt`
+    `github.com/bytedance/sonic/internal/compat`
 )
 
 func init() {
-    println("WARNING:(ast) sonic only supports Go1.16~1.22, but your environment is not suitable")
+    compat.Warn("sonic/ast")
 }
 
 func quote(buf *[]byte, val string) {
     quoteString(buf, val)
 }
 
-// unquote unescapes a internal JSON string (it doesn't count quotas at the begining and end)
+// unquote unescapes an internal JSON string (it doesn't count quotas at the beginning and end)
 func unquote(src string) (string, types.ParsingError) {
     sp := rt.IndexChar(src, -1)
     out, ok := unquoteBytes(rt.BytesFrom(sp, len(src)+2, len(src)+2))

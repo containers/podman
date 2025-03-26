@@ -1,4 +1,3 @@
-// +build go1.16,!go1.23
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -71,7 +70,7 @@ func (self Loader) LoadOne(text []byte, funcName string, frameSize int, argSize 
     }
     
     if localPtrs != nil {
-        locals := rt .StackMapBuilder{}
+        locals := rt.StackMapBuilder{}
         for _, b := range localPtrs {
             locals.AddField(b)
         }

@@ -1,5 +1,5 @@
-//go:build !go1.16
-// +build !go1.16
+//go:build !go1.17 || go1.25
+// +build !go1.17 go1.25
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -329,7 +329,7 @@ func makeModuledata(name string, filenames []string, funcsp *[]Func, text []byte
     funcnametab, nameOffs := makeFuncnameTab(funcs)
     mod.funcnametab = funcnametab
 
-    // mmap() text and funcdata segements
+    // mmap() text and funcdata segments
     p := os.Getpagesize()
     size := int(rnd(int64(len(text)), int64(p)))
     addr := mmap(size)
@@ -389,7 +389,7 @@ func makeModuledata(name string, filenames []string, funcsp *[]Func, text []byte
         pclnOffset: getOffsetOf(moduledata{}, "pclntable"),
     }
 
-    // sepecial case: gcdata and gcbss must by non-empty
+    // special case: gcdata and gcbss must by non-empty
     mod.gcdata = uintptr(unsafe.Pointer(&emptyByte))
     mod.gcbss = uintptr(unsafe.Pointer(&emptyByte))
 

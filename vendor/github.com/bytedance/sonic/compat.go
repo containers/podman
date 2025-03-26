@@ -1,4 +1,4 @@
-// +build !amd64 !go1.16 go1.23
+// +build !amd64,!arm64 go1.25 !go1.17 arm64,!go1.20
 
 /*
  * Copyright 2021 ByteDance Inc.
@@ -26,6 +26,8 @@ import (
 
     `github.com/bytedance/sonic/option`
 )
+
+const apiKind = UseStdJSON
 
 type frozenConfig struct {
     Config

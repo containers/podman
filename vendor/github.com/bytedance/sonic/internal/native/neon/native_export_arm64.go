@@ -46,4 +46,6 @@ var (
     S_skip_object = _subr__skip_object
     S_skip_number = _subr__skip_number
     S_get_by_path = _subr__get_by_path
+	S_lookup_small_key = _subr__lookup_small_key
+	S_parse_with_padding = _subr__parse_with_padding
 )

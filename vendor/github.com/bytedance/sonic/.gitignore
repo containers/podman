@@ -49,4 +49,7 @@ ast/bench.sh
 
 !testdata/*.json.gz
 fuzz/testdata
-*__debug_bin
+*__debug_bin*
+*pprof
+*coverage.txt
+tools/venv/*

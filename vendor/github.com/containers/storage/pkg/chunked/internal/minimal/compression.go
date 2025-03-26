@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/archive"
-	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
 	"github.com/vbatts/tar-split/archive/tar"
@@ -190,7 +189,6 @@ func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, off
 		TarSplitDigest: tarSplitData.Digest,
 	}
 
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	// Generate the manifest
 	manifest, err := json.Marshal(toc)
 	if err != nil {

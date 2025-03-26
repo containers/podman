@@ -10,16 +10,13 @@ import (
 	"os"
 	"runtime"
 	"sort"
-	"strings"
 	"sync"
-	"time"
 
 	storage "github.com/containers/storage"
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/pkg/chunked/internal/minimal"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/docker/go-units"
-	jsoniter "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -225,8 +222,6 @@ func (c *layersCache) createCacheFileFromTOC(layerID string) (*layer, error) {
 		if err != nil {
 			return nil, fmt.Errorf("open manifest file: %w", err)
 		}
-		json := jsoniter.ConfigCompatibleWithStandardLibrary
-
 		if err := json.Unmarshal(cl, &lcd); err != nil {
 			return nil, err
 		}
@@ -852,106 +847,29 @@ func (c *layersCache) findChunkInOtherLayers(chunk *minimal.FileMetadata) (strin
 	return c.findDigestInternal(chunk.ChunkDigest)
 }
 
+
 func unmarshalToc(manifest []byte) (*minimal.TOC, error) {
 	var toc minimal.TOC
 
-	iter := jsoniter.ParseBytes(jsoniter.ConfigFastest, manifest)
+	if err := json.Unmarshal(manifest, &toc); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal TOC: %w", err)
+	}
 
-	for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
-		switch strings.ToLower(field) {
-		case "version":
-			toc.Version = iter.ReadInt()
-
-		case "entries":
-			for iter.ReadArray() {
-				var m minimal.FileMetadata
-				for field := iter.ReadObject(); field != ""; field = iter.ReadObject() {
-					switch strings.ToLower(field) {
-					case "type":
-						m.Type = iter.ReadString()
-					case "name":
-						m.Name = iter.ReadString()
-					case "linkname":
-						m.Linkname = iter.ReadString()
-					case "mode":
-						m.Mode = iter.ReadInt64()
-					case "size":
-						m.Size = iter.ReadInt64()
-					case "uid":
-						m.UID = iter.ReadInt()
-					case "gid":
-						m.GID = iter.ReadInt()
-					case "modtime":
-						time, err := time.Parse(time.RFC3339, iter.ReadString())
-						if err != nil {
-							return nil, err
-						}
-						m.ModTime = &time
-					case "accesstime":
-						time, err := time.Parse(time.RFC3339, iter.ReadString())
-						if err != nil {
-							return nil, err
-						}
-						m.AccessTime = &time
-					case "changetime":
-						time, err := time.Parse(time.RFC3339, iter.ReadString())
-						if err != nil {
-							return nil, err
-						}
-						m.ChangeTime = &time
-					case "devmajor":
-						m.Devmajor = iter.ReadInt64()
-					case "devminor":
-						m.Devminor = iter.ReadInt64()
-					case "digest":
-						m.Digest = iter.ReadString()
-					case "offset":
-						m.Offset = iter.ReadInt64()
-					case "endoffset":
-						m.EndOffset = iter.ReadInt64()
-					case "chunksize":
-						m.ChunkSize = iter.ReadInt64()
-					case "chunkoffset":
-						m.ChunkOffset = iter.ReadInt64()
-					case "chunkdigest":
-						m.ChunkDigest = iter.ReadString()
-					case "chunktype":
-						m.ChunkType = iter.ReadString()
-					case "xattrs":
-						m.Xattrs = make(map[string]string)
-						for key := iter.ReadObject(); key != ""; key = iter.ReadObject() {
-							m.Xattrs[key] = iter.ReadString()
-						}
-					default:
-						iter.Skip()
-					}
-				}
-				if m.Type == TypeReg && m.Size == 0 && m.Digest == "" {
-					m.Digest = digestSha256Empty
-				}
-				toc.Entries = append(toc.Entries, m)
-			}
-
-		case "tarsplitdigest": // strings.ToLower("tarSplitDigest")
-			s := iter.ReadString()
-			d, err := digest.Parse(s)
-			if err != nil {
-				return nil, fmt.Errorf("invalid tarSplitDigest %q: %w", s, err)
-			}
-			toc.TarSplitDigest = d
-
-		default:
-			iter.Skip()
+	// Ensure digest is set for empty files
+	for i := range toc.Entries {
+		m := &toc.Entries[i]
+		if m.Type == TypeReg && m.Size == 0 && m.Digest == "" {
+			m.Digest = digestSha256Empty
 		}
 	}
 
-	// validate there is no extra data in the provided input.  This is a security measure to avoid
-	// that the digest we calculate for the TOC refers to the entire document.
-	if iter.Error != nil && iter.Error != io.EOF {
-		return nil, iter.Error
-	}
-	if iter.WhatIsNext() != jsoniter.InvalidValue || !errors.Is(iter.Error, io.EOF) {
-		return nil, fmt.Errorf("unexpected data after manifest")
+	// Validate tarsplitdigest
+	if toc.TarSplitDigest != "" {
+		d, err := digest.Parse(toc.TarSplitDigest.String())
+		if err != nil {
+			return nil, fmt.Errorf("invalid tarSplitDigest %q: %w", toc.TarSplitDigest, err)
+		}
+		toc.TarSplitDigest = d
 	}
 
 	return &toc, nil

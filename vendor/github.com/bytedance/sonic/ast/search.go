@@ -21,8 +21,23 @@ import (
     `github.com/bytedance/sonic/internal/native/types`
 )
 
+// SearchOptions controls Searcher's behavior
+type SearchOptions struct {
+    // ValidateJSON indicates the searcher to validate the entire JSON
+    ValidateJSON bool
+
+    // CopyReturn indicates the searcher to copy the result JSON instead of refer from the input
+    // This can help to reduce memory usage if you cache the results
+    CopyReturn bool
+
+    // ConcurrentRead indicates the searcher to return a concurrently-READ-safe node,
+    // including: GetByPath/Get/Index/GetOrIndex/Int64/Bool/Float64/String/Number/Interface/Array/Map/Raw/MarshalJSON
+    ConcurrentRead bool
+}
+
 type Searcher struct {
     parser Parser
+    SearchOptions
 }
 
 func NewSearcher(str string) *Searcher {
@@ -31,12 +46,16 @@ func NewSearcher(str string) *Searcher {
             s:      str,
             noLazy: false,
         },
+        SearchOptions: SearchOptions{
+            ValidateJSON: true,
+        },
     }
 }
 
 // GetByPathCopy search in depth from top json and returns a **Copied** json node at the path location
 func (self *Searcher) GetByPathCopy(path ...interface{}) (Node, error) {
-    return self.getByPath(true, true, path...)
+    self.CopyReturn = true
+    return self.getByPath(path...)
 }
 
 // GetByPathNoCopy search in depth from top json and returns a **Referenced** json node at the path location
@@ -44,15 +63,15 @@ func (self *Searcher) GetByPathCopy(path ...interface{}) (Node, error) {
 // WARN: this search directly refer partial json from top json, which has faster speed,
 // may consumes more memory.
 func (self *Searcher) GetByPath(path ...interface{}) (Node, error) {
-    return self.getByPath(false, true, path...)
+    return self.getByPath(path...)
 }
 
-func (self *Searcher) getByPath(copystring bool, validate bool, path ...interface{}) (Node, error) {
+func (self *Searcher) getByPath(path ...interface{}) (Node, error) {
     var err types.ParsingError
     var start int
 
     self.parser.p = 0
-    start, err = self.parser.getByPath(validate, path...)
+    start, err = self.parser.getByPath(self.ValidateJSON, path...)
     if err != 0 {
         // for compatibility with old version
         if err == types.ERR_NOT_FOUND {
@@ -71,12 +90,12 @@ func (self *Searcher) getByPath(copystring bool, validate bool, path ...interfac
 
     // copy string to reducing memory usage
     var raw string
-    if copystring {
+    if self.CopyReturn {
         raw = rt.Mem2Str([]byte(self.parser.s[start:self.parser.p]))
     } else {
         raw = self.parser.s[start:self.parser.p]
     }
-    return newRawNode(raw, t), nil
+    return newRawNode(raw, t, self.ConcurrentRead), nil
 }
 
 // GetByPath searches a path and returns relaction and types of target

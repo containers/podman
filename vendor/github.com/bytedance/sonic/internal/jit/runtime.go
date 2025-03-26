@@ -37,7 +37,7 @@ func Type(t reflect.Type) obj.Addr {
 }
 
 func Itab(i *rt.GoType, t reflect.Type) obj.Addr {
-    return Imm(int64(uintptr(unsafe.Pointer(rt.Getitab(rt.IfaceType(i), rt.UnpackType(t), false)))))
+    return Imm(int64(uintptr(unsafe.Pointer(rt.GetItab(rt.IfaceType(i), rt.UnpackType(t), false)))))
 }
 
 func Gitab(i *rt.GoItab) obj.Addr {

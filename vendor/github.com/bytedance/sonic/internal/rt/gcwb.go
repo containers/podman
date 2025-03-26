@@ -1,3 +1,5 @@
+// +build go1.21,!go1.25
+
 /*
  * Copyright 2021 ByteDance Inc.
  *
@@ -17,12 +19,17 @@
 package rt
 
 import (
-    `os`
     `sync/atomic`
     `unsafe`
 
     `golang.org/x/arch/x86/x86asm`
 )
+
+//go:linkname GcWriteBarrier2 runtime.gcWriteBarrier2
+func GcWriteBarrier2()
+
+//go:linkname RuntimeWriteBarrier runtime.writeBarrier
+var RuntimeWriteBarrier uintptr
 
 const (
     _MaxInstr = 15
@@ -76,49 +83,3 @@ func GcwbAddr() uintptr {
     }
 }
 
-// StopProfiling is used to stop traceback introduced by SIGPROF while native code is running.
-// WARN: this option is only a workaround for traceback issue (https://github.com/bytedance/sonic/issues/310),
-// and will be dropped when the issue is fixed.
-var StopProfiling = os.Getenv("SONIC_STOP_PROFILING") != ""
-
-// WARN: must be aligned with runtime.Prof
-// type Prof struct {
-//     signalLock uint32
-// 	hz int32
-// }
-
-var (
-    // // go:linkname runtimeProf runtime.prof
-    // runtimeProf Prof
-
-    // count of native-C calls
-    yieldCount uint32
-
-    // previous value of runtimeProf.hz
-    oldHz int32
-)
-
-//go:nosplit
-func MoreStack(size uintptr)
-
-func StopProf()
-
-// func StopProf() {
-//     atomic.AddUint32(&yieldCount, 1)
-//     if runtimeProf.hz != 0 {
-//         oldHz = runtimeProf.hz
-//         runtimeProf.hz = 0
-//     }
-// }
-
-func StartProf()
-
-// func StartProf() {
-//     atomic.AddUint32(&yieldCount, ^uint32(0))
-//     if yieldCount == 0 && runtimeProf.hz == 0 {
-//         if oldHz == 0 {
-//             oldHz = 100
-//         }
-//         runtimeProf.hz = oldHz
-//     }
-// }

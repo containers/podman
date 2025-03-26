@@ -22,23 +22,27 @@
 package {{PACKAGE}}
 
 import (
+    `bytes`
     `os`
     `runtime`
     `runtime/debug`
+    `runtime/pprof`
+    `strings`
     `testing`
     `time`
     `unsafe`
 
     `github.com/bytedance/sonic/internal/native/types`
+    `github.com/bytedance/sonic/internal/rt`
 )
 
 var (
     debugAsyncGC = os.Getenv("SONIC_NO_ASYNC_GC") == ""
 )
 
+
 func TestMain(m *testing.M) {
     Use()
-    
     go func ()  {
         if !debugAsyncGC {
             return
@@ -107,6 +111,23 @@ func TestRecover_lspace(t *testing.T) {
         }
     }()
     _ = lspace(nil, 2, 0)
+}
+
+func TestRecover_lspace2(t *testing.T) {
+    // generate random space with json
+    cases := []string{
+        strings.Repeat(" ", 1) + "123",
+        strings.Repeat(" ", 1) + "123",
+         "123",
+    }
+    pprof.StartCPUProfile(bytes.NewBuffer(nil))
+    defer pprof.StopCPUProfile()
+    for i := 0; i < 10000000; i++{
+        for _, t := range  cases {
+            sp := (*byte)((*rt.GoString)(unsafe.Pointer(&t)).Ptr)
+            _ = lspace(sp, len(t), 0)
+        }
+    }
 }
 
 func TestRecover_quote(t *testing.T) {
@@ -662,4 +683,40 @@ func TestRecover_validate_utf8_fast(t *testing.T) {
         }
     }()
     _ = validate_utf8_fast(nil)
+}
+
+func TestRecover_parse_with_padding(t *testing.T) {
+	defer func() {
+		if r := recover(); r!= nil {
+			t.Log("recover: ", r)
+		} else {
+			t.Fatal("no panic")
+		}
+	}()
+	_ = parse_with_padding(nil)
+}
+
+func TestRecover_lookup_small_key(t *testing.T) {
+	t.Run("key", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r!= nil {
+				t.Log("recover: ", r)
+			} else {
+				t.Fatal("no panic")
+			}
+		}()
+		b := bytes.Repeat([]byte("a"), 100)
+		_ = lookup_small_key(nil, &b, 10)
+	})
+	t.Run("table", func(t *testing.T) {
+		defer func() {
+			if r := recover(); r!= nil {
+				t.Log("recover: ", r)
+			} else {
+				t.Fatal("no panic")
+			}
+		}()
+		key := "a"
+		_ = lookup_small_key(&key, nil, 10)
+	})
 }

@@ -6,9 +6,10 @@ A blazingly fast JSON serializing &amp; deserializing library, accelerated by JI
 
 ## Requirement
 
-- Go 1.16~1.22
-- Linux / MacOS / Windows(need go1.17 above)
-- Amd64 ARCH
+- Go: 1.17~1.24
+  - Notice: Go1.24.0 is not supported due to the [issue](https://github.com/golang/go/issues/71672), please use higher go version or add build tag `--ldflags="-checklinkname=0"` 
+- OS: Linux / MacOS / Windows
+- CPU: AMD64 / (ARM64, need go1.20 above)
 
 ## Features
 
@@ -211,7 +212,7 @@ ret, err := Encode(v, EscapeHTML) // ret == `{"\u0026\u0026":{"X":"\u003c\u003e"
 
 ### Compact Format
 
-Sonic encodes primitive objects (struct/map...) as compact-format JSON by default, except marshaling `json.RawMessage` or `json.Marshaler`: sonic ensures validating their output JSON but **DONOT** compacting them for performance concerns. We provide the option `encoder.CompactMarshaler` to add compacting process.
+Sonic encodes primitive objects (struct/map...) as compact-format JSON by default, except marshaling `json.RawMessage` or `json.Marshaler`: sonic ensures validating their output JSON but **DO NOT** compacting them for performance concerns. We provide the option `encoder.CompactMarshaler` to add compacting process.
 
 ### Print Error
 
@@ -281,6 +282,22 @@ sub := root.Get("key3").Index(2).Int64() // == 3
 ```
 
 **Tip**: since `Index()` uses offset to locate data, which is much faster than scanning like `Get()`, we suggest you use it as much as possible. And sonic also provides another API `IndexOrGet()` to underlying use offset as well as ensure the key is matched.
+
+#### SearchOption
+
+`Searcher` provides some options for user to meet different needs:
+
+```go
+opts := ast.SearchOption{ CopyReturn: true ... }
+val, err := sonic.GetWithOptions(JSON, opts, "key")
+```
+
+- CopyReturn
+Indicate the searcher to copy the result JSON string instead of refer from the input. This can help to reduce memory usage if you cache the results
+- ConcurentRead
+Since `ast.Node` use `Lazy-Load` design, it doesn't support Concurrently-Read by default. If you want to read it concurrently, please specify it.
+- ValidateJSON
+Indicate the searcher to validate the entire JSON. This option is enabled by default, which slow down the search speed a little.
 
 #### Set/Unset
 
@@ -368,16 +385,12 @@ See [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go
 
 ## Compatibility
 
-Sonic **DOES NOT** ensure to support all environments, due to the difficulty of developing high-performance codes. For developers who use sonic to build their applications in different environments, we have the following suggestions:
+For developers who want to use sonic to meet diffirent scenarios, we provide some integrated configs as `sonic.API`
 
-- Developing on **Mac M1**: Make sure you have Rosetta 2 installed on your machine, and set `GOARCH=amd64` when building your application. Rosetta 2 can automatically translate x86 binaries to arm64 binaries and run x86 applications on Mac M1.
-- Developing on **Linux arm64**: You can install qemu and use the `qemu-x86_64 -cpu max` command to convert x86 binaries to amr64 binaries for applications built with sonic. The qemu can achieve a similar transfer effect to Rosetta 2 on Mac M1.
-
-For developers who want to use sonic on Linux arm64 without qemu, or those who want to handle JSON strictly consistent with `encoding/json`, we provide some compatible APIs as `sonic.API`
-
-- `ConfigDefault`: the sonic's default config (`EscapeHTML=false`,`SortKeys=false`...) to run on sonic-supporting environment. It will fall back to `encoding/json` with the corresponding config, and some options like `SortKeys=false` will be invalid.
-- `ConfigStd`: the std-compatible config (`EscapeHTML=true`,`SortKeys=true`...) to run on sonic-supporting environment. It will fall back to `encoding/json`.
-- `ConfigFastest`: the fastest config (`NoQuoteTextMarshaler=true`) to run on sonic-supporting environment. It will fall back to `encoding/json` with the corresponding config, and some options will be invalid.
+- `ConfigDefault`: the sonic's default config (`EscapeHTML=false`,`SortKeys=false`...) to run sonic fast meanwhile ensure security.
+- `ConfigStd`: the std-compatible config (`EscapeHTML=true`,`SortKeys=true`...)
+- `ConfigFastest`: the fastest config (`NoQuoteTextMarshaler=true`) to run on sonic as fast as possible.
+Sonic **DOES NOT** ensure to support all environments, due to the difficulty of developing high-performance codes. On non-sonic-supporting environment, the implementation will fall back to `encoding/json`. Thus beflow configs will all equal to `ConfigStd`.
 
 ## Tips
 
@@ -465,6 +478,23 @@ However, `ast.Node` is designed for partially processing JSON string. It has som
 For better performance, in previous case the `ast.Visitor` will be the better choice. It performs JSON decoding like `Unmarshal()` and you can directly use your final types to represents a JSON AST without any intermediate representations.
 
 But `ast.Visitor` is not a very handy API. You might need to write a lot of code to implement your visitor and carefully maintain the tree hierarchy during decoding. Please read the comments in [ast/visitor.go](https://github.com/bytedance/sonic/blob/main/ast/visitor.go) carefully if you decide to use this API.
+
+### Buffer Size
+
+Sonic use memory pool in many places like `encoder.Encode`, `ast.Node.MarshalJSON` to improve performance, which may produce more memory usage (in-use) when server's load is high. See [issue 614](https://github.com/bytedance/sonic/issues/614). Therefore, we introduce some options to let user control the behavior of memory pool. See [option](https://pkg.go.dev/github.com/bytedance/sonic@v1.11.9/option#pkg-variables) package.
+
+### Faster JSON Skip
+
+For security, sonic use [FSM](native/skip_one.c) algorithm to  validate JSON when decoding raw JSON or encoding `json.Marshaler`, which is much slower (1~10x) than [SIMD-searching-pair](native/skip_one_fast.c) algorithm. If user has many redundant JSON value and DO NOT NEED to strictly validate JSON correctness, you can enable below options:
+
+- `Config.NoValidateSkipJSON`: for faster skipping JSON when decoding, such as unknown fields, json.Unmarshaler(json.RawMessage), mismatched values, and redundant array elements
+- `Config.NoValidateJSONMarshaler`: avoid validating JSON when encoding `json.Marshaler`
+- `SearchOption.ValidateJSON`: indicates if validate located JSON value when `Get`
+
+## JSON-Path Support (GJSON)
+
+[tidwall/gjson](https://github.com/tidwall/gjson) has provided a comprehensive and popular JSON-Path API, and
+ a lot of older codes heavily relies on it. Therefore, we provides a wrapper library, which combines gjson's API with sonic's SIMD algorithm to boost up the performance. See [cloudwego/gjson](https://github.com/cloudwego/gjson).
 
 ## Community
 

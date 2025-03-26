@@ -17,6 +17,10 @@ func newError(err types.ParsingError, msg string) *Node {
     }
 }
 
+func newErrorPair(err SyntaxError) *Pair {
+   return &Pair{0, "", *newSyntaxError(err)}
+}
+
 // Error returns error message if the node is invalid
 func (self Node) Error() string {
     if self.t != V_ERROR {
@@ -79,7 +83,7 @@ func (self SyntaxError) description() string {
 
     /* check for empty source */
     if self.Src == "" {
-        return fmt.Sprintf("no sources available: %#v", self)
+        return fmt.Sprintf("no sources available, the input json is empty: %#v", self)
     }
 
     /* prevent slicing before the beginning */
