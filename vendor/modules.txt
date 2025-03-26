@@ -179,7 +179,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.62.3-0.20250324121725-e360699fb3e3
+# github.com/containers/common v0.62.3-0.20250326101258-442957aa798d
 ## explicit; go 1.23.0
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -363,8 +363,8 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a
-## explicit; go 1.22.0
+# github.com/containers/storage v1.57.3-0.20250325222852-4d1ae4a7983d
+## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
 github.com/containers/storage/drivers/aufs
@@ -958,10 +958,11 @@ github.com/pelletier/go-toml/v2/unstable
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
-# github.com/pkg/sftp v1.13.8
+# github.com/pkg/sftp v1.13.9
 ## explicit; go 1.15
 github.com/pkg/sftp
 github.com/pkg/sftp/internal/encoding/ssh/filexfer
+github.com/pkg/sftp/internal/encoding/ssh/filexfer/openssh
 # github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10
 ## explicit; go 1.20
 github.com/planetscale/vtprotobuf/protohelpers

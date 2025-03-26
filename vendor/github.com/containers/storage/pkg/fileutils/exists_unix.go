@@ -13,7 +13,7 @@ import (
 func Exists(path string) error {
 	// It uses unix.Faccessat which is a faster operation compared to os.Stat for
 	// simply checking the existence of a file.
-	err := unix.Faccessat(unix.AT_FDCWD, path, unix.F_OK, 0)
+	err := unix.Faccessat(unix.AT_FDCWD, path, unix.F_OK, unix.AT_EACCESS)
 	if err != nil {
 		return &os.PathError{Op: "faccessat", Path: path, Err: err}
 	}
@@ -25,7 +25,7 @@ func Exists(path string) error {
 func Lexists(path string) error {
 	// It uses unix.Faccessat which is a faster operation compared to os.Stat for
 	// simply checking the existence of a file.
-	err := unix.Faccessat(unix.AT_FDCWD, path, unix.F_OK, unix.AT_SYMLINK_NOFOLLOW)
+	err := unix.Faccessat(unix.AT_FDCWD, path, unix.F_OK, unix.AT_SYMLINK_NOFOLLOW|unix.AT_EACCESS)
 	if err != nil {
 		return &os.PathError{Op: "faccessat", Path: path, Err: err}
 	}
