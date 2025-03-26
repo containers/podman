@@ -2830,7 +2830,11 @@ func (s *store) Version() ([][2]string, error) {
 	return [][2]string{}, nil
 }
 
-func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
+func (s *store) MountImage(id string, mountOpts []string, mountLabel string) (string, error) {
+	if err := validateMountOptions(mountOpts); err != nil {
+		return "", err
+	}
+
 	// We need to make sure the home mount is present when the Mount is done, which happens by possibly reinitializing the graph driver
 	// in startUsingGraphDriver().
 	if err := s.startUsingGraphDriver(); err != nil {
@@ -2842,57 +2846,61 @@ func (s *store) mount(id string, options drivers.MountOpts) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if options.UidMaps != nil || options.GidMaps != nil {
-		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
-	}
+	var imageHomeStore roImageStore
 
-	// function used to have a scope for rlstore.StopWriting()
-	tryMount := func() (string, error) {
-		if err := rlstore.startWriting(); err != nil {
+	if err := rlstore.startWriting(); err != nil {
+		return "", err
+	}
+	defer rlstore.stopWriting()
+	for _, s := range lstores {
+		if err := s.startReading(); err != nil {
 			return "", err
 		}
-		defer rlstore.stopWriting()
-		if rlstore.Exists(id) {
-			return rlstore.Mount(id, options)
-		}
-		return "", nil
+		defer s.stopReading()
 	}
-	mountPoint, err := tryMount()
-	if mountPoint != "" || err != nil {
-		return mountPoint, err
+	if err := s.imageStore.startWriting(); err != nil {
+		return "", err
+	}
+	defer s.imageStore.stopWriting()
+
+	cimage, err := s.imageStore.Get(id)
+	if err == nil {
+		imageHomeStore = s.imageStore
+	} else {
+		for _, s := range s.roImageStores {
+			if err := s.startReading(); err != nil {
+				return "", err
+			}
+			defer s.stopReading()
+			cimage, err = s.Get(id)
+			if err == nil {
+				imageHomeStore = s
+				break
+			}
+		}
+	}
+	if cimage == nil {
+		return "", fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 	}
 
-	// check if the layer is in a read-only store, and return a better error message
-	for _, store := range lstores {
-		if err := store.startReading(); err != nil {
-			return "", err
-		}
-		exists := store.Exists(id)
-		store.stopReading()
-		if exists {
-			return "", fmt.Errorf("mounting read/only store images is not allowed: %w", ErrStoreIsReadOnly)
-		}
+	idmappingsOpts := types.IDMappingOptions{
+		HostUIDMapping: true,
+		HostGIDMapping: true,
 	}
-
-	return "", ErrLayerUnknown
-}
-
-func (s *store) MountImage(id string, mountOpts []string, mountLabel string) (string, error) {
-	// Append ReadOnly option to mountOptions
-	img, err := s.Image(id)
+	ilayer, err := s.imageTopLayerForMapping(cimage, imageHomeStore, rlstore, lstores, idmappingsOpts)
 	if err != nil {
 		return "", err
 	}
 
-	if err := validateMountOptions(mountOpts); err != nil {
-		return "", err
+	if len(ilayer.UIDMap) > 0 || len(ilayer.GIDMap) > 0 {
+		return "", fmt.Errorf("cannot create an image with canonical UID/GID mappings in a read-only store")
 	}
+
 	options := drivers.MountOpts{
 		MountLabel: mountLabel,
 		Options:    append(mountOpts, "ro"),
 	}
-
-	return s.mount(img.TopLayer, options)
+	return rlstore.Mount(ilayer.ID, options)
 }
 
 func (s *store) Mount(id, mountLabel string) (string, error) {
@@ -2914,7 +2922,43 @@ func (s *store) Mount(id, mountLabel string) (string, error) {
 			}
 		}
 	}
-	return s.mount(id, options)
+
+	// We need to make sure the home mount is present when the Mount is done, which happens by possibly reinitializing the graph driver
+	// in startUsingGraphDriver().
+	if err := s.startUsingGraphDriver(); err != nil {
+		return "", err
+	}
+	defer s.stopUsingGraphDriver()
+
+	rlstore, lstores, err := s.bothLayerStoreKindsLocked()
+	if err != nil {
+		return "", err
+	}
+	if options.UidMaps != nil || options.GidMaps != nil {
+		options.DisableShifting = !s.canUseShifting(options.UidMaps, options.GidMaps)
+	}
+
+	if err := rlstore.startWriting(); err != nil {
+		return "", err
+	}
+	defer rlstore.stopWriting()
+	if rlstore.Exists(id) {
+		return rlstore.Mount(id, options)
+	}
+
+	// check if the layer is in a read-only store, and return a better error message
+	for _, store := range lstores {
+		if err := store.startReading(); err != nil {
+			return "", err
+		}
+		exists := store.Exists(id)
+		store.stopReading()
+		if exists {
+			return "", fmt.Errorf("mounting read/only store images is not allowed: %w", ErrStoreIsReadOnly)
+		}
+	}
+
+	return "", ErrLayerUnknown
 }
 
 func (s *store) Mounted(id string) (int, error) {
@@ -2938,7 +2982,23 @@ func (s *store) UnmountImage(id string, force bool) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return s.Unmount(img.TopLayer, force)
+
+	return writeToLayerStore(s, func(lstore rwLayerStore) (bool, error) {
+		for _, layerID := range img.MappedTopLayers {
+			l, err := lstore.Get(layerID)
+			if err != nil {
+				if err == ErrLayerUnknown {
+					continue
+				}
+				return false, err
+			}
+			// check if the layer with the canonical mapping is in the mapped top layers
+			if len(l.UIDMap) == 0 && len(l.GIDMap) == 0 {
+				return lstore.unmount(l.ID, force, false)
+			}
+		}
+		return lstore.unmount(img.TopLayer, force, false)
+	})
 }
 
 func (s *store) Unmount(id string, force bool) (bool, error) {

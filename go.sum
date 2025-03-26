@@ -78,8 +78,8 @@ github.com/containernetworking/plugins v1.6.2 h1:pqP8Mq923TLyef5g97XfJ/xpDeVek4y
 github.com/containernetworking/plugins v1.6.2/go.mod h1:SP5UG3jDO9LtmfbBJdP+nl3A1atOtbj2MBOYsnaxy64=
 github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265 h1:3cFRoMP4Up4sN/f2TOcCKSxiX/mbHCN5FwqHc+rw2B8=
 github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265/go.mod h1:8DuzWORynpU4q7coSL0aElpPVMDZFoCOnz9gzqU8Ics=
-github.com/containers/common v0.62.3-0.20250324121725-e360699fb3e3 h1:+bpRXBlU6CBT1PeA5CJ0Yvc6M6jDyWb6Szja+wN3KBo=
-github.com/containers/common v0.62.3-0.20250324121725-e360699fb3e3/go.mod h1:n5C1/ox2S2r/5fcklbCkSV7Y++je/Rz+953Ecmhrnv4=
+github.com/containers/common v0.62.3-0.20250326101258-442957aa798d h1:xvajXgoMD3wfumCQqI3h+950b5areKa8BEBE2SAmZCA=
+github.com/containers/common v0.62.3-0.20250326101258-442957aa798d/go.mod h1:jEHYmXVWsev+dizV4Oh2mZrPFAEzlVeUj/zrCx1jse0=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.5 h1:s7PA8znsZ4mamev5nNLsQqduYSlz1Ze5TWjfXnAfpEs=
@@ -96,8 +96,8 @@ github.com/containers/ocicrypt v1.2.1 h1:0qIOTT9DoYwcKmxSt8QJt+VzMY18onl9jUXsxpV
 github.com/containers/ocicrypt v1.2.1/go.mod h1:aD0AAqfMp0MtwqWgHM1bUwe1anx0VazI108CRrSKINQ=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=
 github.com/containers/psgo v1.9.0/go.mod h1:0YoluUm43Mz2UnBIh1P+6V6NWcbpTL5uRtXyOcH0B5A=
-github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a h1:mg4hUluPeujWDzJ+UYYCkp+vI6tQp1NtNGY1lXzpVX4=
-github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a/go.mod h1:+TX1GlBD/Aj65Yr4duNoeBIk7Ka3k+nf3HjQ4qLJaLQ=
+github.com/containers/storage v1.57.3-0.20250325222852-4d1ae4a7983d h1:fSr4oA7haKOptg2NaPkow6yfn0YlhUgechjsofRMkDI=
+github.com/containers/storage v1.57.3-0.20250325222852-4d1ae4a7983d/go.mod h1:9/SUJfBaxCWnQv9C2RsQfiG7hU1ryHk5ToIV5N29zYY=
 github.com/containers/winquit v1.1.0 h1:jArun04BNDQvt2W0Y78kh9TazN2EIEMG5Im6/JY7+pE=
 github.com/containers/winquit v1.1.0/go.mod h1:PsPeZlnbkmGGIToMPHF1zhWjBUkd8aHjMOr/vFcPxw8=
 github.com/coreos/go-oidc/v3 v3.12.0 h1:sJk+8G2qq94rDI6ehZ71Bol3oUHy63qNYmkiSjrc/Jo=
@@ -418,8 +418,8 @@ github.com/pierrec/lz4/v4 v4.1.21 h1:yOVMLb6qSIDP67pl/5F7RepeKYu/VmTyEXvuMI5d9mQ
 github.com/pierrec/lz4/v4 v4.1.21/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/pkg/sftp v1.13.8 h1:Xt7eJ/xqXv7s0VuzFw7JXhZj6Oc1zI6l4GK8KP9sFB0=
-github.com/pkg/sftp v1.13.8/go.mod h1:DmvEkvKE2lshEeuo2JMp06yqcx9HVnR7e3zqQl42F3U=
+github.com/pkg/sftp v1.13.9 h1:4NGkvGudBL7GteO3m6qnaQ4pC0Kvf0onSVc9gR3EWBw=
+github.com/pkg/sftp v1.13.9/go.mod h1:OBN7bVXdstkFFN/gdnHPUb5TE8eb8G1Rp9wCItqjkkA=
 github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 h1:GFCKgmp0tecUJ0sJuv4pzYCqS9+RGSn52M3FUwPs+uo=
 github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10/go.mod h1:t/avpk3KcrXxUnYOhZhMXJlSEyie6gQbtLq5NM3loB8=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=

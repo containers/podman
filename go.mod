@@ -14,14 +14,14 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.6.2
 	github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265
-	github.com/containers/common v0.62.3-0.20250324121725-e360699fb3e3
+	github.com/containers/common v0.62.3-0.20250326101258-442957aa798d
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.5
 	github.com/containers/image/v5 v5.34.3-0.20250311194052-d84dbab374e7
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a
+	github.com/containers/storage v1.57.3-0.20250325222852-4d1ae4a7983d
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/crc-org/crc/v2 v2.45.0
@@ -185,7 +185,7 @@ require (
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/pkg/sftp v1.13.8 // indirect
+	github.com/pkg/sftp v1.13.9 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect

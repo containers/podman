@@ -597,7 +597,7 @@ func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.
 	if err != nil {
 		return nil, err
 	}
-	tree, err := image.Tree(opts.WhatRequires)
+	tree, err := image.Tree(ctx, opts.WhatRequires)
 	if err != nil {
 		return nil, err
 	}
