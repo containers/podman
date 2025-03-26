@@ -72,7 +72,8 @@ function Win-SSHProxy {
 
     New-Item -ItemType Directory -Force -Path "./bin/windows"
     if (-Not $Version) {
-        $Version = "v0.8.4"
+        $match = Select-String -Path "$PSScriptRoot\go.mod" -Pattern "github.com/containers/gvisor-tap-vsock\s+(v[\d\.]+)"
+        $Version = $match.Matches.Groups[1].Value
     }
     curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windowsgui.exe"
     curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy.exe"
