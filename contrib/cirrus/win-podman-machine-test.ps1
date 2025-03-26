@@ -33,5 +33,12 @@ Run-Command ".\bin\windows\podman.exe --version"
 New-Item -ItemType "directory" -Path "$env:AppData\containers"
 Copy-Item -Path pkg\machine\ocipull\policy.json -Destination "$env:AppData\containers"
 
+# Set TMPDIR to fast storage, see cirrus.yml setup_disk_script for setup Z:\
+# TMPDIR is used by the machine tests paths, while TMP and TEMP are the normal
+# windows temporary dirs. Just to ensure everything uses the fast disk.
+$Env:TMPDIR = 'Z:\'
+$Env:TMP = 'Z:\'
+$Env:TEMP = 'Z:\'
+
 Write-Host "`nRunning podman-machine e2e tests"
 Run-Command ".\winmake localmachine"
