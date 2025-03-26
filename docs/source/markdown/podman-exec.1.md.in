@@ -13,6 +13,10 @@ podman\-exec - Execute a command in a running container
 
 ## OPTIONS
 
+#### **--cidfile**=*file*
+
+Read the ID of the target container from the specified *file*.
+
 #### **--detach**, **-d**
 
 Start the exec session, but do not attach to it. The command runs in the background, and the exec session is automatically removed when it completes. The **podman exec** command prints the ID of the exec session and exits immediately after it starts.

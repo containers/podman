@@ -31,7 +31,7 @@ var (
 			return validate.CheckAllLatestAndIDFile(cmd, args, false, "cidfile")
 		},
 		ValidArgsFunction: common.AutocompleteContainers,
-		Example: `podman rm imageID
+		Example: `podman rm ctrID
   podman rm mywebserver myflaskserver 860a4b23
   podman rm --force --all
   podman rm -f c684f0d469f2`,
@@ -44,7 +44,7 @@ var (
 		RunE:              rmCommand.RunE,
 		Args:              rmCommand.Args,
 		ValidArgsFunction: rmCommand.ValidArgsFunction,
-		Example: `podman container rm imageID
+		Example: `podman container rm ctrID
   podman container rm mywebserver myflaskserver 860a4b23
   podman container rm --force --all
   podman container rm -f c684f0d469f2`,
