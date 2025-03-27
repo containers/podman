@@ -4,64 +4,65 @@ run:
   timeout: 5m
   modules-download-mode: readonly
 linters:
-  enable-all: true
-  disable:
-    # too many reports but requires attention
-    - depguard
-    - intrange # should be turned on but we have to convert each place manually as there is no auto fix function
-    - tagalign
-    - perfsprint
-    - typecheck
-    # useful hints that should be addressed
-    - testifylint # all of reports that should be fixed
-    - nakedret
-    - gosmopolitan # usage of time.Local in pkg/k8s.io
-    - tagliatelle # too many JSON keys cannot be changed due to compat
-    - dupword # too many false positives (e.g., in tests)
-    - gocognit
-    - testpackage
-    - err113
-    - errorlint
-    - wrapcheck
-    - paralleltest
-    - wsl
-    - godox
-    - tparallel
-    - nlreturn
-    - noctx
-    - nestif
-    - predeclared
-    - thelper
-    - forbidigo
-    - exhaustive
-    - gofumpt
-    - gci
-    - godot
-    - dupl
-    - funlen
-    - gochecknoglobals
-    - gochecknoinits
-    - goconst
-    - gocyclo
-    - lll
-    - gosec
-    - musttag # way to many warnings to fix for now, also some false positives
-    - mnd # way to many false positives
-    - gomoddirectives
-    - containedctx
-    - contextcheck
-    - cyclop
-    - canonicalheader # our current header values are fixed and should not be changed
-    - errname
-    - forcetypeassert
-    - ireturn
-    - varnamelen
-    - maintidx
-    - nilnil
-    - nonamedreturns
-    - exhaustruct
-    # deprecated linters
-    - tenv
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - decorder
+    - dogsled
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - exptostd
+    - fatcontext
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gocritic
+    - gofmt
+    - goheader
+    - goimports
+    - gomodguard
+    - goprintffuncname
+    - gosimple
+    - govet
+    - grouper
+    - iface
+    - importas
+    - inamedparam
+    - ineffassign
+    - interfacebloat
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - nilerr
+    - nilnesserr
+    - nolintlint
+    - nosprintfhostport
+    - prealloc
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - staticcheck
+    - stylecheck
+    - testableexamples
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+    - zerologlint
 linters-settings:
   errcheck:
     check-blank: false
