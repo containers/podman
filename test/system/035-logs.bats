@@ -341,7 +341,8 @@ function _log_test_follow_since() {
     sleep 0.2
 
     # Make sure podman logs actually follows by giving a low timeout and check that the command times out
-    PODMAN_TIMEOUT=3 run_podman 124 ${events_backend} logs --since 0.1s -f $cname
+    # Option after container name should work as well: https://github.com/containers/podman/issues/25653
+    PODMAN_TIMEOUT=3 run_podman 124 ${events_backend} logs --since 0.1s $cname -f
     assert "$output" =~ "$content
 timeout: sending signal TERM to command.*" "logs --since -f on running container works"
 

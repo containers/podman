@@ -92,7 +92,6 @@ func logsFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&logsPodOptions.Timestamps, "timestamps", "t", false, "Output the timestamps in the log")
 	flags.BoolVarP(&logsPodOptions.Colors, "color", "", false, "Output the containers within a pod with different colors in the log")
 
-	flags.SetInterspersed(false)
 	_ = flags.MarkHidden("details")
 }
 
