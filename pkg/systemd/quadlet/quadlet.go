@@ -139,9 +139,9 @@ const (
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
 	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
-	KeyRemapGid              = "RemapGid"     //nolint:stylecheck // deprecated
-	KeyRemapUid              = "RemapUid"     //nolint:stylecheck // deprecated
-	KeyRemapUidSize          = "RemapUidSize" //nolint:stylecheck // deprecated
+	KeyRemapGid              = "RemapGid"     // deprecated
+	KeyRemapUid              = "RemapUid"     // deprecated
+	KeyRemapUidSize          = "RemapUidSize" // deprecated
 	KeyRemapUsers            = "RemapUsers"   // deprecated
 	KeyRetry                 = "Retry"
 	KeyRetryDelay            = "RetryDelay"

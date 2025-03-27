@@ -22,7 +22,7 @@ type VolumeCreateOptions struct {
 
 type VolumeRmReport struct {
 	Err error
-	Id  string //nolint:revive,stylecheck
+	Id  string //nolint:revive
 }
 type VolumeInspectReport struct {
 	*VolumeConfigResponse
@@ -38,14 +38,14 @@ type VolumeReloadReport struct {
 
 type VolumeMountReport struct {
 	Err  error
-	Id   string //nolint:revive,stylecheck
+	Id   string //nolint:revive
 	Name string
 	Path string
 }
 
 type VolumeUnmountReport struct {
 	Err error
-	Id  string //nolint:revive,stylecheck
+	Id  string //nolint:revive
 }
 
 type VolumeConfigResponse struct {

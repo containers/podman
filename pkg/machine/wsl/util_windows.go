@@ -59,10 +59,8 @@ type TokenPrivileges struct {
 // Cleaner to refer to the official OS constant names, and consistent with syscall
 // Ref: https://learn.microsoft.com/en-us/windows/win32/api/shellapi/ns-shellapi-shellexecuteinfow#members
 const (
-	//nolint:stylecheck
 	SEE_MASK_NOCLOSEPROCESS = 0x40
-	//nolint:stylecheck
-	SE_ERR_ACCESSDENIED = 0x05
+	SE_ERR_ACCESSDENIED     = 0x05
 )
 
 const (

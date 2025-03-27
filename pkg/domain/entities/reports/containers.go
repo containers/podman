@@ -1,7 +1,7 @@
 package reports
 
 type RmReport struct {
-	Id       string `json:"Id"` //nolint:revive,stylecheck
+	Id       string `json:"Id"` //nolint:revive
 	Err      error  `json:"Err,omitempty"`
 	RawInput string `json:"-"`
 }

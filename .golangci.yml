@@ -46,7 +46,6 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - testableexamples
     - unconvert
     - unparam

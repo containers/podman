@@ -20,7 +20,7 @@ type Volume struct {
 }
 
 type Report struct {
-	Id  []string //nolint:revive,stylecheck
+	Id  []string //nolint:revive
 	Err map[string]error
 }
 

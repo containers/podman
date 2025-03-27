@@ -110,11 +110,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Compression             uint64   `schema:"compression"`
 		ConfigureNetwork        string   `schema:"networkmode"`
 		CPPFlags                string   `schema:"cppflags"`
-		CpuPeriod               uint64   `schema:"cpuperiod"`  //nolint:revive,stylecheck
-		CpuQuota                int64    `schema:"cpuquota"`   //nolint:revive,stylecheck
-		CpuSetCpus              string   `schema:"cpusetcpus"` //nolint:revive,stylecheck
-		CpuSetMems              string   `schema:"cpusetmems"` //nolint:revive,stylecheck
-		CpuShares               uint64   `schema:"cpushares"`  //nolint:revive,stylecheck
+		CpuPeriod               uint64   `schema:"cpuperiod"`  //nolint:revive
+		CpuQuota                int64    `schema:"cpuquota"`   //nolint:revive
+		CpuSetCpus              string   `schema:"cpusetcpus"` //nolint:revive
+		CpuSetMems              string   `schema:"cpusetmems"` //nolint:revive
+		CpuShares               uint64   `schema:"cpushares"`  //nolint:revive
 		DNSOptions              string   `schema:"dnsoptions"`
 		DNSSearch               string   `schema:"dnssearch"`
 		DNSServers              string   `schema:"dnsservers"`

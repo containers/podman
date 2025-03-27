@@ -243,7 +243,7 @@ func CreateImageFromSrc(w http.ResponseWriter, r *http.Request) {
 		Status         string            `json:"status"`
 		Progress       string            `json:"progress"`
 		ProgressDetail map[string]string `json:"progressDetail"`
-		Id             string            `json:"id"` //nolint:revive,stylecheck
+		Id             string            `json:"id"` //nolint:revive
 	}{
 		Status:         report.Id,
 		ProgressDetail: map[string]string{},

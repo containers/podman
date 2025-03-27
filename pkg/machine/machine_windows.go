@@ -36,7 +36,6 @@ const (
 	GlobalNameWait  = 250 * time.Millisecond
 )
 
-//nolint:stylecheck
 const WM_QUIT = 0x12
 
 type WinProxyOpts struct {
