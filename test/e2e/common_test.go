@@ -575,7 +575,7 @@ func (p *PodmanTestIntegration) StopPod(nameOrID string) {
 
 func processTestResult(r SpecReport) {
 	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
-	_, err := timingsFile.WriteString(fmt.Sprintf("%s\t\t%f\n", tr.name, tr.length))
+	_, err := fmt.Fprintf(timingsFile, "%s\t\t%f\n", tr.name, tr.length)
 	Expect(err).ToNot(HaveOccurred(), "write timings")
 }
 

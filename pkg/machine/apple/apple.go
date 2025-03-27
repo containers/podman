@@ -291,7 +291,7 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 			return nil, nil, err
 		}
 		for _, arg := range cmd.Args {
-			_, err = f.WriteString(fmt.Sprintf("%q ", arg))
+			_, err = fmt.Fprintf(f, "%q ", arg)
 			if err != nil {
 				return nil, nil, err
 			}

@@ -483,7 +483,7 @@ func escapeString(escaped *strings.Builder, word string, isPath bool) {
 					escaped.WriteString("-")
 				}
 			default:
-				escaped.WriteString(fmt.Sprintf("\\x%.2x", c))
+				fmt.Fprintf(escaped, "\\x%.2x", c)
 			}
 		} else {
 			escaped.WriteRune(c)
