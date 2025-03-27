@@ -448,7 +448,7 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 	}
 
 	// Stop GvProxy and remove PID file
-	if !mp.UseProviderNetworkSetup() {
+	if !mp.UseProviderNetworkSetup(mc) {
 		gvproxyPidFile, err := dirs.RuntimeDir.AppendToNewVMFile("gvproxy.pid", nil)
 		if err != nil {
 			return err
@@ -713,7 +713,9 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 		})
 	}
 	// Provider is responsible for waiting
-	if mp.UseProviderNetworkSetup() {
+	// FIXME: there was a rebase conflict with https://github.com/cfergeau/podman/commit/c2b2b97e75a9fc29be3f2bb90b0f04d0d3ab6415
+	// make sure the updateConnectionFunc is not a problem
+	if mp.UseProviderNetworkSetup(mc) {
 		return updateConnectionFunc()
 	}
 

@@ -7,6 +7,8 @@ import (
 )
 
 type HyperVConfig struct {
+	// Uses usermode networking
+	UserModeNetworking bool
 	// ReadyVSock is the pipeline for the guest to alert the host
 	// it is running
 	ReadyVsock vsock.HVSockRegistryEntry

@@ -32,7 +32,7 @@ func (a *AppleHVStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool
 	return true
 }
 
-func (a *AppleHVStubber) UseProviderNetworkSetup() bool {
+func (a *AppleHVStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) bool {
 	return false
 }
 

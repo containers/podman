@@ -190,7 +190,7 @@ func (w WSLStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
 	return mc.WSLHypervisor.UserModeNetworking
 }
 
-func (w WSLStubber) UseProviderNetworkSetup() bool {
+func (w WSLStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) bool {
 	return true
 }
 

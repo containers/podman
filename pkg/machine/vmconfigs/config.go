@@ -78,7 +78,7 @@ type VMProvider interface { //nolint:interfacebloat
 	StopHostNetworking(mc *MachineConfig, vmType define.VMType) error
 	VMType() define.VMType
 	UserModeNetworkEnabled(mc *MachineConfig) bool
-	UseProviderNetworkSetup() bool
+	UseProviderNetworkSetup(mc *MachineConfig) bool
 	RequireExclusiveActive() bool
 	UpdateSSHPort(mc *MachineConfig, port int) error
 	GetRosetta(mc *MachineConfig) (bool, error)

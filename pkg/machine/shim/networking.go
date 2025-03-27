@@ -100,7 +100,7 @@ func startNetworking(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvider)
 	}
 
 	// Provider has its own networking code path (e.g. WSL)
-	if provider.UseProviderNetworkSetup() {
+	if provider.UseProviderNetworkSetup(mc) {
 		return "", 0, provider.StartNetworking(mc, nil)
 	}
 

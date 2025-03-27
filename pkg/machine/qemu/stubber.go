@@ -44,7 +44,7 @@ func (q *QEMUStubber) UserModeNetworkEnabled(*vmconfigs.MachineConfig) bool {
 	return true
 }
 
-func (q *QEMUStubber) UseProviderNetworkSetup() bool {
+func (q *QEMUStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) bool {
 	return false
 }
 
