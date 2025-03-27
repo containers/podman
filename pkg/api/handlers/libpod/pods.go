@@ -35,14 +35,11 @@ func PodCreate(w http.ResponseWriter, r *http.Request) {
 		err     error
 	)
 	psg := specgen.PodSpecGenerator{InfraContainerSpec: &specgen.SpecGenerator{}}
-	if err := json.NewDecoder(r.Body).Decode(&psg); err != nil {
+	if err = json.NewDecoder(r.Body).Decode(&psg); err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("%v: %w", failedToDecodeSpecgen, err))
 		return
 	}
-	if err != nil {
-		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("%v: %w", failedToDecodeSpecgen, err))
-		return
-	}
+
 	if !psg.NoInfra {
 		infraOptions := entities.NewInfraContainerCreateOptions() // options for pulling the image and FillOutSpec
 		infraOptions.Net = &entities.NetOptions{}
