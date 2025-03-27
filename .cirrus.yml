@@ -33,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
+    IMAGE_SUFFIX: "c20250324t111922z-f41f40d13"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -146,9 +146,11 @@ build_task:
               VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
               CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
         - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
+              # Note, this is changed to FEDORA_NAME temporarily as f40 contains a to old golang
+              # Once we bump our images to f42/41 this must be turned back to PRIOR_FEDORA_NAME
+              DISTRO_NV: ${FEDORA_NAME}
+              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
+              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
               CI_DESIRED_DATABASE: boltdb
               CI_DESIRED_STORAGE: vfs
         - env:
@@ -663,18 +665,9 @@ container_integration_test_task:
     # Docs: ./contrib/cirrus/CIModes.md
     only_if: *only_if_int_test
     depends_on: *build
-    matrix: &fedora_vm_axis
-        - env:
-              DISTRO_NV: ${FEDORA_NAME}
-              VM_IMAGE_NAME: ${FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${FEDORA_CONTAINER_FQIN}
-        - env:
-              DISTRO_NV: ${PRIOR_FEDORA_NAME}
-              VM_IMAGE_NAME: ${PRIOR_FEDORA_CACHE_IMAGE_NAME}
-              CTR_FQIN: ${PRIOR_FEDORA_CONTAINER_FQIN}
-              CI_DESIRED_DATABASE: boltdb
     gce_instance: *fastvm
     env:
+        <<: *stdenvars
         TEST_FLAVOR: int
         TEST_ENVIRON: container
     clone_script: *get_gosrc
@@ -770,7 +763,7 @@ podman_machine_windows_task:
     depends_on: *build
     ec2_instance:
         <<: *windows
-        type: m5zn.metal
+        type: z1d.metal
         platform: windows
     timeout_in: 45m
     env: *winenv
@@ -780,6 +773,23 @@ podman_machine_windows_task:
       - env:
           TEST_FLAVOR: "machine-hyperv"
     clone_script: *winclone
+    # This depends on an instance with an local NVMe storage so we can make use of fast IO
+    # Our machine tests are IO bound so this is rather imporant to speed them up a lot.
+    setup_disk_script: |
+        echo "Get-Disk"
+        Get-Disk | Ft -autosize | out-string -width 4096
+        # Hard coded to disk 0, assume that this is always the case for our ec2 instance.
+        # It is not clear to me how I would filter by name because we still have two disks
+        # with the same name.
+        echo "Format and mount disk 0"
+        $disk = Get-Disk 0
+        $disk | Initialize-Disk -PartitionStyle MBR
+        $disk | New-Partition -UseMaximumSize -MbrType IFS
+        $Partition = Get-Partition -DiskNumber $disk.Number
+        $Partition | Format-Volume -FileSystem NTFS -Confirm:$false
+        $Partition | Add-PartitionAccessPath -AccessPath "Z:\"
+        echo "Get-Volume"
+        Get-Volume
     main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
     always:
         # Required for `contrib/cirrus/logformatter` to work properly

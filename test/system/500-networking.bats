@@ -791,7 +791,7 @@ nameserver 8.8.8.8" "nameserver order is correct"
         cid="$output"
 
         # make sure binding the same port fails
-        run timeout 5 nc -l 127.0.0.1 $port
+        run timeout 5 ncat -l 127.0.0.1 $port
         assert "$status" -eq 2 "ncat unexpected exit code"
         assert "$output" =~ "127.0.0.1:$port: Address already in use" "ncat error message"
 
@@ -803,10 +803,7 @@ nameserver 8.8.8.8" "nameserver order is correct"
             # port is bound in the container, https://github.com/containers/podman/issues/21561.
             retries=5
             while [[ $retries -gt 0 ]]; do
-                # -w 1 adds a 1 second timeout. For some reason, ubuntu's ncat
-                # doesn't close the connection on EOF, and other options to
-                # change this are not portable across distros. -w seems to work.
-                run nc -w 1 127.0.0.1 $port <<<$random
+                run ncat 127.0.0.1 $port <<<$random
                 if [[ $status -eq 0 ]]; then
                     break
                 fi

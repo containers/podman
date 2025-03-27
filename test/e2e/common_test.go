@@ -1390,19 +1390,22 @@ func GetPort() int {
 	return 0 // notreached
 }
 
-func ncz(port int) bool {
-	timeout := 500 * time.Millisecond
-	for i := 0; i < 5; i++ {
-		ncCmd := []string{"-z", "localhost", strconv.Itoa(port)}
-		GinkgoWriter.Printf("Running: nc %s\n", strings.Join(ncCmd, " "))
-		check := SystemExec("nc", ncCmd)
-		if check.ExitCode() == 0 {
-			return true
+// testPortConnection check if we can connect to the given tcp port
+// This is doing some retries in case the container process has not yet bound the port.
+func testPortConnection(port int) {
+	GinkgoHelper()
+	var conn net.Conn
+	var err error
+
+	for range 5 {
+		conn, err = net.Dial("tcp", net.JoinHostPort("localhost", strconv.Itoa(port)))
+		if err == nil {
+			conn.Close()
+			return
 		}
-		time.Sleep(timeout)
-		timeout++
+		time.Sleep(500 * time.Millisecond)
 	}
-	return false
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func createNetworkName(name string) string {
