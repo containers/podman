@@ -216,11 +216,6 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 
 	cmd.Args = append(cmd.Args, endpointArgs...)
 
-	firstBoot, err := mc.IsFirstBoot()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		debugDevArgs, err := GetDebugDevicesCMDArgs()
 		if err != nil {
@@ -230,7 +225,7 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
 	}
 
-	if firstBoot {
+	if mc.IsFirstBoot() {
 		// If this is the first boot of the vm, we need to add the vsock
 		// device to vfkit so we can inject the ignition file
 		socketName := fmt.Sprintf("%s-%s", mc.Name, ignitionSocketName)

@@ -182,12 +182,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
-	firstBoot, err := mc.IsFirstBoot()
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if firstBoot {
+	if mc.IsFirstBoot() {
 		// Add ignition entries to windows registry
 		// for first boot only
 		if err := readAndSplitIgnition(mc, vm); err != nil {
