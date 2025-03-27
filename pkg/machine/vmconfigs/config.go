@@ -39,7 +39,7 @@ type MachineConfig struct {
 	QEMUHypervisor    *QEMUConfig    `json:",omitempty"`
 	WSLHypervisor     *WSLConfig     `json:",omitempty"`
 
-	lock *lockfile.LockFile //nolint:unused
+	lock *lockfile.LockFile
 
 	// configPath can be used for reading, writing, removing
 	configPath *define.VMFile

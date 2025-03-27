@@ -20,7 +20,6 @@ type SpecData struct {
 }
 
 func TestDualStackSplit(t *testing.T) {
-	//nolint:revive
 	const (
 		IP4_ALL = "0.0.0.0"
 		IP4__LO = "127.0.0.1"

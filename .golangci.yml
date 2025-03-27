@@ -58,7 +58,6 @@ linters-settings:
   errcheck:
     check-blank: false
   nolintlint:
-    allow-unused: true
     require-specific: true
   revive:
     rules:

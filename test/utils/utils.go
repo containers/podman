@@ -20,9 +20,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	. "github.com/onsi/ginkgo/v2"    //nolint:revive
-	. "github.com/onsi/gomega"       //nolint:revive
-	. "github.com/onsi/gomega/gexec" //nolint:revive
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gexec"
 )
 
 type NetworkBackend int

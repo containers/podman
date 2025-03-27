@@ -14,14 +14,10 @@ import (
 )
 
 const (
-	//nolint:revive
-	ARTIFACT_SINGLE = "quay.io/libpod/testartifact:20250206-single"
-	//nolint:revive
-	ARTIFACT_MULTI = "quay.io/libpod/testartifact:20250206-multi"
-	//nolint:revive
+	ARTIFACT_SINGLE         = "quay.io/libpod/testartifact:20250206-single"
+	ARTIFACT_MULTI          = "quay.io/libpod/testartifact:20250206-multi"
 	ARTIFACT_MULTI_NO_TITLE = "quay.io/libpod/testartifact:20250206-multi-no-title"
-	//nolint:revive
-	ARTIFACT_EVIL = "quay.io/libpod/testartifact:20250206-evil"
+	ARTIFACT_EVIL           = "quay.io/libpod/testartifact:20250206-evil"
 )
 
 var _ = Describe("Podman artifact", func() {

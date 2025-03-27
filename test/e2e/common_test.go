@@ -44,10 +44,10 @@ import (
 
 var (
 	//lint:ignore ST1003
-	PODMAN_BINARY      string                              //nolint:revive
-	INTEGRATION_ROOT   string                              //nolint:revive
-	CGROUP_MANAGER     = "systemd"                         //nolint:revive
-	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE} //nolint:revive
+	PODMAN_BINARY      string
+	INTEGRATION_ROOT   string
+	CGROUP_MANAGER     = "systemd"
+	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE}
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )

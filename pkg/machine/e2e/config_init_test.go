@@ -117,7 +117,7 @@ func (i *initMachine) withDiskSize(size uint) *initMachine {
 	return i
 }
 
-func (i *initMachine) withIgnitionPath(path string) *initMachine { //nolint:unused
+func (i *initMachine) withIgnitionPath(path string) *initMachine {
 	i.ignitionPath = path
 	return i
 }

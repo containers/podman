@@ -14,7 +14,7 @@ type ContainerStatReport struct {
 
 type CheckpointReport struct {
 	Err             error                                   `json:"-"`
-	Id              string                                  `json:"Id"` //nolint:revive
+	Id              string                                  `json:"Id"`
 	RawInput        string                                  `json:"-"`
 	RuntimeDuration int64                                   `json:"runtime_checkpoint_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`
@@ -22,7 +22,7 @@ type CheckpointReport struct {
 
 type RestoreReport struct {
 	Err             error                                   `json:"-"`
-	Id              string                                  `json:"Id"` //nolint:revive
+	Id              string                                  `json:"Id"`
 	RawInput        string                                  `json:"-"`
 	RuntimeDuration int64                                   `json:"runtime_restore_duration"`
 	CRIUStatistics  *define.CRIUCheckpointRestoreStatistics `json:"criu_statistics"`

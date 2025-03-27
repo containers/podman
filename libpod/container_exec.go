@@ -86,10 +86,10 @@ type ExecConfig struct {
 type ExecSession struct {
 	// Id is the ID of the exec session.
 	// Named somewhat strangely to not conflict with ID().
-	Id string `json:"id"` //nolint:revive
+	Id string `json:"id"`
 	// ContainerId is the ID of the container this exec session belongs to.
 	// Named somewhat strangely to not conflict with ContainerID().
-	ContainerId string `json:"containerId"` //nolint:revive
+	ContainerId string `json:"containerId"`
 
 	// State is the state of the exec session.
 	State define.ContainerExecStatus `json:"state"`

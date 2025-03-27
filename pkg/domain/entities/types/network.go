@@ -14,7 +14,7 @@ type NetworkPruneReport struct {
 
 // NetworkReloadReport describes the results of reloading a container network.
 type NetworkReloadReport struct {
-	Id  string //nolint:revive
+	Id  string
 	Err error
 }
 

@@ -38,12 +38,12 @@ func init() {
 		Parent:  systemCmd,
 	})
 }
+
 func renumber(cmd *cobra.Command, args []string) {
 	if err := registry.ContainerEngine().Renumber(registry.Context()); err != nil {
 		fmt.Println(err)
 		// FIXME change this to return the error like other commands
 		// defer will never run on os.Exit()
-		//nolint:gocritic
 		os.Exit(define.ExecErrorCodeGeneric)
 	}
 	os.Exit(0)

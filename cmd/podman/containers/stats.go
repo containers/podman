@@ -252,10 +252,10 @@ func combineBytesValues(a, b uint64) string {
 
 func outputJSON(stats []containerStats) error {
 	type jstat struct {
-		Id         string `json:"id"` //nolint:revive
+		Id         string `json:"id"`
 		Name       string `json:"name"`
 		CPUTime    string `json:"cpu_time"`
-		CpuPercent string `json:"cpu_percent"` //nolint:revive
+		CpuPercent string `json:"cpu_percent"`
 		AverageCPU string `json:"avg_cpu"`
 		MemUsage   string `json:"mem_usage"`
 		MemPerc    string `json:"mem_percent"`
