@@ -79,8 +79,6 @@ issues:
   exclude-dirs:
     - contrib
     - dependencies
-  exclude-files:
-    - swagger.go
   exclude-rules:
     # Exclude recvcheck from running on the imported k8s files, to much failures
     - path: pkg/k8s.io/
