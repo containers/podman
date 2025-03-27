@@ -75,10 +75,6 @@ issues:
   # Set to 0 to disable.
   # Default: 3
   max-same-issues: 0
-  exclude-dirs-use-default: true
-  exclude-dirs:
-    - contrib
-    - dependencies
   exclude-rules:
     # Exclude recvcheck from running on the imported k8s files, to much failures
     - path: pkg/k8s.io/
