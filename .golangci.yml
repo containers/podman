@@ -22,19 +22,15 @@ linters:
     - gochecksumtype
     - gocritic
     - gofmt
-    - goheader
     - goimports
-    - gomodguard
     - goprintffuncname
     - gosimple
     - govet
     - grouper
     - iface
-    - importas
     - inamedparam
     - ineffassign
     - interfacebloat
-    - loggercheck
     - makezero
     - mirror
     - misspell
@@ -43,14 +39,11 @@ linters:
     - nolintlint
     - nosprintfhostport
     - prealloc
-    - promlinter
     - protogetter
     - reassign
     - recvcheck
     - revive
     - rowserrcheck
-    - sloglint
-    - spancheck
     - sqlclosecheck
     - staticcheck
     - stylecheck
@@ -62,7 +55,6 @@ linters:
     - usetesting
     - wastedassign
     - whitespace
-    - zerologlint
 linters-settings:
   errcheck:
     check-blank: false
