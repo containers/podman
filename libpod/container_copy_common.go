@@ -31,7 +31,7 @@ func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir boo
 		unmount      func()
 		cleanupFuncs []func()
 		err          error
-		locked       bool = true
+		locked       = true
 	)
 
 	// Make sure that "/" copies the *contents* of the mount point and not
