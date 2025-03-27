@@ -428,7 +428,11 @@ func copyToContainer(container string, containerPath string, hostPath string) er
 			// rename accordingly.
 			getOptions.Rename = map[string]string{filepath.Base(hostTarget): containerBaseName}
 		}
-		if err := buildahCopiah.Get("/", "", getOptions, []string{hostTarget}, writer); err != nil {
+
+		// On Windows, the root path needs to be <drive>:\, while otherwise
+		// it needs to be /. Combining filepath.VolumeName() + string(os.PathSeparator)
+		// gives us the correct path for the current OS.
+		if err := buildahCopiah.Get(filepath.VolumeName(hostTarget)+string(os.PathSeparator), "", getOptions, []string{hostTarget}, writer); err != nil {
 			return fmt.Errorf("copying from host: %w", err)
 		}
 		return nil

@@ -83,23 +83,28 @@ func ResolveHostPath(path string) (*FileInfo, error) {
 // is preserved.  The filepath API among tends to clean up a bit too much but
 // we *must* preserve this data by all means.
 func PreserveBasePath(original, resolved string) string {
-	// Handle "/"
-	if strings.HasSuffix(original, "/") {
-		if !strings.HasSuffix(resolved, "/") {
-			resolved += "/"
+	// Ensure paths are in platform semantics (replace / with \ on Windows)
+	resolved = filepath.FromSlash(resolved)
+	original = filepath.FromSlash(original)
+
+	if filepath.Base(resolved) != "." && filepath.Base(original) == "." {
+		if !hasTrailingPathSeparator(resolved) {
+			// Add a separator if it doesn't already end with one (a cleaned
+			// path would only end in a separator if it is the root).
+			resolved += string(filepath.Separator)
 		}
-		return resolved
+		resolved += "."
 	}
 
-	// Handle "/."
-	if strings.HasSuffix(original, "/.") {
-		if strings.HasSuffix(resolved, "/") { // could be root!
-			resolved += "."
-		} else if !strings.HasSuffix(resolved, "/.") {
-			resolved += "/."
-		}
-		return resolved
+	if !hasTrailingPathSeparator(resolved) && hasTrailingPathSeparator(original) {
+		resolved += string(filepath.Separator)
 	}
 
 	return resolved
+}
+
+// hasTrailingPathSeparator returns whether the given
+// path ends with the system's path separator character.
+func hasTrailingPathSeparator(path string) bool {
+	return len(path) > 0 && os.IsPathSeparator(path[len(path)-1])
 }

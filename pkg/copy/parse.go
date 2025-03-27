@@ -2,6 +2,7 @@ package copy
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 )
 
@@ -37,6 +38,14 @@ func parseUserInput(input string) (container string, path string) {
 	// If the input starts with a dot or slash, it cannot refer to a
 	// container.
 	if input[0] == '.' || input[0] == '/' {
+		return
+	}
+
+	// If the input is an absolute path, it cannot refer to a container.
+	// This is necessary because absolute paths on Windows will include
+	// a colon, which would cause the drive letter to be parsed as a
+	// container name.
+	if filepath.IsAbs(input) {
 		return
 	}
 
