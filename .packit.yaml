@@ -37,8 +37,9 @@ jobs:
       - fedora-development-x86_64
       - fedora-development-aarch64
 
+  # Ignore until golang is updated in distro buildroot to go 1.23.3+
   - job: copr_build
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-eln]
     notifications: *packit_generic_failure_notification
     enable_net: true
@@ -50,8 +51,9 @@ jobs:
         additional_repos:
           - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/aarch64/"
 
+  # Ignore until golang is updated in distro buildroot to go 1.23.3+
   - job: copr_build
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-centos]
     notifications: *packit_generic_failure_notification
     enable_net: true
