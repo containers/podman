@@ -45,9 +45,9 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		stdout bool
 		stderr bool
 	}{
-		stdin:  !(stdin == nil || reflect.ValueOf(stdin).IsNil()),
-		stdout: !(stdout == nil || reflect.ValueOf(stdout).IsNil()),
-		stderr: !(stderr == nil || reflect.ValueOf(stderr).IsNil()),
+		stdin:  stdin != nil && !reflect.ValueOf(stdin).IsNil(),
+		stdout: stdout != nil && !reflect.ValueOf(stdout).IsNil(),
+		stderr: stderr != nil && !reflect.ValueOf(stderr).IsNil(),
 	}
 	// Ensure golang can determine that interfaces are "really" nil
 	if !isSet.stdin {
@@ -138,7 +138,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		return err
 	}
 
-	if !(response.IsSuccess() || response.IsInformational()) {
+	if !response.IsSuccess() && !response.IsInformational() {
 		defer response.Body.Close()
 		return response.Process(nil)
 	}
@@ -496,7 +496,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	}
 	defer response.Body.Close()
 
-	if !(response.IsSuccess() || response.IsInformational()) {
+	if !response.IsSuccess() && !response.IsInformational() {
 		return response.Process(nil)
 	}
 

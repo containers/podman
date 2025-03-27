@@ -1333,7 +1333,7 @@ func (c *Container) start() error {
 	// Check if healthcheck is not nil and --no-healthcheck option is not set.
 	// If --no-healthcheck is set Test will be always set to `[NONE]` so no need
 	// to update status in such case.
-	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
+	if c.config.HealthCheckConfig != nil && (len(c.config.HealthCheckConfig.Test) != 1 || c.config.HealthCheckConfig.Test[0] != "NONE") {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
 			return fmt.Errorf("update healthcheck status: %w", err)
 		}
@@ -1622,7 +1622,7 @@ func (c *Container) unpause() error {
 
 	isStartupHealthCheck := c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed
 	isHealthCheckEnabled := c.config.HealthCheckConfig != nil &&
-		!(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE")
+		(len(c.config.HealthCheckConfig.Test) != 1 || c.config.HealthCheckConfig.Test[0] != "NONE")
 	if isHealthCheckEnabled || isStartupHealthCheck {
 		timer := c.config.HealthCheckConfig.Interval.String()
 		if isStartupHealthCheck {

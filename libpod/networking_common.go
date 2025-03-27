@@ -293,7 +293,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		// if not only the default network is connected we can return here
 		// otherwise we have to populate the InspectBasicNetworkConfig settings
 		_, isDefaultNet := networks[c.runtime.config.Network.DefaultNetwork]
-		if !(len(networks) == 1 && isDefaultNet) {
+		if len(networks) != 1 || !isDefaultNet {
 			return settings, nil
 		}
 	} else {

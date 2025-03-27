@@ -258,7 +258,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 			for _, containerfile := range m {
 				// Add path to containerfile iff it is not URL
-				if !(strings.HasPrefix(containerfile, "http://") || strings.HasPrefix(containerfile, "https://")) {
+				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
 					containerfile = filepath.Join(contextDirectory,
 						filepath.Clean(filepath.FromSlash(containerfile)))
 				}

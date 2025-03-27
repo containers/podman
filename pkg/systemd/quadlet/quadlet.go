@@ -579,7 +579,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	// Only allow mixed or control-group, as nothing else works well
 	killMode, ok := service.Lookup(ServiceGroup, "KillMode")
-	if !ok || !(killMode == "mixed" || killMode == "control-group") {
+	if !ok || (killMode != "mixed" && killMode != "control-group") {
 		if ok {
 			return nil, warnings, fmt.Errorf("invalid KillMode '%s'", killMode)
 		}
@@ -1222,7 +1222,7 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 
 	// Only allow mixed or control-group, as nothing else works well
 	killMode, ok := service.Lookup(ServiceGroup, "KillMode")
-	if !ok || !(killMode == "mixed" || killMode == "control-group") {
+	if !ok || (killMode != "mixed" && killMode != "control-group") {
 		if ok {
 			return nil, fmt.Errorf("invalid KillMode '%s'", killMode)
 		}

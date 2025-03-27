@@ -639,7 +639,7 @@ func removeErrorsToExitCode(rmErrors []error) int {
 		// One of the specified images has child images or is
 		// being used by a container.
 		return 2
-	case noSuchImageErrors && !(otherErrors || inUseErrors):
+	case noSuchImageErrors && (!otherErrors && !inUseErrors):
 		// One of the specified images did not exist, and no other
 		// failures.
 		return 1

@@ -192,7 +192,7 @@ func (ic *ContainerEngine) PodUnpause(ctx context.Context, namesOrIds []string, 
 func (ic *ContainerEngine) PodStop(ctx context.Context, namesOrIds []string, options entities.PodStopOptions) ([]*entities.PodStopReport, error) {
 	reports := []*entities.PodStopReport{}
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchPod)) {
+	if err != nil && (!options.Ignore || !errors.Is(err, define.ErrNoSuchPod)) {
 		return nil, err
 	}
 	for _, p := range pods {
@@ -276,7 +276,7 @@ func (ic *ContainerEngine) PodStart(ctx context.Context, namesOrIds []string, op
 
 func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, options entities.PodRmOptions) ([]*entities.PodRmReport, error) {
 	pods, err := getPodsByContext(options.All, options.Latest, namesOrIds, ic.Libpod)
-	if err != nil && !(options.Ignore && errors.Is(err, define.ErrNoSuchPod)) {
+	if err != nil && (!options.Ignore || !errors.Is(err, define.ErrNoSuchPod)) {
 		return nil, err
 	}
 	reports := make([]*entities.PodRmReport, 0, len(pods))

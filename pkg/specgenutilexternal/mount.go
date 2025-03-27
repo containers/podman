@@ -26,7 +26,7 @@ func FindMountType(input string) (mountType string, tokens []string, err error) 
 	}
 	for _, s := range records[0] {
 		kv := strings.Split(s, "=")
-		if found || !(len(kv) == 2 && kv[0] == "type") {
+		if found || (len(kv) != 2 || kv[0] != "type") {
 			tokens = append(tokens, s)
 			continue
 		}

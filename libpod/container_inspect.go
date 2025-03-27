@@ -195,7 +195,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	// Check if healthcheck is not nil and --no-healthcheck option is not set.
 	// If --no-healthcheck is set Test will be always set to `[NONE]`, so the
 	// inspect status should be set to nil.
-	if c.config.HealthCheckConfig != nil && !(len(c.config.HealthCheckConfig.Test) == 1 && c.config.HealthCheckConfig.Test[0] == "NONE") {
+	if c.config.HealthCheckConfig != nil && (len(c.config.HealthCheckConfig.Test) != 1 || c.config.HealthCheckConfig.Test[0] != "NONE") {
 		// This container has a healthcheck defined in it; we need to add its state
 		healthCheckState, err := c.readHealthCheckLog()
 		if err != nil {
@@ -215,7 +215,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	data.NetworkSettings = networkConfig
 	// Ports in NetworkSettings includes exposed ports for network modes that are not host,
 	// and not container.
-	if !(c.config.NetNsCtr != "" || c.NetworkMode() == "host") {
+	if c.config.NetNsCtr == "" && c.NetworkMode() != "host" {
 		addInspectPortsExpose(c.config.ExposedPorts, data.NetworkSettings.Ports)
 	}
 

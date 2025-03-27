@@ -121,7 +121,7 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 
 func GenerateForKubeDaemonSet(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDaemonSet, error) {
 	// Restart policy for DaemonSets can only be set to Always
-	if !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == v1.RestartPolicyAlways) {
+	if pod.Spec.RestartPolicy != "" && pod.Spec.RestartPolicy != v1.RestartPolicyAlways {
 		return nil, fmt.Errorf("k8s DaemonSets can only have restartPolicy set to Always")
 	}
 
@@ -178,7 +178,7 @@ func GenerateForKubeDaemonSet(ctx context.Context, pod *YAMLPod, options entitie
 // kind YAML.
 func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
 	// Restart policy for Deployments can only be set to Always
-	if options.Type == define.K8sKindDeployment && !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == v1.RestartPolicyAlways) {
+	if options.Type == define.K8sKindDeployment && (pod.Spec.RestartPolicy != "" && pod.Spec.RestartPolicy != v1.RestartPolicyAlways) {
 		return nil, fmt.Errorf("k8s Deployments can only have restartPolicy set to Always")
 	}
 
@@ -815,7 +815,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
-		if !(ctr.IDMappings().HostUIDMapping && ctr.IDMappings().HostGIDMapping) {
+		if !ctr.IDMappings().HostUIDMapping || !ctr.IDMappings().HostGIDMapping {
 			hostUsers = false
 		}
 		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr, getService)

@@ -255,7 +255,7 @@ loop1:
 			goto finishForceTerminate
 		case strings.ContainsRune(separators, rune(c)):
 			if flags&SplitDontCoalesceSeparators != 0 {
-				if !(flags&SplitRetainSeparators != 0) {
+				if flags&SplitRetainSeparators == 0 {
 					p++
 				}
 				goto finishForceNext
@@ -332,7 +332,7 @@ loop1:
 					if flags&SplitUnquote != 0 {
 						break quoteloop
 					}
-				case c == '\\' && !(flags&SplitRetainEscape != 0):
+				case c == '\\' && (flags&SplitRetainEscape == 0):
 					backslash = true
 					break quoteloop
 				}
@@ -354,18 +354,18 @@ loop1:
 					if flags&SplitUnquote != 0 {
 						break nonquoteloop
 					}
-				case c == '\\' && !(flags&SplitRetainEscape != 0):
+				case c == '\\' && (flags&SplitRetainEscape == 0):
 					backslash = true
 					break nonquoteloop
 				case strings.ContainsRune(separators, rune(c)):
 					if flags&SplitDontCoalesceSeparators != 0 {
-						if !(flags&SplitRetainSeparators != 0) {
+						if flags&SplitRetainSeparators == 0 {
 							p++
 						}
 						goto finishForceNext
 					}
 
-					if !(flags&SplitRetainSeparators != 0) {
+					if flags&SplitRetainSeparators == 0 {
 						/* Skip additional coalesced separators. */
 						for ; ; c = nextChar() {
 							if c == 0 {

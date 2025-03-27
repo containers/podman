@@ -160,7 +160,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 					if (workDirFlag && !upperDirFlag) || (!workDirFlag && upperDirFlag) {
 						return nil, nil, nil, errors.New("must set both `upperdir` and `workdir`")
 					}
-					if len(options) > 2 && !(len(options) == 3 && upperDirFlag && workDirFlag) || (len(options) == 2 && !chownFlag) {
+					if len(options) > 2 && (len(options) != 3 || !upperDirFlag || !workDirFlag) || (len(options) == 2 && !chownFlag) {
 						return nil, nil, nil, errors.New("can't use 'O' with other options")
 					}
 				}
