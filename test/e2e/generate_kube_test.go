@@ -704,11 +704,12 @@ var _ = Describe("Podman kube generate", func() {
 				// have anything for protocol under the ports as tcp is the default
 				// for k8s
 				Expect(port.Protocol).To(BeEmpty())
-				if port.HostPort == 4008 {
+				switch port.HostPort {
+				case 4008:
 					foundPort400x++
-				} else if port.HostPort == 5008 {
+				case 5008:
 					foundPort500x++
-				} else {
+				default:
 					foundOtherPort++
 				}
 			}

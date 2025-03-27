@@ -238,8 +238,8 @@ func setContainerNameForTemplate(startCommand []string, info *containerInfo) ([]
 			break
 		}
 	}
-	switch {
-	case nameIx == -1:
+	switch nameIx {
+	case -1:
 		// if not found, add --name argument in the command slice before the "run" argument.
 		// it's assumed that the command slice contains this argument.
 		runIx := -1

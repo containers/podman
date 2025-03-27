@@ -1182,9 +1182,10 @@ func (c *Container) cleanupRuntime(ctx context.Context) error {
 	// If we were Stopped, we are now Exited, as we've removed ourself
 	// from the runtime.
 	// If we were Created, we are now Configured.
-	if c.state.State == define.ContainerStateStopped {
+	switch c.state.State {
+	case define.ContainerStateStopped:
 		c.state.State = define.ContainerStateExited
-	} else if c.state.State == define.ContainerStateCreated {
+	case define.ContainerStateCreated:
 		c.state.State = define.ContainerStateConfigured
 	}
 
@@ -1219,10 +1220,11 @@ func (c *Container) reinit(ctx context.Context, retainRetries bool) error {
 // Performs all necessary steps to start a container that is not running
 // Does not lock or check validity, requires to run on the same thread that holds the lock for the container.
 func (c *Container) initAndStart(ctx context.Context) (retErr error) {
-	// If we are ContainerStateUnknown, throw an error
-	if c.state.State == define.ContainerStateUnknown {
+	// If we are ContainerState{Unknown,Removing}, throw an error.
+	switch c.state.State {
+	case define.ContainerStateUnknown:
 		return fmt.Errorf("container %s is in an unknown state: %w", c.ID(), define.ErrCtrStateInvalid)
-	} else if c.state.State == define.ContainerStateRemoving {
+	case define.ContainerStateRemoving:
 		return fmt.Errorf("cannot start container %s as it is being removed: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
@@ -1688,14 +1690,14 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 		return err
 	}
 
-	if c.state.State == define.ContainerStateStopped {
-		// Reinitialize the container if we need to
+	switch c.state.State {
+	case define.ContainerStateStopped:
+		// Reinitialize the container if we need to.
 		if err := c.reinit(ctx, false); err != nil {
 			return err
 		}
-	} else if c.state.State == define.ContainerStateConfigured ||
-		c.state.State == define.ContainerStateExited {
-		// Initialize the container
+	case define.ContainerStateConfigured, define.ContainerStateExited:
+		// Initialize the container.
 		if err := c.init(ctx, false); err != nil {
 			return err
 		}
