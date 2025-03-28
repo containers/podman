@@ -133,6 +133,20 @@ podman system service --time 5
 
 The default socket was used as no URI argument was provided.
 
+
+Use `tcp:` for start listening API calls via TCP
+
+Example:
+
+```
+podman system service -t 60 tcp:127.0.0.1:9580
+```
+
+Then call via curl
+```
+curl http://127.0.0.1:9580/v5.0.0/libpod/containers/json
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
 
