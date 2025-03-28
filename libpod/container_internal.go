@@ -575,7 +575,7 @@ func (c *Container) processLabel(processLabel string) (string, error) {
 	if !c.Systemd() && !c.ociRuntime.SupportsKVM() {
 		return processLabel, nil
 	}
-	ctrSpec, err := c.specFromState()
+	ctrSpec, err := c.SpecFromState()
 	if err != nil {
 		return "", err
 	}
@@ -2068,7 +2068,7 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	for _, containerMount := range c.config.Mounts {
-		if err := c.unmountSHM(containerMount); err != nil {
+		if err := c.unmountSHM(containerMount.Destination); err != nil {
 			reportErrorf("unmounting container %s: %w", c.ID(), err)
 		}
 	}
@@ -2870,7 +2870,7 @@ func (c *Container) update(updateOptions *entities.ContainerUpdateOptions) error
 		(updateOptions.Resources != nil || updateOptions.Env != nil || updateOptions.UnsetEnv != nil) {
 		// So `podman inspect` on running containers sources its OCI spec from disk.
 		// To keep inspect accurate we need to update the on-disk OCI spec.
-		onDiskSpec, err := c.specFromState()
+		onDiskSpec, err := c.SpecFromState()
 		if err != nil {
 			return fmt.Errorf("retrieving on-disk OCI spec to update: %w", err)
 		}

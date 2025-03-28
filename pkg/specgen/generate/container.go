@@ -333,7 +333,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 	tmpMounts := conf.Mounts
 
 	conf.Systemd = nil
-	conf.Mounts = []string{}
+	conf.Mounts = []define.InspectMount{}
 
 	if specg == nil {
 		specg = &specgen.SpecGenerator{}

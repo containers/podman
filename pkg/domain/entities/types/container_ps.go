@@ -4,6 +4,7 @@ import (
 	"time"
 
 	netTypes "github.com/containers/common/libnetwork/types"
+	pod_define "github.com/containers/podman/v5/libpod/define"
 	define "github.com/containers/podman/v5/pkg/ps/define"
 )
 
@@ -41,7 +42,7 @@ type ListContainer struct {
 	// Labels for container
 	Labels map[string]string
 	// User volume mounts
-	Mounts []string
+	Mounts []pod_define.InspectMount
 	// The names assigned to the container
 	Names []string
 	// Namespaces the container belongs to.  Requires the

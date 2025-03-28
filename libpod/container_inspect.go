@@ -50,7 +50,7 @@ func (c *Container) Inspect(size bool) (*define.InspectContainerData, error) {
 }
 
 func (c *Container) volumesFrom() ([]string, error) {
-	ctrSpec, err := c.specFromState()
+	ctrSpec, err := c.SpecFromState()
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (c *Container) volumesFrom() ([]string, error) {
 func (c *Container) getContainerInspectData(size bool, driverData *define.DriverData) (*define.InspectContainerData, error) {
 	config := c.config
 	runtimeInfo := c.state
-	ctrSpec, err := c.specFromState()
+	ctrSpec, err := c.SpecFromState()
 	if err != nil {
 		return nil, err
 	}
@@ -664,7 +664,7 @@ func (c *Container) inHostPidNS() (bool, error) {
 	if c.config.PIDNsCtr != "" {
 		return false, nil
 	}
-	ctrSpec, err := c.specFromState()
+	ctrSpec, err := c.SpecFromState()
 	if err != nil {
 		return false, err
 	}

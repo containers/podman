@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Container) setProcessCapabilitiesExec(options *ExecOptions, user string, execUser *user.ExecUser, pspec *spec.Process) error {
-	ctrSpec, err := c.specFromState()
+	ctrSpec, err := c.SpecFromState()
 	if err != nil {
 		return err
 	}
