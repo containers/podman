@@ -14,8 +14,9 @@ import (
 
 	"github.com/containers/image/v5/internal/imagesource/impl"
 	"github.com/containers/image/v5/internal/imagesource/stubs"
+	"github.com/containers/image/v5/pkg/compression"
+	compressionTypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
-	"github.com/klauspost/pgzip"
 	digest "github.com/opencontainers/go-digest"
 	imgspecs "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -82,31 +83,47 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 			}
 		}
 
-		// Default to assuming the layer is compressed.
-		layerType := imgspecv1.MediaTypeImageLayerGzip
-
 		// Set up to digest the file as it is.
 		blobIDdigester := digest.Canonical.Digester()
 		reader = io.TeeReader(reader, blobIDdigester.Hash())
 
-		// Set up to digest the file after we maybe decompress it.
-		diffIDdigester := digest.Canonical.Digester()
-		uncompressed, err := pgzip.NewReader(reader)
-		if err == nil {
-			// It is compressed, so the diffID is the digest of the uncompressed version
-			reader = io.TeeReader(uncompressed, diffIDdigester.Hash())
-		} else {
-			// It is not compressed, so the diffID and the blobID are going to be the same
-			diffIDdigester = blobIDdigester
-			layerType = imgspecv1.MediaTypeImageLayer
-			uncompressed = nil
-		}
-		// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
-		if _, err := io.Copy(io.Discard, reader); err != nil {
-			return nil, fmt.Errorf("error reading %q: %w", filename, err)
-		}
-		if uncompressed != nil {
-			uncompressed.Close()
+		var layerType string
+		var diffIDdigester digest.Digester
+		// If necessary, digest the file after we decompress it.
+		if err := func() error { // A scope for defer
+			format, decompressor, reader, err := compression.DetectCompressionFormat(reader)
+			if err != nil {
+				return err
+			}
+			if decompressor != nil {
+				uncompressed, err := decompressor(reader)
+				if err != nil {
+					return err
+				}
+				defer uncompressed.Close()
+				// It is compressed, so the diffID is the digest of the uncompressed version
+				diffIDdigester = digest.Canonical.Digester()
+				reader = io.TeeReader(uncompressed, diffIDdigester.Hash())
+				switch format.Name() {
+				case compressionTypes.GzipAlgorithmName:
+					layerType = imgspecv1.MediaTypeImageLayerGzip
+				case compressionTypes.ZstdAlgorithmName:
+					layerType = imgspecv1.MediaTypeImageLayerZstd
+				default: // This is incorrect, but we have no good options, and it is what this transport was historically doing.
+					layerType = imgspecv1.MediaTypeImageLayerGzip
+				}
+			} else {
+				// It is not compressed, so the diffID and the blobID are going to be the same
+				diffIDdigester = blobIDdigester
+				layerType = imgspecv1.MediaTypeImageLayer
+			}
+			// TODO: This can take quite some time, and should ideally be cancellable using ctx.Done().
+			if _, err := io.Copy(io.Discard, reader); err != nil {
+				return fmt.Errorf("error reading %q: %w", filename, err)
+			}
+			return nil
+		}(); err != nil {
+			return nil, err
 		}
 
 		// Grab our uncompressed and possibly-compressed digests and sizes.
