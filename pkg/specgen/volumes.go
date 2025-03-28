@@ -56,6 +56,8 @@ type ImageVolume struct {
 	// SubPath mounts a particular path within the image.
 	// If empty, the whole image is mounted.
 	SubPath string `json:"subPath,omitempty"`
+	// Options for image volume mounts
+	Options []string `json:"options,omitempty"`
 }
 
 // ArtifactVolume is a volume based on a artifact. The artifact blobs will
