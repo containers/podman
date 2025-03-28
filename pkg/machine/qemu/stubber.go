@@ -349,7 +349,7 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			args = append(args, "sudo", "chattr", "-i", "/", ";")
 		}
-		args = append(args, "sudo", "mkdir", "-p", mount.Target)
+		args = append(args, "sudo", "mkdir", "-p", strconv.Quote(mount.Target))
 		if !strings.HasPrefix(mount.Target, "/home") && !strings.HasPrefix(mount.Target, "/mnt") {
 			args = append(args, ";", "sudo", "chattr", "+i", "/", ";")
 		}
@@ -362,7 +362,7 @@ func (q *QEMUStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) 
 		// in other words we don't want to make people unnecessarily reprovision their machines
 		// to upgrade from 9p to virtiofs.
 		mountOptions := []string{"-t", "virtiofs"}
-		mountOptions = append(mountOptions, []string{mount.Tag, mount.Target}...)
+		mountOptions = append(mountOptions, []string{mount.Tag, strconv.Quote(mount.Target)}...)
 		mountFlags := fmt.Sprintf("context=\"%s\"", machine.NFSSELinuxContext)
 		if mount.ReadOnly {
 			mountFlags += ",ro"
