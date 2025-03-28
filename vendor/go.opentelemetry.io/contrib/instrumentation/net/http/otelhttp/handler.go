@@ -117,6 +117,11 @@ func (h *middleware) serveHTTP(w http.ResponseWriter, r *http.Request, next http
 		}
 	}
 
+	if startTime := StartTimeFromContext(ctx); !startTime.IsZero() {
+		opts = append(opts, trace.WithTimestamp(startTime))
+		requestStartTime = startTime
+	}
+
 	ctx, span := tracer.Start(ctx, h.spanNameFormatter(h.operation, r), opts...)
 	defer span.End()
 

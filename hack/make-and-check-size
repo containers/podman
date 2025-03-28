@@ -111,6 +111,9 @@ for bin in bin/*;do
         delta_size=$(( size - size_orig ))
 
         printf "%-20s size=%9d  delta=%6d\n" $bin $size $delta_size
+        if [[ "$bin" = bin/podman-testing ]]; then
+            continue # We compute / list this for completeness, but size does not matter to users.
+        fi
         if [[ $delta_size -gt $MAX_BIN_GROWTH ]]; then
             separator=$(printf "%.0s*" {1..75})   # row of stars, for highlight
             echo "$separator"

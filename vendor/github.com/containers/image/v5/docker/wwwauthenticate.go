@@ -4,6 +4,7 @@ package docker
 
 import (
 	"fmt"
+	"iter"
 	"net/http"
 	"strings"
 )
@@ -60,15 +61,17 @@ func init() {
 	}
 }
 
-func parseAuthHeader(header http.Header) []challenge {
-	challenges := []challenge{}
-	for _, h := range header[http.CanonicalHeaderKey("WWW-Authenticate")] {
-		v, p := parseValueAndParams(h)
-		if v != "" {
-			challenges = append(challenges, challenge{Scheme: v, Parameters: p})
+func iterateAuthHeader(header http.Header) iter.Seq[challenge] {
+	return func(yield func(challenge) bool) {
+		for _, h := range header[http.CanonicalHeaderKey("WWW-Authenticate")] {
+			v, p := parseValueAndParams(h)
+			if v != "" {
+				if !yield(challenge{Scheme: v, Parameters: p}) {
+					return
+				}
+			}
 		}
 	}
-	return challenges
 }
 
 // parseAuthScope parses an authentication scope string of the form `$resource:$remote:$actions`

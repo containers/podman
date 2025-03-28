@@ -571,8 +571,7 @@ func (rules *clientConfigLoadingRules) Load() (*clientcmdConfig, error) {
 	// merge all of the struct values in the reverse order so that priority is given correctly
 	// errors are not added to the list the second time
 	nonMapConfig := clientcmdNewConfig()
-	for i := len(kubeconfigs) - 1; i >= 0; i-- {
-		kubeconfig := kubeconfigs[i]
+	for _, kubeconfig := range slices.Backward(kubeconfigs) {
 		if err := mergo.MergeWithOverwrite(nonMapConfig, kubeconfig); err != nil {
 			return nil, err
 		}

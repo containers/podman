@@ -569,7 +569,7 @@ func (s *dockerImageSource) getOneSignature(ctx context.Context, sigURL *url.URL
 			logrus.Debugf("... got status 404, as expected = end of signatures")
 			return nil, true, nil
 		} else if res.StatusCode != http.StatusOK {
-			return nil, false, fmt.Errorf("reading signature from %s: status %d (%s)", sigURL.Redacted(), res.StatusCode, http.StatusText(res.StatusCode))
+			return nil, false, fmt.Errorf("reading signature from %s: %w", sigURL.Redacted(), newUnexpectedHTTPStatusError(res))
 		}
 
 		contentType := res.Header.Get("Content-Type")
