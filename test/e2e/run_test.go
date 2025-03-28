@@ -412,7 +412,7 @@ var _ = Describe("Podman run", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(BeEmpty())
 
-		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr2", "--security-opt", "unmask=/proc/acpi:/sys/firmware", ALPINE, "sleep", "200"})
+		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr2", "--security-opt", "unmask=/proc/acpi:/sys/firmware:/sys/fs/cgroup", ALPINE, "sleep", "200"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/sys/firmware"})
@@ -422,6 +422,9 @@ var _ = Describe("Podman run", func() {
 		session = podmanTest.Podman([]string{"exec", "maskCtr2", "ls", "/proc/acpi"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Not(BeEmpty()))
+		Expect(session).Should(ExitCleanly())
+		session = podmanTest.Podman([]string{"exec", "maskCtr2", "mkdir", "/sys/fs/cgroup/testcgroup"})
+		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
 		session = podmanTest.Podman([]string{"run", "-d", "--name=maskCtr3", "--security-opt", "mask=/sys/power/disk", ALPINE, "sleep", "200"})
