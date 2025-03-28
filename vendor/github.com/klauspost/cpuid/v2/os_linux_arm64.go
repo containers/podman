@@ -39,6 +39,80 @@ const (
 	hwcap_SHA512   = 1 << 21
 	hwcap_SVE      = 1 << 22
 	hwcap_ASIMDFHM = 1 << 23
+	hwcap_DIT      = 1 << 24
+	hwcap_USCAT    = 1 << 25
+	hwcap_ILRCPC   = 1 << 26
+	hwcap_FLAGM    = 1 << 27
+	hwcap_SSBS     = 1 << 28
+	hwcap_SB       = 1 << 29
+	hwcap_PACA     = 1 << 30
+	hwcap_PACG     = 1 << 31
+	hwcap_GCS      = 1 << 32
+
+	hwcap2_DCPODP      = 1 << 0
+	hwcap2_SVE2        = 1 << 1
+	hwcap2_SVEAES      = 1 << 2
+	hwcap2_SVEPMULL    = 1 << 3
+	hwcap2_SVEBITPERM  = 1 << 4
+	hwcap2_SVESHA3     = 1 << 5
+	hwcap2_SVESM4      = 1 << 6
+	hwcap2_FLAGM2      = 1 << 7
+	hwcap2_FRINT       = 1 << 8
+	hwcap2_SVEI8MM     = 1 << 9
+	hwcap2_SVEF32MM    = 1 << 10
+	hwcap2_SVEF64MM    = 1 << 11
+	hwcap2_SVEBF16     = 1 << 12
+	hwcap2_I8MM        = 1 << 13
+	hwcap2_BF16        = 1 << 14
+	hwcap2_DGH         = 1 << 15
+	hwcap2_RNG         = 1 << 16
+	hwcap2_BTI         = 1 << 17
+	hwcap2_MTE         = 1 << 18
+	hwcap2_ECV         = 1 << 19
+	hwcap2_AFP         = 1 << 20
+	hwcap2_RPRES       = 1 << 21
+	hwcap2_MTE3        = 1 << 22
+	hwcap2_SME         = 1 << 23
+	hwcap2_SME_I16I64  = 1 << 24
+	hwcap2_SME_F64F64  = 1 << 25
+	hwcap2_SME_I8I32   = 1 << 26
+	hwcap2_SME_F16F32  = 1 << 27
+	hwcap2_SME_B16F32  = 1 << 28
+	hwcap2_SME_F32F32  = 1 << 29
+	hwcap2_SME_FA64    = 1 << 30
+	hwcap2_WFXT        = 1 << 31
+	hwcap2_EBF16       = 1 << 32
+	hwcap2_SVE_EBF16   = 1 << 33
+	hwcap2_CSSC        = 1 << 34
+	hwcap2_RPRFM       = 1 << 35
+	hwcap2_SVE2P1      = 1 << 36
+	hwcap2_SME2        = 1 << 37
+	hwcap2_SME2P1      = 1 << 38
+	hwcap2_SME_I16I32  = 1 << 39
+	hwcap2_SME_BI32I32 = 1 << 40
+	hwcap2_SME_B16B16  = 1 << 41
+	hwcap2_SME_F16F16  = 1 << 42
+	hwcap2_MOPS        = 1 << 43
+	hwcap2_HBC         = 1 << 44
+	hwcap2_SVE_B16B16  = 1 << 45
+	hwcap2_LRCPC3      = 1 << 46
+	hwcap2_LSE128      = 1 << 47
+	hwcap2_FPMR        = 1 << 48
+	hwcap2_LUT         = 1 << 49
+	hwcap2_FAMINMAX    = 1 << 50
+	hwcap2_F8CVT       = 1 << 51
+	hwcap2_F8FMA       = 1 << 52
+	hwcap2_F8DP4       = 1 << 53
+	hwcap2_F8DP2       = 1 << 54
+	hwcap2_F8E4M3      = 1 << 55
+	hwcap2_F8E5M2      = 1 << 56
+	hwcap2_SME_LUTV2   = 1 << 57
+	hwcap2_SME_F8F16   = 1 << 58
+	hwcap2_SME_F8F32   = 1 << 59
+	hwcap2_SME_SF8FMA  = 1 << 60
+	hwcap2_SME_SF8DP4  = 1 << 61
+	hwcap2_SME_SF8DP2  = 1 << 62
+	hwcap2_POE         = 1 << 63
 )
 
 func detectOS(c *CPUInfo) bool {
@@ -104,11 +178,15 @@ func detectOS(c *CPUInfo) bool {
 	c.featureSet.setIf(isSet(hwcap, hwcap_DCPOP), DCPOP)
 	c.featureSet.setIf(isSet(hwcap, hwcap_EVTSTRM), EVTSTRM)
 	c.featureSet.setIf(isSet(hwcap, hwcap_FCMA), FCMA)
+	c.featureSet.setIf(isSet(hwcap, hwcap_ASIMDFHM), FHM)
 	c.featureSet.setIf(isSet(hwcap, hwcap_FP), FP)
 	c.featureSet.setIf(isSet(hwcap, hwcap_FPHP), FPHP)
 	c.featureSet.setIf(isSet(hwcap, hwcap_JSCVT), JSCVT)
 	c.featureSet.setIf(isSet(hwcap, hwcap_LRCPC), LRCPC)
 	c.featureSet.setIf(isSet(hwcap, hwcap_PMULL), PMULL)
+	c.featureSet.setIf(isSet(hwcap, hwcap2_RNG), RNDR)
+	// c.featureSet.setIf(isSet(hwcap, hwcap_), TLB)
+	// c.featureSet.setIf(isSet(hwcap, hwcap_), TS)
 	c.featureSet.setIf(isSet(hwcap, hwcap_SHA1), SHA1)
 	c.featureSet.setIf(isSet(hwcap, hwcap_SHA2), SHA2)
 	c.featureSet.setIf(isSet(hwcap, hwcap_SHA3), SHA3)

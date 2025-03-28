@@ -22,6 +22,7 @@ const (
 	vfBlk          vmComponentKind = "virtioblk"
 	vfFs           vmComponentKind = "virtiofs"
 	vfRng          vmComponentKind = "virtiorng"
+	vfBalloon      vmComponentKind = "virtioballoon"
 	vfSerial       vmComponentKind = "virtioserial"
 	vfGpu          vmComponentKind = "virtiogpu"
 	vfInput        vmComponentKind = "virtioinput"
@@ -157,6 +158,10 @@ func unmarshalDevice(rawMsg json.RawMessage) (VirtioDevice, error) {
 		dev = &newDevice
 	case vfRng:
 		var newDevice VirtioRng
+		err = json.Unmarshal(rawMsg, &newDevice)
+		dev = &newDevice
+	case vfBalloon:
+		var newDevice VirtioBalloon
 		err = json.Unmarshal(rawMsg, &newDevice)
 		dev = &newDevice
 	case vfSerial:
@@ -343,6 +348,17 @@ func (dev *VirtioRng) MarshalJSON() ([]byte, error) {
 	return json.Marshal(devWithKind{
 		jsonKind:  kind(vfRng),
 		VirtioRng: *dev,
+	})
+}
+
+func (dev *VirtioBalloon) MarshalJSON() ([]byte, error) {
+	type devWithKind struct {
+		jsonKind
+		VirtioBalloon
+	}
+	return json.Marshal(devWithKind{
+		jsonKind:      kind(vfBalloon),
+		VirtioBalloon: *dev,
 	})
 }
 
