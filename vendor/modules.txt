@@ -63,33 +63,6 @@ github.com/blang/semver/v4
 # github.com/buger/goterm v1.0.4
 ## explicit; go 1.15
 github.com/buger/goterm
-# github.com/bytedance/sonic v1.11.6
-## explicit; go 1.16
-github.com/bytedance/sonic
-github.com/bytedance/sonic/ast
-github.com/bytedance/sonic/decoder
-github.com/bytedance/sonic/encoder
-github.com/bytedance/sonic/internal/caching
-github.com/bytedance/sonic/internal/cpu
-github.com/bytedance/sonic/internal/decoder
-github.com/bytedance/sonic/internal/encoder
-github.com/bytedance/sonic/internal/jit
-github.com/bytedance/sonic/internal/native
-github.com/bytedance/sonic/internal/native/avx
-github.com/bytedance/sonic/internal/native/avx2
-github.com/bytedance/sonic/internal/native/neon
-github.com/bytedance/sonic/internal/native/sse
-github.com/bytedance/sonic/internal/native/types
-github.com/bytedance/sonic/internal/resolver
-github.com/bytedance/sonic/internal/rt
-github.com/bytedance/sonic/option
-github.com/bytedance/sonic/unquote
-github.com/bytedance/sonic/utf8
-# github.com/bytedance/sonic/loader v0.1.1
-## explicit; go 1.16
-github.com/bytedance/sonic/loader
-github.com/bytedance/sonic/loader/internal/abi
-github.com/bytedance/sonic/loader/internal/rt
 # github.com/checkpoint-restore/checkpointctl v1.3.0
 ## explicit; go 1.21
 github.com/checkpoint-restore/checkpointctl/lib
@@ -101,13 +74,6 @@ github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
-# github.com/cloudwego/base64x v0.1.4
-## explicit; go 1.16
-github.com/cloudwego/base64x
-# github.com/cloudwego/iasm v0.2.0
-## explicit; go 1.16
-github.com/cloudwego/iasm/expr
-github.com/cloudwego/iasm/x86_64
 # github.com/containerd/cgroups/v3 v3.0.5
 ## explicit; go 1.22.0
 github.com/containerd/cgroups/v3/cgroup1/stats
@@ -430,15 +396,9 @@ github.com/coreos/go-systemd/v22/dbus
 github.com/coreos/go-systemd/v22/internal/dlopen
 github.com/coreos/go-systemd/v22/journal
 github.com/coreos/go-systemd/v22/sdjournal
-# github.com/crc-org/crc/v2 v2.45.0
-## explicit; go 1.22.0
-github.com/crc-org/crc/v2/pkg/crc/logging
-github.com/crc-org/crc/v2/pkg/os
 # github.com/crc-org/vfkit v0.6.0
 ## explicit; go 1.22.0
-github.com/crc-org/vfkit/pkg/cmdline
 github.com/crc-org/vfkit/pkg/config
-github.com/crc-org/vfkit/pkg/rest
 github.com/crc-org/vfkit/pkg/rest/define
 github.com/crc-org/vfkit/pkg/util
 # github.com/cyberphone/json-canonicalization v0.0.0-20241213102144-19d51d7fe467
@@ -539,22 +499,6 @@ github.com/fsnotify/fsnotify/internal
 # github.com/fsouza/go-dockerclient v1.12.0
 ## explicit; go 1.22
 github.com/fsouza/go-dockerclient
-# github.com/gabriel-vasile/mimetype v1.4.3
-## explicit; go 1.20
-github.com/gabriel-vasile/mimetype
-github.com/gabriel-vasile/mimetype/internal/charset
-github.com/gabriel-vasile/mimetype/internal/json
-github.com/gabriel-vasile/mimetype/internal/magic
-# github.com/gin-contrib/sse v0.1.0
-## explicit; go 1.12
-github.com/gin-contrib/sse
-# github.com/gin-gonic/gin v1.10.0
-## explicit; go 1.20
-github.com/gin-gonic/gin
-github.com/gin-gonic/gin/binding
-github.com/gin-gonic/gin/internal/bytesconv
-github.com/gin-gonic/gin/internal/json
-github.com/gin-gonic/gin/render
 # github.com/go-jose/go-jose/v3 v3.0.4
 ## explicit; go 1.12
 github.com/go-jose/go-jose/v3
@@ -621,30 +565,9 @@ github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.24.0
 ## explicit; go 1.20
 github.com/go-openapi/validate
-# github.com/go-playground/locales v0.14.1
-## explicit; go 1.17
-github.com/go-playground/locales
-github.com/go-playground/locales/currency
-# github.com/go-playground/universal-translator v0.18.1
-## explicit; go 1.18
-github.com/go-playground/universal-translator
-# github.com/go-playground/validator/v10 v10.20.0
-## explicit; go 1.18
-github.com/go-playground/validator/v10
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
-# github.com/goccy/go-json v0.10.2
-## explicit; go 1.12
-github.com/goccy/go-json
-github.com/goccy/go-json/internal/decoder
-github.com/goccy/go-json/internal/encoder
-github.com/goccy/go-json/internal/encoder/vm
-github.com/goccy/go-json/internal/encoder/vm_color
-github.com/goccy/go-json/internal/encoder/vm_color_indent
-github.com/goccy/go-json/internal/encoder/vm_indent
-github.com/goccy/go-json/internal/errors
-github.com/goccy/go-json/internal/runtime
 # github.com/godbus/dbus/v5 v5.1.1-0.20241109141217-c266b19b28e9
 ## explicit; go 1.20
 github.com/godbus/dbus/v5
@@ -741,19 +664,12 @@ github.com/klauspost/compress/internal/le
 github.com/klauspost/compress/internal/snapref
 github.com/klauspost/compress/zstd
 github.com/klauspost/compress/zstd/internal/xxhash
-# github.com/klauspost/cpuid/v2 v2.2.9
-## explicit; go 1.20
-github.com/klauspost/cpuid/v2
 # github.com/klauspost/pgzip v1.2.6
 ## explicit
 github.com/klauspost/pgzip
 # github.com/kr/fs v0.1.0
 ## explicit
 github.com/kr/fs
-# github.com/leodido/go-urn v1.4.0
-## explicit; go 1.18
-github.com/leodido/go-urn
-github.com/leodido/go-urn/scim/schema
 # github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec
 ## explicit; go 1.22.0
 github.com/letsencrypt/boulder/core
@@ -778,12 +694,6 @@ github.com/mailru/easyjson/jwriter
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
-# github.com/mattn/go-colorable v0.1.13
-## explicit; go 1.15
-github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.20
-## explicit; go 1.15
-github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.16
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
@@ -948,13 +858,6 @@ github.com/opentracing/opentracing-go/log
 ## explicit
 github.com/ostreedev/ostree-go/pkg/glibobject
 github.com/ostreedev/ostree-go/pkg/otbuiltin
-# github.com/pelletier/go-toml/v2 v2.2.2
-## explicit; go 1.16
-github.com/pelletier/go-toml/v2
-github.com/pelletier/go-toml/v2/internal/characters
-github.com/pelletier/go-toml/v2/internal/danger
-github.com/pelletier/go-toml/v2/internal/tracker
-github.com/pelletier/go-toml/v2/unstable
 # github.com/pkg/errors v0.9.1
 ## explicit
 github.com/pkg/errors
@@ -1080,31 +983,9 @@ github.com/tklauser/go-sysconf
 # github.com/tklauser/numcpus v0.6.1
 ## explicit; go 1.13
 github.com/tklauser/numcpus
-# github.com/twitchyliquid64/golang-asm v0.15.1
-## explicit; go 1.13
-github.com/twitchyliquid64/golang-asm/asm/arch
-github.com/twitchyliquid64/golang-asm/bio
-github.com/twitchyliquid64/golang-asm/dwarf
-github.com/twitchyliquid64/golang-asm/goobj
-github.com/twitchyliquid64/golang-asm/obj
-github.com/twitchyliquid64/golang-asm/obj/arm
-github.com/twitchyliquid64/golang-asm/obj/arm64
-github.com/twitchyliquid64/golang-asm/obj/mips
-github.com/twitchyliquid64/golang-asm/obj/ppc64
-github.com/twitchyliquid64/golang-asm/obj/riscv
-github.com/twitchyliquid64/golang-asm/obj/s390x
-github.com/twitchyliquid64/golang-asm/obj/wasm
-github.com/twitchyliquid64/golang-asm/obj/x86
-github.com/twitchyliquid64/golang-asm/objabi
-github.com/twitchyliquid64/golang-asm/src
-github.com/twitchyliquid64/golang-asm/sys
-github.com/twitchyliquid64/golang-asm/unsafeheader
 # github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701
 ## explicit; go 1.21
 github.com/u-root/uio/ulog
-# github.com/ugorji/go/codec v1.2.12
-## explicit; go 1.11
-github.com/ugorji/go/codec
 # github.com/ulikunitz/xz v0.5.12
 ## explicit; go 1.12
 github.com/ulikunitz/xz
@@ -1185,9 +1066,6 @@ go.opentelemetry.io/otel/metric/noop
 ## explicit; go 1.22
 go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
-# golang.org/x/arch v0.8.0
-## explicit; go 1.18
-golang.org/x/arch/x86/x86asm
 # golang.org/x/crypto v0.36.0
 ## explicit; go 1.23.0
 golang.org/x/crypto/argon2
@@ -1234,7 +1112,6 @@ golang.org/x/net/html/atom
 golang.org/x/net/html/charset
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
-golang.org/x/net/http2/h2c
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
 golang.org/x/net/internal/httpcommon
@@ -1399,9 +1276,6 @@ google.golang.org/protobuf/types/known/timestamppb
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
-# gopkg.in/natefinch/lumberjack.v2 v2.2.1
-## explicit; go 1.13
-gopkg.in/natefinch/lumberjack.v2
 # gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7
 ## explicit
 gopkg.in/tomb.v1
