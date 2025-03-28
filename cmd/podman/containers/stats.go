@@ -6,7 +6,6 @@ import (
 	"os"
 	"strconv"
 
-	tm "github.com/buger/goterm"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v5/cmd/podman/common"
@@ -152,9 +151,7 @@ func outputStats(cmd *cobra.Command, reports []define.ContainerStats) error {
 		"PIDS":          "PIDS",
 	})
 	if !statsOptions.NoReset {
-		tm.Clear()
-		tm.MoveCursor(1, 1)
-		tm.Flush()
+		common.ClearScreen()
 	}
 	stats := make([]containerStats, 0, len(reports))
 	for _, r := range reports {
