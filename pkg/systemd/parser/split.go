@@ -473,7 +473,7 @@ func escapeString(escaped *strings.Builder, word string, isPath bool) {
 			case '\\':
 				escaped.WriteString("\\\\")
 			case ' ':
-				escaped.WriteString(" ")
+				escaped.WriteString("\\x20")
 			case '"':
 				escaped.WriteString("\\\"")
 			case '\'':

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"path"
+	"strconv"
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine"
@@ -48,7 +49,7 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 		if requiresChattr {
 			args = append(args, "sudo", "chattr", "-i", "/", "; ")
 		}
-		args = append(args, "sudo", "mkdir", "-p", cleanTarget, "; ")
+		args = append(args, "sudo", "mkdir", "-p", strconv.Quote(cleanTarget), "; ")
 		if requiresChattr {
 			args = append(args, "sudo", "chattr", "+i", "/", "; ")
 		}
@@ -61,7 +62,7 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 		if mount.VSockNumber == nil {
 			return errors.New("cannot start 9p shares with undefined vsock number")
 		}
-		args = append(args, "machine", "client9p", fmt.Sprintf("%d", *mount.VSockNumber), mount.Target)
+		args = append(args, "machine", "client9p", fmt.Sprintf("%d", *mount.VSockNumber), strconv.Quote(mount.Target))
 
 		if err := machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
 			return err

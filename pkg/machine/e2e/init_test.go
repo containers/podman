@@ -283,9 +283,6 @@ var _ = Describe("podman machine init", func() {
 	})
 
 	It("machine init with volume", func() {
-		if testProvider.VMType() == define.HyperVVirt {
-			Skip("volumes are not supported on hyperv yet")
-		}
 		skipIfWSL("WSL volumes are much different.  This test will not pass as is")
 
 		tmpDir, err := os.MkdirTemp("", "")
@@ -296,14 +293,26 @@ var _ = Describe("podman machine init", func() {
 		mount := tmpDir + ":/very-long-test-mount-dir-path-more-than-thirty-six-bytes"
 		defer func() { _ = utils.GuardedRemoveAll(tmpDir) }()
 
+		tmpDirWithSpaces, err := os.MkdirTemp("", "with spaces")
+		Expect(err).ToNot(HaveOccurred())
+		_, err = os.CreateTemp(tmpDirWithSpaces, "example")
+		Expect(err).ToNot(HaveOccurred())
+		mountWithSpaces := tmpDirWithSpaces + ":/host folder"
+		defer func() { _ = utils.GuardedRemoveAll(tmpDirWithSpaces) }()
+
 		name := randomString()
 		i := new(initMachine)
-		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withVolume(mount).withNow()).run()
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withVolume(mount).withVolume(mountWithSpaces).withNow()).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
 
 		ssh := &sshMachine{}
 		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"ls /very-long-test-mount-dir-path-more-than-thirty-six-bytes"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshSession).To(Exit(0))
+		Expect(sshSession.outputToString()).To(ContainSubstring("example"))
+
+		sshSession, err = mb.setName(name).setCmd(ssh.withSSHCommand([]string{"ls \"/host folder\""})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(sshSession).To(Exit(0))
 		Expect(sshSession.outputToString()).To(ContainSubstring("example"))
