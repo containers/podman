@@ -32,6 +32,20 @@ var _ = Describe("Podman healthcheck run", func() {
 		Expect(hc).Should(ExitWithError(125, "has no defined healthcheck"))
 	})
 
+	It("podman run/create override image healthcheck configuration", func() {
+		podmanTest.PodmanExitCleanly("run", "-dt", "--name", "hc", "--health-start-period", "10s", "--health-interval", "10s", "--health-timeout", "10s", "--health-retries", "2", HEALTHCHECK_IMAGE)
+		hc := podmanTest.PodmanExitCleanly("container", "inspect", "--format", "{{.Config.Healthcheck.StartPeriod}}--{{.Config.Healthcheck.Interval}}--{{.Config.Healthcheck.Timeout}}--{{.Config.Healthcheck.Retries}}", "hc")
+		Expect(hc.OutputToString()).To(Equal("10s--10s--10s--2"))
+
+		podmanTest.PodmanExitCleanly("create", "-q", "--name", "hc1", "--health-start-period", "10s", "--health-interval", "10s", "--health-timeout", "10s", "--health-retries", "2", "quay.io/libpod/healthcheck:config-only", "ls")
+		hc1 := podmanTest.PodmanExitCleanly("container", "inspect", "--format", "{{.Config.Healthcheck.StartPeriod}}--{{.Config.Healthcheck.Interval}}--{{.Config.Healthcheck.Timeout}}--{{.Config.Healthcheck.Retries}}", "hc1")
+		Expect(hc1.OutputToString()).To(Equal("10s--10s--10s--2"))
+
+		podmanTest.PodmanExitCleanly("run", "-dt", "--name", "hc2", "--health-start-period", "10s", "--health-interval", "disable", "--health-timeout", "10s", "--health-retries", "2", HEALTHCHECK_IMAGE)
+		hc2 := podmanTest.PodmanExitCleanly("container", "inspect", "--format", "{{.Config.Healthcheck.StartPeriod}}--{{.Config.Healthcheck.Interval}}--{{.Config.Healthcheck.Timeout}}--{{.Config.Healthcheck.Retries}}", "hc2")
+		Expect(hc2.OutputToString()).To(Equal("10s--0s--10s--2"))
+	})
+
 	It("podman disable healthcheck with --no-healthcheck must not show starting on status", func() {
 		session := podmanTest.Podman([]string{"run", "-dt", "--no-healthcheck", "--name", "hc", HEALTHCHECK_IMAGE})
 		session.WaitWithDefaultTimeout()
@@ -70,7 +84,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		hc := podmanTest.Podman([]string{"container", "inspect", "--format", "{{.Config.Healthcheck}}", "hc"})
 		hc.WaitWithDefaultTimeout()
 		Expect(hc).Should(ExitCleanly())
-		Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 0s 5m0s 3s 0}"))
+		Expect(hc.OutputToString()).To(Equal("{[CMD-SHELL curl -f http://localhost/ || exit 1] 0s 0s 5m0s 3s 3}"))
 	})
 
 	It("podman disable healthcheck with --health-cmd=none on valid container", func() {
