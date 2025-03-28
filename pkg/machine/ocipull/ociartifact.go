@@ -18,7 +18,6 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/utils"
-	crc "github.com/crc-org/crc/v2/pkg/os"
 	"github.com/opencontainers/go-digest"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -293,13 +292,8 @@ func (o *OCIArtifactDisk) unpack(diskArtifactHash digest.Digest) error {
 	diskBlobPath := filepath.Join(blobDir.GetPath(), "blobs", "sha256", blobInfo.Digest.Encoded())
 
 	// Rename and move the hashed blob file to the cache dir.
-	// If the rename fails, we do a sparsecopy instead
 	if err := os.Rename(diskBlobPath, cachedCompressedPath.GetPath()); err != nil {
-		logrus.Errorf("renaming compressed image %q failed: %q", cachedCompressedPath.GetPath(), err)
-		logrus.Error("trying again using copy")
-		if err := crc.CopyFileSparse(diskBlobPath, cachedCompressedPath.GetPath()); err != nil {
-			return err
-		}
+		return fmt.Errorf("failed to move downloaded blob to cache: %w", err)
 	}
 
 	// Clean up the oci dir which is no longer needed
