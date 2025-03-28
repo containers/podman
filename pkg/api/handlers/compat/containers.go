@@ -59,6 +59,11 @@ func RemoveContainer(w http.ResponseWriter, r *http.Request) {
 	}
 	if utils.IsLibpodRequest(r) {
 		options.Volumes = query.LibpodVolumes
+		// We had a mistake in our docs where v from the docker compat API was
+		// the published bool for volumes.  We now honor either.
+		if query.DockerVolumes || query.LibpodVolumes {
+			options.Volumes = false
+		}
 		options.Timeout = query.Timeout
 		options.Depend = query.Depend
 	} else {
