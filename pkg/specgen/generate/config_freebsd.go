@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -16,9 +17,10 @@ import (
 )
 
 // DevicesFromPath computes a list of devices
-func DevicesFromPath(g *generate.Generator, devicePath string) error {
+func DevicesFromPath(g *generate.Generator, devicePath string, config *config.Config) error {
 	if isCDIDevice(devicePath) {
 		registry, err := cdi.NewCache(
+			cdi.WithSpecDirs(config.Engine.CdiSpecDirs.Get()...),
 			cdi.WithAutoRefresh(false),
 		)
 		if err != nil {

@@ -25,6 +25,10 @@ man pages.
 
 ## GLOBAL OPTIONS
 
+#### **--cdi-spec-dir**=*path*
+
+The CDI spec directory path (may be set multiple times). Default path is `/etc/cdi`.
+
 #### **--cgroup-manager**=*manager*
 
 The CGroup manager to use for container cgroups. Supported values are __cgroupfs__ or __systemd__. Default is _systemd_ unless overridden in the containers.conf file.
