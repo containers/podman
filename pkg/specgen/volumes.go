@@ -43,8 +43,7 @@ type OverlayVolume struct {
 }
 
 // ImageVolume is a volume based on a container image.  The container image is
-// first mounted on the host and is then bind-mounted into the container.  An
-// ImageVolume is always mounted read-only.
+// first mounted on the host and is then bind-mounted into the container.
 type ImageVolume struct {
 	// Source is the source of the image volume.  The image can be referred
 	// to by name and by ID.

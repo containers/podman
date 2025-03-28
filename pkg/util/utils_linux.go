@@ -6,21 +6,28 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/psgo"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
 
 var (
-	errNotADevice = errors.New("not a device node")
+	errNotADevice               = errors.New("not a device node")
+	errKernelDoesNotSupportRRO  = errors.New("kernel does not support recursive readonly mount option `rro`")
+	errRuntimeDoesNotSupportRRO = errors.New("runtime does not support recursive readonly mount option `rro`")
+
+	kernelSupportsRROOnce sync.Once
 )
 
 // GetContainerPidInformationDescriptors returns a string slice of all supported
@@ -257,4 +264,71 @@ func DeviceFromPath(path string) (*spec.LinuxDevice, error) {
 		Major:    int64(unix.Major(devNumber)),
 		Minor:    int64(unix.Minor(devNumber)),
 	}, nil
+}
+
+// kernelSupportsRecursivelyReadOnly returns true if the kernel supports recursive readonly mounts
+// from https://github.com/moby/moby/blob/master/daemon/daemon_linux.go#L222
+func kernelSupportsRecursivelyReadOnly() error {
+	fn := func() error {
+		tmpMnt, err := os.MkdirTemp("", "podman-detect-rro")
+		if err != nil {
+			return fmt.Errorf("failed to create a temp directory: %w", err)
+		}
+		for {
+			err = unix.Mount("", tmpMnt, "tmpfs", 0, "")
+			if !errors.Is(err, unix.EINTR) {
+				break
+			}
+		}
+		if err != nil {
+			return fmt.Errorf("failed to mount tmpfs on %q: %w", tmpMnt, err)
+		}
+		defer func() {
+			var umErr error
+			for {
+				umErr = unix.Unmount(tmpMnt, 0)
+				if !errors.Is(umErr, unix.EINTR) {
+					break
+				}
+			}
+			if umErr != nil {
+				logrus.Errorf("Failed to unmount %q: %v", tmpMnt, umErr)
+			}
+		}()
+		attr := &unix.MountAttr{
+			Attr_set: unix.MOUNT_ATTR_RDONLY,
+		}
+		for {
+			err = unix.MountSetattr(-1, tmpMnt, unix.AT_RECURSIVE, attr)
+			if !errors.Is(err, unix.EINTR) {
+				break
+			}
+		}
+		// ENOSYS on kernel < 5.12
+		if err != nil {
+			return fmt.Errorf("failed to call mount_setattr with AT_RECURSIVE: %w", err)
+		}
+		return nil
+	}
+
+	kernelSupportsRROOnce.Do(func() {
+		errKernelDoesNotSupportRRO = fn()
+	})
+	return errKernelDoesNotSupportRRO
+}
+
+// SupportsRecursiveReadonly returns true if the runtime supports recursive readonly mounts
+func SupportsRecursiveReadonly(features *features.Features) error {
+	if err := kernelSupportsRecursivelyReadOnly(); err != nil {
+		return err
+	}
+
+	if features == nil || features.MountOptions == nil {
+		return errRuntimeDoesNotSupportRRO
+	}
+	if !slices.Contains(features.MountOptions, "rro") {
+		return errRuntimeDoesNotSupportRRO
+	}
+
+	return nil
 }

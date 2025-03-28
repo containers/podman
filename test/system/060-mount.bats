@@ -573,3 +573,28 @@ glob | /*    | /mountroot/           | in
 
     run_podman rmi -f $img
 }
+
+# bats test_tags=ci:parallel
+@test "podman bind mount rro" {
+    skip_if_rootless
+
+    volName="vol-$(safename)"
+    volPath=${PODMAN_TMPDIR}/$volName
+    mkdir -p $volPath
+
+    mount -t tmpfs tmpfs $volPath
+    mkdir -p $volPath/foo $volPath/bar
+    mount -t tmpfs tmpfs $volPath/foo
+    mount -t tmpfs tmpfs $volPath/bar
+
+    run_podman 1 run --rm -it -v $volPath/:/tmp/mounts:rro $IMAGE touch /tmp/mounts/foo/test
+    assert "$output" =~ "Read-only file system" "Error should indicate read-only filesystem"
+
+    run_podman 1 run --rm -it --mount type=bind,source=$volPath,destination=/tmp/mounts,recursivereadonly=true $IMAGE touch /tmp/mounts/bar/test
+    assert "$output" =~ "Read-only file system" "Error should indicate read-only filesystem"
+
+    umount $volPath/foo
+    umount $volPath/bar
+    umount $volPath
+    rm -rf $volPath
+}
