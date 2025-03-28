@@ -449,6 +449,18 @@ func generateServiceFile(service *parser.UnitFile) error {
 	return nil
 }
 
+func gatherDependentSymlinks(service *parser.UnitFile, key, dir, filename string) []string {
+	symlinks := make([]string, 0)
+	groupBy := service.LookupAllStrv(quadlet.InstallGroup, key)
+	for _, groupByUnit := range groupBy {
+		// Only allow filenames, not paths
+		if !strings.Contains(groupByUnit, "/") {
+			symlinks = append(symlinks, fmt.Sprintf("%s.%s/%s", groupByUnit, dir, filename))
+		}
+	}
+	return symlinks
+}
+
 // This parses the `Install` group of the unit file and creates the required
 // symlinks to get systemd to start the newly generated file as needed.
 // In a traditional setup this is done by "systemctl enable", but that doesn't
@@ -476,21 +488,9 @@ func enableServiceFile(outputPath string, service *parser.UnitFile) {
 	}
 
 	if serviceFilename != "" {
-		wantedBy := service.LookupAllStrv(quadlet.InstallGroup, "WantedBy")
-		for _, wantedByUnit := range wantedBy {
-			// Only allow filenames, not paths
-			if !strings.Contains(wantedByUnit, "/") {
-				symlinks = append(symlinks, fmt.Sprintf("%s.wants/%s", wantedByUnit, serviceFilename))
-			}
-		}
-
-		requiredBy := service.LookupAllStrv(quadlet.InstallGroup, "RequiredBy")
-		for _, requiredByUnit := range requiredBy {
-			// Only allow filenames, not paths
-			if !strings.Contains(requiredByUnit, "/") {
-				symlinks = append(symlinks, fmt.Sprintf("%s.requires/%s", requiredByUnit, serviceFilename))
-			}
-		}
+		symlinks = append(symlinks, gatherDependentSymlinks(service, "WantedBy", "wants", serviceFilename)...)
+		symlinks = append(symlinks, gatherDependentSymlinks(service, "RequiredBy", "requires", serviceFilename)...)
+		symlinks = append(symlinks, gatherDependentSymlinks(service, "UpheldBy", "upholds", serviceFilename)...)
 	}
 
 	for _, symlinkRel := range symlinks {
