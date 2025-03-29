@@ -122,7 +122,9 @@ var _ = Describe("Podman logs", func() {
 			Expect(wait).To(ExitCleanly())
 
 			Eventually(func(g Gomega) {
-				results := podmanTest.Podman([]string{"logs", "--tail", "99", name})
+				// Options after name should work as well
+				// https://github.com/containers/podman/issues/25653
+				results := podmanTest.Podman([]string{"logs", name, "--tail", "99"})
 				results.WaitWithDefaultTimeout()
 				g.Expect(results).To(ExitCleanly())
 				g.Expect(results.OutputToStringArray()).To(HaveLen(3))

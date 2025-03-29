@@ -118,7 +118,6 @@ func logsFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&logsOptions.Colors, "color", "", false, "Output the containers with different colors in the log.")
 	flags.BoolVarP(&logsOptions.Names, "names", "n", false, "Output the container name in the log")
 
-	flags.SetInterspersed(false)
 	_ = flags.MarkHidden("details")
 }
 
