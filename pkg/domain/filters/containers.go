@@ -327,12 +327,12 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 	switch filter {
 	case "id":
 		return func(listContainer *types.ListContainer) bool {
-			return filters.FilterID(listContainer.ContainerID(), filterValues)
+			return filters.FilterID(listContainer.ID, filterValues)
 		}, nil
 	case "name":
 		// we only have to match one name
 		return func(listContainer *types.ListContainer) bool {
-			namesList := listContainer.NamesList()
+			namesList := listContainer.Names
 
 			for _, f := range filterValues {
 				f = strings.ReplaceAll(f, "/", "")
@@ -345,26 +345,25 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 		}, nil
 	case "command":
 		return func(listContainer *types.ListContainer) bool {
-			return util.StringMatchRegexSlice(listContainer.Commands()[0], filterValues)
+			return util.StringMatchRegexSlice(listContainer.Command[0], filterValues)
 		}, nil
 	case "ancestor":
 		// This needs to refine to match docker
 		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
 		return func(listContainer *types.ListContainer) bool {
 			for _, filterValue := range filterValues {
-				rootfsImageID, rootfsImageName := listContainer.ImageInfo()
 				var imageTag string
 				var imageNameWithoutTag string
 				// Compare with ImageID, ImageName
 				// Will match ImageName if running image has tag latest for other tags exact complete filter must be given
-				name, tag, hasColon := strings.Cut(rootfsImageName, ":")
+				name, tag, hasColon := strings.Cut(listContainer.Image, ":")
 				if hasColon {
 					imageNameWithoutTag = name
 					imageTag = tag
 				}
 
-				if (rootfsImageID == filterValue) ||
-					util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
+				if (listContainer.ImageID == filterValue) ||
+					util.StringMatchRegexSlice(listContainer.Image, filterValues) ||
 					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
 					return true
 				}
@@ -390,7 +389,7 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 		}
 
 		return func(listContainer *types.ListContainer) bool {
-			return createTime.After(listContainer.CreatedTime())
+			return createTime.After(listContainer.Created)
 		}, nil
 	case "since":
 		var createTime time.Time
@@ -411,7 +410,7 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 		}
 
 		return func(listContainer *types.ListContainer) bool {
-			return createTime.Before(listContainer.CreatedTime())
+			return createTime.Before(listContainer.Created)
 		}, nil
 	case "until":
 		until, err := filters.ComputeUntilTimestamp(filterValues)
@@ -419,7 +418,7 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 			return nil, err
 		}
 		return func(listContainer *types.ListContainer) bool {
-			if !until.IsZero() && listContainer.CreatedTime().Before(until) {
+			if !until.IsZero() && listContainer.Created.Before(until) {
 				return true
 			}
 			return false
