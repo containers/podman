@@ -83,20 +83,20 @@ func ResolveHostPath(path string) (*FileInfo, error) {
 // is preserved.  The filepath API among tends to clean up a bit too much but
 // we *must* preserve this data by all means.
 func PreserveBasePath(original, resolved string) string {
-	// Handle "/"
-	if strings.HasSuffix(original, "/") {
-		if !strings.HasSuffix(resolved, "/") {
-			resolved += "/"
+	// Handle "/" or "\\" on Windows.
+	if strings.HasSuffix(original, string(os.PathSeparator)) {
+		if !strings.HasSuffix(resolved, string(os.PathSeparator)) {
+			resolved += string(os.PathSeparator)
 		}
 		return resolved
 	}
 
 	// Handle "/."
-	if strings.HasSuffix(original, "/.") {
-		if strings.HasSuffix(resolved, "/") { // could be root!
+	if strings.HasSuffix(original, string(os.PathSeparator)+".") {
+		if strings.HasSuffix(resolved, string(os.PathSeparator)) { // could be root!
 			resolved += "."
-		} else if !strings.HasSuffix(resolved, "/.") {
-			resolved += "/."
+		} else if !strings.HasSuffix(resolved, string(os.PathSeparator)+".") {
+			resolved += string(os.PathSeparator) + "."
 		}
 		return resolved
 	}

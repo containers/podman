@@ -1,18 +1,233 @@
 package e2e_test
 
 import (
+	"archive/tar"
+	"bytes"
 	"fmt"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 )
 
-var _ = Describe("podman machine cp", func() {
-	It("all tests", func() {
+var _ = Describe("run cp commands", func() {
+	It("podman cp between container and host", func() {
+		var (
+			file = "foo.txt"
+
+			directory = "foo-dir"
+
+			fileInDirectory = "bar.txt"
+		)
+
+		sourceDir, err := os.MkdirTemp("", "host-source")
+		Expect(err).ToNot(HaveOccurred())
+
+		destinationDir, err := os.MkdirTemp("", "host-destination")
+		Expect(err).ToNot(HaveOccurred())
+
+		f, err := os.Create(filepath.Join(sourceDir, file))
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Get the file stat to check permissions later
+		sourceFileStat, err := os.Stat(filepath.Join(sourceDir, file))
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.MkdirAll(filepath.Join(sourceDir, directory), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Get the directory stat to check permissions later
+		sourceDirStat, err := os.Stat(filepath.Join(sourceDir, directory))
+		Expect(err).ToNot(HaveOccurred())
+
+		f, err = os.Create(filepath.Join(sourceDir, directory, fileInDirectory))
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Get the file in directory stat to check permissions later
+		sourceFileInDirStat, err := os.Stat(filepath.Join(sourceDir, directory, fileInDirectory))
+		Expect(err).ToNot(HaveOccurred())
+
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", TESTIMAGE})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newImgs).To(Exit(0))
+		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
+
+		createAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"create", TESTIMAGE, "top"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(createAlp).To(Exit(0))
+		Expect(createAlp.outputToStringSlice()).To(HaveLen(1))
+
+		containerID := createAlp.outputToStringSlice()[0]
+
+		// Copy a single file into the guest
+		cpFile, err := mb.setCmd(bm.withPodmanCommand([]string{"cp", filepath.Join(sourceDir, file), containerID + ":/tmp/"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cpFile).To(Exit(0))
+
+		// Copy a directory into the guest
+		cpDir, err := mb.setCmd(bm.withPodmanCommand([]string{"cp", filepath.Join(sourceDir, directory), containerID + ":/tmp"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cpDir).To(Exit(0))
+
+		start, err := mb.setCmd(bm.withPodmanCommand([]string{"start", containerID})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(start).To(Exit(0))
+
+		// Check the single file is created with the appropriate mode, uid, gid
+		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"exec", containerID, "stat", "-c", "%a %u %g", path.Join("/tmp", file)})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		execStdOut := exec.outputToStringSlice()
+		Expect(execStdOut).To(HaveLen(1))
+		Expect(execStdOut[0]).To(Equal(fmt.Sprintf("%o %d %d", sourceFileStat.Mode().Perm(), 0, 0)))
+
+		// Check the directory is created with the appropriate mode, uid, gid
+		exec, err = mb.setCmd(bm.withPodmanCommand([]string{"exec", containerID, "stat", "-c", "%a %u %g", path.Join("/tmp", directory)})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		execStdOut = exec.outputToStringSlice()
+		Expect(execStdOut).To(HaveLen(1))
+		Expect(execStdOut[0]).To(Equal(fmt.Sprintf("%o %d %d", sourceDirStat.Mode().Perm(), 0, 0)))
+
+		// Check the file in the directory is created with the appropriate mode, uid, gid
+		exec, err = mb.setCmd(bm.withPodmanCommand([]string{"exec", containerID, "stat", "-c", "%a %u %g", path.Join("/tmp", directory, fileInDirectory)})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		execStdOut = exec.outputToStringSlice()
+		Expect(execStdOut).To(HaveLen(1))
+		Expect(execStdOut[0]).To(Equal(fmt.Sprintf("%o %d %d", sourceFileInDirStat.Mode().Perm(), 0, 0)))
+
+		// Copy the file back from the container to the host
+		cpFile, err = mb.setCmd(bm.withPodmanCommand([]string{"cp", containerID + ":" + path.Join("/tmp", file), destinationDir + string(os.PathSeparator)})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cpFile).To(Exit(0))
+
+		// Get the file stat of the copied file to compare against the original
+		destinationFileStat, err := os.Stat(filepath.Join(destinationDir, file))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(destinationFileStat.Mode()).To(Equal(sourceFileStat.Mode()))
+		// Compare the modification time of the file in the container and the host (with second level precision)
+		Expect(destinationFileStat.ModTime()).To(BeTemporally("~", sourceFileStat.ModTime(), time.Second))
+
+		// Copy a directory back from the container to the host
+		cpDir, err = mb.setCmd(bm.withPodmanCommand([]string{"cp", containerID + ":" + path.Join("/tmp", directory), destinationDir + string(os.PathSeparator)})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cpDir).To(Exit(0))
+
+		// Get the stat of the copied directory to compare against the original
+		destinationDirStat, err := os.Stat(filepath.Join(destinationDir, directory))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(destinationDirStat.Mode()).To(Equal(sourceDirStat.Mode()))
+		// Compare the modification time of the folder in the container and the host (with second level precision)
+		Expect(destinationDirStat.ModTime()).To(BeTemporally("~", sourceDirStat.ModTime(), time.Second))
+
+		// Get the stat of the copied file in the directory to compare against the original
+		destinationFileInDirStat, err := os.Stat(filepath.Join(sourceDir, directory, fileInDirectory))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(destinationFileInDirStat.Mode()).To(Equal(sourceFileInDirStat.Mode()))
+		// Compare the modification time of the file in the container and the host (with second level precision)
+		Expect(destinationFileInDirStat.ModTime()).To(BeTemporally("~", sourceFileInDirStat.ModTime(), time.Second))
+	})
+
+	It("podman cp stdin to container", func() {
+		var (
+			stdinDirectory = "stdin-dir"
+			stdinFile      = "file.txt"
+		)
+
+		now := time.Now()
+
+		tarBuffer := &bytes.Buffer{}
+		tw := tar.NewWriter(tarBuffer)
+
+		// Write a directory header to the tar
+		err := tw.WriteHeader(&tar.Header{
+			Name:       stdinDirectory,
+			Mode:       int64(0640 | fs.ModeDir),
+			Gid:        1000,
+			ModTime:    now,
+			ChangeTime: now,
+			AccessTime: now,
+			Typeflag:   tar.TypeDir,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		// Write a file header to the tar
+		err = tw.WriteHeader(&tar.Header{
+			Name:       path.Join(stdinDirectory, stdinFile),
+			Mode:       0755,
+			Uid:        1000,
+			ModTime:    now,
+			ChangeTime: now,
+			AccessTime: now,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		err = tw.Close()
+		Expect(err).ToNot(HaveOccurred())
+
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		bm := basicMachine{}
+		newImgs, err := mb.setCmd(bm.withPodmanCommand([]string{"pull", TESTIMAGE})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newImgs).To(Exit(0))
+		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
+
+		createAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"create", TESTIMAGE, "top"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(createAlp).To(Exit(0))
+		Expect(createAlp.outputToStringSlice()).To(HaveLen(1))
+
+		// Testing stdin copy with archive mode disabled (ownership will be determined by the tar file)
+		containerID := createAlp.outputToStringSlice()[0]
+		cpTar, err := mb.setCmd(bm.withPodmanCommand([]string{"cp", "-a=false", "-", containerID + ":/tmp"})).setStdin(tarBuffer).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cpTar).To(Exit(0))
+
+		start, err := mb.setCmd(bm.withPodmanCommand([]string{"start", containerID})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(start).To(Exit(0))
+
+		// Check the directory is created with the appropriate mode, uid, gid
+		exec, err := mb.setCmd(bm.withPodmanCommand([]string{"exec", containerID, "stat", "-c", "%a %u %g", "/tmp/stdin-dir"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		execStdOut := exec.outputToStringSlice()
+		Expect(execStdOut).To(HaveLen(1))
+		Expect(execStdOut[0]).To(Equal("640 0 1000"))
+
+		// Check the file is created with the appropriate mode, uid, gid
+		exec, err = mb.setCmd(bm.withPodmanCommand([]string{"exec", containerID, "stat", "-c", "%a %u %g", "/tmp/stdin-dir/file.txt"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(exec).To(Exit(0))
+		execStdOut = exec.outputToStringSlice()
+		Expect(execStdOut).To(HaveLen(1))
+		Expect(execStdOut[0]).To(Equal("755 1000 0"))
+	})
+
+	It("podman machine cp", func() {
 		// HOST FILE SYSTEM
 		// ~/<ginkgo_tmp>
 		//   * foo.txt

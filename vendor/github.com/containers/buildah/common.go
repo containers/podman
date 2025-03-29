@@ -27,7 +27,7 @@ const (
 	DOCKER = define.DOCKER
 )
 
-func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string, ociEncryptLayers *[]int, ociEncryptConfig *encconfig.EncryptConfig, ociDecryptConfig *encconfig.DecryptConfig) *cp.Options {
+func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemContext *types.SystemContext, destinationSystemContext *types.SystemContext, manifestType string, removeSignatures bool, addSigner string, ociEncryptLayers *[]int, ociEncryptConfig *encconfig.EncryptConfig, ociDecryptConfig *encconfig.DecryptConfig, destinationTimestamp *time.Time) *cp.Options {
 	sourceCtx := getSystemContext(store, nil, "")
 	if sourceSystemContext != nil {
 		*sourceCtx = *sourceSystemContext
@@ -47,6 +47,7 @@ func getCopyOptions(store storage.Store, reportWriter io.Writer, sourceSystemCon
 		OciEncryptConfig:      ociEncryptConfig,
 		OciDecryptConfig:      ociDecryptConfig,
 		OciEncryptLayers:      ociEncryptLayers,
+		DestinationTimestamp:  destinationTimestamp,
 	}
 }
 
