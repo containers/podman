@@ -578,11 +578,7 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 		}
 	}
 
-	isFirstBoot, err := mc.IsFirstBoot()
-	if err != nil {
-		logrus.Error(err)
-	}
-	if mp.VMType() == machineDefine.WSLVirt && mc.Ansible != nil && isFirstBoot {
+	if mp.VMType() == machineDefine.WSLVirt && mc.Ansible != nil && mc.IsFirstBoot() {
 		if err := machine.CommonSSHSilent(mc.Ansible.User, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"ansible-playbook", mc.Ansible.PlaybookPath}); err != nil {
 			logrus.Error(err)
 		}

@@ -303,12 +303,8 @@ func (mc *MachineConfig) LogFile() (*define.VMFile, error) {
 	return rtDir.AppendToNewVMFile(mc.Name+".log", nil)
 }
 
-func (mc *MachineConfig) IsFirstBoot() (bool, error) {
-	never, err := time.Parse(time.RFC3339, "0001-01-01T00:00:00Z")
-	if err != nil {
-		return false, err
-	}
-	return mc.LastUp == never, nil
+func (mc *MachineConfig) IsFirstBoot() bool {
+	return mc.LastUp.IsZero()
 }
 
 func (mc *MachineConfig) ConnectionInfo(vmtype define.VMType) (*define.VMFile, *define.VMFile, error) {
