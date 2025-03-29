@@ -24,19 +24,33 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ExternalContainerFilter is a function to determine whether a container list is included
+// in command output. Container lists to be outputted are tested using the function.
+// A true return will include the container list, a false return will exclude it.
+type ExternalContainerFilter func(*entities.ListContainer) bool
+
 func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOptions) ([]entities.ListContainer, error) {
 	var (
 		pss = []entities.ListContainer{}
 	)
 	filterFuncs := make([]libpod.ContainerFilter, 0, len(options.Filters))
+	filterExtFuncs := make([]entities.ExternalContainerFilter, 0, len(options.Filters))
 	all := options.All || options.Last > 0
 	if len(options.Filters) > 0 {
 		for k, v := range options.Filters {
 			generatedFunc, err := filters.GenerateContainerFilterFuncs(k, v, runtime)
-			if err != nil {
+			if err != nil && !options.External {
 				return nil, err
 			}
 			filterFuncs = append(filterFuncs, generatedFunc)
+
+			if options.External {
+				generatedExtFunc, err := filters.GenerateExternalContainerFilterFuncs(k, v, runtime)
+				if err != nil {
+					return nil, err
+				}
+				filterExtFuncs = append(filterExtFuncs, generatedExtFunc)
+			}
 		}
 	}
 
@@ -87,7 +101,7 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 	}
 
 	if options.External {
-		listCon, err := GetExternalContainerLists(runtime)
+		listCon, err := GetExternalContainerLists(runtime, filterExtFuncs...)
 		if err != nil {
 			return nil, err
 		}
@@ -107,9 +121,9 @@ func GetContainerLists(runtime *libpod.Runtime, options entities.ContainerListOp
 }
 
 // GetExternalContainerLists returns list of external containers for e.g. created by buildah
-func GetExternalContainerLists(runtime *libpod.Runtime) ([]entities.ListContainer, error) {
+func GetExternalContainerLists(runtime *libpod.Runtime, filterExtFuncs ...entities.ExternalContainerFilter) ([]entities.ListContainer, error) {
 	var (
-		pss = []entities.ListContainer{}
+		pss = []*entities.ListContainer{}
 	)
 
 	externCons, err := runtime.StorageContainers()
@@ -128,10 +142,31 @@ func GetExternalContainerLists(runtime *libpod.Runtime) ([]entities.ListContaine
 		case err != nil:
 			return nil, err
 		default:
-			pss = append(pss, listCon)
+			pss = append(pss, &listCon)
 		}
 	}
-	return pss, nil
+
+	filteredPss := applyExternalContainersFilters(pss, filterExtFuncs...)
+
+	return filteredPss, nil
+}
+
+// Apply container filters on bunch of external container lists
+func applyExternalContainersFilters(containersList []*entities.ListContainer, filters ...entities.ExternalContainerFilter) []entities.ListContainer {
+	ctrsFiltered := make([]entities.ListContainer, 0, len(containersList))
+
+	for _, ctr := range containersList {
+		include := true
+		for _, filter := range filters {
+			include = include && filter(ctr)
+		}
+
+		if include {
+			ctrsFiltered = append(ctrsFiltered, *ctr)
+		}
+	}
+
+	return ctrsFiltered
 }
 
 // ListContainerBatch is used in ps to reduce performance hits by "batching"
