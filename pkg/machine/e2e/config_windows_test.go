@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os/exec"
 	"strings"
-	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega/gexec"
@@ -39,7 +38,7 @@ func getOtherProvider() string {
 	return ""
 }
 
-func runSystemCommand(binary string, cmdArgs []string, timeout time.Duration, wait bool) (*machineSession, error) {
+func runSystemCommand(binary string, cmdArgs []string) (*machineSession, error) {
 	GinkgoWriter.Println(binary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(binary, cmdArgs...)
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)
@@ -48,8 +47,6 @@ func runSystemCommand(binary string, cmdArgs []string, timeout time.Duration, wa
 		return nil, err
 	}
 	ms := machineSession{session}
-	if wait {
-		ms.waitWithTimeout(timeout)
-	}
+	ms.waitWithTimeout(defaultTimeout)
 	return &ms, nil
 }
