@@ -1,3 +1,5 @@
+//go:build !remote
+
 package generate
 
 import "github.com/containers/podman/v5/pkg/specgen"
