@@ -48,14 +48,13 @@ SYSTEMDDIR ?= ${LIBDIR}/systemd/system
 USERSYSTEMDDIR ?= ${LIBDIR}/systemd/user
 SYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/system-generators
 USERSYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/user-generators
-REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp
+REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
-	exclude_graphdriver_devicemapper \
 	seccomp
 # allow downstreams to easily add build tags while keeping our defaults
 BUILDTAGS += ${EXTRA_BUILDTAGS}
@@ -86,7 +85,7 @@ endif
 # triggered.
 SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
 
-BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_devicemapper exclude_graphdriver_overlay
+BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_overlay
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
