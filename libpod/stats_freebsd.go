@@ -98,7 +98,6 @@ func (c *Container) getMemLimit() uint64 {
 		return 0
 	}
 
-	//nolint:unconvert
 	physicalLimit := uint64(mi.MemTotal)
 
 	if memLimit <= 0 || memLimit > physicalLimit {
