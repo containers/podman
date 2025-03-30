@@ -4,7 +4,6 @@ package integration
 
 var (
 	REDIS_IMAGE       = "quay.io/libpod/redis:alpine"
-	fedoraMinimal     = "quay.io/libpod/systemd-image:20240124"
 	ALPINE            = "quay.io/libpod/alpine:latest"
 	ALPINELISTTAG     = "quay.io/libpod/alpine:3.10.2"
 	ALPINELISTDIGEST  = "quay.io/libpod/alpine@sha256:fa93b01658e3a5a1686dc3ae55f170d8de487006fb53a28efcd12ab0710a2e5f"
@@ -15,7 +14,6 @@ var (
 	INFRA_IMAGE       = "quay.io/libpod/k8s-pause:3.5"
 	BB                = "quay.io/libpod/busybox:latest"
 	HEALTHCHECK_IMAGE = "quay.io/libpod/alpine_healthcheck:latest"
-	volumeTest        = "quay.io/libpod/volume-plugin-test-img:20220623"
 
 	// ImageCacheDir is initialized at runtime.
 	// e.g., filepath.Join(os.TempDir(), "imagecachedir")
