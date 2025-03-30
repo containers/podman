@@ -12,10 +12,7 @@ import (
 )
 
 func isProcessAlive(pid int) bool {
-	if checkProcessStatus("process", pid, nil) == nil {
-		return true
-	}
-	return false
+	return checkProcessStatus("process", pid, nil) == nil
 }
 
 func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) error {

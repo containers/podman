@@ -162,7 +162,7 @@ func (i *initMachine) withRunPlaybook(p string) *initMachine {
 	return i
 }
 
-func (i *initMachine) withUserModeNetworking(r bool) *initMachine { //nolint:unused
+func (i *initMachine) withUserModeNetworking(r bool) *initMachine { //nolint:unused,nolintlint
 	i.userModeNetworking = r
 	return i
 }
