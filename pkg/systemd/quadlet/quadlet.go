@@ -480,35 +480,6 @@ func checkForUnknownKeys(unit *parser.UnitFile, groupName string, supportedKeys 
 	return err
 }
 
-func splitPorts(ports string) []string {
-	parts := make([]string, 0)
-
-	// IP address could have colons in it. For example: "[::]:8080:80/tcp, so we split carefully
-	start := 0
-	end := 0
-	for end < len(ports) {
-		switch ports[end] {
-		case '[':
-			end++
-			for end < len(ports) && ports[end] != ']' {
-				end++
-			}
-			if end < len(ports) {
-				end++ // Skip ]
-			}
-		case ':':
-			parts = append(parts, ports[start:end])
-			end++
-			start = end
-		default:
-			end++
-		}
-	}
-
-	parts = append(parts, ports[start:end])
-	return parts
-}
-
 func usernsOpts(kind string, opts []string) string {
 	var res strings.Builder
 	res.WriteString(kind)
