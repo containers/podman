@@ -1,6 +1,9 @@
+//go:build linux || freebsd
+
 package events
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -20,4 +23,20 @@ func NewEventer(options EventerOptions) (Eventer, error) {
 	default:
 		return nil, fmt.Errorf("unknown event logger type: %s", strings.ToLower(options.EventerType))
 	}
+}
+
+// newEventFromJSONString takes stringified json and converts
+// it to an event
+func newEventFromJSONString(event string) (*Event, error) {
+	e := new(Event)
+	if err := json.Unmarshal([]byte(event), e); err != nil {
+		return nil, err
+	}
+	return e, nil
+}
+
+// newNullEventer returns a new null eventer.  You should only do this for
+// the purposes of internal libpod testing.
+func newNullEventer() Eventer {
+	return EventToNull{}
 }

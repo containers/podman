@@ -98,16 +98,6 @@ func (e *Event) ToHumanReadable(truncate bool) string {
 	return humanFormat
 }
 
-// newEventFromJSONString takes stringified json and converts
-// it to an event
-func newEventFromJSONString(event string) (*Event, error) {
-	e := new(Event)
-	if err := json.Unmarshal([]byte(event), e); err != nil {
-		return nil, err
-	}
-	return e, nil
-}
-
 // String converts a Type to a string
 func (t Type) String() string {
 	return string(t)
