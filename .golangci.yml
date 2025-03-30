@@ -1,8 +1,14 @@
----
+version: "2"
 run:
-  concurrency: 6
-  timeout: 5m
   modules-download-mode: readonly
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: strict
+
 linters:
   enable:
     - asasalint
@@ -13,7 +19,6 @@ linters:
     - decorder
     - dogsled
     - durationcheck
-    - errcheck
     - errchkjson
     - exptostd
     - fatcontext
@@ -21,15 +26,10 @@ linters:
     - gocheckcompilerdirectives
     - gochecksumtype
     - gocritic
-    - gofmt
-    - goimports
     - goprintffuncname
-    - gosimple
-    - govet
     - grouper
     - iface
     - inamedparam
-    - ineffassign
     - interfacebloat
     - makezero
     - mirror
@@ -49,32 +49,34 @@ linters:
     - testableexamples
     - unconvert
     - unparam
-    - unused
     - usestdlibvars
     - usetesting
     - wastedassign
     - whitespace
-linters-settings:
-  errcheck:
-    check-blank: false
-  nolintlint:
-    require-specific: true
-  revive:
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -ST1003 # https://staticcheck.dev/docs/checks/#ST1003 Poorly chosen identifier.
+        - -QF1008 # https://staticcheck.dev/docs/checks/#QF1008 Omit embedded fields from selector expression.
+    nolintlint:
+      require-specific: true
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+  exclusions:
+    generated: strict
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-    - name: unused-parameter
-      disabled: true
+      - linters:
+          - recvcheck
+        path: pkg/k8s.io/
 
 issues:
-  # Maximum issues count per one linter.
-  # Set to 0 to disable.
-  # Default: 50
   max-issues-per-linter: 0
-  # Maximum count of issues with the same text.
-  # Set to 0 to disable.
-  # Default: 3
   max-same-issues: 0
-  exclude-rules:
-    # Exclude recvcheck from running on the imported k8s files, to much failures
-    - path: pkg/k8s.io/
-      linters:
-        - recvcheck
