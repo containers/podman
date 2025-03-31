@@ -16,7 +16,7 @@ container
 - `label=level:LEVEL`   : Set the label level for the container processes
 - `label=filetype:TYPE` : Set the label file type for the container files
 - `label=disable`       : Turn off label separation for the container
-- `no-new-privileges`   : Not supported
+- `no-new-privileges`   : Disable container processes from gaining additional privileges
 
 - `seccomp=unconfined` : Turn off seccomp confinement for the container
 - `seccomp=profile.json` :  JSON file to be used as the seccomp filter for the container.
