@@ -14,8 +14,8 @@ TIMEOUT = 60
 .DEFAULT_GOAL := precommit
 
 .PHONY: precommit ci
-precommit: generate license-check misspell go-mod-tidy golangci-lint-fix verify-readmes verify-mods test-default
-ci: generate license-check lint vanity-import-check verify-readmes verify-mods build test-default check-clean-work-tree test-coverage
+precommit: generate toolchain-check license-check misspell go-mod-tidy golangci-lint-fix verify-readmes verify-mods test-default
+ci: generate toolchain-check license-check lint vanity-import-check verify-readmes verify-mods build test-default check-clean-work-tree test-coverage
 
 # Tools
 
@@ -234,6 +234,16 @@ govulncheck/%: $(GOVULNCHECK)
 .PHONY: codespell
 codespell: $(CODESPELL)
 	@$(DOCKERPY) $(CODESPELL)
+
+.PHONY: toolchain-check
+toolchain-check:
+	@toolchainRes=$$(for f in $(ALL_GO_MOD_DIRS); do \
+	           awk '/^toolchain/ { found=1; next } END { if (found) print FILENAME }' $$f/go.mod; \
+	done); \
+	if [ -n "$${toolchainRes}" ]; then \
+			echo "toolchain checking failed:"; echo "$${toolchainRes}"; \
+			exit 1; \
+	fi
 
 .PHONY: license-check
 license-check:

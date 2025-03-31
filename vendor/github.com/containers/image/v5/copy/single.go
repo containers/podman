@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"iter"
 	"maps"
 	"reflect"
 	"slices"
@@ -417,7 +418,7 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 		}
 	}
 
-	algos, err := algorithmsByNames(compressionAlgos.Values())
+	algos, err := algorithmsByNames(compressionAlgos.All())
 	if err != nil {
 		return nil, err
 	}
@@ -552,7 +553,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	if srcInfosUpdated || layerDigestsDiffer(srcInfos, destInfos) {
 		ic.manifestUpdates.LayerInfos = destInfos
 	}
-	algos, err := algorithmsByNames(compressionAlgos.Values())
+	algos, err := algorithmsByNames(compressionAlgos.All())
 	if err != nil {
 		return nil, err
 	}
@@ -988,10 +989,10 @@ func computeDiffID(stream io.Reader, decompressor compressiontypes.DecompressorF
 	return digest.Canonical.FromReader(stream)
 }
 
-// algorithmsByNames returns slice of Algorithms from slice of Algorithm Names
-func algorithmsByNames(names []string) ([]compressiontypes.Algorithm, error) {
+// algorithmsByNames returns slice of Algorithms from a sequence of Algorithm Names
+func algorithmsByNames(names iter.Seq[string]) ([]compressiontypes.Algorithm, error) {
 	result := []compressiontypes.Algorithm{}
-	for _, name := range names {
+	for name := range names {
 		algo, err := compression.AlgorithmByName(name)
 		if err != nil {
 			return nil, err

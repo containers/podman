@@ -123,7 +123,7 @@ func (ref ociReference) getBlobsToDelete(blobsUsedByDescriptorToDelete map[diges
 //
 // So, NOTE: the blobPath() call below hard-codes "" even in calls where OCISharedBlobDirPath is set
 func (ref ociReference) deleteBlobs(blobsToDelete *set.Set[digest.Digest]) error {
-	for _, digest := range blobsToDelete.Values() {
+	for digest := range blobsToDelete.All() {
 		blobPath, err := ref.blobPath(digest, "") //Only delete in the local directory, see comment above
 		if err != nil {
 			return err

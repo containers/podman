@@ -240,7 +240,7 @@ func (mem *cache) candidateLocations(transport types.ImageTransport, scope types
 		if uncompressedDigest = mem.uncompressedDigestLocked(primaryDigest); uncompressedDigest != "" {
 			otherDigests := mem.digestsByUncompressed[uncompressedDigest] // nil if not present in the map
 			if otherDigests != nil {
-				for _, d := range otherDigests.Values() {
+				for d := range otherDigests.All() {
 					if d != primaryDigest && d != uncompressedDigest {
 						res = mem.appendReplacementCandidates(res, transport, scope, d, v2Options)
 					}

@@ -14,14 +14,14 @@ import (
 	semconvNew "go.opentelemetry.io/otel/semconv/v1.26.0"
 )
 
-// splitHostPort splits a network address hostport of the form "host",
+// SplitHostPort splits a network address hostport of the form "host",
 // "host%zone", "[host]", "[host%zone], "host:port", "host%zone:port",
 // "[host]:port", "[host%zone]:port", or ":port" into host or host%zone and
 // port.
 //
 // An empty host is returned if it is not provided or unparsable. A negative
 // port is returned if it is not provided or unparsable.
-func splitHostPort(hostport string) (host string, port int) {
+func SplitHostPort(hostport string) (host string, port int) {
 	port = -1
 
 	if strings.HasPrefix(hostport, "[") {
