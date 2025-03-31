@@ -423,7 +423,105 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 			}
 			return false
 		}, nil
-	case "restart-policy", "network", "pod", "volume", "health", "label", "exited", "status":
+	case "status":
+		for _, filterValue := range filterValues {
+			if _, err := define.StringToContainerStatus(filterValue); err != nil {
+				return nil, err
+			}
+		}
+		return func(listContainer *types.ListContainer) bool {
+			status := listContainer.State
+			if status == define.ContainerStateConfigured.String() {
+				status = "created"
+			} else if status == define.ContainerStateStopped.String() {
+				status = "exited"
+			}
+			for _, filterValue := range filterValues {
+				if filterValue == "stopped" {
+					filterValue = "exited"
+				}
+				if status == filterValue {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "exited":
+		var exitCodes []int32
+		for _, exitCode := range filterValues {
+			ec, err := strconv.ParseInt(exitCode, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("exited code out of range %q: %w", ec, err)
+			}
+			exitCodes = append(exitCodes, int32(ec))
+		}
+		return func(listContainer *types.ListContainer) bool {
+			ec := listContainer.ExitCode
+			exited := listContainer.Exited
+			if exited {
+				for _, exitCode := range exitCodes {
+					if ec == exitCode {
+						return true
+					}
+				}
+			}
+			return false
+		}, nil
+	case "label":
+		return func(listContainer *types.ListContainer) bool {
+			return !filters.MatchLabelFilters(filterValues, listContainer.Labels)
+		}, nil
+	case "pod":
+		var pods []*libpod.Pod
+		for _, podNameOrID := range filterValues {
+			p, err := r.LookupPod(podNameOrID)
+			if err != nil {
+				if errors.Is(err, define.ErrNoSuchPod) {
+					continue
+				}
+				return nil, err
+			}
+			pods = append(pods, p)
+		}
+		return func(listContainer *types.ListContainer) bool {
+			// if no pods match, quick out
+			if len(pods) < 1 {
+				return false
+			}
+			// if the container has no pod id, quick out
+			if len(listContainer.ID) < 1 {
+				return false
+			}
+			for _, p := range pods {
+				// we already looked up by name or id, so id match
+				// here is ok
+				if p.ID() == listContainer.ID {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "network":
+		var inputNetNames []string
+		for _, val := range filterValues {
+			net, err := r.Network().NetworkInspect(val)
+			if err != nil {
+				if errors.Is(err, define.ErrNoSuchNetwork) {
+					continue
+				}
+				return nil, err
+			}
+			inputNetNames = append(inputNetNames, net.Name)
+		}
+		return func(listContainer *types.ListContainer) bool {
+			for _, net := range listContainer.Networks {
+				if slices.Contains(inputNetNames, net) {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "restart-policy", "volume", "health":
 		return nil, fmt.Errorf("filter %s is not applicable for external containers", filter)
 	}
 
