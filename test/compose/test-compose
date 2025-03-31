@@ -198,12 +198,12 @@ function start_service() {
 
     # FIXME: use ${testname} subdir but we can't: 50-char limit in runroot
     if ! is_rootless; then
-        rm -rf $WORKDIR/{root,runroot,cni}
+        rm -rf $WORKDIR/{root,runroot,networks,cdi}
     else
-        $PODMAN_BIN unshare rm -rf $WORKDIR/{root,runroot,cni}
+        $PODMAN_BIN unshare rm -rf $WORKDIR/{root,runroot,networks,cdi}
     fi
     rm -f $DOCKER_SOCK
-    mkdir --mode 0755 $WORKDIR/{root,runroot,cni}
+    mkdir --mode 0755 $WORKDIR/{root,runroot,networks,cdi}
     chcon --reference=/var/lib/containers $WORKDIR/root
 
     $PODMAN_BIN \
@@ -212,7 +212,8 @@ function start_service() {
         --root $WORKDIR/root \
         --runroot $WORKDIR/runroot \
         --cgroup-manager=systemd \
-        --network-config-dir $WORKDIR/cni \
+        --network-config-dir $WORKDIR/networks \
+        --cdi-spec-dir $WORKDIR/cdi \
         system service \
         --time 0 unix://$DOCKER_SOCK \
         &> $WORKDIR/server.log &
@@ -236,10 +237,11 @@ function start_service() {
 function podman() {
     echo "\$ podman $*"           >>$WORKDIR/output.log
     output=$($PODMAN_BIN \
-	--storage-driver=vfs \
+        --storage-driver=vfs \
         --root    $WORKDIR/root    \
         --runroot $WORKDIR/runroot \
-        --network-config-dir $WORKDIR/cni \
+        --network-config-dir $WORKDIR/networks \
+        --cdi-spec-dir $WORKDIR/cdi \
         "$@")
     rc=$?
 
@@ -401,7 +403,7 @@ for t in "${tests_to_run[@]}"; do
     fi
 
     # FIXME: run 'podman ps'?
-#    rm -rf $WORKDIR/${testname}
+    #    rm -rf $WORKDIR/${testname}
 done
 
 # END   entry handler
