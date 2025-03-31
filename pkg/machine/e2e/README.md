@@ -26,7 +26,7 @@ the same result:
 To focus on one specific test on windows, run `ginkgo` manually:
 
 ```pwsh
-$remotetags = "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp"
+$remotetags = "remote exclude_graphdriver_btrfs btrfs_noversion containers_image_openpgp"
 $focus_file = "basic_test.go"
 $focus_test = "podman build contexts"
 ./test/tools/build/ginkgo.exe `

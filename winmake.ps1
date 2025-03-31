@@ -287,7 +287,7 @@ function Get-Podman-Version{
 # Init script
 $target = $args[0]
 
-$remotetags = "remote exclude_graphdriver_btrfs btrfs_noversion exclude_graphdriver_devicemapper containers_image_openpgp"
+$remotetags = "remote exclude_graphdriver_btrfs btrfs_noversion containers_image_openpgp"
 
 switch ($target) {
     {$_ -in '', 'podman-remote', 'podman'} {
