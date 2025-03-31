@@ -198,12 +198,12 @@ function start_service() {
 
     # FIXME: use ${testname} subdir but we can't: 50-char limit in runroot
     if ! is_rootless; then
-        rm -rf $WORKDIR/{root,runroot,cni}
+        rm -rf $WORKDIR/{root,runroot,networks}
     else
-        $PODMAN_BIN unshare rm -rf $WORKDIR/{root,runroot,cni}
+        $PODMAN_BIN unshare rm -rf $WORKDIR/{root,runroot,networks}
     fi
     rm -f $DOCKER_SOCK
-    mkdir --mode 0755 $WORKDIR/{root,runroot,cni}
+    mkdir --mode 0755 $WORKDIR/{root,runroot,networks}
     chcon --reference=/var/lib/containers $WORKDIR/root
 
     $PODMAN_BIN \
@@ -212,7 +212,7 @@ function start_service() {
         --root $WORKDIR/root \
         --runroot $WORKDIR/runroot \
         --cgroup-manager=systemd \
-        --network-config-dir $WORKDIR/cni \
+        --network-config-dir $WORKDIR/networks \
         system service \
         --time 0 unix://$DOCKER_SOCK \
         &> $WORKDIR/server.log &
@@ -239,7 +239,7 @@ function podman() {
 	--storage-driver=vfs \
         --root    $WORKDIR/root    \
         --runroot $WORKDIR/runroot \
-        --network-config-dir $WORKDIR/cni \
+        --network-config-dir $WORKDIR/networks \
         "$@")
     rc=$?
 
