@@ -330,6 +330,8 @@ freebsd_alt_build_task:
         image_family: freebsd-13-4
     setup_script:
         - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf zstd
+    lint_script:
+        - gmake golangci-lint
     build_amd64_script:
         - gmake podman-release
     # This task cannot make use of the shared repo.tar.zst artifact and must
