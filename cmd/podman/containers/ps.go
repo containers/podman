@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	tm "github.com/buger/goterm"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
@@ -267,9 +266,7 @@ func ps(cmd *cobra.Command, _ []string) error {
 				responses = append(responses, psReporter{r})
 			}
 
-			tm.Clear()
-			tm.MoveCursor(1, 1)
-			tm.Flush()
+			common.ClearScreen()
 
 			if err := headers(); err != nil {
 				return err

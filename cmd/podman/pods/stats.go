@@ -6,7 +6,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/buger/goterm"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
@@ -93,9 +92,7 @@ func stats(cmd *cobra.Command, args []string) error {
 			err = printJSONPodStats(reports)
 		} else {
 			if !statsOptions.NoReset {
-				goterm.Clear()
-				goterm.MoveCursor(1, 1)
-				goterm.Flush()
+				common.ClearScreen()
 			}
 			if report.OriginUser == rpt.Origin {
 				err = userTemplate(rpt, reports)
