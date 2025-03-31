@@ -47,6 +47,7 @@ If they do not respond after several days, you can notify a maintainer to have t
 When working on an issue, please assign it to yourself.
 You can use the `/assign` bot command in a comment on an issue to assign it to yourself.
 If you lack permissions to do so, you can ping the `@containers/podman-maintainers` group to have a maintainer set you as assignee.
+If you are a maintainer of Podman project, please following the [instructions](https://github.com/containers/podman/blob/main/TRIAGE.md) to triage new issues.
 
 ## Contributing to Podman
 
@@ -323,6 +324,10 @@ Then you just add a line to every git commit message:
 Use your real name (sorry, no pseudonyms or anonymous contributions).
 
 If you set your `user.name` and `user.email` git configs, you can sign your commit automatically with `git commit -s`.
+
+### Reviewing PRs
+
+If you are a maintainer of Podman project, please following the [guidelines](https://github.com/containers/podman/blob/main/REVIEWING.md) on how to review a PR.
 
 ### Continuous Integration
 
