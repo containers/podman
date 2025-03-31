@@ -36,6 +36,7 @@ import (
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/idtools"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -66,6 +67,7 @@ type ConmonOCIRuntime struct {
 	supportsNoCgroups bool
 	enableKeyring     bool
 	persistDir        string
+	features          *features.Features
 }
 
 // Make a new Conmon-based OCI runtime with the given options.
@@ -130,6 +132,12 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 		runtime.path = path
 		break
 	}
+
+	features, err := runtime.getOCIRuntimeFeatures()
+	if err != nil {
+		return nil, fmt.Errorf("getting %s features: %w", runtime.name, err)
+	}
+	runtime.features = features
 
 	// Search the $PATH as last fallback
 	if !foundPath {
@@ -839,6 +847,11 @@ func (r *ConmonOCIRuntime) SupportsKVM() bool {
 	return r.supportsKVM
 }
 
+// Features returns the features struct from the OCI runtime
+func (r *ConmonOCIRuntime) Features() *features.Features {
+	return r.features
+}
+
 // AttachSocketPath is the path to a single container's attach socket.
 func (r *ConmonOCIRuntime) AttachSocketPath(ctr *Container) (string, error) {
 	if ctr == nil {
@@ -1483,6 +1496,20 @@ func (r *ConmonOCIRuntime) getConmonVersion() (string, error) {
 		return "", err
 	}
 	return strings.TrimSuffix(strings.Replace(output, "\n", ", ", 1), "\n"), nil
+}
+
+func (r *ConmonOCIRuntime) getOCIRuntimeFeatures() (*features.Features, error) {
+	var features *features.Features
+	output, err := utils.ExecCmd(r.path, "features")
+	if err != nil {
+		return features, err
+	}
+
+	if jsonErr := json.Unmarshal([]byte(output), &features); jsonErr != nil {
+		return features, err
+	}
+
+	return features, nil
 }
 
 // getOCIRuntimeVersion returns a string representation of the OCI runtime's

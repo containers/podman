@@ -345,34 +345,38 @@ func parseMountOptions(mountType string, args []string) (*universalMount, error)
 			} else {
 				mnt.mount.Options = append(mnt.mount.Options, "idmap")
 			}
-		case "readonly", "ro", "rw":
+		case "readonly", "ro", "recursivereadonly", "rro", "rw":
 			if setRORW {
-				return nil, fmt.Errorf("cannot pass 'readonly', 'ro', or 'rw' mnt.Options more than once: %w", errOptionArg)
+				return nil, fmt.Errorf("cannot pass 'readonly', 'ro', 'rro', 'recursivereadonly' or 'rw' options more than once: %w", errOptionArg)
 			}
 			setRORW = true
+
 			// Can be formatted as one of:
 			// readonly
 			// readonly=[true|false]
 			// ro
 			// ro=[true|false]
+			// recursivereadonly
+			// recursivereadonly=[true|false]
+			// rro
+			// rro=[true|false]
 			// rw
 			// rw=[true|false]
-			if name == "readonly" {
-				name = "ro"
-			}
-			if hasValue {
-				switch strings.ToLower(value) {
-				case "true":
-					mnt.mount.Options = append(mnt.mount.Options, name)
-				case "false":
-					// Set the opposite only for rw
-					// ro's opposite is the default
-					if name == "rw" {
-						mnt.mount.Options = append(mnt.mount.Options, "ro")
+			switch name {
+			case "rro", "recursivereadonly":
+				mnt.mount.Options = append(mnt.mount.Options, "rro")
+			case "ro", "readonly":
+				mnt.mount.Options = append(mnt.mount.Options, "ro")
+			case "rw":
+				if hasValue {
+					switch strings.ToLower(value) {
+					case "true":
+						mnt.mount.Options = append(mnt.mount.Options, name)
+					case "false":
+						// default to rro instead of ro
+						mnt.mount.Options = append(mnt.mount.Options, "rro")
 					}
 				}
-			} else {
-				mnt.mount.Options = append(mnt.mount.Options, name)
 			}
 		case "nodev", "dev":
 			if setDev {

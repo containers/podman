@@ -94,7 +94,7 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 				return nil, fmt.Errorf("only one of 'nodev' and 'dev' can be used: %w", ErrDupeMntOption)
 			}
 			foundDev = true
-		case "rw", "ro":
+		case "rw", "ro", "rro":
 			if foundWrite {
 				return nil, fmt.Errorf("only one of 'rw' and 'ro' can be used: %w", ErrDupeMntOption)
 			}
