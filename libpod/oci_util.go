@@ -27,11 +27,6 @@ type ociError struct {
 	Msg   string `json:"msg,omitempty"`
 }
 
-// Create systemd unit name for cgroup scopes
-func createUnitName(prefix string, name string) string {
-	return fmt.Sprintf("%s-%s.scope", prefix, name)
-}
-
 // Bind ports to keep them closed on the host
 func bindPorts(ports []types.PortMapping) ([]*os.File, error) {
 	var files []*os.File

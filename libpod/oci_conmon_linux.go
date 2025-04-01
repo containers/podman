@@ -164,6 +164,11 @@ func (r *ConmonOCIRuntime) withContainerSocketLabel(ctr *Container, closure func
 	return err
 }
 
+// Create systemd unit name for cgroup scopes.
+func createUnitName(prefix string, name string) string {
+	return fmt.Sprintf("%s-%s.scope", prefix, name)
+}
+
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonce data down the start fd
 func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File) error {
