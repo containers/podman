@@ -133,7 +133,7 @@ func (as ArtifactStore) Pull(ctx context.Context, name string, opts libimage.Cop
 	if err != nil {
 		return err
 	}
-	copyer, err := libimage.NewCopier(&opts, as.SystemContext, nil)
+	copyer, err := libimage.NewCopier(&opts, as.SystemContext)
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 	if err != nil {
 		return err
 	}
-	copyer, err := libimage.NewCopier(&opts, as.SystemContext, nil)
+	copyer, err := libimage.NewCopier(&opts, as.SystemContext)
 	if err != nil {
 		return err
 	}

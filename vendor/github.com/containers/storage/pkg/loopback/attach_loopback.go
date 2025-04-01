@@ -16,8 +16,8 @@ import (
 // Loopback related errors
 var (
 	ErrAttachLoopbackDevice   = errors.New("loopback attach failed")
-	ErrGetLoopbackBackingFile = errors.New("Unable to get loopback backing file")
-	ErrSetCapacity            = errors.New("Unable set loopback capacity")
+	ErrGetLoopbackBackingFile = errors.New("unable to get loopback backing file")
+	ErrSetCapacity            = errors.New("unable set loopback capacity")
 )
 
 func stringToLoopName(src string) [LoNameSize]uint8 {

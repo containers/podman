@@ -19,7 +19,7 @@ func CreateBridge(n NetUtil, network *types.Network, usedNetworks []*net.IPNet, 
 			}
 		}
 		if !types.NameRegex.MatchString(network.NetworkInterface) {
-			return fmt.Errorf("bridge name %s invalid: %w", network.NetworkInterface, types.RegexError)
+			return fmt.Errorf("bridge name %s invalid: %w", network.NetworkInterface, types.ErrInvalidName)
 		}
 	} else {
 		var err error

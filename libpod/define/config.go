@@ -18,7 +18,7 @@ var (
 	// constant, but Go won't let us do that.
 	NameRegex = types.NameRegex
 	// RegexError is thrown in presence of an invalid container/pod name.
-	RegexError = types.RegexError
+	RegexError = types.ErrInvalidName
 )
 
 const (

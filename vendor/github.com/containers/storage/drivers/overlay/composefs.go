@@ -53,7 +53,7 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 	}
 
 	destFile := getComposefsBlob(composefsDir)
-	writerJson, err := getComposeFsHelper()
+	writerJSON, err := getComposeFsHelper()
 	if err != nil {
 		return fmt.Errorf("failed to find mkcomposefs: %w", err)
 	}
@@ -74,7 +74,7 @@ func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, com
 		defer outFile.Close()
 
 		errBuf := &bytes.Buffer{}
-		cmd := exec.Command(writerJson, "--from-file", "-", "-")
+		cmd := exec.Command(writerJSON, "--from-file", "-", "-")
 		cmd.Stderr = errBuf
 		cmd.Stdin = dumpReader
 		cmd.Stdout = outFile

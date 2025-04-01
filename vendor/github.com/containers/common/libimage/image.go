@@ -463,13 +463,13 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	skipRemove := false
 	numNames := len(i.Names())
 
-	// NOTE: the `numNames == 1` check is not only a performance
+	// NOTE: the `numNames != 1` check is not only a performance
 	// optimization but also preserves existing Podman/Docker behaviour.
 	// If image "foo" is used by a container and has only this tag/name,
 	// an `rmi foo` will not untag "foo" but instead attempt to remove the
 	// entire image.  If there's a container using "foo", we should get an
 	// error.
-	if !(referencedBy == "" || numNames == 1) {
+	if referencedBy != "" && numNames != 1 {
 		byID := strings.HasPrefix(i.ID(), referencedBy)
 		byDigest := strings.HasPrefix(referencedBy, "sha256:")
 		if !options.Force {

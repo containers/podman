@@ -294,10 +294,7 @@ func createIpvlanOrMacvlan(network *types.Network) error {
 	}
 
 	driver := network.Driver
-	isMacVlan := true
-	if driver == types.IPVLANNetworkDriver {
-		isMacVlan = false
-	}
+	isMacVlan := driver != types.IPVLANNetworkDriver
 
 	// always turn dns off with macvlan, it is not implemented in netavark
 	// and makes little sense to support with macvlan

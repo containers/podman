@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"maps"
+	"slices"
 	"strconv"
 	"time"
 
@@ -17,7 +18,6 @@ import (
 	"github.com/vbatts/tar-split/archive/tar"
 	"github.com/vbatts/tar-split/tar/asm"
 	"github.com/vbatts/tar-split/tar/storage"
-	expMaps "golang.org/x/exp/maps"
 )
 
 const (
@@ -310,7 +310,7 @@ func ensureTOCMatchesTarSplit(toc *minimal.TOC, tarSplit []byte) error {
 		return err
 	}
 	if len(pendingFiles) != 0 {
-		remaining := expMaps.Keys(pendingFiles)
+		remaining := slices.Collect(maps.Keys(pendingFiles))
 		if len(remaining) > 5 {
 			remaining = remaining[:5] // Just to limit the size of the output.
 		}

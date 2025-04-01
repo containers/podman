@@ -920,7 +920,7 @@ func tlsCacheGet(config *restConfig) (http.RoundTripper, error) {
 // TLSConfigFor returns a tls.Config that will provide the transport level security defined
 // by the provided Config. Will return nil if no transport level security is requested.
 func tlsConfigFor(c *restConfig) (*tls.Config, error) {
-	if !(c.HasCA() || c.HasCertAuth() || c.Insecure) {
+	if !c.HasCA() && !c.HasCertAuth() && !c.Insecure {
 		return nil, nil
 	}
 	if c.HasCA() && c.Insecure {

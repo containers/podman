@@ -191,7 +191,7 @@ func (n *cniNetwork) loadNetworks() error {
 		}
 
 		if !types.NameRegex.MatchString(conf.Name) {
-			logrus.Warnf("CNI config list %s has invalid name, skipping: %v", file, types.RegexError)
+			logrus.Warnf("CNI config list %s has invalid name, skipping: %v", file, types.ErrInvalidName)
 			continue
 		}
 

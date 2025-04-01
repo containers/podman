@@ -98,7 +98,7 @@ func (d *dedupFiles) dedup(src, dst string, fiDst fs.FileInfo) (uint64, error) {
 	}
 
 	if errors.Is(err, unix.ENOTSUP) {
-		return 0, notSupported
+		return 0, errNotSupported
 	}
 	return 0, fmt.Errorf("failed to clone file %q: %w", src, err)
 }

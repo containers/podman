@@ -276,10 +276,7 @@ func (s *store) getAutoUserNS(options *types.AutoUserNsOptions, image *Image, rl
 	// bigger than s.autoNsMaxSize.
 	// This is a best effort heuristic.
 	if requestedSize == 0 {
-		size = initialSize
-		if s.autoNsMinSize > size {
-			size = s.autoNsMinSize
-		}
+		size = max(s.autoNsMinSize, initialSize)
 		if image != nil {
 			sizeFromImage, err := s.getMaxSizeFromImage(image, rlstore, lstores, options.PasswdFile, options.GroupFile)
 			if err != nil {

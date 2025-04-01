@@ -25,7 +25,7 @@ func CreateIDMappedMount(source, target string, pid int) error {
 	}
 	defer userNsFile.Close()
 
-	targetDirFd, err := unix.OpenTree(0, source, unix.OPEN_TREE_CLONE)
+	targetDirFd, err := unix.OpenTree(unix.AT_FDCWD, source, unix.OPEN_TREE_CLONE)
 	if err != nil {
 		return &os.PathError{Op: "open_tree", Path: source, Err: err}
 	}

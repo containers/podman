@@ -235,7 +235,7 @@ func parseShortNameValue(alias string) (reference.Named, error) {
 	}
 
 	registry := reference.Domain(named)
-	if !(strings.ContainsAny(registry, ".:") || registry == "localhost") {
+	if !strings.ContainsAny(registry, ".:") && registry != "localhost" {
 		return nil, fmt.Errorf("invalid alias %q: must contain registry and repository", alias)
 	}
 

@@ -40,7 +40,7 @@ const (
 )
 
 // CopyRegularToFile copies the content of a file to another
-func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error { // nolint: revive,golint
+func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error { //nolint: revive
 	srcFile, err := os.Open(srcPath)
 	if err != nil {
 		return err
@@ -72,7 +72,7 @@ func CopyRegularToFile(srcPath string, dstFile *os.File, fileinfo os.FileInfo, c
 }
 
 // CopyRegular copies the content of a file to another
-func CopyRegular(srcPath, dstPath string, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error { // nolint: revive,golint
+func CopyRegular(srcPath, dstPath string, fileinfo os.FileInfo, copyWithFileRange, copyWithFileClone *bool) error { //nolint: revive
 	// If the destination file already exists, we shouldn't blow it away
 	dstFile, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, fileinfo.Mode())
 	if err != nil {

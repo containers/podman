@@ -322,7 +322,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 func containerHasEtcSystemFips(subscriptionsDir, mountPoint string) (bool, error) {
 	containerEtc, err := securejoin.SecureJoin(mountPoint, "etc")
 	if err != nil {
-		return false, fmt.Errorf("Container /etc resolution error: %w", err)
+		return false, fmt.Errorf("container /etc resolution error: %w", err)
 	}
 	if fileutils.Lexists(filepath.Join(containerEtc, "system-fips")) != nil {
 		logrus.Debug("/etc/system-fips does not exist in the container, not creating /run/secrets/system-fips")
@@ -331,7 +331,7 @@ func containerHasEtcSystemFips(subscriptionsDir, mountPoint string) (bool, error
 
 	fipsFileTarget, err := securejoin.SecureJoin(mountPoint, "etc/system-fips")
 	if err != nil {
-		return false, fmt.Errorf("Container /etc/system-fips resolution error: %w", err)
+		return false, fmt.Errorf("container /etc/system-fips resolution error: %w", err)
 	}
 	if fipsFileTarget != filepath.Join(mountPoint, subscriptionsDir, "system-fips") {
 		logrus.Warnf("/etc/system-fips exists in the container, but is not a symlink to %[1]v/system-fips; not creating %[1]v/system-fips", subscriptionsDir)
@@ -448,24 +448,24 @@ func addFIPSMounts(mounts *[]rspec.Mount, containerRunDir, mountPoint, mountLabe
 	destPolicyConfig := "/etc/crypto-policies/config"
 	srcPolicyConfigOnHost, err := securejoin.SecureJoin(mountPoint, srcPolicyConfig)
 	if err != nil {
-		return fmt.Errorf("Could not expand %q in container: %w", srcPolicyConfig, err)
+		return fmt.Errorf("could not expand %q in container: %w", srcPolicyConfig, err)
 	}
 
 	if err = fileutils.Exists(srcPolicyConfigOnHost); err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
-			return fmt.Errorf("Could not check whether %q exists in container: %w", srcPolicyConfig, err)
+			return fmt.Errorf("could not check whether %q exists in container: %w", srcPolicyConfig, err)
 		}
 
 		// /usr/share/crypto-policies/default-fips-config does not exist, let's create it ourselves
 		cryptoPoliciesConfigFile := filepath.Join(containerRunDir, "fips-config")
 		if err := os.WriteFile(cryptoPoliciesConfigFile, []byte("FIPS\n"), 0o644); err != nil {
-			return fmt.Errorf("Failed to write fips config file in container for FIPS mode: %w", err)
+			return fmt.Errorf("failed to write fips config file in container for FIPS mode: %w", err)
 		}
 		if err = label.Relabel(cryptoPoliciesConfigFile, mountLabel, false); err != nil {
-			return fmt.Errorf("Failed to apply correct labels on fips config file: %w", err)
+			return fmt.Errorf("failed to apply correct labels on fips config file: %w", err)
 		}
 		if err := os.Chown(cryptoPoliciesConfigFile, uid, gid); err != nil {
-			return fmt.Errorf("Failed to chown fips config file: %w", err)
+			return fmt.Errorf("failed to chown fips config file: %w", err)
 		}
 
 		srcPolicyConfigOnHost = cryptoPoliciesConfigFile
