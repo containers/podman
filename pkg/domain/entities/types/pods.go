@@ -9,47 +9,47 @@ import (
 
 type PodPruneReport struct {
 	Err error
-	Id  string //nolint:revive,stylecheck
+	Id  string
 }
 
 type PodPauseReport struct {
 	Errs []error
-	Id   string //nolint:revive,stylecheck
+	Id   string
 }
 type PodUnpauseReport struct {
 	Errs []error
-	Id   string //nolint:revive,stylecheck
+	Id   string
 }
 
 type PodStopReport struct {
 	Errs     []error
-	Id       string //nolint:revive,stylecheck
+	Id       string
 	RawInput string
 }
 
 type PodRestartReport struct {
 	Errs []error
-	Id   string //nolint:revive,stylecheck
+	Id   string
 }
 
 type PodStartReport struct {
 	Errs     []error
-	Id       string //nolint:revive,stylecheck
+	Id       string
 	RawInput string
 }
 
 type PodRmReport struct {
 	RemovedCtrs map[string]error
 	Err         error
-	Id          string //nolint:revive,stylecheck
+	Id          string
 }
 
 type PodCreateReport struct {
-	Id string //nolint:revive,stylecheck
+	Id string
 }
 
 type PodCloneReport struct {
-	Id string //nolint:revive,stylecheck
+	Id string
 }
 
 // PodStatsReport includes pod-resource statistics data.
@@ -95,15 +95,15 @@ type PodInspectReport struct {
 
 type PodKillReport struct {
 	Errs []error
-	Id   string //nolint:revive,stylecheck
+	Id   string
 }
 
 type ListPodsReport struct {
 	Cgroup     string
 	Containers []*ListPodContainer
 	Created    time.Time
-	Id         string //nolint:revive,stylecheck
-	InfraId    string //nolint:revive,stylecheck
+	Id         string
+	InfraId    string
 	Name       string
 	Namespace  string
 	// Network names connected to infra container
@@ -113,7 +113,7 @@ type ListPodsReport struct {
 }
 
 type ListPodContainer struct {
-	Id           string //nolint:revive,stylecheck
+	Id           string
 	Names        string
 	Status       string
 	RestartCount uint

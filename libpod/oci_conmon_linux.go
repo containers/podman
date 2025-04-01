@@ -167,11 +167,7 @@ func (r *ConmonOCIRuntime) withContainerSocketLabel(ctr *Container, closure func
 // moveConmonToCgroupAndSignal gets a container's cgroupParent and moves the conmon process to that cgroup
 // it then signals for conmon to start by sending nonce data down the start fd
 func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec.Cmd, startFd *os.File) error {
-	mustCreateCgroup := true
-
-	if ctr.config.NoCgroups {
-		mustCreateCgroup = false
-	}
+	mustCreateCgroup := !ctr.config.NoCgroups
 
 	// If cgroup creation is disabled - just signal.
 	switch ctr.config.CgroupsMode {

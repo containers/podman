@@ -45,9 +45,9 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		stdout bool
 		stderr bool
 	}{
-		stdin:  !(stdin == nil || reflect.ValueOf(stdin).IsNil()),
-		stdout: !(stdout == nil || reflect.ValueOf(stdout).IsNil()),
-		stderr: !(stderr == nil || reflect.ValueOf(stderr).IsNil()),
+		stdin:  stdin != nil && !reflect.ValueOf(stdin).IsNil(),
+		stdout: stdout != nil && !reflect.ValueOf(stdout).IsNil(),
+		stderr: stderr != nil && !reflect.ValueOf(stderr).IsNil(),
 	}
 	// Ensure golang can determine that interfaces are "really" nil
 	if !isSet.stdin {
@@ -138,7 +138,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		return err
 	}
 
-	if !(response.IsSuccess() || response.IsInformational()) {
+	if !response.IsSuccess() && !response.IsInformational() {
 		defer response.Body.Close()
 		return response.Process(nil)
 	}
@@ -229,26 +229,26 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 				return err
 			}
 
-			switch {
-			case fd == 0:
+			switch fd {
+			case 0:
 				if isSet.stdout {
 					if _, err := stdout.Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
-			case fd == 1:
+			case 1:
 				if isSet.stdout {
 					if _, err := stdout.Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
-			case fd == 2:
+			case 2:
 				if isSet.stderr {
 					if _, err := stderr.Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
-			case fd == 3:
+			case 3:
 				return fmt.Errorf("from service from stream: %s", frame)
 			default:
 				return fmt.Errorf("unrecognized channel '%d' in header, 0-3 supported", fd)
@@ -496,7 +496,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 	}
 	defer response.Body.Close()
 
-	if !(response.IsSuccess() || response.IsInformational()) {
+	if !response.IsSuccess() && !response.IsInformational() {
 		return response.Process(nil)
 	}
 
@@ -558,8 +558,8 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 				return err
 			}
 
-			switch {
-			case fd == 0:
+			switch fd {
+			case 0:
 				if options.GetAttachInput() {
 					// Write STDIN to STDOUT (echoing characters
 					// typed by another attach session)
@@ -567,19 +567,19 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 						return err
 					}
 				}
-			case fd == 1:
+			case 1:
 				if options.GetAttachOutput() {
 					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
-			case fd == 2:
+			case 2:
 				if options.GetAttachError() {
 					if _, err := options.GetErrorStream().Write(frame[0:l]); err != nil {
 						return err
 					}
 				}
-			case fd == 3:
+			case 3:
 				return fmt.Errorf("from service from stream: %s", frame)
 			default:
 				return fmt.Errorf("unrecognized channel '%d' in header, 0-3 supported", fd)

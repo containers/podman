@@ -157,7 +157,7 @@ func (ic *ContainerEngine) GenerateKube(ctx context.Context, nameOrIDs []string,
 			if err != nil {
 				return nil, err
 			}
-			if !(podConfig.UsePodIPC && podConfig.UsePodNet && podConfig.UsePodUTS) {
+			if !podConfig.UsePodIPC || !podConfig.UsePodNet || !podConfig.UsePodUTS {
 				defaultKubeNS = false
 			}
 

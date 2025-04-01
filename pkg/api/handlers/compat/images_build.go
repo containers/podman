@@ -110,11 +110,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Compression             uint64   `schema:"compression"`
 		ConfigureNetwork        string   `schema:"networkmode"`
 		CPPFlags                string   `schema:"cppflags"`
-		CpuPeriod               uint64   `schema:"cpuperiod"`  //nolint:revive,stylecheck
-		CpuQuota                int64    `schema:"cpuquota"`   //nolint:revive,stylecheck
-		CpuSetCpus              string   `schema:"cpusetcpus"` //nolint:revive,stylecheck
-		CpuSetMems              string   `schema:"cpusetmems"` //nolint:revive,stylecheck
-		CpuShares               uint64   `schema:"cpushares"`  //nolint:revive,stylecheck
+		CpuPeriod               uint64   `schema:"cpuperiod"`
+		CpuQuota                int64    `schema:"cpuquota"`
+		CpuSetCpus              string   `schema:"cpusetcpus"`
+		CpuSetMems              string   `schema:"cpusetmems"`
+		CpuShares               uint64   `schema:"cpushares"`
 		DNSOptions              string   `schema:"dnsoptions"`
 		DNSSearch               string   `schema:"dnssearch"`
 		DNSServers              string   `schema:"dnsservers"`
@@ -258,7 +258,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 			for _, containerfile := range m {
 				// Add path to containerfile iff it is not URL
-				if !(strings.HasPrefix(containerfile, "http://") || strings.HasPrefix(containerfile, "https://")) {
+				if !strings.HasPrefix(containerfile, "http://") && !strings.HasPrefix(containerfile, "https://") {
 					containerfile = filepath.Join(contextDirectory,
 						filepath.Clean(filepath.FromSlash(containerfile)))
 				}

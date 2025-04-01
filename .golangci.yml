@@ -1,95 +1,82 @@
----
+version: "2"
 run:
-  concurrency: 6
-  timeout: 5m
   modules-download-mode: readonly
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: strict
+
 linters:
-  enable-all: true
-  disable:
-    # too many reports but requires attention
-    - depguard
-    - intrange # should be turned on but we have to convert each place manually as there is no auto fix function
-    - tagalign
-    - perfsprint
-    - typecheck
-    # useful hints that should be addressed
-    - testifylint # all of reports that should be fixed
-    - nakedret
-    - gosmopolitan # usage of time.Local in pkg/k8s.io
-    - tagliatelle # too many JSON keys cannot be changed due to compat
-    - dupword # too many false positives (e.g., in tests)
-    - gocognit
-    - testpackage
-    - err113
-    - errorlint
-    - wrapcheck
-    - paralleltest
-    - wsl
-    - godox
-    - tparallel
-    - nlreturn
-    - noctx
-    - nestif
-    - predeclared
-    - thelper
-    - forbidigo
-    - exhaustive
-    - gofumpt
-    - gci
-    - godot
-    - dupl
-    - funlen
-    - gochecknoglobals
-    - gochecknoinits
-    - goconst
-    - gocyclo
-    - lll
-    - gosec
-    - musttag # way to many warnings to fix for now, also some false positives
-    - mnd # way to many false positives
-    - gomoddirectives
-    - containedctx
-    - contextcheck
-    - cyclop
-    - canonicalheader # our current header values are fixed and should not be changed
-    - errname
-    - forcetypeassert
-    - ireturn
-    - varnamelen
-    - maintidx
-    - nilnil
-    - nonamedreturns
-    - exhaustruct
-    # deprecated linters
-    - tenv
-linters-settings:
-  errcheck:
-    check-blank: false
-  nolintlint:
-    allow-unused: true
-    require-specific: true
-  revive:
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - decorder
+    - dogsled
+    - durationcheck
+    - errchkjson
+    - exptostd
+    - fatcontext
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecksumtype
+    - gocritic
+    - goprintffuncname
+    - grouper
+    - iface
+    - inamedparam
+    - interfacebloat
+    - makezero
+    - mirror
+    - misspell
+    - nilerr
+    - nilnesserr
+    - nolintlint
+    - nosprintfhostport
+    - prealloc
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - testableexamples
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - usetesting
+    - wastedassign
+    - whitespace
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -ST1003 # https://staticcheck.dev/docs/checks/#ST1003 Poorly chosen identifier.
+        - -QF1008 # https://staticcheck.dev/docs/checks/#QF1008 Omit embedded fields from selector expression.
+    nolintlint:
+      require-specific: true
+    revive:
+      rules:
+        - name: unused-parameter
+          disabled: true
+  exclusions:
+    generated: strict
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-    - name: unused-parameter
-      disabled: true
+      - linters:
+          - recvcheck
+        path: pkg/k8s.io/
 
 issues:
-  # Maximum issues count per one linter.
-  # Set to 0 to disable.
-  # Default: 50
   max-issues-per-linter: 0
-  # Maximum count of issues with the same text.
-  # Set to 0 to disable.
-  # Default: 3
   max-same-issues: 0
-  exclude-dirs-use-default: true
-  exclude-dirs:
-    - contrib
-    - dependencies
-  exclude-files:
-    - swagger.go
-  exclude-rules:
-    # Exclude recvcheck from running on the imported k8s files, to much failures
-    - path: pkg/k8s.io/
-      linters:
-        - recvcheck

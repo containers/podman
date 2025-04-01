@@ -86,7 +86,7 @@ func Contains(err error, sub error) bool {
 // PodConflictErrorModel is used in remote connections with podman
 type PodConflictErrorModel struct {
 	Errs []string
-	Id   string //nolint:revive,stylecheck
+	Id   string
 }
 
 // ErrorModel is used in remote connections with podman

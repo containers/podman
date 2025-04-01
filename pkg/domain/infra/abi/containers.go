@@ -300,7 +300,7 @@ func (ic *ContainerEngine) ContainerStop(ctx context.Context, namesOrIds []strin
 				// Issue #7384 and #11384: If the container is configured for
 				// auto-removal, it might already have been removed at this point.
 				// We still need to clean up since we do not know if the other cleanup process is successful
-				if !(errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
+				if !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrRemoved) {
 					return err
 				}
 			}
@@ -498,7 +498,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 	for ctr, err := range ctrsMap {
 		report := new(reports.RmReport)
 		report.Id = ctr
-		if !(errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved)) {
+		if !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrRemoved) {
 			report.Err = err
 		}
 		report.RawInput = idToRawInput[ctr]

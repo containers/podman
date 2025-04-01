@@ -47,7 +47,7 @@ type Image struct {
 	HealthCheck   *manifest.Schema2HealthConfig `json:",omitempty"`
 }
 
-func (i *Image) Id() string { //nolint:revive,stylecheck
+func (i *Image) Id() string {
 	return i.ID
 }
 

@@ -44,10 +44,10 @@ import (
 
 var (
 	//lint:ignore ST1003
-	PODMAN_BINARY      string                              //nolint:revive,stylecheck
-	INTEGRATION_ROOT   string                              //nolint:revive,stylecheck
-	CGROUP_MANAGER     = "systemd"                         //nolint:revive,stylecheck
-	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE} //nolint:revive,stylecheck
+	PODMAN_BINARY      string
+	INTEGRATION_ROOT   string
+	CGROUP_MANAGER     = "systemd"
+	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE}
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
 )
@@ -575,7 +575,7 @@ func (p *PodmanTestIntegration) StopPod(nameOrID string) {
 
 func processTestResult(r SpecReport) {
 	tr := testResult{length: r.RunTime.Seconds(), name: r.FullText()}
-	_, err := timingsFile.WriteString(fmt.Sprintf("%s\t\t%f\n", tr.name, tr.length))
+	_, err := fmt.Fprintf(timingsFile, "%s\t\t%f\n", tr.name, tr.length)
 	Expect(err).ToNot(HaveOccurred(), "write timings")
 }
 

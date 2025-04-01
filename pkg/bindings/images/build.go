@@ -790,9 +790,6 @@ func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {
 						return err
 					}
 					di, isHardLink := checkHardLink(info)
-					if err != nil {
-						return err
-					}
 
 					hdr, err := tar.FileInfoHeader(info, "")
 					if err != nil {

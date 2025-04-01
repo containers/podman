@@ -75,9 +75,10 @@ func GeneratePodFilterFunc(filter string, filterValues []string, r *libpod.Runti
 			}
 			for _, ctrStatus := range ctrStatuses {
 				state := ctrStatus.String()
-				if ctrStatus == define.ContainerStateConfigured {
+				switch ctrStatus {
+				case define.ContainerStateConfigured:
 					state = "created"
-				} else if ctrStatus == define.ContainerStateStopped {
+				case define.ContainerStateStopped:
 					state = "exited"
 				}
 				for _, filterValue := range filterValues {

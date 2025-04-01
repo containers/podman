@@ -275,7 +275,7 @@ func (v *Volume) UsesVolumeDriver() bool {
 		}
 		return false
 	}
-	return !(v.config.Driver == define.VolumeDriverLocal || v.config.Driver == "")
+	return v.config.Driver != define.VolumeDriverLocal && v.config.Driver != ""
 }
 
 func (v *Volume) Mount() (string, error) {

@@ -788,12 +788,9 @@ func (c *Container) isWorkDirSymlink(resolvedPath string) bool {
 	// If so, that's a valid use case: return nil.
 
 	maxSymLinks := 0
-	for {
-		// Linux only supports a chain of 40 links.
-		// Reference: https://github.com/torvalds/linux/blob/master/include/linux/namei.h#L13
-		if maxSymLinks > 40 {
-			break
-		}
+	// Linux only supports a chain of 40 links.
+	// Reference: https://github.com/torvalds/linux/blob/master/include/linux/namei.h#L13
+	for maxSymLinks <= 40 {
 		resolvedSymlink, err := os.Readlink(resolvedPath)
 		if err != nil {
 			// End sym-link resolution loop.

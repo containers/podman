@@ -15,7 +15,7 @@ import (
 )
 
 // OSTree deals with operations on ostree based os's
-type OSTree struct { //nolint:revive
+type OSTree struct {
 }
 
 // Apply takes an OCI image and does an rpm-ostree rebase on the image

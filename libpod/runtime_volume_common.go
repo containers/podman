@@ -464,7 +464,7 @@ func (r *Runtime) removeVolume(ctx context.Context, v *Volume, force bool, timeo
 	} else if v.config.Driver == define.VolumeDriverImage {
 		if err := v.runtime.storageService.DeleteContainer(v.config.StorageID); err != nil {
 			// Storage container is already gone, no problem.
-			if !(errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown)) {
+			if !errors.Is(err, storage.ErrNotAContainer) && !errors.Is(err, storage.ErrContainerUnknown) {
 				return fmt.Errorf("removing volume %s storage: %w", v.Name(), err)
 			}
 			logrus.Infof("Storage for volume %s already removed", v.Name())

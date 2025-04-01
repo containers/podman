@@ -347,9 +347,10 @@ func ParseQuantity(str string) (Quantity, error) {
 	}
 
 	// So that no one but us has to think about suffixes, remove it.
-	if base == 10 {
+	switch base {
+	case 10:
 		amount.SetScale(amount.Scale() + Scale(exponent).infScale())
-	} else if base == 2 {
+	case 2:
 		// numericSuffix = 2 ** exponent
 		numericSuffix := big.NewInt(1).Lsh(bigOne, uint(exponent))
 		ub := amount.UnscaledBig()

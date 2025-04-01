@@ -48,7 +48,7 @@ function Local-Unit {
     Build-Ginkgo
     $skippackages="hack,internal\domain\infra\abi,internal\domain\infra\tunnel,libpod\lock\shm,pkg\api\handlers\libpod,pkg\api\handlers\utils,pkg\bindings,"
     $skippackages+="pkg\domain\infra\abi,pkg\emulation,pkg\machine\apple,pkg\machine\applehv,pkg\machine\e2e,pkg\machine\libkrun,"
-    $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils"
+    $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils,cmd\rootlessport"
     Run-Command "./test/tools/build/ginkgo.exe -vv -r --tags `"$remotetags`" --timeout=15m --trace --no-color --skip-package `"$skippackages`""
 }
 

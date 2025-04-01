@@ -40,7 +40,7 @@ func LogsFromContainer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !(query.Stdout || query.Stderr) {
+	if !query.Stdout && !query.Stderr {
 		msg := fmt.Sprintf("%s: you must choose at least one stream", http.StatusText(http.StatusBadRequest))
 		utils.Error(w, http.StatusBadRequest, fmt.Errorf("%s for %s", msg, r.URL.String()))
 		return

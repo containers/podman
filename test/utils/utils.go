@@ -20,9 +20,9 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	. "github.com/onsi/ginkgo/v2"    //nolint:revive,stylecheck
-	. "github.com/onsi/gomega"       //nolint:revive,stylecheck
-	. "github.com/onsi/gomega/gexec" //nolint:revive,stylecheck
+	. "github.com/onsi/ginkgo/v2"    //nolint:staticcheck // ST1001: should not use dot imports
+	. "github.com/onsi/gomega"       //nolint:staticcheck // ST1001: should not use dot imports
+	. "github.com/onsi/gomega/gexec" //nolint:staticcheck // ST1001: should not use dot imports
 )
 
 type NetworkBackend int

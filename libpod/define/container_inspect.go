@@ -356,8 +356,6 @@ type HealthCheckLog struct {
 // as possible from the spec and container config.
 // Some things cannot be inferred. These will be populated by spec annotations
 // (if available).
-//
-//nolint:revive,stylecheck // Field names are fixed for compatibility and cannot be changed.
 type InspectContainerHostConfig struct {
 	// Binds contains an array of user-added mounts.
 	// Both volume mounts and named volumes are included.

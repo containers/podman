@@ -10,7 +10,7 @@ import (
 // swagger:model LibpodImageSummary
 type ImageSummary struct {
 	ID          string `json:"Id"`
-	ParentId    string //nolint:revive,stylecheck
+	ParentId    string
 	RepoTags    []string
 	RepoDigests []string
 	Created     int64
@@ -34,7 +34,7 @@ type ImageSummary struct {
 	Os             string   `json:",omitempty"`
 }
 
-func (i *ImageSummary) Id() string { //nolint:revive,stylecheck
+func (i *ImageSummary) Id() string {
 	return i.ID
 }
 
@@ -59,7 +59,7 @@ type ImageLoadReport struct {
 }
 
 type ImageImportReport struct {
-	Id string //nolint:revive,stylecheck
+	Id string
 }
 
 // ImageSearchReport is the response from searching images.
@@ -90,7 +90,7 @@ type ShowTrustReport struct {
 
 // ImageMountReport describes the response from image mount
 type ImageMountReport struct {
-	Id           string //nolint:revive,stylecheck
+	Id           string
 	Name         string
 	Repositories []string
 	Path         string
@@ -99,7 +99,7 @@ type ImageMountReport struct {
 // ImageUnmountReport describes the response from umounting an image
 type ImageUnmountReport struct {
 	Err error
-	Id  string //nolint:revive,stylecheck
+	Id  string
 }
 
 // FarmInspectReport describes the response from farm inspect

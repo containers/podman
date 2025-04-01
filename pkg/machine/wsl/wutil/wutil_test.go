@@ -3,11 +3,12 @@
 package wutil
 
 import (
-	"github.com/stretchr/testify/assert"
-	"golang.org/x/text/encoding/unicode"
 	"io"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"golang.org/x/text/encoding/unicode"
 )
 
 const (

@@ -5,6 +5,9 @@ import (
 	"os/exec"
 	"strings"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega/gexec"
+
 	"github.com/containers/podman/v5/pkg/machine/define"
 )
 
@@ -33,4 +36,17 @@ func getOtherProvider() string {
 		return "wsl"
 	}
 	return ""
+}
+
+func runSystemCommand(binary string, cmdArgs []string) (*machineSession, error) {
+	GinkgoWriter.Println(binary + " " + strings.Join(cmdArgs, " "))
+	c := exec.Command(binary, cmdArgs...)
+	session, err := Start(c, GinkgoWriter, GinkgoWriter)
+	if err != nil {
+		Fail(fmt.Sprintf("Unable to start session: %q", err))
+		return nil, err
+	}
+	ms := machineSession{session}
+	ms.waitWithTimeout(defaultTimeout)
+	return &ms, nil
 }

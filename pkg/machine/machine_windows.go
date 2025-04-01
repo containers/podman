@@ -36,7 +36,6 @@ const (
 	GlobalNameWait  = 250 * time.Millisecond
 )
 
-//nolint:stylecheck
 const WM_QUIT = 0x12
 
 type WinProxyOpts struct {
@@ -131,10 +130,7 @@ func launchWinProxy(opts WinProxyOpts) (bool, string, error) {
 		return false, "", fmt.Errorf("could not start api proxy since expected pipe is not available: %s", machinePipe)
 	}
 
-	globalName := false
-	if PipeNameAvailable(GlobalNamedPipe, GlobalNameWait) {
-		globalName = true
-	}
+	globalName := PipeNameAvailable(GlobalNamedPipe, GlobalNameWait)
 
 	command, err := FindExecutablePeer(winSSHProxy)
 	if err != nil {

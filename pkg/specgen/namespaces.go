@@ -288,11 +288,11 @@ func ParseCgroupNamespace(ns string) (Namespace, error) {
 // form.
 func ParseIPCNamespace(ns string) (Namespace, error) {
 	toReturn := Namespace{}
-	switch {
-	case ns == "shareable", ns == "":
+	switch ns {
+	case "shareable", "":
 		toReturn.NSMode = Shareable
 		return toReturn, nil
-	case ns == "none":
+	case "none":
 		toReturn.NSMode = None
 		return toReturn, nil
 	}

@@ -1,5 +1,3 @@
-//go:build freebsd
-
 package rctl
 
 import (
@@ -25,7 +23,7 @@ func GetRacct(filter string) (map[string]uint64, error) {
 		uintptr(unsafe.Pointer(&buf[0])),
 		uintptr(len(buf)), 0, 0)
 	if errno != 0 {
-		return nil, fmt.Errorf("error calling rctl_get_racct with filter %s: %v", errno)
+		return nil, fmt.Errorf("error calling rctl_get_racct with filter %s: %v", filter, errno)
 	}
 	len := bytes.IndexByte(buf[:], byte(0))
 	entries := strings.Split(string(buf[:len]), ",")

@@ -37,7 +37,7 @@ func NewCompatAPIDecoder() *schema.Decoder {
 	// mimic behaviour of github.com/docker/docker/api/server/httputils.BoolValue()
 	dec.RegisterConverter(true, func(s string) reflect.Value {
 		s = strings.ToLower(strings.TrimSpace(s))
-		return reflect.ValueOf(!(s == "" || s == "0" || s == "no" || s == "false" || s == "none"))
+		return reflect.ValueOf(s != "" && s != "0" && s != "no" && s != "false" && s != "none")
 	})
 
 	return dec
