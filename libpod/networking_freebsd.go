@@ -157,7 +157,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n string, q map[string]types.Stat
 		jconf.Set("persist", false)
 		if err := j.Set(jconf); err != nil {
 			// Log this error and return the error from configureNetNS
-			logrus.Errorf("failed to destroy vnet jail %s: %w", netns, err)
+			logrus.Errorf("failed to destroy vnet jail %s: %v", netns, err)
 		}
 	}
 	return netns, networkStatus, err
