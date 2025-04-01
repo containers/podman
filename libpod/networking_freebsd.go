@@ -145,7 +145,7 @@ func (r *Runtime) createNetNS(ctr *Container) (n string, q map[string]types.Stat
 	jconf.Set("securelevel", -1)
 	j, err := jail.Create(jconf)
 	if err != nil {
-		return "", nil, fmt.Errorf("Failed to create vnet jail %s for container %s: %w", netns, ctr.ID(), err)
+		return "", nil, fmt.Errorf("failed to create vnet jail %s for container %s: %w", netns, ctr.ID(), err)
 	}
 
 	logrus.Debugf("Created vnet jail %s for container %s", netns, ctr.ID())
