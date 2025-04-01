@@ -429,25 +429,25 @@ func parseOverrideXattr(xstat []byte) (Stat, error) {
 	var stat Stat
 	attrs := strings.Split(string(xstat), ":")
 	if len(attrs) < 3 {
-		return stat, fmt.Errorf("The number of parts in %s is less than 3",
+		return stat, fmt.Errorf("the number of parts in %s is less than 3",
 			ContainersOverrideXattr)
 	}
 
 	value, err := strconv.ParseUint(attrs[0], 10, 32)
 	if err != nil {
-		return stat, fmt.Errorf("Failed to parse UID: %w", err)
+		return stat, fmt.Errorf("failed to parse UID: %w", err)
 	}
 	stat.IDs.UID = int(value)
 
 	value, err = strconv.ParseUint(attrs[1], 10, 32)
 	if err != nil {
-		return stat, fmt.Errorf("Failed to parse GID: %w", err)
+		return stat, fmt.Errorf("failed to parse GID: %w", err)
 	}
 	stat.IDs.GID = int(value)
 
 	value, err = strconv.ParseUint(attrs[2], 8, 32)
 	if err != nil {
-		return stat, fmt.Errorf("Failed to parse mode: %w", err)
+		return stat, fmt.Errorf("failed to parse mode: %w", err)
 	}
 	stat.Mode = os.FileMode(value) & os.ModePerm
 	if value&0o1000 != 0 {
@@ -484,7 +484,7 @@ func parseOverrideXattr(xstat []byte) (Stat, error) {
 				return stat, err
 			}
 		} else {
-			return stat, fmt.Errorf("Invalid file type %s", typ)
+			return stat, fmt.Errorf("invalid file type %s", typ)
 		}
 	}
 	return stat, nil
@@ -494,18 +494,18 @@ func parseDevice(typ string) (int, int, error) {
 	parts := strings.Split(typ, "-")
 	// If there are more than 3 parts, just ignore them to be forward compatible
 	if len(parts) < 3 {
-		return 0, 0, fmt.Errorf("Invalid device type %s", typ)
+		return 0, 0, fmt.Errorf("invalid device type %s", typ)
 	}
 	if parts[0] != "block" && parts[0] != "char" {
-		return 0, 0, fmt.Errorf("Invalid device type %s", typ)
+		return 0, 0, fmt.Errorf("invalid device type %s", typ)
 	}
 	major, err := strconv.Atoi(parts[1])
 	if err != nil {
-		return 0, 0, fmt.Errorf("Failed to parse major number: %w", err)
+		return 0, 0, fmt.Errorf("failed to parse major number: %w", err)
 	}
 	minor, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return 0, 0, fmt.Errorf("Failed to parse minor number: %w", err)
+		return 0, 0, fmt.Errorf("failed to parse minor number: %w", err)
 	}
 	return major, minor, nil
 }

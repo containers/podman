@@ -173,10 +173,10 @@ func Login(ctx context.Context, systemContext *types.SystemContext, opts *LoginO
 	if opts.StdinPassword {
 		var stdinPasswordStrBuilder strings.Builder
 		if opts.Password != "" {
-			return errors.New("Can't specify both --password-stdin and --password")
+			return errors.New("can't specify both --password-stdin and --password")
 		}
 		if opts.Username == "" {
-			return errors.New("Must provide --username with --password-stdin")
+			return errors.New("must provide --username with --password-stdin")
 		}
 		scanner := bufio.NewScanner(opts.Stdin)
 		for scanner.Scan() {

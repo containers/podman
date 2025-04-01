@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var notSupported = errors.New("reflinks are not supported on this platform")
+var errNotSupported = errors.New("reflinks are not supported on this platform")
 
 const (
 	DedupHashInvalid DedupHashMethod = iota
@@ -134,7 +134,7 @@ func DedupDirs(dirs []string, options DedupOptions) (DedupResult, error) {
 						break
 					}
 					logrus.Debugf("Failed to deduplicate: %v", err)
-					if errors.Is(err, notSupported) {
+					if errors.Is(err, errNotSupported) {
 						return dedupBytes, err
 					}
 				}
@@ -153,7 +153,7 @@ func DedupDirs(dirs []string, options DedupOptions) (DedupResult, error) {
 			return nil
 		}); err != nil {
 			// if reflinks are not supported, return immediately without errors
-			if errors.Is(err, notSupported) {
+			if errors.Is(err, errNotSupported) {
 				return res, nil
 			}
 			return res, err

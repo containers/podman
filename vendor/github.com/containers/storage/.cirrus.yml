@@ -126,7 +126,7 @@ lint_task:
         folder: $GOPATH/pkg/mod
     build_script: |
       apt-get update
-      apt-get install -y libbtrfs-dev
+      apt-get install -y libbtrfs-dev libsubid-dev
     test_script: |
       make TAGS=regex_precompile local-validate
       make lint

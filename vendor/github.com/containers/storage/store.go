@@ -3723,7 +3723,7 @@ func makeBigDataBaseName(key string) string {
 		if err != nil || size != 1 {
 			break
 		}
-		if ch != '.' && !(ch >= '0' && ch <= '9') && !(ch >= 'a' && ch <= 'z') {
+		if ch != '.' && (ch < '0' || ch > '9') && (ch < 'a' || ch > 'z') {
 			break
 		}
 	}

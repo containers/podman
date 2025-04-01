@@ -29,9 +29,7 @@ struct subid_range get_range(struct subid_range *ranges, int i)
 */
 import "C"
 
-var (
-	onceInit sync.Once
-)
+var onceInit sync.Once
 
 func readSubid(username string, isUser bool) (ranges, error) {
 	var ret ranges

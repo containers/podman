@@ -32,9 +32,9 @@ type Cmd struct {
 	*exec.Cmd
 	UnshareFlags               int
 	UseNewuidmap               bool
-	UidMappings                []specs.LinuxIDMapping // nolint: revive,golint
+	UidMappings                []specs.LinuxIDMapping //nolint: revive
 	UseNewgidmap               bool
-	GidMappings                []specs.LinuxIDMapping // nolint: revive,golint
+	GidMappings                []specs.LinuxIDMapping //nolint: revive
 	GidMappingsEnableSetgroups bool
 	Setsid                     bool
 	Setpgrp                    bool
@@ -249,7 +249,7 @@ func (c *Cmd) Start() (retErr error) {
 				if err != nil {
 					return fmt.Errorf("finding newgidmap: %w", err)
 				}
-				cmd := exec.Command(path, append([]string{pidString}, strings.Fields(strings.Replace(g.String(), "\n", " ", -1))...)...)
+				cmd := exec.Command(path, append([]string{pidString}, strings.Fields(g.String())...)...)
 				g.Reset()
 				cmd.Stdout = g
 				cmd.Stderr = g
@@ -267,7 +267,7 @@ func (c *Cmd) Start() (retErr error) {
 					}
 					logrus.Warnf("Falling back to single mapping")
 					g.Reset()
-					g.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Getegid())))
+					fmt.Fprintf(g, "0 %d 1\n", os.Getegid())
 				}
 			}
 			if !gidmapSet {
@@ -309,7 +309,7 @@ func (c *Cmd) Start() (retErr error) {
 				if err != nil {
 					return fmt.Errorf("finding newuidmap: %w", err)
 				}
-				cmd := exec.Command(path, append([]string{pidString}, strings.Fields(strings.Replace(u.String(), "\n", " ", -1))...)...)
+				cmd := exec.Command(path, append([]string{pidString}, strings.Fields(u.String())...)...)
 				u.Reset()
 				cmd.Stdout = u
 				cmd.Stderr = u
@@ -328,7 +328,7 @@ func (c *Cmd) Start() (retErr error) {
 
 					logrus.Warnf("Falling back to single mapping")
 					u.Reset()
-					u.Write([]byte(fmt.Sprintf("0 %d 1\n", os.Geteuid())))
+					fmt.Fprintf(u, "0 %d 1\n", os.Geteuid())
 				}
 			}
 			if !uidmapSet {
