@@ -255,10 +255,9 @@ func (c *Container) addSharedNamespaces(g *generate.Generator) error {
 	// the user (already present in OCI spec). If we don't have a UTS ns,
 	// set it to the host's hostname instead.
 	hostname := c.Hostname()
-	foundUTS := false
 
 	// TODO: make this optional, needs progress on adding FreeBSD section to the spec
-	foundUTS = true
+	foundUTS := true
 	g.SetHostname(hostname)
 
 	if !foundUTS {
