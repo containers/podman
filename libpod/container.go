@@ -1266,6 +1266,11 @@ func (c *Container) IsInfra() bool {
 	return c.config.IsInfra
 }
 
+// IsDefaultInfra returns whether the container is a default infra container generated directly by podman
+func (c *Container) IsDefaultInfra() bool {
+	return c.config.IsDefaultInfra
+}
+
 // IsInitCtr returns whether the container is an init container
 func (c *Container) IsInitCtr() bool {
 	return len(c.config.InitContainerType) > 0

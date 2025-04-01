@@ -183,6 +183,10 @@ func (c *Container) validate() error {
 		}
 	}
 
+	if c.config.IsDefaultInfra && !c.config.IsInfra {
+		return fmt.Errorf("default rootfs-based infra container is set for non-infra container")
+	}
+
 	return nil
 }
 

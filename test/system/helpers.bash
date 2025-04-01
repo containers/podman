@@ -452,21 +452,6 @@ function clean_setup() {
     if [[ -z "$found_needed_image" ]]; then
         _prefetch $PODMAN_TEST_IMAGE_FQN
     fi
-
-    # Load (create, actually) the pause image. This way, all pod tests will
-    # have it available. Without this, pod tests run in parallel will leave
-    # behind <none>:<none> images.
-    # FIXME: only do this when running parallel! Otherwise, we may break
-    #        test expectations.
-    #        SUB-FIXME: there's no actual way to tell if we're running bats
-    #                   in parallel (see bats-core#998). Use undocumented hack.
-    # FIXME: #23292 -- this should not be necessary.
-    if [[ -n "$BATS_SEMAPHORE_DIR" ]]; then
-        run_podman pod create mypod
-        run_podman pod rm mypod
-        # And now, we have a pause image, and each test does not
-        # need to build their own.
-    fi
 }
 
 # END   setup/teardown tools
@@ -810,15 +795,6 @@ function journald_unavailable() {
     echo "WEIRD: 'journalctl -n 1' failed with a non-permission error:"
     echo "$output"
     return 1
-}
-
-# Returns the name of the local pause image.
-function pause_image() {
-    # This function is intended to be used as '$(pause_image)', i.e.
-    # our caller wants our output. run_podman() messes with output because
-    # it emits the command invocation to stdout, hence the redirection.
-    run_podman version --format "{{.Server.Version}}-{{.Server.Built}}" >/dev/null
-    echo "localhost/podman-pause:$output"
 }
 
 # Wait for the pod (1st arg) to transition into the state (2nd arg)

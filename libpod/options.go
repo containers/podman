@@ -1648,6 +1648,20 @@ func withIsInfra() CtrCreateOption {
 	}
 }
 
+// withIsDefaultInfra allows us to differentiate between the default infra containers generated
+// directly by podman and custom infra containers within the container config
+func withIsDefaultInfra() CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.IsDefaultInfra = true
+
+		return nil
+	}
+}
+
 // WithIsService allows us to differentiate between service containers and other container
 // within the container config.  It also sets the exit-code propagation of the
 // service container.

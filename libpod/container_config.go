@@ -404,6 +404,9 @@ type ContainerMiscConfig struct {
 	// IsInfra is a bool indicating whether this container is an infra container used for
 	// sharing kernel namespaces in a pod
 	IsInfra bool `json:"pause"`
+	// IsDefaultInfra is a bool indicating whether this container is a default infra container
+	// using the default rootfs with catatonit bind-mounted into it.
+	IsDefaultInfra bool `json:"defaultPause"`
 	// IsService is a bool indicating whether this container is a service container used for
 	// tracking the life cycle of K8s service.
 	IsService bool `json:"isService"`

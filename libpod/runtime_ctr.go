@@ -51,6 +51,9 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, spec *spec
 	}
 	if infra {
 		options = append(options, withIsInfra())
+		if len(spec.RawImageName) == 0 {
+			options = append(options, withIsDefaultInfra())
+		}
 	}
 	return r.newContainer(ctx, rSpec, options...)
 }
@@ -246,6 +249,13 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 }
 
 func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, retErr error) {
+	if ctr.IsDefaultInfra() || ctr.IsService() {
+		_, err := ctr.prepareInitRootfs()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// normalize the networks to names
 	// the db backend only knows about network names so we have to make
 	// sure we do not use ids internally
@@ -422,7 +432,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	if ctr.restoreFromCheckpoint {
 		// Remove information about bind mount
 		// for new container from imported checkpoint
-
 		// NewFromSpec() is deprecated according to its comment
 		// however the recommended replace just causes a nil map panic
 		g := generate.NewFromSpec(ctr.config.Spec)
