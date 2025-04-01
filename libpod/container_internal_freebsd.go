@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -392,7 +393,7 @@ func (c *Container) getPlatformRunPath() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		inspectData, err := image.Inspect(nil, nil)
+		inspectData, err := image.Inspect(context.TODO(), nil)
 		if err != nil {
 			return "", err
 		}
