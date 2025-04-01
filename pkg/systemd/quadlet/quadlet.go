@@ -608,10 +608,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
+	// Create a runtime directory to allow running as a non-root user
+	service.Add(ServiceGroup, "RuntimeDirectory", "%N")
+
 	// If conmon exited uncleanly it may not have removed the container, so
 	// force it, -i makes it ignore non-existing files.
 	serviceStopCmd := createBasePodmanCommand(container, ContainerGroup)
-	serviceStopCmd.add("rm", "-v", "-f", "-i", "--cidfile=%t/%N.cid")
+	serviceStopCmd.add("rm", "-v", "-f", "-i", "--cidfile=%t/%N/%N.cid")
 	service.AddCmdline(ServiceGroup, "ExecStop", serviceStopCmd.Args)
 	// The ExecStopPost is needed when the main PID (i.e., conmon) gets killed.
 	// In that case, ExecStop is not executed but *Post only.  If both are
@@ -632,7 +635,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	podman.add(
 		// We store the container id so we can clean it up in case of failure
-		"--cidfile=%t/%N.cid",
+		"--cidfile=%t/%N/%N.cid",
 
 		// And replace any previous container with the same name, not fail
 		"--replace",
@@ -1672,14 +1675,17 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		service.Set(ServiceGroup, "SyslogIdentifier", "%N")
 	}
 
+	// Create a runtime directory to allow running as a non-root user
+	service.Add(ServiceGroup, "RuntimeDirectory", "%N")
+
 	execStart := createBasePodmanCommand(podUnit, PodGroup)
-	execStart.add("pod", "start", "--pod-id-file=%t/%N.pod-id")
+	execStart.add("pod", "start", "--pod-id-file=%t/%N/%N.pod-id")
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
 
 	execStop := createBasePodmanCommand(podUnit, PodGroup)
 	execStop.add("pod", "stop")
 	execStop.add(
-		"--pod-id-file=%t/%N.pod-id",
+		"--pod-id-file=%t/%N/%N.pod-id",
 		"--ignore",
 		"--time=10",
 	)
@@ -1688,7 +1694,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	execStopPost := createBasePodmanCommand(podUnit, PodGroup)
 	execStopPost.add("pod", "rm")
 	execStopPost.add(
-		"--pod-id-file=%t/%N.pod-id",
+		"--pod-id-file=%t/%N/%N.pod-id",
 		"--ignore",
 		"--force",
 	)
@@ -1697,8 +1703,8 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	execStartPre := createBasePodmanCommand(podUnit, PodGroup)
 	execStartPre.add("pod", "create")
 	execStartPre.add(
-		"--infra-conmon-pidfile=%t/%N.pid",
-		"--pod-id-file=%t/%N.pod-id",
+		"--infra-conmon-pidfile=%t/%N/%N.pid",
+		"--pod-id-file=%t/%N/%N.pod-id",
 		"--exit-policy=stop",
 		"--replace",
 	)
@@ -1749,7 +1755,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		"Environment", "PODMAN_SYSTEMD_UNIT=%n",
 		"Type", "forking",
 		"Restart", "on-failure",
-		"PIDFile", "%t/%N.pid",
+		"PIDFile", "%t/%N/%N.pid",
 	)
 
 	return service, warnings, nil
@@ -2239,7 +2245,7 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 			return fmt.Errorf("quadlet pod unit %s does not exist", pod)
 		}
 
-		podman.add("--pod-id-file", fmt.Sprintf("%%t/%s.pod-id", podInfo.ServiceName))
+		podman.add("--pod-id-file", fmt.Sprintf("%%t/%[1]s/%[1]s.pod-id", podInfo.ServiceName))
 
 		podServiceName := podInfo.ServiceFileName()
 		serviceUnitFile.Add(UnitGroup, "BindsTo", podServiceName)

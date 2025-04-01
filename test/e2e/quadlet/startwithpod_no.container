@@ -1,5 +1,6 @@
-# assert-key-contains "Unit" "After" "startwithpod-pod.service"
-# assert-key-contains "Unit" "BindsTo" "startwithpod-pod.service"
+## assert-key-contains "Unit" "After" "startwithpod-pod.service"
+## assert-key-contains "Unit" "BindsTo" "startwithpod-pod.service"
+## assert-podman-args "--pod-id-file" "%t/startwithpod-pod/startwithpod-pod.pod-id"
 
 [Container]
 Image=localhost/image

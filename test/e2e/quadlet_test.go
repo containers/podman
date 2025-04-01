@@ -1232,7 +1232,9 @@ BOGUS=foo
 		Entry("Pod - Quadlet Volume", "volume.pod", []string{"basic.volume"}),
 		Entry("Pod - Quadlet Network overriding service name", "network.servicename.quadlet.pod", []string{"service-name.network"}),
 		Entry("Pod - Quadlet Volume overriding service name", "volume.servicename.pod", []string{"service-name.volume"}),
-		Entry("Pod - Do not autostart a container with pod", "startwithpod.pod", []string{"startwithpod_no.container", "startwithpod_yes.container"}),
+		Entry("Pod - Do not autostart a container with pod (pod)", "startwithpod.pod", []string{"startwithpod_no.container", "startwithpod_yes.container"}),
+		Entry("Pod - Do not autostart a container with pod (no container)", "startwithpod_no.container", []string{"startwithpod.pod", "startwithpod_yes.container"}),
+		Entry("Pod - Do not autostart a container with pod (yes container)", "startwithpod_yes.container", []string{"startwithpod.pod", "startwithpod_no.container"}),
 		Entry(
 			"Pod - Dependency between quadlet units",
 			"dependent.pod",
