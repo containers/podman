@@ -68,7 +68,7 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 	}
 
 	// Similar to infra containers, a service container is using the pause image.
-	image, err := generate.PullOrBuildInfraImage(ic.Libpod, "")
+	image, err := generate.PullInfraImage(ic.Libpod, "")
 	if err != nil {
 		return nil, fmt.Errorf("image for service container: %w", err)
 	}
@@ -97,6 +97,13 @@ func (ic *ContainerEngine) createServiceContainer(ctx context.Context, name stri
 		return nil, fmt.Errorf("completing spec for service container: %w", err)
 	}
 	s.Name = name
+
+	if len(image) == 0 {
+		err = generate.PrepareInfraSpec(rtc, []string{}, s)
+		if err != nil {
+			return nil, fmt.Errorf("preparing pause container spec: %w", err)
+		}
+	}
 
 	expandForKube(s)
 	runtimeSpec, spec, opts, err := generate.MakeContainer(ctx, ic.Libpod, s, false, nil)
@@ -1305,6 +1312,10 @@ func (ic *ContainerEngine) buildOrPullImage(ctx context.Context, cwd string, wri
 func (ic *ContainerEngine) getImageAndLabelInfo(ctx context.Context, cwd string, annotations map[string]string, writer io.Writer, container v1.Container, options entities.PlayKubeOptions) (*libimage.Image, map[string]string, error) {
 	// Contains all labels obtained from kube
 	labels := make(map[string]string)
+
+	if len(container.Image) == 0 {
+		return nil, labels, nil
+	}
 
 	pulledImage, err := ic.buildOrPullImage(ctx, cwd, writer, container.Image, container.ImagePullPolicy, options)
 	if err != nil {
