@@ -9,12 +9,10 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/containers/buildah/pkg/jail"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
 )
 
@@ -44,38 +42,6 @@ type NetstatAddress struct {
 	DroppedPackets uint64 `json:"dropped-packets"`
 
 	Collisions uint64 `json:"collisions"`
-}
-
-type RootlessNetNS struct {
-	dir  string
-	Lock *lockfile.LockFile
-}
-
-// getPath will join the given path to the rootless netns dir
-func (r *RootlessNetNS) getPath(path string) string {
-	return filepath.Join(r.dir, path)
-}
-
-// Do - run the given function in the rootless netns.
-// It does not lock the rootlessCNI lock, the caller
-// should only lock when needed, e.g. for network operations.
-func (r *RootlessNetNS) Do(toRun func() error) error {
-	return errors.New("not supported on freebsd")
-}
-
-// Cleanup the rootless network namespace if needed.
-// It checks if we have running containers with the bridge network mode.
-// Cleanup() expects that r.Lock is locked
-func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
-	return errors.New("not supported on freebsd")
-}
-
-// GetRootlessNetNs returns the rootless netns object. If create is set to true
-// the rootless network namespace will be created if it does not already exist.
-// If called as root it returns always nil.
-// On success the returned RootlessCNI lock is locked and must be unlocked by the caller.
-func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
-	return nil, nil
 }
 
 func getSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
@@ -263,8 +229,4 @@ func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBloc
 
 func (c *Container) reloadRootlessRLKPortMapping() error {
 	return errors.New("unsupported (*Container).reloadRootlessRLKPortMapping")
-}
-
-func (c *Container) setupRootlessNetwork() error {
-	return nil
 }
