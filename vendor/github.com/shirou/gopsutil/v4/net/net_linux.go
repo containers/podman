@@ -27,16 +27,16 @@ const ( // Conntrack Column numbers
 	ctINVALID
 	ctIGNORE
 	ctDELETE
-	ctDELETE_LIST
+	ctDELETE_LIST //nolint:revive //FIXME
 	ctINSERT
-	ctINSERT_FAILED
+	ctINSERT_FAILED //nolint:revive //FIXME
 	ctDROP
-	ctEARLY_DROP
-	ctICMP_ERROR
-	CT_EXPEctNEW
-	ctEXPECT_CREATE
-	CT_EXPEctDELETE
-	ctSEARCH_RESTART
+	ctEARLY_DROP     //nolint:revive //FIXME
+	ctICMP_ERROR     //nolint:revive //FIXME
+	CT_EXPEctNEW     //nolint:revive //FIXME
+	ctEXPECT_CREATE  //nolint:revive //FIXME
+	CT_EXPEctDELETE  //nolint:revive //FIXME
+	ctSEARCH_RESTART //nolint:revive //FIXME
 )
 
 func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, error) {
@@ -44,7 +44,7 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	return IOCountersByFileWithContext(ctx, pernic, filename)
 }
 
-func IOCountersByFileWithContext(ctx context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
+func IOCountersByFileWithContext(_ context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
 	lines, err := common.ReadLines(filename)
 	if err != nil {
 		return nil, err
@@ -571,8 +571,7 @@ func (p *process) fillFromStatus(ctx context.Context) error {
 			continue
 		}
 		value := tabParts[1]
-		switch strings.TrimRight(tabParts[0], ":") {
-		case "Uid":
+		if strings.TrimRight(tabParts[0], ":") == "Uid" {
 			p.uids = make([]int32, 0, 4)
 			for _, i := range strings.Split(value, "\t") {
 				v, err := strconv.ParseInt(i, 10, 32)

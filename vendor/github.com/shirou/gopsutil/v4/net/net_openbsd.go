@@ -107,7 +107,7 @@ func ParseNetstat(output string, mode string,
 }
 
 // Deprecated: use process.PidsWithContext instead
-func PidsWithContext(ctx context.Context) ([]int32, error) {
+func PidsWithContext(_ context.Context) ([]int32, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -157,19 +157,19 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	return ret, nil
 }
 
-func IOCountersByFileWithContext(ctx context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
-	return IOCounters(pernic) //nolint:contextcheck //FIXME
+func IOCountersByFileWithContext(ctx context.Context, pernic bool, _ string) ([]IOCountersStat, error) {
+	return IOCountersWithContext(ctx, pernic)
 }
 
-func FilterCountersWithContext(ctx context.Context) ([]FilterStat, error) {
+func FilterCountersWithContext(_ context.Context) ([]FilterStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ConntrackStatsWithContext(ctx context.Context, percpu bool) ([]ConntrackStat, error) {
+func ConntrackStatsWithContext(_ context.Context, _ bool) ([]ConntrackStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ProtoCountersWithContext(ctx context.Context, protocols []string) ([]ProtoCountersStat, error) {
+func ProtoCountersWithContext(_ context.Context, _ []string) ([]ProtoCountersStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -310,15 +310,15 @@ func ConnectionsWithContext(ctx context.Context, kind string) ([]ConnectionStat,
 	return ret, nil
 }
 
-func ConnectionsPidWithContext(ctx context.Context, kind string, pid int32) ([]ConnectionStat, error) {
+func ConnectionsPidWithContext(_ context.Context, _ string, _ int32) ([]ConnectionStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ConnectionsMaxWithContext(ctx context.Context, kind string, maxConn int) ([]ConnectionStat, error) {
+func ConnectionsMaxWithContext(_ context.Context, _ string, _ int) ([]ConnectionStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ConnectionsPidMaxWithContext(ctx context.Context, kind string, pid int32, maxConn int) ([]ConnectionStat, error) {
+func ConnectionsPidMaxWithContext(_ context.Context, _ string, _ int32, _ int) ([]ConnectionStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -338,6 +338,6 @@ func ConnectionsPidMaxWithoutUidsWithContext(ctx context.Context, kind string, p
 	return connectionsPidMaxWithoutUidsWithContext(ctx, kind, pid, maxConn)
 }
 
-func connectionsPidMaxWithoutUidsWithContext(ctx context.Context, kind string, pid int32, maxConn int) ([]ConnectionStat, error) {
+func connectionsPidMaxWithoutUidsWithContext(_ context.Context, _ string, _ int32, _ int) ([]ConnectionStat, error) {
 	return nil, common.ErrNotImplementedError
 }

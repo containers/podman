@@ -15,23 +15,23 @@ import (
 )
 
 // Deprecated: use process.PidsWithContext instead
-func PidsWithContext(ctx context.Context) ([]int32, error) {
+func PidsWithContext(_ context.Context) ([]int32, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func IOCountersByFileWithContext(ctx context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
-	return IOCounters(pernic)
+func IOCountersByFileWithContext(ctx context.Context, pernic bool, _ string) ([]IOCountersStat, error) {
+	return IOCountersWithContext(ctx, pernic)
 }
 
-func FilterCountersWithContext(ctx context.Context) ([]FilterStat, error) {
+func FilterCountersWithContext(_ context.Context) ([]FilterStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ConntrackStatsWithContext(ctx context.Context, percpu bool) ([]ConntrackStat, error) {
+func ConntrackStatsWithContext(_ context.Context, _ bool) ([]ConntrackStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ProtoCountersWithContext(ctx context.Context, protocols []string) ([]ProtoCountersStat, error) {
+func ProtoCountersWithContext(_ context.Context, _ []string) ([]ProtoCountersStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -193,7 +193,8 @@ func parseNetstatA(output string, kind string) ([]ConnectionStat, error) {
 			continue
 		}
 
-		if strings.HasPrefix(fields[0], "f1") {
+		switch {
+		case strings.HasPrefix(fields[0], "f1"):
 			// Unix lines
 			if len(fields) < 2 {
 				// every unix connections have two lines
@@ -202,12 +203,12 @@ func parseNetstatA(output string, kind string) ([]ConnectionStat, error) {
 
 			c, err := parseNetstatUnixLine(fields)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse Unix Address (%s): %s", line, err)
+				return nil, fmt.Errorf("failed to parse Unix Address (%s): %w", line, err)
 			}
 
 			ret = append(ret, c)
 
-		} else if strings.HasPrefix(fields[0], "tcp") || strings.HasPrefix(fields[0], "udp") {
+		case strings.HasPrefix(fields[0], "tcp") || strings.HasPrefix(fields[0], "udp"):
 			// Inet lines
 			if !hasCorrectInetProto(kind, fields[0]) {
 				continue
@@ -221,11 +222,11 @@ func parseNetstatA(output string, kind string) ([]ConnectionStat, error) {
 
 			c, err := parseNetstatNetLine(line)
 			if err != nil {
-				return nil, fmt.Errorf("failed to parse Inet Address (%s): %s", line, err)
+				return nil, fmt.Errorf("failed to parse Inet Address (%s): %w", line, err)
 			}
 
 			ret = append(ret, c)
-		} else {
+		default:
 			// Header lines
 			continue
 		}
@@ -294,6 +295,6 @@ func ConnectionsPidMaxWithoutUidsWithContext(ctx context.Context, kind string, p
 	return connectionsPidMaxWithoutUidsWithContext(ctx, kind, pid, maxConn, true)
 }
 
-func connectionsPidMaxWithoutUidsWithContext(ctx context.Context, kind string, pid int32, maxConn int, skipUids bool) ([]ConnectionStat, error) {
+func connectionsPidMaxWithoutUidsWithContext(_ context.Context, _ string, _ int32, _ int, _ bool) ([]ConnectionStat, error) {
 	return []ConnectionStat{}, common.ErrNotImplementedError
 }

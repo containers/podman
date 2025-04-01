@@ -34,7 +34,7 @@ func pidsWithContext(ctx context.Context) ([]int32, error) {
 	return ret, nil
 }
 
-func (p *Process) PpidWithContext(ctx context.Context) (int32, error) {
+func (p *Process) PpidWithContext(_ context.Context) (int32, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return 0, err
@@ -66,7 +66,7 @@ func (p *Process) NameWithContext(ctx context.Context) (string, error) {
 	return name, nil
 }
 
-func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
+func (p *Process) CwdWithContext(_ context.Context) (string, error) {
 	mib := []int32{CTLKern, KernProc, KernProcCwd, p.Pid}
 	buf, length, err := common.CallSyscall(mib)
 	if err != nil {
@@ -87,7 +87,7 @@ func (p *Process) CwdWithContext(ctx context.Context) (string, error) {
 	return cwd, nil
 }
 
-func (p *Process) ExeWithContext(ctx context.Context) (string, error) {
+func (p *Process) ExeWithContext(_ context.Context) (string, error) {
 	mib := []int32{CTLKern, KernProc, KernProcPathname, p.Pid}
 	buf, _, err := common.CallSyscall(mib)
 	if err != nil {
@@ -97,7 +97,7 @@ func (p *Process) ExeWithContext(ctx context.Context) (string, error) {
 	return strings.Trim(string(buf), "\x00"), nil
 }
 
-func (p *Process) CmdlineWithContext(ctx context.Context) (string, error) {
+func (p *Process) CmdlineWithContext(_ context.Context) (string, error) {
 	mib := []int32{CTLKern, KernProc, KernProcArgs, p.Pid}
 	buf, _, err := common.CallSyscall(mib)
 	if err != nil {
@@ -110,7 +110,7 @@ func (p *Process) CmdlineWithContext(ctx context.Context) (string, error) {
 	return strings.Join(ret, " "), nil
 }
 
-func (p *Process) CmdlineSliceWithContext(ctx context.Context) ([]string, error) {
+func (p *Process) CmdlineSliceWithContext(_ context.Context) ([]string, error) {
 	mib := []int32{CTLKern, KernProc, KernProcArgs, p.Pid}
 	buf, _, err := common.CallSyscall(mib)
 	if err != nil {
@@ -131,7 +131,7 @@ func (p *Process) CmdlineSliceWithContext(ctx context.Context) ([]string, error)
 	return strParts, nil
 }
 
-func (p *Process) createTimeWithContext(ctx context.Context) (int64, error) {
+func (p *Process) createTimeWithContext(_ context.Context) (int64, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return 0, err
@@ -139,7 +139,7 @@ func (p *Process) createTimeWithContext(ctx context.Context) (int64, error) {
 	return int64(k.Start.Sec)*1000 + int64(k.Start.Usec)/1000, nil
 }
 
-func (p *Process) StatusWithContext(ctx context.Context) ([]string, error) {
+func (p *Process) StatusWithContext(_ context.Context) ([]string, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return []string{""}, err
@@ -175,7 +175,7 @@ func (p *Process) ForegroundWithContext(ctx context.Context) (bool, error) {
 	return strings.IndexByte(string(out), '+') != -1, nil
 }
 
-func (p *Process) UidsWithContext(ctx context.Context) ([]uint32, error) {
+func (p *Process) UidsWithContext(_ context.Context) ([]uint32, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return nil, err
@@ -188,7 +188,7 @@ func (p *Process) UidsWithContext(ctx context.Context) ([]uint32, error) {
 	return uids, nil
 }
 
-func (p *Process) GidsWithContext(ctx context.Context) ([]uint32, error) {
+func (p *Process) GidsWithContext(_ context.Context) ([]uint32, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return nil, err
@@ -200,7 +200,7 @@ func (p *Process) GidsWithContext(ctx context.Context) ([]uint32, error) {
 	return gids, nil
 }
 
-func (p *Process) GroupsWithContext(ctx context.Context) ([]uint32, error) {
+func (p *Process) GroupsWithContext(_ context.Context) ([]uint32, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return nil, err
@@ -214,7 +214,7 @@ func (p *Process) GroupsWithContext(ctx context.Context) ([]uint32, error) {
 	return groups, nil
 }
 
-func (p *Process) TerminalWithContext(ctx context.Context) (string, error) {
+func (p *Process) TerminalWithContext(_ context.Context) (string, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return "", err
@@ -230,7 +230,7 @@ func (p *Process) TerminalWithContext(ctx context.Context) (string, error) {
 	return termmap[ttyNr], nil
 }
 
-func (p *Process) NiceWithContext(ctx context.Context) (int32, error) {
+func (p *Process) NiceWithContext(_ context.Context) (int32, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return 0, err
@@ -238,7 +238,7 @@ func (p *Process) NiceWithContext(ctx context.Context) (int32, error) {
 	return int32(k.Nice), nil
 }
 
-func (p *Process) IOCountersWithContext(ctx context.Context) (*IOCountersStat, error) {
+func (p *Process) IOCountersWithContext(_ context.Context) (*IOCountersStat, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return nil, err
@@ -249,7 +249,7 @@ func (p *Process) IOCountersWithContext(ctx context.Context) (*IOCountersStat, e
 	}, nil
 }
 
-func (p *Process) NumThreadsWithContext(ctx context.Context) (int32, error) {
+func (p *Process) NumThreadsWithContext(_ context.Context) (int32, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return 0, err
@@ -258,7 +258,7 @@ func (p *Process) NumThreadsWithContext(ctx context.Context) (int32, error) {
 	return k.Numthreads, nil
 }
 
-func (p *Process) TimesWithContext(ctx context.Context) (*cpu.TimesStat, error) {
+func (p *Process) TimesWithContext(_ context.Context) (*cpu.TimesStat, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return nil, err
@@ -270,7 +270,7 @@ func (p *Process) TimesWithContext(ctx context.Context) (*cpu.TimesStat, error) 
 	}, nil
 }
 
-func (p *Process) MemoryInfoWithContext(ctx context.Context) (*MemoryInfoStat, error) {
+func (p *Process) MemoryInfoWithContext(_ context.Context) (*MemoryInfoStat, error) {
 	k, err := p.getKProc()
 	if err != nil {
 		return nil, err

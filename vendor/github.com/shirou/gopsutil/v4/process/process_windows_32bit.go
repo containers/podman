@@ -13,7 +13,7 @@ import (
 	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
-type PROCESS_MEMORY_COUNTERS struct {
+type PROCESS_MEMORY_COUNTERS struct { //nolint:revive //FIXME
 	CB                         uint32
 	PageFaultCount             uint32
 	PeakWorkingSetSize         uint32
@@ -79,25 +79,23 @@ func readProcessMemory(h syscall.Handle, is32BitProcess bool, address uint64, si
 		if int(ret) >= 0 && read > 0 {
 			return buffer[:read]
 		}
-	} else {
 		// reading a 64-bit process from a 32-bit one
-		if common.ProcNtWow64ReadVirtualMemory64.Find() == nil { // avoid panic
-			var read uint64
+	} else if common.ProcNtWow64ReadVirtualMemory64.Find() == nil { // avoid panic
+		var read uint64
 
-			buffer := make([]byte, size)
+		buffer := make([]byte, size)
 
-			ret, _, _ := common.ProcNtWow64ReadVirtualMemory64.Call(
-				uintptr(h),
-				uintptr(address&0xFFFFFFFF), // the call expects a 64-bit value
-				uintptr(address>>32),
-				uintptr(unsafe.Pointer(&buffer[0])),
-				uintptr(size), // the call expects a 64-bit value
-				uintptr(0),    // but size is 32-bit so pass zero as the high dword
-				uintptr(unsafe.Pointer(&read)),
-			)
-			if int(ret) >= 0 && read > 0 {
-				return buffer[:uint(read)]
-			}
+		ret, _, _ := common.ProcNtWow64ReadVirtualMemory64.Call(
+			uintptr(h),
+			uintptr(address&0xFFFFFFFF), // the call expects a 64-bit value
+			uintptr(address>>32),
+			uintptr(unsafe.Pointer(&buffer[0])),
+			uintptr(size), // the call expects a 64-bit value
+			uintptr(0),    // but size is 32-bit so pass zero as the high dword
+			uintptr(unsafe.Pointer(&read)),
+		)
+		if int(ret) >= 0 && read > 0 {
+			return buffer[:uint(read)]
 		}
 	}
 

@@ -269,13 +269,11 @@ func (p *Process) PercentWithContext(ctx context.Context, interval time.Duration
 		if err != nil {
 			return 0, err
 		}
-	} else {
-		if p.lastCPUTimes == nil {
-			// invoked first time
-			p.lastCPUTimes = cpuTimes
-			p.lastCPUTime = now
-			return 0, nil
-		}
+	} else if p.lastCPUTimes == nil {
+		// invoked first time
+		p.lastCPUTimes = cpuTimes
+		p.lastCPUTime = now
+		return 0, nil
 	}
 
 	numcpu := runtime.NumCPU()
@@ -326,12 +324,12 @@ func calculatePercent(t1, t2 *cpu.TimesStat, delta float64, numcpu int) float64 
 		return 0
 	}
 	// https://github.com/giampaolo/psutil/blob/c034e6692cf736b5e87d14418a8153bb03f6cf42/psutil/__init__.py#L1064
-	delta_proc := (t2.User - t1.User) + (t2.System - t1.System)
-	if delta_proc <= 0 {
+	deltaProc := (t2.User - t1.User) + (t2.System - t1.System)
+	if deltaProc <= 0 {
 		return 0
 	}
-	overall_percent := ((delta_proc / delta) * 100) * float64(numcpu)
-	return overall_percent
+	overallPercent := ((deltaProc / delta) * 100) * float64(numcpu)
+	return overallPercent
 }
 
 // MemoryPercent returns how many percent of the total RAM this process uses
@@ -361,7 +359,7 @@ func (p *Process) CPUPercent() (float64, error) {
 }
 
 func (p *Process) CPUPercentWithContext(ctx context.Context) (float64, error) {
-	crt_time, err := p.createTimeWithContext(ctx)
+	createTime, err := p.createTimeWithContext(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -371,7 +369,7 @@ func (p *Process) CPUPercentWithContext(ctx context.Context) (float64, error) {
 		return 0, err
 	}
 
-	created := time.Unix(0, crt_time*int64(time.Millisecond))
+	created := time.Unix(0, createTime*int64(time.Millisecond))
 	totalTime := time.Since(created).Seconds()
 	if totalTime <= 0 {
 		return 0, nil

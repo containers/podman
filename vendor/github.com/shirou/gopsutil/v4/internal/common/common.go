@@ -31,8 +31,9 @@ import (
 )
 
 var (
-	Timeout    = 3 * time.Second
-	ErrTimeout = errors.New("command timed out")
+	Timeout                = 3 * time.Second
+	ErrNotImplementedError = errors.New("not implemented yet")
+	ErrTimeout             = errors.New("command timed out")
 )
 
 type Invoker interface {
@@ -93,11 +94,9 @@ func (i FakeInvoke) Command(name string, arg ...string) ([]byte, error) {
 	return []byte{}, fmt.Errorf("could not find testdata: %s", fpath)
 }
 
-func (i FakeInvoke) CommandWithContext(ctx context.Context, name string, arg ...string) ([]byte, error) {
+func (i FakeInvoke) CommandWithContext(_ context.Context, name string, arg ...string) ([]byte, error) {
 	return i.Command(name, arg...)
 }
-
-var ErrNotImplementedError = errors.New("not implemented yet")
 
 // ReadFile reads contents from a file
 func ReadFile(filename string) (string, error) {

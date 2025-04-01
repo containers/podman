@@ -17,19 +17,19 @@ import (
 )
 
 // for double values
-type PDH_FMT_COUNTERVALUE_DOUBLE struct {
+type PDH_FMT_COUNTERVALUE_DOUBLE struct { //nolint:revive //FIXME
 	CStatus     uint32
 	DoubleValue float64
 }
 
 // for 64 bit integer values
-type PDH_FMT_COUNTERVALUE_LARGE struct {
+type PDH_FMT_COUNTERVALUE_LARGE struct { //nolint:revive //FIXME
 	CStatus    uint32
 	LargeValue int64
 }
 
 // for long values
-type PDH_FMT_COUNTERVALUE_LONG struct {
+type PDH_FMT_COUNTERVALUE_LONG struct { //nolint:revive //FIXME
 	CStatus   uint32
 	LongValue int32
 	padding   [4]byte
@@ -233,7 +233,7 @@ func ConvertDOSPath(p string) string {
 		ret, _, _ := procQueryDosDeviceW.Call(uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(szDeviceName))),
 			uintptr(unsafe.Pointer(&szTarget[0])),
 			uintptr(len(szTarget)))
-		if ret != 0 && windows.UTF16ToString(szTarget[:]) == rawDrive {
+		if ret != 0 && windows.UTF16ToString(szTarget) == rawDrive {
 			return filepath.Join(szDeviceName, p[len(rawDrive):])
 		}
 	}

@@ -892,8 +892,8 @@ github.com/secure-systems-lab/go-securesystemslib/encrypted
 # github.com/segmentio/ksuid v1.0.4
 ## explicit; go 1.12
 github.com/segmentio/ksuid
-# github.com/shirou/gopsutil/v4 v4.25.2
-## explicit; go 1.18
+# github.com/shirou/gopsutil/v4 v4.25.3
+## explicit; go 1.23
 github.com/shirou/gopsutil/v4/common
 github.com/shirou/gopsutil/v4/cpu
 github.com/shirou/gopsutil/v4/internal/common

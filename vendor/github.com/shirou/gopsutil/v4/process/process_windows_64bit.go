@@ -12,7 +12,7 @@ import (
 	"github.com/shirou/gopsutil/v4/internal/common"
 )
 
-type PROCESS_MEMORY_COUNTERS struct {
+type PROCESS_MEMORY_COUNTERS struct { //nolint:revive //FIXME
 	CB                         uint32
 	PageFaultCount             uint32
 	PeakWorkingSetSize         uint64

@@ -35,7 +35,7 @@ func SwapMemory() (*SwapMemoryStat, error) {
 	return SwapMemoryWithContext(context.Background())
 }
 
-func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
+func SwapMemoryWithContext(_ context.Context) (*SwapMemoryStat, error) {
 	// https://github.com/yanllearnn/go-osstat/blob/ae8a279d26f52ec946a03698c7f50a26cfb427e3/memory/memory_darwin.go
 	var ret *SwapMemoryStat
 
@@ -67,7 +67,7 @@ func SwapDevices() ([]*SwapDevice, error) {
 	return SwapDevicesWithContext(context.Background())
 }
 
-func SwapDevicesWithContext(ctx context.Context) ([]*SwapDevice, error) {
+func SwapDevicesWithContext(_ context.Context) ([]*SwapDevice, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -84,7 +84,7 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 	return VirtualMemoryWithContext(context.Background())
 }
 
-func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
+func VirtualMemoryWithContext(_ context.Context) (*VirtualMemoryStat, error) {
 	machLib, err := common.NewLibrary(common.System)
 	if err != nil {
 		return nil, err

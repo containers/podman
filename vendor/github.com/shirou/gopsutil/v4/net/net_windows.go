@@ -96,7 +96,7 @@ const (
 type mibIfRow2 struct {
 	InterfaceLuid               uint64
 	InterfaceIndex              uint32
-	InterfaceGuid               guid
+	InterfaceGuid               guid //nolint:revive //FIXME
 	Alias                       [maxStringSize + 1]uint16
 	Description                 [maxStringSize + 1]uint16
 	PhysicalAddressLength       uint32
@@ -113,7 +113,7 @@ type mibIfRow2 struct {
 	OperStatus                  uint32
 	AdminStatus                 uint32
 	MediaConnectState           uint32
-	NetworkGuid                 guid
+	NetworkGuid                 guid //nolint:revive //FIXME
 	ConnectionType              uint32
 	padding1                    [pad0for64_4for32]byte
 	TransmitLinkSpeed           uint64
@@ -138,7 +138,7 @@ type mibIfRow2 struct {
 	OutQLen                     uint64
 }
 
-func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, error) {
+func IOCountersWithContext(_ context.Context, pernic bool) ([]IOCountersStat, error) {
 	ifs, err := net.Interfaces()
 	if err != nil {
 		return nil, err
@@ -198,15 +198,15 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	return counters, nil
 }
 
-func IOCountersByFileWithContext(ctx context.Context, pernic bool, filename string) ([]IOCountersStat, error) {
-	return IOCounters(pernic) //nolint:contextcheck //FIXME
+func IOCountersByFileWithContext(ctx context.Context, pernic bool, _ string) ([]IOCountersStat, error) {
+	return IOCountersWithContext(ctx, pernic)
 }
 
 func ConnectionsWithContext(ctx context.Context, kind string) ([]ConnectionStat, error) {
 	return ConnectionsPidWithContext(ctx, kind, 0)
 }
 
-func ConnectionsPidWithContext(ctx context.Context, kind string, pid int32) ([]ConnectionStat, error) {
+func ConnectionsPidWithContext(_ context.Context, kind string, pid int32) ([]ConnectionStat, error) {
 	tmap, ok := netConnectionKindMap[kind]
 	if !ok {
 		return nil, fmt.Errorf("invalid kind, %s", kind)
@@ -258,7 +258,7 @@ func getNetStatWithKind(kindType netConnectionKindType) ([]ConnectionStat, error
 }
 
 // Deprecated: use process.PidsWithContext instead
-func PidsWithContext(ctx context.Context) ([]int32, error) {
+func PidsWithContext(_ context.Context) ([]int32, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -290,15 +290,15 @@ func connectionsPidMaxWithoutUidsWithContext(_ context.Context, _ string, _ int3
 	return []ConnectionStat{}, common.ErrNotImplementedError
 }
 
-func FilterCountersWithContext(ctx context.Context) ([]FilterStat, error) {
+func FilterCountersWithContext(_ context.Context) ([]FilterStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ConntrackStatsWithContext(ctx context.Context, percpu bool) ([]ConntrackStat, error) {
+func ConntrackStatsWithContext(_ context.Context, _ bool) ([]ConntrackStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func ProtoCountersWithContext(ctx context.Context, protocols []string) ([]ProtoCountersStat, error) {
+func ProtoCountersWithContext(_ context.Context, _ []string) ([]ProtoCountersStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -383,7 +383,7 @@ func getTCPConnections(family uint32) ([]ConnectionStat, error) {
 			}
 		}
 
-		err := getExtendedTcpTable(p,
+		err := getExtendedTCPTable(p,
 			&size,
 			true,
 			family,
@@ -464,7 +464,7 @@ func getUDPConnections(family uint32) ([]ConnectionStat, error) {
 			}
 		}
 
-		err := getExtendedUdpTable(
+		err := getExtendedUDPTable(
 			p,
 			&size,
 			true,
@@ -528,16 +528,16 @@ var tcpStatuses = map[mibTCPState]string{
 	12: "DELETE",
 }
 
-func getExtendedTcpTable(pTcpTable uintptr, pdwSize *uint32, bOrder bool, ulAf uint32, tableClass tcpTableClass, reserved uint32) (errcode error) {
-	r1, _, _ := syscall.Syscall6(procGetExtendedTCPTable.Addr(), 6, pTcpTable, uintptr(unsafe.Pointer(pdwSize)), getUintptrFromBool(bOrder), uintptr(ulAf), uintptr(tableClass), uintptr(reserved))
+func getExtendedTCPTable(pTCPTable uintptr, pdwSize *uint32, bOrder bool, ulAf uint32, tableClass tcpTableClass, reserved uint32) (errcode error) {
+	r1, _, _ := syscall.Syscall6(procGetExtendedTCPTable.Addr(), 6, pTCPTable, uintptr(unsafe.Pointer(pdwSize)), getUintptrFromBool(bOrder), uintptr(ulAf), uintptr(tableClass), uintptr(reserved))
 	if r1 != 0 {
 		errcode = syscall.Errno(r1)
 	}
 	return
 }
 
-func getExtendedUdpTable(pUdpTable uintptr, pdwSize *uint32, bOrder bool, ulAf uint32, tableClass udpTableClass, reserved uint32) (errcode error) {
-	r1, _, _ := syscall.Syscall6(procGetExtendedUDPTable.Addr(), 6, pUdpTable, uintptr(unsafe.Pointer(pdwSize)), getUintptrFromBool(bOrder), uintptr(ulAf), uintptr(tableClass), uintptr(reserved))
+func getExtendedUDPTable(pUDPTable uintptr, pdwSize *uint32, bOrder bool, ulAf uint32, tableClass udpTableClass, reserved uint32) (errcode error) {
+	r1, _, _ := syscall.Syscall6(procGetExtendedUDPTable.Addr(), 6, pUDPTable, uintptr(unsafe.Pointer(pdwSize)), getUintptrFromBool(bOrder), uintptr(ulAf), uintptr(tableClass), uintptr(reserved))
 	if r1 != 0 {
 		errcode = syscall.Errno(r1)
 	}

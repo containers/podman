@@ -13,7 +13,7 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 	return VirtualMemoryWithContext(context.Background())
 }
 
-func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
+func VirtualMemoryWithContext(_ context.Context) (*VirtualMemoryStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -21,7 +21,7 @@ func SwapMemory() (*SwapMemoryStat, error) {
 	return SwapMemoryWithContext(context.Background())
 }
 
-func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
+func SwapMemoryWithContext(_ context.Context) (*SwapMemoryStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
@@ -29,6 +29,6 @@ func SwapDevices() ([]*SwapDevice, error) {
 	return SwapDevicesWithContext(context.Background())
 }
 
-func SwapDevicesWithContext(ctx context.Context) ([]*SwapDevice, error) {
+func SwapDevicesWithContext(_ context.Context) ([]*SwapDevice, error) {
 	return nil, common.ErrNotImplementedError
 }

@@ -15,7 +15,7 @@ func GetPageSize() (uint64, error) {
 	return GetPageSizeWithContext(context.Background())
 }
 
-func GetPageSizeWithContext(ctx context.Context) (uint64, error) {
+func GetPageSizeWithContext(_ context.Context) (uint64, error) {
 	uvmexp, err := unix.SysctlUvmexp("vm.uvmexp2")
 	if err != nil {
 		return 0, err
@@ -27,7 +27,7 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 	return VirtualMemoryWithContext(context.Background())
 }
 
-func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
+func VirtualMemoryWithContext(_ context.Context) (*VirtualMemoryStat, error) {
 	uvmexp, err := unix.SysctlUvmexp("vm.uvmexp2")
 	if err != nil {
 		return nil, err
