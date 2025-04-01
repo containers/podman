@@ -224,7 +224,6 @@ func (c *Container) joinedNetworkNSPath() (string, bool) {
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {
 	// TODO: extract interface information from the vnet jail
 	return types.StatusBlock{}, nil
-
 }
 
 func (c *Container) reloadRootlessRLKPortMapping() error {
