@@ -66,8 +66,8 @@ github.com/containernetworking/cni v1.2.3 h1:hhOcjNVUQTnzdRJ6alC5XF+wd9mfGIUaj8F
 github.com/containernetworking/cni v1.2.3/go.mod h1:DuLgF+aPd3DzcTQTtp/Nvl1Kim23oFKdm2okJzBQA5M=
 github.com/containernetworking/plugins v1.6.2 h1:pqP8Mq923TLyef5g97XfJ/xpDeVek4yF8A4mzy9Tc4U=
 github.com/containernetworking/plugins v1.6.2/go.mod h1:SP5UG3jDO9LtmfbBJdP+nl3A1atOtbj2MBOYsnaxy64=
-github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265 h1:3cFRoMP4Up4sN/f2TOcCKSxiX/mbHCN5FwqHc+rw2B8=
-github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265/go.mod h1:8DuzWORynpU4q7coSL0aElpPVMDZFoCOnz9gzqU8Ics=
+github.com/containers/buildah v1.39.1-0.20250401180830-32d78c69be17 h1:mfnd0BqHdV8p6+pol7SelIEgG7NbJQYW4IPywGakmCY=
+github.com/containers/buildah v1.39.1-0.20250401180830-32d78c69be17/go.mod h1:AvIRsFvWfSuMNGoMm8hXFaOGvzhsnujWz1C38rk+mk4=
 github.com/containers/common v0.62.4-0.20250401165412-9b0d134f392f h1:gpfCIBHhMAzJGEPjCrCAS18Pop+RgQSK38Grre/+gqQ=
 github.com/containers/common v0.62.4-0.20250401165412-9b0d134f392f/go.mod h1:B6J/JCUcc9vgeoBFFzL5QGszpa7SoVK+mAyUNXSWI6s=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
@@ -318,8 +318,8 @@ github.com/mistifyio/go-zfs/v3 v3.0.1 h1:YaoXgBePoMA12+S1u/ddkv+QqxcfiZK4prI6HPn
 github.com/mistifyio/go-zfs/v3 v3.0.1/go.mod h1:CzVgeB0RvF2EGzQnytKVvVSDwmKJXxkOTUGbNrTja/k=
 github.com/mitchellh/mapstructure v1.5.0 h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=
 github.com/mitchellh/mapstructure v1.5.0/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
-github.com/moby/buildkit v0.20.1 h1:sT0ZXhhNo5rVbMcYfgttma3TdUHfO5JjFA0UAL8p9fY=
-github.com/moby/buildkit v0.20.1/go.mod h1:Rq9nB/fJImdk6QeM0niKtOHJqwKeYMrK847hTTDVuA4=
+github.com/moby/buildkit v0.20.2 h1:qIeR47eQ1tzI1rwz0on3Xx2enRw/1CKjFhoONVcTlMA=
+github.com/moby/buildkit v0.20.2/go.mod h1:DhaF82FjwOElTftl0JUAJpH/SUIUx4UvcFncLeOtlDI=
 github.com/moby/docker-image-spec v1.3.1 h1:jMKff3w6PgbfSa69GfNg+zN/XLhfXJGnEx3Nl2EsFP0=
 github.com/moby/docker-image-spec v1.3.1/go.mod h1:eKmb5VW8vQEh/BAr2yvVNvuiJuY6UIocYsFu/DxxRpo=
 github.com/moby/patternmatcher v0.6.0 h1:GmP9lR19aU5GqSSFko+5pRqHi+Ohk1O69aFiKkVGiPk=
