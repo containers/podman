@@ -196,19 +196,20 @@ func VirtualizationWithContext(ctx context.Context) (string, string, error) {
 	if PathExists(filename) {
 		contents, err := ReadLines(filename)
 		if err == nil {
-			if StringsContains(contents, "kvm") {
+			switch {
+			case StringsContains(contents, "kvm"):
 				system = "kvm"
 				role = "host"
-			} else if StringsContains(contents, "hv_util") {
+			case StringsContains(contents, "hv_util"):
 				system = "hyperv"
 				role = "guest"
-			} else if StringsContains(contents, "vboxdrv") {
+			case StringsContains(contents, "vboxdrv"):
 				system = "vbox"
 				role = "host"
-			} else if StringsContains(contents, "vboxguest") {
+			case StringsContains(contents, "vboxguest"):
 				system = "vbox"
 				role = "guest"
-			} else if StringsContains(contents, "vmware") {
+			case StringsContains(contents, "vmware"):
 				system = "vmware"
 				role = "guest"
 			}
@@ -273,16 +274,17 @@ func VirtualizationWithContext(ctx context.Context) (string, string, error) {
 	if PathExists(filepath.Join(filename, "self", "cgroup")) {
 		contents, err := ReadLines(filepath.Join(filename, "self", "cgroup"))
 		if err == nil {
-			if StringsContains(contents, "lxc") {
+			switch {
+			case StringsContains(contents, "lxc"):
 				system = "lxc"
 				role = "guest"
-			} else if StringsContains(contents, "docker") {
+			case StringsContains(contents, "docker"):
 				system = "docker"
 				role = "guest"
-			} else if StringsContains(contents, "machine-rkt") {
+			case StringsContains(contents, "machine-rkt"):
 				system = "rkt"
 				role = "guest"
-			} else if PathExists("/usr/bin/lxc-version") {
+			case PathExists("/usr/bin/lxc-version"):
 				system = "lxc"
 				role = "host"
 			}

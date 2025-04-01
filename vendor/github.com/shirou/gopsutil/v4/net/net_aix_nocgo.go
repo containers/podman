@@ -5,7 +5,7 @@ package net
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -19,7 +19,7 @@ func parseNetstatI(output string) ([]IOCountersStat, error) {
 
 	// Check first line is header
 	if len(lines) > 0 && strings.Fields(lines[0])[0] != "Name" {
-		return nil, fmt.Errorf("not a 'netstat -i' output")
+		return nil, errors.New("not a 'netstat -i' output")
 	}
 
 	for _, line := range lines[1:] {
@@ -88,8 +88,8 @@ func IOCountersWithContext(ctx context.Context, pernic bool) ([]IOCountersStat, 
 	if err != nil {
 		return nil, err
 	}
-	if pernic == false {
-		return getIOCountersAll(iocounters)
+	if !pernic {
+		return getIOCountersAll(iocounters), nil
 	}
 	return iocounters, nil
 }

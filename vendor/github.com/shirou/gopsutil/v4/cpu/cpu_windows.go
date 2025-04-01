@@ -17,7 +17,7 @@ import (
 
 var procGetNativeSystemInfo = common.Modkernel32.NewProc("GetNativeSystemInfo")
 
-type win32_Processor struct {
+type win32_Processor struct { //nolint:revive //FIXME
 	Family                    uint16
 	Manufacturer              string
 	Name                      string
@@ -33,7 +33,7 @@ type win32_Processor struct {
 // https://docs.microsoft.com/en-us/windows/desktop/api/winternl/nf-winternl-ntquerysysteminformation#system_processor_performance_information
 // additional fields documented here
 // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/processor_performance.htm
-type win32_SystemProcessorPerformanceInformation struct {
+type win32_SystemProcessorPerformanceInformation struct { //nolint:revive //FIXME
 	IdleTime       int64 // idle time in 100ns (this is not a filetime).
 	KernelTime     int64 // kernel time in 100ns.  kernel time includes idle time. (this is not a filetime).
 	UserTime       int64 // usertime in 100ns (this is not a filetime).
@@ -47,10 +47,10 @@ const (
 
 	// systemProcessorPerformanceInformationClass information class to query with NTQuerySystemInformation
 	// https://processhacker.sourceforge.io/doc/ntexapi_8h.html#ad5d815b48e8f4da1ef2eb7a2f18a54e0
-	win32_SystemProcessorPerformanceInformationClass = 8
+	win32_SystemProcessorPerformanceInformationClass = 8 //nolint:revive //FIXME
 
 	// size of systemProcessorPerformanceInfoSize in memory
-	win32_SystemProcessorPerformanceInfoSize = uint32(unsafe.Sizeof(win32_SystemProcessorPerformanceInformation{}))
+	win32_SystemProcessorPerformanceInfoSize = uint32(unsafe.Sizeof(win32_SystemProcessorPerformanceInformation{})) //nolint:revive //FIXME
 )
 
 // Times returns times stat per cpu and combined for all CPUs
@@ -58,7 +58,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 	return TimesWithContext(context.Background(), percpu)
 }
 
-func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
+func TimesWithContext(_ context.Context, percpu bool) ([]TimesStat, error) {
 	if percpu {
 		return perCPUTimes()
 	}

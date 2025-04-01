@@ -25,13 +25,13 @@ func VirtualMemory() (*VirtualMemoryStat, error) {
 func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 	result := &VirtualMemoryStat{}
 
-	zoneName, err := zoneName() //nolint:contextcheck //FIXME
+	zoneName, err := zoneName(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	if zoneName == "global" {
-		capacity, err := globalZoneMemoryCapacity() //nolint:contextcheck //FIXME
+		capacity, err := globalZoneMemoryCapacity(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -44,7 +44,7 @@ func VirtualMemoryWithContext(ctx context.Context) (*VirtualMemoryStat, error) {
 		result.Free = freemem
 		result.Used = result.Total - result.Free
 	} else {
-		capacity, err := nonGlobalZoneMemoryCapacity() //nolint:contextcheck //FIXME
+		capacity, err := nonGlobalZoneMemoryCapacity(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -58,12 +58,11 @@ func SwapMemory() (*SwapMemoryStat, error) {
 	return SwapMemoryWithContext(context.Background())
 }
 
-func SwapMemoryWithContext(ctx context.Context) (*SwapMemoryStat, error) {
+func SwapMemoryWithContext(_ context.Context) (*SwapMemoryStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func zoneName() (string, error) {
-	ctx := context.Background()
+func zoneName(ctx context.Context) (string, error) {
 	out, err := invoke.CommandWithContext(ctx, "zonename")
 	if err != nil {
 		return "", err
@@ -74,8 +73,7 @@ func zoneName() (string, error) {
 
 var globalZoneMemoryCapacityMatch = regexp.MustCompile(`[Mm]emory size: (\d+) Megabytes`)
 
-func globalZoneMemoryCapacity() (uint64, error) {
-	ctx := context.Background()
+func globalZoneMemoryCapacity(ctx context.Context) (uint64, error) {
 	out, err := invoke.CommandWithContext(ctx, "prtconf")
 	if err != nil {
 		return 0, err
@@ -115,8 +113,7 @@ func globalZoneFreeMemory(ctx context.Context) (uint64, error) {
 
 var kstatMatch = regexp.MustCompile(`(\S+)\s+(\S*)`)
 
-func nonGlobalZoneMemoryCapacity() (uint64, error) {
-	ctx := context.Background()
+func nonGlobalZoneMemoryCapacity(ctx context.Context) (uint64, error) {
 	out, err := invoke.CommandWithContext(ctx, "kstat", "-p", "-c", "zone_memory_cap", "memory_cap:*:*:physcap")
 	if err != nil {
 		return 0, err

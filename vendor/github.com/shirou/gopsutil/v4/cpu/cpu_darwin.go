@@ -37,10 +37,10 @@ const (
 
 // mach/processor_info.h
 const (
-	processorCpuLoadInfo = 2
+	processorCpuLoadInfo = 2 //nolint:revive //FIXME
 )
 
-type hostCpuLoadInfoData struct {
+type hostCpuLoadInfoData struct { //nolint:revive //FIXME
 	cpuTicks [cpuStateMax]uint32
 }
 
@@ -59,7 +59,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 	return TimesWithContext(context.Background(), percpu)
 }
 
-func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
+func TimesWithContext(_ context.Context, percpu bool) ([]TimesStat, error) {
 	lib, err := common.NewLibrary(common.System)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func Info() ([]InfoStat, error) {
 	return InfoWithContext(context.Background())
 }
 
-func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
+func InfoWithContext(_ context.Context) ([]InfoStat, error) {
 	var ret []InfoStat
 
 	c := InfoStat{}
@@ -121,7 +121,7 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	return append(ret, c), nil
 }
 
-func CountsWithContext(ctx context.Context, logical bool) (int, error) {
+func CountsWithContext(_ context.Context, logical bool) (int, error) {
 	var cpuArgument string
 	if logical {
 		cpuArgument = "hw.logicalcpu"

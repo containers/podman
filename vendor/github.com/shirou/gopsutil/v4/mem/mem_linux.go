@@ -50,7 +50,7 @@ func fillFromMeminfoWithContext(ctx context.Context) (*VirtualMemoryStat, *ExVir
 		}
 		key := strings.TrimSpace(fields[0])
 		value := strings.TrimSpace(fields[1])
-		value = strings.Replace(value, " kB", "", -1)
+		value = strings.ReplaceAll(value, " kB", "")
 
 		switch key {
 		case "MemTotal":

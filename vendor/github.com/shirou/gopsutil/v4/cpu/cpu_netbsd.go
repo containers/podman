@@ -36,7 +36,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 	return TimesWithContext(context.Background(), percpu)
 }
 
-func TimesWithContext(ctx context.Context, percpu bool) (ret []TimesStat, err error) {
+func TimesWithContext(_ context.Context, percpu bool) (ret []TimesStat, err error) {
 	if !percpu {
 		mib := []int32{ctlKern, kernCpTime}
 		buf, _, err := common.CallSyscall(mib)
@@ -87,7 +87,7 @@ func Info() ([]InfoStat, error) {
 	return InfoWithContext(context.Background())
 }
 
-func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
+func InfoWithContext(_ context.Context) ([]InfoStat, error) {
 	var ret []InfoStat
 	var err error
 
@@ -115,6 +115,6 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	return append(ret, c), nil
 }
 
-func CountsWithContext(ctx context.Context, logical bool) (int, error) {
+func CountsWithContext(_ context.Context, _ bool) (int, error) {
 	return runtime.NumCPU(), nil
 }
