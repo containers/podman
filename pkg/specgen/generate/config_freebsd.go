@@ -48,7 +48,9 @@ func DevicesFromPath(g *generate.Generator, devicePath string, config *config.Co
 	}
 	if st.IsDir() {
 		// For devfs, we need to add the directory as well
-		addDevice(g, resolvedDevicePath)
+		if err := addDevice(g, resolvedDevicePath); err != nil {
+			return err
+		}
 
 		found := false
 		src := resolvedDevicePath

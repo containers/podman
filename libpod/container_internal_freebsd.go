@@ -180,7 +180,9 @@ func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error
 	if err != nil {
 		return fmt.Errorf("retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
-	c.runtime.state.UpdateContainer(nsCtr)
+	if err := c.runtime.state.UpdateContainer(nsCtr); err != nil {
+		return err
+	}
 	if nsCtr.state.NetNS != "" {
 		g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS)
 	}
