@@ -2,6 +2,24 @@
 
 # Changelog
 
+## v1.39.4 (2025-03-27)
+
+    [release-1.39] Bump c/image to v5.34.3, c/common v0.62.3
+    createPlatformContainer: drop MS_REMOUNT|MS_BIND
+
+## v1.39.3 (2025-03-12)
+
+    [release-1.39] Bump c/storage to v1.57.2, c/image v5.34.2, c/common v0.62.2
+
+## v1.39.2 (2025-03-03)
+
+    [release-1.39] Bump c/image to v5.34.1, c/common v0.62.1
+
+## v1.39.1 (2025-02-25)
+
+    chroot createPlatformContainer: use MS_REMOUNT
+    chore(deps): update module github.com/go-jose/go-jose/v4 to v4.0.5 [security]
+
 ## v1.39.0 (2025-01-31)
 
     Bump c/storage v1.57.1, c/image 5.34.0,  c/common v0.62.0

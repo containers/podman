@@ -22,10 +22,9 @@ STRIP ?= strip
 GO := go
 GO_LDFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GO_GCFLAGS := $(shell if $(GO) version|grep -q gccgo; then echo "-gccgoflags"; else echo "-gcflags"; fi)
-NPROCS := $(shell nproc)
 export GO_BUILD=$(GO) build
-export GO_TEST=$(GO) test -parallel=$(NPROCS)
-RACEFLAGS ?= $(shell $(GO_TEST) -race ./pkg/dummy > /dev/null 2>&1 && echo -race)
+export GO_TEST=$(GO) test
+RACEFLAGS := $(shell $(GO_TEST) -race ./pkg/dummy > /dev/null 2>&1 && echo -race)
 
 COMMIT_NO ?= $(shell git rev-parse HEAD 2> /dev/null || true)
 GIT_COMMIT ?= $(if $(shell git status --porcelain --untracked-files=no),${COMMIT_NO}-dirty,${COMMIT_NO})

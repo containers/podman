@@ -368,6 +368,9 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 		if cp.Link {
 			return errors.New("COPY --link is not supported")
 		}
+		if cp.Parents {
+			return errors.New("COPY --parents is not supported")
+		}
 		if len(cp.Excludes) > 0 {
 			excludes = append(slices.Clone(excludes), cp.Excludes...)
 		}
@@ -424,13 +427,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 				data = strings.TrimPrefix(data, "\n")
 				// add breakline when heredoc ends for docker compat
 				data = data + "\n"
-				// Create seperate subdir for this file.
-				tmpDir, err := os.MkdirTemp(parse.GetTempDir(), "buildah-heredoc")
-				if err != nil {
-					return fmt.Errorf("unable to create tmp dir for heredoc run %q: %w", parse.GetTempDir(), err)
-				}
-				defer os.RemoveAll(tmpDir)
-				tmpFile, err := os.Create(filepath.Join(tmpDir, path.Base(filepath.ToSlash(file.Name))))
+				tmpFile, err := os.Create(filepath.Join(parse.GetTempDir(), path.Base(filepath.ToSlash(file.Name))))
 				if err != nil {
 					return fmt.Errorf("unable to create tmp file for COPY instruction at %q: %w", parse.GetTempDir(), err)
 				}
@@ -445,7 +442,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 					tmpFile.Close()
 					return fmt.Errorf("unable to write contents of heredoc file at %q: %w", tmpFile.Name(), err)
 				}
-				copySources = append(copySources, filepath.Join(filepath.Base(tmpDir), filepath.Base(tmpFile.Name())))
+				copySources = append(copySources, filepath.Base(tmpFile.Name()))
 				tmpFile.Close()
 			}
 			contextDir = parse.GetTempDir()
@@ -557,17 +554,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 					return fmt.Errorf("source can't be a URL for COPY")
 				}
 			} else {
-				// filepath.Join clean path so /./ is removed
-				if _, suffix, found := strings.Cut(src, "/./"); found && copy.Parents {
-					fullPath := filepath.Join(contextDir, src)
-					suffix = filepath.Clean(suffix)
-					prefix := strings.TrimSuffix(fullPath, suffix)
-					prefix = filepath.Clean(prefix)
-					src = prefix + "/./" + suffix
-				} else {
-					src = filepath.Join(contextDir, src)
-				}
-				sources = append(sources, src)
+				sources = append(sources, filepath.Join(contextDir, src))
 			}
 		}
 		options := buildah.AddAndCopyOptions{
@@ -588,7 +575,6 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 			InsecureSkipTLSVerify: s.executor.systemContext.DockerInsecureSkipTLSVerify,
 			MaxRetries:            s.executor.maxPullPushRetries,
 			RetryDelay:            s.executor.retryPullPushDelay,
-			Parents:               copy.Parents,
 		}
 		if len(copy.Files) > 0 {
 			// If we are copying heredoc files, we need to temporary place
@@ -1951,20 +1937,17 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 		if len(node.Original) > 4 {
 			shArg = node.Original[4:]
 		}
-
-		heredoc := ""
-		result := ""
+		if buildArgs != "" {
+			return "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " /bin/sh -c " + shArg + appendCheckSum, nil
+		}
+		result := "/bin/sh -c " + shArg
 		if len(node.Heredocs) > 0 {
 			for _, doc := range node.Heredocs {
 				heredocContent := strings.TrimSpace(doc.Content)
-				heredoc = heredoc + "\n" + heredocContent
+				result = result + "\n" + heredocContent
 			}
 		}
-		if buildArgs != "" {
-			result = result + "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " "
-		}
-		result = result + "/bin/sh -c " + shArg + heredoc + appendCheckSum
-		return result, nil
+		return result + appendCheckSum, nil
 	case "ADD", "COPY":
 		destination := node
 		for destination.Next != nil {
