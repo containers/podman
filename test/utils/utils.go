@@ -429,7 +429,7 @@ func StartSystemExec(command string, args []string) *PodmanSession {
 	return &PodmanSession{session}
 }
 
-// tagOutPutToMap parses each string in imagesOutput and returns
+// tagOutputToMap parses each string in imagesOutput and returns
 // a map whose key is a repo, and value is another map whose keys
 // are the tags found for that repo. Notice, the first array item will
 // be skipped as it's considered to be the header.

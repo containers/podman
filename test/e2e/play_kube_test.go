@@ -2155,7 +2155,7 @@ func getPersistentVolumeClaimVolume(vName string) *Volume {
 	}
 }
 
-// getConfigMap returns a new ConfigMap Volume given the name and items
+// getConfigMapVolume returns a new ConfigMap Volume given the name and items
 // of the ConfigMap.
 func getConfigMapVolume(vName string, items []map[string]string, optional bool, defaultMode *int32) *Volume { //nolint:unparam
 	vol := &Volume{
