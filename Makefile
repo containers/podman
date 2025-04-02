@@ -55,7 +55,7 @@ BUILDTAGS ?= \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
-	seccomp
+	$(if $(filter linux,$(GOOS)), seccomp,)
 # allow downstreams to easily add build tags while keeping our defaults
 BUILDTAGS += ${EXTRA_BUILDTAGS}
 # N/B: This value is managed by Renovate, manual changes are
