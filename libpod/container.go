@@ -379,10 +379,10 @@ func (c *Container) Spec() *spec.Spec {
 	return returnSpec
 }
 
-// specFromState returns the unmarshalled json config of the container.  If the
+// SpecFromState returns the unmarshalled json config of the container.  If the
 // config does not exist (e.g., because the container was never started) return
 // the spec from the config.
-func (c *Container) specFromState() (*spec.Spec, error) {
+func (c *Container) SpecFromState() (*spec.Spec, error) {
 	returnSpec := c.config.Spec
 
 	if f, err := os.Open(c.state.ConfigPath); err == nil {
