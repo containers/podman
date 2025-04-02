@@ -2916,6 +2916,10 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 	vol.lock.Lock()
 	defer vol.lock.Unlock()
 
+	return c.fixVolumePermissionsUnlocked(v, vol)
+}
+
+func (c *Container) fixVolumePermissionsUnlocked(v *ContainerNamedVolume, vol *Volume) error {
 	// The volume may need a copy-up. Check the state.
 	if err := vol.update(); err != nil {
 		return err
