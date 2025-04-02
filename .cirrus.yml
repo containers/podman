@@ -328,6 +328,9 @@ freebsd_alt_build_task:
         ALT_NAME: 'FreeBSD Cross'
     freebsd_instance:
         image_family: freebsd-13-4
+        # golangci-lint is a very, very hungry beast.
+        cpu: 4
+        memory: 8Gb
     setup_script:
         - pkg install -y gpgme bash go-md2man gmake gsed gnugrep go pkgconf zstd
     lint_script:
