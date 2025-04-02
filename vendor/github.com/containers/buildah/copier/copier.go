@@ -70,12 +70,14 @@ func extendedGlob(pattern string) (matches []string, err error) {
 		components := []string{}
 		dir := pattern
 		file := ""
-		for dir != "" && dir != string(os.PathSeparator) {
+		for dir != filepath.VolumeName(dir) && dir != string(os.PathSeparator) {
 			dir, file = filepath.Split(dir)
-			components = append([]string{file}, components...)
+			if file != "" {
+				components = append([]string{file}, components...)
+			}
 			dir = strings.TrimSuffix(dir, string(os.PathSeparator))
 		}
-		patterns := []string{string(os.PathSeparator)}
+		patterns := []string{filepath.VolumeName(dir) + string(os.PathSeparator)}
 		for i := range components {
 			var nextPatterns []string
 			if components[i] == "**" {

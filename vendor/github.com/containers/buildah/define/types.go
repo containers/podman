@@ -260,13 +260,6 @@ func parseGitBuildContext(url string) (string, string, string) {
 	return gitBranchPart[0], gitSubdir, gitBranch
 }
 
-func isGitTag(remote, ref string) bool {
-	if _, err := exec.Command("git", "ls-remote", "--exit-code", remote, ref).Output(); err != nil {
-		return true
-	}
-	return false
-}
-
 func cloneToDirectory(url, dir string) ([]byte, string, error) {
 	var cmd *exec.Cmd
 	gitRepo, gitSubdir, gitRef := parseGitBuildContext(url)
@@ -274,20 +267,18 @@ func cloneToDirectory(url, dir string) ([]byte, string, error) {
 	cmd = exec.Command("git", "init", dir)
 	combinedOutput, err := cmd.CombinedOutput()
 	if err != nil {
-		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git init`: %w", err)
+		// Return err.Error() instead of err as we want buildah to override error code with more predictable
+		// value.
+		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git init`: %s", err.Error())
 	}
 	// add origin
 	cmd = exec.Command("git", "remote", "add", "origin", gitRepo)
 	cmd.Dir = dir
 	combinedOutput, err = cmd.CombinedOutput()
 	if err != nil {
-		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git remote add`: %w", err)
-	}
-
-	if gitRef != "" {
-		if ok := isGitTag(url, gitRef); ok {
-			gitRef += ":refs/tags/" + gitRef
-		}
+		// Return err.Error() instead of err as we want buildah to override error code with more predictable
+		// value.
+		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git remote add`: %s", err.Error())
 	}
 
 	logrus.Debugf("fetching repo %q and branch (or commit ID) %q to %q", gitRepo, gitRef, dir)
@@ -296,14 +287,18 @@ func cloneToDirectory(url, dir string) ([]byte, string, error) {
 	cmd.Dir = dir
 	combinedOutput, err = cmd.CombinedOutput()
 	if err != nil {
-		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git fetch`: %w", err)
+		// Return err.Error() instead of err as we want buildah to override error code with more predictable
+		// value.
+		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git fetch`: %s", err.Error())
 	}
 
 	cmd = exec.Command("git", "checkout", "FETCH_HEAD")
 	cmd.Dir = dir
 	combinedOutput, err = cmd.CombinedOutput()
 	if err != nil {
-		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git checkout`: %w", err)
+		// Return err.Error() instead of err as we want buildah to override error code with more predictable
+		// value.
+		return combinedOutput, gitSubdir, fmt.Errorf("failed while performing `git checkout`: %s", err.Error())
 	}
 	return combinedOutput, gitSubdir, nil
 }

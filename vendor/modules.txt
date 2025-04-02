@@ -110,7 +110,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.6.2
 ## explicit; go 1.23
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.39.1-0.20250324153001-6d9381d08265
+# github.com/containers/buildah v1.39.1-0.20250401180830-32d78c69be17
 ## explicit; go 1.23.0
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -706,7 +706,7 @@ github.com/mistifyio/go-zfs/v3
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/buildkit v0.20.1
+# github.com/moby/buildkit v0.20.2
 ## explicit; go 1.22.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
