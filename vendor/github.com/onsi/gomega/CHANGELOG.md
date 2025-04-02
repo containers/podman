@@ -1,3 +1,8 @@
+## 1.37.0
+
+### Features
+- add To/ToNot/NotTo aliases for AsyncAssertion [5666f98]
+
 ## 1.36.3
 
 ### Maintenance

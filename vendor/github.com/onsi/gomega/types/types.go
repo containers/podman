@@ -70,6 +70,11 @@ type AsyncAssertion interface {
 	Should(matcher GomegaMatcher, optionalDescription ...any) bool
 	ShouldNot(matcher GomegaMatcher, optionalDescription ...any) bool
 
+	// equivalent to above
+	To(matcher GomegaMatcher, optionalDescription ...any) bool
+	ToNot(matcher GomegaMatcher, optionalDescription ...any) bool
+	NotTo(matcher GomegaMatcher, optionalDescription ...any) bool
+
 	WithOffset(offset int) AsyncAssertion
 	WithTimeout(interval time.Duration) AsyncAssertion
 	WithPolling(interval time.Duration) AsyncAssertion

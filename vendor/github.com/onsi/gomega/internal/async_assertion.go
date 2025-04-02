@@ -145,10 +145,22 @@ func (assertion *AsyncAssertion) Should(matcher types.GomegaMatcher, optionalDes
 	return assertion.match(matcher, true, optionalDescription...)
 }
 
+func (assertion *AsyncAssertion) To(matcher types.GomegaMatcher, optionalDescription ...any) bool {
+	return assertion.Should(matcher, optionalDescription...)
+}
+
 func (assertion *AsyncAssertion) ShouldNot(matcher types.GomegaMatcher, optionalDescription ...any) bool {
 	assertion.g.THelper()
 	vetOptionalDescription("Asynchronous assertion", optionalDescription...)
 	return assertion.match(matcher, false, optionalDescription...)
+}
+
+func (assertion *AsyncAssertion) ToNot(matcher types.GomegaMatcher, optionalDescription ...any) bool {
+	return assertion.ShouldNot(matcher, optionalDescription...)
+}
+
+func (assertion *AsyncAssertion) NotTo(matcher types.GomegaMatcher, optionalDescription ...any) bool {
+	return assertion.ShouldNot(matcher, optionalDescription...)
 }
 
 func (assertion *AsyncAssertion) buildDescription(optionalDescription ...any) string {
