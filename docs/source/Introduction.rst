@@ -36,7 +36,7 @@ Sometimes we can find a publicly available container image for the exact workloa
 
 Container Images aren’t actually images. They are repositories often made up of multiple layers. These layers can easily be added, saved, and shared with others by using a Containerfile (Dockerfile). This single file often contains all the instructions needed to build a new container image and can easily be shared with others publicly using tools like GitHub.
 
-Here's an example of how to build a build a container image from content that resides in a git repository::
+Here's an example of how to build a container image from content that resides in a git repository::
 
     podman build -t hello https://github.com/containers/PodmanHello.git
 
