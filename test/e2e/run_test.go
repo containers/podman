@@ -322,6 +322,13 @@ var _ = Describe("Podman run", func() {
 		osession.WaitWithDefaultTimeout()
 		Expect(osession).Should(ExitCleanly())
 		Expect(osession.OutputToString()).To(Equal("0 1234 5678"))
+
+		// Test --rootfs with an external overlay with --userns=auto
+		osession = podmanTest.Podman([]string{"run", "--userns=auto", "--rm", "--security-opt", "label=disable",
+			"--rootfs", rootfs + ":O", "cat", "/proc/self/uid_map"})
+		osession.WaitWithDefaultTimeout()
+		Expect(osession).Should(ExitCleanly())
+		Expect(osession.OutputToString()).To(ContainSubstring("1024"))
 	})
 
 	It("podman run a container with --init", func() {
