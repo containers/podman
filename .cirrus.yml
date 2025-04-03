@@ -120,6 +120,12 @@ validate-source_task:
           fi
     # Standard setup stage call, used by nearly every task in CI.
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
+    golangci-lint_cache:
+        folder: /root/.cache/golangci-lint
+        reupload_on_changes: true
+        fingerprint_script:
+            - go version
+            - grep GOLANGCI_LINT_VERSION Makefile | head -1
     # Standard main execution stage call, used by nearly every task in CI.
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
 
