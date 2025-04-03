@@ -49,7 +49,7 @@ function Local-Unit {
     $skippackages="hack,internal\domain\infra\abi,internal\domain\infra\tunnel,libpod\lock\shm,pkg\api\handlers\libpod,pkg\api\handlers\utils,pkg\bindings,"
     $skippackages+="pkg\domain\infra\abi,pkg\emulation,pkg\machine\apple,pkg\machine\applehv,pkg\machine\e2e,pkg\machine\libkrun,"
     $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils,cmd\rootlessport"
-    Run-Command "./test/tools/build/ginkgo.exe -vv -r --tags `"$remotetags`" --timeout=15m --trace --no-color --skip-package `"$skippackages`""
+    Run-Command "./bin/ginkgo.exe -vv -r --tags `"$remotetags`" --timeout=15m --trace --no-color --skip-package `"$skippackages`""
 }
 
 function Local-Machine {
@@ -61,7 +61,7 @@ function Local-Machine {
          $files = " --focus-file $files "
     }
 
-    Run-Command "./test/tools/build/ginkgo.exe -vv  --tags `"$remotetags`" --timeout=90m --trace --no-color $files pkg/machine/e2e/."
+    Run-Command "./bin/ginkgo.exe -vv  --tags `"$remotetags`" --timeout=90m --trace --no-color $files pkg/machine/e2e/."
 }
 
 # Expect starting directory to be /podman
@@ -223,11 +223,11 @@ function Lint{
 
 # Helpers
 function Build-Ginkgo{
-    if (Test-Path -Path ./test/tools/build/ginkgo.exe -PathType Leaf) {
+    if (Test-Path -Path ./bin/ginkgo.exe -PathType Leaf) {
         return
     }
     Write-Host "Building Ginkgo"
-    Run-Command "go build -o ./test/tools/build/ginkgo.exe ./vendor/github.com/onsi/ginkgo/v2/ginkgo"
+    Run-Command "go build -o ./bin/ginkgo.exe ./vendor/github.com/onsi/ginkgo/v2/ginkgo"
 }
 
 function Git-Commit{

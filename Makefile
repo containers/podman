@@ -135,7 +135,7 @@ GINKGOTIMEOUT ?= -timeout=90m
 # By default, run test/e2e
 GINKGOWHAT ?= test/e2e/.
 GINKGO_PARALLEL=y
-GINKGO ?= ./test/tools/build/ginkgo
+GINKGO ?= ./bin/ginkgo
 
 # Allow control over some Ginkgo parameters
 GINKGO_FLAKE_ATTEMPTS ?= 0
@@ -1029,7 +1029,7 @@ install.tools: .install.golangci-lint ## Install needed tools
 
 .PHONY: .install.ginkgo
 .install.ginkgo:
-	$(MAKE) -C test/tools build/ginkgo
+	$(GO) build -o $(GINKGO) ./vendor/github.com/onsi/ginkgo/v2/ginkgo
 
 .PHONY: .install.gitvalidation
 .install.gitvalidation:
