@@ -55,6 +55,7 @@ BUILDTAGS ?= \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
+	$(shell hack/libsqlite3_tag.sh) \
 	seccomp
 # allow downstreams to easily add build tags while keeping our defaults
 BUILDTAGS += ${EXTRA_BUILDTAGS}
