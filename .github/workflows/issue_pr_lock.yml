@@ -54,7 +54,7 @@ jobs:
       # Ref: https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/making-authenticated-api-requests-with-a-github-app-in-a-github-actions-workflow
       - name: Obtain Stale Locking App token
         id: generate-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v2
         with:
           # N/B: These are both defined at the containers-org level
           app-id: ${{ vars.STALE_LOCKING_APP_ID }}
