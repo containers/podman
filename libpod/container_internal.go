@@ -536,12 +536,8 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		return fmt.Errorf("creating container storage: %w", containerInfoErr)
 	}
 
-	// Only reconfig IDMappings if layer was mounted from storage.
-	// If it's an external overlay do not reset IDmappings.
-	if !c.config.RootfsOverlay {
-		c.config.IDMappings.UIDMap = containerInfo.UIDMap
-		c.config.IDMappings.GIDMap = containerInfo.GIDMap
-	}
+	c.config.IDMappings.UIDMap = containerInfo.UIDMap
+	c.config.IDMappings.GIDMap = containerInfo.GIDMap
 
 	processLabel, err := c.processLabel(containerInfo.ProcessLabel)
 	if err != nil {
