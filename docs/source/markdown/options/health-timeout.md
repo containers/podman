@@ -10,3 +10,5 @@ value can be expressed in a time format such as **1m22s**. The default value is 
 Note: A timeout marks the healthcheck as failed but does not terminate the running process.
 This ensures that a slow but eventually successful healthcheck does not disrupt the container
 but is still accounted for in the health status.
+
+Note: This parameter will overwrite related healthcheck configuration from the image.
