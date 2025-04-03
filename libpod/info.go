@@ -231,14 +231,15 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	if err := syscall.Statfs(r.store.GraphRoot(), &grStats); err != nil {
 		return nil, fmt.Errorf("unable to collect graph root usage for %q: %w", r.store.GraphRoot(), err)
 	}
-	allocated := uint64(grStats.Bsize) * grStats.Blocks
+	bsize := uint64(grStats.Bsize) //nolint:unconvert,nolintlint // Bsize is not always uint64 on Linux.
+	allocated := bsize * grStats.Blocks
 	info := define.StoreInfo{
 		ImageStore:         imageInfo,
 		ImageCopyTmpDir:    os.Getenv("TMPDIR"),
 		ContainerStore:     conInfo,
 		GraphRoot:          r.store.GraphRoot(),
 		GraphRootAllocated: allocated,
-		GraphRootUsed:      allocated - (uint64(grStats.Bsize) * grStats.Bfree),
+		GraphRootUsed:      allocated - (bsize * grStats.Bfree),
 		RunRoot:            r.store.RunRoot(),
 		GraphDriverName:    r.store.GraphDriverName(),
 		GraphOptions:       nil,

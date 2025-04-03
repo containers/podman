@@ -3,6 +3,7 @@
 package libpod
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -180,7 +181,9 @@ func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error
 	if err != nil {
 		return fmt.Errorf("retrieving dependency %s of container %s from state: %w", ctr, c.ID(), err)
 	}
-	c.runtime.state.UpdateContainer(nsCtr)
+	if err := c.runtime.state.UpdateContainer(nsCtr); err != nil {
+		return err
+	}
 	if nsCtr.state.NetNS != "" {
 		g.AddAnnotation("org.freebsd.parentJail", nsCtr.state.NetNS)
 	}
@@ -252,10 +255,9 @@ func (c *Container) addSharedNamespaces(g *generate.Generator) error {
 	// the user (already present in OCI spec). If we don't have a UTS ns,
 	// set it to the host's hostname instead.
 	hostname := c.Hostname()
-	foundUTS := false
 
 	// TODO: make this optional, needs progress on adding FreeBSD section to the spec
-	foundUTS = true
+	foundUTS := true
 	g.SetHostname(hostname)
 
 	if !foundUTS {
@@ -390,7 +392,7 @@ func (c *Container) getPlatformRunPath() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		inspectData, err := image.Inspect(nil, nil)
+		inspectData, err := image.Inspect(context.TODO(), nil)
 		if err != nil {
 			return "", err
 		}

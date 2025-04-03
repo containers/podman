@@ -21,7 +21,7 @@ func IsRootless() bool {
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.  It is a convenience function for BecomeRootInUserNSWithOpts with a default configuration.
 func BecomeRootInUserNS(pausePid string) (bool, int, error) {
-	return false, -1, errors.New("Rootless mode is not supported on FreeBSD - run podman as root")
+	return false, -1, errors.New("rootless mode is not supported on FreeBSD - run podman as root")
 }
 
 // GetRootlessUID returns the UID of the user in the parent userNS

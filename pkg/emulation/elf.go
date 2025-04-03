@@ -1,4 +1,4 @@
-//go:build !remote
+//go:build linux && !remote
 
 package emulation
 

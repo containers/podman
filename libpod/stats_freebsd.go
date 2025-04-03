@@ -35,7 +35,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	// in a new jail
 	if dur, ok := entries["wallclock"]; ok {
 		if previousStats.Duration > dur*1000000000 {
-			previousStats = &define.ContainerStats{}
+			previousStats = &define.ContainerStats{} //nolint:wastedassign // TODO: figure this out.
 		}
 	}
 

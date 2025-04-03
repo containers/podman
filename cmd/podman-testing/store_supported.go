@@ -1,4 +1,4 @@
-//go:build linux && !remote
+//go:build (linux || freebsd) && !remote
 
 package main
 

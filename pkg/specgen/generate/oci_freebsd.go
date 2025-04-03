@@ -12,7 +12,6 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/specgen"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 )
@@ -175,6 +174,6 @@ func WeightDevices(wtDevices map[string]spec.LinuxWeightDevice) ([]spec.LinuxWei
 	return devs, nil
 }
 
-func subNegativeOne(u specs.POSIXRlimit) specs.POSIXRlimit {
+func subNegativeOne(u spec.POSIXRlimit) spec.POSIXRlimit {
 	return u
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/types"
 	"github.com/moby/sys/capability"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -308,4 +309,38 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 	}
 
 	return nil
+}
+
+func generateIDMappings(idMappings types.IDMappingOptions) *define.InspectIDMappings {
+	var inspectMappings define.InspectIDMappings
+	for _, uid := range idMappings.UIDMap {
+		inspectMappings.UIDMap = append(inspectMappings.UIDMap, fmt.Sprintf("%d:%d:%d", uid.ContainerID, uid.HostID, uid.Size))
+	}
+	for _, gid := range idMappings.GIDMap {
+		inspectMappings.GIDMap = append(inspectMappings.GIDMap, fmt.Sprintf("%d:%d:%d", gid.ContainerID, gid.HostID, gid.Size))
+	}
+	return &inspectMappings
+}
+
+// Return true if the container is running in the host's PID NS.
+func (c *Container) inHostPidNS() (bool, error) {
+	if c.config.PIDNsCtr != "" {
+		return false, nil
+	}
+	ctrSpec, err := c.specFromState()
+	if err != nil {
+		return false, err
+	}
+	if ctrSpec.Linux != nil {
+		// Locate the spec's PID namespace.
+		// If there is none, it's pid=host.
+		// If there is one and it has a path, it's "ns:".
+		// If there is no path, it's default - the empty string.
+		for _, ns := range ctrSpec.Linux.Namespaces {
+			if ns.Type == spec.PIDNamespace {
+				return false, nil
+			}
+		}
+	}
+	return true, nil
 }
