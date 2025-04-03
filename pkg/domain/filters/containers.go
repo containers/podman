@@ -14,6 +14,8 @@ import (
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/storage"
 )
 
 // GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
@@ -283,6 +285,10 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			}
 			return false
 		}, filterValueError
+	case "command":
+		return func(c *libpod.Container) bool {
+			return util.StringMatchRegexSlice(c.Command()[0], filterValues)
+		}, nil
 	}
 	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
@@ -315,4 +321,210 @@ func prepareUntilFilterFunc(filterValues []string) (func(container *libpod.Conta
 		}
 		return false
 	}, nil
+}
+
+// GenerateContainerFilterFuncs return ContainerFilter functions based of filter.
+func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, r *libpod.Runtime) (func(listContainer *types.ListContainer) bool, error) {
+	switch filter {
+	case "id":
+		return func(listContainer *types.ListContainer) bool {
+			return filters.FilterID(listContainer.ID, filterValues)
+		}, nil
+	case "name":
+		// we only have to match one name
+		return func(listContainer *types.ListContainer) bool {
+			namesList := listContainer.Names
+
+			for _, f := range filterValues {
+				f = strings.ReplaceAll(f, "/", "")
+				if util.StringMatchRegexSlice(f, namesList) {
+					return true
+				}
+			}
+
+			return false
+		}, nil
+	case "command":
+		return func(listContainer *types.ListContainer) bool {
+			return util.StringMatchRegexSlice(listContainer.Command[0], filterValues)
+		}, nil
+	case "ancestor":
+		// This needs to refine to match docker
+		// - ancestor=(<image-name>[:tag]|<image-id>| ⟨image@digest⟩) - containers created from an image or a descendant.
+		return func(listContainer *types.ListContainer) bool {
+			for _, filterValue := range filterValues {
+				var imageTag string
+				var imageNameWithoutTag string
+				// Compare with ImageID, ImageName
+				// Will match ImageName if running image has tag latest for other tags exact complete filter must be given
+				name, tag, hasColon := strings.Cut(listContainer.Image, ":")
+				if hasColon {
+					imageNameWithoutTag = name
+					imageTag = tag
+				}
+
+				if (listContainer.ImageID == filterValue) ||
+					util.StringMatchRegexSlice(listContainer.Image, filterValues) ||
+					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "before":
+		var createTime time.Time
+		var externCons []storage.Container
+		externCons, err := r.StorageContainers()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, filterValue := range filterValues {
+			for _, ctr := range externCons {
+				if slices.Contains(ctr.Names, filterValue) {
+					if createTime.IsZero() || createTime.After(ctr.Created) {
+						createTime = ctr.Created
+					}
+				}
+			}
+		}
+
+		return func(listContainer *types.ListContainer) bool {
+			return createTime.After(listContainer.Created)
+		}, nil
+	case "since":
+		var createTime time.Time
+		var externCons []storage.Container
+		externCons, err := r.StorageContainers()
+		if err != nil {
+			return nil, err
+		}
+
+		for _, filterValue := range filterValues {
+			for _, ctr := range externCons {
+				if slices.Contains(ctr.Names, filterValue) {
+					if createTime.IsZero() || createTime.After(ctr.Created) {
+						createTime = ctr.Created
+					}
+				}
+			}
+		}
+
+		return func(listContainer *types.ListContainer) bool {
+			return createTime.Before(listContainer.Created)
+		}, nil
+	case "until":
+		until, err := filters.ComputeUntilTimestamp(filterValues)
+		if err != nil {
+			return nil, err
+		}
+		return func(listContainer *types.ListContainer) bool {
+			if !until.IsZero() && listContainer.Created.Before(until) {
+				return true
+			}
+			return false
+		}, nil
+	case "status":
+		for _, filterValue := range filterValues {
+			if _, err := define.StringToContainerStatus(filterValue); err != nil {
+				return nil, err
+			}
+		}
+		return func(listContainer *types.ListContainer) bool {
+			status := listContainer.State
+			if status == define.ContainerStateConfigured.String() {
+				status = "created"
+			} else if status == define.ContainerStateStopped.String() {
+				status = "exited"
+			}
+			for _, filterValue := range filterValues {
+				if filterValue == "stopped" {
+					filterValue = "exited"
+				}
+				if status == filterValue {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "exited":
+		var exitCodes []int32
+		for _, exitCode := range filterValues {
+			ec, err := strconv.ParseInt(exitCode, 10, 32)
+			if err != nil {
+				return nil, fmt.Errorf("exited code out of range %q: %w", ec, err)
+			}
+			exitCodes = append(exitCodes, int32(ec))
+		}
+		return func(listContainer *types.ListContainer) bool {
+			ec := listContainer.ExitCode
+			exited := listContainer.Exited
+			if exited {
+				for _, exitCode := range exitCodes {
+					if ec == exitCode {
+						return true
+					}
+				}
+			}
+			return false
+		}, nil
+	case "label":
+		return func(listContainer *types.ListContainer) bool {
+			return !filters.MatchLabelFilters(filterValues, listContainer.Labels)
+		}, nil
+	case "pod":
+		var pods []*libpod.Pod
+		for _, podNameOrID := range filterValues {
+			p, err := r.LookupPod(podNameOrID)
+			if err != nil {
+				if errors.Is(err, define.ErrNoSuchPod) {
+					continue
+				}
+				return nil, err
+			}
+			pods = append(pods, p)
+		}
+		return func(listContainer *types.ListContainer) bool {
+			// if no pods match, quick out
+			if len(pods) < 1 {
+				return false
+			}
+			// if the container has no pod id, quick out
+			if len(listContainer.ID) < 1 {
+				return false
+			}
+			for _, p := range pods {
+				// we already looked up by name or id, so id match
+				// here is ok
+				if p.ID() == listContainer.ID {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "network":
+		var inputNetNames []string
+		for _, val := range filterValues {
+			net, err := r.Network().NetworkInspect(val)
+			if err != nil {
+				if errors.Is(err, define.ErrNoSuchNetwork) {
+					continue
+				}
+				return nil, err
+			}
+			inputNetNames = append(inputNetNames, net.Name)
+		}
+		return func(listContainer *types.ListContainer) bool {
+			for _, net := range listContainer.Networks {
+				if slices.Contains(inputNetNames, net) {
+					return true
+				}
+			}
+			return false
+		}, nil
+	case "restart-policy", "volume", "health":
+		return nil, fmt.Errorf("filter %s is not applicable for external containers", filter)
+	}
+
+	return nil, fmt.Errorf("%s is an invalid filter", filter)
 }
