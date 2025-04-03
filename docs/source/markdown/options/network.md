@@ -51,9 +51,7 @@ Valid _mode_ values are:
     stack. \
     This is the default for rootless containers and only supported in rootless mode. \
     By default, IPv4 and IPv6 addresses and routes, as well as the pod interface
-    name, are copied from the host. If port forwarding isn't configured, ports
-    are forwarded dynamically as services are bound on either side (init
-    namespace or container namespace). Port forwarding preserves the original
+    name, are copied from the host. Port forwarding preserves the original
     source IP address. Options described in pasta(1) can be specified as
     comma-separated arguments. \
     In terms of pasta(1) options, **--config-net** is given by default, in
@@ -62,11 +60,20 @@ Valid _mode_ values are:
     container to host using the gateway address. The latter can be overridden
     by passing **--map-gw** in the pasta-specific options (despite not being an
     actual pasta(1) option). \
+    For better integration with DNS handling, **--dns-forward 169.254.1.1** is passed,
+    and this address is added to resolv.conf(5) as first resolver. It is possible to pass
+    **--dns-forward** explicitly in case a different IP address should be used.
+    To make the `host.containers.internal` /etc/hosts entry work and allow connections
+    to the host, **--map-guest-addr 169.254.1.2** is passed. Again, it can be set
+    explicitly to choose a different IP address. \
     Also, **-t none** and **-u none** are passed if, respectively, no TCP or
-    UDP port forwarding from host to container is configured, to disable
-    automatic port forwarding based on bound ports. Similarly, **-T none** and
-    **-U none** are given to disable the same functionality from container to
+    UDP port forwarding from host to container is configured (via Podman's
+    **--publish** or by passing the pasta **-t**/**-u** options directly),
+    to disable automatic port forwarding based on bound ports. Similarly, **-T none**
+    and **-U none** are given to disable the same functionality from container to
     host. \
+    All options can also be set in **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**;
+    see the `pasta_options` key under the network section in that file. \
     Some examples:
     - **pasta:--map-gw**: Allow the container to directly reach the host using the
         gateway address.
