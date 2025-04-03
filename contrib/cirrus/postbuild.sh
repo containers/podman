@@ -38,7 +38,6 @@ cd $CIRRUS_WORKING_DIR
 showrun make -C test/tools vendor
 SUGGESTION="run 'make vendor', 'make -C test/tools vendor' and 'make completions' and commit all changes" ./hack/tree_status.sh
 
-showrun make .install.goimports
 showrun make generate-bindings
 SUGGESTION="run 'make generate-bindings' and commit all changes" ./hack/tree_status.sh
 

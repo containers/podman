@@ -7,7 +7,7 @@ formatters:
     - gofmt
     - goimports
   exclusions:
-    generated: strict
+    generated: disable
 
 linters:
   enable:

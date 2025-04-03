@@ -20,13 +20,9 @@ clean:
 
 .PHONY: $(BUILDDIR)
 $(BUILDDIR): \
-	$(BUILDDIR)/goimports \
 	$(BUILDDIR)/go-md2man \
 	$(BUILDDIR)/git-validation \
 	$(BUILDDIR)/swagger
-
-$(BUILDDIR)/goimports: $(SOURCES)
-	$(GO_BUILD) -o $@ ./vendor/golang.org/x/tools/cmd/goimports
 
 $(BUILDDIR)/go-md2man: $(SOURCES)
 	$(GO_BUILD) -o $@ ./vendor/github.com/cpuguy83/go-md2man/v2
