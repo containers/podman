@@ -23,8 +23,12 @@ load helpers.systemd
     # time to write a new post-restart time value. Pause by CID, unpause
     # by name, just to exercise code paths. While paused, check 'ps'
     # and 'inspect', then check again after restarting.
+    expect=""
+    if is_rootless && ! is_remote && [[ "$(podman_runtime)" = "runc" ]]; then
+        expect=".*warning .*runc pause may fail if you don't have the full access to cgroups"
+    fi
     run_podman --noout pause $cid
-    is "$output" "" "output should be empty"
+    is "$output" "$expect" "podman pause output"
     run_podman inspect --format '{{.State.Status}}' $cid
     is "$output" "paused" "podman inspect .State.Status"
     sleep 3
@@ -80,8 +84,13 @@ load helpers.systemd
     run_podman pause $cid
     run_podman inspect --format '{{.State.Status}}' $cid
     is "$output" "paused" "podman inspect .State.Status"
+
+    expect="$cid"
+    if is_rootless && ! is_remote && [[ "$(podman_runtime)" = "runc" ]]; then
+        expect=".*warning .*runc resume may fail if you don't have the full access to cgroups.*$cid"
+    fi
     run_podman unpause --all
-    is "$output" "$cid" "podman unpause output"
+    is "$output" "$expect" "podman unpause output"
     run_podman ps --format '{{.ID}} {{.Names}} {{.Status}}'
     is "$output" "${cid:0:12} $cname Up.*" "podman ps on resumed container"
 
@@ -113,14 +122,23 @@ load helpers.systemd
     run -0 systemctl status $cid-*.timer
     assert "$output" =~ "active" "service should be running"
 
+    expect=""
+    runtime=$(podman_runtime)
+    if [[ $runtime = "runc" ]] && is_rootless && ! is_remote; then
+        expect=".*warning .*runc pause may fail if you don't have the full access to cgroups"
+    fi
     run_podman --noout pause $ctrname
-    assert "$output" == "" "output should be empty"
+    is "$output" "$expect" "podman pause output"
 
     run -0 systemctl status $cid-*.{service,timer}
     assert "$output" == "" "service should not be running"
 
+    expect=""
+    if [[ $runtime = "runc" ]] && is_rootless && ! is_remote; then
+        expect=".*warning .*runc resume may fail if you don't have the full access to cgroups.*$cid"
+    fi
     run_podman --noout unpause $ctrname
-    assert "$output" == "" "output should be empty"
+    is "$output" "$expect" "podman unpause output"
 
     run_podman healthcheck run $ctrname
     is "$output" "" "output from 'podman healthcheck run'"
