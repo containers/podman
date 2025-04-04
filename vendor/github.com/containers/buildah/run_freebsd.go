@@ -586,17 +586,7 @@ func (b *Builder) configureNamespaces(g *generate.Generator, options *RunOptions
 		} else if b.Hostname() != "" {
 			g.SetHostname(b.Hostname())
 		} else {
-			hostname := stringid.TruncateID(b.ContainerID)
-			defConfig, err := config.Default()
-			if err != nil {
-				return false, "", fmt.Errorf("failed to get container config: %w", err)
-			}
-			if defConfig.Containers.ContainerNameAsHostName {
-				if mapped := mapContainerNameToHostname(b.Container); mapped != "" {
-					hostname = mapped
-				}
-			}
-			g.SetHostname(hostname)
+			g.SetHostname(stringid.TruncateID(b.ContainerID))
 		}
 	} else {
 		g.SetHostname("")

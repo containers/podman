@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "release-1.39"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     GOCACHE: "/tmp/go-build"
@@ -33,7 +33,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250324t111922z-f41f40d13"
+    IMAGE_SUFFIX: "c20250107t132430z-f41f40d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -50,7 +50,7 @@ env:
 gcp_credentials: ENCRYPTED[ae0bf7370f0b6e446bc61d0865a2c55d3e166b3fab9466eb0393e38e1c66a31ca4c71ddc7e0139d47d075c36dd6d3fd7]
 
 # Default timeout for each task
-timeout_in: 30m
+timeout_in: 120m
 
 # Default VM to use unless set or modified by task
 gce_instance: &standardvm
@@ -95,12 +95,12 @@ smoke_task:
 
     gce_instance:
         memory: "12G"
-        cpu: 8
+        cpu: 4
 
     # Don't bother running on branches (including cron), or for tags.
     skip: $CIRRUS_PR == ''
 
-    timeout_in: 10m
+    timeout_in: 30m
 
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
     build_script: '${SCRIPT_BASE}/build.sh |& ${_TIMESTAMP}'
@@ -122,7 +122,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.23
+        image: docker.io/library/golang:1.22
         cpu: 1
         memory: 1
 
@@ -154,8 +154,6 @@ cross_build_task:
 
 unit_task:
     name: 'Unit tests w/ $STORAGE_DRIVER'
-    gce_instance:
-      cpu: 4
     alias: unit
     skip: &not_build_docs >-
         $CIRRUS_CHANGE_TITLE =~ '.*CI:DOCS.*' ||
@@ -163,6 +161,8 @@ unit_task:
     depends_on: &smoke_vendor
       - smoke
       - vendor
+
+    timeout_in: 90m
 
     matrix:
         - env:
@@ -181,8 +181,9 @@ conformance_task:
     depends_on: *smoke_vendor
 
     gce_instance:
-        cpu: 4
         image_name: "${DEBIAN_CACHE_IMAGE_NAME}"
+
+    timeout_in: 65m
 
     matrix:
         - env:
@@ -207,7 +208,7 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
-        # Disabled until we update to f41/42 as f40 does not have go 1.22
+        # Disabled until we update to f40/41 as f39 does not have go 1.22
         # - env:
         #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
         #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
@@ -221,7 +222,7 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
-        # Disabled until we update to f41/42 as f40 does not have go 1.22
+        # Disabled until we update to f40/41 as f39 does not have go 1.22
         # - env:
         #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
         #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
@@ -233,8 +234,7 @@ integration_task:
 
     gce_instance:
         image_name: "$IMAGE_NAME"
-        cpu: 8
-        memory: "8G"
+        cpu: 4
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -282,8 +282,7 @@ integration_rootless_task:
 
     gce_instance:
         image_name: "$IMAGE_NAME"
-        cpu: 8
-        memory: "8G"
+        cpu: 4
 
     # Separate scripts for separate outputs, makes debugging easier.
     setup_script: '${SCRIPT_BASE}/setup.sh |& ${_TIMESTAMP}'
@@ -303,8 +302,7 @@ in_podman_task:
     depends_on: *smoke_vendor
 
     gce_instance:
-        cpu: 8
-        memory: "8G"
+        cpu: 4
 
     env:
         # This is key, cause the scripts to re-execute themselves inside a container.

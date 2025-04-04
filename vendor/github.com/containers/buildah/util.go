@@ -17,7 +17,7 @@ import (
 	"github.com/containers/storage/pkg/reexec"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux"
+	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 )
 
@@ -154,7 +154,9 @@ func ReserveSELinuxLabels(store storage.Store, id string) error {
 				return err
 			}
 			// Prevent different containers from using same MCS label
-			selinux.ReserveLabel(b.ProcessLabel)
+			if err := label.ReserveLabel(b.ProcessLabel); err != nil {
+				return fmt.Errorf("reserving SELinux label %q: %w", b.ProcessLabel, err)
+			}
 		}
 	}
 	return nil

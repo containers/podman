@@ -47,7 +47,6 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -57,10 +56,6 @@ import (
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 )
-
-const maxHostnameLen = 64
-
-var validHostnames = regexp.Delayed("[A-Za-z0-9][A-Za-z0-9.-]+")
 
 func (b *Builder) createResolvConf(rdir string, chownOpts *idtools.IDPair) (string, error) {
 	cfile := filepath.Join(rdir, "resolv.conf")
@@ -2096,22 +2091,4 @@ func relabel(path, mountLabel string, shared bool) error {
 		logrus.Debugf("Labeling not supported on %q", path)
 	}
 	return nil
-}
-
-// mapContainerNameToHostname returns the passed-in string with characters that
-// don't match validHostnames (defined above) stripped out.
-func mapContainerNameToHostname(containerName string) string {
-	match := validHostnames.FindStringIndex(containerName)
-	if match == nil {
-		return ""
-	}
-	trimmed := containerName[match[0]:]
-	match[1] -= match[0]
-	match[0] = 0
-	for match[1] != len(trimmed) && match[1] < match[0]+maxHostnameLen {
-		trimmed = trimmed[:match[1]] + trimmed[match[1]+1:]
-		match = validHostnames.FindStringIndex(trimmed)
-		match[1] = min(match[1], maxHostnameLen)
-	}
-	return trimmed[:match[1]]
 }

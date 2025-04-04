@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"maps"
 	"os"
+	"runtime"
 	"slices"
 	"strings"
 	"time"
 
-	"github.com/containerd/platforms"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/docker"
 	internalUtil "github.com/containers/buildah/internal/util"
@@ -137,19 +137,18 @@ func (b *Builder) fixupConfig(sys *types.SystemContext) {
 	if b.OCIv1.Created == nil || b.OCIv1.Created.IsZero() {
 		b.OCIv1.Created = &now
 	}
-	currentPlatformSpecification := platforms.DefaultSpec()
 	if b.OS() == "" {
 		if sys != nil && sys.OSChoice != "" {
 			b.SetOS(sys.OSChoice)
 		} else {
-			b.SetOS(currentPlatformSpecification.OS)
+			b.SetOS(runtime.GOOS)
 		}
 	}
 	if b.Architecture() == "" {
 		if sys != nil && sys.ArchitectureChoice != "" {
 			b.SetArchitecture(sys.ArchitectureChoice)
 		} else {
-			b.SetArchitecture(currentPlatformSpecification.Architecture)
+			b.SetArchitecture(runtime.GOARCH)
 		}
 		// in case the arch string we started with was shorthand for a known arch+variant pair, normalize it
 		ps := internalUtil.NormalizePlatform(ociv1.Platform{OS: b.OS(), Architecture: b.Architecture(), Variant: b.Variant()})
@@ -159,8 +158,6 @@ func (b *Builder) fixupConfig(sys *types.SystemContext) {
 	if b.Variant() == "" {
 		if sys != nil && sys.VariantChoice != "" {
 			b.SetVariant(sys.VariantChoice)
-		} else {
-			b.SetVariant(currentPlatformSpecification.Variant)
 		}
 		// in case the arch string we started with was shorthand for a known arch+variant pair, normalize it
 		ps := internalUtil.NormalizePlatform(ociv1.Platform{OS: b.OS(), Architecture: b.Architecture(), Variant: b.Variant()})
