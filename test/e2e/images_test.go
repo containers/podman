@@ -547,4 +547,16 @@ LABEL xyz="bar"
 		Expect(session.OutputToString()).To(ContainSubstring("test-abc-xyz"))
 	})
 
+	It("podman images <image> show duplicate images", func() {
+		containerFile := "FROM quay.io/libpod/alpine:latest"
+		imageName := "exampletestimage"
+		podmanTest.BuildImage(containerFile, imageName, "false")
+
+		result := podmanTest.PodmanExitCleanly("images", imageName)
+
+		Expect(result.OutputToStringArray()).To(HaveLen(2))
+		Expect(result.OutputToString()).To(ContainSubstring(imageName))
+		Expect(result.OutputToString()).ToNot(ContainSubstring("alpine"))
+	})
+
 })
