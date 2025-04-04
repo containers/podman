@@ -160,16 +160,8 @@ func main() {
 		}
 		closed = true
 
-		// go fmt file
-		gofmt := exec.Command("go", "fmt", out.Name())
-		gofmt.Stderr = os.Stdout
-		if err := gofmt.Run(); err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// go import file
-		goimport := exec.Command("../../../test/tools/build/goimports", "-w", out.Name())
+		// Format file.
+		goimport := exec.Command("../../../bin/golangci-lint", "fmt", out.Name())
 		goimport.Stderr = os.Stdout
 		if err := goimport.Run(); err != nil {
 			fmt.Println(err)

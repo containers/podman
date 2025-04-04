@@ -478,7 +478,7 @@ podman-testing: bin/podman-testing
 ###
 
 .PHONY: generate-bindings
-generate-bindings:
+generate-bindings: .install.golangci-lint
 ifneq ($(GOOS),darwin)
 	$(GOCMD) generate ./pkg/bindings/... ;
 endif
@@ -1022,10 +1022,6 @@ endif
 .PHONY: install.tools
 install.tools: .install.golangci-lint ## Install needed tools
 	$(MAKE) -C test/tools
-
-.PHONY: .install.goimports
-.install.goimports:
-	$(MAKE) -C test/tools build/goimports
 
 .PHONY: .install.ginkgo
 .install.ginkgo:
