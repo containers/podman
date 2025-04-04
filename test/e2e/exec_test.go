@@ -400,17 +400,14 @@ var _ = Describe("Podman exec", func() {
 		setup.WaitWithDefaultTimeout()
 		Expect(setup).Should(ExitCleanly())
 
-		expect := "chdir to `/missing`: No such file or directory"
-		if podmanTest.OCIRuntime == "runc" {
-			expect = "chdir to cwd"
-		}
+		expect := ".*(chdir to cwd|chdir to `/missing`: No such file or directory).*"
 		session := podmanTest.Podman([]string{"exec", "--workdir", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(127, expect))
+		Expect(session).To(ExitWithErrorRegex(127, expect))
 
 		session = podmanTest.Podman([]string{"exec", "-w", "/missing", "test1", "pwd"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(127, expect))
+		Expect(session).To(ExitWithErrorRegex(127, expect))
 	})
 
 	It("podman exec cannot be invoked", func() {
@@ -421,19 +418,20 @@ var _ = Describe("Podman exec", func() {
 		session := podmanTest.Podman([]string{"exec", "test1", "/etc"})
 		session.WaitWithDefaultTimeout()
 
-		// crun (and, we hope, any other future runtimes)
-		expectedStatus := 126
-		expectedMessage := "open executable: Operation not permitted: OCI permission denied"
-
 		// ...but it's much more complicated under runc (#19552)
 		if podmanTest.OCIRuntime == "runc" {
-			expectedMessage = `exec failed: unable to start container process: exec: "/etc": is a directory`
-			expectedStatus = 255
+			expectedMessage := `exec failed: unable to start container process: exec: "/etc": is a directory`
+			expectedStatus := 255
 			if IsRemote() {
 				expectedStatus = 125
 			}
+			Expect(session).Should(ExitWithError(expectedStatus, expectedMessage))
+		} else {
+			// crun (and, we hope, any other future runtimes)
+			expectedStatus := 126
+			expectedMessage := ".*(open executable|the path `/etc` is not a regular file): Operation not permitted: OCI permission denied.*"
+			Expect(session).Should(ExitWithErrorRegex(expectedStatus, expectedMessage))
 		}
-		Expect(session).Should(ExitWithError(expectedStatus, expectedMessage))
 	})
 
 	It("podman exec command not found", func() {
