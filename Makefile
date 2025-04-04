@@ -55,7 +55,7 @@ BUILDTAGS ?= \
 	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
-	seccomp
+	$(if $(filter linux,$(GOOS)), seccomp,)
 # allow downstreams to easily add build tags while keeping our defaults
 BUILDTAGS += ${EXTRA_BUILDTAGS}
 # N/B: This value is managed by Renovate, manual changes are
@@ -66,7 +66,7 @@ PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
 PRE_COMMIT = $(shell command -v bin/venv/bin/pre-commit ~/.local/bin/pre-commit pre-commit | head -n1)
-ifeq ($(shell uname -s),FreeBSD)
+ifeq ($(NATIVE_GOOS),freebsd)
 SED=gsed
 GREP=ggrep
 MAN_L=	mandoc
@@ -231,7 +231,7 @@ default: all
 all: binaries docs
 
 .PHONY: binaries
-ifeq ($(shell uname -s),FreeBSD)
+ifeq ($(GOOS),freebsd)
 binaries: podman podman-remote ## Build podman and podman-remote binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
 binaries: podman-remote ## Build podman-remote (client) only binaries
@@ -246,7 +246,7 @@ _HLP_TGTS_RX = '^[[:print:]]+:.*?\#\# .*$$'
 _HLP_TGTS_CMD = $(GREP) -E $(_HLP_TGTS_RX) $(MAKEFILE_LIST)
 _HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | wc -L 2>/dev/null || echo "PARSING_ERROR")
 # Separated condition for Darwin
-ifeq ($(shell uname -s)$(_HLP_TGTS_LEN),DarwinPARSING_ERROR)
+ifeq ($(NATIVE_GOOS)$(_HLP_TGTS_LEN),darwinPARSING_ERROR)
 ifneq (,$(wildcard /usr/local/bin/gwc))
 _HLP_TGTS_LEN = $(shell $(call err_if_empty,_HLP_TGTS_CMD) | cut -d : -f 1 | gwc -L)
 else
@@ -914,7 +914,7 @@ install.bin:
 	ln -sf podman $(DESTDIR)$(BINDIR)/podmansh
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(BINDIR)/podman bin/podman
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(LIBEXECPODMAN)
-ifneq ($(shell uname -s),FreeBSD)
+ifneq ($(NATIVE_GOOS),freebsd)
 	install ${SELINUXOPT} -m 755 bin/rootlessport $(DESTDIR)$(LIBEXECPODMAN)/rootlessport
 	test -z "${SELINUXOPT}" || chcon --verbose --reference=$(DESTDIR)$(LIBEXECPODMAN)/rootlessport bin/rootlessport
 	install ${SELINUXOPT} -m 755 bin/quadlet $(DESTDIR)$(LIBEXECPODMAN)/quadlet
