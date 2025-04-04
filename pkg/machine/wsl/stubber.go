@@ -189,6 +189,10 @@ func (w WSLStubber) RequireExclusiveActive() bool {
 }
 
 func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+	if !mc.Capabilities.GetForwardSockets() {
+		return nil
+	}
+
 	socket, err := mc.APISocket()
 	if err != nil {
 		return err
@@ -247,8 +251,10 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 		fmt.Fprintf(os.Stderr, "Could not cleanly stop user-mode networking: %s\n", err.Error())
 	}
 
-	if err := machine.StopWinProxy(mc.Name, vmtype); err != nil {
-		fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
+	if mc.Capabilities.GetForwardSockets() {
+		if err := machine.StopWinProxy(mc.Name, vmtype); err != nil {
+			fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
+		}
 	}
 
 	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "sh")
