@@ -8,7 +8,7 @@ QUADLET=${QUADLET:-/usr/libexec/podman/quadlet}
 PODMAN_TESTING=${PODMAN_TESTING:-$(dirname ${BASH_SOURCE})/../../bin/podman-testing}
 
 # crun or runc, unlikely to change. Cache, because it's expensive to determine.
-PODMAN_RUNTIME=
+PODMAN_RUNTIME="$OCI_RUNTIME"
 
 # Standard image to use for most tests
 PODMAN_TEST_IMAGE_REGISTRY=${PODMAN_TEST_IMAGE_REGISTRY:-"quay.io"}
