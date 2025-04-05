@@ -2000,6 +2000,9 @@ Add Quadlet's default network dependencies to the unit (default is `true`).
 When set to false, Quadlet will **not** add a dependency (After=, Wants=) to
 `network-online.target`/`podman-user-wait-network-online.service` to the generated unit.
 
+Note, this option is set in the `[Quadlet]` section. The `[Unit]` section
+has an option with the same name but a different meaning.
+
 ## EXAMPLES
 
 Example `test.container`:
