@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -421,6 +422,21 @@ func persistentPostRunE(cmd *cobra.Command, args []string) error {
 
 func configHook() {
 	if dockerConfig != "" {
+		// NOTE: we dont allow pointing --config to a regular file. Code assumed config is a directory
+		// We do allow though pointing at a nonexistent path. Some downstream code will create the folder
+		// at runtime if it does not yet exist.
+		statInfo, err := os.Stat(dockerConfig)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			// Cases where the folder does not exist are allowed, BUT cases where some other Stat() error
+			// is returned should fail
+			fmt.Fprintf(os.Stderr, "Supplied --config folder (%s) exists but is not accessible: %s", dockerConfig, err.Error())
+			os.Exit(1)
+		}
+		if err == nil && !statInfo.IsDir() {
+			// Cases where it does exist but is a file should fail
+			fmt.Fprintf(os.Stderr, "Supplied --config file (%s) is not a directory", dockerConfig)
+			os.Exit(1)
+		}
 		if err := os.Setenv("DOCKER_CONFIG", dockerConfig); err != nil {
 			fmt.Fprintf(os.Stderr, "cannot set DOCKER_CONFIG=%s: %s", dockerConfig, err.Error())
 			os.Exit(1)
@@ -500,7 +516,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	_ = lFlags.MarkHidden("host")
 
 	configFlagName := "config"
-	lFlags.StringVar(&dockerConfig, "config", "", "Location of authentication config file")
+	lFlags.StringVar(&dockerConfig, "config", "", "Path to directory containing authentication config file")
 	_ = cmd.RegisterFlagCompletionFunc(configFlagName, completion.AutocompleteDefault)
 
 	// Context option added just for compatibility with DockerCLI.
