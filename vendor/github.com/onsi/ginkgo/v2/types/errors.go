@@ -639,7 +639,7 @@ func (g ginkgoErrors) ExpectFilenameNotPath(flag string, path string) error {
 func (g ginkgoErrors) FlagAfterPositionalParameter() error {
 	return GinkgoError{
 		Heading: "Malformed arguments - detected a flag after the package liste",
-		Message: "Make sure all flags appear {{bold}}after{{/}} the Ginkgo subcommand and {{bold}}before{{/}} your list of packages (or './...').\n{{gray}}e.g. 'ginkgo run -p my_package' is valid but `ginkgo -p run my_package` is not.\n{{gray}}e.g. 'ginkgo -p -vet ./...' is valid but 'ginkgo -p ./... -vet' is not{{/}}",
+		Message: "Make sure all flags appear {{bold}}after{{/}} the Ginkgo subcommand and {{bold}}before{{/}} your list of packages (or './...').\n{{gray}}e.g. 'ginkgo run -p my_package' is valid but `ginkgo -p run my_package` is not.\n{{gray}}e.g. 'ginkgo -p -vet=\"\" ./...' is valid but 'ginkgo -p ./... -vet=\"\"' is not{{/}}",
 	}
 }
 
