@@ -14,13 +14,13 @@ describes the Podman project's governance and the Project Roles used below.
 | Nalin Dahyabhai   | [nalind](https://github.com/nalind)                      | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
 | Jason Greene      | [n1hility](https://github.com/n1hility)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Matthew Heon      | [mheon](https://github.com/mheon)                        | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
-| Paul Holzinger    | [luap99](https://github.com/Luap99)                      | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
+| Paul Holzinger    | [Luap99](https://github.com/Luap99)                      | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
 | Jhon Honce        | [jwhonce](https://github.com/jwhonce)                    | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Mario Loriedo     | [l0rd](https://github.com/l0rd/)                         | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
 | Lokesh Mandvekar  | [lsm5](https://github.com/lsm5)                          | Maintainer                       | [Red Hat](https://github.com/RedHatOfficial) |
 | Urvashi Mohnani   | [umohnani8](https://github.com/umohnani8)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Aditya Rajan      | [flouthoc](https://github.com/flouthoc)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
-| Jan Rodák         | [honny1](https://github.com/Honny1)                      | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
+| Jan Rodák         | [Honny1](https://github.com/Honny1)                      | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Valentin Rothberg | [vrothberg](https://github.com/vrothberg)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Giuseppe Scrivano | [giuseppe](https://github.com/giuseppe)                  | Core Maintainer                  | [Red Hat](https://github.com/RedHatOfficial) |
 | Neil Smith        | [Neil-Smith](https://github.com/Neil-Smith)              | Community Manager                | [Red Hat](https://github.com/RedHatOfficial) |
