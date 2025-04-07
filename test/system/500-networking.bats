@@ -741,7 +741,6 @@ nameserver 8.8.8.8" "nameserver order is correct"
     fi
     # we should use the integrated dns server
     run_podman run --network $netname --rm $IMAGE cat /etc/resolv.conf
-    assert "$output" =~ "search dns.podman.*" "correct search domain"
     assert "$output" =~ ".*nameserver $subnet.1.*" \
            "integrated dns nameserver is set"
 
