@@ -1,3 +1,16 @@
+## 2.23.4
+
+Prior to this release Ginkgo would compute the incorrect number of available CPUs when running with `-p` in a linux container.  Thanks to @emirot for the fix!
+
+### Features
+- Add automaxprocs for using CPUQuota [2b9c428]
+
+### Fixes
+- clarify gotchas about -vet flag [1f59d07]
+
+### Maintenance
+- bump dependencies [2d134d5]
+
 ## 2.23.3
 
 ### Fixes
