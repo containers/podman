@@ -378,7 +378,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	_, nameExists := networks[netName]
+	netOpts, nameExists := networks[netName]
 	if !nameExists && len(networks) > 0 {
 		return fmt.Errorf("container %s is not connected to network %s", nameOrID, netName)
 	}
@@ -393,12 +393,20 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
+	// Since we removed the new network from the container db we must have to add it back during partial setup errors
+	addContainerNetworkToDB := func() {
+		if err := c.runtime.state.NetworkConnect(c, netName, netOpts); err != nil {
+			logrus.Errorf("Failed to add network %s for container %s to DB after failed network disconnect", netName, nameOrID)
+		}
+	}
+
 	c.newNetworkEvent(events.NetworkDisconnect, netName)
 	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 		return nil
 	}
 
 	if c.state.NetNS == "" {
+		addContainerNetworkToDB()
 		return fmt.Errorf("unable to disconnect %s from %s: %w", nameOrID, netName, define.ErrNoNetwork)
 	}
 
@@ -412,6 +420,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 	}
 
 	if err := c.runtime.teardownNetworkBackend(c.state.NetNS, opts); err != nil {
+		addContainerNetworkToDB()
 		return err
 	}
 
@@ -524,11 +533,20 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 		return err
 	}
+
+	// Since we added the new network to the container db we must have to remove it from that during partial setup errors
+	removeContainerNetworkFromDB := func() {
+		if err := c.runtime.state.NetworkDisconnect(c, netName); err != nil {
+			logrus.Errorf("Failed to remove network %s for container %s from DB after failed network connect", netName, nameOrID)
+		}
+	}
+
 	c.newNetworkEvent(events.NetworkConnect, netName)
 	if !c.ensureState(define.ContainerStateRunning, define.ContainerStateCreated) {
 		return nil
 	}
 	if c.state.NetNS == "" {
+		removeContainerNetworkFromDB()
 		return fmt.Errorf("unable to connect %s to %s: %w", nameOrID, netName, define.ErrNoNetwork)
 	}
 
@@ -543,6 +561,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 
 	results, err := c.runtime.setUpNetwork(c.state.NetNS, opts)
 	if err != nil {
+		removeContainerNetworkFromDB()
 		return err
 	}
 	if len(results) != 1 {
