@@ -862,6 +862,11 @@ func (r *ConmonOCIRuntime) OOMFilePath(ctr *Container) (string, error) {
 	return filepath.Join(r.persistDir, ctr.ID(), "oom"), nil
 }
 
+// PersistDirectoryPath is the path to the container's persist directory.
+func (r *ConmonOCIRuntime) PersistDirectoryPath(ctr *Container) (string, error) {
+	return filepath.Join(r.persistDir, ctr.ID()), nil
+}
+
 // RuntimeInfo provides information on the runtime.
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
 	runtimePackage := version.Package(r.path)
