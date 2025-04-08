@@ -1160,6 +1160,35 @@ EOF
     kill "$nc_pid"
 }
 
+# https://github.com/containers/podman/issues/25786
+@test "quadlet kube - pod without containers" {
+    local port=$(random_free_port)
+    # Create the YAML file
+    pod_name="p-$(safename)"
+    yaml_source="$PODMAN_TMPDIR/no_cons_$(safename).yaml"
+    cat >$yaml_source <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: $pod_name
+EOF
+
+    # Create the Quadlet file
+    local quadlet_file=$PODMAN_TMPDIR/no_cons_$(safename).kube
+    cat > $quadlet_file <<EOF
+[Kube]
+Yaml=${yaml_source}
+EOF
+
+    run_quadlet "$quadlet_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    run_podman pod ps --format "{{.Name}}--{{.Status}}"
+    assert "$output" =~ "$pod_name--Running" "pod is running"
+
+    service_cleanup $QUADLET_SERVICE_NAME inactive
+}
+
 @test "quadlet - image files" {
     local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
 

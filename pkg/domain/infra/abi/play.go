@@ -287,8 +287,16 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 	setRanContainers := func(r *entities.PlayKubeReport) {
 		if !ranContainers {
 			for _, p := range r.Pods {
+				numCons := len(p.Containers) + len(p.InitContainers)
+				if numCons == 0 {
+					// special case, the pod has no containers (besides infra)
+					// That seems to be valid per https://github.com/containers/podman/issues/25786
+					// and users could depend on it so mark it as running in that case.
+					ranContainers = true
+					break
+				}
 				// If the list of container errors is less then the total number of pod containers then we know it did start.
-				if len(p.ContainerErrors) < len(p.Containers)+len(p.InitContainers) {
+				if len(p.ContainerErrors) < numCons {
 					ranContainers = true
 					break
 				}
