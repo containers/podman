@@ -256,6 +256,7 @@ a significant amount of issues we decided to work around this with our own speci
 the `network-online.target` unit is active with `systemctl is-active network-online.target`.
 
 This behavior can be disabled by adding `DefaultDependencies=false` in the `Quadlet` section.
+Note, the _systemd_ `[Unit]` section has an option with the same name but a different meaning.
 
 ## Container units [Container]
 
@@ -1999,6 +2000,9 @@ Add Quadlet's default network dependencies to the unit (default is `true`).
 
 When set to false, Quadlet will **not** add a dependency (After=, Wants=) to
 `network-online.target`/`podman-user-wait-network-online.service` to the generated unit.
+
+Note, this option is set in the `[Quadlet]` section. The _systemd_ `[Unit]` section
+has an option with the same name but a different meaning.
 
 ## EXAMPLES
 
