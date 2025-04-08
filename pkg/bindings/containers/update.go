@@ -26,13 +26,21 @@ func Update(ctx context.Context, options *types.ContainerUpdateOptions) (string,
 			params.Set("restartRetries", strconv.Itoa(int(*options.RestartRetries)))
 		}
 	}
+
 	updateEntities := &handlers.UpdateEntities{
-		LinuxResources:               *options.Resources,
-		UpdateHealthCheckConfig:      *options.ChangedHealthCheckConfiguration,
-		UpdateContainerDevicesLimits: *options.DevicesLimits,
-		Env:                          options.Env,
-		UnsetEnv:                     options.UnsetEnv,
+		Env:      options.Env,
+		UnsetEnv: options.UnsetEnv,
 	}
+	if options.Resources != nil {
+		updateEntities.LinuxResources = *options.Resources
+	}
+	if options.ChangedHealthCheckConfiguration != nil {
+		updateEntities.UpdateHealthCheckConfig = *options.ChangedHealthCheckConfiguration
+	}
+	if options.DevicesLimits != nil {
+		updateEntities.UpdateContainerDevicesLimits = *options.DevicesLimits
+	}
+
 	requestData, err := jsoniter.MarshalToString(updateEntities)
 	if err != nil {
 		return "", err

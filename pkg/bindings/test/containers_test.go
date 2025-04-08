@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/bindings/containers"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
+	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -801,5 +802,16 @@ var _ = Describe("Podman containers ", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(c).To(HaveLen(1))
 		Expect(c[0].PodName).To(Equal(podName))
+	})
+
+	It("Update container allows for partial updates", func() {
+		var name = "top"
+		_, err := bt.RunTopContainer(&name, nil)
+		Expect(err).ToNot(HaveOccurred())
+
+		_, err = containers.Update(bt.conn, &types.ContainerUpdateOptions{
+			NameOrID: name,
+		})
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
