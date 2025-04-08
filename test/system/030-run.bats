@@ -906,6 +906,17 @@ EOF
     fi
 
     user=$(id -u)
+
+    userspec=$(id -un):$(id -g)
+    run_podman run --hostuser=$user --user $userspec --rm $IMAGE sh -c 'echo $(id -un):$(id -g)'
+    is "$output" "$userspec"
+
+    run_podman run --hostuser=$user --user $userspec --group-entry="$(id -gn):x:$(id -g):" --rm $IMAGE sh -c 'echo $(id -un):$(id -gn)'
+    is "$output" "$(id -un):$(id -gn)"
+
+    run_podman 126 run --hostuser=$user --user "$(id -un):$(id -gn)" --rm $IMAGE sh -c 'echo $(id -un):$(id -gn)'
+    is "$output" "Error:.* no matching entries in group file"
+
     run_podman run --hostuser=$user --rm $IMAGE grep $user /etc/passwd
     run_podman run --hostuser=$user --user $user --rm $IMAGE grep $user /etc/passwd
     user=bogus

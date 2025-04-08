@@ -90,13 +90,6 @@ USER 1000`, ALPINE)
 		Expect(session.OutputToString()).To(ContainSubstring("/etc/group"))
 	})
 
-	It("podman run numeric user not specified in container modifies group", func() {
-		session := podmanTest.Podman([]string{"run", "--read-only", "-u", "20001", BB, "mount"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("/etc/group"))
-	})
-
 	It("podman run numeric group from image and no group file", func() {
 		dockerfile := fmt.Sprintf(`FROM %s
 RUN rm -f /etc/passwd /etc/shadow /etc/group

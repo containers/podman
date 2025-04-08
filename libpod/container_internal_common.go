@@ -195,15 +195,15 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			cleanupFunc()
 		}
 	}()
+
+	if err := c.makeBindMounts(); err != nil {
+		return nil, nil, err
+	}
+
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
-		if slices.Contains(c.config.HostUsers, c.config.User) {
-			execUser, err = lookupHostUser(c.config.User)
-		}
-		if err != nil {
-			return nil, nil, err
-		}
+		return nil, nil, err
 	}
 
 	// NewFromSpec() is deprecated according to its comment
@@ -234,10 +234,6 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			return nil, nil, err
 		}
 		g.SetProcessApparmorProfile(updatedProfile)
-	}
-
-	if err := c.makeBindMounts(); err != nil {
-		return nil, nil, err
 	}
 
 	if err := c.mountNotifySocket(g); err != nil {
@@ -2434,7 +2430,7 @@ func (c *Container) generateGroupEntry() (string, error) {
 
 	// Things we *can't* handle: adding the user we added in
 	// generatePasswdEntry to any *existing* groups.
-	addedGID := 0
+	addedGID := -1
 	if c.config.AddCurrentUserPasswdEntry {
 		entry, gid, err := c.generateCurrentUserGroupEntry()
 		if err != nil {
@@ -2503,7 +2499,7 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 	}
 
 	splitUser := strings.SplitN(c.config.User, ":", 2)
-	group := splitUser[0]
+	group := "0"
 	if len(splitUser) > 1 {
 		group = splitUser[1]
 	}
@@ -2513,7 +2509,7 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 		return "", nil //nolint: nilerr
 	}
 
-	if addedGID != 0 && addedGID == int(gid) {
+	if addedGID != -1 && addedGID == int(gid) {
 		return "", nil
 	}
 
