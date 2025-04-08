@@ -207,6 +207,8 @@ function defer-assertion-failures() {
 # Basic teardown: remove all pods and containers
 function basic_teardown() {
     echo "# [teardown]" >&2
+    # Debug for https://github.com/containers/podman/issues/22642
+    ls -l $TMPDIR >&3
 
     # Free any ports reserved by our test
     if [[ -d $PORT_LOCK_DIR ]]; then
