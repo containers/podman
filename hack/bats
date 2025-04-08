@@ -44,8 +44,6 @@ servers, because we can sudo *starting* the service but can't sudo
 stopping it: by the time the bats tests finish, the sudo timeout will
 have expired. We apologize for the inconvenience.)
 
-$0 also passes through \$OCI_RUNTIME, should you need to test that.
-
 Examples:
 
     \$ $0 220:\"restart cleans up\"
@@ -137,7 +135,6 @@ if [[ "$TEST_ROOT" ]]; then
     sudo    --preserve-env=PODMAN \
             --preserve-env=QUADLET \
             --preserve-env=PODMAN_TEST_DEBUG \
-            --preserve-env=OCI_RUNTIME \
             --preserve-env=CONTAINERS_HELPER_BINARY_DIR \
             --preserve-env=PODMAN_ROOTLESS_USER \
             bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
