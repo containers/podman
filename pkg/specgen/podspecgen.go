@@ -248,12 +248,6 @@ type PodSpecGenerator struct {
 type PodResourceConfig struct {
 	// ResourceLimits contains linux specific CPU data for the pod
 	ResourceLimits *spec.LinuxResources `json:"resource_limits,omitempty"`
-	// CPU period of the cpuset, determined by --cpus
-	CPUPeriod uint64 `json:"cpu_period,omitempty"`
-	// CPU quota of the cpuset, determined by --cpus
-	CPUQuota int64 `json:"cpu_quota,omitempty"`
-	// ThrottleReadBpsDevice contains the rate at which the devices in the pod can be read from/accessed
-	ThrottleReadBpsDevice map[string]spec.LinuxThrottleDevice `json:"throttleReadBpsDevice,omitempty"`
 }
 
 type PodSecurityConfig struct {
