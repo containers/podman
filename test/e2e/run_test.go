@@ -85,6 +85,24 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring("graphRootMounted=1"))
 	})
 
+	It("podman run does not fail if --config points to non-existent", func() {
+		// Here we expect no failure. We have some existing code that will create the folder
+		// when it detects that the folder is missing.
+		nonExistentPath := "/tmp/def_does_not_exist"
+		session := podmanTest.Podman([]string{"--config", nonExistentPath, "run", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+	})
+
+	It("podman run fails if --config points to regular file", func() {
+		tempFile, err := os.CreateTemp(podmanTest.TempDir, "")
+		Expect(err).ToNot(HaveOccurred())
+		tempFileName := tempFile.Name()
+		session := podmanTest.Podman([]string{"--config", tempFileName, "run", ALPINE, "ls"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(1, fmt.Sprintf(`Supplied --config file (%s) is not a directory`, tempFileName)))
+	})
+
 	It("podman run from manifest list", func() {
 		session := podmanTest.Podman([]string{"manifest", "create", "localhost/test:latest"})
 		session.WaitWithDefaultTimeout()
