@@ -533,7 +533,6 @@ func (c *CgroupControl) Stat() (*cgroups.Stats, error) {
 			if !errors.Is(err, os.ErrNotExist) {
 				return nil, err
 			}
-			logrus.Warningf("Failed to retrieve cgroup stats: %v", err)
 			continue
 		}
 		found = true

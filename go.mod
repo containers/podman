@@ -13,7 +13,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.6.2
 	github.com/containers/buildah v1.39.1-0.20250401180830-32d78c69be17
-	github.com/containers/common v0.62.4-0.20250401165412-9b0d134f392f
+	github.com/containers/common v0.62.4-0.20250411145332-dd8ab77b8e26
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.5
 	github.com/containers/image/v5 v5.34.4-0.20250327193514-d3b241257363
@@ -97,7 +97,7 @@ require (
 	github.com/containerd/platforms v1.0.0-rc.1 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.16.3 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
-	github.com/containernetworking/cni v1.2.3 // indirect
+	github.com/containernetworking/cni v1.3.0 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/luksy v0.0.0-20250217190002-40bd943d93b8 // indirect
 	github.com/coreos/go-oidc/v3 v3.12.0 // indirect
@@ -110,7 +110,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.3 // indirect
 	github.com/ebitengine/purego v0.8.2 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/fsnotify/fsnotify v1.8.0 // indirect
+	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/fsouza/go-dockerclient v1.12.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect

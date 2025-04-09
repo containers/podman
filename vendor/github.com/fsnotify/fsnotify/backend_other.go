@@ -9,11 +9,10 @@ type other struct {
 	Errors chan error
 }
 
+var defaultBufferSize = 0
+
 func newBackend(ev chan Event, errs chan error) (backend, error) {
 	return nil, errors.New("fsnotify not supported on the current platform")
-}
-func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error) {
-	return newBackend(ev, errs)
 }
 func (w *other) Close() error                              { return nil }
 func (w *other) WatchList() []string                       { return nil }

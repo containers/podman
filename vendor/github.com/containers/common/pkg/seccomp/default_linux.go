@@ -145,6 +145,7 @@ func DefaultProfile() *Seccomp {
 				"fadvise64",
 				"fadvise64_64",
 				"fallocate",
+				"fanotify_init",
 				"fanotify_mark",
 				"fchdir",
 				"fchmod",
@@ -614,7 +615,6 @@ func DefaultProfile() *Seccomp {
 		{
 			Names: []string{
 				"bpf",
-				"fanotify_init",
 				"lookup_dcookie",
 				"quotactl",
 				"quotactl_fd",
@@ -630,7 +630,6 @@ func DefaultProfile() *Seccomp {
 		},
 		{
 			Names: []string{
-				"fanotify_init",
 				"lookup_dcookie",
 				"perf_event_open",
 				"quotactl",

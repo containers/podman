@@ -77,6 +77,7 @@ End-of-line escapes with `\` are not supported.
     debug [yes/no]      # Enable/disable FSNOTIFY_DEBUG (tests are run in
                           parallel by default, so -parallel=1 is probably a good
                           idea).
+    print [any strings] # Print text to stdout; for debugging.
 
     touch path
     mkdir [-p] dir
