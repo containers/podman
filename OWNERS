@@ -8,6 +8,7 @@ approvers:
   - lsm5
   - mheon
   - mtrmac
+  - nalind
   - ygalblum
 reviewers:
   - Luap99
@@ -23,6 +24,7 @@ reviewers:
   - mheon
   - mtrmac
   - n1hility
+  - nalind
   - rhatdan
   - umohnani8
   - vrothberg
