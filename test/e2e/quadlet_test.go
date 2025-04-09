@@ -477,6 +477,30 @@ func (t *quadletTestcase) assertStopPostPodmanArgsKeyValRegex(args []string, uni
 	return t.assertPodmanArgsKeyVal(args, unit, "ExecStopPost", true, false)
 }
 
+func (t *quadletTestcase) assertReloadPodmanArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecReload", false, false)
+}
+
+func (t *quadletTestcase) assertReloadPodmanGlobalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgs(args, unit, "ExecReload", false, true)
+}
+
+func (t *quadletTestcase) assertReloadPodmanFinalArgs(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgs(args, unit, "ExecReload")
+}
+
+func (t *quadletTestcase) assertReloadPodmanFinalArgsRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanFinalArgsRegex(args, unit, "ExecReload")
+}
+
+func (t *quadletTestcase) assertReloadPodmanArgsKeyVal(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecReload", false, false)
+}
+
+func (t *quadletTestcase) assertReloadPodmanArgsKeyValRegex(args []string, unit *parser.UnitFile) bool {
+	return t.assertPodmanArgsKeyVal(args, unit, "ExecReload", true, false)
+}
+
 func (t *quadletTestcase) assertSymlink(args []string, unit *parser.UnitFile) bool {
 	Expect(args).To(HaveLen(2))
 	symlink := args[0]
@@ -590,6 +614,18 @@ func (t *quadletTestcase) doAssert(check []string, unit *parser.UnitFile, sessio
 		ok = t.assertStopPostPodmanArgsKeyVal(args, unit)
 	case "assert-podman-stop-post-args-key-val-regex":
 		ok = t.assertStopPostPodmanArgsKeyValRegex(args, unit)
+	case "assert-podman-reload-args":
+		ok = t.assertReloadPodmanArgs(args, unit)
+	case "assert-podman-reload-global-args":
+		ok = t.assertReloadPodmanGlobalArgs(args, unit)
+	case "assert-podman-reload-final-args":
+		ok = t.assertReloadPodmanFinalArgs(args, unit)
+	case "assert-podman-reload-final-args-regex":
+		ok = t.assertReloadPodmanFinalArgsRegex(args, unit)
+	case "assert-podman-reload-args-key-val":
+		ok = t.assertReloadPodmanArgsKeyVal(args, unit)
+	case "assert-podman-reload-args-key-val-regex":
+		ok = t.assertReloadPodmanArgsKeyValRegex(args, unit)
 
 	default:
 		return fmt.Errorf("Unsupported assertion %s", op)
@@ -926,6 +962,8 @@ BOGUS=foo
 		Entry("CgroupMode", "cgroups-mode.container"),
 		Entry("Container - No Default Dependencies", "no_deps.container"),
 		Entry("retry.container", "retry.container"),
+		Entry("reloadcmd.container", "reloadcmd.container"),
+		Entry("reloadsignal.container", "reloadsignal.container"),
 
 		Entry("basic.volume", "basic.volume"),
 		Entry("device-copy.volume", "device-copy.volume"),
@@ -1063,6 +1101,7 @@ BOGUS=foo
 		Entry("pod.not-found.container", "pod.not-found.container", "converting \"pod.not-found.container\": quadlet pod unit not-found.pod does not exist"),
 		Entry("subidmapping-with-remap.container", "subidmapping-with-remap.container", "converting \"subidmapping-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),
 		Entry("userns-with-remap.container", "userns-with-remap.container", "converting \"userns-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),
+		Entry("reloadboth.container", "reloadboth.container", "converting \"reloadboth.container\": ReloadCmd and ReloadSignal are mutually exclusive but both are set"),
 
 		Entry("image-no-image.volume", "image-no-image.volume", "converting \"image-no-image.volume\": the key Image is mandatory when using the image driver"),
 		Entry("Volume - Quadlet image (.build) not found", "build-not-found.quadlet.volume", "converting \"build-not-found.quadlet.volume\": requested Quadlet image not-found.build was not found"),

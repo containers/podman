@@ -139,6 +139,8 @@ const (
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
 	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
+	KeyReloadCmd             = "ReloadCmd"
+	KeyReloadSignal          = "ReloadSignal"
 	KeyRemapGid              = "RemapGid"     // deprecated
 	KeyRemapUid              = "RemapUid"     // deprecated
 	KeyRemapUidSize          = "RemapUidSize" // deprecated
@@ -256,6 +258,8 @@ var (
 		KeyPull:                  true,
 		KeyReadOnly:              true,
 		KeyReadOnlyTmpfs:         true,
+		KeyReloadCmd:             true,
+		KeyReloadSignal:          true,
 		KeyRemapGid:              true,
 		KeyRemapUid:              true,
 		KeyRemapUidSize:          true,
@@ -577,6 +581,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	// has already been removed by the previous `rm`..
 	serviceStopCmd.Args[0] = fmt.Sprintf("-%s", serviceStopCmd.Args[0])
 	service.AddCmdline(ServiceGroup, "ExecStopPost", serviceStopCmd.Args)
+
+	if err := handleExecReload(container, service, ContainerGroup); err != nil {
+		return nil, warnings, err
+	}
 
 	podman := createBasePodmanCommand(container, ContainerGroup)
 
@@ -2225,4 +2233,30 @@ func addDefaultDependencies(service *parser.UnitFile, isUser bool) {
 		service.PrependUnitLine(UnitGroup, "After", networkUnit)
 		service.PrependUnitLine(UnitGroup, "Wants", networkUnit)
 	}
+}
+
+func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string) error {
+	reloadSignal, signalOk := quadletUnitFile.Lookup(groupName, KeyReloadSignal)
+	signalOk = signalOk && len(reloadSignal) > 0
+	reloadcmd, cmdOk := quadletUnitFile.LookupLastArgs(groupName, KeyReloadCmd)
+	cmdOk = cmdOk && len(reloadcmd) > 0
+
+	if !cmdOk && !signalOk {
+		return nil
+	}
+
+	if cmdOk && signalOk {
+		return fmt.Errorf("%s and %s are mutually exclusive but both are set", KeyReloadCmd, KeyReloadSignal)
+	}
+
+	serviceReloadCmd := createBasePodmanCommand(quadletUnitFile, groupName)
+	if cmdOk {
+		serviceReloadCmd.add("exec", "--cidfile=%t/%N.cid")
+		serviceReloadCmd.add(reloadcmd...)
+	} else {
+		serviceReloadCmd.add("kill", "--cidfile=%t/%N.cid", "--signal", reloadSignal)
+	}
+	serviceUnitFile.AddCmdline(ServiceGroup, "ExecReload", serviceReloadCmd.Args)
+
+	return nil
 }
