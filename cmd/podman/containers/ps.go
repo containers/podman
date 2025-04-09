@@ -340,7 +340,7 @@ func (l psReporter) ImageID() string {
 	return l.ListContainer.ImageID
 }
 
-// Labels returns a map of the pod's labels
+// Label returns a map of the pod's labels
 func (l psReporter) Label(name string) string {
 	return l.ListContainer.Labels[name]
 }
