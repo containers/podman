@@ -979,6 +979,7 @@ BOGUS=foo
 		Entry("Network - subnet, gateway and range", "subnet-trio.network"),
 		Entry("Network - global args", "globalargs.network"),
 		Entry("Network - Containers Conf Modules", "containersconfmodule.network"),
+		Entry("Network - Delete on stop", "delete.network"),
 
 		Entry("Image - Basic", "basic.image"),
 		Entry("Image - Architecture", "arch.image"),
