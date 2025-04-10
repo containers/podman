@@ -69,7 +69,7 @@ func LogDriver() string {
 	return ""
 }
 
-// DefineCreateDefault is used to initialize ctr create options before flag initialization
+// DefineCreateDefaults is used to initialize ctr create options before flag initialization
 func DefineCreateDefaults(opts *entities.ContainerCreateOptions) {
 	opts.LogDriver = LogDriver()
 	opts.CgroupsMode = cgroupConfig()

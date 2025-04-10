@@ -28,7 +28,7 @@ var (
 	domainRegexp = regexp.Delayed(`^(:?(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))(:?\.(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])))*)\.?\s*$`)
 )
 
-// validateExtraHost validates that the specified string is a valid extrahost and returns it.
+// ValidateExtraHost validates that the specified string is a valid extrahost and returns it.
 // ExtraHost is in the form of name1;name2;name3:ip where the ip has to be a valid ip (ipv4 or ipv6) or the special string HostGateway.
 // for add-host flag
 func ValidateExtraHost(val string) (string, error) {

@@ -136,7 +136,7 @@ func (c *Container) CheckpointPath() string {
 	return filepath.Join(c.bundlePath(), metadata.CheckpointDirectory)
 }
 
-// PreCheckpointPath returns the path to the directory containing the pre-checkpoint-images
+// PreCheckPointPath returns the path to the directory containing the pre-checkpoint-images
 func (c *Container) PreCheckPointPath() string {
 	return filepath.Join(c.bundlePath(), preCheckpointDir)
 }
