@@ -1,6 +1,5 @@
 # -*- bash -*-
 
-_cached_has_pasta=
 _cached_has_slirp4netns=
 
 ### Feature Checks #############################################################
@@ -44,28 +43,6 @@ function has_slirp4netns() {
     fi
     test "$_cached_has_slirp4netns" = "y"
 }
-
-# has_pasta() - Check if the pasta(1) command is available
-function has_pasta() {
-    if [[ -z "$_cached_has_pasta" ]]; then
-        _cached_has_pasta=n
-        run_podman info --format '{{.Host.Pasta.Executable}}'
-        if [[ -n "$output" ]]; then
-            _cached_has_pasta=y
-        fi
-    fi
-    test "$_cached_has_pasta" = "y"
-}
-
-# skip_if_no_pasta() - Skip current test if pasta(1) is not available
-# $1:	Optional message to display
-function skip_if_no_pasta() {
-    if ! has_pasta; then
-        local msg=$(_add_label_if_missing "$1" "pasta")
-        skip "${msg:-not applicable with no pasta binary}"
-    fi
-}
-
 
 ### procfs access ##############################################################
 
