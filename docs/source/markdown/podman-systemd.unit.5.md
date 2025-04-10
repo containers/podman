@@ -333,6 +333,8 @@ Valid options for `[Container]` are listed below:
 | Pull=never                           | --pull never                                         |
 | ReadOnly=true                        | --read-only                                          |
 | ReadOnlyTmpfs=true                   | --read-only-tmpfs                                    |
+| ReloadCmd=/usr/bin/command           | Add ExecReload and run exec with the value           |
+| ReloadSignal=SIGHUP                  | Add ExecReload and run kill with the signal          |
 | Retry=5                              | --retry=5                                            |
 | RetryDelay=5s                        | --retry-delay=5s                                     |
 | Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
@@ -783,6 +785,22 @@ If enabled, makes the image read-only.
 ### `ReadOnlyTmpfs=` (defaults to `true`)
 
 If ReadOnly is set to `true`, mount a read-write tmpfs on /dev, /dev/shm, /run, /tmp, and /var/tmp.
+
+### `ReloadCmd=`
+
+Add `ExecReload` line to the `Service` that runs ` podman exec` with this command in this container.
+
+In order to execute the reload run `systemctl reload <Service>`
+
+Mutually exclusive with `ReloadSignal`
+
+### `ReloadSignal=`
+
+Add `ExecReload` line to the `Service` that runs `podman kill` with this signal which sends the signal to the main container process.
+
+In order to execute the reload run `systemctl reload <Service>`
+
+Mutually exclusive with `ReloadCmd`
 
 ### `Retry=`
 
