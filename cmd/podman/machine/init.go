@@ -249,7 +249,7 @@ func checkMaxMemory(newMem strongunits.MiB) error {
 		return err
 	}
 	if total := strongunits.B(memStat.Total); strongunits.B(memStat.Total) < newMem.ToBytes() {
-		return fmt.Errorf("requested amount of memory (%d MB) greater than total system memory (%d MB)", newMem, total)
+		return fmt.Errorf("requested amount of memory (%d MB) greater than total system memory (%d MB)", newMem, strongunits.ToMib(total))
 	}
 	return nil
 }

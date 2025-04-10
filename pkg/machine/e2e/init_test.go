@@ -71,11 +71,12 @@ var _ = Describe("podman machine init", func() {
 		// this comes in bytes
 		memStat, err := mem.VirtualMemory()
 		Expect(err).ToNot(HaveOccurred())
-		total := strongunits.ToMib(strongunits.B(memStat.Total)) + 1024
+		systemMem := strongunits.ToMib(strongunits.B(memStat.Total))
 
 		badMem := initMachine{}
-		badMemSession, err := mb.setCmd(badMem.withMemory(uint(total))).run()
+		badMemSession, err := mb.setCmd(badMem.withMemory(uint(systemMem + 1024))).run()
 		Expect(err).ToNot(HaveOccurred())
+		Expect(badMemSession.errorToString()).To(ContainSubstring(fmt.Sprintf("greater than total system memory (%d MB)", systemMem)))
 		Expect(badMemSession).To(Exit(125))
 	})
 
