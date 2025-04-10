@@ -517,6 +517,63 @@ EOF
     run_podman network rm $network_name
 }
 
+@test "quadlet - network delete with dependencies" {
+    # Save the unit name to use as the network for the container
+    local network_name=$(safename)
+    local quadlet_network_unit=dep_$(safename).network
+    local quadlet_network_file=$PODMAN_TMPDIR/${quadlet_network_unit}
+    cat > $quadlet_network_file <<EOF
+[Network]
+NetworkName=${network_name}
+NetworkDeleteOnStop=true
+EOF
+
+    local quadlet_tmpdir=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.XXXXXX)
+    # Have quadlet create the systemd unit file for the network unit
+    run_quadlet "$quadlet_network_file" "$quadlet_tmpdir"
+
+    # Save the network service name since the variable will be overwritten
+    local network_service=$QUADLET_SERVICE_NAME
+
+    local quadlet_container_file=$PODMAN_TMPDIR/user_$(safename).container
+    cat > $quadlet_container_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=top
+Network=$quadlet_network_unit
+EOF
+
+    run_quadlet "$quadlet_container_file" "$quadlet_tmpdir"
+
+    # Save the container service name for readability
+    local container_service=$QUADLET_SERVICE_NAME
+
+    # Network should not exist
+    run_podman 1 network exists $network_name
+
+    # Start the container service
+    service_setup $container_service
+
+    # Network system unit should be active
+    run systemctl show --property=ActiveState "$network_service"
+    assert "$output" = "ActiveState=active" \
+           "network should be active via dependency"
+
+    # Network should exist
+    run_podman network exists $network_name
+
+    # Stop the Network Service
+    service_cleanup $network_service inactive
+
+    # Container system unit should be active
+    run systemctl show --property=ActiveState "$container_service"
+    assert "$output" = "ActiveState=failed" \
+           "container service should be failed via dependency"
+
+    # Network should not exist
+    run_podman 1 network exists $network_name
+}
+
 # A quadlet container depends on a quadlet network
 @test "quadlet - network dependency" {
     # Save the unit name to use as the network for the container

@@ -1348,23 +1348,24 @@ particularly interesting when using special options to control network creation,
 
 Valid options for `[Network]` are listed below:
 
-| **[Network] options**               | **podman network create equivalent** |
-|-------------------------------------|--------------------------------------|
-| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf              |
-| DisableDNS=true                     | --disable-dns                        |
-| DNS=192.168.55.1                    | --dns=192.168.55.1                   |
-| Driver=bridge                       | --driver bridge                      |
-| Gateway=192.168.55.3                | --gateway 192.168.55.3               |
-| GlobalArgs=--log-level=debug        | --log-level=debug                    |
-| Internal=true                       | --internal                           |
-| IPAMDriver=dhcp                     | --ipam-driver dhcp                   |
-| IPRange=192.168.55.128/25           | --ip-range 192.168.55.128/25         |
-| IPv6=true                           | --ipv6                               |
-| Label="XYZ"                         | --label "XYZ"                        |
-| NetworkName=foo                     | podman network create foo            |
-| Options=isolate=true                | --opt isolate=true                   |
-| PodmanArgs=--dns=192.168.55.1       | --dns=192.168.55.1                   |
-| Subnet=192.5.0.0/16                 | --subnet 192.5.0.0/16                |
+| **[Network] options**               | **podman network create equivalent**                            |
+|-------------------------------------|-----------------------------------------------------------------|
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                                         |
+| DisableDNS=true                     | --disable-dns                                                   |
+| DNS=192.168.55.1                    | --dns=192.168.55.1                                              |
+| Driver=bridge                       | --driver bridge                                                 |
+| Gateway=192.168.55.3                | --gateway 192.168.55.3                                          |
+| GlobalArgs=--log-level=debug        | --log-level=debug                                               |
+| Internal=true                       | --internal                                                      |
+| IPAMDriver=dhcp                     | --ipam-driver dhcp                                              |
+| IPRange=192.168.55.128/25           | --ip-range 192.168.55.128/25                                    |
+| IPv6=true                           | --ipv6                                                          |
+| Label="XYZ"                         | --label "XYZ"                                                   |
+| NetworkDeleteOnStop=true            | Add ExecStopPost to delete the network when the unit is stopped |
+| NetworkName=foo                     | podman network create foo                                       |
+| Options=isolate=true                | --opt isolate=true                                              |
+| PodmanArgs=--dns=192.168.55.1       | --dns=192.168.55.1                                              |
+| Subnet=192.5.0.0/16                 | --subnet 192.5.0.0/16                                           |
 
 Supported keys in `[Network]` section are:
 
@@ -1446,6 +1447,10 @@ Set one or more OCI labels on the network. The format is a list of
 `key=value` items, similar to `Environment`.
 
 This key can be listed multiple times.
+
+### `NetworkDeleteOnStop=` (defaults to `false`)
+
+When set to `true` the network is deleted when the service is stopped
 
 ### `NetworkName=`
 
