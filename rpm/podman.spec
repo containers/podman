@@ -149,6 +149,7 @@ Requires: nmap-ncat
 Requires: httpd-tools
 Requires: openssl
 Requires: socat
+Requires: slirp4netns
 Requires: buildah
 Requires: gnupg
 Requires: xfsprogs
