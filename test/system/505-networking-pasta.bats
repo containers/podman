@@ -16,7 +16,6 @@ load helpers.network
 function setup() {
     basic_setup
     skip_if_not_rootless "pasta networking only available in rootless mode"
-    skip_if_no_pasta "pasta not found: install pasta(1) to run these tests"
 
     XFER_FILE="${PODMAN_TMPDIR}/pasta.bin"
 }

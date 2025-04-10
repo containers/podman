@@ -778,11 +778,7 @@ nameserver 8.8.8.8" "nameserver order is correct"
     fi
     # pasta only works rootless
     if is_rootless; then
-        if has_pasta; then
-            netmodes+=("pasta")
-        else
-            echo "# WARNING: pasta unavailable!" >&3
-        fi
+        netmodes+=("pasta")
     fi
 
     for netmode in "${netmodes[@]}"; do
@@ -1112,7 +1108,6 @@ function wait_for_restart_count() {
 @test "Podman unshare --rootless-netns with Pasta" {
     skip_if_remote "unshare is local-only"
     skip_if_not_rootless "pasta networking only available in rootless mode"
-    skip_if_no_pasta "pasta not found; this test requires pasta"
 
     pasta_iface=$(default_ifname 4)
     assert "$pasta_iface" != "" "pasta_iface is set"
