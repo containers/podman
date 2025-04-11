@@ -483,6 +483,42 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		stdout = options.Out
 	}
 
+	if len(options.SBOMScanOptions) > 0 {
+		for _, sbomScanOpts := range options.SBOMScanOptions {
+			if sbomScanOpts.SBOMOutput != "" {
+				params.Set("sbom-output", sbomScanOpts.SBOMOutput)
+			}
+
+			if sbomScanOpts.PURLOutput != "" {
+				params.Set("sbom-purl-output", sbomScanOpts.PURLOutput)
+			}
+
+			if sbomScanOpts.ImageSBOMOutput != "" {
+				params.Set("sbom-image-output", sbomScanOpts.ImageSBOMOutput)
+			}
+
+			if sbomScanOpts.ImagePURLOutput != "" {
+				params.Set("sbom-image-purl-output", sbomScanOpts.ImagePURLOutput)
+			}
+
+			if sbomScanOpts.Image != "" {
+				params.Set("sbom-scanner-image", sbomScanOpts.Image)
+			}
+
+			if commands := sbomScanOpts.Commands; len(commands) > 0 {
+				c, err := jsoniter.MarshalToString(commands)
+				if err != nil {
+					return nil, err
+				}
+				params.Add("sbom-scanner-command", c)
+			}
+
+			if sbomScanOpts.MergeStrategy != "" {
+				params.Set("sbom-merge-strategy", string(sbomScanOpts.MergeStrategy))
+			}
+		}
+	}
+
 	contextDir, err = filepath.Abs(options.ContextDirectory)
 	if err != nil {
 		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
