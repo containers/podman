@@ -563,7 +563,7 @@ EOF
 
     # Clean up
     systemctl stop $service_name
-    run_podman rmi -f $(pause_image) $local_image $newID $oldID
+    run_podman rmi -f $local_image $newID $oldID
     run_podman network rm podman-default-kube-network
     rm -f $UNIT_DIR/$unit_name
 }
@@ -630,7 +630,7 @@ EOF
     assert $status -eq 0 "Error stopping pod systemd unit: $output"
 
     run_podman pod rm -f $podname
-    run_podman rmi $local_image $(pause_image)
+    run_podman rmi $local_image
     rm -f $podunit $ctrunit
     systemctl daemon-reload
 }

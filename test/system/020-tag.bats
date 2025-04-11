@@ -57,6 +57,7 @@ function _tag_and_check() {
 
 # CANNOT BE PARALLELIZED: temporarily removes $IMAGE
 @test "podman untag all" {
+    run_podman pull $IMAGE
     # First get the image ID
     run_podman inspect --format '{{.ID}}' $IMAGE
     iid=$output

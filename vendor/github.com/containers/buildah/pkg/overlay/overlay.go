@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	osexc "os/exec"
 	"path/filepath"
 	"strings"
 	"syscall"
@@ -250,6 +251,13 @@ func CleanupContent(containerDir string) (Err error) {
 	for _, f := range files {
 		dir := filepath.Join(contentDir, f.Name())
 		if err := Unmount(dir); err != nil {
+			// FIXME: debug only
+			fmt.Println("LSOF")
+			fmt.Println(dir)
+			cmd := osexc.Command("lsof", dir)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			_ = cmd.Run()
 			return err
 		}
 	}

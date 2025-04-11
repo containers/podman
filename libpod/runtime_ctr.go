@@ -51,6 +51,9 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, spec *spec
 	}
 	if infra {
 		options = append(options, withIsInfra())
+		if len(spec.RawImageName) == 0 {
+			options = append(options, withIsDefaultInfra())
+		}
 	}
 	return r.newContainer(ctx, rSpec, options...)
 }
@@ -246,6 +249,40 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 }
 
 func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, retErr error) {
+	if ctr.IsDefaultInfra() || ctr.IsService() {
+		tmpDir, err := r.TmpDir()
+		if err != nil {
+			return nil, fmt.Errorf("getting runtime temporary directory: %w", err)
+		}
+		tmpDir = filepath.Join(tmpDir, "infra-containers", ctr.ID())
+		err = os.MkdirAll(tmpDir, 0777)
+		if err != nil {
+			return nil, fmt.Errorf("creating infra container temporary directory: %w", err)
+		}
+		// Also look into the path as some distributions install catatonit in
+		// /usr/bin.
+		rtc, err := r.GetConfigNoCopy()
+		if err != nil {
+			return nil, fmt.Errorf("getting Runtime configuration: %w", err)
+		}
+		catatonitPath, err := rtc.FindInitBinary()
+		if err != nil {
+			return nil, fmt.Errorf("finding catatonit binary: %w", err)
+		}
+		catatonitPath, err = filepath.EvalSymlinks(catatonitPath)
+		if err != nil {
+			return nil, fmt.Errorf("follow symlink to catatonit binary: %w", err)
+		}
+		ctr.state.BindMounts["/"+filepath.Base(catatonitPath)] = catatonitPath
+
+		ctr.config.Rootfs = tmpDir
+		ctr.config.RootfsOverlay = true
+		if len(ctr.config.Entrypoint) == 0 {
+			ctr.config.Entrypoint = []string{"/" + filepath.Base(catatonitPath), "-P"}
+			ctr.config.Spec.Process.Args = ctr.config.Entrypoint
+		}
+	}
+
 	// normalize the networks to names
 	// the db backend only knows about network names so we have to make
 	// sure we do not use ids internally

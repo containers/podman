@@ -38,12 +38,14 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 	}
 
 	if !p.PodSpecGen.NoInfra {
-		imageName, err := PullOrBuildInfraImage(rt, p.PodSpecGen.InfraImage)
+		imageName, err := PullInfraImage(rt, p.PodSpecGen.InfraImage)
 		if err != nil {
 			return nil, err
 		}
-		p.PodSpecGen.InfraImage = imageName
-		p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
+		if len(imageName) > 0 {
+			p.PodSpecGen.InfraImage = imageName
+			p.PodSpecGen.InfraContainerSpec.RawImageName = imageName
+		}
 	}
 
 	spec, err := MapSpec(&p.PodSpecGen)

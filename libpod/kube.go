@@ -925,6 +925,10 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
 	}
 
+	if !c.IsInfra() && len(c.config.Rootfs) > 0 {
+		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("k8s does not support Rootfs")
+	}
+
 	if len(c.config.UserVolumes) > 0 {
 		volumeMounts, volumes, localAnnotations, err := libpodMountsToKubeVolumeMounts(c)
 		if err != nil {
@@ -957,53 +961,44 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 	kubeContainer.Name = removeUnderscores(c.Name())
 	_, image := c.Image()
 
-	// The infra container may have been created with an overlay root FS
-	// instead of an infra image.  If so, set the imageto the default K8s
-	// pause one and make sure it's in the storage by pulling it down if
-	// missing.
-	if image == "" && c.IsInfra() {
-		image = c.runtime.config.Engine.InfraImage
-		if _, err := c.runtime.libimageRuntime.Pull(ctx, image, config.PullPolicyMissing, nil); err != nil {
-			return kubeContainer, nil, nil, nil, err
-		}
-	}
-
 	kubeContainer.Image = image
 	kubeContainer.Stdin = c.Stdin()
-	img, _, err := c.runtime.libimageRuntime.LookupImage(image, nil)
-	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("looking up image %q of container %q: %w", image, c.ID(), err)
-	}
-	imgData, err := img.Inspect(ctx, nil)
-	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
-	}
-	// If the user doesn't set a command/entrypoint when creating the container with podman and
-	// is using the image command or entrypoint from the image, don't add it to the generated kube yaml
-	if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) || reflect.DeepEqual(imgData.Config.Entrypoint, kubeContainer.Command) {
-		kubeContainer.Command = nil
-	}
+	if len(image) > 0 {
+		img, _, err := c.runtime.libimageRuntime.LookupImage(image, nil)
+		if err != nil {
+			return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("looking up image %q of container %q: %w", image, c.ID(), err)
+		}
+		imgData, err := img.Inspect(ctx, nil)
+		if err != nil {
+			return kubeContainer, kubeVolumes, nil, annotations, err
+		}
+		// If the user doesn't set a command/entrypoint when creating the container with podman and
+		// is using the image command or entrypoint from the image, don't add it to the generated kube yaml
+		if reflect.DeepEqual(imgData.Config.Cmd, kubeContainer.Command) || reflect.DeepEqual(imgData.Config.Entrypoint, kubeContainer.Command) {
+			kubeContainer.Command = nil
+		}
 
-	if c.WorkingDir() != "/" && imgData.Config.WorkingDir != c.WorkingDir() {
-		kubeContainer.WorkingDir = c.WorkingDir()
-	}
+		if c.WorkingDir() != "/" && imgData.Config.WorkingDir != c.WorkingDir() {
+			kubeContainer.WorkingDir = c.WorkingDir()
+		}
 
-	if imgData.User == c.User() && hasSecData {
-		kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
-	}
-	// If the image has user set as a positive integer value, then set runAsNonRoot to true
-	// in the kube yaml
-	imgUserID, err := strconv.Atoi(imgData.User)
-	if err == nil && imgUserID > 0 {
-		trueBool := true
-		kubeSec.RunAsNonRoot = &trueBool
-	}
+		if imgData.User == c.User() && hasSecData {
+			kubeSec.RunAsGroup, kubeSec.RunAsUser = nil, nil
+		}
+		// If the image has user set as a positive integer value, then set runAsNonRoot to true
+		// in the kube yaml
+		imgUserID, err := strconv.Atoi(imgData.User)
+		if err == nil && imgUserID > 0 {
+			trueBool := true
+			kubeSec.RunAsNonRoot = &trueBool
+		}
 
-	envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env, imgData.Config.Env)
-	if err != nil {
-		return kubeContainer, kubeVolumes, nil, annotations, err
+		envVariables, err := libpodEnvVarsToKubeEnvVars(c.config.Spec.Process.Env, imgData.Config.Env)
+		if err != nil {
+			return kubeContainer, kubeVolumes, nil, annotations, err
+		}
+		kubeContainer.Env = envVariables
 	}
-	kubeContainer.Env = envVariables
 
 	kubeContainer.Ports = ports
 	// This should not be applicable

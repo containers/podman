@@ -388,7 +388,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			Destination: dstPath,
 			Options:     bindOptions,
 		}
-		if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
+		if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) && dstPath != "/catatonit" {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
