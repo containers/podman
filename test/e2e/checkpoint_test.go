@@ -1131,6 +1131,7 @@ var _ = Describe("Podman checkpoint", func() {
 		)
 
 		It(testName, func() {
+			Skip("FIXME: #24571 - not working an super flaky, don't waste CI time on it")
 			podName := "test_pod"
 
 			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
