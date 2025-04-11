@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/signal"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
@@ -446,6 +448,19 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
 	}
+
+	// if the machine cannot continue starting due to a signal, ensure the state
+	// reflects the machine is no longer starting
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
+	go func() {
+		for _ = range signalChan {
+			mc.Starting = false
+			if err := mc.Write(); err != nil {
+				logrus.Error(err)
+			}
+		}
+	}()
 
 	// Don't check if provider supports parallel running machines
 	if mp.RequireExclusiveActive() {
