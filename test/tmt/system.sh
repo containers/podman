@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+
+set -exo pipefail
+
+uname -r
+
+loginctl enable-linger "$ROOTLESS_USER"
+
+rpm -q \
+    aardvark-dns \
+    buildah \
+    conmon \
+    container-selinux \
+    containers-common \
+    criu \
+    crun \
+    netavark \
+    passt \
+    podman \
+    podman-tests \
+    skopeo \
+    slirp4netns \
+    systemd
+
+export system_service_cmd="/usr/bin/podman system service --timeout=0 &"
+export test_cmd="whoami && echo $PODMAN_TESTING && cd /usr/share/podman/test/system && bats ."
+
+if [[ -z $1 ]]; then
+    if [[ $PODMAN == "/usr/bin/podman-remote" ]]; then
+        eval "$system_service_cmd"
+    fi
+    eval "$test_cmd"
+elif [[ $1 == "rootless" ]]; then
+    if [[ $PODMAN == "/usr/bin/podman-remote" ]]; then
+        su - "$ROOTLESS_USER" -c "eval $system_service_cmd"
+    fi
+    su --whitelist-environment="$(cmd ./tmt-envvars | tr '\n' ',')" - "$ROOTLESS_USER" -c "eval $test_cmd"
+fi
+
+# Kill all podman processes for remote tests
+if [[ $PODMAN == "/usr/bin/podman-remote" ]]; then
+    killall -q podman
+fi
+exit 0
