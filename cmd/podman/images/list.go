@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -128,10 +129,27 @@ func images(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	imgs, err := sortImages(summaries)
+	reference := ""
+	for _, filter := range listOptions.Filter {
+		if strings.HasPrefix(filter, "reference=") {
+			reference = strings.TrimPrefix(filter, "reference=")
+			if strings.HasPrefix(reference, "sha256:") {
+				reference = ""
+				break
+			}
+			reference, _, _ = tokenRepoTag(reference)
+			if strings.Contains(reference, "<none>") {
+				reference = ""
+			}
+			break
+		}
+	}
+
+	imgs, err := sortImages(summaries, reference)
 	if err != nil {
 		return err
 	}
+
 	switch {
 	case report.IsJSON(listFlag.format):
 		return writeJSON(imgs)
@@ -214,9 +232,16 @@ func writeTemplate(cmd *cobra.Command, imgs []imageReporter) error {
 	return rpt.Execute(imgs)
 }
 
-func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
-	imgs := make([]imageReporter, 0, len(imageS))
+func sortImages(imageS []*entities.ImageSummary, reference string) ([]imageReporter, error) {
 	var err error
+	var referenceRegex *regexp.Regexp
+	if reference != "" {
+		referenceRegex, err = regexp.Compile(reference + "$")
+		if err != nil {
+			return nil, err
+		}
+	}
+	imgs := make([]imageReporter, 0, len(imageS))
 	for _, e := range imageS {
 		var h imageReporter
 		if len(e.RepoTags) > 0 {
@@ -237,7 +262,12 @@ func sortImages(imageS []*entities.ImageSummary) ([]imageReporter, error) {
 			// Note: we only want to display "<none>" if we
 			// couldn't find any tagged name in RepoTags.
 			if len(tagged) > 0 {
-				imgs = append(imgs, tagged...)
+				for _, i := range tagged {
+					if reference != "" && !referenceRegex.MatchString(i.Repository) {
+						continue
+					}
+					imgs = append(imgs, i)
+				}
 			} else {
 				imgs = append(imgs, untagged[0])
 			}
