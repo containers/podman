@@ -23,7 +23,7 @@ rpm -q \
     systemd
 
 export system_service_cmd="/usr/bin/podman system service --timeout=0 &"
-export test_cmd="whoami && cd /usr/share/podman/test/system && bats ."
+export test_cmd="whoami && echo $PODMAN_TESTING && cd /usr/share/podman/test/system && bats ."
 
 if [[ -z $1 ]]; then
     if [[ $PODMAN == "/usr/bin/podman-remote" ]]; then
