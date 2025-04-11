@@ -10,6 +10,7 @@ import (
 	"io"
 	"io/fs"
 	"os"
+	osexc "os/exec"
 	"path/filepath"
 	"slices"
 	"strconv"
@@ -2056,6 +2057,11 @@ func (c *Container) cleanupStorage() error {
 	if c.config.RootfsOverlay {
 		overlayBasePath := filepath.Dir(c.state.Mountpoint)
 		if err := overlay.Unmount(overlayBasePath); err != nil {
+			// FIXME: debug only
+			cmd := osexc.Command("lsof", c.state.Mountpoint)
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			_ = cmd.Run()
 			reportErrorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 		}
 	}
