@@ -247,6 +247,11 @@ function setup() {
     run_podman inspect $cid --format "{{(index .NetworkSettings.Networks \"$netname\").MacAddress}}"
     mac1="$output"
 
+    # There is a weird flake, where the hosts content changed after restore and I don't know why.
+    # Because we start from a /etc/hosts base on the host print that.
+    echo "hosts file on the host"
+    cat /etc/hosts
+
     run_podman exec $cid cat /etc/hosts /etc/resolv.conf
     pre_hosts_resolv_conf_output="$output"
 
