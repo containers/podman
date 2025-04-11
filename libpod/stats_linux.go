@@ -38,7 +38,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	if err != nil {
 		// cgroup.Stat() is not an atomic operation, so it is possible that the cgroup is removed
 		// while Stat() is running.  Try to catch this case and return a more specific error.
-		if (errors.Is(err, unix.ENOENT) || errors.Is(err, unix.ENODEV)) && !cgroupExist(cgroupPath) {
+		if (errors.Is(err, cgroups.ErrStatCgroup) || errors.Is(err, unix.ENODEV)) && !cgroupExist(cgroupPath) {
 			return fmt.Errorf("cgroup %s does not exist: %w", cgroupPath, define.ErrCtrStopped)
 		}
 		return fmt.Errorf("unable to obtain cgroup stats: %w", err)
