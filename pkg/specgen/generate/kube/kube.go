@@ -341,6 +341,14 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			s.StopSignal = &stopSignal
 		}
 	}
+	if lifecycle := opts.Container.Lifecycle; lifecycle != nil && lifecycle.StopSignal != nil && len(*lifecycle.StopSignal) > 0 {
+		stopSignal, err := util.ParseSignal(string(*lifecycle.StopSignal))
+		if err != nil {
+			return nil, err
+		}
+		s.StopSignal = &stopSignal
+	}
+
 	// If only the yaml.Command is specified, set it as the entrypoint and drop the image Cmd
 	if !opts.IsInfra && len(opts.Container.Command) != 0 {
 		s.Entrypoint = opts.Container.Command
