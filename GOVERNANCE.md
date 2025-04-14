@@ -18,6 +18,10 @@
 
 This document defines the governance of the Podman Project, including its subprojects. It defines the various roles our maintainers fill, how to become a maintainer, and how project-level decisions are made.
 
+The Podman project currently consists of the Podman project (the repository containing this file) and two subprojects:
+* [Buildah](https://github.com/containers/buildah)
+* [Skopeo](https://github.com/containers/skopeo/)
+
 # Contributor Ladder
 
 The Podman project has a number of maintainer roles arranged in a ladder. Each role is a rung on the ladder, with different responsibilities and privileges. Community members generally start at the first levels of the "ladder" and advance as their involvement in the project grows. Our project members are happy to help you advance along the contributor ladder. At all levels, contributors are required to follow the CNCF Code of Conduct (COC).
@@ -141,6 +145,7 @@ Description: Community managers are responsible for the project’s community in
     * Arranging, participating in, and leading, community meetings
     * Managing the project website and gathering associated metrics
     * Managing the project’s social media accounts and mailing lists and gathering associated metrics
+    * Creating and publishing minutes from Core Maintainer meetings
 * Requirements
     * Sustained high level of contribution to the community, including attending and engaging in community meetings, contributions to the website, and contributions to documentation, for at least six months
     * Is able to exercise judgment for the good of the project, independent of their employer, friends, or team
