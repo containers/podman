@@ -85,7 +85,7 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if evt.Error != nil {
-				logrus.Errorf("Unable to read event: %q", err)
+				logrus.Errorf("Unable to read event: %q", evt.Error)
 				continue
 			}
 			if evt.Event == nil {

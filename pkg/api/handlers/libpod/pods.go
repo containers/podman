@@ -167,7 +167,7 @@ func PodStop(w http.ResponseWriter, r *http.Request) {
 		responses, stopError = pod.Stop(r.Context(), false)
 	}
 	if stopError != nil && !errors.Is(stopError, define.ErrPodPartialFail) {
-		utils.Error(w, http.StatusInternalServerError, err)
+		utils.Error(w, http.StatusInternalServerError, stopError)
 		return
 	}
 	// Try to clean up the pod - but only warn on failure, it's nonfatal.
