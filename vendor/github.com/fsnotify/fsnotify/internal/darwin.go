@@ -9,14 +9,14 @@ import (
 )
 
 var (
-	SyscallEACCES = syscall.EACCES
-	UnixEACCES    = unix.EACCES
+	ErrSyscallEACCES = syscall.EACCES
+	ErrUnixEACCES    = unix.EACCES
 )
 
 var maxfiles uint64
 
-// Go 1.19 will do this automatically: https://go-review.googlesource.com/c/go/+/393354/
 func SetRlimit() {
+	// Go 1.19 will do this automatically: https://go-review.googlesource.com/c/go/+/393354/
 	var l syscall.Rlimit
 	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &l)
 	if err == nil && l.Cur != l.Max {
