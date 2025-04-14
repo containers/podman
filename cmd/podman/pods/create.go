@@ -233,17 +233,17 @@ func create(cmd *cobra.Command, args []string) error {
 		}
 	}
 	sort.Ints(vals)
+loop:
 	for ind, core := range vals {
 		switch {
 		case core > int(cpuSet):
 			if copy == "" {
 				copy = "0-" + strconv.Itoa(int(cpuSet))
 				infraOptions.CPUSetCPUs = copy
-				break
 			} else {
 				infraOptions.CPUSetCPUs = copy
-				break
 			}
+			break loop
 		case ind != 0:
 			copy += "," + strconv.Itoa(core)
 		default:
@@ -252,6 +252,7 @@ func create(cmd *cobra.Command, args []string) error {
 	}
 	createOptions.Cpus = infraOptions.CPUS
 	createOptions.CpusetCpus = infraOptions.CPUSetCPUs
+
 	podSpec := specgen.NewPodSpecGenerator()
 	podSpec, err = entities.ToPodSpecGen(*podSpec, &createOptions)
 	if err != nil {
