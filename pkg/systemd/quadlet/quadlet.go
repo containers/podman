@@ -126,6 +126,7 @@ const (
 	KeyMount                 = "Mount"
 	KeyNetwork               = "Network"
 	KeyNetworkAlias          = "NetworkAlias"
+	KeyNetworkDeleteOnStop   = "NetworkDeleteOnStop"
 	KeyNetworkName           = "NetworkName"
 	KeyNoNewPrivileges       = "NoNewPrivileges"
 	KeyNotify                = "Notify"
@@ -327,6 +328,7 @@ var (
 		KeyIPv6:                 true,
 		KeyInternal:             true,
 		KeyNetworkName:          true,
+		KeyNetworkDeleteOnStop:  true,
 		KeyOptions:              true,
 		KeyServiceName:          true,
 		KeySubnet:               true,
@@ -947,6 +949,12 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
+
+	if network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkDeleteOnStop, false) {
+		serviceStopPostCmd := createBasePodmanCommand(network, NetworkGroup)
+		serviceStopPostCmd.add("network", "rm", networkName)
+		service.AddCmdline(ServiceGroup, "ExecStopPost", serviceStopPostCmd.Args)
+	}
 
 	podman := createBasePodmanCommand(network, NetworkGroup)
 
