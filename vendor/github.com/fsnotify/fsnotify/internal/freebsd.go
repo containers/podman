@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	SyscallEACCES = syscall.EACCES
-	UnixEACCES    = unix.EACCES
+	ErrSyscallEACCES = syscall.EACCES
+	ErrUnixEACCES    = unix.EACCES
 )
 
 var maxfiles uint64

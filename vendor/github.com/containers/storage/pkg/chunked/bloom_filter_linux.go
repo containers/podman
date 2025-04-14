@@ -65,7 +65,7 @@ func (bf *bloomFilter) writeTo(writer io.Writer) error {
 	if err := binary.Write(writer, binary.LittleEndian, uint64(len(bf.bitArray))); err != nil {
 		return err
 	}
-	if err := binary.Write(writer, binary.LittleEndian, uint32(bf.k)); err != nil {
+	if err := binary.Write(writer, binary.LittleEndian, bf.k); err != nil {
 		return err
 	}
 	if err := binary.Write(writer, binary.LittleEndian, bf.bitArray); err != nil {

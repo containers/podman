@@ -38,7 +38,7 @@ func (i *Image) Tree(ctx context.Context, traverseChildren bool) (string, error)
 		fmt.Fprintf(sb, "No Image Layers")
 	}
 
-	layerTree, err := i.runtime.newFreshLayerTree(ctx)
+	layerTree, err := i.runtime.newFreshLayerTree()
 	if err != nil {
 		return "", err
 	}

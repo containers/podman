@@ -95,17 +95,17 @@ func (l *layerNode) repoTags() ([]string, error) {
 }
 
 // newFreshLayerTree extracts a layerTree from consistent layers and images in the local storage.
-func (r *Runtime) newFreshLayerTree(ctx context.Context) (*layerTree, error) {
+func (r *Runtime) newFreshLayerTree() (*layerTree, error) {
 	images, layers, err := r.getImagesAndLayers()
 	if err != nil {
 		return nil, err
 	}
-	return r.newLayerTreeFromData(ctx, images, layers, false)
+	return r.newLayerTreeFromData(images, layers, false)
 }
 
 // newLayerTreeFromData extracts a layerTree from the given the layers and images.
 // The caller is responsible for (layers, images) being consistent.
-func (r *Runtime) newLayerTreeFromData(ctx context.Context, images []*Image, layers []storage.Layer, generateManifestDigestList bool) (*layerTree, error) {
+func (r *Runtime) newLayerTreeFromData(images []*Image, layers []storage.Layer, generateManifestDigestList bool) (*layerTree, error) {
 	tree := layerTree{
 		nodes:               make(map[string]*layerNode),
 		ociCache:            make(map[string]*ociv1.Image),
@@ -136,14 +136,23 @@ func (r *Runtime) newLayerTreeFromData(ctx context.Context, images []*Image, lay
 			if !generateManifestDigestList {
 				continue
 			}
-			if manifestList, _ := img.IsManifestList(ctx); manifestList {
-				mlist, err := img.ToManifestList()
-				if err != nil {
-					return nil, err
+			// ignore errors, common errors are
+			//  - image is not manifest
+			//  - image has been removed from the store in the meantime
+			// In all cases we should ensure image listing still works and not error out.
+			mlist, err := img.ToManifestList()
+			if err != nil {
+				// If it is not a manifest it likely is a regular image so just ignore it.
+				// If the image is unknown that likely means there was a race where the image/manifest
+				// was removed after out MultiList() call so we ignore that as well.
+				if errors.Is(err, ErrNotAManifestList) || errors.Is(err, storageTypes.ErrImageUnknown) {
+					continue
 				}
-				for _, digest := range mlist.list.Instances() {
-					tree.manifestListDigests[digest] = struct{}{}
-				}
+				return nil, err
+			}
+
+			for _, digest := range mlist.list.Instances() {
+				tree.manifestListDigests[digest] = struct{}{}
 			}
 			continue
 		}

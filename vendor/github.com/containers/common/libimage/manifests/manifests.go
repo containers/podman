@@ -149,7 +149,7 @@ func LoadFromImage(store storage.Store, image string) (string, List, error) {
 	}
 	manifestList, err := manifests.FromBlob(manifestBytes)
 	if err != nil {
-		return "", nil, err
+		return "", nil, fmt.Errorf("decoding manifest blob for image %q: %w", image, err)
 	}
 	list := &list{
 		List:      manifestList,

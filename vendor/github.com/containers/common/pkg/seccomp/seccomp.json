@@ -152,6 +152,7 @@
 				"fadvise64",
 				"fadvise64_64",
 				"fallocate",
+				"fanotify_init",
 				"fanotify_mark",
 				"fchdir",
 				"fchmod",
@@ -691,7 +692,6 @@
 		{
 			"names": [
 				"bpf",
-				"fanotify_init",
 				"lookup_dcookie",
 				"quotactl",
 				"quotactl_fd",
@@ -711,7 +711,6 @@
 		},
 		{
 			"names": [
-				"fanotify_init",
 				"lookup_dcookie",
 				"perf_event_open",
 				"quotactl",

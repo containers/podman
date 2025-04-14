@@ -197,7 +197,7 @@ func (i *Image) IsDangling(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	tree, err := i.runtime.newLayerTreeFromData(ctx, images, layers, true)
+	tree, err := i.runtime.newLayerTreeFromData(images, layers, true)
 	if err != nil {
 		return false, err
 	}
@@ -267,7 +267,7 @@ func (i *Image) TopLayer() string {
 
 // Parent returns the parent image or nil if there is none
 func (i *Image) Parent(ctx context.Context) (*Image, error) {
-	tree, err := i.runtime.newFreshLayerTree(ctx)
+	tree, err := i.runtime.newFreshLayerTree()
 	if err != nil {
 		return nil, err
 	}
@@ -301,7 +301,7 @@ func (i *Image) Children(ctx context.Context) ([]*Image, error) {
 // created for this invocation only.
 func (i *Image) getChildren(ctx context.Context, all bool, tree *layerTree) ([]*Image, error) {
 	if tree == nil {
-		t, err := i.runtime.newFreshLayerTree(ctx)
+		t, err := i.runtime.newFreshLayerTree()
 		if err != nil {
 			return nil, err
 		}
