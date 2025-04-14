@@ -36,8 +36,8 @@ func (c *platformChowner) LChown(path string, info os.FileInfo, toHost, toContai
 	}
 
 	i := inode{
-		Dev: uint64(st.Dev),
-		Ino: uint64(st.Ino),
+		Dev: uint64(st.Dev), //nolint:unconvert
+		Ino: st.Ino,
 	}
 
 	c.mutex.Lock()

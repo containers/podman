@@ -19,6 +19,7 @@ import (
 )
 
 type inotify struct {
+	*shared
 	Events chan Event
 	Errors chan error
 
@@ -27,8 +28,6 @@ type inotify struct {
 	fd          int
 	inotifyFile *os.File
 	watches     *watches
-	done        chan struct{} // Channel for sending a "quit message" to the reader goroutine
-	doneMu      sync.Mutex
 	doneResp    chan struct{} // Channel to respond to Close
 
 	// Store rename cookies in an array, with the index wrapping to 0. Almost
@@ -52,7 +51,6 @@ type inotify struct {
 
 type (
 	watches struct {
-		mu   sync.RWMutex
 		wd   map[uint32]*watch // wd → watch
 		path map[string]uint32 // pathname → wd
 	}
@@ -75,34 +73,13 @@ func newWatches() *watches {
 	}
 }
 
-func (w *watches) len() int {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return len(w.wd)
-}
-
-func (w *watches) add(ww *watch) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	w.wd[ww.wd] = ww
-	w.path[ww.path] = ww.wd
-}
-
-func (w *watches) remove(wd uint32) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-	watch := w.wd[wd] // Could have had Remove() called. See #616.
-	if watch == nil {
-		return
-	}
-	delete(w.path, watch.path)
-	delete(w.wd, wd)
-}
+func (w *watches) byPath(path string) *watch { return w.wd[w.path[path]] }
+func (w *watches) byWd(wd uint32) *watch     { return w.wd[wd] }
+func (w *watches) len() int                  { return len(w.wd) }
+func (w *watches) add(ww *watch)             { w.wd[ww.wd] = ww; w.path[ww.path] = ww.wd }
+func (w *watches) remove(watch *watch)       { delete(w.path, watch.path); delete(w.wd, watch.wd) }
 
 func (w *watches) removePath(path string) ([]uint32, error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	path, recurse := recursivePath(path)
 	wd, ok := w.path[path]
 	if !ok {
@@ -123,7 +100,7 @@ func (w *watches) removePath(path string) ([]uint32, error) {
 	wds := make([]uint32, 0, 8)
 	wds = append(wds, wd)
 	for p, rwd := range w.path {
-		if filepath.HasPrefix(p, path) {
+		if strings.HasPrefix(p, path) {
 			delete(w.path, p)
 			delete(w.wd, rwd)
 			wds = append(wds, rwd)
@@ -132,22 +109,7 @@ func (w *watches) removePath(path string) ([]uint32, error) {
 	return wds, nil
 }
 
-func (w *watches) byPath(path string) *watch {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return w.wd[w.path[path]]
-}
-
-func (w *watches) byWd(wd uint32) *watch {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return w.wd[wd]
-}
-
 func (w *watches) updatePath(path string, f func(*watch) (*watch, error)) error {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
 	var existing *watch
 	wd, ok := w.path[path]
 	if ok {
@@ -170,11 +132,9 @@ func (w *watches) updatePath(path string, f func(*watch) (*watch, error)) error 
 	return nil
 }
 
-func newBackend(ev chan Event, errs chan error) (backend, error) {
-	return newBufferedBackend(0, ev, errs)
-}
+var defaultBufferSize = 0
 
-func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error) {
+func newBackend(ev chan Event, errs chan error) (backend, error) {
 	// Need to set nonblocking mode for SetDeadline to work, otherwise blocking
 	// I/O operations won't terminate on close.
 	fd, errno := unix.InotifyInit1(unix.IN_CLOEXEC | unix.IN_NONBLOCK)
@@ -183,12 +143,12 @@ func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error
 	}
 
 	w := &inotify{
+		shared:      newShared(ev, errs),
 		Events:      ev,
 		Errors:      errs,
 		fd:          fd,
 		inotifyFile: os.NewFile(uintptr(fd), ""),
 		watches:     newWatches(),
-		done:        make(chan struct{}),
 		doneResp:    make(chan struct{}),
 	}
 
@@ -196,46 +156,10 @@ func newBufferedBackend(sz uint, ev chan Event, errs chan error) (backend, error
 	return w, nil
 }
 
-// Returns true if the event was sent, or false if watcher is closed.
-func (w *inotify) sendEvent(e Event) bool {
-	select {
-	case <-w.done:
-		return false
-	case w.Events <- e:
-		return true
-	}
-}
-
-// Returns true if the error was sent, or false if watcher is closed.
-func (w *inotify) sendError(err error) bool {
-	if err == nil {
-		return true
-	}
-	select {
-	case <-w.done:
-		return false
-	case w.Errors <- err:
-		return true
-	}
-}
-
-func (w *inotify) isClosed() bool {
-	select {
-	case <-w.done:
-		return true
-	default:
-		return false
-	}
-}
-
 func (w *inotify) Close() error {
-	w.doneMu.Lock()
-	if w.isClosed() {
-		w.doneMu.Unlock()
+	if w.shared.close() {
 		return nil
 	}
-	close(w.done)
-	w.doneMu.Unlock()
 
 	// Causes any blocking reads to return with an error, provided the file
 	// still supports deadline operations.
@@ -244,9 +168,7 @@ func (w *inotify) Close() error {
 		return err
 	}
 
-	// Wait for goroutine to close
-	<-w.doneResp
-
+	<-w.doneResp // Wait for readEvents() to finish.
 	return nil
 }
 
@@ -266,6 +188,43 @@ func (w *inotify) AddWith(path string, opts ...addOpt) error {
 		return fmt.Errorf("%w: %s", xErrUnsupported, with.op)
 	}
 
+	add := func(path string, with withOpts, recurse bool) error {
+		var flags uint32
+		if with.noFollow {
+			flags |= unix.IN_DONT_FOLLOW
+		}
+		if with.op.Has(Create) {
+			flags |= unix.IN_CREATE
+		}
+		if with.op.Has(Write) {
+			flags |= unix.IN_MODIFY
+		}
+		if with.op.Has(Remove) {
+			flags |= unix.IN_DELETE | unix.IN_DELETE_SELF
+		}
+		if with.op.Has(Rename) {
+			flags |= unix.IN_MOVED_TO | unix.IN_MOVED_FROM | unix.IN_MOVE_SELF
+		}
+		if with.op.Has(Chmod) {
+			flags |= unix.IN_ATTRIB
+		}
+		if with.op.Has(xUnportableOpen) {
+			flags |= unix.IN_OPEN
+		}
+		if with.op.Has(xUnportableRead) {
+			flags |= unix.IN_ACCESS
+		}
+		if with.op.Has(xUnportableCloseWrite) {
+			flags |= unix.IN_CLOSE_WRITE
+		}
+		if with.op.Has(xUnportableCloseRead) {
+			flags |= unix.IN_CLOSE_NOWRITE
+		}
+		return w.register(path, flags, recurse)
+	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	path, recurse := recursivePath(path)
 	if recurse {
 		return filepath.WalkDir(path, func(root string, d fs.DirEntry, err error) error {
@@ -289,46 +248,11 @@ func (w *inotify) AddWith(path string, opts ...addOpt) error {
 				w.sendEvent(Event{Name: root, Op: Create})
 			}
 
-			return w.add(root, with, true)
+			return add(root, with, true)
 		})
 	}
 
-	return w.add(path, with, false)
-}
-
-func (w *inotify) add(path string, with withOpts, recurse bool) error {
-	var flags uint32
-	if with.noFollow {
-		flags |= unix.IN_DONT_FOLLOW
-	}
-	if with.op.Has(Create) {
-		flags |= unix.IN_CREATE
-	}
-	if with.op.Has(Write) {
-		flags |= unix.IN_MODIFY
-	}
-	if with.op.Has(Remove) {
-		flags |= unix.IN_DELETE | unix.IN_DELETE_SELF
-	}
-	if with.op.Has(Rename) {
-		flags |= unix.IN_MOVED_TO | unix.IN_MOVED_FROM | unix.IN_MOVE_SELF
-	}
-	if with.op.Has(Chmod) {
-		flags |= unix.IN_ATTRIB
-	}
-	if with.op.Has(xUnportableOpen) {
-		flags |= unix.IN_OPEN
-	}
-	if with.op.Has(xUnportableRead) {
-		flags |= unix.IN_ACCESS
-	}
-	if with.op.Has(xUnportableCloseWrite) {
-		flags |= unix.IN_CLOSE_WRITE
-	}
-	if with.op.Has(xUnportableCloseRead) {
-		flags |= unix.IN_CLOSE_NOWRITE
-	}
-	return w.register(path, flags, recurse)
+	return add(path, with, false)
 }
 
 func (w *inotify) register(path string, flags uint32, recurse bool) error {
@@ -340,6 +264,10 @@ func (w *inotify) register(path string, flags uint32, recurse bool) error {
 		wd, err := unix.InotifyAddWatch(w.fd, path, flags)
 		if wd == -1 {
 			return nil, err
+		}
+
+		if e, ok := w.watches.wd[uint32(wd)]; ok {
+			return e, nil
 		}
 
 		if existing == nil {
@@ -365,6 +293,9 @@ func (w *inotify) Remove(name string) error {
 		fmt.Fprintf(os.Stderr, "FSNOTIFY_DEBUG: %s  Remove(%q)\n",
 			time.Now().Format("15:04:05.000000000"), name)
 	}
+
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	return w.remove(filepath.Clean(name))
 }
 
@@ -399,13 +330,12 @@ func (w *inotify) WatchList() []string {
 		return nil
 	}
 
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	entries := make([]string, 0, w.watches.len())
-	w.watches.mu.RLock()
 	for pathname := range w.watches.path {
 		entries = append(entries, pathname)
 	}
-	w.watches.mu.RUnlock()
-
 	return entries
 }
 
@@ -418,21 +348,17 @@ func (w *inotify) readEvents() {
 		close(w.Events)
 	}()
 
-	var (
-		buf   [unix.SizeofInotifyEvent * 4096]byte // Buffer for a maximum of 4096 raw events
-		errno error                                // Syscall errno
-	)
+	var buf [unix.SizeofInotifyEvent * 4096]byte // Buffer for a maximum of 4096 raw events
 	for {
-		// See if we have been closed.
 		if w.isClosed() {
 			return
 		}
 
 		n, err := w.inotifyFile.Read(buf[:])
-		switch {
-		case errors.Unwrap(err) == os.ErrClosed:
-			return
-		case err != nil:
+		if err != nil {
+			if errors.Is(err, os.ErrClosed) {
+				return
+			}
 			if !w.sendError(err) {
 				return
 			}
@@ -440,13 +366,9 @@ func (w *inotify) readEvents() {
 		}
 
 		if n < unix.SizeofInotifyEvent {
-			var err error
+			err := errors.New("notify: short read in readEvents()") // Read was too short.
 			if n == 0 {
 				err = io.EOF // If EOF is received. This should really never happen.
-			} else if n < 0 {
-				err = errno // If an error occurred while reading.
-			} else {
-				err = errors.New("notify: short read in readEvents()") // Read was too short.
 			}
 			if !w.sendError(err) {
 				return
@@ -454,132 +376,135 @@ func (w *inotify) readEvents() {
 			continue
 		}
 
-		// We don't know how many events we just read into the buffer
-		// While the offset points to at least one whole event...
+		// We don't know how many events we just read into the buffer While the
+		// offset points to at least one whole event.
 		var offset uint32
 		for offset <= uint32(n-unix.SizeofInotifyEvent) {
-			var (
-				// Point "raw" to the event in the buffer
-				raw     = (*unix.InotifyEvent)(unsafe.Pointer(&buf[offset]))
-				mask    = uint32(raw.Mask)
-				nameLen = uint32(raw.Len)
-				// Move to the next event in the buffer
-				next = func() { offset += unix.SizeofInotifyEvent + nameLen }
-			)
+			// Point to the event in the buffer.
+			inEvent := (*unix.InotifyEvent)(unsafe.Pointer(&buf[offset]))
 
-			if mask&unix.IN_Q_OVERFLOW != 0 {
+			if inEvent.Mask&unix.IN_Q_OVERFLOW != 0 {
 				if !w.sendError(ErrEventOverflow) {
 					return
 				}
 			}
 
-			/// If the event happened to the watched directory or the watched
-			/// file, the kernel doesn't append the filename to the event, but
-			/// we would like to always fill the the "Name" field with a valid
-			/// filename. We retrieve the path of the watch from the "paths"
-			/// map.
-			watch := w.watches.byWd(uint32(raw.Wd))
-			/// Can be nil if Remove() was called in another goroutine for this
-			/// path inbetween reading the events from the kernel and reading
-			/// the internal state. Not much we can do about it, so just skip.
-			/// See #616.
-			if watch == nil {
-				next()
-				continue
+			ev, ok := w.handleEvent(inEvent, &buf, offset)
+			if !ok {
+				return
 			}
-
-			name := watch.path
-			if nameLen > 0 {
-				/// Point "bytes" at the first byte of the filename
-				bytes := (*[unix.PathMax]byte)(unsafe.Pointer(&buf[offset+unix.SizeofInotifyEvent]))[:nameLen:nameLen]
-				/// The filename is padded with NULL bytes. TrimRight() gets rid of those.
-				name += "/" + strings.TrimRight(string(bytes[0:nameLen]), "\000")
-			}
-
-			if debug {
-				internal.Debug(name, raw.Mask, raw.Cookie)
-			}
-
-			if mask&unix.IN_IGNORED != 0 { //&& event.Op != 0
-				next()
-				continue
-			}
-
-			// inotify will automatically remove the watch on deletes; just need
-			// to clean our state here.
-			if mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
-				w.watches.remove(watch.wd)
-			}
-
-			// We can't really update the state when a watched path is moved;
-			// only IN_MOVE_SELF is sent and not IN_MOVED_{FROM,TO}. So remove
-			// the watch.
-			if mask&unix.IN_MOVE_SELF == unix.IN_MOVE_SELF {
-				if watch.recurse {
-					next() // Do nothing
-					continue
-				}
-
-				err := w.remove(watch.path)
-				if err != nil && !errors.Is(err, ErrNonExistentWatch) {
-					if !w.sendError(err) {
-						return
-					}
-				}
-			}
-
-			/// Skip if we're watching both this path and the parent; the parent
-			/// will already send a delete so no need to do it twice.
-			if mask&unix.IN_DELETE_SELF != 0 {
-				if _, ok := w.watches.path[filepath.Dir(watch.path)]; ok {
-					next()
-					continue
-				}
-			}
-
-			ev := w.newEvent(name, mask, raw.Cookie)
-			// Need to update watch path for recurse.
-			if watch.recurse {
-				isDir := mask&unix.IN_ISDIR == unix.IN_ISDIR
-				/// New directory created: set up watch on it.
-				if isDir && ev.Has(Create) {
-					err := w.register(ev.Name, watch.flags, true)
-					if !w.sendError(err) {
-						return
-					}
-
-					// This was a directory rename, so we need to update all
-					// the children.
-					//
-					// TODO: this is of course pretty slow; we should use a
-					// better data structure for storing all of this, e.g. store
-					// children in the watch. I have some code for this in my
-					// kqueue refactor we can use in the future. For now I'm
-					// okay with this as it's not publicly available.
-					// Correctness first, performance second.
-					if ev.renamedFrom != "" {
-						w.watches.mu.Lock()
-						for k, ww := range w.watches.wd {
-							if k == watch.wd || ww.path == ev.Name {
-								continue
-							}
-							if strings.HasPrefix(ww.path, ev.renamedFrom) {
-								ww.path = strings.Replace(ww.path, ev.renamedFrom, ev.Name, 1)
-								w.watches.wd[k] = ww
-							}
-						}
-						w.watches.mu.Unlock()
-					}
-				}
-			}
-
-			/// Send the events that are not ignored on the events channel
 			if !w.sendEvent(ev) {
 				return
 			}
-			next()
+
+			// Move to the next event in the buffer
+			offset += unix.SizeofInotifyEvent + inEvent.Len
 		}
 	}
+}
+
+func (w *inotify) handleEvent(inEvent *unix.InotifyEvent, buf *[65536]byte, offset uint32) (Event, bool) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	/// If the event happened to the watched directory or the watched file, the
+	/// kernel doesn't append the filename to the event, but we would like to
+	/// always fill the the "Name" field with a valid filename. We retrieve the
+	/// path of the watch from the "paths" map.
+	///
+	/// Can be nil if Remove() was called in another goroutine for this path
+	/// inbetween reading the events from the kernel and reading the internal
+	/// state. Not much we can do about it, so just skip. See #616.
+	watch := w.watches.byWd(uint32(inEvent.Wd))
+	if watch == nil {
+		return Event{}, true
+	}
+
+	var (
+		name    = watch.path
+		nameLen = uint32(inEvent.Len)
+	)
+	if nameLen > 0 {
+		/// Point "bytes" at the first byte of the filename
+		bb := *buf
+		bytes := (*[unix.PathMax]byte)(unsafe.Pointer(&bb[offset+unix.SizeofInotifyEvent]))[:nameLen:nameLen]
+		/// The filename is padded with NULL bytes. TrimRight() gets rid of those.
+		name += "/" + strings.TrimRight(string(bytes[0:nameLen]), "\x00")
+	}
+
+	if debug {
+		internal.Debug(name, inEvent.Mask, inEvent.Cookie)
+	}
+
+	if inEvent.Mask&unix.IN_IGNORED != 0 || inEvent.Mask&unix.IN_UNMOUNT != 0 {
+		w.watches.remove(watch)
+		return Event{}, true
+	}
+
+	// inotify will automatically remove the watch on deletes; just need
+	// to clean our state here.
+	if inEvent.Mask&unix.IN_DELETE_SELF == unix.IN_DELETE_SELF {
+		w.watches.remove(watch)
+	}
+
+	// We can't really update the state when a watched path is moved; only
+	// IN_MOVE_SELF is sent and not IN_MOVED_{FROM,TO}. So remove the watch.
+	if inEvent.Mask&unix.IN_MOVE_SELF == unix.IN_MOVE_SELF {
+		if watch.recurse { // Do nothing
+			return Event{}, true
+		}
+
+		err := w.remove(watch.path)
+		if err != nil && !errors.Is(err, ErrNonExistentWatch) {
+			if !w.sendError(err) {
+				return Event{}, false
+			}
+		}
+	}
+
+	/// Skip if we're watching both this path and the parent; the parent will
+	/// already send a delete so no need to do it twice.
+	if inEvent.Mask&unix.IN_DELETE_SELF != 0 {
+		_, ok := w.watches.path[filepath.Dir(watch.path)]
+		if ok {
+			return Event{}, true
+		}
+	}
+
+	ev := w.newEvent(name, inEvent.Mask, inEvent.Cookie)
+	// Need to update watch path for recurse.
+	if watch.recurse {
+		isDir := inEvent.Mask&unix.IN_ISDIR == unix.IN_ISDIR
+		/// New directory created: set up watch on it.
+		if isDir && ev.Has(Create) {
+			err := w.register(ev.Name, watch.flags, true)
+			if !w.sendError(err) {
+				return Event{}, false
+			}
+
+			// This was a directory rename, so we need to update all the
+			// children.
+			//
+			// TODO: this is of course pretty slow; we should use a better data
+			// structure for storing all of this, e.g. store children in the
+			// watch. I have some code for this in my kqueue refactor we can use
+			// in the future. For now I'm okay with this as it's not publicly
+			// available. Correctness first, performance second.
+			if ev.renamedFrom != "" {
+				for k, ww := range w.watches.wd {
+					if k == watch.wd || ww.path == ev.Name {
+						continue
+					}
+					if strings.HasPrefix(ww.path, ev.renamedFrom) {
+						ww.path = strings.Replace(ww.path, ev.renamedFrom, ev.Name, 1)
+						w.watches.wd[k] = ww
+					}
+				}
+			}
+		}
+	}
+
+	return ev, true
 }
 
 func (w *inotify) isRecursive(path string) bool {
@@ -650,8 +575,8 @@ func (w *inotify) xSupports(op Op) bool {
 }
 
 func (w *inotify) state() {
-	w.watches.mu.Lock()
-	defer w.watches.mu.Unlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	for wd, ww := range w.watches.wd {
 		fmt.Fprintf(os.Stderr, "%4d: recurse=%t %q\n", wd, ww.recurse, ww.path)
 	}

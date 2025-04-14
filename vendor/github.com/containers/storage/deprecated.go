@@ -111,7 +111,7 @@ type LayerBigDataStore interface {
 // Deprecated: There is no way to use this from any external user of c/storage to invoke c/storage functionality.
 type FlaggableStore interface {
 	ClearFlag(id string, flag string) error
-	SetFlag(id string, flag string, value interface{}) error
+	SetFlag(id string, flag string, value any) error
 }
 
 // ContainerStore is a deprecated interface with no documented way to use it from callers outside of c/storage.
@@ -195,8 +195,8 @@ type LayerStore interface {
 	FlaggableStore
 	RWLayerBigDataStore
 	Create(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool) (*Layer, error)
-	CreateWithFlags(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}) (layer *Layer, err error)
-	Put(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]interface{}, diff io.Reader) (*Layer, int64, error)
+	CreateWithFlags(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]any) (layer *Layer, err error)
+	Put(id string, parent *Layer, names []string, mountLabel string, options map[string]string, moreOptions *LayerOptions, writeable bool, flags map[string]any, diff io.Reader) (*Layer, int64, error)
 	SetNames(id string, names []string) error
 	AddNames(id string, names []string) error
 	RemoveNames(id string, names []string) error
