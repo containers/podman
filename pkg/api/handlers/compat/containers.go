@@ -351,7 +351,7 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 	for portKey, bindings := range inspect.NetworkSettings.Ports {
 		portNum, proto, ok := strings.Cut(portKey, "/")
 		if !ok {
-			return nil, fmt.Errorf("PORT/PROTOCOL Format required for %q", portKey)
+			return nil, fmt.Errorf("PORT/PROTOCOL format required for %q", portKey)
 		}
 
 		containerPort, err := strconv.Atoi(portNum)
