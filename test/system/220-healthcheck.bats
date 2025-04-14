@@ -439,6 +439,7 @@ function _check_health_log {
     # Wait for background healthcheck to finish and make sure the exit status is 1
     rc=0
     wait -n $hc_pid || rc=$?
+    cat $hcStatus # just as debug in case the exit code check fails
     assert $rc -eq 1 "exit status check of healthcheck command"
     assert $(< $hcStatus) == "stopped" "Health status"
 
