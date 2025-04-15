@@ -431,7 +431,7 @@ func Modify(ctx context.Context, name string, images []string, options *ModifyOp
 
 	artifactWriterGroup.Wait()
 	if artifactWriterError != nil {
-		return "", fmt.Errorf("uploading artifacts: %w", err)
+		return "", fmt.Errorf("uploading artifacts: %w", artifactWriterError)
 	}
 
 	data, err := io.ReadAll(response.Body)
