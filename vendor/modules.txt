@@ -326,7 +326,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.57.3-0.20250331162343-3fc5c230951d
+# github.com/containers/storage v1.57.3-0.20250331162343-3fc5c230951d => github.com/tomsweeneyredhat/storage v1.37.1-0.20250415145607-19ffd5bbbcce
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1293,3 +1293,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/storage => github.com/tomsweeneyredhat/storage v1.37.1-0.20250415145607-19ffd5bbbcce

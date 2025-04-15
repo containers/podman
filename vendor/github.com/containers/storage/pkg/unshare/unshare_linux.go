@@ -468,7 +468,7 @@ type Runnable interface {
 	Run() error
 }
 
-func bailOnError(err error, format string, a ...interface{}) { // nolint: revive,goprintffuncname
+func bailOnError(err error, format string, a ...any) { //nolint:revive,goprintffuncname
 	if err != nil {
 		if format != "" {
 			logrus.Errorf("%s: %v", fmt.Sprintf(format, a...), err)

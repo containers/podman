@@ -111,7 +111,7 @@ type chunkedDiffer struct {
 	useFsVerity graphdriver.DifferFsVerity
 }
 
-var xattrsToIgnore = map[string]interface{}{
+var xattrsToIgnore = map[string]any{
 	"security.selinux": true,
 }
 
@@ -1011,7 +1011,7 @@ func mergeMissingChunks(missingParts []missingPart, target int) []missingPart {
 			!missingParts[prevIndex].Hole && !missingParts[i].Hole &&
 			len(missingParts[prevIndex].Chunks) == 1 && len(missingParts[i].Chunks) == 1 &&
 			missingParts[prevIndex].Chunks[0].File.Name == missingParts[i].Chunks[0].File.Name {
-			missingParts[prevIndex].SourceChunk.Length += uint64(gap) + missingParts[i].SourceChunk.Length
+			missingParts[prevIndex].SourceChunk.Length += gap + missingParts[i].SourceChunk.Length
 			missingParts[prevIndex].Chunks[0].CompressedSize += missingParts[i].Chunks[0].CompressedSize
 			missingParts[prevIndex].Chunks[0].UncompressedSize += missingParts[i].Chunks[0].UncompressedSize
 		} else {
@@ -1069,7 +1069,7 @@ func mergeMissingChunks(missingParts []missingPart, target int) []missingPart {
 		} else {
 			gap := getGap(missingParts, i)
 			prev := &newMissingParts[len(newMissingParts)-1]
-			prev.SourceChunk.Length += uint64(gap) + missingParts[i].SourceChunk.Length
+			prev.SourceChunk.Length += gap + missingParts[i].SourceChunk.Length
 			prev.Hole = false
 			prev.OriginFile = nil
 			if gap > 0 {
@@ -1483,7 +1483,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			bigDataKey:          c.manifest,
 			chunkedLayerDataKey: lcdBigData,
 		},
-		Artifacts: map[string]interface{}{
+		Artifacts: map[string]any{
 			tocKey: toc,
 		},
 		TOCDigest:          c.tocDigest,
@@ -1761,7 +1761,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 
 		// the file is missing, attempt to find individual chunks.
 		for _, chunk := range r.chunks {
-			compressedSize := int64(chunk.EndOffset - chunk.Offset)
+			compressedSize := chunk.EndOffset - chunk.Offset
 			size := remainingSize
 			if chunk.ChunkSize > 0 {
 				size = chunk.ChunkSize
