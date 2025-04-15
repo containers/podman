@@ -40,5 +40,7 @@ $Env:TMPDIR = 'Z:\'
 $Env:TMP = 'Z:\'
 $Env:TEMP = 'Z:\'
 
+$PSScriptRoot\win-collect-wsl-logs-start.ps1
+
 Write-Host "`nRunning podman-machine e2e tests"
 Run-Command ".\winmake localmachine"
