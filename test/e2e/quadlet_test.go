@@ -1076,6 +1076,7 @@ BOGUS=foo
 		Entry("Pod - DNS Option", "dns-option.pod"),
 		Entry("Pod - DNS Search", "dns-search.pod"),
 		Entry("Pod - Host", "host.pod"),
+		Entry("Pod - HostName", "hostname.pod"),
 		Entry("Pod - IP", "ip.pod"),
 		Entry("Pod - Name", "name.pod"),
 		Entry("Pod - Network", "network.pod"),

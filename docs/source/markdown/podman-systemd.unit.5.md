@@ -989,6 +989,7 @@ Valid options for `[Pod]` are listed below:
 | DNSSearch=example.com               | --dns-search example.com               |
 | GIDMap=0:10000:10                   | --gidmap=0:10000:10                    |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
+| HostName=name                       | --hostname=name                        |
 | IP=192.5.0.1                        | --ip 192.5.0.1                         |
 | IP6=2001:db8::1                     | --ip6 2001:db8::1                      |
 | Network=host                        | --network host                         |
@@ -1055,6 +1056,15 @@ this option.
 The format of this is a space separated list of arguments, which can optionally be individually
 escaped to allow inclusion of whitespace and other control characters.
 
+This key can be listed multiple times.
+
+### `HostName=`
+
+Set the pod’s hostname inside all containers.
+
+The given hostname is also added to the /etc/hosts file using the container’s primary IP address (also see the `--add-host` option).
+
+Equivalent to the Podman `--hostname` option.
 This key can be listed multiple times.
 
 ### `IP=`
