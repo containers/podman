@@ -48,7 +48,6 @@ func notifyWinChange(ctx context.Context, winChange chan os.Signal, stdin *os.Fi
 			case <-ctx.Done():
 				return
 			case <-timer.C:
-				break
 			}
 
 			w, h, err := term.GetSize(int(stdout.Fd()))
