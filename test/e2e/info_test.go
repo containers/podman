@@ -154,15 +154,23 @@ var _ = Describe("Podman Info", func() {
 	})
 
 	It("Podman info: check desired network backend", func() {
+		// defined in .cirrus.yml
+		want := os.Getenv("CI_DESIRED_NETWORK_BACKEND")
+		if want == "" {
+			if os.Getenv("CIRRUS_CI") == "" {
+				Skip("CI_DESIRED_NETWORK_BACKEND is not set--this is OK because we're not running under Cirrus")
+			}
+			Fail("CIRRUS_CI is set, but CI_DESIRED_NETWORK_BACKEND is not!")
+		}
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.NetworkBackend}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("netavark"))
+		Expect(session.OutputToString()).To(Equal(want))
 
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.NetworkBackendInfo.Backend}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).To(ExitCleanly())
-		Expect(session.OutputToString()).To(Equal("netavark"))
+		Expect(session.OutputToString()).To(Equal(want))
 	})
 
 	It("Podman info: check desired database backend", func() {
