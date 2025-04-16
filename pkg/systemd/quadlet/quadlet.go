@@ -197,8 +197,32 @@ type UnitInfo struct {
 }
 
 var (
+	// Key: Extension
+	// Value: Processing order for resource naming dependencies
+	SupportedExtensions = map[string]int{
+		".container": 4,
+		".volume":    2,
+		".kube":      4,
+		".network":   2,
+		".image":     1,
+		".build":     3,
+		".pod":       5,
+	}
+
 	URL            = regexp.Delayed(`^((https?)|(git)://)|(github\.com/).+$`)
 	validPortRange = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
+
+	unitDependencyKeys = []string{
+		"Wants",
+		"Requires",
+		"Requisite",
+		"BindsTo",
+		"PartOf",
+		"Upholds",
+		"Conflicts",
+		"Before",
+		"After",
+	}
 
 	// Supported keys in "Container" group
 	supportedContainerKeys = map[string]bool{
@@ -515,6 +539,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	service := container.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, warnings, err
+	}
 
 	addDefaultDependencies(service, isUser)
 
@@ -925,6 +953,10 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 	service := network.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, warnings, err
+	}
+
 	addDefaultDependencies(service, isUser)
 
 	if network.Path != "" {
@@ -1041,6 +1073,10 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	service := volume.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, warnings, err
+	}
 
 	addDefaultDependencies(service, isUser)
 
@@ -1180,6 +1216,10 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 
 	service := kube.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, err
+	}
 
 	addDefaultDependencies(service, isUser)
 
@@ -1326,6 +1366,10 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	service := image.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, err
+	}
+
 	addDefaultDependencies(service, isUser)
 
 	if image.Path != "" {
@@ -1406,6 +1450,10 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	service := build.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, warnings, err
+	}
 
 	addDefaultDependencies(service, isUser)
 
@@ -1575,6 +1623,10 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	service := podUnit.Dup()
 	service.Filename = unitInfo.ServiceFileName()
+
+	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
+		return nil, err
+	}
 
 	addDefaultDependencies(service, isUser)
 
@@ -2266,5 +2318,38 @@ func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupNa
 	}
 	serviceUnitFile.AddCmdline(ServiceGroup, "ExecReload", serviceReloadCmd.Args)
 
+	return nil
+}
+
+func translateUnitDependencies(serviceUnitFile *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) error {
+	for _, unitDependencyKey := range unitDependencyKeys {
+		deps := serviceUnitFile.LookupAllStrv(UnitGroup, unitDependencyKey)
+		if len(deps) == 0 {
+			continue
+		}
+		translatedDeps := make([]string, 0, len(deps))
+		translated := false
+		for _, dep := range deps {
+			var translatedDep string
+
+			ext := filepath.Ext(dep)
+			if _, ok := SupportedExtensions[ext]; ok {
+				unitInfo, ok := unitsInfoMap[dep]
+				if !ok {
+					return fmt.Errorf("unable to translate dependency for %s", dep)
+				}
+				translatedDep = unitInfo.ServiceFileName()
+				translated = true
+			} else {
+				translatedDep = dep
+			}
+			translatedDeps = append(translatedDeps, translatedDep)
+		}
+		if !translated {
+			continue
+		}
+		serviceUnitFile.Unset(UnitGroup, unitDependencyKey)
+		serviceUnitFile.Add(UnitGroup, unitDependencyKey, strings.Join(translatedDeps, " "))
+	}
 	return nil
 }

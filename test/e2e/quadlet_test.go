@@ -1103,6 +1103,7 @@ BOGUS=foo
 		Entry("subidmapping-with-remap.container", "subidmapping-with-remap.container", "converting \"subidmapping-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),
 		Entry("userns-with-remap.container", "userns-with-remap.container", "converting \"userns-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),
 		Entry("reloadboth.container", "reloadboth.container", "converting \"reloadboth.container\": ReloadCmd and ReloadSignal are mutually exclusive but both are set"),
+		Entry("dependent.error.container", "dependent.error.container", "converting \"dependent.error.container\": unable to translate dependency for basic.container"),
 
 		Entry("image-no-image.volume", "image-no-image.volume", "converting \"image-no-image.volume\": the key Image is mandatory when using the image driver"),
 		Entry("Volume - Quadlet image (.build) not found", "build-not-found.quadlet.volume", "converting \"build-not-found.quadlet.volume\": requested Quadlet image not-found.build was not found"),
@@ -1158,26 +1159,119 @@ BOGUS=foo
 		Entry("Container - Reuse another named container's network", "network.reuse.name.container", []string{"name.container"}),
 		Entry("Container - Reuse another container's network", "a.network.reuse.container", []string{"basic.container"}),
 		Entry("Container - Reuse another named container's network", "a.network.reuse.name.container", []string{"name.container"}),
+		Entry(
+			"Container - Dependency between quadlet units",
+			"dependent.container",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
 
 		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", []string{"basic.build"}),
 		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", []string{"basic.image"}),
 		Entry("Volume - Quadlet image (.build) overriding service name", "build.quadlet.servicename.volume", []string{"service-name.build"}),
 		Entry("Volume - Quadlet image (.image) overriding service name", "image.quadlet.servicename.volume", []string{"service-name.image"}),
+		Entry(
+			"Volume - Dependency between quadlet units",
+			"dependent.volume",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
 
 		Entry("Kube - Quadlet Network", "network.quadlet.kube", []string{"basic.network"}),
 		Entry("Kube - Quadlet Network overriding service name", "network.quadlet.servicename.kube", []string{"service-name.network"}),
+		Entry(
+			"Kube - Dependency between quadlet units",
+			"dependent.kube",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
 
 		Entry("Build - Network Key quadlet", "network.quadlet.build", []string{"basic.network"}),
 		Entry("Build - Volume Key", "volume.build", []string{"basic.volume"}),
 		Entry("Build - Volume Key quadlet", "volume.quadlet.build", []string{"basic.volume"}),
 		Entry("Build - Network Key quadlet overriding service name", "network.quadlet.servicename.build", []string{"service-name.network"}),
 		Entry("Build - Volume Key quadlet overriding service name", "volume.quadlet.servicename.build", []string{"service-name.volume"}),
+		Entry(
+			"Build - Dependency between quadlet units",
+			"dependent.build",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
 
 		Entry("Pod - Quadlet Network", "network.quadlet.pod", []string{"basic.network"}),
 		Entry("Pod - Quadlet Volume", "volume.pod", []string{"basic.volume"}),
 		Entry("Pod - Quadlet Network overriding service name", "network.servicename.quadlet.pod", []string{"service-name.network"}),
 		Entry("Pod - Quadlet Volume overriding service name", "volume.servicename.pod", []string{"service-name.volume"}),
 		Entry("Pod - Do not autostart a container with pod", "startwithpod.pod", []string{"startwithpod_no.container", "startwithpod_yes.container"}),
+		Entry(
+			"Pod - Dependency between quadlet units",
+			"dependent.pod",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
+
+		Entry(
+			"Image - Dependency between quadlet units",
+			"dependent.image",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
+
+		Entry(
+			"Network - Dependency between quadlet units",
+			"dependent.network",
+			[]string{
+				"basic.build",
+				"basic.container",
+				"basic.image",
+				"basic.kube",
+				"basic.network",
+				"basic.pod",
+				"basic.volume",
+			},
+		),
 	)
 
 })

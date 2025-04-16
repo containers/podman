@@ -258,6 +258,22 @@ the `network-online.target` unit is active with `systemctl is-active network-onl
 This behavior can be disabled by adding `DefaultDependencies=false` in the `Quadlet` section.
 Note, the _systemd_ `[Unit]` section has an option with the same name but a different meaning.
 
+### Dependency between Quadlet units
+
+Quadlet will automatically translate dependencies, specified in the keys
+`Wants`, `Requires`, `Requisite`, `BindsTo`, `PartOf`, `Upholds`, `Conflicts`, `Before` and `After`
+of the `[Unit]` section, between different Quadlet units.
+
+For example the `fedora.container` unit below specifies a dependency on the `basic.container` unit.
+```
+[Unit]
+After=basic.container
+Requires=basic.container
+
+[Container]
+Image=registry.fedoraproject.org/fedora:41
+```
+
 ## Container units [Container]
 
 Container units are named with a `.container` extension and contain a `[Container]` section describing
