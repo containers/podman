@@ -419,6 +419,21 @@ t GET containers/$cid/json 200 \
 
 t DELETE containers/$cid?v=true 204
 
+
+# test compact API in rootless mode ignores ulimits https://github.com/containers/podman/issues/25881
+t POST containers/create \
+  Image=$IMAGE           \
+  HostConfig='{"Ulimits":[{"Name":"cpu","Soft":1,"Hard":2}]}' \
+  201                    \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .HostConfig.Ulimits[0].Name="RLIMIT_CPU" \
+  .HostConfig.Ulimits[0].Hard=2            \
+  .HostConfig.Ulimits[0].Soft=1            \
+
+t DELETE containers/$cid 204
+
 # test port mapping
 podman run -d --rm --name bar -p 8080:9090 $IMAGE top
 
