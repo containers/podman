@@ -259,7 +259,7 @@ func supportsIdmappedLowerLayers(home string) (bool, error) {
 	}
 	defer cleanupFunc()
 
-	if err := idmap.CreateIDMappedMount(lowerDir, lowerMappedDir, int(pid)); err != nil {
+	if err := idmap.CreateIDMappedMount(lowerDir, lowerMappedDir, pid); err != nil {
 		return false, fmt.Errorf("create mapped mount: %w", err)
 	}
 	defer func() {

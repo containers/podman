@@ -133,16 +133,6 @@ func isCpusetListAvailable(provided, available string) (bool, error) {
 	return true, nil
 }
 
-// Returns bit count of 1, used by NumCPU
-func popcnt(x uint64) (n byte) {
-	x -= (x >> 1) & 0x5555555555555555
-	x = (x>>2)&0x3333333333333333 + x&0x3333333333333333
-	x += x >> 4
-	x &= 0x0f0f0f0f0f0f0f0f
-	x *= 0x0101010101010101
-	return byte(x >> 56)
-}
-
 // GetDefaultPidsLimit returns the default pids limit to run containers with
 func GetDefaultPidsLimit() int64 {
 	sysInfo := New(true)

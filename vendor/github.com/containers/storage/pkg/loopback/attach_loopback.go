@@ -113,7 +113,7 @@ func openNextAvailableLoopback(sparseName string, sparseFile *os.File) (*os.File
 			logrus.Errorf("Getting loopback backing file: %s", err)
 			return nil, ErrGetLoopbackBackingFile
 		}
-		if dev != uint64(st.Dev) || ino != st.Ino {
+		if dev != uint64(st.Dev) || ino != st.Ino { //nolint:unconvert
 			logrus.Errorf("Loopback device and filesystem disagree on device/inode for %q: %#x(%d):%#x(%d) vs %#x(%d):%#x(%d)", sparseName, dev, dev, ino, ino, st.Dev, st.Dev, st.Ino, st.Ino)
 		}
 		return loopFile, nil
