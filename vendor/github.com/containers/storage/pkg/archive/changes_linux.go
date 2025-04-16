@@ -297,7 +297,7 @@ func parseDirent(buf []byte, names []nameIno) (consumed int, newnames []nameIno)
 			continue
 		}
 		builder := make([]byte, 0, dirent.Reclen)
-		for i := 0; i < len(dirent.Name); i++ {
+		for i := range len(dirent.Name) {
 			if dirent.Name[i] == 0 {
 				break
 			}

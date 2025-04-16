@@ -188,7 +188,7 @@ func (e ECDSAVerifier) VerifySignature(signature, message io.Reader, opts ...Ver
 	}
 
 	// Without this check, VerifyASN1 panics on an invalid key.
-	if !e.publicKey.Curve.IsOnCurve(e.publicKey.X, e.publicKey.Y) {
+	if !e.publicKey.IsOnCurve(e.publicKey.X, e.publicKey.Y) {
 		return fmt.Errorf("invalid ECDSA public key for %s", e.publicKey.Params().Name)
 	}
 

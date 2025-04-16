@@ -87,7 +87,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 		return nil, 0, fmt.Errorf("parse ToC offset: %w", err)
 	}
 
-	size := int64(blobSize - footerSize - tocOffset)
+	size := blobSize - footerSize - tocOffset
 	// set a reasonable limit
 	if size > maxTocSize {
 		// Not errFallbackCanConvert: we would still use too much memory.
