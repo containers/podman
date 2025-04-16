@@ -43,17 +43,6 @@ var (
 
 var (
 	void struct{}
-	// Key: Extension
-	// Value: Processing order for resource naming dependencies
-	supportedExtensions = map[string]int{
-		".container": 4,
-		".volume":    2,
-		".kube":      4,
-		".network":   2,
-		".image":     1,
-		".build":     3,
-		".pod":       5,
-	}
 )
 
 // We log directly to /dev/kmsg, because that is the only way to get information out
@@ -312,7 +301,7 @@ func getUserLevelFilter(resolvedUnitDirAdminUser string) func(string, bool) bool
 
 func isExtSupported(filename string) bool {
 	ext := filepath.Ext(filename)
-	_, ok := supportedExtensions[ext]
+	_, ok := quadlet.SupportedExtensions[ext]
 	return ok
 }
 
@@ -714,7 +703,7 @@ func process() bool {
 	sort.Slice(units, func(i, j int) bool {
 		getOrder := func(i int) int {
 			ext := filepath.Ext(units[i].Filename)
-			order, ok := supportedExtensions[ext]
+			order, ok := quadlet.SupportedExtensions[ext]
 			if !ok {
 				return 0
 			}
