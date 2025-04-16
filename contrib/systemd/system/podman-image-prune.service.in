@@ -5,6 +5,3 @@ Documentation=man:podman-image-prune(1)
 [Service]
 Type=oneshot
 ExecStart=@@PODMAN@@ image prune -a -f
-
-[Install]
-WantedBy=default.target
