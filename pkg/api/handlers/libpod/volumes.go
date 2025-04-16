@@ -182,7 +182,7 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	name := utils.GetName(r)
-	vol, err := runtime.LookupVolume(name)
+	vol, err := runtime.GetVolume(name)
 	if err != nil {
 		utils.VolumeNotFound(w, name, err)
 		return
