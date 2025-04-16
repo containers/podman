@@ -996,7 +996,7 @@ a `$name.pod` file creates a `$name-pod.service` unit and a `systemd-$name` Podm
 
 Valid options for `[Pod]` are listed below:
 
-| **[Pod] options**                   | **podman container create equivalent** |
+| **[Pod] options**                   | **podman pod create equivalent** |
 |-------------------------------------|----------------------------------------|
 | AddHost=example\.com:192.168.10.11  | --add-host example.com:192.168.10.11   |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                |
