@@ -191,9 +191,6 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 		newOptions = append(newOptions, opt)
 	}
 
-	if !foundWrite {
-		newOptions = append(newOptions, "rw")
-	}
 	if !foundProp {
 		if recursiveBind {
 			newOptions = append(newOptions, "rprivate")
