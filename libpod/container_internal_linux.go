@@ -3,12 +3,14 @@
 package libpod
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
@@ -845,4 +847,133 @@ func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) 
 		return true, nil
 	}
 	return false, err
+}
+
+// Generates the PID data uniquely identifying the process
+// defined by the pid.
+func (c *Container) generatePIDData(pid int) (string, error) {
+	// Try to use the PidFdOpen followed by theNameToHandleAt and
+	// encode it into string.
+	fd, err := unix.PidfdOpen(pid, 0)
+	if err != nil {
+		// Do not fail if PidFdOpen is not supported, we will
+		// fallback to process start-time later.
+		if err != unix.ENOSYS {
+			logrus.Debugf("PidfdOpen(%d) failed: %v", pid, err)
+		} else {
+			return "", err
+		}
+	}
+
+	if fd > -1 {
+		defer unix.Close(fd)
+		fh, _, err := unix.NameToHandleAt(fd, "", unix.AT_EMPTY_PATH)
+		if err != nil {
+			// Do not fail if NameToHandleAt is not supported, we will
+			// fallback to process start-time later.
+			if err == unix.ENOTSUP {
+				logrus.Debugf("NameToHandleAt(%d) failed: %v", fd, err)
+			} else {
+				return "", err
+			}
+		} else {
+			hexStr := hex.EncodeToString(fh.Bytes())
+			return "name-to-handle:" + strconv.Itoa(int(fh.Type())) + " " + hexStr, nil
+		}
+	}
+
+	// fallback to process start-time in case PidfdOpen or NameToHandleAt
+	// is not supported.
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	if err != nil {
+		return "", fmt.Errorf("could not read stat: %w", err)
+	}
+
+	// Split stat line into fields
+	fields := strings.Fields(string(data))
+	if len(fields) < 22 {
+		return "", fmt.Errorf("not enough fields in stat file")
+	}
+
+	// Field 22 is the start-time.
+	return "start-time:" + fields[21], nil
+}
+
+// Verifies that the PID is still alive and matches the exactly
+// same process as described by the pidData.
+func (c *Container) isSessionAlive(pid int, pidData string) (bool, error) {
+	prefix := "name-to-handle:"
+	if strings.HasPrefix(pidData, prefix) {
+		// Strip the prefix
+		data := strings.TrimPrefix(pidData, prefix)
+		parts := strings.SplitN(data, " ", 2)
+		if len(parts) != 2 {
+			return false, fmt.Errorf("invalid format, expected 2 parts")
+		}
+
+		// Parse fhType
+		fhTypeInt, err := strconv.Atoi(parts[0])
+		if err != nil {
+			return false, err
+		}
+		fhType := int32(fhTypeInt)
+
+		// Decode hex string to bytes
+		bytes, err := hex.DecodeString(parts[1])
+		if err != nil {
+			return false, err
+		}
+
+		// Create FileHandle and open it.
+		fh := unix.NewFileHandle(fhType, bytes)
+		pidfd, err := unix.PidfdOpen(os.Getpid(), 0)
+		if err != nil {
+			return false, err
+		}
+		defer unix.Close(pidfd)
+		fd, err := unix.OpenByHandleAt(pidfd, fh, 0)
+		if err != nil {
+			// ESTALE means the process exited already.
+			if err == unix.ESTALE {
+				return false, nil
+			}
+			return false, err
+		}
+		defer unix.Close(fd)
+		return true, nil
+	}
+
+	prefix = "start-time:"
+	if strings.HasPrefix(pidData, prefix) {
+		startTime := strings.TrimPrefix(pidData, prefix)
+
+		// Read the stat file.
+		data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+		if err != nil {
+			return false, nil
+		}
+
+		// Split stat line into fields.
+		fields := strings.Fields(string(data))
+		if len(fields) < 22 {
+			return false, fmt.Errorf("not enough fields in stat file")
+		}
+
+		// Field 22 is start-time.
+		if fields[21] == startTime {
+			return true, nil
+		}
+		return false, nil
+	}
+
+	// Fallback to unix.Kill to verify if the PID is still alive.
+	// Ping the PID with signal 0 to see if it still exists.
+	if err := unix.Kill(pid, 0); err != nil {
+		if err == unix.ESRCH {
+			return false, nil
+		}
+		return false, fmt.Errorf("pinging PID %d with signal 0: %w", pid, err)
+	}
+
+	return true, nil
 }
