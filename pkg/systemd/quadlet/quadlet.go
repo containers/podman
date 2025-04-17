@@ -213,15 +213,21 @@ var (
 	validPortRange = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
 
 	unitDependencyKeys = []string{
-		"Wants",
+		"After",
+		"Before",
+		"BindsTo",
+		"Conflicts",
+		"OnFailure",
+		"OnSuccess",
+		"PartOf",
+		"PropagatesReloadTo",
+		"PropagatesStopTo",
+		"ReloadPropagatedFrom",
 		"Requires",
 		"Requisite",
-		"BindsTo",
-		"PartOf",
+		"StopPropagatedFrom",
 		"Upholds",
-		"Conflicts",
-		"Before",
-		"After",
+		"Wants",
 	}
 
 	// Supported keys in "Container" group
