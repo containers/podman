@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -20,20 +22,56 @@ type UserData struct {
 	Users []User `yaml:"users"`
 }
 
-func GenerateUserData(dir string, data UserData) (string, error) {
-	yamlBytes, err := yaml.Marshal(&data)
+func GenerateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
+	sshKey, err := machine.GetSSHKeys(mc.SSH.IdentityPath)
+	if err != nil {
+		return nil, err
+	}
+
+	userData := UserData{
+		Users: []User{
+			User{
+				Name:   mc.SSH.RemoteUsername,
+				Sudo:   "ALL=(ALL) NOPASSWD:ALL",
+				Shell:  "/bin/bash",
+				Groups: "users",
+				SSHKeys: []string{
+					sshKey,
+				},
+			},
+		},
+	}
+
+	yamlBytes, err := yaml.Marshal(&userData)
 	if err != nil {
 		logrus.Errorf("Error marshaling to YAML: %v", err)
-		return "", err
+		return nil, err
 	}
 
 	headerLine := "#cloud-config\n"
 	yamlBytes = append([]byte(headerLine), yamlBytes...)
 
-	path := filepath.Join(dir, "user-data")
-	err = os.WriteFile(path, yamlBytes, 0644)
+	return yamlBytes, nil
+}
+
+func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
+	yamlBytes, err := GenerateUserData(mc)
 	if err != nil {
-		logrus.Errorf("Error creating temp file: %v", err)
+		return "", err
+	}
+
+	machineDataDir, err := mc.DataDir()
+	if err != nil {
+		return "", err
+	}
+
+	path := filepath.Join(machineDataDir.GetPath(), "user-data")
+	// delete previous user-data, if any
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return "", err
+	}
+	if err := os.WriteFile(path, yamlBytes, 0644); err != nil {
+		logrus.Errorf("Error writing cloudinit user-data file: %v", err)
 		return "", err
 	}
 	return path, nil
