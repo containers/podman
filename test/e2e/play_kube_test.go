@@ -5896,7 +5896,7 @@ spec:
 		inspectCtr2 := podmanTest.Podman([]string{"inspect", "-f", "'{{ .HostConfig.Binds }}'", ctrNameInKubePod})
 		inspectCtr2.WaitWithDefaultTimeout()
 		Expect(inspectCtr2).Should(ExitCleanly())
-		Expect(inspectCtr2.OutputToString()).To(ContainSubstring(":" + vol1 + ":rw"))
+		Expect(inspectCtr2.OutputToString()).To(ContainSubstring(":" + vol1))
 
 		inspectCtr1 := podmanTest.Podman([]string{"inspect", "-f", "'{{ .HostConfig.Binds }}'", ctr1})
 		inspectCtr1.WaitWithDefaultTimeout()

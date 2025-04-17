@@ -175,9 +175,6 @@ func ProcessOptions(options []string, isTmpfs bool, sourcePath string) ([]string
 		newOptions = append(newOptions, opt)
 	}
 
-	if !foundWrite {
-		newOptions = append(newOptions, "rw")
-	}
 	if !foundProp {
 		newOptions = append(newOptions, "rprivate")
 	}
