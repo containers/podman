@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/lookup"
+	"github.com/containers/podman/v5/pkg/pidhandle"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -214,26 +215,32 @@ func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, ne
 
 // ExecStopContainer stops a given exec session in a running container.
 func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, timeout uint) error {
-	pid, err := ctr.getExecSessionPID(sessionID)
+	pid, pidData, err := ctr.getExecSessionPID(sessionID)
 	if err != nil {
 		return err
 	}
 
 	logrus.Debugf("Going to stop container %s exec session %s", ctr.ID(), sessionID)
 
+	pidHandle, err := pidhandle.NewPIDHandleFromString(pid, pidData)
+	if err != nil {
+		return fmt.Errorf("getting the PID handle for pid %d from '%s': %w", pid, pidData, err)
+	}
+	defer pidHandle.Close()
+
 	// Is the session dead?
-	// Ping the PID with signal 0 to see if it still exists.
-	if err := unix.Kill(pid, 0); err != nil {
-		if err == unix.ESRCH {
-			return nil
-		}
-		return fmt.Errorf("pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
+	sessionAlive, err := pidHandle.IsAlive()
+	if err != nil {
+		return fmt.Errorf("getting the process status for pid %d: %w", pid, err)
+	}
+	if !sessionAlive {
+		return nil
 	}
 
 	if timeout > 0 {
 		// Use SIGTERM by default, then SIGSTOP after timeout.
 		logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGTERM", sessionID, pid, ctr.ID())
-		if err := unix.Kill(pid, unix.SIGTERM); err != nil {
+		if err := pidHandle.Kill(unix.SIGTERM); err != nil {
 			if err == unix.ESRCH {
 				return nil
 			}
@@ -251,7 +258,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 
 	// SIGTERM did not work. On to SIGKILL.
 	logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGKILL", sessionID, pid, ctr.ID())
-	if err := unix.Kill(pid, unix.SIGTERM); err != nil {
+	if err := pidHandle.Kill(unix.SIGTERM); err != nil {
 		if err == unix.ESRCH {
 			return nil
 		}
@@ -268,23 +275,26 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 
 // ExecUpdateStatus checks if the given exec session is still running.
 func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
-	pid, err := ctr.getExecSessionPID(sessionID)
+	pid, pidData, err := ctr.getExecSessionPID(sessionID)
 	if err != nil {
 		return false, err
 	}
 
 	logrus.Debugf("Checking status of container %s exec session %s", ctr.ID(), sessionID)
 
+	pidHandle, err := pidhandle.NewPIDHandleFromString(pid, pidData)
+	if err != nil {
+		return false, fmt.Errorf("getting the PID handle for pid %d from '%s': %w", pid, pidData, err)
+	}
+	defer pidHandle.Close()
+
 	// Is the session dead?
-	// Ping the PID with signal 0 to see if it still exists.
-	if err := unix.Kill(pid, 0); err != nil {
-		if err == unix.ESRCH {
-			return false, nil
-		}
-		return false, fmt.Errorf("pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
+	sessionAlive, err := pidHandle.IsAlive()
+	if err != nil {
+		return false, fmt.Errorf("getting the process status for pid %d: %w", pid, err)
 	}
 
-	return true, nil
+	return sessionAlive, nil
 }
 
 // ExecAttachSocketPath is the path to a container's exec session attach socket.
