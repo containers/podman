@@ -5,6 +5,9 @@ formatters:
     - gofumpt
 
 linters:
+  enable:
+    - nolintlint
+    - unconvert
   exclusions:
     presets:
       - comments

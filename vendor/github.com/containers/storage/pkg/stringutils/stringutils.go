@@ -24,7 +24,7 @@ func GenerateRandomASCIIString(n int) string {
 		"ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
 		"~!@#$%^&*()-_+={}[]\\|<,>.?/\"';:` "
 	res := make([]byte, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		res[i] = chars[rand.IntN(len(chars))]
 	}
 	return string(res)
@@ -83,7 +83,7 @@ func quote(word string, buf *bytes.Buffer) {
 
 	buf.WriteString("'")
 
-	for i := 0; i < len(word); i++ {
+	for i := range len(word) {
 		b := word[i]
 		if b == '\'' {
 			// Replace literal ' with a close ', a \', and an open '

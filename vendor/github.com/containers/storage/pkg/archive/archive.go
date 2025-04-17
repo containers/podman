@@ -53,7 +53,7 @@ type (
 		// This is additional data to be used by the converter.  It will
 		// not survive a round trip through JSON, so it's primarily
 		// intended for generating archives (i.e., converting writes).
-		WhiteoutData interface{}
+		WhiteoutData any
 		// When unpacking, specifies whether overwriting a directory with a
 		// non-directory is allowed and vice versa.
 		NoOverwriteDirNonDir bool
@@ -83,7 +83,7 @@ const (
 	freebsd = "freebsd"
 )
 
-var xattrsToIgnore = map[string]interface{}{
+var xattrsToIgnore = map[string]any{
 	"security.selinux": true,
 }
 
@@ -378,7 +378,7 @@ type nosysFileInfo struct {
 	os.FileInfo
 }
 
-func (fi nosysFileInfo) Sys() interface{} {
+func (fi nosysFileInfo) Sys() any {
 	// A Sys value of type *tar.Header is safe as it is system-independent.
 	// The tar.FileInfoHeader function copies the fields into the returned
 	// header without performing any OS lookups.
@@ -705,7 +705,9 @@ func extractTarFileEntry(path, extractDir string, hdr *tar.Header, reader io.Rea
 			file.Close()
 			return err
 		}
-		file.Close()
+		if err := file.Close(); err != nil {
+			return err
+		}
 
 	case tar.TypeBlock, tar.TypeChar:
 		if inUserns { // cannot create devices in a userns
@@ -1406,7 +1408,7 @@ func remapIDs(readIDMappings, writeIDMappings *idtools.IDMappings, chownOpts *id
 		} else if runtime.GOOS == darwin {
 			uid, gid = hdr.Uid, hdr.Gid
 			if xstat, ok := hdr.PAXRecords[PaxSchilyXattr+idtools.ContainersOverrideXattr]; ok {
-				attrs := strings.Split(string(xstat), ":")
+				attrs := strings.Split(xstat, ":")
 				if len(attrs) >= 3 {
 					val, err := strconv.ParseUint(attrs[0], 10, 32)
 					if err != nil {

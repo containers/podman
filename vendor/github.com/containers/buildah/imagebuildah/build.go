@@ -435,9 +435,7 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		return "", nil, fmt.Errorf("creating build executor: %w", err)
 	}
 	b := imagebuilder.NewBuilder(options.Args)
-	for k, v := range builtinArgDefaults {
-		b.BuiltinArgDefaults[k] = v
-	}
+	maps.Copy(b.BuiltinArgDefaults, builtinArgDefaults)
 
 	defaultContainerConfig, err := config.Default()
 	if err != nil {
@@ -451,7 +449,7 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 	if options.Target != "" {
 		stagesTargeted, ok := stages.ThroughTarget(options.Target)
 		if !ok {
-			return "", nil, fmt.Errorf("The target %q was not found in the provided Dockerfile", options.Target)
+			return "", nil, fmt.Errorf("the target %q was not found in the provided Dockerfile", options.Target)
 		}
 		stages = stagesTargeted
 	}

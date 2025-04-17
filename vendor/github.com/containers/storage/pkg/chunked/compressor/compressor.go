@@ -160,7 +160,7 @@ func (rc *rollingChecksumReader) Read(b []byte) (bool, int, error) {
 		return false, 0, io.EOF
 	}
 
-	for i := 0; i < len(b); i++ {
+	for i := range b {
 		holeLen, n, err := rc.reader.readByte()
 		if err != nil {
 			if err == io.EOF {

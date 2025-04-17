@@ -162,7 +162,7 @@ type flaggableStore interface {
 	ClearFlag(id string, flag string) error
 
 	// SetFlag sets a named flag and its value on an item in the store.
-	SetFlag(id string, flag string, value interface{}) error
+	SetFlag(id string, flag string, value any) error
 }
 
 type StoreOptions = types.StoreOptions
@@ -672,7 +672,7 @@ type LayerOptions struct {
 	// Flags is a set of named flags and their values to store with the layer.
 	// Currently these can only be set when the layer record is created, but that
 	// could change in the future.
-	Flags map[string]interface{}
+	Flags map[string]any
 }
 
 type LayerBigDataOption struct {
@@ -700,7 +700,7 @@ type ImageOptions struct {
 	NamesHistory []string
 	// Flags is a set of named flags and their values to store with the image.  Currently these can only
 	// be set when the image record is created, but that could change in the future.
-	Flags map[string]interface{}
+	Flags map[string]any
 }
 
 type ImageBigDataOption struct {
@@ -720,7 +720,7 @@ type ContainerOptions struct {
 	// Flags is a set of named flags and their values to store with the container.
 	// Currently these can only be set when the container record is created, but that
 	// could change in the future.
-	Flags      map[string]interface{}
+	Flags      map[string]any
 	MountOpts  []string
 	Volatile   bool
 	StorageOpt map[string]string
@@ -1649,7 +1649,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 			options.BigData = append(options.BigData, copyImageBigDataOptionSlice(iOptions.BigData)...)
 			options.NamesHistory = append(options.NamesHistory, iOptions.NamesHistory...)
 			if options.Flags == nil {
-				options.Flags = make(map[string]interface{})
+				options.Flags = make(map[string]any)
 			}
 			maps.Copy(options.Flags, iOptions.Flags)
 		}
@@ -1918,7 +1918,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 	}
 	if options.Flags == nil {
-		options.Flags = make(map[string]interface{})
+		options.Flags = make(map[string]any)
 	}
 	plabel, _ := options.Flags[processLabelFlag].(string)
 	mlabel, _ := options.Flags[mountLabelFlag].(string)
@@ -3763,11 +3763,10 @@ func copyMapPreferringNil[K comparable, V any](m map[K]V) map[K]V {
 // newMapFrom returns a shallow clone of map m.
 // If m is empty, an empty map is allocated and returned.
 func newMapFrom[K comparable, V any](m map[K]V) map[K]V {
-	ret := make(map[K]V, len(m))
-	for k, v := range m {
-		ret[k] = v
+	if len(m) == 0 {
+		return make(map[K]V, 0)
 	}
-	return ret
+	return maps.Clone(m)
 }
 
 func copyImageBigDataOptionSlice(slice []ImageBigDataOption) []ImageBigDataOption {

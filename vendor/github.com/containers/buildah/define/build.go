@@ -187,7 +187,7 @@ type BuildOptions struct {
 	// Log is a callback that will print a progress message.  If no value
 	// is supplied, the message will be sent to Err (or os.Stderr, if Err
 	// is nil) by default.
-	Log func(format string, args ...interface{})
+	Log func(format string, args ...any)
 	// In is connected to stdin for RUN instructions.
 	In io.Reader
 	// Out is a place where non-error log messages are sent.
@@ -236,6 +236,9 @@ type BuildOptions struct {
 	// ID mapping options to use if we're setting up our own user namespace
 	// when handling RUN instructions.
 	IDMappingOptions *IDMappingOptions
+	// InheritLabels controls whether or not built images will retain the labels
+	// which were set in their base images
+	InheritLabels types.OptionalBool
 	// AddCapabilities is a list of capabilities to add to the default set when
 	// handling RUN instructions.
 	AddCapabilities []string

@@ -164,7 +164,7 @@ type V1Image struct {
 // V2Image stores the image configuration
 type V2Image struct {
 	V1Image
-	Parent     ID            `json:"parent,omitempty"` // nolint:govet
+	Parent     ID            `json:"parent,omitempty"`
 	RootFS     *V2S2RootFS   `json:"rootfs,omitempty"`
 	History    []V2S2History `json:"history,omitempty"`
 	OSVersion  string        `json:"os.version,omitempty"`

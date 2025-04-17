@@ -1,16 +1,29 @@
----
+version: "2"
+
 run:
   build-tags:
     - apparmor
     - seccomp
     - selinux
-  # Don't exceed number of threads available when running under CI
-  concurrency: 4
+
+formatters:
+  enable:
+    - gofumpt
+
 linters:
   enable:
-    - gofmt
-    - gofumpt
+    - nolintlint
     - revive
     - unconvert
     - unparam
+    - unused
     - whitespace
+  exclusions:
+    presets:
+      - comments
+      - std-error-handling
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -QF1008 # https://staticcheck.dev/docs/checks/#QF1008 Omit embedded fields from selector expression.

@@ -51,12 +51,12 @@ func (c Checkpoint) String() string {
 	return b.String()
 }
 
-// MarshalText returns the common format representation of this Checkpoint.
+// MarshalCheckpoint returns the common format representation of this Checkpoint.
 func (c Checkpoint) MarshalCheckpoint() ([]byte, error) {
 	return []byte(c.String()), nil
 }
 
-// UnmarshalText parses the common formatted checkpoint data and stores the result
+// UnmarshalCheckpoint parses the common formatted checkpoint data and stores the result
 // in the Checkpoint.
 //
 // The supplied data is expected to begin with the following 3 lines of text,
@@ -157,7 +157,7 @@ func CreateAndSignCheckpoint(ctx context.Context, hostname string, treeID int64,
 	if _, err := sth.Sign(hostname, signer, options.WithContext(ctx)); err != nil {
 		return nil, fmt.Errorf("error signing checkpoint: %w", err)
 	}
-	scBytes, err := sth.SignedNote.MarshalText()
+	scBytes, err := sth.MarshalText()
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling checkpoint: %w", err)
 	}

@@ -73,6 +73,7 @@ type Info struct {
 	SecurityOptions     []string
 	ProductLicense      string               `json:",omitempty"`
 	DefaultAddressPools []NetworkAddressPool `json:",omitempty"`
+	FirewallBackend     *FirewallInfo        `json:"FirewallBackend,omitempty"`
 	CDISpecDirs         []string
 
 	Containerd *ContainerdInfo `json:",omitempty"`
@@ -143,11 +144,19 @@ type Commit struct {
 	// Expected is the commit ID of external tool expected by dockerd as set at build time.
 	//
 	// Deprecated: this field is no longer used in API v1.49, but kept for backward-compatibility with older API versions.
-	Expected string
+	Expected string `json:",omitempty"`
 }
 
 // NetworkAddressPool is a temp struct used by [Info] struct.
 type NetworkAddressPool struct {
 	Base string
 	Size int
+}
+
+// FirewallInfo describes the firewall backend.
+type FirewallInfo struct {
+	// Driver is the name of the firewall backend driver.
+	Driver string `json:"Driver"`
+	// Info is a list of label/value pairs, containing information related to the firewall.
+	Info [][2]string `json:"Info,omitempty"`
 }

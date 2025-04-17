@@ -492,7 +492,7 @@ func parseOptions(options []string) (*overlayOptions, error) {
 			if err != nil {
 				return nil, err
 			}
-			o.quota.Inodes = uint64(inodes)
+			o.quota.Inodes = inodes
 		case "imagestore", "additionalimagestore":
 			logrus.Debugf("overlay: imagestore=%s", val)
 			// Additional read only image stores to use for lower paths
@@ -1163,7 +1163,7 @@ func (d *Driver) parseStorageOpt(storageOpt map[string]string, driver *Driver) e
 			if err != nil {
 				return err
 			}
-			driver.options.quota.Inodes = uint64(inodes)
+			driver.options.quota.Inodes = inodes
 		default:
 			return fmt.Errorf("unknown option %s", key)
 		}
@@ -1551,7 +1551,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 	permsKnown := false
 	st, err := os.Stat(filepath.Join(dir, nameWithSuffix("diff", diffN)))
 	if err == nil {
-		perms = os.FileMode(st.Mode())
+		perms = st.Mode()
 		permsKnown = true
 	}
 	for err == nil {
@@ -1566,7 +1566,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 		if err != nil {
 			return "", err
 		}
-		idmappedMountProcessPid = int(pid)
+		idmappedMountProcessPid = pid
 		defer cleanupFunc()
 	}
 
@@ -1638,7 +1638,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 				lower = path.Join(p, d.name, l)
 				if st2, err2 := os.Stat(lower); err2 == nil {
 					if !permsKnown {
-						perms = os.FileMode(st2.Mode())
+						perms = st2.Mode()
 						permsKnown = true
 					}
 					break
@@ -1659,7 +1659,7 @@ func (d *Driver) get(id string, disableShifting bool, options graphdriver.MountO
 			}
 		} else {
 			if !permsKnown {
-				perms = os.FileMode(st.Mode())
+				perms = st.Mode()
 				permsKnown = true
 			}
 			lower = newpath
@@ -2505,7 +2505,7 @@ func (d *Driver) UpdateLayerIDMap(id string, toContainer, toHost *idtools.IDMapp
 		perms = *d.options.forceMask
 	} else {
 		if err == nil {
-			perms = os.FileMode(st.Mode())
+			perms = st.Mode()
 		}
 	}
 	for err == nil {

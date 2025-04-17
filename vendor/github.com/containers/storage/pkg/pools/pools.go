@@ -40,7 +40,7 @@ func init() {
 // added here to be shared where required.
 func newBufioReaderPoolWithSize(size int) *BufioReaderPool {
 	pool := &sync.Pool{
-		New: func() interface{} { return bufio.NewReaderSize(nil, size) },
+		New: func() any { return bufio.NewReaderSize(nil, size) },
 	}
 	return &BufioReaderPool{pool: pool}
 }
@@ -87,7 +87,7 @@ type BufioWriterPool struct {
 // added here to be shared where required.
 func newBufioWriterPoolWithSize(size int) *BufioWriterPool {
 	pool := &sync.Pool{
-		New: func() interface{} { return bufio.NewWriterSize(nil, size) },
+		New: func() any { return bufio.NewWriterSize(nil, size) },
 	}
 	return &BufioWriterPool{pool: pool}
 }
