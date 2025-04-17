@@ -345,7 +345,8 @@ func callbackRetText(ctx *C.sqlite3_context, v reflect.Value) error {
 	if v.Type().Kind() != reflect.String {
 		return fmt.Errorf("cannot convert %s to TEXT", v.Type())
 	}
-	C._sqlite3_result_text(ctx, C.CString(v.Interface().(string)))
+	cstr := C.CString(v.Interface().(string))
+	C._sqlite3_result_text(ctx, cstr)
 	return nil
 }
 
