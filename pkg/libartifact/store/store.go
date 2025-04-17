@@ -251,20 +251,26 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, paths []string, op
 	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
 	// This works for the oci/layout transport we hard-code.
 	for _, path := range paths {
+		mediaType := options.FileType
 		// get the new artifact into the local store
 		newBlobDigest, newBlobSize, err := layout.PutBlobFromLocalFile(ctx, imageDest, path)
 		if err != nil {
 			return nil, err
 		}
-		detectedType, err := determineManifestType(path)
-		if err != nil {
-			return nil, err
+
+		// If we did not receive an override for the layer's mediatype, use
+		// detection to determine it.
+		if len(mediaType) < 1 {
+			mediaType, err = determineManifestType(path)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		annotations := maps.Clone(options.Annotations)
 		annotations[specV1.AnnotationTitle] = filepath.Base(path)
 		newLayer := specV1.Descriptor{
-			MediaType:   detectedType,
+			MediaType:   mediaType,
 			Digest:      newBlobDigest,
 			Size:        newBlobSize,
 			Annotations: annotations,

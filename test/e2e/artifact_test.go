@@ -88,6 +88,7 @@ var _ = Describe("Podman artifact", func() {
 	})
 
 	It("podman artifact add with options", func() {
+		yamlType := "text/yaml"
 		artifact1Name := "localhost/test/artifact1"
 		artifact1File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
@@ -96,13 +97,14 @@ var _ = Describe("Podman artifact", func() {
 		annotation1 := "color=blue"
 		annotation2 := "flavor=lemon"
 
-		podmanTest.PodmanExitCleanly("artifact", "add", "--type", artifactType, "--annotation", annotation1, "--annotation", annotation2, artifact1Name, artifact1File)
+		podmanTest.PodmanExitCleanly("artifact", "add", "--file-type", yamlType, "--type", artifactType, "--annotation", annotation1, "--annotation", annotation2, artifact1Name, artifact1File)
 
 		a := podmanTest.InspectArtifact(artifact1Name)
 		Expect(a.Name).To(Equal(artifact1Name))
 		Expect(a.Manifest.ArtifactType).To(Equal(artifactType))
 		Expect(a.Manifest.Layers[0].Annotations["color"]).To(Equal("blue"))
 		Expect(a.Manifest.Layers[0].Annotations["flavor"]).To(Equal("lemon"))
+		Expect(a.Manifest.Layers[0].MediaType).To(Equal(yamlType))
 
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--annotation", "org.opencontainers.image.title=foobar", "foobar", artifact1File})
 		failSession.WaitWithDefaultTimeout()
