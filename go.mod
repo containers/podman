@@ -33,6 +33,7 @@ require (
 	github.com/hugelgupf/p9 v0.3.1-0.20260209234446-ba5af0b37df0
 	github.com/jinzhu/copier v0.4.0
 	github.com/json-iterator/go v1.1.12
+	github.com/kdomanski/iso9660 v0.4.0
 	github.com/kevinburke/ssh_config v1.5.0
 	github.com/klauspost/pgzip v1.2.6
 	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422

@@ -1,11 +1,14 @@
 package cloudinit
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 
 	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
+	"github.com/kdomanski/iso9660"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -75,4 +78,53 @@ func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
 		return "", err
 	}
 	return path, nil
+}
+
+func GenerateISO(mc *vmconfigs.MachineConfig) (string, error) {
+	writer, err := iso9660.NewWriter()
+	if err != nil {
+		return "", fmt.Errorf("failed to create writer: %w", err)
+	}
+
+	defer func() {
+		if err := writer.Cleanup(); err != nil {
+			logrus.Error(err)
+		}
+	}()
+	userdata, err := GenerateUserData(mc)
+	if err != nil {
+		return "", nil
+	}
+	if err := writer.AddFile(bytes.NewReader(userdata), "user-data"); err != nil {
+		return "", err
+	}
+	if err := writer.AddFile(bytes.NewReader([]byte{}), "meta-data"); err != nil {
+		return "", err
+	}
+
+	machineDataDir, err := mc.DataDir()
+	if err != nil {
+		return "", err
+	}
+
+	path := filepath.Join(machineDataDir.GetPath(), "cloudinit.iso")
+
+	isoFile, err := os.Create(path)
+	if err != nil {
+		return "", fmt.Errorf("unable to create cloud-init ISO file: %w", err)
+	}
+
+	defer func() {
+		if err := isoFile.Close(); err != nil {
+			logrus.Error(fmt.Errorf("failed to close cloud-init ISO file: %w", err))
+		}
+	}()
+
+	err = writer.WriteTo(isoFile, "cidata")
+	if err != nil {
+		os.Remove(isoFile.Name())
+		return "", fmt.Errorf("failed to write cloud-init ISO image: %w", err)
+	}
+
+	return isoFile.Name(), nil
 }

@@ -310,6 +310,9 @@ github.com/jinzhu/copier
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
+# github.com/kdomanski/iso9660 v0.4.0
+## explicit; go 1.19
+github.com/kdomanski/iso9660
 # github.com/kevinburke/ssh_config v1.5.0
 ## explicit; go 1.18
 github.com/kevinburke/ssh_config
