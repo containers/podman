@@ -178,6 +178,51 @@ func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
 	return upperDir, workDir, nil
 }
 
+// Internal only function which creates the Rootfs for default internal
+// pause image, configures the Rootfs in the Container and returns
+// the mount-point for the /catatonit. This mount-point should be added
+// to the Container spec.
+func (c *Container) prepareInitRootfs() (spec.Mount, error) {
+	newMount := spec.Mount{
+		Type:        define.TypeBind,
+		Source:      "",
+		Destination: "",
+		Options:     append(bindOptions, "ro", "nosuid", "nodev"),
+	}
+
+	tmpDir, err := c.runtime.TmpDir()
+	if err != nil {
+		return newMount, fmt.Errorf("getting runtime temporary directory: %w", err)
+	}
+	tmpDir = filepath.Join(tmpDir, "infra-container")
+	err = os.MkdirAll(tmpDir, 0755)
+	if err != nil {
+		return newMount, fmt.Errorf("creating infra container temporary directory: %w", err)
+	}
+	// Also look into the path as some distributions install catatonit in
+	// /usr/bin.
+	catatonitPath, err := c.runtime.config.FindInitBinary()
+	if err != nil {
+		return newMount, fmt.Errorf("finding catatonit binary: %w", err)
+	}
+	catatonitPath, err = filepath.EvalSymlinks(catatonitPath)
+	if err != nil {
+		return newMount, fmt.Errorf("follow symlink to catatonit binary: %w", err)
+	}
+
+	newMount.Source = catatonitPath
+	newMount.Destination = "/" + filepath.Base(catatonitPath)
+
+	c.config.Rootfs = tmpDir
+	c.config.RootfsOverlay = true
+	if len(c.config.Entrypoint) == 0 {
+		c.config.Entrypoint = []string{"/" + filepath.Base(catatonitPath), "-P"}
+		c.config.Spec.Process.Args = c.config.Entrypoint
+	}
+
+	return newMount, nil
+}
+
 // Generate spec for a container
 // Accepts a map of the container's dependencies
 func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFuncRet func(), err error) {
@@ -379,6 +424,14 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 	c.setProcessLabel(&g)
 	c.setMountLabel(&g)
+
+	if c.IsDefaultInfra() || c.IsService() {
+		newMount, err := c.prepareInitRootfs()
+		if err != nil {
+			return nil, nil, err
+		}
+		g.AddMount(newMount)
+	}
 
 	// Add bind mounts to container
 	for dstPath, srcPath := range c.state.BindMounts {
