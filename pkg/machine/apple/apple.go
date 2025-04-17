@@ -368,13 +368,21 @@ func getFirstBootAppleVMIgnition(mc *vmconfigs.MachineConfig) ([]string, error) 
 }
 
 func getFirstBootAppleVMCloudInit(mc *vmconfigs.MachineConfig) ([]string, error) {
-	// we generate the user-data file
-	userDataFile, err := cloudinit.GenerateUserDataFile(mc)
-	if err != nil {
-		return nil, err
-	}
+	if mc.LibKrunHypervisor == nil {
+		// we generate the user-data file
+		userDataFile, err := cloudinit.GenerateUserDataFile(mc)
+		if err != nil {
+			return nil, err
+		}
 
-	return []string{"--cloud-init", userDataFile}, nil
+		return []string{"--cloud-init", userDataFile}, nil
+	} else {
+		cloudinitISO, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return nil, err
+		}
+		return []string{"--device", fmt.Sprintf("virtio-blk,path=%s", cloudinitISO)}, nil
+	}
 }
 
 // CheckProcessRunning checks non blocking if the pid exited
