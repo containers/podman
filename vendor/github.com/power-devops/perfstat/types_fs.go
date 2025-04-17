@@ -8,7 +8,7 @@ type FileSystem struct {
 	Device      string /* name of the mounted device */
 	MountPoint  string /* where the device is mounted */
 	FSType      int    /* File system type, see the constants below */
-	Flags       int    /* Flags of the file system */
+	Flags       uint   /* Flags of the file system */
 	TotalBlocks int64  /* number of 512 bytes blocks in the filesystem */
 	FreeBlocks  int64  /* number of free 512 bytes block in the filesystem */
 	TotalInodes int64  /* total number of inodes in the filesystem */

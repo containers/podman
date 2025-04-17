@@ -29,8 +29,8 @@ type DiskTotal struct {
 // Disk Adapter Types
 const (
 	DA_SCSI  = 0 /* 0 ==> SCSI, SAS, other legacy adapter types */
-	DA_VSCSI     /* 1 ==> Virtual SCSI/SAS Adapter */
-	DA_FCA       /* 2 ==> Fiber Channel Adapter */
+	DA_VSCSI = 1 /* 1 ==> Virtual SCSI/SAS Adapter */
+	DA_FCA   = 2 /* 2 ==> Fiber Channel Adapter */
 )
 
 type DiskAdapter struct {
