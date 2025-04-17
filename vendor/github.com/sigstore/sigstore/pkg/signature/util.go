@@ -17,11 +17,13 @@ package signature
 
 import (
 	"bytes"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/name"
 
+	"github.com/sigstore/sigstore/pkg/signature/options"
 	sigpayload "github.com/sigstore/sigstore/pkg/signature/payload"
 )
 
@@ -52,4 +54,21 @@ func VerifyImageSignature(signer SignerVerifier, payload, signature []byte) (ima
 		return name.Digest{}, nil, fmt.Errorf("could not deserialize image payload: %w", err)
 	}
 	return imgPayload.Image, imgPayload.Annotations, nil
+}
+
+// GetOptsFromAlgorithmDetails returns a list of LoadOptions that are
+// appropriate for the given algorithm details. It ignores the hash type because
+// that can be retrieved from the algorithm details.
+func GetOptsFromAlgorithmDetails(algorithmDetails AlgorithmDetails, opts ...LoadOption) []LoadOption {
+	res := []LoadOption{options.WithHash(algorithmDetails.hashType)}
+	for _, opt := range opts {
+		var useED25519ph bool
+		var rsaPSSOptions *rsa.PSSOptions
+		opt.ApplyED25519ph(&useED25519ph)
+		opt.ApplyRSAPSS(&rsaPSSOptions)
+		if useED25519ph || rsaPSSOptions != nil {
+			res = append(res, opt)
+		}
+	}
+	return res
 }

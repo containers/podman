@@ -3,6 +3,7 @@
 package sysinfo
 
 import (
+	"math/bits"
 	"unsafe"
 
 	"golang.org/x/sys/windows"
@@ -22,7 +23,5 @@ func numCPU() int {
 	if ret == 0 {
 		return 0
 	}
-	// For every available thread a bit is set in the mask.
-	ncpu := int(popcnt(uint64(mask)))
-	return ncpu
+	return bits.OnesCount64(uint64(mask))
 }

@@ -35,7 +35,7 @@ This package follows the official [Golang Release Policy](https://golang.org/doc
   - [Android](#android)
 - [ARM](#arm)
 - [Cross Compile](#cross-compile)
-- [Google Cloud Platform](#google-cloud-platform)
+- [Compiling](#compiling)
   - [Linux](#linux)
     - [Alpine](#alpine)
     - [Fedora](#fedora)
@@ -70,7 +70,6 @@ This package can be installed with the `go get` command:
 
 _go-sqlite3_ is *cgo* package.
 If you want to build your app using go-sqlite3, you need gcc.
-However, after you have built and installed _go-sqlite3_ with `go install github.com/mattn/go-sqlite3` (which requires gcc), you can build your app without relying on gcc in future.
 
 ***Important: because this is a `CGO` enabled package, you are required to set the environment variable `CGO_ENABLED=1` and have a `gcc` compiler present within your path.***
 
@@ -228,11 +227,7 @@ Steps:
 
 Please refer to the project's [README](https://github.com/FiloSottile/homebrew-musl-cross#readme) for further information.
 
-# Google Cloud Platform
-
-Building on GCP is not possible because Google Cloud Platform does not allow `gcc` to be executed.
-
-Please work only with compiled final binaries.
+# Compiling
 
 ## Linux
 
