@@ -18,6 +18,7 @@ import (
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/common/pkg/strongunits"
 	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/cloudinit"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/ignition"
 	"go.podman.io/podman/v6/pkg/machine/qemu/command"
@@ -57,19 +58,29 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		return err
 	}
 
-	ignitionFile, err := mc.IgnitionFile()
-	if err != nil {
-		return err
-	}
-
 	q.QEMUPidPath = mc.QEMUHypervisor.QEMUPidPath
 
 	q.Command = command.NewQemuBuilder(qemuBinary, q.addArchOptions(nil))
 	q.Command.SetBootableImage(mc.ImagePath.GetPath())
 	q.Command.SetMemory(mc.Resources.Memory)
 	q.Command.SetCPUs(mc.Resources.CPUs)
-	q.Command.SetIgnitionFile(*ignitionFile)
 	q.Command.SetQmpMonitor(mc.QEMUHypervisor.QMPMonitor)
+
+	if mc.CloudInit {
+		cloudInitISO, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return err
+		}
+		q.Command.SetBootableImage(cloudInitISO)
+	} else {
+		ignitionFile, err := mc.IgnitionFile()
+		if err != nil {
+			return err
+		}
+
+		q.Command.SetIgnitionFile(*ignitionFile)
+	}
+
 	gvProxySock, err := mc.GVProxySocket()
 	if err != nil {
 		return err
