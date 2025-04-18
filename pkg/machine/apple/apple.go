@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 )
 
 const applehvMACAddress = "5a:94:ef:e4:0c:ee"
@@ -223,6 +225,19 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		}
 		cmd.Args = append(cmd.Args, debugDevArgs...)
 		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
+	}
+
+	if mc.LibKrunHypervisor != nil {
+		// use sysctl to get the CPUID information
+		cpuBrandString, err := unix.Sysctl("machdep.cpu.brand_string")
+		if err != nil {
+			return nil, nil, err
+		}
+
+		// only M3 processors and newer can support nested virtualization
+		if strings.Contains(cpuBrandString, "M3") || strings.Contains(cpuBrandString, "M4") {
+			cmd.Args = append(cmd.Args, "--nested")
+		}
 	}
 
 	if mc.IsFirstBoot() {
