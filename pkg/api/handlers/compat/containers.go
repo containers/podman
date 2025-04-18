@@ -342,23 +342,44 @@ func LibpodToContainer(l *libpod.Container, sz bool) (*handlers.Container, error
 		}
 	}
 
-	portMappings, err := l.PortMappings()
+	inspect, err := l.Inspect(false)
 	if err != nil {
 		return nil, err
 	}
 
-	ports := make([]container.Port, len(portMappings))
-	for idx, portMapping := range portMappings {
-		ports[idx] = container.Port{
-			IP:          portMapping.HostIP,
-			PrivatePort: portMapping.ContainerPort,
-			PublicPort:  portMapping.HostPort,
-			Type:        portMapping.Protocol,
+	ports := []container.Port{}
+	for portKey, bindings := range inspect.NetworkSettings.Ports {
+		portNum, proto, ok := strings.Cut(portKey, "/")
+		if !ok {
+			return nil, fmt.Errorf("PORT/PROTOCOL format required for %q", portKey)
 		}
-	}
-	inspect, err := l.Inspect(false)
-	if err != nil {
-		return nil, err
+
+		containerPort, err := strconv.Atoi(portNum)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(bindings) == 0 {
+			// Exposed but not published
+			ports = append(ports, container.Port{
+				PrivatePort: uint16(containerPort),
+				Type:        proto,
+			})
+		} else {
+			for _, b := range bindings {
+				hostPortInt, err := strconv.Atoi(b.HostPort)
+				if err != nil {
+					return nil, fmt.Errorf("invalid HostPort: %v", err)
+				}
+
+				ports = append(ports, container.Port{
+					IP:          b.HostIP,
+					PrivatePort: uint16(containerPort),
+					PublicPort:  uint16(hostPortInt),
+					Type:        proto,
+				})
+			}
+		}
 	}
 
 	n, err := json.Marshal(inspect.NetworkSettings)
