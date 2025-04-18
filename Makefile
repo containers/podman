@@ -218,7 +218,7 @@ endif
 
 # gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
 # the upstream project ships pre-built binaries since version 0.7.1
-GV_VERSION=v0.8.4
+GV_VERSION=v0.8.5
 
 ###
 ### Primary entry-point targets
