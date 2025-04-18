@@ -19,10 +19,10 @@ produces:
 consumes:
   - "application/json"
   - "text/plain"
-basePath: "/v1.48"
+basePath: "/v1.49"
 info:
   title: "Docker Engine API"
-  version: "1.48"
+  version: "1.49"
   x-logo:
     url: "https://docs.docker.com/assets/images/logo-docker-main.png"
   description: |
@@ -55,8 +55,8 @@ info:
     the URL is not supported by the daemon, a HTTP `400 Bad Request` error message
     is returned.
 
-    If you omit the version-prefix, the current version of the API (v1.48) is used.
-    For example, calling `/info` is the same as calling `/v1.48/info`. Using the
+    If you omit the version-prefix, the current version of the API (v1.49) is used.
+    For example, calling `/info` is the same as calling `/v1.49/info`. Using the
     API without a version-prefix is deprecated and will be removed in a future release.
 
     Engine releases in the near future should support this version of the API,
@@ -6856,6 +6856,8 @@ definitions:
               description: "The network pool size"
               type: "integer"
               example: "24"
+      FirewallBackend:
+        $ref: "#/definitions/FirewallInfo"
       Warnings:
         description: |
           List of warnings / informational messages about missing features, or
@@ -6939,6 +6941,37 @@ definitions:
             default: "plugins.moby"
             example: "plugins.moby"
 
+  FirewallInfo:
+    description: |
+      Information about the daemon's firewalling configuration.
+
+      This field is currently only used on Linux, and omitted on other platforms.
+    type: "object"
+    x-nullable: true
+    properties:
+      Driver:
+        description: |
+          The name of the firewall backend driver.
+        type: "string"
+        example: "nftables"
+      Info:
+        description: |
+          Information about the firewall backend, provided as
+          "label" / "value" pairs.
+
+          <p><br /></p>
+
+          > **Note**: The information returned in this field, including the
+          > formatting of values and labels, should not be considered stable,
+          > and may change without notice.
+        type: "array"
+        items:
+          type: "array"
+          items:
+            type: "string"
+        example:
+          - ["ReloadedAt", "2025-01-01T00:00:00Z"]
+
   # PluginsInfo is a temp struct holding Plugins name
   # registered with docker daemon. It is used by Info struct
   PluginsInfo:
@@ -6984,32 +7017,6 @@ definitions:
     type: "object"
     x-nullable: true
     properties:
-      AllowNondistributableArtifactsCIDRs:
-        description: |
-          List of IP ranges to which nondistributable artifacts can be pushed,
-          using the CIDR syntax [RFC 4632](https://tools.ietf.org/html/4632).
-
-          <p><br /></p>
-
-          > **Deprecated**: Pushing nondistributable artifacts is now always enabled
-          > and this field is always `null`. This field will be removed in a API v1.49.
-        type: "array"
-        items:
-          type: "string"
-        example: []
-      AllowNondistributableArtifactsHostnames:
-        description: |
-          List of registry hostnames to which nondistributable artifacts can be
-          pushed, using the format `<hostname>[:<port>]` or `<IP address>[:<port>]`.
-
-          <p><br /></p>
-
-          > **Deprecated**: Pushing nondistributable artifacts is now always enabled
-          > and this field is always `null`. This field will be removed in a API v1.49.
-        type: "array"
-        items:
-          type: "string"
-        example: []
       InsecureRegistryCIDRs:
         description: |
           List of IP ranges of insecure registries, using the CIDR syntax
@@ -7179,13 +7186,6 @@ definitions:
         description: "Actual commit ID of external tool."
         type: "string"
         example: "cfb82a876ecc11b5ca0977d1733adbe58599088a"
-      Expected:
-        description: |
-          Commit ID of external tool expected by dockerd as set at build time.
-
-          **Deprecated**: This field is deprecated and will be omitted in a API v1.49.
-        type: "string"
-        example: "2d41c047c83e09a6d61d464906feb2a2f3c52aa4"
 
   SwarmInfo:
     description: |
@@ -10491,13 +10491,9 @@ paths:
 
         ### Image tarball format
 
-        An image tarball contains one directory per image layer (named using its long ID), each containing these files:
+        An image tarball contains [Content as defined in the OCI Image Layout Specification](https://github.com/opencontainers/image-spec/blob/v1.1.1/image-layout.md#content).
 
-        - `VERSION`: currently `1.0` - the file format version
-        - `json`: detailed layer information, similar to `docker inspect layer_id`
-        - `layer.tar`: A tarfile containing the filesystem changes in this layer
-
-        The `layer.tar` file contains `aufs` style `.wh..wh.aufs` files and directories for storing attribute changes and deletions.
+        Additionally, includes the manifest.json file associated with a backwards compatible docker save format.
 
         If the tarball defines a repository, the tarball should also include a `repositories` file at the root that contains a list of repository and tag names mapped to layer IDs.
 
@@ -10537,6 +10533,7 @@ paths:
             If not provided, the full multi-platform image will be saved.
 
             Example: `{"os": "linux", "architecture": "arm", "variant": "v5"}`
+      tags: ["Image"]
   /images/get:
     get:
       summary: "Export several images"
@@ -10571,6 +10568,16 @@ paths:
           type: "array"
           items:
             type: "string"
+        - name: "platform"
+          type: "string"
+          in: "query"
+          description: |
+            JSON encoded OCI platform describing a platform which will be used
+            to select a platform-specific image to be saved if the image is
+            multi-platform.
+            If not provided, the full multi-platform image will be saved.
+
+            Example: `{"os": "linux", "architecture": "arm", "variant": "v5"}`
       tags: ["Image"]
   /images/load:
     post:
