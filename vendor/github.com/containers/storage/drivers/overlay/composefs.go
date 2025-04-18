@@ -42,7 +42,7 @@ func getComposefsBlob(dataDir string) string {
 	return filepath.Join(dataDir, "composefs.blob")
 }
 
-func generateComposeFsBlob(verityDigests map[string]string, toc interface{}, composefsDir string) error {
+func generateComposeFsBlob(verityDigests map[string]string, toc any, composefsDir string) error {
 	if err := os.MkdirAll(composefsDir, 0o700); err != nil {
 		return err
 	}

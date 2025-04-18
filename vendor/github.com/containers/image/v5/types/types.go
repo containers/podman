@@ -242,6 +242,7 @@ type BlobInfoCache interface {
 //
 // WARNING: Various methods which return an object identified by digest generally do not
 // validate that the returned data actually matches that digest; this is the caller’s responsibility.
+// See the individual methods’ documentation for potentially more details.
 type ImageSource interface {
 	// Reference returns the reference used to set up this source, _as specified by the user_
 	// (not as the image itself, or its underlying storage, claims).  This can be used e.g. to determine which public keys are trusted for this image.
@@ -252,10 +253,17 @@ type ImageSource interface {
 	// It may use a remote (= slow) service.
 	// If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list);
 	// this never happens if the primary manifest is not a manifest list (e.g. if the source never returns manifest lists).
+	//
+	// WARNING: This is a raw access to the data as provided by the source; if the reference contains a digest, or instanceDigest is set,
+	// callers must enforce the digest match themselves, typically by using image.UnparsedInstance to access the manifest instead
+	// of calling this directly. (Compare the generic warning applicable to all of the [ImageSource] interface.)
 	GetManifest(ctx context.Context, instanceDigest *digest.Digest) ([]byte, string, error)
 	// GetBlob returns a stream for the specified blob, and the blob’s size (or -1 if unknown).
 	// The Digest field in BlobInfo is guaranteed to be provided, Size may be -1 and MediaType may be optionally provided.
 	// May update BlobInfoCache, preferably after it knows for certain that a blob truly exists at a specific location.
+	//
+	// WARNING: This is a raw access to the data as provided by the source; callers must validate the contents
+	// against the blob’s digest themselves. (Compare the generic warning applicable to all of the [ImageSource] interface.)
 	GetBlob(context.Context, BlobInfo, BlobInfoCache) (io.ReadCloser, int64, error)
 	// HasThreadSafeGetBlob indicates whether GetBlob can be executed concurrently.
 	HasThreadSafeGetBlob() bool

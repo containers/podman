@@ -26,6 +26,7 @@ import (
 	"google.golang.org/grpc/internal/channelz"
 	"google.golang.org/grpc/internal/grpcsync"
 	"google.golang.org/grpc/internal/pretty"
+	"google.golang.org/grpc/internal/resolver/delegatingresolver"
 	"google.golang.org/grpc/resolver"
 	"google.golang.org/grpc/serviceconfig"
 )
@@ -76,9 +77,19 @@ func (ccr *ccResolverWrapper) start() error {
 			CredsBundle:          ccr.cc.dopts.copts.CredsBundle,
 			Dialer:               ccr.cc.dopts.copts.Dialer,
 			Authority:            ccr.cc.authority,
+			MetricsRecorder:      ccr.cc.metricsRecorderList,
 		}
 		var err error
-		ccr.resolver, err = ccr.cc.resolverBuilder.Build(ccr.cc.parsedTarget, ccr, opts)
+		// The delegating resolver is used unless:
+		//   - A custom dialer is provided via WithContextDialer dialoption or
+		//   - Proxy usage is disabled through WithNoProxy dialoption.
+		// In these cases, the resolver is built based on the scheme of target,
+		// using the appropriate resolver builder.
+		if ccr.cc.dopts.copts.Dialer != nil || !ccr.cc.dopts.useProxy {
+			ccr.resolver, err = ccr.cc.resolverBuilder.Build(ccr.cc.parsedTarget, ccr, opts)
+		} else {
+			ccr.resolver, err = delegatingresolver.New(ccr.cc.parsedTarget, ccr, opts, ccr.cc.resolverBuilder, ccr.cc.dopts.enableLocalDNSResolution)
+		}
 		errCh <- err
 	})
 	return <-errCh

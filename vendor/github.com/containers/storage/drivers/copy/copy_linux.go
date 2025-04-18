@@ -160,7 +160,10 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 
 		switch mode := f.Mode(); {
 		case mode.IsRegular():
-			id := fileID{dev: uint64(stat.Dev), ino: stat.Ino}
+			id := fileID{
+				dev: uint64(stat.Dev), //nolint:unconvert
+				ino: stat.Ino,
+			}
 			if copyMode == Hardlink {
 				isHardlink = true
 				if err2 := os.Link(srcPath, dstPath); err2 != nil {
@@ -242,12 +245,11 @@ func DirCopy(srcDir, dstDir string, copyMode Mode, copyXattrs bool) error {
 		}
 
 		// system.Chtimes doesn't support a NOFOLLOW flag atm
-		// nolint: unconvert
 		if f.IsDir() {
 			dirsToSetMtimes.PushFront(&dirMtimeInfo{dstPath: &dstPath, stat: stat})
 		} else if !isSymlink {
-			aTime := time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
-			mTime := time.Unix(int64(stat.Mtim.Sec), int64(stat.Mtim.Nsec))
+			aTime := time.Unix(stat.Atim.Unix())
+			mTime := time.Unix(stat.Mtim.Unix())
 			if err := system.Chtimes(dstPath, aTime, mTime); err != nil {
 				return err
 			}

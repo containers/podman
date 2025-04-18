@@ -9,9 +9,9 @@ func fromStatT(s *syscall.Stat_t) (*StatT, error) {
 		mode: s.Mode,
 		uid:  s.Uid,
 		gid:  s.Gid,
-		rdev: uint64(s.Rdev),
+		rdev: uint64(s.Rdev), //nolint:unconvert
 		mtim: s.Mtim,
-		dev:  uint64(s.Dev),
+		dev:  uint64(s.Dev), //nolint:unconvert
 	}, nil
 }
 

@@ -93,7 +93,7 @@ type Image struct {
 	// ReadOnly is true if this image resides in a read-only layer store.
 	ReadOnly bool `json:"-"`
 
-	Flags map[string]interface{} `json:"flags,omitempty"`
+	Flags map[string]any `json:"flags,omitempty"`
 }
 
 // roImageStore provides bookkeeping for information about Images.
@@ -675,7 +675,7 @@ func (r *imageStore) ClearFlag(id string, flag string) error {
 }
 
 // Requires startWriting.
-func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
+func (r *imageStore) SetFlag(id string, flag string, value any) error {
 	if !r.lockfile.IsReadWrite() {
 		return fmt.Errorf("not allowed to set flags on images at %q: %w", r.imagespath(), ErrStoreIsReadOnly)
 	}
@@ -684,7 +684,7 @@ func (r *imageStore) SetFlag(id string, flag string, value interface{}) error {
 		return fmt.Errorf("locating image with ID %q: %w", id, ErrImageUnknown)
 	}
 	if image.Flags == nil {
-		image.Flags = make(map[string]interface{})
+		image.Flags = make(map[string]any)
 	}
 	image.Flags[flag] = value
 	return r.Save()
