@@ -61,8 +61,15 @@ function teardown() {
     vol_two="testvol2"
     run_podman $safe_opts volume create --opt o=size=4m $vol_two
 
+    # prefetch image to avoid registry pulls because this is using a
+    # unique root which does not have the image already present.
+    # _PODMAN_TEST_OPTS is used to overwrite the podman options to
+    # make the function aware of the custom --root.
+    _PODMAN_TEST_OPTS="$safe_opts --storage-driver $(podman_storage_driver)" _prefetch $IMAGE
+
     ctrname="testctr"
-    run_podman $safe_opts run -d --name=$ctrname -i -v $vol_one:/one -v $vol_two:/two $IMAGE top
+    # pull never to ensure the prefetch works correctly
+    run_podman $safe_opts run -d --pull=never --name=$ctrname -i -v $vol_one:/one -v $vol_two:/two $IMAGE top
 
     run_podman $safe_opts exec $ctrname dd if=/dev/zero of=/one/oneMB bs=1M count=1
     run_podman 1 $safe_opts exec $ctrname dd if=/dev/zero of=/one/twoMB bs=1M count=1
