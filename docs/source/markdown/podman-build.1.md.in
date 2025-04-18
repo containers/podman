@@ -221,6 +221,8 @@ It does not affect _/etc/resolv.conf_ in the final image.
 
 @@option iidfile
 
+@@option inherit-labels
+
 @@option ipc.image
 
 @@option isolation
