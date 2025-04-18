@@ -78,7 +78,7 @@ Reviewers have all the rights and responsibilities of a Contributor, plus:
 In repositories using an OWNERS file, Reviewers are listed as Reviewers in that file.
 
 #### The process of becoming a Reviewer is:
-1. The contributor must be sponsored by a Maintainer. That sponsor will open a PR against the appropriate repository, which adds the nominee to the MAINTAINERS.md file as a reviewer.
+1. The contributor must be sponsored by a Maintainer. That sponsor will open a PR against the appropriate repository, which adds the nominee to the [MAINTAINERS.md](./MAINTAINERS.md) file as a reviewer.
 2. The contributor will add a comment to the pull request indicating their willingness to assume the responsibilities of a Reviewer.
 3. At least two Maintainers of the repository must concur to merge the PR.
 
@@ -108,7 +108,7 @@ A Maintainer must meet the responsibilities and requirements of a Reviewer, plus
     * Have a voice, but not a vote, in Core Maintainer decision-making meetings
 
 #### Process of becoming a maintainer:
-1. A current reviewer must be sponsored by a Maintainer of the repository in question or a Core Maintainer. The Maintainer or Core Maintainer will open a PR against the repository and add the nominee as a Maintainer in the MAINTAINERS.md file. The need for a sponsor is removed for Emeritus Maintainers, who may open this pull request themselves.
+1. A current reviewer must be sponsored by a Maintainer of the repository in question or a Core Maintainer. The Maintainer or Core Maintainer will open a PR against the repository and add the nominee as a Maintainer in the [MAINTAINERS.md](./MAINTAINERS.md) file. The need for a sponsor is removed for Emeritus Maintainers, who may open this pull request themselves.
 2. The nominee will add a comment to the PR confirming that they agree to all requirements and responsibilities of becoming a Maintainer.
 3. A majority of the current Maintainers of the repository or subproject (including Core Maintainers) must then approve the PR. The need for a majority is removed for Emeritus Maintainers, who require only 2 current Maintainers or Core Maintainers to approve their return.
 
@@ -132,7 +132,7 @@ Description: As the Podman project is composed of a number of subprojects, most 
     * Have a vote in Core Maintainer decision-making meetings
 
 #### Process of becoming a Core Maintainer:
-1. A current maintainer must be sponsored by Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Core Maintainer in the MAINTAINERS.md file.
+1. A current maintainer must be sponsored by Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Core Maintainer in the [MAINTAINERS.md](./MAINTAINERS.md) file.
 2. The nominee will add a comment to the PR confirming that they agree to all requirements and responsibilities of becoming a Core Maintainer.
 3. A majority of the current Core Maintainers must then approve the PR.
 4. If, for some reason, all existing members are inactive according to the Inactivity policy below or there are no Core Maintainers due to resignations, a supermajority (66%) vote of maintainers can bypass this process and approve new Core Maintainers directly.
@@ -157,7 +157,7 @@ Description: Community managers are responsible for the project’s community in
     * Have a voice, but not a vote, in Core Maintainer decision-making meetings
 
 #### Process of becoming a Community Manager:
-1. Community Managers must be sponsored by a Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Community Manager in the MAINTAINERS.md file.
+1. Community Managers must be sponsored by a Core Maintainer. The Core Maintainer will open a PR against the main Podman repository and add the nominee as a Community Manager in the [MAINTAINERS.md](./MAINTAINERS.md) file.
 2. The nominee will add a comment to the PR confirming that they agree to all requirements and responsibilities of becoming a Community Manager.
 3. A majority of the current Core Maintainers must then approve the PR.
 
@@ -174,7 +174,7 @@ Emeritus Maintainers have no responsibilities or requirements beyond those of an
 
 # Maintainers File
 
-The definitive source of truth for maintainers of a repository is the MAINTAINERS.md file in that repository. The MAINTAINERS.md file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have an OWNERS file, used by the CI system to map users to roles. Any changes to the OWNERS file must make a corresponding change to the MAINTAINERS.md file to ensure that file maintains up to date. Most changes to MAINTAINERS.md will require a change to the repository’s OWNERS file (e.g. adding a Reviewer) but some will not (e.g. promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
+The definitive source of truth for maintainers of a repository is the MAINTAINERS.md file in that repository. The [MAINTAINERS.md](./MAINTAINERS.md) file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have an OWNERS file, used by the CI system to map users to roles. Any changes to the [OWNERS](./OWNERS) file must make a corresponding change to the [MAINTAINERS.md](./MAINTAINERS.md) file to ensure that file maintains up to date. Most changes to MAINTAINERS.md will require a change to the repository’s OWNERS file (e.g. adding a Reviewer) but some will not (e.g. promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
 
 ---
 
