@@ -214,7 +214,7 @@ func (r *ConmonOCIRuntime) ExecAttachResize(ctr *Container, sessionID string, ne
 
 // ExecStopContainer stops a given exec session in a running container.
 func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, timeout uint) error {
-	pid, err := ctr.getExecSessionPID(sessionID)
+	pid, pidData, err := ctr.getExecSessionPID(sessionID)
 	if err != nil {
 		return err
 	}
@@ -222,12 +222,12 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 	logrus.Debugf("Going to stop container %s exec session %s", ctr.ID(), sessionID)
 
 	// Is the session dead?
-	// Ping the PID with signal 0 to see if it still exists.
-	if err := unix.Kill(pid, 0); err != nil {
-		if err == unix.ESRCH {
-			return nil
-		}
-		return fmt.Errorf("pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
+	sessionAlive, err := ctr.isSessionAlive(pid, pidData)
+	if err != nil {
+		return err
+	}
+	if !sessionAlive {
+		return nil
 	}
 
 	if timeout > 0 {
@@ -268,7 +268,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 
 // ExecUpdateStatus checks if the given exec session is still running.
 func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
-	pid, err := ctr.getExecSessionPID(sessionID)
+	pid, pidData, err := ctr.getExecSessionPID(sessionID)
 	if err != nil {
 		return false, err
 	}
@@ -276,15 +276,12 @@ func (r *ConmonOCIRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (b
 	logrus.Debugf("Checking status of container %s exec session %s", ctr.ID(), sessionID)
 
 	// Is the session dead?
-	// Ping the PID with signal 0 to see if it still exists.
-	if err := unix.Kill(pid, 0); err != nil {
-		if err == unix.ESRCH {
-			return false, nil
-		}
-		return false, fmt.Errorf("pinging container %s exec session %s PID %d with signal 0: %w", ctr.ID(), sessionID, pid, err)
+	sessionAlive, err := ctr.isSessionAlive(pid, pidData)
+	if err != nil {
+		return false, err
 	}
 
-	return true, nil
+	return sessionAlive, nil
 }
 
 // ExecAttachSocketPath is the path to a container's exec session attach socket.

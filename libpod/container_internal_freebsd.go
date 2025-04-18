@@ -435,3 +435,61 @@ func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) 
 	}
 	return false, err
 }
+
+// Generates the PID data uniquely identifying the process
+// defined by the pid.
+func (c *Container) generatePIDData(pid int) (string, error) {
+	// fallback to process start-time in case PidfdOpen or NameToHandleAt
+	// is not supported.
+	data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+	if err != nil {
+		return "", fmt.Errorf("could not read stat: %w", err)
+	}
+
+	// Split stat line into fields
+	fields := strings.Fields(string(data))
+	if len(fields) < 22 {
+		return "", fmt.Errorf("not enough fields in stat file")
+	}
+
+	// Field 22 is the start-time.
+	return "start-time:" + fields[21], nil
+}
+
+// Verifies that the PID is still alive and matches the exactly
+// same process as described by the pidData.
+func (c *Container) isSessionAlive(pid int, pidData string) (bool, error) {
+	prefix := "start-time:"
+	if strings.HasPrefix(pidData, prefix) {
+		startTime := strings.TrimPrefix(pidData, prefix)
+
+		// Read the stat file.
+		data, err := os.ReadFile(fmt.Sprintf("/proc/%d/stat", pid))
+		if err != nil {
+			return false, nil
+		}
+
+		// Split stat line into fields.
+		fields := strings.Fields(string(data))
+		if len(fields) < 22 {
+			return false, fmt.Errorf("not enough fields in stat file")
+		}
+
+		// Field 22 is start-time.
+		if fields[21] == startTime {
+			return true, nil
+		}
+		return false, nil
+	}
+
+	// Fallback to unix.Kill to verify if the PID is still alive.
+	// Ping the PID with signal 0 to see if it still exists.
+	if err := unix.Kill(pid, 0); err != nil {
+		if err == unix.ESRCH {
+			return false, nil
+		}
+		return false, fmt.Errorf("pinging PID %d with signal 0: %w", pid, err)
+	}
+
+	return true, nil
+}
