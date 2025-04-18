@@ -1,6 +1,10 @@
 package sbom
 
-import "github.com/containers/buildah/define"
+import (
+	"slices"
+
+	"github.com/containers/buildah/define"
+)
 
 // Preset returns a predefined SBOMScanOptions structure that has the passed-in
 // name as one of its "Type" values.
@@ -55,10 +59,8 @@ func Preset(name string) (preset *define.SBOMScanOptions, err error) {
 		},
 	}
 	for _, preset := range presets {
-		for _, presetName := range preset.Type {
-			if presetName == name {
-				return &preset, nil
-			}
+		if slices.Contains(preset.Type, name) {
+			return &preset, nil
 		}
 	}
 	return nil, nil

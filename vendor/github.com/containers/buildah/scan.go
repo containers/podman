@@ -107,7 +107,7 @@ func (b *Builder) sbomScan(ctx context.Context, options CommitOptions) (imageFil
 			// Start by assuming it's shell -c $whatever.
 			parsedCommand := []string{"/bin/sh", "-c", commandSpec}
 			if shell := scanBuilder.Shell(); len(shell) != 0 {
-				parsedCommand = append(append([]string{}, shell...), commandSpec)
+				parsedCommand = append(slices.Clone(shell), commandSpec)
 			}
 			if !strings.ContainsAny(commandSpec, "<>|") { // An imperfect check for shell redirection being used.
 				// If we can parse it ourselves, though, prefer to use that result,

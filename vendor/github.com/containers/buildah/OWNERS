@@ -1,15 +1,24 @@
 approvers:
-  - TomSweeneyRedHat
+  - baude
+  - giuseppe
   - lsm5
+  - Luap99
+  - mheon
+  - mtrmac
   - nalind
   - rhatdan
-  - umohnani8
+  - TomSweeneyRedHat
 reviewers:
   - ashley-cui
   - baude
-  - edsantiago
   - flouthoc
   - giuseppe
   - Honny1
+  - lsm5
+  - Luap99
   - mheon
+  - mtrmac
+  - nalind
+  - rhatdan
+  - TomSweeneyRedHat
   - vrothberg

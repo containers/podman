@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/containers/buildah/docker"
@@ -24,9 +25,9 @@ func firstStringElseSecondString(first, second string) string {
 // slice of strings if it has contents, else the second slice
 func firstSliceElseSecondSlice(first, second []string) []string {
 	if len(first) > 0 {
-		return append([]string{}, first...)
+		return slices.Clone(first)
 	}
-	return append([]string{}, second...)
+	return slices.Clone(second)
 }
 
 // firstSlicePairElseSecondSlicePair takes two pairs of string slices, and
@@ -34,9 +35,9 @@ func firstSliceElseSecondSlice(first, second []string) []string {
 // pair
 func firstSlicePairElseSecondSlicePair(firstA, firstB, secondA, secondB []string) ([]string, []string) {
 	if len(firstA) > 0 || len(firstB) > 0 {
-		return append([]string{}, firstA...), append([]string{}, firstB...)
+		return slices.Clone(firstA), slices.Clone(firstB)
 	}
-	return append([]string{}, secondA...), append([]string{}, secondB...)
+	return slices.Clone(secondA), slices.Clone(secondB)
 }
 
 // mergeEnv combines variables from a and b into a single environment slice. if
@@ -45,7 +46,7 @@ func firstSlicePairElseSecondSlicePair(firstA, firstB, secondA, secondB []string
 func mergeEnv(a, b []string) []string {
 	index := make(map[string]int)
 	results := make([]string, 0, len(a)+len(b))
-	for _, kv := range append(append([]string{}, a...), b...) {
+	for _, kv := range slices.Concat(a, b) {
 		k, _, specifiesValue := strings.Cut(kv, "=")
 		if !specifiesValue {
 			if value, ok := os.LookupEnv(kv); ok {
@@ -134,7 +135,7 @@ func Override(dconfig *docker.Config, oconfig *v1.ImageConfig, overrideChanges [
 		oconfig.Entrypoint, oconfig.Cmd = firstSlicePairElseSecondSlicePair(overrideConfig.Entrypoint, overrideConfig.Cmd, oconfig.Entrypoint, oconfig.Cmd)
 		if overrideConfig.Healthcheck != nil {
 			dconfig.Healthcheck = &docker.HealthConfig{
-				Test:        append([]string{}, overrideConfig.Healthcheck.Test...),
+				Test:        slices.Clone(overrideConfig.Healthcheck.Test),
 				Interval:    overrideConfig.Healthcheck.Interval,
 				Timeout:     overrideConfig.Healthcheck.Timeout,
 				StartPeriod: overrideConfig.Healthcheck.StartPeriod,

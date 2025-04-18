@@ -22,8 +22,8 @@ func get() (Rusage, error) {
 		Date:     time.Now(),
 		Utime:    mkduration(rusage.Utime),
 		Stime:    mkduration(rusage.Stime),
-		Inblock:  int64(rusage.Inblock), // nolint: unconvert
-		Outblock: int64(rusage.Oublock), // nolint: unconvert
+		Inblock:  int64(rusage.Inblock), //nolint:unconvert
+		Outblock: int64(rusage.Oublock), //nolint:unconvert
 	}
 	return r, nil
 }

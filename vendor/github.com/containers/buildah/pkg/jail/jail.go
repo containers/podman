@@ -29,7 +29,7 @@ const (
 )
 
 type config struct {
-	params map[string]interface{}
+	params map[string]any
 }
 
 var (
@@ -39,11 +39,11 @@ var (
 
 func NewConfig() *config {
 	return &config{
-		params: make(map[string]interface{}),
+		params: make(map[string]any),
 	}
 }
 
-func handleBoolSetting(key string, val bool) (string, interface{}) {
+func handleBoolSetting(key string, val bool) (string, any) {
 	// jail doesn't deal with booleans - it uses paired parameter
 	// names, e.g. "persist"/"nopersist". If the key contains '.',
 	// the "no" prefix is applied to the last element.
@@ -55,7 +55,7 @@ func handleBoolSetting(key string, val bool) (string, interface{}) {
 	return key, nil
 }
 
-func (c *config) Set(key string, value interface{}) {
+func (c *config) Set(key string, value any) {
 	// Normalise integer types to int32
 	switch v := value.(type) {
 	case int:

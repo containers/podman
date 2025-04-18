@@ -99,10 +99,8 @@ func newContainerIDMappingOptions(idmapOptions *define.IDMappingOptions) storage
 
 func containerNameExist(name string, containers []storage.Container) bool {
 	for _, container := range containers {
-		for _, cname := range container.Names {
-			if cname == name {
-				return true
-			}
+		if slices.Contains(container.Names, name) {
+			return true
 		}
 	}
 	return false
@@ -246,11 +244,11 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 
 	suffixDigitsModulo := 100
 	for {
-		var flags map[string]interface{}
+		var flags map[string]any
 		// check if we have predefined ProcessLabel and MountLabel
 		// this could be true if this is another stage in a build
 		if options.ProcessLabel != "" && options.MountLabel != "" {
-			flags = map[string]interface{}{
+			flags = map[string]any{
 				"ProcessLabel": options.ProcessLabel,
 				"MountLabel":   options.MountLabel,
 			}

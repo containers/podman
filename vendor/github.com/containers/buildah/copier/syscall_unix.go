@@ -84,8 +84,3 @@ func sameDevice(a, b os.FileInfo) bool {
 	}
 	return uA.Dev == uB.Dev
 }
-
-const (
-	testModeMask           = int64(os.ModePerm)
-	testIgnoreSymlinkDates = false
-)

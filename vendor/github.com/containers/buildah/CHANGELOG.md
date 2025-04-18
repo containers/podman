@@ -2,6 +2,135 @@
 
 # Changelog
 
+## v1.40.0 (2025-04-17)
+
+    Bump c/storage to v1.58.0, c/image v5.35.0, c/common v0.63.0
+    fix(deps): update module github.com/docker/docker to v28.1.0+incompatible
+    fix(deps): update module github.com/containers/storage to v1.58.0
+    cirrus: make Total Success wait for rootless integration
+    chroot: use symbolic names when complaining about mount() errors
+    cli: hide the `completion` command instead of disabling it outright
+    Document rw and src options for --mount flag in buildah-run(1)
+    fix(deps): update module github.com/moby/buildkit to v0.21.0
+    build: add support for inherit-labels
+    chore(deps): update dependency golangci/golangci-lint to v2.1.0
+    .github: check_cirrus_cron work around github bug
+    stage_executor,getCreatedBy: expand buildArgs for sources correctly
+    Add a link to project governance and MAINTAINERS file
+    fix(deps): update github.com/containers/storage digest to b1d1b45
+    generateHostname: simplify
+    Use maps.Copy
+    Use slices.Concat
+    Use slices.Clone
+    Use slices.Contains
+    Use for range over integers
+    tests/testreport: don't copy os.Environ
+    Use any instead of interface{}
+    ci: add golangci-lint run with --tests=false
+    ci: add nolintlint, fix found issues
+    copier: rm nolint:unparam annotation
+    .golangci.yml: add unused linter
+    chroot: fix unused warnings
+    copier: fix unused warnings
+    tests/conformance: fix unused warning
+    ci: switch to golangci-lint v2
+    internal/mkcw: disable ST1003 warnings
+    tests/conformance: do not double import (fix ST1019)
+    cmd/buildah: don't double import (fix ST1019)
+    Do not capitalize error strings
+    cmd/buildah: do not capitalize error strings
+    tests/conformance: fix QF1012 warnings
+    tests/serve: fix QF1012 warning
+    Use strings.ReplaceAll to fix QF1004 warnings
+    Use switch to fix QF1003 warnings
+    Apply De Morgan's law to fix QF1001 warnings
+    Fix QF1007 staticcheck warnings
+    imagebuildah: fix revive warning
+    Rename max variable
+    tests/tools: install lint from binary, use renovate
+    fix(deps): update module github.com/containernetworking/cni to v1.3.0
+    Update Buildah issue template to new version and support podman build
+    fix(deps): update module golang.org/x/crypto to v0.37.0
+    stage_executor: reset platform in systemcontext for stages
+    fix(deps): update github.com/opencontainers/runtime-tools digest to 260e151
+    cmd/buildah: rm unused containerOutputUsingTemplate
+    cmd/buildah: rm unused getDateAndDigestAndSize
+    build: return ExecErrorCodeGeneric when git operation fails
+    add: report error while creating dir for URL source.
+    createPlatformContainer: drop MS_REMOUNT|MS_BIND
+    fix(deps): update module github.com/docker/docker to v28.0.3+incompatible
+    fix: bats won't fail on ! without cleverness
+    feat: use HistoryTimestamp, if set, for oci-archive entries
+    Allow extendedGlob to work with Windows paths
+    fix(deps): update module github.com/moby/buildkit to v0.20.2
+    fix(deps): update github.com/openshift/imagebuilder digest to e87e4e1
+    fix(deps): update module github.com/docker/docker to v28.0.2+incompatible
+    fix(deps): update module tags.cncf.io/container-device-interface to v1.0.1
+    chore(deps): update dependency containers/automation_images to v20250324
+    vendor: update github.com/opencontainers/selinux to v1.12.0
+    replace deprecated selinux/label calls
+    vendor: bump c/common to dbeb17e40c80
+    Use builtin arg defaults from imagebuilder
+    linux: accept unmask paths as glob values
+    vendor: update containers/common
+    Add --parents option for COPY in Dockerfiles
+    fix(deps): update module github.com/opencontainers/runc to v1.2.6
+    update go.sum from the previous commit
+    fix(deps): update module tags.cncf.io/container-device-interface to v1
+    chore(deps): update module golang.org/x/net to v0.36.0 [security]
+    packit: remove f40 from copr builds
+    cirrus: update to go 1.23 image
+    vendor bump to golang.org/x/crypto v0.36.0
+    cirrus: update PRIOR_FEDORA comment
+    github: remove cirrus rerun action
+    fix(deps): update module github.com/containers/common to v0.62.2
+    fix(deps): update module github.com/containers/image/v5 to v5.34.2
+    fix: close files properly when BuildDockerfiles exits
+    fix(deps): update module github.com/containers/storage to v1.57.2
+    stage_executor: history should include heredoc summary correctly
+    fix(deps): update module github.com/containers/common to v0.62.1
+    github: disable cron rerun action
+    fix(deps): update module github.com/moby/buildkit to v0.20.1
+    internal/mkcw.Archive(): use github.com/containers/storage/pkg/ioutils
+    [skip-ci] TMT: system tests
+    buildah-build.1.md: secret examples
+    fix(deps): update github.com/containers/luksy digest to 40bd943
+    fix(deps): update module github.com/opencontainers/image-spec to v1.1.1
+    fix(deps): update module github.com/containers/image/v5 to v5.34.1
+    Use UnparsedInstance.Manifest instead of ImageSource.GetManifest
+    fix(deps): update module github.com/opencontainers/runtime-spec to v1.2.1
+    tests/conformance/testdata/Dockerfile.add: update some URLs
+    Vendor imagebuilder
+    Fix source of OS, architecture and variant
+    chore(deps): update module github.com/go-jose/go-jose/v4 to v4.0.5 [security]
+    fix(deps): update module tags.cncf.io/container-device-interface to v0.8.1
+    fix(deps): update module github.com/moby/buildkit to v0.20.0
+    chroot createPlatformContainer: use MS_REMOUNT
+    conformance: make TestCommit and TestConformance parallel
+    cirrus: reduce task timeout
+    mkcw: mkcw_check_image use bats run_with_log
+    test: use /tmp as TMPDIR
+    heredoc: create temp subdirs for each build
+    test: heredoc remove python dependency from test
+    Support the containers.conf container_name_as_hostname option
+    fix(deps): update module github.com/opencontainers/runc to v1.2.5
+    fix(deps): update module github.com/spf13/cobra to v1.9.0
+    .cirrus: use more cores for smoke
+    Switch to the CNCF Code of Conduct
+    .cirrus: bump ci resources
+    fix(deps): update module golang.org/x/crypto to v0.33.0
+    Distinguish --mount=type=cache locations by ownership, too
+    fix(deps): update module golang.org/x/term to v0.29.0
+    .cirrus: run -race only on non-PR branch
+    unit: deparallize some tests
+    .cirrus: use multiple cpu for unit tests
+    Makefile: use -parallel for go test
+    unit_test: use Parallel test where possible
+    Update module golang.org/x/sys to v0.30.0
+    Update module golang.org/x/sync to v0.11.0
+    Update dependency containers/automation_images to v20250131
+    Bump to Buildah v1.40.0-dev
+
 ## v1.39.0 (2025-01-31)
 
     Bump c/storage v1.57.1, c/image 5.34.0,  c/common v0.62.0

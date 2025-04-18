@@ -181,14 +181,8 @@ func (b *Builder) addHostsEntries(file, imageRoot string, entries etchosts.HostE
 
 // generateHostname creates a containers /etc/hostname file
 func (b *Builder) generateHostname(rdir, hostname string, chownOpts *idtools.IDPair) (string, error) {
-	var err error
-	hostnamePath := "/etc/hostname"
-
-	var hostnameBuffer bytes.Buffer
-	hostnameBuffer.Write([]byte(fmt.Sprintf("%s\n", hostname)))
-
-	cfile := filepath.Join(rdir, filepath.Base(hostnamePath))
-	if err = ioutils.AtomicWriteFile(cfile, hostnameBuffer.Bytes(), 0o644); err != nil {
+	cfile := filepath.Join(rdir, "hostname")
+	if err := ioutils.AtomicWriteFile(cfile, append([]byte(hostname), '\n'), 0o644); err != nil {
 		return "", fmt.Errorf("writing /etc/hostname into the container: %w", err)
 	}
 
@@ -198,7 +192,7 @@ func (b *Builder) generateHostname(rdir, hostname string, chownOpts *idtools.IDP
 		uid = chownOpts.UID
 		gid = chownOpts.GID
 	}
-	if err = os.Chown(cfile, uid, gid); err != nil {
+	if err := os.Chown(cfile, uid, gid); err != nil {
 		return "", err
 	}
 	if err := relabel(cfile, b.MountLabel, false); err != nil {
@@ -734,7 +728,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	return wstatus, nil
 }
 
-func runCollectOutput(logger *logrus.Logger, fds, closeBeforeReadingFds []int) string { //nolint:interfacer
+func runCollectOutput(logger *logrus.Logger, fds, closeBeforeReadingFds []int) string {
 	for _, fd := range closeBeforeReadingFds {
 		unix.Close(fd)
 	}
@@ -780,7 +774,7 @@ func runCollectOutput(logger *logrus.Logger, fds, closeBeforeReadingFds []int) s
 	return b.String()
 }
 
-func setNonblock(logger *logrus.Logger, fd int, description string, nonblocking bool) (bool, error) { //nolint:interfacer
+func setNonblock(logger *logrus.Logger, fd int, description string, nonblocking bool) (bool, error) {
 	mask, err := unix.FcntlInt(uintptr(fd), unix.F_GETFL, 0)
 	if err != nil {
 		return false, err
@@ -870,13 +864,13 @@ func runCopyStdio(logger *logrus.Logger, stdio *sync.WaitGroup, copyPipes bool, 
 			return
 		}
 		if blocked {
-			defer setNonblock(logger, rfd, readDesc[rfd], false) // nolint:errcheck
+			defer setNonblock(logger, rfd, readDesc[rfd], false) //nolint:errcheck
 		}
-		setNonblock(logger, wfd, writeDesc[wfd], false) // nolint:errcheck
+		setNonblock(logger, wfd, writeDesc[wfd], false) //nolint:errcheck
 	}
 
 	if copyPipes {
-		setNonblock(logger, stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true) // nolint:errcheck
+		setNonblock(logger, stdioPipe[unix.Stdin][1], writeDesc[stdioPipe[unix.Stdin][1]], true) //nolint:errcheck
 	}
 
 	runCopyStdioPassData(copyPipes, stdioPipe, finishCopy, relayMap, relayBuffer, readDesc, writeDesc)

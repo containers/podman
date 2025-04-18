@@ -19,7 +19,7 @@ import (
 
 func importBuilderDataFromImage(ctx context.Context, store storage.Store, systemContext *types.SystemContext, imageID, containerName, containerID string) (*Builder, error) {
 	if imageID == "" {
-		return nil, errors.New("Internal error: imageID is empty in importBuilderDataFromImage")
+		return nil, errors.New("internal error: imageID is empty in importBuilderDataFromImage")
 	}
 
 	storeopts, err := storage.DefaultStoreOptions()

@@ -120,7 +120,7 @@ func (pickfirstBuilder) Build(cc balancer.ClientConn, bo balancer.BuildOptions) 
 	b := &pickfirstBalancer{
 		cc:              cc,
 		target:          bo.Target.String(),
-		metricsRecorder: bo.MetricsRecorder, // ClientConn will always create a Metrics Recorder.
+		metricsRecorder: cc.MetricsRecorder(),
 
 		subConns:              resolver.NewAddressMap(),
 		state:                 connectivity.Connecting,

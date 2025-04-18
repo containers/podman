@@ -17,6 +17,7 @@ package errors
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 )
 
 // ParseError represents a parsing error
@@ -68,7 +69,7 @@ func NewParseError(name, in, value string, reason error) *ParseError {
 		msg = fmt.Sprintf(parseErrorTemplContent, name, in, value, reason)
 	}
 	return &ParseError{
-		code:    400,
+		code:    http.StatusBadRequest,
 		Name:    name,
 		In:      in,
 		Value:   value,

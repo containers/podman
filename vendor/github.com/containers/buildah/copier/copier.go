@@ -331,7 +331,7 @@ func Stat(root string, directory string, options StatOptions, globs []string) ([
 		Request:     requestStat,
 		Root:        root,
 		Directory:   directory,
-		Globs:       append([]string{}, globs...),
+		Globs:       slices.Clone(globs),
 		StatOptions: options,
 	}
 	resp, err := copier(nil, nil, req)
@@ -382,7 +382,7 @@ func Get(root string, directory string, options GetOptions, globs []string, bulk
 		Request:   requestGet,
 		Root:      root,
 		Directory: directory,
-		Globs:     append([]string{}, globs...),
+		Globs:     slices.Clone(globs),
 		StatOptions: StatOptions{
 			CheckForArchives: options.ExpandArchives,
 		},
@@ -598,7 +598,7 @@ func copierWithoutSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req req
 	req.preservedRoot = req.Root
 	req.rootPrefix = string(os.PathSeparator)
 	req.preservedDirectory = req.Directory
-	req.preservedGlobs = append([]string{}, req.Globs...)
+	req.preservedGlobs = slices.Clone(req.Globs)
 	if !filepath.IsAbs(req.Directory) {
 		req.Directory = filepath.Join(req.Root, cleanerReldirectory(req.Directory))
 	}
@@ -701,9 +701,9 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 	bulkReaderRead = nil
 	bulkWriterWrite.Close()
 	bulkWriterWrite = nil
-	killAndReturn := func(err error, step string) (*response, error) { // nolint: unparam
+	killAndReturn := func(err error, step string) error {
 		if err2 := cmd.Process.Kill(); err2 != nil {
-			return nil, fmt.Errorf("killing subprocess: %v; %s: %w", err2, step, err)
+			return fmt.Errorf("killing subprocess: %v; %s: %w", err2, step, err)
 		}
 		if errors.Is(err, io.ErrClosedPipe) || errors.Is(err, syscall.EPIPE) {
 			err2 := cmd.Wait()
@@ -711,22 +711,22 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 				err = fmt.Errorf("%s: %w", errorText, err)
 			}
 			if err2 != nil {
-				return nil, fmt.Errorf("waiting on subprocess: %v; %s: %w", err2, step, err)
+				return fmt.Errorf("waiting on subprocess: %v; %s: %w", err2, step, err)
 			}
 		}
-		return nil, fmt.Errorf("%v: %w", step, err)
+		return fmt.Errorf("%v: %w", step, err)
 	}
 	if err = encoder.Encode(req); err != nil {
-		return killAndReturn(err, "error encoding work request for copier subprocess")
+		return nil, killAndReturn(err, "error encoding work request for copier subprocess")
 	}
 	if err = decoder.Decode(&resp); err != nil {
 		if errors.Is(err, io.EOF) && errorBuffer.Len() > 0 {
-			return killAndReturn(errors.New(errorBuffer.String()), "error in copier subprocess")
+			return nil, killAndReturn(errors.New(errorBuffer.String()), "error in copier subprocess")
 		}
-		return killAndReturn(err, "error decoding response from copier subprocess")
+		return nil, killAndReturn(err, "error decoding response from copier subprocess")
 	}
 	if err = encoder.Encode(&request{Request: requestQuit}); err != nil {
-		return killAndReturn(err, "error encoding quit request for copier subprocess")
+		return nil, killAndReturn(err, "error encoding quit request for copier subprocess")
 	}
 	stdinWrite.Close()
 	stdinWrite = nil
@@ -850,7 +850,7 @@ func copierMain() {
 		req.preservedRoot = req.Root
 		req.rootPrefix = string(os.PathSeparator)
 		req.preservedDirectory = req.Directory
-		req.preservedGlobs = append([]string{}, req.Globs...)
+		req.preservedGlobs = slices.Clone(req.Globs)
 		if chrooted {
 			// We'll need to adjust some things now that the root
 			// directory isn't what it was.  Make the directory and
@@ -975,7 +975,7 @@ func pathIsExcluded(root, path string, pm *fileutils.PatternMatcher) (string, bo
 	// Matches uses filepath.FromSlash() to convert candidates before
 	// checking if they match the patterns it's been given, implying that
 	// it expects Unix-style paths.
-	matches, err := pm.Matches(filepath.ToSlash(rel)) // nolint:staticcheck
+	matches, err := pm.Matches(filepath.ToSlash(rel)) //nolint:staticcheck
 	if err != nil {
 		return rel, false, fmt.Errorf("copier: error checking if %q is excluded: %w", rel, err)
 	}
@@ -1009,7 +1009,7 @@ func resolvePath(root, path string, evaluateFinalComponent bool, pm *fileutils.P
 		}
 		excluded = excluded || thisExcluded
 		if !excluded {
-			if target, err := os.Readlink(filepath.Join(workingPath, components[0])); err == nil && !(len(components) == 1 && !evaluateFinalComponent) {
+			if target, err := os.Readlink(filepath.Join(workingPath, components[0])); err == nil && (len(components) != 1 || evaluateFinalComponent) {
 				followed++
 				if followed > maxLoopsFollowed {
 					return "", &os.PathError{
@@ -1052,7 +1052,7 @@ func resolvePath(root, path string, evaluateFinalComponent bool, pm *fileutils.P
 }
 
 func copierHandlerEval(req request) *response {
-	errorResponse := func(fmtspec string, args ...interface{}) *response {
+	errorResponse := func(fmtspec string, args ...any) *response {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Eval: evalResponse{}}
 	}
 	resolvedTarget, err := resolvePath(req.Root, req.Directory, true, nil)
@@ -1063,7 +1063,7 @@ func copierHandlerEval(req request) *response {
 }
 
 func copierHandlerStat(req request, pm *fileutils.PatternMatcher) *response {
-	errorResponse := func(fmtspec string, args ...interface{}) *response {
+	errorResponse := func(fmtspec string, args ...any) *response {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse{}}
 	}
 	if len(req.Globs) == 0 {
@@ -1233,7 +1233,7 @@ func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMa
 	statRequest := req
 	statRequest.Request = requestStat
 	statResponse := copierHandlerStat(req, pm)
-	errorResponse := func(fmtspec string, args ...interface{}) (*response, func() error, error) {
+	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse.Stat, Get: getResponse{}}, nil, nil
 	}
 	if statResponse.Error != "" {
@@ -1661,14 +1661,15 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		return fmt.Errorf("getting fflags: %w", err)
 	}
 	var f *os.File
-	if hdr.Typeflag == tar.TypeReg {
+	switch hdr.Typeflag {
+	case tar.TypeReg:
 		// open the file first so that we don't write a header for it if we can't actually read it
 		f, err = os.Open(contentPath)
 		if err != nil {
 			return fmt.Errorf("opening file for adding its contents to archive: %w", err)
 		}
 		defer f.Close()
-	} else if hdr.Typeflag == tar.TypeDir {
+	case tar.TypeDir:
 		// open the directory file first to make sure we can access it.
 		f, err = os.Open(contentPath)
 		if err != nil {
@@ -1695,7 +1696,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 }
 
 func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDMappings) (*response, func() error, error) {
-	errorResponse := func(fmtspec string, args ...interface{}) (*response, func() error, error) {
+	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Put: putResponse{}}, nil, nil
 	}
 	dirUID, dirGID, defaultDirUID, defaultDirGID := 0, 0, 0, 0
@@ -2080,7 +2081,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			// set xattrs, including some that might have been reset by chown()
 			if !req.PutOptions.StripXattrs {
 				xattrs := mapWithPrefixedKeysWithoutKeyPrefix(hdr.PAXRecords, xattrPAXRecordNamespace)
-				if err = Lsetxattrs(path, xattrs); err != nil { // nolint:staticcheck
+				if err = Lsetxattrs(path, xattrs); err != nil {
 					if !req.PutOptions.IgnoreXattrErrors {
 						return fmt.Errorf("copier: put: error setting extended attributes on %q: %w", path, err)
 					}
@@ -2109,7 +2110,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 }
 
 func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response, func() error, error) {
-	errorResponse := func(fmtspec string, args ...interface{}) (*response, func() error, error) {
+	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Mkdir: mkdirResponse{}}, nil, nil
 	}
 	dirUID, dirGID := 0, 0
@@ -2163,7 +2164,7 @@ func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response,
 }
 
 func copierHandlerRemove(req request) *response {
-	errorResponse := func(fmtspec string, args ...interface{}) *response {
+	errorResponse := func(fmtspec string, args ...any) *response {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Remove: removeResponse{}}
 	}
 	resolvedTarget, err := resolvePath(req.Root, req.Directory, false, nil)
