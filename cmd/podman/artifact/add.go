@@ -19,8 +19,10 @@ var (
 		RunE:              add,
 		Args:              cobra.MinimumNArgs(2),
 		ValidArgsFunction: common.AutocompleteArtifactAdd,
-		Example:           `podman artifact add quay.io/myimage/myartifact:latest /tmp/foobar.txt`,
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
+		Example: `podman artifact add quay.io/myimage/myartifact:latest /tmp/foobar.txt
+podman artifact add --file-type text/yaml quay.io/myimage/myartifact:latest /tmp/foobar.yaml
+podman artifact add --append quay.io/myimage/myartifact:latest /tmp/foobar.tar.gz`,
+		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 )
 
@@ -28,6 +30,7 @@ type artifactAddOptions struct {
 	ArtifactType string
 	Annotations  []string
 	Append       bool
+	FileType     string
 }
 
 var (
@@ -51,6 +54,10 @@ func init() {
 
 	appendFlagName := "append"
 	flags.BoolVarP(&addOpts.Append, appendFlagName, "a", false, "Append files to an existing artifact")
+
+	fileTypeFlagName := "file-type"
+	flags.StringVarP(&addOpts.FileType, fileTypeFlagName, "", "", "Set file type to use for the artifact (layer)")
+	_ = addCmd.RegisterFlagCompletionFunc(fileTypeFlagName, completion.AutocompleteNone)
 }
 
 func add(cmd *cobra.Command, args []string) error {
@@ -63,6 +70,7 @@ func add(cmd *cobra.Command, args []string) error {
 	opts.Annotations = annots
 	opts.ArtifactType = addOpts.ArtifactType
 	opts.Append = addOpts.Append
+	opts.FileType = addOpts.FileType
 
 	report, err := registry.ImageEngine().ArtifactAdd(registry.Context(), args[0], args[1:], opts)
 	if err != nil {

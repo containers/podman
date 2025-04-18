@@ -10,6 +10,9 @@ type AddOptions struct {
 	ArtifactType string            `json:",omitempty"`
 	// append option is not compatible with ArtifactType option
 	Append bool `json:",omitempty"`
+	// FileType describes the media type for the layer.  It is an override
+	// for the standard detection
+	FileType string `json:",omitempty"`
 }
 
 // FilterBlobOptions options used to filter for a single blob in an artifact
