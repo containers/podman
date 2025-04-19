@@ -218,7 +218,7 @@ endif
 
 # gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
 # the upstream project ships pre-built binaries since version 0.7.1
-GV_VERSION=v0.8.4
+GVPROXY_VERSION=$(shell grep github.com/containers/gvisor-tap-vsock go.mod  | cut -d" " -f2)
 
 ###
 ### Primary entry-point targets
@@ -861,12 +861,12 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 	if [[ "$(GOARCH)" != "$(NATIVE_GOARCH)" ]]; then $(MAKE) clean-binaries; fi
 	-rm -rf "$(tmpsubdir)"
 
-# Downloads pre-built gvproxy and win-sshproxy helpers. See comment on GV_VERSION declaration
+# Downloads pre-built gvproxy and win-sshproxy helpers. See comment on GVPROXY_VERSION declaration
 .PHONY: win-gvproxy
 win-gvproxy: test/version/version
 	mkdir -p bin/windows/
-	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/gvproxy-windowsgui.exe
-	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GV_VERSION)/win-sshproxy.exe
+	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/gvproxy-windowsgui.exe
+	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/win-sshproxy.exe
 
 .PHONY: rpm
 rpm:  ## Build rpm packages
