@@ -447,6 +447,7 @@ var (
 		KeyDNSSearch:            true,
 		KeyGIDMap:               true,
 		KeyGlobalArgs:           true,
+		KeyHostName:             true,
 		KeyIP:                   true,
 		KeyIP6:                  true,
 		KeyNetwork:              true,
@@ -1722,6 +1723,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		KeyDNSOption:    "--dns-option",
 		KeyDNSSearch:    "--dns-search",
 		KeyAddHost:      "--add-host",
+		KeyHostName:     "--hostname",
 	}
 	lookupAndAddAllStrings(podUnit, PodGroup, allStringsKeys, execStartPre)
 
