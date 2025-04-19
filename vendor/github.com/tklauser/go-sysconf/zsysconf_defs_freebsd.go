@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_defs_freebsd.go
 
 //go:build freebsd
-// +build freebsd
 
 package sysconf
 

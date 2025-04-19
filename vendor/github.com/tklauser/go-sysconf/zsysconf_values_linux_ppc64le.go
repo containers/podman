@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_linux.go
 
 //go:build linux && ppc64le
-// +build linux,ppc64le
 
 package sysconf
 

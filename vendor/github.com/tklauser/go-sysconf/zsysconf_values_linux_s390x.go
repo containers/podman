@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_linux.go
 
 //go:build linux && s390x
-// +build linux,s390x
 
 package sysconf
 
