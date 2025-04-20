@@ -134,10 +134,12 @@ function setup() {
 @test "podman checkpoint --export, with volumes" {
     skip_if_remote "Test uses --root/--runroot, which are N/A over remote"
 
-    # To avoid network pull, copy $IMAGE straight to temp root
     local p_opts="$(podman_isolation_opts ${PODMAN_TMPDIR}) --events-backend file"
-    run_podman         save -o $PODMAN_TMPDIR/image.tar $IMAGE
-    run_podman $p_opts load -i $PODMAN_TMPDIR/image.tar
+    # prefetch image to avoid registry pulls because this is using a
+    # unique root which does not have the image already present.
+    # _PODMAN_TEST_OPTS is used to overwrite the podman options to
+    # make the function aware of the custom --root.
+    _PODMAN_TEST_OPTS="$p_opts --storage-driver $(podman_storage_driver)" _prefetch $IMAGE
 
     # Create a volume, find unused network port, and create a webserv container
     volname=v-$(safename)
