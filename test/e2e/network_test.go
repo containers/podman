@@ -510,6 +510,11 @@ var _ = Describe("Podman network", func() {
 		defer podmanTest.removeNetwork(netName)
 		Expect(session).Should(ExitCleanly())
 
+		// Issue https://github.com/containers/podman/issues/25927
+		failed := podmanTest.Podman([]string{"create", "--rm", "--network=" + netName, "--network-alias", "a b", NGINX_IMAGE})
+		failed.WaitWithDefaultTimeout()
+		Expect(failed).Should(ExitWithError(125, fmt.Sprintf("invalid alias %q: contains white space", "a b")))
+
 		interval := 250 * time.Millisecond
 		for i := 0; i < 6; i++ {
 			n := podmanTest.Podman([]string{"network", "exists", netName})

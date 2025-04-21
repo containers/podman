@@ -85,6 +85,15 @@ func (c *Container) validate() error {
 		return fmt.Errorf("cannot set static IP or MAC address if not creating a network namespace: %w", define.ErrInvalidArg)
 	}
 
+	// issue #25927 network-aliases cannot have spaces
+	for _, net := range c.config.Networks {
+		for _, alias := range net.Aliases {
+			if strings.Contains(alias, " ") {
+				return fmt.Errorf("invalid alias %q: contains white space", alias)
+			}
+		}
+	}
+
 	// Cannot set static IP or MAC if joining >1 network.
 	if len(c.config.Networks) > 1 && (c.config.StaticIP != nil || c.config.StaticMAC != nil) {
 		return fmt.Errorf("cannot set static IP or MAC address if joining more than one network: %w", define.ErrInvalidArg)
