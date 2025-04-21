@@ -68,7 +68,7 @@ var _ = Describe("Podman volume prune", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman prune volume --filter", func() {
@@ -163,7 +163,7 @@ var _ = Describe("Podman volume prune", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 	})
 
 	It("podman volume prune --filter since/after", func() {

@@ -80,11 +80,8 @@ func list(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	switch {
-	case report.IsJSON(cliOpts.Format):
+	if report.IsJSON(cliOpts.Format) {
 		return outputJSON(responses)
-	case len(responses) < 1:
-		return nil
 	}
 	return outputTemplate(cmd, responses)
 }

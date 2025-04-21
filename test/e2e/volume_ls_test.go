@@ -17,6 +17,13 @@ var _ = Describe("Podman volume ls", func() {
 	})
 
 	It("podman ls volume", func() {
+		// https://github.com/containers/podman/issues/25911
+		// Output header for volume ls even when empty
+		empty := podmanTest.PodmanExitCleanly("volume", "ls")
+		Expect(empty.OutputToString()).To(ContainSubstring("DRIVER"))
+		Expect(empty.OutputToString()).To(ContainSubstring("VOLUME NAME"))
+		Expect(empty.ErrorToStringArray()).To(HaveLen(1))
+
 		session := podmanTest.Podman([]string{"volume", "create", "myvol"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -94,7 +101,6 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo=foo"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo=bar"})
 		session.WaitWithDefaultTimeout()
@@ -105,7 +111,6 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "label=foo=baz"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman ls volume with --filter until flag", func() {
@@ -121,7 +126,6 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "until=50000"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
 	It("podman volume ls with --filter dangling", func() {
@@ -171,7 +175,6 @@ var _ = Describe("Podman volume ls", func() {
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "name=volumex"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
 
 		session = podmanTest.Podman([]string{"volume", "ls", "--filter", "name=volume1"})
 		session.WaitWithDefaultTimeout()
