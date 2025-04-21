@@ -30,6 +30,9 @@ type UnparsedImage struct {
 // UnparsedInstance returns a types.UnparsedImage implementation for (source, instanceDigest).
 // If instanceDigest is not nil, it contains a digest of the specific manifest instance to retrieve (when the primary manifest is a manifest list).
 //
+// This implementation of [types.UnparsedImage] ensures that [types.UnparsedImage.Manifest] validates the image
+// against instanceDigest if set, or, if not, a digest implied by src.Reference, if any.
+//
 // The UnparsedImage must not be used after the underlying ImageSource is Close()d.
 //
 // This is publicly visible as c/image/image.UnparsedInstance.
@@ -48,6 +51,9 @@ func (i *UnparsedImage) Reference() types.ImageReference {
 }
 
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
+//
+// Users of UnparsedImage are promised that this validates the image
+// against either i.instanceDigest if set, or against a digest included in i.src.Reference.
 func (i *UnparsedImage) Manifest(ctx context.Context) ([]byte, string, error) {
 	if i.cachedManifest == nil {
 		m, mt, err := i.src.GetManifest(ctx, i.instanceDigest)

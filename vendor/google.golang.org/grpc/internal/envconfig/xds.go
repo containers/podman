@@ -56,7 +56,11 @@ var (
 
 	// XDSDualstackEndpointsEnabled is true if gRPC should read the
 	// "additional addresses" in the xDS endpoint resource.
-	// TODO: https://github.com/grpc/grpc-go/issues/7866 - Control this using
-	// an env variable when all LB policies handle endpoints.
-	XDSDualstackEndpointsEnabled = false
+	XDSDualstackEndpointsEnabled = boolFromEnv("GRPC_EXPERIMENTAL_XDS_DUALSTACK_ENDPOINTS", true)
+
+	// XDSSystemRootCertsEnabled is true when xDS enabled gRPC clients can use
+	// the system's default root certificates for TLS certificate validation.
+	// For more details, see:
+	// https://github.com/grpc/proposal/blob/master/A82-xds-system-root-certs.md.
+	XDSSystemRootCertsEnabled = boolFromEnv("GRPC_EXPERIMENTAL_XDS_SYSTEM_ROOT_CERTS", false)
 )

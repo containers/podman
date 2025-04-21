@@ -116,15 +116,12 @@ func LoadDefaultSignerVerifier(privateKey crypto.PrivateKey, opts ...LoadOption)
 	if err != nil {
 		return nil, err
 	}
-	filteredOpts := []LoadOption{options.WithHash(algorithmDetails.hashType)}
-	for _, opt := range opts {
-		var useED25519ph bool
-		var rsaPSSOptions *rsa.PSSOptions
-		opt.ApplyED25519ph(&useED25519ph)
-		opt.ApplyRSAPSS(&rsaPSSOptions)
-		if useED25519ph || rsaPSSOptions != nil {
-			filteredOpts = append(filteredOpts, opt)
-		}
-	}
+	return LoadSignerVerifierFromAlgorithmDetails(privateKey, algorithmDetails, opts...)
+}
+
+// LoadSignerVerifierFromAlgorithmDetails returns a signature.SignerVerifier based on
+// the algorithm details and the user's choice of options.
+func LoadSignerVerifierFromAlgorithmDetails(privateKey crypto.PrivateKey, algorithmDetails AlgorithmDetails, opts ...LoadOption) (SignerVerifier, error) {
+	filteredOpts := GetOptsFromAlgorithmDetails(algorithmDetails, opts...)
 	return LoadSignerVerifierWithOpts(privateKey, filteredOpts...)
 }

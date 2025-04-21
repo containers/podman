@@ -53,6 +53,10 @@ type AlgorithmDetails struct {
 	// hashType is the hash algorithm being used.
 	hashType crypto.Hash
 
+	// protoHashType is the hash algorithm being used as a proto message, it must be the protobuf-specs
+	// v1.HashAlgorithm equivalent of the hashType.
+	protoHashType v1.HashAlgorithm
+
 	// extraKeyParams contains any extra parameters required to check a given public key against this entry.
 	//
 	// The underlying type of these parameters is dependent on the keyType.
@@ -75,9 +79,14 @@ func (a AlgorithmDetails) GetKeyType() PublicKeyType {
 	return a.keyType
 }
 
-// GetHashType returns the hash algorithm that should be used with this algorithm
+// GetHashType returns the hash algorithm that should be used with this algorithm.
 func (a AlgorithmDetails) GetHashType() crypto.Hash {
 	return a.hashType
+}
+
+// GetProtoHashType is a convenience method to get the protobuf-specs type of the hash algorithm.
+func (a AlgorithmDetails) GetProtoHashType() v1.HashAlgorithm {
+	return a.protoHashType
 }
 
 // GetRSAKeySize returns the RSA key size for the algorithm details, if the key type is RSA.
@@ -143,17 +152,19 @@ func (a AlgorithmDetails) checkHash(hashType crypto.Hash) bool {
 // list, including PKCS1v1.5 encoded RSA. Refer to the v1.PublicKeyDetails enum
 // for more details.
 var supportedAlgorithms = []AlgorithmDetails{
-	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, RSA, crypto.SHA256, RSAKeySize(2048), "rsa-sign-pkcs1-2048-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, RSA, crypto.SHA256, RSAKeySize(3072), "rsa-sign-pkcs1-3072-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, RSA, crypto.SHA256, RSAKeySize(4096), "rsa-sign-pkcs1-4096-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256, RSA, crypto.SHA256, RSAKeySize(2048), "rsa-sign-pss-2048-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256, RSA, crypto.SHA256, RSAKeySize(3072), "rsa-sign-pss-3072-sha256"},
-	{v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256, RSA, crypto.SHA256, RSAKeySize(4096), "rsa-sign-pss-4092-sha256"},
-	{v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256, ECDSA, crypto.SHA256, elliptic.P256(), "ecdsa-sha2-256-nistp256"},
-	{v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384, ECDSA, crypto.SHA384, elliptic.P384(), "ecdsa-sha2-384-nistp384"},
-	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512, ECDSA, crypto.SHA512, elliptic.P521(), "ecdsa-sha2-512-nistp521"},
-	{v1.PublicKeyDetails_PKIX_ED25519, ED25519, crypto.Hash(0), nil, "ed25519"},
-	{v1.PublicKeyDetails_PKIX_ED25519_PH, ED25519, crypto.SHA512, nil, "ed25519-ph"},
+	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256, RSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, RSAKeySize(2048), "rsa-sign-pkcs1-2048-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256, RSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, RSAKeySize(3072), "rsa-sign-pkcs1-3072-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256, RSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, RSAKeySize(4096), "rsa-sign-pkcs1-4096-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256, RSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, RSAKeySize(2048), "rsa-sign-pss-2048-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256, RSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, RSAKeySize(3072), "rsa-sign-pss-3072-sha256"},
+	{v1.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256, RSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, RSAKeySize(4096), "rsa-sign-pss-4092-sha256"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256, ECDSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, elliptic.P256(), "ecdsa-sha2-256-nistp256"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384, ECDSA, crypto.SHA384, v1.HashAlgorithm_SHA2_384, elliptic.P384(), "ecdsa-sha2-384-nistp384"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P384_SHA_256, ECDSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, elliptic.P384(), "ecdsa-sha2-256-nistp384"}, //nolint:staticcheck
+	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512, ECDSA, crypto.SHA512, v1.HashAlgorithm_SHA2_512, elliptic.P521(), "ecdsa-sha2-512-nistp521"},
+	{v1.PublicKeyDetails_PKIX_ECDSA_P521_SHA_256, ECDSA, crypto.SHA256, v1.HashAlgorithm_SHA2_256, elliptic.P521(), "ecdsa-sha2-256-nistp521"}, //nolint:staticcheck
+	{v1.PublicKeyDetails_PKIX_ED25519, ED25519, crypto.Hash(0), v1.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED, nil, "ed25519"},
+	{v1.PublicKeyDetails_PKIX_ED25519_PH, ED25519, crypto.SHA512, v1.HashAlgorithm_SHA2_512, nil, "ed25519-ph"},
 }
 
 // AlgorithmRegistryConfig represents a set of permitted algorithms for a given Sigstore service or component.

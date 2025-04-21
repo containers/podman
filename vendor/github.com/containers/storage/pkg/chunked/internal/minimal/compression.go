@@ -234,7 +234,7 @@ func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, off
 		Offset:                     manifestOffset,
 		LengthCompressed:           uint64(len(compressedManifest)),
 		LengthUncompressed:         uint64(len(manifest)),
-		OffsetTarSplit:             uint64(tarSplitOffset),
+		OffsetTarSplit:             tarSplitOffset,
 		LengthCompressedTarSplit:   uint64(len(tarSplitData.Data)),
 		LengthUncompressedTarSplit: uint64(tarSplitData.UncompressedSize),
 	}
