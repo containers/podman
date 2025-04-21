@@ -23,7 +23,7 @@ import (
 // InfoData holds the info type, i.e store, host etc and the data for each type
 type InfoData struct {
 	Type string
-	Data map[string]interface{}
+	Data map[string]any
 }
 
 // Info returns the store and host information
@@ -42,8 +42,8 @@ func Info(store storage.Store) ([]InfoData, error) {
 	return info, nil
 }
 
-func hostInfo() map[string]interface{} {
-	info := map[string]interface{}{}
+func hostInfo() map[string]any {
+	info := map[string]any{}
 	ps := internalUtil.NormalizePlatform(v1.Platform{OS: runtime.GOOS, Architecture: runtime.GOARCH})
 	info["os"] = ps.OS
 	info["arch"] = ps.Architecture
@@ -77,7 +77,7 @@ func hostInfo() map[string]interface{} {
 		info["SwapFree"] = mi.SwapFree
 	}
 	hostDistributionInfo := getHostDistributionInfo()
-	info["Distribution"] = map[string]interface{}{
+	info["Distribution"] = map[string]any{
 		"distribution": hostDistributionInfo["Distribution"],
 		"version":      hostDistributionInfo["Version"],
 	}
@@ -128,9 +128,9 @@ func hostInfo() map[string]interface{} {
 }
 
 // top-level "store" info
-func storeInfo(store storage.Store) (map[string]interface{}, error) {
+func storeInfo(store storage.Store) (map[string]any, error) {
 	// lets say storage driver in use, number of images, number of containers
-	info := map[string]interface{}{}
+	info := map[string]any{}
 	info["GraphRoot"] = store.GraphRoot()
 	info["RunRoot"] = store.RunRoot()
 	info["GraphDriverName"] = store.GraphDriverName()
@@ -148,7 +148,7 @@ func storeInfo(store storage.Store) (map[string]interface{}, error) {
 	if err != nil {
 		logrus.Error(err, "error getting number of images")
 	}
-	info["ImageStore"] = map[string]interface{}{
+	info["ImageStore"] = map[string]any{
 		"number": len(images),
 	}
 
@@ -156,7 +156,7 @@ func storeInfo(store storage.Store) (map[string]interface{}, error) {
 	if err != nil {
 		logrus.Error(err, "error getting number of containers")
 	}
-	info["ContainerStore"] = map[string]interface{}{
+	info["ContainerStore"] = map[string]any{
 		"number": len(containers),
 	}
 

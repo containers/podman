@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -281,7 +282,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	// Combine the working container's set of devices with the ones for just this run.
-	deviceSpecs := append(append([]string{}, options.DeviceSpecs...), b.DeviceSpecs...)
+	deviceSpecs := slices.Concat(options.DeviceSpecs, b.DeviceSpecs)
 	deviceSpecs, err = b.cdiSetupDevicesInSpec(deviceSpecs, options.CDIConfigDir, g.Config) // makes changes to more than just the device list
 	if err != nil {
 		return err
@@ -302,7 +303,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		// We are going to create bind mounts for devices
 		// but we need to make sure that we don't override
 		// anything which is already in OCI spec.
-		mounts := make(map[string]interface{})
+		mounts := make(map[string]any)
 		for _, m := range g.Mounts() {
 			mounts[m.Destination] = true
 		}
@@ -456,7 +457,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	resolvFile := ""
-	if !slices.Contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
+	if !slices.Contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && (len(b.CommonBuildOpts.DNSServers) != 1 || strings.ToLower(b.CommonBuildOpts.DNSServers[0]) != "none") {
 		resolvFile, err = b.createResolvConf(path, rootIDPair)
 		if err != nil {
 			return err
@@ -586,9 +587,7 @@ func (b *Builder) setupOCIHooks(config *specs.Spec, hasVolumes bool) (map[string
 			if len(ociHooks) > 0 || config.Hooks != nil {
 				logrus.Warnf("Implicit hook directories are deprecated; set --hooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
 			}
-			for i, hook := range ociHooks {
-				allHooks[i] = hook
-			}
+			maps.Copy(allHooks, ociHooks)
 		}
 	} else {
 		manager, err := hooks.New(context.Background(), b.CommonBuildOpts.OCIHooksDir, []string{})
@@ -691,9 +690,9 @@ func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options, 
 	}
 
 	return func() {
-		syscall.Kill(res.Pid, syscall.SIGKILL) // nolint:errcheck
+		syscall.Kill(res.Pid, syscall.SIGKILL) //nolint:errcheck
 		var status syscall.WaitStatus
-		syscall.Wait4(res.Pid, &status, 0, nil) // nolint:errcheck
+		syscall.Wait4(res.Pid, &status, 0, nil) //nolint:errcheck
 	}, result, nil
 }
 
@@ -1062,28 +1061,28 @@ func addRlimits(ulimit []string, g *generate.Generator, defaultUlimits []string)
 		g.AddProcessRlimits("RLIMIT_"+strings.ToUpper(ul.Name), uint64(ul.Hard), uint64(ul.Soft))
 	}
 	if !nofileSet {
-		max := define.RLimitDefaultValue
+		lim := define.RLimitDefaultValue
 		var rlimit unix.Rlimit
 		if err := unix.Getrlimit(unix.RLIMIT_NOFILE, &rlimit); err == nil {
-			if max < rlimit.Max || unshare.IsRootless() {
-				max = rlimit.Max
+			if lim < rlimit.Max || unshare.IsRootless() {
+				lim = rlimit.Max
 			}
 		} else {
 			logrus.Warnf("Failed to return RLIMIT_NOFILE ulimit %q", err)
 		}
-		g.AddProcessRlimits("RLIMIT_NOFILE", max, max)
+		g.AddProcessRlimits("RLIMIT_NOFILE", lim, lim)
 	}
 	if !nprocSet {
-		max := define.RLimitDefaultValue
+		lim := define.RLimitDefaultValue
 		var rlimit unix.Rlimit
 		if err := unix.Getrlimit(unix.RLIMIT_NPROC, &rlimit); err == nil {
-			if max < rlimit.Max || unshare.IsRootless() {
-				max = rlimit.Max
+			if lim < rlimit.Max || unshare.IsRootless() {
+				lim = rlimit.Max
 			}
 		} else {
 			logrus.Warnf("Failed to return RLIMIT_NPROC ulimit %q", err)
 		}
-		g.AddProcessRlimits("RLIMIT_NPROC", max, max)
+		g.AddProcessRlimits("RLIMIT_NPROC", lim, lim)
 	}
 
 	return nil

@@ -26,17 +26,18 @@ type TeeConfigFlags struct {
 // TeeConfigFlagBits are bits representing run-time expectations.
 type TeeConfigFlagBits int
 
+//nolint:revive,staticcheck // Don't warn about bad naming.
 const (
-	SEV_CONFIG_NO_DEBUG        TeeConfigFlagBits = 0b00000001 //revive:disable-line:var-naming no debugging of guests
-	SEV_CONFIG_NO_KEY_SHARING  TeeConfigFlagBits = 0b00000010 //revive:disable-line:var-naming no sharing keys between guests
-	SEV_CONFIG_ENCRYPTED_STATE TeeConfigFlagBits = 0b00000100 //revive:disable-line:var-naming requires SEV-ES
-	SEV_CONFIG_NO_SEND         TeeConfigFlagBits = 0b00001000 //revive:disable-line:var-naming no transferring the guest to another platform
-	SEV_CONFIG_DOMAIN          TeeConfigFlagBits = 0b00010000 //revive:disable-line:var-naming no transferring the guest out of the domain (?)
-	SEV_CONFIG_SEV             TeeConfigFlagBits = 0b00100000 //revive:disable-line:var-naming no transferring the guest to non-SEV platforms
-	SNP_CONFIG_SMT             TeeConfigFlagBits = 0b00000001 //revive:disable-line:var-naming SMT is enabled on the host machine
-	SNP_CONFIG_MANDATORY       TeeConfigFlagBits = 0b00000010 //revive:disable-line:var-naming reserved bit which should always be set
-	SNP_CONFIG_MIGRATE_MA      TeeConfigFlagBits = 0b00000100 //revive:disable-line:var-naming allowed to use a migration agent
-	SNP_CONFIG_DEBUG           TeeConfigFlagBits = 0b00001000 //revive:disable-line:var-naming allow debugging
+	SEV_CONFIG_NO_DEBUG        TeeConfigFlagBits = 0b00000001 // no debugging of guests
+	SEV_CONFIG_NO_KEY_SHARING  TeeConfigFlagBits = 0b00000010 // no sharing keys between guests
+	SEV_CONFIG_ENCRYPTED_STATE TeeConfigFlagBits = 0b00000100 // requires SEV-ES
+	SEV_CONFIG_NO_SEND         TeeConfigFlagBits = 0b00001000 // no transferring the guest to another platform
+	SEV_CONFIG_DOMAIN          TeeConfigFlagBits = 0b00010000 // no transferring the guest out of the domain (?)
+	SEV_CONFIG_SEV             TeeConfigFlagBits = 0b00100000 // no transferring the guest to non-SEV platforms
+	SNP_CONFIG_SMT             TeeConfigFlagBits = 0b00000001 // SMT is enabled on the host machine
+	SNP_CONFIG_MANDATORY       TeeConfigFlagBits = 0b00000010 // reserved bit which should always be set
+	SNP_CONFIG_MIGRATE_MA      TeeConfigFlagBits = 0b00000100 // allowed to use a migration agent
+	SNP_CONFIG_DEBUG           TeeConfigFlagBits = 0b00001000 // allow debugging
 )
 
 // TeeConfigFlagMinFW corresponds to a minimum version of the kernel+initrd

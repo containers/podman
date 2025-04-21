@@ -335,12 +335,8 @@ func logIfNotErrno(err error, what string, ignores ...syscall.Errno) (logged boo
 	if err == nil {
 		return false
 	}
-	if errno, isErrno := err.(syscall.Errno); isErrno {
-		for _, ignore := range ignores {
-			if errno == ignore {
-				return false
-			}
-		}
+	if errno, ok := err.(syscall.Errno); ok && slices.Contains(ignores, errno) {
+		return false
 	}
 	logrus.Error(what)
 	return true
