@@ -104,6 +104,12 @@ if there is no existing remote connection configurations.
 
 API forwarding, if available, follows this setting.
 
+#### **--swap**, **-s**=*number*
+
+Swap (in MiB). Note: 1024MiB = 1GiB.
+
+Renders a `zram-generator.conf` file with zram-size set to the value passed to --swap
+
 #### **--timezone**
 
 Set the timezone for the machine and containers.  Valid values are `local` or

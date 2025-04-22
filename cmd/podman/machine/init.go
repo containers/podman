@@ -83,6 +83,14 @@ func init() {
 	)
 	_ = initCmd.RegisterFlagCompletionFunc(memoryFlagName, completion.AutocompleteNone)
 
+	swapFlagName := "swap"
+	flags.Uint64VarP(
+		&initOpts.Swap,
+		swapFlagName, "s", 0,
+		"Swap in MiB",
+	)
+	_ = initCmd.RegisterFlagCompletionFunc(swapFlagName, completion.AutocompleteNone)
+
 	flags.BoolVar(
 		&now,
 		"now", false,

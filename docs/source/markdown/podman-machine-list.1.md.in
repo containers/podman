@@ -50,6 +50,7 @@ Valid placeholders for the Go template are listed below:
 | .RemoteUsername     | VM Username for rootless Podman           |
 | .Running            | Is machine running                        |
 | .Stream             | Stream name                               |
+| .Swap               | Allocated swap for machine               |
 | .UserModeNetworking | Whether machine uses user-mode networking |
 | .VMType             | VM type                                   |
 

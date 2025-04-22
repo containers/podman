@@ -22,9 +22,7 @@ import (
 
 const apiUpTimeout = 20 * time.Second
 
-var (
-	ForwarderBinaryName = "gvproxy"
-)
+var ForwarderBinaryName = "gvproxy"
 
 type Download struct {
 	Arch                  string
@@ -55,6 +53,7 @@ type ListResponse struct {
 	VMType             string
 	CPUs               uint64
 	Memory             strongunits.MiB
+	Swap               strongunits.MiB
 	DiskSize           strongunits.GiB
 	Port               int
 	RemoteUsername     string

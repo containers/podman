@@ -238,7 +238,6 @@ var _ = Describe("podman machine init", func() {
 			Expect(testMachine.Resources.Memory).To(BeEquivalentTo(uint64(2048)))
 		}
 		Expect(testMachine.SSHConfig.RemoteUsername).To(Equal(remoteUsername))
-
 	})
 
 	It("machine init with cpus, disk size, memory, timezone", func() {
@@ -280,6 +279,23 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(timezoneSession).To(Exit(0))
 		Expect(timezoneSession.outputToString()).To(ContainSubstring("HST"))
+	})
+
+	It("machine init with swap", func() {
+		skipIfWSL("Configuring swap is not supported on WSL")
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withSwap(2048).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		ssh := &sshMachine{}
+		sshSession, err := mb.setName(name).setCmd(ssh.withSSHCommand([]string{"zramctl -bo DISKSIZE"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sshSession).To(Exit(0))
+
+		// 2147483648 bytes = 2048MiB
+		Expect(sshSession.outputToString()).To(ContainSubstring("2147483648"))
 	})
 
 	It("machine init with volume", func() {
@@ -373,7 +389,6 @@ var _ = Describe("podman machine init", func() {
 		output := strings.TrimSpace(sshSession2.outputToString())
 		Expect(output).To(HavePrefix("/run/user"))
 		Expect(output).To(HaveSuffix("/podman/podman.sock"))
-
 	})
 
 	It("machine init rootful with docker.sock check", func() {

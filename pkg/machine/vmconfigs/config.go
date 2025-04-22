@@ -27,6 +27,8 @@ type MachineConfig struct {
 	SSH       SSHConfig
 	Version   uint
 
+	Swap strongunits.MiB
+
 	// Image stuff
 	imageDescription machineImage //nolint:unused
 

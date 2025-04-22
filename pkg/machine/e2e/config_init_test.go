@@ -28,6 +28,7 @@ type initMachine struct {
 	playbook           string
 	cpus               *uint
 	diskSize           *uint
+	swap               *uint
 	ignitionPath       string
 	username           string
 	image              string
@@ -81,6 +82,9 @@ func (i *initMachine) buildCmd(m *machineTestBuilder) []string {
 	if i.userModeNetworking {
 		cmd = append(cmd, "--user-mode-networking")
 	}
+	if i.swap != nil {
+		cmd = append(cmd, "--swap", strconv.Itoa(int(*i.swap)))
+	}
 	name := m.name
 	cmd = append(cmd, name)
 
@@ -112,8 +116,14 @@ func (i *initMachine) withCPUs(num uint) *initMachine {
 	i.cpus = &num
 	return i
 }
+
 func (i *initMachine) withDiskSize(size uint) *initMachine {
 	i.diskSize = &size
+	return i
+}
+
+func (i *initMachine) withSwap(size uint) *initMachine {
+	i.swap = &size
 	return i
 }
 

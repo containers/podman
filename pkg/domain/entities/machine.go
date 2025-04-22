@@ -13,6 +13,7 @@ type ListReporter struct {
 	VMType             string
 	CPUs               uint64
 	Memory             string
+	Swap               string
 	DiskSize           string
 	Port               int
 	RemoteUsername     string
