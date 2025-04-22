@@ -13,6 +13,7 @@ type ArtifactAddOptions struct {
 	Annotations  map[string]string
 	ArtifactType string
 	Append       bool
+	FileType     string
 }
 
 type ArtifactExtractOptions struct {

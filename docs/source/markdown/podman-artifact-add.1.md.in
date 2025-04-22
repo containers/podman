@@ -27,6 +27,10 @@ Note: Set annotations for each file being added.
 
 Append files to an existing artifact. This option cannot be used with the **--type** option.
 
+#### **--file-type**
+
+Set the media type of the artifact file instead of allowing detection to determine the type
+
 #### **--help**
 
 Print usage statement.
@@ -53,6 +57,16 @@ $ podman artifact add quay.io/myartifact/myml:latest /tmp/foobar1.ml /tmp/foobar
 Set an annotation for an artifact
 ```
 $ podman artifact add --annotation date=2025-01-30 quay.io/myartifact/myml:latest /tmp/foobar1.ml
+```
+
+Append a file to an existing artifact
+```
+$ podman artifact add --append quay.io/myartifact/tarballs:latest /tmp/foobar.tar.gz
+```
+
+Override the media type of the artifact being added
+```
+$ podman artifact add --file-type text/yaml quay.io/myartifact/descriptors:latest /tmp/info.yaml
 ```
 
 
