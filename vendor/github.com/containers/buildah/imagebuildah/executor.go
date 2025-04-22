@@ -80,8 +80,9 @@ type Executor struct {
 	output                         string
 	outputFormat                   string
 	additionalTags                 []string
-	log                            func(format string, args ...interface{}) // can be nil
+	log                            func(format string, args ...any) // can be nil
 	in                             io.Reader
+	inheritLabels                  types.OptionalBool
 	out                            io.Writer
 	err                            io.Writer
 	signaturePolicyPath            string
@@ -261,6 +262,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		err:                                     options.Err,
 		reportWriter:                            writer,
 		isolation:                               options.Isolation,
+		inheritLabels:                           options.InheritLabels,
 		namespaceOptions:                        options.NamespaceOptions,
 		configureNetwork:                        options.ConfigureNetwork,
 		cniPluginPath:                           options.CNIPluginPath,
@@ -372,9 +374,12 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 // startStage creates a new stage executor that will be referenced whenever a
 // COPY or ADD statement uses a --from=NAME flag.
 func (b *Executor) startStage(ctx context.Context, stage *imagebuilder.Stage, stages imagebuilder.Stages, output string) *StageExecutor {
+	// create a copy of systemContext for each stage executor.
+	systemContext := *b.systemContext
 	stageExec := &StageExecutor{
 		ctx:             ctx,
 		executor:        b,
+		systemContext:   &systemContext,
 		log:             b.log,
 		index:           stage.Position,
 		stages:          stages,
@@ -508,7 +513,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 		// layers, its easier to reuse cached layers.
 		if len(b.labels) > 0 {
 			var labelLine string
-			labels := append([]string{}, b.labels...)
+			labels := slices.Clone(b.labels)
 			for _, labelSpec := range labels {
 				key, value, _ := strings.Cut(labelSpec, "=")
 				// check only for an empty key since docker allows empty values
@@ -553,7 +558,7 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	stageExecutor := b.startStage(ctx, &stage, stages, output)
 	if stageExecutor.log == nil {
 		stepCounter := 0
-		stageExecutor.log = func(format string, args ...interface{}) {
+		stageExecutor.log = func(format string, args ...any) {
 			prefix := b.logPrefix
 			if len(stages) > 1 {
 				prefix += fmt.Sprintf("[%d/%d] ", stageIndex+1, len(stages))

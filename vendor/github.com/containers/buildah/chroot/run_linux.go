@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -42,7 +43,81 @@ var (
 		"RLIMIT_STACK":      unix.RLIMIT_STACK,
 	}
 	rlimitsReverseMap = map[int]string{}
+	mountFlagMap      = map[int]string{
+		unix.MS_ACTIVE:       "MS_ACTIVE",
+		unix.MS_BIND:         "MS_BIND",
+		unix.MS_BORN:         "MS_BORN",
+		unix.MS_DIRSYNC:      "MS_DIRSYNC",
+		unix.MS_KERNMOUNT:    "MS_KERNMOUNT",
+		unix.MS_LAZYTIME:     "MS_LAZYTIME",
+		unix.MS_MANDLOCK:     "MS_MANDLOCK",
+		unix.MS_MOVE:         "MS_MOVE",
+		unix.MS_NOATIME:      "MS_NOATIME",
+		unix.MS_NODEV:        "MS_NODEV",
+		unix.MS_NODIRATIME:   "MS_NODIRATIME",
+		unix.MS_NOEXEC:       "MS_NOEXEC",
+		unix.MS_NOREMOTELOCK: "MS_NOREMOTELOCK",
+		unix.MS_NOSEC:        "MS_NOSEC",
+		unix.MS_NOSUID:       "MS_NOSUID",
+		unix.MS_NOSYMFOLLOW:  "MS_NOSYMFOLLOW",
+		unix.MS_NOUSER:       "MS_NOUSER",
+		unix.MS_POSIXACL:     "MS_POSIXACL",
+		unix.MS_PRIVATE:      "MS_PRIVATE",
+		unix.MS_RDONLY:       "MS_RDONLY",
+		unix.MS_REC:          "MS_REC",
+		unix.MS_RELATIME:     "MS_RELATIME",
+		unix.MS_REMOUNT:      "MS_REMOUNT",
+		unix.MS_SHARED:       "MS_SHARED",
+		unix.MS_SILENT:       "MS_SILENT",
+		unix.MS_SLAVE:        "MS_SLAVE",
+		unix.MS_STRICTATIME:  "MS_STRICTATIME",
+		unix.MS_SUBMOUNT:     "MS_SUBMOUNT",
+		unix.MS_SYNCHRONOUS:  "MS_SYNCHRONOUS",
+		unix.MS_UNBINDABLE:   "MS_UNBINDABLE",
+	}
+	statFlagMap = map[int]string{
+		unix.ST_MANDLOCK:    "ST_MANDLOCK",
+		unix.ST_NOATIME:     "ST_NOATIME",
+		unix.ST_NODEV:       "ST_NODEV",
+		unix.ST_NODIRATIME:  "ST_NODIRATIME",
+		unix.ST_NOEXEC:      "ST_NOEXEC",
+		unix.ST_NOSUID:      "ST_NOSUID",
+		unix.ST_RDONLY:      "ST_RDONLY",
+		unix.ST_RELATIME:    "ST_RELATIME",
+		unix.ST_SYNCHRONOUS: "ST_SYNCHRONOUS",
+	}
 )
+
+func mountFlagNames(flags uintptr) []string {
+	var names []string
+	for flag, name := range mountFlagMap {
+		if int(flags)&flag == flag {
+			names = append(names, name)
+			flags = flags &^ (uintptr(flag))
+		}
+	}
+	if flags != 0 { // got some unknown leftovers
+		names = append(names, fmt.Sprintf("%#x", flags))
+	}
+	slices.Sort(names)
+	return names
+}
+
+func statFlagNames(flags uintptr) []string {
+	var names []string
+	flags = flags & ^uintptr(0x20) // mask off ST_VALID
+	for flag, name := range statFlagMap {
+		if int(flags)&flag == flag {
+			names = append(names, name)
+			flags = flags &^ (uintptr(flag))
+		}
+	}
+	if flags != 0 { // got some unknown leftovers
+		names = append(names, fmt.Sprintf("%#x", flags))
+	}
+	slices.Sort(names)
+	return names
+}
 
 type runUsingChrootSubprocOptions struct {
 	Spec        *specs.Spec
@@ -61,14 +136,14 @@ func setPlatformUnshareOptions(spec *specs.Spec, cmd *unshare.Cmd) error {
 	uidmap, gidmap := spec.Linux.UIDMappings, spec.Linux.GIDMappings
 	if len(uidmap) == 0 {
 		// No UID mappings are configured for the container.  Borrow our parent's mappings.
-		uidmap = append([]specs.LinuxIDMapping{}, hostUidmap...)
+		uidmap = slices.Clone(hostUidmap)
 		for i := range uidmap {
 			uidmap[i].HostID = uidmap[i].ContainerID
 		}
 	}
 	if len(gidmap) == 0 {
 		// No GID mappings are configured for the container.  Borrow our parent's mappings.
-		gidmap = append([]specs.LinuxIDMapping{}, hostGidmap...)
+		gidmap = slices.Clone(hostGidmap)
 		for i := range gidmap {
 			gidmap[i].HostID = gidmap[i].ContainerID
 		}
@@ -573,15 +648,15 @@ func setupChrootBindMounts(spec *specs.Spec, bundlePath string) (undoBinds func(
 				remountFlags |= uintptr(fs.Flags) & possibleImportantFlags
 			}
 			if err = unix.Mount(target, target, m.Type, remountFlags, ""); err != nil {
-				return undoBinds, fmt.Errorf("remounting %q in mount namespace with flags %#x instead of %#x: %w", target, requestFlags, effectiveImportantFlags, err)
+				return undoBinds, fmt.Errorf("remounting %q in mount namespace with flags %v instead of %v: %w", target, mountFlagNames(requestFlags), statFlagNames(effectiveImportantFlags), err)
 			}
 			// Check if the desired flags stuck.
 			if err = unix.Statfs(target, &fs); err != nil {
-				return undoBinds, fmt.Errorf("checking if directory %q was remounted with requested flags %#x instead of %#x: %w", target, requestFlags, effectiveImportantFlags, err)
+				return undoBinds, fmt.Errorf("checking if directory %q was remounted with requested flags %v instead of %v: %w", target, mountFlagNames(requestFlags), statFlagNames(effectiveImportantFlags), err)
 			}
 			newEffectiveImportantFlags := uintptr(fs.Flags) & importantFlags
 			if newEffectiveImportantFlags != expectedImportantFlags {
-				return undoBinds, fmt.Errorf("unable to remount %q with requested flags %#x instead of %#x, just got %#x back", target, requestFlags, effectiveImportantFlags, newEffectiveImportantFlags)
+				return undoBinds, fmt.Errorf("unable to remount %q with requested flags %v instead of %v, just got %v back", target, mountFlagNames(requestFlags), statFlagNames(effectiveImportantFlags), statFlagNames(newEffectiveImportantFlags))
 			}
 		}
 	}

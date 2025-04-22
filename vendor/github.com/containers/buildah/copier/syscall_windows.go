@@ -81,8 +81,3 @@ func lutimes(isSymlink bool, path string, atime, mtime time.Time) error {
 func sameDevice(a, b os.FileInfo) bool {
 	return true
 }
-
-const (
-	testModeMask           = int64(0o600)
-	testIgnoreSymlinkDates = true
-)

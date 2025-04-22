@@ -28,16 +28,21 @@ type (
 const (
 	maxWorkloadConfigSize    = 1024 * 1024
 	preferredPaddingBoundary = 4096
-	// SEV is a known trusted execution environment type: AMD-SEV
-	SEV = define.SEV
-	// SEV_NO_ES is a known trusted execution environment type: AMD-SEV without encrypted state
-	SEV_NO_ES = types.SEV_NO_ES //revive:disable-line:var-naming
-	// SNP is a known trusted execution environment type: AMD-SNP
-	SNP = define.SNP
+
 	// krun looks for its configuration JSON directly in a disk image if the last twelve bytes
 	// of the disk image are this magic value followed by a little-endian 64-bit
 	// length-of-the-configuration
 	krunMagic = "KRUN"
+)
+
+//nolint:revive,staticcheck
+const (
+	// SEV is a known trusted execution environment type: AMD-SEV
+	SEV = define.SEV
+	// SEV_NO_ES is a known trusted execution environment type: AMD-SEV without encrypted state
+	SEV_NO_ES = types.SEV_NO_ES
+	// SNP is a known trusted execution environment type: AMD-SNP
+	SNP = define.SNP
 )
 
 // ReadWorkloadConfigFromImage reads the workload configuration from the
