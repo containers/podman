@@ -377,7 +377,7 @@ var _ = Describe("Podman prune", func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 
 		// One Pod should not be pruned as it was running
 		Expect(podmanTest.NumberOfPods()).To(Equal(1))

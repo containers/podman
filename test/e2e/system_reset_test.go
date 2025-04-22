@@ -55,7 +55,7 @@ var _ = Describe("podman system reset", Serial, func() {
 		session = podmanTest.Podman([]string{"volume", "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(BeEmpty())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 
 		session = podmanTest.Podman([]string{"container", "ls", "-q"})
 		session.WaitWithDefaultTimeout()
