@@ -580,6 +580,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		UnsetLabels:             flags.UnsetLabels,
 	}
 
+	if c.Flag("inherit-labels").Changed {
+		opts.InheritLabels = types.NewOptionalBool(flags.InheritLabels)
+	}
+
 	if flags.IgnoreFile != "" {
 		excludes, err := parseDockerignore(flags.IgnoreFile)
 		if err != nil {

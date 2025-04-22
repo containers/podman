@@ -237,6 +237,12 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	if options.IgnoreUnrecognizedInstructions {
 		params.Set("ignore", "1")
 	}
+	if options.InheritLabels == imageTypes.OptionalBoolFalse {
+		params.Set("inheritlabels", "0")
+	} else {
+		params.Set("inheritlabels", "1")
+	}
+
 	params.Set("isolation", strconv.Itoa(int(options.Isolation)))
 	if options.CommonBuildOpts.HTTPProxy {
 		params.Set("httpproxy", "1")

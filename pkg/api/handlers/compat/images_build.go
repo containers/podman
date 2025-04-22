@@ -130,6 +130,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IDMappingOptions        string   `schema:"idmappingoptions"`
 		IdentityLabel           bool     `schema:"identitylabel"`
 		Ignore                  bool     `schema:"ignore"`
+		InheritLabels           bool     `schema:"inheritlabels"`
 		Isolation               string   `schema:"isolation"`
 		Jobs                    int      `schema:"jobs"`
 		LabelOpts               string   `schema:"labelopts"`
@@ -744,6 +745,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IDMappingOptions:               &idMappingOptions,
 		IgnoreUnrecognizedInstructions: query.Ignore,
 		IgnoreFile:                     ignoreFile,
+		InheritLabels:                  types.NewOptionalBool(query.InheritLabels),
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
 		Labels:                         labels,
