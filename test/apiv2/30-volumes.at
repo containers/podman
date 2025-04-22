@@ -85,8 +85,13 @@ t GET libpod/volumes/nonexistent/json 404 \
     .response=404
 
 ## Remove volumes
+# Should NOT work on partial name
+t DELETE libpod/volumes/foo 404 \
+    .cause="no such volume" \
+    .response=404
+# Remove it for real
 t DELETE libpod/volumes/foo1 204
-#After remove foo1 volume, this volume should not exist
+# After remove foo1 volume, this volume should not exist
 t GET libpod/volumes/foo1/json 404
 # Negative test
 t DELETE libpod/volumes/foo1 404 \
