@@ -93,7 +93,7 @@ If the failure was in tests run, and you're vendoring, your only real choice is 
 
 * Identify the failing test(s)
 * File a new podman issue, e.g. "podman build fails buildah XYZ test"
-* Edit `test/buildah/bud/apply-podman-deltas`. Search for "actual podman bugs" near the bottom, and add a new `skip` line with the reason (INCLUDE THE ISSUE NUMBER!) and the test name.
+* Edit `test/buildah-bud/apply-podman-deltas`. Search for "actual podman bugs" near the bottom, and add a new `skip` line with the reason (INCLUDE THE ISSUE NUMBER!) and the test name.
 
 ### In all cases
 
