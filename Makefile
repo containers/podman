@@ -218,7 +218,7 @@ endif
 
 # gvisor-tap-vsock version for gvproxy.exe and win-sshproxy.exe downloads
 # the upstream project ships pre-built binaries since version 0.7.1
-GVPROXY_VERSION=$(shell grep github.com/containers/gvisor-tap-vsock go.mod  | cut -d" " -f2)
+GVPROXY_VERSION=$(shell $(GO) list -m -f '{{.Version}}' github.com/containers/gvisor-tap-vsock)
 
 ###
 ### Primary entry-point targets
