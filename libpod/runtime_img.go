@@ -23,9 +23,10 @@ import (
 
 // RemoveContainersForImageCallback returns a callback that can be used in
 // `libimage`.  When forcefully removing images, containers using the image
-// should be removed as well.  The callback allows for more graceful removal as
-// we can use the libpod-internal removal logic.
-func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage.RemoveContainerFunc {
+// should be removed as well unless the request comes from the Docker compat API.
+// The callback allows for more graceful removal as we can use the libpod-internal
+// removal logic.
+func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context, force bool) libimage.RemoveContainerFunc {
 	return func(imageID string) error {
 		if !r.valid {
 			return define.ErrRuntimeStopped
@@ -44,12 +45,12 @@ func (r *Runtime) RemoveContainersForImageCallback(ctx context.Context) libimage
 				if err != nil {
 					return fmt.Errorf("container %s is in pod %s, but pod cannot be retrieved: %w", ctr.ID(), ctr.config.Pod, err)
 				}
-				if _, err := r.removePod(ctx, pod, true, true, timeout); err != nil {
+				if _, err := r.removePod(ctx, pod, true, force, timeout); err != nil {
 					return fmt.Errorf("removing image %s: container %s using image could not be removed: %w", imageID, ctr.ID(), err)
 				}
 			} else {
 				opts := ctrRmOpts{
-					Force:   true,
+					Force:   force,
 					Timeout: timeout,
 				}
 				if _, _, err := r.removeContainer(ctx, ctr, opts); err != nil {

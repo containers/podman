@@ -178,7 +178,7 @@ func (r *Runtime) Reset(ctx context.Context) error {
 	rmiOptions := &libimage.RemoveImagesOptions{
 		Force:               true,
 		Ignore:              true,
-		RemoveContainerFunc: r.RemoveContainersForImageCallback(ctx),
+		RemoveContainerFunc: r.RemoveContainersForImageCallback(ctx, true),
 		Filters:             []string{"readonly=false"},
 	}
 	if _, rmiErrors := r.LibimageRuntime().RemoveImages(ctx, nil, rmiOptions); rmiErrors != nil {

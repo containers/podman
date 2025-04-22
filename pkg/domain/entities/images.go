@@ -64,7 +64,8 @@ type ImageRemoveOptions struct {
 	// Confirms if given name is a manifest list and removes it, otherwise returns error.
 	LookupManifest bool
 	// NoPrune will not remove dangling images
-	NoPrune bool
+	NoPrune                      bool
+	DisableForceRemoveContainers bool
 }
 
 // ImageRemoveReport is the response for removing one or more image(s) from storage
@@ -73,8 +74,10 @@ type ImageRemoveReport = entitiesTypes.ImageRemoveReport
 
 type ImageHistoryOptions struct{}
 
-type ImageHistoryLayer = entitiesTypes.ImageHistoryLayer
-type ImageHistoryReport = entitiesTypes.ImageHistoryReport
+type (
+	ImageHistoryLayer  = entitiesTypes.ImageHistoryLayer
+	ImageHistoryReport = entitiesTypes.ImageHistoryReport
+)
 
 // ImagePullOptions are the arguments for pulling images.
 type ImagePullOptions struct {
@@ -255,8 +258,10 @@ type ImagePruneOptions struct {
 	Filter     []string `json:"filter" schema:"filter"`
 }
 
-type ImageTagOptions struct{}
-type ImageUntagOptions struct{}
+type (
+	ImageTagOptions   struct{}
+	ImageUntagOptions struct{}
+)
 
 // ImageInspectReport is the data when inspecting an image.
 type ImageInspectReport = entitiesTypes.ImageInspectReport
