@@ -583,7 +583,7 @@ unit_test_task:
         folder: $GOCACHE
     go_unit_mod_cache:
         fingerprint_script: *go_fingerprint_script
-        folder: $GOPATH/pkg/mod
+        folder: $GOPATH/pkg/mod # FIXME: This doesn’t contain any files
     setup_script: *setup
     main_script: *main
     always: *logs_artifacts
