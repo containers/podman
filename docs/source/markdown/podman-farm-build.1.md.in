@@ -123,6 +123,8 @@ This option specifies the name of the farm to be used in the build process.
 
 @@option iidfile
 
+@@option inherit-labels
+
 @@option ipc.image
 
 @@option isolation

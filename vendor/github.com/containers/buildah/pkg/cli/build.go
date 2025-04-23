@@ -68,10 +68,8 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 			tags = tags[1:]
 		}
 		if c.Flag("manifest").Changed {
-			for _, tag := range tags {
-				if tag == iopts.Manifest {
-					return options, nil, nil, errors.New("the same name must not be specified for both '--tag' and '--manifest'")
-				}
+			if slices.Contains(tags, iopts.Manifest) {
+				return options, nil, nil, errors.New("the same name must not be specified for both '--tag' and '--manifest'")
 			}
 		}
 	}
@@ -378,6 +376,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		IIDFile:                 iopts.Iidfile,
 		IgnoreFile:              iopts.IgnoreFile,
 		In:                      stdin,
+		InheritLabels:           types.NewOptionalBool(iopts.InheritLabels),
 		Isolation:               isolation,
 		Jobs:                    &iopts.Jobs,
 		Labels:                  iopts.Label,

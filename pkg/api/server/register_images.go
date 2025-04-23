@@ -567,6 +567,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      Contents of base images to be modified on ADD or COPY only
 	//      (As of Podman version v5.2)
 	//  - in: query
+	//    name: inheritlabels
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Inherit the labels from the base image or base stages
+	//      (As of Podman version v5.5)
+	//  - in: query
 	//    name: nocache
 	//    type: boolean
 	//    default: false
@@ -1539,6 +1546,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      Contents of base images to be modified on ADD or COPY only
 	//      (As of Podman version v5.2)
+	//  - in: query
+	//    name: inheritlabels
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Inherit the labels from the base image or base stages
+	//      (As of Podman version v5.5)
 	//  - in: query
 	//    name: nocache
 	//    type: boolean

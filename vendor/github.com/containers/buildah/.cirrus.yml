@@ -341,6 +341,7 @@ success_task:
       - vendor
       - cross_build
       - integration
+      - integration_rootless
       - in_podman
 
     container:
