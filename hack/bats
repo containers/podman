@@ -124,7 +124,7 @@ if [[ -z "$CONTAINERS_HELPER_BINARY_DIR" ]]; then
 fi
 
 # Used in 120-load test to identify rootless destination for podman image scp
-export PODMAN_ROOTLESS_USER=$(id -un)
+export PODMAN_ROOTLESS_USER=${PODMAN_ROOTLESS_USER:-$(id -un)}
 
 # Make sure to always check for leaks when running locally
 export PODMAN_BATS_LEAK_CHECK=1
