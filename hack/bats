@@ -6,7 +6,7 @@
 ###############################################################################
 # BEGIN usage message
 
-usage="Usage: $0 [--root] [--rootless] [FILENAME-PATTERN[:TEST-PATTERN]]
+usage="Usage: $0 [--root] [--rootless] [FILENAME-PATTERN[:TEST-PATTERN]]...
 
 $0 is a wrapper for invoking podman system tests.
 
@@ -63,7 +63,7 @@ export PODMAN=${PODMAN:-$(pwd)/bin/podman}
 export QUADLET=${QUADLET:-$(pwd)/bin/quadlet}
 
 # Directory in which
-TESTS=test/system
+TESTS_DIR=test/system
 
 REMOTE=
 TEST_ROOT=1
@@ -72,6 +72,8 @@ TEST_ROOTLESS=1
 declare -a bats_opts=()
 
 declare -a bats_filter=()
+
+declare -a TESTS
 
 for i;do
     value=`expr "$i" : '[^=]*=\(.*\)'`
@@ -85,19 +87,23 @@ for i;do
                     if [[ "$value" = "ci:parallel" ]]; then
                         bats_opts+=("--jobs" $(nproc))
                     fi;;
-        */*.bats)   TESTS=$i ;;
+        */*.bats)   TESTS+=("$i") ;;
         *)
             if [[ $i =~ : ]]; then
                 tname=${i%:*}          # network:localhost -> network
                 filt=${i#*:}           # network:localhost ->   localhost
-                TESTS=$(echo $TESTS/*$tname*.bats)
+                TESTS+=($(echo $TESTS_DIR/*$tname*.bats))
                 bats_filter=("--filter" "$filt")
             else
-                TESTS=$(echo $TESTS/*$i*.bats)
+                TESTS+=($(echo $TESTS_DIR/*$i*.bats))
             fi
             ;;
     esac
 done
+
+if [ ${#TESTS[@]} -eq 0 ] ; then
+        TESTS=("$TESTS_DIR")
+fi
 
 # With --remote, use correct binary and make sure daem--I mean server--is live
 if [[ "$REMOTE" ]]; then
@@ -131,21 +137,21 @@ export PODMAN_BATS_LEAK_CHECK=1
 
 # Root
 if [[ "$TEST_ROOT" ]]; then
-    echo "# bats ${bats_opts[*]} ${bats_filter[*]} $TESTS"
+    echo "# bats ${bats_opts[*]} ${bats_filter[*]} ${TESTS[*]}"
     sudo    --preserve-env=PODMAN \
             --preserve-env=QUADLET \
             --preserve-env=PODMAN_TEST_DEBUG \
             --preserve-env=CONTAINERS_HELPER_BINARY_DIR \
             --preserve-env=PODMAN_ROOTLESS_USER \
-            bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
+            bats "${bats_opts[@]}" "${bats_filter[@]}" "${TESTS[@]}"
     rc=$?
 fi
 
 # Rootless. (Only if we're not already root)
 if [[ "$TEST_ROOTLESS" && "$(id -u)" != 0 ]]; then
     echo "--------------------------------------------------"
-    echo "\$ bats ${bats_opts[*]} ${bats_filter[*]} $TESTS"
-    bats "${bats_opts[@]}" "${bats_filter[@]}" $TESTS
+    echo "\$ bats ${bats_opts[*]} ${bats_filter[*]} ${TESTS[@]}"
+    bats "${bats_opts[@]}" "${bats_filter[@]}" "${TESTS[@]}"
     rc=$((rc | $?))
 fi
 
