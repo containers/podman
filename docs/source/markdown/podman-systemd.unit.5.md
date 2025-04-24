@@ -1008,6 +1008,7 @@ Valid options for `[Pod]` are listed below:
 | HostName=name                       | --hostname=name                        |
 | IP=192.5.0.1                        | --ip 192.5.0.1                         |
 | IP6=2001:db8::1                     | --ip6 2001:db8::1                      |
+| Label="XYZ"                         | --label "XYZ"                          |
 | Network=host                        | --network host                         |
 | NetworkAlias=name                   | --network-alias name                   |
 | PodmanArgs=\-\-cpus=2               | --cpus=2                               |
@@ -1092,6 +1093,13 @@ Equivalent to the Podman `--ip` option.
 
 Specify a static IPv6 address for the pod, for example **fd46:db93:aa76:ac37::10**.
 Equivalent to the Podman `--ip6` option.
+
+### `Label=`
+
+Set one or more OCI labels on the pod. The format is a list of
+`key=value` items, similar to `Environment`.
+
+This key can be listed multiple times.
 
 ### `Network=`
 

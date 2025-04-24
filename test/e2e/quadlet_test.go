@@ -1078,6 +1078,7 @@ BOGUS=foo
 		Entry("Pod - Host", "host.pod"),
 		Entry("Pod - HostName", "hostname.pod"),
 		Entry("Pod - IP", "ip.pod"),
+		Entry("Pod - Label", "label.pod"),
 		Entry("Pod - Name", "name.pod"),
 		Entry("Pod - Network", "network.pod"),
 		Entry("Pod - PodmanArgs", "podmanargs.pod"),

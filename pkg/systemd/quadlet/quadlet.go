@@ -450,6 +450,7 @@ var (
 		KeyHostName:             true,
 		KeyIP:                   true,
 		KeyIP6:                  true,
+		KeyLabel:                true,
 		KeyNetwork:              true,
 		KeyNetworkAlias:         true,
 		KeyPodName:              true,
@@ -1622,17 +1623,19 @@ func getServiceName(quadletUnitFile *parser.UnitFile, groupName string, defaultE
 	return removeExtension(quadletUnitFile.Filename, "", defaultExtraSuffix)
 }
 
-func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
+func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
+	var warn, warnings error
+
 	unitInfo, ok := unitsInfoMap[podUnit.Filename]
 	if !ok {
-		return nil, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
+		return nil, warnings, fmt.Errorf("internal error while processing pod %s", podUnit.Filename)
 	}
 
 	service := podUnit.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 
 	if err := translateUnitDependencies(service, unitsInfoMap); err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	addDefaultDependencies(service, isUser)
@@ -1642,7 +1645,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	}
 
 	if err := checkForUnknownKeys(podUnit, PodGroup, supportedPodKeys); err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	// Derive pod name from unit name (with added prefix), or use user-provided name.
@@ -1701,13 +1704,17 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	)
 
 	if err := handleUserMappings(podUnit, PodGroup, execStartPre, true); err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	handlePublishPorts(podUnit, PodGroup, execStartPre)
 
+	labels, warn := podUnit.LookupAllKeyVal(PodGroup, KeyLabel)
+	warnings = errors.Join(warnings, warn)
+	execStartPre.addLabels(labels)
+
 	if err := addNetworks(podUnit, PodGroup, service, unitsInfoMap, execStartPre); err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	stringsKeys := map[string]string{
@@ -1728,7 +1735,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	lookupAndAddAllStrings(podUnit, PodGroup, allStringsKeys, execStartPre)
 
 	if err := addVolumes(podUnit, service, PodGroup, unitsInfoMap, execStartPre); err != nil {
-		return nil, err
+		return nil, warnings, err
 	}
 
 	execStartPre.add("--infra-name", fmt.Sprintf("%s-infra", podName))
@@ -1745,7 +1752,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		"PIDFile", "%t/%N.pid",
 	)
 
-	return service, nil
+	return service, warnings, nil
 }
 
 func handleUser(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) error {
