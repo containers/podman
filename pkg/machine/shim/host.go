@@ -655,8 +655,12 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.St
 	close(signalChan)
 	signalChanClosed = true
 
-	if err := proxyenv.ApplyProxies(mc); err != nil {
-		return err
+	// this is a temporary solution to skip applying proxies for non-podman machines bc of a problem with bootc/macadam
+	// however this should be replaced by a specific IsBootc property
+	if mc.Capabilities.GetForwardSockets() {
+		if err := proxyenv.ApplyProxies(mc); err != nil {
+			return err
+		}
 	}
 
 	// mount the volumes to the VM
