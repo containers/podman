@@ -15,6 +15,9 @@ packages:
   podman-eln:
     specfile_path: rpm/podman.spec
 
+# Disable automatic merging for Copr builds (and subsequent Testing Farm)
+merge_pr_in_ci: false
+
 srpm_build_deps:
   - git-archive-all
   - make
