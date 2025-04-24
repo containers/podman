@@ -15,6 +15,9 @@ packages:
   podman-eln:
     specfile_path: rpm/podman.spec
 
+# Disable automatic merging for Copr builds (and subsequent Testing Farm)
+merge_pr_in_ci: false
+
 srpm_build_deps:
   - git-archive-all
   - make
@@ -36,6 +39,8 @@ jobs:
       - fedora-latest-stable-aarch64
       - fedora-development-x86_64
       - fedora-development-aarch64
+      - fedora-41-x86_64
+      - fedora-41-aarch64
 
   # Ignore until golang is updated in distro buildroot to go 1.23.3+
   - job: copr_build
