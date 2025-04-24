@@ -958,6 +958,12 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 	for i := range containers {
 		ctr := containers[i]
 
+		removeContainer := func() {
+			if _, _, err := ic.removeContainer(ctx, ctr.Container, entities.RmOptions{}); err != nil {
+				logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
+			}
+		}
+
 		if options.Attach {
 			err = terminal.StartAttachCtr(ctx, ctr.Container, options.Stdout, options.Stderr, options.Stdin, options.DetachKeys, options.SigProxy, true)
 			if errors.Is(err, define.ErrDetach) {
@@ -991,9 +997,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 					ExitCode: exitCode,
 				})
 				if ctr.AutoRemove() {
-					if _, _, err := ic.removeContainer(ctx, ctr.Container, entities.RmOptions{}); err != nil {
-						logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
-					}
+					removeContainer()
 				}
 				return reports, fmt.Errorf("unable to start container %s: %w", ctr.ID(), err)
 			}
@@ -1001,6 +1005,9 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			exitCode, err2 := ic.ContainerWaitForExitCode(ctx, ctr.Container)
 			if err2 != nil {
 				logrus.Errorf("Waiting for container %s: %v", ctr.ID(), err2)
+			}
+			if ctr.AutoRemove() && !ctr.ShouldRestart(ctx) {
+				removeContainer()
 			}
 			reports = append(reports, &entities.ContainerStartReport{
 				Id:       ctr.ID(),
@@ -1038,9 +1045,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			}
 			report.Err = fmt.Errorf("unable to start container %q: %w", ctr.ID(), err)
 			if ctr.AutoRemove() {
-				if _, _, err := ic.removeContainer(ctx, ctr.Container, entities.RmOptions{}); err != nil {
-					logrus.Errorf("Removing container %s: %v", ctr.ID(), err)
-				}
+				removeContainer()
 			}
 			reports = append(reports, report)
 			continue
