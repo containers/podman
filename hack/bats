@@ -26,6 +26,8 @@ $0 is a wrapper for invoking podman system tests.
    --tag=TAG      Passed on to bats as '--filter-tags TAG'
                   As of 2023-07-26 the only tag used is 'distro-integration'
 
+   -t, --tap      Passed on to bats, which will format output in TAP format
+
    -T             Passed on to bats, which will then show timing data
 
    --help         display usage message
@@ -82,6 +84,7 @@ for i;do
         --root)     TEST_ROOTLESS= ;;
         --rootless) TEST_ROOT= ;;
         --remote)   REMOTE=remote ;;
+        --tap|-t)   bats_opts+=("-t") ;;
         --ts|-T)    bats_opts+=("-T") ;;
         --tag=*)    bats_filter=("--filter-tags" "$value")
                     if [[ "$value" = "ci:parallel" ]]; then
