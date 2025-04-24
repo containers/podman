@@ -230,6 +230,12 @@ type ContainerBasicConfig struct {
 	GroupEntry string `json:"group_entry,omitempty"`
 }
 
+
+// Embed the Mount type to make the Go Swagger resolve to the correct type
+type SpecMount struct {
+	spec.Mount
+}
+
 // ContainerStorageConfig contains information on the storage configuration of a
 // container.
 type ContainerStorageConfig struct {
@@ -293,7 +299,7 @@ type ContainerStorageConfig struct {
 	// These will supersede Image Volumes and VolumesFrom volumes where
 	// there are conflicts.
 	// Optional.
-	Mounts []spec.Mount `json:"mounts,omitempty"`
+	Mounts []SpecMount `json:"mounts,omitempty"`
 	// Volumes are named volumes that will be added to the container.
 	// These will supersede Image Volumes and VolumesFrom volumes where
 	// there are conflicts.
