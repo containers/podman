@@ -45,18 +45,6 @@ func (c *PodmanCmdline) addKeys(arg string, keys map[string]string) {
 	}
 }
 
-func (c *PodmanCmdline) addEnv(env map[string]string) {
-	c.addKeys("--env", env)
-}
-
-func (c *PodmanCmdline) addLabels(labels map[string]string) {
-	c.addKeys("--label", labels)
-}
-
-func (c *PodmanCmdline) addAnnotations(annotations map[string]string) {
-	c.addKeys("--annotation", annotations)
-}
-
 func (c *PodmanCmdline) addBool(arg string, val bool) {
 	if val {
 		c.add(arg)
