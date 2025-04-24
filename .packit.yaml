@@ -36,6 +36,8 @@ jobs:
       - fedora-latest-stable-aarch64
       - fedora-development-x86_64
       - fedora-development-aarch64
+      - fedora-41-x86_64
+      - fedora-41-aarch64
 
   # Ignore until golang is updated in distro buildroot to go 1.23.3+
   - job: copr_build
