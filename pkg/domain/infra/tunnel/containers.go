@@ -806,7 +806,6 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 						logrus.Errorf("Failed to check if %s should restart: %v", ctr.ID, err)
 						return
 					}
-					logrus.Errorf("Should restart: %v", shouldRestart)
 
 					if !shouldRestart && ctr.AutoRemove {
 						removeContainer(ctr.ID, ctr.CIDFile)
