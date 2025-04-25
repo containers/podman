@@ -5,10 +5,12 @@ package handlers
 import (
 	"encoding/json"
 	"reflect"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
@@ -28,6 +30,9 @@ func NewAPIDecoder() *schema.Decoder {
 
 	var Signal syscall.Signal
 	d.RegisterConverter(Signal, convertSignal)
+
+	d.RegisterConverter(types.OptionalBoolUndefined, convertOptionalBool)
+
 	return d
 }
 
@@ -38,6 +43,16 @@ func NewCompatAPIDecoder() *schema.Decoder {
 	dec.RegisterConverter(true, func(s string) reflect.Value {
 		s = strings.ToLower(strings.TrimSpace(s))
 		return reflect.ValueOf(s != "" && s != "0" && s != "no" && s != "false" && s != "none")
+	})
+	dec.RegisterConverter(types.OptionalBoolUndefined, func(s string) reflect.Value {
+		if len(s) == 0 {
+			return reflect.ValueOf(types.OptionalBoolUndefined)
+		}
+		s = strings.ToLower(strings.TrimSpace(s))
+		if s != "0" && s != "no" && s != "false" && s != "none" {
+			return reflect.ValueOf(types.OptionalBoolTrue)
+		}
+		return reflect.ValueOf(types.OptionalBoolFalse)
 	})
 
 	return dec
@@ -142,4 +157,15 @@ func convertSignal(query string) reflect.Value {
 		logrus.Infof("convertSignal: Failed to parse %s: %s", query, err.Error())
 	}
 	return reflect.ValueOf(signal)
+}
+
+func convertOptionalBool(s string) reflect.Value {
+	if len(s) == 0 {
+		return reflect.ValueOf(types.OptionalBoolUndefined)
+	}
+	val, _ := strconv.ParseBool(s)
+	if val {
+		return reflect.ValueOf(types.OptionalBoolTrue)
+	}
+	return reflect.ValueOf(types.OptionalBoolFalse)
 }
