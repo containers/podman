@@ -149,4 +149,18 @@ load helpers
     run_podman rm -t 0 -f $ctrID $cname
 }
 
+# Regression test for https://github.com/containers/podman/issues/25965
+# bats test_tags=ci:parallel
+@test "podman start attach with created --rm container" {
+    local msg=c-$(safename)
+    run_podman create --rm $IMAGE echo "$msg"
+    cid="$output"
+
+    run_podman start -a $cid
+    assert "$output" == "$msg" "attach printed the expected output"
+
+    # container must be removed on its own as it was created with --rm
+    run_podman 1 container exists $cid
+}
+
 # vim: filetype=sh
