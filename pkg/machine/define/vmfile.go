@@ -99,7 +99,9 @@ func NewMachineFile(path string, symlink *string) (*VMFile, error) {
 		return nil, errors.New("invalid symlink path")
 	}
 	mf := VMFile{Path: path}
-	logrus.Debugf("socket length for %s is %d", path, len(path))
+	if len(path) > MaxSocketPathLength-10 {
+		logrus.Debugf("socket length for %s is %d", path, len(path))
+	}
 	if symlink != nil && len(path) > MaxSocketPathLength {
 		if err := mf.makeSymlink(symlink); err != nil && !errors.Is(err, os.ErrExist) {
 			return nil, err
