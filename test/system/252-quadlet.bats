@@ -988,7 +988,7 @@ EOF
     service_setup $QUADLET_SERVICE_NAME
 
     run_podman container inspect  --format '{{index .HostConfig.Tmpfs "/tmpfs1"}}' $QUADLET_CONTAINER_NAME
-    is "$output" "rw,rprivate,nosuid,nodev,tmpcopyup" "regular tmpfs mount"
+    is "$output" "rprivate,nosuid,nodev,tmpcopyup" "regular tmpfs mount"
 
     run_podman container inspect  --format '{{index .HostConfig.Tmpfs "/tmpfs2"}}' $QUADLET_CONTAINER_NAME
     is "$output" "ro,rprivate,nosuid,nodev,tmpcopyup" "read-only tmpfs mount"

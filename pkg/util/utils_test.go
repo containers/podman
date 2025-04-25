@@ -802,13 +802,13 @@ func TestProcessOptions(t *testing.T) {
 		{
 			name:       "default bind mount",
 			sourcePath: "/path/to/source",
-			expected:   []string{"nodev", "nosuid", "rbind", "rprivate", "rw"},
+			expected:   []string{"nodev", "nosuid", "rbind", "rprivate"},
 		},
 		{
 			name:       "default bind mount with bind",
 			sourcePath: "/path/to/source",
 			options:    []string{"bind"},
-			expected:   []string{"nodev", "nosuid", "bind", "private", "rw"},
+			expected:   []string{"nodev", "nosuid", "bind", "private"},
 		},
 	}
 

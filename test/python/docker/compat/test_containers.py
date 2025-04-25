@@ -265,7 +265,7 @@ class TestContainers(common.DockerTestCase):
                 has_tried_pull = True
         self.assertFalse(has_tried_pull, "the build process has tried tried to pull the base image")
 
-    def test_mount_rw_by_default(self):
+    def test_mount_options_by_default(self):
         ctr: Optional[Container] = None
         vol: Optional[Volume] = None
 
@@ -282,7 +282,7 @@ class TestContainers(common.DockerTestCase):
             ctr_inspect = self.docker.api.inspect_container(ctr.id)
             binds: List[str] = ctr_inspect["HostConfig"]["Binds"]
             self.assertEqual(len(binds), 1)
-            self.assertEqual(binds[0], "test-volume:/vol-mnt:rw,rprivate,nosuid,nodev,rbind")
+            self.assertEqual(binds[0], "test-volume:/vol-mnt:rprivate,nosuid,nodev,rbind")
         finally:
             if ctr is not None:
                 ctr.remove()

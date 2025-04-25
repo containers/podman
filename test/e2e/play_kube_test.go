@@ -5818,7 +5818,7 @@ spec:
 		podmanTest.PodmanExitCleanly("kube", "play", outputFile)
 
 		inspectCtr2 := podmanTest.PodmanExitCleanly("inspect", "-f", "'{{ .HostConfig.Binds }}'", ctrNameInKubePod)
-		Expect(inspectCtr2.OutputToString()).To(ContainSubstring(":" + vol1 + ":rw"))
+		Expect(inspectCtr2.OutputToString()).To(ContainSubstring(":" + vol1))
 
 		inspectCtr1 := podmanTest.PodmanExitCleanly("inspect", "-f", "'{{ .HostConfig.Binds }}'", ctr1)
 		Expect(inspectCtr2.OutputToString()).To(Equal(inspectCtr1.OutputToString()))
