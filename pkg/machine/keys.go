@@ -17,7 +17,7 @@ var sshCommand = []string{"ssh-keygen", "-N", "", "-t", "ed25519", "-f"}
 
 // CreateSSHKeys makes a priv and pub ssh key for interacting
 // with a VM.
-func CreateSSHKeys(writeLocation string) (string, error) {
+func createSSHKeys(writeLocation string) (string, error) {
 	// If the SSH key already exists, hard fail
 	if err := fileutils.Exists(writeLocation); err == nil {
 		return "", fmt.Errorf("SSH key already exists: %s", writeLocation)
@@ -46,7 +46,7 @@ func GetSSHKeys(identityPath string) (string, error) {
 		return strings.TrimSuffix(string(b), "\n"), nil
 	}
 
-	return CreateSSHKeys(identityPath)
+	return createSSHKeys(identityPath)
 }
 
 // generatekeys creates an ed25519 set of keys
