@@ -16,7 +16,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/config"
-	"go.podman.io/common/pkg/strongunits"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/env"
 	"go.podman.io/podman/v6/pkg/machine/ignition"
@@ -472,18 +471,6 @@ func setupWslProxyEnv() (hasProxy bool) {
 	return hasProxy
 }
 
-//nolint:unused
-func obtainGlobalConfigLock() (*fileLock, error) {
-	lockDir, err := env.GetGlobalDataDir()
-	if err != nil {
-		return nil, err
-	}
-
-	// Lock file needs to be above all backends
-	// TODO: This should be changed to a common.Config lock mechanism when available
-	return lockFile(filepath.Join(lockDir, "podman-config.lck"))
-}
-
 func isWSLRunning(dist string) (bool, error) {
 	return wslCheckExists(dist, true)
 }
@@ -599,101 +586,4 @@ func isRunning(name string) (bool, error) {
 	}
 
 	return sysd, err
-}
-
-//nolint:unused
-func getDiskSize(name string) strongunits.GiB {
-	vmDataDir, err := env.GetDataDir(vmtype)
-	if err != nil {
-		return 0
-	}
-	distDir := filepath.Join(vmDataDir, "wsldist")
-	disk := filepath.Join(distDir, name, "ext4.vhdx")
-	info, err := os.Stat(disk)
-	if err != nil {
-		return 0
-	}
-	return strongunits.ToGiB(strongunits.B(info.Size()))
-}
-
-//nolint:unused
-func getCPUs(name string) (uint64, error) {
-	dist := env.WithPodmanPrefix(name)
-	if run, _ := isWSLRunning(dist); !run {
-		return 0, nil
-	}
-	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "nproc")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	cmd.Env = []string{"WSL_UTF8=1"}
-	if err = cmd.Start(); err != nil {
-		return 0, err
-	}
-	scanner := bufio.NewScanner(out)
-	var result string
-	for scanner.Scan() {
-		result = scanner.Text()
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(strings.TrimSpace(stderr.String())))
-	}
-
-	ret, err := strconv.Atoi(result)
-	return uint64(ret), err
-}
-
-//nolint:unused
-func getMem(name string) (strongunits.MiB, error) {
-	dist := env.WithPodmanPrefix(name)
-	if run, _ := isWSLRunning(dist); !run {
-		return 0, nil
-	}
-	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "cat", "/proc/meminfo")
-	out, err := cmd.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	stderr := &bytes.Buffer{}
-	cmd.Stderr = stderr
-	if err = cmd.Start(); err != nil {
-		return 0, err
-	}
-	scanner := bufio.NewScanner(out)
-	var (
-		total, available uint64
-		t, a             int
-	)
-	for scanner.Scan() {
-		// fields are in kB so div to mb
-		fields := strings.Fields(scanner.Text())
-		if strings.HasPrefix(fields[0], "MemTotal") && len(fields) >= 2 {
-			t, err = strconv.Atoi(fields[1])
-			total = uint64(t) / 1024
-		} else if strings.HasPrefix(fields[0], "MemAvailable") && len(fields) >= 2 {
-			a, err = strconv.Atoi(fields[1])
-			available = uint64(a) / 1024
-		}
-		if err != nil {
-			break
-		}
-	}
-	err = cmd.Wait()
-	if err != nil {
-		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(stderr.String()))
-	}
-
-	return strongunits.MiB(total - available), err
-}
-
-//nolint:unused
-func getResources(mc *vmconfigs.MachineConfig) (resources vmconfigs.ResourceConfig) {
-	resources.CPUs, _ = getCPUs(mc.Name)
-	resources.Memory, _ = getMem(mc.Name)
-	resources.DiskSize = getDiskSize(mc.Name)
-	return resources
 }
