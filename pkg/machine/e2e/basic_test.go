@@ -100,16 +100,9 @@ var _ = Describe("run basic podman commands", func() {
 	})
 
 	It("Single character volume mount", func() {
-		// Get a tmp directory
-		tDir, err := filepath.Abs(GinkgoT().TempDir())
-		Expect(err).ToNot(HaveOccurred())
 		name := randomString()
 		i := new(initMachine).withImage(mb.imagePath).withNow()
 
-		// All other platforms have an implicit mount for the temp area
-		if isVmtype(define.QemuVirt) {
-			i.withVolume(tDir)
-		}
 		session, err := mb.setName(name).setCmd(i).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(session).To(Exit(0))
