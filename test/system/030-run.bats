@@ -1309,6 +1309,14 @@ EOF
         fi
     fi
 
+    ctr="c-h-$(safename)"
+    run_podman run -d --name $ctr --ulimit core=-1:-1 $IMAGE /home/podman/pause
+
+    run_podman inspect $ctr --format "{{.HostConfig.Ulimits}}"
+    assert "$output" =~ "RLIMIT_CORE -1 -1" "ulimit core is not set to unlimited"
+
+    run_podman rm -f $ctr
+
     run_podman run --ulimit core=-1:-1 --rm $IMAGE grep core /proc/self/limits
     assert "$output" =~ " ${max}  * ${max}  * bytes"
 
