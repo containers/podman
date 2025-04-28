@@ -66,9 +66,8 @@ class ImageTestCase(APITestCase):
         self.assertIn("sha256:",image['Id'])
 
     def test_delete(self):
-        r = requests.delete(self.podman_url + "/v1.40/images/alpine?force=true")
-        self.assertEqual(r.status_code, 200, r.text)
-        self.assertIsInstance(r.json(), list)
+        r = requests.delete(self.compat_uri("images/alpine?force=true"))
+        self.assertEqual(r.status_code, 409, r.text)
 
     def test_pull(self):
         r = requests.post(self.uri("/images/pull?reference=alpine"), timeout=15)

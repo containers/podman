@@ -227,7 +227,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: force
 	//    type: boolean
-	//    description: remove the image even if used by containers or has other tags
+	//    description: Remove the image even if it is being used by stopped containers or has other tags
 	//  - in: query
 	//    name: noprune
 	//    type: boolean

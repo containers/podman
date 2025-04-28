@@ -231,6 +231,47 @@ t DELETE images/test1:latest 200
 
 t GET "images/get?names=alpine" 200 '[POSIX tar archive]'
 
+# START: Testing variance between Docker API and Podman API
+# regarding force deleting images.
+# Podman: Force deleting an image will force remove any
+#         container using the image.
+# Docker: Force deleting an image will only remove non
+#         running containers using the image.
+
+# Create new image
+podman image build -t docker.io/library/test1:latest - <<EOF
+from alpine
+RUN >file4
+EOF
+
+# Create running container
+podman run --rm -d --name test_container docker.io/library/test1:latest top
+
+# When using the Docker Compat API, force deleting an image
+# shouldn't force delete any container using the image, only
+# containers in a non running state should be removed.
+# https://github.com/containers/podman/issues/25871
+t DELETE images/test1:latest?force=true 409
+
+# When using the Podman Libpod API, deleting an image
+# with a running container will fail.
+t DELETE libpod/images/test1:latest 409
+
+# When using the Podman Libpod API, force deleting an
+# image will also force delete all containers using the image.
+
+# Verify container exists.
+t GET libpod/containers/test_container/exists 204
+
+# Delete image with force.
+t DELETE libpod/images/test1:latest?force=true 200
+
+# Verify container also removed.
+t GET libpod/containers/test_container/exists 404
+
+# END: Testing variance between Docker API and Podman API
+# regarding force deleting images.
+
 podman pull busybox
 t GET "images/get?names=alpine&names=busybox" 200 '[POSIX tar archive]'
 img_cnt=$(tar xf "$WORKDIR/curl.result.out" manifest.json -O | jq "length")
