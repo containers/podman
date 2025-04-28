@@ -59,17 +59,19 @@ reloaded. This can also be manually changed by configuring the `PATH`:
 $env:Path += ";C:\Program Files\Go\bin\;C:\Program Files\Git\cmd\"
 ```
 
-### Pandoc
+### Pandoc (optional)
 
 [Pandoc](https://pandoc.org/) is used to generate Podman documentation. It is
-required for building the documentation and the
-[bundle installer](#build-the-installer). It can be avoided when building and
-testing the
-[Podman client for Windows](#build-and-test-the-podman-client-for-windows) or
-[the standalone `podman.msi` installer](#build-and-test-the-standalone-podmanmsi-file).
+used for building the documentation.
 Pandoc can be installed from https://pandoc.org/installing.html. When performing
 the Pandoc installation one, has to choose the option "Install for all users"
 (to put the binaries into "Program Files" directory).
+Alternatively, Podman documentation can be built using a container with the target
+`docs-using-podman` in the `winmake.ps1` script.
+
+```pwsh
+.\winmake docs-using-podman
+```
 
 ### .NET SDK
 
@@ -326,7 +328,7 @@ To build the installation bundle, run the following command:
 .\winmake.ps1 installer
 ```
 
-:information_source: making `podman-remote`, `win-gvproxy`, and `docs` is
+:information_source: making `podman-remote`, `win-gvproxy`, and `docs` (or `docs-using-podman`) is
 required before running this command.
 
 Locate the installer in the `contrib\win-installer` folder (relative to checkout
