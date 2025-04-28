@@ -601,10 +601,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		service.Set(ServiceGroup, "KillMode", "mixed")
 	}
 
-	// Read env early so we can override it below
-	podmanEnv, warn := container.LookupAllKeyVal(ContainerGroup, KeyEnvironment)
-	warnings = errors.Join(warnings, warn)
-
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
 
@@ -814,9 +810,12 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	update, ok := container.Lookup(ContainerGroup, KeyAutoUpdate)
 	if ok && len(update) > 0 {
-		podman.addLabels(map[string]string{
-			autoUpdateLabel: update,
-		})
+		podman.addKeys(
+			"--label",
+			map[string]string{
+				autoUpdateLabel: update,
+			},
+		)
 	}
 
 	exposedPorts := container.LookupAll(ContainerGroup, KeyExposeHostPort)
@@ -832,15 +831,13 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 
 	handlePublishPorts(container, ContainerGroup, podman)
 
-	podman.addEnv(podmanEnv)
-
-	labels, warn := container.LookupAllKeyVal(ContainerGroup, KeyLabel)
+	keyValKeys := map[string]string{
+		KeyEnvironment: "--env",
+		KeyLabel:       "--label",
+		KeyAnnotation:  "--annotation",
+	}
+	warn = lookupAndAddKeyVals(container, ContainerGroup, keyValKeys, podman)
 	warnings = errors.Join(warnings, warn)
-	podman.addLabels(labels)
-
-	annotations, warn := container.LookupAllKeyVal(ContainerGroup, KeyAnnotation)
-	warnings = errors.Join(warnings, warn)
-	podman.addAnnotations(annotations)
 
 	masks := container.LookupAllArgs(ContainerGroup, KeyMask)
 	for _, mask := range masks {
@@ -1041,17 +1038,12 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 		return nil, warnings, fmt.Errorf("cannot set gateway or range without subnet")
 	}
 
-	networkOptions, warn := network.LookupAllKeyVal(NetworkGroup, KeyOptions)
-	warnings = errors.Join(warnings, warn)
-	if len(networkOptions) > 0 {
-		podman.addKeys("--opt", networkOptions)
+	keyValKeys := map[string]string{
+		KeyOptions: "--opt",
+		KeyLabel:   "--label",
 	}
-
-	labels, warn := network.LookupAllKeyVal(NetworkGroup, KeyLabel)
+	warn = lookupAndAddKeyVals(network, NetworkGroup, keyValKeys, podman)
 	warnings = errors.Join(warnings, warn)
-	if len(labels) > 0 {
-		podman.addLabels(labels)
-	}
 
 	handlePodmanArgs(network, NetworkGroup, podman)
 
@@ -1110,9 +1102,6 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 
 	// Need the containers filesystem mounted to start podman
 	service.Add(UnitGroup, "RequiresMountsFor", "%t/containers")
-
-	labels, warn := volume.LookupAllKeyVal(VolumeGroup, "Label")
-	warnings = errors.Join(warnings, warn)
 
 	podman := createBasePodmanCommand(volume, VolumeGroup)
 
@@ -1200,7 +1189,11 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 		podman.add("--opt", opts.String())
 	}
 
-	podman.addLabels(labels)
+	keyValKeys := map[string]string{
+		KeyLabel: "--label",
+	}
+	warn = lookupAndAddKeyVals(volume, VolumeGroup, keyValKeys, podman)
+	warnings = errors.Join(warnings, warn)
 
 	handlePodmanArgs(volume, VolumeGroup, podman)
 
@@ -1516,18 +1509,13 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	}
 	lookupAndAddAllStrings(build, BuildGroup, allStringKeys, podman)
 
-	annotations, warn := build.LookupAllKeyVal(BuildGroup, KeyAnnotation)
+	keyValKeys := map[string]string{
+		KeyEnvironment: "--env",
+		KeyLabel:       "--label",
+		KeyAnnotation:  "--annotation",
+	}
+	warn = lookupAndAddKeyVals(build, BuildGroup, keyValKeys, podman)
 	warnings = errors.Join(warnings, warn)
-
-	podman.addAnnotations(annotations)
-
-	podmanEnv, warn := build.LookupAllKeyVal(BuildGroup, KeyEnvironment)
-	warnings = errors.Join(warnings, warn)
-	podman.addEnv(podmanEnv)
-
-	labels, warn := build.LookupAllKeyVal(BuildGroup, KeyLabel)
-	warnings = errors.Join(warnings, warn)
-	podman.addLabels(labels)
 
 	if err := addNetworks(build, BuildGroup, service, unitsInfoMap, podman); err != nil {
 		return nil, warnings, err
@@ -1709,9 +1697,11 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	handlePublishPorts(podUnit, PodGroup, execStartPre)
 
-	labels, warn := podUnit.LookupAllKeyVal(PodGroup, KeyLabel)
+	keyValKeys := map[string]string{
+		KeyLabel: "--label",
+	}
+	warn = lookupAndAddKeyVals(podUnit, PodGroup, keyValKeys, execStartPre)
 	warnings = errors.Join(warnings, warn)
-	execStartPre.addLabels(labels)
 
 	if err := addNetworks(podUnit, PodGroup, service, unitsInfoMap, execStartPre); err != nil {
 		return nil, warnings, err
@@ -2367,4 +2357,14 @@ func translateUnitDependencies(serviceUnitFile *parser.UnitFile, unitsInfoMap ma
 		serviceUnitFile.Add(UnitGroup, unitDependencyKey, strings.Join(translatedDeps, " "))
 	}
 	return nil
+}
+
+func lookupAndAddKeyVals(unit *parser.UnitFile, group string, keys map[string]string, podman *PodmanCmdline) error {
+	var warnings error
+	for key, flag := range keys {
+		keyVals, warn := unit.LookupAllKeyVal(group, key)
+		warnings = errors.Join(warnings, warn)
+		podman.addKeys(flag, keyVals)
+	}
+	return warnings
 }
