@@ -77,7 +77,12 @@ echo $rand        |   0 | $rand
     echo "$content" > $PODMAN_TMPDIR/tempfile
 
     run_podman run --rm -i --preserve-fds=2 $IMAGE sh -c "cat <&4" 4<$PODMAN_TMPDIR/tempfile
-    is "$output" "$content" "container read input from fd 4"
+
+    if [[ "$(podman_runtime)" = "runc" ]]; then
+        assert "$output" =~ "${content}(.* error .* already been removed.*)?"
+    else
+        is "$output" "$content" "container read input from fd 4"
+    fi
 }
 
 # 'run --preserve-fd' passes a list of additional file descriptors into the container
