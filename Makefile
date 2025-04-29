@@ -25,6 +25,15 @@ SHELL := $(shell command -v bash;)
 GO ?= go
 GO_LDFLAGS:= $(shell if $(GO) version|grep -q gccgo ; then echo "-gccgoflags"; else echo "-ldflags"; fi)
 GOCMD = CGO_ENABLED=$(CGO_ENABLED) GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO)
+# Podman does not work w/o CGO_ENABLED, except in some very specific cases.
+# Windows and Mac (both podman-remote client only) require CGO_ENABLED=0.
+CGO_ENABLED ?= 1
+# Default to the native OS type and architecture unless otherwise specified
+NATIVE_GOOS := $(shell env -u GOOS $(GO) env GOOS)
+GOOS ?= $(call err_if_empty,NATIVE_GOOS)
+# Default to the native architecture type
+NATIVE_GOARCH := $(shell env -u GOARCH $(GO) env GOARCH)
+GOARCH ?= $(NATIVE_GOARCH)
 COVERAGE_PATH ?= .coverage
 DESTDIR ?=
 EPOCH_TEST_COMMIT ?= $(shell git merge-base $${DEST_BRANCH:-main} HEAD)
@@ -179,15 +188,6 @@ CROSS_BUILD_TARGETS := \
 # Dereference variable $(1), return value if non-empty, otherwise raise an error.
 err_if_empty = $(if $(strip $($(1))),$(strip $($(1))),$(error Required variable $(1) value is undefined, whitespace, or empty))
 
-# Podman does not work w/o CGO_ENABLED, except in some very specific cases.
-# Windows and Mac (both podman-remote client only) require CGO_ENABLED=0.
-CGO_ENABLED ?= 1
-# Default to the native OS type and architecture unless otherwise specified
-NATIVE_GOOS := $(shell env -u GOOS $(GO) env GOOS)
-GOOS ?= $(call err_if_empty,NATIVE_GOOS)
-# Default to the native architecture type
-NATIVE_GOARCH := $(shell env -u GOARCH $(GO) env GOARCH)
-GOARCH ?= $(NATIVE_GOARCH)
 ifeq ($(call err_if_empty,GOOS),windows)
 BINSFX := .exe
 SRCBINDIR := bin/windows
