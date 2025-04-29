@@ -2,11 +2,6 @@ name: "Machine OS PR"
 
 on:
   pull_request_target:
-    # prevent action from running on older release-process branches
-    # TODO: remove when we move to new release flow
-    branches:
-      - 'v5.5'
-      - 'main'
     paths:
       - 'version/rawversion/version.go'
 
@@ -34,8 +29,10 @@ jobs:
         run: |
           VERSION=$(curl "https://raw.githubusercontent.com/$PODMAN_REPO/$SHA/version/rawversion/version.go" | sed -n 's/^const RawVersion = \"\(.*\)\"$/\1/p')
           # ignore -dev version bumps unless on main
-          if [[ ${{github.base_ref}} != "main" ]] && [[ $VERSION == *-dev ]] ; then
-            echo "::warning:: SKIPPING: dev bump not on main"
+          if [[ $VERSION == *-dev ]] ; then
+            echo "::warning:: SKIPPING: dev bump"
+          elif [[ ${{github.base_ref}} == "main" ]] ; then
+            echo "::warning:: SKIPPING: main branch"
           elif [[ ${{github.base_ref}} == *-rhel ]] ; then
             echo "::warning:: SKIPPING: rhel branch"
           else
@@ -128,9 +125,11 @@ jobs:
         id: pr
         run: |
           bumpbranch="pr${{github.event.number}}"
+          body=$(printf 'Triggered by https://github.com/%s/pull/%s\n\n```release-note\nRelease v%s\n```\n' \
+          "$PODMAN_REPO" "${{github.event.number}}" "${{ steps.getversion.outputs.version }}")
           uri=`gh pr create \
             --title "Bump Podman to v${{ steps.getversion.outputs.version }}" \
-            --body  "Triggered by https://github.com/$PODMAN_REPO/pull/${{github.event.number}}" \
+            --body  "$body" \
             --head "podmanbot:$bumpbranch" \
             --base "${{github.base_ref}}" \
             --repo $UPSTREAM_MACHINE_OS`
