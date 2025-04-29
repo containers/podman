@@ -1,5 +1,5 @@
 ## assert-podman-reload-args "kill"
-## assert-podman-reload-args "--cidfile=%t/%N.cid"
+## assert-podman-reload-args "systemd-%N"
 ## assert-podman-reload-args "--signal" "SIGHUP"
 
 [Container]
