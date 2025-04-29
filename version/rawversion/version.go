@@ -4,7 +4,4 @@ package rawversion
 //
 // This indirection is needed to prevent semver packages from bloating
 // Quadlet's binary size.
-//
-// NOTE: remember to bump the version at the top of the top-level README.md
-// file when this is bumped.
-const RawVersion = "5.5.0-dev"
+const RawVersion = "5.6.0-dev"
