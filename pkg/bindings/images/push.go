@@ -74,7 +74,7 @@ LOOP:
 			if errors.Is(err, io.EOF) {
 				break
 			}
-			return err
+			return fmt.Errorf("failed to decode message from stream: %w", err)
 		}
 
 		select {
