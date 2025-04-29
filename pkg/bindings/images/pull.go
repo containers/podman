@@ -74,9 +74,16 @@ LOOP:
 		var report types.ImagePullReport
 		if err := dec.Decode(&report); err != nil {
 			if errors.Is(err, io.EOF) {
+				// end of stream, exit loop
 				break
 			}
-			report.Error = err.Error() + "\n"
+			// Decoder error, it is unlikely that the next call would work again
+			// so exit here as well, the Decoder can store the error and always
+			// return the same one for all future calls which then causes a
+			// infinity loop and memory leak in pullErrors.
+			// https://github.com/containers/podman/issues/25974
+			pullErrors = append(pullErrors, fmt.Errorf("failed to decode message from stream: %w", err))
+			break
 		}
 
 		select {
