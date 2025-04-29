@@ -3,7 +3,7 @@
 
 BOOL isWSLEnabled();
 BOOL isHyperVEnabled();
-LPCWSTR boolToNStr(BOOL bool);
+LPCWSTR boolToNStr(BOOL value);
 LPCSTR szSvcNameHyperv = TEXT("vmms");
 
 /**
@@ -43,8 +43,8 @@ LPCSTR szSvcNameHyperv = TEXT("vmms");
 	return 0;
 }
 
-LPCWSTR boolToNStr(BOOL bool) {
-	return bool ? L"1" : L"0";
+LPCWSTR boolToNStr(BOOL value) {
+	return value ? L"1" : L"0";
 }
 
 BOOL isWSLEnabled() {
