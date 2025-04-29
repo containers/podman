@@ -151,7 +151,9 @@ Forcibly syncing is much slower, but can resolve inconsistent state issues.
 
 #### **--watch**, **-w**
 
-Refresh the output with current containers on an interval in seconds.
+Refresh the output with current containers on an interval in seconds. When
+passed with no value a default of 2 seconds is used. A custom interval value can
+be passed using `--watch=5` or `-w=5`.
 
 ## EXAMPLES
 

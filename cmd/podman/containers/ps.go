@@ -47,6 +47,7 @@ var (
 		Example:           strings.ReplaceAll(psCommand.Example, "podman ps", "podman container ps"),
 	}
 )
+
 var (
 	listOpts = entities.ContainerListOptions{
 		Filters: make(map[string][]string),
@@ -97,7 +98,8 @@ func listFlagSet(cmd *cobra.Command) {
 	flags.BoolVar(&listOpts.Sync, "sync", false, "Sync container state with OCI runtime")
 
 	watchFlagName := "watch"
-	flags.UintVarP(&listOpts.Watch, watchFlagName, "w", 0, "Watch the ps output on an interval in seconds")
+	flags.UintVarP(&listOpts.Watch, watchFlagName, "w", 0, "Watch the ps output on an interval in seconds (-w=5|--watch=5)")
+	flags.Lookup(watchFlagName).NoOptDefVal = "2"
 	_ = cmd.RegisterFlagCompletionFunc(watchFlagName, completion.AutocompleteNone)
 
 	sort := validate.Value(&listOpts.Sort, "command", "created", "id", "image", "names", "runningfor", "size", "status")
@@ -107,6 +109,7 @@ func listFlagSet(cmd *cobra.Command) {
 
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
+
 func checkFlags(c *cobra.Command) error {
 	// latest, and last are mutually exclusive.
 	if listOpts.Last >= 0 && listOpts.Latest {

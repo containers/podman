@@ -1033,4 +1033,24 @@ var _ = Describe("Podman ps", func() {
 		Expect(output).To(HaveLen(1))
 		Expect(output).Should(ContainElement(ContainSubstring("late")))
 	})
+
+	It("podman ps --watch without value", func() {
+		options := PodmanExecOptions{
+			Wrapper: []string{"timeout", "--preserve-status", "3s"},
+		}
+
+		session := podmanTest.PodmanWithOptions(options, "ps", "--watch")
+		session.WaitWithDefaultTimeout()
+		Eventually(session, 4).Should(Exit(1))
+	})
+
+	It("podman ps --watch with value", func() {
+		options := PodmanExecOptions{
+			Wrapper: []string{"timeout", "--preserve-status", "3s"},
+		}
+
+		session := podmanTest.PodmanWithOptions(options, "ps", "--watch=1")
+		session.WaitWithDefaultTimeout()
+		Eventually(session, 4).Should(Exit(1))
+	})
 })
