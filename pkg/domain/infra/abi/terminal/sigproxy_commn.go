@@ -28,12 +28,10 @@ func ProxySignals(ctr *libpod.Container) {
 	go func() {
 		for s := range sigBuffer {
 			syscallSignal := s.(syscall.Signal)
-			if signal.IsSignalIgnoredBySigProxy(syscallSignal) {
-				continue
-			}
 
 			if err := ctr.Kill(uint(syscallSignal)); err != nil {
-				if errors.Is(err, define.ErrCtrStateInvalid) {
+				// If the container is no longer running/removed do not log it as error.
+				if errors.Is(err, define.ErrCtrStateInvalid) || errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 					logrus.Infof("Ceasing signal forwarding to container %s as it has stopped", ctr.ID())
 				} else {
 					logrus.Errorf("forwarding signal %d to container %s: %v", s, ctr.ID(), err)
