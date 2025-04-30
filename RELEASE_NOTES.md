@@ -49,12 +49,16 @@
 - Fixed a bug where the `podman system df` command could show a negative reclaimable size.
 - Fixed a bug where accessing a rootful `podman machine` VM that was not `podman-machine-default` (the default VM) with the `podman machine ssh` command would put the user into the rootless shell ([#25332](https://github.com/containers/podman/issues/25332)).
 - Fixed a bug where the `podman machine init` would report nonsensical memory values in error messages when trying to create a machine with more memory than the system.
+- Fixed a bug where the remote Podman client's `podman start --attach` command would incorrectly print an error when run on a container created with the `--rm` option ([#25965](https://github.com/containers/podman/issues/25965)).
+- Fixed a bug where the remote Podman client's `podman pull` command could hang and leak memory if the server was unexpectedly stopped or encountered an error during a pull.
 - Fixed a bug where the remote Podman client's `podman cp` command would, on Windows, often fail to copy files into the container due to improper handling of Windows paths ([#14862](https://github.com/containers/podman/issues/14862)).
 - Fixed a bug where the `podman container clone` command did not correctly copy healthcheck settings to the new container ([#21630](https://github.com/containers/podman/issues/21630)).
 - Fixed a bug where the `podman kube play` command would fail to start empty pods ([#25786](https://github.com/containers/podman/issues/25786)).
 - Fixed a bug where the `podman volume ls` command did not output headers when no volumes were present ([#25911](https://github.com/containers/podman/issues/25911)).
 - Fixed a bug where healthcheck configuration provided by a container's image could not be overridden unless the `--health-cmd` option was specified when creating the container ([#20212](https://github.com/containers/podman/issues/20212)).
 - Fixed a bug where the `--user` option to `podman create` and `podman run` could not be used with users added to the container by the `--hostuser` option ([#25805](https://github.com/containers/podman/issues/25805)).
+- Fixed a bug where the `podman system reset` command on FreeBSD would incorrectly print an error.
+- Fixed a bug where stopping the `podman machine start` command with SIGINT could result in machine state being incorrectly set to "Starting" ([#24416](https://github.com/containers/podman/issues/24416)).
 
 ### API
 - Fixed a bug where the Compat Create API for Containers ignored ulimits specified in the request when Podman was run rootless ([#25881](https://github.com/containers/podman/issues/25881)).
