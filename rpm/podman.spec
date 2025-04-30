@@ -258,19 +258,19 @@ export BASEBUILDTAGS="$BASEBUILDTAGS libtrust_openssl"
 %endif
 
 # build %%{name}
-export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh)"
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/libdm_tag.sh)"
 %gobuild -o bin/%{name} ./cmd/%{name}
 
 # build %%{name}-remote
-export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs btrfs_noversion remote"
+export BUILDTAGS="$BASEBUILDTAGS exclude_graphdriver_btrfs remote"
 %gobuild -o bin/%{name}-remote ./cmd/%{name}
 
 # build quadlet
-export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh)"
 %gobuild -o bin/quadlet ./cmd/quadlet
 
 # build %%{name}-testing
-export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh)"
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh)"
 %gobuild -o bin/podman-testing ./cmd/podman-testing
 
 # reset LDFLAGS for plugins binaries

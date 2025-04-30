@@ -57,11 +57,10 @@ SYSTEMDDIR ?= ${LIBDIR}/systemd/system
 USERSYSTEMDDIR ?= ${LIBDIR}/systemd/user
 SYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/system-generators
 USERSYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/user-generators
-REMOTETAGS ?= remote exclude_graphdriver_btrfs btrfs_noversion containers_image_openpgp
+REMOTETAGS ?= remote exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
-	$(shell hack/btrfs_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
 	$(if $(filter linux,$(GOOS)), seccomp,)
