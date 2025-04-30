@@ -87,8 +87,8 @@ var SignalMap = map[string]syscall.Signal{
 	"RTMAX":    sigrtmax,
 }
 
-// IsSignalIgnoredBySigProxy determines whether to sig-proxy should ignore syscall signal
+// isSignalIgnoredBySigProxy determines whether to sig-proxy should ignore syscall signal
 // keep the container running or not. In unsupported OS this should not ignore any syscall signal.
-func IsSignalIgnoredBySigProxy(s syscall.Signal) bool {
+func isSignalIgnoredBySigProxy(_ syscall.Signal) bool {
 	return false
 }

@@ -46,9 +46,6 @@ func remoteProxySignals(ctrID string, killFunc func(string) error) {
 	go func() {
 		for s := range sigBuffer {
 			syscallSignal := s.(syscall.Signal)
-			if signal.IsSignalIgnoredBySigProxy(syscallSignal) {
-				continue
-			}
 			signalName, err := signal.ParseSysSignalToName(syscallSignal)
 			if err != nil {
 				logrus.Infof("Ceasing signal %v forwarding to container %s as it has stopped: %s", s, ctrID, err)

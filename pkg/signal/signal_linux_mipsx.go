@@ -89,8 +89,8 @@ var SignalMap = map[string]syscall.Signal{
 	"RTMAX":    sigrtmax,
 }
 
-// IsSignalIgnoredBySigProxy determines whether sig-proxy should ignore syscall signal
-func IsSignalIgnoredBySigProxy(s syscall.Signal) bool {
+// isSignalIgnoredBySigProxy determines whether sig-proxy should ignore syscall signal
+func isSignalIgnoredBySigProxy(s syscall.Signal) bool {
 	// Ignore SIGCHLD and SIGPIPE - these are most likely intended for the podman command itself.
 	// SIGURG was added because of golang 1.14 and its preemptive changes causing more signals to "show up".
 	// https://github.com/containers/podman/issues/5483

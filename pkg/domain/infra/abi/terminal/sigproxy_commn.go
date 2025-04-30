@@ -28,9 +28,6 @@ func ProxySignals(ctr *libpod.Container) {
 	go func() {
 		for s := range sigBuffer {
 			syscallSignal := s.(syscall.Signal)
-			if signal.IsSignalIgnoredBySigProxy(syscallSignal) {
-				continue
-			}
 
 			if err := ctr.Kill(uint(syscallSignal)); err != nil {
 				// If the container is no longer running/removed do not log it as error.
