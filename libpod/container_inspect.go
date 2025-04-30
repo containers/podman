@@ -653,7 +653,7 @@ func (c *Container) GetDevices(priv bool, ctrSpec spec.Spec, deviceNodes map[str
 		for _, dev := range ctrSpec.Linux.Devices {
 			key := fmt.Sprintf("%d:%d", dev.Major, dev.Minor)
 			if deviceNodes == nil {
-				nodes, err := util.FindDeviceNodes()
+				nodes, err := util.FindDeviceNodes(false)
 				if err != nil {
 					return nil, err
 				}
@@ -678,7 +678,7 @@ func blkioDeviceThrottle(deviceNodes map[string]string, devs []spec.LinuxThrottl
 	for _, dev := range devs {
 		key := fmt.Sprintf("%d:%d", dev.Major, dev.Minor)
 		if deviceNodes == nil {
-			nodes, err := util.FindDeviceNodes()
+			nodes, err := util.FindDeviceNodes(true)
 			if err != nil {
 				return nil, err
 			}

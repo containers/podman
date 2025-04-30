@@ -89,7 +89,7 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 						continue
 					}
 					if deviceNodes == nil {
-						nodes, err := util.FindDeviceNodes()
+						nodes, err := util.FindDeviceNodes(true)
 						if err != nil {
 							return err
 						}
