@@ -103,11 +103,8 @@ if ($ENV:INSTVER -eq "") {
     Exit 1
 }
 
-.\build-hooks.ps1; ExitOnError
 SignItem @("artifacts/win-sshproxy.exe",
-          "artifacts/podman.exe",
-          "artifacts/podman-msihooks.dll",
-          "artifacts/podman-wslkerninst.exe")
+          "artifacts/podman.exe")
 $gvExists = Test-Path "artifacts/gvproxy.exe"
 if ($gvExists) {
     SignItem @("artifacts/gvproxy.exe")

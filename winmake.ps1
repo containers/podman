@@ -147,10 +147,20 @@ function Test-Installer{
         Exit 1
     }
 
+    $nextSetupExePath = "$PSScriptRoot\contrib\win-installer\podman-9.9.9-dev-setup.exe"
+    if (!(Test-Path -Path $nextSetupExePath -PathType Leaf)) {
+        Write-Host "The automated tests include testing the upgrade from current version to a future version."
+        Write-Host "That requires a version 9.9.9 of the installer:"
+        Write-Host "   .\winmake.ps1 installer 9.9.9"
+        Write-Host "Build it and retry running installertest."
+        Exit 1
+    }
+
     $command = "$PSScriptRoot\contrib\win-installer\test-installer.ps1"
     $command += " -scenario all"
     $command += " -provider $provider"
     $command += " -setupExePath $setupExePath"
+    $command += " -nextSetupExePath $nextSetupExePath"
     Run-Command "${command}"
 }
 
