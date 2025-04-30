@@ -608,16 +608,14 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	// If conmon exited uncleanly it may not have removed the container, so
 	// force it, -i makes it ignore non-existing files.
 	serviceStopCmd := createBasePodmanCommand(container, ContainerGroup)
-	serviceStopCmd.add("rm", "-v", "-f", "-i", "--cidfile=%t/%N.cid")
+	serviceStopCmd.add("rm", "-v", "-f", "-i", containerName)
 	service.AddCmdline(ServiceGroup, "ExecStop", serviceStopCmd.Args)
 	// The ExecStopPost is needed when the main PID (i.e., conmon) gets killed.
-	// In that case, ExecStop is not executed but *Post only.  If both are
-	// fired in sequence, *Post will exit when detecting that the --cidfile
-	// has already been removed by the previous `rm`..
+	// In that case, ExecStop is not executed but *Post only.
 	serviceStopCmd.Args[0] = fmt.Sprintf("-%s", serviceStopCmd.Args[0])
 	service.AddCmdline(ServiceGroup, "ExecStopPost", serviceStopCmd.Args)
 
-	if err := handleExecReload(container, service, ContainerGroup); err != nil {
+	if err := handleExecReload(container, service, ContainerGroup, containerName); err != nil {
 		return nil, warnings, err
 	}
 
@@ -628,9 +626,6 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	podman.add("--name", containerName)
 
 	podman.add(
-		// We store the container id so we can clean it up in case of failure
-		"--cidfile=%t/%N.cid",
-
 		// And replace any previous container with the same name, not fail
 		"--replace",
 
@@ -1483,6 +1478,15 @@ func getServiceName(quadletUnitFile *parser.UnitFile, groupName string, defaultE
 	return removeExtension(quadletUnitFile.Filename, "", defaultExtraSuffix)
 }
 
+func GetPodResourceName(podUnit *parser.UnitFile) string {
+	// Derive pod name from unit name (with added prefix), or use user-provided name.
+	podName, ok := podUnit.Lookup(PodGroup, KeyPodName)
+	if !ok || len(podName) == 0 {
+		podName = removeExtension(podUnit.Filename, "systemd-", "")
+	}
+	return podName
+}
+
 func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
 	var warn, warnings error
 
@@ -1491,11 +1495,7 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 		return nil, warnings, err
 	}
 
-	// Derive pod name from unit name (with added prefix), or use user-provided name.
-	podName, ok := podUnit.Lookup(PodGroup, KeyPodName)
-	if !ok || len(podName) == 0 {
-		podName = removeExtension(name, "systemd-", "")
-	}
+	podName := GetPodResourceName(podUnit)
 
 	for _, containerService := range unitInfo.ContainersToStart {
 		service.Add(UnitGroup, "Wants", containerService)
@@ -1507,24 +1507,24 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	}
 
 	execStart := createBasePodmanCommand(podUnit, PodGroup)
-	execStart.add("pod", "start", "--pod-id-file=%t/%N.pod-id")
+	execStart.add("pod", "start", podName)
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
 
 	execStop := createBasePodmanCommand(podUnit, PodGroup)
 	execStop.add("pod", "stop")
 	execStop.add(
-		"--pod-id-file=%t/%N.pod-id",
 		"--ignore",
 		"--time=10",
+		podName,
 	)
 	service.AddCmdline(ServiceGroup, "ExecStop", execStop.Args)
 
 	execStopPost := createBasePodmanCommand(podUnit, PodGroup)
 	execStopPost.add("pod", "rm")
 	execStopPost.add(
-		"--pod-id-file=%t/%N.pod-id",
 		"--ignore",
 		"--force",
+		podName,
 	)
 	service.AddCmdline(ServiceGroup, "ExecStopPost", execStopPost.Args)
 
@@ -1532,7 +1532,6 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	execStartPre.add("pod", "create")
 	execStartPre.add(
 		"--infra-conmon-pidfile=%t/%N.pid",
-		"--pod-id-file=%t/%N.pod-id",
 		"--exit-policy=stop",
 		"--replace",
 	)
@@ -2075,7 +2074,7 @@ func handlePod(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName stri
 			return fmt.Errorf("quadlet pod unit %s does not exist", pod)
 		}
 
-		podman.add("--pod-id-file", fmt.Sprintf("%%t/%s.pod-id", podInfo.ServiceName))
+		podman.add("--pod", podInfo.ResourceName)
 
 		podServiceName := podInfo.ServiceFileName()
 		serviceUnitFile.Add(UnitGroup, "BindsTo", podServiceName)
@@ -2146,7 +2145,7 @@ func addDefaultDependencies(service *parser.UnitFile, isUser bool) {
 	}
 }
 
-func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName string) error {
+func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName, containerName string) error {
 	reloadSignal, signalOk := quadletUnitFile.Lookup(groupName, KeyReloadSignal)
 	signalOk = signalOk && len(reloadSignal) > 0
 	reloadcmd, cmdOk := quadletUnitFile.LookupLastArgs(groupName, KeyReloadCmd)
@@ -2162,10 +2161,10 @@ func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupNa
 
 	serviceReloadCmd := createBasePodmanCommand(quadletUnitFile, groupName)
 	if cmdOk {
-		serviceReloadCmd.add("exec", "--cidfile=%t/%N.cid")
+		serviceReloadCmd.add("exec", containerName)
 		serviceReloadCmd.add(reloadcmd...)
 	} else {
-		serviceReloadCmd.add("kill", "--cidfile=%t/%N.cid", "--signal", reloadSignal)
+		serviceReloadCmd.add("kill", "--signal", reloadSignal, containerName)
 	}
 	serviceUnitFile.AddCmdline(ServiceGroup, "ExecReload", serviceReloadCmd.Args)
 

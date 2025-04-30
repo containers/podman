@@ -604,6 +604,9 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			serviceName = quadlet.GetPodServiceName(unit)
 			containers = make([]string, 0)
+			// Prefill resouceNames for .pod files.
+			// This is requires for referencing the pod from .container files
+			resourceName = quadlet.GetPodResourceName(unit)
 		default:
 			Logf("Unsupported file type %q", unit.Filename)
 			continue
