@@ -17,11 +17,12 @@ jobs:
           api-key: ${{ secrets.FOSSA_API_KEY }}
           run-tests: ${{ github.event_name == 'pull_request' }}
           test-diff-revision: ${{ github.event.pull_request.base.sha }}
-          generate-report: html
-      - name: Store HTML report.
-        run: echo '${{ steps.fossa.outputs.report }}' > report.html
-      - name: Upload HTML to Artifacts
+          generate-report: markdown
+      - name: Store Report.
+        run: echo '${{ steps.fossa.outputs.report }}' > report.md
+      - name: Upload Report to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FOSSA report
-          path: report.html
+          path: report.md
+
