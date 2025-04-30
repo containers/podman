@@ -142,10 +142,8 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	// Add or set the time zone for the machine
 	if len(ign.TimeZone) > 0 {
-		var (
-			err error
-			tz  string
-		)
+		var err error
+		tz := ign.TimeZone
 		// local means the same as the host
 		// look up where it is pointing to on the host
 		if ign.TimeZone == "local" {
@@ -153,25 +151,29 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 			if err != nil {
 				return fmt.Errorf("error getting local timezone: %q", err)
 			}
+		}
+		// getLocalTimeZone() can return empty string, do not add broken symlink in that case
+		// coreos will default to UTC
+		if tz == "" {
+			logrus.Info("Unable to determine local timezone, machine will default to UTC")
 		} else {
-			tz = ign.TimeZone
+			tzLink := Link{
+				Node: Node{
+					Group:     GetNodeGrp("root"),
+					Path:      "/etc/localtime",
+					Overwrite: BoolToPtr(false),
+					User:      GetNodeUsr("root"),
+				},
+				LinkEmbedded1: LinkEmbedded1{
+					Hard: BoolToPtr(false),
+					// We always want this value in unix form (/path/to/something) because this is being
+					// set in the machine OS (always Linux).  However, filepath.join on windows will use a "\\"
+					// separator; therefore we use ToSlash to convert the path to unix style
+					Target: filepath.ToSlash(filepath.Join("/usr/share/zoneinfo", tz)),
+				},
+			}
+			ignStorage.Links = append(ignStorage.Links, tzLink)
 		}
-		tzLink := Link{
-			Node: Node{
-				Group:     GetNodeGrp("root"),
-				Path:      "/etc/localtime",
-				Overwrite: BoolToPtr(false),
-				User:      GetNodeUsr("root"),
-			},
-			LinkEmbedded1: LinkEmbedded1{
-				Hard: BoolToPtr(false),
-				// We always want this value in unix form (/path/to/something) because this is being
-				// set in the machine OS (always Linux).  However, filepath.join on windows will use a "\\"
-				// separator; therefore we use ToSlash to convert the path to unix style
-				Target: filepath.ToSlash(filepath.Join("/usr/share/zoneinfo", tz)),
-			},
-		}
-		ignStorage.Links = append(ignStorage.Links, tzLink)
 	}
 
 	// This service gets environment variables that are provided
