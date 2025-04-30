@@ -1,29 +1,29 @@
 package ignition
 
 import (
+	"errors"
 	"os"
-	"os/exec"
+	"path/filepath"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 func getLocalTimeZone() (string, error) {
-	trimTzFunc := func(s string) string {
-		return strings.TrimPrefix(strings.TrimSuffix(s, "\n"), "Timezone=")
+	path, err := filepath.EvalSymlinks("/etc/localtime")
+	if err != nil {
+		// of the path does not exist, ignore it as the code default to UTC then
+		if errors.Is(err, os.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
 	}
 
-	// perform a variety of ways to see if we can determine the tz
-	output, err := exec.Command("timedatectl", "show", "--property=Timezone").Output()
-	if err == nil {
-		return trimTzFunc(string(output)), nil
+	// Allow using TZDIR per:
+	// https://sourceware.org/git/?p=glibc.git;a=blob;f=time/tzfile.c;h=8a923d0cccc927a106dc3e3c641be310893bab4e;hb=HEAD#l149
+	zoneinfo := os.Getenv("TZDIR")
+	if zoneinfo == "" {
+		// default zoneinfo location
+		zoneinfo = "/usr/share/zoneinfo"
 	}
-	logrus.Debugf("Timedatectl show --property=Timezone failed: %s", err)
-	output, err = os.ReadFile("/etc/timezone")
-	if err == nil {
-		return trimTzFunc(string(output)), nil
-	}
-	logrus.Debugf("unable to read /etc/timezone, falling back to empty timezone: %s", err)
-	// if we cannot determine the tz, return empty string
-	return "", nil
+	// Trim of the TZDIR part to extract the actual timezone name
+	return strings.TrimPrefix(path, filepath.Clean(zoneinfo)+"/"), nil
 }
