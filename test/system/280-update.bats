@@ -63,10 +63,10 @@ memory-reservation  =           400M | 2 | $mm.soft_limit_in_bytes  = 419430400 
 blkio-weight        =            321 | - | -                                       | io.bfq.weight   = default 321 $lomajmin 98
 blkio-weight-device = $LOOPDEVICE:98 | - | -                                       | io.bfq.weight   = default 321 $lomajmin 98
 
-device-read-bps     = /dev/zero:10mb | - | -                                       | io.max          = $devicemax
-device-read-iops    = /dev/zero:2000 | - | -                                       | io.max          = $devicemax
-device-write-bps    = /dev/zero:30mb | - | -                                       | io.max          = $devicemax
-device-write-iops   = /dev/zero:4000 | - | -                                       | io.max          = $devicemax
+device-read-bps     = $LOOPDEVICE:10mb | - | -                                       | io.max          = $devicemax
+device-read-iops    = $LOOPDEVICE:2000 | - | -                                       | io.max          = $devicemax
+device-write-bps    = $LOOPDEVICE:30mb | - | -                                       | io.max          = $devicemax
+device-write-iops   = $LOOPDEVICE:4000 | - | -                                       | io.max          = $devicemax
 "
 
     # Run a container
