@@ -1,20 +1,29 @@
 package ignition
 
 import (
-	"errors"
 	"os"
 	"os/exec"
 	"strings"
+
+	"github.com/sirupsen/logrus"
 )
 
 func getLocalTimeZone() (string, error) {
+	trimTzFunc := func(s string) string {
+		return strings.TrimPrefix(strings.TrimSuffix(s, "\n"), "Timezone=")
+	}
+
+	// perform a variety of ways to see if we can determine the tz
 	output, err := exec.Command("timedatectl", "show", "--property=Timezone").Output()
-	if errors.Is(err, exec.ErrNotFound) {
-		output, err = os.ReadFile("/etc/timezone")
+	if err == nil {
+		return trimTzFunc(string(output)), nil
 	}
-	if err != nil {
-		return "", err
+	logrus.Debugf("Timedatectl show --property=Timezone failed: %s", err)
+	output, err = os.ReadFile("/etc/timezone")
+	if err == nil {
+		return trimTzFunc(string(output)), nil
 	}
-	// Remove prepended field and the newline
-	return strings.TrimPrefix(strings.TrimSuffix(string(output), "\n"), "Timezone="), nil
+	logrus.Debugf("unable to read /etc/timezone, falling back to empty timezone: %s", err)
+	// if we cannot determine the tz, return empty string
+	return "", nil
 }

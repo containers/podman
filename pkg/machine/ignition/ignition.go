@@ -151,7 +151,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		if ign.TimeZone == "local" {
 			tz, err = getLocalTimeZone()
 			if err != nil {
-				return err
+				return fmt.Errorf("error getting local timezone: %q", err)
 			}
 		} else {
 			tz = ign.TimeZone
