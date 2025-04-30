@@ -1,0 +1,24 @@
+name: "FOSSA Scan"
+on:
+- pull_request_target
+
+jobs:
+  fossa-scan:
+    permissions:
+      contents: read
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: FOSSA Scan
+        uses: fossas/fossa-action@v1
+        with:
+          api-key: ${{ secrets.FOSSA_API_KEY }}
+          run-tests: ${{ github.event_name == 'pull_request' }}
+          test-diff-revision: ${{ github.event.pull_request.base.sha }}
+          generate-report: html
+      - name: Upload HTML to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: FOSSA report
+          path: '${{ steps.fossa.outputs.report }}'
