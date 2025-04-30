@@ -17,8 +17,9 @@ jobs:
           run-tests: ${{ github.event_name == 'pull_request' }}
           test-diff-revision: ${{ github.event.pull_request.base.sha }}
           generate-report: html
+      - run: echo '${{ steps.fossa.outputs.report }}' > report.html
       - name: Upload HTML to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FOSSA report
-          path: '${{ steps.fossa.outputs.report }}'
+          path: report.html
