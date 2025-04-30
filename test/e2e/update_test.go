@@ -87,6 +87,7 @@ var _ = Describe("Podman update", func() {
 	It("podman update container all options v2", func() {
 		SkipIfCgroupV1("testing flags that only work in cgroup v2")
 		SkipIfRootless("many of these handlers are not enabled while rootless in CI")
+		skipWithoutDevNullb0()
 		session := podmanTest.Podman([]string{"run", "-dt", ALPINE})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -103,10 +104,10 @@ var _ = Describe("Podman update", func() {
 			"--memory-swap", "2G",
 			"--memory-reservation", "2G",
 			"--blkio-weight", "123",
-			"--device-read-bps", "/dev/zero:10mb",
-			"--device-write-bps", "/dev/zero:10mb",
-			"--device-read-iops", "/dev/zero:1000",
-			"--device-write-iops", "/dev/zero:1000",
+			"--device-read-bps", "/dev/nullb0:10mb",
+			"--device-write-bps", "/dev/nullb0:10mb",
+			"--device-read-iops", "/dev/nullb0:1000",
+			"--device-write-iops", "/dev/nullb0:1000",
 			"--pids-limit", "123",
 			ctrID}
 
