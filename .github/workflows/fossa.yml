@@ -19,10 +19,11 @@ jobs:
           test-diff-revision: ${{ github.event.pull_request.base.sha }}
           generate-report: markdown
       - name: Store Report.
-        run: echo '${{ steps.fossa.outputs.report }}' > report.md
+        env:
+          REPORT: ${{steps.fossa.outputs.report}}
+        run: echo "$REPORT" > report.md
       - name: Upload Report to Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FOSSA report
           path: report.md
-
