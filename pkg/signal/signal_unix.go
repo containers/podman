@@ -92,5 +92,11 @@ func isSignalIgnoredBySigProxy(s syscall.Signal) bool {
 	// Ignore SIGCHLD and SIGPIPE - these are most likely intended for the podman command itself.
 	// SIGURG was added because of golang 1.14 and its preemptive changes causing more signals to "show up".
 	// https://github.com/containers/podman/issues/5483
-	return s == syscall.SIGCHLD || s == syscall.SIGPIPE || s == syscall.SIGURG
+	// SIGSTOP cannot be ignored/forwarded by userspace.
+	switch s {
+	case syscall.SIGCHLD, syscall.SIGPIPE, syscall.SIGURG, syscall.SIGSTOP:
+		return true
+	default:
+		return false
+	}
 }
