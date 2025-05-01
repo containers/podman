@@ -34,12 +34,12 @@ type win32_Processor struct { //nolint:revive //FIXME
 // additional fields documented here
 // https://www.geoffchappell.com/studies/windows/km/ntoskrnl/api/ex/sysinfo/processor_performance.htm
 type win32_SystemProcessorPerformanceInformation struct { //nolint:revive //FIXME
-	IdleTime       int64 // idle time in 100ns (this is not a filetime).
-	KernelTime     int64 // kernel time in 100ns.  kernel time includes idle time. (this is not a filetime).
-	UserTime       int64 // usertime in 100ns (this is not a filetime).
-	DpcTime        int64 // dpc time in 100ns (this is not a filetime).
-	InterruptTime  int64 // interrupt time in 100ns
-	InterruptCount uint32
+	IdleTime       int64  // idle time in 100ns (this is not a filetime).
+	KernelTime     int64  // kernel time in 100ns.  kernel time includes idle time. (this is not a filetime).
+	UserTime       int64  // usertime in 100ns (this is not a filetime).
+	DpcTime        int64  // dpc time in 100ns (this is not a filetime).
+	InterruptTime  int64  // interrupt time in 100ns
+	InterruptCount uint64 // ULONG needs to be uint64
 }
 
 const (

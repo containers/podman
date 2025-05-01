@@ -5,6 +5,7 @@ package cpu
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -150,6 +151,10 @@ func perCPUTimes(machLib *common.Library) ([]TimesStat, error) {
 
 	if status != common.KERN_SUCCESS {
 		return nil, fmt.Errorf("host_processor_info error=%d", status)
+	}
+
+	if cpuload == nil {
+		return nil, errors.New("host_processor_info returned nil cpuload")
 	}
 
 	defer vmDeallocate(machTaskSelf(), uintptr(unsafe.Pointer(cpuload)), uintptr(ncpu))
