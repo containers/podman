@@ -252,8 +252,8 @@ github.com/hashicorp/go-multierror v1.1.1 h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+l
 github.com/hashicorp/go-multierror v1.1.1/go.mod h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=
 github.com/hashicorp/go-retryablehttp v0.7.7 h1:C8hUCYzor8PIfXHa4UrZkU4VvK8o9ISHxT2Q8+VepXU=
 github.com/hashicorp/go-retryablehttp v0.7.7/go.mod h1:pkQpWZeYWskR+D1tR2O5OcBFOxfA7DoAO6xtkuQnHTk=
-github.com/hugelgupf/p9 v0.3.1-0.20240118043522-6f4f11e5296e h1:R25ehlvCB7no6giB0TWtwJb0cKIwYu+wuB/5rpln65Q=
-github.com/hugelgupf/p9 v0.3.1-0.20240118043522-6f4f11e5296e/go.mod h1:LoNwfBWP+QlCkjS1GFNylCthRIk/TkMZd6ICTbC+hrI=
+github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308 h1:lw9bsUGBW4HRaDQA4h4d90DHhcdlMoNxx3bi4gYPSPw=
+github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308/go.mod h1:LoNwfBWP+QlCkjS1GFNylCthRIk/TkMZd6ICTbC+hrI=
 github.com/hugelgupf/socketpair v0.0.0-20230822150718-707395b1939a h1:Nq7wDsqsVBUBfGn8yB1M028ShWTKTtZBcafaTJ35N0s=
 github.com/hugelgupf/socketpair v0.0.0-20230822150718-707395b1939a/go.mod h1:71Bqb5Fh9zPHF8jwdmMEmJObzr25Mx5pWLbDBMMEn6E=
 github.com/hugelgupf/vmtest v0.0.0-20240115033909-46506b2af5ea h1:rSO4GiZ/EThUOkl1kFLB+DOGxa3oEgT8d8ZhrYbDIW8=

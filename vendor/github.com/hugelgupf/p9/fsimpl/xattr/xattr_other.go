@@ -1,3 +1,5 @@
+//go:build (windows || plan9) && !unix
+
 package xattr
 
 import "github.com/hugelgupf/p9/linux"
