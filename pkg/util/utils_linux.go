@@ -33,7 +33,8 @@ func GetContainerPidInformationDescriptors() ([]string, error) {
 // [major:minor] is the device's major and minor numbers formatted as, for
 // example, 2:0 and path is the path to the device node.
 // Symlinks to nodes are ignored.
-func FindDeviceNodes() (map[string]string, error) {
+// If onlyBlockDevices is specified, character devices are ignored.
+func FindDeviceNodes(onlyBlockDevices bool) (map[string]string, error) {
 	nodes := make(map[string]string)
 	err := filepath.WalkDir("/dev", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -44,7 +45,13 @@ func FindDeviceNodes() (map[string]string, error) {
 		}
 
 		// If we aren't a device node, do nothing.
-		if d.Type()&(os.ModeDevice|os.ModeCharDevice) == 0 {
+		if d.Type()&os.ModeDevice == 0 {
+			return nil
+		}
+
+		// Ignore character devices, because it is not possible to set limits on them.
+		// os.ModeCharDevice is usable only when os.ModeDevice is set.
+		if onlyBlockDevices && d.Type()&os.ModeCharDevice != 0 {
 			return nil
 		}
 

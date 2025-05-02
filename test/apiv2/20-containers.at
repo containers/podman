@@ -710,15 +710,15 @@ t GET libpod/containers/$cname/json 200 \
   .ImageName=$IMAGE \
   .Name=$cname
 
-if root; then
+if root && test -e /dev/nullb0; then
   podman run -dt --name=updateCtr alpine
   echo '{
     "Memory":{"Limit":500000},
     "CPU":{"Shares":123},
-    "DeviceReadBPs": [{ "Path": "/dev/zero", "Rate": 10485760 }],
-    "DeviceWriteBPs": [{ "Path": "/dev/zero", "Rate": 31457280 }],
-    "DeviceReadIOPs": [{ "Path": "/dev/zero", "Rate": 2000 }],
-    "DeviceWriteIOPs": [{ "Path": "/dev/zero", "Rate": 4000 }]
+    "DeviceReadBPs": [{ "Path": "/dev/nullb0", "Rate": 10485760 }],
+    "DeviceWriteBPs": [{ "Path": "/dev/nullb0", "Rate": 31457280 }],
+    "DeviceReadIOPs": [{ "Path": "/dev/nullb0", "Rate": 2000 }],
+    "DeviceWriteIOPs": [{ "Path": "/dev/nullb0", "Rate": 4000 }]
     }' >${TMPD}/update.json
   t POST libpod/containers/updateCtr/update ${TMPD}/update.json 201
 
@@ -734,25 +734,25 @@ if root; then
 
   BlkioDeviceReadBps_expected='[
   {
-    "Path": "/dev/zero",
+    "Path": "/dev/nullb0",
     "Rate": 10485760
   }
 ]'
   BlkioDeviceWriteBPs_expected='[
   {
-    "Path": "/dev/zero",
+    "Path": "/dev/nullb0",
     "Rate": 31457280
   }
 ]'
   BlkioDeviceReadIOPs_expected='[
   {
-    "Path": "/dev/zero",
+    "Path": "/dev/nullb0",
     "Rate": 2000
   }
 ]'
   BlkioDeviceWriteIOPs_expected='[
   {
-    "Path": "/dev/zero",
+    "Path": "/dev/nullb0",
     "Rate": 4000
   }
 ]'

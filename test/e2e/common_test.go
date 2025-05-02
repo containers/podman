@@ -942,6 +942,13 @@ func SkipIfNotRootless(reason string) {
 	}
 }
 
+func SkipIfNotExist(reason, path string) {
+	checkReason(reason)
+	if _, err := os.Stat(path); err != nil {
+		Skip("[doesNotExist]: " + path + " does not exist: " + reason)
+	}
+}
+
 func SkipIfSystemdNotRunning(reason string) {
 	checkReason(reason)
 
@@ -1647,4 +1654,8 @@ func makeTempDirInDir(dir string) string {
 	path, err := os.MkdirTemp(dir, "podman-test")
 	Expect(err).ToNot(HaveOccurred())
 	return path
+}
+
+func skipWithoutDevNullb0() {
+	SkipIfNotExist("use modprobe null_blk nr_devices=1 to create it", "/dev/nullb0")
 }
