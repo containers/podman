@@ -51,7 +51,7 @@
 		-->
 		<SetProperty Id="HIDE_PROVIDER_CHOICE" After="AppSearch" Value="1" Sequence="first" Condition="(SKIP_CONFIG_FILE_CREATION = 1) OR (MACHINE_PROVIDER_CONFIG_FILE_PATH) OR (MAIN_EXECUTABLE_FILE_PATH)" />
 
-		<CustomAction Id="OpenGuide" DllEntry="WixShellExec" Impersonate="yes" BinaryRef="Wix4UtilCA_X86" />
+		<CustomAction Id="OpenGuide" DllEntry="WixShellExec" Impersonate="yes" BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)" />
 		<util:BroadcastEnvironmentChange />
 		<Feature Id="Complete" Level="1">
 			<ComponentRef Id="INSTALLDIR_Component" />
