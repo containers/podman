@@ -32,9 +32,7 @@ import (
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
 func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.ListResponse, error) {
-	var (
-		lrs []*machine.ListResponse
-	)
+	var lrs []*machine.ListResponse
 
 	for _, s := range vmstubbers {
 		dirs, err := env.GetMachineDirs(s.VMType())
@@ -51,15 +49,15 @@ func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.
 				return nil, err
 			}
 			lr := machine.ListResponse{
-				Name:      name,
-				CreatedAt: mc.Created,
-				LastUp:    mc.LastUp,
-				Running:   state == machineDefine.Running,
-				Starting:  mc.Starting,
-				//Stream:             "", // No longer applicable
+				Name:               name,
+				CreatedAt:          mc.Created,
+				LastUp:             mc.LastUp,
+				Running:            state == machineDefine.Running,
+				Starting:           mc.Starting,
 				VMType:             s.VMType().String(),
 				CPUs:               mc.Resources.CPUs,
 				Memory:             mc.Resources.Memory,
+				Swap:               mc.Swap,
 				DiskSize:           mc.Resources.DiskSize,
 				Port:               mc.SSH.Port,
 				RemoteUsername:     mc.SSH.RemoteUsername,
@@ -206,13 +204,13 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		VMType:    mp.VMType(),
 		WritePath: ignitionFile.GetPath(),
 		Rootful:   opts.Rootful,
+		Swap:      opts.Swap,
 	})
 
 	// If the user provides an ignition file, we need to
 	// copy it into the conf dir
 	if len(opts.IgnitionPath) > 0 {
 		err = ignBuilder.BuildWithIgnitionFile(opts.IgnitionPath)
-
 		if err != nil {
 			return err
 		}

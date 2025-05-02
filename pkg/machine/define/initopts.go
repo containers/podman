@@ -11,6 +11,7 @@ type InitOptions struct {
 	Volumes            []string
 	IsDefault          bool
 	Memory             uint64
+	Swap               uint64
 	Name               string
 	TimeZone           string
 	URI                url.URL

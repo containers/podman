@@ -119,6 +119,7 @@ func outputTemplate(cmd *cobra.Command, responses []*entities.ListReporter) erro
 		"CPUs":     "CPUS",
 		"Memory":   "MEMORY",
 		"DiskSize": "DISK SIZE",
+		"Swap":     "SWAP",
 	})
 
 	rpt := report.New(os.Stdout, cmd.Name())
@@ -182,6 +183,7 @@ func toMachineFormat(vms []*machine.ListResponse, defaultCon *config.Connection)
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
 		response.Memory = strUint(uint64(vm.Memory.ToBytes()))
+		response.Swap = strUint(uint64(vm.Swap.ToBytes()))
 		response.DiskSize = strUint(uint64(vm.DiskSize.ToBytes()))
 		response.Port = vm.Port
 		response.RemoteUsername = vm.RemoteUsername
@@ -225,6 +227,7 @@ func toHumanFormat(vms []*machine.ListResponse, defaultCon *config.Connection) [
 		response.VMType = vm.VMType
 		response.CPUs = vm.CPUs
 		response.Memory = units.BytesSize(float64(vm.Memory.ToBytes()))
+		response.Swap = units.BytesSize(float64(vm.Swap.ToBytes()))
 		response.DiskSize = units.BytesSize(float64(vm.DiskSize.ToBytes()))
 
 		humanResponses = append(humanResponses, response)

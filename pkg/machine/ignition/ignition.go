@@ -67,6 +67,7 @@ type DynamicIgnition struct {
 	Rootful    bool
 	NetRecover bool
 	Rosetta    bool
+	Swap       uint64
 }
 
 func (ign *DynamicIgnition) Write() error {
@@ -136,7 +137,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
-		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType, ign.NetRecover),
+		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType, ign.NetRecover, ign.Swap),
 		Links:       getLinks(ign.Name),
 	}
 
@@ -293,7 +294,7 @@ func getDirs(usrName string) []Directory {
 	return dirs
 }
 
-func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool) []File {
+func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool, swap uint64) []File {
 	files := make([]File, 0)
 
 	lingerExample := parser.NewUnitFile()
@@ -406,6 +407,21 @@ pids_limit=0
 			Mode: IntToPtr(0644),
 		},
 	})
+
+	if swap > 0 {
+		files = append(files, File{
+			Node: Node{
+				Path: "/etc/systemd/zram-generator.conf",
+			},
+			FileEmbedded1: FileEmbedded1{
+				Append: nil,
+				Contents: Resource{
+					Source: EncodeDataURLPtr(fmt.Sprintf("[zram0]\nzram-size=%d\n", swap)),
+				},
+				Mode: IntToPtr(0644),
+			},
+		})
+	}
 
 	// get certs for current user
 	userHome, err := os.UserHomeDir()

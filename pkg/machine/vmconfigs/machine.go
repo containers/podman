@@ -81,6 +81,10 @@ func NewMachineConfig(opts define.InitOptions, dirs *define.MachineDirs, sshIden
 	}
 	mc.Resources = mrc
 
+	if opts.Swap > 0 {
+		mc.Swap = strongunits.MiB(opts.Swap)
+	}
+
 	sshPort, err := ports.AllocateMachinePort()
 	if err != nil {
 		return nil, err
