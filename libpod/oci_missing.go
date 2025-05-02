@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: BSD-3-Clause-Clear
 //go:build !remote
 
 package libpod
