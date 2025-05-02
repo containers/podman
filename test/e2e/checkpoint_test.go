@@ -1131,6 +1131,10 @@ var _ = Describe("Podman checkpoint", func() {
 		)
 
 		It(testName, func() {
+			host := GetHostDistributionInfo()
+			if host.Distribution == "rhel" || host.Distribution == "centos" {
+				Skip("always broken on RHEL/CentOS Stream")
+			}
 			podName := "test_pod"
 
 			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
@@ -1309,6 +1313,10 @@ var _ = Describe("Podman checkpoint", func() {
 	})
 
 	It("podman checkpoint container with export and statistics", func() {
+		host := GetHostDistributionInfo()
+		if host.Distribution == "rhel" || host.Distribution == "centos" {
+			Skip("always broken on RHEL/CentOS Stream")
+		}
 		localRunString := getRunString([]string{
 			"--rm",
 			ALPINE,

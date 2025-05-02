@@ -1,0 +1,43 @@
+require:
+    - golang
+    - gpgme-devel
+    - libseccomp-devel
+    - podman-tests
+    - slirp4netns
+
+environment:
+    PODMAN_BINARY: /usr/bin/podman
+    QUADLET_BINARY: /usr/libexec/podman/quadlet
+    ROOTLESS_USER: "fedora"
+
+adjust+:
+    - when: distro == centos-stream
+      environment+:
+        ROOTLESS_USER: "ec2-user"
+    - when: distro == rhel
+      environment+:
+        ROOTLESS_USER: "cloud-user"
+
+/local-root:
+    tag: [ local, root, e2e ]
+    summary: local rootful test
+    test: make -C $TMT_TREE localintegration
+    duration: 60m
+    
+/local-rootless:
+    tag: [ local, rootless, e2e ]
+    summary: rootless test
+    test: loginctl enable-linger $ROOTLESS_USER && chown -R $ROOTLESS_USER $TMT_TREE && su - "$ROOTLESS_USER" -c "make -C $TMT_TREE localintegration"
+    duration: 60m
+
+/remote-root:
+    tag: [ remote, root, e2e ]
+    summary: remote rootful test
+    test: make -C $TMT_TREE remoteintegration
+    duration: 60m
+
+/remote-rootless:
+    tag: [ remote, rootless, e2e ]
+    summary: remote rootless test
+    test: loginctl enable-linger $ROOTLESS_USER && chown -R $ROOTLESS_USER $TMT_TREE && su - "$ROOTLESS_USER" -c "make -C $TMT_TREE remoteintegration"
+    duration: 60m
