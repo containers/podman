@@ -147,9 +147,13 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		// local means the same as the host
 		// look up where it is pointing to on the host
 		if ign.TimeZone == "local" {
-			tz, err = getLocalTimeZone()
-			if err != nil {
-				return fmt.Errorf("error getting local timezone: %q", err)
+			if env, ok := os.LookupEnv("TZ"); ok {
+				tz = env
+			} else {
+				tz, err = getLocalTimeZone()
+				if err != nil {
+					return fmt.Errorf("error getting local timezone: %q", err)
+				}
 			}
 		}
 		// getLocalTimeZone() can return empty string, do not add broken symlink in that case
