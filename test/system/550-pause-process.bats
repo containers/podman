@@ -24,7 +24,7 @@ function _check_pause_process() {
     pause_pid=$(<$pause_pid_file)
     test -d /proc/$pause_pid || die "Pause process $pause_pid (from $pause_pid_file) is not running"
 
-    assert "$(</proc/$pause_pid/comm)" =~ 'catatonit|podman pause' \
+    assert "$(</proc/$pause_pid/comm)" =~ '${CATATONIT}|podman pause' \
            "Pause process $pause_pid has an unexpected name"
 }
 

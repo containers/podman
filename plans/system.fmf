@@ -1,0 +1,47 @@
+discover:
+    how: fmf
+
+execute:
+    how: tmt
+
+prepare:
+    - how: shell
+      script: modprobe null_blk nr_devices=1
+      order: 5
+    - how: shell
+      script: |
+        BATS_VERSION=1.12.0
+        curl -L https://github.com/bats-core/bats-core/archive/refs/tags/v"$BATS_VERSION".tar.gz | tar -xz
+        cd bats-core-"$BATS_VERSION"
+        ./install.sh /usr
+      order: 10
+
+provision:
+    how: artemis
+    hardware:
+        memory: ">= 16 GB"
+        cpu:
+            cores: ">= 4"
+            threads: ">=8"
+        disk:
+            - size: ">= 512 GB"
+
+/local-root:
+    summary: Local rootful tests
+    discover+:
+        filter: 'tag:local & tag:root & tag:system'
+
+/local-rootless:
+    summary: Local rootless tests
+    discover+:
+        filter: 'tag:local & tag:rootless & tag:system'
+
+/remote-root:
+    summary: Remote rootful tests
+    discover+:
+        filter: 'tag:remote & tag:root & tag:system'
+
+/remote-rootless:
+    summary: Remote rootless tests
+    discover+:
+        filter: 'tag:remote & tag:rootless & tag:system'

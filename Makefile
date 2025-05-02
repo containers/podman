@@ -772,7 +772,7 @@ system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
 .PHONY: test-binaries
-test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit test/version/version
+test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho test/version/version
 	@echo "Canonical source version: $(call err_if_empty,RELEASE_VERSION)"
 
 .PHONY: tests-included

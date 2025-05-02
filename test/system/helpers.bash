@@ -35,6 +35,9 @@ SYSTEMD_IMAGE=$PODMAN_SYSTEMD_IMAGE_FQN
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
 
+# catatonit on RHEL may not in $PATH, but in /usr/libexec/podman
+CATATONIT=${CATATONIT:-catatonit}
+
 # Prompt to display when logging podman commands; distinguish root/rootless
 _LOG_PROMPT='$'
 if [ $(id -u) -eq 0 ]; then
@@ -748,6 +751,10 @@ function is_aarch64() {
     [ "$(uname -m)" == "aarch64" ]
 }
 
+function is_rhel_or_centos() {
+    [[ -f /etc/redhat-release ]] && grep -Eiq "Red Hat Enterprise Linux|CentOS Stream" /etc/redhat-release
+}
+
 function selinux_enabled() {
     /usr/sbin/selinuxenabled 2> /dev/null
 }
@@ -956,6 +963,12 @@ function skip_if_journald_unavailable {
 function skip_if_aarch64 {
     if is_aarch64; then
         skip "${msg:-Cannot run this test on aarch64 systems}"
+    fi
+}
+
+function skip_if_rhel_or_centos {
+    if is_rhel_or_centos; then
+        skip "${msg:-skip on RHEL and CentOS Stream}"
     fi
 }
 

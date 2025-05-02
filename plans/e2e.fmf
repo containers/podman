@@ -1,0 +1,40 @@
+discover:
+    how: fmf
+
+execute:
+    how: tmt
+
+prepare:
+    - how: shell
+      script: modprobe null_blk nr_devices=1
+      order: 5
+
+provision:
+    how: artemis
+    hardware:
+        memory: ">= 16 GB"
+        cpu:
+            cores: ">= 4"
+            threads: ">=8"
+        disk:
+            - size: ">= 512 GB"
+
+/local-root:
+    summary: Local rootful tests
+    discover+:
+        filter: 'tag:local & tag:root & tag:e2e'
+
+/local-rootless:
+    summary: Local rootless tests
+    discover+:
+        filter: 'tag:local & tag:rootless & tag:e2e'
+
+/remote-root:
+    summary: Remote rootful tests
+    discover+:
+        filter: 'tag:remote & tag:root & tag:e2e'
+
+/remote-rootless:
+    summary: Remote rootless tests
+    discover+:
+        filter: 'tag:remote & tag:rootless & tag:e2e'

@@ -1,0 +1,51 @@
+require:
+    - golang
+    - gpgme-devel
+    - libseccomp-devel
+    - slirp4netns
+
+environment:
+    CATATONIT_BINARY: /usr/libexec/podman/catatonit
+    PODMAN_BINARY: /usr/bin/podman
+    QUADLET_BINARY: /usr/libexec/podman/quadlet
+    ROOTLESS_USER: "fedora"
+    CI_DESIRED_NETWORK: "netavark"
+adjust+:
+    - when: distro == centos-stream
+      environment+:
+        ROOTLESS_USER: "ec2-user"
+    - when: distro == rhel
+      environment+:
+        ROOTLESS_USER: "cloud-user"
+
+/local-root:
+    tag: [ local, root, e2e ]
+    summary: local rootful test
+    test: make -C $TMT_TREE localintegration
+    duration: 30m
+    
+/local-rootless:
+    tag: [ local, rootless, e2e ]
+    summary: rootless test
+    test: su -c "$ROOTLESS_USER" -c "make -C $TMT_TREE localintegration"
+    duration: 30m
+
+/remote-root:
+    tag: [ remote, root, e2e ]
+    summary: remote rootful test
+    test: make -C $TMT_TREE remoteintegration
+    duration: 30m
+    environment+:
+        PODMAN: /usr/bin/podman-remote
+    require+:
+        - podman-remote
+
+/remote-rootless:
+    tag: [ remote, rootless, e2e ]
+    summary: remote rootless test
+    test: su -c "$ROOTLESS_USER" -c "make -C $TMT_TREE remoteintegration"
+    duration: 30m
+    environment+:
+        PODMAN: /usr/bin/podman-remote
+    require+:
+        - podman-remote

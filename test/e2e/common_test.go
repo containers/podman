@@ -42,6 +42,7 @@ import (
 var (
 	//lint:ignore ST1003
 	PODMAN_BINARY      string                              //nolint:revive,stylecheck
+	CATATONIT_BINARY   string                              //nolint:revive,stylecheck
 	INTEGRATION_ROOT   string                              //nolint:revive,stylecheck
 	CGROUP_MANAGER     = "systemd"                         //nolint:revive,stylecheck
 	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE} //nolint:revive,stylecheck
@@ -52,6 +53,7 @@ var (
 // PodmanTestIntegration struct for command line options
 type PodmanTestIntegration struct {
 	PodmanTest
+	CatatonitBinary     string
 	ConmonBinary        string
 	QuadletBinary       string
 	Root                string
@@ -290,6 +292,14 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 		quadletBinary = filepath.Join(cwd, "../../bin/quadlet")
 	}
 
+	catatonitBinary := os.Getenv("CATATONIT_BINARY")
+	if catatonitBinary == "" {
+		catatonitBinary = "/usr/libexec/podman/catatonit"
+		if _, err := os.Stat(catatonitBinary); errors.Is(err, os.ErrNotExist) {
+			catatonitBinary = "/usr/libexec/catatonit"
+		}
+	}
+
 	conmonBinary := os.Getenv("CONMON_BINARY")
 	if conmonBinary == "" {
 		conmonBinary = "/usr/libexec/podman/conmon"
@@ -364,6 +374,7 @@ func PodmanTestCreateUtil(tempDir string, remote bool) *PodmanTestIntegration {
 			NetworkBackend:     networkBackend,
 			DatabaseBackend:    dbBackend,
 		},
+		CatatonitBinary:     catatonitBinary,
 		ConmonBinary:        conmonBinary,
 		QuadletBinary:       quadletBinary,
 		Root:                root,
@@ -1175,7 +1186,7 @@ func (p *PodmanTestIntegration) makeOptions(args []string, options PodmanExecOpt
 	}
 
 	podmanOptions := strings.Split(fmt.Sprintf("%s--root %s --runroot %s --runtime %s --conmon %s --network-config-dir %s --network-backend %s --cgroup-manager %s --tmpdir %s --events-backend %s --db-backend %s",
-		debug, p.Root, p.RunRoot, p.OCIRuntime, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType, p.DatabaseBackend), " ")
+		debug, p.Root, p.RunRoot, p.OCIRuntime, p.CatatonitBinary, p.ConmonBinary, p.NetworkConfigDir, p.NetworkBackend.ToString(), p.CgroupManager, p.TmpDir, eventsType, p.DatabaseBackend), " ")
 
 	podmanOptions = append(podmanOptions, strings.Split(p.StorageOptions, " ")...)
 	if !options.NoCache {

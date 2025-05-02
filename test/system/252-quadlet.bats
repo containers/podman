@@ -187,6 +187,8 @@ function wait_for_journal() {
 
 # bats test_tags=distro-integration
 @test "quadlet - basic" {
+    skip_if_journald_unavailable
+
     # Network=none is to work around a Pasta bug, can be removed once a patched Pasta is available.
     # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
@@ -259,6 +261,8 @@ EOF
 }
 
 @test "quadlet - envvar" {
+    skip_if_journald_unavailable
+
     local quadlet_file=$PODMAN_TMPDIR/envvar_$(safename).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -283,6 +287,8 @@ EOF
 }
 
 @test "quadlet - ContainerName and journal output check" {
+    skip_if_journald_unavailable
+
     local quadlet_file=$PODMAN_TMPDIR/containername_$(safename).container
     local token_out="STDOUT$(random_string 10)"
     local token_err="STDERR$(random_string 10)"
@@ -342,6 +348,8 @@ EOF
 }
 
 @test "quadlet - oneshot" {
+    skip_if_journald_unavailable
+
     local quadlet_file=$PODMAN_TMPDIR/oneshot_$(safename).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -961,6 +969,8 @@ EOF
 }
 
 @test "quadlet - exit-code propagation" {
+   skip_if_journald_unavailable
+
    pod_name="p-$(safename)"
    container_name="c-$(safename)"
    exit_tests="
