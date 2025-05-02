@@ -86,6 +86,25 @@ func BarFillerOnComplete(message string) BarOption {
 	})
 }
 
+// BarFillerClearOnAbort clears bar's filler on abort event.
+// It's shortcut for BarFillerOnAbort("").
+func BarFillerClearOnAbort() BarOption {
+	return BarFillerOnAbort("")
+}
+
+// BarFillerOnAbort replaces bar's filler with message, on abort event.
+func BarFillerOnAbort(message string) BarOption {
+	return BarFillerMiddleware(func(base BarFiller) BarFiller {
+		return BarFillerFunc(func(w io.Writer, st decor.Statistics) error {
+			if st.Aborted {
+				_, err := io.WriteString(w, message)
+				return err
+			}
+			return base.Fill(w, st)
+		})
+	})
+}
+
 // BarFillerMiddleware provides a way to augment the underlying BarFiller.
 func BarFillerMiddleware(middle func(BarFiller) BarFiller) BarOption {
 	if middle == nil {
