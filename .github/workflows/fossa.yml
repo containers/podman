@@ -14,7 +14,6 @@ jobs:
         name: FOSSA Scan
         run: |-
           curl -H 'Cache-Control: no-cache' https://raw.githubusercontent.com/fossas/fossa-cli/master/install-latest.sh | bash
-          fossa analyze && fossa test --diff "${{ github.event.pull_request.base.sha }}" && fossa report attribution --format text
+          fossa analyze --experimental-force-first-party-scans && fossa test --diff "${{ github.event.pull_request.base.sha }}" && fossa report attribution --format text
         env:
           FOSSA_API_KEY: "${{secrets.FOSSA_API_KEY}}"
-
