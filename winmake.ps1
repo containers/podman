@@ -1,5 +1,22 @@
 
 #!/usr/bin/env powershell
+[CmdletBinding(PositionalBinding=$false)]
+param (
+    [ValidateSet("amd64", "arm64")]
+    [Alias("arch")]
+    [string]$architecture = $(
+        $defaultArchitecture = "amd64"
+        $arch = try {& go env GOARCH} catch {
+            Write-Warning "Failed retriving the host architecture, using default ($defaultArchitecture). Is Go installed?"
+            return $defaultArchitecture
+        }
+        if ($arch -cnotin @("arm64", "amd64")) {
+            Write-Warning "Unsupported architecture $arch. Using default ($defaultArchitecture)."
+            return $defaultArchitecture
+        }
+    ),
+    [parameter(ValueFromRemainingArguments)][object[]]$params = @()
+)
 
 . ./contrib/cirrus/win-lib.ps1
 
@@ -12,6 +29,7 @@ function Podman-Remote{
     $commit = Git-Commit
     $commit = "-X github.com/containers/podman/v5/libpod/define.gitCommit=$commit "
 
+    $ENV:GOARCH = $architecture
     Run-Command "go build --ldflags `"$commit $buildInfo `" --tags `"$remotetags`" --o ./bin/windows/podman.exe ./cmd/podman/."
 }
 
@@ -75,8 +93,14 @@ function Win-SSHProxy {
         $match = Select-String -Path "$PSScriptRoot\go.mod" -Pattern "github.com/containers/gvisor-tap-vsock\s+(v[\d\.]+)"
         $Version = $match.Matches.Groups[1].Value
     }
-    curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windowsgui.exe"
-    curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy.exe"
+    Write-Host "Downloading gvproxy version $version"
+    if ($architecture -eq "amd64") {
+        curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windowsgui.exe"
+        curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy.exe"
+    } else {
+        curl.exe -sSL -o "./bin/windows/gvproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/gvproxy-windows-arm64.exe"
+        curl.exe -sSL -o "./bin/windows/win-sshproxy.exe" --retry 5 "https://github.com/containers/gvisor-tap-vsock/releases/download/$Version/win-sshproxy-arm64.exe"
+    }
 }
 
 function Installer{
@@ -115,6 +139,7 @@ function Installer{
 
     # Run \contrib\win-installer\build.ps1
     Push-Location $PSScriptRoot\contrib\win-installer
+    $ENV:PODMAN_ARCH = $architecture # This is used by the "build.ps1" script
     Run-Command ".\build.ps1 $version $suffix `"$zipFileDest`""
     Pop-Location
 }
@@ -298,7 +323,7 @@ function Build-Distribution-Zip-File{
         );
     $binariesFolder = "$PSScriptRoot\bin\windows"
     $documentationFolder = "$PSScriptRoot\docs\build\remote\"
-    $zipFile = "$destinationPath\podman-remote-release-windows_amd64.zip"
+    $zipFile = "$destinationPath\podman-remote-release-windows_$architecture.zip"
 
     # Create a temporary folder to store the distribution files
     $tempFolder = New-Item -ItemType Directory -Force -Path "$env:TEMP\podman-windows"
@@ -332,7 +357,7 @@ function Get-Podman-Version{
 }
 
 # Init script
-$target = $args[0]
+$target = $params[0]
 
 $remotetags = "remote exclude_graphdriver_btrfs containers_image_openpgp"
 
@@ -344,30 +369,30 @@ switch ($target) {
         Local-Unit
     }
     'localmachine' {
-        if ($args.Count -gt 1) {
-            $files = $args[1]
+        if ($params.Count -gt 1) {
+            $files = $params[1]
         }
-        Local-Machine  -files $files
+        Local-Machine -files $files
     }
     'clean' {
         Make-Clean
     }
     {$_ -in 'win-sshproxy', 'win-gvproxy'} {
-        if ($args.Count -gt 1) {
-            $ref = $args[1]
+        if ($params.Count -gt 1) {
+            $ref = $params[1]
         }
         Win-SSHProxy($ref)
     }
     'installer' {
-        if ($args.Count -gt 1) {
-            Installer -version $args[1]
+        if ($params.Count -gt 1) {
+            Installer -version $params[1]
         } else {
             Installer
         }
     }
     'installertest' {
-        if ($args.Count -gt 1) {
-            Test-Installer -provider $args[1]
+        if ($params.Count -gt 1) {
+            Test-Installer -provider $params[1]
         } else {
             Test-Installer
         }
@@ -385,7 +410,7 @@ switch ($target) {
         Lint
     }
     default {
-        Write-Host "Usage: " $MyInvocation.MyCommand.Name "<target> [options]"
+        Write-Host "Usage: " $MyInvocation.MyCommand.Name "<target> [options] [<-architecture|-arch>=<amd64|arm64>]"
         Write-Host
         Write-Host "Example: Build podman-remote "
         Write-Host " .\winmake podman-remote"
