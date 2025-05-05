@@ -279,6 +279,12 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(timezoneSession).To(Exit(0))
 		Expect(timezoneSession.outputToString()).To(ContainSubstring("HST"))
+
+		sshTimezone = sshMachine{}
+		timezoneSession, err = mb.setName(name).setCmd(sshTimezone.withSSHCommand([]string{"timedatectl show --property Timezone"})).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(timezoneSession).To(Exit(0))
+		Expect(timezoneSession.outputToString()).To(ContainSubstring("Pacific/Honolulu"))
 	})
 
 	It("machine init with swap", func() {
