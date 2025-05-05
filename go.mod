@@ -38,7 +38,7 @@ require (
 	github.com/gorilla/mux v1.8.1
 	github.com/gorilla/schema v1.4.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hugelgupf/p9 v0.3.1-0.20240118043522-6f4f11e5296e
+	github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308
 	github.com/json-iterator/go v1.1.12
 	github.com/kevinburke/ssh_config v1.2.0
 	github.com/klauspost/pgzip v1.2.6

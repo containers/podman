@@ -617,7 +617,7 @@ github.com/hashicorp/go-multierror
 # github.com/hashicorp/go-retryablehttp v0.7.7
 ## explicit; go 1.19
 github.com/hashicorp/go-retryablehttp
-# github.com/hugelgupf/p9 v0.3.1-0.20240118043522-6f4f11e5296e
+# github.com/hugelgupf/p9 v0.3.1-0.20250420164440-abc96d20b308
 ## explicit; go 1.21
 github.com/hugelgupf/p9/fsimpl/localfs
 github.com/hugelgupf/p9/fsimpl/templatefs
