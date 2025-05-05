@@ -348,13 +348,14 @@ type TuntapFlag uint16
 // Tuntap links created via /dev/tun/tap, but can be destroyed via netlink
 type Tuntap struct {
 	LinkAttrs
-	Mode       TuntapMode
-	Flags      TuntapFlag
-	NonPersist bool
-	Queues     int
-	Fds        []*os.File
-	Owner      uint32
-	Group      uint32
+	Mode           TuntapMode
+	Flags          TuntapFlag
+	NonPersist     bool
+	Queues         int
+	DisabledQueues int
+	Fds            []*os.File
+	Owner          uint32
+	Group          uint32
 }
 
 func (tuntap *Tuntap) Attrs() *LinkAttrs {
@@ -1058,6 +1059,8 @@ type Geneve struct {
 	FlowBased         bool
 	InnerProtoInherit bool
 	Df                GeneveDf
+	PortLow           int
+	PortHigh          int
 }
 
 func (geneve *Geneve) Attrs() *LinkAttrs {

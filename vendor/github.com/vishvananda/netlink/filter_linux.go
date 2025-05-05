@@ -740,6 +740,17 @@ func EncodeActions(attr *nl.RtAttr, actions []Action) error {
 			aopts.AddRtAttr(nl.TCA_ACT_BPF_PARMS, gen.Serialize())
 			aopts.AddRtAttr(nl.TCA_ACT_BPF_FD, nl.Uint32Attr(uint32(action.Fd)))
 			aopts.AddRtAttr(nl.TCA_ACT_BPF_NAME, nl.ZeroTerminated(action.Name))
+		case *SampleAction:
+			table := attr.AddRtAttr(tabIndex, nil)
+			tabIndex++
+			table.AddRtAttr(nl.TCA_ACT_KIND, nl.ZeroTerminated("sample"))
+			aopts := table.AddRtAttr(nl.TCA_ACT_OPTIONS, nil)
+			gen := nl.TcGen{}
+			toTcGen(action.Attrs(), &gen)
+			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_PARMS, gen.Serialize())
+			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_RATE, nl.Uint32Attr(action.Rate))
+			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_PSAMPLE_GROUP, nl.Uint32Attr(action.Group))
+			aopts.AddRtAttr(nl.TCA_ACT_SAMPLE_TRUNC_SIZE, nl.Uint32Attr(action.TruncSize))
 		case *GenericAction:
 			table := attr.AddRtAttr(tabIndex, nil)
 			tabIndex++
@@ -752,6 +763,7 @@ func EncodeActions(attr *nl.RtAttr, actions []Action) error {
 			table := attr.AddRtAttr(tabIndex, nil)
 			tabIndex++
 			pedit := nl.TcPedit{}
+			toTcGen(action.Attrs(), &pedit.Sel.TcGen)
 			if action.SrcMacAddr != nil {
 				pedit.SetEthSrc(action.SrcMacAddr)
 			}
@@ -825,6 +837,8 @@ func parseActions(tables []syscall.NetlinkRouteAttr) ([]Action, error) {
 					action = &ConnmarkAction{}
 				case "csum":
 					action = &CsumAction{}
+				case "sample":
+					action = &SampleAction{}
 				case "gact":
 					action = &GenericAction{}
 				case "vlan":
@@ -948,6 +962,18 @@ func parseActions(tables []syscall.NetlinkRouteAttr) ([]Action, error) {
 						case nl.TCA_CSUM_TM:
 							tcTs := nl.DeserializeTcf(adatum.Value)
 							actionTimestamp = toTimeStamp(tcTs)
+						}
+					case "sample":
+						switch adatum.Attr.Type {
+						case nl.TCA_ACT_SAMPLE_PARMS:
+							gen := *nl.DeserializeTcGen(adatum.Value)
+							toAttrs(&gen, action.Attrs())
+						case nl.TCA_ACT_SAMPLE_RATE:
+							action.(*SampleAction).Rate = native.Uint32(adatum.Value[0:4])
+						case nl.TCA_ACT_SAMPLE_PSAMPLE_GROUP:
+							action.(*SampleAction).Group = native.Uint32(adatum.Value[0:4])
+						case nl.TCA_ACT_SAMPLE_TRUNC_SIZE:
+							action.(*SampleAction).TruncSize = native.Uint32(adatum.Value[0:4])
 						}
 					case "gact":
 						switch adatum.Attr.Type {
