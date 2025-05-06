@@ -113,19 +113,23 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	}()
 
 	logrus.Debugf("executing health check command %s for %s", strings.Join(newCommand, " "), c.ID())
-	timeStart := time.Now()
 	hcResult := define.HealthCheckSuccess
 	config := new(ExecConfig)
 	config.Command = newCommand
-	exitCode, hcErr := c.healthCheckExec(config, streams)
+	timeStart := time.Now()
+	exitCode, hcErr := c.healthCheckExec(config, c.HealthCheckConfig().Timeout, streams)
+	timeEnd := time.Now()
 	if hcErr != nil {
 		hcResult = define.HealthCheckFailure
-		if errors.Is(hcErr, define.ErrOCIRuntimeNotFound) ||
+		switch {
+		case errors.Is(hcErr, define.ErrOCIRuntimeNotFound) ||
 			errors.Is(hcErr, define.ErrOCIRuntimePermissionDenied) ||
-			errors.Is(hcErr, define.ErrOCIRuntime) {
+			errors.Is(hcErr, define.ErrOCIRuntime):
 			returnCode = 1
 			hcErr = nil
-		} else {
+		case errors.Is(hcErr, define.ErrHealthCheckTimeout):
+			returnCode = -1
+		default:
 			returnCode = 125
 		}
 	} else if exitCode != 0 {
@@ -144,7 +148,6 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 		}
 	}
 
-	timeEnd := time.Now()
 	if c.HealthCheckConfig().StartPeriod > 0 {
 		// there is a start-period we need to honor; we add startPeriod to container start time
 		startPeriodTime := c.state.StartedTime.Add(c.HealthCheckConfig().StartPeriod)
@@ -158,12 +161,6 @@ func (c *Container) runHealthCheck(ctx context.Context, isStartup bool) (define.
 	eventLog := strings.Join(stdout, "\n")
 	if len(eventLog) > MaxHealthCheckLogLength {
 		eventLog = eventLog[:MaxHealthCheckLogLength]
-	}
-
-	if timeEnd.Sub(timeStart) > c.HealthCheckConfig().Timeout {
-		returnCode = -1
-		hcResult = define.HealthCheckFailure
-		hcErr = fmt.Errorf("healthcheck command exceeded timeout of %s", c.HealthCheckConfig().Timeout.String())
 	}
 
 	hcl := newHealthCheckLog(timeStart, timeEnd, returnCode, eventLog)
