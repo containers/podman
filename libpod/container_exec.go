@@ -773,7 +773,7 @@ func (c *Container) ExecResize(sessionID string, newSize resize.TerminalSize) er
 	return c.ociRuntime.ExecAttachResize(c, sessionID, newSize)
 }
 
-func (c *Container) healthCheckExec(config *ExecConfig, streams *define.AttachStreams) (int, error) {
+func (c *Container) healthCheckExec(config *ExecConfig, timeout time.Duration, streams *define.AttachStreams) (int, error) {
 	unlock := true
 	if !c.batched {
 		c.lock.Lock()
@@ -821,15 +821,23 @@ func (c *Container) healthCheckExec(config *ExecConfig, streams *define.AttachSt
 	if err != nil {
 		return -1, err
 	}
+	session.PID = pid
 
 	if !c.batched {
 		c.lock.Unlock()
 		unlock = false
 	}
 
-	err = <-attachErrChan
-	if err != nil {
-		return -1, fmt.Errorf("container %s light exec session with pid: %d error: %v", c.ID(), pid, err)
+	select {
+	case err = <-attachErrChan:
+		if err != nil {
+			return -1, fmt.Errorf("container %s light exec session with pid: %d error: %v", c.ID(), pid, err)
+		}
+	case <-time.After(timeout):
+		if err := c.ociRuntime.ExecStopContainer(c, session.ID(), 0); err != nil {
+			return -1, err
+		}
+		return -1, fmt.Errorf("%v of %s", define.ErrHealthCheckTimeout, c.HealthCheckConfig().Timeout.String())
 	}
 
 	return c.readExecExitCode(session.ID())
