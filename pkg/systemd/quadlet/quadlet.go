@@ -1482,7 +1482,7 @@ func GetPodResourceName(podUnit *parser.UnitFile) string {
 	// Derive pod name from unit name (with added prefix), or use user-provided name.
 	podName, ok := podUnit.Lookup(PodGroup, KeyPodName)
 	if !ok || len(podName) == 0 {
-		podName = removeExtension(podUnit.Filename, "systemd-", "")
+		podName = "systemd-%N"
 	}
 	return podName
 }
