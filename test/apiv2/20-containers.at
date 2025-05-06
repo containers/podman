@@ -442,7 +442,17 @@ t GET containers/json 200 \
   .[0].Ports[0].PublicPort=8080 \
   .[0].Ports[0].Type="tcp"
 
-podman stop bar
+podman rm -f bar
+
+# confirm exposed port 8080 shows up in /containers/json
+
+podman run -d --rm --name bar --expose 8080 $IMAGE top
+
+t GET containers/json 200 \
+  .[0].Ports[0].PrivatePort=8080 \
+  .[0].Ports[0].Type="tcp"
+
+podman rm -f bar
 
 #compat api list containers sanity checks
 podman run -d --rm --name labelcontainer_with --label slartibart=fast $IMAGE top
