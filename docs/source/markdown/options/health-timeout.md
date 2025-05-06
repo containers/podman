@@ -7,8 +7,8 @@
 The maximum time allowed to complete the healthcheck before an interval is considered failed. Like start-period, the
 value can be expressed in a time format such as **1m22s**. The default value is **30s**.
 
-Note: A timeout marks the healthcheck as failed but does not terminate the running process.
-This ensures that a slow but eventually successful healthcheck does not disrupt the container
-but is still accounted for in the health status.
+Note: A timeout marks the healthcheck as failed. If the healthcheck command itself runs longer than the specified *timeout*,
+it will be sent a `SIGTERM` signal. If the command does not exit within a grace period (equal in duration to the specified *timeout*),
+a `SIGKILL` signal is then sent.
 
 Note: This parameter will overwrite related healthcheck configuration from the image.
