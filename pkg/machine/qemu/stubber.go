@@ -93,9 +93,10 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		if err != nil {
 			return err
 		}
-		q.Command.SetSerialPort(*readySocket, *mc.QEMUHypervisor.QEMUPidPath, mc.Name)
+		q.Command.SetSerialPort(*readySocket, mc.Name)
 	}
 
+	q.Command.SetPidFile(*mc.QEMUHypervisor.QEMUPidPath)
 	q.Command.SetUSBHostPassthrough(mc.Resources.USBs)
 
 	return nil

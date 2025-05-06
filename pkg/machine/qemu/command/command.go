@@ -80,15 +80,19 @@ func (q *QemuCmd) SetUSBHostPassthrough(usbs []define.USBConfig) {
 }
 
 // SetSerialPort adds a serial port to the machine for readiness
-func (q *QemuCmd) SetSerialPort(readySocket, vmPidFile define.VMFile, name string) {
+func (q *QemuCmd) SetSerialPort(readySocket define.VMFile, name string) {
 	*q = append(*q,
 		"-device", "virtio-serial",
 		// qemu needs to establish the long name; other connections can use the symlink'd
 		// Note both id and chardev start with an extra "a" because qemu requires that it
 		// starts with a letter but users can also use numbers
 		"-chardev", "socket,path="+readySocket.GetPath()+",server=on,wait=off,id=a"+name+"_ready",
-		"-device", "virtserialport,chardev=a"+name+"_ready"+",name=org.fedoraproject.port.0",
-		"-pidfile", vmPidFile.GetPath())
+		"-device", "virtserialport,chardev=a"+name+"_ready"+",name=org.fedoraproject.port.0")
+}
+
+// SetPidFile sets the path where to write QEMU PID
+func (q *QemuCmd) SetPidFile(vmPidFile define.VMFile) {
+	*q = append(*q, "-pidfile", vmPidFile.GetPath())
 }
 
 // SetBootableImage specifies the image the machine will use to boot
