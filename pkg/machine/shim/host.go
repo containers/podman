@@ -31,6 +31,8 @@ import (
 	"golang.org/x/term"
 )
 
+var ErrRemoveUserCancelled = errors.New("user cancelled the removal operation")
+
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
 func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.ListResponse, error) {
@@ -819,7 +821,7 @@ func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.R
 			return err
 		}
 		if strings.ToLower(answer)[0] != 'y' {
-			return nil
+			return ErrRemoveUserCancelled
 		}
 	}
 
