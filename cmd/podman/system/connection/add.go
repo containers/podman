@@ -141,6 +141,16 @@ func add(cmd *cobra.Command, args []string) error {
 
 	switch uri.Scheme {
 	case "ssh":
+		// ensure the Identity provided is a valid file
+		if cmd.Flags().Changed("identity") {
+			info, err := os.Stat(entities.Identity)
+			switch {
+			case err != nil:
+				return err
+			case info.IsDir():
+				return fmt.Errorf("%q is a directory", entities.Identity)
+			}
+		}
 		return ssh.Create(entities, sshMode)
 	case "unix":
 		if cmd.Flags().Changed("identity") {
