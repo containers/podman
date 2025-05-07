@@ -4,6 +4,7 @@
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/containers/podman)
 [![Go Report Card](https://goreportcard.com/badge/github.com/containers/libpod)](https://goreportcard.com/report/github.com/containers/libpod)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10499/badge)](https://www.bestpractices.dev/projects/10499)
 
 <br/>
 
