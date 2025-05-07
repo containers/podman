@@ -105,7 +105,7 @@ if ($ENV:INSTVER -eq "") {
 }
 
 $installerPlatform = ""
-if ($null -eq $ENV:PODMAN_ARCH -or $ENV:PODMAN_ARCH -eq "amd64") {
+if ($null -eq $ENV:PODMAN_ARCH -or "" -eq $ENV:PODMAN_ARCH -or "amd64" -eq $ENV:PODMAN_ARCH) {
     $installerPlatform = "x64"
 } elseif ($ENV:PODMAN_ARCH -eq "arm64") {
     $installerPlatform = "arm64"
