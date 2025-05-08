@@ -1105,7 +1105,7 @@ golang.org/x/crypto/xts
 ## explicit; go 1.23.0
 golang.org/x/mod/semver
 golang.org/x/mod/sumdb/note
-# golang.org/x/net v0.39.0
+# golang.org/x/net v0.40.0
 ## explicit; go 1.23.0
 golang.org/x/net/bpf
 golang.org/x/net/html
