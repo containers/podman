@@ -144,6 +144,9 @@ jobs:
 
   windows-installer:
     name: Build Windows Installer
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
     runs-on: windows-latest
     needs: [check, build-artifacts]
     env:
@@ -198,13 +201,29 @@ jobs:
         }
         Pop-Location
         Exit $code
-    - name: Display structure of downloaded files
+      env:
+        PODMAN_ARCH: ${{ matrix.arch }}
+    - name: Display structure of built files
       run: |
         Push-Location contrib\win-installer
         Get-ChildItem
         Pop-Location
-    - name: Artifact
+    - name: Rename the installer
+      run: |
+        Push-Location contrib\win-installer
+        Copy-Item -Path podman-${{steps.getversion.outputs.version}}-setup.exe -Destination podman-installer-windows-${{ matrix.arch }}.exe
+        Pop-Location
+    - name: Upload the installer
       uses: actions/upload-artifact@v4
+      with:
+        name: win-installer-${{ matrix.arch }}
+        path: |
+          .\contrib\win-installer\podman-installer-windows-${{ matrix.arch }}.exe
+      # For backwards compatibility, we also upload the amd64 windows
+      # installer using the old name
+    - name: Upload the installer (legacy)
+      uses: actions/upload-artifact@v4
+      if: ${{ matrix.arch == 'amd64' }}
       with:
         name: win-installer
         path: |

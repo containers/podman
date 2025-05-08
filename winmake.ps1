@@ -14,6 +14,7 @@ param (
             Write-Warning "Unsupported architecture $arch. Using default ($defaultArchitecture)."
             return $defaultArchitecture
         }
+        return $arch
     ),
     [parameter(ValueFromRemainingArguments)][object[]]$params = @()
 )
@@ -109,7 +110,7 @@ function Installer{
         [string]$version,
         [string]$suffix = "dev"
     );
-    Write-Host "Building the windows installer"
+    Write-Host "Building the windows installer for $architecture"
 
     # Check for the files to include in the installer
     $requiredArtifacts = @(

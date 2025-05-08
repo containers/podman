@@ -97,10 +97,14 @@ try {
     $restore = 1
     $ProgressPreference = 'SilentlyContinue';
 
+    if ($null -eq $ENV:PODMAN_ARCH -or "" -eq $ENV:PODMAN_ARCH ) {
+        Write-Warning "PODMAN_ARCH not set, defaulting to amd64"
+        $ENV:PODMAN_ARCH = "amd64"
+    }
     if ($releaseDir.Length -gt 0) {
-        Copy-Item -Path "$releaseDir/podman-remote-release-windows_amd64.zip" "release.zip"
+        Copy-Item -Path "$releaseDir/podman-remote-release-windows_${ENV:PODMAN_ARCH}.zip" "release.zip"
     } else {
-        DownloadOrSkip "$base_url/releases/download/$version/podman-remote-release-windows_amd64.zip"  "release.zip"
+        DownloadOrSkip "$base_url/releases/download/$version/podman-remote-release-windows_${ENV:PODMAN_ARCH}.zip"  "release.zip"
         DownloadOptional "$base_url/releases/download/$version/shasums" ..\shasums
     }
     Expand-Archive -Path release.zip
