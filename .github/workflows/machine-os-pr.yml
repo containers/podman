@@ -27,9 +27,12 @@ jobs:
       - name: Get version
         id: getversion
         run: |
-          VERSION=$(curl "https://raw.githubusercontent.com/$PODMAN_REPO/$SHA/version/rawversion/version.go" | sed -n 's/^const RawVersion = \"\(.*\)\"$/\1/p')
+          VERSION=$(curl "https://raw.githubusercontent.com/$PODMAN_REPO/$SHA/version/rawversion/version.go" | sed -n 's/^const RawVersion = \"\([0-9]\+\.[0-9]\+\.[0-9]\+\(-rc[0-9]\+\|-dev\)\?\)"$/\1/p')
           # ignore -dev version bumps unless on main
-          if [[ $VERSION == *-dev ]] ; then
+          if [[ -z "$VERSION" ]] ; then
+            echo "::error:: Invalid version string"
+            exit 1
+          elif [[ $VERSION == *-dev ]] ; then
             echo "::warning:: SKIPPING: dev bump"
           elif [[ ${{github.base_ref}} == "main" ]] ; then
             echo "::warning:: SKIPPING: main branch"
@@ -72,9 +75,11 @@ jobs:
 
       - name: Bump version
         if: steps.getversion.outputs.update == 'true'
+        env:
+          VERS: ${{steps.getversion.outputs.version}}
         run: |
-          echo ${{steps.getversion.outputs.version}}
-          sed -i 's/export PODMAN_VERSION=".*"/export PODMAN_VERSION="${{steps.getversion.outputs.version}}"/g' podman-rpm-info-vars.sh
+          update=$(printf 's/export PODMAN_VERSION=".*"/export PODMAN_VERSION="%s"/g\n' "$VERS")
+          sed -i "$update" podman-rpm-info-vars.sh
           sed -i 's/export PODMAN_PR_NUM=".*"/export PODMAN_PR_NUM="${{github.event.number}}"/g' podman-rpm-info-vars.sh
           echo "Updated file:"
           cat podman-rpm-info-vars.sh
