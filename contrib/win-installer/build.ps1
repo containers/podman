@@ -55,6 +55,7 @@ if ($args.Count -lt 1 -or $args[0].Length -lt 1) {
     Write-Host 'Uses Env Vars: '
     Write-Host '   $ENV:FETCH_BASE_URL - GitHub Repo Address to locate release on'
     Write-Host '   $ENV:V531_SETUP_EXE_PATH - Path to v5.3.1 setup.exe used to build the patch'
+    Write-Host '   $ENV:PODMAN_ARCH - Installer target platform (x64 or arm64)'
     Write-Host 'Env Settings for signing (optional)'
     Write-Host '   $ENV:VAULT_ID'
     Write-Host '   $ENV:APP_ID'
@@ -103,11 +104,18 @@ if ($ENV:INSTVER -eq "") {
     Exit 1
 }
 
-.\build-hooks.ps1; ExitOnError
+$installerPlatform = ""
+if ($null -eq $ENV:PODMAN_ARCH -or "" -eq $ENV:PODMAN_ARCH -or "amd64" -eq $ENV:PODMAN_ARCH) {
+    $installerPlatform = "x64"
+} elseif ($ENV:PODMAN_ARCH -eq "arm64") {
+    $installerPlatform = "arm64"
+} else {
+    Write-Host "Unknown architecture $ENV:PODMAN_ARCH. Valid options are amd64 or arm64."
+    Exit 1
+}
+
 SignItem @("artifacts/win-sshproxy.exe",
-          "artifacts/podman.exe",
-          "artifacts/podman-msihooks.dll",
-          "artifacts/podman-wslkerninst.exe")
+          "artifacts/podman.exe")
 $gvExists = Test-Path "artifacts/gvproxy.exe"
 if ($gvExists) {
     SignItem @("artifacts/gvproxy.exe")
@@ -126,10 +134,10 @@ if ($gvExists) {
 if (Test-Path ./obj) {
     Remove-Item ./obj -Recurse -Force -Confirm:$false
 }
-dotnet build podman.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" -o .; ExitOnError
+dotnet build podman.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" /property:InstallerPlatform="$installerPlatform" -o .; ExitOnError
 SignItem @("en-US\podman.msi")
 
-dotnet build podman-setup.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" -o .; ExitOnError
+dotnet build podman-setup.wixproj /property:DefineConstants="VERSION=$ENV:INSTVER" /property:InstallerPlatform="$installerPlatform" -o .; ExitOnError
 wix burn detach podman-setup.exe -engine engine.exe; ExitOnError
 SignItem @("engine.exe")
 

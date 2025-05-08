@@ -1,6 +1,5 @@
 <Project Sdk="WixToolset.Sdk/5.0.2">
 	<PropertyGroup>
-		<InstallerPlatform>x64</InstallerPlatform>
 		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
 	</PropertyGroup>
 	<ItemGroup>

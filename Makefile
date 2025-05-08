@@ -848,7 +848,7 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 		$(MAKE) $(GOPLAT) podman-remote; \
 	fi
 	if [[ "$(GOOS)" == "windows" ]]; then \
-		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy; \
+		$(MAKE) $(GOPLAT) TMPDIR="" win-gvproxy-$(GOARCH); \
 	fi
 	if [[ "$(GOOS)" == "darwin" ]]; then \
 		$(MAKE) $(GOPLAT) podman-mac-helper;\
@@ -863,10 +863,15 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 
 # Downloads pre-built gvproxy and win-sshproxy helpers. See comment on GVPROXY_VERSION declaration
 .PHONY: win-gvproxy
-win-gvproxy: test/version/version
+win-gvproxy: win-gvproxy-amd64 # Keep this target for backwards compatibility
+
+win-gvproxy-%: test/version/version
+	$(eval GOARCH := $*)
+	$(eval GVPROXY_FILENAME := $(if $(filter arm64,$(GOARCH)), gvproxy-windows-arm64.exe,gvproxy-windowsgui.exe))
+	$(eval SSHPROXY_FILENAME :=  $(if $(filter arm64,$(GOARCH)), win-sshproxy-arm64.exe, win-sshproxy.exe))
 	mkdir -p bin/windows/
-	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/gvproxy-windowsgui.exe
-	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/win-sshproxy.exe
+	curl -sSL -o bin/windows/gvproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/$(GVPROXY_FILENAME)
+	curl -sSL -o bin/windows/win-sshproxy.exe --retry 5 https://github.com/containers/gvisor-tap-vsock/releases/download/$(GVPROXY_VERSION)/$(SSHPROXY_FILENAME)
 
 .PHONY: rpm
 rpm:  ## Build rpm packages
@@ -1060,6 +1065,8 @@ release-artifacts: clean-binaries
 	mv podman-remote-release-darwin_arm64.zip release/
 	$(MAKE) podman-remote-release-windows_amd64.zip
 	mv podman-remote-release-windows_amd64.zip release/
+	$(MAKE) podman-remote-release-windows_arm64.zip
+	mv podman-remote-release-windows_arm64.zip release/
 	$(MAKE) podman-remote-static-linux_amd64
 	tar -cvzf podman-remote-static-linux_amd64.tar.gz bin/podman-remote-static-linux_amd64
 	$(MAKE) podman-remote-static-linux_arm64
