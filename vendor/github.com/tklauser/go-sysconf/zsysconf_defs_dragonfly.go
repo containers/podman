@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_defs_dragonfly.go
 
 //go:build dragonfly
-// +build dragonfly
 
 package sysconf
 

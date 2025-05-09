@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_linux.go
 
 //go:build linux && mips64le
-// +build linux,mips64le
 
 package sysconf
 
