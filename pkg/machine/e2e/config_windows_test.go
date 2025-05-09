@@ -38,7 +38,8 @@ func getOtherProvider() string {
 	return ""
 }
 
-func runSystemCommand(binary string, cmdArgs []string) (*machineSession, error) {
+func runWslCommand(cmdArgs []string) (*machineSession, error) {
+	binary := "wsl"
 	GinkgoWriter.Println(binary + " " + strings.Join(cmdArgs, " "))
 	c := exec.Command(binary, cmdArgs...)
 	session, err := Start(c, GinkgoWriter, GinkgoWriter)

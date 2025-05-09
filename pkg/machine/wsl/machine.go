@@ -95,7 +95,7 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 
 	dist := env.WithPodmanPrefix(name)
 	fmt.Println(prompt)
-	if err = runCmdPassThrough(wutil.FindWSL(), "--import", dist, distTarget, imagePath, "--version", "2"); err != nil {
+	if err = runCmdPassThrough("wsl", "--import", dist, distTarget, imagePath, "--version", "2"); err != nil {
 		return "", fmt.Errorf("the WSL import of guest OS failed: %w", err)
 	}
 
@@ -427,7 +427,7 @@ func installWslKernel() error {
 
 	backoff := 500 * time.Millisecond
 	for i := 0; i < 5; i++ {
-		err = runCmdPassThroughTee(log, wutil.FindWSL(), "--update")
+		err = runCmdPassThroughTee(log, "wsl", "--update")
 		if err == nil {
 			break
 		}
@@ -537,18 +537,18 @@ func withUser(s string, user string) string {
 func wslInvoke(dist string, arg ...string) error {
 	newArgs := []string{"-u", "root", "-d", dist}
 	newArgs = append(newArgs, arg...)
-	return runCmdPassThrough(wutil.FindWSL(), newArgs...)
+	return runCmdPassThrough("wsl", newArgs...)
 }
 
 func wslPipe(input string, dist string, arg ...string) error {
 	newArgs := []string{"-u", "root", "-d", dist}
 	newArgs = append(newArgs, arg...)
-	return pipeCmdPassThrough(wutil.FindWSL(), input, newArgs...)
+	return pipeCmdPassThrough("wsl", input, newArgs...)
 }
 
 //nolint:unused
 func wslCreateKeys(identityPath string, dist string) (string, error) {
-	return machine.CreateSSHKeysPrefix(identityPath, true, true, wutil.FindWSL(), "-u", "root", "-d", dist)
+	return machine.CreateSSHKeysPrefix(identityPath, true, true, "wsl", "-u", "root", "-d", dist)
 }
 
 func runCmdPassThrough(name string, arg ...string) error {
@@ -645,7 +645,7 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 	if running {
 		args = append(args, "--running")
 	}
-	cmd := exec.Command(wutil.FindWSL(), args...)
+	cmd := exec.Command("wsl", args...)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -674,7 +674,7 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 }
 
 func isSystemdRunning(dist string) (bool, error) {
-	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "sh")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(sysdpid + "\necho $SYSDPID\n")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -704,7 +704,7 @@ func isSystemdRunning(dist string) (bool, error) {
 }
 
 func terminateDist(dist string) error {
-	cmd := exec.Command(wutil.FindWSL(), "--terminate", dist)
+	cmd := exec.Command("wsl", "--terminate", dist)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(string(out)))
@@ -713,7 +713,7 @@ func terminateDist(dist string) error {
 }
 
 func unregisterDist(dist string) error {
-	cmd := exec.Command(wutil.FindWSL(), "--unregister", dist)
+	cmd := exec.Command("wsl", "--unregister", dist)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(string(out)))
@@ -761,7 +761,7 @@ func getCPUs(name string) (uint64, error) {
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "nproc")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "nproc")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -791,7 +791,7 @@ func getMem(name string) (strongunits.MiB, error) {
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command(wutil.FindWSL(), "-u", "root", "-d", dist, "cat", "/proc/meminfo")
+	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "cat", "/proc/meminfo")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err

@@ -9,7 +9,6 @@ import (
 	"github.com/Microsoft/go-winio/vhd"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -28,12 +27,12 @@ var _ = Describe("podman machine init - windows only", func() {
 		Expect(session).To(Exit(0))
 
 		defer func() {
-			_, err := runSystemCommand(wutil.FindWSL(), []string{"--terminate", "podman-net-usermode"})
+			_, err := runWslCommand([]string{"--terminate", "podman-net-usermode"})
 			if err != nil {
 				fmt.Println("unable to terminate podman-net-usermode")
 			}
 
-			_, err = runSystemCommand(wutil.FindWSL(), []string{"--unregister", "podman-net-usermode"})
+			_, err = runWslCommand([]string{"--unregister", "podman-net-usermode"})
 			if err != nil {
 				fmt.Println("unable to unregister podman-net-usermode")
 			}
@@ -106,17 +105,17 @@ var _ = Describe("podman machine init - windows only", func() {
 		// a vm outside the context of podman-machine and also
 		// so we dont have to download a distribution from microsoft
 		// servers
-		exportSession, err := runSystemCommand(wutil.FindWSL(), []string{"--export", "podman-foobarexport", exportedPath})
+		exportSession, err := runWslCommand([]string{"--export", "podman-foobarexport", exportedPath})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(exportSession).To(Exit(0))
 
 		// importing the machine and creating a vm
-		importSession, err := runSystemCommand(wutil.FindWSL(), []string{"--import", distName, distrDir, exportedPath})
+		importSession, err := runWslCommand([]string{"--import", distName, distrDir, exportedPath})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(importSession).To(Exit(0))
 
 		defer func() {
-			_, err := runSystemCommand(wutil.FindWSL(), []string{"--unregister", distName})
+			_, err := runWslCommand([]string{"--unregister", distName})
 			if err != nil {
 				fmt.Println("unable to remove bogus wsl instance")
 			}

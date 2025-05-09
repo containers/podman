@@ -6,21 +6,17 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
 
-	"github.com/containers/storage/pkg/fileutils"
 	"golang.org/x/text/encoding/unicode"
 	"golang.org/x/text/transform"
 )
 
 var (
-	onceFind, onceStatus    sync.Once
-	wslPath                 string
+	onceStatus              sync.Once
 	status                  wslStatus
 	wslNotInstalledMessages = []string{"kernel file is not found", "The Windows Subsystem for Linux is not installed"}
 	vmpDisabledMessages     = []string{"enable the Virtual Machine Platform Windows feature", "Enable \"Virtual Machine Platform\""}
@@ -31,53 +27,6 @@ type wslStatus struct {
 	installed         bool
 	vmpFeatureEnabled bool
 	wslFeatureEnabled bool
-}
-
-func FindWSL() string {
-	// At the time of this writing, a defect appeared in the OS preinstalled WSL executable
-	// where it no longer reliably locates the preferred Windows App Store variant.
-	//
-	// Manually discover (and cache) the wsl.exe location to bypass the problem
-	onceFind.Do(func() {
-		var locs []string
-
-		// Prefer Windows App Store version
-		if localapp := getLocalAppData(); localapp != "" {
-			locs = append(locs, filepath.Join(localapp, "Microsoft", "WindowsApps", "wsl.exe"))
-		}
-
-		// Otherwise, the common location for the legacy system version
-		root := os.Getenv("SystemRoot")
-		if root == "" {
-			root = `C:\Windows`
-		}
-		locs = append(locs, filepath.Join(root, "System32", "wsl.exe"))
-
-		for _, loc := range locs {
-			if err := fileutils.Exists(loc); err == nil {
-				wslPath = loc
-				return
-			}
-		}
-
-		// Hope for the best
-		wslPath = "wsl"
-	})
-
-	return wslPath
-}
-
-func getLocalAppData() string {
-	localapp := os.Getenv("LOCALAPPDATA")
-	if localapp != "" {
-		return localapp
-	}
-
-	if user := os.Getenv("USERPROFILE"); user != "" {
-		return filepath.Join(user, "AppData", "Local")
-	}
-
-	return localapp
 }
 
 func SilentExec(command string, args ...string) error {
@@ -104,7 +53,7 @@ func parseWSLStatus() wslStatus {
 			vmpFeatureEnabled: false,
 			wslFeatureEnabled: false,
 		}
-		cmd := SilentExecCmd(FindWSL(), "--status")
+		cmd := SilentExecCmd("wsl", "--status")
 		out, err := cmd.StdoutPipe()
 		cmd.Stderr = nil
 		if err != nil {
@@ -130,7 +79,7 @@ func IsWSLInstalled() bool {
 }
 
 func IsWSLFeatureEnabled() bool {
-	if SilentExec(FindWSL(), "--set-default-version", "2") != nil {
+	if SilentExec("wsl", "--set-default-version", "2") != nil {
 		return false
 	}
 	status := parseWSLStatus()
@@ -138,7 +87,7 @@ func IsWSLFeatureEnabled() bool {
 }
 
 func IsWSLStoreVersionInstalled() bool {
-	cmd := SilentExecCmd(FindWSL(), "--version")
+	cmd := SilentExecCmd("wsl", "--version")
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
