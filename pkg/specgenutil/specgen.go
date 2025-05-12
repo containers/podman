@@ -739,9 +739,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 				return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", val)
 			}
 		case "unmask":
-			if hasVal {
-				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, val)
-			}
+			s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, strings.Split(val, ":")...)
 		case "no-new-privileges":
 			noNewPrivileges := true
 			if hasVal {
