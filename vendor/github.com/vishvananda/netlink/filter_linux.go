@@ -54,25 +54,30 @@ func (filter *U32) Type() string {
 
 type Flower struct {
 	FilterAttrs
-	DestIP        net.IP
-	DestIPMask    net.IPMask
-	SrcIP         net.IP
-	SrcIPMask     net.IPMask
-	EthType       uint16
-	EncDestIP     net.IP
-	EncDestIPMask net.IPMask
-	EncSrcIP      net.IP
-	EncSrcIPMask  net.IPMask
-	EncDestPort   uint16
-	EncKeyId      uint32
-	SrcMac        net.HardwareAddr
-	DestMac       net.HardwareAddr
-	VlanId        uint16
-	SkipHw        bool
-	SkipSw        bool
-	IPProto       *nl.IPProto
-	DestPort      uint16
-	SrcPort       uint16
+	ClassId         uint32
+	DestIP          net.IP
+	DestIPMask      net.IPMask
+	SrcIP           net.IP
+	SrcIPMask       net.IPMask
+	EthType         uint16
+	EncDestIP       net.IP
+	EncDestIPMask   net.IPMask
+	EncSrcIP        net.IP
+	EncSrcIPMask    net.IPMask
+	EncDestPort     uint16
+	EncKeyId        uint32
+	SrcMac          net.HardwareAddr
+	DestMac         net.HardwareAddr
+	VlanId          uint16
+	SkipHw          bool
+	SkipSw          bool
+	IPProto         *nl.IPProto
+	DestPort        uint16
+	SrcPort         uint16
+	SrcPortRangeMin uint16
+	SrcPortRangeMax uint16
+	DstPortRangeMin uint16
+	DstPortRangeMax uint16
 
 	Actions []Action
 }
@@ -171,6 +176,19 @@ func (filter *Flower) encode(parent *nl.RtAttr) error {
 			}
 		}
 	}
+	if filter.SrcPortRangeMin != 0 && filter.SrcPortRangeMax != 0 {
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_PORT_SRC_MIN, htons(filter.SrcPortRangeMin))
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_PORT_SRC_MAX, htons(filter.SrcPortRangeMax))
+	}
+
+	if filter.DstPortRangeMin != 0 && filter.DstPortRangeMax != 0 {
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_PORT_DST_MIN, htons(filter.DstPortRangeMin))
+		parent.AddRtAttr(nl.TCA_FLOWER_KEY_PORT_DST_MAX, htons(filter.DstPortRangeMax))
+	}
+
+	if filter.ClassId != 0 {
+		parent.AddRtAttr(nl.TCA_FLOWER_CLASSID, nl.Uint32Attr(filter.ClassId))
+	}
 
 	var flags uint32 = 0
 	if filter.SkipHw {
@@ -247,6 +265,16 @@ func (filter *Flower) decode(data []syscall.NetlinkRouteAttr) error {
 			if skipHw != 0 {
 				filter.SkipHw = true
 			}
+		case nl.TCA_FLOWER_KEY_PORT_SRC_MIN:
+			filter.SrcPortRangeMin = ntohs(datum.Value)
+		case nl.TCA_FLOWER_KEY_PORT_SRC_MAX:
+			filter.SrcPortRangeMax = ntohs(datum.Value)
+		case nl.TCA_FLOWER_KEY_PORT_DST_MIN:
+			filter.DstPortRangeMin = ntohs(datum.Value)
+		case nl.TCA_FLOWER_KEY_PORT_DST_MAX:
+			filter.DstPortRangeMax = ntohs(datum.Value)
+		case nl.TCA_FLOWER_CLASSID:
+			filter.ClassId = native.Uint32(datum.Value)
 		}
 	}
 	return nil

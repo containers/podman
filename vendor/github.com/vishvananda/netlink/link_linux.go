@@ -1683,6 +1683,73 @@ func (h *Handle) linkModify(link Link, flags int) error {
 		native.PutUint16(b, uint16(link.VlanId))
 		data := linkInfo.AddRtAttr(nl.IFLA_INFO_DATA, nil)
 		data.AddRtAttr(nl.IFLA_VLAN_ID, b)
+		var vlanFlags uint32
+		var vlanFlagsMask uint32
+		if link.ReorderHdr != nil {
+			vlanFlagsMask |= nl.VLAN_FLAG_REORDER_HDR
+			if *link.ReorderHdr {
+				vlanFlags |= nl.VLAN_FLAG_REORDER_HDR
+			} else {
+				vlanFlags &= ^uint32(nl.VLAN_FLAG_REORDER_HDR)
+			}
+		}
+		if link.Gvrp != nil {
+			vlanFlagsMask |= nl.VLAN_FLAG_GVRP
+			if *link.Gvrp {
+				vlanFlags |= nl.VLAN_FLAG_GVRP
+			} else {
+				vlanFlags &= ^uint32(nl.VLAN_FLAG_GVRP)
+			}
+		}
+		if link.Mvrp != nil {
+			vlanFlagsMask |= nl.VLAN_FLAG_MVRP
+			if *link.Mvrp {
+				vlanFlags |= nl.VLAN_FLAG_MVRP
+			} else {
+				vlanFlags &= ^uint32(nl.VLAN_FLAG_MVRP)
+			}
+		}
+		if link.LooseBinding != nil {
+			vlanFlagsMask |= nl.VLAN_FLAG_LOOSE_BINDING
+			if *link.LooseBinding {
+				vlanFlags |= nl.VLAN_FLAG_LOOSE_BINDING
+			} else {
+				vlanFlags &= ^uint32(nl.VLAN_FLAG_LOOSE_BINDING)
+			}
+		}
+		if link.BridgeBinding != nil {
+			vlanFlagsMask |= nl.VLAN_FLAG_BRIDGE_BINDING
+			if *link.BridgeBinding {
+				vlanFlags |= nl.VLAN_FLAG_BRIDGE_BINDING
+			} else {
+				vlanFlags &= ^uint32(nl.VLAN_FLAG_BRIDGE_BINDING)
+			}
+		}
+
+		buf := &bytes.Buffer{}
+		buf.Write(nl.Uint32Attr(vlanFlags))
+		buf.Write(nl.Uint32Attr(vlanFlagsMask))
+		data.AddRtAttr(nl.IFLA_VLAN_FLAGS, buf.Bytes())
+
+		if link.IngressQosMap != nil {
+			ingressMap := data.AddRtAttr(nl.IFLA_VLAN_INGRESS_QOS, nil)
+			for from, to := range link.IngressQosMap {
+				buf := &bytes.Buffer{}
+				buf.Write(nl.Uint32Attr(from))
+				buf.Write(nl.Uint32Attr(to))
+				ingressMap.AddRtAttr(nl.IFLA_VLAN_QOS_MAPPING, buf.Bytes())
+			}
+		}
+
+		if link.EgressQosMap != nil {
+			egressMap := data.AddRtAttr(nl.IFLA_VLAN_EGRESS_QOS, nil)
+			for from, to := range link.EgressQosMap {
+				buf := &bytes.Buffer{}
+				buf.Write(nl.Uint32Attr(from))
+				buf.Write(nl.Uint32Attr(to))
+				egressMap.AddRtAttr(nl.IFLA_VLAN_QOS_MAPPING, buf.Bytes())
+			}
+		}
 
 		if link.VlanProtocol != VLAN_PROTOCOL_UNKNOWN {
 			data.AddRtAttr(nl.IFLA_VLAN_PROTOCOL, htons(uint16(link.VlanProtocol)))
@@ -1696,16 +1763,25 @@ func (h *Handle) linkModify(link Link, flags int) error {
 		peer := data.AddRtAttr(nl.VETH_INFO_PEER, nil)
 		nl.NewIfInfomsgChild(peer, unix.AF_UNSPEC)
 		peer.AddRtAttr(unix.IFLA_IFNAME, nl.ZeroTerminated(link.PeerName))
-		if base.TxQLen >= 0 {
+
+		if link.PeerTxQLen >= 0 {
+			peer.AddRtAttr(unix.IFLA_TXQLEN, nl.Uint32Attr(uint32(link.PeerTxQLen)))
+		} else if base.TxQLen >= 0 {
 			peer.AddRtAttr(unix.IFLA_TXQLEN, nl.Uint32Attr(uint32(base.TxQLen)))
 		}
-		if base.NumTxQueues > 0 {
+		if link.PeerNumTxQueues > 0 {
+			peer.AddRtAttr(unix.IFLA_NUM_TX_QUEUES, nl.Uint32Attr(link.PeerNumTxQueues))
+		} else if base.NumTxQueues > 0 {
 			peer.AddRtAttr(unix.IFLA_NUM_TX_QUEUES, nl.Uint32Attr(uint32(base.NumTxQueues)))
 		}
-		if base.NumRxQueues > 0 {
+		if link.PeerNumRxQueues > 0 {
+			peer.AddRtAttr(unix.IFLA_NUM_RX_QUEUES, nl.Uint32Attr(link.PeerNumRxQueues))
+		} else if base.NumRxQueues > 0 {
 			peer.AddRtAttr(unix.IFLA_NUM_RX_QUEUES, nl.Uint32Attr(uint32(base.NumRxQueues)))
 		}
-		if base.MTU > 0 {
+		if link.PeerMTU > 0 {
+			peer.AddRtAttr(unix.IFLA_MTU, nl.Uint32Attr(link.PeerMTU))
+		} else if base.MTU > 0 {
 			peer.AddRtAttr(unix.IFLA_MTU, nl.Uint32Attr(uint32(base.MTU)))
 		}
 		if link.PeerHardwareAddr != nil {
@@ -2544,6 +2620,14 @@ func (h *Handle) LinkSetLearning(link Link, mode bool) error {
 	return h.setProtinfoAttr(link, mode, nl.IFLA_BRPORT_LEARNING)
 }
 
+func LinkSetVlanTunnel(link Link, mode bool) error {
+	return pkgHandle.LinkSetVlanTunnel(link, mode)
+}
+
+func (h *Handle) LinkSetVlanTunnel(link Link, mode bool) error {
+	return h.setProtinfoAttr(link, mode, nl.IFLA_BRPORT_VLAN_TUNNEL)
+}
+
 func LinkSetRootBlock(link Link, mode bool) error {
 	return pkgHandle.LinkSetRootBlock(link, mode)
 }
@@ -2784,12 +2868,65 @@ func parseNetkitData(link Link, data []syscall.NetlinkRouteAttr) {
 	}
 }
 
+func parseVlanQosMap(data []byte) map[uint32]uint32 {
+	values, err := nl.ParseRouteAttr(data)
+	if err != nil {
+		return nil
+	}
+
+	qosMap := make(map[uint32]uint32)
+
+	for _, value := range values {
+		switch value.Attr.Type {
+		case nl.IFLA_VLAN_QOS_MAPPING:
+			from := native.Uint32(value.Value[:4])
+			to := native.Uint32(value.Value[4:])
+			qosMap[from] = to
+		}
+	}
+
+	return qosMap
+}
+
 func parseVlanData(link Link, data []syscall.NetlinkRouteAttr) {
 	vlan := link.(*Vlan)
 	for _, datum := range data {
 		switch datum.Attr.Type {
 		case nl.IFLA_VLAN_ID:
 			vlan.VlanId = int(native.Uint16(datum.Value[0:2]))
+		case nl.IFLA_VLAN_FLAGS:
+			flags := native.Uint32(datum.Value[0:4])
+			trueVal := true
+			falseVal := false
+			if flags&nl.VLAN_FLAG_REORDER_HDR != 0 {
+				vlan.ReorderHdr = &trueVal
+			} else {
+				vlan.ReorderHdr = &falseVal
+			}
+			if flags&nl.VLAN_FLAG_GVRP != 0 {
+				vlan.Gvrp = &trueVal
+			} else {
+				vlan.Gvrp = &falseVal
+			}
+			if flags&nl.VLAN_FLAG_LOOSE_BINDING != 0 {
+				vlan.LooseBinding = &trueVal
+			} else {
+				vlan.LooseBinding = &falseVal
+			}
+			if flags&nl.VLAN_FLAG_MVRP != 0 {
+				vlan.Mvrp = &trueVal
+			} else {
+				vlan.Mvrp = &falseVal
+			}
+			if flags&nl.VLAN_FLAG_BRIDGE_BINDING != 0 {
+				vlan.BridgeBinding = &trueVal
+			} else {
+				vlan.BridgeBinding = &falseVal
+			}
+		case nl.IFLA_VLAN_EGRESS_QOS:
+			vlan.EgressQosMap = parseVlanQosMap(datum.Value)
+		case nl.IFLA_VLAN_INGRESS_QOS:
+			vlan.IngressQosMap = parseVlanQosMap(datum.Value)
 		case nl.IFLA_VLAN_PROTOCOL:
 			vlan.VlanProtocol = VlanProtocol(int(ntohs(datum.Value[0:2])))
 		}
