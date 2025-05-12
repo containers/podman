@@ -250,7 +250,7 @@ func (r *ConmonOCIRuntime) ExecStopContainer(ctr *Container, sessionID string, t
 
 	// SIGTERM did not work. On to SIGKILL.
 	logrus.Debugf("Killing exec session %s (PID %d) of container %s with SIGKILL", sessionID, pid, ctr.ID())
-	if err := unix.Kill(pid, unix.SIGTERM); err != nil {
+	if err := unix.Kill(pid, unix.SIGKILL); err != nil {
 		if err == unix.ESRCH {
 			return nil
 		}
