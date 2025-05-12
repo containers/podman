@@ -274,6 +274,14 @@ Requires=basic.container
 Image=registry.fedoraproject.org/fedora:41
 ```
 
+### Setting resource names
+
+Quadlet units allow setting the names of the created resources
+(e.g. `VolumeName` for `.volume` units or `PodName` for `.pod` units).
+
+Note that using systemd specifiers that reference the generated service unit (e.g. `$N`)
+breaks Quadlet's ability to link between resources as they are translated differently in each service
+
 ## Container units [Container]
 
 Container units are named with a `.container` extension and contain a `[Container]` section describing
@@ -1138,9 +1146,9 @@ This key can be listed multiple times.
 
 ### `PodName=`
 
-The (optional) name of the Podman pod. If this is not specified, the default value
-of `systemd-%N` is used, which is the same as the service name but with a `systemd-`
-prefix to avoid conflicts with user-managed containers.
+The (optional) name of the Podman pod.
+If this is not specified, the default value is the same name as the unit, but with a `systemd-` prefix,
+i.e. a `$name.pod` file creates a `systemd-$name` Podman pod to avoid conflicts with user-managed pods.
 
 Please note that pods and containers cannot have the same name.
 So, if PodName is set, it must not conflict with any container.
@@ -1488,9 +1496,10 @@ When set to `true` the network is deleted when the service is stopped
 
 ### `NetworkName=`
 
-The (optional) name of the Podman network. If this is not specified, the default value of
-`systemd-%N` is used, which is the same as the unit name but with a `systemd-` prefix to avoid
-conflicts with user-managed networks.
+The (optional) name of the Podman network.
+If this is not specified, the default value is the same name as the unit, but with a `systemd-` prefix,
+i.e. a `$name.network` file creates a `systemd-$name` Podman network to avoid
+conflicts with user-managed network.
 
 ### `Options=`
 
@@ -1639,8 +1648,9 @@ The host (numeric) UID, or user name to use as the owner for the volume
 
 ### `VolumeName=`
 
-The (optional) name of the Podman volume. If this is not specified, the default value of
-`systemd-%N` is used, which is the same as the unit name but with a `systemd-` prefix to avoid
+The (optional) name of the Podman volume.
+If this is not specified, the default value is the same name as the unit, but with a `systemd-` prefix,
+i.e. a `$name.volume` file creates a `systemd-$name` Podman volume to avoid
 conflicts with user-managed volumes.
 
 ## Build units [Build]
