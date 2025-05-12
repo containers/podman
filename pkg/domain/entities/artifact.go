@@ -5,6 +5,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
+	entityTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/libartifact"
 	"github.com/opencontainers/go-digest"
 )
@@ -25,6 +26,12 @@ type ArtifactExtractOptions struct {
 	Digest string
 }
 
+type ArtifactBlob struct {
+	BlobReader   io.Reader
+	BlobFilePath string
+	FileName     string
+}
+
 type ArtifactInspectOptions struct {
 	Remote bool
 }
@@ -34,18 +41,41 @@ type ArtifactListOptions struct {
 }
 
 type ArtifactPullOptions struct {
-	Architecture          string
-	AuthFilePath          string
-	CertDirPath           string
+	// containers-auth.json(5) file to use when authenticating against
+	// container registries.
+	AuthFilePath string
+	// Path to the certificates directory.
+	CertDirPath string
+	// Allow contacting registries over HTTP, or HTTPS with failed TLS
+	// verification. Note that this does not affect other TLS connections.
 	InsecureSkipTLSVerify types.OptionalBool
-	MaxRetries            *uint
-	OciDecryptConfig      *encconfig.DecryptConfig
-	Password              string
-	Quiet                 bool
-	RetryDelay            string
-	SignaturePolicyPath   string
-	Username              string
-	Writer                io.Writer
+	// Maximum number of retries with exponential backoff when facing
+	// transient network errors.
+	// Default 3.
+	MaxRetries *uint
+	// RetryDelay used for the exponential back off of MaxRetries.
+	// Default 1 time.Second.
+	RetryDelay string
+	// OciDecryptConfig contains the config that can be used to decrypt an image if it is
+	// encrypted if non-nil. If nil, it does not attempt to decrypt an image.
+	OciDecryptConfig *encconfig.DecryptConfig
+	// Quiet can be specified to suppress pull progress when pulling.  Ignored
+	// for remote calls. //TODO: Verify that claim
+	Quiet bool
+	// SignaturePolicyPath to overwrite the default one.
+	SignaturePolicyPath string
+	// Writer is used to display copy information including progress bars.
+	Writer io.Writer
+
+	// ----- credentials --------------------------------------------------
+
+	// Username to use when authenticating at a container registry.
+	Username string
+	// Password to use when authenticating at a container registry.
+	Password string
+	// IdentityToken is used to authenticate the user and get
+	// an access token for the registry.
+	IdentityToken string `json:"identitytoken,omitempty"`
 }
 
 type ArtifactPushOptions struct {
@@ -64,14 +94,15 @@ type ArtifactRemoveOptions struct {
 	All bool
 }
 
-type ArtifactPullReport struct{}
-
-type ArtifactPushReport struct{}
-
-type ArtifactInspectReport struct {
-	*libartifact.Artifact
-	Digest string
+type ArtifactPullReport struct {
+	ArtifactDigest *digest.Digest
 }
+
+type ArtifactPushReport struct {
+	ArtifactDigest *digest.Digest
+}
+
+type ArtifactInspectReport = entityTypes.ArtifactInspectReport
 
 type ArtifactListReport struct {
 	*libartifact.Artifact
