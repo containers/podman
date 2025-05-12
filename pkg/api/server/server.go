@@ -119,6 +119,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 
 	for _, fn := range []func(*mux.Router) error{
 		server.registerAuthHandlers,
+		server.registerArtifactHandlers,
 		server.registerArchiveHandlers,
 		server.registerContainersHandlers,
 		server.registerDistributionHandlers,

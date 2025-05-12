@@ -478,3 +478,45 @@ type networkPruneResponse struct {
 	// in:body
 	Body []entities.NetworkPruneReport
 }
+
+// Inspect Artifact
+// swagger:response
+type inspectArtifactResponse struct {
+	// in:body
+	Body entities.ArtifactInspectReport
+}
+
+// Artifact list
+// swagger:response
+type artifactListResponse struct {
+	// in:body
+	Body []entities.ArtifactListReport
+}
+
+// Artifact Pull
+// swagger:response
+type artifactPullResponse struct {
+	// in:body
+	Body entities.ArtifactPullReport
+}
+
+// Artifact Remove
+// swagger:response
+type artifactRemoveResponse struct {
+	// in:body
+	Body entities.ArtifactRemoveReport
+}
+
+// Artifact Add
+// swagger:response
+type artifactAddResponse struct {
+	// in:body
+	Body entities.ArtifactAddReport
+}
+
+// Artifact Push
+// swagger:response
+type artifactPushResponse struct {
+	// in:body
+	Body entities.ArtifactPushReport
+}
