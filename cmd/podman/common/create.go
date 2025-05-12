@@ -627,7 +627,7 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 		createFlags.StringVar(
 			&cf.HealthTimeout,
 			healthTimeoutFlagName, define.DefaultHealthCheckTimeout,
-			"the maximum time allowed to complete the healthcheck before an interval is considered failed",
+			"the maximum time allowed to complete the healthcheck before an interval is considered failed and SIGKILL is sent to the healthcheck process",
 		)
 		_ = cmd.RegisterFlagCompletionFunc(healthTimeoutFlagName, completion.AutocompleteNone)
 

@@ -404,4 +404,13 @@ HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		Expect(ps.OutputToStringArray()).To(HaveLen(2))
 		Expect(ps.OutputToString()).To(ContainSubstring("hc"))
 	})
+
+	It("podman healthcheck - health timeout", func() {
+		ctrName := "c-h-" + RandomString(6)
+		podmanTest.PodmanExitCleanly("run", "-d", "--name", ctrName, "--health-cmd", "top", "--health-timeout=3s", ALPINE, "top")
+
+		hc := podmanTest.Podman([]string{"healthcheck", "run", ctrName})
+		hc.WaitWithTimeout(10)
+		Expect(hc).Should(ExitWithError(125, "Error: healthcheck command exceeded timeout of 3s"))
+	})
 })
