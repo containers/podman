@@ -1,3 +1,4 @@
+//go:build aix
 // +build aix
 
 package perfstat
@@ -19,6 +20,13 @@ import (
 	"time"
 	"unsafe"
 )
+
+var old_cpu_total_stat *C.perfstat_cpu_total_t
+
+func init() {
+	old_cpu_total_stat = (*C.perfstat_cpu_total_t)(C.malloc(C.sizeof_perfstat_cpu_total_t))
+	C.perfstat_cpu_total(nil, old_cpu_total_stat, C.sizeof_perfstat_cpu_total_t, 1)
+}
 
 func CpuStat() ([]CPU, error) {
 	var cpustat *C.perfstat_cpu_t
@@ -90,6 +98,38 @@ func CpuUtilStat(intvl time.Duration) (*CPUUtil, error) {
 	data.prev_elems = 1
 
 	r = C.perfstat_cpu_util(&data, cpuutil, C.sizeof_perfstat_cpu_util_t, 1)
+	if r <= 0 {
+		return nil, fmt.Errorf("error perfstat_cpu_util()")
+	}
+	u := perfstatcpuutil2cpuutil(cpuutil)
+	return &u, nil
+}
+
+func CpuUtilTotalStat() (*CPUUtil, error) {
+	var cpuutil *C.perfstat_cpu_util_t
+	var new_cpu_total_stat *C.perfstat_cpu_total_t
+	var data C.perfstat_rawdata_t
+
+	new_cpu_total_stat = (*C.perfstat_cpu_total_t)(C.malloc(C.sizeof_perfstat_cpu_total_t))
+	cpuutil = (*C.perfstat_cpu_util_t)(C.malloc(C.sizeof_perfstat_cpu_util_t))
+	defer C.free(unsafe.Pointer(cpuutil))
+
+	r := C.perfstat_cpu_total(nil, new_cpu_total_stat, C.sizeof_perfstat_cpu_total_t, 1)
+	if r <= 0 {
+		C.free(unsafe.Pointer(new_cpu_total_stat))
+		return nil, fmt.Errorf("error perfstat_cpu_total()")
+	}
+
+	data._type = C.UTIL_CPU_TOTAL
+	data.curstat = unsafe.Pointer(new_cpu_total_stat)
+	data.prevstat = unsafe.Pointer(old_cpu_total_stat)
+	data.sizeof_data = C.sizeof_perfstat_cpu_total_t
+	data.cur_elems = 1
+	data.prev_elems = 1
+
+	r = C.perfstat_cpu_util(&data, cpuutil, C.sizeof_perfstat_cpu_util_t, 1)
+	C.free(unsafe.Pointer(old_cpu_total_stat))
+	old_cpu_total_stat = new_cpu_total_stat
 	if r <= 0 {
 		return nil, fmt.Errorf("error perfstat_cpu_util()")
 	}

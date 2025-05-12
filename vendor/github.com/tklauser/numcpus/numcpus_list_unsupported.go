@@ -1,4 +1,4 @@
-// Copyright 2021 Tobias Klauser
+// Copyright 2024 Tobias Klauser
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,30 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !darwin && !dragonfly && !freebsd && !linux && !netbsd && !openbsd && !solaris && !windows
+//go:build !linux
 
 package numcpus
 
-func getConfigured() (int, error) {
-	return 0, ErrNotSupported
+func listOffline() ([]int, error) {
+	return nil, ErrNotSupported
 }
 
-func getKernelMax() (int, error) {
-	return 0, ErrNotSupported
+func listOnline() ([]int, error) {
+	return nil, ErrNotSupported
 }
 
-func getOffline() (int, error) {
-	return 0, ErrNotSupported
+func listPossible() ([]int, error) {
+	return nil, ErrNotSupported
 }
 
-func getOnline() (int, error) {
-	return 0, ErrNotSupported
-}
-
-func getPossible() (int, error) {
-	return 0, ErrNotSupported
-}
-
-func getPresent() (int, error) {
-	return 0, ErrNotSupported
+func listPresent() ([]int, error) {
+	return nil, ErrNotSupported
 }
