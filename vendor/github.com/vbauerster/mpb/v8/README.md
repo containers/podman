@@ -104,14 +104,14 @@ func main() {
     p.Wait()
 ```
 
-#### [Dynamic total](_examples/dynTotal/main.go)
+#### [dynTotal example](_examples/dynTotal/main.go)
 
-![dynamic total](_svg/godEMrCZmJkHYH1X9dN4Nm0U7.svg)
+![dynTotal](_svg/godEMrCZmJkHYH1X9dN4Nm0U7.svg)
 
-#### [Complex example](_examples/complex/main.go)
+#### [complex example](_examples/complex/main.go)
 
 ![complex](_svg/wHzf1M7sd7B3zVa2scBMnjqRf.svg)
 
-#### [Bytes counters](_examples/io/main.go)
+#### [io example](_examples/io/main.go)
 
-![byte counters](_svg/hIpTa3A5rQz65ssiVuRJu87X6.svg)
+![io](_svg/hIpTa3A5rQz65ssiVuRJu87X6.svg)
