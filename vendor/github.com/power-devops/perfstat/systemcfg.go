@@ -1,3 +1,4 @@
+//go:build aix
 // +build aix
 
 package perfstat
@@ -70,6 +71,7 @@ const (
 	SC_TM_VER       = 59 /* Transaction Memory version, 0 - not capable */
 	SC_NX_CAP       = 60 /* NX GZIP capable */
 	SC_PKS_STATE    = 61 /* Platform KeyStore */
+	SC_MMA_VER      = 62
 )
 
 /* kernel attributes                        */
@@ -119,6 +121,7 @@ const (
 	IMPL_POWER7        = 0x8000      /* 7 class CPU */
 	IMPL_POWER8        = 0x10000     /* 8 class CPU */
 	IMPL_POWER9        = 0x20000     /* 9 class CPU */
+	IMPL_POWER10       = 0x20000     /* 10 class CPU */
 )
 
 // Values for implementation field for IA64 Architectures
@@ -151,11 +154,13 @@ const (
 	PV_7          = 0x200000 /* Power PC 7 */
 	PV_8          = 0x300000 /* Power PC 8 */
 	PV_9          = 0x400000 /* Power PC 9 */
+	PV_10         = 0x500000 /* Power PC 10 */
 	PV_5_Compat   = 0x0F8000 /* Power PC 5 */
 	PV_6_Compat   = 0x108000 /* Power PC 6 */
 	PV_7_Compat   = 0x208000 /* Power PC 7 */
 	PV_8_Compat   = 0x308000 /* Power PC 8 */
 	PV_9_Compat   = 0x408000 /* Power PC 9 */
+	PV_10_Compat  = 0x508000 /* Power PC 10 */
 	PV_RESERVED_2 = 0x0A0000 /* source compatability */
 	PV_RESERVED_3 = 0x0B0000 /* source compatability */
 	PV_RS2        = 0x040000 /* Power RS2 */
@@ -181,19 +186,21 @@ const (
 
 // Macros for identifying physical processor
 const (
-	PPI4_1 = 0x35
-	PPI4_2 = 0x38
-	PPI4_3 = 0x39
-	PPI4_4 = 0x3C
-	PPI4_5 = 0x44
-	PPI5_1 = 0x3A
-	PPI5_2 = 0x3B
-	PPI6_1 = 0x3E
-	PPI7_1 = 0x3F
-	PPI7_2 = 0x4A
-	PPI8_1 = 0x4B
-	PPI8_2 = 0x4D
-	PPI9   = 0x4E
+	PPI4_1  = 0x35
+	PPI4_2  = 0x38
+	PPI4_3  = 0x39
+	PPI4_4  = 0x3C
+	PPI4_5  = 0x44
+	PPI5_1  = 0x3A
+	PPI5_2  = 0x3B
+	PPI6_1  = 0x3E
+	PPI7_1  = 0x3F
+	PPI7_2  = 0x4A
+	PPI8_1  = 0x4B
+	PPI8_2  = 0x4D
+	PPI9    = 0x4E
+	PPI9_1  = 0x4E
+	PPI10_1 = 0x80
 )
 
 // Macros for kernel attributes
@@ -291,14 +298,32 @@ func GetCPUImplementation() string {
 		return "POWER8"
 	case impl&IMPL_POWER9 != 0:
 		return "POWER9"
+	case impl&IMPL_POWER10 != 0:
+		return "Power10"
 	default:
 		return "Unknown"
 	}
 }
 
+func POWER10OrNewer() bool {
+	impl := unix.Getsystemcfg(SC_IMPL)
+	if impl&IMPL_POWER10 != 0 {
+		return true
+	}
+	return false
+}
+
+func POWER10() bool {
+	impl := unix.Getsystemcfg(SC_IMPL)
+	if impl&IMPL_POWER10 != 0 {
+		return true
+	}
+	return false
+}
+
 func POWER9OrNewer() bool {
 	impl := unix.Getsystemcfg(SC_IMPL)
-	if impl&IMPL_POWER9 != 0 {
+	if impl&IMPL_POWER10 != 0 || impl&IMPL_POWER9 != 0 {
 		return true
 	}
 	return false
@@ -314,7 +339,7 @@ func POWER9() bool {
 
 func POWER8OrNewer() bool {
 	impl := unix.Getsystemcfg(SC_IMPL)
-	if impl&IMPL_POWER9 != 0 || impl&IMPL_POWER8 != 0 {
+	if impl&IMPL_POWER10 != 0 || impl&IMPL_POWER9 != 0 || impl&IMPL_POWER8 != 0 {
 		return true
 	}
 	return false
@@ -330,7 +355,7 @@ func POWER8() bool {
 
 func POWER7OrNewer() bool {
 	impl := unix.Getsystemcfg(SC_IMPL)
-	if impl&IMPL_POWER9 != 0 || impl&IMPL_POWER8 != 0 || impl&IMPL_POWER7 != 0 {
+	if impl&IMPL_POWER10 != 0 || impl&IMPL_POWER9 != 0 || impl&IMPL_POWER8 != 0 || impl&IMPL_POWER7 != 0 {
 		return true
 	}
 	return false
@@ -419,6 +444,8 @@ func PksEnabled() bool {
 func CPUMode() string {
 	impl := unix.Getsystemcfg(SC_VERS)
 	switch impl {
+	case PV_10, PV_10_Compat:
+		return "Power10"
 	case PV_9, PV_9_Compat:
 		return "POWER9"
 	case PV_8, PV_8_Compat:

@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_values_linux.go
 
 //go:build linux && riscv64
-// +build linux,riscv64
 
 package sysconf
 

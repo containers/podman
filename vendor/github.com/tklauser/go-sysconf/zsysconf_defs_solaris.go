@@ -2,7 +2,6 @@
 // cgo -godefs sysconf_defs_solaris.go
 
 //go:build solaris
-// +build solaris
 
 package sysconf
 
