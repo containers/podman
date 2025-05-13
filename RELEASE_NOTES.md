@@ -59,6 +59,7 @@
 - Fixed a bug where the `--user` option to `podman create` and `podman run` could not be used with users added to the container by the `--hostuser` option ([#25805](https://github.com/containers/podman/issues/25805)).
 - Fixed a bug where the `podman system reset` command on FreeBSD would incorrectly print an error.
 - Fixed a bug where stopping the `podman machine start` command with SIGINT could result in machine state being incorrectly set to "Starting" ([#24416](https://github.com/containers/podman/issues/24416)).
+- Fixed a bug where the `podman machine start` command would fail when starting a VM with volume mounts containing spaces using the HyperV machine provider ([#25500](https://github.com/containers/podman/issues/25500)).
 
 ### API
 - Fixed a bug where the Compat Create API for Containers ignored ulimits specified in the request when Podman was run rootless ([#25881](https://github.com/containers/podman/issues/25881)).
