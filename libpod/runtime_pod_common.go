@@ -90,11 +90,7 @@ func (r *Runtime) NewPod(ctx context.Context, p specgen.PodSpecGenerator, option
 			break
 		}
 	}
-	if addPodErr != nil {
-		return nil, fmt.Errorf("adding pod to state: %w", addPodErr)
-	}
-
-	return pod, nil
+	return nil, fmt.Errorf("adding pod to state: %w", addPodErr)
 }
 
 // AddInfra adds the created infra container to the pod state

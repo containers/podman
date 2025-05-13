@@ -785,7 +785,7 @@ func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, opts entities.I
 	if err != nil {
 		return nil, err
 	}
-	if (report.LoadReport == nil && err == nil) && (report.Source != nil && report.Dest != nil) { // we need to execute the transfer
+	if report.LoadReport == nil && (report.Source != nil && report.Dest != nil) { // we need to execute the transfer
 		transferOpts := entities.ScpTransferOptions{}
 		transferOpts.ParentFlags = report.ParentFlags
 		_, err := Transfer(ctx, *report.Source, *report.Dest, transferOpts)
