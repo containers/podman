@@ -10,15 +10,15 @@ import (
 
 const (
 	iLbound = iota
-	iRbound
 	iRefiller
 	iFiller
 	iTip
 	iPadding
+	iRbound
 	iLen
 )
 
-var defaultBarStyle = [iLen]string{"[", "]", "+", "=", ">", "-"}
+var defaultBarStyle = [iLen]string{"[", "+", "=", ">", "-", "]"}
 
 // BarStyleComposer interface.
 type BarStyleComposer interface {
@@ -86,9 +86,7 @@ func (s barStyle) Lbound(bound string) BarStyleComposer {
 }
 
 func (s barStyle) LboundMeta(fn func(string) string) BarStyleComposer {
-	if fn != nil && len(fn("")) != 0 {
-		s.metas[iLbound] = fn
-	}
+	s.metas[iLbound] = fn
 	return s
 }
 
@@ -98,9 +96,7 @@ func (s barStyle) Rbound(bound string) BarStyleComposer {
 }
 
 func (s barStyle) RboundMeta(fn func(string) string) BarStyleComposer {
-	if fn != nil && len(fn("")) != 0 {
-		s.metas[iRbound] = fn
-	}
+	s.metas[iRbound] = fn
 	return s
 }
 
@@ -110,9 +106,7 @@ func (s barStyle) Filler(filler string) BarStyleComposer {
 }
 
 func (s barStyle) FillerMeta(fn func(string) string) BarStyleComposer {
-	if fn != nil && len(fn("")) != 0 {
-		s.metas[iFiller] = fn
-	}
+	s.metas[iFiller] = fn
 	return s
 }
 
@@ -122,9 +116,7 @@ func (s barStyle) Refiller(refiller string) BarStyleComposer {
 }
 
 func (s barStyle) RefillerMeta(fn func(string) string) BarStyleComposer {
-	if fn != nil && len(fn("")) != 0 {
-		s.metas[iRefiller] = fn
-	}
+	s.metas[iRefiller] = fn
 	return s
 }
 
@@ -134,9 +126,7 @@ func (s barStyle) Padding(padding string) BarStyleComposer {
 }
 
 func (s barStyle) PaddingMeta(fn func(string) string) BarStyleComposer {
-	if fn != nil && len(fn("")) != 0 {
-		s.metas[iPadding] = fn
-	}
+	s.metas[iPadding] = fn
 	return s
 }
 
@@ -148,9 +138,7 @@ func (s barStyle) Tip(frames ...string) BarStyleComposer {
 }
 
 func (s barStyle) TipMeta(fn func(string) string) BarStyleComposer {
-	if fn != nil && len(fn("")) != 0 {
-		s.metas[iTip] = fn
-	}
+	s.metas[iTip] = fn
 	return s
 }
 
@@ -247,11 +235,11 @@ func (s *barFiller) Fill(w io.Writer, stat decor.Statistics) error {
 
 	return s.flushOp(barSections{
 		{s.metas[iLbound], s.components[iLbound].bytes},
-		{s.metas[iRbound], s.components[iRbound].bytes},
 		{s.metas[iRefiller], refilling},
 		{s.metas[iFiller], filling},
 		{s.metas[iTip], tip.bytes},
 		{s.metas[iPadding], padding},
+		{s.metas[iRbound], s.components[iRbound].bytes},
 	}, w)
 }
 
@@ -265,30 +253,22 @@ func (s barSection) flush(w io.Writer) (err error) {
 }
 
 func (bb barSections) flush(w io.Writer) error {
-	err := bb[0].flush(w)
-	if err != nil {
-		return err
-	}
-	for _, s := range bb[2:] {
+	for _, s := range bb {
 		err := s.flush(w)
 		if err != nil {
 			return err
 		}
 	}
-	return bb[1].flush(w)
+	return nil
 }
 
 func (bb barSections) flushRev(w io.Writer) error {
-	err := bb[0].flush(w)
-	if err != nil {
-		return err
-	}
-	ss := bb[2:]
-	for i := len(ss) - 1; i >= 0; i-- {
-		err := ss[i].flush(w)
+	bb[0], bb[len(bb)-1] = bb[len(bb)-1], bb[0]
+	for i := len(bb) - 1; i >= 0; i-- {
+		err := bb[i].flush(w)
 		if err != nil {
 			return err
 		}
 	}
-	return bb[1].flush(w)
+	return nil
 }
