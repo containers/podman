@@ -1,0 +1,13 @@
+enabled: false
+adjust:
+    enabled: true
+    when: initiator != packit && distro != rhel
+summary: Make sure that TMT container provision works
+tag: [downstream]
+require:
+  - tmt+provision-container
+test:
+    tmt run --verbose --remove
+        provision --how container --image fedora
+        login --command 'cat /etc/os-release'
+        finish
