@@ -1498,6 +1498,50 @@ EOF
 }
 
 # bats test_tags=ci:parallel
+@test "podman run --restart preserves hooks-dir" {
+    # regression test for #17935 to ensure hooks are run on successful restarts
+    ctr=c_$(safename)
+    hooksdir=$PODMAN_TMPDIR/hooks_$(safename)
+
+    skip_if_remote "--hooks-dir is not usable with remote"
+
+    mkdir -p "$hooksdir"
+    cat > "$hooksdir/settings.json" <<EOF
+{
+    "version": "1.0.0",
+    "when": { "always": true },
+    "hook": {
+        "path": "$hooksdir/hook.sh"
+    },
+    "stages": ["prestart", "poststop"]
+}
+EOF
+    cat >"$hooksdir/hook.sh" <<EOF
+#!/bin/sh
+# consume stdin
+cat > /dev/null
+echo ran >> "$hooksdir/log"
+EOF
+    chmod +x "$hooksdir/hook.sh"
+
+    run_podman run -d --restart=on-failure:2 \
+        --name="$ctr" --hooks-dir="$hooksdir" $IMAGE false
+
+    wait_for_restart_count "$ctr" 2 "restart preserves hooks-dir"
+
+    # also make sure 3rd restart has finished
+    # wait also waits until 'cleanup' is done, so poststop hook is
+    # done running after this command
+    run_podman wait "$ctr"
+    run_podman rm "$ctr"
+
+    # check prestart and poststop ran 3 times each
+    assert "$(wc -l < "$hooksdir/log")" = 6
+
+    rm -r "$hooksdir"
+}
+
+# bats test_tags=ci:parallel
 @test "podman run - custom static_dir" {
     # regression test for #19938 to make sure the cleanup process uses the same
     # static_dir and writes the exit code.  If not, podman-run will run into

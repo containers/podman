@@ -1347,6 +1347,30 @@ function ensure_no_mountpoint() {
     fi
 }
 
+###########################
+# ensure container has been restarted requested times
+###########################
+function wait_for_restart_count() {
+    local cname="$1"
+    local count="$2"
+    local tname="$3"
+
+    local timeout=10
+    while :; do
+        # Previously this would fail as the container would run out of ips after 5 restarts.
+        run_podman inspect --format "{{.RestartCount}}" $cname
+        if [[ "$output" == "$2" ]]; then
+            break
+        fi
+
+        timeout=$((timeout - 1))
+        if [[ $timeout -eq 0 ]]; then
+            die "Timed out waiting for RestartCount with $tname"
+        fi
+        sleep 0.5
+    done
+}
+
 
 # END   miscellaneous tools
 ###############################################################################
