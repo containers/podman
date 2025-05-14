@@ -121,81 +121,81 @@ func pthread_setspecific(key pthread_key_t, value unsafe.Pointer) int32 {
 }
 
 //go:linkname _malloc _malloc
-var _malloc uintptr
+var _malloc uint8
 var mallocABI0 = uintptr(unsafe.Pointer(&_malloc))
 
 //go:linkname _free _free
-var _free uintptr
+var _free uint8
 var freeABI0 = uintptr(unsafe.Pointer(&_free))
 
 //go:linkname _setenv _setenv
-var _setenv uintptr
+var _setenv uint8
 var setenvABI0 = uintptr(unsafe.Pointer(&_setenv))
 
 //go:linkname _unsetenv _unsetenv
-var _unsetenv uintptr
+var _unsetenv uint8
 var unsetenvABI0 = uintptr(unsafe.Pointer(&_unsetenv))
 
 //go:linkname _sigfillset _sigfillset
-var _sigfillset uintptr
+var _sigfillset uint8
 var sigfillsetABI0 = uintptr(unsafe.Pointer(&_sigfillset))
 
 //go:linkname _nanosleep _nanosleep
-var _nanosleep uintptr
+var _nanosleep uint8
 var nanosleepABI0 = uintptr(unsafe.Pointer(&_nanosleep))
 
 //go:linkname _abort _abort
-var _abort uintptr
+var _abort uint8
 var abortABI0 = uintptr(unsafe.Pointer(&_abort))
 
 //go:linkname _pthread_attr_init _pthread_attr_init
-var _pthread_attr_init uintptr
+var _pthread_attr_init uint8
 var pthread_attr_initABI0 = uintptr(unsafe.Pointer(&_pthread_attr_init))
 
 //go:linkname _pthread_create _pthread_create
-var _pthread_create uintptr
+var _pthread_create uint8
 var pthread_createABI0 = uintptr(unsafe.Pointer(&_pthread_create))
 
 //go:linkname _pthread_detach _pthread_detach
-var _pthread_detach uintptr
+var _pthread_detach uint8
 var pthread_detachABI0 = uintptr(unsafe.Pointer(&_pthread_detach))
 
 //go:linkname _pthread_sigmask _pthread_sigmask
-var _pthread_sigmask uintptr
+var _pthread_sigmask uint8
 var pthread_sigmaskABI0 = uintptr(unsafe.Pointer(&_pthread_sigmask))
 
 //go:linkname _pthread_self _pthread_self
-var _pthread_self uintptr
+var _pthread_self uint8
 var pthread_selfABI0 = uintptr(unsafe.Pointer(&_pthread_self))
 
 //go:linkname _pthread_get_stacksize_np _pthread_get_stacksize_np
-var _pthread_get_stacksize_np uintptr
+var _pthread_get_stacksize_np uint8
 var pthread_get_stacksize_npABI0 = uintptr(unsafe.Pointer(&_pthread_get_stacksize_np))
 
 //go:linkname _pthread_attr_getstacksize _pthread_attr_getstacksize
-var _pthread_attr_getstacksize uintptr
+var _pthread_attr_getstacksize uint8
 var pthread_attr_getstacksizeABI0 = uintptr(unsafe.Pointer(&_pthread_attr_getstacksize))
 
 //go:linkname _pthread_attr_setstacksize _pthread_attr_setstacksize
-var _pthread_attr_setstacksize uintptr
+var _pthread_attr_setstacksize uint8
 var pthread_attr_setstacksizeABI0 = uintptr(unsafe.Pointer(&_pthread_attr_setstacksize))
 
 //go:linkname _pthread_attr_destroy _pthread_attr_destroy
-var _pthread_attr_destroy uintptr
+var _pthread_attr_destroy uint8
 var pthread_attr_destroyABI0 = uintptr(unsafe.Pointer(&_pthread_attr_destroy))
 
 //go:linkname _pthread_mutex_lock _pthread_mutex_lock
-var _pthread_mutex_lock uintptr
+var _pthread_mutex_lock uint8
 var pthread_mutex_lockABI0 = uintptr(unsafe.Pointer(&_pthread_mutex_lock))
 
 //go:linkname _pthread_mutex_unlock _pthread_mutex_unlock
-var _pthread_mutex_unlock uintptr
+var _pthread_mutex_unlock uint8
 var pthread_mutex_unlockABI0 = uintptr(unsafe.Pointer(&_pthread_mutex_unlock))
 
 //go:linkname _pthread_cond_broadcast _pthread_cond_broadcast
-var _pthread_cond_broadcast uintptr
+var _pthread_cond_broadcast uint8
 var pthread_cond_broadcastABI0 = uintptr(unsafe.Pointer(&_pthread_cond_broadcast))
 
 //go:linkname _pthread_setspecific _pthread_setspecific
-var _pthread_setspecific uintptr
+var _pthread_setspecific uint8
 var pthread_setspecificABI0 = uintptr(unsafe.Pointer(&_pthread_setspecific))

@@ -83,17 +83,17 @@ func loadSymbol(handle uintptr, name string) (uintptr, error) {
 // appear to work if you link directly to the C function on darwin arm64.
 
 //go:linkname dlopen dlopen
-var dlopen uintptr
+var dlopen uint8
 var dlopenABI0 = uintptr(unsafe.Pointer(&dlopen))
 
 //go:linkname dlsym dlsym
-var dlsym uintptr
+var dlsym uint8
 var dlsymABI0 = uintptr(unsafe.Pointer(&dlsym))
 
 //go:linkname dlclose dlclose
-var dlclose uintptr
+var dlclose uint8
 var dlcloseABI0 = uintptr(unsafe.Pointer(&dlclose))
 
 //go:linkname dlerror dlerror
-var dlerror uintptr
+var dlerror uint8
 var dlerrorABI0 = uintptr(unsafe.Pointer(&dlerror))
