@@ -264,6 +264,8 @@ jobs:
       run: |
         mv win-installer/* release-artifacts
         mv mac-installers/* release-artifacts
+        mv win-installer-amd64/* release-artifacts
+        mv win-installer-arm64/* release-artifacts
         pushd release-artifacts
         sha256sum * > shasums
         popd
