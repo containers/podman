@@ -285,6 +285,9 @@ func CreateExitCommandArgs(storageConfig storageTypes.StoreOptions, config *conf
 		"--db-backend", config.Engine.DBBackend,
 		fmt.Sprintf("--transient-store=%t", storageConfig.TransientStore),
 	}
+	for _, dir := range config.Engine.HooksDir.Get() {
+		command = append(command, []string{"--hooks-dir", dir}...)
+	}
 	if storageConfig.ImageStore != "" {
 		command = append(command, []string{"--imagestore", storageConfig.ImageStore}...)
 	}
