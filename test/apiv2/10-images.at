@@ -455,4 +455,11 @@ t GET images/json 200 \
 podman rmi -f $(< $IIDFILE)
 rm -f $IIDFILE
 
+# check that SharedSize returns -1 for compat api if not set
+# and 0 (or the correct shared size) if set
+t GET images/json 200 \
+    .[0].SharedSize=-1
+t GET images/json?shared-size=true 200 \
+    .[0].SharedSize=0
+
 # vim: filetype=sh
