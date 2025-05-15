@@ -64,7 +64,7 @@ func startShares(mc *vmconfigs.MachineConfig) error {
 		}
 		args = append(args, "machine", "client9p", fmt.Sprintf("%d", *mount.VSockNumber), strconv.Quote(mount.Target))
 
-		if err := machine.CommonSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
+		if err := machine.LocalhostSSH(mc.SSH.RemoteUsername, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, args); err != nil {
 			return err
 		}
 	}

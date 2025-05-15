@@ -95,7 +95,7 @@ func cp(_ *cobra.Command, args []string) error {
 	cpOpts.SrcPath = srcPath
 	cpOpts.DestPath = destPath
 
-	err = secureCopy(&cpOpts)
+	err = localhostSSHCopy(&cpOpts)
 	if err != nil {
 		return fmt.Errorf("copy failed: %s", err.Error())
 	}
@@ -105,7 +105,8 @@ func cp(_ *cobra.Command, args []string) error {
 	return nil
 }
 
-func secureCopy(opts *cpOptions) error {
+// localhostSSHCopy uses scp to copy files from/to a localhost machine using ssh.
+func localhostSSHCopy(opts *cpOptions) error {
 	srcPath := opts.SrcPath
 	destPath := opts.DestPath
 	sshConfig := opts.Machine.SSH
@@ -123,7 +124,7 @@ func secureCopy(opts *cpOptions) error {
 	}
 
 	args := []string{"-r", "-i", sshConfig.IdentityPath, "-P", strconv.Itoa(sshConfig.Port)}
-	args = append(args, machine.CommonSSHArgs()...)
+	args = append(args, machine.LocalhostSSHArgs()...) // Warning: This MUST NOT be generalized to allow communication over untrusted networks.
 	args = append(args, []string{srcPath, destPath}...)
 
 	cmd := exec.Command("scp", args...)

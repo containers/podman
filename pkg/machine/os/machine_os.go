@@ -24,7 +24,7 @@ type MachineOS struct {
 func (m *MachineOS) Apply(image string, opts ApplyOptions) error {
 	args := []string{"podman", "machine", "os", "apply", image}
 
-	if err := machine.CommonSSH(m.VM.SSH.RemoteUsername, m.VM.SSH.IdentityPath, m.VMName, m.VM.SSH.Port, args); err != nil {
+	if err := machine.LocalhostSSH(m.VM.SSH.RemoteUsername, m.VM.SSH.IdentityPath, m.VMName, m.VM.SSH.Port, args); err != nil {
 		return err
 	}
 
