@@ -31,7 +31,7 @@ env:
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250422t130822z-f42f41d13"
+    IMAGE_SUFFIX: "c20250512t140028z-f42f41d13"
 
     # EC2 images
     FEDORA_AMI: "fedora-aws-${IMAGE_SUFFIX}"
@@ -796,7 +796,7 @@ podman_machine_aarch64_task:
     depends_on: *build
     ec2_instance:
         <<: *standard_build_ec2_aarch64
-    timeout_in: 30m
+    timeout_in: 60m
     env:
         TEST_FLAVOR: "machine-linux"
         EC2_INST_TYPE: c6g.metal
