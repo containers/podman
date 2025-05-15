@@ -18,7 +18,8 @@ import (
 func Ping(w http.ResponseWriter, r *http.Request) {
 	// Note: API-Version and Libpod-API-Version are set in handler_api.go
 	w.Header().Set("BuildKit-Version", "")
-	w.Header().Set("Builder-Version", "")
+	// Docker uses Builder-Version 1 for classic builder and 2 for BuildKit
+	w.Header().Set("Builder-Version", "1")
 	w.Header().Set("Docker-Experimental", "true")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("OSType", runtime.GOOS)
