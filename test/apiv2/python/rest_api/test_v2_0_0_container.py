@@ -458,6 +458,32 @@ class ContainerTestCase(APITestCase):
         self.assertTrue("8080/tcp" in inspect_response["HostConfig"]["PortBindings"])
         self.assertFalse("8081/tcp" in inspect_response["HostConfig"]["PortBindings"])
 
+    def test_host_config_cgroupns_mode(self):
+        for mode in ["private", "host"]:
+            r = requests.post(
+                self.podman_url + "/v1.40/containers/create",
+                json={
+                    "Name": "cgroupns_" + mode,
+                    "Cmd": ["top"],
+                    "Image": "alpine:latest",
+                    "HostConfig": {
+                        "CgroupnsMode": mode
+                    }
+                },
+            )
+            self.assertEqual(r.status_code, 201, r.text)
+            payload = r.json()
+            container_id = payload["Id"]
+            self.assertIsNotNone(container_id)
+
+            r = requests.get(self.podman_url + f"/v1.40/containers/{container_id}/json")
+            self.assertEqual(r.status_code, 200, r.text)
+            inspect_response = r.json()
+            self.assertEqual(mode, inspect_response["HostConfig"]["CgroupnsMode"])
+
+            r = requests.delete(self.podman_url + f"/v1.40/containers/{container_id}")
+            self.assertEqual(r.status_code, 204, r.text)
+
 def execute_process(cmd):
     return subprocess.run(
                 cmd,

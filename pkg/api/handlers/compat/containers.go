@@ -507,6 +507,14 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 	}
 	sort.Strings(hc.Binds)
 
+	// Map CgroupMode to CgroupnsMode for Docker API compatibility
+	switch inspect.HostConfig.CgroupMode {
+	case "private":
+		hc.CgroupnsMode = container.CgroupnsModePrivate
+	case "host":
+		hc.CgroupnsMode = container.CgroupnsModeHost
+	}
+
 	// k8s-file == json-file
 	if hc.LogConfig.Type == define.KubernetesLogging {
 		hc.LogConfig.Type = define.JSONLogging

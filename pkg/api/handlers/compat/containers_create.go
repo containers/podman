@@ -474,6 +474,7 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 		User:                 cc.Config.User,
 		UserNS:               string(cc.HostConfig.UsernsMode),
 		UTS:                  string(cc.HostConfig.UTSMode),
+		CgroupNS:             string(cc.HostConfig.CgroupnsMode),
 		Mount:                mounts,
 		VolumesFrom:          cc.HostConfig.VolumesFrom,
 		Workdir:              cc.Config.WorkingDir,
