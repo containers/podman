@@ -64,9 +64,6 @@ func prune(cmd *cobra.Command, args []string) error {
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all volumes not used by at least one container. The following volumes will be removed:")
-		if err != nil {
-			return err
-		}
 		listOptions.Filter, err = parse.FilterArgumentsIntoFilters(filter)
 		if err != nil {
 			return err

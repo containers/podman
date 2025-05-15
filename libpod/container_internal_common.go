@@ -901,25 +901,19 @@ func (c *Container) resolveWorkDir() error {
 	if !c.config.CreateWorkingDir {
 		// No need to create it (e.g., `--workdir=/foo`), so let's make sure
 		// the path exists on the container.
-		if err != nil {
-			if os.IsNotExist(err) {
-				// If resolved Workdir path gets marked as a valid symlink,
-				// return nil cause this is valid use-case.
-				if c.isWorkDirSymlink(resolvedWorkdir) {
-					return nil
-				}
-				return fmt.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
+		if errors.Is(err, os.ErrNotExist) {
+			// If resolved Workdir path gets marked as a valid symlink,
+			// return nil cause this is valid use-case.
+			if c.isWorkDirSymlink(resolvedWorkdir) {
+				return nil
 			}
-			// This might be a serious error (e.g., permission), so
-			// we need to return the full error.
-			return fmt.Errorf("detecting workdir %q on container %s: %w", workdir, c.ID(), err)
+			return fmt.Errorf("workdir %q does not exist on container %s", workdir, c.ID())
 		}
-		return nil
+		// This might be a serious error (e.g., permission), so
+		// we need to return the full error.
+		return fmt.Errorf("detecting workdir %q on container %s: %w", workdir, c.ID(), err)
 	}
 	if err := os.MkdirAll(resolvedWorkdir, 0755); err != nil {
-		if os.IsExist(err) {
-			return nil
-		}
 		return fmt.Errorf("creating container %s workdir: %w", c.ID(), err)
 	}
 
@@ -1192,7 +1186,7 @@ func (c *Container) exportCheckpoint(options ContainerCheckpointOptions) error {
 			return fmt.Errorf("exporting root file-system diff for %q: %w", c.ID(), err)
 		}
 
-		addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
+		addToTarFiles, err = crutils.CRCreateRootFsDiffTar(&rootFsChanges, c.state.Mountpoint, c.bundlePath())
 		if err != nil {
 			return err
 		}

@@ -35,9 +35,6 @@ func GetLocalBlob(ctx context.Context, path string) (*types.BlobInfo, error) {
 		return nil, err
 	}
 	blobs := img.LayerInfos()
-	if err != nil {
-		return nil, err
-	}
 	if len(blobs) != 1 {
 		return nil, errors.New("invalid disk image")
 	}
