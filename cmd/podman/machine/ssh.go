@@ -115,6 +115,6 @@ func ssh(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	err = machine.CommonSSHShell(sshOpts.Username, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, sshOpts.Args)
+	err = machine.LocalhostSSHShell(sshOpts.Username, mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, sshOpts.Args)
 	return utils.HandleOSExecError(err)
 }
