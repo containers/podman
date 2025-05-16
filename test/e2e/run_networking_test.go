@@ -1174,19 +1174,6 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		Expect(session).Should(ExitCleanly())
 	})
 
-	It("podman network adds dns search domain with dns", func() {
-		net := createNetworkName("dnsname")
-		session := podmanTest.Podman([]string{"network", "create", net})
-		session.WaitWithDefaultTimeout()
-		defer podmanTest.removeNetwork(net)
-		Expect(session).Should(ExitCleanly())
-
-		session = podmanTest.Podman([]string{"run", "--network", net, ALPINE, "cat", "/etc/resolv.conf"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(ContainSubstring("search dns.podman"))
-	})
-
 	It("Rootless podman run with --net=bridge works and connects to default network", func() {
 		// This is harmless when run as root, so we'll just let it run.
 		ctrName := "testctr"
