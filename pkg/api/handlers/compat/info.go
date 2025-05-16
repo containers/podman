@@ -55,53 +55,54 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 	// liveRestoreEnabled := criu.CheckForCriu() && configInfo.RuntimeSupportsCheckpoint()
 	info := &handlers.Info{
 		Info: dockerSystem.Info{
-			Architecture:       goRuntime.GOARCH,
-			BridgeNfIP6tables:  !sysInfo.BridgeNFCallIP6TablesDisabled,
-			BridgeNfIptables:   !sysInfo.BridgeNFCallIPTablesDisabled,
-			CPUCfsPeriod:       sysInfo.CPUCfsPeriod,
-			CPUCfsQuota:        sysInfo.CPUCfsQuota,
-			CPUSet:             sysInfo.Cpuset,
-			CPUShares:          sysInfo.CPUShares,
-			CgroupDriver:       configInfo.Engine.CgroupManager,
-			ContainerdCommit:   dockerSystem.Commit{},
-			Containers:         infoData.Store.ContainerStore.Number,
-			ContainersPaused:   stateInfo[define.ContainerStatePaused],
-			ContainersRunning:  stateInfo[define.ContainerStateRunning],
-			ContainersStopped:  stateInfo[define.ContainerStateStopped] + stateInfo[define.ContainerStateExited],
-			Debug:              log.IsLevelEnabled(log.DebugLevel),
-			DefaultRuntime:     configInfo.Engine.OCIRuntime,
-			DockerRootDir:      infoData.Store.GraphRoot,
-			Driver:             infoData.Store.GraphDriverName,
-			DriverStatus:       getGraphStatus(infoData.Store.GraphStatus),
-			ExperimentalBuild:  true,
-			GenericResources:   nil,
-			HTTPProxy:          getEnv("http_proxy"),
-			HTTPSProxy:         getEnv("https_proxy"),
-			ID:                 uuid.New().String(),
-			IPv4Forwarding:     !sysInfo.IPv4ForwardingDisabled,
-			Images:             infoData.Store.ImageStore.Number,
-			IndexServerAddress: "",
-			InitBinary:         "",
-			InitCommit:         dockerSystem.Commit{},
-			Isolation:          "",
-			KernelMemoryTCP:    false,
-			KernelVersion:      infoData.Host.Kernel,
-			Labels:             nil,
-			LiveRestoreEnabled: false,
-			LoggingDriver:      "",
-			MemTotal:           infoData.Host.MemTotal,
-			MemoryLimit:        sysInfo.MemoryLimit,
-			NCPU:               goRuntime.NumCPU(),
-			NEventsListener:    0,
-			NFd:                getFdCount(),
-			NGoroutines:        goRuntime.NumGoroutine(),
-			Name:               infoData.Host.Hostname,
-			NoProxy:            getEnv("no_proxy"),
-			OSType:             goRuntime.GOOS,
-			OSVersion:          infoData.Host.Distribution.Version,
-			OomKillDisable:     sysInfo.OomKillDisable,
-			OperatingSystem:    infoData.Host.Distribution.Distribution,
-			PidsLimit:          sysInfo.PidsLimit,
+			Architecture:        goRuntime.GOARCH,
+			BridgeNfIP6tables:   !sysInfo.BridgeNFCallIP6TablesDisabled,
+			BridgeNfIptables:    !sysInfo.BridgeNFCallIPTablesDisabled,
+			CPUCfsPeriod:        sysInfo.CPUCfsPeriod,
+			CPUCfsQuota:         sysInfo.CPUCfsQuota,
+			CPUSet:              sysInfo.Cpuset,
+			CPUShares:           sysInfo.CPUShares,
+			CgroupDriver:        configInfo.Engine.CgroupManager,
+			ContainerdCommit:    dockerSystem.Commit{},
+			Containers:          infoData.Store.ContainerStore.Number,
+			ContainersPaused:    stateInfo[define.ContainerStatePaused],
+			ContainersRunning:   stateInfo[define.ContainerStateRunning],
+			ContainersStopped:   stateInfo[define.ContainerStateStopped] + stateInfo[define.ContainerStateExited],
+			Debug:               log.IsLevelEnabled(log.DebugLevel),
+			DefaultAddressPools: getDefaultAddressPools(configInfo),
+			DefaultRuntime:      configInfo.Engine.OCIRuntime,
+			DockerRootDir:       infoData.Store.GraphRoot,
+			Driver:              infoData.Store.GraphDriverName,
+			DriverStatus:        getGraphStatus(infoData.Store.GraphStatus),
+			ExperimentalBuild:   true,
+			GenericResources:    nil,
+			HTTPProxy:           getEnv("http_proxy"),
+			HTTPSProxy:          getEnv("https_proxy"),
+			ID:                  uuid.New().String(),
+			IPv4Forwarding:      !sysInfo.IPv4ForwardingDisabled,
+			Images:              infoData.Store.ImageStore.Number,
+			IndexServerAddress:  "",
+			InitBinary:          "",
+			InitCommit:          dockerSystem.Commit{},
+			Isolation:           "",
+			KernelMemoryTCP:     false,
+			KernelVersion:       infoData.Host.Kernel,
+			Labels:              nil,
+			LiveRestoreEnabled:  false,
+			LoggingDriver:       "",
+			MemTotal:            infoData.Host.MemTotal,
+			MemoryLimit:         sysInfo.MemoryLimit,
+			NCPU:                goRuntime.NumCPU(),
+			NEventsListener:     0,
+			NFd:                 getFdCount(),
+			NGoroutines:         goRuntime.NumGoroutine(),
+			Name:                infoData.Host.Hostname,
+			NoProxy:             getEnv("no_proxy"),
+			OSType:              goRuntime.GOOS,
+			OSVersion:           infoData.Host.Distribution.Version,
+			OomKillDisable:      sysInfo.OomKillDisable,
+			OperatingSystem:     infoData.Host.Distribution.Distribution,
+			PidsLimit:           sysInfo.PidsLimit,
 			Plugins: dockerSystem.PluginsInfo{
 				Volume:  infoData.Plugins.Volume,
 				Network: infoData.Plugins.Network,
@@ -236,4 +237,25 @@ func getEnv(value string) string {
 		return v
 	}
 	return ""
+}
+
+func getDefaultAddressPools(configInfo *config.Config) []dockerSystem.NetworkAddressPool {
+	// Convert DefaultSubnetPools to DefaultAddressPools
+	if len(configInfo.Network.DefaultSubnetPools) == 0 {
+		return nil
+	}
+
+	pools := make([]dockerSystem.NetworkAddressPool, 0, len(configInfo.Network.DefaultSubnetPools))
+	for _, pool := range configInfo.Network.DefaultSubnetPools {
+		if pool.Base == nil {
+			continue
+		}
+
+		pools = append(pools, dockerSystem.NetworkAddressPool{
+			Base: pool.Base.String(),
+			Size: pool.Size,
+		})
+	}
+
+	return pools
 }
