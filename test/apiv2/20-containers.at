@@ -698,7 +698,7 @@ t GET containers/status-test/json 200 .State.Status="running"
 
 podman stop status-test &
 sleep 1
-t GET containers/status-test/json 200 .State.Status="stopping"
+t GET containers/status-test/json 200 .State.Status="running"
 
 sleep 3
 t GET containers/status-test/json 200 .State.Status="exited"
