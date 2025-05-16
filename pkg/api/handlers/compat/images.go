@@ -444,9 +444,10 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 	decoder := utils.GetDecoder(r)
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 	query := struct {
-		All     bool
-		Digests bool
-		Filter  string // Docker 1.24 compatibility
+		All        bool
+		Digests    bool
+		Filter     string // Docker 1.24 compatibility
+		SharedSize bool   `schema:"shared-size"` // Docker 1.42 compatibility
 	}{
 		// This is where you can override the golang default value for one of fields
 	}
@@ -496,6 +497,10 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		// docker adds sha256: in front of the ID
 		for _, s := range summaries {
 			s.ID = "sha256:" + s.ID
+			// Docker 1.42 sets SharedSize to -1 if ont passed explicitly
+			if !query.SharedSize {
+				s.SharedSize = -1
+			}
 		}
 	}
 	utils.WriteResponse(w, http.StatusOK, summaries)
