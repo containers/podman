@@ -52,6 +52,6 @@ func getProxyScript(isWSL bool) io.Reader {
 }
 
 func ApplyProxies(mc *vmconfigs.MachineConfig) error {
-	return machine.CommonSSHWithStdin("root", mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"/usr/bin/bash"},
+	return machine.LocalhostSSHWithStdin("root", mc.SSH.IdentityPath, mc.Name, mc.SSH.Port, []string{"/usr/bin/bash"},
 		getProxyScript(mc.WSLHypervisor != nil))
 }
