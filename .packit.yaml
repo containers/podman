@@ -35,12 +35,8 @@ jobs:
         message: "[NON-BLOCKING] Packit jobs failed. @containers/packit-build please check. Everyone else, feel free to ignore."
     enable_net: true
     targets:
-      - fedora-latest-stable-x86_64
-      - fedora-latest-stable-aarch64
-      - fedora-development-x86_64
-      - fedora-development-aarch64
-      - fedora-41-x86_64
-      - fedora-41-aarch64
+      - fedora-all-x86_64
+      - fedora-all-aarch64
     # Re-enable these scans if OpenScanHub starts scanning go packages
     # https://packit.dev/posts/openscanhub-prototype
     osh_diff_scan_after_copr_build: false
