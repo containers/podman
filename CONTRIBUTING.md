@@ -236,7 +236,7 @@ It’s important to describe the change in plain English for the reviewer to ver
 Solve only one problem per patch.
 If your description starts to get long, that’s a sign that you probably need to split up your patch.
 
-If the patch fixes a logged bug entry, refer to that bug entry by number and URL.
+If the patch fixes a logged bug entry, refer to that bug entry by number or URL.
 If the patch follows from a mailing list discussion, give a URL to the mailing list archive.
 Please format these lines as `Fixes:` followed by the URL or, for Github bugs, the bug number preceded by a #.
 For example:

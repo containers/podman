@@ -463,9 +463,20 @@ func LibpodToContainerJSON(l *libpod.Container, sz bool) (*container.InspectResp
 		state.Running = true
 	}
 
-	// Dockers created state is our configured state
-	if state.Status == define.ContainerStateCreated.String() {
-		state.Status = define.ContainerStateConfigured.String()
+	// map our statuses to Docker's statuses
+	switch state.Status {
+	case define.ContainerStateConfigured.String(), define.ContainerStateCreated.String():
+		state.Status = "created"
+	case define.ContainerStateRunning.String(), define.ContainerStateStopping.String():
+		state.Status = "running"
+	case define.ContainerStatePaused.String():
+		state.Status = "paused"
+	case define.ContainerStateRemoving.String():
+		state.Status = "removing"
+	case define.ContainerStateStopped.String(), define.ContainerStateExited.String():
+		state.Status = "exited"
+	default:
+		state.Status = "" // unknown state
 	}
 
 	if l.HasHealthCheck() && state.Status != "created" {
