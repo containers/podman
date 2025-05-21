@@ -113,7 +113,7 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(volumeCreate).To(Exit(0))
 
-		run, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", "a:/test:Z", "quay.io/libpod/alpine_nginx", "true"})).run()
+		run, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", "a:/test:Z", TESTIMAGE, "true"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(run).To(Exit(0))
 	})
