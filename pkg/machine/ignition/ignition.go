@@ -304,6 +304,23 @@ func getDirs(usrName string) []Directory {
 func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool, swap uint64) []File {
 	files := make([]File, 0)
 
+	// enable linger mode for the user
+	files = append(files, File{
+		Node: Node{
+			Group: GetNodeGrp("root"),
+			Path:  "/var/lib/systemd/linger/" + usrName,
+			User:  GetNodeUsr("root"),
+			// the coreos image might already have this defined
+			Overwrite: BoolToPtr(true),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Contents: Resource{
+				Source: EncodeDataURLPtr(""),
+			},
+			Mode: IntToPtr(0644),
+		},
+	})
+
 	lingerExample := parser.NewUnitFile()
 	lingerExample.Add("Unit", "Description", "A systemd user unit demo")
 	lingerExample.Add("Unit", "After", "network-online.target")
