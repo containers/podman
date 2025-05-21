@@ -128,7 +128,7 @@ The default is **false**.
 #### **--pre-checkpoint**, **-P**
 
 Dump the *container's* memory information only, leaving the *container* running. Later
-operations supersedes prior dumps. It only works on `runc 1.0-rc3` or `higher`.\
+operations supersedes prior dumps.\
 The default is **false**.
 
 The functionality to only checkpoint the memory of the container and in a second
