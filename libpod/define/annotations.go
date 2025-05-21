@@ -172,6 +172,12 @@ const (
 	// PIDsLimitAnnotation is used to limit the number of PIDs
 	PIDsLimitAnnotation = "io.podman.annotations.pids-limit"
 
+	// CpusetAnnotation is used to restrict execution to specific CPU cores
+	CpusetAnnotation = "io.podman.annotations.cpuset"
+
+	// MemoryNodesAnnotation is used to restrict memory allocations to specific memory nodes on NUMA systems
+	MemoryNodesAnnotation = "io.podman.annotations.memory-nodes"
+
 	// TotalAnnotationSizeLimitB is the max length of annotations allowed by Kubernetes.
 	TotalAnnotationSizeLimitB int = 256 * (1 << 10) // 256 kB
 )

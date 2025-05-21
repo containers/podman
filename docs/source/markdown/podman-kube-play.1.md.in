@@ -57,6 +57,10 @@ Note: To customize the name of the infra container created during `podman kube p
 
 Note: Use the **io.podman.annotations.pids-limit/$ctrname** annotation to configure the pod's pids limit.
 
+Note: Use the **io.podman.annotations.cpuset/$ctrname** annotation to restrict a container's execution to a specific set of CPU cores. This is equivalent to the `--cpuset-cpus=number` option in podman-run(1).
+
+Note: Use the **io.podman.annotations.memory-nodes/$ctrname** annotation to restrict a container's memory allocations to a specific set of memory nodes on NUMA systems. This is equivalent to the `--cpuset-mems=nodes` option in podman-run(1).
+
 `Kubernetes PersistentVolumeClaims`
 
 A Kubernetes PersistentVolumeClaim represents a Podman named volume. Only the PersistentVolumeClaim name is required by Podman to create a volume. Kubernetes annotations can be used to make use of the available options for Podman volumes.
