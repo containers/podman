@@ -138,7 +138,7 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 	ignStorage := Storage{
 		Directories: getDirs(ign.Name),
 		Files:       getFiles(ign.Name, ign.UID, ign.Rootful, ign.VMType, ign.NetRecover, ign.Swap),
-		Links:       getLinks(ign.Name),
+		Links:       getLinks(),
 	}
 
 	// Add or set the time zone for the machine
@@ -281,7 +281,6 @@ func getDirs(usrName string) []Directory {
 		"/home/" + usrName + "/.config/containers",
 		"/home/" + usrName + "/.config/systemd",
 		"/home/" + usrName + "/.config/systemd/user",
-		"/home/" + usrName + "/.config/systemd/user/default.target.wants",
 	}
 	var (
 		dirs = make([]Directory, len(newDirs))
@@ -304,15 +303,22 @@ func getDirs(usrName string) []Directory {
 func getFiles(usrName string, uid int, rootful bool, vmtype define.VMType, _ bool, swap uint64) []File {
 	files := make([]File, 0)
 
-	lingerExample := parser.NewUnitFile()
-	lingerExample.Add("Unit", "Description", "A systemd user unit demo")
-	lingerExample.Add("Unit", "After", "network-online.target")
-	lingerExample.Add("Unit", "Wants", "network-online.target podman.socket")
-	lingerExample.Add("Service", "ExecStart", "/usr/bin/sleep infinity")
-	lingerExampleFile, err := lingerExample.ToString()
-	if err != nil {
-		logrus.Warn(err.Error())
-	}
+	// enable linger mode for the user
+	files = append(files, File{
+		Node: Node{
+			Group: GetNodeGrp("root"),
+			Path:  "/var/lib/systemd/linger/" + usrName,
+			User:  GetNodeUsr("root"),
+			// the coreos image might already have this defined
+			Overwrite: BoolToPtr(true),
+		},
+		FileEmbedded1: FileEmbedded1{
+			Contents: Resource{
+				Source: EncodeDataURLPtr(""),
+			},
+			Mode: IntToPtr(0644),
+		},
+	})
 
 	containers := `[containers]
 netns="bridge"
@@ -331,22 +337,6 @@ pids_limit=0
 		subUID = uid + 1
 	}
 	etcSubUID := fmt.Sprintf(`%s:%d:%d`, usrName, subUID, subUIDs)
-
-	// Add a fake systemd service to get the user socket rolling
-	files = append(files, File{
-		Node: Node{
-			Group: GetNodeGrp(usrName),
-			Path:  "/home/" + usrName + "/.config/systemd/user/linger-example.service",
-			User:  GetNodeUsr(usrName),
-		},
-		FileEmbedded1: FileEmbedded1{
-			Append: nil,
-			Contents: Resource{
-				Source: EncodeDataURLPtr(lingerExampleFile),
-			},
-			Mode: IntToPtr(0744),
-		},
-	})
 
 	// Set containers.conf up for core user to use networks
 	// by default
@@ -589,16 +579,17 @@ func getSSLFile(path, content string) File {
 	}
 }
 
-func getLinks(usrName string) []Link {
+func getLinks() []Link {
 	return []Link{{
 		Node: Node{
-			Group: GetNodeGrp(usrName),
-			Path:  "/home/" + usrName + "/.config/systemd/user/default.target.wants/linger-example.service",
-			User:  GetNodeUsr(usrName),
+			Group:     GetNodeGrp("root"),
+			Path:      "/etc/systemd/user/sockets.target.wants/podman.socket",
+			User:      GetNodeUsr("root"),
+			Overwrite: BoolToPtr(true),
 		},
 		LinkEmbedded1: LinkEmbedded1{
 			Hard:   BoolToPtr(false),
-			Target: "/home/" + usrName + "/.config/systemd/user/linger-example.service",
+			Target: "/usr/lib/systemd/user/podman.socket",
 		},
 	}, {
 		Node: Node{
