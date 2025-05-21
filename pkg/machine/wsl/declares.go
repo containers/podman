@@ -28,6 +28,7 @@ const changePort = `sed -E -i 's/^Port[[:space:]]+[0-9]+/Port %d/' /etc/ssh/sshd
 
 const configServices = `ln -fs /usr/lib/systemd/system/sshd.service /etc/systemd/system/multi-user.target.wants/sshd.service
 ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.wants/podman.socket
+ln -fs /usr/lib/systemd/user/podman.socket /etc/systemd/user/sockets.target.wants/podman.socket
 rm -f /etc/systemd/system/getty.target.wants/console-getty.service
 rm -f /etc/systemd/system/getty.target.wants/getty@tty1.service
 rm -f /etc/systemd/system/multi-user.target.wants/systemd-resolved.service
@@ -104,19 +105,6 @@ nameserver 192.168.127.1
 // WSL kernel does not have sg and crypto_user modules
 const overrideSysusers = `[Service]
 LoadCredential=
-`
-
-const lingerService = `[Unit]
-Description=A systemd user unit demo
-After=network-online.target
-Wants=network-online.target podman.socket
-[Service]
-ExecStart=/usr/bin/sleep infinity
-`
-
-const lingerSetup = `mkdir -p /home/[USER]/.config/systemd/user/default.target.wants
-ln -fs /home/[USER]/.config/systemd/user/linger-example.service \
-       /home/[USER]/.config/systemd/user/default.target.wants/linger-example.service
 `
 
 const bindMountSystemService = `
