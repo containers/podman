@@ -225,6 +225,13 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
 	}
 
+	if mc.LibKrunHypervisor != nil {
+		// Nested Virtualization requires an M3 chip or newer, and to be running
+		// macOS 15+. If those requirements are not met, then krunkit will ignore the
+		// argument and keep Nested Virtualization disabled.
+		cmd.Args = append(cmd.Args, "--nested")
+	}
+
 	if mc.IsFirstBoot() {
 		// If this is the first boot of the vm, we need to add the vsock
 		// device to vfkit so we can inject the ignition file
