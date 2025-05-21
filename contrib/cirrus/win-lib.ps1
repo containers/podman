@@ -103,6 +103,7 @@ function Run-Command {
 
     if ($Env:CIRRUS_CI -eq "true") {
         Invoke-Logformatter $unformattedLog
+        $PSScriptRoot\win-collect-wsl-logs-stop.ps1
     }
 
     Check-Exit 2 "'$command'" "$exitCode"
