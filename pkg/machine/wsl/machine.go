@@ -173,17 +173,8 @@ func configureSystem(mc *vmconfigs.MachineConfig, dist string, ansibleConfig *vm
 		}
 	}
 
-	lingerCmd := withUser("cat > /home/[USER]/.config/systemd/[USER]/linger-example.service", user)
-	if err := wslPipe(lingerService, dist, "sh", "-c", lingerCmd); err != nil {
-		return fmt.Errorf("could not generate linger service for guest OS: %w", err)
-	}
-
 	if err := enableUserLinger(mc, dist); err != nil {
 		return err
-	}
-
-	if err := wslPipe(withUser(lingerSetup, user), dist, "sh"); err != nil {
-		return fmt.Errorf("could not configure systemd settings for guest OS: %w", err)
 	}
 
 	if err := wslPipe(containersConf, dist, "sh", "-c", "cat > /etc/containers/containers.conf"); err != nil {
@@ -214,6 +205,10 @@ func configureBindMounts(dist string, user string) error {
 		return fmt.Errorf("could not create podman binding service file for guest OS: %w", err)
 	}
 
+	if err := wslPipe(getConfigBindServicesScript(user), dist, "sh"); err != nil {
+		return fmt.Errorf("could not configure podman binding services for guest OS: %w", err)
+	}
+
 	catUserService := "cat > " + getUserUnitPath(user)
 	if err := wslPipe(getBindMountUserService(dist), dist, "sh", "-c", catUserService); err != nil {
 		return fmt.Errorf("could not create podman binding user service file for guest OS: %w", err)
@@ -221,10 +216,6 @@ func configureBindMounts(dist string, user string) error {
 
 	if err := wslPipe(getBindMountFsTab(dist), dist, "sh", "-c", "cat >> /etc/fstab"); err != nil {
 		return fmt.Errorf("could not create podman binding fstab entry for guest OS: %w", err)
-	}
-
-	if err := wslPipe(getConfigBindServicesScript(user), dist, "sh"); err != nil {
-		return fmt.Errorf("could not configure podman binding services for guest OS: %w", err)
 	}
 
 	catGroupDropin := fmt.Sprintf("cat > %s/%s", podmanSocketDropinPath, "10-group.conf")
