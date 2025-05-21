@@ -6195,6 +6195,7 @@ spec:
 	})
 
 	It("test cpuset annotation", func() {
+		SkipIfRootless("access to cpuset cgroup controller is needed")
 		ctrAnnotation := "io.podman.annotations.cpuset/" + defaultCtrName
 		pod := getPod(withAnnotation(ctrAnnotation, "0"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
@@ -6209,6 +6210,7 @@ spec:
 	})
 
 	It("test memory-nodes annotation", func() {
+		SkipIfRootless("access to cpuset cgroup controller is needed")
 		ctrAnnotation := "io.podman.annotations.memory-nodes/" + defaultCtrName
 		pod := getPod(withAnnotation(ctrAnnotation, "0"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
 		err := generateKubeYaml("pod", pod, kubeYaml)
