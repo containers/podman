@@ -20,7 +20,7 @@ adjust+:
     summary: local rootful test
     test: bash ./system.sh
     duration: 30m
-    
+
 /local-rootless:
     tag: [ local, rootless ]
     summary: rootless test
