@@ -357,7 +357,8 @@ var _ = Describe("run cp commands", func() {
 		switch runtime.GOOS {
 		case "windows":
 			hostDirPath = filepath.ToSlash(hostDirPath)
-			fallthrough
+			Expect(session.errorToString()).To(Or(ContainSubstring(fmt.Sprintf("scp: open local \"%s\": No such file or directory", hostDirPath)),
+				ContainSubstring(fmt.Sprintf("scp: open local \"%s\": Unknown error", hostDirPath))))
 		case "darwin":
 			Expect(session.errorToString()).To(ContainSubstring(fmt.Sprintf("scp: open local \"%s\": No such file or directory", hostDirPath)))
 		case "linux":
