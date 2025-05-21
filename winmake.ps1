@@ -78,10 +78,15 @@ function Local-Machine {
     );
     Build-Ginkgo
     if ($files) {
-         $files = " --focus-file $files "
+         $files = "--focus-file ""$files"""
+    } elseif ($FOCUS_FILE) {
+        $files = "--focus-file ""$FOCUS_FILE"" --silence-skips"
+    }
+    if ($FOCUS) {
+        $focus = "--focus ""$FOCUS"" --silence-skips"
     }
 
-    Run-Command "./bin/ginkgo.exe -vv  --tags `"$remotetags`" --timeout=90m --trace --no-color $files pkg/machine/e2e/."
+    Run-Command "./bin/ginkgo.exe -vv  --tags `"$remotetags`" --timeout=90m --trace --no-color $focus $files pkg/machine/e2e/."
 }
 
 # Expect starting directory to be /podman
