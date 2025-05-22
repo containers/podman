@@ -1,4 +1,5 @@
 require:
+    - bats
     - podman-tests
     - psmisc
     - slirp4netns
