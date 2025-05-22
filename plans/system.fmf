@@ -1,0 +1,59 @@
+discover:
+    how: fmf
+
+execute:
+    how: tmt
+
+prepare:
+    - how: shell
+      script: modprobe null_blk nr_devices=1
+      order: 5
+    - when: distro == centos-stream or distro == rhel
+      how: shell
+      script: |
+        dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm --eval '%{?rhel}').noarch.rpm
+        dnf -y config-manager --set-enabled epel
+      order: 10
+    - when: initiator == packit
+      how: shell
+      script: |
+        COPR_REPO_FILE="/etc/yum.repos.d/*podman-next*.repo"
+        if compgen -G $COPR_REPO_FILE > /dev/null; then
+            sed -i -n '/^priority=/!p;$apriority=1' $COPR_REPO_FILE
+        fi
+        dnf -y upgrade --allowerasing
+      order: 20
+
+adjust+:
+    - enabled: false
+      when: revdeps == yes
+
+provision:
+    how: artemis
+    hardware:
+        memory: ">= 16 GB"
+        cpu:
+            cores: ">= 4"
+            threads: ">=8"
+        disk:
+            - size: ">= 512 GB"
+
+/local-root:
+    summary: Local rootful tests
+    discover+:
+        filter: 'tag:local & tag:root'
+
+/local-rootless:
+    summary: Local rootless tests
+    discover+:
+        filter: 'tag:local & tag:rootless'
+
+/remote-root:
+    summary: Remote rootful tests
+    discover+:
+        filter: 'tag:remote & tag:root'
+
+/remote-rootless:
+    summary: Remote rootless tests
+    discover+:
+        filter: 'tag:remote & tag:rootless'
