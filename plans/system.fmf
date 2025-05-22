@@ -14,15 +14,6 @@ prepare:
         dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm --eval '%{?rhel}').noarch.rpm
         dnf -y config-manager --set-enabled epel
       order: 10
-    - when: initiator == packit
-      how: shell
-      script: |
-        COPR_REPO_FILE="/etc/yum.repos.d/*podman-next*.repo"
-        if compgen -G $COPR_REPO_FILE > /dev/null; then
-            sed -i -n '/^priority=/!p;$apriority=1' $COPR_REPO_FILE
-        fi
-        dnf -y upgrade --allowerasing
-      order: 20
 
 adjust+:
     - enabled: false
