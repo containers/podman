@@ -5,15 +5,11 @@
 downstream_package_name: podman
 upstream_tag_template: v{version}
 
-specfile_path: rpm/podman.spec
+specfile_path: https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec
 
 srpm_build_deps:
   - git-archive-all
   - make
-
-#actions:
-#  fix-spec-file:
-#    - "bash .packit.sh"
 
 jobs:
   - job: copr_build
