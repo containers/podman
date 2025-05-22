@@ -9,8 +9,6 @@ srpm_build_deps:
   - git-archive-all
   - make
 
-actions:
-  post-upstream-clone: "curl -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec"
 
 specfile_path: podman.spec
 
@@ -24,6 +22,18 @@ jobs:
     targets:
       - epel-10-x86_64
       - epel-10-aarch64
+    actions:
+      post-upstream-clone: "curl -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec"
+
+  - job: copr_build
+    trigger: pull_request
+    notifications: *packit_build_failure_notification
+    enable_net: true
+    targets:
+      - epel-9-x86_64
+      - epel-9-aarch64
+    actions:
+      post-upstream-clone: "curl -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c9s/podman.spec"
 
   # Tests for RHEL
   - job: tests
@@ -42,3 +52,20 @@ jobs:
         - artifacts:
           - type: repository-file
             id: https://src.fedoraproject.org/rpms/epel-release/raw/epel$releasever/f/epel.repo
+
+  # Tests for RHEL
+  - job: tests
+    trigger: pull_request
+    use_internal_tf: true
+    notifications: *packit_test_failure_notification
+    targets:
+      epel-9-x86_64:
+        distros: [RHEL-9-Nightly]
+      epel-9-aarch64:
+        distros: [RHEL-9-Nightly]
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://src.fedoraproject.org/rpms/epel-release/raw/epel$releasever/f/epel.repo
+
