@@ -106,9 +106,7 @@ jobs:
     packages: [podman-fedora]
     notifications: *packit_generic_failure_notification
     targets:
-      - fedora-rawhide
-      - fedora-42
-      - fedora-41
+      - fedora-all
     tmt_plan: "/plans/system/*"
     tf_extra_params:
       environments:
