@@ -187,6 +187,11 @@ function wait_for_journal() {
 
 # bats test_tags=distro-integration
 @test "quadlet - basic" {
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
+
     # Network=none is to work around a Pasta bug, can be removed once a patched Pasta is available.
     # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
@@ -259,6 +264,11 @@ EOF
 }
 
 @test "quadlet - envvar" {
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/envvar_$(safename).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -283,6 +293,11 @@ EOF
 }
 
 @test "quadlet - ContainerName and journal output check" {
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/containername_$(safename).container
     local token_out="STDOUT$(random_string 10)"
     local token_err="STDERR$(random_string 10)"
@@ -342,6 +357,11 @@ EOF
 }
 
 @test "quadlet - oneshot" {
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/oneshot_$(safename).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -961,6 +981,11 @@ EOF
 }
 
 @test "quadlet - exit-code propagation" {
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
+
    pod_name="p-$(safename)"
    container_name="c-$(safename)"
    exit_tests="

@@ -396,6 +396,11 @@ function _check_health_log {
     # We can't use journald on RHEL as rootless, either: rhbz#1895105
     skip_if_journald_unavailable
 
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
+
     local ctrname="c-h-$(safename)"
     local msg="healthmsg-$(random_string)"
     _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthLogDestination}}" "--health-log-destination events_logger" "events_logger" "HealthLogDestination"

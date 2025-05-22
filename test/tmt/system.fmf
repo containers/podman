@@ -1,0 +1,49 @@
+require:
+    - podman-tests
+    - psmisc
+    - slirp4netns
+
+environment:
+    # PODMAN_TESTING and CI_DESIRED_NETWORK envvars are set in system.sh
+    PODMAN: /usr/bin/podman
+    QUADLET: /usr/libexec/podman/quadlet
+    ROOTLESS_USER: "fedora"
+adjust+:
+    - when: distro == centos-stream
+      environment+:
+        ROOTLESS_USER: "ec2-user"
+    - when: distro == rhel
+      environment+:
+        ROOTLESS_USER: "cloud-user"
+
+/local-root:
+    tag: [ local, root, system ]
+    summary: local rootful test
+    test: bash ./system.sh
+    duration: 30m
+    
+/local-rootless:
+    tag: [ local, rootless, system ]
+    summary: rootless test
+    test: bash ./system.sh rootless
+    duration: 30m
+
+/remote-root:
+    tag: [ remote, root, system ]
+    summary: remote rootful test
+    test: bash ./system.sh
+    duration: 30m
+    environment+:
+        PODMAN: /usr/bin/podman-remote
+    require+:
+        - podman-remote
+
+/remote-rootless:
+    tag: [ remote, rootless, system ]
+    summary: remote rootless test
+    test: bash ./system.sh rootless
+    duration: 30m
+    environment+:
+        PODMAN: /usr/bin/podman-remote
+    require+:
+        - podman-remote

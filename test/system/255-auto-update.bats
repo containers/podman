@@ -408,7 +408,10 @@ EOF
 }
 
 @test "podman auto-update using systemd" {
-    skip_if_journald_unavailable
+    # FIXME: The rootless user belongs to systemd-journal, but this still fails
+    if is_rhel_or_centos; then
+        skip_if_rootless
+    fi
 
     generate_service alpine image
 

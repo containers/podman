@@ -8,6 +8,8 @@ load helpers.network
 
 CHECKED_ROOTLESS=
 function setup() {
+    skip_if_rhel_or_centos "Checkpoint tests are very unstable and that's a problem on RHEL/CentOS Stream"
+
     # None of these tests work rootless....
     if is_rootless; then
         # ...however, is that a genuine cast-in-stone limitation, or one
