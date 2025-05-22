@@ -2,6 +2,7 @@ package artifact
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/common"
@@ -61,6 +62,8 @@ func init() {
 }
 
 func add(cmd *cobra.Command, args []string) error {
+	artifactName := args[0]
+	blobs := args[1:]
 	opts := new(entities.ArtifactAddOptions)
 
 	annots, err := utils.ParseAnnotations(addOpts.Annotations)
@@ -72,7 +75,18 @@ func add(cmd *cobra.Command, args []string) error {
 	opts.Append = addOpts.Append
 	opts.FileType = addOpts.FileType
 
-	report, err := registry.ImageEngine().ArtifactAdd(registry.Context(), args[0], args[1:], opts)
+	artifactBlobs := make([]entities.ArtifactBlob, 0, len(blobs))
+
+	for _, blobPath := range blobs {
+		artifactBlob := entities.ArtifactBlob{
+			BlobFilePath: blobPath,
+			FileName:     filepath.Base(blobPath),
+		}
+
+		artifactBlobs = append(artifactBlobs, artifactBlob)
+	}
+
+	report, err := registry.ImageEngine().ArtifactAdd(registry.Context(), artifactName, artifactBlobs, opts)
 	if err != nil {
 		return err
 	}

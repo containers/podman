@@ -23,6 +23,20 @@ type containerNotFound struct {
 	Body errorhandling.ErrorModel
 }
 
+// No such artifact
+// swagger:response
+type artifactNotFound struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
+// error in authentication
+// swagger:response
+type artifactBadAuth struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
 // No such network
 // swagger:response
 type networkNotFound struct {

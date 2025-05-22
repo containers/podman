@@ -1,12 +1,95 @@
 import json
+import os
+import random
 import subprocess
+import sys
+import time
 import unittest
 
 import requests
-import sys
-import time
 
 from .podman import Podman
+
+
+class ArtifactFile:
+    __test__: bool = False
+
+    name: str | None
+    size: int | None
+    sig: bytes | None
+
+    def __init__(
+        self, name: str | None = None, size: int | None = None, sig: bytes | None = None
+    ) -> None:
+        self.name = name
+        self.size = size
+        self.sig = sig
+        self.render_test_file()
+
+    def render_test_file(self) -> None:
+        if self.name is None:
+            self.name = "test_file_1"
+        if self.size is None:
+            self.size = 1048576
+
+        file_data = None
+        if self.sig is not None:
+            random_bytes = random.randbytes(self.size - len(self.sig))
+
+            file_data = bytearray(self.sig)
+            file_data.extend(random_bytes)
+        else:
+            file_data = os.urandom(self.size)
+
+        try:
+            with open(self.name, "wb") as f:
+                _ = f.write(file_data)
+        except Exception as e:
+            print(f"File write error for {self.name}: {e}")
+            raise
+
+
+class Artifact:
+    __test__: bool = False
+
+    uri: str
+    name: str
+    parameters: dict[str, str | list[str]]
+    file: ArtifactFile
+
+    def __init__(
+        self,
+        uri: str,
+        name: str,
+        parameters: dict[str, str | list[str]],
+        file: ArtifactFile,
+    ) -> None:
+        self.uri = uri
+        self.name = name
+        self.parameters = parameters
+        self.file = file
+
+    def add(self) -> requests.Response:
+        try:
+            with open(self.file.name, "rb") as file_to_upload:
+                file_content = file_to_upload.read()
+                r = requests.post(
+                    self.uri + "/artifacts/add",
+                    data=file_content,
+                    params=self.parameters,
+                )
+        except Exception:
+            pass
+
+        os.remove(self.file.name)
+        return r
+
+    def do_artifact_inspect_request(self) -> requests.Response:
+        r = requests.get(
+            self.uri + "/artifacts/" + self.name + "/json",
+        )
+
+        return r
 
 
 class APITestCase(unittest.TestCase):
@@ -40,7 +123,7 @@ class APITestCase(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         APITestCase.service.terminate()
-        stdout, stderr = APITestCase.service.communicate(timeout=0.5)
+        stdout, stderr = APITestCase.service.communicate(timeout=1)
         if stdout:
             sys.stdout.write("\nService Stdout:\n" + stdout.decode("utf-8"))
         if stderr:
@@ -61,7 +144,7 @@ class APITestCase(unittest.TestCase):
         return "http://localhost:8080"
 
     @staticmethod
-    def uri(path):
+    def uri(path: str) -> str:
         return APITestCase.PODMAN_URL + "/v2.0.0/libpod" + path
 
     @staticmethod
