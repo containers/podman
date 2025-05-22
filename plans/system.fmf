@@ -11,8 +11,10 @@ prepare:
     - when: distro == centos-stream or distro == rhel
       how: shell
       script: |
-        dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-$(rpm --eval '%{?rhel}').noarch.rpm
-        dnf -y config-manager --set-enabled epel
+        BATS_VERSION=1.12.0
+        curl -L https://github.com/bats-core/bats-core/archive/refs/tags/v"$BATS_VERSION".tar.gz | tar -xf
+        cd bats-core-"$BATS_VERSION"
+        ./install.sh /usr
       order: 10
 
 adjust+:
