@@ -212,7 +212,7 @@ spelled with complete minutiae.
          * shasums
       1. An email should have been sent to the [podman](mailto:podman@lists.podman.io) mailing list.
          Keep an eye on it make sure the email went through to the list.
-   1. After the release action is run, an action to bump the Podman version on podman.io will run. This action will open a PR if a non-rc latest version is released. Go to the podman.io repo and merge the PR opened by this action, if needed.
+   1. The release action will also bump the Podman version on podman.io. It will open a PR if a non-rc latest version is released. Go to the [podman.io](https://github.com/containers/podman.io) repo and merge the PR opened by this action, if needed.
    1. After the tag is pushed, an action to bump to -dev will run. A PR will be opened for this bump. Merge this PR if needed.
 
 
