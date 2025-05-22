@@ -111,11 +111,6 @@ jobs:
       - fedora-42
       - fedora-41
     tmt_plan: "/plans/system/*"
-    tf_extra_params:
-      environments:
-        - artifacts:
-          - type: repository-file
-            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-$releasever/rhcontainerbot-podman-next-fedora-$releasever.repo
 
   - job: tests
     identifier: cockpit-revdeps
