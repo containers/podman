@@ -1,0 +1,55 @@
+---
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+downstream_package_name: podman
+upstream_tag_template: v{version}
+
+srpm_build_deps:
+  - git-archive-all
+  - make
+
+specfile_path: podman.spec
+
+# Disable automatic merging for Copr builds (and subsequent Testing Farm)
+merge_pr_in_ci: false
+
+jobs:
+  - job: copr_build
+    trigger: pull_request
+    notifications: &packit_build_failure_notification
+      failure_comment:
+        message: "Ephemeral COPR build failed. @containers/packit-build please check."
+    enable_net: true
+    targets:
+      - epel-10-x86_64
+      - epel-10-aarch64
+    actions:
+      post-upstream-clone: "curl -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec"
+
+  - job: copr_build
+    trigger: pull_request
+    notifications: *packit_build_failure_notification
+    enable_net: true
+    targets:
+      - epel-9-x86_64
+      - epel-9-aarch64
+    actions:
+      post-upstream-clone: "curl -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c9s/podman.spec"
+
+  # Tests for RHEL
+  - job: tests
+    trigger: pull_request
+    use_internal_tf: true
+    notifications: &packit_test_failure_notification
+      failure_comment:
+        message: "Tests failed. @containers/packit-build please check."
+    targets:
+      epel-10-x86_64:
+        distros: [RHEL-10-Nightly]
+      epel-10-aarch64:
+        distros: [RHEL-10-Nightly]
+      epel-9-x86_64:
+        distros: [RHEL-9-Nightly]
+      epel-9-aarch64:
+        distros: [RHEL-9-Nightly]
