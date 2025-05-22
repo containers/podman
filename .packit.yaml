@@ -142,13 +142,6 @@ jobs:
     dist_git_branches: &fedora_targets
       - fedora-all
 
-  - job: propose_downstream
-    trigger: release
-    update_release: false
-    packages: [podman-centos]
-    dist_git_branches:
-      - c10s
-
   - job: koji_build
     trigger: commit
     packages: [podman-fedora]
