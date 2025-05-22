@@ -1,0 +1,126 @@
+---
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+downstream_package_name: podman
+upstream_tag_template: v{version}
+
+packages:
+  podman-fedora:
+    pkg_tool: fedpkg
+    specfile_path: rpm/podman.spec
+  podman-centos:
+    pkg_tool: centpkg
+    specfile_path: rpm/podman.spec
+  podman-eln:
+    specfile_path: rpm/podman.spec
+
+srpm_build_deps:
+  - git-archive-all
+  - make
+
+actions:
+  fix-spec-file:
+    - "bash .packit.sh"
+
+jobs:
+  - job: copr_build
+    trigger: pull_request
+    packages: [podman-fedora]
+    notifications: &packit_build_failure_notification
+      failure_comment:
+        message: "Ephemeral COPR build failed. @containers/packit-build please check."
+    enable_net: true
+    targets:
+      - fedora-all-x86_64
+      - fedora-all-aarch64
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [podman-eln]
+    notifications: *packit_build_failure_notification
+    enable_net: true
+    targets:
+      fedora-eln-x86_64:
+        additional_repos:
+          - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/x86_64/"
+      fedora-eln-aarch64:
+        additional_repos:
+          - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/aarch64/"
+
+  - job: copr_build
+    trigger: pull_request
+    packages: [podman-centos]
+    notifications: *packit_build_failure_notification
+    enable_net: true
+    targets:
+      - centos-stream-9-x86_64
+      - centos-stream-9-aarch64
+      - centos-stream-10-x86_64
+      - centos-stream-10-aarch64
+
+  # Run on commit to main branch
+  - job: copr_build
+    trigger: commit
+    packages: [podman-fedora]
+    notifications:
+      failure_comment:
+        message: "podman-next COPR build failed. @containers/packit-build please check."
+    branch: main
+    owner: rhcontainerbot
+    project: podman-next
+    enable_net: true
+
+  - job: tests
+    identifier: cockpit-revdeps
+    trigger: pull_request
+    packages: [podman-fedora]
+    notifications:
+      failure_comment:
+        message: "Cockpit tests failed for commit {commit_sha}. @martinpitt, @jelly, @mvollmer please check."
+    targets:
+      - fedora-latest-stable
+      - fedora-development
+    tf_extra_params:
+      environments:
+        - artifacts:
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/g/cockpit/main-builds/repo/fedora-$releasever/group_cockpit-main-builds-fedora-$releasever.repo
+          - type: repository-file
+            id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-$releasever/rhcontainerbot-podman-next-fedora-$releasever.repo
+          tmt:
+            context:
+              revdeps: "yes"
+
+  - job: propose_downstream
+    trigger: release
+    update_release: false
+    packages: [podman-fedora]
+    dist_git_branches: &fedora_targets
+      - fedora-all
+
+  - job: propose_downstream
+    trigger: release
+    update_release: false
+    packages: [podman-centos]
+    dist_git_branches:
+      - c10s
+
+  - job: koji_build
+    trigger: commit
+    packages: [podman-fedora]
+    sidetag_group: podman-releases
+    dist_git_branches: *fedora_targets
+
+  - job: bodhi_update
+    trigger: koji_build
+    packages: [podman-fedora]
+    sidetag_group: podman-releases
+    # Dependencies are not rpm dependencies, but packages that should go in the
+    # same bodhi update
+    # Ref: https://packit.dev/docs/fedora-releases-guide/releasing-multiple-packages
+    dependencies:
+      - buildah
+      - containers-common
+      - skopeo
+    dist_git_branches: *fedora_targets
