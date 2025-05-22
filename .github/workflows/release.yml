@@ -345,3 +345,12 @@ jobs:
           to: Podman List <podman@lists.podman.io>
           from: ${{secrets.ACTION_MAIL_SENDER}}
           body: file://./email_body.txt
+
+  updatepodmanio:
+    name: Update podman.io
+    uses: ./.github/workflows/update-podmanio.yml
+    needs: [check, release]
+    if: needs.check.outputs.buildonly == 'false'
+    secrets: inherit
+    with:
+      version: ${{ needs.check.outputs.version }}
