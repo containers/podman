@@ -187,17 +187,6 @@ http://docs.microsoft.com/en-us/windows/wsl/install
 
 `
 
-const wslKernelError = `Could not %s. See previous output for any potential failure details.
-If you can not resolve the issue, try rerunning the "podman machine init command". If that fails
-try the "wsl --update" command and then rerun "podman machine init". Finally, if all else fails,
-try following the steps outlined in the following article:
-
-http://docs.microsoft.com/en-us/windows/wsl/install
-
-`
-
-const wslInstallKernel = "install the WSL Kernel"
-
 const wslOldVersion = `Automatic installation of WSL can not be performed on this version of Windows
 Either update to Build 19041 (or later), or perform the manual installation steps
 outlined in the following article:

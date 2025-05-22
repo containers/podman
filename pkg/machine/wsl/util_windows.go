@@ -239,6 +239,10 @@ func reboot() error {
 		return fmt.Errorf("cannot reboot system: %w", err)
 	}
 
+	// when rebooting we exit with an error code to stop podman execution.
+	// If we don't do this, podman keeps creating the system connection + config file for the machine
+	// and the init command that gets re-executed after the reboot will fail
+	os.Exit(ErrorSuccessRebootRequired)
 	return nil
 }
 
