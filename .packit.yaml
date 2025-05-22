@@ -5,11 +5,14 @@
 downstream_package_name: podman
 upstream_tag_template: v{version}
 
-specfile_path: https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec
-
 srpm_build_deps:
   - git-archive-all
   - make
+
+actions:
+  post-upstream-clone: "curl -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec"
+
+specfile_path: podman.spec
 
 jobs:
   - job: copr_build
