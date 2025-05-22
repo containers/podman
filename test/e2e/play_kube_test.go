@@ -6194,4 +6194,33 @@ spec:
 		Expect(exec.OutputToString()).To(Equal("10"))
 	})
 
+	It("test cpuset annotation", func() {
+		SkipIfRootless("access to cpuset cgroup controller is needed")
+		ctrAnnotation := "io.podman.annotations.cpuset/" + defaultCtrName
+		pod := getPod(withAnnotation(ctrAnnotation, "0"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		exec := podmanTest.PodmanExitCleanly("exec", "testPod-"+defaultCtrName, "cat", "/sys/fs/cgroup/cpuset.cpus.effective")
+		Expect(exec.OutputToString()).To(Equal("0"))
+	})
+
+	It("test memory-nodes annotation", func() {
+		SkipIfRootless("access to cpuset cgroup controller is needed")
+		ctrAnnotation := "io.podman.annotations.memory-nodes/" + defaultCtrName
+		pod := getPod(withAnnotation(ctrAnnotation, "0"), withPodInitCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"printenv", "container"}), withInitCtr(), withName("init-test"))), withCtr(getCtr(withImage(CITEST_IMAGE), withCmd([]string{"top"}))))
+		err := generateKubeYaml("pod", pod, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		exec := podmanTest.PodmanExitCleanly("exec", "testPod-"+defaultCtrName, "cat", "/sys/fs/cgroup/cpuset.mems.effective")
+		Expect(exec.OutputToString()).To(Equal("0"))
+	})
 })
