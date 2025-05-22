@@ -1,6 +1,7 @@
 require:
     - podman-tests
     - psmisc
+    - slirp4netns
 
 environment:
     # PODMAN_TESTING envvar is set in system.sh
