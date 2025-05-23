@@ -435,3 +435,8 @@ func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) 
 	}
 	return false, err
 }
+
+// Platform-specific configuration for the pause image Rootfs. RootfsOverlay is
+// not supported on FreeBSD.
+func (c *Container) prepareInitRootfsPlatform() {
+}

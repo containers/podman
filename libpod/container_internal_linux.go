@@ -846,3 +846,9 @@ func containerPathIsFile(unsafeRoot string, containerPath string) (bool, error) 
 	}
 	return false, err
 }
+
+// Platform-specific configuration for the pause image Rootfs. Use RootfsOverlay
+// on Linux.
+func (c *Container) prepareInitRootfsPlatform() {
+	c.config.RootfsOverlay = true
+}
