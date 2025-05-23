@@ -2269,6 +2269,19 @@ WORKDIR /madethis`, BB)
 		running.WaitWithDefaultTimeout()
 		Expect(running).Should(ExitCleanly())
 		Expect(running.OutputToStringArray()).To(HaveLen(2))
+
+		podmanTest.StopContainer("--all")
+
+		indirectName := "ctr3"
+		indirectContainer := podmanTest.Podman([]string{"create", "--name", indirectName, "--requires", mainName, ALPINE, "top"})
+		indirectContainer.WaitWithDefaultTimeout()
+		Expect(indirectContainer).Should(ExitCleanly())
+
+		for _, name := range []string{depName, indirectName} {
+			start := podmanTest.Podman([]string{"start", name})
+			start.WaitWithDefaultTimeout()
+			Expect(start).Should(ExitCleanly())
+		}
 	})
 
 	It("podman run with pidfile", func() {
