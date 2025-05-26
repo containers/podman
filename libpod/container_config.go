@@ -369,6 +369,8 @@ type ContainerMiscConfig struct {
 	LogPath string `json:"logPath"`
 	// LogTag is the tag used for logging
 	LogTag string `json:"logTag"`
+	// LogLabels is a set of key-value pairs used to label log messages
+	LogLabels map[string]string `json:"logLabels,omitempty"`
 	// LogSize is the maximum size of the container's log file
 	LogSize int64 `json:"logSize"`
 	// LogDriver driver for logs
