@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/containers/podman/v6/libpod/define"
 	"github.com/containers/podman/v6/pkg/inspect"
 	. "github.com/containers/podman/v6/test/utils"
@@ -1192,6 +1193,31 @@ func SkipIfInContainer(reason string) {
 	checkReason(reason)
 	if os.Getenv("TEST_ENVIRON") == "container" {
 		Skip("[container]: " + reason)
+	}
+}
+
+// SkipIfConmonVersionLessThan skips a test if the conmon version is less than
+// the specified minimum version (e.g., "2.2.0").
+func SkipIfConmonVersionLessThan(minVersion string) {
+	out, err := exec.Command(podmanTest.ConmonBinary, "--version").Output()
+	if err != nil {
+		Fail(fmt.Sprintf("[conmon]: failed to get conmon version: %v", err))
+	}
+	// Output format: "conmon version 2.2.0"
+	fields := strings.Fields(strings.TrimSpace(string(out)))
+	if len(fields) < 3 {
+		Fail(fmt.Sprintf("[conmon]: unexpected conmon --version output: %s", out))
+	}
+	current, err := semver.Parse(fields[2])
+	if err != nil {
+		Fail(fmt.Sprintf("[conmon]: failed to parse conmon version %q: %v", fields[2], err))
+	}
+	minVer, err := semver.Parse(minVersion)
+	if err != nil {
+		Fail(fmt.Sprintf("[conmon]: failed to parse minimum version %q: %v", minVersion, err))
+	}
+	if current.Compare(minVer) < 0 {
+		Skip(fmt.Sprintf("[conmon]: need conmon >= %s; have %s", minVersion, fields[2]))
 	}
 }
 
