@@ -832,6 +832,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	logOpts := make(map[string]string)
+	logLabels := make(map[string]string)
 	for _, o := range c.LogOptions {
 		key, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
@@ -848,12 +849,21 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 				return err
 			}
 			s.LogConfiguration.Size = logSize
+		case "label":
+			labelKey, labelVal, hasVal := strings.Cut(val, "=")
+			if !hasVal {
+				return fmt.Errorf("invalid log label %q", o)
+			}
+			logLabels[labelKey] = labelVal
 		default:
 			logOpts[key] = val
 		}
 	}
 	if len(s.LogConfiguration.Options) == 0 || len(c.LogOptions) != 0 {
 		s.LogConfiguration.Options = logOpts
+	}
+	if len(s.LogConfiguration.Labels) == 0 || len(c.LogOptions) != 0 {
+		s.LogConfiguration.Labels = logLabels
 	}
 	if len(s.Name) == 0 || len(c.Name) != 0 {
 		s.Name = c.Name
