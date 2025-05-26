@@ -677,6 +677,35 @@ for endpoint in containers/create libpod/containers/create; do
 done
 
 stop_service
+# Create a temporary containers.conf with custom base_hosts_file set
+testdir=$(mktemp -d)
+cat > $testdir/containers.base_hosts_file.conf <<EOF
+[containers]
+base_hosts_file = "$testdir/hosts"
+EOF
+
+cat > $testdir/hosts <<EOF
+10.0.0.2 testname
+192.168.1.1 abc
+EOF
+
+CONTAINERS_CONF_OVERRIDE=$testdir/containers.base_hosts_file.conf start_service
+
+t POST containers/create \
+  Image=$IMAGE \
+  Cmd='["cat","/etc/hosts"]' \
+  Tty=true \
+  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t POST  containers/${cid}/start 204
+
+t GET "containers/${cid}/logs?follow=true&stdout=true&stderr=true" 200
+like "$(<$WORKDIR/curl.result.out)" ".*10.0.0.2[[:space:]]testname.*192.168.1.1[[:space:]]abc.*" "contains containers.conf base_hosts_file hosts"
+
+stop_service
+rm -rf "$testdir"
 start_service
 
 # Our states are different from Docker's.
