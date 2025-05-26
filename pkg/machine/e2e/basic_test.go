@@ -90,6 +90,13 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 
+		// Test overlay works on all platforms except Hyper-V (see #26210)
+		if !isVmtype(define.HyperVVirt) {
+			runAlp, err = mb.setCmd(bm.withPodmanCommand([]string{"run", "-v", tDir + ":/test:O", TESTIMAGE, "ls", "/test/attr-test-file"})).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(runAlp).To(Exit(0))
+		}
+
 		// Test build with --volume option
 		cf := filepath.Join(tDir, "Containerfile")
 		err = os.WriteFile(cf, []byte("FROM "+TESTIMAGE+"\nRUN ls /test/attr-test-file\n"), 0o644)
