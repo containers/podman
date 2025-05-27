@@ -16,7 +16,7 @@ type ImageSummary struct {
 	Created     int64
 	Size        int64
 	SharedSize  int
-	VirtualSize int64
+	VirtualSize int64 `json:",omitempty"`
 	Labels      map[string]string
 	Containers  int
 	ReadOnly    bool `json:",omitempty"`

@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
+	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
@@ -41,8 +42,12 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			RepoTags:    []string{o.Tag},
 			SharedSize:  o.SharedSize,
 			Size:        o.Size,
-			VirtualSize: o.Size - o.UniqueSize,
 		}
+
+		if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
+			t.VirtualSize = o.Size - o.UniqueSize //nolint:staticcheck // Deprecated field
+		}
+
 		imgs[i] = &t
 	}
 
