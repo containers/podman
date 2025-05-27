@@ -252,7 +252,7 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 		apiBuildOpts.LogFileToClose = logFile
 	}
 
-	buildahDefineOpts, err := buildFlagsWrapperToOptions(cmd, contextDir, buildOpts, logFile, buildOpts.Layers, buildOpts.Squash)
+	buildahDefineOpts, err := buildFlagsWrapperToOptions(cmd, contextDir, buildOpts, logFile, buildOpts.Layers, buildOpts.Squash, containerFiles)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +268,7 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 // conversion here prevents the API from doing that (redundantly).
 //
 // TODO: this code should really be in Buildah.
-func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *BuildFlagsWrapper, logfile *os.File, layers, squash bool) (*buildahDefine.BuildOptions, error) {
+func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *BuildFlagsWrapper, logfile *os.File, layers, squash bool, containerFiles []string) (*buildahDefine.BuildOptions, error) {
 	output := ""
 	tags := []string{}
 	if c.Flag("tag").Changed {
@@ -585,7 +585,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	}
 
 	if flags.IgnoreFile != "" {
-		excludes, err := parseDockerignore(flags.IgnoreFile)
+		excludes, _, err := parse.ContainerIgnoreFile(contextDir, flags.IgnoreFile, containerFiles)
 		if err != nil {
 			return nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
 		}
@@ -626,21 +626,6 @@ func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error)
 	}
 
 	return decConfig, nil
-}
-
-func parseDockerignore(ignoreFile string) ([]string, error) {
-	excludes := []string{}
-	ignore, err := os.ReadFile(ignoreFile)
-	if err != nil {
-		return excludes, err
-	}
-	for _, e := range strings.Split(string(ignore), "\n") {
-		if len(e) == 0 || e[0] == '#' {
-			continue
-		}
-		excludes = append(excludes, e)
-	}
-	return excludes, nil
 }
 
 func areContainerfilesValid(contextDir string, containerFiles []string) error {
