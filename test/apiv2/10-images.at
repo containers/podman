@@ -440,4 +440,19 @@ t GET "libpod/events?stream=false&since=$START"  200  \
   .Actor.Attributes.name="localhost:5000/idonotexist" \
   .Actor.Attributes.error~".*connection refused"
 
+# test empty RepoTags and RepoDigests is an empty array
+IIDFILE=$(mktemp)
+podman image build --iidfile $IIDFILE -<<EOF
+FROM $IMAGE
+RUN :
+EOF
+
+t GET images/json 200 \
+  .[1].RepoTags=[] \
+  .[1].RepoDigests=[] \
+  .[1].Id=$(< $IIDFILE)
+
+podman rmi -f $(< $IIDFILE)
+rm -f $IIDFILE
+
 # vim: filetype=sh
