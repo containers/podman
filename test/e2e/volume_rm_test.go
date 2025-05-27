@@ -114,4 +114,14 @@ var _ = Describe("Podman volume rm", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(len(session.OutputToStringArray())).To(BeNumerically(">=", 2))
 	})
+
+	It("podman volume rm by unique partial name - case & underscore insensitive", func() {
+		volNames := []string{"test_volume", "test-volume", "test", "Test"}
+		for _, name := range volNames {
+			podmanTest.PodmanExitCleanly("volume", "create", name)
+		}
+
+		podmanTest.PodmanExitCleanly("volume", "rm", volNames[0])
+		podmanTest.PodmanExitCleanly("volume", "rm", volNames[2])
+	})
 })
