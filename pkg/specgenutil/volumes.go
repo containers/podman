@@ -157,6 +157,11 @@ func parseVolumes(rtc *config.Config, volumeFlag, mountFlag, tmpfsFlag []string)
 	}
 	finalOverlayVolume := make([]*specgen.OverlayVolume, 0, len(overlayVolumes))
 	for _, volume := range overlayVolumes {
+		absSrc, err := specgen.ConvertWinMountPath(volume.Source)
+		if err != nil {
+			return nil, fmt.Errorf("getting absolute path of %s: %w", volume.Source, err)
+		}
+		volume.Source = absSrc
 		finalOverlayVolume = append(finalOverlayVolume, volume)
 	}
 	finalImageVolumes := make([]*specgen.ImageVolume, 0, len(unifiedContainerMounts.imageVolumes))
