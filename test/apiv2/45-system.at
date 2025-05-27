@@ -38,6 +38,27 @@ cid=$(jq -r '.Id' <<<"$output")
 t GET system/df 200 '.LayersSize=12180391'
 t GET libpod/system/df 200 '.ImagesSize=12180391'
 
+# VirtualSize was computed (somehow) in v1.43 so we need to
+# build an image to test that the value is returned
+# in API <= v1.43.
+IIDFILE=$(mktemp)
+podman build --iidfile $IIDFILE -<< EOF
+FROM $IMAGE
+RUN :
+EOF
+
+# Test VirtualSize field is present in API v1.43 for system/df (backward compatibility)
+t GET /v1.43/system/df 200 \
+    .Images[0].Size~[0-9]\\+ \
+    .Images[0].VirtualSize~[0-9]\\+
+
+# Test VirtualSize field is no longer present in API v1.44+ for system/df (deprecated since API v1.43)
+t GET /v1.44/system/df 200 \
+    .Images[0].Size~[0-9]\\+ \
+    .Images[0].VirtualSize=null
+
+podman rmi -f $(< $IIDFILE)
+
 # Verify that one container references the volume
 t GET system/df 200 '.Volumes[0].UsageData.RefCount=1'
 
@@ -91,3 +112,5 @@ t POST 'libpod/system/prune?volumes=true&filters={"label":["testlabel1"]}' param
 t POST 'libpod/system/prune?volumes=true' params='' 200 .VolumePruneReports[0].Id=foo1
 
 # TODO add other system prune tests for pods / images
+
+# vim: filetype=sh
