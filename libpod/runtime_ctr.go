@@ -250,7 +250,11 @@ func (r *Runtime) newContainer(ctx context.Context, rSpec *spec.Spec, options ..
 
 func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Container, retErr error) {
 	if ctr.IsDefaultInfra() || ctr.IsService() {
-		_, err := ctr.prepareInitRootfs()
+		err := ctr.createInitRootfs()
+		if err != nil {
+			return nil, err
+		}
+		_, err = ctr.prepareCatatonitMount()
 		if err != nil {
 			return nil, err
 		}

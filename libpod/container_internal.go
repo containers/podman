@@ -1781,6 +1781,15 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 		if err != nil {
 			return "", fmt.Errorf("rootfs-overlay: failed to create TempDir in the %s directory: %w", overlayDest, err)
 		}
+
+		// Recreate the rootfs for infra container. It can be missing after system reboot if it's stored on tmpfs.
+		if c.IsDefaultInfra() || c.IsService() {
+			err := c.createInitRootfs()
+			if err != nil {
+				return "", err
+			}
+		}
+
 		overlayMount, err := overlay.Mount(contentDir, c.config.Rootfs, overlayDest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		if err != nil {
 			return "", fmt.Errorf("rootfs-overlay: creating overlay failed %q: %w", c.config.Rootfs, err)
