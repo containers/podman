@@ -214,7 +214,7 @@ func (c *Container) prepareInitRootfs() (spec.Mount, error) {
 	newMount.Destination = "/" + filepath.Base(catatonitPath)
 
 	c.config.Rootfs = tmpDir
-	c.config.RootfsOverlay = true
+	c.prepareInitRootfsPlatform()
 	if len(c.config.Entrypoint) == 0 {
 		c.config.Entrypoint = []string{"/" + filepath.Base(catatonitPath), "-P"}
 		c.config.Spec.Process.Args = c.config.Entrypoint
