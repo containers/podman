@@ -811,6 +811,16 @@ if root && test -e /dev/nullb0; then
   podman rm -f updateCtr
 fi
 
+# test MemorySwappiness
+podman run -d --rm --name swappiness_with_mem_limit --memory 200M quay.io/libpod/alpine:latest top
+podman run -d --rm --name swappiness_without_mem_limit quay.io/libpod/alpine:latest top
+
+t GET containers/swappiness_with_mem_limit/json 200 \
+  .HostConfig.MemorySwappiness=null
+t GET containers/swappiness_without_mem_limit/json 200 \
+  .HostConfig.MemorySwappiness=null
+
+podman stop -t0 swappiness_with_mem_limit swappiness_without_mem_limit
 
 # test if API support -1 for ulimits https://github.com/containers/podman/issues/24886
 
