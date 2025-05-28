@@ -2243,9 +2243,11 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (referen
 	return nil, "", fmt.Errorf("failed pulling cache from all available sources %q", srcList)
 }
 
-// intermediateImageExists returns true if an intermediate image of currNode exists in the image store from a previous build.
+// intermediateImageExists returns image ID if an intermediate image of currNode exists in the image store from a previous build.
 // It verifies this by checking the parent of the top layer of the image and the history.
+// If more than one image matches as potiential candidates then priority is given to the most recently built image.
 func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool) (string, error) {
+	cacheCandidates := []storage.Image{}
 	// Get the list of images available in the image store
 	images, err := s.executor.store.Images()
 	if err != nil {
@@ -2316,8 +2318,12 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 			return "", err
 		}
 		if foundMatch {
-			return image.ID, nil
+			cacheCandidates = append(cacheCandidates, image)
 		}
+	}
+	if len(cacheCandidates) > 0 {
+		slices.SortFunc(cacheCandidates, func(a, b storage.Image) int { return a.Created.Compare(b.Created) })
+		return cacheCandidates[len(cacheCandidates)-1].ID, nil
 	}
 	return "", nil
 }

@@ -369,9 +369,14 @@ func (n *Netns) setupMounts() error {
 
 	// Ensure we mount private in our mountns to prevent accidentally
 	// overwriting the host mounts in case the default propagation is shared.
-	err = unix.Mount("", "/", "", unix.MS_PRIVATE|unix.MS_REC, "")
+	// However using private propagation is not what we want. New mounts/umounts
+	// would not be propagated into our namespace. This is a problem because we
+	// may hold mount points open that were unmounted on the host confusing users
+	// why the underlying device is still busy as they no longer see the mount:
+	// https://github.com/containers/podman/issues/25994
+	err = unix.Mount("", "/", "", unix.MS_SLAVE|unix.MS_REC, "")
 	if err != nil {
-		return wrapError("make tree private in new mount namespace", err)
+		return wrapError("set mount propagation to slave in new mount namespace", err)
 	}
 
 	xdgRuntimeDir, err := homedir.GetRuntimeDir()

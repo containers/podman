@@ -4,9 +4,11 @@ docker_builder:
         HOME: /root
         DEBIAN_FRONTEND: noninteractive
         CIRRUS_LOG_TIMESTAMP: true
+        GOVERSION: 1.21
+        PATH: /usr/lib/go-1.21/bin:$PATH
     setup_script: |
         apt-get -q update
-        apt-get -q install -y bats cryptsetup golang
+        apt-get -q install -y bats cryptsetup golang-${GOVERSION}
         go version
         make
     unit_test_script: |

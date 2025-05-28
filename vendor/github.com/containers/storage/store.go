@@ -362,15 +362,11 @@ type Store interface {
 	//   }
 	ApplyDiff(to string, diff io.Reader) (int64, error)
 
-	// ApplyDiffWithDiffer applies a diff to a layer.
-	// It is the caller responsibility to clean the staging directory if it is not
-	// successfully applied with ApplyStagedLayer.
-	// Deprecated: Use PrepareStagedLayer instead.  ApplyDiffWithDiffer is going to be removed in a future release
-	ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
-
 	// PrepareStagedLayer applies a diff to a layer.
 	// It is the caller responsibility to clean the staging directory if it is not
 	// successfully applied with ApplyStagedLayer.
+	// The caller must ensure [Store.ApplyStagedLayer] or [Store.CleanupStagedLayer] is called eventually
+	// with the returned [drivers.DriverWithDifferOutput] object.
 	PrepareStagedLayer(options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
 
 	// ApplyStagedLayer combines the functions of creating a layer and using the staging
@@ -3132,6 +3128,12 @@ func (s *store) Diff(from, to string, options *DiffOptions) (io.ReadCloser, erro
 }
 
 func (s *store) ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error) {
+	defer func() {
+		if args.DiffOutput.TarSplit != nil {
+			args.DiffOutput.TarSplit.Close()
+			args.DiffOutput.TarSplit = nil
+		}
+	}()
 	rlstore, rlstores, err := s.bothLayerStoreKinds()
 	if err != nil {
 		return nil, err
@@ -3163,6 +3165,10 @@ func (s *store) ApplyStagedLayer(args ApplyStagedLayerOptions) (*Layer, error) {
 }
 
 func (s *store) CleanupStagedLayer(diffOutput *drivers.DriverWithDifferOutput) error {
+	if diffOutput.TarSplit != nil {
+		diffOutput.TarSplit.Close()
+		diffOutput.TarSplit = nil
+	}
 	_, err := writeToLayerStore(s, func(rlstore rwLayerStore) (struct{}, error) {
 		return struct{}{}, rlstore.CleanupStagingDirectory(diffOutput.Target)
 	})
@@ -3175,13 +3181,6 @@ func (s *store) PrepareStagedLayer(options *drivers.ApplyDiffWithDifferOpts, dif
 		return nil, err
 	}
 	return rlstore.applyDiffWithDifferNoLock(options, differ)
-}
-
-func (s *store) ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffWithDifferOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error) {
-	if to != "" {
-		return nil, fmt.Errorf("ApplyDiffWithDiffer does not support non-empty 'layer' parameter")
-	}
-	return s.PrepareStagedLayer(options, differ)
 }
 
 func (s *store) DifferTarget(id string) (string, error) {

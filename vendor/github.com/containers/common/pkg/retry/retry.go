@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"math"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -47,6 +48,8 @@ func IfNecessary(ctx context.Context, operation func() error, options *Options) 
 			delay = options.Delay
 		}
 		logrus.Warnf("Failed, retrying in %s ... (%d/%d). Error: %v", delay, attempt+1, options.MaxRetry, err)
+		delay += rand.N(delay / 10) // 10 % jitter so that a failure blip doesn’t cause a deterministic stampede
+		logrus.Debugf("Retry delay with added jitter: %s", delay)
 		select {
 		case <-time.After(delay):
 			// Do nothing.

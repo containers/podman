@@ -2,7 +2,6 @@ package chunked
 
 import (
 	archivetar "archive/tar"
-	"bytes"
 	"context"
 	"encoding/base64"
 	"errors"
@@ -81,7 +80,7 @@ type chunkedDiffer struct {
 	convertToZstdChunked bool
 
 	// Chunked metadata
-	// This is usually set in GetDiffer, but if convertToZstdChunked, it is only computed in chunkedDiffer.ApplyDiff
+	// This is usually set in NewDiffer, but if convertToZstdChunked, it is only computed in chunkedDiffer.ApplyDiff
 	// ==========
 	// tocDigest is the digest of the TOC document when the layer
 	// is partially pulled, or "" if not relevant to consumers.
@@ -89,14 +88,14 @@ type chunkedDiffer struct {
 	tocOffset           int64
 	manifest            []byte
 	toc                 *minimal.TOC // The parsed contents of manifest, or nil if not yet available
-	tarSplit            []byte
+	tarSplit            *os.File
 	uncompressedTarSize int64 // -1 if unknown
 	// skipValidation is set to true if the individual files in
 	// the layer are trusted and should not be validated.
 	skipValidation bool
 
 	// Long-term caches
-	// This is set in GetDiffer, when the caller must not hold any storage locks, and later consumed in .ApplyDiff()
+	// This is set in NewDiffer, when the caller must not hold any storage locks, and later consumed in .ApplyDiff()
 	// ==========
 	layersCache     *layersCache
 	copyBuffer      []byte
@@ -109,6 +108,7 @@ type chunkedDiffer struct {
 	zstdReader  *zstd.Decoder
 	rawReader   io.Reader
 	useFsVerity graphdriver.DifferFsVerity
+	used        bool // the differ object was already used and cannot be used again for .ApplyDiff
 }
 
 var xattrsToIgnore = map[string]any{
@@ -164,12 +164,10 @@ func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *o
 
 	defer diff.Close()
 
-	fd, err := unix.Open(destDirectory, unix.O_TMPFILE|unix.O_RDWR|unix.O_CLOEXEC, 0o600)
+	f, err := openTmpFile(destDirectory)
 	if err != nil {
-		return 0, nil, "", nil, &fs.PathError{Op: "open", Path: destDirectory, Err: err}
+		return 0, nil, "", nil, err
 	}
-
-	f := os.NewFile(uintptr(fd), destDirectory)
 
 	newAnnotations := make(map[string]string)
 	level := 1
@@ -193,10 +191,20 @@ func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *o
 	return copied, newSeekableFile(f), convertedOutputDigester.Digest(), newAnnotations, nil
 }
 
-// GetDiffer returns a differ than can be used with ApplyDiffWithDiffer.
+func (c *chunkedDiffer) Close() error {
+	if c.tarSplit != nil {
+		err := c.tarSplit.Close()
+		c.tarSplit = nil
+		return err
+	}
+	return nil
+}
+
+// NewDiffer returns a differ than can be used with [Store.PrepareStagedLayer].
 // If it returns an error that matches ErrFallbackToOrdinaryLayerDownload, the caller can
 // retry the operation with a different method.
-func GetDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
+// The caller must call Close() on the returned Differ.
+func NewDiffer(ctx context.Context, store storage.Store, blobDigest digest.Digest, blobSize int64, annotations map[string]string, iss ImageSourceSeekable) (graphdriver.Differ, error) {
 	pullOptions := parsePullOptions(store)
 
 	if !pullOptions.enablePartialImages {
@@ -259,7 +267,7 @@ func (e errFallbackCanConvert) Unwrap() error {
 	return e.err
 }
 
-// getProperDiffer is an implementation detail of GetDiffer.
+// getProperDiffer is an implementation detail of NewDiffer.
 // It returns a “proper” differ (not a convert_images one) if possible.
 // May return an error matching ErrFallbackToOrdinaryLayerDownload if a fallback to an alternative
 // (either makeConvertFromRawDiffer, or a non-partial pull) is permissible.
@@ -332,14 +340,22 @@ func makeConvertFromRawDiffer(store storage.Store, blobDigest digest.Digest, blo
 
 // makeZstdChunkedDiffer sets up a chunkedDiffer for a zstd:chunked layer.
 // It may return an error matching ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert.
-func makeZstdChunkedDiffer(store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, pullOptions pullOptions) (*chunkedDiffer, error) {
-	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(iss, tocDigest, annotations)
+func makeZstdChunkedDiffer(store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, pullOptions pullOptions) (_ *chunkedDiffer, retErr error) {
+	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(store.RunRoot(), iss, tocDigest, annotations)
 	if err != nil { // May be ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
+	defer func() {
+		if tarSplit != nil && retErr != nil {
+			tarSplit.Close()
+		}
+	}()
 
 	var uncompressedTarSize int64 = -1
 	if tarSplit != nil {
+		if _, err := tarSplit.Seek(0, io.SeekStart); err != nil {
+			return nil, err
+		}
 		uncompressedTarSize, err = tarSizeFromTarSplit(tarSplit)
 		if err != nil {
 			return nil, fmt.Errorf("computing size from tar-split: %w", err)
@@ -643,7 +659,7 @@ func (o *originFile) OpenFile() (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	if _, err := srcFile.Seek(o.Offset, 0); err != nil {
+	if _, err := srcFile.Seek(o.Offset, io.SeekStart); err != nil {
 		srcFile.Close()
 		return nil, err
 	}
@@ -1374,6 +1390,11 @@ func typeToOsMode(typ string) (os.FileMode, error) {
 }
 
 func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, differOpts *graphdriver.DifferOptions) (graphdriver.DriverWithDifferOutput, error) {
+	if c.used {
+		return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: chunked differ already used")
+	}
+	c.used = true
+
 	defer c.layersCache.release()
 	defer func() {
 		if c.zstdReader != nil {
@@ -1435,7 +1456,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		if tocDigest == nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
 		}
-		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(fileSource, *tocDigest, annotations)
+		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(dest, fileSource, *tocDigest, annotations)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}
@@ -1842,7 +1863,10 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		case c.pullOptions.insecureAllowUnpredictableImageContents:
 			// Oh well.  Skip the costly digest computation.
 		case output.TarSplit != nil:
-			metadata := tsStorage.NewJSONUnpacker(bytes.NewReader(output.TarSplit))
+			if _, err := output.TarSplit.Seek(0, io.SeekStart); err != nil {
+				return output, err
+			}
+			metadata := tsStorage.NewJSONUnpacker(output.TarSplit)
 			fg := newStagedFileGetter(dirFile, flatPathNameMap)
 			digester := digest.Canonical.Digester()
 			if err := asm.WriteOutputTarStream(fg, metadata, digester.Hash()); err != nil {
@@ -1850,7 +1874,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			}
 			output.UncompressedDigest = digester.Digest()
 		default:
-			// We are checking for this earlier in GetDiffer, so this should not be reachable.
+			// We are checking for this earlier in NewDiffer, so this should not be reachable.
 			return output, fmt.Errorf(`internal error: layer's UncompressedDigest is unknown and "insecure_allow_unpredictable_image_contents" is not set`)
 		}
 	}
@@ -1860,6 +1884,9 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 	}
 
 	output.Artifacts[fsVerityDigestsKey] = c.fsVerityDigests
+
+	// on success steal the reference to the tarSplit file
+	c.tarSplit = nil
 
 	return output, nil
 }
@@ -1962,7 +1989,7 @@ func validateChunkChecksum(chunk *minimal.FileMetadata, root, path string, offse
 	}
 	defer fd.Close()
 
-	if _, err := unix.Seek(int(fd.Fd()), offset, 0); err != nil {
+	if _, err := fd.Seek(offset, io.SeekStart); err != nil {
 		return false
 	}
 

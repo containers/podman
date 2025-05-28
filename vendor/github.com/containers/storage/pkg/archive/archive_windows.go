@@ -57,7 +57,7 @@ func setHeaderForSpecialDevice(hdr *tar.Header, name string, stat interface{}) (
 	return
 }
 
-func getInodeFromStat(stat interface{}) (inode uint64, err error) {
+func getInodeFromStat(stat interface{}) (inode uint64) {
 	// do nothing. no notion of Inode in stat on Windows
 	return
 }
