@@ -10,6 +10,8 @@ github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg6
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/Luap99/common v0.20.3-0.20250527120127-b4bf1f2e9efe h1:m80EwJWMnDL1VbA+H66WG9qUsQH59YGeM1G1Aobgo4E=
+github.com/Luap99/common v0.20.3-0.20250527120127-b4bf1f2e9efe/go.mod h1:efNRNweihnq5nXALnAPDXTpC7uJtnFV4pNuETTfvI8s=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/Microsoft/hcsshim v0.12.9 h1:2zJy5KA+l0loz1HzEGqyNnjd3fyZA31ZBCGKacp6lLg=
@@ -68,8 +70,6 @@ github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
 github.com/containers/buildah v1.40.0 h1:qCHTKnL/UEutxT6ZS8Zvhy7QUpe719jEIeGMSlcN3j4=
 github.com/containers/buildah v1.40.0/go.mod h1:U6qj0nseq6t97T2kkNpjgo0WBVRYIXASIOlS5eWvlhM=
-github.com/containers/common v0.63.0 h1:ox6vgUYX5TSvt4W+bE36sYBVz/aXMAfRGVAgvknSjBg=
-github.com/containers/common v0.63.0/go.mod h1:+3GCotSqNdIqM3sPs152VvW7m5+Mg8Kk+PExT3G9hZw=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.6 h1:9SeAXK+K2o36CtrgYk6zRXbU3zrayjvkrI8b7/O6u5A=
@@ -362,8 +362,8 @@ github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
 github.com/opencontainers/image-spec v1.1.1/go.mod h1:qpqAh3Dmcf36wStyyWU+kCeDgrGnAve2nCC8+7h8Q0M=
-github.com/opencontainers/runc v1.2.6 h1:P7Hqg40bsMvQGCS4S7DJYhUZOISMLJOB2iGX5COWiPk=
-github.com/opencontainers/runc v1.2.6/go.mod h1:dOQeFo29xZKBNeRBI0B19mJtfHv68YgCTh1X+YphA+4=
+github.com/opencontainers/runc v1.3.0 h1:cvP7xbEvD0QQAs0nZKLzkVog2OPZhI/V2w3WmTmUSXI=
+github.com/opencontainers/runc v1.3.0/go.mod h1:9wbWt42gV+KRxKRVVugNP6D5+PQciRbenB4fLVsqGPs=
 github.com/opencontainers/runtime-spec v1.2.1 h1:S4k4ryNgEpxW1dzyqffOmhI1BHYcjzU8lpJfSlR0xww=
 github.com/opencontainers/runtime-spec v1.2.1/go.mod h1:jwyrGlmzljRJv/Fgzds9SsS/C5hL+LL3ko9hs6T5lQ0=
 github.com/opencontainers/runtime-tools v0.9.1-0.20250303011046-260e151b8552 h1:CkXngT0nixZqQUPDVfwVs3GiuhfTqCMk0V+OoHpxIvA=
@@ -414,8 +414,8 @@ github.com/santhosh-tekuri/jsonschema/v6 v6.0.1 h1:PKK9DyHxif4LZo+uQSgXNqs0jj5+x
 github.com/santhosh-tekuri/jsonschema/v6 v6.0.1/go.mod h1:JXeL+ps8p7/KNMjDQk3TCwPpBy0wYklyWTfbkIzdIFU=
 github.com/sebdah/goldie/v2 v2.5.5 h1:rx1mwF95RxZ3/83sdS4Yp7t2C5TCokvWP4TBRbAyEWY=
 github.com/sebdah/goldie/v2 v2.5.5/go.mod h1:oZ9fp0+se1eapSRjfYbsV/0Hqhbuu3bJVvKI/NNtssI=
-github.com/seccomp/libseccomp-golang v0.10.0 h1:aA4bp+/Zzi0BnWZ2F1wgNBs5gTpm+na2rWM6M9YjLpY=
-github.com/seccomp/libseccomp-golang v0.10.0/go.mod h1:JA8cRccbGaA1s33RQf7Y1+q9gHmZX1yB/z9WDN1C6fg=
+github.com/seccomp/libseccomp-golang v0.11.0 h1:SDkcBRqGLP+sezmMACkxO1EfgbghxIxnRKfd6mHUEis=
+github.com/seccomp/libseccomp-golang v0.11.0/go.mod h1:5m1Lk8E9OwgZTTVz4bBOer7JuazaBa+xTkM895tDiWc=
 github.com/secure-systems-lab/go-securesystemslib v0.9.0 h1:rf1HIbL64nUpEIZnjLZ3mcNEL9NBPB0iuVjyxvq3LZc=
 github.com/secure-systems-lab/go-securesystemslib v0.9.0/go.mod h1:DVHKMcZ+V4/woA/peqr+L0joiRXbPpQ042GgJckkFgw=
 github.com/segmentio/ksuid v1.0.4 h1:sBo2BdShXjmcugAMwjugoGUdUV0pcxY5mW4xKRn3v4c=
