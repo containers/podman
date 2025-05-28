@@ -1472,6 +1472,27 @@ VOLUME %s`, ALPINE, volPath, volPath)
 		Expect(numContainers).To(Equal(0))
 	})
 
+	It("podman run after infra-container rootfs removed", func() {
+		// Regression test for #26190
+		podmanTest.PodmanExitCleanly("run", "--name", "test", "--pod", "new:foobar", ALPINE, "ls")
+
+		podInspect := podmanTest.PodmanExitCleanly("pod", "inspect", "foobar", "--format", "{{.InfraContainerID}}")
+		infraID := podInspect.OutputToString()
+
+		infraInspect := podmanTest.PodmanExitCleanly("inspect", infraID, "--format", "{{.Rootfs}}")
+		rootfs := infraInspect.OutputToString()
+
+		podmanTest.PodmanExitCleanly("pod", "stop", "foobar")
+
+		_, statErr := os.Stat(rootfs)
+		Expect(statErr).ToNot(HaveOccurred())
+
+		err := os.RemoveAll(rootfs)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("run", "--replace", "--name", "test", "--pod", "foobar", ALPINE, "ls")
+	})
+
 	It("podman run --rm failed container should delete itself", func() {
 		session := podmanTest.Podman([]string{"run", "--name", "test", "--rm", ALPINE, "foo"})
 		session.WaitWithDefaultTimeout()
