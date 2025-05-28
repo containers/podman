@@ -179,10 +179,26 @@ func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
 }
 
 // Internal only function which creates the Rootfs for default internal
-// pause image, configures the Rootfs in the Container and returns
-// the mount-point for the /catatonit. This mount-point should be added
-// to the Container spec.
-func (c *Container) prepareInitRootfs() (spec.Mount, error) {
+// pause image and configures the Rootfs in the Container.
+func (c *Container) createInitRootfs() error {
+	tmpDir, err := c.runtime.TmpDir()
+	if err != nil {
+		return fmt.Errorf("getting runtime temporary directory: %w", err)
+	}
+	tmpDir = filepath.Join(tmpDir, "infra-container")
+	err = os.MkdirAll(tmpDir, 0755)
+	if err != nil {
+		return fmt.Errorf("creating infra container temporary directory: %w", err)
+	}
+
+	c.config.Rootfs = tmpDir
+	c.config.RootfsOverlay = true
+	return nil
+}
+
+// Internal only function which returns the mount-point for the /catatonit.
+// This mount-point should be added to the Container spec.
+func (c *Container) prepareCatatonitMount() (spec.Mount, error) {
 	newMount := spec.Mount{
 		Type:        define.TypeBind,
 		Source:      "",
@@ -190,15 +206,6 @@ func (c *Container) prepareInitRootfs() (spec.Mount, error) {
 		Options:     append(bindOptions, "ro", "nosuid", "nodev"),
 	}
 
-	tmpDir, err := c.runtime.TmpDir()
-	if err != nil {
-		return newMount, fmt.Errorf("getting runtime temporary directory: %w", err)
-	}
-	tmpDir = filepath.Join(tmpDir, "infra-container")
-	err = os.MkdirAll(tmpDir, 0755)
-	if err != nil {
-		return newMount, fmt.Errorf("creating infra container temporary directory: %w", err)
-	}
 	// Also look into the path as some distributions install catatonit in
 	// /usr/bin.
 	catatonitPath, err := c.runtime.config.FindInitBinary()
@@ -213,8 +220,6 @@ func (c *Container) prepareInitRootfs() (spec.Mount, error) {
 	newMount.Source = catatonitPath
 	newMount.Destination = "/" + filepath.Base(catatonitPath)
 
-	c.config.Rootfs = tmpDir
-	c.config.RootfsOverlay = true
 	if len(c.config.Entrypoint) == 0 {
 		c.config.Entrypoint = []string{"/" + filepath.Base(catatonitPath), "-P"}
 		c.config.Spec.Process.Args = c.config.Entrypoint
@@ -426,7 +431,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	c.setMountLabel(&g)
 
 	if c.IsDefaultInfra() || c.IsService() {
-		newMount, err := c.prepareInitRootfs()
+		newMount, err := c.prepareCatatonitMount()
 		if err != nil {
 			return nil, nil, err
 		}
