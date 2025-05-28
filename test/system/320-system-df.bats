@@ -34,6 +34,23 @@ function setup_file() {
     is "$output" '.*"Local Volumes".*"Size":"0B"' "Total containers reported"
 }
 
+# Regression test for https://github.com/containers/podman/issues/26224
+@test "podman system df - with rootfs container" {
+    pod=p-$(safename)
+    # create a pod which creates an infra container based on a rootfs
+    run_podman pod create --name $pod
+
+    run_podman system df
+    assert "${lines[1]}"  =~ "Images *1 *0.*"
+    assert "${lines[2]}"  =~ "Containers *1 *0.*"
+    run_podman system df --verbose
+    assert "${lines[5]}" =~ \
+       "[0-9a-f]{12} *0.*[0-9a-f]{12}-infra" \
+       "system df --verbose, 'Containers', infra line"
+
+    run_podman pod rm -f $pod
+}
+
 @test "podman system df --format json functionality" {
     # Run two dummy containers, one which exits, one which stays running
     cname_stopped=c-stopped-$(safename)
