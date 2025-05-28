@@ -17,13 +17,13 @@ env:
     ####
     #### Cache-image names to test with (double-quotes around names are critical)
     ###
-    FEDORA_NAME: "fedora-41"
+    FEDORA_NAME: "fedora-42"
     DEBIAN_NAME: "debian-13"
 
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
     # VM Image built in containers/automation_images
-    IMAGE_SUFFIX: "c20250324t111922z-f41f40d13"
+    IMAGE_SUFFIX: "c20250422t130822z-f42f41d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
 

@@ -2,6 +2,18 @@ libseccomp-golang: Releases
 ===============================================================================
 https://github.com/seccomp/libseccomp-golang
 
+* Version 0.11.0 - April 23, 2025
+- Add new architectures (LOONGARCH64, M68K, SH, SHEB)
+- Add support for SCMP_FLTATR_CTL_WAITKILL (GetWaitKill, SetWaitKill)
+- Add support for filter precompute (Precompute)
+- Add support for transactions (Transaction{Start,Commit,Reject})
+- Add ExportBPFMem
+- Improve documentation for struct fields
+- Fix TestRuleAddAndLoad for ppc architecture
+- Fix TestRuleAddAndLoad to not use magic number
+- Remove unused get_*_version implementation
+- Test against latest libseccomp and Go versions
+
 * Version 0.10.0 - June 9, 2022
 - Minimum supported version of libseccomp bumped to v2.3.1
 - Add seccomp userspace notification API (ActNotify, filter.*Notif*)

@@ -88,8 +88,12 @@ func (rv RawValue) UnmarshalWithRegistry(r *bsoncodec.Registry, val interface{})
 	return dec.DecodeValue(bsoncodec.DecodeContext{Registry: r}, vr, rval)
 }
 
-// UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses the provided DecodeContext
-// instead of the one attached or the default registry.
+// UnmarshalWithContext performs the same unmarshalling as Unmarshal but uses
+// the provided DecodeContext instead of the one attached or the default
+// registry.
+//
+// Deprecated: Use [RawValue.UnmarshalWithRegistry] with a custom registry to customize
+// unmarshal behavior instead.
 func (rv RawValue) UnmarshalWithContext(dc *bsoncodec.DecodeContext, val interface{}) error {
 	if dc == nil {
 		return ErrNilContext

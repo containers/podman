@@ -102,8 +102,14 @@ func fdRangeFrom(minFd int, fn fdFunc) error {
 func CloseExecFrom(minFd int) error {
 	// Use close_range(CLOSE_RANGE_CLOEXEC) if possible.
 	if haveCloseRangeCloexec() {
-		err := unix.CloseRange(uint(minFd), math.MaxUint, unix.CLOSE_RANGE_CLOEXEC)
-		return os.NewSyscallError("close_range", err)
+		err := unix.CloseRange(uint(minFd), math.MaxInt32, unix.CLOSE_RANGE_CLOEXEC)
+		if err == nil {
+			return nil
+		}
+
+		logrus.Debugf("close_range failed, closing range one at a time (error: %v)", err)
+
+		// If close_range fails, we fall back to the standard loop.
 	}
 	// Otherwise, fall back to the standard loop.
 	return fdRangeFrom(minFd, unix.CloseOnExec)

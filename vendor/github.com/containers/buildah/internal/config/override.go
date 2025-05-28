@@ -65,74 +65,120 @@ func mergeEnv(a, b []string) []string {
 	return results
 }
 
-// Override takes a buildah docker config and an OCI ImageConfig, and applies a
+func parseOverrideChanges(overrideChanges []string, overrideConfig *manifest.Schema2Config) (*manifest.Schema2Config, error) {
+	if len(overrideChanges) == 0 {
+		return overrideConfig, nil
+	}
+	if overrideConfig == nil {
+		overrideConfig = &manifest.Schema2Config{}
+	}
+	// Parse the set of changes as we would a Dockerfile.
+	changes := strings.Join(overrideChanges, "\n")
+	parsed, err := imagebuilder.ParseDockerfile(strings.NewReader(changes))
+	if err != nil {
+		return overrideConfig, fmt.Errorf("parsing change set %+v: %w", changes, err)
+	}
+	// Create a dummy builder object to process configuration-related
+	// instructions.
+	subBuilder := imagebuilder.NewBuilder(nil)
+	// Convert the incoming data into an initial RunConfig.
+	subBuilder.RunConfig = *GoDockerclientConfigFromSchema2Config(overrideConfig)
+	// Process the change instructions one by one.
+	for _, node := range parsed.Children {
+		var step imagebuilder.Step
+		if err := step.Resolve(node); err != nil {
+			return overrideConfig, fmt.Errorf("resolving change %q: %w", node.Original, err)
+		}
+		if err := subBuilder.Run(&step, &configOnlyExecutor{}, true); err != nil {
+			return overrideConfig, fmt.Errorf("processing change %q: %w", node.Original, err)
+		}
+	}
+	// Pull settings out of the dummy builder's RunConfig.
+	return Schema2ConfigFromGoDockerclientConfig(&subBuilder.RunConfig), nil
+}
+
+// OverrideOCI takes a buildah docker config and an OCI ImageConfig, and applies a
 // mixture of a slice of Dockerfile-style instructions and fields from a config
 // blob to them both
-func Override(dconfig *docker.Config, oconfig *v1.ImageConfig, overrideChanges []string, overrideConfig *manifest.Schema2Config) error {
-	if len(overrideChanges) > 0 {
-		if overrideConfig == nil {
-			overrideConfig = &manifest.Schema2Config{}
-		}
-		// Parse the set of changes as we would a Dockerfile.
-		changes := strings.Join(overrideChanges, "\n")
-		parsed, err := imagebuilder.ParseDockerfile(strings.NewReader(changes))
-		if err != nil {
-			return fmt.Errorf("parsing change set %+v: %w", changes, err)
-		}
-		// Create a dummy builder object to process configuration-related
-		// instructions.
-		subBuilder := imagebuilder.NewBuilder(nil)
-		// Convert the incoming data into an initial RunConfig.
-		subBuilder.RunConfig = *GoDockerclientConfigFromSchema2Config(overrideConfig)
-		// Process the change instructions one by one.
-		for _, node := range parsed.Children {
-			var step imagebuilder.Step
-			if err := step.Resolve(node); err != nil {
-				return fmt.Errorf("resolving change %q: %w", node.Original, err)
-			}
-			if err := subBuilder.Run(&step, &configOnlyExecutor{}, true); err != nil {
-				return fmt.Errorf("processing change %q: %w", node.Original, err)
-			}
-		}
-		// Pull settings out of the dummy builder's RunConfig.
-		overrideConfig = Schema2ConfigFromGoDockerclientConfig(&subBuilder.RunConfig)
+func OverrideOCI(oconfig *v1.ImageConfig, overrideChanges []string, overrideConfig *manifest.Schema2Config) error {
+	overrideConfig, err := parseOverrideChanges(overrideChanges, overrideConfig)
+	if err != nil {
+		return err
 	}
+
 	if overrideConfig != nil {
 		// Apply changes from a possibly-provided possibly-changed config struct.
-		dconfig.Hostname = firstStringElseSecondString(overrideConfig.Hostname, dconfig.Hostname)
-		dconfig.Domainname = firstStringElseSecondString(overrideConfig.Domainname, dconfig.Domainname)
-		dconfig.User = firstStringElseSecondString(overrideConfig.User, dconfig.User)
 		oconfig.User = firstStringElseSecondString(overrideConfig.User, oconfig.User)
-		dconfig.AttachStdin = overrideConfig.AttachStdin
-		dconfig.AttachStdout = overrideConfig.AttachStdout
-		dconfig.AttachStderr = overrideConfig.AttachStderr
 		if len(overrideConfig.ExposedPorts) > 0 {
-			dexposedPorts := make(map[docker.Port]struct{})
 			oexposedPorts := make(map[string]struct{})
-			for port := range dconfig.ExposedPorts {
-				dexposedPorts[port] = struct{}{}
-			}
-			for port := range overrideConfig.ExposedPorts {
-				dexposedPorts[docker.Port(port)] = struct{}{}
-			}
 			for port := range oconfig.ExposedPorts {
 				oexposedPorts[port] = struct{}{}
 			}
 			for port := range overrideConfig.ExposedPorts {
 				oexposedPorts[string(port)] = struct{}{}
 			}
-			dconfig.ExposedPorts = dexposedPorts
 			oconfig.ExposedPorts = oexposedPorts
+		}
+		if len(overrideConfig.Env) > 0 {
+			oconfig.Env = mergeEnv(oconfig.Env, overrideConfig.Env)
+		}
+		oconfig.Entrypoint, oconfig.Cmd = firstSlicePairElseSecondSlicePair(overrideConfig.Entrypoint, overrideConfig.Cmd, oconfig.Entrypoint, oconfig.Cmd)
+		if len(overrideConfig.Volumes) > 0 {
+			if oconfig.Volumes == nil {
+				oconfig.Volumes = make(map[string]struct{})
+			}
+			for volume := range overrideConfig.Volumes {
+				oconfig.Volumes[volume] = struct{}{}
+			}
+		}
+		oconfig.WorkingDir = firstStringElseSecondString(overrideConfig.WorkingDir, oconfig.WorkingDir)
+		if len(overrideConfig.Labels) > 0 {
+			if oconfig.Labels == nil {
+				oconfig.Labels = make(map[string]string)
+			}
+			for k, v := range overrideConfig.Labels {
+				oconfig.Labels[k] = v
+			}
+		}
+		oconfig.StopSignal = overrideConfig.StopSignal
+	}
+	return nil
+}
+
+// OverrideDocker takes a buildah docker config and an Docker Config, and applies a
+// mixture of a slice of Dockerfile-style instructions and fields from a config
+// blob to them both
+func OverrideDocker(dconfig *docker.Config, overrideChanges []string, overrideConfig *manifest.Schema2Config) error {
+	overrideConfig, err := parseOverrideChanges(overrideChanges, overrideConfig)
+	if err != nil {
+		return err
+	}
+
+	if overrideConfig != nil {
+		// Apply changes from a possibly-provided possibly-changed config struct.
+		dconfig.Hostname = firstStringElseSecondString(overrideConfig.Hostname, dconfig.Hostname)
+		dconfig.Domainname = firstStringElseSecondString(overrideConfig.Domainname, dconfig.Domainname)
+		dconfig.User = firstStringElseSecondString(overrideConfig.User, dconfig.User)
+		dconfig.AttachStdin = overrideConfig.AttachStdin
+		dconfig.AttachStdout = overrideConfig.AttachStdout
+		dconfig.AttachStderr = overrideConfig.AttachStderr
+		if len(overrideConfig.ExposedPorts) > 0 {
+			dexposedPorts := make(map[docker.Port]struct{})
+			for port := range dconfig.ExposedPorts {
+				dexposedPorts[port] = struct{}{}
+			}
+			for port := range overrideConfig.ExposedPorts {
+				dexposedPorts[docker.Port(port)] = struct{}{}
+			}
+			dconfig.ExposedPorts = dexposedPorts
 		}
 		dconfig.Tty = overrideConfig.Tty
 		dconfig.OpenStdin = overrideConfig.OpenStdin
 		dconfig.StdinOnce = overrideConfig.StdinOnce
 		if len(overrideConfig.Env) > 0 {
 			dconfig.Env = mergeEnv(dconfig.Env, overrideConfig.Env)
-			oconfig.Env = mergeEnv(oconfig.Env, overrideConfig.Env)
 		}
 		dconfig.Entrypoint, dconfig.Cmd = firstSlicePairElseSecondSlicePair(overrideConfig.Entrypoint, overrideConfig.Cmd, dconfig.Entrypoint, dconfig.Cmd)
-		oconfig.Entrypoint, oconfig.Cmd = firstSlicePairElseSecondSlicePair(overrideConfig.Entrypoint, overrideConfig.Cmd, oconfig.Entrypoint, oconfig.Cmd)
 		if overrideConfig.Healthcheck != nil {
 			dconfig.Healthcheck = &docker.HealthConfig{
 				Test:        slices.Clone(overrideConfig.Healthcheck.Test),
@@ -148,16 +194,11 @@ func Override(dconfig *docker.Config, oconfig *v1.ImageConfig, overrideChanges [
 			if dconfig.Volumes == nil {
 				dconfig.Volumes = make(map[string]struct{})
 			}
-			if oconfig.Volumes == nil {
-				oconfig.Volumes = make(map[string]struct{})
-			}
 			for volume := range overrideConfig.Volumes {
 				dconfig.Volumes[volume] = struct{}{}
-				oconfig.Volumes[volume] = struct{}{}
 			}
 		}
 		dconfig.WorkingDir = firstStringElseSecondString(overrideConfig.WorkingDir, dconfig.WorkingDir)
-		oconfig.WorkingDir = firstStringElseSecondString(overrideConfig.WorkingDir, oconfig.WorkingDir)
 		dconfig.NetworkDisabled = overrideConfig.NetworkDisabled
 		dconfig.MacAddress = overrideConfig.MacAddress
 		dconfig.OnBuild = overrideConfig.OnBuild
@@ -165,16 +206,11 @@ func Override(dconfig *docker.Config, oconfig *v1.ImageConfig, overrideChanges [
 			if dconfig.Labels == nil {
 				dconfig.Labels = make(map[string]string)
 			}
-			if oconfig.Labels == nil {
-				oconfig.Labels = make(map[string]string)
-			}
 			for k, v := range overrideConfig.Labels {
 				dconfig.Labels[k] = v
-				oconfig.Labels[k] = v
 			}
 		}
 		dconfig.StopSignal = overrideConfig.StopSignal
-		oconfig.StopSignal = overrideConfig.StopSignal
 		dconfig.StopTimeout = overrideConfig.StopTimeout
 		dconfig.Shell = firstSliceElseSecondSlice(overrideConfig.Shell, dconfig.Shell)
 	}

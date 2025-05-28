@@ -207,7 +207,6 @@ type LayerStore interface {
 	Mounted(id string) (int, error)
 	ParentOwners(id string) (uids, gids []int, err error)
 	ApplyDiff(to string, diff io.Reader) (int64, error)
-	ApplyDiffWithDiffer(to string, options *drivers.ApplyDiffOpts, differ drivers.Differ) (*drivers.DriverWithDifferOutput, error)
 	DifferTarget(id string) (string, error)
 	LoadLocked() error
 	PutAdditionalLayer(id string, parentLayer *Layer, names []string, aLayer drivers.AdditionalLayer) (layer *Layer, err error)

@@ -1,4 +1,4 @@
-# dario.cat/mergo v1.0.1
+# dario.cat/mergo v1.0.2
 ## explicit; go 1.13
 dario.cat/mergo
 # github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c
@@ -18,8 +18,8 @@ github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.12.9
-## explicit; go 1.22
+# github.com/Microsoft/hcsshim v0.13.0
+## explicit; go 1.23.0
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
 github.com/Microsoft/hcsshim/internal/cow
@@ -110,7 +110,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.40.0
+# github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -142,7 +142,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.63.0
+# github.com/containers/common v0.63.1-0.20250528122446-1a3b5ecec62f
 ## explicit; go 1.23.3
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -215,7 +215,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.6
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.35.0
+# github.com/containers/image/v5 v5.35.1-0.20250526152843-c64593da00e4
 ## explicit; go 1.23.3
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -296,8 +296,8 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20250217190002-40bd943d93b8
-## explicit; go 1.20
+# github.com/containers/luksy v0.0.0-20250408185436-4bb4c3f825be
+## explicit; go 1.21
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.1
 ## explicit; go 1.22
@@ -326,7 +326,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.58.0
+# github.com/containers/storage v1.58.1-0.20250515004000-78f4258b2bd9
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -379,7 +379,7 @@ github.com/containers/storage/types
 ## explicit; go 1.19
 github.com/containers/winquit/pkg/winquit
 github.com/containers/winquit/pkg/winquit/win32
-# github.com/coreos/go-oidc/v3 v3.13.0
+# github.com/coreos/go-oidc/v3 v3.14.1
 ## explicit; go 1.23.0
 github.com/coreos/go-oidc/v3/oidc
 # github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
@@ -524,7 +524,7 @@ github.com/go-openapi/analysis/internal/flatten/sortref
 # github.com/go-openapi/errors v0.22.1
 ## explicit; go 1.20
 github.com/go-openapi/errors
-# github.com/go-openapi/jsonpointer v0.21.0
+# github.com/go-openapi/jsonpointer v0.21.1
 ## explicit; go 1.20
 github.com/go-openapi/jsonpointer
 # github.com/go-openapi/jsonreference v0.21.0
@@ -706,7 +706,7 @@ github.com/mistifyio/go-zfs/v3
 # github.com/mitchellh/mapstructure v1.5.0
 ## explicit; go 1.14
 github.com/mitchellh/mapstructure
-# github.com/moby/buildkit v0.21.0
+# github.com/moby/buildkit v0.22.0
 ## explicit; go 1.23.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
@@ -815,8 +815,8 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.2.6
-## explicit; go 1.22
+# github.com/opencontainers/runc v1.3.0
+## explicit; go 1.23.0
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/devices
 github.com/opencontainers/runc/libcontainer/user
@@ -888,8 +888,8 @@ github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/tcp
 github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/udp
 github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin/parent/udp/udpproxy
 github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil
-# github.com/seccomp/libseccomp-golang v0.10.0
-## explicit; go 1.14
+# github.com/seccomp/libseccomp-golang v0.11.0
+## explicit; go 1.19
 github.com/seccomp/libseccomp-golang
 # github.com/secure-systems-lab/go-securesystemslib v0.9.0
 ## explicit; go 1.20
@@ -922,7 +922,7 @@ github.com/sigstore/rekor/pkg/generated/client/pubkey
 github.com/sigstore/rekor/pkg/generated/client/tlog
 github.com/sigstore/rekor/pkg/generated/models
 github.com/sigstore/rekor/pkg/util
-# github.com/sigstore/sigstore v1.9.3
+# github.com/sigstore/sigstore v1.9.4
 ## explicit; go 1.23.0
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/oauth
@@ -1012,7 +1012,7 @@ go.etcd.io/bbolt
 go.etcd.io/bbolt/errors
 go.etcd.io/bbolt/internal/common
 go.etcd.io/bbolt/internal/freelist
-# go.mongodb.org/mongo-driver v1.14.0
+# go.mongodb.org/mongo-driver v1.17.3
 ## explicit; go 1.18
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
@@ -1120,7 +1120,7 @@ golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
-# golang.org/x/oauth2 v0.29.0
+# golang.org/x/oauth2 v0.30.0
 ## explicit; go 1.23.0
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
