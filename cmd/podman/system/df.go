@@ -275,7 +275,10 @@ func (d *dfContainer) ContainerID() string {
 }
 
 func (d *dfContainer) Image() string {
-	return d.SystemDfContainerReport.Image[0:12]
+	if len(d.SystemDfContainerReport.Image) >= 12 {
+		return d.SystemDfContainerReport.Image[0:12]
+	}
+	return ""
 }
 
 func (d *dfContainer) Command() string {
