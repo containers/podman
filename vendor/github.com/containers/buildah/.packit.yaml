@@ -52,6 +52,9 @@ jobs:
       - fedora-all-x86_64
       - fedora-all-aarch64
     enable_net: true
+    # Disable osh diff scan until Go support is available
+    # Ref: https://github.com/openscanhub/known-false-positives/pull/30#issuecomment-2858698495
+    osh_diff_scan_after_copr_build: false
 
   # Ignore until golang is updated in distro buildroot to 1.23.3+
   - job: copr_build

@@ -95,8 +95,13 @@ type AddAndCopyOptions struct {
 	// RetryDelay is how long to wait before retrying attempts to retrieve
 	// remote contents.
 	RetryDelay time.Duration
-	// Parents preserve parent directories of source content
+	// Parents specifies that we should preserve either all of the parent
+	// directories of source locations, or the ones which follow "/./" in
+	// the source paths for source locations which include such a
+	// component.
 	Parents bool
+	// Timestamp is a timestamp to override on all content as it is being read.
+	Timestamp *time.Time
 }
 
 // gitURLFragmentSuffix matches fragments to use as Git reference and build
@@ -123,7 +128,7 @@ func sourceIsRemote(source string) bool {
 }
 
 // getURL writes a tar archive containing the named content
-func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest, certPath string, insecureSkipTLSVerify types.OptionalBool) error {
+func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, writer io.Writer, chmod *os.FileMode, srcDigest digest.Digest, certPath string, insecureSkipTLSVerify types.OptionalBool, timestamp *time.Time) error {
 	url, err := url.Parse(src)
 	if err != nil {
 		return err
@@ -154,15 +159,19 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		name = path.Base(url.Path)
 	}
 	// If there's a date on the content, use it.  If not, use the Unix epoch
-	// for compatibility.
+	// or a specified value for compatibility.
 	date := time.Unix(0, 0).UTC()
-	lastModified := response.Header.Get("Last-Modified")
-	if lastModified != "" {
-		d, err := time.Parse(time.RFC1123, lastModified)
-		if err != nil {
-			return fmt.Errorf("parsing last-modified time: %w", err)
+	if timestamp != nil {
+		date = timestamp.UTC()
+	} else {
+		lastModified := response.Header.Get("Last-Modified")
+		if lastModified != "" {
+			d, err := time.Parse(time.RFC1123, lastModified)
+			if err != nil {
+				return fmt.Errorf("parsing last-modified time %q: %w", lastModified, err)
+			}
+			date = d.UTC()
 		}
-		date = d
 	}
 	// Figure out the size of the content.
 	size := response.ContentLength
@@ -532,6 +541,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 						StripSetuidBit: options.StripSetuidBit,
 						StripSetgidBit: options.StripSetgidBit,
 						StripStickyBit: options.StripStickyBit,
+						Timestamp:      options.Timestamp,
 					}
 					writer := io.WriteCloser(pipeWriter)
 					repositoryDir := filepath.Join(cloneDir, subdir)
@@ -540,7 +550,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 			} else {
 				go func() {
 					getErr = retry.IfNecessary(context.TODO(), func() error {
-						return getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest, options.CertPath, options.InsecureSkipTLSVerify)
+						return getURL(src, chownFiles, mountPoint, renameTarget, pipeWriter, chmodDirsFiles, srcDigest, options.CertPath, options.InsecureSkipTLSVerify, options.Timestamp)
 					}, &retry.Options{
 						MaxRetry: options.MaxRetries,
 						Delay:    options.RetryDelay,
@@ -696,6 +706,7 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 					StripSetgidBit: options.StripSetgidBit,
 					StripStickyBit: options.StripStickyBit,
 					Parents:        options.Parents,
+					Timestamp:      options.Timestamp,
 				}
 				getErr = copier.Get(contextDir, contextDir, getOptions, []string{globbedToGlobbable(globbed)}, writer)
 				closeErr = writer.Close()
