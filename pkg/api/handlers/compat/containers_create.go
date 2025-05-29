@@ -207,6 +207,12 @@ func cliOpts(cc handlers.CreateContainerConfig, rtc *config.Config) (*entities.C
 			jsonString := string(b)
 			entrypoint = &jsonString
 		}
+	} else if cc.Config.Entrypoint != nil {
+		// Entrypoint in HTTP request is set, but it is an empty slice.
+		// Set the entrypoint to empty string slice, because keeping it set to nil
+		// would later fallback to default entrypoint.
+		emptySlice := "[]"
+		entrypoint = &emptySlice
 	}
 
 	// expose ports
