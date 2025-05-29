@@ -1131,4 +1131,18 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 		outTest := podmanTest.PodmanExitCleanly("run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dest=/mnt", volName), ALPINE, "ls", "/mnt")
 		Expect(outTest.OutputToString()).To(ContainSubstring("testfile"))
 	})
+
+	It("podman run --tmpfs with noatime option", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--tmpfs", "/mytmpfs:noatime", ALPINE, "grep", "mytmpfs", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("noatime"))
+
+		session = podmanTest.Podman([]string{"run", "--rm", "--tmpfs", "/mytmpfs", ALPINE, "grep", "mytmpfs", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		output = session.OutputToString()
+		Expect(output).ToNot(ContainSubstring("noatime"))
+	})
 })
