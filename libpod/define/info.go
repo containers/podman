@@ -66,6 +66,8 @@ type HostInfo struct {
 	Uptime    string `json:"uptime"`
 	Variant   string `json:"variant"`
 	Linkmode  string `json:"linkmode"`
+
+	EmulatedArchitectures []string `json:"emulatedArchitectures,omitempty"`
 }
 
 // RemoteSocket describes information about the API socket
