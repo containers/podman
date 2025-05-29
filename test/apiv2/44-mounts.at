@@ -8,7 +8,7 @@ t POST containers/create?name=hostconfig_test \
   Image=$IMAGE \
   Cmd='["df","-P","'$tmpfs_name'"]' \
   HostConfig='{"Binds":["/tmp/doesnotexist:/test1"]' \
-  TmpFs="{\"$tmpfs_name\":\"rw\"}}" \
+  TmpFs="{\"$tmpfs_name\":\"rw,noatime\"}}" \
   201 \
   .Id~[0-9a-f]\\{64\\}
 cid=$(jq -r '.Id' <<<"$output")
@@ -29,3 +29,11 @@ t GET  containers/${cid}/logs?stdout=true  200
 # null bytes in the outfile.
 like "$(tr -d \\0 <$WORKDIR/curl.result.out)" ".* ${tmpfs_name}" \
      "'df' output includes tmpfs name"
+
+# Reject 'noatime' for bind mount
+t POST libpod/containers/create \
+  Image=$IMAGE \
+  Mounts='[{"type":"bind","source":"/nosuchdir","destination":"/data","options":["noatime"]}]' \
+  500 \
+  .cause="invalid mount option" \
+  .message~"the 'noatime' option is only allowed with tmpfs mounts"

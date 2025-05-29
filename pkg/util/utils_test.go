@@ -715,10 +715,10 @@ func TestProcessOptions(t *testing.T) {
 	}{
 		{
 			name:       "tmpfs",
-			options:    []string{"rw", "size=512m"},
+			options:    []string{"rw", "size=512m", "noatime"},
 			isTmpfs:    true,
 			sourcePath: "",
-			expected:   []string{"nodev", "nosuid", "rprivate", "rw", "size=512m", "tmpcopyup"},
+			expected:   []string{"nodev", "nosuid", "rprivate", "rw", "size=512m", "tmpcopyup", "noatime"},
 		},
 		{
 			name:       "duplicate idmap option",
@@ -809,6 +809,12 @@ func TestProcessOptions(t *testing.T) {
 			sourcePath: "/path/to/source",
 			options:    []string{"bind"},
 			expected:   []string{"nodev", "nosuid", "bind", "private"},
+		},
+		{
+			name:       "noatime allowed only with tmpfs",
+			sourcePath: "/path/to/source",
+			options:    []string{"noatime"},
+			expectErr:  true,
 		},
 	}
 

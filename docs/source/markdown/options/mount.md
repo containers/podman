@@ -89,6 +89,8 @@ Options specific to type=**tmpfs** and **ramfs**:
 
 - *tmpcopyup*: Enable copyup from the image directory at the same location to the tmpfs/ramfs. Used by default.
 
+- *noatime*: Disable updating file access times when the file is read.
+
 - *notmpcopyup*: Disable copying files from the image to the tmpfs/ramfs.
 
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
