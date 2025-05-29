@@ -1122,4 +1122,12 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
+
+	It("podman run --tmpfs with noatime option", func() {
+		session := podmanTest.Podman([]string{"run", "--rm", "--tmpfs", "/mytmpfs:noatime", ALPINE, "grep", "mytmpfs", "/proc/self/mountinfo"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		output := session.OutputToString()
+		Expect(output).To(ContainSubstring("noatime"))
+	})
 })
