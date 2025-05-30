@@ -531,6 +531,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.Annotations[define.PIDsLimitAnnotation] = strconv.FormatInt(*c.PIDsLimit, 10)
 	}
 
+	if c.CPUSetCPUs != "" {
+		s.Annotations[define.CpusetAnnotation] = c.CPUSetCPUs
+	}
+
+	if c.CPUSetMems != "" {
+		s.Annotations[define.MemoryNodesAnnotation] = c.CPUSetMems
+	}
+
 	if len(c.StorageOpts) > 0 {
 		opts := make(map[string]string, len(c.StorageOpts))
 		for _, opt := range c.StorageOpts {
