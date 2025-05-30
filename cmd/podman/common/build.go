@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -514,6 +515,24 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		}
 	}
 
+	var sbomScanOptions []buildahDefine.SBOMScanOptions
+	if c.Flag("sbom").Changed || c.Flag("sbom-scanner-command").Changed || c.Flag("sbom-scanner-image").Changed || c.Flag("sbom-image-output").Changed || c.Flag("sbom-merge-strategy").Changed || c.Flag("sbom-output").Changed || c.Flag("sbom-image-output").Changed || c.Flag("sbom-purl-output").Changed || c.Flag("sbom-image-purl-output").Changed {
+		sbomScanOption, err := parse.SBOMScanOptions(c)
+		if err != nil {
+			return nil, err
+		}
+		if !slices.Contains(sbomScanOption.ContextDir, contextDir) {
+			sbomScanOption.ContextDir = append(sbomScanOption.ContextDir, contextDir)
+		}
+		for _, abc := range additionalBuildContext {
+			if !abc.IsURL && !abc.IsImage {
+				sbomScanOption.ContextDir = append(sbomScanOption.ContextDir, abc.Value)
+			}
+		}
+		sbomScanOption.PullPolicy = pullPolicy
+		sbomScanOptions = append(sbomScanOptions, *sbomScanOption)
+	}
+
 	opts := buildahDefine.BuildOptions{
 		AddCapabilities:         flags.CapAdd,
 		AdditionalTags:          tags,
@@ -570,6 +589,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		Runtime:                 podmanConfig.RuntimePath,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           flags.RusageLogFile,
+		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  flags.SignBy,
 		SignaturePolicyPath:     flags.SignaturePolicy,
 		Squash:                  flags.Squash,
