@@ -90,11 +90,13 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, handlers.DiskUsage{DiskUsage: docker.DiskUsage{
-		LayersSize:  df.ImagesSize,
-		Images:      imgs,
-		Containers:  ctnrs,
-		Volumes:     vols,
-		BuildCache:  []*docker.BuildCache{},
-		BuilderSize: 0,
+		// BuilderSize was explicitly omitted since Docker deprecated its in ver 1.42
+		// and suggests to use BuildCache.
+		// https://docs.docker.com/reference/api/engine/version-history/#v142-api-changes
+		LayersSize: df.ImagesSize,
+		Images:     imgs,
+		Containers: ctnrs,
+		Volumes:    vols,
+		BuildCache: []*docker.BuildCache{},
 	}})
 }
