@@ -267,6 +267,29 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(out).To(ContainSubstring("alpine"))
 	})
 
+	It("using journald for container with container log_tag override", func() {
+		SkipIfJournaldUnavailable()
+		os.Setenv("CONTAINERS_CONF", "config/containers-journald.conf")
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+		logc := podmanTest.Podman([]string{"run", "-d", "--log-opt", "tag=OverriddenTag", ALPINE, "sh", "-c", "echo podman; sleep 0.1; echo podman; sleep 0.1; echo podman"})
+		logc.WaitWithDefaultTimeout()
+		Expect(logc).Should(ExitCleanly())
+		cid := logc.OutputToString()
+
+		wait := podmanTest.Podman([]string{"wait", cid})
+		wait.WaitWithDefaultTimeout()
+		Expect(wait).Should(ExitCleanly())
+
+		// Flake prevention: journalctl makes no timeliness guarantees.
+		time.Sleep(1 * time.Second)
+		cmd := exec.Command("journalctl", "--no-pager", "-o", "json", "--output-fields=CONTAINER_TAG", fmt.Sprintf("CONTAINER_ID_FULL=%s", cid))
+		out, err := cmd.CombinedOutput()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(out).To(ContainSubstring("OverriddenTag"))
+	})
+
 	It("add volumes", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
