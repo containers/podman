@@ -104,7 +104,7 @@ type MountPoint struct {
 // State stores container's running state
 // it's part of ContainerJSONBase and returned by "inspect" command
 type State struct {
-	Status     string // String representation of the container state. Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
+	Status     ContainerState // String representation of the container state. Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
 	Running    bool
 	Paused     bool
 	Restarting bool
@@ -132,7 +132,7 @@ type Summary struct {
 	SizeRw                  int64 `json:",omitempty"`
 	SizeRootFs              int64 `json:",omitempty"`
 	Labels                  map[string]string
-	State                   string
+	State                   ContainerState
 	Status                  string
 	HostConfig              struct {
 		NetworkMode string            `json:",omitempty"`
