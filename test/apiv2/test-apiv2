@@ -221,7 +221,7 @@ function jsonify() {
         local rhs
         IFS='=' read lhs rhs <<<"$i"
 
-        if [[ $rhs =~ \" || $rhs == true || $rhs == false || $rhs =~ ^-?[0-9]+$ ]]; then
+        if [[ $rhs =~ \" || $rhs == true || $rhs == false || $rhs == "[]" || $rhs =~ ^-?[0-9]+$ ]]; then
             # rhs has been pre-formatted for JSON or a non-string, do not change it
             :
         elif [[ $rhs == False ]]; then
