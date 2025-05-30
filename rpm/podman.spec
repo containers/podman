@@ -93,7 +93,6 @@ BuildRequires: shadow-utils-subid-devel
 BuildRequires: pkgconfig
 BuildRequires: make
 BuildRequires: man-db
-BuildRequires: ostree-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
 Requires: catatonit
