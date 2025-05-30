@@ -40,7 +40,6 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			RepoTags:    []string{o.Tag},
 			SharedSize:  o.SharedSize,
 			Size:        o.Size,
-			VirtualSize: o.Size - o.UniqueSize,
 		}
 		imgs[i] = &t
 	}
