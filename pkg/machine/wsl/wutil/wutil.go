@@ -78,14 +78,6 @@ func IsWSLInstalled() bool {
 	return status.installed && status.vmpFeatureEnabled
 }
 
-func IsWSLFeatureEnabled() bool {
-	if SilentExec("wsl", "--set-default-version", "2") != nil {
-		return false
-	}
-	status := parseWSLStatus()
-	return status.vmpFeatureEnabled
-}
-
 func IsWSLStoreVersionInstalled() bool {
 	cmd := SilentExecCmd("wsl", "--version")
 	cmd.Stdout = nil
