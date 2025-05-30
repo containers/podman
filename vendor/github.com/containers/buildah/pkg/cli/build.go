@@ -263,12 +263,16 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		timestamp = &t
 	}
 	if c.Flag("output").Changed {
-		buildOption, err := parse.GetBuildOutput(iopts.BuildOutput)
-		if err != nil {
-			return options, nil, nil, err
-		}
-		if buildOption.IsStdout {
-			iopts.Quiet = true
+		for _, buildOutput := range iopts.BuildOutputs {
+			// if any of these go to stdout, we need to avoid
+			// interspersing our random output in with it
+			buildOption, err := parse.GetBuildOutput(buildOutput)
+			if err != nil {
+				return options, nil, nil, err
+			}
+			if buildOption.IsStdout {
+				iopts.Quiet = true
+			}
 		}
 	}
 	var confidentialWorkloadOptions define.ConfidentialWorkloadOptions
@@ -351,7 +355,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		Architecture:            systemContext.ArchitectureChoice,
 		Args:                    args,
 		BlobDirectory:           iopts.BlobCache,
-		BuildOutput:             iopts.BuildOutput,
+		BuildOutputs:            iopts.BuildOutputs,
 		CacheFrom:               cacheFrom,
 		CacheTo:                 cacheTo,
 		CacheTTL:                cacheTTL,

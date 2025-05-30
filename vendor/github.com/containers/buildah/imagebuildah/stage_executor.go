@@ -1270,13 +1270,15 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	}
 
 	// Parse and populate buildOutputOption if needed
-	var buildOutputOption define.BuildOutputOption
-	canGenerateBuildOutput := (s.executor.buildOutput != "" && lastStage)
-	if canGenerateBuildOutput {
-		logrus.Debugf("Generating custom build output with options %q", s.executor.buildOutput)
-		buildOutputOption, err = parse.GetBuildOutput(s.executor.buildOutput)
-		if err != nil {
-			return "", nil, false, fmt.Errorf("failed to parse build output: %w", err)
+	var buildOutputOptions []define.BuildOutputOption
+	if lastStage && len(s.executor.buildOutputs) > 0 {
+		for _, buildOutput := range s.executor.buildOutputs {
+			logrus.Debugf("generating custom build output with options %q", buildOutput)
+			buildOutputOption, err := parse.GetBuildOutput(buildOutput)
+			if err != nil {
+				return "", nil, false, fmt.Errorf("failed to parse build output %q: %w", buildOutput, err)
+			}
+			buildOutputOptions = append(buildOutputOptions, buildOutputOption)
 		}
 	}
 
@@ -1311,7 +1313,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 		// Generate build output from the new image, or the preexisting
 		// one if we didn't actually do anything, if needed.
-		if canGenerateBuildOutput {
+		for _, buildOutputOption := range buildOutputOptions {
 			if err := s.generateBuildOutput(buildOutputOption); err != nil {
 				return "", nil, onlyBaseImage, err
 			}
@@ -1466,7 +1468,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				}
 				logImageID(imgID)
 				// Generate build output if needed.
-				if canGenerateBuildOutput {
+				for _, buildOutputOption := range buildOutputOptions {
 					if err := s.generateBuildOutput(buildOutputOption); err != nil {
 						return "", nil, false, err
 					}
@@ -1697,7 +1699,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
 			}
 			// Generate build output if needed.
-			if canGenerateBuildOutput {
+			for _, buildOutputOption := range buildOutputOptions {
 				if err := s.generateBuildOutput(buildOutputOption); err != nil {
 					return "", nil, false, err
 				}
@@ -1737,7 +1739,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 					return "", nil, false, fmt.Errorf("committing final squash step %+v: %w", *step, err)
 				}
 				// Generate build output if needed.
-				if canGenerateBuildOutput {
+				for _, buildOutputOption := range buildOutputOptions {
 					if err := s.generateBuildOutput(buildOutputOption); err != nil {
 						return "", nil, false, err
 					}
@@ -1752,7 +1754,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// then generate output manually since there is no opportunity
 				// for us to perform `commit` anywhere in the code.
 				// Generate build output if needed.
-				if canGenerateBuildOutput {
+				for _, buildOutputOption := range buildOutputOptions {
 					if err := s.generateBuildOutput(buildOutputOption); err != nil {
 						return "", nil, false, err
 					}

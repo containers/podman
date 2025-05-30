@@ -167,9 +167,12 @@ type BuildOptions struct {
 	AdditionalBuildContexts map[string]*AdditionalBuildContext
 	// Name of the image to write to.
 	Output string
-	// BuildOutput specifies if any custom build output is selected for following build.
-	// It allows end user to export recently built rootfs into a directory or tar.
-	// See the documentation of 'buildah build --output' for the details of the format.
+	// BuildOutputs specifies if any custom build output is selected for
+	// following build.  It allows the end user to export the image's
+	// rootfs to a directory or a tar archive.  See the documentation of
+	// 'buildah build --output' for the details of the syntax.
+	BuildOutputs []string
+	// Deprecated: use BuildOutputs instead.
 	BuildOutput string
 	// ConfidentialWorkload controls whether or not, and if so, how, we produce an
 	// image that's meant to be run using krun as a VM instead of a conventional
