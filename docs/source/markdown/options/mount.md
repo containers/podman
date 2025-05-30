@@ -13,7 +13,7 @@ Options common to all mount types:
 - *src*, *source*: mount source spec for **bind**, **glob**, and **volume**.
   Mandatory for **artifact**, **bind**, **glob**, **image** and **volume**.
 
-- *dst*, *destination*, *target*: mount destination spec.
+- *dst*, *dest*, *destination*, *target*: mount destination spec.
 
 When source globs are specified without the destination directory,
 the files and directories are mounted with their complete path

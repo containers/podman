@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-var (
-	errInvalidSyntax = errors.New("incorrect mount format: should be --mount type=<bind|glob|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
-)
-
 // FindMountType parses the input and extracts the type of the mount type and
 // the remaining non-type tokens.
 func FindMountType(input string) (mountType string, tokens []string, err error) {
@@ -22,7 +18,7 @@ func FindMountType(input string) (mountType string, tokens []string, err error) 
 		return "", nil, err
 	}
 	if len(records) != 1 {
-		return "", nil, errInvalidSyntax
+		return "", nil, errors.New("incorrect mount format: should be --mount type=<bind|glob|tmpfs|volume>,[src=<host-dir|volume-name>,]target=<ctr-dir>[,options]")
 	}
 	for _, s := range records[0] {
 		kv := strings.Split(s, "=")
@@ -34,7 +30,7 @@ func FindMountType(input string) (mountType string, tokens []string, err error) 
 		found = true
 	}
 	if !found {
-		err = errInvalidSyntax
+		mountType = "volume"
 	}
 	return
 }

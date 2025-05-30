@@ -1122,4 +1122,13 @@ RUN chmod 755 /test1 /test2 /test3`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})
+
+	It("--mount flag defaults to volume if no type given", func() {
+		volName := "testvol"
+		podmanTest.PodmanExitCleanly("volume", "create", volName)
+
+		podmanTest.PodmanExitCleanly("run", "--rm", "--mount", fmt.Sprintf("src=%s,dest=/mnt", volName), ALPINE, "touch", "/mnt/testfile")
+		outTest := podmanTest.PodmanExitCleanly("run", "--rm", "--mount", fmt.Sprintf("type=volume,src=%s,dest=/mnt", volName), ALPINE, "ls", "/mnt")
+		Expect(outTest.OutputToString()).To(ContainSubstring("testfile"))
+	})
 })
