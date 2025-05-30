@@ -446,7 +446,7 @@ func parseMountOptions(mountType string, args []string) (*universalMount, error)
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
 			mnt.subPath = value
-		case "target", "dst", "destination":
+		case "target", "dst", "dest", "destination":
 			if mnt.mount.Destination != "" {
 				return nil, fmt.Errorf("cannot pass %q option more than once: %w", name, errOptionArg)
 			}
@@ -617,7 +617,7 @@ func getDevptsMount(args []string) (spec.Mount, error) {
 		switch name {
 		case "uid", "gid", "mode", "ptmxmode", "newinstance", "max":
 			newMount.Options = append(newMount.Options, arg)
-		case "target", "dst", "destination":
+		case "target", "dst", "dest", "destination":
 			if !hasValue {
 				return newMount, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
@@ -674,7 +674,7 @@ func getImageVolume(args []string) (*specgen.ImageVolume, error) {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
 			newVolume.Source = value
-		case "target", "dst", "destination":
+		case "target", "dst", "dest", "destination":
 			if !hasValue {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
@@ -728,7 +728,7 @@ func getArtifactVolume(args []string) (*specgen.ArtifactVolume, error) {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
 			newVolume.Source = value
-		case "target", "dst", "destination":
+		case "target", "dst", "dest", "destination":
 			if !hasValue {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
