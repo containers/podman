@@ -186,6 +186,10 @@ type CtrSpecGenOptions struct {
 	TerminationGracePeriodSeconds *int64
 }
 
+func IsJournaldDriver(driver string) bool {
+	return driver == "" || driver == define.JournaldLogging
+}
+
 func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGenerator, error) {
 	localTrue := true
 
@@ -229,6 +233,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.ImageVolumes = opts.ImageVolumes
 
 	s.LogConfiguration.Options = make(map[string]string)
+	s.LogConfiguration.Labels = make(map[string]string)
 	for _, o := range opts.LogOptions {
 		opt, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
@@ -245,13 +250,24 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 				return nil, err
 			}
 			s.LogConfiguration.Size = logSize
+		case "label":
+			labelKey, labelVal, hasVal := strings.Cut(val, "=")
+			if !hasVal {
+				return nil, fmt.Errorf("invalid log label %q", o)
+			}
+			// tags are for journald only
+			if IsJournaldDriver(s.LogConfiguration.Driver) {
+				s.LogConfiguration.Labels[labelKey] = labelVal
+			} else {
+				logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
+			}
 		default:
 			switch len(val) {
 			case 0:
 				return nil, fmt.Errorf("invalid log option: %w", define.ErrInvalidArg)
 			default:
-				// tags for journald only
-				if s.LogConfiguration.Driver == "" || s.LogConfiguration.Driver == define.JournaldLogging {
+				// tags are for journald only
+				if IsJournaldDriver(s.LogConfiguration.Driver) {
 					s.LogConfiguration.Options[opt] = val
 				} else {
 					logrus.Warnf("Can only set tags with journald log driver but driver is %q", s.LogConfiguration.Driver)
