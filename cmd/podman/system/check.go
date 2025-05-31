@@ -64,8 +64,11 @@ func check(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	if !checkOptions.Repair && !checkOptions.RepairLossy && response.Errors {
-		return errors.New("damage detected in local storage")
+	if !checkOptions.Repair && !checkOptions.RepairLossy {
+		if response.Errors {
+			return errors.New("damage detected in local storage")
+		}
+		return nil
 	}
 
 	recheckOptions := checkOptions
