@@ -118,6 +118,7 @@ type PutBlobOptions struct {
 // PutBlobPartialOptions are used in PutBlobPartial.
 type PutBlobPartialOptions struct {
 	Cache      blobinfocache.BlobInfoCache2 // Cache to use and/or update.
+	EmptyLayer bool                         // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
 	LayerIndex int                          // A zero-based index of the layer within the image (PutBlobPartial is only called with layer-like blobs, not configs)
 }
 
