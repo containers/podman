@@ -55,9 +55,10 @@ func GetInfo(w http.ResponseWriter, r *http.Request) {
 	// liveRestoreEnabled := criu.CheckForCriu() && configInfo.RuntimeSupportsCheckpoint()
 	info := &handlers.Info{
 		Info: dockerSystem.Info{
-			Architecture:        goRuntime.GOARCH,
-			BridgeNfIP6tables:   !sysInfo.BridgeNFCallIP6TablesDisabled,
-			BridgeNfIptables:    !sysInfo.BridgeNFCallIPTablesDisabled,
+			Architecture: goRuntime.GOARCH,
+			// FIXME: Do we want to preserve these?
+			//BridgeNfIP6tables:   !sysInfo.BridgeNFCallIP6TablesDisabled,
+			//BridgeNfIptables:    !sysInfo.BridgeNFCallIPTablesDisabled,
 			CPUCfsPeriod:        sysInfo.CPUCfsPeriod,
 			CPUCfsQuota:         sysInfo.CPUCfsQuota,
 			CPUSet:              sysInfo.Cpuset,

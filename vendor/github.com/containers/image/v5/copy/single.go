@@ -812,6 +812,7 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			}
 			uploadedBlob, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, private.PutBlobPartialOptions{
 				Cache:      ic.c.blobInfoCache,
+				EmptyLayer: emptyLayer,
 				LayerIndex: layerIndex,
 			})
 			if err == nil {
