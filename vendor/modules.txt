@@ -824,8 +824,8 @@ github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.2.1
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20250303011046-260e151b8552
-## explicit; go 1.19
+# github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
+## explicit; go 1.21
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/validate/capabilities
@@ -961,9 +961,6 @@ github.com/stretchr/testify/require
 # github.com/sylabs/sif/v2 v2.21.1
 ## explicit; go 1.23.0
 github.com/sylabs/sif/v2/pkg/sif
-# github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
-## explicit
-github.com/syndtr/gocapability/capability
 # github.com/tchap/go-patricia/v2 v2.3.2
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
