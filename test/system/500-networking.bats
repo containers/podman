@@ -902,11 +902,21 @@ EOF
 @test "podman network rm --dns-option " {
     dns_opt=dns$(random_string)
     run_podman run --rm --dns-opt=${dns_opt} $IMAGE cat /etc/resolv.conf
-    is "$output" ".*options ${dns_opt}" "--dns-opt was added"
+    # Note that we must fully replace all host option so make a match for line start/end as well
+    # https://github.com/containers/podman/issues/22399
+    assert "$output" =~ ".*^options ${dns_opt}\$" "--dns-opt was added"
 
     dns_opt=dns$(random_string)
     run_podman run --rm --dns-option=${dns_opt} $IMAGE cat /etc/resolv.conf
-    is "$output" ".*options ${dns_opt}" "--dns-option was added"
+    assert "$output" =~ ".*^options ${dns_opt}\$" "--dns-option was added"
+
+    # now check with a custom network as well
+    local net=net-$(safename)
+    run_podman network create $net
+    run_podman run --rm --network $net --dns-option=${dns_opt} $IMAGE cat /etc/resolv.conf
+    assert "$output" =~ ".*^options ${dns_opt}\$" "--dns-option was added with custom network"
+
+    run_podman network rm -f $net
 }
 
 # bats test_tags=ci:parallel
