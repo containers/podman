@@ -100,6 +100,14 @@ func (q *QemuCmd) SetDisplay(display string) {
 	*q = append(*q, "-display", display)
 }
 
+func (q *QemuCmd) SetVsocket(vsocket int32) {
+	// must be greater than 2 in default mode
+	if vsocket <= 2 {
+		vsocket = 3
+	}
+	*q = append(*q, "-device", "vhost-vsock-pci,guest-cid="+strconv.Itoa(int(vsocket)))
+}
+
 func (q *QemuCmd) Build() []string {
 	return *q
 }
