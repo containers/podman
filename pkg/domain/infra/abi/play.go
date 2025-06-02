@@ -890,7 +890,9 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 	// the podName appended to it, but this is a breaking change and will be done in podman 5.0
 	ctrNameAliases := make([]string, 0, len(podYAML.Spec.Containers))
 	for _, container := range podYAML.Spec.Containers {
-		ctrNameAliases = append(ctrNameAliases, container.Name)
+		if container.Name != "" {
+			ctrNameAliases = append(ctrNameAliases, container.Name)
+		}
 	}
 	for k, v := range podSpec.PodSpecGen.Networks {
 		v.Aliases = append(v.Aliases, ctrNameAliases...)
