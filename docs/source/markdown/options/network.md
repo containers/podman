@@ -27,7 +27,7 @@ Valid _mode_ values are:
 
 - **container:**_id_: Reuse another container's network stack.
 
-- **host**: Do not create a network namespace, the container uses the host's network. Note: The host mode gives the container full access to local system services such as D-bus and is therefore considered insecure.
+- **host**: Use the host's network namespace for the container instead of creating an isolated namespace. Warning: This gives the container full access to abstract Unix domain sockets and to TCP/UDP sockets bound to localhost. Since these mechanisms are often used to prevent access to sensitive system services, isolating them from access by external entities, use of this option may be counted a security hole.
 
 - **ns:**_path_: Path to a network namespace to join.
 
