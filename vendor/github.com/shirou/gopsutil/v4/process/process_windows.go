@@ -594,7 +594,7 @@ func (p *Process) NumThreadsWithContext(_ context.Context) (int32, error) {
 
 	// if no errors and not cached already, cache ppid
 	p.parent = ppid
-	if 0 == p.getPpid() {
+	if p.getPpid() == 0 {
 		p.setPpid(ppid)
 	}
 

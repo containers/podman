@@ -159,10 +159,7 @@ func parseISAInfo(cmdOutput string) ([]string, error) {
 		return nil, errors.New("attempted to parse invalid isainfo output")
 	}
 
-	flags := make([]string, len(words)-4)
-	for i, val := range words[4:] { //nolint:gosimple //FIXME
-		flags[i] = val
-	}
+	flags := words[4:]
 	sort.Strings(flags)
 
 	return flags, nil

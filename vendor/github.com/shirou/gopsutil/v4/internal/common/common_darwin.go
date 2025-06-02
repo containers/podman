@@ -393,10 +393,7 @@ func GoString(cStr *byte) string {
 		return ""
 	}
 	var length int
-	for {
-		if *(*byte)(unsafe.Add(unsafe.Pointer(cStr), uintptr(length))) == '\x00' {
-			break
-		}
+	for *(*byte)(unsafe.Add(unsafe.Pointer(cStr), uintptr(length))) != '\x00' {
 		length++
 	}
 	return string(unsafe.Slice(cStr, length))

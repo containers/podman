@@ -296,7 +296,7 @@ func ConnectionsWithContext(ctx context.Context, kind string) ([]ConnectionStat,
 	}
 	lines := strings.Split(string(out), "\n")
 	for _, line := range lines {
-		if !(strings.HasPrefix(line, "tcp") || strings.HasPrefix(line, "udp")) {
+		if !strings.HasPrefix(line, "tcp") && !strings.HasPrefix(line, "udp") {
 			continue
 		}
 		n, err := parseNetstatLine(line)

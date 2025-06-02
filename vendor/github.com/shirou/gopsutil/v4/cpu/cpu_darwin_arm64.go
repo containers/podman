@@ -51,7 +51,7 @@ func getFrequency() (float64, error) {
 	var pCoreHz uint32
 	for {
 		service := ioIteratorNext(iterator)
-		if !(service > 0) {
+		if service <= 0 {
 			break
 		}
 

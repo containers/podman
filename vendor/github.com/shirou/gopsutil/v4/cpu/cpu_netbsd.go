@@ -57,7 +57,7 @@ func TimesWithContext(_ context.Context, percpu bool) (ret []TimesStat, err erro
 
 	ncpu, err := unix.SysctlUint32("hw.ncpu")
 	if err != nil {
-		return //nolint:nakedret //FIXME
+		return ret, err
 	}
 
 	var i uint32
