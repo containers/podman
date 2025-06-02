@@ -12,7 +12,7 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.3.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.7.1
-	github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1
+	github.com/containers/buildah v1.40.1-0.20250601104738-a5f229f1557a
 	github.com/containers/common v0.63.1-0.20250528122446-1a3b5ecec62f
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.6
@@ -27,7 +27,7 @@ require (
 	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/docker/docker v28.1.1+incompatible
+	github.com/docker/docker v28.2.0+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8
 	github.com/docker/go-units v0.5.0

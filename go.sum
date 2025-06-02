@@ -66,8 +66,8 @@ github.com/containernetworking/cni v1.3.0 h1:v6EpN8RznAZj9765HhXQrtXgX+ECGebEYEm
 github.com/containernetworking/cni v1.3.0/go.mod h1:Bs8glZjjFfGPHMw6hQu82RUgEPNGEaBb9KS5KtNMnJ4=
 github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/lj+VJfhMDTIs=
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
-github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1 h1:3bNWDmqh9tx0iAXPzBJugj/oC0nTD9yTXCyIu/Mj/LE=
-github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1/go.mod h1:8BVLrM6nRl/dRMYxZ+TrmoWPXzkCY99rZOYvJoXpIyE=
+github.com/containers/buildah v1.40.1-0.20250601104738-a5f229f1557a h1:2+hoLZd9q6tdzuQGOw5XpAwZQnzINFW4/kS3OyICN0M=
+github.com/containers/buildah v1.40.1-0.20250601104738-a5f229f1557a/go.mod h1:IBBZoBfAE5/kBywhaL3fRFEQiQc7ROpW2Ge8x4Zf9mU=
 github.com/containers/common v0.63.1-0.20250528122446-1a3b5ecec62f h1:308Ex0+3+gBSpDPJrFCQIhALdD8YC7jzaXuxSFZgFiA=
 github.com/containers/common v0.63.1-0.20250528122446-1a3b5ecec62f/go.mod h1:efNRNweihnq5nXALnAPDXTpC7uJtnFV4pNuETTfvI8s=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
@@ -121,8 +121,8 @@ github.com/docker/cli v28.1.1+incompatible h1:eyUemzeI45DY7eDPuwUcmDyDj1pM98oD5M
 github.com/docker/cli v28.1.1+incompatible/go.mod h1:JLrzqnKDaYBop7H2jaqPtU4hHvMKP+vjCwu2uszcLI8=
 github.com/docker/distribution v2.8.3+incompatible h1:AtKxIZ36LoNK51+Z6RpzLpddBirtxJnzDrHLEKxTAYk=
 github.com/docker/distribution v2.8.3+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
-github.com/docker/docker v28.1.1+incompatible h1:49M11BFLsVO1gxY9UX9p/zwkE/rswggs8AdFmXQw51I=
-github.com/docker/docker v28.1.1+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
+github.com/docker/docker v28.2.0+incompatible h1:UT6N8HqGInwXfM2CDbzUTV5wyzPZmOcEdXiz8/T04vI=
+github.com/docker/docker v28.2.0+incompatible/go.mod h1:eEKB0N0r5NX/I1kEveEz05bcu8tLC/8azJZsviup8Sk=
 github.com/docker/docker-credential-helpers v0.9.3 h1:gAm/VtF9wgqJMoxzT3Gj5p4AqIjCBS4wrsOh9yRqcz8=
 github.com/docker/docker-credential-helpers v0.9.3/go.mod h1:x+4Gbw9aGmChi3qTLZj8Dfn0TD20M/fuWy0E5+WDeCo=
 github.com/docker/go-connections v0.5.0 h1:USnMq7hx7gwdVZq1L49hLXaFtUdTADjXGp+uj1Br63c=

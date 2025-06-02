@@ -80,6 +80,7 @@ github.com/containerd/errdefs
 # github.com/containerd/errdefs/pkg v0.3.0
 ## explicit; go 1.22
 github.com/containerd/errdefs/pkg/errgrpc
+github.com/containerd/errdefs/pkg/errhttp
 github.com/containerd/errdefs/pkg/internal/cause
 github.com/containerd/errdefs/pkg/internal/types
 # github.com/containerd/log v0.1.0
@@ -110,7 +111,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1
+# github.com/containers/buildah v1.40.1-0.20250601104738-a5f229f1557a
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -125,6 +126,7 @@ github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
 github.com/containers/buildah/internal/open
 github.com/containers/buildah/internal/parse
+github.com/containers/buildah/internal/pty
 github.com/containers/buildah/internal/sbom
 github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util
@@ -428,12 +430,13 @@ github.com/distribution/reference
 ## explicit
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
-# github.com/docker/docker v28.1.1+incompatible
+# github.com/docker/docker v28.2.0+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
 github.com/docker/docker/api/types/backend
 github.com/docker/docker/api/types/blkiodev
+github.com/docker/docker/api/types/build
 github.com/docker/docker/api/types/checkpoint
 github.com/docker/docker/api/types/common
 github.com/docker/docker/api/types/container
@@ -452,7 +455,6 @@ github.com/docker/docker/api/types/time
 github.com/docker/docker/api/types/versions
 github.com/docker/docker/api/types/volume
 github.com/docker/docker/client
-github.com/docker/docker/errdefs
 github.com/docker/docker/internal/lazyregexp
 github.com/docker/docker/internal/multierror
 github.com/docker/docker/pkg/archive
