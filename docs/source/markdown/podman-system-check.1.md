@@ -34,6 +34,8 @@ attempts to pull images, and should be treated as though they are damaged.
 Skip checks which are known to be time-consuming.  This will prevent some types
 of errors from being detected.
 
+The exact checks performed by this option are subject to change.
+
 #### **--repair**, **-r**
 
 Remove any images which are determined to have been damaged in some way, unless
