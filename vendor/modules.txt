@@ -834,7 +834,7 @@ github.com/opencontainers/runtime-tools/validate/capabilities
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8
+# github.com/openshift/imagebuilder v1.2.16
 ## explicit; go 1.22.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
