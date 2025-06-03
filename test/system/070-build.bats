@@ -584,6 +584,7 @@ Labels.\"io.buildah.version\" | $buildah_version
          -subdir2/sub2 -subdir2/sub2.txt
          -subdir2/sub3 -subdir2/sub3.txt
          this-file-does-not-match-anything-in-ignore-file
+         -foo
          comment
     )
     for f in "${files[@]}"; do
@@ -613,6 +614,7 @@ subdir1
 subdir2
 !*/sub1*
 !subdir1/sub3*
+/foo
 EOF
 
         # Build an image. For .dockerignore

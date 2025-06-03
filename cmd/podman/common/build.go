@@ -25,6 +25,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/env"
+	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -585,9 +586,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	}
 
 	if flags.IgnoreFile != "" {
-		excludes, err := parseDockerignore(flags.IgnoreFile)
+		excludes, err := imagebuilder.ParseIgnore(flags.IgnoreFile)
 		if err != nil {
-			return nil, fmt.Errorf("unable to obtain decrypt config: %w", err)
+			return nil, fmt.Errorf("unable to parse ignore file: %w", err)
 		}
 		opts.Excludes = excludes
 	}
@@ -626,21 +627,6 @@ func getDecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error)
 	}
 
 	return decConfig, nil
-}
-
-func parseDockerignore(ignoreFile string) ([]string, error) {
-	excludes := []string{}
-	ignore, err := os.ReadFile(ignoreFile)
-	if err != nil {
-		return excludes, err
-	}
-	for _, e := range strings.Split(string(ignore), "\n") {
-		if len(e) == 0 || e[0] == '#' {
-			continue
-		}
-		excludes = append(excludes, e)
-	}
-	return excludes, nil
 }
 
 func areContainerfilesValid(contextDir string, containerFiles []string) error {
