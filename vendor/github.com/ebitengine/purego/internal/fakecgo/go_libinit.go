@@ -19,6 +19,7 @@ var (
 )
 
 //go:nosplit
+//go:norace
 func x_cgo_notify_runtime_init_done() {
 	pthread_mutex_lock(&runtime_init_mu)
 	runtime_init_done = 1
@@ -28,6 +29,8 @@ func x_cgo_notify_runtime_init_done() {
 
 // Store the g into a thread-specific value associated with the pthread key pthread_g.
 // And pthread_key_destructor will dropm when the thread is exiting.
+//
+//go:norace
 func x_cgo_bindm(g unsafe.Pointer) {
 	// We assume this will always succeed, otherwise, there might be extra M leaking,
 	// when a C thread exits after a cgo call.
