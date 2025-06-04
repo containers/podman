@@ -39,9 +39,6 @@ func GetByVMType(resolvedVMType define.VMType) (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
-		if !windows.HasAdminRights() {
-			return nil, fmt.Errorf("hyperv machines require admin authority")
-		}
 		return new(hyperv.HyperVStubber), nil
 	default:
 	}

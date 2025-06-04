@@ -1,14 +1,8 @@
 package windows
 
 import (
-	"errors"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/windows"
-)
-
-var (
-	ErrHypervRequiresAdmin = errors.New("Hyper-V machines require admin rights to run. Please run Podman as an administrator")
 )
 
 func HasAdminRights() bool {
