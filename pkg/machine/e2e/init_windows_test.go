@@ -9,6 +9,7 @@ import (
 	"github.com/Microsoft/go-winio/vhd"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/hyperv/vsock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -125,5 +126,56 @@ var _ = Describe("podman machine init - windows only", func() {
 		checkSession, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(checkSession).To(Exit(125))
+	})
+
+	It("init should create hvsock entries if they do not exist, otherwise should reuse existing ones", func() {
+		skipIfNotVmtype(define.HyperVVirt, "HyperV test only")
+
+		name := randomString()
+
+		// Ensure no HVSock entries exist before we start
+		networkHvSocks, err := vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Network)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(networkHvSocks).To(BeEmpty())
+
+		readySocks, err := vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Events)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(readySocks).To(BeEmpty())
+
+		// Execute init for the first machine. This should create new HVSock entries
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		// Check that the HVSock entries were created
+		networkHvSocks, err = vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Network)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(networkHvSocks).To(HaveLen(1))
+
+		readySocks, err = vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Events)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(readySocks).To(HaveLen(1))
+
+		// Execute init	for another machine. This should reuse the existing HVSock entries created above
+		otherName := randomString()
+		i = new(initMachine)
+		session, err = mb.setName(otherName).setCmd(i.withImage(mb.imagePath)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		newNetworkHvSocks, err := vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Network)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newNetworkHvSocks).To(HaveLen(1))
+		Expect(newNetworkHvSocks[0].Port).To(Equal(networkHvSocks[0].Port))
+
+		newReadySocks, err := vsock.LoadAllHVSockRegistryEntriesByPurpose(vsock.Events)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(newReadySocks).To(HaveLen(1))
+		Expect(newReadySocks[0].Port).To(Equal(readySocks[0].Port))
+
+		// Clean up all hvsock entries created during the test
+		err = vsock.RemoveAllHVSockRegistryEntries()
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
