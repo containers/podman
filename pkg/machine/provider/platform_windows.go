@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/windows"
 	"github.com/containers/podman/v5/pkg/machine/wsl"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 
@@ -34,7 +35,7 @@ func Get() (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
-		if !wsl.HasAdminRights() {
+		if !windows.HasAdminRights() {
 			return nil, fmt.Errorf("hyperv machines require admin authority")
 		}
 		return new(hyperv.HyperVStubber), nil
@@ -81,7 +82,7 @@ func HasPermsForProvider(provider define.VMType) bool {
 	case define.AppleHvVirt:
 		return false
 	case define.HyperVVirt:
-		return wsl.HasAdminRights()
+		return windows.HasAdminRights()
 	}
 
 	return true
