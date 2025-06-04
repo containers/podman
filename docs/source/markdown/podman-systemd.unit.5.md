@@ -136,11 +136,6 @@ separate drop-in file as described above. The latter allows you to
 install an non-enabled unit and then later enabling it by installing
 the drop-in.
 
-
-**NOTE:** To express dependencies between containers, use the generated names of the services. In other
-words `WantedBy=other.service`, not `WantedBy=other.container`. The same is
-true for other kinds of dependencies, too, like `After=other.service`.
-
 ### Template files
 
 Systemd supports a concept of [template files](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#Service%20Templates).

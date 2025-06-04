@@ -782,6 +782,49 @@ if root && test -e /dev/nullb0; then
   podman rm -f updateCtr
 fi
 
+# test apiv2 create container with empty entrypoint
+# --data '{"Image":"quay.io/libpod/some:thing","Entrypoint": []}'
+# Fixes #26078
+podman image build -t test1:latest -<<EOF
+from alpine
+ENTRYPOINT ["echo", "test"]
+EOF
+
+t POST containers/create \
+  Image=test1:latest \
+  Entrypoint=[] \
+  201 \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+t GET containers/$cid/json 200 \
+  .Config.Entrypoint[0]=null
+
+t DELETE containers/$cid 204
+podman rmi test1
+
+
+# test if API support -1 for ulimits https://github.com/containers/podman/issues/24886
+
+# Compat API
+t POST containers/create \
+  Image=$IMAGE           \
+  HostConfig='{"Ulimits":[{"Name":"memlock","Soft":-1,"Hard":-1}]}' \
+  201                    \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t DELETE containers/$cid 204
+
+# Libpod API
+t POST libpod/containers/create \
+  Image=$IMAGE           \
+  r_limits='[{"type":"memlock","soft":-1,"hard":-1}]' \
+  201                    \
+  .Id~[0-9a-f]\\{64\\}
+cid=$(jq -r '.Id' <<<"$output")
+
+t DELETE containers/$cid 204
+
 rm -rf $TMPD
 
 podman container rm -fa

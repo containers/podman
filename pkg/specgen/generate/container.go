@@ -338,7 +338,9 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 				s.LogConfiguration.Options = make(map[string]string)
 			}
 
-			s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
+			if _, exists := s.LogConfiguration.Options["tag"]; !exists {
+				s.LogConfiguration.Options["tag"] = rtc.Containers.LogTag
+			}
 		} else {
 			logrus.Warnf("log_tag %q is not allowed with %q log_driver", rtc.Containers.LogTag, define.JSONLogging)
 		}
