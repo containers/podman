@@ -1152,24 +1152,27 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con1", "--network", net, CITEST_IMAGE, "nslookup", "con1"})
+		// Note apline nslookup tries to resolve all search domains always and returns an error if one does not resolve.
+		// Because we leak all host search domain into the container we have no control over if it resolves or not.
+		// Thus use "NAME." to indicate the name is full and no search domain should be tried.
+		session = podmanTest.Podman([]string{"run", "--name", "con1", "--network", net, CITEST_IMAGE, "nslookup", "con1."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con2", "--pod", pod, "--network", net, CITEST_IMAGE, "nslookup", "con2"})
+		session = podmanTest.Podman([]string{"run", "--name", "con2", "--pod", pod, "--network", net, CITEST_IMAGE, "nslookup", "con2."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, CITEST_IMAGE, "nslookup", "con1"})
+		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, CITEST_IMAGE, "nslookup", "con1."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, ""))
-		Expect(session.OutputToString()).To(ContainSubstring("server can't find con1.dns.podman: NXDOMAIN"))
+		Expect(session.OutputToString()).To(ContainSubstring("NXDOMAIN"))
 
 		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, CITEST_IMAGE, "nslookup", pod2 + ".dns.podman"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		session = podmanTest.Podman([]string{"run", "--network", net, CITEST_IMAGE, "nslookup", hostname})
+		session = podmanTest.Podman([]string{"run", "--network", net, CITEST_IMAGE, "nslookup", hostname + "."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 	})

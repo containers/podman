@@ -2254,13 +2254,16 @@ func (c *Container) addResolvConf() error {
 	}
 
 	// Set DNS search domains
-	search := networkSearchDomains
-
+	var search []string
+	keepHostSearches := false
 	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches.Get()) > 0 {
 		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches.Get()))
 		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches.Get()...)
 		customSearch = append(customSearch, c.config.DNSSearch...)
 		search = customSearch
+	} else {
+		search = networkSearchDomains
+		keepHostSearches = true
 	}
 
 	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions.Get()))
@@ -2273,13 +2276,14 @@ func (c *Container) addResolvConf() error {
 	}
 
 	if err := resolvconf.New(&resolvconf.Params{
-		IPv6Enabled:     ipv6,
-		KeepHostServers: keepHostServers,
-		Nameservers:     nameservers,
-		Namespaces:      namespaces,
-		Options:         options,
-		Path:            destPath,
-		Searches:        search,
+		IPv6Enabled:      ipv6,
+		KeepHostServers:  keepHostServers,
+		KeepHostSearches: keepHostSearches,
+		Nameservers:      nameservers,
+		Namespaces:       namespaces,
+		Options:          options,
+		Path:             destPath,
+		Searches:         search,
 	}); err != nil {
 		return fmt.Errorf("building resolv.conf for container %s: %w", c.ID(), err)
 	}
