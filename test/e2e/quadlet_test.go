@@ -1005,6 +1005,7 @@ BOGUS=foo
 		Entry("Network - Gateway", "gateway.network"),
 		Entry("Network - IPAM Driver", "ipam-driver.network"),
 		Entry("Network - IPv6", "ipv6.network"),
+		Entry("Network - InterfaceName network", "interface-name.network"),
 		Entry("Network - Internal network", "internal.network"),
 		Entry("Network - Label", "label.network"),
 		Entry("Network - Multiple Options", "options.multiple.network"),
