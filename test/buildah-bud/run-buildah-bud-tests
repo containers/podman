@@ -177,13 +177,15 @@ if [[ -n $do_checkout ]]; then
     # the set of patches
     (set -x;git tag $BASE_TAG)
 
-    # Build buildah and the copy and inet helpers
+    # Build buildah and the copy, inet, and dumpspec test helpers
     failhint="error building buildah. This should never happen."
     (set -x;make bin/buildah)
     failhint="error building buildah's copy helper. This should never happen."
     (set -x;make bin/copy)
     failhint="error building buildah's inet helper. This should never happen."
     (set -x;make bin/inet)
+    failhint="error building buildah's dumpspec helper. This should never happen."
+    (set -x;make bin/dumpspec)
 
     # The upcoming patch may fail. Before we try it, create a helper script
     # for a developer to push a new set of diffs to podman-land.
@@ -262,5 +264,6 @@ review the test failure and double-check your changes.
                  BUILDAH_BINARY=$(pwd)/bin/buildah \
                  COPY_BINARY=$(pwd)/bin/copy \
                  INET_BINARY=$(pwd)/bin/inet \
+                 DUMPSPEC_BINARY=$(pwd)/bin/dumpspec \
                  bats -j $(nproc) "${bats_filter[@]}" tests/bud.bats)
 fi
