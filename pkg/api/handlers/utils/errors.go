@@ -59,6 +59,10 @@ func ImageNotFound(w http.ResponseWriter, name string, err error) {
 	Error(w, http.StatusNotFound, err)
 }
 
+func ArtifactNotFound(w http.ResponseWriter, name string, err error) {
+	Error(w, http.StatusNotFound, err)
+}
+
 func NetworkNotFound(w http.ResponseWriter, name string, err error) {
 	if !errors.Is(err, define.ErrNoSuchNetwork) {
 		InternalServerError(w, err)

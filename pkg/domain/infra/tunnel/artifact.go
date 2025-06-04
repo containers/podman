@@ -3,6 +3,7 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"io"
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
 )
@@ -10,6 +11,10 @@ import (
 // TODO For now, no remote support has been added. We need the API to firm up first.
 
 func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target string, opts *entities.ArtifactExtractOptions) error {
+	return fmt.Errorf("not implemented")
+}
+
+func (ir *ImageEngine) ArtifactExtractTarStream(ctx context.Context, w io.Writer, name string, opts *entities.ArtifactExtractOptions) error {
 	return fmt.Errorf("not implemented")
 }
 
@@ -33,6 +38,6 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 	return nil, fmt.Errorf("not implemented")
 }
 
-func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, paths []string, opts *entities.ArtifactAddOptions) (*entities.ArtifactAddReport, error) {
+func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlob []entities.ArtifactBlob, opts *entities.ArtifactAddOptions) (*entities.ArtifactAddReport, error) {
 	return nil, fmt.Errorf("not implemented")
 }
