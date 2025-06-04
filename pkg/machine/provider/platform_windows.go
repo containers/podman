@@ -35,9 +35,6 @@ func Get() (vmconfigs.VMProvider, error) {
 	case define.WSLVirt:
 		return new(wsl.WSLStubber), nil
 	case define.HyperVVirt:
-		if !windows.HasAdminRights() {
-			return nil, fmt.Errorf("hyperv machines require admin authority")
-		}
 		return new(hyperv.HyperVStubber), nil
 	default:
 		return nil, fmt.Errorf("unsupported virtualization provider: `%s`", resolvedVMType.String())
