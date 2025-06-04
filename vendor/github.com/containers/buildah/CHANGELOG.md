@@ -2,6 +2,16 @@
 
 # Changelog
 
+## v1.40.1 (2025-06-04)
+
+    vendor: update c/common to v0.63.1
+    CI: run integration tests on Fedora with both crun and runc
+    buildah-build(1): clarify that --cgroup-parent affects RUN instructions
+    runUsingRuntime: use named constants for runtime states
+    Add a dummy "runtime" that just dumps its config file
+    run: handle relabeling bind mounts ourselves
+    Tweak our handling of variant values, again
+
 ## v1.40.0 (2025-04-17)
 
     Bump c/storage to v1.58.0, c/image v5.35.0, c/common v0.63.0
