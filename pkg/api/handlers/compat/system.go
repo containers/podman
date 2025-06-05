@@ -13,6 +13,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	docker "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/build"
 	"github.com/docker/docker/api/types/container"
 	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/volume"
@@ -94,7 +95,7 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 		Images:      imgs,
 		Containers:  ctnrs,
 		Volumes:     vols,
-		BuildCache:  []*docker.BuildCache{},
+		BuildCache:  []*build.CacheRecord{},
 		BuilderSize: 0,
 	}})
 }
