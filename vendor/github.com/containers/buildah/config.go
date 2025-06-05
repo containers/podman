@@ -146,18 +146,9 @@ func (b *Builder) fixupConfig(sys *types.SystemContext) {
 	if b.Architecture() == "" {
 		if sys != nil && sys.ArchitectureChoice != "" {
 			b.SetArchitecture(sys.ArchitectureChoice)
-		} else {
-			b.SetArchitecture(currentPlatformSpecification.Architecture)
-		}
-		// in case the arch string we started with was shorthand for a known arch+variant pair, normalize it
-		ps := internalUtil.NormalizePlatform(ociv1.Platform{OS: b.OS(), Architecture: b.Architecture(), Variant: b.Variant()})
-		b.SetArchitecture(ps.Architecture)
-		b.SetVariant(ps.Variant)
-	}
-	if b.Variant() == "" {
-		if sys != nil && sys.VariantChoice != "" {
 			b.SetVariant(sys.VariantChoice)
 		} else {
+			b.SetArchitecture(currentPlatformSpecification.Architecture)
 			b.SetVariant(currentPlatformSpecification.Variant)
 		}
 		// in case the arch string we started with was shorthand for a known arch+variant pair, normalize it

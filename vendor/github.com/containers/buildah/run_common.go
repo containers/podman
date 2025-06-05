@@ -696,8 +696,9 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 			return 1, fmt.Errorf("parsing container state %q from %s: %w", string(stateOutput), runtime, err)
 		}
 		switch state.Status {
-		case "running":
-		case "stopped":
+		case specs.StateCreating, specs.StateCreated, specs.StateRunning:
+			// all fine
+		case specs.StateStopped:
 			atomic.StoreUint32(&stopped, 1)
 		default:
 			return 1, fmt.Errorf("container status unexpectedly changed to %q", state.Status)

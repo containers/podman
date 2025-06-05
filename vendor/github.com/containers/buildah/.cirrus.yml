@@ -6,7 +6,7 @@ env:
     #### Global variables used for all tasks
     ####
     # Name of the ultimate destination branch for this CI run, PR or post-merge.
-    DEST_BRANCH: "main"
+    DEST_BRANCH: "release-1.40"
     GOPATH: "/var/tmp/go"
     GOSRC: "${GOPATH}/src/github.com/containers/buildah"
     GOCACHE: "/tmp/go-build"
@@ -22,18 +22,20 @@ env:
     IN_PODMAN: 'false'
     # root or rootless
     PRIV_NAME: root
+    # default "mention the $BUILDAH_RUNTIME in the task alias, with initial whitespace" value
+    RUNTIME_N: ""
 
     ####
     #### Cache-image names to test with
     ####
     # GCE project where images live
     IMAGE_PROJECT: "libpod-218412"
-    FEDORA_NAME: "fedora-41"
-    PRIOR_FEDORA_NAME: "fedora-40"
+    FEDORA_NAME: "fedora-42"
+    PRIOR_FEDORA_NAME: "fedora-41"
     DEBIAN_NAME: "debian-13"
 
     # Image identifiers
-    IMAGE_SUFFIX: "c20250324t111922z-f41f40d13"
+    IMAGE_SUFFIX: "c20250422t130822z-f42f41d13"
     FEDORA_CACHE_IMAGE_NAME: "fedora-${IMAGE_SUFFIX}"
     PRIOR_FEDORA_CACHE_IMAGE_NAME: "prior-fedora-${IMAGE_SUFFIX}"
     DEBIAN_CACHE_IMAGE_NAME: "debian-${IMAGE_SUFFIX}"
@@ -122,7 +124,7 @@ vendor_task:
 
     # Runs within Cirrus's "community cluster"
     container:
-        image: docker.io/library/golang:1.23
+        image: docker.io/library/golang:1.23.3
         cpu: 1
         memory: 1
 
@@ -196,7 +198,7 @@ conformance_task:
 
 
 integration_task:
-    name: "Integration $DISTRO_NV w/ $STORAGE_DRIVER"
+    name: "Integration $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
     alias: integration
     skip: *not_build_docs
     depends_on: *smoke_vendor
@@ -207,11 +209,26 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'vfs'
-        # Disabled until we update to f41/42 as f40 does not have go 1.22
-        # - env:
-        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        #     STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'vfs'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
         - env:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
@@ -221,11 +238,26 @@ integration_task:
             DISTRO_NV: "${FEDORA_NAME}"
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
-        # Disabled until we update to f41/42 as f40 does not have go 1.22
-        # - env:
-        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        #     STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
         - env:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
@@ -255,7 +287,7 @@ integration_task:
         golang_version_script: '$GOSRC/$SCRIPT_BASE/logcollector.sh golang'
 
 integration_rootless_task:
-    name: "Integration rootless $DISTRO_NV w/ $STORAGE_DRIVER"
+    name: "Integration rootless $DISTRO_NV$RUNTIME_N w/ $STORAGE_DRIVER"
     alias: integration_rootless
     skip: *not_build_docs
     depends_on: *smoke_vendor
@@ -268,12 +300,29 @@ integration_rootless_task:
             IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
             STORAGE_DRIVER: 'overlay'
             PRIV_NAME: rootless
-        # Disabled until we update to f40/41 as f39 does not have go 1.22
-        # - env:
-        #     DISTRO_NV: "${PRIOR_FEDORA_NAME}"
-        #     IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
-        #     STORAGE_DRIVER: 'overlay'
-        #     PRIV_NAME: rootless
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${FEDORA_NAME}"
+            IMAGE_NAME: "${FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+            BUILDAH_RUNTIME: runc
+            RUNTIME_N: " using runc"
+        - env:
+            DISTRO_NV: "${PRIOR_FEDORA_NAME}"
+            IMAGE_NAME: "${PRIOR_FEDORA_CACHE_IMAGE_NAME}"
+            STORAGE_DRIVER: 'overlay'
+            PRIV_NAME: rootless
+            BUILDAH_RUNTIME: crun
+            RUNTIME_N: " using crun"
         - env:
             DISTRO_NV: "${DEBIAN_NAME}"
             IMAGE_NAME: "${DEBIAN_CACHE_IMAGE_NAME}"
