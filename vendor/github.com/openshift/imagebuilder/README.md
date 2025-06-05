@@ -106,8 +106,8 @@ docker rmi busybox; docker pull busybox
 docker rmi alpine; docker pull alpine
 docker rmi centos:7; docker pull centos:7
 docker rmi registry.fedoraproject.org/fedora-minimal; docker pull registry.fedoraproject.org/fedora-minimal
-docker rmi registry.fedoraproject.org/fedora-minimal:41-x86_64; docker pull registry.fedoraproject.org/fedora-minimal:41-x86_64
-docker rmi registry.fedoraproject.org/fedora-minimal:41-aarch64; docker pull registry.fedoraproject.org/fedora-minimal:41-aarch64
+docker rmi registry.fedoraproject.org/fedora-minimal:42-x86_64; docker pull registry.fedoraproject.org/fedora-minimal:42-x86_64
+docker rmi registry.fedoraproject.org/fedora-minimal:42-aarch64; docker pull registry.fedoraproject.org/fedora-minimal:42-aarch64
 chmod -R go-w ./dockerclient/testdata
 go test ./dockerclient -tags conformance -timeout 30m
 ```

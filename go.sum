@@ -64,8 +64,8 @@ github.com/containernetworking/cni v1.3.0 h1:v6EpN8RznAZj9765HhXQrtXgX+ECGebEYEm
 github.com/containernetworking/cni v1.3.0/go.mod h1:Bs8glZjjFfGPHMw6hQu82RUgEPNGEaBb9KS5KtNMnJ4=
 github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/lj+VJfhMDTIs=
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
-github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1 h1:3bNWDmqh9tx0iAXPzBJugj/oC0nTD9yTXCyIu/Mj/LE=
-github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1/go.mod h1:8BVLrM6nRl/dRMYxZ+TrmoWPXzkCY99rZOYvJoXpIyE=
+github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30 h1:kCt0fnVBvXY9J98pUDeUc0gHKrhRwaBTWWD3otLutCE=
+github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30/go.mod h1:QDecwvjrr+e0VD5GYv2dw7tsiqrz673r8B4rIYFP11Y=
 github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c h1:j4epZCkQt8Jdpz2GsUzvqY4MfaOfJamrNpZnmbV84Ug=
 github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c/go.mod h1:efNRNweihnq5nXALnAPDXTpC7uJtnFV4pNuETTfvI8s=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
@@ -368,8 +368,8 @@ github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 h1:
 github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2/go.mod h1:MXdPzqAA8pHC58USHqNCSjyLnRQ6D+NjbpP+02Z1U/0=
 github.com/opencontainers/selinux v1.12.0 h1:6n5JV4Cf+4y0KNXW48TLj5DwfXpvWlxXplUkdTrmPb8=
 github.com/opencontainers/selinux v1.12.0/go.mod h1:BTPX+bjVbWGXw7ZZWUbdENt8w0htPSrlgOOysQaU62U=
-github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8 h1:iPRNMpzJ4HEtIXseOxdIkgNYlp7HJShtEk7URm1BUSU=
-github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8/go.mod h1:gASl6jikVG3bCFnLjG6Ow5TeKwKVvrqUUj8C7EUmqc8=
+github.com/openshift/imagebuilder v1.2.16 h1:Vqjy5uPoVDJiX5JUKHo0Cf440ih5cKI7lVe2ZJ2X+RA=
+github.com/openshift/imagebuilder v1.2.16/go.mod h1:gASl6jikVG3bCFnLjG6Ow5TeKwKVvrqUUj8C7EUmqc8=
 github.com/opentracing/opentracing-go v1.2.0 h1:uEJPy/1a5RIPAJ0Ov+OIO8OxWu77jEv+1B0VhjKrZUs=
 github.com/opentracing/opentracing-go v1.2.0/go.mod h1:GxEUsuufX4nBwe+T+Wl9TAgYrxe9dPLANfrWvHYVTgc=
 github.com/pierrec/lz4/v4 v4.1.21 h1:yOVMLb6qSIDP67pl/5F7RepeKYu/VmTyEXvuMI5d9mQ=

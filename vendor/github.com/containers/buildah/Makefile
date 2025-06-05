@@ -59,23 +59,7 @@ export GOLANGCI_LINT_VERSION := 2.1.0
 #     Note: Uses the -N -l go compiler options to disable compiler optimizations
 #           and inlining. Using these build options allows you to subsequently
 #           use source debugging tools like delve.
-all: bin/buildah bin/imgtype bin/copy bin/inet bin/tutorial docs
-
-# Update nix/nixpkgs.json its latest stable commit
-.PHONY: nixpkgs
-nixpkgs:
-	@nix run \
-		-f channel:nixos-20.09 nix-prefetch-git \
-		-c nix-prefetch-git \
-		--no-deepClone \
-		https://github.com/nixos/nixpkgs refs/heads/nixos-20.09 > nix/nixpkgs.json
-
-# Build statically linked binary
-.PHONY: static
-static:
-	@nix build -f nix/
-	mkdir -p ./bin
-	cp -rfp ./result/bin/* ./bin/
+all: bin/buildah bin/imgtype bin/copy bin/inet bin/tutorial bin/dumpspec docs
 
 bin/buildah: $(SOURCES) internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
@@ -106,6 +90,9 @@ cross: $(LINUX_CROSS_TARGETS) $(DARWIN_CROSS_TARGETS) $(WINDOWS_CROSS_TARGETS) $
 bin/buildah.%: $(SOURCES)
 	mkdir -p ./bin
 	GOOS=$(word 2,$(subst ., ,$@)) GOARCH=$(word 3,$(subst ., ,$@)) $(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ -tags "containers_image_openpgp" ./cmd/buildah
+
+bin/dumpspec: $(SOURCES)
+	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/dumpspec
 
 bin/imgtype: $(SOURCES)
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) -o $@ $(BUILDFLAGS) ./tests/imgtype/imgtype.go

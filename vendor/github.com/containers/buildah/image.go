@@ -71,6 +71,8 @@ type containerImageRef struct {
 	dconfig               []byte
 	created               *time.Time
 	createdBy             string
+	layerModTime          *time.Time
+	layerLatestModTime    *time.Time
 	historyComment        string
 	annotations           map[string]string
 	preferredManifestType string
@@ -232,7 +234,7 @@ func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadClo
 			// as long as we DON'T Close() the tar Writer.
 			filename, _, _, err := i.makeExtraImageContentDiff(false)
 			if err != nil {
-				errChan <- err
+				errChan <- fmt.Errorf("creating part of archive with extra content: %w", err)
 				return
 			}
 			file, err := os.Open(filename)
@@ -242,7 +244,7 @@ func (i *containerImageRef) extractRootfs(opts ExtractRootfsOptions) (io.ReadClo
 			}
 			defer file.Close()
 			if _, err = io.Copy(pipeWriter, file); err != nil {
-				errChan <- err
+				errChan <- fmt.Errorf("writing contents of %q: %w", filename, err)
 				return
 			}
 		}
@@ -960,28 +962,9 @@ func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemCon
 
 		// Use specified timestamps in the layer, if we're doing that for history
 		// entries.
-		if i.created != nil {
-			// Tweak the contents of layers we're creating.
-			nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
-			writeCloser = newTarFilterer(nestedWriteCloser, func(hdr *tar.Header) (bool, bool, io.Reader) {
-				// Changing a zeroed field to a non-zero field can affect the
-				// format that the library uses for writing the header, so only
-				// change fields that are already set to avoid changing the
-				// format (and as a result, changing the length) of the header
-				// that we write.
-				if !hdr.ModTime.IsZero() {
-					hdr.ModTime = *i.created
-				}
-				if !hdr.AccessTime.IsZero() {
-					hdr.AccessTime = *i.created
-				}
-				if !hdr.ChangeTime.IsZero() {
-					hdr.ChangeTime = *i.created
-				}
-				return false, false, nil
-			})
-			writer = writeCloser
-		}
+		nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
+		writeCloser = makeFilteredLayerWriteCloser(nestedWriteCloser, i.layerModTime, i.layerLatestModTime)
+		writer = writeCloser
 		// Okay, copy from the raw diff through the filter, compressor, and counter and
 		// digesters.
 		size, err := io.Copy(writer, rc)
@@ -1212,7 +1195,7 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (_ str
 				return err
 			}
 			if _, err := io.Copy(tw, content); err != nil {
-				return err
+				return fmt.Errorf("writing content for %q: %w", path, err)
 			}
 			if err := tw.Flush(); err != nil {
 				return err
@@ -1229,9 +1212,47 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool) (_ str
 	return diff.Name(), digester.Digest(), counter.Count, nil
 }
 
+// makeFilteredLayerWriteCloser returns either the passed-in WriteCloser, or if
+// layerModeTime or layerLatestModTime are set, a WriteCloser which modifies
+// the tarball that's written to it so that timestamps in headers are set to
+// layerModTime exactly (if a value is provided for it), and then clamped to be
+// no later than layerLatestModTime (if a value is provided for it).
+// This implies that if both values are provided, the archive's timestamps will
+// be set to the earlier of the two values.
+func makeFilteredLayerWriteCloser(wc io.WriteCloser, layerModTime, layerLatestModTime *time.Time) io.WriteCloser {
+	if layerModTime == nil && layerLatestModTime == nil {
+		return wc
+	}
+	wc = newTarFilterer(wc, func(hdr *tar.Header) (skip, replaceContents bool, replacementContents io.Reader) {
+		// Changing a zeroed field to a non-zero field can affect the
+		// format that the library uses for writing the header, so only
+		// change fields that are already set to avoid changing the
+		// format (and as a result, changing the length) of the header
+		// that we write.
+		modTime := hdr.ModTime
+		if layerModTime != nil {
+			modTime = *layerModTime
+		}
+		if layerLatestModTime != nil && layerLatestModTime.Before(modTime) {
+			modTime = *layerLatestModTime
+		}
+		if !hdr.ModTime.IsZero() {
+			hdr.ModTime = modTime
+		}
+		if !hdr.AccessTime.IsZero() {
+			hdr.AccessTime = modTime
+		}
+		if !hdr.ChangeTime.IsZero() {
+			hdr.ChangeTime = modTime
+		}
+		return false, false, nil
+	})
+	return wc
+}
+
 // makeLinkedLayerInfos calculates the size and digest information for a layer
 // we intend to add to the image that we're committing.
-func (b *Builder) makeLinkedLayerInfos(layers []LinkedLayer, layerType string) ([]commitLinkedLayerInfo, error) {
+func (b *Builder) makeLinkedLayerInfos(layers []LinkedLayer, layerType string, layerModTime, layerLatestModTime *time.Time) ([]commitLinkedLayerInfo, error) {
 	if layers == nil {
 		return nil, nil
 	}
@@ -1255,48 +1276,50 @@ func (b *Builder) makeLinkedLayerInfos(layers []LinkedLayer, layerType string) (
 			linkedLayer: layer,
 		}
 		if err = func() error {
+			cdir, err := b.store.ContainerDirectory(b.ContainerID)
+			if err != nil {
+				return fmt.Errorf("determining directory for working container: %w", err)
+			}
+			f, err := os.CreateTemp(cdir, "")
+			if err != nil {
+				return fmt.Errorf("creating temporary file to hold blob for %q: %w", info.linkedLayer.BlobPath, err)
+			}
+			defer f.Close()
+			var rc io.ReadCloser
+			var what string
 			if st.IsDir() {
 				// if it's a directory, archive it and digest the archive while we're storing a copy somewhere
-				cdir, err := b.store.ContainerDirectory(b.ContainerID)
-				if err != nil {
-					return fmt.Errorf("determining directory for working container: %w", err)
-				}
-				f, err := os.CreateTemp(cdir, "")
-				if err != nil {
-					return fmt.Errorf("creating temporary file to hold blob for %q: %w", info.linkedLayer.BlobPath, err)
-				}
-				defer f.Close()
-				rc, err := chrootarchive.Tar(info.linkedLayer.BlobPath, nil, info.linkedLayer.BlobPath)
+				what = "directory"
+				rc, err = chrootarchive.Tar(info.linkedLayer.BlobPath, nil, info.linkedLayer.BlobPath)
 				if err != nil {
 					return fmt.Errorf("generating a layer blob from %q: %w", info.linkedLayer.BlobPath, err)
 				}
-				digester := digest.Canonical.Digester()
-				sizeCounter := ioutils.NewWriteCounter(digester.Hash())
-				_, copyErr := io.Copy(f, io.TeeReader(rc, sizeCounter))
-				if err := rc.Close(); err != nil {
-					return fmt.Errorf("storing a copy of %q: %w", info.linkedLayer.BlobPath, err)
-				}
-				if copyErr != nil {
-					return fmt.Errorf("storing a copy of %q: %w", info.linkedLayer.BlobPath, copyErr)
-				}
-				info.uncompressedDigest = digester.Digest()
-				info.size = sizeCounter.Count
-				info.linkedLayer.BlobPath = f.Name()
 			} else {
-				// if it's not a directory, just digest it
-				f, err := os.Open(info.linkedLayer.BlobPath)
+				what = "file"
+				// if it's not a directory, just digest it while we're storing a copy somewhere
+				rc, err = os.Open(info.linkedLayer.BlobPath)
 				if err != nil {
 					return err
 				}
-				defer f.Close()
-				sizeCounter := ioutils.NewWriteCounter(io.Discard)
-				uncompressedDigest, err := digest.Canonical.FromReader(io.TeeReader(f, sizeCounter))
-				if err != nil {
-					return err
-				}
-				info.uncompressedDigest = uncompressedDigest
-				info.size = sizeCounter.Count
 			}
+
+			digester := digest.Canonical.Digester()
+			sizeCountedFile := ioutils.NewWriteCounter(io.MultiWriter(digester.Hash(), f))
+			wc := makeFilteredLayerWriteCloser(ioutils.NopWriteCloser(sizeCountedFile), layerModTime, layerLatestModTime)
+			_, copyErr := io.Copy(wc, rc)
+			wcErr := wc.Close()
+			if err := rc.Close(); err != nil {
+				return fmt.Errorf("storing a copy of %s %q: closing reader: %w", what, info.linkedLayer.BlobPath, err)
+			}
+			if copyErr != nil {
+				return fmt.Errorf("storing a copy of %s %q: copying data: %w", what, info.linkedLayer.BlobPath, copyErr)
+			}
+			if wcErr != nil {
+				return fmt.Errorf("storing a copy of %s %q: closing writer: %w", what, info.linkedLayer.BlobPath, wcErr)
+			}
+			info.uncompressedDigest = digester.Digest()
+			info.size = sizeCountedFile.Count
+			info.linkedLayer.BlobPath = f.Name()
 			return nil
 		}(); err != nil {
 			return nil, err
@@ -1341,10 +1364,18 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 	if err != nil {
 		return nil, fmt.Errorf("encoding docker-format image configuration %#v: %w", b.Docker, err)
 	}
-	var created *time.Time
+	var created, layerModTime, layerLatestModTime *time.Time
 	if options.HistoryTimestamp != nil {
 		historyTimestampUTC := options.HistoryTimestamp.UTC()
 		created = &historyTimestampUTC
+		layerModTime = &historyTimestampUTC
+	}
+	if options.SourceDateEpoch != nil {
+		sourceDateEpochUTC := options.SourceDateEpoch.UTC()
+		created = &sourceDateEpochUTC
+		if options.RewriteTimestamp {
+			layerLatestModTime = &sourceDateEpochUTC
+		}
 	}
 	createdBy := b.CreatedBy()
 	if createdBy == "" {
@@ -1372,11 +1403,11 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		}
 	}
 
-	preLayerInfos, err := b.makeLinkedLayerInfos(append(slices.Clone(b.PrependedLinkedLayers), slices.Clone(options.PrependedLinkedLayers)...), "prepended layer")
+	preLayerInfos, err := b.makeLinkedLayerInfos(append(slices.Clone(b.PrependedLinkedLayers), slices.Clone(options.PrependedLinkedLayers)...), "prepended layer", layerModTime, layerLatestModTime)
 	if err != nil {
 		return nil, err
 	}
-	postLayerInfos, err := b.makeLinkedLayerInfos(append(slices.Clone(options.AppendedLinkedLayers), slices.Clone(b.AppendedLinkedLayers)...), "appended layer")
+	postLayerInfos, err := b.makeLinkedLayerInfos(append(slices.Clone(options.AppendedLinkedLayers), slices.Clone(b.AppendedLinkedLayers)...), "appended layer", layerModTime, layerLatestModTime)
 	if err != nil {
 		return nil, err
 	}
@@ -1395,6 +1426,8 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		dconfig:               dconfig,
 		created:               created,
 		createdBy:             createdBy,
+		layerModTime:          layerModTime,
+		layerLatestModTime:    layerLatestModTime,
 		historyComment:        b.HistoryComment(),
 		annotations:           b.Annotations(),
 		preferredManifestType: manifestType,

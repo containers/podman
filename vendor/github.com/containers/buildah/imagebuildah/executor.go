@@ -151,9 +151,9 @@ type Executor struct {
 	logPrefix                               string
 	unsetEnvs                               []string
 	unsetLabels                             []string
-	processLabel                            string // Shares processLabel of first stage container with containers of other stages in same build
-	mountLabel                              string // Shares mountLabel of first stage container with containers of other stages in same build
-	buildOutput                             string // Specifies instructions for any custom build output
+	processLabel                            string   // Shares processLabel of first stage container with containers of other stages in same build
+	mountLabel                              string   // Shares mountLabel of first stage container with containers of other stages in same build
+	buildOutputs                            []string // Specifies instructions for any custom build output
 	osVersion                               string
 	osFeatures                              []string
 	envs                                    []string
@@ -227,6 +227,11 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 				return nil, fmt.Errorf("creating file to store rusage logs: %w", err)
 			}
 		}
+	}
+
+	buildOutputs := slices.Clone(options.BuildOutputs)
+	if options.BuildOutput != "" { //nolint:staticcheck
+		buildOutputs = append(buildOutputs, options.BuildOutput) //nolint:staticcheck
 	}
 
 	exec := Executor{
@@ -314,7 +319,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		logPrefix:                               logPrefix,
 		unsetEnvs:                               slices.Clone(options.UnsetEnvs),
 		unsetLabels:                             slices.Clone(options.UnsetLabels),
-		buildOutput:                             options.BuildOutput,
+		buildOutputs:                            buildOutputs,
 		osVersion:                               options.OSVersion,
 		osFeatures:                              slices.Clone(options.OSFeatures),
 		envs:                                    slices.Clone(options.Envs),
