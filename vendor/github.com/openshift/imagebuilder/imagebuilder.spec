@@ -12,7 +12,7 @@
 #
 
 %global golang_version 1.19
-%{!?version: %global version 1.2.16-dev}
+%{!?version: %global version 1.2.16}
 %{!?release: %global release 1}
 %global package_name imagebuilder
 %global product_name Container Image Builder

@@ -111,7 +111,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.40.1-0.20250523151639-b535d02d0ee1
+# github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -126,6 +126,7 @@ github.com/containers/buildah/internal/mkcw
 github.com/containers/buildah/internal/mkcw/types
 github.com/containers/buildah/internal/open
 github.com/containers/buildah/internal/parse
+github.com/containers/buildah/internal/pty
 github.com/containers/buildah/internal/sbom
 github.com/containers/buildah/internal/tmpdir
 github.com/containers/buildah/internal/util
@@ -835,7 +836,7 @@ github.com/opencontainers/runtime-tools/validate/capabilities
 github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.16-0.20250224193648-e87e4e105fd8
+# github.com/openshift/imagebuilder v1.2.16
 ## explicit; go 1.22.0
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command

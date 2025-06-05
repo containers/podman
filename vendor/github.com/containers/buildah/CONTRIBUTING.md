@@ -173,5 +173,5 @@ Normally, a maintainer will only be removed if they are considered to be
 inactive for a long period of time or are viewed as disruptive to the community.
 
 The current list of maintainers can be found in the
-[MAINTAINERS](MAINTAINERS) file.
+[MAINTAINERS](./MAINTAINERS.md) file.
 

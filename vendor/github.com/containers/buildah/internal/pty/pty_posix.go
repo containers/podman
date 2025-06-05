@@ -1,6 +1,6 @@
 //go:build freebsd && cgo
 
-package chroot
+package pty
 
 // #include <fcntl.h>
 // #include <stdlib.h>
@@ -37,7 +37,9 @@ func unlockpt(fd int) error {
 	return nil
 }
 
-func getPtyDescriptors() (int, int, error) {
+// GetPtyDescriptors allocates a new pseudoterminal and returns the control and
+// pseudoterminal file descriptors.
+func GetPtyDescriptors() (int, int, error) {
 	// Create a pseudo-terminal and open the control side
 	controlFd, err := openpt()
 	if err != nil {

@@ -25,8 +25,8 @@ before_install:
   - docker pull centos:7
   - docker pull alpine
   - docker pull registry.fedoraproject.org/fedora-minimal
-  - docker pull registry.fedoraproject.org/fedora-minimal:41-x86_64
-  - docker pull registry.fedoraproject.org/fedora-minimal:41-aarch64
+  - docker pull registry.fedoraproject.org/fedora-minimal:42-x86_64
+  - docker pull registry.fedoraproject.org/fedora-minimal:42-aarch64
   - chmod -R go-w ./dockerclient/testdata
 
 script:
