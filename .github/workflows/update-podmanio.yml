@@ -6,7 +6,16 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Release version to build and upload (e.g. "v9.8.7")'
+        description: 'Release version to bump on podman.io'
+        required: true
+  workflow_call:
+    inputs:
+      version:
+        description: 'Release version to bump on podman.io'
+        type: string
+        required: true
+    secrets:
+      PODMANBOT_TOKEN:
         required: true
 
 jobs:
