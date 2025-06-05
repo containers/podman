@@ -8,11 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/opencontainers/cgroups/devices/config"
 	"github.com/opencontainers/runc/libcontainer/devices"
 )
 
-func DeviceFromPath(device string) ([]config.Device, error) {
+func DeviceFromPath(device string) ([]devices.Device, error) {
 	src, dst, permissions, err := Device(device)
 	if err != nil {
 		return nil, err
@@ -26,7 +25,7 @@ func DeviceFromPath(device string) ([]config.Device, error) {
 	}
 
 	if !srcInfo.IsDir() {
-		devs := make([]config.Device, 0, 1)
+		devs := make([]devices.Device, 0, 1)
 		dev, err := devices.DeviceFromPath(src, permissions)
 		if err != nil {
 			return nil, fmt.Errorf("%s is not a valid device: %w", src, err)
@@ -41,10 +40,10 @@ func DeviceFromPath(device string) ([]config.Device, error) {
 	if err != nil {
 		return nil, fmt.Errorf("getting source devices from directory %s: %w", src, err)
 	}
-	devs := make([]config.Device, 0, len(srcDevices))
+	devs := make([]devices.Device, 0, len(srcDevices))
 	for _, d := range srcDevices {
 		d.Path = filepath.Join(dst, filepath.Base(d.Path))
-		d.Permissions = config.Permissions(permissions)
+		d.Permissions = devices.Permissions(permissions)
 		devs = append(devs, *d)
 	}
 	return devs, nil

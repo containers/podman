@@ -361,6 +361,11 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.ComposeProviders.Set(getDefaultComposeProviders()) // may vary across supported platforms
 	c.ComposeWarningLogs = true
 
+	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
+		if err := types.SetDefaultConfigFilePath(path); err != nil {
+			return nil, err
+		}
+	}
 	storeOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err

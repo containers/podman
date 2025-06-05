@@ -1750,7 +1750,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 					return fmt.Errorf("copier: put: error setting owner of %q to %d:%d: %w", path, defaultDirUID, defaultDirGID, err)
 				}
 				// make a conditional note to set this directory's permissions
-				// later, but not if we already had an explicitly-provided mode
+				// later, but not if we already had an explictly-provided mode
 				if _, ok := directoryModes[path]; !ok {
 					directoryModes[path] = defaultDirMode
 				}

@@ -35,7 +35,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -80,25 +79,6 @@ func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
 // CommonBuildOptions parses the build options from the bud cli
 func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 	return CommonBuildOptionsFromFlagSet(c.Flags(), c.Flag)
-}
-
-// If user selected to run with currentLabelOpts then append on the current user and role
-func currentLabelOpts() ([]string, error) {
-	label, err := selinux.CurrentLabel()
-	if err != nil {
-		return nil, err
-	}
-	if label == "" {
-		return nil, nil
-	}
-	con, err := selinux.NewContext(label)
-	if err != nil {
-		return nil, err
-	}
-	return []string{
-		fmt.Sprintf("label=user:%s", con["user"]),
-		fmt.Sprintf("label=role:%s", con["role"]),
-	}, nil
 }
 
 // CommonBuildOptionsFromFlagSet parses the build options from the bud cli
@@ -221,18 +201,6 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		OCIHooksDir:   ociHooks,
 	}
 	securityOpts, _ := flags.GetStringArray("security-opt")
-	defConfig, err := config.Default()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get container config: %w", err)
-	}
-	if defConfig.Containers.EnableLabeledUsers {
-		defSecurityOpts, err := currentLabelOpts()
-		if err != nil {
-			return nil, err
-		}
-
-		securityOpts = append(defSecurityOpts, securityOpts...)
-	}
 	if err := parseSecurityOpts(securityOpts, commonOpts); err != nil {
 		return nil, err
 	}
