@@ -4,7 +4,6 @@ import (
 	cryptorand "crypto/rand"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -98,7 +97,7 @@ func NewULID() (ULID, error) {
 	obj := ulidEntropyPool.Get()
 	entropy, ok := obj.(io.Reader)
 	if !ok {
-		return u, fmt.Errorf("failed to cast %+v to io.Reader", obj)
+		return u, fmt.Errorf("failed to cast %+v to io.Reader: %w", obj, ErrFormat)
 	}
 
 	id, err := ulid.New(ulid.Now(), entropy)
@@ -181,12 +180,12 @@ func (u *ULID) UnmarshalBSON(data []byte) error {
 	if ud, ok := m["data"].(string); ok {
 		id, err := ulid.ParseStrict(ud)
 		if err != nil {
-			return fmt.Errorf("couldn't parse bson bytes as ULID: %w", err)
+			return fmt.Errorf("couldn't parse bson bytes as ULID: %w: %w", err, ErrFormat)
 		}
 		u.ULID = id
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as ULID")
+	return fmt.Errorf("couldn't unmarshal bson bytes as ULID: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

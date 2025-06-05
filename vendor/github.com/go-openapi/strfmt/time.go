@@ -18,7 +18,6 @@ import (
 	"database/sql/driver"
 	"encoding/binary"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -30,7 +29,8 @@ import (
 )
 
 var (
-	// UnixZero sets the zero unix timestamp we want to compare against.
+	// UnixZero sets the zero unix UTC timestamp we want to compare against.
+	//
 	// Unix 0 for an EST timezone is not equivalent to a UTC timezone.
 	UnixZero = time.Unix(0, 0).UTC()
 )
@@ -40,13 +40,19 @@ func init() {
 	Default.Add("datetime", &dt, IsDateTime)
 }
 
-// IsDateTime returns true when the string is a valid date-time
+// IsDateTime returns true when the string is a valid date-time.
+//
+// JSON datetime format consist of a date and a time separated by a "T", e.g. 2012-04-23T18:25:43.511Z.
 func IsDateTime(str string) bool {
-	if len(str) < 4 {
+	const (
+		minDateTimeLength = 4
+		minParts          = 2
+	)
+	if len(str) < minDateTimeLength {
 		return false
 	}
 	s := strings.Split(strings.ToLower(str), "t")
-	if len(s) < 2 || !IsDate(s[0]) {
+	if len(s) < minParts || !IsDate(s[0]) {
 		return false
 	}
 
@@ -91,7 +97,7 @@ var (
 	// MarshalFormat sets the time resolution format used for marshaling time (set to milliseconds)
 	MarshalFormat = RFC3339Millis
 
-	// NormalizeTimeForMarshal provides a normalization function on time befeore marshalling (e.g. time.UTC).
+	// NormalizeTimeForMarshal provides a normalization function on time before marshalling (e.g. time.UTC).
 	// By default, the time value is not changed.
 	NormalizeTimeForMarshal = func(t time.Time) time.Time { return t }
 
@@ -116,7 +122,8 @@ func ParseDateTime(data string) (DateTime, error) {
 	return DateTime{}, lastError
 }
 
-// DateTime is a time but it serializes to ISO8601 format with millis
+// DateTime is a time but it serializes to ISO8601 format with millis.
+//
 // It knows how to read 3 different variations of a RFC3339 date time.
 // Most APIs we encounter want either millisecond or second precision times.
 // This just tries to make it worry-free.
@@ -124,9 +131,20 @@ func ParseDateTime(data string) (DateTime, error) {
 // swagger:strfmt date-time
 type DateTime time.Time
 
-// NewDateTime is a representation of zero value for DateTime type
+// NewDateTime is a representation of the UNIX epoch (January 1, 1970 00:00:00 UTC) for the [DateTime] type.
+//
+// Notice that this is not the zero value of the [DateTime] type.
+//
+// You may use [DateTime.IsUNIXZero] to check against this value.
 func NewDateTime() DateTime {
 	return DateTime(time.Unix(0, 0).UTC())
+}
+
+// MakeDateTime is a representation of the zero value of the [DateTime] type (January 1, year 1, 00:00:00 UTC).
+//
+// You may use [Datetime.IsZero] to check against this value.
+func MakeDateTime() DateTime {
+	return DateTime(time.Time{})
 }
 
 // String converts this time to a string
@@ -135,19 +153,13 @@ func (t DateTime) String() string {
 }
 
 // IsZero returns whether the date time is a zero value
-func (t *DateTime) IsZero() bool {
-	if t == nil {
-		return true
-	}
-	return time.Time(*t).IsZero()
+func (t DateTime) IsZero() bool {
+	return time.Time(t).IsZero()
 }
 
 // IsUnixZerom returns whether the date time is equivalent to time.Unix(0, 0).UTC().
-func (t *DateTime) IsUnixZero() bool {
-	if t == nil {
-		return true
-	}
-	return time.Time(*t).Equal(UnixZero)
+func (t DateTime) IsUnixZero() bool {
+	return time.Time(t) == UnixZero
 }
 
 // MarshalText implements the text marshaller interface
@@ -178,7 +190,7 @@ func (t *DateTime) Scan(raw interface{}) error {
 	case nil:
 		*t = DateTime{}
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.DateTime from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.DateTime from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -232,20 +244,23 @@ func (t *DateTime) UnmarshalBSON(data []byte) error {
 	return nil
 }
 
+const bsonDateLength = 8
+
 // MarshalBSONValue is an interface implemented by types that can marshal themselves
 // into a BSON document represented as bytes. The bytes returned must be a valid
 // BSON document if the error is nil.
+//
 // Marshals a DateTime as a bsontype.DateTime, an int64 representing
 // milliseconds since epoch.
 func (t DateTime) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	// UnixNano cannot be used directly, the result of calling UnixNano on the zero
-	// Time is undefined. Thats why we use time.Nanosecond() instead.
-
+	// Time is undefined. That's why we use time.Nanosecond() instead.
 	tNorm := NormalizeTimeForMarshal(time.Time(t))
-	i64 := tNorm.Unix()*1000 + int64(tNorm.Nanosecond())/1e6
+	i64 := tNorm.UnixMilli()
 
-	buf := make([]byte, 8)
-	binary.LittleEndian.PutUint64(buf, uint64(i64))
+	buf := make([]byte, bsonDateLength)
+	// int64 -> uint64 conversion is safe here
+	binary.LittleEndian.PutUint64(buf, uint64(i64)) //nolint:gosec
 
 	return bson.TypeDateTime, buf, nil
 }
@@ -260,13 +275,14 @@ func (t *DateTime) UnmarshalBSONValue(tpe bsontype.Type, data []byte) error {
 		return nil
 	}
 
-	if len(data) != 8 {
-		return errors.New("bson date field length not exactly 8 bytes")
+	if len(data) != bsonDateLength {
+		return fmt.Errorf("bson date field length not exactly 8 bytes: %w", ErrFormat)
 	}
 
-	i64 := int64(binary.LittleEndian.Uint64(data))
+	// it's ok to get negative values after conversion
+	i64 := int64(binary.LittleEndian.Uint64(data)) //nolint:gosec
 	// TODO: Use bsonprim.DateTime.Time() method
-	*t = DateTime(time.Unix(i64/1000, i64%1000*1000000))
+	*t = DateTime(time.UnixMilli(i64))
 
 	return nil
 }
