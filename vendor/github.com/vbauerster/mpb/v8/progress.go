@@ -355,16 +355,18 @@ func (s *pState) render(cw *cwriter.Writer) (err error) {
 		height = width
 	}
 
+	var barCount int
 	for b := range iter {
+		barCount++
 		go b.render(width)
 	}
 
-	return s.flush(cw, height, iterPop)
+	return s.flush(cw, height, barCount, iterPop)
 }
 
-func (s *pState) flush(cw *cwriter.Writer, height int, iter <-chan *Bar) error {
-	var popCount int
-	var rows []io.Reader
+func (s *pState) flush(cw *cwriter.Writer, height, barCount int, iter <-chan *Bar) error {
+	var total, popCount int
+	rows := make([][]io.Reader, 0, barCount)
 
 	for b := range iter {
 		frame := <-b.frameCh
@@ -373,15 +375,16 @@ func (s *pState) flush(cw *cwriter.Writer, height int, iter <-chan *Bar) error {
 			b.cancel()
 			return frame.err // b.frameCh is buffered it's ok to return here
 		}
-		var usedRows int
+		var discarded int
 		for i := len(frame.rows) - 1; i >= 0; i-- {
-			if row := frame.rows[i]; len(rows) < height {
-				rows = append(rows, row)
-				usedRows++
+			if total < height {
+				total++
 			} else {
-				_, _ = io.Copy(io.Discard, row)
+				_, _ = io.Copy(io.Discard, frame.rows[i]) // Found IsInBounds
+				discarded++
 			}
 		}
+		rows = append(rows, frame.rows)
 
 		switch frame.shutdown {
 		case 1:
@@ -399,7 +402,7 @@ func (s *pState) flush(cw *cwriter.Writer, height int, iter <-chan *Bar) error {
 			}
 		case 2:
 			if s.popCompleted && !frame.noPop {
-				popCount += usedRows
+				popCount += len(frame.rows) - discarded
 				continue
 			}
 			fallthrough
@@ -409,13 +412,15 @@ func (s *pState) flush(cw *cwriter.Writer, height int, iter <-chan *Bar) error {
 	}
 
 	for i := len(rows) - 1; i >= 0; i-- {
-		_, err := cw.ReadFrom(rows[i])
-		if err != nil {
-			return err
+		for _, r := range rows[i] {
+			_, err := cw.ReadFrom(r)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
-	return cw.Flush(len(rows) - popCount)
+	return cw.Flush(total - popCount)
 }
 
 func (s pState) makeBarState(total int64, filler BarFiller, options ...BarOption) *bState {
