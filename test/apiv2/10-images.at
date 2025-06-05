@@ -440,4 +440,11 @@ t GET "libpod/events?stream=false&since=$START"  200  \
   .Actor.Attributes.name="localhost:5000/idonotexist" \
   .Actor.Attributes.error~".*connection refused"
 
+# check that SharedSize returns -1 for compat api if not set
+# and 0 (or the correct shared size) if set
+t GET images/json 200 \
+    .[0].SharedSize=-1
+t GET images/json?shared-size=true 200 \
+    .[0].SharedSize=0
+
 # vim: filetype=sh
