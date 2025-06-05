@@ -17,7 +17,6 @@ package strfmt
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -32,6 +31,11 @@ func init() {
 	// register this format in the default registry
 	Default.Add("duration", &d, IsDuration)
 }
+
+const (
+	hoursInDay = 24
+	daysInWeek = 7
+)
 
 var (
 	timeUnits = [][]string{
@@ -52,11 +56,11 @@ var (
 		"s":  time.Second,
 		"m":  time.Minute,
 		"h":  time.Hour,
-		"d":  24 * time.Hour,
-		"w":  7 * 24 * time.Hour,
+		"d":  hoursInDay * time.Hour,
+		"w":  hoursInDay * daysInWeek * time.Hour,
 	}
 
-	durationMatcher = regexp.MustCompile(`((\d+)\s*([A-Za-zµ]+))`)
+	durationMatcher = regexp.MustCompile(`(((?:-\s?)?\d+)\s*([A-Za-zµ]+))`)
 )
 
 // IsDuration returns true if the provided string is a valid duration
@@ -98,10 +102,19 @@ func ParseDuration(cand string) (time.Duration, error) {
 	ok := false
 	for _, match := range durationMatcher.FindAllStringSubmatch(cand, -1) {
 
-		factor, err := strconv.Atoi(match[2]) // converts string to int
+		// remove possible leading - and spaces
+		value, negative := strings.CutPrefix(match[2], "-")
+
+		// if the string is a valid duration, parse it
+		factor, err := strconv.Atoi(strings.TrimSpace(value)) // converts string to int
 		if err != nil {
 			return 0, err
 		}
+
+		if negative {
+			factor = -factor
+		}
+
 		unit := strings.ToLower(strings.TrimSpace(match[3]))
 
 		for _, variants := range timeUnits {
@@ -120,7 +133,7 @@ func ParseDuration(cand string) (time.Duration, error) {
 	if ok {
 		return dur, nil
 	}
-	return 0, fmt.Errorf("unable to parse %s as duration", cand)
+	return 0, fmt.Errorf("unable to parse %s as duration: %w", cand, ErrFormat)
 }
 
 // Scan reads a Duration value from database driver type.
@@ -134,7 +147,7 @@ func (d *Duration) Scan(raw interface{}) error {
 	case nil:
 		*d = Duration(0)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Duration from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Duration from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -192,7 +205,7 @@ func (d *Duration) UnmarshalBSON(data []byte) error {
 		return nil
 	}
 
-	return errors.New("couldn't unmarshal bson bytes value as Date")
+	return fmt.Errorf("couldn't unmarshal bson bytes value as Date: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

@@ -19,9 +19,12 @@ import (
 	_ "github.com/containers/image/v5/sif"
 	_ "github.com/containers/image/v5/tarball"
 	// The docker-daemon transport is registeredy by docker_daemon*.go
-	// The ostree transport is registered by ostree*.go
 	// The storage transport is registered by storage*.go
 )
+
+func init() {
+	transports.Register(transports.NewStubTransport("ostree")) // This transport was completely removed.
+}
 
 // ParseImageName converts a URL-like image name to a types.ImageReference.
 func ParseImageName(imgName string) (types.ImageReference, error) {

@@ -497,9 +497,12 @@ func (s *storageImageDestination) PutBlobPartial(ctx context.Context, chunkAcces
 
 	succeeded = true
 	return private.UploadedBlob{
-		Digest: blobDigest,
-		Size:   srcInfo.Size,
-	}, nil
+			Digest: blobDigest,
+			Size:   srcInfo.Size,
+		}, s.queueOrCommit(options.LayerIndex, addedLayerInfo{
+			digest:     blobDigest,
+			emptyLayer: options.EmptyLayer,
+		})
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination

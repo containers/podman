@@ -18,46 +18,23 @@ import (
 	"database/sql/driver"
 	"encoding/base64"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/mail"
-	"regexp"
+	"net/netip"
+	"strconv"
 	"strings"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"golang.org/x/net/idna"
 )
 
 const (
-	// HostnamePattern http://json-schema.org/latest/json-schema-validation.html#anchor114
-	//  A string instance is valid against this attribute if it is a valid
-	//  representation for an Internet host name, as defined by RFC 1034, section 3.1 [RFC1034].
-	//  http://tools.ietf.org/html/rfc1034#section-3.5
-	//  <digit> ::= any one of the ten digits 0 through 9
-	//  var digit = /[0-9]/;
-	//  <letter> ::= any one of the 52 alphabetic characters A through Z in upper case and a through z in lower case
-	//  var letter = /[a-zA-Z]/;
-	//  <let-dig> ::= <letter> | <digit>
-	//  var letDig = /[0-9a-zA-Z]/;
-	//  <let-dig-hyp> ::= <let-dig> | "-"
-	//  var letDigHyp = /[-0-9a-zA-Z]/;
-	//  <ldh-str> ::= <let-dig-hyp> | <let-dig-hyp> <ldh-str>
-	//  var ldhStr = /[-0-9a-zA-Z]+/;
-	//  <label> ::= <letter> [ [ <ldh-str> ] <let-dig> ]
-	//  var label = /[a-zA-Z](([-0-9a-zA-Z]+)?[0-9a-zA-Z])?/;
-	//  <subdomain> ::= <label> | <subdomain> "." <label>
-	//  var subdomain = /^[a-zA-Z](([-0-9a-zA-Z]+)?[0-9a-zA-Z])?(\.[a-zA-Z](([-0-9a-zA-Z]+)?[0-9a-zA-Z])?)*$/;
-	//  <domain> ::= <subdomain> | " "
+	// HostnamePattern http://json-schema.org/latest/json-schema-validation.html#anchor114.
 	//
-	// Additional validations:
-	//   - for FDQNs, top-level domain (e.g. ".com"), is at least to letters long (no special characters here)
-	//   - hostnames may start with a digit [RFC1123]
-	//   - special registered names with an underscore ('_') are not allowed in this context
-	//   - dashes are permitted, but not at the start or the end of a segment
-	//   - long top-level domain names (e.g. example.london) are permitted
-	//   - symbol unicode points are permitted (e.g. emoji) (not for top-level domain)
-	HostnamePattern = `^([a-zA-Z0-9\p{S}\p{L}]((-?[a-zA-Z0-9\p{S}\p{L}]{0,62})?)|([a-zA-Z0-9\p{S}\p{L}](([a-zA-Z0-9-\p{S}\p{L}]{0,61}[a-zA-Z0-9\p{S}\p{L}])?)(\.)){1,}([a-zA-Z\p{L}]){2,63})$`
+	// Deprecated: this package no longer uses regular expressions to validate hostnames.
+	HostnamePattern = `^([a-zA-Z0-9\p{S}\p{L}]((-?[a-zA-Z0-9\p{S}\p{L}]{0,62})?)|([a-zA-Z0-9\p{S}\p{L}](([a-zA-Z0-9-\p{S}\p{L}]{0,61}[a-zA-Z0-9\p{S}\p{L}])?)(\.)){1,}([a-zA-Z0-9-\p{L}]){2,63})$`
 
 	// json null type
 	jsonNull = "null"
@@ -85,30 +62,254 @@ const (
 	UUID5Pattern = `(?i)(^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$)|(^[0-9a-f]{12}5[0-9a-f]{3}[89ab][0-9a-f]{15}$)`
 )
 
-var (
-	rxHostname = regexp.MustCompile(HostnamePattern)
+var idnaHostChecker = idna.New(
+	idna.ValidateForRegistration(), // shorthand for [idna.StrictDomainName],  [idna.ValidateLabels], [idna.VerifyDNSLength], [idna.BidiRule]
 )
 
-// IsHostname returns true when the string is a valid hostname
+// IsHostname returns true when the string is a valid hostname.
+//
+// It follows the rules detailed at https://url.spec.whatwg.org/#concept-host-parser
+// and implemented by most modern web browsers.
+//
+// It supports IDNA rules regarding internationalized names with unicode.
+//
+// Besides:
+// * the empty string is not a valid host name
+// * a trailing dot is allowed in names and IPv4's (not IPv6)
+// * a host name can be a valid IPv4 (with decimal, octal or hexadecimal numbers) or IPv6 address
+// * IPv6 zones are disallowed
+// * top-level domains can be unicode (cf. https://www.iana.org/domains/root/db).
+//
+// NOTE: this validator doesn't check top-level domains against the IANA root database.
+// It merely ensures that a top-level domain in a FQDN is at least 2 code points long.
 func IsHostname(str string) bool {
-	if !rxHostname.MatchString(str) {
+	if len(str) == 0 {
 		return false
 	}
 
-	// the sum of all label octets and label lengths is limited to 255.
-	if len(str) > 255 {
+	// IP v6 check
+	if ipv6Cleaned, found := strings.CutPrefix(str, "["); found {
+		ipv6Cleaned, found = strings.CutSuffix(ipv6Cleaned, "]")
+		if !found {
+			return false
+		}
+
+		return isValidIPv6(ipv6Cleaned)
+	}
+
+	// IDNA check
+	res, err := idnaHostChecker.ToASCII(strings.ToLower(str))
+	if err != nil || res == "" {
 		return false
 	}
 
-	// Each node has a label, which is zero to 63 octets in length
-	parts := strings.Split(str, ".")
-	valid := true
-	for _, p := range parts {
-		if len(p) > 63 {
-			valid = false
+	parts := strings.Split(res, ".")
+
+	// IP v4 check
+	lastPart, lastIndex, shouldBeIPv4 := domainEndsAsNumber(parts)
+	if shouldBeIPv4 {
+		// domain ends in a number: must be an IPv4
+		return isValidIPv4(parts[:lastIndex+1]) // if the last part is a trailing dot, remove it
+	}
+
+	// check TLD length (excluding trailing dot)
+	const minTLDLength = 2
+	if lastIndex > 0 && len(lastPart) < minTLDLength {
+		return false
+	}
+
+	return true
+}
+
+// domainEndsAsNumber determines if a domain name ends with a decimal, octal or hex digit,
+// accounting for a possible trailing dot (the last part being empty in that case).
+//
+// It returns the last non-trailing dot part and if that part consists only of (dec/hex/oct) digits.
+func domainEndsAsNumber(parts []string) (lastPart string, lastIndex int, ok bool) {
+	// NOTE: using ParseUint(x, 0, 32) is not an option, as the IPv4 format supported why WHATWG
+	// doesn't support notations such as "0b1001" (binary digits) or "0o666" (alternate notation for octal digits).
+	lastIndex = len(parts) - 1
+	lastPart = parts[lastIndex]
+	if len(lastPart) == 0 {
+		// trailing dot
+		if len(parts) == 1 { // dot-only string: normally already ruled out by the IDNA check above
+			return lastPart, lastIndex, false
+		}
+
+		lastIndex--
+		lastPart = parts[lastIndex]
+	}
+
+	if startOfHexDigit(lastPart) {
+		for _, b := range []byte(lastPart[2:]) {
+			if !isHexDigit(b) {
+				return lastPart, lastIndex, false
+			}
+		}
+
+		return lastPart, lastIndex, true
+	}
+
+	// check for decimal and octal
+	for _, b := range []byte(lastPart) {
+		if !isASCIIDigit(b) {
+			return lastPart, lastIndex, false
 		}
 	}
-	return valid
+
+	return lastPart, lastIndex, true
+}
+
+func startOfHexDigit(str string) bool {
+	return strings.HasPrefix(str, "0x") // the input has already been lower-cased
+}
+
+func startOfOctalDigit(str string) bool {
+	if str == "0" {
+		// a single "0" is considered decimal
+		return false
+	}
+
+	return strings.HasPrefix(str, "0")
+}
+
+func isValidIPv6(str string) bool {
+	// disallow empty ipv6 address
+	if len(str) == 0 {
+		return false
+	}
+
+	addr, err := netip.ParseAddr(str)
+	if err != nil {
+		return false
+	}
+
+	if !addr.Is6() {
+		return false
+	}
+
+	// explicit desupport of IPv6 zones
+	if addr.Zone() != "" {
+		return false
+	}
+
+	return true
+}
+
+// isValidIPv4 parses an IPv4 with deciaml, hex or octal digit parts.
+//
+// We can't rely on [netip.ParseAddr] because we may get a mix of decimal, octal and hex digits.
+//
+// Examples of valid addresses not supported by [netip.ParseAddr] or [net.ParseIP]:
+//
+//	"192.0x00A80001"
+//	"0300.0250.0340.001"
+//	"1.0x.1.1"
+//
+// But not:
+//
+//	"0b1010.2.3.4"
+//	"0o07.2.3.4"
+func isValidIPv4(parts []string) bool {
+	// NOTE: using ParseUint(x, 0, 32) is not an option, even though it would simplify this code a lot.
+	// The IPv4 format supported why WHATWG doesn't support notations such as "0b1001" (binary digits)
+	// or "0o666" (alternate notation for octal digits).
+	const (
+		maxPartsInIPv4  = 4
+		maxDigitsInPart = 11 // max size of a 4-bytes hex or octal digit
+	)
+
+	if len(parts) == 0 || len(parts) > maxPartsInIPv4 {
+		return false
+	}
+
+	// we call this when we know that the last part is a digit part, so len(lastPart)>0
+
+	digits := make([]uint64, 0, maxPartsInIPv4)
+	for _, part := range parts {
+		if len(part) == 0 { // empty part: this case has normally been already ruled out by the IDNA check above
+			return false
+		}
+
+		if len(part) > maxDigitsInPart { // whether decimal, octal or hex, an address can't exceed that length
+			return false
+		}
+
+		if !isASCIIDigit(part[0]) { // start of an IPv4 part is always a digit
+			return false
+		}
+
+		switch {
+		case startOfHexDigit(part):
+			const hexDigitOffset = 2
+			hexString := part[hexDigitOffset:]
+			if len(hexString) == 0 { // 0x part: assume 0
+				digits = append(digits, 0)
+
+				continue
+			}
+
+			hexDigit, err := strconv.ParseUint(hexString, 16, 32)
+			if err != nil {
+				return false
+			}
+
+			digits = append(digits, hexDigit)
+
+			continue
+
+		case startOfOctalDigit(part):
+			const octDigitOffset = 1
+			octString := part[octDigitOffset:] // we know that this is not empty
+			octDigit, err := strconv.ParseUint(octString, 8, 32)
+			if err != nil {
+				return false
+			}
+
+			digits = append(digits, octDigit)
+
+		default: // assume decimal digits (0-255)
+			// we know that we don't have a leading 0 (would have been caught by octal digit)
+			decDigit, err := strconv.ParseUint(part, 10, 8)
+			if err != nil {
+				return false
+			}
+
+			digits = append(digits, decDigit)
+		}
+	}
+
+	// now check the digits: the last digit may encompass several parts of the address
+	lastDigit := digits[len(digits)-1]
+	if lastDigit > uint64(1)<<uint64(8*(maxPartsInIPv4+1-len(digits))) { //nolint:gosec,mnd // 256^(5 - len(digits)) - safe conversion
+		return false
+	}
+
+	if len(digits) > 1 {
+		const maxUint8 = uint64(^uint8(0))
+
+		for i := 0; i < len(digits)-2; i++ {
+			if digits[i] > maxUint8 {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+
+func isHexDigit(c byte) bool {
+	switch {
+	case '0' <= c && c <= '9':
+		return true
+	case 'a' <= c && c <= 'f': // assume the input string to be lower case
+		return true
+	}
+	return false
+}
+
+func isASCIIDigit(c byte) bool {
+	return c >= '0' && c <= '9'
 }
 
 // IsUUID returns true is the string matches a UUID (in any version, including v6 and v7), upper case is allowed
@@ -117,22 +318,28 @@ func IsUUID(str string) bool {
 	return err == nil
 }
 
+const (
+	uuidV3 = 3
+	uuidV4 = 4
+	uuidV5 = 5
+)
+
 // IsUUID3 returns true is the string matches a UUID v3, upper case is allowed
 func IsUUID3(str string) bool {
 	id, err := uuid.Parse(str)
-	return err == nil && id.Version() == uuid.Version(3)
+	return err == nil && id.Version() == uuid.Version(uuidV3)
 }
 
 // IsUUID4 returns true is the string matches a UUID v4, upper case is allowed
 func IsUUID4(str string) bool {
 	id, err := uuid.Parse(str)
-	return err == nil && id.Version() == uuid.Version(4)
+	return err == nil && id.Version() == uuid.Version(uuidV4)
 }
 
 // IsUUID5 returns true is the string matches a UUID v5, upper case is allowed
 func IsUUID5(str string) bool {
 	id, err := uuid.Parse(str)
-	return err == nil && id.Version() == uuid.Version(5)
+	return err == nil && id.Version() == uuid.Version(uuidV5)
 }
 
 // IsEmail validates an email address.
@@ -269,7 +476,7 @@ func (b *Base64) Scan(raw interface{}) error {
 		}
 		*b = Base64(vv)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Base64 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Base64 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -323,7 +530,7 @@ func (b *Base64) UnmarshalBSON(data []byte) error {
 		*b = Base64(vb)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as base64")
+	return fmt.Errorf("couldn't unmarshal bson bytes as base64: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -365,7 +572,7 @@ func (u *URI) Scan(raw interface{}) error {
 	case string:
 		*u = URI(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.URI from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.URI from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -411,7 +618,7 @@ func (u *URI) UnmarshalBSON(data []byte) error {
 		*u = URI(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as uri")
+	return fmt.Errorf("couldn't unmarshal bson bytes as uri: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -453,7 +660,7 @@ func (e *Email) Scan(raw interface{}) error {
 	case string:
 		*e = Email(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Email from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Email from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -499,7 +706,7 @@ func (e *Email) UnmarshalBSON(data []byte) error {
 		*e = Email(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as email")
+	return fmt.Errorf("couldn't unmarshal bson bytes as email: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -541,7 +748,7 @@ func (h *Hostname) Scan(raw interface{}) error {
 	case string:
 		*h = Hostname(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Hostname from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Hostname from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -587,7 +794,7 @@ func (h *Hostname) UnmarshalBSON(data []byte) error {
 		*h = Hostname(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as hostname")
+	return fmt.Errorf("couldn't unmarshal bson bytes as hostname: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -629,7 +836,7 @@ func (u *IPv4) Scan(raw interface{}) error {
 	case string:
 		*u = IPv4(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.IPv4 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.IPv4 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -675,7 +882,7 @@ func (u *IPv4) UnmarshalBSON(data []byte) error {
 		*u = IPv4(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as ipv4")
+	return fmt.Errorf("couldn't unmarshal bson bytes as ipv4: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -717,7 +924,7 @@ func (u *IPv6) Scan(raw interface{}) error {
 	case string:
 		*u = IPv6(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.IPv6 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.IPv6 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -763,7 +970,7 @@ func (u *IPv6) UnmarshalBSON(data []byte) error {
 		*u = IPv6(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as ipv6")
+	return fmt.Errorf("couldn't unmarshal bson bytes as ipv6: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -805,7 +1012,7 @@ func (u *CIDR) Scan(raw interface{}) error {
 	case string:
 		*u = CIDR(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.CIDR from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.CIDR from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -851,7 +1058,7 @@ func (u *CIDR) UnmarshalBSON(data []byte) error {
 		*u = CIDR(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as CIDR")
+	return fmt.Errorf("couldn't unmarshal bson bytes as CIDR: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -893,7 +1100,7 @@ func (u *MAC) Scan(raw interface{}) error {
 	case string:
 		*u = MAC(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.IPv4 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.IPv4 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -939,7 +1146,7 @@ func (u *MAC) UnmarshalBSON(data []byte) error {
 		*u = MAC(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as MAC")
+	return fmt.Errorf("couldn't unmarshal bson bytes as MAC: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -981,7 +1188,7 @@ func (u *UUID) Scan(raw interface{}) error {
 	case string:
 		*u = UUID(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.UUID from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.UUID from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1030,7 +1237,7 @@ func (u *UUID) UnmarshalBSON(data []byte) error {
 		*u = UUID(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as UUID")
+	return fmt.Errorf("couldn't unmarshal bson bytes as UUID: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1072,7 +1279,7 @@ func (u *UUID3) Scan(raw interface{}) error {
 	case string:
 		*u = UUID3(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.UUID3 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.UUID3 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1121,7 +1328,7 @@ func (u *UUID3) UnmarshalBSON(data []byte) error {
 		*u = UUID3(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as UUID3")
+	return fmt.Errorf("couldn't unmarshal bson bytes as UUID3: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1163,7 +1370,7 @@ func (u *UUID4) Scan(raw interface{}) error {
 	case string:
 		*u = UUID4(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.UUID4 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.UUID4 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1212,7 +1419,7 @@ func (u *UUID4) UnmarshalBSON(data []byte) error {
 		*u = UUID4(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as UUID4")
+	return fmt.Errorf("couldn't unmarshal bson bytes as UUID4: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1254,7 +1461,7 @@ func (u *UUID5) Scan(raw interface{}) error {
 	case string:
 		*u = UUID5(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.UUID5 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.UUID5 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1303,7 +1510,7 @@ func (u *UUID5) UnmarshalBSON(data []byte) error {
 		*u = UUID5(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as UUID5")
+	return fmt.Errorf("couldn't unmarshal bson bytes as UUID5: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1345,7 +1552,7 @@ func (u *ISBN) Scan(raw interface{}) error {
 	case string:
 		*u = ISBN(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.ISBN from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.ISBN from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1394,7 +1601,7 @@ func (u *ISBN) UnmarshalBSON(data []byte) error {
 		*u = ISBN(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as ISBN")
+	return fmt.Errorf("couldn't unmarshal bson bytes as ISBN: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1436,7 +1643,7 @@ func (u *ISBN10) Scan(raw interface{}) error {
 	case string:
 		*u = ISBN10(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.ISBN10 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.ISBN10 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1485,7 +1692,7 @@ func (u *ISBN10) UnmarshalBSON(data []byte) error {
 		*u = ISBN10(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as ISBN10")
+	return fmt.Errorf("couldn't unmarshal bson bytes as ISBN10: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1527,7 +1734,7 @@ func (u *ISBN13) Scan(raw interface{}) error {
 	case string:
 		*u = ISBN13(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.ISBN13 from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.ISBN13 from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1576,7 +1783,7 @@ func (u *ISBN13) UnmarshalBSON(data []byte) error {
 		*u = ISBN13(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as ISBN13")
+	return fmt.Errorf("couldn't unmarshal bson bytes as ISBN13: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1618,7 +1825,7 @@ func (u *CreditCard) Scan(raw interface{}) error {
 	case string:
 		*u = CreditCard(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.CreditCard from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.CreditCard from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1667,7 +1874,7 @@ func (u *CreditCard) UnmarshalBSON(data []byte) error {
 		*u = CreditCard(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as CreditCard")
+	return fmt.Errorf("couldn't unmarshal bson bytes as CreditCard: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1709,7 +1916,7 @@ func (u *SSN) Scan(raw interface{}) error {
 	case string:
 		*u = SSN(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.SSN from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.SSN from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1758,7 +1965,7 @@ func (u *SSN) UnmarshalBSON(data []byte) error {
 		*u = SSN(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as SSN")
+	return fmt.Errorf("couldn't unmarshal bson bytes as SSN: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1800,7 +2007,7 @@ func (h *HexColor) Scan(raw interface{}) error {
 	case string:
 		*h = HexColor(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.HexColor from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.HexColor from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1849,7 +2056,7 @@ func (h *HexColor) UnmarshalBSON(data []byte) error {
 		*h = HexColor(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as HexColor")
+	return fmt.Errorf("couldn't unmarshal bson bytes as HexColor: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1891,7 +2098,7 @@ func (r *RGBColor) Scan(raw interface{}) error {
 	case string:
 		*r = RGBColor(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.RGBColor from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.RGBColor from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -1940,7 +2147,7 @@ func (r *RGBColor) UnmarshalBSON(data []byte) error {
 		*r = RGBColor(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as RGBColor")
+	return fmt.Errorf("couldn't unmarshal bson bytes as RGBColor: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.
@@ -1983,7 +2190,7 @@ func (r *Password) Scan(raw interface{}) error {
 	case string:
 		*r = Password(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.Password from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.Password from: %#v: %w", v, ErrFormat)
 	}
 
 	return nil
@@ -2032,7 +2239,7 @@ func (r *Password) UnmarshalBSON(data []byte) error {
 		*r = Password(ud)
 		return nil
 	}
-	return errors.New("couldn't unmarshal bson bytes as Password")
+	return fmt.Errorf("couldn't unmarshal bson bytes as Password: %w", ErrFormat)
 }
 
 // DeepCopyInto copies the receiver and writes its value into out.

@@ -1,3 +1,11 @@
+> [!WARNING]
+> As of v2 of this library, change log can be found in GitHub releases.
+
+## 1.5.1
+
+* Wrap errors so they're compatible with `errors.Is` and `errors.As` [GH-282]
+* Fix map of slices not decoding properly in certain cases. [GH-266]
+
 ## 1.5.0
 
 * New option `IgnoreUntaggedFields` to ignore decoding to any fields
