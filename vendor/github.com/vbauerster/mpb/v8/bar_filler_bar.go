@@ -175,12 +175,12 @@ func (s barStyle) Build() BarFiller {
 		bytes: []byte(s.style[iPadding]),
 	}
 	bf.tip.onComplete = s.tipOnComplete
-	bf.tip.frames = make([]component, len(s.tipFrames))
-	for i, t := range s.tipFrames {
-		bf.tip.frames[i] = component{
+	bf.tip.frames = make([]component, 0, len(s.tipFrames))
+	for _, t := range s.tipFrames {
+		bf.tip.frames = append(bf.tip.frames, component{
 			width: runewidth.StringWidth(t),
 			bytes: []byte(t),
-		}
+		})
 	}
 	if s.rev {
 		bf.flushOp = barSections.flushRev

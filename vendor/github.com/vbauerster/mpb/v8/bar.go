@@ -145,13 +145,7 @@ func (b *Bar) Current() int64 {
 // operation for example.
 func (b *Bar) SetRefill(amount int64) {
 	select {
-	case b.operateState <- func(s *bState) {
-		if amount < s.current {
-			s.refill = amount
-		} else {
-			s.refill = s.current
-		}
-	}:
+	case b.operateState <- func(s *bState) { s.refill = min(amount, s.current) }:
 	case <-b.ctx.Done():
 	}
 }
@@ -275,10 +269,10 @@ func (b *Bar) EwmaIncrInt64(n int64, iterDur time.Duration) {
 		var wg sync.WaitGroup
 		wg.Add(len(s.ewmaDecorators))
 		for _, d := range s.ewmaDecorators {
-			d := d
+			// d := d // NOTE: uncomment for Go < 1.22, see /doc/faq#closures_and_goroutines
 			go func() {
+				defer wg.Done()
 				d.EwmaUpdate(n, iterDur)
-				wg.Done()
 			}()
 		}
 		s.current += n
@@ -304,10 +298,10 @@ func (b *Bar) EwmaSetCurrent(current int64, iterDur time.Duration) {
 		var wg sync.WaitGroup
 		wg.Add(len(s.ewmaDecorators))
 		for _, d := range s.ewmaDecorators {
-			d := d
+			// d := d // NOTE: uncomment for Go < 1.22, see /doc/faq#closures_and_goroutines
 			go func() {
+				defer wg.Done()
 				d.EwmaUpdate(n, iterDur)
-				wg.Done()
 			}()
 		}
 		s.current = current
@@ -394,13 +388,14 @@ func (b *Bar) Wait() {
 }
 
 func (b *Bar) serve(bs *bState) {
+	defer b.container.bwg.Done()
 	decoratorsOnShutdown := func(group []decor.Decorator) {
 		for _, d := range group {
 			if d, ok := unwrap(d).(decor.ShutdownListener); ok {
 				b.container.bwg.Add(1)
 				go func() {
+					defer b.container.bwg.Done()
 					d.OnShutdown()
-					b.container.bwg.Done()
 				}()
 			}
 		}
@@ -416,7 +411,6 @@ func (b *Bar) serve(bs *bState) {
 			bs.aborted = !bs.completed()
 			b.bs = bs
 			close(b.bsOk)
-			b.container.bwg.Done()
 			return
 		}
 	}
