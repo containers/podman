@@ -1316,7 +1316,18 @@ func (r *Runtime) PruneBuildContainers() ([]*reports.PruneReport, error) {
 func (r *Runtime) SystemCheck(ctx context.Context, options entities.SystemCheckOptions) (entities.SystemCheckReport, error) {
 	what := storage.CheckEverything()
 	if options.Quick {
-		what = storage.CheckMost()
+		// Turn off checking layer digests and layer contents to do quick check.
+		// This is not a complete check like storage.CheckEverything(), and may fail detecting
+		// whether a file is missing from the image or its content has changed.
+		// In some cases it's desirable to trade check thoroughness for speed.
+		what = &storage.CheckOptions{
+			LayerDigests:   false,
+			LayerMountable: true,
+			LayerContents:  false,
+			LayerData:      true,
+			ImageData:      true,
+			ContainerData:  true,
+		}
 	}
 	if options.UnreferencedLayerMaximumAge != nil {
 		tmp := *options.UnreferencedLayerMaximumAge
