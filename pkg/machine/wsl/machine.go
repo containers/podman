@@ -22,6 +22,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/windows"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/homedir"
@@ -306,7 +307,7 @@ func checkAndInstallWSL(reExec bool) (bool, error) {
 		return true, nil
 	}
 
-	admin := HasAdminRights()
+	admin := windows.HasAdminRights()
 
 	if !wutil.IsWSLFeatureEnabled() {
 		return false, attemptFeatureInstall(reExec, admin)
