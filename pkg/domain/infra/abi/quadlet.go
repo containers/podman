@@ -95,7 +95,10 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		}
 	}
 
-	installReport := new(entities.QuadletInstallReport)
+	installReport := entities.QuadletInstallReport{
+		InstalledQuadlets: make(map[string]string),
+		QuadletErrors:     make(map[string]error),
+	}
 
 	as, err := ic.Libpod.ArtifactStore()
 	if err != nil {
@@ -187,11 +190,11 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 	// TODO: Should we still do this if the above validation errored?
 	if options.ReloadSystemd {
 		if err := conn.ReloadContext(ctx); err != nil {
-			return installReport, fmt.Errorf("reloading systemd: %w", err)
+			return &installReport, fmt.Errorf("reloading systemd: %w", err)
 		}
 	}
 
-	return installReport, validateErr
+	return &installReport, validateErr
 }
 
 // Install a single Quadlet from a path on local disk to the given install directory.
@@ -311,7 +314,7 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 		filterMap[fname] = append(filterMap[fname], filter)
 	}
 	for fname, filter := range filterMap {
-                filterFunc, err := generateQuadletFilter(fname, filter)
+		filterFunc, err := generateQuadletFilter(fname, filter)
 		if err != nil {
 			return nil, err
 		}
@@ -427,7 +430,10 @@ func (ic *ContainerEngine) QuadletPrint(ctx context.Context, quadlet string) (st
 }
 
 func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string, options entities.QuadletRemoveOptions) (*entities.QuadletRemoveReport, error) {
-	report := new(entities.QuadletRemoveReport)
+	report := entities.QuadletRemoveReport{
+		Errors:  make(map[string]error),
+		Removed: []string{},
+	}
 	allQuadletPaths := make([]string, 0, len(quadlets))
 	allServiceNames := make([]string, 0, len(quadlets))
 	runningQuadlets := make([]string, 0, len(quadlets))
@@ -539,9 +545,9 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	// Reload systemd, if necessary/requested.
 	if needReload {
 		if err := conn.ReloadContext(ctx); err != nil {
-			return report, fmt.Errorf("reloading systemd: %w", err)
+			return &report, fmt.Errorf("reloading systemd: %w", err)
 		}
 	}
 
-	return report, nil
+	return &report, nil
 }
