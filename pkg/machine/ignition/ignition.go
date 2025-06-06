@@ -530,7 +530,7 @@ func prepareCertFile(fpath string, name string) (File, error) {
 
 const (
 	systemdSSLConf = "/etc/systemd/system.conf.d/podman-machine-ssl.conf"
-	envdSSLConf    = "/etc/environment.d/podman-machine-ssl.conf"
+	// envdSSLConf    = "/etc/environment.d/podman-machine-ssl.conf"
 	profileSSLConf = "/etc/profile.d/podman-machine-ssl.sh"
 	sslCertFile    = "SSL_CERT_FILE"
 	sslCertDir     = "SSL_CERT_DIR"
@@ -538,7 +538,7 @@ const (
 
 func getSSLEnvironmentFiles(sslFileName, sslDirName string) []File {
 	systemdFileContent := "[Manager]\n"
-	envdFileContent := ""
+	// envdFileContent := ""
 	profileFileContent := ""
 	if sslFileName != "" {
 		// certs are written to UserCertsTargetPath see prepareCertFile()
@@ -546,19 +546,21 @@ func getSSLEnvironmentFiles(sslFileName, sslDirName string) []File {
 		// a path on the client (i.e. windows) but then join to linux path that will be used inside the VM.
 		env := fmt.Sprintf("%s=%q\n", sslCertFile, path.Join(define.UserCertsTargetPath, filepath.Base(sslFileName)))
 		systemdFileContent += "DefaultEnvironment=" + env
-		envdFileContent += env
+		// envdFileContent += env
 		profileFileContent += "export " + env
 	}
 	if sslDirName != "" {
 		// certs are written to UserCertsTargetPath see prepareCertFile()
 		env := fmt.Sprintf("%s=%q\n", sslCertDir, define.UserCertsTargetPath)
 		systemdFileContent += "DefaultEnvironment=" + env
-		envdFileContent += env
+		// envdFileContent += env
 		profileFileContent += "export " + env
 	}
 	return []File{
 		getSSLFile(systemdSSLConf, systemdFileContent),
-		getSSLFile(envdSSLConf, envdFileContent),
+		// FIXME: something is very broken with the environment.d systemd generator.
+		// When setting any var there the systemd fails to boot successfully.
+		// getSSLFile(envdSSLConf, envdFileContent),
 		getSSLFile(profileSSLConf, profileFileContent),
 	}
 }
