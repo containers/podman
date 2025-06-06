@@ -9,12 +9,15 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// statBlkDev returns path's major and minor, or an error.
+// statBlkDev returns path's major and minor, or an error, if path is not a block device.
 func statBlkDev(path string) (int64, int64, error) {
 	var stat unix.Stat_t
 
 	if err := unix.Stat(path, &stat); err != nil {
 		return 0, 0, fmt.Errorf("could not parse device %s: %w", path, err)
+	}
+	if stat.Mode&unix.S_IFMT != unix.S_IFBLK {
+		return 0, 0, fmt.Errorf("%s: not a block device", path)
 	}
 	rdev := uint64(stat.Rdev) //nolint:unconvert // Some architectures have different type.
 	return int64(unix.Major(rdev)), int64(unix.Minor(rdev)), nil
@@ -33,8 +36,9 @@ func fillThrottleDev(path string, dev *spec.LinuxThrottleDevice) error {
 }
 
 // FinishThrottleDevices takes the temporary representation of the throttle
-// devices in the specgen and looks up the major and major minors. it then
-// sets the throttle devices proper in the specgen
+// devices in the specgen, fills in major and minor numbers, and amends the
+// specgen with the specified devices. It returns an error if any device
+// specified doesn't exist or is not a block device.
 func FinishThrottleDevices(s *SpecGenerator) error {
 	if len(s.ThrottleReadBpsDevice)+len(s.ThrottleWriteBpsDevice)+len(s.ThrottleReadIOPSDevice)+len(s.ThrottleWriteIOPSDevice) == 0 {
 		return nil
