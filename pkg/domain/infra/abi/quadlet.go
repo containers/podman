@@ -283,7 +283,12 @@ func generateQuadletFilter(filter string, filterValues []string) (func(q *entiti
 	switch filter {
 	case "name":
 		return func(q *entities.ListQuadlet) bool {
-			return util.StringMatchRegexSlice(q.Name, filterValues)
+			var filters []string
+			for _, f := range filterValues {
+				filters = append(filters, strings.ReplaceAll(f, "/", ""))
+			}
+			res := util.StringMatchRegexSlice(q.Name, filters)
+			return res
 		}, nil
 	default:
 		return nil, fmt.Errorf("%s is not a valid filter", filter)
@@ -384,7 +389,7 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 	for _, report := range reports {
 		include := true
 		for _, filterFunc := range filterFuncs {
-			include = include || filterFunc(report)
+			include = filterFunc(report)
 		}
 		if include {
 			finalReports = append(finalReports, report)

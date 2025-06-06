@@ -35,7 +35,7 @@ func listFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 
 	flags.StringArrayVarP(&listOptions.Filters, "filter", "f", []string{}, "Filter output based on conditions given")
-	flags.StringVar(&format, "format", "", "Pretty-print output to JSON or using a Go template")
+	flags.StringVar(&format, "format", "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
 }
 
 func init() {
