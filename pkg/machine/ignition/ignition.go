@@ -182,46 +182,6 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		}
 	}
 
-	// This service gets environment variables that are provided
-	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
-	// profile.d and environment.d files
-	//
-	// Currently, it is used for propagating
-	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
-	// a need of re-creating/re-initiating a VM
-
-	envset := parser.NewUnitFile()
-	envset.Add("Unit", "Description", "Environment setter from QEMU FW_CFG")
-
-	envset.Add("Service", "Type", "oneshot")
-	envset.Add("Service", "RemainAfterExit", "yes")
-	envset.Add("Service", "Environment", "FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw")
-	envset.Add("Service", "Environment", "SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf")
-	envset.Add("Service", "Environment", "ENVD_CONF=/etc/environment.d/default-env.conf")
-	envset.Add("Service", "Environment", "PROFILE_CONF=/etc/profile.d/default-env.sh")
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'`)
-	envset.Add("Service", "ExecStartPost", "/usr/bin/systemctl daemon-reload")
-
-	envset.Add("Install", "WantedBy", "sysinit.target")
-	envsetFile, err := envset.ToString()
-	if err != nil {
-		return err
-	}
-
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
@@ -237,16 +197,6 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				Name:    "zincati.service",
 			},
 		},
-	}
-
-	// Only qemu has the qemu firmware environment setting
-	if ign.VMType == define.QemuVirt {
-		qemuUnit := Unit{
-			Enabled:  BoolToPtr(true),
-			Name:     "envset-fwcfg.service",
-			Contents: &envsetFile,
-		}
-		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
 	// Only AppleHv with Apple Silicon can use Rosetta
