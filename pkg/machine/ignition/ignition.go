@@ -631,24 +631,6 @@ func (i *IgnitionBuilder) Build() error {
 	return i.dynamicIgnition.Write()
 }
 
-func GetNetRecoveryFile() string {
-	return `#!/bin/bash
-# Verify network health, and bounce the network device if host connectivity
-# is lost. This is a temporary workaround for a known rare qemu/virtio issue
-# that affects some systems
-
-sleep 120 # allow time for network setup on initial boot
-while true; do
-  sleep 30
-  curl -s -o /dev/null --max-time 30 http://192.168.127.1/health
-  if [ "$?" != "0" ]; then
-    echo "bouncing nic due to loss of connectivity with host"
-    ifconfig enp0s1 down; ifconfig enp0s1 up
-  fi
-done
-`
-}
-
 func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username string) error {
 	// create the ignition file object
 	f := File{
@@ -692,19 +674,6 @@ func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username
 	i.WithUnit(playbookUnit)
 
 	return nil
-}
-
-func GetNetRecoveryUnitFile() *parser.UnitFile {
-	recoveryUnit := parser.NewUnitFile()
-	recoveryUnit.Add("Unit", "Description", "Verifies health of network and recovers if necessary")
-	recoveryUnit.Add("Unit", "After", "sshd.socket sshd.service")
-	recoveryUnit.Add("Service", "ExecStart", "/usr/local/bin/net-health-recovery.sh")
-	recoveryUnit.Add("Service", "StandardOutput", "journal")
-	recoveryUnit.Add("Service", "StandardError", "journal")
-	recoveryUnit.Add("Service", "StandardInput", "null")
-	recoveryUnit.Add("Install", "WantedBy", "default.target")
-
-	return recoveryUnit
 }
 
 func DefaultReadyUnitFile() parser.UnitFile {
