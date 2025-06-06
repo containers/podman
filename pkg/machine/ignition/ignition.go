@@ -182,46 +182,6 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 		}
 	}
 
-	// This service gets environment variables that are provided
-	// through qemu fw_cfg and then sets them into systemd/system.conf.d,
-	// profile.d and environment.d files
-	//
-	// Currently, it is used for propagating
-	// proxy settings e.g. HTTP_PROXY and others, on a start avoiding
-	// a need of re-creating/re-initiating a VM
-
-	envset := parser.NewUnitFile()
-	envset.Add("Unit", "Description", "Environment setter from QEMU FW_CFG")
-
-	envset.Add("Service", "Type", "oneshot")
-	envset.Add("Service", "RemainAfterExit", "yes")
-	envset.Add("Service", "Environment", "FWCFGRAW=/sys/firmware/qemu_fw_cfg/by_name/opt/com.coreos/environment/raw")
-	envset.Add("Service", "Environment", "SYSTEMD_CONF=/etc/systemd/system.conf.d/default-env.conf")
-	envset.Add("Service", "Environment", "ENVD_CONF=/etc/environment.d/default-env.conf")
-	envset.Add("Service", "Environment", "PROFILE_CONF=/etc/profile.d/default-env.sh")
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} &&\
-        echo "[Manager]\n#Got from QEMU FW_CFG\nDefaultEnvironment=$(/usr/bin/base64 -d ${FWCFGRAW} | sed -e "s+|+ +g")\n" > ${SYSTEMD_CONF} ||\
-        echo "[Manager]\n#Got nothing from QEMU FW_CFG\n#DefaultEnvironment=\n" > ${SYSTEMD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${ENVD_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "$iprxy" >> ${ENVD_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${ENVD_CONF}'`)
-	envset.Add("Service", "ExecStart", `/usr/bin/bash -c '/usr/bin/test -f ${FWCFGRAW} && (\
-        echo "#Got from QEMU FW_CFG"> ${PROFILE_CONF};\
-        IFS="|";\
-        for iprxy in $(/usr/bin/base64 -d ${FWCFGRAW}); do\
-            echo "export $iprxy" >> ${PROFILE_CONF}; done ) || \
-        echo "#Got nothing from QEMU FW_CFG"> ${PROFILE_CONF}'`)
-	envset.Add("Service", "ExecStartPost", "/usr/bin/systemctl daemon-reload")
-
-	envset.Add("Install", "WantedBy", "sysinit.target")
-	envsetFile, err := envset.ToString()
-	if err != nil {
-		return err
-	}
-
 	ignSystemd := Systemd{
 		Units: []Unit{
 			{
@@ -237,16 +197,6 @@ func (ign *DynamicIgnition) GenerateIgnitionConfig() error {
 				Name:    "zincati.service",
 			},
 		},
-	}
-
-	// Only qemu has the qemu firmware environment setting
-	if ign.VMType == define.QemuVirt {
-		qemuUnit := Unit{
-			Enabled:  BoolToPtr(true),
-			Name:     "envset-fwcfg.service",
-			Contents: &envsetFile,
-		}
-		ignSystemd.Units = append(ignSystemd.Units, qemuUnit)
 	}
 
 	// Only AppleHv with Apple Silicon can use Rosetta
@@ -530,7 +480,7 @@ func prepareCertFile(fpath string, name string) (File, error) {
 
 const (
 	systemdSSLConf = "/etc/systemd/system.conf.d/podman-machine-ssl.conf"
-	// envdSSLConf    = "/etc/environment.d/podman-machine-ssl.conf"
+	envdSSLConf    = "/etc/environment.d/podman-machine-ssl.conf"
 	profileSSLConf = "/etc/profile.d/podman-machine-ssl.sh"
 	sslCertFile    = "SSL_CERT_FILE"
 	sslCertDir     = "SSL_CERT_DIR"
@@ -538,7 +488,7 @@ const (
 
 func getSSLEnvironmentFiles(sslFileName, sslDirName string) []File {
 	systemdFileContent := "[Manager]\n"
-	// envdFileContent := ""
+	envdFileContent := ""
 	profileFileContent := ""
 	if sslFileName != "" {
 		// certs are written to UserCertsTargetPath see prepareCertFile()
@@ -546,21 +496,19 @@ func getSSLEnvironmentFiles(sslFileName, sslDirName string) []File {
 		// a path on the client (i.e. windows) but then join to linux path that will be used inside the VM.
 		env := fmt.Sprintf("%s=%q\n", sslCertFile, path.Join(define.UserCertsTargetPath, filepath.Base(sslFileName)))
 		systemdFileContent += "DefaultEnvironment=" + env
-		// envdFileContent += env
+		envdFileContent += env
 		profileFileContent += "export " + env
 	}
 	if sslDirName != "" {
 		// certs are written to UserCertsTargetPath see prepareCertFile()
 		env := fmt.Sprintf("%s=%q\n", sslCertDir, define.UserCertsTargetPath)
 		systemdFileContent += "DefaultEnvironment=" + env
-		// envdFileContent += env
+		envdFileContent += env
 		profileFileContent += "export " + env
 	}
 	return []File{
 		getSSLFile(systemdSSLConf, systemdFileContent),
-		// FIXME: something is very broken with the environment.d systemd generator.
-		// When setting any var there the systemd fails to boot successfully.
-		// getSSLFile(envdSSLConf, envdFileContent),
+		getSSLFile(envdSSLConf, envdFileContent),
 		getSSLFile(profileSSLConf, profileFileContent),
 	}
 }
@@ -683,24 +631,6 @@ func (i *IgnitionBuilder) Build() error {
 	return i.dynamicIgnition.Write()
 }
 
-func GetNetRecoveryFile() string {
-	return `#!/bin/bash
-# Verify network health, and bounce the network device if host connectivity
-# is lost. This is a temporary workaround for a known rare qemu/virtio issue
-# that affects some systems
-
-sleep 120 # allow time for network setup on initial boot
-while true; do
-  sleep 30
-  curl -s -o /dev/null --max-time 30 http://192.168.127.1/health
-  if [ "$?" != "0" ]; then
-    echo "bouncing nic due to loss of connectivity with host"
-    ifconfig enp0s1 down; ifconfig enp0s1 up
-  fi
-done
-`
-}
-
 func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username string) error {
 	// create the ignition file object
 	f := File{
@@ -744,19 +674,6 @@ func (i *IgnitionBuilder) AddPlaybook(contents string, destPath string, username
 	i.WithUnit(playbookUnit)
 
 	return nil
-}
-
-func GetNetRecoveryUnitFile() *parser.UnitFile {
-	recoveryUnit := parser.NewUnitFile()
-	recoveryUnit.Add("Unit", "Description", "Verifies health of network and recovers if necessary")
-	recoveryUnit.Add("Unit", "After", "sshd.socket sshd.service")
-	recoveryUnit.Add("Service", "ExecStart", "/usr/local/bin/net-health-recovery.sh")
-	recoveryUnit.Add("Service", "StandardOutput", "journal")
-	recoveryUnit.Add("Service", "StandardError", "journal")
-	recoveryUnit.Add("Service", "StandardInput", "null")
-	recoveryUnit.Add("Install", "WantedBy", "default.target")
-
-	return recoveryUnit
 }
 
 func DefaultReadyUnitFile() parser.UnitFile {
