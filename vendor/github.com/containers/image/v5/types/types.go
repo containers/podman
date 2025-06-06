@@ -659,6 +659,8 @@ type SystemContext struct {
 	// If true, the physical pull source of docker transport images logged as info level
 	DockerLogMirrorChoice bool
 	// Directory to use for OSTree temporary files
+	//
+	// Deprecated: The OSTree transport has been removed.
 	OSTreeTmpDirPath string
 	// If true, all blobs will have precomputed digests to ensure layers are not uploaded that already exist on the registry.
 	// Note that this requires writing blobs to temporary files, and takes more time than the default behavior,

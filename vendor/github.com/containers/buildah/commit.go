@@ -58,9 +58,20 @@ type CommitOptions struct {
 	// ReportWriter is an io.Writer which will be used to log the writing
 	// of the new image.
 	ReportWriter io.Writer
-	// HistoryTimestamp is the timestamp used when creating new items in the
-	// image's history.  If unset, the current time will be used.
+	// HistoryTimestamp specifies a timestamp to use for the image's
+	// created-on date, the corresponding field in new history entries, and
+	// the timestamps to set on contents in new layer diffs.  If left
+	// unset, the current time is used for the configuration and manifest,
+	// and timestamps of layer contents are used as-is.
 	HistoryTimestamp *time.Time
+	// SourceDateEpoch specifies a timestamp to use for the image's
+	// created-on date and the corresponding field in new history entries.
+	// If left unset, the current time is used for the configuration and
+	// manifest.
+	SourceDateEpoch *time.Time
+	// RewriteTimestamp, if set, forces timestamps in generated layers to
+	// not be later than the SourceDateEpoch, if it is set.
+	RewriteTimestamp bool
 	// github.com/containers/image/types SystemContext to hold credentials
 	// and other authentication/authorization information.
 	SystemContext *types.SystemContext
@@ -274,8 +285,9 @@ func (b *Builder) addManifest(ctx context.Context, manifestName string, imageSpe
 // if commit was successful and the image destination was local.
 func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options CommitOptions) (string, reference.Canonical, digest.Digest, error) {
 	var (
-		imgID string
-		src   types.ImageReference
+		imgID                string
+		src                  types.ImageReference
+		destinationTimestamp *time.Time
 	)
 
 	// If we weren't given a name, build a destination reference using a
@@ -292,6 +304,10 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		}
 		timestamp := time.Unix(0, 0).UTC()
 		options.HistoryTimestamp = &timestamp
+	}
+	destinationTimestamp = options.HistoryTimestamp
+	if options.SourceDateEpoch != nil {
+		destinationTimestamp = options.SourceDateEpoch
 	}
 	nameToRemove := ""
 	if dest == nil {
@@ -415,7 +431,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	}
 
 	var manifestBytes []byte
-	if manifestBytes, err = retryCopyImage(ctx, policyContext, maybeCachedDest, maybeCachedSrc, dest, getCopyOptions(b.store, options.ReportWriter, nil, systemContext, "", false, options.SignBy, options.OciEncryptLayers, options.OciEncryptConfig, nil, options.HistoryTimestamp), options.MaxRetries, options.RetryDelay); err != nil {
+	if manifestBytes, err = retryCopyImage(ctx, policyContext, maybeCachedDest, maybeCachedSrc, dest, getCopyOptions(b.store, options.ReportWriter, nil, systemContext, "", false, options.SignBy, options.OciEncryptLayers, options.OciEncryptConfig, nil, destinationTimestamp), options.MaxRetries, options.RetryDelay); err != nil {
 		return imgID, nil, "", fmt.Errorf("copying layers and metadata for container %q: %w", b.ContainerID, err)
 	}
 	// If we've got more names to attach, and we know how to do that for

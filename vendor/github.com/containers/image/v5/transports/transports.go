@@ -72,7 +72,7 @@ func ImageName(ref types.ImageReference) string {
 	return ref.Transport().Name() + ":" + ref.StringWithinTransport()
 }
 
-var deprecatedTransports = set.NewWithValues("atomic")
+var deprecatedTransports = set.NewWithValues("atomic", "ostree")
 
 // ListNames returns a list of non deprecated transport names.
 // Deprecated transports can be used, but are not presented to users.

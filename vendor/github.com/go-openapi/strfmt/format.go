@@ -16,7 +16,6 @@ package strfmt
 
 import (
 	"encoding"
-	stderrors "errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -24,7 +23,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/errors"
-	"github.com/mitchellh/mapstructure"
+	"github.com/go-viper/mapstructure/v2"
 )
 
 // Default is the default formats registry
@@ -102,7 +101,7 @@ func (f *defaultFormats) MapStructureHookFunc() mapstructure.DecodeHookFunc {
 		}
 		data, ok := obj.(string)
 		if !ok {
-			return nil, fmt.Errorf("failed to cast %+v to string", obj)
+			return nil, fmt.Errorf("failed to cast %+v to string: %w", obj, ErrFormat)
 		}
 
 		for _, v := range f.data {
@@ -118,7 +117,7 @@ func (f *defaultFormats) MapStructureHookFunc() mapstructure.DecodeHookFunc {
 				case "datetime":
 					input := data
 					if len(input) == 0 {
-						return nil, stderrors.New("empty string is an invalid datetime format")
+						return nil, fmt.Errorf("empty string is an invalid datetime format: %w", ErrFormat)
 					}
 					return ParseDateTime(input)
 				case "duration":

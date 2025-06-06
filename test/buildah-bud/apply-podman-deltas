@@ -240,7 +240,8 @@ skip_if_remote "--output option not implemented in podman-remote" \
                "build with custom build output and output rootfs to tar with no additional step" \
                "build with custom build output for single-stage-cached and output rootfs to directory" \
                "build with custom build output for multi-stage-cached and output rootfs to directory" \
-               "build with custom build output for multi-stage and output rootfs to directory"
+               "build with custom build output for multi-stage and output rootfs to directory" \
+               "build-with-two-outputs"
 
 # https://github.com/containers/podman/issues/14544
 skip_if_remote "logfile not implemented on remote" "bud-logfile-with-split-logfile-by-platform"

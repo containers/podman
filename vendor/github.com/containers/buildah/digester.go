@@ -133,7 +133,7 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 				}
 				hdr, err = tarReader.Next()
 			}
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				filterer.err = fmt.Errorf("reading tar archive: %w", err)
 				break
 			}
@@ -146,7 +146,11 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 		if err == nil {
 			err = err1
 		}
-		pipeReader.CloseWithError(err)
+		if err != nil {
+			pipeReader.CloseWithError(err)
+		} else {
+			pipeReader.Close()
+		}
 		filterer.wg.Done()
 	}()
 	return filterer

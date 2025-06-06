@@ -28,8 +28,9 @@ import (
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerImage "github.com/docker/docker/api/types/image"
 	dockerStorage "github.com/docker/docker/api/types/storage"
-	"github.com/docker/go-connections/nat"
+	dockerSpec "github.com/moby/docker-image-spec/specs-go/v1"
 	"github.com/opencontainers/go-digest"
+	imageSpec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 )
 
@@ -353,22 +354,20 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 	if err != nil {
 		return nil, err
 	}
-	ports, err := portsToPortSet(info.Config.ExposedPorts)
-	if err != nil {
-		return nil, err
-	}
 
 	// TODO: many fields in Config still need wiring
-	config := dockerContainer.Config{
-		User:         info.User,
-		ExposedPorts: ports,
-		Env:          info.Config.Env,
-		Cmd:          info.Config.Cmd,
-		Volumes:      info.Config.Volumes,
-		WorkingDir:   info.Config.WorkingDir,
-		Entrypoint:   info.Config.Entrypoint,
-		Labels:       info.Labels,
-		StopSignal:   info.Config.StopSignal,
+	config := dockerSpec.DockerOCIImageConfig{
+		ImageConfig: imageSpec.ImageConfig{
+			User:         info.User,
+			ExposedPorts: info.Config.ExposedPorts,
+			Env:          info.Config.Env,
+			Cmd:          info.Config.Cmd,
+			Volumes:      info.Config.Volumes,
+			WorkingDir:   info.Config.WorkingDir,
+			Entrypoint:   info.Config.Entrypoint,
+			Labels:       info.Labels,
+			StopSignal:   info.Config.StopSignal,
+		},
 	}
 
 	rootfs := dockerImage.RootFS{}
@@ -411,33 +410,6 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		VirtualSize:     info.VirtualSize,
 	}
 	return &handlers.ImageInspect{InspectResponse: dockerImageInspect}, nil
-}
-
-// portsToPortSet converts libpod's exposed ports to docker's structs
-func portsToPortSet(input map[string]struct{}) (nat.PortSet, error) {
-	ports := make(nat.PortSet)
-	for k := range input {
-		proto, port := nat.SplitProtoPort(k)
-		switch proto {
-		// See the OCI image spec for details:
-		// https://github.com/opencontainers/image-spec/blob/e562b04403929d582d449ae5386ff79dd7961a11/config.md#properties
-		case "tcp", "":
-			p, err := nat.NewPort("tcp", port)
-			if err != nil {
-				return nil, fmt.Errorf("unable to create tcp port from %s: %w", k, err)
-			}
-			ports[p] = struct{}{}
-		case "udp":
-			p, err := nat.NewPort("udp", port)
-			if err != nil {
-				return nil, fmt.Errorf("unable to create tcp port from %s: %w", k, err)
-			}
-			ports[p] = struct{}{}
-		default:
-			return nil, fmt.Errorf("invalid port proto %q in %q", proto, k)
-		}
-	}
-	return ports, nil
 }
 
 func GetImages(w http.ResponseWriter, r *http.Request) {

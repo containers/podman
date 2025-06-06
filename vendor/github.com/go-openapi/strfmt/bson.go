@@ -83,7 +83,7 @@ func (id *ObjectId) Scan(raw interface{}) error {
 	case string:
 		data = []byte(v)
 	default:
-		return fmt.Errorf("cannot sql.Scan() strfmt.URI from: %#v", v)
+		return fmt.Errorf("cannot sql.Scan() strfmt.URI from: %#v: %w", v, ErrFormat)
 	}
 
 	return id.UnmarshalText(data)

@@ -615,11 +615,11 @@ func (d *dockerImageDestination) PutSignaturesWithFormat(ctx context.Context, si
 		}
 		switch {
 		case d.c.supportsSignatures:
-			if err := d.putSignaturesToAPIExtension(ctx, signatures, *instanceDigest); err != nil {
+			if err := d.putSignaturesToAPIExtension(ctx, otherSignatures, *instanceDigest); err != nil {
 				return err
 			}
 		case d.c.signatureBase != nil:
-			if err := d.putSignaturesToLookaside(signatures, *instanceDigest); err != nil {
+			if err := d.putSignaturesToLookaside(otherSignatures, *instanceDigest); err != nil {
 				return err
 			}
 		default:
