@@ -1,0 +1,39 @@
+---
+# See the documentation for more information:
+# https://packit.dev/docs/configuration/
+
+downstream_package_name: podman
+upstream_tag_template: v{version}
+
+specfile_path: podman.spec
+
+jobs:
+  - job: copr_build
+    trigger: pull_request
+    notifications: &packit_failure_notification
+      failure_comment:
+        message: "Packit jobs failed. @containers/packit-build please check."
+    enable_net: true
+    targets:
+      - epel-10-x86_64
+      - epel-10-aarch64
+    actions:
+      post-upstream-clone: "curl --fail -O https://gitlab.com/redhat/centos-stream/rpms/podman/-/raw/c10s/podman.spec"
+
+  - job: tests
+    trigger: pull_request
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: &packit_test_targets
+      epel-10-x86_64:
+        distros: [RHEL-10-Nightly]
+    tmt_plan: "/plans/system/local-root"
+    identifier: "sys-local-root"
+
+  - job: tests
+    trigger: pull_request
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *packit_test_targets
+    tmt_plan: "/plans/system/remote-root"
+    identifier: "sys-remote-root"

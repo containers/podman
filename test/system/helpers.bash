@@ -748,6 +748,10 @@ function is_aarch64() {
     [ "$(uname -m)" == "aarch64" ]
 }
 
+function is_rhel_or_centos() {
+    [[ -f /etc/redhat-release ]] && grep -Eiq "Red Hat Enterprise Linux|CentOS Stream" /etc/redhat-release
+}
+
 function selinux_enabled() {
     /usr/sbin/selinuxenabled 2> /dev/null
 }
@@ -956,6 +960,12 @@ function skip_if_journald_unavailable {
 function skip_if_aarch64 {
     if is_aarch64; then
         skip "${msg:-Cannot run this test on aarch64 systems}"
+    fi
+}
+
+function skip_if_rhel_or_centos {
+    if is_rhel_or_centos; then
+        skip "${msg:-skip on RHEL and CentOS Stream}"
     fi
 }
 
