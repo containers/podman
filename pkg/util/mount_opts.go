@@ -185,6 +185,10 @@ func processOptionsInternal(options []string, isTmpfs bool, sourcePath string, g
 				return nil, fmt.Errorf("the 'U' option can only be set once: %w", ErrDupeMntOption)
 			}
 			foundU = true
+		case "noatime":
+			if !isTmpfs {
+				return nil, fmt.Errorf("the 'noatime' option is only allowed with tmpfs mounts: %w", ErrBadMntOption)
+			}
 		default:
 			return nil, fmt.Errorf("unknown mount option %q: %w", opt, ErrBadMntOption)
 		}
