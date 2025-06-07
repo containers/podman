@@ -61,6 +61,22 @@ export GOLANGCI_LINT_VERSION := 2.1.0
 #           use source debugging tools like delve.
 all: bin/buildah bin/imgtype bin/copy bin/inet bin/tutorial bin/dumpspec docs
 
+# Update nix/nixpkgs.json its latest stable commit
+.PHONY: nixpkgs
+nixpkgs:
+	@nix run \
+		-f channel:nixos-20.09 nix-prefetch-git \
+		-c nix-prefetch-git \
+		--no-deepClone \
+		https://github.com/nixos/nixpkgs refs/heads/nixos-20.09 > nix/nixpkgs.json
+
+# Build statically linked binary
+.PHONY: static
+static:
+	@nix build -f nix/
+	mkdir -p ./bin
+	cp -rfp ./result/bin/* ./bin/
+
 bin/buildah: $(SOURCES) internal/mkcw/embed/entrypoint_amd64.gz
 	$(GO_BUILD) $(BUILDAH_LDFLAGS) $(GO_GCFLAGS) "$(GOGCFLAGS)" -o $@ $(BUILDFLAGS) ./cmd/buildah
 	test -z "${SELINUXOPT}" || chcon --verbose -t $(SELINUXTYPE) $@

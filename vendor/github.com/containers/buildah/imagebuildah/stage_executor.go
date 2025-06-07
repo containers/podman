@@ -418,7 +418,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 				data = strings.TrimPrefix(data, "\n")
 				// add breakline when heredoc ends for docker compat
 				data = data + "\n"
-				// Create separate subdir for this file.
+				// Create seperate subdir for this file.
 				tmpDir, err := os.MkdirTemp(parse.GetTempDir(), "buildah-heredoc")
 				if err != nil {
 					return fmt.Errorf("unable to create tmp dir for heredoc run %q: %w", parse.GetTempDir(), err)
@@ -1270,15 +1270,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 	}
 
 	// Parse and populate buildOutputOption if needed
-	var buildOutputOptions []define.BuildOutputOption
-	if lastStage && len(s.executor.buildOutputs) > 0 {
-		for _, buildOutput := range s.executor.buildOutputs {
-			logrus.Debugf("generating custom build output with options %q", buildOutput)
-			buildOutputOption, err := parse.GetBuildOutput(buildOutput)
-			if err != nil {
-				return "", nil, false, fmt.Errorf("failed to parse build output %q: %w", buildOutput, err)
-			}
-			buildOutputOptions = append(buildOutputOptions, buildOutputOption)
+	var buildOutputOption define.BuildOutputOption
+	canGenerateBuildOutput := (s.executor.buildOutput != "" && lastStage)
+	if canGenerateBuildOutput {
+		logrus.Debugf("Generating custom build output with options %q", s.executor.buildOutput)
+		buildOutputOption, err = parse.GetBuildOutput(s.executor.buildOutput)
+		if err != nil {
+			return "", nil, false, fmt.Errorf("failed to parse build output: %w", err)
 		}
 	}
 
@@ -1313,7 +1311,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		}
 		// Generate build output from the new image, or the preexisting
 		// one if we didn't actually do anything, if needed.
-		for _, buildOutputOption := range buildOutputOptions {
+		if canGenerateBuildOutput {
 			if err := s.generateBuildOutput(buildOutputOption); err != nil {
 				return "", nil, onlyBaseImage, err
 			}
@@ -1468,7 +1466,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				}
 				logImageID(imgID)
 				// Generate build output if needed.
-				for _, buildOutputOption := range buildOutputOptions {
+				if canGenerateBuildOutput {
 					if err := s.generateBuildOutput(buildOutputOption); err != nil {
 						return "", nil, false, err
 					}
@@ -1699,7 +1697,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, false, fmt.Errorf("committing container for step %+v: %w", *step, err)
 			}
 			// Generate build output if needed.
-			for _, buildOutputOption := range buildOutputOptions {
+			if canGenerateBuildOutput {
 				if err := s.generateBuildOutput(buildOutputOption); err != nil {
 					return "", nil, false, err
 				}
@@ -1739,7 +1737,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 					return "", nil, false, fmt.Errorf("committing final squash step %+v: %w", *step, err)
 				}
 				// Generate build output if needed.
-				for _, buildOutputOption := range buildOutputOptions {
+				if canGenerateBuildOutput {
 					if err := s.generateBuildOutput(buildOutputOption); err != nil {
 						return "", nil, false, err
 					}
@@ -1754,7 +1752,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// then generate output manually since there is no opportunity
 				// for us to perform `commit` anywhere in the code.
 				// Generate build output if needed.
-				for _, buildOutputOption := range buildOutputOptions {
+				if canGenerateBuildOutput {
 					if err := s.generateBuildOutput(buildOutputOption); err != nil {
 						return "", nil, false, err
 					}
@@ -2245,11 +2243,9 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (referen
 	return nil, "", fmt.Errorf("failed pulling cache from all available sources %q", srcList)
 }
 
-// intermediateImageExists returns image ID if an intermediate image of currNode exists in the image store from a previous build.
+// intermediateImageExists returns true if an intermediate image of currNode exists in the image store from a previous build.
 // It verifies this by checking the parent of the top layer of the image and the history.
-// If more than one image matches as potiential candidates then priority is given to the most recently built image.
 func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool) (string, error) {
-	cacheCandidates := []storage.Image{}
 	// Get the list of images available in the image store
 	images, err := s.executor.store.Images()
 	if err != nil {
@@ -2320,12 +2316,8 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 			return "", err
 		}
 		if foundMatch {
-			cacheCandidates = append(cacheCandidates, image)
+			return image.ID, nil
 		}
-	}
-	if len(cacheCandidates) > 0 {
-		slices.SortFunc(cacheCandidates, func(a, b storage.Image) int { return a.Created.Compare(b.Created) })
-		return cacheCandidates[len(cacheCandidates)-1].ID, nil
 	}
 	return "", nil
 }

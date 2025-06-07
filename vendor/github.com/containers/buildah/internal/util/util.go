@@ -98,7 +98,7 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 	return nil
 }
 
-func SetHas[K comparable, V any](m map[K]V, k K) bool {
+func SetHas(m map[string]struct{}, k string) bool {
 	_, ok := m[k]
 	return ok
 }

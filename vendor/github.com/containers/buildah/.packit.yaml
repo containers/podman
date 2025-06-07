@@ -46,19 +46,17 @@ jobs:
     notifications: &copr_build_failure_notification
       failure_comment:
         message: "Ephemeral COPR build failed. @containers/packit-build please check."
-    # Fedora aliases documentation: https://packit.dev/docs/configuration#aliases
-    # python3-fedora-distro-aliases provides `resolve-fedora-aliases` command
     targets: &fedora_copr_targets
-      - fedora-all-x86_64
-      - fedora-all-aarch64
+    # f40 ships go 1.22 and we require go 1.23 now. This should be revert to fedora-all
+    # once either f40 is rebased to go 1.23 or f42 is released and f40 EOL.
+      - fedora-latest-stable-x86_64
+      - fedora-latest-stable-aarch64
+      - fedora-development-x86_64
+      - fedora-development-aarch64
     enable_net: true
-    # Disable osh diff scan until Go support is available
-    # Ref: https://github.com/openscanhub/known-false-positives/pull/30#issuecomment-2858698495
-    osh_diff_scan_after_copr_build: false
 
-  # Ignore until golang is updated in distro buildroot to 1.23.3+
   - job: copr_build
-    trigger: ignore
+    trigger: pull_request
     packages: [buildah-eln]
     notifications: *copr_build_failure_notification
     targets:
@@ -70,9 +68,8 @@ jobs:
           - "https://kojipkgs.fedoraproject.org/repos/eln-build/latest/aarch64/"
     enable_net: true
 
-  # Ignore until golang is updated in distro buildroot to 1.23.3+
   - job: copr_build
-    trigger: ignore
+    trigger: pull_request
     packages: [buildah-centos]
     notifications: *copr_build_failure_notification
     targets: &centos_copr_targets
@@ -98,20 +95,21 @@ jobs:
   - job: tests
     trigger: pull_request
     packages: [buildah-fedora]
-    targets:
-      - fedora-all-x86_64
+    targets: &fedora_copr_test_targets
+    # See the other comment above, this should be reverted to fedora-all when possible.
+      - fedora-latest-stable-x86_64
+      - fedora-development-x86_64
     tf_extra_params:
       environments:
         - artifacts:
           - type: repository-file
             id: https://copr.fedorainfracloud.org/coprs/rhcontainerbot/podman-next/repo/fedora-$releasever/rhcontainerbot-podman-next-fedora-$releasever.repo
 
-  # Ignore until golang is updated in distro buildroot to 1.23.3+
   # Tests on CentOS Stream for main branch PRs
   - job: tests
-    trigger: ignore
+    trigger: pull_request
     packages: [buildah-centos]
-    targets:
+    targets: &centos_copr_test_targets
       - centos-stream-9-x86_64
       - centos-stream-10-x86_64
     tf_extra_params:

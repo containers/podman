@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/containers/buildah/define"
-	"github.com/opencontainers/cgroups/devices/config"
 	"github.com/opencontainers/runc/libcontainer/devices"
 )
 
@@ -48,7 +47,7 @@ func DeviceFromPath(device string) (define.ContainerDevices, error) {
 	}
 	for _, d := range srcDevices {
 		d.Path = filepath.Join(dst, filepath.Base(d.Path))
-		d.Permissions = config.Permissions(permissions)
+		d.Permissions = devices.Permissions(permissions)
 		device := define.BuildahDevice{Device: *d, Source: src, Destination: dst}
 		devs = append(devs, device)
 	}

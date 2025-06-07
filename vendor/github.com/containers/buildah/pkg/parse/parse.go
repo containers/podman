@@ -23,7 +23,6 @@ import (
 	"github.com/containers/buildah/internal/sbom"
 	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/sshagent"
-	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
@@ -36,7 +35,6 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	units "github.com/docker/go-units"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/selinux/go-selinux"
 	"github.com/openshift/imagebuilder"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -81,25 +79,6 @@ func RepoNamesToNamedReferences(destList []string) ([]reference.Named, error) {
 // CommonBuildOptions parses the build options from the bud cli
 func CommonBuildOptions(c *cobra.Command) (*define.CommonBuildOptions, error) {
 	return CommonBuildOptionsFromFlagSet(c.Flags(), c.Flag)
-}
-
-// If user selected to run with currentLabelOpts then append on the current user and role
-func currentLabelOpts() ([]string, error) {
-	label, err := selinux.CurrentLabel()
-	if err != nil {
-		return nil, err
-	}
-	if label == "" {
-		return nil, nil
-	}
-	con, err := selinux.NewContext(label)
-	if err != nil {
-		return nil, err
-	}
-	return []string{
-		fmt.Sprintf("label=user:%s", con["user"]),
-		fmt.Sprintf("label=role:%s", con["role"]),
-	}, nil
 }
 
 // CommonBuildOptionsFromFlagSet parses the build options from the bud cli
@@ -222,18 +201,6 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		OCIHooksDir:   ociHooks,
 	}
 	securityOpts, _ := flags.GetStringArray("security-opt")
-	defConfig, err := config.Default()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get container config: %w", err)
-	}
-	if defConfig.Containers.EnableLabeledUsers {
-		defSecurityOpts, err := currentLabelOpts()
-		if err != nil {
-			return nil, err
-		}
-
-		securityOpts = append(defSecurityOpts, securityOpts...)
-	}
 	if err := parseSecurityOpts(securityOpts, commonOpts); err != nil {
 		return nil, err
 	}
@@ -365,9 +332,6 @@ func validateExtraHost(val string) error {
 	arr := strings.SplitN(val, ":", 2)
 	if len(arr) != 2 || len(arr[0]) == 0 {
 		return fmt.Errorf("bad format for add-host: %q", val)
-	}
-	if arr[1] == etchosts.HostGateway {
-		return nil
 	}
 	if _, err := validateIPAddress(arr[1]); err != nil {
 		return fmt.Errorf("invalid IP address in add-host: %q", arr[1])
@@ -708,7 +672,7 @@ func AuthConfig(creds string) (*types.DockerAuthConfig, error) {
 // GetBuildOutput is responsible for parsing custom build output argument i.e `build --output` flag.
 // Takes `buildOutput` as string and returns BuildOutputOption
 func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
-	if buildOutput == "-" {
+	if len(buildOutput) == 1 && buildOutput == "-" {
 		// Feature parity with buildkit, output tar to stdout
 		// Read more here: https://docs.docker.com/engine/reference/commandline/build/#custom-build-outputs
 		return define.BuildOutputOption{
@@ -727,48 +691,56 @@ func GetBuildOutput(buildOutput string) (define.BuildOutputOption, error) {
 	}
 	isDir := true
 	isStdout := false
-	typeSelected := ""
-	pathSelected := ""
-	for _, option := range strings.Split(buildOutput, ",") {
-		key, value, found := strings.Cut(option, "=")
-		if !found {
+	typeSelected := false
+	pathSelected := false
+	path := ""
+	tokens := strings.Split(buildOutput, ",")
+	for _, option := range tokens {
+		arr := strings.SplitN(option, "=", 2)
+		if len(arr) != 2 {
 			return define.BuildOutputOption{}, fmt.Errorf("invalid build output options %q, expected format key=value", buildOutput)
 		}
-		switch key {
+		switch arr[0] {
 		case "type":
-			if typeSelected != "" {
-				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", key)
+			if typeSelected {
+				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", arr[0])
 			}
-			typeSelected = value
-			switch typeSelected {
+			typeSelected = true
+			switch arr[1] {
 			case "local":
 				isDir = true
 			case "tar":
 				isDir = false
 			default:
-				return define.BuildOutputOption{}, fmt.Errorf("invalid type %q selected for build output options %q", value, buildOutput)
+				return define.BuildOutputOption{}, fmt.Errorf("invalid type %q selected for build output options %q", arr[1], buildOutput)
 			}
 		case "dest":
-			if pathSelected != "" {
-				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", key)
+			if pathSelected {
+				return define.BuildOutputOption{}, fmt.Errorf("duplicate %q not supported", arr[0])
 			}
-			pathSelected = value
+			pathSelected = true
+			path = arr[1]
 		default:
-			return define.BuildOutputOption{}, fmt.Errorf("unrecognized key %q in build output option: %q", key, buildOutput)
+			return define.BuildOutputOption{}, fmt.Errorf("unrecognized key %q in build output option: %q", arr[0], buildOutput)
 		}
 	}
 
-	if typeSelected == "" || pathSelected == "" {
-		return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, accepted keys are "type" and "dest" must be present`, buildOutput)
+	if !typeSelected || !pathSelected {
+		return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, accepted keys are type and dest must be present", buildOutput)
 	}
 
-	if pathSelected == "-" {
+	if path == "-" {
 		if isDir {
-			return define.BuildOutputOption{}, fmt.Errorf(`invalid build output option %q, "type=local" can not be used with "dest=-"`, buildOutput)
+			return define.BuildOutputOption{}, fmt.Errorf("invalid build output option %q, type=local and dest=- is not supported", buildOutput)
 		}
+		return define.BuildOutputOption{
+			Path:     "",
+			IsDir:    false,
+			IsStdout: true,
+		}, nil
 	}
 
-	return define.BuildOutputOption{Path: pathSelected, IsDir: isDir, IsStdout: isStdout}, nil
+	return define.BuildOutputOption{Path: path, IsDir: isDir, IsStdout: isStdout}, nil
 }
 
 // TeeType parses a string value and returns a TeeType
