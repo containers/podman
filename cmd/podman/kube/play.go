@@ -55,7 +55,7 @@ var (
 		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		RunE:              play,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman kube play nginx.yml
   cat nginx.yml | podman kube play -
@@ -71,7 +71,7 @@ var (
 		Long:              playDescription,
 		Hidden:            true,
 		RunE:              playKube,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman play kube nginx.yml
   cat nginx.yml | podman play kube -
@@ -276,7 +276,7 @@ func play(cmd *cobra.Command, args []string) error {
 		return errors.New("--force may be specified only with --down")
 	}
 
-	reader, err := readerFromArg(args[0])
+	reader, err := readerFromArgs(args)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func play(cmd *cobra.Command, args []string) error {
 		playOptions.ServiceContainer = true
 
 		// Read the kube yaml file again so that a reader can be passed down to the teardown function
-		teardownReader, err = readerFromArg(args[0])
+		teardownReader, err = readerFromArgs(args)
 		if err != nil {
 			return err
 		}
@@ -362,6 +362,29 @@ func play(cmd *cobra.Command, args []string) error {
 
 func playKube(cmd *cobra.Command, args []string) error {
 	return play(cmd, args)
+}
+
+func readerFromArgs(args []string) (*bytes.Reader, error) {
+	var combined bytes.Buffer
+
+	for _, arg := range args {
+		reader, err := readerFromArg(arg)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+		// Write the document content
+		combined.Write(data)
+
+		// Add separator
+		combined.WriteString("\n---\n")
+	}
+	return bytes.NewReader(combined.Bytes()), nil
 }
 
 func readerFromArg(fileName string) (*bytes.Reader, error) {
