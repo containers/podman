@@ -8,9 +8,11 @@ import (
 )
 
 var (
-	ErrWrongState      = errors.New("VM in wrong state to perform action")
-	ErrVMAlreadyExists = errors.New("VM already exists")
-	ErrNotImplemented  = errors.New("functionality not implemented")
+	ErrWrongState          = errors.New("VM in wrong state to perform action")
+	ErrVMAlreadyExists     = errors.New("VM already exists")
+	ErrNotImplemented      = errors.New("functionality not implemented")
+	ErrInitRelaunchAttempt = errors.New("stopping execution: 'init' relaunched with --reexec flag to reinitialize the VM")
+	ErrRebootInitiated     = errors.New("system reboot initiated")
 )
 
 type ErrVMRunningCannotDestroyed struct {

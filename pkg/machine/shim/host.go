@@ -100,8 +100,12 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	if err != nil {
 		return err
 	}
-	machineLock.Lock()
-	defer machineLock.Unlock()
+
+	// If the machine is being re-launched, the lock is already held
+	if !opts.ReExec {
+		machineLock.Lock()
+		defer machineLock.Unlock()
+	}
 
 	mc, err := vmconfigs.NewMachineConfig(opts, dirs, sshIdentityPath, mp.VMType(), machineLock)
 	if err != nil {
@@ -111,8 +115,9 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	mc.Version = vmconfigs.MachineConfigVersion
 
 	createOpts := machineDefine.CreateVMOpts{
-		Name: opts.Name,
-		Dirs: dirs,
+		Name:   opts.Name,
+		Dirs:   dirs,
+		ReExec: opts.ReExec,
 	}
 
 	if umn := opts.UserModeNetworking; umn != nil {
@@ -264,6 +269,14 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	}
 	ignBuilder.WithUnit(readyUnit)
 
+	// CreateVM could cause the init command to be re-launched in some cases (e.g. wsl)
+	// so we need to avoid creating the machine config or connections before this check happens.
+	// when relaunching, the invoked 'init' command will be responsible to set up the machine
+	err = mp.CreateVM(createOpts, mc, &ignBuilder)
+	if err != nil {
+		return err
+	}
+
 	// TODO AddSSHConnectionToPodmanSocket could take an machineconfig instead
 	if err := connection.AddSSHConnectionsToPodmanSocket(mc.HostUser.UID, mc.SSH.Port, mc.SSH.IdentityPath, mc.Name, mc.SSH.RemoteUsername, opts); err != nil {
 		return err
@@ -277,11 +290,6 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		return connection.RemoveConnections(machines, mc.Name, mc.Name+"-root")
 	}
 	callbackFuncs.Add(cleanup)
-
-	err = mp.CreateVM(createOpts, mc, &ignBuilder)
-	if err != nil {
-		return err
-	}
 
 	if len(opts.IgnitionPath) == 0 {
 		if err := ignBuilder.Build(); err != nil {

@@ -3,6 +3,7 @@
 package machine
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -232,6 +233,14 @@ func initMachine(cmd *cobra.Command, args []string) error {
 
 	err = shim.Init(initOpts, provider)
 	if err != nil {
+		// The installation is partially complete and podman should
+		// exit gracefully with no error and no success message.
+		// Examples:
+		// - a user has chosen to perform their own reboot
+		// - reexec for limited admin operations, returning to parent
+		if errors.Is(err, define.ErrInitRelaunchAttempt) {
+			return nil
+		}
 		return err
 	}
 
