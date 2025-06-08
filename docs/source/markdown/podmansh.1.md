@@ -46,7 +46,7 @@ After=local-fs.target
 [Container]
 Image=registry.fedoraproject.org/fedora
 ContainerName=podmansh
-RemapUsers=keep-id
+UserNS=keep-id
 RunInit=yes
 DropCapability=all
 NoNewPrivileges=true
@@ -74,7 +74,7 @@ After=local-fs.target
 [Container]
 Image=registry.fedoraproject.org/fedora
 ContainerName=podmansh
-RemapUsers=keep-id
+UserNS=keep-id
 RunInit=yes
 
 Volume=%h/data:%h:Z
@@ -104,7 +104,7 @@ After=local-fs.target
 [Container]
 Image=registry.fedoraproject.org/fedora
 ContainerName=podmansh
-RemapUsers=keep-id
+UserNS=keep-id
 RunInit=yes
 PodmanArgs=--security-opt=unmask=/sys/fs/selinux \
 	--security-opt=label=nested \
