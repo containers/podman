@@ -36,7 +36,7 @@ func print(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	fmt.Println(quadletContents)
+	fmt.Printf("%s", quadletContents)
 
 	return nil
 }
