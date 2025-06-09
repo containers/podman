@@ -45,7 +45,7 @@ var _ json.Unmarshaler = (*DateTime)(nil)
 
 // MarshalJSON marshal to time type.
 func (d DateTime) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.Time())
+	return json.Marshal(d.Time().UTC())
 }
 
 // UnmarshalJSON creates a primitive.DateTime from a JSON string.
@@ -141,6 +141,16 @@ type Timestamp struct {
 	I uint32
 }
 
+// After reports whether the time instant tp is after tp2.
+func (tp Timestamp) After(tp2 Timestamp) bool {
+	return tp.T > tp2.T || (tp.T == tp2.T && tp.I > tp2.I)
+}
+
+// Before reports whether the time instant tp is before tp2.
+func (tp Timestamp) Before(tp2 Timestamp) bool {
+	return tp.T < tp2.T || (tp.T == tp2.T && tp.I < tp2.I)
+}
+
 // Equal compares tp to tp2 and returns true if they are equal.
 func (tp Timestamp) Equal(tp2 Timestamp) bool {
 	return tp.T == tp2.T && tp.I == tp2.I
@@ -151,24 +161,25 @@ func (tp Timestamp) IsZero() bool {
 	return tp.T == 0 && tp.I == 0
 }
 
-// CompareTimestamp returns an integer comparing two Timestamps, where T is compared first, followed by I.
-// Returns 0 if tp = tp2, 1 if tp > tp2, -1 if tp < tp2.
-func CompareTimestamp(tp, tp2 Timestamp) int {
-	if tp.Equal(tp2) {
+// Compare compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
+// tp2, it returns +1; if they're the same, it returns 0.
+func (tp Timestamp) Compare(tp2 Timestamp) int {
+	switch {
+	case tp.Equal(tp2):
 		return 0
-	}
-
-	if tp.T > tp2.T {
-		return 1
-	}
-	if tp.T < tp2.T {
+	case tp.Before(tp2):
 		return -1
+	default:
+		return +1
 	}
-	// Compare I values because T values are equal
-	if tp.I > tp2.I {
-		return 1
-	}
-	return -1
+}
+
+// CompareTimestamp compares the time instant tp with tp2. If tp is before tp2, it returns -1; if tp is after
+// tp2, it returns +1; if they're the same, it returns 0.
+//
+// Deprecated: Use Timestamp.Compare instead.
+func CompareTimestamp(tp, tp2 Timestamp) int {
+	return tp.Compare(tp2)
 }
 
 // MinKey represents the BSON minkey value.
@@ -186,6 +197,9 @@ type MaxKey struct{}
 type D []E
 
 // Map creates a map from the elements of the D.
+//
+// Deprecated: Converting directly from a D to an M will not be supported in Go Driver 2.0. Instead,
+// users should marshal the D to BSON using bson.Marshal and unmarshal it to M using bson.Unmarshal.
 func (d D) Map() M {
 	m := make(M, len(d))
 	for _, e := range d {

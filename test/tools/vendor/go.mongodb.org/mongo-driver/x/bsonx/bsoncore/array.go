@@ -7,10 +7,10 @@
 package bsoncore
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 )
 
 // NewArrayLengthError creates and returns an error for when the length of an array exceeds the
@@ -53,7 +53,7 @@ func (a Array) DebugString() string {
 	if len(a) < 5 {
 		return "<malformed>"
 	}
-	var buf bytes.Buffer
+	var buf strings.Builder
 	buf.WriteString("Array")
 	length, rem, _ := ReadLength(a) // We know we have enough bytes to read the length
 	buf.WriteByte('(')
@@ -69,7 +69,7 @@ func (a Array) DebugString() string {
 			buf.WriteString(fmt.Sprintf("<malformed (%d)>", length))
 			break
 		}
-		fmt.Fprintf(&buf, "%s", elem.Value().DebugString())
+		buf.WriteString(elem.Value().DebugString())
 		if length != 1 {
 			buf.WriteByte(',')
 		}
@@ -85,7 +85,7 @@ func (a Array) String() string {
 	if len(a) < 5 {
 		return ""
 	}
-	var buf bytes.Buffer
+	var buf strings.Builder
 	buf.WriteByte('[')
 
 	length, rem, _ := ReadLength(a) // We know we have enough bytes to read the length
@@ -100,7 +100,7 @@ func (a Array) String() string {
 		if !ok {
 			return ""
 		}
-		fmt.Fprintf(&buf, "%s", elem.Value().String())
+		buf.WriteString(elem.Value().String())
 		if length > 1 {
 			buf.WriteByte(',')
 		}

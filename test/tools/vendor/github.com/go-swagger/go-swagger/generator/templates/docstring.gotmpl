@@ -10,13 +10,13 @@
   {{- else }}
     {{- humanize .Name }}
   {{- end }}
-  {{- if or .MinProperties .MinProperties }}
+  {{- if or .MinProperties .MaxProperties }}
 //
     {{- if .MinProperties }}
-// Min Properties: {{ .MinProperties }}
+// MinProperties: {{ .MinProperties }}
     {{- end }}
     {{- if .MaxProperties }}
-// Max Properties: {{ .MaxProperties }}
+// MaxProperties: {{ .MaxProperties }}
     {{- end }}
   {{- end }}
   {{- if .Example }}

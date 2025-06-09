@@ -63,9 +63,10 @@ func writeToFile(swspec *spec.Swagger, pretty bool, format string, output string
 			}
 			var bb interface{}
 			bb, err = data.MarshalYAML()
-			b = bb.([]byte)
+			if err == nil {
+				b = bb.([]byte)
+			}
 		}
-
 	}
 
 	if err != nil {

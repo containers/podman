@@ -15,13 +15,15 @@
 package validate
 
 import (
-	"fmt"
+	stderrors "errors"
 	"reflect"
 	"strings"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/spec"
 )
+
+var emptyResult = &Result{MatchCount: 1}
 
 // Result represents a validation result set, composed of
 // errors and warnings.
@@ -50,8 +52,10 @@ type Result struct {
 	// Schemata for slice items
 	itemSchemata []itemSchemata
 
-	cachedFieldSchemta map[FieldKey][]*spec.Schema
-	cachedItemSchemata map[ItemKey][]*spec.Schema
+	cachedFieldSchemata map[FieldKey][]*spec.Schema
+	cachedItemSchemata  map[ItemKey][]*spec.Schema
+
+	wantsRedeemOnMerge bool
 }
 
 // FieldKey is a pair of an object and a field, usable as a key for a map.
@@ -116,6 +120,9 @@ func (r *Result) Merge(others ...*Result) *Result {
 		}
 		r.mergeWithoutRootSchemata(other)
 		r.rootObjectSchemata.Append(other.rootObjectSchemata)
+		if other.wantsRedeemOnMerge {
+			pools.poolOfResults.RedeemResult(other)
+		}
 	}
 	return r
 }
@@ -132,10 +139,9 @@ func (r *Result) RootObjectSchemata() []*spec.Schema {
 }
 
 // FieldSchemata returns the schemata which apply to fields in objects.
-// nolint: dupl
 func (r *Result) FieldSchemata() map[FieldKey][]*spec.Schema {
-	if r.cachedFieldSchemta != nil {
-		return r.cachedFieldSchemta
+	if r.cachedFieldSchemata != nil {
+		return r.cachedFieldSchemata
 	}
 
 	ret := make(map[FieldKey][]*spec.Schema, len(r.fieldSchemata))
@@ -147,12 +153,12 @@ func (r *Result) FieldSchemata() map[FieldKey][]*spec.Schema {
 			ret[key] = append(ret[key], fs.schemata.multiple...)
 		}
 	}
-	r.cachedFieldSchemta = ret
+	r.cachedFieldSchemata = ret
+
 	return ret
 }
 
 // ItemSchemata returns the schemata which apply to items in slices.
-// nolint: dupl
 func (r *Result) ItemSchemata() map[ItemKey][]*spec.Schema {
 	if r.cachedItemSchemata != nil {
 		return r.cachedItemSchemata
@@ -172,12 +178,13 @@ func (r *Result) ItemSchemata() map[ItemKey][]*spec.Schema {
 }
 
 func (r *Result) resetCaches() {
-	r.cachedFieldSchemta = nil
+	r.cachedFieldSchemata = nil
 	r.cachedItemSchemata = nil
 }
 
 // mergeForField merges other into r, assigning other's root schemata to the given Object and field name.
-// nolint: unparam
+//
+//nolint:unparam
 func (r *Result) mergeForField(obj map[string]interface{}, field string, other *Result) *Result {
 	if other == nil {
 		return r
@@ -188,18 +195,23 @@ func (r *Result) mergeForField(obj map[string]interface{}, field string, other *
 		if r.fieldSchemata == nil {
 			r.fieldSchemata = make([]fieldSchemata, len(obj))
 		}
+		// clone other schemata, as other is about to be redeemed to the pool
 		r.fieldSchemata = append(r.fieldSchemata, fieldSchemata{
 			obj:      obj,
 			field:    field,
-			schemata: other.rootObjectSchemata,
+			schemata: other.rootObjectSchemata.Clone(),
 		})
+	}
+	if other.wantsRedeemOnMerge {
+		pools.poolOfResults.RedeemResult(other)
 	}
 
 	return r
 }
 
 // mergeForSlice merges other into r, assigning other's root schemata to the given slice and index.
-// nolint: unparam
+//
+//nolint:unparam
 func (r *Result) mergeForSlice(slice reflect.Value, i int, other *Result) *Result {
 	if other == nil {
 		return r
@@ -210,29 +222,38 @@ func (r *Result) mergeForSlice(slice reflect.Value, i int, other *Result) *Resul
 		if r.itemSchemata == nil {
 			r.itemSchemata = make([]itemSchemata, slice.Len())
 		}
+		// clone other schemata, as other is about to be redeemed to the pool
 		r.itemSchemata = append(r.itemSchemata, itemSchemata{
 			slice:    slice,
 			index:    i,
-			schemata: other.rootObjectSchemata,
+			schemata: other.rootObjectSchemata.Clone(),
 		})
+	}
+
+	if other.wantsRedeemOnMerge {
+		pools.poolOfResults.RedeemResult(other)
 	}
 
 	return r
 }
 
 // addRootObjectSchemata adds the given schemata for the root object of the result.
-// The slice schemata might be reused. I.e. do not modify it after being added to a result.
+//
+// Since the slice schemata might be reused, it is shallow-cloned before saving it into the result.
 func (r *Result) addRootObjectSchemata(s *spec.Schema) {
-	r.rootObjectSchemata.Append(schemata{one: s})
+	clone := *s
+	r.rootObjectSchemata.Append(schemata{one: &clone})
 }
 
 // addPropertySchemata adds the given schemata for the object and field.
-// The slice schemata might be reused. I.e. do not modify it after being added to a result.
+//
+// Since the slice schemata might be reused, it is shallow-cloned before saving it into the result.
 func (r *Result) addPropertySchemata(obj map[string]interface{}, fld string, schema *spec.Schema) {
 	if r.fieldSchemata == nil {
 		r.fieldSchemata = make([]fieldSchemata, 0, len(obj))
 	}
-	r.fieldSchemata = append(r.fieldSchemata, fieldSchemata{obj: obj, field: fld, schemata: schemata{one: schema}})
+	clone := *schema
+	r.fieldSchemata = append(r.fieldSchemata, fieldSchemata{obj: obj, field: fld, schemata: schemata{one: &clone}})
 }
 
 /*
@@ -255,17 +276,21 @@ func (r *Result) mergeWithoutRootSchemata(other *Result) {
 
 	if other.fieldSchemata != nil {
 		if r.fieldSchemata == nil {
-			r.fieldSchemata = other.fieldSchemata
-		} else {
-			r.fieldSchemata = append(r.fieldSchemata, other.fieldSchemata...)
+			r.fieldSchemata = make([]fieldSchemata, 0, len(other.fieldSchemata))
+		}
+		for _, field := range other.fieldSchemata {
+			field.schemata = field.schemata.Clone()
+			r.fieldSchemata = append(r.fieldSchemata, field)
 		}
 	}
 
 	if other.itemSchemata != nil {
 		if r.itemSchemata == nil {
-			r.itemSchemata = other.itemSchemata
-		} else {
-			r.itemSchemata = append(r.itemSchemata, other.itemSchemata...)
+			r.itemSchemata = make([]itemSchemata, 0, len(other.itemSchemata))
+		}
+		for _, field := range other.itemSchemata {
+			field.schemata = field.schemata.Clone()
+			r.itemSchemata = append(r.itemSchemata, field)
 		}
 	}
 }
@@ -280,6 +305,9 @@ func (r *Result) MergeAsErrors(others ...*Result) *Result {
 			r.AddErrors(other.Errors...)
 			r.AddErrors(other.Warnings...)
 			r.MatchCount += other.MatchCount
+			if other.wantsRedeemOnMerge {
+				pools.poolOfResults.RedeemResult(other)
+			}
 		}
 	}
 	return r
@@ -295,6 +323,9 @@ func (r *Result) MergeAsWarnings(others ...*Result) *Result {
 			r.AddWarnings(other.Errors...)
 			r.AddWarnings(other.Warnings...)
 			r.MatchCount += other.MatchCount
+			if other.wantsRedeemOnMerge {
+				pools.poolOfResults.RedeemResult(other)
+			}
 		}
 	}
 	return r
@@ -356,16 +387,21 @@ func (r *Result) keepRelevantErrors() *Result {
 	strippedErrors := []error{}
 	for _, e := range r.Errors {
 		if strings.HasPrefix(e.Error(), "IMPORTANT!") {
-			strippedErrors = append(strippedErrors, fmt.Errorf(strings.TrimPrefix(e.Error(), "IMPORTANT!")))
+			strippedErrors = append(strippedErrors, stderrors.New(strings.TrimPrefix(e.Error(), "IMPORTANT!")))
 		}
 	}
 	strippedWarnings := []error{}
 	for _, e := range r.Warnings {
 		if strings.HasPrefix(e.Error(), "IMPORTANT!") {
-			strippedWarnings = append(strippedWarnings, fmt.Errorf(strings.TrimPrefix(e.Error(), "IMPORTANT!")))
+			strippedWarnings = append(strippedWarnings, stderrors.New(strings.TrimPrefix(e.Error(), "IMPORTANT!")))
 		}
 	}
-	strippedResult := new(Result)
+	var strippedResult *Result
+	if r.wantsRedeemOnMerge {
+		strippedResult = pools.poolOfResults.BorrowResult()
+	} else {
+		strippedResult = new(Result)
+	}
 	strippedResult.Errors = strippedErrors
 	strippedResult.Warnings = strippedWarnings
 	return strippedResult
@@ -427,6 +463,27 @@ func (r *Result) AsError() error {
 	return errors.CompositeValidationError(r.Errors...)
 }
 
+func (r *Result) cleared() *Result {
+	// clear the Result to be reusable. Keep allocated capacity.
+	r.Errors = r.Errors[:0]
+	r.Warnings = r.Warnings[:0]
+	r.MatchCount = 0
+	r.data = nil
+	r.rootObjectSchemata.one = nil
+	r.rootObjectSchemata.multiple = r.rootObjectSchemata.multiple[:0]
+	r.fieldSchemata = r.fieldSchemata[:0]
+	r.itemSchemata = r.itemSchemata[:0]
+	for k := range r.cachedFieldSchemata {
+		delete(r.cachedFieldSchemata, k)
+	}
+	for k := range r.cachedItemSchemata {
+		delete(r.cachedItemSchemata, k)
+	}
+	r.wantsRedeemOnMerge = true // mark this result as eligible for redeem when merged into another
+
+	return r
+}
+
 // schemata is an arbitrary number of schemata. It does a distinction between zero,
 // one and many schemata to avoid slice allocations.
 type schemata struct {
@@ -453,7 +510,7 @@ func (s *schemata) Slice() []*spec.Schema {
 	return s.multiple
 }
 
-// appendSchemata appends the schemata in other to s. It mutated s in-place.
+// appendSchemata appends the schemata in other to s. It mutates s in-place.
 func (s *schemata) Append(other schemata) {
 	if other.one == nil && len(other.multiple) == 0 {
 		return
@@ -483,4 +540,24 @@ func (s *schemata) Append(other schemata) {
 			}
 		}
 	}
+}
+
+func (s schemata) Clone() schemata {
+	var clone schemata
+
+	if s.one != nil {
+		clone.one = new(spec.Schema)
+		*clone.one = *s.one
+	}
+
+	if len(s.multiple) > 0 {
+		clone.multiple = make([]*spec.Schema, len(s.multiple))
+		for idx := 0; idx < len(s.multiple); idx++ {
+			sp := new(spec.Schema)
+			*sp = *s.multiple[idx]
+			clone.multiple[idx] = sp
+		}
+	}
+
+	return clone
 }

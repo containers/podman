@@ -40,14 +40,6 @@
 // Min Items: {{ .MinItems }}
 {{- end }}
 
-{{- if .MinProperties }}
-// Min Properties: {{ .MinProperties }}
-{{- end }}
-
-{{- if .MaxProperties }}
-// Max Properties: {{ .MaxProperties }}
-{{- end }}
-
 {{- if .UniqueItems }}
 // Unique: true
 {{- end }}
@@ -57,6 +49,6 @@
 {{- end }}
 
 {{- if .Enum }}
-// Enum: {{ printf "%v" .Enum }}
+// Enum: {{ json .Enum }}
 {{- end }}
 {{- end}}

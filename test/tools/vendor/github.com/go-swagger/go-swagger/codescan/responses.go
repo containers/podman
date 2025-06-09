@@ -1,16 +1,14 @@
 package codescan
 
 import (
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/types"
 	"strings"
 
-	"github.com/pkg/errors"
-
-	"golang.org/x/tools/go/ast/astutil"
-
 	"github.com/go-openapi/spec"
+	"golang.org/x/tools/go/ast/astutil"
 )
 
 type responseTypable struct {
@@ -97,22 +95,50 @@ func (sv headerValidations) SetMaximum(val float64, exclusive bool) {
 	sv.current.Maximum = &val
 	sv.current.ExclusiveMaximum = exclusive
 }
+
 func (sv headerValidations) SetMinimum(val float64, exclusive bool) {
 	sv.current.Minimum = &val
 	sv.current.ExclusiveMinimum = exclusive
 }
-func (sv headerValidations) SetMultipleOf(val float64)      { sv.current.MultipleOf = &val }
-func (sv headerValidations) SetMinItems(val int64)          { sv.current.MinItems = &val }
-func (sv headerValidations) SetMaxItems(val int64)          { sv.current.MaxItems = &val }
-func (sv headerValidations) SetMinLength(val int64)         { sv.current.MinLength = &val }
-func (sv headerValidations) SetMaxLength(val int64)         { sv.current.MaxLength = &val }
-func (sv headerValidations) SetPattern(val string)          { sv.current.Pattern = val }
-func (sv headerValidations) SetUnique(val bool)             { sv.current.UniqueItems = val }
-func (sv headerValidations) SetCollectionFormat(val string) { sv.current.CollectionFormat = val }
+
+func (sv headerValidations) SetMultipleOf(val float64) {
+	sv.current.MultipleOf = &val
+}
+
+func (sv headerValidations) SetMinItems(val int64) {
+	sv.current.MinItems = &val
+}
+
+func (sv headerValidations) SetMaxItems(val int64) {
+	sv.current.MaxItems = &val
+}
+
+func (sv headerValidations) SetMinLength(val int64) {
+	sv.current.MinLength = &val
+}
+
+func (sv headerValidations) SetMaxLength(val int64) {
+	sv.current.MaxLength = &val
+}
+
+func (sv headerValidations) SetPattern(val string) {
+	sv.current.Pattern = val
+}
+
+func (sv headerValidations) SetUnique(val bool) {
+	sv.current.UniqueItems = val
+}
+
+func (sv headerValidations) SetCollectionFormat(val string) {
+	sv.current.CollectionFormat = val
+}
+
 func (sv headerValidations) SetEnum(val string) {
 	sv.current.Enum = parseEnum(val, &spec.SimpleSchema{Type: sv.current.Type, Format: sv.current.Format})
 }
+
 func (sv headerValidations) SetDefault(val interface{}) { sv.current.Default = val }
+
 func (sv headerValidations) SetExample(val interface{}) { sv.current.Example = val }
 
 type responseBuilder struct {
@@ -215,9 +241,9 @@ func (r *responseBuilder) buildFromField(fld *types.Var, tpe types.Type, typable
 			r.postDecls = append(r.postDecls, sb.postDecls...)
 			return nil
 		}
-		return errors.Errorf("unable to find package and source file for: %s", ftpe.String())
+		return fmt.Errorf("unable to find package and source file for: %s", ftpe.String())
 	default:
-		return errors.Errorf("unknown type for %s: %T", fld.String(), fld.Type())
+		return fmt.Errorf("unknown type for %s: %T", fld.String(), fld.Type())
 	}
 }
 
@@ -256,7 +282,7 @@ func (r *responseBuilder) buildFromType(otpe types.Type, resp *spec.Response, se
 				r.postDecls = append(r.postDecls, sb.postDecls...)
 				return nil
 			}
-			return errors.Errorf("responses can only be structs, did you mean for %s to be the response body?", otpe.String())
+			return fmt.Errorf("responses can only be structs, did you mean for %s to be the response body?", otpe.String())
 		}
 	default:
 		return errors.New("anonymous types are currently not supported for responses")
@@ -307,7 +333,7 @@ func (r *responseBuilder) buildFromStruct(decl *entityDecl, tpe *types.Struct, r
 			continue
 		}
 
-		name, ignore, _, err := parseJSONTag(afld)
+		name, ignore, _, _, err := parseJSONTag(afld)
 		if err != nil {
 			return err
 		}

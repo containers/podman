@@ -71,7 +71,7 @@ type PetAPI interface {
 	PetUpdate(ctx context.Context, params pet.PetUpdateParams) middleware.Responder
 }
 
-//go:generate mockery -name StoreAPI -inpkg
+//go:generate mockery --name StoreAPI --inpackage
 
 // StoreAPI
 type StoreAPI interface {

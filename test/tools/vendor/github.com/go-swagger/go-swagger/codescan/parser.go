@@ -2,8 +2,10 @@ package codescan
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"go/ast"
+	"log"
 	"reflect"
 	"regexp"
 	"strconv"
@@ -11,7 +13,6 @@ import (
 
 	"github.com/go-openapi/loads/fmts"
 	"github.com/go-openapi/spec"
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 )
 
@@ -1466,7 +1467,7 @@ func (ss *setOpResponses) Parse(lines []string) error {
 	return nil
 }
 
-func parseEnum(val string, s *spec.SimpleSchema) []interface{} {
+func parseEnumOld(val string, s *spec.SimpleSchema) []interface{} {
 	list := strings.Split(val, ",")
 	interfaceSlice := make([]interface{}, len(list))
 	for i, d := range list {
@@ -1478,6 +1479,35 @@ func parseEnum(val string, s *spec.SimpleSchema) []interface{} {
 
 		interfaceSlice[i] = v
 	}
+	return interfaceSlice
+}
+
+func parseEnum(val string, s *spec.SimpleSchema) []interface{} {
+	// obtain the raw elements of the list to latter process them with the parseValueFromSchema
+	var rawElements []json.RawMessage
+	if err := json.Unmarshal([]byte(val), &rawElements); err != nil {
+		log.Print("WARNING: item list for enum is not a valid JSON array, using the old deprecated format")
+		return parseEnumOld(val, s)
+	}
+
+	interfaceSlice := make([]interface{}, len(rawElements))
+
+	for i, d := range rawElements {
+
+		ds, err := strconv.Unquote(string(d))
+		if err != nil {
+			ds = string(d)
+		}
+
+		v, err := parseValueFromSchema(ds, s)
+		if err != nil {
+			interfaceSlice[i] = ds
+			continue
+		}
+
+		interfaceSlice[i] = v
+	}
+
 	return interfaceSlice
 }
 

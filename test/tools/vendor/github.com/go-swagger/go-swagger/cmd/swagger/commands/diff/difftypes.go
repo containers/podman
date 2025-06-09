@@ -117,6 +117,8 @@ const (
 	DeletedExtension
 	// AddedExtension added an extension
 	AddedExtension
+	// ChangedExtensionValue changed an extension value
+	ChangedExtensionValue
 )
 
 var toLongStringSpecChangeCode = map[SpecChangeCode]string{
@@ -173,6 +175,7 @@ var toLongStringSpecChangeCode = map[SpecChangeCode]string{
 	ChangedCollectionFormat:   "Changed collection format",
 	DeletedExtension:          "Deleted Extension",
 	AddedExtension:            "Added Extension",
+	ChangedExtensionValue:     "Changed Extension Value",
 }
 
 var toStringSpecChangeCode = map[SpecChangeCode]string{
@@ -229,6 +232,7 @@ var toStringSpecChangeCode = map[SpecChangeCode]string{
 	ChangedCollectionFormat:   "ChangedCollectionFormat",
 	DeletedExtension:          "DeletedExtension",
 	AddedExtension:            "AddedExtension",
+	ChangedExtensionValue:     "ChangedExtensionValue",
 }
 
 var toIDSpecChangeCode = map[string]SpecChangeCode{}
