@@ -478,9 +478,7 @@ podman-testing: bin/podman-testing
 
 .PHONY: generate-bindings
 generate-bindings: .install.golangci-lint
-ifneq ($(GOOS),darwin)
 	$(GOCMD) generate ./pkg/bindings/... ;
-endif
 
 # DO NOT USE: use local-cross instead
 bin/podman.cross.%:
