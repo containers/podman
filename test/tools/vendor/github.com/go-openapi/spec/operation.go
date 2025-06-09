@@ -217,9 +217,12 @@ func (o *Operation) AddParam(param *Parameter) *Operation {
 
 	for i, p := range o.Parameters {
 		if p.Name == param.Name && p.In == param.In {
-			params := append(o.Parameters[:i], *param)
+			params := make([]Parameter, 0, len(o.Parameters)+1)
+			params = append(params, o.Parameters[:i]...)
+			params = append(params, *param)
 			params = append(params, o.Parameters[i+1:]...)
 			o.Parameters = params
+
 			return o
 		}
 	}

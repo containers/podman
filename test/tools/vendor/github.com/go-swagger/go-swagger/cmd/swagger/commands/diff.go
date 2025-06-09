@@ -2,12 +2,11 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
-
-	"errors"
 
 	"github.com/go-openapi/loads"
 	"github.com/go-swagger/go-swagger/cmd/swagger/commands/diff"

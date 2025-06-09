@@ -29,10 +29,10 @@ func (o *operationsBuilder) Build(tgt *spec.Paths) error {
 	sp.setDescription = func(lines []string) { op.Description = joinDropLast(lines) }
 
 	if err := sp.Parse(o.path.Remaining); err != nil {
-		return fmt.Errorf("operation (%s): %v", op.ID, err)
+		return fmt.Errorf("operation (%s): %w", op.ID, err)
 	}
 	if err := sp.UnmarshalSpec(op.UnmarshalJSON); err != nil {
-		return fmt.Errorf("operation (%s): %v", op.ID, err)
+		return fmt.Errorf("operation (%s): %w", op.ID, err)
 	}
 
 	if tgt.Paths == nil {

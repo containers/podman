@@ -4,37 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"net/http"
-	"path"
 	"text/template"
 )
 
 func SwaggerUIOAuth2Callback(opts SwaggerUIOpts, next http.Handler) http.Handler {
-	opts.EnsureDefaults()
+	opts.EnsureDefaultsOauth2()
 
 	pth := opts.OAuthCallbackURL
-	tmpl := template.Must(template.New("swaggeroauth").Parse(swaggerOAuthTemplate))
+	tmpl := template.Must(template.New("swaggeroauth").Parse(opts.Template))
+	assets := bytes.NewBuffer(nil)
+	if err := tmpl.Execute(assets, opts); err != nil {
+		panic(fmt.Errorf("cannot execute template: %w", err))
+	}
 
-	buf := bytes.NewBuffer(nil)
-	_ = tmpl.Execute(buf, &opts)
-	b := buf.Bytes()
-
-	return http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		if path.Join(r.URL.Path) == pth {
-			rw.Header().Set("Content-Type", "text/html; charset=utf-8")
-			rw.WriteHeader(http.StatusOK)
-
-			_, _ = rw.Write(b)
-			return
-		}
-
-		if next == nil {
-			rw.Header().Set("Content-Type", "text/plain")
-			rw.WriteHeader(http.StatusNotFound)
-			_, _ = rw.Write([]byte(fmt.Sprintf("%q not found", pth)))
-			return
-		}
-		next.ServeHTTP(rw, r)
-	})
+	return serveUI(pth, assets.Bytes(), next)
 }
 
 const (

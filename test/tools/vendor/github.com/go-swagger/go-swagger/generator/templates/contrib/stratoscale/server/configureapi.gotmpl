@@ -29,7 +29,7 @@ type contextKey string
 const AuthKey contextKey = "Auth"
 
 {{ range .OperationGroups -}}
-//go:generate mockery -name {{ pascalize .Name}}API -inpkg
+//go:generate mockery --name {{ pascalize .Name}}API --inpackage
 
 /* {{ pascalize .Name }}API {{ .Description }} */
 type {{ pascalize .Name }}API interface {

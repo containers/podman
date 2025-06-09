@@ -2,18 +2,18 @@
   {{- with .ExternalDocs }}
     {{- if .URL }}
       {{- if .Description }}
-> [{{ trimSpace .Description }}]({{ .URL }})
+> [{{ mdBlock .Description }}]({{ .URL }})
       {{- else }}
 > [Read more]({{ .URL }})
       {{- end }}
     {{- else }}
-> {{ trimSpace .Description }}
+> {{ mdBlock .Description }}
     {{- end }}
   {{- end }}
 {{- end }}
 
 {{- define "docParam" }}{{/* renders a parameter with simple schema */}}
-| {{ .Name }} | `{{ .Location }}` | {{ paramDocType . }} | `{{ .GoType }}` | {{ if .CollectionFormat }}`{{ docCollectionFormat .CollectionFormat .Child }}`{{ end }} | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }} | {{ trimSpace .Description }} |
+| {{ .Name }} | `{{ .Location }}` | {{ paramDocType . }} | `{{ .GoType }}` | {{ if .CollectionFormat }}`{{ docCollectionFormat .CollectionFormat .Child }}`{{ end }} | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }} | {{ mdBlock .Description }} |
 {{- end }}
 
 {{- define "docModelSchema" }}{{/* renders a schema */}}
@@ -46,7 +46,7 @@
   {{- else if and .IsAliased .IsPrimitive (not .IsSuperAlias) -}}
 | Name | Type | Go type | Default | Description | Example |
 |------|------|---------| ------- |-------------|---------|
-| {{ .Name }} | {{ schemaDocType . }}| {{ .AliasedType }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
+| {{ .Name }} | {{ schemaDocType . }}| {{ .AliasedType }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ mdBlock .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
 {{ printf "\n" }}
   {{- else if or (and .IsAliased (not (.IsAdditionalProperties))) (and .IsComplexObject (not .Properties) (not .AllOf)) -}}
 [{{- dropPackage .GoType }}](#{{ dasherize (dropPackage .GoType) -}})
@@ -71,7 +71,7 @@ any
 | Name | Type | Go type | Required | Default | Description | Example |
 |------|------|---------|:--------:| ------- |-------------|---------|
       {{- range .Properties }}
-| {{ .Name }} | {{ template "docSchemaSimple" . }}| `{{ .GoType }}` | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
+| {{ .Name }} | {{ template "docSchemaSimple" . }}| `{{ .GoType }}` | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ mdBlock .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
       {{- end }}
 {{ printf "\n" }}
     {{- end }}
@@ -86,7 +86,7 @@ any
 
 | Type | Go type | Default | Description | Example |
 |------|---------| ------- |-------------|---------|
-| {{ template "docSchemaSimple" . }} | `{{ .GoType }}` |{{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
+| {{ template "docSchemaSimple" . }} | `{{ .GoType }}` |{{ if .Default }}`{{ json .Default }}`{{ end }}| {{ mdBlock .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
         {{- else }}
 
 {{ template "docModelSchema" . }}
@@ -104,7 +104,7 @@ any
 
 | Type | Go type | Default | Description | Example |
 |------|---------| ------- |-------------|---------|
-| {{ template "docSchemaSimple" . }} | `{{ .GoType }}` |{{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
+| {{ template "docSchemaSimple" . }} | `{{ .GoType }}` |{{ if .Default }}`{{ json .Default }}`{{ end }}| {{ mdBlock .Description }} | {{ if .Example }}`{{ .Example }}`{{ end }} |
         {{- else }}
 
 {{ template "docModelSchema" . }}
@@ -161,7 +161,7 @@ any
 {{- end }}
 
 {{- define "docModelBodyParam" }}{{/* layout for body param schema */}}
-| {{ .Name }} | `body` | {{ template "docSchemaSimple" .Schema }} | `{{ .Schema.GoType }}` | | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ trimSpace .Description }} |
+| {{ .Name }} | `body` | {{ template "docSchemaSimple" .Schema }} | `{{ .Schema.GoType }}` | | {{ if .Required }}✓{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }}| {{ mdBlock .Description }} |
 {{- end }}
 
 {{- define "docHeaders" }}{{/* renders response headers */}}
@@ -169,7 +169,7 @@ any
 | Name | Type | Go type | Separator | Default | Description |
 |------|------|---------|-----------|---------|-------------|
     {{- range .Headers }}
-| {{ .Name }} | {{ headerDocType . }} | `{{ .GoType }}` | {{ if .CollectionFormat }}`{{ docCollectionFormat .CollectionFormat .Child }}`{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }} | {{ trimSpace .Description }} |
+| {{ .Name }} | {{ headerDocType . }} | `{{ .GoType }}` | {{ if .CollectionFormat }}`{{ docCollectionFormat .CollectionFormat .Child }}`{{ end }} | {{ if .Default }}`{{ json .Default }}`{{ end }} | {{ mdBlock .Description }} |
     {{- end }}
   {{- end }}
 {{- end }}
@@ -350,7 +350,7 @@ Name | Description
 {{- range .Operations }}
  {{- $opname := .Name }}
 
-### <span id="{{ dasherize .Name }}"></span> {{ if .Summary }}{{ trimSpace .Summary }}{{ else }}{{ humanize .Name }}{{ end }} (*{{ .Name }}*)
+### <span id="{{ dasherize .Name }}"></span> {{ if .Summary }}{{ mdBlock .Summary }}{{ else }}{{ humanize .Name }}{{ end }} (*{{ .Name }}*)
 
 ```
 {{ upper .Method }} {{ joinPath .BasePath .Path }}
@@ -424,16 +424,16 @@ Name | Description
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
 {{- range .Responses }}
-| [{{.Code}}](#{{ dasherize $opname }}-{{ .Code }}) | {{ httpStatus .Code }} | {{ trimSpace .Description }} | {{ if .Headers }}✓{{ end }} | [schema](#{{ dasherize $opname }}-{{ .Code }}-schema) |
+| [{{.Code}}](#{{ dasherize $opname }}-{{ .Code }}) | {{ httpStatus .Code }} | {{ mdBlock .Description }} | {{ if .Headers }}✓{{ end }} | [schema](#{{ dasherize $opname }}-{{ .Code }}-schema) |
 {{- end }}
 {{- with .DefaultResponse }}
-| [default](#{{ dasherize $opname }}-default) | | {{ trimSpace .Description }} | {{ if .Headers }}✓{{ end }} | [schema](#{{ dasherize $opname }}-default-schema) |
+| [default](#{{ dasherize $opname }}-default) | | {{ mdBlock .Description }} | {{ if .Headers }}✓{{ end }} | [schema](#{{ dasherize $opname }}-default-schema) |
 {{- end }}
 
 #### Responses
 {{ range .Responses }}
 
-##### <span id="{{ dasherize $opname }}-{{ .Code }}"></span> {{.Code}}{{ if .Description }} - {{ trimSpace .Description }}{{ end }}
+##### <span id="{{ dasherize $opname }}-{{ .Code }}"></span> {{.Code}}{{ if .Description }} - {{ mdBlock .Description }}{{ end }}
 Status: {{ httpStatus .Code }}
 
 ###### <span id="{{ dasherize $opname }}-{{ .Code }}-schema"></span> Schema
@@ -462,7 +462,7 @@ Status: {{ httpStatus .Code }}
 {{- with .DefaultResponse }}
 
 ##### <span id="{{ dasherize $opname }}-default"></span> Default Response
-{{ trimSpace .Description }}
+{{ mdBlock .Description }}
 
 ###### <span id="{{ dasherize $opname }}-default-schema"></span> Schema
   {{- if .Schema }}

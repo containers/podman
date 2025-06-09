@@ -45,16 +45,15 @@ to check for typos. [See example in the documentation][strict].
 
 ### Contextualized errors
 
-When most decoding errors occur, go-toml returns [`DecodeError`][decode-err]),
+When most decoding errors occur, go-toml returns [`DecodeError`][decode-err],
 which contains a human readable contextualized version of the error. For
 example:
 
 ```
-2| key1 = "value1"
-3| key2 = "missing2"
- | ~~~~ missing field
-4| key3 = "missing3"
-5| key4 = "value4"
+1| [server]
+2| path = 100
+ |        ~~~ cannot decode TOML integer into struct field toml_test.Server.Path of type string
+3| port = 50
 ```
 
 [decode-err]: https://pkg.go.dev/github.com/pelletier/go-toml/v2#DecodeError
@@ -72,6 +71,26 @@ representation.
 [tld]: https://pkg.go.dev/github.com/pelletier/go-toml/v2#LocalDate
 [tlt]: https://pkg.go.dev/github.com/pelletier/go-toml/v2#LocalTime
 [tldt]: https://pkg.go.dev/github.com/pelletier/go-toml/v2#LocalDateTime
+
+### Commented config
+
+Since TOML is often used for configuration files, go-toml can emit documents
+annotated with [comments and commented-out values][comments-example]. For
+example, it can generate the following file:
+
+```toml
+# Host IP to connect to.
+host = '127.0.0.1'
+# Port of the remote server.
+port = 4242
+
+# Encryption parameters (optional)
+# [TLS]
+# cipher = 'AEAD-AES128-GCM-SHA256'
+# version = 'TLS 1.3'
+```
+
+[comments-example]: https://pkg.go.dev/github.com/pelletier/go-toml/v2#example-Marshal-Commented
 
 ## Getting started
 
@@ -160,12 +179,12 @@ Execution time speedup compared to other Go TOML libraries:
         <tr><th>Benchmark</th><th>go-toml v1</th><th>BurntSushi/toml</th></tr>
     </thead>
     <tbody>
-        <tr><td>Marshal/HugoFrontMatter-2</td><td>1.9x</td><td>1.9x</td></tr>
-        <tr><td>Marshal/ReferenceFile/map-2</td><td>1.7x</td><td>1.8x</td></tr>
-        <tr><td>Marshal/ReferenceFile/struct-2</td><td>2.2x</td><td>2.5x</td></tr>
-        <tr><td>Unmarshal/HugoFrontMatter-2</td><td>2.9x</td><td>2.9x</td></tr>
-        <tr><td>Unmarshal/ReferenceFile/map-2</td><td>2.6x</td><td>2.9x</td></tr>
-        <tr><td>Unmarshal/ReferenceFile/struct-2</td><td>4.4x</td><td>5.3x</td></tr>
+        <tr><td>Marshal/HugoFrontMatter-2</td><td>1.9x</td><td>2.2x</td></tr>
+        <tr><td>Marshal/ReferenceFile/map-2</td><td>1.7x</td><td>2.1x</td></tr>
+        <tr><td>Marshal/ReferenceFile/struct-2</td><td>2.2x</td><td>3.0x</td></tr>
+        <tr><td>Unmarshal/HugoFrontMatter-2</td><td>2.9x</td><td>2.7x</td></tr>
+        <tr><td>Unmarshal/ReferenceFile/map-2</td><td>2.6x</td><td>2.7x</td></tr>
+        <tr><td>Unmarshal/ReferenceFile/struct-2</td><td>4.6x</td><td>5.1x</td></tr>
      </tbody>
 </table>
 <details><summary>See more</summary>
@@ -178,17 +197,17 @@ provided for completeness.</p>
         <tr><th>Benchmark</th><th>go-toml v1</th><th>BurntSushi/toml</th></tr>
     </thead>
     <tbody>
-        <tr><td>Marshal/SimpleDocument/map-2</td><td>1.8x</td><td>2.9x</td></tr>
-        <tr><td>Marshal/SimpleDocument/struct-2</td><td>2.7x</td><td>4.2x</td></tr>
-        <tr><td>Unmarshal/SimpleDocument/map-2</td><td>4.5x</td><td>3.1x</td></tr>
-        <tr><td>Unmarshal/SimpleDocument/struct-2</td><td>6.2x</td><td>3.9x</td></tr>
-        <tr><td>UnmarshalDataset/example-2</td><td>3.1x</td><td>3.5x</td></tr>
-        <tr><td>UnmarshalDataset/code-2</td><td>2.3x</td><td>3.1x</td></tr>
-        <tr><td>UnmarshalDataset/twitter-2</td><td>2.5x</td><td>2.6x</td></tr>
-        <tr><td>UnmarshalDataset/citm_catalog-2</td><td>2.1x</td><td>2.2x</td></tr>
-        <tr><td>UnmarshalDataset/canada-2</td><td>1.6x</td><td>1.3x</td></tr>
-        <tr><td>UnmarshalDataset/config-2</td><td>4.3x</td><td>3.2x</td></tr>
-        <tr><td>[Geo mean]</td><td>2.7x</td><td>2.8x</td></tr>
+        <tr><td>Marshal/SimpleDocument/map-2</td><td>1.8x</td><td>2.7x</td></tr>
+        <tr><td>Marshal/SimpleDocument/struct-2</td><td>2.7x</td><td>3.8x</td></tr>
+        <tr><td>Unmarshal/SimpleDocument/map-2</td><td>3.8x</td><td>3.0x</td></tr>
+        <tr><td>Unmarshal/SimpleDocument/struct-2</td><td>5.6x</td><td>4.1x</td></tr>
+        <tr><td>UnmarshalDataset/example-2</td><td>3.0x</td><td>3.2x</td></tr>
+        <tr><td>UnmarshalDataset/code-2</td><td>2.3x</td><td>2.9x</td></tr>
+        <tr><td>UnmarshalDataset/twitter-2</td><td>2.6x</td><td>2.7x</td></tr>
+        <tr><td>UnmarshalDataset/citm_catalog-2</td><td>2.2x</td><td>2.3x</td></tr>
+        <tr><td>UnmarshalDataset/canada-2</td><td>1.8x</td><td>1.5x</td></tr>
+        <tr><td>UnmarshalDataset/config-2</td><td>4.1x</td><td>2.9x</td></tr>
+        <tr><td>geomean</td><td>2.7x</td><td>2.8x</td></tr>
      </tbody>
 </table>
 <p>This table can be generated with <code>./ci.sh benchmark -a -html</code>.</p>
@@ -497,26 +516,19 @@ is not necessary anymore.
 
 V1 used to provide multiple struct tags: `comment`, `commented`, `multiline`,
 `toml`, and `omitempty`. To behave more like the standard library, v2 has merged
-`toml`, `multiline`, and `omitempty`. For example:
+`toml`, `multiline`, `commented`, and `omitempty`. For example:
 
 ```go
 type doc struct {
 	// v1
-	F string `toml:"field" multiline:"true" omitempty:"true"`
+	F string `toml:"field" multiline:"true" omitempty:"true" commented:"true"`
 	// v2
-	F string `toml:"field,multiline,omitempty"`
+	F string `toml:"field,multiline,omitempty,commented"`
 }
 ```
 
 Has a result, the `Encoder.SetTag*` methods have been removed, as there is just
 one tag now.
-
-
-#### `commented` tag has been removed
-
-There is no replacement for the `commented` tag. This feature would be better
-suited in a proper document model for go-toml v2, which has been [cut from
-scope][nodoc] at the moment.
 
 #### `Encoder.ArraysWithOneElementPerLine` has been renamed
 

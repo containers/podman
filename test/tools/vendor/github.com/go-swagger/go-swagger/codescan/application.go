@@ -42,16 +42,17 @@ const (
 
 // Options for the scanner
 type Options struct {
-	Packages    []string
-	InputSpec   *spec.Swagger
-	ScanModels  bool
-	WorkDir     string
-	BuildTags   string
-	ExcludeDeps bool
-	Include     []string
-	Exclude     []string
-	IncludeTags []string
-	ExcludeTags []string
+	Packages                []string
+	InputSpec               *spec.Swagger
+	ScanModels              bool
+	WorkDir                 string
+	BuildTags               string
+	ExcludeDeps             bool
+	Include                 []string
+	Exclude                 []string
+	IncludeTags             []string
+	ExcludeTags             []string
+	SetXNullableForPointers bool
 }
 
 type scanCtx struct {
@@ -94,7 +95,7 @@ func newScanCtx(opts *Options) (*scanCtx, error) {
 
 	app, err := newTypeIndex(pkgs, opts.ExcludeDeps,
 		sliceToSet(opts.IncludeTags), sliceToSet(opts.ExcludeTags),
-		opts.Include, opts.Exclude)
+		opts.Include, opts.Exclude, opts.SetXNullableForPointers)
 	if err != nil {
 		return nil, err
 	}
@@ -163,7 +164,7 @@ DECLS:
 	return
 }
 
-func (d *entityDecl) OperationIDS() (result []string) {
+func (d *entityDecl) OperationIDs() (result []string) {
 	if d == nil || d.Comments == nil {
 		return nil
 	}
@@ -281,7 +282,6 @@ func (s *scanCtx) FindDecl(pkgPath, name string) (*entityDecl, bool) {
 						}
 						return decl, true
 					}
-
 				}
 			}
 		}
@@ -399,7 +399,7 @@ func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list [
 										}
 										for i, doc := range vs.Doc.List {
 											if doc.Text != "" {
-												var text = strings.TrimPrefix(doc.Text, "//")
+												text := strings.TrimPrefix(doc.Text, "//")
 												desc.WriteString(text)
 												if i < docListLen-1 {
 													desc.WriteString(" ")
@@ -419,19 +419,17 @@ func (s *scanCtx) FindEnumValues(pkg *packages.Package, enumName string) (list [
 	return list, descList, true
 }
 
-func newTypeIndex(pkgs []*packages.Package,
-	excludeDeps bool, includeTags, excludeTags map[string]bool,
-	includePkgs, excludePkgs []string) (*typeIndex, error) {
-
+func newTypeIndex(pkgs []*packages.Package, excludeDeps bool, includeTags, excludeTags map[string]bool, includePkgs, excludePkgs []string, setXNullableForPointers bool) (*typeIndex, error) {
 	ac := &typeIndex{
-		AllPackages: make(map[string]*packages.Package),
-		Models:      make(map[*ast.Ident]*entityDecl),
-		ExtraModels: make(map[*ast.Ident]*entityDecl),
-		excludeDeps: excludeDeps,
-		includeTags: includeTags,
-		excludeTags: excludeTags,
-		includePkgs: includePkgs,
-		excludePkgs: excludePkgs,
+		AllPackages:             make(map[string]*packages.Package),
+		Models:                  make(map[*ast.Ident]*entityDecl),
+		ExtraModels:             make(map[*ast.Ident]*entityDecl),
+		excludeDeps:             excludeDeps,
+		includeTags:             includeTags,
+		excludeTags:             excludeTags,
+		includePkgs:             includePkgs,
+		excludePkgs:             excludePkgs,
+		setXNullableForPointers: setXNullableForPointers,
 	}
 	if err := ac.build(pkgs); err != nil {
 		return nil, err
@@ -440,19 +438,20 @@ func newTypeIndex(pkgs []*packages.Package,
 }
 
 type typeIndex struct {
-	AllPackages map[string]*packages.Package
-	Models      map[*ast.Ident]*entityDecl
-	ExtraModels map[*ast.Ident]*entityDecl
-	Meta        []metaSection
-	Routes      []parsedPathContent
-	Operations  []parsedPathContent
-	Parameters  []*entityDecl
-	Responses   []*entityDecl
-	excludeDeps bool
-	includeTags map[string]bool
-	excludeTags map[string]bool
-	includePkgs []string
-	excludePkgs []string
+	AllPackages             map[string]*packages.Package
+	Models                  map[*ast.Ident]*entityDecl
+	ExtraModels             map[*ast.Ident]*entityDecl
+	Meta                    []metaSection
+	Routes                  []parsedPathContent
+	Operations              []parsedPathContent
+	Parameters              []*entityDecl
+	Responses               []*entityDecl
+	excludeDeps             bool
+	includeTags             map[string]bool
+	excludeTags             map[string]bool
+	includePkgs             []string
+	excludePkgs             []string
+	setXNullableForPointers bool
 }
 
 func (a *typeIndex) build(pkgs []*packages.Package) error {

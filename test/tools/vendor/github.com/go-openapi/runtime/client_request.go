@@ -37,8 +37,8 @@ type ClientRequestWriter interface {
 }
 
 // ClientRequest is an interface for things that know how to
-// add information to a swagger client request
-type ClientRequest interface {
+// add information to a swagger client request.
+type ClientRequest interface { //nolint:interfacebloat // a swagger-capable request is quite rich, hence the many getter/setters
 	SetHeaderParam(string, ...string) error
 
 	GetHeaderParams() http.Header

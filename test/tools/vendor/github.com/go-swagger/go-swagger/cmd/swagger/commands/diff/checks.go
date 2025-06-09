@@ -42,8 +42,8 @@ func CompareProperties(location DifferenceLocation, schema1 *spec.Schema, schema
 
 	schema1Props := propertiesFor(schema1, getRefFn1)
 	schema2Props := propertiesFor(schema2, getRefFn2)
-	// find deleted and changed properties
 
+	// find deleted and changed properties
 	for eachProp1Name, eachProp1 := range schema1Props {
 		eachProp1 := eachProp1
 		childLoc := addChildDiffNode(location, eachProp1Name, eachProp1.Schema)
@@ -66,7 +66,13 @@ func CompareProperties(location DifferenceLocation, schema1 *spec.Schema, schema
 		eachProp2 := eachProp2
 		if _, ok := schema1.Properties[eachProp2Name]; !ok {
 			childLoc := addChildDiffNode(location, eachProp2Name, &eachProp2)
-			propDiffs = append(propDiffs, SpecDifference{DifferenceLocation: childLoc, Code: AddedProperty})
+
+			analyzedProp2 := schema2Props[eachProp2Name]
+			if analyzedProp2.Required {
+				propDiffs = append(propDiffs, SpecDifference{DifferenceLocation: childLoc, Code: AddedRequiredProperty})
+			} else {
+				propDiffs = append(propDiffs, SpecDifference{DifferenceLocation: childLoc, Code: AddedProperty})
+			}
 		}
 	}
 	return propDiffs

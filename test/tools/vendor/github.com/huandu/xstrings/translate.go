@@ -416,14 +416,16 @@ func (tr *Translator) HasPattern() bool {
 //
 // From and to are patterns representing a set of characters. Pattern is defined as following.
 //
-//     * Special characters
-//       * '-' means a range of runes, e.g.
-//         * "a-z" means all characters from 'a' to 'z' inclusive;
-//         * "z-a" means all characters from 'z' to 'a' inclusive.
-//       * '^' as first character means a set of all runes excepted listed, e.g.
-//         * "^a-z" means all characters except 'a' to 'z' inclusive.
-//       * '\' escapes special characters.
-//     * Normal character represents itself, e.g. "abc" is a set including 'a', 'b' and 'c'.
+// Special characters:
+//
+//  1. '-' means a range of runes, e.g.
+//     "a-z" means all characters from 'a' to 'z' inclusive;
+//     "z-a" means all characters from 'z' to 'a' inclusive.
+//  2. '^' as first character means a set of all runes excepted listed, e.g.
+//     "^a-z" means all characters except 'a' to 'z' inclusive.
+//  3. '\' escapes special characters.
+//
+// Normal character represents itself, e.g. "abc" is a set including 'a', 'b' and 'c'.
 //
 // Translate will try to find a 1:1 mapping from from to to.
 // If to is smaller than from, last rune in to will be used to map "out of range" characters in from.
@@ -433,12 +435,13 @@ func (tr *Translator) HasPattern() bool {
 // If the to pattern is an empty string, Translate works exactly the same as Delete.
 //
 // Samples:
-//     Translate("hello", "aeiou", "12345")    => "h2ll4"
-//     Translate("hello", "a-z", "A-Z")        => "HELLO"
-//     Translate("hello", "z-a", "a-z")        => "svool"
-//     Translate("hello", "aeiou", "*")        => "h*ll*"
-//     Translate("hello", "^l", "*")           => "**ll*"
-//     Translate("hello ^ world", `\^lo`, "*") => "he*** * w*r*d"
+//
+//	Translate("hello", "aeiou", "12345")    => "h2ll4"
+//	Translate("hello", "a-z", "A-Z")        => "HELLO"
+//	Translate("hello", "z-a", "a-z")        => "svool"
+//	Translate("hello", "aeiou", "*")        => "h*ll*"
+//	Translate("hello", "^l", "*")           => "**ll*"
+//	Translate("hello ^ world", `\^lo`, "*") => "he*** * w*r*d"
 func Translate(str, from, to string) string {
 	tr := NewTranslator(from, to)
 	return tr.Translate(str)
@@ -448,9 +451,10 @@ func Translate(str, from, to string) string {
 // Pattern is defined in Translate function.
 //
 // Samples:
-//     Delete("hello", "aeiou") => "hll"
-//     Delete("hello", "a-k")   => "llo"
-//     Delete("hello", "^a-k")  => "he"
+//
+//	Delete("hello", "aeiou") => "hll"
+//	Delete("hello", "a-k")   => "llo"
+//	Delete("hello", "^a-k")  => "he"
 func Delete(str, pattern string) string {
 	tr := NewTranslator(pattern, "")
 	return tr.Translate(str)
@@ -460,9 +464,10 @@ func Delete(str, pattern string) string {
 // Pattern is defined in Translate function.
 //
 // Samples:
-//     Count("hello", "aeiou") => 3
-//     Count("hello", "a-k")   => 3
-//     Count("hello", "^a-k")  => 2
+//
+//	Count("hello", "aeiou") => 3
+//	Count("hello", "a-k")   => 3
+//	Count("hello", "^a-k")  => 2
 func Count(str, pattern string) int {
 	if pattern == "" || str == "" {
 		return 0
@@ -491,9 +496,10 @@ func Count(str, pattern string) int {
 // If pattern is not empty, only runes matching the pattern will be squeezed.
 //
 // Samples:
-//     Squeeze("hello", "")             => "helo"
-//     Squeeze("hello", "m-z")          => "hello"
-//     Squeeze("hello   world", " ")    => "hello world"
+//
+//	Squeeze("hello", "")             => "helo"
+//	Squeeze("hello", "m-z")          => "hello"
+//	Squeeze("hello   world", " ")    => "hello world"
 func Squeeze(str, pattern string) string {
 	var last, r rune
 	var size int

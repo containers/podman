@@ -34,13 +34,11 @@ func (t *Repository) LoadPlugin(pluginPath string) error {
 	log.Printf("Attempting to load template plugin: %s", pluginPath)
 
 	p, err := plugin.Open(pluginPath)
-
 	if err != nil {
 		return err
 	}
 
 	f, err := p.Lookup("AddFuncs")
-
 	if err != nil {
 		return err
 	}

@@ -2,6 +2,7 @@
 package denco
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -29,13 +30,13 @@ const (
 
 // Router represents a URL router.
 type Router struct {
+	param *doubleArray
 	// SizeHint expects the maximum number of path parameters in records to Build.
 	// SizeHint will be used to determine the capacity of the memory to allocate.
 	// By default, SizeHint will be determined from given records to Build.
 	SizeHint int
 
 	static map[string]interface{}
-	param  *doubleArray
 }
 
 // New returns a new Router.
@@ -51,7 +52,7 @@ func New() *Router {
 // params is a slice of the Param that arranged in the order in which parameters appeared.
 // e.g. when built routing path is "/path/to/:id/:name" and given path is "/path/to/1/alice". params order is [{"id": "1"}, {"name": "alice"}], not [{"name": "alice"}, {"id": "1"}].
 func (rt *Router) Lookup(path string) (data interface{}, params Params, found bool) {
-	if data, found := rt.static[path]; found {
+	if data, found = rt.static[path]; found {
 		return data, nil, true
 	}
 	if len(rt.param.node) == 1 {
@@ -71,7 +72,7 @@ func (rt *Router) Lookup(path string) (data interface{}, params Params, found bo
 func (rt *Router) Build(records []Record) error {
 	statics, params := makeRecords(records)
 	if len(params) > MaxSize {
-		return fmt.Errorf("denco: too many records")
+		return errors.New("denco: too many records")
 	}
 	if rt.SizeHint < 0 {
 		rt.SizeHint = 0
@@ -131,7 +132,8 @@ func newDoubleArray() *doubleArray {
 // baseCheck contains BASE, CHECK and Extra flags.
 // From the top, 22bits of BASE, 2bits of Extra flags and 8bits of CHECK.
 //
-//  BASE (22bit) | Extra flags (2bit) | CHECK (8bit)
+//	BASE (22bit) | Extra flags (2bit) | CHECK (8bit)
+//
 // |----------------------|--|--------|
 // 32                    10  8         0
 type baseCheck uint32
@@ -196,24 +198,29 @@ func (da *doubleArray) lookup(path string, params []Param, idx int) (*node, []Pa
 	if next := nextIndex(da.bc[idx].Base(), TerminationCharacter); next < len(da.bc) && da.bc[next].Check() == TerminationCharacter {
 		return da.node[da.bc[next].Base()], params, true
 	}
+
 BACKTRACKING:
 	for j := len(indices) - 1; j >= 0; j-- {
 		i, idx := int(indices[j]>>32), int(indices[j]&0xffffffff)
 		if da.bc[idx].IsSingleParam() {
-			idx := nextIndex(da.bc[idx].Base(), ParamCharacter)
-			if idx >= len(da.bc) {
+			nextIdx := nextIndex(da.bc[idx].Base(), ParamCharacter)
+			if nextIdx >= len(da.bc) {
 				break
 			}
+
 			next := NextSeparator(path, i)
-			params := append(params, Param{Value: path[i:next]})
-			if nd, params, found := da.lookup(path[next:], params, idx); found {
-				return nd, params, true
+			nextParams := params
+			nextParams = append(nextParams, Param{Value: path[i:next]})
+			if nd, nextNextParams, found := da.lookup(path[next:], nextParams, nextIdx); found {
+				return nd, nextNextParams, true
 			}
 		}
+
 		if da.bc[idx].IsWildcardParam() {
-			idx := nextIndex(da.bc[idx].Base(), WildcardCharacter)
-			params := append(params, Param{Value: path[i:]})
-			return da.node[da.bc[idx].Base()], params, true
+			nextIdx := nextIndex(da.bc[idx].Base(), WildcardCharacter)
+			nextParams := params
+			nextParams = append(nextParams, Param{Value: path[i:]})
+			return da.node[da.bc[nextIdx].Base()], nextParams, true
 		}
 	}
 	return nil, nil, false
@@ -325,7 +332,7 @@ func (da *doubleArray) arrange(records []*record, idx, depth int, usedBase map[i
 	}
 	base = da.findBase(siblings, idx, usedBase)
 	if base > MaxSize {
-		return -1, nil, nil, fmt.Errorf("denco: too many elements of internal slice")
+		return -1, nil, nil, errors.New("denco: too many elements of internal slice")
 	}
 	da.setBase(idx, base)
 	return base, siblings, leaf, err
@@ -386,7 +393,7 @@ func makeSiblings(records []*record, depth int) (sib []sibling, leaf *record, er
 		case pc == c:
 			continue
 		default:
-			return nil, nil, fmt.Errorf("denco: BUG: routing table hasn't been sorted")
+			return nil, nil, errors.New("denco: BUG: routing table hasn't been sorted")
 		}
 		if n > 0 {
 			sib[n-1].end = i
@@ -431,7 +438,7 @@ func makeRecords(srcs []Record) (statics, params []*record) {
 	wildcardPrefix := string(SeparatorCharacter) + string(WildcardCharacter)
 	restconfPrefix := string(PathParamCharacter) + string(ParamCharacter)
 	for _, r := range srcs {
-		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) ||strings.Contains(r.Key, restconfPrefix){
+		if strings.Contains(r.Key, paramPrefix) || strings.Contains(r.Key, wildcardPrefix) || strings.Contains(r.Key, restconfPrefix) {
 			r.Key += termChar
 			params = append(params, &record{Record: r})
 		} else {

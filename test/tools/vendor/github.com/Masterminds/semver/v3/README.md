@@ -18,18 +18,20 @@ If you are looking for a command line tool for version comparisons please see
 
 ## Package Versions
 
+Note, import `github.com/github.com/Masterminds/semver/v3` to use the latest version.
+
 There are three major versions fo the `semver` package.
 
-* 3.x.x is the new stable and active version. This version is focused on constraint
+* 3.x.x is the stable and active version. This version is focused on constraint
   compatibility for range handling in other tools from other languages. It has
   a similar API to the v1 releases. The development of this version is on the master
   branch. The documentation for this version is below.
 * 2.x was developed primarily for [dep](https://github.com/golang/dep). There are
   no tagged releases and the development was performed by [@sdboyer](https://github.com/sdboyer).
   There are API breaking changes from v1. This version lives on the [2.x branch](https://github.com/Masterminds/semver/tree/2.x).
-* 1.x.x is the most widely used version with numerous tagged releases. This is the
-  previous stable and is still maintained for bug fixes. The development, to fix
-  bugs, occurs on the release-1 branch. You can read the documentation [here](https://github.com/Masterminds/semver/blob/release-1/README.md).
+* 1.x.x is the original release. It is no longer maintained. You should use the
+  v3 release instead. You can read the documentation for the 1.x.x release
+  [here](https://github.com/Masterminds/semver/blob/release-1/README.md).
 
 ## Parsing Semantic Versions
 
@@ -242,3 +244,15 @@ for _, m := range msgs {
 
 If you find an issue or want to contribute please file an [issue](https://github.com/Masterminds/semver/issues)
 or [create a pull request](https://github.com/Masterminds/semver/pulls).
+
+## Security
+
+Security is an important consideration for this project. The project currently
+uses the following tools to help discover security issues:
+
+* [CodeQL](https://github.com/Masterminds/semver)
+* [gosec](https://github.com/securego/gosec)
+* Daily Fuzz testing
+
+If you believe you have found a security vulnerability you can privately disclose
+it through the [GitHub security page](https://github.com/Masterminds/semver/security).

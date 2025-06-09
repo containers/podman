@@ -29,6 +29,7 @@ type modelOptions struct {
 	KeepSpecOrder              bool     `long:"keep-spec-order" description:"keep schema properties order identical to spec file"`
 	AllDefinitions             bool     `long:"all-definitions" description:"generate all model definitions regardless of usage in operations" hidden:"deprecated"`
 	StructTags                 []string `long:"struct-tags" description:"the struct tags to generate, repeat for multiple (defaults to json)"`
+	RootedErrorPath            bool     `long:"rooted-error-path" description:"extends validation errors with the type name instead of an empty path, in the case of arrays and maps"`
 }
 
 func (mo modelOptions) apply(opts *generator.GenOpts) {
@@ -39,6 +40,7 @@ func (mo modelOptions) apply(opts *generator.GenOpts) {
 	opts.PropertiesSpecOrder = mo.KeepSpecOrder
 	opts.IgnoreOperations = mo.AllDefinitions
 	opts.StructTags = mo.StructTags
+	opts.WantsRootedErrorPath = mo.RootedErrorPath
 }
 
 // WithModels adds the model options group.

@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -53,7 +54,8 @@ func ReadConfig(fpath string) (*viper.Viper, error) {
 	v.SetConfigName(".swagger")
 	v.AddConfigPath(".")
 	if err := v.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.UnsupportedConfigError); !ok && v.ConfigFileUsed() != "" {
+		var e viper.UnsupportedConfigError
+		if !errors.As(err, &e) && v.ConfigFileUsed() != "" {
 			return nil, err
 		}
 	}

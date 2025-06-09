@@ -2,6 +2,7 @@ package diff
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/go-openapi/spec"
@@ -230,7 +231,15 @@ func (sd *SpecAnalyser) analyseResponseParams() {
 			// deleted responses
 			for code1 := range op1Responses {
 				if _, ok := op2Responses[code1]; !ok {
-					location := DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code1, Node: getSchemaDiffNode("Body", op1Responses[code1].Schema)}
+					location := DifferenceLocation{
+						URL:      eachURLMethodFrom2.Path,
+						Method:   eachURLMethodFrom2.Method,
+						Response: code1,
+						Node:     getNameOnlyDiffNode("NoContent"),
+					}
+					if op1Responses[code1].Schema != nil {
+						location.Node = getSchemaDiffNode("Body", op1Responses[code1].Schema)
+					}
 					sd.Diffs = sd.Diffs.addDiff(SpecDifference{DifferenceLocation: location, Code: DeletedResponse})
 				}
 			}
@@ -272,11 +281,22 @@ func (sd *SpecAnalyser) analyseResponseParams() {
 					sd.compareDescripton(responseLocation, op1Response.Description, op2Response.Description)
 
 					if op1Response.Schema != nil {
-						sd.compareSchema(
-							DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op1Response.Schema)},
-							op1Response.Schema,
-							op2Response.Schema)
+						if op2Response.Schema == nil {
+							sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+								DifferenceLocation: DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op1Response.Schema)},
+								Code:               DeletedProperty})
+						} else {
+							sd.compareSchema(
+								DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op1Response.Schema)},
+								op1Response.Schema,
+								op2Response.Schema)
+						}
+					} else if op2Response.Schema != nil {
+						sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+							DifferenceLocation: DifferenceLocation{URL: eachURLMethodFrom2.Path, Method: eachURLMethodFrom2.Method, Response: code2, Node: getSchemaDiffNode("Body", op2Response.Schema)},
+							Code:               AddedProperty})
 					}
+
 				} else {
 					// op2Response
 					sd.Diffs = sd.Diffs.addDiff(SpecDifference{
@@ -293,6 +313,7 @@ func (sd *SpecAnalyser) analyseExtensions(spec1, spec2 *spec.Swagger) {
 	specLoc := DifferenceLocation{Node: &Node{Field: "Spec"}}
 	sd.checkAddedExtensions(spec1.Extensions, spec2.Extensions, specLoc, "")
 	sd.checkDeletedExtensions(spec1.Extensions, spec2.Extensions, specLoc, "")
+	sd.checkChangedExtensions(spec1.Extensions, spec2.Extensions, specLoc, "")
 
 	sd.analyzeInfoExtensions()
 	sd.analyzeTagExtensions(spec1, spec2)
@@ -302,19 +323,27 @@ func (sd *SpecAnalyser) analyseExtensions(spec1, spec2 *spec.Swagger) {
 }
 
 func (sd *SpecAnalyser) analyzeOperationExtensions() {
+	pathsIterated := make(map[string]struct{})
 	for urlMethod, op2 := range sd.urlMethods2 {
 		pathAndMethodLoc := DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method}
 		if op1, ok := sd.urlMethods1[urlMethod]; ok {
-			sd.checkAddedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+			if _, ok := pathsIterated[urlMethod.Path]; !ok {
+				sd.checkAddedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+				sd.checkChangedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+				pathsIterated[urlMethod.Path] = struct{}{}
+			}
 			sd.checkAddedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
+			sd.checkChangedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
 			sd.checkAddedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
-
+			sd.checkChangedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
+			sd.checkParamExtensions(op1, op2, urlMethod)
 			for code, resp := range op1.Operation.Responses.StatusCodeResponses {
 				for hdr, h := range resp.Headers {
 					op2StatusCode, ok := op2.Operation.Responses.StatusCodeResponses[code]
 					if ok {
 						if _, ok = op2StatusCode.Headers[hdr]; ok {
 							sd.checkAddedExtensions(h.Extensions, op2StatusCode.Headers[hdr].Extensions, DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method, Node: getNameOnlyDiffNode("Headers")}, hdr)
+							sd.checkChangedExtensions(h.Extensions, op2StatusCode.Headers[hdr].Extensions, DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method, Node: getNameOnlyDiffNode("Headers")}, hdr)
 						}
 					}
 				}
@@ -326,10 +355,14 @@ func (sd *SpecAnalyser) analyzeOperationExtensions() {
 		}
 	}
 
+	pathsIterated = make(map[string]struct{})
 	for urlMethod, op1 := range sd.urlMethods1 {
 		pathAndMethodLoc := DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method}
 		if op2, ok := sd.urlMethods2[urlMethod]; ok {
-			sd.checkDeletedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+			if _, ok := pathsIterated[urlMethod.Path]; !ok {
+				sd.checkDeletedExtensions(op1.Extensions, op2.Extensions, DifferenceLocation{URL: urlMethod.Path}, "")
+				pathsIterated[urlMethod.Path] = struct{}{}
+			}
 			sd.checkDeletedExtensions(op1.Operation.Responses.Extensions, op2.Operation.Responses.Extensions, pathAndMethodLoc, "Responses")
 			sd.checkDeletedExtensions(op1.Operation.Extensions, op2.Operation.Extensions, pathAndMethodLoc, "")
 			for code, resp := range op1.Operation.Responses.StatusCodeResponses {
@@ -346,11 +379,42 @@ func (sd *SpecAnalyser) analyzeOperationExtensions() {
 	}
 }
 
+func (sd *SpecAnalyser) checkParamExtensions(op1 *PathItemOp, op2 *PathItemOp, urlMethod URLMethod) {
+	locations := []string{"query", "path", "body", "header", "formData"}
+	titles := []string{"Query", "Path", "Body", "Header", "FormData"}
+
+	for i, paramLocation := range locations {
+		rootNode := getNameOnlyDiffNode(titles[i])
+		params1 := getParams(op1.ParentPathItem.Parameters, op1.Operation.Parameters, paramLocation)
+		params2 := getParams(op2.ParentPathItem.Parameters, op2.Operation.Parameters, paramLocation)
+
+		location := DifferenceLocation{URL: urlMethod.Path, Method: urlMethod.Method, Node: rootNode}
+		// detect deleted param extensions
+		for paramName1, param1 := range params1 {
+			if param2, ok := params2[paramName1]; ok {
+				childLocation := location.AddNode(getSchemaDiffNode(paramName1, &param1.SimpleSchema))
+				sd.checkDeletedExtensions(param1.Extensions, param2.Extensions, childLocation, "")
+			}
+		}
+
+		// detect added changed params
+		for paramName2, param2 := range params2 {
+			// changed?
+			if param1, ok := params1[paramName2]; ok {
+				childLocation := location.AddNode(getSchemaDiffNode(paramName2, &param1.SimpleSchema))
+				sd.checkAddedExtensions(param1.Extensions, param2.Extensions, childLocation, "")
+				sd.checkChangedExtensions(param1.Extensions, param2.Extensions, childLocation, "")
+			}
+		}
+	}
+}
+
 func (sd *SpecAnalyser) analyzeSecurityDefinitionExtensions(spec1 *spec.Swagger, spec2 *spec.Swagger) {
 	securityDefLoc := DifferenceLocation{Node: &Node{Field: "Security Definitions"}}
-	for key, securityDef := range spec1.SecurityDefinitions {
+	for key, securityDef1 := range spec1.SecurityDefinitions {
 		if securityDef2, ok := spec2.SecurityDefinitions[key]; ok {
-			sd.checkAddedExtensions(securityDef.Extensions, securityDef2.Extensions, securityDefLoc, "")
+			sd.checkAddedExtensions(securityDef1.Extensions, securityDef2.Extensions, securityDefLoc, "")
+			sd.checkChangedExtensions(securityDef1.Extensions, securityDef2.Extensions, securityDefLoc, "")
 		}
 	}
 
@@ -365,6 +429,7 @@ func (sd *SpecAnalyser) analyzeSchemaExtensions(schema1, schema2 *spec.Schema, c
 	if schema1 != nil && schema2 != nil {
 		diffLoc := DifferenceLocation{Response: code, URL: urlMethod.Path, Method: urlMethod.Method, Node: getSchemaDiffNode("Body", schema2)}
 		sd.checkAddedExtensions(schema1.Extensions, schema2.Extensions, diffLoc, "")
+		sd.checkChangedExtensions(schema1.Extensions, schema2.Extensions, diffLoc, "")
 		sd.checkDeletedExtensions(schema1.Extensions, schema2.Extensions, diffLoc, "")
 		if schema1.Items != nil && schema2.Items != nil {
 			sd.analyzeSchemaExtensions(schema1.Items.Schema, schema2.Items.Schema, code, urlMethod)
@@ -384,15 +449,18 @@ func (sd *SpecAnalyser) analyzeInfoExtensions() {
 		diffLocation := DifferenceLocation{Node: &Node{Field: "Spec Info"}}
 		sd.checkAddedExtensions(sd.Info1.Extensions, sd.Info2.Extensions, diffLocation, "")
 		sd.checkDeletedExtensions(sd.Info1.Extensions, sd.Info2.Extensions, diffLocation, "")
+		sd.checkChangedExtensions(sd.Info1.Extensions, sd.Info2.Extensions, diffLocation, "")
 		if sd.Info1.Contact != nil && sd.Info2.Contact != nil {
 			diffLocation = DifferenceLocation{Node: &Node{Field: "Spec Info.Contact"}}
 			sd.checkAddedExtensions(sd.Info1.Contact.Extensions, sd.Info2.Contact.Extensions, diffLocation, "")
 			sd.checkDeletedExtensions(sd.Info1.Contact.Extensions, sd.Info2.Contact.Extensions, diffLocation, "")
+			sd.checkChangedExtensions(sd.Info1.Contact.Extensions, sd.Info2.Contact.Extensions, diffLocation, "")
 		}
 		if sd.Info1.License != nil && sd.Info2.License != nil {
 			diffLocation = DifferenceLocation{Node: &Node{Field: "Spec Info.License"}}
 			sd.checkAddedExtensions(sd.Info1.License.Extensions, sd.Info2.License.Extensions, diffLocation, "")
 			sd.checkDeletedExtensions(sd.Info1.License.Extensions, sd.Info2.License.Extensions, diffLocation, "")
+			sd.checkChangedExtensions(sd.Info1.License.Extensions, sd.Info2.License.Extensions, diffLocation, "")
 		}
 	}
 }
@@ -403,6 +471,7 @@ func (sd *SpecAnalyser) analyzeTagExtensions(spec1 *spec.Swagger, spec2 *spec.Sw
 		for _, spec1Tag := range spec1.Tags {
 			if spec2Tag.Name == spec1Tag.Name {
 				sd.checkAddedExtensions(spec1Tag.Extensions, spec2Tag.Extensions, diffLocation, "")
+				sd.checkChangedExtensions(spec1Tag.Extensions, spec2Tag.Extensions, diffLocation, "")
 			}
 		}
 	}
@@ -424,6 +493,21 @@ func (sd *SpecAnalyser) checkAddedExtensions(extensions1 spec.Extensions, extens
 			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
 				DifferenceLocation: diffLocation.AddNode(&Node{Field: extKey}),
 				Code:               AddedExtension,
+				Compatibility:      Warning, // this could potentially be a breaking change
+			})
+		}
+	}
+}
+
+func (sd *SpecAnalyser) checkChangedExtensions(extensions1 spec.Extensions, extensions2 spec.Extensions, diffLocation DifferenceLocation, fieldPrefix string) {
+	for extKey, ext2Val := range extensions2 {
+		if ext1Val, ok := extensions1[extKey]; ok && !reflect.DeepEqual(ext1Val, ext2Val) {
+			if fieldPrefix != "" {
+				extKey = fmt.Sprintf("%s.%s", fieldPrefix, extKey)
+			}
+			sd.Diffs = sd.Diffs.addDiff(SpecDifference{
+				DifferenceLocation: diffLocation.AddNode(&Node{Field: extKey}),
+				Code:               ChangedExtensionValue,
 				Compatibility:      Warning, // this could potentially be a breaking change
 			})
 		}
@@ -746,7 +830,11 @@ func (sd *SpecAnalyser) schemaFromRef(ref spec.Ref, defns *spec.Definitions) (ac
 }
 
 func schemaLocationKey(location DifferenceLocation) string {
-	return location.Method + location.URL + location.Node.Field + location.Node.TypeName
+	k := location.Method + location.URL + location.Node.Field + location.Node.TypeName
+	if location.Node.ChildNode != nil && location.Node.ChildNode.IsArray {
+		k += location.Node.ChildNode.Field + location.Node.ChildNode.TypeName
+	}
+	return k
 }
 
 // PropertyDefn combines a property with its required-ness

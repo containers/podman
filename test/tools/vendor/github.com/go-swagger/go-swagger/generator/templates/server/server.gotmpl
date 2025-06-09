@@ -230,7 +230,7 @@ type Server struct {
 	ListenLimit  int{{ if .UseGoStructFlags }}           `long:"listen-limit" description:"limit the number of outstanding requests"`{{ end }}
 	KeepAlive    time.Duration{{ if .UseGoStructFlags }} `long:"keep-alive" description:"sets the TCP keep-alive timeouts on accepted connections. It prunes dead TCP connections ( e.g. closing laptop mid-download)" default:"3m"`{{ end }}
 	ReadTimeout  time.Duration{{ if .UseGoStructFlags }} `long:"read-timeout" description:"maximum duration before timing out read of the request" default:"30s"`{{ end }}
-	WriteTimeout time.Duration{{ if .UseGoStructFlags }} `long:"write-timeout" description:"maximum duration before timing out write of the response" default:"60s"`{{ end }}
+	WriteTimeout time.Duration{{ if .UseGoStructFlags }} `long:"write-timeout" description:"maximum duration before timing out write of the response" default:"30s"`{{ end }}
 	httpServerL   net.Listener
 
 	TLSHost           string{{ if .UseGoStructFlags }}         `long:"tls-host" description:"the IP to listen on for tls, when not specified it's the same as --host" env:"TLS_HOST"`{{ end }}
