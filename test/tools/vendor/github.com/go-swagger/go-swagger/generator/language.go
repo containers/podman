@@ -141,7 +141,7 @@ func (l *LanguageOpts) baseImport(tgt string) string {
 
 // GoLangOpts for rendering items as golang code
 func GoLangOpts() *LanguageOpts {
-	var goOtherReservedSuffixes = map[string]bool{
+	goOtherReservedSuffixes := map[string]bool{
 		// see:
 		// https://golang.org/src/go/build/syslist.go
 		// https://golang.org/doc/install/source#environment
@@ -154,6 +154,7 @@ func GoLangOpts() *LanguageOpts {
 		"freebsd":   true,
 		"hurd":      true,
 		"illumos":   true,
+		"ios":       true,
 		"js":        true,
 		"linux":     true,
 		"nacl":      true,
@@ -172,6 +173,7 @@ func GoLangOpts() *LanguageOpts {
 		"armbe":       true,
 		"arm64":       true,
 		"arm64be":     true,
+		"loong64":     true,
 		"mips":        true,
 		"mipsle":      true,
 		"mips64":      true,
@@ -436,5 +438,4 @@ func checkPrefixAndFetchRelativePath(childpath string, parentpath string) (bool,
 	}
 
 	return false, ""
-
 }

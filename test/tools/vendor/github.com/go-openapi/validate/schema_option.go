@@ -18,6 +18,9 @@ package validate
 type SchemaValidatorOptions struct {
 	EnableObjectArrayTypeCheck    bool
 	EnableArrayMustHaveItemsCheck bool
+	recycleValidators             bool
+	recycleResult                 bool
+	skipSchemataResult            bool
 }
 
 // Option sets optional rules for schema validation
@@ -45,10 +48,36 @@ func SwaggerSchema(enable bool) Option {
 	}
 }
 
-// Options returns current options
+// WithRecycleValidators saves memory allocations and makes validators
+// available for a single use of Validate() only.
+//
+// When a validator is recycled, called MUST not call the Validate() method twice.
+func WithRecycleValidators(enable bool) Option {
+	return func(svo *SchemaValidatorOptions) {
+		svo.recycleValidators = enable
+	}
+}
+
+func withRecycleResults(enable bool) Option {
+	return func(svo *SchemaValidatorOptions) {
+		svo.recycleResult = enable
+	}
+}
+
+// WithSkipSchemataResult skips the deep audit payload stored in validation Result
+func WithSkipSchemataResult(enable bool) Option {
+	return func(svo *SchemaValidatorOptions) {
+		svo.skipSchemataResult = enable
+	}
+}
+
+// Options returns the current set of options
 func (svo SchemaValidatorOptions) Options() []Option {
 	return []Option{
 		EnableObjectArrayTypeCheck(svo.EnableObjectArrayTypeCheck),
 		EnableArrayMustHaveItemsCheck(svo.EnableArrayMustHaveItemsCheck),
+		WithRecycleValidators(svo.recycleValidators),
+		withRecycleResults(svo.recycleResult),
+		WithSkipSchemataResult(svo.skipSchemataResult),
 	}
 }

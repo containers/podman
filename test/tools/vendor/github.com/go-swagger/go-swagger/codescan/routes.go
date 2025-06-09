@@ -58,7 +58,6 @@ type routesBuilder struct {
 }
 
 func (r *routesBuilder) Build(tgt *spec.Paths) error {
-
 	pthObj := tgt.Paths[r.route.Path]
 	op := setPathOperation(
 		r.route.Method, r.route.ID,
@@ -82,7 +81,7 @@ func (r *routesBuilder) Build(tgt *spec.Paths) error {
 		newMultiLineTagParser("Extensions", newSetExtensions(opExtensionsSetter(op)), true),
 	}
 	if err := sp.Parse(r.route.Remaining); err != nil {
-		return fmt.Errorf("operation (%s): %v", op.ID, err)
+		return fmt.Errorf("operation (%s): %w", op.ID, err)
 	}
 
 	if tgt.Paths == nil {

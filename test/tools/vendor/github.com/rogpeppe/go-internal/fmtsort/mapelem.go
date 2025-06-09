@@ -1,6 +1,3 @@
-//go:build go1.12
-// +build go1.12
-
 package fmtsort
 
 import "reflect"

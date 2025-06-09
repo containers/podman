@@ -195,7 +195,8 @@ func ParseAccept2(header http.Header, key string) (specs []AcceptSpec) {
 }
 
 // ParseAccept parses Accept* headers.
-func ParseAccept(header http.Header, key string) (specs []AcceptSpec) {
+func ParseAccept(header http.Header, key string) []AcceptSpec {
+	var specs []AcceptSpec
 loop:
 	for _, s := range header[key] {
 		for {
@@ -218,6 +219,7 @@ loop:
 					}
 				}
 			}
+
 			specs = append(specs, spec)
 			s = skipSpace(s)
 			if !strings.HasPrefix(s, ",") {
@@ -226,7 +228,8 @@ loop:
 			s = skipSpace(s[1:])
 		}
 	}
-	return
+
+	return specs
 }
 
 func skipSpace(s string) (rest string) {
@@ -306,7 +309,7 @@ func expectTokenOrQuoted(s string) (value string, rest string) {
 			p := make([]byte, len(s)-1)
 			j := copy(p, s[:i])
 			escape := true
-			for i = i + 1; i < len(s); i++ {
+			for i++; i < len(s); i++ {
 				b := s[i]
 				switch {
 				case escape:

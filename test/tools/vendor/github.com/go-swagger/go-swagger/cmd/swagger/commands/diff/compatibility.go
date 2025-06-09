@@ -36,11 +36,12 @@ func init() {
 			AddedConstraint:         NonBreaking,
 			DeletedExtension:        Warning,
 			AddedExtension:          Warning,
+			ChangedExtensionValue:   Warning,
 		},
 		ForRequest: map[SpecChangeCode]Compatibility{
 			AddedRequiredProperty:     Breaking,
 			DeletedProperty:           Breaking,
-			AddedProperty:             Breaking,
+			AddedProperty:             NonBreaking,
 			AddedOptionalParam:        NonBreaking,
 			AddedRequiredParam:        Breaking,
 			DeletedOptionalParam:      NonBreaking,
@@ -70,6 +71,7 @@ func init() {
 			ChangedCollectionFormat:   Breaking,
 			DeletedExtension:          Warning,
 			AddedExtension:            Warning,
+			ChangedExtensionValue:     Warning,
 		},
 		ForChange: map[SpecChangeCode]Compatibility{
 			NoChangeDetected:          NonBreaking,
@@ -96,6 +98,7 @@ func init() {
 			DeletedDefinition:         NonBreaking,
 			DeletedExtension:          Warning,
 			AddedExtension:            Warning,
+			ChangedExtensionValue:     Warning,
 		},
 	}
 }

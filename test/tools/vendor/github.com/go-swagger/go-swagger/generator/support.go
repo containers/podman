@@ -58,6 +58,9 @@ func GenerateMarkdown(output string, modelNames, operationIDs []string, opts *Ge
 	if err := opts.EnsureDefaults(); err != nil {
 		return err
 	}
+	if opts.Target != "" && opts.Target != "." {
+		output = filepath.Join(opts.Target, output)
+	}
 	MarkdownSectionOpts(opts, output)
 
 	generator, err := newAppGenerator("", modelNames, operationIDs, opts)
@@ -184,7 +187,7 @@ func (a *appGenerator) Generate() error {
 			}
 			// optional OperationGroups templates generation
 			if err := a.GenOpts.renderOperationGroup(&opg); err != nil {
-				return fmt.Errorf("error while rendering operation group: %v", err)
+				return fmt.Errorf("error while rendering operation group: %w", err)
 			}
 		}
 	}
@@ -217,11 +220,13 @@ func (a *appGenerator) GenerateSupport(ap *GenApp) error {
 	app.DefaultImports[pkgAlias] = serverPath
 	app.ServerPackageAlias = pkgAlias
 
-	// add client import for cli generation
-	clientPath := path.Join(baseImport,
-		a.GenOpts.LanguageOpts.ManglePackagePath(a.ClientPackage, defaultClientTarget))
-	clientPkgAlias := importAlias(clientPath)
-	app.DefaultImports[clientPkgAlias] = clientPath
+	if a.GenOpts.IncludeCLi { // no need to add this import when there is no CLI
+		// add client import for cli generation
+		clientPath := path.Join(baseImport,
+			a.GenOpts.LanguageOpts.ManglePackagePath(a.ClientPackage, defaultClientTarget))
+		clientPkgAlias := importAlias(clientPath)
+		app.DefaultImports[clientPkgAlias] = clientPath
+	}
 
 	return a.GenOpts.renderApplication(app)
 }
@@ -262,9 +267,11 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 
 	imports := make(map[string]string, 50)
 	alias := deconflictPkg(a.GenOpts.LanguageOpts.ManglePackageName(a.OperationsPackage, defaultOperationsTarget), renameAPIPackage)
-	imports[alias] = path.Join(
-		baseImport,
-		a.GenOpts.LanguageOpts.ManglePackagePath(a.OperationsPackage, defaultOperationsTarget))
+	if !a.GenOpts.IsClient { // we don't want to inject this import for clients
+		imports[alias] = path.Join(
+			baseImport,
+			a.GenOpts.LanguageOpts.ManglePackagePath(a.OperationsPackage, defaultOperationsTarget))
+	}
 
 	implAlias := ""
 	if a.GenOpts.ImplementationPackage != "" {
@@ -284,7 +291,7 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 			a.GenOpts,
 		)
 		if err != nil {
-			return GenApp{}, fmt.Errorf("error in model %s while planning definitions: %v", mn, err)
+			return GenApp{}, fmt.Errorf("error in model %s while planning definitions: %w", mn, err)
 		}
 		if model != nil {
 			if !model.External {
@@ -304,6 +311,10 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 	log.Printf("planning operations (found: %d)", len(a.Operations))
 
 	genOps := make(GenOperations, 0, len(a.Operations))
+	consumesIndex := make(map[string][]string)
+	producesIndex := make(map[string][]string)
+	pristineDoc := a.SpecDoc.Pristine()
+
 	for operationName, opp := range a.Operations {
 		o := opp.Op
 		o.ID = operationName
@@ -316,6 +327,7 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 			Imports:          imports,
 			DefaultScheme:    a.DefaultScheme,
 			Doc:              a.SpecDoc,
+			PristineDefs:     pristineDoc,
 			Analyzed:         a.Analyzed,
 			BasePath:         a.SpecDoc.BasePath(),
 			GenOpts:          a.GenOpts,
@@ -355,7 +367,18 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 
 		op.ReceiverName = receiver
 		op.Tags = tags // ordered tags for this operation, possibly filtered by CLI params
-		genOps = append(genOps, op)
+
+		allConsumes := pruneEmpty(op.ConsumesMediaTypes)
+		if bldr.DefaultConsumes != "" {
+			allConsumes = append(allConsumes, bldr.DefaultConsumes)
+		}
+		consumesIndex[bldr.Name] = allConsumes
+
+		allProduces := pruneEmpty(op.ProducesMediaTypes)
+		if bldr.DefaultProduces != "" {
+			allProduces = append(allProduces, bldr.DefaultProduces)
+		}
+		producesIndex[bldr.Name] = allProduces
 
 		if !a.GenOpts.SkipTagPackages && tag != "" {
 			importPath := filepath.ToSlash(
@@ -364,8 +387,19 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 					a.GenOpts.LanguageOpts.ManglePackagePath(a.OperationsPackage, defaultOperationsTarget),
 					a.GenOpts.LanguageOpts.ManglePackageName(bldr.APIPackage, defaultOperationsTarget),
 				))
+
+			// check for possible conflicts that requires import aliasing
+			pth, aliasUsed := defaultImports[bldr.APIPackageAlias]
+			if (a.GenOpts.IsClient && bldr.APIPackageAlias == a.GenOpts.ClientPackage) || // we don't want import to shadow the current package
+				(a.GenOpts.IncludeCLi && bldr.APIPackageAlias == a.GenOpts.CliPackage) ||
+				(aliasUsed && pth != importPath) { // was already imported with a different target
+				op.PackageAlias = renameOperationPackage(tags, bldr.APIPackageAlias)
+				bldr.APIPackageAlias = op.PackageAlias
+			}
 			defaultImports[bldr.APIPackageAlias] = importPath
 		}
+
+		genOps = append(genOps, op)
 	}
 	sort.Sort(genOps)
 
@@ -378,8 +412,12 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 
 	opGroups := make(GenOperationGroups, 0, len(opsGroupedByPackage))
 	for k, v := range opsGroupedByPackage {
-		log.Printf("operations for package packages %q (found: %d)", k, len(v))
+		log.Printf("operations for package %q (found: %d)", k, len(v))
 		sort.Sort(v)
+
+		consumesInGroup := make([]string, 0, 2)
+		producesInGroup := make([]string, 0, 2)
+
 		// trim duplicate extra schemas within the same package
 		vv := make(GenOperations, 0, len(v))
 		seenExtraSchema := make(map[string]bool)
@@ -393,6 +431,9 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 			}
 			op.ExtraSchemas = uniqueExtraSchemas
 			vv = append(vv, op)
+
+			consumesInGroup = concatUnique(consumesInGroup, consumesIndex[op.Name])
+			producesInGroup = concatUnique(producesInGroup, producesIndex[op.Name])
 		}
 		var pkg string
 		if len(vv) > 0 {
@@ -413,6 +454,19 @@ func (a *appGenerator) makeCodegenApp() (GenApp, error) {
 			Imports:        imports,
 			RootPackage:    a.APIPackage,
 			GenOpts:        a.GenOpts,
+		}
+
+		if a.GenOpts.IsClient {
+			// generating extra options to switch media type in client
+			if len(consumesInGroup) > 1 || len(producesInGroup) > 1 {
+				sort.Strings(producesInGroup)
+				sort.Strings(consumesInGroup)
+				options := &GenClientOptions{
+					ProducesMediaTypes: producesInGroup,
+					ConsumesMediaTypes: consumesInGroup,
+				}
+				opGroup.ClientOptions = options
+			}
 		}
 		opGroups = append(opGroups, opGroup)
 	}

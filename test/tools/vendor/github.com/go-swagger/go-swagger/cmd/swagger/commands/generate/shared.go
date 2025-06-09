@@ -17,7 +17,7 @@ import (
 // FlattenCmdOptions determines options to the flatten spec preprocessing
 type FlattenCmdOptions struct {
 	WithExpand  bool     `long:"with-expand" description:"expands all $ref's in spec prior to generation (shorthand to --with-flatten=expand)"  group:"shared"`
-	WithFlatten []string `long:"with-flatten" description:"flattens all $ref's in spec prior to generation" choice:"minimal" choice:"full" choice:"expand" choice:"verbose" choice:"noverbose" choice:"remove-unused" default:"minimal" default:"verbose" group:"shared"` // nolint: staticcheck
+	WithFlatten []string `long:"with-flatten" description:"flattens all $ref's in spec prior to generation" choice:"minimal" choice:"full" choice:"expand" choice:"verbose" choice:"noverbose" choice:"remove-unused" choice:"keep-names" default:"minimal" default:"verbose" group:"shared"`
 }
 
 // SetFlattenOptions builds flatten options from command line args
@@ -64,6 +64,8 @@ func (f *FlattenCmdOptions) SetFlattenOptions(dflt *analysis.FlattenOpts) (res *
 				res.Minimal = true
 				minimalIsSet = true
 			}
+		case "keep-names":
+			res.KeepNames = true
 		}
 	}
 	return

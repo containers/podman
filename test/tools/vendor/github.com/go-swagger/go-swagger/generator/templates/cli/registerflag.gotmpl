@@ -8,34 +8,32 @@
     {{- if .Enum }}
         {{- $fullDescription = printf "Enum: %v. %v" (json .Enum) $fullDescription}}
     {{- end }}
-    {{ camelize .Name }}Description := `{{ $fullDescription }}`
+    {{ flagDescriptionVar .Name }} := `{{ $fullDescription }}`
 {{ end }}
 
 {{ define "flagnamevar" }}
-    {{- $flagNameVar := printf "%vFlagName" (camelize .Name) }}
-    var {{ $flagNameVar }} string
+    var {{ flagNameVar .Name }} string
     if cmdPrefix == "" {
-        {{ $flagNameVar }} = "{{ .Name }}"
+        {{ flagNameVar .Name }} = "{{ .Name }}"
     }else{
-        {{ $flagNameVar }} = fmt.Sprintf("%v.{{ .Name }}", cmdPrefix)
+        {{ flagNameVar .Name }} = fmt.Sprintf("%v.{{ .Name }}", cmdPrefix)
     }
 {{ end }}
 
 {{ define "flagdefaultvar" }}
-    {{ $defaultVar := printf "%vFlagDefault" (camelize .Name) }}
-    var {{ $defaultVar}} {{ .GoType }} {{ if .Default }}= {{ printf "%#v" .Default }}{{ end }} 
+    var {{ flagDefaultVar .Name }} {{ .GoType }} {{ if .Default }}= {{ printf "%#v" .Default }}{{ end }}
 {{ end }}
 
 {{/* Not used. CLI does not mark flag as required, and required will be checked by validation in future */}}
 {{/* {{ define "requiredregistrator" }}
-	if err := cmd.MarkPersistentFlagRequired({{ camelize .Name }}FlagName); err != nil{
+	if err := cmd.MarkPersistentFlagRequired({{ flagNameVar .Name }}); err != nil{
 		return err
 	}
 {{ end }} */}}
 
 {{ define "enumcompletion" }} {{/*only used for primitive types. completion type is always string.*/}}
 {{ if .Enum }}
-if err := cmd.RegisterFlagCompletionFunc({{ camelize .Name }}FlagName, 
+if err := cmd.RegisterFlagCompletionFunc({{ flagNameVar .Name }},
     func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
         var res []string
         if err := json.Unmarshal([]byte(`{{ json .Enum }}`), &res); err != nil {
@@ -54,12 +52,12 @@ if err := cmd.RegisterFlagCompletionFunc({{ camelize .Name }}FlagName,
         {{ template "flagdescriptionvar" . }}
         {{ template "flagnamevar" . }}
         {{ template "flagdefaultvar" . }}
-        _ = cmd.PersistentFlags().{{ pascalize .GoType }}({{ camelize .Name }}FlagName, {{ camelize .Name }}FlagDefault, {{ (camelize .Name) }}Description)
+        _ = cmd.PersistentFlags().{{ pascalize .GoType }}({{ flagNameVar .Name }}, {{ flagDefaultVar .Name }}, {{ flagDescriptionVar .Name }})
         {{ template "enumcompletion" . }}
-    {{- else if or (eq .GoType "strfmt.DateTime") (eq .GoType "strfmt.UUID") (eq .GoType "strfmt.ObjectId") }} {{/* read as string */}}
+    {{- else if or (eq .GoType "strfmt.DateTime") (eq .GoType "strfmt.UUID") (eq .GoType "strfmt.ObjectId") (eq .GoType "strfmt.ULID") }} {{/* read as string */}}
         {{ template "flagdescriptionvar" . }}
         {{ template "flagnamevar" . }}
-        _ = cmd.PersistentFlags().String({{ camelize .Name }}FlagName, "", {{ (camelize .Name) }}Description)
+        _ = cmd.PersistentFlags().String({{ flagNameVar .Name }}, "", {{ flagDescriptionVar .Name }})
         {{ template "enumcompletion" . }}
     {{- else }}
         // warning: primitive {{.Name}} {{.GoType }} is not supported by go-swagger cli yet
@@ -71,12 +69,12 @@ if err := cmd.RegisterFlagCompletionFunc({{ camelize .Name }}FlagName,
         {{ template "flagdescriptionvar" . }}
         {{ template "flagnamevar" . }}
         {{ template "flagdefaultvar" . }}
-        _ = cmd.PersistentFlags().{{ pascalize .GoType }}Slice({{ camelize .Name }}FlagName, {{ camelize .Name }}FlagDefault, {{ (camelize .Name) }}Description)
+        _ = cmd.PersistentFlags().{{ pascalize .GoType }}Slice({{ flagNameVar .Name }}, {{ flagDefaultVar .Name }}, {{ flagDescriptionVar .Name }})
         {{ template "enumcompletion" . }}
-    {{- else if or (eq .GoType "[]strfmt.DateTime") (eq .GoType "[]strfmt.UUID") (eq .GoType "[]strfmt.ObjectId") }} {{/* read as string */}}
+    {{- else if or (eq .GoType "[]strfmt.DateTime") (eq .GoType "[]strfmt.UUID") (eq .GoType "[]strfmt.ObjectId") (eq .GoType "[]strfmt.ULID") }} {{/* read as string */}}
         {{ template "flagdescriptionvar" . }}
         {{ template "flagnamevar" . }}
-        _ = cmd.PersistentFlags().StringSlice({{ camelize .Name }}FlagName, []string{}, {{ (camelize .Name) }}Description)
+        _ = cmd.PersistentFlags().StringSlice({{ flagNameVar .Name }}, []string{}, {{ flagDescriptionVar .Name }})
     {{- else }}
         // warning: array {{.Name}} {{.GoType }} is not supported by go-swagger cli yet
     {{- end }}
@@ -86,7 +84,7 @@ if err := cmd.RegisterFlagCompletionFunc({{ camelize .Name }}FlagName,
 {{/* each body parameter gets a string flag to input json raw string */}}
 {{ define "modelparamstringregistrator" }}
     {{ template "flagnamevar" . }}
-    _ = cmd.PersistentFlags().String({{ camelize .Name }}FlagName, "", "Optional json string for [{{ .Name }}]. {{ .Description }}")
+    _ = cmd.PersistentFlags().String({{ flagNameVar .Name }}, "", `Optional json string for [{{ .Name }}]. {{ escapeBackticks .Description }}`)
 {{ end }}
 
 {{ define "modelparamregistrator" }} {{/* register a param that has a schema */}}

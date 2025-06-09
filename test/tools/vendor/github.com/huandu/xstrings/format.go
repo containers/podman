@@ -17,9 +17,10 @@ import (
 // If tabSize <= 0, ExpandTabs panics with error.
 //
 // Samples:
-//     ExpandTabs("a\tbc\tdef\tghij\tk", 4) => "a   bc  def ghij    k"
-//     ExpandTabs("abcdefg\thij\nk\tl", 4)  => "abcdefg hij\nk   l"
-//     ExpandTabs("z中\t文\tw", 4)           => "z中 文  w"
+//
+//	ExpandTabs("a\tbc\tdef\tghij\tk", 4) => "a   bc  def ghij    k"
+//	ExpandTabs("abcdefg\thij\nk\tl", 4)  => "abcdefg hij\nk   l"
+//	ExpandTabs("z中\t文\tw", 4)           => "z中 文  w"
 func ExpandTabs(str string, tabSize int) string {
 	if tabSize <= 0 {
 		panic("tab size must be positive")
@@ -74,9 +75,10 @@ func ExpandTabs(str string, tabSize int) string {
 // If pad is an empty string, str will be returned.
 //
 // Samples:
-//     LeftJustify("hello", 4, " ")    => "hello"
-//     LeftJustify("hello", 10, " ")   => "hello     "
-//     LeftJustify("hello", 10, "123") => "hello12312"
+//
+//	LeftJustify("hello", 4, " ")    => "hello"
+//	LeftJustify("hello", 10, " ")   => "hello     "
+//	LeftJustify("hello", 10, "123") => "hello12312"
 func LeftJustify(str string, length int, pad string) string {
 	l := Len(str)
 
@@ -100,9 +102,10 @@ func LeftJustify(str string, length int, pad string) string {
 // If pad is an empty string, str will be returned.
 //
 // Samples:
-//     RightJustify("hello", 4, " ")    => "hello"
-//     RightJustify("hello", 10, " ")   => "     hello"
-//     RightJustify("hello", 10, "123") => "12312hello"
+//
+//	RightJustify("hello", 4, " ")    => "hello"
+//	RightJustify("hello", 10, " ")   => "     hello"
+//	RightJustify("hello", 10, "123") => "12312hello"
 func RightJustify(str string, length int, pad string) string {
 	l := Len(str)
 
@@ -126,9 +129,10 @@ func RightJustify(str string, length int, pad string) string {
 // If pad is an empty string, str will be returned.
 //
 // Samples:
-//     Center("hello", 4, " ")    => "hello"
-//     Center("hello", 10, " ")   => "  hello   "
-//     Center("hello", 10, "123") => "12hello123"
+//
+//	Center("hello", 4, " ")    => "hello"
+//	Center("hello", 10, " ")   => "  hello   "
+//	Center("hello", 10, "123") => "12hello123"
 func Center(str string, length int, pad string) string {
 	l := Len(str)
 

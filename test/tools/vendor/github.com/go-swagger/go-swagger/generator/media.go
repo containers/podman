@@ -71,6 +71,10 @@ func mediaMime(orig string) string {
 	return strings.SplitN(orig, ";", 2)[0]
 }
 
+func mediaGoName(media string) string {
+	return pascalize(strings.ReplaceAll(media, "*", "Star"))
+}
+
 func mediaParameters(orig string) string {
 	parts := strings.SplitN(orig, ";", 2)
 	if len(parts) < 2 {

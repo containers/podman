@@ -20,6 +20,7 @@ import (
 type GenCommon struct {
 	Copyright        string
 	TargetImportPath string
+	RootedErrorPath  bool // wants array and map types to have a path corresponding to their type in reported errors
 }
 
 // GenDefinition contains all the properties to generate a
@@ -85,6 +86,8 @@ type GenSchema struct {
 	HasBaseType                bool
 	IsSubType                  bool
 	IsExported                 bool
+	IsElem                     bool // IsElem gives some context when the schema is part of an array or a map
+	IsProperty                 bool // IsProperty gives some context when the schema is a property of an object
 	DiscriminatorField         string
 	DiscriminatorValue         string
 	Discriminates              map[string]string
@@ -96,6 +99,7 @@ type GenSchema struct {
 	StructTags                 []string
 	ExtraImports               map[string]string // non-standard imports detected when using external types
 	ExternalDocs               *spec.ExternalDocumentation
+	WantsRootedErrorPath       bool
 }
 
 func (g GenSchema) renderMarshalTag() string {
@@ -361,6 +365,8 @@ type GenParameter struct {
 
 	CollectionFormat string
 
+	CustomTag string
+
 	Child  *GenItems
 	Parent *GenItems
 
@@ -514,6 +520,8 @@ type GenOperationGroup struct {
 	RootPackage    string
 	GenOpts        *GenOpts
 	PackageAlias   string
+
+	ClientOptions *GenClientOptions
 }
 
 // GenOperationGroups is a sorted collection of operation groups
@@ -801,3 +809,10 @@ type GenSecurityRequirements []GenSecurityRequirement
 func (g GenSecurityRequirements) Len() int           { return len(g) }
 func (g GenSecurityRequirements) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
 func (g GenSecurityRequirements) Less(i, j int) bool { return g[i].Name < g[j].Name }
+
+// GenClientOptions holds extra pieces of information
+// to generate a client.
+type GenClientOptions struct {
+	ProducesMediaTypes []string // filled with all producers if any method as more than 1
+	ConsumesMediaTypes []string // filled with all consumers if any method as more than 1
+}

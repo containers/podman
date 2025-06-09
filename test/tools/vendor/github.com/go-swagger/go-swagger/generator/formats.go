@@ -57,6 +57,7 @@ var zeroes = map[string]string{
 	"strfmt.UUID3":      "strfmt.UUID3(\"\")",
 	"strfmt.UUID4":      "strfmt.UUID4(\"\")",
 	"strfmt.UUID5":      "strfmt.UUID5(\"\")",
+	"strfmt.ULID":       "strfmt.ULID(\"\")",
 	// "file":       "runtime.File",
 }
 
@@ -165,6 +166,7 @@ var formatMapping = map[string]map[string]string{
 		"uuid3":        "strfmt.UUID3",
 		"uuid4":        "strfmt.UUID4",
 		"uuid5":        "strfmt.UUID5",
+		"ulid":         "strfmt.ULID",
 		// For file producers
 		"file": "runtime.File",
 	},
