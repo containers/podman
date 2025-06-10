@@ -61,6 +61,7 @@ REMOTETAGS ?= remote exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= \
 	$(shell hack/apparmor_tag.sh) \
 	$(shell hack/btrfs_installed_tag.sh) \
+	$(shell hack/sqlite_tag.sh) \
 	$(shell hack/systemd_tag.sh) \
 	$(shell hack/libsubid_tag.sh) \
 	$(if $(filter linux,$(GOOS)), seccomp,)
