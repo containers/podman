@@ -264,7 +264,7 @@ export BASEBUILDTAGS="$BASEBUILDTAGS libtrust_openssl"
 %endif
 
 # build %%{name}
-export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh) $(hack/libdm_tag.sh)"
+export BUILDTAGS="$BASEBUILDTAGS $(hack/btrfs_installed_tag.sh)"
 %gobuild -o bin/%{name} ./cmd/%{name}
 
 # build %%{name}-remote
