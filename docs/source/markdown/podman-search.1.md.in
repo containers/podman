@@ -91,6 +91,10 @@ The result contains the Image name and its tag, one line for every tag associate
 
 Do not truncate the output (default *false*).
 
+#### **--reverse-order**
+
+List tags in reverse order. Default is false.
+
 @@option tls-verify
 
 ## EXAMPLES

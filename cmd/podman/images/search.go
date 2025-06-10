@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/containers/common/pkg/auth"
@@ -108,6 +109,7 @@ func searchFlags(cmd *cobra.Command) {
 
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&searchOptions.ListTags, "list-tags", false, "List the tags of the input registry")
+	flags.BoolVar(&searchOptions.ReverseOrder, "reverse-order", false, "List tags either in descending or ascending order")
 
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
@@ -159,6 +161,9 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	}
 	if len(searchReport) == 0 {
 		return nil
+	}
+	if searchOptions.ReverseOrder {
+		reverseOrder(searchReport)
 	}
 
 	isJSON := report.IsJSON(searchOptions.Format)
@@ -240,4 +245,12 @@ ReportLoop:
 		entries = append(entries, newElem)
 	}
 	return entries
+}
+
+// Reverse tags order
+func reverseOrder(report []entities.ImageSearchReport) []entities.ImageSearchReport {
+	slices.SortFunc(report, func(a, b entities.ImageSearchReport) int {
+		return -1 * strings.Compare(strings.ToLower(a.Tag), strings.ToLower(b.Tag))
+	})
+	return report
 }
