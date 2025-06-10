@@ -1804,4 +1804,20 @@ RUN umount /etc/hostname; rm /etc/hostname
     run_podman rmi $randomname
 }
 
+# bats test_tags=ci:parallel
+@test "podman run - will not start a container if syntactically invalid seccomp rules are passed via args" {
+    echo '{ "defaultAction": "SCMP_ACT_ALLOW", ' > $PODMAN_TMPDIR/invalid-seccomp.json
+
+    run_podman 125 run --rm --security-opt seccomp="$PODMAN_TMPDIR/invalid-seccomp.json" $IMAGE
+    is "$output" ".*failed: decoding seccomp profile failed: unexpected end of JSON input"
+}
+
+# bats test_tags=ci:parallel
+@test "podman run - will not start a container if semantically invalid seccomp rules are passed via args" {
+    echo '{ "defaultAction": "SCMP_ACT_INVALID_ACTION", "syscalls": [] }' > $PODMAN_TMPDIR/invalid-seccomp.json
+
+    run_podman 126 run --rm --security-opt seccomp="$PODMAN_TMPDIR/invalid-seccomp.json" $IMAGE
+    is "$output" "Error: OCI runtime error: crun: invalid seccomp action \`SCMP_ACT_INVALID_ACTION\`"
+}
+
 # vim: filetype=sh
