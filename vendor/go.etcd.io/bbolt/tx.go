@@ -495,8 +495,8 @@ func (tx *Tx) write() error {
 		// Write out page in "max allocation" sized chunks.
 		for {
 			sz := rem
-			if sz > maxAllocSize-1 {
-				sz = maxAllocSize - 1
+			if sz > common.MaxAllocSize-1 {
+				sz = common.MaxAllocSize - 1
 			}
 			buf := common.UnsafeByteSlice(unsafe.Pointer(p), written, 0, int(sz))
 
