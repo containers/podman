@@ -21,8 +21,8 @@ import (
 // PullOptions includes data to alter certain knobs when pulling a source
 // image.
 type PullOptions struct {
-	// Require HTTPS and verify certificates when accessing the registry.
-	TLSVerify bool
+	// Skip TLS verification when accessing the registry.
+	SkipTLSVerify types.OptionalBool
 	// [username[:password] to use when connecting to the registry.
 	Credentials string
 	// Quiet the progress bars when pushing.
@@ -46,7 +46,7 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 	}
 
 	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: types.NewOptionalBool(!options.TLSVerify),
+		DockerInsecureSkipTLSVerify: options.SkipTLSVerify,
 	}
 	if options.Credentials != "" {
 		authConf, err := parse.AuthConfig(options.Credentials)
