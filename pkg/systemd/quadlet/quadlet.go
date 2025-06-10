@@ -1115,6 +1115,9 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 		if ok && len(devType) != 0 {
 			if devValid {
 				podman.add("--opt", fmt.Sprintf("type=%s", devType))
+				if devType == "bind" {
+					service.Add(UnitGroup, "RequiresMountsFor", dev)
+				}
 			} else {
 				return nil, warnings, fmt.Errorf("key Type can't be used without Device")
 			}
