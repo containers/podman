@@ -27,7 +27,6 @@ const (
 	artifactRegistry     = "quay.io"
 	artifactRepo         = "podman"
 	artifactImageName    = "machine-os"
-	artifactImageNameWSL = "machine-os-wsl"
 	artifactOriginalName = "org.opencontainers.image.title"
 	machineOS            = "linux"
 )
@@ -95,13 +94,7 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 
 	cache := false
 	if endpoint == "" {
-		// The OCI artifact containing the OS image for WSL has a different
-		// image name. This should be temporary and dropped as soon as the
-		// OS image for WSL is built from fedora-coreos too (c.f. RUN-2178).
 		imageName := artifactImageName
-		if vmType == define.WSLVirt {
-			imageName = artifactImageNameWSL
-		}
 		endpoint = fmt.Sprintf("docker://%s/%s/%s:%s", artifactRegistry, artifactRepo, imageName, artifactVersion.majorMinor())
 		cache = true
 	}
