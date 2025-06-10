@@ -1,7 +1,7 @@
 % podman-quadlet 1
 
 ## NAME
-podman\-quadlet - Manage Quadlets
+podman\-quadlet - Allows users to manage Quadlets
 
 ## SYNOPSIS
 **podman quadlet** *subcommand*
@@ -18,7 +18,7 @@ Podman Quadlets allow users to manage containers, pods, volumes, networks, and i
 |---------|------------------------------------------------------------|--------------------------------------------------------------|
 | install | [podman-quadlet-install(1)](podman-quadlet-install.1.md)   | Install one or more quadlets                                 |
 | list    | [podman-quadlet-list(1)](podman-quadlet-list.1.md)         | List installed quadlets                                      |
-| print   | [podman-quadlet-print(1)](podman-quadlet-print.1.md)       | Prints contents of an installed quadlet                      |
+| print   | [podman-quadlet-print(1)](podman-quadlet-print.1.md)       | Display the contents of a quadlet                            |
 | rm      | [podman-quadlet-rm(1)](podman-quadlet-rm.1.md)             | Removes an installed quadlet                                 |
 
 ## SEE ALSO

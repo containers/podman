@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package abi
 
 import (
@@ -39,7 +42,8 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 	if err != nil {
 		return nil, fmt.Errorf("cannot stat Quadlet generator, Quadlet may not be installed: %w", err)
 	}
-	if !quadletStat.Mode().IsRegular() || !(quadletStat.Mode()&0100 != 0) {
+
+	if !quadletStat.Mode().IsRegular() || quadletStat.Mode()&0100 == 0 {
 		return nil, fmt.Errorf("no valid Quadlet binary installed to %q, unable to use Quadlet", quadletPath)
 	}
 
@@ -77,7 +81,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 	stat, err := os.Stat(installDir)
 	if rootless.IsRootless() {
 		// Make the directory if it doesn't exist
-		if err != nil && os.IsNotExist(err) {
+		if err != nil && errors.Is(err, fs.ErrNotExist) {
 			if err := os.MkdirAll(installDir, 0755); err != nil {
 				return nil, fmt.Errorf("unable to create Quadlet install path %s: %w", installDir, err)
 			}
@@ -125,19 +129,18 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 					continue
 				}
 				installReport.InstalledQuadlets[pathOnDisk] = finalPath
-
 			}
 		case strings.HasPrefix(toInstall, "http://") || strings.HasPrefix(toInstall, "https://"):
 			// It's a URL. Pull to temporary file.
 			tmpFile, err := os.CreateTemp("", "quadlet-dl")
 			if err != nil {
-				installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to create temporay file to download URL %s: %w", toInstall, err)
+				installReport.QuadletErrors[toInstall] = fmt.Errorf("unable to create temporary file to download URL %s: %w", toInstall, err)
 				continue
 			}
 			defer func() {
 				tmpFile.Close()
 				if err := os.Remove(tmpFile.Name()); err != nil {
-					logrus.Errorf("Unable to remove temporary file %q: %w", tmpFile.Name(), err)
+					logrus.Errorf("Unable to remove temporary file %q: %v", tmpFile.Name(), err)
 				}
 			}()
 			r, err := http.Get(toInstall)
@@ -164,7 +167,6 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 			} else {
 				installReport.InstalledQuadlets[toInstall] = installedPath
 			}
-
 		}
 	}
 
@@ -183,7 +185,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 	out, err := quadletCmd.CombinedOutput()
 	if err != nil {
 		logrus.Errorf("Error validating Quadlet syntax")
-		fmt.Fprintf(os.Stderr, string(out))
+		fmt.Fprint(os.Stderr, string(out))
 		validateErr = errors.New("validating Quadlet syntax failed")
 	}
 
@@ -201,7 +203,7 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 // Perform some minimal validation, but not much.
 // We can't know about a lot of problems without running the Quadlet binary, which we
 // only want to do once.
-func (ic *ContainerEngine) installQuadlet(ctx context.Context, path, destName, installDir string) (string, error) {
+func (ic *ContainerEngine) installQuadlet(_ context.Context, path, destName, installDir string) (string, error) {
 	// First, validate that the source path exists and is a file
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -242,7 +244,7 @@ func (ic *ContainerEngine) installQuadlet(ctx context.Context, path, destName, i
 }
 
 // Get the paths of all quadlets available to the current user
-func getAllQuadletPaths() ([]string, error) {
+func getAllQuadletPaths() []string {
 	var quadletPaths []string
 	quadletDirs := systemdquadlet.GetUnitDirs(rootless.IsRootless())
 	for _, dir := range quadletDirs {
@@ -260,7 +262,7 @@ func getAllQuadletPaths() ([]string, error) {
 			}
 		}
 	}
-	return quadletPaths, nil
+	return quadletPaths
 }
 
 // Generate systemd service name for a Quadlet from full path to the Quadlet file
@@ -303,10 +305,7 @@ func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.Qua
 		return nil, fmt.Errorf("connecting to systemd dbus: %w", err)
 	}
 
-	quadletPaths, err := getAllQuadletPaths()
-	if err != nil {
-		return nil, fmt.Errorf("listing all quadlets: %w", err)
-	}
+	quadletPaths := getAllQuadletPaths()
 
 	// Create filter functions
 	filterFuncs := make([]func(q *entities.ListQuadlet) bool, 0, len(options.Filters))
@@ -410,7 +409,7 @@ func getQuadletByName(name string) (string, error) {
 	for _, dir := range quadletDirs {
 		testPath := filepath.Join(dir, name)
 		if _, err := os.Stat(testPath); err != nil {
-			if !os.IsNotExist(err) {
+			if !errors.Is(err, fs.ErrNotExist) {
 				return "", fmt.Errorf("cannot stat quadlet at path %q: %w", testPath, err)
 			}
 			continue
@@ -458,10 +457,7 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 	}
 
 	if options.All {
-		allQuadlets, err := getAllQuadletPaths()
-		if err != nil {
-			return nil, err
-		}
+		allQuadlets := getAllQuadletPaths()
 		quadlets = allQuadlets
 	}
 

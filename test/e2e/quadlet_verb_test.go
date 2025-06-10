@@ -3,14 +3,13 @@
 package integration
 
 import (
-	"path/filepath"
 	"os"
+	"path/filepath"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
 
 var _ = Describe("Podman quadlet verb", func() {
 
@@ -22,7 +21,7 @@ var _ = Describe("Podman quadlet verb", func() {
 
 		quadletfileContent, err := os.ReadFile(filepath.Join("quadlet", "alpine-quadlet.container"))
 		Expect(err).ToNot(HaveOccurred())
-		
+
 		result := podmanTest.PodmanExitCleanly("quadlet", "install", filepath.Join("quadlet", "alpine-quadlet.container"))
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())

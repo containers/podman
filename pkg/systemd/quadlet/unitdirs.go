@@ -1,6 +1,3 @@
-//go:build !remote
-// +build !remote
-
 package quadlet
 
 import (
@@ -34,19 +31,19 @@ func IsExtSupported(filename string) bool {
 // and /etc/containers/systemd (for sysadmin files).
 // For user generators these can live in $XDG_RUNTIME_DIR/containers/systemd, /etc/containers/systemd/users, /etc/containers/systemd/users/$UID, and $XDG_CONFIG_HOME/containers/systemd
 func GetUnitDirs(rootless bool) []string {
-	paths := newSearchPaths()
+	paths := NewSearchPaths()
 
 	// Allow overriding source dir, this is mainly for the CI tests
 	if getDirsFromEnv(paths) {
 		return paths.sorted
 	}
 
-	resolvedUnitDirAdminUser := resolveUnitDirAdminUser()
-	userLevelFilter := getUserLevelFilter(resolvedUnitDirAdminUser)
+	resolvedUnitDirAdminUser := ResolveUnitDirAdminUser()
+	userLevelFilter := GetUserLevelFilter(resolvedUnitDirAdminUser)
 
 	if rootless {
 		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
-		nonNumericFilter := getNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
+		nonNumericFilter := GetNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
 		getRootlessDirs(paths, nonNumericFilter, userLevelFilter)
 	} else {
 		getRootDirs(paths, userLevelFilter)
@@ -60,7 +57,7 @@ type searchPaths struct {
 	visitedDirs map[string]struct{}
 }
 
-func newSearchPaths() *searchPaths {
+func NewSearchPaths() *searchPaths {
 	return &searchPaths{
 		sorted:      make([]string, 0),
 		visitedDirs: make(map[string]struct{}, 0),
@@ -70,6 +67,10 @@ func newSearchPaths() *searchPaths {
 func (s *searchPaths) Add(path string) {
 	s.sorted = append(s.sorted, path)
 	s.visitedDirs[path] = struct{}{}
+}
+
+func (s *searchPaths) GetSortedPaths() []string {
+	return s.sorted
 }
 
 func (s *searchPaths) Visited(path string) bool {
@@ -88,12 +89,12 @@ func getDirsFromEnv(paths *searchPaths) bool {
 			Errorf("%s not a valid file path", eachUnitDir)
 			break
 		}
-		appendSubPaths(paths, eachUnitDir, false, nil)
+		AppendSubPaths(paths, eachUnitDir, false, nil)
 	}
 	return true
 }
 
-func appendSubPaths(paths *searchPaths, path string, isUserFlag bool, filterPtr func(string, bool) bool) {
+func AppendSubPaths(paths *searchPaths, path string, isUserFlag bool, filterPtr func(string, bool) bool) {
 	resolvedPath, err := filepath.EvalSymlinks(path)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
@@ -124,7 +125,7 @@ func appendSubPaths(paths *searchPaths, path string, isUserFlag bool, filterPtr 
 	// Recursively run through the contents of the directory
 	for _, entry := range entries {
 		fullPath := filepath.Join(resolvedPath, entry.Name())
-		appendSubPaths(paths, fullPath, isUserFlag, filterPtr)
+		AppendSubPaths(paths, fullPath, isUserFlag, filterPtr)
 	}
 }
 
@@ -156,7 +157,7 @@ func skipPath(paths *searchPaths, path string, isUserFlag bool, filterPtr func(s
 	return !stat.IsDir()
 }
 
-func resolveUnitDirAdminUser() string {
+func ResolveUnitDirAdminUser() string {
 	unitDirAdminUser := filepath.Join(UnitDirAdmin, "users")
 	var err error
 	var resolvedUnitDirAdminUser string
@@ -169,7 +170,7 @@ func resolveUnitDirAdminUser() string {
 	return resolvedUnitDirAdminUser
 }
 
-func getUserLevelFilter(resolvedUnitDirAdminUser string) func(string, bool) bool {
+func GetUserLevelFilter(resolvedUnitDirAdminUser string) func(string, bool) bool {
 	return func(_path string, isUserFlag bool) bool {
 		// if quadlet generator is run rootless, do not recurse other user sub dirs
 		// if quadlet generator is run as root, ignore users sub dirs
@@ -184,7 +185,7 @@ func getUserLevelFilter(resolvedUnitDirAdminUser string) func(string, bool) bool
 	}
 }
 
-func getNonNumericFilter(resolvedUnitDirAdminUser string, systemUserDirLevel int) func(string, bool) bool {
+func GetNonNumericFilter(resolvedUnitDirAdminUser string, systemUserDirLevel int) func(string, bool) bool {
 	return func(path string, isUserFlag bool) bool {
 		// when running in rootless, recursive walk directories that are non numeric
 		// ignore sub dirs under the `users` directory which correspond to a user id
@@ -209,7 +210,7 @@ func getNonNumericFilter(resolvedUnitDirAdminUser string, systemUserDirLevel int
 func getRootlessDirs(paths *searchPaths, nonNumericFilter, userLevelFilter func(string, bool) bool) {
 	runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
 	if found {
-		appendSubPaths(paths, path.Join(runtimeDir, "containers/systemd"), false, nil)
+		AppendSubPaths(paths, path.Join(runtimeDir, "containers/systemd"), false, nil)
 	}
 
 	configDir, err := os.UserConfigDir()
@@ -217,12 +218,12 @@ func getRootlessDirs(paths *searchPaths, nonNumericFilter, userLevelFilter func(
 		fmt.Fprintf(os.Stderr, "Warning: %v", err)
 		return
 	}
-	appendSubPaths(paths, path.Join(configDir, "containers/systemd"), false, nil)
+	AppendSubPaths(paths, path.Join(configDir, "containers/systemd"), false, nil)
 
 	u, err := user.Current()
 	if err == nil {
-		appendSubPaths(paths, filepath.Join(UnitDirAdmin, "users"), true, nonNumericFilter)
-		appendSubPaths(paths, filepath.Join(UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		AppendSubPaths(paths, filepath.Join(UnitDirAdmin, "users"), true, nonNumericFilter)
+		AppendSubPaths(paths, filepath.Join(UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
 	} else {
 		fmt.Fprintf(os.Stderr, "Warning: %v", err)
 		// Add the base directory even if the UID was not found
@@ -231,7 +232,7 @@ func getRootlessDirs(paths *searchPaths, nonNumericFilter, userLevelFilter func(
 }
 
 func getRootDirs(paths *searchPaths, userLevelFilter func(string, bool) bool) {
-	appendSubPaths(paths, UnitDirTemp, false, userLevelFilter)
-	appendSubPaths(paths, UnitDirAdmin, false, userLevelFilter)
-	appendSubPaths(paths, UnitDirDistro, false, nil)
+	AppendSubPaths(paths, UnitDirTemp, false, userLevelFilter)
+	AppendSubPaths(paths, UnitDirAdmin, false, userLevelFilter)
+	AppendSubPaths(paths, UnitDirDistro, false, nil)
 }

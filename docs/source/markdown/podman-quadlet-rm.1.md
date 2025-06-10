@@ -1,7 +1,7 @@
 % podman-quadlet-rm 1
 
 ## NAME
-podman\-quadlet\-rm - Remove installed quadlet
+podman\-quadlet\-rm - Removes an installed quadlet
 
 ## SYNOPSIS
 **podman quadlet rm** [*options*] *quadlet-name* [*quadlet-name*]...

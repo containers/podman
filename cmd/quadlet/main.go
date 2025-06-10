@@ -368,7 +368,7 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 
 		serviceName, err = quadlet.GetUnitServiceName(unit)
 		if err != nil {
-			Logf("Error obtaining service name: %w", err)
+			Logf("Error obtaining service name: %v", err)
 		}
 
 		switch {
@@ -448,7 +448,6 @@ func process() bool {
 		Debugf("Starting quadlet-generator, output to: %s", outputPath)
 	}
 
-	quadlet.Errorf = Logf
 	quadlet.Debugf = Debugf
 
 	sourcePathsMap := quadlet.GetUnitDirs(isUserFlag)
