@@ -106,9 +106,7 @@ jobs:
     packages: [podman-fedora]
     notifications: *packit_generic_failure_notification
     targets:
-      - fedora-rawhide
-      - fedora-42
-      - fedora-41
+      - fedora-all
     tmt_plan: "/plans/system/*"
     tf_extra_params:
       environments:
@@ -143,13 +141,6 @@ jobs:
     packages: [podman-fedora]
     dist_git_branches: &fedora_targets
       - fedora-all
-
-  - job: propose_downstream
-    trigger: release
-    update_release: false
-    packages: [podman-centos]
-    dist_git_branches:
-      - c10s
 
   - job: koji_build
     trigger: commit
