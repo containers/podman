@@ -1,11 +1,11 @@
 package kube
 
 import (
-	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/completion"
 )
 
 type downKubeOptions struct {
@@ -18,12 +18,12 @@ var (
   Removes pods that have been based on the Kubernetes kind described in the YAML.`
 
 	downCmd = &cobra.Command{
-		Use:               "down [options] KUBEFILE|-",
+		Use:               "down [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Remove pods based on Kubernetes YAML",
 		Long:              downDescription,
 		RunE:              down,
-		Args:              cobra.ExactArgs(1),
-		ValidArgsFunction: common.AutocompleteDefaultOneArg,
+		Args:              cobra.MinimumNArgs(1),
+		ValidArgsFunction: completion.AutocompleteDefault,
 		Example: `podman kube down nginx.yml
    cat nginx.yml | podman kube down -
    podman kube down https://example.com/nginx.yml`,
@@ -48,7 +48,7 @@ func downFlags(cmd *cobra.Command) {
 }
 
 func down(_ *cobra.Command, args []string) error {
-	reader, err := readerFromArg(args[0])
+	reader, err := readerFromArgs(args)
 	if err != nil {
 		return err
 	}
