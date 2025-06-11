@@ -599,6 +599,16 @@ func (r *Runtime) ListImagesByNames(names []string) ([]*Image, error) {
 }
 
 // ListImages lists the images in the local container storage and filter the images by ListImagesOptions
+//
+// podman images consumes the output of ListImages and produces one line for each tag in each Image.Names value,
+// rather than one line for each Image with all Names, so if options.Filters contains one reference filter
+// with a fully qualified image name without negation, it is considered a query so it makes more sense for
+// the user to see only the corresponding names in the output, not all the names of the deduplicated
+// image; therefore, we make the corresponding names available to the caller by overwriting the actual image names
+// with the corresponding names when the reference filter matches and the reference is a fully qualified image name
+// (i.e., contains a tag or digest, not just a bare repository name).
+//
+// This overwriting is done only in memory and is not written to storage in any way.
 func (r *Runtime) ListImages(ctx context.Context, options *ListImagesOptions) ([]*Image, error) {
 	if options == nil {
 		options = &ListImagesOptions{}
