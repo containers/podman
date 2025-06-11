@@ -68,6 +68,7 @@ func (e EventLogFile) writeString(s string) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 	return writeToFile(s, f)
 }
 
