@@ -213,6 +213,41 @@ fd7b786b5c32  docker.io/library/alpine:latest   buildah  2 hours ago  storage   
 f78620804e00  scratch                           buildah  2 hours ago  storage        working-container
 ```
 
+List containers with their associated pods.
+```
+$ podman ps --pod
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS     NAMES               POD ID        PODNAME
+4089df24d4f3  docker.io/library/nginx:latest  nginx      2 minutes ago  Up 2 minutes  80/tcp    webserver           1234567890ab  web-pod
+92f58933c28c  docker.io/library/redis:latest  redis      3 minutes ago  Up 3 minutes  6379/tcp  cache               1234567890ab  web-pod
+a1b2c3d4e5f6  docker.io/library/centos:latest /bin/bash  1 minute ago   Up 1 minute             standalone-container
+```
+
+List all containers with pod information, including those not in pods.
+```
+$ podman ps -a --pod
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS                    PORTS     NAMES                POD ID        PODNAME
+4089df24d4f3  docker.io/library/nginx:latest  nginx      2 minutes ago  Up 2 minutes              80/tcp    webserver            1234567890ab  web-pod
+92f58933c28c  docker.io/library/redis:latest  redis      3 minutes ago  Up 3 minutes              6379/tcp  cache                1234567890ab  web-pod
+69ed779d8ef9f redis:alpine                     redis      25 hours ago   Exited (0) 25 hours ago   6379/tcp  old-cache            5678901234cd  old-pod
+a1b2c3d4e5f6  docker.io/library/centos:latest /bin/bash  1 minute ago   Up 1 minute                         standalone-container
+```
+
+Filter containers by pod name.
+```
+$ podman ps --filter pod=web-pod
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS     NAMES      
+4089df24d4f3  docker.io/library/nginx:latest  nginx      2 minutes ago  Up 2 minutes  80/tcp    webserver  
+92f58933c28c  docker.io/library/redis:latest  redis      3 minutes ago  Up 3 minutes  6379/tcp  cache      
+```
+
+Use custom format to show container and pod information.
+```
+$ podman ps --format "{{.Names}} is in pod {{.PodName}} ({{.Pod}})"
+webserver is in pod web-pod (1234567890ab)
+cache is in pod web-pod (1234567890ab)
+standalone-container is in pod  ()
+```
+
 ## ps
 Print a list of containers
 
