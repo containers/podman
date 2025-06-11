@@ -26,6 +26,7 @@ Maintainers and Reviewers for the Skopeo and Buildah projects are found in their
 | Jake Correnti     | [jakecorrenti](https://github.com/jakecorrenti)          | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Jason Greene      | [n1hility](https://github.com/n1hility)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Jhon Honce        | [jwhonce](https://github.com/jwhonce)                    | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
+| Craig Loewen      | [craigloewen-msft](https://github.com/craigloewen-msft)  | Reviewer                         | [Microsoft](https://github.com/microsoft)    |
 | Urvashi Mohnani   | [umohnani8](https://github.com/umohnani8)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Aditya Rajan      | [flouthoc](https://github.com/flouthoc)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Jan Rodák         | [Honny1](https://github.com/Honny1)                      | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
