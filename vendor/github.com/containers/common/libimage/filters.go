@@ -25,6 +25,7 @@ type compiledFilters map[string][]filterFunc
 
 // Apply the specified filters.  All filters of each key must apply.
 // tree must be provided if compileImageFilters indicated it is necessary.
+// WARNING: Application of referenceFilter sets the image names to matched names, but this only affects the values in memory, they are not written to storage.
 func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree *layerTree) (bool, error) {
 	for key := range filters {
 		for _, filter := range filters[key] {
@@ -51,6 +52,7 @@ func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree 
 // filterImages returns a slice of images which are passing all specified
 // filters.
 // tree must be provided if compileImageFilters indicated it is necessary.
+// WARNING: Application of referenceFilter sets the image names to matched names, but this only affects the values in memory, they are not written to storage.
 func (r *Runtime) filterImages(ctx context.Context, images []*Image, filters compiledFilters, tree *layerTree) ([]*Image, error) {
 	result := []*Image{}
 	for i := range images {
@@ -290,15 +292,31 @@ func filterReferences(r *Runtime, wantedReferenceMatches, unwantedReferenceMatch
 			return !unwantedMatched, nil
 		}
 
-		// Go through the wanted matches
-		// If an image matches the wanted filter but it also matches the unwanted
-		// filter, don't add it to the output
 		for _, value := range wantedReferenceMatches {
 			matches, err := imageMatchesReferenceFilter(r, img, value)
 			if err != nil {
 				return false, err
 			}
 			if matches && !unwantedMatched {
+				ref, err := reference.ParseNamed(value)
+				if err == nil {
+					if !reference.IsNameOnly(ref) {
+						namesThatMatch := []string{}
+						_, containsDigest := ref.(reference.Digested)
+						for _, name := range img.Names() {
+							if containsDigest {
+								if nameRef, err := reference.ParseNamed(name); err == nil {
+									if nameRef.Name() == ref.Name() {
+										namesThatMatch = append(namesThatMatch, name)
+									}
+								}
+							} else if name == value {
+								namesThatMatch = append(namesThatMatch, name)
+							}
+						}
+						img.setEphemeralNames(namesThatMatch)
+					}
+				}
 				return true, nil
 			}
 		}
@@ -352,7 +370,6 @@ func imageMatchesReferenceFilter(r *Runtime, img *Image, value string) (bool, er
 			}
 		}
 	}
-
 	return false, nil
 }
 
