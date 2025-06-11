@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
@@ -14,11 +15,11 @@ var (
 	quadletRmDescription = `Remove one or more installed Quadlets from the current user`
 
 	quadletRmCmd = &cobra.Command{
-		Use:   "rm [options] QUADLET [QUADLET...]",
-		Short: "Remove Quadlets",
-		Long:  quadletRmDescription,
-		RunE:  rm,
-		// TODO: Arg validation plus completion
+		Use:               "rm [options] QUADLET [QUADLET...]",
+		Short:             "Remove Quadlets",
+		Long:              quadletRmDescription,
+		RunE:              rm,
+		ValidArgsFunction: common.AutocompleteQuadlets,
 		Example: `podman quadlet rm test.container
 podman quadlet rm --force mysql.container
 podman quadlet rm --all --reload-systemd=false`,

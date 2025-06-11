@@ -13,8 +13,8 @@ var (
 	// Command: podman _quadlet_
 	quadletCmd = &cobra.Command{
 		Use:   "quadlet",
-		Short: "Manage Quadlets",
-		Long:  "Manage Quadlets",
+		Short: "Allows users to manage Quadlets",
+		Long:  "Allows users to manage Quadlets",
 		RunE:  validate.SubCommandExists,
 	}
 )

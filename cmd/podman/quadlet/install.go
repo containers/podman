@@ -25,8 +25,7 @@ var (
 			}
 			return nil
 		},
-		// TODO: Autocomplete valid extensions only
-		ValidArgsFunction: completion.AutocompleteDefault,
+		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman quadlet install /path/to/myquadlet.container
 podman quadlet install https://github.com/containers/podman/blob/main/test/e2e/quadlet/basic.container
 podman quadlet install oci-artifact://my-artifact:latest`,

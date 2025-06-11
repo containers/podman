@@ -20,6 +20,15 @@ Filter output based on conditions give.
 
 Pretty-print output to JSON or using a Go template (default "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\n{{end -}}")
 
+Print results with a Go template.
+
+| **Placeholder** | **Description**                                |
+|-----------------|------------------------------------------------|
+| .Name           | Name of the Quadlet file                       |
+| .Path           | Quadlet file path on disk                      |
+| .Status         | Quadlet status corresponding to systemd unit   |
+| .UnitName       | Systemd unit name corresponding to quadlet     |
+
 ## EXAMPLES
 
 Filter list by name.

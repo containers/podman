@@ -27,15 +27,15 @@ type QuadletListOptions struct {
 // A ListQuadlet is a single Quadlet to be listed by `podman quadlet list`
 type ListQuadlet struct {
 	// Name is the name of the Quadlet file
-	Name string `json:"Name"`
+	Name string
 	// UnitName is the name of the systemd unit created from the Quadlet.
 	// May be empty if systemd has not be reloaded since it was installed.
-	UnitName string `json:"UnitName"`
+	UnitName string
 	// Path to the Quadlet on disk
-	Path string `json:"Path"`
+	Path string
 	// What is the status of the Quadlet - if present in systemd, will be a
 	// systemd status, else will mention if the Quadlet has syntax errors
-	Status string `json:"Status"`
+	Status string
 }
 
 // QuadletRemoveOptions contains parameters for removing Quadlets

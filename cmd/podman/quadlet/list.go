@@ -6,6 +6,7 @@ import (
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
+	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -32,10 +33,12 @@ podman quadlet list --filter 'name=test*'`,
 )
 
 func listFlags(cmd *cobra.Command) {
+	formatFlagName := "format"
 	flags := cmd.Flags()
 
 	flags.StringArrayVarP(&listOptions.Filters, "filter", "f", []string{}, "Filter output based on conditions given")
-	flags.StringVar(&format, "format", "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
+	flags.StringVar(&format, formatFlagName, "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
+	_ = quadletListCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListQuadlet{}))
 }
 
 func init() {

@@ -386,6 +386,14 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 			// Prefill resouceNames for .pod files.
 			// This is requires for referencing the pod from .container files
 			resourceName = quadlet.GetPodResourceName(unit)
+		case strings.HasSuffix(unit.Filename, ".volume"):
+			serviceName = quadlet.GetVolumeServiceName(unit)
+		case strings.HasSuffix(unit.Filename, ".kube"):
+			serviceName = quadlet.GetKubeServiceName(unit)
+		case strings.HasSuffix(unit.Filename, ".network"):
+			serviceName = quadlet.GetNetworkServiceName(unit)
+		case strings.HasSuffix(unit.Filename, ".image"):
+			serviceName = quadlet.GetImageServiceName(unit)
 		default:
 			Logf("Unsupported file type %q", unit.Filename)
 			continue
