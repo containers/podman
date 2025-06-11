@@ -1,0 +1,21 @@
+# Used by shfmt as well as your $EDITOR.
+# See https://EditorConfig.org
+
+# This is a top-most EditorConfig file.
+root = true
+
+# Ignore any "vendor" directories.
+[**/vendor/**]
+ignore = true
+
+# Bash, bats, and sh files use 4 spaces for indentation.
+[*.{bash,bats,sh}]
+indent_style = space
+indent_size = 4
+
+# Same rules as above but for shell files without an extension.
+# NOTE the section name [[shell]] is not part of EditorConfig spec
+# and is only recognized by shfmt.
+[[shell]]
+indent_style = space
+indent_size = 4
