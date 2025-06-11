@@ -215,9 +215,7 @@ function pasta_test_do() {
     # Start server
     local cname="c-socat-$(safename)"
     run_podman run -d --name="$cname" --net=pasta"${pasta_spec}" -p "${podman_spec}" "${IMAGE}" \
-                   sh -c 'for port in $(seq '"${xseq}"'); do '\
-'                             socat -u '"${bind}"' '"${recv}"' & '\
-'                         done; wait'
+                   sh -c 'for port in $(seq '"${xseq}"'); do socat -u '"${bind}"' '"${recv}"' & done; wait'
 
     # Make sure all ports in the container are bound.
     for cport in $(seq ${xseq}); do
@@ -423,8 +421,7 @@ function pasta_test_do() {
 @test "Loopback interface state" {
     run_podman run --rm --net=pasta $IMAGE ip -j link show
 
-    local jq_expr='.[] | select(.link_type == "loopback").flags | '\
-'              contains(["UP"])'
+    local jq_expr='.[] | select(.link_type == "loopback").flags | contains(["UP"])'
 
     container_loopback_up="$(printf '%s' "${output}" | jq -rM "${jq_expr}")"
 
