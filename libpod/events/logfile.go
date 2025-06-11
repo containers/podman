@@ -169,7 +169,7 @@ func (e EventLogFile) Read(ctx context.Context, options ReadOptions) error {
 
 			event, err := newEventFromJSONString(line.Text)
 			if err != nil {
-				err := fmt.Errorf("event type %s is not valid in %s", event.Type.String(), e.options.LogFilePath)
+				err := fmt.Errorf("event type is not valid in %s", e.options.LogFilePath)
 				options.EventChannel <- ReadResult{Error: err}
 				continue
 			}
