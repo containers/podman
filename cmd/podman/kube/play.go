@@ -51,7 +51,7 @@ var (
   Creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments, DaemonSets, Jobs, and PersistentVolumeClaims.`
 
 	playCmd = &cobra.Command{
-		Use:               "play [options] KUBEFILE|-",
+		Use:               "play [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		RunE:              play,
@@ -66,7 +66,7 @@ var (
 
 var (
 	playKubeCmd = &cobra.Command{
-		Use:               "kube [options] KUBEFILE|-",
+		Use:               "kube [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		Hidden:            true,

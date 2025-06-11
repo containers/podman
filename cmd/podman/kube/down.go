@@ -18,7 +18,7 @@ var (
   Removes pods that have been based on the Kubernetes kind described in the YAML.`
 
 	downCmd = &cobra.Command{
-		Use:               "down [options] KUBEFILE|-",
+		Use:               "down [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Remove pods based on Kubernetes YAML",
 		Long:              downDescription,
 		RunE:              down,
