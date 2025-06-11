@@ -73,7 +73,7 @@ function _check_env {
         [special]="bcd#e!f|g hij=klmnop"
         [bel]=$'\a'
         [withnl]=$'aaa\nbbb'
-        [we.ird*na#me!?]="yeah... weird indeed"
+        ['we.ird*na#me!?']="yeah... weird indeed"
     )
 
     # Convert to command-line form, "--env X=Y" for each of the above
@@ -155,7 +155,7 @@ EOF
                $IMAGE sh -c 'env -0 >/envresults'
 
     expect[withnl]=$'"line1'
-    expect[weird*na#me!]=$weirdname
+    expect['weird*na#me!']=$weirdname
 
     _check_env $resultsfile
 
