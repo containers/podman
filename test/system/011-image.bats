@@ -46,12 +46,11 @@ function check_signature() {
     # Confirm good signature
     run env GNUPGHOME=$_GNUPGHOME_TMP gpg --verify "$dir/$sigfile"
     is "$output" ".*Good signature from .Foo.*<foo@bar.com>" \
-       "gpg --verify $sigfile"
+        "gpg --verify $sigfile"
 }
 
-
 @test "podman image - sign with no sigfile" {
-    GNUPGHOME=$_GNUPGHOME_TMP run_podman image sign --sign-by foo@bar.com --directory $PODMAN_TMPDIR/signatures  "containers-storage:$PODMAN_TEST_IMAGE_FQN"
+    GNUPGHOME=$_GNUPGHOME_TMP run_podman image sign --sign-by foo@bar.com --directory $PODMAN_TMPDIR/signatures "containers-storage:$PODMAN_TEST_IMAGE_FQN"
     check_signature "signature-1"
 }
 

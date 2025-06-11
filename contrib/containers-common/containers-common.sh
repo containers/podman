@@ -21,7 +21,6 @@ branchversion() {
     echo "$v"
 }
 
-
 SPECFILE=containers-common.spec
 if [[ ! -e $SPECFILE.in ]]; then
     die "Please run me from the same directory as $SPECFILE.in"
@@ -40,8 +39,8 @@ builddir=containers-common-${moduleversion[common]}
 mkdir -p $builddir
 
 sed -e "s/COMMON_BRANCH/${moduleversion[common]}/g" \
-    -e "s/IMAGE_BRANCH/${moduleversion[image]}/g"  \
-    -e "s/STORAGE_BRANCH/${moduleversion[storage]}/g"  \
+    -e "s/IMAGE_BRANCH/${moduleversion[image]}/g" \
+    -e "s/STORAGE_BRANCH/${moduleversion[storage]}/g" \
     <$SPECFILE.in >$builddir/$SPECFILE
 
 cd $builddir
@@ -53,4 +52,4 @@ fi
 
 echo "Changing storage.conf..."
 sed -i -e 's/^driver.*=.*/driver = "overlay"/' -e 's/^mountopt.*=.*/mountopt = "nodev,metacopy=on"/' \
-        storage.conf
+    storage.conf

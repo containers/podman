@@ -51,10 +51,10 @@ function pasta_test_do() {
     # ->      TCP translated ... forwarding    IPv4    loopback
     # ->      TCP translated     forwarding    IPv4    loopback
     local test_name=$(printf "$(sed \
-                      -e 's/^test_//'                 \
-                      -e 's/-\([0-9a-f]\{2\}\)/ /gI' \
-                      -e 's/_/ /g'                   \
-                      <<<"${BATS_TEST_NAME}")")
+        -e 's/^test_//' \
+        -e 's/-\([0-9a-f]\{2\}\)/ /gI' \
+        -e 's/_/ /g' \
+        <<<"${BATS_TEST_NAME}")")
 
     # We now have the @test name as specified in the script, minus punctuation.
     # From each of the name components, determine an action.
@@ -72,26 +72,26 @@ function pasta_test_do() {
     # errors, as are unknown keywords.
     for kw in $test_name; do
         case $kw in
-            TCP|UDP)           _set_opt proto ${kw,,} ;;
-            IPv*)              _set_opt ip_ver $(expr "$kw" : "IPv\(.\)") ;;
-            Single)            _set_opt range 1 ;;
-            range)             _set_opt range 3 ;;
-            Address|Interface) _set_opt bind_type ${kw,,} ;;
-            bound)             assert "$bind_type" != "" "WHAT-bound???" ;;
-            [Tt]ranslated)     _set_opt delta    1 ;;
-            loopback|tap)      _set_opt iftype $kw ;;
-            port)              ;;   # always occurs with 'forwarding'; ignore
-            forwarding)        _set_opt bytes   1 ;;
-            large|small)       _set_opt bytes $kw ;;
-            transfer)          assert "$bytes" != "" "'transfer' must be preceded by 'large' or 'small'" ;;
-            *)                 die "cannot grok '$kw' in test name" ;;
+        TCP | UDP) _set_opt proto ${kw,,} ;;
+        IPv*) _set_opt ip_ver $(expr "$kw" : "IPv\(.\)") ;;
+        Single) _set_opt range 1 ;;
+        range) _set_opt range 3 ;;
+        Address | Interface) _set_opt bind_type ${kw,,} ;;
+        bound) assert "$bind_type" != "" "WHAT-bound???" ;;
+        [Tt]ranslated) _set_opt delta 1 ;;
+        loopback | tap) _set_opt iftype $kw ;;
+        port) ;; # always occurs with 'forwarding'; ignore
+        forwarding) _set_opt bytes 1 ;;
+        large | small) _set_opt bytes $kw ;;
+        transfer) assert "$bytes" != "" "'transfer' must be preceded by 'large' or 'small'" ;;
+        *) die "cannot grok '$kw' in test name" ;;
         esac
     done
 
     # Sanity checks: all test names must include IPv4/6 and TCP/UDP
     test -n "$ip_ver" || die "Test name must include IPv4 or IPv6"
-    test -n "$proto"  || die "Test name must include TCP or UDP"
-    test -n "$bytes"  || die "Test name must include 'forwarding' or 'large/small transfer'"
+    test -n "$proto" || die "Test name must include TCP or UDP"
+    test -n "$bytes" || die "Test name must include 'forwarding' or 'large/small transfer'"
 
     # Major decision point: simple forwarding test, or multi-byte transfer?
     if [[ $bytes -eq 1 ]]; then
@@ -103,21 +103,22 @@ function pasta_test_do() {
     else
         # Data transfer. Translate small/large to dd-recognizable sizes
         case "$bytes" in
-            small)  bytes="2k" ;;
-            large)  case "$proto" in
-                        tcp) bytes="10M" ;;
-                        udp) bytes=$(($(cat /proc/sys/net/core/wmem_default) / 4)) ;;
-                        *)   die "Internal error: unknown proto '$proto'" ;;
-                    esac
-                    ;;
-            *)      die "Internal error: unknown transfer size '$bytes'" ;;
+        small) bytes="2k" ;;
+        large)
+            case "$proto" in
+            tcp) bytes="10M" ;;
+            udp) bytes=$(($(cat /proc/sys/net/core/wmem_default) / 4)) ;;
+            *) die "Internal error: unknown proto '$proto'" ;;
+            esac
+            ;;
+        *) die "Internal error: unknown transfer size '$bytes'" ;;
         esac
 
         # On data transfers, no other input args can be set in test name.
         # Confirm that they are not defined, and set to a suitable default.
         kw="something"
-        _set_opt range     1
-        _set_opt delta     0
+        _set_opt range 1
+        _set_opt delta 0
         _set_opt bind_type port
     fi
 
@@ -205,17 +206,17 @@ function pasta_test_do() {
     # Fill in file for data transfer tests, and expected output strings
     if [ "${bytes}" != "1" ]; then
         dd if=/dev/urandom bs=${bytes} count=1 of="${XFER_FILE}"
-        run_podman run -i --rm $IMAGE $recvhelper < ${XFER_FILE}
+        run_podman run -i --rm $IMAGE $recvhelper <${XFER_FILE}
         local expect="$output"
     else
-        printf "x" > "${XFER_FILE}"
+        printf "x" >"${XFER_FILE}"
         local expect="$(for i in $(seq ${seq}); do printf "x"; done)"
     fi
 
     # Start server
     local cname="c-socat-$(safename)"
     run_podman run -d --name="$cname" --net=pasta"${pasta_spec}" -p "${podman_spec}" "${IMAGE}" \
-                   sh -c 'for port in $(seq '"${xseq}"'); do socat -u '"${bind}"' '"${recv}"' & done; wait'
+        sh -c 'for port in $(seq '"${xseq}"'); do socat -u '"${bind}"' '"${recv}"' & done; wait'
 
     # Make sure all ports in the container are bound.
     for cport in $(seq ${xseq}); do
@@ -273,7 +274,7 @@ function pasta_test_do() {
     local host_address="$(default_addr 4)"
 
     assert "${container_address}" = "${host_address}" \
-           "Container address not matching host"
+        "Container address not matching host"
 }
 
 @test "IPv4 address assignment" {
@@ -284,7 +285,7 @@ function pasta_test_do() {
     local container_address="$(ipv4_get_addr_global "${output}")"
 
     assert "${container_address}" = "192.0.2.1" \
-           "Container address not matching configured value"
+        "Container address not matching configured value"
 }
 
 @test "No IPv4" {
@@ -296,7 +297,7 @@ function pasta_test_do() {
     local container_address="$(ipv4_get_addr_global "${output}")"
 
     assert "${container_address}" = "null" \
-           "Container has IPv4 global address with IPv4 disabled"
+        "Container has IPv4 global address with IPv4 disabled"
 }
 
 @test "IPv6 default address assignment" {
@@ -308,7 +309,7 @@ function pasta_test_do() {
     local host_address="$(default_addr 6)"
 
     assert "${container_address}" = "${host_address}" \
-           "Container address not matching host"
+        "Container address not matching host"
 }
 
 @test "IPv6 address assignment" {
@@ -319,7 +320,7 @@ function pasta_test_do() {
     local container_address="$(ipv6_get_addr_global "${output}")"
 
     assert "${container_address}" = "2001:db8::1" \
-           "Container address not matching configured value"
+        "Container address not matching configured value"
 }
 
 @test "No IPv6" {
@@ -331,7 +332,7 @@ function pasta_test_do() {
     local container_address="$(ipv6_get_addr_global "${output}")"
 
     assert "${container_address}" = "null" \
-           "Container has IPv6 global address with IPv6 disabled"
+        "Container has IPv6 global address with IPv6 disabled"
 }
 
 @test "podman puts pasta IP in /etc/hosts" {
@@ -359,7 +360,7 @@ function pasta_test_do() {
     local host_route="$(ipv4_get_route_default)"
 
     assert "${container_route}" = "${host_route}" \
-           "Container route not matching host"
+        "Container route not matching host"
 }
 
 @test "IPv4 default route assignment" {
@@ -371,7 +372,7 @@ function pasta_test_do() {
     local container_route="$(ipv4_get_route_default "${output}")"
 
     assert "${container_route}" = "192.0.2.1" \
-           "Container route not matching configured value"
+        "Container route not matching configured value"
 }
 
 @test "IPv6 default route" {
@@ -383,7 +384,7 @@ function pasta_test_do() {
     local host_route="$(ipv6_get_route_default)"
 
     assert "${container_route}" = "${host_route}" \
-           "Container route not matching host"
+        "Container route not matching host"
 }
 
 @test "IPv6 default route assignment" {
@@ -395,7 +396,7 @@ function pasta_test_do() {
     local container_route="$(ipv6_get_route_default "${output}")"
 
     assert "${container_route}" = "2001:db8::1" \
-           "Container route not matching configured value"
+        "Container route not matching configured value"
 }
 
 ### Interfaces #################################################################
@@ -406,7 +407,7 @@ function pasta_test_do() {
     container_tap_mtu="$(ether_get_mtu "${output}")"
 
     assert "${container_tap_mtu}" = "65520" \
-           "Container's default MTU not 65220 bytes by default"
+        "Container's default MTU not 65220 bytes by default"
 }
 
 @test "MTU assignment" {
@@ -415,7 +416,7 @@ function pasta_test_do() {
     container_tap_mtu="$(ether_get_mtu "${output}")"
 
     assert "${container_tap_mtu}" = "1280" \
-           "Container's default MTU not matching configured 1280 bytes"
+        "Container's default MTU not matching configured 1280 bytes"
 }
 
 @test "Loopback interface state" {
@@ -426,7 +427,7 @@ function pasta_test_do() {
     container_loopback_up="$(printf '%s' "${output}" | jq -rM "${jq_expr}")"
 
     assert "${container_loopback_up}" = "true" \
-           "Container's loopback interface not up"
+        "Container's loopback interface not up"
 }
 
 ### DNS ########################################################################
@@ -776,7 +777,7 @@ function pasta_test_do() {
     run_podman run --rm "--net=pasta:--pid,${pidfile}" $IMAGE true
 
     # Allow time for process to vanish, in case there's high load
-    local pid=$(< $pidfile)
+    local pid=$(<$pidfile)
     local timeout=5
     while [[ $timeout -gt 0 ]]; do
         if ! ps -p $pid; then

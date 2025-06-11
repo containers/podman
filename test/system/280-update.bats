@@ -15,12 +15,11 @@ function teardown() {
     basic_teardown
 }
 
-
 # bats test_tags=distro-integration
 @test "podman update - test all options" {
     local cgv=1
     if is_cgroupsv2; then
-        cgv=2;
+        cgv=2
     fi
 
     # Need a block device for blkio-weight-device testing
@@ -28,7 +27,7 @@ function teardown() {
     if ! is_rootless; then
         if is_cgroupsv2; then
             lofile=${PODMAN_TMPDIR}/disk.img
-            fallocate -l 1k  ${lofile}
+            fallocate -l 1k ${lofile}
             LOOPDEVICE=$(losetup --show -f $lofile)
             pass_loop_device="--device $LOOPDEVICE"
 
@@ -164,7 +163,7 @@ device-write-iops   = $LOOPDEVICE:4000 | - | -                                  
 # HealthCheck configuration
 
 function nrand() {
-   # 1-59 seconds. Don't exceed 59, because podman then shows as "1mXXs"
+    # 1-59 seconds. Don't exceed 59, because podman then shows as "1mXXs"
     echo $((1 + RANDOM % 58))
 }
 
@@ -200,7 +199,7 @@ function nrand() {
     local -a opts
     local -A formats
     local -A checks
-    while read opt value format ; do
+    while read opt value format; do
         fullopt="--health-$opt=$value"
         opts+=("$fullopt")
         formats["$fullopt"]="{{.Config.$format}}"
@@ -261,10 +260,10 @@ function nrand() {
     local msg="healthmsg-$(random_string)"
     local ctrname="c-h-$(safename)"
 
-    run_podman run -d --name $ctrname                    \
-                --health-cmd "echo $msg"                 \
-                --health-startup-cmd "echo startup$msg"  \
-                $IMAGE /home/podman/pause
+    run_podman run -d --name $ctrname \
+        --health-cmd "echo $msg" \
+        --health-startup-cmd "echo startup$msg" \
+        $IMAGE /home/podman/pause
     cid="$output"
 
     run_podman update $ctrname --no-healthcheck
@@ -285,9 +284,9 @@ function nrand() {
     local ctrname="c-h-$(safename)"
     local msg="healthmsg-$(random_string)"
 
-    run_podman run -d --name $ctrname     \
-                --health-cmd "echo $msg"  \
-                $IMAGE /home/podman/pause
+    run_podman run -d --name $ctrname \
+        --health-cmd "echo $msg" \
+        $IMAGE /home/podman/pause
     cid="$output"
 
     run_podman healthcheck run $ctrname
@@ -314,8 +313,8 @@ function nrand() {
 @test "podman update - resources on update are not changed unless requested" {
     local ctrname="c-h-$(safename)"
     run_podman run -d --name $ctrname \
-                --pids-limit 1024     \
-                $IMAGE /home/podman/pause
+        --pids-limit 1024 \
+        $IMAGE /home/podman/pause
 
     run_podman update $ctrname --memory 100M
 

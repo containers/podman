@@ -2,7 +2,6 @@
 
 load helpers
 
-
 # bats test_tags=ci:parallel
 @test "podman mount - basic test" {
     # Only works with root (FIXME: does it work with rootless + vfs?)
@@ -14,14 +13,14 @@ load helpers
 
     c_name="c-mount-$(safename)"
     run_podman run --name $c_name $IMAGE \
-               sh -c "echo $f_content > $f_path"
+        sh -c "echo $f_content > $f_path"
 
     run_podman mount $c_name
     mount_path=$output
 
     test -d $mount_path
     test -e "$mount_path/$f_path"
-    is $(< "$mount_path/$f_path") "$f_content" "contents of file, as read via fs"
+    is $(<"$mount_path/$f_path") "$f_content" "contents of file, as read via fs"
 
     # Make sure that 'podman mount' (no args) returns the expected path and CID
     run_podman inspect --format '{{.ID}}' $c_name
@@ -70,8 +69,8 @@ load helpers
     # Image is custom-built and has a file containing the YMD tag. Check it.
     testimage_file="/home/podman/testimage-id"
     test -e "$mount_path$testimage_file"
-    is $(< "$mount_path$testimage_file") "$PODMAN_TEST_IMAGE_TAG"  \
-       "Contents of $testimage_file in image"
+    is $(<"$mount_path$testimage_file") "$PODMAN_TEST_IMAGE_TAG" \
+        "Contents of $testimage_file in image"
 
     # 'image mount', no args, tells us what's mounted
     run_podman image mount
@@ -86,7 +85,7 @@ load helpers
 
     run_podman 125 image umount no-such-image
     is "$output" "Error: no-such-image: image not known" \
-       "error message from image umount no-such-image"
+        "error message from image umount no-such-image"
 
     # Tests for mount -a. This may mount more than one image! (E.g. systemd)
     run_podman image mount -a
@@ -105,13 +104,13 @@ load helpers
     local stdopts="type=volume,destination=$volpath"
 
     # Variations on a theme (not by Paganini). All of these should fail.
-    for varopt in readonly readonly=true ro=true ro rw=false;do
+    for varopt in readonly readonly=true ro=true ro rw=false; do
         run_podman 1 run --rm -q --mount $stdopts,$varopt $IMAGE touch $volpath/a
         is "$output" "touch: $volpath/a: Read-only file system" "with $varopt"
     done
 
     # All of these should pass
-    for varopt in rw rw=true ro=false readonly=false;do
+    for varopt in rw rw=true ro=false readonly=false; do
         run_podman run --rm -q --mount $stdopts,$varopt $IMAGE touch $volpath/a
         assert "$output" = "" "touch, with varopt=$varopt"
     done
@@ -134,24 +133,24 @@ load helpers
     mountopts="type=image,src=$iname,dst=/image-mount"
     # Run a container with an image mount
     run_podman run --rm --mount $mountopts $iname \
-               diff /etc/os-release /image-mount/etc/os-release
+        diff /etc/os-release /image-mount/etc/os-release
     assert "$output" == "" "no output from diff command"
 
     # Make sure the mount is read-only
     run_podman 1 run --rm --mount $mountopts $iname \
-               touch /image-mount/read-only
+        touch /image-mount/read-only
     is "$output" "touch: /image-mount/read-only: Read-only file system"
 
     # Make sure that rw,readwrite work
     run_podman run --rm --mount "${mountopts},rw=true" $iname \
-               touch /image-mount/readwrite
+        touch /image-mount/readwrite
     run_podman run --rm --mount "${mountopts},readwrite=true" $iname \
-               touch /image-mount/readwrite
+        touch /image-mount/readwrite
 
     tmpctr="c-$(safename)"
     subpathopts="type=image,src=$iname,dst=/image-mount,subpath=/etc"
     run_podman run --name $tmpctr --mount "${subpathopts}" $iname \
-               ls /image-mount/shadow
+        ls /image-mount/shadow
     run_podman inspect $tmpctr --format '{{ (index .Mounts 0).SubPath }}'
     assert "$output" == "/etc" "SubPath contains /etc"
     run_podman rm $tmpctr
@@ -173,16 +172,16 @@ load helpers
     # Confirm that image is mounted
     run_podman image mount
     assert "$output" =~ ".*localhost/$iname:latest  *$mountpoint.*" \
-           "Image is mounted"
+        "Image is mounted"
 
     run_podman run --rm --mount $mountopts $iname \
-               diff /etc/os-release /image-mount/etc/os-release
+        diff /etc/os-release /image-mount/etc/os-release
     assert "$output" == "" "no output from diff command"
 
     # Image must still be mounted
     run_podman image mount
     assert "$output" =~ ".*localhost/$iname:latest  *$mountpoint.*" \
-           "Image is still mounted after container run --rm"
+        "Image is still mounted after container run --rm"
 
     run_podman image umount $iname
     is "$output" "$iid" "podman image umount, first time, confirms IID"
@@ -205,7 +204,7 @@ load helpers
     assert "$output" = "" "no output from exec diff"
     run_podman exec $cid find /image-mount/home/podman
     assert "$output" =~ ".*/image-mount/home/podman/testimage-id.*" \
-           "find /image-mount/home/podman"
+        "find /image-mount/home/podman"
 
     # Clean up
     run_podman rm -t 0 -f $cid
@@ -242,11 +241,11 @@ load helpers
     dest=/$(random_string 30)
     tmpfile1=$PODMAN_TMPDIR/volume-test1
     random1=$(random_string 30)
-    echo $random1 > $tmpfile1
+    echo $random1 >$tmpfile1
 
     tmpfile2=$PODMAN_TMPDIR/volume-test2
     random2=$(random_string 30)
-    echo $random2 > $tmpfile2
+    echo $random2 >$tmpfile2
     bogus=$(random_string 10)
 
     mountStr1=type=bind,src=$tmpfile1,destination=$dest,ro,Z
@@ -298,8 +297,8 @@ EOF
 
     # Test image will always have this file, and will always have the tag
     test -d $mount_path
-    is $(< "$mount_path/home/podman/testimage-id") "$PODMAN_TEST_IMAGE_TAG"  \
-       "Contents of well-known file in image"
+    is $(<"$mount_path/home/podman/testimage-id") "$PODMAN_TEST_IMAGE_TAG" \
+        "Contents of well-known file in image"
 
     # Make sure that 'podman mount' (no args) returns the expected path
     run_podman mount --notruncate
@@ -384,10 +383,10 @@ EOF
     is "$output" "ramfs" "ramfs mounted"
 
     if is_rootless; then
-        run_podman 125 run --rm --mount type=tmpfs,destination=${PODMAN_TMPDIR},noswap  $IMAGE stat -f -c "%T" ${PODMAN_TMPDIR}
+        run_podman 125 run --rm --mount type=tmpfs,destination=${PODMAN_TMPDIR},noswap $IMAGE stat -f -c "%T" ${PODMAN_TMPDIR}
         is "$output" "Error: the 'noswap' option is only allowed with rootful tmpfs mounts: must provide an argument for option" "noswap not supported in rootless mode"
     else
-        run_podman run --rm --mount type=tmpfs,destination=${PODMAN_TMPDIR},noswap  $IMAGE sh -c "mount| grep ${PODMAN_TMPDIR}"
+        run_podman run --rm --mount type=tmpfs,destination=${PODMAN_TMPDIR},noswap $IMAGE sh -c "mount| grep ${PODMAN_TMPDIR}"
         is "$output" ".*noswap" "tmpfs noswap mounted"
     fi
 }
@@ -479,18 +478,18 @@ glob | /*    | /mountroot/           | in
                 local condition="${rel_abs:0:3}-${in_out}"
                 local sourcedir="$PODMAN_TMPDIR/$condition"
                 rm -rf $sourcedir $PODMAN_TMPDIR/outside-the-tree
-                mkdir  $sourcedir $PODMAN_TMPDIR/outside-the-tree
-                echo "${datacontent[in]}"  > "$sourcedir/data"
-                echo "${datacontent[out]}" > "$PODMAN_TMPDIR/outside-the-tree/data"
+                mkdir $sourcedir $PODMAN_TMPDIR/outside-the-tree
+                echo "${datacontent[in]}" >"$sourcedir/data"
+                echo "${datacontent[out]}" >"$PODMAN_TMPDIR/outside-the-tree/data"
 
                 # Create the symlink itself (in the in-dir of course)
                 local target
                 case "$condition" in
-                    rel-in)  target="data" ;;
-                    rel-out) target="../outside-the-tree/data" ;;
-                    abs-in)  target="$sourcedir/data" ;;
-                    abs-out) target="$PODMAN_TMPDIR/outside-the-tree/data" ;;
-                    *)       die "Internal error, invalid condition '$condition'" ;;
+                rel-in) target="data" ;;
+                rel-out) target="../outside-the-tree/data" ;;
+                abs-in) target="$sourcedir/data" ;;
+                abs-out) target="$PODMAN_TMPDIR/outside-the-tree/data" ;;
+                *) die "Internal error, invalid condition '$condition'" ;;
                 esac
                 ln -s $target "$sourcedir/link"
 
@@ -542,10 +541,10 @@ glob | /*    | /mountroot/           | in
                     fi
 
                     run_podman $exit_code run \
-                               --mount type=$mount_type,src="$sourcedir$mount_source",dst="$mount_dest$mount_opts" \
-                               --rm --privileged $img sh -c "stat -c '%N' $containerpath; cat $containerpath"
+                        --mount type=$mount_type,src="$sourcedir$mount_source",dst="$mount_dest$mount_opts" \
+                        --rm --privileged $img sh -c "stat -c '%N' $containerpath; cat $containerpath"
                     assert "${lines[0]}" = "$expect_stat" "$description -- stat $containerpath"
-                    assert "${lines[1]}" = "$expect_cat"  "$description -- cat $containerpath"
+                    assert "${lines[1]}" = "$expect_cat" "$description -- cat $containerpath"
                 done
             done
         done
@@ -558,17 +557,17 @@ glob | /*    | /mountroot/           | in
     mkdir $workdir
     local datafile="data-$(random_string 5)"
     local datafile_contents="What we expect to see, $(random_string 20)"
-    echo "$datafile_contents" > $workdir/$datafile
+    echo "$datafile_contents" >$workdir/$datafile
     ln -s $datafile $workdir/link
 
     run_podman create --mount type=glob,src=$workdir/*,dst=/mountroot/,no-dereference --privileged $img sh -c "stat -c '%N' /mountroot/link; cat /mountroot/link; ls -l /mountroot"
     cid="$output"
     run_podman start -a $cid
     assert "${lines[0]}" = "'/mountroot/link' -> '$datafile'" "symlink is preserved, on start"
-    assert "${lines[1]}" = "$datafile_contents"         "glob matches symlink and host 'data' file, on start"
+    assert "${lines[1]}" = "$datafile_contents" "glob matches symlink and host 'data' file, on start"
     run_podman start -a $cid
     assert "${lines[0]}" = "'/mountroot/link' -> '$datafile'" "symlink is preserved, on restart"
-    assert "${lines[1]}" = "$datafile_contents"         "glob matches symlink and host 'data' file, on restart"
+    assert "${lines[1]}" = "$datafile_contents" "glob matches symlink and host 'data' file, on restart"
     run_podman rm -f -t=0 $cid
 
     run_podman rmi -f $img

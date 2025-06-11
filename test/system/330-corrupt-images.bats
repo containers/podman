@@ -71,9 +71,9 @@ function _corrupt_image_test() {
         local id=${PODMAN_CORRUPT_TEST_IMAGE_ID}
 
         case "$what_to_rm" in
-            manifest)  rm_path=manifest ;;
-            blob)      rm_path="=$(echo -n "sha256:$id" | base64 -w0)" ;;
-            *)         die "Internal error: unknown action '$what_to_rm'" ;;
+        manifest) rm_path=manifest ;;
+        blob) rm_path="=$(echo -n "sha256:$id" | base64 -w0)" ;;
+        *) die "Internal error: unknown action '$what_to_rm'" ;;
         esac
 
         # Corruptify, and confirm that 'podman images' throws an error
@@ -85,8 +85,8 @@ function _corrupt_image_test() {
         run_podman 0+w $*
         # There are three different variations on the warnings, allow each...
         allow_warnings "Failed to determine parent of image: .*, ignoring the error" \
-                       "Failed to determine if an image is a parent: .*, ignoring the error" \
-                       "Failed to determine if an image is a manifest list: .*, ignoring the error"
+            "Failed to determine if an image is a parent: .*, ignoring the error" \
+            "Failed to determine if an image is a manifest list: .*, ignoring the error"
         # ...but make sure we get at least one
         require_warning "Failed to determine (parent|if an image is) .*, ignoring the error"
 
@@ -103,7 +103,7 @@ function _corrupt_image_test() {
     # Pull once, save cached copy.
     run_podman pull $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
     run_podman save -o ${PODMAN_CORRUPT_TEST_WORKDIR}/img.tar \
-               $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
+        $PODMAN_CORRUPT_TEST_IMAGE_CANONICAL_FQIN
 }
 
 # END   first "test" does a one-time pull of our desired image

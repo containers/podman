@@ -29,7 +29,7 @@ if [ -z "${RANDOM_STRING_1}" ]; then
 fi
 
 # Version string of the podman we're actually testing, e.g. '3.0.0-dev-d1a26013'
-PODMAN_VERSION=$($PODMAN version  |awk '/^Version:/ { V=$2 } /^Git Commit:/ { G=$3 } END { print V "-" substr(G,0,8) }')
+PODMAN_VERSION=$($PODMAN version | awk '/^Version:/ { V=$2 } /^Git Commit:/ { G=$3 } END { print V "-" substr(G,0,8) }')
 
 setup() {
     skip_if_rootless
@@ -40,7 +40,7 @@ setup() {
         false
     fi
 
-    if [ "$(< $PODMAN_UPGRADE_WORKDIR/status)" = "failed" ]; then
+    if [ "$(<$PODMAN_UPGRADE_WORKDIR/status)" = "failed" ]; then
         skip "*** setup failed - no point in running tests"
     fi
 
@@ -51,7 +51,7 @@ setup() {
 
     # Old netavark used iptables but newer versions might uses nftables.
     # Networking can only work correctly if both use the same firewall driver so force iptables.
-    printf "[network]\nfirewall_driver=\"iptables\"\n" > $PODMAN_UPGRADE_WORKDIR/containers.conf
+    printf "[network]\nfirewall_driver=\"iptables\"\n" >$PODMAN_UPGRADE_WORKDIR/containers.conf
     export CONTAINERS_CONF_OVERRIDE=$PODMAN_UPGRADE_WORKDIR/containers.conf
 }
 
@@ -59,7 +59,7 @@ setup() {
 # BEGIN setup
 
 @test "initial setup: start $PODMAN_UPGRADE_FROM containers" {
-    echo failed >| $PODMAN_UPGRADE_WORKDIR/status
+    echo failed >|$PODMAN_UPGRADE_WORKDIR/status
 
     OLD_PODMAN=quay.io/podman/stable:$PODMAN_UPGRADE_FROM
     $PODMAN pull $OLD_PODMAN
@@ -96,7 +96,7 @@ setup() {
     # command in this script will be the desired old-podman version.
     #
     pmscript=$pmroot/setup
-    cat >| $pmscript <<EOF
+    cat >|$pmscript <<EOF
 #!/bin/bash
 
 #
@@ -181,24 +181,24 @@ EOF
     # mount /run/containers for the dnsname plugin
     #
     $PODMAN run -d --name podman_parent \
-            --privileged \
-            --net=host \
-            --cgroupns=host \
-            --pid=host \
-            --env CONTAINERS_CONF_OVERRIDE \
-            $v_sconf \
-            -v /dev/fuse:/dev/fuse \
-            -v /run/crun:/run/crun \
-            -v /run/netns:/run/netns:rshared \
-            -v /run/containers:/run/containers \
-            -v /dev/shm:/dev/shm \
-            -v /etc/containers/networks:/etc/containers/networks \
-            -v $pmroot:$pmroot:rshared \
-            $OLD_PODMAN $pmroot/setup
+        --privileged \
+        --net=host \
+        --cgroupns=host \
+        --pid=host \
+        --env CONTAINERS_CONF_OVERRIDE \
+        $v_sconf \
+        -v /dev/fuse:/dev/fuse \
+        -v /run/crun:/run/crun \
+        -v /run/netns:/run/netns:rshared \
+        -v /run/containers:/run/containers \
+        -v /dev/shm:/dev/shm \
+        -v /etc/containers/networks:/etc/containers/networks \
+        -v $pmroot:$pmroot:rshared \
+        $OLD_PODMAN $pmroot/setup
 
     _PODMAN_TEST_OPTS= wait_for_ready podman_parent
 
-    echo OK >| $PODMAN_UPGRADE_WORKDIR/status
+    echo OK >|$PODMAN_UPGRADE_WORKDIR/status
 }
 
 # END   setup
@@ -238,15 +238,15 @@ EOF
 
 @test "ps -a : shows all containers" {
     run_podman ps -a \
-               --format '{{.Names}}--{{.Status}}--{{.Ports}}--{{.Labels.mylabel}}' \
-               --sort=created
+        --format '{{.Names}}--{{.Status}}--{{.Ports}}--{{.Labels.mylabel}}' \
+        --sort=created
     assert "${lines[0]}" == "mycreatedcontainer--Created----$LABEL_CREATED" "line 0, created"
-    assert "${lines[1]}" =~ "mydonecontainer--Exited \(0\).*----<no value>"   "line 1, done"
+    assert "${lines[1]}" =~ "mydonecontainer--Exited \(0\).*----<no value>" "line 1, done"
     assert "${lines[2]}" =~ "myfailedcontainer--Exited \(17\) .*----$LABEL_FAILED" "line 2, fail"
 
     # Port order is not guaranteed
     assert "${lines[3]}" =~ "myrunningcontainer--Up .*--$LABEL_RUNNING" "line 3, running"
-    assert "${lines[3]}" =~ ".*--.*0\.0\.0\.0:$HOST_PORT->80\/tcp.*--.*"  "line 3, first port forward"
+    assert "${lines[3]}" =~ ".*--.*0\.0\.0\.0:$HOST_PORT->80\/tcp.*--.*" "line 3, first port forward"
     assert "${lines[3]}" =~ ".*--.*127\.0\.0\.1\:9090-9092->8080-8082\/tcp.*--.*" "line 3, second port forward"
 
     assert "${lines[4]}" =~ ".*-infra--Created----<no value>" "line 4, infra container"
@@ -259,7 +259,6 @@ EOF
         done
     fi
 }
-
 
 @test "inspect - all container status" {
     tests="
@@ -301,7 +300,6 @@ failed    | exited     | 17
     run -0 curl --max-time 3 -s 127.0.0.1:$HOST_PORT/index.txt
     is "$output" "$RANDOM_STRING_1" "curl on restarted container"
 }
-
 
 @test "logs" {
     run_podman logs mydonecontainer
@@ -347,7 +345,6 @@ failed    | exited     | 17
 
 # FIXME: commit? kill? network? pause? restart? top? volumes? What else?
 
-
 @test "start" {
     run_podman start -a mydonecontainer
     is "$output" "++$RANDOM_STRING_1++" "start on already-run container"
@@ -361,10 +358,9 @@ failed    | exited     | 17
     is "$output" "mydonecontainer" "podman rm mydonecontainer"
 }
 
-
 @test "stop and rm" {
     run_podman stop -t0 myrunningcontainer
-    run_podman rm       myrunningcontainer
+    run_podman rm myrunningcontainer
 }
 
 @test "clean up parent" {

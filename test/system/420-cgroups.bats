@@ -14,9 +14,9 @@ load helpers
     # Find out our default cgroup manager, and from that, get the non-default
     run_podman info --format '{{.Host.CgroupManager}}'
     case "$output" in
-        systemd)  other="cgroupfs" ;;
-        cgroupfs) other="systemd"  ;;
-        *)        die "Unknown CgroupManager '$output'" ;;
+    systemd) other="cgroupfs" ;;
+    cgroupfs) other="systemd" ;;
+    *) die "Unknown CgroupManager '$output'" ;;
     esac
 
     run_podman --cgroup-manager=$other run --name myc $IMAGE true
@@ -25,7 +25,7 @@ load helpers
     run_podman container inspect --format '{{.HostConfig.CgroupManager}}' myc
     is "$output" "$other" "podman preserved .HostConfig.CgroupManager"
 
-    if is_rootless && test $other = cgroupfs ; then
+    if is_rootless && test $other = cgroupfs; then
         run_podman container inspect --format '{{.HostConfig.CgroupParent}}' myc
         is "$output" "" "podman didn't set .HostConfig.CgroupParent for cgroupfs and rootless"
     fi

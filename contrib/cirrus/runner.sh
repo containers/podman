@@ -98,7 +98,7 @@ function _run_bindings() {
         gitcommit_magic="/define.gitCommit=${GIT_COMMIT}"
     fi
 
-    (echo "$gitcommit_magic" && \
+    (echo "$gitcommit_magic" &&
         showrun make testbindings) |& logformatter
 }
 
@@ -141,7 +141,7 @@ exec_container() {
     env CONTAINERS_REGISTRIES_CONF=/dev/null bin/podman pull -q $CTR_FQIN
     # shellcheck disable=SC2154
     exec bin/podman run --rm --privileged --net=host --cgroupns=host \
-        -v `mktemp -d -p /var/tmp`:/var/tmp:Z \
+        -v $(mktemp -d -p /var/tmp):/var/tmp:Z \
         --tmpfs /tmp:mode=1777 \
         -v /dev/fuse:/dev/fuse \
         -v "$GOPATH:$GOPATH:Z" \
@@ -188,7 +188,7 @@ function _run_swagger() {
     cp -v $GOSRC/pkg/api/swagger.yaml ./
 
     envvarsfile=$(mktemp -p '' .tmp_$(basename $0)_XXXXXXXX)
-    trap "rm -f $envvarsfile" EXIT  # contains secrets
+    trap "rm -f $envvarsfile" EXIT # contains secrets
     # Warning: These values must _not_ be quoted, podman will not remove them.
     #shellcheck disable=SC2154
     cat <<eof >>$envvarsfile
@@ -213,7 +213,7 @@ function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
     showrun make vendor
-    showrun make -j $(nproc) --output-sync=target podman-release  # includes podman, podman-remote, and docs
+    showrun make -j $(nproc) --output-sync=target podman-release # includes podman, podman-remote, and docs
 
     # There's no reason to validate-binaries across multiple linux platforms
     # shellcheck disable=SC2154
@@ -244,66 +244,67 @@ function _run_altbuild() {
     set -x
     cd $GOSRC
     case "$ALT_NAME" in
-        *Each*)
-            if [[ -z "$CIRRUS_PR" ]]; then
-                echo ".....only meaningful on PRs"
-                return
-            fi
-            showrun git fetch origin
-            # The make-and-check-size script, introduced 2022-03-22 in #13518,
-            # runs 'make' (the original purpose of this check) against
-            # each commit, then checks image sizes to make sure that
-            # none have grown beyond a given limit. That of course
-            # requires a baseline, so our first step is to build the
-            # branch point of the PR.
-            local context_dir savedhead pr_base
-            context_dir=$(mktemp -d --tmpdir make-size-check.XXXXXXX)
-            savedhead=$(git rev-parse HEAD)
-            # Push to PR base. First run of the script will write size files
-            # shellcheck disable=SC2154
-            pr_base=$PR_BASE_SHA
-            showrun git checkout $pr_base
-            showrun hack/make-and-check-size $context_dir
-            # pop back to PR, and run incremental makes. Subsequent script
-            # invocations will compare against original size.
-            showrun git checkout $savedhead
-            showrun git rebase $pr_base -x "hack/make-and-check-size $context_dir"
-            rm -rf $context_dir
-            ;;
-        *Windows*)
-	    showrun make .install.pre-commit
-            showrun make lint GOOS=windows CGO_ENABLED=0
-            showrun make podman-remote-release-windows_amd64.zip
-            ;;
-        *RPM*)
-            showrun make package
-            ;;
-        Alt*x86*Cross)
-            _build_altbuild_archs "386"
-            ;;
-        Alt*ARM*Cross)
-            _build_altbuild_archs "arm"
-            ;;
-        Alt*Other*Cross)
-            arches=(\
-                ppc64le
-                s390x)
-            _build_altbuild_archs "${arches[@]}"
-            ;;
-        Alt*MIPS*Cross)
-            arches=(\
-                mips
-                mipsle)
-            _build_altbuild_archs "${arches[@]}"
-            ;;
-        Alt*MIPS64*Cross*)
-            arches=(\
-                mips64
-                mips64le)
-            _build_altbuild_archs "${arches[@]}"
-            ;;
-        *)
-            die "Unknown/Unsupported \$$ALT_NAME '$ALT_NAME'"
+    *Each*)
+        if [[ -z "$CIRRUS_PR" ]]; then
+            echo ".....only meaningful on PRs"
+            return
+        fi
+        showrun git fetch origin
+        # The make-and-check-size script, introduced 2022-03-22 in #13518,
+        # runs 'make' (the original purpose of this check) against
+        # each commit, then checks image sizes to make sure that
+        # none have grown beyond a given limit. That of course
+        # requires a baseline, so our first step is to build the
+        # branch point of the PR.
+        local context_dir savedhead pr_base
+        context_dir=$(mktemp -d --tmpdir make-size-check.XXXXXXX)
+        savedhead=$(git rev-parse HEAD)
+        # Push to PR base. First run of the script will write size files
+        # shellcheck disable=SC2154
+        pr_base=$PR_BASE_SHA
+        showrun git checkout $pr_base
+        showrun hack/make-and-check-size $context_dir
+        # pop back to PR, and run incremental makes. Subsequent script
+        # invocations will compare against original size.
+        showrun git checkout $savedhead
+        showrun git rebase $pr_base -x "hack/make-and-check-size $context_dir"
+        rm -rf $context_dir
+        ;;
+    *Windows*)
+        showrun make .install.pre-commit
+        showrun make lint GOOS=windows CGO_ENABLED=0
+        showrun make podman-remote-release-windows_amd64.zip
+        ;;
+    *RPM*)
+        showrun make package
+        ;;
+    Alt*x86*Cross)
+        _build_altbuild_archs "386"
+        ;;
+    Alt*ARM*Cross)
+        _build_altbuild_archs "arm"
+        ;;
+    Alt*Other*Cross)
+        arches=(
+            ppc64le
+            s390x)
+        _build_altbuild_archs "${arches[@]}"
+        ;;
+    Alt*MIPS*Cross)
+        arches=(
+            mips
+            mipsle)
+        _build_altbuild_archs "${arches[@]}"
+        ;;
+    Alt*MIPS64*Cross*)
+        arches=(
+            mips64
+            mips64le)
+        _build_altbuild_archs "${arches[@]}"
+        ;;
+    *)
+        die "Unknown/Unsupported \$$ALT_NAME '$ALT_NAME'"
+        ;;
     esac
 }
 
@@ -332,7 +333,6 @@ function _run_release() {
     msg "All OK"
 }
 
-
 # ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
 #    Please see gitlab comment in setup_environment.sh
 # ***WARNING*** ***WARNING*** ***WARNING*** ***WARNING***
@@ -347,11 +347,10 @@ function _run_gitlab() {
     ret=$?
     set -e
     # This file is collected and parsed by Cirrus-CI so must be in $GOSRC
-    cat $GOSRC/gitlab-runner-podman.log | \
-        go-junit-report > $GOSRC/gitlab-runner-podman.xml
+    cat $GOSRC/gitlab-runner-podman.log |
+        go-junit-report >$GOSRC/gitlab-runner-podman.xml
     return $ret
 }
-
 
 # Name pattern for logformatter output file, derived from environment
 function output_name() {
@@ -369,9 +368,9 @@ function output_name() {
 function logformatter() {
     if [[ "$CI" == "true" ]]; then
         # Requires stdin and stderr combined!
-        cat - \
-            |& awk --file "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk" \
-            |& "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$(output_name)"
+        cat - |&
+            awk --file "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/timestamp.awk" |&
+            "${CIRRUS_WORKING_DIR}/${SCRIPT_BASE}/logformatter" "$(output_name)"
     else
         # Assume script is run by a human, they want output immediately
         cat -
@@ -384,9 +383,9 @@ dotest() {
     req_env_vars testsuite CONTAINER TEST_ENVIRON PRIV_NAME
 
     # shellcheck disable=SC2154
-    if ((CONTAINER==0)) && [[ "$TEST_ENVIRON" == "container" ]]; then
-        exec_container  # does not return
-    fi;
+    if ((CONTAINER == 0)) && [[ "$TEST_ENVIRON" == "container" ]]; then
+        exec_container # does not return
+    fi
 
     # containers/automation sets this to 0 for its dbg() function
     # but the e2e integration tests are also sensitive to it.
@@ -395,7 +394,7 @@ dotest() {
     # shellcheck disable=SC2154
     local localremote="$PODBIN_NAME"
     case "$PODBIN_NAME" in
-        podman)  localremote="local" ;;
+    podman) localremote="local" ;;
     esac
 
     # We've had some oopsies where tests invoke 'podman' instead of
@@ -416,8 +415,8 @@ dotest() {
         die "The CI test TMPDIR is not on a tmpfs mount, we need tmpfs to make the tests faster"
     fi
 
-    showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
-        |& logformatter
+    showrun make ${localremote}${testsuite} PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG |&
+        logformatter
 
     # FIXME: https://github.com/containers/podman/issues/22642
     # Cannot delete this due cleanup errors, as the VM is basically
@@ -453,14 +452,14 @@ else
 fi
 msg "************************************************************"
 
-((${SETUP_ENVIRONMENT:-0})) || \
+((${SETUP_ENVIRONMENT:-0})) ||
     die "Expecting setup_environment.sh to have completed successfully"
 
-if [[ "$UID" -eq 0 ]] && ((CONTAINER==0)); then
+if [[ "$UID" -eq 0 ]] && ((CONTAINER == 0)); then
     # start ebpf cleanup tracer (#23487)
     msg "start ebpf cleanup tracer"
     # replace zero bytes to make the log more readable
-    bpftrace $GOSRC/hack/podman_cleanup_tracer.bt |& \
+    bpftrace $GOSRC/hack/podman_cleanup_tracer.bt |&
         tr '\0' ' ' >$GOSRC/podman-cleanup-tracer.log &
     TRACER_PID=$!
 fi
@@ -484,8 +483,8 @@ if [[ "$PRIV_NAME" == "rootless" ]] && [[ "$UID" -eq 0 ]]; then
     msg "************************************************************"
     set -x
     exec ssh $ROOTLESS_USER@localhost \
-            -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
-            -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/runner.sh
+        -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no \
+        -o CheckHostIP=no $GOSRC/$SCRIPT_BASE/runner.sh
     # Does not return!
 fi
 # else: not running rootless, do nothing special
@@ -494,7 +493,6 @@ fi
 # a separate .cirrus.yml step, but it really belongs here.
 $(dirname $0)/logcollector.sh packages
 msg "************************************************************"
-
 
 cd "${GOSRC}/"
 

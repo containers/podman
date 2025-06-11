@@ -19,14 +19,14 @@ function setup_file() {
 
 @test "podman system df - basic functionality" {
     run_podman system df
-    is "$output" ".*Images  *1 *0 "       "Exactly one image"
-    is "$output" ".*Containers *0 *0 "    "No containers"
+    is "$output" ".*Images  *1 *0 " "Exactly one image"
+    is "$output" ".*Containers *0 *0 " "No containers"
     is "$output" ".*Local Volumes *0 *0 " "No volumes"
 }
 
 @test "podman system df --format {{ json . }} functionality" {
     run_podman system df --format '{{json .}}'
-    is "$output" '.*"TotalCount":1'       "Exactly one image"
+    is "$output" '.*"TotalCount":1' "Exactly one image"
     is "$output" '.*"RawSize".*"Size"' "RawSize and Size reported"
     is "$output" '.*"RawReclaimable".*"Reclaimable"' "RawReclaimable and Reclaimable reported"
     is "$output" '.*"Containers".*"Total":0' "Total containers reported"
@@ -41,12 +41,12 @@ function setup_file() {
     run_podman pod create --name $pod
 
     run_podman system df
-    assert "${lines[1]}"  =~ "Images *1 *0.*"
-    assert "${lines[2]}"  =~ "Containers *1 *0.*"
+    assert "${lines[1]}" =~ "Images *1 *0.*"
+    assert "${lines[2]}" =~ "Containers *1 *0.*"
     run_podman system df --verbose
     assert "${lines[5]}" =~ \
-       "[0-9a-f]{12} *0.*[0-9a-f]{12}-infra" \
-       "system df --verbose, 'Containers', infra line"
+        "[0-9a-f]{12} *0.*[0-9a-f]{12}-infra" \
+        "system df --verbose, 'Containers', infra line"
 
     run_podman pod rm -f $pod
 }
@@ -56,7 +56,7 @@ function setup_file() {
     cname_stopped=c-stopped-$(safename)
     cname_running=c-running-$(safename)
 
-    run_podman run    --name $cname_stopped $IMAGE true
+    run_podman run --name $cname_stopped $IMAGE true
     run_podman run -d --name $cname_running $IMAGE top
     run_podman system df --format json
     local results="$output"
@@ -84,8 +84,8 @@ TotalCount     |              1 |          2 |             0
 Size           |   ~${size}.*MB |        !0B |            0B
 "
     while read -a fields; do
-        for i in 0 1 2;do
-            expect="${fields[$((i+1))]}"
+        for i in 0 1 2; do
+            expect="${fields[$((i + 1))]}"
             actual=$(jq -r ".[$i].${fields[0]}" <<<"$results")
 
             # Do exact-match check, unless the expect term starts with ~ or !
@@ -110,12 +110,12 @@ Size           |   ~${size}.*MB |        !0B |            0B
 @test "podman system df - with active containers and volumes" {
     c1=c1-$(safename)
     c2=c2-$(safename)
-    run_podman run    -v /myvol1 --name $c1 $IMAGE true
+    run_podman run -v /myvol1 --name $c1 $IMAGE true
     run_podman run -d -v /myvol2 --name $c2 $IMAGE top
 
     run_podman system df --format '{{ .Type }}:{{ .Total }}:{{ .Active }}'
-    is "${lines[0]}" "Images:1:1"        "system df : Images line"
-    is "${lines[1]}" "Containers:2:1"    "system df : Containers line"
+    is "${lines[0]}" "Images:1:1" "system df : Images line"
+    is "${lines[1]}" "Containers:2:1" "system df : Containers line"
     is "${lines[2]}" "Local Volumes:2:2" "system df : Volumes line"
 
     # Try -v. (Grrr. No way to specify individual formats)
@@ -124,22 +124,22 @@ Size           |   ~${size}.*MB |        !0B |            0B
     # container/volume setup/teardown costs ~3 seconds and that matters.
     run_podman system df -v
     is "${lines[2]}" \
-       "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME} * ${PODMAN_TEST_IMAGE_TAG} [0-9a-f]* .* 2" \
-       "system df -v: the 'Images' line"
+        "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME} * ${PODMAN_TEST_IMAGE_TAG} [0-9a-f]* .* 2" \
+        "system df -v: the 'Images' line"
 
     # Containers are listed in random order. Just check that each has 1 volume
     is "${lines[5]}" \
-       "[0-9a-f]\{12\} *[0-9a-f]\{12\} .* 1 .* c[12]-$(safename)" \
-       "system df -v, 'Containers', first line"
+        "[0-9a-f]\{12\} *[0-9a-f]\{12\} .* 1 .* c[12]-$(safename)" \
+        "system df -v, 'Containers', first line"
     is "${lines[6]}" \
-       "[0-9a-f]\{12\} *[0-9a-f]\{12\} .* 1 .* c[12]-$(safename)" \
-       "system df -v, 'Containers', second line"
+        "[0-9a-f]\{12\} *[0-9a-f]\{12\} .* 1 .* c[12]-$(safename)" \
+        "system df -v, 'Containers', second line"
 
     # Volumes, likewise: random order.
     is "${lines[9]}" "[0-9a-f]\{64\} *[01] * 0B" \
-       "system df -v, 'Volumes', first line"
+        "system df -v, 'Volumes', first line"
     is "${lines[10]}" "[0-9a-f]\{64\} *[01] * 0B" \
-       "system df -v, 'Volumes', second line"
+        "system df -v, 'Volumes', second line"
 
     # Make sure that the return image "raw" size is correct
     run_podman image inspect $IMAGE --format "{{.Size}}"
@@ -191,8 +191,8 @@ RUN echo "${t}" >${t}.txt
 CMD ["sleep", "inf"]
 EOF
 
-    run_podman build --tag "${t}:latest" "$dir"
-    run_podman run -d --name $t "${t}:latest"
+        run_podman build --tag "${t}:latest" "$dir"
+        run_podman run -d --name $t "${t}:latest"
     done
 
     run_podman system df --format '{{.Reclaimable}}'
@@ -210,7 +210,7 @@ EOF
     assert "${lines[0]}" =~ '1[0-9].[0-9]+MB \(100%\)' "Reclaimable size after prune"
 
     run_podman rm -f -t0 $c1 $c2
-    run_podman rmi  $c1 $c2
+    run_podman rmi $c1 $c2
 }
 
 # vim: filetype=sh

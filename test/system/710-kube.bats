@@ -80,31 +80,31 @@ status                           | =  | null
 }
 
 @test "podman kube generate unmasked" {
-      cname=c-$(safename)
-      KUBE=$PODMAN_TMPDIR/kube.yaml
-      run_podman create --name $cname --security-opt unmask=all $IMAGE
-      run_podman inspect --format '{{ .HostConfig.SecurityOpt }}' $cname
-      is "$output" "[unmask=all]" "Inspect should see unmask all"
-      run_podman kube generate $cname -f $KUBE
-      assert "$(< $KUBE)" =~ "procMount: Unmasked" "Generated kube yaml should have procMount unmasked"
-      run_podman kube play $KUBE
-      run_podman inspect --format '{{ .HostConfig.SecurityOpt }}' ${cname}-pod-${cname}
-      is "$output" "[unmask=all]" "Inspect kube play container should see unmask all"
-      run_podman kube down $KUBE
-      run_podman rm $cname
+    cname=c-$(safename)
+    KUBE=$PODMAN_TMPDIR/kube.yaml
+    run_podman create --name $cname --security-opt unmask=all $IMAGE
+    run_podman inspect --format '{{ .HostConfig.SecurityOpt }}' $cname
+    is "$output" "[unmask=all]" "Inspect should see unmask all"
+    run_podman kube generate $cname -f $KUBE
+    assert "$(<$KUBE)" =~ "procMount: Unmasked" "Generated kube yaml should have procMount unmasked"
+    run_podman kube play $KUBE
+    run_podman inspect --format '{{ .HostConfig.SecurityOpt }}' ${cname}-pod-${cname}
+    is "$output" "[unmask=all]" "Inspect kube play container should see unmask all"
+    run_podman kube down $KUBE
+    run_podman rm $cname
 }
 
 @test "podman kube generate volumes" {
-      cname=c-$(safename)
-      KUBE=$PODMAN_TMPDIR/kube.yaml
-      source=$PODMAN_TMPDIR/Upper/Case/Path
-      mkdir -p ${source}
-      run_podman create --name $cname -v $source:/mnt -v UPPERCASE_Volume:/volume $IMAGE
-      run_podman kube generate $cname -f $KUBE
-      assert "$(< $KUBE)" =~ "name: uppercase-volume-pvc" "Lowercase volume name"
-      assert "$(< $KUBE)" =~ "upper-case-path" "Lowercase volume paths"
-      run_podman rm $cname
-      run_podman volume rm UPPERCASE_Volume
+    cname=c-$(safename)
+    KUBE=$PODMAN_TMPDIR/kube.yaml
+    source=$PODMAN_TMPDIR/Upper/Case/Path
+    mkdir -p ${source}
+    run_podman create --name $cname -v $source:/mnt -v UPPERCASE_Volume:/volume $IMAGE
+    run_podman kube generate $cname -f $KUBE
+    assert "$(<$KUBE)" =~ "name: uppercase-volume-pvc" "Lowercase volume name"
+    assert "$(<$KUBE)" =~ "upper-case-path" "Lowercase volume paths"
+    run_podman rm $cname
+    run_podman volume rm UPPERCASE_Volume
 }
 
 @test "podman kube generate - pod" {

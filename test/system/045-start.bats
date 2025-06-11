@@ -22,7 +22,7 @@ load helpers
     is "$output" ".*$cid_none_explicit" "started: container with --restart=no"
     is "$output" ".*$cid_on_failure" "started: container with --restart=on-failure"
     assert "$output" !~ "$cid_always" \
-           "podman start --all should not restart a running container"
+        "podman start --all should not restart a running container"
 
     run_podman wait $cid_none_implicit $cid_none_explicit $cid_on_failure
 
@@ -77,7 +77,7 @@ load helpers
     cid="$output"
     run_podman 125 start --filter restart-policy=fakepolicy $cid
     is "$output" "Error: fakepolicy invalid restart policy" \
-       "CID of restart-policy=<not-exists> container"
+        "CID of restart-policy=<not-exists> container"
     run_podman rm -f $cid
 }
 

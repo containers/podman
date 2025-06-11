@@ -24,27 +24,27 @@ function setup() {
 
 @test "podman login - basic test" {
     run_podman login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
+        --username ${PODMAN_LOGIN_USER} \
+        --password-stdin \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
     is "$output" "Login Succeeded!" "output from podman login"
 
     # Now log out
     run_podman logout localhost:${PODMAN_LOGIN_REGISTRY_PORT}
     is "$output" "Removed login credentials for localhost:${PODMAN_LOGIN_REGISTRY_PORT}" \
-       "output from podman logout"
+        "output from podman logout"
 }
 
 @test "podman login - with wrong credentials" {
     registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
 
     run_podman 125 login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               $registry <<< "x${PODMAN_LOGIN_PASS}"
+        --username ${PODMAN_LOGIN_USER} \
+        --password-stdin \
+        $registry <<<"x${PODMAN_LOGIN_PASS}"
     is "$output" \
-       "Error: logging into \"$registry\": invalid username/password" \
-       'output from podman login'
+        "Error: logging into \"$registry\": invalid username/password" \
+        'output from podman login'
 }
 
 @test "podman login - check generated authfile" {
@@ -60,7 +60,7 @@ function setup() {
         $registry
 
     # Confirm that authfile now exists
-    test -e $authfile || \
+    test -e $authfile ||
         die "podman login did not create authfile $authfile"
 
     # Special bracket form needed because of colon in host:port
@@ -70,7 +70,6 @@ function setup() {
     expect_userpass="${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}"
     actual_userpass=$(base64 -d <<<"$output")
     is "$actual_userpass" "$expect_userpass" "credentials stored in $authfile"
-
 
     # Now log out and make sure credentials are removed
     run_podman logout --authfile=$authfile $registry
@@ -82,7 +81,7 @@ function setup() {
 
 @test "podman login inconsistent authfiles" {
     ambiguous_file=${PODMAN_LOGIN_WORKDIR}/ambiguous-auth.json
-    echo '{}' > $ambiguous_file # To make sure we are not hitting the “file not found” path
+    echo '{}' >$ambiguous_file # To make sure we are not hitting the “file not found” path
 
     run_podman 125 login --authfile "$ambiguous_file" --compat-auth-file "$ambiguous_file" localhost:5000
     assert "$output" =~ "Error: options for paths to the credential file and to the Docker-compatible credential file can not be set simultaneously"
@@ -104,7 +103,7 @@ function setup() {
         $registry
 
     # Confirm that config file now exists
-    test -e $dockerconfig/config.json || \
+    test -e $dockerconfig/config.json ||
         die "podman login did not create config $dockerconfig/config.json"
 
     # Special bracket form needed because of colon in host:port
@@ -145,7 +144,7 @@ EOF
         --tls-verify=false $IMAGE \
         localhost:${PODMAN_LOGIN_REGISTRY_PORT}/badpush:1
     is "$output" ".* checking whether a blob .* exists in localhost:${PODMAN_LOGIN_REGISTRY_PORT}/badpush: authentication required" \
-       "auth error on push"
+        "auth error on push"
 }
 
 function _push_search_test() {
@@ -156,36 +155,36 @@ function _push_search_test() {
     destname=ok-$(random_string 10 | tr A-Z a-z)-ok
     # Use command-line credentials
     run_podman push --tls-verify=$1 \
-               --format docker \
-               --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
-               --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
-               $IMAGE localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+        --format docker \
+        --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
+        --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
+        $IMAGE localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Search a pushed image without --cert-dir should fail if --tls-verify=true
     run_podman $2 search --tls-verify=$1 \
-               --format "table {{.Name}}" \
-               --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+        --format "table {{.Name}}" \
+        --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Search a pushed image without --creds should fail
     run_podman 125 search --tls-verify=$1 \
-               --format "table {{.Name}}" \
-               --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+        --format "table {{.Name}}" \
+        --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Search a pushed image should succeed
     run_podman search --tls-verify=$1 \
-               --format "table {{.Name}}" \
-               --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
-               --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+        --format "table {{.Name}}" \
+        --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
+        --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
     is "${lines[1]}" "localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname" "search output is destname"
 
     # Yay! Pull it back
     run_podman pull --tls-verify=$1 \
-               --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
-               --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
+        --cert-dir ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir \
+        --creds ${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS} \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$destname
 
     # Compare to original image
     run_podman inspect --format '{{.Id}}' $destname
@@ -216,9 +215,9 @@ function _test_skopeo_credential_sharing() {
     registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
 
     run_podman login "$@" --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password ${PODMAN_LOGIN_PASS} \
-               $registry
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
 
     destname=skopeo-ok-$(random_string 10 | tr A-Z a-z)-ok
     echo "# skopeo copy ..."
@@ -229,8 +228,8 @@ function _test_skopeo_credential_sharing() {
         docker://$registry/$destname
     echo "$output"
     is "$status" "0" "skopeo copy - exit status"
-    is "$output" ".*Copying blob .*"     "output of skopeo copy"
-    is "$output" ".*Copying config .*"   "output of skopeo copy"
+    is "$output" ".*Copying blob .*" "output of skopeo copy"
+    is "$output" ".*Copying config .*" "output of skopeo copy"
     is "$output" ".*Writing manifest .*" "output of skopeo copy"
 
     echo "# skopeo inspect ..."
@@ -248,7 +247,7 @@ function _test_skopeo_credential_sharing() {
     echo "$output"
     is "$status" "1" "skopeo inspect - exit status"
     is "$output" ".*: authentication required" \
-       "auth error on skopeo inspect"
+        "auth error on skopeo inspect"
 }
 
 @test "podman login - shares credentials with skopeo - default auth file" {
@@ -281,40 +280,40 @@ function _test_skopeo_credential_sharing() {
 
 @test "podman login -secret test" {
     secret=$(random_string 10)
-    echo -n ${PODMAN_LOGIN_PASS} > $PODMAN_TMPDIR/secret.file
+    echo -n ${PODMAN_LOGIN_PASS} >$PODMAN_TMPDIR/secret.file
     run_podman secret create $secret $PODMAN_TMPDIR/secret.file
     secretID=${output}
     run_podman login --tls-verify=false \
-             --username ${PODMAN_LOGIN_USER} \
-             --secret ${secretID} \
-             localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+        --username ${PODMAN_LOGIN_USER} \
+        --secret ${secretID} \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}
     is "$output" "Login Succeeded!" "output from podman login"
     # Now log out
     run_podman logout localhost:${PODMAN_LOGIN_REGISTRY_PORT}
     is "$output" "Removed login credentials for localhost:${PODMAN_LOGIN_REGISTRY_PORT}" \
-       "output from podman logout"
+        "output from podman logout"
     run_podman secret rm $secret
 
     # test using secret id as --username
     run_podman secret create ${PODMAN_LOGIN_USER} $PODMAN_TMPDIR/secret.file
     run_podman login --tls-verify=false \
-               --secret ${PODMAN_LOGIN_USER} \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+        --secret ${PODMAN_LOGIN_USER} \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}
     is "$output" "Login Succeeded!" "output from podman login"
     # Now log out
     run_podman logout localhost:${PODMAN_LOGIN_REGISTRY_PORT}
     is "$output" "Removed login credentials for localhost:${PODMAN_LOGIN_REGISTRY_PORT}" \
-       "output from podman logout"
+        "output from podman logout"
     run_podman secret rm ${PODMAN_LOGIN_USER}
 
     bogus_secret=$(random_string 10)
-    echo -n ${bogus_secret} > $PODMAN_TMPDIR/secret.file
+    echo -n ${bogus_secret} >$PODMAN_TMPDIR/secret.file
     run_podman secret create $secret $PODMAN_TMPDIR/secret.file
     secretID=${output}
     run_podman 125 login --tls-verify=false \
-             --username ${PODMAN_LOGIN_USER} \
-             --secret ${secretID} \
-             localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+        --username ${PODMAN_LOGIN_USER} \
+        --secret ${secretID} \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}
 
     is "$output" "Error: logging into \"localhost:${PODMAN_LOGIN_REGISTRY_PORT}\": invalid username/password" "output from failed podman login"
 
@@ -331,10 +330,10 @@ function _test_skopeo_credential_sharing() {
     start_registry
     authfile=${PODMAN_LOGIN_WORKDIR}/auth-$(random_string 10).json
     run_podman login --tls-verify=false \
-               --username ${PODMAN_LOGIN_USER} \
-               --password-stdin \
-               --authfile=$authfile \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
+        --username ${PODMAN_LOGIN_USER} \
+        --password-stdin \
+        --authfile=$authfile \
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
     is "$output" "Login Succeeded!" "output from podman login"
 
     image1="localhost:${PODMAN_LOGIN_REGISTRY_PORT}/test:1.0"
@@ -356,9 +355,12 @@ function _test_skopeo_credential_sharing() {
     # This actually STOPs the registry, so the port is unbound...
     pause_registry
     # ...then, in eight seconds, we start it again
-    (sleep 8; unpause_registry) &
+    (
+        sleep 8
+        unpause_registry
+    ) &
     run_podman 0+w pull -q --retry 4 --retry-delay "5s" --authfile=$authfile \
-            --tls-verify=false $image1
+        --tls-verify=false $image1
     assert "$output" =~ "Failed, retrying in 5s.*Error: initializing.* connection refused"
     assert "${lines[-1]:0:12}" = "$podman_image_id" "push should succeed via retry"
     unpause_registry

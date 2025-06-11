@@ -7,7 +7,7 @@ load ../system/helpers
 load ../system/helpers.registry
 load ../system/helpers.network
 
-function setup_suite(){
+function setup_suite() {
     if [[ -z "$ROOTLESS_USER" ]]; then
         if ! is_rootless; then
             die "Cannot run as root with no \$ROOTLESS_USER defined"
@@ -19,7 +19,7 @@ function setup_suite(){
     sshkey=$sshdir/id_rsa
     if [[ ! -e $sshkey ]]; then
         ssh-keygen -t rsa -N "" -f $sshkey
-        cat ${sshkey}.pub >> $sshdir/authorized_keys
+        cat ${sshkey}.pub >>$sshdir/authorized_keys
 
         # Confirm that ssh localhost works. Since this is probably
         # the first time that we ssh, bypass the host key verification.
@@ -56,7 +56,7 @@ function setup_suite(){
         $REGISTRY
 }
 
-function teardown_suite(){
+function teardown_suite() {
     # clear out the farms after the last farm test
     run_podman farm rm --all
     stop_registry

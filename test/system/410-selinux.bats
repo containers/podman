@@ -5,11 +5,11 @@
 
 load helpers
 
-
 function check_label() {
     skip_if_no_selinux
 
-    local args="$1"; shift        # command-line args for run
+    local args="$1"
+    shift # command-line args for run
 
     # FIXME: it'd be nice to specify the command to run, e.g. 'ls -dZ /',
     # but alpine ls (from busybox) doesn't support -Z
@@ -24,16 +24,16 @@ function check_label() {
     role=$(secon -r $output)
 
     case "$args" in
-        # Containers that run automatically without SELinux transitions, run
-        # with the current role.
-        *--privileged*| *--pid=host* | *--ipc=host* | *"--security-opt label=disable"*)
-                is "$context" "$user:$role:.*" "Non SELinux separated containers role should always be the current user and role"
-                ;;
-        # Containers that are confined or force the spc_t type default
-        # to running with the system_r role.
-        *)
-                is "$context" ".*_u:system_r:.*" "SELinux separated containers role should always be system_r"
-                ;;
+    # Containers that run automatically without SELinux transitions, run
+    # with the current role.
+    *--privileged* | *--pid=host* | *--ipc=host* | *"--security-opt label=disable"*)
+        is "$context" "$user:$role:.*" "Non SELinux separated containers role should always be the current user and role"
+        ;;
+    # Containers that are confined or force the spc_t type default
+    # to running with the system_r role.
+    *)
+        is "$context" ".*_u:system_r:.*" "SELinux separated containers role should always be system_r"
+        ;;
     esac
     # e.g. system_u:system_r:container_t:s0:c45,c745 -> "container_t"
     type=$(cut -d: -f3 <<<"$context")
@@ -45,7 +45,6 @@ function check_label() {
         is "$range" "$2^@" "SELinux range"
     fi
 }
-
 
 # bats test_tags=distro-integration, ci:parallel
 @test "podman selinux: confined container" {
@@ -89,7 +88,7 @@ function check_label() {
 
 # bats test_tags=ci:parallel
 @test "podman selinux: init container with --security-opt level" {
-    check_label "--systemd=always --security-opt=label=level:s0:c1,c2" "container_init_t"  "s0:c1,c2"
+    check_label "--systemd=always --security-opt=label=level:s0:c1,c2" "container_init_t" "s0:c1,c2"
 }
 
 # bats test_tags=distro-integration, ci:parallel
@@ -98,8 +97,8 @@ function check_label() {
     #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied
     if is_rootless; then
         runtime=$(podman_runtime)
-        test "$runtime" == "crun" \
-            || skip "runtime is $runtime; this test requires crun"
+        test "$runtime" == "crun" ||
+            skip "runtime is $runtime; this test requires crun"
     fi
 
     check_label "--pid=host" "spc_t"
@@ -135,13 +134,13 @@ function check_label() {
     ctrname=c-$(safename)
 
     run_podman run -d --name $ctrname \
-               --security-opt seccomp=unconfined \
-               --security-opt label=type:spc_t \
-               --security-opt label=level:s0 \
-               $IMAGE top
+        --security-opt seccomp=unconfined \
+        --security-opt label=type:spc_t \
+        --security-opt label=level:s0 \
+        $IMAGE top
     run_podman inspect --format='{{ .HostConfig.SecurityOpt }}' $ctrname
     is "$output" "[label=type:spc_t,label=level:s0 seccomp=unconfined]" \
-      "'podman inspect' preserves all --security-opts"
+        "'podman inspect' preserves all --security-opts"
 
     run_podman rm -t 0 -f $ctrname
 }
@@ -177,7 +176,7 @@ function check_label() {
     # net NS: do not share context
     run_podman run --rm --net container:$ctrname1 $IMAGE cat -v /proc/self/attr/current
     assert "$output" != "$context_c1" \
-           "run --net : context should != context of running container"
+        "run --net : context should != context of running container"
 
     # The 'ctrname2' above was not run with --rm, so it still exists, and
     # we can't remove the original container until this one is gone.
@@ -202,8 +201,8 @@ function check_label() {
 
     # We don't need a fullblown pause container; avoid pulling the k8s one
     run_podman pod create --name $podname \
-               --infra-image $IMAGE \
-               --infra-command /home/podman/pause
+        --infra-image $IMAGE \
+        --infra-command /home/podman/pause
 
     # Get baseline
     run_podman run --rm --pod $podname $IMAGE cat -v /proc/self/attr/current
@@ -238,7 +237,7 @@ function check_label() {
     # Even after #7902, labels (':c123,c456') should be different
     run_podman run --rm --pod $podname $IMAGE cat -v /proc/self/attr/current
     assert "$output" != "$context_c1" \
-           "context of two separate containers should be different"
+        "context of two separate containers should be different"
 
     run_podman pod rm -f -t0 $podname
 }
@@ -251,16 +250,16 @@ function check_label() {
     # runc and crun emit different diagnostics
     runtime=$(podman_runtime)
     case "$runtime" in
-        # crun 0.20.1 changes the error message
-        #   from /proc/thread-self/attr/exec`: .* unable to assign
-        #   to   /proc/self/attr/keycreate`: .* unable to process
-        crun) expect="\`/proc/.*\`: OCI runtime error: unable to \(assign\|process\) security attribute" ;;
-        # runc 1.1 changed the error message because of new selinux pkg that uses standard os.PathError, see
-        # https://github.com/opencontainers/selinux/pull/148/commits/a5dc47f74c56922d58ead05d1fdcc5f7f52d5f4e
-        #   from failed to set /proc/self/attr/keycreate on procfs
-        #   to   write /proc/self/attr/keycreate: invalid argument
-        runc) expect=".*: \(failed to set\|write\) /proc/self/attr/keycreate.*" ;;
-        *)    skip "Unknown runtime '$runtime'";;
+    # crun 0.20.1 changes the error message
+    #   from /proc/thread-self/attr/exec`: .* unable to assign
+    #   to   /proc/self/attr/keycreate`: .* unable to process
+    crun) expect="\`/proc/.*\`: OCI runtime error: unable to \(assign\|process\) security attribute" ;;
+    # runc 1.1 changed the error message because of new selinux pkg that uses standard os.PathError, see
+    # https://github.com/opencontainers/selinux/pull/148/commits/a5dc47f74c56922d58ead05d1fdcc5f7f52d5f4e
+    #   from failed to set /proc/self/attr/keycreate on procfs
+    #   to   write /proc/self/attr/keycreate: invalid argument
+    runc) expect=".*: \(failed to set\|write\) /proc/self/attr/keycreate.*" ;;
+    *) skip "Unknown runtime '$runtime'" ;;
     esac
 
     # The '.*' in the error below is for dealing with podman-remote, which
@@ -297,7 +296,7 @@ function check_label() {
     level=$(secon -l $output)
     run ls -dZ $tmpdir
     is "$output" "system_u:object_r:container_file_t:$level $tmpdir" \
-       "Confined Relabel Correctly"
+        "Confined Relabel Correctly"
 
     # podman-remote has no 'unshare'
     if is_rootless && ! is_remote; then
@@ -309,10 +308,10 @@ function check_label() {
         is "$level" "$newlevel" "start should relabel with same SELinux labels"
         run ls -dZ $tmpdir
         is "$output" "system_u:object_r:container_file_t:$level $tmpdir" \
-           "Confined Relabel Correctly"
+            "Confined Relabel Correctly"
         run ls -dZ $tmpdir/test1
         is "$output" "system_u:object_r:container_file_t:$level $tmpdir/test1" \
-           "Start did not Relabel"
+            "Start did not Relabel"
 
         # Relabel only file in subdir
         run_podman unshare chcon system_u:object_r:usr_t:s0 $tmpdir/test1
@@ -322,7 +321,7 @@ function check_label() {
 
         run ls -dZ $tmpdir/test1
         is "$output" "system_u:object_r:usr_t:s0 $tmpdir/test1" \
-           "Start did not Relabel"
+            "Start did not Relabel"
     fi
     run_podman rm $ctrname
 
@@ -364,7 +363,7 @@ EOF
     CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman run --rm $IMAGE cat /proc/self/attr/current
     level=$(secon -l $output)
     id -Z
-    is "$output" "$user:$role:container_t:$level"  "Confined label Correctly"
+    is "$output" "$user:$role:container_t:$level" "Confined label Correctly"
 
     ctrname=c-$(safename)
     CONTAINERS_CONF_OVERRIDE=$overrideConf run_podman run --rm --name $ctrname --security-opt label=role:system_r $IMAGE cat /proc/self/attr/current

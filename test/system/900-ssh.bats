@@ -32,7 +32,7 @@ function teardown() {
     # FIXME FIXME FIXME: someone needs to add a comment here explaining what
     # this is supposed to test
     run_podman 125 --ssh=native system connection add testing \
-               ssh://${PODMAN_ROOTLESS_USER}@localhost:22/run/user/${rootless_uid}/podman/podman.sock
+        ssh://${PODMAN_ROOTLESS_USER}@localhost:22/run/user/${rootless_uid}/podman/podman.sock
     # FIXME FIXME FIXME: this is not an acceptable error message
     is "$output" "Error: exit status 255"
 

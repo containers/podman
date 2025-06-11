@@ -40,7 +40,7 @@ function _check_env {
     # Translate that info a local associative array.
     declare -A env_results
     # -d '' means NUL delimiter
-    while read -d '' result;do
+    while read -d '' result; do
         # Split on equal sign into key and val. -d '' lets us read a
         # multiline string (containing newlines). But since there is no
         # actual NUL in the string (because bash does not allow them),
@@ -92,13 +92,12 @@ function _check_env {
     # results will be read and checked by helper function above.
     local resultsfile="$PODMAN_TMPDIR/envresults"
     touch $resultsfile
-    run_podman run --rm -v "$resultsfile:/envresults:Z"  \
-               "${env_args[@]}"                          \
-               $IMAGE sh -c 'env -0 >/envresults'
+    run_podman run --rm -v "$resultsfile:/envresults:Z" \
+        "${env_args[@]}" \
+        $IMAGE sh -c 'env -0 >/envresults'
 
     _check_env $resultsfile
 }
-
 
 @test "podman run/exec --env-file" {
     declare -A expect=(
@@ -150,9 +149,9 @@ EOF
     local resultsfile="$PODMAN_TMPDIR/envresults"
     touch $resultsfile
     run_podman run --rm -v "$resultsfile:/envresults:Z" \
-               --env-file $envfile1                     \
-               --env-file $envfile2                     \
-               $IMAGE sh -c 'env -0 >/envresults'
+        --env-file $envfile1 \
+        --env-file $envfile2 \
+        $IMAGE sh -c 'env -0 >/envresults'
 
     expect[withnl]=$'"line1'
     expect['weird*na#me!']=$weirdname
@@ -160,13 +159,13 @@ EOF
     _check_env $resultsfile
 
     # Now check the same with podman exec
-    run_podman run -d --name testctr        \
-            -v "$resultsfile:/envresults:Z" \
-            $IMAGE top
+    run_podman run -d --name testctr \
+        -v "$resultsfile:/envresults:Z" \
+        $IMAGE top
 
     run_podman exec --env-file $envfile1 \
-            --env-file $envfile2 testctr \
-            sh -c 'env -0 >/envresults'
+        --env-file $envfile2 testctr \
+        sh -c 'env -0 >/envresults'
 
     _check_env $resultsfile
 
@@ -182,7 +181,7 @@ EOF
     eval export $prefix=\"just plain basename\"
     declare -A expect=([$prefix]="just plain basename")
 
-    for i in 1 a x _ _xyz CAPS_;do
+    for i in 1 a x _ _xyz CAPS_; do
         eval export $prefix$i="$i"
         expect[$prefix$i]="$i"
     done
@@ -198,9 +197,9 @@ EOF
     local resultsfile="$PODMAN_TMPDIR/envresults"
     touch $resultsfile
     run_podman run --rm -v "$resultsfile:/envresults:Z" \
-               --env "${prefix}*"                       \
-               --env 'NOT*DEFINED'                      \
-               $IMAGE sh -c 'env -0 >/envresults'
+        --env "${prefix}*" \
+        --env 'NOT*DEFINED' \
+        $IMAGE sh -c 'env -0 >/envresults'
 
     _check_env $resultsfile
 
@@ -216,15 +215,14 @@ NOT*DEFINED
 EOF
 
     run_podman run --rm -v "$resultsfile:/envresults:Z" \
-               --env-file $envfile                      \
-               $IMAGE sh -c 'env -0 >/envresults'
+        --env-file $envfile \
+        $IMAGE sh -c 'env -0 >/envresults'
 
     # UGLY! If this fails, the error message will not make it clear if the
     # failure was in --env of --env-file. It can be determined by skimming
     # up and looking at the run_podman command, so I choose to leave as-is.
     _check_env $resultsfile
 }
-
 
 @test "podman create --label-file" {
     declare -A expect=(
@@ -239,7 +237,7 @@ EOF
     local labelfile1="$PODMAN_TMPDIR/label-file1,withcomma"
     local labelfile2="$PODMAN_TMPDIR/label-file2"
 
-        cat >$labelfile1 <<EOF
+    cat >$labelfile1 <<EOF
 simple=value1
 
 # Comments ignored
@@ -249,8 +247,8 @@ EOF
         echo "$v=${expect[$v]}" >>$labelfile2
     done
 
-    run_podman create --rm --name testctr --label-file $labelfile1  \
-               --label-file $labelfile2 $IMAGE
+    run_podman create --rm --name testctr --label-file $labelfile1 \
+        --label-file $labelfile2 $IMAGE
 
     for v in "${!expect[@]}"; do
         run_podman inspect testctr --format "{{index .Config.Labels \"$v\"}}"
@@ -259,7 +257,5 @@ EOF
 
     run_podman rm testctr
 }
-
-
 
 # vim: filetype=sh

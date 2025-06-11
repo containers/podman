@@ -26,7 +26,7 @@ function _check_health {
 
     while :; do
         run_podman events --filter container=$ctrname --filter event=health_status \
-                   --since "$since" --stream=false --format "{{.HealthStatus}}"
+            --since "$since" --stream=false --format "{{.HealthStatus}}"
         # Output may be empty or multiple lines.
         if [[ -n "$output" ]]; then
             if [[ "${lines[-1]}" = "$hc_status" ]]; then
@@ -45,7 +45,7 @@ function _check_health {
     run_podman inspect --format "{{json .State.Healthcheck}}" $ctrname
 
     defer-assertion-failures
-    parse_table "$tests" | while read field expect;do
+    parse_table "$tests" | while read field expect; do
         actual=$(jq ".$field" <<<"$output")
         is "$actual" "$expect" "$testname - .State.Healthcheck.$field"
     done
@@ -54,14 +54,14 @@ function _check_health {
 
 @test "podman healthcheck" {
     local ctrname="c-h-$(safename)"
-    run_podman run -d --name $ctrname                  \
-               --health-cmd /home/podman/healthcheck   \
-               --health-interval 1s                    \
-               --health-retries 3                      \
-               --health-on-failure=kill                \
-               --health-startup-cmd /home/podman/healthcheck \
-               --health-startup-interval 1s                  \
-               $IMAGE /home/podman/pause
+    run_podman run -d --name $ctrname \
+        --health-cmd /home/podman/healthcheck \
+        --health-interval 1s \
+        --health-retries 3 \
+        --health-on-failure=kill \
+        --health-startup-cmd /home/podman/healthcheck \
+        --health-startup-interval 1s \
+        $IMAGE /home/podman/pause
     cid="$output"
 
     run_podman inspect $ctrname --format "{{.Config.HealthcheckOnFailureAction}}"
@@ -102,7 +102,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     cidmatch=$(grep "$cid" <<<"$output")
     echo "$cidmatch"
     assert "$cidmatch" =~ " $cid-[0-9a-f]+\.timer  *.*/podman healthcheck run $cid" \
-           "Healthcheck systemd unit exists"
+        "Healthcheck systemd unit exists"
 
     current_time=$(date --iso-8601=ns)
     # After three successive failures, container should no longer be healthy
@@ -125,18 +125,18 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
     # (Ignore .mount, too. They are created/removed by systemd based on the actual real mounts
     #  on the host and that is async and might be slow enough in CI to cause failures.)
     run -0 systemctl list-units --quiet "*$cid*"
-    except_scope_mount=$(grep -vF ".scope " <<<"$output" | { grep -vF ".mount" || true; } )
+    except_scope_mount=$(grep -vF ".scope " <<<"$output" | { grep -vF ".mount" || true; })
     assert "$except_scope_mount" == "" "Healthcheck systemd unit cleanup: no units leaked"
 }
 
 @test "podman healthcheck - restart cleans up old state" {
     ctr="c-h-$(safename)"
 
-    run_podman run -d --name $ctr                  \
-           --health-cmd /home/podman/healthcheck   \
-           --health-retries=3                      \
-           --health-interval=disable               \
-           $IMAGE /home/podman/pause
+    run_podman run -d --name $ctr \
+        --health-cmd /home/podman/healthcheck \
+        --health-retries=3 \
+        --health-interval=disable \
+        $IMAGE /home/podman/pause
 
     run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
     is "$output" "0" "Failing streak of fresh container should be 0"
@@ -160,14 +160,14 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 
     wait_file="$PODMAN_TMPDIR/$(random_string).wait_for_me"
 
-    for condition in healthy unhealthy;do
+    for condition in healthy unhealthy; do
         rm -f $wait_file
-        run_podman run -d --name $ctr                  \
-               --health-cmd /home/podman/healthcheck   \
-               --health-retries=1                      \
-               --health-interval=disable               \
-               $IMAGE /home/podman/pause
-        if [[ $condition == "unhealthy" ]];then
+        run_podman run -d --name $ctr \
+            --health-cmd /home/podman/healthcheck \
+            --health-retries=1 \
+            --health-interval=disable \
+            $IMAGE /home/podman/pause
+        if [[ $condition == "unhealthy" ]]; then
             # create the uh-oh file to let the health check fail
             run_podman exec $ctr touch /uh-oh
         fi
@@ -182,7 +182,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
             die "the wait file should only be created after the container turned healthy"
         fi
 
-        if [[ $condition == "healthy" ]];then
+        if [[ $condition == "healthy" ]]; then
             run_podman healthcheck run $ctr
         else
             run_podman 1 healthcheck run $ctr
@@ -198,20 +198,20 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 
     ctr="c-h-$(safename)"
 
-    for policy in none kill restart stop;do
+    for policy in none kill restart stop; do
         uhoh=/uh-oh
-        if [[ $policy != "none" ]];then
+        if [[ $policy != "none" ]]; then
             # only fail the first run
             uhoh=/uh-oh-only-once
         fi
 
         # Run healthcheck image.
-        run_podman run -d --name $ctr                 \
-               --health-cmd /home/podman/healthcheck  \
-               --health-retries=1                     \
-               --health-on-failure=$policy            \
-               --health-interval=disable              \
-               $IMAGE /home/podman/pause
+        run_podman run -d --name $ctr \
+            --health-cmd /home/podman/healthcheck \
+            --health-retries=1 \
+            --health-on-failure=$policy \
+            --health-interval=disable \
+            $IMAGE /home/podman/pause
 
         # healthcheck should succeed
         run_podman healthcheck run $ctr
@@ -223,15 +223,15 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
         run_podman 1 healthcheck run $ctr
         is "$output" "unhealthy" "output from 'podman healthcheck run' (policy: $policy)"
 
-        if [[ $policy == "restart" ]];then
-           # Make sure the container transitions back to running
-           run_podman wait --condition=running $ctr
-           run_podman inspect $ctr --format "{{.RestartCount}}"
-           assert "${#lines[@]}" != 0 "Container has been restarted at least once"
-           run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
-           is "$output" "0" "Failing streak of restarted container should be 0 again"
-           run_podman healthcheck run $ctr
-        elif [[ $policy == "none" ]];then
+        if [[ $policy == "restart" ]]; then
+            # Make sure the container transitions back to running
+            run_podman wait --condition=running $ctr
+            run_podman inspect $ctr --format "{{.RestartCount}}"
+            assert "${#lines[@]}" != 0 "Container has been restarted at least once"
+            run_podman container inspect $ctr --format "{{.State.Healthcheck.FailingStreak}}"
+            is "$output" "0" "Failing streak of restarted container should be 0 again"
+            run_podman healthcheck run $ctr
+        elif [[ $policy == "none" ]]; then
             run_podman inspect $ctr --format "{{.State.Status}} {{.Config.HealthcheckOnFailureAction}}"
             # Container is still running and health check still broken
             is "$output" "running $policy" "container continued running"
@@ -253,16 +253,16 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 @test "podman healthcheck --health-on-failure with interval" {
     ctr="c-h-$(safename)"
 
-    for policy in stop kill restart ;do
+    for policy in stop kill restart; do
         t0=$(date --iso-8601=seconds)
-        run_podman run -d --name $ctr      \
-               --health-cmd /bin/false     \
-               --health-retries=1          \
-               --health-on-failure=$policy \
-               --health-interval=1s        \
-               $IMAGE top
+        run_podman run -d --name $ctr \
+            --health-cmd /bin/false \
+            --health-retries=1 \
+            --health-on-failure=$policy \
+            --health-interval=1s \
+            $IMAGE top
 
-        if [[ $policy == "restart" ]];then
+        if [[ $policy == "restart" ]]; then
             # Sleeping for 2 seconds makes the test much faster than using
             # podman-wait which would compete with the container getting
             # restarted.
@@ -293,10 +293,10 @@ function _create_container_with_health_log_settings {
     local expect="$5"
     local expect_msg="$6"
 
-    run_podman run -d --name $ctrname   \
-               --health-cmd "echo $msg" \
-               $flag                    \
-               $IMAGE /home/podman/pause
+    run_podman run -d --name $ctrname \
+        --health-cmd "echo $msg" \
+        $flag \
+        $IMAGE /home/podman/pause
     cid="$output"
 
     run_podman inspect $ctrname --format $format
@@ -312,7 +312,7 @@ function _check_health_log {
     local expect_count="$4"
 
     run_podman inspect $ctrname --format "{{.State.Health.Log}}"
-    count=$(grep -co "$expect_msg" <<< "$output")
+    count=$(grep -co "$expect_msg" <<<"$output")
     assert "$count" $comparison $expect_count "Number of matching health log messages"
 }
 
@@ -326,13 +326,12 @@ function _check_health_log {
     --health-max-log-count=10 | 10             | -eq  | 10
     "
 
-    while read flag value op logs_count ; do
+    while read flag value op logs_count; do
         local msg="healthmsg-$(random_string)"
         local ctrname="c-h-$(safename)"
         _create_container_with_health_log_settings $ctrname $msg "{{.Config.HealthMaxLogCount}}" $flag $value "HealthMaxLogCount"
 
-        for i in $(seq 1 $((logs_count + 5)));
-        do
+        for i in $(seq 1 $((logs_count + 5))); do
             run_podman healthcheck run $ctrname
             is "$output" "" "unexpected output from podman healthcheck run (pass $i)"
         done
@@ -356,7 +355,7 @@ function _check_health_log {
     --health-max-log-size=10  | 10             | ${long_msg:0:10}}]\$
     "
 
-    while read flag value exp_msg ; do
+    while read flag value exp_msg; do
         local ctrname="c-h-$(safename)"
         _create_container_with_health_log_settings $ctrname $long_msg "{{.Config.HealthMaxLogSize}}" $flag $value "HealthMaxLogSize"
 
@@ -389,7 +388,6 @@ function _check_health_log {
     run_podman rm -t 0 -f $ctrname
 }
 
-
 @test "podman healthcheck --health-log-destination journal" {
     skip_if_remote "We cannot read journalctl over remote."
 
@@ -412,7 +410,7 @@ function _check_health_log {
 
     # The healthcheck is triggered by the podman when the container is started, but its execution depends on systemd.
     # And since `run_podman healthcheck run` is also run manually, it will result in two runs.
-    count=$(grep -co "$msg" <<< "$output")
+    count=$(grep -co "$msg" <<<"$output")
     assert "$count" -ge 1 "Number of matching health log messages"
 
     run_podman rm -t 0 -f $ctrname
@@ -423,12 +421,12 @@ function _check_health_log {
     msg="hc-msg-$(random_string)"
     hcStatus=$PODMAN_TMPDIR/hcStatus
 
-    run_podman run -d --name $ctr             \
-           --health-cmd "sleep 20; echo $msg" \
-           $IMAGE /home/podman/pause
+    run_podman run -d --name $ctr \
+        --health-cmd "sleep 20; echo $msg" \
+        $IMAGE /home/podman/pause
 
     timeout --foreground -v --kill=10 60 \
-        $PODMAN healthcheck run $ctr &> $hcStatus &
+        $PODMAN healthcheck run $ctr &>$hcStatus &
     hc_pid=$!
 
     run_podman inspect $ctr --format "{{.State.Status}}"
@@ -441,7 +439,7 @@ function _check_health_log {
     wait -n $hc_pid || rc=$?
     cat $hcStatus # just as debug in case the exit code check fails
     assert $rc -eq 1 "exit status check of healthcheck command"
-    assert $(< $hcStatus) == "stopped" "Health status"
+    assert $(<$hcStatus) == "stopped" "Health status"
 
     run_podman inspect $ctr --format "{{.State.Status}}--{{.State.Health.Status}}--{{.State.Health.FailingStreak}}"
     assert "$output" == "exited--stopped--0" "Container is stopped -- Health status -- failing streak"
@@ -464,18 +462,18 @@ function _check_health_log {
 
     # Set custom PATH to force our stub to be called instead of the real systemd-run.
     PATH="$PODMAN_TMPDIR:$PATH" run_podman 126 run -d --name $ctr1 \
-           --health-cmd "true" $IMAGE /home/podman/pause
+        --health-cmd "true" $IMAGE /home/podman/pause
     assert "$output" =~ "create healthcheck: failed to execute systemd-run: fork/exec $systemd_run: exec format error" "error on invalid systemd-run"
 
     local systemd_run="$PODMAN_TMPDIR/systemd-run"
-    cat > $systemd_run <<EOF
+    cat >$systemd_run <<EOF
 #!/bin/bash
 echo stdout
 echo stderr >&2
 exit 2
 EOF
     PATH="$PODMAN_TMPDIR:$PATH" run_podman 126 run -d --name $ctr2 \
-           --health-cmd "true" $IMAGE /home/podman/pause
+        --health-cmd "true" $IMAGE /home/podman/pause
     assert "$output" =~ "create healthcheck: systemd-run failed: exit status 2: output: stdout
 stderr" "systemd-run error message"
 

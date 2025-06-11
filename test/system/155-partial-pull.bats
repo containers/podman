@@ -37,15 +37,15 @@ EOF
 
     run_podman $globalargs build --squash-all -t $image1 -f $dockerfile1 .
     run_podman $globalargs push \
-               --compression-format zstd:chunked \
-               $pushpullargs \
-               $image1
+        --compression-format zstd:chunked \
+        $pushpullargs \
+        $image1
 
     run_podman $globalargs rmi $image1
 
     run_podman $globalargs pull \
-               $pushpullargs \
-               $image1
+        $pushpullargs \
+        $image1
 
     run -0 skopeo inspect containers-storage:$image1
     assert "$output" =~ "application/vnd.oci.image.layer.v1.tar\+zstd" "pulled image must be zstd-compressed"
@@ -69,25 +69,25 @@ EOF
     run_podman $globalargs build -t $image3 -f $dockerfile3 .
 
     run_podman $globalargs push \
-               --compression-format zstd:chunked \
-               $pushpullargs \
-               $image2
+        --compression-format zstd:chunked \
+        $pushpullargs \
+        $image2
 
     run_podman $globalargs push \
-               --compression-format zstd:chunked \
-               $pushpullargs \
-               $image3
+        --compression-format zstd:chunked \
+        $pushpullargs \
+        $image3
 
     run_podman $globalargs diff $image3 $image2
-    sorted_output=$(sort <<< $output | tr -d '\n')
+    sorted_output=$(sort <<<$output | tr -d '\n')
     assert "$sorted_output" = "A /new-file-2D /new-file"
 
     run_podman $globalargs rmi $image2 $image3
 
     run_podman --log-level debug $globalargs pull \
-               $pushpullargs \
-               $image2
-    if [ "$(podman_storage_driver)" != vfs ]; then # VFS does not implement partial pulls
+        $pushpullargs \
+        $image2
+    if [ "$(podman_storage_driver)" != vfs ]; then   # VFS does not implement partial pulls
         assert "$output" =~ "Retrieved partial blob" # A spot check that we are really using the partial-pull code path
     fi
 
@@ -95,14 +95,14 @@ EOF
     assert "$output" =~ "application/vnd.oci.image.layer.v1.tar\+zstd" "pulled image must be zstd-compressed"
 
     run_podman $globalargs pull \
-               $pushpullargs \
-               $image3
+        $pushpullargs \
+        $image3
 
     run -0 skopeo inspect containers-storage:$image3
     assert "$output" =~ "application/vnd.oci.image.layer.v1.tar\+zstd" "pulled image must be zstd-compressed"
 
     run_podman $globalargs diff $image3 $image2
-    sorted_output=$(sort <<< $output | tr -d '\n')
+    sorted_output=$(sort <<<$output | tr -d '\n')
     assert "$sorted_output" = "A /new-file-2D /new-file"
 
     for image in $image1 $image2 $image3; do
@@ -120,16 +120,16 @@ EOF
 
         # replace the image with a "podman load" from what was stored
         run_podman rmi $image
-        run_podman load < $PODMAN_TMPDIR/image.tar
+        run_podman load <$PODMAN_TMPDIR/image.tar
 
         rm -f $PODMAN_TMPDIR/image.tar
 
         # validate the data we got from "podman inspect"
-        for layer in $(jq -r '.[].RootFS.Layers.[] | gsub("^sha256:"; "")' <<< $inspect_data); do
+        for layer in $(jq -r '.[].RootFS.Layers.[] | gsub("^sha256:"; "")' <<<$inspect_data); do
             layer_file=$push_dir/$layer
             # the checksum for the layer is already validated, but for the sake
             # of the test let's check it again
-            run -0 sha256sum < $layer_file
+            run -0 sha256sum <$layer_file
             assert "$output" = "$layer  -" "digest mismatch for layer $layer for $image"
         done
         rm -rf $push_dir
@@ -137,7 +137,6 @@ EOF
 
     run_podman $globalargs rmi $image1 $image2 $image3
 }
-
 
 last_dir_digest=""
 
@@ -148,7 +147,7 @@ function dir_digest() {
     tardest=$PODMAN_TMPDIR/tmp.tar
 
     run -0 tar -C $1 -cf $tardest $TARFLAGS .
-    run -0 sha256sum < $tardest
+    run -0 sha256sum <$tardest
     last_dir_digest=$(echo $output | tr -d ' -')
     rm -f $tardest
 }
@@ -180,16 +179,16 @@ EOF
     digest1=$last_dir_digest
 
     run_podman $globalargs push \
-               $pushpullargs \
-               --compression-format zstd:chunked \
-               $image
+        $pushpullargs \
+        --compression-format zstd:chunked \
+        $image
 
     run_podman $globalargs rmi $image
 
     run_podman --log-level debug $globalargs pull \
-               $pushpullargs \
-               $image
-    if [ "$(podman_storage_driver)" != vfs ]; then # VFS does not implement partial pulls
+        $pushpullargs \
+        $image
+    if [ "$(podman_storage_driver)" != vfs ]; then   # VFS does not implement partial pulls
         assert "$output" =~ "Retrieved partial blob" # A spot check that we are really using the partial-pull code path
     fi
 

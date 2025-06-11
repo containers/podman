@@ -35,7 +35,7 @@ load helpers
     # Helper function: send the given signal, verify that it's received.
     kill_and_check() {
         local signal=$1
-        local signum=${2:-$1}       # e.g. if signal=HUP, we expect to see '1'
+        local signum=${2:-$1} # e.g. if signal=HUP, we expect to see '1'
 
         run_podman kill -s $signal $cname
         read -t 60 -u 5 actual || die "Timed out: no ACK for kill -s $signal"
@@ -43,16 +43,16 @@ load helpers
     }
 
     # Send signals in random order; make sure each one is received
-    for s in $(fmt --width=2 <<< "${signals[*]}" | sort --random-sort);do
+    for s in $(fmt --width=2 <<<"${signals[*]}" | sort --random-sort); do
         kill_and_check $s
     done
 
     # Variations: with leading dash; by name, with/without dash or SIG
-    kill_and_check -1        1
-    kill_and_check -INT      2
-    kill_and_check  FPE      8
+    kill_and_check -1 1
+    kill_and_check -INT 2
+    kill_and_check FPE 8
     kill_and_check -SIGUSR1 10
-    kill_and_check  SIGUSR2 12
+    kill_and_check SIGUSR2 12
 
     # Done. Tell the container to stop, and wait for final DONE.
     # The '-d' is because container exit is racy: the exec process itself
@@ -93,7 +93,7 @@ load helpers
     for s in ${bad_signal_nums[@]}; do
         run_podman 125 kill -s $s nosuchcontainer
         is "$output" "Error: valid signals are 1 through 64" \
-           "Error from kill -s $s"
+            "Error from kill -s $s"
     done
 
     # 'podman create' uses the same parsing code
@@ -131,7 +131,7 @@ load helpers
 @test "podman wait - exit codes" {
     cname=c-$(safename)
     run_podman create --name=$cname $IMAGE /no/such/command
-    run_podman container inspect  --format "{{.State.StoppedByUser}}" $cname
+    run_podman container inspect --format "{{.State.StoppedByUser}}" $cname
     is "$output" "false" "container not marked to be stopped by a user"
     # Container never ran -> exit code == 0
     run_podman wait $cname
@@ -147,13 +147,13 @@ load helpers
     ctr=c-$(safename)
     run_podman run -d --restart=always --name=$ctr $IMAGE \
         sh -c "trap 'exit 42' SIGTERM; echo READY; while :; do sleep 0.2; done"
-    run_podman container inspect  --format "{{.State.Status}}" $ctr
+    run_podman container inspect --format "{{.State.Status}}" $ctr
     is "$output" "running" "make sure container is running"
     # Send SIGTERM and make sure the container exits.
     run_podman kill -s=TERM $ctr
     run_podman wait $ctr
     is "$output" "42" "container exits with 42 on receiving SIGTERM"
-    run_podman container inspect  --format "{{.State.StoppedByUser}}" $ctr
+    run_podman container inspect --format "{{.State.StoppedByUser}}" $ctr
     is "$output" "true" "container is marked to be stopped by a user"
     run_podman rm $ctr
 }

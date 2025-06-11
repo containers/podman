@@ -54,10 +54,10 @@ function start_registry() {
     CERT=$AUTHDIR/domain.crt
     if [ ! -e $CERT ]; then
         openssl req -newkey rsa:4096 -nodes -sha256 \
-                -keyout $AUTHDIR/domain.key -x509 -days 2 \
-                -out $AUTHDIR/domain.crt \
-                -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost" \
-                -addext "subjectAltName=DNS:localhost"
+            -keyout $AUTHDIR/domain.key -x509 -days 2 \
+            -out $AUTHDIR/domain.crt \
+            -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=localhost" \
+            -addext "subjectAltName=DNS:localhost"
     fi
 
     # Copy a cert to another directory for --cert-dir option tests
@@ -65,23 +65,23 @@ function start_registry() {
     cp $CERT ${PODMAN_LOGIN_WORKDIR}/trusted-registry-cert-dir
 
     # Store credentials where container will see them
-    htpasswd -Bbn ${PODMAN_LOGIN_USER} ${PODMAN_LOGIN_PASS} > $AUTHDIR/htpasswd
+    htpasswd -Bbn ${PODMAN_LOGIN_USER} ${PODMAN_LOGIN_PASS} >$AUTHDIR/htpasswd
 
     # In case $PODMAN_TEST_KEEP_LOGIN_REGISTRY is set, for testing later
-    echo "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" > $AUTHDIR/htpasswd-plaintext
+    echo "${PODMAN_LOGIN_USER}:${PODMAN_LOGIN_PASS}" >$AUTHDIR/htpasswd-plaintext
 
     # Run the registry container.
     run_podman ${PODMAN_LOGIN_ARGS} run -d \
-               --net=host \
-               --name registry \
-               -v $AUTHDIR:/auth:Z \
-               -e REGISTRY_HTTP_ADDR="127.0.0.1:${PODMAN_LOGIN_REGISTRY_PORT}" \
-               -e REGISTRY_AUTH="htpasswd" \
-               -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
-               -e REGISTRY_AUTH_HTPASSWD_PATH="/auth/htpasswd" \
-               -e REGISTRY_HTTP_TLS_CERTIFICATE="/auth/domain.crt" \
-               -e REGISTRY_HTTP_TLS_KEY="/auth/domain.key" \
-               $REGISTRY_IMAGE
+        --net=host \
+        --name registry \
+        -v $AUTHDIR:/auth:Z \
+        -e REGISTRY_HTTP_ADDR="127.0.0.1:${PODMAN_LOGIN_REGISTRY_PORT}" \
+        -e REGISTRY_AUTH="htpasswd" \
+        -e REGISTRY_AUTH_HTPASSWD_REALM="Registry Realm" \
+        -e REGISTRY_AUTH_HTPASSWD_PATH="/auth/htpasswd" \
+        -e REGISTRY_HTTP_TLS_CERTIFICATE="/auth/domain.crt" \
+        -e REGISTRY_HTTP_TLS_KEY="/auth/domain.key" \
+        $REGISTRY_IMAGE
     cid="$output"
 
     wait_for_port 127.0.0.1 ${PODMAN_LOGIN_REGISTRY_PORT}

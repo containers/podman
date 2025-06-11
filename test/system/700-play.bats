@@ -21,18 +21,18 @@ function _write_test_yaml() {
     local command=""
     local image="$IMAGE"
     local volume=
-    for i;do
+    for i; do
         # This will error on 'foo=' (no value). That's totally OK.
         local value=$(expr "$i" : '[^=]*=\(.*\)')
         case "$i" in
-            annotations=*)   annotations="$value" ;;
-            labels=*)        labels="$value"      ;;
-            name=*)          PODNAME="$value"     ;;
-            command=*)       command="$value"     ;;
-            image=*)         image="$value"       ;;
-            ctrname=*)       CTRNAME="$value"     ;;
-            volume=*)        volume="$value"      ;;
-            *)               die "_write_test_yaml: cannot grok '$i'" ;;
+        annotations=*) annotations="$value" ;;
+        labels=*) labels="$value" ;;
+        name=*) PODNAME="$value" ;;
+        command=*) command="$value" ;;
+        image=*) image="$value" ;;
+        ctrname=*) CTRNAME="$value" ;;
+        volume=*) volume="$value" ;;
+        *) die "_write_test_yaml: cannot grok '$i'" ;;
         esac
     done
 
@@ -45,23 +45,23 @@ metadata:
 EOF
 
     if [[ -n "$annotations" ]]; then
-        echo "  annotations:"   >>$TESTYAML
+        echo "  annotations:" >>$TESTYAML
         echo "    $annotations" >>$TESTYAML
     fi
     if [[ -n "$labels" ]]; then
-        echo "  labels:"        >>$TESTYAML
-        echo "    $labels"      >>$TESTYAML
+        echo "  labels:" >>$TESTYAML
+        echo "    $labels" >>$TESTYAML
     fi
     if [[ -n "$PODNAME" ]]; then
         echo "  name: $PODNAME" >>$TESTYAML
     fi
 
     # We always have spec and container lines...
-    echo "spec:"                >>$TESTYAML
-    echo "  containers:"        >>$TESTYAML
+    echo "spec:" >>$TESTYAML
+    echo "  containers:" >>$TESTYAML
     # ...but command is optional. If absent, assume our caller will fill it in.
     if [[ -n "$command" ]]; then
-        cat <<EOF               >>$TESTYAML
+        cat <<EOF >>$TESTYAML
   - command:
     - $command
     image: $image
@@ -111,10 +111,10 @@ RELABEL="system_u:object_r:container_file_t:s0"
     mkdir -p $TESTDIR
     _write_test_yaml command=top volume=$TESTDIR
 
-    run_podman kube play - < $TESTYAML
+    run_podman kube play - <$TESTYAML
     if selinux_enabled; then
-       run ls -Zd $TESTDIR
-       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
+        run ls -Zd $TESTDIR
+        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
 
     run_podman pod rm -t 0 -f $PODNAME
@@ -129,8 +129,8 @@ RELABEL="system_u:object_r:container_file_t:s0"
     _write_test_yaml command=top volume=$TESTDIR
     run_podman play kube $TESTYAML
     if selinux_enabled; then
-       run ls -Zd $TESTDIR
-       is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
+        run ls -Zd $TESTDIR
+        is "$output" "${RELABEL} $TESTDIR" "selinux relabel should have happened"
     fi
 
     # Now rerun twice to make sure nothing gets removed
@@ -258,7 +258,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
 
     # --restart=no is crucial: without that, the "podman wait" below
     # will spin for indeterminate time.
-    run_podman create --pod new:$podname         --restart=no --name $c1name $IMAGE touch /testrw
+    run_podman create --pod new:$podname --restart=no --name $c1name $IMAGE touch /testrw
     run_podman create --pod $podname --read-only --restart=no --name $c2name $IMAGE touch /testro
     run_podman create --pod $podname --read-only --restart=no --name $c3name $IMAGE sh -c "echo "#!echo hi" > /tmp/testtmp; chmod +x /tmp/test/tmp; /tmp/testtmp"
 
@@ -275,12 +275,12 @@ RELABEL="system_u:object_r:container_file_t:s0"
 
     # Confirm config settings
     run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' ${podname}-${c1name} ${podname}-${c2name} ${podname}-${c3name}
-    is "${lines[0]}" "false"  "ReadonlyRootfs - container 1"
-    is "${lines[1]}" "true"   "ReadonlyRootfs - container 2"
-    is "${lines[2]}" "true"   "ReadonlyRootfs - container 3"
+    is "${lines[0]}" "false" "ReadonlyRootfs - container 1"
+    is "${lines[1]}" "true" "ReadonlyRootfs - container 2"
+    is "${lines[2]}" "true" "ReadonlyRootfs - container 3"
 
     # Clean up
-    run_podman kube down - < $YAML
+    run_podman kube down - <$YAML
     run_podman 1 container exists ${podname}-${c1name}
     run_podman 1 container exists ${podname}-${c2name}
     run_podman 1 container exists ${podname}-${c3name}
@@ -304,14 +304,14 @@ EOF
     # --restart=no is crucial: without that, the "podman wait" below
     # will spin for indeterminate time.
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod new:$podname --read-only=false --restart=no --name $c1name $IMAGE touch /testrw
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod $podname                       --restart=no --name $c2name $IMAGE touch /testro
-    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod $podname                       --restart=no --name $c3name $IMAGE touch /tmp/testtmp
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod $podname --restart=no --name $c2name $IMAGE touch /testro
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --pod $podname --restart=no --name $c3name $IMAGE touch /tmp/testtmp
 
     # Inspect settings in created containers
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' $c1name $c2name $c3name
-    is "${lines[0]}" "false"  "ReadonlyRootfs - container 1, created"
-    is "${lines[1]}" "true"   "ReadonlyRootfs - container 2, created"
-    is "${lines[2]}" "true"   "ReadonlyRootfs - container 3, created"
+    is "${lines[0]}" "false" "ReadonlyRootfs - container 1, created"
+    is "${lines[1]}" "true" "ReadonlyRootfs - container 2, created"
+    is "${lines[2]}" "true" "ReadonlyRootfs - container 3, created"
 
     # Now generate and run kube.yaml on a machine without the defaults set
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman kube generate $podname -f $YAML
@@ -327,12 +327,12 @@ EOF
 
     # Confirm settings again
     run_podman container inspect --format '{{.HostConfig.ReadonlyRootfs}}' ${podname}-${c1name} ${podname}-${c2name} ${podname}-${c3name}
-    is "${lines[0]}" "false"  "ReadonlyRootfs - container 1, post-run"
-    is "${lines[1]}" "true"   "ReadonlyRootfs - container 2, post-run"
-    is "${lines[2]}" "true"   "ReadonlyRootfs - container 3, post-run"
+    is "${lines[0]}" "false" "ReadonlyRootfs - container 1, post-run"
+    is "${lines[1]}" "true" "ReadonlyRootfs - container 2, post-run"
+    is "${lines[2]}" "true" "ReadonlyRootfs - container 3, post-run"
 
     # Clean up
-    run_podman kube down - < $YAML
+    run_podman kube down - <$YAML
     run_podman 1 container exists ${podname}-${c1name}
     run_podman 1 container exists ${podname}-${c2name}
     run_podman 1 container exists ${podname}-${c3name}
@@ -343,7 +343,7 @@ EOF
     imgname="i-$(safename)"
     _write_test_yaml command=id image=$imgname
 
-    cat > $PODMAN_TMPDIR/Containerfile << _EOF
+    cat >$PODMAN_TMPDIR/Containerfile <<_EOF
 from $IMAGE
 USER bin
 _EOF
@@ -374,7 +374,7 @@ _EOF
     imgname="userimage-$(safename)"
 
     mkdir -p $PODMAN_TMPDIR/$imgname
-    cat > $PODMAN_TMPDIR/$imgname/Containerfile << _EOF
+    cat >$PODMAN_TMPDIR/$imgname/Containerfile <<_EOF
 from $IMAGE
 USER bin
 _EOF
@@ -438,7 +438,7 @@ _EOF
 
     RANDOMSTRING=$(random_string 15)
     ANNOTATION_WITH_COMMA="comma,$(random_string 5)"
-    run_podman kube play --annotation "name=$RANDOMSTRING"  \
+    run_podman kube play --annotation "name=$RANDOMSTRING" \
         --annotation "anno=$ANNOTATION_WITH_COMMA" $TESTYAML
     run_podman inspect --format "{{ .Config.Annotations }}" $PODCTRNAME
     is "$output" ".*name:$RANDOMSTRING" "Annotation should be added to pod"
@@ -453,11 +453,11 @@ _EOF
 
 # bats test_tags=ci:parallel
 @test "podman play Yaml deprecated --no-trunc annotation" {
-   skip "FIXME: I can't figure out what this test is supposed to do"
-   RANDOMSTRING=$(random_string 65)
+    skip "FIXME: I can't figure out what this test is supposed to do"
+    RANDOMSTRING=$(random_string 65)
 
-   _write_test_yaml "annotations=test: ${RANDOMSTRING}" command=id
-   run_podman play kube --no-trunc - < $TESTYAML
+    _write_test_yaml "annotations=test: ${RANDOMSTRING}" command=id
+    run_podman play kube --no-trunc - <$TESTYAML
 }
 
 # bats test_tags=ci:parallel
@@ -481,17 +481,17 @@ _EOF
 @test "podman kube play - URL" {
     _write_test_yaml command=top
 
-    echo READY > $PODMAN_TMPDIR/ready
+    echo READY >$PODMAN_TMPDIR/ready
 
     HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
 
     serverctr="yamlserver-$(safename)"
     run_podman run -d --name $serverctr -p "$HOST_PORT:80" \
-               -v $TESTYAML:/var/www/testpod.yaml:Z \
-               -v $PODMAN_TMPDIR/ready:/var/www/ready:Z \
-               -w /var/www \
-               $IMAGE /bin/busybox-extras httpd -f -p 80
+        -v $TESTYAML:/var/www/testpod.yaml:Z \
+        -v $PODMAN_TMPDIR/ready:/var/www/ready:Z \
+        -w /var/www \
+        $IMAGE /bin/busybox-extras httpd -f -p 80
 
     wait_for_port 127.0.0.1 $HOST_PORT
     wait_for_command_output "curl -s -S $SERVER/ready" "READY"
@@ -557,7 +557,7 @@ EOF
     # Create the YAMl file, with two pods, each with one container
     podnamebase="p-$(safename)"
     ctrnamebase="c-$(safename)"
-    for n in 1 2;do
+    for n in 1 2; do
         _write_test_yaml labels="app: $podnamebase-$n" name="$podnamebase-$n" ctrname="$ctrnamebase-$n" command=top
 
         # Separator between two yaml halves
@@ -611,9 +611,9 @@ EOF
     volname="v-$(safename)"
 
     run_podman create --pod new:$podname \
-               --security-opt label=level:s0:c1,c2 \
-               --security-opt label=filetype:usr_t \
-               -v $volname:/myvol --name $ctrname $IMAGE true
+        --security-opt label=level:s0:c1,c2 \
+        --security-opt label=filetype:usr_t \
+        -v $volname:/myvol --name $ctrname $IMAGE true
     run_podman kube generate $podname -f $YAML
     run cat $YAML
     is "$output" ".*filetype: usr_t" "Generated YAML file should contain filetype usr_t"
@@ -655,14 +655,14 @@ spec:
       command:
       - top
       - -b
-" > $fname
+" >$fname
 
     # Run in background, then wait for pod to start running.
     # This guarantees that when we send the signal (below) we do so
     # on a running container; signaling during initialization
     # results in undefined behavior.
     logfile=$PODMAN_TMPDIR/kube-play.log
-    $PODMAN kube play --wait $fname &> $logfile &
+    $PODMAN kube play --wait $fname &>$logfile &
     local kidpid=$!
 
     for try in {1..10}; do
@@ -688,10 +688,10 @@ spec:
         expect=$((expect + 4))
     fi
     assert $delta_t -le $expect \
-           "podman kube play did not get killed within $expect seconds"
+        "podman kube play did not get killed within $expect seconds"
     # Make sure we actually got SIGTERM and podman printed its message.
-    assert "$(< $logfile)" =~ "Cleaning up containers, pods, and volumes" \
-           "kube play printed sigterm message"
+    assert "$(<$logfile)" =~ "Cleaning up containers, pods, and volumes" \
+        "kube play printed sigterm message"
 
     # there should be no containers running or created
     run_podman ps -a --noheading
@@ -723,7 +723,7 @@ spec:
       command:
       - echo
       - hello
-" > $fname
+" >$fname
 
     run_podman kube play --wait $fname
 
@@ -756,7 +756,7 @@ metadata:
   name: bar
 data:
   value: $barvalue
-" > $configmap_file
+" >$configmap_file
 
     podname="p-$(safename)"
     ctrname="c-$(safename)"
@@ -790,7 +790,7 @@ spec:
     args:
     - -c
     - "echo \$FOO:\$BAR"
-" > $pod_file
+" >$pod_file
 
     run_podman kube play --configmap=$configmap_file $pod_file
     run_podman wait $podname-$ctrname
@@ -815,9 +815,9 @@ spec:
     _write_test_yaml
     bogus=$PODMAN_TMPDIR/bogus-authfile
 
-    run_podman 125 kube play --authfile=$bogus - < $TESTYAML
+    run_podman 125 kube play --authfile=$bogus - <$TESTYAML
     is "$output" "Error: credential file is not accessible: faccessat $bogus: no such file or directory" \
-           "$command should fail with not such file"
+        "$command should fail with not such file"
 }
 
 # bats test_tags=ci:parallel
@@ -934,13 +934,13 @@ EOF
                 break
             fi
             sleep 0.5
-            i=$((i+1))
+            i=$((i + 1))
         done
 
         assert "$full_log" =~ "-$want\$" \
-               "Container got to '$want'"
+            "Container got to '$want'"
         assert "$full_log" =~ "-starting.*-$want" \
-               "Container went from starting to $want"
+            "Container went from starting to $want"
 
         if [[ $want == "healthy" ]]; then
             dontwant="unhealthy"
@@ -948,7 +948,7 @@ EOF
             dontwant="healthy"
         fi
         assert "$full_log" !~ "-$dontwant" \
-               "Container never goes $dontwant"
+            "Container never goes $dontwant"
 
         # GAH! Save ten seconds, but in a horrible way.
         #   - 'kube down' does not have a -t0 option.
@@ -975,7 +975,7 @@ EOF
 
     userimage=userimage-$(safename)
     mkdir -p $PODMAN_TMPDIR/$userimage
-    cat > $PODMAN_TMPDIR/$userimage/Containerfile << _EOF
+    cat >$PODMAN_TMPDIR/$userimage/Containerfile <<_EOF
 from $from_image
 USER bin
 _EOF
@@ -1000,7 +1000,7 @@ _EOF
     # We could try to match a third or or simply force a know static config to trigger
     # the right error.
     local CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf"
-    echo 'unqualified-search-registries = ["quay.io"]' > "$CONTAINERS_REGISTRIES_CONF"
+    echo 'unqualified-search-registries = ["quay.io"]' >"$CONTAINERS_REGISTRIES_CONF"
     export CONTAINERS_REGISTRIES_CONF
 
     _write_test_yaml command=id image=$userimage
@@ -1057,7 +1057,7 @@ EOF
     assert "$output" = "$run_out_test1" "matching ls run/exec volume path test1"
 
     run_podman run --rm $imgname1 cat /test_same/hello_world
-    assert "$output" = "I am from test1 image"  "cat /test_same/hello_world on image"
+    assert "$output" = "I am from test1 image" "cat /test_same/hello_world on image"
     run_out_hello_world="$output"
     run_podman exec $podname-$ctrname cat /test_same/hello_world
     assert "$output" = "$run_out_hello_world" "matching cat /test_same/hello_world volume path test_same"
@@ -1108,7 +1108,7 @@ EOF
     run_podman kube down $fname
 
     # Testing the second technique to mount an OCI image: using image volume
-        fname="/$PODMAN_TMPDIR/play_kube_wait_$(random_string 6).yaml"
+    fname="/$PODMAN_TMPDIR/play_kube_wait_$(random_string 6).yaml"
     cat >$fname <<EOF
 apiVersion: v1
 kind: Pod

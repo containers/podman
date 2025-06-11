@@ -5,8 +5,8 @@ CATATONIT_VERSION="v0.1.7"
 set -e
 
 if [ -f $CATATONIT_PATH ] && [ -z "$1" ]; then
-	echo "skipping ... catatonit is already installed"
-	exit 0
+    echo "skipping ... catatonit is already installed"
+    exit 0
 fi
 
 echo "installing catatonit to $CATATONIT_PATH"
@@ -14,7 +14,7 @@ buildDir=$(mktemp -d)
 git clone https://github.com/openSUSE/catatonit.git $buildDir
 
 pushd $buildDir
-echo `pwd`
+echo $(pwd)
 git reset --hard ${CATATONIT_VERSION}
 autoreconf -fi
 ./configure

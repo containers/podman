@@ -25,12 +25,12 @@ load helpers
     # spits them out interchangeably, so we need to recognize either.
     run_podman inspect --format '{{.State.Status}} {{.State.ExitCode}}' $cid
     is "$output" "\\(stopped\|exited\\) \+137" \
-       "Status and exit code of stopped container"
+        "Status and exit code of stopped container"
 
     # The initial SIGTERM is ignored, so this operation should take
     # exactly 10 seconds. Give it some leeway.
-    delta_t=$(( $t1 - $t0 ))
-    assert $delta_t -gt  8 "podman stop: ran too quickly!"
+    delta_t=$(($t1 - $t0))
+    assert $delta_t -gt 8 "podman stop: ran too quickly!"
     assert $delta_t -le 14 "podman stop: took too long"
 
     run_podman rm $cid
@@ -51,10 +51,10 @@ load helpers
 
     # podman ps (without -a) should show the three running containers
     run_podman ps --sort names --format '{{.Names}}--{{.Status}}'
-    is "${#lines[*]}" "3"        "podman ps shows exactly three containers"
-    is "${lines[0]}" "c1--Up.*"  "podman ps shows running container (1)"
-    is "${lines[1]}" "c2--Up.*"  "podman ps shows running container (2)"
-    is "${lines[2]}" "c3--Up.*"  "podman ps shows running container (3)"
+    is "${#lines[*]}" "3" "podman ps shows exactly three containers"
+    is "${lines[0]}" "c1--Up.*" "podman ps shows running container (1)"
+    is "${lines[1]}" "c2--Up.*" "podman ps shows running container (2)"
+    is "${lines[2]}" "c3--Up.*" "podman ps shows running container (3)"
 
     # Stop -a. Local podman issues a warning, check for it.
     local plusw="+w"
@@ -72,10 +72,10 @@ load helpers
 
     # ...but with -a, containers are shown
     run_podman ps -a --sort names --format '{{.Names}}--{{.Status}}'
-    is "${#lines[*]}" "4"        "podman ps -a shows exactly four containers"
-    is "${lines[0]}" "c1--Exited.*"  "ps -a, first stopped container"
-    is "${lines[1]}" "c2--Exited.*"  "ps -a, second stopped container"
-    is "${lines[2]}" "c3--Exited.*"  "ps -a, third stopped container"
+    is "${#lines[*]}" "4" "podman ps -a shows exactly four containers"
+    is "${lines[0]}" "c1--Exited.*" "ps -a, first stopped container"
+    is "${lines[1]}" "c2--Exited.*" "ps -a, second stopped container"
+    is "${lines[2]}" "c3--Exited.*" "ps -a, third stopped container"
     is "${lines[3]}" "c4--Created.*" "ps -a, created container (unaffected)"
 
     run_podman rm $cid1 $cid2 $cid3 $cid4
@@ -104,8 +104,8 @@ load helpers
     name=thiscontainerdoesnotexist
     run_podman 125 stop $name
     is "$output" \
-       "Error: no container with name or ID \"$name\" found: no such container" \
-       "podman stop nonexistent container"
+        "Error: no container with name or ID \"$name\" found: no such container" \
+        "podman stop nonexistent container"
 
     run_podman stop --ignore $name
     is "$output" "" "podman stop nonexistent container, with --ignore"
@@ -125,7 +125,6 @@ load helpers
     run_podman rm -f -t0 $cid
 }
 
-
 # Regression test for #2472
 # bats test_tags=ci:parallel
 @test "podman stop - can trap signal" {
@@ -134,7 +133,7 @@ load helpers
     for t_opt in '' '--time=5' '--timeout=5'; do
         # Run a simple container that logs output on SIGTERM
         run_podman run -d $IMAGE sh -c \
-                   "trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo READY; while :; do sleep 1; done"
+            "trap 'echo Received SIGTERM, finishing; exit' SIGTERM; echo READY; while :; do sleep 1; done"
         cid="$output"
         wait_for_ready $cid
 
@@ -157,7 +156,7 @@ load helpers
         if [[ -n "$PARALLEL_JOBSLOT" ]]; then
             howlong=4
         fi
-        delta_t=$(( $t1 - $t0 ))
+        delta_t=$(($t1 - $t0))
         assert $delta_t -le $howlong "podman stop: took too long"
 
         run_podman rm $cid
@@ -207,7 +206,7 @@ load helpers
 
     # Time check: make sure we were able to run 'ps' before the container
     # exited. If this takes too long, it means ps had to wait for lock.
-    local delta_t=$(( $SECONDS - t0 ))
+    local delta_t=$(($SECONDS - t0))
     assert $delta_t -le 5 "Operations took too long"
 
     run_podman kill $ctrname

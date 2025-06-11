@@ -1,5 +1,3 @@
-
-
 # This script attempts to confirm functional github action scripts.
 # It expects to be called from Cirrus-CI, in a special execution
 # environment.  Any use outside this environment will probably fail.
@@ -18,7 +16,7 @@ expect_regex() {
     local input_file
     expected_regex="$1"
     input_file="$2"
-    grep -E -q "$expected_regex" $input_file || \
+    grep -E -q "$expected_regex" $input_file ||
         die "No match to '$expected_regex' in '$(<$input_file)'"
 }
 
@@ -49,8 +47,8 @@ trap "rm -rf $GITHUB_OUTPUT $GITHUB_WORKSPACE $ID_NAME_FILEPATH" EXIT
 
 cd $GITHUB_WORKSPACE || fail
 # Replace newlines and indentation to make grep easier
-if ! $base/cron_failures.sh |& \
-        tr -s '[:space:]' ' ' > $GITHUB_WORKSPACE/output; then
+if ! $base/cron_failures.sh |&
+    tr -s '[:space:]' ' ' >$GITHUB_WORKSPACE/output; then
     die "Failed: $base/cron_failures.sh with output '$(<$GITHUB_WORKSPACE/output)'"
 fi
 
@@ -62,7 +60,7 @@ expect_regex \
 
 msg "$header make_email_body.sh"
 # It's possible no cirrus-cron jobs actually failed
-echo -e '\n\n     \n\t\n' >> "$ID_NAME_FILEPATH"  # blank lines should be ignored
+echo -e '\n\n     \n\t\n' >>"$ID_NAME_FILEPATH" # blank lines should be ignored
 # Don't need to test stdout/stderr of this
 if ! $base/make_email_body.sh; then
     die "make_email_body.sh failed"
@@ -76,7 +74,7 @@ expect_regex \
 
 msg "$header make_email_body.sh name and link"
 # Job names may contain spaces, confirm lines are parsed properly
-echo -e '1234567890 cirrus-cron test job' >> "$ID_NAME_FILEPATH"  # Append to blank lines
+echo -e '1234567890 cirrus-cron test job' >>"$ID_NAME_FILEPATH" # Append to blank lines
 $base/make_email_body.sh
 expected="Cron build 'cirrus-cron test job' Failed: https://cirrus-ci.com/build/1234567890"
 if ! grep -q "$expected" $GITHUB_WORKSPACE/artifacts/email_body.txt; then
@@ -90,9 +88,9 @@ msg "$header rerun_failed_tasks.sh"
 export SECRET_CIRRUS_API_KEY=testing-nottherightkey
 # test.sh is sensitive to the 'testing' name.  Var. defined by cirrus-ci
 # shellcheck disable=SC2154
-echo "$CIRRUS_BUILD_ID test cron job name" > "$ID_NAME_FILEPATH"
-if ! $base/rerun_failed_tasks.sh |& \
-        tr -s '[:space:]' ' ' > $GITHUB_WORKSPACE/rerun_output; then
+echo "$CIRRUS_BUILD_ID test cron job name" >"$ID_NAME_FILEPATH"
+if ! $base/rerun_failed_tasks.sh |&
+    tr -s '[:space:]' ' ' >$GITHUB_WORKSPACE/rerun_output; then
     die "rerun_failed_tasks.sh failed"
 fi
 

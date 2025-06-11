@@ -1,8 +1,6 @@
-
-
 # Send text to stderr
 msg() {
-    echo "$@" > /dev/stderr
+    echo "$@" >/dev/stderr
 }
 
 # Must be called from top-level of script, not another function.
@@ -35,9 +33,9 @@ confirm_gha_environment() {
 escape_query() {
     local json_string
     # Assume it's okay to squash repeated whitespaces inside the query
-    json_string=$(printf '%s' "$1" | \
-                  tr --delete '\r\n' | \
-                  tr --squeeze-repeats '[[:space:]]' | \
+    json_string=$(printf '%s' "$1" |
+        tr --delete '\r\n' |
+        tr --squeeze-repeats '[[:space:]]' |
         python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')
     # The $json_string in message is already quoted
     echo -n "$json_string"
@@ -59,21 +57,21 @@ gql() {
     local filtered
     msg "::group::Posting GraphQL Query and checking result"
     msg "query: "
-    if ! jq -e . <<<"$query" > /dev/stderr; then
+    if ! jq -e . <<<"$query" >/dev/stderr; then
         msg "::error file=${BASH_SOURCE[1]},line=${BASH_LINENO[0]}::Invalid query JSON: $query"
         return 1
     fi
     # SECRET_CIRRUS_API_KEY is defined github secret
     # shellcheck disable=SC2154
     if output=$(curl \
-              --request POST \
-              --silent \
-              --show-error \
-              --location \
-              --header 'content-type: application/json' \
-              --header "Authorization: Bearer $SECRET_CIRRUS_API_KEY" \
-              --url 'https://api.cirrus-ci.com/graphql' \
-              --data "$query") && [[ -n "$output" ]]; then
+        --request POST \
+        --silent \
+        --show-error \
+        --location \
+        --header 'content-type: application/json' \
+        --header "Authorization: Bearer $SECRET_CIRRUS_API_KEY" \
+        --url 'https://api.cirrus-ci.com/graphql' \
+        --data "$query") && [[ -n "$output" ]]; then
 
         if filtered=$(jq -e "$filter" <<<"$output") && [[ -n "$filtered" ]]; then
             msg "result:"

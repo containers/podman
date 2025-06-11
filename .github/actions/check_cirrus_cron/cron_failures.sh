@@ -8,16 +8,16 @@ set -eo pipefail
 source $(dirname "${BASH_SOURCE[0]}")/lib.sh
 
 _errfmt="Expecting %s value to not be empty"
-if [[ -z "$GITHUB_REPOSITORY" ]]; then  # <owner>/<repo>
+if [[ -z "$GITHUB_REPOSITORY" ]]; then # <owner>/<repo>
     err $(printf "$_errfmt" "\$GITHUB_REPOSITORY")
-elif [[ -z "$ID_NAME_FILEPATH" ]]; then  # output filepath
+elif [[ -z "$ID_NAME_FILEPATH" ]]; then # output filepath
     err $(printf "$_errfmt" "\$ID_NAME_FILEPATH")
 fi
 
 confirm_gha_environment
 
 mkdir -p ./artifacts
-cat > ./artifacts/query_raw.json << "EOF"
+cat >./artifacts/query_raw.json <<"EOF"
 query {
   ownerRepository(platform: "github", owner: "@@OWNER@@", name: "@@REPO@@") {
     cronSettings {
@@ -35,7 +35,7 @@ EOF
 owner=$(cut -d '/' -f 1 <<<"$GITHUB_REPOSITORY")
 repo=$(cut -d '/' -f 2 <<<"$GITHUB_REPOSITORY")
 sed -r -e "s/@@OWNER@@/$owner/g" -e "s/@@REPO@@/$repo/g" \
-    ./artifacts/query_raw.json > ./artifacts/query.json
+    ./artifacts/query_raw.json >./artifacts/query.json
 
 if grep -q '@@' ./artifacts/query.json; then
     err "Found unreplaced substitution token in query JSON"
@@ -46,7 +46,7 @@ fi
 # be running anyway.
 filt_head='.data.ownerRepository.cronSettings'
 
-gql "$(<./artifacts/query.json)" "$filt_head" > ./artifacts/reply.json
+gql "$(<./artifacts/query.json)" "$filt_head" >./artifacts/reply.json
 # e.x. reply.json
 # {
 #   "data": {
@@ -77,7 +77,7 @@ gql "$(<./artifacts/query.json)" "$filt_head" > ./artifacts/reply.json
 # Output format: <build id> <cron-job name>
 # Where <cron-job name> may contain multiple words
 filt="$filt_head | map(select(.lastInvocationBuild.status==\"FAILED\") | {id:.lastInvocationBuild.id, name:.name} | join(\" \")) | join(\"\n\")"
-jq --raw-output "$filt" ./artifacts/reply.json > "$ID_NAME_FILEPATH"
+jq --raw-output "$filt" ./artifacts/reply.json >"$ID_NAME_FILEPATH"
 
 # Print out the file to assist in job debugging
 echo "<Failed Build ID> <Cron Name>"
@@ -88,5 +88,5 @@ records=$(awk -r -e '/\w+/{print $0}' "$ID_NAME_FILEPATH" | wc -l)
 # Set the output of this step.
 # Ref: https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter
 # shellcheck disable=SC2154
-echo "failures=$records" >> $GITHUB_OUTPUT
+echo "failures=$records" >>$GITHUB_OUTPUT
 echo "Total failed Cirrus-CI cron builds: $records"

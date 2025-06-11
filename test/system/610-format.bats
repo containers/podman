@@ -45,7 +45,7 @@ function check_subcommand() {
 
         # Human-readable podman command string, with multiple spaces collapsed
         command_string="podman $* $cmd"
-        command_string=${command_string//  / }  # 'podman  x' -> 'podman x'
+        command_string=${command_string//  / } # 'podman  x' -> 'podman x'
 
         # Run --help, decide if this is a subcommand with subcommands
         run_podman "$@" $cmd --help
@@ -113,7 +113,7 @@ function check_subcommand() {
         # *Now* check exit status. This should never, ever, ever trigger!
         # If it does, it means the podman command failed without an err msg!
         assert "$status" = "0" \
-               "$command_string --format '{{\"\n\"}}' failed with no output!"
+            "$command_string --format '{{\"\n\"}}' failed with no output!"
     done
 }
 
@@ -161,8 +161,6 @@ pod inspect       | $podname
 events            | --stream=false --events-backend=file
 system events     | --stream=false --events-backend=file
 "
-
-
 
     # ...or machine. But podman machine is ultra-finicky, it fails as root
     # or if qemu is missing. Instead of checking for all the possible ways

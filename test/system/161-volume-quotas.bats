@@ -21,10 +21,10 @@ function teardown() {
     vol_path=$PODMAN_TMPDIR/volpath
     if [ -f ${loop} ]; then
         if [ -d ${vol_path} ]; then
-           if mountpoint ${vol_path}; then
-              umount "$vol_path"
-           fi
-           rm -rf "$vol_path"
+            if mountpoint ${vol_path}; then
+                umount "$vol_path"
+            fi
+            rm -rf "$vol_path"
         fi
 
         while read path dev; do
@@ -44,7 +44,7 @@ function teardown() {
 
     # Minimum XFS filesystem size is 300mb
     loop=$PODMAN_TMPDIR/disk.img
-    fallocate -l 300m  ${loop}
+    fallocate -l 300m ${loop}
     run -0 losetup -f --show $loop
     loop_dev="$output"
     mkfs.xfs $loop_dev

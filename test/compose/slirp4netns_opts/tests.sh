@@ -8,7 +8,7 @@ expected="teststring"
 # to prevent flakes.
 container_timeout=5
 while [ $container_timeout -gt 0 ]; do
-    output="$(< $OUTFILE)"
+    output="$(<$OUTFILE)"
     if [ -n "$output" ]; then
         break
     fi

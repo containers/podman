@@ -6,7 +6,7 @@
 load helpers
 
 @test "podman diff" {
-    n=$(random_string 10)          # container name
+    n=$(random_string 10) # container name
     rand_file=$(random_string 10)
     run_podman run --name $n $IMAGE sh -c "touch /$rand_file;rm /etc/services"
 

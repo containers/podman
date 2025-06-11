@@ -89,7 +89,10 @@ host.slirp4netns.executable | $expr_path
         # use netavark.
         local osrelease=/etc/os-release
         if [[ -e $osrelease ]]; then
-            local osname=$(source $osrelease; echo $NAME)
+            local osname=$(
+                source $osrelease
+                echo $NAME
+            )
             if [[ $osname =~ Red.Hat ]]; then
                 die "CI_DESIRED_NETWORK must be set in gating.yaml for RHEL testing"
             fi
@@ -107,7 +110,7 @@ host.slirp4netns.executable | $expr_path
     # Always run this and preserve its value. We will check again in 999-*.bats
     run_podman info --format '{{.Host.DatabaseBackend}}'
     db_backend="$output"
-    echo "$db_backend" > $BATS_SUITE_TMPDIR/db-backend
+    echo "$db_backend" >$BATS_SUITE_TMPDIR/db-backend
 
     if [[ -z "$CI_DESIRED_DATABASE" ]]; then
         # When running in Cirrus, CI_DESIRED_DATABASE *must* be defined
@@ -158,10 +161,16 @@ host.slirp4netns.executable | $expr_path
     local osrelease=/etc/os-release
     test -e $osrelease || skip "Not a RHEL system (no $osrelease)"
 
-    local osname=$(source $osrelease; echo $NAME)
+    local osname=$(
+        source $osrelease
+        echo $NAME
+    )
     if [[ $osname =~ Red.Hat || $osname =~ CentOS ]]; then
         # Version can include minor; strip off first dot an all beyond it
-        local osver=$(source $osrelease; echo $VERSION_ID)
+        local osver=$(
+            source $osrelease
+            echo $VERSION_ID
+        )
         test ${osver%%.*} -le 8 || skip "$osname $osver > RHEL8"
 
         # RHEL or CentOS 8.
@@ -189,8 +198,8 @@ host.slirp4netns.executable | $expr_path
     store2=$PODMAN_TMPDIR/store2
     mkdir -p $store1 $store2
     run_podman info --storage-opt=$driver'.imagestore='$store1 \
-                    --storage-opt=$driver'.imagestore='$store2 \
-                    --format '{{index .Store.GraphOptions "'$driver'.additionalImageStores"}}\n{{index .Store.GraphOptions "'$driver'.imagestore"}}'
+        --storage-opt=$driver'.imagestore='$store2 \
+        --format '{{index .Store.GraphOptions "'$driver'.additionalImageStores"}}\n{{index .Store.GraphOptions "'$driver'.imagestore"}}'
     assert "${lines[0]}" == "["$store1" "$store2"]" "output includes additional image stores"
     assert "${lines[1]}" == "$store2" "old imagestore output"
 }
@@ -296,11 +305,11 @@ EOF
 
     CI_DESIRED_DATABASE= run_podman 125 $safe_opts --db-backend=boltdb info
     assert "$output" =~ "deprecated, no new BoltDB databases can be created" \
-           "without CI_DESIRED_DATABASE"
+        "without CI_DESIRED_DATABASE"
 
     CI_DESIRED_DATABASE=boltdb run_podman $safe_opts --log-level=debug --db-backend=boltdb info
     assert "$output" =~ "Allowing deprecated database backend" \
-           "with CI_DESIRED_DATABASE"
+        "with CI_DESIRED_DATABASE"
 
     run_podman $safe_opts system reset --force
 }
@@ -316,7 +325,7 @@ EOF
     # Force all custom directories so we don't pick up an existing database
     CONTAINERS_STORAGE_CONF=$PODMAN_TMPDIR/storage.conf run_podman 0+w $safe_opts info
     require_warning "The storage 'driver' option should be set" \
-       	            "c/storage should warn on empty storage driver"
+        "c/storage should warn on empty storage driver"
 
     # Now add a valid graph driver to storage.conf
     cat >$PODMAN_TMPDIR/storage.conf <<EOF

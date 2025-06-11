@@ -14,7 +14,7 @@ load helpers.systemd
 
     cname="c-$(safename)"
     run_podman run -d --name $cname $IMAGE \
-               sh -c 'while :;do date +%s;sleep 1;done'
+        sh -c 'while :;do date +%s;sleep 1;done'
     cid="$output"
     # Wait for first time value
     wait_for_output '[0-9]\{10,\}' $cid
@@ -40,11 +40,11 @@ load helpers.systemd
     i=1
     max_delta=0
     while [ $i -lt ${#lines[*]} ]; do
-        this_delta=$(( ${lines[$i]} - ${lines[$(($i - 1))]} ))
+        this_delta=$((${lines[$i]} - ${lines[$(($i - 1))]}))
         if [ $this_delta -gt $max_delta ]; then
             max_delta=$this_delta
         fi
-        i=$(( $i + 1 ))
+        i=$(($i + 1))
     done
 
     # There should be a 3-4 second gap, *maybe* 5. Never 1 or 2, that
@@ -97,10 +97,10 @@ load helpers.systemd
     local ctrname="c-$(safename)"
     local msg="healthmsg-$(random_string)"
 
-    run_podman run -d --name $ctrname     \
-                --health-cmd "echo $msg"  \
-                --health-interval 1s      \
-                $IMAGE /home/podman/pause
+    run_podman run -d --name $ctrname \
+        --health-cmd "echo $msg" \
+        --health-interval 1s \
+        $IMAGE /home/podman/pause
     cid="$output"
 
     run_podman healthcheck run $ctrname
@@ -136,7 +136,7 @@ load helpers.systemd
     # (Ignore .mount, too. They are created/removed by systemd based on the actual real mounts
     #  on the host and that is async and might be slow enough in CI to cause failures.)
     run -0 systemctl list-units --quiet "*$cid*"
-    except_scope_mount=$(grep -vF ".scope " <<<"$output" | { grep -vF ".mount" || true; } )
+    except_scope_mount=$(grep -vF ".scope " <<<"$output" | { grep -vF ".mount" || true; })
     assert "$except_scope_mount" == "" "Healthcheck systemd unit cleanup: no units leaked"
 }
 # vim: filetype=sh

@@ -13,13 +13,12 @@ load helpers
     # Start a container. Write random content to random file, then stay
     # alive as long as file exists. (This test will remove that file soon.)
     run_podman run -d $IMAGE sh -c \
-               "echo $rand_content >/$rand_filename;echo READY;while [ -f /$rand_filename ]; do sleep 1; done"
+        "echo $rand_content >/$rand_filename;echo READY;while [ -f /$rand_filename ]; do sleep 1; done"
     cid="$output"
     wait_for_ready $cid
 
     run_podman exec $cid sh -c "cat /$rand_filename"
     is "$output" "$rand_content" "Can exec and see file in running container"
-
 
     # Specially defined situations: exec a dir, or no such command.
     # We don't check the full error message because runc & crun differ.
@@ -27,14 +26,14 @@ load helpers
     # UPDATE 2023-07-17 runc on RHEL8 (but not Debian) now says "is a dir"
     # and exits 255 instead of 126 as it does everywhere else.
     run_podman '?' exec $cid /etc
-    is "$output" ".*\(permission denied\|is a directory\)"  \
-       "podman exec /etc"
+    is "$output" ".*\(permission denied\|is a directory\)" \
+        "podman exec /etc"
     assert "$status" -ne 0 "exit status from 'exec /etc'"
     run_podman 127 exec $cid /no/such/command
-    is "$output" ".*such file or dir"   "podman exec /no/such/command"
+    is "$output" ".*such file or dir" "podman exec /no/such/command"
 
     run_podman 125 exec $cid
-    is "$output" ".*must provide a non-empty command to start an exec session"   "podman exec must include a command"
+    is "$output" ".*must provide a non-empty command to start an exec session" "podman exec must include a command"
 
     # Done. Tell the container to stop.
     # The '-d' is because container exit is racy: the exec process itself
@@ -42,7 +41,7 @@ load helpers
     run_podman exec -d $cid rm -f /$rand_filename
 
     run_podman wait $cid
-    is "$output" "0"   "output from podman wait (container exit code)"
+    is "$output" "0" "output from podman wait (container exit code)"
 
     run_podman rm $cid
 }
@@ -85,7 +84,7 @@ load helpers
     expect=$(sha512sum $bigfile | awk '{print $1}')
     # Transfer it to container, via exec, make sure correct #bytes are sent
     run_podman exec -i $cid dd of=/tmp/bigfile bs=512 <$bigfile
-    is "${lines[0]}" "3000+0 records in"  "dd: number of records in"
+    is "${lines[0]}" "3000+0 records in" "dd: number of records in"
     is "${lines[1]}" "3000+0 records out" "dd: number of records out"
     # Verify sha. '% *' strips off the path, keeping only the SHA
     run_podman exec $cid sha512sum /tmp/bigfile
@@ -116,10 +115,10 @@ load helpers
     local bigfile=${PODMAN_TMPDIR}/bigfile
     local newfile=${PODMAN_TMPDIR}/newfile
     # create a big file, bigger than the 8K buffer size
-    base64 /dev/urandom | head -c 20K > $bigfile
+    base64 /dev/urandom | head -c 20K >$bigfile
 
     run_podman run --rm -v $bigfile:/tmp/test:Z $IMAGE cat /tmp/test
-    printf "%s" "$output" > $newfile
+    printf "%s" "$output" >$newfile
     # use cmp to compare the files, this is very helpful since it will
     # tell us the first wrong byte in case this fails
     run cmp $bigfile $newfile
@@ -129,7 +128,7 @@ load helpers
     cid="$output"
 
     run_podman exec $cid cat /tmp/test
-    printf "%s" "$output" > $newfile
+    printf "%s" "$output" >$newfile
     # use cmp to compare the files, this is very helpful since it will
     # tell us the first wrong byte in case this fails
     run cmp $bigfile $newfile
@@ -242,13 +241,13 @@ load helpers
     cid="$output"
 
     content=$(random_string 20)
-    echo "$content" > $PODMAN_TMPDIR/tempfile
+    echo "$content" >$PODMAN_TMPDIR/tempfile
 
     # /proc/self/fd will have 0 1 2, possibly 3 & 4, but no 2-digit fds other than 40
     run_podman exec --preserve-fd=9,40 $cid sh -c '/bin/ls -C -w999 /proc/self/fd; cat <&9; cat <&40' 9<<<"fd9" 10</dev/null 40<$PODMAN_TMPDIR/tempfile
     assert "${lines[0]}" !~ [123][0-9] "/proc/self/fd must not contain 10-39"
-    assert "${lines[1]}" = "fd9"       "cat from fd 9"
-    assert "${lines[2]}" = "$content"  "cat from fd 40"
+    assert "${lines[1]}" = "fd9" "cat from fd 9"
+    assert "${lines[2]}" = "$content" "cat from fd 40"
 
     run_podman rm -f -t0 $cid
 }

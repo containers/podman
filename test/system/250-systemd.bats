@@ -63,9 +63,9 @@ function service_setup() {
     (
         cd $PODMAN_TMPDIR
         run_podman generate systemd --files --name \
-               -e http_proxy -e https_proxy -e no_proxy \
-               -e HTTP_PROXY -e HTTPS_PROXY -e NO_PROXY \
-               --new $cname
+            -e http_proxy -e https_proxy -e no_proxy \
+            -e HTTP_PROXY -e HTTPS_PROXY -e NO_PROXY \
+            --new $cname
         mv-safely "container-$cname.service" $UNIT_FILE
     )
     run_podman rm $cname
@@ -92,7 +92,7 @@ function service_cleanup() {
     if [[ -n "$expected_state" ]]; then
         run systemctl show --property=ActiveState "$SERVICE_NAME"
         assert "$output" = "ActiveState=$expected_state" \
-               "state of service after systemctl stop"
+            "state of service after systemctl stop"
     fi
 
     run systemctl disable "$SERVICE_NAME"
@@ -112,7 +112,7 @@ function service_cleanup() {
     cid="$output"
     run_podman 0+w generate systemd $cid
     require_warning "Container $cid has restart policy .*always.* which can lead to issues on shutdown" \
-                    "generate systemd emits warning"
+        "generate systemd emits warning"
     run_podman rm -f $cid
 
     cname=c-$(safename)
@@ -220,14 +220,14 @@ function check_listen_env() {
     if is_remote; then
         is "$output" "$stdenv" "LISTEN Environment did not pass: $context"
     else
-        out=$(for o in $output; do echo $o; done| sort)
+        out=$(for o in $output; do echo $o; done | sort)
         std=$(echo "$stdenv
 LISTEN_PID=1
 LISTEN_FDS=1
 LISTEN_FDNAMES=listen_fdnames" | sort)
-       echo "<$out>"
-       echo "<$std>"
-       is "$out" "$std" "LISTEN Environment passed: $context"
+        echo "<$out>"
+        echo "<$std>"
+        is "$out" "$std" "LISTEN Environment passed: $context"
     fi
 }
 
@@ -358,12 +358,12 @@ LISTEN_FDNAMES=listen_fdnames" | sort)
 
 @test "podman create --health-on-failure=kill" {
     cname=c-$(safename)
-    run_podman create --name $cname                  \
-               --health-cmd /home/podman/healthcheck \
-               --health-on-failure=kill              \
-               --health-retries=1                    \
-               --restart=on-failure                  \
-               $IMAGE /home/podman/pause
+    run_podman create --name $cname \
+        --health-cmd /home/podman/healthcheck \
+        --health-on-failure=kill \
+        --health-retries=1 \
+        --restart=on-failure \
+        $IMAGE /home/podman/pause
 
     # run container in systemd unit
     service_setup

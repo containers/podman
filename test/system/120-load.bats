@@ -37,18 +37,18 @@ verify_iid_and_name() {
     read new_iid new_img_name < <(echo "$output")
 
     # Verify
-    is "$new_iid"      "$iid" "Image ID of loaded image == original"
-    is "$new_img_name" "$1"   "Name & tag of restored image"
+    is "$new_iid" "$iid" "Image ID of loaded image == original"
+    is "$new_img_name" "$1" "Name & tag of restored image"
 }
 
 @test "podman load invalid file" {
     # Regression test for #9672 to make sure invalid input yields errors.
     invalid=$PODMAN_TMPDIR/invalid
-    echo "I am an invalid file and should cause a podman-load error" > $invalid
+    echo "I am an invalid file and should cause a podman-load error" >$invalid
     run_podman 125 load -i $invalid
     # podman and podman-remote emit different messages; this is a common string
     is "$output" ".*payload does not match any of the supported image formats:.*" \
-       "load -i INVALID fails with expected diagnostic"
+        "load -i INVALID fails with expected diagnostic"
 }
 
 @test "podman save to pipe and load" {
@@ -91,7 +91,10 @@ verify_iid_and_name() {
 
     # FIXME: Broken on debian SID; still broken 2024-09-11
     # See https://github.com/containers/podman/pull/23020#issuecomment-2179284640
-    OS_RELEASE_ID="${OS_RELEASE_ID:-$(source /etc/os-release; echo $ID)}"
+    OS_RELEASE_ID="${OS_RELEASE_ID:-$(
+        source /etc/os-release
+        echo $ID
+    )}"
     if [[ "$OS_RELEASE_ID" == "debian" ]]; then
         skip "broken warning about cgroup-manager=systemd and enabling linger"
     fi
@@ -175,7 +178,6 @@ verify_iid_and_name() {
     run_podman rmi foobar:123
 }
 
-
 @test "podman load - by image ID" {
     # FIXME: how to build a simple archive instead?
     get_iid_and_name
@@ -190,12 +192,12 @@ verify_iid_and_name() {
 
     # Same as above, using stdin
     run_podman rmi $iid
-    run_podman load < $archive
+    run_podman load <$archive
     verify_iid_and_name "<none>:<none>"
 
     # Same as above, using stdin but with `podman image load`
     run_podman rmi $iid
-    run_podman image load < $archive
+    run_podman image load <$archive
     verify_iid_and_name "<none>:<none>"
 }
 
@@ -215,7 +217,7 @@ verify_iid_and_name() {
     run_podman rmi $iid
 
     # Same as above, using stdin
-    run_podman load < $archive
+    run_podman load <$archive
     verify_iid_and_name $img_name
 }
 
@@ -229,9 +231,9 @@ verify_iid_and_name() {
 
     # Bind-mount the archive to a container running httpd
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
-            -v $archive:/var/www/image.tar:Z \
-            -w /var/www \
-            $IMAGE /bin/busybox-extras httpd -f -p 80
+        -v $archive:/var/www/image.tar:Z \
+        -w /var/www \
+        $IMAGE /bin/busybox-extras httpd -f -p 80
 
     run_podman load -i $SERVER/image.tar
     verify_iid_and_name $img_name
@@ -240,7 +242,7 @@ verify_iid_and_name() {
 }
 
 @test "podman load - redirect corrupt payload" {
-    run_podman 125 load <<< "Danger, Will Robinson!! This is a corrupt tarball!"
+    run_podman 125 load <<<"Danger, Will Robinson!! This is a corrupt tarball!"
     is "$output" \
         ".*payload does not match any of the supported image formats:.*" \
         "Diagnostic from 'podman load' unknown/corrupt payload"

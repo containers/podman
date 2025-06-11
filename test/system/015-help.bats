@@ -24,7 +24,7 @@ function check_help() {
         fi
         # Human-readable podman command string, with multiple spaces collapsed
         command_string="podman $* $cmd"
-        command_string=${command_string//  / }  # 'podman  x' -> 'podman x'
+        command_string=${command_string//  / } # 'podman  x' -> 'podman x'
 
         dprint "$command_string --help"
         run_podman "$@" $cmd --help
@@ -54,11 +54,11 @@ function check_help() {
 
         # We had someone write upper-case '[OPTIONS]' once. Prevent it.
         assert "$usage" !~ '\[OPTION' \
-               "'options' string must be lower-case in usage"
+            "'options' string must be lower-case in usage"
 
         # We had someone do 'podman foo ARG [options]' one time. Yeah, no.
         assert "$usage" !~ '[A-Z].*\[option' \
-               "'options' must precede arguments in usage"
+            "'options' must precede arguments in usage"
 
         # Strip off '[options]' but remember if we've seen it.
         local has_options=
@@ -70,11 +70,11 @@ function check_help() {
         # From this point on, remaining argument descriptions must be UPPER CASE
         # e.g., 'podman cmd [options] arg' or 'podman cmd [arg]' are invalid.
         assert "$usage" !~ '[a-z]' \
-               "$command_string: argument names must be UPPER CASE"
+            "$command_string: argument names must be UPPER CASE"
 
         # It makes no sense to have an optional arg followed by a mandatory one
         assert "$usage" !~ '\[.*\] [A-Z]' \
-               "$command_string: optional args must be _after_ required ones"
+            "$command_string: optional args must be _after_ required ones"
 
         # Cross-check: if usage includes '[options]', there must be a
         # longer 'Options:' section in the full --help output; vice-versa,
@@ -94,9 +94,9 @@ function check_help() {
                 dprint "$command_string invalid-arg"
                 run_podman '?' "$@" $cmd invalid-arg
                 is "$status" 125 \
-                   "'$usage' indicates that the command takes no arguments. I invoked it with 'invalid-arg' and expected an error status"
+                    "'$usage' indicates that the command takes no arguments. I invoked it with 'invalid-arg' and expected an error status"
                 is "$output" "Error: .* takes no arguments" \
-                   "'$usage' indicates that the command takes no arguments. I invoked it with 'invalid-arg' and expected the following error message"
+                    "'$usage' indicates that the command takes no arguments. I invoked it with 'invalid-arg' and expected the following error message"
             fi
             found[takes_no_args]=1
         fi
@@ -104,20 +104,20 @@ function check_help() {
         # If command lists "-l, --latest" in help output, combine -l with arg.
         # This should be disallowed with a clear message.
         if expr "$full_help" : ".*-l, --latest" >/dev/null; then
-            local nope="exec list port ps top"   # these can't be tested
+            local nope="exec list port ps top" # these can't be tested
             if is_rootless; then
-                nope="$nope mount restore"       # these don't work rootless
+                nope="$nope mount restore" # these don't work rootless
             fi
             if ! grep -wq "$cmd" <<<$nope; then
                 run_podman 125 "$@" $cmd -l nonexistent-container
                 is "$output" "Error: .*--latest and \(containers\|pods\|arguments\) cannot be used together" \
-                   "'$command_string' with both -l and container"
+                    "'$command_string' with both -l and container"
 
                 # Combine -l and -a, too (but spell it as --all, because "-a"
                 # means "attach" in podman container start)
                 run_podman 125 "$@" $cmd --all --latest
                 is "$output" "Error: \(--all and --latest cannot be used together\|--all, --latest and containers cannot be used together\|--all, --latest and arguments cannot be used together\|unknown flag\)" \
-                   "'$command_string' with both --all and --latest"
+                    "'$command_string' with both --all and --latest"
             fi
         fi
 
@@ -140,9 +140,9 @@ function check_help() {
             dprint "$command_string (without required args)"
             run_podman '?' "$@" $cmd </dev/null
             is "$status" 125 \
-               "'$usage' indicates at least one required arg. I invoked it with no args and expected an error exit code"
+                "'$usage' indicates at least one required arg. I invoked it with no args and expected an error exit code"
             is "$output" "Error:.* \(require\|specif\|must\|provide\|need\|choose\|accepts\)" \
-               "'$usage' indicates at least one required arg. I invoked it with no args and expected one of these error messages"
+                "'$usage' indicates at least one required arg. I invoked it with no args and expected one of these error messages"
 
             found[required_args]=1
         fi
@@ -155,9 +155,9 @@ function check_help() {
 
             run_podman '?' "$@" $cmd $(seq --format='x%g' 0 $n_args)
             is "$status" 125 \
-               "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected this exit status"
+                "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected this exit status"
             is "$output" "Error:.* \(takes no arguments\|requires exactly $n_args arg\|accepts at most\|too many arguments\|accepts $n_args arg(s), received\|accepts between .* and .* arg(s), received \)" \
-               "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected one of these error messages"
+                "'$usage' indicates a maximum of $n_args args. I invoked it with more, and expected one of these error messages"
 
             found[fixed_args]=1
         fi
@@ -171,30 +171,29 @@ function check_help() {
     run_podman '?' "$@"
     is "$status" 125 "'podman $*' without any subcommand - exit status"
     is "$output" ".*Usage:.*Error: missing command '.*$* COMMAND'" \
-       "'podman $*' without any subcommand - expected error message"
+        "'podman $*' without any subcommand - expected error message"
 
     # Assume that 'NoSuchCommand' is not a command
     dprint "podman $* NoSuchCommand"
     run_podman '?' "$@" NoSuchCommand
     is "$status" 125 "'podman $* NoSuchCommand' - exit status"
     is "$output" "Error: unrecognized command .*$* NoSuchCommand" \
-       "'podman $* NoSuchCommand' - expected error message"
+        "'podman $* NoSuchCommand' - expected error message"
 
     # This can happen if the output of --help changes, such as between
     # the old command parser and cobra.
     assert "$count" -gt 0 \
-           "Internal error: no commands found in 'podman help $*' list"
+        "Internal error: no commands found in 'podman help $*' list"
 
     # Sanity check: make sure the special loops above triggered at least once.
     # (We've had situations where a typo makes the conditional never run)
     if [ -z "$*" ]; then
         for i in subcommands required_args takes_no_args fixed_args; do
             assert "${found[$i]}" != "" \
-                   "Internal error: '$i' subtest did not trigger"
+                "Internal error: '$i' subtest did not trigger"
         done
     fi
 }
-
 
 # bats test_tags=ci:parallel
 @test "podman help - basic tests" {
@@ -208,7 +207,7 @@ function check_help() {
     for helpopt in help --help -h; do
         run_podman $helpopt
         is "${lines[0]}" "Manage pods, containers and images" \
-           "podman $helpopt: first line of output"
+            "podman $helpopt: first line of output"
     done
 
 }

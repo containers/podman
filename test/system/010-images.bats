@@ -89,7 +89,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     run_podman rmi $rand_name2
     run_podman images $iname --format '{{ .History }}'
     is "$output" "localhost/$iname:latest, localhost/${rand_name2}:latest, localhost/${rand_name1}:latest" \
-       "image history after two tags"
+        "image history after two tags"
 
     run_podman rmi $iname
     run_podman rm $cname
@@ -112,7 +112,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
     cname=c_$(safename)
     iname=i_$(safename)
     run_podman run --name $cname $IMAGE true
-    run_podman commit -q  $cname $iname
+    run_podman commit -q $cname $iname
     new_iid=$output
 
     # (refactor common options for legibility)
@@ -133,7 +133,7 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
 
     # Clean up
     run_podman rmi $iname
-    run_podman rm  $cname
+    run_podman rm $cname
 }
 
 # Regression test for https://github.com/containers/podman/issues/7651
@@ -215,8 +215,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
         local tag=$3
 
         is "${lines[$lineno]}" \
-           "$(printf '%-*s  %-*s  %s' ${#zzz_name} ${name} ${#zzz_tag} ${tag} $iid)" \
-           "podman images, $testname, line $lineno"
+            "$(printf '%-*s  %-*s  %s' ${#zzz_name} ${name} ${#zzz_tag} ${tag} $iid)" \
+            "podman images, $testname, line $lineno"
     }
 
     function _run_format_test() {
@@ -232,8 +232,8 @@ Labels.created_at | 20[0-9-]\\\+T[0-9:]\\\+Z
         fi
 
         _check_line $line_no ${aaa_name} ${aaa_tag}
-        _check_line $((line_no+1)) "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
-        _check_line $((line_no+2)) ${zzz_name} ${zzz_tag}
+        _check_line $((line_no + 1)) "${PODMAN_TEST_IMAGE_REGISTRY}/${PODMAN_TEST_IMAGE_USER}/${PODMAN_TEST_IMAGE_NAME}" "${PODMAN_TEST_IMAGE_TAG}"
+        _check_line $((line_no + 2)) ${zzz_name} ${zzz_tag}
     }
 
     # Begin the test: tag $IMAGE with both the given names
@@ -290,7 +290,7 @@ Deleted: $imageID" "image gets removed"
     # entrypoint to confirm that --infra-command will override.
     local pauseImage="infra_image_$(safename)"
     # --layers=false needed to work around buildah#5674 parallel flake
-    run_podman build -t $pauseImage --layers=false - << EOF
+    run_podman build -t $pauseImage --layers=false - <<EOF
 FROM $IMAGE
 ENTRYPOINT ["/home/podman/pause"]
 EOF
@@ -356,13 +356,13 @@ Deleted: $pauseID"
     run_podman commit $cname --format docker -m comment ${iname}_2
     if ! is_remote; then
         assert "$output" =~ "Getting image.*Writing manif" \
-               "Without -q, verbose output"
+            "Without -q, verbose output"
     fi
 
     # With -q, both local and remote: only an image ID
     run_podman commit -q $cname --format docker -m comment ${iname}_3
     assert "$output" =~ "^[0-9a-f]{64}\$" \
-           "With -q, output is a commit ID, no warnings or other output"
+        "With -q, output is a commit ID, no warnings or other output"
 
     run_podman rmi ${iname}_2 ${iname}_3
     run_podman rm $cname --force -t 0
@@ -387,13 +387,13 @@ EOF
 
     # If composefs (root only) is enabled, we must mirror that setting in our conf
     if grep -q 'BEGIN CI-enabled composefs' /etc/containers/storage.conf; then
-        sed -ne '/BEGIN CI-enabled composefs/,/END CI-enabled composefs/p' /etc/containers/storage.conf \
-            | grep -vF '[storage.options]' >>$sconf
+        sed -ne '/BEGIN CI-enabled composefs/,/END CI-enabled composefs/p' /etc/containers/storage.conf |
+            grep -vF '[storage.options]' >>$sconf
     fi
 
     _prefetch $IMAGE
     skopeo copy containers-storage:$IMAGE \
-           containers-storage:\[${storagedriver}@${imstore}/root+${imstore}/runroot\]$IMAGE
+        containers-storage:\[${storagedriver}@${imstore}/root+${imstore}/runroot\]$IMAGE
 
     # IMPORTANT! Use -2/-1 indices, not 0/1, because $SYSTEMD_IMAGE may be
     # present in store, and if it is it will precede $IMAGE.
@@ -434,7 +434,7 @@ EOF
     # that listing all images does not fail (see BZ 2216700).
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
-                $PODMAN rmi img-$i-$(safename) &
+            $PODMAN rmi img-$i-$(safename) &
     done
 
     tries=100
@@ -449,6 +449,5 @@ EOF
 
     wait
 }
-
 
 # vim: filetype=sh

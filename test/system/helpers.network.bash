@@ -53,24 +53,24 @@ function ipv6_to_procfs() {
 
     # Add leading zero if missing
     case ${addr} in
-        "::"*) addr=0"${addr}" ;;
+    "::"*) addr=0"${addr}" ;;
     esac
 
     # Double colon can mean any number of all-zero fields. Expand to fill
     # as many colons as are missing. (This will not be a valid IPv6 form,
     # but we don't need it for long). E.g., 0::1 -> 0:::::::1
     case ${addr} in
-        *"::"*)
-            # All the colons in the address
-            local colons
-            colons=$(tr -dc : <<<$addr)
-            # subtract those from a string of eight colons; this gives us
-            # a string of two to six colons...
-            local pad
-            pad=$(sed -e "s/$colons//" <<<":::::::")
-            # ...which we then inject in place of the double colon.
-            addr=$(sed -e "s/::/::$pad/" <<<$addr)
-            ;;
+    *"::"*)
+        # All the colons in the address
+        local colons
+        colons=$(tr -dc : <<<$addr)
+        # subtract those from a string of eight colons; this gives us
+        # a string of two to six colons...
+        local pad
+        pad=$(sed -e "s/$colons//" <<<":::::::")
+        # ...which we then inject in place of the double colon.
+        addr=$(sed -e "s/::/::$pad/" <<<$addr)
+        ;;
     esac
 
     # Print as a contiguous string of zero-filled 16-bit words
@@ -91,10 +91,9 @@ function __ipv4_to_procfs() {
 # ipv4_to_procfs() - IPv4 address representation to big-endian procfs format
 # $1:	Text representation of IPv4 address
 function ipv4_to_procfs() {
-    IFS='.' read -r o1 o2 o3 o4 <<< $1
+    IFS='.' read -r o1 o2 o3 o4 <<<$1
     __ipv4_to_procfs $o1 $o2 $o3 $o4
 }
-
 
 ### Addresses, Routes, Links ###################################################
 
@@ -123,18 +122,18 @@ function ipv6_get_addr_global() {
 function random_rfc1918_subnet() {
     local retries=1024
 
-    while [ "$retries" -gt 0 ];do
+    while [ "$retries" -gt 0 ]; do
         # 172.16.0.0 -> 172.31.255.255
         local n1=172
-        local n2=$(( 16 + $RANDOM & 15 ))
-        local n3=$(( $RANDOM & 255 ))
+        local n2=$((16 + $RANDOM & 15))
+        local n3=$(($RANDOM & 255))
 
         if ! subnet_in_use $n1 $n2 $n3; then
             echo "$n1.$n2.$n3"
             return
         fi
 
-        retries=$(( retries - 1 ))
+        retries=$((retries - 1))
     done
 
     die "Could not find a random not-in-use rfc1918 subnet"
@@ -247,7 +246,6 @@ function ether_get_name() {
     echo "${1:-$(ip -j link show)}" | jq -rM "${jq_expr}"
 }
 
-
 ### Ports and Ranges ###########################################################
 
 # reserve_port() - create a lock file reserving a port, or return false
@@ -274,11 +272,10 @@ function unreserve_port() {
 
     local lockfile=$PORT_LOCK_DIR/$port
     -e $lockfile || die "Cannot unreserve non-reserved port $port"
-    assert "$(< $lockfile)" = "$BATS_SUITE_TEST_NUMBER" \
-           "Port $port is not reserved by this test"
+    assert "$(<$lockfile)" = "$BATS_SUITE_TEST_NUMBER" \
+        "Port $port is not reserved by this test"
     rm -f $lockfile
 }
-
 
 # random_free_port() - Get unbound port with pseudorandom number
 # $1:	Optional, dash-separated interval, [5000, 5999] by default
@@ -351,14 +348,14 @@ function random_free_port_range() {
 function port_is_bound() {
     local port=${1?Usage: port_is_bound PORT [tcp|udp] [ADDRESS]}
 
-    if   [ "${2}" = "tcp" ] || [ "${2}" = "udp" ]; then
+    if [ "${2}" = "tcp" ] || [ "${2}" = "udp" ]; then
         local address="${3}"
         local proto="${2}"
     elif [ "${3}" = "tcp" ] || [ "${3}" = "udp" ]; then
         local address="${2}"
         local proto="${3}"
     else
-        local address="${2}"	# Might be empty
+        local address="${2}" # Might be empty
         local proto="tcp"
     fi
 
@@ -373,19 +370,19 @@ function port_is_bound() {
     case "${address}" in
     *":"*)
         grep -e "^[^:]*: $(ipv6_to_procfs "${address}"):${port} .*" \
-             -e "^[^:]*: $(ipv6_to_procfs "::0"):${port} .*"        \
-             -q "/proc/net/${proto}6"
+            -e "^[^:]*: $(ipv6_to_procfs "::0"):${port} .*" \
+            -q "/proc/net/${proto}6"
         ;;
     *"."*)
-        grep -e "^[^:]*: $(ipv4_to_procfs "${address}"):${port}"    \
-             -e "^[^:]*: $(ipv4_to_procfs "0.0.0.0"):${port}"       \
-             -e "^[^:]*: $(ipv4_to_procfs "127.0.0.1"):${port}"     \
-             -q "/proc/net/${proto}"
+        grep -e "^[^:]*: $(ipv4_to_procfs "${address}"):${port}" \
+            -e "^[^:]*: $(ipv4_to_procfs "0.0.0.0"):${port}" \
+            -e "^[^:]*: $(ipv4_to_procfs "127.0.0.1"):${port}" \
+            -q "/proc/net/${proto}"
         ;;
     *)
         # No address: check both IPv4 and IPv6, for any bound address
-        grep "^[^:]*: [^:]*:${port} .*" -q "/proc/net/${proto}6" || \
-        grep "^[^:]*: [^:]*:${port} .*" -q "/proc/net/${proto}"
+        grep "^[^:]*: [^:]*:${port} .*" -q "/proc/net/${proto}6" ||
+            grep "^[^:]*: [^:]*:${port} .*" -q "/proc/net/${proto}"
         ;;
     esac
 }
@@ -411,7 +408,7 @@ function wait_for_port() {
     while [ $_timeout -gt 0 ]; do
         port_is_bound ${port} "${host}" && return
         sleep 1
-        _timeout=$(( $_timeout - 1 ))
+        _timeout=$(($_timeout - 1))
     done
 
     die "Timed out waiting for $host:$port"

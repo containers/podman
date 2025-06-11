@@ -1,5 +1,3 @@
-
-
 # Library of common, shared utility functions.  This file is intended
 # to be sourced by other scripts, not called directly.
 
@@ -13,7 +11,7 @@ set -a
 USER="$(whoami)"
 HOME="$(getent passwd $USER | cut -d : -f 6)"
 # Some platforms set and make this read-only
-[[ -n "$UID" ]] || \
+[[ -n "$UID" ]] ||
     UID=$(getent passwd $USER | cut -d : -f 3)
 
 # Automation library installed at image-build time,
@@ -23,14 +21,14 @@ if [[ -r "/etc/automation_environment" ]]; then
 fi
 # shellcheck disable=SC2154
 if [[ -n "$AUTOMATION_LIB_PATH" ]]; then
-        # shellcheck source=/usr/share/automation/lib/common_lib.sh
-        source $AUTOMATION_LIB_PATH/common_lib.sh
+    # shellcheck source=/usr/share/automation/lib/common_lib.sh
+    source $AUTOMATION_LIB_PATH/common_lib.sh
 else
     (
-    echo "WARNING: It does not appear that containers/automation was installed."
-    echo "         Functionality of most of this library will be negatively impacted"
-    echo "         This ${BASH_SOURCE[0]} was loaded by ${BASH_SOURCE[1]}"
-    ) > /dev/stderr
+        echo "WARNING: It does not appear that containers/automation was installed."
+        echo "         Functionality of most of this library will be negatively impacted"
+        echo "         This ${BASH_SOURCE[0]} was loaded by ${BASH_SOURCE[1]}"
+    ) >/dev/stderr
 fi
 
 # Managed by setup_environment.sh; holds task-specific definitions.
@@ -54,15 +52,13 @@ fi
 msg "DEST_BRANCH is $DEST_BRANCH"
 export DEST_BRANCH
 
-
 # This is normally set from .cirrus.yml but default is necessary when
 # running under hack/get_ci_vm.sh since it cannot infer the value.
 DISTRO_NV="${DISTRO_NV:-$OS_REL_VER}"
 
 # Essential default paths, many are overridden when executing under Cirrus-CI
 GOPATH="${GOPATH:-/var/tmp/go}"
-if type -P go &> /dev/null
-then
+if type -P go &>/dev/null; then
     # Cirrus-CI caches $GOPATH contents
     export GOCACHE="${GOCACHE:-$GOPATH/cache/go-build}"
     # called processes like `make` and other tools need these vars.
@@ -131,8 +127,8 @@ PERL_UNICODE=A
 # END Global export of all variables
 set +a
 
-lilto() { err_retry 8 1000 "" "$@"; }  # just over 4 minutes max
-bigto() { err_retry 7 5670 "" "$@"; }  # 12 minutes max
+lilto() { err_retry 8 1000 "" "$@"; } # just over 4 minutes max
+bigto() { err_retry 7 5670 "" "$@"; } # 12 minutes max
 
 setup_rootless() {
     req_env_vars GOPATH GOSRC SECRET_ENV_RE
@@ -148,13 +144,12 @@ setup_rootless() {
 
     # Only do this once; established by setup_environment.sh
     # shellcheck disable=SC2154
-    if passwd --status $ROOTLESS_USER
-    then
+    if passwd --status $ROOTLESS_USER; then
         # Farm tests utilize the rootless user to simulate a "remote" podman instance.
-    # Root still needs to own the repo. clone and all things under `$GOPATH`.  The
-    # opposite is true for the lower-level podman e2e tests, the rootless user
-    # runs them, and therefore needs permissions.
-        if [[ $PRIV_NAME = "rootless" ]] && [[ "$TEST_FLAVOR" != "farm"  ]]; then
+        # Root still needs to own the repo. clone and all things under `$GOPATH`.  The
+        # opposite is true for the lower-level podman e2e tests, the rootless user
+        # runs them, and therefore needs permissions.
+        if [[ $PRIV_NAME = "rootless" ]] && [[ "$TEST_FLAVOR" != "farm" ]]; then
             msg "Updating $ROOTLESS_USER user permissions on possibly changed libpod code"
             chown -R $ROOTLESS_USER:$ROOTLESS_USER "$GOPATH" "$GOSRC"
             return 0
@@ -175,19 +170,19 @@ setup_rootless() {
     # use tmpfs to speed up IO
     mount -t tmpfs -o size=75%,mode=0700,uid=$rootless_uid,gid=$rootless_gid none /home/$ROOTLESS_USER
 
-    echo "$ROOTLESS_USER ALL=(root) NOPASSWD: ALL" > /etc/sudoers.d/ci-rootless
+    echo "$ROOTLESS_USER ALL=(root) NOPASSWD: ALL" >/etc/sudoers.d/ci-rootless
 
     mkdir -p "$HOME/.ssh" "/home/$ROOTLESS_USER/.ssh"
 
     msg "Creating ssh key pairs"
-    [[ -r "$HOME/.ssh/id_rsa" ]] || \
+    [[ -r "$HOME/.ssh/id_rsa" ]] ||
         ssh-keygen -t rsa -P "" -f "$HOME/.ssh/id_rsa"
     showrun ssh-keygen -t ed25519 -P "" -f "/home/$ROOTLESS_USER/.ssh/id_ed25519"
     showrun ssh-keygen -t rsa -P "" -f "/home/$ROOTLESS_USER/.ssh/id_rsa"
 
     msg "Set up authorized_keys"
-    cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> $HOME/.ssh/authorized_keys
-    cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >> /home/$ROOTLESS_USER/.ssh/authorized_keys
+    cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >>$HOME/.ssh/authorized_keys
+    cat $HOME/.ssh/*.pub /home/$ROOTLESS_USER/.ssh/*.pub >>/home/$ROOTLESS_USER/.ssh/authorized_keys
 
     msg "Configure ssh file permissions"
     chmod -R 700 "$HOME/.ssh"
@@ -199,7 +194,7 @@ setup_rootless() {
     # If there are, it's either a security problem or a broken test, both of which
     # we want to lead to test failures.
     msg "   set up known_hosts for $USER"
-    ssh-keyscan localhost > /root/.ssh/known_hosts
+    ssh-keyscan localhost >/root/.ssh/known_hosts
     msg "   set up known_hosts for $ROOTLESS_USER"
     # Maintain access-permission consistency with all other .ssh files.
     install -Z -m 700 -o $ROOTLESS_USER -g $ROOTLESS_USER \
@@ -208,8 +203,8 @@ setup_rootless() {
     if [[ -n "$ROOTLESS_USER" ]]; then
         showrun echo "conditional setup for ROOTLESS_USER [=$ROOTLESS_USER]"
         # Make all future CI scripts aware of these values
-        echo "ROOTLESS_USER=$ROOTLESS_USER" >> /etc/ci_environment
-        echo "ROOTLESS_UID=$ROOTLESS_UID" >> /etc/ci_environment
+        echo "ROOTLESS_USER=$ROOTLESS_USER" >>/etc/ci_environment
+        echo "ROOTLESS_UID=$ROOTLESS_UID" >>/etc/ci_environment
     fi
 }
 
@@ -241,12 +236,9 @@ remove_packaged_podman_files() {
     req_env_vars OS_RELEASE_ID
 
     # If any binaries are resident they could cause unexpected pollution
-    for unit in podman.socket podman-auto-update.timer
-    do
-        for state in enabled active
-        do
-            if systemctl --quiet is-$state $unit
-            then
+    for unit in podman.socket podman-auto-update.timer; do
+        for state in enabled active; do
+            if systemctl --quiet is-$state $unit; then
                 echo "Warning: $unit found $state prior to packaged-file removal"
                 showrun systemctl --quiet disable $unit || true
                 showrun systemctl --quiet stop $unit || true
@@ -256,8 +248,7 @@ remove_packaged_podman_files() {
 
     # OS_RELEASE_ID is defined by automation-library
     # shellcheck disable=SC2154
-    if [[ "$OS_RELEASE_ID" =~ "debian" ]]
-    then
+    if [[ "$OS_RELEASE_ID" =~ "debian" ]]; then
         LISTING_CMD="dpkg-query -L podman"
     else
         LISTING_CMD="rpm -ql podman"
@@ -265,18 +256,17 @@ remove_packaged_podman_files() {
 
     # delete the podman socket in case it has been created previously.
     # Do so without running podman, lest that invocation initialize unwanted state.
-    rm -f /run/podman/podman.sock  /run/user/$(id -u)/podman/podman.sock || true
+    rm -f /run/podman/podman.sock /run/user/$(id -u)/podman/podman.sock || true
 
     # yum/dnf/dpkg may list system directories, only remove files
-    $LISTING_CMD | while read fullpath
-    do
+    $LISTING_CMD | while read fullpath; do
         # Sub-directories may contain unrelated/valuable stuff
         if [[ -d "$fullpath" ]]; then continue; fi
         showrun ooe.sh rm -vf "$fullpath"
     done
 
     # Be super extra sure and careful vs performant and completely safe
-    sync && echo 3 > /proc/sys/vm/drop_caches || true
+    sync && echo 3 >/proc/sys/vm/drop_caches || true
 }
 
 showrun echo "finished"

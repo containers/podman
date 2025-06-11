@@ -12,8 +12,8 @@ set -eo pipefail
 source $(dirname $0)/lib.sh
 
 check_msg() {
-    msg "#####"  # Cirrus-CI logs automatically squash empty lines
-    msg "##### $1"  # Complains if $1 is empty
+    msg "#####"    # Cirrus-CI logs automatically squash empty lines
+    msg "##### $1" # Complains if $1 is empty
 }
 
 # First arg is check description, second is regex to search $diffs for.
@@ -23,10 +23,10 @@ check_diffs() {
     regex="$2"
     check_msg "Confirming changes have no $check"
     req_env_vars check regex diffs
-    if grep -E -q "$regex"<<<"$diffs"; then
+    if grep -E -q "$regex" <<<"$diffs"; then
         # Show 5 context lines before/after as compromise for script simplicity
         die "Found $check:
-$(grep -E -B 5 -A 5 "$regex"<<<"$diffs")"
+$(grep -E -B 5 -A 5 "$regex" <<<"$diffs")"
     fi
 }
 

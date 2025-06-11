@@ -33,7 +33,7 @@ function setup() {
 
     basic_setup
 
-    cat > $SERVICE_FILE <<EOF
+    cat >$SERVICE_FILE <<EOF
 [Unit]
 Description=Podman API Service
 Requires=$SERVICE_NAME.socket
@@ -47,7 +47,7 @@ KillMode=process
 Environment=LOGGING="--log-level=info"
 ExecStart=$PODMAN $LOGGING system service -t 2
 EOF
-    cat > $SOCKET_FILE <<EOF
+    cat >$SOCKET_FILE <<EOF
 [Unit]
 Description=Podman API Socket
 Documentation=man:podman-system-service(1)
@@ -64,7 +64,7 @@ EOF
     if is_rootless; then
         local pause_pid_file="$XDG_RUNTIME_DIR/libpod/tmp/pause.pid"
         if [ -f $pause_pid_file ]; then
-            kill -9 $(< $pause_pid_file) 2> /dev/null
+            kill -9 $(<$pause_pid_file) 2>/dev/null
             rm -f $pause_pid_file
         fi
     fi
@@ -110,8 +110,8 @@ function teardown() {
         die "Pause pid file does not exist: $pause_pid_file"
     fi
 
-    echo "kill -9 $(< $pause_pid_file) [pause process]"
-    kill -9 $(< $pause_pid_file)
+    echo "kill -9 $(<$pause_pid_file) [pause process]"
+    kill -9 $(<$pause_pid_file)
 
     run curl -s --max-time 3 --unix-socket $SERVICE_SOCK_ADDR $_PING
     echo "curl output: $output"

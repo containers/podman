@@ -23,20 +23,27 @@ Flags:
 "
 
 verbose=
-for i
-do
+for i; do
     value=$(expr "$i" : '[^=]*=\(.*\)')
     case "$i" in
-    -h*|--help)	echo "$usage"; exit 0;;
-    -v|--verbose)	verbose=$i; shift;;
-    -*)	echo "$ME: unrecognized option $i" >&2
-	echo "$usage" >&2
-	exit 1;;
-    *)	break;;
+    -h* | --help)
+        echo "$usage"
+        exit 0
+        ;;
+    -v | --verbose)
+        verbose=$i
+        shift
+        ;;
+    -*)
+        echo "$ME: unrecognized option $i" >&2
+        echo "$usage" >&2
+        exit 1
+        ;;
+    *) break ;;
     esac
 done
 
-die () {
+die() {
     echo "$ME: $*" >&2
     exit 1
 }
@@ -57,8 +64,8 @@ function branch_dance() {
         echo -n "Continue? [y/N] "
         read answer
         case "$answer" in
-            [yY]*) ;;
-            *) exit 1;;
+        [yY]*) ;;
+        *) exit 1 ;;
         esac
     fi
 
@@ -87,15 +94,12 @@ function branch_dance() {
     git branch -d $tracking_branch
 }
 
-
-
-
 # Make sure we're cd'ed to the top level of a podman repo
 test -d .git || die "No .git subdirectory (please cd to top level)"
 
 # Clear all dependabot remote branches
-git branch -r | grep /dependabot/go_modules/ \
-    | xargs --no-run-if-empty git branch -r -d
+git branch -r | grep /dependabot/go_modules/ |
+    xargs --no-run-if-empty git branch -r -d
 
 # ...and pull new ones
 git pull --all

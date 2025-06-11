@@ -29,10 +29,10 @@ function teardown() {
 
     # Aaaaargh! When running as root, 'system service' creates a tmpfs
     # mount on $root/overlay. This in turn causes cleanup to fail.
-    mount \
-        | grep $PODMAN_TMPDIR \
-        | awk '{print $3}' \
-        | xargs -l1 --no-run-if-empty umount
+    mount |
+        grep $PODMAN_TMPDIR |
+        awk '{print $3}' |
+        xargs -l1 --no-run-if-empty umount
 
     # Remove all system connections
     run_podman system connection rm --all
@@ -52,7 +52,7 @@ function _run_podman_remote() {
 @test "podman system connection - basic add / ls / remove" {
     run_podman system connection ls
     is "$output" "Name        URI         Identity    Default     ReadWrite" \
-       "system connection ls: no connections"
+        "system connection ls: no connections"
 
     c1="c1_$(random_string 15)"
     c2="c2_$(random_string 15)"
@@ -61,29 +61,29 @@ function _run_podman_remote() {
     run_podman context create --docker "host=tcp://localhost:54321" $c2
     run_podman system connection ls
     is "$output" \
-       ".*$c1[ ]\+tcp://localhost:12345[ ]\+true[ ]\+true
+        ".*$c1[ ]\+tcp://localhost:12345[ ]\+true[ ]\+true
 $c2[ ]\+tcp://localhost:54321[ ]\+false[ ]\+true" \
-       "system connection ls"
+        "system connection ls"
     run_podman system connection ls -q
     is "$(echo $(sort <<<$output))" \
-       "$c1 $c2" \
-       "system connection ls -q should show two names"
+        "$c1 $c2" \
+        "system connection ls -q should show two names"
     run_podman context ls -q
     is "$(echo $(sort <<<$output))" \
-       "$c1 $c2" \
-       "context ls -q should show two names"
+        "$c1 $c2" \
+        "context ls -q should show two names"
     run_podman context use $c2
     run_podman system connection ls
     is "$output" \
-       ".*$c1[ ]\+tcp://localhost:12345[ ]\+false[ ]\+true
+        ".*$c1[ ]\+tcp://localhost:12345[ ]\+false[ ]\+true
 $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
-       "system connection ls"
+        "system connection ls"
 
     # Remove default connection; the remaining one should still not be default
     run_podman system connection rm $c2
     run_podman context ls
     is "$output" ".*$c1[ ]\+tcp://localhost:12345[ ]\+false[ ]\+true" \
-       "system connection ls (after removing default connection)"
+        "system connection ls (after removing default connection)"
 
     run_podman context rm $c1
 }
@@ -102,14 +102,14 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     # when invoking podman.
     _run_podman_remote 125 info
     is "$output" \
-       "OS: .*provider:.*Cannot connect to Podman. Please verify.*dial tcp.*connection refused" \
-       "podman info, without active service"
+        "OS: .*provider:.*Cannot connect to Podman. Please verify.*dial tcp.*connection refused" \
+        "podman info, without active service"
 
     # Start service. Now podman info should work fine. The %%-remote*
     # converts "podman-remote --opts" to just "podman", which is what
     # we need for the server.
     ${PODMAN%%-remote*} $(podman_isolation_opts ${PODMAN_TMPDIR}) \
-                        system service -t 99 tcp://localhost:$_SERVICE_PORT &
+        system service -t 99 tcp://localhost:$_SERVICE_PORT &
     _SERVICE_PID=$!
     # Wait for the port and the podman-service to be ready.
     wait_for_port 127.0.0.1 $_SERVICE_PORT
@@ -123,14 +123,14 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
         let timeout=$timeout-1
     done
     is "$output" "tcp://localhost:$_SERVICE_PORT" \
-       "podman info works, and talks to the correct server"
+        "podman info works, and talks to the correct server"
 
     _run_podman_remote info --format '{{.Store.GraphRoot}}'
     is "$output" "${PODMAN_TMPDIR}/root" \
-       "podman info, talks to the right service"
+        "podman info, talks to the right service"
 
     # Add another connection; make sure it does not get set as default
-    _run_podman_remote system connection add fakeconnect tcp://localhost:$(( _SERVICE_PORT + 1))
+    _run_podman_remote system connection add fakeconnect tcp://localhost:$((_SERVICE_PORT + 1))
     _run_podman_remote info --format '{{.Store.GraphRoot}}'
     # (Don't bother checking output; we just care about exit status)
 
@@ -147,7 +147,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
 @test "podman system connection - ssh" {
     # system connection only really works if we have an agent
     run ssh-add -l
-    test "$status"      -eq 0 || skip "Not running under ssh-agent"
+    test "$status" -eq 0 || skip "Not running under ssh-agent"
     test "${#lines[@]}" -ge 1 || skip "ssh agent has no identities"
 
     # Can we actually ssh to localhost?
@@ -168,7 +168,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     run_podman info --format '{{.Host.RemoteSocket.Path}}'
     local socketpath="$output"
     run_podman system connection add --socket-path "$socketpath" \
-               mysshcon ssh://localhost
+        mysshcon ssh://localhost
     is "$output" "" "output from system connection add"
 
     # debug logs will confirm that we use ssh connection
@@ -258,8 +258,8 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     else
         # Nonstandard socket
         _run_podman_remote 125 --remote ps
-        assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
-               "test absence of default connection"
+        assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock" \
+            "test absence of default connection"
     fi
 }
 

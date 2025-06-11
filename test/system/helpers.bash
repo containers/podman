@@ -66,13 +66,13 @@ export PODMAN_IMAGECACHE=${BATS_TMPDIR:-/tmp}/podman-systest-imagecache-$(id -u)
 mkdir -p ${PODMAN_IMAGECACHE}
 
 function _prefetch() {
-     local want=$1
+    local want=$1
 
-     # Do we already have it in image store?
-     run_podman '?' image exists "$want"
-     if [[ $status -eq 0 ]]; then
-         return
-     fi
+    # Do we already have it in image store?
+    run_podman '?' image exists "$want"
+    if [[ $status -eq 0 ]]; then
+        return
+    fi
 
     # No image. Do we have it already cached? (Replace / and : with --)
     local cachename=$(sed -e 's;[/:];--;g' <<<"$want")
@@ -255,7 +255,6 @@ function basic_teardown() {
     return $exit_code
 }
 
-
 # Provide the above as default methods.
 function setup() {
     basic_setup
@@ -264,7 +263,6 @@ function setup() {
 function teardown() {
     basic_teardown
 }
-
 
 # Helpers useful for tests running rmi
 function archive_image() {
@@ -374,7 +372,7 @@ function leak_check() {
 function clean_setup() {
     local actions=(
         "pod rm -t 0 --all --force --ignore"
-            "rm -t 0 --all --force --ignore"
+        "rm -t 0 --all --force --ignore"
         "network prune --force"
         "volume rm -a -f"
     )
@@ -491,11 +489,26 @@ function run_podman() {
     local expected_rc=0
     local allowed_levels="dit"
     case "$1" in
-        0\+[we]*)        allowed_levels+=$(expr "$1" : "^0+\([we]\+\)"); shift;;
-        [0-9])           expected_rc=$1; shift;;
-        [1-9][0-9])      expected_rc=$1; shift;;
-        [12][0-9][0-9])  expected_rc=$1; shift;;
-        '?')             expected_rc=  ; shift;;  # ignore exit code
+    0\+[we]*)
+        allowed_levels+=$(expr "$1" : "^0+\([we]\+\)")
+        shift
+        ;;
+    [0-9])
+        expected_rc=$1
+        shift
+        ;;
+    [1-9][0-9])
+        expected_rc=$1
+        shift
+        ;;
+    [12][0-9][0-9])
+        expected_rc=$1
+        shift
+        ;;
+    '?')
+        expected_rc=
+        shift
+        ;; # ignore exit code
     esac
 
     # Remember command args, for possible use in later diagnostic messages
@@ -531,12 +544,12 @@ function run_podman() {
         fi
     fi
     if [ "$status" -ne 0 ]; then
-        echo -n "$(timestamp) [ rc=$status ";
+        echo -n "$(timestamp) [ rc=$status "
         if [ -n "$expected_rc" ]; then
             if [ "$status" -eq "$expected_rc" ]; then
-                echo -n "(expected) ";
+                echo -n "(expected) "
             else
-                echo -n "(** EXPECTED $expected_rc **) ";
+                echo -n "(** EXPECTED $expected_rc **) "
             fi
         fi
         echo "]"
@@ -657,14 +670,14 @@ function wait_for_ready {
 #  wait_for_file  #  Returns once file is available on host
 ###################
 function wait_for_file() {
-    local file=$1                       # The path to the file
-    local _timeout=${2:-5}              # Optional; default 5 seconds
+    local file=$1          # The path to the file
+    local _timeout=${2:-5} # Optional; default 5 seconds
 
     # Wait
     while [ $_timeout -gt 0 ]; do
         test -e $file && return
         sleep 1
-        _timeout=$(( $_timeout - 1 ))
+        _timeout=$(($_timeout - 1))
     done
 
     die "Timed out waiting for $file"
@@ -674,16 +687,16 @@ function wait_for_file() {
 #  wait_for_file_content  #  Like wait_for_output, but with files (not ctrs)
 ###########################
 function wait_for_file_content() {
-    local file=$1                       # The path to the file
-    local content=$2                    # What to expect in the file
-    local _timeout=${3:-5}              # Optional; default 5 seconds
+    local file=$1          # The path to the file
+    local content=$2       # What to expect in the file
+    local _timeout=${3:-5} # Optional; default 5 seconds
 
     while :; do
         grep -q "$content" "$file" && return
 
         test $_timeout -gt 0 || die "Timed out waiting for '$content' in $file"
 
-        _timeout=$(( $_timeout - 1 ))
+        _timeout=$(($_timeout - 1))
         sleep 1
 
         # For debugging. Note that file does not necessarily exist yet.
@@ -734,7 +747,7 @@ function is_aarch64() {
 }
 
 function selinux_enabled() {
-    /usr/sbin/selinuxenabled 2> /dev/null
+    /usr/sbin/selinuxenabled 2>/dev/null
 }
 
 # Returns the OCI runtime *basename* (typically crun or runc). Much as we'd
@@ -751,9 +764,9 @@ function podman_storage_driver() {
     run_podman info --format '{{.Store.GraphDriverName}}' >/dev/null
     # Should there ever be a new driver
     case "$output" in
-        overlay) ;;
-        vfs)     ;;
-        *)       die "Unknown storage driver '$output'; if this is a new driver, please review uses of this function in tests." ;;
+    overlay) ;;
+    vfs) ;;
+    *) die "Unknown storage driver '$output'; if this is a new driver, please review uses of this function in tests." ;;
     esac
     echo "$output"
 }
@@ -766,7 +779,7 @@ function podman_storage_driver() {
 function podman_isolation_opts() {
     local path=${1?podman_isolation_opts: missing PATH arg}
 
-    for opt in root runroot tmpdir;do
+    for opt in root runroot tmpdir; do
         mkdir -p $path/$opt
         echo " --$opt $path/$opt"
     done
@@ -940,8 +953,8 @@ function skip_if_aarch64 {
 #########
 function die() {
     # FIXME: handle multi-line output
-    echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv"  >&2
-    echo "#| FAIL: $*"                                           >&2
+    echo "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv" >&2
+    echo "#| FAIL: $*" >&2
     echo "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^" >&2
     bail-now
 }
@@ -974,14 +987,15 @@ function assert() {
     local testname="$2"
 
     case "${#*}" in
-        0)   die "Internal error: 'assert' requires one or more arguments" ;;
-        1|2) ;;
-        3|4) actual_string="$1"
-             operator="$2"
-             expect_string="$3"
-             testname="$4"
-             ;;
-        *)   die "Internal error: too many arguments to 'assert'" ;;
+    0) die "Internal error: 'assert' requires one or more arguments" ;;
+    1 | 2) ;;
+    3 | 4)
+        actual_string="$1"
+        operator="$2"
+        expect_string="$3"
+        testname="$4"
+        ;;
+    *) die "Internal error: too many arguments to 'assert'" ;;
     esac
 
     # Comparisons.
@@ -1047,18 +1061,18 @@ function assert() {
         actual_split_q+=("$q")
     done
 
-    printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"    >&2
-    printf "#|     FAIL: %s\n" "$testname"                        >&2
-    printf "#| expected: %s%s\n" "$op" "${expect_split_q[0]}"     >&2
+    printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n" >&2
+    printf "#|     FAIL: %s\n" "$testname" >&2
+    printf "#| expected: %s%s\n" "$op" "${expect_split_q[0]}" >&2
     local line
     for line in "${expect_split_q[@]:1}"; do
-        printf "#|         > %s%s\n" "$ws" "$line"                >&2
+        printf "#|         > %s%s\n" "$ws" "$line" >&2
     done
-    printf "#|   actual: %s%s\n" "$ws" "${actual_split_q[0]}"     >&2
+    printf "#|   actual: %s%s\n" "$ws" "${actual_split_q[0]}" >&2
     for line in "${actual_split_q[@]:1}"; do
-        printf "#|         > %s%s\n" "$ws" "$line"                >&2
+        printf "#|         > %s%s\n" "$ws" "$line" >&2
     done
-    printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"   >&2
+    printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n" >&2
     bail-now
 }
 
@@ -1101,12 +1115,12 @@ function is() {
     local -a actual_split
     readarray -t actual_split <<<"$actual"
     printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n" >&2
-    printf "#|     FAIL: $testname\n"                          >&2
-    printf "#| expected: '%s'%s\n" "$expect" "$is_expr"        >&2
-    printf "#|   actual: '%s'\n" "${actual_split[0]}"          >&2
+    printf "#|     FAIL: $testname\n" >&2
+    printf "#| expected: '%s'%s\n" "$expect" "$is_expr" >&2
+    printf "#|   actual: '%s'\n" "${actual_split[0]}" >&2
     local line
     for line in "${actual_split[@]:1}"; do
-        printf "#|         > '%s'\n" "$line"                   >&2
+        printf "#|         > '%s'\n" "$line" >&2
     done
     printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n" >&2
     bail-now
@@ -1124,7 +1138,7 @@ function allow_warnings() {
             local ok=
             for pattern in "$@"; do
                 if [[ "$line" =~ $pattern ]]; then
-                   ok=ok
+                    ok=ok
                 fi
             done
             if [[ -z "$ok" ]]; then
@@ -1172,7 +1186,6 @@ function dprint() {
     done
 }
 
-
 #################
 #  parse_table  #  Split a table on '|' delimiters; return space-separated
 #################
@@ -1190,7 +1203,7 @@ function parse_table() {
         while read col; do
             dprint "col=<<$col>>"
             row+=("$col")
-        done <  <(echo "$line" | sed -E -e 's/(^|\s)\|(\s|$)/\n /g' | sed -e 's/^ *//' -e 's/\\/\\\\/g')
+        done < <(echo "$line" | sed -E -e 's/(^|\s)\|(\s|$)/\n /g' | sed -e 's/^ *//' -e 's/\\/\\\\/g')
         # the above seds:
         #   1) Convert '|' to newline, but only if bracketed by spaces or
         #      at beginning/end of line (this allows 'foo|bar' in tests);
@@ -1201,7 +1214,6 @@ function parse_table() {
         printf "\n"
     done <<<"$1"
 }
-
 
 ###################
 #  random_string  #  Returns a pseudorandom human-readable string
@@ -1251,7 +1263,6 @@ function find_exec_pid_files() {
     fi
 }
 
-
 #############################
 #  remove_same_dev_warning  #  Filter out useless warning from output
 #############################
@@ -1281,7 +1292,7 @@ function remove_same_dev_warning() {
         else
             new_lines+=("${lines[$i]}")
         fi
-        i=$(( i + 1 ))
+        i=$((i + 1))
     done
 
     lines=("${new_lines[@]}")
@@ -1312,11 +1323,12 @@ function wait_for_command_output() {
     local sleep_delay=0.5
 
     case "${#*}" in
-        2) ;;
-        4) tries="$3"
-           sleep_delay="$4"
-           ;;
-        *) die "Internal error: 'wait_for_command_output' requires two or four arguments" ;;
+    2) ;;
+    4)
+        tries="$3"
+        sleep_delay="$4"
+        ;;
+    *) die "Internal error: 'wait_for_command_output' requires two or four arguments" ;;
     esac
 
     while [[ $tries -gt 0 ]]; do
@@ -1370,7 +1382,6 @@ function wait_for_restart_count() {
         sleep 0.5
     done
 }
-
 
 # END   miscellaneous tools
 ###############################################################################

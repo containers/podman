@@ -43,8 +43,8 @@ EOF
 # Start from scratch
 testimg_base=quay.io/libpod/systemd-image
 testimg=${testimg_base}:$YMD
-$PODMAN manifest rm $testimg &> /dev/null || true
-$PODMAN rmi -f $testimg &> /dev/null || true
+$PODMAN manifest rm $testimg &>/dev/null || true
+$PODMAN rmi -f $testimg &>/dev/null || true
 
 # Arch emulation on Fedora requires the qemu-user-static package.
 declare -a arches=(amd64 arm64 ppc64le s390x)
@@ -52,15 +52,15 @@ n_arches=${#arches[*]}
 i=0
 while [[ $i -lt $n_arches ]]; do
     arch=${arches[$i]}
-    i=$((i+1))
+    i=$((i + 1))
     echo
     echo "Building: $arch ($i of $n_arches)"
     $PODMAN build \
-            --arch=$arch \
-            --squash-all \
-            --timestamp=$create_time_t \
-            --manifest=$testimg \
-            .
+        --arch=$arch \
+        --squash-all \
+        --timestamp=$create_time_t \
+        --manifest=$testimg \
+        .
 done
 
 # Clean up

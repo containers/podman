@@ -30,7 +30,7 @@ EOF
     assert "$output" !~ "Writing manifest" "Default pull policy should be 'missing'"
 
     run_podman run --rm $imgname cat /$rand_filename
-    is "$output"   "$rand_content"   "reading generated file in image"
+    is "$output" "$rand_content" "reading generated file in image"
 
     run_podman rmi -f $imgname
 }
@@ -60,7 +60,7 @@ EOF
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm $imgname cat /$rand_filename
-    is "$output"   "$rand_content"   "reading generated file in image"
+    is "$output" "$rand_content" "reading generated file in image"
 
     # Make sure the volumes are created at surprising yet Docker-compatible
     # destinations (see bugzilla.redhat.com/show_bug.cgi?id=2014149).
@@ -107,16 +107,16 @@ RUN echo $rand_content > /$rand_filename
 EOF
 
     imgname="b-$(safename)"
-    run_podman build -t $imgname -f - --format=docker $tmpdir < $containerfile
+    run_podman build -t $imgname -f - --format=docker $tmpdir <$containerfile
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm $imgname cat /$rand_filename
-    is "$output"   "$rand_content"   "reading generated file in image"
+    is "$output" "$rand_content" "reading generated file in image"
 
     run_podman rmi -f $imgname
 
     # Now try without specifying a context dir
-    run_podman build -t $imgname -f - < $containerfile
+    run_podman build -t $imgname -f - <$containerfile
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman rmi -f $imgname
@@ -163,11 +163,11 @@ EOF
 
     CONTAINERS_CONF="$containersconf" run_podman 125 build -t $imgname $tmpdir
     is "$output" ".*\"idonotexist\" not found.*" \
-       "failed when passing invalid OCI runtime via \$CONTAINERS_CONF"
+        "failed when passing invalid OCI runtime via \$CONTAINERS_CONF"
 
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman 125 build -t $imgname $tmpdir
     is "$output" ".*\"idonotexist\" not found.*" \
-       "failed when passing invalid OCI runtime via \$CONTAINERS_CONF_OVERRIDE"
+        "failed when passing invalid OCI runtime via \$CONTAINERS_CONF_OVERRIDE"
 }
 
 # Regression from v1.5.0. This test passes fine in v1.5.0, fails in 1.6
@@ -176,7 +176,7 @@ EOF
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir/subtest
 
-    echo "This is the ORIGINAL file" > $tmpdir/subtest/myfile1
+    echo "This is the ORIGINAL file" >$tmpdir/subtest/myfile1
     tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
 
     cat >$tmpdir/Dockerfile <<EOF
@@ -186,7 +186,7 @@ EOF
 
     # One of: ADD myfile /myfile or COPY . .
     imgname="b-$(safename)"
-    run_podman build  -t $imgname -f $tmpdir/Dockerfile $tmpdir
+    run_podman build -t $imgname -f $tmpdir/Dockerfile $tmpdir
     is "$output" ".*COMMIT" "COMMIT seen in log"
     if [[ "$output" =~ "Using cache" ]]; then
         is "$output" "[no instance of 'Using cache']" "no cache used"
@@ -194,10 +194,10 @@ EOF
     iid=${lines[-1]}
 
     run_podman run --rm $imgname cat /subtest/myfile1
-    is "$output"   "This is the ORIGINAL file" "file contents, first time"
+    is "$output" "This is the ORIGINAL file" "file contents, first time"
 
     # Step 2: Recreate the tarfile, with new content. Rerun podman build.
-    echo "This is a NEW file" >| $tmpdir/subtest/myfile2
+    echo "This is a NEW file" >|$tmpdir/subtest/myfile2
     tar -C $tmpdir -cJf $tmpdir/myfile.tar.xz subtest
 
     run_podman build -t $imgname -f $tmpdir/Dockerfile $tmpdir
@@ -210,7 +210,7 @@ EOF
 
     # Pre-buildah-1906, this fails with ENOENT because the tarfile was cached
     run_podman run --rm $imgname cat /subtest/myfile2
-    is "$output"   "This is a NEW file" "file contents, second time"
+    is "$output" "This is a NEW file" "file contents, second time"
 
     run_podman rmi -f $imgname $iid
 }
@@ -238,7 +238,7 @@ EOF
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     run_podman run --rm $imgname cat /$rand_filename
-    is "$output"   "$rand_content"   "reading generated file in image"
+    is "$output" "$rand_content" "reading generated file in image"
 
     run_podman rmi -f $imgname
 }
@@ -256,7 +256,7 @@ EOF
     local count=10
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
-                $PODMAN build -t "$imgbase-$i" $PODMAN_TMPDIR &> $PODMAN_TMPDIR/log.$i &
+            $PODMAN build -t "$imgbase-$i" $PODMAN_TMPDIR &>$PODMAN_TMPDIR/log.$i &
     done
 
     # Wait for all background builds to complete. Note that this succeeds
@@ -264,7 +264,7 @@ EOF
     wait
 
     # For debugging, e.g., #21742
-    for log in $PODMAN_TMPDIR/log.*;do
+    for log in $PODMAN_TMPDIR/log.*; do
         echo
         echo $log ":"
         cat $log
@@ -295,7 +295,6 @@ EOF
     is "$output" ".* building at STEP .*: source can't be a URL for COPY"
 }
 
-
 # bats test_tags=distro-integration
 @test "podman build - workdir, cmd, env, label" {
     tmpdir=$PODMAN_TMPDIR/build-test
@@ -321,7 +320,7 @@ EOF
     CAT_SECRET="echo $secret_contents"
     if ! is_remote; then
         mkdir $tmpdir/secrets
-        echo  $tmpdir/secrets:/run/secrets > $tmpdir/mounts.conf
+        echo $tmpdir/secrets:/run/secrets >$tmpdir/mounts.conf
 
         secret_filename=secretfile-$(random_string 20)
         secret_contents=shhh-$(random_string 30)-shhh
@@ -410,25 +409,25 @@ EOF
     export arg_explicit="THIS SHOULD BE OVERRIDDEN BY COMMAND LINE!"
     export arg_implicit=${arg_implicit_value}
     run_podman ${MOUNTS_CONF} build \
-               --build-arg arg_explicit=${arg_explicit_value} \
-               $build_arg_implicit \
-               --dns-search $nosuchdomain \
-               -t $imgname -f build-test/Containerfile build-test
+        --build-arg arg_explicit=${arg_explicit_value} \
+        $build_arg_implicit \
+        --dns-search $nosuchdomain \
+        -t $imgname -f build-test/Containerfile build-test
     local iid="${lines[-1]}"
 
     assert "$output" !~ "missing.*build.argument" \
-           "podman did not see the given --build-arg(s)"
+        "podman did not see the given --build-arg(s)"
 
     # Make sure 'podman build' had the secret mounted
     is "$output" ".*$secret_contents.*" "podman build has /run/secrets mounted"
 
     # --build-arg should be set, both via 'foo=bar' and via just 'foo' ($foo)
     is "$output" ".*explicit-build-arg=${arg_explicit_value}" \
-       "--build-arg arg_explicit=explicit-value works"
+        "--build-arg arg_explicit=explicit-value works"
     is "$output" ".*implicit-build-arg=${arg_implicit_value}" \
-       "--build-arg arg_implicit works (inheriting from environment)"
+        "--build-arg arg_implicit works (inheriting from environment)"
     is "$output" ".*search $nosuchdomain" \
-       "--dns-search added to /etc/resolv.conf"
+        "--dns-search added to /etc/resolv.conf"
 
     if is_remote; then
         ENVHOST=""
@@ -440,15 +439,15 @@ EOF
     export MYENV2="$s_env2"
     export MYENV3="env-file-should-override-env-host!"
     run_podman ${MOUNTS_CONF} run --rm \
-               --env-file=$PODMAN_TMPDIR/env-file1 \
-               --env-file=$PODMAN_TMPDIR/env-file2 \
-               ${ENVHOST} \
-               -e MYENV4="$s_env4" \
-               $imgname
+        --env-file=$PODMAN_TMPDIR/env-file1 \
+        --env-file=$PODMAN_TMPDIR/env-file2 \
+        ${ENVHOST} \
+        -e MYENV4="$s_env4" \
+        $imgname
     is "${lines[0]}" "$workdir" "container default command: pwd"
-    is "${lines[1]}" "$s_echo"  "container default command: output from echo"
+    is "${lines[1]}" "$s_echo" "container default command: output from echo"
 
-    is "${lines[2]}" "$s_env1"  "container default command: env1"
+    is "${lines[2]}" "$s_env1" "container default command: env1"
 
     if is_remote; then
         is "${lines[3]}" "this-should-be-overridden-by-env-host" "podman-remote does not send local environment"
@@ -456,21 +455,21 @@ EOF
         is "${lines[3]}" "$s_env2" "container default command: env2"
     fi
 
-    is "${lines[4]}" "$s_env3"  "container default command: env3 (from envfile)"
-    is "${lines[5]}" "$s_env4"  "container default command: env4 (from cmdline)"
+    is "${lines[4]}" "$s_env3" "container default command: env3 (from envfile)"
+    is "${lines[5]}" "$s_env4" "container default command: env4 (from cmdline)"
 
     is "${lines[6]}" "$secret_contents" \
-       "Contents of /run/secrets/$secret_filename in container"
+        "Contents of /run/secrets/$secret_filename in container"
 
     # Proxies - environment should override container, but not env-file
-    http_proxy=http-proxy-from-env  ftp_proxy=ftp-proxy-from-env \
-              run_podman run --rm \
-              --env-file=$PODMAN_TMPDIR/env-file1 \
-              --env-file=$PODMAN_TMPDIR/env-file2 \
-              $imgname \
-              sh -c "printenv http_proxy https_proxy ftp_proxy &&
+    http_proxy=http-proxy-from-env ftp_proxy=ftp-proxy-from-env \
+        run_podman run --rm \
+        --env-file=$PODMAN_TMPDIR/env-file1 \
+        --env-file=$PODMAN_TMPDIR/env-file2 \
+        $imgname \
+        sh -c "printenv http_proxy https_proxy ftp_proxy &&
                 pwd"
-    is "${lines[0]}" "http-proxy-in-env-file"  "env-file overrides env"
+    is "${lines[0]}" "http-proxy-in-env-file" "env-file overrides env"
     is "${lines[1]}" "https-proxy-in-env-file" "env-file sets proxy var"
 
     if is_remote; then
@@ -518,15 +517,15 @@ Labels.\"io.buildah.version\" | $buildah_version
     # be they dangling or valid, would barf with
     #    Error: chown <mountpath>/_data/symlink: ENOENT
     run_podman run --rm $imgname \
-        stat -c'%u:%g:%N'   /a/b/c/badsymlink \
-                            /a/b/c/goodsymlink \
-                            /bin/mydefaultcmd \
-                            /a/b/c/myfile
+        stat -c'%u:%g:%N' /a/b/c/badsymlink \
+        /a/b/c/goodsymlink \
+        /bin/mydefaultcmd \
+        /a/b/c/myfile
 
     is "${lines[0]}" "1:2:'/a/b/c/badsymlink' -> '/no/such/nonesuch'" \
-       "bad symlink to nonexistent file is chowned and preserved"
+        "bad symlink to nonexistent file is chowned and preserved"
     is "${lines[1]}" "1:2:'/a/b/c/goodsymlink' -> '/bin/mydefaultcmd'" \
-       "good symlink to existing file is chowned and preserved"
+        "good symlink to existing file is chowned and preserved"
     is "${lines[2]}" "2:3:/bin/mydefaultcmd" "target of symlink is not chowned"
     is "${lines[3]}" "4:5:/a/b/c/myfile" "file in volume is chowned"
 
@@ -534,29 +533,29 @@ Labels.\"io.buildah.version\" | $buildah_version
     # confirm that 'image tree' works as expected
     run_podman image tree $imgname
     is "${lines[0]}" "Image ID: ${iid:0:12}" \
-       "image tree: first line"
+        "image tree: first line"
     is "${lines[1]}" "Tags:     \[localhost/$imgname:latest]" \
-       "image tree: second line"
+        "image tree: second line"
     is "${lines[2]}" "Size:     [0-9.]\+[kM]B" \
-       "image tree: third line"
+        "image tree: third line"
     is "${lines[3]}" "Image Layers" \
-       "image tree: fourth line"
+        "image tree: fourth line"
     # FIXME: if #14536 is ever fixed, rebuild testimage & s/5/4/ below.
     # Summary: this should be ${lines[4]}, not [5], and prior to 2022-06-15
     # it was. Unfortunately, a nightmarish bug interaction makes it impossible
     # for us to use --squash-all on our testimage. Unless/until that bug is
     # fixed, we have an extra layer that all we can do is ignore.
     is "${lines[5]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[$IMAGE]" \
-       "image tree: first layer line"
-    is "${lines[-1]}"  ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/$imgname:latest]" \
-       "image tree: last layer line"
+        "image tree: first layer line"
+    is "${lines[-1]}" ".* ID: [0-9a-f]\{12\} Size: .* Top Layer of: \[localhost/$imgname:latest]" \
+        "image tree: last layer line"
 
     # FIXME: 'image tree --whatrequires' does not work via remote
     if ! is_remote; then
         run_podman image tree --whatrequires $IMAGE
         is "${lines[-1]}" \
-           ".*ID: .* Top Layer of: \\[localhost/$imgname:latest\\]" \
-           "'image tree --whatrequires' shows our built image"
+            ".*ID: .* Top Layer of: \\[localhost/$imgname:latest\\]" \
+            "'image tree --whatrequires' shows our built image"
     fi
 
     # Clean up
@@ -576,20 +575,20 @@ Labels.\"io.buildah.version\" | $buildah_version
     # to explain in a comment.
     local -a files=(
         -test1 -test1.txt
-         test2  test2.txt
-          subdir1/sub1  subdir1/sub1.txt
-         -subdir1/sub2 -subdir1/sub2.txt
-          subdir1/sub3  subdir1/sub3.txt
-         -subdir2/sub1 -subdir2/sub1.txt
-         -subdir2/sub2 -subdir2/sub2.txt
-         -subdir2/sub3 -subdir2/sub3.txt
-         this-file-does-not-match-anything-in-ignore-file
-         -foo
-         comment
+        test2 test2.txt
+        subdir1/sub1 subdir1/sub1.txt
+        -subdir1/sub2 -subdir1/sub2.txt
+        subdir1/sub3 subdir1/sub3.txt
+        -subdir2/sub1 -subdir2/sub1.txt
+        -subdir2/sub2 -subdir2/sub2.txt
+        -subdir2/sub3 -subdir2/sub3.txt
+        this-file-does-not-match-anything-in-ignore-file
+        -foo
+        comment
     )
     for f in "${files[@]}"; do
         # The magic '##-' strips off the '-' prefix
-        echo "$f" > $tmpdir/${f##-}
+        echo "$f" >$tmpdir/${f##-}
     done
 
     # Directory that doesn't exist in the image; COPY should create it
@@ -639,10 +638,10 @@ EOF
             if [[ $f =~ ^- ]]; then
                 f=${f##-}
                 assert "$output" !~ "$f" \
-                       "File '$f' should have been ignored via $ignorefile"
+                    "File '$f' should have been ignored via $ignorefile"
             else
                 assert "$output" =~ "$newdir/$f" \
-                       "File '$f' should exist in container (no match in $ignorefile)"
+                    "File '$f' should exist in container (no match in $ignorefile)"
             fi
         done
 
@@ -662,7 +661,7 @@ EOF
 FROM scratch
 EOF
 
-cat >$tmpdir/.dockerignore <<EOF
+    cat >$tmpdir/.dockerignore <<EOF
 *
 EOF
 
@@ -720,7 +719,7 @@ EOF
     random_echo=$(random_string 15)
 
     imgname="b-$(safename)"
-    PODMAN_TIMEOUT=240 run_podman build -t $imgname - << EOF
+    PODMAN_TIMEOUT=240 run_podman build -t $imgname - <<EOF
 FROM  $IMAGE
 RUN mkdir $workdir
 WORKDIR $workdir
@@ -759,10 +758,10 @@ EOF
     # And, we use 'sed' to massage $random3 just on the remote
     # chance that podman itself could pass stdin through.
     results=$(echo $random3 | (
-                  echo $random1
-                  run_podman build -t $imgname $tmpdir
-                  sed -e 's/^/a/' -e 's/$/z/'
-              ))
+        echo $random1
+        run_podman build -t $imgname $tmpdir
+        sed -e 's/^/a/' -e 's/$/z/'
+    ))
 
     # First simple test: confirm that we see the piped-in string, as
     # massaged by sed. This fails in 287edd4e2, the commit before #8092.
@@ -776,7 +775,7 @@ EOF
     # FIXME: podman-remote output differs from local: #8342 (spurious ^M)
     # FIXME: podman-remote output differs from local: #8343 (extra SHA output)
     remote_extra=""
-    if is_remote; then remote_extra=".*";fi
+    if is_remote; then remote_extra=".*"; fi
     expect="${random1}
 .*
 \[[0-9:.]\+\] STEP 1/2: FROM $IMAGE
@@ -842,64 +841,64 @@ EOF
 # necessary.
 # NOT PARALLELIZABLE because it pulls alpine and runs prune -f
 @test "build with copy-from referencing the base image" {
-  target="derived-$(safename)"
-  target_mt="derived-mt-$(safename)"
-  tmpdir=$PODMAN_TMPDIR/build-test
-  mkdir -p $tmpdir
+    target="derived-$(safename)"
+    target_mt="derived-mt-$(safename)"
+    tmpdir=$PODMAN_TMPDIR/build-test
+    mkdir -p $tmpdir
 
-  containerfile1=$tmpdir/Containerfile1
-  cat >$containerfile1 <<EOF
+    containerfile1=$tmpdir/Containerfile1
+    cat >$containerfile1 <<EOF
 FROM $IMAGE AS build
 RUN rm -f /etc/issue
 USER 1001
 COPY --from=$IMAGE /etc/issue /test/
 EOF
 
-  containerfile2=$tmpdir/Containerfile2
-  cat >$containerfile2 <<EOF
+    containerfile2=$tmpdir/Containerfile2
+    cat >$containerfile2 <<EOF
 FROM $IMAGE AS test
 RUN rm -f /etc/alpine-release
 FROM quay.io/libpod/alpine AS final
 COPY --from=$IMAGE /etc/alpine-release /test/
 EOF
 
-  # Before the build, $IMAGE's base image should not be present
-  local base_image=quay.io/libpod/alpine:latest
-  run_podman 1 image exists $base_image
+    # Before the build, $IMAGE's base image should not be present
+    local base_image=quay.io/libpod/alpine:latest
+    run_podman 1 image exists $base_image
 
-  run_podman build --jobs 1 -t ${target} -f ${containerfile2} ${tmpdir}
-  run_podman build --no-cache --jobs 4 -t ${target_mt} -f ${containerfile2} ${tmpdir}
+    run_podman build --jobs 1 -t ${target} -f ${containerfile2} ${tmpdir}
+    run_podman build --no-cache --jobs 4 -t ${target_mt} -f ${containerfile2} ${tmpdir}
 
-  # After the build, the base image should exist
-  run_podman image exists $base_image
+    # After the build, the base image should exist
+    run_podman image exists $base_image
 
-  # (can only test locally; podman-remote has no image mount command)
-  # (can also only test as root; mounting under rootless podman is too hard)
-  # We perform the test as a conditional, not a 'skip', because there's
-  # value in testing the above 'build' commands even remote & rootless.
-  if ! is_remote && ! is_rootless; then
-    run_podman image mount ${target}
-    root_single_job=$output
+    # (can only test locally; podman-remote has no image mount command)
+    # (can also only test as root; mounting under rootless podman is too hard)
+    # We perform the test as a conditional, not a 'skip', because there's
+    # value in testing the above 'build' commands even remote & rootless.
+    if ! is_remote && ! is_rootless; then
+        run_podman image mount ${target}
+        root_single_job=$output
 
-    run_podman image mount ${target_mt}
-    root_multi_job=$output
+        run_podman image mount ${target_mt}
+        root_multi_job=$output
 
-    # Check that both the version with --jobs 1 and --jobs=N have the same number of files
-    nfiles_single=$(find $root_single_job -type f | wc -l)
-    nfiles_multi=$(find $root_multi_job -type f | wc -l)
-    run_podman image umount ${target_mt}
-    run_podman image umount ${target}
+        # Check that both the version with --jobs 1 and --jobs=N have the same number of files
+        nfiles_single=$(find $root_single_job -type f | wc -l)
+        nfiles_multi=$(find $root_multi_job -type f | wc -l)
+        run_podman image umount ${target_mt}
+        run_podman image umount ${target}
 
-    is "$nfiles_single" "$nfiles_multi" \
-       "Number of files (--jobs=1) == (--jobs=4)"
+        is "$nfiles_single" "$nfiles_multi" \
+            "Number of files (--jobs=1) == (--jobs=4)"
 
-    # Make sure the number is reasonable
-    test "$nfiles_single" -gt 50
-  fi
+        # Make sure the number is reasonable
+        test "$nfiles_single" -gt 50
+    fi
 
-  # Clean up
-  run_podman rmi ${target_mt} ${target} ${base_image}
-  run_podman image prune -f
+    # Clean up
+    run_podman rmi ${target_mt} ${target} ${base_image}
+    run_podman image prune -f
 }
 
 @test "podman build --pull-never" {
@@ -927,8 +926,8 @@ EOF
 
     run_podman 125 build -t $imgname --pull-never $tmpdir
     is "$output" \
-       ".*Error: creating build container: quay.io/libpod/nosuchimage:nosuchtag: image not known" \
-       "--pull-never fails with expected error message"
+        ".*Error: creating build container: quay.io/libpod/nosuchimage:nosuchtag: image not known" \
+        "--pull-never fails with expected error message"
 }
 
 @test "podman build --logfile test" {
@@ -943,7 +942,7 @@ EOF
 
     imgname="b-$(safename)"
     run_podman build -t $imgname --format=docker --logfile=$tmpdir/logfile $tmpbuilddir
-    assert "$(< $tmpdir/logfile)" =~ "COMMIT" "COMMIT seen in log"
+    assert "$(<$tmpdir/logfile)" =~ "COMMIT" "COMMIT seen in log"
 
     run_podman rmi -f $imgname
 }
@@ -991,7 +990,7 @@ EOF
 }
 
 @test "podman build --authfile bogus test" {
-    run_podman 125 build --authfile=/tmp/bogus - <<< "from scratch"
+    run_podman 125 build --authfile=/tmp/bogus - <<<"from scratch"
     is "$output" ".*/tmp/bogus: no such file or directory"
 }
 
@@ -1019,7 +1018,7 @@ EOF
     # for inode numbers to change within the scope of one exec, but
     # maybe they do across different runs?? fuse-overlay maybe?? #17979
     run_podman run --rm $imgname \
-               stat -c '%i %n' /test/Dockerfile "${linkfiles[@]/#//test/}"
+        stat -c '%i %n' /test/Dockerfile "${linkfiles[@]/#//test/}"
 
     # First output line is the inode of our reference file and its filename.
     # Slash-replacement strips off everything after the space.
@@ -1108,7 +1107,7 @@ EOF
     mkdir -p $subdir
 
     touch $tmpdir/empty-file.txt
-    if is_remote && ! is_rootless ; then
+    if is_remote && ! is_rootless; then
         # TODO: set this file's owner to a UID:GID that will not be mapped
         # in the context where the remote server is running, which generally
         # requires us to be root (or running with more mapped IDs) on the
@@ -1137,8 +1136,8 @@ EOF
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir/target
     ln -s target $tmpdir/link
-    echo FROM $IMAGE > $tmpdir/link/Dockerfile
-    echo RUN echo hello >> $tmpdir/link/Dockerfile
+    echo FROM $IMAGE >$tmpdir/link/Dockerfile
+    echo RUN echo hello >>$tmpdir/link/Dockerfile
 
     imgname="b-$(safename)"
     run_podman build -t $imgname $tmpdir/link
@@ -1147,7 +1146,7 @@ EOF
 }
 
 @test "podman build --squash --squash-all should conflict" {
-    echo FROM scratch > $PODMAN_TMPDIR/Dockerfile
+    echo FROM scratch >$PODMAN_TMPDIR/Dockerfile
 
     imgname="b-$(safename)"
     run_podman 125 build -t $imgname --squash-all --squash $PODMAN_TMPDIR
@@ -1170,9 +1169,9 @@ EOF
     is "$output" ".*COMMIT" "COMMIT seen in log"
 
     ctrname="c-$(safename)"
-    run_podman run -d --name $ctrname $imgname  top
-    run_podman run --rm --volumes-from $ctrname $IMAGE  echo $rand_content
-    is "$output"   "$rand_content"   "No error should be thrown about volume in use"
+    run_podman run -d --name $ctrname $imgname top
+    run_podman run --rm --volumes-from $ctrname $IMAGE echo $rand_content
+    is "$output" "$rand_content" "No error should be thrown about volume in use"
 
     run_podman rm -f -v -t0 $ctrname
     run_podman rmi -f $imgname
