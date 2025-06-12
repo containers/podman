@@ -45,6 +45,19 @@ var _ = Describe("podman system connection", func() {
 	BeforeEach(setupConnectionsConf)
 
 	Context("without running API service", func() {
+		It("adding ssh connection with non-existing identity", func() {
+			identity := "~/foo/bar.txt"
+			cmd := []string{"system", "connection", "add",
+				"--default",
+				"--identity", identity,
+				"QA",
+				"ssh://root@podman.test:2222/run/podman/podman.sock",
+			}
+			session := podmanTest.Podman(cmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitWithError(125, fmt.Sprintf("Error: stat %s: no such file or directory", identity)))
+		})
+
 		It("add ssh://", func() {
 			cmd := []string{"system", "connection", "add",
 				"--default",
