@@ -78,7 +78,7 @@ Sign the pushed images with a sigstore signature using a private key at the spec
 
  DESTINATION is the location the container image is pushed to. It supports all transports from `containers-transports(5)`. If no transport is specified, the `docker` (i.e., container registry) transport is used.  For remote clients, including Mac and Windows (excluding WSL2) machines, `docker` is the only supported transport.
 
-## EXAMPLE
+## EXAMPLES
 
 Push manifest list to container registry:
 ```

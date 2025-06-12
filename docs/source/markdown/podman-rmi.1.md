@@ -32,6 +32,8 @@ If a specified image does not exist in the local storage, ignore it and do not t
 
 This option does not remove dangling parents of the specified image.
 
+## EXAMPLES
+
 Remove an image by its short ID
 ```
 $ podman rmi c0ed59d05ff7

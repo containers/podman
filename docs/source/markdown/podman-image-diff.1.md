@@ -23,7 +23,7 @@ The output is prefixed with the following symbols:
 
 Alter the output into a different format.  The only valid format for **podman image diff** is `json`.
 
-## EXAMPLE
+## EXAMPLES
 
 Display image differences from images parent layer:
 ```

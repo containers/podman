@@ -30,7 +30,7 @@ Mount all images.
 
 Print the mounted images in specified format (json).
 
-## EXAMPLE
+## EXAMPLES
 
 Mount multiple images. Note: In rootless mode, image mounting works only after executing the podman unshare command to enter the user namespace.
 ```

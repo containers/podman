@@ -213,9 +213,6 @@ fd7b786b5c32  docker.io/library/alpine:latest   buildah  2 hours ago  storage   
 f78620804e00  scratch                           buildah  2 hours ago  storage        working-container
 ```
 
-## ps
-Print a list of containers
-
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[buildah(1)](https://github.com/containers/buildah/blob/main/docs/buildah.1.md)**, **[crio(8)](https://github.com/cri-o/cri-o/blob/main/docs/crio.8.md)**
 

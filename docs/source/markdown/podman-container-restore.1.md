@@ -159,7 +159,7 @@ option is ignored. Defaults to not restoring *containers* with established TCP
 connections.\
 The default is **false**.
 
-## EXAMPLE
+## EXAMPLES
 Restore the container "mywebserver".
 ```
 # podman container restore mywebserver
