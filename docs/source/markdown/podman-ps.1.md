@@ -235,9 +235,9 @@ a1b2c3d4e5f6  docker.io/library/centos:latest /bin/bash  1 minute ago   Up 1 min
 Filter containers by pod name.
 ```
 $ podman ps --filter pod=web-pod
-CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS     NAMES      
-4089df24d4f3  docker.io/library/nginx:latest  nginx      2 minutes ago  Up 2 minutes  80/tcp    webserver  
-92f58933c28c  docker.io/library/redis:latest  redis      3 minutes ago  Up 3 minutes  6379/tcp  cache      
+CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS        PORTS     NAMES
+4089df24d4f3  docker.io/library/nginx:latest  nginx      2 minutes ago  Up 2 minutes  80/tcp    webserver
+92f58933c28c  docker.io/library/redis:latest  redis      3 minutes ago  Up 3 minutes  6379/tcp  cache
 ```
 
 Use custom format to show container and pod information.
