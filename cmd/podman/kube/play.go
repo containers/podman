@@ -369,7 +369,7 @@ func readerFromArg(fileName string) (*bytes.Reader, error) {
 	switch {
 	case fileName == "-": // Read from stdin
 		reader = os.Stdin
-	case parse.ValidURL(fileName) == nil:
+	case parse.ValidWebURL(fileName) == nil:
 		response, err := http.Get(fileName)
 		if err != nil {
 			return nil, err
