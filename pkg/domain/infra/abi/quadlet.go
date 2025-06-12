@@ -52,7 +52,6 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 		// Install just for the user in question.
 		quadletRootlessDirs := systemdquadlet.GetUnitDirs(true)
 
-		foundAdminDir := false
 		for _, dir := range quadletRootlessDirs {
 			// Prefer /etc/containers/systemd/users(/$UID)
 			if strings.HasPrefix(dir, systemdquadlet.UnitDirAdmin) {
@@ -63,16 +62,17 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 				}
 				if unix.Access(dir, unix.W_OK) == nil {
 					installDir = dir
-					foundAdminDir = true
+					break
+				} else {
+					// If we don't have write permission let's find another path.
+					continue
 				}
 			}
 
 			// If we can't use the /etc/ directory, use what is available.
 			// The permanent directory should always be after the temporary one
 			// if both exist, so iterate through all directories.
-			if !foundAdminDir {
-				installDir = dir
-			}
+			installDir = dir
 		}
 	}
 

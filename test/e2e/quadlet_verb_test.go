@@ -15,6 +15,7 @@ var _ = Describe("Podman quadlet verb", func() {
 
 	BeforeEach(func() {
 		SkipIfRemote("`podman quadlet` is not yet implemented for remote")
+		SkipIfSystemdNotRunning("cannot test systemd is not running")
 	})
 
 	It("podman quadlet install, list, rm", func() {

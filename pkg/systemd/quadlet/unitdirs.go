@@ -4,19 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"os"
 	"os/user"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strings"
-
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	Errorf func(string, ...interface{}) = logrus.Errorf
-	Debugf func(string, ...interface{}) = logrus.Debugf
+	Errorf = func(format string, args ...interface{}) {
+		log.Printf("[ERROR] "+format, args...)
+	}
+	Debugf = func(format string, args ...interface{}) {
+		log.Printf("[DEBUG] "+format, args...)
+	}
 )
 
 // This returns whether a file has an extension recognized as a valid Quadlet unit type.

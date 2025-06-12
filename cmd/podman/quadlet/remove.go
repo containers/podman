@@ -60,10 +60,5 @@ func rm(cmd *cobra.Command, args []string) error {
 			return errors.New("some quadlets could not be removed")
 		}
 	}
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

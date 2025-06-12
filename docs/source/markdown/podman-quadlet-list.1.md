@@ -16,6 +16,14 @@ List all Quadlets configured for the current user.
 
 Filter output based on conditions give.
 
+The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
+
+Supported filters:
+
+| Filter     | Description                                                                                      |
+|------------|--------------------------------------------------------------------------------------------------|
+| name       | Filter by quadlet name.                                                                          |
+
 #### **--format**
 
 Pretty-print output to JSON or using a Go template (default "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\n{{end -}}")

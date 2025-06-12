@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/common/pkg/completion"
+	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
@@ -25,7 +25,7 @@ var (
 			}
 			return nil
 		},
-		ValidArgsFunction: completion.AutocompleteNone,
+		ValidArgsFunction: common.AutocompleteDefaultManyArg,
 		Example: `podman quadlet install /path/to/myquadlet.container
 podman quadlet install https://github.com/containers/podman/blob/main/test/e2e/quadlet/basic.container
 podman quadlet install oci-artifact://my-artifact:latest`,

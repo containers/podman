@@ -953,10 +953,16 @@ func SkipIfSystemdNotRunning(reason string) {
 	checkReason(reason)
 
 	cmd := exec.Command("systemctl", "list-units")
-	err := cmd.Run()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		if _, ok := err.(*exec.Error); ok {
 			Skip("[notSystemd]: not running " + reason)
+		}
+		if _, ok := err.(*exec.ExitError); ok {
+			if bytes.Contains(output, []byte("System has not been booted with systemd")) ||
+				bytes.Contains(output, []byte("Failed to connect to bus")) {
+				Skip("[notSystemd]: systemd not running: " + reason)
+			}
 		}
 		Expect(err).ToNot(HaveOccurred())
 	}

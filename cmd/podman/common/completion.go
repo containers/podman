@@ -857,6 +857,11 @@ func AutocompleteDefaultOneArg(cmd *cobra.Command, args []string, toComplete str
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
 
+// AutocompleteDefaultManyArg - Autocomplete for many args.
+func AutocompleteDefaultManyArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	return nil, cobra.ShellCompDirectiveDefault
+}
+
 // AutocompleteCommitCommand - Autocomplete podman commit command args.
 func AutocompleteCommitCommand(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if !validCurrentCmdLine(cmd, args, toComplete) {
@@ -1801,6 +1806,14 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 		},
 		"until=":  nil,
 		"volume=": func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
+	}
+	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteQuadletFilters - Autocomplete quadlet filter options.
+func AutocompleteQuadletFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	kv := keyValueCompletion{
+		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getQuadlets(cmd, s) },
 	}
 	return completeKeyValues(toComplete, kv)
 }

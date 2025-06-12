@@ -34,11 +34,13 @@ podman quadlet list --filter 'name=test*'`,
 
 func listFlags(cmd *cobra.Command) {
 	formatFlagName := "format"
+	filterFlagName := "filter"
 	flags := cmd.Flags()
 
-	flags.StringArrayVarP(&listOptions.Filters, "filter", "f", []string{}, "Filter output based on conditions given")
+	flags.StringArrayVarP(&listOptions.Filters, filterFlagName, "f", []string{}, "Filter output based on conditions given")
 	flags.StringVar(&format, formatFlagName, "{{range .}}{{.Name}}\t{{.UnitName}}\t{{.Path}}\t{{.Status}}\n{{end -}}", "Pretty-print output to JSON or using a Go template")
 	_ = quadletListCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.ListQuadlet{}))
+	_ = quadletListCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompleteQuadletFilters)
 }
 
 func init() {

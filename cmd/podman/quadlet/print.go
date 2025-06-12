@@ -12,7 +12,7 @@ var (
 	quadletPrintDescription = `Print the contents of a Quadlet, displaying the file including all comments`
 
 	quadletPrintCmd = &cobra.Command{
-		Use:               "print [options] QUADLET",
+		Use:               "print QUADLET",
 		Short:             "Display the contents of a quadlet",
 		Long:              quadletPrintDescription,
 		RunE:              print,
