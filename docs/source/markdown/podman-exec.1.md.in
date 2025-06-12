@@ -88,6 +88,11 @@ Execute command as the specified user in selected container:
 $ podman exec --user root ctrID ls
 ```
 
+Execute command but do not attach to the exec session leaving the command running in the background:
+```
+$ podman exec -d ctrID find /path/to/search -name yourfile
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-run(1)](podman-run.1.md)**
 
