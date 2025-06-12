@@ -157,14 +157,21 @@ func parseEnvOrLabelFile(envOrLabel map[string]string, filename, configType stri
 	return scanner.Err()
 }
 
-// ValidURL checks a string urlStr is a url or not
-func ValidURL(urlStr string) error {
-	url, err := url.ParseRequestURI(urlStr)
+// ValidWebURL checks a string urlStr is a url or not
+func ValidWebURL(urlStr string) error {
+	parsedURL, err := url.ParseRequestURI(urlStr)
 	if err != nil {
-		return fmt.Errorf("invalid url %q: %w", urlStr, err)
+		return fmt.Errorf("invalid URL %q: %w", urlStr, err)
 	}
-	if url.Scheme == "" {
-		return fmt.Errorf("invalid url %q: missing scheme", urlStr)
+
+	// to be a valid web url, scheme must be either http or https
+	if parsedURL.Scheme != "http" && parsedURL.Scheme != "https" {
+		return fmt.Errorf("invalid URL %q: unsupported scheme %q", urlStr, parsedURL.Scheme)
+	}
+
+	// ensure url contain a host
+	if parsedURL.Host == "" {
+		return fmt.Errorf("invalid URL %q: missing host", urlStr)
 	}
 	return nil
 }

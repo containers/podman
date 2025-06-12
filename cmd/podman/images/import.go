@@ -130,7 +130,7 @@ func importCon(cmd *cobra.Command, args []string) error {
 	}
 
 	errFileName := parse.ValidateFileName(source)
-	errURL := parse.ValidURL(source)
+	errURL := parse.ValidWebURL(source)
 	if errURL == nil {
 		importOpts.SourceIsURL = true
 	}
