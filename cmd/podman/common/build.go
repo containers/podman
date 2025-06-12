@@ -591,6 +591,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 			return nil, fmt.Errorf("unable to parse ignore file: %w", err)
 		}
 		opts.Excludes = excludes
+
+		// always pass on ignore file to force buildah
+		// to consider an empty ignore file if passed
+		opts.IgnoreFile = flags.IgnoreFile
 	}
 
 	if c.Flag("timestamp").Changed {
