@@ -38,7 +38,7 @@ Print usage statement.
 
 #### **--pretty**
 
-Print inspect output in human-readable format
+Print inspect output in human-readable format. Ignores fields from **--format**.
 
 #### **--showsecret**
 
@@ -49,6 +49,12 @@ Display secret data
 Inspect the secret mysecret.
 ```
 $ podman secret inspect mysecret
+```
+
+Inspect the secret mysecret and print it in a human redable format instead of JSON, with the default fields.
+
+```
+$ podman secret inspect --pretty mysecret
 ```
 
 Inspect the secret mysecret and display the Name and Labels field.
