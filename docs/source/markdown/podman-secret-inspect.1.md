@@ -51,7 +51,7 @@ Inspect the secret mysecret.
 $ podman secret inspect mysecret
 ```
 
-Inspect the secret mysecret and print it in a human redable format instead of JSON, with the default fields.
+Inspect the secret mysecret and print it in a human readable format instead of JSON, with the default fields.
 
 ```
 $ podman secret inspect --pretty mysecret
