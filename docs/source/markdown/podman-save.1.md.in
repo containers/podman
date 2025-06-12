@@ -16,12 +16,6 @@ file using the **output** flag. The **quiet** flag suppresses the output when se
 To export the containers, use the **podman export**.
 Note: `:` is a restricted character and cannot be part of the file name.
 
-**podman [GLOBAL OPTIONS]**
-
-**podman save [GLOBAL OPTIONS]**
-
-**podman save [OPTIONS] NAME[:TAG]**
-
 ## OPTIONS
 
 @@option dir-compress

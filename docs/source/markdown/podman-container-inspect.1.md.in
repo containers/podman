@@ -76,7 +76,7 @@ Valid placeholders for the Go template are listed below:
 In addition to normal output, display the total file size if the type is a container.
 
 
-## EXAMPLE
+## EXAMPLES
 
 Inspect the specified container and print its information in json format.
 ```

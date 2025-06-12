@@ -26,7 +26,7 @@ Set a static ipv6 address for this container on this network.
 #### **--mac-address**=*address*
 Set a static mac address for this container on this network.
 
-## EXAMPLE
+## EXAMPLES
 
 Connect specified container to a named network:
 ```

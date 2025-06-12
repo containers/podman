@@ -75,7 +75,7 @@ The --force option must be specified to use the --time option.
 Remove anonymous volumes associated with the container. This does not include named volumes
 created with **podman volume create**, or the **--volume** option of **podman run** and **podman create**.
 
-## EXAMPLE
+## EXAMPLES
 Remove container with a given name:
 ```
 $ podman rm mywebserver

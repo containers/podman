@@ -151,7 +151,7 @@ The subnet in CIDR notation. Can be specified multiple times to allocate more th
 The argument order of the **--subnet**, **--gateway** and **--ip-range** options must match.
 This is useful to set a static ipv4 and ipv6 subnet.
 
-## EXAMPLE
+## EXAMPLES
 
 Create a network with no options.
 ```

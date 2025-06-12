@@ -38,7 +38,7 @@ In addition to normal output, display the total file size if the type is a conta
 Return JSON for the specified type. Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
 
-## EXAMPLE
+## EXAMPLES
 
 Inspect the fedora image:
 ```

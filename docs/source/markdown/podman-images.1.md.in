@@ -119,7 +119,7 @@ Lists only the image IDs.
 Sort by *created*, *id*, *repository*, *size* or *tag* (default: **created**)
 When sorting by *repository* it also sorts by the *tag* as second criteria to provide a stable output.
 
-## EXAMPLE
+## EXAMPLES
 
 List all non-dangling images in local storage:
 ```

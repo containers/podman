@@ -139,7 +139,7 @@ configuration information.
 
     $ podman manifest add oci-archive:/tmp/myimage
 
-## EXAMPLE
+## EXAMPLES
 
 Add specified default image from source manifest list to destination manifest list:
 ```

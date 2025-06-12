@@ -39,7 +39,7 @@ Print the mounted containers in specified format (json).
 
 Do not truncate the output (default *false*).
 
-## EXAMPLE
+## EXAMPLES
 
 In rootful mode, Mount specified container.
 ```
