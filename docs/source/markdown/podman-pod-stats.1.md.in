@@ -42,7 +42,7 @@ When using a Go template, precede the format with `table` to print headers.
 
 @@option no-stream
 
-## EXAMPLE
+## EXAMPLES
 
 List statistics about all pods without streaming:
 ```

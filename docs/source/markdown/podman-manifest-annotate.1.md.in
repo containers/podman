@@ -50,7 +50,7 @@ associated with, at most, one subject.
 
 @@option variant.manifest
 
-## EXAMPLE
+## EXAMPLES
 
 Update arch and variant information to specified manifest list for image:
 ```

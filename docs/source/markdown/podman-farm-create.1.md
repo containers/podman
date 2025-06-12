@@ -13,16 +13,14 @@ Create a new farm with connections that Podman knows about which were added via 
 An empty farm can be created without adding any connections to it. Add or remove
 connections from a farm via the *podman farm update* command.
 
-## EXAMPLE
+## EXAMPLES
 
-
-
-Create the specified farm:
+Create the specified farm with no connections:
 ```
 $ podman farm create farm2
 ```
 
-Create multiple farms:
+Create a farm with connections:
 ```
 $ podman farm create farm1 f37 f38
 ```

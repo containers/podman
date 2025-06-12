@@ -17,13 +17,6 @@ The local client further supports loading an **oci-dir** or a **docker-dir** as 
 The **quiet** option suppresses the progress output when set.
 Note: `:` is a restricted character and cannot be part of the file name.
 
-
-**podman [GLOBAL OPTIONS]**
-
-**podman load [GLOBAL OPTIONS]**
-
-**podman load [OPTIONS]**
-
 ## OPTIONS
 
 #### **--help**, **-h**

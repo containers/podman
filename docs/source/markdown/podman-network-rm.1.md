@@ -19,7 +19,7 @@ running, the container is stopped and removed.
 
 Seconds to wait before forcibly stopping the running containers that are using the specified network. The --force option must be specified to use the --time option. Use -1 for infinite wait.
 
-## EXAMPLE
+## EXAMPLES
 
 Delete specified network:
 ```

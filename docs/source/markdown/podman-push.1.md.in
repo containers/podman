@@ -102,7 +102,7 @@ Add a sigstore signature at the destination using a private key at the specified
 
 @@option tls-verify
 
-## EXAMPLE
+## EXAMPLES
 
 Push the specified image to a local directory:
 ```

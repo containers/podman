@@ -98,7 +98,6 @@ Do not truncate the output (default *false*).
 Search for images containing the specified name, returning the first three images from each defined registry.
 ```
 $ podman search --limit 3 fedora
-NAME                                     DESCRIPTION
 NAME                                           DESCRIPTION
 registry.fedoraproject.org/f29/fedora-toolbox
 registry.fedoraproject.org/f30/fedora-toolbox
