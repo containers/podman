@@ -161,11 +161,40 @@ func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []str
 			}
 			installReport.InstalledQuadlets[toInstall] = installedPath
 		default:
-			installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir)
+			fileInfo, err := os.Stat(toInstall)
 			if err != nil {
 				installReport.QuadletErrors[toInstall] = err
 			} else {
-				installReport.InstalledQuadlets[toInstall] = installedPath
+				if fileInfo.IsDir() {
+					// If toInstall is a directory, iterate over its files
+					files, err := os.ReadDir(toInstall)
+					if err != nil {
+						installReport.QuadletErrors[toInstall] = err
+					} else {
+						for _, file := range files {
+							// You might want to add checks here to skip sub-directories or non-quadlet files
+							if !file.IsDir() {
+								filePath := filepath.Join(toInstall, file.Name())
+								if systemdquadlet.IsExtSupported(filePath) {
+									installedPath, err := ic.installQuadlet(ctx, filePath, "", installDir)
+									if err != nil {
+										installReport.QuadletErrors[filePath] = err
+									} else {
+										installReport.InstalledQuadlets[filePath] = installedPath
+									}
+								}
+							}
+						}
+					}
+				} else {
+					// If toInstall is a single file, execute the original logic
+					installedPath, err := ic.installQuadlet(ctx, toInstall, "", installDir)
+					if err != nil {
+						installReport.QuadletErrors[toInstall] = err
+					} else {
+						installReport.InstalledQuadlets[toInstall] = installedPath
+					}
+				}
 			}
 		}
 	}

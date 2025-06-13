@@ -23,6 +23,11 @@ Install quadlet from a file.
 ```
 $ podman quadlet install /path/to/myquadlet.container
 ```
+Install quadlet from a dir.
+
+```
+$ podman quadlet install /path/to/dir/
+```
 
 Install quadlet from a url
 ```
