@@ -44,6 +44,11 @@ $ podman container diff --format json container1 container2
 }
 ```
 
+```
+$ podman container diff --latest
+C /etc
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-container(1)](podman-container.1.md)**
 
