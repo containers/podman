@@ -69,6 +69,34 @@ This option is mandatory when using the **image** driver.
 
 When not using the **local** and **image** drivers, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
 
+## QUOTAS
+
+`podman volume create` uses `XFS project quota controls` for controlling the size and the number of inodes of builtin volumes. The directory used to store the volumes must be an `XFS` file system and be mounted with the `pquota` option.
+
+Example /etc/fstab entry:
+```
+/dev/podman/podman-var /var xfs defaults,x-systemd.device-timeout=0,pquota 1 2
+```
+
+Podman generates project IDs for each builtin volume, but these project IDs need to be unique for the XFS file system. These project IDs by default are generated randomly, with a potential for overlap with other quotas on the same file
+system.
+
+The xfs_quota tool can be used to assign a project ID to the storage driver directory, e.g.:
+
+```
+echo 100000:/var/lib/containers/storage/overlay >> /etc/projects
+echo 200000:/var/lib/containers/storage/volumes >> /etc/projects
+echo storage:100000 >> /etc/projid
+echo volumes:200000 >> /etc/projid
+xfs_quota -x -c 'project -s storage volumes' /<xfs mount point>
+```
+
+In the example above we are configuring the overlay storage driver for newly
+created containers as well as volumes to use project IDs with a **start offset**.
+All containers are assigned larger project IDs (e.g. >= 100000).
+All volume assigned project IDs larger project IDs starting with 200000.
+This prevents xfs_quota management conflicts with containers/storage.
+
 ## EXAMPLES
 
 Create empty volume.
@@ -100,34 +128,6 @@ Create image named volume using the specified local image in containers/storage.
 ```
 # podman volume create --driver image --opt image=fedora:latest fedoraVol
 ```
-
-## QUOTAS
-
-`podman volume create` uses `XFS project quota controls` for controlling the size and the number of inodes of builtin volumes. The directory used to store the volumes must be an `XFS` file system and be mounted with the `pquota` option.
-
-Example /etc/fstab entry:
-```
-/dev/podman/podman-var /var xfs defaults,x-systemd.device-timeout=0,pquota 1 2
-```
-
-Podman generates project IDs for each builtin volume, but these project IDs need to be unique for the XFS file system. These project IDs by default are generated randomly, with a potential for overlap with other quotas on the same file
-system.
-
-The xfs_quota tool can be used to assign a project ID to the storage driver directory, e.g.:
-
-```
-echo 100000:/var/lib/containers/storage/overlay >> /etc/projects
-echo 200000:/var/lib/containers/storage/volumes >> /etc/projects
-echo storage:100000 >> /etc/projid
-echo volumes:200000 >> /etc/projid
-xfs_quota -x -c 'project -s storage volumes' /<xfs mount point>
-```
-
-In the example above we are configuring the overlay storage driver for newly
-created containers as well as volumes to use project IDs with a **start offset**.
-All containers are assigned larger project IDs (e.g. >= 100000).
-All volume assigned project IDs larger project IDs starting with 200000.
-This prevents xfs_quota management conflicts with containers/storage.
 
 ## MOUNT EXAMPLES
 
