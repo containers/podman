@@ -7,6 +7,11 @@ Finally, be sure to sign commits with your real name. Since by opening
 a PR you already have commits, you can add signatures if needed with
 something like `git commit -s --amend`.
 -->
+#### Description
+
+<!-- Please include a summary of the change and which issue is fixed. -->
+
+Fixes: <!-- Link the relevant issue URL(s). For multiple issues, use spaces as separator. If no JIRA link is available leave blank -->
 
 #### Does this PR introduce a user-facing change?
 
@@ -23,3 +28,5 @@ https://git.k8s.io/community/contributors/guide/release-notes.md
 ```release-note
 
 ```
+
+
