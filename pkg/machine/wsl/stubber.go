@@ -34,11 +34,6 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	go callbackFuncs.CleanOnSignal()
 	mc.WSLHypervisor = new(vmconfigs.WSLConfig)
 
-	if cont, err := checkAndInstallWSL(opts.ReExec); !cont {
-		appendOutputIfError(opts.ReExec, err)
-		return err
-	}
-
 	_ = setupWslProxyEnv()
 
 	if opts.UserModeNetworking {
@@ -51,6 +46,15 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	const prompt = "Importing operating system into WSL (this may take a few minutes on a new WSL install)..."
 	dist, err := provisionWSLDist(mc.Name, mc.ImagePath.GetPath(), prompt)
 	if err != nil {
+		if errors.Is(err, ErrWslNotSupported) {
+			// If error is Wsl/Service/RegisterDistro/CreateVm/HCS/ERROR_NOT_SUPPORTED
+			// or Wsl/Service/RegisterDistro/CreateVm/HCS/HCS_E_SERVICE_NOT_AVAILABLE
+			// it means WSL's VM creation failed, likely due to virtualization features not being enabled.
+			// Relaunching 'podman machine init' in elevated mode will attempt to reconfigure the WSL machine.
+			admin := HasAdminRights()
+
+			return attemptFeatureInstall(opts.ReExec, admin)
+		}
 		return err
 	}
 
