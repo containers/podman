@@ -65,6 +65,19 @@ Prune volumes currently unused by any container
 
 ## EXAMPLES
 
+Prune all containers, pods, networks and dangling images.
+```
+$ podman system prune
+WARNING! This command removes:
+	- all stopped containers
+	- all networks not used by at least one container
+	- all dangling images
+	- all dangling build cache
+
+Are you sure you want to continue? [y/N] y
+Total reclaimed space: 0B
+```
+
 Prune all containers, pods, and networks that are not in use.
 ```
 $ podman system prune --all
@@ -87,6 +100,24 @@ cea2ff433c610f5363017404ce989632e12b953114fefc6f597a58e813c15d61
 Deleted Networks
 podman-default-kube-network
 Total reclaimed space: 3.372GB
+```
+
+Prune all containers, build containers, pods, networks and dangling images.
+```
+$ podman system prune --build
+WARNING! This command removes:
+	- all stopped containers
+	- all networks not used by at least one container
+	- all build containers
+	- all dangling images
+	- all dangling build cache
+
+Are you sure you want to continue? [y/N] y
+Deleted Containers
+a8bfed41990114767c933d27bf5508b01cdc0f641dc36037b349648347c6ea64
+Deleted Images
+055733a33e7a78efa27d3c682df97a9e0489133bef071745144c8d0edda2d708
+Total reclaimed space: 1.4GB
 ```
 
 ## SEE ALSO
