@@ -19,16 +19,23 @@ Pause all pods.
 
 Instead of providing the pod name or ID, pause the last created pod. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
-## EXAMPLE
+## EXAMPLES
 
 Pause a pod with a given name:
 ```
-podman pod pause mywebserverpod
+$ podman pod pause mywebserverpod
 ```
 
 Pause a pod with a given ID:
 ```
-podman pod pause 860a4b23
+$ podman pod pause 860a4b23
+```
+
+Pause all pods
+```
+$ podman pod pause --all
+817973d45404da08f1fe393a13c8eeb0948f4a259d8835f083370b4a63cb0431
+0793d692719c8ef1f983fd29d7568e817c5a8e865e2b3925201a75dce24cfe80
 ```
 
 ## SEE ALSO
