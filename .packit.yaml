@@ -48,3 +48,39 @@ jobs:
     targets: *test_targets
     tmt_plan: "/plans/system/rootless-remote"
     identifier: "sys-remote-rootless"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/integration/rootless-local"
+    identifier: "int-local-rootless"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/integration/root-remote"
+    identifier: "int-remote-root"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/integration/rootless-remote"
+    identifier: "int-remote-rootless"
+
+  - job: tests
+    trigger: pull_request
+    skip_build: true
+    use_internal_tf: true
+    notifications: *packit_failure_notification
+    targets: *test_targets
+    tmt_plan: "/plans/localunit"
+    identifier: "unit"

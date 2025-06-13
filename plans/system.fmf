@@ -53,7 +53,7 @@ provision:
             - size: ">= 512 GB"
 
 /root-local:
-    summary: Local root system tests
+    summary: Local rootful system tests
     discover+:
         test: /test/tmt/sys-root-local
 
@@ -63,7 +63,7 @@ provision:
         test: /test/tmt/sys-rootless-local
 
 /root-remote:
-    summary: Remote root system tests
+    summary: Remote rootful system tests
     discover+:
         test: /test/tmt/sys-root-remote
 

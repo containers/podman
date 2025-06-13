@@ -35,3 +35,35 @@ adjust+:
         chown -R $ROOTLESS_USER $TMT_TREE &&
         su - "$ROOTLESS_USER" -c "CI_DESIRED_NETWORK=netavark make -C $TMT_TREE remotesystem"
     duration: 40m
+
+/int-root-local:
+    test: >
+        bash ./setup.sh &&
+        make -C $TMT_TREE localintegration
+    duration: 40m
+
+/int-rootless-local:
+    test: >
+        bash ./setup.sh &&
+        loginctl enable-linger $ROOTLESS_USER &&
+        chown -R $ROOTLESS_USER $TMT_TREE &&
+        su - "$ROOTLESS_USER" -c "make -C $TMT_TREE localintegration"
+    duration: 40m
+
+/int-root-remote:
+    test: >
+        bash ./setup.sh &&
+        make -C $TMT_TREE remoteintegration
+    duration: 40m
+
+/int-rootless-remote:
+    test: >
+        bash ./setup.sh &&
+        loginctl enable-linger $ROOTLESS_USER &&
+        chown -R $ROOTLESS_USER $TMT_TREE &&
+        su - "$ROOTLESS_USER" -c "make -C $TMT_TREE remoteintegration"
+    duration: 40m
+
+/localunit:
+    test: make -C $TMT_TREE localunit
+    duration: 40m
