@@ -21,6 +21,12 @@ Remove the specified system connection:
 ```
 $ podman system connection remove production
 ```
+
+Remove all system connections:
+```
+$ podman system connection remove --all
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**
 
