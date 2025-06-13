@@ -492,10 +492,13 @@ func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string,
 
 	for _, quadlet := range quadlets {
 		quadletPath, err := getQuadletByName(quadlet)
-		if err != nil {
+		if options.All {
+			quadletPath = quadlet
+		}
+		if !options.All && err != nil {
 			// All implies Ignore, because the only reason we'd see an error here with all
 			// is if the quadlet was removed in a TOCTOU scenario.
-			if options.Ignore || options.All {
+			if options.Ignore {
 				report.Removed = append(report.Removed, quadlet)
 			} else {
 				report.Errors[quadlet] = err
