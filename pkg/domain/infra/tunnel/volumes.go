@@ -117,3 +117,7 @@ func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeRe
 func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, options entities.VolumeExportOptions) error {
 	return volumes.Export(ic.ClientCtx, nameOrID, options)
 }
+
+func (ic *ContainerEngine) VolumeImport(ctx context.Context, nameOrID string, options entities.VolumeImportOptions) error {
+	return volumes.Import(ic.ClientCtx, nameOrID, options)
+}

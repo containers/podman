@@ -51,8 +51,7 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 }
 
 // UntarToFileSystem untars an os.file of a tarball to a destination in the filesystem
-func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOptions) error {
-	logrus.Debugf("untarring %s", tarball.Name())
+func UntarToFileSystem(dest string, tarball io.Reader, options *archive.TarOptions) error {
 	return archive.Untar(tarball, dest, options)
 }
 

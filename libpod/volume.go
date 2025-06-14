@@ -299,10 +299,12 @@ func (v *Volume) NeedsMount() bool {
 	return v.needsMount()
 }
 
+// Export volume to tar.
 // Returns a ReadCloser which points to a tar of all the volume's contents.
-func (v *Volume) ExportVolume() (io.ReadCloser, error) {
+func (v *Volume) Export() (io.ReadCloser, error) {
 	v.lock.Lock()
 	err := v.mount()
+	mountPoint := v.mountPoint()
 	v.lock.Unlock()
 	if err != nil {
 		return nil, err
@@ -316,10 +318,35 @@ func (v *Volume) ExportVolume() (io.ReadCloser, error) {
 		}
 	}()
 
-	volContents, err := utils.TarWithChroot(v.mountPoint())
+	volContents, err := utils.TarWithChroot(mountPoint)
 	if err != nil {
 		return nil, fmt.Errorf("creating tar of volume %s contents: %w", v.Name(), err)
 	}
 
 	return volContents, nil
+}
+
+// Import a volume from a tar file, provided as an io.Reader.
+func (v *Volume) Import(r io.Reader) error {
+	v.lock.Lock()
+	err := v.mount()
+	mountPoint := v.mountPoint()
+	v.lock.Unlock()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		v.lock.Lock()
+		defer v.lock.Unlock()
+
+		if err := v.unmount(false); err != nil {
+			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+		}
+	}()
+
+	if err := utils.UntarToFileSystem(mountPoint, r, nil); err != nil {
+		return err
+	}
+
+	return nil
 }

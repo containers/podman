@@ -258,7 +258,7 @@ func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, op
 		return err
 	}
 
-	contents, err := vol.ExportVolume()
+	contents, err := vol.Export()
 	if err != nil {
 		return err
 	}
@@ -266,6 +266,29 @@ func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, op
 
 	if _, err := io.Copy(targetFile, contents); err != nil {
 		return fmt.Errorf("writing volume %s to file: %w", vol.Name(), err)
+	}
+
+	return nil
+}
+
+func (ic *ContainerEngine) VolumeImport(ctx context.Context, nameOrID string, options entities.VolumeImportOptions) error {
+	if options.InputPath == "" {
+		return errors.New("must provide valid path to import from")
+	}
+
+	inputFile, err := os.Open(options.InputPath)
+	if err != nil {
+		return fmt.Errorf("opening import file %q: %w", options.InputPath, err)
+	}
+	defer inputFile.Close()
+
+	vol, err := ic.Libpod.GetVolume(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	if err := vol.Import(inputFile); err != nil {
+		return err
 	}
 
 	return nil

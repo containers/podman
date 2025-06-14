@@ -5,8 +5,10 @@ package libpod
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 
 	"errors"
 
@@ -227,10 +229,44 @@ func ExportVolume(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	contents, err := vol.ExportVolume()
+	contents, err := vol.Export()
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, err)
 		return
 	}
 	utils.WriteResponse(w, http.StatusOK, contents)
+}
+
+// ImportVolume imports a volume
+func ImportVolume(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	vol, err := runtime.GetVolume(name)
+	if err != nil {
+		utils.Error(w, http.StatusNotFound, err)
+		return
+	}
+
+	tmpfile, err := os.CreateTemp("", "podman-volume-import-")
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("creating temporary file: %w", err))
+		return
+	}
+	defer func() {
+		tmpfile.Close()
+		os.Remove(tmpfile.Name())
+	}()
+
+	if _, err := io.Copy(tmpfile, r.Body); err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("copying archive to temporary file: %w", err))
+		return
+	}
+
+	if err := vol.Import(tmpfile); err != nil {
+		utils.Error(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusNoContent, "")
 }

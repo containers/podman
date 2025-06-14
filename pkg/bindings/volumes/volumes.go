@@ -174,3 +174,29 @@ func Export(ctx context.Context, nameOrID string, options entities.VolumeExportO
 	}
 	return response.Process(nil)
 }
+
+// Import imports the given tar into the given volume
+func Import(ctx context.Context, nameOrID string, options entities.VolumeImportOptions) error {
+	if options.InputPath == "" {
+		return errors.New("must provide valid path for file to write to")
+	}
+
+	targetFile, err := os.Create(options.InputPath)
+	if err != nil {
+		return fmt.Errorf("unable to create target file path %q: %w", options.InputPath, err)
+	}
+	defer targetFile.Close()
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	response, err := conn.DoRequest(ctx, targetFile, http.MethodPut, "/volumes/%s/import", nil, nil, nameOrID)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	return response.Process(nil)
+}

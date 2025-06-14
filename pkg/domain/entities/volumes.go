@@ -47,3 +47,8 @@ type VolumeUnmountReport = types.VolumeUnmountReport
 type VolumeExportOptions struct {
 	OutputPath string
 }
+
+// VolumeImportOptions describes the options required to import a volume
+type VolumeImportOptions struct {
+	InputPath string
+}
