@@ -222,3 +222,22 @@ func ExistsVolume(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }
+
+// ExportVolume exports a volume
+func ExportVolume(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	vol, err := runtime.GetVolume(name)
+	if err != nil {
+		utils.Error(w, http.StatusNotFound, err)
+		return
+	}
+
+	contents, err := vol.ExportVolume()
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, contents)
+}
