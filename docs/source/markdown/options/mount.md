@@ -32,6 +32,12 @@ Options specific to type=**artifact**:
 - *title*: If the artifact source contains multiple blobs a title can be set
   which is compared against `org.opencontainers.image.title` annotation.
 
+- *name*: This can be used to overwrite the filename we use inside the container
+  for mounting. On a single blob artifact the name is used as is if *dst* is a
+  directory and otherwise ignored. With a multi blob artifact the name will be
+  used with an index suffix `<name>-x` where x is the layer index in the artifact
+  starting with 0.
+
 The *src* argument contains the name of the artifact, which must already exist locally.
 The *dst* argument contains the target path, if the path in the container is a
 directory the blob title (`org.opencontainers.image.title` annotation) will be used as

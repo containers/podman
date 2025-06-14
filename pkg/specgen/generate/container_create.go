@@ -515,6 +515,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 				Source: v.Source,
 				Digest: v.Digest,
 				Title:  v.Title,
+				Name:   v.Name,
 			})
 		}
 		options = append(options, libpod.WithArtifactVolumes(vols))

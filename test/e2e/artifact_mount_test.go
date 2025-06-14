@@ -46,6 +46,11 @@ var _ = Describe("Podman artifact mount", func() {
 				mountOpts:     "dst=/data,digest=sha256:e9510923578af3632946ecf5ae479c1b5f08b47464e707b5cbab9819272a9752",
 				containerFile: "/data",
 			},
+			{
+				name:          "single artifact mount with name",
+				mountOpts:     "dst=/tmp,name=abcd",
+				containerFile: "/tmp/abcd",
+			},
 		}
 
 		for _, tt := range tests {
@@ -130,6 +135,20 @@ var _ = Describe("Podman artifact mount", func() {
 					{
 						file:    "/tmp/sha256-8257bba28b9d19ac353c4b713b470860278857767935ef7e139afd596cb1bb2d",
 						content: artifactContent1,
+					},
+				},
+			},
+			{
+				name:      "multi blob with name",
+				mountOpts: "src=" + ARTIFACT_MULTI + ",dst=/test,name=myname",
+				containerFiles: []expectedFiles{
+					{
+						file:    "/test/myname-0",
+						content: artifactContent1,
+					},
+					{
+						file:    "/test/myname-1",
+						content: artifactContent2,
 					},
 				},
 			},
