@@ -57,7 +57,7 @@ Unmount all containers:
 podman unmount --all
 ```
 
-Froce umount container with given ID:
+Force umount container with given ID:
 ```
 podman umount --force containerID
 ```
