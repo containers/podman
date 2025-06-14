@@ -747,6 +747,11 @@ func getArtifactVolume(args []string) (*specgen.ArtifactVolume, error) {
 				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
 			}
 			newVolume.Digest = value
+		case "name":
+			if !hasValue {
+				return nil, fmt.Errorf("%v: %w", name, errOptionArg)
+			}
+			newVolume.Name = value
 		default:
 			return nil, fmt.Errorf("%s: %w", name, util.ErrBadMntOption)
 		}
