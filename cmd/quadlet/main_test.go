@@ -60,46 +60,46 @@ func TestUnitDirs(t *testing.T) {
 	assert.NoError(t, err)
 
 	if os.Getenv("_UNSHARED") != "true" {
-		unitDirs := getUnitDirs(false)
+		unitDirs := quadlet.GetUnitDirs(false)
 
-		resolvedUnitDirAdminUser := resolveUnitDirAdminUser()
-		userLevelFilter := getUserLevelFilter(resolvedUnitDirAdminUser)
-		rootfulPaths := newSearchPaths()
-		appendSubPaths(rootfulPaths, quadlet.UnitDirTemp, false, userLevelFilter)
-		appendSubPaths(rootfulPaths, quadlet.UnitDirAdmin, false, userLevelFilter)
-		appendSubPaths(rootfulPaths, quadlet.UnitDirDistro, false, userLevelFilter)
-		assert.Equal(t, rootfulPaths.sorted, unitDirs, "rootful unit dirs should match")
+		resolvedUnitDirAdminUser := quadlet.ResolveUnitDirAdminUser()
+		userLevelFilter := quadlet.GetUserLevelFilter(resolvedUnitDirAdminUser)
+		rootfulPaths := quadlet.NewSearchPaths()
+		quadlet.AppendSubPaths(rootfulPaths, quadlet.UnitDirTemp, false, userLevelFilter)
+		quadlet.AppendSubPaths(rootfulPaths, quadlet.UnitDirAdmin, false, userLevelFilter)
+		quadlet.AppendSubPaths(rootfulPaths, quadlet.UnitDirDistro, false, userLevelFilter)
+		assert.Equal(t, rootfulPaths.GetSortedPaths(), unitDirs, "rootful unit dirs should match")
 
 		configDir, err := os.UserConfigDir()
 		assert.NoError(t, err)
 
-		rootlessPaths := newSearchPaths()
+		rootlessPaths := quadlet.NewSearchPaths()
 
 		systemUserDirLevel := len(strings.Split(resolvedUnitDirAdminUser, string(os.PathSeparator)))
-		nonNumericFilter := getNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
+		nonNumericFilter := quadlet.GetNonNumericFilter(resolvedUnitDirAdminUser, systemUserDirLevel)
 
 		runtimeDir, found := os.LookupEnv("XDG_RUNTIME_DIR")
 		if found {
-			appendSubPaths(rootlessPaths, path.Join(runtimeDir, "containers/systemd"), false, nil)
+			quadlet.AppendSubPaths(rootlessPaths, path.Join(runtimeDir, "containers/systemd"), false, nil)
 		}
-		appendSubPaths(rootlessPaths, path.Join(configDir, "containers/systemd"), false, nil)
-		appendSubPaths(rootlessPaths, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
-		appendSubPaths(rootlessPaths, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
+		quadlet.AppendSubPaths(rootlessPaths, path.Join(configDir, "containers/systemd"), false, nil)
+		quadlet.AppendSubPaths(rootlessPaths, filepath.Join(quadlet.UnitDirAdmin, "users"), true, nonNumericFilter)
+		quadlet.AppendSubPaths(rootlessPaths, filepath.Join(quadlet.UnitDirAdmin, "users", u.Uid), true, userLevelFilter)
 
-		unitDirs = getUnitDirs(true)
-		assert.Equal(t, rootlessPaths.sorted, unitDirs, "rootless unit dirs should match")
+		unitDirs = quadlet.GetUnitDirs(true)
+		assert.Equal(t, rootlessPaths.GetSortedPaths(), unitDirs, "rootless unit dirs should match")
 
 		// Test that relative path returns an empty list
 		t.Setenv("QUADLET_UNIT_DIRS", "./relative/path")
-		unitDirs = getUnitDirs(false)
+		unitDirs = quadlet.GetUnitDirs(false)
 		assert.Equal(t, []string{}, unitDirs)
 
 		name := t.TempDir()
 		t.Setenv("QUADLET_UNIT_DIRS", name)
-		unitDirs = getUnitDirs(false)
+		unitDirs = quadlet.GetUnitDirs(false)
 		assert.Equal(t, []string{name}, unitDirs, "rootful should use environment variable")
 
-		unitDirs = getUnitDirs(true)
+		unitDirs = quadlet.GetUnitDirs(true)
 		assert.Equal(t, []string{name}, unitDirs, "rootless should use environment variable")
 
 		symLinkTestBaseDir := t.TempDir()
@@ -114,7 +114,7 @@ func TestUnitDirs(t *testing.T) {
 		err = os.Symlink(actualDir, symlink)
 		assert.NoError(t, err)
 		t.Setenv("QUADLET_UNIT_DIRS", symlink)
-		unitDirs = getUnitDirs(true)
+		unitDirs = quadlet.GetUnitDirs(true)
 		assert.Equal(t, []string{actualDir, innerDir}, unitDirs, "directory resolution should follow symlink")
 
 		// Make a more elborate test with the following structure:
@@ -176,7 +176,7 @@ func TestUnitDirs(t *testing.T) {
 		linkDir(unitsDirPath, "c", linkToDirPath)
 
 		t.Setenv("QUADLET_UNIT_DIRS", unitsDirPath)
-		unitDirs = getUnitDirs(true)
+		unitDirs = quadlet.GetUnitDirs(true)
 		assert.Equal(t, expectedDirs, unitDirs, "directory resolution should follow symlink")
 		// remove the temporary directory at the end of the program
 		defer os.RemoveAll(symLinkTestBaseDir)
@@ -246,12 +246,12 @@ func TestUnitDirs(t *testing.T) {
 		// Make sure QUADLET_UNIT_DIRS is not set
 		t.Setenv("QUADLET_UNIT_DIRS", "")
 		// Test Rootful
-		unitDirs := getUnitDirs(false)
+		unitDirs := quadlet.GetUnitDirs(false)
 		assert.NotContains(t, unitDirs, userDir, "rootful should not contain rootless")
 		assert.NotContains(t, unitDirs, userInternalDir, "rootful should not contain rootless")
 
 		// Test Rootless
-		unitDirs = getUnitDirs(true)
+		unitDirs = quadlet.GetUnitDirs(true)
 		assert.NotContains(t, unitDirs, uidDir2, "rootless should not contain other users'")
 		assert.Contains(t, unitDirs, userInternalDir, "rootless should contain sub-directories of users dir")
 		assert.Contains(t, unitDirs, uidDir, "rootless should contain the directory for its UID")

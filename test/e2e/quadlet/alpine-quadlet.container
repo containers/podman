@@ -1,0 +1,11 @@
+[Unit]
+Description=A simple container
+After=network-online.target
+
+[Container]
+ContainerName=alpine-quadlet
+Image=docker.io/library/alpine:latest
+Exec=sleep infinity
+
+[Service]
+#Restart=always
