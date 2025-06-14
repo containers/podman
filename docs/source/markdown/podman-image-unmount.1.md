@@ -46,5 +46,11 @@ Unmount all images:
 ```
 podman image unmount --all
 ```
+
+Force unmount image with a given ID:
+```
+podman image unmount --force imageID
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-image-mount(1)](podman-image-mount.1.md)**, **[podman-mount(1)](podman-mount.1.md)**
