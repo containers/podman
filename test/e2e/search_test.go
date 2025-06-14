@@ -7,7 +7,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 	"text/template"
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -99,6 +101,26 @@ registries = []`
 		for _, element := range contents {
 			Expect(element.Description).ToNot(HaveSuffix("..."))
 		}
+	})
+
+	It("podman search list tags in reverse order", func() {
+		searchAscending := podmanTest.Podman([]string{"search", "--list-tags", ALPINE})
+		searchDecending := podmanTest.Podman([]string{"search", "--list-tags", "--reverse-order", ALPINE})
+		searchAscending.WaitWithDefaultTimeout()
+		searchDecending.WaitWithDefaultTimeout()
+		Expect(searchAscending).Should(ExitCleanly())
+		Expect(searchDecending).Should(ExitCleanly())
+
+		// Removed headers
+		ascendingReport := searchAscending.OutputToStringArray()[1:]
+		descendingReport := searchDecending.OutputToStringArray()[1:]
+
+		// Reverse ascending tags list
+		slices.SortFunc(ascendingReport, func(a, b string) int {
+			return -1 * strings.Compare(strings.ToLower(a), strings.ToLower(b))
+		})
+
+		Expect(ascendingReport).Should(Equal(descendingReport))
 	})
 
 	It("podman search format json list tags", func() {
