@@ -554,9 +554,12 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				return nil, nil, err
 			}
 
-			// Ignore the error, destIsFile will return false with errors so if the file does not exist
-			// we treat it as dir, the oci runtime will always create the target bind mount path.
-			destIsFile, _ := containerPathIsFile(c.state.Mountpoint, artifactMount.Dest)
+			destIsFile, err := containerPathIsFile(c.state.Mountpoint, artifactMount.Dest)
+			// When the file does not exists and the artifact has only a single blob to mount
+			// assume it is a file so we use the dest path as direct mount.
+			if err != nil && len(paths) == 1 && errors.Is(err, fs.ErrNotExist) {
+				destIsFile = true
+			}
 			if destIsFile && len(paths) > 1 {
 				return nil, nil, fmt.Errorf("artifact %q contains more than one blob and container path %q is a file", artifactMount.Source, artifactMount.Dest)
 			}

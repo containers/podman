@@ -34,14 +34,19 @@ Options specific to type=**artifact**:
 
 The *src* argument contains the name of the artifact, which must already exist locally.
 The *dst* argument contains the target path, if the path in the container is a
-directory or does not exist the blob title (`org.opencontainers.image.title`
-annotation) will be used as filename and joined to the path. If the annotation
-does not exist the digest will be used as filename instead. This results in all blobs
-of the artifact mounted into the container at the given path.
+directory the blob title (`org.opencontainers.image.title` annotation) will be used as
+filename and joined to the path. If the annotation does not exist the digest will be
+used as filename instead. This results in all blobs of the artifact mounted into the
+container at the given path.
 
 However, if the *dst* path is an existing file in the container, then the blob will be
 mounted directly on it. This only works when the artifact contains a single blob
 or when either *digest* or *title* are specified.
+
+If the *dst* path does not already exist in the container then if the artifact contains
+a single blob it behaves like existing file case and mounts directly to that path.
+If the artifact has more than one blob it works like the existing directory case and
+mounts each blob as file within the *dst* path.
 
 Options specific to type=**volume**:
 
