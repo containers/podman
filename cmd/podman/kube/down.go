@@ -18,11 +18,11 @@ var (
   Removes pods that have been based on the Kubernetes kind described in the YAML.`
 
 	downCmd = &cobra.Command{
-		Use:               "down [options] KUBEFILE|-",
+		Use:               "down [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Remove pods based on Kubernetes YAML",
 		Long:              downDescription,
 		RunE:              down,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman kube down nginx.yml
    cat nginx.yml | podman kube down -
@@ -48,7 +48,7 @@ func downFlags(cmd *cobra.Command) {
 }
 
 func down(cmd *cobra.Command, args []string) error {
-	reader, err := readerFromArg(args[0])
+	reader, err := readerFromArgs(args)
 	if err != nil {
 		return err
 	}

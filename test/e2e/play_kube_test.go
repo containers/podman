@@ -2350,6 +2350,46 @@ var _ = Describe("Podman kube play", func() {
 		kubeYaml = filepath.Join(podmanTest.TempDir, "kube.yaml")
 	})
 
+	It("all arguments should be read", func() {
+		// let's create a matrix of pod name => filename
+		pods := [][]string{
+			{"testPod1", "testPod1.yaml"},
+			{"testPod2", "testPod2.yaml"},
+			{"testPod3", "testPod3.yaml"},
+			{"testPod4", "testPod4.yaml"},
+		}
+
+		// prepare our podman command
+		var cmd = []string{"play", "kube"}
+
+		// for each pod: let's create a yaml file in the tmp dir & append the path to the cmd
+		for _, test := range pods {
+			// create the path
+			kubeYaml = filepath.Join(podmanTest.TempDir, test[1])
+
+			// add the path to our podman kube play command
+			cmd = append(cmd, kubeYaml)
+
+			// generate a pod with a fake name
+			pod := getPod(withPodName(test[0]))
+			// write the yaml
+			err := generateKubeYaml("pod", pod, kubeYaml)
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		// run the podman command
+		kube := podmanTest.Podman(cmd)
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(ExitCleanly())
+
+		// for each pods, let's ensure it has been created nicely
+		for _, test := range pods {
+			inspect := podmanTest.Podman([]string{"pod", "inspect", test[0]})
+			inspect.WaitWithDefaultTimeout()
+			Expect(inspect).Should(ExitCleanly())
+		}
+	})
+
 	It("[play kube] fail with yaml of unsupported kind", func() {
 		err := writeYaml(unknownKindYaml, kubeYaml)
 		Expect(err).ToNot(HaveOccurred())
