@@ -242,7 +242,6 @@ EOF
 
 # Podman volume import test
 @test "podman volume import test" {
-    skip_if_remote "volumes import is not applicable on podman-remote"
     run_podman volume create --driver local my_vol
     run_podman run --rm -v my_vol:/data $IMAGE sh -c "echo hello >> /data/test"
     run_podman volume create my_vol2
@@ -260,8 +259,6 @@ EOF
 
 # stdout with NULs is easier to test here than in ginkgo
 @test "podman volume export to stdout" {
-    skip_if_remote "N/A on podman-remote"
-
     local volname="myvol_$(random_string 10)"
     local mountpoint="/data$(random_string 8)"
 
