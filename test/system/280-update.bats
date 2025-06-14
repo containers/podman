@@ -326,4 +326,27 @@ function nrand() {
 
     run_podman rm -t 0 -f $ctrname
 }
+
+# bats test_tags=ci:parallel
+@test "podman update - non-block device rejected by --*device* options" {
+    local dev=/dev/zero # Not a block device.
+    local block_opts=(
+        "--blkio-weight-device=$dev:123"
+        "--device-read-bps=$dev:10mb"
+        "--device-write-bps=$dev:10mb"
+        "--device-read-iops=$dev:1000"
+        "--device-write-iops=$dev:1000"
+    )
+    run_podman run -d "$IMAGE" /home/podman/pause
+    cid="$output"
+
+    defer-assertion-failures
+    for opt in "${block_opts[@]}"; do
+        run_podman 125 update "$cid" "$opt"
+        assert "$output" =~ "$dev: not a block device"
+    done
+    immediate-assertion-failures
+
+    run_podman rm -t 0 -f "$cid"
+}
 # vim: filetype=sh
