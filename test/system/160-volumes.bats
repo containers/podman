@@ -242,7 +242,6 @@ EOF
 
 # Podman volume import test
 @test "podman volume import test" {
-    skip_if_remote "volumes import is not applicable on podman-remote"
     run_podman volume create --driver local my_vol
     run_podman run --rm -v my_vol:/data $IMAGE sh -c "echo hello >> /data/test"
     run_podman volume create my_vol2

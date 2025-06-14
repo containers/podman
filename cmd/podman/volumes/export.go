@@ -3,6 +3,8 @@ package volumes
 import (
 	"context"
 	"errors"
+	"fmt"
+	"os"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/common"
@@ -27,7 +29,7 @@ Allow content of volume to be exported into external tar.`
 )
 
 var (
-	cliExportOpts entities.VolumeExportOptions
+	targetPath string
 )
 
 func init() {
@@ -38,7 +40,7 @@ func init() {
 	flags := exportCommand.Flags()
 
 	outputFlagName := "output"
-	flags.StringVarP(&cliExportOpts.OutputPath, outputFlagName, "o", "/dev/stdout", "Write to a specified file (default: stdout, which must be redirected)")
+	flags.StringVarP(&targetPath, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 	_ = exportCommand.RegisterFlagCompletionFunc(outputFlagName, completion.AutocompleteDefault)
 }
 
@@ -46,12 +48,22 @@ func export(cmd *cobra.Command, args []string) error {
 	containerEngine := registry.ContainerEngine()
 	ctx := context.Background()
 
-	if cliExportOpts.OutputPath == "" {
-		return errors.New("expects output path, use --output=[path]")
+	if targetPath == "" && cmd.Flag("output").Changed {
+		return errors.New("must provide valid path for file to write to")
 	}
 
-	if err := containerEngine.VolumeExport(ctx, args[0], cliExportOpts); err != nil {
-		return err
+	exportOpts := entities.VolumeExportOptions{}
+
+	if targetPath != "" {
+		targetFile, err := os.Create(targetPath)
+		if err != nil {
+			return fmt.Errorf("unable to create target file path %q: %w", targetPath, err)
+		}
+		defer targetFile.Close()
+		exportOpts.Output = targetFile
+	} else {
+		exportOpts.Output = os.Stdout
 	}
-	return nil
+
+	return containerEngine.VolumeExport(ctx, args[0], exportOpts)
 }

@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"io"
 	"net/url"
 
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
@@ -45,5 +46,11 @@ type VolumeUnmountReport = types.VolumeUnmountReport
 
 // VolumeExportOptions describes the options required to export a volume.
 type VolumeExportOptions struct {
-	OutputPath string
+	Output io.Writer
+}
+
+// VolumeImportOptions describes the options required to import a volume
+type VolumeImportOptions struct {
+	// Input will be closed upon being fully consumed
+	Input io.Reader
 }

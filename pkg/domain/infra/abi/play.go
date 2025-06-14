@@ -38,7 +38,7 @@ import (
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/systemd/notifyproxy"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/opencontainers/go-digest"
@@ -1504,7 +1504,7 @@ func (ic *ContainerEngine) importVolume(ctx context.Context, vol *libpod.Volume,
 	}
 
 	// dont care if volume is mounted or not we are gonna import everything to mountPoint
-	return utils.UntarToFileSystem(mountPoint, tarFile, nil)
+	return archive.Untar(tarFile, mountPoint, nil)
 }
 
 // readConfigMapFromFile returns a kubernetes configMap obtained from --configmap flag
