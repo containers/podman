@@ -70,6 +70,17 @@ already been removed along with the container.
 
 The --force option must be specified to use the --time option.
 
+## EXAMPLES
+Forcefully kill container immediately:
+```
+$ podman rm mywebserver --force --time 0
+```
+
+Forcefully kill container after 1 minute:
+```
+$ podman rm mywebserver --force --time 60
+```
+
 #### **--volumes**, **-v**
 
 Remove anonymous volumes associated with the container. This does not include named volumes
