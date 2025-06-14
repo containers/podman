@@ -260,8 +260,6 @@ EOF
 
 # stdout with NULs is easier to test here than in ginkgo
 @test "podman volume export to stdout" {
-    skip_if_remote "N/A on podman-remote"
-
     local volname="myvol_$(random_string 10)"
     local mountpoint="/data$(random_string 8)"
 

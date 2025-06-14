@@ -3,12 +3,16 @@
 package libpod
 
 import (
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/lock"
 	"github.com/containers/podman/v5/libpod/plugin"
+	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/sirupsen/logrus"
 )
 
 // Volume is a libpod named volume.
@@ -293,4 +297,29 @@ func (v *Volume) Unmount() error {
 
 func (v *Volume) NeedsMount() bool {
 	return v.needsMount()
+}
+
+// Returns a ReadCloser which points to a tar of all the volume's contents.
+func (v *Volume) ExportVolume() (io.ReadCloser, error) {
+	v.lock.Lock()
+	err := v.mount()
+	v.lock.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		v.lock.Lock()
+		defer v.lock.Unlock()
+
+		if err := v.unmount(false); err != nil {
+			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+		}
+	}()
+
+	volContents, err := utils.TarWithChroot(v.mountPoint())
+	if err != nil {
+		return nil, fmt.Errorf("creating tar of volume %s contents: %w", v.Name(), err)
+	}
+
+	return volContents, nil
 }

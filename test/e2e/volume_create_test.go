@@ -65,10 +65,6 @@ var _ = Describe("Podman volume create", func() {
 	})
 
 	It("podman create and export volume", func() {
-		if podmanTest.RemoteTest {
-			Skip("Volume export check does not work with a remote client")
-		}
-
 		volName := "my_vol_" + RandomString(10)
 		session := podmanTest.Podman([]string{"volume", "create", volName})
 		session.WaitWithDefaultTimeout()

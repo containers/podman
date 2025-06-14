@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"os"
 
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
@@ -238,4 +240,33 @@ func (ic *ContainerEngine) VolumeUnmount(ctx context.Context, nameOrIDs []string
 func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeReloadReport, error) {
 	report := ic.Libpod.UpdateVolumePlugins(ctx)
 	return &entities.VolumeReloadReport{VolumeReload: *report}, nil
+}
+
+func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, options entities.VolumeExportOptions) error {
+	if options.OutputPath == "" {
+		return errors.New("must provide valid path for file to write to")
+	}
+
+	targetFile, err := os.Create(options.OutputPath)
+	if err != nil {
+		return fmt.Errorf("unable to create target file path %q: %w", options.OutputPath, err)
+	}
+	defer targetFile.Close()
+
+	vol, err := ic.Libpod.GetVolume(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	contents, err := vol.ExportVolume()
+	if err != nil {
+		return err
+	}
+	defer contents.Close()
+
+	if _, err := io.Copy(targetFile, contents); err != nil {
+		return fmt.Errorf("writing volume %s to file: %w", vol.Name(), err)
+	}
+
+	return nil
 }
