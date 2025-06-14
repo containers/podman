@@ -117,4 +117,5 @@ type ContainerEngine interface { //nolint:interfacebloat
 	VolumeUnmount(ctx context.Context, namesOrIds []string) ([]*VolumeUnmountReport, error)
 	VolumeReload(ctx context.Context) (*VolumeReloadReport, error)
 	VolumeExport(ctx context.Context, nameOrID string, options VolumeExportOptions) error
+	VolumeImport(ctx context.Context, nameOrID string, options VolumeImportOptions) error
 }

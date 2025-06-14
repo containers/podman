@@ -161,17 +161,46 @@ func (s *APIServer) registerVolumeHandlers(r *mux.Router) error {
 	//    description: the name or ID of the volume
 	// produces:
 	// - application/x-tar
-        // responses:
-        //   200:
+	// responses:
+	//   200:
 	//     description: no error
 	//     schema:
 	//      type: string
-        //      format: binary
+	//      format: binary
 	//   404:
 	//     $ref: "#/responses/volumeNotFound"
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/volumes/{name}/export"), s.APIHandler(libpod.ExportVolume)).Methods(http.MethodGet)
+
+	// swagger:operation POST /libpod/volumes/{name}/import libpod VolumeImportLibpod
+	// ---
+	// tags:
+	//  - volumes
+	// summary: Populate a volume by importing provided tar
+	// parameters:
+	//  - in: path
+	//    name: name
+	//    type: string
+	//    required: true
+	//    description: the name or ID of the volume
+	//  - in: body
+	//    name: inputStream
+	//    description: |
+	//      An uncompressed tar archive
+	//    schema:
+	//      type: string
+	//      format: binary
+	// produces:
+	// - application/json
+	// responses:
+	//   204:
+	//     description: Successful import
+	//   404:
+	//     $ref: "#/responses/volumeNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.Handle(VersionedPath("/libpod/volumes/{name}/import"), s.APIHandler(libpod.ImportVolume)).Methods(http.MethodPost)
 
 	/*
 	 * Docker compatibility endpoints

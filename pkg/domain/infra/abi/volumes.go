@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
 
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
@@ -243,29 +242,32 @@ func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeRe
 }
 
 func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, options entities.VolumeExportOptions) error {
-	if options.OutputPath == "" {
-		return errors.New("must provide valid path for file to write to")
-	}
-
-	targetFile, err := os.Create(options.OutputPath)
-	if err != nil {
-		return fmt.Errorf("unable to create target file path %q: %w", options.OutputPath, err)
-	}
-	defer targetFile.Close()
-
-	vol, err := ic.Libpod.GetVolume(nameOrID)
+	vol, err := ic.Libpod.LookupVolume(nameOrID)
 	if err != nil {
 		return err
 	}
 
-	contents, err := vol.ExportVolume()
+	contents, err := vol.Export()
 	if err != nil {
 		return err
 	}
 	defer contents.Close()
 
-	if _, err := io.Copy(targetFile, contents); err != nil {
-		return fmt.Errorf("writing volume %s to file: %w", vol.Name(), err)
+	if _, err := io.Copy(options.Output, contents); err != nil {
+		return fmt.Errorf("writing volume %s contents: %w", vol.Name(), err)
+	}
+
+	return nil
+}
+
+func (ic *ContainerEngine) VolumeImport(ctx context.Context, nameOrID string, options entities.VolumeImportOptions) error {
+	vol, err := ic.Libpod.LookupVolume(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	if err := vol.Import(options.Input); err != nil {
+		return err
 	}
 
 	return nil

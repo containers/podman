@@ -50,12 +50,6 @@ func ExecCmdWithStdStreams(stdin io.Reader, stdout, stderr io.Writer, env []stri
 	return nil
 }
 
-// UntarToFileSystem untars an os.file of a tarball to a destination in the filesystem
-func UntarToFileSystem(dest string, tarball *os.File, options *archive.TarOptions) error {
-	logrus.Debugf("untarring %s", tarball.Name())
-	return archive.Untar(tarball, dest, options)
-}
-
 // Creates a new tar file and writes bytes from io.ReadCloser
 func CreateTarFromSrc(source string, dest string) error {
 	file, err := os.Create(dest)
