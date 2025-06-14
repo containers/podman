@@ -48,6 +48,11 @@ WARNING! This will remove:
 Are you sure you want to continue? [y/N] y
 ```
 
+Force reset all storage back to a clean initialized state.
+```
+$ podman system reset --force
+```
+
 ### Switching rootless user from VFS driver to overlay with fuse-overlayfs
 
 If the user ran rootless containers without having the `fuse-overlayfs` program
