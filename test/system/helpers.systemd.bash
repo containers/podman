@@ -23,7 +23,7 @@ journalctl() {
 }
 
 systemd-run() {
-    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT systemd-run $_DASHUSER "$@";
+    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT systemd-run $_DASHUSER "$@"
 }
 
 # "systemctl start" is special: when it fails, it doesn't give any useful info.
@@ -68,8 +68,8 @@ install_kube_template() {
     unit_file_in="contrib/systemd/system/${unit_name}.in"
     if [[ -e $unit_file_in ]]; then
         unit_file_out=$UNIT_DIR/$unit_name
-        sed -e "s;@@PODMAN@@;$PODMAN;g" <$unit_file_in >$unit_file_out.tmp.$$ \
-            && mv $unit_file_out.tmp.$$ $unit_file_out
+        sed -e "s;@@PODMAN@@;$PODMAN;g" <$unit_file_in >$unit_file_out.tmp.$$ &&
+            mv $unit_file_out.tmp.$$ $unit_file_out
     elif [[ "$PODMAN" = "/usr/bin/podman" ]]; then
         # Not running from a source directory. This is expected in gating,
         # and is probably OK, but it could fail on a misinstalled setup.

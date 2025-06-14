@@ -31,7 +31,7 @@ EOF
     CONTAINERS_CONF="$conf_tmp" run_podman inspect "$cid" --format "{{ .State.ConmonPid }}"
     conmon="$output"
 
-    output="$(tr '\0' '\n' < /proc/$conmon/environ | grep '^CONTAINERS_CONF=')"
+    output="$(tr '\0' '\n' </proc/$conmon/environ | grep '^CONTAINERS_CONF=')"
     is "$output" "CONTAINERS_CONF=$conf_tmp"
 
     # Clean up
@@ -50,7 +50,7 @@ EOF
     db_backend="$output"
 
     export conf_tmp="$PODMAN_TMPDIR/nonstandard_runtime_name.conf"
-    cat > $conf_tmp <<EOF
+    cat >$conf_tmp <<EOF
 [engine]
 runtime = "nonstandard_runtime_name"
 database_backend="$db_backend"
@@ -88,7 +88,7 @@ EOF
 
     random_data="expected_annotation_$(random_string 15)"
     conf_tmp="$PODMAN_TMPDIR/test.conf"
-    cat > $conf_tmp <<EOF
+    cat >$conf_tmp <<EOF
 [containers]
 annotations=['module=$random_data']
 EOF
@@ -108,7 +108,7 @@ See 'podman create --help'" "--module must be specified before the command"
     nonesuch=${PODMAN_TMPDIR}/nonexistent,withcomma
     run_podman 1 --module=$nonesuch sdfsdfdsf
     is "$output" "Failed to obtain podman configuration: could not resolve module \"$nonesuch\": faccessat $nonesuch: no such file or directory" \
-       "--module=ENOENT"
+        "--module=ENOENT"
 }
 
 @test "podman --module - append arrays" {
@@ -118,16 +118,16 @@ See 'podman create --help'" "--module must be specified before the command"
     conf1_tmp="$PODMAN_TMPDIR/test1.conf"
     conf2_tmp="$PODMAN_TMPDIR/test2.conf"
     conf2_off_tmp="$PODMAN_TMPDIR/test2_off.conf"
-    cat > $conf1_tmp <<EOF
+    cat >$conf1_tmp <<EOF
 [containers]
 env=["A=CONF1",{append=true}]
 EOF
-    cat > $conf2_tmp <<EOF
+    cat >$conf2_tmp <<EOF
 [containers]
 env=["B=CONF2"]
 EOF
 
-    cat > $conf2_off_tmp <<EOF
+    cat >$conf2_off_tmp <<EOF
 [containers]
 env=["B=CONF2_OFF",{append=false}]
 EOF
@@ -153,7 +153,7 @@ CONF2"
     random_data="expected_annotation_$(random_string 15)"
     module_name="test.conf"
     conf_tmp="$fake_modules_dir/$module_name"
-    cat > $conf_tmp <<EOF
+    cat >$conf_tmp <<EOF
 [containers]
 annotations=['module=$random_data']
 EOF
@@ -171,23 +171,23 @@ EOF
     # the module.
     run_podman container inspect $cid --format "{{ .State.ConmonPid }}"
     conmon_pid="$output"
-    is "$(< /proc/$conmon_pid/cmdline)" ".*--exit-command-arg--module--exit-command-arg$conf_tmp.*" "conmon's exit-command uses the module"
+    is "$(</proc/$conmon_pid/cmdline)" ".*--exit-command-arg--module--exit-command-arg$conf_tmp.*" "conmon's exit-command uses the module"
     run_podman rm -f -t0 $cid
 
     # Corrupt module file
-    cat > $conf_tmp <<EOF
+    cat >$conf_tmp <<EOF
 [containers]
 sdf=
 EOF
     XDG_CONFIG_HOME=$fake_home run_podman 1 --module $module_name
     is "$output" "Failed to obtain podman configuration: reading additional config \"$conf_tmp\": decode configuration $conf_tmp: toml: line 2 (last key \"containers.sdf\"): expected value but found '\n' instead" \
-       "Corrupt module file"
+        "Corrupt module file"
 
     # Nonexistent module name
     nonesuch=assume-this-does-not-exist-$(random_string)
     XDG_CONFIG_HOME=$fake_home run_podman 1 --module=$nonesuch invalid-command
     expect="Failed to obtain podman configuration: could not resolve module \"$nonesuch\": 3 errors occurred:"
-    for dir in $fake_home /etc /usr/share;do
+    for dir in $fake_home /etc /usr/share; do
         expect+=$'\n\t'"* faccessat $dir/containers/containers.conf.modules/$nonesuch: no such file or directory"
     done
     is "$output" "$expect" "--module=ENOENT : error message"
@@ -216,7 +216,7 @@ EOF
     skip_if_remote "--module is not supported for remote clients"
 
     conf_tmp="$PODMAN_TMPDIR/test.conf"
-    cat > $conf_tmp <<EOF
+    cat >$conf_tmp <<EOF
 [containers]
 env_host=true
 privileged=true

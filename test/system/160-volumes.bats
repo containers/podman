@@ -18,7 +18,6 @@ function teardown() {
     basic_teardown
 }
 
-
 # Simple volume tests: share files between host and container
 @test "podman run --volumes : basic" {
     run_podman volume list --noheading
@@ -45,8 +44,8 @@ function teardown() {
 
     for i in 1 2 3; do
         eval voldir=\$vol${i}
-        is "${lines[$(($i - 1))]}" "$(< $voldir/file${i}_in)" \
-           "contents of /vol${i}/file${i}_in"
+        is "${lines[$(($i - 1))]}" "$(<$voldir/file${i}_in)" \
+            "contents of /vol${i}/file${i}_in"
     done
 
     # Confirm that container sees vol1 as a mount point
@@ -57,14 +56,13 @@ function teardown() {
     out1=$(random_string)
     run_podman run --rm $v_opts $IMAGE sh -c "echo $out1 >/vol1/file1_out;
                                               cp /vol2/file2_in /vol3/file3_out"
-    is "$(<$vol1/file1_out)" "$out1"              "contents of /vol1/file1_out"
+    is "$(<$vol1/file1_out)" "$out1" "contents of /vol1/file1_out"
     is "$(<$vol3/file3_out)" "$(<$vol2/file2_in)" "contents of /vol3/file3_out"
 
     # Writing to read-only volumes: not allowed
     run_podman 1 run --rm -v $vol1:/vol1ro:z,ro $IMAGE sh -c "touch /vol1ro/abc"
-    is "$output" ".*Read-only file system"  "touch on read-only volume"
+    is "$output" ".*Read-only file system" "touch on read-only volume"
 }
-
 
 @test "podman volume duplicates" {
     vol1=${PODMAN_TMPDIR}/v1_$(random_string)
@@ -74,23 +72,23 @@ function teardown() {
     # if volumes source and dest match then pass
     run_podman run --rm -v $vol1:/vol1 -v $vol1:/vol1 $IMAGE /bin/true
     run_podman 125 run --rm -v $vol1:$vol1 -v $vol2:$vol1 $IMAGE /bin/true
-    is "$output" "Error: $vol1: duplicate mount destination"  "diff volumes mounted on same dest should fail"
+    is "$output" "Error: $vol1: duplicate mount destination" "diff volumes mounted on same dest should fail"
 
     # if named volumes source and dest match then pass
     run_podman run --rm -v vol1:/vol1 -v vol1:/vol1 $IMAGE /bin/true
     run_podman 125 run --rm -v vol1:/vol1 -v vol2:/vol1 $IMAGE /bin/true
-    is "$output" "Error: /vol1: duplicate mount destination"  "diff named volumes mounted on same dest should fail"
+    is "$output" "Error: /vol1: duplicate mount destination" "diff named volumes mounted on same dest should fail"
 
     # if tmpfs volumes source and dest match then pass
     run_podman run --rm --tmpfs /vol1 --tmpfs /vol1 $IMAGE /bin/true
     run_podman 125 run --rm --tmpfs $vol1 --tmpfs $vol1:ro $IMAGE /bin/true
-    is "$output" "Error: $vol1: duplicate mount destination"  "diff named volumes and tmpfs mounted on same dest should fail"
+    is "$output" "Error: $vol1: duplicate mount destination" "diff named volumes and tmpfs mounted on same dest should fail"
 
     run_podman 125 run --rm -v vol2:/vol2 --tmpfs /vol2 $IMAGE /bin/true
-    is "$output" "Error: /vol2: duplicate mount destination"  "diff named volumes and tmpfs mounted on same dest should fail"
+    is "$output" "Error: /vol2: duplicate mount destination" "diff named volumes and tmpfs mounted on same dest should fail"
 
     run_podman 125 run --rm -v $vol1:/vol1 --tmpfs /vol1 $IMAGE /bin/true
-    is "$output" "Error: /vol1: duplicate mount destination"  "diff named volumes and tmpfs mounted on same dest should fail"
+    is "$output" "Error: /vol1: duplicate mount destination" "diff named volumes and tmpfs mounted on same dest should fail"
 }
 
 # Filter volumes by name
@@ -122,7 +120,7 @@ function teardown() {
     mylabel=$(random_string)
 
     # Create a named volume
-    run_podman volume create -d local --label l=$mylabel  $myvolume
+    run_podman volume create -d local --label l=$mylabel $myvolume
     is "$output" "$myvolume" "output from volume create"
 
     # Confirm that it shows up in 'volume ls', and confirm values
@@ -192,7 +190,6 @@ EOF
     run_podman volume rm $myvolume
 }
 
-
 # Anonymous temporary volumes, and persistent autocreated named ones
 @test "podman volume, implicit creation with run" {
     # No hostdir arg: create anonymous container with random name
@@ -206,7 +203,7 @@ EOF
     run_podman volume inspect --format '{{.Mountpoint}}' $tempvolume
     mountpoint="$output"
     test -e "$mountpoint/myfile"
-    is "$(< $mountpoint/myfile)" "$rand" "file contents, anonymous volume"
+    is "$(<$mountpoint/myfile)" "$rand" "file contents, anonymous volume"
 
     # Remove the container, using rm --volumes. Volume should now be gone.
     run_podman rm -a --volumes
@@ -219,26 +216,25 @@ EOF
 
     # Duplicate "-v" confirms #8307, fix for double-lock on same volume
     run_podman run --rm -v $myvol:/myvol:z -v $myvol:/myvol2:z $IMAGE \
-               sh -c "echo $rand >/myvol/myfile"
+        sh -c "echo $rand >/myvol/myfile"
     run_podman volume ls -q
     is "$output" "$myvol" "autocreated named container persists"
 
     # ...and should be usable, read/write, by a second container
     run_podman run --rm -v $myvol:/myvol:z $IMAGE \
-               sh -c "cp /myvol/myfile /myvol/myfile2"
+        sh -c "cp /myvol/myfile /myvol/myfile2"
 
     run_podman volume rm $myvol
 
     if is_rootless; then
-       # Autocreated volumes should also work with keep-id
-       # All we do here is check status; podman 1.9.1 would fail with EPERM
-       myvol=myvol$(random_string)
-       run_podman run --rm -v $myvol:/myvol:z --userns=keep-id $IMAGE \
-               touch /myvol/myfile
-       run_podman volume rm $myvol
+        # Autocreated volumes should also work with keep-id
+        # All we do here is check status; podman 1.9.1 would fail with EPERM
+        myvol=myvol$(random_string)
+        run_podman run --rm -v $myvol:/myvol:z --userns=keep-id $IMAGE \
+            touch /myvol/myfile
+        run_podman volume rm $myvol
     fi
 }
-
 
 # Podman volume import test
 @test "podman volume import test" {
@@ -250,7 +246,7 @@ EOF
     tarfile=${PODMAN_TMPDIR}/hello$(random_string | tr A-Z a-z).tar
     run_podman volume export my_vol --output=$tarfile
     # we want to use `run_podman volume export my_vol` but run_podman is wrapping EOF
-    run_podman volume import my_vol2 - < $tarfile
+    run_podman volume import my_vol2 - <$tarfile
     rm -f $tarfile
     run_podman run --rm -v my_vol2:/data $IMAGE sh -c "cat /data/test"
     is "$output" "hello" "output from second container"
@@ -270,7 +266,7 @@ EOF
 
     local content="mycontent-$(random_string 20)-the-end"
     run_podman run --rm --volume "$volname:$mountpoint" $IMAGE \
-               sh -c "echo $content >$mountpoint/testfile"
+        sh -c "echo $content >$mountpoint/testfile"
     assert "$output" = ""
 
     # We can't use run_podman because bash can't handle NUL characters.
@@ -318,7 +314,6 @@ EOF
     run_podman rm user
 }
 
-
 # Confirm that container sees the correct id
 @test "podman volume with --userns=keep-id" {
     is_rootless || skip "only meaningful when run rootless"
@@ -335,31 +330,30 @@ EOF
 
     # With keep-id
     run_podman run --rm -v $myvoldir:/vol:z --userns=keep-id $IMAGE \
-               stat -c "%u:%g:%s" /vol/myfile
+        stat -c "%u:%g:%s" /vol/myfile
     is "$output" "$(id -u):$(id -g):0" "with keep-id: stat(file in container) == my uid"
 
     # Without
     run_podman run --rm -v $myvoldir:/vol:z $IMAGE \
-               stat -c "%u:%g:%s" /vol/myfile
+        stat -c "%u:%g:%s" /vol/myfile
     is "$output" "0:0:0" "w/o keep-id: stat(file in container) == root"
 
     # With keep-id from containers.conf
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm -v $myvoldir:/vol:z $IMAGE \
-               stat -c "%u:%g:%s" /vol/myfile
+        stat -c "%u:%g:%s" /vol/myfile
     is "$output" "$(id -u):$(id -g):0" "with keep-id from containers.conf: stat(file in container) == my uid"
 
     # With keep-id from containers.conf overridden with --userns=nomap
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman run --rm -v $myvoldir:/vol:z --userns=nomap $IMAGE \
-               stat -c "%u:%g:%s" /vol/myfile
+        stat -c "%u:%g:%s" /vol/myfile
     is "$output" "65534:65534:0" "w/o overridden containers.conf keep-id->nomap: stat(file in container) == root"
 }
-
 
 # 'volume prune' identifies and cleans up unused volumes
 @test "podman volume prune" {
     # Create four named volumes
     local -a v=()
-    for i in 1 2 3 4;do
+    for i in 1 2 3 4; do
         vol=myvol${i}$(random_string)
         v[$i]=$vol
         run_podman volume create $vol
@@ -379,36 +373,36 @@ EOF
     # Run two containers: one mounting v1, one mounting v2 & v3
     run_podman run --name c1 --volume ${v[1]}:/vol1 $IMAGE date
     run_podman run --name c2 --volume ${v[2]}:/vol2 -v ${v[3]}:/vol3 \
-               $IMAGE date
+        $IMAGE date
 
     # List available volumes for pruning after using 1,2,3
-    run_podman volume prune <<< N
+    run_podman volume prune <<<N
     is "$(echo $(sort <<<${lines[*]:1:3}))" "${v[4]} ${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use, lists 4,5,6"
 
     # List available volumes for pruning after using 1,2,3 and filtering; see #8913
-    run_podman volume prune --filter label=mylabel <<< N
+    run_podman volume prune --filter label=mylabel <<<N
     is "$(echo $(sort <<<${lines[*]:1:2}))" "${v[5]} ${v[6]}" "volume prune, with 1,2,3 in use and 4 filtered out, lists 5,6"
 
     # prune should remove v4
     run_podman volume prune --force
     is "$(echo $(sort <<<$output))" "${v[4]} ${v[5]} ${v[6]}" \
-       "volume prune, with 1, 2, 3 in use, deletes only 4, 5, 6"
+        "volume prune, with 1, 2, 3 in use, deletes only 4, 5, 6"
 
     # Remove the container using v2 and v3. Prune should now remove those.
     # The 'echo sort' is to get the output sorted and in one line.
     run_podman rm c2
     run_podman volume prune --force
     is "$(echo $(sort <<<$output))" "${v[2]} ${v[3]}" \
-       "volume prune, after rm c2, deletes volumes 2 and 3"
+        "volume prune, after rm c2, deletes volumes 2 and 3"
 
     # Remove the final container. Prune should now remove v1.
     run_podman rm c1
     run_podman volume prune --force
-    is "$output"  "${v[1]}" "volume prune, after rm c2 & c1, deletes volume 1"
+    is "$output" "${v[1]}" "volume prune, after rm c2 & c1, deletes volume 1"
 
     # Further prunes are NOPs
     run_podman volume prune --force
-    is "$output"  "" "no more volumes to prune"
+    is "$output" "" "no more volumes to prune"
 }
 
 # bats test_tags=distro-integration
@@ -425,7 +419,7 @@ EOF
     is "$output" "$myvolume" "should successfully create myvolume"
 
     run_podman run --rm -v $myvolume:/vol:z $IMAGE \
-               stat -c "%u:%s" /vol/myfile
+        stat -c "%u:%s" /vol/myfile
     is "$output" "0:0" "w/o keep-id: stat(file in container) == root"
 }
 
@@ -493,7 +487,7 @@ NeedsChown    | true
     run_podman volume create $myvolume
     is "$output" "$myvolume" "output from volume create"
 
-    if ! is_rootless ; then
+    if ! is_rootless; then
         # image mount is hard to test as a rootless user
         # and does not work remotely
         run_podman volume mount ${myvolume}

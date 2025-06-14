@@ -2,9 +2,9 @@
 # Assemble remote man pages for darwin or windows from markdown files
 set -e
 
-PLATFORM=$1                         ## linux, windows or darwin
-TARGET=${2}                         ## where to output files
-SOURCES=${@:3}                      ## directories to find markdown files
+PLATFORM=$1    ## linux, windows or darwin
+TARGET=${2}    ## where to output files
+SOURCES=${@:3} ## directories to find markdown files
 
 # This is a *native* binary, one we can run on this host. (This script can be
 # invoked in a cross-compilation environment, so even if PLATFORM=windows
@@ -12,12 +12,14 @@ SOURCES=${@:3}                      ## directories to find markdown files
 if [[ -z "$PODMAN" ]]; then
     DETECTED_OS=$(env -i HOME="$HOME" PATH="$PATH" GOROOT="$GOROOT" go env GOOS)
     case $DETECTED_OS in
-        windows)
-            PODMAN=bin/windows/podman.exe ;;
-        darwin)
-            PODMAN=bin/darwin/podman ;;
-        *)  # Assume "linux"
-            PODMAN=bin/podman-remote ;;
+    windows)
+        PODMAN=bin/windows/podman.exe
+        ;;
+    darwin)
+        PODMAN=bin/darwin/podman
+        ;;
+    *) # Assume "linux"
+        PODMAN=bin/podman-remote ;;
     esac
 fi
 
@@ -34,7 +36,7 @@ function fail() {
 }
 
 case $PLATFORM in
-darwin|linux|freebsd)
+darwin | linux | freebsd)
     PUBLISHER=man_fn
     ext=1
     ;;
@@ -94,25 +96,28 @@ function html_standalone() {
     local title=$2
     local file=$(basename $markdown)
     local dir=$(dirname $markdown)
-    (cd $dir; pandoc --ascii --from markdown-smart -c ../standalone-styling.css \
-           --standalone --self-contained --metadata title="$2" -V title= \
-           $file)  > $TARGET/${file%%.*}.html
+    (
+        cd $dir
+        pandoc --ascii --from markdown-smart -c ../standalone-styling.css \
+            --standalone --self-contained --metadata title="$2" -V title= \
+            $file
+    ) >$TARGET/${file%%.*}.html
 }
 
 # Run 'podman help' (possibly against a subcommand, e.g. 'podman help image')
 # and return a list of each first word under 'Available Commands', that is,
 # the command name but not its description.
 function podman_commands() {
-    $PODMAN help "$@" |\
-        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |\
+    $PODMAN help "$@" |
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |
         grep .
 }
 
-function podman_all_commands(){
-    for cmd in $(podman_commands "$@") ; do
-		echo $@ $cmd
+function podman_all_commands() {
+    for cmd in $(podman_commands "$@"); do
+        echo $@ $cmd
         podman_all_commands $@ $cmd
-	done
+    done
 }
 
 ## pub_pages finds and publishes the remote manual pages
@@ -122,7 +127,6 @@ function pub_pages() {
     for f in $(ls $source/podman-remote*); do
         $publisher $f
     done
-
 
     while IFS= read -r cmd; do
         file="podman-${cmd// /-}"
@@ -135,13 +139,13 @@ function pub_pages() {
             # This is worth failing CI for
             fail "no doc file nor link $source/$file.$ext for 'podman $cmd'"
         fi
-    done <<< "$(podman_all_commands)"
+    done <<<"$(podman_all_commands)"
 }
 
 ## sed syntax is different on darwin and linux
 ## sed --help fails on mac, meaning we have to use mac syntax
-function sed_os(){
-    if sed --help > /dev/null 2>&1 ; then
+function sed_os() {
+    if sed --help >/dev/null 2>&1; then
         $(sed -i "$@")
     else
         $(sed -i "" "$@")
@@ -149,7 +153,7 @@ function sed_os(){
 }
 
 ## rename renames podman-remote.ext to podman.ext, and fixes up contents to reflect change
-function rename (){
+function rename() {
     if [[ "$PLATFORM" != linux ]]; then
         local remote=$(echo $TARGET/podman-remote.*)
         local ext=${remote##*.}
@@ -158,12 +162,12 @@ function rename (){
         sed_os "s/podman\\\*-remote/podman/g" $TARGET/podman.$ext
         sed_os "s/A\ remote\ CLI\ for\ Podman\:\ //g" $TARGET/podman.$ext
         case $PLATFORM in
-        darwin|linux)
+        darwin | linux)
             sed_os "s/Podman\\\*-remote/Podman\ for\ Mac/g" $TARGET/podman.$ext
-        ;;
+            ;;
         windows)
             sed_os "s/Podman\\\*-remote/Podman\ for\ Windows/g" $TARGET/podman.$ext
-        ;;
+            ;;
         esac
     fi
 }

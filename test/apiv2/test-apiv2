@@ -156,7 +156,7 @@ function _show_ok() {
     local ok=$1
     # Exec tests include control characters; filter them out
     # Also filter out timestamps, to get consistent test names in logs
-    local testname=$(tr -d \\012 <<<"$2"|sed -e 's/since=[0-9.]\+/since=(T)/'|cat -vT)
+    local testname=$(tr -d \\012 <<<"$2" | sed -e 's/since=[0-9.]\+/since=(T)/' | cat -vT)
 
     # If output is a tty, colorize pass/fail
     local red=
@@ -182,7 +182,7 @@ function _show_ok() {
     fi
     if [ $ok -eq 1 ]; then
         echo -e "${green}ok $count ${TEST_CONTEXT} $testname${reset}"
-        echo    "ok $count ${TEST_CONTEXT} $testname" >>$LOG
+        echo "ok $count ${TEST_CONTEXT} $testname" >>$LOG
         return
     fi
 
@@ -193,8 +193,8 @@ function _show_ok() {
     echo -e "${red}#  expected: $expect${reset}"
     echo -e "${red}#    actual: ${bold}$actual${reset}"
 
-    echo    "not ok $count ${TEST_CONTEXT} $testname" >>$LOG
-    echo    "  expected: $expect"                     >>$LOG
+    echo "not ok $count ${TEST_CONTEXT} $testname" >>$LOG
+    echo "  expected: $expect" >>$LOG
 
     _bump $failures_file
 }
@@ -206,7 +206,7 @@ function _bump() {
     local file=$1
 
     count=$(<$file)
-    echo $(( $count + 1 )) >| $file
+    echo $(($count + 1)) >|$file
 }
 
 #############
@@ -237,15 +237,20 @@ function jsonify() {
     done
 
     # ...and wrap inside braces, with comma separator if multiple fields
-    (IFS=','; echo "{${settings_out[*]}}")
+    (
+        IFS=','
+        echo "{${settings_out[*]}}"
+    )
 }
 
 #######
 #  t  #  Main test helper
 #######
 function t() {
-    local method=$1; shift
-    local path=$1; shift
+    local method=$1
+    shift
+    local path=$1
+    shift
     local -a curl_args form_args
     local content_type="application/json"
 
@@ -264,28 +269,42 @@ function t() {
 
         for arg; do
             case "$arg" in
-                # This is just some hack to avoid adding `-d {}` to curl for endpoints where we really need an empty body.
-                # --disable makes curl not lookup the curlrc file, it shouldn't affect the tests in any way.
-                -)                curl_args+=(--disable);
-                                  shift;;
-                --form=*)         form_args+=(--form);
-                                  form_args+=("${arg#--form=}");
-                                  content_type="multipart/form-data";
-                                  shift;;
-                *=*)              post_args+=("$arg");
-                                  shift;;
-                *.json)           _add_curl_args $arg;
-                                  content_type="application/json";
-                                  shift;;
-                *.tar)            _add_curl_args $arg;
-                                  content_type="application/x-tar";
-                                  shift;;
-                *.yaml)           _add_curl_args $arg;
-                                  shift;;
-                application/*)    content_type="$arg";
-                                  shift;;
-                [1-9][0-9][0-9])  break;;
-                *)                die "Internal error: invalid POST arg '$arg'" ;;
+            # This is just some hack to avoid adding `-d {}` to curl for endpoints where we really need an empty body.
+            # --disable makes curl not lookup the curlrc file, it shouldn't affect the tests in any way.
+            -)
+                curl_args+=(--disable)
+                shift
+                ;;
+            --form=*)
+                form_args+=(--form)
+                form_args+=("${arg#--form=}")
+                content_type="multipart/form-data"
+                shift
+                ;;
+            *=*)
+                post_args+=("$arg")
+                shift
+                ;;
+            *.json)
+                _add_curl_args $arg
+                content_type="application/json"
+                shift
+                ;;
+            *.tar)
+                _add_curl_args $arg
+                content_type="application/x-tar"
+                shift
+                ;;
+            *.yaml)
+                _add_curl_args $arg
+                shift
+                ;;
+            application/*)
+                content_type="$arg"
+                shift
+                ;;
+            [1-9][0-9][0-9]) break ;;
+            *) die "Internal error: invalid POST arg '$arg'" ;;
             esac
         done
         if [[ -z "${curl_args[*]}" && -z "${form_args[*]}" ]]; then
@@ -314,7 +333,7 @@ function t() {
         case "$path" in
         /*) url="$url$path" ;;
         libpod/*) url="$url/v5.0.0/$path" ;;
-        *)  url="$url/v1.41/$path" ;;
+        *) url="$url/v1.41/$path" ;;
         esac
     fi
 
@@ -328,7 +347,8 @@ function t() {
         curl_args+=("-m" $APIV2_TEST_EXPECT_TIMEOUT)
     fi
 
-    local expected_code=$1; shift
+    local expected_code=$1
+    shift
 
     if [[ "$expected_code" == "101" ]]; then
         curl_args+=("-H" "Connection: upgrade" "-H" "Upgrade: tcp")
@@ -336,30 +356,33 @@ function t() {
 
     # Log every action we do
     echo "-------------------------------------------------------------" >>$LOG
-    echo "\$ $testname"                                                  >>$LOG
+    echo "\$ $testname" >>$LOG
     rm -f $WORKDIR/curl.*
     # The --write-out 'format' gives us important response data.
     # The hairy "{ ...;rc=$?; } || :" lets us capture curl's exit code and
     # give a helpful diagnostic if it fails.
-    : > $WORKDIR/curl.result.out
-    : > $WORKDIR/curl.result.err
-    { response=$(curl -X $method "${curl_args[@]}"               \
-                    -H "Content-type: $content_type"             \
-                    --dump-header $WORKDIR/curl.headers.out      \
-                    -v --stderr $WORKDIR/curl.result.err         \
-                    --write-out '%{http_code}^%{content_type}^%{time_total}' \
-                    -o $WORKDIR/curl.result.out "$url"); rc=$?; } || :
+    : >$WORKDIR/curl.result.out
+    : >$WORKDIR/curl.result.err
+    {
+        response=$(curl -X $method "${curl_args[@]}" \
+            -H "Content-type: $content_type" \
+            --dump-header $WORKDIR/curl.headers.out \
+            -v --stderr $WORKDIR/curl.result.err \
+            --write-out '%{http_code}^%{content_type}^%{time_total}' \
+            -o $WORKDIR/curl.result.out "$url")
+        rc=$?
+    } || :
     if [ -n "$PODMAN_TESTS_DUMP_TRACES" ]; then
         # Dump the results we got back, exactly as we got them back.
-        echo "\$ begin stdout"                                                      >>$LOG
+        echo "\$ begin stdout" >>$LOG
         test -s $WORKDIR/curl.result.out && od -t x1c $WORKDIR/curl.result.out 2>&1 >>$LOG
-        echo "\$ end stdout"                                                        >>$LOG
-        echo "\$ begin stderr"                                                      >>$LOG
-        test -s $WORKDIR/curl.result.err && cat $WORKDIR/curl.result.err            >>$LOG
-        echo "\$ end stderr"                                                        >>$LOG
-        echo "\$ begin response code^content_type^time_total"                       >>$LOG
-        od -t x1c <<< "$response"                                                   >>$LOG
-        echo "\$ end response"                                                      >>$LOG
+        echo "\$ end stdout" >>$LOG
+        echo "\$ begin stderr" >>$LOG
+        test -s $WORKDIR/curl.result.err && cat $WORKDIR/curl.result.err >>$LOG
+        echo "\$ end stderr" >>$LOG
+        echo "\$ begin response code^content_type^time_total" >>$LOG
+        od -t x1c <<<"$response" >>$LOG
+        echo "\$ end response" >>$LOG
     fi
 
     # Special case: this means we *expect and want* a timeout
@@ -381,7 +404,7 @@ function t() {
     # Show returned headers (without trailing ^M or empty lines) in log file.
     # Sometimes -- I can't remember why! -- we don't get headers.
     if [[ -e $WORKDIR/curl.headers.out ]]; then
-        tr -d '\015' < $WORKDIR/curl.headers.out | grep -E '.' >>$LOG
+        tr -d '\015' <$WORKDIR/curl.headers.out | grep -E '.' >>$LOG
     fi
 
     IFS='^' read actual_code content_type time_total <<<"$response"
@@ -393,7 +416,7 @@ function t() {
         echo "$output" >>$LOG
     elif [[ -e $WORKDIR/curl.result.out ]]; then
         # Output from /logs sometimes includes NULs. Strip them.
-        output=$(tr -d '\0' < $WORKDIR/curl.result.out)
+        output=$(tr -d '\0' <$WORKDIR/curl.result.out)
 
         if [[ $content_type =~ application/json ]] && [[ $method != "HEAD" ]]; then
             jq . <<<"$output" >>$LOG
@@ -463,7 +486,7 @@ function t() {
 service_pid=
 function start_service() {
     # If there's a listener on the port, nothing for us to do
-    { exec 3<> /dev/tcp/$HOST/$PORT; } &>/dev/null && return
+    { exec 3<>/dev/tcp/$HOST/$PORT; } &>/dev/null && return
 
     test -x $PODMAN_BIN || die "Not found: $PODMAN_BIN"
 
@@ -488,7 +511,7 @@ function start_service() {
         system service \
         --time 0 \
         tcp:127.0.0.1:$PORT \
-        &> $WORKDIR/server.log &
+        &>$WORKDIR/server.log &
     service_pid=$!
     echo "# started service, pid $service_pid"
 
@@ -504,7 +527,7 @@ function stop_service() {
     fi
     service_pid=
 
-    if { exec 3<> /dev/tcp/$HOST/$PORT; } &>/dev/null; then
+    if { exec 3<>/dev/tcp/$HOST/$PORT; } &>/dev/null; then
         echo "# WARNING: stop_service: Service still running on port $PORT"
     fi
 
@@ -545,10 +568,10 @@ function start_registry() {
     if [[ ! -e $AUTHDIR/domain.key ]]; then
         # FIXME: is there a hidden "--quiet" flag? This is too noisy.
         openssl req -newkey rsa:4096 -nodes -sha256 \
-                -keyout $AUTHDIR/domain.key -x509 -days 2 \
-                -out $AUTHDIR/domain.crt \
-                -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=registry host certificate" \
-                -addext subjectAltName=DNS:localhost
+            -keyout $AUTHDIR/domain.key -x509 -days 2 \
+            -out $AUTHDIR/domain.crt \
+            -subj "/C=US/ST=Foo/L=Bar/O=Red Hat, Inc./CN=registry host certificate" \
+            -addext subjectAltName=DNS:localhost
     fi
 
     # If invoked with auth=htpasswd, create credentials
@@ -560,7 +583,7 @@ function start_registry() {
         REGISTRY_PASSWORD=p$(random_string 7)
 
         htpasswd -Bbn ${REGISTRY_USERNAME} ${REGISTRY_PASSWORD} \
-                 > $AUTHDIR/htpasswd
+            >$AUTHDIR/htpasswd
 
         registry_auth_params+=(
             -e "REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm"
@@ -570,13 +593,13 @@ function start_registry() {
 
     # Run the registry, and wait for it to come up
     podman ${PODMAN_REGISTRY_ARGS} run -d \
-           -p ${REGISTRY_PORT}:5000 \
-           --name registry \
-           -v $AUTHDIR:/auth:Z \
-           "${registry_auth_params[@]}" \
-           -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
-           -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
-           ${REGISTRY_IMAGE}
+        -p ${REGISTRY_PORT}:5000 \
+        --name registry \
+        -v $AUTHDIR:/auth:Z \
+        "${registry_auth_params[@]}" \
+        -e REGISTRY_HTTP_TLS_CERTIFICATE=/auth/domain.crt \
+        -e REGISTRY_HTTP_TLS_KEY=/auth/domain.key \
+        ${REGISTRY_IMAGE}
 
     wait_for_port localhost $REGISTRY_PORT 10
     echo "# started registry (auth=$auth) on port $PORT"
@@ -612,7 +635,7 @@ function random_port() {
 
     local port
     for port in $(shuf -i ${range}); do
-        if ! { exec 5<> /dev/tcp/127.0.0.1/$port; } &>/dev/null; then
+        if ! { exec 5<>/dev/tcp/127.0.0.1/$port; } &>/dev/null; then
             echo $port
             return
         fi
@@ -633,18 +656,18 @@ function random_string() {
 #  wait_for_port  #  Returns once port is available on host
 ###################
 function wait_for_port() {
-    local host=$1                      # Probably "localhost"
-    local port=$2                      # Numeric port
-    local _timeout=${3:-5}             # Optional; default to 5 seconds
+    local host=$1          # Probably "localhost"
+    local port=$2          # Numeric port
+    local _timeout=${3:-5} # Optional; default to 5 seconds
 
     local path=/dev/tcp/$host/$port
 
     # Wait
     local i=$_timeout
     while [ $i -gt 0 ]; do
-        { exec 3<> /dev/tcp/$host/$port; } &>/dev/null && return
+        { exec 3<>/dev/tcp/$host/$port; } &>/dev/null && return
         sleep 1
-        i=$(( $i - 1 ))
+        i=$(($i - 1))
     done
     die "Timed out (${_timeout}s) waiting for service ($path)"
 }
@@ -653,9 +676,9 @@ function wait_for_port() {
 #  podman  #  Needed by some test scripts to invoke the actual podman binary
 ############
 function podman() {
-    echo "\$ $PODMAN_BIN $*"                           >>$WORKDIR/output.log
+    echo "\$ $PODMAN_BIN $*" >>$WORKDIR/output.log
     env CONTAINERS_REGISTRIES_CONF=$registries_conf_path \
-        $PODMAN_BIN --root $WORKDIR/server_root "$@"   >>$WORKDIR/output.log 2>&1
+        $PODMAN_BIN --root $WORKDIR/server_root "$@" >>$WORKDIR/output.log 2>&1
 }
 
 ####################

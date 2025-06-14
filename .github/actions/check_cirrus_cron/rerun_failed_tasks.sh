@@ -29,7 +29,7 @@ _errfmt="Expecting %s value to not be empty"
 # shellcheck disable=SC2154
 if [[ -z "$SECRET_CIRRUS_API_KEY" ]]; then
     err $(printf "$_errfmt" "\$SECRET_CIRRUS_API_KEY")
-elif [[ ! -r "$ID_NAME_FILEPATH" ]]; then  # output from cron_failures.sh
+elif [[ ! -r "$ID_NAME_FILEPATH" ]]; then # output from cron_failures.sh
     err $(printf "Expecting %s value to be a readable file" "\$ID_NAME_FILEPATH")
 fi
 
@@ -41,7 +41,7 @@ mkdir -p $GITHUB_WORKSPACE/artifacts
 # If there are no tasks, don't fail reading the file
 truncate -s 0 $GITHUB_WORKSPACE/artifacts/rerun_tids.txt
 
-cat "$ID_NAME_FILEPATH" | \
+cat "$ID_NAME_FILEPATH" |
     while read -r BID NAME; do
         if [[ -z "$NAME" ]]; then
             err $(printf "$_errfmt" "\$NAME")
@@ -71,7 +71,7 @@ cat "$ID_NAME_FILEPATH" | \
         #         },
         #         ...
         msg "::group::Selecting failed/aborted tasks to re-run"
-        jq -r -e '.data.build.tasks[] | join(" ")' <<<"$task_id_status" | \
+        jq -r -e '.data.build.tasks[] | join(" ")' <<<"$task_id_status" |
             while read -r TID STATUS; do
                 if [[ -z "$TID" ]] || [[ -z "$STATUS" ]]; then
                     # assume empty line and/or end of file
@@ -82,7 +82,7 @@ cat "$ID_NAME_FILEPATH" | \
                     msg "Rerunning build $BID task $TID"
                     # Must send result through a file into rerun_tasks array
                     # because this section is executing in a child-shell
-                    echo "$TID" >> $GITHUB_WORKSPACE/artifacts/rerun_tids.txt
+                    echo "$TID" >>$GITHUB_WORKSPACE/artifacts/rerun_tids.txt
                 fi
             done
         declare -a rerun_tasks
@@ -91,7 +91,7 @@ cat "$ID_NAME_FILEPATH" | \
 
         if [[ "${#rerun_tasks[*]}" -eq 0 ]]; then
             msg "No tasks to re-run for build $BID"
-            continue;
+            continue
         fi
 
         msg "::warning::Rerunning ${#rerun_tasks[*]} tasks for build $BID"
@@ -115,7 +115,7 @@ cat "$ID_NAME_FILEPATH" | \
         filter='.data.batchReRun.clientMutationId'
         if [[ ! "$NAME" =~ "testing" ]]; then # see test.sh
             result=$(gql "$rerun_m" "$filter")
-            if [[ $(jq -r -e "$filter"<<<"$result") != "$canary" ]]; then
+            if [[ $(jq -r -e "$filter" <<<"$result") != "$canary" ]]; then
                 err "Attempt to re-run tasks for build $BID failed: ${rerun_tasks[*]}"
             fi
         else

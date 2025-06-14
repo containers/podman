@@ -25,7 +25,7 @@ function _check_pause_process() {
     test -d /proc/$pause_pid || die "Pause process $pause_pid (from $pause_pid_file) is not running"
 
     assert "$(</proc/$pause_pid/comm)" =~ 'catatonit|podman pause' \
-           "Pause process $pause_pid has an unexpected name"
+        "Pause process $pause_pid has an unexpected name"
 }
 
 # Test for https://github.com/containers/podman/issues/17903
@@ -66,11 +66,11 @@ function _check_pause_process() {
     # and all podmans, with & without --tmpdir, should use the same ns
     run_podman $getns
     assert "$output" == "$tmpdir_userns" \
-           "podman should use the same userns created using a tmpdir"
+        "podman should use the same userns created using a tmpdir"
 
     run_podman --tmpdir $PODMAN_TMPDIR/tmp2 $getns
     assert "$output" == "$tmpdir_userns" \
-           "podman with tmpdir2 should use the same userns created using a tmpdir"
+        "podman with tmpdir2 should use the same userns created using a tmpdir"
 }
 
 # https://github.com/containers/podman/issues/16091
@@ -92,7 +92,6 @@ function _check_pause_process() {
     # our container exits 0 so podman should too
     wait $kidpid || die "podman run exited $? instead of zero"
 }
-
 
 @test "rootless reexec with sig-proxy when rejoining userns from container" {
     skip_if_not_rootless "pause process is only used as rootless"

@@ -203,7 +203,7 @@ function make_layer_blob() {
     local tmpdir=$(mktemp -d --tmpdir=${PODMAN_TMPDIR} make_layer_blob.XXXXXX)
     local blobfile
     local seqargs
-    for arg in "${@}" ; do
+    for arg in "${@}"; do
         seqargs="${blobfile:+$seqargs $blobfile}"
         blobfile="$arg"
     done
@@ -220,24 +220,24 @@ function testing_make_image_metadata_for_layer_blobs() {
     local tmpdir=$(mktemp -d --tmpdir=${PODMAN_TMPDIR} make_image_metadata.XXXXXX)
     local imageID=$1
     shift
-    echo '{"config":{},"rootfs":{"type":"layers","diff_ids":[' > $tmpdir/config.json
-    echo '{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","layers":[' > $tmpdir/manifest
+    echo '{"config":{},"rootfs":{"type":"layers","diff_ids":[' >$tmpdir/config.json
+    echo '{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","layers":[' >$tmpdir/manifest
     local comma=
-    for blob in "$@" ; do
+    for blob in "$@"; do
         local sum=$(sha256sum $blob)
         sum=${sum%% *}
         local size=$(wc -c $blob)
         size=${size%% *}
-        echo $comma '"sha256:'$sum'"' >> $tmpdir/config.json
-        echo $comma '{"digest":"sha256:'$sum'","size":'$size',"mediaType":"application/vnd.oci.image.layer.v1.tar"}' >> $tmpdir/manifest
+        echo $comma '"sha256:'$sum'"' >>$tmpdir/config.json
+        echo $comma '{"digest":"sha256:'$sum'","size":'$size',"mediaType":"application/vnd.oci.image.layer.v1.tar"}' >>$tmpdir/manifest
         comma=,
     done
-    echo ']}}' >> $tmpdir/config.json
+    echo ']}}' >>$tmpdir/config.json
     sum=$(sha256sum $tmpdir/config.json)
     sum=${sum%% *}
     size=$(wc -c $tmpdir/config.json)
     size=${size%% *}
-    echo '],"config":{"digest":"sha256:'$sum'","size":'$size',"mediaType":"application/vnd.oci.image.config.v1+json"}}' >> $tmpdir/manifest
+    echo '],"config":{"digest":"sha256:'$sum'","size":'$size',"mediaType":"application/vnd.oci.image.config.v1+json"}}' >>$tmpdir/manifest
     run_podman_testing create-image-data -i $imageID -k sha256:$sum -f $tmpdir/config.json
     sum=$(sha256sum $tmpdir/manifest)
     sum=${sum%% *}

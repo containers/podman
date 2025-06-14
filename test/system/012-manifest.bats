@@ -13,10 +13,10 @@ function setup_file() {
         start_registry
         authfile=${PODMAN_LOGIN_WORKDIR}/auth-manifest.json
         run_podman login --tls-verify=false \
-                   --username ${PODMAN_LOGIN_USER} \
-                   --password-stdin \
-                   --authfile=$authfile \
-                   localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
+            --username ${PODMAN_LOGIN_USER} \
+            --password-stdin \
+            --authfile=$authfile \
+            localhost:${PODMAN_LOGIN_REGISTRY_PORT} <<<"${PODMAN_LOGIN_PASS}"
         is "$output" "Login Succeeded!" "output from podman login"
     fi
 }
@@ -25,7 +25,7 @@ function teardown() {
     # Enumerate every one of the manifest names used everywhere below
     echo "[ teardown - ignore 'image not known' errors below ]"
     run_podman '?' manifest rm "m-$(safename):1.0" \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/"m-$(safename):1.0"
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}/"m-$(safename):1.0"
 
     basic_teardown
 }
@@ -44,23 +44,23 @@ function teardown() {
 #     COMPRESSION       compression algorithm name; e.g "zstd".
 #
 function validate_instance_compression {
-  case $4 in
+    case $4 in
 
-   gzip)
-    run jq -r '.manifests['$1'].annotations' <<< $2
-    # annotation is `null` for gzip compression
-    assert "$output" = "null" ".manifests[$1].annotations (null means gzip)"
-    ;;
+    gzip)
+        run jq -r '.manifests['$1'].annotations' <<<$2
+        # annotation is `null` for gzip compression
+        assert "$output" = "null" ".manifests[$1].annotations (null means gzip)"
+        ;;
 
-  zstd)
-    # annotation `'"io.github.containers.compression.zstd": "true"'` must be there for zstd compression
-    run jq -r '.manifests['$1'].annotations."io.github.containers.compression.zstd"' <<< $2
-    assert "$output" = "true" ".manifests[$1].annotations.'io.github.containers.compression.zstd' (io.github.containers.compression.zstd must be set)"
-    ;;
-  esac
+    zstd)
+        # annotation `'"io.github.containers.compression.zstd": "true"'` must be there for zstd compression
+        run jq -r '.manifests['$1'].annotations."io.github.containers.compression.zstd"' <<<$2
+        assert "$output" = "true" ".manifests[$1].annotations.'io.github.containers.compression.zstd' (io.github.containers.compression.zstd must be set)"
+        ;;
+    esac
 
-  run jq -r '.manifests['$1'].platform.architecture' <<< $2
-  assert "$output" = $3 ".manifests[$1].platform.architecture"
+    run jq -r '.manifests['$1'].platform.architecture' <<<$2
+    assert "$output" = $3 ".manifests[$1].platform.architecture"
 }
 
 # Regression test for #8931
@@ -103,7 +103,7 @@ function validate_instance_compression {
     for opt in '' '--insecure=false' '--tls-verify=true' "--authfile=$authfile"; do
         run_podman 125 manifest inspect $opt $manifest1
         assert "$output" =~ "Error: reading image \"docker://$manifest1\": pinging container registry localhost:${PODMAN_LOGIN_REGISTRY_PORT}:.*x509" \
-               "TLE check: fails (as expected) with ${opt:-default}"
+            "TLE check: fails (as expected) with ${opt:-default}"
     done
 
     run_podman manifest inspect --authfile=$authfile --tls-verify=false $manifest1
@@ -129,7 +129,7 @@ EOF
     local img="i-$(safename)"
     local manifestlocal="m-$(safename):1.0"
     run_podman manifest create $manifestlocal
-    for arch in amd arm;do
+    for arch in amd arm; do
         run_podman build --layers=false -t "$img-$arch" --platform linux/${arch}64 -f $dockerfile
         run_podman manifest add $manifestlocal containers-storage:localhost/"$img-$arch:latest"
     done
@@ -157,18 +157,17 @@ EOF
     pmanifest="$output"
 
     objects=$(for obj in 0 1 2 3; do echo \
-          ".manifests[$obj].annotations" \
-          ".manifests[$obj].digest" \
-          ".manifests[$obj].platform.architecture" \
-          ".manifests[$obj].platform.os" \
-          ".manifests[$obj].mediaType" \
-          ".manifests[$obj].size" \
-          ; done)
+        ".manifests[$obj].annotations" \
+        ".manifests[$obj].digest" \
+        ".manifests[$obj].platform.architecture" \
+        ".manifests[$obj].platform.os" \
+        ".manifests[$obj].mediaType" \
+        ".manifests[$obj].size" \
+        ; done)
     for object in \
         $objects \
         '.schemaVersion' \
-        '.mediaType' \
-         ; do
+        '.mediaType'; do
         skopeoObj=$(jq -r "$object" <<<"$smanifest")
         podmanObj=$(jq -r "$object" <<<"$pmanifest")
         assert "$skopeoObj" != "$smanifest" "\"$object\" does not exist in skopeo result"
@@ -197,7 +196,7 @@ function manifestListAddArtifactOnce() {
     run_podman manifest inspect $list
     run_podman tag $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
     run_podman manifest push --authfile=$authfile --tls-verify=false \
-               localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
+        localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
     echo "skopeo inspect ..."
     run skopeo inspect --authfile=$authfile --tls-verify=false --raw \
         docker://localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
@@ -206,17 +205,17 @@ function manifestListAddArtifactOnce() {
     echo "$output"
     index="$output"
 
-    if [[ -n "$listFlags" ]] ; then
+    if [[ -n "$listFlags" ]]; then
         assert $(jq -r '.annotations["global"]' <<<"$index") == local \
-               "listFlags=$listFlags, .annotations[global]"
+            "listFlags=$listFlags, .annotations[global]"
     fi
-    if [[ -n "$platformFlags" ]] ; then
+    if [[ -n "$platformFlags" ]]; then
         assert $(jq -r '.manifests[1].platform.os' <<<"$index") == linux \
-               "platformFlags=$platformFlags, .platform.os"
+            "platformFlags=$platformFlags, .platform.os"
         assert $(jq -r '.manifests[1].platform.architecture' <<<"$index") == amd64 \
-               "platformFlags=$platformFlags, .platform.architecture"
+            "platformFlags=$platformFlags, .platform.architecture"
     fi
-    if [[ -n "$typeFlag" ]] ; then
+    if [[ -n "$typeFlag" ]]; then
         actual=$(jq -r '.manifests[0].artifactType' <<<"$index")
         assert "${actual#null}" == "${typeFlag#--artifact-type=}"
         actual=$(jq -r '.manifests[1].artifactType' <<<"$index")
@@ -224,7 +223,7 @@ function manifestListAddArtifactOnce() {
     fi
     firstdigest=$(jq -r '.manifests[0].digest' <<<"$index")
     seconddigest=$(jq -r '.manifests[1].digest' <<<"$index")
-    for digest in $firstdigest $seconddigest ; do
+    for digest in $firstdigest $seconddigest; do
         case $digest in
         $firstdigest)
             filetitle=listed.txt
@@ -246,35 +245,35 @@ function manifestListAddArtifactOnce() {
         assert $status -eq 0 "skopeo inspect (status)"
 
         artifact="$output"
-        if [[ -n "$typeFlag" ]] ; then
+        if [[ -n "$typeFlag" ]]; then
             actual=$(jq -r '.artifactType' <<<"$artifact")
             assert "${actual#null}" == "${typeFlag#--artifact-type=}" \
-                   "typeFlag=$typeFlag, .artifactType"
+                "typeFlag=$typeFlag, .artifactType"
         else
             actual=$(jq -r '.artifactType' <<<"$artifact")
             assert "${actual}" == application/vnd.unknown.artifact.v1 \
-                   "typeFlag=NULL, .artifactType"
+                "typeFlag=NULL, .artifactType"
         fi
-        if [ -n "$layerTypeFlag" ] ; then
+        if [ -n "$layerTypeFlag" ]; then
             actual=$(jq -r '.layers[0].mediaType' <<<"$artifact")
             assert "${actual}" == "${layerTypeFlag#--artifact-layer-type=}" \
-                   "layerTypeFlag=$layerTypeFlag, layer0.mediaType"
+                "layerTypeFlag=$layerTypeFlag, layer0.mediaType"
         else
             actual=$(jq -r '.layers[0].mediaType' <<<"$artifact")
             assert "${actual}" == "$defaulttype" \
-                   "layerTypeFlag=NULL, layer0.mediaType"
+                "layerTypeFlag=NULL, layer0.mediaType"
         fi
         requested=${configTypeFlag#--artifact-config-type=}
         actual=$(jq -r '.config.mediaType' <<<"$artifact")
-        if test -n "$requested" ; then
+        if test -n "$requested"; then
             assert "$actual" == "$requested" ".config.mediaType (requested)"
         else
             config=${configFlag#--artifact-config=}
-            if [ -z "$config" ] ; then
+            if [ -z "$config" ]; then
                 expected=application/vnd.oci.empty.v1+json
             else
                 configSize=$(wc -c <"$config")
-                if [ $configSize -gt 0 ] ; then
+                if [ $configSize -gt 0 ]; then
                     expected=application/vnd.oci.image.config.v1+json
                 else
                     expected=application/vnd.oci.empty.v1+json
@@ -284,11 +283,11 @@ function manifestListAddArtifactOnce() {
         fi
 
         imgtitle=$(jq -r '.layers[0].annotations["org.opencontainers.image.title"]' <<<"$artifact")
-        if test -n "$titleFlag" ; then
+        if test -n "$titleFlag"; then
             assert "$imgtitle" == null "titleFlag=$titleFlag, .image.title"
         else
             assert "$imgtitle" == "$filetitle" \
-                   "titleFlag=NULL, .image.title"
+                "titleFlag=NULL, .image.title"
         fi
     done
     run_podman rmi $list localhost:${PODMAN_LOGIN_REGISTRY_PORT}/$list
@@ -300,27 +299,27 @@ function manifestListAddArtifactOnce() {
     skip_if_remote "running a local registry doesn't work with podman-remote"
     local list="m-$(safename):1.0"
     truncate -s 20M ${PODMAN_TMPDIR}/zeroes
-    echo oh yeah > ${PODMAN_TMPDIR}/listed.txt
-    echo '{}' > ${PODMAN_TMPDIR}/minimum-config.json
+    echo oh yeah >${PODMAN_TMPDIR}/listed.txt
+    echo '{}' >${PODMAN_TMPDIR}/minimum-config.json
     local listFlags platformFlags typeFlag configTypeFlag configFlag layerTypeFlag titleFlag
-    for listFlags in "" "--annotation global=local" ; do
+    for listFlags in "" "--annotation global=local"; do
         manifestListAddArtifactOnce
     done
-    for platformFlags in "" "--os=linux --arch=amd64" ; do
+    for platformFlags in "" "--os=linux --arch=amd64"; do
         manifestListAddArtifactOnce
     done
-    for typeFlag in "" --artifact-type="" --artifact-type=application/octet-stream --artifact-type=text/plain ; do
+    for typeFlag in "" --artifact-type="" --artifact-type=application/octet-stream --artifact-type=text/plain; do
         manifestListAddArtifactOnce
     done
-    for configTypeFlag in "" --artifact-config-type=application/octet-stream --artifact-config-type=text/plain ; do
-        for configFlag in "" --artifact-config= --artifact-config=${PODMAN_TMPDIR}/minimum-config.json ; do
+    for configTypeFlag in "" --artifact-config-type=application/octet-stream --artifact-config-type=text/plain; do
+        for configFlag in "" --artifact-config= --artifact-config=${PODMAN_TMPDIR}/minimum-config.json; do
             manifestListAddArtifactOnce
         done
     done
-    for layerTypeFlag in "" --artifact-layer-type=application/octet-stream --artifact-layer-type=text/plain ; do
+    for layerTypeFlag in "" --artifact-layer-type=application/octet-stream --artifact-layer-type=text/plain; do
         manifestListAddArtifactOnce
     done
-    for titleFlag in "" "--artifact-exclude-titles" ; do
+    for titleFlag in "" "--artifact-exclude-titles"; do
         manifestListAddArtifactOnce
     done
 }

@@ -16,7 +16,7 @@ function setup() {
         if [[ -n "$CHECKED_ROOTLESS" ]]; then
             run_podman '?' container checkpoint -l
             is "$output" "Error: checkpointing a container requires root" \
-               "Confirming that rootless checkpoint doesn't work. If that changed, please reexamine this test file!"
+                "Confirming that rootless checkpoint doesn't work. If that changed, please reexamine this test file!"
             CHECKED_ROOTLESS=y
         fi
         skip "checkpoint does not work rootless"
@@ -47,7 +47,7 @@ function setup() {
     is "$output" ".*$cid" "podman container checkpoint"
 
     run_podman container inspect \
-               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
+        --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
     is "$output" "exited:false:false:true" "State. Status:Running:Pause:Checkpointed"
 
     # Plan A was to do something similar to 080-pause.bats: sleep for long
@@ -66,9 +66,9 @@ function setup() {
 
     # Note that upon restore, .Checkpointed reverts to false (#12117)
     run_podman container inspect \
-               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
+        --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
     is "$output" "running:true:false:false" \
-       "State. Status:Running:Pause:Checkpointed"
+        "State. Status:Running:Pause:Checkpointed"
 
     # Re-fetch logs, and ensure that they continue growing.
     # Allow a short while for container process to actually restart.
@@ -83,7 +83,7 @@ function setup() {
         retries=$((retries - 1))
     done
     assert "$retries" -gt 0 \
-           "Container failed to output new lines after first restore"
+        "Container failed to output new lines after first restore"
 
     # Same thing again: test for https://github.com/containers/crun/issues/756
     # in which, after second checkpoint/restore, we lose logs
@@ -104,7 +104,7 @@ function setup() {
         retries=$((retries - 1))
     done
     assert "$retries" -gt 0 \
-           "stdout went away after second restore (crun issue 756)"
+        "stdout went away after second restore (crun issue 756)"
 
     run_podman rm -t 0 -f $cid
 }
@@ -149,9 +149,9 @@ function setup() {
     local server=http://127.0.0.1:$host_port
 
     run_podman $p_opts run -d --name $cname --volume $volname:/myvol \
-               -p $host_port:80 \
-               -w /myvol \
-               $IMAGE sh -c "/bin/busybox-extras httpd -p 80;echo $cname >cname;echo READY;while :;do cat /proc/uptime >mydate.tmp;mv -f mydate.tmp mydate;sleep 0.1;done"
+        -p $host_port:80 \
+        -w /myvol \
+        $IMAGE sh -c "/bin/busybox-extras httpd -p 80;echo $cname >cname;echo READY;while :;do cat /proc/uptime >mydate.tmp;mv -f mydate.tmp mydate;sleep 0.1;done"
     local cid="$output"
     _PODMAN_TEST_OPTS="$p_opts" wait_for_ready $cid
 
@@ -163,9 +163,9 @@ function setup() {
 
     # Checkpoint...
     run_podman $p_opts container checkpoint \
-               --ignore-rootfs \
-               --export=$PODMAN_TMPDIR/$cname.tar.gz \
-               $cname
+        --ignore-rootfs \
+        --export=$PODMAN_TMPDIR/$cname.tar.gz \
+        $cname
 
     # ...confirm that port is now closed
     run curl --max-time 1 -s $server/mydate
@@ -178,7 +178,7 @@ function setup() {
     # Inspect (on regular root). Note that, unlike the basic test above,
     # .State.Checkpointed here is *false*.
     run_podman container inspect \
-               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cname
+        --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cname
     is "$output" "running:true:false:false" "State. Status:Running:Pause:Checkpointed"
 
     # Pause a moment to let the restarted container update the timestamp file
@@ -186,7 +186,7 @@ function setup() {
     run curl --max-time 3 -s $server/mydate
     local date_newroot="$output"
     assert "$date_newroot" != "$date_oldroot" \
-           "Restored container did not update the timestamp file"
+        "Restored container did not update the timestamp file"
 
     run_podman exec $cid cat /myvol/cname
     is "$output" "$cname" "volume transferred fine"
@@ -211,7 +211,7 @@ function setup() {
     is "$output" "$cid" "podman container checkpoint"
 
     run_podman container inspect \
-               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
+        --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $cid
     is "$output" "exited:false:false:true" "State. Status:Running:Pause:Checkpointed"
 
     # Restart immediately and confirm state
@@ -440,14 +440,14 @@ function setup() {
     is "$output" "$ctrID"
 
     run_podman container inspect \
-               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $ctrID
+        --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $ctrID
     is "$output" "exited:false:false:true" "State. Status:Running:Pause:Checkpointed"
 
     run_podman container restore -l
     is "$output" "$ctrID"
 
     run_podman container inspect \
-               --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $ctrID
+        --format '{{.State.Status}}:{{.State.Running}}:{{.State.Paused}}:{{.State.Checkpointed}}' $ctrID
     is "$output" "running:true:false:false" "State. Status:Running:Pause:Checkpointed"
 
     run_podman rm -t 0 -f $ctrID

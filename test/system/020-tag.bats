@@ -67,9 +67,9 @@ function _tag_and_check() {
 
     # Add a couple of tags
     run_podman tag $IMAGE \
-               "$registry/$imgname-1:latest" \
-               "$registry/$imgname-2:latest" \
-               "$registry/$imgname-3:latest"
+        "$registry/$imgname-1:latest" \
+        "$registry/$imgname-2:latest" \
+        "$registry/$imgname-3:latest"
 
     # Untag with arguments to for all tags to be removed
     run_podman untag $iid

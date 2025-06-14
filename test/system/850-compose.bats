@@ -67,8 +67,8 @@ EOF
     # podman-remote test might run with --url so unset this because the socket will be used otherwise
     CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman compose env
     assert "${lines[0]}" $op "$url" "line 1 of 3 (DOCKER_HOST)"
-    assert "${lines[1]}" = "0"      "line 2 of 3 (DOCKER_BUILDKIT)"
-    assert "${lines[2]}" = ""       "line 3 of 3 (DOCKER_CONFIG)"
+    assert "${lines[1]}" = "0" "line 2 of 3 (DOCKER_BUILDKIT)"
+    assert "${lines[2]}" = "" "line 3 of 3 (DOCKER_CONFIG)"
 
     DOCKER_HOST="$random_data" DOCKER_CONFIG="$random_data" CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman compose env
     is "${lines[0]}" "$random_data"

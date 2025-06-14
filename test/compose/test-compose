@@ -129,7 +129,7 @@ function _show_ok() {
     fi
     if [ $ok -eq 1 ]; then
         echo -e "${green}ok $count $testname${reset}"
-        echo    "ok $count $testname" >>$LOG
+        echo "ok $count $testname" >>$LOG
         return
     fi
 
@@ -143,8 +143,8 @@ function _show_ok() {
         printf "${red}#    actual: ${bold}%s${reset}\n" "$actual"
     fi
 
-    echo    "not ok $count $testname" >>$LOG
-    echo    "  expected: $expect"                     >>$LOG
+    echo "not ok $count $testname" >>$LOG
+    echo "  expected: $expect" >>$LOG
 
     _bump $failures_file
 }
@@ -156,16 +156,16 @@ function _bump() {
     local file=$1
 
     count=$(<$file)
-    echo $(( $count + 1 )) >| $file
+    echo $(($count + 1)) >|$file
 }
 
 ###############
 #  test_port  #  Run curl against a port, check results against expectation
 ###############
 function test_port() {
-    local port="$1"              # e.g. 5000
-    local op="$2"                # '=' or '~'
-    local expect="$3"            # what to expect from curl output
+    local port="$1"   # e.g. 5000
+    local op="$2"     # '=' or '~'
+    local expect="$3" # what to expect from curl output
 
     # -s -S means "silent, but show errors"
     local actual
@@ -182,12 +182,11 @@ function test_port() {
     fi
 
     case "$op" in
-        '=')   is   "$actual" "$expect" "$testname : port $port" ;;
-        '~')   like "$actual" "$expect" "$testname : port $port" ;;
-        *)     die "Invalid operator '$op'" ;;
+    '=') is "$actual" "$expect" "$testname : port $port" ;;
+    '~') like "$actual" "$expect" "$testname : port $port" ;;
+    *) die "Invalid operator '$op'" ;;
     esac
 }
-
 
 ###################
 #  start_service  #  Run the socket listener
@@ -216,7 +215,7 @@ function start_service() {
         --cdi-spec-dir $WORKDIR/cdi \
         system service \
         --time 0 unix://$DOCKER_SOCK \
-        &> $WORKDIR/server.log &
+        &>$WORKDIR/server.log &
     service_pid=$!
 
     # Wait (FIXME: how do we test the socket?)
@@ -225,7 +224,7 @@ function start_service() {
         # FIXME: should we actually try a read or write?
         test -S $DOCKER_SOCK && return
         sleep 1
-        _timeout=$(( $_timeout - 1 ))
+        _timeout=$(($_timeout - 1))
     done
     cat $WORKDIR/server.log
     die "Timed out waiting for service"
@@ -235,10 +234,10 @@ function start_service() {
 #  podman  #  Needed by some test scripts to invoke the actual podman binary
 ############
 function podman() {
-    echo "\$ podman $*"           >>$WORKDIR/output.log
+    echo "\$ podman $*" >>$WORKDIR/output.log
     output=$($PODMAN_BIN \
         --storage-driver=vfs \
-        --root    $WORKDIR/root    \
+        --root $WORKDIR/root \
         --runroot $WORKDIR/runroot \
         --network-config-dir $WORKDIR/networks \
         --cdi-spec-dir $WORKDIR/cdi \
@@ -357,12 +356,12 @@ for t in "${tests_to_run[@]}"; do
             trap - ERR
         fi
 
-        podman_compose up -d     &> $logfile
+        podman_compose up -d &>$logfile
         docker_compose_rc=$?
         if [[ $docker_compose_rc -ne 0 ]]; then
             _show_ok 0 "$testname - up" "[ok]" "status=$docker_compose_rc"
             sed -e 's/^/#  /' <$logfile
-            podman_compose down >>$logfile 2>&1      # No status check here
+            podman_compose down >>$logfile 2>&1 # No status check here
             exit 1
         fi
         _show_ok 1 "$testname - up"
@@ -382,7 +381,7 @@ for t in "${tests_to_run[@]}"; do
         fi
 
         # Done. Clean up.
-        podman_compose down     &>> $logfile
+        podman_compose down &>>$logfile
         rc=$?
         if [[ $rc -eq 0 ]]; then
             _show_ok 1 "$testname - down"
@@ -397,9 +396,9 @@ for t in "${tests_to_run[@]}"; do
 
     # FIXME: otherwise we get EBUSY
     if ! is_rootless; then
-        umount $WORKDIR/root/overlay  &>/dev/null
+        umount $WORKDIR/root/overlay &>/dev/null
     else
-        $PODMAN_BIN unshare umount $WORKDIR/root/overlay  &>/dev/null
+        $PODMAN_BIN unshare umount $WORKDIR/root/overlay &>/dev/null
     fi
 
     # FIXME: run 'podman ps'?

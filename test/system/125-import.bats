@@ -52,7 +52,7 @@ load helpers
     # Create a test file following test
     mkdir $PODMAN_TMPDIR/tmp
     touch $PODMAN_TMPDIR/testfile1
-    echo "modified tar file" >> $PODMAN_TMPDIR/tmp/testfile2
+    echo "modified tar file" >>$PODMAN_TMPDIR/tmp/testfile2
 
     # Create Dockerfile for test
     dockerfile=$PODMAN_TMPDIR/Dockerfile

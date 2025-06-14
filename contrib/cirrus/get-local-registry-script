@@ -48,14 +48,22 @@ Reasons for doing this:
 
 verbose=
 for i; do
-    value=`expr "$i" : '[^=]*=\(.*\)'`
+    value=$(expr "$i" : '[^=]*=\(.*\)')
     case "$i" in
-    -h*|--help)	echo "$usage"; exit 0;;
-    -v|--verbose)	verbose=$i; shift;;
-    -*)	echo "$ME: unrecognized option $i" >&2
-	echo "$usage" >&2
-	exit 1;;
-    *)	break;;
+    -h* | --help)
+        echo "$usage"
+        exit 0
+        ;;
+    -v | --verbose)
+        verbose=$i
+        shift
+        ;;
+    -*)
+        echo "$ME: unrecognized option $i" >&2
+        echo "$usage" >&2
+        exit 1
+        ;;
+    *) break ;;
     esac
 done
 
@@ -75,7 +83,7 @@ function get_imgsfx() {
         die "Did not find 'IMAGE_SUFFIX:.*c202.*' in .cirrus.yml"
     fi
 
-    expr "$imgsfx" : "^20[0-9]\{6\}t[0-9]\{6\}z-" &> /dev/null || die "IMAGE_SUFFIX '$imgsfx' (from .cirrus.yml) does not match expected YYYYMMDDtHHMMSS-* form"
+    expr "$imgsfx" : "^20[0-9]\{6\}t[0-9]\{6\}z-" &>/dev/null || die "IMAGE_SUFFIX '$imgsfx' (from .cirrus.yml) does not match expected YYYYMMDDtHHMMSS-* form"
 
     echo $imgsfx
 }
@@ -143,18 +151,18 @@ query_clean=$(tr -d \\012 <<<"$query")
 
 jsontmp=$(mktemp --tmpdir --suffix=.json $ME.graphql.XXXXXXX)
 
-curl -s -S -H "Authorization: bearer $GITHUB_TOKEN" -X POST --data "$query_clean" $GITHUB_GRAPHQL > $jsontmp
+curl -s -S -H "Authorization: bearer $GITHUB_TOKEN" -X POST --data "$query_clean" $GITHUB_GRAPHQL >$jsontmp
 
 # There should be one and exactly one comment from github-actions
 # that mentions the given imgsfx. Find its timestamp
-img_timestamp=$(jq -C -r '.data.search.edges.[].node.comments.nodes.[] | select(.author.login="github-actions") | select(.body | contains("c'${imgsfx}'")).createdAt' < $jsontmp)
+img_timestamp=$(jq -C -r '.data.search.edges.[].node.comments.nodes.[] | select(.author.login="github-actions") | select(.body | contains("c'${imgsfx}'")).createdAt' <$jsontmp)
 if [[ -z "$img_timestamp" ]]; then
     die "Did not find a github-actions comment mentioning '$imgsfx'"
 fi
 
 # Some time prior to that comment, there was a commit pushed to github
 # that resulted in that build. Find that commit's SHA (OID).
-push_sha=$(jq -C -r '.data.search.edges.[].node.commits.nodes.[].commit | select(.committedDate < "'${img_timestamp}'").oid' < $jsontmp)
+push_sha=$(jq -C -r '.data.search.edges.[].node.commits.nodes.[].commit | select(.committedDate < "'${img_timestamp}'").oid' <$jsontmp)
 
 # Got all the info we need. Clean up tmpfile
 rm -f $jsontmp

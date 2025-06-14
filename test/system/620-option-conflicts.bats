@@ -5,7 +5,6 @@
 
 load helpers
 
-
 # bats test_tags=ci:parallel
 @test "options that cannot be set together" {
     skip_if_remote "not much point testing remote, and container-cleanup fails anyway"
@@ -31,12 +30,12 @@ container cleanup | --exec=foo     | --rmi                  | foo
         for subcommand in "${subcommand_list[@]}"; do
             run_podman 125 $subcommand $opt1 $opt2 $args
             is "$output" "Error: $opt1_name and $opt2_name cannot be set together" \
-               "podman $subcommand $opt1 $opt2"
+                "podman $subcommand $opt1 $opt2"
 
             # Reverse order
             run_podman 125 $subcommand $opt2 $opt1 $args
             is "$output" "Error: $opt1_name and $opt2_name cannot be set together" \
-               "podman $subcommand $opt2 $opt1"
+                "podman $subcommand $opt2 $opt1"
         done
     done < <(parse_table "$tests")
 
@@ -45,10 +44,9 @@ container cleanup | --exec=foo     | --rmi                  | foo
         for cmd in create pull; do
             run_podman 125 $cmd --platform=foo --$opt=bar sdfsdf
             is "$output" "Error: --platform option can not be specified with --arch or --os" \
-               "podman $cmd --platform + --$opt"
+                "podman $cmd --platform + --$opt"
         done
     done
 }
-
 
 # vim: filetype=sh

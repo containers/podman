@@ -17,7 +17,7 @@ load helpers.network
     id="$output"
 
     expect=".* container start $id (image=$IMAGE, name=$cname,.* ${labelname}=${labelvalue}"
-    run_podman events --since "$before"  --filter type=container -f container=$cname --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
+    run_podman events --since "$before" --filter type=container -f container=$cname --filter label=${labelname}=${labelvalue} --filter event=start --stream=false
     is "$output" "$expect" "filtering by container name and label"
 
     # Same thing, but without the container-name filter
@@ -85,22 +85,22 @@ load helpers.network
 .*image untag $imageID $tag:latest
 .*image untag $imageID $IMAGE
 .*image remove $imageID $imageID" \
-       "podman events"
+        "podman events"
 
     # With --format we can check the _exact_ output, not just substrings
     local -a expect=("push--dir:$pushedDir"
-                     "save--$tarball"
-                     "loadfromarchive--$tarball"
-                     "pull--docker-archive:$tarball"
-                     "pull-error--$bogus_image"
-                     "tag--$tag"
-                     "untag--$tag:latest"
-                     "tag--$tag"
-                     "untag--$tag:latest"
-                     "untag--$IMAGE"
-                     "remove--$imageID"
-                     "loadfromarchive--$tarball"
-                    )
+        "save--$tarball"
+        "loadfromarchive--$tarball"
+        "pull--docker-archive:$tarball"
+        "pull-error--$bogus_image"
+        "tag--$tag"
+        "untag--$tag:latest"
+        "tag--$tag"
+        "untag--$tag:latest"
+        "untag--$IMAGE"
+        "remove--$imageID"
+        "loadfromarchive--$tarball"
+    )
     run_podman --events-backend=file events --stream=false --filter type=image --since $t0 --format '{{.Status}}--{{.Name}}'
     for i in $(seq 0 ${#expect[@]}); do
         assert "${lines[$i]}" = "${expect[$i]}" "events, line $i"
@@ -148,7 +148,7 @@ function _events_disjunctive_filters() {
 
     run_podman 125 --events-backend=file logs --follow $cname
     is "$output" "Error: using --follow with the journald --log-driver but without the journald --events-backend (file) is not supported" \
-       "Should fail with reasonable error message when events-backend and events-logger do not match"
+        "Should fail with reasonable error message when events-backend and events-logger do not match"
     run_podman rm $cname
 }
 
@@ -167,7 +167,7 @@ function _events_disjunctive_filters() {
 events_logfile_path="$events_file"
 EOF
     CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman --events-backend=file pull $IMAGE
-    assert "$(< $events_file)" =~ "\"Name\":\"$IMAGE\"" "Image found in events"
+    assert "$(<$events_file)" =~ "\"Name\":\"$IMAGE\"" "Image found in events"
 }
 
 function _populate_events_file() {
@@ -175,7 +175,7 @@ function _populate_events_file() {
     local events_file=$1
     truncate --size=0 $events_file
     for i in {0..99}; do
-        printf '{"Name":"busybox","Status":"pull","Time":"2022-04-06T11:26:42.7236679%02d+02:00","Type":"image","Attributes":null}\n' $i >> $events_file
+        printf '{"Name":"busybox","Status":"pull","Time":"2022-04-06T11:26:42.7236679%02d+02:00","Type":"image","Attributes":null}\n' $i >>$events_file
     done
 }
 
@@ -229,7 +229,7 @@ EOF
     run_podman create $IMAGE
     ctrID=$output
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman rm $ctrID
-    tail -n52 $eventsFile >> $expectedContentAfterTruncation
+    tail -n52 $eventsFile >>$expectedContentAfterTruncation
 
     # Make sure the events file looks as expected.
     is "$(cat $eventsFile)" "$(cat $expectedContentAfterTruncation)" "events file has been rotated"
@@ -263,7 +263,7 @@ EOF
 
     _populate_events_file $eventsFile
     CONTAINERS_CONF_OVERRIDE=$containersConf timeout --kill=10 20 \
-        $PODMAN events --stream=true --since="2022-03-06T11:26:42.723667984+02:00" --format=json > $eventsJSON &
+        $PODMAN events --stream=true --since="2022-03-06T11:26:42.723667984+02:00" --format=json >$eventsJSON &
 
     # Now wait for the above podman-events process to write to the eventsJSON
     # file, so we know it's reading.
@@ -276,7 +276,7 @@ EOF
         sleep 0.5
     done
     assert $retries -gt 0 \
-           "Timed out waiting for podman-events to start reading pre-existing events"
+        "Timed out waiting for podman-events to start reading pre-existing events"
 
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman create $IMAGE
     ctrID=$output
@@ -304,7 +304,6 @@ EOF
     is "${lines[50]}" "{\"Name\":\"$eventsFile\",\"Status\":\"log-rotation\",\"Time\":\".*\",\"Type\":\"system\",\"Attributes\":{\"io.podman.event.rotate\":\"end\"}}"
     is "${lines[53]}" "{\"ID\":\"$ctrID\",\"Image\":\"$IMAGE\",\"Name\":\".*\",\"Status\":\"remove\",\"Time\":\".*\",\"Type\":\"container\",\"Attributes\":{.*}}"
 
-
     # Make sure that the JSON stream looks as expected. That means it has all
     # events and no duplicates.
     run cat $eventsJSON
@@ -323,14 +322,14 @@ EOF
     local lvalue="labelvalue-$(safename) $(random_string 5)"
 
     run_podman 17 --events-backend=file run --rm \
-               --name=$cname \
-               --label=$lname="$lvalue" \
-               $IMAGE sh -c 'exit 17'
+        --name=$cname \
+        --label=$lname="$lvalue" \
+        $IMAGE sh -c 'exit 17'
     run_podman --events-backend=file events \
-               --filter=container=$cname \
-               --filter=status=died \
-               --stream=false \
-               --format="{{.Attributes.$lname}}"
+        --filter=container=$cname \
+        --filter=status=died \
+        --stream=false \
+        --format="{{.Attributes.$lname}}"
     assert "$output" = "$lvalue" "podman-events output includes container label"
 }
 
@@ -365,23 +364,23 @@ EOF
 
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman create --name=$cname $baseimage
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman container inspect --size=true $cname
-    inspect_json=$(jq -r --tab . <<< "$output")
+    inspect_json=$(jq -r --tab . <<<"$output")
 
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman --events-backend=$1 events \
-        --since="$t0"           \
-        --filter=status=$cname  \
-        --filter=status=create  \
-        --stream=false          \
+        --since="$t0" \
+        --filter=status=$cname \
+        --filter=status=create \
+        --stream=false \
         --format="{{.ContainerInspectData}}"
-    events_json=$(jq -r --tab . <<< "[$output]")
+    events_json=$(jq -r --tab . <<<"[$output]")
     assert "$events_json" = "$inspect_json" "JSON payload in event attributes is the same as the inspect one"
 
     # Make sure that the inspect data doesn't show by default in
     # podman-events.
     CONTAINERS_CONF_OVERRIDE=$containersConf run_podman --events-backend=$1 events \
-        --since="$t0"           \
-        --filter=status=$cname  \
-        --filter=status=create  \
+        --since="$t0" \
+        --filter=status=$cname \
+        --filter=status=create \
         --stream=false
     assert "$output" != ".*ConmonPidFile.*"
     assert "$output" != ".*EffectiveCaps.*"
@@ -411,9 +410,9 @@ EOF
     t0=$(date --iso-8601=ns)
     run_podman run --name=$cname --rm $IMAGE true
     run_podman events \
-        --since="$t0"           \
-        --filter=container=$cname  \
-        --filter=status=die     \
+        --since="$t0" \
+        --filter=container=$cname \
+        --filter=status=die \
         --stream=false
     assert "${lines[0]}" =~ ".* container died [0-9a-f]+ \(image=$IMAGE, name=$cname, .*\)"
 }

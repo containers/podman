@@ -4,7 +4,7 @@ load ../system/helpers.bash
 
 export FARM_TMPDIR=$(mktemp -d --tmpdir=${BATS_TMPDIR:-/tmp} podman_bats.XXXXXX)
 
-function setup(){
+function setup() {
     basic_setup
 
     # Always create the same containerfile
@@ -15,6 +15,6 @@ RUN date | tee /built.txt
 EOF
 }
 
-function teardown(){
+function teardown() {
     basic_teardown
 }

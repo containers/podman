@@ -71,6 +71,7 @@ BUILDTAGS += ${EXTRA_BUILDTAGS}
 # possible, as long as they don't disturb the formatting
 # (i.e. DO NOT ADD A 'v' prefix!)
 GOLANGCI_LINT_VERSION := 2.1.6
+SHFMT_VERSION := 3.11.0
 PYTHON ?= $(shell command -v python3 python|head -n1)
 PKG_MANAGER ?= $(shell command -v dnf yum|head -n1)
 # ~/.local/bin is not in PATH on all systems
@@ -95,7 +96,6 @@ endif
 SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_overlay
-CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
 OCI_RUNTIME ?= ""
 
 # The 'sort' below is crucial: without it, 'make docs' behaves differently
@@ -284,6 +284,11 @@ endif
 golangci-lint: .install.golangci-lint
 	hack/golangci-lint.sh
 
+.PHONY: shfmt
+shfmt: .install.shfmt
+	./bin/shfmt --version
+	./bin/shfmt -d -w .
+
 .PHONY: test/checkseccomp/checkseccomp
 test/checkseccomp/checkseccomp: $(wildcard test/checkseccomp/*.go)
 	$(GOCMD) build $(BUILDFLAGS) $(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
@@ -312,7 +317,7 @@ codespell:
 
 # Code validation target that **DOES NOT** require building podman binaries
 .PHONY: validate-source
-validate-source: lint .gitvalidation swagger-check tests-expect-exit pr-removes-fixed-skips
+validate-source: lint shfmt .gitvalidation swagger-check tests-expect-exit pr-removes-fixed-skips
 
 # Code validation target that **DOES** require building podman binaries
 .PHONY: validate-binaries
@@ -1025,6 +1030,10 @@ install.tools: .install.golangci-lint ## Install needed tools
 .PHONY: .install.golangci-lint
 .install.golangci-lint:
 	VERSION=$(GOLANGCI_LINT_VERSION) ./hack/install_golangci.sh
+
+.PHONY: .install.shfmt
+.install.shfmt:
+	GOBIN=$(CURDIR)/bin $(GO) install mvdan.cc/sh/v3/cmd/shfmt@v$(SHFMT_VERSION)
 
 .PHONY: .install.swagger
 .install.swagger:

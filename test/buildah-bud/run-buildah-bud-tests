@@ -36,12 +36,27 @@ declare -a bats_filter=()
 for i; do
     value=$(expr "$i" : '[^=]*=\(.*\)')
     case "$i" in
-        --no-checkout)  do_checkout= ; shift;;
-        --no-test)      do_test=     ; shift;;
-        --filter=*)     bats_filter=("--filter" "$value"); shift;;
-        --remote)       PODBIN_NAME=remote;;
-       -h|--help)       echo "$usage"; exit 0;;
-        *)              echo "$ME: Unrecognized option '$i'" >&2; exit 1;;
+    --no-checkout)
+        do_checkout=
+        shift
+        ;;
+    --no-test)
+        do_test=
+        shift
+        ;;
+    --filter=*)
+        bats_filter=("--filter" "$value")
+        shift
+        ;;
+    --remote) PODBIN_NAME=remote ;;
+    -h | --help)
+        echo "$usage"
+        exit 0
+        ;;
+    *)
+        echo "$ME: Unrecognized option '$i'" >&2
+        exit 1
+        ;;
     esac
 done
 
@@ -119,8 +134,14 @@ if [[ -n $CIRRUS_CHANGE_IN_REPO ]]; then
     if [[ -n $DEST_BRANCH ]]; then
         head=${CIRRUS_CHANGE_IN_REPO}
         # Base of this PR.
-        base=$(set -x;git merge-base ${DEST_BRANCH} $head)
-        changes=$(set -x;git diff --name-status $base $head)
+        base=$(
+            set -x
+            git merge-base ${DEST_BRANCH} $head
+        )
+        changes=$(
+            set -x
+            git diff --name-status $base $head
+        )
         if [[ -n $changes ]]; then
             if [[ $changes =~ vendor/$BUILDAH_REPO ]]; then
                 is_revendor=y
@@ -147,7 +168,10 @@ if [[ -n $do_checkout ]]; then
     fi
 
     failhint="'git clone' failed - this should never happen!"
-    (set -x;git clone -q $shallow_checkout https://$BUILDAH_REPO $buildah_dir)
+    (
+        set -x
+        git clone -q $shallow_checkout https://$BUILDAH_REPO $buildah_dir
+    )
 
     # Recent versions of git (like `2.39`) disallow some operations (like `am`)
     # without an identity being set.  In this case, git will throw an error
@@ -156,11 +180,11 @@ if [[ -n $do_checkout ]]; then
     # the environment is disposable.
     if [[ "$CI" == "true" ]]; then
         (
-        _gc='git config --global'
-        set -x
-        $_gc user.email "TMcTestFace@example.com"
-        $_gc user.name "Testy McTestface"
-        $_gc --add safe.directory $buildah_dir
+            _gc='git config --global'
+            set -x
+            $_gc user.email "TMcTestFace@example.com"
+            $_gc user.name "Testy McTestface"
+            $_gc --add safe.directory $buildah_dir
         )
     fi
 
@@ -170,30 +194,48 @@ if [[ -n $do_checkout ]]; then
         sha=${buildah_version##*-}
 
         failhint="'git checkout $sha' failed - this should never happen!"
-        (set -x;git checkout -q $sha)
+        (
+            set -x
+            git checkout -q $sha
+        )
     fi
 
     # Give it a recognizable tag; this will be useful if we need to update
     # the set of patches
-    (set -x;git tag $BASE_TAG)
+    (
+        set -x
+        git tag $BASE_TAG
+    )
 
     # Build buildah and the copy, inet, and dumpspec test helpers
     failhint="error building buildah. This should never happen."
-    (set -x;make bin/buildah)
+    (
+        set -x
+        make bin/buildah
+    )
     failhint="error building buildah's copy helper. This should never happen."
-    (set -x;make bin/copy)
+    (
+        set -x
+        make bin/copy
+    )
     failhint="error building buildah's inet helper. This should never happen."
-    (set -x;make bin/inet)
+    (
+        set -x
+        make bin/inet
+    )
     failhint="error building buildah's dumpspec helper. This should never happen."
-    (set -x;make bin/dumpspec)
+    (
+        set -x
+        make bin/dumpspec
+    )
 
     # The upcoming patch may fail. Before we try it, create a helper script
     # for a developer to push a new set of diffs to podman-land.
     failhint=
     sed -e "s,\[BASETAG\],${BASE_TAG},g" \
         -e "s,\[BUILDAHREPO\],${BUILDAH_REPO},g" \
-        < ${BUD_TEST_DIR}/make-new-buildah-diffs \
-        > make-new-buildah-diffs
+        <${BUD_TEST_DIR}/make-new-buildah-diffs \
+        >make-new-buildah-diffs
     chmod 755 make-new-buildah-diffs
 
     # Apply custom patches. We do this _after_ building, although it shouldn't
@@ -218,9 +260,12 @@ You will want to:
 
 ...and git-commit the new .diff file as part of your podman PR.
 "
-    (set -x;git am --reject <$PATCHES)
+    (
+        set -x
+        git am --reject <$PATCHES
+    )
 
-   # Now apply our custom skips and error-message changes. This is maintained
+    # Now apply our custom skips and error-message changes. This is maintained
     # in a custom script, not a .diff file, because diffs are WAY too hard for
     # humans to read and update.
     APPLY=apply-podman-deltas
@@ -232,7 +277,10 @@ vendor in a new buildah. You will want to:
   - find the corresponding lines in $BUD_TEST_DIR_REL/$APPLY
   - edit/delete them as necessary
 "
-    (set -x;$BUD_TEST_DIR/$APPLY)
+    (
+        set -x
+        $BUD_TEST_DIR/$APPLY
+    )
 else
     # Called with --no-checkout
     test -d $buildah_dir || die "Called with --no-checkout, but $buildah_dir does not exist"
@@ -257,13 +305,16 @@ review the test failure and double-check your changes.
 "
     fi
 
-    (set -x;$SUDO env TMPDIR=/var/tmp \
-                 PODMAN_BINARY=$PODMAN_BINARY \
-                 PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
-                 REMOTE=$REMOTE \
-                 BUILDAH_BINARY=$(pwd)/bin/buildah \
-                 COPY_BINARY=$(pwd)/bin/copy \
-                 INET_BINARY=$(pwd)/bin/inet \
-                 DUMPSPEC_BINARY=$(pwd)/bin/dumpspec \
-                 bats -j $(nproc) "${bats_filter[@]}" tests/bud.bats)
+    (
+        set -x
+        $SUDO env TMPDIR=/var/tmp \
+            PODMAN_BINARY=$PODMAN_BINARY \
+            PODMAN_SERVER_LOG=$PODMAN_SERVER_LOG \
+            REMOTE=$REMOTE \
+            BUILDAH_BINARY=$(pwd)/bin/buildah \
+            COPY_BINARY=$(pwd)/bin/copy \
+            INET_BINARY=$(pwd)/bin/inet \
+            DUMPSPEC_BINARY=$(pwd)/bin/dumpspec \
+            bats -j $(nproc) "${bats_filter[@]}" tests/bud.bats
+    )
 fi

@@ -104,7 +104,10 @@ load helpers
 # bats test_tags=ci:parallel
 @test "podman rm -f" {
     cname=c-$(safename)
-    ( sleep 3; run_podman rm -t 0 -f $cname ) &
+    (
+        sleep 3
+        run_podman rm -t 0 -f $cname
+    ) &
     run_podman 137 run --name $cname $IMAGE sleep 30
 }
 
@@ -127,15 +130,15 @@ load helpers
 # remain in state "stopping" for long enough to check it.
 function __run_healthcheck_container() {
     run_podman run -d --name $1 \
-               --health-cmd /bin/false \
-               --health-interval 1s \
-               --health-retries 2 \
-               --health-timeout 1s \
-               --health-on-failure=stop \
-               --stop-timeout=2 \
-               --health-start-period 0 \
-               --stop-signal SIGTERM \
-               $IMAGE sleep infinity
+        --health-cmd /bin/false \
+        --health-interval 1s \
+        --health-retries 2 \
+        --health-timeout 1s \
+        --health-on-failure=stop \
+        --stop-timeout=2 \
+        --health-start-period 0 \
+        --stop-signal SIGTERM \
+        $IMAGE sleep infinity
 }
 
 # bats test_tags=ci:parallel
@@ -160,7 +163,7 @@ function __run_healthcheck_container() {
 
         # rm failed. Confirm that it's for the right reason.
         assert "$output" =~ "Error: cannot remove container $cid as it is .* - running or paused containers cannot be removed without force: container state improper" \
-               "Expected error message from podman rm"
+            "Expected error message from podman rm"
         rm_failures=$((rm_failures + 1))
         sleep 0.5
     done

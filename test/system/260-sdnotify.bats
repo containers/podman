@@ -50,7 +50,7 @@ function _start_socat() {
     # This is a superstitious ritual to try to avoid leaving processes behind,
     # and thus prevent CI hangs.
     (exec socat unix-recvfrom:"$NOTIFY_SOCKET",fork \
-          system:"(cat;echo) >> $_SOCAT_LOG" 3>&-) &
+        system:"(cat;echo) >> $_SOCAT_LOG" 3>&-) &
     _SOCAT_PID=$!
 
     # Wait for socat to create the socket file. This _should_ be
@@ -112,7 +112,7 @@ function _assert_mainpid_is_conmon() {
     run_podman 1 start --attach $cid
     is "$output" "" "\$NOTIFY_SOCKET in container"
 
-    is "$(< $_SOCAT_LOG)" "" "nothing received on socket"
+    is "$(<$_SOCAT_LOG)" "" "nothing received on socket"
     _stop_socat
 }
 
@@ -123,9 +123,9 @@ function _assert_mainpid_is_conmon() {
 
     ctrname=c-$(safename)
     run_podman run -d --name $ctrname \
-               --sdnotify=conmon \
-               $IMAGE \
-               sh -c 'printenv NOTIFY_SOCKET;echo READY;sleep 999'
+        --sdnotify=conmon \
+        $IMAGE \
+        sh -c 'printenv NOTIFY_SOCKET;echo READY;sleep 999'
     cid="$output"
     wait_for_ready $cid
 
@@ -142,7 +142,7 @@ function _assert_mainpid_is_conmon() {
     wait_for_file_content $_SOCAT_LOG "READY=1"
 
     # ...and confirm the entire file contents
-    logcontents="$(< $_SOCAT_LOG)"
+    logcontents="$(<$_SOCAT_LOG)"
     assert "$logcontents" = "MAINPID=$mainPID
 READY=1" "sdnotify sent MAINPID and READY"
 
@@ -163,7 +163,7 @@ READY=1" "sdnotify sent MAINPID and READY"
     _start_socat
 
     run_podman run -d --sdnotify=container $SYSTEMD_IMAGE \
-               sh -c 'trap "touch /stop" SIGUSR1;printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done;systemd-notify --ready'
+        sh -c 'trap "touch /stop" SIGUSR1;printenv NOTIFY_SOCKET; echo READY; while ! test -f /stop;do sleep 0.1;done;systemd-notify --ready'
     cid="$output"
     wait_for_ready $cid
 
@@ -180,14 +180,14 @@ READY=1" "sdnotify sent MAINPID and READY"
     # be exactly one line in the log
     wait_for_file_content $_SOCAT_LOG "MAINPID=$mainPID"
     # ...and that line must contain the expected PID, nothing more
-    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID" "Container has started, but must not indicate READY yet"
+    assert "$(<$_SOCAT_LOG)" = "MAINPID=$mainPID" "Container has started, but must not indicate READY yet"
 
     # Done. Tell container to stop itself, and clean up
     run_podman kill -s USR1 $cid
     run_podman wait $cid
 
     wait_for_file_content $_SOCAT_LOG "READY=1"
-    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID
+    assert "$(<$_SOCAT_LOG)" = "MAINPID=$mainPID
 READY=1" "Container log after ready signal"
 
     run_podman rm $cid
@@ -208,12 +208,12 @@ READY=1" "Container log after ready signal"
     # Create a container with a simple `/bin/true` healthcheck that we need to
     # run manually.
     ctr=c-$(safename)
-    run_podman create --name $ctr     \
-            --health-cmd=/bin/true    \
-            --health-retries=1        \
-            --health-interval=disable \
-            --sdnotify=healthy        \
-            $IMAGE sleep infinity
+    run_podman create --name $ctr \
+        --health-cmd=/bin/true \
+        --health-retries=1 \
+        --health-interval=disable \
+        --sdnotify=healthy \
+        $IMAGE sleep infinity
 
     # Start the container in the background which will block until the
     # container turned healthy.  After that, create the wait_file which
@@ -230,7 +230,7 @@ READY=1" "Container log after ready signal"
     # Until then, there must be exactly one line in the log
     wait_for_file_content $_SOCAT_LOG "MAINPID="
     # ...and that line must contain the expected PID, nothing more
-    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID" "Container logs after start, prior to healthcheck run"
+    assert "$(<$_SOCAT_LOG)" = "MAINPID=$mainPID" "Container logs after start, prior to healthcheck run"
 
     # Now run the healthcheck and look for the READY message.
     run_podman healthcheck run $ctr
@@ -239,10 +239,10 @@ READY=1" "Container log after ready signal"
     # Wait for start to return.  At that point the READY message must have been
     # sent.
     wait_for_file_content $_SOCAT_LOG "READY=1"
-    assert "$(< $_SOCAT_LOG)" = "MAINPID=$mainPID
+    assert "$(<$_SOCAT_LOG)" = "MAINPID=$mainPID
 READY=1" "Container log after healthcheck run"
 
-    run_podman container inspect  --format "{{.State.Status}}" $ctr
+    run_podman container inspect --format "{{.State.Status}}" $ctr
     is "$output" "running" "make sure container is still running"
 
     run_podman rm -f -t0 $ctr
@@ -325,7 +325,7 @@ EOF
 ignore"
 
     wait_for_file_content $_SOCAT_LOG "READY=1"
-    assert "$(< $_SOCAT_LOG)" = "MAINPID=$main_pid
+    assert "$(<$_SOCAT_LOG)" = "MAINPID=$main_pid
 READY=1" "sdnotify sent MAINPID and READY"
 
     _stop_socat
@@ -408,7 +408,7 @@ EOF
 conmon
 ignore"
 
-    is "$(< $_SOCAT_LOG)" "" "nothing received on socket"
+    is "$(<$_SOCAT_LOG)" "" "nothing received on socket"
 
     # Make sure the container received a "proxy" socket and is not using the
     # one of `kube play`
@@ -434,7 +434,8 @@ ignore"
     wait_for_file_content $_SOCAT_LOG "READY=1"
 
     # (for debugging)
-    echo;echo "$_LOG_PROMPT cat $_SOCAT_LOG"
+    echo
+    echo "$_LOG_PROMPT cat $_SOCAT_LOG"
     run cat $_SOCAT_LOG
     echo "$output"
 
@@ -476,7 +477,7 @@ spec:
       image: $IMAGE
       command:
       - $cmd2
-" > $fname
+" >$fname
 }
 
 # bats test_tags=distro-integration, ci:parallel
@@ -514,8 +515,8 @@ none | false | false | 0
         yaml_sha=$(sha256sum $fname)
         service_container="${yaml_sha:0:12}-service"
         podman_exit=$exit_code
-        if [[ $sdnotify_policy == "ignore" ]];then
-             podman_exit=0
+        if [[ $sdnotify_policy == "ignore" ]]; then
+            podman_exit=0
         fi
         run_podman $podman_exit kube play --service-exit-code-propagation="$exit_code_prop" --service-container $fname
         # Make sure that there are no error logs (e.g., #19715)
@@ -620,7 +621,7 @@ READY=1" "podman-system-service sends expected data over NOTIFY_SOCKET"
     # Give the system-service 5sec to terminate before killing it.
     kill -TERM $mainpid
     timeout=5
-    while :;do
+    while :; do
         if ! kill -0 $mainpid; then
             # Yay, it's gone
             break

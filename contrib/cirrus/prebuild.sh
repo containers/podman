@@ -17,9 +17,9 @@ source $(dirname $0)/lib.sh
 set +a
 
 req_env_vars CI DEST_BRANCH IMAGE_SUFFIX TEST_FLAVOR TEST_ENVIRON \
-             PODBIN_NAME PRIV_NAME DISTRO_NV AUTOMATION_LIB_PATH \
-             SCRIPT_BASE CIRRUS_WORKING_DIR FEDORA_NAME \
-             VM_IMAGE_NAME
+    PODBIN_NAME PRIV_NAME DISTRO_NV AUTOMATION_LIB_PATH \
+    SCRIPT_BASE CIRRUS_WORKING_DIR FEDORA_NAME \
+    VM_IMAGE_NAME
 
 # Defined by the CI system
 # shellcheck disable=SC2154
@@ -74,7 +74,7 @@ if [[ "${DISTRO_NV}" == "$FEDORA_NAME" ]]; then
     # Defined by CI system
     # shellcheck disable=SC2154
     if [[ "$CIRRUS_CRON" == "main" ]]; then
-      export PREBUILD=1
-      showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
+        export PREBUILD=1
+        showrun bash ${CIRRUS_WORKING_DIR}/.github/actions/check_cirrus_cron/test.sh
     fi
 fi

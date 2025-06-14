@@ -88,9 +88,9 @@ function check_shell_completion() {
                         run_completion "$@" $cmd "--"
                         # If this fails there is most likely a problem with the cobra library
                         is "${lines[0]}" "--.*" \
-                           "$* $cmd: flag(s) listed in suggestions"
+                            "$* $cmd: flag(s) listed in suggestions"
                         assert "${#lines[@]}" -gt 2 \
-                               "$* $cmd: No flag suggestions"
+                            "$* $cmd: No flag suggestions"
                         _check_completion_end NoFileComp
                     fi
                     # continue the outer for args loop
@@ -111,7 +111,7 @@ function check_shell_completion() {
 
                     run_completion "$@" $cmd "${extra_args[@]}" ""
                     is "$output" ".*-$name${nl}" \
-                       "$* $cmd: actual container listed in suggestions"
+                        "$* $cmd: actual container listed in suggestions"
 
                     match=true
                     # resume
@@ -120,7 +120,7 @@ function check_shell_completion() {
                 *POD*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
                     is "$output" ".*-$random_pod_name${nl}" \
-                       "$* $cmd: actual pod listed in suggestions"
+                        "$* $cmd: actual pod listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -130,17 +130,17 @@ function check_shell_completion() {
                 *IMAGE*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
                     is "$output" ".*localhost/$random_image_name:$random_image_tag${nl}" \
-                       "$* $cmd: actual image listed in suggestions"
+                        "$* $cmd: actual image listed in suggestions"
 
                     # check that we complete the image with tag after at least one char is typed
                     run_completion "$@" $cmd "${extra_args[@]}" "${random_image_name:0:1}"
                     is "$output" ".*$random_image_name:$random_image_tag${nl}" \
-                       "$* $cmd: image name:tag included in suggestions"
+                        "$* $cmd: image name:tag included in suggestions"
 
                     # check that we complete the image id after at least two chars are typed
                     run_completion "$@" $cmd "${extra_args[@]}" "${random_image_id:0:2}"
                     is "$output" ".*$random_image_id${nl}" \
-                       "$* $cmd: image id included in suggestions when two leading characters present in command line"
+                        "$* $cmd: image id included in suggestions when two leading characters present in command line"
 
                     match=true
                     # resume
@@ -149,7 +149,7 @@ function check_shell_completion() {
                 *NETWORK*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
                     is "$output" ".*$random_network_name${nl}" \
-                       "$* $cmd: actual network listed in suggestions"
+                        "$* $cmd: actual network listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -159,7 +159,7 @@ function check_shell_completion() {
                 *VOLUME*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
                     is "$output" ".*$random_volume_name${nl}" \
-                       "$* $cmd: actual volume listed in suggestions"
+                        "$* $cmd: actual volume listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -180,7 +180,7 @@ function check_shell_completion() {
                 *SECRET*)
                     run_completion "$@" $cmd "${extra_args[@]}" ""
                     is "$output" ".*$random_secret_name${nl}" \
-                       "$* $cmd: actual secret listed in suggestions"
+                        "$* $cmd: actual secret listed in suggestions"
                     _check_completion_end NoFileComp
 
                     match=true
@@ -255,12 +255,11 @@ function _check_no_suggestions() {
         local i=0
         length=$((${#lines[@]} - 2))
         while [[ i -lt length ]]; do
-            assert "${lines[$i]:0:7}" == "[Debug]"  "Unexpected non-Debug output line: ${lines[$i]}"
+            assert "${lines[$i]:0:7}" == "[Debug]" "Unexpected non-Debug output line: ${lines[$i]}"
             i=$((i + 1))
         done
     fi
 }
-
 
 # bats test_tags=ci:parallel
 @test "podman shell completion test" {
@@ -275,7 +274,7 @@ function _check_no_suggestions() {
     random_secret_content=$(random_string 30)
     secret_file=$PODMAN_TMPDIR/$(random_string 10)
 
-    echo $random_secret_content > $secret_file
+    echo $random_secret_content >$secret_file
 
     # create a container for each state since some commands are only suggesting running container for example
     run_podman create --name created-$random_container_name $IMAGE
@@ -312,7 +311,7 @@ function _check_no_suggestions() {
 
     # create our own registries.conf so we know what registry is set
     local CONTAINERS_REGISTRIES_CONF="$PODMAN_TMPDIR/registries.conf"
-    echo 'unqualified-search-registries = ["quay.io"]' > "$CONTAINERS_REGISTRIES_CONF"
+    echo 'unqualified-search-registries = ["quay.io"]' >"$CONTAINERS_REGISTRIES_CONF"
     export CONTAINERS_REGISTRIES_CONF
 
     # Called with no args -- start with 'podman --help'. check_shell_completion() will

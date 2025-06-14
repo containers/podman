@@ -8,8 +8,7 @@ set -euo pipefail
 
 # Many variables can affect operations, make them all known to assist debugging.
 echo "Selection of current env. vars:"
-for env_var_name in $(awk 'BEGIN{for(v in ENVIRON) print v}' | grep -Eiv '(^PATH$)|(^BASH_FUNC)|(^_.*)' | sort)
-do
+for env_var_name in $(awk 'BEGIN{for(v in ENVIRON) print v}' | grep -Eiv '(^PATH$)|(^BASH_FUNC)|(^_.*)' | sort); do
     echo "    ${env_var_name}=${!env_var_name}"
 done
 

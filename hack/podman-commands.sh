@@ -17,13 +17,12 @@ function die() {
     exit 1
 }
 
-
 # Run 'podman help' (possibly against a subcommand, e.g. 'podman help image')
 # and return a list of each first word under 'Available Commands', that is,
 # the command name but not its description.
 function podman_commands() {
-    $PODMAN help "$@" |\
-        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |\
+    $PODMAN help "$@" |
+        awk '/^Available Commands:/{ok=1;next}/^Options:/{ok=0}ok { print $1 }' |
         grep .
 
     # Special case: podman-completion is a hidden command
@@ -57,7 +56,7 @@ function podman_man() {
         #    | cmd | [podman-cmd(1)](podman-cmd.1.md) | Description ... |
         # For all such we find, with 'podman- in the second column, print the
         # first column (with whitespace trimmed)
-        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' < docs/source/markdown/$1.1.md
+        awk -F\| '$3 ~ /podman-/ { gsub(" ","",$2); print $2 }' <docs/source/markdown/$1.1.md
     fi
 }
 
@@ -70,13 +69,13 @@ function compare_help_and_man() {
     # e.g. podman, podman-image, podman-volume
     local basename=$(echo podman "$@" | sed -e 's/ /-/g')
 
-    podman_commands "$@" | sort > /tmp/${basename}_help.txt
-    podman_man $basename | sort > /tmp/${basename}_man.txt
+    podman_commands "$@" | sort >/tmp/${basename}_help.txt
+    podman_man $basename | sort >/tmp/${basename}_man.txt
 
     diff -u /tmp/${basename}_help.txt /tmp/${basename}_man.txt || rc=1
 
     # Now look for subcommands, e.g. container, image
-    for cmd in $(< /tmp/${basename}_help.txt); do
+    for cmd in $(</tmp/${basename}_help.txt); do
         usage=$($PODMAN "$@" $cmd --help | grep -A1 '^Usage:' | tail -1)
 
         # if string ends in '[command]', recurse into its subcommands
@@ -87,7 +86,6 @@ function compare_help_and_man() {
 
     rm -f /tmp/${basename}_{help,man}.txt
 }
-
 
 compare_help_and_man
 

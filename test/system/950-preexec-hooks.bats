@@ -43,7 +43,7 @@ function teardown() {
     mkdir -p $preexec_hook_dir
     preexec_hook_script=$preexec_hook_dir/pull_check.sh
 
-    cat > $preexec_hook_script <<EOF
+    cat >$preexec_hook_script <<EOF
 #!/bin/sh
 if echo \$@ | grep "pull foobar"; then
     exit 42

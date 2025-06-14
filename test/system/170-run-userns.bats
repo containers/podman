@@ -89,7 +89,7 @@ function _require_crun() {
         grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
     fi
 
-    cat > $PODMAN_TMPDIR/userns_auto.conf <<EOF
+    cat >$PODMAN_TMPDIR/userns_auto.conf <<EOF
 [containers]
 userns="auto"
 EOF
@@ -116,7 +116,7 @@ EOF
     test_name="test_$(random_string 12)"
     secret_file=$PODMAN_TMPDIR/secret$(random_string 12)
     secret_content=$(random_string)
-    echo ${secret_content} > ${secret_file}
+    echo ${secret_content} >${secret_file}
     run_podman secret create ${test_name} ${secret_file}
     run_podman run --rm --secret=${test_name} --userns=auto:size=1000 $IMAGE cat /run/secrets/${test_name}
     is "$output" "$secret_content" "Secrets should work with user namespace"
@@ -128,7 +128,7 @@ EOF
     if is_rootless; then
         ns_user=$(id -un)
         baseuid=$(grep -E "${ns_user}:" /etc/subuid | cut -f2 -d:)
-        test ! -z ${baseuid} ||  skip "no IDs allocated for user ${ns_user}"
+        test ! -z ${baseuid} || skip "no IDs allocated for user ${ns_user}"
 
         test_name="test_$(random_string 12)"
         run_podman run -d --userns=nomap $IMAGE sleep 100

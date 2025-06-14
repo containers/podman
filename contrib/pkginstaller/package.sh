@@ -21,33 +21,33 @@ version=$(cat "${BASEDIR}/VERSION")
 arch=$(cat "${BASEDIR}/ARCH")
 
 function build_podman() {
-  pushd "$1"
+    pushd "$1"
 
-  make podman-remote-darwin-docs
-  mkdir -p "contrib/pkginstaller/out/packaging/${docDir}"
-  cp -v docs/build/remote/darwin/*.1 "contrib/pkginstaller/out/packaging/${docDir}"
+    make podman-remote-darwin-docs
+    mkdir -p "contrib/pkginstaller/out/packaging/${docDir}"
+    cp -v docs/build/remote/darwin/*.1 "contrib/pkginstaller/out/packaging/${docDir}"
 
-  case ${goArch} in
-  universal)
-    build_fat
-    cp "${tmpBin}/podman-universal"  "contrib/pkginstaller/out/packaging/${binDir}/podman"
-    cp "${tmpBin}/podman-mac-helper-universal" "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
-    ;;
+    case ${goArch} in
+    universal)
+        build_fat
+        cp "${tmpBin}/podman-universal" "contrib/pkginstaller/out/packaging/${binDir}/podman"
+        cp "${tmpBin}/podman-mac-helper-universal" "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
+        ;;
 
-  amd64 | arm64)
-    build_podman_arch ${goArch}
-    cp "${tmpBin}/podman-${goArch}"  "contrib/pkginstaller/out/packaging/${binDir}/podman"
-    cp "${tmpBin}/podman-mac-helper-${goArch}" "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
-    ;;
-  *)
-    echo -n "Unknown arch: ${goArch}"
-    ;;
-  esac
+    amd64 | arm64)
+        build_podman_arch ${goArch}
+        cp "${tmpBin}/podman-${goArch}" "contrib/pkginstaller/out/packaging/${binDir}/podman"
+        cp "${tmpBin}/podman-mac-helper-${goArch}" "contrib/pkginstaller/out/packaging/${binDir}/podman-mac-helper"
+        ;;
+    *)
+        echo -n "Unknown arch: ${goArch}"
+        ;;
+    esac
 
-  popd
+    popd
 }
 
-function build_podman_arch(){
+function build_podman_arch() {
     make -B GOARCH="$1" podman-remote HELPER_BINARIES_DIR="${HELPER_BINARIES_DIR}" BUILD_ORIGIN="${BUILD_ORIGIN}"
     make -B GOARCH="$1" podman-mac-helper
     mkdir -p "${tmpBin}"
@@ -55,7 +55,7 @@ function build_podman_arch(){
     cp bin/darwin/podman-mac-helper "${tmpBin}/podman-mac-helper-$1"
 }
 
-function build_fat(){
+function build_fat() {
     echo "Building ARM Podman"
     build_podman_arch "arm64"
     echo "Building AMD Podman"
@@ -67,20 +67,20 @@ function build_fat(){
 }
 
 function sign() {
-  local opts=""
-  entitlements="${BASEDIR}/$(basename "$1").entitlements"
-  if [ -f "${entitlements}" ]; then
-      opts="--entitlements ${entitlements}"
-  fi
-  if [ ! "${NO_CODESIGN}" -eq "1" ]; then
-      opts="$opts --options runtime"
-  fi
-  codesign --deep --sign "${CODESIGN_IDENTITY}" --timestamp --force ${opts} "$1"
+    local opts=""
+    entitlements="${BASEDIR}/$(basename "$1").entitlements"
+    if [ -f "${entitlements}" ]; then
+        opts="--entitlements ${entitlements}"
+    fi
+    if [ ! "${NO_CODESIGN}" -eq "1" ]; then
+        opts="$opts --options runtime"
+    fi
+    codesign --deep --sign "${CODESIGN_IDENTITY}" --timestamp --force ${opts} "$1"
 }
 
 goArch="${arch}"
 if [ "${goArch}" = aarch64 ]; then
-  goArch=arm64
+    goArch=arm64
 fi
 
 build_podman "../../../../"
@@ -97,20 +97,20 @@ sign "${libDir}/libepoxy.0.dylib"
 sign "${libDir}/libMoltenVK.dylib"
 
 pkgbuild --identifier com.redhat.podman --version "${version}" \
-  --scripts "${BASEDIR}/scripts" \
-  --root "${BASEDIR}/root" \
-  --install-location /opt \
-  --component-plist "${BASEDIR}/component.plist" \
-  "${OUTPUT}/podman.pkg"
+    --scripts "${BASEDIR}/scripts" \
+    --root "${BASEDIR}/root" \
+    --install-location /opt \
+    --component-plist "${BASEDIR}/component.plist" \
+    "${OUTPUT}/podman.pkg"
 
 productbuild --distribution "${BASEDIR}/Distribution" \
-  --resources "${BASEDIR}/Resources" \
-  --package-path "${OUTPUT}" \
-  "${OUTPUT}/podman-unsigned.pkg"
+    --resources "${BASEDIR}/Resources" \
+    --package-path "${OUTPUT}" \
+    "${OUTPUT}/podman-unsigned.pkg"
 rm "${OUTPUT}/podman.pkg"
 
 if [ ! "${NO_CODESIGN}" -eq "1" ]; then
-  productsign --timestamp --sign "${PRODUCTSIGN_IDENTITY}" "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${goArch}.pkg"
+    productsign --timestamp --sign "${PRODUCTSIGN_IDENTITY}" "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${goArch}.pkg"
 else
-  mv "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${goArch}.pkg"
+    mv "${OUTPUT}/podman-unsigned.pkg" "${OUTPUT}/podman-installer-macos-${goArch}.pkg"
 fi

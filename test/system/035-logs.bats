@@ -13,7 +13,7 @@ load helpers
     cid="$output"
 
     run_podman logs $cid
-    is "$output" ""  "logs on created container: empty"
+    is "$output" "" "logs on created container: empty"
 
     run_podman start --attach --interactive $cid
     is "$output" "$rand_string" "output from podman-start on created ctr"
@@ -41,7 +41,7 @@ function _log_test_tail() {
     run_podman logs --tail 1 --timestamps $cid
     log1="$output"
     assert "$log1" =~ "^[0-9-]+T[0-9:.]+([\+-][0-9:]+|Z) test2" \
-           "logs should only show last line"
+        "logs should only show last line"
 
     # Sigh. I hate doing this, but podman-remote --timestamp only has 1-second
     # resolution (regular podman has sub-second). For the timestamps-differ
@@ -56,7 +56,7 @@ function _log_test_tail() {
     run_podman logs -t --tail 1 $cid
     log2="$output"
     assert "$log2" =~ "^[0-9-]+T[0-9:.]+([\+-][0-9:]+|Z) test2" \
-           "logs, after restart, shows only last line"
+        "logs, after restart, shows only last line"
 
     assert "$log2" != "$log1" "log timestamps should differ"
 
@@ -100,7 +100,7 @@ function _log_test_multi() {
     local -a cid
     doit() {
         run_podman ${events_backend} run --log-driver=$driver -d \
-            --name "$1" $IMAGE sh -c "$2";
+            --name "$1" $IMAGE sh -c "$2"
         cid+=($(echo "${output:0:12}"))
     }
 
@@ -111,11 +111,11 @@ function _log_test_multi() {
     # when using multiple containers the line order between them can vary.
     run_podman ${events_backend} logs -f $cname1 $cname2
     assert "$output" =~ \
-       ".*^${cid[0]} a1\$.*
-${cid[0]} a2"   "Sequential output from c1"
+        ".*^${cid[0]} a1\$.*
+${cid[0]} a2" "Sequential output from c1"
     assert "$output" =~ \
-       ".*^${cid[1]} b1\$.*
-${cid[1]} b2"   "Sequential output from c2"
+        ".*^${cid[1]} b1\$.*
+${cid[1]} b2" "Sequential output from c2"
 
     run_podman rm -f -t0 ${cid[0]} ${cid[1]}
 }
@@ -143,9 +143,9 @@ function _log_test_restarted() {
     run_podman run --log-driver=$driver ${events_backend} --name $cname $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
     run_podman ${events_backend} start -a $cname
     logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
-    $PODMAN $_PODMAN_TEST_OPTS ${events_backend} logs -f $cname > $logfile
+    $PODMAN $_PODMAN_TEST_OPTS ${events_backend} logs -f $cname >$logfile
     expected=$(mktemp -p ${PODMAN_TMPDIR} expectedXXXXXXXX)
-    seq 1 20  > $expected
+    seq 1 20 >$expected
     diff -u ${expected} ${logfile}
 
     run_podman rm -f -t0 $cname
@@ -254,7 +254,7 @@ $s_after"
         sleep 0.1
     done
     assert $retries -gt 0 \
-           "Timed out waiting for before&after in podman logs: $output"
+        "Timed out waiting for before&after in podman logs: $output"
 
     run_podman logs --until $before $cname
     is "$output" "" "podman logs --until before"
@@ -382,7 +382,7 @@ function _log_test_follow_until() {
     logs_seen="$output"
 
     # The delta should be 3 but could be longer on a slow CI system
-    delta_t_ms=$(( $t1 - $t0 ))
+    delta_t_ms=$(($t1 - $t0))
     assert $delta_t_ms -gt 2000 "podman logs --until: exited too early!"
     assert $delta_t_ms -lt 5000 "podman logs --until: exited too late!"
 
@@ -422,7 +422,7 @@ $content--2.*" "logs --until -f on running container works"
     nl=$'\n'
     # Delete, don't overwrite, in case conmon still has the fd open
     rm -f $logpath
-    cat > $logpath <<EOF
+    cat >$logpath <<EOF
 $timestamp stdout F podman1$cr
 $timestamp stdout P podman2
 $timestamp stdout F $cr

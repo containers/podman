@@ -25,8 +25,8 @@ function setup() {
     fi
 
     is "${lines[0]}" "Version:[ ]\+[1-9][0-9.]\+" "Version line 1"
-    is "$output" ".*Go Version: \+"               "'Go Version' in output"
-    is "$output" ".*API Version: \+"		  "API version in output"
+    is "$output" ".*Go Version: \+" "'Go Version' in output"
+    is "$output" ".*API Version: \+" "API version in output"
 
     # Test that build date is reasonable, e.g. after 2019-01-01
     local built=$(expr "$output" : ".*Built: \+\(.*\)" | head -n1)
@@ -34,7 +34,7 @@ function setup() {
     assert "$built_t" -gt 1546300800 "Preposterous 'Built' time in podman version"
 
     run_podman -v
-    is "$output" "podman.*version \+"               "'Version line' in output"
+    is "$output" "podman.*version \+" "'Version line' in output"
 }
 
 # bats test_tags=distro-integration
@@ -57,7 +57,6 @@ function setup() {
     echo "# $output" >&3
 }
 
-
 @test "podman --context emits reasonable output" {
     if ! is_remote; then
         skip "only applicable on podman-remote"
@@ -68,8 +67,8 @@ function setup() {
     # This one must fail
     PODMAN=${PODMAN%%--url*} run_podman 125 --context=swarm version
     is "$output" \
-       "Error: read cli flags: connection \"swarm\" not found" \
-       "--context=swarm should fail"
+        "Error: read cli flags: connection \"swarm\" not found" \
+        "--context=swarm should fail"
 }
 
 # bats test_tags=distro-integration
@@ -115,8 +114,8 @@ function setup() {
     # Split it into its components; remove "-remote" from the command path;
     # and preserve any other args if present.
     local -a podman_as_array=($PODMAN)
-    local    podman_path=${podman_as_array[0]}
-    local    podman_non_remote=${podman_path%%-remote}
+    local podman_path=${podman_as_array[0]}
+    local podman_non_remote=${podman_path%%-remote}
     local -a podman_args=("${podman_as_array[@]:1}")
 
     # This always worked: running "podman --remote ..."
@@ -143,20 +142,20 @@ See 'podman version --help'" "podman version --remote"
     # When it detects CONTAINER_HOST or _CONNECTION, --remote is not an option
     CONTAINER_HOST=foobar run_podman --help
     assert "$output" !~ " --remote " \
-           "podman --help, with CONTAINER_HOST set, should not show --remote"
+        "podman --help, with CONTAINER_HOST set, should not show --remote"
 
     CONTAINER_CONNECTION=foobar run_podman --help
     assert "$output" !~ " --remote " \
-           "podman --help, with CONTAINER_CONNECTION set, should not show --remote"
+        "podman --help, with CONTAINER_CONNECTION set, should not show --remote"
 
     # When it detects --url or --connection, --remote is not an option
     run_podman --url foobar --help
     assert "$output" !~ " --remote " \
-           "podman --help, with --url set, should not show --remote"
+        "podman --help, with --url set, should not show --remote"
 
     run_podman --connection foobar --help
     assert "$output" !~ " --remote " \
-           "podman --help, with --connection set, should not show --remote"
+        "podman --help, with --connection set, should not show --remote"
 }
 
 # Check that just calling "podman-remote" prints the usage message even
@@ -181,7 +180,6 @@ See 'podman version --help'" "podman version --remote"
     echo "*** SHOULD NEVER GET HERE"
 }
 
-
 # Too many tests rely on jq for parsing JSON.
 #
 # If absolutely necessary, one could establish a convention such as
@@ -198,39 +196,39 @@ See 'podman version --help'" "podman version --remote"
     run_podman 1 --log-level=telepathic version
     is "$output" 'Log Level "telepathic" is not supported.*'
 
-    run_podman --log-level=trace   version
+    run_podman --log-level=trace version
     if ! is_remote; then
         # podman-remote does not do any trace logging
         assert "$output" =~ " level=trace " "log-level=trace"
     fi
     assert "$output" =~ " level=debug " "log-level=trace includes debug"
-    assert "$output" =~ " level=info "  "log-level=trace includes info"
-    assert "$output" !~ " level=warn"   "log-level=trace does not show warn"
+    assert "$output" =~ " level=info " "log-level=trace includes info"
+    assert "$output" !~ " level=warn" "log-level=trace does not show warn"
 
-    run_podman --log-level=debug   version
+    run_podman --log-level=debug version
     assert "$output" !~ " level=trace " "log-level=debug does not show trace"
     assert "$output" =~ " level=debug " "log-level=debug"
-    assert "$output" =~ " level=info "  "log-level=debug includes info"
-    assert "$output" !~ " level=warn"   "log-level=debug does not show warn"
+    assert "$output" =~ " level=info " "log-level=debug includes info"
+    assert "$output" !~ " level=warn" "log-level=debug does not show warn"
 
-    run_podman --log-level=info    version
+    run_podman --log-level=info version
     assert "$output" !~ " level=trace " "log-level=info does not show trace"
     assert "$output" !~ " level=debug " "log-level=info does not show debug"
-    assert "$output" =~ " level=info "  "log-level=info"
+    assert "$output" =~ " level=info " "log-level=info"
 
-    run_podman --log-level=warn    version
+    run_podman --log-level=warn version
     assert "$output" !~ " level=" "log-level=warn shows no logs at all"
 
     run_podman --log-level=warning version
     assert "$output" !~ " level=" "log-level=warning shows no logs at all"
 
-    run_podman --log-level=error   version
+    run_podman --log-level=error version
     assert "$output" !~ " level=" "log-level=error shows no logs at all"
 
     # docker compat
-    run_podman --debug   version
+    run_podman --debug version
     assert "$output" =~ " level=debug " "podman --debug gives debug output"
-    run_podman -D        version
+    run_podman -D version
     assert "$output" =~ " level=debug " "podman -D gives debug output"
 
     run_podman 1 --debug --log-level=panic version
@@ -239,7 +237,7 @@ See 'podman version --help'" "podman version --remote"
 
 # Tests --noout for commands that do not enter the engine
 @test "podman --noout properly suppresses output" {
-run_podman --noout system connection ls
+    run_podman --noout system connection ls
     is "$output" "" "output should be empty"
 }
 

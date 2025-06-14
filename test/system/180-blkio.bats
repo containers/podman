@@ -28,7 +28,7 @@ function teardown() {
 
     # create loopback device
     lofile=${PODMAN_TMPDIR}/disk.img
-    fallocate -l 1k  ${lofile}
+    fallocate -l 1k ${lofile}
     losetup -f ${lofile}
 
     run losetup -l --noheadings --output BACK-FILE,NAME,MAJ:MIN
@@ -46,7 +46,7 @@ function teardown() {
     if [ $status -ne 0 ]; then
         skip "BFQ scheduler is not supported on the system"
     fi
-    echo bfq > /sys/block/$(basename ${lodevice})/queue/scheduler
+    echo bfq >/sys/block/$(basename ${lodevice})/queue/scheduler
 
     # run podman
     if is_cgroupsv2; then

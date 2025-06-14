@@ -19,7 +19,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     PORT=$(random_free_port)
 
     log=${PODMAN_TMPDIR}/system-service.log
-    $PODMAN system service --cors="*" tcp:$SERVICE_TCP_HOST:$PORT -t 20 2> $log &
+    $PODMAN system service --cors="*" tcp:$SERVICE_TCP_HOST:$PORT -t 20 2>$log &
     podman_pid="$!"
 
     wait_for_port $SERVICE_TCP_HOST $PORT
@@ -28,14 +28,14 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     run -0 $cmd
     echo "$output"
     assert "$output" =~ " Access-Control-Allow-Origin: \*" \
-           "access-control-allow-origin verifies CORS is set"
+        "access-control-allow-origin verifies CORS is set"
 
     kill $podman_pid
     wait $podman_pid || true
 
     # Running server over TCP is a bad idea. We should see a warning
-    assert "$(< $log)" =~ "Using the Podman API service with TCP sockets" \
-           "podman warns about server on TCP"
+    assert "$(<$log)" =~ "Using the Podman API service with TCP sockets" \
+        "podman warns about server on TCP"
 }
 
 # bats test_tags=ci:parallel
@@ -52,7 +52,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     echo "$output"
 
     assert "$output" !~ "Access-Control-Allow-Origin:" \
-           "CORS header should not be present"
+        "CORS header should not be present"
 
     kill $podman_pid
     wait $podman_pid || true
@@ -66,7 +66,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     run_podman 0+w system service --log-level="debug" --cors="*" -t 1 tcp:$SERVICE_TCP_HOST:$PORT
     is "$output" ".*CORS Headers were set to ..\*...*" "debug log confirms CORS headers set"
     assert "$output" =~ "level=warning msg=\"Using the Podman API service with TCP sockets is not recommended" \
-           "TCP socket warning"
+        "TCP socket warning"
 }
 
 # vim: filetype=sh

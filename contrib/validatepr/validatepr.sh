@@ -25,23 +25,22 @@ build() {
         err+="\n - Additional Binaries "
     fi
 
-    if [ ! -z "$err" ]
-    then
-        echo -e "\033[31mFailed to build: ${err}\033[0m">&2
+    if [ ! -z "$err" ]; then
+        echo -e "\033[31mFailed to build: ${err}\033[0m" >&2
         exit 1
     fi
 }
 
-validate(){
+validate() {
     echo "Running validation tooling"
 
     # golangci-lint gobbles memory.
     # By default, podman machines only have 2GB memory,
     # often causing the linter be killed when run on Darwin/Windows
     mem=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
-    if (( $((mem)) < 3900000 )); then
+    if (($((mem)) < 3900000)); then
         echo -e "\033[33mWarning: Your machine may not have sufficient memory (< 4 GB)to run the linter. \
-If the process is killed, please allocate more memory.\033[0m">&2
+If the process is killed, please allocate more memory.\033[0m" >&2
     fi
 
     make validate

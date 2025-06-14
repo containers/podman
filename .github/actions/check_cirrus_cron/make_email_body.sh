@@ -28,7 +28,7 @@ mkdir -p "$GITHUB_WORKSPACE/artifacts"
 
     while read -r BID NAME; do
         echo "Cron build '$NAME' Failed: https://cirrus-ci.com/build/$BID"
-    done < "$ID_NAME_FILEPATH"
+    done <"$ID_NAME_FILEPATH"
 
     echo ""
     # Defined by github-actions
@@ -37,4 +37,4 @@ mkdir -p "$GITHUB_WORKSPACE/artifacts"
     # Separate content from sendgrid.com automatic footer.
     echo ""
     echo ""
-) > $GITHUB_WORKSPACE/artifacts/email_body.txt
+) >$GITHUB_WORKSPACE/artifacts/email_body.txt

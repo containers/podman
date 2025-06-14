@@ -28,18 +28,18 @@ function teardown() {
                 systemctl stop $line
             fi
             rm -f $UNIT_DIR/$line.{service,timer}
-        done < $SNAME_FILE
+        done <$SNAME_FILE
 
         rm -f $SNAME_FILE
     fi
     SNAME_FILE=
 
-    run_podman rmi -f                              \
-            quay.io/libpod/alpine:latest           \
-            quay.io/libpod/busybox:latest          \
-            quay.io/libpod/localtest:latest        \
-            quay.io/libpod/autoupdatebroken:latest \
-            quay.io/libpod/test:latest
+    run_podman rmi -f \
+        quay.io/libpod/alpine:latest \
+        quay.io/libpod/busybox:latest \
+        quay.io/libpod/localtest:latest \
+        quay.io/libpod/autoupdatebroken:latest \
+        quay.io/libpod/test:latest
 
     # The rollback tests may leave some dangling images behind, so let's prune
     # them to leave a clean state.
@@ -93,8 +93,11 @@ function generate_service() {
 
     run_podman create $extraArgs --name $cname $label $target_img $command
 
-    (cd $UNIT_DIR; run_podman generate systemd --new --files --name $requires $cname)
-    echo "container-$cname" >> $SNAME_FILE
+    (
+        cd $UNIT_DIR
+        run_podman generate systemd --new --files --name $requires $cname
+    )
+    echo "container-$cname" >>$SNAME_FILE
     run_podman rm -t 0 -f $cname
 
     systemctl daemon-reload
@@ -247,7 +250,7 @@ function _confirm_update() {
 
     run_podman container inspect --format "{{.ID}}" $cname
     assert "$output" != "$containerID" \
-           "container has not been restarted during rollback"
+        "container has not been restarted during rollback"
 }
 
 @test "podman auto-update - label io.containers.autoupdate=disabled" {
@@ -357,8 +360,7 @@ EOF
     local -A will_update=([image]=1 [registry]=1 [local]=1)
 
     local fakevalue=fake_$(random_string)
-    for auto_update in image registry "" disabled "''" $fakevalue local
-    do
+    for auto_update in image registry "" disabled "''" $fakevalue local; do
         local img_base="alpine"
         if [[ $auto_update == "registry" ]]; then
             img_base="busybox"
@@ -444,7 +446,7 @@ Environment="NO_PROXY=${NO_PROXY}"
 WantedBy=default.target
 EOF
 
-    echo "podman-auto-update-$cname" >> $SNAME_FILE
+    echo "podman-auto-update-$cname" >>$SNAME_FILE
     systemctl enable --now podman-auto-update-$cname.timer
     systemctl list-timers --all
 
@@ -460,7 +462,7 @@ EOF
             failed_start=
             break
         fi
-        ((count+=1))
+        ((count += 1))
         sleep 1
     done
 
@@ -635,7 +637,7 @@ EOF
     systemctl daemon-reload
 }
 
-@test "podman-auto-update --authfile"  {
+@test "podman-auto-update --authfile" {
     # Test the three supported ways of using authfiles with auto updates
     # 1) Passed via --authfile CLI flag
     # 2) Passed via the REGISTRY_AUTH_FILE env variable
@@ -666,11 +668,11 @@ EOF
 
     run_podman 125 auto-update
     is "$output" \
-       ".*Error: checking image updates for container .*: x509: .*"
+        ".*Error: checking image updates for container .*: x509: .*"
 
     run_podman 125 auto-update --tls-verify=false
     is "$output" \
-       ".*Error: checking image updates for container .*: authentication required"
+        ".*Error: checking image updates for container .*: authentication required"
 
     # Test 1)
     run_podman auto-update --authfile=$authfile --tls-verify=false --dry-run --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"

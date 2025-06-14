@@ -14,15 +14,14 @@ load helpers
 
     # Special case: formatted ps
     run_podman ps --no-trunc \
-               --format '{{.ID}} {{.Image}} {{.Command}} {{.Names}} {{.State}}'
+        --format '{{.ID}} {{.Image}} {{.Command}} {{.Names}} {{.State}}'
     is "$output" "$cid $IMAGE sleep 5 $rand_name running" "podman ps"
-
 
     # Plain old regular ps
     run_podman ps
     is "${lines[1]}" \
-       "${cid:0:12} \+$IMAGE \+sleep [0-9]\+ .*second.* $cname"\
-       "output from podman ps"
+        "${cid:0:12} \+$IMAGE \+sleep [0-9]\+ .*second.* $cname" \
+        "output from podman ps"
 
     # OK. Stop container now.
     run_podman stop -t0 $cid
@@ -30,8 +29,8 @@ load helpers
     # ...then make sure container shows up as stopped
     run_podman ps -a
     is "${lines[1]}" \
-       "${cid:0:12} \+$IMAGE *sleep .* Exited .* $rand_name" \
-       "podman ps -a"
+        "${cid:0:12} \+$IMAGE *sleep .* Exited .* $rand_name" \
+        "podman ps -a"
 
     run_podman rm $cid
 }
@@ -78,7 +77,7 @@ load helpers
     is "$output" "${cid[stopped]:0:12}" "filter: name=stopped (with -a)"
 
     run_podman ps --filter status=stopped --format '{{.Names}}' --sort names
-    is "${lines[0]}" "failed"  "status=stopped: 1 of 2"
+    is "${lines[0]}" "failed" "status=stopped: 1 of 2"
     is "${lines[1]}" "stopped" "status=stopped: 2 of 2"
 
     run_podman ps --filter status=exited --filter exited=0 --format '{{.Names}}'
@@ -92,10 +91,10 @@ load helpers
 
     # Multiple statuses allowed; and test sort=created
     run_podman ps -a --filter status=exited --filter status=running \
-               --format '{{.Names}}' --sort created
+        --format '{{.Names}}' --sort created
     is "${lines[0]}" "running" "status=stopped: 1 of 3"
     is "${lines[1]}" "stopped" "status=stopped: 2 of 3"
-    is "${lines[2]}" "failed"  "status=stopped: 3 of 3"
+    is "${lines[2]}" "failed" "status=stopped: 3 of 3"
 
     # ID filtering: if filter is only hex chars, it's a prefix; if it has
     # anything else, it's a regex
@@ -114,12 +113,12 @@ load helpers
         local f="^[^${test_cid:0:1}]"
         run_podman ps -a --filter id="$f" --format '{{.Names}}'
         assert "${#lines[*]}" == "2" "filter id=$f: number of lines"
-        assert "$output" !~ $state   "filter id=$f: '$state' not in results"
+        assert "$output" !~ $state "filter id=$f: '$state' not in results"
     done
 
     # All CIDs will have hex characters
     run_podman ps -a --filter id="[0-9a-f]" --format '{{.Names}}' --sort names
-    assert "${lines[0]}" == "failed"  "filter id=[0-9a-f], line 1"
+    assert "${lines[0]}" == "failed" "filter id=[0-9a-f], line 1"
     assert "${lines[1]}" == "running" "filter id=[0-9a-f], line 2"
     assert "${lines[2]}" == "stopped" "filter id=[0-9a-f], line 3"
 
@@ -128,8 +127,8 @@ load helpers
 
     # Finally, multiple filters
     run_podman ps -a --filter id=${cid[running]} --filter id=${cid[failed]} \
-               --format '{{.Names}}' --sort names
-    assert "${lines[0]}" == "failed"  "filter id=running+failed, line 1"
+        --format '{{.Names}}' --sort names
+    assert "${lines[0]}" == "failed" "filter id=running+failed, line 1"
     assert "${lines[1]}" == "running" "filter id=running+failed, line 2"
 
     run_podman stop -t 1 running
@@ -144,21 +143,24 @@ load helpers
 
     # Ok this here is basically a way to reproduce a "leaked" podman build buildah
     # container without having to kill any process and usage of sleep.
-    echo;echo "$_LOG_PROMPT buildah from $IMAGE"
+    echo
+    echo "$_LOG_PROMPT buildah from $IMAGE"
     run buildah from $IMAGE
     echo "$output"
     assert "$status" -eq 0 "status of buildah from"
     buildah_cid="$output"
 
     # Commit new image so we have something to prune.
-    echo;echo "$_LOG_PROMPT buildah commit $buildah_cid"
+    echo
+    echo "$_LOG_PROMPT buildah commit $buildah_cid"
     run buildah commit $buildah_cid
     echo "$output"
     assert "$status" -eq 0 "status of buildah commit"
     buildah_image_id="${lines[-1]}"
 
     # Create new buildah container with new image so that one can be pruned directly.
-    echo;echo "$_LOG_PROMPT buildah from $buildah_image_id"
+    echo
+    echo "$_LOG_PROMPT buildah from $buildah_image_id"
     run buildah from "$buildah_image_id"
     echo "$output"
     assert "$status" -eq 0 "status of buildah from new buildah image"
@@ -169,7 +171,8 @@ load helpers
         # rootless needs unshare for mounting
         unshare="buildah unshare"
     fi
-    echo;echo "$_LOG_PROMPT $unshare buildah mount $buildah_cid"
+    echo
+    echo "$_LOG_PROMPT $unshare buildah mount $buildah_cid"
     run $unshare buildah mount "$buildah_cid"
     echo "$output"
     assert "$status" -eq 0 "status of buildah mount container"
@@ -181,8 +184,8 @@ load helpers
     is "${#lines[@]}" "3" "podman ps -a --external sees buildah containers"
     # output can include "second ago" or "seconds ago" depending on the timing so match both
     is "${lines[1]}" \
-       "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds\? ago .* Storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
-       "podman ps --external"
+        "[0-9a-f]\{12\} \+$IMAGE *buildah .* seconds\? ago .* Storage .* ${PODMAN_TEST_IMAGE_NAME}-working-container" \
+        "podman ps --external"
 
     # 'rm -a' should be a NOP
     run_podman rm -a
