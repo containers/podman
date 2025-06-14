@@ -40,6 +40,12 @@ Are you sure you want to continue? [y/N] y
 $
 ```
 
+Force reset without confirmation.
+```
+$ podman machine reset --force
+$
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-machine(1)](podman-machine.1.md)**
 
