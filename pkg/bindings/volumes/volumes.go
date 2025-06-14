@@ -2,15 +2,12 @@ package volumes
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/bindings"
-	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 	jsoniter "github.com/json-iterator/go"
@@ -146,17 +143,7 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 }
 
 // Export exports a volume to the given path
-func Export(ctx context.Context, nameOrID string, options entities.VolumeExportOptions) error {
-	if options.OutputPath == "" {
-		return errors.New("must provide valid path for file to write to")
-	}
-
-	targetFile, err := os.Create(options.OutputPath)
-	if err != nil {
-		return fmt.Errorf("unable to create target file path %q: %w", options.OutputPath, err)
-	}
-	defer targetFile.Close()
-
+func Export(ctx context.Context, nameOrID string, exportTo io.Writer) error {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return err
@@ -168,9 +155,25 @@ func Export(ctx context.Context, nameOrID string, options entities.VolumeExportO
 	defer response.Body.Close()
 
 	if response.IsSuccess() || response.IsRedirection() {
-		if _, err := io.Copy(targetFile, response.Body); err != nil {
+		if _, err := io.Copy(exportTo, response.Body); err != nil {
 			return fmt.Errorf("writing volume %s contents to file: %w", nameOrID, err)
 		}
 	}
+	return response.Process(nil)
+}
+
+// Import imports the given tar into the given volume
+func Import(ctx context.Context, nameOrID string, importFrom io.Reader) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	response, err := conn.DoRequest(ctx, importFrom, http.MethodPost, "/volumes/%s/import", nil, nil, nameOrID)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
 	return response.Process(nil)
 }

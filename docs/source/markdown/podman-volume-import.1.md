@@ -14,8 +14,6 @@ The contents of the volume is merged with the content of the tarball with the la
 
 The given volume must already exist and is not created by podman volume import.
 
-Note: Following command is not supported by podman-remote.
-
 #### **--help**
 
 Print usage statement
