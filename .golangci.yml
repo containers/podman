@@ -58,7 +58,6 @@ linters:
       checks:
         - all
         - -ST1003 # https://staticcheck.dev/docs/checks/#ST1003 Poorly chosen identifier.
-        - -ST1005 # https://staticcheck.dev/docs/checks/#ST1005 Incorrectly formatted error string
         - -QF1008 # https://staticcheck.dev/docs/checks/#QF1008 Omit embedded fields from selector expression.
     nolintlint:
       require-specific: true
