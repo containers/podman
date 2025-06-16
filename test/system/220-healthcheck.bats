@@ -391,9 +391,9 @@ function _check_health_log {
 
 
 @test "podman healthcheck --health-log-destination journal" {
-    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
-        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26406"
-    fi
+    #if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+    #    skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26406"
+    #fi
 
     skip_if_remote "We cannot read journalctl over remote."
 

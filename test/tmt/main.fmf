@@ -18,6 +18,7 @@ adjust+:
     test: >
         bash ./setup.sh &&
         loginctl enable-linger $ROOTLESS_USER &&
+        usermod -a -G wheel $ROOTLESS_USER &&
         chown -R $ROOTLESS_USER $TMT_TREE &&
         su - "$ROOTLESS_USER" -c "CI_DESIRED_NETWORK=netavark make -C $TMT_TREE localsystem"
     duration: 40m
@@ -32,6 +33,7 @@ adjust+:
     test: >
         bash ./setup.sh &&
         loginctl enable-linger $ROOTLESS_USER &&
+        usermod -a -G wheel $ROOTLESS_USER &&
         chown -R $ROOTLESS_USER $TMT_TREE &&
         su - "$ROOTLESS_USER" -c "CI_DESIRED_NETWORK=netavark make -C $TMT_TREE remotesystem"
     duration: 40m

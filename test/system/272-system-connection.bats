@@ -90,9 +90,9 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
 
 # Test tcp socket; requires starting a local server
 @test "podman system connection - tcp" {
-    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
-        skip "Broken on RHEL: https://github.com/containers/podman/issues/26411"
-    fi
+    #if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+    #    skip "Broken on RHEL: https://github.com/containers/podman/issues/26411"
+    #fi
 
     # Start server
     _SERVICE_PORT=$(random_free_port 63000-64999)

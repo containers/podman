@@ -69,9 +69,9 @@ function teardown() {
 # This doesn't actually test podman system service, but we require it,
 # so least-awful choice is to run from this test file.
 @test "podman --host / -H options" {
-    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
-        skip "Broken on RHEL: https://github.com/containers/podman/issues/26406"
-    fi
+    #if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+    #    skip "Broken on RHEL: https://github.com/containers/podman/issues/26406"
+    #fi
 
     port=$(random_free_port)
     URL=tcp://127.0.0.1:$port

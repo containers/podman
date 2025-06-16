@@ -408,9 +408,9 @@ EOF
 }
 
 @test "podman auto-update using systemd" {
-    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
-        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26410"
-    fi
+    #if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+    #    skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26410"
+    #fi
     generate_service alpine image
 
     cat >$UNIT_DIR/podman-auto-update-$cname.timer <<EOF
