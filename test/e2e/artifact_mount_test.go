@@ -29,7 +29,7 @@ var _ = Describe("Podman artifact mount", func() {
 			{
 				name:          "single artifact mount",
 				mountOpts:     "dst=/test",
-				containerFile: "/test/testfile",
+				containerFile: "/test",
 			},
 			{
 				name:          "single artifact mount on existing file",
@@ -44,7 +44,12 @@ var _ = Describe("Podman artifact mount", func() {
 			{
 				name:          "single artifact mount with digest",
 				mountOpts:     "dst=/data,digest=sha256:e9510923578af3632946ecf5ae479c1b5f08b47464e707b5cbab9819272a9752",
-				containerFile: "/data/sha256-e9510923578af3632946ecf5ae479c1b5f08b47464e707b5cbab9819272a9752",
+				containerFile: "/data",
+			},
+			{
+				name:          "single artifact mount with name",
+				mountOpts:     "dst=/tmp,name=abcd",
+				containerFile: "/tmp/abcd",
 			},
 		}
 
@@ -104,22 +109,46 @@ var _ = Describe("Podman artifact mount", func() {
 				},
 			},
 			{
-				name:      "multi blob filter by title",
+				name:      "multi blob filter by title on non existing file",
 				mountOpts: "src=" + ARTIFACT_MULTI + ",dst=/test,title=test2",
 				containerFiles: []expectedFiles{
 					{
-						file:    "/test/test2",
+						file:    "/test",
+						content: artifactContent2,
+					},
+				},
+			},
+			{
+				name:      "multi blob filter by title on existing file",
+				mountOpts: "src=" + ARTIFACT_MULTI + ",dst=/tmp,title=test2",
+				containerFiles: []expectedFiles{
+					{
+						file:    "/tmp/test2",
 						content: artifactContent2,
 					},
 				},
 			},
 			{
 				name:      "multi blob filter by digest",
-				mountOpts: "src=" + ARTIFACT_MULTI + ",dst=/test,digest=sha256:8257bba28b9d19ac353c4b713b470860278857767935ef7e139afd596cb1bb2d",
+				mountOpts: "src=" + ARTIFACT_MULTI + ",dst=/tmp,digest=sha256:8257bba28b9d19ac353c4b713b470860278857767935ef7e139afd596cb1bb2d",
 				containerFiles: []expectedFiles{
 					{
-						file:    "/test/sha256-8257bba28b9d19ac353c4b713b470860278857767935ef7e139afd596cb1bb2d",
+						file:    "/tmp/sha256-8257bba28b9d19ac353c4b713b470860278857767935ef7e139afd596cb1bb2d",
 						content: artifactContent1,
+					},
+				},
+			},
+			{
+				name:      "multi blob with name",
+				mountOpts: "src=" + ARTIFACT_MULTI + ",dst=/test,name=myname",
+				containerFiles: []expectedFiles{
+					{
+						file:    "/test/myname-0",
+						content: artifactContent1,
+					},
+					{
+						file:    "/test/myname-1",
+						content: artifactContent2,
 					},
 				},
 			},
@@ -152,12 +181,12 @@ var _ = Describe("Podman artifact mount", func() {
 		podmanTest.PodmanExitCleanly("artifact", "add", artifactName, artifactFile)
 
 		// FIXME: we need https://github.com/containers/container-selinux/pull/360 to fix the selinux access problem, until then disable it.
-		podmanTest.PodmanExitCleanly("run", "--security-opt=label=disable", "--name", ctrName, "-d", "--mount", "type=artifact,src="+artifactName+",dst=/test", ALPINE, "sleep", "100")
+		podmanTest.PodmanExitCleanly("run", "--security-opt=label=disable", "--name", ctrName, "-d", "--mount", "type=artifact,src="+artifactName+",dst=/tmp", ALPINE, "sleep", "100")
 
 		podmanTest.PodmanExitCleanly("artifact", "rm", artifactName)
 
 		// file must sill be readable after artifact removal
-		session := podmanTest.PodmanExitCleanly("exec", ctrName, "cat", "/test/"+artifactFileName)
+		session := podmanTest.PodmanExitCleanly("exec", ctrName, "cat", "/tmp/"+artifactFileName)
 		Expect(session.OutputToString()).To(Equal("hello world"))
 
 		// restart will fail if artifact does not exist
@@ -174,7 +203,7 @@ var _ = Describe("Podman artifact mount", func() {
 		podmanTest.PodmanExitCleanly("artifact", "add", artifactName, artifactFile, artifactFile2)
 		podmanTest.PodmanExitCleanly("start", ctrName)
 
-		session = podmanTest.PodmanExitCleanly("exec", ctrName, "cat", "/test/"+artifactFileName, "/test/"+artifactFile2Name)
+		session = podmanTest.PodmanExitCleanly("exec", ctrName, "cat", "/tmp/"+artifactFileName, "/tmp/"+artifactFile2Name)
 		Expect(session.OutputToString()).To(Equal("hello world second file"))
 	})
 
