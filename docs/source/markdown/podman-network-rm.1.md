@@ -33,6 +33,12 @@ Delete specified network and all containers associated with the network:
 Deleted: fred
 ```
 
+Delete specified network and all containers associated with the network after waiting up to 15 seconds:
+```
+# podman network rm --force --time 15 fred
+Deleted: fred
+```
+
 ## Exit Status
   **0**   All specified networks removed
 
