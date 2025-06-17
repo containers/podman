@@ -1065,9 +1065,6 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/podman-remote
 	# Remove related config files
 	rm -f $(DESTDIR)${TMPFILESDIR}/podman.conf
-	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.socket
-	rm -f $(DESTDIR)${USERSYSTEMDDIR}/io.podman.socket
-	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.service
 	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.service
 	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.socket
 	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.socket
@@ -1081,7 +1078,6 @@ clean-binaries: ## Remove platform/architecture specific binary files
 .PHONY: clean
 clean: clean-binaries ## Clean all make artifacts
 	rm -rf \
-		_output \
 		$(wildcard podman-*.msi) \
 		$(wildcard podman-remote*.zip) \
 		$(wildcard podman_tmp_*) \
@@ -1091,11 +1087,6 @@ clean: clean-binaries ## Clean all make artifacts
 		test/goecho/goecho \
 		test/version/version \
 		test/__init__.py \
-		test/testdata/redis-image \
-		libpod/container_ffjson.go \
-		libpod/pod_ffjson.go \
-		libpod/container_easyjson.go \
-		libpod/pod_easyjson.go \
 		docs/build \
 		.venv
 	make -C docs clean
