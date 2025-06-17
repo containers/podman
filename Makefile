@@ -1064,7 +1064,6 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/podman
 	rm -f $(DESTDIR)$(BINDIR)/podman-remote
 	# Remove related config files
-	rm -f $(DESTDIR)${ETCDIR}/cni/net.d/87-podman-bridge.conflist
 	rm -f $(DESTDIR)${TMPFILESDIR}/podman.conf
 	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.socket
 	rm -f $(DESTDIR)${USERSYSTEMDDIR}/io.podman.socket
