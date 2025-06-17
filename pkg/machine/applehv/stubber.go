@@ -52,17 +52,19 @@ func (a *AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machin
 	}
 	mc.AppleHypervisor.Vfkit.Endpoint = localhostURI + ":" + strconv.Itoa(randPort)
 
-	virtiofsMounts := make([]machine.VirtIoFs, 0, len(mc.Mounts))
-	for _, mnt := range mc.Mounts {
-		virtiofsMounts = append(virtiofsMounts, machine.MountToVirtIOFs(mnt))
-	}
+	if ignBuilder != nil {
+		virtiofsMounts := make([]machine.VirtIoFs, 0, len(mc.Mounts))
+		for _, mnt := range mc.Mounts {
+			virtiofsMounts = append(virtiofsMounts, machine.MountToVirtIOFs(mnt))
+		}
 
-	// Populate the ignition file with virtiofs stuff
-	virtIOIgnitionMounts, err := apple.GenerateSystemDFilesForVirtiofsMounts(virtiofsMounts)
-	if err != nil {
-		return err
+		// Populate the ignition file with virtiofs stuff
+		virtIOIgnitionMounts, err := apple.GenerateSystemDFilesForVirtiofsMounts(virtiofsMounts)
+		if err != nil {
+			return err
+		}
+		ignBuilder.WithUnit(virtIOIgnitionMounts...)
 	}
-	ignBuilder.WithUnit(virtIOIgnitionMounts...)
 
 	cfg, err := config.Default()
 	if err != nil {

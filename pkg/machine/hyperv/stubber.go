@@ -157,29 +157,31 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		return err
 	}
 
-	netUnitFile, err := createNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
-	if err != nil {
-		return err
-	}
+	if builder != nil {
+		netUnitFile, err := createNetworkUnit(mc.HyperVHypervisor.NetworkVSock.Port)
+		if err != nil {
+			return err
+		}
 
-	builder.WithUnit(ignition.Unit{
-		Contents: ignition.StrToPtr(netUnitFile),
-		Enabled:  ignition.BoolToPtr(true),
-		Name:     "vsock-network.service",
-	})
+		builder.WithUnit(ignition.Unit{
+			Contents: ignition.StrToPtr(netUnitFile),
+			Enabled:  ignition.BoolToPtr(true),
+			Name:     "vsock-network.service",
+		})
 
-	builder.WithFile(ignition.File{
-		Node: ignition.Node{
-			Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
-		},
-		FileEmbedded1: ignition.FileEmbedded1{
-			Append: nil,
-			Contents: ignition.Resource{
-				Source: ignition.EncodeDataURLPtr(hyperVVsockNMConnection),
+		builder.WithFile(ignition.File{
+			Node: ignition.Node{
+				Path: "/etc/NetworkManager/system-connections/vsock0.nmconnection",
 			},
-			Mode: ignition.IntToPtr(0o600),
-		},
-	})
+			FileEmbedded1: ignition.FileEmbedded1{
+				Append: nil,
+				Contents: ignition.Resource{
+					Source: ignition.EncodeDataURLPtr(hyperVVsockNMConnection),
+				},
+				Mode: ignition.IntToPtr(0o600),
+			},
+		})
+	}
 
 	vmm := hypervctl.NewVirtualMachineManager()
 	err = vmm.NewVirtualMachine(mc.Name, &hwConfig)
@@ -508,7 +510,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 	callbackFuncs.Add(createErrorLogCallback(&err))
 	go callbackFuncs.CleanOnSignal()
 
-	if mc.IsFirstBoot() {
+	if mc.IsFirstBoot() && !mc.CloudInit {
 		// this is added because if the machine does not start
 		// properly on first boot, the next boot will be considered
 		// the first boot again and the addition of the ignition

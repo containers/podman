@@ -39,17 +39,19 @@ func (l *LibKrunStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machin
 	}
 	mc.LibKrunHypervisor.KRun.Endpoint = localhostURI + ":" + strconv.Itoa(randPort)
 
-	virtiofsMounts := make([]machine.VirtIoFs, 0, len(mc.Mounts))
-	for _, mnt := range mc.Mounts {
-		virtiofsMounts = append(virtiofsMounts, machine.MountToVirtIOFs(mnt))
-	}
+	if builder != nil {
+		virtiofsMounts := make([]machine.VirtIoFs, 0, len(mc.Mounts))
+		for _, mnt := range mc.Mounts {
+			virtiofsMounts = append(virtiofsMounts, machine.MountToVirtIOFs(mnt))
+		}
 
-	// Populate the ignition file with virtiofs stuff
-	virtIOIgnitionMounts, err := apple.GenerateSystemDFilesForVirtiofsMounts(virtiofsMounts)
-	if err != nil {
-		return err
+		// Populate the ignition file with virtiofs stuff
+		virtIOIgnitionMounts, err := apple.GenerateSystemDFilesForVirtiofsMounts(virtiofsMounts)
+		if err != nil {
+			return err
+		}
+		builder.WithUnit(virtIOIgnitionMounts...)
 	}
-	builder.WithUnit(virtIOIgnitionMounts...)
 
 	return apple.ResizeDisk(mc, mc.Resources.DiskSize)
 }
