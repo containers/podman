@@ -17,7 +17,7 @@ type User struct {
 	Name    string   `yaml:"name"`
 	Sudo    string   `yaml:"sudo"`
 	Shell   string   `yaml:"shell"`
-	Groups  string   `yaml:"groups"`
+	Groups  []string `yaml:"groups"`
 	SSHKeys []string `yaml:"ssh_authorized_keys"`
 }
 
@@ -34,13 +34,11 @@ func GenerateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
 	userData := UserData{
 		Users: []User{
 			User{
-				Name:   mc.SSH.RemoteUsername,
-				Sudo:   "ALL=(ALL) NOPASSWD:ALL",
-				Shell:  "/bin/bash",
-				Groups: "users",
-				SSHKeys: []string{
-					sshKey,
-				},
+				Name:    mc.SSH.RemoteUsername,
+				Sudo:    "ALL=(ALL) NOPASSWD:ALL",
+				Shell:   "/bin/bash",
+				Groups:  []string{"users"},
+				SSHKeys: []string{sshKey},
 			},
 		},
 	}
@@ -91,6 +89,7 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (string, error) {
 			logrus.Error(err)
 		}
 	}()
+
 	userdata, err := GenerateUserData(mc)
 	if err != nil {
 		return "", nil
