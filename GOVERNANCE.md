@@ -174,7 +174,7 @@ Emeritus Maintainers have no responsibilities or requirements beyond those of an
 
 # Maintainers File
 
-The definitive source of truth for maintainers of a repository is the MAINTAINERS.md file in that repository. The [MAINTAINERS.md](./MAINTAINERS.md) file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have an OWNERS file, used by the CI system to map users to roles. Any changes to the [OWNERS](./OWNERS) file must make a corresponding change to the [MAINTAINERS.md](./MAINTAINERS.md) file to ensure that file maintains up to date. Most changes to MAINTAINERS.md will require a change to the repository’s OWNERS file (e.g. adding a Reviewer) but some will not (e.g. promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
+The definitive source of truth for maintainers of this repository is the local [MAINTAINERS.md](./MAINTAINERS.md) file. The [MAINTAINERS.md](./MAINTAINERS.md) file in the main Podman repository is used for project-spanning roles, including Core Maintainer and Community Manager. Some repositories in the project will also have a local [OWNERS](./OWNERS) file, which the CI system uses to map users to roles. Any changes to the [OWNERS](./OWNERS) file must make a corresponding change to the [MAINTAINERS.md](./MAINTAINERS.md) file to ensure that file remains up to date. Most changes to [MAINTAINERS.md](./MAINTAINERS.md) will require a change to the repository’s [OWNERS](./OWNERS) file (e.g., adding a Reviewer), but some will not (e.g., promoting a Maintainer to a Core Maintainer, which comes with no additional CI-related privileges).
 
 ---
 
