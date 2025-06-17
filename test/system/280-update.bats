@@ -349,4 +349,54 @@ function nrand() {
 
     run_podman rm -t 0 -f "$cid"
 }
+
+# bats test_tags=ci:parallel
+@test "podman update - set ulimits" {
+    local ctrname="c-h-$(safename)"
+    run_podman run -d --name $ctrname $IMAGE sleep 600
+
+    # Get initial nofile ulimit
+    run_podman exec $ctrname sh -c "ulimit -n"
+    initial_nofile="$output"
+
+    # Update with single ulimit
+    run_podman update --ulimit nofile=1024:1024 $ctrname
+
+    # Verify the nofile ulimit was updated
+    run_podman exec $ctrname sh -c "ulimit -n"
+    assert "$output" == "1024" "nofile ulimit updated to 1024"
+    assert "$output" != "$initial_nofile" "nofile ulimit should have changed"
+
+    # Update with multiple ulimits
+    run_podman update --ulimit nofile=2048:2048 --ulimit nproc=512:512 $ctrname
+
+    # Verify the nofile ulimit was updated again
+    run_podman exec $ctrname sh -c "ulimit -n"
+    assert "$output" == "2048" "nofile ulimit updated to 2048"
+
+    # Verify the nproc ulimit was updated
+    run_podman exec $ctrname sh -c "ulimit -u"
+    assert "$output" == "512" "nproc ulimit updated to 512"
+
+    # Test persists across container restart
+    run_podman restart $ctrname
+
+    # Verify the ulimits persist after restart
+    run_podman exec $ctrname sh -c "ulimit -n"
+    assert "$output" == "2048" "nofile ulimit persists after restart"
+
+    run_podman exec $ctrname sh -c "ulimit -u"
+    assert "$output" == "512" "nproc ulimit persists after restart"
+
+    # Error cases
+    run_podman 125 update --ulimit nofile:1024:1024 $ctrname
+    assert "$output" =~ "error" "Invalid ulimit syntax should fail"
+
+    run_podman 125 update --ulimit nofile=2048:1024 $ctrname
+    assert "$output" =~ "error" "Invalid ulimit values should fail"
+
+    # Clean up
+    run_podman rm -t 0 -f $ctrname
+}
+
 # vim: filetype=sh
