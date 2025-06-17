@@ -306,4 +306,48 @@ var _ = Describe("Podman update", func() {
 		Expect(env).ToNot(ContainSubstring("FOO"))
 		Expect(env).To(ContainSubstring("PATH="))
 	})
+
+	It("podman update sets ulimits", func() {
+		session := podmanTest.PodmanExitCleanly("run", "-dt", ALPINE)
+		ctrID := session.OutputToString()
+
+		// Get initial ulimit value
+		initialUlimit := podmanTest.PodmanExitCleanly("exec", ctrID, "sh", "-c", "ulimit -n")
+		Expect(initialUlimit.OutputToString()).ToNot(BeEmpty())
+
+		// Update with a single ulimit
+		podmanTest.PodmanExitCleanly("update", "--ulimit", "nofile=1024:1024", ctrID)
+
+		// Verify ulimit was updated
+		ulimit := podmanTest.PodmanExitCleanly("exec", ctrID, "sh", "-c", "ulimit -n")
+		Expect(ulimit.OutputToString()).To(Equal("1024"))
+
+		// Update with multiple ulimits
+		podmanTest.PodmanExitCleanly("update", "--ulimit", "nofile=2048:2048", "--ulimit", "nproc=512:512", ctrID)
+
+		// Verify nofile ulimit was updated
+		ulimit = podmanTest.PodmanExitCleanly("exec", ctrID, "sh", "-c", "ulimit -n")
+		Expect(ulimit.OutputToString()).To(Equal("2048"))
+
+		// Verify nproc ulimit was updated
+		ulimit = podmanTest.PodmanExitCleanly("exec", ctrID, "sh", "-c", "ulimit -u")
+		Expect(ulimit.OutputToString()).To(Equal("512"))
+	})
+
+	It("podman update with invalid ulimit fails", func() {
+		session := podmanTest.PodmanExitCleanly("run", "-dt", ALPINE)
+		ctrID := session.OutputToString()
+
+		// Try with invalid ulimit syntax (missing =)
+		update := podmanTest.Podman([]string{"update", "--ulimit", "nofile:1024:1024", ctrID})
+		update.WaitWithDefaultTimeout()
+		Expect(update).Should(Exit(125))
+		Expect(update.ErrorToString()).To(ContainSubstring("error"))
+
+		// Try with invalid ulimit value (soft > hard)
+		update = podmanTest.Podman([]string{"update", "--ulimit", "nofile=2048:1024", ctrID})
+		update.WaitWithDefaultTimeout()
+		Expect(update).Should(Exit(125))
+		Expect(update.ErrorToString()).To(ContainSubstring("error"))
+	})
 })
