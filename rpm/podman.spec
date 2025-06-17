@@ -296,11 +296,6 @@ PODMAN_VERSION=%{version} %{__make} DESTDIR=%{buildroot} PREFIX=%{_prefix} ETCDI
        install.remote \
        install.testing
 
-# See above for the iptables.conf declaration
-%if %{defined fedora} && 0%{?fedora} < 41
-%{__make} DESTDIR=%{buildroot} MODULESLOADDIR=%{_modulesloaddir} install.modules-load
-%endif
-
 sed -i 's;%{buildroot};;g' %{buildroot}%{_bindir}/docker
 
 # do not include docker and podman-remote man pages in main package
