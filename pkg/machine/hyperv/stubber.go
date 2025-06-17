@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/strongunits"
 	"go.podman.io/podman/v6/pkg/machine"
+	"go.podman.io/podman/v6/pkg/machine/cloudinit"
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/env"
 	"go.podman.io/podman/v6/pkg/machine/hyperv/vsock"
@@ -105,6 +106,15 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		if err := AddUserToHyperVAdminGroup(u.Username); err != nil {
 			return err
 		}
+	}
+
+	if mc.CloudInit {
+		// Generate cloud-init ISO
+		iso, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return fmt.Errorf("generating cloud-init ISO: %w", err)
+		}
+		hwConfig.DVDDiskPath = iso
 	}
 
 	if mc.HyperVHypervisor.UserModeNetworking {
