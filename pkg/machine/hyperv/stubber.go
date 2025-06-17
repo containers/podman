@@ -11,6 +11,9 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
+	"strings"
+	"time"
 
 	"github.com/Microsoft/go-winio"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
@@ -169,6 +172,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 
 		mc.HyperVHypervisor.NetworkVSock = *networkHVSock
 	} else {
+		mc.SSH.Port = 22
 		hwConfig.Network = true
 	}
 
@@ -750,6 +754,16 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 	defer callbackFuncs.CleanIfErr(&err)
 	go callbackFuncs.CleanOnSignal()
 
+	// If we are not using user mode networking, we need to retrieve the VM IP address
+	if !mc.HyperVHypervisor.UserModeNetworking {
+		ip, err := getVMIPAddress(mc.Name)
+		if err != nil {
+			return fmt.Errorf("retrieving VM's IP: %w", err)
+		}
+		mc.HyperVHypervisor.IPAddress = ip
+		return nil
+	}
+
 	if len(mc.Mounts) == 0 {
 		return nil
 	}
@@ -834,6 +848,44 @@ func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
 		return fmt.Errorf("resizing image: %q", err)
 	}
 	return nil
+}
+
+func getVMIPAddress(name string) (string, error) {
+	backoff := 500 * time.Millisecond
+	maxBackoffs := 6
+	for i := 0; i < maxBackoffs; i++ {
+		if i > 0 {
+			time.Sleep(backoff)
+			backoff *= 2
+		}
+		ip, err := getIPAddress(name)
+		if err != nil {
+			continue
+		}
+		return ip, nil
+	}
+	return "", fmt.Errorf("unable to retrieve IP address for VM %s after %d attempts", name, maxBackoffs)
+}
+
+func getIPAddress(name string) (string, error) {
+	ipAddress := exec.Command("powershell", []string{"-command", fmt.Sprintf("Get-VM -Name %s | Select-Object -ExpandProperty NetworkAdapters | Select-Object IPAddresses", name)}...)
+	logrus.Debug(ipAddress.Args)
+	var stdout bytes.Buffer
+	ipAddress.Stdout = &stdout
+	ipAddress.Stderr = os.Stderr
+	if err := ipAddress.Run(); err != nil {
+		return "", fmt.Errorf("resizing image: %q", err)
+	}
+	re := regexp.MustCompile(`\{(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}),.*?\}`)
+
+	matches := re.FindStringSubmatch(stdout.String())
+
+	if len(matches) > 1 {
+		ipv4Address := matches[1]
+		return ipv4Address, nil
+	}
+
+	return "", fmt.Errorf("could not extract IPv4 address from output: %s", strings.TrimSpace(stdout.String()))
 }
 
 func getIgnitionReader(mc *vmconfigs.MachineConfig) (*bytes.Reader, error) {
