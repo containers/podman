@@ -57,5 +57,10 @@ Unmount all containers:
 podman unmount --all
 ```
 
+Force umount container with given ID:
+```
+podman umount --force containerID
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-mount(1)](podman-mount.1.md)**, **[podman-image-mount(1)](podman-image-mount.1.md)**

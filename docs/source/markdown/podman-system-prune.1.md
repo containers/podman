@@ -120,6 +120,12 @@ Deleted Images
 Total reclaimed space: 1.4GB
 ```
 
+With `--force` flag
+```
+$ podman system prune --force
+Total reclaimed space: 0B
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**
 
