@@ -20,7 +20,6 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fileutils"
-	"github.com/sirupsen/logrus"
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
@@ -309,12 +308,6 @@ func (ic *ContainerEngine) Renumber(ctx context.Context) error {
 
 func (ic *ContainerEngine) Migrate(ctx context.Context, options entities.SystemMigrateOptions) error {
 	return ic.Libpod.Migrate(options.NewRuntime)
-}
-
-func (se SystemEngine) Shutdown(ctx context.Context) {
-	if err := se.Libpod.Shutdown(false); err != nil {
-		logrus.Error(err)
-	}
 }
 
 func unshareEnv(graphroot, runroot string) []string {

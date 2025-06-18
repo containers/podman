@@ -5,51 +5,11 @@ import (
 	"net/url"
 
 	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/signature/signer"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/opencontainers/go-digest"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
-
-type Image struct {
-	ID              string            `json:"Id"`
-	RepoTags        []string          `json:",omitempty"`
-	RepoDigests     []string          `json:",omitempty"`
-	Parent          string            `json:",omitempty"`
-	Comment         string            `json:",omitempty"`
-	Created         string            `json:",omitempty"`
-	Container       string            `json:",omitempty"`
-	ContainerConfig *container.Config `json:",omitempty"`
-	DockerVersion   string            `json:",omitempty"`
-	Author          string            `json:",omitempty"`
-	Config          *container.Config `json:",omitempty"`
-	Architecture    string            `json:",omitempty"`
-	Variant         string            `json:",omitempty"`
-	Os              string            `json:",omitempty"`
-	OsVersion       string            `json:",omitempty"`
-	Size            int64             `json:",omitempty"`
-	VirtualSize     int64             `json:",omitempty"`
-	GraphDriver     string            `json:",omitempty"`
-	RootFS          string            `json:",omitempty"`
-	Metadata        string            `json:",omitempty"`
-
-	// Podman extensions
-	Digest        digest.Digest                 `json:",omitempty"`
-	PodmanVersion string                        `json:",omitempty"`
-	ManifestType  string                        `json:",omitempty"`
-	User          string                        `json:",omitempty"`
-	History       []v1.History                  `json:",omitempty"`
-	NamesHistory  []string                      `json:",omitempty"`
-	HealthCheck   *manifest.Schema2HealthConfig `json:",omitempty"`
-}
-
-func (i *Image) Id() string {
-	return i.ID
-}
 
 type ImageSummary = entitiesTypes.ImageSummary
 
