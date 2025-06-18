@@ -10,9 +10,7 @@ import (
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/signature"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/sirupsen/logrus"
@@ -94,17 +92,4 @@ func Pull(ctx context.Context, imageInput types.ImageReference, localDestPath *d
 	}
 
 	return nil
-}
-
-func stringToImageReference(imageInput string) (types.ImageReference, error) { //nolint:unused
-	if shortnames.IsShortName(imageInput) {
-		return nil, fmt.Errorf("pulling source images by short name (%q) is not supported, please use a fully-qualified name", imageInput)
-	}
-
-	ref, err := alltransports.ParseImageName("docker://" + imageInput)
-	if err != nil {
-		return nil, fmt.Errorf("parsing image name: %w", err)
-	}
-
-	return ref, nil
 }

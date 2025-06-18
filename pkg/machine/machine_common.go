@@ -3,14 +3,11 @@
 package machine
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/storage/pkg/ioutils"
 )
 
 // GetDevNullFiles returns pointers to Read-only and Write-only DevNull files
@@ -109,30 +106,4 @@ issues with non-podman clients, you can switch using the following command:
 
 `
 	fmt.Printf(fmtString, suffix)
-}
-
-// SetRootful modifies the machine's default connection to be either rootful or
-// rootless
-func SetRootful(rootful bool, name, rootfulName string) error {
-	return connection.UpdateConnectionIfDefault(rootful, name, rootfulName)
-}
-
-// WriteConfig writes the machine's JSON config file
-func WriteConfig(configPath string, v VM) error {
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	w, err := ioutils.NewAtomicFileWriterWithOpts(configPath, 0644, opts)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-
-	enc := json.NewEncoder(w)
-	enc.SetIndent("", " ")
-
-	if err := enc.Encode(v); err != nil {
-		return err
-	}
-
-	// Commit the changes to disk if no errors
-	return w.Commit()
 }

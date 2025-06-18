@@ -14,22 +14,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// SetSocket creates a new machine file for the socket and assigns it to
-// `socketLoc`
-func SetSocket(socketLoc *define.VMFile, path string, symlink *string) error {
-	socket, err := define.NewMachineFile(path, symlink)
-	if err != nil {
-		return err
-	}
-	*socketLoc = *socket
-	return nil
-}
-
-// ReadySocketPath returns the filepath for the ready socket
-func ReadySocketPath(runtimeDir, machineName string) string {
-	return filepath.Join(runtimeDir, fmt.Sprintf("%s_ready.sock", machineName))
-}
-
 // ListenAndWaitOnSocket waits for a new connection to the listener and sends
 // any error back through the channel. ListenAndWaitOnSocket is intended to be
 // used as a goroutine
