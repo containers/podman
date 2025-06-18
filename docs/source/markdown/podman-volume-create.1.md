@@ -28,6 +28,10 @@ An overlay filesystem is created, which allows changes to the volume to be commi
 Using a value other than **local** or **image**, Podman attempts to create the volume using a volume plugin with the given name.
 Such plugins must be defined in the **volume_plugins** section of the **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** configuration file.
 
+#### **--gid**=*gid*
+
+Set the GID that the volume will be created as. Differently than `--opt o=gid=*gid*`, the specified value is not passed to the mount operation. The specified GID will own the volume's mount point directory and affects the volume chown operation.
+
 #### **--help**
 
 Print usage statement
@@ -68,6 +72,10 @@ For the **image** driver, the only supported option is `image`, which specifies 
 This option is mandatory when using the **image** driver.
 
 When not using the **local** and **image** drivers, the given options are passed directly to the volume plugin. In this case, supported options are dictated by the plugin in question, not Podman.
+
+#### **--uid**=*uid*
+
+Set the UID that the volume will be created as. Differently than `--opt o=uid=*uid*`, the specified value is not passed to the mount operation. The specified UID will own the volume's mount point directory and affects the volume chown operation.
 
 ## QUOTAS
 
@@ -122,6 +130,11 @@ Create tmpfs named volume with specified size and mount options.
 Create tmpfs named volume testvol with specified options.
 ```
 # podman volume create --opt device=tmpfs --opt type=tmpfs --opt o=uid=1000,gid=1000 testvol
+```
+
+Create volume overriding the owner UID and GID.
+```
+# podman volume create --uid 1000 --gid 1000 myvol
 ```
 
 Create image named volume using the specified local image in containers/storage.

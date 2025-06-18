@@ -40,6 +40,13 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 		volumeOptions = append(volumeOptions, libpod.WithVolumeIgnoreIfExist())
 	}
 
+	if opts.UID != nil {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeUID(*opts.UID), libpod.WithVolumeNoChown())
+	}
+	if opts.GID != nil {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*opts.GID), libpod.WithVolumeNoChown())
+	}
+
 	vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
 	if err != nil {
 		return nil, err
