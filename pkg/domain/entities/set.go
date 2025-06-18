@@ -21,10 +21,6 @@ func (s *StringSet) Add(elem string) {
 	s.m[elem] = struct{}{}
 }
 
-func (s *StringSet) Remove(elem string) {
-	delete(s.m, elem)
-}
-
 func (s *StringSet) Contains(elem string) bool {
 	_, ok := s.m[elem]
 	return ok
