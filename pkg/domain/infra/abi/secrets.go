@@ -24,6 +24,22 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 		return nil, err
 	}
 
+	// If ignore flag is set, check if secret already exists
+	if options.Ignore {
+		secret, err := manager.Lookup(name)
+		if err == nil {
+			// Secret exists, return its ID without error
+			return &entities.SecretCreateReport{
+				ID: secret.ID,
+			}, nil
+		}
+		if !errors.Is(err, secrets.ErrNoSuchSecret) {
+			// Some other error occurred during lookup
+			return nil, err
+		}
+		// Secret doesn't exist, continue with creation
+	}
+
 	// set defaults from config for the case they are not set by an upper layer
 	// (-> i.e. tests that talk directly to the api)
 	cfg, err := ic.Libpod.GetConfigNoCopy()

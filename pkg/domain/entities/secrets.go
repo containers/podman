@@ -12,6 +12,7 @@ type SecretCreateOptions struct {
 	DriverOpts map[string]string
 	Labels     map[string]string
 	Replace    bool
+	Ignore     bool
 }
 
 type SecretInspectOptions struct {
