@@ -10,7 +10,6 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v5/cmd/podman/common"
@@ -104,7 +103,7 @@ func imageListFlagSet(cmd *cobra.Command) {
 
 	sortFlagName := "sort"
 	flags.StringVar(&listFlag.sort, sortFlagName, "created", "Sort by "+sortFields.String())
-	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, common.AutocompleteImageSort)
 
 	flags.BoolVarP(&listFlag.history, "history", "", false, "Display the image name history")
 }
