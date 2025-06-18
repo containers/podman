@@ -1006,6 +1006,7 @@ Valid options for `[Pod]` are listed below:
 | DNS=192.168.55.1                    | --dns=192.168.55.1                     |
 | DNSOption=ndots:1                   | --dns-option=ndots:1                   |
 | DNSSearch=example.com               | --dns-search example.com               |
+| ExitPolicy=stop                     | --exit-policy stop                     |
 | GIDMap=0:10000:10                   | --gidmap=0:10000:10                    |
 | GlobalArgs=--log-level=debug        | --log-level=debug                      |
 | HostName=name                       | --hostname=name                        |
@@ -1058,6 +1059,12 @@ This key can be listed multiple times.
 Set custom DNS search domains. Use **DNSSearch=.** to remove the search domain.
 
 This key can be listed multiple times.
+
+### `ExitPolicy=`
+
+Set the exit policy of the pod when the last container exits. Default for quadlets is **stop**.
+
+To keep the pod active, set `ExitPolicy=continue`.
 
 ### `GIDMap=`
 
@@ -2173,6 +2180,39 @@ PodName=test
 Image=quay.io/centos/centos:latest
 Exec=sh -c "sleep inf"
 Pod=test.pod
+```
+
+Example for a Pod with a oneshot Startup Task:
+
+`test.pod`
+```
+[Pod]
+PodName=test
+ExitPolicy=continue
+```
+
+`startup-task.container`
+```
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+
+[Container]
+Pod=test.pod
+Image=quay.io/centos/centos:latest
+Exec=sh -c "echo 'setup starting'; sleep 2; echo 'setup complete'"
+```
+
+`app.container`
+```
+[Unit]
+Requires=startup-task.container
+After=startup-task.container
+
+[Container]
+Pod=test.pod
+Image=quay.io/centos/centos:latest
+Exec=sh -c "echo 'app running.'; sleep 30"
 ```
 
 Example `s3fs.volume`:

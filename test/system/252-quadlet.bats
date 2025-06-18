@@ -1693,6 +1693,11 @@ EOF
     # Pod should exist
     run_podman pod exists ${test_pod_name}
 
+    # Pod exit policy should be stop by default
+    run_podman pod inspect --format "{{.ExitPolicy}}" ${test_pod_name}
+    assert "$output" = "stop" \
+            "quadlet - pod: default ExitPolicy should be stop"
+
     # Wait for systemd to activate the container service
     wait_for_command_output "systemctl show --property=ActiveState $container_service" "ActiveState=active"
 

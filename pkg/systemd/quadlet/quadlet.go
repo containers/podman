@@ -86,6 +86,7 @@ const (
 	KeyEnvironmentHost       = "EnvironmentHost"
 	KeyExec                  = "Exec"
 	KeyExitCodePropagation   = "ExitCodePropagation"
+	KeyExitPolicy            = "ExitPolicy"
 	KeyExposeHostPort        = "ExposeHostPort"
 	KeyFile                  = "File"
 	KeyForceRM               = "ForceRM"
@@ -472,6 +473,7 @@ var (
 				KeyDNS:                  true,
 				KeyDNSOption:            true,
 				KeyDNSSearch:            true,
+				KeyExitPolicy:           true,
 				KeyGIDMap:               true,
 				KeyGlobalArgs:           true,
 				KeyHostName:             true,
@@ -1538,9 +1540,10 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 	execStartPre.add("pod", "create")
 	execStartPre.add(
 		"--infra-conmon-pidfile=%t/%N.pid",
-		"--exit-policy=stop",
 		"--replace",
 	)
+
+	handleExitPolicy(podUnit, PodGroup, execStartPre)
 
 	if err := handleUserMappings(podUnit, PodGroup, execStartPre, true); err != nil {
 		return nil, warnings, err
@@ -1798,6 +1801,17 @@ func getAbsolutePath(quadletUnitFile *parser.UnitFile, filePath string) (string,
 		}
 	}
 	return filePath, nil
+}
+
+func handleExitPolicy(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
+	exitPolicy, found := unitFile.Lookup(groupName, KeyExitPolicy)
+
+	podman.add("--exit-policy")
+	if found {
+		podman.add(exitPolicy)
+	} else {
+		podman.add("stop")
+	}
 }
 
 func handlePublishPorts(unitFile *parser.UnitFile, groupName string, podman *PodmanCmdline) {
