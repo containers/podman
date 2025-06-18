@@ -64,6 +64,34 @@ var _ = Describe("Podman secret", func() {
 		Expect(inspect.OutputToString()).To(ContainSubstring("opt1:val1"))
 	})
 
+	It("podman secret create with --ignore", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		// First create a secret
+		session := podmanTest.Podman([]string{"secret", "create", "ignore-test", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		secrID := session.OutputToString()
+		Expect(session).Should(ExitCleanly())
+
+		// Try to create the same secret again without --ignore, should fail
+		session = podmanTest.Podman([]string{"secret", "create", "ignore-test", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "Error: ignore-test: secret name in use"))
+
+		// Try to create the same secret again with --ignore, should succeed and return existing ID
+		session = podmanTest.Podman([]string{"secret", "create", "--ignore", "ignore-test", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToString()).To(Equal(secrID))
+
+		// Try to use both --ignore and --replace, should fail
+		session = podmanTest.Podman([]string{"secret", "create", "--ignore", "--replace", "ignore-test", secretFilePath})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "Error: cannot use --ignore and --replace flags together"))
+	})
+
 	It("podman secret create bad name should fail", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)

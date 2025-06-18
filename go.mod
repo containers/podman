@@ -13,7 +13,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.7.1
 	github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30
-	github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c
+	github.com/containers/common v0.63.2-0.20250624163146-1bc9d1737003
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.6
 	github.com/containers/image/v5 v5.35.1-0.20250603145948-347a6e7283ef
@@ -53,7 +53,7 @@ require (
 	github.com/nxadm/tail v1.4.11
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
-	github.com/opencontainers/cgroups v0.0.2
+	github.com/opencontainers/cgroups v0.0.3
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runtime-spec v1.2.1
