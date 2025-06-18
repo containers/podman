@@ -1671,16 +1671,6 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 	return statsChan, nil
 }
 
-// ShouldRestart returns whether the container should be restarted
-func (ic *ContainerEngine) ShouldRestart(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
-	ctr, err := ic.Libpod.LookupContainer(nameOrID)
-	if err != nil {
-		return nil, err
-	}
-
-	return &entities.BoolReport{Value: ctr.ShouldRestart(ctx)}, nil
-}
-
 // ContainerRename renames the given container.
 func (ic *ContainerEngine) ContainerRename(ctx context.Context, nameOrID string, opts entities.ContainerRenameOptions) error {
 	ctr, err := ic.Libpod.LookupContainer(nameOrID)
