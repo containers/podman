@@ -48,6 +48,9 @@ var errAmbiguous = errors.New("secret is ambiguous")
 // errDataSize indicates that the secret data is too large or too small
 var errDataSize = errors.New("secret data must be larger than 0 and less than 512000 bytes")
 
+// errIgnoreIfExistsAndReplace indicates that ignoreIfExists and replace cannot be used together.
+var errIgnoreIfExistsAndReplace = errors.New("ignoreIfExists and replace cannot be used together")
+
 // secretsFile is the name of the file that the secrets database will be stored in
 var secretsFile = "secrets.json"
 
@@ -114,6 +117,8 @@ type StoreOptions struct {
 	Labels map[string]string
 	// Replace existing secret
 	Replace bool
+	// Ignore if already exists
+	IgnoreIfExists bool
 }
 
 // NewManager creates a new secrets manager
@@ -169,6 +174,11 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	if len(data) == 0 || len(data) >= maxSecretSize {
 		return "", errDataSize
 	}
+
+	if options.IgnoreIfExists && options.Replace {
+		return "", errIgnoreIfExistsAndReplace
+	}
+
 	var secr *Secret
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
@@ -179,12 +189,15 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	}
 
 	if exist {
-		if !options.Replace {
+		if !options.Replace && !options.IgnoreIfExists {
 			return "", fmt.Errorf("%s: %w", name, errSecretNameInUse)
 		}
 		secr, err = s.lookupSecret(name)
 		if err != nil {
 			return "", err
+		}
+		if options.IgnoreIfExists {
+			return secr.ID, nil
 		}
 		secr.UpdatedAt = time.Now()
 	} else {

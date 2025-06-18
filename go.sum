@@ -66,8 +66,8 @@ github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
 github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30 h1:kCt0fnVBvXY9J98pUDeUc0gHKrhRwaBTWWD3otLutCE=
 github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30/go.mod h1:QDecwvjrr+e0VD5GYv2dw7tsiqrz673r8B4rIYFP11Y=
-github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c h1:j4epZCkQt8Jdpz2GsUzvqY4MfaOfJamrNpZnmbV84Ug=
-github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c/go.mod h1:efNRNweihnq5nXALnAPDXTpC7uJtnFV4pNuETTfvI8s=
+github.com/containers/common v0.63.2-0.20250624163146-1bc9d1737003 h1:Nk8VZ9Ht7/HnYveikzd8RqNSPphbh358Chmt/GyPeWI=
+github.com/containers/common v0.63.2-0.20250624163146-1bc9d1737003/go.mod h1:mQkSk7VxbvgOo3vLE7yy6spgWNg8Ni0Zytt8HpmRKRw=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.6 h1:9SeAXK+K2o36CtrgYk6zRXbU3zrayjvkrI8b7/O6u5A=
@@ -354,8 +354,8 @@ github.com/onsi/ginkgo/v2 v2.23.4 h1:ktYTpKJAVZnDT4VjxSbiBenUjmlL/5QkBEocaWXiQus
 github.com/onsi/ginkgo/v2 v2.23.4/go.mod h1:Bt66ApGPBFzHyR+JO10Zbt0Gsp4uWxu5mIOTusL46e8=
 github.com/onsi/gomega v1.37.0 h1:CdEG8g0S133B4OswTDC/5XPSzE1OeP29QOioj2PID2Y=
 github.com/onsi/gomega v1.37.0/go.mod h1:8D9+Txp43QWKhM24yyOBEdpkzN8FvJyAwecBgsU4KU0=
-github.com/opencontainers/cgroups v0.0.2 h1:A+mAPPMfgKNCEZUUtibESFx06uvhAmvo8sSz3Abwk7o=
-github.com/opencontainers/cgroups v0.0.2/go.mod h1:s8lktyhlGUqM7OSRL5P7eAW6Wb+kWPNvt4qvVfzA5vs=
+github.com/opencontainers/cgroups v0.0.3 h1:Jc9dWh/0YLGjdy6J/9Ln8NM5BfTA4W2BY0GMozy3aDU=
+github.com/opencontainers/cgroups v0.0.3/go.mod h1:s8lktyhlGUqM7OSRL5P7eAW6Wb+kWPNvt4qvVfzA5vs=
 github.com/opencontainers/go-digest v1.0.0 h1:apOUWs51W5PlhuyGyz9FCeeBIOUDA/6nW8Oi/yOhh5U=
 github.com/opencontainers/go-digest v1.0.0/go.mod h1:0JzlMkj0TRzQZfJkVvzbP0HBR3IKzErnv2BNG4W4MAM=
 github.com/opencontainers/image-spec v1.1.1 h1:y0fUlFfIZhPF1W537XOLg0/fcx6zcHCJwooC2xJA040=
