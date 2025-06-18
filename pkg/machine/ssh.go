@@ -17,24 +17,29 @@ import (
 // and a port
 // TODO This should probably be taught about an machineconfig to reduce input
 func LocalhostSSH(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return localhostBuiltinSSH(username, identityPath, name, sshPort, inputArgs, true, os.Stdin)
+	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, os.Stdin)
+}
+
+// This ssh’es to a podman machine which is not listening on localhost but has its own IP
+func LocalhostSSHShellWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
+	return localhostNativeSSH(username, identityPath, name, address, sshPort, inputArgs, os.Stdin, false)
 }
 
 // LocalhostSSHShellForceTerm runs the native ssh shell client and forces a terminal (-t)
 func LocalhostSSHShellForceTerm(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return localhostNativeSSH(username, identityPath, name, sshPort, inputArgs, os.Stdin, true)
+	return localhostNativeSSH(username, identityPath, name, "localhost", sshPort, inputArgs, os.Stdin, true)
 }
 
 func LocalhostSSHShell(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return localhostNativeSSH(username, identityPath, name, sshPort, inputArgs, os.Stdin, false)
+	return localhostNativeSSH(username, identityPath, name, "localhost", sshPort, inputArgs, os.Stdin, false)
 }
 
 func LocalhostSSHSilent(username, identityPath, name string, sshPort int, inputArgs []string) error {
-	return localhostBuiltinSSH(username, identityPath, name, sshPort, inputArgs, false, nil)
+	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, false, nil)
 }
 
 func LocalhostSSHWithStdin(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader) error {
-	return localhostBuiltinSSH(username, identityPath, name, sshPort, inputArgs, true, stdin)
+	return localhostBuiltinSSH(username, identityPath, name, "localhost", sshPort, inputArgs, true, stdin)
 }
 
 // LocalhostSSHCopy uses scp to copy files from/to a localhost machine using ssh.
@@ -61,13 +66,17 @@ func LocalhostSSHCopy(username, identityPath string, sshPort int, srcPath, destP
 	return cmd.Run()
 }
 
-func localhostBuiltinSSH(username, identityPath, name string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {
+func LocalhostSSHSilentWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
+	return localhostBuiltinSSH(username, identityPath, name, address, sshPort, inputArgs, false, nil)
+}
+
+func localhostBuiltinSSH(username, identityPath, name, address string, sshPort int, inputArgs []string, passOutput bool, stdin io.Reader) error {
 	config, err := createLocalhostConfig(username, identityPath) // WARNING: This MUST NOT be generalized to allow communication over untrusted networks.
 	if err != nil {
 		return err
 	}
 
-	client, err := ssh.Dial("tcp", fmt.Sprintf("localhost:%d", sshPort), config)
+	client, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", address, sshPort), config)
 	if err != nil {
 		return err
 	}
@@ -146,8 +155,8 @@ func createLocalhostConfig(user string, identityPath string) (*ssh.ClientConfig,
 	}, nil
 }
 
-func localhostNativeSSH(username, identityPath, name string, sshPort int, inputArgs []string, stdin io.Reader, forceTerm bool) error {
-	sshDestination := username + "@localhost"
+func localhostNativeSSH(username, identityPath, name, address string, sshPort int, inputArgs []string, stdin io.Reader, forceTerm bool) error {
+	sshDestination := username + "@" + address
 	port := strconv.Itoa(sshPort)
 	interactive := true
 
