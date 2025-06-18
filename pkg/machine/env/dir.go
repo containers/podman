@@ -11,19 +11,6 @@ import (
 	"github.com/containers/storage/pkg/homedir"
 )
 
-// GetCacheDir returns the dir where VM images are downloaded into when pulled
-func GetCacheDir(vmType define.VMType) (string, error) {
-	dataDir, err := GetDataDir(vmType)
-	if err != nil {
-		return "", err
-	}
-	cacheDir := filepath.Join(dataDir, "cache")
-	if err := fileutils.Exists(cacheDir); !errors.Is(err, os.ErrNotExist) {
-		return cacheDir, nil
-	}
-	return cacheDir, os.MkdirAll(cacheDir, 0755)
-}
-
 // GetDataDir returns the filepath where vm images should
 // live for podman-machine.
 func GetDataDir(vmType define.VMType) (string, error) {

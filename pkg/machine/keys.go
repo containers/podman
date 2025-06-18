@@ -4,7 +4,6 @@ package machine
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -12,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/fileutils"
-	"github.com/sirupsen/logrus"
 )
 
 var sshCommand = []string{"ssh-keygen", "-N", "", "-t", "ed25519", "-f"}
@@ -51,22 +49,6 @@ func GetSSHKeys(identityPath string) (string, error) {
 	return CreateSSHKeys(identityPath)
 }
 
-func CreateSSHKeysPrefix(identityPath string, passThru bool, skipExisting bool, prefix ...string) (string, error) {
-	e := fileutils.Exists(identityPath)
-	if !skipExisting || errors.Is(e, os.ErrNotExist) {
-		if err := generatekeysPrefix(identityPath, passThru, prefix...); err != nil {
-			return "", err
-		}
-	} else {
-		fmt.Println("Keys already exist, reusing")
-	}
-	b, err := os.ReadFile(identityPath + ".pub")
-	if err != nil {
-		return "", err
-	}
-	return strings.TrimSuffix(string(b), "\n"), nil
-}
-
 // generatekeys creates an ed25519 set of keys
 func generatekeys(writeLocation string) error {
 	args := append(append([]string{}, sshCommand[1:]...), writeLocation)
@@ -83,36 +65,4 @@ func generatekeys(writeLocation string) error {
 	}
 
 	return nil
-}
-
-// generatekeys creates an ed25519 set of keys
-func generatekeysPrefix(identityPath string, passThru bool, prefix ...string) error {
-	dir := filepath.Dir(identityPath)
-	file := filepath.Base(identityPath)
-
-	if err := os.MkdirAll(dir, 0700); err != nil {
-		return fmt.Errorf("could not create ssh directory: %w", err)
-	}
-
-	args := append([]string{}, prefix[1:]...)
-	args = append(args, sshCommand...)
-	args = append(args, file)
-
-	binary, err := exec.LookPath(prefix[0])
-	if err != nil {
-		return err
-	}
-	binary, err = filepath.Abs(binary)
-	if err != nil {
-		return err
-	}
-	cmd := exec.Command(binary, args...)
-	cmd.Dir = dir
-	if passThru {
-		cmd.Stdin = os.Stdin
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-	}
-	logrus.Debugf("Running wsl cmd %v in dir: %s", args, dir)
-	return cmd.Run()
 }

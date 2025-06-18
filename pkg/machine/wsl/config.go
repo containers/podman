@@ -10,21 +10,12 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/utils"
 	"github.com/sirupsen/logrus"
 )
 
-type WSLVirtualization struct {
-	machine.Virtualization
-}
-
-func VirtualizationProvider() machine.VirtProvider {
-	return &WSLVirtualization{
-		machine.NewVirtualization(define.None, compression.Xz, define.Tar, vmtype),
-	}
-}
+type WSLVirtualization struct{}
 
 // NewMachine initializes an instance of a wsl machine
 func (p *WSLVirtualization) NewMachine(opts define.InitOptions) (machine.VM, error) {
