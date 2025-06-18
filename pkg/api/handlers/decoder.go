@@ -19,8 +19,6 @@ import (
 
 // NewAPIDecoder returns a configured schema.Decoder
 func NewAPIDecoder() *schema.Decoder {
-	_ = ParseDateTime
-
 	d := schema.NewDecoder()
 	d.IgnoreUnknownKeys(true)
 	d.RegisterConverter(map[string][]string{}, convertURLValuesString)
@@ -143,12 +141,6 @@ func convertTimeString(query string) reflect.Value {
 		logrus.Infof("convertTimeString: Failed to parse %s: %s", query, err.Error())
 	}
 	return reflect.ValueOf(time.Time{})
-}
-
-// ParseDateTime is a helper function to aid in parsing different Time/Date formats
-// isZero() can be used to determine if parsing failed.
-func ParseDateTime(query string) time.Time {
-	return convertTimeString(query).Interface().(time.Time)
 }
 
 func convertSignal(query string) reflect.Value {
