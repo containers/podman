@@ -179,6 +179,82 @@ var _ = Describe("Podman volume create", func() {
 		Expect(inspectOpts.OutputToString()).To(Equal(optionStrFormatExpect))
 	})
 
+	It("podman create volume with --uid and --gid flags", func() {
+		volName := "testVolFlags"
+		uid := "3001"
+		gid := "4001"
+		session := podmanTest.Podman([]string{"volume", "create", "--uid", uid, "--gid", gid, volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		inspectUID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .UID }}", volName})
+		inspectUID.WaitWithDefaultTimeout()
+		Expect(inspectUID).Should(ExitCleanly())
+		Expect(inspectUID.OutputToString()).To(Equal(uid))
+
+		inspectGID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .GID }}", volName})
+		inspectGID.WaitWithDefaultTimeout()
+		Expect(inspectGID).Should(ExitCleanly())
+		Expect(inspectGID.OutputToString()).To(Equal(gid))
+
+		// The specified values must not be passed down to the -o option.
+		fn := func(typ string) string {
+			return fmt.Sprintf("{{ if .Options.%s }}{{ .Options.%s }}{{ else }}EMPTY{{ end }}", typ, typ)
+		}
+		optionFormat := fmt.Sprintf("%s:%s:%s", fn("o"), fn("UID"), fn("GID"))
+		optionStrFormatExpected := "EMPTY:EMPTY:EMPTY"
+		inspectOpts := podmanTest.Podman([]string{"volume", "inspect", "--format", optionFormat, volName})
+		inspectOpts.WaitWithDefaultTimeout()
+		Expect(inspectOpts).Should(ExitCleanly())
+		Expect(inspectOpts.OutputToString()).To(Equal(optionStrFormatExpected))
+	})
+
+	It("podman create volume with --uid flag only", func() {
+		volName := "testVolUidOnly"
+		uid := "3002"
+		session := podmanTest.Podman([]string{"volume", "create", "--uid", uid, volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		inspectUID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .UID }}", volName})
+		inspectUID.WaitWithDefaultTimeout()
+		Expect(inspectUID).Should(ExitCleanly())
+		Expect(inspectUID.OutputToString()).To(Equal(uid))
+
+		inspectGID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ if .GID }}{{ .GID }}{{ else }} EMPTY {{ end }}", volName})
+		inspectGID.WaitWithDefaultTimeout()
+		Expect(inspectGID).Should(ExitCleanly())
+		Expect(inspectGID.OutputToString()).To(Equal("EMPTY"))
+	})
+
+	It("podman create volume with --gid flag only", func() {
+		volName := "testVolGidOnly"
+		gid := "4002"
+		session := podmanTest.Podman([]string{"volume", "create", "--gid", gid, volName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		inspectGID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ .GID }}", volName})
+		inspectGID.WaitWithDefaultTimeout()
+		Expect(inspectGID).Should(ExitCleanly())
+		Expect(inspectGID.OutputToString()).To(Equal(gid))
+
+		inspectUID := podmanTest.Podman([]string{"volume", "inspect", "--format", "{{ if .UID }}{{ .UID }}{{ else }} EMPTY {{ end }}", volName})
+		inspectUID.WaitWithDefaultTimeout()
+		Expect(inspectUID).Should(ExitCleanly())
+		Expect(inspectUID.OutputToString()).To(Equal("EMPTY"))
+	})
+
+	It("podman create volume --uid and --gid flags with invalid values", func() {
+		session := podmanTest.Podman([]string{"volume", "create", "--uid", "invalid", "testVol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "invalid argument \"invalid\" for \"--uid\" flag"))
+
+		session = podmanTest.Podman([]string{"volume", "create", "--gid", "invalid", "testVol"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).To(ExitWithError(125, "invalid argument \"invalid\" for \"--gid\" flag"))
+	})
+
 	It("image-backed volume basic functionality", func() {
 		podmanTest.AddImageToRWStore(fedoraMinimal)
 		volName := "testvol"
