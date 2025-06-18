@@ -77,6 +77,13 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeIgnoreIfExist())
 	}
 
+	if input.UID != nil {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeUID(*input.UID), libpod.WithVolumeNoChown())
+	}
+	if input.GID != nil {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*input.GID), libpod.WithVolumeNoChown())
+	}
+
 	vol, err := runtime.NewVolume(r.Context(), volumeOptions...)
 	if err != nil {
 		utils.InternalServerError(w, err)

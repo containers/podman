@@ -18,6 +18,10 @@ type VolumeCreateOptions struct {
 	Options map[string]string `schema:"opts"`
 	// Ignore existing volumes
 	IgnoreIfExists bool `schema:"ignoreIfExist"`
+	// UID that the volume will be created as
+	UID *int `schema:"uid"`
+	// GID that the volume will be created as
+	GID *int `schema:"gid"`
 }
 
 type VolumeRmReport struct {

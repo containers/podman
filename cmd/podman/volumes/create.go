@@ -23,7 +23,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example: `podman volume create myvol
   podman volume create
-  podman volume create --label foo=bar myvol`,
+  podman volume create --label foo=bar myvol
+  podman volume create --uid 4321 --gid 1234 myvol`,
 	}
 )
 
@@ -33,6 +34,8 @@ var (
 		Label  []string
 		Opts   []string
 		Ignore bool
+		UID    int
+		GID    int
 	}{}
 )
 
@@ -57,6 +60,14 @@ func init() {
 
 	ignoreFlagName := "ignore"
 	flags.BoolVar(&opts.Ignore, ignoreFlagName, false, "Don't fail if volume already exists")
+
+	uidFlagName := "uid"
+	flags.IntVar(&opts.UID, uidFlagName, 0, "Set the UID of the volume owner")
+	_ = createCommand.RegisterFlagCompletionFunc(uidFlagName, completion.AutocompleteNone)
+
+	gidFlagName := "gid"
+	flags.IntVar(&opts.GID, gidFlagName, 0, "Set the GID of the volume owner")
+	_ = createCommand.RegisterFlagCompletionFunc(gidFlagName, completion.AutocompleteNone)
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -76,6 +87,12 @@ func create(cmd *cobra.Command, args []string) error {
 	createOpts.Options, err = parse.GetAllLabels([]string{}, opts.Opts)
 	if err != nil {
 		return fmt.Errorf("unable to process options: %w", err)
+	}
+	if cmd.Flags().Changed("uid") {
+		createOpts.UID = &opts.UID
+	}
+	if cmd.Flags().Changed("gid") {
+		createOpts.GID = &opts.GID
 	}
 	response, err := registry.ContainerEngine().VolumeCreate(context.Background(), createOpts)
 	if err != nil {
