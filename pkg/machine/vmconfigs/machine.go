@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/strongunits"
-	define2 "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -143,17 +142,6 @@ func (mc *MachineConfig) SetRootful(rootful bool) error {
 	mc.HostUser.Rootful = rootful
 	mc.HostUser.Modified = true
 	return nil
-}
-
-func (mc *MachineConfig) removeSystemConnection() error { //nolint:unused
-	return define2.ErrNotImplemented
-}
-
-// updateLastBoot writes the current time to the machine configuration file. it is
-// an non-locking method and assumes it is being called locked
-func (mc *MachineConfig) updateLastBoot() error { //nolint:unused
-	mc.LastUp = time.Now()
-	return mc.Write()
 }
 
 func (mc *MachineConfig) Remove(machines map[string]bool, saveIgnition, saveImage bool) ([]string, func() error, error) {

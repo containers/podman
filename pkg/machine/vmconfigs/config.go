@@ -29,9 +29,6 @@ type MachineConfig struct {
 
 	Swap strongunits.MiB
 
-	// Image stuff
-	imageDescription machineImage //nolint:unused
-
 	ImagePath *define.VMFile // Temporary only until a proper image struct is worked out
 
 	// Provider stuff
@@ -57,28 +54,6 @@ type MachineConfig struct {
 	Rosetta bool
 
 	Ansible *AnsibleConfig
-}
-
-type machineImage interface { //nolint:unused
-	download() error
-	path() string
-}
-
-type OCIMachineImage struct {
-	// registry
-	// TODO JSON serial/deserial will write string to disk
-	// but in code it is a types.ImageReference
-
-	// quay.io/podman/podman-machine-image:5.0
-	FQImageReference string
-}
-
-func (o OCIMachineImage) path() string {
-	return ""
-}
-
-func (o OCIMachineImage) download() error {
-	return nil
 }
 
 type VMProvider interface { //nolint:interfacebloat
