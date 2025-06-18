@@ -668,18 +668,6 @@ func copyTrustedImageBlobToTarStream(ctx context.Context, imgSrc types.ImageSour
 	return nil
 }
 
-// readIndex is currently unused but I want to keep this around until
-// the artifact code is more mature.
-func (as ArtifactStore) readIndex() (*specV1.Index, error) { //nolint:unused
-	index := specV1.Index{}
-	rawData, err := os.ReadFile(as.indexPath())
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(rawData, &index)
-	return &index, err
-}
-
 func (as ArtifactStore) createEmptyManifest() error {
 	index := specV1.Index{
 		MediaType: specV1.MediaTypeImageIndex,
