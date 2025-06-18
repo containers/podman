@@ -52,7 +52,6 @@ ETCDIR ?= /etc
 LIBDIR ?= ${PREFIX}/lib
 TMPFILESDIR ?= ${LIBDIR}/tmpfiles.d
 USERTMPFILESDIR ?= ${PREFIX}/share/user-tmpfiles.d
-MODULESLOADDIR ?= ${LIBDIR}/modules-load.d
 SYSTEMDDIR ?= ${LIBDIR}/systemd/system
 USERSYSTEMDDIR ?= ${LIBDIR}/systemd/user
 SYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/system-generators
@@ -757,7 +756,7 @@ system.test-binary: .install.ginkgo
 	$(GO) test -c ./test/system
 
 .PHONY: test-binaries
-test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho install.catatonit test/version/version
+test-binaries: test/checkseccomp/checkseccomp test/goecho/goecho test/version/version
 	@echo "Canonical source version: $(call err_if_empty,RELEASE_VERSION)"
 
 .PHONY: tests-included
@@ -840,7 +839,6 @@ podman-remote-release-%.zip: test/version/version ## Build podman-remote for %=$
 		$(MAKE) $(GOPLAT) podman-mac-helper;\
 	fi
 	cp -r ./docs/build/remote/$(GOOS) "$(tmpsubdir)/$(releasedir)/docs/"
-	cp ./contrib/remote/containers.conf "$(tmpsubdir)/$(releasedir)/"
 	$(MAKE) $(GOPLAT) $(_dstargs) SELINUXOPT="" install.remote
 	cd "$(tmpsubdir)" && \
 		zip --recurse-paths "$(CURDIR)/$@" "./$(releasedir)"
@@ -878,10 +876,6 @@ rpm-install: package  ## Install rpm packages
 
 .PHONY: install
 install: install.bin install.remote install.man install.systemd  ## Install binaries to system locations
-
-.PHONY: install.catatonit
-install.catatonit:
-	./hack/install_catatonit.sh
 
 .PHONY: install.remote
 install.remote:
@@ -921,11 +915,6 @@ endif
 install.testing:
 	install ${SELINUXOPT} -d -m 755 $(DESTDIR)$(BINDIR)
 	install ${SELINUXOPT} -m 755 bin/podman-testing $(DESTDIR)$(BINDIR)/podman-testing
-
-.PHONY: install.modules-load
-install.modules-load: # This should only be used by distros which might use iptables-legacy, this is not needed on RHEL
-	install ${SELINUXOPT} -m 755 -d $(DESTDIR)${MODULESLOADDIR}
-	install ${SELINUXOPT} -m 644 contrib/modules-load.d/podman-iptables.conf $(DESTDIR)${MODULESLOADDIR}/podman-iptables.conf
 
 .PHONY: install.man
 install.man:
@@ -1071,11 +1060,7 @@ uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/podman
 	rm -f $(DESTDIR)$(BINDIR)/podman-remote
 	# Remove related config files
-	rm -f $(DESTDIR)${ETCDIR}/cni/net.d/87-podman-bridge.conflist
 	rm -f $(DESTDIR)${TMPFILESDIR}/podman.conf
-	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.socket
-	rm -f $(DESTDIR)${USERSYSTEMDDIR}/io.podman.socket
-	rm -f $(DESTDIR)${SYSTEMDDIR}/io.podman.service
 	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.service
 	rm -f $(DESTDIR)${SYSTEMDDIR}/podman.socket
 	rm -f $(DESTDIR)${USERSYSTEMDDIR}/podman.socket
@@ -1089,7 +1074,6 @@ clean-binaries: ## Remove platform/architecture specific binary files
 .PHONY: clean
 clean: clean-binaries ## Clean all make artifacts
 	rm -rf \
-		_output \
 		$(wildcard podman-*.msi) \
 		$(wildcard podman-remote*.zip) \
 		$(wildcard podman_tmp_*) \
@@ -1099,11 +1083,6 @@ clean: clean-binaries ## Clean all make artifacts
 		test/goecho/goecho \
 		test/version/version \
 		test/__init__.py \
-		test/testdata/redis-image \
-		libpod/container_ffjson.go \
-		libpod/pod_ffjson.go \
-		libpod/container_easyjson.go \
-		libpod/pod_easyjson.go \
 		docs/build \
 		.venv
 	make -C docs clean
