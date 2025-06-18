@@ -95,10 +95,6 @@ func SecretNotFound(w http.ResponseWriter, nameOrID string, err error) {
 	Error(w, http.StatusNotFound, err)
 }
 
-func ContainerNotRunning(w http.ResponseWriter, containerID string, err error) {
-	Error(w, http.StatusConflict, err)
-}
-
 func InternalServerError(w http.ResponseWriter, err error) {
 	Error(w, http.StatusInternalServerError, err)
 }
