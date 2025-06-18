@@ -21,7 +21,6 @@ import (
 	pmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/moby/sys/capability"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
@@ -454,54 +453,6 @@ func TryJoinFromFilePaths(pausePidPath string, paths []string) (bool, int, error
 		return false, 0, lastErr
 	}
 	return false, 0, fmt.Errorf("could not find any running process: %w", unix.ESRCH)
-}
-
-func matches(id int, configuredIDs []idtools.IDMap, currentIDs []specs.LinuxIDMapping) bool {
-	// The first mapping is the host user, handle it separately.
-	if currentIDs[0].HostID != uint32(id) || currentIDs[0].Size != 1 {
-		return false
-	}
-
-	currentIDs = currentIDs[1:]
-	if len(currentIDs) != len(configuredIDs) {
-		return false
-	}
-
-	// It is fine to iterate sequentially as both slices are sorted.
-	for i := range currentIDs {
-		if currentIDs[i].HostID != uint32(configuredIDs[i].HostID) {
-			return false
-		}
-		if currentIDs[i].Size != uint32(configuredIDs[i].Size) {
-			return false
-		}
-	}
-
-	return true
-}
-
-// ConfigurationMatches checks whether the additional uids/gids configured for the user
-// match the current user namespace.
-func ConfigurationMatches() (bool, error) {
-	if !IsRootless() || os.Geteuid() != 0 {
-		return true, nil
-	}
-
-	uids, gids, err := GetConfiguredMappings(false)
-	if err != nil {
-		return false, err
-	}
-
-	currentUIDs, currentGIDs, err := unshare.GetHostIDMappings("")
-	if err != nil {
-		return false, err
-	}
-
-	if !matches(GetRootlessUID(), uids, currentUIDs) {
-		return false, err
-	}
-
-	return matches(GetRootlessGID(), gids, currentGIDs), nil
 }
 
 // IsFdInherited checks whether the fd is opened and valid to use

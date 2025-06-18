@@ -114,17 +114,6 @@ func countAvailableIDs(mappings []user.IDMap) int64 {
 	return availableUids
 }
 
-// GetAvailableUids returns how many UIDs are available in the
-// current user namespace.
-func GetAvailableUids() (int64, error) {
-	uids, err := GetAvailableUIDMap()
-	if err != nil {
-		return -1, err
-	}
-
-	return countAvailableIDs(uids), nil
-}
-
 // GetAvailableGids returns how many GIDs are available in the
 // current user namespace.
 func GetAvailableGids() (int64, error) {
