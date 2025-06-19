@@ -76,7 +76,7 @@ Set the exit policy of the pod when the last container exits.  Supported policie
 | Exit Policy        | Description                                                                                                                |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | *continue*         | The pod continues running, by keeping its infra container alive, when the last container exits. Used by default.           |
-| *stop*             | The pod (including its infra container) is stopped when the last container exits. Used in `kube play`.                     |
+| *stop*             | The pod (including its infra container) is stopped when the last container exits. Used in `kube play` and quadlets.        |
 
 @@option gidmap.pod
 
