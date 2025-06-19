@@ -53,6 +53,7 @@ type ContainerUpdateOptions struct {
 	// - RestartRetries to change restart retries
 	// - Env to change the environment variables.
 	// - UntsetEnv to unset the environment variables.
+	// - Rlimits to change POSIX resource limits.
 	Specgen                         *specgen.SpecGenerator
 	Resources                       *specs.LinuxResources
 	DevicesLimits                   *define.UpdateContainerDevicesLimits
@@ -61,6 +62,7 @@ type ContainerUpdateOptions struct {
 	RestartRetries                  *uint
 	Env                             []string
 	UnsetEnv                        []string
+	Rlimits                         []specs.POSIXRlimit
 }
 
 func (u *ContainerUpdateOptions) ProcessSpecgen() {
@@ -86,5 +88,9 @@ func (u *ContainerUpdateOptions) ProcessSpecgen() {
 	}
 	if u.RestartRetries == nil {
 		u.RestartRetries = u.Specgen.RestartRetries
+	}
+
+	if u.Rlimits == nil {
+		u.Rlimits = u.Specgen.Rlimits
 	}
 }
