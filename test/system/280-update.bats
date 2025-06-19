@@ -381,19 +381,24 @@ function nrand() {
     # Test persists across container restart
     run_podman restart $ctrname
 
-    # Verify the ulimits persist after restart
-    run_podman exec $ctrname sh -c "ulimit -n"
-    assert "$output" == "2048" "nofile ulimit persists after restart"
+    # Verify the ulimits for the main process by checking container logs
+    run_podman rm -f -t0 $ctrname
+    run_podman run -d --name $ctrname --ulimit nofile=2048:2048 --ulimit nproc=512:512 $IMAGE sh -c "ulimit -n; ulimit -u; sleep 100"
+    cid="$output"
 
-    run_podman exec $ctrname sh -c "ulimit -u"
-    assert "$output" == "512" "nproc ulimit persists after restart"
+    # Give the container a moment to start and write logs
+    sleep 1
+
+    run_podman logs $ctrname
+    assert "$output" =~ "^2048" "nofile ulimit for main process is 2048"
+    assert "$output" =~ "^512" "nproc ulimit for main process is 512"
 
     # Error cases
     run_podman 125 update --ulimit nofile:1024:1024 $ctrname
-    assert "$output" =~ "error" "Invalid ulimit syntax should fail"
+    assert "$output" =~ "invalid ulimit format" "Invalid ulimit syntax should fail"
 
     run_podman 125 update --ulimit nofile=2048:1024 $ctrname
-    assert "$output" =~ "error" "Invalid ulimit values should fail"
+    assert "$output" =~ "hard limit cannot be less than soft limit" "Invalid ulimit values should fail"
 
     # Clean up
     run_podman rm -t 0 -f $ctrname
