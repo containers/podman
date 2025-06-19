@@ -91,3 +91,18 @@ func (o *CreateOptions) GetReplace() bool {
 	}
 	return *o.Replace
 }
+
+// WithIgnore set field Ignore to given value
+func (o *CreateOptions) WithIgnore(value bool) *CreateOptions {
+	o.Ignore = &value
+	return o
+}
+
+// GetIgnore returns value of field Ignore
+func (o *CreateOptions) GetIgnore() bool {
+	if o.Ignore == nil {
+		var z bool
+		return z
+	}
+	return *o.Ignore
+}
