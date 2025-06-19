@@ -293,6 +293,34 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 				}
 			}
 		}
+
+		if cmd.Flag("cpu-profile").Changed {
+			f, err := os.Create(podmanConfig.CPUProfile)
+			if err != nil {
+				return err
+			}
+			if err := pprof.StartCPUProfile(f); err != nil {
+				return err
+			}
+		}
+		if cmd.Flag("memory-profile").Changed {
+			// Same value as the default in github.com/pkg/profile.
+			runtime.MemProfileRate = 4096
+			if rate := os.Getenv("MemProfileRate"); rate != "" {
+				r, err := strconv.Atoi(rate)
+				if err != nil {
+					return err
+				}
+				runtime.MemProfileRate = r
+			}
+		}
+
+		if podmanConfig.MaxWorks <= 0 {
+			return fmt.Errorf("maximum workers must be set to a positive number (got %d)", podmanConfig.MaxWorks)
+		}
+		if err := parallel.SetMaxThreads(uint(podmanConfig.MaxWorks)); err != nil {
+			return err
+		}
 	}
 
 	if err := readRemoteCliFlags(cmd, podmanConfig); err != nil {
@@ -346,35 +374,6 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if !registry.IsRemote() {
-		if cmd.Flag("cpu-profile").Changed {
-			f, err := os.Create(podmanConfig.CPUProfile)
-			if err != nil {
-				return err
-			}
-			if err := pprof.StartCPUProfile(f); err != nil {
-				return err
-			}
-		}
-		if cmd.Flag("memory-profile").Changed {
-			// Same value as the default in github.com/pkg/profile.
-			runtime.MemProfileRate = 4096
-			if rate := os.Getenv("MemProfileRate"); rate != "" {
-				r, err := strconv.Atoi(rate)
-				if err != nil {
-					return err
-				}
-				runtime.MemProfileRate = r
-			}
-		}
-
-		if podmanConfig.MaxWorks <= 0 {
-			return fmt.Errorf("maximum workers must be set to a positive number (got %d)", podmanConfig.MaxWorks)
-		}
-		if err := parallel.SetMaxThreads(uint(podmanConfig.MaxWorks)); err != nil {
-			return err
-		}
-	}
 	// Setup Rootless environment, IFF:
 	// 1) in ABI mode
 	// 2) running as non-root
