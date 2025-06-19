@@ -811,8 +811,8 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	if ok && len(update) > 0 {
 		podman.addKeys(
 			"--label",
-			map[string]string{
-				autoUpdateLabel: update,
+			map[string]*string{
+				autoUpdateLabel: &update,
 			},
 		)
 	}
