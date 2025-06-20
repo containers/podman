@@ -9,6 +9,7 @@ import (
 	"github.com/containers/buildah/pkg/cli"
 	"github.com/containers/common/pkg/auth"
 	"github.com/containers/common/pkg/completion"
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
@@ -25,6 +26,7 @@ type pullOptionsWrapper struct {
 	TLSVerifyCLI   bool // CLI only
 	CredentialsCLI string
 	DecryptionKeys []string
+	PolicyCLI      string
 }
 
 var (
@@ -101,6 +103,11 @@ func pullFlags(cmd *cobra.Command) {
 	flags.String(platformFlagName, "", "Specify the platform for selecting the image.  (Conflicts with arch and os)")
 	_ = cmd.RegisterFlagCompletionFunc(platformFlagName, completion.AutocompleteNone)
 
+	policyFlagName := "policy"
+	// Explicitly set the default to "always" to avoid the default being "missing"
+	flags.StringVar(&pullOptions.PolicyCLI, policyFlagName, "always", `Pull image policy ("always"|"missing"|"never"|"newer")`)
+	_ = cmd.RegisterFlagCompletionFunc(policyFlagName, common.AutocompletePullOption)
+
 	flags.Bool("disable-content-trust", false, "This is a Docker specific option and is a NOOP")
 	flags.BoolVarP(&pullOptions.Quiet, "quiet", "q", false, "Suppress output information when pulling images")
 	flags.BoolVar(&pullOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
@@ -142,6 +149,12 @@ func imagePull(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("tls-verify") {
 		pullOptions.SkipTLSVerify = types.NewOptionalBool(!pullOptions.TLSVerifyCLI)
 	}
+
+	pullPolicy, err := config.ParsePullPolicy(pullOptions.PolicyCLI)
+	if err != nil {
+		return err
+	}
+	pullOptions.PullPolicy = pullPolicy
 
 	if cmd.Flags().Changed("retry") {
 		retry, err := cmd.Flags().GetUint("retry")
