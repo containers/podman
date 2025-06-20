@@ -4,6 +4,8 @@ set -exo pipefail
 
 uname -r
 
+cat /etc/os-release
+
 loginctl enable-linger "$ROOTLESS_USER"
 
 rpm -q \

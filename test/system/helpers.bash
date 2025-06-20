@@ -41,7 +41,6 @@ if [ $(id -u) -eq 0 ]; then
     _LOG_PROMPT='#'
 fi
 
-# Invocations via su may not set this. Although all container tools make
 # an effort to determine a default if unset, there are corner cases (rootless
 # namespace preservation) that run before the default is set.
 # For purposes of system tests (CI, gating, OpenQA) we force a default early.
@@ -1371,6 +1370,22 @@ function wait_for_restart_count() {
     done
 }
 
+############################
+# Get Host Distribution Info
+############################
+function get_host_distribution_info() {
+    local osrelease=/etc/os-release
+    if [[ -e $osrelease ]]; then
+        # shellcheck source=/etc/os-release
+        HOST_DISTRO_NAME=$(source $osrelease; echo "$ID")
+        export HOST_DISTRO_NAME
+        # shellcheck source=/etc/os-release
+        HOST_DISTRO_RELEASE=$(source $osrelease; echo "$VERSION_ID")
+        export HOST_DISTRO_RELEASE
+    fi
+}
+
+# Invocations via su may not set this. Although all container tools make
 
 # END   miscellaneous tools
 ###############################################################################
