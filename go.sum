@@ -8,6 +8,8 @@ github.com/Azure/go-ansiterm v0.0.0-20250102033503-faa5f7b0171c/go.mod h1:xomTg6
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
 github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/Honny1/common v0.0.0-20250611133718-28fd0a86a63e h1:s2s0j8wQwBGMTXV7N6IYFk5U8Ip8IRl0wj9szHlZj8k=
+github.com/Honny1/common v0.0.0-20250611133718-28fd0a86a63e/go.mod h1:xtruqlYgodbTxL/k+iOeYCOxt00jNtI1lxiFUKN+dGk=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
 github.com/Microsoft/hcsshim v0.13.0 h1:/BcXOiS6Qi7N9XqUcv27vkIuVOkBEcWstd2pMlWSeaA=
@@ -66,8 +68,6 @@ github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
 github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30 h1:kCt0fnVBvXY9J98pUDeUc0gHKrhRwaBTWWD3otLutCE=
 github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30/go.mod h1:QDecwvjrr+e0VD5GYv2dw7tsiqrz673r8B4rIYFP11Y=
-github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c h1:j4epZCkQt8Jdpz2GsUzvqY4MfaOfJamrNpZnmbV84Ug=
-github.com/containers/common v0.63.2-0.20250604184922-bb2062b6265c/go.mod h1:efNRNweihnq5nXALnAPDXTpC7uJtnFV4pNuETTfvI8s=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.6 h1:9SeAXK+K2o36CtrgYk6zRXbU3zrayjvkrI8b7/O6u5A=
