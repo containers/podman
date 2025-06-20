@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"io"
 	"net/url"
 
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
@@ -37,12 +38,19 @@ type VolumeListReport = types.VolumeListReport
 // VolumeReloadReport describes the response from reload volume plugins
 type VolumeReloadReport = types.VolumeReloadReport
 
-/*
- * Docker API compatibility types
- */
-
 // VolumeMountReport describes the response from volume mount
 type VolumeMountReport = types.VolumeMountReport
 
 // VolumeUnmountReport describes the response from umounting a volume
 type VolumeUnmountReport = types.VolumeUnmountReport
+
+// VolumeExportOptions describes the options required to export a volume.
+type VolumeExportOptions struct {
+	Output io.Writer
+}
+
+// VolumeImportOptions describes the options required to import a volume
+type VolumeImportOptions struct {
+	// Input will be closed upon being fully consumed
+	Input io.Reader
+}

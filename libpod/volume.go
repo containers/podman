@@ -3,12 +3,17 @@
 package libpod
 
 import (
+	"fmt"
+	"io"
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/lock"
 	"github.com/containers/podman/v5/libpod/plugin"
+	"github.com/containers/podman/v5/utils"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/sirupsen/logrus"
 )
 
 // Volume is a libpod named volume.
@@ -293,4 +298,56 @@ func (v *Volume) Unmount() error {
 
 func (v *Volume) NeedsMount() bool {
 	return v.needsMount()
+}
+
+// Export volume to tar.
+// Returns a ReadCloser which points to a tar of all the volume's contents.
+func (v *Volume) Export() (io.ReadCloser, error) {
+	v.lock.Lock()
+	err := v.mount()
+	mountPoint := v.mountPoint()
+	v.lock.Unlock()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		v.lock.Lock()
+		defer v.lock.Unlock()
+
+		if err := v.unmount(false); err != nil {
+			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+		}
+	}()
+
+	volContents, err := utils.TarWithChroot(mountPoint)
+	if err != nil {
+		return nil, fmt.Errorf("creating tar of volume %s contents: %w", v.Name(), err)
+	}
+
+	return volContents, nil
+}
+
+// Import a volume from a tar file, provided as an io.Reader.
+func (v *Volume) Import(r io.Reader) error {
+	v.lock.Lock()
+	err := v.mount()
+	mountPoint := v.mountPoint()
+	v.lock.Unlock()
+	if err != nil {
+		return err
+	}
+	defer func() {
+		v.lock.Lock()
+		defer v.lock.Unlock()
+
+		if err := v.unmount(false); err != nil {
+			logrus.Errorf("Error unmounting volume %s: %v", v.Name(), err)
+		}
+	}()
+
+	if err := archive.Untar(r, mountPoint, nil); err != nil {
+		return fmt.Errorf("extracting into volume %s: %w", v.Name(), err)
+	}
+
+	return nil
 }

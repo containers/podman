@@ -12,8 +12,6 @@ podman\-volume\-export - Export volume to external tar
 on the local machine. **podman volume export** writes to STDOUT by default and can be
 redirected to a file using the `--output` flag.
 
-Note: Following command is not supported by podman-remote.
-
 **podman volume export [OPTIONS] VOLUME**
 
 ## OPTIONS
