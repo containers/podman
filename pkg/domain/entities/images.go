@@ -237,6 +237,8 @@ type ImageSearchOptions struct {
 	SkipTLSVerify types.OptionalBool
 	// ListTags search the available tags of the repository
 	ListTags bool
+	// List tags either in descending or ascending order
+	ReverseOrder bool
 }
 
 // ImageSearchReport is the response from searching images.
