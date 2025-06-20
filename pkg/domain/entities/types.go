@@ -11,14 +11,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 )
 
-type Container struct {
-	IDOrNamed
-}
-
-type Volume struct {
-	Identifier
-}
-
 type Report struct {
 	Id  []string
 	Err map[string]error

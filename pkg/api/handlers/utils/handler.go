@@ -126,14 +126,6 @@ func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
 	}
 }
 
-func FilterMapToString(filters map[string][]string) (string, error) {
-	f, err := json.Marshal(filters)
-	if err != nil {
-		return "", err
-	}
-	return string(f), nil
-}
-
 func GetVar(r *http.Request, k string) string {
 	val := mux.Vars(r)[k]
 	safeVal, err := url.PathUnescape(val)

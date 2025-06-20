@@ -800,17 +800,7 @@ func (ic *ContainerEngine) ContainerStart(ctx context.Context, namesOrIds []stri
 			if ctr.AutoRemove {
 				// Defer the removal, so we can return early if needed and
 				// de-spaghetti the code.
-				defer func() {
-					shouldRestart, err := containers.ShouldRestart(ic.ClientCtx, ctr.ID, nil)
-					if err != nil {
-						logrus.Errorf("Failed to check if %s should restart: %v", ctr.ID, err)
-						return
-					}
-
-					if !shouldRestart && ctr.AutoRemove {
-						removeContainer(ctr.ID, ctr.CIDFile)
-					}
-				}()
+				defer removeContainer(ctr.ID, ctr.CIDFile)
 			}
 
 			report.ExitCode = code
@@ -882,7 +872,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 	for _, w := range con.Warnings {
 		fmt.Fprintf(os.Stderr, "%s\n", w)
 	}
-	removeContainer := func(id, CIDFile string, force bool) error {
+	removeContainer := func(id, CIDFile string, force bool) {
 		if CIDFile != "" {
 			if err := os.Remove(CIDFile); err != nil && !errors.Is(err, os.ErrNotExist) {
 				logrus.Warnf("Cleaning up CID file: %s", err)
@@ -892,13 +882,12 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		removeOptions := new(containers.RemoveOptions).WithVolumes(true).WithForce(force)
 		reports, err := containers.Remove(ic.ClientCtx, id, removeOptions)
 		logIfRmError(id, err, reports)
-		return err
 	}
 
 	if opts.CIDFile != "" {
 		if err := util.CreateIDFile(opts.CIDFile, con.ID); err != nil {
 			// If you fail to create CIDFile then remove the container
-			_ = removeContainer(con.ID, opts.CIDFile, true)
+			removeContainer(con.ID, opts.CIDFile, true)
 			return nil, err
 		}
 	}
@@ -911,7 +900,7 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 		if err != nil {
 			report.ExitCode = define.ExitCode(err)
 			if opts.Rm {
-				_ = removeContainer(con.ID, opts.CIDFile, true)
+				removeContainer(con.ID, opts.CIDFile, true)
 			}
 		}
 		return &report, err
@@ -934,25 +923,13 @@ func (ic *ContainerEngine) ContainerRun(ctx context.Context, opts entities.Conta
 
 		report.ExitCode = define.ExitCode(err)
 		if opts.Rm {
-			_ = removeContainer(con.ID, opts.CIDFile, false)
+			removeContainer(con.ID, opts.CIDFile, false)
 		}
 		return &report, err
 	}
 
 	if opts.Rm {
-		// Defer the removal, so we can return early if needed and
-		// de-spaghetti the code.
-		defer func() {
-			shouldRestart, err := containers.ShouldRestart(ic.ClientCtx, con.ID, nil)
-			if err != nil {
-				logrus.Errorf("Failed to check if %s should restart: %v", con.ID, err)
-				return
-			}
-
-			if !shouldRestart {
-				_ = removeContainer(con.ID, opts.CIDFile, false)
-			}
-		}()
+		removeContainer(con.ID, opts.CIDFile, false)
 	}
 
 	report.ExitCode = code
@@ -1066,11 +1043,6 @@ func (ic *ContainerEngine) ContainerStats(ctx context.Context, namesOrIds []stri
 		return nil, errors.New("latest is not supported for the remote client")
 	}
 	return containers.Stats(ic.ClientCtx, namesOrIds, new(containers.StatsOptions).WithStream(options.Stream).WithInterval(options.Interval).WithAll(options.All))
-}
-
-// ShouldRestart reports back whether the container will restart.
-func (ic *ContainerEngine) ShouldRestart(_ context.Context, id string) (bool, error) {
-	return containers.ShouldRestart(ic.ClientCtx, id, nil)
 }
 
 // ContainerRename renames the given container.

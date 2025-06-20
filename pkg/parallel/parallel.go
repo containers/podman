@@ -11,10 +11,6 @@ import (
 )
 
 var (
-	// Maximum number of jobs that will be used.
-	// Set a low, but non-zero, default. We'll be overriding it by default
-	// anyways.
-	numThreads uint = 8
 	// Semaphore to control thread creation and ensure numThreads is
 	// respected.
 	jobControl *semaphore.Weighted
@@ -32,17 +28,10 @@ func SetMaxThreads(threads uint) error {
 	jobControlLock.Lock()
 	defer jobControlLock.Unlock()
 
-	numThreads = threads
 	jobControl = semaphore.NewWeighted(int64(threads))
 	logrus.Infof("Setting parallel job count to %d", threads)
 
 	return nil
-}
-
-// GetMaxThreads returns the current number of threads that will be used for
-// parallel jobs.
-func GetMaxThreads() uint {
-	return numThreads
 }
 
 // Enqueue adds a single function to the parallel jobs queue. This function will

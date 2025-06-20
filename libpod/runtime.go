@@ -176,15 +176,6 @@ func NewRuntime(ctx context.Context, options ...RuntimeOption) (*Runtime, error)
 	return newRuntimeFromConfig(ctx, conf, options...)
 }
 
-// NewRuntimeFromConfig creates a new container runtime using the given
-// configuration file for its default configuration. Passed RuntimeOption
-// functions can be used to mutate this configuration further.
-// An error will be returned if the configuration file at the given path does
-// not exist or cannot be loaded
-func NewRuntimeFromConfig(ctx context.Context, userConfig *config.Config, options ...RuntimeOption) (*Runtime, error) {
-	return newRuntimeFromConfig(ctx, userConfig, options...)
-}
-
 func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...RuntimeOption) (*Runtime, error) {
 	runtime := new(Runtime)
 

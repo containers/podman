@@ -97,56 +97,6 @@ func NewFarm(ctx context.Context, name string, localEngine entities.ImageEngine,
 	return newFarmWithBuilders(ctx, name, destinations, localEngine, buildLocal)
 }
 
-// Done performs any necessary end-of-process cleanup for the farm's members.
-func (f *Farm) Done(ctx context.Context) error {
-	return f.forEach(ctx, func(ctx context.Context, name string, engine entities.ImageEngine) (bool, error) {
-		engine.Shutdown(ctx)
-		return false, nil
-	})
-}
-
-// Status polls the connections in the farm and returns a map of their
-// individual status, along with an error if any are down or otherwise unreachable.
-func (f *Farm) Status(ctx context.Context) (map[string]error, error) {
-	status := make(map[string]error)
-	var (
-		statusMutex sync.Mutex
-		statusGroup multierror.Group
-	)
-	for _, engine := range f.builders {
-		statusGroup.Go(func() error {
-			logrus.Debugf("getting status of %q", engine.FarmNodeName(ctx))
-			defer logrus.Debugf("got status of %q", engine.FarmNodeName(ctx))
-			_, err := engine.Config(ctx)
-			statusMutex.Lock()
-			defer statusMutex.Unlock()
-			status[engine.FarmNodeName(ctx)] = err
-			return err
-		})
-	}
-	statusError := statusGroup.Wait()
-
-	return status, statusError.ErrorOrNil()
-}
-
-// forEach runs the called function once for every node in the farm and
-// collects their results, continuing until it finishes visiting every node or
-// a function call returns true as its first return value.
-func (f *Farm) forEach(ctx context.Context, fn func(context.Context, string, entities.ImageEngine) (bool, error)) error {
-	var merr *multierror.Error
-	for name, engine := range f.builders {
-		stop, err := fn(ctx, name, engine)
-		if err != nil {
-			merr = multierror.Append(merr, fmt.Errorf("%s: %w", engine.FarmNodeName(ctx), err))
-		}
-		if stop {
-			break
-		}
-	}
-
-	return merr.ErrorOrNil()
-}
-
 // NativePlatforms returns a list of the set of platforms for which the farm
 // can build images natively.
 func (f *Farm) NativePlatforms(ctx context.Context) ([]string, error) {
@@ -180,45 +130,6 @@ func (f *Farm) NativePlatforms(ctx context.Context) ([]string, error) {
 	}
 
 	for platform := range nativeMap {
-		platforms = append(platforms, platform)
-	}
-	sort.Strings(platforms)
-	return platforms, nil
-}
-
-// EmulatedPlatforms returns a list of the set of platforms for which the farm
-// can build images with the help of emulation.
-func (f *Farm) EmulatedPlatforms(ctx context.Context) ([]string, error) {
-	emulatedMap := make(map[string]struct{})
-	platforms := []string{}
-	var (
-		emulatedMutex sync.Mutex
-		emulatedGroup multierror.Group
-	)
-	for _, engine := range f.builders {
-		emulatedGroup.Go(func() error {
-			logrus.Debugf("getting emulated platforms of %q", engine.FarmNodeName(ctx))
-			defer logrus.Debugf("got emulated platforms of %q", engine.FarmNodeName(ctx))
-			inspect, err := engine.FarmNodeInspect(ctx)
-			if err != nil {
-				return err
-			}
-			emulatedMutex.Lock()
-			defer emulatedMutex.Unlock()
-			for _, platform := range inspect.EmulatedPlatforms {
-				emulatedMap[platform] = struct{}{}
-			}
-			return nil
-		})
-	}
-	merr := emulatedGroup.Wait()
-	if merr != nil {
-		if err := merr.ErrorOrNil(); err != nil {
-			return nil, err
-		}
-	}
-
-	for platform := range emulatedMap {
 		platforms = append(platforms, platform)
 	}
 	sort.Strings(platforms)

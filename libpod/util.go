@@ -15,7 +15,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
@@ -27,14 +26,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
-
-// FuncTimer helps measure the execution time of a function
-// For debug purposes, do not leave in code
-// used like defer FuncTimer("foo")
-func FuncTimer(funcName string) {
-	elapsed := time.Since(time.Now())
-	fmt.Printf("%s executed in %d ms\n", funcName, elapsed)
-}
 
 // MountExists returns true if dest exists in the list of mounts
 func MountExists(specMounts []spec.Mount, dest string) bool {
@@ -69,21 +60,6 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 		return 1
 	})
 	return m
-}
-
-func validPodNSOption(p *Pod, ctrPod string) error {
-	if p == nil {
-		return fmt.Errorf("pod passed in was nil. Container may not be associated with a pod: %w", define.ErrInvalidArg)
-	}
-
-	if ctrPod == "" {
-		return fmt.Errorf("container is not a member of any pod: %w", define.ErrInvalidArg)
-	}
-
-	if ctrPod != p.ID() {
-		return fmt.Errorf("pod passed in is not the pod the container is associated with: %w", define.ErrInvalidArg)
-	}
-	return nil
 }
 
 // JSONDeepCopy performs a deep copy by performing a JSON encode/decode of the
