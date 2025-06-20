@@ -69,6 +69,15 @@ Print the usage statement.
 
 @@option platform
 
+#### **--policy**
+
+Pull image policy. The default is **always**.
+
+- `always`: Always pull the image and throw an error if the pull fails.
+- `missing`: Only pull the image if it could not be found in the local containers storage. Throw an error if no image could be found and the pull fails.
+- `never`: Never pull the image; only use the local version. Throw an error if the image is not present locally.
+- `newer`: Pull if the image on the registry is newer than the one in the local containers storage. An image is considered to be newer when the digests are different. Comparing the time stamps is prone to errors. Pull errors are suppressed if a local image was found.
+
 #### **--quiet**, **-q**
 
 Suppress output information when pulling images
@@ -213,6 +222,28 @@ Pull an image with up to 6 retries, delaying 10 seconds between retries in quet 
 ```
 $ podman --remote pull -q --retry 6 --retry-delay 10s ubi9
 4d6addf62a90e392ff6d3f470259eb5667eab5b9a8e03d20b41d0ab910f92170
+```
+
+Pull an image only if not present locally.
+```
+$ podman pull --policy missing alpine:latest
+```
+
+Never pull the image, only use local version.
+```
+$ podman pull --policy never alpine:latest
+```
+
+Always pull the image even if present locally.
+```
+$ podman pull --policy always alpine:latest
+Trying to pull docker.io/library/alpine:latest...
+Getting image source signatures
+Copying blob 5843afab3874 done
+Copying config d4ff818577 done
+Writing manifest to image destination
+Storing signatures
+d4ff818577bc193b309b355b02ebc9220427090057b54a59e73b79bdfe139b83
 ```
 
 ## SEE ALSO
