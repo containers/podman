@@ -132,6 +132,7 @@ function setup() {
 
 # bats test_tags=ci:parallel
 @test "podman checkpoint --export, with volumes" {
+    skip "FIXME: #26289 - Rawhide only issue, skip for now"
     skip_if_remote "Test uses --root/--runroot, which are N/A over remote"
 
     local p_opts="$(podman_isolation_opts ${PODMAN_TMPDIR}) --events-backend file"
