@@ -132,6 +132,11 @@ function setup() {
 
 # bats test_tags=ci:parallel
 @test "podman checkpoint --export, with volumes" {
+    get_host_distribution_info
+    if [[ "$HOST_DISTRO_NAME" == "fedora" && "$HOST_DISTRO_RELEASE" == "43" ]]; then
+        skip "Broken on Fedora 43: https://github.com/containers/crun/issues/1770"
+    fi
+
     skip_if_remote "Test uses --root/--runroot, which are N/A over remote"
 
     local p_opts="$(podman_isolation_opts ${PODMAN_TMPDIR}) --events-backend file"
