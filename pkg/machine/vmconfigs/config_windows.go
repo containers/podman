@@ -24,6 +24,8 @@ type QEMUConfig struct {
 	QMPMonitor command.Monitor
 	// QEMUPidPath is where to write the PID for QEMU when running
 	QEMUPidPath *define.VMFile
+	// VSocketCid ID for VSocket communication
+	VSocketCid int32
 }
 
 // Stubs
