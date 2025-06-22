@@ -656,6 +656,14 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		s.StopTimeout = &timeout
 	}
 
+	if lifecycle := opts.Container.Lifecycle; lifecycle != nil && lifecycle.StopSignal != nil {
+		stopSignal, err := util.ParseSignal(*lifecycle.StopSignal)
+		if err != nil {
+			return nil, err
+		}
+		s.StopSignal = &stopSignal
+	}
+
 	return s, nil
 }
 
