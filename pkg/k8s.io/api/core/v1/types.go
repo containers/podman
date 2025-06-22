@@ -1331,6 +1331,13 @@ type Lifecycle struct {
 	// More info: https://kubernetes.io/docs/concepts/containers/container-lifecycle-hooks/#container-hooks
 	// +optional
 	PreStop *Handler `json:"preStop,omitempty"`
+	// StopSignal defines the signal to be sent to the container when stopping.
+	// This value is configured via the container's Lifecycle and overrides any
+	// stop signal defined in the container image. If no StopSignal is specified,
+	// the default signal (SIGTERM) will be used.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#defining-custom-stop-signals
+	// +optional
+	StopSignal *string `json:"stopSignal,omitempty"`
 }
 
 type ConditionStatus string

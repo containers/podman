@@ -112,6 +112,7 @@ Note: **N/A** means that the option cannot be supported in a single-node Podman 
 | resources\.requests                                 | ✅      |
 | lifecycle\.postStart                                | no      |
 | lifecycle\.preStop                                  | no      |
+| lifecycle\.stopSignal                               | ✅      |
 | terminationMessagePath                              | no      |
 | terminationMessagePolicy                            | no      |
 | livenessProbe                                       | ✅      |
