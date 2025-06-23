@@ -81,6 +81,7 @@ type UpdateEntities struct {
 	define.UpdateContainerDevicesLimits
 	Env      []string
 	UnsetEnv []string
+	Rlimits  []specs.POSIXRlimit
 }
 
 type Info struct {
