@@ -217,4 +217,7 @@ var (
 	// ErrRemovingCtrs indicates that there was an error removing all
 	// containers from a pod.
 	ErrRemovingCtrs = errors.New("removing pod containers")
+
+	// ErrHealthCheckTimeout indicates that a HealthCheck timed out.
+	ErrHealthCheckTimeout = errors.New("healthcheck command exceeded timeout")
 )
