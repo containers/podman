@@ -299,6 +299,7 @@ Valid options for `[Container]` are listed below:
 | AddDevice=/dev/foo                   | --device /dev/foo                                    |
 | AddHost=example\.com:192.168.10.11   | --add-host example.com:192.168.10.11                 |
 | Annotation="XYZ"                     | --annotation "XYZ"                                   |
+| AuthFile=/etc/registry/auth\.json    | --authfile=/etc/registry/auth\.json                  |
 | AutoUpdate=registry                  | --label "io.containers.autoupdate=registry"          |
 | CgroupsMode=no-conmon                | --cgroups=no-conmon                                  |
 | ContainerName=name                   | --name name                                          |
@@ -420,6 +421,16 @@ Set one or more OCI annotations on the container. The format is a list of `key=v
 similar to `Environment`.
 
 This key can be listed multiple times.
+
+### `AuthFile=`
+
+Path of the authentication file.
+
+This is equivalent to the `--authfile` option.
+
+Special Cases:
+
+* If the `name` of the AuthFile ends with `.login`, Quadlet will use the authfile created by the corresponding `.login` file, and the generated systemd service contains a dependency on the `$name-login.service` (or the service name set in the `.login` file). Note that the corresponding `.login` file must exist and must include the `AuthFile` key.
 
 ### `AutoUpdate=`
 
@@ -1240,6 +1251,7 @@ Valid options for `[Kube]` are listed below:
 
 | **[Kube] options**                  | **podman kube play equivalent**                                  |
 | ------------------------------------| -----------------------------------------------------------------|
+| AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json                              |
 | AutoUpdate=registry                 | --annotation "io.containers.autoupdate=registry"                 |
 | ConfigMap=/tmp/config.map           | --config-map /tmp/config.map                                     |
 | ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                                          |
@@ -1255,6 +1267,16 @@ Valid options for `[Kube]` are listed below:
 | Yaml=/tmp/kube.yaml                 | podman kube play /tmp/kube.yaml                                  |
 
 Supported keys in the `[Kube]` section are:
+
+### `AuthFile=`
+
+Path of the authentication file.
+
+This is equivalent to the `--authfile` option.
+
+Special Cases:
+
+* If the `name` of the AuthFile ends with `.login`, Quadlet will use the authfile created by the corresponding `.login` file, and the generated systemd service contains a dependency on the `$name-login.service` (or the service name set in the `.login` file). Note that the corresponding `.login` file must exist and must include the `AuthFile` key.
 
 ### `AutoUpdate=`
 
@@ -1728,6 +1750,10 @@ Path of the authentication file.
 
 This is equivalent to the `--authfile` option of `podman build`.
 
+Special Cases:
+
+* If the `name` of the AuthFile ends with `.login`, Quadlet will use the authfile created by the corresponding `.login` file, and the generated systemd service contains a dependency on the `$name-login.service` (or the service name set in the `.login` file). Note that the corresponding `.login` file must exist and must include the `AuthFile` key.
+
 ### `ContainersConfModule=`
 
 Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
@@ -1963,7 +1989,12 @@ This is equivalent to the Podman `--arch` option.
 
 Path of the authentication file.
 
-This is equivalent to the Podman `--authfile` option.
+This is equivalent to the `--authfile` option.
+
+Special Cases:
+
+* If the `name` of the AuthFile ends with `.login`, Quadlet will use the authfile created by the corresponding `.login` file, and the generated systemd service contains a dependency on the `$name-login.service` (or the service name set in the `.login` file). Note that the corresponding `.login` file must exist and must include the `AuthFile` key.
+
 
 ### `CertDir=`
 
@@ -2061,6 +2092,103 @@ This is equivalent to the Podman `--tls-verify` option.
 Override the default architecture variant of the container image.
 
 This is equivalent to the Podman `--variant` option.
+
+## Login units [Login]
+
+Login files are named with a `.login` extension and contain a section `[Login]` describing the
+login command. The generated service is a one-time command that logs into a registry.
+
+Using login units allows pulling images from private registries without having to login manually.
+
+There is only one required key, `Registry`, which defines the URL of the registry to log into.
+
+To avoid password leaking, Quadlet will set the permissions of the generated service file as 0600.
+It is recommended to do the same for `.login` unit files.
+
+Valid options for `[Login]` are listed below:
+
+| **[Login] options**                             | **podman login**                                                     |
+|-------------------------------------------------|----------------------------------------------------------------------|
+| AuthFile=/etc/registry/auth\.json               | --authfile=/etc/registry/auth\.json                                  |
+| CertDir=/etc/certs                              | --cert-dir=/etc/certs                                                |
+| LogoutOnStop=true                               | Add ExecStopPost to log out of the registry when the unit is stopped |
+| Password=mypassword                             | --password-stdin and set StandardInputText                           |
+| PodmanArgs=--compat-auth-file=/etc/compat\.json | --compat-auth-file=/etc/registry/compat\.json                        |
+| Registry=quai.io                                | podman login quai.io                                                 |
+| Secret=mysecret                                 | --secret=mysecret                                                    |
+| ServiceName=name                                | Name the systemd unit `name.service`                                 |
+| TLSVerify=false                                 | --tls-verify=false                                                   |
+| Username=myuser                                 | --username=myuser                                                    |
+
+### `AuthFile=`
+
+Path of the authentication file.
+
+This field is mandatory when linking between an `AuthFile` key of a different unit and the `.login` unit.
+Do not use unit specific systemd specifiers (e.g. `%n`) as they will be resolved differently in the dependent units.
+
+This is equivalent to the Podman `--authfile` option.
+
+### `CertDir=`
+
+Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
+
+This is equivalent to the Podman `--cert-dir` option.
+
+
+### `LogoutOnStop=` (defaults to `false`)
+
+When set to `true`, the logout will be called when the service is stopped.
+
+### `Password=`
+
+Use the password to connect to the registry.
+In order to prevent password leak, instead of using the `--password` option,
+Quadlet will set `--password-stdin` and use systemd `StandardInputText` to pass the data.
+
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman login` command
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator.
+Since the generator is unaware of the unexpected interactions that can be caused by these arguments,
+it is not recommended to use this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `Registry=`
+
+Use the URL of the registry to connect to. This key is mandatory.
+
+This is equivalent to the last argument of `podman login`.
+
+### `Secret=`
+
+Use a podman secret for the credentials.
+
+This is equivalent to the Podman `--secret` option.
+
+### `ServiceName=`
+
+By default, Quadlet will name the systemd service unit by appending `-login` to the name of the Quadlet.
+Setting this key overrides this behavior by instructing Quadlet to use the provided name.
+
+Note, the name should not include the `.service` file extension
+
+### `TLSVerify=`
+
+Require HTTPS and verification of certificates when contacting registries.
+
+This is equivalent to the Podman `--tls-verify` option.
+
+### `Username=`
+
+Use the username to connect to the registry.
+
+This is equivalent to the Podman `--username` option.
 
 ## Quadlet section [Quadlet]
 Some quadlet specific configuration is shared between different unit types. Those settings
@@ -2239,6 +2367,26 @@ Type=fuse.s3fs
 VolumeName=s3fs-volume
 Options=iam_role,endpoint=${AWS_REGION},use_xattr,listobjectsv2,del_cache,use_cache=${CACHE_DIRECTORY}
 # `iam_role` assumes inside EC2, if not, Use `profile=` instead
+```
+
+Example for pulling from a private repository with a `.login` file
+
+`private-repo.login`
+```
+[Login]
+Registry=private-repo.example.com
+AuthFile=/etc/auth/private-repo.json
+TLSVerify=false
+Username=myuser
+Password=mypassword
+LogoutOnStop=true
+```
+
+`app.container`
+```
+[Container]
+Image=private-repo.example.com/myaccount/myapp:latest
+AuthFile=private-repo.login
 ```
 
 ## SEE ALSO

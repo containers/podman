@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -38,6 +39,7 @@ const (
 	ImageGroup      = "Image"
 	BuildGroup      = "Build"
 	QuadletGroup    = "Quadlet"
+	LoginGroup      = "Login"
 	XContainerGroup = "X-Container"
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
@@ -46,6 +48,7 @@ const (
 	XImageGroup     = "X-Image"
 	XBuildGroup     = "X-Build"
 	XQuadletGroup   = "X-Quadlet"
+	XLoginGroup     = "X-Login"
 )
 
 // Systemd Unit file keys
@@ -122,6 +125,7 @@ const (
 	KeyLabel                 = "Label"
 	KeyLogDriver             = "LogDriver"
 	KeyLogOpt                = "LogOpt"
+	KeyLogoutOnStop          = "LogoutOnStop"
 	KeyMask                  = "Mask"
 	KeyMemory                = "Memory"
 	KeyMount                 = "Mount"
@@ -133,6 +137,7 @@ const (
 	KeyNotify                = "Notify"
 	KeyOptions               = "Options"
 	KeyOS                    = "OS"
+	KeyPassword              = "Password"
 	KeyPidsLimit             = "PidsLimit"
 	KeyPod                   = "Pod"
 	KeyPodmanArgs            = "PodmanArgs"
@@ -141,6 +146,7 @@ const (
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
 	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
+	KeyRegistry              = "Registry"
 	KeyReloadCmd             = "ReloadCmd"
 	KeyReloadSignal          = "ReloadSignal"
 	KeyRemapGid              = "RemapGid"     // deprecated
@@ -177,6 +183,7 @@ const (
 	KeyUlimit                = "Ulimit"
 	KeyUnmask                = "Unmask"
 	KeyUser                  = "User"
+	KeyUsername              = "Username"
 	KeyUserNS                = "UserNS"
 	KeyVariant               = "Variant"
 	KeyVolatileTmp           = "VolatileTmp" // deprecated
@@ -206,17 +213,46 @@ type GroupInfo struct {
 	SupportedKeys map[string]bool
 }
 
+type ExtensionInfo struct {
+	Order           int
+	ServiceFileMode fs.FileMode
+}
+
 var (
-	// Key: Extension
-	// Value: Processing order for resource naming dependencies
-	SupportedExtensions = map[string]int{
-		".container": 4,
-		".volume":    2,
-		".kube":      4,
-		".network":   2,
-		".image":     1,
-		".build":     3,
-		".pod":       5,
+	SupportedExtensions = map[string]ExtensionInfo{
+		".container": {
+			Order:           5,
+			ServiceFileMode: os.FileMode(0644),
+		},
+		".volume": {
+			Order:           3,
+			ServiceFileMode: os.FileMode(0644),
+		},
+		".kube": {
+			Order:           5,
+			ServiceFileMode: os.FileMode(0644),
+		},
+		".login": {
+			Order: 1,
+			// login files may include sensitive information, so make the generated service file private
+			ServiceFileMode: os.FileMode(0600),
+		},
+		".network": {
+			Order:           1,
+			ServiceFileMode: os.FileMode(0644),
+		},
+		".image": {
+			Order:           2,
+			ServiceFileMode: os.FileMode(0644),
+		},
+		".build": {
+			Order:           4,
+			ServiceFileMode: os.FileMode(0644),
+		},
+		".pod": {
+			Order:           6,
+			ServiceFileMode: os.FileMode(0644),
+		},
 	}
 
 	URL            = regexp.Delayed(`^((https?)|(git)://)|(github\.com/).+$`)
@@ -249,6 +285,7 @@ var (
 				KeyAddDevice:             true,
 				KeyAddHost:               true,
 				KeyAnnotation:            true,
+				KeyAuthFile:              true,
 				KeyAutoUpdate:            true,
 				KeyCgroupsMode:           true,
 				KeyContainerName:         true,
@@ -387,6 +424,7 @@ var (
 			GroupName:  KubeGroup,
 			XGroupName: XKubeGroup,
 			SupportedKeys: map[string]bool{
+				KeyAuthFile:             true,
 				KeyAutoUpdate:           true,
 				KeyConfigMap:            true,
 				KeyContainersConfModule: true,
@@ -495,6 +533,22 @@ var (
 				KeyUIDMap:               true,
 				KeyUserNS:               true,
 				KeyVolume:               true,
+			},
+		},
+		LoginGroup: {
+			GroupName:  LoginGroup,
+			XGroupName: XLoginGroup,
+			SupportedKeys: map[string]bool{
+				KeyAuthFile:     true,
+				KeyCertDir:      true,
+				KeyLogoutOnStop: true,
+				KeyPassword:     true,
+				KeyPodmanArgs:   true,
+				KeyRegistry:     true,
+				KeySecret:       true,
+				KeyServiceName:  true,
+				KeyTLSVerify:    true,
+				KeyUsername:     true,
 			},
 		},
 	}
@@ -874,6 +928,10 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	handleHealth(container, ContainerGroup, podman)
 
 	if err := handlePod(container, service, ContainerGroup, unitsInfoMap, podman); err != nil {
+		return nil, warnings, err
+	}
+
+	if err := handleAuthFile(container, ContainerGroup, podman, service, unitsInfoMap); err != nil {
 		return nil, warnings, err
 	}
 
@@ -1259,6 +1317,10 @@ func ConvertKube(kube *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUse
 
 	handlePodmanArgs(kube, KubeGroup, execStart)
 
+	if err := handleAuthFile(kube, KubeGroup, execStart, service, unitsInfoMap); err != nil {
+		return nil, err
+	}
+
 	execStart.add(yamlPath)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", execStart.Args)
@@ -1301,7 +1363,6 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	stringKeys := map[string]string{
 		KeyArch:          "--arch",
-		KeyAuthFile:      "--authfile",
 		KeyCertDir:       "--cert-dir",
 		KeyCreds:         "--creds",
 		KeyDecryptionKey: "--decryption-key",
@@ -1317,6 +1378,10 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 		KeyTLSVerify: "--tls-verify",
 	}
 	lookupAndAddBoolean(image, ImageGroup, boolKeys, podman)
+
+	if err := handleAuthFile(image, ImageGroup, podman, service, unitsInfoMap); err != nil {
+		return nil, err
+	}
 
 	handlePodmanArgs(image, ImageGroup, podman)
 
@@ -1360,7 +1425,6 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 
 	stringKeys := map[string]string{
 		KeyArch:       "--arch",
-		KeyAuthFile:   "--authfile",
 		KeyTarget:     "--target",
 		KeyVariant:    "--variant",
 		KeyRetry:      "--retry",
@@ -1423,6 +1487,10 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 		podman.add("--file", filePath)
 	}
 
+	if err := handleAuthFile(build, BuildGroup, podman, service, unitsInfoMap); err != nil {
+		return nil, warnings, err
+	}
+
 	handlePodmanArgs(build, BuildGroup, podman)
 
 	// Context or WorkingDirectory has to be last argument
@@ -1476,6 +1544,10 @@ func GetBuildServiceName(podUnit *parser.UnitFile) string {
 
 func GetPodServiceName(podUnit *parser.UnitFile) string {
 	return getServiceName(podUnit, PodGroup, "-pod")
+}
+
+func GetLoginServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, LoginGroup, "-login")
 }
 
 func getServiceName(quadletUnitFile *parser.UnitFile, groupName string, defaultExtraSuffix string) string {
@@ -2268,4 +2340,94 @@ func initServiceUnitFile(quadletUnitFile *parser.UnitFile, isUser bool, unitsInf
 	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	return service, unitInfo, nil
+}
+
+func ConvertLogin(loginUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
+	service, unitInfo, err := initServiceUnitFile(loginUnit, isUser, unitsInfoMap, LoginGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	registryName, ok := loginUnit.Lookup(LoginGroup, KeyRegistry)
+	if !ok {
+		return nil, fmt.Errorf("no Registry key specified")
+	}
+
+	authFile, _ := loginUnit.Lookup(LoginGroup, KeyAuthFile)
+
+	if loginUnit.LookupBooleanWithDefault(LoginGroup, KeyLogoutOnStop, false) {
+		serviceStopPostCmd := createBasePodmanCommand(loginUnit, LoginGroup)
+		serviceStopPostCmd.add("logout")
+		if authFile != "" {
+			serviceStopPostCmd.add("--authfile", authFile)
+		}
+		serviceStopPostCmd.add(registryName)
+		service.AddCmdline(ServiceGroup, "ExecStopPost", serviceStopPostCmd.Args)
+	}
+
+	podman := createBasePodmanCommand(loginUnit, LoginGroup)
+
+	podman.add("login")
+	if authFile != "" {
+		podman.add("--authfile", authFile)
+	}
+
+	stringKeys := map[string]string{
+		KeyCertDir:  "--cert-dir",
+		KeySecret:   "--secret",
+		KeyUsername: "--username",
+	}
+	lookupAndAddString(loginUnit, LoginGroup, stringKeys, podman)
+
+	booleanKeys := map[string]string{
+		KeyTLSVerify: "--tls-verify",
+	}
+	lookupAndAddBoolean(loginUnit, LoginGroup, booleanKeys, podman)
+
+	handlePassword(loginUnit, LoginGroup, podman, service)
+
+	handlePodmanArgs(loginUnit, LoginGroup, podman)
+
+	podman.add(registryName)
+
+	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
+	defaultOneshotServiceGroup(service, true)
+
+	unitInfo.ResourceName = authFile
+
+	return service, nil
+}
+
+func handlePassword(unit *parser.UnitFile, group string, podman *PodmanCmdline, serviceUnitFile *parser.UnitFile) {
+	password, ok := unit.Lookup(group, KeyPassword)
+	if !ok || password == "" {
+		return
+	}
+	podman.addBool("--password-stdin", true)
+	serviceUnitFile.AddCmdline(ServiceGroup, "StandardInput", []string{"data"})
+	serviceUnitFile.AddCmdline(ServiceGroup, "StandardInputText", []string{password})
+}
+
+func handleAuthFile(unit *parser.UnitFile, group string, podman *PodmanCmdline, serviceUnitFile *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) error {
+	authFile, ok := unit.Lookup(group, KeyAuthFile)
+	if !ok || authFile == "" {
+		return nil
+	}
+
+	if strings.HasSuffix(authFile, ".login") {
+		unitInfo, ok := unitsInfoMap[authFile]
+		if !ok {
+			return fmt.Errorf("requested Quadlet login unit %s was not found", authFile)
+		}
+
+		authFile = unitInfo.ResourceName
+		if authFile == "" {
+			return fmt.Errorf("requested Quadlet login unit %s does not set an auth file", authFile)
+		}
+
+		serviceUnitFile.Add(UnitGroup, "Requires", unitInfo.ServiceFileName())
+		serviceUnitFile.Add(UnitGroup, "After", unitInfo.ServiceFileName())
+	}
+	podman.add("--authfile", authFile)
+	return nil
 }

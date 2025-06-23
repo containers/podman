@@ -1251,14 +1251,29 @@ EOF
 
     local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
     local image_for_test=$registry/i-$(safename):$(random_string)
-    local authfile=$PODMAN_TMPDIR/authfile.json
+    local authfile=$PODMAN_TMPDIR/authfile-$(safename).json
+
+    local quadlet_login_unit=image_test_$(safename).login
+    local quadlet_login_file=$PODMAN_TMPDIR/$quadlet_login_unit
+    cat > $quadlet_login_file <<EOF
+[Login]
+Registry=$registry
+AuthFile=$authfile
+TLSVerify=false
+Username=${PODMAN_LOGIN_USER}
+Password=${PODMAN_LOGIN_PASS}
+LogoutOnStop=true
+EOF
+
+    # Make sure the login unit file is not readable by others
+    chmod 0600 $quadlet_login_file
 
     local quadlet_image_unit=image_test_$(safename).image
     local quadlet_image_file=$PODMAN_TMPDIR/$quadlet_image_unit
     cat > $quadlet_image_file <<EOF
 [Image]
 Image=$image_for_test
-AuthFile=$authfile
+AuthFile=$quadlet_login_unit
 TLSVerify=false
 EOF
 
@@ -1280,15 +1295,31 @@ Volume=$quadlet_volume_unit:/vol
 Exec=sh -c "echo STARTED CONTAINER; echo "READY=1" | socat -u STDIN unix-sendto:\$NOTIFY_SOCKET; sleep inf"
 EOF
 
+    # Use the same directory for all quadlet files to make sure later steps access previous ones
+    mkdir $quadlet_tmpdir
+
     # In order to test image pull but without possible Network issues,
     # this test uses an additional registry.
     # Start the registry and populate the authfile that we can use for the test.
     start_registry
-    run_podman login --authfile=$authfile \
-        --tls-verify=false \
-        --username ${PODMAN_LOGIN_USER} \
-        --password ${PODMAN_LOGIN_PASS} \
-        $registry
+
+    # Have quadlet create the systemd unit file for the login unit
+    run_quadlet "$quadlet_login_file" "$quadlet_tmpdir"
+    # Save the login service name since the variable will be overwritten
+    local login_service=$QUADLET_SERVICE_NAME
+
+    # Make sure we are not logged in to the registry before starting the login service
+    run_podman 125 login --authfile $authfile --get-login $registry
+    assert "$output" =~ "Error: not logged into $registry" \
+           "quadlet - image files: should not be logged in to the registry before starting the login service"
+
+    # Start the login service to populate the authfile
+    service_setup $login_service
+
+    # Make sure we are logged in to the registry after starting the login service
+    run_podman login --authfile $authfile --get-login $registry
+    assert "$output" =~ "$PODMAN_LOGIN_USER" \
+           "quadlet - image files: should be logged in to the registry after starting the login service"
 
     # Generate a test image and push it to the registry.
     # For safety in parallel runs, test image must be isolated
@@ -1302,8 +1333,13 @@ EOF
     # Remove the local image to make sure it will be pulled again
     run_podman image rm --ignore $image_for_test
 
-    # Use the same directory for all quadlet files to make sure later steps access previous ones
-    mkdir $quadlet_tmpdir
+    # Shutdown the login service to logout and let the dependency kick in
+    service_cleanup $login_service inactive
+
+    # Make sure we are not logged in to the registry after stopping the login service
+    run_podman 125 login --authfile $authfile --get-login $registry
+    assert "$output" =~ "Error: not logged into $registry" \
+           "quadlet - image files: should not be logged in to the registry after stopping the login service"
 
     # Have quadlet create the systemd unit file for the image unit
     run_quadlet "$quadlet_image_file" "$quadlet_tmpdir"
@@ -1327,6 +1363,11 @@ EOF
 
     service_setup $container_service
 
+    # Login system unit should be active
+    run systemctl show --property=ActiveState "$login_service"
+    assert "$output" = "ActiveState=active" \
+           "quadlet - image files: login should be active via dependency but is not"
+
     # Image system unit should be active
     run systemctl show --property=ActiveState "$image_service"
     assert "$output" = "ActiveState=active" \
@@ -1336,6 +1377,11 @@ EOF
     run systemctl show --property=ActiveState "$volume_service"
     assert "$output" = "ActiveState=active" \
            "quadlet - image files: volume should be active via dependency but is not"
+
+    # Should be logged in to the registry after starting the container service
+    run_podman login --authfile $authfile --get-login $registry
+    assert "$output" =~ "$PODMAN_LOGIN_USER" \
+           "quadlet - image files: should be logged in to the registry after starting the container service"
 
     # Image should exist
     run_podman image exists ${image_for_test}

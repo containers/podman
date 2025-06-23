@@ -1,0 +1,6 @@
+## assert-podman-args "--authfile" "/etc/certs/auth.json"
+
+[Build]
+ImageTag=localhost/imagename
+SetWorkingDirectory=unit
+AuthFile=authfile.login

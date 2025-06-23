@@ -1,0 +1,5 @@
+## assert-podman-args "--authfile" "/etc/certs/auth.json"
+
+[Kube]
+Yaml=deployment.yml
+AuthFile=authfile.login

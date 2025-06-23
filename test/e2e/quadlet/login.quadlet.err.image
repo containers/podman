@@ -1,0 +1,6 @@
+## assert-failed
+## assert-stderr-contains "requested Quadlet login unit does not set an auth file"
+
+[Image]
+Image=localhost/imagename
+AuthFile=basic.login
