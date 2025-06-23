@@ -5549,7 +5549,7 @@ spec:
 	})
 
 	It("with unsafe hostPath subpaths", func() {
-		hostPathLocation := podmanTest.TempDir
+		hostPathLocation := filepath.Join(podmanTest.TempDir, "vol")
 
 		Expect(os.MkdirAll(filepath.Join(hostPathLocation, "testing"), 0755)).To(Succeed())
 		Expect(os.Symlink("/", filepath.Join(hostPathLocation, "testing", "symlink"))).To(Succeed())
