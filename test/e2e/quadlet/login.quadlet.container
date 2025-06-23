@@ -1,0 +1,5 @@
+## assert-podman-args "--authfile" "/etc/certs/auth.json"
+
+[Container]
+Image=localhost/imagename
+AuthFile=authfile.login
