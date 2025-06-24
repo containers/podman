@@ -5,6 +5,27 @@
 downstream_package_name: podman
 upstream_tag_template: v{version}
 
+# These files get synced from upstream to downstream (Fedora / CentOS Stream) on every
+# propose-downstream job. This is done so tests maintained upstream can be run
+# downstream in Zuul CI and Bodhi.
+# Ref: https://packit.dev/docs/configuration#files_to_sync
+files_to_sync:
+  - src: rpm/gating.yaml
+    dest: gating.yaml
+    delete: true
+  - src: plans/
+    dest: plans/
+    delete: true
+    mkpath: true
+  - src: test/tmt/
+    dest: test/tmt/
+    delete: true
+    mkpath: true
+  - src: .fmf/
+    dest: .fmf/
+    delete: true
+  - .packit.yaml
+
 packages:
   podman-fedora:
     pkg_tool: fedpkg
@@ -79,6 +100,17 @@ jobs:
     owner: rhcontainerbot
     project: podman-next
     enable_net: true
+
+  # Tests on Fedora
+  - job: tests
+    trigger: pull_request
+    packages: [podman-fedora]
+    notifications: *packit_generic_failure_notification
+    targets:
+      - fedora-rawhide
+      - fedora-42
+      - fedora-41
+    tmt_plan: "/plans/system/*"
 
   - job: tests
     identifier: cockpit-revdeps

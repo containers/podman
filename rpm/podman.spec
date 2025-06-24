@@ -13,6 +13,8 @@
 %define build_with_btrfs 1
 # qemu-system* isn't packageed for CentOS Stream / RHEL
 %define qemu 1
+# bats is included in the default repos (No epel/copr etc.)
+%define distro_bats 1
 %endif
 
 %if %{defined copr_username}
@@ -142,7 +144,7 @@ pages and %{name}.
 Summary: Tests for %{name}
 
 Requires: %{name} = %{epoch}:%{version}-%{release}
-%if %{defined fedora}
+%if %{defined distro_bats}
 Requires: bats
 %endif
 Requires: attr
@@ -160,7 +162,8 @@ Requires: xfsprogs
 %description tests
 %{summary}
 
-This package contains system tests for %{name}
+This package contains system tests for %{name}. Only intended to be used for
+gating tests. Not supported for end users / customers.
 
 %package remote
 Summary: (Experimental) Remote client for managing %{name} containers
