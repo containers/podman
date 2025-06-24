@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman attach, container diff, container inspect, diff, exec, init, inspect, kill, logs, mount, network reload, pause, pod inspect, pod kill, pod logs, pod rm, pod start, pod stats, pod stop, pod top, port, restart, rm, start, stats, stop, top, unmount, unpause, wait
+####>   podman attach, container diff, container inspect, diff, exec, init, inspect, kill, logs, mount, network reload, pause, pod inspect, pod kill, pod logs, pod rm, pod start, pod stats, pod stop, pod top, port, restart, rm, start, stats, stop, top, unmount, unpause, update, wait
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 #### **--latest**, **-l**

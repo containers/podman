@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/specgen"
@@ -24,7 +25,7 @@ var (
 		Short:             "Update an existing container",
 		Long:              updateDescription,
 		RunE:              update,
-		Args:              cobra.ExactArgs(1),
+		Args:              validate.IDOrLatestArgs,
 		ValidArgsFunction: common.AutocompleteContainers,
 		Example:           `podman update --cpus=5 foobar_container`,
 	}
@@ -39,13 +40,17 @@ var (
 		Example:           `podman container update --cpus=5 foobar_container`,
 	}
 )
-var (
-	updateOpts entities.ContainerCreateOptions
-)
+
+type ContainerUpdateOptions struct {
+	entities.ContainerCreateOptions
+	Latest bool
+}
+
+var updateOptions ContainerUpdateOptions
 
 func updateFlags(cmd *cobra.Command) {
-	common.DefineCreateDefaults(&updateOpts)
-	common.DefineCreateFlags(cmd, &updateOpts, entities.UpdateMode)
+	common.DefineCreateDefaults(&updateOptions.ContainerCreateOptions)
+	common.DefineCreateFlags(cmd, &updateOptions.ContainerCreateOptions, entities.UpdateMode)
 }
 
 func init() {
@@ -53,12 +58,14 @@ func init() {
 		Command: updateCommand,
 	})
 	updateFlags(updateCommand)
+	validate.AddLatestFlag(updateCommand, &updateOptions.Latest)
 
 	registry.Commands = append(registry.Commands, registry.CliCommand{
 		Command: containerUpdateCommand,
 		Parent:  containerCmd,
 	})
 	updateFlags(containerUpdateCommand)
+	validate.AddLatestFlag(containerUpdateCommand, &updateOptions.Latest)
 }
 
 func GetChangedHealthCheckConfiguration(cmd *cobra.Command, vals *entities.ContainerCreateOptions) define.UpdateHealthCheckConfig {
@@ -129,12 +136,12 @@ func update(cmd *cobra.Command, args []string) error {
 	s := &specgen.SpecGenerator{}
 	s.ResourceLimits = &specs.LinuxResources{}
 
-	err = createOrUpdateFlags(cmd, &updateOpts)
+	err = createOrUpdateFlags(cmd, &updateOptions.ContainerCreateOptions)
 	if err != nil {
 		return err
 	}
 
-	s.ResourceLimits, err = specgenutil.GetResources(s, &updateOpts)
+	s.ResourceLimits, err = specgenutil.GetResources(s, &updateOptions.ContainerCreateOptions)
 	if err != nil {
 		return err
 	}
@@ -143,17 +150,21 @@ func update(cmd *cobra.Command, args []string) error {
 		s.ResourceLimits = &specs.LinuxResources{}
 	}
 
-	healthCheckConfig := GetChangedHealthCheckConfiguration(cmd, &updateOpts)
+	healthCheckConfig := GetChangedHealthCheckConfiguration(cmd, &updateOptions.ContainerCreateOptions)
 
 	opts := &entities.ContainerUpdateOptions{
-		NameOrID:                        strings.TrimPrefix(args[0], "/"),
 		Resources:                       s.ResourceLimits,
 		ChangedHealthCheckConfiguration: &healthCheckConfig,
 		DevicesLimits:                   GetChangedDeviceLimits(s),
+		Latest:                          updateOptions.Latest,
+	}
+
+	if !updateOptions.Latest {
+		opts.NameOrID = strings.TrimPrefix(args[0], "/")
 	}
 
 	if cmd.Flags().Changed("restart") {
-		policy, retries, err := util.ParseRestartPolicy(updateOpts.Restart)
+		policy, retries, err := util.ParseRestartPolicy(updateOptions.Restart)
 		if err != nil {
 			return err
 		}

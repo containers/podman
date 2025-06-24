@@ -61,6 +61,7 @@ type ContainerUpdateOptions struct {
 	RestartRetries                  *uint
 	Env                             []string
 	UnsetEnv                        []string
+	Latest                          bool
 }
 
 func (u *ContainerUpdateOptions) ProcessSpecgen() {
