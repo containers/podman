@@ -306,4 +306,39 @@ var _ = Describe("Podman update", func() {
 		Expect(env).ToNot(ContainSubstring("FOO"))
 		Expect(env).To(ContainSubstring("PATH="))
 	})
+
+	It("podman update the latest container", func() {
+		SkipIfRemote("--latest is local-only")
+
+		restartPolicyName := ".HostConfig.RestartPolicy.Name"
+		restartPolicyRetries := ".HostConfig.RestartPolicy.MaximumRetryCount"
+
+		// Arrange an old container
+		oldContainerName := "old-container"
+		oldContainer := podmanTest.Podman([]string{"run", "-d", "--name", oldContainerName, ALPINE, "top"})
+		oldContainer.WaitWithDefaultTimeout()
+		Expect(oldContainer).Should(ExitCleanly())
+
+		podmanTest.CheckContainerSingleField(oldContainerName, restartPolicyName, "no")
+		podmanTest.CheckContainerSingleField(oldContainerName, restartPolicyRetries, "0")
+
+		// Arrange a new container
+		newContainerName := "new-container"
+		newContainer := podmanTest.Podman([]string{"run", "-d", "--name", newContainerName, ALPINE, "top"})
+		newContainer.WaitWithDefaultTimeout()
+		Expect(newContainer).Should(ExitCleanly())
+
+		podmanTest.CheckContainerSingleField(newContainerName, restartPolicyName, "no")
+		podmanTest.CheckContainerSingleField(newContainerName, restartPolicyRetries, "0")
+
+		// Test the latest is updated
+		updatedContainer := podmanTest.Podman([]string{"update", "--restart", "on-failure:5", "--latest"})
+		updatedContainer.WaitWithDefaultTimeout()
+		Expect(updatedContainer).Should(ExitCleanly())
+
+		podmanTest.CheckContainerSingleField(oldContainerName, restartPolicyName, "no")
+		podmanTest.CheckContainerSingleField(oldContainerName, restartPolicyRetries, "0")
+		podmanTest.CheckContainerSingleField(newContainerName, restartPolicyName, "on-failure")
+		podmanTest.CheckContainerSingleField(newContainerName, restartPolicyRetries, "5")
+	})
 })
