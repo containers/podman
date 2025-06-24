@@ -187,6 +187,10 @@ function wait_for_journal() {
 
 # bats test_tags=distro-integration
 @test "quadlet - basic" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26413"
+    fi
+
     # Network=none is to work around a Pasta bug, can be removed once a patched Pasta is available.
     # Ref https://github.com/containers/podman/pull/21563#issuecomment-1965145324
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
@@ -259,6 +263,10 @@ EOF
 }
 
 @test "quadlet - envvar" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26414"
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/envvar_$(safename).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -283,6 +291,10 @@ EOF
 }
 
 @test "quadlet - ContainerName and journal output check" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26415"
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/containername_$(safename).container
     local token_out="STDOUT$(random_string 10)"
     local token_err="STDERR$(random_string 10)"
@@ -342,6 +354,10 @@ EOF
 }
 
 @test "quadlet - oneshot" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26416"
+    fi
+
     local quadlet_file=$PODMAN_TMPDIR/oneshot_$(safename).container
     cat > $quadlet_file <<EOF
 [Container]
@@ -814,6 +830,10 @@ EOF
 }
 
 @test "quadlet - secret as environment variable" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip "Broken on RHEL: https://github.com/containers/podman/issues/26417"
+    fi
+
     create_secret
 
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
@@ -840,6 +860,10 @@ EOF
 }
 
 @test "quadlet - secret as a file" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip "Broken on RHEL: https://github.com/containers/podman/issues/26418"
+    fi
+
     create_secret
 
     local quadlet_file=$PODMAN_TMPDIR/basic_$(safename).container
@@ -961,6 +985,10 @@ EOF
 }
 
 @test "quadlet - exit-code propagation" {
+    if [[ -n "$HOST_DISTRO_NAME" && "$HOST_DISTRO_NAME" == "rhel" ]]; then
+        skip_if_rootless "Broken on RHEL: https://github.com/containers/podman/issues/26419"
+    fi
+
    pod_name="p-$(safename)"
    container_name="c-$(safename)"
    exit_tests="
