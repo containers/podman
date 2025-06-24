@@ -1,5 +1,12 @@
 # Release Notes
 
+## 5.5.2
+### Security
+- This release addresses CVE-2025-6032, in which the TLS connection used to pull VM images for `podman machine` was, by default, not validated, allowing connections to servers with invalid certificates by default and potentially allowing a Man in the Middle attack.
+
+### Bugfixes
+- Fixed a bug where Podman could panic after a reboot on systems with pods containing containers ([#26469](https://github.com/containers/podman/issues/26469)).
+
 ## 5.5.1
 ### Bugfixes
 - Fixed a bug where containers mounting a volume to `/` could overmount important directories such as `/proc` causing start and/or runtime failures due to an issue with mount ordering ([#26161](https://github.com/containers/podman/issues/26161)).
