@@ -78,6 +78,8 @@ Changing this setting resets the timer, depending on the state of the container.
 
 @@option health-timeout
 
+@@option latest
+
 @@option memory
 
 @@option memory-reservation
@@ -102,6 +104,11 @@ Update a container with a new cpu quota and period:
 podman update --cpus=0.5 ctrID
 ```
 
+Update the latest container with a new cpu value:
+```
+podman update --latest --cpus=1
+```
+
 Update a container with multiple options at ones:
 ```
 podman update --cpus 5 --cpuset-cpus 0 --cpu-shares 123 --cpuset-mems 0 \\
@@ -116,4 +123,5 @@ podman update --cpus 5 --cpuset-cpus 0 --cpu-shares 123 --cpuset-mems 0 \\
 **[podman(1)](podman.1.md)**, **[podman-create(1)](podman-create.1.md)**, **[podman-run(1)](podman-run.1.md)**
 
 ## HISTORY
+June 2025, Latest option added by Hayato Kihara <kai.21banana@gmail.com>
 August 2022, Originally written by Charlie Doern <cdoern@redhat.com>
