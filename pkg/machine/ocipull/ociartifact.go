@@ -216,7 +216,7 @@ func (o *OCIArtifactDisk) getDestArtifact() (types.ImageReference, digest.Digest
 	}
 	fmt.Printf("Looking up Podman Machine image at %s to create VM\n", imgRef.DockerReference())
 	sysCtx := &types.SystemContext{
-		DockerInsecureSkipTLSVerify: types.NewOptionalBool(!o.pullOptions.TLSVerify),
+		DockerInsecureSkipTLSVerify: o.pullOptions.SkipTLSVerify,
 	}
 	imgSrc, err := imgRef.NewImageSource(o.ctx, sysCtx)
 	if err != nil {
