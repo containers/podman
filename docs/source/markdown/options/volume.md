@@ -54,10 +54,25 @@ See examples.
 
 `Chowning Volume Mounts`
 
-By default, Podman does not change the owner and group of source volume
-directories mounted into containers. If a <<container|pod>> is created in a new
-user namespace, the UID and GID in the container may correspond to another UID
-and GID on the host.
+When a named volume is first mounted to a container, Podman
+automatically adjusts the ownership of the volume's mount point during
+container initialization. This chown operation occurs under the
+following conditions:
+
+- The volume was not used yet (has `NeedsChown` set to true)
+- The volume is empty or has not been copied up yet
+- The volume is not managed by an external volume driver
+- The volume driver is not "image"
+
+For volumes with idmapped mounts (using the `idmap` option), the
+ownership change takes into account the container's user namespace
+mappings, but the idmapped volume retains proper UID/GID mapping. For
+volumes without idmapping, the mount point is chowned to match the
+container's process user and group, mapped to the host user namespace
+if user namespace remapping is enabled.
+
+If a <<container|pod>> is created in a new user namespace, the UID and
+GID in the container may correspond to another UID and GID on the host.
 
 The `:U` suffix tells Podman to use the correct host UID and GID based on the
 UID and GID within the <<container|pod>>, to change recursively the owner and
