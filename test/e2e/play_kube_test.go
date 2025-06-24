@@ -1444,6 +1444,32 @@ items:
     restartPolicy: Never
 `
 
+var stopSignalSIGUSR1 = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: testpod
+spec:
+    containers:
+    - name: testctr
+      image: ` + CITEST_IMAGE + `
+      lifecycle:
+        stopSignal: SIGUSR1
+`
+
+var stopSignalNosuchSignal = `
+apiVersion: v1
+kind: Pod
+metadata:
+  name: noSuchSigTest
+spec:
+    containers:
+    - name: test1
+      image: ` + CITEST_IMAGE + `
+      lifecycle:
+        stopSignal: noSuchSignal
+`
+
 var (
 	defaultCtrName        = "testCtr"
 	defaultCtrCmd         = []string{"top"}
@@ -6222,5 +6248,36 @@ spec:
 
 		exec := podmanTest.PodmanExitCleanly("exec", "testPod-"+defaultCtrName, "cat", "/sys/fs/cgroup/cpuset.mems.effective")
 		Expect(exec.OutputToString()).To(Equal("0"))
+	})
+
+	It("test Lifecycle stopSignal", func() {
+
+		// Default StopSignal SIGTERM
+		err = writeYaml(simplePodYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect := podmanTest.PodmanExitCleanly("inspect", "libpod-test-")
+
+		ctr := inspect.InspectContainerToJSON()
+		Expect(ctr[0].Config).To(HaveField("StopSignal", "SIGTERM"))
+
+		// Custom StopSignal SIGUSR1
+		err = writeYaml(stopSignalSIGUSR1, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		inspect = podmanTest.PodmanExitCleanly("inspect", "testpod-testctr")
+
+		ctr = inspect.InspectContainerToJSON()
+		Expect(ctr[0].Config).To(HaveField("StopSignal", "SIGUSR1"))
+
+		// No such StopSignal
+		err = writeYaml(stopSignalNosuchSignal, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "invalid signal: noSuchSignal"))
 	})
 })
