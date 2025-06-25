@@ -19,7 +19,7 @@ die_unknown() {
     die "Unknown/unsupported \$$var_name '$var_value'"
 }
 
-_EOL=20250531
+_EOL=20270922
 if [[ $(date +%Y%m%d) -ge $_EOL ]]; then
     die "As of $_EOL this branch is probably
 no longer supported in RHEL 8.4.z, please
