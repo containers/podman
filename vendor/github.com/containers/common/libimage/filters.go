@@ -25,6 +25,7 @@ type compiledFilters map[string][]filterFunc
 
 // Apply the specified filters.  All filters of each key must apply.
 // tree must be provided if compileImageFilters indicated it is necessary.
+// WARNING: Application of filterReferences sets the image names to matched names, but this only affects the values in memory, they are not written to storage.
 func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree *layerTree) (bool, error) {
 	for key := range filters {
 		for _, filter := range filters[key] {
@@ -51,6 +52,7 @@ func (i *Image) applyFilters(ctx context.Context, filters compiledFilters, tree 
 // filterImages returns a slice of images which are passing all specified
 // filters.
 // tree must be provided if compileImageFilters indicated it is necessary.
+// WARNING: Application of filterReferences sets the image names to matched names, but this only affects the values in memory, they are not written to storage.
 func (r *Runtime) filterImages(ctx context.Context, images []*Image, filters compiledFilters, tree *layerTree) ([]*Image, error) {
 	result := []*Image{}
 	for i := range images {
@@ -272,7 +274,6 @@ func filterReferences(r *Runtime, wantedReferenceMatches, unwantedReferenceMatch
 			return true, nil
 		}
 
-		unwantedMatched := false
 		// Go through the unwanted matches first
 		for _, value := range unwantedReferenceMatches {
 			matches, err := imageMatchesReferenceFilter(r, img, value)
@@ -280,31 +281,75 @@ func filterReferences(r *Runtime, wantedReferenceMatches, unwantedReferenceMatch
 				return false, err
 			}
 			if matches {
-				unwantedMatched = true
+				return false, nil
 			}
 		}
 
 		// If there are no wanted match filters, then return false for the image
 		// that matched the unwanted value otherwise return true
 		if len(wantedReferenceMatches) == 0 {
-			return !unwantedMatched, nil
+			return true, nil
 		}
 
-		// Go through the wanted matches
-		// If an image matches the wanted filter but it also matches the unwanted
-		// filter, don't add it to the output
+		matchedReference := ""
 		for _, value := range wantedReferenceMatches {
 			matches, err := imageMatchesReferenceFilter(r, img, value)
 			if err != nil {
 				return false, err
 			}
-			if matches && !unwantedMatched {
-				return true, nil
+			if matches {
+				matchedReference = value
+				break
 			}
 		}
 
-		return false, nil
+		if matchedReference == "" {
+			return false, nil
+		}
+
+		// If there is exactly one wanted reference match and no unwanted matches,
+		// the filter is treated as a query, so it sets the matching names to
+		// the image in memory.
+		if len(wantedReferenceMatches) == 1 && len(unwantedReferenceMatches) == 0 {
+			ref, containsDigest, ok := isFullyQualifiedReference(matchedReference)
+			if !ok {
+				return true, nil
+			}
+			namesThatMatch := []string{}
+			for _, name := range img.Names() {
+				if nameMatchesReference(name, matchedReference, ref, containsDigest) {
+					namesThatMatch = append(namesThatMatch, name)
+				}
+			}
+			img.setEphemeralNames(namesThatMatch)
+		}
+		return true, nil
 	}
+}
+
+func isFullyQualifiedReference(r string) (reference.Named, bool, bool) {
+	ref, err := reference.ParseNamed(r)
+	// If there is an error parsing the reference, it is not a valid reference
+	if err != nil {
+		return nil, false, false
+	}
+	// If it's name-only (no tag/digest), it's not fully qualified
+	if reference.IsNameOnly(ref) {
+		return nil, false, false
+	}
+	_, containsDigest := ref.(reference.Digested)
+	return ref, containsDigest, true
+}
+
+func nameMatchesReference(name string, matchedReference string, ref reference.Named, containsDigest bool) bool {
+	if containsDigest {
+		nameRef, err := reference.ParseNamed(name)
+		if err != nil {
+			return false
+		}
+		return nameRef.Name() == ref.Name()
+	}
+	return name == matchedReference
 }
 
 // imageMatchesReferenceFilter returns true if an image matches the filter value given
@@ -352,7 +397,6 @@ func imageMatchesReferenceFilter(r *Runtime, img *Image, value string) (bool, er
 			}
 		}
 	}
-
 	return false, nil
 }
 

@@ -112,6 +112,13 @@ func (i *Image) Names() []string {
 	return i.storageImage.Names
 }
 
+// setEphemeralNames sets the names of the image.
+//
+// WARNING: this only affects the in-memory values, they are not written into the backing storage.
+func (i *Image) setEphemeralNames(names []string) {
+	i.storageImage.Names = names
+}
+
 // NamesReferences returns Names() as references.
 func (i *Image) NamesReferences() ([]reference.Reference, error) {
 	if i.cached.namesReferences != nil {
