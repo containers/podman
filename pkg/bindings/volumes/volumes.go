@@ -2,6 +2,8 @@ package volumes
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"net/http"
 	"strings"
 
@@ -138,4 +140,40 @@ func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool,
 	defer response.Body.Close()
 
 	return response.IsSuccess(), nil
+}
+
+// Export exports a volume to the given path
+func Export(ctx context.Context, nameOrID string, exportTo io.Writer) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+	response, err := conn.DoRequest(ctx, nil, http.MethodGet, "/volumes/%s/export", nil, nil, nameOrID)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	if response.IsSuccess() || response.IsRedirection() {
+		if _, err := io.Copy(exportTo, response.Body); err != nil {
+			return fmt.Errorf("writing volume %s contents to file: %w", nameOrID, err)
+		}
+	}
+	return response.Process(nil)
+}
+
+// Import imports the given tar into the given volume
+func Import(ctx context.Context, nameOrID string, importFrom io.Reader) error {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return err
+	}
+
+	response, err := conn.DoRequest(ctx, importFrom, http.MethodPost, "/volumes/%s/import", nil, nil, nameOrID)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	return response.Process(nil)
 }

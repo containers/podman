@@ -4,11 +4,10 @@ package libpod
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-
-	"errors"
 
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
@@ -220,5 +219,49 @@ func ExistsVolume(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusNotFound, define.ErrNoSuchVolume)
 		return
 	}
+	utils.WriteResponse(w, http.StatusNoContent, "")
+}
+
+// ExportVolume exports a volume
+func ExportVolume(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	vol, err := runtime.GetVolume(name)
+	if err != nil {
+		utils.VolumeNotFound(w, name, err)
+		return
+	}
+
+	contents, err := vol.Export()
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, err)
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, contents)
+}
+
+// ImportVolume imports a volume
+func ImportVolume(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	name := utils.GetName(r)
+
+	vol, err := runtime.GetVolume(name)
+	if err != nil {
+		utils.VolumeNotFound(w, name, err)
+		return
+	}
+
+	if r.Body == nil {
+		utils.Error(w, http.StatusInternalServerError, errors.New("must provide tar file to import in request body"))
+		return
+	}
+	defer r.Body.Close()
+
+	if err := vol.Import(r.Body); err != nil {
+		utils.Error(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	utils.WriteResponse(w, http.StatusNoContent, "")
 }

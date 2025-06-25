@@ -113,3 +113,11 @@ func (ic *ContainerEngine) VolumeUnmount(ctx context.Context, nameOrIDs []string
 func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeReloadReport, error) {
 	return nil, errors.New("volume reload is not supported for remote clients")
 }
+
+func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, options entities.VolumeExportOptions) error {
+	return volumes.Export(ic.ClientCtx, nameOrID, options.Output)
+}
+
+func (ic *ContainerEngine) VolumeImport(ctx context.Context, nameOrID string, options entities.VolumeImportOptions) error {
+	return volumes.Import(ic.ClientCtx, nameOrID, options.Input)
+}

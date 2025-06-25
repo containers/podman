@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
@@ -245,4 +246,36 @@ func (ic *ContainerEngine) VolumeUnmount(ctx context.Context, nameOrIDs []string
 func (ic *ContainerEngine) VolumeReload(ctx context.Context) (*entities.VolumeReloadReport, error) {
 	report := ic.Libpod.UpdateVolumePlugins(ctx)
 	return &entities.VolumeReloadReport{VolumeReload: *report}, nil
+}
+
+func (ic *ContainerEngine) VolumeExport(ctx context.Context, nameOrID string, options entities.VolumeExportOptions) error {
+	vol, err := ic.Libpod.LookupVolume(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	contents, err := vol.Export()
+	if err != nil {
+		return err
+	}
+	defer contents.Close()
+
+	if _, err := io.Copy(options.Output, contents); err != nil {
+		return fmt.Errorf("writing volume %s contents: %w", vol.Name(), err)
+	}
+
+	return nil
+}
+
+func (ic *ContainerEngine) VolumeImport(ctx context.Context, nameOrID string, options entities.VolumeImportOptions) error {
+	vol, err := ic.Libpod.LookupVolume(nameOrID)
+	if err != nil {
+		return err
+	}
+
+	if err := vol.Import(options.Input); err != nil {
+		return err
+	}
+
+	return nil
 }

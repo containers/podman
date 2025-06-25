@@ -4,14 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/podman/v5/utils"
-	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -21,7 +19,6 @@ podman volume export
 
 Allow content of volume to be exported into external tar.`
 	exportCommand = &cobra.Command{
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 		Use:               "export [options] VOLUME",
 		Short:             "Export volumes",
 		Args:              cobra.ExactArgs(1),
@@ -32,10 +29,7 @@ Allow content of volume to be exported into external tar.`
 )
 
 var (
-	// Temporary struct to hold cli values.
-	cliExportOpts = struct {
-		Output string
-	}{}
+	targetPath string
 )
 
 func init() {
@@ -46,54 +40,30 @@ func init() {
 	flags := exportCommand.Flags()
 
 	outputFlagName := "output"
-	flags.StringVarP(&cliExportOpts.Output, outputFlagName, "o", "/dev/stdout", "Write to a specified file (default: stdout, which must be redirected)")
+	flags.StringVarP(&targetPath, outputFlagName, "o", "", "Write to a specified file (default: stdout, which must be redirected)")
 	_ = exportCommand.RegisterFlagCompletionFunc(outputFlagName, completion.AutocompleteDefault)
 }
 
 func export(cmd *cobra.Command, args []string) error {
-	var inspectOpts entities.InspectOptions
 	containerEngine := registry.ContainerEngine()
 	ctx := context.Background()
 
-	if cliExportOpts.Output == "" {
-		return errors.New("expects output path, use --output=[path]")
+	if targetPath == "" && cmd.Flag("output").Changed {
+		return errors.New("must provide valid path for file to write to")
 	}
-	inspectOpts.Type = common.VolumeType
-	volumeData, errs, err := containerEngine.VolumeInspect(ctx, args, inspectOpts)
-	if err != nil {
-		return err
-	}
-	if len(errs) > 0 {
-		return errorhandling.JoinErrors(errs)
-	}
-	if len(volumeData) < 1 {
-		return errors.New("no volume data found")
-	}
-	mountPoint := volumeData[0].VolumeConfigResponse.Mountpoint
-	driver := volumeData[0].VolumeConfigResponse.Driver
-	volumeOptions := volumeData[0].VolumeConfigResponse.Options
-	volumeMountStatus, err := containerEngine.VolumeMounted(ctx, args[0])
-	if err != nil {
-		return err
-	}
-	if mountPoint == "" {
-		return errors.New("volume is not mounted anywhere on host")
-	}
-	// Check if volume is using external plugin and export only if volume is mounted
-	if driver != "" && driver != "local" {
-		if !volumeMountStatus.Value {
-			return fmt.Errorf("volume is using a driver %s and volume is not mounted on %s", driver, mountPoint)
+
+	exportOpts := entities.VolumeExportOptions{}
+
+	if targetPath != "" {
+		targetFile, err := os.Create(targetPath)
+		if err != nil {
+			return fmt.Errorf("unable to create target file path %q: %w", targetPath, err)
 		}
+		defer targetFile.Close()
+		exportOpts.Output = targetFile
+	} else {
+		exportOpts.Output = os.Stdout
 	}
-	// Check if volume is using `local` driver and has mount options type other than tmpfs
-	if driver == "local" {
-		if mountOptionType, ok := volumeOptions["type"]; ok {
-			if mountOptionType != "tmpfs" && !volumeMountStatus.Value {
-				return fmt.Errorf("volume is using a driver %s and volume is not mounted on %s", driver, mountPoint)
-			}
-		}
-	}
-	logrus.Debugf("Exporting volume data from %s to %s", mountPoint, cliExportOpts.Output)
-	err = utils.CreateTarFromSrc(mountPoint, cliExportOpts.Output)
-	return err
+
+	return containerEngine.VolumeExport(ctx, args[0], exportOpts)
 }

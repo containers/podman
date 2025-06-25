@@ -65,10 +65,6 @@ var _ = Describe("Podman volume create", func() {
 	})
 
 	It("podman create and export volume", func() {
-		if podmanTest.RemoteTest {
-			Skip("Volume export check does not work with a remote client")
-		}
-
 		volName := "my_vol_" + RandomString(10)
 		session := podmanTest.Podman([]string{"volume", "create", volName})
 		session.WaitWithDefaultTimeout()
@@ -96,10 +92,6 @@ var _ = Describe("Podman volume create", func() {
 	})
 
 	It("podman create and import volume", func() {
-		if podmanTest.RemoteTest {
-			Skip("Volume export check does not work with a remote client")
-		}
-
 		volName := "my_vol_" + RandomString(10)
 		session := podmanTest.Podman([]string{"volume", "create", volName})
 		session.WaitWithDefaultTimeout()
@@ -139,11 +131,11 @@ var _ = Describe("Podman volume create", func() {
 
 		session = podmanTest.Podman([]string{"volume", "import", "notfound", "-"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "no such volume notfound"))
+		Expect(session).To(ExitWithError(125, "no volume with name \"notfound\" found"))
 
 		session = podmanTest.Podman([]string{"volume", "export", "notfound"})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, "no such volume notfound"))
+		Expect(session).To(ExitWithError(125, "no volume with name \"notfound\" found"))
 	})
 
 	It("podman create volume with bad volume option", func() {
