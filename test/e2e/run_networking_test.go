@@ -1166,7 +1166,10 @@ EXPOSE 2004-2005/tcp`, ALPINE)
 		session = podmanTest.Podman([]string{"run", "--name", "con3", "--pod", pod2, CITEST_IMAGE, "nslookup", "con1."})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(1, ""))
-		Expect(session.OutputToString()).To(ContainSubstring("NXDOMAIN"))
+		// This flakes on debian with systemd-resolved, also resolved behavior between A and AAAA lookups differ:
+		// https://github.com/systemd/systemd/issues/37969
+		// In short we can get NXDOMAIN or REFUSED as reply. Both seems fine for the purpose of a negative lookup.
+		Expect(session.OutputToString()).To(Or(ContainSubstring("NXDOMAIN"), ContainSubstring("REFUSED")))
 
 		session = podmanTest.Podman([]string{"run", "--name", "con4", "--network", net, CITEST_IMAGE, "nslookup", pod2 + ".dns.podman"})
 		session.WaitWithDefaultTimeout()
