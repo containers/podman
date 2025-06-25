@@ -108,6 +108,16 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		}
 	}
 
+	// HyperVHypervisor is initialized when preparing to use ignition, however hyperv also works with cloud-init
+	// so we need to ensure that HyperVHypervisor is initialized here as well.
+	if mc.HyperVHypervisor == nil {
+		mc.HyperVHypervisor = new(vmconfigs.HyperVConfig)
+	}
+
+	// Set userModeNetworking based on cloudInit value for backwards compatibility
+	// Usermode networking with hyperv requires gvforwarder in the guest, and the cloud init code cannot inject it for now,
+	// so it has to be disabled.
+	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit
 	if mc.CloudInit {
 		// Generate cloud-init ISO
 		iso, err := cloudinit.GenerateISO(mc)
