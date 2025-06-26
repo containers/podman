@@ -18,6 +18,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod"
 	api "github.com/containers/podman/v5/pkg/api/types"
+	entities "github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/storage"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -122,6 +123,100 @@ func GetImage(r *http.Request, name string) (*libimage.Image, error) {
 type pullResult struct {
 	images []*libimage.Image
 	err    error
+}
+
+func PullProgress(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, reference string, pullPolicy config.PullPolicy, pullOptions *libimage.PullOptions) {
+	progress := make(chan types.ProgressProperties)
+	pullOptions.Progress = progress
+
+	pullResChan := make(chan pullResult)
+	go func() {
+		pulledImages, err := runtime.LibimageRuntime().Pull(ctx, reference, pullPolicy, pullOptions)
+		pullResChan <- pullResult{images: pulledImages, err: err}
+	}()
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(true)
+
+	flush := func() {
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+
+	statusWritten := false
+	writeStatusCode := func(code int) {
+		if !statusWritten {
+			w.WriteHeader(code)
+			w.Header().Set("Content-Type", "application/json")
+			flush()
+			statusWritten = true
+		}
+	}
+
+	report := entities.ImagePullReportV2{}
+	report.Status = "pulling"
+	report.Stream = "Pulling image"
+
+	writeStatusCode(http.StatusOK)
+	if err := enc.Encode(report); err != nil {
+		logrus.Errorf("Error encoding pull report: %v", err)
+		return
+	}
+	flush()
+
+	for {
+		select {
+		case e := <-progress:
+			report.Status = "pulling"
+			switch e.Event {
+			case types.ProgressEventNewArtifact:
+				report.Stream = "Pulling fs layer"
+			case types.ProgressEventRead:
+				report.Stream = "Downloading"
+				report.Progress = &entities.ImagePullProgress{
+					Current: e.Offset,
+					Total:   e.Artifact.Size,
+				}
+			case types.ProgressEventSkipped:
+				report.Stream = "Layer already exists"
+			case types.ProgressEventDone:
+				report.Stream = "Pull complete"
+			}
+			if err := enc.Encode(report); err != nil {
+				logrus.Errorf("Error encoding pull report: %v", err)
+				return
+			}
+			flush()
+
+		case result := <-pullResChan:
+			if result.err != nil {
+				report.Status = "error"
+				report.Stream = result.err.Error()
+				writeStatusCode(http.StatusInternalServerError)
+				if err := enc.Encode(report); err != nil {
+					logrus.Errorf("Error encoding pull report: %v", err)
+				}
+				flush()
+				return
+			}
+
+			report.Status = "success"
+			report.Stream = "Pull complete"
+			images := []string{}
+			for _, img := range result.images {
+				images = append(images, img.ID())
+			}
+
+			report.Images = images
+			if err := enc.Encode(report); err != nil {
+				logrus.Errorf("Error encoding pull report: %v", err)
+				return
+			}
+			flush()
+			return
+		}
+	}
 }
 
 func CompatPull(ctx context.Context, w http.ResponseWriter, runtime *libpod.Runtime, reference string, pullPolicy config.PullPolicy, pullOptions *libimage.PullOptions) {
