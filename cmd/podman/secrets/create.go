@@ -57,6 +57,8 @@ func init() {
 
 	flags.BoolVar(&createOpts.Replace, "replace", false, "If a secret with the same name exists, replace it")
 
+	flags.BoolVar(&createOpts.Ignore, "ignore", false, "If a secret with the same name exists, ignore and do not create a new secret")
+
 	labelFlagName := "label"
 	flags.StringArrayVarP(&labels, labelFlagName, "l", nil, "Specify labels on the secret")
 	_ = createCmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
@@ -64,6 +66,11 @@ func init() {
 
 func create(cmd *cobra.Command, args []string) error {
 	name := args[0]
+
+	// Validate that --ignore and --replace are not used together
+	if createOpts.Ignore && createOpts.Replace {
+		return errors.New("cannot use --ignore and --replace flags together")
+	}
 
 	var err error
 	path := args[1]

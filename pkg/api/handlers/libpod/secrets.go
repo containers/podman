@@ -27,6 +27,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 		DriverOpts map[string]string `schema:"driveropts"`
 		Labels     map[string]string `schema:"labels"`
 		Replace    bool              `schema:"replace"`
+		Ignore     bool              `schema:"ignore"`
 	}{
 		// override any golang type defaults
 	}
@@ -40,6 +41,7 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	opts.DriverOpts = query.DriverOpts
 	opts.Labels = query.Labels
 	opts.Replace = query.Replace
+	opts.Ignore = query.Ignore
 
 	ic := abi.ContainerEngine{Libpod: runtime}
 	report, err := ic.SecretCreate(r.Context(), query.Name, r.Body, opts)

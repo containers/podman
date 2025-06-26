@@ -47,9 +47,10 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	}
 
 	storeOpts := secrets.StoreOptions{
-		DriverOpts: options.DriverOpts,
-		Labels:     options.Labels,
-		Replace:    options.Replace,
+		DriverOpts:     options.DriverOpts,
+		Labels:         options.Labels,
+		Replace:        options.Replace,
+		IgnoreIfExists: options.Ignore,
 	}
 
 	secretID, err := manager.Store(name, data, options.Driver, storeOpts)

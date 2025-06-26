@@ -38,6 +38,12 @@ Read secret data from environment variable.
 
 Print usage statement.
 
+#### **--ignore**=*false*
+
+If a secret with the same name already exists, do not return an error and return the existing secret's ID instead of creating a new one.
+Cannot be used with `--replace`.
+The default is **false**.
+
 #### **--label**, **-l**=*key=val1,key2=val2*
 
 Add label to secret. These labels can be viewed in podman secrete inspect or ls.
@@ -46,6 +52,7 @@ Add label to secret. These labels can be viewed in podman secrete inspect or ls.
 
 If existing secret with the same name already exists, update the secret.
 The `--replace` option does not change secrets within existing containers, only newly created containers.
+Cannot be used with `--ignore`.
  The default is **false**.
 
 ## SECRET DRIVERS
