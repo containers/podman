@@ -3,12 +3,14 @@ package e2e_test
 import (
 	"fmt"
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -285,6 +287,22 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(run).To(Exit(0))
 		Expect(build.outputToString()).To(ContainSubstring(name))
 	})
+
+	It("CVE-2025-6032 regression test - HTTP", func() {
+		// ensure that trying to pull from a local HTTP server fails and the connection will be rejected
+		testImagePullTLS(nil)
+	})
+
+	It("CVE-2025-6032 regression test - HTTPS unknown cert", func() {
+		// ensure that trying to pull from an local HTTPS server with invalid certs fails and the connection will be rejected
+		testImagePullTLS(&TLSConfig{
+			// Key/Cert was generated with:
+			// openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -days 3650 \
+			// -nodes -keyout test-tls.key -out test-tls.crt -subj "/CN=test.podman.io" -addext "subjectAltName=IP:127.0.0.1"
+			key:  "test-tls.key",
+			cert: "test-tls.crt",
+		})
+	})
 })
 
 func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
@@ -314,4 +332,71 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	body, err := io.ReadAll(resp.Body)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(string(body)).Should(Equal(expectedResponse))
+}
+
+type TLSConfig struct {
+	key  string
+	cert string
+}
+
+// setup a local webserver in the test and then point podman machine init to it
+// to verify the connection details.
+func testImagePullTLS(tls *TLSConfig) {
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	Expect(err).ToNot(HaveOccurred())
+	serverAddr := listener.Addr().String()
+
+	var loggedRequests []string
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		loggedRequests = append(loggedRequests, r.URL.Path)
+		// don't care about an error, we should never get here
+		_, _ = w.Write([]byte("Hello"))
+	})
+
+	srv := &http.Server{
+		Handler:  mux,
+		ErrorLog: log.New(io.Discard, "", 0),
+	}
+	defer srv.Close()
+	serverErr := make(chan error)
+	go func() {
+		defer GinkgoRecover()
+		if tls != nil {
+			serverErr <- srv.ServeTLS(listener, tls.cert, tls.key)
+		} else {
+			serverErr <- srv.Serve(listener)
+		}
+	}()
+
+	name := randomString()
+	i := new(initMachine)
+	session, err := mb.setName(name).setCmd(i.withImage("docker://" + serverAddr + "/testimage")).run()
+	Expect(err).ToNot(HaveOccurred())
+	Expect(session).To(Exit(125))
+
+	// Note because we don't run a real registry the error you get when TLS is not checked is:
+	// Error: wrong manifest type for disk artifact: text/plain
+	// As such we match the errors strings exactly to ensure we have proper error messages that indicate the TLS error.
+	expectedErr := "Error: pinging container registry " + serverAddr + ": Get \"https://" + serverAddr + "/v2/\": "
+	if tls != nil {
+		expectedErr += "tls: failed to verify certificate: x509: "
+		if runtime.GOOS == "darwin" {
+			// Apple doesn't like such long valid certs so the error is different but the purpose
+			// is the same, it rejected a cert which is how we know TLS verification is turned on.
+			// https://support.apple.com/en-au/102028
+			expectedErr += "“test.podman.io” certificate is not standards compliant\n"
+		} else {
+			expectedErr += "certificate signed by unknown authority\n"
+		}
+	} else {
+		expectedErr += "http: server gave HTTP response to HTTPS client\n"
+	}
+	Expect(session.errorToString()).To(Equal(expectedErr))
+
+	// if the client enforces TLS verification then we should not have received any request
+	Expect(loggedRequests).To(BeEmpty(), "the server should have not process any request from the client")
+
+	srv.Close()
+	Expect(<-serverErr).To(Equal(http.ErrServerClosed))
 }
