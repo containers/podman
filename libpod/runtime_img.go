@@ -6,8 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"os"
 
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
@@ -15,7 +13,6 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
-	"github.com/containers/podman/v5/pkg/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -129,23 +126,4 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 	// Write event for build completion
 	r.newImageBuildCompleteEvent(id)
 	return id, ref, err
-}
-
-// DownloadFromFile reads all of the content from the reader and temporarily
-// saves in it $TMPDIR/importxyz, which is deleted after the image is imported
-func DownloadFromFile(reader *os.File) (string, error) {
-	outFile, err := os.CreateTemp(util.Tmpdir(), "import")
-	if err != nil {
-		return "", fmt.Errorf("creating file: %w", err)
-	}
-	defer outFile.Close()
-
-	logrus.Debugf("saving %s to %s", reader.Name(), outFile.Name())
-
-	_, err = io.Copy(outFile, reader)
-	if err != nil {
-		return "", fmt.Errorf("saving %s to %s: %w", reader.Name(), outFile.Name(), err)
-	}
-
-	return outFile.Name(), nil
 }

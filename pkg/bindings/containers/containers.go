@@ -461,20 +461,7 @@ func ContainerInit(ctx context.Context, nameOrID string, options *InitOptions) e
 	return response.Process(nil)
 }
 
-func ShouldRestart(ctx context.Context, nameOrID string, options *ShouldRestartOptions) (bool, error) {
-	if options == nil {
-		options = new(ShouldRestartOptions)
-	}
-	_ = options
-	conn, err := bindings.GetClient(ctx)
-	if err != nil {
-		return false, err
-	}
-	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/shouldrestart", nil, nil, nameOrID)
-	if err != nil {
-		return false, err
-	}
-	defer response.Body.Close()
-
-	return response.IsSuccess(), nil
+// Deprecated: This function always returns false, the server API endpoint never existed.
+func ShouldRestart(_ context.Context, _ string, _ *ShouldRestartOptions) (bool, error) {
+	return false, nil
 }

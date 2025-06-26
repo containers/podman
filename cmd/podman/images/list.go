@@ -10,11 +10,11 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/common/pkg/report"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
+	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
@@ -62,13 +62,6 @@ var (
 
 	// Options for presenting data
 	listFlag = listFlagType{}
-
-	sortFields = entities.NewStringSet(
-		"created",
-		"id",
-		"repository",
-		"size",
-		"tag")
 )
 
 func init() {
@@ -102,9 +95,18 @@ func imageListFlagSet(cmd *cobra.Command) {
 	flags.BoolVar(&listFlag.noTrunc, "no-trunc", false, "Do not truncate output")
 	flags.BoolVarP(&listFlag.quiet, "quiet", "q", false, "Display only image IDs")
 
+	// set default sort value
+	listFlag.sort = "created"
+	sort := validate.Value(&listFlag.sort,
+		"created",
+		"id",
+		"repository",
+		"size",
+		"tag",
+	)
 	sortFlagName := "sort"
-	flags.StringVar(&listFlag.sort, sortFlagName, "created", "Sort by "+sortFields.String())
-	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, completion.AutocompleteNone)
+	flags.Var(sort, sortFlagName, "Sort by "+sort.Choices())
+	_ = cmd.RegisterFlagCompletionFunc(sortFlagName, common.AutocompleteImageSort)
 
 	flags.BoolVarP(&listFlag.history, "history", "", false, "Display the image name history")
 }
@@ -116,11 +118,6 @@ func images(cmd *cobra.Command, args []string) error {
 
 	if len(args) > 0 {
 		listOptions.Filter = append(listOptions.Filter, "reference="+args[0])
-	}
-
-	if cmd.Flags().Changed("sort") && !sortFields.Contains(listFlag.sort) {
-		return fmt.Errorf("\"%s\" is not a valid field for sorting. Choose from: %s",
-			listFlag.sort, sortFields.String())
 	}
 
 	summaries, err := registry.ImageEngine().List(registry.Context(), listOptions)

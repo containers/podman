@@ -573,18 +573,6 @@ func GetPodmanDockerTmpConfig(uid int, rootful bool, newline bool) string {
 	return fmt.Sprintf("L+  /run/docker.sock   -    -    -     -   %s%s", podmanSock, suffix)
 }
 
-// SetIgnitionFile creates a new Machine File for the machine's ignition file
-// and assigns the handle to `loc`
-func SetIgnitionFile(loc *define.VMFile, vmtype define.VMType, vmName, vmConfigDir string) error {
-	ignitionFile, err := define.NewMachineFile(filepath.Join(vmConfigDir, vmName+".ign"), nil)
-	if err != nil {
-		return err
-	}
-
-	*loc = *ignitionFile
-	return nil
-}
-
 type IgnitionBuilder struct {
 	dynamicIgnition DynamicIgnition
 	units           []Unit

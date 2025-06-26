@@ -9,13 +9,11 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
@@ -296,44 +294,4 @@ func (q *QEMUStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.St
 	}()
 	// If there is a monitor, let's see if we can query state
 	return q.checkStatus(monitor)
-}
-
-// executes qemu-image info to get the virtual disk size
-// of the diskimage
-func getDiskSize(path string) (uint64, error) { //nolint:unused
-	// Find the qemu executable
-	cfg, err := config.Default()
-	if err != nil {
-		return 0, err
-	}
-	qemuPathDir, err := cfg.FindHelperBinary("qemu-img", true)
-	if err != nil {
-		return 0, err
-	}
-	diskInfo := exec.Command(qemuPathDir, "info", "--output", "json", path)
-	stdout, err := diskInfo.StdoutPipe()
-	if err != nil {
-		return 0, err
-	}
-	if err := diskInfo.Start(); err != nil {
-		return 0, err
-	}
-	tmpInfo := struct {
-		VirtualSize    uint64 `json:"virtual-size"`
-		Filename       string `json:"filename"`
-		ClusterSize    int64  `json:"cluster-size"`
-		Format         string `json:"format"`
-		FormatSpecific struct {
-			Type string            `json:"type"`
-			Data map[string]string `json:"data"`
-		}
-		DirtyFlag bool `json:"dirty-flag"`
-	}{}
-	if err := json.NewDecoder(stdout).Decode(&tmpInfo); err != nil {
-		return 0, err
-	}
-	if err := diskInfo.Wait(); err != nil {
-		return 0, err
-	}
-	return tmpInfo.VirtualSize, nil
 }
