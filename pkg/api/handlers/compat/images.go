@@ -468,6 +468,15 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 		// docker adds sha256: in front of the ID
 		for _, s := range summaries {
 			s.ID = "sha256:" + s.ID
+			// Ensure RepoTags and RepoDigests are empty arrays instead of null for Docker compatibility
+			// as per https://docs.docker.com/reference/api/engine/version-history/#v143-api-changes
+			// Relates to https://issues.redhat.com/browse/RUN-2699
+			if s.RepoTags == nil {
+				s.RepoTags = []string{}
+			}
+			if s.RepoDigests == nil {
+				s.RepoDigests = []string{}
+			}
 		}
 	}
 	utils.WriteResponse(w, http.StatusOK, summaries)
