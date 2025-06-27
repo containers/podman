@@ -33,7 +33,7 @@ func (c *PodmanCmdline) addf(format string, a ...interface{}) {
 	c.add(fmt.Sprintf(format, a...))
 }
 
-func (c *PodmanCmdline) addKeys(arg string, keys map[string]string) {
+func (c *PodmanCmdline) addKeys(arg string, keys map[string]*string) {
 	ks := make([]string, 0, len(keys))
 	for k := range keys {
 		ks = append(ks, k)
@@ -41,7 +41,11 @@ func (c *PodmanCmdline) addKeys(arg string, keys map[string]string) {
 	sort.Strings(ks)
 
 	for _, k := range ks {
-		c.add(arg, fmt.Sprintf("%s=%s", k, keys[k]))
+		if keys[k] != nil {
+			c.add(arg, fmt.Sprintf("%s=%s", k, *keys[k]))
+		} else {
+			c.add(arg, k)
+		}
 	}
 }
 
