@@ -41,6 +41,10 @@ func (o OldHTTPServer) RequestTraceAttrs(server string, req *http.Request) []att
 	return semconvutil.HTTPServerRequest(server, req)
 }
 
+func (o OldHTTPServer) NetworkTransportAttr(network string) attribute.KeyValue {
+	return semconvutil.NetTransport(network)
+}
+
 // ResponseTraceAttrs returns trace attributes for telemetry from an HTTP response.
 //
 // If any of the fields in the ResponseTelemetry are not set the attribute will be omitted.
@@ -263,4 +267,11 @@ func (o OldHTTPClient) createMeasures(meter metric.Meter) (metric.Int64Counter, 
 	handleErr(err)
 
 	return requestBytesCounter, responseBytesCounter, latencyMeasure
+}
+
+// Attributes for httptrace.
+func (c OldHTTPClient) TraceAttributes(host string) []attribute.KeyValue {
+	return []attribute.KeyValue{
+		semconv.NetHostName(host),
+	}
 }
