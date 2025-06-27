@@ -73,9 +73,19 @@ func (w WSLStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConf
 	if err = configureSystem(mc, dist, mc.Ansible); err != nil {
 		return err
 	}
+	if mc.Capabilities.GetForwardSockets() {
+		if err = installScripts(dist); err != nil {
+			return err
+		}
+	} else {
+		if err := wslPipe(bootstrapSystemdConfig, dist, "sh", "-c",
+			"cat > /root/bootstrap; chmod 755 /root/bootstrap"); err != nil {
+			return fmt.Errorf("could not create bootstrap script for guest OS: %w", err)
+		}
 
-	if err = installScripts(dist); err != nil {
-		return err
+		if err := appendSystemdConfig(dist); err != nil {
+			return fmt.Errorf("could not update wsl.conf to enable systemd: %w", err)
+		}
 	}
 
 	if err = createKeys(mc, dist); err != nil {
@@ -153,7 +163,7 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 	}
 
 	if opts.UserModeNetworking != nil && mc.WSLHypervisor.UserModeNetworking != *opts.UserModeNetworking {
-		if running, _ := isRunning(mc.Name); running {
+		if running, _ := isRunning(mc); running {
 			return errors.New("user-mode networking can only be changed when the machine is not running")
 		}
 
@@ -214,7 +224,14 @@ func (w WSLStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool
 func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() error, error) {
 	dist := env.WithToolPrefix(mc.Name)
 
-	err := wslInvoke(dist, "/root/bootstrap")
+	var err error
+	if mc.Capabilities.GetForwardSockets() {
+		err = wslInvoke(dist, "/root/bootstrap")
+	} else {
+		// By using sudo, the script is run on a different tty device than the user (e.g user pts/0, sudo pts/1)
+		// this tricks WSL to not shut down the VM even if the user is not logged in because there is still an interactive operation running.
+		err = wslInvoke(dist, "sudo", "/root/bootstrap")
+	}
 	if err != nil {
 		err = fmt.Errorf("the WSL bootstrap script failed: %w", err)
 	}
@@ -227,7 +244,7 @@ func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() e
 }
 
 func (w WSLStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
-	running, err := isRunning(mc.Name)
+	running, err := isRunning(mc)
 	if err != nil {
 		return "", err
 	}
@@ -240,7 +257,7 @@ func (w WSLStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, e
 func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 	var err error
 
-	if running, err := isRunning(mc.Name); !running {
+	if running, err := isRunning(mc); !running {
 		return err
 	}
 
@@ -255,25 +272,25 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 		if err := machine.StopWinProxy(mc.Name, vmtype); err != nil {
 			fmt.Fprintf(os.Stderr, "Could not stop API forwarding service (win-sshproxy.exe): %s\n", err.Error())
 		}
-	}
 
-	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "sh")
-	cmd.Stdin = strings.NewReader(waitTerm)
-	out := &bytes.Buffer{}
-	cmd.Stderr = out
-	cmd.Stdout = out
+		cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "sh")
+		cmd.Stdin = strings.NewReader(waitTerm)
+		out := &bytes.Buffer{}
+		cmd.Stderr = out
+		cmd.Stdout = out
 
-	if err = cmd.Start(); err != nil {
-		return fmt.Errorf("executing wait command: %w", err)
-	}
+		if err = cmd.Start(); err != nil {
+			return fmt.Errorf("executing wait command: %w", err)
+		}
 
-	exitCmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
-	if err = exitCmd.Run(); err != nil {
-		return fmt.Errorf("stopping systemd: %w", err)
-	}
+		exitCmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "/usr/local/bin/enterns", "systemctl", "exit", "0")
+		if err = exitCmd.Run(); err != nil {
+			return fmt.Errorf("stopping systemd: %w", err)
+		}
 
-	if err = cmd.Wait(); err != nil {
-		logrus.Warnf("Failed to wait for systemd to exit: (%s)", strings.TrimSpace(out.String()))
+		if err = cmd.Wait(); err != nil {
+			logrus.Warnf("Failed to wait for systemd to exit: (%s)", strings.TrimSpace(out.String()))
+		}
 	}
 
 	return terminateDist(dist)

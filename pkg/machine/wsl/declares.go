@@ -46,6 +46,10 @@ ln -fs /usr/lib/systemd/system/podman.socket /etc/systemd/system/sockets.target.
 const sudoers = `%wheel        ALL=(ALL)       NOPASSWD: ALL
 `
 
+const bootstrapSystemdConfig = `#!/bin/bash
+nohup bash -c 'while true; do sleep 60; done' >/dev/null 2>&1 &
+`
+
 const bootstrap = `#!/bin/bash
 ps -ef | grep -v grep | grep -q systemd && exit 0
 nohup unshare --kill-child --fork --pid --mount --mount-proc --propagation shared /lib/systemd/systemd >/dev/null 2>&1 &
@@ -60,6 +64,8 @@ or type exit. This also means to log out you need to exit twice.
 `
 
 const sysdpid = "SYSDPID=`ps -eo cmd,pid | grep -m 1 ^/lib/systemd/systemd | awk '{print $2}'`"
+
+const sysdpidSystemdConfig = "SYSDPID=`grep -q systemd /proc/1/comm && echo '1' || echo '0'`"
 
 const profile = sysdpid + `
 if [ ! -z "$SYSDPID" ] && [ "$SYSDPID" != "1" ]; then
@@ -91,6 +97,10 @@ fi
 
 const wslConf = `[user]
 default=[USER]
+`
+
+const wslSystemdConf = `[boot]
+systemd=true
 `
 
 const wslConfUserNet = `
