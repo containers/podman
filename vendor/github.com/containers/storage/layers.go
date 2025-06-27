@@ -1634,7 +1634,7 @@ func (r *layerStore) Mount(id string, options drivers.MountOpts) (string, error)
 		options.MountLabel = layer.MountLabel
 	}
 
-	if (options.UidMaps != nil || options.GidMaps != nil) && !r.driver.SupportsShifting() {
+	if (options.UidMaps != nil || options.GidMaps != nil) && !r.driver.SupportsShifting(options.UidMaps, options.GidMaps) {
 		if !reflect.DeepEqual(options.UidMaps, layer.UIDMap) || !reflect.DeepEqual(options.GidMaps, layer.GIDMap) {
 			return "", fmt.Errorf("cannot mount layer %v: shifting not enabled", layer.ID)
 		}
