@@ -228,8 +228,13 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
 	}
 
+	locked := true
 	as.lock.Lock()
-	defer as.lock.Unlock()
+	defer func() {
+		if locked {
+			as.lock.Unlock()
+		}
+	}()
 
 	// Check if artifact already exists
 	artifacts, err := as.getArtifacts(ctx, nil)
@@ -293,6 +298,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 	}
 	defer imageDest.Close()
 
+	// Unlock around the actual pull of the blobs.
+	// This is ugly as hell, but should be safe.
+	locked = false
+	as.lock.Unlock()
+
 	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
 	// This works for the oci/layout transport we hard-code.
 	for _, artifactBlob := range artifactBlobs {
@@ -336,6 +346,9 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 
 		artifactManifest.Layers = append(artifactManifest.Layers, newLayer)
 	}
+
+	as.lock.Lock()
+	locked = true
 
 	rawData, err := json.Marshal(artifactManifest)
 	if err != nil {
