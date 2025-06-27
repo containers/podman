@@ -11,6 +11,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 var (
@@ -47,11 +48,6 @@ func init() {
 func export(cmd *cobra.Command, args []string) error {
 	containerEngine := registry.ContainerEngine()
 	ctx := context.Background()
-
-	if targetPath == "" && cmd.Flag("output").Changed {
-		return errors.New("must provide valid path for file to write to")
-	}
-
 	exportOpts := entities.VolumeExportOptions{}
 
 	if targetPath != "" {
@@ -62,6 +58,12 @@ func export(cmd *cobra.Command, args []string) error {
 		defer targetFile.Close()
 		exportOpts.Output = targetFile
 	} else {
+		if cmd.Flag("output").Changed {
+			return errors.New("must provide valid path for file to write to")
+		}
+		if term.IsTerminal(int(os.Stdout.Fd())) {
+			return errors.New("cannot write to terminal, use command-line redirection or the --output flag")
+		}
 		exportOpts.Output = os.Stdout
 	}
 
