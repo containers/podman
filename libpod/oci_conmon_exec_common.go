@@ -392,13 +392,18 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
 	}
 
+	logLabels, err := r.getLogLabels(c)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	processFile, err := c.prepareProcessExec(options, finalEnv, sessionID)
 	if err != nil {
 		return nil, nil, err
 	}
 	defer processFile.Close()
 
-	args, err := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), c.execPersistDir(sessionID), ociLog, define.NoLogging, c.config.LogTag)
+	args, err := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), c.execPersistDir(sessionID), ociLog, define.NoLogging, c.config.LogTag, logLabels)
 	if err != nil {
 		return nil, nil, err
 	}
