@@ -77,6 +77,8 @@ var _ = Describe("podman system reset", Serial, func() {
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToStringArray()).To(BeEmpty())
 		}
+		session = podmanTest.Podman([]string{"machine", "init"})
+		Expect(session).Should(ExitCleanly())
 	})
 
 	It("system reset completely removes container", func() {
