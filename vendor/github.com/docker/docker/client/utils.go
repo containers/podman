@@ -1,4 +1,4 @@
-package client // import "github.com/docker/docker/client"
+package client
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ func (e emptyIDError) Error() string {
 // trimID trims the given object-ID / name, returning an error if it's empty.
 func trimID(objType, id string) (string, error) {
 	id = strings.TrimSpace(id)
-	if len(id) == 0 {
+	if id == "" {
 		return "", emptyIDError(objType)
 	}
 	return id, nil

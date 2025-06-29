@@ -141,6 +141,19 @@ func (n CurrentHTTPServer) RequestTraceAttrs(server string, req *http.Request) [
 	return attrs
 }
 
+func (o CurrentHTTPServer) NetworkTransportAttr(network string) attribute.KeyValue {
+	switch network {
+	case "tcp", "tcp4", "tcp6":
+		return semconvNew.NetworkTransportTCP
+	case "udp", "udp4", "udp6":
+		return semconvNew.NetworkTransportUDP
+	case "unix", "unixgram", "unixpacket":
+		return semconvNew.NetworkTransportUnix
+	default:
+		return semconvNew.NetworkTransportPipe
+	}
+}
+
 func (n CurrentHTTPServer) method(method string) (attribute.KeyValue, attribute.KeyValue) {
 	if method == "" {
 		return semconvNew.HTTPRequestMethodGet, attribute.KeyValue{}
@@ -505,6 +518,13 @@ func (n CurrentHTTPClient) MetricAttributes(req *http.Request, statusCode int, a
 		attributes = append(attributes, semconvNew.HTTPResponseStatusCode(statusCode))
 	}
 	return attributes
+}
+
+// Attributes for httptrace.
+func (n CurrentHTTPClient) TraceAttributes(host string) []attribute.KeyValue {
+	return []attribute.KeyValue{
+		semconvNew.ServerAddress(host),
+	}
 }
 
 func (n CurrentHTTPClient) scheme(https bool) attribute.KeyValue { // nolint:revive

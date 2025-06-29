@@ -312,9 +312,9 @@ func (d *Driver) AdditionalImageStores() []string {
 	return nil
 }
 
-// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs in an userNS
-func (d *Driver) SupportsShifting() bool {
-	return d.updater.SupportsShifting()
+// SupportsShifting tells whether the driver support shifting of the UIDs/GIDs to the provided mapping in an userNS
+func (d *Driver) SupportsShifting(uidmap, gidmap []idtools.IDMap) bool {
+	return d.updater.SupportsShifting(uidmap, gidmap)
 }
 
 // UpdateLayerIDMap updates ID mappings in a from matching the ones specified

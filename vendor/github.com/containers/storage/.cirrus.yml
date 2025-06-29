@@ -128,6 +128,7 @@ lint_task:
       apt-get update
       apt-get install -y libbtrfs-dev libsubid-dev
     test_script: |
+      [ -n "${CIRRUS_BASE_SHA}" ] && git fetch origin ${CIRRUS_BASE_SHA} # Make ${CIRRUS_BASE_SHA} resolvable for git-validation
       make TAGS=regex_precompile local-validate
       make lint
       make clean

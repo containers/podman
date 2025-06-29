@@ -870,25 +870,25 @@ func decompress(compressor encoding.Compressor, d mem.BufferSlice, dc Decompress
 			return nil, status.Errorf(codes.Internal, "grpc: failed to decompress the message: %v", err)
 		}
 
-		out, err := mem.ReadAll(io.LimitReader(dcReader, int64(maxReceiveMessageSize)), pool)
+		// Read at most one byte more than the limit from the decompressor.
+		// Unless the limit is MaxInt64, in which case, that's impossible, so
+		// apply no limit.
+		if limit := int64(maxReceiveMessageSize); limit < math.MaxInt64 {
+			dcReader = io.LimitReader(dcReader, limit+1)
+		}
+		out, err := mem.ReadAll(dcReader, pool)
 		if err != nil {
 			out.Free()
 			return nil, status.Errorf(codes.Internal, "grpc: failed to read decompressed data: %v", err)
 		}
 
-		if out.Len() == maxReceiveMessageSize && !atEOF(dcReader) {
+		if out.Len() > maxReceiveMessageSize {
 			out.Free()
 			return nil, status.Errorf(codes.ResourceExhausted, "grpc: received message after decompression larger than max %d", maxReceiveMessageSize)
 		}
 		return out, nil
 	}
 	return nil, status.Errorf(codes.Internal, "grpc: no decompressor available for compressed payload")
-}
-
-// atEOF reads data from r and returns true if zero bytes could be read and r.Read returns EOF.
-func atEOF(dcReader io.Reader) bool {
-	n, err := dcReader.Read(make([]byte, 1))
-	return n == 0 && err == io.EOF
 }
 
 type recvCompressor interface {

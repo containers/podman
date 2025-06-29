@@ -1,5 +1,3 @@
-//go:build !containers_image_rekor_stub
-
 package internal
 
 import (
@@ -14,12 +12,11 @@ import (
 	"time"
 
 	"github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer"
-	"github.com/sigstore/rekor/pkg/generated/models"
 )
 
 // This is the github.com/sigstore/rekor/pkg/generated/models.Hashedrekord.APIVersion for github.com/sigstore/rekor/pkg/generated/models.HashedrekordV001Schema.
 // We could alternatively use github.com/sigstore/rekor/pkg/types/hashedrekord.APIVERSION, but that subpackage adds too many dependencies.
-const HashedRekordV001APIVersion = "0.0.1"
+const RekorHashedRekordV001APIVersion = "0.0.1"
 
 // UntrustedRekorSET is a parsed content of the sigstore-signature Rekor SET
 // (note that this a signature-specific format, not a format directly used by the Rekor API).
@@ -137,31 +134,20 @@ func VerifyRekorSET(publicKeys []*ecdsa.PublicKey, unverifiedRekorSET []byte, un
 	if err := json.Unmarshal(untrustedSETPayloadCanonicalBytes, &rekorPayload); err != nil {
 		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("parsing Rekor SET payload: %v", err.Error()))
 	}
-	// FIXME: Use a different decoder implementation? The Swagger-generated code is kinda ridiculous, with the need to re-marshal
-	// hashedRekor.Spec and so on.
-	// Especially if we anticipate needing to decode different data formats…
-	// That would also allow being much more strict about JSON.
-	//
-	// Alternatively, rely on the existing .Validate() methods instead of manually checking for nil all over the place.
-	var hashedRekord models.Hashedrekord
+	// FIXME: Consider being much more strict about decoding JSON.
+	var hashedRekord RekorHashedrekord
 	if err := json.Unmarshal(rekorPayload.Body, &hashedRekord); err != nil {
 		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("decoding the body of a Rekor SET payload: %v", err))
 	}
-	// The decode of models.HashedRekord validates the "kind": "hashedrecord" field, which is otherwise invisible to us.
+	// The decode of HashedRekord validates the "kind": "hashedrecord" field, which is otherwise invisible to us.
 	if hashedRekord.APIVersion == nil {
 		return time.Time{}, NewInvalidSignatureError("missing Rekor SET Payload API version")
 	}
-	if *hashedRekord.APIVersion != HashedRekordV001APIVersion {
+	if *hashedRekord.APIVersion != RekorHashedRekordV001APIVersion {
 		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("unsupported Rekor SET Payload hashedrekord version %#v", hashedRekord.APIVersion))
 	}
-	hashedRekordV001Bytes, err := json.Marshal(hashedRekord.Spec)
-	if err != nil {
-		// Coverage: hashedRekord.Spec is an any that was just unmarshaled,
-		// so this should never fail.
-		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("re-creating hashedrekord spec: %v", err))
-	}
-	var hashedRekordV001 models.HashedrekordV001Schema
-	if err := json.Unmarshal(hashedRekordV001Bytes, &hashedRekordV001); err != nil {
+	var hashedRekordV001 RekorHashedrekordV001Schema
+	if err := json.Unmarshal(hashedRekord.Spec, &hashedRekordV001); err != nil {
 		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf("decoding hashedrekod spec: %v", err))
 	}
 
@@ -217,7 +203,7 @@ func VerifyRekorSET(publicKeys []*ecdsa.PublicKey, unverifiedRekorSET []byte, un
 	// Eventually we should support them as well.
 	// Short-term, Cosign (as of 2024-02 and Cosign 2.2.3) only produces and accepts SHA-256, so right now that’s not a compatibility
 	// issue.
-	if *hashedRekordV001.Data.Hash.Algorithm != models.HashedrekordV001SchemaDataHashAlgorithmSha256 {
+	if *hashedRekordV001.Data.Hash.Algorithm != RekorHashedrekordV001SchemaDataHashAlgorithmSha256 {
 		return time.Time{}, NewInvalidSignatureError(fmt.Sprintf(`Unexpected "data.hash.algorithm" value %#v`, *hashedRekordV001.Data.Hash.Algorithm))
 	}
 	if hashedRekordV001.Data.Hash.Value == nil {

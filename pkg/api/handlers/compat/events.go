@@ -95,11 +95,16 @@ func GetEvents(w http.ResponseWriter, r *http.Request) {
 			e := entities.ConvertToEntitiesEvent(*evt.Event)
 			// Some events differ between Libpod and Docker endpoints.
 			// Handle these differences for Docker-compat.
-			if !utils.IsLibpodRequest(r) && e.Type == "image" && e.Status == "remove" {
+			if !utils.IsLibpodRequest(r) && e.Type == "image" && e.Action == "remove" {
+				// Status is deprecated, but we still like to set it for consumers that might use it.
+				//nolint:staticcheck,nolintlint // we run the linter several times and sometimes it
+				// complains about this and sometimes it doesn't thus the nolintlint
 				e.Status = "delete"
 				e.Action = "delete"
 			}
-			if !utils.IsLibpodRequest(r) && e.Status == "died" {
+			if !utils.IsLibpodRequest(r) && e.Action == "died" {
+				//nolint:staticcheck,nolintlint // we run the linter several times and sometimes it
+				// complains about this and sometimes it doesn't thus the nolintlint
 				e.Status = "die"
 				e.Action = "die"
 				e.Actor.Attributes["exitCode"] = e.Actor.Attributes["containerExitCode"]
