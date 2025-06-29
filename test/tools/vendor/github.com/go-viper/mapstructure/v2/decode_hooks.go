@@ -100,7 +100,11 @@ func ComposeDecodeHookFunc(fs ...DecodeHookFunc) DecodeHookFunc {
 			if err != nil {
 				return nil, err
 			}
-			newFrom = reflect.ValueOf(data)
+			if v, ok := data.(reflect.Value); ok {
+				newFrom = v
+			} else {
+				newFrom = reflect.ValueOf(data)
+			}
 		}
 
 		return data, nil
@@ -383,6 +387,26 @@ func StringToNetIPAddrPortHookFunc() DecodeHookFunc {
 
 		// Convert it by parsing
 		return netip.ParseAddrPort(data.(string))
+	}
+}
+
+// StringToNetIPPrefixHookFunc returns a DecodeHookFunc that converts
+// strings to netip.Prefix.
+func StringToNetIPPrefixHookFunc() DecodeHookFunc {
+	return func(
+		f reflect.Type,
+		t reflect.Type,
+		data interface{},
+	) (interface{}, error) {
+		if f.Kind() != reflect.String {
+			return data, nil
+		}
+		if t != reflect.TypeOf(netip.Prefix{}) {
+			return data, nil
+		}
+
+		// Convert it by parsing
+		return netip.ParsePrefix(data.(string))
 	}
 }
 
