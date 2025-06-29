@@ -1588,8 +1588,10 @@ func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*
 
 	service.AddCmdline(ServiceGroup, "ExecStartPre", execStartPre.Args)
 
+	// Set PODMAN_SYSTEMD_UNIT so that podman auto-update can restart the service.
+	service.Add(ServiceGroup, "Environment", "PODMAN_SYSTEMD_UNIT=%n")
+
 	service.Setv(ServiceGroup,
-		"Environment", "PODMAN_SYSTEMD_UNIT=%n",
 		"Type", "forking",
 		"Restart", "on-failure",
 		"PIDFile", "%t/%N.pid",
