@@ -92,7 +92,7 @@ endif
 # and except anything in a dot subdirectory. If any of these files is
 # newer than our target (bin/podman{,-remote}), a rebuild is
 # triggered.
-SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print)
+SOURCES = $(shell find . -path './.*' -prune -o \( \( -name '*.go' -o -name '*.c' \) -a ! -name '*_test.go' \) -print) Makefile
 
 BUILDTAGS_CROSS ?= containers_image_openpgp exclude_graphdriver_btrfs exclude_graphdriver_overlay
 CONTAINER_RUNTIME := $(shell command -v podman 2> /dev/null || echo docker)
