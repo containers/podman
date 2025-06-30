@@ -1445,16 +1445,7 @@ func (s *store) writeToAllStores(fn func(rlstore rwLayerStore) error) error {
 // On entry:
 // - rlstore must be locked for writing
 func (s *store) canUseShifting(uidmap, gidmap []idtools.IDMap) bool {
-	if !s.graphDriver.SupportsShifting() {
-		return false
-	}
-	if uidmap != nil && !idtools.IsContiguous(uidmap) {
-		return false
-	}
-	if gidmap != nil && !idtools.IsContiguous(gidmap) {
-		return false
-	}
-	return true
+	return s.graphDriver.SupportsShifting(uidmap, gidmap)
 }
 
 // On entry:

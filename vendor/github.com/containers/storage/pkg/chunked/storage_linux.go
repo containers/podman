@@ -170,8 +170,7 @@ func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *o
 	}
 
 	newAnnotations := make(map[string]string)
-	level := 1
-	chunked, err := compressor.ZstdCompressor(f, newAnnotations, &level)
+	chunked, err := compressor.NoCompression(f, newAnnotations)
 	if err != nil {
 		f.Close()
 		return 0, nil, "", nil, err
@@ -341,7 +340,7 @@ func makeConvertFromRawDiffer(store storage.Store, blobDigest digest.Digest, blo
 // makeZstdChunkedDiffer sets up a chunkedDiffer for a zstd:chunked layer.
 // It may return an error matching ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert.
 func makeZstdChunkedDiffer(store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, pullOptions pullOptions) (_ *chunkedDiffer, retErr error) {
-	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(store.RunRoot(), iss, tocDigest, annotations)
+	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(store.RunRoot(), iss, tocDigest, annotations, true)
 	if err != nil { // May be ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
@@ -666,20 +665,17 @@ func (o *originFile) OpenFile() (io.ReadCloser, error) {
 	return srcFile, nil
 }
 
-func (c *chunkedDiffer) prepareCompressedStreamToFile(partCompression compressedFileType, from io.Reader, mf *missingFileChunk) (compressedFileType, error) {
+func (c *chunkedDiffer) prepareCompressedStreamToFile(partCompression compressedFileType, mf *missingFileChunk) (compressedFileType, error) {
 	switch {
 	case partCompression == fileTypeHole:
 		// The entire part is a hole.  Do not need to read from a file.
-		c.rawReader = nil
 		return fileTypeHole, nil
 	case mf.Hole:
 		// Only the missing chunk in the requested part refers to a hole.
 		// The received data must be discarded.
-		limitReader := io.LimitReader(from, mf.CompressedSize)
-		_, err := io.CopyBuffer(io.Discard, limitReader, c.copyBuffer)
+		_, err := io.CopyBuffer(io.Discard, c.rawReader, c.copyBuffer)
 		return fileTypeHole, err
 	case partCompression == fileTypeZstdChunked:
-		c.rawReader = io.LimitReader(from, mf.CompressedSize)
 		if c.zstdReader == nil {
 			r, err := zstd.NewReader(c.rawReader)
 			if err != nil {
@@ -692,7 +688,6 @@ func (c *chunkedDiffer) prepareCompressedStreamToFile(partCompression compressed
 			}
 		}
 	case partCompression == fileTypeEstargz:
-		c.rawReader = io.LimitReader(from, mf.CompressedSize)
 		if c.gzipReader == nil {
 			r, err := pgzip.NewReader(c.rawReader)
 			if err != nil {
@@ -705,7 +700,7 @@ func (c *chunkedDiffer) prepareCompressedStreamToFile(partCompression compressed
 			}
 		}
 	case partCompression == fileTypeNoCompression:
-		c.rawReader = io.LimitReader(from, mf.UncompressedSize)
+		return fileTypeNoCompression, nil
 	default:
 		return partCompression, fmt.Errorf("unknown file type %q", c.fileType)
 	}
@@ -905,6 +900,7 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 	for _, missingPart := range missingParts {
 		var part io.ReadCloser
 		partCompression := c.fileType
+		readingFromLocalFile := false
 		switch {
 		case missingPart.Hole:
 			partCompression = fileTypeHole
@@ -915,6 +911,7 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 				return err
 			}
 			partCompression = fileTypeNoCompression
+			readingFromLocalFile = true
 		case missingPart.SourceChunk != nil:
 			select {
 			case p := <-streams:
@@ -948,7 +945,18 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 				goto exit
 			}
 
-			compression, err := c.prepareCompressedStreamToFile(partCompression, part, &mf)
+			c.rawReader = nil
+			if part != nil {
+				limit := mf.CompressedSize
+				// If we are reading from a source file, use the uncompressed size to limit the reader, because
+				// the compressed size refers to the original layer stream.
+				if readingFromLocalFile {
+					limit = mf.UncompressedSize
+				}
+				c.rawReader = io.LimitReader(part, limit)
+			}
+
+			compression, err := c.prepareCompressedStreamToFile(partCompression, &mf)
 			if err != nil {
 				Err = err
 				goto exit
@@ -1440,7 +1448,9 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, err
 		}
+
 		c.uncompressedTarSize = tarSize
+
 		// fileSource is a O_TMPFILE file descriptor, so we
 		// need to keep it open until the entire file is processed.
 		defer fileSource.Close()
@@ -1456,7 +1466,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		if tocDigest == nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
 		}
-		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(dest, fileSource, *tocDigest, annotations)
+		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(dest, fileSource, *tocDigest, annotations, false)
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}
@@ -1465,7 +1475,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		stream = fileSource
 
 		// fill the chunkedDiffer with the data we just read.
-		c.fileType = fileTypeZstdChunked
+		c.fileType = fileTypeNoCompression
 		c.manifest = manifest
 		c.toc = toc
 		c.tarSplit = tarSplit

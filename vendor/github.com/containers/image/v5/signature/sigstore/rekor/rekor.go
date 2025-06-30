@@ -1,5 +1,3 @@
-//go:build !containers_image_rekor_stub
-
 package rekor
 
 import (
@@ -10,17 +8,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/containers/image/v5/signature/internal"
 	signerInternal "github.com/containers/image/v5/signature/sigstore/internal"
-	"github.com/go-openapi/strfmt"
-	rekor "github.com/sigstore/rekor/pkg/client"
-	"github.com/sigstore/rekor/pkg/generated/client"
-	"github.com/sigstore/rekor/pkg/generated/client/entries"
-	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/hashicorp/go-retryablehttp"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	// defaultRetryCount is the default number of retries
+	defaultRetryCount = 3
 )
 
 // WithRekor asks the generated signature to be uploaded to the specified Rekor server,
@@ -28,26 +28,37 @@ import (
 func WithRekor(rekorURL *url.URL) signerInternal.Option {
 	return func(s *signerInternal.SigstoreSigner) error {
 		logrus.Debugf("Using Rekor server at %s", rekorURL.Redacted())
-		client, err := rekor.GetRekorClient(rekorURL.String(),
-			rekor.WithLogger(leveledLoggerForLogrus(logrus.StandardLogger())))
-		if err != nil {
-			return fmt.Errorf("creating Rekor client: %w", err)
-		}
-		u := uploader{
-			client: client,
-		}
-		s.RekorUploader = u.uploadKeyOrCert
+		client := newRekorClient(rekorURL)
+		s.RekorUploader = client.uploadKeyOrCert
 		return nil
 	}
 }
 
-// uploader wraps a Rekor client, basically so that we can set RekorUploader to a method instead of an one-off closure.
-type uploader struct {
-	client *client.Rekor
+// rekorClient allows uploading entries to Rekor.
+type rekorClient struct {
+	rekorURL   *url.URL // Only Scheme and Host is actually used, consistent with github.com/sigstore/rekor/pkg/client.
+	basePath   string
+	httpClient *http.Client
+}
+
+// newRekorClient creates a rekorClient for rekorURL.
+func newRekorClient(rekorURL *url.URL) *rekorClient {
+	retryableClient := retryablehttp.NewClient()
+	retryableClient.RetryMax = defaultRetryCount
+	retryableClient.Logger = leveledLoggerForLogrus(logrus.StandardLogger())
+	basePath := rekorURL.Path
+	if !strings.HasPrefix(basePath, "/") { // Includes basePath == "", i.e. URL just a https://hostname
+		basePath = "/" + basePath
+	}
+	return &rekorClient{
+		rekorURL:   rekorURL,
+		basePath:   basePath,
+		httpClient: retryableClient.StandardClient(),
+	}
 }
 
 // rekorEntryToSET converts a Rekor log entry into a sigstore “signed entry timestamp”.
-func rekorEntryToSET(entry *models.LogEntryAnon) (internal.UntrustedRekorSET, error) {
+func rekorEntryToSET(entry *rekorLogEntryAnon) (internal.UntrustedRekorSET, error) {
 	// We could plausibly call entry.Validate() here; that mostly just uses unnecessary reflection instead of direct == nil checks.
 	// Right now the only extra validation .Validate() does is *entry.LogIndex >= 0 and a regex check on *entry.LogID;
 	// we don’t particularly care about either of these (notably signature verification only uses the Body value).
@@ -79,67 +90,67 @@ func rekorEntryToSET(entry *models.LogEntryAnon) (internal.UntrustedRekorSET, er
 }
 
 // uploadEntry ensures proposedEntry exists in Rekor (usually uploading it), and returns the resulting log entry.
-func (u *uploader) uploadEntry(ctx context.Context, proposedEntry models.ProposedEntry) (models.LogEntry, error) {
-	params := entries.NewCreateLogEntryParamsWithContext(ctx)
-	params.SetProposedEntry(proposedEntry)
+func (r *rekorClient) uploadEntry(ctx context.Context, proposedEntry rekorProposedEntry) (rekorLogEntry, error) {
 	logrus.Debugf("Calling Rekor's CreateLogEntry")
-	resp, err := u.client.Entries.CreateLogEntry(params)
+	resp, err := r.createLogEntry(ctx, proposedEntry)
 	if err != nil {
 		// In ordinary operation, we should not get duplicate entries, because our payload contains a timestamp,
 		// so it is supposed to be unique; and the default key format, ECDSA p256, also contains a nonce.
 		// But conflicts can fairly easily happen during debugging and experimentation, so it pays to handle this.
-		var conflictErr *entries.CreateLogEntryConflict
-		if errors.As(err, &conflictErr) && conflictErr.Location != "" {
-			location := conflictErr.Location.String()
+		var conflictErr *createLogEntryConflictError
+		if errors.As(err, &conflictErr) && conflictErr.location != "" {
+			location := conflictErr.location
 			logrus.Debugf("CreateLogEntry reported a conflict, location = %s", location)
-			// We might be able to just GET the returned Location, but let’s use the generated API client.
+			// We might be able to just GET the returned Location, but let’s use the formal API method.
 			// OTOH that requires us to hard-code the URI structure…
 			uuidDelimiter := strings.LastIndexByte(location, '/')
 			if uuidDelimiter != -1 { // Otherwise the URI is unexpected, and fall through to the bottom
 				uuid := location[uuidDelimiter+1:]
 				logrus.Debugf("Calling Rekor's NewGetLogEntryByUUIDParamsWithContext")
-				params2 := entries.NewGetLogEntryByUUIDParamsWithContext(ctx)
-				params2.SetEntryUUID(uuid)
-				resp2, err := u.client.Entries.GetLogEntryByUUID(params2)
+				resp2, err := r.getLogEntryByUUID(ctx, uuid)
 				if err != nil {
 					return nil, fmt.Errorf("Error re-loading previously-created log entry with UUID %s: %w", uuid, err)
 				}
-				return resp2.GetPayload(), nil
+				return resp2, nil
 			}
 		}
 		return nil, fmt.Errorf("Error uploading a log entry: %w", err)
 	}
-	return resp.GetPayload(), nil
+	return resp, nil
 }
 
-// stringPtr returns a pointer to the provided string value.
-func stringPtr(s string) *string {
+// stringPointer is a helper to create *string fields in JSON data.
+func stringPointer(s string) *string {
 	return &s
 }
 
 // uploadKeyOrCert integrates this code into sigstore/internal.Signer.
 // Given components of the created signature, it returns a SET that should be added to the signature.
-func (u *uploader) uploadKeyOrCert(ctx context.Context, keyOrCertBytes []byte, signatureBytes []byte, payloadBytes []byte) ([]byte, error) {
+func (r *rekorClient) uploadKeyOrCert(ctx context.Context, keyOrCertBytes []byte, signatureBytes []byte, payloadBytes []byte) ([]byte, error) {
 	payloadHash := sha256.Sum256(payloadBytes) // HashedRecord only accepts SHA-256
-	proposedEntry := models.Hashedrekord{
-		APIVersion: stringPtr(internal.HashedRekordV001APIVersion),
-		Spec: models.HashedrekordV001Schema{
-			Data: &models.HashedrekordV001SchemaData{
-				Hash: &models.HashedrekordV001SchemaDataHash{
-					Algorithm: stringPtr(models.HashedrekordV001SchemaDataHashAlgorithmSha256),
-					Value:     stringPtr(hex.EncodeToString(payloadHash[:])),
-				},
-			},
-			Signature: &models.HashedrekordV001SchemaSignature{
-				Content: strfmt.Base64(signatureBytes),
-				PublicKey: &models.HashedrekordV001SchemaSignaturePublicKey{
-					Content: strfmt.Base64(keyOrCertBytes),
-				},
+	hashedRekordSpec, err := json.Marshal(internal.RekorHashedrekordV001Schema{
+		Data: &internal.RekorHashedrekordV001SchemaData{
+			Hash: &internal.RekorHashedrekordV001SchemaDataHash{
+				Algorithm: stringPointer(internal.RekorHashedrekordV001SchemaDataHashAlgorithmSha256),
+				Value:     stringPointer(hex.EncodeToString(payloadHash[:])),
 			},
 		},
+		Signature: &internal.RekorHashedrekordV001SchemaSignature{
+			Content: signatureBytes,
+			PublicKey: &internal.RekorHashedrekordV001SchemaSignaturePublicKey{
+				Content: keyOrCertBytes,
+			},
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	proposedEntry := internal.RekorHashedrekord{
+		APIVersion: stringPointer(internal.RekorHashedRekordV001APIVersion),
+		Spec:       hashedRekordSpec,
 	}
 
-	uploadedPayload, err := u.uploadEntry(ctx, &proposedEntry)
+	uploadedPayload, err := r.uploadEntry(ctx, &proposedEntry)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +158,7 @@ func (u *uploader) uploadKeyOrCert(ctx context.Context, keyOrCertBytes []byte, s
 	if len(uploadedPayload) != 1 {
 		return nil, fmt.Errorf("expected 1 Rekor entry, got %d", len(uploadedPayload))
 	}
-	var storedEntry *models.LogEntryAnon
+	var storedEntry *rekorLogEntryAnon
 	// This “loop” extracts the single value from the uploadedPayload map.
 	for _, p := range uploadedPayload {
 		storedEntry = &p

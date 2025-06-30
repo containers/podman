@@ -134,12 +134,7 @@ func (ccr *ccResolverWrapper) UpdateState(s resolver.State) error {
 		return nil
 	}
 	if s.Endpoints == nil {
-		s.Endpoints = make([]resolver.Endpoint, 0, len(s.Addresses))
-		for _, a := range s.Addresses {
-			ep := resolver.Endpoint{Addresses: []resolver.Address{a}, Attributes: a.BalancerAttributes}
-			ep.Addresses[0].BalancerAttributes = nil
-			s.Endpoints = append(s.Endpoints, ep)
-		}
+		s.Endpoints = addressesToEndpoints(s.Addresses)
 	}
 	ccr.addChannelzTraceEvent(s)
 	ccr.curState = s
@@ -172,7 +167,11 @@ func (ccr *ccResolverWrapper) NewAddress(addrs []resolver.Address) {
 		ccr.cc.mu.Unlock()
 		return
 	}
-	s := resolver.State{Addresses: addrs, ServiceConfig: ccr.curState.ServiceConfig}
+	s := resolver.State{
+		Addresses:     addrs,
+		ServiceConfig: ccr.curState.ServiceConfig,
+		Endpoints:     addressesToEndpoints(addrs),
+	}
 	ccr.addChannelzTraceEvent(s)
 	ccr.curState = s
 	ccr.mu.Unlock()
@@ -209,4 +208,14 @@ func (ccr *ccResolverWrapper) addChannelzTraceEvent(s resolver.State) {
 		updates = append(updates, "resolver returned new addresses")
 	}
 	channelz.Infof(logger, ccr.cc.channelz, "Resolver state updated: %s (%v)", pretty.ToJSON(s), strings.Join(updates, "; "))
+}
+
+func addressesToEndpoints(addrs []resolver.Address) []resolver.Endpoint {
+	endpoints := make([]resolver.Endpoint, 0, len(addrs))
+	for _, a := range addrs {
+		ep := resolver.Endpoint{Addresses: []resolver.Address{a}, Attributes: a.BalancerAttributes}
+		ep.Addresses[0].BalancerAttributes = nil
+		endpoints = append(endpoints, ep)
+	}
+	return endpoints
 }
