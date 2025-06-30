@@ -120,7 +120,7 @@ func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
 	w.WriteHeader(code)
 
 	coder := json.NewEncoder(w)
-	coder.SetEscapeHTML(true)
+	coder.SetEscapeHTML(false)
 	if err := coder.Encode(value); err != nil {
 		logrus.Errorf("Unable to write json: %q", err)
 	}
