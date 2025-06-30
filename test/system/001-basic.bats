@@ -280,4 +280,13 @@ run_podman --noout system connection ls
     is "$output" ".*Shutting down engines.*"
 }
 
+@test "release" {
+  [[ "${RELEASE_TESTING:-false}" == "true" ]] || \
+    skip "Release testing may be enabled by setting \$RELEASE_TESTING = 'true'."
+
+  run_podman --version
+
+  assert "$output" "!~" "dev" "The Podman version string does not mention 'dev'."
+}
+
 # vim: filetype=sh

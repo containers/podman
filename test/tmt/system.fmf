@@ -14,6 +14,9 @@ adjust+:
     - when: distro == rhel
       environment+:
         ROOTLESS_USER: "cloud-user"
+    - when: initiator != "packit"
+      environment+:
+        RELEASE_TESTING: true
 
 /local-root:
     tag: [ local, root ]
