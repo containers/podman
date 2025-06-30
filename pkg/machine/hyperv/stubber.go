@@ -802,6 +802,8 @@ func (h HyperVStubber) UpdateSSHPort(_ *vmconfigs.MachineConfig, _ int) error {
 	return nil
 }
 
+// FIXME: 45c4f6c0320ffd43f593069ad40d325106692b29 added some removeVsockFromRegistry code
+// this code conflicted and no longer seemed relevant so I dropped it, was it correct?
 func resizeDisk(newSize strongunits.GiB, imagePath *define.VMFile) error {
 	resize := exec.Command("powershell", "-command", fmt.Sprintf("Resize-VHD \"$ENV:IMAGE_PATH\" %d", newSize.ToBytes()))
 	logrus.Debug(resize.Args)
