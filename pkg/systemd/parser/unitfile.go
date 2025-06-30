@@ -839,9 +839,9 @@ func (f *UnitFile) LookupLastArgs(groupName string, key string) ([]string, bool)
 }
 
 // Look up 'Environment' style key-value keys
-func (f *UnitFile) LookupAllKeyVal(groupName string, key string) (map[string]string, error) {
+func (f *UnitFile) LookupAllKeyVal(groupName string, key string) (map[string]*string, error) {
 	var warnings error
-	res := make(map[string]string)
+	res := make(map[string]*string)
 	allKeyvals := f.LookupAll(groupName, key)
 	for _, keyvals := range allKeyvals {
 		assigns, err := splitString(keyvals, WhitespaceSeparators, SplitRelax|SplitUnquote|SplitCUnescape)
@@ -852,9 +852,9 @@ func (f *UnitFile) LookupAllKeyVal(groupName string, key string) (map[string]str
 		for _, assign := range assigns {
 			key, value, found := strings.Cut(assign, "=")
 			if found {
-				res[key] = value
+				res[key] = &value
 			} else {
-				warnings = errors.Join(warnings, fmt.Errorf("separator was not found for %s", assign))
+				res[key] = nil
 			}
 		}
 	}
