@@ -115,7 +115,7 @@ func ReadLines(filename string) ([]string, error) {
 }
 
 // ReadLine reads a file and returns the first occurrence of a line that is prefixed with prefix.
-func ReadLine(filename string, prefix string) (string, error) {
+func ReadLine(filename, prefix string) (string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return "", err
@@ -156,7 +156,7 @@ func ReadLinesOffsetN(filename string, offset uint, n int) ([]string, error) {
 	for i := uint(0); i < uint(n)+offset || n < 0; i++ {
 		line, err := r.ReadString('\n')
 		if err != nil {
-			if err == io.EOF && len(line) > 0 {
+			if err == io.EOF && line != "" {
 				ret = append(ret, strings.Trim(line, "\n"))
 			}
 			break
@@ -349,7 +349,7 @@ func PathExistsWithContents(filename string) bool {
 
 // GetEnvWithContext retrieves the environment variable key. If it does not exist it returns the default.
 // The context may optionally contain a map superseding os.EnvKey.
-func GetEnvWithContext(ctx context.Context, key string, dfault string, combineWith ...string) string {
+func GetEnvWithContext(ctx context.Context, key, dfault string, combineWith ...string) string {
 	var value string
 	if env, ok := ctx.Value(common.EnvKey).(common.EnvMap); ok {
 		value = env[common.EnvKeyType(key)]
@@ -365,7 +365,7 @@ func GetEnvWithContext(ctx context.Context, key string, dfault string, combineWi
 }
 
 // GetEnv retrieves the environment variable key. If it does not exist it returns the default.
-func GetEnv(key string, dfault string, combineWith ...string) string {
+func GetEnv(key, dfault string, combineWith ...string) string {
 	value := os.Getenv(key)
 	if value == "" {
 		value = dfault

@@ -94,7 +94,7 @@ type ConntrackStat struct {
 	SearchRestart uint32 `json:"searchRestart"` // Conntrack table lookups restarted due to hashtable resizes
 }
 
-func NewConntrackStat(e uint32, s uint32, f uint32, n uint32, inv uint32, ign uint32, del uint32, dlst uint32, ins uint32, insfail uint32, drop uint32, edrop uint32, ie uint32, en uint32, ec uint32, ed uint32, sr uint32) *ConntrackStat {
+func NewConntrackStat(e, s, f, n, inv, ign, del, dlst, ins, insfail, drop, edrop, ie, en, ec, ed, sr uint32) *ConntrackStat {
 	return &ConntrackStat{
 		Entries:       e,
 		Searched:      s,
@@ -273,7 +273,7 @@ func getIOCountersAll(n []IOCountersStat) []IOCountersStat {
 	return []IOCountersStat{r}
 }
 
-// NetIOCounters returns network I/O statistics for every network
+// IOCounters returns network I/O statistics for every network
 // interface installed on the system.  If pernic argument is false,
 // return only sum of all information (which name is 'all'). If true,
 // every network interface installed on the system is returned
@@ -296,7 +296,7 @@ func ProtoCounters(protocols []string) ([]ProtoCountersStat, error) {
 	return ProtoCountersWithContext(context.Background(), protocols)
 }
 
-// NetFilterCounters returns iptables conntrack statistics
+// FilterCounters returns iptables conntrack statistics
 // the currently in use conntrack count and the max.
 // If the file does not exist or is invalid it will return nil.
 func FilterCounters() ([]FilterStat, error) {
@@ -349,7 +349,7 @@ func ConnectionsPidMax(kind string, pid int32, maxConn int) ([]ConnectionStat, e
 
 // Pids retunres all pids.
 // Note: this is a copy of process_linux.Pids()
-// FIXME: Import process occures import cycle.
+// FIXME: Import process occurs import cycle.
 // move to common made other platform breaking. Need consider.
 func Pids() ([]int32, error) {
 	return PidsWithContext(context.Background())

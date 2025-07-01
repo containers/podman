@@ -358,7 +358,7 @@ func (p *Process) getKProc() (*KinfoProc, error) {
 	return &k, nil
 }
 
-func callKernProcSyscall(op int32, arg int32) ([]byte, uint64, error) {
+func callKernProcSyscall(op, arg int32) ([]byte, uint64, error) {
 	mib := []int32{CTLKern, KernProc, op, arg, sizeOfKinfoProc, 0}
 	mibptr := unsafe.Pointer(&mib[0])
 	miblen := uint64(len(mib))
