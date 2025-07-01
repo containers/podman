@@ -253,7 +253,7 @@ LDFLAGS="$LDFLAGS -X %{ld_libpod}/define.gitCommit=$GIT_COMMIT"
 # build rootlessport first
 %gobuild -o bin/rootlessport ./cmd/rootlessport
 
-export BASEBUILDTAGS="seccomp $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh) libsqlite3"
+export BASEBUILDTAGS="seccomp $(hack/systemd_tag.sh) $(hack/libsubid_tag.sh) libsqlite3 grpcnotrace"
 
 # libtrust_openssl buildtag switches to using the FIPS-compatible func
 # `ecdsa.HashSign`.
