@@ -140,8 +140,8 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	}
 
 	result := make([]InfoStat, 0, len(flags))
-	for _, proc := range procs {
-		procWithFlags := proc
+	for i := range procs {
+		procWithFlags := procs[i]
 		procWithFlags.Flags = flags
 		result = append(result, procWithFlags)
 	}
@@ -149,7 +149,7 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	return result, nil
 }
 
-var flagsMatch = regexp.MustCompile(`[\w\.]+`)
+var flagsMatch = regexp.MustCompile(`[\w.]+`)
 
 func parseISAInfo(cmdOutput string) ([]string, error) {
 	words := flagsMatch.FindAllString(cmdOutput, -1)

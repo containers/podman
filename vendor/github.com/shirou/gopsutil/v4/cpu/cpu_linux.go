@@ -135,7 +135,7 @@ func finishCPUInfo(ctx context.Context, c *InfoStat) {
 	var err error
 	var value float64
 
-	if len(c.CoreID) == 0 {
+	if c.CoreID == "" {
 		lines, err = common.ReadLines(sysCPUPath(ctx, c.CPU, "topology/core_id"))
 		if err == nil {
 			c.CoreID = lines[0]

@@ -67,7 +67,8 @@ func getTerminalMap() (map[uint64]string, error) {
 
 	for _, name := range termfiles {
 		stat := unix.Stat_t{}
-		if err = unix.Stat(name, &stat); err != nil {
+		err = unix.Stat(name, &stat)
+		if err != nil {
 			return nil, err
 		}
 		rdev := uint64(stat.Rdev)

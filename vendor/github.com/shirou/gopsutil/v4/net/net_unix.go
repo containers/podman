@@ -29,11 +29,7 @@ func ConnectionsPidWithContext(ctx context.Context, kind string, pid int32) ([]C
 	switch strings.ToLower(kind) {
 	default:
 		fallthrough
-	case "":
-		fallthrough
-	case "all":
-		fallthrough
-	case "inet":
+	case "", "all", "inet":
 		args = append(args, "tcp", "-i", "udp")
 	case "inet4":
 		args = append(args, "4")
@@ -135,7 +131,7 @@ func parseNetLine(line string) (ConnectionStat, error) {
 	return n, nil
 }
 
-func parseNetAddr(line string) (laddr Addr, raddr Addr, err error) {
+func parseNetAddr(line string) (laddr, raddr Addr, err error) {
 	parse := func(l string) (Addr, error) {
 		host, port, err := net.SplitHostPort(l)
 		if err != nil {

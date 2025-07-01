@@ -540,7 +540,7 @@ func PidsWithContext(ctx context.Context) ([]int32, error) {
 
 // Note: the following is based off process_linux structs and methods
 // we need these to fetch the owner of a process ID
-// FIXME: Import process occures import cycle.
+// FIXME: Import process occurs import cycle.
 // see remarks on pids()
 type process struct {
 	Pid  int32 `json:"pid"`
@@ -793,7 +793,7 @@ func processUnix(file string, kind netConnectionKindType, inodes map[string][]in
 	return ret, nil
 }
 
-func updateMap(src map[string][]inodeMap, add map[string][]inodeMap) map[string][]inodeMap {
+func updateMap(src, add map[string][]inodeMap) map[string][]inodeMap {
 	for key, value := range add {
 		a, exists := src[key]
 		if !exists {
