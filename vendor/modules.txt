@@ -324,7 +324,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.58.1-0.20250701152554-3aa733962202
+# github.com/containers/storage v1.58.1-0.20250701152554-3aa733962202 => github.com/Honny1/storage v1.54.1-0.20250710093354-f9aef8107905
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -341,6 +341,7 @@ github.com/containers/storage/drivers/zfs
 github.com/containers/storage/internal/dedup
 github.com/containers/storage/internal/rawfilelock
 github.com/containers/storage/internal/staging_lockfile
+github.com/containers/storage/internal/tempdir
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/chunked
@@ -1208,3 +1209,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/storage => github.com/Honny1/storage v1.54.1-0.20250710093354-f9aef8107905

@@ -11,6 +11,7 @@ import (
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/internal/dedup"
+	"github.com/containers/storage/internal/tempdir"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fileutils"
@@ -22,7 +23,10 @@ import (
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-const defaultPerms = os.FileMode(0o555)
+const (
+	defaultPerms = os.FileMode(0o555)
+	tempDirName  = "tempdirs"
+)
 
 func init() {
 	graphdriver.MustRegister("vfs", Init)
@@ -242,6 +246,42 @@ func (d *Driver) dir(id string) string {
 // Remove deletes the content from the directory for a given id.
 func (d *Driver) Remove(id string) error {
 	return system.EnsureRemoveAll(d.dir(id))
+}
+
+func (d *Driver) GetTempDirRootDirs() []string {
+	tempDirs := []string{filepath.Join(d.home, tempDirName)}
+	// Include imageStore temp directory if it's configured
+	// Writable layers can only be in d.home or d.imageStore, not in additionalHomes (which are read-only)
+	if d.imageStore != "" {
+		tempDirs = append(tempDirs, filepath.Join(d.imageStore, d.String(), tempDirName))
+	}
+	return tempDirs
+}
+
+// Determine the correct temp directory root based on where the layer actually exists.
+func (d *Driver) getTempDirRoot(id string) string {
+	layerDir := d.dir(id)
+	if d.imageStore != "" {
+		expectedLayerDir := filepath.Join(d.imageStore, d.String(), "dir", filepath.Base(id))
+		if layerDir == expectedLayerDir {
+			return filepath.Join(d.imageStore, d.String(), tempDirName)
+		}
+	}
+	return filepath.Join(d.home, tempDirName)
+}
+
+func (d *Driver) DeferredRemove(id string) (tempdir.CleanupTempDirFunc, error) {
+	tempDirRoot := d.getTempDirRoot(id)
+	t, err := tempdir.NewTempDir(tempDirRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	layerDir := d.dir(id)
+	if err := t.StageDeletion(layerDir); err != nil {
+		return t.Cleanup, err
+	}
+	return t.Cleanup, nil
 }
 
 // Get returns the directory for the given id.
