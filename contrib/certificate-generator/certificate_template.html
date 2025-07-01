@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podman Certificate of Contribution</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap');
+        
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Merriweather', serif;
+            background: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .certificate {
+            width: 800px;
+            height: 1100px;
+            background: #fdfaf0;
+            border: 2px solid #333;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 50px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .party-popper {
+            position: absolute;
+            font-size: 40px;
+        }
+        
+        .top-left {
+            top: 40px;
+            left: 40px;
+        }
+        
+        .top-right {
+            top: 40px;
+            right: 40px;
+        }
+        
+        .main-title {
+            font-size: 48px;
+            font-weight: 900;
+            color: #333;
+            text-align: center;
+            margin-top: 60px;
+            line-height: 1.2;
+            text-transform: uppercase;
+        }
+        
+        .subtitle {
+            font-size: 24px;
+            font-weight: 400;
+            color: #333;
+            text-align: center;
+            margin-top: 30px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .contributor-name {
+            font-size: 56px;
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            margin: 15px 0 50px;
+        }
+        
+        .mascot-image {
+            width: 450px;
+            height: 450px;
+            background-image: url('1stpr.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            margin-top: 20px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        
+        .description {
+            font-size: 22px;
+            color: #333;
+            line-height: 1.6;
+            text-align: center;
+            margin-top: 40px;
+        }
+        
+        .description strong {
+            font-weight: 700;
+        }
+        
+        .footer {
+            width: 100%;
+            margin-top: auto;
+            padding-top: 30px;
+            border-top: 1px solid #ccc;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 16px;
+            color: #333;
+        }
+        
+        .pr-info {
+            text-align: left;
+        }
+        
+        .signature {
+            text-align: right;
+            font-style: italic;
+        }
+
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 0;
+            }
+            body, html {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                background: #fdfaf0;
+            }
+            .certificate {
+                width: 100%;
+                height: 100vh;
+                box-shadow: none;
+                transform: scale(1);
+                border-radius: 0;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="certificate">
+        <div class="party-popper top-left">🎉</div>
+        <div class="party-popper top-right">🎉</div>
+        
+        <div class="main-title">Certificate of<br>Contribution</div>
+        <div class="subtitle">Awarded To</div>
+        
+        <div class="contributor-name">[CONTRIBUTOR_NAME]</div>
+        
+        <div class="mascot-image"></div>
+        
+        <div class="description">
+            For successfully submitting and merging their <strong>First Pull Request</strong> to the <strong>Podman project</strong>.<br>
+            Your contribution helps make open source better—one PR at a time!
+        </div>
+        
+        <div class="footer">
+            <div class="pr-info">
+                <div>🔧 Merged PR: [PR_LINK]</div>
+                <div style="margin-top: 5px;">[DATE]</div>
+            </div>
+            <div class="signature">
+                Keep hacking, keep contributing!<br>
+                – The Podman Community
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

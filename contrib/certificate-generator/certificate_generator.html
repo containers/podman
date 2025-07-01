@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podman Certificate Generator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 2rem;
+            max-width: 1600px;
+            margin: auto;
+        }
+        .form-panel {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+        }
+        .form-panel h2 {
+            margin-top: 0;
+            color: #333;
+            font-family: 'Merriweather', serif;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 1rem;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        .action-buttons button {
+            flex-grow: 1;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #downloadBtn {
+            background-color: #28a745;
+            color: white;
+        }
+        #downloadBtn:hover {
+            background-color: #218838;
+        }
+        .preview-panel {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Certificate Styles (copied from template and scaled) */
+        .certificate {
+            width: 800px;
+            height: 1100px;
+            background: #fdfaf0;
+            border: 2px solid #333;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            padding: 50px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: 'Merriweather', serif;
+            transform: scale(0.8);
+            transform-origin: top center;
+        }
+        .party-popper { position: absolute; font-size: 40px; }
+        .top-left { top: 40px; left: 40px; }
+        .top-right { top: 40px; right: 40px; }
+        .main-title { font-size: 48px; font-weight: 900; color: #333; text-align: center; margin-top: 60px; line-height: 1.2; text-transform: uppercase; }
+        .subtitle { font-size: 24px; font-weight: 400; color: #333; text-align: center; margin-top: 30px; text-transform: uppercase; letter-spacing: 2px; }
+        .contributor-name { font-size: 56px; font-weight: 700; color: #333; text-align: center; margin: 15px 0 50px; }
+        .mascot-image { width: 450px; height: 450px; background-image: url('1stpr.png'); background-size: contain; background-repeat: no-repeat; background-position: center; margin-top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .description { font-size: 22px; color: #333; line-height: 1.6; text-align: center; margin-top: 40px; }
+        .description strong { font-weight: 700; }
+        .footer { width: 100%; margin-top: auto; padding-top: 30px; border-top: 1px solid #ccc; display: flex; justify-content: space-between; align-items: flex-end; font-size: 16px; color: #333; }
+        .pr-info { text-align: left; }
+        .signature { text-align: right; font-style: italic; }
+
+        @media print {
+            body {
+                background: #fff;
+                margin: 0;
+                padding: 0;
+            }
+            .form-panel, .action-buttons {
+                display: none;
+            }
+            .container {
+                display: block;
+                margin: 0;
+                padding: 0;
+            }
+            .preview-panel {
+                padding: 0;
+                margin: 0;
+            }
+            .certificate {
+                transform: scale(1);
+                box-shadow: none;
+                width: 100%;
+                height: 100vh;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="form-panel">
+            <h2>Certificate Generator</h2>
+            <div class="form-group">
+                <label for="contributorName">Contributor Name</label>
+                <input type="text" id="contributorName" value="Mike McGrath">
+            </div>
+            <div class="form-group">
+                <label for="prNumber">PR Number</label>
+                <input type="text" id="prNumber" value="26393">
+            </div>
+            <div class="form-group">
+                <label for="mergeDate">Date</label>
+                <input type="text" id="mergeDate" value="June 13, 2025">
+            </div>
+            <div class="action-buttons">
+                <button id="downloadBtn">Download HTML</button>
+            </div>
+        </div>
+        <div class="preview-panel">
+            <div id="certificatePreview">
+                <!-- Certificate HTML will be injected here by script -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const nameInput = document.getElementById('contributorName');
+        const prNumberInput = document.getElementById('prNumber');
+        const dateInput = document.getElementById('mergeDate');
+        const preview = document.getElementById('certificatePreview');
+
+        function generateCertificateHTML(name, prNumber, date) {
+            const prLink = `https://github.com/containers/pull/${prNumber}`;
+            // This is the full, self-contained HTML for the certificate
+            return `
+                <div class="certificate">
+                    <div class="party-popper top-left">🎉</div>
+                    <div class="party-popper top-right">🎉</div>
+                    <div class="main-title">Certificate of<br>Contribution</div>
+                    <div class="subtitle">Awarded To</div>
+                    <div class="contributor-name">${name}</div>
+                    <div class="mascot-image"></div>
+                    <div class="description">
+                        For successfully submitting and merging their <strong>First Pull Request</strong> to the <strong>Podman project</strong>.<br>
+                        Your contribution helps make open source better—one PR at a time!
+                    </div>
+                    <div class="footer">
+                        <div class="pr-info">
+                            <div>🔧 Merged PR: <a href="${prLink}" target="_blank">${prLink}</a></div>
+                            <div style="margin-top: 5px;">${date}</div>
+                        </div>
+                        <div class="signature">
+                            Keep hacking, keep contributing!<br>
+                            – The Podman Community
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updatePreview() {
+            const name = nameInput.value || '[CONTRIBUTOR_NAME]';
+            const prNumber = prNumberInput.value || '[PR_NUMBER]';
+            const date = dateInput.value || '[DATE]';
+            preview.innerHTML = generateCertificateHTML(name, prNumber, date);
+        }
+
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const name = nameInput.value || 'contributor';
+            const prNumber = prNumberInput.value || '00000';
+            const date = dateInput.value || 'Date';
+            
+            const certificateHTML = generateCertificateHTML(name, prNumber, date);
+            const fullPageHTML = `
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Certificate for ${name}</title>
+                    <style>
+                        /* All the CSS from the generator page */
+                        @import url('https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700;900&display=swap');
+                        body { margin: 20px; font-family: 'Merriweather', serif; background: #e0e0e0; }
+                        .certificate { 
+                            transform: scale(1); 
+                            box-shadow: none; 
+                            margin: auto;
+                        }
+                        /* Paste all certificate-related styles here */
+                        .certificate { width: 800px; height: 1100px; background: #fdfaf0; border: 2px solid #333; position: relative; padding: 50px; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
+                        .party-popper { position: absolute; font-size: 40px; }
+                        .top-left { top: 40px; left: 40px; }
+                        .top-right { top: 40px; right: 40px; }
+                        .main-title { font-size: 48px; font-weight: 900; color: #333; text-align: center; margin-top: 60px; line-height: 1.2; text-transform: uppercase; }
+                        .subtitle { font-size: 24px; font-weight: 400; color: #333; text-align: center; margin-top: 30px; text-transform: uppercase; letter-spacing: 2px; }
+                        .contributor-name { font-size: 56px; font-weight: 700; color: #333; text-align: center; margin: 15px 0 50px; }
+                        .mascot-image { width: 450px; height: 450px; background-image: url('1stpr.png'); background-size: contain; background-repeat: no-repeat; background-position: center; margin-top: 20px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        .description { font-size: 22px; color: #333; line-height: 1.6; text-align: center; margin-top: 40px; }
+                        .description strong { font-weight: 700; }
+                        .footer { width: 100%; margin-top: auto; padding-top: 30px; border-top: 1px solid #ccc; display: flex; justify-content: space-between; align-items: flex-end; font-size: 16px; color: #333; }
+                        .pr-info { text-align: left; }
+                        .signature { text-align: right; font-style: italic; }
+
+                        @media print {
+                            @page { size: A4 portrait; margin: 0; }
+                            body, html { width: 100%; height: 100%; margin: 0; padding: 0; }
+                            .certificate { width: 100%; height: 100%; box-shadow: none; transform: scale(1); }
+                        }
+                    </style>
+                </head>
+                <body>${certificateHTML}</body>
+                </html>
+            `;
+            
+            const blob = new Blob([fullPageHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `podman-contribution-certificate-${name.toLowerCase().replace(/\s+/g, '-')}.html`;
+            document.body.appendChild(a);
+a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        });
+
+        // Add event listeners to update preview on input change
+        [nameInput, prNumberInput, dateInput].forEach(input => {
+            input.addEventListener('input', updatePreview);
+        });
+
+        // Initial preview generation
+        updatePreview();
+    </script>
+</body>
+</html> 
