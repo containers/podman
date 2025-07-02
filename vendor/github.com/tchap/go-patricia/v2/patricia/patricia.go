@@ -465,7 +465,7 @@ func (trie *Trie) compact() *Trie {
 	// If any item is set, we cannot compact since we want to retain
 	// the ability to do searching by key. This makes compaction less usable,
 	// but that simply cannot be avoided.
-	if trie.item != nil || child.item != nil {
+	if child == nil || trie.item != nil || child.item != nil {
 		return trie
 	}
 

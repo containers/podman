@@ -81,6 +81,8 @@ type RekorHashedrekordV001SchemaDataHash struct {
 
 const (
 	RekorHashedrekordV001SchemaDataHashAlgorithmSha256 string = "sha256"
+	RekorHashedrekordV001SchemaDataHashAlgorithmSha384 string = "sha384"
+	RekorHashedrekordV001SchemaDataHashAlgorithmSha512 string = "sha512"
 )
 
 type RekorHashedrekordV001SchemaSignature struct {
