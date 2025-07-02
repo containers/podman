@@ -669,6 +669,14 @@ func (c *Container) LogTag() string {
 	return c.config.LogTag
 }
 
+// LogSizeMax returns the maximum size of the container's log file.
+func (c *Container) LogSizeMax() int64 {
+	if c.config.LogSize > 0 {
+		return c.config.LogSize
+	}
+	return c.runtime.config.Containers.LogSizeMax
+}
+
 // RestartPolicy returns the container's restart policy.
 func (c *Container) RestartPolicy() string {
 	return c.config.RestartPolicy

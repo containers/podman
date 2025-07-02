@@ -1804,4 +1804,27 @@ RUN umount /etc/hostname; rm /etc/hostname
     run_podman rmi $randomname
 }
 
+@test "podman run --log-opt size= and containers.conf log_size_max" {
+    skip_if_remote "remote does not support CONTAINERS_CONF"
+
+    containersconf=$PODMAN_TMPDIR/containers.conf
+    cat >$containersconf <<EOF
+[containers]
+log_driver = "k8s-file"
+log_size_max = 400000000
+EOF
+
+    c1name=c1_$(safename)
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --name $c1name $IMAGE ls /
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman inspect --format '{{ .HostConfig.LogConfig.Size }}' $c1name
+    is "$output" "400MB"
+
+    c2name=c2_$(safename)
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman create --name $c2name --log-opt max-size=8000 $IMAGE ls /
+    CONTAINERS_CONF_OVERRIDE="$containersconf" run_podman inspect --format '{{ .HostConfig.LogConfig.Size }}' $c2name
+    is "$output" "8kB"
+
+    run_podman rm -f $c1name $c2name
+}
+
 # vim: filetype=sh
