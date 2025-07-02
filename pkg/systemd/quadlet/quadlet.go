@@ -186,6 +186,9 @@ const (
 	KeyYaml                  = "Yaml"
 )
 
+// Unsupported keys in the Service group. Defined here so we can error when they are found
+var UnsupportedServiceKeys = [...]string{"User", "Group", "DynamicUser"}
+
 type UnitInfo struct {
 	// The name of the generated systemd service unit
 	ServiceName string
@@ -2243,6 +2246,14 @@ func initServiceUnitFile(quadletUnitFile *parser.UnitFile, isUser bool, unitsInf
 
 	if err := checkForUnknownKeys(quadletUnitFile, group, groupsInfo[group].SupportedKeys); err != nil {
 		return nil, nil, err
+	}
+
+	// These Service keys cannot be used in a Quadlet unit
+	for _, key := range UnsupportedServiceKeys {
+		_, hasKey := quadletUnitFile.Lookup(ServiceGroup, key)
+		if hasKey {
+			return nil, nil, fmt.Errorf("using key %s in the Service group is not supported", key)
+		}
 	}
 
 	service := quadletUnitFile.Dup()
