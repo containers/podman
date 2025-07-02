@@ -14,6 +14,7 @@ import (
 
 	"github.com/containers/image/v5/signature/internal"
 	signerInternal "github.com/containers/image/v5/signature/sigstore/internal"
+	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/go-retryablehttp"
 	"github.com/sirupsen/logrus"
 )
@@ -44,6 +45,7 @@ type rekorClient struct {
 // newRekorClient creates a rekorClient for rekorURL.
 func newRekorClient(rekorURL *url.URL) *rekorClient {
 	retryableClient := retryablehttp.NewClient()
+	retryableClient.HTTPClient = cleanhttp.DefaultClient()
 	retryableClient.RetryMax = defaultRetryCount
 	retryableClient.Logger = leveledLoggerForLogrus(logrus.StandardLogger())
 	basePath := rekorURL.Path
@@ -127,7 +129,7 @@ func stringPointer(s string) *string {
 // uploadKeyOrCert integrates this code into sigstore/internal.Signer.
 // Given components of the created signature, it returns a SET that should be added to the signature.
 func (r *rekorClient) uploadKeyOrCert(ctx context.Context, keyOrCertBytes []byte, signatureBytes []byte, payloadBytes []byte) ([]byte, error) {
-	payloadHash := sha256.Sum256(payloadBytes) // HashedRecord only accepts SHA-256
+	payloadHash := sha256.Sum256(payloadBytes) // Consistent with cosign.
 	hashedRekordSpec, err := json.Marshal(internal.RekorHashedrekordV001Schema{
 		Data: &internal.RekorHashedrekordV001SchemaData{
 			Hash: &internal.RekorHashedrekordV001SchemaDataHash{
