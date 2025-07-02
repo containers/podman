@@ -674,7 +674,7 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		pFlags.StringArrayVar(&podmanConfig.RuntimeFlags, runtimeflagFlagName, []string{}, "add global flags for the container runtime")
 		_ = rootCmd.RegisterFlagCompletionFunc(runtimeflagFlagName, completion.AutocompleteNone)
 
-		pFlags.BoolVar(&podmanConfig.Syslog, "syslog", false, "Output logging information to syslog as well as the console (default false)")
+		pFlags.BoolVar(&podmanConfig.Syslog, "syslog", false, "Output podman-internal logs to syslog as well as the console (default false)")
 	}
 }
 
