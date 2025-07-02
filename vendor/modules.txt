@@ -141,7 +141,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.63.2-0.20250627125909-bed7a8b142a3
+# github.com/containers/common v0.63.2-0.20250701090630-c156ac84320e
 ## explicit; go 1.23.3
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -214,7 +214,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.6
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.35.1-0.20250627132650-84bfe041dbcc
+# github.com/containers/image/v5 v5.35.1-0.20250701145651-e3533743f666
 ## explicit; go 1.23.3
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -324,7 +324,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.58.1-0.20250625164029-83650abfa8de
+# github.com/containers/storage v1.58.1-0.20250701152554-3aa733962202
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -883,7 +883,7 @@ github.com/stretchr/testify/require
 # github.com/sylabs/sif/v2 v2.21.1
 ## explicit; go 1.23.0
 github.com/sylabs/sif/v2/pkg/sif
-# github.com/tchap/go-patricia/v2 v2.3.2
+# github.com/tchap/go-patricia/v2 v2.3.3
 ## explicit; go 1.16
 github.com/tchap/go-patricia/v2/patricia
 # github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
