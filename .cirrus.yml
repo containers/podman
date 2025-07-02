@@ -856,6 +856,8 @@ podman_machine_windows_task:
         Get-Volume
     main_script: ".\\repo\\contrib\\cirrus\\win-podman-machine-main.ps1"
     always:
+        wsl_logs_artifacts:
+            path: ./*.zip
         # Required for `contrib/cirrus/logformatter` to work properly
         html_artifacts:
             path: ./*.html
