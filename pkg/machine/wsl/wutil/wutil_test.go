@@ -144,3 +144,9 @@ func TestMatchOutputLine(t *testing.T) {
 		})
 	}
 }
+
+func TestNewWSLCommand(t *testing.T) {
+	cmd := NewWSLCommand("--status")
+	assert.Contains(t, cmd.Path, "wsl")
+	assert.Equal(t, []string{"--status"}, cmd.Args[1:])
+}

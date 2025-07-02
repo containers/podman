@@ -29,8 +29,13 @@ type wslStatus struct {
 	wslFeatureEnabled bool
 }
 
+func NewWSLCommand(arg ...string) *exec.Cmd {
+	cmd := exec.Command("wsl", arg...)
+	return cmd
+}
+
 func SilentExec(command string, args ...string) error {
-	cmd := exec.Command(command, args...)
+	cmd := NewWSLCommand(args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
 	cmd.Stdout = nil
 	cmd.Stderr = nil
@@ -40,8 +45,8 @@ func SilentExec(command string, args ...string) error {
 	return nil
 }
 
-func SilentExecCmd(command string, args ...string) *exec.Cmd {
-	cmd := exec.Command(command, args...)
+func SilentExecCmd(args ...string) *exec.Cmd {
+	cmd := NewWSLCommand(args...)
 	cmd.SysProcAttr = &syscall.SysProcAttr{CreationFlags: 0x08000000}
 	return cmd
 }
@@ -53,7 +58,7 @@ func parseWSLStatus() wslStatus {
 			vmpFeatureEnabled: false,
 			wslFeatureEnabled: false,
 		}
-		cmd := SilentExecCmd("wsl", "--status")
+		cmd := SilentExecCmd("--status")
 		out, err := cmd.StdoutPipe()
 		cmd.Stderr = nil
 		if err != nil {
@@ -79,7 +84,7 @@ func IsWSLInstalled() bool {
 }
 
 func IsWSLStoreVersionInstalled() bool {
-	cmd := SilentExecCmd("wsl", "--version")
+	cmd := SilentExecCmd("--version")
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 	if err := cmd.Run(); err != nil {
