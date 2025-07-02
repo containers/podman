@@ -24,8 +24,6 @@ import (
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
 )
 
 var (
@@ -103,12 +101,7 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 	cmdOutput := &bytes.Buffer{}
 	cmd := wutil.NewWSLCommand("--import", dist, distTarget, imagePath, "--version", "2")
 	err = runCmdPassThroughTee(cmdOutput, cmd)
-	decoder := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()
-	decoded, _, decodeErr := transform.Bytes(decoder, cmdOutput.Bytes())
-	if decodeErr != nil {
-		return "", fmt.Errorf("failed to decode WSL output: %w", decodeErr)
-	}
-	decodedStr := strings.ToLower(string(decoded))
+	decodedStr := strings.ToLower(cmdOutput.String())
 	for _, substr := range []string{"hcs/error_not_supported", "hcs/hcs_e_service_not_available"} {
 		if strings.Contains(decodedStr, substr) {
 			return "", ErrWslNotSupported
@@ -584,7 +577,7 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 	}
 
 	all := make(map[string]struct{})
-	scanner := bufio.NewScanner(transform.NewReader(out, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
+	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) > 0 {

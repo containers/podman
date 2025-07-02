@@ -6,13 +6,11 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"syscall"
-
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
 )
 
 var (
@@ -31,6 +29,7 @@ type wslStatus struct {
 
 func NewWSLCommand(arg ...string) *exec.Cmd {
 	cmd := exec.Command("wsl", arg...)
+	cmd.Env = append(os.Environ(), "WSL_UTF8=1")
 	return cmd
 }
 
@@ -100,7 +99,7 @@ func matchOutputLine(output io.ReadCloser) wslStatus {
 		vmpFeatureEnabled: true,
 		wslFeatureEnabled: true,
 	}
-	scanner := bufio.NewScanner(transform.NewReader(output, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
+	scanner := bufio.NewScanner(output)
 	for scanner.Scan() {
 		line := scanner.Text()
 		for _, match := range wslNotInstalledMessages {
