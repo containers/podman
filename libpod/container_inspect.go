@@ -498,7 +498,7 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	logConfig := new(define.InspectLogConfig)
 	logConfig.Type = c.config.LogDriver
 	logConfig.Path = c.config.LogPath
-	logConfig.Size = units.HumanSize(float64(c.config.LogSize))
+	logConfig.Size = units.HumanSize(float64(c.LogSizeMax()))
 	logConfig.Tag = c.config.LogTag
 
 	hostConfig.LogConfig = logConfig

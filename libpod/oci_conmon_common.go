@@ -1342,10 +1342,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	logrus.Debugf("%s messages will be logged to syslog", r.conmonPath)
 	args = append(args, "--syslog")
 
-	size := r.logSizeMax
-	if ctr.config.LogSize > 0 {
-		size = ctr.config.LogSize
-	}
+	size := ctr.LogSizeMax()
 	if size > 0 {
 		args = append(args, "--log-size-max", strconv.FormatInt(size, 10))
 	}
