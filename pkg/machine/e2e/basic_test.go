@@ -250,7 +250,6 @@ var _ = Describe("run basic podman commands", func() {
 
 	It("podman build contexts", func() {
 		skipIfVmtype(define.HyperVVirt, "FIXME: #23429 - Error running podman build with option --build-context on Hyper-V")
-		skipIfVmtype(define.QemuVirt, "FIXME: #23433 - Additional build contexts should be sent as additional tar files")
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
@@ -273,6 +272,15 @@ var _ = Describe("run basic podman commands", func() {
 
 		bm := basicMachine{}
 		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", "-t", name, "--build-context", "test-context=" + additionalContextDir, mainContextDir})).run()
+
+		if build != nil && build.ExitCode() != 0 {
+			output := build.outputToString() + build.errorToString()
+			if strings.Contains(output, "multipart/form-data") &&
+				strings.Contains(output, "not supported") {
+				Skip("Build contexts with multipart/form-data are not supported on this version")
+			}
+		}
+
 		Expect(err).ToNot(HaveOccurred())
 		Expect(build).To(Exit(0))
 		Expect(build.outputToString()).To(ContainSubstring("COMMIT"))
