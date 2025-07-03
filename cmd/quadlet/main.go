@@ -574,6 +574,20 @@ func warnIfAmbiguousName(unit *parser.UnitFile, group string) {
 	}
 }
 
+// Warns if the unit has any properties defined in the Service group that are known to cause issues.
+// We want to warn instead of erroring to avoid breaking any existing users' units,
+// or to allow users to use these properties if they know what they are doing.
+// We implement this here instead of in quadlet.initServiceUnitFile to avoid
+// having to refactor a large amount of code in the generator just for a warning.
+func warnIfUnsupportedServiceKeys(unit *parser.UnitFile) {
+	for _, key := range quadlet.UnsupportedServiceKeys {
+		_, hasKey := unit.Lookup(quadlet.ServiceGroup, key)
+		if hasKey {
+			Logf("Warning: using key %s in the Service group is not supported - use at your own risk", key)
+		}
+	}
+}
+
 func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo {
 	unitsInfoMap := make(map[string]*quadlet.UnitInfo)
 	for _, unit := range units {
@@ -721,6 +735,8 @@ func process() bool {
 	for _, unit := range units {
 		var service *parser.UnitFile
 		var warnings, err error
+
+		warnIfUnsupportedServiceKeys(unit)
 
 		switch {
 		case strings.HasSuffix(unit.Filename, ".container"):

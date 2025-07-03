@@ -2248,14 +2248,6 @@ func initServiceUnitFile(quadletUnitFile *parser.UnitFile, isUser bool, unitsInf
 		return nil, nil, err
 	}
 
-	// These Service keys cannot be used in a Quadlet unit
-	for _, key := range UnsupportedServiceKeys {
-		_, hasKey := quadletUnitFile.Lookup(ServiceGroup, key)
-		if hasKey {
-			return nil, nil, fmt.Errorf("using key %s in the Service group is not supported", key)
-		}
-	}
-
 	service := quadletUnitFile.Dup()
 	service.Filename = unitInfo.ServiceFileName()
 

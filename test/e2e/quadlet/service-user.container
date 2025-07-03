@@ -1,6 +1,6 @@
-## assert-failed
 ## assert-stderr-contains "using key User in the Service group is not supported"
 [Container]
+Image=localhost/imagename
 # This is fine
 User=1000
 
