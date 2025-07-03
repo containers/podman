@@ -4,10 +4,13 @@ package compat
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,6 +33,7 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -45,12 +49,19 @@ func genSpaceErr(err error) error {
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
-		contentType := hdr[0]
-		switch contentType {
-		case "application/tar":
+		contentType, _, err := mime.ParseMediaType(hdr[0])
+		if err != nil {
+			logrus.Warnf("Failed to parse content type %q: %v", hdr[0], err)
+			contentType = hdr[0]
+		}
+
+		switch {
+		case strings.HasPrefix(contentType, "application/tar"):
 			logrus.Infof("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
-		case "application/x-tar":
+		case strings.HasPrefix(contentType, "application/x-tar"):
 			break
+		case strings.HasPrefix(contentType, "multipart/form-data"):
+			logrus.Infof("Received %s", contentType)
 		default:
 			if utils.IsLibpodRequest(r) {
 				utils.BadRequest(w, "Content-Type", hdr[0],
@@ -81,7 +92,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	contextDirectory, err := extractTarFile(anchorDir, r)
+	contextDirectory, additionalBuildContexts, err := handleBuildContexts(anchorDir, r)
 	if err != nil {
 		utils.InternalServerError(w, genSpaceErr(err))
 		return
@@ -95,83 +106,82 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := struct {
-		AddHosts                string             `schema:"extrahosts"`
-		AdditionalCapabilities  string             `schema:"addcaps"`
-		AdditionalBuildContexts string             `schema:"additionalbuildcontexts"`
-		AllPlatforms            bool               `schema:"allplatforms"`
-		Annotations             string             `schema:"annotations"`
-		AppArmor                string             `schema:"apparmor"`
-		BuildArgs               string             `schema:"buildargs"`
-		CacheFrom               string             `schema:"cachefrom"`
-		CacheTo                 string             `schema:"cacheto"`
-		CacheTTL                string             `schema:"cachettl"`
-		CgroupParent            string             `schema:"cgroupparent"`
-		CompatVolumes           bool               `schema:"compatvolumes"`
-		Compression             uint64             `schema:"compression"`
-		ConfigureNetwork        string             `schema:"networkmode"`
-		CPPFlags                string             `schema:"cppflags"`
-		CpuPeriod               uint64             `schema:"cpuperiod"`
-		CpuQuota                int64              `schema:"cpuquota"`
-		CpuSetCpus              string             `schema:"cpusetcpus"`
-		CpuSetMems              string             `schema:"cpusetmems"`
-		CpuShares               uint64             `schema:"cpushares"`
-		DNSOptions              string             `schema:"dnsoptions"`
-		DNSSearch               string             `schema:"dnssearch"`
-		DNSServers              string             `schema:"dnsservers"`
-		Devices                 string             `schema:"devices"`
-		Dockerfile              string             `schema:"dockerfile"`
-		DropCapabilities        string             `schema:"dropcaps"`
-		Envs                    []string           `schema:"setenv"`
-		Excludes                string             `schema:"excludes"`
-		ForceRm                 bool               `schema:"forcerm"`
-		From                    string             `schema:"from"`
-		GroupAdd                []string           `schema:"groupadd"`
-		HTTPProxy               bool               `schema:"httpproxy"`
-		IDMappingOptions        string             `schema:"idmappingoptions"`
-		IdentityLabel           bool               `schema:"identitylabel"`
-		Ignore                  bool               `schema:"ignore"`
-		InheritLabels           types.OptionalBool `schema:"inheritlabels"`
-		Isolation               string             `schema:"isolation"`
-		Jobs                    int                `schema:"jobs"`
-		LabelOpts               string             `schema:"labelopts"`
-		Labels                  string             `schema:"labels"`
-		LayerLabels             []string           `schema:"layerLabel"`
-		Layers                  bool               `schema:"layers"`
-		LogRusage               bool               `schema:"rusage"`
-		Manifest                string             `schema:"manifest"`
-		MemSwap                 int64              `schema:"memswap"`
-		Memory                  int64              `schema:"memory"`
-		NamespaceOptions        string             `schema:"nsoptions"`
-		NoCache                 bool               `schema:"nocache"`
-		NoHosts                 bool               `schema:"nohosts"`
-		OmitHistory             bool               `schema:"omithistory"`
-		OSFeatures              []string           `schema:"osfeature"`
-		OSVersion               string             `schema:"osversion"`
-		OutputFormat            string             `schema:"outputformat"`
-		Platform                []string           `schema:"platform"`
-		Pull                    bool               `schema:"pull"`
-		PullPolicy              string             `schema:"pullpolicy"`
-		Quiet                   bool               `schema:"q"`
-		Registry                string             `schema:"registry"`
-		Rm                      bool               `schema:"rm"`
-		RusageLogFile           string             `schema:"rusagelogfile"`
-		Remote                  string             `schema:"remote"`
-		Retry                   int                `schema:"retry"`
-		RetryDelay              string             `schema:"retry-delay"`
-		Seccomp                 string             `schema:"seccomp"`
-		Secrets                 string             `schema:"secrets"`
-		SecurityOpt             string             `schema:"securityopt"`
-		ShmSize                 int                `schema:"shmsize"`
-		SkipUnusedStages        bool               `schema:"skipunusedstages"`
-		Squash                  bool               `schema:"squash"`
-		TLSVerify               bool               `schema:"tlsVerify"`
-		Tags                    []string           `schema:"t"`
-		Target                  string             `schema:"target"`
-		Timestamp               int64              `schema:"timestamp"`
-		Ulimits                 string             `schema:"ulimits"`
-		UnsetEnvs               []string           `schema:"unsetenv"`
-		UnsetLabels             []string           `schema:"unsetlabel"`
-		Volumes                 []string           `schema:"volume"`
+		AddHosts               string             `schema:"extrahosts"`
+		AdditionalCapabilities string             `schema:"addcaps"`
+		AllPlatforms           bool               `schema:"allplatforms"`
+		Annotations            string             `schema:"annotations"`
+		AppArmor               string             `schema:"apparmor"`
+		BuildArgs              string             `schema:"buildargs"`
+		CacheFrom              string             `schema:"cachefrom"`
+		CacheTo                string             `schema:"cacheto"`
+		CacheTTL               string             `schema:"cachettl"`
+		CgroupParent           string             `schema:"cgroupparent"`
+		CompatVolumes          bool               `schema:"compatvolumes"`
+		Compression            uint64             `schema:"compression"`
+		ConfigureNetwork       string             `schema:"networkmode"`
+		CPPFlags               string             `schema:"cppflags"`
+		CpuPeriod              uint64             `schema:"cpuperiod"`
+		CpuQuota               int64              `schema:"cpuquota"`
+		CpuSetCpus             string             `schema:"cpusetcpus"`
+		CpuSetMems             string             `schema:"cpusetmems"`
+		CpuShares              uint64             `schema:"cpushares"`
+		DNSOptions             string             `schema:"dnsoptions"`
+		DNSSearch              string             `schema:"dnssearch"`
+		DNSServers             string             `schema:"dnsservers"`
+		Devices                string             `schema:"devices"`
+		Dockerfile             string             `schema:"dockerfile"`
+		DropCapabilities       string             `schema:"dropcaps"`
+		Envs                   []string           `schema:"setenv"`
+		Excludes               string             `schema:"excludes"`
+		ForceRm                bool               `schema:"forcerm"`
+		From                   string             `schema:"from"`
+		GroupAdd               []string           `schema:"groupadd"`
+		HTTPProxy              bool               `schema:"httpproxy"`
+		IDMappingOptions       string             `schema:"idmappingoptions"`
+		IdentityLabel          bool               `schema:"identitylabel"`
+		Ignore                 bool               `schema:"ignore"`
+		InheritLabels          types.OptionalBool `schema:"inheritlabels"`
+		Isolation              string             `schema:"isolation"`
+		Jobs                   int                `schema:"jobs"`
+		LabelOpts              string             `schema:"labelopts"`
+		Labels                 string             `schema:"labels"`
+		LayerLabels            []string           `schema:"layerLabel"`
+		Layers                 bool               `schema:"layers"`
+		LogRusage              bool               `schema:"rusage"`
+		Manifest               string             `schema:"manifest"`
+		MemSwap                int64              `schema:"memswap"`
+		Memory                 int64              `schema:"memory"`
+		NamespaceOptions       string             `schema:"nsoptions"`
+		NoCache                bool               `schema:"nocache"`
+		NoHosts                bool               `schema:"nohosts"`
+		OmitHistory            bool               `schema:"omithistory"`
+		OSFeatures             []string           `schema:"osfeature"`
+		OSVersion              string             `schema:"osversion"`
+		OutputFormat           string             `schema:"outputformat"`
+		Platform               []string           `schema:"platform"`
+		Pull                   bool               `schema:"pull"`
+		PullPolicy             string             `schema:"pullpolicy"`
+		Quiet                  bool               `schema:"q"`
+		Registry               string             `schema:"registry"`
+		Rm                     bool               `schema:"rm"`
+		RusageLogFile          string             `schema:"rusagelogfile"`
+		Remote                 string             `schema:"remote"`
+		Retry                  int                `schema:"retry"`
+		RetryDelay             string             `schema:"retry-delay"`
+		Seccomp                string             `schema:"seccomp"`
+		Secrets                string             `schema:"secrets"`
+		SecurityOpt            string             `schema:"securityopt"`
+		ShmSize                int                `schema:"shmsize"`
+		SkipUnusedStages       bool               `schema:"skipunusedstages"`
+		Squash                 bool               `schema:"squash"`
+		TLSVerify              bool               `schema:"tlsVerify"`
+		Tags                   []string           `schema:"t"`
+		Target                 string             `schema:"target"`
+		Timestamp              int64              `schema:"timestamp"`
+		Ulimits                string             `schema:"ulimits"`
+		UnsetEnvs              []string           `schema:"unsetenv"`
+		UnsetLabels            []string           `schema:"unsetlabel"`
+		Volumes                []string           `schema:"volume"`
 	}{
 		Dockerfile:       "Dockerfile",
 		IdentityLabel:    true,
@@ -440,11 +450,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		additionalTags = append(additionalTags, possiblyNormalizedTag)
 	}
 
-	var additionalBuildContexts = map[string]*buildahDefine.AdditionalBuildContext{}
-	if _, found := r.URL.Query()["additionalbuildcontexts"]; found {
-		if err := json.Unmarshal([]byte(query.AdditionalBuildContexts), &additionalBuildContexts); err != nil {
-			utils.BadRequest(w, "additionalbuildcontexts", query.AdditionalBuildContexts, err)
-			return
+	if additionalBuildContexts != nil {
+		logrus.Debugf("Merging %d additional contexts from multipart", len(additionalBuildContexts))
+		for name, ctx := range additionalBuildContexts {
+			additionalBuildContexts[name] = ctx
+			logrus.Debugf("Added multipart context %q with path %q", name, ctx.Value)
 		}
 	}
 
@@ -918,6 +928,119 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+}
+
+func handleBuildContexts(anchorDir string, r *http.Request) (contextDir string, additionalContexts map[string]*buildahDefine.AdditionalBuildContext, err error) {
+	additionalContexts = make(map[string]*buildahDefine.AdditionalBuildContext)
+	query := r.URL.Query()
+
+	for _, url := range query["additionalbuildcontext-url"] {
+		name, value, found := strings.Cut(url, "=")
+		if !found {
+			return "", nil, fmt.Errorf("invalid URL Context format")
+		}
+
+		logrus.Debugf("name: %q, URL: %q", name, value)
+
+		tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", value)
+		if err != nil {
+			return "", nil, fmt.Errorf("downloading URL %q: %w", name, err)
+		}
+
+		contextPath := filepath.Join(tempDir, subdir)
+		additionalContexts[name] = &buildahDefine.AdditionalBuildContext{
+			IsURL:           true,
+			IsImage:         false,
+			Value:           contextPath,
+			DownloadedCache: contextPath,
+		}
+
+		logrus.Debugf("Downloaded URL context %q to %q", name, contextPath)
+	}
+
+	for _, imgRef := range query["additionalbuildcontext-image"] {
+		name, value, found := strings.Cut(imgRef, "=")
+		if !found {
+			return "", nil, fmt.Errorf("invalid Image Context format")
+		}
+
+		logrus.Debugf("name: %q, URL: %q", name, value)
+		additionalContexts[name] = &buildahDefine.AdditionalBuildContext{
+			IsURL:   false,
+			IsImage: true,
+			Value:   value,
+		}
+
+		logrus.Debugf("Downloaded URL context %q to %q", name, value)
+	}
+
+	// If we have a multipart we use the operations, if not default extraction for main context
+	contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if strings.HasPrefix(contentType, "multipart/form-data") {
+		logrus.Debug("Multipart is needed")
+		reader, err := r.MultipartReader()
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to create multipart reader: %w", err)
+		}
+
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return "", nil, fmt.Errorf("failed to read multipart: %w", err)
+			}
+
+			fieldName := part.FormName()
+			if fieldName == "MainContext" {
+				mainDir := filepath.Join(anchorDir, "MainContext")
+				if err := archive.Untar(part, mainDir, nil); err != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("extracting main context in multipart: %w", err)
+				}
+				contextDir = mainDir
+				part.Close()
+			} else if strings.HasPrefix(fieldName, "build-context-") {
+				contextName := strings.TrimPrefix(fieldName, "build-context-")
+
+				// Create temp directory directly under anchorDir
+				additionalAnchor, err := os.MkdirTemp(anchorDir, contextName+"-*")
+				if err != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("creating temp directory for additional context %q: %w", contextName, err)
+				}
+
+				if err := chrootarchive.Untar(part, additionalAnchor, nil); err != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("extracting additional context %q: %w", contextName, err)
+				}
+
+				h := sha256.Sum256([]byte(contextName))
+				timestamp := int64(binary.BigEndian.Uint64(h[:8]) % (1 << 32))
+				deterministicTime := time.Unix(timestamp, 0)
+
+				if err := os.Chtimes(additionalAnchor, deterministicTime, deterministicTime); err != nil {
+					logrus.Warnf("Failed to set consistent timestamp on additional context directory: %v", err)
+				}
+
+				additionalContexts[contextName] = &buildahDefine.AdditionalBuildContext{
+					IsURL:   false,
+					IsImage: false,
+					Value:   additionalAnchor,
+				}
+				part.Close()
+			}
+		}
+	} else {
+		logrus.Debug("No multipart needed")
+		contextDir, err = extractTarFile(anchorDir, r)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
+	return contextDir, additionalContexts, nil
 }
 
 func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfigurationPolicy {
