@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -941,6 +942,32 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 	return b.String(), nil
 }
 
+func (r *ConmonOCIRuntime) getLogLabels(ctr *Container) (map[string]string, error) {
+	logLabels := ctr.LogLabels()
+	parsedLogLabels := make(map[string]string)
+	data, err := ctr.inspectLocked(false)
+	if err != nil {
+		// FIXME: this error should probably be returned
+		return parsedLogLabels, nil //nolint: nilerr
+	}
+
+	for labelKey, labelValue := range logLabels {
+		tmpl, err := template.New("container").Parse(labelValue)
+		if err != nil {
+			return parsedLogLabels, fmt.Errorf("template parsing error %s (label %s): %w", labelValue, labelKey, err)
+		}
+
+		var b bytes.Buffer
+		err = tmpl.Execute(&b, data)
+		if err != nil {
+			return nil, err
+		}
+		parsedLogLabels[labelKey] = b.String()
+	}
+
+	return parsedLogLabels, nil
+}
+
 func getPreserveFdExtraFiles(preserveFD []uint, preserveFDs uint) (uint, []*os.File, []*os.File, error) {
 	var filesToClose []*os.File
 	var extraFiles []*os.File
@@ -1001,6 +1028,11 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, err
 	}
 
+	logLabels, err := r.getLogLabels(ctr)
+	if err != nil {
+		return 0, err
+	}
+
 	if ctr.config.CgroupsMode == cgroupSplit {
 		if err := moveToRuntimeCgroup(); err != nil {
 			return 0, err
@@ -1013,7 +1045,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	persistDir := filepath.Join(r.persistDir, ctr.ID())
-	args, err := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, persistDir, ociLog, ctr.LogDriver(), logTag)
+	args, err := r.sharedConmonArgs(ctr, ctr.ID(), ctr.bundlePath(), pidfile, ctr.LogPath(), r.exitsDir, persistDir, ociLog, ctr.LogDriver(), logTag, logLabels)
 	if err != nil {
 		return 0, err
 	}
@@ -1276,9 +1308,14 @@ func (r *ConmonOCIRuntime) configureConmonEnv() ([]string, error) {
 	return res, nil
 }
 
+func ContainerLabelToJournaldField(s string) string {
+	re := regexp.MustCompile(`[^_A-Z0-9]`)
+	return re.ReplaceAllString(strings.ToUpper(s), "_")
+}
+
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
-// func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
-func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string) ([]string, error) {
+// func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string, logLabels map[string]string) ([]string, error) {
+func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, pidPath, logPath, exitDir, persistDir, ociLogPath, logDriver, logTag string, logLabels map[string]string) ([]string, error) {
 	// Make the persists directory for the container after the ctr ID is appended to it in the caller
 	// This is needed as conmon writes the exit and oom file in the given persist directory path as just "exit" and "oom"
 	// So creating a directory with the container ID under the persist dir will help keep track of which container the
@@ -1356,6 +1393,14 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	if logTag != "" {
 		args = append(args, "--log-tag", logTag)
 	}
+	if logDriverArg == define.JournaldLogging {
+		for label, value := range logLabels {
+			args = append(args, "--log-label", fmt.Sprintf("%s=%s", ContainerLabelToJournaldField(label), value))
+		}
+	} else if len(logLabels) > 0 {
+		logrus.Warnf("Log labels ignored on non-journald log driver")
+	}
+
 	if ctr.config.NoCgroups {
 		logrus.Debugf("Running with no Cgroups")
 		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
