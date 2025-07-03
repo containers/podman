@@ -81,6 +81,8 @@ Commands
 
 :doc:`push <markdown/podman-push.1>` Push an image to a specified destination
 
+:doc:`quadlet <markdown/podman-quadlet.1>` Allows users to manage Quadlets
+
 :doc:`rename <markdown/podman-rename.1>` Rename an existing container
 
 :doc:`restart <markdown/podman-restart.1>` Restart one or more containers
