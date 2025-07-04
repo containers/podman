@@ -373,6 +373,7 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, hcResult def
 	}
 
 	healthCheck, err := c.readHealthCheckLog()
+	oldHCStatus := healthCheck.Status
 	if err != nil {
 		return define.HealthCheckResults{}, err
 	}
@@ -395,6 +396,7 @@ func (c *Container) updateHealthCheckLog(hcl define.HealthCheckLog, hcResult def
 			}
 		}
 	}
+	healthCheck.IsStatusChanged = oldHCStatus != healthCheck.Status
 	healthCheck.Log = append(healthCheck.Log, hcl)
 	if c.HealthCheckMaxLogCount() != 0 && len(healthCheck.Log) > int(c.HealthCheckMaxLogCount()) {
 		healthCheck.Log = healthCheck.Log[1:]
