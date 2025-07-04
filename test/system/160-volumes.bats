@@ -616,4 +616,32 @@ EOF
     run_podman volume rm $volume_name --force
 }
 
+@test "podman volume export test in TTY" {
+
+    run_podman volume create testVol
+    run_podman run -v testVol:/data --rm $IMAGE sh -c "echo hello > /data/myfile"
+
+    # Positive Case
+    tarfile=${PODMAN_TMPDIR}/hello$(random_string | tr A-Z a-z).tar
+
+    # `script` command opened a new pesudo-terminal(PTY) to make podman think
+    # it's running in a terminal.
+    all_outputs=$(script -q -c "$PODMAN volume export testVol --output=$tarfile; echo \$?" /dev/null)
+    exit_code=$(echo "$all_outputs" | sed -n '1p' | tr -d '\n\r')
+
+    is "$exit_code" "0" "Exit code should be 0"
+
+    rm -f $tarfile
+
+    # Negative Case
+    all_outputs=$(script -q -c "$PODMAN volume export testVol; echo \$?" /dev/null)
+    output=$(echo "$all_outputs" | sed -n '1p' | tr -d '\n\r')
+    exit_code=$(echo "$all_outputs" | sed -n '2p' | tr -d '\n\r')
+
+    is "$exit_code" "125" "Exit code should be 125"
+    is "$output" "Error: refusing to export to terminal. Use -o flag or redirect" "Should refuse to export to terminal"
+
+    run_podman volume rm testVol --force
+}
+
 # vim: filetype=sh
