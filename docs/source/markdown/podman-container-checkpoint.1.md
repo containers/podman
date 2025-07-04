@@ -84,10 +84,11 @@ to do the checkpoint:
 
 #### **--export**, **-e**=*archive*
 
-Export the checkpoint to a tar.gz file. The exported checkpoint can be used
-to import the *container* on another system and thus enabling container live
-migration. This checkpoint archive also includes all changes to the *container's*
-root file-system, if not explicitly disabled using **--ignore-rootfs**.
+Export the checkpoint to an archive. The archive type is specified with
+**--compress**. The exported checkpoint can be used to import the *container* on
+another system and thus enabling container live migration. This checkpoint
+archive also includes all changes to the *container's* root file-system, if not
+explicitly disabled using **--ignore-rootfs**.
 
 #### **--file-locks**
 
@@ -99,7 +100,7 @@ The default is **false**.
 
 #### **--ignore-rootfs**
 
-If a checkpoint is exported to a tar.gz file it is possible with the help of **--ignore-rootfs** to explicitly disable including changes to the root file-system into the checkpoint archive file.\
+If a checkpoint is exported to an archive it is possible with the help of **--ignore-rootfs** to explicitly disable including changes to the root file-system into the checkpoint archive file.\
 The default is **false**.\
 *IMPORTANT: This OPTION only works in combination with __--export, -e__.*
 
@@ -107,7 +108,7 @@ The default is **false**.\
 
 This OPTION must be used in combination with the **--export, -e** OPTION.
 When this OPTION is specified, the content of volumes associated with
-the *container* is not included into the checkpoint tar.gz file.\
+the *container* is not included into the checkpoint archive.\
 The default is **false**.
 
 #### **--keep**, **-k**
@@ -205,12 +206,12 @@ Create a checkpoint image for the container "mywebserver".
 
 Dumps the container's memory information of the latest container into an archive.
 ```
-# podman container checkpoint -P -e pre-checkpoint.tar.gz -l
+# podman container checkpoint -P -e pre-checkpoint.tar.zst -l
 ```
 
 Keep the container's memory information from an older dump and add the new container's memory information.
 ```
-# podman container checkpoint --with-previous -e checkpoint.tar.gz -l
+# podman container checkpoint --with-previous -e checkpoint.tar.zst -l
 ```
 
 Dump the container's memory information of the latest container into an archive with the specified compress method.
