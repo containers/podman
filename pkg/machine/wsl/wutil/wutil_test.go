@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"golang.org/x/text/encoding/unicode"
 )
 
 const (
@@ -136,11 +135,15 @@ func TestMatchOutputLine(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.winVariant, func(t *testing.T) {
-			encoder := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewEncoder()
-			encodedOutput, err := encoder.String(tt.statusOutput)
-			assert.Nil(t, err)
-			reader := io.NopCloser(strings.NewReader(encodedOutput))
+			reader := io.NopCloser(strings.NewReader(tt.statusOutput))
 			assert.Equal(t, tt.want, matchOutputLine(reader))
 		})
 	}
+}
+
+func TestNewWSLCommand(t *testing.T) {
+	cmd := NewWSLCommand("--status")
+	assert.Contains(t, cmd.Path, "wsl")
+	assert.Equal(t, []string{"--status"}, cmd.Args[1:])
+	assert.Contains(t, cmd.Env, "WSL_UTF8=1")
 }

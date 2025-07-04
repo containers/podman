@@ -20,11 +20,10 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 	"github.com/containers/podman/v5/utils"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/text/encoding/unicode"
-	"golang.org/x/text/transform"
 )
 
 var (
@@ -100,13 +99,9 @@ func provisionWSLDist(name string, imagePath string, prompt string) (string, err
 	// 1. Wsl/Service/RegisterDistro/CreateVm/HCS/ERROR_NOT_SUPPORTED
 	// 2. Wsl/Service/RegisterDistro/CreateVm/HCS/HCS_E_SERVICE_NOT_AVAILABLE
 	cmdOutput := &bytes.Buffer{}
-	err = runCmdPassThroughTee(cmdOutput, "wsl", "--import", dist, distTarget, imagePath, "--version", "2")
-	decoder := unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()
-	decoded, _, decodeErr := transform.Bytes(decoder, cmdOutput.Bytes())
-	if decodeErr != nil {
-		return "", fmt.Errorf("failed to decode WSL output: %w", decodeErr)
-	}
-	decodedStr := strings.ToLower(string(decoded))
+	cmd := wutil.NewWSLCommand("--import", dist, distTarget, imagePath, "--version", "2")
+	err = runCmdPassThroughTee(cmdOutput, cmd)
+	decodedStr := strings.ToLower(cmdOutput.String())
 	for _, substr := range []string{"hcs/error_not_supported", "hcs/hcs_e_service_not_available"} {
 		if strings.Contains(decodedStr, substr) {
 			return "", ErrWslNotSupported
@@ -373,13 +368,15 @@ func installWsl() error {
 		return err
 	}
 	defer log.Close()
-	if err := runCmdPassThroughTee(log, "dism", "/online", "/enable-feature",
-		"/featurename:Microsoft-Windows-Subsystem-Linux", "/all", "/norestart"); isMsiError(err) {
+	cmd := exec.Command("dism", "/online", "/enable-feature",
+		"/featurename:Microsoft-Windows-Subsystem-Linux", "/all", "/norestart")
+	if err := runCmdPassThroughTee(log, cmd); isMsiError(err) {
 		return fmt.Errorf("could not enable WSL Feature: %w", err)
 	}
 
-	if err = runCmdPassThroughTee(log, "dism", "/online", "/enable-feature",
-		"/featurename:VirtualMachinePlatform", "/all", "/norestart"); isMsiError(err) {
+	cmd = exec.Command("dism", "/online", "/enable-feature",
+		"/featurename:VirtualMachinePlatform", "/all", "/norestart")
+	if err = runCmdPassThroughTee(log, cmd); isMsiError(err) {
 		return fmt.Errorf("could not enable Virtual Machine Feature: %w", err)
 	}
 
@@ -466,50 +463,49 @@ func withUser(s string, user string) string {
 func wslInvoke(dist string, arg ...string) error {
 	newArgs := []string{"-u", "root", "-d", dist}
 	newArgs = append(newArgs, arg...)
-	return runCmdPassThrough("wsl", newArgs...)
+	cmd := wutil.NewWSLCommand(newArgs...)
+	return runCmdPassThrough(cmd)
 }
 
 func wslPipe(input string, dist string, arg ...string) error {
 	newArgs := []string{"-u", "root", "-d", dist}
 	newArgs = append(newArgs, arg...)
-	return pipeCmdPassThrough("wsl", input, newArgs...)
+	cmd := wutil.NewWSLCommand(newArgs...)
+	return pipeCmdPassThrough(cmd, input)
 }
 
-func runCmdPassThrough(name string, arg ...string) error {
-	logrus.Debugf("Running command: %s %v", name, arg)
-	cmd := exec.Command(name, arg...)
+func runCmdPassThrough(cmd *exec.Cmd) error {
+	logrus.Debugf("Running command: %s %v", cmd.Path, cmd.Args)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("command %s %v failed: %w", name, arg, err)
+		return fmt.Errorf("command %s %v failed: %w", cmd.Path, cmd.Args, err)
 	}
 	return nil
 }
 
-func runCmdPassThroughTee(out io.Writer, name string, arg ...string) error {
-	logrus.Debugf("Running command: %s %v", name, arg)
+func runCmdPassThroughTee(out io.Writer, cmd *exec.Cmd) error {
+	logrus.Debugf("Running command: %s %v", cmd.Path, cmd.Args)
 
 	// TODO - Perhaps improve this with a conpty pseudo console so that
 	//        dism installer text bars mirror console behavior (redraw)
-	cmd := exec.Command(name, arg...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = io.MultiWriter(os.Stdout, out)
 	cmd.Stderr = io.MultiWriter(os.Stderr, out)
 	if err := cmd.Run(); isMsiError(err) {
-		return fmt.Errorf("command %s %v failed: %w", name, arg, err)
+		return fmt.Errorf("command %s %v failed: %w", cmd.Path, cmd.Args, err)
 	}
 	return nil
 }
 
-func pipeCmdPassThrough(name string, input string, arg ...string) error {
-	logrus.Debugf("Running command: %s %v", name, arg)
-	cmd := exec.Command(name, arg...)
+func pipeCmdPassThrough(cmd *exec.Cmd, input string) error {
+	logrus.Debugf("Running command: %s %v", cmd.Path, cmd.Args)
 	cmd.Stdin = strings.NewReader(input)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("command %s %v failed: %w", name, arg, err)
+		return fmt.Errorf("command %s %v failed: %w", cmd.Path, cmd.Args, err)
 	}
 	return nil
 }
@@ -569,7 +565,7 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 	if running {
 		args = append(args, "--running")
 	}
-	cmd := exec.Command("wsl", args...)
+	cmd := wutil.NewWSLCommand(args...)
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -581,7 +577,7 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 	}
 
 	all := make(map[string]struct{})
-	scanner := bufio.NewScanner(transform.NewReader(out, unicode.UTF16(unicode.LittleEndian, unicode.UseBOM).NewDecoder()))
+	scanner := bufio.NewScanner(out)
 	for scanner.Scan() {
 		fields := strings.Fields(scanner.Text())
 		if len(fields) > 0 {
@@ -598,7 +594,7 @@ func getAllWSLDistros(running bool) (map[string]struct{}, error) {
 }
 
 func isSystemdRunning(dist string) (bool, error) {
-	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "sh")
+	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "sh")
 	cmd.Stdin = strings.NewReader(sysdpid + "\necho $SYSDPID\n")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
@@ -621,26 +617,26 @@ func isSystemdRunning(dist string) (bool, error) {
 
 	err = cmd.Wait()
 	if err != nil {
-		return false, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(stderr.String()))
+		return false, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(stderr.String()))
 	}
 
 	return result, nil
 }
 
 func terminateDist(dist string) error {
-	cmd := exec.Command("wsl", "--terminate", dist)
+	cmd := wutil.NewWSLCommand("--terminate", dist)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
 
 func unregisterDist(dist string) error {
-	cmd := exec.Command("wsl", "--unregister", dist)
+	cmd := wutil.NewWSLCommand("--unregister", dist)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(string(out)))
 	}
 	return nil
 }
@@ -685,13 +681,14 @@ func getCPUs(name string) (uint64, error) {
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "nproc")
+	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "nproc")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
 	}
 	stderr := &bytes.Buffer{}
 	cmd.Stderr = stderr
+	cmd.Env = []string{"WSL_UTF8=1"}
 	if err = cmd.Start(); err != nil {
 		return 0, err
 	}
@@ -702,7 +699,7 @@ func getCPUs(name string) (uint64, error) {
 	}
 	err = cmd.Wait()
 	if err != nil {
-		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(strings.TrimSpace(stderr.String())))
+		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(strings.TrimSpace(stderr.String())))
 	}
 
 	ret, err := strconv.Atoi(result)
@@ -715,7 +712,7 @@ func getMem(name string) (strongunits.MiB, error) {
 	if run, _ := isWSLRunning(dist); !run {
 		return 0, nil
 	}
-	cmd := exec.Command("wsl", "-u", "root", "-d", dist, "cat", "/proc/meminfo")
+	cmd := wutil.NewWSLCommand("-u", "root", "-d", dist, "cat", "/proc/meminfo")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
 		return 0, err
@@ -746,7 +743,7 @@ func getMem(name string) (strongunits.MiB, error) {
 	}
 	err = cmd.Wait()
 	if err != nil {
-		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args, err, strings.TrimSpace(stderr.String()))
+		return 0, fmt.Errorf("command %s %v failed: %w (%s)", cmd.Path, cmd.Args[1:], err, strings.TrimSpace(stderr.String()))
 	}
 
 	return strongunits.MiB(total - available), err
