@@ -11,6 +11,7 @@ import (
 
 	graphdriver "github.com/containers/storage/drivers"
 	"github.com/containers/storage/internal/dedup"
+	"github.com/containers/storage/internal/tempdir"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/fileutils"
@@ -22,7 +23,10 @@ import (
 	"github.com/vbatts/tar-split/tar/storage"
 )
 
-const defaultPerms = os.FileMode(0o555)
+const (
+	defaultPerms = os.FileMode(0o555)
+	tempDirName  = "tempdirs"
+)
 
 func init() {
 	graphdriver.MustRegister("vfs", Init)
@@ -242,6 +246,41 @@ func (d *Driver) dir(id string) string {
 // Remove deletes the content from the directory for a given id.
 func (d *Driver) Remove(id string) error {
 	return system.EnsureRemoveAll(d.dir(id))
+}
+
+func (d *Driver) GetTempDirRootDirs() []string {
+	tempDirs := []string{filepath.Join(d.home, tempDirName)}
+	// VFS can have layers in different locations through additionalHomes
+	// Add temp directories for each additional home
+	for _, additionalHome := range d.additionalHomes {
+		tempDirs = append(tempDirs, filepath.Join(additionalHome, tempDirName))
+	}
+	return tempDirs
+}
+
+func (d *Driver) DeferredRemove(id string) (tempdir.CleanupTempDirFunc, error) {
+	layerDir := d.dir(id)
+	tempDirRoot := ""
+	tempDirRoots := d.GetTempDirRootDirs()
+	for _, potentialTempDirRoot := range tempDirRoots {
+		homeDir := filepath.Dir(potentialTempDirRoot)
+		if strings.HasPrefix(layerDir, homeDir) {
+			tempDirRoot = potentialTempDirRoot
+			break
+		}
+	}
+	if tempDirRoot == "" {
+		return nil, fmt.Errorf("no temp directory roots configured")
+	}
+
+	t, err := tempdir.NewTempDir(tempDirRoot)
+	if err != nil {
+		return nil, err
+	}
+	if err := t.StageDeletion(layerDir); err != nil {
+		return t.Cleanup, err
+	}
+	return t.Cleanup, nil
 }
 
 // Get returns the directory for the given id.
