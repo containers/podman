@@ -232,7 +232,7 @@ func (t *quadletTestcase) assertKeyNotContains(args []string, unit *parser.UnitF
 }
 
 func (t *quadletTestcase) assertPodmanArgs(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+	podmanArgs, _, _ := unit.LookupLastArgs("Service", key)
 	if globalOnly {
 		podmanCmdLocation := findSublist(podmanArgs, []string{args[0]})
 		if podmanCmdLocation == -1 {
@@ -287,7 +287,7 @@ func keyValMapEqualRegex(expectedKeyValMap, actualKeyValMap map[string]string) b
 }
 
 func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.UnitFile, key string, allowRegex, globalOnly bool) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+	podmanArgs, _, _ := unit.LookupLastArgs("Service", key)
 
 	if globalOnly {
 		podmanCmdLocation := findSublist(podmanArgs, []string{args[0]})
@@ -334,7 +334,7 @@ func (t *quadletTestcase) assertPodmanArgsKeyVal(args []string, unit *parser.Uni
 }
 
 func (t *quadletTestcase) assertPodmanFinalArgs(args []string, unit *parser.UnitFile, key string) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+	podmanArgs, _, _ := unit.LookupLastArgs("Service", key)
 	if len(podmanArgs) < len(args) {
 		return false
 	}
@@ -342,7 +342,7 @@ func (t *quadletTestcase) assertPodmanFinalArgs(args []string, unit *parser.Unit
 }
 
 func (t *quadletTestcase) assertPodmanFinalArgsRegex(args []string, unit *parser.UnitFile, key string) bool {
-	podmanArgs, _ := unit.LookupLastArgs("Service", key)
+	podmanArgs, _, _ := unit.LookupLastArgs("Service", key)
 	if len(podmanArgs) < len(args) {
 		return false
 	}
@@ -1096,6 +1096,8 @@ BOGUS=foo
 		runWarningQuadletTestCase,
 		Entry("label-unsupported-escape.container", "label-unsupported-escape.container", "unsupported escape char"),
 		Entry("shortname.container", "shortname.container", "Warning: shortname.container specifies the image \"shortname\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details."),
+		Entry("exec-unsupported-escape.container", "exec-unsupported-escape.container", "unsupported escape char"),
+		Entry("reloadcmd-unsupported-escape.container", "reloadcmd-unsupported-escape.container", "unsupported escape char"),
 	)
 
 	DescribeTable("Running expected error quadlet test case",
