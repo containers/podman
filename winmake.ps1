@@ -86,7 +86,7 @@ function Local-Machine {
         $focus = "--focus ""$FOCUS"" --silence-skips"
     }
 
-    Run-Command "./bin/ginkgo.exe -vv  --tags `"$remotetags`" --timeout=90m --trace --no-color $focus $files pkg/machine/e2e/."
+    Run-Command "./bin/ginkgo.exe -vv --tags `"$remotetags`" --timeout=50m --trace --no-color $focus $files pkg/machine/e2e/."
 }
 
 # Expect starting directory to be /podman
