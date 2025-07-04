@@ -59,6 +59,7 @@ type MachineConfig struct {
 
 	CloudInit    bool
 	Capabilities *define.MachineCapabilities
+	IPAddress    string
 }
 
 type VMProvider interface { //nolint:interfacebloat

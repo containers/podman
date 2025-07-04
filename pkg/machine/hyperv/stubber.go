@@ -760,7 +760,7 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) 
 		if err != nil {
 			return fmt.Errorf("retrieving VM's IP: %w", err)
 		}
-		mc.HyperVHypervisor.IPAddress = ip
+		mc.IPAddress = ip
 		return nil
 	}
 

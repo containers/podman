@@ -145,10 +145,7 @@ func conductVMReadinessCheck(mc *vmconfigs.MachineConfig, maxBackoffs int, backo
 			sshError = ErrNotRunning
 			continue
 		}
-		address := "localhost"
-		if mc.HyperVHypervisor.IPAddress != "" {
-			address = mc.HyperVHypervisor.IPAddress
-		}
+		address := mc.GetAddress()
 		if !isListening(address, mc.SSH.Port) {
 			sshError = ErrSSHNotListening
 			continue

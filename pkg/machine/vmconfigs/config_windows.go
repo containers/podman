@@ -16,8 +16,6 @@ type HyperVConfig struct {
 	NetworkVSock vsock.HVSockRegistryEntry
 	// FileserverVSocks are for machine mounts (one entry per mount)
 	FileserverVSocks []vsock.HVSockRegistryEntry
-
-	IPAddress    string
 }
 
 type WSLConfig struct {
