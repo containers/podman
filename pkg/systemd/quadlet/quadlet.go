@@ -186,6 +186,9 @@ const (
 	KeyYaml                  = "Yaml"
 )
 
+// Unsupported keys in the Service group. Defined here so we can error when they are found
+var UnsupportedServiceKeys = [...]string{"User", "Group", "DynamicUser"}
+
 type UnitInfo struct {
 	// The name of the generated systemd service unit
 	ServiceName string

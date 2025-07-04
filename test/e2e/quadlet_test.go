@@ -1096,6 +1096,16 @@ BOGUS=foo
 		runWarningQuadletTestCase,
 		Entry("label-unsupported-escape.container", "label-unsupported-escape.container", "unsupported escape char"),
 		Entry("shortname.container", "shortname.container", "Warning: shortname.container specifies the image \"shortname\" which not a fully qualified image name. This is not ideal for performance and security reasons. See the podman-pull manpage discussion of short-name-aliases.conf for details."),
+
+		Entry("Unsupported Service Key - User", "service-user.container", "Warning: using key User in the Service group is not supported"),
+		Entry("Unsupported Service Key - Group", "service-group.container", "Warning: using key Group in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.build", "service-dynamicuser.build", "Warning: using key DynamicUser in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.container", "service-dynamicuser.container", "Warning: using key DynamicUser in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.image", "service-dynamicuser.image", "Warning: using key DynamicUser in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.kube", "service-dynamicuser.kube", "Warning: using key DynamicUser in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.network", "service-dynamicuser.network", "Warning: using key DynamicUser in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.pod", "service-dynamicuser.pod", "Warning: using key DynamicUser in the Service group is not supported"),
+		Entry("Unsupported Service Key - DynamicUser.volume", "service-dynamicuser.volume", "Warning: using key DynamicUser in the Service group is not supported"),
 	)
 
 	DescribeTable("Running expected error quadlet test case",
