@@ -827,15 +827,16 @@ func (f *UnitFile) LookupAllArgs(groupName string, key string) []string {
 // array of words. The split code is exec-like, and both unquotes and
 // applied c-style c escapes.  This is typically used for keys like
 // ExecStart
-func (f *UnitFile) LookupLastArgs(groupName string, key string) ([]string, bool) {
+func (f *UnitFile) LookupLastArgs(groupName string, key string) ([]string, bool, error) {
 	execKey, ok := f.LookupLast(groupName, key)
-	if ok {
-		execArgs, err := splitString(execKey, WhitespaceSeparators, SplitRelax|SplitUnquote|SplitCUnescape)
-		if err == nil {
-			return execArgs, true
-		}
+	if !ok {
+		return nil, false, nil
 	}
-	return nil, false
+	execArgs, err := splitString(execKey, WhitespaceSeparators, SplitRelax|SplitUnquote|SplitCUnescape)
+	if err != nil {
+		return nil, false, err
+	}
+	return execArgs, true, nil
 }
 
 // Look up 'Environment' style key-value keys
