@@ -53,6 +53,8 @@ func calcServiceName(path string) string {
 		service += "-build"
 	case ".pod":
 		service += "-pod"
+	case ".login":
+		service += "-login"
 	}
 	return service
 }
@@ -1090,6 +1092,16 @@ BOGUS=foo
 		Entry("Pod - Remap manual", "remap-manual.pod"),
 		Entry("Pod - Shm Size", "shmsize.pod"),
 		Entry("Pod - Service Environment", "service-environment.pod"),
+
+		Entry("Login - Basic", "basic.login"),
+		Entry("Login - AuthFile", "authfile.login"),
+		Entry("Login - Credentials", "credentials.login"),
+		Entry("Login - TLS Verify False", "tls-verify.login"),
+		Entry("Login - Cert Dir", "cert-dir.login"),
+		Entry("Login - Secret", "secret.login"),
+		Entry("Login - Logout On Stop with AuthFile", "logout-on-stop-authfile.login"),
+		Entry("Login - Logout On Stop without AuthFile", "logout-on-stop-no-authfile.login"),
+		Entry("Login - PodmanArgs", "podmanargs.login"),
 	)
 
 	DescribeTable("Running expected warning quadlet test case",
@@ -1108,12 +1120,14 @@ BOGUS=foo
 		Entry("userns-with-remap.container", "userns-with-remap.container", "converting \"userns-with-remap.container\": deprecated Remap keys are set along with explicit mapping keys"),
 		Entry("reloadboth.container", "reloadboth.container", "converting \"reloadboth.container\": ReloadCmd and ReloadSignal are mutually exclusive but both are set"),
 		Entry("dependent.error.container", "dependent.error.container", "converting \"dependent.error.container\": unable to translate dependency for basic.container"),
+		Entry("Container - Quadlet Login", "login.quadlet.err.missing.container", "converting \"login.quadlet.err.missing.container\": requested Quadlet login unit basic.login was not found"),
 
 		Entry("image-no-image.volume", "image-no-image.volume", "converting \"image-no-image.volume\": the key Image is mandatory when using the image driver"),
 		Entry("Volume - Quadlet image (.build) not found", "build-not-found.quadlet.volume", "converting \"build-not-found.quadlet.volume\": requested Quadlet image not-found.build was not found"),
 		Entry("Volume - Quadlet image (.image) not found", "image-not-found.quadlet.volume", "converting \"image-not-found.quadlet.volume\": requested Quadlet image not-found.image was not found"),
 
 		Entry("Kube - User Remap Manual", "remap-manual.kube", "converting \"remap-manual.kube\": RemapUsers=manual is not supported"),
+		Entry("Kube - Quadlet Login", "login.quadlet.err.missing.kube", "converting \"login.quadlet.err.missing.kube\": requested Quadlet login unit basic.login was not found"),
 
 		Entry("Network - Gateway not enough Subnet", "gateway.less-subnet.network", "converting \"gateway.less-subnet.network\": cannot set more gateways than subnets"),
 		Entry("Network - Gateway without Subnet", "gateway.no-subnet.network", "converting \"gateway.no-subnet.network\": cannot set gateway or range without subnet"),
@@ -1121,11 +1135,15 @@ BOGUS=foo
 		Entry("Network - Range without Subnet", "range.no-subnet.network", "converting \"range.no-subnet.network\": cannot set gateway or range without subnet"),
 
 		Entry("Image - No Image", "no-image.image", "converting \"no-image.image\": no Image key specified"),
+		Entry("Image - Quadlet Login", "login.quadlet.err.missing.image", "converting \"login.quadlet.err.missing.image\": requested Quadlet login unit basic.login was not found"),
 
 		Entry("Build - File Key relative no WD", "file-rel-no-wd.build", "converting \"file-rel-no-wd.build\": relative path in File key requires SetWorkingDirectory key to be set"),
 		Entry("Build - Neither WorkingDirectory nor File Key", "neither-workingdirectory-nor-file.build", "converting \"neither-workingdirectory-nor-file.build\": neither SetWorkingDirectory, nor File key specified"),
 		Entry("Build - No ImageTag Key", "no-imagetag.build", "converting \"no-imagetag.build\": no ImageTag key specified"),
 		Entry("emptyline.container", "emptyline.container", "converting \"emptyline.container\": no Image or Rootfs key specified"),
+		Entry("Build - Quadlet Login", "login.quadlet.err.missing.build", "converting \"login.quadlet.err.missing.build\": requested Quadlet login unit basic.login was not found"),
+
+		Entry("Login - No Registry", "no-registry.login", "converting \"no-registry.login\": no Registry key specified"),
 	)
 
 	DescribeTable("Running success quadlet with ServiceName test case",
@@ -1139,6 +1157,7 @@ BOGUS=foo
 		Entry("Network", "service-name.network", "basic"),
 		Entry("Pod", "service-name.pod", "basic"),
 		Entry("Volume", "service-name.volume", "basic"),
+		Entry("Login", "service-name.login", "basic"),
 	)
 
 	DescribeTable("Running quadlet success test case with dependencies",
@@ -1176,6 +1195,7 @@ BOGUS=foo
 				"basic.volume",
 			},
 		),
+		Entry("Container - Quadlet Login", "login.quadlet.container", []string{"authfile.login"}),
 
 		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", []string{"basic.build"}),
 		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", []string{"basic.image"}),
@@ -1210,6 +1230,7 @@ BOGUS=foo
 				"basic.volume",
 			},
 		),
+		Entry("Kube - Quadlet Login", "login.quadlet.kube", []string{"authfile.login"}),
 
 		Entry("Build - Network Key quadlet", "network.quadlet.build", []string{"basic.network"}),
 		Entry("Build - Volume Key", "volume.build", []string{"basic.volume"}),
@@ -1229,6 +1250,7 @@ BOGUS=foo
 				"basic.volume",
 			},
 		),
+		Entry("Build - Quadlet Login", "login.quadlet.build", []string{"authfile.login"}),
 
 		Entry("Pod - Quadlet Network", "network.quadlet.pod", []string{"basic.network"}),
 		Entry("Pod - Quadlet Volume", "volume.pod", []string{"basic.volume"}),
@@ -1262,6 +1284,7 @@ BOGUS=foo
 				"basic.volume",
 			},
 		),
+		Entry("Image - Quadlet Login", "login.quadlet.image", []string{"authfile.login"}),
 
 		Entry(
 			"Network - Dependency between quadlet units",
@@ -1276,5 +1299,24 @@ BOGUS=foo
 				"basic.volume",
 			},
 		),
+	)
+	DescribeTable("Running quadlet expected error test case with dependencies",
+		func(fileName string, dependencyFiles []string, errString string) {
+			// Write additional files this test depends on to the quadlet dir
+			for _, dependencyFileName := range dependencyFiles {
+				dependencyTestCase := loadQuadletTestcase(filepath.Join("quadlet", dependencyFileName))
+				err = os.WriteFile(filepath.Join(quadletDir, dependencyFileName), dependencyTestCase.data, 0644)
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			runErrorQuadletTestCase(fileName, errString)
+		},
+		Entry("Container - Quadlet Login", "login.quadlet.err.container", []string{"basic.login"}, "converting \"login.quadlet.err.container\": requested Quadlet login unit does not set an auth file"),
+
+		Entry("Build - Quadlet Login", "login.quadlet.err.build", []string{"basic.login"}, "converting \"login.quadlet.err.build\": requested Quadlet login unit does not set an auth file"),
+
+		Entry("Image - Quadlet Login", "login.quadlet.err.image", []string{"basic.login"}, "converting \"login.quadlet.err.image\": requested Quadlet login unit does not set an auth file"),
+
+		Entry("Kube - Quadlet Login", "login.quadlet.err.kube", []string{"basic.login"}, "converting \"login.quadlet.err.kube\": requested Quadlet login unit does not set an auth file"),
 	)
 })
