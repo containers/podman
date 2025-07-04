@@ -29,6 +29,7 @@ import (
 	"github.com/containers/podman/v5/pkg/libartifact"
 	libartTypes "github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/containers/storage/pkg/fileutils"
+	"github.com/containers/storage/pkg/lockfile"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/image-spec/specs-go"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -44,6 +45,7 @@ const ManifestSchemaVersion = 2
 type ArtifactStore struct {
 	SystemContext *types.SystemContext
 	storePath     string
+	lock          *lockfile.LockFile
 }
 
 // NewArtifactStore is a constructor for artifact stores.  Most artifact dealings depend on this. Store path is
@@ -68,7 +70,14 @@ func NewArtifactStore(storePath string, sc *types.SystemContext) (*ArtifactStore
 	if err := os.MkdirAll(baseDir, 0700); err != nil {
 		return nil, err
 	}
+	// Open the lockfile, creating if necessary
+	lock, err := lockfile.GetLockFile(filepath.Join(storePath, "index.lock"))
+	if err != nil {
+		return nil, err
+	}
+	artifactStore.lock = lock
 	// if the index file is not present we need to create an empty one
+	// Do so after the lock to try and prevent races around store creation.
 	if err := fileutils.Exists(artifactStore.indexPath()); err != nil && errors.Is(err, os.ErrNotExist) {
 		if createErr := artifactStore.createEmptyManifest(); createErr != nil {
 			return nil, createErr
@@ -82,6 +91,9 @@ func (as ArtifactStore) Remove(ctx context.Context, name string) (*digest.Digest
 	if len(name) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
+
+	as.lock.Lock()
+	defer as.lock.Unlock()
 
 	// validate and see if the input is a digest
 	artifacts, err := as.getArtifacts(ctx, nil)
@@ -112,6 +124,10 @@ func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*liba
 	if len(nameOrDigest) == 0 {
 		return nil, ErrEmptyArtifactName
 	}
+
+	as.lock.RLock()
+	defer as.lock.Unlock()
+
 	artifacts, err := as.getArtifacts(ctx, nil)
 	if err != nil {
 		return nil, err
@@ -122,6 +138,9 @@ func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*liba
 
 // List artifacts in the local store
 func (as ArtifactStore) List(ctx context.Context) (libartifact.ArtifactList, error) {
+	as.lock.RLock()
+	defer as.lock.Unlock()
+
 	return as.getArtifacts(ctx, nil)
 }
 
@@ -134,6 +153,10 @@ func (as ArtifactStore) Pull(ctx context.Context, name string, opts libimage.Cop
 	if err != nil {
 		return "", err
 	}
+
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
 	destRef, err := layout.NewReference(as.storePath, name)
 	if err != nil {
 		return "", err
@@ -162,6 +185,10 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 	if err != nil {
 		return "", err
 	}
+
+	as.lock.Lock()
+	defer as.lock.Unlock()
+
 	srcRef, err := layout.NewReference(as.storePath, src)
 	if err != nil {
 		return "", err
@@ -200,6 +227,14 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 	if _, hasTitle := options.Annotations[specV1.AnnotationTitle]; hasTitle {
 		return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
 	}
+
+	locked := true
+	as.lock.Lock()
+	defer func() {
+		if locked {
+			as.lock.Unlock()
+		}
+	}()
 
 	// Check if artifact already exists
 	artifacts, err := as.getArtifacts(ctx, nil)
@@ -263,6 +298,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 	}
 	defer imageDest.Close()
 
+	// Unlock around the actual pull of the blobs.
+	// This is ugly as hell, but should be safe.
+	locked = false
+	as.lock.Unlock()
+
 	// ImageDestination, in general, requires the caller to write a full image; here we may write only the added layers.
 	// This works for the oci/layout transport we hard-code.
 	for _, artifactBlob := range artifactBlobs {
@@ -306,6 +346,9 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 
 		artifactManifest.Layers = append(artifactManifest.Layers, newLayer)
 	}
+
+	as.lock.Lock()
+	locked = true
 
 	rawData, err := json.Marshal(artifactManifest)
 	if err != nil {
@@ -669,6 +712,8 @@ func copyTrustedImageBlobToTarStream(ctx context.Context, imgSrc types.ImageSour
 }
 
 func (as ArtifactStore) createEmptyManifest() error {
+	as.lock.Lock()
+	defer as.lock.Unlock()
 	index := specV1.Index{
 		MediaType: specV1.MediaTypeImageIndex,
 		Versioned: specs.Versioned{SchemaVersion: ManifestSchemaVersion},
