@@ -102,7 +102,7 @@ var (
 	// DefaultHooksDirs defines the default hooks directory.
 	DefaultHooksDirs = []string{"/usr/share/containers/oci/hooks.d"}
 	// DefaultCdiSpecDirs defines the default cdi spec directories.
-	DefaultCdiSpecDirs = []string{"/etc/cdi"}
+	DefaultCdiSpecDirs = []string{"/etc/cdi", "/var/run/cdi"}
 	// DefaultCapabilities is the default for the default_capabilities option in the containers.conf file.
 	DefaultCapabilities = []string{
 		"CAP_CHOWN",
