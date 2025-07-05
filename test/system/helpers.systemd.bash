@@ -14,12 +14,42 @@ fi
 
 mkdir -p $UNIT_DIR
 
+journalctl_support_user() {
+    r_value=0
+    run systemd-analyze cat-config systemd/journald.conf | grep Storage
+    if [[ $status != 0 ]]; then
+        echo "Can not get journald.conf, don't use --user in following tests."
+    fi
+
+    if [[ "$output" == "Storage=persistent" ]]; then
+        r_value=1
+    fi
+    return r_value
+}
+
 systemctl() {
     timeout --foreground -v --kill=10 $PODMAN_TIMEOUT systemctl $_DASHUSER "$@"
 }
 
 journalctl() {
-    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT journalctl $_DASHUSER "$@"
+    if is_rootless and ! journalctl_support_user; then
+        # For systems that --user not working, need to update the options manually
+        # for our testing. Otherwise journalctl with --user will always report
+        # -- No entries --
+        options=()
+        for arg in "$@"; do
+            opt="$arg"
+            if [[ "$arg" =~ "--unit" ]]; then
+                opt="${arg/--unit/--user-unit}"
+            elif [[ "$arg" == "-u" ]]; then
+                opt="--user-unit"
+            fi
+            options+=("$opt")
+        done
+        timeout --foreground -v --kill=10 $PODMAN_TIMEOUT journalctl "${options[@]}"
+    else
+        timeout --foreground -v --kill=10 $PODMAN_TIMEOUT journalctl $_DASHUSER "$@"
+    fi
 }
 
 systemd-run() {
