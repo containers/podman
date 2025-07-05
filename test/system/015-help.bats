@@ -210,7 +210,13 @@ function check_help() {
         is "${lines[0]}" "Manage pods, containers and images" \
            "podman $helpopt: first line of output"
     done
+}
 
+# bats test_tags=ci:parallel
+@test "podman machine list --help tests" {
+    skip_if_remote
+    run_podman machine list --help
+    is "$output" ".*--all-providers   Show machines from all providers (default true)" "All providers default to true"
 }
 
 # vim: filetype=sh
