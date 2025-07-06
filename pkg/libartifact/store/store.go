@@ -190,8 +190,8 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		return nil, ErrEmptyArtifactName
 	}
 
-	if options.Append && len(options.ArtifactType) > 0 {
-		return nil, errors.New("append option is not compatible with ArtifactType option")
+	if options.Append && len(options.ArtifactMIMEType) > 0 {
+		return nil, errors.New("append option is not compatible with type option")
 	}
 
 	// currently we don't allow override of the filename ; if a user requirement emerges,
@@ -221,7 +221,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		artifactManifest = specV1.Manifest{
 			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
 			MediaType:    specV1.MediaTypeImageManifest,
-			ArtifactType: options.ArtifactType,
+			ArtifactType: options.ArtifactMIMEType,
 			// TODO This should probably be configurable once the CLI is capable
 			Config: specV1.DescriptorEmptyJSON,
 			Layers: make([]specV1.Descriptor, 0),
@@ -274,13 +274,13 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		annotations[specV1.AnnotationTitle] = artifactBlob.FileName
 
 		newLayer := specV1.Descriptor{
-			MediaType:   options.FileType,
+			MediaType:   options.FileMIMEType,
 			Annotations: annotations,
 		}
 
 		// If we did not receive an override for the layer's mediatype, use
 		// detection to determine it.
-		if options.FileType == "" {
+		if options.FileMIMEType == "" {
 			artifactBlob.BlobReader, newLayer.MediaType, err = determineBlobMIMEType(artifactBlob)
 			if err != nil {
 				return nil, err

@@ -21,10 +21,6 @@ const (
 )
 
 var _ = Describe("Podman artifact", func() {
-	BeforeEach(func() {
-		SkipIfRemote("artifacts are not supported on the remote client yet due to being in development still")
-	})
-
 	It("podman artifact ls", func() {
 		artifact1File, err := createArtifactFile(4192)
 		Expect(err).ToNot(HaveOccurred())
@@ -535,7 +531,7 @@ var _ = Describe("Podman artifact", func() {
 
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--type", artifactType, "--append", artifact1Name, artifact3File})
 		failSession.WaitWithDefaultTimeout()
-		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with ArtifactType option"))
+		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
 	})
 })
 

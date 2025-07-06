@@ -23,7 +23,6 @@ var (
 		ValidArgsFunction: common.AutocompleteArtifacts,
 		Example: `podman artifact rm quay.io/myimage/myartifact:latest
 podman artifact rm -a`,
-		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 
 	rmOptions = entities.ArtifactRemoveOptions{}
