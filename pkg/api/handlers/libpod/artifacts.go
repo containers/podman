@@ -191,11 +191,11 @@ func AddArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artifactAddOptions := &entities.ArtifactAddOptions{
-		Append:       query.Append,
-		Annotations:  annotations,
-		ArtifactType: query.ArtifactMIMEType,
-		FileType:     query.FileMIMEType,
+	artifactAddOptions := entities.ArtifactAddOptions{
+		Append:           query.Append,
+		Annotations:      annotations,
+		ArtifactMIMEType: query.ArtifactMIMEType,
+		FileMIMEType:     query.FileMIMEType,
 	}
 
 	artifactBlobs := []entities.ArtifactBlob{{
@@ -324,7 +324,7 @@ func ExtractArtifact(w http.ResponseWriter, r *http.Request) {
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	err := imageEngine.ArtifactExtractTarStream(r.Context(), w, name, &extractOpts)
+	err := imageEngine.ArtifactExtractTarStream(r.Context(), w, name, extractOpts)
 	if err != nil {
 		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
 			utils.ArtifactNotFound(w, name, err)

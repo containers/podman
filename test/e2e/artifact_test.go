@@ -21,10 +21,6 @@ const (
 )
 
 var _ = Describe("Podman artifact", func() {
-	BeforeEach(func() {
-		SkipIfRemote("artifacts are not supported on the remote client yet due to being in development still")
-	})
-
 	It("podman artifact ls", func() {
 		artifact1File, err := createArtifactFile(4192)
 		Expect(err).ToNot(HaveOccurred())
@@ -133,7 +129,11 @@ var _ = Describe("Podman artifact", func() {
 		retrySession := podmanTest.Podman([]string{"artifact", "pull", "--retry", "1", "--retry-delay", "100ms", "127.0.0.1/mybadimagename"})
 		retrySession.WaitWithDefaultTimeout()
 		Expect(retrySession).Should(ExitWithError(125, "connect: connection refused"))
-		Expect(retrySession.ErrorToString()).To(ContainSubstring("retrying in 100ms ..."))
+
+		// TODO: This can be removed once Artifact API supports streaming
+		if !IsRemote() {
+			Expect(retrySession.ErrorToString()).To(ContainSubstring("retrying in 100ms ..."))
+		}
 
 		artifact1File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
@@ -202,12 +202,15 @@ var _ = Describe("Podman artifact", func() {
 		multipleArgs.WaitWithDefaultTimeout()
 		Expect(multipleArgs).Should(ExitWithError(125, "Error: too many arguments: only accepts one artifact name or digest"))
 
-		// Remove all
-		podmanTest.PodmanExitCleanly("artifact", "rm", "-a")
+		// TODO: This should be removed once Artifact API remove endpoint supports the "all" flag
+		if !IsRemote() {
+			// Remove all
+			podmanTest.PodmanExitCleanly("artifact", "rm", "-a")
 
-		// There should be no artifacts in the store
-		rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
-		Expect(rmAll.OutputToString()).To(BeEmpty())
+			// There should be no artifacts in the store
+			rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
+			Expect(rmAll.OutputToString()).To(BeEmpty())
+		}
 	})
 
 	It("podman artifact inspect with full or partial digest", func() {
@@ -486,9 +489,14 @@ var _ = Describe("Podman artifact", func() {
 		addFail.WaitWithDefaultTimeout()
 		Expect(addFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: file already exists in artifact", filepath.Base(artifact1File))))
 
-		inspectFail := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
-		inspectFail.WaitWithDefaultTimeout()
-		Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+		// NOTE: Remote client adds blobs one at a time and thus can't know before the artifact is created if the file exists
+		// There for the `artifact add` command will fail if the file already exists but the artifact will be created with
+		// the first file.
+		if !IsRemote() {
+			inspectFail := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
+			inspectFail.WaitWithDefaultTimeout()
+			Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+		}
 	})
 
 	It("podman artifact add --append file already exists in artifact", func() {
@@ -535,7 +543,7 @@ var _ = Describe("Podman artifact", func() {
 
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--type", artifactType, "--append", artifact1Name, artifact3File})
 		failSession.WaitWithDefaultTimeout()
-		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with ArtifactType option"))
+		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
 	})
 })
 

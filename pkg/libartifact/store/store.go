@@ -217,8 +217,8 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		return nil, ErrEmptyArtifactName
 	}
 
-	if options.Append && len(options.ArtifactType) > 0 {
-		return nil, errors.New("append option is not compatible with ArtifactType option")
+	if options.Append && len(options.ArtifactMIMEType) > 0 {
+		return nil, errors.New("append option is not compatible with type option")
 	}
 
 	// currently we don't allow override of the filename ; if a user requirement emerges,
@@ -256,7 +256,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		artifactManifest = specV1.Manifest{
 			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
 			MediaType:    specV1.MediaTypeImageManifest,
-			ArtifactType: options.ArtifactType,
+			ArtifactType: options.ArtifactMIMEType,
 			// TODO This should probably be configurable once the CLI is capable
 			Config: specV1.DescriptorEmptyJSON,
 			Layers: make([]specV1.Descriptor, 0),
@@ -314,13 +314,13 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		annotations[specV1.AnnotationTitle] = artifactBlob.FileName
 
 		newLayer := specV1.Descriptor{
-			MediaType:   options.FileType,
+			MediaType:   options.FileMIMEType,
 			Annotations: annotations,
 		}
 
 		// If we did not receive an override for the layer's mediatype, use
 		// detection to determine it.
-		if options.FileType == "" {
+		if options.FileMIMEType == "" {
 			artifactBlob.BlobReader, newLayer.MediaType, err = determineBlobMIMEType(artifactBlob)
 			if err != nil {
 				return nil, err
@@ -555,9 +555,6 @@ func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameO
 	}
 	defer imgSrc.Close()
 
-	tw := tar.NewWriter(w)
-	defer tw.Close()
-
 	// Return early if only a single blob is requested via title or digest
 	if len(options.Digest) > 0 || len(options.Title) > 0 {
 		digest, err := findDigest(arty, &options.FilterBlobOptions)
@@ -574,6 +571,9 @@ func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameO
 			return err
 		}
 
+		tw := tar.NewWriter(w)
+		defer tw.Close()
+
 		err = copyTrustedImageBlobToTarStream(ctx, imgSrc, digest, filename, tw)
 		if err != nil {
 			return err
@@ -582,13 +582,35 @@ func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameO
 		return nil
 	}
 
+	type blob struct {
+		name   string
+		digest digest.Digest
+	}
+	blobs := make([]blob, 0, len(arty.Manifest.Layers))
+
+	// Gather blob details and return error on any illegal names
 	for _, l := range arty.Manifest.Layers {
 		title := l.Annotations[specV1.AnnotationTitle]
-		filename, err := generateArtifactBlobName(title, l.Digest)
+		digest := l.Digest
+
+		name, err := generateArtifactBlobName(title, digest)
 		if err != nil {
 			return err
 		}
-		err = copyTrustedImageBlobToTarStream(ctx, imgSrc, l.Digest, filename, tw)
+
+		blobs = append(blobs, blob{
+			name:   name,
+			digest: digest,
+		})
+	}
+
+	// Wrap io.Writer in a tar.Writer
+	tw := tar.NewWriter(w)
+	defer tw.Close()
+
+	// Write each blob to tar.Writer then close
+	for _, b := range blobs {
+		err := copyTrustedImageBlobToTarStream(ctx, imgSrc, b.digest, b.name, tw)
 		if err != nil {
 			return err
 		}
