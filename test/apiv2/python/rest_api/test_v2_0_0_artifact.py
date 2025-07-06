@@ -218,7 +218,7 @@ class ArtifactTestCase(APITestCase):
         # Assert return error response is json and contains correct message
         self.assertEqual(
             rjson["cause"],
-            "append option is not compatible with ArtifactType option",
+            "append option is not compatible with type option",
         )
 
     def test_add_with_append_to_missing_artifact_fails(self):

@@ -36,9 +36,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	ErrEmptyArtifactName = errors.New("artifact name cannot be empty")
-)
+var ErrEmptyArtifactName = errors.New("artifact name cannot be empty")
 
 const ManifestSchemaVersion = 2
 
@@ -217,8 +215,8 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		return nil, ErrEmptyArtifactName
 	}
 
-	if options.Append && len(options.ArtifactType) > 0 {
-		return nil, errors.New("append option is not compatible with ArtifactType option")
+	if options.Append && len(options.ArtifactMIMEType) > 0 {
+		return nil, errors.New("append option is not compatible with type option")
 	}
 
 	// currently we don't allow override of the filename ; if a user requirement emerges,
@@ -256,7 +254,7 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		artifactManifest = specV1.Manifest{
 			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
 			MediaType:    specV1.MediaTypeImageManifest,
-			ArtifactType: options.ArtifactType,
+			ArtifactType: options.ArtifactMIMEType,
 			// TODO This should probably be configurable once the CLI is capable
 			Config: specV1.DescriptorEmptyJSON,
 			Layers: make([]specV1.Descriptor, 0),
@@ -314,13 +312,13 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		annotations[specV1.AnnotationTitle] = artifactBlob.FileName
 
 		newLayer := specV1.Descriptor{
-			MediaType:   options.FileType,
+			MediaType:   options.FileMIMEType,
 			Annotations: annotations,
 		}
 
 		// If we did not receive an override for the layer's mediatype, use
 		// detection to determine it.
-		if options.FileType == "" {
+		if options.FileMIMEType == "" {
 			artifactBlob.BlobReader, newLayer.MediaType, err = determineBlobMIMEType(artifactBlob)
 			if err != nil {
 				return nil, err
@@ -449,6 +447,7 @@ func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string,
 		if err != nil {
 			return nil, err
 		}
+
 		path, err := layout.GetLocalBlobPath(ctx, imgSrc, digest)
 		if err != nil {
 			return nil, err
@@ -466,6 +465,7 @@ func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string,
 		if err != nil {
 			return nil, err
 		}
+
 		path, err := layout.GetLocalBlobPath(ctx, imgSrc, l.Digest)
 		if err != nil {
 			return nil, err
@@ -525,6 +525,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 		if err != nil {
 			return err
 		}
+
 		return copyTrustedImageBlobToFile(ctx, imgSrc, digest, filepath.Join(target, filename))
 	}
 
@@ -534,6 +535,7 @@ func (as ArtifactStore) Extract(ctx context.Context, nameOrDigest string, target
 		if err != nil {
 			return err
 		}
+
 		err = copyTrustedImageBlobToFile(ctx, imgSrc, l.Digest, filepath.Join(target, filename))
 		if err != nil {
 			return err
@@ -555,9 +557,6 @@ func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameO
 	}
 	defer imgSrc.Close()
 
-	tw := tar.NewWriter(w)
-	defer tw.Close()
-
 	// Return early if only a single blob is requested via title or digest
 	if len(options.Digest) > 0 || len(options.Title) > 0 {
 		digest, err := findDigest(arty, &options.FilterBlobOptions)
@@ -571,8 +570,14 @@ func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameO
 		// is set as we only allow either one.
 		filename, err := generateArtifactBlobName(options.Title, digest)
 		if err != nil {
-			return err
+			// Only return error if it's not an invalid blob title error and title exclusion is not requested.
+			if !errors.Is(err, libartTypes.ErrArtifactBlobTitleInvalid) && !options.ExcludeTitle {
+				return err
+			}
 		}
+
+		tw := tar.NewWriter(w)
+		defer tw.Close()
 
 		err = copyTrustedImageBlobToTarStream(ctx, imgSrc, digest, filename, tw)
 		if err != nil {
@@ -582,13 +587,45 @@ func (as ArtifactStore) ExtractTarStream(ctx context.Context, w io.Writer, nameO
 		return nil
 	}
 
+	artifactBlobCount := len(arty.Manifest.Layers)
+
+	type blob struct {
+		name   string
+		digest digest.Digest
+	}
+	blobs := make([]blob, 0, artifactBlobCount)
+
+	// Gather blob details and return error on any illegal names
 	for _, l := range arty.Manifest.Layers {
 		title := l.Annotations[specV1.AnnotationTitle]
-		filename, err := generateArtifactBlobName(title, l.Digest)
+		digest := l.Digest
+
+		name, err := generateArtifactBlobName(title, digest)
 		if err != nil {
-			return err
+			// Only fail if:
+			// - The error is NOT ErrArtifactBlobTitleInvalid
+			// OR
+			// - The error is ErrArtifactBlobTitleInvalid AND
+			//   title exclusion is NOT enabled AND artifact has exactly one blob
+			if !errors.Is(err, libartTypes.ErrArtifactBlobTitleInvalid) ||
+				(!options.ExcludeTitle && artifactBlobCount == 1) {
+				return err
+			}
 		}
-		err = copyTrustedImageBlobToTarStream(ctx, imgSrc, l.Digest, filename, tw)
+
+		blobs = append(blobs, blob{
+			name:   name,
+			digest: digest,
+		})
+	}
+
+	// Wrap io.Writer in a tar.Writer
+	tw := tar.NewWriter(w)
+	defer tw.Close()
+
+	// Write each blob to tar.Writer then close
+	for _, b := range blobs {
+		err := copyTrustedImageBlobToTarStream(ctx, imgSrc, b.digest, b.name, tw)
 		if err != nil {
 			return err
 		}
@@ -612,7 +649,7 @@ func generateArtifactBlobName(title string, digest digest.Digest) (string, error
 	// We must use os.IsPathSeparator() as on Windows it checks both "\\" and "/".
 	for i := 0; i < len(filename); i++ {
 		if os.IsPathSeparator(filename[i]) {
-			return "", fmt.Errorf("invalid name: %q cannot contain %c", filename, filename[i])
+			return "", fmt.Errorf("invalid name: %q cannot contain %c: %w", filename, filename[i], libartTypes.ErrArtifactBlobTitleInvalid)
 		}
 	}
 	return filename, nil
@@ -733,9 +770,7 @@ func (as ArtifactStore) indexPath() string {
 // getArtifacts returns an ArtifactList based on the artifact's store.  The return error and
 // unused opts is meant for future growth like filters, etc so the API does not change.
 func (as ArtifactStore) getArtifacts(ctx context.Context, _ *libartTypes.GetArtifactOptions) (libartifact.ArtifactList, error) {
-	var (
-		al libartifact.ArtifactList
-	)
+	var al libartifact.ArtifactList
 
 	lrs, err := layout.List(as.storePath)
 	if err != nil {
