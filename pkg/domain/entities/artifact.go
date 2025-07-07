@@ -39,7 +39,6 @@ type ArtifactInspectOptions struct {
 }
 
 type ArtifactListOptions struct {
-	ImagePushOptions
 }
 
 type ArtifactPullOptions struct {
