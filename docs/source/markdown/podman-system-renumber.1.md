@@ -19,6 +19,13 @@ When all available locks are exhausted, no further containers and pods can be cr
 
 If possible, avoid calling **podman system renumber** while there are other Podman processes running.
 
+## EXAMPLES
+
+Renumber container and pod locks after modifying the num_locks setting in containers.conf.
+```
+$ podman system renumber
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
 
