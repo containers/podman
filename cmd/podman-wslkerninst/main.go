@@ -48,7 +48,7 @@ func installWslKernel() error {
 	)
 	backoff := 500 * time.Millisecond
 	for i := 1; i < 6; i++ {
-		err = wutil.SilentExec("wsl", "--update")
+		err = wutil.SilentExec("--update")
 		if err == nil {
 			break
 		}
