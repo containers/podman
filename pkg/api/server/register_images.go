@@ -1487,6 +1487,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	// summary: Create image
 	// description: Build an image from the given Dockerfile(s)
 	// parameters:
+	//  - in: header
+	//    name: Content-Type
+	//    type: string
+	//    default: application/x-tar
+	//    enum: ["application/x-tar"]
+	//  - in: header
+	//    name: X-Registry-Config
+	//    type: string
 	//  - in: query
 	//    name: dockerfile
 	//    type: string
