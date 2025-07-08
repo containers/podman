@@ -26,7 +26,7 @@ BEGIN {
 // netavark and aardvark-dns as they have podman in the path as well but this is
 // good so we can see any errors there as well.
 tracepoint:syscalls:sys_enter_exec*
-/ strcontains(str(args.argv[0]),"podman") || strcontains(str(args.argv[0]), "conmon")  /
+/ strcontains(str(args.argv[0], 128), "podman") || strcontains(str(args.argv[0], 128), "conmon")  /
 {
 
     // create entry in pid map so we can check the pid later
@@ -36,7 +36,7 @@ tracepoint:syscalls:sys_enter_exec*
     // I tried matching argv but there seems to be no way to iterate over it.
     // In practise parent name conmon and argv0 podman should contain all the
     // cleanup processes we care about.
-    if (comm == "conmon" && strcontains(str(args.argv[0]), "podman")) {
+    if (comm == "conmon" && strcontains(str(args.argv[0], 128), "podman")) {
         @cleanupPids[pid] = 1;
     }
 
