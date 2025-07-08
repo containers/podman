@@ -33,11 +33,12 @@ type ArtifactBlob struct {
 }
 
 type ArtifactInspectOptions struct {
+	// Note: Remote is not currently implemented but will be used for
+	// remote inspect of artifacts on registries
 	Remote bool
 }
 
 type ArtifactListOptions struct {
-	ImagePushOptions
 }
 
 type ArtifactPullOptions struct {
