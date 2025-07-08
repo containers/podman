@@ -48,6 +48,11 @@ data:
   password: NTRmNDFkMTJlOGZh
 `
 
+var secretTxt = `
+This secret is not a properly formatted yaml
+It will therefore produce an error
+`
+
 var complexSecretYaml = `
 apiVersion: v1
 kind: Secret
@@ -5243,6 +5248,31 @@ ENV OPENJ9_JAVA_OPTIONS=%q
 		createAndTestSecret(podmanTest, secretYaml, "newsecret", kubeYaml)
 		testPodWithSecret(podmanTest, secretPodYaml, kubeYaml, true, true)
 		deleteAndTestSecret(podmanTest, "newsecret")
+	})
+
+	It("secret as volume support - error on invalid secret format", func() {
+		const secretName = "newsecret"
+
+		// Create text file secret
+		kubeTxt := strings.Replace(kubeYaml, ".yaml", ".txt", 1)
+		err := writeYaml(secretTxt, kubeTxt)
+		Expect(err).ToNot(HaveOccurred())
+
+		createSecret := podmanTest.Podman([]string{"secret", "create", secretName, kubeTxt})
+		createSecret.WaitWithDefaultTimeout()
+		Expect(createSecret).Should(ExitCleanly())
+
+		// Run kube play and expect error
+		err = writeYaml(secretPodYaml, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).Should(Exit(-1))
+		Expect(kube.ErrorToString()).To(ContainSubstring("only secrets created via the kube yaml file are supported"))
+
+		// Delete secret
+		deleteAndTestSecret(podmanTest, secretName)
 	})
 
 	It("secret as volume support - multiple volumes", func() {

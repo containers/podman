@@ -167,9 +167,8 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 
 	secret := &v1.Secret{}
 
-	err = yaml.Unmarshal(secretByte, secret)
-	if err != nil {
-		return nil, err
+	if err := yaml.Unmarshal(secretByte, secret); err != nil {
+		return nil, fmt.Errorf("only secrets created via the kube yaml file are supported: %w", err)
 	}
 
 	// If there are Items specified in the volumeSource, that overwrites the Data from the Secret
