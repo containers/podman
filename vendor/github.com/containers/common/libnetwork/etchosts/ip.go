@@ -2,12 +2,14 @@ package etchosts
 
 import (
 	"net"
+	"sync"
 
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/libnetwork/util"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/machine"
 	"github.com/containers/storage/pkg/unshare"
+	"github.com/sirupsen/logrus"
 )
 
 // HostContainersInternalOptions contains the options for GetHostContainersInternalIP()
@@ -28,14 +30,30 @@ type HostContainersInternalOptions struct {
 	PreferIP string
 }
 
+// Lookup "host.containers.internal" dns name so we can add it to /etc/hosts when running inside podman machine.
+var machineHostContainersInternalIP = sync.OnceValue(func() string {
+	var errMsg string
+	addrs, err := net.LookupIP(HostContainersInternal)
+	if err == nil {
+		if len(addrs) > 0 {
+			return addrs[0].String()
+		}
+		errMsg = "lookup result is empty"
+	} else {
+		errMsg = err.Error()
+	}
+	logrus.Warnf("Failed to resolve %s for the host entry ip address: %s", HostContainersInternal, errMsg)
+	return ""
+})
+
 // GetHostContainersInternalIP returns the host.containers.internal ip
 func GetHostContainersInternalIP(opts HostContainersInternalOptions) string {
 	switch opts.Conf.Containers.HostContainersInternalIP {
 	case "":
-		// if empty (default) we will automatically choose one below
-		// if machine using gvproxy we let the gvproxy dns server handle the dns name so do not add it
+		// If empty (default) we will automatically choose one below.
+		// If machine using gvproxy we let the gvproxy dns server handle resolve the name and then use that ip.
 		if machine.IsGvProxyBased() {
-			return ""
+			return machineHostContainersInternalIP()
 		}
 	case "none":
 		return ""
