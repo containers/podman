@@ -89,7 +89,9 @@ tracepoint:sched:sched_process_exit
 
     // process is done remove pid from map
     delete(@pids[pid]);
-    delete(@cleanupPids[pid]);
+    if (@cleanupPids[pid]) {
+        delete(@cleanupPids[pid]);
+    }
 }
 
 // Trace all kill calls that target our pids.
