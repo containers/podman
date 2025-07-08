@@ -621,7 +621,9 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	serviceStopCmd.Args[0] = fmt.Sprintf("-%s", serviceStopCmd.Args[0])
 	service.AddCmdline(ServiceGroup, "ExecStopPost", serviceStopCmd.Args)
 
-	if err := handleExecReload(container, service, ContainerGroup, containerName); err != nil {
+	warn, err = handleExecReload(container, service, ContainerGroup, containerName)
+	warnings = errors.Join(warnings, warn)
+	if err != nil {
 		return nil, warnings, err
 	}
 
@@ -888,10 +890,11 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 		podman.add("--rootfs", rootfs)
 	}
 
-	execArgs, ok := container.LookupLastArgs(ContainerGroup, KeyExec)
+	execArgs, ok, warn := container.LookupLastArgs(ContainerGroup, KeyExec)
 	if ok {
 		podman.add(execArgs...)
 	}
+	warnings = errors.Join(warnings, warn)
 
 	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
 
@@ -2169,18 +2172,22 @@ func addDefaultDependencies(service *parser.UnitFile, isUser bool) {
 	}
 }
 
-func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName, containerName string) error {
+// handleExecReload handles the ExecReload key.
+// If return (warning, error)
+// An error is returned if both KeyReloadCmd and KeyReloadSignal are set,
+// and a warning is returned if it failed to parse the ReloadCmd key.
+func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupName, containerName string) (error, error) {
 	reloadSignal, signalOk := quadletUnitFile.Lookup(groupName, KeyReloadSignal)
 	signalOk = signalOk && len(reloadSignal) > 0
-	reloadcmd, cmdOk := quadletUnitFile.LookupLastArgs(groupName, KeyReloadCmd)
+	reloadcmd, cmdOk, warn := quadletUnitFile.LookupLastArgs(groupName, KeyReloadCmd)
 	cmdOk = cmdOk && len(reloadcmd) > 0
 
 	if !cmdOk && !signalOk {
-		return nil
+		return warn, nil
 	}
 
 	if cmdOk && signalOk {
-		return fmt.Errorf("%s and %s are mutually exclusive but both are set", KeyReloadCmd, KeyReloadSignal)
+		return warn, fmt.Errorf("%s and %s are mutually exclusive but both are set", KeyReloadCmd, KeyReloadSignal)
 	}
 
 	serviceReloadCmd := createBasePodmanCommand(quadletUnitFile, groupName)
@@ -2192,7 +2199,7 @@ func handleExecReload(quadletUnitFile, serviceUnitFile *parser.UnitFile, groupNa
 	}
 	serviceUnitFile.AddCmdline(ServiceGroup, "ExecReload", serviceReloadCmd.Args)
 
-	return nil
+	return warn, nil
 }
 
 func translateUnitDependencies(serviceUnitFile *parser.UnitFile, unitsInfoMap map[string]*UnitInfo) error {
