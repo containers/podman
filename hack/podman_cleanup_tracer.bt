@@ -133,19 +133,5 @@ tracepoint:syscalls:sys_enter_write
         comm
     );
 
-    // String size limit is is 64 by default, this includes the 0 byte and when we
-    // hit the string limit it also adds "..." when using 63 so we use 63 as len here.
-    // While upstream fixed these low string limits (https://github.com/bpftrace/bpftrace/issues/305)
-    // it is not yet in older distro version we use so we cannot use that yet.
-    // Thus manually print several times.
-    $len = 62;
-    $offset = 62;
-    printf("%s", str(args.buf, $len));
-
-    unroll(10) {
-        if ((int64)args.count > $offset ) {
-            printf("%s", str(args.buf + $offset, $len));
-        }
-        $offset += $len
-    }
+    printf("%s", str(args.buf, args.count));
 }
