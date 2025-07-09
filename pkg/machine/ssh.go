@@ -22,6 +22,9 @@ func LocalhostSSH(username, identityPath, name string, sshPort int, inputArgs []
 
 // This ssh’es to a podman machine which is not listening on localhost but has its own IP
 func LocalhostSSHShellWithAddress(username, identityPath, name, address string, sshPort int, inputArgs []string) error {
+	if address == "" {
+		address = "localhost"
+	}
 	return localhostNativeSSH(username, identityPath, name, address, sshPort, inputArgs, os.Stdin, false)
 }
 
