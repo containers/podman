@@ -137,3 +137,26 @@ tracepoint:syscalls:sys_enter_write
 
     printf("%s", str(args.buf, args.count));
 }
+
+// Print debug
+tracepoint:syscalls:sys_enter_write
+/ @pids[pid] /
+{
+    $name = "";
+    if (args.fd == 2147483647) {
+        $name = "client";
+    } else if (args.fd == 2147483646) {
+        $name = "conmon";
+    } else {
+        return;
+    }
+    printf("%-6s %s %-8d %-8d %-12s ",
+        $name,
+		strftime("%H:%M:%S.%f", nsecs),
+		pid,
+        curtask->real_parent->tgid,
+        comm
+    );
+
+    printf("%d %s\n", args.count, str(args.buf, args.count));
+}

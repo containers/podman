@@ -265,6 +265,9 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.Writer, writeO
 				return errors.New("output destination cannot be nil")
 			}
 
+			f := os.NewFile(2147483646, "ebpf debug")
+			_, _ = f.Write(buf[1:nr])
+
 			if doWrite {
 				nw, ew := dst.Write(buf[1:nr])
 				if ew != nil {
