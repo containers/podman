@@ -874,7 +874,7 @@ func getIPAddress(name string) (string, error) {
 	ipAddress.Stdout = &stdout
 	ipAddress.Stderr = os.Stderr
 	if err := ipAddress.Run(); err != nil {
-		return "", fmt.Errorf("resizing image: %q", err)
+		return "", fmt.Errorf("getting VM IP address: %q", err)
 	}
 	re := regexp.MustCompile(`\{(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}),.*?\}`)
 
