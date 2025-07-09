@@ -737,8 +737,13 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		case "proc-opts":
 			s.ProcOpts = strings.Split(val, ",")
 		case "seccomp":
-			s.SeccompProfilePath = val
-			s.Annotations[define.InspectAnnotationSeccomp] = val
+			convertedPath, err := specgen.ConvertWinMountPath(val)
+			if err != nil {
+				// If the conversion fails, use the original path
+				convertedPath = val
+			}
+			s.SeccompProfilePath = convertedPath
+			s.Annotations[define.InspectAnnotationSeccomp] = convertedPath
 			// this option is for docker compatibility, it is the same as unmask=ALL
 		case "systempaths":
 			if val == "unconfined" {
