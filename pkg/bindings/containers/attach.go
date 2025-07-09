@@ -13,7 +13,6 @@ import (
 	"os"
 	"reflect"
 	"strconv"
-	"time"
 
 	"github.com/containers/common/pkg/detach"
 	"github.com/containers/podman/v5/libpod/define"
@@ -111,36 +110,9 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 		}()
 	}
 
-	headers := make(http.Header)
-	headers.Add("Connection", "Upgrade")
-	headers.Add("Upgrade", "tcp")
-
-	var socket net.Conn
-	socketSet := false
-	dialContext := conn.Client.Transport.(*http.Transport).DialContext
-	t := &http.Transport{
-		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-			c, err := dialContext(ctx, network, address)
-			if err != nil {
-				return nil, err
-			}
-			if !socketSet {
-				socket = c
-				socketSet = true
-			}
-			return c, err
-		},
-		IdleConnTimeout: time.Duration(0),
-	}
-	conn.Client.Transport = t
-	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/attach", params, headers, nameOrID)
+	socket, err := newUpgradeRequest(ctx, conn, nil, fmt.Sprintf("/containers/%s/attach", nameOrID), params)
 	if err != nil {
 		return err
-	}
-
-	if !response.IsSuccess() && !response.IsInformational() {
-		defer response.Body.Close()
-		return response.Process(nil)
 	}
 
 	if needTTY {
@@ -472,32 +444,9 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		return err
 	}
 
-	var socket net.Conn
-	socketSet := false
-	dialContext := conn.Client.Transport.(*http.Transport).DialContext
-	t := &http.Transport{
-		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
-			c, err := dialContext(ctx, network, address)
-			if err != nil {
-				return nil, err
-			}
-			if !socketSet {
-				socket = c
-				socketSet = true
-			}
-			return c, err
-		},
-		IdleConnTimeout: time.Duration(0),
-	}
-	conn.Client.Transport = t
-	response, err := conn.DoRequest(ctx, bytes.NewReader(bodyJSON), http.MethodPost, "/exec/%s/start", nil, nil, sessionID)
+	socket, err := newUpgradeRequest(ctx, conn, bytes.NewReader(bodyJSON), fmt.Sprintf("/exec/%s/start", sessionID), nil)
 	if err != nil {
 		return err
-	}
-	defer response.Body.Close()
-
-	if !response.IsSuccess() && !response.IsInformational() {
-		return response.Process(nil)
 	}
 
 	if needTTY {
@@ -587,4 +536,31 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		}
 	}
 	return nil
+}
+
+func newUpgradeRequest(ctx context.Context, conn *bindings.Connection, body io.Reader, path string, params url.Values) (io.ReadWriter, error) {
+	headers := http.Header{
+		"Connection": []string{"Upgrade"},
+		"Upgrade":    []string{"tcp"},
+	}
+
+	response, err := conn.DoRequest(ctx, body, http.MethodPost, path, params, headers)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusSwitchingProtocols {
+		defer response.Body.Close()
+		if err := response.Process(nil); err != nil {
+			return nil, err
+		}
+		return nil, fmt.Errorf("incorrect server response code %d, expected %d", response.StatusCode, http.StatusSwitchingProtocols)
+	}
+	socket, ok := response.Body.(io.ReadWriter)
+	if !ok {
+		response.Body.Close()
+		return nil, errors.New("internal error: cannot cast to http response Body to io.ReadWriter")
+	}
+
+	return socket, nil
 }
