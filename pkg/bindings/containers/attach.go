@@ -232,19 +232,19 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			switch fd {
 			case 0:
 				if isSet.stdout {
-					if _, err := stdout.Write(frame[0:l]); err != nil {
+					if _, err := stdout.Write(frame); err != nil {
 						return err
 					}
 				}
 			case 1:
 				if isSet.stdout {
-					if _, err := stdout.Write(frame[0:l]); err != nil {
+					if _, err := stdout.Write(frame); err != nil {
 						return err
 					}
 				}
 			case 2:
 				if isSet.stderr {
-					if _, err := stderr.Write(frame[0:l]); err != nil {
+					if _, err := stderr.Write(frame); err != nil {
 						return err
 					}
 				}
@@ -555,19 +555,19 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 				if options.GetAttachInput() {
 					// Write STDIN to STDOUT (echoing characters
 					// typed by another attach session)
-					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
+					if _, err := options.GetOutputStream().Write(frame); err != nil {
 						return err
 					}
 				}
 			case 1:
 				if options.GetAttachOutput() {
-					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
+					if _, err := options.GetOutputStream().Write(frame); err != nil {
 						return err
 					}
 				}
 			case 2:
 				if options.GetAttachError() {
-					if _, err := options.GetErrorStream().Write(frame[0:l]); err != nil {
+					if _, err := options.GetErrorStream().Write(frame); err != nil {
 						return err
 					}
 				}
