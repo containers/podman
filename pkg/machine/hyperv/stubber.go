@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -882,6 +883,10 @@ func getIPAddress(name string) (string, error) {
 
 	if len(matches) > 1 {
 		ipv4Address := matches[1]
+		// Validate that it's a valid IPv4 address
+		if net.ParseIP(ipv4Address) == nil {
+			return "", fmt.Errorf("invalid IPv4 address extracted: %s", ipv4Address)
+		}
 		return ipv4Address, nil
 	}
 
