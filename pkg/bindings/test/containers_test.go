@@ -383,6 +383,11 @@ var _ = Describe("Podman containers ", func() {
 		o = strings.TrimSpace(o)
 		_, err = time.Parse(time.RFC1123Z, o)
 		Expect(err).ShouldNot(HaveOccurred())
+
+		// drain the line channel and make sure there are no more log lines
+		for l := range stdoutChan {
+			Fail("container logs returned more than one line: " + l)
+		}
 	})
 
 	It("podman top", func() {
