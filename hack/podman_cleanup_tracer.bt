@@ -26,7 +26,7 @@ BEGIN {
 // netavark and aardvark-dns as they have podman in the path as well but this is
 // good so we can see any errors there as well.
 tracepoint:syscalls:sys_enter_exec*
-/ strcontains(str(args.argv[0]),"podman") || strcontains(str(args.argv[0]), "conmon")  /
+/ strcontains(str(args.argv[0], 128), "podman") || strcontains(str(args.argv[0], 128), "conmon")  /
 {
 
     // create entry in pid map so we can check the pid later
@@ -36,7 +36,7 @@ tracepoint:syscalls:sys_enter_exec*
     // I tried matching argv but there seems to be no way to iterate over it.
     // In practise parent name conmon and argv0 podman should contain all the
     // cleanup processes we care about.
-    if (comm == "conmon" && strcontains(str(args.argv[0]), "podman")) {
+    if (comm == "conmon" && strcontains(str(args.argv[0], 128), "podman")) {
         @cleanupPids[pid] = 1;
     }
 
@@ -89,7 +89,9 @@ tracepoint:sched:sched_process_exit
 
     // process is done remove pid from map
     delete(@pids[pid]);
-    delete(@cleanupPids[pid]);
+    if (@cleanupPids[pid]) {
+        delete(@cleanupPids[pid]);
+    }
 }
 
 // Trace all kill calls that target our pids.
@@ -133,19 +135,5 @@ tracepoint:syscalls:sys_enter_write
         comm
     );
 
-    // String size limit is is 64 by default, this includes the 0 byte and when we
-    // hit the string limit it also adds "..." when using 63 so we use 63 as len here.
-    // While upstream fixed these low string limits (https://github.com/bpftrace/bpftrace/issues/305)
-    // it is not yet in older distro version we use so we cannot use that yet.
-    // Thus manually print several times.
-    $len = 62;
-    $offset = 62;
-    printf("%s", str(args.buf, $len));
-
-    unroll(10) {
-        if ((int64)args.count > $offset ) {
-            printf("%s", str(args.buf + $offset, $len));
-        }
-        $offset += $len
-    }
+    printf("%s", str(args.buf, args.count));
 }
