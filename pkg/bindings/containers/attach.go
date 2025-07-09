@@ -259,12 +259,8 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 
 // DemuxHeader reads header for stream from server multiplexed stdin/stdout/stderr/2nd error channel
 func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
-	n, err := io.ReadFull(r, buffer[0:8])
+	_, err = io.ReadFull(r, buffer[0:8])
 	if err != nil {
-		return
-	}
-	if n < 8 {
-		err = io.ErrUnexpectedEOF
 		return
 	}
 
@@ -284,13 +280,9 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 		buffer = append(buffer, make([]byte, length-len(buffer)+1)...)
 	}
 
-	n, err := io.ReadFull(r, buffer[0:length])
+	_, err = io.ReadFull(r, buffer[0:length])
 	if err != nil {
 		return nil, err
-	}
-	if n < length {
-		err = io.ErrUnexpectedEOF
-		return
 	}
 
 	return buffer[0:length], nil
