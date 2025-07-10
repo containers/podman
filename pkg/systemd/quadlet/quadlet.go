@@ -137,6 +137,7 @@ const (
 	KeyPod                   = "Pod"
 	KeyPodmanArgs            = "PodmanArgs"
 	KeyPodName               = "PodName"
+	KeyPolicy                = "Policy"
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
 	KeyReadOnly              = "ReadOnly"
@@ -427,6 +428,7 @@ var (
 				KeyImageTag:             true,
 				KeyOS:                   true,
 				KeyPodmanArgs:           true,
+				KeyPolicy:               true,
 				KeyRetry:                true,
 				KeyRetryDelay:           true,
 				KeyServiceName:          true,
@@ -1312,6 +1314,7 @@ func ConvertImage(image *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 		KeyCreds:         "--creds",
 		KeyDecryptionKey: "--decryption-key",
 		KeyOS:            "--os",
+		KeyPolicy:        "--policy",
 		KeyVariant:       "--variant",
 		KeyRetry:         "--retry",
 		KeyRetryDelay:    "--retry-delay",

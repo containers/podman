@@ -1027,6 +1027,7 @@ BOGUS=foo
 		Entry("Image - Credentials", "creds.image"),
 		Entry("Image - Decryption Key", "decrypt.image"),
 		Entry("Image - OS Key", "os.image"),
+		Entry("Image - Policy Key", "policy.image"),
 		Entry("Image - Variant Key", "variant.image"),
 		Entry("Image - All Tags", "all-tags.image"),
 		Entry("Image - TLS Verify", "tls-verify.image"),

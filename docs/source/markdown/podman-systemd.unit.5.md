@@ -1948,6 +1948,7 @@ Valid options for `[Image]` are listed below:
 | ImageTag=quay\.io/centos/centos:latest | Use this name when resolving `.image` references |
 | OS=windows                             | --os=windows                                     |
 | PodmanArgs=--os=linux                  | --os=linux                                       |
+| Policy=always                          | --policy=always                                  |
 | Retry=5                                | --retry=5                                        |
 | RetryDelay=10s                         | --retry-delay=10s                                |
 | TLSVerify=false                        | --tls-verify=false                               |
@@ -2047,6 +2048,12 @@ The format of this is a space separated list of arguments, which can optionally 
 escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
+
+### `Policy=`
+
+The pull policy to use when pulling the image.
+
+This is equivalent to the Podman `--policy` option.
 
 ### `Retry=`
 
