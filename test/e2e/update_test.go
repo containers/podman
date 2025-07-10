@@ -250,7 +250,7 @@ var _ = Describe("Podman update", func() {
 		testCtr := "test-ctr-name"
 
 		// Test that the variable is not set.
-		ctr1 := podmanTest.Podman([]string{"run", "-t", "--name", testCtr, ALPINE, "printenv", "FOO"})
+		ctr1 := podmanTest.Podman([]string{"run", "--name", testCtr, ALPINE, "printenv", "FOO"})
 		ctr1.WaitWithDefaultTimeout()
 		Expect(ctr1).Should(Exit(1))
 
@@ -263,7 +263,7 @@ var _ = Describe("Podman update", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		env := session.OutputToString()
-		Expect(env).To(ContainSubstring("BAR"))
+		Expect(env).To(Equal("BAR"))
 
 		session = podmanTest.Podman([]string{"inspect", testCtr, "--format", "{{.Config.Env}}"})
 		session.WaitWithDefaultTimeout()
@@ -281,7 +281,7 @@ var _ = Describe("Podman update", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		env = session.OutputToString()
-		Expect(env).To(ContainSubstring("RAB"))
+		Expect(env).To(Equal("RAB"))
 
 		session = podmanTest.Podman([]string{"inspect", testCtr, "--format", "{{.Config.Env}}"})
 		session.WaitWithDefaultTimeout()
