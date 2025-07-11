@@ -25,7 +25,6 @@ var (
 		Args:              validate.NoArgs,
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example:           `podman artifact ls`,
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 	listFlag = listFlagType{}
 )
