@@ -98,6 +98,8 @@ Add a “simple signing” signature at the destination using the specified key.
 
 Add a sigstore signature at the destination using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+@@option sign-by-sq-fingerprint
+
 @@option sign-passphrase-file
 
 @@option tls-verify
