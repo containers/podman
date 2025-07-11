@@ -189,7 +189,7 @@ default-docker:
 
 		if !IsRemote() {
 			// Generate a signature verification policy file
-			policyPath := generatePolicyFile(podmanTest.TempDir, port)
+			policyPath := generatePolicyFile(podmanTest.TempDir, port, "testdata/sequoia-key.pub")
 			defer os.Remove(policyPath)
 
 			session = podmanTest.Podman([]string{"pull", "-q", "--tls-verify=false", "--signature-policy", policyPath, pushedImage})

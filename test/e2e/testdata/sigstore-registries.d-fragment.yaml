@@ -3,3 +3,5 @@ docker:
     use-sigstore-attachments: true
   localhost:5003/sigstore-signed-params:
     use-sigstore-attachments: true
+  localhost:5003/simple-sq-signed:
+    lookaside: file://@lookasideDir@
