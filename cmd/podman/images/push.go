@@ -19,13 +19,12 @@ import (
 // CLI-only fields into the API types.
 type pushOptionsWrapper struct {
 	entities.ImagePushOptions
-	TLSVerifyCLI               bool // CLI only
-	CredentialsCLI             string
-	SignPassphraseFileCLI      string
-	SignBySigstoreParamFileCLI string
-	EncryptionKeys             []string
-	EncryptLayers              []int
-	DigestFile                 string
+	TLSVerifyCLI   bool // CLI only
+	CredentialsCLI string
+	signing        common.SigningCLIOnlyOptions
+	EncryptionKeys []string
+	EncryptLayers  []int
+	DigestFile     string
 }
 
 var (
@@ -118,21 +117,7 @@ func pushFlags(cmd *cobra.Command) {
 	flags.String(retryDelayFlagName, registry.RetryDelayDefault(), "delay between retries in case of push failures")
 	_ = cmd.RegisterFlagCompletionFunc(retryDelayFlagName, completion.AutocompleteNone)
 
-	signByFlagName := "sign-by"
-	flags.StringVar(&pushOptions.SignBy, signByFlagName, "", "Add a signature at the destination using the specified key")
-	_ = cmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
-
-	signBySigstoreFlagName := "sign-by-sigstore"
-	flags.StringVar(&pushOptions.SignBySigstoreParamFileCLI, signBySigstoreFlagName, "", "Sign the image using a sigstore parameter file at `PATH`")
-	_ = cmd.RegisterFlagCompletionFunc(signBySigstoreFlagName, completion.AutocompleteDefault)
-
-	signBySigstorePrivateKeyFlagName := "sign-by-sigstore-private-key"
-	flags.StringVar(&pushOptions.SignBySigstorePrivateKeyFile, signBySigstorePrivateKeyFlagName, "", "Sign the image using a sigstore private key at `PATH`")
-	_ = cmd.RegisterFlagCompletionFunc(signBySigstorePrivateKeyFlagName, completion.AutocompleteDefault)
-
-	signPassphraseFileFlagName := "sign-passphrase-file"
-	flags.StringVar(&pushOptions.SignPassphraseFileCLI, signPassphraseFileFlagName, "", "Read a passphrase for signing an image from `PATH`")
-	_ = cmd.RegisterFlagCompletionFunc(signPassphraseFileFlagName, completion.AutocompleteDefault)
+	common.DefineSigningFlags(cmd, &pushOptions.signing, &pushOptions.ImagePushOptions)
 
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 
@@ -156,10 +141,6 @@ func pushFlags(cmd *cobra.Command) {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
 		_ = flags.MarkHidden("quiet")
-		_ = flags.MarkHidden(signByFlagName)
-		_ = flags.MarkHidden(signBySigstoreFlagName)
-		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
-		_ = flags.MarkHidden(signPassphraseFileFlagName)
 		_ = flags.MarkHidden(encryptionKeysFlagName)
 		_ = flags.MarkHidden(encryptLayersFlagName)
 	} else {
@@ -201,8 +182,7 @@ func imagePush(cmd *cobra.Command, args []string) error {
 		pushOptions.Writer = os.Stderr
 	}
 
-	signingCleanup, err := common.PrepareSigning(&pushOptions.ImagePushOptions,
-		pushOptions.SignPassphraseFileCLI, pushOptions.SignBySigstoreParamFileCLI)
+	signingCleanup, err := common.PrepareSigning(&pushOptions.ImagePushOptions, &pushOptions.signing)
 	if err != nil {
 		return err
 	}
