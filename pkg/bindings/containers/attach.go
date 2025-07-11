@@ -219,7 +219,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(socket, buffer)
 			if err != nil {
-				if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+				if errors.Is(err, io.EOF) {
 					return nil
 				}
 				return err
@@ -232,19 +232,19 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			switch fd {
 			case 0:
 				if isSet.stdout {
-					if _, err := stdout.Write(frame[0:l]); err != nil {
+					if _, err := stdout.Write(frame); err != nil {
 						return err
 					}
 				}
 			case 1:
 				if isSet.stdout {
-					if _, err := stdout.Write(frame[0:l]); err != nil {
+					if _, err := stdout.Write(frame); err != nil {
 						return err
 					}
 				}
 			case 2:
 				if isSet.stderr {
-					if _, err := stderr.Write(frame[0:l]); err != nil {
+					if _, err := stderr.Write(frame); err != nil {
 						return err
 					}
 				}
@@ -259,12 +259,8 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 
 // DemuxHeader reads header for stream from server multiplexed stdin/stdout/stderr/2nd error channel
 func DemuxHeader(r io.Reader, buffer []byte) (fd, sz int, err error) {
-	n, err := io.ReadFull(r, buffer[0:8])
+	_, err = io.ReadFull(r, buffer[0:8])
 	if err != nil {
-		return
-	}
-	if n < 8 {
-		err = io.ErrUnexpectedEOF
 		return
 	}
 
@@ -284,13 +280,9 @@ func DemuxFrame(r io.Reader, buffer []byte, length int) (frame []byte, err error
 		buffer = append(buffer, make([]byte, length-len(buffer)+1)...)
 	}
 
-	n, err := io.ReadFull(r, buffer[0:length])
+	_, err = io.ReadFull(r, buffer[0:length])
 	if err != nil {
 		return nil, err
-	}
-	if n < length {
-		err = io.ErrUnexpectedEOF
-		return
 	}
 
 	return buffer[0:length], nil
@@ -548,7 +540,7 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			// Read multiplexed channels and write to appropriate stream
 			fd, l, err := DemuxHeader(socket, buffer)
 			if err != nil {
-				if errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) {
+				if errors.Is(err, io.EOF) {
 					return nil
 				}
 				return err
@@ -563,19 +555,19 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 				if options.GetAttachInput() {
 					// Write STDIN to STDOUT (echoing characters
 					// typed by another attach session)
-					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
+					if _, err := options.GetOutputStream().Write(frame); err != nil {
 						return err
 					}
 				}
 			case 1:
 				if options.GetAttachOutput() {
-					if _, err := options.GetOutputStream().Write(frame[0:l]); err != nil {
+					if _, err := options.GetOutputStream().Write(frame); err != nil {
 						return err
 					}
 				}
 			case 2:
 				if options.GetAttachError() {
-					if _, err := options.GetErrorStream().Write(frame[0:l]); err != nil {
+					if _, err := options.GetErrorStream().Write(frame); err != nil {
 						return err
 					}
 				}
