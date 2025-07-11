@@ -21,11 +21,10 @@ import (
 type manifestPushOptsWrapper struct {
 	entities.ImagePushOptions
 
-	TLSVerifyCLI, Insecure     bool // CLI only
-	CredentialsCLI             string
-	SignBySigstoreParamFileCLI string
-	SignPassphraseFileCLI      string
-	DigestFile                 string
+	TLSVerifyCLI, Insecure bool // CLI only
+	CredentialsCLI         string
+	signing                common.SigningCLIOnlyOptions
+	DigestFile             string
 }
 
 var (
@@ -81,21 +80,7 @@ func init() {
 
 	flags.BoolVarP(&manifestPushOpts.RemoveSignatures, "remove-signatures", "", false, "don't copy signatures when pushing images")
 
-	signByFlagName := "sign-by"
-	flags.StringVar(&manifestPushOpts.SignBy, signByFlagName, "", "sign the image using a GPG key with the specified `FINGERPRINT`")
-	_ = pushCmd.RegisterFlagCompletionFunc(signByFlagName, completion.AutocompleteNone)
-
-	signBySigstoreFlagName := "sign-by-sigstore"
-	flags.StringVar(&manifestPushOpts.SignBySigstoreParamFileCLI, signBySigstoreFlagName, "", "Sign the image using a sigstore parameter file at `PATH`")
-	_ = pushCmd.RegisterFlagCompletionFunc(signBySigstoreFlagName, completion.AutocompleteDefault)
-
-	signBySigstorePrivateKeyFlagName := "sign-by-sigstore-private-key"
-	flags.StringVar(&manifestPushOpts.SignBySigstorePrivateKeyFile, signBySigstorePrivateKeyFlagName, "", "Sign the image using a sigstore private key at `PATH`")
-	_ = pushCmd.RegisterFlagCompletionFunc(signBySigstorePrivateKeyFlagName, completion.AutocompleteDefault)
-
-	signPassphraseFileFlagName := "sign-passphrase-file"
-	flags.StringVar(&manifestPushOpts.SignPassphraseFileCLI, signPassphraseFileFlagName, "", "Read a passphrase for signing an image from `PATH`")
-	_ = pushCmd.RegisterFlagCompletionFunc(signPassphraseFileFlagName, completion.AutocompleteDefault)
+	common.DefineSigningFlags(pushCmd, &manifestPushOpts.signing, &manifestPushOpts.ImagePushOptions)
 
 	flags.BoolVar(&manifestPushOpts.TLSVerifyCLI, "tls-verify", true, "require HTTPS and verify certificates when accessing the registry")
 	flags.BoolVar(&manifestPushOpts.Insecure, "insecure", false, "neither require HTTPS nor verify certificates when accessing the registry")
@@ -113,10 +98,6 @@ func init() {
 
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
-		_ = flags.MarkHidden(signByFlagName)
-		_ = flags.MarkHidden(signBySigstoreFlagName)
-		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
-		_ = flags.MarkHidden(signPassphraseFileFlagName)
 	}
 }
 
@@ -148,8 +129,7 @@ func push(cmd *cobra.Command, args []string) error {
 		manifestPushOpts.Writer = os.Stderr
 	}
 
-	signingCleanup, err := common.PrepareSigning(&manifestPushOpts.ImagePushOptions,
-		manifestPushOpts.SignPassphraseFileCLI, manifestPushOpts.SignBySigstoreParamFileCLI)
+	signingCleanup, err := common.PrepareSigning(&manifestPushOpts.ImagePushOptions, &manifestPushOpts.signing)
 	if err != nil {
 		return err
 	}
