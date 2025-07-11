@@ -273,7 +273,7 @@ func ParseAuthorizedKey(in []byte) (out PublicKey, comment string, options []str
 	return nil, "", nil, nil, errors.New("ssh: no key found")
 }
 
-// ParsePublicKey parses an SSH public key formatted for use in
+// ParsePublicKey parses an SSH public key or certificate formatted for use in
 // the SSH wire protocol according to RFC 4253, section 6.6.
 func ParsePublicKey(in []byte) (out PublicKey, err error) {
 	algo, in, ok := parseString(in)
