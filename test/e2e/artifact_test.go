@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v5/test/utils"
+	"github.com/containers/podman/v5/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -156,6 +158,47 @@ var _ = Describe("Podman artifact", func() {
 		a := podmanTest.InspectArtifact(artifact1Name)
 
 		Expect(a.Name).To(Equal(artifact1Name))
+	})
+
+	It("podman artifact push with authorization", func() {
+		portNo, err := utils.GetRandomPort()
+		Expect(err).ToNot(HaveOccurred())
+		port := strconv.Itoa(portNo)
+
+		lock := GetPortLock(port)
+		defer lock.Unlock()
+
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact1Name := fmt.Sprintf("localhost:%s/test/artifact1", port)
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		authPath := filepath.Join(podmanTest.TempDir, "auth")
+		err = os.Mkdir(authPath, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+		htpasswd := SystemExec("htpasswd", []string{"-Bbn", "podmantest", "test"})
+		htpasswd.WaitWithDefaultTimeout()
+		Expect(htpasswd).Should(ExitCleanly())
+
+		f, err := os.Create(filepath.Join(authPath, "htpasswd"))
+		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
+		_, err = f.WriteString(htpasswd.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		err = f.Sync()
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("run", "-d", "-p", port+":5000", "--name", "artifact-creds-registry", "-v",
+			strings.Join([]string{authPath, "/auth", "z"}, ":"), "-e", "REGISTRY_AUTH=htpasswd", "-e",
+			"REGISTRY_AUTH_HTPASSWD_REALM=Registry Realm", "-e", "REGISTRY_AUTH_HTPASSWD_PATH=/auth/htpasswd",
+			REGISTRY_IMAGE)
+		Expect(WaitContainerReady(podmanTest, "artifact-creds-registry", "listening on", 20, 1)).To(BeTrue(), "registry container ready")
+
+		push := podmanTest.Podman([]string{"artifact", "push", "--tls-verify=false", "--creds=podmantest:wrongpasswd", artifact1Name})
+		push.WaitWithDefaultTimeout()
+		Expect(push).To(ExitWithError(125, "/artifact1: authentication required"))
+
+		podmanTest.PodmanExitCleanly("artifact", "push", "-q", "--tls-verify=false", "--creds=podmantest:test", artifact1Name)
 	})
 
 	It("podman artifact remove", func() {
