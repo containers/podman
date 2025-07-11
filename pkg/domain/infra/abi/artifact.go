@@ -183,7 +183,6 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 		Variant:                          "",
 		Username:                         "",
 		Password:                         "",
-		Credentials:                      opts.CredentialsCLI,
 		IdentityToken:                    "",
 		Writer:                           opts.Writer,
 	}
