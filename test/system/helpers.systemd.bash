@@ -14,12 +14,42 @@ fi
 
 mkdir -p $UNIT_DIR
 
+journalctl_raw() {
+    # Run the journalctl command directly without any wrapper
+    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT journalctl "$@"
+}
+
+JOURNALCTL_SUPPORT_USER=false
+run journalctl_raw --user -b -n 1
+if [[ $output != *"No entries"* ]]; then
+    JOURNALCTL_SUPPORT_USER=true
+fi
+
 systemctl() {
     timeout --foreground -v --kill=10 $PODMAN_TIMEOUT systemctl $_DASHUSER "$@"
 }
 
 journalctl() {
-    timeout --foreground -v --kill=10 $PODMAN_TIMEOUT journalctl $_DASHUSER "$@"
+    if is_rootless && ! $JOURNALCTL_SUPPORT_USER; then
+        # For systems that --user not working, need to update the options manually
+        # for our testing. Otherwise journalctl with --user will always report
+        # -- No entries --
+        options=()
+        for arg in "$@"; do
+            opt=("$arg")
+            if [[ "$arg" =~ "--unit" ]]; then
+                opt=("${arg/--unit/--user-unit}")
+            elif [[ "$arg" == "-u" ]]; then
+                opt=("--user-unit")
+            elif [[ "$arg" =~ ^-u || "$arg" =~ ^-[a-zA-Z]+u ]]; then
+                opt=("${arg/u/}" "--user-unit")
+            fi
+            options+=("${opt[@]}")
+        done
+        journalctl_raw "${options[@]}"
+    else
+        journalctl_raw $_DASHUSER "$@"
+    fi
 }
 
 systemd-run() {
