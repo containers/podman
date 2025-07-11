@@ -31,6 +31,7 @@ Maintainers and Reviewers for the Skopeo and Buildah projects are found in their
 | Aditya Rajan      | [flouthoc](https://github.com/flouthoc)                  | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Jan Rodák         | [Honny1](https://github.com/Honny1)                      | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Valentin Rothberg | [vrothberg](https://github.com/vrothberg)                | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
+| Lewis Roy         | [ninja-quokka](https://github.com/ninja-quokka)          | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 | Dan Walsh         | [rhatdan](https://github.com/rhatdan)                    | Reviewer                         | [Red Hat](https://github.com/RedHatOfficial) |
 
 ## Alumni
