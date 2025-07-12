@@ -27,6 +27,7 @@ const (
 	UnitDirDistro = "/usr/share/containers/systemd"
 
 	// Names of commonly used systemd/quadlet group names
+	ArtifactGroup   = "Artifact"
 	ContainerGroup  = "Container"
 	InstallGroup    = "Install"
 	KubeGroup       = "Kube"
@@ -38,6 +39,7 @@ const (
 	ImageGroup      = "Image"
 	BuildGroup      = "Build"
 	QuadletGroup    = "Quadlet"
+	XArtifactGroup  = "X-Artifact"
 	XContainerGroup = "X-Container"
 	XKubeGroup      = "X-Kube"
 	XNetworkGroup   = "X-Network"
@@ -61,6 +63,7 @@ const (
 	KeyAllTags               = "AllTags"
 	KeyAnnotation            = "Annotation"
 	KeyArch                  = "Arch"
+	KeyArtifact              = "Artifact"
 	KeyAuthFile              = "AuthFile"
 	KeyAutoUpdate            = "AutoUpdate"
 	KeyCertDir               = "CertDir"
@@ -140,6 +143,7 @@ const (
 	KeyPolicy                = "Policy"
 	KeyPublishPort           = "PublishPort"
 	KeyPull                  = "Pull"
+	KeyQuiet                 = "Quiet"
 	KeyReadOnly              = "ReadOnly"
 	KeyReadOnlyTmpfs         = "ReadOnlyTmpfs"
 	KeyReloadCmd             = "ReloadCmd"
@@ -214,6 +218,7 @@ var (
 	// Key: Extension
 	// Value: Processing order for resource naming dependencies
 	SupportedExtensions = map[string]int{
+		".artifact":  1,
 		".container": 4,
 		".volume":    2,
 		".kube":      4,
@@ -466,6 +471,29 @@ var (
 				KeyTLSVerify:            true,
 				KeyVariant:              true,
 				KeyVolume:               true,
+			},
+		},
+		ArtifactGroup: {
+			GroupName:  ArtifactGroup,
+			XGroupName: XArtifactGroup,
+			SupportedKeys: map[string]bool{
+				KeyArch:                 true,
+				KeyArtifact:             true,
+				KeyAuthFile:             true,
+				KeyCertDir:              true,
+				KeyContainersConfModule: true,
+				KeyCreds:                true,
+				KeyDecryptionKey:        true,
+				KeyGlobalArgs:           true,
+				KeyOS:                   true,
+				KeyPolicy:               true,
+				KeyPodmanArgs:           true,
+				KeyQuiet:                true,
+				KeyRetry:                true,
+				KeyRetryDelay:           true,
+				KeyServiceName:          true,
+				KeyTLSVerify:            true,
+				KeyVariant:              true,
 			},
 		},
 		PodGroup: {
@@ -1483,6 +1511,10 @@ func GetBuildServiceName(podUnit *parser.UnitFile) string {
 	return getServiceName(podUnit, BuildGroup, "-build")
 }
 
+func GetArtifactServiceName(podUnit *parser.UnitFile) string {
+	return getServiceName(podUnit, ArtifactGroup, "-artifact")
+}
+
 func GetPodServiceName(podUnit *parser.UnitFile) string {
 	return getServiceName(podUnit, PodGroup, "-pod")
 }
@@ -2025,10 +2057,11 @@ func resolveContainerMountParams(containerUnitFile, serviceUnitFile *parser.Unit
 
 	// Source resolution is required only for these types of mounts
 	sourceResultionRequired := map[string]struct{}{
-		"volume": {},
-		"bind":   {},
-		"glob":   {},
-		"image":  {},
+		"volume":   {},
+		"bind":     {},
+		"glob":     {},
+		"image":    {},
+		"artifact": {},
 	}
 	if _, ok := sourceResultionRequired[mountType]; !ok {
 		return mount, nil
@@ -2281,4 +2314,52 @@ func initServiceUnitFile(quadletUnitFile *parser.UnitFile, isUser bool, unitsInf
 	service.RenameGroup(QuadletGroup, XQuadletGroup)
 
 	return service, unitInfo, nil
+}
+
+func ConvertArtifact(artifact *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error) {
+	service, unitInfo, err := initServiceUnitFile(artifact, isUser, unitsInfoMap, ArtifactGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	artifactName, ok := artifact.Lookup(ArtifactGroup, KeyArtifact)
+	if !ok || len(artifactName) == 0 {
+		return nil, fmt.Errorf("no Artifact key specified")
+	}
+
+	podman := createBasePodmanCommand(artifact, ArtifactGroup)
+
+	podman.add("artifact", "pull")
+
+	stringKeys := map[string]string{
+		KeyArch:          "--arch",
+		KeyAuthFile:      "--authfile",
+		KeyCertDir:       "--cert-dir",
+		KeyCreds:         "--creds",
+		KeyDecryptionKey: "--decryption-key",
+		KeyOS:            "--os",
+		KeyPolicy:        "--policy",
+		KeyVariant:       "--variant",
+		KeyRetry:         "--retry",
+		KeyRetryDelay:    "--retry-delay",
+	}
+	lookupAndAddString(artifact, ArtifactGroup, stringKeys, podman)
+
+	boolKeys := map[string]string{
+		KeyQuiet:     "--quiet",
+		KeyTLSVerify: "--tls-verify",
+	}
+	lookupAndAddBoolean(artifact, ArtifactGroup, boolKeys, podman)
+
+	handlePodmanArgs(artifact, ArtifactGroup, podman)
+
+	podman.add(artifactName)
+
+	service.AddCmdline(ServiceGroup, "ExecStart", podman.Args)
+
+	defaultOneshotServiceGroup(service, true)
+
+	unitInfo.ResourceName = artifactName
+
+	return service, nil
 }
