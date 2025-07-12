@@ -18,6 +18,7 @@ import (
 	"time"
 
 	drivers "github.com/containers/storage/drivers"
+	"github.com/containers/storage/internal/tempdir"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
@@ -38,6 +39,8 @@ import (
 
 const (
 	tarSplitSuffix = ".tar-split.gz"
+	// tempDirPath is the subdirectory name used for storing temporary directories during layer deletion
+	tempDirPath    = "tmp"
 	incompleteFlag = "incomplete"
 	// maxLayerStoreCleanupIterations is the number of times we try to clean up inconsistent layer store state
 	// in readers (which, for implementation reasons, gives other writers the opportunity to create more inconsistent state)
@@ -290,8 +293,14 @@ type rwLayerStore interface {
 	// updateNames modifies names associated with a layer based on (op, names).
 	updateNames(id string, names []string, op updateNameOperation) error
 
-	// Delete deletes a layer with the specified name or ID.
-	Delete(id string) error
+	// deleteWhileHoldingLock deletes a layer with the specified name or ID.
+	deleteWhileHoldingLock(id string) error
+
+	// deferredDelete deletes a layer with the specified name or ID.
+	// This removal happen immediately (the layer is no longer usable),
+	// but physically deleting the files may be deferred.
+	// Caller MUST call all returned cleanup functions outside of the locks.
+	deferredDelete(id string) ([]tempdir.CleanupTempDirFunc, error)
 
 	// Wipe deletes all layers.
 	Wipe() error
@@ -794,6 +803,17 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 	layers := []*Layer{}
 	ids := make(map[string]*Layer)
 
+	if r.lockfile.IsReadWrite() {
+		if err := tempdir.RecoverStaleDirs(filepath.Join(r.layerdir, tempDirPath)); err != nil {
+			return false, err
+		}
+		for _, driverTempDirPath := range r.driver.GetTempDirRootDirs() {
+			if err := tempdir.RecoverStaleDirs(driverTempDirPath); err != nil {
+				return false, err
+			}
+		}
+	}
+
 	for locationIndex := range numLayerLocationIndex {
 		location := layerLocationFromIndex(locationIndex)
 		rpath := r.jsonPath[locationIndex]
@@ -935,7 +955,12 @@ func (r *layerStore) load(lockedForWriting bool) (bool, error) {
 		// Now actually delete the layers
 		for _, layer := range layersToDelete {
 			logrus.Warnf("Found incomplete layer %q, deleting it", layer.ID)
-			err := r.deleteInternal(layer.ID)
+			cleanFunctions, err := r.internalDelete(layer.ID)
+			defer func() {
+				if err := tempdir.CleanupTemporaryDirectories(cleanFunctions...); err != nil {
+					logrus.Errorf("Error cleaning up temporary directories: %v", err)
+				}
+			}()
 			if err != nil {
 				// Don't return the error immediately, because deleteInternal does not saveLayers();
 				// Even if deleting one incomplete layer fails, call saveLayers() so that other possible successfully
@@ -1334,7 +1359,7 @@ func (r *layerStore) PutAdditionalLayer(id string, parentLayer *Layer, names []s
 		r.bytocsum[layer.TOCDigest] = append(r.bytocsum[layer.TOCDigest], layer.ID)
 	}
 	if err := r.saveFor(layer); err != nil {
-		if e := r.Delete(layer.ID); e != nil {
+		if e := r.deleteWhileHoldingLock(layer.ID); e != nil {
 			logrus.Errorf("While recovering from a failure to save layers, error deleting layer %#v: %v", id, e)
 		}
 		return nil, err
@@ -1469,7 +1494,7 @@ func (r *layerStore) create(id string, parentLayer *Layer, names []string, mount
 			if cleanupFailureContext == "" {
 				cleanupFailureContext = "unknown: cleanupFailureContext not set at the failure site"
 			}
-			if e := r.Delete(id); e != nil {
+			if e := r.deleteWhileHoldingLock(id); e != nil {
 				logrus.Errorf("While recovering from a failure (%s), error deleting layer %#v: %v", cleanupFailureContext, id, e)
 			}
 		}
@@ -1920,13 +1945,15 @@ func layerHasIncompleteFlag(layer *Layer) bool {
 }
 
 // Requires startWriting.
-func (r *layerStore) deleteInternal(id string) error {
+// Caller MUST run all returned cleanup functions after this, EVEN IF the function returns an error.
+// Ideally outside of the startWriting.
+func (r *layerStore) internalDelete(id string) ([]tempdir.CleanupTempDirFunc, error) {
 	if !r.lockfile.IsReadWrite() {
-		return fmt.Errorf("not allowed to delete layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
+		return nil, fmt.Errorf("not allowed to delete layers at %q: %w", r.layerdir, ErrStoreIsReadOnly)
 	}
 	layer, ok := r.lookup(id)
 	if !ok {
-		return ErrLayerUnknown
+		return nil, ErrLayerUnknown
 	}
 	// Ensure that if we are interrupted, the layer will be cleaned up.
 	if !layerHasIncompleteFlag(layer) {
@@ -1935,16 +1962,30 @@ func (r *layerStore) deleteInternal(id string) error {
 		}
 		layer.Flags[incompleteFlag] = true
 		if err := r.saveFor(layer); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	// We never unset incompleteFlag; below, we remove the entire object from r.layers.
-	id = layer.ID
-	if err := r.driver.Remove(id); err != nil && !errors.Is(err, os.ErrNotExist) {
-		return err
+	tempDirectory, err := tempdir.NewTempDir(filepath.Join(r.layerdir, tempDirPath))
+	cleanFunctions := []tempdir.CleanupTempDirFunc{}
+	cleanFunctions = append(cleanFunctions, tempDirectory.Cleanup)
+	if err != nil {
+		return nil, err
 	}
-	os.Remove(r.tspath(id))
-	os.RemoveAll(r.datadir(id))
+	id = layer.ID
+	cleanFunc, err := r.driver.DeferredRemove(id)
+	cleanFunctions = append(cleanFunctions, cleanFunc)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return cleanFunctions, err
+	}
+
+	cleanFunctions = append(cleanFunctions, tempDirectory.Cleanup)
+	if err := tempDirectory.StageDeletion(r.tspath(id)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return cleanFunctions, err
+	}
+	if err := tempDirectory.StageDeletion(r.datadir(id)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return cleanFunctions, err
+	}
 	delete(r.byid, id)
 	for _, name := range layer.Names {
 		delete(r.byname, name)
@@ -1968,7 +2009,7 @@ func (r *layerStore) deleteInternal(id string) error {
 	}) {
 		selinux.ReleaseLabel(mountLabel)
 	}
-	return nil
+	return cleanFunctions, nil
 }
 
 // Requires startWriting.
@@ -1988,10 +2029,20 @@ func (r *layerStore) deleteInDigestMap(id string) {
 }
 
 // Requires startWriting.
-func (r *layerStore) Delete(id string) error {
+// This is soft-deprecated and should not have any new callers; use deferredDelete instead.
+func (r *layerStore) deleteWhileHoldingLock(id string) error {
+	cleanupFunctions, deferErr := r.deferredDelete(id)
+	cleanupErr := tempdir.CleanupTemporaryDirectories(cleanupFunctions...)
+	return errors.Join(deferErr, cleanupErr)
+}
+
+// Requires startWriting.
+// Caller MUST run all returned cleanup functions after this, EVEN IF the function returns an error.
+// Ideally outside of the startWriting.
+func (r *layerStore) deferredDelete(id string) ([]tempdir.CleanupTempDirFunc, error) {
 	layer, ok := r.lookup(id)
 	if !ok {
-		return ErrLayerUnknown
+		return nil, ErrLayerUnknown
 	}
 	id = layer.ID
 	// The layer may already have been explicitly unmounted, but if not, we
@@ -2003,13 +2054,14 @@ func (r *layerStore) Delete(id string) error {
 			break
 		}
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
-	if err := r.deleteInternal(id); err != nil {
-		return err
+	cleanFunctions, err := r.internalDelete(id)
+	if err != nil {
+		return cleanFunctions, err
 	}
-	return r.saveFor(layer)
+	return cleanFunctions, r.saveFor(layer)
 }
 
 // Requires startReading or startWriting.
@@ -2039,7 +2091,7 @@ func (r *layerStore) Wipe() error {
 		return r.byid[ids[i]].Created.After(r.byid[ids[j]].Created)
 	})
 	for _, id := range ids {
-		if err := r.Delete(id); err != nil {
+		if err := r.deleteWhileHoldingLock(id); err != nil {
 			return err
 		}
 	}
@@ -2571,7 +2623,7 @@ func (r *layerStore) applyDiffFromStagingDirectory(id string, diffOutput *driver
 	}
 	for k, v := range diffOutput.BigData {
 		if err := r.SetBigData(id, k, bytes.NewReader(v)); err != nil {
-			if err2 := r.Delete(id); err2 != nil {
+			if err2 := r.deleteWhileHoldingLock(id); err2 != nil {
 				logrus.Errorf("While recovering from a failure to set big data, error deleting layer %#v: %v", id, err2)
 			}
 			return err
