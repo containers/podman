@@ -483,6 +483,15 @@ then
       "--disablerepo=fedora*" "--disablerepo=updates*"
 fi
 
+# Fedora script command install
+case "$DISTRO_NV" in
+    fedora-42|fedora-42-aarch64|rawhide)
+        showrun dnf install -y util-linux-script
+        ;;
+    *)
+        ;;
+esac
+
 # Must be the very last command.  Prevents setup from running twice.
 echo 'SETUP_ENVIRONMENT=1' >> /etc/ci_environment
 echo -e "\n# End of global variable definitions" \
