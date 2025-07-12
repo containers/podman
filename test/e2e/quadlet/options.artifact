@@ -1,0 +1,20 @@
+## assert-podman-final-args quay.io/libpod/testartifact:20250206-single
+## assert-podman-args "artifact"
+## assert-podman-args "pull"
+## assert-podman-args "--arch"
+## assert-podman-args "arm64"
+## assert-podman-args "--authfile"
+## assert-podman-args "/tmp/auth.json"
+## assert-podman-args "--quiet"
+## assert-podman-args "--tls-verify=false"
+## assert-key-is "Service" "Type" "oneshot"
+## assert-key-is "Service" "RemainAfterExit" "yes"
+## assert-key-is-regex "Unit" "After" "network-online.target|podman-user-wait-network-online.service"
+## assert-key-is-regex "Unit" "Wants" "network-online.target|podman-user-wait-network-online.service"
+
+[Artifact]
+Artifact=quay.io/libpod/testartifact:20250206-single
+Arch=arm64
+AuthFile=/tmp/auth.json
+Quiet=true
+TLSVerify=false
