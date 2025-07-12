@@ -1244,11 +1244,14 @@ function safename() {
 # Return exec_pid hash files if exists, otherwise, return nothing
 #
 function find_exec_pid_files() {
-    run_podman info --format '{{.Store.RunRoot}}'
+    _run_podman_quiet info --format '{{.Store.RunRoot}}'
     local storage_path="$output"
-    if [ -d $storage_path ]; then
-        find $storage_path -type f -iname 'exec_pid_*'
+
+    if [ ! -d "$storage_path" ]; then
+        echo "error: storage path does not exist"
     fi
+
+    find "$storage_path" -type f -iname 'exec_pid*'
 }
 
 
