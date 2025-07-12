@@ -47,7 +47,7 @@ load helpers
     run_podman rm $cid
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=distro-integration
 @test "podman exec - leak check" {
     skip_if_remote "test is meaningless over remote"
 
@@ -56,13 +56,17 @@ load helpers
     run_podman run -td $IMAGE /bin/sh
     cid="$output"
 
-    is "$(check_exec_pid)" "" "exec pid hash file indeed doesn't exist"
+    is "$(find_exec_pid_files)" "" "exec pid hash file indeed doesn't exist"
 
     for i in {1..3}; do
         run_podman exec $cid /bin/true
     done
 
-    is "$(check_exec_pid)" "" "there isn't any exec pid hash file leak"
+    is "$(find_exec_pid_files)" "" "there isn't any exec pid hash file leak"
+
+    # Ensure file is there while container is running
+    run_podman exec -d $cid sleep 5
+    is "$(find_exec_pid_files)" '.*containers.*exec_pid' "exec_pid file found"
 
     run_podman rm -t 0 -f $cid
 }
