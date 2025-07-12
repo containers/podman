@@ -2075,6 +2075,32 @@ Override the default architecture variant of the container image.
 
 This is equivalent to the Podman `--variant` option.
 
+## Artifact Unit Section
+
+### WARNING: Experimental Unit
+
+This unit is considered experimental and still in development. Inputs, options, and outputs are all subject to change.
+
+Valid options for `[Artifact]` are listed below:
+
+| **[Artifact] options**                      | **podman artifact equivalent**                         |
+|---------------------------------------------|--------------------------------------------------------|
+| Arch=aarch64                                | --arch=aarch64                                         |
+| AuthFile=/etc/registry/auth\.json           | --authfile=/etc/registry/auth\.json                    |
+| CertDir=/etc/registry/certs                 | --cert-dir=/etc/registry/certs                         |
+| DecryptionKey=/etc/registry\.key            | --decryption-key=/etc/registry\.key                    |
+| GlobalArgs=--log-level=debug                | --log-level=debug                                      |
+| Artifact=quay\.io/foobar/artifact:special   | podman artifact pull quay\.io/foobar/artifact:special  |
+| OS=windows                                  | --os=windows                                           |
+| PodmanArgs=--os=linux                       | --os=linux                                             |
+| Policy=always                               | --policy=always                                        |
+| Retry=5                                     | --retry=5                                              |
+| RetryDelay=10s                              | --retry-delay=10s                                      |
+| TLSVerify=false                             | --tls-verify=false                                     |
+| Variant=arm/v7                              | --variant=arm/v7                                       |
+| Quiet=true                                  |--quiet                                                 |
+
+
 ## Quadlet section [Quadlet]
 Some quadlet specific configuration is shared between different unit types. Those settings
 can be configured in the `[Quadlet]` section.
