@@ -393,7 +393,7 @@ func (u *updater) assembleTasks(ctx context.Context) []error {
 		}
 		policy, err := LookupPolicy(value)
 		if err != nil {
-			errs = append(errs, err)
+			errs = append(errs, fmt.Errorf("auto-updating container %q: %w", ctr.ID(), err))
 			continue
 		}
 		if policy == PolicyDefault {
