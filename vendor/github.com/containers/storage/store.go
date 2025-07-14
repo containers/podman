@@ -22,6 +22,7 @@ import (
 
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/internal/dedup"
+	"github.com/containers/storage/internal/tempdir"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
 	"github.com/containers/storage/pkg/idtools"
@@ -1758,7 +1759,7 @@ func (s *store) imageTopLayerForMapping(image *Image, ristore roImageStore, rlst
 	}
 	// By construction, createMappedLayer can only be true if ristore == s.imageStore.
 	if err = s.imageStore.addMappedTopLayer(image.ID, mappedLayer.ID); err != nil {
-		if err2 := rlstore.Delete(mappedLayer.ID); err2 != nil {
+		if err2 := rlstore.deleteWhileHoldingLock(mappedLayer.ID); err2 != nil {
 			err = fmt.Errorf("deleting layer %q: %v: %w", mappedLayer.ID, err2, err)
 		}
 		return nil, fmt.Errorf("registering ID-mapped layer with image %q: %w", image.ID, err)
@@ -1943,7 +1944,7 @@ func (s *store) CreateContainer(id string, names []string, image, layer, metadat
 		}
 		container, err := s.containerStore.create(id, names, imageID, layer, &options)
 		if err != nil || container == nil {
-			if err2 := rlstore.Delete(layer); err2 != nil {
+			if err2 := rlstore.deleteWhileHoldingLock(layer); err2 != nil {
 				if err == nil {
 					err = fmt.Errorf("deleting layer %#v: %w", layer, err2)
 				} else {
@@ -2540,7 +2541,13 @@ func (s *store) Lookup(name string) (string, error) {
 	return "", ErrLayerUnknown
 }
 
-func (s *store) DeleteLayer(id string) error {
+func (s *store) DeleteLayer(id string) (retErr error) {
+	cleanupFunctions := []tempdir.CleanupTempDirFunc{}
+	defer func() {
+		if cleanupErr := tempdir.CleanupTemporaryDirectories(cleanupFunctions...); cleanupErr != nil {
+			retErr = errors.Join(cleanupErr, retErr)
+		}
+	}()
 	return s.writeToAllStores(func(rlstore rwLayerStore) error {
 		if rlstore.Exists(id) {
 			if l, err := rlstore.Get(id); err != nil {
@@ -2574,7 +2581,9 @@ func (s *store) DeleteLayer(id string) error {
 					return fmt.Errorf("layer %v used by container %v: %w", id, container.ID, ErrLayerUsedByContainer)
 				}
 			}
-			if err := rlstore.Delete(id); err != nil {
+			cf, err := rlstore.deferredDelete(id)
+			cleanupFunctions = append(cleanupFunctions, cf...)
+			if err != nil {
 				return fmt.Errorf("delete layer %v: %w", id, err)
 			}
 
@@ -2591,8 +2600,14 @@ func (s *store) DeleteLayer(id string) error {
 	})
 }
 
-func (s *store) DeleteImage(id string, commit bool) (layers []string, err error) {
+func (s *store) DeleteImage(id string, commit bool) (layers []string, retErr error) {
 	layersToRemove := []string{}
+	cleanupFunctions := []tempdir.CleanupTempDirFunc{}
+	defer func() {
+		if cleanupErr := tempdir.CleanupTemporaryDirectories(cleanupFunctions...); cleanupErr != nil {
+			retErr = errors.Join(cleanupErr, retErr)
+		}
+	}()
 	if err := s.writeToAllStores(func(rlstore rwLayerStore) error {
 		// Delete image from all available imagestores configured to be used.
 		imageFound := false
@@ -2698,7 +2713,9 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 		}
 		if commit {
 			for _, layer := range layersToRemove {
-				if err = rlstore.Delete(layer); err != nil {
+				cf, err := rlstore.deferredDelete(layer)
+				cleanupFunctions = append(cleanupFunctions, cf...)
+				if err != nil {
 					return err
 				}
 			}
@@ -2710,7 +2727,13 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 	return layersToRemove, nil
 }
 
-func (s *store) DeleteContainer(id string) error {
+func (s *store) DeleteContainer(id string) (retErr error) {
+	cleanupFunctions := []tempdir.CleanupTempDirFunc{}
+	defer func() {
+		if cleanupErr := tempdir.CleanupTemporaryDirectories(cleanupFunctions...); cleanupErr != nil {
+			retErr = errors.Join(cleanupErr, retErr)
+		}
+	}()
 	return s.writeToAllStores(func(rlstore rwLayerStore) error {
 		if !s.containerStore.Exists(id) {
 			return ErrNotAContainer
@@ -2726,7 +2749,9 @@ func (s *store) DeleteContainer(id string) error {
 		// the container record that refers to it, effectively losing
 		// track of it
 		if rlstore.Exists(container.LayerID) {
-			if err := rlstore.Delete(container.LayerID); err != nil {
+			cf, err := rlstore.deferredDelete(container.LayerID)
+			cleanupFunctions = append(cleanupFunctions, cf...)
+			if err != nil {
 				return err
 			}
 		}
@@ -2752,12 +2777,20 @@ func (s *store) DeleteContainer(id string) error {
 	})
 }
 
-func (s *store) Delete(id string) error {
+func (s *store) Delete(id string) (retErr error) {
+	cleanupFunctions := []tempdir.CleanupTempDirFunc{}
+	defer func() {
+		if cleanupErr := tempdir.CleanupTemporaryDirectories(cleanupFunctions...); cleanupErr != nil {
+			retErr = errors.Join(cleanupErr, retErr)
+		}
+	}()
 	return s.writeToAllStores(func(rlstore rwLayerStore) error {
 		if s.containerStore.Exists(id) {
 			if container, err := s.containerStore.Get(id); err == nil {
 				if rlstore.Exists(container.LayerID) {
-					if err = rlstore.Delete(container.LayerID); err != nil {
+					cf, err := rlstore.deferredDelete(container.LayerID)
+					cleanupFunctions = append(cleanupFunctions, cf...)
+					if err != nil {
 						return err
 					}
 					if err = s.containerStore.Delete(id); err != nil {
@@ -2781,7 +2814,9 @@ func (s *store) Delete(id string) error {
 			return s.imageStore.Delete(id)
 		}
 		if rlstore.Exists(id) {
-			return rlstore.Delete(id)
+			cf, err := rlstore.deferredDelete(id)
+			cleanupFunctions = append(cleanupFunctions, cf...)
+			return err
 		}
 		return ErrLayerUnknown
 	})

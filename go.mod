@@ -12,21 +12,21 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.7.1
 	github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30
-	github.com/containers/common v0.63.2-0.20250707185859-2b4e95a951de
+	github.com/containers/common v0.63.2-0.20250711144526-f3f68c4e79f5
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.6
-	github.com/containers/image/v5 v5.35.1-0.20250707180819-778317a88563
+	github.com/containers/image/v5 v5.35.1-0.20250714114753-9e95082de671
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.58.1-0.20250701152554-3aa733962202
+	github.com/containers/storage v1.58.1-0.20250711145627-2b18ddcfafca
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/crc-org/vfkit v0.6.1
 	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
 	github.com/docker/distribution v2.8.3+incompatible
-	github.com/docker/docker v28.3.1+incompatible
+	github.com/docker/docker v28.3.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8
 	github.com/docker/go-units v0.5.0
