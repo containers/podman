@@ -141,7 +141,7 @@ github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/pkg/volumes
 github.com/containers/buildah/util
-# github.com/containers/common v0.63.2-0.20250707185859-2b4e95a951de
+# github.com/containers/common v0.63.2-0.20250711144526-f3f68c4e79f5
 ## explicit; go 1.23.3
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
@@ -214,7 +214,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.6
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.35.1-0.20250707180819-778317a88563
+# github.com/containers/image/v5 v5.35.1-0.20250714114753-9e95082de671
 ## explicit; go 1.23.3
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -324,7 +324,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.58.1-0.20250701152554-3aa733962202
+# github.com/containers/storage v1.58.1-0.20250711145627-2b18ddcfafca
 ## explicit; go 1.23.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -341,6 +341,7 @@ github.com/containers/storage/drivers/zfs
 github.com/containers/storage/internal/dedup
 github.com/containers/storage/internal/rawfilelock
 github.com/containers/storage/internal/staging_lockfile
+github.com/containers/storage/internal/tempdir
 github.com/containers/storage/pkg/archive
 github.com/containers/storage/pkg/chrootarchive
 github.com/containers/storage/pkg/chunked
@@ -428,7 +429,7 @@ github.com/distribution/reference
 ## explicit
 github.com/docker/distribution/registry/api/errcode
 github.com/docker/distribution/registry/api/v2
-# github.com/docker/docker v28.3.1+incompatible
+# github.com/docker/docker v28.3.2+incompatible
 ## explicit
 github.com/docker/docker/api
 github.com/docker/docker/api/types
