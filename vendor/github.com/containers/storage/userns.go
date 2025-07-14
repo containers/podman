@@ -202,7 +202,7 @@ outer:
 		return 0, err
 	}
 	defer func() {
-		if err2 := rlstore.Delete(clayer.ID); err2 != nil {
+		if err2 := rlstore.deleteWhileHoldingLock(clayer.ID); err2 != nil {
 			if retErr == nil {
 				retErr = fmt.Errorf("deleting temporary layer %#v: %w", clayer.ID, err2)
 			} else {

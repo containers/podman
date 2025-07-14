@@ -24,6 +24,7 @@ import (
 	"github.com/containers/storage/drivers/quota"
 	"github.com/containers/storage/internal/dedup"
 	"github.com/containers/storage/internal/staging_lockfile"
+	"github.com/containers/storage/internal/tempdir"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/directory"
@@ -80,10 +81,11 @@ const (
 // that mounts do not fail due to length.
 
 const (
-	linkDir    = "l"
-	stagingDir = "staging"
-	lowerFile  = "lower"
-	maxDepth   = 500
+	linkDir     = "l"
+	stagingDir  = "staging"
+	tempDirName = "tempdirs"
+	lowerFile   = "lower"
+	maxDepth    = 500
 
 	stagingLockFile = "staging.lock"
 
@@ -1305,17 +1307,22 @@ func (d *Driver) optsAppendMappings(opts string, uidMaps, gidMaps []idtools.IDMa
 
 // Remove cleans the directories that are created for this id.
 func (d *Driver) Remove(id string) error {
+	return d.removeCommon(id, system.EnsureRemoveAll)
+}
+
+func (d *Driver) removeCommon(id string, cleanup func(string) error) error {
 	dir := d.dir(id)
 	lid, err := os.ReadFile(path.Join(dir, "link"))
 	if err == nil {
-		if err := os.RemoveAll(path.Join(d.home, linkDir, string(lid))); err != nil {
+		linkPath := path.Join(d.home, linkDir, string(lid))
+		if err := cleanup(linkPath); err != nil {
 			logrus.Debugf("Failed to remove link: %v", err)
 		}
 	}
 
 	d.releaseAdditionalLayerByID(id)
 
-	if err := system.EnsureRemoveAll(dir); err != nil && !os.IsNotExist(err) {
+	if err := cleanup(dir); err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if d.quotaCtl != nil {
@@ -1325,6 +1332,41 @@ func (d *Driver) Remove(id string) error {
 		}
 	}
 	return nil
+}
+
+func (d *Driver) GetTempDirRootDirs() []string {
+	tempDirs := []string{filepath.Join(d.home, tempDirName)}
+	// Include imageStore temp directory if it's configured
+	// Writable layers can only be in d.home or d.imageStore, not in additional image stores
+	if d.imageStore != "" {
+		tempDirs = append(tempDirs, filepath.Join(d.imageStore, d.name, tempDirName))
+	}
+	return tempDirs
+}
+
+// Determine the correct temp directory root based on where the layer actually exists.
+func (d *Driver) getTempDirRoot(id string) string {
+	layerDir := d.dir(id)
+	if d.imageStore != "" {
+		expectedLayerDir := path.Join(d.imageStore, d.name, id)
+		if layerDir == expectedLayerDir {
+			return filepath.Join(d.imageStore, d.name, tempDirName)
+		}
+	}
+	return filepath.Join(d.home, tempDirName)
+}
+
+func (d *Driver) DeferredRemove(id string) (tempdir.CleanupTempDirFunc, error) {
+	tempDirRoot := d.getTempDirRoot(id)
+	t, err := tempdir.NewTempDir(tempDirRoot)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := d.removeCommon(id, t.StageDeletion); err != nil {
+		return t.Cleanup, fmt.Errorf("failed to add to stage directory: %w", err)
+	}
+	return t.Cleanup, nil
 }
 
 // recreateSymlinks goes through the driver's home directory and checks if the diff directory
@@ -1353,8 +1395,8 @@ func (d *Driver) recreateSymlinks() error {
 		// Check that for each layer, there's a link in "l" with the name in
 		// the layer's "link" file that points to the layer's "diff" directory.
 		for _, dir := range dirs {
-			// Skip over the linkDir and anything that is not a directory
-			if dir.Name() == linkDir || !dir.IsDir() {
+			// Skip over the linkDir, stagingDir, tempDirName and anything that is not a directory
+			if dir.Name() == linkDir || dir.Name() == stagingDir || dir.Name() == tempDirName || !dir.IsDir() {
 				continue
 			}
 			// Read the "link" file under each layer to get the name of the symlink
@@ -2022,7 +2064,7 @@ func (d *Driver) ListLayers() ([]string, error) {
 	for _, entry := range entries {
 		id := entry.Name()
 		switch id {
-		case linkDir, stagingDir, quota.BackingFsBlockDeviceLink, mountProgramFlagFile:
+		case linkDir, stagingDir, tempDirName, quota.BackingFsBlockDeviceLink, mountProgramFlagFile:
 			// expected, but not a layer. skip it
 			continue
 		default:
