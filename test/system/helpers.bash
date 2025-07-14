@@ -412,6 +412,122 @@ function die() {
     false
 }
 
+############
+#  assert  #  Compare actual vs expected string; fail if mismatch
+############
+#
+# Compares string (default: $output) against the given string argument.
+# By default we do an exact-match comparison against $output, but there
+# are two different ways to invoke us, each with an optional description:
+#
+#      assert               "EXPECT" [DESCRIPTION]
+#      assert "RESULT" "OP" "EXPECT" [DESCRIPTION]
+#
+# The first form (one or two arguments) does an exact-match comparison
+# of "$output" against "EXPECT". The second (three or four args) compares
+# the first parameter against EXPECT, using the given OPerator. If present,
+# DESCRIPTION will be displayed on test failure.
+#
+# Examples:
+#
+#   assert "this is exactly what we expect"
+#   assert "${lines[0]}" =~ "^abc"  "first line begins with abc"
+#
+function assert() {
+    local actual_string="$output"
+    local operator='=='
+    local expect_string="$1"
+    local testname="$2"
+
+    case "${#*}" in
+        0)   die "Internal error: 'assert' requires one or more arguments" ;;
+        1|2) ;;
+        3|4) actual_string="$1"
+             operator="$2"
+             expect_string="$3"
+             testname="$4"
+             ;;
+        *)   die "Internal error: too many arguments to 'assert'" ;;
+    esac
+
+    # Comparisons.
+    # Special case: there is no !~ operator, so fake it via '! x =~ y'
+    local not=
+    local actual_op="$operator"
+    if [[ $operator == '!~' ]]; then
+        not='!'
+        actual_op='=~'
+    fi
+    if [[ $operator == '=' || $operator == '==' ]]; then
+        # Special case: we can't use '=' or '==' inside [[ ... ]] because
+        # the right-hand side is treated as a pattern... and '[xy]' will
+        # not compare literally. There seems to be no way to turn that off.
+        if [ "$actual_string" = "$expect_string" ]; then
+            return
+        fi
+    elif [[ $operator == '!=' ]]; then
+        # Same special case as above
+        if [ "$actual_string" != "$expect_string" ]; then
+            return
+        fi
+    else
+        if eval "[[ $not \$actual_string $actual_op \$expect_string ]]"; then
+            return
+        elif [ $? -gt 1 ]; then
+            die "Internal error: could not process 'actual' $operator 'expect'"
+        fi
+    fi
+
+    # Test has failed. Get a descriptive test name.
+    if [ -z "$testname" ]; then
+        testname="${MOST_RECENT_PODMAN_COMMAND:-[no test name given]}"
+    fi
+
+    # Display optimization: the typical case for 'expect' is an
+    # exact match ('='), but there are also '=~' or '!~' or '-ge'
+    # and the like. Omit the '=' but show the others; and always
+    # align subsequent output lines for ease of comparison.
+    local op=''
+    local ws=''
+    if [ "$operator" != '==' ]; then
+        op="$operator "
+        ws=$(printf "%*s" ${#op} "")
+    fi
+
+    # This is a multi-line message, which may in turn contain multi-line
+    # output, so let's format it ourself to make it more readable.
+    local expect_split
+    mapfile -t expect_split <<<"$expect_string"
+    local actual_split
+    mapfile -t actual_split <<<"$actual_string"
+
+    # bash %q is really nice, except for the way it backslashes spaces
+    local -a expect_split_q
+    for line in "${expect_split[@]}"; do
+        local q=$(printf "%q" "$line" | sed -e 's/\\ / /g')
+        expect_split_q+=("$q")
+    done
+    local -a actual_split_q
+    for line in "${actual_split[@]}"; do
+        local q=$(printf "%q" "$line" | sed -e 's/\\ / /g')
+        actual_split_q+=("$q")
+    done
+
+    printf "#/vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv\n"    >&2
+    printf "#|     FAIL: %s\n" "$testname"                        >&2
+    printf "#| expected: %s%s\n" "$op" "${expect_split_q[0]}"     >&2
+    local line
+    for line in "${expect_split_q[@]:1}"; do
+        printf "#|         > %s%s\n" "$ws" "$line"                >&2
+    done
+    printf "#|   actual: %s%s\n" "$ws" "${actual_split_q[0]}"     >&2
+    for line in "${actual_split_q[@]:1}"; do
+        printf "#|         > %s%s\n" "$ws" "$line"                >&2
+    done
+    printf "#\\^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n"   >&2
+    false
+}
+
 
 ########
 #  is  #  Compare actual vs expected string; fail w/diagnostic if mismatch
