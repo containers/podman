@@ -124,4 +124,22 @@ function teardown() {
     is "$output" "$expected_tty" "passthrough-tty: tty matches"
 }
 
+@test "podman volume export should fail when stdout is a tty" {
+    run_podman volume create testVol
+    run_podman run --rm -v testVol:/data $IMAGE sh -c "echo data > /data/file.txt"
+
+    # Positive Case
+    $PODMAN volume export testVol --output=/dev/null >$PODMAN_TEST_PTY ||
+        die "$PODMAN volume export testVol --output=/dev/null failed when connected to terminal."
+
+    # Negative Case
+    local rc=0
+    $PODMAN volume export testVol >$PODMAN_TEST_PTY 2>$PODMAN_TMPDIR/out || rc=$?
+
+    is "$rc" "125" "Exit code should be 125"
+    is "$(<$PODMAN_TMPDIR/out)" "Error: cannot write to terminal, use command-line redirection or the --output flag" "Should refuse to export to terminal."
+
+    run_podman volume rm testVol --force
+}
+
 # vim: filetype=sh
