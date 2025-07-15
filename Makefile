@@ -56,6 +56,7 @@ SYSTEMDDIR ?= ${LIBDIR}/systemd/system
 USERSYSTEMDDIR ?= ${LIBDIR}/systemd/user
 SYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/system-generators
 USERSYSTEMDGENERATORSDIR ?= ${LIBDIR}/systemd/user-generators
+SEQUOIA_SONAME_DIR =
 REMOTETAGS ?= remote exclude_graphdriver_btrfs containers_image_openpgp
 BUILDTAGS ?= \
 	grpcnotrace \
@@ -131,6 +132,7 @@ LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
+	-X go.podman.io/image/v5/signature/internal/sequoia.sequoiaLibraryDir='"$(SEQUOIA_SONAME_DIR)"' \
 	-X go.podman.io/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \
