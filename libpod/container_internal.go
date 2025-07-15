@@ -1518,7 +1518,7 @@ func (c *Container) waitForConmonToExitAndSave() error {
 				logrus.Errorf("Error cleaning up container %s after Conmon exited prematurely: %v", c.ID(), err)
 			}
 
-			return fmt.Errorf("container %s conmon exited prematurely, exit code could not be retrieved: %w", c.ID(), define.ErrInternal)
+			return fmt.Errorf("container %s conmon exited prematurely, exit code could not be retrieved: %w", c.ID(), define.ErrConmonDead)
 		}
 
 		return c.save()
