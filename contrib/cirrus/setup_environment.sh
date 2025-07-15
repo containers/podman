@@ -9,6 +9,8 @@
 
 set -e
 
+PODMAN_SEQUOIA_COMMIT=7dda4eaf22db19c487a6fbc01fa35838c888e0ab # FIXME: drop
+
 # shellcheck source=./contrib/cirrus/lib.sh
 source $(dirname $0)/lib.sh
 
@@ -414,6 +416,18 @@ case "$TEST_FLAVOR" in
     bindings) ;&
     endpoint)
         showrun echo "Entering shared endpoint setup"
+        # shellcheck disable=SC2154
+        if [[ "$TEST_BUILD_TAGS" =~ containers_image_sequoia ]]; then
+            # FIXME: All of this should be removed after libpodman_sequoia is packaged; instead, install the RPM at image build time.
+            dnf install -y rustc cargo clang-devel capnproto
+            git clone https://github.com/ueno/podman-sequoia
+            (cd podman-sequoia && git checkout $PODMAN_SEQUOIA_COMMIT)
+            msg "Building libpodman_sequoia"
+            (cd podman-sequoia; showrun cargo build --release)
+            msg "libpodman_sequoia built: $(pwd)/podman-sequoia/target/release"
+            ls -la "$(pwd)/podman-sequoia/target/release"
+        fi
+
         # Use existing host bits when testing is to happen inside a container
         # since this script will run again in that environment.
         # shellcheck disable=SC2154
@@ -422,11 +436,11 @@ case "$TEST_FLAVOR" in
                 die "Refusing to config. host-test in container";
             fi
             remove_packaged_podman_files
-            make install PREFIX=/usr ETCDIR=/etc
+            make install PREFIX=/usr ETCDIR=/etc EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" SEQUOIA_SONAME_DIR="$(pwd)/podman-sequoia/target/release"
         elif [[ "$TEST_ENVIRON" == "container" ]]; then
             if ((CONTAINER)); then
                 remove_packaged_podman_files
-                make install PREFIX=/usr ETCDIR=/etc
+                make install PREFIX=/usr ETCDIR=/etc EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" SEQUOIA_SONAME_DIR="$(pwd)/podman-sequoia/target/release"
             fi
         else
             die "Invalid value for \$TEST_ENVIRON=$TEST_ENVIRON"
