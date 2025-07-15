@@ -202,4 +202,20 @@ function __run_healthcheck_container() {
     die "Container never entered 'stopping' state"
 }
 
+# bats test_tags=ci:parallel
+@test "podman rm after killed conmon" {
+    cname=c_$(safename)
+    run_podman run -d --name $cname $IMAGE sleep 1000
+
+    run_podman inspect --format '{{ .State.ConmonPid }}' $cname
+    conmon_pid=$output
+
+    kill -9 ${conmon_pid}
+
+    run_podman rm -f -t0 $cname
+
+    run_podman 125 container inspect $cname
+    assert "$output" =~ "no such container \"$cname\"" "Container should be removed"
+}
+
 # vim: filetype=sh
