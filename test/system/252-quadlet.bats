@@ -1081,7 +1081,7 @@ EOF
           is "$output" "$exit_code_prop" \
              "$basename: service container has the expected policy set in its annotations"
       else
-          assert "$output" =~ "no such container $service_container" \
+          assert "$output" =~ "no such container \"$service_container\"" \
                  "$basename: unexpected error from podman container inspect"
       fi
 
