@@ -539,7 +539,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			// ErrNoSuchCtr is non-fatal, other errors will be
 			// treated as fatal.
 			if errors.Is(err, define.ErrNoSuchCtr) {
-				errs = append(errs, fmt.Errorf("no such container %s", name))
+				errs = append(errs, fmt.Errorf("no such container %q", name))
 				continue
 			}
 			return nil, nil, err
@@ -550,7 +550,7 @@ func (ic *ContainerEngine) ContainerInspect(ctx context.Context, namesOrIds []st
 			// ErrNoSuchCtr is non-fatal, other errors will be
 			// treated as fatal.
 			if errors.Is(err, define.ErrNoSuchCtr) {
-				errs = append(errs, fmt.Errorf("no such container %s", name))
+				errs = append(errs, fmt.Errorf("no such container %q", name))
 				continue
 			}
 			return nil, nil, err
