@@ -2,6 +2,7 @@ package shim
 
 import (
 	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/config"
+	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/connection"
 	machineDefine "github.com/containers/podman/v5/pkg/machine/define"
@@ -839,4 +842,162 @@ func validateDestinationPaths(dest string) error {
 		return fmt.Errorf("machine mount destination cannot be %q: consider another location or a subdirectory of an existing location", mountTarget)
 	}
 	return nil
+}
+
+// InspectRunningMachine finds and returns information about the currently running machine.
+// It searches across all VM providers to find a machine in the running state.
+// Returns nil if no running machine is found.
+func InspectRunningMachine(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) (*machine.InternalInspectInfo, error) {
+	for _, s := range vmstubbers {
+		dirs, err := env.GetMachineDirs(s.VMType())
+		if err != nil {
+			return nil, err
+		}
+		mcs, err := vmconfigs.LoadMachinesInDir(dirs)
+		if err != nil {
+			return nil, err
+		}
+		for _, mc := range mcs {
+			state, err := s.State(mc, false)
+			if err != nil {
+				return nil, err
+			}
+			if state != machineDefine.Running {
+				continue
+			}
+
+			podmanSocket, podmanPipe, err := mc.ConnectionInfo(s.VMType())
+			if err != nil {
+				return nil, err
+			}
+
+			rosetta, err := s.GetRosetta(mc)
+			if err != nil {
+				return nil, err
+			}
+
+			return &machine.InternalInspectInfo{
+				InspectInfo: machine.InspectInfo{
+					ConfigDir: *dirs.ConfigDir,
+					ConnectionInfo: machine.ConnectionConfig{
+						PodmanSocket: podmanSocket,
+						PodmanPipe:   podmanPipe,
+					},
+					Created:            mc.Created,
+					LastUp:             mc.LastUp,
+					Name:               mc.Name,
+					Resources:          mc.Resources,
+					SSHConfig:          mc.SSH,
+					State:              state,
+					UserModeNetworking: s.UserModeNetworkEnabled(mc),
+					Rootful:            mc.HostUser.Rootful,
+					Rosetta:            rosetta,
+				},
+				Mounts: mc.Mounts,
+			}, nil
+		}
+	}
+	return nil, nil
+}
+
+// isConnectionToMachine checks if the current connection context is connected to the specified machine.
+// It compares connection URIs and socket paths to determine if they match.
+func isConnectionToMachine(ctx context.Context, machineInfo *machine.InternalInspectInfo) bool {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		logrus.Warnf("Error getting client connection: %v", err)
+		return false
+	}
+	logrus.Debugf("Checking connection URI: %s", conn.URI.String())
+	cfg, err := config.Default()
+	if err != nil {
+		logrus.Warnf("Error getting default config: %v", err)
+		return false
+	}
+	cons, err := cfg.GetAllConnections()
+	if err != nil {
+		logrus.Warnf("Error getting connections: %v", err)
+		return false
+	}
+
+	for _, con := range cons {
+		if con.URI == conn.URI.String() && con.IsMachine {
+			return true
+		}
+	}
+
+	if machineInfo.ConnectionInfo.PodmanSocket != nil {
+		if filepath.Clean(machineInfo.ConnectionInfo.PodmanSocket.Path) == filepath.Clean(conn.URI.Path) {
+			return true
+		}
+	}
+
+	if machineInfo.ConnectionInfo.PodmanPipe != nil {
+		if filepath.Clean(machineInfo.ConnectionInfo.PodmanPipe.Path) == filepath.Clean(conn.URI.Path) {
+			return true
+		}
+	}
+	return false
+}
+
+// IsPathAvailableOnMachine checks if a local path is available on the machine through mounted directories.
+// If the path is available, it returns a LocalAPIMap with the corresponding remote path.
+func IsPathAvailableOnMachine(ctx context.Context, machineInfo *machine.InternalInspectInfo, path string) (*machine.LocalAPIMap, bool) {
+	if machineInfo == nil || path == "" {
+		return nil, false
+	}
+
+	if !isConnectionToMachine(ctx, machineInfo) {
+		return nil, false
+	}
+
+	pathABS, err := filepath.Abs(path)
+	if err != nil {
+		logrus.Debugf("Failed to get absolute path for %s: %v", path, err)
+		return nil, false
+	}
+
+	for _, mount := range machineInfo.Mounts {
+		mountSource := filepath.Clean(mount.Source)
+		if strings.HasPrefix(pathABS, mountSource) {
+			// Ensure we're matching directory boundaries, not just prefixes
+			// e.g., /home/user should not match /home/username
+			if len(pathABS) > len(mountSource) && pathABS[len(mountSource)] != filepath.Separator {
+				continue
+			}
+
+			relPath, err := filepath.Rel(mountSource, pathABS)
+			if err != nil {
+				logrus.Debugf("Failed to get relative path: %v", err)
+				continue
+			}
+			target := filepath.Join(mount.Target, relPath)
+			return &machine.LocalAPIMap{
+				ClientPath: pathABS,
+				RemotePath: target,
+			}, true
+		}
+	}
+	return nil, false
+}
+
+// CheckPathOnRunningMachine is a convenience function that checks if a path is available
+// on any currently running machine. It combines machine inspection and path checking.
+func CheckPathOnRunningMachine(ctx context.Context, path string) (*machine.LocalAPIMap, bool) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		logrus.Debugf("Path %s does not exist locally, skipping machine check", path)
+		return nil, false
+	}
+
+	allProviders := provider.GetAll()
+	machineInfo, err := InspectRunningMachine(allProviders, machine.ListOptions{})
+	if err != nil {
+		logrus.Debugf("Error inspecting running machine: %v", err)
+		return nil, false
+	}
+	if machineInfo == nil {
+		logrus.Debug("No running machine found")
+		return nil, false
+	}
+	return IsPathAvailableOnMachine(ctx, machineInfo, path)
 }

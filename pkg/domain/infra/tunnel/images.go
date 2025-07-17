@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/utils"
 	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/storage/pkg/archive"
 )
 
@@ -221,6 +223,22 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 }
 
 func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
+	if localMap, ok := shim.CheckPathOnRunningMachine(ir.ClientCtx, opts.Input); ok {
+		report, err := images.LoadLocal(ir.ClientCtx, localMap)
+		if err == nil {
+			return report, nil
+		}
+		errModel, ok := err.(*errorhandling.ErrorModel)
+		if !ok {
+			return nil, err
+		}
+		switch errModel.ResponseCode {
+		case http.StatusNotFound, http.StatusMethodNotAllowed:
+		default:
+			return nil, err
+		}
+	}
+
 	f, err := os.Open(opts.Input)
 	if err != nil {
 		return nil, err

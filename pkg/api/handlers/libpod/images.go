@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	domainUtils "github.com/containers/podman/v5/pkg/domain/utils"
 	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/util"
 	utils2 "github.com/containers/podman/v5/utils"
 	"github.com/containers/storage"
@@ -366,6 +368,41 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	loadOptions := entities.ImageLoadOptions{Input: tmpfile.Name()}
+	loadReport, err := imageEngine.Load(r.Context(), loadOptions)
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to load image: %w", err))
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, loadReport)
+}
+
+func ImagesLocalLoad(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+
+	localMap := machine.LocalAPIMap{}
+	if err := json.NewDecoder(r.Body).Decode(&localMap); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to decode request body: %w", err))
+		return
+	}
+
+	if localMap.RemotePath == "" {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("RemotePath is required"))
+		return
+	}
+
+	cleanPath := filepath.Clean(localMap.RemotePath)
+	switch _, err := os.Stat(cleanPath); {
+	case err == nil:
+	case os.IsNotExist(err):
+		utils.Error(w, http.StatusNotFound, fmt.Errorf("file does not exist: %q", cleanPath))
+		return
+	default:
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to access file: %w", err))
+		return
+	}
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	loadOptions := entities.ImageLoadOptions{Input: cleanPath}
 	loadReport, err := imageEngine.Load(r.Context(), loadOptions)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to load image: %w", err))
