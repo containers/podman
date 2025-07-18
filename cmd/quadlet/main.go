@@ -615,6 +615,8 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 			// types), but still breaks the dependency cycle between .volume and .build ([Volume] can
 			// have Image=some.build, and [Build] can have Volume=some.volume:/some-volume)
 			resourceName = quadlet.GetBuiltImageName(unit)
+		case strings.HasSuffix(unit.Filename, ".artifact"):
+			serviceName = quadlet.GetArtifactServiceName(unit)
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			serviceName = quadlet.GetPodServiceName(unit)
 			containers = make([]string, 0)
@@ -754,6 +756,9 @@ func process() bool {
 			service, err = quadlet.ConvertImage(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".build"):
 			service, warnings, err = quadlet.ConvertBuild(unit, unitsInfoMap, isUserFlag)
+		case strings.HasSuffix(unit.Filename, ".artifact"):
+			warnIfAmbiguousName(unit, quadlet.ArtifactGroup)
+			service, err = quadlet.ConvertArtifact(unit, unitsInfoMap, isUserFlag)
 		case strings.HasSuffix(unit.Filename, ".pod"):
 			service, warnings, err = quadlet.ConvertPod(unit, unit.Filename, unitsInfoMap, isUserFlag)
 		default:
