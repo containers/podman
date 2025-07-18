@@ -184,7 +184,11 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 	cpuQuota, _ := flags.GetInt64("cpu-quota")
 	cpuShares, _ := flags.GetUint64("cpu-shares")
 	httpProxy, _ := flags.GetBool("http-proxy")
-	identityLabel, _ := flags.GetBool("identity-label")
+	var identityLabel types.OptionalBool
+	if flags.Changed("identity-label") {
+		b, _ := flags.GetBool("identity-label")
+		identityLabel = types.NewOptionalBool(b)
+	}
 	omitHistory, _ := flags.GetBool("omit-history")
 
 	ulimit := []string{}
@@ -208,7 +212,7 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		DNSSearch:     dnsSearch,
 		DNSServers:    dnsServers,
 		HTTPProxy:     httpProxy,
-		IdentityLabel: types.NewOptionalBool(identityLabel),
+		IdentityLabel: identityLabel,
 		Memory:        memoryLimit,
 		MemorySwap:    memorySwap,
 		NoHostname:    noHostname,

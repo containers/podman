@@ -111,6 +111,8 @@ Thus, compressing the data before sending it is irrelevant to Podman. (This opti
 
 @@option cpuset-mems
 
+@@option created-annotation
+
 @@option creds
 
 #### **--cw**=*options*
@@ -221,6 +223,8 @@ It does not affect _/etc/resolv.conf_ in the final image.
 
 @@option iidfile
 
+@@option inherit-annotations
+
 @@option inherit-labels
 
 @@option ipc.image
@@ -323,6 +327,8 @@ the help of emulation provided by packages like `qemu-user-static`.
 @@option retry
 
 @@option retry-delay
+
+@@option rewrite-timestamp
 
 @@option rm
 
@@ -433,6 +439,8 @@ Sign the image using a GPG key with the specified FINGERPRINT. (This option is n
 
 @@option skip-unused-stages
 
+@@option source-date-epoch
+
 @@option squash
 
 @@option squash-all
@@ -454,6 +462,8 @@ Use --stdin to be able to interact from the terminal during the build.
 @@option tls-verify
 
 @@option ulimit.image
+
+@@option unsetannotation
 
 @@option unsetenv.image
 

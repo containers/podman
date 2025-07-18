@@ -49,7 +49,8 @@ type CommonBuildOptions struct {
 	CPUSetMems string
 	// HTTPProxy determines whether *_proxy env vars from the build host are passed into the container.
 	HTTPProxy bool
-	// IdentityLabel if set ensures that default `io.buildah.version` label is not applied to build image.
+	// IdentityLabel if set controls whether or not a `io.buildah.version` label is added to the built image.
+	// Setting this to false does not clear the label if it would be inherited from the base image.
 	IdentityLabel types.OptionalBool
 	// Memory is the upper limit (in bytes) on how much memory running containers can use.
 	Memory int64
@@ -242,6 +243,9 @@ type BuildOptions struct {
 	// InheritLabels controls whether or not built images will retain the labels
 	// which were set in their base images
 	InheritLabels types.OptionalBool
+	// InheritAnnotations controls whether or not built images will retain the annotations
+	// which were set in their base images
+	InheritAnnotations types.OptionalBool
 	// AddCapabilities is a list of capabilities to add to the default set when
 	// handling RUN instructions.
 	AddCapabilities []string
@@ -295,9 +299,23 @@ type BuildOptions struct {
 	SignBy string
 	// Architecture specifies the target architecture of the image to be built.
 	Architecture string
-	// Timestamp sets the created timestamp to the specified time, allowing
-	// for deterministic, content-addressable builds.
+	// Timestamp specifies a timestamp to use for the image's created-on
+	// date, the corresponding field in new history entries, the timestamps
+	// to set on contents in new layer diffs, and the timestamps to set on
+	// contents written as specified in the BuildOutput field.  If left
+	// unset, the current time is used for the configuration and manifest,
+	// and layer contents are recorded as-is.
 	Timestamp *time.Time
+	// SourceDateEpoch specifies a timestamp to use for the image's
+	// created-on date and the corresponding field in new history entries,
+	// and any content written as specified in the BuildOutput field.  If
+	// left unset, the current time is used for the configuration and
+	// manifest, and layer and BuildOutput contents retain their original
+	// timestamps.
+	SourceDateEpoch *time.Time
+	// RewriteTimestamp, if set, forces timestamps in generated layers to
+	// not be later than the SourceDateEpoch, if it is also set.
+	RewriteTimestamp bool
 	// OS is the specifies the operating system of the image to be built.
 	OS string
 	// MaxPullPushRetries is the maximum number of attempts we'll make to pull or push any one
@@ -340,6 +358,8 @@ type BuildOptions struct {
 	UnsetEnvs []string
 	// UnsetLabels is a list of labels to not add to final image from base image.
 	UnsetLabels []string
+	// UnsetAnnotations is a list of annotations to not add to final image from base image.
+	UnsetAnnotations []string
 	// Envs is a list of environment variables to set in the final image.
 	Envs []string
 	// OSFeatures specifies operating system features the image requires.
@@ -389,6 +409,13 @@ type BuildOptions struct {
 	// provides a minimal initial configuration with a working directory
 	// set in it.
 	CompatScratchConfig types.OptionalBool
+	// CompatLayerOmissions causes the "/dev", "/proc", and "/sys"
+	// directories to be omitted from the image and related output.  Newer
+	// BuildKit-based builds include them in the built image by default.
+	CompatLayerOmissions types.OptionalBool
 	// NoPivotRoot inhibits the usage of pivot_root when setting up the rootfs
 	NoPivotRoot bool
+	// CreatedAnnotation controls whether or not an "org.opencontainers.image.created"
+	// annotation is present in the output image.
+	CreatedAnnotation types.OptionalBool
 }

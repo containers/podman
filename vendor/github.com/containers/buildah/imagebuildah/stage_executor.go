@@ -76,6 +76,8 @@ type StageExecutor struct {
 	stage                 *imagebuilder.Stage
 	didExecute            bool
 	argsFromContainerfile []string
+	hasLink               bool
+	isLastStep            bool
 }
 
 // Preserve informs the stage executor that from this point on, it needs to
@@ -359,8 +361,11 @@ func (s *StageExecutor) Copy(excludes []string, copies ...imagebuilder.Copy) err
 			}
 			return errors.New("COPY --keep-git-dir is not supported")
 		}
-		if cp.Link {
-			return errors.New("COPY --link is not supported")
+		if cp.Link && s.executor.layers {
+			s.hasLink = true
+		} else if cp.Link {
+			s.executor.logger.Warn("--link is not supported when building without --layers, ignoring --link")
+			s.hasLink = false
 		}
 		if len(cp.Excludes) > 0 {
 			excludes = append(slices.Clone(excludes), cp.Excludes...)
@@ -564,6 +569,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 				sources = append(sources, src)
 			}
 		}
+		labelsAndAnnotations := s.buildMetadata(s.isLastStep, true)
 		options := buildah.AddAndCopyOptions{
 			Chmod:             copy.Chmod,
 			Chown:             copy.Chown,
@@ -583,6 +589,8 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 			MaxRetries:            s.executor.maxPullPushRetries,
 			RetryDelay:            s.executor.retryPullPushDelay,
 			Parents:               copy.Parents,
+			Link:                  s.hasLink,
+			BuildMetadata:         labelsAndAnnotations,
 		}
 		if len(copy.Files) > 0 {
 			// If we are copying heredoc files, we need to temporary place
@@ -1034,9 +1042,14 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		for _, p := range builder.Ports() {
 			ports[docker.Port(p)] = struct{}{}
 		}
+		hostname, domainname := builder.Hostname(), builder.Domainname()
+		containerName := builder.Container
+		if s.executor.timestamp != nil || s.executor.sourceDateEpoch != nil {
+			hostname, domainname, containerName = "sandbox", "", ""
+		}
 		dConfig := docker.Config{
-			Hostname:     builder.Hostname(),
-			Domainname:   builder.Domainname(),
+			Hostname:     hostname,
+			Domainname:   domainname,
 			User:         builder.User(),
 			Env:          builder.Env(),
 			Cmd:          builder.Cmd(),
@@ -1063,7 +1076,7 @@ func (s *StageExecutor) prepare(ctx context.Context, from string, initializeIBCo
 		dImage := docker.Image{
 			Parent:          builder.FromImageID,
 			ContainerConfig: dConfig,
-			Container:       builder.Container,
+			Container:       containerName,
 			Author:          builder.Maintainer(),
 			Architecture:    builder.Architecture(),
 			RootFS:          rootfs,
@@ -1284,7 +1297,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 	if len(children) == 0 {
 		// There are no steps.
-		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 || len(s.executor.sbomScanOptions) > 0 {
+		if s.builder.FromImageID == "" || s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.labels) > 0 || len(s.executor.annotations) > 0 || len(s.executor.unsetEnvs) > 0 || len(s.executor.unsetLabels) > 0 || len(s.executor.sbomScanOptions) > 0 || len(s.executor.unsetAnnotations) > 0 {
 			// We either don't have a base image, or we need to
 			// transform the contents of the base image, or we need
 			// to make some changes to just the config blob.  Whichever
@@ -1293,7 +1306,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// No base image means there's nothing to put in a
 			// layer, so don't create one.
 			emptyLayer := (s.builder.FromImageID == "")
-			createdBy, err := s.getCreatedBy(nil, "")
+			createdBy, err := s.getCreatedBy(nil, "", lastStage)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 			}
@@ -1325,6 +1338,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		logRusage()
 		moreInstructions := i < len(children)-1
 		lastInstruction := !moreInstructions
+
+		s.isLastStep = lastStage && lastInstruction
 		// Resolve any arguments in this instruction.
 		step := ib.Step()
 		if err := step.Resolve(node); err != nil {
@@ -1444,7 +1459,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				if s.executor.timestamp != nil {
 					timestamp = *s.executor.timestamp
 				}
-				createdBy, err := s.getCreatedBy(node, addedContentSummary)
+				createdBy, err := s.getCreatedBy(node, addedContentSummary, false)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 				}
@@ -1458,7 +1473,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// stage.
 			if lastStage || imageIsUsedLater {
 				logCommit(s.output, i)
-				createdBy, err := s.getCreatedBy(node, addedContentSummary)
+				createdBy, err := s.getCreatedBy(node, addedContentSummary, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 				}
@@ -1533,7 +1548,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 		// cacheKey since it will be used either while pulling or pushing the
 		// cache images.
 		if needsCacheKey {
-			cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+			cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("failed while generating cache key: %w", err)
 			}
@@ -1561,13 +1576,13 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				addedContentSummary = s.getContentSummaryAfterAddingContent()
 				// regenerate cache key with updated content summary
 				if needsCacheKey {
-					cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+					cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 					if err != nil {
 						return "", nil, false, fmt.Errorf("failed while generating cache key: %w", err)
 					}
 				}
 			}
-			cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+			cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
 			}
@@ -1579,7 +1594,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// is ignored and will be automatically logged for --log-level debug
 				if ref, id, err := s.pullCache(ctx, cacheKey); ref != nil && id != "" && err == nil {
 					logCachePulled(cacheKey, ref)
-					cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+					cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 					if err != nil {
 						return "", nil, false, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
 					}
@@ -1611,7 +1626,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			addedContentSummary = s.getContentSummaryAfterAddingContent()
 			// regenerate cache key with updated content summary
 			if needsCacheKey {
-				cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+				cacheKey, err = s.generateCacheKey(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("failed while generating cache key: %w", err)
 				}
@@ -1620,7 +1635,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// Check if there's already an image based on our parent that
 			// has the same change that we just made.
 			if checkForLayers && !avoidLookingCache {
-				cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+				cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
 				}
@@ -1633,7 +1648,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 					// is ignored and will be automatically logged for --log-level debug
 					if ref, id, err := s.pullCache(ctx, cacheKey); ref != nil && id != "" && err == nil {
 						logCachePulled(cacheKey, ref)
-						cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step))
+						cacheID, err = s.intermediateImageExists(ctx, node, addedContentSummary, s.stepRequiresLayer(step), lastInstruction && lastStage)
 						if err != nil {
 							return "", nil, false, fmt.Errorf("checking if cached image exists from a previous build: %w", err)
 						}
@@ -1683,7 +1698,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 			// We're not going to find any more cache hits, so we
 			// can stop looking for them.
 			checkForLayers = false
-			createdBy, err := s.getCreatedBy(node, addedContentSummary)
+			createdBy, err := s.getCreatedBy(node, addedContentSummary, lastStage && lastInstruction)
 			if err != nil {
 				return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 			}
@@ -1725,7 +1740,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 
 		if lastInstruction && lastStage {
 			if s.executor.squash || s.executor.confidentialWorkload.Convert || len(s.executor.sbomScanOptions) != 0 {
-				createdBy, err := s.getCreatedBy(node, addedContentSummary)
+				createdBy, err := s.getCreatedBy(node, addedContentSummary, lastStage && lastInstruction)
 				if err != nil {
 					return "", nil, false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 				}
@@ -1790,6 +1805,8 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				return "", nil, false, fmt.Errorf("preparing container for next step: %w", err)
 			}
 		}
+
+		s.hasLink = false
 	}
 
 	return imgID, ref, onlyBaseImage, nil
@@ -1826,7 +1843,7 @@ func historyEntriesEqual(base, derived v1.History) bool {
 // that we're comparing.
 // Used to verify whether a cache of the intermediate image exists and whether
 // to run the build again.
-func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDiffIDs []digest.Digest, child *parser.Node, history []v1.History, diffIDs []digest.Digest, addedContentSummary string, buildAddsLayer bool) (bool, error) {
+func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDiffIDs []digest.Digest, child *parser.Node, history []v1.History, diffIDs []digest.Digest, addedContentSummary string, buildAddsLayer bool, lastInstruction bool) (bool, error) {
 	// our history should be as long as the base's, plus one entry for what
 	// we're doing
 	if len(history) != len(baseHistory)+1 {
@@ -1865,7 +1882,7 @@ func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDif
 			return false, nil
 		}
 	}
-	createdBy, err := s.getCreatedBy(child, addedContentSummary)
+	createdBy, err := s.getCreatedBy(child, addedContentSummary, lastInstruction)
 	if err != nil {
 		return false, fmt.Errorf("unable to get createdBy for the node: %w", err)
 	}
@@ -1875,16 +1892,21 @@ func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDif
 // getCreatedBy returns the command the image at node will be created by.  If
 // the passed-in CompositeDigester is not nil, it is assumed to have the digest
 // information for the content if the node is ADD or COPY.
-func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary string) (string, error) {
+//
+// This function acts differently if getCreatedBy is invoked by LastStep. For instances
+// certain instructions like `removing annotations` does not makes sense for every step
+// but only makes sense if the step is last step of a build.
+func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary string, isLastStep bool) (string, error) {
 	if node == nil {
 		return "/bin/sh", nil
 	}
-	inheritLabels := ""
-	// If --inherit-label was manually set to false then update history.
-	if s.executor.inheritLabels == types.OptionalBoolFalse {
-		inheritLabels = "|inheritLabels=false"
-	}
-	switch strings.ToUpper(node.Value) {
+
+	command := strings.ToUpper(node.Value)
+	addcopy := command == "ADD" || command == "COPY"
+
+	labelsAndAnnotations := s.buildMetadata(isLastStep, addcopy)
+
+	switch command {
 	case "ARG":
 		for _, variable := range strings.Fields(node.Original) {
 			if variable != "ARG" {
@@ -1892,7 +1914,7 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 			}
 		}
 		buildArgs := s.getBuildArgsKey()
-		return "/bin/sh -c #(nop) ARG " + buildArgs + inheritLabels, nil
+		return "/bin/sh -c #(nop) ARG " + buildArgs + labelsAndAnnotations, nil
 	case "RUN":
 		shArg := ""
 		buildArgs := s.getBuildArgsResolvedForRun()
@@ -1918,7 +1940,7 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 					mountOptionSource = "."
 				}
 			}
-			// Source specificed is part of stage, image or additional-build-context.
+			// Source specified is part of stage, image or additional-build-context.
 			if mountOptionFrom != "" {
 				// If this is not a stage then get digest of image or additional build context
 				if _, ok := s.executor.stages[mountOptionFrom]; !ok {
@@ -1972,16 +1994,20 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 		if buildArgs != "" {
 			result = result + "|" + strconv.Itoa(len(strings.Split(buildArgs, " "))) + " " + buildArgs + " "
 		}
-		result = result + "/bin/sh -c " + shArg + heredoc + appendCheckSum + inheritLabels
+		result = result + "/bin/sh -c " + shArg + heredoc + appendCheckSum + labelsAndAnnotations
 		return result, nil
 	case "ADD", "COPY":
 		destination := node
 		for destination.Next != nil {
 			destination = destination.Next
 		}
-		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + " " + addedContentSummary + " in " + destination.Value + " " + inheritLabels, nil
+		hasLink := ""
+		if s.hasLink {
+			hasLink = " --link"
+		}
+		return "/bin/sh -c #(nop) " + strings.ToUpper(node.Value) + hasLink + " " + addedContentSummary + " in " + destination.Value + " " + labelsAndAnnotations, nil
 	default:
-		return "/bin/sh -c #(nop) " + node.Original + inheritLabels, nil
+		return "/bin/sh -c #(nop) " + node.Original + labelsAndAnnotations, nil
 	}
 }
 
@@ -2115,14 +2141,14 @@ func (s *StageExecutor) tagExistingImage(ctx context.Context, cacheID, output st
 // generated CacheKey is further used by buildah to lock and decide
 // tag for the intermediate image which can be pushed and pulled to/from
 // the remote repository.
-func (s *StageExecutor) generateCacheKey(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool) (string, error) {
+func (s *StageExecutor) generateCacheKey(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool, lastInstruction bool) (string, error) {
 	hash := sha256.New()
 	var baseHistory []v1.History
 	var diffIDs []digest.Digest
 	var manifestType string
 	var err error
 	if s.builder.FromImageID != "" {
-		manifestType, baseHistory, diffIDs, err = s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, s.builder.FromImageID)
+		_, _, manifestType, baseHistory, diffIDs, err = s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, s.builder.FromImageID)
 		if err != nil {
 			return "", fmt.Errorf("getting history of base image %q: %w", s.builder.FromImageID, err)
 		}
@@ -2130,7 +2156,7 @@ func (s *StageExecutor) generateCacheKey(ctx context.Context, currNode *parser.N
 			fmt.Fprintln(hash, diffIDs[i].String())
 		}
 	}
-	createdBy, err := s.getCreatedBy(currNode, addedContentDigest)
+	createdBy, err := s.getCreatedBy(currNode, addedContentDigest, lastInstruction)
 	if err != nil {
 		return "", err
 	}
@@ -2247,8 +2273,8 @@ func (s *StageExecutor) pullCache(ctx context.Context, cacheKey string) (referen
 
 // intermediateImageExists returns image ID if an intermediate image of currNode exists in the image store from a previous build.
 // It verifies this by checking the parent of the top layer of the image and the history.
-// If more than one image matches as potiential candidates then priority is given to the most recently built image.
-func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool) (string, error) {
+// If more than one image matches as potential candidates then priority is given to the most recently built image.
+func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *parser.Node, addedContentDigest string, buildAddsLayer bool, lastInstruction bool) (string, error) {
 	cacheCandidates := []storage.Image{}
 	// Get the list of images available in the image store
 	images, err := s.executor.store.Images()
@@ -2258,7 +2284,7 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 	var baseHistory []v1.History
 	var baseDiffIDs []digest.Digest
 	if s.builder.FromImageID != "" {
-		_, baseHistory, baseDiffIDs, err = s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, s.builder.FromImageID)
+		_, _, _, baseHistory, baseDiffIDs, err = s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, s.builder.FromImageID)
 		if err != nil {
 			return "", fmt.Errorf("getting history of base image %q: %w", s.builder.FromImageID, err)
 		}
@@ -2299,9 +2325,10 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 		if s.builder.TopLayer != imageParentLayerID {
 			continue
 		}
+
 		// Next we double check that the history of this image is equivalent to the previous
 		// lines in the Dockerfile up till the point we are at in the build.
-		manifestType, history, diffIDs, err := s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, image.ID)
+		imageOS, imageArchitecture, manifestType, history, diffIDs, err := s.executor.getImageTypeAndHistoryAndDiffIDs(ctx, image.ID)
 		if err != nil {
 			// It's possible that this image is for another architecture, which results
 			// in a custom-crafted error message that we'd have to use substring matching
@@ -2314,8 +2341,27 @@ func (s *StageExecutor) intermediateImageExists(ctx context.Context, currNode *p
 		if manifestType != s.executor.outputFormat {
 			continue
 		}
+
+		// Compare the cached image's platform with the current build's target platform
+		currentArch := s.executor.architecture
+		currentOS := s.executor.os
+		if currentArch == "" && currentOS == "" {
+			currentOS, currentArch, _, err = parse.Platform(s.stage.Builder.Platform)
+			if err != nil {
+				logrus.Debugf("unable to parse default OS and Arch for the current build: %v", err)
+			}
+		}
+		if currentArch != "" && imageArchitecture != currentArch {
+			logrus.Debugf("cached image %q has architecture %q but current build targets %q, ignoring it", image.ID, imageArchitecture, currentArch)
+			continue
+		}
+		if currentOS != "" && imageOS != currentOS {
+			logrus.Debugf("cached image %q has OS %q but current build targets %q, ignoring it", image.ID, imageOS, currentOS)
+			continue
+		}
+
 		// children + currNode is the point of the Dockerfile we are currently at.
-		foundMatch, err := s.historyAndDiffIDsMatch(baseHistory, baseDiffIDs, currNode, history, diffIDs, addedContentDigest, buildAddsLayer)
+		foundMatch, err := s.historyAndDiffIDsMatch(baseHistory, baseDiffIDs, currNode, history, diffIDs, addedContentDigest, buildAddsLayer, lastInstruction)
 		if err != nil {
 			return "", err
 		}
@@ -2421,15 +2467,33 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 	for k, v := range config.Labels {
 		s.builder.SetLabel(k, v)
 	}
-	if s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolUndefined || s.executor.commonBuildOptions.IdentityLabel == types.OptionalBoolTrue {
+	switch s.executor.commonBuildOptions.IdentityLabel {
+	case types.OptionalBoolTrue:
 		s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
+	case types.OptionalBoolFalse:
+		// nothing - don't clear it if there's a value set in the base image
+	default:
+		if s.executor.timestamp == nil && s.executor.sourceDateEpoch == nil {
+			s.builder.SetLabel(buildah.BuilderIdentityAnnotation, define.Version)
+		}
 	}
 	for _, key := range s.executor.unsetLabels {
 		s.builder.UnsetLabel(key)
 	}
-	for _, annotationSpec := range s.executor.annotations {
-		annotationk, annotationv, _ := strings.Cut(annotationSpec, "=")
-		s.builder.SetAnnotation(annotationk, annotationv)
+	if finalInstruction {
+		if s.executor.inheritAnnotations == types.OptionalBoolFalse {
+			// If user has selected `--inherit-annotations=false` let's not
+			// inherit annotations from base image.
+			s.builder.ClearAnnotations()
+		}
+		// Add new annotations to the last step.
+		for _, annotationSpec := range s.executor.annotations {
+			annotationk, annotationv, _ := strings.Cut(annotationSpec, "=")
+			s.builder.SetAnnotation(annotationk, annotationv)
+		}
+		for _, key := range s.executor.unsetAnnotations {
+			s.builder.UnsetAnnotation(key)
+		}
 	}
 	if imageRef != nil {
 		logName := transports.ImageName(imageRef)
@@ -2450,6 +2514,7 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		Squash:                squash,
 		OmitHistory:           s.executor.commonBuildOptions.OmitHistory,
 		EmptyLayer:            emptyLayer,
+		OmitLayerHistoryEntry: s.hasLink,
 		BlobDirectory:         s.executor.blobDirectory,
 		SignBy:                s.executor.signBy,
 		MaxRetries:            s.executor.maxPullPushRetries,
@@ -2457,6 +2522,12 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 		HistoryTimestamp:      s.executor.timestamp,
 		Manifest:              s.executor.manifest,
 		CompatSetParent:       s.executor.compatSetParent,
+		SourceDateEpoch:       s.executor.sourceDateEpoch,
+		RewriteTimestamp:      s.executor.rewriteTimestamp,
+		CompatLayerOmissions:  s.executor.compatLayerOmissions,
+		UnsetAnnotations:      s.executor.unsetAnnotations,
+		Annotations:           s.executor.annotations,
+		CreatedAnnotation:     s.executor.createdAnnotation,
 	}
 	if finalInstruction {
 		options.ConfidentialWorkloadOptions = s.executor.confidentialWorkload
@@ -2478,7 +2549,13 @@ func (s *StageExecutor) commit(ctx context.Context, createdBy string, emptyLayer
 }
 
 func (s *StageExecutor) generateBuildOutput(buildOutputOpts define.BuildOutputOption) error {
-	extractRootfsOpts := buildah.ExtractRootfsOptions{}
+	forceTimestamp := s.executor.timestamp
+	if s.executor.sourceDateEpoch != nil {
+		forceTimestamp = s.executor.sourceDateEpoch
+	}
+	extractRootfsOpts := buildah.ExtractRootfsOptions{
+		ForceTimestamp: forceTimestamp,
+	}
 	if unshare.IsRootless() {
 		// In order to maintain as much parity as possible
 		// with buildkit's version of --output and to avoid
@@ -2492,7 +2569,12 @@ func (s *StageExecutor) generateBuildOutput(buildOutputOpts define.BuildOutputOp
 		extractRootfsOpts.StripSetgidBit = true
 		extractRootfsOpts.StripXattrs = true
 	}
-	rc, errChan, err := s.builder.ExtractRootfs(buildah.CommitOptions{}, extractRootfsOpts)
+	rc, errChan, err := s.builder.ExtractRootfs(buildah.CommitOptions{
+		HistoryTimestamp:     s.executor.timestamp,
+		SourceDateEpoch:      s.executor.sourceDateEpoch,
+		RewriteTimestamp:     s.executor.rewriteTimestamp,
+		CompatLayerOmissions: s.executor.compatLayerOmissions,
+	}, extractRootfsOpts)
 	if err != nil {
 		return fmt.Errorf("failed to extract rootfs from given container image: %w", err)
 	}
@@ -2518,4 +2600,35 @@ func (s *StageExecutor) EnsureContainerPath(path string) error {
 func (s *StageExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMode) error {
 	logrus.Debugf("EnsureContainerPath %q (owner %q, mode %o) in %q", path, user, mode, s.builder.ContainerID)
 	return s.builder.EnsureContainerPathAs(path, user, mode)
+}
+
+func (s *StageExecutor) buildMetadata(isLastStep bool, addcopy bool) string {
+	inheritLabels := ""
+	unsetAnnotations := ""
+	inheritAnnotations := ""
+	newAnnotations := ""
+	// If --inherit-label was manually set to false then update history.
+	if s.executor.inheritLabels == types.OptionalBoolFalse {
+		inheritLabels = "|inheritLabels=false"
+	}
+	if isLastStep {
+		for _, annotation := range s.executor.unsetAnnotations {
+			unsetAnnotations += "|unsetAnnotation=" + annotation
+		}
+		// If --inherit-annotation was manually set to false then update history.
+		if s.executor.inheritAnnotations == types.OptionalBoolFalse {
+			inheritAnnotations = "|inheritAnnotations=false"
+		}
+		// If new annotations are added, they must be added as part of the last step of the build,
+		// so mention in history that new annotations were added inorder to make sure the builds
+		// can either reuse layers or burst the cache depending upon new annotations.
+		if len(s.executor.annotations) > 0 {
+			newAnnotations += strings.Join(s.executor.annotations, ",")
+		}
+	}
+
+	if addcopy {
+		return inheritLabels + " " + unsetAnnotations + " " + inheritAnnotations + " " + newAnnotations
+	}
+	return inheritLabels + unsetAnnotations + inheritAnnotations + newAnnotations
 }

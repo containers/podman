@@ -6,8 +6,10 @@ const (
 	// external items which are downloaded for a build, typically a tarball
 	// being used as an additional build context.
 	BuildahExternalArtifactsDir = "buildah-external-artifacts"
-	// SourceDateEpochName is the name of the SOURCE_DATE_EPOCH environment
-	// variable when it's read from the environment by our main().
+	// SourceDateEpochName is both the name of the SOURCE_DATE_EPOCH
+	// environment variable and the built-in ARG that carries its value,
+	// whether it's read from the environment by our main(), or passed in
+	// via CLI or API flags.
 	SourceDateEpochName = "SOURCE_DATE_EPOCH"
 )
 

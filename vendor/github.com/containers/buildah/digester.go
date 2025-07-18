@@ -61,7 +61,14 @@ type tarFilterer struct {
 }
 
 func (t *tarFilterer) Write(p []byte) (int, error) {
-	return t.pipeWriter.Write(p)
+	n, err := t.pipeWriter.Write(p)
+	if err != nil {
+		t.closedLock.Lock()
+		closed := t.closed
+		t.closedLock.Unlock()
+		err = fmt.Errorf("writing to tar filter pipe (closed=%v,err=%v): %w", closed, t.err, err)
+	}
+	return n, err
 }
 
 func (t *tarFilterer) Close() error {
@@ -108,9 +115,8 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 					skip, replaceContents, replacementContents = filter(hdr)
 				}
 				if !skip {
-					err = tarWriter.WriteHeader(hdr)
-					if err != nil {
-						err = fmt.Errorf("filtering tar header for %q: %w", hdr.Name, err)
+					if err = tarWriter.WriteHeader(hdr); err != nil {
+						err = fmt.Errorf("writing tar header for %q: %w", hdr.Name, err)
 						break
 					}
 					if hdr.Size != 0 {
@@ -129,6 +135,10 @@ func newTarFilterer(writeCloser io.WriteCloser, filter func(hdr *tar.Header) (sk
 							err = fmt.Errorf("filtering content for %q: expected %d bytes, got %d bytes", hdr.Name, hdr.Size, n)
 							break
 						}
+					}
+					if err = tarWriter.Flush(); err != nil {
+						err = fmt.Errorf("flushing tar item padding for %q: %w", hdr.Name, err)
+						break
 					}
 				}
 				hdr, err = tarReader.Next()

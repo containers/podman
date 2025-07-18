@@ -71,6 +71,8 @@ Remove built images from farm nodes on success (Default: false).
 
 @@option cpuset-mems
 
+@@option created-annotation
+
 @@option creds
 
 @@option decryption-key
@@ -122,6 +124,8 @@ This option specifies the name of the farm to be used in the build process.
 @@option ignorefile
 
 @@option iidfile
+
+@@option inherit-annotations
 
 @@option inherit-labels
 
@@ -177,6 +181,8 @@ Build only on farm nodes that match the given platforms.
 
 @@option retry-delay
 
+@@option rewrite-timestamp
+
 @@option rm
 
 @@option runtime
@@ -207,6 +213,8 @@ Build only on farm nodes that match the given platforms.
 
 @@option skip-unused-stages
 
+@@option source-date-epoch
+
 @@option squash
 
 @@option squash-all
@@ -222,6 +230,8 @@ Build only on farm nodes that match the given platforms.
 @@option tls-verify
 
 @@option ulimit.image
+
+@@option unsetannotation
 
 @@option unsetenv.image
 
