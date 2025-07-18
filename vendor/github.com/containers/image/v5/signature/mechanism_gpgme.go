@@ -2,6 +2,9 @@
 
 package signature
 
+// This is shared by mechanism_gpgme_only.go and mechanism_sequoia.go; in both situations
+// newGPGSigningMechanismInDirectory is implemented using GPGME.
+
 import (
 	"bytes"
 	"errors"
@@ -18,6 +21,16 @@ type gpgmeSigningMechanism struct {
 	ephemeralDir string // If not "", a directory to be removed on Close()
 }
 
+// newGPGMESigningMechanism returns a new GPG/OpenPGP signing mechanism for ctx.
+// The caller must call .Close() on the returned SigningMechanism; if ephemeralDir is set,
+// the .Close() call will remove its contents.
+func newGPGMESigningMechanism(ctx *gpgme.Context, ephemeralDir string) signingMechanismWithPassphrase {
+	return &gpgmeSigningMechanism{
+		ctx:          ctx,
+		ephemeralDir: ephemeralDir,
+	}
+}
+
 // newGPGSigningMechanismInDirectory returns a new GPG/OpenPGP signing mechanism, using optionalDir if not empty.
 // The caller must call .Close() on the returned SigningMechanism.
 func newGPGSigningMechanismInDirectory(optionalDir string) (signingMechanismWithPassphrase, error) {
@@ -25,46 +38,7 @@ func newGPGSigningMechanismInDirectory(optionalDir string) (signingMechanismWith
 	if err != nil {
 		return nil, err
 	}
-	return &gpgmeSigningMechanism{
-		ctx:          ctx,
-		ephemeralDir: "",
-	}, nil
-}
-
-// newEphemeralGPGSigningMechanism returns a new GPG/OpenPGP signing mechanism which
-// recognizes _only_ public keys from the supplied blobs, and returns the identities
-// of these keys.
-// The caller must call .Close() on the returned SigningMechanism.
-func newEphemeralGPGSigningMechanism(blobs [][]byte) (signingMechanismWithPassphrase, []string, error) {
-	dir, err := os.MkdirTemp("", "containers-ephemeral-gpg-")
-	if err != nil {
-		return nil, nil, err
-	}
-	removeDir := true
-	defer func() {
-		if removeDir {
-			os.RemoveAll(dir)
-		}
-	}()
-	ctx, err := newGPGMEContext(dir)
-	if err != nil {
-		return nil, nil, err
-	}
-	mech := &gpgmeSigningMechanism{
-		ctx:          ctx,
-		ephemeralDir: dir,
-	}
-	keyIdentities := []string{}
-	for _, blob := range blobs {
-		ki, err := mech.importKeysFromBytes(blob)
-		if err != nil {
-			return nil, nil, err
-		}
-		keyIdentities = append(keyIdentities, ki...)
-	}
-
-	removeDir = false
-	return mech, keyIdentities, nil
+	return newGPGMESigningMechanism(ctx, ""), nil
 }
 
 // newGPGMEContext returns a new *gpgme.Context, using optionalDir if not empty.
@@ -92,28 +66,6 @@ func (m *gpgmeSigningMechanism) Close() error {
 		os.RemoveAll(m.ephemeralDir) // Ignore an error, if any
 	}
 	return nil
-}
-
-// importKeysFromBytes imports public keys from the supplied blob and returns their identities.
-// The blob is assumed to have an appropriate format (the caller is expected to know which one).
-// NOTE: This may modify long-term state (e.g. key storage in a directory underlying the mechanism);
-// but we do not make this public, it can only be used through newEphemeralGPGSigningMechanism.
-func (m *gpgmeSigningMechanism) importKeysFromBytes(blob []byte) ([]string, error) {
-	inputData, err := gpgme.NewDataBytes(blob)
-	if err != nil {
-		return nil, err
-	}
-	res, err := m.ctx.Import(inputData)
-	if err != nil {
-		return nil, err
-	}
-	keyIdentities := []string{}
-	for _, i := range res.Imports {
-		if i.Result == nil {
-			keyIdentities = append(keyIdentities, i.Fingerprint)
-		}
-	}
-	return keyIdentities, nil
 }
 
 // SupportsSigning returns nil if the mechanism supports signing, or a SigningNotSupportedError.

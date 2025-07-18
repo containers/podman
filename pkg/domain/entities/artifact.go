@@ -81,13 +81,10 @@ type ArtifactPullOptions struct {
 
 type ArtifactPushOptions struct {
 	ImagePushOptions
-	CredentialsCLI             string
-	DigestFile                 string
-	EncryptLayers              []int
-	EncryptionKeys             []string
-	SignBySigstoreParamFileCLI string
-	SignPassphraseFileCLI      string
-	TLSVerifyCLI               bool // CLI only
+	CredentialsCLI string
+	DigestFile     string
+	EncryptLayers  []int
+	EncryptionKeys []string
 }
 
 type ArtifactRemoveOptions struct {

@@ -15,7 +15,7 @@ require (
 	github.com/containers/common v0.64.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.6
-	github.com/containers/image/v5 v5.36.0
+	github.com/containers/image/v5 v5.36.1-0.20250715134332-5424d4659d7f
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
@@ -193,3 +193,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20250715153703-8e1bc095acb0
