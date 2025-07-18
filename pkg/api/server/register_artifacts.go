@@ -245,6 +245,8 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// responses:
 	//   200:
 	//     description: Extract successful
+	//     schema:
+	//       type: file
 	//   400:
 	//     $ref: "#/responses/badParamError"
 	//   404:

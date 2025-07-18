@@ -40,7 +40,6 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteArtifacts,
 		Example:           `podman artifact push quay.io/myimage/myartifact:latest`,
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 )
 
@@ -129,7 +128,6 @@ func pushFlags(cmd *cobra.Command) {
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
-		_ = flags.MarkHidden("quiet")
 		_ = flags.MarkHidden(signByFlagName)
 		_ = flags.MarkHidden(signBySigstoreFlagName)
 		_ = flags.MarkHidden(signBySigstorePrivateKeyFlagName)
