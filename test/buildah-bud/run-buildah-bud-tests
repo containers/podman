@@ -265,5 +265,5 @@ review the test failure and double-check your changes.
                  COPY_BINARY=$(pwd)/bin/copy \
                  INET_BINARY=$(pwd)/bin/inet \
                  DUMPSPEC_BINARY=$(pwd)/bin/dumpspec \
-                 bats -j $(nproc) "${bats_filter[@]}" tests/bud.bats)
+                 bats -j $(nproc) --show-output-of-passing-tests "${bats_filter[@]}" tests/bud.bats)
 fi

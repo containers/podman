@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"os"
@@ -24,6 +25,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
+	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/regexp"
@@ -126,17 +128,7 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	for _, tag := range options.AdditionalTags {
 		params.Add("t", tag)
 	}
-	if additionalBuildContexts := options.AdditionalBuildContexts; len(additionalBuildContexts) > 0 {
-		// TODO: Additional build contexts should be packaged and sent as tar files
-		// For the time being we make our best to make them accessible on remote
-		// machines too (i.e. on macOS and Windows).
-		convertAdditionalBuildContexts(additionalBuildContexts)
-		additionalBuildContextMap, err := jsoniter.Marshal(additionalBuildContexts)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("additionalbuildcontexts", string(additionalBuildContextMap))
-	}
+
 	if options.IDMappingOptions != nil {
 		idmappingsOptions, err := jsoniter.Marshal(options.IDMappingOptions)
 		if err != nil {
@@ -643,11 +635,110 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		}
 	}()
 
+	var requestBody io.Reader
+	var contentType string
+
+	imageContexts := make(map[string]string)
+	urlContexts := make(map[string]string)
+	localContexts := make(map[string]*define.AdditionalBuildContext)
+
+	for name, context := range options.AdditionalBuildContexts {
+		switch {
+		case context.IsImage:
+			imageContexts[name] = context.Value
+		case context.IsURL:
+			urlContexts[name] = context.Value
+		default:
+			localContexts[name] = context
+		}
+	}
+
+	logrus.Debugf("URL Contexts: %v", urlContexts)
+	for name, url := range urlContexts {
+		params.Add("additionalbuildcontext-url", fmt.Sprintf("%s=%s", name, url))
+	}
+
+	logrus.Debugf("Image Contexts: %v", imageContexts)
+	for name, imageRef := range imageContexts {
+		params.Add("additionalbuildcontext-image", fmt.Sprintf("%s=%s", name, imageRef))
+	}
+
+	if len(localContexts) > 0 {
+		// Additional local contexts will be sent via multipart
+		logrus.Debugf("Using additional local build contexts: %v", localContexts)
+		pr, pw := io.Pipe()
+		writer := multipart.NewWriter(pw)
+		contentType = writer.FormDataContentType()
+		requestBody = pr
+
+		if headers == nil {
+			headers = make(http.Header)
+		}
+		headers.Set("Content-Type", contentType)
+
+		go func() {
+			defer pw.Close()
+			defer writer.Close()
+
+			mainContext, err := writer.CreateFormFile("MainContext", "MainContext.tar")
+			if err != nil {
+				pw.CloseWithError(fmt.Errorf("creating form file for main context: %w", err))
+				return
+			}
+
+			if _, err := io.Copy(mainContext, tarfile); err != nil {
+				pw.CloseWithError(fmt.Errorf("copying main main context: %w", err))
+				return
+			}
+
+			for name, context := range localContexts {
+				logrus.Debugf("Processing additional local context: %s", name)
+				part, err := writer.CreateFormFile(fmt.Sprintf("build-context-%s", name), name)
+				if err != nil {
+					pw.CloseWithError(fmt.Errorf("creating form file for context %q: %w", name, err))
+					return
+				}
+
+				// Context is already a tar
+				if archive.IsArchivePath(context.Value) {
+					file, err := os.Open(context.Value)
+					if err != nil {
+						pw.CloseWithError(fmt.Errorf("opening archive %q: %w", name, err))
+						return
+					}
+
+					if _, err := io.Copy(part, file); err != nil {
+						file.Close()
+						pw.CloseWithError(fmt.Errorf("creating form file for context %q: %w", name, err))
+						return
+					}
+					file.Close()
+				} else {
+					tarContent, err := nTar(nil, context.Value)
+					if err != nil {
+						pw.CloseWithError(fmt.Errorf("creating tar content %q: %w", name, err))
+						return
+					}
+					defer tarContent.Close()
+
+					if _, err = io.Copy(part, tarContent); err != nil {
+						pw.CloseWithError(fmt.Errorf("copying tar content %q: %w", name, err))
+						return
+					}
+				}
+			}
+		}()
+		logrus.Debugf("Multipart body is created with content type: %s", contentType)
+	} else {
+		requestBody = tarfile
+		logrus.Debugf("Using main build context: %q", options.ContextDirectory)
+	}
+
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(ctx, tarfile, http.MethodPost, "/build", params, headers)
+	response, err := conn.DoRequest(ctx, requestBody, http.MethodPost, "/build", params, headers)
 	if err != nil {
 		return nil, err
 	}
