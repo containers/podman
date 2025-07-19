@@ -26,9 +26,10 @@ environment variable while the machines are running can lead to unexpected behav
 
 ## OPTIONS
 
-#### **--all-providers**
+#### **--all-providers**=**true|false**
 
-Show machines from all providers
+Show machines from all providers.
+The default is **true**.
 
 #### **--format**=*format*
 
