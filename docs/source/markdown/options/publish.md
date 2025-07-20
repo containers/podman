@@ -22,5 +22,5 @@ If it is not, the container port is randomly assigned a port on the host.
 
 Use **podman port** to see the actual mapping: `podman port $CONTAINER $CONTAINERPORT`.
 
-Note that the network drivers `macvlan` and `ipvlan` do not support port forwarding,
-therefore this option will have no effect on such networks.
+Port publishing is only supported for containers utilizing their own network namespace
+through `bridge` networks, or the `pasta` and `slirp4netns` network modes.
