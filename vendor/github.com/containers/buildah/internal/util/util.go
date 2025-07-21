@@ -54,8 +54,7 @@ func NormalizePlatform(platform v1.Platform) v1.Platform {
 func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 	var err error
 	if !filepath.IsAbs(opts.Path) {
-		opts.Path, err = filepath.Abs(opts.Path)
-		if err != nil {
+		if opts.Path, err = filepath.Abs(opts.Path); err != nil {
 			return err
 		}
 	}
@@ -72,26 +71,22 @@ func ExportFromReader(input io.Reader, opts define.BuildOutputOption) error {
 			noLChown = true
 		}
 
-		err = os.MkdirAll(opts.Path, 0o700)
-		if err != nil {
+		if err = os.MkdirAll(opts.Path, 0o700); err != nil {
 			return fmt.Errorf("failed while creating the destination path %q: %w", opts.Path, err)
 		}
 
-		err = chrootarchive.Untar(input, opts.Path, &archive.TarOptions{NoLchown: noLChown})
-		if err != nil {
+		if err = chrootarchive.Untar(input, opts.Path, &archive.TarOptions{NoLchown: noLChown}); err != nil {
 			return fmt.Errorf("failed while performing untar at %q: %w", opts.Path, err)
 		}
 	} else {
 		outFile := os.Stdout
 		if !opts.IsStdout {
-			outFile, err = os.Create(opts.Path)
-			if err != nil {
+			if outFile, err = os.Create(opts.Path); err != nil {
 				return fmt.Errorf("failed while creating destination tar at %q: %w", opts.Path, err)
 			}
 			defer outFile.Close()
 		}
-		_, err = io.Copy(outFile, input)
-		if err != nil {
+		if _, err = io.Copy(outFile, input); err != nil {
 			return fmt.Errorf("failed while performing copy to %q: %w", opts.Path, err)
 		}
 	}

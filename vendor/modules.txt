@@ -108,7 +108,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.40.1-0.20250604193037-b8d8cc375f30
+# github.com/containers/buildah v1.41.0
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -294,8 +294,8 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20250408185436-4bb4c3f825be
-## explicit; go 1.21
+# github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194
+## explicit; go 1.23.0
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.1
 ## explicit; go 1.22
@@ -494,8 +494,8 @@ github.com/felixge/httpsnoop
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
 github.com/fsnotify/fsnotify/internal
-# github.com/fsouza/go-dockerclient v1.12.0
-## explicit; go 1.22
+# github.com/fsouza/go-dockerclient v1.12.1
+## explicit; go 1.23
 github.com/fsouza/go-dockerclient
 # github.com/go-jose/go-jose/v4 v4.0.5
 ## explicit; go 1.21
@@ -651,7 +651,7 @@ github.com/miekg/pkcs11
 # github.com/mistifyio/go-zfs/v3 v3.0.1
 ## explicit; go 1.14
 github.com/mistifyio/go-zfs/v3
-# github.com/moby/buildkit v0.22.0
+# github.com/moby/buildkit v0.23.2
 ## explicit; go 1.23.0
 github.com/moby/buildkit/frontend/dockerfile/command
 github.com/moby/buildkit/frontend/dockerfile/parser
