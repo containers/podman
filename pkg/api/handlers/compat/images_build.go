@@ -302,6 +302,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 
 	compression := archive.Compression(query.Compression)
 
+	var compatVolumes types.OptionalBool
+	if _, found := r.URL.Query()["compatvolumes"]; found {
+		compatVolumes = types.NewOptionalBool(query.CompatVolumes)
+	}
+
 	// convert dropcaps formats
 	var dropCaps = []string{}
 	if _, found := r.URL.Query()["dropcaps"]; found {
@@ -742,7 +747,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Secrets:            secrets,
 			Volumes:            query.Volumes,
 		},
-		CompatVolumes:                  types.NewOptionalBool(query.CompatVolumes),
+		CompatVolumes:                  compatVolumes,
 		CreatedAnnotation:              query.CreatedAnnotation,
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
