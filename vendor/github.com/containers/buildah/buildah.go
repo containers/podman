@@ -180,6 +180,7 @@ type Builder struct {
 	// Format to use for a container image we eventually commit, when we do.
 	Format string
 	// TempVolumes are temporary mount points created during Run() calls.
+	// Deprecated: do not use.
 	TempVolumes map[string]bool
 	// ContentDigester counts the digest of all Add()ed content since it was
 	// last restarted.
