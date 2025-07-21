@@ -236,6 +236,12 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Set("inheritlabels", "1")
 	}
 
+	if options.InheritAnnotations == imageTypes.OptionalBoolFalse {
+		params.Set("inheritannotations", "0")
+	} else {
+		params.Set("inheritannotations", "1")
+	}
+
 	params.Set("isolation", strconv.Itoa(int(options.Isolation)))
 	if options.CommonBuildOpts.HTTPProxy {
 		params.Set("httpproxy", "1")
@@ -458,6 +464,10 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 	for _, ulabel := range options.UnsetLabels {
 		params.Add("unsetlabel", ulabel)
+	}
+
+	for _, uannotation := range options.UnsetAnnotations {
+		params.Add("unsetannotation", uannotation)
 	}
 
 	var (
