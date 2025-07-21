@@ -190,7 +190,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Volumes                 []string           `schema:"volume"`
 	}{
 		Dockerfile:       "Dockerfile",
-		IdentityLabel:    true,
 		Registry:         "docker.io",
 		Rm:               true,
 		ShmSize:          64 * 1024 * 1024,
@@ -204,6 +203,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, err)
 		return
+	}
+
+	var identityLabel types.OptionalBool
+	if _, found := r.URL.Query()["identitylabel"]; found {
+		identityLabel = types.NewOptionalBool(query.IdentityLabel)
 	}
 
 	// if layers field not set assume its not from a valid podman-client
@@ -702,6 +706,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Note: avoid using types.NewOptionaBool() to initialize optional bool fields of this
+	// struct without checking if the client supplied a value.  Skipping that step prevents
+	// the builder from choosing/using its defaults.
 	buildOptions := buildahDefine.BuildOptions{
 		AddCapabilities:         addCaps,
 		AdditionalBuildContexts: additionalBuildContexts,
@@ -726,7 +733,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			DNSSearch:          dnssearch,
 			DNSServers:         dnsservers,
 			HTTPProxy:          query.HTTPProxy,
-			IdentityLabel:      types.NewOptionalBool(query.IdentityLabel),
+			IdentityLabel:      identityLabel,
 			LabelOpts:          labelOpts,
 			Memory:             query.Memory,
 			MemorySwap:         query.MemSwap,
