@@ -579,10 +579,15 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		TransientMounts:         flags.Volumes,
 		UnsetEnvs:               flags.UnsetEnvs,
 		UnsetLabels:             flags.UnsetLabels,
+		UnsetAnnotations:        flags.UnsetAnnotations,
 	}
 
 	if c.Flag("inherit-labels").Changed {
 		opts.InheritLabels = types.NewOptionalBool(flags.InheritLabels)
+	}
+
+	if c.Flag("inherit-annotations").Changed {
+		opts.InheritAnnotations = types.NewOptionalBool(flags.InheritAnnotations)
 	}
 
 	if flags.IgnoreFile != "" {
