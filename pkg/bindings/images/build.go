@@ -236,9 +236,10 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	case imageTypes.OptionalBoolTrue:
 		params.Set("createdannotation", "1")
 	}
-	if options.InheritLabels == imageTypes.OptionalBoolFalse {
+	switch options.InheritLabels {
+	case imageTypes.OptionalBoolFalse:
 		params.Set("inheritlabels", "0")
-	} else {
+	case imageTypes.OptionalBoolTrue:
 		params.Set("inheritlabels", "1")
 	}
 
