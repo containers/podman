@@ -320,7 +320,6 @@ func newBuilder(ctx context.Context, store storage.Store, options BuilderOptions
 		TopLayer:         topLayer,
 		Args:             maps.Clone(options.Args),
 		Format:           options.Format,
-		TempVolumes:      map[string]bool{},
 		Devices:          options.Devices,
 		DeviceSpecs:      options.DeviceSpecs,
 		Logger:           options.Logger,

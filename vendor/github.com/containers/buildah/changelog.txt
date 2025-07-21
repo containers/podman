@@ -1,3 +1,115 @@
+- Changelog for v1.41.0 (2025-07-16)
+  * Bump to c/storage v1.59.0, c/image v5.36.0, ... c/common v0.64.0
+  * stage_executor: check platform of cache candidates
+  * fix(deps): update module golang.org/x/crypto to v0.40.0
+  * fix(deps): update module golang.org/x/term to v0.33.0
+  * fix(deps): update module golang.org/x/sync to v0.16.0
+  * fix(deps): update module github.com/docker/docker to v28.3.2+incompatible
+  * ADD/COPY --link support added
+  * RPM/TMT: account for passwd binary moving to tests
+  * buildah: move passwd command to tests
+  * Update "bud with --cpu-shares" test, and rename it
+  * Remove BUILDTAG btrfs_noversion as no longer effective
+  * fix(deps): update module github.com/docker/docker to v28.3.1+incompatible
+  * fix(deps): update module github.com/moby/buildkit to v0.23.2
+  * fix(deps): update github.com/containers/luksy digest to bc60f96
+  * chore(typos): fix typos
+  * vendor: update c/{common,image,storage} to main
+  * chore(deps): update module github.com/go-viper/mapstructure/v2 to v2.3.0 [security]
+  * fix(deps): update module go.etcd.io/bbolt to v1.4.2
+  * Update Neil Smith's GitHub username in MAINTAINERS.md
+  * Accept SOURCE_DATE_EPOCH as a build-arg
+  * fix(deps): update module github.com/docker/docker to v28.3.0+incompatible
+  * Add conditional release-checking system test
+  * info,inspect: use the "formats" package to get some builtins
+  * Use containers/common's formats package instead of our own
+  * build, commit: set the OCI ...created annotation on OCI images
+  * commit: exclude parents of mount targets, too
+  * run: clean up parents of mount targets, too
+  * tarFilterer: always flush after writing
+  * Builder: drop the TempVolumes field
+  * Update module github.com/moby/buildkit to v0.23.1
+  * Update module github.com/opencontainers/cgroups to v0.0.3
+  * Add CommitOptions.OmitLayerHistoryEntry, for skipping the new bits
+  * Update module github.com/fsouza/go-dockerclient to v1.12.1
+  * conformance: use mirrored frontend and base images
+  * commit-with-extra-files test: use $TEST_SCRATCH_DIR
+  * fix(deps): update module github.com/moby/buildkit to v0.23.0
+  * "root fs only mounted once" test: accept root with only the rw option
+  * Run with --device /dev/fuse and not just -v /dev/fuse:/dev/fuse
+  * CI: pass $BUILDAH_RUNTIME through to in-container test runs
+  * CI: ensure rootless groups aren't duplicates
+  * build: add support for --inherit-annotations
+  * CI: give the rootless test user some supplemental groups
+  * bud,run: runc does not support keep-groups
+  * Fix lint issue in TestCommitCompression
+  * Add a unit test for compression types in OCI images
+  * Support zstd compression in image commit
+  * fix(deps): update module go.etcd.io/bbolt to v1.4.1
+  * rpm: build rpm with libsqlite3 tag
+  * Makefile: use libsqlite3 build when possible
+  * commit,build: --source-date-epoch/--timestamp omit identity label
+  * docs: add --setopt "*.countme=false" to dnf examples
+  * Builder.sbomScan(): don't break non-root scanners
+  * build: --source-date-epoch/--timestamp use static hostname/cid
+  * fix(deps): update module golang.org/x/crypto to v0.39.0
+  * fix(deps): update module golang.org/x/sync to v0.15.0
+  * build: add --source-date-epoch and --rewrite-timestamp flags
+  * build,config: add support for --unsetannotation
+  * commit: add --source-date-epoch and --rewrite-timestamp flags
+  * fix(deps): update module github.com/openshift/imagebuilder to v1.2.16
+  * vendor latest c/{common,image,storage}
+  * Tweak our handling of variant values, again
+  * Don't BuildRequires: ostree-devel
+  * parse, validateExtraHost: honor Hostgateway in format
+  * remove static nix build
+  * Ensure extendedGlob returns paths in lexical order
+  * CI: run integration tests on Fedora with both crun and runc
+  * buildah-build(1): clarify that --cgroup-parent affects RUN instructions
+  * runUsingRuntime: use named constants for runtime states
+  * Add a dummy "runtime" that just dumps its config file
+  * run: handle relabeling bind mounts ourselves
+  * fix link to Maintainers file
+  * Update to avoid deprecated types
+  * fix(deps): update module github.com/docker/docker to v28.2.0+incompatible
+  * [skip-ci] Packit: cleanup redundant targets and unused anchors
+  * [skip-ci] Packit: set fedora-all after F40 EOL
+  * Use Fedora 42 instead of 41 in that one conformance test
+  * [CI:DOCS] README.md: add openssf passing badge
+  * fix(deps): update module github.com/moby/buildkit to v0.22.0
+  * copier: add Ensure and ConditionalRemove
+  * [CI:DOCS] update a couple of lists in the build man page
+  * build: allow --output to be specified multiple times
+  * add: add a new --timestamp flag
+  * tests/helpers.bash: add some helpers for parsing images
+  * pkg/parse.GetBuildOutput(): use strings.Cut()
+  * [skip-ci] Packit: Disable osh_diff_scan
+  * internal/util.SetHas(): handle maps of [generic]generic
+  * Refactor NewImageSource to add a manifest type abstraction (#5743)
+  * [skip-ci] Packit: Ignore ELN and CentOS Stream jobs
+  * imagebuildah: select most recent layer for cache
+  * [CI:DOCS] Add CNCF roadmap, touchup other CNCF files
+  * fix(deps): update module golang.org/x/crypto to v0.38.0
+  * Fix typo in comment (#6167)
+  * Support label_users in buildah
+  * fix(deps): update module golang.org/x/sync to v0.14.0
+  * fix(deps): update github.com/containers/luksy digest to 4bb4c3f
+  * test/serve: fix a descriptor leak, add preliminary directory support
+  * fix(deps): update module github.com/opencontainers/cgroups to v0.0.2
+  * fix(deps): update module github.com/moby/buildkit to v0.21.1
+  * Update to avoid deprecated types
+  * fix(deps): update module github.com/opencontainers/runc to v1.3.0
+  * Only filter if containerImageRef.created != nil
+  * Drop superfluous cast
+  * Remove UID/GID scrubbing.
+  * fix(deps): update module github.com/seccomp/libseccomp-golang to v0.11.0
+  * cirrus: turn prior fedora testing back on
+  * chore(deps): update dependency containers/automation_images to v20250422
+  * fix(deps): update module github.com/docker/docker to v28.1.1+incompatible
+  * Bump to Buildah v1.41.0-dev
+  * CI vendor_task: pin to go 1.23.3 for now
+  * fix(deps): update module github.com/containers/common to v0.63.0
+
 - Changelog for v1.40.0 (2025-04-17)
   * Bump c/storage to v1.58.0, c/image v5.35.0, c/common v0.63.0
   * fix(deps): update module github.com/docker/docker to v28.1.0+incompatible
