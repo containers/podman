@@ -211,18 +211,6 @@ type GroupInfo struct {
 }
 
 var (
-	// Key: Extension
-	// Value: Processing order for resource naming dependencies
-	SupportedExtensions = map[string]int{
-		".container": 4,
-		".volume":    2,
-		".kube":      4,
-		".network":   2,
-		".image":     1,
-		".build":     3,
-		".pod":       5,
-	}
-
 	URL            = regexp.Delayed(`^((https?)|(git)://)|(github\.com/).+$`)
 	validPortRange = regexp.Delayed(`\d+(-\d+)?(/udp|/tcp)?$`)
 
@@ -1457,6 +1445,27 @@ func GetBuiltImageName(buildUnit *parser.UnitFile) string {
 		return imageTags[0]
 	}
 	return ""
+}
+
+func GetUnitServiceName(unit *parser.UnitFile) (string, error) {
+	switch {
+	case strings.HasSuffix(unit.Filename, ".container"):
+		return GetContainerServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".volume"):
+		return GetVolumeServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".kube"):
+		return GetKubeServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".network"):
+		return GetNetworkServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".image"):
+		return GetImageServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".build"):
+		return GetBuildServiceName(unit), nil
+	case strings.HasSuffix(unit.Filename, ".pod"):
+		return GetPodServiceName(unit), nil
+	default:
+		return "", fmt.Errorf("unsupported file type %q", unit.Filename)
+	}
 }
 
 func GetContainerServiceName(podUnit *parser.UnitFile) string {

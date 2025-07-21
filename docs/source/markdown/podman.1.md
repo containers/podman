@@ -371,6 +371,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-ps(1)](podman-ps.1.md)                   | Print out information about containers.                                      |
 | [podman-pull(1)](podman-pull.1.md)               | Pull an image from a registry.                                               |
 | [podman-push(1)](podman-push.1.md)               | Push an image, manifest list or image index from local storage to elsewhere. |
+| [podman-quadlet(1)](podman-quadlet.1.md)         | Allows users to manage Quadlets.                                             |
 | [podman-rename(1)](podman-rename.1.md)           | Rename an existing container.                                                |
 | [podman-restart(1)](podman-restart.1.md)         | Restart one or more containers.                                              |
 | [podman-rm(1)](podman-rm.1.md)                   | Remove one or more containers.                                               |
