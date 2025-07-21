@@ -131,6 +131,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IdentityLabel           bool               `schema:"identitylabel"`
 		Ignore                  bool               `schema:"ignore"`
 		InheritLabels           types.OptionalBool `schema:"inheritlabels"`
+		InheritAnnotations      types.OptionalBool `schema:"inheritannotations"`
 		Isolation               string             `schema:"isolation"`
 		Jobs                    int                `schema:"jobs"`
 		LabelOpts               string             `schema:"labelopts"`
@@ -171,6 +172,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Ulimits                 string             `schema:"ulimits"`
 		UnsetEnvs               []string           `schema:"unsetenv"`
 		UnsetLabels             []string           `schema:"unsetlabel"`
+		UnsetAnnotations        []string           `schema:"unsetannotation"`
 		Volumes                 []string           `schema:"volume"`
 	}{
 		Dockerfile:       "Dockerfile",
@@ -746,6 +748,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IgnoreUnrecognizedInstructions: query.Ignore,
 		IgnoreFile:                     ignoreFile,
 		InheritLabels:                  query.InheritLabels,
+		InheritAnnotations:             query.InheritAnnotations,
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
 		Labels:                         labels,
@@ -774,6 +777,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Target:                         query.Target,
 		UnsetEnvs:                      query.UnsetEnvs,
 		UnsetLabels:                    query.UnsetLabels,
+		UnsetAnnotations:               query.UnsetAnnotations,
 	}
 
 	platforms := query.Platform
