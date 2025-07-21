@@ -230,6 +230,12 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	if options.IgnoreUnrecognizedInstructions {
 		params.Set("ignore", "1")
 	}
+	switch options.CreatedAnnotation {
+	case imageTypes.OptionalBoolFalse:
+		params.Set("createdannotation", "0")
+	case imageTypes.OptionalBoolTrue:
+		params.Set("createdannotation", "1")
+	}
 	if options.InheritLabels == imageTypes.OptionalBoolFalse {
 		params.Set("inheritlabels", "0")
 	} else {
@@ -441,8 +447,17 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Set("squash", "1")
 	}
 
+	if options.SourceDateEpoch != nil {
+		t := options.SourceDateEpoch
+		params.Set("sourcedateepoch", strconv.FormatInt(t.Unix(), 10))
+	}
+	if options.RewriteTimestamp {
+		params.Set("rewritetimestamp", "1")
+	} else {
+		params.Set("rewritetimestamp", "0")
+	}
 	if options.Timestamp != nil {
-		t := *options.Timestamp
+		t := options.Timestamp
 		params.Set("timestamp", strconv.FormatInt(t.Unix(), 10))
 	}
 

@@ -126,6 +126,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CpuSetCpus              string             `schema:"cpusetcpus"`
 		CpuSetMems              string             `schema:"cpusetmems"`
 		CpuShares               uint64             `schema:"cpushares"`
+		CreatedAnnotation       types.OptionalBool `schema:"createdannotation"`
 		DNSOptions              string             `schema:"dnsoptions"`
 		DNSSearch               string             `schema:"dnssearch"`
 		DNSServers              string             `schema:"dnsservers"`
@@ -168,6 +169,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Rm                      bool               `schema:"rm"`
 		RusageLogFile           string             `schema:"rusagelogfile"`
 		Remote                  string             `schema:"remote"`
+		RewriteTimestamp        bool               `schema:"rewritetimestamp"`
 		Retry                   int                `schema:"retry"`
 		RetryDelay              string             `schema:"retry-delay"`
 		Seccomp                 string             `schema:"seccomp"`
@@ -175,6 +177,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		SecurityOpt             string             `schema:"securityopt"`
 		ShmSize                 int                `schema:"shmsize"`
 		SkipUnusedStages        bool               `schema:"skipunusedstages"`
+		SourceDateEpoch         int64              `schema:"sourcedateepoch"`
 		Squash                  bool               `schema:"squash"`
 		TLSVerify               bool               `schema:"tlsVerify"`
 		Tags                    []string           `schema:"t"`
@@ -736,6 +739,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Volumes:            query.Volumes,
 		},
 		CompatVolumes:                  types.NewOptionalBool(query.CompatVolumes),
+		CreatedAnnotation:              query.CreatedAnnotation,
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,
@@ -773,6 +777,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry:                       registry,
 		RemoveIntermediateCtrs:         query.Rm,
 		ReportWriter:                   reporter,
+		RewriteTimestamp:               query.RewriteTimestamp,
 		RusageLogFile:                  query.RusageLogFile,
 		SkipUnusedStages:               types.NewOptionalBool(query.SkipUnusedStages),
 		Squash:                         query.Squash,
@@ -799,6 +804,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Arch:    arch,
 			Variant: variant,
 		})
+	}
+	if _, found := r.URL.Query()["sourcedateepoch"]; found {
+		ts := time.Unix(query.SourceDateEpoch, 0)
+		buildOptions.SourceDateEpoch = &ts
 	}
 	if _, found := r.URL.Query()["timestamp"]; found {
 		ts := time.Unix(query.Timestamp, 0)

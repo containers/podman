@@ -1584,6 +1584,29 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      Contents of base images to be modified on ADD or COPY only
 	//      (As of Podman version v5.2)
 	//  - in: query
+	//    name: createdannotation
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Add an "org.opencontainers.image.created" annotation to the
+	//      image.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: sourcedateepoch
+	//    type: number
+	//    description: |
+	//      Timestamp to use for newly-added history entries and the image's
+	//      creation date.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: rewritetimestamp
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      If sourcedateepoch is set, force new content added in layers to
+	//      have timestamps no later than the sourcedateepoch date.
+	//      (As of Podman version v5.6)
+	//  - in: query
 	//    name: inheritlabels
 	//    type: boolean
 	//    default: true
@@ -1596,7 +1619,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    default: true
 	//    description: |
 	//      Inherit the annotations from the base image or base stages
-	//      (As of Podman version v5.5)
+	//      (As of Podman version v5.6)
 	//  - in: query
 	//    name: nocache
 	//    type: boolean
@@ -1774,7 +1797,9 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      type: string
 	//  - in: query
 	//    name: unsetannotation
-	//    description: Unset the image annotation, causing the annotation not to be inherited from the base image.
+	//    description: |
+	//      Unset the image annotation, causing the annotation not to be inherited from the base image.
+	//      (As of Podman version v5.6)
 	//    type: array
 	//    items:
 	//      type: string
