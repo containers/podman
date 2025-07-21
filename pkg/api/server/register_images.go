@@ -560,13 +560,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      Suppress verbose build output
 	//  - in: query
-	//    name: compatvolumes
-	//    type: boolean
-	//    default: false
-	//    description: |
-	//      Contents of base images to be modified on ADD or COPY only
-	//      (As of Podman version v5.2)
-	//  - in: query
 	//    name: inheritlabels
 	//    type: boolean
 	//    default: true
