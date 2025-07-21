@@ -1552,7 +1552,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//    description: |
-	//      Contents of base images to be modified on ADD or COPY only
+	//      Contents of volume locations to be modified on ADD or COPY only
 	//      (As of Podman version v5.2)
 	//  - in: query
 	//    name: createdannotation
@@ -1577,6 +1577,12 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      If sourcedateepoch is set, force new content added in layers to
 	//      have timestamps no later than the sourcedateepoch date.
 	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: timestamp
+	//    type: int64
+	//    description: |
+	//      Timestamp to use for newly-added history entries, the image's
+	//      creation date, and for new content added in layers.
 	//  - in: query
 	//    name: inheritlabels
 	//    type: boolean
