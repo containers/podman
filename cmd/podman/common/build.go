@@ -530,7 +530,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		CacheTTL:                cacheTTL,
 		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CommonBuildOpts:         commonOpts,
-		CompatVolumes:           types.NewOptionalBool(flags.CompatVolumes),
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
@@ -586,6 +585,9 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 
 	if c.Flag("created-annotation").Changed {
 		opts.CreatedAnnotation = types.NewOptionalBool(flags.CreatedAnnotation)
+	}
+	if c.Flag("compat-volumes").Changed {
+		opts.CompatVolumes = types.NewOptionalBool(flags.CompatVolumes)
 	}
 	if c.Flag("inherit-labels").Changed {
 		opts.InheritLabels = types.NewOptionalBool(flags.InheritLabels)
