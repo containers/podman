@@ -104,7 +104,7 @@ RUN echo test
 		session = podmanTest.Podman([]string{"image", "diff", image, baseImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(HaveLen(4))
+		Expect(session.OutputToStringArray()).To(HaveLen(3))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file1))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file2))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file3))
