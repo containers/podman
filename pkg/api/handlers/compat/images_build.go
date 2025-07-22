@@ -189,14 +189,13 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		UnsetAnnotations        []string           `schema:"unsetannotation"`
 		Volumes                 []string           `schema:"volume"`
 	}{
-		Dockerfile:       "Dockerfile",
-		Registry:         "docker.io",
-		Rm:               true,
-		ShmSize:          64 * 1024 * 1024,
-		TLSVerify:        true,
-		SkipUnusedStages: true,
-		Retry:            int(conf.Engine.Retry),
-		RetryDelay:       conf.Engine.RetryDelay,
+		Dockerfile: "Dockerfile",
+		Registry:   "docker.io",
+		Rm:         true,
+		ShmSize:    64 * 1024 * 1024,
+		TLSVerify:  true,
+		Retry:      int(conf.Engine.Retry),
+		RetryDelay: conf.Engine.RetryDelay,
 	}
 
 	decoder := utils.GetDecoder(r)
@@ -678,6 +677,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var skipUnusedStages types.OptionalBool
+	if _, found := r.URL.Query()["skipunusedstages"]; found {
+		skipUnusedStages = types.NewOptionalBool(query.SkipUnusedStages)
+	}
+
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		systemContext.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 		systemContext.OCIInsecureSkipTLSVerify = !query.TLSVerify
@@ -791,7 +795,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		ReportWriter:                   reporter,
 		RewriteTimestamp:               query.RewriteTimestamp,
 		RusageLogFile:                  query.RusageLogFile,
-		SkipUnusedStages:               types.NewOptionalBool(query.SkipUnusedStages),
+		SkipUnusedStages:               skipUnusedStages,
 		Squash:                         query.Squash,
 		SystemContext:                  systemContext,
 		Target:                         query.Target,
