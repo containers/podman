@@ -13,7 +13,7 @@ diff --git a/tests/helpers.bash b/tests/helpers.bash
 index 3d1211492..dbf175de3 100644
 --- a/tests/helpers.bash
 +++ b/tests/helpers.bash
-@@ -81,6 +81,42 @@ EOF
+@@ -82,6 +82,42 @@ EOF
      BUILDAH_REGISTRY_OPTS="${regconfopt} ${regconfdir} --short-name-alias-conf ${TEST_SCRATCH_DIR}/cache/shortnames.conf"
      COPY_REGISTRY_OPTS="${BUILDAH_REGISTRY_OPTS}"
      PODMAN_REGISTRY_OPTS="${regconfopt}"
@@ -56,7 +56,7 @@ index 3d1211492..dbf175de3 100644
  }
  
  function starthttpd() { # directory [working-directory-or-"" [certfile, keyfile]]
-@@ -145,6 +181,22 @@ function teardown_tests() {
+@@ -146,6 +182,22 @@ function teardown_tests() {
      stop_git_daemon
      stop_registry
  
@@ -79,7 +79,7 @@ index 3d1211492..dbf175de3 100644
      # Workaround for #1991 - buildah + overlayfs leaks mount points.
      # Many tests leave behind /var/tmp/.../root/overlay and sub-mounts;
      # let's find those and clean them up, otherwise 'rm -rf' fails.
-@@ -266,7 +318,12 @@ function copy() {
+@@ -267,7 +319,12 @@ function copy() {
  }
  
  function podman() {
@@ -93,12 +93,13 @@ index 3d1211492..dbf175de3 100644
  }
  
  # There are various scenarios where we would like to execute `tests` as rootless user, however certain commands like `buildah mount`
-@@ -373,8 +430,36 @@ function run_buildah() {
+@@ -374,8 +431,69 @@ function run_buildah() {
          --retry)         retry=3;        shift;;  # retry network flakes
      esac
  
 +    local podman_or_buildah=${BUILDAH_BINARY}
 +    local _opts="${ROOTDIR_OPTS} ${BUILDAH_REGISTRY_OPTS}"
++    local copydown=:
 +    if [[ $1 == "build" || $1 == "build-using-dockerfile" || $1 == "bud" ]]; then
 +        shift
 +        # podman defaults to --layers=true; buildah to --false.
@@ -108,6 +109,39 @@ index 3d1211492..dbf175de3 100644
 +            set "build" "--force-rm=false" "$@"
 +        else
 +            set "build" "--force-rm=false" "--layers=false" "$@"
++        fi
++        # Figure out an archive format that will match the --format flag, if one was used.
++        local nativearchive=oci-archive
++        local formatpattern="((--format( |=))(oci|docker))"
++        if [[ "$*" =~ ${formatpattern} ]]; then
++            case "${BASH_REMATCH[4]}" in
++            oci)    nativearchive=oci-archive;;
++            docker) nativearchive=docker-archive;;
++            esac
++        fi
++        local tagpattern="(-t |--tag( |=))(oci|oci-archive|docker-archive|dir):([^[:blank:]]+)"
++        if [[ "$*" =~ ${tagpattern} ]]; then
++            # We're attempting to commit directly to something other than default storage, and we don't want remote clients doing that,
++            # so tweak the build command to instead tag the image with a more or less random name if it succeeds...
++            local tmpImageName=localhost/$(basename $(mktemp -u | tr '[A-Z]' '[a-z]')):$(basename $(mktemp -u | tr '[A-Z]' '[a-z]'))
++            local format=--format=docker-archive
++            local location=${BASH_REMATCH[4]}
++            local location2=
++            case "${BASH_REMATCH[3]}" in
++            oci)            format=--format=oci-dir;;
++            oci-archive)    format=--format=oci-archive;;
++            docker-archive) format=--format=docker-archive;;
++            dir)            format=--format=$nativearchive ; location2=dir:${location}; location=${location}.oci;
++            esac
++            set "${@/${BASH_REMATCH[3]}:${BASH_REMATCH[4]}/${tmpImageName}}"
++            set "${@/--tag=${BASH_REMATCH[3]}:${BASH_REMATCH[4]}/--tag=${tmpImageName}}"
++            # ... and then set up to copy that image to local disk for examination, if the build succeeds.
++            copydown="echo copying image ${tmpImageName} to ${BASH_REMATCH[3]}:${BASH_REMATCH[4]}; rm -fr ${location} && mkdir -p $(dirname ${location}) && podman save ${format} -o ${location} ${tmpImageName} && podman rmi ${tmpImageName}"
++            # If the target was a dir: type, copy to a format-friendly archive first, then to the directory.
++            if [[ -n "${location2}" ]] ; then
++                copydown="$copydown && ${COPY_BINARY} --dest-decompress ${nativearchive}:${location} ${location2} && rm -fr ${location}"
++            fi
++            copydown="$copydown && echo copied image ${tmpImageName} to ${BASH_REMATCH[3]}:${BASH_REMATCH[4]}"
 +        fi
 +        podman_or_buildah=${PODMAN_BINARY}
 +        _opts="${ROOTDIR_OPTS} ${PODMAN_REGISTRY_OPTS}"
@@ -124,14 +158,13 @@ index 3d1211492..dbf175de3 100644
 +    fi
 +    local cmd_basename=$(basename ${podman_or_buildah})
 +
-+
      # Remember command args, for possible use in later diagnostic messages
 -    MOST_RECENT_BUILDAH_COMMAND="buildah $*"
 +    MOST_RECENT_BUILDAH_COMMAND="$cmd_basename $*"
  
      # If session is rootless and `buildah mount` is invoked, perform unshare,
      # since normal user cannot mount a filesystem unless they're in a user namespace along with its own mount namespace.
-@@ -388,8 +473,8 @@ function run_buildah() {
+@@ -394,8 +507,8 @@ function run_buildah() {
          retry=$(( retry - 1 ))
  
          # stdout is only emitted upon error; this echo is to help a debugger
@@ -142,7 +175,17 @@ index 3d1211492..dbf175de3 100644
          # without "quotes", multiple lines are glommed together into one
          if [ -n "$output" ]; then
              echo "$output"
-@@ -753,6 +838,26 @@ function skip_if_no_unshare() {
+@@ -422,6 +535,9 @@ function run_buildah() {
+             false
+         fi
+ 
++        if [[ "$status" -eq 0 ]] ; then
++            eval ${copydown}
++        fi
+         if [ -n "$expected_rc" ]; then
+             if [ "$status" -eq "$expected_rc" ]; then
+                 return
+@@ -759,6 +875,26 @@ function skip_if_no_unshare() {
    fi
  }
  
