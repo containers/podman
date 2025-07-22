@@ -30,9 +30,10 @@ import (
 )
 
 const (
-	// BuilderIdentityAnnotation is the name of the annotation key containing
-	// the name and version of the producer of the image stored as an
-	// annotation on commit.
+	// BuilderIdentityAnnotation is the name of the label which will be set
+	// to contain the name and version of the producer of the image at
+	// commit-time.  (N.B. yes, the constant's name includes "Annotation",
+	// but it's added as a label.)
 	BuilderIdentityAnnotation = "io.buildah.version"
 )
 
@@ -93,9 +94,18 @@ type CommitOptions struct {
 	// EmptyLayer tells the builder to omit the diff for the working
 	// container.
 	EmptyLayer bool
+	// OmitLayerHistoryEntry tells the builder to omit the diff for the
+	// working container and to not add an entry in the commit history.  By
+	// default, the rest of the image's history is preserved, subject to
+	// the OmitHistory setting.  N.B.: setting this flag, without any
+	// PrependedEmptyLayers, AppendedEmptyLayers, PrependedLinkedLayers, or
+	// AppendedLinkedLayers will more or less produce a copy of the base
+	// image.
+	OmitLayerHistoryEntry bool
 	// OmitTimestamp forces epoch 0 as created timestamp to allow for
 	// deterministic, content-addressable builds.
-	// Deprecated use HistoryTimestamp instead.
+	// Deprecated: use HistoryTimestamp or SourceDateEpoch (possibly with
+	// RewriteTimestamp) instead.
 	OmitTimestamp bool
 	// SignBy is the fingerprint of a GPG key to use for signing the image.
 	SignBy string
@@ -121,7 +131,8 @@ type CommitOptions struct {
 	// contents of a rootfs.
 	ConfidentialWorkloadOptions ConfidentialWorkloadOptions
 	// UnsetEnvs is a list of environments to not add to final image.
-	// Deprecated: use UnsetEnv() before committing instead.
+	// Deprecated: use UnsetEnv() before committing, or set OverrideChanges
+	// instead.
 	UnsetEnvs []string
 	// OverrideConfig is an optional Schema2Config which can override parts
 	// of the working container's configuration for the image that is being
@@ -145,6 +156,11 @@ type CommitOptions struct {
 	// the image in Docker format.  Newer BuildKit-based builds don't set
 	// this field.
 	CompatSetParent types.OptionalBool
+	// CompatLayerOmissions causes the "/dev", "/proc", and "/sys"
+	// directories to be omitted from the layer diff and related output, as
+	// the classic builder did.  Newer BuildKit-based builds include them
+	// in the built image by default.
+	CompatLayerOmissions types.OptionalBool
 	// PrependedLinkedLayers and AppendedLinkedLayers are combinations of
 	// history entries and locations of either directory trees (if
 	// directories, per os.Stat()) or uncompressed layer blobs which should
@@ -153,6 +169,15 @@ type CommitOptions struct {
 	// corresponding members in the Builder object, in the committed image
 	// is not guaranteed.
 	PrependedLinkedLayers, AppendedLinkedLayers []LinkedLayer
+	// UnsetAnnotations is a list of annotations (names only) to withhold
+	// from the image.
+	UnsetAnnotations []string
+	// Annotations is a list of annotations (in the form "key=value") to
+	// add to the image.
+	Annotations []string
+	// CreatedAnnotation controls whether or not an "org.opencontainers.image.created"
+	// annotation is present in the output image.
+	CreatedAnnotation types.OptionalBool
 }
 
 // LinkedLayer combines a history entry with the location of either a directory
@@ -300,7 +325,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	// work twice.
 	if options.OmitTimestamp {
 		if options.HistoryTimestamp != nil {
-			return imgID, nil, "", fmt.Errorf("OmitTimestamp ahd HistoryTimestamp can not be used together")
+			return imgID, nil, "", fmt.Errorf("OmitTimestamp and HistoryTimestamp can not be used together")
 		}
 		timestamp := time.Unix(0, 0).UTC()
 		options.HistoryTimestamp = &timestamp

@@ -92,7 +92,7 @@ func ReadWorkloadConfigFromImage(path string) (WorkloadConfig, error) {
 	}
 	err = json.Unmarshal(configBytes, &wc)
 	if err != nil {
-		err = fmt.Errorf("unmarshaling configuration %q: %w", string(configBytes), err)
+		err = fmt.Errorf("unmarshalling configuration %q: %w", string(configBytes), err)
 	}
 	return wc, err
 }

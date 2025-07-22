@@ -3,6 +3,7 @@
 package buildah
 
 import (
+	"archive/tar"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -13,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -1370,14 +1372,14 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 		processGID: int(processGID),
 	}
 	// Get the list of mounts that are just for this Run() call.
-	runMounts, mountArtifacts, err := b.runSetupRunMounts(mountPoint, bundlePath, runFileMounts, runMountInfo, idMaps)
+	runMounts, mountArtifacts, err := b.runSetupRunMounts(bundlePath, runFileMounts, runMountInfo, idMaps)
 	if err != nil {
 		return nil, err
 	}
 	succeeded := false
 	defer func() {
 		if !succeeded {
-			if err := b.cleanupRunMounts(mountPoint, mountArtifacts); err != nil {
+			if err := b.cleanupRunMounts(mountArtifacts); err != nil {
 				b.Logger.Debugf("cleaning up run mounts: %v", err)
 			}
 		}
@@ -1394,17 +1396,14 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	if spec.Linux != nil {
 		mountLabel = spec.Linux.MountLabel
 	}
-	volumes, err := b.runSetupVolumeMounts(mountLabel, volumeMounts, optionMounts, idMaps)
+	volumes, overlayDirs, err := b.runSetupVolumeMounts(mountLabel, volumeMounts, optionMounts, idMaps)
 	if err != nil {
 		return nil, err
 	}
-
-	// prepare list of mount destinations which can be cleaned up safely.
-	// we can clean bindFiles, subscriptionMounts and specMounts
-	// everything other than these might have users content
-	mountArtifacts.RunMountTargets = append(append(append(mountArtifacts.RunMountTargets, cleanableDestinationListFromMounts(bindFileMounts)...), cleanableDestinationListFromMounts(subscriptionMounts)...), cleanableDestinationListFromMounts(specMounts)...)
+	mountArtifacts.RunOverlayDirs = append(mountArtifacts.RunOverlayDirs, overlayDirs...)
 
 	allMounts := util.SortMounts(append(append(append(append(append(volumes, builtins...), runMounts...), subscriptionMounts...), bindFileMounts...), specMounts...))
+
 	// Add them all, in the preferred order, except where they conflict with something that was previously added.
 	for _, mount := range allMounts {
 		if haveMount(mount.Destination) {
@@ -1493,52 +1492,12 @@ func runSetupBuiltinVolumes(mountLabel, mountPoint, containerDir string, builtin
 	return mounts, nil
 }
 
-// Destinations which can be cleaned up after every RUN
-func cleanableDestinationListFromMounts(mounts []specs.Mount) []string {
-	mountDest := []string{}
-	for _, mount := range mounts {
-		// Add all destination to mountArtifacts so that they can be cleaned up later
-		if mount.Destination != "" {
-			cleanPath := true
-			for _, prefix := range nonCleanablePrefixes {
-				if strings.HasPrefix(mount.Destination, prefix) {
-					cleanPath = false
-					break
-				}
-			}
-			if cleanPath {
-				mountDest = append(mountDest, mount.Destination)
-			}
-		}
-	}
-	return mountDest
-}
-
-func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
-	statResults, err := copier.Stat(root, "", copier.StatOptions{}, []string{dest})
-	if err != nil {
-		return false, err
-	}
-	if len(statResults) > 0 {
-		// We created exact path for globbing so it will
-		// return only one result.
-		if statResults[0].Error != "" && len(statResults[0].Globbed) == 0 {
-			// Path do not exist.
-			return false, nil
-		}
-		// Path exists.
-		return true, nil
-	}
-	return false, nil
-}
-
 // runSetupRunMounts sets up mounts that exist only in this RUN, not in subsequent runs
 //
 // If this function succeeds, the caller must free the returned
 // runMountArtifacts by calling b.cleanupRunMounts() after the command being
 // executed with those mounts has finished.
-func (b *Builder) runSetupRunMounts(mountPoint, bundlePath string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]specs.Mount, *runMountArtifacts, error) {
-	mountTargets := make([]string, 0, len(mounts))
+func (b *Builder) runSetupRunMounts(bundlePath string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]specs.Mount, *runMountArtifacts, error) {
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, len(mounts))
 	intermediateMounts := make([]string, 0, len(mounts))
@@ -1679,25 +1638,10 @@ func (b *Builder) runSetupRunMounts(mountPoint, bundlePath string, mounts []stri
 		default:
 			return nil, nil, fmt.Errorf("invalid mount type %q", mountType)
 		}
-
-		if mountSpec != nil {
-			pathPreExists, err := checkIfMountDestinationPreExists(mountPoint, mountSpec.Destination)
-			if err != nil {
-				return nil, nil, err
-			}
-			if !pathPreExists {
-				// In such case it means that the path did not exists before
-				// creating any new mounts therefore we must clean the newly
-				// created directory after this step.
-				mountTargets = append(mountTargets, mountSpec.Destination)
-			}
-		}
 	}
 	succeeded = true
 	artifacts := &runMountArtifacts{
-		RunMountTargets:    mountTargets,
 		RunOverlayDirs:     overlayDirs,
-		TmpFiles:           tmpFiles,
 		Agents:             agents,
 		MountedImages:      mountImages,
 		SSHAuthSock:        defaultSSHSock,
@@ -1740,9 +1684,12 @@ func (b *Builder) getBindMount(tokens []string, sys *types.SystemContext, contex
 		}
 	}()
 	optionMounts = append(optionMounts, optionMount)
-	volumes, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
+	volumes, overlayDirs, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
 	if err != nil {
 		return nil, "", "", "", err
+	}
+	if len(overlayDirs) != 0 {
+		return nil, "", "", "", errors.New("internal error: did not expect a resolved bind mount to use the O flag")
 	}
 	succeeded = true
 	return &volumes[0], image, intermediateMount, overlayMount, nil
@@ -1755,9 +1702,12 @@ func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps, workDir string) 
 		return nil, err
 	}
 	optionMounts = append(optionMounts, mount)
-	volumes, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
+	volumes, overlayDirs, err := b.runSetupVolumeMounts(b.MountLabel, nil, optionMounts, idMaps)
 	if err != nil {
 		return nil, err
+	}
+	if len(overlayDirs) != 0 {
+		return nil, errors.New("internal error: did not expect a resolved tmpfs mount to use the O flag")
 	}
 	return &volumes[0], nil
 }
@@ -2010,19 +1960,8 @@ func (b *Builder) getSSHMount(tokens []string, count int, sshsources map[string]
 	return &newMount, fwdAgent, nil
 }
 
-func (b *Builder) cleanupTempVolumes() {
-	for tempVolume, val := range b.TempVolumes {
-		if val {
-			if err := overlay.RemoveTemp(tempVolume); err != nil {
-				b.Logger.Error(err.Error())
-			}
-			b.TempVolumes[tempVolume] = false
-		}
-	}
-}
-
 // cleanupRunMounts cleans up run mounts so they only appear in this run.
-func (b *Builder) cleanupRunMounts(mountpoint string, artifacts *runMountArtifacts) error {
+func (b *Builder) cleanupRunMounts(artifacts *runMountArtifacts) error {
 	for _, agent := range artifacts.Agents {
 		servePath := agent.ServePath()
 		if err := agent.Shutdown(); err != nil {
@@ -2050,27 +1989,9 @@ func (b *Builder) cleanupRunMounts(mountpoint string, artifacts *runMountArtifac
 			logrus.Debugf("umounting image %q: %v", image, err)
 		}
 	}
-	// remove mount targets that were created for this run
-	opts := copier.RemoveOptions{
-		All: true,
-	}
-	for _, path := range artifacts.RunMountTargets {
-		if err := copier.Remove(mountpoint, path, opts); err != nil {
-			return fmt.Errorf("removing mount target %q %q: %w", mountpoint, path, err)
-		}
-	}
-	var prevErr error
-	for _, path := range artifacts.TmpFiles {
-		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			if prevErr != nil {
-				logrus.Error(prevErr)
-			}
-			prevErr = fmt.Errorf("removing temporary file: %w", err)
-		}
-	}
 	// unlock locks we took, most likely for cache mounts
 	volumes.UnlockLockArray(artifacts.TargetLocks)
-	return prevErr
+	return nil
 }
 
 // setPdeathsig sets a parent-death signal for the process
@@ -2109,4 +2030,144 @@ func mapContainerNameToHostname(containerName string) string {
 		match[1] = min(match[1], maxHostnameLen)
 	}
 	return trimmed[:match[1]]
+}
+
+// createMountTargets creates empty files or directories that are used as
+// targets for mounts in the spec, and makes a note of what it created.
+func (b *Builder) createMountTargets(spec *specs.Spec) ([]copier.ConditionalRemovePath, error) {
+	// Avoid anything weird happening, just in case.
+	if spec == nil || spec.Root == nil {
+		return nil, nil
+	}
+	rootfsPath := spec.Root.Path
+	then := time.Unix(0, 0)
+	exemptFromTimesPreservation := map[string]struct{}{
+		"dev":  {},
+		"proc": {},
+		"sys":  {},
+	}
+	exemptFromRemoval := map[string]struct{}{
+		"dev":  {},
+		"proc": {},
+		"sys":  {},
+	}
+	overridePermissions := map[string]os.FileMode{
+		"dev":  0o755,
+		"proc": 0o755,
+		"sys":  0o755,
+	}
+	uidmap, gidmap := convertRuntimeIDMaps(b.IDMappingOptions.UIDMap, b.IDMappingOptions.GIDMap)
+	targets := copier.EnsureOptions{
+		UIDMap: uidmap,
+		GIDMap: gidmap,
+	}
+	for _, mnt := range spec.Mounts {
+		typeFlag := byte(tar.TypeDir)
+		// If the mount is a "bind" or "rbind" mount, then it's a bind
+		// mount, which means the target _could_ be a non-directory.
+		// Check the source and make a note.
+		if mnt.Type == define.TypeBind || slices.Contains(mnt.Options, "bind") || slices.Contains(mnt.Options, "rbind") {
+			if st, err := os.Stat(mnt.Source); err == nil {
+				if !st.IsDir() {
+					typeFlag = tar.TypeReg
+				}
+			}
+		}
+		// Walk the path components from the root all the way down to
+		// the target mountpoint and build a list of pathnames that we
+		// need to ensure exist.  If we might need to remove them, give
+		// them a conspicuous mtime, so that we can detect if they were
+		// unmounted and then modified, in which case we'll want to
+		// preserve those changes.
+		destination := mnt.Destination
+		for destination != "" {
+			cleanedDestination := strings.Trim(path.Clean(filepath.ToSlash(destination)), "/")
+			modTime := &then
+			if _, ok := exemptFromTimesPreservation[cleanedDestination]; ok {
+				// don't force a timestamp for this path
+				modTime = nil
+			}
+			var mode *os.FileMode
+			if _, ok := exemptFromRemoval[cleanedDestination]; ok {
+				// we're not going to filter this out later,
+				// so don't make it look weird
+				perms := os.FileMode(0o755)
+				if typeFlag == tar.TypeReg {
+					perms = 0o644
+				}
+				mode = &perms
+				modTime = nil
+			}
+			if perms, ok := overridePermissions[cleanedDestination]; ok {
+				// forced permissions
+				mode = &perms
+			}
+			targets.Paths = append(targets.Paths, copier.EnsurePath{
+				Path:     destination,
+				Typeflag: typeFlag,
+				ModTime:  modTime,
+				Chmod:    mode,
+			})
+			typeFlag = tar.TypeDir
+			dir, _ := filepath.Split(destination)
+			if destination == dir {
+				break
+			}
+			destination = dir
+		}
+	}
+	if len(targets.Paths) == 0 {
+		return nil, nil
+	}
+	created, err := copier.Ensure(rootfsPath, rootfsPath, targets)
+	if err != nil {
+		return nil, err
+	}
+	logrus.Debugf("created mount targets at %v", created)
+	var remove []copier.ConditionalRemovePath
+	for _, target := range created {
+		cleanedTarget := strings.Trim(path.Clean(filepath.ToSlash(target)), "/")
+		if _, ok := exemptFromRemoval[cleanedTarget]; ok {
+			continue
+		}
+		modTime := &then
+		if _, ok := exemptFromTimesPreservation[cleanedTarget]; ok {
+			modTime = nil
+		}
+		condition := copier.ConditionalRemovePath{
+			Path:    cleanedTarget,
+			ModTime: modTime,
+			Owner:   &idtools.IDPair{UID: 0, GID: 0},
+		}
+		remove = append(remove, condition)
+	}
+	if len(remove) == 0 {
+		return nil, nil
+	}
+	// encode the set of paths we might need to filter out at commit-time
+	// in a way that hopefully doesn't break long-running concurrent Run()
+	// calls, that lets us also not have to manage any locking for them
+	cdir, err := b.store.ContainerDirectory(b.Container)
+	if err != nil {
+		return nil, fmt.Errorf("finding working container bookkeeping directory: %w", err)
+	}
+	if err := os.Mkdir(filepath.Join(cdir, containerExcludesDir), 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+		return nil, fmt.Errorf("creating exclusions directory: %w", err)
+	}
+	encoded, err := json.Marshal(remove)
+	if err != nil {
+		return nil, fmt.Errorf("encoding list of items to exclude at commit-time: %w", err)
+	}
+	f, err := os.CreateTemp(filepath.Join(cdir, containerExcludesDir), "filter*"+containerExcludesSubstring)
+	if err != nil {
+		return nil, fmt.Errorf("creating exclusions file: %w", err)
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+	if err := ioutils.AtomicWriteFile(strings.TrimSuffix(f.Name(), containerExcludesSubstring), encoded, 0o600); err != nil {
+		return nil, fmt.Errorf("writing exclusions file: %w", err)
+	}
+	// return that set of paths directly, in case the caller would prefer
+	// to clear them out before commit-time
+	return remove, nil
 }

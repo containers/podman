@@ -45,15 +45,6 @@ const (
 	PROC_REAP_RELEASE = 3
 )
 
-// We dont want to remove destinations with /etc, /dev as
-// rootfs already contains these files and unionfs will create
-// a `whiteout` i.e `.wh` files on removal of overlapping
-// files from these directories.  everything other than these
-// will be cleaned up
-var nonCleanablePrefixes = []string{
-	"/etc", "/dev",
-}
-
 func procctl(idtype int, id int, cmd int, arg *byte) error {
 	_, _, e1 := unix.Syscall6(
 		unix.SYS_PROCCTL, uintptr(idtype), uintptr(id),
@@ -298,12 +289,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 
 	defer func() {
-		if err := b.cleanupRunMounts(mountPoint, runArtifacts); err != nil {
+		if err := b.cleanupRunMounts(runArtifacts); err != nil {
 			options.Logger.Errorf("unable to cleanup run mounts %v", err)
 		}
 	}()
-
-	defer b.cleanupTempVolumes()
 
 	// If we are creating a network, make the vnet here so that we can
 	// execute the OCI runtime inside it. For FreeBSD-13.3 and later, we can
@@ -335,6 +324,28 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 			}
 		}()
 	}
+
+	// Create any mount points that we need that aren't already present in
+	// the rootfs.
+	createdMountTargets, err := b.createMountTargets(spec)
+	if err != nil {
+		return fmt.Errorf("ensuring mount targets for container %q: %w", b.ContainerID, err)
+	}
+	defer func() {
+		// Attempt to clean up mount targets for the sake of builds
+		// that don't commit and rebase at each step, and people using
+		// `buildah run` more than once, who don't expect empty mount
+		// points to stick around.  They'll still get filtered out at
+		// commit-time if another concurrent Run() is keeping something
+		// busy.
+		if _, err := copier.ConditionalRemove(mountPoint, mountPoint, copier.ConditionalRemoveOptions{
+			UIDMap: b.store.UIDMap(),
+			GIDMap: b.store.GIDMap(),
+			Paths:  createdMountTargets,
+		}); err != nil {
+			options.Logger.Errorf("unable to cleanup run mount targets %v", err)
+		}
+	}()
 
 	switch isolation {
 	case IsolationOCI:
@@ -382,11 +393,11 @@ func (b *Builder) getCacheMount(tokens []string, sys *types.SystemContext, stage
 	return nil, "", "", "", nil, errors.New("cache mounts not supported on freebsd")
 }
 
-func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount, idMaps IDMaps) (mounts []specs.Mount, Err error) {
+func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string, optionMounts []specs.Mount, idMaps IDMaps) (mounts []specs.Mount, overlayDirs []string, Err error) {
 	// Make sure the overlay directory is clean before running
 	_, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
-		return nil, fmt.Errorf("looking up container directory for %s: %w", b.ContainerID, err)
+		return nil, nil, fmt.Errorf("looking up container directory for %s: %w", b.ContainerID, err)
 	}
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
@@ -434,7 +445,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 
 			overlayMount, err := overlay.MountWithOptions(contentDir, host, container, &overlayOpts)
 			if err == nil {
-				b.TempVolumes[contentDir] = true
+				overlayDirs = append(overlayDirs, contentDir)
 			}
 			return overlayMount, err
 		}
@@ -451,7 +462,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		logrus.Debugf("setting up mounted volume at %q", i.Destination)
 		mount, err := parseMount(i.Type, i.Source, i.Destination, i.Options)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		mounts = append(mounts, mount)
 	}
@@ -464,11 +475,11 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		}
 		mount, err := parseMount("nullfs", spliti[0], spliti[1], options)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		mounts = append(mounts, mount)
 	}
-	return mounts, nil
+	return mounts, overlayDirs, nil
 }
 
 func setupCapabilities(g *generate.Generator, defaultCapabilities, adds, drops []string) error {
