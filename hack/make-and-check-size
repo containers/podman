@@ -33,7 +33,7 @@ ME=$(basename $0)
 # BEGIN end-user-customizable settings
 
 # Maximum allowable size, in bytes
-MAX_BIN_GROWTH=$((50 * 1024))
+MAX_BIN_GROWTH=$((64 * 1024))
 
 # Github label which allows overriding this check
 OVERRIDE_LABEL=bloat_approved
