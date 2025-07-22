@@ -140,8 +140,8 @@ func loadUnitDropins(unit *parser.UnitFile, sourcePaths []string) error {
 	dropinDirs := []string{}
 	unitDropinPaths := unit.GetUnitDropinPaths()
 
-	for _, sourcePath := range sourcePaths {
-		for _, dropinPath := range unitDropinPaths {
+	for _, dropinPath := range unitDropinPaths {
+		for _, sourcePath := range sourcePaths {
 			dropinDirs = append(dropinDirs, path.Join(sourcePath, dropinPath))
 		}
 	}

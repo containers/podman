@@ -1803,19 +1803,29 @@ EOF
 
     # Table of drop-in .conf files. Format is:
     #
-    #    apply | dir | filename | [Section] | Content=...
+    #    apply | dir | parent dir (optional) | filename | [Section] | Content=...
+    #
+    # The parent dir used as regression test for https://github.com/containers/podman/issues/26555
     local dropin_files="
-y | toplevel  | 10 | [Unit]      | Description=Test File for Dropin Configuration
-n | toplevel  | 99 | [Install]   | WantedBy=default.target
-y | truncated | 50 | [Container] | ContainerName=truncated-dropins
-n | truncated | 99 | [Service]   | Restart=always
-n | truncated | 99 | [Install]   | WantedBy=multiuser.target
-y | quadlet   | 99 | [Service]   | RestartSec=60s
+y | toplevel  |        | 10 | [Unit]      | Description=Test File for Dropin Configuration
+n | toplevel  |        | 99 | [Install]   | WantedBy=default.target
+y | truncated |        | 50 | [Container] | ContainerName=truncated-dropins
+n | truncated |        | 99 | [Service]   | Restart=always
+n | truncated |        | 99 | [Install]   | WantedBy=multiuser.target
+y | quadlet   |        | 99 | [Service]   | RestartSec=60s
+n | toplevel  |        | 30 | [Service]   | Environment=test=wrong
+y | truncated | subdir | 30 | [Service]   | Environment=test=right
 "
 
     # Pass 1: Create all drop-in directories and files
-    while read apply dir file section content; do
-        local d="${quadlet_tmpdir}/${dropin_dirs[${dir}]}"
+    while read apply dir parent file section content; do
+        # By default parent will be '' when left empty in the table and not actually an empty string,
+        # make sure we set it to an empty string instead.
+        if [[ "$parent" == "''" ]]; then
+            parent=""
+        fi
+        # Parent can be empty which is fine, dir//file is the same as dir/file and what we want here.
+        local d="${quadlet_tmpdir}/$parent/${dropin_dirs[${dir}]}"
         mkdir -p "${d}"
 
         local f="${d}/${file}.conf"
@@ -1835,11 +1845,14 @@ EOF
 
     # Pass 2: test whether the expected .conf files are applied
     # and the overridden .conf files are not.
-    while read apply dir file section content; do
+    while read apply dir parent file section content; do
+        if [[ "$parent" == "''" ]]; then
+            parent=""
+        fi
         if [[ "${apply}" = "y" ]]; then
-            assert "${QUADLET_SERVICE_CONTENT}" =~ "${content}" "Set in ${dir}/${file}.conf"
+            assert "${QUADLET_SERVICE_CONTENT}" =~ "${content}" "Set in ${parent}/${dir}/${file}.conf"
         else
-            assert "${QUADLET_SERVICE_CONTENT}" !~ "${content}" "Set in ${dir}/${file}.conf but should have been overridden"
+            assert "${QUADLET_SERVICE_CONTENT}" !~ "${content}" "Set in ${parent}/${dir}/${file}.conf but should have been overridden"
         fi
     done < <(parse_table "${dropin_files}")
 }
