@@ -560,20 +560,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      Suppress verbose build output
 	//  - in: query
-	//    name: inheritlabels
-	//    type: boolean
-	//    default: true
-	//    description: |
-	//      Inherit the labels from the base image or base stages
-	//      (As of Podman version v5.5)
-	//  - in: query
-	//    name: inheritannotations
-	//    type: boolean
-	//    default: true
-	//    description: |
-	//      Inherit the annotations from the base image or base stages
-	//      (As of Podman version v5.5)
-	//  - in: query
 	//    name: nocache
 	//    type: boolean
 	//    default: false
