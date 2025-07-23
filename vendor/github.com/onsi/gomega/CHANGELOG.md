@@ -1,3 +1,22 @@
+## 1.38.0
+
+### Features
+- gstruct handles extra unexported fields [4ee7ed0]
+
+### Fixes
+- support [] in IgnoringTopFunction function signatures (#851) [36bbf72]
+
+### Maintenance
+- Bump golang.org/x/net from 0.40.0 to 0.41.0 (#846) [529d408]
+- Fix typo [acd1f55]
+- Bump google.golang.org/protobuf from 1.36.5 to 1.36.6 (#835) [bae65a0]
+- Bump nokogiri from 1.18.4 to 1.18.8 in /docs (#842) [8dda91f]
+- Bump golang.org/x/net from 0.39.0 to 0.40.0 (#843) [212d812]
+- Bump github.com/onsi/ginkgo/v2 from 2.23.3 to 2.23.4 (#839) [59bd7f9]
+- Bump nokogiri from 1.18.1 to 1.18.4 in /docs (#834) [328c729]
+- Bump uri from 1.0.2 to 1.0.3 in /docs (#826) [9a798a1]
+- Bump golang.org/x/net from 0.37.0 to 0.39.0 (#841) [04a72c6]
+
 ## 1.37.0
 
 ### Features
