@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strings"
+	"unicode"
 
 	"github.com/onsi/gomega/format"
 	errorsutil "github.com/onsi/gomega/gstruct/errors"
@@ -65,6 +66,7 @@ func MatchFields(options Options, fields Fields) types.GomegaMatcher {
 	return &FieldsMatcher{
 		Fields:        fields,
 		IgnoreExtras:  options&IgnoreExtras != 0,
+		IgnoreUnexportedExtras: options&IgnoreUnexportedExtras != 0,
 		IgnoreMissing: options&IgnoreMissing != 0,
 	}
 }
@@ -75,6 +77,8 @@ type FieldsMatcher struct {
 
 	// Whether to ignore extra elements or consider it an error.
 	IgnoreExtras bool
+	// Whether to ignore unexported extra elements or consider it an error.
+	IgnoreUnexportedExtras bool
 	// Whether to ignore missing elements or consider it an error.
 	IgnoreMissing bool
 
@@ -97,6 +101,14 @@ func (m *FieldsMatcher) Match(actual any) (success bool, err error) {
 	return true, nil
 }
 
+func isExported(fieldName string) bool {
+	if fieldName == "" {
+		return false
+	}
+	r := []rune(fieldName)[0]
+	return unicode.IsUpper(r)
+}
+
 func (m *FieldsMatcher) matchFields(actual any) (errs []error) {
 	val := reflect.ValueOf(actual)
 	typ := val.Type()
@@ -116,13 +128,21 @@ func (m *FieldsMatcher) matchFields(actual any) (errs []error) {
 
 			matcher, expected := m.Fields[fieldName]
 			if !expected {
+				if m.IgnoreUnexportedExtras && !isExported(fieldName) {
+					return nil
+				}
 				if !m.IgnoreExtras {
 					return fmt.Errorf("unexpected field %s: %+v", fieldName, actual)
 				}
 				return nil
 			}
 
-			field := val.Field(i).Interface()
+			var field any
+			if _, isIgnoreMatcher := matcher.(*IgnoreMatcher) ; isIgnoreMatcher {
+				field = struct {}{} // the matcher does not care about the actual value
+			} else {
+				field = val.Field(i).Interface()
+			}
 
 			match, err := matcher.Match(field)
 			if err != nil {
