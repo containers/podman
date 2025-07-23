@@ -150,13 +150,13 @@ RUN touch %s`, ALPINE, imagefile)
 		session = podmanTest.Podman([]string{"diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
 
 		session = podmanTest.Podman([]string{"image", "diff", name})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
 
 		// container diff has to show the container
