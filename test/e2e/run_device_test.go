@@ -85,6 +85,12 @@ var _ = Describe("Podman run device", func() {
 		Expect(session).Should(ExitWithError(125, "invalid device mode: rd"))
 	})
 
+	It("podman run device with empty mode test", func() {
+		session := podmanTest.Podman([]string{"run", "-q", "--device", "/dev/fuse::", ALPINE, "true"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitWithError(125, "empty device mode in device specification: /dev/fuse::"))
+	})
+
 	It("podman run device host device and container device parameter are directories", func() {
 		SkipIfRootless("Cannot create devices in /dev in rootless mode")
 		// path must be unique to this test, not used anywhere else
