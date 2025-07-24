@@ -2086,7 +2086,7 @@ the container artifact pull command. The generated service is a one-time command
 exists on the host, pulling it if needed.
 
 Using artifact units allows containers to depend on artifacts being automatically pulled. This is
-particularly useful for managing artifacts that containers need to mount or access.
+particularly useful for managing artifacts that containers need to mount or access, the **Artifact** key is mandatory inside of the [Artifact] unit.
 
 Valid options for `[Artifact]` are listed below:
 
