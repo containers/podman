@@ -1491,7 +1491,7 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    name: Content-Type
 	//    type: string
 	//    default: application/x-tar
-	//    enum: ["application/x-tar"]
+	//    enum: ["application/x-tar", "multipart/form-data"]
 	//  - in: header
 	//    name: X-Registry-Config
 	//    type: string
@@ -1515,6 +1515,28 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//      Instead of building for a set of platforms specified using the platform option, inspect the build's base images,
 	//      and build for all of the platforms that are available.  Stages that use *scratch* as a starting point can not be inspected,
 	//      so at least one non-*scratch* stage must be present for detection to work usefully.
+	//  - in: query
+	//    name: additionalbuildcontexts
+	//    type: array
+	//    items:
+	//      type: string
+	//    default: []
+	//    description: |
+	//      Additional build contexts for builds that require more than one context.
+	//      Each additional context must be specified as a key-value pair in the format "name=value".
+	//
+	//      The value can be specified in two formats:
+	//      - URL context: Use the prefix "url:" followed by a URL to a tar archive
+	//        Example: "mycontext=url:https://example.com/context.tar"
+	//      - Image context: Use the prefix "image:" followed by an image reference
+	//        Example: "mycontext=image:alpine:latest" or "mycontext=image:docker.io/library/ubuntu:22.04"
+	//
+	//      Local contexts are provided via multipart/form-data upload. When using multipart/form-data,
+	//      include additional build contexts as separate form fields with names prefixed by "build-context-".
+	//      For example, a local context named "mycontext" should be uploaded as a tar file in a field
+	//      named "build-context-mycontext".
+	//
+	//      (As of version 5.6.0)
 	//  - in: query
 	//    name: extrahosts
 	//    type: string

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -30,6 +31,7 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -44,13 +46,22 @@ func genSpaceErr(err error) error {
 }
 
 func BuildImage(w http.ResponseWriter, r *http.Request) {
+	multipart := false
 	if hdr, found := r.Header["Content-Type"]; found && len(hdr) > 0 {
-		contentType := hdr[0]
+		contentType, _, err := mime.ParseMediaType(hdr[0])
+		if err != nil {
+			utils.BadRequest(w, "Content-Type", hdr[0], fmt.Errorf("failed to parse content type: %w", err))
+			return
+		}
+
 		switch contentType {
 		case "application/tar":
 			logrus.Infof("tar file content type is  %s, should use \"application/x-tar\" content type", contentType)
 		case "application/x-tar":
 			break
+		case "multipart/form-data":
+			logrus.Infof("Received %s", hdr[0])
+			multipart = true
 		default:
 			if utils.IsLibpodRequest(r) {
 				utils.BadRequest(w, "Content-Type", hdr[0],
@@ -81,7 +92,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	contextDirectory, err := extractTarFile(anchorDir, r)
+	contextDirectory, additionalBuildContexts, err := handleBuildContexts(anchorDir, r, multipart)
 	if err != nil {
 		utils.InternalServerError(w, genSpaceErr(err))
 		return
@@ -438,14 +449,6 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		additionalTags = append(additionalTags, possiblyNormalizedTag)
-	}
-
-	var additionalBuildContexts = map[string]*buildahDefine.AdditionalBuildContext{}
-	if _, found := r.URL.Query()["additionalbuildcontexts"]; found {
-		if err := json.Unmarshal([]byte(query.AdditionalBuildContexts), &additionalBuildContexts); err != nil {
-			utils.BadRequest(w, "additionalbuildcontexts", query.AdditionalBuildContexts, err)
-			return
-		}
 	}
 
 	var idMappingOptions buildahDefine.IDMappingOptions
@@ -920,6 +923,149 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func handleBuildContexts(anchorDir string, r *http.Request, multipart bool) (contextDir string, additionalContexts map[string]*buildahDefine.AdditionalBuildContext, err error) {
+	additionalContexts = make(map[string]*buildahDefine.AdditionalBuildContext)
+	query := r.URL.Query()
+
+	for _, url := range query["additionalbuildcontexts"] {
+		name, value, found := strings.Cut(url, "=")
+		if !found {
+			return "", nil, fmt.Errorf("invalid additional build context format: %q", url)
+		}
+
+		logrus.Debugf("name: %q, context: %q", name, value)
+
+		switch {
+		case strings.HasPrefix(value, "url:"):
+			value = strings.TrimPrefix(value, "url:")
+			tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", value)
+			if err != nil {
+				return "", nil, fmt.Errorf("downloading URL %q: %w", name, err)
+			}
+
+			contextPath := filepath.Join(tempDir, subdir)
+			additionalContexts[name] = &buildahDefine.AdditionalBuildContext{
+				IsURL:           true,
+				IsImage:         false,
+				Value:           contextPath,
+				DownloadedCache: contextPath,
+			}
+
+			logrus.Debugf("Downloaded URL context %q to %q", name, contextPath)
+		case strings.HasPrefix(value, "image:"):
+			value = strings.TrimPrefix(value, "image:")
+			additionalContexts[name] = &buildahDefine.AdditionalBuildContext{
+				IsURL:   false,
+				IsImage: true,
+				Value:   value,
+			}
+
+			logrus.Debugf("Using image context %q: %q", name, value)
+		}
+	}
+
+	// If we have a multipart we use the operations, if not default extraction for main context
+	if multipart {
+		logrus.Debug("Multipart is needed")
+		reader, err := r.MultipartReader()
+		if err != nil {
+			return "", nil, fmt.Errorf("failed to create multipart reader: %w", err)
+		}
+
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				return "", nil, fmt.Errorf("failed to read multipart: %w", err)
+			}
+
+			fieldName := part.FormName()
+
+			switch {
+			case fieldName == "MainContext":
+				mainDir, err := extractTarFile(anchorDir, part)
+				if err != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("extracting main context in multipart: %w", err)
+				}
+				if mainDir == "" {
+					part.Close()
+					return "", nil, fmt.Errorf("main context directory is empty")
+				}
+				contextDir = mainDir
+				part.Close()
+
+			case strings.HasPrefix(fieldName, "build-context-"):
+				contextName := strings.TrimPrefix(fieldName, "build-context-")
+
+				// Create temp directory directly under anchorDir
+				additionalAnchor, err := os.MkdirTemp(anchorDir, contextName+"-*")
+				if err != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("creating temp directory for additional context %q: %w", contextName, err)
+				}
+
+				if err := chrootarchive.Untar(part, additionalAnchor, nil); err != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("extracting additional context %q: %w", contextName, err)
+				}
+
+				var latestModTime time.Time
+				fileCount := 0
+				walkErr := filepath.Walk(additionalAnchor, func(path string, info os.FileInfo, err error) error {
+					if err != nil {
+						return err
+					}
+					// Skip the root directory itself since it's always going to have the latest timestamp
+					if path == additionalAnchor {
+						return nil
+					}
+					if !info.IsDir() {
+						fileCount++
+					}
+					// Use any extracted content timestamp (files or subdirectories)
+					if info.ModTime().After(latestModTime) {
+						latestModTime = info.ModTime()
+					}
+					return nil
+				})
+				if walkErr != nil {
+					part.Close()
+					return "", nil, fmt.Errorf("error walking additional context: %w", walkErr)
+				}
+
+				// If we found any files, set the timestamp on the additional context directory
+				// to the latest modified time found in the files.
+				if !latestModTime.IsZero() {
+					if err := os.Chtimes(additionalAnchor, latestModTime, latestModTime); err != nil {
+						logrus.Warnf("Failed to set timestamp on additional context directory: %v", err)
+					}
+				}
+
+				additionalContexts[contextName] = &buildahDefine.AdditionalBuildContext{
+					IsURL:   false,
+					IsImage: false,
+					Value:   additionalAnchor,
+				}
+				part.Close()
+			default:
+				logrus.Debugf("Ignoring unknown multipart field: %s", fieldName)
+				part.Close()
+			}
+		}
+	} else {
+		logrus.Debug("No multipart needed")
+		contextDir, err = extractTarFile(anchorDir, r.Body)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+
+	return contextDir, additionalContexts, nil
+}
+
 func parseNetworkConfigurationPolicy(network string) buildah.NetworkConfigurationPolicy {
 	if val, err := strconv.Atoi(network); err == nil {
 		return buildah.NetworkConfigurationPolicy(val)
@@ -943,13 +1089,13 @@ func parseLibPodIsolation(isolation string) (buildah.Isolation, error) {
 	return parse.IsolationOption(isolation)
 }
 
-func extractTarFile(anchorDir string, r *http.Request) (string, error) {
+func extractTarFile(anchorDir string, r io.ReadCloser) (string, error) {
 	buildDir := filepath.Join(anchorDir, "build")
 	err := os.Mkdir(buildDir, 0o700)
 	if err != nil {
 		return "", err
 	}
 
-	err = archive.Untar(r.Body, buildDir, nil)
+	err = archive.Untar(r, buildDir, nil)
 	return buildDir, err
 }
