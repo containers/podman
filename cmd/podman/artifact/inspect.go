@@ -17,7 +17,6 @@ var (
 		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteArtifacts,
 		Example:           `podman artifact inspect quay.io/myimage/myartifact:latest`,
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 )
 

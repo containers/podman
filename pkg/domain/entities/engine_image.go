@@ -10,9 +10,9 @@ import (
 )
 
 type ImageEngine interface { //nolint:interfacebloat
-	ArtifactAdd(ctx context.Context, name string, artifactBlobs []ArtifactBlob, opts *ArtifactAddOptions) (*ArtifactAddReport, error)
-	ArtifactExtract(ctx context.Context, name string, target string, opts *ArtifactExtractOptions) error
-	ArtifactExtractTarStream(ctx context.Context, w io.Writer, name string, opts *ArtifactExtractOptions) error
+	ArtifactAdd(ctx context.Context, name string, artifactBlobs []ArtifactBlob, opts ArtifactAddOptions) (*ArtifactAddReport, error)
+	ArtifactExtract(ctx context.Context, name string, target string, opts ArtifactExtractOptions) error
+	ArtifactExtractTarStream(ctx context.Context, w io.Writer, name string, opts ArtifactExtractOptions) error
 	ArtifactInspect(ctx context.Context, name string, opts ArtifactInspectOptions) (*ArtifactInspectReport, error)
 	ArtifactList(ctx context.Context, opts ArtifactListOptions) ([]*ArtifactListReport, error)
 	ArtifactPull(ctx context.Context, name string, opts ArtifactPullOptions) (*ArtifactPullReport, error)

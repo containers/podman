@@ -18,7 +18,6 @@ var (
 		ValidArgsFunction: common.AutocompleteArtifactAdd,
 		Example: `podman artifact Extract quay.io/myimage/myartifact:latest /tmp/foobar.txt
 podman artifact Extract quay.io/myimage/myartifact:latest /home/paul/mydir`,
-		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 )
 
@@ -43,7 +42,7 @@ func init() {
 }
 
 func extract(cmd *cobra.Command, args []string) error {
-	err := registry.ImageEngine().ArtifactExtract(registry.Context(), args[0], args[1], &extractOpts)
+	err := registry.ImageEngine().ArtifactExtract(registry.Context(), args[0], args[1], extractOpts)
 	if err != nil {
 		return err
 	}
