@@ -560,20 +560,6 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      Suppress verbose build output
 	//  - in: query
-	//    name: compatvolumes
-	//    type: boolean
-	//    default: false
-	//    description: |
-	//      Contents of base images to be modified on ADD or COPY only
-	//      (As of Podman version v5.2)
-	//  - in: query
-	//    name: inheritlabels
-	//    type: boolean
-	//    default: true
-	//    description: |
-	//      Inherit the labels from the base image or base stages
-	//      (As of Podman version v5.5)
-	//  - in: query
 	//    name: nocache
 	//    type: boolean
 	//    default: false
@@ -1574,8 +1560,37 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    type: boolean
 	//    default: false
 	//    description: |
-	//      Contents of base images to be modified on ADD or COPY only
+	//      Contents of volume locations to be modified on ADD or COPY only
 	//      (As of Podman version v5.2)
+	//  - in: query
+	//    name: createdannotation
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Add an "org.opencontainers.image.created" annotation to the
+	//      image.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: sourcedateepoch
+	//    type: number
+	//    description: |
+	//      Timestamp to use for newly-added history entries and the image's
+	//      creation date.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: rewritetimestamp
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      If sourcedateepoch is set, force new content added in layers to
+	//      have timestamps no later than the sourcedateepoch date.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: timestamp
+	//    type: number
+	//    description: |
+	//      Timestamp to use for newly-added history entries, the image's
+	//      creation date, and for new content added in layers.
 	//  - in: query
 	//    name: inheritlabels
 	//    type: boolean
@@ -1583,6 +1598,13 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//    description: |
 	//      Inherit the labels from the base image or base stages
 	//      (As of Podman version v5.5)
+	//  - in: query
+	//    name: inheritannotations
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Inherit the annotations from the base image or base stages
+	//      (As of Podman version v5.6)
 	//  - in: query
 	//    name: nocache
 	//    type: boolean
@@ -1755,6 +1777,14 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: unsetlabel
 	//    description: Unset the image label, causing the label not to be inherited from the base image.
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
+	//    name: unsetannotation
+	//    description: |
+	//      Unset the image annotation, causing the annotation not to be inherited from the base image.
+	//      (As of Podman version v5.6)
 	//    type: array
 	//    items:
 	//      type: string

@@ -143,7 +143,7 @@ func parseBinfmtMisc(path string, r io.Reader) (int, []byte, []byte, error) {
 			maskString = fields[1]
 		case "flags", "flags:":
 			if len(fields) != 2 {
-				return -1, nil, nil, fmt.Errorf("invalid format for %q in %q", text, path)
+				continue
 			}
 			if !strings.Contains(fields[1], "F") { // won't work in other mount namespaces, so ignore it
 				return -1, nil, nil, nil

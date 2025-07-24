@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -529,7 +530,6 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		CacheTTL:                cacheTTL,
 		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CommonBuildOpts:         commonOpts,
-		CompatVolumes:           types.NewOptionalBool(flags.CompatVolumes),
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
@@ -568,6 +568,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		Quiet:                   flags.Quiet,
 		RemoveIntermediateCtrs:  flags.Rm,
 		ReportWriter:            reporter,
+		RewriteTimestamp:        flags.RewriteTimestamp,
 		Runtime:                 podmanConfig.RuntimePath,
 		RuntimeArgs:             runtimeFlags,
 		RusageLogFile:           flags.RusageLogFile,
@@ -579,10 +580,21 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		TransientMounts:         flags.Volumes,
 		UnsetEnvs:               flags.UnsetEnvs,
 		UnsetLabels:             flags.UnsetLabels,
+		UnsetAnnotations:        flags.UnsetAnnotations,
 	}
 
+	if c.Flag("created-annotation").Changed {
+		opts.CreatedAnnotation = types.NewOptionalBool(flags.CreatedAnnotation)
+	}
+	if c.Flag("compat-volumes").Changed {
+		opts.CompatVolumes = types.NewOptionalBool(flags.CompatVolumes)
+	}
 	if c.Flag("inherit-labels").Changed {
 		opts.InheritLabels = types.NewOptionalBool(flags.InheritLabels)
+	}
+
+	if c.Flag("inherit-annotations").Changed {
+		opts.InheritAnnotations = types.NewOptionalBool(flags.InheritAnnotations)
 	}
 
 	if flags.IgnoreFile != "" {
@@ -593,10 +605,19 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		opts.Excludes = excludes
 	}
 
+	if flags.SourceDateEpoch != "" { // could be explicitly specified, or passed via the environment, tricking .Changed()
+		sde, err := strconv.ParseInt(flags.SourceDateEpoch, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("parsing source-date-epoch value %q: %w", flags.SourceDateEpoch, err)
+		}
+		sourceDateEpoch := time.Unix(sde, 0).UTC()
+		opts.SourceDateEpoch = &sourceDateEpoch
+	}
 	if c.Flag("timestamp").Changed {
 		timestamp := time.Unix(flags.Timestamp, 0).UTC()
 		opts.Timestamp = &timestamp
 	}
+
 	if c.Flag("skip-unused-stages").Changed {
 		opts.SkipUnusedStages = types.NewOptionalBool(flags.SkipUnusedStages)
 	}

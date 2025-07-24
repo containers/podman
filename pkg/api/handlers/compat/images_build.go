@@ -126,6 +126,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		CpuSetCpus              string             `schema:"cpusetcpus"`
 		CpuSetMems              string             `schema:"cpusetmems"`
 		CpuShares               uint64             `schema:"cpushares"`
+		CreatedAnnotation       types.OptionalBool `schema:"createdannotation"`
 		DNSOptions              string             `schema:"dnsoptions"`
 		DNSSearch               string             `schema:"dnssearch"`
 		DNSServers              string             `schema:"dnsservers"`
@@ -142,6 +143,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IdentityLabel           bool               `schema:"identitylabel"`
 		Ignore                  bool               `schema:"ignore"`
 		InheritLabels           types.OptionalBool `schema:"inheritlabels"`
+		InheritAnnotations      types.OptionalBool `schema:"inheritannotations"`
 		Isolation               string             `schema:"isolation"`
 		Jobs                    int                `schema:"jobs"`
 		LabelOpts               string             `schema:"labelopts"`
@@ -167,6 +169,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Rm                      bool               `schema:"rm"`
 		RusageLogFile           string             `schema:"rusagelogfile"`
 		Remote                  string             `schema:"remote"`
+		RewriteTimestamp        bool               `schema:"rewritetimestamp"`
 		Retry                   int                `schema:"retry"`
 		RetryDelay              string             `schema:"retry-delay"`
 		Seccomp                 string             `schema:"seccomp"`
@@ -174,6 +177,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		SecurityOpt             string             `schema:"securityopt"`
 		ShmSize                 int                `schema:"shmsize"`
 		SkipUnusedStages        bool               `schema:"skipunusedstages"`
+		SourceDateEpoch         int64              `schema:"sourcedateepoch"`
 		Squash                  bool               `schema:"squash"`
 		TLSVerify               bool               `schema:"tlsVerify"`
 		Tags                    []string           `schema:"t"`
@@ -182,23 +186,27 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Ulimits                 string             `schema:"ulimits"`
 		UnsetEnvs               []string           `schema:"unsetenv"`
 		UnsetLabels             []string           `schema:"unsetlabel"`
+		UnsetAnnotations        []string           `schema:"unsetannotation"`
 		Volumes                 []string           `schema:"volume"`
 	}{
-		Dockerfile:       "Dockerfile",
-		IdentityLabel:    true,
-		Registry:         "docker.io",
-		Rm:               true,
-		ShmSize:          64 * 1024 * 1024,
-		TLSVerify:        true,
-		SkipUnusedStages: true,
-		Retry:            int(conf.Engine.Retry),
-		RetryDelay:       conf.Engine.RetryDelay,
+		Dockerfile: "Dockerfile",
+		Registry:   "docker.io",
+		Rm:         true,
+		ShmSize:    64 * 1024 * 1024,
+		TLSVerify:  true,
+		Retry:      int(conf.Engine.Retry),
+		RetryDelay: conf.Engine.RetryDelay,
 	}
 
 	decoder := utils.GetDecoder(r)
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
 		utils.Error(w, http.StatusBadRequest, err)
 		return
+	}
+
+	var identityLabel types.OptionalBool
+	if _, found := r.URL.Query()["identitylabel"]; found {
+		identityLabel = types.NewOptionalBool(query.IdentityLabel)
 	}
 
 	// if layers field not set assume its not from a valid podman-client
@@ -303,6 +311,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	compression := archive.Compression(query.Compression)
+
+	var compatVolumes types.OptionalBool
+	if _, found := r.URL.Query()["compatvolumes"]; found {
+		compatVolumes = types.NewOptionalBool(query.CompatVolumes)
+	}
 
 	// convert dropcaps formats
 	var dropCaps = []string{}
@@ -664,6 +677,11 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var skipUnusedStages types.OptionalBool
+	if _, found := r.URL.Query()["skipunusedstages"]; found {
+		skipUnusedStages = types.NewOptionalBool(query.SkipUnusedStages)
+	}
+
 	if _, found := r.URL.Query()["tlsVerify"]; found {
 		systemContext.DockerInsecureSkipTLSVerify = types.NewOptionalBool(!query.TLSVerify)
 		systemContext.OCIInsecureSkipTLSVerify = !query.TLSVerify
@@ -697,6 +715,9 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Note: avoid using types.NewOptionaBool() to initialize optional bool fields of this
+	// struct without checking if the client supplied a value.  Skipping that step prevents
+	// the builder from choosing/using its defaults.
 	buildOptions := buildahDefine.BuildOptions{
 		AddCapabilities:         addCaps,
 		AdditionalBuildContexts: additionalBuildContexts,
@@ -721,7 +742,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			DNSSearch:          dnssearch,
 			DNSServers:         dnsservers,
 			HTTPProxy:          query.HTTPProxy,
-			IdentityLabel:      types.NewOptionalBool(query.IdentityLabel),
+			IdentityLabel:      identityLabel,
 			LabelOpts:          labelOpts,
 			Memory:             query.Memory,
 			MemorySwap:         query.MemSwap,
@@ -733,7 +754,8 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Secrets:            secrets,
 			Volumes:            query.Volumes,
 		},
-		CompatVolumes:                  types.NewOptionalBool(query.CompatVolumes),
+		CompatVolumes:                  compatVolumes,
+		CreatedAnnotation:              query.CreatedAnnotation,
 		Compression:                    compression,
 		ConfigureNetwork:               parseNetworkConfigurationPolicy(query.ConfigureNetwork),
 		ContextDirectory:               contextDirectory,
@@ -749,6 +771,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		IgnoreUnrecognizedInstructions: query.Ignore,
 		IgnoreFile:                     ignoreFile,
 		InheritLabels:                  query.InheritLabels,
+		InheritAnnotations:             query.InheritAnnotations,
 		Isolation:                      isolation,
 		Jobs:                           &jobs,
 		Labels:                         labels,
@@ -770,13 +793,15 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		Registry:                       registry,
 		RemoveIntermediateCtrs:         query.Rm,
 		ReportWriter:                   reporter,
+		RewriteTimestamp:               query.RewriteTimestamp,
 		RusageLogFile:                  query.RusageLogFile,
-		SkipUnusedStages:               types.NewOptionalBool(query.SkipUnusedStages),
+		SkipUnusedStages:               skipUnusedStages,
 		Squash:                         query.Squash,
 		SystemContext:                  systemContext,
 		Target:                         query.Target,
 		UnsetEnvs:                      query.UnsetEnvs,
 		UnsetLabels:                    query.UnsetLabels,
+		UnsetAnnotations:               query.UnsetAnnotations,
 	}
 
 	platforms := query.Platform
@@ -795,6 +820,10 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 			Arch:    arch,
 			Variant: variant,
 		})
+	}
+	if _, found := r.URL.Query()["sourcedateepoch"]; found {
+		ts := time.Unix(query.SourceDateEpoch, 0)
+		buildOptions.SourceDateEpoch = &ts
 	}
 	if _, found := r.URL.Query()["timestamp"]; found {
 		ts := time.Unix(query.Timestamp, 0)

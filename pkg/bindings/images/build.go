@@ -230,10 +230,23 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 	if options.IgnoreUnrecognizedInstructions {
 		params.Set("ignore", "1")
 	}
-	if options.InheritLabels == imageTypes.OptionalBoolFalse {
+	switch options.CreatedAnnotation {
+	case imageTypes.OptionalBoolFalse:
+		params.Set("createdannotation", "0")
+	case imageTypes.OptionalBoolTrue:
+		params.Set("createdannotation", "1")
+	}
+	switch options.InheritLabels {
+	case imageTypes.OptionalBoolFalse:
 		params.Set("inheritlabels", "0")
-	} else {
+	case imageTypes.OptionalBoolTrue:
 		params.Set("inheritlabels", "1")
+	}
+
+	if options.InheritAnnotations == imageTypes.OptionalBoolFalse {
+		params.Set("inheritannotations", "0")
+	} else {
+		params.Set("inheritannotations", "1")
 	}
 
 	params.Set("isolation", strconv.Itoa(int(options.Isolation)))
@@ -435,8 +448,17 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Set("squash", "1")
 	}
 
+	if options.SourceDateEpoch != nil {
+		t := options.SourceDateEpoch
+		params.Set("sourcedateepoch", strconv.FormatInt(t.Unix(), 10))
+	}
+	if options.RewriteTimestamp {
+		params.Set("rewritetimestamp", "1")
+	} else {
+		params.Set("rewritetimestamp", "0")
+	}
 	if options.Timestamp != nil {
-		t := *options.Timestamp
+		t := options.Timestamp
 		params.Set("timestamp", strconv.FormatInt(t.Unix(), 10))
 	}
 
@@ -458,6 +480,10 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 	for _, ulabel := range options.UnsetLabels {
 		params.Add("unsetlabel", ulabel)
+	}
+
+	for _, uannotation := range options.UnsetAnnotations {
+		params.Add("unsetannotation", uannotation)
 	}
 
 	var (
