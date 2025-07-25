@@ -116,6 +116,17 @@ type InspectInfo struct {
 	Rosetta            bool
 }
 
+type InternalInspectInfo struct {
+	InspectInfo
+	Mounts []*vmconfigs.Mount
+}
+
+// LocalAPIMap is a map of local paths to their target paths in the VM
+type LocalAPIMap struct {
+	ClientPath string `json:"ClientPath,omitempty"`
+	RemotePath string `json:"RemotePath,omitempty"`
+}
+
 // ImageConfig describes the bootable image for the VM
 type ImageConfig struct {
 	// IgnitionFile is the path to the filesystem where the
