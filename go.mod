@@ -15,7 +15,7 @@ require (
 	github.com/containers/common v0.64.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.6
-	github.com/containers/image/v5 v5.36.0
+	github.com/containers/image/v5 v5.36.1-0.20250725175818-dcf72c931103
 	github.com/containers/libhvee v0.10.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.0
@@ -43,7 +43,7 @@ require (
 	github.com/klauspost/pgzip v1.2.6
 	github.com/linuxkit/virtsock v0.0.0-20241009230534-cb6a20cc0422
 	github.com/mattn/go-shellwords v1.0.12
-	github.com/mattn/go-sqlite3 v1.14.28
+	github.com/mattn/go-sqlite3 v1.14.29
 	github.com/mdlayher/vsock v1.2.1
 	github.com/moby/docker-image-spec v1.3.1
 	github.com/moby/sys/capability v0.4.0
@@ -193,3 +193,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+replace github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20250725193958-a5bc6cc012bd

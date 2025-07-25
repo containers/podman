@@ -214,7 +214,7 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.6
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/image/v5 v5.36.0
+# github.com/containers/image/v5 v5.36.1-0.20250725175818-dcf72c931103 => github.com/mtrmac/image/v5 v5.0.0-20250725193958-a5bc6cc012bd
 ## explicit; go 1.23.3
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -274,11 +274,13 @@ github.com/containers/image/v5/pkg/tlsclientconfig
 github.com/containers/image/v5/sif
 github.com/containers/image/v5/signature
 github.com/containers/image/v5/signature/internal
+github.com/containers/image/v5/signature/internal/sequoia
 github.com/containers/image/v5/signature/signer
 github.com/containers/image/v5/signature/sigstore
 github.com/containers/image/v5/signature/sigstore/fulcio
 github.com/containers/image/v5/signature/sigstore/internal
 github.com/containers/image/v5/signature/sigstore/rekor
+github.com/containers/image/v5/signature/simplesequoia
 github.com/containers/image/v5/signature/simplesigning
 github.com/containers/image/v5/storage
 github.com/containers/image/v5/tarball
@@ -636,7 +638,7 @@ github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
 ## explicit; go 1.13
 github.com/mattn/go-shellwords
-# github.com/mattn/go-sqlite3 v1.14.28
+# github.com/mattn/go-sqlite3 v1.14.29
 ## explicit; go 1.19
 github.com/mattn/go-sqlite3
 # github.com/mdlayher/socket v0.5.1
@@ -1209,3 +1211,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/image/v5 => github.com/mtrmac/image/v5 v5.0.0-20250725193958-a5bc6cc012bd

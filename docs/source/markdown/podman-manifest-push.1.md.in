@@ -70,6 +70,8 @@ Sign the pushed images with a “simple signing” signature using the specified
 
 Sign the pushed images with a sigstore signature using a private key at the specified path. (This option is not available with the remote Podman client, including Mac and Windows (excluding WSL2) machines)
 
+@@option sign-by-sq-fingerprint
+
 @@option sign-passphrase-file
 
 @@option tls-verify
