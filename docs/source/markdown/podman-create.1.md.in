@@ -83,6 +83,8 @@ and specified with a _tag_.
 
 @@option cap-drop
 
+@@option cert-dir
+
 @@option cgroup-conf
 
 @@option cgroup-parent
@@ -112,6 +114,8 @@ and specified with a _tag_.
 @@option cpuset-cpus
 
 @@option cpuset-mems
+
+@@option creds
 
 @@option decryption-key
 

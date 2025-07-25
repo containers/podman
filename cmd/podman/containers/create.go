@@ -384,6 +384,7 @@ func pullImage(cmd *cobra.Command, imageName string, cliVals *entities.Container
 		PullPolicy:       pullPolicy,
 		SkipTLSVerify:    skipTLSVerify,
 		OciDecryptConfig: decConfig,
+		CertDir:          cliVals.CertDir,
 	}
 
 	if cmd.Flags().Changed("retry") {
@@ -402,6 +403,15 @@ func pullImage(cmd *cobra.Command, imageName string, cliVals *entities.Container
 		}
 
 		pullOptions.RetryDelay = val
+	}
+
+	if cliVals.Creds != "" {
+		creds, err := util.ParseRegistryCreds(cliVals.Creds)
+		if err != nil {
+			return "", err
+		}
+		pullOptions.Username = creds.Username
+		pullOptions.Password = creds.Password
 	}
 
 	pullReport, pullErr := registry.ImageEngine().Pull(registry.Context(), imageName, pullOptions)
