@@ -529,7 +529,23 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 				"`Pathname` of signature policy file (not usually used)",
 			)
 			_ = createFlags.MarkHidden("signature-policy")
+
+			certDirFlagName := "cert-dir"
+			createFlags.StringVar(
+				&cf.CertDir,
+				certDirFlagName, "",
+				"`Pathname` of a directory containing TLS certificates and keys",
+			)
+			_ = cmd.RegisterFlagCompletionFunc(certDirFlagName, completion.AutocompleteDefault)
 		}
+
+		credsFlagName := "creds"
+		createFlags.StringVar(
+			&cf.Creds,
+			credsFlagName, "",
+			"`credentials` (USERNAME:PASSWORD) to use for authenticating to a registry",
+		)
+		_ = cmd.RegisterFlagCompletionFunc(credsFlagName, completion.AutocompleteDefault)
 
 		createFlags.BoolVar(
 			&cf.Replace,
