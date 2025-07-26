@@ -334,6 +334,31 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.OutputToString()).To(Equal(""))
 	})
 
+	It("podman ps ancestor filter with substring matching (Docker compatibility)", func() {
+		// Create a container to test with
+		_, ec, cid := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+
+		// Test with substring of image name (Docker compatibility)
+		// This should match the container using substring matching
+		result := podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=alpine"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Test with partial image name (should work with substring matching)
+		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=alp"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Test with non-existent substring (should not match)
+		result = podmanTest.Podman([]string{"ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=nonexistent"})
+		result.WaitWithDefaultTimeout()
+		Expect(result).Should(ExitCleanly())
+		Expect(result.OutputToString()).To(Equal(""))
+	})
+
 	It("podman ps id filter flag", func() {
 		_, ec, fullCid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))

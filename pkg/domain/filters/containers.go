@@ -107,8 +107,20 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 					imageTag = tag
 				}
 
-				if (rootfsImageID == filterValue) ||
-					util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
+				// Check for exact match first
+				if rootfsImageID == filterValue {
+					return true
+				}
+
+				// Check for substring match (Docker compatibility)
+				if strings.Contains(rootfsImageID, filterValue) ||
+					strings.Contains(rootfsImageName, filterValue) ||
+					(hasColon && strings.Contains(imageNameWithoutTag, filterValue) && imageTag == "latest") {
+					return true
+				}
+
+				// Check for regex match (advanced use cases)
+				if util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
 					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
 					return true
 				}
@@ -363,8 +375,20 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 					imageTag = tag
 				}
 
-				if (listContainer.ImageID == filterValue) ||
-					util.StringMatchRegexSlice(listContainer.Image, filterValues) ||
+				// Check for exact match first
+				if listContainer.ImageID == filterValue {
+					return true
+				}
+
+				// Check for substring match (Docker compatibility)
+				if strings.Contains(listContainer.ImageID, filterValue) ||
+					strings.Contains(listContainer.Image, filterValue) ||
+					(hasColon && strings.Contains(imageNameWithoutTag, filterValue) && imageTag == "latest") {
+					return true
+				}
+
+				// Check for regex match (advanced use cases)
+				if util.StringMatchRegexSlice(listContainer.Image, filterValues) ||
 					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
 					return true
 				}
