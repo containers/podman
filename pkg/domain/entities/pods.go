@@ -266,6 +266,8 @@ type ContainerCreateOptions struct {
 	IsInfra              bool
 	IsClone              bool
 	DecryptionKeys       []string
+	CertDir              string
+	Creds                string
 	Net                  *NetOptions `json:"net,omitempty"`
 
 	CgroupConf []string
