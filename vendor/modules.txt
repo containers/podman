@@ -108,7 +108,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.41.0
+# github.com/containers/buildah v1.41.0 => github.com/nalind/buildah v0.0.0-20250801205516-87f60f60c681
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -294,7 +294,7 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194
+# github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e
 ## explicit; go 1.23.0
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.1
@@ -870,7 +870,7 @@ github.com/smallstep/pkcs7/internal/legacy/x509
 # github.com/spf13/cobra v1.9.1
 ## explicit; go 1.15
 github.com/spf13/cobra
-# github.com/spf13/pflag v1.0.6
+# github.com/spf13/pflag v1.0.7
 ## explicit; go 1.12
 github.com/spf13/pflag
 # github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6
@@ -1209,3 +1209,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/buildah => github.com/nalind/buildah v0.0.0-20250801205516-87f60f60c681

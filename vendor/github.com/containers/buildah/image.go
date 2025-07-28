@@ -50,11 +50,14 @@ const (
 	// containerExcludesDir is the subdirectory of the container data
 	// directory where we drop exclusions
 	containerExcludesDir = "commit-excludes"
+	// containerPulledUpDir is the subdirectory of the container
+	// data directory where we drop exclusions when we're not squashing
+	containerPulledUpDir = "commit-pulled-up"
 	// containerExcludesSubstring is the suffix of files under
-	// $cdir/containerExcludesDir which should be ignored, as they only
-	// exist because we use CreateTemp() to create uniquely-named files,
-	// but we don't want to try to use their contents until after they've
-	// been written to
+	// $cdir/containerExcludesDir and $cdir/containerPulledUpDir which
+	// should be ignored, as they only exist because we use CreateTemp() to
+	// create uniquely-named files, but we don't want to try to use their
+	// contents until after they've been written to
 	containerExcludesSubstring = ".tmp"
 )
 
@@ -1440,9 +1443,17 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		return nil, fmt.Errorf("getting the per-container data directory for %q: %w", b.ContainerID, err)
 	}
 
-	excludesFiles, err := filepath.Glob(filepath.Join(cdir, containerExcludesDir, "*"))
+	mountTargetFiles, err := filepath.Glob(filepath.Join(cdir, containerExcludesDir, "*"))
 	if err != nil {
 		return nil, fmt.Errorf("checking for commit exclusions for %q: %w", b.ContainerID, err)
+	}
+	pulledUpFiles, err := filepath.Glob(filepath.Join(cdir, containerPulledUpDir, "*"))
+	if err != nil {
+		return nil, fmt.Errorf("checking for commit pulled-up items for %q: %w", b.ContainerID, err)
+	}
+	excludesFiles := slices.Clone(mountTargetFiles)
+	if !options.ConfidentialWorkloadOptions.Convert && !options.Squash {
+		excludesFiles = append(excludesFiles, pulledUpFiles...)
 	}
 	var layerExclusions []copier.ConditionalRemovePath
 	for _, excludesFile := range excludesFiles {
@@ -1462,6 +1473,7 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 	if options.CompatLayerOmissions == types.OptionalBoolTrue {
 		layerExclusions = append(layerExclusions, compatLayerExclusions...)
 	}
+	logrus.Debugf("excluding these items from committed layer: %#v", layerExclusions)
 
 	manifestType := options.PreferredManifestType
 	if manifestType == "" {
