@@ -132,7 +132,6 @@ RUN echo test
 	})
 
 	It("podman diff container and image with same name", func() {
-		Skip("FIXME: #26680 Broken with Buildah v1.41 diff test showing different behavior base on storage driver")
 		imagefile := "/" + stringid.GenerateRandomID()
 		confile := "/" + stringid.GenerateRandomID()
 
