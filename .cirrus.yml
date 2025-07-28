@@ -239,8 +239,6 @@ alt_build_task:
     gce_instance: *fastvm
     matrix:
       - env:
-            ALT_NAME: 'Build Each Commit'
-      - env:
             # TODO: Replace with task using `winmake` to build
             # binary and archive installation zip file.
             ALT_NAME: 'Windows Cross' # N/B: Referenced by URLencoded strings elsewhere
