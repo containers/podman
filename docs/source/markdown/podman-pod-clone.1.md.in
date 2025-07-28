@@ -126,6 +126,18 @@ Clone the specified pod to a new named pod.
 # podman pod clone 2d4d4fca7219b4437e0d74fcdc272c4f031426a6eacd207372691207079551de new_name
 5a9b7851013d326aa4ac4565726765901b3ecc01fcbc0f237bc7fd95588a24f9
 ```
+
+Clone a pod with memory limits.
+```
+# podman pod clone --memory=1g --memory-swap=2g pod-name
+6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
+```
+
+Clone a pod with CPU limits.
+```
+# podman pod clone --cpus=2.5 --cpu-shares=1024 pod-name
+6b2c73ff8a1982828c9ae2092954bcd59836a131960f7e05221af9df5939c584
+```
 ## SEE ALSO
 **[podman-pod-create(1)](podman-pod-create.1.md)**
 
