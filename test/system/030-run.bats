@@ -751,9 +751,36 @@ json-file | f
 
     run_podman run --rm -p 8080 --net=host $IMAGE echo $rand
     is "${lines[0]}" \
-       "Port mappings have been discarded as one of the Host, Container, Pod, and None network modes are in use" \
+       "Port mappings have been discarded because \"host\" network namespace mode does not support them" \
        "Warning is emitted before container output"
     is "${lines[1]}" "$rand" "Container runs successfully despite warning"
+}
+
+# bats test_tags=ci:parallel
+@test "podman run with --net=none and --port prints warning" {
+    rand=$(random_string 10)
+
+    run_podman run --rm -p 8080 --net=none $IMAGE echo $rand
+    is "${lines[0]}" \
+       "Port mappings have been discarded because \"none\" network namespace mode does not support them" \
+       "Warning is emitted before container output"
+    is "${lines[1]}" "$rand" "Container runs successfully despite warning"
+}
+
+# bats test_tags=ci:parallel
+@test "podman run with --net=container:id and --port prints warning" {
+    rand=$(random_string 10)
+
+    run_podman run -d --name=$rand $IMAGE top
+    cid=$output
+    run_podman run --rm -p 8080 --net=container:$cid $IMAGE echo $rand
+    is "${lines[0]}" \
+       "Port mappings have been discarded because \"container\" network namespace mode does not support them" \
+       "Warning is emitted before container output"
+    is "${lines[1]}" "$rand" "Container runs successfully despite warning"
+
+    # Cleanup
+    run_podman container rm -f -t0 $cid
 }
 
 # bats test_tags=ci:parallel
