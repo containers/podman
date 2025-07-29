@@ -213,7 +213,10 @@ function _run_build() {
     # Ensure always start from clean-slate with all vendor modules downloaded
     showrun make clean
     showrun make vendor
-    showrun make -j $(nproc) --output-sync=target podman-release  # includes podman, podman-remote, and docs
+    # FIXME: SEQUOIA_SONAME_DIR is actually populated in setup_environment.sh for our test runs.
+    # Eventually, the library should exist in default locations, and we shouldn’t be specifying an explicit path.
+    # shellcheck disable=SC2154
+    showrun make -j $(nproc) --output-sync=target podman-release EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" SEQUOIA_SONAME_DIR="$(pwd)/podman-sequoia/target/release" # includes podman, podman-remote, and docs
 
     # There's no reason to validate-binaries across multiple linux platforms
     # shellcheck disable=SC2154
