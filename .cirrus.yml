@@ -749,7 +749,7 @@ container_integration_test_task:
     env:
         TEST_FLAVOR: int
         TEST_ENVIRON: container
-        TEST_BUILD_TAGS: ""
+        TEST_BUILD_TAGS: "containers_image_sequoia"
     clone_script: *get_gosrc
     setup_script: *setup
     main_script: *main
