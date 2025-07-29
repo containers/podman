@@ -26,7 +26,7 @@ Passt is [available on most Linux distributions](https://passt.top/passt/about/#
 
 Alternatively, slirp4netns can be installed in the same fashion either from your distribution's repositories or by following [the instructions](https://github.com/rootless-containers/slirp4netns?tab=readme-ov-file#install) provided on its GitHub.
 
-The major user-facing difference between the two is outlined in [Shortcomings of Rootless Podman](https://github.com/containers/podman/blob/main/rootless.md?plain=1#L11) and expanded upon in **[podman-network(1)](https://github.com/containers/podman/blob/main/docs/source/markdown/podman-network.1.md#pasta)**.
+The major user-facing difference between the two is outlined in [this blog post](https://blog.podman.io/2024/03/podman-5-0-breaking-changes-in-detail/) and expanded upon in **[podman-network(1)](https://github.com/containers/podman/blob/main/docs/source/markdown/podman-network.1.md#pasta)**.
 
 > [!note]
 > pasta's default situation of not being being able to communicate between the container and the host has been fixed in Podman 5.3: see [Podman 5.3 changes for improved networking experience with pasta](https://blog.podman.io/2024/10/podman-5-3-changes-for-improved-networking-experience-with-pasta/).
