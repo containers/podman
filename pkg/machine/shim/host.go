@@ -145,6 +145,11 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
 	}
 
+	mc.CloudInitConfig, err = CmdLineCloudInitToConfig(opts.CloudInitFiles)
+	if err != nil {
+		return err
+	}
+
 	// Issue #18230 ... do not mount over important directories at the / level (subdirs are fine)
 	for _, mnt := range mc.Mounts {
 		if err := validateDestinationPaths(mnt.Target); err != nil {
