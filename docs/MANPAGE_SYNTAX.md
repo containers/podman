@@ -34,7 +34,7 @@ Many manpages include the OPTIONS **--all**, **-a** and/or **--latest**, **-l**.
 Example for the first sentence: **podman command** is an example command.
 
 Commands or files that are quoted from other podman manpages or podman repositories have to be linked to those. Non-podman commands are not to be linked.\
-Example sentence: Use **[podman-run](podman-run.1.md)** or **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** for the problem.
+Example sentence: Use **[podman-run](./source/markdown/podman-run.1.md)** or **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** for the problem.
 
 It should also be specified if the command can only be run as root. In addition, it should be described when a command, OPTION, or other content cannot be executed with the remote client or in combination with other commands, OPTIONS, or content. In this case, the following sentence is put at the end of a command, OPTION, or content:\
 *IMPORTANT: This command/OPTION/content is not available with the command/OPTION/content/on the remote Podman client.*\
@@ -131,7 +131,7 @@ Description of the EXAMPLE two
 All commands, including commands with OPTIONS, and config-files mentioned in the manpage have to be listed here. Podman commands, including commands with OPTIONS, and config-files have to be linked. If a command is mentioned several times with different OPTIONS it just have to be linked once. All other commands, including commands with OPTIONS, and config-files just have to be mentioned. If a command is mentioned several times with different OPTIONS it just has to be linked once.
 
 Example:
-**[podman(1)](podman.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-create(1)](podman-create.1.md)**
+**[podman(1)](./source/markdown/podman.1.md)**, **[podman-run(1)](./source/markdown/podman-run.1.md)**, **[podman-create(1)](./source/markdown/podman-create.1.md)**
 
 ## HISTORY
 Normally, the dates of changes, the content of the changes and the person who provided them is listed here. Most manpages don't keep this record.
