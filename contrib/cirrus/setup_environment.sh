@@ -436,6 +436,8 @@ case "$TEST_FLAVOR" in
                 die "Refusing to config. host-test in container";
             fi
             remove_packaged_podman_files
+            # FIXME: Setting EXTRA_BUILDTAGS and SEQUOIA_SONAME_DIR here does not make a difference, the binaries were created
+            # in build_task already.
             make install PREFIX=/usr ETCDIR=/etc EXTRA_BUILDTAGS="$TEST_BUILD_TAGS" SEQUOIA_SONAME_DIR="$(pwd)/podman-sequoia/target/release"
         elif [[ "$TEST_ENVIRON" == "container" ]]; then
             if ((CONTAINER)); then
