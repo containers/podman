@@ -16,53 +16,10 @@ package sqlite3
 #else
 #include <sqlite3.h>
 #endif
-#include <stdlib.h>
-
-static int
-_sqlite3_user_authenticate(sqlite3* db, const char* zUsername, const char* aPW, int nPW)
-{
-  return sqlite3_user_authenticate(db, zUsername, aPW, nPW);
-}
-
-static int
-_sqlite3_user_add(sqlite3* db, const char* zUsername, const char* aPW, int nPW, int isAdmin)
-{
-  return sqlite3_user_add(db, zUsername, aPW, nPW, isAdmin);
-}
-
-static int
-_sqlite3_user_change(sqlite3* db, const char* zUsername, const char* aPW, int nPW, int isAdmin)
-{
-  return sqlite3_user_change(db, zUsername, aPW, nPW, isAdmin);
-}
-
-static int
-_sqlite3_user_delete(sqlite3* db, const char* zUsername)
-{
-  return sqlite3_user_delete(db, zUsername);
-}
-
-static int
-_sqlite3_auth_enabled(sqlite3* db)
-{
-	int exists = -1;
-
-	sqlite3_stmt *stmt;
-	sqlite3_prepare_v2(db, "select count(type) from sqlite_master WHERE type='table' and name='sqlite_user';", -1, &stmt, NULL);
-
-	while ( sqlite3_step(stmt) == SQLITE_ROW) {
-		exists = sqlite3_column_int(stmt, 0);
-	}
-
-	sqlite3_finalize(stmt);
-
-	return exists;
-}
 */
 import "C"
 import (
 	"errors"
-	"unsafe"
 )
 
 const (
@@ -72,6 +29,7 @@ const (
 var (
 	ErrUnauthorized  = errors.New("SQLITE_AUTH: Unauthorized")
 	ErrAdminRequired = errors.New("SQLITE_AUTH: Unauthorized; Admin Privileges Required")
+	errUserAuthNoLongerSupported = errors.New("sqlite3: the sqlite_userauth tag is no longer supported as the userauth extension is no longer supported by the SQLite authors, see https://github.com/mattn/go-sqlite3/issues/1341").
 )
 
 // Authenticate will perform an authentication of the provided username
@@ -88,15 +46,7 @@ var (
 // If the SQLITE_USER table is not present in the database file, then
 // this interface is a harmless no-op returning SQLITE_OK.
 func (c *SQLiteConn) Authenticate(username, password string) error {
-	rv := c.authenticate(username, password)
-	switch rv {
-	case C.SQLITE_ERROR, C.SQLITE_AUTH:
-		return ErrUnauthorized
-	case C.SQLITE_OK:
-		return nil
-	default:
-		return c.lastError()
-	}
+	return errUserAuthNoLongerSupported
 }
 
 // authenticate provides the actual authentication to SQLite.
@@ -109,17 +59,7 @@ func (c *SQLiteConn) Authenticate(username, password string) error {
 //		C.SQLITE_ERROR (1)
 //	 C.SQLITE_AUTH (23)
 func (c *SQLiteConn) authenticate(username, password string) int {
-	// Allocate C Variables
-	cuser := C.CString(username)
-	cpass := C.CString(password)
-
-	// Free C Variables
-	defer func() {
-		C.free(unsafe.Pointer(cuser))
-		C.free(unsafe.Pointer(cpass))
-	}()
-
-	return int(C._sqlite3_user_authenticate(c.db, cuser, cpass, C.int(len(password))))
+	return 1
 }
 
 // AuthUserAdd can be used (by an admin user only)
@@ -131,20 +71,7 @@ func (c *SQLiteConn) authenticate(username, password string) int {
 // for any ATTACH-ed databases. Any call to AuthUserAdd by a
 // non-admin user results in an error.
 func (c *SQLiteConn) AuthUserAdd(username, password string, admin bool) error {
-	isAdmin := 0
-	if admin {
-		isAdmin = 1
-	}
-
-	rv := c.authUserAdd(username, password, isAdmin)
-	switch rv {
-	case C.SQLITE_ERROR, C.SQLITE_AUTH:
-		return ErrAdminRequired
-	case C.SQLITE_OK:
-		return nil
-	default:
-		return c.lastError()
-	}
+	return errUserAuthNoLongerSupported
 }
 
 // authUserAdd enables the User Authentication if not enabled.
@@ -162,17 +89,7 @@ func (c *SQLiteConn) AuthUserAdd(username, password string, admin bool) error {
 //		C.SQLITE_ERROR (1)
 //	 C.SQLITE_AUTH (23)
 func (c *SQLiteConn) authUserAdd(username, password string, admin int) int {
-	// Allocate C Variables
-	cuser := C.CString(username)
-	cpass := C.CString(password)
-
-	// Free C Variables
-	defer func() {
-		C.free(unsafe.Pointer(cuser))
-		C.free(unsafe.Pointer(cpass))
-	}()
-
-	return int(C._sqlite3_user_add(c.db, cuser, cpass, C.int(len(password)), C.int(admin)))
+	return 1
 }
 
 // AuthUserChange can be used to change a users
@@ -181,20 +98,7 @@ func (c *SQLiteConn) authUserAdd(username, password string, admin int) int {
 // credentials or admin privilege setting. No user may change their own
 // admin privilege setting.
 func (c *SQLiteConn) AuthUserChange(username, password string, admin bool) error {
-	isAdmin := 0
-	if admin {
-		isAdmin = 1
-	}
-
-	rv := c.authUserChange(username, password, isAdmin)
-	switch rv {
-	case C.SQLITE_ERROR, C.SQLITE_AUTH:
-		return ErrAdminRequired
-	case C.SQLITE_OK:
-		return nil
-	default:
-		return c.lastError()
-	}
+	return errUserAuthNoLongerSupported
 }
 
 // authUserChange allows to modify a user.
@@ -215,17 +119,7 @@ func (c *SQLiteConn) AuthUserChange(username, password string, admin bool) error
 //		C.SQLITE_ERROR (1)
 //	 C.SQLITE_AUTH (23)
 func (c *SQLiteConn) authUserChange(username, password string, admin int) int {
-	// Allocate C Variables
-	cuser := C.CString(username)
-	cpass := C.CString(password)
-
-	// Free C Variables
-	defer func() {
-		C.free(unsafe.Pointer(cuser))
-		C.free(unsafe.Pointer(cpass))
-	}()
-
-	return int(C._sqlite3_user_change(c.db, cuser, cpass, C.int(len(password)), C.int(admin)))
+	return 1
 }
 
 // AuthUserDelete can be used (by an admin user only)
@@ -234,15 +128,7 @@ func (c *SQLiteConn) authUserChange(username, password string, admin int) int {
 // the database cannot be converted into a no-authentication-required
 // database.
 func (c *SQLiteConn) AuthUserDelete(username string) error {
-	rv := c.authUserDelete(username)
-	switch rv {
-	case C.SQLITE_ERROR, C.SQLITE_AUTH:
-		return ErrAdminRequired
-	case C.SQLITE_OK:
-		return nil
-	default:
-		return c.lastError()
-	}
+	return errUserAuthNoLongerSupported
 }
 
 // authUserDelete can be used to delete a user.
@@ -258,25 +144,12 @@ func (c *SQLiteConn) AuthUserDelete(username string) error {
 //		C.SQLITE_ERROR (1)
 //	 C.SQLITE_AUTH (23)
 func (c *SQLiteConn) authUserDelete(username string) int {
-	// Allocate C Variables
-	cuser := C.CString(username)
-
-	// Free C Variables
-	defer func() {
-		C.free(unsafe.Pointer(cuser))
-	}()
-
-	return int(C._sqlite3_user_delete(c.db, cuser))
+	return 1
 }
 
 // AuthEnabled checks if the database is protected by user authentication
 func (c *SQLiteConn) AuthEnabled() (exists bool) {
-	rv := c.authEnabled()
-	if rv == 1 {
-		exists = true
-	}
-
-	return
+	return false
 }
 
 // authEnabled perform the actual check for user authentication.
@@ -289,7 +162,7 @@ func (c *SQLiteConn) AuthEnabled() (exists bool) {
 //		0 - Disabled
 //	 1 - Enabled
 func (c *SQLiteConn) authEnabled() int {
-	return int(C._sqlite3_auth_enabled(c.db))
+	return 0
 }
 
 // EOF
