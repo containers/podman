@@ -334,25 +334,38 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.OutputToString()).To(Equal(""))
 	})
 
+	It("podman ps ancestor filter with substring matching (Docker compatibility)", func() {
+		// Create a container to test with
+		_, ec, cid := podmanTest.RunLsContainer("test1")
+		Expect(ec).To(Equal(0))
+
+		// Get the full image ID to test substring matching
+		inspect := podmanTest.PodmanExitCleanly("inspect", cid, "--format", "{{.Image}}")
+		fullImageID := inspect.OutputToString()
+
+		// Test with prefix substring of image ID (Docker compatibility, new functionality)
+		imageIDPrefix := fullImageID[:12]
+		result := podmanTest.PodmanExitCleanly("ps", "-q", "--no-trunc", "-a", "--filter", "ancestor="+imageIDPrefix)
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Test with non-prefix substring of image ID (Docker compatibility)
+		imageIDSubstr := fullImageID[4:16]
+		result = podmanTest.PodmanExitCleanly("ps", "-q", "--no-trunc", "-a", "--filter", "ancestor="+imageIDSubstr)
+		Expect(result.OutputToString()).To(Equal(cid))
+
+		// Test with non-existent substring (should not match)
+		result = podmanTest.PodmanExitCleanly("ps", "-q", "--no-trunc", "-a", "--filter", "ancestor=nonexistent")
+		Expect(result.OutputToString()).To(Equal(""))
+	})
+
 	It("podman ps id filter flag", func() {
 		_, ec, fullCid := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 
-		result := podmanTest.Podman([]string{"ps", "-a", "--filter", fmt.Sprintf("id=%s", fullCid)})
+		result := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc", "--filter", fmt.Sprintf("id=%s", fullCid)})
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
-	})
-
-	It("podman ps id filter flag", func() {
-		session := podmanTest.RunTopContainer("")
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
-		fullCid := session.OutputToString()
-
-		result := podmanTest.Podman([]string{"ps", "-aq", "--no-trunc", "--filter", "status=running"})
-		result.WaitWithDefaultTimeout()
-		Expect(result).Should(ExitCleanly())
-		Expect(result.OutputToStringArray()[0]).To(Equal(fullCid))
+		Expect(result.OutputToString()).To(Equal(fullCid))
 	})
 
 	It("podman ps multiple filters", func() {
@@ -1033,4 +1046,5 @@ var _ = Describe("Podman ps", func() {
 		Expect(output).To(HaveLen(1))
 		Expect(output).Should(ContainElement(ContainSubstring("late")))
 	})
+
 })

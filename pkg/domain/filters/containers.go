@@ -107,8 +107,13 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 					imageTag = tag
 				}
 
-				if (rootfsImageID == filterValue) ||
-					util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
+				// Check for substring match on image ID (Docker compatibility)
+				if strings.Contains(rootfsImageID, filterValue) {
+					return true
+				}
+
+				// Check for regex match (advanced use cases)
+				if util.StringMatchRegexSlice(rootfsImageName, filterValues) ||
 					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
 					return true
 				}
@@ -363,8 +368,13 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 					imageTag = tag
 				}
 
-				if (listContainer.ImageID == filterValue) ||
-					util.StringMatchRegexSlice(listContainer.Image, filterValues) ||
+				// Check for substring match on image ID (Docker compatibility)
+				if strings.Contains(listContainer.ImageID, filterValue) {
+					return true
+				}
+
+				// Check for regex match (advanced use cases)
+				if util.StringMatchRegexSlice(listContainer.Image, filterValues) ||
 					(util.StringMatchRegexSlice(imageNameWithoutTag, filterValues) && imageTag == "latest") {
 					return true
 				}
