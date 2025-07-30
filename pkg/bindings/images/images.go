@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 
 	imageTypes "github.com/containers/image/v5/types"
 	handlersTypes "github.com/containers/podman/v5/pkg/api/handlers/types"
@@ -15,6 +16,8 @@ import (
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
+	"github.com/containers/podman/v5/pkg/machine"
+	jsoniter "github.com/json-iterator/go"
 )
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
@@ -131,6 +134,27 @@ func Load(ctx context.Context, r io.Reader) (*types.ImageLoadReport, error) {
 		return nil, err
 	}
 	response, err := conn.DoRequest(ctx, r, http.MethodPost, "/images/load", nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	return &report, response.Process(&report)
+}
+
+func LoadLocal(ctx context.Context, m *machine.LocalAPIMap) (*types.ImageLoadReport, error) {
+	var report types.ImageLoadReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	localAPImapString, err := jsoniter.MarshalToString(m)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := conn.DoRequest(ctx, strings.NewReader(localAPImapString), http.MethodPost, "/local/images/load", nil, nil)
 	if err != nil {
 		return nil, err
 	}
