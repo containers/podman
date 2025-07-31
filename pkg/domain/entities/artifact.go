@@ -5,17 +5,17 @@ import (
 
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	entityTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
-	"github.com/containers/podman/v5/pkg/libartifact"
-	"github.com/opencontainers/go-digest"
+	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
 type ArtifactAddOptions struct {
-	Annotations  map[string]string
-	ArtifactType string
-	Append       bool
-	FileType     string
+	Annotations      map[string]string
+	ArtifactMIMEType string
+	Append           bool
+	FileMIMEType     string
 }
+
+type ArtifactAddReport = entitiesTypes.ArtifactAddReport
 
 type ArtifactExtractOptions struct {
 	// Title annotation value to extract only a single blob matching that name.
@@ -24,13 +24,13 @@ type ArtifactExtractOptions struct {
 	// Digest of the blob to extract.
 	// Conflicts with Title. Optional.
 	Digest string
+	// ExcludeTitle option allows single blobs to be exported
+	// with their title/filename empty. Optional.
+	// Default: False
+	ExcludeTitle bool
 }
 
-type ArtifactBlob struct {
-	BlobReader   io.Reader
-	BlobFilePath string
-	FileName     string
-}
+type ArtifactBlob = entitiesTypes.ArtifactBlob
 
 type ArtifactInspectOptions struct {
 	// Note: Remote is not currently implemented but will be used for
@@ -38,8 +38,9 @@ type ArtifactInspectOptions struct {
 	Remote bool
 }
 
-type ArtifactListOptions struct {
-}
+type ArtifactListOptions struct{}
+
+type ArtifactListReport = entitiesTypes.ArtifactListReport
 
 type ArtifactPullOptions struct {
 	// containers-auth.json(5) file to use when authenticating against
@@ -79,6 +80,8 @@ type ArtifactPullOptions struct {
 	IdentityToken string `json:"identitytoken,omitempty"`
 }
 
+type ArtifactPullReport = entitiesTypes.ArtifactPullReport
+
 type ArtifactPushOptions struct {
 	ImagePushOptions
 	DigestFile     string
@@ -86,29 +89,13 @@ type ArtifactPushOptions struct {
 	EncryptionKeys []string
 }
 
+type ArtifactPushReport = entitiesTypes.ArtifactPushReport
+
 type ArtifactRemoveOptions struct {
 	// Remove all artifacts
 	All bool
 }
 
-type ArtifactPullReport struct {
-	ArtifactDigest *digest.Digest
-}
+type ArtifactRemoveReport = entitiesTypes.ArtifactRemoveReport
 
-type ArtifactPushReport struct {
-	ArtifactDigest *digest.Digest
-}
-
-type ArtifactInspectReport = entityTypes.ArtifactInspectReport
-
-type ArtifactListReport struct {
-	*libartifact.Artifact
-}
-
-type ArtifactAddReport struct {
-	ArtifactDigest *digest.Digest
-}
-
-type ArtifactRemoveReport struct {
-	ArtifactDigests []*digest.Digest
-}
+type ArtifactInspectReport = entitiesTypes.ArtifactInspectReport
