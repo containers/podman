@@ -28,6 +28,10 @@ load helpers.network
     run_podman events --since "$before" --filter type=container --filter container=$cname --filter event=start --stream=false
     is "$output" "$expect" "filtering just by container"
 
+    # Filter just by label key (without value)
+    run_podman events --since "$before" --filter type=container --filter label=${labelname} --filter event=start --stream=false
+    is "$output" "$expect" "filtering by label key only"
+
     # check --no-trunc=false
     truncID=${id:0:12}
     run_podman events --since "$before" --filter container=$cname --filter event=start --stream=false --no-trunc=false
