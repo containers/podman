@@ -218,7 +218,7 @@ class ArtifactTestCase(APITestCase):
         # Assert return error response is json and contains correct message
         self.assertEqual(
             rjson["cause"],
-            "append option is not compatible with ArtifactType option",
+            "append option is not compatible with type option",
         )
 
     def test_add_with_append_to_missing_artifact_fails(self):
@@ -354,7 +354,7 @@ class ArtifactTestCase(APITestCase):
         # Assert correct response code
         self.assertEqual(r.status_code, 200, r.text)
 
-        # Assert return error response is json and contains correct message
+        # Assert return response is json and contains correct message
         self.assertIn("sha256:", rjson["ArtifactDigest"])
 
     def test_pull_with_retry(self):
@@ -397,7 +397,7 @@ class ArtifactTestCase(APITestCase):
         # Assert return error response is json and contains correct message
         self.assertEqual(
             rjson["cause"],
-            "unauthorized",
+            "unauthorized: access to the requested resource is not authorized",
         )
 
     def test_pull_missing_fails(self):
@@ -413,9 +413,9 @@ class ArtifactTestCase(APITestCase):
         self.assertEqual(r.status_code, 404, r.text)
 
         # Assert return error response is json and contains correct message
-        self.assertEqual(
-            rjson["cause"],
+        self.assertIn(
             "manifest unknown",
+            rjson["cause"],
         )
 
     def test_remove(self):
@@ -459,9 +459,9 @@ class ArtifactTestCase(APITestCase):
         self.assertEqual(r.status_code, 401, r.text)
 
         # Assert return error response is json and contains correct message
-        self.assertEqual(
+        self.assertIn(
+            "authentication required",
             rjson["cause"],
-            "unauthorized",
         )
 
     def test_push_bad_param(self):

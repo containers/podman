@@ -242,9 +242,15 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//    in: query
 	//    description: Only extract blob with the given digest
 	//    type: string
+	//  - name: excludeTitle
+	//    in: query
+	//    description: When extracting a single Artifact blob, don't use the blob title as the filename in the tar
+	//    type: boolean
 	// responses:
 	//   200:
 	//     description: Extract successful
+	//     schema:
+	//       type: file
 	//   400:
 	//     $ref: "#/responses/badParamError"
 	//   404:
