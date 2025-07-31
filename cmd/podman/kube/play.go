@@ -104,7 +104,7 @@ func playFlags(cmd *cobra.Command) {
 	flags.StringArrayVar(
 		&playOptions.annotations,
 		annotationFlagName, []string{},
-		"Add annotations to pods (key=value)",
+		"Add Podman-specific annotations to containers and pods created by Podman (key=value)",
 	)
 	_ = cmd.RegisterFlagCompletionFunc(annotationFlagName, completion.AutocompleteNone)
 	credsFlagName := "creds"
