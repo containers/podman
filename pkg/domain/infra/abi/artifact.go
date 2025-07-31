@@ -196,21 +196,17 @@ func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entit
 	}, nil
 }
 
-func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlobs []entities.ArtifactBlob, opts *entities.ArtifactAddOptions) (*entities.ArtifactAddReport, error) {
+func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlobs []entities.ArtifactBlob, opts entities.ArtifactAddOptions) (*entities.ArtifactAddReport, error) {
 	artStore, err := ir.Libpod.ArtifactStore()
 	if err != nil {
 		return nil, err
 	}
 
-	if opts.Annotations == nil {
-		opts.Annotations = make(map[string]string)
-	}
-
 	addOptions := types.AddOptions{
-		Annotations:  opts.Annotations,
-		ArtifactType: opts.ArtifactType,
-		Append:       opts.Append,
-		FileType:     opts.FileType,
+		Annotations:      opts.Annotations,
+		ArtifactMIMEType: opts.ArtifactMIMEType,
+		Append:           opts.Append,
+		FileMIMEType:     opts.FileMIMEType,
 	}
 
 	artifactDigest, err := artStore.Add(ctx, name, artifactBlobs, &addOptions)
@@ -222,35 +218,33 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlo
 	}, nil
 }
 
-func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target string, opts *entities.ArtifactExtractOptions) error {
+func (ir *ImageEngine) ArtifactExtract(ctx context.Context, name string, target string, opts entities.ArtifactExtractOptions) error {
 	artStore, err := ir.Libpod.ArtifactStore()
 	if err != nil {
 		return err
 	}
-	extractOpt := &types.ExtractOptions{
+	extractOpt := types.ExtractOptions{
 		FilterBlobOptions: types.FilterBlobOptions{
 			Digest: opts.Digest,
 			Title:  opts.Title,
 		},
 	}
 
-	return artStore.Extract(ctx, name, target, extractOpt)
+	return artStore.Extract(ctx, name, target, &extractOpt)
 }
 
-func (ir *ImageEngine) ArtifactExtractTarStream(ctx context.Context, w io.Writer, name string, opts *entities.ArtifactExtractOptions) error {
-	if opts == nil {
-		opts = &entities.ArtifactExtractOptions{}
-	}
+func (ir *ImageEngine) ArtifactExtractTarStream(ctx context.Context, w io.Writer, name string, opts entities.ArtifactExtractOptions) error {
 	artStore, err := ir.Libpod.ArtifactStore()
 	if err != nil {
 		return err
 	}
-	extractOpt := &types.ExtractOptions{
+	extractOpt := types.ExtractOptions{
 		FilterBlobOptions: types.FilterBlobOptions{
 			Digest: opts.Digest,
 			Title:  opts.Title,
 		},
+		ExcludeTitle: opts.ExcludeTitle,
 	}
 
-	return artStore.ExtractTarStream(ctx, w, name, extractOpt)
+	return artStore.ExtractTarStream(ctx, w, name, &extractOpt)
 }

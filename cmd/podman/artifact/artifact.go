@@ -6,16 +6,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	// Command: podman _artifact_
-	artifactCmd = &cobra.Command{
-		Use:         "artifact",
-		Short:       "Manage OCI artifacts",
-		Long:        "Manage OCI artifacts",
-		RunE:        validate.SubCommandExists,
-		Annotations: map[string]string{registry.EngineMode: registry.ABIMode},
-	}
-)
+// Command: podman _artifact_
+var artifactCmd = &cobra.Command{
+	Use:   "artifact",
+	Short: "Manage OCI artifacts",
+	Long:  "Manage OCI artifacts",
+	RunE:  validate.SubCommandExists,
+}
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
