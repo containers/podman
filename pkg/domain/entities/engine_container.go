@@ -26,6 +26,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	ContainerCopyToArchive(ctx context.Context, nameOrID string, path string, writer io.Writer) (ContainerCopyFunc, error)
 	ContainerCreate(ctx context.Context, s *specgen.SpecGenerator) (*ContainerCreateReport, error)
 	ContainerExec(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
+	ContainerExecNoSession(ctx context.Context, nameOrID string, options ExecOptions, streams define.AttachStreams) (int, error)
 	ContainerExecDetached(ctx context.Context, nameOrID string, options ExecOptions) (string, error)
 	ContainerExists(ctx context.Context, nameOrID string, options ContainerExistsOptions) (*BoolReport, error)
 	ContainerExport(ctx context.Context, nameOrID string, options ContainerExportOptions) error
