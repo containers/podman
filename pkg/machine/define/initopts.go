@@ -1,6 +1,10 @@
 package define
 
-import "net/url"
+import (
+	"net/url"
+
+	"github.com/containers/image/v5/types"
+)
 
 type InitOptions struct {
 	PlaybookPath       string
@@ -21,4 +25,5 @@ type InitOptions struct {
 	UID                string // uid of the user that called machine
 	UserModeNetworking *bool  // nil = use backend/system default, false = disable, true = enable
 	USBs               []string
+	SkipTlsVerify      types.OptionalBool
 }
