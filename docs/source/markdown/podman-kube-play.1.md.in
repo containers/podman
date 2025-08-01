@@ -201,6 +201,8 @@ An image can be automatically mounted into a container if the annotation `io.pod
 
 @@option annotation.container
 
+Note: For `podman kube play`, the `--annotation` flag adds Podman-specific annotations to the containers and pods created by Podman, not to the Kubernetes YAML itself. These annotations can be used to configure Podman-specific features like user namespaces (`io.podman.annotations.userns`), volumes-from (`io.podman.annotations.volumes-from`), and other container behaviors.
+
 @@option authfile
 
 #### **--build**
