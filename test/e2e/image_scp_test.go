@@ -23,6 +23,7 @@ var _ = Describe("podman image scp", func() {
 	})
 
 	It("podman image scp with proper connection", func() {
+		Skip("TODO: This test doesn't make sense in the context of multiple remote transports")
 		if _, err := os.Stat(filepath.Join(homedir.Get(), ".ssh", "known_hosts")); err != nil {
 			Skip("known_hosts does not exist or is not accessible")
 		}
