@@ -19,6 +19,7 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
+	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -340,7 +341,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 		utils.Error(w, http.StatusNotFound, fmt.Errorf("failed to find image %s: %s", name, errMsg))
 		return
 	}
-	inspect, err := imageDataToImageInspect(r.Context(), newImage)
+	inspect, err := imageDataToImageInspect(r.Context(), newImage, r)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to convert ImageData to ImageInspect '%s': %w", name, err))
 		return
@@ -348,7 +349,7 @@ func GetImage(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, inspect)
 }
 
-func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.ImageInspect, error) {
+func imageDataToImageInspect(ctx context.Context, l *libimage.Image, r *http.Request) (*handlers.ImageInspect, error) {
 	options := &libimage.InspectOptions{WithParent: true, WithSize: true}
 	info, err := l.Inspect(ctx, options)
 	if err != nil {
@@ -407,8 +408,13 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image) (*handlers.
 		RootFS:          rootfs,
 		Size:            info.Size,
 		Variant:         "",
-		VirtualSize:     info.VirtualSize,
 	}
+
+	if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
+		//nolint:staticcheck // Deprecated field
+		dockerImageInspect.VirtualSize = info.VirtualSize
+	}
+
 	return &handlers.ImageInspect{InspectResponse: dockerImageInspect}, nil
 }
 
@@ -481,6 +487,13 @@ func GetImages(w http.ResponseWriter, r *http.Request) {
 			// Docker 1.42 sets SharedSize to -1 if ont passed explicitly
 			if !query.SharedSize {
 				s.SharedSize = -1
+			}
+			// VirtualSize is deprecated in version 1.43 and removed in version 1.44
+			// See https://docs.docker.com/reference/api/engine/version-history/#v143-api-changes
+			if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
+				s.VirtualSize = s.Size
+			} else {
+				s.VirtualSize = 0
 			}
 		}
 	}
