@@ -71,10 +71,8 @@ type DiskArtifactOpts struct {
 
 */
 
-func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile) (*OCIArtifactDisk, error) {
-	var (
-		arch string
-	)
+func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint string, vmName string, vmType define.VMType, finalPath *define.VMFile, skipTlsVerify types.OptionalBool) (*OCIArtifactDisk, error) {
+	var arch string
 
 	artifactVersion := getVersion()
 	switch runtime.GOARCH {
@@ -108,8 +106,10 @@ func NewOCIArtifactPull(ctx context.Context, dirs *define.MachineDirs, endpoint 
 		imageEndpoint:    endpoint,
 		machineVersion:   artifactVersion,
 		name:             vmName,
-		pullOptions:      &PullOptions{},
-		vmType:           vmType,
+		pullOptions: &PullOptions{
+			SkipTLSVerify: skipTlsVerify,
+		},
+		vmType: vmType,
 	}
 	return &ociDisk, nil
 }

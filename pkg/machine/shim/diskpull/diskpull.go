@@ -4,19 +4,20 @@ import (
 	"context"
 	"strings"
 
+	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
 )
 
-func GetDisk(userInputPath string, dirs *define.MachineDirs, imagePath *define.VMFile, vmType define.VMType, name string) error {
+func GetDisk(userInputPath string, dirs *define.MachineDirs, imagePath *define.VMFile, vmType define.VMType, name string, skipTlsVerify types.OptionalBool) error {
 	var (
 		err    error
 		mydisk ocipull.Disker
 	)
 
 	if userInputPath == "" || strings.HasPrefix(userInputPath, "docker://") {
-		mydisk, err = ocipull.NewOCIArtifactPull(context.Background(), dirs, userInputPath, name, vmType, imagePath)
+		mydisk, err = ocipull.NewOCIArtifactPull(context.Background(), dirs, userInputPath, name, vmType, imagePath, skipTlsVerify)
 	} else {
 		if strings.HasPrefix(userInputPath, "http") {
 			// TODO probably should use tempdir instead of datadir
@@ -28,5 +29,6 @@ func GetDisk(userInputPath string, dirs *define.MachineDirs, imagePath *define.V
 	if err != nil {
 		return err
 	}
+
 	return mydisk.Get()
 }

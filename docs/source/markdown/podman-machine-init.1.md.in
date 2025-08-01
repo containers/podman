@@ -119,6 +119,8 @@ means to use the timezone of the machine host.
 The timezone setting is not used with WSL.  WSL automatically sets the timezone to the same
 as the host Windows operating system.
 
+@@option tls-verify
+
 #### **--usb**=*bus=number,devnum=number* or *vendor=hexadecimal,product=hexadecimal*
 
 Assign a USB device from the host to the VM via USB passthrough.
