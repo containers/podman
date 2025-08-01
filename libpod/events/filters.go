@@ -67,14 +67,20 @@ func generateEventFilter(filter, filterValue string) (func(e *Event) bool, error
 			var found bool
 			// iterate labels and see if we match a key and value
 			for eventKey, eventValue := range e.Attributes {
-				filterValueSplit := strings.SplitN(filterValue, "=", 2)
-				// if the filter isn't right, just return false
-				if len(filterValueSplit) < 2 {
-					return false
-				}
-				if eventKey == filterValueSplit[0] && eventValue == filterValueSplit[1] {
-					found = true
-					break
+				filterKey, filterVal, hasValue := strings.Cut(filterValue, "=")
+				// match "key=value" or "key"
+				if !hasValue {
+					// match by key only
+					if eventKey == filterKey {
+						found = true
+						break
+					}
+				} else {
+					// match by key and value
+					if eventKey == filterKey && eventValue == filterVal {
+						found = true
+						break
+					}
 				}
 			}
 			return found
