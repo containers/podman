@@ -84,7 +84,7 @@ func JoinURL(elements ...string) string {
 
 // NewConnection creates a new service connection without an identity
 func NewConnection(ctx context.Context, uri string) (context.Context, error) {
-	return NewConnectionWithIdentity(ctx, uri, "", false)
+	return NewConnectionWithOptions(ctx, Options{URI: uri})
 }
 
 // NewConnectionWithIdentity takes a URI as a string and returns a context with the
@@ -96,30 +96,34 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock
 func NewConnectionWithIdentity(ctx context.Context, uri string, identity string, machine bool) (context.Context, error) {
-	return NewConnectionWithIdentityOrTLS(ctx, uri, identity, "", "", "", machine)
+	return NewConnectionWithOptions(ctx, Options{URI: uri, Identity: identity, Machine: machine})
 }
 
-func NewConnectionWithIdentityOrTLS(ctx context.Context, uri string, identity string, tlsCertFile, tlsKeyFile, tlsCAFile string, machine bool) (context.Context, error) {
+type Options struct {
+	URI         string
+	Identity    string
+	TLSCertFile string
+	TLSKeyFile  string
+	TLSCAFile   string
+	Machine     bool
+}
+
+func orEnv(s string, env string) string {
+	if len(s) != 0 {
+		return s
+	}
+	s, _ = os.LookupEnv(env)
+	return s
+}
+
+func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Context, error) {
 	var err error
-	if v, found := os.LookupEnv("CONTAINER_HOST"); found && uri == "" {
-		uri = v
-	}
 
-	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identity) == 0 {
-		identity = v
-	}
-
-	if v, found := os.LookupEnv("CONTAINER_TLS_CERT"); found && len(tlsCertFile) == 0 {
-		tlsCertFile = v
-	}
-
-	if v, found := os.LookupEnv("CONTAINER_TLS_KEY"); found && len(tlsKeyFile) == 0 {
-		tlsKeyFile = v
-	}
-
-	if v, found := os.LookupEnv("CONTAINER_TLS_CA"); found && len(tlsCAFile) == 0 {
-		tlsCAFile = v
-	}
+	uri := orEnv(opts.URI, "CONTAINER_HOST")
+	identity := orEnv(opts.Identity, "CONTAINER_SSHKEY")
+	tlsCertFile := orEnv(opts.TLSCertFile, "CONTAINER_TLS_CERT")
+	tlsKeyFile := orEnv(opts.TLSKeyFile, "CONTAINER_TLS_KEY")
+	tlsCAFile := orEnv(opts.TLSCAFile, "CONTAINER_TLS_CA")
 
 	_url, err := url.Parse(uri)
 	if err != nil {
@@ -130,7 +134,7 @@ func NewConnectionWithIdentityOrTLS(ctx context.Context, uri string, identity st
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
-		conn, err := sshClient(_url, uri, identity, machine)
+		conn, err := sshClient(_url, uri, identity, opts.Machine)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +156,7 @@ func NewConnectionWithIdentityOrTLS(ctx context.Context, uri string, identity st
 		}
 		connection = conn
 	default:
-		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
+		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema. %#v %s %s", _url.Scheme, opts, uri, _url.String())
 	}
 
 	ctx = context.WithValue(ctx, clientKey, &connection)
