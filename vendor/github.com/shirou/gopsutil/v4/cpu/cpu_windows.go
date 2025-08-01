@@ -270,12 +270,12 @@ func CountsWithContext(_ context.Context, logical bool) (int, error) {
 			return int(ret), nil
 		}
 
-		var systemInfo systemInfo
-		_, _, err := procGetNativeSystemInfo.Call(uintptr(unsafe.Pointer(&systemInfo)))
-		if systemInfo.dwNumberOfProcessors == 0 {
+		var sInfo systemInfo
+		_, _, err := procGetNativeSystemInfo.Call(uintptr(unsafe.Pointer(&sInfo)))
+		if sInfo.dwNumberOfProcessors == 0 {
 			return 0, err
 		}
-		return int(systemInfo.dwNumberOfProcessors), nil
+		return int(sInfo.dwNumberOfProcessors), nil
 	}
 
 	// Get physical core count https://github.com/giampaolo/psutil/blob/d01a9eaa35a8aadf6c519839e987a49d8be2d891/psutil/_psutil_windows.c#L499

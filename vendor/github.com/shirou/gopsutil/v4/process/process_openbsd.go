@@ -78,7 +78,7 @@ func (p *Process) CwdWithContext(_ context.Context) (string, error) {
 	return common.ByteToString(buf), nil
 }
 
-func (p *Process) ExeWithContext(_ context.Context) (string, error) {
+func (*Process) ExeWithContext(_ context.Context) (string, error) {
 	return "", common.ErrNotImplementedError
 }
 
@@ -142,7 +142,7 @@ func (p *Process) CmdlineWithContext(ctx context.Context) (string, error) {
 	return strings.Join(argv, " "), nil
 }
 
-func (p *Process) createTimeWithContext(_ context.Context) (int64, error) {
+func (*Process) createTimeWithContext(_ context.Context) (int64, error) {
 	return 0, common.ErrNotImplementedError
 }
 
@@ -252,7 +252,7 @@ func (p *Process) IOCountersWithContext(_ context.Context) (*IOCountersStat, err
 	}, nil
 }
 
-func (p *Process) NumThreadsWithContext(_ context.Context) (int32, error) {
+func (*Process) NumThreadsWithContext(_ context.Context) (int32, error) {
 	/* not supported, just return 1 */
 	return 1, nil
 }
@@ -305,11 +305,11 @@ func (p *Process) ChildrenWithContext(ctx context.Context) ([]*Process, error) {
 	return ret, nil
 }
 
-func (p *Process) ConnectionsWithContext(_ context.Context) ([]net.ConnectionStat, error) {
+func (*Process) ConnectionsWithContext(_ context.Context) ([]net.ConnectionStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 
-func (p *Process) ConnectionsMaxWithContext(_ context.Context, _ int) ([]net.ConnectionStat, error) {
+func (*Process) ConnectionsMaxWithContext(_ context.Context, _ int) ([]net.ConnectionStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 

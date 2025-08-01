@@ -138,7 +138,7 @@ func (p *Process) GidsWithContext(_ context.Context) ([]uint32, error) {
 	return gids, nil
 }
 
-func (p *Process) GroupsWithContext(_ context.Context) ([]uint32, error) {
+func (*Process) GroupsWithContext(_ context.Context) ([]uint32, error) {
 	return nil, common.ErrNotImplementedError
 	// k, err := p.getKProc()
 	// if err != nil {
@@ -153,7 +153,7 @@ func (p *Process) GroupsWithContext(_ context.Context) ([]uint32, error) {
 	// return groups, nil
 }
 
-func (p *Process) TerminalWithContext(_ context.Context) (string, error) {
+func (*Process) TerminalWithContext(_ context.Context) (string, error) {
 	return "", common.ErrNotImplementedError
 	/*
 		k, err := p.getKProc()
@@ -179,7 +179,7 @@ func (p *Process) NiceWithContext(_ context.Context) (int32, error) {
 	return int32(k.Proc.P_nice), nil
 }
 
-func (p *Process) IOCountersWithContext(_ context.Context) (*IOCountersStat, error) {
+func (*Process) IOCountersWithContext(_ context.Context) (*IOCountersStat, error) {
 	return nil, common.ErrNotImplementedError
 }
 

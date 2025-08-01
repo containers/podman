@@ -1,10 +1,10 @@
 env:
   CIRRUS_CLONE_DEPTH: 1
-  GO_VERSION: go1.23.0
+  GO_VERSION: go1.24.0
 
 freebsd_13_task:
   freebsd_instance:
-    image_family: freebsd-13-3
+    image_family: freebsd-13-5
   install_script: |
     pkg install -y go
     GOBIN=$PWD/bin go install golang.org/dl/${GO_VERSION}@latest
@@ -14,7 +14,7 @@ freebsd_13_task:
 
 freebsd_14_task:
   freebsd_instance:
-    image_family: freebsd-14-0
+    image_family: freebsd-14-2
   install_script: |
     pkg install -y go
     GOBIN=$PWD/bin go install golang.org/dl/${GO_VERSION}@latest
