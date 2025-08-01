@@ -618,4 +618,16 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("root"))
 	})
+
+	It("podman exec with --no-session flag", func() {
+		SkipIfRemote("The --no-session flag is not supported for remote clients")
+		session := podmanTest.RunTopContainer("no_session_test")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		execResult := podmanTest.Podman([]string{"exec", "--no-session", "no_session_test", "echo", "hello"})
+		execResult.WaitWithDefaultTimeout()
+		Expect(execResult).Should(ExitCleanly())
+		Expect(execResult.OutputToString()).To(Equal("hello"))
+	})
 })

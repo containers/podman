@@ -1306,3 +1306,54 @@ func justWriteExecExitCode(c *Container, sessionID string, exitCode int, emitEve
 	// Finally, save our changes.
 	return c.save()
 }
+
+// ExecNoSession is a high-level wrapper for execNoSession.
+func (c *Container) ExecNoSession(config *ExecConfig, streams *define.AttachStreams, resize <-chan resize.TerminalSize) (int, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+		if err := c.syncContainer(); err != nil {
+			return -1, err
+		}
+	}
+	return c.execNoSession(config, streams, resize, false)
+}
+
+// execNoSession executes a command in a container without creating a persistent exec session.
+// It skips database operations and minimizes container locking for performance.
+func (c *Container) execNoSession(config *ExecConfig, streams *define.AttachStreams, _ <-chan resize.TerminalSize, _ bool) (exitCode int, retErr error) {
+	sessionID := "0000000000000000000000000000000000000000000000000000000000000000"
+
+	session := &ExecSession{
+		Id:     sessionID,
+		Config: config,
+	}
+
+	opts, err := prepareForExec(c, session)
+	if err != nil {
+		return -1, err
+	}
+
+	defer func() {
+		if err := c.cleanupExecBundle(sessionID); err != nil {
+			logrus.Errorf("cleanup of no-session exec %s failed: %v", sessionID, err)
+		}
+	}()
+
+	_, attachChan, err := c.ociRuntime.ExecContainer(c, sessionID, opts, streams, nil)
+	if err != nil {
+		return -1, err
+	}
+
+	err = <-attachChan
+	if err != nil && !errors.Is(err, define.ErrDetach) {
+		return -1, err
+	}
+
+	exitCode, err = c.readExecExitCode(sessionID)
+	if err != nil {
+		return -1, fmt.Errorf("retrieving no-session exec %s exit code: %w", sessionID, err)
+	}
+
+	return exitCode, nil
+}
