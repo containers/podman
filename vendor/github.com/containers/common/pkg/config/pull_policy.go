@@ -87,8 +87,3 @@ func ParsePullPolicy(s string) (PullPolicy, error) {
 		return PullPolicyUnsupported, fmt.Errorf("unsupported pull policy %q", s)
 	}
 }
-
-// Deprecated: please use `ParsePullPolicy` instead.
-func ValidatePullPolicy(s string) (PullPolicy, error) {
-	return ParsePullPolicy(s)
-}
