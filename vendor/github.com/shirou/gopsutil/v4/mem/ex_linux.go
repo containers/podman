@@ -31,7 +31,7 @@ func (ex *ExLinux) VirtualMemory() (*ExVirtualMemory, error) {
 	return ex.VirtualMemoryWithContext(context.Background())
 }
 
-func (ex *ExLinux) VirtualMemoryWithContext(ctx context.Context) (*ExVirtualMemory, error) {
+func (*ExLinux) VirtualMemoryWithContext(ctx context.Context) (*ExVirtualMemory, error) {
 	_, vmEx, err := fillFromMeminfoWithContext(ctx)
 	if err != nil {
 		return nil, err

@@ -81,36 +81,36 @@ func parseNetstatNetLine(line string) (ConnectionStat, error) {
 
 var portMatch = regexp.MustCompile(`(.*)\.(\d+)$`)
 
+func parseAddr(l string, family uint32) (Addr, error) {
+	matches := portMatch.FindStringSubmatch(l)
+	if matches == nil {
+		return Addr{}, fmt.Errorf("wrong addr, %s", l)
+	}
+	host := matches[1]
+	port := matches[2]
+	if host == "*" {
+		switch family {
+		case syscall.AF_INET:
+			host = "0.0.0.0"
+		case syscall.AF_INET6:
+			host = "::"
+		default:
+			return Addr{}, fmt.Errorf("unknown family, %d", family)
+		}
+	}
+	lport, err := strconv.ParseInt(port, 10, 32)
+	if err != nil {
+		return Addr{}, err
+	}
+	return Addr{IP: host, Port: uint32(lport)}, nil
+}
+
 // This function only works for netstat returning addresses with a "."
 // before the port (0.0.0.0.22 instead of 0.0.0.0:22).
 func parseNetstatAddr(local, remote string, family uint32) (laddr, raddr Addr, err error) {
-	parse := func(l string) (Addr, error) {
-		matches := portMatch.FindStringSubmatch(l)
-		if matches == nil {
-			return Addr{}, fmt.Errorf("wrong addr, %s", l)
-		}
-		host := matches[1]
-		port := matches[2]
-		if host == "*" {
-			switch family {
-			case syscall.AF_INET:
-				host = "0.0.0.0"
-			case syscall.AF_INET6:
-				host = "::"
-			default:
-				return Addr{}, fmt.Errorf("unknown family, %d", family)
-			}
-		}
-		lport, err := strconv.ParseInt(port, 10, 32)
-		if err != nil {
-			return Addr{}, err
-		}
-		return Addr{IP: host, Port: uint32(lport)}, nil
-	}
-
-	laddr, err = parse(local)
+	laddr, err = parseAddr(local, family)
 	if remote != "*.*" { // remote addr exists
-		raddr, err = parse(remote)
+		raddr, err = parseAddr(remote, family)
 		if err != nil {
 			return laddr, raddr, err
 		}

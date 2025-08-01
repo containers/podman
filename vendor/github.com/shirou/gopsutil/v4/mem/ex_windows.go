@@ -27,7 +27,7 @@ func NewExWindows() *ExWindows {
 	return &ExWindows{}
 }
 
-func (e *ExWindows) VirtualMemory() (*ExVirtualMemory, error) {
+func (*ExWindows) VirtualMemory() (*ExVirtualMemory, error) {
 	var memInfo memoryStatusEx
 	memInfo.cbSize = uint32(unsafe.Sizeof(memInfo))
 	// If mem == 0 since this is an error according to GlobalMemoryStatusEx documentation
