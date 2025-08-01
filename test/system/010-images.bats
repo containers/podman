@@ -434,7 +434,7 @@ EOF
     # that listing all images does not fail (see BZ 2216700).
     for i in $(seq --format '%02g' 1 $count); do
         timeout --foreground -v --kill=10 60 \
-                $PODMAN rmi img-$i-$(safename) &
+                "${PODMAN_CMD[@]}" rmi img-$i-$(safename) &
     done
 
     tries=100

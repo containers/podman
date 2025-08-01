@@ -143,7 +143,7 @@ function _log_test_restarted() {
     run_podman run --log-driver=$driver ${events_backend} --name $cname $IMAGE sh -c 'start=0; if test -s log; then start=`tail -n 1 log`; fi; seq `expr $start + 1` `expr $start + 10` | tee -a log'
     run_podman ${events_backend} start -a $cname
     logfile=$(mktemp -p ${PODMAN_TMPDIR} logfileXXXXXXXX)
-    $PODMAN $_PODMAN_TEST_OPTS ${events_backend} logs -f $cname > $logfile
+    "${PODMAN_CMD[@]}" $_PODMAN_TEST_OPTS ${events_backend} logs -f $cname > $logfile
     expected=$(mktemp -p ${PODMAN_TMPDIR} expectedXXXXXXXX)
     seq 1 20  > $expected
     diff -u ${expected} ${logfile}

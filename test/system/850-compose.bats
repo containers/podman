@@ -63,6 +63,12 @@ EOF
         url="${PODMAN##*--url }"
         url="${url%% *}"
         op='='
+    elif is_remote && [[ "${REMOTESYSTEM_TRANSPORT}" =~ tcp|tls|mtls ]]; then
+        url="tcp://localhost:${REMOTESYSTEM_TCP_PORT}"
+        op='='
+    elif is_remote && [[ "${REMOTESYSTEM_TRANSPORT}" =~ unix ]]; then
+        url="unix://${REMOTESYSTEM_UNIX_SOCK}"
+        op='='
     fi
     # podman-remote test might run with --url so unset this because the socket will be used otherwise
     CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman compose env

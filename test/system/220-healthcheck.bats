@@ -174,7 +174,7 @@ Log[-1].Output   | \"Uh-oh on stdout!\\\nUh-oh on stderr!\\\n\"
 
         # Wait for the container in the background and create the $wait_file to
         # signal the specified wait condition was met.
-        (timeout --foreground -v --kill=5 10 $PODMAN wait --condition=$condition $ctr && touch $wait_file) &
+        (timeout --foreground -v --kill=5 10 "${PODMAN_CMD[@]}" wait --condition=$condition $ctr && touch $wait_file) &
 
         # Sleep 1 second to make sure above commands are running
         sleep 1
@@ -428,7 +428,7 @@ function _check_health_log {
            $IMAGE /home/podman/pause
 
     timeout --foreground -v --kill=10 60 \
-        $PODMAN healthcheck run $ctr &> $hcStatus &
+        "${PODMAN_CMD[@]}" healthcheck run $ctr &> $hcStatus &
     hc_pid=$!
 
     run_podman inspect $ctr --format "{{.State.Status}}"

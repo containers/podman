@@ -13,7 +13,7 @@ load helpers
 
     # Start a container that will handle all signals by emitting 'got: N'
     local -a signals=(1 2 3 4 5 6 8 10 12 13 14 15 16 20 21 22 23 24 25 26 64)
-    $PODMAN run --name $cname $IMAGE sh -c \
+    "${PODMAN_CMD[@]}" run --name $cname $IMAGE sh -c \
         "for i in ${signals[*]}; do trap \"echo got: \$i\" \$i; done;
         echo READY;
         while ! test -e /stop; do sleep 0.1; done;
@@ -121,7 +121,7 @@ load helpers
     # 14761 - concurrent kill/stop must record the exit code
     cname=c-$(safename)
     run_podman run -d --replace --name=$cname $IMAGE sh -c "trap 'echo Received SIGTERM, ignoring' SIGTERM; echo READY; while :; do sleep 0.2; done"
-    $PODMAN stop -t 1 $cname &
+    "${PODMAN_CMD[@]}" stop -t 1 $cname &
     run_podman kill $cname
     run_podman wait $cname
     run_podman rm -f $cname

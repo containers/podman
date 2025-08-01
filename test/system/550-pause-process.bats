@@ -84,7 +84,7 @@ function _check_pause_process() {
     # We're forced to use $PODMAN because run_podman cannot be backgrounded
     # Also special logic to set a different argv0 to make sure the reexec still works:
     # https://github.com/containers/podman/issues/22672
-    bash -c "exec -a argv0-podman $PODMAN run -i --name c_run $IMAGE sh -c '$SLEEPLOOP'" &
+    bash -c "exec -a argv0-podman ${PODMAN_CMD[@]} run -i --name c_run $IMAGE sh -c '$SLEEPLOOP'" &
     local kidpid=$!
 
     _test_sigproxy c_run $kidpid
@@ -112,7 +112,7 @@ function _check_pause_process() {
     # Now again directly start podman run and make sure it can forward signals
     # We're forced to use $PODMAN because run_podman cannot be backgrounded
     local cname2=c2_$(random_string)
-    $PODMAN run -i --name $cname2 $IMAGE sh -c "$SLEEPLOOP" &
+    "${PODMAN_CMD[@]}" run -i --name $cname2 $IMAGE sh -c "$SLEEPLOOP" &
     local kidpid=$!
 
     _test_sigproxy $cname2 $kidpid

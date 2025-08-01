@@ -24,6 +24,9 @@ Valid placeholders for the Go template listed below:
 | .Identity       | Path to file containing SSH identity |
 | .Name           | Connection Name/Identifier |
 | .ReadWrite      | Indicates if this connection can be modified using the system connection commands |
+| .TLSCA          | Path to a PEM file containing the certificate authority bundle to verify the server's certificate against. |
+| .TLSCert        | Path to a PEM file containing the certificate authority bundle to verify the server's certificate against. |
+| .TLSKey         | Path to a PEM file containing the private key matching `.TLSCA` |
 | .URI            | URI to podman service. Valid schemes are ssh://[user@]*host*[:port]*Unix domain socket*[?secure=True], unix://*Unix domain socket*, and tcp://localhost[:*port*] |
 
 #### **--quiet**, **-q**

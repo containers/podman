@@ -252,10 +252,8 @@ func (l *list) InstanceByFile(file string) (digest.Digest, error) {
 		return "", err
 	}
 	for instanceDigest, files := range l.artifacts.Files {
-		for _, file := range files {
-			if file == abs {
-				return instanceDigest, nil
-			}
+		if slices.Contains(files, abs) {
+			return instanceDigest, nil
 		}
 	}
 	return "", os.ErrNotExist

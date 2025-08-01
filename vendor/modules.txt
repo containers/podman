@@ -75,8 +75,8 @@ github.com/containernetworking/cni/pkg/types/create
 github.com/containernetworking/cni/pkg/types/internal
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v1.7.1
-## explicit; go 1.23.0
+# github.com/containernetworking/plugins v1.8.0
+## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/buildah v1.41.1-0.20250829135344-3367a9bc2c9f
 ## explicit; go 1.23.3
@@ -312,7 +312,7 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.20.3
+# github.com/google/go-containerregistry v0.20.4-0.20250225234217-098045d5e61f
 ## explicit; go 1.23.0
 github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/v1
@@ -320,8 +320,8 @@ github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-intervals v0.0.2
 ## explicit; go 1.12
 github.com/google/go-intervals/intervalset
-# github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
-## explicit; go 1.23
+# github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6
+## explicit; go 1.24.0
 github.com/google/pprof/profile
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13
@@ -534,7 +534,7 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.3.0
+# github.com/opencontainers/runc v1.3.1
 ## explicit; go 1.23.0
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/devices
@@ -614,8 +614,8 @@ github.com/shirou/gopsutil/v4/internal/common
 github.com/shirou/gopsutil/v4/mem
 github.com/shirou/gopsutil/v4/net
 github.com/shirou/gopsutil/v4/process
-# github.com/sigstore/fulcio v1.6.6
-## explicit; go 1.23.3
+# github.com/sigstore/fulcio v1.7.1
+## explicit; go 1.24.0
 github.com/sigstore/fulcio/pkg/api
 github.com/sigstore/fulcio/pkg/certificate
 # github.com/sigstore/protobuf-specs v0.4.1
@@ -742,8 +742,8 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.65.0
-## explicit; go 1.23.3
+# go.podman.io/common v0.65.1-0.20250925174758-4cf0ff781bfc
+## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
 go.podman.io/common/libimage
@@ -1043,11 +1043,11 @@ golang.org/x/time/rate
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/edge
 golang.org/x/tools/go/ast/inspector
-# google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb
+# google.golang.org/genproto/googleapis/api v0.0.0-20250414145226-207652e42e2e
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
-# google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4
+# google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.72.2

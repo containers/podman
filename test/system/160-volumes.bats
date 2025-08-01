@@ -275,7 +275,7 @@ EOF
     # The "-v" is only for debugging: tar will emit the filename to stderr.
     # If this test ever fails, that may give a clue.
     echo "$_LOG_PROMPT $PODMAN volume export $volname | tar -x ..."
-    tar_output="$($PODMAN volume export $volname | tar -x -v --to-stdout)"
+    tar_output="$("${PODMAN_CMD[@]}" volume export $volname | tar -x -v --to-stdout)"
     echo "$tar_output"
     assert "$tar_output" == "$content" "extracted content"
 

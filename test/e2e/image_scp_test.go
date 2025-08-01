@@ -1,4 +1,4 @@
-//go:build linux || freebsd
+//go:build !remote_testing && (linux || freebsd)
 
 package integration
 
@@ -26,6 +26,11 @@ var _ = Describe("podman image scp", func() {
 		if _, err := os.Stat(filepath.Join(homedir.Get(), ".ssh", "known_hosts")); err != nil {
 			Skip("known_hosts does not exist or is not accessible")
 		}
+
+		ensureImage := podmanTest.Podman([]string{"pull", "-q", ALPINE})
+		ensureImage.WaitWithDefaultTimeout()
+		Expect(ensureImage).Should(ExitCleanly())
+
 		cmd := []string{"system", "connection", "add",
 			"--default",
 			"QA",

@@ -167,6 +167,9 @@ func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig)
 		}
 		podmanConfig.URI = con.URI
 		podmanConfig.Identity = con.Identity
+		podmanConfig.TLSCertFile = con.TLSCert
+		podmanConfig.TLSKeyFile = con.TLSKey
+		podmanConfig.TLSCAFile = con.TLSCA
 		podmanConfig.MachineMode = con.IsMachine
 	case url.Changed:
 		podmanConfig.URI = url.Value.String()
@@ -179,6 +182,9 @@ func readRemoteCliFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig)
 			}
 			podmanConfig.URI = con.URI
 			podmanConfig.Identity = con.Identity
+			podmanConfig.TLSCertFile = con.TLSCert
+			podmanConfig.TLSKeyFile = con.TLSKey
+			podmanConfig.TLSCAFile = con.TLSCA
 			podmanConfig.MachineMode = con.IsMachine
 		}
 	case host.Changed:
@@ -213,6 +219,9 @@ func setupRemoteConnection(podmanConfig *entities.PodmanConfig) string {
 		}
 		podmanConfig.URI = con.URI
 		podmanConfig.Identity = con.Identity
+		podmanConfig.TLSCertFile = con.TLSCert
+		podmanConfig.TLSKeyFile = con.TLSKey
+		podmanConfig.TLSCAFile = con.TLSCA
 		podmanConfig.MachineMode = con.IsMachine
 		return con.Name
 	case hostEnv != "":
@@ -225,6 +234,9 @@ func setupRemoteConnection(podmanConfig *entities.PodmanConfig) string {
 		if err == nil {
 			podmanConfig.URI = con.URI
 			podmanConfig.Identity = con.Identity
+			podmanConfig.TLSCertFile = con.TLSCert
+			podmanConfig.TLSKeyFile = con.TLSKey
+			podmanConfig.TLSCAFile = con.TLSCA
 			podmanConfig.MachineMode = con.IsMachine
 			return con.Name
 		}
@@ -520,6 +532,18 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 	identityFlagName := "identity"
 	lFlags.StringVar(&podmanConfig.Identity, identityFlagName, podmanConfig.Identity, "path to SSH identity file, (CONTAINER_SSHKEY)")
 	_ = cmd.RegisterFlagCompletionFunc(identityFlagName, completion.AutocompleteDefault)
+
+	tlsCertFileFlagName := "tls-cert"
+	lFlags.StringVar(&podmanConfig.TLSCertFile, tlsCertFileFlagName, podmanConfig.TLSCertFile, "path to TLS client certificate PEM file for remote.")
+	_ = cmd.RegisterFlagCompletionFunc(tlsCertFileFlagName, completion.AutocompleteDefault)
+
+	tlsKeyFileFlagName := "tls-key"
+	lFlags.StringVar(&podmanConfig.TLSKeyFile, tlsKeyFileFlagName, podmanConfig.TLSKeyFile, "path to TLS client certificate private key PEM file for remote.")
+	_ = cmd.RegisterFlagCompletionFunc(tlsKeyFileFlagName, completion.AutocompleteDefault)
+
+	tlsCAFileFlagName := "tls-ca"
+	lFlags.StringVar(&podmanConfig.TLSCAFile, tlsCAFileFlagName, podmanConfig.TLSCAFile, "path to TLS certificate Authority PEM file for remote.")
+	_ = cmd.RegisterFlagCompletionFunc(tlsCAFileFlagName, completion.AutocompleteDefault)
 
 	// Flags that control or influence any kind of output.
 	outFlagName := "out"

@@ -18,7 +18,6 @@ import (
 )
 
 var _ = Describe("Podman Info", func() {
-
 	It("podman info --format json", func() {
 		tests := []struct {
 			input    string
@@ -108,7 +107,12 @@ var _ = Describe("Podman Info", func() {
 		session := podmanTest.Podman([]string{"info", "--format", "{{.Host.RemoteSocket.Path}}"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToString()).To(MatchRegexp("/run/.*podman.*sock"))
+		switch podmanTest.RemoteSocketScheme {
+		case "unix":
+			Expect(session.OutputToString()).To(MatchRegexp("/run/.*podman.*sock"))
+		case "tcp":
+			Expect(session.OutputToString()).To(MatchRegexp("tcp://127.0.0.1:.*"))
+		}
 
 		session = podmanTest.Podman([]string{"info", "--format", "{{.Host.ServiceIsRemote}}"})
 		session.WaitWithDefaultTimeout()
@@ -125,7 +129,6 @@ var _ = Describe("Podman Info", func() {
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(Equal("true"))
 		}
-
 	})
 
 	It("Podman info must contain cgroupControllers with RelevantControllers", func() {

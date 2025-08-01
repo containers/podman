@@ -3,6 +3,7 @@ package containers
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -548,9 +549,11 @@ func newUpgradeRequest(ctx context.Context, conn *bindings.Connection, body io.R
 		"Upgrade":    []string{"tcp"},
 	}
 
+	// FIXME: This is one giant race condition. Let's hope no-one uses this same client until we're done!
 	var socket net.Conn
 	socketSet := false
 	dialContext := conn.Client.Transport.(*http.Transport).DialContext
+	tlsConfig := conn.Client.Transport.(*http.Transport).TLSClientConfig
 	t := &http.Transport{
 		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 			c, err := dialContext(ctx, network, address)
@@ -563,7 +566,33 @@ func newUpgradeRequest(ctx context.Context, conn *bindings.Connection, body io.R
 			}
 			return c, err
 		},
+		DialTLSContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			c, err := dialContext(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			var cfg *tls.Config
+			if tlsConfig == nil {
+				cfg = new(tls.Config)
+			} else {
+				cfg = tlsConfig.Clone()
+			}
+			if cfg.ServerName == "" {
+				var firstTLSHost string
+				if firstTLSHost, _, err = net.SplitHostPort(address); err != nil {
+					return nil, err
+				}
+				cfg.ServerName = firstTLSHost
+			}
+			c = tls.Client(c, cfg)
+			if !socketSet {
+				socket = c
+				socketSet = true
+			}
+			return c, err
+		},
 		IdleConnTimeout: time.Duration(0),
+		TLSClientConfig: tlsConfig,
 	}
 	conn.Client.Transport = t
 	response, err := conn.DoRequest(ctx, body, http.MethodPost, path, params, headers)
