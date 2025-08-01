@@ -305,7 +305,8 @@ type removeResponse struct{}
 
 // ensureResponse encodes a response to an Ensure request.
 type ensureResponse struct {
-	Created []string // paths that were created because they weren't already present
+	Created []string           // paths that were created because they weren't already present
+	Noted   []EnsureParentPath // preexisting paths that are parents of created items
 }
 
 // conditionalRemoveResponse encodes a response to a conditionalRemove request.
@@ -479,6 +480,7 @@ func Put(root string, directory string, options PutOptions, bulkReader io.Reader
 // MkdirOptions controls parts of Mkdir()'s behavior.
 type MkdirOptions struct {
 	UIDMap, GIDMap []idtools.IDMap // map from containerIDs to hostIDs when creating directories
+	ModTimeNew     *time.Time      // set mtime and atime of newly-created directories
 	ChownNew       *idtools.IDPair // set ownership of newly-created directories
 	ChmodNew       *os.FileMode    // set permissions on newly-created directories
 }
@@ -2199,6 +2201,7 @@ func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response,
 	}
 
 	subdir := ""
+	var created []string
 	for _, component := range strings.Split(rel, string(os.PathSeparator)) {
 		subdir = filepath.Join(subdir, component)
 		path := filepath.Join(req.Root, subdir)
@@ -2209,11 +2212,23 @@ func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response,
 			if err = chmod(path, dirMode); err != nil {
 				return errorResponse("copier: mkdir: error setting permissions on %q to 0%o: %v", path, dirMode)
 			}
+			created = append(created, path)
 		} else {
 			// FreeBSD can return EISDIR for "mkdir /":
 			// https://bugs.freebsd.org/bugzilla/show_bug.cgi?id=59739.
 			if !errors.Is(err, os.ErrExist) && !errors.Is(err, syscall.EISDIR) {
 				return errorResponse("copier: mkdir: error checking directory %q: %v", path, err)
+			}
+		}
+	}
+	// set timestamps last, in case we needed to create some nested directories, which would
+	// update the timestamps on directories that we'd just set timestamps on, if we had done
+	// that immediately
+	if req.MkdirOptions.ModTimeNew != nil {
+		when := *req.MkdirOptions.ModTimeNew
+		for _, newDirectory := range created {
+			if err = lutimes(false, newDirectory, when, when); err != nil {
+				return errorResponse("copier: mkdir: error setting datestamp on %q: %v", newDirectory, err)
 			}
 		}
 	}
@@ -2255,12 +2270,22 @@ type EnsureOptions struct {
 	Paths          []EnsurePath
 }
 
+// EnsureParentPath is a parent (or grandparent, or...) directory of an item
+// created by Ensure(), along with information about it, from before the item
+// in question was created.  If the information about this directory hasn't
+// changed when commit-time rolls around, it's most likely that this directory
+// is only being considered for inclusion in the layer because it was pulled
+// up, and it was not actually changed.
+type EnsureParentPath = ConditionalRemovePath
+
 // Ensure ensures that the specified mount point targets exist under the root.
 // If the root directory is not specified, the current root directory is used.
 // If root is specified and the current OS supports it, and the calling process
 // has the necessary privileges, the operation is performed in a chrooted
 // context.
-func Ensure(root, directory string, options EnsureOptions) ([]string, error) {
+// Returns a slice with the pathnames of items that needed to be created and a
+// slice of affected parent directories and information about them.
+func Ensure(root, directory string, options EnsureOptions) ([]string, []EnsureParentPath, error) {
 	req := request{
 		Request:       requestEnsure,
 		Root:          root,
@@ -2269,12 +2294,12 @@ func Ensure(root, directory string, options EnsureOptions) ([]string, error) {
 	}
 	resp, err := copier(nil, nil, req)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if resp.Error != "" {
-		return nil, errors.New(resp.Error)
+		return nil, nil, errors.New(resp.Error)
 	}
-	return resp.Ensure.Created, nil
+	return resp.Ensure.Created, resp.Ensure.Noted, nil
 }
 
 func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response {
@@ -2283,6 +2308,7 @@ func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response 
 	}
 	slices.SortFunc(req.EnsureOptions.Paths, func(a, b EnsurePath) int { return strings.Compare(a.Path, b.Path) })
 	var created []string
+	notedByName := map[string]EnsureParentPath{}
 	for _, item := range req.EnsureOptions.Paths {
 		uid, gid := 0, 0
 		if item.Chown != nil {
@@ -2326,10 +2352,24 @@ func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response 
 			if parentPath == "" {
 				parentPath = "."
 			}
-			leaf := filepath.Join(subdir, component)
+			leaf := filepath.Join(parentPath, component)
 			parentInfo, err := os.Stat(filepath.Join(req.Root, parentPath))
 			if err != nil {
 				return errorResponse("copier: ensure: checking datestamps on %q (%d: %v): %v", parentPath, i, components, err)
+			}
+			if parentPath != "." {
+				parentModTime := parentInfo.ModTime().UTC()
+				parentMode := parentInfo.Mode()
+				uid, gid, err := owner(parentInfo)
+				if err != nil {
+					return errorResponse("copier: ensure: error reading owner of %q: %v", parentPath, err)
+				}
+				notedByName[parentPath] = EnsureParentPath{
+					Path:    parentPath,
+					ModTime: &parentModTime,
+					Mode:    &parentMode,
+					Owner:   &idtools.IDPair{UID: uid, GID: gid},
+				}
 			}
 			if i < len(components)-1 || item.Typeflag == tar.TypeDir {
 				err = os.Mkdir(filepath.Join(req.Root, leaf), mode)
@@ -2372,7 +2412,15 @@ func copierHandlerEnsure(req request, idMappings *idtools.IDMappings) *response 
 		}
 	}
 	slices.Sort(created)
-	return &response{Error: "", Ensure: ensureResponse{Created: created}}
+	noted := make([]EnsureParentPath, 0, len(notedByName))
+	for _, n := range notedByName {
+		if slices.Contains(created, n.Path) {
+			continue
+		}
+		noted = append(noted, n)
+	}
+	slices.SortFunc(noted, func(a, b EnsureParentPath) int { return strings.Compare(a.Path, b.Path) })
+	return &response{Error: "", Ensure: ensureResponse{Created: created, Noted: noted}}
 }
 
 // ConditionalRemovePath is a single item being passed to an ConditionalRemove() call.
