@@ -23,7 +23,14 @@ func newConnection(uri string, identity, tlsCertFile, tlsKeyFile, tlsCAFile, far
 
 	// if farmNodeName given, then create a connection with the node so that we can send builds there
 	if connection == nil || farmNodeName != "" {
-		ctx, err := bindings.NewConnectionWithIdentityOrTLS(context.Background(), uri, identity, tlsCertFile, tlsKeyFile, tlsCAFile, machine)
+		ctx, err := bindings.NewConnectionWithOptions(context.Background(), bindings.Options{
+			URI:         uri,
+			Identity:    identity,
+			TLSCertFile: tlsCertFile,
+			TLSKeyFile:  tlsKeyFile,
+			TLSCAFile:   tlsCAFile,
+			Machine:     machine,
+		})
 		if err != nil {
 			return ctx, err
 		}
