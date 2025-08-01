@@ -701,6 +701,13 @@ type Destination struct {
 	// Identity file with ssh key, optional
 	Identity string `json:",omitempty" toml:"identity,omitempty"`
 
+	// Path to TLS client certificate PEM file, optional
+	TLSCertFile string `json:",omitempty" toml:"tls_cert_file,omitempty"`
+	// Path to TLS client certificate private key PEM file, optional
+	TLSKeyFile string `json:",omitempty" toml:"tls_key_file,omitempty"`
+	// Path to TLS certificate authority PEM file, optional
+	TLSCAFile string `json:",omitempty" toml:"tls_ca_file,omitempty"`
+
 	// isMachine describes if the remote destination is a machine.
 	IsMachine bool `json:",omitempty" toml:"is_machine,omitempty"`
 }
@@ -847,8 +854,7 @@ func (c *EngineConfig) Validate() error {
 	}
 	// Check if the pullPolicy from containers.conf is valid
 	// if it is invalid returns the error
-	pullPolicy := strings.ToLower(c.PullPolicy)
-	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
+	if _, err := ParsePullPolicy(c.PullPolicy); err != nil {
 		return fmt.Errorf("invalid pull type from containers.conf %q: %w", c.PullPolicy, err)
 	}
 
