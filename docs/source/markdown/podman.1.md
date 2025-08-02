@@ -173,6 +173,19 @@ Output logging information to syslog as well as the console (default *false*).
 
 On remote clients, including Mac and Windows (excluding WSL2) machines, logging is directed to the file $HOME/.config/containers/podman.log.
 
+#### **--tls-ca**=*path*
+
+Path to a PEM file containing the certificate authority bundle to verify the server's certificate against.
+
+#### **--tls-cert**=*path*
+
+Path to a PEM file containing the TLS client certificate to present to the server. `--tls-key` must also be provided.
+
+#### **--tls-key**=*path*
+
+Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
+
+
 #### **--tmpdir**=*path*
 
 Path to the tmp directory, for libpod runtime content. Defaults to `$XDG_RUNTIME_DIR/libpod/tmp` as rootless and `/run/libpod/tmp` as rootful.
@@ -255,6 +268,18 @@ Set default `--url` value to access Podman service. Automatically enables --remo
 #### **CONTAINER_SSHKEY**
 
 Set default `--identity` path to ssh key file value used to access Podman service.
+
+#### **CONTAINER_TLS_CA**
+
+Set default `--tls-ca` value to access Podman service.
+
+#### **CONTAINER_TLS_CERT**
+
+Set default `--tls-cert` value to access Podman service.
+
+#### **CONTAINER_TLS_KEY**
+
+Set default `--tls-key` value to access Podman service.
 
 #### **PODMAN_CONNECTIONS_CONF**
 
