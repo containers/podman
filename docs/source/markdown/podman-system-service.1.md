@@ -82,19 +82,6 @@ If a *tcp* URL must be used without TLS, using the *--cors* option is recommende
 
 CORS headers to inject to the HTTP response. The default value is empty string which disables CORS headers.
 
-#### --tls-cert=path
-
-Path to a PEM file containing the TLS certificate to present to clients. `--tls-key` must also be provided.
-
-#### --tls-key=path
-
-Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
-
-#### --tls-client-ca=path
-
-Path to a PEM file containing the TLS certificate bundle to validate client connections against.
-Connections that present no certificate or a certificate not signed by one of these certificates will be rejected.
-
 #### **--help**, **-h**
 
 Print usage statement.
@@ -103,6 +90,19 @@ Print usage statement.
 
 The time until the session expires in _seconds_. The default is 5
 seconds. A value of `0` means no timeout, therefore the session does not expire.
+
+#### **--tls-cert**=*path*
+
+Path to a PEM file containing the TLS certificate to present to clients. `--tls-key` must also be provided.
+
+#### **--tls-client-ca**=*path*
+
+Path to a PEM file containing the TLS certificate bundle to validate client connections against.
+Connections that present no certificate or a certificate not signed by one of these certificates will be rejected.
+
+#### **--tls-key**=*path*
+
+Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
 
 The default timeout can be changed via the `service_timeout=VALUE` field in containers.conf.
 See **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)** for more information.
