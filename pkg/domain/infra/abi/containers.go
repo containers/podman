@@ -184,6 +184,13 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
+
+	if options.ReturnOnFirst {
+		response := waitReturOnFirst(ctx, containers, options)
+		responses = append(responses, response)
+		return responses, nil
+	}
+
 	for _, c := range containers {
 		if c.doesNotExist { // Only set when `options.Ignore == true`
 			responses = append(responses, entities.WaitReport{ExitCode: -1})
@@ -206,6 +213,37 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 		responses = append(responses, response)
 	}
 	return responses, nil
+}
+
+func waitReturOnFirst(ctx context.Context, containers []containerWrapper, options entities.WaitOptions) entities.WaitReport {
+	var waitChannel = make(chan entities.WaitReport, 1)
+	var waitFunction = func(ctx context.Context, container containerWrapper, options entities.WaitOptions, waitChannel chan<- entities.WaitReport) {
+		response := entities.WaitReport{}
+		var conditions []string
+		if len(options.Conditions) == 0 {
+			conditions = []string{define.ContainerStateStopped.String(), define.ContainerStateExited.String()}
+		} else {
+			conditions = options.Conditions
+		}
+
+		exitCode, err := container.WaitForConditionWithInterval(ctx, options.Interval, conditions...)
+		if err != nil {
+			response.Error = err
+			waitChannel <- response
+			return
+		} else {
+			response.ExitCode = exitCode
+			waitChannel <- response
+			return
+		}
+	}
+
+	for _, c := range containers {
+		go waitFunction(ctx, c, options, waitChannel)
+	}
+
+	response := <-waitChannel
+	return response
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {

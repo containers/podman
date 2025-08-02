@@ -62,6 +62,8 @@ type WaitOptions struct {
 	Ignore bool
 	// Use the latest created container.
 	Latest bool
+	// Wait for first container which matches condition, ignore other ones.
+	ReturnOnFirst bool
 }
 
 // WaitReport is the result of waiting a container.
