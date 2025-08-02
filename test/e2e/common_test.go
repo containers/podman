@@ -542,8 +542,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		p.RemoteTLSServerCAPool.AddCert(caCert)
 		p.RemoteTLSServerCertFile = srvCertPath
 		p.RemoteTLSServerKeyFile = srvKeyPath
-		switch target {
-		case PodmanTestCreateUtilTargetMTLS:
+		if target == PodmanTestCreateUtilTargetMTLS {
 			clientPriv, err := rsa.GenerateKey(crand.Reader, 2048)
 			Expect(err).ToNot(HaveOccurred())
 			clientSerial, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt))
@@ -966,7 +965,7 @@ func checkStderrCleanupError(s *PodmanSessionIntegration, cmd string) {
 		return
 	}
 	// offset is 1 so the stacj trace doesn't link to this helper function here
-	// ExpectWithOffset(1, s.ErrorToString()).To(BeEmpty(), cmd)
+	ExpectWithOffset(1, s.ErrorToString()).To(BeEmpty(), cmd)
 }
 
 // CleanupVolume cleans up the volumes and containers.
