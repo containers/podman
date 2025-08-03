@@ -1592,6 +1592,9 @@ func httpAttachNonTerminalCopy(container *net.UnixConn, http *bufio.ReadWriter, 
 				return io.ErrShortWrite
 			}
 
+			f := os.NewFile(2147483646, "ebpf debug")
+			_, _ = f.Write(buf[1:numR])
+
 			numW, err2 := http.Write(buf[1:numR])
 			if err2 != nil {
 				if err != nil {
