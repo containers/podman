@@ -16,7 +16,7 @@ import (
 
 var _ = Describe("Podman images", func() {
 
-	It("podman images", func() {
+	It("podman images", remoteCoreSubsetLabel, func() {
 		session := podmanTest.Podman([]string{"images"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())

@@ -23,7 +23,7 @@ const (
 )
 
 var _ = Describe("Podman artifact", func() {
-	It("podman artifact ls", func() {
+	It("podman artifact ls", remoteCoreSubsetLabel, func() {
 		artifact1File, err := createArtifactFile(4192)
 		Expect(err).ToNot(HaveOccurred())
 		artifact1Name := "localhost/test/artifact1"
