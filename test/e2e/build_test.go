@@ -21,7 +21,7 @@ import (
 var _ = Describe("Podman build", func() {
 	// Let's first do the most simple build possible to make sure stuff is
 	// happy and then clean up after ourselves to make sure that works too.
-	It("podman build and remove basic alpine", func() {
+	It("podman build and remove basic alpine", remoteCoreSubsetLabel, func() {
 		podmanTest.AddImageToRWStore(ALPINE)
 		session := podmanTest.Podman([]string{"build", "--pull-never", "build/basicalpine"})
 		session.WaitWithDefaultTimeout()
@@ -88,7 +88,7 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
-	It("podman build with a secret from file", func() {
+	It("podman build with a secret from file", remoteCoreSubsetLabel, func() {
 		session := podmanTest.Podman([]string{"build", "-f", "build/Containerfile.with-secret", "-t", "secret-test", "--secret", "id=mysecret,src=build/secret.txt", "build/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -127,7 +127,7 @@ var _ = Describe("Podman build", func() {
 		Expect(session).Should(ExitCleanly())
 	})
 
-	It("podman build with not found Containerfile or Dockerfile", func() {
+	It("podman build with not found Containerfile or Dockerfile", remoteCoreSubsetLabel, func() {
 		targetPath := filepath.Join(podmanTest.TempDir, "notfound")
 		err = os.Mkdir(targetPath, 0755)
 		Expect(err).ToNot(HaveOccurred())
@@ -368,7 +368,7 @@ RUN printenv http_proxy`, CITEST_IMAGE)
 		Expect(session).Should(ExitWithError(1, `Error: building at STEP "RUN printenv http_proxy"`))
 	})
 
-	It("podman build relay exit code to process", func() {
+	It("podman build relay exit code to process", remoteCoreSubsetLabel, func() {
 		if IsRemote() {
 			podmanTest.StopRemoteService()
 			podmanTest.StartRemoteService()
