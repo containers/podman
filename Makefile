@@ -668,9 +668,9 @@ ginkgo:
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_tcp_testing"
-	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_tls_testing"
-	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_mtls_testing"
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_tcp_testing" TESTFLAGS="$(TESTFLAGS) --label-filter remote-core-subset"
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_tls_testing" TESTFLAGS="$(TESTFLAGS) --label-filter remote-core-subset"
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_mtls_testing" TESTFLAGS="$(TESTFLAGS) --label-filter remote-core-subset"
 	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_unix_testing"
 
 .PHONY: testbindings

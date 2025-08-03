@@ -56,6 +56,12 @@ var (
 	RESTORE_IMAGES     = []string{ALPINE, BB, NGINX_IMAGE}
 	defaultWaitTimeout = 90
 	CGROUPSV2, _       = cgroups.IsCgroup2UnifiedMode()
+
+	// remoteCoreSubsetLabel is a ginkgo label applied to the "core subset" of e2e tests
+	// run for remote tests. Tests with this label are tested for all remote transports,
+	// which avoids having to run all tests for all transports, while still ensuring that
+	// functionality that is handled differently based on that transport is still tested.
+	remoteCoreSubsetLabel = Label("remote-core-subset")
 )
 
 // PodmanTestIntegration struct for command line options
