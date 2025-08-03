@@ -239,6 +239,54 @@ CONTAINER ID  IMAGE                            COMMAND    CREATED        STATUS 
 4089df24d4f3  docker.io/library/nginx:latest  nginx      2 minutes ago  Up 2 minutes  80/tcp    webserver
 92f58933c28c  docker.io/library/redis:latest  redis      3 minutes ago  Up 3 minutes  6379/tcp  cache
 ```
+Filter containers by Status.
+```
+$ podman ps --filter status=running
+CONTAINER ID  IMAGE                             COMMAND               CREATED         STATUS                  PORTS                           NAMES
+ff660efda598  docker.io/library/nginx:latest    nginx -g daemon o...  3 minutes ago   Up 3 minutes            0.0.0.0:8080->80/tcp            webserver
+5693e934f4c6  docker.io/library/redis:latest    redis-server          3 minutes ago   Up 3 minutes            6379/tcp                        cache
+2b271d67dbb6                                                          3 minutes ago   Up 3 minutes            0.0.0.0:9090->80/tcp            463241862e7e-infra
+23f99674da1c  docker.io/library/nginx:latest    nginx -g daemon o...  3 minutes ago   Up 3 minutes            0.0.0.0:9090->80/tcp            pod-nginx
+62180adfbd42  docker.io/library/redis:latest    redis-server          3 minutes ago   Up 3 minutes            0.0.0.0:9090->80/tcp, 6379/tcp  pod-redis
+5e3694604817  quay.io/centos/centos:latest      sleep 300             3 minutes ago   Up 3 minutes                                            centos-test
+af3d8b3f5471  docker.io/library/busybox:latest  sleep 1000            3 minutes ago   Up 3 minutes                                            test-dev
+b6ee47492b64  docker.io/library/nginx:latest    nginx -g daemon o...  3 minutes ago   Up 3 minutes (healthy)  80/tcp                          healthy-nginx
+db75e6c397db  docker.io/library/busybox:latest  sleep 300             23 seconds ago  Up 23 seconds                                         test-volume-container
+```
+```
+$ podman ps -a --filter status=exited
+CONTAINER ID  IMAGE                            COMMAND     CREATED        STATUS                    PORTS                NAMES
+94f211cc6e36  docker.io/library/alpine:latest  sleep 1     4 minutes ago  Exited (0) 4 minutes ago                       old-alpine
+75a800cb848a  docker.io/library/mysql:latest   mysqld      3 minutes ago  Exited (1) 3 minutes ago  3306/tcp, 33060/tcp  db-container
+2d9b3a94e31e  docker.io/library/nginx:latest   nginx       3 minutes ago  Exited (0) 3 minutes ago  80/tcp               nginx-cmd
+```
+
+Filter containers by name.
+```
+$ podman ps --filter name=webserver
+CONTAINER ID  IMAGE                           COMMAND               CREATED        STATUS        PORTS                 NAMES
+ff660efda598  docker.io/library/nginx:latest  nginx -g daemon o...  3 minutes ago  Up 3 minutes  0.0.0.0:8080->80/tcp  webserver
+```
+
+Filter containers by label.
+```
+$ podman ps --filter label=app=frontend
+CONTAINER ID  IMAGE                           COMMAND               CREATED        STATUS        PORTS                 NAMES
+ff660efda598  docker.io/library/nginx:latest  nginx -g daemon o...  3 minutes ago  Up 3 minutes  0.0.0.0:8080->80/tcp  webserver
+```
+Filter containers by volume.
+```
+$ podman ps --filter volume=mydata
+CONTAINER ID  IMAGE                             COMMAND     CREATED         STATUS         PORTS       NAMES
+db75e6c397db  docker.io/library/busybox:latest  sleep 300   42 seconds ago  Up 42 seconds              test-volume-container
+```
+
+Filter containers by network.
+```
+$ podman ps --filter network=web-net
+CONTAINER ID  IMAGE                         COMMAND     CREATED        STATUS        PORTS       NAMES
+5e3694604817  quay.io/centos/centos:latest  sleep 300   3 minutes ago  Up 3 minutes              centos-test
+```
 
 Use custom format to show container and pod information.
 ```
