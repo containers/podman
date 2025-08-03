@@ -99,6 +99,24 @@ Stop the last created container (This option is not available with the remote Po
 $ podman stop --latest
 ```
 
+Stop by label.
+```
+$ podman stop --filter label=app=frontend
+9351ccb3ef4272532bc0c188bd4f0ddfc2b0de217732cd108259ea126b014647
+```
+
+Stop by name.
+```
+$ podman stop --filter name=db-replica
+6c2680da61d54690718ac3aecdb04a8aad95ae353e42cc942736823bd05c8a1d
+```
+
+Stop by role label.
+```
+$ podman stop --filter label=role=primary
+bb3ff91d969a8dc622d627e4a8d76c18bdbd417d317c5e7e66543c0b0c8ed1e8
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-rm(1)](podman-rm.1.md)**
 
