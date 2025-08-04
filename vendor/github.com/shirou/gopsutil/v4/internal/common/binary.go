@@ -472,7 +472,7 @@ func (d *decoder) value(v reflect.Value) {
 			// but creating the StructField info for each field is
 			// costly (run "go test -bench=ReadStruct" and compare
 			// results when making changes to this code).
-			if v := v.Field(i); v.CanSet() || t.Field(i).Name != "_" {
+			if v = v.Field(i); v.CanSet() || t.Field(i).Name != "_" {
 				d.value(v)
 			} else {
 				d.skip(v)
@@ -534,7 +534,7 @@ func (e *encoder) value(v reflect.Value) {
 		l := v.NumField()
 		for i := 0; i < l; i++ {
 			// see comment for corresponding code in decoder.value()
-			if v := v.Field(i); v.CanSet() || t.Field(i).Name != "_" {
+			if v = v.Field(i); v.CanSet() || t.Field(i).Name != "_" {
 				e.value(v)
 			} else {
 				e.skip(v)

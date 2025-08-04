@@ -131,26 +131,26 @@ func parseNetLine(line string) (ConnectionStat, error) {
 	return n, nil
 }
 
-func parseNetAddr(line string) (laddr, raddr Addr, err error) {
-	parse := func(l string) (Addr, error) {
-		host, port, err := net.SplitHostPort(l)
-		if err != nil {
-			return Addr{}, fmt.Errorf("wrong addr, %s", l)
-		}
-		lport, err := strconv.ParseInt(port, 10, 32)
-		if err != nil {
-			return Addr{}, err
-		}
-		return Addr{IP: host, Port: uint32(lport)}, nil
+func parseAddr(l string) (Addr, error) {
+	host, port, err := net.SplitHostPort(l)
+	if err != nil {
+		return Addr{}, fmt.Errorf("wrong addr, %s", l)
 	}
+	lport, err := strconv.ParseInt(port, 10, 32)
+	if err != nil {
+		return Addr{}, err
+	}
+	return Addr{IP: host, Port: uint32(lport)}, nil
+}
 
+func parseNetAddr(line string) (laddr, raddr Addr, err error) {
 	addrs := strings.Split(line, "->")
 	if len(addrs) == 0 {
 		return laddr, raddr, fmt.Errorf("wrong netaddr, %s", line)
 	}
-	laddr, err = parse(addrs[0])
+	laddr, err = parseAddr(addrs[0])
 	if len(addrs) == 2 { // remote addr exists
-		raddr, err = parse(addrs[1])
+		raddr, err = parseAddr(addrs[1])
 		if err != nil {
 			return laddr, raddr, err
 		}

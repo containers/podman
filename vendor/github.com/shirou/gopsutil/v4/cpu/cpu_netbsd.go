@@ -36,7 +36,8 @@ func Times(percpu bool) ([]TimesStat, error) {
 	return TimesWithContext(context.Background(), percpu)
 }
 
-func TimesWithContext(_ context.Context, percpu bool) (ret []TimesStat, err error) {
+func TimesWithContext(_ context.Context, percpu bool) ([]TimesStat, error) {
+	ret := make([]TimesStat, 0)
 	if !percpu {
 		mib := []int32{ctlKern, kernCpTime}
 		buf, _, err := common.CallSyscall(mib)
@@ -44,15 +45,15 @@ func TimesWithContext(_ context.Context, percpu bool) (ret []TimesStat, err erro
 			return ret, err
 		}
 		times := (*cpuTimes)(unsafe.Pointer(&buf[0]))
-		stat := TimesStat{
+		ret = append(ret, TimesStat{
 			CPU:    "cpu-total",
 			User:   float64(times.User),
 			Nice:   float64(times.Nice),
 			System: float64(times.Sys),
 			Idle:   float64(times.Idle),
 			Irq:    float64(times.Intr),
-		}
-		return []TimesStat{stat}, nil
+		})
+		return ret, nil
 	}
 
 	ncpu, err := unix.SysctlUint32("hw.ncpu")
