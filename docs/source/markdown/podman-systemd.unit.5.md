@@ -554,6 +554,9 @@ This key can be listed multiple times.
 The (numeric) GID to run as inside the container. This does not need to match the GID on the host,
 which can be modified with `UserNS`, but if that is not specified, this GID is also used on the host.
 
+Note: when both `User=` and `Group=` are specified, they are combined into a single `--user USER:GROUP`
+argument passed to Podman. Using `Group=` without `User=` will result in an error.
+
 ### `GroupAdd=`
 
 Assign additional groups to the primary user running within the container process. Also supports the `keep-groups` special flag.
@@ -967,6 +970,9 @@ The default paths that are read-only are /proc/asound, /proc/bus, /proc/fs, /pro
 
 The (numeric) UID to run as inside the container. This does not need to match the UID on the host,
 which can be modified with `UserNS`, but if that is not specified, this UID is also used on the host.
+
+Note: when both `User=` and `Group=` are specified, they are combined into a single `--user USER:GROUP`
+argument passed to Podman.
 
 ### `UserNS=`
 
