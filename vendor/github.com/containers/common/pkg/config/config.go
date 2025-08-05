@@ -172,6 +172,9 @@ type ContainersConfig struct {
 	// LogDriver  for the container.  For example: k8s-file and journald
 	LogDriver string `toml:"log_driver,omitempty"`
 
+	// LogPath is the path to the container log file.
+	LogPath string `toml:"log_path,omitempty"`
+
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
 	// that is parsed to bytes.
@@ -880,6 +883,10 @@ func (c *ContainersConfig) Validate() error {
 	}
 
 	if err := c.validateUmask(); err != nil {
+		return err
+	}
+
+	if err := c.validateLogPath(); err != nil {
 		return err
 	}
 

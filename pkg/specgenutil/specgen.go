@@ -22,6 +22,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -845,6 +846,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	logOpts := make(map[string]string)
+	usingLogOpts := false
 	for _, o := range c.LogOptions {
 		key, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
@@ -855,6 +857,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			s.LogConfiguration.Driver = val
 		case "path":
 			s.LogConfiguration.Path = val
+			usingLogOpts = true
 		case "max-size":
 			logSize, err := units.FromHumanSize(val)
 			if err != nil {
@@ -864,6 +867,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		default:
 			logOpts[key] = val
 		}
+	}
+
+	if !usingLogOpts && rtc.Containers.LogPath != "" {
+		logrus.Debugf("Using default log path %q from containers.conf", rtc.Containers.LogPath)
+		s.LogConfiguration.Path = rtc.Containers.LogPath
 	}
 	if len(s.LogConfiguration.Options) == 0 || len(c.LogOptions) != 0 {
 		s.LogConfiguration.Options = logOpts

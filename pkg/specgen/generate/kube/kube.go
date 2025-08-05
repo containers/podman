@@ -229,6 +229,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	s.ImageVolumes = opts.ImageVolumes
 
 	s.LogConfiguration.Options = make(map[string]string)
+	useLogOpts := false
 	for _, o := range opts.LogOptions {
 		opt, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
@@ -239,6 +240,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			s.LogConfiguration.Driver = val
 		case "path":
 			s.LogConfiguration.Path = val
+			useLogOpts = true
 		case "max-size":
 			logSize, err := units.FromHumanSize(val)
 			if err != nil {
@@ -260,6 +262,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 		}
 	}
 
+	if !useLogOpts && rtc.Containers.LogPath != "" {
+		logrus.Debugf("Using default log path %q from containers.conf for kube container", rtc.Containers.LogPath)
+		s.LogConfiguration.Path = rtc.Containers.LogPath
+	}
 	s.InitContainerType = opts.InitContainerType
 
 	setupSecurityContext(s, opts.Container.SecurityContext, opts.PodSecurityContext)

@@ -16,6 +16,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"text/template"
@@ -6309,5 +6310,101 @@ spec:
 		session := podmanTest.Podman([]string{"kube", "play", kubeYaml})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, "invalid signal: noSuchSignal"))
+	})
+
+	It("test with custom log path from containers.conf", func() {
+		customLogPath := filepath.Join(podmanTest.TempDir, "custom-logs")
+		expectedMessage := "Pod started, checking logs from test"
+
+		userConfigDir := filepath.Join(podmanTest.TempDir, ".config", "containers")
+		err := os.MkdirAll(userConfigDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		configFile := filepath.Join(userConfigDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+log_path = "%s"
+`, customLogPath)
+
+		err = os.WriteFile(configFile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.MkdirAll(customLogPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: log-test-pod
+spec:
+  containers:
+  - name: logger-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo '%s'; sleep 2"]
+`, CITEST_IMAGE, expectedMessage)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		oldXDGConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		defer func() {
+			if oldXDGConfigHome == "" {
+				os.Unsetenv("XDG_CONFIG_HOME")
+			} else {
+				os.Setenv("XDG_CONFIG_HOME", oldXDGConfigHome)
+			}
+		}()
+		os.Setenv("XDG_CONFIG_HOME", filepath.Join(podmanTest.TempDir, ".config"))
+
+		session := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		session = podmanTest.Podman([]string{"wait", "log-test-pod-logger-container"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		customLogDirs, err := os.ReadDir(customLogPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(customLogDirs).To(HaveLen(2), "Should have exactly two container log directories (infra + app container)")
+
+		var appContainerLogDir string
+		var logContent string
+
+		Eventually(func() bool {
+			for _, dir := range customLogDirs {
+				if !dir.IsDir() {
+					continue
+				}
+
+				containerLogDir := dir.Name()
+				if !regexp.MustCompile("^[a-f0-9]{64}$").MatchString(containerLogDir) {
+					continue
+				}
+
+				logFilePath := filepath.Join(customLogPath, containerLogDir, "ctr.log")
+				if _, err := os.Stat(logFilePath); err != nil {
+					continue
+				}
+
+				content, err := os.ReadFile(logFilePath)
+				if err != nil {
+					continue
+				}
+
+				if strings.Contains(string(content), expectedMessage) {
+					appContainerLogDir = containerLogDir
+					logContent = string(content)
+					return true
+				}
+			}
+			return false
+		}, "10s", "100ms").Should(BeTrue(), "Should find log file with expected message within timeout")
+
+		Expect(appContainerLogDir).ToNot(BeEmpty(), "Should have found application container log directory")
+
+		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+		Expect(logContent).To(MatchRegexp(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+.*stdout F `+regexp.QuoteMeta(expectedMessage)), "Log should follow k8s-file format")
 	})
 })

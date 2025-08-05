@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -1042,10 +1044,25 @@ func WithLogPath(path string) CtrCreateOption {
 			return fmt.Errorf("log path must be set: %w", define.ErrInvalidArg)
 		}
 
-		ctr.config.LogPath = path
-
+		if strings.HasSuffix(path, "/") || isDirectory(path) {
+			ctr.config.LogPath = filepath.Join(path, ctr.ID(), "ctr.log")
+			logDir := filepath.Dir(ctr.config.LogPath)
+			if err := os.MkdirAll(logDir, 0755); err != nil {
+				return fmt.Errorf("failed to create log directory %s: %w", logDir, err)
+			}
+		} else {
+			ctr.config.LogPath = path
+		}
 		return nil
 	}
+}
+
+func isDirectory(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
 }
 
 // WithLogTag sets the tag to the log file.

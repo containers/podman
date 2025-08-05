@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"syscall"
@@ -2455,5 +2456,118 @@ WORKDIR /madethis`, BB)
 		Expect(inspectData).To(HaveLen(1))
 		Expect(inspectData[0].Config.Annotations).To(Not(HaveKey(annoName)))
 		Expect(inspectData[0].Config.Annotations).To(Not(HaveKey("testlabel")))
+	})
+
+	It("podman run log-opt overrides containers.conf path", func() {
+		expectedMessage := "CLI override test message"
+
+		// Set up containers.conf with a log_path
+		userConfigDir := filepath.Join(podmanTest.TempDir, ".config", "containers")
+		err := os.MkdirAll(userConfigDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		configFile := filepath.Join(userConfigDir, "containers.conf")
+		confLogPath := filepath.Join(podmanTest.TempDir, "conf-logs")
+		err = os.MkdirAll(confLogPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+log_path = "%s"
+`, confLogPath)
+
+		err = os.WriteFile(configFile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		oldXDGConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		defer func() {
+			if oldXDGConfigHome == "" {
+				os.Unsetenv("XDG_CONFIG_HOME")
+			} else {
+				os.Setenv("XDG_CONFIG_HOME", oldXDGConfigHome)
+			}
+		}()
+		os.Setenv("XDG_CONFIG_HOME", filepath.Join(podmanTest.TempDir, ".config"))
+
+		cliLogPath := filepath.Join(podmanTest.TempDir, "cli-override.log")
+		session := podmanTest.Podman([]string{"run", "--rm", "--log-driver", "k8s-file", "--log-opt", fmt.Sprintf("path=%s", cliLogPath), ALPINE, "echo", expectedMessage})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		_, err = os.Stat(cliLogPath)
+		Expect(err).ToNot(HaveOccurred(), "Log should exist at CLI-specified path")
+
+		confLogDirs, err := os.ReadDir(confLogPath)
+		if err == nil {
+			Expect(confLogDirs).To(HaveLen(0), "Config file log path should not be used when CLI overrides")
+		}
+
+		content, err := os.ReadFile(cliLogPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(content)).To(ContainSubstring(expectedMessage))
+		Expect(string(content)).To(MatchRegexp(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+.*stdout F ` + regexp.QuoteMeta(expectedMessage)))
+
+		_ = os.Remove(cliLogPath)
+	})
+
+	It("podman run uses containers.conf log_path", func() {
+		expectedMessage := "Config file path test message"
+
+		userConfigDir := filepath.Join(podmanTest.TempDir, ".config", "containers")
+		err := os.MkdirAll(userConfigDir, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		configFile := filepath.Join(userConfigDir, "containers.conf")
+		confLogPath := filepath.Join(podmanTest.TempDir, "conf-logs")
+		err = os.MkdirAll(confLogPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+log_path = "%s"
+`, confLogPath)
+
+		err = os.WriteFile(configFile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		oldXDGConfigHome := os.Getenv("XDG_CONFIG_HOME")
+		defer func() {
+			if oldXDGConfigHome == "" {
+				os.Unsetenv("XDG_CONFIG_HOME")
+			} else {
+				os.Setenv("XDG_CONFIG_HOME", oldXDGConfigHome)
+			}
+		}()
+		os.Setenv("XDG_CONFIG_HOME", filepath.Join(podmanTest.TempDir, ".config"))
+
+		containerName := "test-conf-log-container"
+		session := podmanTest.Podman([]string{"run", "--name", containerName, ALPINE, "echo", expectedMessage})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		time.Sleep(100 * time.Millisecond)
+
+		session = podmanTest.Podman([]string{"inspect", "--format", "{{.Id}}", containerName})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		containerID := strings.TrimSpace(session.OutputToString())
+
+		logFilePath := filepath.Join(confLogPath, containerID, "ctr.log")
+
+		Eventually(func() bool {
+			_, err := os.Stat(logFilePath)
+			return err == nil
+		}, "5s", "100ms").Should(BeTrue(), "Log file should exist at config-specified path: %s", logFilePath)
+
+		content, err := os.ReadFile(logFilePath)
+		Expect(err).ToNot(HaveOccurred())
+		fmt.Printf("Log content: %s\n", string(content))
+		fmt.Printf("Expected message: %s\n", expectedMessage)
+
+		Expect(string(content)).To(ContainSubstring(expectedMessage), "Log should contain expected message")
+		Expect(string(content)).To(MatchRegexp(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+.*stdout F `+regexp.QuoteMeta(expectedMessage)), "Log should follow k8s-file format")
+
+		cleanupSession := podmanTest.Podman([]string{"rm", containerName})
+		cleanupSession.WaitWithDefaultTimeout()
 	})
 })
