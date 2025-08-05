@@ -697,7 +697,10 @@ func (ta *tarWriter) addFile(headers *addFileData) error {
 	}
 
 	if !headers.fi.IsDir() && hasHardlinks(headers.fi) {
-		ta.SeenFiles[getInodeFromStat(headers.fi.Sys())] = headers.hdr.Name
+		ino := getInodeFromStat(headers.fi.Sys())
+		if _, seen := ta.SeenFiles[ino]; !seen {
+			ta.SeenFiles[ino] = headers.hdr.Name
+		}
 	}
 
 	return nil
