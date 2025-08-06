@@ -131,46 +131,42 @@ RUN echo test
 		Expect(session.OutputToStringArray()).To(BeEmpty())
 	})
 
-	// Commented out on July 23, 2025 to avoid issue noted in
-	// https://github.com/containers/podman/issues/26680.  Uncomment
-	// once that is addressed.
-	//
-	//	It("podman diff container and image with same name", func() {
-	//		imagefile := "/" + stringid.GenerateRandomID()
-	//		confile := "/" + stringid.GenerateRandomID()
-	//
-	//		// Create container image with the files
-	//		containerfile := fmt.Sprintf(`
-	// FROM  %s
-	// RUN touch %s`, ALPINE, imagefile)
-	//
-	//		name := "podman-diff-test"
-	//		podmanTest.BuildImage(containerfile, name, "false")
-	//
-	//		session := podmanTest.Podman([]string{"run", "--name", name, ALPINE, "touch", confile})
-	//		session.WaitWithDefaultTimeout()
-	//		Expect(session).Should(ExitCleanly())
-	//
-	//		// podman diff prefers image over container when they have the same name
-	//		session = podmanTest.Podman([]string{"diff", name})
-	//		session.WaitWithDefaultTimeout()
-	//		Expect(session).Should(ExitCleanly())
-	//		Expect(session.OutputToStringArray()).To(HaveLen(1))
-	//		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
-	//
-	//		session = podmanTest.Podman([]string{"image", "diff", name})
-	//		session.WaitWithDefaultTimeout()
-	//		Expect(session).Should(ExitCleanly())
-	//		Expect(session.OutputToStringArray()).To(HaveLen(1))
-	//		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
-	//
-	//		// container diff has to show the container
-	//		session = podmanTest.Podman([]string{"container", "diff", name})
-	//		session.WaitWithDefaultTimeout()
-	//		Expect(session).Should(ExitCleanly())
-	//		Expect(session.OutputToStringArray()).To(HaveLen(2))
-	//		Expect(session.OutputToString()).To(ContainSubstring(confile))
-	//	})
+	It("podman diff container and image with same name", func() {
+		imagefile := "/" + stringid.GenerateRandomID()
+		confile := "/" + stringid.GenerateRandomID()
+
+		// Create container image with the files
+		containerfile := fmt.Sprintf(`
+	FROM  %s
+	RUN touch %s`, ALPINE, imagefile)
+
+		name := "podman-diff-test"
+		podmanTest.BuildImage(containerfile, name, "false")
+
+		session := podmanTest.Podman([]string{"run", "--name", name, ALPINE, "touch", confile})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// podman diff prefers image over container when they have the same name
+		session = podmanTest.Podman([]string{"diff", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
+
+		session = podmanTest.Podman([]string{"image", "diff", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		Expect(session.OutputToString()).To(ContainSubstring(imagefile))
+
+		// container diff has to show the container
+		session = podmanTest.Podman([]string{"container", "diff", name})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToString()).To(ContainSubstring(confile))
+	})
 
 	It("podman diff without args", func() {
 		session := podmanTest.Podman([]string{"diff"})
