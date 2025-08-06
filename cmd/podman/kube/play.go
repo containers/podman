@@ -51,11 +51,11 @@ var (
   Creates pods or volumes based on the Kubernetes kind described in the YAML. Supported kinds are Pods, Deployments, DaemonSets, Jobs, and PersistentVolumeClaims.`
 
 	playCmd = &cobra.Command{
-		Use:               "play [options] KUBEFILE|-",
+		Use:               "play [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		RunE:              play,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman kube play nginx.yml
   cat nginx.yml | podman kube play -
@@ -66,12 +66,12 @@ var (
 
 var (
 	playKubeCmd = &cobra.Command{
-		Use:               "kube [options] KUBEFILE|-",
+		Use:               "kube [options] [KUBEFILE [KUBEFILE...]]|-",
 		Short:             "Play a pod or volume based on Kubernetes YAML",
 		Long:              playDescription,
 		Hidden:            true,
 		RunE:              playKube,
-		Args:              cobra.ExactArgs(1),
+		Args:              cobra.MinimumNArgs(1),
 		ValidArgsFunction: common.AutocompleteDefaultOneArg,
 		Example: `podman play kube nginx.yml
   cat nginx.yml | podman play kube -
@@ -276,7 +276,7 @@ func play(cmd *cobra.Command, args []string) error {
 		return errors.New("--force may be specified only with --down")
 	}
 
-	reader, err := readerFromArg(args[0])
+	reader, err := readerFromArgs(args)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func play(cmd *cobra.Command, args []string) error {
 		playOptions.ServiceContainer = true
 
 		// Read the kube yaml file again so that a reader can be passed down to the teardown function
-		teardownReader, err = readerFromArg(args[0])
+		teardownReader, err = readerFromArgs(args)
 		if err != nil {
 			return err
 		}
@@ -364,11 +364,43 @@ func playKube(cmd *cobra.Command, args []string) error {
 	return play(cmd, args)
 }
 
+func readerFromArgs(args []string) (*bytes.Reader, error) {
+	// if user tried to pipe, shortcut the reading
+	if len(args) == 1 && args[0] == "-" {
+		data, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, err
+		}
+		return bytes.NewReader(data), nil
+	}
+
+	var combined bytes.Buffer
+
+	for i, arg := range args {
+		reader, err := readerFromArg(arg)
+		if err != nil {
+			return nil, err
+		}
+
+		data, err := io.ReadAll(reader)
+		if err != nil {
+			return nil, err
+		}
+
+		// Write the document content
+		combined.Write(data)
+
+		// Only add `---` separator if it's not the last file
+		if i < len(args)-1 {
+			combined.WriteString("\n---\n")
+		}
+	}
+	return bytes.NewReader(combined.Bytes()), nil
+}
+
 func readerFromArg(fileName string) (*bytes.Reader, error) {
 	var reader io.Reader
 	switch {
-	case fileName == "-": // Read from stdin
-		reader = os.Stdin
 	case parse.ValidWebURL(fileName) == nil:
 		response, err := http.Get(fileName)
 		if err != nil {
