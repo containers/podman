@@ -108,7 +108,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.41.0
+# github.com/containers/buildah v1.41.0 => github.com/containers/buildah v1.41.1-0.20250806145459-7643ec23e146
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -1209,3 +1209,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/buildah => github.com/containers/buildah v1.41.1-0.20250806145459-7643ec23e146
