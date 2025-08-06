@@ -232,11 +232,11 @@ all: binaries docs
 
 .PHONY: binaries
 ifeq ($(GOOS),freebsd)
-binaries: podman podman-remote ## Build podman and podman-remote binaries
+binaries: podman podman-remote ## (FreeBSD) Build podman and podman-remote binaries
 else ifneq (, $(findstring $(GOOS),darwin windows))
-binaries: podman-remote ## Build podman-remote (client) only binaries
+binaries: podman-remote ## (macOS/Windows) Build podman-remote (client) only binaries
 else
-binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## Build podman, podman-remote and rootlessport binaries quadlet
+binaries: podman podman-remote podman-testing podmansh rootlessport quadlet ## (Linux) Build podman, podman-remote and rootlessport binaries quadlet
 endif
 
 # Extract text following double-# for targets, as their description for
