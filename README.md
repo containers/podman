@@ -8,7 +8,7 @@
 
 [![LFX Health Score](https://insights.linuxfoundation.org/api/badge/health-score?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
 [![LFX Contributors](https://insights.linuxfoundation.org/api/badge/contributors?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
-[![LFX Active Contributors](https://insights.linuxfoundation.org/api/badge/active-contributors?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
+
 
 <br/>
 
