@@ -139,6 +139,25 @@ func Load(ctx context.Context, r io.Reader) (*types.ImageLoadReport, error) {
 	return &report, response.Process(&report)
 }
 
+func LoadLocal(ctx context.Context, path string) (*types.ImageLoadReport, error) {
+	var report types.ImageLoadReport
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	params := url.Values{}
+	params.Set("path", path)
+
+	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/local/images/load", params, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	return &report, response.Process(&report)
+}
+
 // Export saves images from local storage as a tarball or image archive.  The optional format
 // parameter is used to change the format of the output.
 func Export(ctx context.Context, nameOrIDs []string, w io.Writer, options *ExportOptions) error {
