@@ -27,7 +27,7 @@ require (
 	github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/docker v28.3.3+incompatible
-	github.com/docker/go-connections v0.5.0
+	github.com/docker/go-connections v0.6.0
 	github.com/docker/go-plugins-helpers v0.0.0-20240701071450-45e2431495c8
 	github.com/docker/go-units v0.5.0
 	github.com/godbus/dbus/v5 v5.1.1-0.20241109141217-c266b19b28e9
