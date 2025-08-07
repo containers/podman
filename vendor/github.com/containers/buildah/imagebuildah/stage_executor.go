@@ -1155,8 +1155,9 @@ func (s *StageExecutor) getImageRootfs(ctx context.Context, image string) (mount
 	return builder.MountPoint, nil
 }
 
-// getContentSummary generates content summary for cases where we added content and need
-// to get summary with updated digests.
+// getContentSummary generates a description of what was most recently added to the container,
+// typically in the form "file", "dir", or "multi" followed by a colon and the hex part of the
+// digest of the content, for inclusion in the corresponding history entry's "createdBy" field
 func (s *StageExecutor) getContentSummaryAfterAddingContent() string {
 	contentType, digest := s.builder.ContentDigester.Digest()
 	summary := contentType
@@ -1889,13 +1890,17 @@ func (s *StageExecutor) historyAndDiffIDsMatch(baseHistory []v1.History, baseDif
 	return history[len(baseHistory)].CreatedBy == createdBy, nil
 }
 
-// getCreatedBy returns the command the image at node will be created by.  If
-// the passed-in CompositeDigester is not nil, it is assumed to have the digest
-// information for the content if the node is ADD or COPY.
+// getCreatedBy returns the value to store in the history entry for the node.
+// If the the passed-in addedContentSummary is not an empty string, it is
+// assumed to have the digest information for the content if the node is ADD or
+// COPY.
 //
-// This function acts differently if getCreatedBy is invoked by LastStep. For instances
-// certain instructions like `removing annotations` does not makes sense for every step
-// but only makes sense if the step is last step of a build.
+// The metadata string which is appended to the instruction may need to
+// indicate that certain last-minute changes (generally things which couldn't
+// be done by appending to the parsed Dockerfile, such as modifying timestamps
+// in the layer, unsetting labels, or anything having to do with annotations)
+// were made so that a future build won't mistake this result for a cache hit
+// unless the same flags are being used at that time.
 func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary string, isLastStep bool) (string, error) {
 	if node == nil {
 		return "/bin/sh", nil
@@ -2602,33 +2607,65 @@ func (s *StageExecutor) EnsureContainerPathAs(path, user string, mode *os.FileMo
 	return s.builder.EnsureContainerPathAs(path, user, mode)
 }
 
-func (s *StageExecutor) buildMetadata(isLastStep bool, addcopy bool) string {
+// buildMetadata constructs the text at the end of the createdBy value for the
+// history entry that we'll generate for the instruction that we're currently
+// processing.  Any flags that affect the output image in a way that affects
+// whether or not it should be used as a cache hit for another build with that
+// flag set differently should be reflected in its result.  Some build settings
+// only take affect at the final step, so only note those when they're applied.
+func (s *StageExecutor) buildMetadata(isLastStep bool, isAddOrCopy bool) string {
+	unsetLabels := ""
 	inheritLabels := ""
 	unsetAnnotations := ""
 	inheritAnnotations := ""
 	newAnnotations := ""
+	layerMutations := ""
+
 	// If --inherit-label was manually set to false then update history.
 	if s.executor.inheritLabels == types.OptionalBoolFalse {
 		inheritLabels = "|inheritLabels=false"
 	}
+	// If --unsetlabel was used to clear a label, make a note of it.
+	for _, label := range s.executor.unsetLabels {
+		unsetLabels += "|unsetLabel=" + label
+	}
 	if isLastStep {
+		// If --unsetannotation was used to clear an annotation, make a note of it.
 		for _, annotation := range s.executor.unsetAnnotations {
 			unsetAnnotations += "|unsetAnnotation=" + annotation
 		}
-		// If --inherit-annotation was manually set to false then update history.
+		// If --inherit-annotation was manually set to false then we cleared the inherited annotations.
 		if s.executor.inheritAnnotations == types.OptionalBoolFalse {
 			inheritAnnotations = "|inheritAnnotations=false"
 		}
 		// If new annotations are added, they must be added as part of the last step of the build,
-		// so mention in history that new annotations were added inorder to make sure the builds
-		// can either reuse layers or burst the cache depending upon new annotations.
+		// so mention in history that new annotations were added in order to make sure that subsequent builds
+		// only use this image as a cache hit if it was built with the same set of annotations.
 		if len(s.executor.annotations) > 0 {
 			newAnnotations += strings.Join(s.executor.annotations, ",")
 		}
 	}
-
-	if addcopy {
-		return inheritLabels + " " + unsetAnnotations + " " + inheritAnnotations + " " + newAnnotations
+	// If we're messing with timestamps in layer contents, make a note of how we're doing it.
+	if s.executor.timestamp != nil || (s.executor.sourceDateEpoch != nil && s.executor.rewriteTimestamp) {
+		var t time.Time
+		modtype := ""
+		if s.executor.timestamp != nil {
+			t = s.executor.timestamp.UTC()
+			modtype = "force-mtime"
+		}
+		if s.executor.sourceDateEpoch != nil && s.executor.rewriteTimestamp {
+			t = s.executor.sourceDateEpoch.UTC()
+			modtype = "clamp-mtime"
+			if s.executor.timestamp != nil && s.executor.timestamp.Before(*s.executor.sourceDateEpoch) {
+				t = s.executor.timestamp.UTC()
+				modtype = "force-mtime"
+			}
+		}
+		layerMutations = "|" + modtype + "=" + strconv.FormatInt(t.Unix(), 10)
 	}
-	return inheritLabels + unsetAnnotations + inheritAnnotations + newAnnotations
+
+	if isAddOrCopy {
+		return unsetLabels + " " + inheritLabels + " " + unsetAnnotations + " " + inheritAnnotations + " " + layerMutations + " " + newAnnotations
+	}
+	return unsetLabels + inheritLabels + unsetAnnotations + inheritAnnotations + layerMutations + newAnnotations
 }
