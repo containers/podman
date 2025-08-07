@@ -38,8 +38,9 @@ type Connection struct {
 type valueKey string
 
 const (
-	clientKey  = valueKey("Client")
-	versionKey = valueKey("ServiceVersion")
+	clientKey      = valueKey("Client")
+	versionKey     = valueKey("ServiceVersion")
+	machineModeKey = valueKey("MachineMode")
 )
 
 type ConnectError struct {
@@ -64,6 +65,13 @@ func GetClient(ctx context.Context) (*Connection, error) {
 		return c, nil
 	}
 	return nil, fmt.Errorf("%s not set in context", clientKey)
+}
+
+func GetMachineMode(ctx context.Context) bool {
+	if v, ok := ctx.Value(machineModeKey).(bool); ok {
+		return v
+	}
+	return false
 }
 
 // ServiceVersion from context build by NewConnection()
@@ -142,6 +150,8 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 		return nil, newConnectError(err)
 	}
 	ctx = context.WithValue(ctx, versionKey, serviceVersion)
+
+	ctx = context.WithValue(ctx, machineModeKey, machine)
 	return ctx, nil
 }
 

@@ -941,6 +941,30 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: '#/responses/internalError'
 	r.Handle(VersionedPath("/libpod/images/load"), s.APIHandler(libpod.ImagesLoad)).Methods(http.MethodPost)
+	// swagger:operation POST /libpod/local/images/load libpod LocalImagesLibpod
+	// ---
+	// tags:
+	//  - images
+	// summary: Load image from local path
+	// description: Load an image (oci-archive or docker-archive) from a file path accessible on the server.
+	// parameters:
+	//   - in: query
+	//     name: path
+	//     type: string
+	//     required: true
+	//     description: Path to the image archive file on the server filesystem
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     $ref: "#/responses/imagesLoadResponseLibpod"
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   404:
+	//     $ref: "#/responses/imageNotFound"
+	//   500:
+	//     $ref: '#/responses/internalError'
+	r.Handle(VersionedPath("/libpod/local/images/load"), s.APIHandler(libpod.ImagesLocalLoad)).Methods(http.MethodPost)
 	// swagger:operation POST /libpod/images/import libpod ImageImportLibpod
 	// ---
 	// tags:

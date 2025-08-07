@@ -116,6 +116,11 @@ type InspectInfo struct {
 	Rosetta            bool
 }
 
+type InternalInspectInfo struct {
+	InspectInfo
+	Mounts []*vmconfigs.Mount
+}
+
 // ImageConfig describes the bootable image for the VM
 type ImageConfig struct {
 	// IgnitionFile is the path to the filesystem where the
