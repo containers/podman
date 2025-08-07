@@ -35,3 +35,7 @@ func (c *ContainersConfig) validateTZ() error {
 func (c *ContainersConfig) validateUmask() error {
 	return nil
 }
+
+func (c *ContainersConfig) validateLogPath() error {
+	return nil
+}

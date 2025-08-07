@@ -330,7 +330,7 @@ func GetArchFromString(arch string) (ScmpArch, error) {
 		return ArchPARISC64, nil
 	case "riscv64":
 		return ArchRISCV64, nil
-	case "loongarch64":
+	case "loong64", "loongarch64":
 		return ArchLOONGARCH64, nil
 	case "m68k":
 		return ArchM68K, nil

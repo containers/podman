@@ -5,20 +5,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"slices"
 	"time"
 
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/sirupsen/logrus"
 )
-
-// StringInSlice determines if a string is in a string slice, returns bool.
-//
-// Deprecated: Use [slices.Contains] instead.
-func StringInSlice(s string, sl []string) bool {
-	return slices.Contains(sl, s)
-}
 
 // StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool
 func StringMatchRegexSlice(s string, re []string) bool {
