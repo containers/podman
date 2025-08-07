@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -36,6 +38,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/schema"
@@ -366,6 +369,44 @@ func ImagesLoad(w http.ResponseWriter, r *http.Request) {
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
 	loadOptions := entities.ImageLoadOptions{Input: tmpfile.Name()}
+	loadReport, err := imageEngine.Load(r.Context(), loadOptions)
+	if err != nil {
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to load image: %w", err))
+		return
+	}
+	utils.WriteResponse(w, http.StatusOK, loadReport)
+}
+
+func ImagesLocalLoad(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+	query := struct {
+		Path string `schema:"path"`
+	}{}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	if query.Path == "" {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("path query parameter is required"))
+		return
+	}
+
+	cleanPath := filepath.Clean(query.Path)
+	switch err := fileutils.Exists(cleanPath); {
+	case err == nil:
+	case errors.Is(err, fs.ErrNotExist):
+		utils.Error(w, http.StatusNotFound, fmt.Errorf("file does not exist: %q", cleanPath))
+		return
+	default:
+		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("failed to access file: %w", err))
+		return
+	}
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+	loadOptions := entities.ImageLoadOptions{Input: cleanPath}
 	loadReport, err := imageEngine.Load(r.Context(), loadOptions)
 	if err != nil {
 		utils.Error(w, http.StatusInternalServerError, fmt.Errorf("unable to load image: %w", err))
