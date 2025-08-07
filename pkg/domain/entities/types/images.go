@@ -78,6 +78,8 @@ type ImageSearchReport struct {
 	Automated string
 	// Tag is the repository tag
 	Tag string
+	//Hash
+	Hash string
 }
 
 // ShowTrustReport describes the results of show trust

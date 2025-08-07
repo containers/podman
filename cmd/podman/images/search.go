@@ -27,6 +27,7 @@ type searchOptionsWrapper struct {
 	TLSVerifyCLI   bool   // Used to convert to an optional bool later
 	Format         string // For go templating
 	NoTrunc        bool
+	ShowHash       bool
 }
 
 // listEntryTag is a utility structure used for json serialization.
@@ -109,6 +110,9 @@ func searchFlags(cmd *cobra.Command) {
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&searchOptions.ListTags, "list-tags", false, "List the tags of the input registry")
 
+	//Implementation of show-hash flag
+	flags.BoolVar(&searchOptions.ShowHash, "show-hash", false, "Prints the hash digest for each tag")
+
 	if !registry.IsRemote() {
 		certDirFlagName := "cert-dir"
 		flags.StringVar(&searchOptions.CertDir, certDirFlagName, "", "`Pathname` of a directory containing TLS certificates and keys")
@@ -152,7 +156,7 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		searchOptions.Username = creds.Username
 		searchOptions.Password = creds.Password
 	}
-
+	searchOptions.ImageSearchOptions.ShowHash = searchOptions.ShowHash
 	searchReport, err := registry.ImageEngine().Search(registry.Context(), searchTerm, searchOptions.ImageSearchOptions)
 	if err != nil {
 		return err
@@ -185,8 +189,14 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 		if cmd.Flags().Changed("format") {
 			rpt, err = rpt.Parse(report.OriginUser, searchOptions.Format)
 		} else {
-			rpt, err = rpt.Parse(report.OriginPodman, "{{range .}}{{.Name}}\t{{.Tag}}\n{{end -}}")
+			format := "{{range .}}{{.Name}}\t{{.Tag}}"
+			if searchOptions.ShowHash {
+				format += "\t{{.Hash}}"
+			}
+			format += "\n{{end -}}"
+			rpt, err = rpt.Parse(report.OriginPodman, format)
 		}
+
 	case isJSON:
 		return printArbitraryJSON(searchReport)
 	case cmd.Flags().Changed("format"):
