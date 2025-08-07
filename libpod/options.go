@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -1041,8 +1043,16 @@ func WithLogPath(path string) CtrCreateOption {
 		if path == "" {
 			return fmt.Errorf("log path must be set: %w", define.ErrInvalidArg)
 		}
+		if isDirectory(path) {
+			containerDir := filepath.Join(path, ctr.ID())
+			if err := os.Mkdir(containerDir, 0755); err != nil {
+				return fmt.Errorf("failed to create container log directory %s: %w", containerDir, err)
+			}
 
-		ctr.config.LogPath = path
+			ctr.config.LogPath = filepath.Join(containerDir, "ctr.log")
+		} else {
+			ctr.config.LogPath = path
+		}
 
 		return nil
 	}
