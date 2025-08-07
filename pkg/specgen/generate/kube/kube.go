@@ -228,6 +228,10 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.ImageVolumes = opts.ImageVolumes
 
+	if rtc.Containers.LogPath != "" {
+		s.LogConfiguration.Path = rtc.Containers.LogPath
+	}
+
 	s.LogConfiguration.Options = make(map[string]string)
 	for _, o := range opts.LogOptions {
 		opt, val, hasVal := strings.Cut(o, "=")
