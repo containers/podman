@@ -110,7 +110,7 @@ func searchFlags(cmd *cobra.Command) {
 	flags.BoolVar(&searchOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
 	flags.BoolVar(&searchOptions.ListTags, "list-tags", false, "List the tags of the input registry")
 
-	//Implementation of show-hash flag
+	// Implementation of show-hash flag
 	flags.BoolVar(&searchOptions.ShowHash, "show-hash", false, "Prints the hash digest for each tag")
 
 	if !registry.IsRemote() {
