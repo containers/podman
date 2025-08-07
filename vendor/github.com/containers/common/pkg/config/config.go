@@ -172,6 +172,9 @@ type ContainersConfig struct {
 	// LogDriver  for the container.  For example: k8s-file and journald
 	LogDriver string `toml:"log_driver,omitempty"`
 
+	// LogPath is the path to the container log file.
+	LogPath string `toml:"log_path,omitempty"`
+
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
 	// that is parsed to bytes.
@@ -847,8 +850,7 @@ func (c *EngineConfig) Validate() error {
 	}
 	// Check if the pullPolicy from containers.conf is valid
 	// if it is invalid returns the error
-	pullPolicy := strings.ToLower(c.PullPolicy)
-	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
+	if _, err := ParsePullPolicy(c.PullPolicy); err != nil {
 		return fmt.Errorf("invalid pull type from containers.conf %q: %w", c.PullPolicy, err)
 	}
 
@@ -880,6 +882,10 @@ func (c *ContainersConfig) Validate() error {
 	}
 
 	if err := c.validateUmask(); err != nil {
+		return err
+	}
+
+	if err := c.validateLogPath(); err != nil {
 		return err
 	}
 

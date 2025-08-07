@@ -105,6 +105,20 @@ func (c *ContainersConfig) validateUmask() error {
 	return nil
 }
 
+func (c *ContainersConfig) validateLogPath() error {
+	if c.LogPath == "" {
+		return nil
+	}
+	if !filepath.IsAbs(c.LogPath) {
+		return fmt.Errorf("log_path must be an absolute path - instead got %q", c.LogPath)
+	}
+	if strings.ContainsAny(c.LogPath, "\x00") {
+		return fmt.Errorf("log_path contains null bytes - got %q", c.LogPath)
+	}
+
+	return nil
+}
+
 func isRemote() bool {
 	return false
 }

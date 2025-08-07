@@ -2,6 +2,9 @@ libseccomp-golang: Releases
 ===============================================================================
 https://github.com/seccomp/libseccomp-golang
 
+* Version 0.11.1 - August 5, 2025
+- Make GetArchFromString recognize "loong64"
+
 * Version 0.11.0 - April 23, 2025
 - Add new architectures (LOONGARCH64, M68K, SH, SHEB)
 - Add support for SCMP_FLTATR_CTL_WAITKILL (GetWaitKill, SetWaitKill)
