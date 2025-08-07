@@ -1,10 +1,5 @@
 % podman-artifact-extract 1
 
-
-## WARNING: Experimental command
-*This command is considered experimental and still in development. Inputs, options, and outputs are all
-subject to change.*
-
 ## NAME
 podman\-artifact\-extract - Extract an OCI artifact to a local path
 
