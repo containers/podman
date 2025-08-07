@@ -965,15 +965,7 @@ USER testuser`, CITEST_IMAGE)
 		f, err := os.CreateTemp(mountPath, "podman")
 		Expect(err).ToNot(HaveOccurred())
 
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-
-		err = os.Chdir(mountPath)
-		Expect(err).ToNot(HaveOccurred())
-		defer func() {
-			err := os.Chdir(cwd)
-			Expect(err).ToNot(HaveOccurred())
-		}()
+		GinkgoT().Chdir(mountPath)
 
 		run := podmanTest.Podman([]string{"run", "--security-opt", "label=disable", "-v", "./:" + dest, ALPINE, "ls", dest})
 		run.WaitWithDefaultTimeout()

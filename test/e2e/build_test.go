@@ -251,11 +251,7 @@ var _ = Describe("Podman build", func() {
 
 	It("podman build Containerfile locations", func() {
 		// Given
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(os.TempDir())).To(Succeed())
-		defer Expect(os.Chdir(cwd)).To(BeNil())
+		GinkgoT().Chdir(os.TempDir())
 
 		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
 		Expect(os.WriteFile(fakeFile, []byte(fmt.Sprintf("FROM %s", CITEST_IMAGE)), 0755)).To(Succeed())
@@ -281,11 +277,7 @@ var _ = Describe("Podman build", func() {
 	})
 
 	It("podman build basic alpine and print id to external file", func() {
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(os.TempDir())).To(Succeed())
-		defer Expect(os.Chdir(cwd)).To(BeNil())
+		GinkgoT().Chdir(os.TempDir())
 
 		targetFile := filepath.Join(podmanTest.TempDir, "idFile")
 
@@ -453,10 +445,6 @@ COPY /emptydir/* /dir`, CITEST_IMAGE)
 
 	It("podman remote test container/docker file is not inside context dir", func() {
 		// Given
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-
 		// Write target and fake files
 		targetPath := podmanTest.TempDir
 		targetSubPath := filepath.Join(targetPath, "subdir")
@@ -474,12 +462,8 @@ RUN find /test`, CITEST_IMAGE)
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
-		defer func() {
-			Expect(os.Chdir(cwd)).To(Succeed())
-		}()
-
 		// make cwd as context root path
-		Expect(os.Chdir(targetPath)).To(Succeed())
+		GinkgoT().Chdir(targetPath)
 
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "Containerfile", targetSubPath})
 		session.WaitWithDefaultTimeout()
@@ -532,10 +516,6 @@ RUN find /test`, CITEST_IMAGE)
 			Skip("Only valid at remote test")
 		}
 		// Given
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-
 		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 
 		// Write target and fake files
@@ -550,12 +530,8 @@ RUN find /test`, CITEST_IMAGE)
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
-		defer func() {
-			Expect(os.Chdir(cwd)).To(Succeed())
-		}()
-
 		// make cwd as context root path
-		Expect(os.Chdir(targetPath)).To(Succeed())
+		GinkgoT().Chdir(targetPath)
 
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", "-f", "subdir/Containerfile", "."})
 		session.WaitWithDefaultTimeout()
@@ -570,10 +546,6 @@ RUN find /test`, CITEST_IMAGE)
 			Skip("Only valid at remote test")
 		}
 		// Given
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-
 		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 
 		// Write target and fake files
@@ -606,12 +578,11 @@ RUN find /testfilter/`, CITEST_IMAGE)
 		Expect(err).ToNot(HaveOccurred())
 
 		defer func() {
-			Expect(os.Chdir(cwd)).To(Succeed())
 			Expect(os.RemoveAll(targetPath)).To(Succeed())
 		}()
 
 		// make cwd as context root path
-		Expect(os.Chdir(targetPath)).To(Succeed())
+		GinkgoT().Chdir(targetPath)
 
 		dockerignoreContent := `dummy1
 subdir**`
@@ -635,10 +606,6 @@ subdir**`
 	It("Remote build .containerignore filtering embedded directory (#13535)", func() {
 		SkipIfNotRemote("Testing remote .containerignore file filtering")
 		podmanTest.RestartRemoteService()
-
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
 
 		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 
@@ -668,11 +635,7 @@ subdir**`
 		Eventually(ddSession, "30s", "1s").Should(Exit(0))
 
 		// make cwd as context root path
-		Expect(os.Chdir(contextDir)).ToNot(HaveOccurred())
-		defer func() {
-			err := os.Chdir(cwd)
-			Expect(err).ToNot(HaveOccurred())
-		}()
+		GinkgoT().Chdir(contextDir)
 
 		By("Test .containerignore filtering subdirectory")
 		err = os.WriteFile(filepath.Join(contextDir, ".containerignore"), []byte(`subdir/`), 0644)
@@ -691,10 +654,6 @@ subdir**`
 		SkipIfNotRemote("Testing remote contextDir empty")
 		podmanTest.RestartRemoteService()
 
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-
 		podmanTest.AddImageToRWStore(CITEST_IMAGE)
 
 		// Write target and fake files
@@ -709,7 +668,7 @@ subdir**`
 		emptyDir := filepath.Join(targetSubPath, "emptyDir")
 		err = os.Mkdir(emptyDir, 0755)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(targetSubPath)).To(Succeed())
+		GinkgoT().Chdir(targetSubPath)
 		Expect(os.Symlink("dummy", "dummy-symlink")).To(Succeed())
 
 		containerfile := fmt.Sprintf(`FROM %s
@@ -721,12 +680,8 @@ RUN [[ -L /test/dummy-symlink ]] && echo SYMLNKOK || echo SYMLNKERR`, CITEST_IMA
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
-		defer func() {
-			Expect(os.Chdir(cwd)).To(Succeed())
-		}()
-
 		// make cwd as context root path
-		Expect(os.Chdir(targetPath)).To(Succeed())
+		GinkgoT().Chdir(targetPath)
 
 		session := podmanTest.Podman([]string{"build", "--pull-never", "-t", "test", targetSubPath})
 		session.WaitWithDefaultTimeout()
