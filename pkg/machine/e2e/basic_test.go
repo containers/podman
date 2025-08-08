@@ -286,6 +286,47 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(build.outputToString()).To(ContainSubstring(name))
 	})
 
+	It("podman build with sbom flags", func() {
+
+		name := randomString()
+		i := new(initMachine)
+		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session).To(Exit(0))
+
+		ALPINE := "quay.io/libpod/alpine:latest"
+		bm := basicMachine{}
+
+		contextDir := GinkgoT().TempDir()
+		cfile := filepath.Join(contextDir, "Containerfile")
+		err = os.WriteFile(cfile, []byte("FROM "+ALPINE), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+
+		build, err := mb.setCmd(bm.withPodmanCommand([]string{"build", "-t", "sbom-img", "--sbom-output=localsbom.txt", "--sbom-purl-output=localpurl.txt", "--sbom-image-output=/tmp/sbom.txt", "--sbom-image-purl-output=/tmp/purl.txt",
+			"--sbom-scanner-image=alpine", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED ROOT {ROOTFS} > {OUTPUT}'", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED BUILD CONTEXT {CONTEXT} > {OUTPUT}'",
+			"--sbom-merge-strategy=cat", contextDir})).run()
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(build).To(Exit(0))
+
+		// defer os.Remove("./localsbom.txt")
+		// if _, err := os.Stat("./localsbom.txt"); err != nil {
+		// 	Expect(errors.Is(err, fs.ErrNotExist)).To(BeFalse())
+		// }
+
+		// defer os.Remove("./localpurl.txt")
+		// if _, err := os.Stat("./localpurl.txt"); err != nil {
+		// 	Expect(errors.Is(err, fs.ErrNotExist)).To(BeFalse())
+		// }
+
+		run, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "--rm", "sbom-img", "ls", "/tmp"})).run()
+		fmt.Println("ALEX TEST: " + run.outputToString())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(run).To(Exit(0))
+		// Expect(run.outputToString()).To(ContainSubstring("purl.txt"))
+		// Expect(run.outputToString()).To(ContainSubstring("sbom.txt"))
+	})
+
 	It("CVE-2025-6032 regression test - HTTP", func() {
 		// ensure that trying to pull from a local HTTP server fails and the connection will be rejected
 		testImagePullTLS(nil)
