@@ -844,6 +844,10 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		return err
 	}
 
+	if rtc.Containers.LogPath != "" {
+		s.LogConfiguration.Path = rtc.Containers.LogPath
+	}
+
 	logOpts := make(map[string]string)
 	for _, o := range c.LogOptions {
 		key, val, hasVal := strings.Cut(o, "=")
@@ -865,6 +869,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 			logOpts[key] = val
 		}
 	}
+
 	if len(s.LogConfiguration.Options) == 0 || len(c.LogOptions) != 0 {
 		s.LogConfiguration.Options = logOpts
 	}

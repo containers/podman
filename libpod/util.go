@@ -285,3 +285,11 @@ func evalSymlinksIfExists(toCheck string) (string, error) {
 	}
 	return checkedVal, nil
 }
+
+func isDirectory(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
+}

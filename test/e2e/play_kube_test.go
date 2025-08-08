@@ -6310,4 +6310,85 @@ spec:
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, "invalid signal: noSuchSignal"))
 	})
+
+	It("test with custom log path from containers.conf", func() {
+		customLogPath := filepath.Join(podmanTest.TempDir, "custom-logs")
+		expectedMessage := "Pod started, checking logs from test"
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+log_path = "%s"
+`, customLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.MkdirAll(customLogPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: log-test-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: logger-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo '%s'; sleep 2"]
+`, CITEST_IMAGE, expectedMessage)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+
+		podmanTest.PodmanExitCleanly("wait", "log-test-pod-logger-container")
+
+		customLogDirs, err := os.ReadDir(customLogPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(customLogDirs).To(HaveLen(2), "Should have exactly two container log directories (infra + app container)")
+
+		var appContainerLogDir string
+		var logContent string
+		found := false
+
+		for _, dir := range customLogDirs {
+			if !dir.IsDir() {
+				continue
+			}
+			containerLogDir := dir.Name()
+			logFilePath := filepath.Join(customLogPath, containerLogDir, "ctr.log")
+
+			if _, err := os.Stat(logFilePath); err != nil {
+				continue
+			}
+
+			content, err := os.ReadFile(logFilePath)
+			if err != nil {
+				continue
+			}
+
+			if strings.Contains(string(content), expectedMessage) {
+				appContainerLogDir = containerLogDir
+				logContent = string(content)
+				found = true
+				break
+			}
+		}
+
+		Expect(found).To(BeTrue(), "Should find log file with expected message")
+
+		Expect(appContainerLogDir).ToNot(BeEmpty(), "Should have found application container log directory")
+		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+	})
 })
