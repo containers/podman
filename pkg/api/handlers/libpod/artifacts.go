@@ -127,12 +127,12 @@ func PullArtifact(w http.ResponseWriter, r *http.Request) {
 			rc := errcd.ErrorCode().Descriptor().HTTPStatusCode
 			// Check if the returned error is 401 StatusUnauthorized indicating the request was unauthorized
 			if rc == http.StatusUnauthorized {
-				utils.Error(w, http.StatusUnauthorized, errcd.ErrorCode())
+				utils.Error(w, http.StatusUnauthorized, err)
 				return
 			}
 			// Check if the returned error is 404 StatusNotFound indicating the artifact was not found
 			if rc == http.StatusNotFound {
-				utils.Error(w, http.StatusNotFound, errcd.ErrorCode())
+				utils.Error(w, http.StatusNotFound, err)
 				return
 			}
 		}
@@ -191,11 +191,11 @@ func AddArtifact(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	artifactAddOptions := &entities.ArtifactAddOptions{
-		Append:       query.Append,
-		Annotations:  annotations,
-		ArtifactType: query.ArtifactMIMEType,
-		FileType:     query.FileMIMEType,
+	artifactAddOptions := entities.ArtifactAddOptions{
+		Append:           query.Append,
+		Annotations:      annotations,
+		ArtifactMIMEType: query.ArtifactMIMEType,
+		FileMIMEType:     query.FileMIMEType,
 	}
 
 	artifactBlobs := []entities.ArtifactBlob{{
@@ -283,7 +283,7 @@ func PushArtifact(w http.ResponseWriter, r *http.Request) {
 			rc := errcd.ErrorCode().Descriptor().HTTPStatusCode
 			// Check if the returned error is 401 indicating the request was unauthorized
 			if rc == 401 {
-				utils.Error(w, 401, errcd.ErrorCode())
+				utils.Error(w, 401, err)
 				return
 			}
 		}
@@ -306,8 +306,9 @@ func ExtractArtifact(w http.ResponseWriter, r *http.Request) {
 	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
 
 	query := struct {
-		Digest string `schema:"digest"`
-		Title  string `schema:"title"`
+		Digest       string `schema:"digest"`
+		Title        string `schema:"title"`
+		ExcludeTitle bool   `schema:"excludetitle"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -316,15 +317,16 @@ func ExtractArtifact(w http.ResponseWriter, r *http.Request) {
 	}
 
 	extractOpts := entities.ArtifactExtractOptions{
-		Title:  query.Title,
-		Digest: query.Digest,
+		Title:        query.Title,
+		Digest:       query.Digest,
+		ExcludeTitle: query.ExcludeTitle,
 	}
 
 	name := utils.GetName(r)
 
 	imageEngine := abi.ImageEngine{Libpod: runtime}
 
-	err := imageEngine.ArtifactExtractTarStream(r.Context(), w, name, &extractOpts)
+	err := imageEngine.ArtifactExtractTarStream(r.Context(), w, name, extractOpts)
 	if err != nil {
 		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
 			utils.ArtifactNotFound(w, name, err)

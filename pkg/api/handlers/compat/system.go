@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
+	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
@@ -41,8 +42,12 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 			RepoTags:    []string{o.Tag},
 			SharedSize:  o.SharedSize,
 			Size:        o.Size,
-			VirtualSize: o.Size - o.UniqueSize,
 		}
+
+		if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
+			t.VirtualSize = o.Size - o.UniqueSize //nolint:staticcheck // Deprecated field
+		}
+
 		imgs[i] = &t
 	}
 
@@ -91,11 +96,13 @@ func GetDiskUsage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	utils.WriteResponse(w, http.StatusOK, handlers.DiskUsage{DiskUsage: docker.DiskUsage{
-		LayersSize:  df.ImagesSize,
-		Images:      imgs,
-		Containers:  ctnrs,
-		Volumes:     vols,
-		BuildCache:  []*build.CacheRecord{},
-		BuilderSize: 0,
+		// BuilderSize was explicitly omitted since Docker deprecated its in ver 1.42
+		// and suggests to use BuildCache.
+		// https://docs.docker.com/reference/api/engine/version-history/#v142-api-changes
+		LayersSize: df.ImagesSize,
+		Images:     imgs,
+		Containers: ctnrs,
+		Volumes:    vols,
+		BuildCache: []*build.CacheRecord{},
 	}})
 }

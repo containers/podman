@@ -11,6 +11,7 @@
 - The `--mount` option to `podman create` and `podman run` now supports `dest=` as a valid alias for `destination=`.
 - The `podman kube play` command can now restrict container execution to specific CPU cores and specific memory nodes using the `io.podman.annotations.cpuset/$ctrname` and `io.podman.annotations.memory-nodes/$ctrname` annotations ([#26172](https://github.com/containers/podman/issues/26172)).
 - The `podman kube play` command now supports the `lifecycle.stopSignal` field in Pod YAML, allowing the signal used to stop containers to be specified ([#25389](https://github.com/containers/podman/issues/25389)).
+- The `podman artifact` suite of commands for interacting with OCI artifacts is now available in the remote Podman client and the bindings for the REST API.
 - The `podman volume import` and `podman volume export` commands are now available in the remote Podman client ([#26049](https://github.com/containers/podman/issues/26409)).
 - The `--build-context` option to `podman build` is now supported by the remote Podman client ([#23433](https://github.com/containers/podman/issues/23433)).
 - The `podman volume create` command now accepts two new options, `--uid` and `--gid`, to set the UID and GID the volume will be created with.
@@ -22,6 +23,7 @@
 - A new command, `podman buildx inspect`, has been added to improve Docker compatibility ([#13014](https://github.com/containers/podman/issues/13014)).
 
 ### Changes
+- The `podman artifact` suite of commands for interacting with OCI artifacts is now considered stable.
 - For users running `podman machine` VMs using the `libkrun` provider on an M3 or newer host running macOS 15+, nested virtualization is enabled by default.
 - When creating `podman machine` VMs on Windows using the WSL v2 provider, images are now pulled as artifacts from `quay.io/podman/machine-os`, matching the behavior of other VM providers.
 - Signal forwarding done by the `--sig-proxy` option to `podman run` and `podman attach` is now more robust to races and no longer forwards the `SIGSTOP` signal.
@@ -58,7 +60,11 @@
 - A full set of API endpoints for interacting with artifacts has been added, including inspecting artifacts (`GET /libpod/artifacts/{name}/json`), listing all artifacts (`GET /libpod/artifacts/json`), pulling an artifact (`POST /libpod/artifacts/pull`), removing an artifact (`DELETE /libpod/artifacts/{name}`), adding an artifact (or appending to an existing artifact) from a tar file in the request body (`POST /libpod/artifacts/add`), pushing an artifact to a registry (`/libpod/artifacts/{name}/push`), and retrieving the contents of an artifact (`GET /libpod/artifacts/{name}/extract`).
 - The Compat Create endpoint for Containers now accepts a new parameter, `HostConfig.CgroupnsMode`, to specify the cgroup namespace mode of the created container.
 - The Compat Create endpoint for Containers now respects the `base_hosts_file` option in `containers.conf`.
-- The Compat Info endpoint now returns a new field, `DefaultAddressPools`.
+- The Compat System Info endpoint now returns a new field, `DefaultAddressPools`.
+- The Compat System DF endpoint has removed the deprecated `BuilderSize` field.
+- The Compat Ping endpoint now sets `Builder-Version` to `1` to match Docker installs that do not include BuildKit.
+- The Compat List endpoint for Images now returns the `shared-size` field unconditionally, even if the `shared-size` query parameter was not set to true. If not requested through query parameter, it is set to `-1`. This improves Docker API compatibility.
+- The Compat Inspect endpoint for Images now no longer returns the deprecated `VirtualSize` field when Docker API version 1.44 and up is requested.
 - Fixed a bug where the Compat Delete API for Containers would remove running containers when the `FORCE` parameter was set to true; Docker only removes stopped containers ([#25871](https://github.com/containers/podman/issues/25871)).
 - Fixed a bug where the Compat List and Compat Inspect endpoints for Containers returned container status using Podman statuses instead of converting to Docker-compatible statuses ([#17728](https://github.com/containers/podman/issues/17728)).
 - Fixed a bug where healthchecks that exceeded their timeout were not properly terminated; they now receive SIGTERM, then SIGKILL after a delay, if their timeout is exceeded ([#26086](https://github.com/containers/podman/pull/26086)).
@@ -67,10 +73,10 @@
 ### Misc
 - Quadlet now no longer uses container/pod ID files when stopping containers, but instead passes the name of the container/pod directly to `podman stop`/`podman pod stop`.
 - When building Podman via Makefile, it will now attempt to dynamically link sqlite3 if the library and header are installed locally. This and other optimizations should result in a significant reduction in binary size relative to Podman 5.5.x. Packagers can use the `libsqlite3` build tag to force this behavior when not using the Makefile to build.
-- Updated Buildah to v1.41.0
-- Updated the containers/common library to v0.64.0
-- Updated the containers/storage library to v1.59.0
-- Updated the containers/image library to v5.36.0
+- Updated Buildah to v1.41.1
+- Updated the containers/common library to v0.64.1
+- Updated the containers/storage library to v1.59.1
+- Updated the containers/image library to v5.36.1
 
 ## 5.5.2
 ### Security

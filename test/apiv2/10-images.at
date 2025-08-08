@@ -42,6 +42,14 @@ t GET images/json?filter=$IMAGE 200 \
   length=1 \
   .[0].Names[0]=$IMAGE
 
+# Test VirtualSize field is present in API v1.43 (backward compatibility)
+t GET /v1.43/images/json 200 \
+  .[0].VirtualSize~[0-9]\\+
+
+# Test VirtualSize field is no longer present in API v1.44+ (deprecated since API v1.43)
+t GET /v1.44/images/json 200 \
+  .[0].VirtualSize=null
+
 # Negative test case
 t GET images/json?filter=nonesuch 200 length=0
 
@@ -49,6 +57,14 @@ t GET images/json?filter=nonesuch 200 length=0
 t GET images/$iid/json 200 \
   .Id=sha256:$iid \
   .RepoTags[0]=$IMAGE
+
+# Test VirtualSize field is present in API v1.43 for single image inspect (backward compatibility)
+t GET /v1.43/images/$iid/json 200 \
+  .VirtualSize~[0-9]\\+
+
+# Test VirtualSize field is no longer present in API v1.44+ for single image inspect (deprecated since API v1.43)
+t GET /v1.44/images/$iid/json 200 \
+  .VirtualSize=null
 
 t POST "images/create?fromImage=alpine" 200 .error~null .status~".*Download complete.*"
 t POST "libpod/images/pull?reference=alpine&compatMode=true" 200 .error~null .status~".*Download complete.*"
@@ -439,5 +455,27 @@ t GET "libpod/events?stream=false&since=$START"  200  \
   .Action=pull-error \
   .Actor.Attributes.name="localhost:5000/idonotexist" \
   .Actor.Attributes.error~".*connection refused"
+
+# test empty RepoTags and RepoDigests is an empty array
+IIDFILE=$(mktemp)
+podman image build --iidfile $IIDFILE -<<EOF
+FROM $IMAGE
+RUN :
+EOF
+
+t GET images/json 200 \
+  .[1].RepoTags=[] \
+  .[1].RepoDigests=[] \
+  .[1].Id=$(< $IIDFILE)
+
+podman rmi -f $(< $IIDFILE)
+rm -f $IIDFILE
+
+# check that SharedSize returns -1 for compat api if not set
+# and 0 (or the correct shared size) if set
+t GET images/json 200 \
+    .[0].SharedSize=-1
+t GET images/json?shared-size=true 200 \
+    .[0].SharedSize=0
 
 # vim: filetype=sh

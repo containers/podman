@@ -6,13 +6,13 @@ type GetArtifactOptions struct{}
 
 // AddOptions are additional descriptors of an artifact file
 type AddOptions struct {
-	Annotations  map[string]string `json:"annotations,omitempty"`
-	ArtifactType string            `json:",omitempty"`
-	// append option is not compatible with ArtifactType option
+	Annotations      map[string]string `json:"annotations,omitempty"`
+	ArtifactMIMEType string            `json:",omitempty"`
+	// append option is not compatible with ArtifactMIMEType option
 	Append bool `json:",omitempty"`
 	// FileType describes the media type for the layer.  It is an override
 	// for the standard detection
-	FileType string `json:",omitempty"`
+	FileMIMEType string `json:",omitempty"`
 }
 
 // FilterBlobOptions options used to filter for a single blob in an artifact
@@ -27,6 +27,10 @@ type FilterBlobOptions struct {
 
 type ExtractOptions struct {
 	FilterBlobOptions
+	// ExcludeTitle option allows single blobs to be exported
+	// with their title/filename empty. Optional.
+	// Default: False
+	ExcludeTitle bool
 }
 
 type BlobMountPathOptions struct {

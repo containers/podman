@@ -40,7 +40,6 @@ var (
 		Args:              cobra.ExactArgs(1),
 		ValidArgsFunction: common.AutocompleteArtifacts,
 		Example:           `podman artifact push quay.io/myimage/myartifact:latest`,
-		Annotations:       map[string]string{registry.EngineMode: registry.ABIMode},
 	}
 )
 
