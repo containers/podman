@@ -2,6 +2,20 @@
 
 # Changelog
 
+## v1.41.1 (2025-08-06)
+
+    [release-1.41] Bump Buildah to v1.41.1
+    [release-1.41] Bump c/* projects and Buildah to v1.41.1
+    [release-1.41] generatePathChecksum: ignore ModTime, AccessTime
+    History should note unset-label, timestamp, and rewrite-timestamp
+    pkg/cli.GenBuildOptions(): don't hardwire optional bools
+    Only suppress "noted" items when not squashing
+    Test that pulled up parent directories are excluded at commit
+    Exclude pulled up parent directories at commit-time
+    copier.Ensure(): also return parent directories
+    copier.MkdirOptions: add ModTimeNew
+    Restore the default meaning of `--pull` (should be `always`).
+
 ## v1.41.0 (2025-07-16)
 
     Bump to c/storage v1.59.0, c/image v5.36.0, ... c/common v0.64.0
