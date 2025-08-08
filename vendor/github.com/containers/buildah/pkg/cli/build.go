@@ -355,6 +355,23 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		sbomScanOptions = append(sbomScanOptions, *sbomScanOption)
 	}
 
+	var compatVolumes, createdAnnotation, inheritAnnotations, inheritLabels, skipUnusedStages types.OptionalBool
+	if c.Flag("compat-volumes").Changed {
+		compatVolumes = types.NewOptionalBool(iopts.CompatVolumes)
+	}
+	if c.Flag("created-annotation").Changed {
+		createdAnnotation = types.NewOptionalBool(iopts.CreatedAnnotation)
+	}
+	if c.Flag("inherit-annotations").Changed {
+		inheritAnnotations = types.NewOptionalBool(iopts.InheritAnnotations)
+	}
+	if c.Flag("inherit-labels").Changed {
+		inheritLabels = types.NewOptionalBool(iopts.InheritLabels)
+	}
+	if c.Flag("skip-unused-stages").Changed {
+		skipUnusedStages = types.NewOptionalBool(iopts.SkipUnusedStages)
+	}
+
 	options = define.BuildOptions{
 		AddCapabilities:         iopts.CapAdd,
 		AdditionalBuildContexts: additionalBuildContext,
@@ -371,14 +388,14 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		CDIConfigDir:            iopts.CDIConfigDir,
 		CNIConfigDir:            iopts.CNIConfigDir,
 		CNIPluginPath:           iopts.CNIPlugInPath,
-		CompatVolumes:           types.NewOptionalBool(iopts.CompatVolumes),
+		CompatVolumes:           compatVolumes,
 		ConfidentialWorkload:    confidentialWorkloadOptions,
 		CPPFlags:                iopts.CPPFlags,
 		CommonBuildOpts:         commonOpts,
 		Compression:             compression,
 		ConfigureNetwork:        networkPolicy,
 		ContextDirectory:        contextDir,
-		CreatedAnnotation:       types.NewOptionalBool(iopts.CreatedAnnotation),
+		CreatedAnnotation:       createdAnnotation,
 		Devices:                 iopts.Devices,
 		DropCapabilities:        iopts.CapDrop,
 		Err:                     stderr,
@@ -390,8 +407,8 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		IIDFile:                 iopts.Iidfile,
 		IgnoreFile:              iopts.IgnoreFile,
 		In:                      stdin,
-		InheritLabels:           types.NewOptionalBool(iopts.InheritLabels),
-		InheritAnnotations:      types.NewOptionalBool(iopts.InheritAnnotations),
+		InheritLabels:           inheritLabels,
+		InheritAnnotations:      inheritAnnotations,
 		Isolation:               isolation,
 		Jobs:                    &iopts.Jobs,
 		Labels:                  iopts.Label,
@@ -423,7 +440,7 @@ func GenBuildOptions(c *cobra.Command, inputArgs []string, iopts BuildOptions) (
 		SBOMScanOptions:         sbomScanOptions,
 		SignBy:                  iopts.SignBy,
 		SignaturePolicyPath:     iopts.SignaturePolicy,
-		SkipUnusedStages:        types.NewOptionalBool(iopts.SkipUnusedStages),
+		SkipUnusedStages:        skipUnusedStages,
 		SourceDateEpoch:         sourceDateEpoch,
 		Squash:                  iopts.Squash,
 		SystemContext:           systemContext,
