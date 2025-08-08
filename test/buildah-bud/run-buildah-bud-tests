@@ -89,8 +89,20 @@ function die() {
 failhint=
 trap 'if [[ $? != 0 ]]; then if [[ -n $failhint ]]; then echo;echo "***************************************";echo "$failhint";echo;echo "Please see $BUD_TEST_DIR_REL/README.md for advice";fi;fi' 0
 
-# Find the version of buildah we've vendored in, so we can run the right tests
-buildah_version=$(awk "\$1 == \"$BUILDAH_REPO\" { print \$2 }" <go.mod)
+# Find the version of buildah we've vendored in, so we can run the right tests.
+# Note first check if buildah is being replaced with a different version in which case we need to use that one.
+buildah_replace=$(go list -m -f '{{if .Replace}}{{.Replace}}{{end}}' $BUILDAH_REPO)
+buildah_checkout_repo="$BUILDAH_REPO"
+
+if [[ -z "$buildah_replace" ]]; then
+    # No replace this is fine, check the main version
+    buildah_version=$(go list -m -f '{{.Version}}' $BUILDAH_REPO)
+else
+    # replace string is "REPO VERSION" so split this into our two vars
+    buildah_checkout_repo="${buildah_replace% *}"
+    buildah_version="${buildah_replace#* }"
+fi
+
 
 if [[ -z "$buildah_version" ]]; then
     # This should not happen
@@ -147,7 +159,7 @@ if [[ -n $do_checkout ]]; then
     fi
 
     failhint="'git clone' failed - this should never happen!"
-    (set -x;git clone -q $shallow_checkout https://$BUILDAH_REPO $buildah_dir)
+    (set -x;git clone -q $shallow_checkout https://$buildah_checkout_repo $buildah_dir)
 
     # Recent versions of git (like `2.39`) disallow some operations (like `am`)
     # without an identity being set.  In this case, git will throw an error
@@ -193,7 +205,7 @@ if [[ -n $do_checkout ]]; then
     # for a developer to push a new set of diffs to podman-land.
     failhint=
     sed -e "s,\[BASETAG\],${BASE_TAG},g" \
-        -e "s,\[BUILDAHREPO\],${BUILDAH_REPO},g" \
+        -e "s,\[BUILDAHREPO\],${buildah_checkout_repo},g" \
         < ${BUD_TEST_DIR}/make-new-buildah-diffs \
         > make-new-buildah-diffs
     chmod 755 make-new-buildah-diffs
