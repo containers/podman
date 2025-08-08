@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("Podman artifact mount", func() {
-	It("podman artifact mount single blob", func() {
+	It("podman artifact mount single blob", remoteCoreSubsetLabel, func() {
 		podmanTest.PodmanExitCleanly("artifact", "pull", ARTIFACT_SINGLE)
 
 		const artifactContent = "mRuO9ykak1Q2j"
