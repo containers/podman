@@ -123,4 +123,16 @@ var _ = Describe("Podman wait", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("-1"))
 	})
+
+	It("podman wait for first return container", func() {
+		session1 := podmanTest.PodmanExitCleanly("run", "-d", ALPINE, "sh", "-c", "sleep 100; exit 1")
+		cid1 := session1.OutputToString()
+
+		session2 := podmanTest.PodmanExitCleanly("run", "-d", ALPINE, "sh", "-c", "sleep 3; exit 2")
+		cid2 := session2.OutputToString()
+
+		waitSession := podmanTest.PodmanExitCleanly("wait", "--exit-first-match", "--condition", "exited", cid1, cid2)
+		waitSession.Wait(10)
+		Expect(waitSession.OutputToString()).To(Equal("2"))
+	})
 })
