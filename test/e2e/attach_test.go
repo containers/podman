@@ -11,7 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Podman attach", remoteCoreSubsetLabel, func() {
+var _ = Describe("Podman attach", func() {
 
 	It("podman attach to bogus container", func() {
 		session := podmanTest.Podman([]string{"attach", "foobar"})

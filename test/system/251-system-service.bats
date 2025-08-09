@@ -31,8 +31,11 @@ function teardown() {
     systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
     wait_for_file $PODMAN_TMPDIR/myunix.sock
 
+    (
+    unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
     run_podman --host $URL info --format '{{.Host.RemoteSocket.Path}}'
     is "$output" "$URL" "RemoteSocket.Path using unix:"
+    )
 
     systemctl stop $SERVICE_NAME
     rm -f $PODMAN_TMPDIR/myunix.sock
@@ -76,10 +79,13 @@ function teardown() {
     systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
     wait_for_port 127.0.0.1 $port
 
+    (
+    unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
     for opt in --host -H; do
         run_podman $opt $URL info --format '{{.Host.RemoteSocket.Path}}'
         is "$output" "$URL" "RemoteSocket.Path using $opt"
     done
+    )
 
     systemctl stop $SERVICE_NAME
 }

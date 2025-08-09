@@ -93,6 +93,9 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     # Start server
     _SERVICE_PORT=$(random_free_port 63000-64999)
 
+    (
+    unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
+
     # Add the connection, and run podman info *before* starting the service.
     # This should fail.
     run_podman system connection add myconnect tcp://localhost:$_SERVICE_PORT
@@ -141,6 +144,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
 
     run_podman system connection rm fakeconnect
     run_podman system connection rm myconnect
+  )
 }
 
 # If we have ssh access to localhost (unlikely in CI), test that.
@@ -185,6 +189,10 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     #   2. Env variables (CONTAINER_HOST and CONTAINER_CONNECTION)
     #   3. ActiveService from containers.conf
     #   4. RemoteURI
+
+    # Run in sub-shell where CONTAINER_HOST is guaranteed not set
+    (
+    unset CONTAINER_HOST
 
     # Prerequisite check: there must be no defined system connections
     run_podman system connection ls -q
@@ -241,6 +249,7 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     # Invalid env is fine if valid connection is given via cli
     CONTAINER_CONNECTION=invalid-env _run_podman_remote 125 --connection=cli-override ps
     assert "$output" =~ "/run/user/cli-override/podman/podman.sock" "no CONTAINER_CONNECTION connection error with valid --connection cli"
+    )
 
     # Clean up
     run_podman system connection rm defaultconnection
@@ -248,18 +257,23 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     run_podman system connection rm cli-override
 
     # With all system connections removed, test the default connection.
-    # This only works in upstream CI, where we run with a nonstandard socket.
-    # In gating we use the default /run/...
-    run_podman info --format '{{.Host.RemoteSocket.Path}}'
-    local sock="$output"
-    if [[ "$sock" =~ //run/ ]]; then
+    if [ -n "${CONTAINER_HOST}" ]; then
         _run_podman_remote --remote info --format '{{.Host.RemoteSocket.Path}}'
-        assert "$output" = "$sock" "podman-remote is using default socket path"
+        assert "$output" =~ "${CONTAINER_HOST}"
     else
-        # Nonstandard socket
-        _run_podman_remote 125 --remote ps
-        assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
-               "test absence of default connection"
+      # This only works in upstream CI, where we run with a nonstandard socket.
+      # In gating we use the default /run/...
+      run_podman info --format '{{.Host.RemoteSocket.Path}}'
+      local sock="$output"
+      if [[ "$sock" =~ //run/ ]]; then
+          _run_podman_remote --remote info --format '{{.Host.RemoteSocket.Path}}'
+          assert "$output" = "$sock" "podman-remote is using default socket path"
+      else
+          # Nonstandard socket
+          _run_podman_remote 125 --remote ps
+          assert "$output" =~ "/run/[a-z0-9/]*podman/podman.sock"\
+                 "test absence of default connection"
+      fi
     fi
 }
 
