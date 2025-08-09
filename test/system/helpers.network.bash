@@ -11,7 +11,9 @@ function has_ipv4() {
 
 # has_ipv6() - Check if one default route is available for IPv6
 function has_ipv6() {
-    [ -n "$(ip -j -6 route show | jq -rM '.[] | select(.dst == "default")')" ]
+    # Require both global IPv6 addresses AND a default route for true IPv6 connectivity
+    ip -j -6 addr show | jq -e '[.[].addr_info[] | select(.scope == "global")] | length > 0' >/dev/null &&
+    ip -j -6 route show | jq -e 'any(.dst == "default")' >/dev/null
 }
 
 # skip_if_no_ipv4() - Skip current test if IPv4 traffic can't be routed
@@ -99,16 +101,18 @@ function ipv4_to_procfs() {
 ### Addresses, Routes, Links ###################################################
 
 # ipv4_get_addr_global() - Print first global IPv4 address reported by netlink
+# Skip RFC 3927 link-local IPv4 addresses in 169.254.0.0/16 as they are not globally routable
 # $1:	Optional output of 'ip -j -4 address show' from a different context
 function ipv4_get_addr_global() {
-    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
+    local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^169\\.254\\.") | not)] | .[0].local'
     echo "${1:-$(ip -j -4 address show)}" | jq -rM "${expr}"
 }
 
 # ipv6_get_addr_global() - Print first global IPv6 address reported by netlink
+# Skip RFC 4291 link-local IPv6 addresses in fe80::/10 as they are not globally routable
 # $1:	Optional output of 'ip -j -6 address show' from a different context
 function ipv6_get_addr_global() {
-    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
+    local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^fe[89ab][0-9a-f]:") | not)] | sort_by(.local) | .[0].local'
     echo "${1:-$(ip -j -6 address show)}" | jq -rM "${expr}"
 }
 
