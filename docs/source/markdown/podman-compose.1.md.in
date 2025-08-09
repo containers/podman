@@ -7,7 +7,7 @@ podman\-compose - Run Compose workloads via an external compose provider
 **podman compose** [*options*] [*command* [*arg* ...]]
 
 ## DESCRIPTION
-**podman compose** is a thin wrapper around an external compose provider such as docker-compose or podman-compose.  This means that `podman compose` is executing another tool that implements the compose functionality but sets up the environment in a way to let the compose provider communicate transparently with the local Podman socket.  The specified options as well the command and argument are passed directly to the compose provider.
+**podman compose** is a thin wrapper around an external compose provider such as docker-compose or podman-compose.  This means that `podman compose` is executing another tool that implements the compose functionality but sets up the environment in a way to let the compose provider communicate transparently with the local Podman socket.  The specified options as well as the command and argument are passed directly to the compose provider.
 
 The default compose providers are `docker-compose` and `podman-compose`.  If installed, `docker-compose` takes precedence since it is the original implementation of the Compose specification and is widely used on the supported platforms (i.e., Linux, Mac OS, Windows).
 
