@@ -288,18 +288,39 @@ var _ = Describe("run basic podman commands", func() {
 
 	It("CVE-2025-6032 regression test - HTTP", func() {
 		// ensure that trying to pull from a local HTTP server fails and the connection will be rejected
-		testImagePullTLS(nil)
+		// ensure that tlsVerify is true by default
+		testImagePullTLS(nil, nil)
 	})
 
 	It("CVE-2025-6032 regression test - HTTPS unknown cert", func() {
-		// ensure that trying to pull from an local HTTPS server with invalid certs fails and the connection will be rejected
+		// ensure that trying to pull from a local HTTPS server with invalid certs fails and the connection will be rejected
+		// ensure that tlsVerify is true by default
 		testImagePullTLS(&TLSConfig{
 			// Key/Cert was generated with:
 			// openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -days 3650 \
 			// -nodes -keyout test-tls.key -out test-tls.crt -subj "/CN=test.podman.io" -addext "subjectAltName=IP:127.0.0.1"
 			key:  "test-tls.key",
 			cert: "test-tls.crt",
-		})
+		}, nil)
+	})
+
+	It("machine init should not fail on TLS validation with --tls-verfy=false - HTTP", func() {
+		// ensure that trying to pull from a local HTTP server doesn't fail when --tls-verify=false is set
+		tlsVerify := false
+		testImagePullTLS(nil, &tlsVerify)
+	})
+
+	It("machine init should not fail on TLS validation with --tls-verfy=false - HTTPS", func() {
+		// ensure that trying to pull from a local HTTPS server with invalid certs
+		// doesn't fail due to tls validation when --tls-verify=false is set
+		tlsVerify := false
+		testImagePullTLS(&TLSConfig{
+			// Key/Cert was generated with:
+			// openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -days 3650 \
+			// -nodes -keyout test-tls.key -out test-tls.crt -subj "/CN=test.podman.io" -addext "subjectAltName=IP:127.0.0.1"
+			key:  "test-tls.key",
+			cert: "test-tls.crt",
+		}, &tlsVerify)
 	})
 })
 
@@ -339,7 +360,7 @@ type TLSConfig struct {
 
 // setup a local webserver in the test and then point podman machine init to it
 // to verify the connection details.
-func testImagePullTLS(tls *TLSConfig) {
+func testImagePullTLS(tls *TLSConfig, tlsVerify *bool) {
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	Expect(err).ToNot(HaveOccurred())
 	serverAddr := listener.Addr().String()
@@ -367,9 +388,17 @@ func testImagePullTLS(tls *TLSConfig) {
 		}
 	}()
 
-	name := randomString()
 	i := new(initMachine)
-	session, err := mb.setName(name).setCmd(i.withImage("docker://" + serverAddr + "/testimage")).run()
+
+	i.withImage("docker://" + serverAddr + "/testimage")
+
+	if tlsVerify != nil {
+		i.withTlsVerify(tlsVerify)
+	}
+
+	name := randomString()
+	session, err := mb.setName(name).setCmd(i).run()
+
 	Expect(err).ToNot(HaveOccurred())
 	Expect(session).To(Exit(125))
 
@@ -377,7 +406,11 @@ func testImagePullTLS(tls *TLSConfig) {
 	// Error: wrong manifest type for disk artifact: text/plain
 	// As such we match the errors strings exactly to ensure we have proper error messages that indicate the TLS error.
 	expectedErr := "Error: pinging container registry " + serverAddr + ": Get \"https://" + serverAddr + "/v2/\": "
-	if tls != nil {
+
+	switch {
+	case tlsVerify != nil && *tlsVerify == false: // tls-verify explicitly disabled
+		expectedErr = "Error: wrong manifest type for disk artifact: text/plain\n"
+	case tls != nil:
 		expectedErr += "tls: failed to verify certificate: x509: "
 		if runtime.GOOS == "darwin" {
 			// Apple doesn't like such long valid certs so the error is different but the purpose
@@ -387,13 +420,18 @@ func testImagePullTLS(tls *TLSConfig) {
 		} else {
 			expectedErr += "certificate signed by unknown authority\n"
 		}
-	} else {
+	default:
+		// With both tlsVerify and tls being nil, a HTTP server will be ran and machine init should
+		// default to using tlsVerify
 		expectedErr += "http: server gave HTTP response to HTTPS client\n"
 	}
+
 	Expect(session.errorToString()).To(Equal(expectedErr))
 
 	// if the client enforces TLS verification then we should not have received any request
-	Expect(loggedRequests).To(BeEmpty(), "the server should have not process any request from the client")
+	if tlsVerify == nil || *tlsVerify == true {
+		Expect(loggedRequests).To(BeEmpty(), "the server should have not process any request from the client")
+	}
 
 	srv.Close()
 	Expect(<-serverErr).To(Equal(http.ErrServerClosed))
