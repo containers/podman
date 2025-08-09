@@ -18,7 +18,7 @@ import (
 
 var _ = Describe("Podman ps", func() {
 
-	It("podman ps no containers", remoteCoreSubsetLabel, func() {
+	It("podman ps no containers", func() {
 		session := podmanTest.Podman([]string{"ps"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -41,7 +41,7 @@ var _ = Describe("Podman ps", func() {
 		Expect(result.OutputToStringArray()).ShouldNot(BeEmpty())
 	})
 
-	It("podman ps all", remoteCoreSubsetLabel, func() {
+	It("podman ps all", func() {
 		_, ec, _ := podmanTest.RunLsContainer("")
 		Expect(ec).To(Equal(0))
 

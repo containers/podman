@@ -27,7 +27,7 @@ import (
 
 var _ = Describe("Podman run", func() {
 
-	It("podman run a container based on local image", remoteCoreSubsetLabel, func() {
+	It("podman run a container based on local image", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "ls"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -127,7 +127,7 @@ var _ = Describe("Podman run", func() {
 		}
 	})
 
-	It("podman run a container based on a complex local image name", remoteCoreSubsetLabel, func() {
+	It("podman run a container based on a complex local image name", func() {
 		imageName := strings.TrimPrefix(NGINX_IMAGE, "quay.io/")
 		session := podmanTest.Podman([]string{"run", imageName, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -222,7 +222,7 @@ var _ = Describe("Podman run", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(hostname))
 	})
 
-	It("podman run a container based on remote image", remoteCoreSubsetLabel, func() {
+	It("podman run a container based on remote image", func() {
 		// Pick any image that is not in our cache
 		session := podmanTest.Podman([]string{"run", "-dt", BB_GLIBC, "ls"})
 		session.WaitWithDefaultTimeout()
@@ -1143,7 +1143,7 @@ echo -n madeit-$teststring >$tmpfile
 		Expect("1000").To(Equal(groups))
 	})
 
-	It("podman run with attach stdin outputs container ID", remoteCoreSubsetLabel, func() {
+	It("podman run with attach stdin outputs container ID", func() {
 		session := podmanTest.Podman([]string{"run", "--attach", "stdin", ALPINE, "printenv"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -1153,26 +1153,26 @@ echo -n madeit-$teststring >$tmpfile
 		Expect(ps.OutputToString()).To(ContainSubstring(session.OutputToString()))
 	})
 
-	It("podman run with attach stdout does not print stderr", remoteCoreSubsetLabel, func() {
+	It("podman run with attach stdout does not print stderr", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stdout", ALPINE, "ls", "/doesnotexist"})
 		session.WaitWithDefaultTimeout()
 		Expect(session.OutputToString()).To(Equal(""))
 	})
 
-	It("podman run with attach stderr does not print stdout", remoteCoreSubsetLabel, func() {
+	It("podman run with attach stderr does not print stdout", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "stderr", ALPINE, "ls", "/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal(""))
 	})
 
-	It("podman run attach nonsense errors", remoteCoreSubsetLabel, func() {
+	It("podman run attach nonsense errors", func() {
 		session := podmanTest.Podman([]string{"run", "--rm", "--attach", "asdfasdf", ALPINE, "ls", "/"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(125, `invalid stream "asdfasdf" for --attach - must be one of stdin, stdout, or stderr: invalid argument`))
 	})
 
-	It("podman run error on exec", remoteCoreSubsetLabel, func() {
+	It("podman run error on exec", func() {
 		session := podmanTest.Podman([]string{"run", ALPINE, "sh", "-c", "exit 100"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitWithError(100, ""))

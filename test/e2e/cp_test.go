@@ -18,7 +18,7 @@ import (
 // care of function and regression tests.  Please consider adding system tests
 // rather than e2e tests.  System tests are used in RHEL gating.
 
-var _ = Describe("Podman cp", remoteCoreSubsetLabel, func() {
+var _ = Describe("Podman cp", func() {
 
 	// Copy a file to the container, then back to the host and make sure
 	// that the contents match.
