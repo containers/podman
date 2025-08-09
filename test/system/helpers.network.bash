@@ -100,15 +100,18 @@ function ipv4_to_procfs() {
 
 # ipv4_get_addr_global() - Print first global IPv4 address reported by netlink
 # $1:	Optional output of 'ip -j -4 address show' from a different context
+# Skip RFC 3927 link-local IPv4 addresses in 169.254.0.0/16 as they are not globally routable
 function ipv4_get_addr_global() {
-    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
+    local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^169\\.254\\.") | not)] | .[0].local'
     echo "${1:-$(ip -j -4 address show)}" | jq -rM "${expr}"
 }
 
 # ipv6_get_addr_global() - Print first global IPv6 address reported by netlink
 # $1:	Optional output of 'ip -j -6 address show' from a different context
+# Skip RFC 4291 link-local IPv6 addresses in fe80::/10 as they are not globally routable
+# Prefer permanent addresses (with mngtmpaddr) over temporary/privacy addresses
 function ipv6_get_addr_global() {
-    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
+    local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^fe[89ab][0-9a-f]:") | not)] | (map(select(.mngtmpaddr == true)) + map(select(.mngtmpaddr != true))) | .[0].local'
     echo "${1:-$(ip -j -6 address show)}" | jq -rM "${expr}"
 }
 
