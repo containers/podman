@@ -11,7 +11,9 @@ function has_ipv4() {
 
 # has_ipv6() - Check if one default route is available for IPv6
 function has_ipv6() {
-    [ -n "$(ip -j -6 route show | jq -rM '.[] | select(.dst == "default")')" ]
+    # Require both global IPv6 addresses AND a default route for true IPv6 connectivity
+    ip -j -6 addr show | jq -e '[.[].addr_info[] | select(.scope == "global")] | length > 0' >/dev/null &&
+    ip -j -6 route show | jq -e 'any(.dst == "default")' >/dev/null
 }
 
 # skip_if_no_ipv4() - Skip current test if IPv4 traffic can't be routed
