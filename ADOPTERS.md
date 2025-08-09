@@ -1,6 +1,6 @@
-# Podman Container Tools Adopters
+> **Note**: Want to add your organization to this list? Please open a PR or file an issue.
 
-Want to add your organization to this list? Please open a PR or file an issue.
+# Podman Container Tools Adopters
 
 | Type | Name | Website |
 | :---- | :---- | :---- |
@@ -29,3 +29,10 @@ Want to add your organization to this list? Please open a PR or file an issue.
 | ![Distro](https://img.shields.io/badge/Distro-8A2BE2) | Rocky Linux | https://rockylinux.org |
 | ![Distro](https://img.shields.io/badge/Distro-8A2BE2) | SUSE Linux Enterprise | https://www.suse.com/products/server |
 | ![Distro](https://img.shields.io/badge/Distro-8A2BE2) | Ubuntu | https://ubuntu.com |
+
+### Adopter Types
+![End User](https://img.shields.io/badge/End_User-blue): The organization runs Podman Container Tools in production in some way.
+
+![Integration](https://img.shields.io/badge/Integration-red): The organization has a product that integrates with Podman Container Tools, but does not contain Podman Container Tools.
+
+![Distro](https://img.shields.io/badge/Distro-8A2BE2): The Linux distribution packages and distributes Podman Container Tools.
