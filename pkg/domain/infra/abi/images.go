@@ -32,6 +32,7 @@ import (
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
+	storagetypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
@@ -536,6 +537,7 @@ func (ir *ImageEngine) Import(ctx context.Context, options entities.ImageImportO
 // Search for images using term and filters
 func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	filter, err := filter.ParseSearchFilter(opts.Filters)
+
 	if err != nil {
 		return nil, err
 	}
@@ -570,6 +572,54 @@ func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.Im
 		reports[i].Official = searchResults[i].Official
 		reports[i].Automated = searchResults[i].Automated
 		reports[i].Tag = searchResults[i].Tag
+
+		if opts.ShowHash && !opts.ListTags {
+			return nil, errors.New("--show-hash requires --list-tags")
+		} //Ensures error handling on incompatible tags
+
+		if opts.ListTags && opts.ShowHash {
+			refStr := searchResults[i].Name
+			if searchResults[i].Tag != "" {
+				refStr += ":" + searchResults[i].Tag
+			}
+			if !strings.Contains(refStr, "://") {
+				refStr = "docker://" + refStr
+			}
+
+			// Parse it into a c/image reference
+			ref, err := alltransports.ParseImageName(refStr)
+			if err != nil {
+				logrus.Debugf("parse ref %s: %v", refStr, err)
+				continue
+			}
+
+			// Use the same SystemContext as libimage does (no TLS skip, auth, etc.)
+			sysCtx := &storagetypes.SystemContext{
+				AuthFilePath:                opts.Authfile,
+				DockerCertPath:              opts.CertDir,
+				DockerInsecureSkipTLSVerify: opts.SkipTLSVerify,
+				DockerDaemonHost:            "", // not needed for registry
+			}
+
+			// Open the source and fetch the manifest
+			imgSrc, err := ref.NewImageSource(ctx, sysCtx)
+			if err != nil {
+				logrus.Debugf("new image source %s: %v", refStr, err)
+				continue
+			}
+			defer imgSrc.Close()
+
+			manifestBytes, _, err := imgSrc.GetManifest(ctx, nil)
+			if err != nil {
+				logrus.Debugf("get manifest %s: %v", refStr, err)
+				continue
+			}
+
+			// Compute the content digest of the manifest
+			d := digest.FromBytes(manifestBytes)
+			reports[i].Hash = d.String()
+		}
+
 	}
 
 	return reports, nil
