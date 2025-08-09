@@ -3,7 +3,7 @@
 # Podman Container Tools Adopters
 
 | Type | Name | Website |
-| :---- | :---- | :---- |
+|:-|:-|:-|
 | ![End User](https://img.shields.io/badge/End_User-blue) | Amadeus IT Group | https://amadeus.com |
 | ![End User](https://img.shields.io/badge/End_User-blue) | IBM | https://www.ibm.com |
 | ![End User](https://img.shields.io/badge/End_User-blue) | NTT Global | https://www.global.ntt |
@@ -31,8 +31,10 @@
 | ![Distro](https://img.shields.io/badge/Distro-8A2BE2) | Ubuntu | https://ubuntu.com |
 
 ### Adopter Types
-![End User](https://img.shields.io/badge/End_User-blue): The organization runs Podman Container Tools in production in some way.
 
-![Integration](https://img.shields.io/badge/Integration-red): The organization has a product that integrates with Podman Container Tools, but does not contain Podman Container Tools.
+| Type | Description |
+|:-|:-|
+| ![End User](https://img.shields.io/badge/End_User-blue) | The organization runs Podman Container Tools in production in some way. |
+| ![Integration](https://img.shields.io/badge/Integration-red) | The organization has a product that integrates with Podman Container Tools, but does not contain Podman Container Tools. |
+| ![Distro](https://img.shields.io/badge/Distro-8A2BE2) | The Linux distribution packages and distributes Podman Container Tools. |
 
-![Distro](https://img.shields.io/badge/Distro-8A2BE2): The Linux distribution packages and distributes Podman Container Tools.
