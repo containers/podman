@@ -119,6 +119,36 @@ Deleted Images
 055733a33e7a78efa27d3c682df97a9e0489133bef071745144c8d0edda2d708
 Total reclaimed space: 1.4GB
 ```
+Prune containers by label.
+```
+$ podman system prune --filter label=role=cleanup
+WARNING! This command removes:
+        - all stopped containers
+        - all networks not used by at least one container
+        - all dangling images
+        - all dangling build cache
+
+Are you sure you want to continue? [y/N] y
+Deleted Containers
+5cd96fb787274db888f8b587c3690be1edea25b7f66b030037c528e2cea10b34
+Total reclaimed space: 24.55kB
+```
+
+Prune containers filter until.
+$ podman system prune --filter until=2m
+WARNING! This command removes:
+        - all stopped containers
+        - all networks not used by at least one container
+        - all dangling images
+        - all dangling build cache
+
+Are you sure you want to continue? [y/N] y
+Deleted Containers
+a12f9f6f2d901bc145c1e2c27dc8e5e2d04050854f4d9e01a6e10b1019e2d345
+0d08f2e467cbff04b63ccd83efeb6ccc6161f54c27d5100d1194defe7ea73cf7
+815dc403e1bc85bfa4a9d3184cbbe77fd019ea66780bf0b42e8726d5956d9bd3
+Total reclaimed space: 74.14kB
+```
 
 With `--force` flag
 ```

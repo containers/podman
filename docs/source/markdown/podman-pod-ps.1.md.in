@@ -185,6 +185,82 @@ POD ID         NAME   STATUS    CREATED        INFRA ID       NAMES
 314f4da82d74   hi     Created   17 hours ago   a9f2d2165675   jovial_jackson,hopeful_archimedes,vibrant_ptolemy,heuristic_jennings,keen_raman,hopeful_newton,mystifying_bose,silly_lalande,serene_lichterman ...
 ```
 
+List all running pods with container IDs
+```
+$ podman pod ps --filter ctr-ids=aceb3b775797
+POD ID        NAME        STATUS      CREATED        INFRA ID      # OF CONTAINERS
+952330c7cff0  web-app     Running     3 minutes ago  b0f247c49669  3
+```
+
+List all pods with exactly 2 containers
+```
+$ podman pod ps --filter ctr-number=2
+POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS
+b2ae050d17be  labeled-pod  Running     2 minutes ago  fda2a486b939  2
+```
+
+List pods with containers in `exited` status
+```
+$ podman pod ps --filter ctr-status=exited
+POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS
+06c3a107763a  maintenance  Degraded    4 minutes ago  67e500cbb678  3
+1e3424d7e9c0  db-cluster   Degraded    4 minutes ago  d6650a490b69  3
+```
+
+List all current pods
+```
+$ podman pod ps
+POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS
+95938982244d  nettest      Running     4 minutes ago  a28d133e8c63  3
+deee8956522e  utility      Running     4 minutes ago  6b730e3ac334  3
+06c3a107763a  maintenance  Degraded    4 minutes ago  67e500cbb678  3
+1e3424d7e9c0  db-cluster   Degraded    4 minutes ago  d6650a490b69  3
+952330c7cff0  web-app      Running     4 minutes ago  b0f247c49669  3
+```
+
+Filter pod by ID
+```
+$ podman pod ps --filter id=95938982244d
+POD ID        NAME        STATUS      CREATED        INFRA ID      # OF CONTAINERS
+95938982244d  nettest     Running     4 minutes ago  a28d133e8c63  3
+```
+
+Filter pod by label
+```
+$ podman pod ps --filter label=tier=frontend
+POD ID        NAME         STATUS      CREATED       INFRA ID      # OF CONTAINERS
+b2ae050d17be  labeled-pod  Running     1 second ago  fda2a486b939  2
+```
+
+Filter pod by name
+```
+$ podman pod ps --filter name=db-cluster
+POD ID        NAME        STATUS      CREATED        INFRA ID      # OF CONTAINERS
+1e3424d7e9c0  db-cluster  Degraded    4 minutes ago  d6650a490b69  3
+```
+
+Filter pod by pod status (e.g., Degraded)
+```
+$ podman pod ps --filter status=degraded
+POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS
+95938982244d  nettest      Degraded    7 minutes ago  a28d133e8c63  3
+06c3a107763a  maintenance  Degraded    8 minutes ago  67e500cbb678  3
+1e3424d7e9c0  db-cluster   Degraded    8 minutes ago  d6650a490b69  3
+952330c7cff0  web-app      Degraded    8 minutes ago  b0f247c49669  3
+```
+
+Filter pods created before a time threshold (`--until`)
+```
+$ podman pod ps --filter until=2m
+POD ID        NAME         STATUS      CREATED        INFRA ID      # OF CONTAINERS
+b2ae050d17be  labeled-pod  Running     3 minutes ago  fda2a486b939  2
+95938982244d  nettest      Degraded    8 minutes ago  a28d133e8c63  3
+deee8956522e  utility      Running     8 minutes ago  6b730e3ac334  3
+06c3a107763a  maintenance  Degraded    8 minutes ago  67e500cbb678  3
+1e3424d7e9c0  db-cluster   Degraded    8 minutes ago  d6650a490b69  3
+952330c7cff0  web-app      Degraded    8 minutes ago  b0f247c49669  3
+```
+
 ## pod ps
 Print a list of pods
 

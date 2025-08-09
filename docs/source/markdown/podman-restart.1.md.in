@@ -93,6 +93,61 @@ $ podman restart --cidfile /home/user/cidfile-1
 $ podman restart --cidfile /home/user/cidfile-1 --cidfile ./cidfile-2
 ```
 
+Restart container by name.
+```
+$ podman restart --filter name=id-name-test
+```
+
+Restart container by label.
+```
+$ podman restart --filter label=app=label-test
+```
+
+Restart container by exit code.
+```
+$ podman restart --filter exited=0
+```
+
+Restart container by status.
+```
+$ podman restart --filter status=running
+```
+
+Restart container by ancestor image.
+```
+$ podman restart --filter ancestor=nginx
+```
+
+Restart containers created before another.
+```
+$ podman restart --filter before=second
+```
+
+Restart containers created since another.
+```
+$ podman restart --filter since=first
+```
+
+Restart container by volume.
+```
+$ podman restart --filter volume=vol-filter
+```
+
+Restart containers in a pod.
+```
+$ podman restart --filter pod=mypod
+```
+
+Restart container by network.
+```
+$ podman restart --filter network=net-filter
+```
+
+Restart containers created until time.
+```
+$ podman restart --filter until=10s
+```
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**
 
