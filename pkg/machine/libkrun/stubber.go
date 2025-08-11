@@ -22,6 +22,10 @@ const (
 	localhostURI  = "http://localhost"
 )
 
+var (
+	exclusiveActive = true
+)
+
 type LibKrunStubber struct {
 	vmconfigs.AppleHVConfig
 }
@@ -129,8 +133,12 @@ func (l *LibKrunStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) boo
 	return false
 }
 
+func (l *LibKrunStubber) SetExclusiveActive(exclusive bool) {
+	exclusiveActive = exclusive
+}
+
 func (l *LibKrunStubber) RequireExclusiveActive() bool {
-	return true
+	return exclusiveActive
 }
 
 func (l *LibKrunStubber) UpdateSSHPort(_ *vmconfigs.MachineConfig, _ int) error {

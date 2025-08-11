@@ -38,6 +38,7 @@ type QEMUStubber struct {
 var (
 	gvProxyWaitBackoff        = 500 * time.Millisecond
 	gvProxyMaxBackoffAttempts = 6
+	exclusiveActive           = true
 )
 
 func (q *QEMUStubber) UserModeNetworkEnabled(*vmconfigs.MachineConfig) bool {
@@ -48,8 +49,12 @@ func (q *QEMUStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) bool {
 	return false
 }
 
+func (q *QEMUStubber) SetExclusiveActive(exclusive bool) {
+	exclusiveActive = exclusive
+}
+
 func (q *QEMUStubber) RequireExclusiveActive() bool {
-	return true
+	return exclusiveActive
 }
 
 func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {

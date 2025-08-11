@@ -19,10 +19,13 @@ import (
 	"go.podman.io/podman/v6/utils"
 )
 
-// applehcMACAddress is a pre-defined mac address that vfkit recognizes
+// applehvMACAddress is a pre-defined mac address that vfkit recognizes
 // and is required for network flow
 
-var vfkitCommand = "vfkit"
+var (
+	vfkitCommand    = "vfkit"
+	exclusiveActive = true
+)
 
 type AppleHVStubber struct {
 	vmconfigs.AppleHVConfig
@@ -36,8 +39,12 @@ func (a *AppleHVStubber) UseProviderNetworkSetup(_ *vmconfigs.MachineConfig) boo
 	return false
 }
 
+func (a *AppleHVStubber) SetExclusiveActive(exclusive bool) {
+	exclusiveActive = exclusive
+}
+
 func (a *AppleHVStubber) RequireExclusiveActive() bool {
-	return true
+	return exclusiveActive
 }
 
 func (a *AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) error {
