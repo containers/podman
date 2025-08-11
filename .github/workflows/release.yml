@@ -66,7 +66,7 @@ jobs:
     needs: check
     steps:
     - name: Checkout Version
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         ref: ${{needs.check.outputs.version}}
     - name: Set up Go
@@ -103,7 +103,7 @@ jobs:
       KEYCHAIN_PWD: ${{ secrets.MACOS_CI_KEYCHAIN_PWD }}
     steps:
     - name: Checkout Version
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         ref: ${{needs.check.outputs.version}}
     - name: Set up Go
@@ -161,7 +161,7 @@ jobs:
           }
         Write-Output "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
     - name: Checkout Podman
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Download Windows zip artifact
       uses: actions/download-artifact@v5
     - name: Set up Go
@@ -240,7 +240,7 @@ jobs:
       VERSION: ${{needs.check.outputs.version}}
     steps:
     - name: Checkout Version
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         ref: ${{needs.check.outputs.version}}
     - name: Get release notes

@@ -8,7 +8,7 @@ jobs:
     name: Bump to -dev
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.ref_name }}
           token: ${{ secrets.PODMANBOT_TOKEN }}
@@ -80,7 +80,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: main
           token: ${{ secrets.PODMANBOT_TOKEN }}
