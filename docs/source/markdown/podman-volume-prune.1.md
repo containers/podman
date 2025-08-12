@@ -21,6 +21,8 @@ Provide filter values.
 
 The *filters* argument format is of `key=value`. If there is more than one *filter*, then pass multiple OPTIONS: **--filter** *foo=bar* **--filter** *bif=baz*.
 
+Filters with the same key work inclusive (OR logic). Filters with different keys always work exclusive (AND logic).
+
 Supported filters:
 
 | Filter      | Description                                                                                                |

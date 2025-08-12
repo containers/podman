@@ -192,4 +192,74 @@ var _ = Describe("Podman volume prune", func() {
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol1))
 	})
+
+	It("podman volume prune filters should combine with AND logic", func() {
+		// Create volumes with different label combinations to test AND logic
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "prune-vol-with-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithA := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "c=d", "prune-vol-with-c"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithC := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "--label", "c=d", "prune-vol-with-both"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithBoth := session.OutputToString()
+
+		// Verify all volumes exist before pruning
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		Expect(session.OutputToStringArray()).To(HaveLen(3)) // 3 created volumes
+
+		// Test AND logic: only volumes with both label=a=b AND label=c=d should be pruned
+		session = podmanTest.Podman([]string{"volume", "prune", "-f", "--filter", "label=a=b", "--filter", "label=c=d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Check remaining volumes - only volWithBoth should be pruned
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		remaining := session.OutputToStringArray()
+		Expect(remaining).To(HaveLen(2)) // 2 remaining volumes
+		Expect(remaining).To(ContainElement(volWithA))
+		Expect(remaining).To(ContainElement(volWithC))
+		Expect(remaining).NotTo(ContainElement(volWithBoth))
+
+		// Clean up for next test
+		session = podmanTest.Podman([]string{"volume", "prune", "-f"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Create new volumes for next test
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "prune-vol-with-a2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithA2 := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "--label", "c=d", "prune-vol-with-both2"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithBoth2 := session.OutputToString()
+
+		// Test AND logic: label=a=b AND label!=c=d should only prune volumes with a=b but without c=d
+		session = podmanTest.Podman([]string{"volume", "prune", "-f", "--filter", "label=a=b", "--filter", "label!=c=d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Check remaining volumes - only volWithA2 should be pruned, volWithBoth2 should remain
+		session = podmanTest.Podman([]string{"volume", "ls", "-q"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		remaining = session.OutputToStringArray()
+		Expect(remaining).To(HaveLen(1)) // 1 remaining volume
+		Expect(remaining).To(ContainElement(volWithBoth2))
+		Expect(remaining).NotTo(ContainElement(volWithA2))
+	})
+
 })

@@ -4,6 +4,7 @@ package integration
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -214,6 +215,118 @@ var _ = Describe("Podman volume ls", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToStringArray()).To(HaveLen(1))
 		Expect(session.OutputToStringArray()[0]).To(Equal(vol3Name))
+	})
+
+	It("podman ls volume filters should combine with AND logic", func() {
+		// Create volumes with different label combinations to test AND logic
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "vol-with-a"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithA := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "c=d", "vol-with-c"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithC := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "--label", "c=d", "vol-with-both"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volWithBoth := session.OutputToString()
+
+		// Sleep to ensure time difference for until filter
+		time.Sleep(1100 * time.Millisecond)
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "a=b", "vol-new"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volNew := session.OutputToString()
+
+		// Test AND logic: both label=a=b AND label=c=d must match
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=a=b", "--filter", "label=c=d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// Only vol-with-both should match when filters are combined with AND
+		Expect(session.OutputToStringArray()).To(HaveLen(1))
+		Expect(session.OutputToStringArray()[0]).To(Equal(volWithBoth))
+
+		// Test AND logic: label=a=b AND label!=c=d must match
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=a=b", "--filter", "label!=c=d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// Only volWithA and volNew should match (have a=b but not c=d)
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToStringArray()).To(ContainElement(volWithA))
+		Expect(session.OutputToStringArray()).To(ContainElement(volNew))
+
+		// Test that individual filters still work correctly
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=a=b"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// Should match all volumes with a=b label
+		Expect(session.OutputToStringArray()).To(HaveLen(3))
+		Expect(session.OutputToStringArray()).To(ContainElement(volWithA))
+		Expect(session.OutputToStringArray()).To(ContainElement(volWithBoth))
+		Expect(session.OutputToStringArray()).To(ContainElement(volNew))
+
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label!=c=d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// Should match all volumes without c=d label
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToStringArray()).To(ContainElement(volWithA))
+		Expect(session.OutputToStringArray()).To(ContainElement(volNew))
+
+		// Test filtering for volumes with c=d label
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=c=d"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		// Should match volumes with c=d label
+		Expect(session.OutputToStringArray()).To(HaveLen(2))
+		Expect(session.OutputToStringArray()).To(ContainElement(volWithC))
+		Expect(session.OutputToStringArray()).To(ContainElement(volWithBoth))
+	})
+
+	It("podman ls volume filter within-key OR logic combined with cross-key AND logic", func() {
+		// Test that values within the same filter key use OR, but different keys use AND
+		session := podmanTest.Podman([]string{"volume", "create", "--label", "env=prod", "vol-prod"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volProd := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "env=dev", "vol-dev"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volDev := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "env=test", "vol-test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volTest := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "env=prod", "--label", "team=alpha", "vol-prod-alpha"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volProdAlpha := session.OutputToString()
+
+		session = podmanTest.Podman([]string{"volume", "create", "--label", "env=dev", "--label", "team=alpha", "vol-dev-alpha"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		volDevAlpha := session.OutputToString()
+
+		// Test: env=(prod OR dev) AND team=alpha - should match volumes with team=alpha AND (env=prod OR env=dev)
+		session = podmanTest.Podman([]string{"volume", "ls", "-q", "--filter", "label=env=prod", "--filter", "label=env=dev", "--filter", "label=team=alpha"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+		result := session.OutputToStringArray()
+
+		// Should match both volumes that have team=alpha AND have either env=prod OR env=dev
+		Expect(result).To(HaveLen(2))
+		Expect(result).To(ContainElement(volProdAlpha))
+		Expect(result).To(ContainElement(volDevAlpha))
+		// Should not match volumes without team=alpha, even if they have the right env
+		Expect(result).NotTo(ContainElement(volProd))
+		Expect(result).NotTo(ContainElement(volDev))
+		Expect(result).NotTo(ContainElement(volTest))
 	})
 
 	It("podman ls volume with --filter since/after", func() {
