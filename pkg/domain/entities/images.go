@@ -17,7 +17,7 @@ type ImageSummary = entitiesTypes.ImageSummary
 type ImageRemoveOptions struct {
 	// All will remove all images.
 	All bool
-	// Foce will force image removal including containers using the images.
+	// Force will force image removal including containers using the images.
 	Force bool
 	// Ignore if a specified image does not exist and do not throw an error.
 	Ignore bool
