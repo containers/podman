@@ -430,6 +430,103 @@ class ArtifactTestCase(APITestCase):
         # Assert return response is json and contains digest
         self.assertIn("sha256:", rjson["ArtifactDigests"][0])
 
+    def test_remove_multiple(self):
+        # Create some artifacts to remove
+        artifact_names = [
+            "quay.io/myimage/myartifact1:latest",
+            "quay.io/myimage/myartifact2:latest",
+            "quay.io/myimage/myartifact3:latest"
+        ]
+
+        for name in artifact_names:
+            file = ArtifactFile()
+            parameters: dict[str, str | list[str]] = {
+                "name": name,
+                "fileName": file.name,
+            }
+
+            artifact = Artifact(self.uri(""), name, parameters, file)
+
+            add_response = artifact.add()
+
+            # Assert correct response code
+            self.assertEqual(add_response.status_code, 201, add_response.text)
+
+        # Test remove multiple artifacts
+        removeparameters: dict[str, str | list[str]] = {
+            "Artifacts": artifact_names,
+        }
+
+        url = self.uri("/artifacts/remove")
+        r = requests.delete(url, params=removeparameters)
+        rjson = r.json()
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 200, r.text)
+
+        # Assert return response is valid json and contains multiple digests
+        self.assertEqual(len(rjson["ArtifactDigests"]), len(artifact_names))
+
+        # Test removing an artifact that doesn't exist
+        removeparameters: dict[str, str | list[str]] = {
+            "Artifacts": "fake_artifact",
+        }
+
+        url = self.uri("/artifacts/remove")
+        r = requests.delete(url, params=removeparameters)
+        rjson = r.json()
+        print(r)
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 404, r.text)
+
+        # Assert return error response is json and contains correct message
+        self.assertEqual(
+            rjson["cause"],
+            "artifact does not exist",
+        )
+
+
+    def test_remove_all(self):
+        # Create some artifacts to remove
+        artifact_names = [
+            "quay.io/myimage/myartifact1:latest",
+            "quay.io/myimage/myartifact2:latest",
+            "quay.io/myimage/myartifact3:latest"
+        ]
+
+        for name in artifact_names:
+            file = ArtifactFile()
+            parameters: dict[str, str | list[str]] = {
+                "name": name,
+                "fileName": file.name,
+            }
+
+            artifact = Artifact(self.uri(""), name, parameters, file)
+
+            add_response = artifact.add()
+
+            # Assert correct response code
+            self.assertEqual(add_response.status_code, 201, add_response.text)
+
+        # Test remove all artifacts
+        removeparameters: dict[str, str | list[str]] = {
+            "all": "true",
+        }
+
+        url = self.uri("/artifacts/remove")
+        r = requests.delete(url, params=removeparameters)
+        rjson = r.json()
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 200, r.text)
+
+        # Assert no artifacts remain
+        url = self.uri("/artifacts/json")
+        r = requests.get(url)
+        rjson = r.json()
+        self.assertEqual(len(rjson), 0)
+
     def test_remove_absent_artifact_fails(self):
         ARTIFACT_NAME = "localhost/fake/artifact:latest"
         url = self.uri("/artifacts/" + ARTIFACT_NAME)

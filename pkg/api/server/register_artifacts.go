@@ -94,6 +94,33 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//   500:
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/artifacts/pull"), s.APIHandler(libpod.PullArtifact)).Methods(http.MethodPost)
+	// swagger:operation DELETE /libpod/artifacts/remove libpod ArtifactDeleteAllLibpod
+	// ---
+	// tags:
+	//  - artifacts
+	// summary: Remove one or more Artifacts from local storage.
+	// description: Remove one or more Artifacts from local storage.
+	// produces:
+	//  - application/json
+	// parameters:
+	//  - name: artifacts
+	//    in: query
+	//    description: Artifact IDs or names to remove
+	//    type: array
+	//    items:
+	//        type: string
+	//  - name: all
+	//    in: query
+	//    description: Remove all Artifacts
+	//    type: boolean
+	// responses:
+	//   200:
+	//     $ref: "#/responses/artifactRemoveResponse"
+	//   404:
+	//     $ref: "#/responses/artifactNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.Handle(VersionedPath("/libpod/artifacts/remove"), s.APIHandler(libpod.BatchRemoveArtifact)).Methods(http.MethodDelete)
 	// swagger:operation DELETE /libpod/artifacts/{name} libpod ArtifactDeleteLibpod
 	// ---
 	// tags:
