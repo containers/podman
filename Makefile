@@ -153,6 +153,7 @@ GINKGO_NO_COLOR ?= y
 # The type of transport to use for testing remote service.
 # Must be one of unix, tcp, tls, mtls
 REMOTE_TESTING_TRANSPORT=unix
+export REMOTE_TESTING_TRANSPORT
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -687,7 +688,7 @@ ginkgo:
 
 .PHONY: ginkgo-remote
 ginkgo-remote:
-	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing remote_$(REMOTE_TESTING_TRANSPORT)_testing"
+	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing"
 
 .PHONY: testbindings
 # bindings tests need access to podman-registry
@@ -707,13 +708,6 @@ localmachine:
 	@echo /define.gitCommit=$(GIT_COMMIT)
 	$(MAKE) ginkgo-run GINKGO_PARALLEL=n TAGS="$(REMOTETAGS)" GINKGO_FLAKE_ATTEMPTS=0 FOCUS_FILE=$(FOCUS_FILE) GINKGOWHAT=pkg/machine/e2e/.
 
-.PHONY: localsystem
-localsystem:
-	# Wipe existing config, database, and cache: start with clean slate.
-	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags '!ci:parallel' test/system/
-	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
-
 REMOTESYSTEM_TCP_PORT ?= 8080
 REMOTESYSTEM_TLS_CA_CRT ?= $(CURDIR)/bin/remotesystem.ca.crt.pem
 REMOTESYSTEM_TLS_CA_KEY ?= $(CURDIR)/bin/remotesystem.ca.key.pem
@@ -726,50 +720,28 @@ REMOTESYSTEM_TLS_BOGUS_KEY ?= $(CURDIR)/bin/remotesystem.bogus.key.pem
 
 export \
 	REMOTESYSTEM_TCP_PORT \
-	REMOTESYSTEM_TLS_CA_CRT \
+	REMOTESYSTEM_TLS_CA_KEY \
 	REMOTESYSTEM_TLS_CA_CRT \
 	REMOTESYSTEM_TLS_SERVER_CRT \
 	REMOTESYSTEM_TLS_SERVER_KEY \
 	REMOTESYSTEM_TLS_CLIENT_CRT \
-	REMOTESYSTEM_TLS_CLIENT_KEY
+	REMOTESYSTEM_TLS_CLIENT_KEY \
+	REMOTESYSTEM_TLS_BOGUS_CRT \
+	REMOTESYSTEM_TLS_BOGUS_KEY
 
-$(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_CA_KEY) &:
-	openssl req -x509 \
-		-nodes \
-		-newkey rsa:4096 -keyout $(REMOTESYSTEM_TLS_CA_KEY) \
-		-out $(REMOTESYSTEM_TLS_CA_CRT) \
-		-days 1 \
-		-subj "/C=??/ST=System/L=Test/O=Containers/OU=Podman/CN=ca" \
-		-addext basicConstraints=critical,CA:TRUE,pathlen:1
+$(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_CA_KEY) \
+$(REMOTESYSTEM_TLS_CLIENT_CRT) $(REMOTESYSTEM_TLS_CLIENT_KEY) \
+$(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTESYSTEM_TLS_SERVER_KEY) \
+$(REMOTESYSTEM_TLS_BOGUS_CRT) $(REMOTESYSTEM_TLS_BOGUS_KEY) \
+&:
+	source hack/remotesystem.env ; remotesystem-gen-tls
 
-$(REMOTESYSTEM_TLS_BOGUS_CRT) $(REMOTESYSTEM_TLS_BOGUS_KEY) &:
-	openssl req -x509 \
-		-nodes \
-		-newkey rsa:4096 -keyout $(REMOTESYSTEM_TLS_BOGUS_KEY) \
-		-out $(REMOTESYSTEM_TLS_BOGUS_CRT) \
-		-days 1 \
-		-subj "/C=??/ST=System/L=Test/O=Containers/OU=Podman/CN=bogus"
-
-$(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTESYSTEM_TLS_SERVER_KEY) &: $(REMOTESYSTEM_TLS_CA_KEY) $(REMOTESYSTEM_TLS_CA_CRT)
-	# NOTE: Go refuses certs without SAN's
-	openssl req -x509 \
-		-nodes \
-		-CA $(REMOTESYSTEM_TLS_CA_CRT) -CAkey $(REMOTESYSTEM_TLS_CA_KEY) \
-		-newkey rsa:4096 -keyout $(REMOTESYSTEM_TLS_SERVER_KEY) \
-		-out $(REMOTESYSTEM_TLS_SERVER_CRT) \
-		-days 1 \
-		-subj "/C=??/ST=System/L=Test/O=Containers/OU=Podman/CN=localhost" \
-		-addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
-
-
-$(REMOTESYSTEM_TLS_CLIENT_CRT) $(REMOTESYSTEM_TLS_CLIENT_KEY) &: $(REMOTESYSTEM_TLS_CA_KEY) $(REMOTESYSTEM_TLS_CA_CRT)
-	openssl req -x509 \
-		-nodes \
-		-CA $(REMOTESYSTEM_TLS_CA_CRT) -CAkey $(REMOTESYSTEM_TLS_CA_KEY) \
-		-newkey rsa:4096 -keyout $(REMOTESYSTEM_TLS_CLIENT_KEY) \
-		-out $(REMOTESYSTEM_TLS_CLIENT_CRT) \
-		-days 1 \
-		-subj "/C=??/ST=System/L=Test/O=Containers/OU=Podman/CN=client"
+.PHONY: localsystem
+localsystem: $(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTESYSTEM_TLS_CLIENT_CRT) $(REMOTESYSTEM_TLS_BOGUS_CRT)
+	# Wipe existing config, database, and cache: start with clean slate.
+	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
+	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags '!ci:parallel' test/system/
+	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
 
 
 .PHONY: remotesystem

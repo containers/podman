@@ -147,6 +147,136 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
   )
 }
 
+# Test tcp socket with server authentication; requires starting a local server
+@test "podman system connection - tls" {
+    # Start server
+    _SERVICE_PORT=$(random_free_port 63000-64999)
+
+    (
+      unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
+
+    # Add the connection, and run podman info *before* starting the service.
+    # This should fail.
+    run_podman system connection add myconnect tcp://localhost:$_SERVICE_PORT \
+      --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}"
+    # IMPORTANT NOTE: in CI, podman-remote is tested by setting PODMAN
+    # to "podman-remote --url sdfsdf". This of course overrides the default
+    # podman-remote action. Our solution: strip off the "--url xyz" part
+    # when invoking podman.
+    _run_podman_remote 125 info
+    is "$output" \
+       "OS: .*provider:.*Cannot connect to Podman. Please verify.*dial tcp.*connection refused" \
+       "podman info, without active service"
+
+    # Start service. Now podman info should work fine. The %%-remote*
+    # converts "podman-remote --opts" to just "podman", which is what
+    # we need for the server.
+    ${PODMAN%%-remote*} $(podman_isolation_opts ${PODMAN_TMPDIR}) \
+                        system service -t 99 \
+                        --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}" \
+                        --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
+                        tcp://localhost:$_SERVICE_PORT &
+    _SERVICE_PID=$!
+    # Wait for the port and the podman-service to be ready.
+    wait_for_port 127.0.0.1 $_SERVICE_PORT
+    local timeout=10
+    while [[ $timeout -gt 1 ]]; do
+        _run_podman_remote '?' info --format '{{.Host.RemoteSocket.Path}}'
+        if [[ $status == 0 ]]; then
+            break
+        fi
+        sleep 1
+        let timeout=$timeout-1
+    done
+    is "$output" "tcp://localhost:$_SERVICE_PORT" \
+       "podman info works, and talks to the correct server"
+
+    _run_podman_remote info --format '{{.Store.GraphRoot}}'
+    is "$output" "${PODMAN_TMPDIR}/root" \
+       "podman info, talks to the right service"
+
+    # Add another connection; make sure it does not get set as default
+    _run_podman_remote system connection add fakeconnect tcp://localhost:$(( _SERVICE_PORT + 1))
+    _run_podman_remote info --format '{{.Store.GraphRoot}}'
+    # (Don't bother checking output; we just care about exit status)
+
+    # Stop server. Use 'run' to avoid failing on nonzero exit status
+    run kill $_SERVICE_PID
+    run wait $_SERVICE_PID
+    _SERVICE_PID=
+
+    run_podman system connection rm fakeconnect
+    run_podman system connection rm myconnect
+  )
+}
+
+# Test tcp socket with mutual authentication; requires starting a local server
+@test "podman system connection - mtls" {
+    # Start server
+    _SERVICE_PORT=$(random_free_port 63000-64999)
+
+    (
+      unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
+
+    # Add the connection, and run podman info *before* starting the service.
+    # This should fail.
+    run_podman system connection add myconnect tcp://localhost:$_SERVICE_PORT \
+      --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
+      --tls-cert="${REMOTESYSTEM_TLS_CLIENT_CRT}" \
+      --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}"
+
+    # IMPORTANT NOTE: in CI, podman-remote is tested by setting PODMAN
+    # to "podman-remote --url sdfsdf". This of course overrides the default
+    # podman-remote action. Our solution: strip off the "--url xyz" part
+    # when invoking podman.
+    _run_podman_remote 125 info
+    is "$output" \
+       "OS: .*provider:.*Cannot connect to Podman. Please verify.*dial tcp.*connection refused" \
+       "podman info, without active service"
+
+    # Start service. Now podman info should work fine. The %%-remote*
+    # converts "podman-remote --opts" to just "podman", which is what
+    # we need for the server.
+    ${PODMAN%%-remote*} $(podman_isolation_opts ${PODMAN_TMPDIR}) \
+                        system service -t 99 \
+                        --tls-client-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
+                        --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}" \
+                        --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
+                        tcp://localhost:$_SERVICE_PORT &
+    _SERVICE_PID=$!
+    # Wait for the port and the podman-service to be ready.
+    wait_for_port 127.0.0.1 $_SERVICE_PORT
+    local timeout=10
+    while [[ $timeout -gt 1 ]]; do
+        _run_podman_remote '?' info --format '{{.Host.RemoteSocket.Path}}'
+        if [[ $status == 0 ]]; then
+            break
+        fi
+        sleep 1
+        let timeout=$timeout-1
+    done
+    is "$output" "tcp://localhost:$_SERVICE_PORT" \
+       "podman info works, and talks to the correct server"
+
+    _run_podman_remote info --format '{{.Store.GraphRoot}}'
+    is "$output" "${PODMAN_TMPDIR}/root" \
+       "podman info, talks to the right service"
+
+    # Add another connection; make sure it does not get set as default
+    _run_podman_remote system connection add fakeconnect tcp://localhost:$(( _SERVICE_PORT + 1))
+    _run_podman_remote info --format '{{.Store.GraphRoot}}'
+    # (Don't bother checking output; we just care about exit status)
+
+    # Stop server. Use 'run' to avoid failing on nonzero exit status
+    run kill $_SERVICE_PID
+    run wait $_SERVICE_PID
+    _SERVICE_PID=
+
+    run_podman system connection rm fakeconnect
+    run_podman system connection rm myconnect
+  )
+}
+
 # If we have ssh access to localhost (unlikely in CI), test that.
 @test "podman system connection - ssh" {
     # system connection only really works if we have an agent
