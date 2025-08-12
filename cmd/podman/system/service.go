@@ -3,6 +3,7 @@
 package system
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -113,6 +114,13 @@ func service(cmd *cobra.Command, args []string) error {
 			mask := syscall.Umask(0177)
 			defer syscall.Umask(mask)
 		}
+	}
+
+	if len(srvArgs.TLSCertFile) != 0 && len(srvArgs.TLSKeyFile) == 0 {
+		return fmt.Errorf("--tls-cert provided without --tls-key")
+	}
+	if len(srvArgs.TLSKeyFile) != 0 && len(srvArgs.TLSCertFile) == 0 {
+		return fmt.Errorf("--tls-key provided without --tls-cert")
 	}
 
 	return restService(cmd.Flags(), registry.PodmanConfig(), entities.ServiceOptions{

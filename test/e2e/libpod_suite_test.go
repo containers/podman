@@ -26,6 +26,12 @@ func (p *PodmanTestIntegration) PodmanWithOptions(options PodmanExecOptions, arg
 	return &PodmanSessionIntegration{podmanSession}
 }
 
+func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
+	pti := PodmanTestCreateUtil(tempDir, PodmanTestCreateUtilTargetLocal)
+	pti.StartRemoteService()
+	return pti
+}
+
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := "registries.conf"
 	if UsingCacheRegistry() {
@@ -45,10 +51,6 @@ func (p *PodmanTestIntegration) setRegistriesConfigEnv(b []byte) {
 
 func resetRegistriesConfigEnv() {
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", "")
-}
-
-func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
-	return PodmanTestCreateUtil(tempDir, PodmanTestCreateUtilTargetLocal)
 }
 
 // RestoreArtifact puts the cached image into our test store

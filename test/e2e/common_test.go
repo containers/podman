@@ -286,15 +286,17 @@ func getPodmanBinary(cwd string) string {
 	return podmanBinary
 }
 
-type PodmanTestCreateUtilTarget int
+type PodmanTestCreateUtilTarget string
 
 const (
-	PodmanTestCreateUtilTargetLocal = iota
-	PodmanTestCreateUtilTargetUnix
-	PodmanTestCreateUtilTargetTCP
-	PodmanTestCreateUtilTargetTLS
-	PodmanTestCreateUtilTargetMTLS
+	PodmanTestCreateUtilTargetLocal = ""
+	PodmanTestCreateUtilTargetUnix  = "unix"
+	PodmanTestCreateUtilTargetTCP   = "tcp"
+	PodmanTestCreateUtilTargetTLS   = "tls"
+	PodmanTestCreateUtilTargetMTLS  = "mtls"
 )
+
+var RemoteTestingTarget = PodmanTestCreateUtilTarget(os.Getenv("REMOTE_TESTING_TRANSPORT"))
 
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *PodmanTestIntegration {

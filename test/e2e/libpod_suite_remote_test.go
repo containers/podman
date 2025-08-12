@@ -128,6 +128,12 @@ func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
 	return podmanOptions
 }
 
+func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
+	pti := PodmanTestCreateUtil(tempDir, RemoteTestingTarget)
+	pti.StartRemoteService()
+	return pti
+}
+
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	tarball := imageTarPath(image)

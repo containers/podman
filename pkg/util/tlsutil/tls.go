@@ -16,12 +16,15 @@ func ReadCertBundle(path string) (*x509.CertPool, error) {
 	for ix := 0; len(caPEM) != 0; ix++ {
 		var caDER *pem.Block
 		caDER, caPEM = pem.Decode(caPEM)
-		if caDER == nil || caDER.Type != "CERTIFICATE" {
-			return nil, fmt.Errorf("non-certificate type `%s` PEM data found in cert bundle %s", caDER.Type, path)
+		if caDER == nil {
+			return nil, fmt.Errorf("reading cert bundle %s: non-PEM data found", path)
+		}
+		if caDER.Type != "CERTIFICATE" {
+			return nil, fmt.Errorf("reading cert bundle %s: non-certificate type `%s` PEM data found", path, caDER.Type)
 		}
 		caCert, err := x509.ParseCertificate(caDER.Bytes)
 		if err != nil {
-			return nil, fmt.Errorf("parsing cert bundle at index %d: %w", ix, err)
+			return nil, fmt.Errorf("reading cert bundle %s: parsing item %d: %w", path, ix, err)
 		}
 		pool.AddCert(caCert)
 	}
