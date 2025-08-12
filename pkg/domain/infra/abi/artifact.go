@@ -90,7 +90,7 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 	}, nil
 }
 
-func (ir *ImageEngine) ArtifactRm(ctx context.Context, name string, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
+func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
 	var (
 		namesOrDigests []string
 	)
@@ -115,8 +115,9 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, name string, opts entitie
 		}
 	}
 
-	if name != "" {
-		namesOrDigests = append(namesOrDigests, name)
+	// NOTE: If opts.All is true, len(opts.Artifacts) will == 0
+	if len(opts.Artifacts) != 0 {
+		namesOrDigests = append(namesOrDigests, opts.Artifacts...)
 	}
 
 	artifactDigests := make([]*digest.Digest, 0, len(namesOrDigests))

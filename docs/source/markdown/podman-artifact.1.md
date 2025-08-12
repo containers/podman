@@ -23,7 +23,7 @@ from its local "artifact store".
 | ls      | [podman-artifact-ls(1)](podman-artifact-ls.1.md)           | List OCI artifacts in local store                            |
 | pull    | [podman-artifact-pull(1)](podman-artifact-pull.1.md)       | Pulls an artifact from a registry and stores it locally      |
 | push    | [podman-artifact-push(1)](podman-artifact-push.1.md)       | Push an OCI artifact from local storage to an image registry |
-| rm      | [podman-artifact-rm(1)](podman-artifact-rm.1.md)           | Remove an OCI from local storage                             |
+| rm      | [podman-artifact-rm(1)](podman-artifact-rm.1.md)           | Remove one or more OCI artifacts from local storage          |
 
 
 ## SEE ALSO
