@@ -53,12 +53,13 @@ func (ir *ImageEngine) ArtifactPull(_ context.Context, name string, opts entitie
 	return artifacts.Pull(ir.ClientCtx, name, &options)
 }
 
-func (ir *ImageEngine) ArtifactRm(_ context.Context, name string, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
-	if opts.All {
-		// Note: This will be added when artifacts remove all endpoint is implemented
-		return nil, fmt.Errorf("not implemented")
+func (ir *ImageEngine) ArtifactRm(_ context.Context, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
+	removeOptions := artifacts.RemoveOptions{
+		All:       &opts.All,
+		Artifacts: opts.Artifacts,
 	}
-	return artifacts.Remove(ir.ClientCtx, name, &artifacts.RemoveOptions{})
+
+	return artifacts.Remove(ir.ClientCtx, "", &removeOptions)
 }
 
 func (ir *ImageEngine) ArtifactPush(_ context.Context, name string, opts entities.ArtifactPushOptions) (*entities.ArtifactPushReport, error) {
@@ -106,7 +107,10 @@ func (ir *ImageEngine) ArtifactAdd(_ context.Context, name string, artifactBlob 
 
 		artifactAddReport, err = artifacts.Add(ir.ClientCtx, name, blob.FileName, f, &options)
 		if err != nil && i > 0 {
-			_, recoverErr := artifacts.Remove(ir.ClientCtx, name, &artifacts.RemoveOptions{})
+			removeOptions := artifacts.RemoveOptions{
+				Artifacts: []string{name},
+			}
+			_, recoverErr := artifacts.Remove(ir.ClientCtx, "", &removeOptions)
 			if recoverErr != nil {
 				return nil, fmt.Errorf("failed to cleanup unfinished artifact add: %w", errors.Join(err, recoverErr))
 			}

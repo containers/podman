@@ -1,14 +1,14 @@
 % podman-artifact-rm 1
 
 ## NAME
-podman\-artifact\-rm - Remove an OCI from local storage
+podman\-artifact\-rm - Remove one or more OCI artifacts from local storage
 
 ## SYNOPSIS
 **podman artifact rm** [*options*] *name*
 
 ## DESCRIPTION
 
-Remove an artifact from the local artifact store.  The input may be the fully
+Remove one or more artifacts from the local artifact store.  The input may be the fully
 qualified artifact name or a full or partial artifact digest.
 
 ## OPTIONS
@@ -25,21 +25,24 @@ Print usage statement.
 
 ## EXAMPLES
 
-Remove an artifact by name
-
+Remove an artifact by name.
 ```
 $ podman artifact rm quay.io/artifact/foobar2:test
 Deleted: e7b417f49fc24fc7ead6485da0ebd5bc4419d8a3f394c169fee5a6f38faa4056
 ```
 
-Remove an artifact by partial digest
+Remove multiple artifacts by their shortened IDs.
+```
+$ podman artifact rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
+```
 
+Remove an artifact by partial digest.
 ```
 $ podman artifact rm e7b417f49fc
 Deleted: e7b417f49fc24fc7ead6485da0ebd5bc4419d8a3f394c169fee5a6f38faa4056
 ```
 
-Remove all artifacts in local storage
+Remove all artifacts in local storage.
 ```
 $ podman artifact rm -a
 Deleted: cee15f7c5ce3e86ae6ce60d84bebdc37ad34acfa9a2611cf47501469ac83a1ab

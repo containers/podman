@@ -237,22 +237,14 @@ var _ = Describe("Podman artifact", func() {
 		// No args is an error
 		failNoArgs := podmanTest.Podman([]string{"artifact", "rm"})
 		failNoArgs.WaitWithDefaultTimeout()
-		Expect(failNoArgs).Should(ExitWithError(125, "Error: a single artifact name or digest must be specified"))
+		Expect(failNoArgs).Should(ExitWithError(125, "Error: at least one artifact name or digest must be specified"))
 
-		// Multiple args is an error
-		multipleArgs := podmanTest.Podman([]string{"artifact", "rm", artifact1Name, artifact2File})
-		multipleArgs.WaitWithDefaultTimeout()
-		Expect(multipleArgs).Should(ExitWithError(125, "Error: too many arguments: only accepts one artifact name or digest"))
+		// Remove all
+		podmanTest.PodmanExitCleanly("artifact", "rm", "-a")
 
-		// TODO: This should be removed once Artifact API remove endpoint supports the "all" flag
-		if !IsRemote() {
-			// Remove all
-			podmanTest.PodmanExitCleanly("artifact", "rm", "-a")
-
-			// There should be no artifacts in the store
-			rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
-			Expect(rmAll.OutputToString()).To(BeEmpty())
-		}
+		// There should be no artifacts in the store
+		rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
+		Expect(rmAll.OutputToString()).To(BeEmpty())
 	})
 
 	It("podman artifact inspect with full or partial digest", func() {

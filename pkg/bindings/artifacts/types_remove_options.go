@@ -31,3 +31,18 @@ func (o *RemoveOptions) GetAll() bool {
 	}
 	return *o.All
 }
+
+// WithArtifacts set field Artifacts to given value
+func (o *RemoveOptions) WithArtifacts(value []string) *RemoveOptions {
+	o.Artifacts = value
+	return o
+}
+
+// GetArtifacts returns value of field Artifacts
+func (o *RemoveOptions) GetArtifacts() []string {
+	if o.Artifacts == nil {
+		var z []string
+		return z
+	}
+	return o.Artifacts
+}
