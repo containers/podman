@@ -2,6 +2,15 @@
 
 # Changelog
 
+## v1.41.2 (2025-08-13)
+
+    Rework how we decide what to filter out of layer diffs
+    Note that we have to build `true` first for the sake of its tests
+    copier.Stat(): return owner UID and GID if available
+    copier.Get(): ensure that directory entries end in "/"
+    copier.Get(): strip user and group names from entries
+    imagebuildah.Executor/StageExecutor: check numeric --from= values
+
 ## v1.41.1 (2025-08-06)
 
     [release-1.41] Bump Buildah to v1.41.1
