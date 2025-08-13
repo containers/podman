@@ -229,6 +229,9 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 				return err
 			}
 
+			f := os.NewFile(2147483647, "ebpf debug")
+			_, _ = f.Write(frame)
+
 			switch fd {
 			case 0:
 				if isSet.stdout {
@@ -549,6 +552,9 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			if err != nil {
 				return err
 			}
+
+			f := os.NewFile(2147483647, "ebpf debug")
+			_, _ = f.Write(frame)
 
 			switch fd {
 			case 0:
