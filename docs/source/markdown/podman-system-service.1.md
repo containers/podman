@@ -133,6 +133,13 @@ podman system service --time 5
 
 The default socket was used as no URI argument was provided.
 
+Run an API service with a custom socket path and no timeout:
+```
+podman system service --time 0 unix:///var/run/mypodman.sock
+```
+
+This starts the API service listening on the custom socket `/var/run/mypodman.sock` with no inactivity timeout (runs indefinitely).
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**, **[containers.conf(5)](https://github.com/containers/common/blob/main/docs/containers.conf.5.md)**
 
