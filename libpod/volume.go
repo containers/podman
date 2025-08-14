@@ -77,6 +77,9 @@ type VolumeConfig struct {
 	StorageImageID string `json:"storageImageID,omitempty"`
 	// MountLabel is the SELinux label to assign to mount points
 	MountLabel string `json:"mountlabel,omitempty"`
+	// Protected indicates that this volume should be excluded from
+	// system prune operations by default
+	Protected bool `json:"protected,omitempty"`
 }
 
 // VolumeState holds the volume's mutable state.
