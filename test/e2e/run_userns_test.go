@@ -18,7 +18,7 @@ import (
 
 func createContainersConfFileWithCustomUserns(pTest *PodmanTestIntegration, userns string) {
 	configPath := filepath.Join(pTest.TempDir, "containers.conf")
-	containersConf := []byte(fmt.Sprintf("[containers]\nuserns = \"%s\"\n", userns))
+	containersConf := fmt.Appendf(nil, "[containers]\nuserns = \"%s\"\n", userns)
 	err := os.WriteFile(configPath, containersConf, os.ModePerm)
 	Expect(err).ToNot(HaveOccurred())
 

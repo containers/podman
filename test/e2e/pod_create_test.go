@@ -184,7 +184,7 @@ var _ = Describe("Podman pod create", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(confFile, []byte(fmt.Sprintf("[containers]\nbase_hosts_file=\"%s\"\n", configHosts)), 0755)
+			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", confFile)
 			if IsRemote() {

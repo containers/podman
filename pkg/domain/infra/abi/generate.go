@@ -402,7 +402,7 @@ func generateKubeOutput(content [][]byte) ([]byte, error) {
 	}
 
 	// Add header to kube YAML file.
-	output = append(output, []byte(fmt.Sprintf(header, podmanVersion.Version))...)
+	output = append(output, fmt.Appendf(nil, header, podmanVersion.Version)...)
 
 	// kube generate order is based on helm install order (secret, persistentVolume, service, pod...).
 	// Add kube kinds.

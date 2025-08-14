@@ -2481,7 +2481,7 @@ var _ = Describe("Podman kube play", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
 		infraImage := INFRA_IMAGE
-		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[engine]\ninfra_image=\"%s\"\n", infraImage), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)

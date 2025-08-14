@@ -922,7 +922,7 @@ func BuildImage(w http.ResponseWriter, r *http.Request) {
 		case <-runCtx.Done():
 			if success {
 				if !utils.IsLibpodRequest(r) && !query.Quiet {
-					m.Aux = []byte(fmt.Sprintf(`{"ID":"sha256:%s"}`, imageID))
+					m.Aux = fmt.Appendf(nil, `{"ID":"sha256:%s"}`, imageID)
 					if err := enc.Encode(m); err != nil {
 						logrus.Warnf("failed to json encode error %v", err)
 					}

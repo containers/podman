@@ -46,7 +46,7 @@ var _ = Describe("Podman login and logout", func() {
 		port := GetPort()
 		server = strings.Join([]string{"localhost", strconv.Itoa(port)}, ":")
 
-		registriesConfWithSearch = []byte(fmt.Sprintf("[registries.search]\nregistries = ['%s']", server))
+		registriesConfWithSearch = fmt.Appendf(nil, "[registries.search]\nregistries = ['%s']", server)
 
 		testImg = strings.Join([]string{server, "test-alpine"}, "/")
 
@@ -511,10 +511,10 @@ var _ = Describe("Podman login and logout", func() {
 	It("podman login and logout with repository push with invalid auth.json credentials", func() {
 		authFile := filepath.Join(podmanTest.TempDir, "auth.json")
 		// only `server` contains the correct login data
-		err := os.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
+		err := os.WriteFile(authFile, fmt.Appendf(nil, `{"auths": {
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
-		}}`, server, server)), 0644)
+		}}`, server, server), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		session := podmanTest.Podman([]string{
@@ -557,11 +557,11 @@ var _ = Describe("Podman login and logout", func() {
 		Expect(session).Should(ExitCleanly())
 
 		// only `server + /podmantest` and `server` have the correct login data
-		err := os.WriteFile(authFile, []byte(fmt.Sprintf(`{"auths": {
+		err := os.WriteFile(authFile, fmt.Appendf(nil, `{"auths": {
 			"%s/podmantest/test-alpine": { "auth": "cG9kbWFudGVzdDp3cm9uZw==" },
 			"%s/podmantest": { "auth": "cG9kbWFudGVzdDp0ZXN0" },
 			"%s": { "auth": "cG9kbWFudGVzdDp0ZXN0" }
-		}}`, server, server, server)), 0644)
+		}}`, server, server, server), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		session = podmanTest.Podman([]string{
