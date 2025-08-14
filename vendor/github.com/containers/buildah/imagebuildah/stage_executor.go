@@ -467,7 +467,7 @@ func (s *StageExecutor) performCopy(excludes []string, copies ...imagebuilder.Co
 				// exists and if stage short_name matches any
 				// additionalContext replace stage with additional
 				// build context.
-				if index, err := strconv.Atoi(from); err == nil {
+				if index, err := strconv.Atoi(from); err == nil && index >= 0 && index < s.index {
 					from = s.stages[index].Name
 				}
 				if foundContext, ok := s.executor.additionalBuildContexts[from]; ok {
@@ -1395,7 +1395,7 @@ func (s *StageExecutor) Execute(ctx context.Context, base string) (imgID string,
 				// also account if the index is given instead
 				// of name so convert index in --from=<index>
 				// to name.
-				if index, err := strconv.Atoi(from); err == nil {
+				if index, err := strconv.Atoi(from); err == nil && index >= 0 && index < s.index {
 					from = s.stages[index].Name
 				}
 				// If additional buildContext contains this
