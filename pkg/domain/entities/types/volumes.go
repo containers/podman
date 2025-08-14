@@ -22,6 +22,9 @@ type VolumeCreateOptions struct {
 	UID *int `schema:"uid"`
 	// GID that the volume will be created as
 	GID *int `schema:"gid"`
+	// Protected indicates that this volume should be excluded from
+	// system prune operations by default
+	Protected bool `schema:"protected"`
 }
 
 type VolumeRmReport struct {
