@@ -1744,6 +1744,20 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
+// WithVolumeProtected sets the protected flag for the volume.
+// Protected volumes are excluded from system prune operations by default.
+func WithVolumeProtected() VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.Protected = true
+
+		return nil
+	}
+}
+
 // WithVolumeDriverTimeout sets the volume creation timeout period.
 // Only usable if a non-local volume driver is in use.
 func WithVolumeDriverTimeout(timeout uint) VolumeCreateOption {
