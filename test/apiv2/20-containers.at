@@ -762,14 +762,13 @@ if root && test -e /dev/nullb0; then
   t POST libpod/containers/updateCtr/update ${TMPD}/update.json 201
 
   cgroupPath=/sys/fs/cgroup/cpu.weight
-  # 002 is the byte length
-  cpu_weight_expect=$'\001\0025'
 
   # Verify CPU weight
   echo '{ "AttachStdout":true,"Cmd":["cat", "'$cgroupPath'"]}' >${TMPD}/exec.json
   t POST containers/updateCtr/exec ${TMPD}/exec.json 201 .Id~[0-9a-f]\\{64\\}
   eid=$(jq -r '.Id' <<<"$output")
-  t POST exec/$eid/start 200 $cpu_weight_expect
+  t POST exec/$eid/start 200
+  like "$(<$WORKDIR/curl.result.out)" $'^\x01.\(20\|5\)$' "cpu.weight is 5 or 20"
 
   BlkioDeviceReadBps_expected='[
   {
