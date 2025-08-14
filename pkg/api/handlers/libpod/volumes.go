@@ -80,6 +80,10 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*input.GID), libpod.WithVolumeNoChown())
 	}
 
+	if input.Protected {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeProtected())
+	}
+
 	vol, err := runtime.NewVolume(r.Context(), volumeOptions...)
 	if err != nil {
 		utils.InternalServerError(w, err)
@@ -160,7 +164,13 @@ func pruneVolumesHelper(r *http.Request) ([]*reports.PruneReport, error) {
 		filterFuncs = append(filterFuncs, filterFunc)
 	}
 
-	reports, err := runtime.PruneVolumes(r.Context(), filterFuncs)
+	// Check for includeProtected parameter
+	includeProtected := false
+	if includeParam := r.URL.Query().Get("includeProtected"); includeParam == "true" {
+		includeProtected = true
+	}
+
+	reports, err := runtime.PruneVolumesWithOptions(r.Context(), filterFuncs, includeProtected)
 	if err != nil {
 		return nil, err
 	}
@@ -173,8 +183,9 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		decoder = r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	)
 	query := struct {
-		Force   bool  `schema:"force"`
-		Timeout *uint `schema:"timeout"`
+		Force            bool  `schema:"force"`
+		Timeout          *uint `schema:"timeout"`
+		IncludeProtected bool  `schema:"includeProtected"`
 	}{
 		// override any golang type defaults
 	}
@@ -190,6 +201,13 @@ func RemoveVolume(w http.ResponseWriter, r *http.Request) {
 		utils.VolumeNotFound(w, name, err)
 		return
 	}
+	// Check if volume is protected and --include-protected flag is not set
+	if vol.Protected() && !query.IncludeProtected {
+		utils.Error(w, http.StatusBadRequest, 
+			fmt.Errorf("volume %s is protected and cannot be removed without includeProtected=true parameter", vol.Name()))
+		return
+	}
+	
 	if err := runtime.RemoveVolume(r.Context(), vol, query.Force, query.Timeout); err != nil {
 		if errors.Is(err, define.ErrVolumeBeingUsed) {
 			utils.Error(w, http.StatusConflict, err)
