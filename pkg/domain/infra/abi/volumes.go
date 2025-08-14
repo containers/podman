@@ -48,6 +48,10 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*opts.GID), libpod.WithVolumeNoChown())
 	}
 
+	if opts.Protected {
+		volumeOptions = append(volumeOptions, libpod.WithVolumeProtected())
+	}
+
 	vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
 	if err != nil {
 		return nil, err
@@ -84,6 +88,15 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 		}
 	}
 	for _, vol := range vols {
+		// Check if volume is protected and --include-protected flag is not set
+		if vol.Protected() && !opts.IncludeProtected {
+			reports = append(reports, &entities.VolumeRmReport{
+				Err: fmt.Errorf("volume %s is protected and cannot be removed without --include-protected flag", vol.Name()),
+				Id:  vol.Name(),
+			})
+			continue
+		}
+		
 		reports = append(reports, &entities.VolumeRmReport{
 			Err: ic.Libpod.RemoveVolume(ctx, vol, opts.Force, opts.Timeout),
 			Id:  vol.Name(),
@@ -143,11 +156,11 @@ func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.Vol
 		}
 		funcs = append(funcs, filterFunc)
 	}
-	return ic.pruneVolumesHelper(ctx, funcs)
+	return ic.pruneVolumesHelper(ctx, funcs, options.IncludeProtected)
 }
 
-func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter) ([]*reports.PruneReport, error) {
-	pruned, err := ic.Libpod.PruneVolumes(ctx, filterFuncs)
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter, includeProtected bool) ([]*reports.PruneReport, error) {
+	pruned, err := ic.Libpod.PruneVolumesWithOptions(ctx, filterFuncs, includeProtected)
 	if err != nil {
 		return nil, err
 	}
@@ -265,6 +278,22 @@ func (ic *ContainerEngine) VolumeExport(_ context.Context, nameOrID string, opti
 	}
 
 	return nil
+}
+
+func (ic *ContainerEngine) VolumeProtect(ctx context.Context, namesOrIds []string, opts entities.VolumeProtectOptions) ([]*entities.VolumeProtectReport, error) {
+	var reports []*entities.VolumeProtectReport
+
+	for _, nameOrId := range namesOrIds {
+		report := &entities.VolumeProtectReport{Id: nameOrId}
+		
+		if err := ic.Libpod.SetVolumeProtected(nameOrId, !opts.Unprotect); err != nil {
+			report.Err = err
+		}
+
+		reports = append(reports, report)
+	}
+
+	return reports, nil
 }
 
 func (ic *ContainerEngine) VolumeImport(_ context.Context, nameOrID string, options entities.VolumeImportOptions) error {
