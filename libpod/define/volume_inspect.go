@@ -63,6 +63,9 @@ type InspectVolumeData struct {
 	StorageID string `json:"StorageID,omitempty"`
 	// LockNumber is the number of the volume's Libpod lock.
 	LockNumber uint32
+	// Protected indicates that this volume should be excluded from
+	// system prune operations by default.
+	Protected bool `json:"Protected,omitempty"`
 }
 
 type VolumeReload struct {
