@@ -283,6 +283,31 @@ func (v *Volume) UsesVolumeDriver() bool {
 	return v.config.Driver != define.VolumeDriverLocal && v.config.Driver != ""
 }
 
+// Protected returns whether this volume is marked as protected.
+// Protected volumes are excluded from system prune operations by default.
+func (v *Volume) Protected() bool {
+	return v.config.Protected
+}
+
+// SetProtected sets the protected status of the volume.
+// Protected volumes are excluded from system prune operations by default.
+func (v *Volume) SetProtected(protected bool) error {
+	if !v.valid {
+		return define.ErrVolumeRemoved
+	}
+
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if err := v.update(); err != nil {
+		return err
+	}
+
+	v.config.Protected = protected
+
+	return v.save()
+}
+
 func (v *Volume) Mount() (string, error) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
