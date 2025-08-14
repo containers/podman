@@ -42,11 +42,18 @@ type SystemCheckReport struct {
 
 // SystemPruneOptions provides options to prune system.
 type SystemPruneOptions struct {
-	All      bool
-	Volume   bool
-	Filters  map[string][]string `json:"filters" schema:"filters"`
-	External bool
-	Build    bool
+	All                bool
+	Volume             bool
+	Filters            map[string][]string `json:"filters" schema:"filters"`
+	External           bool
+	Build              bool
+	VolumePruneOptions VolumePruneOptions  `json:"volumePruneOptions" schema:"volumePruneOptions"`
+}
+
+// VolumePruneOptions describes the options needed
+// to prune a volume from the CLI
+type VolumePruneOptions struct {
+	IncludeProtected bool `json:"includeProtected" schema:"includeProtected"`
 }
 
 // SystemPruneReport provides report after system prune is executed.
