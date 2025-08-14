@@ -220,8 +220,8 @@ func TestMakeXRegistryConfigHeader(t *testing.T) {
 				decodedHeader, err := base64.URLEncoding.DecodeString(header[0])
 				require.NoError(t, err, tc.name)
 				// Don't test for a specific JSON representation, just for the expected contents.
-				expected := map[string]interface{}{}
-				actual := map[string]interface{}{}
+				expected := map[string]any{}
+				actual := map[string]any{}
 				err = json.Unmarshal([]byte(tc.expectedContents), &expected)
 				require.NoError(t, err, tc.name)
 				err = json.Unmarshal(decodedHeader, &actual)
@@ -282,8 +282,8 @@ func TestMakeXRegistryAuthHeader(t *testing.T) {
 				decodedHeader, err := base64.URLEncoding.DecodeString(header[0])
 				require.NoError(t, err, tc.name)
 				// Don't test for a specific JSON representation, just for the expected contents.
-				expected := map[string]interface{}{}
-				actual := map[string]interface{}{}
+				expected := map[string]any{}
+				actual := map[string]any{}
 				err = json.Unmarshal([]byte(tc.expectedContents), &expected)
 				require.NoError(t, err, tc.name)
 				err = json.Unmarshal(decodedHeader, &actual)

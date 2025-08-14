@@ -205,7 +205,7 @@ streamLabel: // A label to flatten the scope
 			Networks: net,
 		}
 
-		var jsonOut interface{}
+		var jsonOut any
 		if utils.IsLibpodRequest(r) {
 			jsonOut = s
 		} else {

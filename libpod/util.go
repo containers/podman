@@ -64,7 +64,7 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 
 // JSONDeepCopy performs a deep copy by performing a JSON encode/decode of the
 // given structures. From and To should be identically typed structs.
-func JSONDeepCopy(from, to interface{}) error {
+func JSONDeepCopy(from, to any) error {
 	tmp, err := json.Marshal(from)
 	if err != nil {
 		return err

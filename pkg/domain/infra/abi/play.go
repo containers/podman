@@ -1549,7 +1549,7 @@ func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 
 	d := yamlv3.NewDecoder(bytes.NewReader(yamlContent))
 	for {
-		var o interface{}
+		var o any
 		// read individual document
 		err := d.Decode(&o)
 		if err == io.EOF {

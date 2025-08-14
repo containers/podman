@@ -233,7 +233,7 @@ func printVerbose(cmd *cobra.Command, reports *entities.SystemDfReport) error { 
 	return writeTemplate(rpt, hdrs, dfVolumes)
 }
 
-func writeTemplate(rpt *report.Formatter, hdrs []map[string]string, output interface{}) error {
+func writeTemplate(rpt *report.Formatter, hdrs []map[string]string, output any) error {
 	if rpt.RenderHeaders {
 		if err := rpt.Execute(hdrs); err != nil {
 			return err

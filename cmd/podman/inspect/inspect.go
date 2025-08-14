@@ -76,7 +76,7 @@ func newInspector(options entities.InspectOptions) (*inspector, error) {
 // inspect inspects the specified container/image names or IDs.
 func (i *inspector) inspect(namesOrIDs []string) error {
 	// data - dumping place for inspection results.
-	var data []interface{}
+	var data []any
 	var errs []error
 	ctx := context.Background()
 
@@ -157,7 +157,7 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	}
 	// Always print an empty array
 	if data == nil {
-		data = []interface{}{}
+		data = []any{}
 	}
 
 	var err error
@@ -191,8 +191,8 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 	return nil
 }
 
-func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]interface{}, []error, error) {
-	var data []interface{}
+func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]any, []error, error) {
+	var data []any
 	allErrs := []error{}
 	for _, name := range namesOrIDs {
 		ctrData, errs, err := i.containerEngine.ContainerInspect(ctx, []string{name}, i.options)

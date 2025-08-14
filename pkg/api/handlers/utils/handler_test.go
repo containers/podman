@@ -18,7 +18,7 @@ func TestErrorEncoderFuncOmit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataAsMap := make(map[string]interface{})
+	dataAsMap := make(map[string]any)
 	err = json.Unmarshal(data, &dataAsMap)
 	if err != nil {
 		t.Fatal(err)
@@ -33,7 +33,7 @@ func TestErrorEncoderFuncOmit(t *testing.T) {
 		t.Errorf("the `errs` field should have been omitted")
 	}
 
-	dataAsMap = make(map[string]interface{})
+	dataAsMap = make(map[string]any)
 	data, err = json.Marshal(struct {
 		Err  error   `json:"err"`
 		Errs []error `json:"errs"`

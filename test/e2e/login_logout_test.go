@@ -82,11 +82,11 @@ var _ = Describe("Podman login and logout", func() {
 		os.RemoveAll(certDirPath)
 	})
 
-	readAuthInfo := func(filePath string) map[string]interface{} {
+	readAuthInfo := func(filePath string) map[string]any {
 		authBytes, err := os.ReadFile(filePath)
 		Expect(err).ToNot(HaveOccurred())
 
-		var authInfo map[string]interface{}
+		var authInfo map[string]any
 		err = json.Unmarshal(authBytes, &authInfo)
 		Expect(err).ToNot(HaveOccurred())
 		GinkgoWriter.Println(authInfo)
@@ -94,7 +94,7 @@ var _ = Describe("Podman login and logout", func() {
 		const authsKey = "auths"
 		Expect(authInfo).To(HaveKey(authsKey))
 
-		auths, ok := authInfo[authsKey].(map[string]interface{})
+		auths, ok := authInfo[authsKey].(map[string]any)
 		Expect(ok).To(BeTrue(), "authInfo[%s]", authsKey)
 
 		return auths

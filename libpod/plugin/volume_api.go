@@ -204,7 +204,7 @@ func (p *VolumePlugin) verifyReachable() error {
 
 // Send a request to the volume plugin for handling.
 // Callers *MUST* close the response when they are done.
-func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.Response, error) {
+func (p *VolumePlugin) sendRequest(toJSON any, endpoint string) (*http.Response, error) {
 	var (
 		reqJSON []byte
 		err     error

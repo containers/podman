@@ -476,7 +476,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		// privileged containers or '--ipc host' only ProcessLabel will
 		// be set and so we will skip it for cases like that.
 		if options.Flags == nil {
-			options.Flags = make(map[string]interface{})
+			options.Flags = make(map[string]any)
 		}
 		options.Flags["ProcessLabel"] = c.config.ProcessLabel
 		options.Flags["MountLabel"] = c.config.MountLabel

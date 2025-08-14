@@ -378,7 +378,7 @@ func getKubePVCs(volumes []*libpod.Volume) ([][]byte, error) {
 }
 
 // generateKubeYAML marshalls a kube kind into a YAML file.
-func generateKubeYAML(kubeKind interface{}) ([]byte, error) {
+func generateKubeYAML(kubeKind any) ([]byte, error) {
 	b, err := yaml.Marshal(kubeKind)
 	if err != nil {
 		return nil, err

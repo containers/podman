@@ -47,7 +47,7 @@ func (r *Runtime) info() (*define.Info, error) {
 		return nil, fmt.Errorf("getting store info: %w", err)
 	}
 	info.Store = storeInfo
-	registries := make(map[string]interface{})
+	registries := make(map[string]any)
 
 	sys := r.SystemContext()
 	data, err := sysregistriesv2.GetRegistries(sys)
@@ -248,7 +248,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 		TransientStore:     r.store.TransientStore(),
 	}
 
-	graphOptions := map[string]interface{}{}
+	graphOptions := map[string]any{}
 	for _, o := range r.store.GraphOptions() {
 		split := strings.SplitN(o, "=", 2)
 		switch {
@@ -257,7 +257,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 			if err != nil {
 				logrus.Warnf("Failed to retrieve program version for %s: %v", split[1], err)
 			}
-			program := map[string]interface{}{}
+			program := map[string]any{}
 			program["Executable"] = split[1]
 			program["Version"] = ver
 			program["Package"] = version.Package(split[1])

@@ -1496,7 +1496,7 @@ var (
 )
 
 // getKubeYaml returns a kubernetes YAML document.
-func getKubeYaml(kind string, object interface{}) (string, error) {
+func getKubeYaml(kind string, object any) (string, error) {
 	var yamlTemplate string
 	templateBytes := &bytes.Buffer{}
 
@@ -1532,7 +1532,7 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 }
 
 // generateKubeYaml writes a kubernetes YAML document.
-func generateKubeYaml(kind string, object interface{}, pathname string) error {
+func generateKubeYaml(kind string, object any, pathname string) error {
 	k, err := getKubeYaml(kind, object)
 	if err != nil {
 		return err

@@ -938,7 +938,7 @@ type List struct {
 	ListMeta `json:"metadata,omitempty"`
 
 	// List of objects
-	Items []interface{} `json:"items"`
+	Items []any `json:"items"`
 }
 
 // APIVersions lists the versions that are available, to allow clients to

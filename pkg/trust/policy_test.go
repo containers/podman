@@ -140,8 +140,8 @@ func TestAddPolicyEntries(t *testing.T) {
 	require.NoError(t, err)
 	// Decode updatedJSONWithUnknownData so that this test does not depend on details of the encoding.
 	// To reduce noise in the constants below:
-	type a = []interface{}
-	type m = map[string]interface{}
+	type a = []any
+	type m = map[string]any
 	var parsedUpdatedJSON m
 	err = json.Unmarshal(updatedJSONWithUnknownData, &parsedUpdatedJSON)
 	require.NoError(t, err)

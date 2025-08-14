@@ -105,7 +105,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		if err != nil {
 			return err
 		}
-		boundingCaps := make(map[string]interface{})
+		boundingCaps := make(map[string]any)
 		for _, b := range boundingSet {
 			boundingCaps[b] = b
 		}
@@ -171,7 +171,7 @@ func securityConfigureGenerator(s *specgen.SpecGenerator, g *generate.Generator,
 		if err != nil {
 			return err
 		}
-		boundingCaps := make(map[string]interface{})
+		boundingCaps := make(map[string]any)
 		for _, b := range boundingSet {
 			boundingCaps[b] = b
 		}

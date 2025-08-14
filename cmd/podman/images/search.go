@@ -212,7 +212,7 @@ func imageSearch(cmd *cobra.Command, args []string) error {
 	return rpt.Execute(searchReport)
 }
 
-func printArbitraryJSON(v interface{}) error {
+func printArbitraryJSON(v any) error {
 	prettyJSON, err := json.MarshalIndent(v, "", "    ")
 	if err != nil {
 		return err
