@@ -36,7 +36,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example:           `podman system prune`,
 	}
-	force bool
+	force            bool
+	includeProtected bool
 )
 
 func init() {
@@ -50,6 +51,7 @@ func init() {
 	flags.BoolVar(&pruneOptions.External, "external", false, "Remove container data in storage not controlled by podman")
 	flags.BoolVar(&pruneOptions.Build, "build", false, "Remove build containers")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
+	flags.BoolVar(&includeProtected, "include-protected", false, "Include protected volumes in prune operation")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
@@ -85,6 +87,11 @@ func prune(_ *cobra.Command, _ []string) error {
 	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
 	if err != nil {
 		return err
+	}
+	
+	// Set the include protected flag for volume pruning
+	if pruneOptions.Volume {
+		pruneOptions.VolumePruneOptions.IncludeProtected = includeProtected
 	}
 
 	response, err := registry.ContainerEngine().SystemPrune(context.Background(), pruneOptions)
@@ -126,6 +133,11 @@ func prune(_ *cobra.Command, _ []string) error {
 }
 
 func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
+	protectedNote := ""
+	if pruneOpts.Volume && !pruneOpts.VolumePruneOptions.IncludeProtected {
+		protectedNote = " (excluding protected volumes)"
+	}
+	
 	if pruneOpts.All {
 		return `WARNING! This command removes:
 	- all stopped containers
@@ -137,7 +149,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	}
 	return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s%s
+	- all networks not used by at least one container%s%s` + protectedNote + `
 	- all dangling images
 	- all dangling build cache
 
