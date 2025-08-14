@@ -306,17 +306,17 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 
 	l := bufio.NewScanner(f)
 	for l.Scan() {
-		if strings.HasPrefix(l.Text(), "ID=") {
-			dist.Distribution = strings.Trim(strings.TrimPrefix(l.Text(), "ID="), "\"")
+		if after, ok := strings.CutPrefix(l.Text(), "ID="); ok {
+			dist.Distribution = strings.Trim(after, "\"")
 		}
-		if strings.HasPrefix(l.Text(), "VARIANT_ID=") {
-			dist.Variant = strings.Trim(strings.TrimPrefix(l.Text(), "VARIANT_ID="), "\"")
+		if after, ok := strings.CutPrefix(l.Text(), "VARIANT_ID="); ok {
+			dist.Variant = strings.Trim(after, "\"")
 		}
-		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
-			dist.Version = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+		if after, ok := strings.CutPrefix(l.Text(), "VERSION_ID="); ok {
+			dist.Version = strings.Trim(after, "\"")
 		}
-		if strings.HasPrefix(l.Text(), "VERSION_CODENAME=") {
-			dist.Codename = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_CODENAME="), "\"")
+		if after, ok := strings.CutPrefix(l.Text(), "VERSION_CODENAME="); ok {
+			dist.Codename = strings.Trim(after, "\"")
 		}
 	}
 	return dist
