@@ -201,7 +201,7 @@ func (req *request) UIDMap() []idtools.IDMap {
 	case requestEval:
 		return nil
 	case requestStat:
-		return nil
+		return req.StatOptions.UIDMap
 	case requestGet:
 		return req.GetOptions.UIDMap
 	case requestPut:
@@ -226,7 +226,7 @@ func (req *request) GIDMap() []idtools.IDMap {
 	case requestEval:
 		return nil
 	case requestStat:
-		return nil
+		return req.StatOptions.GIDMap
 	case requestGet:
 		return req.GetOptions.GIDMap
 	case requestPut:
@@ -284,6 +284,7 @@ type StatForItem struct {
 	Size            int64       // dereferenced value for symlinks
 	Mode            os.FileMode // dereferenced value for symlinks
 	ModTime         time.Time   // dereferenced value for symlinks
+	UID, GID        int64       // usually in the uint32 range, set to -1 if unknown
 	IsSymlink       bool
 	IsDir           bool   // dereferenced value for symlinks
 	IsRegular       bool   // dereferenced value for symlinks
@@ -342,8 +343,9 @@ func Eval(root string, directory string, _ EvalOptions) (string, error) {
 
 // StatOptions controls parts of Stat()'s behavior.
 type StatOptions struct {
-	CheckForArchives bool     // check for and populate the IsArchive bit in returned values
-	Excludes         []string // contents to pretend don't exist, using the OS-specific path separator
+	UIDMap, GIDMap   []idtools.IDMap // map from hostIDs to containerIDs when returning results
+	CheckForArchives bool            // check for and populate the IsArchive bit in returned values
+	Excludes         []string        // contents to pretend don't exist, using the OS-specific path separator
 }
 
 // Stat globs the specified pattern in the specified directory and returns its
@@ -975,7 +977,7 @@ func copierHandler(bulkReader io.Reader, bulkWriter io.Writer, req request) (*re
 		resp := copierHandlerEval(req)
 		return resp, nil, nil
 	case requestStat:
-		resp := copierHandlerStat(req, pm)
+		resp := copierHandlerStat(req, pm, idMappings)
 		return resp, nil, nil
 	case requestGet:
 		return copierHandlerGet(bulkWriter, req, pm, idMappings)
@@ -1102,7 +1104,7 @@ func copierHandlerEval(req request) *response {
 	return &response{Eval: evalResponse{Evaluated: filepath.Join(req.rootPrefix, resolvedTarget)}}
 }
 
-func copierHandlerStat(req request, pm *fileutils.PatternMatcher) *response {
+func copierHandlerStat(req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) *response {
 	errorResponse := func(fmtspec string, args ...any) *response {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse{}}
 	}
@@ -1160,6 +1162,17 @@ func copierHandlerStat(req request, pm *fileutils.PatternMatcher) *response {
 			}
 			result.Size = linfo.Size()
 			result.Mode = linfo.Mode()
+			result.UID, result.GID = -1, -1
+			if uid, gid, err := owner(linfo); err == nil {
+				if idMappings != nil && !idMappings.Empty() {
+					hostPair := idtools.IDPair{UID: uid, GID: gid}
+					uid, gid, err = idMappings.ToContainer(hostPair)
+					if err != nil {
+						return errorResponse("copier: stat: mapping host filesystem owners %#v to container filesystem owners: %w", hostPair, err)
+					}
+				}
+				result.UID, result.GID = int64(uid), int64(gid)
+			}
 			result.ModTime = linfo.ModTime()
 			result.IsDir = linfo.IsDir()
 			result.IsRegular = result.Mode.IsRegular()
@@ -1272,7 +1285,7 @@ func checkLinks(item string, req request, info os.FileInfo) (string, os.FileInfo
 func copierHandlerGet(bulkWriter io.Writer, req request, pm *fileutils.PatternMatcher, idMappings *idtools.IDMappings) (*response, func() error, error) {
 	statRequest := req
 	statRequest.Request = requestStat
-	statResponse := copierHandlerStat(req, pm)
+	statResponse := copierHandlerStat(req, pm, idMappings)
 	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Stat: statResponse.Stat, Get: getResponse{}}, nil, nil
 	}
@@ -1591,6 +1604,7 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 	if name != "" {
 		hdr.Name = filepath.ToSlash(name)
 	}
+	hdr.Uname, hdr.Gname = "", ""
 	if options.Rename != nil {
 		hdr.Name = handleRename(options.Rename, hdr.Name)
 	}
@@ -1697,6 +1711,9 @@ func copierHandlerGetOne(srcfi os.FileInfo, symlinkTarget, name, contentPath str
 		}
 		if options.ChmodDirs != nil {
 			hdr.Mode = int64(*options.ChmodDirs)
+		}
+		if !strings.HasSuffix(hdr.Name, "/") {
+			hdr.Name += "/"
 		}
 	} else {
 		if options.ChownFiles != nil {
@@ -2266,7 +2283,7 @@ type EnsurePath struct {
 
 // EnsureOptions controls parts of Ensure()'s behavior.
 type EnsureOptions struct {
-	UIDMap, GIDMap []idtools.IDMap // map from hostIDs to containerIDs in the chroot
+	UIDMap, GIDMap []idtools.IDMap // map from containerIDs to hostIDs in the chroot
 	Paths          []EnsurePath
 }
 
@@ -2433,7 +2450,7 @@ type ConditionalRemovePath struct {
 
 // ConditionalRemoveOptions controls parts of ConditionalRemove()'s behavior.
 type ConditionalRemoveOptions struct {
-	UIDMap, GIDMap []idtools.IDMap // map from hostIDs to containerIDs in the chroot
+	UIDMap, GIDMap []idtools.IDMap // map from containerIDs to hostIDs in the chroot
 	Paths          []ConditionalRemovePath
 }
 
