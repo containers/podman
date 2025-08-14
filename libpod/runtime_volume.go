@@ -141,3 +141,55 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 	}
 	return preports, nil
 }
+
+// PruneVolumesWithOptions removes unused volumes from the system with options
+func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []VolumeFilter, includeProtected bool) ([]*reports.PruneReport, error) {
+	preports := make([]*reports.PruneReport, 0)
+	vols, err := r.Volumes(filterFuncs...)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, vol := range vols {
+		// Skip protected volumes unless explicitly requested
+		if vol.Protected() && !includeProtected {
+			continue
+		}
+
+		report := new(reports.PruneReport)
+		volSize, err := vol.Size()
+		if err != nil {
+			volSize = 0
+		}
+		report.Size = volSize
+		report.Id = vol.Name()
+		var timeout *uint
+		if err := r.RemoveVolume(ctx, vol, false, timeout); err != nil {
+			if !errors.Is(err, define.ErrVolumeBeingUsed) && !errors.Is(err, define.ErrVolumeRemoved) {
+				report.Err = err
+			} else {
+				// We didn't remove the volume for some reason
+				continue
+			}
+		} else {
+			vol.newVolumeEvent(events.Prune)
+		}
+		preports = append(preports, report)
+	}
+	return preports, nil
+}
+
+// SetVolumeProtected sets the protected status of a volume by name.
+// Protected volumes are excluded from system prune operations by default.
+func (r *Runtime) SetVolumeProtected(volumeName string, protected bool) error {
+	if !r.valid {
+		return define.ErrRuntimeStopped
+	}
+
+	vol, err := r.state.Volume(volumeName)
+	if err != nil {
+		return err
+	}
+
+	return vol.SetProtected(protected)
+}
