@@ -165,7 +165,7 @@ func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExec
 
 // WaitForContainer waits on a started container
 func (p *PodmanTest) WaitForContainer() bool {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if p.NumberOfContainersRunning() > 0 {
 			return true
 		}

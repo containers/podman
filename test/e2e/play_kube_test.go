@@ -2339,7 +2339,7 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	interval := 250 * time.Millisecond
 	var err error
 	var resp *http.Response
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		resp, err = http.Get(address.String())
 		if err != nil && shouldErr {
 			Expect(err.Error()).To(ContainSubstring(expectedResponse))
@@ -4437,7 +4437,7 @@ spec:
     app: %s
 `
 		// generate services, pods and deployments
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			podName := fmt.Sprintf("testPod%d", i)
 			deploymentName := fmt.Sprintf("testDeploy%d", i)
 			deploymentPodName := fmt.Sprintf("%s-pod", deploymentName)

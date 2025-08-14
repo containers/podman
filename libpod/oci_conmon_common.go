@@ -691,7 +691,7 @@ func isRetryable(err error) bool {
 // openControlFile opens the terminal control file.
 func openControlFile(ctr *Container, parentDir string) (*os.File, error) {
 	controlPath := filepath.Join(parentDir, "ctl")
-	for i := 0; i < 600; i++ {
+	for range 600 {
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY|unix.O_NONBLOCK, 0)
 		if err == nil {
 			return controlFile, nil

@@ -94,7 +94,7 @@ func (q *QEMUStubber) checkStatus(monitor *qmp.SocketMonitor) (define.Status, er
 func (q *QEMUStubber) waitForMachineToStop(mc *vmconfigs.MachineConfig) error {
 	fmt.Println("Waiting for VM to stop running...")
 	waitInternal := 250 * time.Millisecond
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		state, err := q.State(mc, false)
 		if err != nil {
 			return err

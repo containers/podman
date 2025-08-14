@@ -977,7 +977,7 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 // errors.
 func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 	path := c.execBundlePath(sessionID)
-	for attempts := 0; attempts < 50; attempts++ {
+	for range 50 {
 		err = os.RemoveAll(path)
 		if err == nil || os.IsNotExist(err) {
 			return nil

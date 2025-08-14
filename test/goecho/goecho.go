@@ -11,7 +11,7 @@ func main() {
 	args := os.Args[1:]
 	exitCode := 0
 
-	for i := 0; i < len(args); i++ {
+	for i := range args {
 		fmt.Fprintln(os.Stdout, args[i])
 		fmt.Fprintln(os.Stderr, args[i])
 	}

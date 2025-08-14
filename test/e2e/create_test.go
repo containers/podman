@@ -465,7 +465,7 @@ var _ = Describe("Podman create", func() {
 
 		// Create and replace 5 times in a row the "same" container.
 		ctrName := "testCtr"
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			session = podmanTest.Podman([]string{"create", "--replace", "--name", ctrName, ALPINE, "/bin/sh"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())

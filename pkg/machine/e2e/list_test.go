@@ -91,7 +91,7 @@ var _ = Describe("podman machine list", func() {
 		Expect(err).ToNot(HaveOccurred())
 		wait := 3
 		retries := (int)(mb.timeout/time.Second) / wait
-		for i := 0; i < retries; i++ {
+		for range retries {
 			listSession, err := mb.setCmd(l).run()
 			Expect(listSession).To(Exit(0))
 			Expect(err).ToNot(HaveOccurred())

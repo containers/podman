@@ -215,7 +215,7 @@ var _ = Describe("Podman UserNS support", func() {
 		}
 
 		m := make(map[string]string)
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			session := podmanTest.Podman([]string{"run", "--userns=auto", "alpine", "cat", "/proc/self/uid_map"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())

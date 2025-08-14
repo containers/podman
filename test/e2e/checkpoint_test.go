@@ -730,7 +730,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(Equal(cid), "checkpoint output")
 		// Allow a few seconds for --rm to take effect
 		ncontainers := podmanTest.NumberOfContainers()
-		for try := 0; try < 4; try++ {
+		for range 4 {
 			if ncontainers == 0 {
 				break
 			}

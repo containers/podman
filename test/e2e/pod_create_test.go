@@ -450,7 +450,7 @@ var _ = Describe("Podman pod create", func() {
 
 		// Create and replace 5 times in a row the "same" pod.
 		podName := "testCtr"
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			session = podmanTest.Podman([]string{"pod", "create", "--replace", "--name", podName})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
@@ -862,7 +862,7 @@ ENTRYPOINT ["sleep","99999"]
 		}
 
 		m := make(map[string]string)
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			podName := "testPod" + strconv.Itoa(i)
 			podCreate := podmanTest.Podman([]string{"pod", "create", "--userns=auto", "--name", podName})
 			podCreate.WaitWithDefaultTimeout()

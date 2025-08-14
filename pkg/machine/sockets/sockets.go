@@ -37,7 +37,7 @@ func ListenAndWaitOnSocket(errChan chan<- error, listener net.Listener) {
 
 // DialSocketWithBackoffs attempts to connect to the socket in maxBackoffs attempts
 func DialSocketWithBackoffs(maxBackoffs int, backoff time.Duration, socketPath string) (conn net.Conn, err error) {
-	for i := 0; i < maxBackoffs; i++ {
+	for i := range maxBackoffs {
 		if i > 0 {
 			time.Sleep(backoff)
 			backoff *= 2
@@ -62,7 +62,7 @@ func DialSocketWithBackoffsAndProcCheck(
 	procPid int,
 	errBuf *bytes.Buffer,
 ) (conn net.Conn, err error) {
-	for i := 0; i < maxBackoffs; i++ {
+	for i := range maxBackoffs {
 		if i > 0 {
 			time.Sleep(backoff)
 			backoff *= 2
@@ -85,7 +85,7 @@ func DialSocketWithBackoffsAndProcCheck(
 func WaitForSocketWithBackoffs(maxBackoffs int, backoff time.Duration, socketPath string, name string) error {
 	backoffWait := backoff
 	logrus.Debugf("checking that %q socket is ready", name)
-	for i := 0; i < maxBackoffs; i++ {
+	for range maxBackoffs {
 		err := fileutils.Exists(socketPath)
 		if err == nil {
 			return nil

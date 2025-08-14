@@ -642,7 +642,7 @@ func getFreeInterfaceName(networks map[string]types.PerNetworkOptions) string {
 	for _, opts := range networks {
 		ifNames = append(ifNames, opts.InterfaceName)
 	}
-	for i := 0; i < 100000; i++ {
+	for i := range 100000 {
 		ifName := fmt.Sprintf("eth%d", i)
 		if !slices.Contains(ifNames, ifName) {
 			return ifName

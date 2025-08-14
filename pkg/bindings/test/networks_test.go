@@ -137,7 +137,7 @@ var _ = Describe("Podman networks", func() {
 	It("list networks", func() {
 		// create a bunch of named networks and make verify with list
 		netNames := []string{"homer", "bart", "lisa", "maggie", "marge"}
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			net := types.Network{
 				Name: netNames[i],
 			}

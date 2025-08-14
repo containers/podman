@@ -511,7 +511,7 @@ var _ = Describe("Podman network", func() {
 		Expect(session).Should(ExitCleanly())
 
 		interval := 250 * time.Millisecond
-		for i := 0; i < 6; i++ {
+		for range 6 {
 			n := podmanTest.Podman([]string{"network", "exists", netName})
 			n.WaitWithDefaultTimeout()
 			worked = n.ExitCode() == 0
@@ -527,7 +527,7 @@ var _ = Describe("Podman network", func() {
 		Expect(top).Should(ExitCleanly())
 		interval = 250 * time.Millisecond
 		// Wait for the nginx service to be running
-		for i := 0; i < 6; i++ {
+		for range 6 {
 			// Test curl against the container's name
 			c1 := podmanTest.Podman([]string{"run", "--dns-search", "dns.podman", "--network=" + netName, NGINX_IMAGE, "curl", "web"})
 			c1.WaitWithDefaultTimeout()
