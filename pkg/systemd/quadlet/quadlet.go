@@ -150,6 +150,7 @@ const (
 	KeyRemapUsers            = "RemapUsers"   // deprecated
 	KeyRetry                 = "Retry"
 	KeyRetryDelay            = "RetryDelay"
+	KeyRoot                  = "Root"
 	KeyRootfs                = "Rootfs"
 	KeyRunInit               = "RunInit"
 	KeySeccompProfile        = "SeccompProfile"
@@ -302,6 +303,7 @@ var (
 				KeyRemapUsers:            true,
 				KeyRetry:                 true,
 				KeyRetryDelay:            true,
+				KeyRoot:                  true,
 				KeyRootfs:                true,
 				KeyRunInit:               true,
 				KeySeccompProfile:        true,
@@ -345,6 +347,7 @@ var (
 				KeyLabel:                true,
 				KeyOptions:              true,
 				KeyPodmanArgs:           true,
+				KeyRoot:                 true,
 				KeyServiceName:          true,
 				KeyType:                 true,
 				KeyUser:                 true,
@@ -370,6 +373,7 @@ var (
 				KeyNetworkName:          true,
 				KeyNetworkDeleteOnStop:  true,
 				KeyOptions:              true,
+				KeyRoot:                 true,
 				KeyServiceName:          true,
 				KeySubnet:               true,
 				KeyPodmanArgs:           true,
@@ -394,6 +398,7 @@ var (
 				KeyRemapUid:             true,
 				KeyRemapUidSize:         true,
 				KeyRemapUsers:           true,
+				KeyRoot:                 true,
 				KeyServiceName:          true,
 				KeySetWorkingDirectory:  true,
 				KeyUserNS:               true,
@@ -419,6 +424,7 @@ var (
 				KeyPolicy:               true,
 				KeyRetry:                true,
 				KeyRetryDelay:           true,
+				KeyRoot:                 true,
 				KeyServiceName:          true,
 				KeyTLSVerify:            true,
 				KeyVariant:              true,
@@ -447,6 +453,7 @@ var (
 				KeyPull:                 true,
 				KeyRetry:                true,
 				KeyRetryDelay:           true,
+				KeyRoot:                 true,
 				KeySecret:               true,
 				KeyServiceName:          true,
 				KeySetWorkingDirectory:  true,
@@ -481,6 +488,7 @@ var (
 				KeyRemapUid:             true,
 				KeyRemapUidSize:         true,
 				KeyRemapUsers:           true,
+				KeyRoot:                 true,
 				KeyServiceName:          true,
 				KeyShmSize:              true,
 				KeySubGIDMap:            true,
@@ -2096,6 +2104,10 @@ func createBasePodmanCommand(unitFile *parser.UnitFile, groupName string) *Podma
 	globalArgs := unitFile.LookupAllArgs(groupName, KeyGlobalArgs)
 	if len(globalArgs) > 0 {
 		podman.add(globalArgs...)
+	}
+
+	if rootDir, ok := unitFile.Lookup(ContainerGroup, KeyRoot); ok && len(rootDir) > 0 {
+		podman.add("--root", rootDir)
 	}
 
 	return podman

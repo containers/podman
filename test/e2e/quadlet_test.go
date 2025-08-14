@@ -951,6 +951,7 @@ BOGUS=foo
 		Entry("userns.container", "userns.container"),
 		Entry("workingdir.container", "workingdir.container"),
 		Entry("Container - global args", "globalargs.container"),
+		Entry("Container - Root storage directory", "root.container"),
 		Entry("Container - Containers Conf Modules", "containersconfmodule.container"),
 		Entry("merged.container", "merged.container"),
 		Entry("merged-override.container", "merged-override.container"),
@@ -973,6 +974,7 @@ BOGUS=foo
 		Entry("uid.volume", "uid.volume"),
 		Entry("image.volume", "image.volume"),
 		Entry("Volume - global args", "globalargs.volume"),
+		Entry("Volume - Root storage directory", "root.volume"),
 		Entry("Volume - Containers Conf Modules", "containersconfmodule.volume"),
 		Entry("Volume - Type=bind", "device-bind.volume"),
 
@@ -994,6 +996,7 @@ BOGUS=foo
 		Entry("Kube - Working Directory Unit", "workingdir-unit.kube"),
 		Entry("Kube - Working Directory already in Service", "workingdir-service.kube"),
 		Entry("Kube - global args", "globalargs.kube"),
+		Entry("Kube - Root storage directory", "root.kube"),
 		Entry("Kube - Containers Conf Modules", "containersconfmodule.kube"),
 		Entry("Kube - Service Type=oneshot", "oneshot.kube"),
 		Entry("Kube - Down force", "downforce.kube"),
@@ -1017,6 +1020,7 @@ BOGUS=foo
 		Entry("Network - multiple subnet, gateway and range", "subnet-trio.multiple.network"),
 		Entry("Network - subnet, gateway and range", "subnet-trio.network"),
 		Entry("Network - global args", "globalargs.network"),
+		Entry("Network - Root storage directory", "root.network"),
 		Entry("Network - Containers Conf Modules", "containersconfmodule.network"),
 		Entry("Network - Delete on stop", "delete.network"),
 
@@ -1033,6 +1037,7 @@ BOGUS=foo
 		Entry("Image - TLS Verify", "tls-verify.image"),
 		Entry("Image - Arch and OS", "arch-os.image"),
 		Entry("Image - global args", "globalargs.image"),
+		Entry("Image - Root storage directory", "root.image"),
 		Entry("Image - Containers Conf Modules", "containersconfmodule.image"),
 		Entry("Image - Unit After Override", "unit-after-override.image"),
 		Entry("Image - No Default Dependencies", "no_deps.image"),
@@ -1052,6 +1057,7 @@ BOGUS=foo
 		Entry("Build - ForceRM Key", "force-rm.build"),
 		Entry("Build - GlobalArgs", "globalargs.build"),
 		Entry("Build - GroupAdd Key", "group-add.build"),
+		Entry("Build - Root storage directory", "root.build"),
 		Entry("Build - Containers Conf Modules", "containersconfmodule.build"),
 		Entry("Build - Label Key", "label.build"),
 		Entry("Build - Multiple Tags", "multiple-tags.build"),
@@ -1091,6 +1097,7 @@ BOGUS=foo
 		Entry("Pod - Remap manual", "remap-manual.pod"),
 		Entry("Pod - Shm Size", "shmsize.pod"),
 		Entry("Pod - Service Environment", "service-environment.pod"),
+		Entry("Pod - Root storage directory", "root.pod"),
 	)
 
 	DescribeTable("Running expected warning quadlet test case",

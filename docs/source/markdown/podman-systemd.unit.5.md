@@ -362,6 +362,7 @@ Valid options for `[Container]` are listed below:
 | ReloadSignal=SIGHUP                  | Add ExecReload and run kill with the signal          |
 | Retry=5                              | --retry=5                                            |
 | RetryDelay=5s                        | --retry-delay=5s                                     |
+| Root=/var/local/storage              | --root /var/local/storage                            |
 | Rootfs=/var/lib/rootfs               | --rootfs /var/lib/rootfs                             |
 | RunInit=true                         | --init                                               |
 | SeccompProfile=/tmp/s.json           | --security-opt seccomp=/tmp/s.json                   |
@@ -837,6 +838,10 @@ Number of times to retry the image pull when a HTTP error occurs. Equivalent to 
 ### `RetryDelay=`
 
 Delay between retries. Equivalent to the Podman `--retry-delay` option.
+
+### `Root=`
+
+The storage root dir in which data, including images, is stored. Overriding this option causes the *storage-opt* settings in `containers-storage.conf(5)` to be ignored.
 
 ### `Rootfs=`
 
