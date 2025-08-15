@@ -39,6 +39,50 @@ Name URI                                                      Identity	    Defau
 deva ssh://root@example.com:/run/podman/podman.sock           ~/.ssh/id_rsa true     true
 devb ssh://user@example.com:/run/user/1000/podman/podman.sock ~/.ssh/id_rsa false    true
 ```
+Show connections in JSON format:
+```
+$ podman system connection list --format json
+[
+    {
+        "Name": "podman-machine-default",
+        "URI": "ssh://core@127.0.0.1:53298/run/user/501/podman/podman.sock",
+        "Identity": "/Users/ragm/.local/share/containers/podman/machine/machine",
+        "IsMachine": true,
+        "Default": true,
+        "ReadWrite": true
+    },
+    {
+        "Name": "podman-machine-default-root",
+        "URI": "ssh://root@127.0.0.1:53298/run/podman/podman.sock",
+        "Identity": "/Users/ragm/.local/share/containers/podman/machine/machine",
+        "IsMachine": true,
+        "Default": false,
+        "ReadWrite": true
+    }
+]
+```
+Show connection names and URIs:
+```
+$ podman system connection list --format "{{.Name}}\t{{.URI}}"
+podman-machine-default	ssh://core@127.0.0.1:53298/run/user/501/podman/podman.sock
+podman-machine-default-root	ssh://root@127.0.0.1:53298/run/podman/podman.sock
+```
+Show all connection details in a comprehensive format:
+```
+$ podman system connection list --format "Name: {{.Name}}\nURI: {{.URI}}\nIdentity: {{.Identity}}\nDefault: {{.Default}}\nReadWrite: {{.ReadWrite}}\n---"
+Name: podman-machine-default
+URI: ssh://core@127.0.0.1:53298/run/user/501/podman/podman.sock
+Identity: /Users/ragm/.local/share/containers/podman/machine/machine
+Default: true
+ReadWrite: true
+---
+Name: podman-machine-default-root
+URI: ssh://root@127.0.0.1:53298/run/podman/podman.sock
+Identity: /Users/ragm/.local/share/containers/podman/machine/machine
+Default: false
+ReadWrite: true
+---
+```
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**, **[podman-system-connection(1)](podman-system-connection.1.md)**
 
