@@ -30,7 +30,7 @@ Print usage statement
 
 The following descriptors are supported in addition to the AIX format descriptors mentioned in ps (1):
 
-**args, capbnd, capeff, capinh, capprm, comm, etime, group, hgroup, hpid, huser, label, nice, pcpu, pgid, pid, ppid, rgroup, ruser, seccomp, state, time, tty, user, vsz**
+**args, capbnd, capeff, capinh, capprm, comm, etime, group, groups, hgroup, hgroups, hpid, huser, label, nice, pcpu, pgid, pid, ppid, rgroup, ruser, seccomp, state, time, tty, user, vsz**
 
 **capbnd**
 
@@ -48,9 +48,21 @@ The following descriptors are supported in addition to the AIX format descriptor
 
   Set of permitted capabilities. See capabilities (7) for more information.
 
+**group**
+
+  The effective group of the process.
+
+**groups**
+
+  The supplementary groups of the process.
+
 **hgroup**
 
   The corresponding effective group of a container process on the host.
+
+**hgroups**
+
+  The corresponding supplementary groups of a container process on the host.
 
 **hpid**
 
