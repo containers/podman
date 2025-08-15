@@ -29,7 +29,7 @@ func (c *PodmanCmdline) add(args ...string) {
 	c.Args = append(c.Args, args...)
 }
 
-func (c *PodmanCmdline) addf(format string, a ...interface{}) {
+func (c *PodmanCmdline) addf(format string, a ...any) {
 	c.add(fmt.Sprintf(format, a...))
 }
 

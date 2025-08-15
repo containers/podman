@@ -30,7 +30,7 @@ const (
 // InfoData holds the info type, i.e store, host etc and the data for each type
 type InfoData struct {
 	Type string
-	Data map[string]interface{}
+	Data map[string]any
 }
 
 // VolumeDriverLocal is the "local" volume driver. It is managed by libpod

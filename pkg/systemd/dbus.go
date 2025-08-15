@@ -43,7 +43,7 @@ func IsSystemdSessionValid(uid int) bool {
 			logrus.Debugf("systemd-logind: %s", err)
 			return false
 		}
-		activeSessionMap, ok := activeSession.Value().([]interface{})
+		activeSessionMap, ok := activeSession.Value().([]any)
 		if !ok || len(activeSessionMap) < 2 {
 			// unable to get active session map.
 			logrus.Debugf("systemd-logind: %s", err)
@@ -62,7 +62,7 @@ func IsSystemdSessionValid(uid int) bool {
 			logrus.Debugf("systemd-logind: %s", err)
 			return false
 		}
-		dbusUser, ok := sessionUser.Value().([]interface{})
+		dbusUser, ok := sessionUser.Value().([]any)
 		if !ok {
 			// not a valid user.
 			return false

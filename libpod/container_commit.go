@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/containers/buildah"
@@ -130,13 +131,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		// Only include anonymous named volumes added by the user by
 		// default.
 		for _, v := range c.config.NamedVolumes {
-			include := false
-			for _, userVol := range c.config.UserVolumes {
-				if userVol == v.Dest {
-					include = true
-					break
-				}
-			}
+			include := slices.Contains(c.config.UserVolumes, v.Dest)
 			if include {
 				vol, err := c.runtime.GetVolume(v.Name)
 				if err != nil {

@@ -57,7 +57,7 @@ func NewInMemoryManager(numLocks uint32) (Manager, error) {
 	manager.locks = make([]*Mutex, numLocks)
 
 	var i uint32
-	for i = 0; i < numLocks; i++ {
+	for i = range numLocks {
 		lock := new(Mutex)
 		lock.id = i
 		manager.locks[i] = lock

@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"reflect"
 	"strconv"
@@ -478,9 +479,7 @@ func (ic *ContainerEngine) ContainerRm(ctx context.Context, namesOrIds []string,
 
 		mapMutex.Lock()
 		defer mapMutex.Unlock()
-		for ctr, err := range ctrs {
-			ctrsMap[ctr] = err
-		}
+		maps.Copy(ctrsMap, ctrs)
 
 		return err
 	})

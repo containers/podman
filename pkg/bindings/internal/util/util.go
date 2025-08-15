@@ -45,13 +45,13 @@ func SimpleTypeToParam(f reflect.Value) string {
 	panic("the input parameter is not a simple type")
 }
 
-func Changed(o interface{}, fieldName string) bool {
+func Changed(o any, fieldName string) bool {
 	r := reflect.ValueOf(o)
 	value := reflect.Indirect(r).FieldByName(fieldName)
 	return !value.IsNil()
 }
 
-func ToParams(o interface{}) (url.Values, error) {
+func ToParams(o any) (url.Values, error) {
 	params := url.Values{}
 	if o == nil || reflect.ValueOf(o).IsNil() {
 		return params, nil
@@ -92,7 +92,7 @@ func ToParams(o interface{}) (url.Values, error) {
 				}
 			}
 		case f.Kind() == reflect.Map:
-			lowerCaseKeys := make(map[string]interface{})
+			lowerCaseKeys := make(map[string]any)
 			iter := f.MapRange()
 			for iter.Next() {
 				lowerCaseKeys[iter.Key().Interface().(string)] = iter.Value().Interface()

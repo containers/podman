@@ -70,7 +70,7 @@ func pullChunkedTests() { // included in pull_test.go, must use a Ginkgo DSL at 
 					dirPath:     filepath.Join(imageDir, "chunked-normal"),
 				}
 				chunkedNormalContentPath := "chunked-normal-image-content"
-				err := os.WriteFile(filepath.Join(podmanTest.TempDir, chunkedNormalContentPath), []byte(fmt.Sprintf("content-%d", rand.Int64())), 0o600)
+				err := os.WriteFile(filepath.Join(podmanTest.TempDir, chunkedNormalContentPath), fmt.Appendf(nil, "content-%d", rand.Int64()), 0o600)
 				Expect(err).NotTo(HaveOccurred())
 				chunkedNormalContainerFile := fmt.Sprintf("FROM scratch\nADD %s /content", chunkedNormalContentPath)
 				podmanTest.BuildImage(chunkedNormalContainerFile, chunkedNormal.localTag(), "true")

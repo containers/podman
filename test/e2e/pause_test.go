@@ -257,7 +257,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("Pause a bunch of running containers", func() {
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			name := fmt.Sprintf("test%d", i)
 			run := podmanTest.Podman([]string{"run", "-dt", "--name", name, NGINX_IMAGE})
 			run.WaitWithDefaultTimeout()
@@ -284,7 +284,7 @@ var _ = Describe("Podman pause", func() {
 	})
 
 	It("Unpause a bunch of running containers", func() {
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			name := fmt.Sprintf("test%d", i)
 			run := podmanTest.Podman([]string{"run", "-dt", "--name", name, NGINX_IMAGE})
 			run.WaitWithDefaultTimeout()

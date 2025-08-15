@@ -25,8 +25,6 @@ const TESTIMAGE = "quay.io/libpod/testimage:20241011"
 var _ = Describe("run basic podman commands", func() {
 
 	It("Basic ops", func() {
-		// golangci-lint has trouble with actually skipping tests marked Skip
-		// so skip it on cirrus envs and where CIRRUS_CI isn't set.
 		name := randomString()
 		i := new(initMachine)
 		session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withNow()).run()
@@ -333,7 +331,7 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	interval := 250 * time.Millisecond
 	var err error
 	var resp *http.Response
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		resp, err = http.Get(address.String() + "/testimage-id")
 		if err != nil && shouldErr {
 			Expect(err.Error()).To(ContainSubstring(expectedResponse))

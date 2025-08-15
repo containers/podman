@@ -110,7 +110,7 @@ var _ = Describe("Podman volumes", func() {
 
 		// create a bunch of named volumes and make verify with list
 		volNames := []string{"homer", "bart", "lisa", "maggie", "marge"}
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			_, err = volumes.Create(connText, entities.VolumeCreateOptions{Name: volNames[i]}, nil)
 			Expect(err).ToNot(HaveOccurred())
 		}

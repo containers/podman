@@ -89,11 +89,11 @@ func GetDistribution() Distribution {
 
 	l := bufio.NewScanner(f)
 	for l.Scan() {
-		if strings.HasPrefix(l.Text(), "ID=") {
-			dist.Name = strings.TrimPrefix(l.Text(), "ID=")
+		if after, ok := strings.CutPrefix(l.Text(), "ID="); ok {
+			dist.Name = after
 		}
-		if strings.HasPrefix(l.Text(), "VARIANT_ID=") {
-			dist.Variant = strings.Trim(strings.TrimPrefix(l.Text(), "VARIANT_ID="), "\"")
+		if after, ok := strings.CutPrefix(l.Text(), "VARIANT_ID="); ok {
+			dist.Variant = strings.Trim(after, "\"")
 		}
 	}
 	return dist

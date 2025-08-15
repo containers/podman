@@ -99,7 +99,7 @@ func addPortToUsedPorts(ports *[]types.PortMapping, allHostPorts, allContainerPo
 // the caller has to supply an array with the already used ports
 func getRandomHostPort(hostPorts *[65536]bool, port types.PortMapping) (types.PortMapping, error) {
 outer:
-	for i := 0; i < 15; i++ {
+	for range 15 {
 		ranPort, err := utils.GetRandomPort()
 		if err != nil {
 			return port, err

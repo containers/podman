@@ -5,9 +5,11 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -84,12 +86,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			copy(rt.storageConfig.GIDMap, config.GIDMap)
 		}
 
-		if config.PullOptions != nil {
-			rt.storageConfig.PullOptions = make(map[string]string)
-			for k, v := range config.PullOptions {
-				rt.storageConfig.PullOptions[k] = v
-			}
-		}
+		rt.storageConfig.PullOptions = maps.Clone(config.PullOptions)
 
 		// If any one of runroot, graphroot, graphdrivername,
 		// or graphdriveroptions are set, then GraphRoot and RunRoot
@@ -278,10 +275,8 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		for _, hooksDir := range hooksDirs {
-			if hooksDir == "" {
-				return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
-			}
+		if slices.Contains(hooksDirs, "") {
+			return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.HooksDir.Set(hooksDirs)
@@ -698,17 +693,14 @@ func (r *Runtime) WithPod(pod *Pod) CtrCreateOption {
 	}
 }
 
-// WithLabels adds labels to the container.
+// WithLabels sets the container's labels.
 func WithLabels(labels map[string]string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
 
-		ctr.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			ctr.config.Labels[key] = value
-		}
+		ctr.config.Labels = maps.Clone(labels)
 
 		return nil
 	}
@@ -1623,10 +1615,7 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			volume.config.Labels[key] = value
-		}
+		volume.config.Labels = maps.Clone(labels)
 
 		return nil
 	}
@@ -1651,10 +1640,7 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.Options = make(map[string]string)
-		for key, value := range options {
-			volume.config.Options[key] = value
-		}
+		volume.config.Options = maps.Clone(options)
 
 		return nil
 	}
@@ -2022,10 +2008,7 @@ func WithPodLabels(labels map[string]string) PodCreateOption {
 			return define.ErrPodFinalized
 		}
 
-		pod.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			pod.config.Labels[key] = value
-		}
+		pod.config.Labels = maps.Clone(labels)
 
 		return nil
 	}

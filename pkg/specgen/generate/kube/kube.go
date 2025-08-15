@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"net"
 	"os"
@@ -329,9 +330,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
-		for k, v := range s.Expose {
-			exposed[k] = v
-		}
+		maps.Copy(exposed, s.Expose)
 		s.Expose = exposed
 		// Pull entrypoint and cmd from image
 		s.Entrypoint = imageData.Config.Entrypoint
@@ -490,9 +489,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 			return nil, err
 		}
 
-		for k, v := range cmEnvs {
-			envs[k] = v
-		}
+		maps.Copy(envs, cmEnvs)
 	}
 	s.Env = envs
 
@@ -635,9 +632,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	} else {
 		// If there are already labels in the map, append the ones
 		// obtained from kube
-		for k, v := range opts.Labels {
-			s.Labels[k] = v
-		}
+		maps.Copy(s.Labels, opts.Labels)
 	}
 
 	if ro := opts.ReadOnly; ro != itypes.OptionalBoolUndefined {
@@ -1055,9 +1050,7 @@ func k8sSecretFromSecretManager(name string, secretsManager *secrets.SecretsMana
 			return nil, fmt.Errorf("secret %v is not valid JSON/YAML: %v", name, err)
 		}
 
-		for key, val := range secret.Data {
-			secrets[key] = val
-		}
+		maps.Copy(secrets, secret.Data)
 
 		for key, val := range secret.StringData {
 			secrets[key] = []byte(val)

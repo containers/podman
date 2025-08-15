@@ -245,7 +245,7 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 			Expect(session).Should(ExitCleanly())
 
 			// two passes to test that removing non-existent connection is not an error
-			for i := 0; i < 2; i++ {
+			for range 2 {
 				session = podmanTest.Podman([]string{"system", "connection", "remove", "QA"})
 				session.WaitWithDefaultTimeout()
 				Expect(session).Should(ExitCleanly())

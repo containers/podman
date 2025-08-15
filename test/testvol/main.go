@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"path/filepath"
 	"sync"
@@ -152,11 +153,8 @@ func (d *DirDriver) Create(opts *volume.CreateRequest) error {
 	newVol := new(dirVol)
 	newVol.name = opts.Name
 	newVol.mounts = make(map[string]bool)
-	newVol.options = make(map[string]string)
+	newVol.options = maps.Clone(opts.Options)
 	newVol.createTime = time.Now()
-	for k, v := range opts.Options {
-		newVol.options[k] = v
-	}
 
 	volPath := filepath.Join(d.volumesPath, opts.Name)
 	if err := os.Mkdir(volPath, 0755); err != nil {

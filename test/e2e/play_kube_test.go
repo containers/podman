@@ -1496,7 +1496,7 @@ var (
 )
 
 // getKubeYaml returns a kubernetes YAML document.
-func getKubeYaml(kind string, object interface{}) (string, error) {
+func getKubeYaml(kind string, object any) (string, error) {
 	var yamlTemplate string
 	templateBytes := &bytes.Buffer{}
 
@@ -1532,7 +1532,7 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 }
 
 // generateKubeYaml writes a kubernetes YAML document.
-func generateKubeYaml(kind string, object interface{}, pathname string) error {
+func generateKubeYaml(kind string, object any, pathname string) error {
 	k, err := getKubeYaml(kind, object)
 	if err != nil {
 		return err
@@ -2339,7 +2339,7 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	interval := 250 * time.Millisecond
 	var err error
 	var resp *http.Response
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		resp, err = http.Get(address.String())
 		if err != nil && shouldErr {
 			Expect(err.Error()).To(ContainSubstring(expectedResponse))
@@ -2481,7 +2481,7 @@ var _ = Describe("Podman kube play", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
 		infraImage := INFRA_IMAGE
-		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[engine]\ninfra_image=\"%s\"\n", infraImage), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -4437,7 +4437,7 @@ spec:
     app: %s
 `
 		// generate services, pods and deployments
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			podName := fmt.Sprintf("testPod%d", i)
 			deploymentName := fmt.Sprintf("testDeploy%d", i)
 			deploymentPodName := fmt.Sprintf("%s-pod", deploymentName)

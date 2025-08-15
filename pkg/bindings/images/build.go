@@ -555,8 +555,8 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 		// Check if Containerfile is in the context directory, if so truncate the context directory off path
 		// Do NOT add to tarfile
-		if strings.HasPrefix(containerfile, contextDir+string(filepath.Separator)) {
-			containerfile = strings.TrimPrefix(containerfile, contextDir+string(filepath.Separator))
+		if after, ok := strings.CutPrefix(containerfile, contextDir+string(filepath.Separator)); ok {
+			containerfile = after
 			dontexcludes = append(dontexcludes, "!"+containerfile)
 			dontexcludes = append(dontexcludes, "!"+containerfile+".dockerignore")
 			dontexcludes = append(dontexcludes, "!"+containerfile+".containerignore")

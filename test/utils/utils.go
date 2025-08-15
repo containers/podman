@@ -165,7 +165,7 @@ func (p *PodmanTest) PodmanExecBaseWithOptions(args []string, options PodmanExec
 
 // WaitForContainer waits on a started container
 func (p *PodmanTest) WaitForContainer() bool {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if p.NumberOfContainersRunning() > 0 {
 			return true
 		}
@@ -376,7 +376,7 @@ func (s *PodmanSession) LineInOutputContainsTag(repo, tag string) bool {
 // IsJSONOutputValid attempts to unmarshal the session buffer
 // and if successful, returns true, else false
 func (s *PodmanSession) IsJSONOutputValid() bool {
-	var i interface{}
+	var i any
 	if err := json.Unmarshal(s.Out.Contents(), &i); err != nil {
 		GinkgoWriter.Println(err)
 		return false
@@ -487,7 +487,7 @@ func IsCommandAvailable(command string) bool {
 
 // WriteJSONFile write json format data to a json file
 func WriteJSONFile(data []byte, filePath string) error {
-	var jsonData map[string]interface{}
+	var jsonData map[string]any
 	if err := json.Unmarshal(data, &jsonData); err != nil {
 		return err
 	}

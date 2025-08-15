@@ -38,7 +38,7 @@ func ExitWithErrorRegex(expectExitCode int, expectStderrRegex string) *ExitMatch
 }
 
 // Match follows gexec.Matcher interface.
-func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ExitMatcher) Match(actual any) (success bool, err error) {
 	session, ok := actual.(podmanSession)
 	if !ok {
 		return false, fmt.Errorf("ExitWithError must be passed a gexec.Exiter (Missing method ExitCode() int) Got:\n#{format.Object(actual, 1)}")
@@ -83,15 +83,15 @@ func (matcher *ExitMatcher) Match(actual interface{}) (success bool, err error) 
 	return true, nil
 }
 
-func (matcher *ExitMatcher) FailureMessage(_ interface{}) (message string) {
+func (matcher *ExitMatcher) FailureMessage(_ any) (message string) {
 	return matcher.msg
 }
 
-func (matcher *ExitMatcher) NegatedFailureMessage(_ interface{}) (message string) {
+func (matcher *ExitMatcher) NegatedFailureMessage(_ any) (message string) {
 	panic("There is no conceivable reason to call Not(ExitWithError) !")
 }
 
-func (matcher *ExitMatcher) MatchMayChangeInTheFuture(actual interface{}) bool {
+func (matcher *ExitMatcher) MatchMayChangeInTheFuture(actual any) bool {
 	session, ok := actual.(*gexec.Session)
 	if ok {
 		return session.ExitCode() == -1
@@ -109,7 +109,7 @@ type exitCleanlyMatcher struct {
 	msg string
 }
 
-func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *exitCleanlyMatcher) Match(actual any) (success bool, err error) {
 	session, ok := actual.(podmanSession)
 	if !ok {
 		return false, fmt.Errorf("ExitCleanly must be passed a PodmanSession; Got:\n %+v\n%q", actual, format.Object(actual, 1))
@@ -134,11 +134,11 @@ func (matcher *exitCleanlyMatcher) Match(actual interface{}) (success bool, err 
 	return true, nil
 }
 
-func (matcher *exitCleanlyMatcher) FailureMessage(_ interface{}) (message string) {
+func (matcher *exitCleanlyMatcher) FailureMessage(_ any) (message string) {
 	return matcher.msg
 }
 
-func (matcher *exitCleanlyMatcher) NegatedFailureMessage(_ interface{}) (message string) {
+func (matcher *exitCleanlyMatcher) NegatedFailureMessage(_ any) (message string) {
 	// FIXME - I see no situation in which we could ever want this?
 	return matcher.msg + " (NOT!)"
 }
@@ -151,23 +151,23 @@ func BeValidJSON() *ValidJSONMatcher {
 	return &ValidJSONMatcher{}
 }
 
-func (matcher *ValidJSONMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ValidJSONMatcher) Match(actual any) (success bool, err error) {
 	s, ok := actual.(string)
 	if !ok {
 		return false, fmt.Errorf("ValidJSONMatcher expects a string, not %q", actual)
 	}
 
-	var i interface{}
+	var i any
 	if err := json.Unmarshal([]byte(s), &i); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (matcher *ValidJSONMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *ValidJSONMatcher) FailureMessage(actual any) (message string) {
 	return format.Message(actual, "to be valid JSON")
 }
 
-func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "to _not_ be valid JSON")
 }
