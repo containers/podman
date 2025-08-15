@@ -351,12 +351,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 // Returns true if the container is in one of the given states,
 // or false otherwise.
 func (c *Container) ensureState(states ...define.ContainerStatus) bool {
-	for _, state := range states {
-		if state == c.state.State {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(states, c.state.State)
 }
 
 // Sync this container with on-disk state and runtime status
@@ -484,12 +479,7 @@ func (c *Container) setupStorage(ctx context.Context) error {
 	}
 	if c.config.Privileged {
 		privOpt := func(opt string) bool {
-			for _, privopt := range []string{"nodev", "nosuid", "noexec"} {
-				if opt == privopt {
-					return true
-				}
-			}
-			return false
+			return slices.Contains([]string{"nodev", "nosuid", "noexec"}, opt)
 		}
 
 		defOptions, err := storage.GetMountOptions(c.runtime.store.GraphDriverName(), c.runtime.store.GraphOptions())

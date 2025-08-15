@@ -55,10 +55,8 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 		return func(c *libpod.Container) bool {
 			ec, exited, err := c.ExitCode()
 			if err == nil && exited {
-				for _, exitCode := range exitCodes {
-					if ec == exitCode {
-						return true
-					}
+				if slices.Contains(exitCodes, ec) {
+					return true
 				}
 			}
 			return false
@@ -179,12 +177,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 			if err != nil {
 				return false
 			}
-			for _, filterValue := range filterValues {
-				if hcStatus == filterValue {
-					return true
-				}
-			}
-			return false
+			return slices.Contains(filterValues, hcStatus)
 		}, nil
 	case "until":
 		return prepareUntilFilterFunc(filterValues)
@@ -470,10 +463,8 @@ func GenerateExternalContainerFilterFuncs(filter string, filterValues []string, 
 			ec := listContainer.ExitCode
 			exited := listContainer.Exited
 			if exited {
-				for _, exitCode := range exitCodes {
-					if ec == exitCode {
-						return true
-					}
+				if slices.Contains(exitCodes, ec) {
+					return true
 				}
 			}
 			return false

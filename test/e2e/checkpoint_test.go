@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -1571,11 +1572,8 @@ var _ = Describe("Podman checkpoint", func() {
 		preservedMakeOptions := podmanTest.PodmanMakeOptions
 		podmanTest.PodmanMakeOptions = func(args []string, options PodmanExecOptions) []string {
 			defaultArgs := preservedMakeOptions(args, options)
-			for i := range args {
-				// Runtime is set explicitly, so we should keep --runtime arg.
-				if args[i] == "--runtime" {
-					return defaultArgs
-				}
+			if slices.Contains(args, "--runtime") {
+				return defaultArgs
 			}
 			updatedArgs := make([]string, 0)
 			for i := 0; i < len(defaultArgs); i++ {

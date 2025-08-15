@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -789,11 +790,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	startContainer := func(params ...string) string {
 		args := []string{"create"}
-		for _, param := range params {
-			if param == "--name" {
-				args = append(args, "--replace")
-				break
-			}
+		if slices.Contains(params, "--name") {
+			args = append(args, "--replace")
 		}
 		args = append(args, params...)
 		args = append(args, ALPINE, "true")

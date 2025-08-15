@@ -4,6 +4,7 @@ package generate
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -17,10 +18,8 @@ const minTimeoutStopSec = 60
 
 // validateRestartPolicy checks that the user-provided policy is valid.
 func validateRestartPolicy(restart string) error {
-	for _, i := range define.RestartPolicies {
-		if i == restart {
-			return nil
-		}
+	if slices.Contains(define.RestartPolicies, restart) {
+		return nil
 	}
 	return fmt.Errorf("%s is not a valid restart policy", restart)
 }

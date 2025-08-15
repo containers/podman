@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -274,10 +275,8 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		for _, hooksDir := range hooksDirs {
-			if hooksDir == "" {
-				return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
-			}
+		if slices.Contains(hooksDirs, "") {
+			return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.HooksDir.Set(hooksDirs)
