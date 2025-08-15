@@ -152,7 +152,7 @@ if [[ -n $do_checkout ]]; then
     # will need a special unreleased version (go calls then "pseudoversions").
     # In the usual case, we can do a shallow git clone:
     shallow_checkout="--branch $buildah_version"
-    if [[ $buildah_version =~ .*-.*\.[0-9]{14}-.* ]]; then
+    if [[ $buildah_version =~ .*[0-9]{14}-.* ]] ; then
         # ...but with a pseudoversion, we must git-clone the entire repo,
         # then do a git checkout within it
         shallow_checkout=
