@@ -23,6 +23,7 @@
 - A new command, `podman buildx inspect`, has been added to improve Docker compatibility ([#13014](https://github.com/containers/podman/issues/13014)).
 
 ### Changes
+- In preparation for a planned removal of the BoltDB database in Podman 6.0, a warning has been added for installations still using BoltDB. These warnings are presently not visible by default, which will happen in Podman 5.7.
 - The `podman artifact` suite of commands for interacting with OCI artifacts is now considered stable.
 - For users running `podman machine` VMs using the `libkrun` provider on an M3 or newer host running macOS 15+, nested virtualization is enabled by default.
 - When creating `podman machine` VMs on Windows using the WSL v2 provider, images are now pulled as artifacts from `quay.io/podman/machine-os`, matching the behavior of other VM providers.
@@ -73,7 +74,7 @@
 ### Misc
 - Quadlet now no longer uses container/pod ID files when stopping containers, but instead passes the name of the container/pod directly to `podman stop`/`podman pod stop`.
 - When building Podman via Makefile, it will now attempt to dynamically link sqlite3 if the library and header are installed locally. This and other optimizations should result in a significant reduction in binary size relative to Podman 5.5.x. Packagers can use the `libsqlite3` build tag to force this behavior when not using the Makefile to build.
-- Updated Buildah to v1.41.1
+- Updated Buildah to v1.41.3
 - Updated the containers/common library to v0.64.1
 - Updated the containers/storage library to v1.59.1
 - Updated the containers/image library to v5.36.1
