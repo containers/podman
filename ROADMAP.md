@@ -26,22 +26,40 @@ associated with them yet, they will likely be on future quarterly milestones.
 
 This section is a historical account of what features were prioritized by quarter.  Results of the prioritization will be added at start of each quarter (Jan, Apr, July, Oct).
 
+
+### 2025 Q3 ####
+
+#### Releases ####
+- [ ] Podman 5.6
+- [ ] Podman 6 (Spring 2026) High Level Design
+
+#### Features ####
+
+- [ ] Ongoing upgrades to support newer Docker API versions in the RESTFUl service
+- [ ] Improvements to Quadlet documentation
+- [ ] Systemwide rootless user configuration
+- [ ] Improvements to the Windows installer
+
+#### CNCF ####
+
+- [ ] Continue towards incubation
+
 ### 2025 Q2 ####
 
 #### Releases ####
-- [ ] Podman 5.5
-- [ ] Fully automated Podman releases
+- [x] Podman 5.5
+- [x] Fully automated Podman releases
 
 #### Features ####
-- [ ] Windows ARM64 installer
-- [ ] Add support for artifacts in RESTFUL service
-- [ ] Reduce binary size of Podman
-- [ ] Add remote client support for artifacts
-- [ ] Add support for newer Docker API versions to RESTFUL service
-- [ ] Replace Podman pause image with a rootfs
+- [x] Windows ARM64 installer
+- [x] Add support for artifacts in RESTFUL service
+- [x] Reduce binary size of Podman
+- [x] Add remote client support for artifacts
+- [x] Add support for newer Docker API versions to RESTFUL service
+- [x] Replace Podman pause image with a rootfs
 
 #### CNCF ####
-- [ ] Add and adhere to Governance model
+- [x] Add and adhere to Governance model
 
 ### 2025 Q1 ####
 
