@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -811,9 +812,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			}
 			logrus.Infof("Removing pod %s as container %s is its service container", depPod.ID(), c.ID())
 			podRemovedCtrs, err := r.RemovePod(ctx, depPod, true, opts.Force, opts.Timeout)
-			for ctr, err := range podRemovedCtrs {
-				removedCtrs[ctr] = err
-			}
+			maps.Copy(removedCtrs, podRemovedCtrs)
 			if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
 				removedPods[depPod.ID()] = err
 				retErr = fmt.Errorf("error removing container %s dependency pods: %w", c.ID(), err)
@@ -833,9 +832,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 
 		logrus.Infof("Removing pod %s (dependency of container %s)", pod.ID(), c.ID())
 		podRemovedCtrs, err := r.removePod(ctx, pod, true, opts.Force, opts.Timeout)
-		for ctr, err := range podRemovedCtrs {
-			removedCtrs[ctr] = err
-		}
+		maps.Copy(removedCtrs, podRemovedCtrs)
 		if err != nil && !errors.Is(err, define.ErrNoSuchPod) && !errors.Is(err, define.ErrPodRemoved) {
 			removedPods[pod.ID()] = err
 			retErr = fmt.Errorf("error removing container %s pod: %w", c.ID(), err)
@@ -916,9 +913,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 					removedCtrs[rmCtr] = err
 				}
 			}
-			for rmPod, err := range pods {
-				removedPods[rmPod] = err
-			}
+			maps.Copy(removedPods, pods)
 			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrRemoved) {
 				retErr = err
 				return

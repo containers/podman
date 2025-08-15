@@ -5,6 +5,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
@@ -84,12 +85,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 			copy(rt.storageConfig.GIDMap, config.GIDMap)
 		}
 
-		if config.PullOptions != nil {
-			rt.storageConfig.PullOptions = make(map[string]string)
-			for k, v := range config.PullOptions {
-				rt.storageConfig.PullOptions[k] = v
-			}
-		}
+		rt.storageConfig.PullOptions = maps.Clone(config.PullOptions)
 
 		// If any one of runroot, graphroot, graphdrivername,
 		// or graphdriveroptions are set, then GraphRoot and RunRoot

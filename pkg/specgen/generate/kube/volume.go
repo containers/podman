@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"os"
 
 	"github.com/containers/common/pkg/parse"
@@ -182,9 +183,7 @@ func VolumeFromSecret(secretSource *v1.SecretVolumeSource, secretsManager *secre
 		}
 	} else {
 		// add key: value pairs to the items array
-		for key, entry := range secret.Data {
-			kv.Items[key] = entry
-		}
+		maps.Copy(kv.Items, secret.Data)
 
 		for key, entry := range secret.StringData {
 			kv.Items[key] = []byte(entry)
@@ -257,9 +256,7 @@ func VolumeFromConfigMap(configMapVolumeSource *v1.ConfigMapVolumeSource, config
 		for k, v := range configMap.Data {
 			kv.Items[k] = []byte(v)
 		}
-		for k, v := range configMap.BinaryData {
-			kv.Items[k] = v
-		}
+		maps.Copy(kv.Items, configMap.BinaryData)
 	}
 	return kv, nil
 }

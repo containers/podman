@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -957,9 +958,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 
-		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
-			labels[k] = v
-		}
+		// add podYAML labels
+		maps.Copy(labels, podSpec.PodSpecGen.Labels)
 		initCtrType := annotations[define.InitContainerType]
 		if initCtrType == "" {
 			initCtrType = define.OneShotInitContainer
@@ -1051,9 +1051,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 
-		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
-			labels[k] = v
-		}
+		// add podYAML labels
+		maps.Copy(labels, podSpec.PodSpecGen.Labels)
 
 		automountImages, err := ic.prepareAutomountImages(ctx, container.Name, annotations)
 		if err != nil {

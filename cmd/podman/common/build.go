@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -337,9 +338,7 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 			if err != nil {
 				return nil, err
 			}
-			for name, val := range fargs {
-				args[name] = val
-			}
+			maps.Copy(args, fargs)
 		}
 	}
 	if c.Flag("build-arg").Changed {

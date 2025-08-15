@@ -5,6 +5,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/containers/podman/v5/libpod/define"
@@ -414,19 +415,9 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 		ctrConfig.Entrypoint = c.config.Entrypoint
 	}
 
-	if len(c.config.Labels) != 0 {
-		ctrConfig.Labels = make(map[string]string)
-		for k, v := range c.config.Labels {
-			ctrConfig.Labels[k] = v
-		}
-	}
+	ctrConfig.Labels = maps.Clone(c.config.Labels)
+	ctrConfig.Annotations = maps.Clone(spec.Annotations)
 
-	if len(spec.Annotations) != 0 {
-		ctrConfig.Annotations = make(map[string]string)
-		for k, v := range spec.Annotations {
-			ctrConfig.Annotations[k] = v
-		}
-	}
 	ctrConfig.StopSignal = signal.ToDockerFormat(c.config.StopSignal)
 	// TODO: should JSON deep copy this to ensure internal pointers don't
 	// leak.
