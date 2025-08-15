@@ -4,14 +4,45 @@ _cached_has_slirp4netns=
 
 ### Feature Checks #############################################################
 
+function ip_get_addr_global() {
+    # Google DNS servers
+    if [ "$1" = "-6" ]; then
+        address="2001:4860:4860::8888"
+    else
+        address="8.8.8.8"
+    fi
+    # According to Richard W. Stevens's UNIX Network Programming Vol. 1 3rd Ed:
+    # "Calling connect on a UDP socket does not send anything to that host;
+    # it is entirely a local operation that saves the peer's IP address and port.
+    # We also see that calling connect on an unbound UDP socket also assigns an
+    # ephemeral port to the socket."
+    python_script='
+import socket, sys
+
+family = socket.AF_INET if sys.argv[1] == "-4" else socket.AF_INET6
+ipport = socket.getaddrinfo(sys.argv[2], 53, family=family, type=socket.SOCK_DGRAM)[0][4]
+
+with socket.socket(family, socket.SOCK_DGRAM) as s:
+    try:
+        s.connect(ipport)
+    except OSError:
+        sys.exit(1)
+    print(s.getsockname()[0])'
+
+    python3 -c "$python_script" "$1" "$address"
+}
+
 # has_ipv4() - Check if one default route is available for IPv4
 function has_ipv4() {
-    [ -n "$(ip -j -4 route show | jq -rM '.[] | select(.dst == "default")')" ]
+    local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^169\\.254\\.") | not)] | .[0].local'
+    echo "${1:-$(ip -j -4 address show)}" | jq -rM "${expr}"
 }
 
 # has_ipv6() - Check if one default route is available for IPv6
 function has_ipv6() {
-    [ -n "$(ip -j -6 route show | jq -rM '.[] | select(.dst == "default")')" ]
+    # Require both global IPv6 addresses AND a default route for true IPv6 connectivity
+    ip -j -6 addr show | jq -e '[.[].addr_info[] | select(.scope == "global")] | length > 0' >/dev/null &&
+    ip -j -6 route show | jq -e 'any(.dst == "default")' >/dev/null
 }
 
 # skip_if_no_ipv4() - Skip current test if IPv4 traffic can't be routed
@@ -101,15 +132,26 @@ function ipv4_to_procfs() {
 # ipv4_get_addr_global() - Print first global IPv4 address reported by netlink
 # $1:	Optional output of 'ip -j -4 address show' from a different context
 function ipv4_get_addr_global() {
-    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
-    echo "${1:-$(ip -j -4 address show)}" | jq -rM "${expr}"
+    if [ -n "$1" ]; then
+        # Skip RFC 3927 link-local IPv4 addresses in 169.254.0.0/16 as they are not globally routable
+        local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^169\\.254\\.") | not)] | .[0].local'
+        echo "$1" | jq -rM "${expr}"
+    else
+        ip_get_addr_global -4
+    fi
 }
 
 # ipv6_get_addr_global() - Print first global IPv6 address reported by netlink
 # $1:	Optional output of 'ip -j -6 address show' from a different context
 function ipv6_get_addr_global() {
-    local expr='[.[].addr_info[] | select(.scope=="global")] | .[0].local'
-    echo "${1:-$(ip -j -6 address show)}" | jq -rM "${expr}"
+    if [ -n "$1" ]; then
+        # Skip RFC 4291 link-local IPv6 addresses in fe80::/10 as they are not globally routable
+        # Also prefer permanent addresses (with mngtmpaddr) over temporary/privacy addresses
+        local expr='[.[].addr_info[] | select(.scope=="global") | select(.local | test("^fe[89ab][0-9a-f]:") | not)] | (map(select(.mngtmpaddr == true)) + map(select(.mngtmpaddr != true))) | .[0].local'
+        echo "$1" | jq -rM "${expr}"
+    else
+        ip_get_addr_global -6
+    fi
 }
 
 # random_rfc1918_subnet() - Pseudorandom unused subnet in 172.16/12 prefix
@@ -444,8 +486,12 @@ function default_ifname() {
 
 function default_addr() {
     local ip_ver="${1}"
-    local ifname="${2:-$(default_ifname "${ip_ver}")}"
 
-    local expr='[.[0].addr_info[] | select(.deprecated != true)][0].local'
-    ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
+    if [ -n "$2" ] ; then
+        local ifname="${2:-$(default_ifname "${ip_ver}")}"
+        local expr='[.[0].addr_info[] | select(.deprecated != true)][0].local'
+        ip -j -"${ip_ver}" addr show "${ifname}" | jq -rM "${expr}"
+    else
+        ip_get_addr_global -"${ip_ver}"
+    fi
 }
