@@ -39,12 +39,79 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 			return false
 		}, nil
 	case "label":
+		// Group filter values by label key to implement correct OR within key, AND across keys logic
+		labelKeyGroups := make(map[string][]string)
+		for _, filterValue := range filterValues {
+			key, value, hasValue := strings.Cut(filterValue, "=")
+			if !hasValue {
+				// Handle label key only filters (no value)
+				labelKeyGroups[key] = append(labelKeyGroups[key], "")
+			} else {
+				labelKeyGroups[key] = append(labelKeyGroups[key], value)
+			}
+		}
+
 		return func(v *libpod.Volume) bool {
-			return filters.MatchLabelFilters(filterValues, v.Labels())
+			volumeLabels := v.Labels()
+			// ALL label keys must match (AND across keys)
+			for labelKey, values := range labelKeyGroups {
+				keyMatched := false
+				// ANY value within the same key can match (OR within key)
+				for _, value := range values {
+					if volumeLabel, exists := volumeLabels[labelKey]; exists {
+						if value == "" || volumeLabel == value {
+							keyMatched = true
+							break
+						}
+					} else if value == "" {
+						// Key doesn't exist but we're looking for key existence only
+						keyMatched = false
+						break
+					}
+				}
+				if !keyMatched {
+					return false
+				}
+			}
+			return true
 		}, nil
 	case "label!":
+		// Group filter values by label key for negative matching
+		labelKeyGroups := make(map[string][]string)
+		for _, filterValue := range filterValues {
+			key, value, hasValue := strings.Cut(filterValue, "=")
+			if !hasValue {
+				// Handle label key only filters (no value)
+				labelKeyGroups[key] = append(labelKeyGroups[key], "")
+			} else {
+				labelKeyGroups[key] = append(labelKeyGroups[key], value)
+			}
+		}
+
 		return func(v *libpod.Volume) bool {
-			return !filters.MatchLabelFilters(filterValues, v.Labels())
+			volumeLabels := v.Labels()
+			// ALL label keys must NOT match (AND across keys for negation)
+			for labelKey, values := range labelKeyGroups {
+				keyMatched := false
+				// ANY value within the same key can match (OR within key)
+				for _, value := range values {
+					if volumeLabel, exists := volumeLabels[labelKey]; exists {
+						if value == "" || volumeLabel == value {
+							keyMatched = true
+							break
+						}
+					} else if value == "" {
+						// Key doesn't exist but we're looking for key existence only
+						keyMatched = false
+						break
+					}
+				}
+				// For negation, if any key matched, the filter fails
+				if keyMatched {
+					return false
+				}
+			}
+			return true
 		}, nil
 	case "opt":
 		return func(v *libpod.Volume) bool {
@@ -101,12 +168,79 @@ func GeneratePruneVolumeFilters(filter string, filterValues []string, runtime *l
 	case "after", "since":
 		return createAfterFilterVolumeFunction(filterValues, runtime)
 	case "label":
+		// Group filter values by label key to implement correct OR within key, AND across keys logic
+		labelKeyGroups := make(map[string][]string)
+		for _, filterValue := range filterValues {
+			key, value, hasValue := strings.Cut(filterValue, "=")
+			if !hasValue {
+				// Handle label key only filters (no value)
+				labelKeyGroups[key] = append(labelKeyGroups[key], "")
+			} else {
+				labelKeyGroups[key] = append(labelKeyGroups[key], value)
+			}
+		}
+
 		return func(v *libpod.Volume) bool {
-			return filters.MatchLabelFilters(filterValues, v.Labels())
+			volumeLabels := v.Labels()
+			// ALL label keys must match (AND across keys)
+			for labelKey, values := range labelKeyGroups {
+				keyMatched := false
+				// ANY value within the same key can match (OR within key)
+				for _, value := range values {
+					if volumeLabel, exists := volumeLabels[labelKey]; exists {
+						if value == "" || volumeLabel == value {
+							keyMatched = true
+							break
+						}
+					} else if value == "" {
+						// Key doesn't exist but we're looking for key existence only
+						keyMatched = false
+						break
+					}
+				}
+				if !keyMatched {
+					return false
+				}
+			}
+			return true
 		}, nil
 	case "label!":
+		// Group filter values by label key for negative matching
+		labelKeyGroups := make(map[string][]string)
+		for _, filterValue := range filterValues {
+			key, value, hasValue := strings.Cut(filterValue, "=")
+			if !hasValue {
+				// Handle label key only filters (no value)
+				labelKeyGroups[key] = append(labelKeyGroups[key], "")
+			} else {
+				labelKeyGroups[key] = append(labelKeyGroups[key], value)
+			}
+		}
+
 		return func(v *libpod.Volume) bool {
-			return !filters.MatchLabelFilters(filterValues, v.Labels())
+			volumeLabels := v.Labels()
+			// ALL label keys must NOT match (AND across keys for negation)
+			for labelKey, values := range labelKeyGroups {
+				keyMatched := false
+				// ANY value within the same key can match (OR within key)
+				for _, value := range values {
+					if volumeLabel, exists := volumeLabels[labelKey]; exists {
+						if value == "" || volumeLabel == value {
+							keyMatched = true
+							break
+						}
+					} else if value == "" {
+						// Key doesn't exist but we're looking for key existence only
+						keyMatched = false
+						break
+					}
+				}
+				// For negation, if any key matched, the filter fails
+				if keyMatched {
+					return false
+				}
+			}
+			return true
 		}, nil
 	case "until":
 		return createUntilFilterVolumeFunction(filterValues)
