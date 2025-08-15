@@ -151,6 +151,15 @@ Remove by network:
 $ podman rm --filter network=web-net
 1c057cac90c0512df86197599eef5a9485afc900b1ade03c9739fa24c360bbda
 ```
+
+Remove containers ignoring errors if they don't exist :
+```
+$ podman rm --ignore mycontainer1 mycontainer2 nonexistent-container
+mycontainer1
+mycontainer2
+```
+
+
 ## Exit Status
   **0**   All specified containers removed
 
