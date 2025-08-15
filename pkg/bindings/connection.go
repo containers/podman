@@ -3,6 +3,7 @@ package bindings
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/common/pkg/ssh"
+	"github.com/containers/podman/v5/pkg/util/tlsutil"
 	"github.com/containers/podman/v5/version"
 	"github.com/containers/storage/pkg/fileutils"
 	"github.com/kevinburke/ssh_config"
@@ -33,6 +35,7 @@ type APIResponse struct {
 type Connection struct {
 	URI    *url.URL
 	Client *http.Client
+	tls    bool
 }
 
 type valueKey string
@@ -81,7 +84,7 @@ func JoinURL(elements ...string) string {
 
 // NewConnection creates a new service connection without an identity
 func NewConnection(ctx context.Context, uri string) (context.Context, error) {
-	return NewConnectionWithIdentity(ctx, uri, "", false)
+	return NewConnectionWithOptions(ctx, Options{URI: uri})
 }
 
 // NewConnectionWithIdentity takes a URI as a string and returns a context with the
@@ -93,14 +96,34 @@ func NewConnection(ctx context.Context, uri string) (context.Context, error) {
 // or unix:///run/podman/podman.sock
 // or ssh://<user>@<host>[:port]/run/podman/podman.sock
 func NewConnectionWithIdentity(ctx context.Context, uri string, identity string, machine bool) (context.Context, error) {
-	var err error
-	if v, found := os.LookupEnv("CONTAINER_HOST"); found && uri == "" {
-		uri = v
-	}
+	return NewConnectionWithOptions(ctx, Options{URI: uri, Identity: identity, Machine: machine})
+}
 
-	if v, found := os.LookupEnv("CONTAINER_SSHKEY"); found && len(identity) == 0 {
-		identity = v
+type Options struct {
+	URI         string
+	Identity    string
+	TLSCertFile string
+	TLSKeyFile  string
+	TLSCAFile   string
+	Machine     bool
+}
+
+func orEnv(s string, env string) string {
+	if len(s) != 0 {
+		return s
 	}
+	s, _ = os.LookupEnv(env)
+	return s
+}
+
+func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Context, error) {
+	var err error
+
+	uri := orEnv(opts.URI, "CONTAINER_HOST")
+	identity := orEnv(opts.Identity, "CONTAINER_SSHKEY")
+	tlsCertFile := orEnv(opts.TLSCertFile, "CONTAINER_TLS_CERT")
+	tlsKeyFile := orEnv(opts.TLSKeyFile, "CONTAINER_TLS_KEY")
+	tlsCAFile := orEnv(opts.TLSCAFile, "CONTAINER_TLS_CA")
 
 	_url, err := url.Parse(uri)
 	if err != nil {
@@ -111,7 +134,7 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 	var connection Connection
 	switch _url.Scheme {
 	case "ssh":
-		conn, err := sshClient(_url, uri, identity, machine)
+		conn, err := sshClient(_url, uri, identity, opts.Machine)
 		if err != nil {
 			return nil, err
 		}
@@ -127,13 +150,13 @@ func NewConnectionWithIdentity(ctx context.Context, uri string, identity string,
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		conn, err := tcpClient(_url)
+		conn, err := tcpClient(_url, tlsCertFile, tlsKeyFile, tlsCAFile)
 		if err != nil {
 			return nil, newConnectError(err)
 		}
 		connection = conn
 	default:
-		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
+		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema. %#v %s %s", _url.Scheme, opts, uri, _url.String())
 	}
 
 	ctx = context.WithValue(ctx, clientKey, &connection)
@@ -278,7 +301,7 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 	return connection, nil
 }
 
-func tcpClient(_url *url.URL) (Connection, error) {
+func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connection, error) {
 	connection := Connection{
 		URI: _url,
 	}
@@ -310,11 +333,34 @@ func tcpClient(_url *url.URL) (Connection, error) {
 			}
 		}
 	}
+	transport := http.Transport{
+		DialContext:        dialContext,
+		DisableCompression: true,
+	}
+	if len(tlsCAFile) != 0 || len(tlsCertFile) != 0 || len(tlsKeyFile) != 0 {
+		logrus.Debugf("using TLS cert=%s key=%s ca=%s", tlsCertFile, tlsKeyFile, tlsCAFile)
+		transport.TLSClientConfig = &tls.Config{}
+		connection.tls = true
+	}
+	if len(tlsCAFile) != 0 {
+		pool, err := tlsutil.ReadCertBundle(tlsCAFile)
+		if err != nil {
+			return connection, fmt.Errorf("unable to read CA bundle: %w", err)
+		}
+		transport.TLSClientConfig.RootCAs = pool
+	}
+	if (len(tlsCertFile) == 0) != (len(tlsKeyFile) == 0) {
+		return connection, fmt.Errorf("TLS Key and Certificate must both or neither be provided")
+	}
+	if len(tlsCertFile) != 0 && len(tlsKeyFile) != 0 {
+		keyPair, err := tls.LoadX509KeyPair(tlsCertFile, tlsKeyFile)
+		if err != nil {
+			return connection, fmt.Errorf("unable to read TLS key pair: %w", err)
+		}
+		transport.TLSClientConfig.Certificates = append(transport.TLSClientConfig.Certificates, keyPair)
+	}
 	connection.Client = &http.Client{
-		Transport: &http.Transport{
-			DialContext:        dialContext,
-			DisableCompression: true,
-		},
+		Transport: &transport,
 	}
 	return connection, nil
 }
@@ -395,8 +441,14 @@ func (c *Connection) DoRequest(ctx context.Context, httpBody io.Reader, httpMeth
 
 	baseURL := "http://d"
 	if c.URI.Scheme == "tcp" {
+		var scheme string
+		if c.tls {
+			scheme = "https"
+		} else {
+			scheme = "http"
+		}
 		// Allow path prefixes for tcp connections to match Docker behavior
-		baseURL = "http://" + c.URI.Host + c.URI.Path
+		baseURL = scheme + "://" + c.URI.Host + c.URI.Path
 	}
 	uri := fmt.Sprintf(baseURL+"/v%s/libpod"+endpoint, params...)
 	logrus.Debugf("DoRequest Method: %s URI: %v", httpMethod, uri)

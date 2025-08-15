@@ -64,8 +64,6 @@ github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
 github.com/containers/buildah v1.41.0 h1:GU350UeX6BkZrgCE3SB/d1Hu4xBaHUX07ayiJTvJD54=
 github.com/containers/buildah v1.41.0/go.mod h1:1Ds26B4E4Z3NeLdi3xjjk8S72KVv2/xiFYYpwfFDgXI=
-github.com/containers/common v0.64.1-0.20250806164630-57def9601f3b h1:k6Ir7PSGAqDzJyUHREJQYbJG+TN43anXoGcNX2gmLkA=
-github.com/containers/common v0.64.1-0.20250806164630-57def9601f3b/go.mod h1:XVM+3mWPo2J4KSrGkRFKGDTgd3FwknWaDq+uQ4Dhb6E=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/gvisor-tap-vsock v0.8.6 h1:9SeAXK+K2o36CtrgYk6zRXbU3zrayjvkrI8b7/O6u5A=
@@ -282,6 +280,8 @@ github.com/mdlayher/socket v0.5.1 h1:VZaqt6RkGkt2OE9l3GcC6nZkqD3xKeQLyfleW/uBcos
 github.com/mdlayher/socket v0.5.1/go.mod h1:TjPLHI1UgwEv5J1B5q0zTZq12A/6H7nKmtTanQE37IQ=
 github.com/mdlayher/vsock v1.2.1 h1:pC1mTJTvjo1r9n9fbm7S1j04rCgCzhCOS5DY0zqHlnQ=
 github.com/mdlayher/vsock v1.2.1/go.mod h1:NRfCibel++DgeMD8z/hP+PPTjlNJsdPOmxcnENvE+SE=
+github.com/meln5674/containers-common v0.0.0-20250812001425-cc079d87e77c h1:OeKNIZD3TpFiHFaFiE5XNQLpcDnzfeeCDgY8n1UyMZg=
+github.com/meln5674/containers-common v0.0.0-20250812001425-cc079d87e77c/go.mod h1:XVM+3mWPo2J4KSrGkRFKGDTgd3FwknWaDq+uQ4Dhb6E=
 github.com/miekg/pkcs11 v1.1.1 h1:Ugu9pdy6vAYku5DEpVWVFPYnzV+bxB+iRdbuFSu7TvU=
 github.com/miekg/pkcs11 v1.1.1/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/mistifyio/go-zfs/v3 v3.0.1 h1:YaoXgBePoMA12+S1u/ddkv+QqxcfiZK4prI6HPnkFiU=

@@ -65,7 +65,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     PORT=$(random_free_port)
     run_podman 0+w system service --log-level="debug" --cors="*" -t 1 tcp:$SERVICE_TCP_HOST:$PORT
     is "$output" ".*CORS Headers were set to ..\*...*" "debug log confirms CORS headers set"
-    assert "$output" =~ "level=warning msg=\"Using the Podman API service with TCP sockets is not recommended" \
+    assert "$output" =~ "level=warning msg=\"Using the Podman API service with TCP sockets without TLS is not recommended" \
            "TCP socket warning"
 }
 
