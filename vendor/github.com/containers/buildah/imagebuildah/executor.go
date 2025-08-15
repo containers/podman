@@ -862,7 +862,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 							logrus.Debugf("stage %d name: %q resolves to %q", stageIndex, stageName, baseWithArg)
 							stageName = baseWithArg
 							// If --from=<index> convert index to name
-							if index, err := strconv.Atoi(stageName); err == nil {
+							if index, err := strconv.Atoi(stageName); err == nil && index >= 0 && index < stageIndex {
 								stageName = stages[index].Name
 							}
 							// Check if selected base is not an additional
