@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"os"
 	"strings"
@@ -624,13 +625,9 @@ func (c *Container) Stdin() bool {
 	return c.config.Stdin
 }
 
-// Labels returns the container's labels
+// Labels returns the container's labels.
 func (c *Container) Labels() map[string]string {
-	labels := make(map[string]string)
-	for key, value := range c.config.Labels {
-		labels[key] = value
-	}
-	return labels
+	return maps.Clone(c.config.Labels)
 }
 
 // StopSignal is the signal that will be used to stop the container
@@ -1038,13 +1035,7 @@ func (c *Container) BindMounts() (map[string]string, error) {
 		}
 	}
 
-	newMap := make(map[string]string, len(c.state.BindMounts))
-
-	for key, val := range c.state.BindMounts {
-		newMap[key] = val
-	}
-
-	return newMap, nil
+	return maps.Clone(c.state.BindMounts), nil
 }
 
 // StoppedByUser returns whether the container was last stopped by an explicit
