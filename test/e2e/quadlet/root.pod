@@ -1,0 +1,4 @@
+## assert-podman-global-args "--root=/var/foobar/storage"
+
+[Pod]
+Root=/var/foobar/storage
