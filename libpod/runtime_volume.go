@@ -143,7 +143,7 @@ func (r *Runtime) PruneVolumes(ctx context.Context, filterFuncs []VolumeFilter) 
 }
 
 // PruneVolumesWithOptions removes unused volumes from the system with options
-func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []VolumeFilter, includeProtected bool) ([]*reports.PruneReport, error) {
+func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []VolumeFilter, includePinned bool) ([]*reports.PruneReport, error) {
 	preports := make([]*reports.PruneReport, 0)
 	vols, err := r.Volumes(filterFuncs...)
 	if err != nil {
@@ -151,8 +151,8 @@ func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []Vol
 	}
 
 	for _, vol := range vols {
-		// Skip protected volumes unless explicitly requested
-		if vol.Protected() && !includeProtected {
+		// Skip pinned volumes unless explicitly requested
+		if vol.Pinned() && !includePinned {
 			continue
 		}
 
@@ -179,9 +179,9 @@ func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []Vol
 	return preports, nil
 }
 
-// SetVolumeProtected sets the protected status of a volume by name.
-// Protected volumes are excluded from system prune operations by default.
-func (r *Runtime) SetVolumeProtected(volumeName string, protected bool) error {
+// SetVolumePinned sets the pinned status of a volume by name.
+// Pinned volumes are excluded from system prune operations by default.
+func (r *Runtime) SetVolumePinned(volumeName string, pinned bool) error {
 	if !r.valid {
 		return define.ErrRuntimeStopped
 	}
@@ -191,5 +191,5 @@ func (r *Runtime) SetVolumeProtected(volumeName string, protected bool) error {
 		return err
 	}
 
-	return vol.SetProtected(protected)
+	return vol.SetPinned(pinned)
 }
