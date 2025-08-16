@@ -27,9 +27,9 @@ const (
 )
 
 var (
-	ErrUnauthorized  = errors.New("SQLITE_AUTH: Unauthorized")
-	ErrAdminRequired = errors.New("SQLITE_AUTH: Unauthorized; Admin Privileges Required")
-	errUserAuthNoLongerSupported = errors.New("sqlite3: the sqlite_userauth tag is no longer supported as the userauth extension is no longer supported by the SQLite authors, see https://github.com/mattn/go-sqlite3/issues/1341").
+	ErrUnauthorized              = errors.New("SQLITE_AUTH: Unauthorized")
+	ErrAdminRequired             = errors.New("SQLITE_AUTH: Unauthorized; Admin Privileges Required")
+	errUserAuthNoLongerSupported = errors.New("sqlite3: the sqlite_userauth tag is no longer supported as the userauth extension is no longer supported by the SQLite authors, see https://github.com/mattn/go-sqlite3/issues/1341")
 )
 
 // Authenticate will perform an authentication of the provided username
