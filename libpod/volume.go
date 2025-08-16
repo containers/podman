@@ -77,9 +77,9 @@ type VolumeConfig struct {
 	StorageImageID string `json:"storageImageID,omitempty"`
 	// MountLabel is the SELinux label to assign to mount points
 	MountLabel string `json:"mountlabel,omitempty"`
-	// Protected indicates that this volume should be excluded from
+	// Pinned indicates that this volume should be excluded from
 	// system prune operations by default
-	Protected bool `json:"protected,omitempty"`
+	Pinned bool `json:"pinned,omitempty"`
 }
 
 // VolumeState holds the volume's mutable state.
@@ -283,15 +283,15 @@ func (v *Volume) UsesVolumeDriver() bool {
 	return v.config.Driver != define.VolumeDriverLocal && v.config.Driver != ""
 }
 
-// Protected returns whether this volume is marked as protected.
-// Protected volumes are excluded from system prune operations by default.
-func (v *Volume) Protected() bool {
-	return v.config.Protected
+// Pinned returns whether this volume is marked as pinned.
+// Pinned volumes are excluded from system prune operations by default.
+func (v *Volume) Pinned() bool {
+	return v.config.Pinned
 }
 
-// SetProtected sets the protected status of the volume.
-// Protected volumes are excluded from system prune operations by default.
-func (v *Volume) SetProtected(protected bool) error {
+// SetPinned sets the pinned status of the volume.
+// Pinned volumes are excluded from system prune operations by default.
+func (v *Volume) SetPinned(pinned bool) error {
 	if !v.valid {
 		return define.ErrVolumeRemoved
 	}
@@ -303,7 +303,7 @@ func (v *Volume) SetProtected(protected bool) error {
 		return err
 	}
 
-	v.config.Protected = protected
+	v.config.Pinned = pinned
 
 	return v.save()
 }

@@ -122,12 +122,12 @@ func (ic *ContainerEngine) VolumeImport(_ context.Context, nameOrID string, opti
 	return volumes.Import(ic.ClientCtx, nameOrID, options.Input)
 }
 
-func (ic *ContainerEngine) VolumeProtect(ctx context.Context, namesOrIds []string, opts entities.VolumeProtectOptions) ([]*entities.VolumeProtectReport, error) {
-	reports := make([]*entities.VolumeProtectReport, 0, len(namesOrIds))
+func (ic *ContainerEngine) VolumePin(ctx context.Context, namesOrIds []string, opts entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
+	reports := make([]*entities.VolumePinReport, 0, len(namesOrIds))
 	for _, nameOrId := range namesOrIds {
-		report := &entities.VolumeProtectReport{
+		report := &entities.VolumePinReport{
 			Id:  nameOrId,
-			Err: errors.New("volume protection is not supported for remote clients"),
+			Err: errors.New("volume pinning is not supported for remote clients"),
 		}
 		reports = append(reports, report)
 	}

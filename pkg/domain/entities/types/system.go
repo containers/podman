@@ -53,7 +53,7 @@ type SystemPruneOptions struct {
 // VolumePruneOptions describes the options needed
 // to prune a volume from the CLI
 type VolumePruneOptions struct {
-	IncludeProtected bool `json:"includeProtected" schema:"includeProtected"`
+	IncludePinned bool `json:"includePinned" schema:"includePinned"`
 }
 
 // SystemPruneReport provides report after system prune is executed.
