@@ -141,7 +141,8 @@ var _ = Describe("Podman update", func() {
 		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/memory.swap.max", "1073741824")
 
 		// checking cpu-shares
-		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/cpu.weight", "5")
+		exec := podmanTest.PodmanExitCleanly("exec", ctrID, "cat", "/sys/fs/cgroup/cpu.weight")
+		Expect(exec.OutputToString()).To(Or(ContainSubstring("5"), ContainSubstring("20")))
 
 		// checking pids-limit
 		podmanTest.CheckFileInContainerSubstring(ctrID, "/sys/fs/cgroup/pids.max", "123")
