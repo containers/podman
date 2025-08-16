@@ -6,6 +6,10 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/containers/libpod)](https://goreportcard.com/report/github.com/containers/libpod)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10499/badge)](https://www.bestpractices.dev/projects/10499)
 
+[![LFX Health Score](https://insights.linuxfoundation.org/api/badge/health-score?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
+[![LFX Contributors](https://insights.linuxfoundation.org/api/badge/contributors?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
+
+
 <br/>
 
 Podman (the POD MANager) is a tool for managing containers and images, volumes mounted into those containers, and pods made from groups of containers.
