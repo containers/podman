@@ -30,6 +30,9 @@ container to be fully removed. To wait for the removal of a container use
 #### **--condition**=*state*
 Container state or condition to wait for.  Can be specified multiple times where at least one condition must match for the command to return.  Supported values are "configured", "created", "exited", "healthy", "initialized", "paused", "removing", "running", "stopped",  "stopping", "unhealthy".  The default condition is "stopped".
 
+#### **--exit-first-match**
+Wait for exit of first container which matches conditions, ignore other ones.
+
 #### **--help**, **-h**
 
  Print usage statement
