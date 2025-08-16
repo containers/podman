@@ -121,3 +121,15 @@ func (ic *ContainerEngine) VolumeExport(_ context.Context, nameOrID string, opti
 func (ic *ContainerEngine) VolumeImport(_ context.Context, nameOrID string, options entities.VolumeImportOptions) error {
 	return volumes.Import(ic.ClientCtx, nameOrID, options.Input)
 }
+
+func (ic *ContainerEngine) VolumeProtect(ctx context.Context, namesOrIds []string, opts entities.VolumeProtectOptions) ([]*entities.VolumeProtectReport, error) {
+	reports := make([]*entities.VolumeProtectReport, 0, len(namesOrIds))
+	for _, nameOrId := range namesOrIds {
+		report := &entities.VolumeProtectReport{
+			Id:  nameOrId,
+			Err: errors.New("volume protection is not supported for remote clients"),
+		}
+		reports = append(reports, report)
+	}
+	return reports, nil
+}
