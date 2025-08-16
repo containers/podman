@@ -48,8 +48,8 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*opts.GID), libpod.WithVolumeNoChown())
 	}
 
-	if opts.Protected {
-		volumeOptions = append(volumeOptions, libpod.WithVolumeProtected())
+	if opts.Pinned {
+		volumeOptions = append(volumeOptions, libpod.WithVolumePinned())
 	}
 
 	vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
@@ -88,10 +88,10 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 		}
 	}
 	for _, vol := range vols {
-		// Check if volume is protected and --include-protected flag is not set
-		if vol.Protected() && !opts.IncludeProtected {
+		// Check if volume is pinned and --include-pinned flag is not set
+		if vol.Pinned() && !opts.IncludePinned {
 			reports = append(reports, &entities.VolumeRmReport{
-				Err: fmt.Errorf("volume %s is protected and cannot be removed without --include-protected flag", vol.Name()),
+				Err: fmt.Errorf("volume %s is pinned and cannot be removed without --include-pinned flag", vol.Name()),
 				Id:  vol.Name(),
 			})
 			continue
@@ -156,11 +156,11 @@ func (ic *ContainerEngine) VolumePrune(ctx context.Context, options entities.Vol
 		}
 		funcs = append(funcs, filterFunc)
 	}
-	return ic.pruneVolumesHelper(ctx, funcs, options.IncludeProtected)
+	return ic.pruneVolumesHelper(ctx, funcs, options.IncludePinned)
 }
 
-func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter, includeProtected bool) ([]*reports.PruneReport, error) {
-	pruned, err := ic.Libpod.PruneVolumesWithOptions(ctx, filterFuncs, includeProtected)
+func (ic *ContainerEngine) pruneVolumesHelper(ctx context.Context, filterFuncs []libpod.VolumeFilter, includePinned bool) ([]*reports.PruneReport, error) {
+	pruned, err := ic.Libpod.PruneVolumesWithOptions(ctx, filterFuncs, includePinned)
 	if err != nil {
 		return nil, err
 	}
@@ -280,13 +280,13 @@ func (ic *ContainerEngine) VolumeExport(_ context.Context, nameOrID string, opti
 	return nil
 }
 
-func (ic *ContainerEngine) VolumeProtect(ctx context.Context, namesOrIds []string, opts entities.VolumeProtectOptions) ([]*entities.VolumeProtectReport, error) {
-	var reports []*entities.VolumeProtectReport
+func (ic *ContainerEngine) VolumePin(ctx context.Context, namesOrIds []string, opts entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
+	var reports []*entities.VolumePinReport
 
 	for _, nameOrId := range namesOrIds {
-		report := &entities.VolumeProtectReport{Id: nameOrId}
+		report := &entities.VolumePinReport{Id: nameOrId}
 		
-		if err := ic.Libpod.SetVolumeProtected(nameOrId, !opts.Unprotect); err != nil {
+		if err := ic.Libpod.SetVolumePinned(nameOrId, !opts.Unpin); err != nil {
 			report.Err = err
 		}
 

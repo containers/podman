@@ -31,12 +31,12 @@ var (
 var (
 	createOpts = entities.VolumeCreateOptions{}
 	opts       = struct {
-		Label      []string
-		Opts       []string
-		Ignore     bool
-		UID        int
-		GID        int
-		Protected bool
+		Label  []string
+		Opts   []string
+		Ignore bool
+		UID    int
+		GID    int
+		Pinned bool
 	}{}
 )
 
@@ -70,9 +70,9 @@ func init() {
 	flags.IntVar(&opts.GID, gidFlagName, 0, "Set the GID of the volume owner")
 	_ = createCommand.RegisterFlagCompletionFunc(gidFlagName, completion.AutocompleteNone)
 
-	protectedFlagName := "protected"
-	flags.BoolVar(&opts.Protected, protectedFlagName, false, "Mark volume as protected (excluded from system prune by default)")
-	_ = createCommand.RegisterFlagCompletionFunc(protectedFlagName, completion.AutocompleteNone)
+	pinnedFlagName := "pinned"
+	flags.BoolVar(&opts.Pinned, pinnedFlagName, false, "Mark volume as pinned (excluded from system prune by default)")
+	_ = createCommand.RegisterFlagCompletionFunc(pinnedFlagName, completion.AutocompleteNone)
 }
 
 func create(cmd *cobra.Command, args []string) error {
@@ -99,7 +99,7 @@ func create(cmd *cobra.Command, args []string) error {
 	if cmd.Flags().Changed("gid") {
 		createOpts.GID = &opts.GID
 	}
-	createOpts.Protected = opts.Protected
+	createOpts.Pinned = opts.Pinned
 	response, err := registry.ContainerEngine().VolumeCreate(context.Background(), createOpts)
 	if err != nil {
 		return err

@@ -52,25 +52,25 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 		}, nil
 	case "until":
 		return createUntilFilterVolumeFunction(filterValues)
-	case "protected":
+	case "pinned":
 		for _, val := range filterValues {
 			switch strings.ToLower(val) {
 			case "true", "1", "false", "0":
 			default:
-				return nil, fmt.Errorf("%q is not a valid value for the \"protected\" filter - must be true or false", val)
+				return nil, fmt.Errorf("%q is not a valid value for the \"pinned\" filter - must be true or false", val)
 			}
 		}
 		return func(v *libpod.Volume) bool {
 			for _, val := range filterValues {
-				protected := v.Protected()
+				pinned := v.Pinned()
 
 				switch strings.ToLower(val) {
 				case "true", "1":
-					if protected {
+					if pinned {
 						return true
 					}
 				case "false", "0":
-					if !protected {
+					if !pinned {
 						return true
 					}
 				}
@@ -126,25 +126,25 @@ func GeneratePruneVolumeFilters(filter string, filterValues []string, runtime *l
 		}, nil
 	case "until":
 		return createUntilFilterVolumeFunction(filterValues)
-	case "protected":
+	case "pinned":
 		for _, val := range filterValues {
 			switch strings.ToLower(val) {
 			case "true", "1", "false", "0":
 			default:
-				return nil, fmt.Errorf("%q is not a valid value for the \"protected\" filter - must be true or false", val)
+				return nil, fmt.Errorf("%q is not a valid value for the \"pinned\" filter - must be true or false", val)
 			}
 		}
 		return func(v *libpod.Volume) bool {
 			for _, val := range filterValues {
-				protected := v.Protected()
+				pinned := v.Pinned()
 
 				switch strings.ToLower(val) {
 				case "true", "1":
-					if protected {
+					if pinned {
 						return true
 					}
 				case "false", "0":
-					if !protected {
+					if !pinned {
 						return true
 					}
 				}

@@ -1744,15 +1744,15 @@ func withSetAnon() VolumeCreateOption {
 	}
 }
 
-// WithVolumeProtected sets the protected flag for the volume.
-// Protected volumes are excluded from system prune operations by default.
-func WithVolumeProtected() VolumeCreateOption {
+// WithVolumePinned sets the pinned flag for the volume.
+// Pinned volumes are excluded from system prune operations by default.
+func WithVolumePinned() VolumeCreateOption {
 	return func(volume *Volume) error {
 		if volume.valid {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.Protected = true
+		volume.config.Pinned = true
 
 		return nil
 	}
