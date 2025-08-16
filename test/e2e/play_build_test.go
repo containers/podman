@@ -77,11 +77,8 @@ LABEL marge=mom
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).ToNot(HaveOccurred())
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
+
+		GinkgoT().Chdir(yamlDir)
 
 		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
@@ -117,11 +114,8 @@ LABEL marge=mom
 		// Write a file to be copied
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).ToNot(HaveOccurred())
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
+
+		GinkgoT().Chdir(yamlDir)
 
 		session := podmanTest.Podman([]string{"kube", "play", "top.yaml"})
 		session.WaitWithDefaultTimeout()
@@ -165,11 +159,7 @@ LABEL marge=mom
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).ToNot(HaveOccurred())
 
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
+		GinkgoT().Chdir(yamlDir)
 
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
@@ -212,11 +202,7 @@ LABEL marge=mom
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).ToNot(HaveOccurred())
 
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
+		GinkgoT().Chdir(yamlDir)
 
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
@@ -259,11 +245,7 @@ LABEL marge=mom
 		err = writeYaml(copyFile, filepath.Join(app1Dir, "copyfile"))
 		Expect(err).ToNot(HaveOccurred())
 
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
+		GinkgoT().Chdir(yamlDir)
 
 		// Build the image into the local store
 		build := podmanTest.Podman([]string{"build", "-t", "foobar", "-f", "Containerfile"})
@@ -352,11 +334,7 @@ echo GOT-HERE
 		os.Setenv("FOO", "make sure we use FOO from kube file, not env")
 		defer os.Unsetenv("FOO")
 
-		// Switch to temp dir and restore it afterwards
-		cwd, err := os.Getwd()
-		Expect(err).ToNot(HaveOccurred())
-		Expect(os.Chdir(yamlDir)).To(Succeed())
-		defer func() { Expect(os.Chdir(cwd)).To(Succeed()) }()
+		GinkgoT().Chdir(yamlDir)
 
 		session := podmanTest.Podman([]string{"kube", "play", "echo.yaml"})
 		session.WaitWithDefaultTimeout()

@@ -336,12 +336,9 @@ HEALTHCHECK CMD ls -l / 2>&1`, ALPINE)
 		containerfilePath := filepath.Join(podmanTest.TempDir, "Containerfile")
 		err = os.WriteFile(containerfilePath, []byte(containerfile), 0644)
 		Expect(err).ToNot(HaveOccurred())
-		defer func() {
-			Expect(os.Chdir(cwd)).To(Succeed())
-		}()
 
 		// make cwd as context root path
-		Expect(os.Chdir(podmanTest.TempDir)).To(Succeed())
+		GinkgoT().Chdir(podmanTest.TempDir)
 
 		session := podmanTest.Podman([]string{"build", "--format", "docker", "-t", "test", "."})
 		session.WaitWithDefaultTimeout()
