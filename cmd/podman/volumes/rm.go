@@ -33,9 +33,9 @@ var (
 )
 
 var (
-	rmOptions        = entities.VolumeRmOptions{}
-	stopTimeout      int
-	includeProtected bool
+	rmOptions     = entities.VolumeRmOptions{}
+	stopTimeout   int
+	includePinned bool
 )
 
 func init() {
@@ -46,7 +46,7 @@ func init() {
 	flags := rmCommand.Flags()
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all volumes")
 	flags.BoolVarP(&rmOptions.Force, "force", "f", false, "Remove a volume by force, even if it is being used by a container")
-	flags.BoolVar(&includeProtected, "include-protected", false, "Include protected volumes in removal operation")
+	flags.BoolVar(&includePinned, "include-pinned", false, "Include pinned volumes in removal operation")
 	timeFlagName := "time"
 	flags.IntVarP(&stopTimeout, timeFlagName, "t", int(containerConfig.Engine.StopTimeout), "Seconds to wait for running containers to stop before killing the container")
 	_ = rmCommand.RegisterFlagCompletionFunc(timeFlagName, completion.AutocompleteNone)
@@ -66,7 +66,7 @@ func rm(cmd *cobra.Command, args []string) error {
 		timeout := uint(stopTimeout)
 		rmOptions.Timeout = &timeout
 	}
-	rmOptions.IncludeProtected = includeProtected
+	rmOptions.IncludePinned = includePinned
 	responses, err := registry.ContainerEngine().VolumeRm(context.Background(), args, rmOptions)
 	if err != nil {
 		if rmOptions.Force && strings.Contains(err.Error(), define.ErrNoSuchVolume.Error()) {
