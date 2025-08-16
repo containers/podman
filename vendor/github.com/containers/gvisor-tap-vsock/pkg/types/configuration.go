@@ -50,6 +50,9 @@ type Configuration struct {
 
 	// Protocol to be used. Only for /connect mux
 	Protocol Protocol
+
+	// EC2 Metadata Service Access
+	Ec2MetadataAccess bool
 }
 
 type Protocol string

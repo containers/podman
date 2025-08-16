@@ -211,7 +211,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/gvisor-tap-vsock v0.8.6
+# github.com/containers/gvisor-tap-vsock v0.8.7
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
 # github.com/containers/image/v5 v5.36.1
@@ -1013,7 +1013,7 @@ golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
 golang.org/x/crypto/twofish
 golang.org/x/crypto/xts
-# golang.org/x/mod v0.26.0
+# golang.org/x/mod v0.27.0
 ## explicit; go 1.23.0
 golang.org/x/mod/semver
 # golang.org/x/net v0.43.0
