@@ -82,6 +82,11 @@ func prune(_ *cobra.Command, _ []string) error {
 			return nil
 		}
 	}
+	
+	// Set the include protected flag for volume pruning
+	if pruneOptions.Volume {
+		pruneOptions.VolumePruneOptions.IncludeProtected = includeProtected
+	}
 
 	// Remove all unused pods, containers, images, networks, and volume data.
 	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
