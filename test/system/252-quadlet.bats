@@ -1196,6 +1196,8 @@ EOF
     cat > $quadlet_file <<EOF
 [Kube]
 Yaml=${yaml_source}
+[Service]
+Type=simple
 EOF
 
     run_quadlet "$quadlet_file"
