@@ -69,7 +69,8 @@ function Local-Unit {
     $skippackages+="pkg\domain\infra\abi,pkg\emulation,pkg\machine\apple,pkg\machine\applehv,pkg\machine\e2e,pkg\machine\libkrun,"
     $skippackages+="pkg\machine\provider,pkg\machine\proxyenv,pkg\machine\qemu,pkg\specgen\generate,pkg\systemd,test\e2e,test\utils,cmd\rootlessport,"
     $skippackages+="pkg\pidhandle"
-    Run-Command "./bin/ginkgo.exe -vv -r --tags `"$remotetags`" --timeout=15m --trace --no-color --skip-package `"$skippackages`""
+    if ($null -eq $ENV:GINKGOTIMEOUT) { $ENV:GINKGOTIMEOUT = '--timeout=15m' }
+    Run-Command "./bin/ginkgo.exe -vv -r --tags `"$remotetags`" ${ENV:GINKGOTIMEOUT} --trace --no-color --skip-package `"$skippackages`""
 }
 
 function Local-Machine {
@@ -86,7 +87,8 @@ function Local-Machine {
         $focus = "--focus ""$FOCUS"" --silence-skips"
     }
 
-    Run-Command "./bin/ginkgo.exe -vv --tags `"$remotetags`" --timeout=50m --trace --no-color $focus $files pkg/machine/e2e/."
+    if ($null -eq $ENV:GINKGOTIMEOUT) { $ENV:GINKGOTIMEOUT = '--timeout=50m' }
+    Run-Command "./bin/ginkgo.exe -vv --tags `"$remotetags`" ${ENV:GINKGOTIMEOUT} --trace --no-color $focus $files pkg/machine/e2e/."
 }
 
 # Expect starting directory to be /podman
