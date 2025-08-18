@@ -15,13 +15,14 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// tags:
 	//   - artifacts
 	// summary: Inspect an artifact
-	// description: Obtain low-level information about an artifact
+	// description: |
+	//   Retrieve detailed information about a specific OCI artifact by name or ID.
 	// produces:
 	//   - application/json
 	// parameters:
 	//   - name: name
 	//     in: path
-	//     description: The name or ID of the artifact
+	//     description: Name or ID of the artifact
 	//     required: true
 	//     type: string
 	// responses:
@@ -37,7 +38,7 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// tags:
 	//   - artifacts
 	// summary: List artifacts
-	// description: Returns a list of artifacts on the server.
+	// description: Return a list of all OCI artifacts in local storage.
 	// produces:
 	// - application/json
 	// responses:
@@ -50,8 +51,8 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - artifacts
-	// summary: Pull an OCI artifact
-	// description: Pulls an artifact from a registry and stores it locally.
+	// summary: Pull an artifact
+	// description: Pull an OCI artifact from a remote registry to local storage.
 	// produces:
 	// - application/json
 	// parameters:
@@ -72,7 +73,7 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//     default: 1s
 	//   - name: tlsVerify
 	//     in: query
-	//     description: Require TLS verification.
+	//     description: Require TLS verification
 	//     type: boolean
 	//     default: true
 	//   - name: X-Registry-Auth
@@ -98,20 +99,22 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - artifacts
-	// summary: Remove one or more Artifacts from local storage.
-	// description: Remove one or more Artifacts from local storage.
+	// summary: Remove one or more artifacts
+	// description: |
+	//   Remove one or more OCI artifacts from local storage.
+	//   Can be filtered by name/ID or all artifacts can be removed.
 	// produces:
 	//  - application/json
 	// parameters:
 	//  - name: artifacts
 	//    in: query
-	//    description: Artifact IDs or names to remove
+	//    description: List of artifact names/IDs to remove
 	//    type: array
 	//    items:
 	//        type: string
 	//  - name: all
 	//    in: query
-	//    description: Remove all Artifacts
+	//    description: Remove all artifacts
 	//    type: boolean
 	// responses:
 	//   200:
@@ -125,14 +128,14 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - artifacts
-	// summary: Remove Artifact
-	// description: Delete an Artifact from local storage
+	// summary: Remove an artifact
+	// description: Remove a single artifact from local storage by name or ID.
 	// produces:
 	//  - application/json
 	// parameters:
 	//  - name: name
 	//    in: path
-	//    description: name or ID of artifact to delete
+	//    description: Name or ID of the artifact to remove
 	//    required: true
 	//    type: string
 	// responses:
@@ -147,8 +150,9 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - artifacts
-	// summary: Add an OCI artifact to the local store
-	// description: Add an OCI artifact to the local store from the local filesystem
+	// summary: Add a file as an artifact
+	// description: |
+	//   Add a file as a new OCI artifact, or append to an existing artifact if 'append' is true.
 	// produces:
 	//   - application/json
 	// consumes:
@@ -161,7 +165,7 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//     type: string
 	//   - name: fileName
 	//     in: query
-	//     description: File to be added to the artifact
+	//     description: Path of the file to be added
 	//     required: true
 	//     type: string
 	//   - name: fileMIMEType
@@ -185,7 +189,7 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//     default: false
 	//   - name: inputStream
 	//     in: body
-	//     description: A binary stream of the blob to add to artifact
+	//     description: Binary stream of the file to add to an artifact
 	//     schema:
 	//       type: string
 	//       format: binary
@@ -203,8 +207,8 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - artifacts
-	// summary: Push an OCI artifact
-	// description: Push an OCI artifact from local storage to an image registry.
+	// summary: Push an artifact
+	// description: Push an OCI artifact from local storage to a remote image registry.
 	// produces:
 	//   - application/json
 	// parameters:
@@ -225,7 +229,7 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//     default: 1s
 	//   - name: tlsVerify
 	//     in: query
-	//     description: Require TLS verification.
+	//     description: Require TLS verification
 	//     type: boolean
 	//     default: true
 	//   - name: X-Registry-Auth
@@ -251,27 +255,28 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	// ---
 	// tags:
 	//  - artifacts
-	// summary: Extract an OCI artifact to a local path
-	// description: Extract the blobs of an OCI artifact to a local file or directory
+	// summary: Extract an artifacts contents
+	// description: Extract the files of an OCI artifact to the local filesystem as a tar archive.
 	// produces:
 	//   - application/x-tar
 	// parameters:
 	//  - name: name
 	//    in: path
-	//    description: The name or digest of artifact
+	//    description: Name or digest of the artifact
 	//    required: true
 	//    type: string
 	//  - name: title
 	//    in: query
-	//    description: Only extract blob with the given title
+	//    description: Only extract the file with the given title
 	//    type: string
 	//  - name: digest
 	//    in: query
-	//    description: Only extract blob with the given digest
+	//    description: Only extract the file with the given digest
 	//    type: string
 	//  - name: excludeTitle
 	//    in: query
-	//    description: When extracting a single Artifact blob, don't use the blob title as the filename in the tar
+	//    description: |
+	//      When extracting a single file from an artifact, don't use the files title as the file name in the tar archive
 	//    type: boolean
 	// responses:
 	//   200:

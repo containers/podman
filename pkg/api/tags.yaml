@@ -1,4 +1,6 @@
 tags:
+    - name: artifacts
+      description: Actions related to artifacts
     - name: containers
       description: Actions related to containers
     - name: exec
