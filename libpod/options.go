@@ -1752,7 +1752,7 @@ func WithVolumePinned() VolumeCreateOption {
 			return define.ErrVolumeFinalized
 		}
 
-		volume.config.Pinned = true
+		volume.state.Pinned = true
 
 		return nil
 	}
