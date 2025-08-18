@@ -77,9 +77,6 @@ type VolumeConfig struct {
 	StorageImageID string `json:"storageImageID,omitempty"`
 	// MountLabel is the SELinux label to assign to mount points
 	MountLabel string `json:"mountlabel,omitempty"`
-	// Pinned indicates that this volume should be excluded from
-	// system prune operations by default
-	Pinned bool `json:"pinned,omitempty"`
 }
 
 // VolumeState holds the volume's mutable state.
@@ -115,6 +112,9 @@ type VolumeState struct {
 	UIDChowned int `json:"uidChowned,omitempty"`
 	// GIDChowned is the GID the volume was chowned to.
 	GIDChowned int `json:"gidChowned,omitempty"`
+	// Pinned indicates that this volume should be excluded from
+	// system prune operations by default
+	Pinned bool `json:"pinned,omitempty"`
 }
 
 // Name retrieves the volume's name
