@@ -72,6 +72,9 @@ func (r *DefaultReporter) SuiteWillBegin(report types.Report) {
 		if len(report.SuiteLabels) > 0 {
 			r.emit(r.f("{{coral}}[%s]{{/}} ", strings.Join(report.SuiteLabels, ", ")))
 		}
+		if len(report.SuiteSemVerConstraints) > 0 {
+			r.emit(r.f("{{coral}}[%s]{{/}} ", strings.Join(report.SuiteSemVerConstraints, ", ")))
+		}
 		r.emit(r.f("- %d/%d specs ", report.PreRunStats.SpecsThatWillRun, report.PreRunStats.TotalSpecs))
 		if report.SuiteConfig.ParallelTotal > 1 {
 			r.emit(r.f("- %d procs ", report.SuiteConfig.ParallelTotal))
@@ -85,6 +88,13 @@ func (r *DefaultReporter) SuiteWillBegin(report types.Report) {
 			r.emitBlock(r.f("{{coral}}[%s]{{/}} ", labels))
 			if len(labels)+2 > bannerWidth {
 				bannerWidth = len(labels) + 2
+			}
+		}
+		if len(report.SuiteSemVerConstraints) > 0 {
+			semVerConstraints := strings.Join(report.SuiteSemVerConstraints, ", ")
+			r.emitBlock(r.f("{{coral}}[%s]{{/}} ", semVerConstraints))
+			if len(semVerConstraints)+2 > bannerWidth {
+				bannerWidth = len(semVerConstraints) + 2
 			}
 		}
 		r.emitBlock(strings.Repeat("=", bannerWidth))
@@ -698,8 +708,8 @@ func (r *DefaultReporter) cycleJoin(elements []string, joiner string) string {
 }
 
 func (r *DefaultReporter) codeLocationBlock(report types.SpecReport, highlightColor string, veryVerbose bool, usePreciseFailureLocation bool) string {
-	texts, locations, labels := []string{}, []types.CodeLocation{}, [][]string{}
-	texts, locations, labels = append(texts, report.ContainerHierarchyTexts...), append(locations, report.ContainerHierarchyLocations...), append(labels, report.ContainerHierarchyLabels...)
+	texts, locations, labels, semVerConstraints := []string{}, []types.CodeLocation{}, [][]string{}, [][]string{}
+	texts, locations, labels, semVerConstraints = append(texts, report.ContainerHierarchyTexts...), append(locations, report.ContainerHierarchyLocations...), append(labels, report.ContainerHierarchyLabels...), append(semVerConstraints, report.ContainerHierarchySemVerConstraints...)
 
 	if report.LeafNodeType.Is(types.NodeTypesForSuiteLevelNodes) {
 		texts = append(texts, r.f("[%s] %s", report.LeafNodeType, report.LeafNodeText))
@@ -707,6 +717,7 @@ func (r *DefaultReporter) codeLocationBlock(report types.SpecReport, highlightCo
 		texts = append(texts, r.f(report.LeafNodeText))
 	}
 	labels = append(labels, report.LeafNodeLabels)
+	semVerConstraints = append(semVerConstraints, report.LeafNodeSemVerConstraints)
 	locations = append(locations, report.LeafNodeLocation)
 
 	failureLocation := report.Failure.FailureNodeLocation
@@ -720,6 +731,7 @@ func (r *DefaultReporter) codeLocationBlock(report types.SpecReport, highlightCo
 		texts = append([]string{fmt.Sprintf("TOP-LEVEL [%s]", report.Failure.FailureNodeType)}, texts...)
 		locations = append([]types.CodeLocation{failureLocation}, locations...)
 		labels = append([][]string{{}}, labels...)
+		semVerConstraints = append([][]string{{}}, semVerConstraints...)
 		highlightIndex = 0
 	case types.FailureNodeInContainer:
 		i := report.Failure.FailureNodeContainerIndex
@@ -747,6 +759,9 @@ func (r *DefaultReporter) codeLocationBlock(report types.SpecReport, highlightCo
 			if len(labels[i]) > 0 {
 				out += r.f(" {{coral}}[%s]{{/}}", strings.Join(labels[i], ", "))
 			}
+			if len(semVerConstraints[i]) > 0 {
+				out += r.f(" {{coral}}[%s]{{/}}", strings.Join(semVerConstraints[i], ", "))
+			}
 			out += "\n"
 			out += r.fi(uint(i), "{{gray}}%s{{/}}\n", locations[i])
 		}
@@ -769,6 +784,10 @@ func (r *DefaultReporter) codeLocationBlock(report types.SpecReport, highlightCo
 		flattenedLabels := report.Labels()
 		if len(flattenedLabels) > 0 {
 			out += r.f(" {{coral}}[%s]{{/}}", strings.Join(flattenedLabels, ", "))
+		}
+		flattenedSemVerConstraints := report.SemVerConstraints()
+		if len(flattenedSemVerConstraints) > 0 {
+			out += r.f(" {{coral}}[%s]{{/}}", strings.Join(flattenedSemVerConstraints, ", "))
 		}
 		out += "\n"
 		if usePreciseFailureLocation {

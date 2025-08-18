@@ -229,3 +229,9 @@ func (t *ginkgoTestingTProxy) ParallelTotal() int {
 func (t *ginkgoTestingTProxy) AttachProgressReporter(f func() string) func() {
 	return t.attachProgressReporter(f)
 }
+func (t *ginkgoTestingTProxy) Output() io.Writer {
+	return t.writer
+}
+func (t *ginkgoTestingTProxy) Attr(key, value string) {
+	t.addReportEntry(key, value, internal.Offset(1), types.ReportEntryVisibilityFailureOrVerbose)
+}
