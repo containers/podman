@@ -310,7 +310,7 @@ func (v *Volume) SetPinned(pinned bool) error {
 		return err
 	}
 
-	v.config.Pinned = pinned
+	v.state.Pinned = pinned
 
 	return v.save()
 }
