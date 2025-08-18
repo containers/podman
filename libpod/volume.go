@@ -286,7 +286,14 @@ func (v *Volume) UsesVolumeDriver() bool {
 // Pinned returns whether this volume is marked as pinned.
 // Pinned volumes are excluded from system prune operations by default.
 func (v *Volume) Pinned() bool {
-	return v.config.Pinned
+	v.lock.Lock()
+	defer v.lock.Unlock()
+
+	if err := v.update(); err != nil {
+		return false
+	}
+
+	return v.state.Pinned
 }
 
 // SetPinned sets the pinned status of the volume.
