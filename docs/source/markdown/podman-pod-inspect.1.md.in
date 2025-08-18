@@ -63,7 +63,7 @@ Valid placeholders for the Go template are listed below:
 
 Inspect specified pod:
 ```
-# podman pod inspect foobar
+$ podman pod inspect foobar
 [
      {
          "Id": "3513ca70583dd7ef2bac83331350f6b6c47d7b4e526c908e49d89ebf720e4693",
@@ -90,6 +90,35 @@ Inspect specified pod:
          ]
      }
 ]
+```
+Show only pod name and state:
+```
+$ podman pod inspect --format "{{.Name}}\t{{.State}}" mypod
+mypod	Running
+```
+
+Show pod ID and number of containers:
+```
+$ podman pod inspect mypod --format "Pod {{.Name}} ({{.ID}}) has {{.NumContainers}} containers"
+Pod mypod (605f5f776e101a6e0ad11ea802cae25eabf299da77122f2963fa65dc6ccf6717) has 2 containers
+```
+Show pod creation time and shared namespaces:
+```
+$ podman pod inspect mypod --format "Created: {{.Created}}\nShared: {{.SharedNamespaces}}"
+Created: 2025-08-14 21:16:05.861363099 +0000 UTC
+Shared: [net uts ipc]
+```
+
+Show pod resource limits:
+```
+$ podman pod inspect --format "Memory: {{.MemoryLimit}}, CPU Period: {{.CPUPeriod}}, CPU Quota: {{.CPUQuota}}" mypod
+Memory: 1073741824, CPU Period: 100000, CPU Quota: 50000
+```
+
+Show container IDs within the pod:
+```
+$ podman pod inspect --format "{{range .Containers}}{{.Id}}: {{.State}} {{end}}" mypod
+e907f7902decca9d6b600b4d3cca9541d9b89dd726b2af7ad2eba05d2a97083f: running c5a53050a31aed71c55cb6a31b9564c69a1009f77750f3f0e8093bd98fcd8918: running
 ```
 
 ## SEE ALSO

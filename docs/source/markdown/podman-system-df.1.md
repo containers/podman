@@ -66,12 +66,34 @@ Local Volumes space usage:
 
 VOLUME NAME   LINKS   SIZE
 data          1       0B
+```
 
+Show only the total count for each type:
+```
 $ podman system df --format "{{.Type}}\t{{.Total}}"
 Images          1
 Containers      5
 Local Volumes   1
 ```
+Show disk usage in JSON format:
+```
+$ podman system df --format json
+[
+    {"Type":"Images","Total":12,"Active":3,"RawSize":13491151377,"RawReclaimable":922956674,"TotalCount":12,"Size":"13.49GB","Reclaimable":"923MB (7%)"},
+    {"Type":"Containers","Total":4,"Active":0,"RawSize":209266,"RawReclaimable":209266,"TotalCount":4,"Size":"209.3kB","Reclaimable":"209.3kB (100%)"},
+    {"Type":"Local Volumes","Total":6,"Active":1,"RawSize":796638905,"RawReclaimable":47800633,"TotalCount":6,"Size":"796.6MB","Reclaimable":"47.8MB (6%)"}
+]
+```
+Show type and size in a custom format:
+```
+$ podman system df --format "{{.Type}}: {{.Size}} ({{.Reclaimable}} reclaimable)"
+
+Images: 13.49GB (923MB (7%) reclaimable)
+Containers: 209.3kB (209.3kB (100%) reclaimable)
+Local Volumes: 796.6MB (47.8MB (6%) reclaimable)
+```
+
+
 ## SEE ALSO
 **[podman(1)](podman.1.md)**, **[podman-system(1)](podman-system.1.md)**
 
