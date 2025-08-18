@@ -100,6 +100,23 @@ You can learn more here: https://onsi.github.io/ginkgo/#spec-labels
 type Labels = internal.Labels
 
 /*
+SemVerConstraint decorates specs with SemVerConstraints. Multiple semantic version constraints can be passed to SemVerConstraint and these strings must follow the semantic version constraint rules.
+SemVerConstraints can be applied to container and subject nodes, but not setup nodes. You can provide multiple SemVerConstraints to a given node and a spec's semantic version constraints is the union of all semantic version constraints in its node hierarchy.
+
+You can learn more here: https://onsi.github.io/ginkgo/#spec-semantic-version-filtering
+You can learn more about decorators here: https://onsi.github.io/ginkgo/#decorator-reference
+*/
+func SemVerConstraint(semVerConstraints ...string) SemVerConstraints {
+	return SemVerConstraints(semVerConstraints)
+}
+
+/*
+SemVerConstraints are the type for spec SemVerConstraint decorators. Use SemVerConstraint(...) to construct SemVerConstraints.
+You can learn more here: https://onsi.github.io/ginkgo/#spec-semantic-version-filtering
+*/
+type SemVerConstraints = internal.SemVerConstraints
+
+/*
 PollProgressAfter allows you to override the configured value for --poll-progress-after for a particular node.
 
 Ginkgo will start emitting node progress if the node is still running after a duration of PollProgressAfter.  This allows you to get quicker feedback about the state of a long-running spec.
