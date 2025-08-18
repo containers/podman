@@ -75,7 +75,7 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 		data.Timeout = v.runtime.config.Engine.VolumePluginTimeout
 	}
 
-	data.Pinned = v.config.Pinned
+	data.Pinned = v.state.Pinned
 
 	return data, nil
 }
