@@ -1,3 +1,17 @@
+## 2.24.0
+
+### Features
+
+Specs can now be decorated with (e.g.) `SemVerConstraint("2.1.0")` and `ginkgo --sem-ver-filter="2.1.1"` will only run constrained specs that match the requested version.  Learn more in the docs [here](https://onsi.github.io/ginkgo/#spec-semantic-version-filtering)!  Thanks to @Icarus9913 for the PR.
+
+### Fixes
+
+- remove -o from run command [3f5d379].  fixes [#1582](https://github.com/onsi/ginkgo/issues/1582)
+
+### Maintenance
+
+Numerous dependency bumps and documentation fixes
+
 ## 2.23.4
 
 Prior to this release Ginkgo would compute the incorrect number of available CPUs when running with `-p` in a linux container.  Thanks to @emirot for the fix!
