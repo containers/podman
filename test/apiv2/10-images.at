@@ -478,4 +478,32 @@ t GET images/json 200 \
 t GET images/json?shared-size=true 200 \
     .[0].SharedSize=0
 
+TMPD=$(mktemp -d podman-apiv2-test.build.XXXXXXXX)
+function cleanLoad() {
+    podman rmi -a -f
+    rm -rf "${TMPD}" &> /dev/null
+}
+
+podman pull quay.io/libpod/alpine:latest quay.io/libpod/busybox:latest
+podman save -o ${TMPD}/test.tar quay.io/libpod/alpine:latest quay.io/libpod/busybox:latest
+podman rmi quay.io/libpod/alpine:latest quay.io/libpod/busybox:latest
+ABS_PATH=$( realpath "${TMPD}/test.tar" )
+t POST libpod/local/images/load?path="${ABS_PATH}" 200
+t GET libpod/images/quay.io/libpod/alpine:latest/exists  204
+t GET libpod/images/quay.io/libpod/busybox:latest/exists  204
+
+# Test with directory instead of file
+mkdir -p ${TMPD}/testdir
+t POST libpod/local/images/load?path="${TMPD}/testdir" 500
+
+cleanLoad
+
+t POST libpod/local/images/load?path="/tmp/notexisting.tar" 404
+
+t POST libpod/local/images/load?invalid=arg 400
+
+t POST libpod/local/images/load?path="" 400
+
+t POST libpod/local/images/load?path="../../../etc/passwd" 404
+
 # vim: filetype=sh
