@@ -20,6 +20,8 @@ load helpers.network
     run_podman network ls -n
     assert "$output" !~ "$heading" "network ls -n shows header anyway"
 
+    since=$(date --iso-8601=seconds)
+
     # check deterministic list order
     local net1=net-a-$(safename)
     local net2=net-b-$(safename)
@@ -28,12 +30,22 @@ load helpers.network
     run_podman network create $net2
     run_podman network create $net3
 
+    # Quick check that we generate events
+    run_podman events --filter type=network --since $since --stream=false
+    assert "$output" =~ "network create [0-9a-f]{64} \(name=$net1, type=bridge\)" "network1 create event"
+    assert "$output" =~ "network create [0-9a-f]{64} \(name=$net2, type=bridge\)" "network2 create event"
+    assert "$output" =~ "network create [0-9a-f]{64} \(name=$net3, type=bridge\)" "network3 create event"
+
     run_podman network ls --quiet
     # just check that the order of the created networks is correct
     # we cannot do an exact match since developer and CI systems could contain more networks
     is "$output" ".*$net1.*$net2.*$net3.*podman.*" "networks sorted alphabetically"
 
     run_podman network rm $net1 $net2 $net3
+    run_podman events --filter type=network --since $since --stream=false
+    assert "$output" =~ "network remove [0-9a-f]{64} \(name=$net1, type=bridge\)" "network1 remove event"
+    assert "$output" =~ "network remove [0-9a-f]{64} \(name=$net2, type=bridge\)" "network2 remove event"
+    assert "$output" =~ "network remove [0-9a-f]{64} \(name=$net3, type=bridge\)" "network3 remove event"
 }
 
 # Copied from tsweeney's https://github.com/containers/podman/issues/4827
