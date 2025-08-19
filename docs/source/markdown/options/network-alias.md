@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman create, pod create, run
+####>   podman podman-container.unit.5.md.in, create, pod create, podman-pod.unit.5.md.in, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+{% if is_quadlet %}
+### `NetworkAlias=alias`
+{% else %}
 #### **--network-alias**=*alias*
+{% endif %}
 
 Add a network-scoped alias for the <<container|pod>>, setting the alias for all networks that the container joins. To set a
 name only for a specific network, use the alias option as described under the **--network** option.

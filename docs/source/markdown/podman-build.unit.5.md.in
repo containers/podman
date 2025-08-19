@@ -1,0 +1,229 @@
+% podman-build.unit(5)
+
+# NAME
+
+podman\-build.unit - systemd unit files for building container images using Podman Quadlet
+
+# SYNOPSIS
+
+*name*.build
+
+# DESCRIPTION
+
+Build units (`.build` files) are used by **Podman Quadlet** to declaratively define systemd services that
+build container images from a `Containerfile` or `Dockerfile`.
+
+These units ensure that the image is built on the host before being used by containers or volumes. If the
+image already exists and the context hasn’t changed, subsequent executions will complete quickly thanks to
+Podman’s build cache.
+
+They are especially useful for:
+- Creating images not available in registries
+- Automating image builds during boot
+- Local testing and development pipelines
+
+A minimal `.build` file must specify:
+- `ImageTag=` — to name the built image
+- Either `File=` or `SetWorkingDirectory=`
+
+
+# USAGE SUMMARY
+
+The `.build` file is parsed by the `podman-system-generator` at boot or reload, generating a systemd
+`.service` that runs `podman build`. That service can be managed like any other unit:
+
+```bash
+systemctl --user start myimage-build.service
+```
+
+The resulting image can be referenced by `.container` or `.volume` units via:
+
+```ini
+Image=myimage.build
+```
+
+
+# FILE LOCATIONS
+
+Place `.build` files in one of the following:
+
+### Rootless
+
+- `$XDG_RUNTIME_DIR/containers/systemd/`
+- `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
+- `/etc/containers/systemd/users/$(UID)`
+- `/etc/containers/systemd/users/`
+
+### Rootful
+
+- `/run/containers/systemd/`
+- `/etc/containers/systemd/`
+- `/usr/share/containers/systemd/`
+
+
+# OPTIONS
+
+Valid options for `[Build]` section are listed below:
+
+| **[Build] options**                 | **podman build equivalent**                 |
+|-------------------------------------|---------------------------------------------|
+| Annotation=annotation=value         | --annotation=annotation=value               |
+| Arch=aarch64                        | --arch=aarch64                              |
+| AuthFile=/etc/registry/auth\.json   | --authfile=/etc/registry/auth\.json         |
+| ContainersConfModule=/etc/nvd\.conf | --module=/etc/nvd\.conf                     |
+| DNS=192.168.55.1                    | --dns=192.168.55.1                          |
+| DNSOption=ndots:1                   | --dns-option=ndots:1                        |
+| DNSSearch=example.com               | --dns-search example.com                    |
+| Environment=foo=bar                 | --env foo=bar                               |
+| File=/path/to/Containerfile         | --file=/path/to/Containerfile               |
+| ForceRM=false                       | --force-rm=false                            |
+| GlobalArgs=--log-level=debug        | --log-level=debug                           |
+| GroupAdd=keep-groups                | --group-add=keep-groups                     |
+| ImageTag=localhost/imagename        | --tag=localhost/imagename                   |
+| Label=label                         | --label=label                               |
+| Network=host                        | --network=host                              |
+| PodmanArgs=--pull never             | --pull never                                |
+| Pull=never                          | --pull never                                |
+| Retry=5                             | --retry=5                                   |
+| RetryDelay=10s                      | --retry-delay=10s                           |
+| Secret=secret                       | --secret=id=mysecret,src=path               |
+| SetWorkingDirectory=unit            | Set `WorkingDirectory` of systemd unit file |
+| Target=my-app                       | --target=my-app                             |
+| TLSVerify=false                     | --tls-verify=false                          |
+| Variant=arm/v7                      | --variant=arm/v7                            |
+| Volume=/source:/dest                | --volume /source:/dest                      |
+
+### `Annotation=`
+
+Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can be used multiple
+times.
+
+This is equivalent to the `--annotation` option of `podman build`.
+
+@@option quadlet:arch
+
+@@option quadlet:authfile
+
+@@option quadlet:module
+
+@@option quadlet:dns
+
+@@option quadlet:dns-option.image
+
+@@option quadlet:dns-search.image
+
+@@option quadlet:env.image
+
+@@option quadlet:file
+
+@@option quadlet:force-rm
+
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `build` in the generated
+file. It can be used to access Podman features otherwise unsupported by the generator. Since the
+generator is unaware of what unexpected interactions can be caused by these arguments, it is not
+recommended to use this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+@@option quadlet:group-add
+
+@@option quadlet:tag
+
+@@option quadlet:label.image
+
+@@option quadlet:network.image
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman build` command
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+@@option quadlet:pull
+
+@@option quadlet:retry
+
+@@option quadlet:retry-delay
+
+@@option quadlet:secret.image
+
+### `SetWorkingDirectory=`
+
+Provide context (a working directory) to `podman build`. Supported values are a path, a URL, or the
+special keys `file` or `unit` to set the context directory to the parent directory of the file from
+the `File=` key or to that of the Quadlet `.build` unit file, respectively. This allows Quadlet to
+resolve relative paths.
+
+When using one of the special keys (`file` or `unit`), the `WorkingDirectory` field of the `Service`
+group of the Systemd service unit will also be set to accordingly. Alternatively, users can
+explicitly set the `WorkingDirectory` field of the `Service` group in the `.build` file. Please note
+that if the `WorkingDirectory` field of the `Service` group is set by the user, Quadlet will not
+overwrite it even if `SetWorkingDirectory` is set to `file` or `unit`.
+
+By providing a URL to `SetWorkingDirectory=` you can instruct `podman build` to clone a Git
+repository or download an archive file extracted to a temporary location by `podman build` as build
+context. Note that in this case, the `WorkingDirectory` of the Systemd service unit is left
+untouched by Quadlet.
+
+Note that providing context directory is mandatory for a `.build` file, unless a `File=` key has
+also been provided.
+
+@@option quadlet:target
+
+@@option quadlet:tls-verify
+
+### `Variant=`
+
+Override the default architecture variant of the container image to be built.
+
+This is equivalent to the `--variant` option of `podman build`.
+
+@@option quadlet:volume
+
+
+# EXAMPLES
+
+### Simple build
+
+```ini
+[Build]
+ImageTag=localhost/myapp
+File=Containerfile
+SetWorkingDirectory=unit
+```
+
+### From Git repository
+
+```ini
+[Build]
+ImageTag=localhost/mygitimage
+File=Containerfile
+SetWorkingDirectory=https://github.com/example/repo.git
+```
+
+### Build with secret
+
+```ini
+[Build]
+ImageTag=localhost/secureimage
+Secret=mysecret
+```
+
+# SEE ALSO
+
+- [podman-quadlet(7)](podman-quadlet.7.md)
+- [systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)
+- [podman-build(1)](https://docs.podman.io/en/latest/markdown/podman-build.1.html)
+- [podman-quadlet(7)]
