@@ -2,10 +2,20 @@
 ####>   podman build, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+{% if is_quadlet %}
+### `Volume=[HOST-DIR:CONTAINER-DIR[:OPTIONS]]`
+{% else %}
 #### **--volume**, **-v**=*[HOST-DIR:CONTAINER-DIR[:OPTIONS]]*
+{% endif %}
 
 Mount a host directory into containers when executing RUN instructions during
 the build.
+
+{% if is_quadlet %}
+Special case:
+
+* If `SOURCE-VOLUME` ends with `.volume`, Quadlet will look for the corresponding `.volume` Quadlet unit. If found, Quadlet will use the name of the Volume set in the Unit, otherwise, `systemd-$name` is used. The generated systemd service contains a dependency on the service unit generated for that `.volume` unit, or on `$name-volume.service` if the `.volume` unit is not found. Note: the corresponding `.volume` file must exist.
+{% endif %}
 
 The `OPTIONS` are a comma-separated list and can be one or more of:
 
