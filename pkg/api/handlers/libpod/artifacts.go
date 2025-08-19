@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
@@ -19,6 +17,8 @@ import (
 	libartifact_types "github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/gorilla/schema"
+	"go.podman.io/image/v5/oci/layout"
+	"go.podman.io/image/v5/types"
 )
 
 func InspectArtifact(w http.ResponseWriter, r *http.Request) {

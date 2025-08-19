@@ -12,10 +12,6 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
-	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/filters"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
@@ -25,7 +21,6 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage"
 	dockerContainer "github.com/docker/docker/api/types/container"
 	dockerImage "github.com/docker/docker/api/types/image"
 	dockerStorage "github.com/docker/docker/api/types/storage"
@@ -33,6 +28,11 @@ import (
 	"github.com/opencontainers/go-digest"
 	imageSpec "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/filters"
+	"go.podman.io/image/v5/manifest"
+	"go.podman.io/storage"
 )
 
 // mergeNameAndTagOrDigest creates an image reference as string from the

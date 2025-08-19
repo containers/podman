@@ -9,18 +9,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/libimage/define"
-	"github.com/containers/image/v5/docker/reference"
-	manifest "github.com/containers/image/v5/manifest"
-	"github.com/containers/image/v5/transports/alltransports"
 	podmanRegistry "github.com/containers/podman/v5/hack/podman-registry-go"
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/libimage/define"
+	"go.podman.io/image/v5/docker/reference"
+	manifest "go.podman.io/image/v5/manifest"
+	"go.podman.io/image/v5/transports/alltransports"
+	"go.podman.io/storage/pkg/archive"
 )
 
 // validateManifestHasAllArchs checks that the specified manifest has all

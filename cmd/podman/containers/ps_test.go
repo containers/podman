@@ -3,8 +3,8 @@ package containers
 import (
 	"testing"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/common/libnetwork/types"
 )
 
 func Test_portsToString(t *testing.T) {

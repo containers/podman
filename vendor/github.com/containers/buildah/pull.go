@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/storage"
+	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage"
 )
 
 // PullOptions can be used to alter how an image is copied in from somewhere.

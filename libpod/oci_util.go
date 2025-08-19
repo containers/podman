@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/types"
 )
 
 // Timeout before declaring that runtime has failed to kill a given

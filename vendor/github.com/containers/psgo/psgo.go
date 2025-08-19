@@ -29,7 +29,6 @@ package psgo
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"runtime"
 	"sort"
@@ -41,7 +40,7 @@ import (
 	"github.com/containers/psgo/internal/dev"
 	"github.com/containers/psgo/internal/proc"
 	"github.com/containers/psgo/internal/process"
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/idtools"
 	"golang.org/x/sys/unix"
 )
 
@@ -110,7 +109,7 @@ func findID(idStr string, mapping []idtools.IDMap, lookupFunc func(uid string) (
 	}
 
 	// User not found, read the overflow
-	overflow, err := ioutil.ReadFile(overflowFile)
+	overflow, err := os.ReadFile(overflowFile)
 	if err != nil {
 		return "", err
 	}
@@ -477,7 +476,7 @@ func JoinNamespaceAndProcessInfoByPidsWithOptions(pids []string, descriptors []s
 	for _, pid := range pids {
 		ns, err := proc.ParsePIDNamespace(pid)
 		if err != nil {
-			if errors.Is(err, os.ErrNotExist) {
+			if errors.Is(err, os.ErrNotExist) || errors.Is(err, unix.ESRCH) {
 				// catch race conditions
 				continue
 			}
@@ -492,7 +491,7 @@ func JoinNamespaceAndProcessInfoByPidsWithOptions(pids []string, descriptors []s
 	data := [][]string{}
 	for i, pid := range pidList {
 		pidData, err := JoinNamespaceAndProcessInfoWithOptions(pid, descriptors, options)
-		if errors.Is(err, os.ErrNotExist) {
+		if errors.Is(err, os.ErrNotExist) || errors.Is(err, unix.ESRCH) {
 			// catch race conditions
 			continue
 		}

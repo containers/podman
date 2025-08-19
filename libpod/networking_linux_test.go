@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
+	"go.podman.io/common/libnetwork/types"
 )
 
 func Test_ocicniPortsToNetTypesPorts(t *testing.T) {

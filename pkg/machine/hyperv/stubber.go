@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 
 	"github.com/Microsoft/go-winio"
-	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/libhvee/pkg/hypervctl"
 	"github.com/containers/podman/v5/pkg/machine"
@@ -22,6 +21,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/strongunits"
 )
 
 type HyperVStubber struct {

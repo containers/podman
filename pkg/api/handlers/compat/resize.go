@@ -8,12 +8,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/gorilla/mux"
+	"go.podman.io/common/pkg/resize"
 )
 
 func ResizeTTY(w http.ResponseWriter, r *http.Request) {

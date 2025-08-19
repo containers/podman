@@ -20,9 +20,9 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/psgo"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/google/shlex"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sys/unix"
 )
 

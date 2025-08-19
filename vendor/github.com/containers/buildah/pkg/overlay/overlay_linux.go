@@ -7,9 +7,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // MountWithOptions creates ${contentDir}/merge, where ${contentDir} was

@@ -2,7 +2,7 @@
 
 package specgen
 
-import "github.com/containers/common/libimage"
+import "go.podman.io/common/libimage"
 
 type cacheLibImage struct {
 	image             *libimage.Image `json:"-"`

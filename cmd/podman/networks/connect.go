@@ -3,12 +3,12 @@ package network
 import (
 	"net"
 
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/completion"
 )
 
 var (

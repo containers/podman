@@ -8,8 +8,8 @@ import (
 
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/utils"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/archive"
 )
 
 const (

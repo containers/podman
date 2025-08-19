@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
+	"go.podman.io/image/v5/types"
 )
 
 func pullOCITestDisk(finalDir string, vmType define.VMType) error {

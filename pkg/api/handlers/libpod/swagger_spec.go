@@ -9,7 +9,7 @@ import (
 	"os"
 
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
-	"github.com/containers/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // DefaultPodmanSwaggerSpec provides the default path to the podman swagger spec file

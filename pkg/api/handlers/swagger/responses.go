@@ -4,8 +4,6 @@
 package swagger
 
 import (
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/domain/entities"
@@ -15,6 +13,8 @@ import (
 	dockerImage "github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/api/types/volume"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/image/v5/manifest"
 )
 
 // Image Tree

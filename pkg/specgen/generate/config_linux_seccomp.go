@@ -8,12 +8,12 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/common/libimage"
-	goSeccomp "github.com/containers/common/pkg/seccomp"
 	"github.com/containers/podman/v5/pkg/seccomp"
 	"github.com/containers/podman/v5/pkg/specgen"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libimage"
+	goSeccomp "go.podman.io/common/pkg/seccomp"
 )
 
 func getSeccompConfig(s *specgen.SpecGenerator, configSpec *spec.Spec, img *libimage.Image) (*spec.LinuxSeccomp, error) {

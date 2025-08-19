@@ -30,9 +30,9 @@ import (
 	"github.com/containers/podman/v5/pkg/logiface"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/terminal"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/term"
 )
 

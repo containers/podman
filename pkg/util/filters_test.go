@@ -3,7 +3,7 @@ package util
 import (
 	"testing"
 
-	"github.com/containers/common/pkg/filters"
+	"go.podman.io/common/pkg/filters"
 )
 
 func TestMatchLabelFilters(t *testing.T) {

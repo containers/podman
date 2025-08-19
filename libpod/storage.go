@@ -7,13 +7,13 @@ import (
 	"errors"
 	"time"
 
-	istorage "github.com/containers/image/v5/storage"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/idtools"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	istorage "go.podman.io/image/v5/storage"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 type storageService struct {

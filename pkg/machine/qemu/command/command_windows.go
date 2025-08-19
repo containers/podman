@@ -5,7 +5,7 @@ package command
 import (
 	"strconv"
 
-	"github.com/containers/common/pkg/strongunits"
+	"go.podman.io/common/pkg/strongunits"
 )
 
 // SetMemory adds the specified amount of memory for the machine

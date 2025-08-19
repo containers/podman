@@ -9,10 +9,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/common/libnetwork/slirp4netns"
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/slirp4netns"
+	"go.podman.io/common/libnetwork/types"
 )
 
 // setupSlirp4netns can be called in rootful as well as in rootless

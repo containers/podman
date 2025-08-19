@@ -17,13 +17,13 @@ import (
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
-	"github.com/containers/common/pkg/version"
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/linkmode"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/system"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/version"
+	"go.podman.io/image/v5/pkg/sysregistriesv2"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/system"
 )
 
 // Info returns the store and host information

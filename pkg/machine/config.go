@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine/compression"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/strongunits"
 )
 
 const apiUpTimeout = 20 * time.Second

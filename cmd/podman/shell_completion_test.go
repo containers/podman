@@ -7,7 +7,7 @@
 
 	Shell completion functions are defined in:
 	- "github.com/containers/podman/v5/cmd/podman/common/completion.go"
-	- "github.com/containers/common/pkg/completion"
+	- "go.podman.io/common/pkg/completion"
 	and are called Autocomplete...
 
 	To apply such function to a command use the ValidArgsFunction field.

@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/archive"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/storage/pkg/archive"
 )
 
 var _ = Describe("Podman push", func() {

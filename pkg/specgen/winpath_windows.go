@@ -3,8 +3,8 @@ package specgen
 import (
 	"path/filepath"
 
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 func shouldResolveUnixWinVariant(path string) bool {

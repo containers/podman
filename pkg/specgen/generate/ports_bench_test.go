@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/containers/common/libnetwork/types"
+	"go.podman.io/common/libnetwork/types"
 )
 
 func benchmarkParsePortMapping(b *testing.B, ports []types.PortMapping) {

@@ -10,11 +10,11 @@ import (
 	"os"
 	"strconv"
 
-	imgTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/errorhandling"
+	imgTypes "go.podman.io/image/v5/types"
 )
 
 // Pull is the binding for libpod's v2 endpoints for pulling images.  Note that

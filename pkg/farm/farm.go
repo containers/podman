@@ -12,12 +12,12 @@ import (
 	"sync"
 
 	"github.com/containers/buildah/define"
-	lplatform "github.com/containers/common/libimage/platform"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
+	lplatform "go.podman.io/common/libimage/platform"
+	"go.podman.io/common/pkg/config"
 )
 
 // Farm represents a group of connections to builders.

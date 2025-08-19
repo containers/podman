@@ -15,8 +15,8 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/internal/mkcw/types"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 type (

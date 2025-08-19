@@ -5,8 +5,8 @@ package generate
 import (
 	"testing"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/common/libnetwork/types"
 )
 
 func TestParsePortMappingWithHostPort(t *testing.T) {

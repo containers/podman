@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v5/libpod/define"
 	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v5/pkg/k8s.io/apimachinery/pkg/api/resource"
@@ -18,6 +17,7 @@ import (
 	"github.com/docker/docker/pkg/meminfo"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/common/pkg/secrets"
 	"sigs.k8s.io/yaml"
 )
 

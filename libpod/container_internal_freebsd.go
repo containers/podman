@@ -12,12 +12,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/rootless"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/types"
 	"golang.org/x/sys/unix"
 )
 

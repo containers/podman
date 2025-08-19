@@ -4,9 +4,9 @@ import (
 	"context"
 	"io"
 
-	"github.com/containers/common/libimage/define"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
+	"go.podman.io/common/libimage/define"
+	"go.podman.io/common/pkg/config"
 )
 
 type ImageEngine interface { //nolint:interfacebloat

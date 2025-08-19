@@ -13,9 +13,6 @@ import (
 	"syscall"
 
 	buildahParse "github.com/containers/buildah/pkg/parse"
-	"github.com/containers/common/pkg/auth"
-	"github.com/containers/common/pkg/completion"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/parse"
 	"github.com/containers/podman/v5/cmd/podman/registry"
@@ -27,6 +24,9 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/auth"
+	"go.podman.io/common/pkg/completion"
+	"go.podman.io/image/v5/types"
 )
 
 // playKubeOptionsWrapper allows for separating CLI-only fields from API-only

@@ -10,8 +10,8 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/spf13/cobra"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 var uninstallCmd = &cobra.Command{

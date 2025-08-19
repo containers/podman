@@ -8,13 +8,13 @@ import (
 
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal/mkcw"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/archive"
 )
 
 // CWConvertImageOptions provides both required and optional bits of

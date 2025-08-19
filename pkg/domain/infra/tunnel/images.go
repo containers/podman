@@ -10,17 +10,17 @@ import (
 	"time"
 
 	bdefine "github.com/containers/buildah/define"
-	"github.com/containers/common/libimage/filter"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/utils"
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/storage/pkg/archive"
+	"go.podman.io/common/libimage/filter"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/archive"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
@@ -307,7 +307,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 		// on windows there is no /dev/stdout but the save command defaults to /dev/stdout.
 		// The proper thing to do would be to pass an io.Writer down from the cli frontend
 		// but since the local save API does not support an io.Writer this is impossible.
-		// I reported it a while ago in https://github.com/containers/common/issues/1275
+		// I reported it a while ago in https://go.podman.io/common/issues/1275
 		if opts.Output == "/dev/stdout" {
 			f = os.Stdout
 		} else {

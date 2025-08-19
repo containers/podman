@@ -4,8 +4,8 @@ import (
 	"net"
 	"testing"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/common/libnetwork/types"
 )
 
 func parsMacNoErr(mac string) types.HardwareAddr {

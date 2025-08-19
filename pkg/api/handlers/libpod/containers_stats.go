@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
@@ -17,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
 )
 
 func StatsContainer(w http.ResponseWriter, r *http.Request) {

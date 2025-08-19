@@ -16,11 +16,11 @@ import (
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/vishvananda/netlink"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 var _ = Describe("Podman run networking", func() {

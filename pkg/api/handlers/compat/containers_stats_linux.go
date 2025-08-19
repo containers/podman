@@ -8,15 +8,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
-	"github.com/containers/storage/pkg/system"
 	"github.com/docker/docker/api/types/container"
 	runccgroups "github.com/opencontainers/cgroups"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/storage/pkg/system"
 )
 
 const DefaultStatsPeriod = 5 * time.Second

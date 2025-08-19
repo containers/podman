@@ -8,11 +8,11 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/containers/common/pkg/parse"
-	"github.com/containers/common/pkg/secrets"
 	"github.com/containers/podman/v5/libpod"
 	v1 "github.com/containers/podman/v5/pkg/k8s.io/api/core/v1"
-	"github.com/containers/storage/pkg/fileutils"
+	"go.podman.io/common/pkg/parse"
+	"go.podman.io/common/pkg/secrets"
+	"go.podman.io/storage/pkg/fileutils"
 
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"

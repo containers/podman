@@ -17,9 +17,9 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/emulation"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/directory"
-	"github.com/containers/storage/pkg/fileutils"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/directory"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {

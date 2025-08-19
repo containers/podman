@@ -8,11 +8,11 @@ import (
 	"io/fs"
 	"os"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/qemu"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
 )
 
 func Get() (vmconfigs.VMProvider, error) {

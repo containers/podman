@@ -7,9 +7,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/bindings/artifacts"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"go.podman.io/image/v5/types"
 )
 
 func (ir *ImageEngine) ArtifactExtract(_ context.Context, name string, target string, opts entities.ArtifactExtractOptions) error {

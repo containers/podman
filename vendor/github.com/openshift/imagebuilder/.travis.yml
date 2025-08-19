@@ -21,12 +21,14 @@ before_install:
   - sudo apt-get update -q -y
   - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
   - sudo systemctl enable --now docker.service && sudo systemctl enable --now docker.socket
-  - docker pull busybox
-  - docker pull centos:7
-  - docker pull alpine
+  - docker pull mirror.gcr.io/alpine
+  - docker pull mirror.gcr.io/busybox
+  - docker pull public.ecr.aws/docker/library/centos:7
+  - docker pull mirror.gcr.io/debian
   - docker pull registry.fedoraproject.org/fedora-minimal
   - docker pull registry.fedoraproject.org/fedora-minimal:42-x86_64
   - docker pull registry.fedoraproject.org/fedora-minimal:42-aarch64
+  - docker pull mirror.gcr.io/golang:1.24
   - chmod -R go-w ./dockerclient/testdata
 
 script:

@@ -3,10 +3,10 @@
 package system
 
 import (
-	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/common/pkg/servicereaper"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/common/pkg/servicereaper"
 )
 
 // Currently, we only need servicereaper on Linux to support slirp4netns.

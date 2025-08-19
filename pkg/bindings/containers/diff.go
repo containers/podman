@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v5/pkg/bindings"
-	"github.com/containers/storage/pkg/archive"
+	"go.podman.io/storage/pkg/archive"
 )
 
 // Diff provides the changes between two container layers

@@ -6,7 +6,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 // IsRootless returns whether the user is rootless

@@ -9,10 +9,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/image/v5/pkg/docker/config"
-	"github.com/containers/image/v5/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/image/v5/pkg/docker/config"
+	"go.podman.io/image/v5/types"
 )
 
 const largeAuthFile = `{"auths":{

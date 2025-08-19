@@ -18,10 +18,10 @@ import (
 	"github.com/containers/podman/v5/pkg/copy"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/idtools"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 var (

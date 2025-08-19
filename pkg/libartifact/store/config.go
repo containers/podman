@@ -6,8 +6,8 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/containers/image/v5/types"
 	specV1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/image/v5/types"
 )
 
 // unparsedArtifactImage is an interface based on the UnParsedImage and

@@ -9,9 +9,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/docker"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
@@ -20,6 +17,9 @@ import (
 	systemdDefine "github.com/containers/podman/v5/pkg/systemd/define"
 	"github.com/coreos/go-systemd/v22/dbus"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libimage"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/docker"
 )
 
 // Policy represents an auto-update policy.

@@ -25,21 +25,21 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/inspect"
 	"github.com/containers/podman/v5/pkg/libartifact"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/podman/v5/utils"
-	"github.com/containers/storage/pkg/ioutils"
-	"github.com/containers/storage/pkg/lockfile"
-	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/pkg/stringid"
 	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/storage/pkg/ioutils"
+	"go.podman.io/storage/pkg/lockfile"
+	"go.podman.io/storage/pkg/reexec"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 var (

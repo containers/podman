@@ -14,11 +14,11 @@ import (
 	"syscall"
 
 	"github.com/containers/buildah/pkg/jail"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/mount"
+	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
 )
 

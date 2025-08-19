@@ -9,8 +9,8 @@ import (
 	"github.com/containers/podman/v5/internal/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra"
-	"github.com/containers/storage"
 	flag "github.com/spf13/pflag"
+	"go.podman.io/storage"
 )
 
 func NewLibpodTestingRuntime(flags *flag.FlagSet, opts *entities.PodmanConfig) (ientities.TestingEngine, error) {

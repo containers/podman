@@ -17,9 +17,9 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/digitalocean/go-qemu/qmp"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 func NewStubber() (*QEMUStubber, error) {

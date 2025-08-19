@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/image/v5/manifest"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/image/v5/manifest"
 )
 
 func TestDecodeOverrideConfig(t *testing.T) {

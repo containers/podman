@@ -17,7 +17,7 @@ package proc
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"strings"
 )
 
@@ -114,7 +114,7 @@ type Stat struct {
 
 // readStat is used for mocking in unit tests.
 var readStat = func(path string) (string, error) {
-	rawData, err := ioutil.ReadFile(path)
+	rawData, err := os.ReadFile(path)
 	if err != nil {
 		return "", err
 	}

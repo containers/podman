@@ -6,10 +6,10 @@ import (
 	"errors"
 	"os"
 
-	"github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/internal/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/completion"
 )
 
 var (

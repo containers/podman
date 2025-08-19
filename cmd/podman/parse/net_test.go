@@ -9,8 +9,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/containers/common/libnetwork/etchosts"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/common/libnetwork/etchosts"
 )
 
 var (

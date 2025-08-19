@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/v5/manifest"
+	"go.podman.io/image/v5/manifest"
 )
 
 const (

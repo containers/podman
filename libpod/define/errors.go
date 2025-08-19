@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/detach"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/detach"
 )
 
 var (

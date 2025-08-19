@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	commonComp "github.com/containers/common/pkg/completion"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/spf13/cobra"
+	commonComp "go.podman.io/common/pkg/completion"
 )
 
 const (

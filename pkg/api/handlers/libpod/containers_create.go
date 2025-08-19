@@ -18,8 +18,8 @@ import (
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgen/generate"
 	"github.com/containers/podman/v5/pkg/specgenutil"
-	"github.com/containers/storage"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/storage"
 )
 
 // The JSON decoder correctly cannot decode (overflow) negative values (e.g., `-1`) for fields of type `uint64`,

@@ -22,7 +22,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 // Status is a direct translation of a `/proc/[pid]/status`, which provides much

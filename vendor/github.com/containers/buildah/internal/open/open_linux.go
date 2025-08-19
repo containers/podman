@@ -8,8 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/reexec"
 	"golang.org/x/sys/unix"
 )
 

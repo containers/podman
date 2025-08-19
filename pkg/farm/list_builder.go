@@ -6,11 +6,11 @@ import (
 	"os"
 	"sync"
 
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/hashicorp/go-multierror"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/types"
 )
 
 type listBuilderOptions struct {

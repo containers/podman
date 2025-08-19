@@ -9,11 +9,11 @@ import (
 
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/buildah/imagebuildah"
-	"github.com/containers/common/libimage"
-	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libimage"
+	"go.podman.io/image/v5/docker/reference"
 )
 
 // Runtime API

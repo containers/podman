@@ -7,8 +7,6 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
@@ -18,6 +16,8 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/completion"
+	"go.podman.io/common/pkg/report"
 	"gopkg.in/yaml.v3"
 )
 

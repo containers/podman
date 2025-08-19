@@ -1,8 +1,8 @@
 package entities
 
 import (
-	"github.com/containers/common/pkg/config"
 	"github.com/spf13/pflag"
+	"go.podman.io/common/pkg/config"
 )
 
 // EngineMode is the connection type podman is using to access libpod

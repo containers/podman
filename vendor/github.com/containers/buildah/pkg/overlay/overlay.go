@@ -9,12 +9,12 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/system"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/mount"
+	"go.podman.io/storage/pkg/system"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // Options for MountWithOptions().

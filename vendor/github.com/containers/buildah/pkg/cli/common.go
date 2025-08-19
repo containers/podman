@@ -15,13 +15,13 @@ import (
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/completion"
 	"github.com/containers/buildah/pkg/parse"
-	commonComp "github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	encconfig "github.com/containers/ocicrypt/config"
 	enchelpers "github.com/containers/ocicrypt/helpers"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/spf13/pflag"
+	commonComp "go.podman.io/common/pkg/completion"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // LayerResults represents the results of the layer flags
@@ -281,7 +281,7 @@ always:  pull base and SBOM scanner images even if the named images are present 
 missing: pull base and SBOM scanner images if the named images are not present in store.
 never:   only use images present in store if available.
 newer:   only pull base and SBOM scanner images when newer images exist on the registry than those in the store.`)
-	fs.Lookup("pull").NoOptDefVal = "missing" // treat a --pull with no argument like --pull=missing
+	fs.Lookup("pull").NoOptDefVal = "always" // treat a --pull with no argument like --pull=always
 	fs.BoolVar(&flags.PullAlways, "pull-always", false, "pull the image even if the named image is present in store")
 	if err := fs.MarkHidden("pull-always"); err != nil {
 		panic(fmt.Sprintf("error marking the pull-always flag as hidden: %v", err))

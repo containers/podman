@@ -11,9 +11,9 @@ import (
 	"strings"
 
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.podman.io/storage"
 )
 
 func createContainersConfFileWithCustomUserns(pTest *PodmanTestIntegration, userns string) {

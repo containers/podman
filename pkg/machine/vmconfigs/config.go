@@ -3,11 +3,11 @@ package vmconfigs
 import (
 	"time"
 
-	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ignition"
-	"github.com/containers/storage/pkg/lockfile"
+	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/storage/pkg/lockfile"
 )
 
 const MachineConfigVersion = 1

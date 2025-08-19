@@ -9,11 +9,11 @@ import (
 	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 func isEventBackendJournald(podmanTest *PodmanTestIntegration) bool {

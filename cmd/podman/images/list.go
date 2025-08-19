@@ -10,14 +10,14 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/containers/common/pkg/report"
-	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/go-units"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/report"
+	"go.podman.io/image/v5/docker/reference"
 )
 
 type listFlagType struct {

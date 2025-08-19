@@ -4,13 +4,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/common/pkg/auth"
-	"github.com/containers/image/v5/types"
 	podmanRegistry "github.com/containers/podman/v5/hack/podman-registry-go"
 	"github.com/containers/podman/v5/pkg/bindings/images"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
+	"go.podman.io/common/pkg/auth"
+	"go.podman.io/image/v5/types"
 )
 
 var _ = Describe("Podman images", func() {

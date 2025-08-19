@@ -34,28 +34,28 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/buildah/util"
-	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/libnetwork/network"
-	"github.com/containers/common/libnetwork/resolvconf"
-	netTypes "github.com/containers/common/libnetwork/types"
-	netUtil "github.com/containers/common/libnetwork/util"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/subscriptions"
-	"github.com/containers/image/v5/types"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/ioutils"
-	"github.com/containers/storage/pkg/lockfile"
-	"github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/pkg/regexp"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/go-digest"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/etchosts"
+	"go.podman.io/common/libnetwork/network"
+	"go.podman.io/common/libnetwork/resolvconf"
+	netTypes "go.podman.io/common/libnetwork/types"
+	netUtil "go.podman.io/common/libnetwork/util"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/subscriptions"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/ioutils"
+	"go.podman.io/storage/pkg/lockfile"
+	"go.podman.io/storage/pkg/mount"
+	"go.podman.io/storage/pkg/reexec"
+	"go.podman.io/storage/pkg/regexp"
+	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
 	"golang.org/x/term"
 )
@@ -452,6 +452,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 
 	// Lock the caller to a single OS-level thread.
 	runtime.LockOSThread()
+	defer reapStrays()
 
 	// Set up bind mounts for things that a namespaced user might not be able to get to directly.
 	unmountAll, err := bind.SetupIntermediateMountNamespace(spec, bundlePath)
@@ -1081,6 +1082,23 @@ func runAcceptTerminal(logger *logrus.Logger, consoleListener *net.UnixListener,
 	return terminalFD, nil
 }
 
+func reapStrays() {
+	// Reap the exit status of anything that was reparented to us, not that
+	// we care about their exit status.
+	logrus.Debugf("checking for reparented child processes")
+	for range 100 {
+		wpid, err := unix.Wait4(-1, nil, unix.WNOHANG, nil)
+		if err != nil {
+			break
+		}
+		if wpid == 0 {
+			time.Sleep(100 * time.Millisecond)
+		} else {
+			logrus.Debugf("caught reparented child process %d", wpid)
+		}
+	}
+}
+
 func runUsingRuntimeMain() {
 	var options runUsingRuntimeSubprocOptions
 	// Set logging.
@@ -1129,6 +1147,7 @@ func runUsingRuntimeMain() {
 
 	// Run the container, start to finish.
 	status, err := runUsingRuntime(options.Options, options.ConfigureNetwork, options.MoreCreateArgs, ospec, options.BundlePath, options.ContainerName, containerCreateW, containerStartR)
+	reapStrays()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error running container: %v\n", err)
 		os.Exit(1)
@@ -2119,11 +2138,12 @@ func (b *Builder) createMountTargets(spec *specs.Spec) ([]copier.ConditionalRemo
 	if len(targets.Paths) == 0 {
 		return nil, nil
 	}
-	created, err := copier.Ensure(rootfsPath, rootfsPath, targets)
+	created, noted, err := copier.Ensure(rootfsPath, rootfsPath, targets)
 	if err != nil {
 		return nil, err
 	}
 	logrus.Debugf("created mount targets at %v", created)
+	logrus.Debugf("parents of mount targets at %+v", noted)
 	var remove []copier.ConditionalRemovePath
 	for _, target := range created {
 		cleanedTarget := strings.Trim(path.Clean(filepath.ToSlash(target)), "/")
@@ -2151,23 +2171,28 @@ func (b *Builder) createMountTargets(spec *specs.Spec) ([]copier.ConditionalRemo
 	if err != nil {
 		return nil, fmt.Errorf("finding working container bookkeeping directory: %w", err)
 	}
-	if err := os.Mkdir(filepath.Join(cdir, containerExcludesDir), 0o700); err != nil && !errors.Is(err, os.ErrExist) {
-		return nil, fmt.Errorf("creating exclusions directory: %w", err)
+	for excludesDir, exclusions := range map[string][]copier.ConditionalRemovePath{
+		containerExcludesDir: remove,
+		containerPulledUpDir: noted,
+	} {
+		if err := os.Mkdir(filepath.Join(cdir, excludesDir), 0o700); err != nil && !errors.Is(err, os.ErrExist) {
+			return nil, fmt.Errorf("creating exclusions directory: %w", err)
+		}
+		encoded, err := json.Marshal(exclusions)
+		if err != nil {
+			return nil, fmt.Errorf("encoding list of items to exclude at commit-time: %w", err)
+		}
+		f, err := os.CreateTemp(filepath.Join(cdir, excludesDir), "filter*"+containerExcludesSubstring)
+		if err != nil {
+			return nil, fmt.Errorf("creating exclusions file: %w", err)
+		}
+		defer os.Remove(f.Name())
+		defer f.Close()
+		if err := ioutils.AtomicWriteFile(strings.TrimSuffix(f.Name(), containerExcludesSubstring), encoded, 0o600); err != nil {
+			return nil, fmt.Errorf("writing exclusions file: %w", err)
+		}
 	}
-	encoded, err := json.Marshal(remove)
-	if err != nil {
-		return nil, fmt.Errorf("encoding list of items to exclude at commit-time: %w", err)
-	}
-	f, err := os.CreateTemp(filepath.Join(cdir, containerExcludesDir), "filter*"+containerExcludesSubstring)
-	if err != nil {
-		return nil, fmt.Errorf("creating exclusions file: %w", err)
-	}
-	defer os.Remove(f.Name())
-	defer f.Close()
-	if err := ioutils.AtomicWriteFile(strings.TrimSuffix(f.Name(), containerExcludesSubstring), encoded, 0o600); err != nil {
-		return nil, fmt.Errorf("writing exclusions file: %w", err)
-	}
-	// return that set of paths directly, in case the caller would prefer
-	// to clear them out before commit-time
+	// return the set of to-remove-now paths directly, in case the caller would prefer
+	// to clear them out itself now instead of waiting until commit-time
 	return remove, nil
 }

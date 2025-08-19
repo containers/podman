@@ -28,13 +28,13 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/podman/v5/utils"
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/format"
 	. "github.com/onsi/gomega/gexec"
 	"github.com/opencontainers/selinux/go-selinux"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 var secretYaml = `

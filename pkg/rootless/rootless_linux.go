@@ -17,11 +17,11 @@ import (
 	"unsafe"
 
 	"github.com/containers/podman/v5/pkg/errorhandling"
-	"github.com/containers/storage/pkg/idtools"
-	pmount "github.com/containers/storage/pkg/mount"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/moby/sys/capability"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/idtools"
+	pmount "go.podman.io/storage/pkg/mount"
+	"go.podman.io/storage/pkg/unshare"
 	"golang.org/x/sys/unix"
 )
 

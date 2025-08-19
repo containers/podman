@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/types"
 )
 
 // NewAPIDecoder returns a configured schema.Decoder

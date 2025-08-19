@@ -5,9 +5,9 @@ package libpod
 import (
 	"net/http"
 
-	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/resize"
 )
 
 // OCIRuntime is an implementation of an OCI runtime.

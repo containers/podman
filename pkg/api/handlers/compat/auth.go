@@ -10,14 +10,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/common/pkg/auth"
-	DockerClient "github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/docker/docker/api/types/registry"
+	"go.podman.io/common/pkg/auth"
+	DockerClient "go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/types"
 )
 
 func Auth(w http.ResponseWriter, r *http.Request) {

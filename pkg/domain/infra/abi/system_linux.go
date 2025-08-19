@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/systemd"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/systemd"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // Default path for system runtime state

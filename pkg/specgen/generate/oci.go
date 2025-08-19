@@ -5,11 +5,11 @@ package generate
 import (
 	"strings"
 
-	"github.com/containers/common/libimage"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libimage"
 )
 
 func addRlimits(s *specgen.SpecGenerator, g *generate.Generator) {

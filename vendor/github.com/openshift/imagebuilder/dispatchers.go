@@ -20,10 +20,10 @@ import (
 
 	"github.com/containerd/errdefs"
 	"github.com/containerd/platforms"
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/openshift/imagebuilder/internal"
 	"github.com/openshift/imagebuilder/signal"
 	"github.com/openshift/imagebuilder/strslice"
+	"go.podman.io/storage/pkg/regexp"
 
 	buildkitcommand "github.com/moby/buildkit/frontend/dockerfile/command"
 	buildkitparser "github.com/moby/buildkit/frontend/dockerfile/parser"

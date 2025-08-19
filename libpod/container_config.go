@@ -6,14 +6,14 @@ import (
 	"net"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/secrets"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/namespaces"
 	"github.com/containers/podman/v5/pkg/specgen"
-	"github.com/containers/storage"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/secrets"
+	"go.podman.io/image/v5/manifest"
+	"go.podman.io/storage"
 )
 
 // ContainerConfig contains all information that was used to create the

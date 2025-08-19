@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers"
@@ -21,6 +20,7 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/mux"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/resize"
 )
 
 // ExecCreateHandler creates an exec session for a given container.

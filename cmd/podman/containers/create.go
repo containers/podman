@@ -10,10 +10,6 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/cli"
-	"github.com/containers/common/pkg/auth"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/image/v5/transports/alltransports"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
@@ -24,6 +20,10 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/auth"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/image/v5/transports/alltransports"
+	"go.podman.io/image/v5/types"
 	"golang.org/x/term"
 )
 

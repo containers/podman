@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 
 	"github.com/containers/buildah/define"
-	"github.com/containers/common/libimage"
-	lplatform "github.com/containers/common/libimage/platform"
-	"github.com/containers/image/v5/types"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/chrootarchive"
-	"github.com/containers/storage/pkg/unshare"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	"go.podman.io/common/libimage"
+	lplatform "go.podman.io/common/libimage/platform"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // LookupImage returns *Image to corresponding imagename or id

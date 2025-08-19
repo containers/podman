@@ -5,7 +5,7 @@ package rootless
 import (
 	"errors"
 
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 // extern int is_fd_inherited(int fd);

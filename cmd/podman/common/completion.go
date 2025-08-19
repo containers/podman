@@ -12,12 +12,6 @@ import (
 	"strings"
 	"unicode"
 
-	libimageDefine "github.com/containers/common/libimage/define"
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/ssh"
-	"github.com/containers/image/v5/pkg/sysregistriesv2"
-	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
@@ -28,6 +22,12 @@ import (
 	"github.com/containers/podman/v5/pkg/util"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/spf13/cobra"
+	libimageDefine "go.podman.io/common/libimage/define"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/ssh"
+	"go.podman.io/image/v5/pkg/sysregistriesv2"
+	imageTypes "go.podman.io/image/v5/types"
 )
 
 var (

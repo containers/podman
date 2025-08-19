@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/storage/pkg/regexp"
+	"go.podman.io/common/libnetwork/etchosts"
+	"go.podman.io/storage/pkg/regexp"
 )
 
 const (

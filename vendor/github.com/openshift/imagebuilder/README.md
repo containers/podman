@@ -102,12 +102,15 @@ Example of usage from OpenShift's experimental `dockerbuild` [command with mount
 ## Run conformance tests (very slow):
 
 ```
-docker rmi busybox; docker pull busybox
-docker rmi alpine; docker pull alpine
-docker rmi centos:7; docker pull centos:7
+docker rmi mirror.gcr.io/alpine; docker pull mirror.gcr.io/alpine
+docker rmi mirror.gcr.io/busybox; docker pull mirror.gcr.io/busybox
+docker rmi public.ecr.aws/docker/library/centos:7; docker pull public.ecr.aws/docker/library/centos:7
+docker rmi mirror.gcr.io/debian; docker pull mirror.gcr.io/debian
 docker rmi registry.fedoraproject.org/fedora-minimal; docker pull registry.fedoraproject.org/fedora-minimal
 docker rmi registry.fedoraproject.org/fedora-minimal:42-x86_64; docker pull registry.fedoraproject.org/fedora-minimal:42-x86_64
 docker rmi registry.fedoraproject.org/fedora-minimal:42-aarch64; docker pull registry.fedoraproject.org/fedora-minimal:42-aarch64
+docker rmi mirror.gcr.io/golang:1.24; docker pull mirror.gcr.io/golang:1.24
+docker rmi mirror.gcr.io/nginx; docker pull mirror.gcr.io/nginx
 chmod -R go-w ./dockerclient/testdata
 go test ./dockerclient -tags conformance -timeout 30m
 ```

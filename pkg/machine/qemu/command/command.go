@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // defaultQMPTimeout is the timeout duration for the
