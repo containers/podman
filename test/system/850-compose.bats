@@ -63,6 +63,9 @@ EOF
         url="${PODMAN##*--url }"
         url="${url%% *}"
         op='='
+    elif [ -n "${CONTAINER_HOST}" ]; then
+        url="${CONTAINER_HOST}"
+        op='='
     fi
     # podman-remote test might run with --url so unset this because the socket will be used otherwise
     CONTAINERS_CONF_OVERRIDE=$compose_conf run_podman compose env

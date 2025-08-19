@@ -3,6 +3,7 @@ package containers
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"errors"
 	"fmt"
@@ -115,9 +116,11 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 	headers.Add("Connection", "Upgrade")
 	headers.Add("Upgrade", "tcp")
 
+	// FIXME: This is one giant race condition. Let's hope no-one uses this same client until we're done!
 	var socket net.Conn
 	socketSet := false
 	dialContext := conn.Client.Transport.(*http.Transport).DialContext
+	tlsConfig := conn.Client.Transport.(*http.Transport).TLSClientConfig
 	t := &http.Transport{
 		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 			c, err := dialContext(ctx, network, address)
@@ -130,7 +133,28 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			}
 			return c, err
 		},
+		DialTLSContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			c, err := dialContext(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			cfg := tlsConfig.Clone()
+			if cfg.ServerName == "" {
+				var firstTLSHost string
+				if firstTLSHost, _, err = net.SplitHostPort(address); err != nil {
+					return nil, err
+				}
+				cfg.ServerName = firstTLSHost
+			}
+			c = tls.Client(c, cfg)
+			if !socketSet {
+				socket = c
+				socketSet = true
+			}
+			return c, err
+		},
 		IdleConnTimeout: time.Duration(0),
+		TLSClientConfig: tlsConfig,
 	}
 	conn.Client.Transport = t
 	response, err := conn.DoRequest(ctx, nil, http.MethodPost, "/containers/%s/attach", params, headers, nameOrID)
@@ -464,9 +488,11 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 		return err
 	}
 
+	// FIXME: This is one giant race condition. Let's hope no-one uses this same client until we're done!
 	var socket net.Conn
 	socketSet := false
 	dialContext := conn.Client.Transport.(*http.Transport).DialContext
+	tlsConfig := conn.Client.Transport.(*http.Transport).TLSClientConfig
 	t := &http.Transport{
 		DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
 			c, err := dialContext(ctx, network, address)
@@ -479,7 +505,28 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			}
 			return c, err
 		},
+		DialTLSContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+			c, err := dialContext(ctx, network, address)
+			if err != nil {
+				return nil, err
+			}
+			cfg := tlsConfig.Clone()
+			if cfg.ServerName == "" {
+				var firstTLSHost string
+				if firstTLSHost, _, err = net.SplitHostPort(address); err != nil {
+					return nil, err
+				}
+				cfg.ServerName = firstTLSHost
+			}
+			c = tls.Client(c, cfg)
+			if !socketSet {
+				socket = c
+				socketSet = true
+			}
+			return c, err
+		},
 		IdleConnTimeout: time.Duration(0),
+		TLSClientConfig: tlsConfig,
 	}
 	conn.Client.Transport = t
 	response, err := conn.DoRequest(ctx, bytes.NewReader(bodyJSON), http.MethodPost, "/exec/%s/start", nil, nil, sessionID)
