@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman create, run
+####>   podman podman-container.unit.5.md.in, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+{% if is_quadlet %}
+### `ContainerName=name`
+{% else %}
 #### **--name**=*name*
+{% endif %}
 
 Assign a name to the container.
 
@@ -13,8 +17,9 @@ The operator can identify a container in three ways:
 - Name (“jonah”).
 
 Podman generates a UUID for each container, and if no name is assigned to the
-container using **--name**, Podman generates a random string name. The name can
+container using {{{ '**ContainerName=**' if is_quadlet else '**--name**' }}},
+Podman generates a random string name. The name can
 be useful as a more human-friendly way to identify containers. This works for
 both background and foreground containers. The container's name is also added
 to the `/etc/hosts` file using the container's primary IP address (also see the
-**--add-host** option).
+{{{ '**AddHost=**' if is_quadlet else '**--add-host**' }}} option).
