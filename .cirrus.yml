@@ -817,7 +817,13 @@ podman_machine_windows_task:
     name: *std_name_fmt
     alias: podman_machine_windows
     # Docs: ./contrib/cirrus/CIModes.md
-    only_if: *only_if_machine_test
+    # Duplicated from the main linux machine task as we also must match winmake.ps1 here since that is used on windows.
+    only_if: >-
+        $CIRRUS_PR == '' ||
+        $CIRRUS_CHANGE_TITLE =~ '.*CI:ALL.*' ||
+        changesInclude('.cirrus.yml', 'Makefile', 'contrib/cirrus/**', 'vendor/**', 'test/tools/**', 'test/registries*.conf', 'hack/**', 'version/rawversion/*') ||
+        changesInclude('winmake.ps1') ||
+        changesInclude('cmd/podman/machine/**', 'pkg/machine/**', '**/*machine*.go')
     # Special case, we do not run macos/windows builds on rhel branches.
     # Thus the machine task should not be run too, while we use only_if
     # everywhere to do so here it would mean we would need duplicate the
