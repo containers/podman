@@ -43,6 +43,8 @@ $Env:TEMP = 'Z:\'
 Write-Host "`nRunning podman-machine e2e tests"
 
 if ($Env:TEST_FLAVOR -eq "machine-wsl") {
+    # Output info so we know what version we are testing.
+    wsl --version
     Run-Command "$PSScriptRoot\win-collect-wsl-logs-start.ps1"
 }
 
