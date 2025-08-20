@@ -1,5 +1,18 @@
 # Changes
 
+## Version 1.4 (released August 2025)
+
+- Remove .gitattributes file (which was used to test different line endings, and
+caused issues in some build environments).
+
+## Version 1.3 (released February 2025)
+
+- Add go.mod file (although this project has no dependencies).
+
+- Various updates to CI and build environment
+
+- config: add UserSettings.ConfigFinder
+
 ## Version 1.2
 
 Previously, if a Host declaration or a value had trailing whitespace, that
