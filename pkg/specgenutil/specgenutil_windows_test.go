@@ -32,6 +32,7 @@ func TestSeccompProfilePath(t *testing.T) {
 		{`c`, cwd_wsl + "/c"},
 		{`\\computer\loc`, `\\computer\loc`},
 		{`\\.\drive\loc`, "/mnt/wsl/drive/loc"},
+		{"unconfined", "unconfined"},
 	}
 
 	f := func(secopt string) (*specgen.SpecGenerator, error) {
