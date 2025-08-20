@@ -737,10 +737,15 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		case "proc-opts":
 			s.ProcOpts = strings.Split(val, ",")
 		case "seccomp":
-			convertedPath, err := specgen.ConvertWinMountPath(val)
-			if err != nil {
-				// If the conversion fails, use the original path
-				convertedPath = val
+			convertedPath := val
+			// Do not try to convert special value "unconfined",
+			// https://github.com/containers/podman/issues/26855
+			if val != "unconfined" {
+				convertedPath, err = specgen.ConvertWinMountPath(val)
+				if err != nil {
+					// If the conversion fails, use the original path
+					convertedPath = val
+				}
 			}
 			s.SeccompProfilePath = convertedPath
 			s.Annotations[define.InspectAnnotationSeccomp] = convertedPath
