@@ -253,18 +253,30 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 		storageName = imageName
 
 	case ociTransport.Transport.Name():
-		split := strings.SplitN(ref.StringWithinTransport(), ":", 2)
-		if len(split) == 1 || split[1] == "" {
-			// Same trick as for the dir transport: we cannot use
-			// the path to a directory as the name.
-			storageName, err = getImageID(ctx, ref, nil)
-			if err != nil {
-				return nil, nil, err
+		// Try to load a name from the OCI layout's index.json annotations first
+		if md, errMD := ociTransport.LoadManifestDescriptor(ref); errMD == nil {
+			if annotatedName := nameFromAnnotations(md.Annotations); annotatedName != "" {
+				if named, errNorm := NormalizeName(annotatedName); errNorm == nil {
+					imageName = named.String()
+					storageName = imageName
+				}
 			}
-			imageName = "sha256:" + storageName[1:]
-		} else { // If the OCI-reference includes an image reference, use it
-			storageName = split[1]
-			imageName = storageName
+		}
+		// Fallback to previous behavior if no annotated name was found/usable
+		if storageName == "" {
+			split := strings.SplitN(ref.StringWithinTransport(), ":", 2)
+			if len(split) == 1 || split[1] == "" {
+				// Same trick as for the dir transport: we cannot use
+				// the path to a directory as the name.
+				storageName, err = getImageID(ctx, ref, nil)
+				if err != nil {
+					return nil, nil, err
+				}
+				imageName = "sha256:" + storageName[1:]
+			} else { // If the OCI-reference includes an image reference, use it
+				storageName = split[1]
+				imageName = storageName
+			}
 		}
 
 	case ociArchiveTransport.Transport.Name():
