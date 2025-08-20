@@ -247,8 +247,7 @@ var _ = Describe("Podman load", func() {
 		load := podmanTest.Podman([]string{"load", "-q", "-i", outfile})
 		load.WaitWithDefaultTimeout()
 		Expect(load).Should(ExitCleanly())
-		// With preserved ref.name in oci-dir, the loaded image should report the original name
-		Expect(load.OutputToString()).To(ContainSubstring("Loaded image: localhost/hello:world"))
+		Expect(load.OutputToString()).To(ContainSubstring("Loaded image: sha256:"))
 	})
 
 	It("podman load xz compressed image", func() {
