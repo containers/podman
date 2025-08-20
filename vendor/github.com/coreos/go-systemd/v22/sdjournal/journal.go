@@ -319,6 +319,7 @@ package sdjournal
 // }
 //
 import "C"
+
 import (
 	"bytes"
 	"errors"
@@ -389,11 +390,9 @@ const (
 	IndefiniteWait time.Duration = 1<<63 - 1
 )
 
-var (
-	// ErrNoTestCursor gets returned when using TestCursor function and cursor
-	// parameter is not the same as the current cursor position.
-	ErrNoTestCursor = errors.New("Cursor parameter is not the same as current position")
-)
+// ErrNoTestCursor gets returned when using TestCursor function and cursor
+// parameter is not the same as the current cursor position.
+var ErrNoTestCursor = errors.New("Cursor parameter is not the same as current position")
 
 // Journal is a Go wrapper of an sd_journal structure.
 type Journal struct {
