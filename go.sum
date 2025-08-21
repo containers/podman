@@ -55,8 +55,8 @@ github.com/containernetworking/cni v1.3.0 h1:v6EpN8RznAZj9765HhXQrtXgX+ECGebEYEm
 github.com/containernetworking/cni v1.3.0/go.mod h1:Bs8glZjjFfGPHMw6hQu82RUgEPNGEaBb9KS5KtNMnJ4=
 github.com/containernetworking/plugins v1.7.1 h1:CNAR0jviDj6FS5Vg85NTgKWLDzZPfi/lj+VJfhMDTIs=
 github.com/containernetworking/plugins v1.7.1/go.mod h1:xuMdjuio+a1oVQsHKjr/mgzuZ24leAsqUYRnzGoXHy0=
-github.com/containers/buildah v1.41.0 h1:GU350UeX6BkZrgCE3SB/d1Hu4xBaHUX07ayiJTvJD54=
-github.com/containers/buildah v1.41.0/go.mod h1:1Ds26B4E4Z3NeLdi3xjjk8S72KVv2/xiFYYpwfFDgXI=
+github.com/containers/buildah v1.41.1-0.20250825221131-264309dc1081 h1:Ndq70PQjuxlYogXU/+mImYwt7YOpCvw0s3nMWKWgy1E=
+github.com/containers/buildah v1.41.1-0.20250825221131-264309dc1081/go.mod h1:ziMqk5VeNrj/s4nJIWPna1/5KLNLKPzv/HNYfuqurBo=
 github.com/containers/common v0.64.2-0.20250826074712-7692941ae9c8 h1:UK34xlXoZb28CPQSXTEJgRjp7q3h/MssgAempB8e7SM=
 github.com/containers/common v0.64.2-0.20250826074712-7692941ae9c8/go.mod h1:woK9sIc8wvVW1KiWpgFIfBtHaBhSeAtbk9T4LtA/pVY=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
@@ -69,8 +69,8 @@ github.com/containers/libhvee v0.10.0 h1:7VLv8keWZpHuGmWvyY4c1mVH5V1JYb1G78VC+8A
 github.com/containers/libhvee v0.10.0/go.mod h1:at0h8lRcK5jCKfQgU/e6Io0Mw12F36zRLjXVOXRoDTM=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
-github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194 h1:mm+XFgCXPx3pFFkFJ0CH6KgX1os5jfrD/T6S/6ht4FE=
-github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194/go.mod h1:ab2XWZtMgybWBznSwo8BEPeIeSpspKh+wlnkq/UY2Uo=
+github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e h1:nrNp2M6tTNGvLVrJpgqge9GwHgsWBGp2HBKg84BdVd8=
+github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e/go.mod h1:kPe8hxQEh1x1Uojxjr//MKkxK5x11sxDoY6rW905OL0=
 github.com/containers/ocicrypt v1.2.1 h1:0qIOTT9DoYwcKmxSt8QJt+VzMY18onl9jUXsxpVhSmM=
 github.com/containers/ocicrypt v1.2.1/go.mod h1:aD0AAqfMp0MtwqWgHM1bUwe1anx0VazI108CRrSKINQ=
 github.com/containers/psgo v1.9.0 h1:eJ74jzSaCHnWt26OlKZROSyUyRcGDf+gYBdXnxrMW4g=

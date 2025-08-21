@@ -527,9 +527,9 @@ func pullPolicyWithFlags(policySpec string, always, never bool) (define.PullPoli
 	}
 	policy := strings.ToLower(policySpec)
 	switch policy {
-	case "true", "missing", "ifmissing", "notpresent":
+	case "missing", "ifmissing", "notpresent":
 		return define.PullIfMissing, nil
-	case "always":
+	case "true", "always":
 		return define.PullAlways, nil
 	case "false", "never":
 		return define.PullNever, nil

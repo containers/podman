@@ -50,11 +50,14 @@ const (
 	// containerExcludesDir is the subdirectory of the container data
 	// directory where we drop exclusions
 	containerExcludesDir = "commit-excludes"
+	// containerPulledUpDir is the subdirectory of the container
+	// data directory where we drop exclusions when we're not squashing
+	containerPulledUpDir = "commit-pulled-up"
 	// containerExcludesSubstring is the suffix of files under
-	// $cdir/containerExcludesDir which should be ignored, as they only
-	// exist because we use CreateTemp() to create uniquely-named files,
-	// but we don't want to try to use their contents until after they've
-	// been written to
+	// $cdir/containerExcludesDir and $cdir/containerPulledUpDir which
+	// should be ignored, as they only exist because we use CreateTemp() to
+	// create uniquely-named files, but we don't want to try to use their
+	// contents until after they've been written to
 	containerExcludesSubstring = ".tmp"
 )
 
@@ -104,6 +107,8 @@ type containerImageRef struct {
 	extraImageContent     map[string]string
 	compatSetParent       types.OptionalBool
 	layerExclusions       []copier.ConditionalRemovePath
+	layerMountTargets     []copier.ConditionalRemovePath
+	layerPullUps          []copier.EnsureParentPath
 	unsetAnnotations      []string
 	setAnnotations        []string
 	createdAnnotation     types.OptionalBool
@@ -781,7 +786,73 @@ func (mb *ociManifestBuilder) manifestAndConfig() ([]byte, []byte, error) {
 	return omanifestbytes, oconfig, nil
 }
 
-func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemContext) (src types.ImageSource, err error) {
+// filterExclusionsByImage returns a slice of the members of "exclusions" which are present in the image with the specified ID
+func (i containerImageRef) filterExclusionsByImage(ctx context.Context, exclusions []copier.EnsureParentPath, imageID string) ([]copier.EnsureParentPath, error) {
+	if len(exclusions) == 0 || imageID == "" {
+		return nil, nil
+	}
+	var paths []copier.EnsureParentPath
+	mountPoint, err := i.store.MountImage(imageID, nil, i.mountLabel)
+	cleanup := func() {
+		if _, err := i.store.UnmountImage(imageID, false); err != nil {
+			logrus.Debugf("unmounting image %q: %v", imageID, err)
+		}
+	}
+	if err != nil && errors.Is(err, storage.ErrLayerUnknown) {
+		// if an imagestore is being used, this could be expected
+		if b, err2 := NewBuilder(ctx, i.store, BuilderOptions{
+			FromImage:       imageID,
+			PullPolicy:      define.PullNever,
+			ContainerSuffix: "tmp",
+		}); err2 == nil {
+			mountPoint, err = b.Mount(i.mountLabel)
+			cleanup = func() {
+				cid := b.ContainerID
+				if err := b.Delete(); err != nil {
+					logrus.Debugf("unmounting image %q as container %q: %v", imageID, cid, err)
+				}
+			}
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("mounting image %q to examine its contents: %w", imageID, err)
+	}
+	defer cleanup()
+	globs := make([]string, 0, len(exclusions))
+	for _, exclusion := range exclusions {
+		globs = append(globs, exclusion.Path)
+	}
+	options := copier.StatOptions{}
+	stats, err := copier.Stat(mountPoint, mountPoint, options, globs)
+	if err != nil {
+		return nil, fmt.Errorf("checking for potential exclusion items in image %q: %w", imageID, err)
+	}
+	for _, stat := range stats {
+		for _, exclusion := range exclusions {
+			if stat.Glob != exclusion.Path {
+				continue
+			}
+			for result, stat := range stat.Results {
+				if result != exclusion.Path {
+					continue
+				}
+				if exclusion.ModTime != nil && !exclusion.ModTime.Equal(stat.ModTime) {
+					continue
+				}
+				if exclusion.Mode != nil && *exclusion.Mode != stat.Mode {
+					continue
+				}
+				if exclusion.Owner != nil && (int64(exclusion.Owner.UID) != stat.UID && int64(exclusion.Owner.GID) != stat.GID) {
+					continue
+				}
+				paths = append(paths, exclusion)
+			}
+		}
+	}
+	return paths, nil
+}
+
+func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemContext) (src types.ImageSource, err error) {
 	// These maps will let us check if a layer ID is part of one group or another.
 	parentLayerIDs := make(map[string]bool)
 	apiLayerIDs := make(map[string]bool)
@@ -945,6 +1016,7 @@ func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemCon
 		}
 		var rc io.ReadCloser
 		var errChan chan error
+		var layerExclusions []copier.ConditionalRemovePath
 		if i.confidentialWorkload.Convert {
 			// Convert the root filesystem into an encrypted disk image.
 			rc, err = i.extractConfidentialWorkloadFS(i.confidentialWorkload)
@@ -977,6 +1049,18 @@ func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemCon
 				if i.emptyLayer && layerID == i.layerID {
 					continue
 				}
+				if layerID == i.layerID {
+					// We need to filter out any mount targets that we created.
+					layerExclusions = append(slices.Clone(i.layerExclusions), i.layerMountTargets...)
+					// And we _might_ need to filter out directories that modified
+					// by creating and removing mount targets, _if_ they were the
+					// same in the base image for this stage.
+					layerPullUps, err := i.filterExclusionsByImage(ctx, i.layerPullUps, i.fromImageID)
+					if err != nil {
+						return nil, fmt.Errorf("checking which exclusions are in base image %q: %w", i.fromImageID, err)
+					}
+					layerExclusions = append(layerExclusions, layerPullUps...)
+				}
 				// Extract this layer, one of possibly many.
 				rc, err = i.store.Diff("", layerID, diffOptions)
 				if err != nil {
@@ -999,7 +1083,7 @@ func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemCon
 		// At this point, there are multiple ways that can happen.
 		diffBeingAltered := i.compression != archive.Uncompressed
 		diffBeingAltered = diffBeingAltered || i.layerModTime != nil || i.layerLatestModTime != nil
-		diffBeingAltered = diffBeingAltered || len(i.layerExclusions) != 0
+		diffBeingAltered = diffBeingAltered || len(layerExclusions) != 0
 		if diffBeingAltered {
 			destHasher = digest.Canonical.Digester()
 			multiWriter = io.MultiWriter(counter, destHasher.Hash())
@@ -1019,7 +1103,7 @@ func (i *containerImageRef) NewImageSource(_ context.Context, _ *types.SystemCon
 		// Use specified timestamps in the layer, if we're doing that for history
 		// entries.
 		nestedWriteCloser := ioutils.NewWriteCloserWrapper(writer, writeCloser.Close)
-		writeCloser = makeFilteredLayerWriteCloser(nestedWriteCloser, i.layerModTime, i.layerLatestModTime, i.layerExclusions)
+		writeCloser = makeFilteredLayerWriteCloser(nestedWriteCloser, i.layerModTime, i.layerLatestModTime, layerExclusions)
 		writer = writeCloser
 		// Okay, copy from the raw diff through the filter, compressor, and counter and
 		// digesters.
@@ -1440,27 +1524,52 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		return nil, fmt.Errorf("getting the per-container data directory for %q: %w", b.ContainerID, err)
 	}
 
-	excludesFiles, err := filepath.Glob(filepath.Join(cdir, containerExcludesDir, "*"))
+	gatherExclusions := func(excludesFiles []string) ([]copier.ConditionalRemovePath, error) {
+		var excludes []copier.ConditionalRemovePath
+		for _, excludesFile := range excludesFiles {
+			if strings.Contains(excludesFile, containerExcludesSubstring) {
+				continue
+			}
+			excludesData, err := os.ReadFile(excludesFile)
+			if err != nil {
+				return nil, fmt.Errorf("reading commit exclusions for %q: %w", b.ContainerID, err)
+			}
+			var theseExcludes []copier.ConditionalRemovePath
+			if err := json.Unmarshal(excludesData, &theseExcludes); err != nil {
+				return nil, fmt.Errorf("parsing commit exclusions for %q: %w", b.ContainerID, err)
+			}
+			excludes = append(excludes, theseExcludes...)
+		}
+		return excludes, nil
+	}
+	mountTargetFiles, err := filepath.Glob(filepath.Join(cdir, containerExcludesDir, "*"))
 	if err != nil {
 		return nil, fmt.Errorf("checking for commit exclusions for %q: %w", b.ContainerID, err)
 	}
-	var layerExclusions []copier.ConditionalRemovePath
-	for _, excludesFile := range excludesFiles {
-		if strings.Contains(excludesFile, containerExcludesSubstring) {
-			continue
-		}
-		excludesData, err := os.ReadFile(excludesFile)
-		if err != nil {
-			return nil, fmt.Errorf("reading commit exclusions for %q: %w", b.ContainerID, err)
-		}
-		var excludes []copier.ConditionalRemovePath
-		if err := json.Unmarshal(excludesData, &excludes); err != nil {
-			return nil, fmt.Errorf("parsing commit exclusions for %q: %w", b.ContainerID, err)
-		}
-		layerExclusions = append(layerExclusions, excludes...)
+	pulledUpFiles, err := filepath.Glob(filepath.Join(cdir, containerPulledUpDir, "*"))
+	if err != nil {
+		return nil, fmt.Errorf("checking for commit pulled-up items for %q: %w", b.ContainerID, err)
 	}
+	layerMountTargets, err := gatherExclusions(mountTargetFiles)
+	if err != nil {
+		return nil, err
+	}
+	if len(layerMountTargets) > 0 {
+		logrus.Debugf("these items were created for use as mount targets: %#v", layerMountTargets)
+	}
+	layerPullUps, err := gatherExclusions(pulledUpFiles)
+	if err != nil {
+		return nil, err
+	}
+	if len(layerPullUps) > 0 {
+		logrus.Debugf("these items appear to have been pulled up: %#v", layerPullUps)
+	}
+	var layerExclusions []copier.ConditionalRemovePath
 	if options.CompatLayerOmissions == types.OptionalBoolTrue {
-		layerExclusions = append(layerExclusions, compatLayerExclusions...)
+		layerExclusions = slices.Clone(compatLayerExclusions)
+	}
+	if len(layerExclusions) > 0 {
+		logrus.Debugf("excluding these items from committed layer: %#v", layerExclusions)
 	}
 
 	manifestType := options.PreferredManifestType
@@ -1565,6 +1674,8 @@ func (b *Builder) makeContainerImageRef(options CommitOptions) (*containerImageR
 		extraImageContent:     maps.Clone(options.ExtraImageContent),
 		compatSetParent:       options.CompatSetParent,
 		layerExclusions:       layerExclusions,
+		layerMountTargets:     layerMountTargets,
+		layerPullUps:          layerPullUps,
 		createdAnnotation:     options.CreatedAnnotation,
 	}
 	if ref.created != nil {
