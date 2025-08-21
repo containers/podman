@@ -228,7 +228,12 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 		registry = dockerRegistry
 	}
 	tlsClientConfig := &tls.Config{
-		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
+		// As of 2025-08, tlsconfig.ClientDefault() differs from Go 1.23 defaults only in CipherSuites;
+		// so, limit us to only using that value. If go-connections/tlsconfig changes its policy, we
+		// will want to consider that and make a decision whether to follow suit.
+		// There is some chance that eventually the Go default will be to require TLS 1.3, and that point
+		// we might want to drop the dependency on go-connections entirely.
+		CipherSuites: tlsconfig.ClientDefault().CipherSuites,
 	}
 
 	// It is undefined whether the host[:port] string for dockerHostname should be dockerHostname or dockerRegistry,

@@ -3,11 +3,11 @@
 package config
 
 const (
-	// OverrideContainersConfig holds the default config path overridden by the root user
-	OverrideContainersConfig = "/usr/local/etc/" + _configPath
+	// overrideContainersConfig holds the default config path overridden by the root user.
+	overrideContainersConfig = "/usr/local/etc/" + _configPath
 
-	// DefaultContainersConfig holds the default containers config path
-	DefaultContainersConfig = "/usr/local/share/" + _configPath
+	// defaultContainersConfig holds the default containers config path.
+	defaultContainersConfig = "/usr/local/share/" + _configPath
 
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.

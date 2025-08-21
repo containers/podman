@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/containers/image/v5/signature/internal"
@@ -207,37 +208,52 @@ func (s untrustedSignature) sign(mech SigningMechanism, keyIdentity string, pass
 // because the functions have the same or similar types, so there is a risk of exchanging the functions;
 // named members of this struct are more explicit.
 type signatureAcceptanceRules struct {
-	validateKeyIdentity                func(string) error
+	acceptedKeyIdentities              []string
 	validateSignedDockerReference      func(string) error
 	validateSignedDockerManifestDigest func(digest.Digest) error
 }
 
 // verifyAndExtractSignature verifies that unverifiedSignature has been signed, and that its principal components
-// match expected values, both as specified by rules, and returns it
-func verifyAndExtractSignature(mech SigningMechanism, unverifiedSignature []byte, rules signatureAcceptanceRules) (*Signature, error) {
+// match expected values, both as specified by rules.
+// Returns the signature, and an identity of the key that signed it.
+func verifyAndExtractSignature(mech SigningMechanism, unverifiedSignature []byte, rules signatureAcceptanceRules) (*Signature, string, error) {
 	signed, keyIdentity, err := mech.Verify(unverifiedSignature)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
-	if err := rules.validateKeyIdentity(keyIdentity); err != nil {
-		return nil, err
+	if !slices.Contains(rules.acceptedKeyIdentities, keyIdentity) {
+		withLookup, ok := mech.(signingMechanismWithVerificationIdentityLookup)
+		if !ok {
+			return nil, "", internal.NewInvalidSignatureError(fmt.Sprintf("signature by key %s is not accepted", keyIdentity))
+		}
+
+		primaryKey, err := withLookup.keyIdentityForVerificationKeyIdentity(keyIdentity)
+		if err != nil {
+			// Coverage: This only fails if lookup by keyIdentity fails, but we just found and used that key.
+			// Or maybe on some unexpected I/O error.
+			return nil, "", err
+		}
+		if !slices.Contains(rules.acceptedKeyIdentities, primaryKey) {
+			return nil, "", internal.NewInvalidSignatureError(fmt.Sprintf("signature by key %s of %s is not accepted", keyIdentity, primaryKey))
+		}
+		keyIdentity = primaryKey
 	}
 
 	var unmatchedSignature untrustedSignature
 	if err := json.Unmarshal(signed, &unmatchedSignature); err != nil {
-		return nil, internal.NewInvalidSignatureError(err.Error())
+		return nil, "", internal.NewInvalidSignatureError(err.Error())
 	}
 	if err := rules.validateSignedDockerManifestDigest(unmatchedSignature.untrustedDockerManifestDigest); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	if err := rules.validateSignedDockerReference(unmatchedSignature.untrustedDockerReference); err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	// signatureAcceptanceRules have accepted this value.
 	return &Signature{
 		DockerManifestDigest: unmatchedSignature.untrustedDockerManifestDigest,
 		DockerReference:      unmatchedSignature.untrustedDockerReference,
-	}, nil
+	}, keyIdentity, nil
 }
 
 // GetUntrustedSignatureInformationWithoutVerifying extracts information available in an untrusted signature,

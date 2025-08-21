@@ -319,27 +319,16 @@ func (m *ManifestList) saveAndReload() error {
 	if err != nil {
 		return err
 	}
-
-	// Make sure to reload the image from the containers storage to fetch
-	// the latest data (e.g., new or delete digests).
-	if err := m.image.reload(); err != nil {
-		return err
-	}
-	image, list, err := m.image.runtime.lookupManifestList(newID)
-	if err != nil {
-		return err
-	}
-	m.image = image
-	m.list = list
-	return nil
+	return m.reloadID(newID)
 }
 
 // Reload the image and list instances from storage
 func (m *ManifestList) reload() error {
 	listID := m.ID()
-	if err := m.image.reload(); err != nil {
-		return err
-	}
+	return m.reloadID(listID)
+}
+
+func (m *ManifestList) reloadID(listID string) error {
 	image, list, err := m.image.runtime.lookupManifestList(listID)
 	if err != nil {
 		return err
@@ -669,6 +658,18 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 		return nil
 	}
 
+	locker, err := manifests.LockerForImage(m.image.runtime.store, m.ID())
+	if err != nil {
+		return err
+	}
+	locker.Lock()
+	defer locker.Unlock()
+	// Make sure to reload the image from the containers storage to fetch
+	// the latest data (e.g., new or delete digests).
+	if err := m.reload(); err != nil {
+		return err
+	}
+
 	if len(options.OS) > 0 {
 		if err := m.list.SetOS(d, options.OS); err != nil {
 			return err
@@ -752,6 +753,18 @@ func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAn
 // RemoveInstance removes the instance specified by `d` from the manifest list.
 // Returns the new ID of the image.
 func (m *ManifestList) RemoveInstance(d digest.Digest) error {
+	locker, err := manifests.LockerForImage(m.image.runtime.store, m.ID())
+	if err != nil {
+		return err
+	}
+	locker.Lock()
+	defer locker.Unlock()
+	// Make sure to reload the image from the containers storage to fetch
+	// the latest data (e.g., new or delete digests).
+	if err := m.reload(); err != nil {
+		return err
+	}
+
 	if err := m.list.Remove(d); err != nil {
 		return err
 	}

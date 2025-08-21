@@ -5,7 +5,6 @@ package signature
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -64,15 +63,8 @@ func VerifyImageManifestSignatureUsingKeyIdentityList(unverifiedSignature, unver
 	if err != nil {
 		return nil, "", err
 	}
-	var matchedKeyIdentity string
-	sig, err := verifyAndExtractSignature(mech, unverifiedSignature, signatureAcceptanceRules{
-		validateKeyIdentity: func(keyIdentity string) error {
-			if !slices.Contains(expectedKeyIdentities, keyIdentity) {
-				return internal.NewInvalidSignatureError(fmt.Sprintf("Signature by %s does not match expected fingerprints %v", keyIdentity, expectedKeyIdentities))
-			}
-			matchedKeyIdentity = keyIdentity
-			return nil
-		},
+	sig, matchedKeyIdentity, err := verifyAndExtractSignature(mech, unverifiedSignature, signatureAcceptanceRules{
+		acceptedKeyIdentities: expectedKeyIdentities,
 		validateSignedDockerReference: func(signedDockerReference string) error {
 			signedRef, err := reference.ParseNormalizedNamed(signedDockerReference)
 			if err != nil {
