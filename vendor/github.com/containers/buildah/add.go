@@ -144,7 +144,12 @@ func getURL(src string, chown *idtools.IDPair, mountpoint, renameTarget string, 
 		return err
 	}
 	tlsClientConfig := &tls.Config{
-		CipherSuites: tlsconfig.DefaultServerAcceptedCiphers,
+		// As of 2025-08, tlsconfig.ClientDefault() differs from Go 1.23 defaults only in CipherSuites;
+		// so, limit us to only using that value. If go-connections/tlsconfig changes its policy, we
+		// will want to consider that and make a decision whether to follow suit.
+		// There is some chance that eventually the Go default will be to require TLS 1.3, and that point
+		// we might want to drop the dependency on go-connections entirely.
+		CipherSuites: tlsconfig.ClientDefault().CipherSuites,
 	}
 	if err := tlsclientconfig.SetupCertificates(certPath, tlsClientConfig); err != nil {
 		return err
@@ -426,15 +431,17 @@ func (b *Builder) Add(destination string, extract bool, options AddAndCopyOption
 	// source item, or the destination has a path separator at the end of
 	// it, and it's not a remote URL, the destination needs to be a
 	// directory.
+	destMustBeDirectory := strings.HasSuffix(destination, string(os.PathSeparator)) || strings.HasSuffix(destination, string(os.PathSeparator)+".") // keep this in sync with github.com/openshift/imagebuilder.hasSlash()
+	destMustBeDirectory = destMustBeDirectory || destination == "" || (len(sources) > 1)
 	if destination == "" || !filepath.IsAbs(destination) {
 		tmpDestination := filepath.Join(string(os.PathSeparator)+b.WorkDir(), destination)
-		if destination == "" || strings.HasSuffix(destination, string(os.PathSeparator)) {
+		if destMustBeDirectory {
 			destination = tmpDestination + string(os.PathSeparator)
 		} else {
 			destination = tmpDestination
 		}
 	}
-	destMustBeDirectory := (len(sources) > 1) || strings.HasSuffix(destination, string(os.PathSeparator)) || destination == b.WorkDir()
+	destMustBeDirectory = destMustBeDirectory || (filepath.Clean(destination) == filepath.Clean(b.WorkDir()))
 	destCanBeFile := false
 	if len(sources) == 1 {
 		if len(remoteSources) == 1 {

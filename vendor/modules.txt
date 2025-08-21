@@ -78,7 +78,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.7.1
 ## explicit; go 1.23.0
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.41.0
+# github.com/containers/buildah v1.41.1-0.20250825221131-264309dc1081
 ## explicit; go 1.23.3
 github.com/containers/buildah
 github.com/containers/buildah/bind
@@ -265,7 +265,7 @@ github.com/containers/libhvee/pkg/wmiext
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/luksy v0.0.0-20250609192159-bc60f96d4194
+# github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e
 ## explicit; go 1.23.0
 github.com/containers/luksy
 # github.com/containers/ocicrypt v1.2.1
