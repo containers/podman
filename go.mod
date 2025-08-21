@@ -21,7 +21,7 @@ require (
 	github.com/containers/psgo v1.9.0
 	github.com/containers/storage v1.59.1
 	github.com/containers/winquit v1.1.0
-	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
+	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/crc-org/vfkit v0.6.1
 	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/digitalocean/go-qemu v0.0.0-20250212194115-ee9b0668d242
