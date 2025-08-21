@@ -53,14 +53,8 @@ func (e EventJournalD) Write(ee Event) error {
 		if ee.PodID != "" {
 			m["PODMAN_POD_ID"] = ee.PodID
 		}
-		// If we have container labels, we need to convert them to a string so they
-		// can be recorded with the event
-		if len(ee.Details.Attributes) > 0 {
-			b, err := json.Marshal(ee.Details.Attributes)
-			if err != nil {
-				return err
-			}
-			m["PODMAN_LABELS"] = string(b)
+		if err := addLabelsToJournal(m, ee.Details.Attributes); err != nil {
+			return err
 		}
 		if ee.Status == HealthStatus {
 			m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
@@ -75,6 +69,9 @@ func (e EventJournalD) Write(ee Event) error {
 	case Network:
 		m["PODMAN_ID"] = ee.ID
 		m["PODMAN_NETWORK_NAME"] = ee.Network
+		if err := addLabelsToJournal(m, ee.Details.Attributes); err != nil {
+			return err
+		}
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
@@ -91,6 +88,35 @@ func (e EventJournalD) Write(ee Event) error {
 	}
 
 	return journal.Send(ee.ToHumanReadable(false), prio, m)
+}
+
+func addLabelsToJournal(journalEntry, eventAttributes map[string]string) error {
+	// If we have container labels, we need to convert them to a string so they
+	// can be recorded with the event
+	if len(eventAttributes) > 0 {
+		b, err := json.Marshal(eventAttributes)
+		if err != nil {
+			return err
+		}
+		journalEntry["PODMAN_LABELS"] = string(b)
+	}
+	return nil
+}
+
+func getLabelsFromJournal(entry *sdjournal.JournalEntry, event *Event) error {
+	// we need to check for the presence of labels recorded to a container event
+	if stringLabels, ok := entry.Fields["PODMAN_LABELS"]; ok && len(stringLabels) > 0 {
+		labels := make(map[string]string, 0)
+		if err := json.Unmarshal([]byte(stringLabels), &labels); err != nil {
+			return err
+		}
+
+		// if we have labels, add them to the event
+		if len(labels) > 0 {
+			event.Attributes = labels
+		}
+	}
+	return nil
 }
 
 // Read reads events from the journal and sends qualified events to the event channel
@@ -224,18 +250,8 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 				newEvent.ContainerExitCode = &intCode
 			}
 		}
-
-		// we need to check for the presence of labels recorded to a container event
-		if stringLabels, ok := entry.Fields["PODMAN_LABELS"]; ok && len(stringLabels) > 0 {
-			labels := make(map[string]string, 0)
-			if err := json.Unmarshal([]byte(stringLabels), &labels); err != nil {
-				return nil, err
-			}
-
-			// if we have labels, add them to the event
-			if len(labels) > 0 {
-				newEvent.Attributes = labels
-			}
+		if err := getLabelsFromJournal(entry, &newEvent); err != nil {
+			return nil, err
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
 		if log, ok := entry.Fields["PODMAN_HEALTH_LOG"]; ok {
@@ -251,6 +267,9 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 	case Network:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Network = entry.Fields["PODMAN_NETWORK_NAME"]
+		if err := getLabelsFromJournal(entry, &newEvent); err != nil {
+			return nil, err
+		}
 	case Image:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		if val, ok := entry.Fields["ERROR"]; ok {
