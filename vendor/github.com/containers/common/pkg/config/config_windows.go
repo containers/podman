@@ -7,8 +7,8 @@ const (
 	// inside a given config directory.
 	_configPath = "\\containers\\containers.conf"
 
-	// DefaultContainersConfig holds the default containers config path
-	DefaultContainersConfig = ""
+	// defaultContainersConfig holds the default containers config path
+	defaultContainersConfig = ""
 
 	// DefaultSignaturePolicyPath is the default value for the
 	// policy.json file.

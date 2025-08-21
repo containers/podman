@@ -5,19 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/homedir"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/hashicorp/go-multierror"
-)
-
-// The subdirectory for looking up containers.conf modules.
-const moduleSubdir = "containers/containers.conf.modules"
-
-// Moving the base paths into variables allows for overriding them in units
-// tests.
-var (
-	moduleBaseEtc = "/etc/"
-	moduleBaseUsr = "/usr/share"
 )
 
 // LoadedModules returns absolute paths to loaded containers.conf modules.
@@ -29,15 +17,12 @@ func (c *Config) LoadedModules() []string {
 
 // Find the specified modules in the options.  Return an error if a specific
 // module cannot be located on the host.
-func (o *Options) modules() ([]string, error) {
+func (o *Options) modules(paths *paths) ([]string, error) {
 	if len(o.Modules) == 0 {
 		return nil, nil
 	}
 
-	dirs, err := ModuleDirectories()
-	if err != nil {
-		return nil, err
-	}
+	dirs := moduleDirectories(paths)
 
 	configs := make([]string, 0, len(o.Modules))
 	for _, path := range o.Modules {
@@ -56,21 +41,22 @@ func (o *Options) modules() ([]string, error) {
 // 2) /etc/
 // 3) /usr/share
 func ModuleDirectories() ([]string, error) { // Public API for shell completions in Podman
-	modules := []string{
-		filepath.Join(moduleBaseEtc, moduleSubdir),
-		filepath.Join(moduleBaseUsr, moduleSubdir),
-	}
-
-	if !unshare.IsRootless() {
-		return modules, nil
-	}
-
-	// Prepend the user modules dir.
-	configHome, err := homedir.GetConfigHome()
+	paths, err := defaultPaths()
 	if err != nil {
 		return nil, err
 	}
-	return append([]string{filepath.Join(configHome, moduleSubdir)}, modules...), nil
+	return moduleDirectories(paths), nil
+}
+
+func moduleDirectories(paths *paths) []string {
+	const moduleSuffix = ".modules"
+	modules := make([]string, 0, 3)
+	if paths.uid > 0 {
+		modules = append(modules, paths.home+moduleSuffix)
+	}
+	modules = append(modules, paths.etc+moduleSuffix)
+	modules = append(modules, paths.usr+moduleSuffix)
+	return modules
 }
 
 // Resolve the specified path to a module.
