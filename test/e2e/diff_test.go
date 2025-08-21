@@ -72,7 +72,6 @@ var _ = Describe("Podman diff", func() {
 	})
 
 	It("podman image diff", func() {
-		Skip("FIXME: #26680 Broken with Buildah v1.41 diff test showing different behavior base on storage driver")
 		file1 := "/" + stringid.GenerateRandomID()
 		file2 := "/" + stringid.GenerateRandomID()
 		file3 := "/" + stringid.GenerateRandomID()
@@ -105,7 +104,7 @@ RUN echo test
 		session = podmanTest.Podman([]string{"image", "diff", image, baseImage})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		Expect(session.OutputToStringArray()).To(HaveLen(4))
+		Expect(session.OutputToStringArray()).To(HaveLen(3))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file1))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file2))
 		Expect(session.OutputToString()).To(ContainSubstring("A " + file3))
@@ -132,7 +131,6 @@ RUN echo test
 	})
 
 	It("podman diff container and image with same name", func() {
-		Skip("FIXME: #26680 Broken with Buildah v1.41 diff test showing different behavior base on storage driver")
 		imagefile := "/" + stringid.GenerateRandomID()
 		confile := "/" + stringid.GenerateRandomID()
 
