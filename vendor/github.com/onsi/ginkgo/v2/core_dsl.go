@@ -268,7 +268,7 @@ func RunSpecs(t GinkgoTestingT, description string, args ...any) bool {
 	}
 	defer global.PopClone()
 
-	suiteLabels, suiteSemVerConstraints := extractSuiteConfiguration(args)
+	suiteLabels, suiteSemVerConstraints, suiteAroundNodes := extractSuiteConfiguration(args)
 
 	var reporter reporters.Reporter
 	if suiteConfig.ParallelTotal == 1 {
@@ -311,7 +311,7 @@ func RunSpecs(t GinkgoTestingT, description string, args ...any) bool {
 	suitePath, err = filepath.Abs(suitePath)
 	exitIfErr(err)
 
-	passed, hasFocusedTests := global.Suite.Run(description, suiteLabels, suiteSemVerConstraints, suitePath, global.Failer, reporter, writer, outputInterceptor, interrupt_handler.NewInterruptHandler(client), client, internal.RegisterForProgressSignal, suiteConfig)
+	passed, hasFocusedTests := global.Suite.Run(description, suiteLabels, suiteSemVerConstraints, suiteAroundNodes, suitePath, global.Failer, reporter, writer, outputInterceptor, interrupt_handler.NewInterruptHandler(client), client, internal.RegisterForProgressSignal, suiteConfig)
 	outputInterceptor.Shutdown()
 
 	flagSet.ValidateDeprecations(deprecationTracker)
@@ -330,9 +330,10 @@ func RunSpecs(t GinkgoTestingT, description string, args ...any) bool {
 	return passed
 }
 
-func extractSuiteConfiguration(args []any) (Labels, SemVerConstraints) {
+func extractSuiteConfiguration(args []any) (Labels, SemVerConstraints, types.AroundNodes) {
 	suiteLabels := Labels{}
 	suiteSemVerConstraints := SemVerConstraints{}
+	aroundNodes := types.AroundNodes{}
 	configErrors := []error{}
 	for _, arg := range args {
 		switch arg := arg.(type) {
@@ -344,6 +345,8 @@ func extractSuiteConfiguration(args []any) (Labels, SemVerConstraints) {
 			suiteLabels = append(suiteLabels, arg...)
 		case SemVerConstraints:
 			suiteSemVerConstraints = append(suiteSemVerConstraints, arg...)
+		case types.AroundNodeDecorator:
+			aroundNodes = append(aroundNodes, arg)
 		default:
 			configErrors = append(configErrors, types.GinkgoErrors.UnknownTypePassedToRunSpecs(arg))
 		}
@@ -359,7 +362,7 @@ func extractSuiteConfiguration(args []any) (Labels, SemVerConstraints) {
 		os.Exit(1)
 	}
 
-	return suiteLabels, suiteSemVerConstraints
+	return suiteLabels, suiteSemVerConstraints, aroundNodes
 }
 
 func getwd() (string, error) {
@@ -382,7 +385,7 @@ func PreviewSpecs(description string, args ...any) Report {
 	}
 	defer global.PopClone()
 
-	suiteLabels, suiteSemVerConstraints := extractSuiteConfiguration(args)
+	suiteLabels, suiteSemVerConstraints, suiteAroundNodes := extractSuiteConfiguration(args)
 	priorDryRun, priorParallelTotal, priorParallelProcess := suiteConfig.DryRun, suiteConfig.ParallelTotal, suiteConfig.ParallelProcess
 	suiteConfig.DryRun, suiteConfig.ParallelTotal, suiteConfig.ParallelProcess = true, 1, 1
 	defer func() {
@@ -400,7 +403,7 @@ func PreviewSpecs(description string, args ...any) Report {
 	suitePath, err = filepath.Abs(suitePath)
 	exitIfErr(err)
 
-	global.Suite.Run(description, suiteLabels, suiteSemVerConstraints, suitePath, global.Failer, reporter, writer, outputInterceptor, interrupt_handler.NewInterruptHandler(client), client, internal.RegisterForProgressSignal, suiteConfig)
+	global.Suite.Run(description, suiteLabels, suiteSemVerConstraints, suiteAroundNodes, suitePath, global.Failer, reporter, writer, outputInterceptor, interrupt_handler.NewInterruptHandler(client), client, internal.RegisterForProgressSignal, suiteConfig)
 
 	return global.Suite.GetPreviewReport()
 }

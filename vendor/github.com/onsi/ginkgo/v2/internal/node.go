@@ -61,6 +61,7 @@ type Node struct {
 	NodeTimeout             time.Duration
 	SpecTimeout             time.Duration
 	GracePeriod             time.Duration
+	AroundNodes             types.AroundNodes
 
 	NodeIDWhereCleanupWasGenerated uint
 }
@@ -86,17 +87,19 @@ type FlakeAttempts uint
 type MustPassRepeatedly uint
 type Offset uint
 type Done chan<- any // Deprecated Done Channel for asynchronous testing
-type Labels []string
-type SemVerConstraints []string
 type PollProgressInterval time.Duration
 type PollProgressAfter time.Duration
 type NodeTimeout time.Duration
 type SpecTimeout time.Duration
 type GracePeriod time.Duration
 
+type Labels []string
+
 func (l Labels) MatchesLabelFilter(query string) bool {
 	return types.MustParseLabelFilter(query)(l)
 }
+
+type SemVerConstraints []string
 
 func (svc SemVerConstraints) MatchesSemVerFilter(version string) bool {
 	return types.MustParseSemVerFilter(version)(svc)
@@ -176,6 +179,8 @@ func isDecoration(arg any) bool {
 	case t == reflect.TypeOf(SpecTimeout(0)):
 		return true
 	case t == reflect.TypeOf(GracePeriod(0)):
+		return true
+	case t == reflect.TypeOf(types.AroundNodeDecorator{}):
 		return true
 	case t.Kind() == reflect.Slice && isSliceOfDecorations(arg):
 		return true
@@ -317,6 +322,8 @@ func NewNode(deprecationTracker *types.DeprecationTracker, nodeType types.NodeTy
 			if nodeType.Is(types.NodeTypeContainer) {
 				appendError(types.GinkgoErrors.InvalidDecoratorForNodeType(node.CodeLocation, nodeType, "GracePeriod"))
 			}
+		case t == reflect.TypeOf(types.AroundNodeDecorator{}):
+			node.AroundNodes = append(node.AroundNodes, arg.(types.AroundNodeDecorator))
 		case t == reflect.TypeOf(Labels{}):
 			if !nodeType.Is(types.NodeTypesForContainerAndIt) {
 				appendError(types.GinkgoErrors.InvalidDecoratorForNodeType(node.CodeLocation, nodeType, "Label"))
