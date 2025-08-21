@@ -44,7 +44,8 @@ var _ = Describe("run basic podman commands", func() {
 		Expect(newImgs).To(Exit(0))
 		Expect(newImgs.outputToStringSlice()).To(HaveLen(1))
 
-		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", TESTIMAGE, "cat", "/etc/os-release"})).run()
+		// seccomp option as regression test for https://github.com/containers/podman/issues/26855
+		runAlp, err := mb.setCmd(bm.withPodmanCommand([]string{"run", "--security-opt", "seccomp=unconfined", TESTIMAGE, "cat", "/etc/os-release"})).run()
 		Expect(err).ToNot(HaveOccurred())
 		Expect(runAlp).To(Exit(0))
 		Expect(runAlp.outputToString()).To(ContainSubstring("Alpine Linux"))
