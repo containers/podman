@@ -1,3 +1,9 @@
+## 2.25.1
+
+### Fixes
+- fix(types): ignore nameless nodes on FullText() [10866d3]
+- chore: fix some CodeQL warnings [2e42cff]
+
 ## 2.25.0
 
 ### `AroundNode`
