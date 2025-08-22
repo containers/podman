@@ -741,14 +741,14 @@ func (c *Container) hostname(network bool) string {
 	// containers.conf, use a sanitized version of the container's name
 	// as the hostname.  Since the container name must already match
 	// the set '[a-zA-Z0-9][a-zA-Z0-9_.-]*', we can just remove any
-	// underscores and limit it to 253 characters to make it a valid
+	// underscores and limit it to 64 characters to make it a valid
 	// hostname.
 	if c.runtime.config.Containers.ContainerNameAsHostName {
 		sanitizedHostname := strings.ReplaceAll(c.Name(), "_", "")
-		if len(sanitizedHostname) <= 253 {
+		if len(sanitizedHostname) <= 64 {
 			return sanitizedHostname
 		}
-		return sanitizedHostname[:253]
+		return sanitizedHostname[:64]
 	}
 
 	// Otherwise use the container's short ID as the hostname.
