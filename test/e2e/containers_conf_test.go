@@ -888,7 +888,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		name = getContainerConfig(containerID, "{{ .Name }}")
 		// Double check that name actually got set correctly
 		Expect(name).To(Equal(longHostname))
-		// Hostname should be the container name truncated to 253 characters
-		Expect(hostname).To(Equal(name[:253]))
+		// Hostname should be the container name truncated to 64 characters
+		Expect(hostname).To(Equal(name[:64]))
 	})
 })
