@@ -422,6 +422,9 @@ type EngineConfig struct {
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
+	
+	// OCIRuntimesArgs are the set of configured OCI runtimes' arguments
+	OCIRuntimesFlags map[string][]string `toml:"runtimes_flags,omitempty"`
 
 	// PlatformToOCIRuntime requests specific OCI runtime for a specified platform of image.
 	PlatformToOCIRuntime map[string]string `toml:"platform_to_oci_runtime,omitempty"`

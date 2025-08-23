@@ -470,6 +470,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 			"/usr/local/bin/ocijail",
 		},
 	}
+	c.OCIRuntimesFlags = map[string][]string{}
 	c.PlatformToOCIRuntime = map[string]string{
 		"wasi/wasm":   "crun-wasm",
 		"wasi/wasm32": "crun-wasm",
