@@ -439,6 +439,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	options.WithKeep(opts.Keep)
 	options.WithName(opts.Name)
 	options.WithTCPEstablished(opts.TCPEstablished)
+	options.WithTCPClose(opts.TCPClose)
 	options.WithPod(opts.Pod)
 	options.WithPrintStats(opts.PrintStats)
 	options.WithPublishPorts(opts.PublishPorts)

@@ -83,6 +83,7 @@ type RestoreOptions struct {
 	Keep           *bool
 	Name           *string
 	TCPEstablished *bool
+	TCPClose       *bool
 	Pod            *string
 	PrintStats     *bool
 	PublishPorts   []string

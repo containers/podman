@@ -152,6 +152,21 @@ func (o *RestoreOptions) GetTCPEstablished() bool {
 	return *o.TCPEstablished
 }
 
+// WithTCPClose set field TCPClose to given value
+func (o *RestoreOptions) WithTCPClose(value bool) *RestoreOptions {
+	o.TCPClose = &value
+	return o
+}
+
+// GetTCPClose returns value of field TCPClose
+func (o *RestoreOptions) GetTCPClose() bool {
+	if o.TCPClose == nil {
+		var z bool
+		return z
+	}
+	return *o.TCPClose
+}
+
 // WithPod set field Pod to given value
 func (o *RestoreOptions) WithPod(value string) *RestoreOptions {
 	o.Pod = &value
