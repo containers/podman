@@ -150,6 +150,14 @@ initial *container* start, with a new set of port forwarding rules.
 
 For more details, see **[podman run --publish](podman-run.1.md#--publish)**.
 
+#### **--tcp-close**
+
+Restore a *container* and close all TCP connections. This option is useful
+when TCP connections are not needed after restore or when connections
+will be reestablished by the application. If the checkpoint image was created with
+**--tcp-close**, this option should be used during restore.\
+The default is **false**.
+
 #### **--tcp-established**
 
 Restore a *container* with established TCP connections. If the checkpoint image
