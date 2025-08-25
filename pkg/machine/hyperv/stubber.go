@@ -136,7 +136,7 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 		if err != nil {
 			return fmt.Errorf("generating cloud-init ISO: %w", err)
 		}
-		hwConfig.DVDDiskPath = iso
+		hwConfig.DVDDiskPath = iso.GetPath()
 	}
 
 	if mc.HyperVHypervisor.UserModeNetworking {
