@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -299,6 +300,9 @@ func (report SpecReport) FullText() string {
 	if report.LeafNodeText != "" {
 		texts = append(texts, report.LeafNodeText)
 	}
+	texts = slices.DeleteFunc(texts, func(t string) bool {
+		return t == ""
+	})
 	return strings.Join(texts, " ")
 }
 
