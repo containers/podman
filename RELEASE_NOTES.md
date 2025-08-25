@@ -22,6 +22,9 @@
 - The `podman update` command now has a new option, `--latest`, to update the latest container instead of specifying a specific container ([#26380](https://github.com/containers/podman/issues/26380)).
 - A new command, `podman buildx inspect`, has been added to improve Docker compatibility ([#13014](https://github.com/containers/podman/issues/13014)).
 
+### Breaking Changes
+- Rosetta support in `podman machine` VMs has been disabled by default due to issues with newer Linux kernels. These issues have been addressed in the Tahoe beta, and we plan on re-enabling support for Rosetta in a future Podman release once the fix is in wider circulation. You can find more details [here](https://blog.podman.io/2025/08/podman-5-6-released-rosetta-status-update/).
+
 ### Changes
 - In preparation for a planned removal of the BoltDB database in Podman 6.0, a warning has been added for installations still using BoltDB. These warnings are presently not visible by default, which will happen in Podman 5.7.
 - The `podman artifact` suite of commands for interacting with OCI artifacts is now considered stable.
