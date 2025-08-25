@@ -107,7 +107,7 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 		return nil, err
 	}
 
-	vmFile, err := machineDataDir.AppendToNewVMFile(("cloudinit.iso"), nil)
+	vmFile, err := machineDataDir.AppendToNewVMFile(fmt.Sprintf("%s-cloudinit.iso", mc.Name), nil)
 	if err != nil {
 		return nil, err
 	}
