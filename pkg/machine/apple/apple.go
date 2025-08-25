@@ -208,6 +208,8 @@ func StartGenericAppleVM(mc *vmconfigs.MachineConfig, cmdBinary string, bootload
 		}
 		cmd.Args = append(cmd.Args, debugDevArgs...)
 		cmd.Args = append(cmd.Args, "--gui") // add command line switch to pop the gui open
+
+		cmd.Args = append(cmd.Args, "--log-level", "debug") // Pass through debug logging if enabled
 	}
 
 	endpointArgs, err := GetVfKitEndpointCMDArgs(endpoint)
