@@ -778,7 +778,16 @@ func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.R
 	}
 	if !opts.ReExec {
 		mc.Lock()
-		defer mc.Unlock()
+		defer func() {
+			mc.Unlock()
+
+			// Remove the lock file
+			lockPath := lock.GetMachineLockPath(mc.Name, dirs.ConfigDir.GetPath())
+			if err := os.Remove(lockPath); err != nil && !os.IsNotExist(err) {
+				logrus.Errorf("failed to remove lock file at %s: %v", lockPath, err)
+				return
+			}
+		}()
 	}
 	if err := mc.Refresh(); err != nil {
 		return fmt.Errorf("reload config: %w", err)
