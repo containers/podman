@@ -108,3 +108,32 @@ func BadRequest(w http.ResponseWriter, key string, value string, err error) {
 func UnSupportedParameter(param string) {
 	log.Infof("API parameter %q: not supported", param)
 }
+
+type BuildError struct {
+	err  error
+	code int
+}
+
+func (e *BuildError) Error() string {
+	return e.err.Error()
+}
+
+func GetBadRequestError(key, value string, err error) *BuildError {
+	return &BuildError{code: http.StatusBadRequest, err: fmt.Errorf("failed to parse query parameter '%s': %q: %w", key, value, err)}
+}
+
+func GetGenericBadRequestError(err error) *BuildError {
+	return &BuildError{code: http.StatusBadRequest, err: err}
+}
+
+func GetInternalServerError(err error) *BuildError {
+	return &BuildError{code: http.StatusInternalServerError, err: err}
+}
+
+func ProcessBuildError(w http.ResponseWriter, err error) {
+	if buildErr, ok := err.(*BuildError); ok {
+		Error(w, buildErr.code, buildErr.err)
+		return
+	}
+	InternalServerError(w, err)
+}
