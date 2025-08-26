@@ -86,6 +86,12 @@
 
 ## Log
 
+### 2025-08-20
+
+Release v0.5.13 addressed issue #61 regarding handling of multiple WriteClosers
+together. So I added a new package xio with a WriteCloserStack to address the
+issue.
+
 ### 2024-04-03
 
 Release v0.5.12 updates README.md and SECURITY.md to address the supply chain

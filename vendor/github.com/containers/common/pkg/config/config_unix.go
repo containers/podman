@@ -25,11 +25,11 @@ func userConfigPath() (string, error) {
 		return "", err
 	}
 
-	return filepath.Join(home, UserOverrideContainersConfig), nil
+	return filepath.Join(home, userOverrideContainersConfig), nil
 }
 
 // overrideContainersConfigPath returns the default config path overridden
 // by the root user
 func overrideContainersConfigPath() (string, error) {
-	return OverrideContainersConfig, nil
+	return overrideContainersConfig, nil
 }

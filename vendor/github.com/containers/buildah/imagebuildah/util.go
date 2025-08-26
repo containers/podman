@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/buildah"
 	digest "github.com/opencontainers/go-digest"
@@ -68,6 +69,11 @@ func generatePathChecksum(sourcePath string) (string, error) {
 			return err
 		}
 		header.Name = filepath.ToSlash(relPath)
+
+		// Zero out timestamp fields to ignore modification time in checksum calculation
+		header.ModTime = time.Time{}
+		header.AccessTime = time.Time{}
+		header.ChangeTime = time.Time{}
 
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return err

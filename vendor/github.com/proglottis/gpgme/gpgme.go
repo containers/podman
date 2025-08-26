@@ -877,6 +877,12 @@ func (k *Key) KeyListMode() KeyListMode {
 	return res
 }
 
+func (k *Key) Fingerprint() string {
+	res := C.GoString(k.k.fpr)
+	runtime.KeepAlive(k)
+	return res
+}
+
 type SubKey struct {
 	k      C.gpgme_subkey_t
 	parent *Key // make sure the key is not released when we have a reference to a subkey

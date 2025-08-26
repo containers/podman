@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 
 	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/internal/private"
@@ -50,15 +49,8 @@ func (pr *prSignedBy) isSignatureAuthorAccepted(ctx context.Context, image priva
 		return sarRejected, nil, PolicyRequirementError("No public keys imported")
 	}
 
-	signature, err := verifyAndExtractSignature(mech, sig, signatureAcceptanceRules{
-		validateKeyIdentity: func(keyIdentity string) error {
-			if slices.Contains(trustedIdentities, keyIdentity) {
-				return nil
-			}
-			// Coverage: We use a private GPG home directory and only import trusted keys, so this should
-			// not be reachable.
-			return PolicyRequirementError(fmt.Sprintf("Signature by key %s is not accepted", keyIdentity))
-		},
+	signature, _, err := verifyAndExtractSignature(mech, sig, signatureAcceptanceRules{
+		acceptedKeyIdentities: trustedIdentities,
 		validateSignedDockerReference: func(ref string) error {
 			if !pr.SignedIdentity.matchesDockerReference(image, ref) {
 				return PolicyRequirementError(fmt.Sprintf("Signature for identity %q is not accepted", ref))
