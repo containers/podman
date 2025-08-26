@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.podman.io/podman/v6/pkg/machine/define"
+	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
 )
 
 const (
@@ -52,4 +53,12 @@ func CleanupGVProxy(f define.VMFile) error {
 		return err
 	}
 	return removeGVProxyPIDFile(f)
+}
+
+func GetGVProxyPIDFile(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) (*define.VMFile, error) {
+	return dirs.RuntimeDir.AppendToNewVMFile(fmt.Sprintf("gvproxy-%s.pid", mc.Name), nil)
+}
+
+func GetGVProxyLogFile(mc *vmconfigs.MachineConfig, dirs *define.MachineDirs) (*define.VMFile, error) {
+	return dirs.RuntimeDir.AppendToNewVMFile(fmt.Sprintf("gvproxy-%s.log", mc.Name), nil)
 }

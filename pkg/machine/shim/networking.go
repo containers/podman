@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -54,10 +53,17 @@ func startHostForwarder(mc *vmconfigs.MachineConfig, provider vmconfigs.VMProvid
 	cmd := gvproxy.NewGvproxyCommand()
 
 	// GvProxy PID file path is now derived
-	runDir := dirs.RuntimeDir
-	cmd.PidFile = filepath.Join(runDir.GetPath(), "gvproxy.pid")
+	gvproxyPIDFile, err := machine.GetGVProxyPIDFile(mc, dirs)
+	if err != nil {
+		return err
+	}
+	cmd.PidFile = gvproxyPIDFile.GetPath()
 
-	cmd.LogFile = filepath.Join(runDir.GetPath(), "gvproxy.log")
+	gvproxyLogFile, err := machine.GetGVProxyLogFile(mc, dirs)
+	if err != nil {
+		return err
+	}
+	cmd.LogFile = gvproxyLogFile.GetPath()
 
 	cmd.SSHPort = mc.SSH.Port
 
