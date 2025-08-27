@@ -56,6 +56,9 @@ func waitFlags(cmd *cobra.Command) {
 	conditionFlagName := "condition"
 	flags.StringSliceVar(&waitOptions.Conditions, conditionFlagName, []string{}, "Condition to wait on")
 	_ = cmd.RegisterFlagCompletionFunc(conditionFlagName, common.AutocompleteWaitCondition)
+
+	waitExitFirst := "exit-first-match"
+	flags.BoolVar(&waitOptions.ExitFirstMatch, waitExitFirst, false, "Wait for exit of first container which matches conditions, ignore other ones")
 }
 
 func init() {
