@@ -100,6 +100,11 @@ func (q *QemuCmd) SetBootableImage(image string) {
 	*q = append(*q, "-drive", "if=virtio,file="+image)
 }
 
+// SetISOImage specifies the image the machine will use to boot
+func (q *QemuCmd) SetISOImage(image string) {
+	*q = append(*q, "-drive", "if=virtio,media=cdrom,format=raw,file="+image)
+}
+
 // SetDisplay specifies whether the machine will have a display
 func (q *QemuCmd) SetDisplay(display string) {
 	*q = append(*q, "-display", display)

@@ -381,7 +381,7 @@ func getFirstBootAppleVMCloudInit(mc *vmconfigs.MachineConfig) ([]string, error)
 		if err != nil {
 			return nil, err
 		}
-		return []string{"--device", fmt.Sprintf("virtio-blk,path=%s", cloudinitISO)}, nil
+		return []string{"--device", fmt.Sprintf("virtio-blk,path=%s", cloudinitISO.GetPath())}, nil
 	}
 }
 

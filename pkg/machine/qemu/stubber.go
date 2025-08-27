@@ -76,7 +76,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 		if err != nil {
 			return err
 		}
-		q.Command.SetBootableImage(cloudInitISO)
+		q.Command.SetISOImage(cloudInitISO.GetPath())
 	} else {
 		ignitionFile, err := mc.IgnitionFile()
 		if err != nil {
