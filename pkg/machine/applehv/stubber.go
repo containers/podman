@@ -50,7 +50,7 @@ func (a *AppleHVStubber) RequireExclusiveActive() bool {
 func (a *AppleHVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) error {
 	mc.AppleHypervisor = new(vmconfigs.AppleHVConfig)
 	mc.AppleHypervisor.Vfkit = vfkit.Helper{}
-	bl := vfConfig.NewEFIBootloader(fmt.Sprintf("%s/efi-bl-%s", opts.Dirs.DataDir.GetPath(), opts.Name), true)
+	bl := vfConfig.NewEFIBootloader(apple.EfiVarsPath(opts.Dirs.DataDir, opts.Name), true)
 	mc.AppleHypervisor.Vfkit.VirtualMachine = vfConfig.NewVirtualMachine(uint(mc.Resources.CPUs), uint64(mc.Resources.Memory), bl)
 
 	randPort, err := utils.GetRandomPort()
