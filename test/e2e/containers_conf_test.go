@@ -788,7 +788,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 	})
 
 	startContainer := func(params ...string) string {
-		args := []string{"create"}
+		args := []string{"run", "-d"}
 		for _, param := range params {
 			if param == "--name" {
 				args = append(args, "--replace")
