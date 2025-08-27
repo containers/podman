@@ -25,7 +25,7 @@ type InspectVolumeData struct {
 	// Status is provided to us by an external program, so no guarantees are
 	// made about its format or contents. Further, it is an optional field,
 	// so it may not be set even in cases where a volume plugin is in use.
-	Status map[string]interface{} `json:"Status,omitempty"`
+	Status map[string]any `json:"Status,omitempty"`
 	// Labels includes the volume's configured labels, key:value pairs that
 	// can be passed during volume creation to provide information for third
 	// party tools.

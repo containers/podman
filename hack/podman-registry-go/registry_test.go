@@ -19,7 +19,7 @@ func TestStartAndStopMultipleRegistries(t *testing.T) {
 
 	// Start registries.
 	var errors *multierror.Error
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		reg, err := StartWithOptions(registryOptions)
 		if err != nil {
 			errors = multierror.Append(errors, err)

@@ -48,7 +48,7 @@ func TestWaitAndClose(t *testing.T) {
 
 	sendMessage(t, proxy, daemon.SdNotifyReady+"\nsomething else\n")
 	done := func() bool {
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			select {
 			case err := <-ch:
 				require.NoError(t, err, "Waiting should succeed")

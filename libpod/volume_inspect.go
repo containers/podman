@@ -4,6 +4,7 @@ package libpod
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/containers/podman/v5/libpod/define"
 	pluginapi "github.com/docker/go-plugins-helpers/volume"
@@ -51,15 +52,9 @@ func (v *Volume) Inspect() (*define.InspectVolumeData, error) {
 	data.Name = v.config.Name
 	data.Driver = v.config.Driver
 	data.CreatedAt = v.config.CreatedTime
-	data.Labels = make(map[string]string)
-	for k, v := range v.config.Labels {
-		data.Labels[k] = v
-	}
+	data.Labels = maps.Clone(v.config.Labels)
 	data.Scope = v.Scope()
-	data.Options = make(map[string]string)
-	for k, v := range v.config.Options {
-		data.Options[k] = v
-	}
+	data.Options = maps.Clone(v.config.Options)
 	data.UID = v.uid()
 	data.GID = v.gid()
 	data.Anonymous = v.config.IsAnon

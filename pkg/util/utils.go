@@ -392,7 +392,7 @@ func parseTriple(spec []string, parentMapping []ruser.IDMap, mapSetting string) 
 
 	if hidIsParent {
 		if (mapSetting == "UID" && flags.UserMap) || (mapSetting == "GID" && flags.GroupMap) {
-			for i := uint64(0); i < sz; i++ {
+			for i := range sz {
 				cids = append(cids, cid+i)
 				mappedID, err := mapIDwithMapping(hid+i, parentMapping, mapSetting)
 				if err != nil {
@@ -844,7 +844,7 @@ func parseAutoTriple(spec []string, parentMapping []ruser.IDMap, mapSetting stri
 	}
 
 	if hidIsParent {
-		for i := uint64(0); i < sz; i++ {
+		for i := range sz {
 			cids = append(cids, cid+i)
 			mappedID, err := mapIDwithMapping(hid+i, parentMapping, mapSetting)
 			if err != nil {

@@ -184,7 +184,7 @@ var _ = Describe("Podman pod create", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(confFile, []byte(fmt.Sprintf("[containers]\nbase_hosts_file=\"%s\"\n", configHosts)), 0755)
+			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", confFile)
 			if IsRemote() {
@@ -450,7 +450,7 @@ var _ = Describe("Podman pod create", func() {
 
 		// Create and replace 5 times in a row the "same" pod.
 		podName := "testCtr"
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			session = podmanTest.Podman([]string{"pod", "create", "--replace", "--name", podName})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
@@ -862,7 +862,7 @@ ENTRYPOINT ["sleep","99999"]
 		}
 
 		m := make(map[string]string)
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			podName := "testPod" + strconv.Itoa(i)
 			podCreate := podmanTest.Podman([]string{"pod", "create", "--userns=auto", "--name", podName})
 			podCreate.WaitWithDefaultTimeout()

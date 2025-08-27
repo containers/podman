@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -29,11 +30,9 @@ func (c *ChoiceValue) String() string {
 }
 
 func (c *ChoiceValue) Set(value string) error {
-	for _, v := range c.choices {
-		if v == value {
-			*c.value = value
-			return nil
-		}
+	if slices.Contains(c.choices, value) {
+		*c.value = value
+		return nil
 	}
 	return fmt.Errorf("%q is not a valid value.  Choose from: %q", value, c.Choices())
 }

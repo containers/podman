@@ -111,8 +111,8 @@ type InspectContainerConfig struct {
 func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 	type Alias InspectContainerConfig
 	aux := &struct {
-		Entrypoint interface{} `json:"Entrypoint"`
-		StopSignal interface{} `json:"StopSignal"`
+		Entrypoint any `json:"Entrypoint"`
+		StopSignal any `json:"StopSignal"`
 		*Alias
 	}{
 		Alias: (*Alias)(insp),
@@ -126,7 +126,7 @@ func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 		insp.Entrypoint = strings.Split(entrypoint, " ")
 	case []string:
 		insp.Entrypoint = entrypoint
-	case []interface{}:
+	case []any:
 		insp.Entrypoint = []string{}
 		for _, entry := range entrypoint {
 			if str, ok := entry.(string); ok {

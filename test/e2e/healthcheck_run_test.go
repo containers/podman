@@ -105,7 +105,7 @@ var _ = Describe("Podman healthcheck run", func() {
 		exitCode := 999
 
 		// Buy a little time to get container running
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			hc := podmanTest.Podman([]string{"healthcheck", "run", "hc"})
 			hc.WaitWithDefaultTimeout()
 			exitCode = hc.ExitCode()

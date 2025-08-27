@@ -258,7 +258,7 @@ var _ = Describe("Podman build", func() {
 		defer Expect(os.Chdir(cwd)).To(BeNil())
 
 		fakeFile := filepath.Join(os.TempDir(), "Containerfile")
-		Expect(os.WriteFile(fakeFile, []byte(fmt.Sprintf("FROM %s", CITEST_IMAGE)), 0755)).To(Succeed())
+		Expect(os.WriteFile(fakeFile, fmt.Appendf(nil, "FROM %s", CITEST_IMAGE), 0755)).To(Succeed())
 
 		targetFile := filepath.Join(podmanTest.TempDir, "Containerfile")
 		Expect(os.WriteFile(targetFile, []byte("FROM scratch"), 0755)).To(Succeed())
@@ -795,7 +795,7 @@ RUN grep CapEff /proc/self/status`
 	It("podman build --isolation && --arch", func() {
 		targetPath := podmanTest.TempDir
 		containerFile := filepath.Join(targetPath, "Containerfile")
-		Expect(os.WriteFile(containerFile, []byte(fmt.Sprintf("FROM %s", CITEST_IMAGE)), 0755)).To(Succeed())
+		Expect(os.WriteFile(containerFile, fmt.Appendf(nil, "FROM %s", CITEST_IMAGE), 0755)).To(Succeed())
 
 		defer func() {
 			Expect(os.RemoveAll(containerFile)).To(Succeed())

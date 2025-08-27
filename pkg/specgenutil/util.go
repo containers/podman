@@ -62,7 +62,7 @@ func CreateExpose(expose []string) (map[uint16]string, error) {
 		}
 
 		var index uint16
-		for index = 0; index < len; index++ {
+		for index = range len {
 			portNum := start + index
 			protocols, ok := toReturn[portNum]
 			if !ok {

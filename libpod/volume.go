@@ -5,6 +5,7 @@ package libpod
 import (
 	"fmt"
 	"io"
+	"maps"
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
@@ -136,13 +137,9 @@ func (v *Volume) Scope() string {
 	return "local"
 }
 
-// Labels returns the volume's labels
+// Labels returns the volume's labels.
 func (v *Volume) Labels() map[string]string {
-	labels := make(map[string]string)
-	for key, value := range v.config.Labels {
-		labels[key] = value
-	}
-	return labels
+	return maps.Clone(v.config.Labels)
 }
 
 // MountPoint returns the volume's mountpoint on the host
@@ -180,13 +177,9 @@ func (v *Volume) mountPoint() string {
 	return v.config.MountPoint
 }
 
-// Options return the volume's options
+// Options return the volume's options.
 func (v *Volume) Options() map[string]string {
-	options := make(map[string]string)
-	for k, v := range v.config.Options {
-		options[k] = v
-	}
-	return options
+	return maps.Clone(v.config.Options)
 }
 
 // Anonymous returns whether this volume is anonymous. Anonymous volumes were

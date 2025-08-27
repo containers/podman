@@ -2730,11 +2730,8 @@ func (c *Container) userPasswdEntry(u *user.User) (string, error) {
 		hDir = filepath.Dir(hDir)
 	}
 	if homeDir != u.HomeDir {
-		for _, hDir := range c.UserVolumes() {
-			if hDir == u.HomeDir {
-				homeDir = u.HomeDir
-				break
-			}
+		if slices.Contains(c.UserVolumes(), u.HomeDir) {
+			homeDir = u.HomeDir
 		}
 	}
 

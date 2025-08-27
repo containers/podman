@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/url"
 
@@ -53,12 +54,8 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 
 	// Label provided for compatibility.
 	labels := make(map[string]string, len(input.Label)+len(input.Labels))
-	for k, v := range input.Label {
-		labels[k] = v
-	}
-	for k, v := range input.Labels {
-		labels[k] = v
-	}
+	maps.Copy(labels, input.Label)
+	maps.Copy(labels, input.Labels)
 	if len(labels) > 0 {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeLabels(labels))
 	}

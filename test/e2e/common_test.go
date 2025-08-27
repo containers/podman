@@ -447,7 +447,7 @@ func (p *PodmanTestIntegration) pullImage(image string, toCache bool) {
 			p.Root = oldRoot
 		}()
 	}
-	for try := 0; try < 3; try++ {
+	for try := range 3 {
 		podmanSession := p.PodmanExecBaseWithOptions([]string{"pull", image}, PodmanExecOptions{
 			NoEvents: toCache,
 			NoCache:  true,
@@ -874,7 +874,7 @@ func (p *PodmanTestIntegration) RunTopContainerInPod(name, pod string) *PodmanSe
 }
 
 func (p *PodmanTestIntegration) RunHealthCheck(cid string) error {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		hc := p.Podman([]string{"healthcheck", "run", cid})
 		hc.WaitWithDefaultTimeout()
 		if hc.ExitCode() == 0 {
@@ -1405,7 +1405,7 @@ func GetPort() int {
 	nProcs := GinkgoT().ParallelTotal()
 	myProc := GinkgoT().ParallelProcess() - 1
 
-	for i := 0; i < 50; i++ {
+	for range 50 {
 		// Random port within that range
 		port := portMin + rng.Intn((portMax-portMin)/nProcs)*nProcs + myProc
 
@@ -1451,7 +1451,7 @@ var IPRegex = `(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)(\.(25[0-5]|2[0-4][0-9]|[01
 // format and iterates a string array for match
 func digShort(container, lookupName, expectedIP string, p *PodmanTestIntegration) {
 	digInterval := time.Millisecond * 250
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		time.Sleep(digInterval * time.Duration(i))
 		dig := p.Podman([]string{"exec", container, "dig", "+short", lookupName})
 		dig.WaitWithDefaultTimeout()

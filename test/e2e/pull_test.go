@@ -121,7 +121,7 @@ var _ = Describe("Podman pull", func() {
 
 		err = os.MkdirAll(filepath.Dir(configPath), os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		storageConf := []byte(fmt.Sprintf("[storage]\nimagestore=\"%s\"", tmpDir))
+		storageConf := fmt.Appendf(nil, "[storage]\nimagestore=\"%s\"", tmpDir)
 		err = os.WriteFile(configPath, storageConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 

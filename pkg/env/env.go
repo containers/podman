@@ -54,9 +54,7 @@ func Join(base map[string]string, override map[string]string) map[string]string 
 		return maps.Clone(override)
 	}
 	base = maps.Clone(base)
-	for k, v := range override {
-		base[k] = v
-	}
+	maps.Copy(base, override)
 	return base
 }
 

@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -106,13 +107,7 @@ func validatePlugin(newPlugin *VolumePlugin) error {
 		return fmt.Errorf("unmarshalling plugin %s activation response: %w", newPlugin.Name, err)
 	}
 
-	foundVolume := false
-	for _, pluginType := range respStruct.Implements {
-		if pluginType == volumePluginType {
-			foundVolume = true
-			break
-		}
-	}
+	foundVolume := slices.Contains(respStruct.Implements, volumePluginType)
 
 	if !foundVolume {
 		return fmt.Errorf("plugin %s does not implement volume plugin, instead provides %s: %w", newPlugin.Name, strings.Join(respStruct.Implements, ", "), ErrNotVolumePlugin)
@@ -204,7 +199,7 @@ func (p *VolumePlugin) verifyReachable() error {
 
 // Send a request to the volume plugin for handling.
 // Callers *MUST* close the response when they are done.
-func (p *VolumePlugin) sendRequest(toJSON interface{}, endpoint string) (*http.Response, error) {
+func (p *VolumePlugin) sendRequest(toJSON any, endpoint string) (*http.Response, error) {
 	var (
 		reqJSON []byte
 		err     error

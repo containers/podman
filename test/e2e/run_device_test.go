@@ -18,13 +18,13 @@ import (
 
 func createContainersConfFileWithDevices(pTest *PodmanTestIntegration, devices string, cdiSpecDirs []string) {
 	configPath := filepath.Join(pTest.TempDir, "containers.conf")
-	containersConf := []byte(fmt.Sprintf("[containers]\ndevices = [%s]\n", devices))
+	containersConf := fmt.Appendf(nil, "[containers]\ndevices = [%s]\n", devices)
 	if len(cdiSpecDirs) > 0 {
 		quoted := make([]string, len(cdiSpecDirs))
 		for i, dir := range cdiSpecDirs {
 			quoted[i] = fmt.Sprintf("%q", dir)
 		}
-		containersConf = append(containersConf, []byte(fmt.Sprintf("[engine]\ncdi_spec_dirs = [%s]\n", strings.Join(quoted, ", ")))...)
+		containersConf = append(containersConf, fmt.Appendf(nil, "[engine]\ncdi_spec_dirs = [%s]\n", strings.Join(quoted, ", "))...)
 	}
 	err := os.WriteFile(configPath, containersConf, os.ModePerm)
 	Expect(err).ToNot(HaveOccurred())

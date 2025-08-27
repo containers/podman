@@ -515,7 +515,7 @@ func Benchmark_ocicniPortsToNetTypesPorts10k(b *testing.B) {
 
 func Benchmark_ocicniPortsToNetTypesPorts1m(b *testing.B) {
 	ports := make([]types.OCICNIPortMapping, 0, 1000000)
-	for j := 0; j < 20; j++ {
+	for j := range 20 {
 		for i := int32(1); i <= 50000; i++ {
 			ports = append(ports, types.OCICNIPortMapping{
 				HostPort:      i,

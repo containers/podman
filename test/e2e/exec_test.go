@@ -348,7 +348,7 @@ var _ = Describe("Podman exec", func() {
 		Expect(setup).Should(Exit(0))
 		Expect(setup.ErrorToString()).To(ContainSubstring("The input device is not a TTY. The --tty and --interactive flags might not work properly"))
 
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			session := podmanTest.Podman([]string{"exec", "-ti", "test1", "true"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"strconv"
 	"strings"
@@ -294,9 +295,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 		annotations[k] = v
 	}
 	// now pass in the values from client
-	for k, v := range s.Annotations {
-		annotations[k] = v
-	}
+	maps.Copy(annotations, s.Annotations)
 	s.Annotations = annotations
 
 	if len(s.SeccompProfilePath) < 1 {
