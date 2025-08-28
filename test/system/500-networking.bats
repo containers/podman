@@ -153,7 +153,7 @@ load helpers.network
 
         # emit random string, and check it
         teststring=$(random_string 30)
-        echo "$teststring" | nc 127.0.0.1 $myport
+        echo "$teststring" > /dev/tcp/127.0.0.1/$myport
 
         run_podman logs $cid
         # Sigh. We can't check line-by-line, because 'nc' output order is
@@ -296,7 +296,7 @@ load helpers.network
 
     # emit random string, and check it
     teststring=$(random_string 30)
-    echo "$teststring" | nc 127.0.0.1 $myport
+    echo "$teststring" > /dev/tcp/127.0.0.1/$myport
 
     run_podman logs $cid
     # Sigh. We can't check line-by-line, because 'nc' output order is
