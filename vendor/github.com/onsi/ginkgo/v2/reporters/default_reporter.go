@@ -514,6 +514,10 @@ func (r *DefaultReporter) emitProgressReport(indent uint, emitGinkgoWriterOutput
 		indent -= 1
 	}
 
+	if r.conf.GithubOutput {
+		r.emitBlock(r.fi(indent, "::group::Progress Report"))
+	}
+
 	if emitGinkgoWriterOutput && report.CapturedGinkgoWriterOutput != "" {
 		r.emit("\n")
 		r.emitBlock(r.fi(indent, "{{gray}}Begin Captured GinkgoWriter Output >>{{/}}"))
@@ -559,6 +563,10 @@ func (r *DefaultReporter) emitProgressReport(indent uint, emitGinkgoWriterOutput
 		r.emit("\n")
 		r.emit(r.fi(indent, "{{gray}}{{bold}}{{underline}}Other Goroutines{{/}}\n"))
 		r.emitGoroutines(indent, otherGoroutines...)
+	}
+
+	if r.conf.GithubOutput {
+		r.emitBlock(r.fi(indent, "::endgroup::"))
 	}
 }
 

@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/onsi/gomega/format"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 type MatchYAMLMatcher struct {

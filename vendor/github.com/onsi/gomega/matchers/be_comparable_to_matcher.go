@@ -2,6 +2,7 @@ package matchers
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 
 	"github.com/google/go-cmp/cmp"
@@ -32,7 +33,7 @@ func (matcher *BeComparableToMatcher) Match(actual any) (success bool, matchErr 
 			if err, ok := r.(error); ok {
 				matchErr = err
 			} else if errMsg, ok := r.(string); ok {
-				matchErr = fmt.Errorf(errMsg)
+				matchErr = errors.New(errMsg)
 			}
 		}
 	}()
