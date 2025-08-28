@@ -74,6 +74,8 @@ A path pointing to this binary is returned.
 
 CompileTest uses the $GOPATH set in your environment. If $GOPATH is not set and you are using Go 1.8+,
 it will use the default GOPATH instead.  It passes the variadic args on to `go test`.
+
+Deprecated: CompileTest makes GOPATH assumptions that don't translate well to the go modules world.
 */
 func CompileTest(packagePath string, args ...string) (compiledPath string, err error) {
 	return doCompileTest(build.Default.GOPATH, packagePath, nil, args...)
@@ -81,6 +83,8 @@ func CompileTest(packagePath string, args ...string) (compiledPath string, err e
 
 /*
 GetAndCompileTest is identical to CompileTest but `go get` the package before compiling tests.
+
+Deprecated: GetAndCompileTest makes GOPATH assumptions that don't translate well to the go modules world.
 */
 func GetAndCompileTest(packagePath string, args ...string) (compiledPath string, err error) {
 	if err := getForTest(build.Default.GOPATH, packagePath, []string{"GO111MODULE=off"}); err != nil {
@@ -92,6 +96,8 @@ func GetAndCompileTest(packagePath string, args ...string) (compiledPath string,
 
 /*
 CompileTestWithEnvironment is identical to CompileTest but allows you to specify env vars to be set at build time.
+
+Deprecated: CompileTestWithEnvironment makes GOPATH assumptions that don't translate well to the go modules world.
 */
 func CompileTestWithEnvironment(packagePath string, env []string, args ...string) (compiledPath string, err error) {
 	return doCompileTest(build.Default.GOPATH, packagePath, env, args...)
@@ -99,6 +105,8 @@ func CompileTestWithEnvironment(packagePath string, env []string, args ...string
 
 /*
 GetAndCompileTestWithEnvironment is identical to GetAndCompileTest but allows you to specify env vars to be set at build time.
+
+Deprecated: GetAndCompileTestWithEnvironment makes GOPATH assumptions that don't translate well to the go modules world.
 */
 func GetAndCompileTestWithEnvironment(packagePath string, env []string, args ...string) (compiledPath string, err error) {
 	if err := getForTest(build.Default.GOPATH, packagePath, append(env, "GO111MODULE=off")); err != nil {
@@ -110,6 +118,8 @@ func GetAndCompileTestWithEnvironment(packagePath string, env []string, args ...
 
 /*
 CompileTestIn is identical to CompileTest but allows you to specify a custom $GOPATH (the first argument).
+
+Deprecated: CompileTestIn makes GOPATH assumptions that don't translate well to the go modules world.
 */
 func CompileTestIn(gopath string, packagePath string, args ...string) (compiledPath string, err error) {
 	return doCompileTest(gopath, packagePath, nil, args...)

@@ -1,5 +1,31 @@
 # Changelog
 
+## 3.4.0 (2025-06-27)
+
+### Added
+
+- #268: Added property to Constraints to include prereleases for Check and Validate
+
+### Changed
+
+- #263: Updated Go testing for 1.24, 1.23, and 1.22
+- #269: Updated the error message handling for message case and wrapping errors
+- #266: Restore the ability to have leading 0's when parsing with NewVersion.
+  Opt-out of this by setting CoerceNewVersion to false.
+
+### Fixed
+
+- #257: Fixed the CodeQL link (thanks @dmitris)
+- #262: Restored detailed errors when failed to parse with NewVersion. Opt-out
+  of this by setting DetailedNewVersionErrors to false for faster performance.
+- #267: Handle pre-releases for an "and" group if one constraint includes them
+
+## 3.3.1 (2024-11-19)
+
+### Fixed
+
+- #253: Fix for allowing some version that were invalid
+
 ## 3.3.0 (2024-08-27)
 
 ### Added
@@ -137,7 +163,7 @@ functions. These are described in the added and changed sections below.
 - #78: Fix unchecked error in example code (thanks @ravron)
 - #70: Fix the handling of pre-releases and the 0.0.0 release edge case
 - #97: Fixed copyright file for proper display on GitHub
-- #107: Fix handling prerelease when sorting alphanum and num 
+- #107: Fix handling prerelease when sorting alphanum and num
 - #109: Fixed where Validate sometimes returns wrong message on error
 
 ## 1.4.2 (2018-04-10)
