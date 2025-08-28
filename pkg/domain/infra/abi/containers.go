@@ -738,6 +738,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	restoreOptions := libpod.ContainerCheckpointOptions{
 		Keep:            options.Keep,
 		TCPEstablished:  options.TCPEstablished,
+		TCPClose:        options.TCPClose,
 		TargetFile:      options.Import,
 		Name:            options.Name,
 		IgnoreRootfs:    options.IgnoreRootFS,

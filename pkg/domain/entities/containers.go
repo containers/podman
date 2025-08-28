@@ -227,6 +227,7 @@ type RestoreOptions struct {
 	Latest          bool
 	Name            string
 	TCPEstablished  bool
+	TCPClose        bool
 	ImportPrevious  string
 	PublishPorts    []string
 	Pod             string
