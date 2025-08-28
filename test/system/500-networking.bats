@@ -806,26 +806,26 @@ nameserver 8.8.8.8" "nameserver order is correct"
         cid="$output"
 
         # make sure binding the same port fails
-        run timeout 5 ncat -l 127.0.0.1 $port
-        assert "$status" -eq 2 "ncat unexpected exit code"
-        assert "$output" =~ "127.0.0.1:$port: Address already in use" "ncat error message"
+        run timeout 5 socat TCP-LISTEN:$port,bind=127.0.0.1,fork -
+        assert "$status" -eq 1 "socat unexpected exit code"
+        assert "$output" =~ ".* 127.0.0.1:$port.* Address already in use" "socat error message"
 
         for port in $(seq $port $end_port); do
             run_podman exec -d $cid nc -l -p $port -e /bin/cat
 
-            # we have to rety ncat as it can flake as we exec in the background so nc -l
+            # we have to retry socat as it can flake as we exec in the background so nc -l
             # might not have bound the port yet, retry seems simpler than checking if the
             # port is bound in the container, https://github.com/containers/podman/issues/21561.
             retries=5
             while [[ $retries -gt 0 ]]; do
-                run ncat 127.0.0.1 $port <<<$random
+                run socat - TCP:127.0.0.1:$port <<<$random
                 if [[ $status -eq 0 ]]; then
                     break
                 fi
                 sleep 0.5
                 retries=$((retries -1))
             done
-            is "$output" "$random" "ncat got data back (netmode=$netmode port=$port)"
+            is "$output" "$random" "socat got data back (netmode=$netmode port=$port)"
         done
 
         run_podman rm -f -t0 $cid
