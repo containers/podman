@@ -109,6 +109,7 @@ const (
 	KeyHealthStartupTimeout  = "HealthStartupTimeout"
 	KeyHealthTimeout         = "HealthTimeout"
 	KeyHostName              = "HostName"
+	KeyHttpProxy             = "HttpProxy"
 	KeyImage                 = "Image"
 	KeyImageTag              = "ImageTag"
 	KeyInterfaceName         = "InterfaceName"
@@ -274,6 +275,7 @@ var (
 				KeyHealthStartupTimeout:  true,
 				KeyHealthTimeout:         true,
 				KeyHostName:              true,
+				KeyHttpProxy:             true,
 				KeyIP6:                   true,
 				KeyIP:                    true,
 				KeyImage:                 true,
@@ -676,6 +678,7 @@ func ConvertContainer(container *parser.UnitFile, isUser bool, unitsInfoMap map[
 	boolKeys := map[string]string{
 		KeyRunInit:         "--init",
 		KeyEnvironmentHost: "--env-host",
+		KeyHttpProxy:       "--http-proxy",
 		KeyReadOnlyTmpfs:   "--read-only-tmpfs",
 	}
 	lookupAndAddBoolean(container, ContainerGroup, boolKeys, podman)
