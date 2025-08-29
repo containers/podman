@@ -2,7 +2,11 @@
 ####>   podman build, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+{% if is_quadlet %}
+### `Pull=policy`
+{% else %}
 #### **--pull**=*policy*
+{% endif %}
 
 Pull image policy. The default is **missing**.
 

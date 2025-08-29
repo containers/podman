@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman build, create, farm build, pod create, run
+####>   podman build, podman-container.unit.5.md.in, create, farm build, pod create, podman-pod.unit.5.md.in, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+{% if is_quadlet %}
+### `AddHost=hostname[;hostname[;...]]:ip`
+{% else %}
 #### **--add-host**=*hostname[;hostname[;...]]*:*ip*
+{% endif %}
 
 Add a custom host-to-IP mapping to the <<container|pod>>'s `/etc/hosts` file.
 
