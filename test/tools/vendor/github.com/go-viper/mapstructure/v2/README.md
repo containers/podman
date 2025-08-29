@@ -1,7 +1,7 @@
 # mapstructure
 
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/go-viper/mapstructure/ci.yaml?style=flat-square)](https://github.com/go-viper/mapstructure/actions/workflows/ci.yaml)
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/mod/github.com/go-viper/mapstructure)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat-square)](https://pkg.go.dev/mod/github.com/go-viper/mapstructure/v2)
 ![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/go-viper/mapstructure?style=flat-square&color=61CFDD)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/go-viper/mapstructure/badge?style=flat-square)](https://deps.dev/go/github.com%252Fgo-viper%252Fmapstructure%252Fv2)
 
