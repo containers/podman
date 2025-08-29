@@ -293,3 +293,7 @@ func isDirectory(path string) bool {
 	}
 	return info.IsDir()
 }
+
+func RuntimeNameToConfigIndex(runtimeName string) string {
+	return filepath.Base(runtimeName)
+}
