@@ -37,3 +37,12 @@ formatters:
         - standard
         - default
         - localmodule
+    gofmt:
+      simplify: true
+      rewrite-rules:
+        - pattern: interface{}
+          replacement: any
+
+  exclusions:
+    paths:
+      - internal/
