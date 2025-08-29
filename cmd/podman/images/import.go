@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).
+	importDescription = `Create a container image from the contents of the specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz, .tar.zst).
 
   Note remote tar balls can be specified, via web address.
   Optionally tag the image. You can specify the instructions using the --change option.`
