@@ -25,7 +25,7 @@ pull** _image_, before it starts the container from that image.
 Several files will be automatically created within the container. These include
 _/etc/hosts_, _/etc/hostname_, and _/etc/resolv.conf_ to manage networking.
 These will be based on the host's version of the files, though they can be
-customized with options (for example, **--dns** will override the host's DNS
+customized with options (for example, **--dns** may override the host's DNS
 servers in the created _resolv.conf_). Additionally, a container environment
 file is created in each container to indicate to programs they are running in a
 container. This file is located at _/run/.containerenv_ (or
