@@ -57,7 +57,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 		}
 	}
 	if supportedDescriptors {
-		descriptors = []string{"-ao", strings.Join(descriptors, ",")}
+		descriptors = []string{"-o", strings.Join(descriptors, ",")}
 	}
 
 	// Note that the descriptors to ps(1) must be shlexed (see #12452).
