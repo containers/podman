@@ -20,8 +20,24 @@ type User struct {
 	SSHKeys []string `yaml:"ssh_authorized_keys"`
 }
 
+type WriteFile struct {
+	Path        string `yaml:"path,omitempty"`
+	Content     string `yaml:"content,omitempty"`
+	Encoding    string `yaml:"encoding,omitempty"`
+	Owner       string `yaml:"owner,omitempty"`
+	Permissions string `yaml:"permissions,omitempty"`
+}
+
 type UserData struct {
-	Users []User `yaml:"users"`
+	Users      []User      `yaml:"users"`
+	WriteFiles []WriteFile `yaml:"write_files,omitempty"`
+	RunCmd     []string    `yaml:"runcmd,omitempty"`
+	Mounts     [][]string  `yaml:"mounts,omitempty"`
+}
+
+type EmbeddedResource struct {
+	Name    string `yaml:"name"`
+	Content []byte `yaml:"content"`
 }
 
 func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
@@ -104,6 +120,15 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	}
 	if err := writer.AddFile(bytes.NewReader(networkConfig), "network-config"); err != nil {
 		return nil, err
+	}
+
+	resources := GetEmbeddedResources(mc)
+	if resources != nil {
+		for _, res := range resources {
+			if err := writer.AddFile(bytes.NewReader(res.Content), res.Name); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	vmFile, err := GetCloudInitISOVMFile(mc)

@@ -38,3 +38,7 @@ func GenerateUserData(mc *vmconfigs.MachineConfig) ([]byte, error) {
 
 	return yamlBytes, nil
 }
+
+func GetEmbeddedResources(_ *vmconfigs.MachineConfig) []EmbeddedResource {
+	return nil
+}

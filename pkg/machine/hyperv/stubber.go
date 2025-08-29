@@ -74,7 +74,7 @@ func (h HyperVStubber) RequireExclusiveActive() bool {
 	return exclusiveActive
 }
 
-func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
+func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
 	var err error
 	callbackFuncs := machine.CleanUp()
 	defer callbackFuncs.CleanIfErr(&err)
@@ -128,17 +128,9 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	}
 
 	// Set userModeNetworking based on cloudInit value for backwards compatibility
-	// Usermode networking with hyperv requires gvforwarder in the guest, and the cloud init code cannot inject it for now,
-	// so it has to be disabled.
-	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit
-	if mc.CloudInit {
-		// Generate cloud-init ISO
-		iso, err := cloudinit.GenerateISO(mc)
-		if err != nil {
-			return fmt.Errorf("generating cloud-init ISO: %w", err)
-		}
-		hwConfig.DVDDiskPath = iso.GetPath()
-	}
+	// Usermode networking is true by default when working with ignition
+	// If cloud-init is enabled, use userModeNetworking from options
+	mc.HyperVHypervisor.UserModeNetworking = !mc.CloudInit || opts.UserModeNetworking
 
 	if mc.HyperVHypervisor.UserModeNetworking {
 		// count number of existing machines, used later to determine if Registry should be cleaned over a failure
@@ -184,6 +176,15 @@ func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConf
 	} else {
 		mc.SSH.Port = 22
 		hwConfig.Network = true
+	}
+
+	if mc.CloudInit {
+		// Generate cloud-init ISO
+		iso, err := cloudinit.GenerateISO(mc)
+		if err != nil {
+			return fmt.Errorf("generating cloud-init ISO: %w", err)
+		}
+		hwConfig.DVDDiskPath = iso.GetPath()
 	}
 
 	// Add vsock port numbers to mounts
