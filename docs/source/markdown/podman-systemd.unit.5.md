@@ -338,6 +338,7 @@ Valid options for `[Container]` are listed below:
 | HealthStartupTimeout=1m33s           | --health-startup-timeout=1m33s                       |
 | HealthTimeout=20s                    | --health-timeout=20s                                 |
 | HostName=example.com                 | --hostname example.com                               |
+| HttpProxy=true                       | --http-proxy=true                                    |
 | Image=ubi8                           | Image specification - ubi8                           |
 | IP=192.5.0.1                         | --ip 192.5.0.1                                       |
 | IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
@@ -646,6 +647,15 @@ Equivalent to the Podman `--health-timeout` option.
 
 Sets the host name that is available inside the container.
 Equivalent to the Podman `--hostname` option.
+
+### `HttpProxy=`
+
+Controls whether proxy environment variables (http_proxy, https_proxy, ftp_proxy, no_proxy) are passed from the Podman process into the container during image pulls and builds.
+
+Set to `true` to enable proxy inheritance (default Podman behavior) or `false` to disable it.
+This option is particularly useful on systems that require proxy configuration for internet access but don't want proxy settings passed to the container runtime.
+
+Equivalent to the Podman `--http-proxy` option.
 
 ### `Image=`
 
