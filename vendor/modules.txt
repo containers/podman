@@ -866,7 +866,7 @@ github.com/tklauser/numcpus
 # github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701
 ## explicit; go 1.21
 github.com/u-root/uio/ulog
-# github.com/ulikunitz/xz v0.5.13
+# github.com/ulikunitz/xz v0.5.14
 ## explicit; go 1.12
 github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
