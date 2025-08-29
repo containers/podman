@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	importDescription = `Imports contents into a podman volume from specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz).`
+	importDescription = `Imports contents into a podman volume from specified tarball (.tar, .tar.gz, .tgz, .bzip, .tar.xz, .txz, .tar.zst).`
 	importCommand     = &cobra.Command{
 		Use:               "import VOLUME [SOURCE]",
 		Short:             "Import a tarball contents into a podman volume",
