@@ -1,3 +1,11 @@
+## 2.25.2
+
+### Fixes
+Add github output group for progress report content
+
+### Maintenance
+Bump Gomega
+
 ## 2.25.1
 
 ### Fixes
