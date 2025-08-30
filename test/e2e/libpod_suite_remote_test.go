@@ -18,6 +18,8 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+var RemoteTestingTarget = PodmanTestCreateUtilTarget(os.Getenv("REMOTEINTEGRATION_TRANSPORT"))
+
 func IsRemote() bool {
 	return true
 }

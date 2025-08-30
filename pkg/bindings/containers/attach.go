@@ -138,7 +138,12 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 			if err != nil {
 				return nil, err
 			}
-			cfg := tlsConfig.Clone()
+			var cfg *tls.Config
+			if tlsConfig == nil {
+				cfg = new(tls.Config)
+			} else {
+				cfg = tlsConfig.Clone()
+			}
 			if cfg.ServerName == "" {
 				var firstTLSHost string
 				if firstTLSHost, _, err = net.SplitHostPort(address); err != nil {
@@ -510,7 +515,12 @@ func ExecStartAndAttach(ctx context.Context, sessionID string, options *ExecStar
 			if err != nil {
 				return nil, err
 			}
-			cfg := tlsConfig.Clone()
+			var cfg *tls.Config
+			if tlsConfig == nil {
+				cfg = new(tls.Config)
+			} else {
+				cfg = tlsConfig.Clone()
+			}
 			if cfg.ServerName == "" {
 				var firstTLSHost string
 				if firstTLSHost, _, err = net.SplitHostPort(address); err != nil {

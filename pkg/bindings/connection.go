@@ -129,9 +129,6 @@ func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Contex
 
 	uri := orEnv(opts.URI, "CONTAINER_HOST")
 	identity := orEnv(opts.Identity, "CONTAINER_SSHKEY")
-	tlsCertFile := orEnv(opts.TLSCertFile, "CONTAINER_TLS_CERT")
-	tlsKeyFile := orEnv(opts.TLSKeyFile, "CONTAINER_TLS_KEY")
-	tlsCAFile := orEnv(opts.TLSCAFile, "CONTAINER_TLS_CA")
 
 	_url, err := url.Parse(uri)
 	if err != nil {
@@ -158,13 +155,13 @@ func NewConnectionWithOptions(ctx context.Context, opts Options) (context.Contex
 		if !strings.HasPrefix(uri, "tcp://") {
 			return nil, errors.New("tcp URIs should begin with tcp://")
 		}
-		conn, err := tcpClient(_url, tlsCertFile, tlsKeyFile, tlsCAFile)
+		conn, err := tcpClient(_url, opts.TLSCertFile, opts.TLSKeyFile, opts.TLSCAFile)
 		if err != nil {
 			return nil, newConnectError(err)
 		}
 		connection = conn
 	default:
-		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema. %#v %s %s", _url.Scheme, opts, uri, _url.String())
+		return nil, fmt.Errorf("unable to create connection. %q is not a supported schema", _url.Scheme)
 	}
 
 	ctx = context.WithValue(ctx, clientKey, &connection)

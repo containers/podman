@@ -15,8 +15,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"math"
-	"math/big"
 	"math/rand"
 	"net"
 	"net/url"
@@ -296,8 +294,6 @@ const (
 	PodmanTestCreateUtilTargetMTLS  = "mtls"
 )
 
-var RemoteTestingTarget = PodmanTestCreateUtilTarget(os.Getenv("REMOTE_TESTING_TRANSPORT"))
-
 // PodmanTestCreate creates a PodmanTestIntegration instance for the tests
 func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *PodmanTestIntegration {
 	host := GetHostDistributionInfo()
@@ -476,10 +472,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		now := time.Now()
 		caPriv, err := rsa.GenerateKey(crand.Reader, 2048)
 		Expect(err).ToNot(HaveOccurred())
-		caSerial, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt))
-		Expect(err).ToNot(HaveOccurred())
 		caTmpl := x509.Certificate{
-			SerialNumber:          caSerial,
 			NotBefore:             now,
 			NotAfter:              now.Add(5 * time.Minute),
 			IsCA:                  true,
@@ -511,10 +504,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 
 		srvPriv, err := rsa.GenerateKey(crand.Reader, 2048)
 		Expect(err).ToNot(HaveOccurred())
-		srvSerial, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt))
-		Expect(err).ToNot(HaveOccurred())
 		srvTmpl := x509.Certificate{
-			SerialNumber:          srvSerial,
 			NotBefore:             now,
 			NotAfter:              now.Add(5 * time.Minute),
 			KeyUsage:              x509.KeyUsageDigitalSignature,
@@ -547,10 +537,7 @@ func PodmanTestCreateUtil(tempDir string, target PodmanTestCreateUtilTarget) *Po
 		if target == PodmanTestCreateUtilTargetMTLS {
 			clientPriv, err := rsa.GenerateKey(crand.Reader, 2048)
 			Expect(err).ToNot(HaveOccurred())
-			clientSerial, err := crand.Int(crand.Reader, big.NewInt(math.MaxInt))
-			Expect(err).ToNot(HaveOccurred())
 			clientTmpl := x509.Certificate{
-				SerialNumber:          clientSerial,
 				NotBefore:             now,
 				NotAfter:              now.Add(5 * time.Minute),
 				KeyUsage:              x509.KeyUsageDigitalSignature,

@@ -269,18 +269,6 @@ Set default `--url` value to access Podman service. Automatically enables --remo
 
 Set default `--identity` path to ssh key file value used to access Podman service.
 
-#### **CONTAINER_TLS_CA**
-
-Set default `--tls-ca` value to access Podman service.
-
-#### **CONTAINER_TLS_CERT**
-
-Set default `--tls-cert` value to access Podman service.
-
-#### **CONTAINER_TLS_KEY**
-
-Set default `--tls-key` value to access Podman service.
-
 #### **PODMAN_CONNECTIONS_CONF**
 
 The path to the file where the system connections and farms created with `podman system connection add`

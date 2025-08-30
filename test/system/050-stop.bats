@@ -183,7 +183,7 @@ load helpers
     # Stop the container, but do so in the background so we can inspect
     # the container status while it's stopping. Use $PODMAN because we
     # don't want the overhead and error checks of run_podman.
-    $PODMAN stop -t 20 $ctrname &
+    "${PODMAN_CMD[@]}" stop -t 20 $ctrname &
 
     # Wait for container to acknowledge the signal. We can't use wait_for_output
     # because that aborts if .State.Running != true

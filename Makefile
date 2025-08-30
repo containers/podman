@@ -152,8 +152,8 @@ GINKGO_NO_COLOR ?= y
 
 # The type of transport to use for testing remote service.
 # Must be one of unix, tcp, tls, mtls
-REMOTE_TESTING_TRANSPORT=unix
-export REMOTE_TESTING_TRANSPORT
+export REMOTESYSTEM_TRANSPORT ?= unix
+export REMOTEINTEGRATION_TRANSPORT ?= unix
 
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
@@ -751,9 +751,9 @@ remotesystem: $(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTE
 	source hack/remotesystem.env ; \
 	set -x ; \
 	remotesystem-ensure-timeout-cmd $@ || exit ; \
-	remotesystem-podman-service $(REMOTE_TESTING_TRANSPORT) $(PODMAN_SERVER_LOG) && \
-	remotesystem-wait-podman-service $(REMOTE_TESTING_TRANSPORT) && \
-	remotesystem-bats $(REMOTE_TESTING_TRANSPORT) $(CURDIR)/bin/podman-remote
+	remotesystem-podman-service $(REMOTESYSTEM_TRANSPORT) $(PODMAN_SERVER_LOG) && \
+	remotesystem-wait-podman-service $(REMOTESYSTEM_TRANSPORT) && \
+	remotesystem-bats $(REMOTESYSTEM_TRANSPORT) $(CURDIR)/bin/podman-remote
 
 .PHONY: localapiv2-bash
 localapiv2-bash:
