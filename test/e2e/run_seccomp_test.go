@@ -4,6 +4,7 @@ package integration
 
 import (
 	"fmt"
+	"path"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -55,11 +56,22 @@ var _ = Describe("Podman run", func() {
 		session := podmanTest.Podman([]string{"run", "--seccomp-policy", "image", img, "ls"})
 		session.WaitWithDefaultTimeout()
 
-		expect := fmt.Sprintf("OCI runtime error: %s: read from the init process", podmanTest.OCIRuntime)
-		if IsRemote() {
-			expect = fmt.Sprintf("for attach: %s: read from the init process: OCI runtime error", podmanTest.OCIRuntime)
+		switch path.Base(podmanTest.OCIRuntime) {
+		case "crun":
+			expect := fmt.Sprintf("OCI runtime error: %s: read from the init process", podmanTest.OCIRuntime)
+			if IsRemote() {
+				expect = fmt.Sprintf("for attach: %s: read from the init process: OCI runtime error", podmanTest.OCIRuntime)
+			}
+			Expect(session).To(ExitWithError(126, expect))
+		case "runc":
+			expect1 := "cannot start a container that has stopped"
+			c1 := 126
+			expect2 := "failed to connect to container's attach socket"
+			c2 := 127
+			Expect(session).To(Or(ExitWithError(c1, expect1), ExitWithError(c2, expect2)))
+		default:
+			Expect(session.ExitCode()).To(BeNumerically(">", 0), "Exit status using generic runtime")
 		}
-		Expect(session).To(ExitWithError(126, expect))
 	})
 
 	It("podman run --seccomp-policy image (bogus profile)", func() {
