@@ -19,7 +19,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     PORT=$(random_free_port)
 
     log=${PODMAN_TMPDIR}/system-service.log
-    $PODMAN system service --cors="*" tcp:$SERVICE_TCP_HOST:$PORT -t 20 2> $log &
+    "${PODMAN_CMD[@]}" system service --cors="*" tcp:$SERVICE_TCP_HOST:$PORT -t 20 2> $log &
     podman_pid="$!"
 
     wait_for_port $SERVICE_TCP_HOST $PORT
@@ -42,7 +42,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
 @test "podman system service - tcp without CORS" {
     skip_if_remote "system service tests are meaningless over remote"
     PORT=$(random_free_port)
-    $PODMAN system service tcp:$SERVICE_TCP_HOST:$PORT -t 20 &
+    "${PODMAN_CMD[@]}" system service tcp:$SERVICE_TCP_HOST:$PORT -t 20 &
     podman_pid="$!"
 
     wait_for_port $SERVICE_TCP_HOST $PORT

@@ -15,7 +15,13 @@ function teardown() {
     basic_teardown
 }
 
+function _podman_system_service {
+  systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote} system service "$@"
+}
+
 @test "podman system service <bad_scheme_uri> returns error" {
+    unset REMOTESYSTEM_TRANSPORT
+
     skip_if_remote "podman system service unavailable over remote"
     run_podman 125 system service localhost:9292
     is "$output" "Error: API Service endpoint scheme \"localhost\" is not supported. Try tcp://localhost:9292 or unix://localhost:9292"
@@ -25,23 +31,24 @@ function teardown() {
 }
 
 @test "podman system service unix: without two slashes still works" {
+    unset REMOTESYSTEM_TRANSPORT
+
     skip_if_remote "podman system service unavailable over remote"
     URL=unix:$PODMAN_TMPDIR/myunix.sock
 
-    systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
+    _podman_system_service $URL --time=0
     wait_for_file $PODMAN_TMPDIR/myunix.sock
 
-    (
-      unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
-      run_podman --host $URL info --format '{{.Host.RemoteSocket.Path}}'
-      is "$output" "$URL" "RemoteSocket.Path using unix:"
-    )
+    run_podman --host $URL info --format '{{.Host.RemoteSocket.Path}}'
+    is "$output" "$URL" "RemoteSocket.Path using unix:"
 
     systemctl stop $SERVICE_NAME
     rm -f $PODMAN_TMPDIR/myunix.sock
 }
 
 @test "podman-system-service containers survive service stop" {
+    unset REMOTESYSTEM_TRANSPORT
+
     skip_if_remote "podman system service unavailable over remote"
     local runtime=$(podman_runtime)
     if [[ "$runtime" != "crun" ]]; then
@@ -51,7 +58,7 @@ function teardown() {
     port=$(random_free_port)
     URL=tcp://127.0.0.1:$port
 
-    systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0
+    _podman_system_service $URL --time=0
     wait_for_port 127.0.0.1 $port
 
     # Start a long-running container.
@@ -72,32 +79,33 @@ function teardown() {
 # This doesn't actually test podman system service, but we require it,
 # so least-awful choice is to run from this test file.
 @test "podman --host / -H options" {
+    unset REMOTESYSTEM_TRANSPORT
+
     port=$(random_free_port)
     URL=tcp://127.0.0.1:$port
 
     # %%-remote makes this run real podman even when testing podman-remote
-    systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
+    _podman_system_service $URL --time=0
     wait_for_port 127.0.0.1 $port
 
-    (
-      unset CONTAINER_HOST CONTAINER_TLS_{CA,CERT,KEY}
-      for opt in --host -H; do
-        run_podman $opt $URL info --format '{{.Host.RemoteSocket.Path}}'
-        is "$output" "$URL" "RemoteSocket.Path using $opt"
-      done
-    )
+    for opt in --host -H; do
+      run_podman $opt $URL info --format '{{.Host.RemoteSocket.Path}}'
+      is "$output" "$URL" "RemoteSocket.Path using $opt"
+    done
 
     systemctl stop $SERVICE_NAME
 }
 
 # Regression test for https://github.com/containers/podman/issues/17749
 @test "podman-system-service --log-level=trace should be able to hijack" {
+    unset REMOTESYSTEM_TRANSPORT
+
     skip_if_remote "podman system service unavailable over remote"
 
     port=$(random_free_port)
     URL=tcp://127.0.0.1:$port
 
-    systemd-run --unit=$SERVICE_NAME $PODMAN --log-level=trace system service $URL --time=0
+    _podman_system_service $URL --time=0
     wait_for_port 127.0.0.1 $port
 
     out=o-$(random_string)
@@ -110,6 +118,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert without --tls-key fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -121,6 +131,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-key without --tls-cert fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -132,6 +144,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-key=missing fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -142,6 +156,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert=missing fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -152,6 +168,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-client-ca=missing fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -165,6 +183,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-key=malformed fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   echo 'not a cert' >"${PODMAN_TMPDIR}/not-a-cert.pem"
@@ -179,6 +199,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert=malformed fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   echo 'not a cert' >"${PODMAN_TMPDIR}/not-a-cert.pem"
@@ -193,6 +215,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-client-ca=malformed fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   echo 'not a cert' >"${PODMAN_TMPDIR}/not-a-cert.pem"
@@ -208,6 +232,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-key=cert fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -220,6 +246,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert=key fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -232,6 +260,8 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-client-ca=key fails to start" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
@@ -245,12 +275,14 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert --tls-key refuses HTTP client" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
-  systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0 \
+  _podman_system_service $URL --time=0 \
     --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}" \
     --tls-client-ca="${REMOTESYSTEM_TLS_CA_CRT}"
@@ -263,12 +295,14 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert --tls-key --tls-client-ca refuses client without cert" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
-  systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0 \
+  _podman_system_service $URL --time=0 \
     --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}" \
     --tls-client-ca="${REMOTESYSTEM_TLS_CA_CRT}"
@@ -281,12 +315,14 @@ function teardown() {
 }
 
 @test "podman-system-service --tls-cert --tls-key --tls-client-ca refuses client untrusted cert" {
+    unset REMOTESYSTEM_TRANSPORT
+
   skip_if_remote "podman system service unavailable over remote"
 
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
-  systemd-run --unit=$SERVICE_NAME $PODMAN system service $URL --time=0 \
+  _podman_system_service $URL --time=0 \
     --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}" \
     --tls-client-ca="${REMOTESYSTEM_TLS_CA_CRT}"

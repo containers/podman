@@ -39,10 +39,11 @@ func setupConnectionsConf() {
 }
 
 var (
-	systemConnectionListCmd     = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.Identity}} {{.Default}} {{.ReadWrite}}"}
-	systemConnectionListTLSCmd  = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.TLSCAFile}} {{.Default}} {{.ReadWrite}}"}
-	systemConnectionListmTLSCmd = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.TLSCAFile}} {{.TLSCertFile}} {{.TLSKeyFile}} {{.Default}} {{.ReadWrite}}"}
-	farmListCmd                 = []string{"farm", "ls", "--format", "{{.Name}} {{.Connections}} {{.Default}} {{.ReadWrite}}"}
+	systemConnectionListCmd                = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.Identity}} {{.Default}} {{.ReadWrite}}"}
+	systemConnectionListTLSSpecialValueCmd = []string{"system", "connection", "ls", "--format", "tls"}
+	systemConnectionListTLSCmd             = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.TLSCAFile}} {{.Default}} {{.ReadWrite}}"}
+	systemConnectionListmTLSCmd            = []string{"system", "connection", "ls", "--format", "{{.Name}} {{.URI}} {{.TLSCAFile}} {{.TLSCertFile}} {{.TLSKeyFile}} {{.Default}} {{.ReadWrite}}"}
+	farmListCmd                            = []string{"farm", "ls", "--format", "{{.Name}} {{.Connections}} {{.Default}} {{.ReadWrite}}"}
 )
 
 var _ = Describe("podman system connection", func() {
@@ -172,6 +173,11 @@ QA-UDS1 unix:///run/user/podman/podman.sock  false true
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 			Expect(session.OutputToString()).To(Equal("QA-TCP-MTLS tcp://localhost:8888 ca.pem tls.crt tls.key true true"))
+
+			session = podmanTest.Podman(systemConnectionListTLSSpecialValueCmd)
+			session.WaitWithDefaultTimeout()
+			Expect(session).Should(ExitCleanly())
+			Expect(session.Out).Should(Say("Name *URI *Identity *TLSCAFile *TLSCertFile *TLSKeyFile *Default *ReadWrite\nQA-TCP-MTLS *tcp://localhost:8888 *ca.pem *tls.crt *tls.key *true *true"))
 		})
 
 		It("add tcp to reverse proxy path", func() {
@@ -364,7 +370,7 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 			session = podmanTest.Podman(cmd)
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
-			Expect(session.Out).Should(Say("Name *URI *Identity *TLSCAFile *TLSCertFile *TLSKeyFile *Default"))
+			Expect(session.Out).Should(Say("Name *URI *Identity *Default"))
 		})
 
 		It("failed default", func() {

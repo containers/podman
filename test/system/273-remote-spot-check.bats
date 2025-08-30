@@ -21,19 +21,27 @@ function teardown() {
 }
 
 @test "unix remote" {
+  unset REMOTESYSTEM_TRANSPORT
+
   URL=unix:$PODMAN_TMPDIR/myunix.sock
 
   systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
   wait_for_file $PODMAN_TMPDIR/myunix.sock
 
   # Variable works
-  CONTAINER_HOST=$URL run_podman info --format '{{.Host.RemoteSocket.Path}}'
+  CONTAINER_HOST=$URL \
+    run_podman \
+    info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
   # Flag works
-  run_podman --url="$URL" info --format '{{.Host.RemoteSocket.Path}}'
+  run_podman \
+    --url="$URL" \
+    info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
   # Streaming command works
-  run_podman --url="$URL" run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
+  run_podman \
+    --url="$URL" \
+    run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
   systemctl stop $SERVICE_NAME
@@ -41,6 +49,8 @@ function teardown() {
 }
 
 @test "tcp remote" {
+  unset REMOTESYSTEM_TRANSPORT
+
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
@@ -48,19 +58,27 @@ function teardown() {
   wait_for_port 127.0.0.1 $port
 
   # Variable works
-  CONTAINER_HOST=$URL run_podman info --format '{{.Host.RemoteSocket.Path}}'
+  CONTAINER_HOST=$URL \
+    run_podman \
+    info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
   # Flag works
-  run_podman --url="$URL" info --format '{{.Host.RemoteSocket.Path}}'
+  run_podman \
+    --url="$URL" \
+    info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
   # Streaming command works
-  run_podman --url="$URL" run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
+  run_podman \
+    --url="$URL" \
+    run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
   systemctl stop $SERVICE_NAME
 }
 
 @test "tls remote" {
+  unset REMOTESYSTEM_TRANSPORT
+
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
@@ -69,20 +87,22 @@ function teardown() {
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}"
   wait_for_port 127.0.0.1 $port
 
-  # Variables work
+  # Variable works
   CONTAINER_HOST=$URL \
-    CONTAINER_TLS_CA="${REMOTESYSTEM_TLS_CA_CRT}" \
-    run_podman info --format '{{.Host.RemoteSocket.Path}}'
+    run_podman \
+    --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
+    info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
-  # Flags work
+  # Flag works
   run_podman \
     --url="$URL" \
     --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
     info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
   # Streaming command works
-  CONTAINER_TLS_CA="${REMOTESYSTEM_TLS_CA_CRT}" \
-    run_podman --url="$URL" \
+  run_podman \
+    --url="$URL" \
+    --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
     run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
@@ -90,6 +110,8 @@ function teardown() {
 }
 
 @test "mtls remote" {
+  unset REMOTESYSTEM_TRANSPORT
+
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
@@ -99,14 +121,15 @@ function teardown() {
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}"
   wait_for_port 127.0.0.1 $port
 
-  # Variables work
+  # Variable works
   CONTAINER_HOST=$URL \
-    CONTAINER_TLS_CA="${REMOTESYSTEM_TLS_CA_CRT}" \
-    CONTAINER_TLS_KEY="${REMOTESYSTEM_TLS_CLIENT_KEY}" \
-    CONTAINER_TLS_CERT="${REMOTESYSTEM_TLS_CLIENT_CRT}" \
-    run_podman info --format '{{.Host.RemoteSocket.Path}}'
+    run_podman \
+    --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}" \
+    --tls-cert="${REMOTESYSTEM_TLS_CLIENT_CRT}" \
+    --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
+    info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
-  # Flags work
+  # Flag works
   run_podman \
     --url="$URL" \
     --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}" \
@@ -115,11 +138,11 @@ function teardown() {
     info --format '{{.Host.RemoteSocket.Path}}'
   is "$output" "$URL" "RemoteSocket.Path using unix:"
   # Streaming command works
-  CONTAINER_TLS_CA="${REMOTESYSTEM_TLS_CA_CRT}" \
-    CONTAINER_TLS_KEY="${REMOTESYSTEM_TLS_CLIENT_KEY}" \
-    run_podman \
+  run_podman \
     --url="$URL" \
+    --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}" \
     --tls-cert="${REMOTESYSTEM_TLS_CLIENT_CRT}" \
+    --tls-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
     run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 

@@ -63,8 +63,8 @@ EOF
         url="${PODMAN##*--url }"
         url="${url%% *}"
         op='='
-    elif [ -n "${CONTAINER_HOST}" ]; then
-        url="${CONTAINER_HOST}"
+    elif [[ "${REMOTESYSTEM_TRANSPORT}" =~ tcp|tls|mtls ]]; then
+        url="tcp://localhost:${REMOTESYSTEM_TCP_PORT}"
         op='='
     fi
     # podman-remote test might run with --url so unset this because the socket will be used otherwise

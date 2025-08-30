@@ -571,7 +571,12 @@ func newUpgradeRequest(ctx context.Context, conn *bindings.Connection, body io.R
 			if err != nil {
 				return nil, err
 			}
-			cfg := tlsConfig.Clone()
+			var cfg *tls.Config
+			if tlsConfig == nil {
+				cfg = new(tls.Config)
+			} else {
+				cfg = tlsConfig.Clone()
+			}
 			if cfg.ServerName == "" {
 				var firstTLSHost string
 				if firstTLSHost, _, err = net.SplitHostPort(address); err != nil {

@@ -152,7 +152,7 @@ RELABEL="system_u:object_r:container_file_t:s0"
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
+        "${PODMAN_CMD[@]}" play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
 
     # Wait for the container to be running
     container_a=$PODCTRNAME
@@ -569,7 +569,7 @@ EOF
     # Run `play kube` in the background as it will wait for the service
     # container to exit.
     timeout --foreground -v --kill=10 60 \
-        $PODMAN play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
+        "${PODMAN_CMD[@]}" play kube --service-container=true --log-driver journald $TESTYAML &>/dev/null &
 
     # The name of the service container is predictable: the first 12 characters
     # of the hash of the YAML file followed by the "-service" suffix
@@ -662,7 +662,7 @@ spec:
     # on a running container; signaling during initialization
     # results in undefined behavior.
     logfile=$PODMAN_TMPDIR/kube-play.log
-    $PODMAN kube play --wait $fname &> $logfile &
+    "${PODMAN_CMD[@]}" kube play --wait $fname &> $logfile &
     local kidpid=$!
 
     for try in {1..10}; do

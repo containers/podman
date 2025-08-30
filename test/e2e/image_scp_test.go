@@ -1,4 +1,4 @@
-//go:build linux || freebsd
+//go:build !remote_testing && (linux || freebsd)
 
 package integration
 
