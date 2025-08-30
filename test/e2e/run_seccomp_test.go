@@ -4,6 +4,7 @@ package integration
 
 import (
 	"fmt"
+	"strings"
 
 	. "github.com/containers/podman/v5/test/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -59,7 +60,16 @@ var _ = Describe("Podman run", func() {
 		if IsRemote() {
 			expect = fmt.Sprintf("for attach: %s: read from the init process: OCI runtime error", podmanTest.OCIRuntime)
 		}
-		Expect(session).To(ExitWithError(126, expect))
+
+		// crun uses EPERM while runc relies on libseccomp-golang
+		// libseccomp >= v2.5.0 returns EACCES, older versions return EPERM.
+		expectedStatus := 126
+		if strings.Contains(podmanTest.OCIRuntime, "runc") {
+			expect = "Error: failed to connect to container's attach socket:"
+			expectedStatus = 127
+		}
+
+		Expect(session).To(ExitWithError(expectedStatus, expect))
 	})
 
 	It("podman run --seccomp-policy image (bogus profile)", func() {
