@@ -447,6 +447,11 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(separateVolumeSession).Should(ExitCleanly())
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
 
+		// The remainder of this test fails on runc since https://github.com/opencontainers/runc/pull/3990
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			return
+		}
+
 		copySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol3:/etc/apk:copy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
 		copySession.WaitWithDefaultTimeout()
 		Expect(copySession).Should(ExitCleanly())
@@ -857,6 +862,10 @@ VOLUME /test/`, ALPINE)
 	})
 
 	It("podman run with --mount and named volume with driver-opts", func() {
+		// This test fails on runc since https://github.com/opencontainers/runc/pull/3990
+		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
+			Skip("Test only works on crun")
+		}
 		// anonymous volume mount with driver opts
 		vol := "type=volume,source=test_vol,dst=/test,volume-opt=type=tmpfs,volume-opt=device=tmpfs,volume-opt=o=nodev"
 		session := podmanTest.Podman([]string{"run", "--rm", "--mount", vol, ALPINE, "echo", "hello"})
