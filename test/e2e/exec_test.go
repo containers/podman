@@ -618,4 +618,32 @@ RUN useradd -u 1000 auser`, fedoraMinimal)
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("root"))
 	})
+
+	It("podman exec with --no-session flag", func() {
+		SkipIfRemote("The --no-session flag is not supported for remote clients")
+		session := podmanTest.RunTopContainer("no_session_test")
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		execResult := podmanTest.Podman([]string{"exec", "--no-session", "no_session_test", "echo", "hello"})
+		execResult.WaitWithDefaultTimeout()
+		Expect(execResult).Should(ExitCleanly())
+		Expect(execResult.OutputToString()).To(Equal("hello"))
+	})
+
+	It("podman stop is not blocked by a long-running --no-session exec", func() {
+		SkipIfRemote("The --no-session flag is not supported for remote clients")
+
+		ctrName := "no_session_lock_test"
+		session := podmanTest.RunTopContainer(ctrName)
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		execSession := podmanTest.Podman([]string{"exec", "--no-session", ctrName, "sleep", "30"})
+		stopSession := podmanTest.Podman([]string{"stop", "-t", "5", ctrName})
+		stopSession.WaitWithDefaultTimeout()
+		Expect(stopSession).Should(ExitCleanly())
+		Eventually(execSession, "5s").Should(Not(Exit(0)))
+	})
+
 })
