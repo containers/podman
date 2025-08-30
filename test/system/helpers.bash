@@ -38,31 +38,42 @@ PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
 function add_podman_args {
   declare -n arrayptr=$1
 
-  case "${REMOTESYSTEM_TRANSPORT}" in
-  tcp | tls | mtls)
-    arrayptr+=(--url="tcp://localhost:${REMOTESYSTEM_TCP_PORT}")
-    ;;
-  esac
-  case "${REMOTESYSTEM_TRANSPORT}" in
-  tls | mtls)
-    arrayptr+=(--tls-ca="${REMOTESYSTEM_TLS_CA_CRT}")
-    ;;
-  esac
-  case "${REMOTESYSTEM_TRANSPORT}" in
-  mtls)
-    arrayptr+=(
-      --tls-cert="${REMOTESYSTEM_TLS_CLIENT_CRT}"
-      --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}"
-    )
-    ;;
-  esac
+  if is_remote ; then
+    case "${REMOTESYSTEM_TRANSPORT}" in
+    tcp|tls|mtls)
+      arrayptr+=(--url="tcp://localhost:${REMOTESYSTEM_TCP_PORT}")
+      ;;
+    unix)
+      arrayptr+=(--url="unix://${REMOTESYSTEM_UNIX_SOCK}")
+    esac
+    case "${REMOTESYSTEM_TRANSPORT}" in
+    tls|mtls)
+      arrayptr+=(--tls-ca="${REMOTESYSTEM_TLS_CA_CRT}")
+      ;;
+    esac
+    case "${REMOTESYSTEM_TRANSPORT}" in
+    mtls)
+      arrayptr+=(
+        --tls-cert="${REMOTESYSTEM_TLS_CLIENT_CRT}"
+        --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}"
+      )
+      ;;
+    esac
+  fi
 }
 
-# Full command to run podman, including remote flags. This is set once, and will not
-# change if the REMOTESYSTEM_* envs are unset mid-test
-PODMAN_CMD=("${PODMAN}")
 
-add_podman_args PODMAN_CMD
+export REMOTESYSTEM_TLS_CA_CRT=${BATS_SUITE_TMPDIR}/remotesystem.ca.crt.pem
+export REMOTESYSTEM_TLS_CA_KEY=${BATS_SUITE_TMPDIR}/remotesystem.ca.key.pem
+export REMOTESYSTEM_TLS_SERVER_CRT=${BATS_SUITE_TMPDIR}/remotesystem.server.crt.pem
+export REMOTESYSTEM_TLS_SERVER_KEY=${BATS_SUITE_TMPDIR}/remotesystem.server.key.pem
+export REMOTESYSTEM_TLS_CLIENT_CRT=${BATS_SUITE_TMPDIR}/remotesystem.client.crt.pem
+export REMOTESYSTEM_TLS_CLIENT_KEY=${BATS_SUITE_TMPDIR}/remotesystem.client.key.pem
+export REMOTESYSTEM_TLS_BOGUS_CRT=${BATS_SUITE_TMPDIR}/remotesystem.bogus.crt.pem
+export REMOTESYSTEM_TLS_BOGUS_KEY=${BATS_SUITE_TMPDIR}/remotesystem.bogus.key.pem
+
+# Full command to run podman, including remote flags. This is (re)set by basic_setup.
+PODMAN_CMD=()
 
 # Prompt to display when logging podman commands; distinguish root/rootless
 _LOG_PROMPT='$'
@@ -197,6 +208,9 @@ function basic_setup() {
     # idea being that a large number of failures can show patterns.
     ASSERTION_FAILURES=
     immediate-assertion-failures
+
+    PODMAN_CMD=("${PODMAN}")
+    add_podman_args PODMAN_CMD
 }
 
 # bail-now is how we terminate a test upon assertion failure.
@@ -1406,6 +1420,118 @@ function wait_for_restart_count() {
         fi
         sleep 0.5
     done
+}
+
+function gen-cert-pair {
+  cn=$1 key=$2 cert=$3
+  shift 3
+  openssl req -x509 \
+    -quiet \
+    -nodes \
+    -newkey rsa:4096 -keyout "${key}" \
+    -out "${cert}" \
+    -days 1 \
+    -subj "/C=??/ST=System/L=Test/O=Containers/OU=Podman/CN=${cn}" \
+    "$@"
+}
+
+function gen-signed-cert-pair {
+  cn=$1 key=$2 cert=$3 ca_key=$4 ca_cert=$5
+  shift 5
+  gen-cert-pair "${cn}" \
+    "${key}" "${cert}" \
+    -CAkey "${ca_key}" -CA "${ca_cert}" \
+    "$@"
+}
+
+function gen-tls {
+  rm -f \
+    "${REMOTESYSTEM_TLS_CA_KEY}" "${REMOTESYSTEM_TLS_CA_CRT}" \
+    "${REMOTESYSTEM_TLS_CLIENT_KEY}" "${REMOTESYSTEM_TLS_CLIENT_CRT}" \
+    "${REMOTESYSTEM_TLS_SERVER_KEY}" "${REMOTESYSTEM_TLS_SERVER_CRT}" \
+    "${REMOTESYSTEM_TLS_BOGUS_KEY}" "${REMOTESYSTEM_TLS_BOGUS_CRT}"
+
+  # CA
+  gen-cert-pair "ca" \
+    "${REMOTESYSTEM_TLS_CA_KEY}" "${REMOTESYSTEM_TLS_CA_CRT}" \
+    -addext basicConstraints=critical,CA:TRUE,pathlen:1
+  # Client, signed by CA
+  gen-signed-cert-pair "client" \
+    "${REMOTESYSTEM_TLS_CLIENT_KEY}" "${REMOTESYSTEM_TLS_CLIENT_CRT}" \
+    "${REMOTESYSTEM_TLS_CA_KEY}" "${REMOTESYSTEM_TLS_CA_CRT}" \
+
+  # Server, signed by CA, valid for localhost, 127.0.0.1
+  # NOTE: Go refuses certs without SAN's
+  gen-signed-cert-pair "localhost" \
+    "${REMOTESYSTEM_TLS_SERVER_KEY}" "${REMOTESYSTEM_TLS_SERVER_CRT}" \
+    "${REMOTESYSTEM_TLS_CA_KEY}" "${REMOTESYSTEM_TLS_CA_CRT}" \
+    -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+
+  # Bogus, self-signed
+  gen-cert-pair "bogus" \
+    "${REMOTESYSTEM_TLS_BOGUS_KEY}" "${REMOTESYSTEM_TLS_BOGUS_CRT}" \
+    -addext basicConstraints=critical,CA:TRUE,pathlen:1
+}
+
+
+function systemd-run-user {
+  args=()
+  if [ "${UID}" != '0' ]; then
+    args+=(--user)
+  fi
+  systemd-run "${args[@]}" "$@"
+}
+
+function systemctl-user {
+  args=()
+  if [ "${UID}" != '0' ]; then
+    args+=(--user)
+  fi
+  systemctl "${args[@]}" "$@"
+}
+
+SUITE_SERVICE_NAME="podman-service-$(random_string)"
+SUITE_PIDFILE="${BATS_SUITE_TMPDIR}/podman-system-service.pid"
+function start-suite-podman-system-service {
+    service_args=()
+    case "${REMOTESYSTEM_TRANSPORT}" in
+    tls|mtls)
+      service_args+=(
+        --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}"
+        --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}"
+      )
+      ;;
+    esac
+    case "${REMOTESYSTEM_TRANSPORT}" in
+    mtls)
+      service_args+=(--tls-client-ca="${REMOTESYSTEM_TLS_CA_CRT}")
+      ;;
+    esac
+    case "${REMOTESYSTEM_TRANSPORT}" in
+    tcp|tls|mtls)
+      service_args+=("tcp://localhost:${REMOTESYSTEM_TCP_PORT}")
+      ;;
+    unix)
+      rm "${REMOTESYSTEM_UNIX_SOCK}"
+      service_args+=("unix://${REMOTESYSTEM_UNIX_SOCK}")
+    esac
+
+    # TODO: In the future, use systemd if possible
+    # systemd-run-user --unit=$SUITE_SERVICE_NAME ${PODMAN%%-remote*} system service "${service_args[@]}" --time=0
+    ${PODMAN%%-remote*} system service "${service_args[@]}" --time=0 &> "${PODMAN_SERVER_LOG:-/dev/null}" &
+    echo $! > "${SUITE_PIDFILE}"
+
+    retry=5
+    while [ $retry -ge 0 ]; do
+      echo Waiting for system service...
+      sleep 1
+      "${PODMAN_CMD[@]}" system info && break
+      retry=$(expr $retry - 1)
+    done
+    if [ $retry -lt 0 ]; then
+      echo "Error: ./bin/podman system service did not come up" >&2
+      exit 1
+    fi
 }
 
 

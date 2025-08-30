@@ -14,7 +14,7 @@ function setup() {
 
 function teardown() {
   # Ignore exit status: this is just a backup stop in case tests failed
-  run systemctl stop "$SERVICE_NAME"
+  run systemctl-user stop "$SERVICE_NAME"
   rm -f $PODMAN_TMPDIR/myunix.sock
 
   basic_teardown
@@ -25,7 +25,7 @@ function teardown() {
 
   URL=unix:$PODMAN_TMPDIR/myunix.sock
 
-  systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
+  systemd-run-user --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
   wait_for_file $PODMAN_TMPDIR/myunix.sock
 
   # Variable works
@@ -44,7 +44,7 @@ function teardown() {
     run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
-  systemctl stop $SERVICE_NAME
+  systemctl-user stop $SERVICE_NAME
   rm -f $PODMAN_TMPDIR/myunix.sock
 }
 
@@ -54,7 +54,7 @@ function teardown() {
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
-  systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
+  systemd-run-user --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0
   wait_for_port 127.0.0.1 $port
 
   # Variable works
@@ -73,7 +73,7 @@ function teardown() {
     run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
-  systemctl stop $SERVICE_NAME
+  systemctl-user stop $SERVICE_NAME
 }
 
 @test "tls remote" {
@@ -82,7 +82,7 @@ function teardown() {
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
-  systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0 \
+  systemd-run-user --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0 \
     --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}"
   wait_for_port 127.0.0.1 $port
@@ -106,7 +106,7 @@ function teardown() {
     run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
-  systemctl stop $SERVICE_NAME
+  systemctl-user stop $SERVICE_NAME
 }
 
 @test "mtls remote" {
@@ -115,7 +115,7 @@ function teardown() {
   port=$(random_free_port)
   URL=tcp://127.0.0.1:$port
 
-  systemd-run --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0 \
+  systemd-run-user --unit=$SERVICE_NAME ${PODMAN%%-remote*} system service $URL --time=0 \
     --tls-client-ca="${REMOTESYSTEM_TLS_CA_CRT}" \
     --tls-key="${REMOTESYSTEM_TLS_SERVER_KEY}" \
     --tls-cert="${REMOTESYSTEM_TLS_SERVER_CRT}"
@@ -146,5 +146,5 @@ function teardown() {
     run --rm -i $IMAGE /bin/sh -c 'echo -n foo; sleep 0.1; echo -n bar; sleep 0.1; echo -n baz'
   is "$output" foobarbaz
 
-  systemctl stop $SERVICE_NAME
+  systemctl-user stop $SERVICE_NAME
 }

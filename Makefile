@@ -708,36 +708,8 @@ localmachine:
 	@echo /define.gitCommit=$(GIT_COMMIT)
 	$(MAKE) ginkgo-run GINKGO_PARALLEL=n TAGS="$(REMOTETAGS)" GINKGO_FLAKE_ATTEMPTS=0 FOCUS_FILE=$(FOCUS_FILE) GINKGOWHAT=pkg/machine/e2e/.
 
-REMOTESYSTEM_TCP_PORT ?= 8080
-REMOTESYSTEM_TLS_CA_CRT ?= $(CURDIR)/bin/remotesystem.ca.crt.pem
-REMOTESYSTEM_TLS_CA_KEY ?= $(CURDIR)/bin/remotesystem.ca.key.pem
-REMOTESYSTEM_TLS_SERVER_CRT ?= $(CURDIR)/bin/remotesystem.server.crt.pem
-REMOTESYSTEM_TLS_SERVER_KEY ?= $(CURDIR)/bin/remotesystem.server.key.pem
-REMOTESYSTEM_TLS_CLIENT_CRT ?= $(CURDIR)/bin/remotesystem.client.crt.pem
-REMOTESYSTEM_TLS_CLIENT_KEY ?= $(CURDIR)/bin/remotesystem.client.key.pem
-REMOTESYSTEM_TLS_BOGUS_CRT ?= $(CURDIR)/bin/remotesystem.bogus.crt.pem
-REMOTESYSTEM_TLS_BOGUS_KEY ?= $(CURDIR)/bin/remotesystem.bogus.key.pem
-
-export \
-	REMOTESYSTEM_TCP_PORT \
-	REMOTESYSTEM_TLS_CA_KEY \
-	REMOTESYSTEM_TLS_CA_CRT \
-	REMOTESYSTEM_TLS_SERVER_CRT \
-	REMOTESYSTEM_TLS_SERVER_KEY \
-	REMOTESYSTEM_TLS_CLIENT_CRT \
-	REMOTESYSTEM_TLS_CLIENT_KEY \
-	REMOTESYSTEM_TLS_BOGUS_CRT \
-	REMOTESYSTEM_TLS_BOGUS_KEY
-
-$(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_CA_KEY) \
-$(REMOTESYSTEM_TLS_CLIENT_CRT) $(REMOTESYSTEM_TLS_CLIENT_KEY) \
-$(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTESYSTEM_TLS_SERVER_KEY) \
-$(REMOTESYSTEM_TLS_BOGUS_CRT) $(REMOTESYSTEM_TLS_BOGUS_KEY) \
-&:
-	source hack/remotesystem.env ; remotesystem-gen-tls
-
 .PHONY: localsystem
-localsystem: $(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTESYSTEM_TLS_CLIENT_CRT) $(REMOTESYSTEM_TLS_BOGUS_CRT)
+localsystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
 	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags '!ci:parallel' test/system/
@@ -745,15 +717,13 @@ localsystem: $(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTES
 
 
 .PHONY: remotesystem
-remotesystem: $(REMOTESYSTEM_TLS_CA_CRT) $(REMOTESYSTEM_TLS_SERVER_CRT) $(REMOTESYSTEM_TLS_CLIENT_CRT) $(REMOTESYSTEM_TLS_BOGUS_CRT)
+remotesystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	source hack/remotesystem.env ; \
-	set -x ; \
-	remotesystem-ensure-timeout-cmd $@ || exit ; \
-	remotesystem-podman-service $(REMOTESYSTEM_TRANSPORT) $(PODMAN_SERVER_LOG) && \
-	remotesystem-wait-podman-service $(REMOTESYSTEM_TRANSPORT) && \
-	remotesystem-bats $(REMOTESYSTEM_TRANSPORT) $(CURDIR)/bin/podman-remote
+	PODMAN=$(CURDIR)/bin/podman-remote QUADLET=$(CURDIR)/bin/quadlet \
+		bats -T --filter-tags '!ci:parallel' test/system/
+	PODMAN=$(CURDIR)/bin/podman-remote QUADLET=$(CURDIR)/bin/quadlet \
+		bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
 
 .PHONY: localapiv2-bash
 localapiv2-bash:

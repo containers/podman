@@ -392,6 +392,9 @@ $c2[ ]\+tcp://localhost:54321[ ]\+true[ ]\+true" \
     if [[ "${REMOTESYSTEM_TRANSPORT}" =~ tcp|tls|mtls ]]; then
         run_podman_remote --remote info --format '{{.Host.RemoteSocket.Path}}'
         assert "$output" =~ "tcp://localhost:${REMOTESYSTEM_TCP_PORT}"
+    elif [[ "${REMOTESYSTEM_TRANSPORT}" =~ unix ]]; then
+        run_podman_remote --remote info --format '{{.Host.RemoteSocket.Path}}'
+        assert "$output" =~ "unix://${REMOTESYSTEM_UNIX_SOCK}"
     else
       # This only works in upstream CI, where we run with a nonstandard socket.
       # In gating we use the default /run/...
