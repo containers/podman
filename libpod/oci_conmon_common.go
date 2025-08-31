@@ -1082,6 +1082,9 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		if restoreOptions.TCPEstablished {
 			args = append(args, "--runtime-opt", "--tcp-established")
 		}
+		if restoreOptions.TCPClose {
+			args = append(args, "--runtime-opt", "--tcp-close")
+		}
 		if restoreOptions.FileLocks {
 			args = append(args, "--runtime-opt", "--file-locks")
 		}

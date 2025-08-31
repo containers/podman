@@ -1636,7 +1636,11 @@ func (s *APIServer) registerContainersHandlers(r *mux.Router) error {
 	//  - in: query
 	//    name: tcpEstablished
 	//    type: boolean
-	//    description: checkpoint a container with established TCP connections
+	//    description: restore a container with established TCP connections
+	//  - in: query
+	//    name: tcpClose
+	//    type: boolean
+	//    description: restore a container but close the TCP connections
 	//  - in: query
 	//    name: import
 	//    type: boolean

@@ -50,6 +50,8 @@ type PushOptions struct {
 type RemoveOptions struct {
 	// Remove all artifacts
 	All *bool
+	// Artifacts is a list of Artifact IDs or names to remove
+	Artifacts []string
 }
 
 // AddOptions are optional options for removing images

@@ -40,6 +40,39 @@ func (ic *ContainerEngine) ContainerExists(ctx context.Context, nameOrID string,
 func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []string, opts entities.WaitOptions) ([]entities.WaitReport, error) {
 	responses := make([]entities.WaitReport, 0, len(namesOrIds))
 	options := new(containers.WaitOptions).WithConditions(opts.Conditions).WithInterval(opts.Interval.String())
+
+	if opts.ExitFirstMatch {
+		var waitChannel = make(chan entities.WaitReport, 1)
+		var waitFunction = func(ctx context.Context, nameOrId string, options *containers.WaitOptions, waitChannel chan<- entities.WaitReport) {
+			response := entities.WaitReport{}
+			exitCode, err := containers.Wait(ic.ClientCtx, nameOrId, options)
+			if err != nil {
+				if opts.Ignore && errorhandling.Contains(err, define.ErrNoSuchCtr) {
+					response.ExitCode = -1
+				} else {
+					response.Error = err
+				}
+			} else {
+				response.ExitCode = exitCode
+			}
+
+			select {
+			case <-ctx.Done():
+			case waitChannel <- response:
+			}
+		}
+
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		for _, n := range namesOrIds {
+			go waitFunction(ctx, n, options, waitChannel)
+		}
+
+		response := <-waitChannel
+		responses = append(responses, response)
+		return responses, nil
+	}
+
 	for _, n := range namesOrIds {
 		response := entities.WaitReport{}
 		exitCode, err := containers.Wait(ic.ClientCtx, n, options)
@@ -439,6 +472,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	options.WithKeep(opts.Keep)
 	options.WithName(opts.Name)
 	options.WithTCPEstablished(opts.TCPEstablished)
+	options.WithTCPClose(opts.TCPClose)
 	options.WithPod(opts.Pod)
 	options.WithPrintStats(opts.PrintStats)
 	options.WithPublishPorts(opts.PublishPorts)

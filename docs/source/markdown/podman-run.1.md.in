@@ -25,7 +25,7 @@ pull** _image_, before it starts the container from that image.
 Several files will be automatically created within the container. These include
 _/etc/hosts_, _/etc/hostname_, and _/etc/resolv.conf_ to manage networking.
 These will be based on the host's version of the files, though they can be
-customized with options (for example, **--dns** will override the host's DNS
+customized with options (for example, **--dns** may override the host's DNS
 servers in the created _resolv.conf_). Additionally, a container environment
 file is created in each container to indicate to programs they are running in a
 container. This file is located at _/run/.containerenv_ (or
@@ -69,12 +69,14 @@ file, and it must not contain a digest.
 
     $ podman save --format docker-archive fedora -o /tmp/fedora
     $ podman run docker-archive:/tmp/fedora echo hello
+  Note: On remote clients, including Mac and Windows (excluding WSL2) machines, this transport is not supported.
 
   **docker-daemon:**_docker-reference_
   An image in _docker-reference_ format stored in the docker daemon internal storage. The _docker-reference_ can also be an image ID (docker-daemon:algo:digest).
 
     $ sudo docker pull fedora
     $ sudo podman run docker-daemon:docker.io/library/fedora echo hello
+  Note: On remote clients, including Mac and Windows (excluding WSL2) machines, this transport is not supported.
 
   **oci-archive:**_path_**:**_tag_
   An image in a directory compliant with the "Open Container Image Layout Specification" at the specified _path_
@@ -82,6 +84,7 @@ and specified with a _tag_.
 
     $ podman save --format oci-archive fedora -o /tmp/fedora
     $ podman run oci-archive:/tmp/fedora echo hello
+  Note: On remote clients, including Mac and Windows (excluding WSL2) machines, this transport is not supported.
 
 ## OPTIONS
 @@option add-host

@@ -1,3 +1,13 @@
+## 1.38.2
+
+- roll back to go 1.23.0 [c404969]
+
+## 1.38.1
+
+### Fixes
+
+Numerous minor fixes and dependency bumps
+
 ## 1.38.0
 
 ### Features

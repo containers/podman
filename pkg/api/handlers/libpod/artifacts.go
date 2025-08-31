@@ -149,10 +149,54 @@ func RemoveArtifact(w http.ResponseWriter, r *http.Request) {
 
 	name := utils.GetName(r)
 
-	artifacts, err := imageEngine.ArtifactRm(r.Context(), name, entities.ArtifactRemoveOptions{})
+	artifacts, err := imageEngine.ArtifactRm(r.Context(), entities.ArtifactRemoveOptions{Artifacts: []string{name}})
 	if err != nil {
 		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
 			utils.ArtifactNotFound(w, name, err)
+			return
+		}
+		utils.InternalServerError(w, err)
+		return
+	}
+
+	utils.WriteResponse(w, http.StatusOK, artifacts)
+}
+
+func BatchRemoveArtifact(w http.ResponseWriter, r *http.Request) {
+	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
+	decoder := r.Context().Value(api.DecoderKey).(*schema.Decoder)
+
+	query := struct {
+		All       bool     `schema:"all"`
+		Artifacts []string `schema:"artifacts"`
+	}{}
+
+	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
+		utils.Error(w, http.StatusBadRequest, fmt.Errorf("failed to parse parameters for %s: %w", r.URL.String(), err))
+		return
+	}
+
+	if query.All && len(query.Artifacts) > 0 {
+		utils.Error(w, http.StatusBadRequest, errors.New("when setting all to true, you may not pass any artifact names or digests"))
+		return
+	}
+
+	if !query.All && len(query.Artifacts) < 1 {
+		utils.Error(w, http.StatusBadRequest, errors.New("an artifact or all option must be specified"))
+		return
+	}
+
+	imageEngine := abi.ImageEngine{Libpod: runtime}
+
+	removeOptions := entities.ArtifactRemoveOptions{
+		Artifacts: query.Artifacts,
+		All:       query.All,
+	}
+
+	artifacts, err := imageEngine.ArtifactRm(r.Context(), removeOptions)
+	if err != nil {
+		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
+			utils.ArtifactNotFound(w, "", err)
 			return
 		}
 		utils.InternalServerError(w, err)

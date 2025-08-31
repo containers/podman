@@ -133,6 +133,8 @@ func storeInfo(store storage.Store) (map[string]any, error) {
 	info := map[string]any{}
 	info["GraphRoot"] = store.GraphRoot()
 	info["RunRoot"] = store.RunRoot()
+	info["GraphImageStore"] = store.ImageStore()
+	info["GraphTransientStore"] = store.TransientStore()
 	info["GraphDriverName"] = store.GraphDriverName()
 	info["GraphOptions"] = store.GraphOptions()
 	statusPairs, err := store.Status()
@@ -144,6 +146,7 @@ func storeInfo(store storage.Store) (map[string]any, error) {
 		status[pair[0]] = pair[1]
 	}
 	info["GraphStatus"] = status
+
 	images, err := store.Images()
 	if err != nil {
 		logrus.Error(err, "error getting number of images")

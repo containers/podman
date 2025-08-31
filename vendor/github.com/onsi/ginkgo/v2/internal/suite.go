@@ -32,6 +32,7 @@ type Suite struct {
 
 	suiteNodes   Nodes
 	cleanupNodes Nodes
+	aroundNodes  types.AroundNodes
 
 	failer            *Failer
 	reporter          reporters.Reporter
@@ -87,6 +88,7 @@ func (suite *Suite) Clone() (*Suite, error) {
 		ProgressReporterManager: NewProgressReporterManager(),
 		topLevelContainers:      suite.topLevelContainers.Clone(),
 		suiteNodes:              suite.suiteNodes.Clone(),
+		aroundNodes:             suite.aroundNodes.Clone(),
 		selectiveLock:           &sync.Mutex{},
 	}, nil
 }
@@ -104,13 +106,14 @@ func (suite *Suite) BuildTree() error {
 	return nil
 }
 
-func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, progressSignalRegistrar ProgressSignalRegistrar, suiteConfig types.SuiteConfig) (bool, bool) {
+func (suite *Suite) Run(description string, suiteLabels Labels, suiteSemVerConstraints SemVerConstraints, suiteAroundNodes types.AroundNodes, suitePath string, failer *Failer, reporter reporters.Reporter, writer WriterInterface, outputInterceptor OutputInterceptor, interruptHandler interrupt_handler.InterruptHandlerInterface, client parallel_support.Client, progressSignalRegistrar ProgressSignalRegistrar, suiteConfig types.SuiteConfig) (bool, bool) {
 	if suite.phase != PhaseBuildTree {
 		panic("cannot run before building the tree = call suite.BuildTree() first")
 	}
 	ApplyNestedFocusPolicyToTree(suite.tree)
 	specs := GenerateSpecsFromTreeRoot(suite.tree)
-	specs, hasProgrammaticFocus := ApplyFocusToSpecs(specs, description, suiteLabels, suiteConfig)
+	specs, hasProgrammaticFocus := ApplyFocusToSpecs(specs, description, suiteLabels, suiteSemVerConstraints, suiteConfig)
+	specs = ComputeAroundNodes(specs)
 
 	suite.phase = PhaseRun
 	suite.client = client
@@ -120,6 +123,7 @@ func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string
 	suite.outputInterceptor = outputInterceptor
 	suite.interruptHandler = interruptHandler
 	suite.config = suiteConfig
+	suite.aroundNodes = suiteAroundNodes
 
 	if suite.config.Timeout > 0 {
 		suite.deadline = time.Now().Add(suite.config.Timeout)
@@ -127,7 +131,7 @@ func (suite *Suite) Run(description string, suiteLabels Labels, suitePath string
 
 	cancelProgressHandler := progressSignalRegistrar(suite.handleProgressSignal)
 
-	success := suite.runSpecs(description, suiteLabels, suitePath, hasProgrammaticFocus, specs)
+	success := suite.runSpecs(description, suiteLabels, suiteSemVerConstraints, suitePath, hasProgrammaticFocus, specs)
 
 	cancelProgressHandler()
 
@@ -259,6 +263,7 @@ func (suite *Suite) pushCleanupNode(node Node) error {
 
 	node.NodeIDWhereCleanupWasGenerated = suite.currentNode.ID
 	node.NestingLevel = suite.currentNode.NestingLevel
+	node.AroundNodes = types.AroundNodes{}.Append(suite.currentNode.AroundNodes...).Append(node.AroundNodes...)
 	suite.selectiveLock.Lock()
 	suite.cleanupNodes = append(suite.cleanupNodes, node)
 	suite.selectiveLock.Unlock()
@@ -428,13 +433,14 @@ func (suite *Suite) processCurrentSpecReport() {
 	}
 }
 
-func (suite *Suite) runSpecs(description string, suiteLabels Labels, suitePath string, hasProgrammaticFocus bool, specs Specs) bool {
+func (suite *Suite) runSpecs(description string, suiteLabels Labels, suiteSemVerConstraints SemVerConstraints, suitePath string, hasProgrammaticFocus bool, specs Specs) bool {
 	numSpecsThatWillBeRun := specs.CountWithoutSkip()
 
 	suite.report = types.Report{
 		SuitePath:                 suitePath,
 		SuiteDescription:          description,
 		SuiteLabels:               suiteLabels,
+		SuiteSemVerConstraints:    suiteSemVerConstraints,
 		SuiteConfig:               suite.config,
 		SuiteHasProgrammaticFocus: hasProgrammaticFocus,
 		PreRunStats: types.PreRunStats{
@@ -891,7 +897,30 @@ func (suite *Suite) runNode(node Node, specDeadline time.Time, text string) (typ
 			failureC <- failureFromRun
 		}()
 
-		node.Body(sc)
+		aroundNodes := types.AroundNodes{}.Append(suite.aroundNodes...).Append(node.AroundNodes...)
+		if len(aroundNodes) > 0 {
+			i := 0
+			var f func(context.Context)
+			f = func(c context.Context) {
+				sc := wrapContextChain(c)
+				if sc == nil {
+					suite.failer.Fail("An AroundNode failed to pass a valid Ginkgo SpecContext in.  You must always pass in a context derived from the context passed to you.", aroundNodes[i].CodeLocation)
+					return
+				}
+				i++
+				if i < len(aroundNodes) {
+					aroundNodes[i].Body(sc, f)
+				} else {
+					node.Body(sc)
+				}
+			}
+			aroundNodes[0].Body(sc, f)
+			if i != len(aroundNodes) {
+				suite.failer.Fail("An AroundNode failed to call the passed in function.", aroundNodes[i].CodeLocation)
+			}
+		} else {
+			node.Body(sc)
+		}
 		finished = true
 	}()
 

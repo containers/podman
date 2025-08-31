@@ -307,6 +307,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		Keep            bool   `schema:"keep"`
 		TCPEstablished  bool   `schema:"tcpEstablished"`
+		TCPClose        bool   `schema:"tcpClose"`
 		Import          bool   `schema:"import"`
 		Name            string `schema:"name"`
 		IgnoreRootFS    bool   `schema:"ignoreRootFS"`
@@ -329,6 +330,7 @@ func Restore(w http.ResponseWriter, r *http.Request) {
 		Name:            query.Name,
 		Keep:            query.Keep,
 		TCPEstablished:  query.TCPEstablished,
+		TCPClose:        query.TCPClose,
 		IgnoreRootFS:    query.IgnoreRootFS,
 		IgnoreVolumes:   query.IgnoreVolumes,
 		IgnoreStaticIP:  query.IgnoreStaticIP,

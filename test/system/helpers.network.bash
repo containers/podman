@@ -423,7 +423,7 @@ function wait_for_port() {
 function tcp_port_probe() {
     local address="${2:-0.0.0.0}"
 
-    : | nc "${address}" "${1}"
+    (exec echo -n >/dev/tcp/"$address/$1") >/dev/null 2>&1
 }
 
 ### Pasta Helpers ##############################################################

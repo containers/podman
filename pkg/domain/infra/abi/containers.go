@@ -184,6 +184,13 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 	if err != nil {
 		return nil, err
 	}
+
+	if options.ExitFirstMatch {
+		response := waitExitOnFirst(ctx, containers, options)
+		responses = append(responses, response)
+		return responses, nil
+	}
+
 	for _, c := range containers {
 		if c.doesNotExist { // Only set when `options.Ignore == true`
 			responses = append(responses, entities.WaitReport{ExitCode: -1})
@@ -206,6 +213,43 @@ func (ic *ContainerEngine) ContainerWait(ctx context.Context, namesOrIds []strin
 		responses = append(responses, response)
 	}
 	return responses, nil
+}
+
+func waitExitOnFirst(ctx context.Context, containers []containerWrapper, options entities.WaitOptions) entities.WaitReport {
+	var waitChannel = make(chan entities.WaitReport, 1)
+	var waitFunction = func(ctx context.Context, container containerWrapper, options entities.WaitOptions, waitChannel chan<- entities.WaitReport) {
+		response := entities.WaitReport{}
+		var conditions []string
+		if len(options.Conditions) == 0 {
+			conditions = []string{define.ContainerStateStopped.String(), define.ContainerStateExited.String()}
+		} else {
+			conditions = options.Conditions
+		}
+
+		exitCode, err := container.WaitForConditionWithInterval(ctx, options.Interval, conditions...)
+		if err != nil {
+			response.Error = err
+		} else {
+			response.ExitCode = exitCode
+		}
+
+		select {
+		case <-ctx.Done():
+		case waitChannel <- response:
+		}
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	for _, c := range containers {
+		if c.doesNotExist {
+			continue
+		}
+		go waitFunction(ctx, c, options, waitChannel)
+	}
+
+	response := <-waitChannel
+	return response
 }
 
 func (ic *ContainerEngine) ContainerPause(ctx context.Context, namesOrIds []string, options entities.PauseUnPauseOptions) ([]*entities.PauseUnpauseReport, error) {
@@ -694,6 +738,7 @@ func (ic *ContainerEngine) ContainerRestore(ctx context.Context, namesOrIds []st
 	restoreOptions := libpod.ContainerCheckpointOptions{
 		Keep:            options.Keep,
 		TCPEstablished:  options.TCPEstablished,
+		TCPClose:        options.TCPClose,
 		TargetFile:      options.Import,
 		Name:            options.Name,
 		IgnoreRootfs:    options.IgnoreRootFS,

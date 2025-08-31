@@ -1188,8 +1188,8 @@ spec:
 EOF
 
     # Bind the port to force a an error when starting the pod
-    timeout --foreground -v --kill=10 10 ncat -l 127.0.0.1 $port &
-    nc_pid=$!
+    timeout --foreground -v --kill=10 10 socat TCP-LISTEN:$port,bind=127.0.0.1,fork - &
+    socat_pid=$!
 
     # Create the Quadlet file
     local quadlet_file=$PODMAN_TMPDIR/start_err_$(safename).kube
@@ -1214,7 +1214,7 @@ EOF
     run -0 journalctl -eu $QUADLET_SERVICE_NAME
     assert "$output" =~ "$port: bind: address already in use" "journal contains the real podman start error"
 
-    kill "$nc_pid"
+    kill "$socat_pid"
 }
 
 # https://github.com/containers/podman/issues/25786

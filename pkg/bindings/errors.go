@@ -47,9 +47,13 @@ func (h *APIResponse) ProcessWithError(unmarshalInto interface{}, unmarshalError
 	if h.IsConflictError() {
 		return handleError(data, unmarshalErrorInto)
 	}
-
-	// TODO should we add a debug here with the response code?
-	return handleError(data, &errorhandling.ErrorModel{})
+	if h.Response.Header.Get("Content-Type") == "application/json" {
+		return handleError(data, &errorhandling.ErrorModel{})
+	}
+	return &errorhandling.ErrorModel{
+		Message:      string(data),
+		ResponseCode: h.Response.StatusCode,
+	}
 }
 
 func CheckResponseCode(inError error) (int, error) {

@@ -25,11 +25,9 @@ import (
 	"time"
 )
 
-var (
-	// ErrExpired gets returned when the Follow function runs into the
-	// specified timeout.
-	ErrExpired = errors.New("Timeout expired")
-)
+// ErrExpired gets returned when the Follow function runs into the
+// specified timeout.
+var ErrExpired = errors.New("Timeout expired")
 
 // JournalReaderConfig represents options to drive the behavior of a JournalReader.
 type JournalReaderConfig struct {
@@ -140,7 +138,6 @@ func (r *JournalReader) Read(b []byte) (int, error) {
 		// Advance the journal cursor. It has to be called at least one time
 		// before reading
 		c, err := r.journal.Next()
-
 		// An unexpected error
 		if err != nil {
 			return 0, err
@@ -197,11 +194,10 @@ func (r *JournalReader) Rewind() error {
 // Follow synchronously follows the JournalReader, writing each new journal entry to writer. The
 // follow will continue until a single time.Time is received on the until channel.
 func (r *JournalReader) Follow(until <-chan time.Time, writer io.Writer) error {
-
 	// Process journal entries and events. Entries are flushed until the tail or
 	// timeout is reached, and then we wait for new events or the timeout.
-	var msg = make([]byte, 64*1<<(10))
-	var waitCh = make(chan int, 1)
+	msg := make([]byte, 64*1<<(10))
+	waitCh := make(chan int, 1)
 	var waitGroup sync.WaitGroup
 	defer waitGroup.Wait()
 

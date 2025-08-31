@@ -432,6 +432,24 @@ func (g ginkgoErrors) InvalidEmptyLabel(cl CodeLocation) error {
 	}
 }
 
+func (g ginkgoErrors) InvalidSemVerConstraint(semVerConstraint, errMsg string, cl CodeLocation) error {
+	return GinkgoError{
+		Heading:      "Invalid SemVerConstraint",
+		Message:      fmt.Sprintf("'%s' is an invalid SemVerConstraint: %s", semVerConstraint, errMsg),
+		CodeLocation: cl,
+		DocLink:      "spec-semantic-version-filtering",
+	}
+}
+
+func (g ginkgoErrors) InvalidEmptySemVerConstraint(cl CodeLocation) error {
+	return GinkgoError{
+		Heading:      "Invalid Empty SemVerConstraint",
+		Message:      "SemVerConstraint cannot be empty",
+		CodeLocation: cl,
+		DocLink:      "spec-semantic-version-filtering",
+	}
+}
+
 /* Table errors */
 func (g ginkgoErrors) MultipleEntryBodyFunctionsForTable(cl CodeLocation) error {
 	return GinkgoError{

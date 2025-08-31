@@ -94,6 +94,8 @@ type ArtifactPushReport = entitiesTypes.ArtifactPushReport
 type ArtifactRemoveOptions struct {
 	// Remove all artifacts
 	All bool
+	// Artifacts is a list of Artifact IDs or names to remove
+	Artifacts []string
 }
 
 type ArtifactRemoveReport = entitiesTypes.ArtifactRemoveReport

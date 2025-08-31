@@ -12,4 +12,7 @@ host DNS configuration is invalid for the container (e.g., **127.0.0.1**). When 
 is the case the **--dns** flag is necessary for every run.
 
 The special value **none** can be specified to disable creation of _/etc/resolv.conf_ in the container by Podman.
-The _/etc/resolv.conf_ file in the image is used without changes.
+The _/etc/resolv.conf_ file in the image is then used without changes.
+
+Note that **ipaddr** may be added directly to the container's _/etc/resolv.conf_.
+This is not guaranteed though.  For example, passing a custom network whose *dns_enabled* is set to *true* to **--network** will result in _/etc/resolv.conf_ only referring to the aardvark-dns server.  aardvark-dns then forwards to the supplied **ipaddr** for all non-container name queries.

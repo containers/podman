@@ -1,3 +1,57 @@
+## 2.25.2
+
+### Fixes
+Add github output group for progress report content
+
+### Maintenance
+Bump Gomega
+
+## 2.25.1
+
+### Fixes
+- fix(types): ignore nameless nodes on FullText() [10866d3]
+- chore: fix some CodeQL warnings [2e42cff]
+
+## 2.25.0
+
+### `AroundNode`
+
+This release introduces a new decorator to support more complex spec setup usecases.
+
+`AroundNode` registers a function that runs before each individual node.  This is considered a more advanced decorator.
+
+Please read the [docs](https://onsi.github.io/ginkgo/#advanced-around-node) for more information and some examples.
+
+Allowed signatures:
+
+- `AroundNode(func())` - `func` will be called before the node is run.
+- `AroundNode(func(ctx context.Context) context.Context)` - `func` can wrap the passed in context and return a new one which will be passed on to the node.
+- `AroundNode(func(ctx context.Context, body func(ctx context.Context)))` - `ctx` is the context for the node and `body` is a function that must be called to run the node.  This gives you complete control over what runs before and after the node.
+
+Multiple `AroundNode` decorators can be applied to a single node and they will run in the order they are applied.
+
+Unlike setup nodes like `BeforeEach` and `DeferCleanup`, `AroundNode` is guaranteed to run in the same goroutine as the decorated node.  This is necessary when working with lower-level libraries that must run on a single thread (you can call `runtime.LockOSThread()` in the `AroundNode` to ensure that the node runs on a single thread).
+
+Since `AroundNode` allows you to modify the context you can also use `AroundNode` to implement shared setup that attaches values to the context.
+
+If applied to a container, `AroundNode` will run before every node in the container.  Including setup nodes like `BeforeEach` and `DeferCleanup`.
+
+`AroundNode` can also be applied to `RunSpecs` to run before every node in the suite.  This opens up new mechanisms for instrumenting individual nodes across an entire suite.
+
+## 2.24.0
+
+### Features
+
+Specs can now be decorated with (e.g.) `SemVerConstraint("2.1.0")` and `ginkgo --sem-ver-filter="2.1.1"` will only run constrained specs that match the requested version.  Learn more in the docs [here](https://onsi.github.io/ginkgo/#spec-semantic-version-filtering)!  Thanks to @Icarus9913 for the PR.
+
+### Fixes
+
+- remove -o from run command [3f5d379].  fixes [#1582](https://github.com/onsi/ginkgo/issues/1582)
+
+### Maintenance
+
+Numerous dependency bumps and documentation fixes
+
 ## 2.23.4
 
 Prior to this release Ginkgo would compute the incorrect number of available CPUs when running with `-p` in a linux container.  Thanks to @emirot for the fix!
