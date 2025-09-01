@@ -22,6 +22,7 @@ import (
 	"github.com/containers/libhvee/pkg/kvp/ginsu"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/pkg/strongunits"
+	"go.podman.io/podman/v6/pkg/errorhandling"
 	"go.podman.io/podman/v6/pkg/machine"
 	"go.podman.io/podman/v6/pkg/machine/cloudinit"
 	"go.podman.io/podman/v6/pkg/machine/define"
@@ -283,19 +284,35 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 		return nil, nil, err
 	}
 
+	rmFiles := []string{}
+
+	cloudinitISO, err := cloudinit.GetCloudInitISOVMFile(mc)
+	if err == nil {
+		rmFiles = append(rmFiles, cloudinitISO.GetPath())
+	}
+
 	rmFunc := func() error {
+		var errs []error
+
 		// Remove ignition registry entries - not a fatal error
 		// for vm removal
 		// TODO we could improve this by recommending an action be done
 		if !mc.CloudInit {
 			if err := removeIgnitionFromRegistry(mc, vm); err != nil {
-				logrus.Errorf("unable to remove ignition registry entries: %q", err)
+				errs = append(errs, fmt.Errorf("unable to remove ignition registry entries: %q", err))
+			}
+		}
+
+		if cloudinitISO != nil {
+			if err := cloudinitISO.Delete(); err != nil {
+				errs = append(errs, err)
 			}
 		}
 
 		// disk path removal is done by generic remove
 		if err = vm.Remove(""); err != nil {
-			return err
+			errs = append(errs, err)
+			return errorhandling.JoinErrors(errs)
 		}
 
 		// remove vsock registry entries
@@ -307,7 +324,7 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 			}
 		}
 
-		return nil
+		return errorhandling.JoinErrors(errs)
 	}
 	return []string{}, rmFunc, nil
 }

@@ -79,6 +79,14 @@ func GenerateUserDataFile(mc *vmconfigs.MachineConfig) (string, error) {
 	return path, nil
 }
 
+func GetCloudInitISOVMFile(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
+	machineDataDir, err := mc.DataDir()
+	if err != nil {
+		return nil, err
+	}
+	return machineDataDir.AppendToNewVMFile(fmt.Sprintf("%s-cloudinit.iso", mc.Name), nil)
+}
+
 func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 	writer, err := iso9660.NewWriter()
 	if err != nil {
@@ -102,12 +110,7 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 		return nil, err
 	}
 
-	machineDataDir, err := mc.DataDir()
-	if err != nil {
-		return nil, err
-	}
-
-	vmFile, err := machineDataDir.AppendToNewVMFile(fmt.Sprintf("%s-cloudinit.iso", mc.Name), nil)
+	vmFile, err := GetCloudInitISOVMFile(mc)
 	if err != nil {
 		return nil, err
 	}
