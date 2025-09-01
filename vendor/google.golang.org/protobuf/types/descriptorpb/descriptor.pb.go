@@ -2873,7 +2873,10 @@ type FieldOptions struct {
 	// for accessors, or it will be completely ignored; in the very least, this
 	// is a formalization for deprecating fields.
 	Deprecated *bool `protobuf:"varint,3,opt,name=deprecated,def=0" json:"deprecated,omitempty"`
+	// DEPRECATED. DO NOT USE!
 	// For Google-internal migration only. Do not use.
+	//
+	// Deprecated: Marked as deprecated in google/protobuf/descriptor.proto.
 	Weak *bool `protobuf:"varint,10,opt,name=weak,def=0" json:"weak,omitempty"`
 	// Indicate that the field value should not be printed out when using debug
 	// formats, e.g. when the field contains sensitive credentials.
@@ -2977,6 +2980,7 @@ func (x *FieldOptions) GetDeprecated() bool {
 	return Default_FieldOptions_Deprecated
 }
 
+// Deprecated: Marked as deprecated in google/protobuf/descriptor.proto.
 func (x *FieldOptions) GetWeak() bool {
 	if x != nil && x.Weak != nil {
 		return *x.Weak
@@ -4843,7 +4847,7 @@ const file_google_protobuf_descriptor_proto_rawDesc = "" +
 	"&deprecated_legacy_json_field_conflicts\x18\v \x01(\bB\x02\x18\x01R\"deprecatedLegacyJsonFieldConflicts\x127\n" +
 	"\bfeatures\x18\f \x01(\v2\x1b.google.protobuf.FeatureSetR\bfeatures\x12X\n" +
 	"\x14uninterpreted_option\x18\xe7\a \x03(\v2$.google.protobuf.UninterpretedOptionR\x13uninterpretedOption*\t\b\xe8\a\x10\x80\x80\x80\x80\x02J\x04\b\x04\x10\x05J\x04\b\x05\x10\x06J\x04\b\x06\x10\aJ\x04\b\b\x10\tJ\x04\b\t\x10\n" +
-	"\"\x9d\r\n" +
+	"\"\xa1\r\n" +
 	"\fFieldOptions\x12A\n" +
 	"\x05ctype\x18\x01 \x01(\x0e2#.google.protobuf.FieldOptions.CType:\x06STRINGR\x05ctype\x12\x16\n" +
 	"\x06packed\x18\x02 \x01(\bR\x06packed\x12G\n" +
@@ -4852,9 +4856,9 @@ const file_google_protobuf_descriptor_proto_rawDesc = "" +
 	"\x0funverified_lazy\x18\x0f \x01(\b:\x05falseR\x0eunverifiedLazy\x12%\n" +
 	"\n" +
 	"deprecated\x18\x03 \x01(\b:\x05falseR\n" +
-	"deprecated\x12\x19\n" +
+	"deprecated\x12\x1d\n" +
 	"\x04weak\x18\n" +
-	" \x01(\b:\x05falseR\x04weak\x12(\n" +
+	" \x01(\b:\x05falseB\x02\x18\x01R\x04weak\x12(\n" +
 	"\fdebug_redact\x18\x10 \x01(\b:\x05falseR\vdebugRedact\x12K\n" +
 	"\tretention\x18\x11 \x01(\x0e2-.google.protobuf.FieldOptions.OptionRetentionR\tretention\x12H\n" +
 	"\atargets\x18\x13 \x03(\x0e2..google.protobuf.FieldOptions.OptionTargetTypeR\atargets\x12W\n" +
