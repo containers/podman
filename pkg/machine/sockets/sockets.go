@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // ListenAndWaitOnSocket waits for a new connection to the listener and sends

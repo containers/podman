@@ -11,12 +11,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/resize"
+	"go.podman.io/storage/pkg/archive"
 	"golang.org/x/sys/unix"
 )
 

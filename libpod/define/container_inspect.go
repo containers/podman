@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/pkg/signal"
+	"go.podman.io/image/v5/manifest"
 )
 
 type InspectIDMappings struct {

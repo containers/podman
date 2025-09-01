@@ -11,8 +11,8 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v7/stats"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/selinux/go-selinux/label"
+	"go.podman.io/storage/pkg/archive"
 )
 
 // This file mainly exists to make the checkpoint/restore functions

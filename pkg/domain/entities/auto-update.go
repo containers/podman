@@ -1,6 +1,6 @@
 package entities
 
-import "github.com/containers/image/v5/types"
+import "go.podman.io/image/v5/types"
 
 // AutoUpdateOptions are the options for running auto-update.
 type AutoUpdateOptions struct {

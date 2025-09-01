@@ -15,13 +15,13 @@ import (
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/completion"
 	"github.com/containers/buildah/pkg/parse"
-	commonComp "github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/config"
 	encconfig "github.com/containers/ocicrypt/config"
 	enchelpers "github.com/containers/ocicrypt/helpers"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/spf13/pflag"
+	commonComp "go.podman.io/common/pkg/completion"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // LayerResults represents the results of the layer flags

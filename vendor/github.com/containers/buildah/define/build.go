@@ -4,12 +4,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/containers/common/libimage/manifests"
-	nettypes "github.com/containers/common/libnetwork/types"
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/storage/pkg/archive"
+	"go.podman.io/common/libimage/manifests"
+	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/archive"
 	"golang.org/x/sync/semaphore"
 )
 

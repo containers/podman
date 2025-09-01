@@ -10,8 +10,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/transports/alltransports"
 )
 
 // OSTree deals with operations on ostree based os's

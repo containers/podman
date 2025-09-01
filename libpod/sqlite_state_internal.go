@@ -9,9 +9,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/types"
 
 	// SQLite backend for database/sql
 	_ "github.com/mattn/go-sqlite3"

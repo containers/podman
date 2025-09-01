@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/ssh"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
@@ -23,10 +21,12 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/parallel"
 	"github.com/containers/podman/v5/version"
-	"github.com/containers/storage"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"go.podman.io/common/pkg/completion"
+	"go.podman.io/common/pkg/ssh"
+	"go.podman.io/storage"
 	"sigs.k8s.io/yaml"
 )
 

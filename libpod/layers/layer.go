@@ -1,6 +1,6 @@
 package layers
 
-import cstorage "github.com/containers/storage"
+import cstorage "go.podman.io/storage"
 
 // FullID gets the full id of a layer given a partial id or name
 func FullID(store cstorage.Store, id string) (string, error) {

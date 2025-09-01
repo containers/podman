@@ -3,9 +3,9 @@ package specgen
 import (
 	"net"
 
-	"github.com/containers/common/libnetwork/types"
-	storageTypes "github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/libnetwork/types"
+	storageTypes "go.podman.io/storage/types"
 )
 
 // PodBasicConfig contains basic configuration options for pods.

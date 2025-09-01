@@ -5,10 +5,10 @@ package generate
 import (
 	"net"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/common/libnetwork/types"
 
 	"testing"
 )

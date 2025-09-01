@@ -11,15 +11,12 @@ require (
 	github.com/checkpoint-restore/checkpointctl v1.3.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.7.1
-	github.com/containers/buildah v1.41.1-0.20250825221131-264309dc1081
-	github.com/containers/common v0.64.2-0.20250826074712-7692941ae9c8
+	github.com/containers/buildah v1.41.1-0.20250829135344-3367a9bc2c9f
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.7
-	github.com/containers/image/v5 v5.36.2-0.20250825172340-9b99818eb1db
-	github.com/containers/libhvee v0.10.0
+	github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
 	github.com/containers/ocicrypt v1.2.1
-	github.com/containers/psgo v1.9.0
-	github.com/containers/storage v1.59.2-0.20250820181736-3f7c116059ca
+	github.com/containers/psgo v1.9.1-0.20250826150930-4ae76f200c86
 	github.com/containers/winquit v1.1.0
 	github.com/coreos/go-systemd/v22 v22.6.0
 	github.com/crc-org/vfkit v0.6.1
@@ -58,7 +55,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.1
 	github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2
 	github.com/opencontainers/selinux v1.12.0
-	github.com/openshift/imagebuilder v1.2.16
+	github.com/openshift/imagebuilder v1.2.16-0.20250828154754-e22ebd3ff511
 	github.com/rootless-containers/rootlesskit/v2 v2.3.5
 	github.com/shirou/gopsutil/v4 v4.25.7
 	github.com/sirupsen/logrus v1.9.3
@@ -68,6 +65,9 @@ require (
 	github.com/vbauerster/mpb/v8 v8.10.2
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/bbolt v1.4.3
+	go.podman.io/common v0.0.0-20250826054041-6e4bed3c9118
+	go.podman.io/image/v5 v5.36.1-0.20250820085751-a13b38f45723
+	go.podman.io/storage v1.59.1-0.20250820085751-a13b38f45723
 	golang.org/x/crypto v0.41.0
 	golang.org/x/net v0.43.0
 	golang.org/x/sync v0.16.0
@@ -96,6 +96,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.17.0 // indirect
 	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/containernetworking/cni v1.3.0 // indirect
+	github.com/containers/common v0.62.2 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/luksy v0.0.0-20250714213221-8fccf784694e // indirect
 	github.com/coreos/go-oidc/v3 v3.14.1 // indirect
@@ -168,10 +169,9 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
-	github.com/ulikunitz/xz v0.5.13 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
-	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.60.0 // indirect

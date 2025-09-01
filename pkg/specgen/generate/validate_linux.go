@@ -9,12 +9,12 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/specgen"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/common/pkg/sysinfo"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // Verify resource limits are sanely set when running on cgroup v1.

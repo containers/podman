@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	nettypes "github.com/containers/common/libnetwork/types"
-	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
-	"github.com/containers/storage/pkg/archive"
+	nettypes "go.podman.io/common/libnetwork/types"
+	imageTypes "go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/archive"
 )
 
 // ContainerRunlabelOptions are the options to execute container-runlabel.

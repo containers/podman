@@ -18,8 +18,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
@@ -35,6 +33,8 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/image/v5/types"
 )
 
 func ManifestCreate(w http.ResponseWriter, r *http.Request) {

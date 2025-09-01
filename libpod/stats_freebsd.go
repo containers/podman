@@ -9,8 +9,8 @@ import (
 
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rctl"
-	"github.com/containers/storage/pkg/system"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/system"
 )
 
 // getPlatformContainerStats gets the platform-specific running stats

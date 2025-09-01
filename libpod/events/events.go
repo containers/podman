@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/containers/storage/pkg/stringid"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 // ErrNoJournaldLogging indicates that there is no journald logging

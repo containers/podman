@@ -8,12 +8,12 @@ import (
 	"os"
 	"strings"
 
-	machineconfig "github.com/containers/common/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	pkgOS "github.com/containers/podman/v5/pkg/machine/os"
 	"github.com/containers/podman/v5/pkg/machine/provider"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	machineconfig "go.podman.io/common/pkg/machine"
 )
 
 type ManagerOpts struct {

@@ -14,9 +14,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/machine"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/machine"
 )
 
 const machineGvproxyEndpoint = "gateway.containers.internal"

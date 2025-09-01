@@ -5,8 +5,8 @@ package buildah
 import (
 	"errors"
 
-	nettypes "github.com/containers/common/libnetwork/types"
-	"github.com/containers/storage"
+	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/storage"
 )
 
 func setChildProcess() error {

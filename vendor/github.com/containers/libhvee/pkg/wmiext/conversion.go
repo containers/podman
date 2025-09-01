@@ -347,14 +347,14 @@ func convertTimeToDataTime(time *time.Time) ole.VARIANT {
 }
 
 func convertDurationToDateTime(duration time.Duration) ole.VARIANT {
-	const daySeconds = time.Second * 86400
+	const dayTime = time.Second * 86400
 
 	if duration == 0 {
 		return ole.NewVariant(ole.VT_NULL, 0)
 	}
 
-	days := duration / daySeconds
-	duration = duration % daySeconds
+	days := duration / dayTime
+	duration = duration % dayTime
 
 	hours := duration / time.Hour
 	duration = duration % time.Hour
@@ -435,7 +435,7 @@ func parseIntervalTime(interval string) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	var stamp uint64 = secs
+	var stamp = secs
 	stamp += days * 86400
 	stamp += hours * 3600
 	stamp += mins * 60

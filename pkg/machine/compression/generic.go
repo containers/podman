@@ -6,8 +6,8 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/containers/image/v5/pkg/compression"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/pkg/compression"
 )
 
 type genericDecompressor struct {

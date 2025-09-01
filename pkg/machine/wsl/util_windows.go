@@ -17,9 +17,9 @@ import (
 
 	"github.com/Microsoft/go-winio"
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/homedir"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/homedir"
 	"golang.org/x/sys/windows"
 	"golang.org/x/sys/windows/registry"
 )

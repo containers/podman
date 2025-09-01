@@ -6,11 +6,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/etchosts"
+	"go.podman.io/common/pkg/config"
 )
 
 const proxySetupScriptTemplate = `#!/bin/bash

@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/sirupsen/logrus"
 	"github.com/vbauerster/mpb/v8"
 	"github.com/vbauerster/mpb/v8/decor"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chrootarchive"
 )
 
 // ExecCmd executes a command with args and returns its output as a string along

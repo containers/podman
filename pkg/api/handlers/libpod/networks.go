@@ -9,7 +9,6 @@ import (
 
 	"errors"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
@@ -18,6 +17,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
 	"github.com/gorilla/schema"
+	"go.podman.io/common/libnetwork/types"
 )
 
 func CreateNetwork(w http.ResponseWriter, r *http.Request) {

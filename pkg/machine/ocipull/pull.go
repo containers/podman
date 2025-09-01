@@ -8,12 +8,12 @@ import (
 	"os"
 
 	"github.com/containers/buildah/pkg/parse"
-	"github.com/containers/image/v5/copy"
-	"github.com/containers/image/v5/oci/layout"
-	"github.com/containers/image/v5/signature"
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/copy"
+	"go.podman.io/image/v5/oci/layout"
+	"go.podman.io/image/v5/signature"
+	"go.podman.io/image/v5/types"
 )
 
 // PullOptions includes data to alter certain knobs when pulling a source
