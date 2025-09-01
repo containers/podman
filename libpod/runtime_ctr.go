@@ -469,6 +469,15 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			if err == nil {
 				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
 				// The volume exists, we're good
+				// Make sure to drop all volume-opt options as they only apply to
+				// the volume create which we don't do again.
+				var volOpts []string
+				for _, opts := range vol.Options {
+					if !strings.HasPrefix(opts, "volume-opt") {
+						volOpts = append(volOpts, opts)
+					}
+				}
+				vol.Options = volOpts
 				continue
 			} else if !errors.Is(err, define.ErrNoSuchVolume) {
 				return nil, fmt.Errorf("error retrieving named volume %s for new container: %w", vol.Name, err)
@@ -487,6 +496,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		if len(vol.Options) > 0 {
 			isDriverOpts := false
 			driverOpts := make(map[string]string)
+			var volOpts []string
 			for _, opts := range vol.Options {
 				if strings.HasPrefix(opts, "volume-opt") {
 					isDriverOpts = true
@@ -495,8 +505,11 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 						return nil, err
 					}
 					driverOpts[driverOptKey] = driverOptValue
+				} else {
+					volOpts = append(volOpts, opts)
 				}
 			}
+			vol.Options = volOpts
 			if isDriverOpts {
 				parsedOptions := []VolumeCreateOption{WithVolumeOptions(driverOpts)}
 				volOptions = append(volOptions, parsedOptions...)
