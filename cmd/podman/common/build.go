@@ -24,6 +24,7 @@ import (
 	enchelpers "github.com/containers/ocicrypt/helpers"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
+	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/env"
 	"github.com/openshift/imagebuilder"
@@ -451,6 +452,12 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	}
 	if podmanConfig.ContainersConf.Engine.CgroupManager == config.SystemdCgroupsManager {
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
+	}
+
+	configIndex := libpod.RuntimeNameToConfigIndex(podmanConfig.RuntimePath)
+
+	for _, arg := range podmanConfig.ContainersConfDefaultsRO.Engine.OCIRuntimesFlags[configIndex] {
+		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
 
 	platforms, err := parse.PlatformsFromOptions(c)
