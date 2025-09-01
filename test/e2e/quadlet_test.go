@@ -901,6 +901,8 @@ BOGUS=foo
 		Entry("group-add.container", "group-add.container"),
 		Entry("health.container", "health.container"),
 		Entry("host.container", "host.container"),
+		Entry("httpproxy-false.container", "httpproxy-false.container"),
+		Entry("httpproxy-true.container", "httpproxy-true.container"),
 		Entry("hostname.container", "hostname.container"),
 		Entry("idmapping.container", "idmapping.container"),
 		Entry("image.container", "image.container"),
