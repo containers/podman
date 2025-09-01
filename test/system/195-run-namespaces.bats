@@ -5,7 +5,7 @@
 
 load helpers
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman test all namespaces" {
     # format is nsname | option name
     tests="

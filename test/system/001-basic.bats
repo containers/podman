@@ -14,7 +14,6 @@ function setup() {
 
 #### DO NOT ADD ANY TESTS HERE! ADD NEW TESTS AT BOTTOM!
 
-# bats test_tags=distro-integration
 @test "podman version emits reasonable output" {
     run_podman version
 
@@ -37,7 +36,6 @@ function setup() {
     is "$output" "podman.*version \+"               "'Version line' in output"
 }
 
-# bats test_tags=distro-integration
 @test "podman info" {
     # These will be displayed on the test output stream, offering an
     # at-a-glance overview of important system configuration details
@@ -72,7 +70,6 @@ function setup() {
        "--context=swarm should fail"
 }
 
-# bats test_tags=distro-integration
 @test "podman can pull an image" {
     run_podman rmi -a -f
 

@@ -5,7 +5,7 @@
 
 load helpers
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman kill - test signal handling in containers" {
     local cname=c-$(safename)
     local fifo=${PODMAN_TMPDIR}/podman-kill-fifo.$(random_string 10)

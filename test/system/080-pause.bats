@@ -6,7 +6,7 @@
 load helpers
 load helpers.systemd
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman pause/unpause" {
     if is_rootless && ! is_cgroupsv2; then
         skip "'podman pause' (rootless) only works with cgroups v2"
@@ -65,7 +65,6 @@ load helpers.systemd
 }
 
 # CANNOT BE PARALLELIZED! (because of unpause --all)
-# bats test_tags=distro-integration
 @test "podman unpause --all" {
     if is_rootless && ! is_cgroupsv2; then
         skip "'podman pause' (rootless) only works with cgroups v2"

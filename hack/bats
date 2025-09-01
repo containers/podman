@@ -24,7 +24,7 @@ $0 is a wrapper for invoking podman system tests.
                     match that string.
 
    --tag=TAG      Passed on to bats as '--filter-tags TAG'
-                  As of 2023-07-26 the only tag used is 'distro-integration'
+                  As of 2025-09-01 the only tag used is 'ci:parallel'
 
    -t, --tap      Passed on to bats, which will format output in TAP format
 
