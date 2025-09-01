@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"os/user"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	. "github.com/containers/podman/v5/test/utils"
@@ -846,14 +847,17 @@ VOLUME /test/`, ALPINE)
 	It("podman run with --mount and named volume with driver-opts", func() {
 		// anonymous volume mount with driver opts
 		vol := "type=volume,source=test_vol,dst=/test,volume-opt=type=tmpfs,volume-opt=device=tmpfs,volume-opt=o=nodev"
-		session := podmanTest.Podman([]string{"run", "--rm", "--mount", vol, ALPINE, "echo", "hello"})
-		session.WaitWithDefaultTimeout()
-		Expect(session).Should(ExitCleanly())
+		// Loop twice to cover both the initial code path that creates the volume and the ones which reuses it.
+		for i := range 2 {
+			name := "testctr" + strconv.Itoa(i)
+			podmanTest.PodmanExitCleanly("run", "--name", name, "--mount", vol, ALPINE, "echo", "hello")
 
-		inspectVol := podmanTest.Podman([]string{"volume", "inspect", "test_vol"})
-		inspectVol.WaitWithDefaultTimeout()
-		Expect(inspectVol).Should(ExitCleanly())
-		Expect(inspectVol.OutputToString()).To(ContainSubstring("nodev"))
+			inspectVol := podmanTest.PodmanExitCleanly("volume", "inspect", "test_vol")
+			Expect(inspectVol.OutputToString()).To(ContainSubstring("nodev"))
+
+			inspect := podmanTest.PodmanExitCleanly("container", "inspect", name, "--format", "{{range .Mounts}}{{.Options}}{{end}}")
+			Expect(inspect.OutputToString()).To(ContainSubstring("[nosuid nodev rbind]"))
+		}
 	})
 
 	It("volume permissions after run", func() {
