@@ -17,15 +17,15 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/systemd"
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	systemdquadlet "github.com/containers/podman/v5/pkg/systemd/quadlet"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // deleteAsset reads .<name>.asset, deletes listed files, then deletes the asset file

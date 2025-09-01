@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage/pkg/stringid"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 // Creates a new, empty pod

@@ -1,8 +1,8 @@
 package blobcache
 
 import (
-	imageBlobCache "github.com/containers/image/v5/pkg/blobcache"
-	"github.com/containers/image/v5/types"
+	imageBlobCache "go.podman.io/image/v5/pkg/blobcache"
+	"go.podman.io/image/v5/types"
 )
 
 // BlobCache is an object which saves copies of blobs that are written to it while passing them

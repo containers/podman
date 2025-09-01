@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 func removeNetworkDevice(name string) {

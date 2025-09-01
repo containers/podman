@@ -9,13 +9,13 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/internal/domain/entities"
 	"github.com/containers/podman/v5/libpod"
-	"github.com/containers/storage"
-	graphdriver "github.com/containers/storage/drivers"
-	"github.com/containers/storage/pkg/chrootarchive"
-	"github.com/containers/storage/pkg/stringid"
+	"go.podman.io/image/v5/manifest"
+	"go.podman.io/storage"
+	graphdriver "go.podman.io/storage/drivers"
+	"go.podman.io/storage/pkg/chrootarchive"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 type TestingEngine struct {

@@ -1,3 +1,4 @@
+//go:build !cgo
 // +build !cgo
 
 // Copyright 2018 psgo authors
@@ -21,7 +22,7 @@ package host
 import (
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"unsafe"
 )
 
@@ -46,7 +47,7 @@ const (
 
 func getFromAuxv(what uint, whatName string) (uint, error) {
 	dataLen := int(unsafe.Sizeof(int(0)))
-	p, err := ioutil.ReadFile("/proc/self/auxv")
+	p, err := os.ReadFile("/proc/self/auxv")
 	if err != nil {
 		return 0, err
 	}

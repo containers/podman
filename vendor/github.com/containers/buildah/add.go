@@ -23,12 +23,6 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal/tmpdir"
 	"github.com/containers/buildah/pkg/chrootuser"
-	"github.com/containers/common/pkg/retry"
-	"github.com/containers/image/v5/pkg/tlsclientconfig"
-	"github.com/containers/image/v5/types"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/hashicorp/go-multierror"
 	"github.com/moby/sys/userns"
@@ -36,6 +30,12 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/retry"
+	"go.podman.io/image/v5/pkg/tlsclientconfig"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/regexp"
 )
 
 // AddAndCopyOptions holds options for add and copy commands.

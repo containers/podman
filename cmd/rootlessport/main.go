@@ -15,12 +15,12 @@ import (
 	"strings"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/rootlessport"
 	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
 	rkbuiltin "github.com/rootless-containers/rootlesskit/v2/pkg/port/builtin"
 	rkportutil "github.com/rootless-containers/rootlesskit/v2/pkg/port/portutil"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/rootlessport"
 	"golang.org/x/sys/unix"
 )
 

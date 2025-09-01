@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/containers/buildah/internal/open"
-	"github.com/containers/storage/pkg/mount"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/mount"
 	"golang.org/x/sys/unix"
 )
 

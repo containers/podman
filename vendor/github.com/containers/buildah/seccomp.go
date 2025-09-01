@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/common/pkg/seccomp"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/seccomp"
 )
 
 func setupSeccomp(spec *specs.Spec, seccompProfilePath string) error {

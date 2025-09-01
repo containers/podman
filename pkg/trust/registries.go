@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/image/v5/types"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/docker/pkg/homedir"
+	"go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/fileutils"
 	"sigs.k8s.io/yaml"
 )
 

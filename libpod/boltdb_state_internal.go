@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+	"go.podman.io/storage"
 )
 
 const (

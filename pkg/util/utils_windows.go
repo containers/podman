@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/containers/storage/pkg/homedir"
+	"go.podman.io/storage/pkg/homedir"
 )
 
 var errNotImplemented = errors.New("not yet implemented")

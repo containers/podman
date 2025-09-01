@@ -10,8 +10,6 @@ import (
 	"net"
 	"net/http"
 
-	nettypes "github.com/containers/common/libnetwork/types"
-	netutil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
@@ -19,6 +17,8 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/util"
+	nettypes "go.podman.io/common/libnetwork/types"
+	netutil "go.podman.io/common/libnetwork/util"
 
 	dockerNetwork "github.com/docker/docker/api/types/network"
 	"github.com/sirupsen/logrus"

@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/common/pkg/report"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/storage/pkg/archive"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/report"
+	"go.podman.io/storage/pkg/archive"
 )
 
 func Diff(_ *cobra.Command, args []string, options entities.DiffOptions) error {

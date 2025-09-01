@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/filters"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
+	"go.podman.io/common/pkg/filters"
+	"go.podman.io/common/pkg/util"
 )
 
 // GeneratePodFilterFunc takes a filter and filtervalue (key, value)

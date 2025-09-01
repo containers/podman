@@ -3,12 +3,12 @@
 package integration
 
 import (
-	"github.com/containers/common/pkg/cgroupv2"
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/fileutils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"go.podman.io/common/pkg/cgroupv2"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 var _ = Describe("Podman update", func() {

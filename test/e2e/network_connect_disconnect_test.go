@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	. "github.com/containers/podman/v5/test/utils"
-	"github.com/containers/storage/pkg/stringid"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 var _ = Describe("Podman network connect and disconnect", func() {

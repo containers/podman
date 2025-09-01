@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/docker"
-	"github.com/containers/image/v5/manifest"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/openshift/imagebuilder"
+	"go.podman.io/image/v5/manifest"
 )
 
 // firstStringElseSecondString takes two strings, and returns the first

@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/pkg/parse"
-	"github.com/containers/storage/pkg/fileutils"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/parse"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // ValidateVolumeMountHostDir validates the host path of buildah --volume

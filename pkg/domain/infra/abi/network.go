@@ -9,13 +9,13 @@ import (
 	"slices"
 	"strconv"
 
-	"github.com/containers/common/libnetwork/pasta"
-	"github.com/containers/common/libnetwork/slirp4netns"
-	"github.com/containers/common/libnetwork/types"
-	netutil "github.com/containers/common/libnetwork/util"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"go.podman.io/common/libnetwork/pasta"
+	"go.podman.io/common/libnetwork/slirp4netns"
+	"go.podman.io/common/libnetwork/types"
+	netutil "go.podman.io/common/libnetwork/util"
 )
 
 func (ic *ContainerEngine) NetworkUpdate(ctx context.Context, netName string, options entities.NetworkUpdateOptions) error {

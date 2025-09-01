@@ -9,16 +9,16 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/containers/common/libimage"
-	"github.com/containers/common/libnetwork/types"
-	blobinfocache "github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/errorhandling"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/lockfile"
-	stypes "github.com/containers/storage/types"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libimage"
+	"go.podman.io/common/libnetwork/types"
+	blobinfocache "go.podman.io/image/v5/pkg/blobinfocache"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/lockfile"
+	stypes "go.podman.io/storage/types"
 )
 
 // removeAllDirs removes all Podman storage directories. It is intended to be

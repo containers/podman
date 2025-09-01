@@ -8,10 +8,10 @@ import (
 	"os"
 	"strings"
 
-	imageAuth "github.com/containers/image/v5/pkg/docker/config"
-	"github.com/containers/image/v5/types"
 	dockerAPITypes "github.com/docker/docker/api/types/registry"
 	"github.com/sirupsen/logrus"
+	imageAuth "go.podman.io/image/v5/pkg/docker/config"
+	"go.podman.io/image/v5/types"
 )
 
 // xRegistryAuthHeader is the key to the encoded registry authentication configuration in an http-request header.

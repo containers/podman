@@ -7,7 +7,6 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/containers/common/pkg/config"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/apple"
@@ -17,6 +16,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/containers/podman/v5/utils"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
+	"go.podman.io/common/pkg/config"
 )
 
 // applehcMACAddress is a pre-defined mac address that vfkit recognizes

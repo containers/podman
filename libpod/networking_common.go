@@ -10,16 +10,16 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/machine"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/namespaces"
 	"github.com/containers/podman/v5/pkg/rootless"
-	"github.com/containers/storage/pkg/lockfile"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/etchosts"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/machine"
+	"go.podman.io/storage/pkg/lockfile"
 )
 
 // bindPorts ports to keep them open via conmon so no other process can use them and we can check if they are in use.

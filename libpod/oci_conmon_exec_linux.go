@@ -3,9 +3,9 @@
 package libpod
 
 import (
-	"github.com/containers/common/pkg/capabilities"
 	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/capabilities"
 )
 
 func (c *Container) setProcessCapabilitiesExec(options *ExecOptions, user string, execUser *user.ExecUser, pspec *spec.Process) error {

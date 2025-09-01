@@ -7,7 +7,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/containers/image/v5/manifest"
+	"go.podman.io/image/v5/manifest"
 )
 
 // DecodeOverrideConfig reads a Schema2Config from a Reader, suppressing EOF

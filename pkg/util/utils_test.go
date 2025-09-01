@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/containers/storage/pkg/idtools"
-	stypes "github.com/containers/storage/types"
 	ruser "github.com/moby/sys/user"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/storage/pkg/idtools"
+	stypes "go.podman.io/storage/types"
 )
 
 func BreakInsert(mapping []idtools.IDMap, extension idtools.IDMap) (result []idtools.IDMap) {

@@ -1,8 +1,8 @@
 package define
 
 import (
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/storage/pkg/idtools"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/storage/pkg/idtools"
 )
 
 // Info is the overall struct that describes the host system

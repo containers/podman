@@ -14,11 +14,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage/pkg/fileutils"
 	"github.com/sirupsen/logrus"
 	bolt "go.etcd.io/bbolt"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 // BoltState is a state implementation backed by a Bolt DB

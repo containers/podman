@@ -7,10 +7,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/lockfile"
 	"github.com/moby/sys/user"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/lockfile"
 )
 
 // TryJoinPauseProcess attempts to join the namespaces of the pause PID via

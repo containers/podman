@@ -10,16 +10,16 @@ import (
 	"os/exec"
 	"syscall"
 
-	"github.com/containers/common/pkg/config"
 	_ "github.com/containers/podman/v5/cmd/podman/completion"
 	ientities "github.com/containers/podman/v5/internal/domain/entities"
 	"github.com/containers/podman/v5/internal/domain/infra"
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/reexec"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 var (

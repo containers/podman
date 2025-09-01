@@ -3,7 +3,7 @@ package entities
 import (
 	"net/url"
 
-	"github.com/containers/common/pkg/ssh"
+	"go.podman.io/common/pkg/ssh"
 )
 
 // ScpTransferImageOptions provide options for securely copying images to and from a remote host

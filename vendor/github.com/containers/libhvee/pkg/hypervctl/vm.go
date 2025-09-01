@@ -218,7 +218,7 @@ func waitVMResult(res int32, service *wmiext.Service, job *wmiext.Instance, erro
 
 	if err != nil {
 		desc, _ := job.GetAsString("ErrorDescription")
-		desc = strings.Replace(desc, "\n", " ", -1)
+		desc = strings.ReplaceAll(desc, "\n", " ")
 		return fmt.Errorf("%s: %w (%s)", errorMsg, err, desc)
 	}
 
@@ -430,7 +430,7 @@ func (vmm *VirtualMachineManager) NewVirtualMachine(name string, config *Hardwar
 		return err
 	}
 
-	if err := NewDriveSettingsBuilder(systemSettings).
+	builder := NewDriveSettingsBuilder(systemSettings).
 		AddScsiController().
 		AddSyntheticDiskDrive(0).
 		DefineVirtualHardDisk(config.DiskPath, func(vhdss *VirtualHardDiskStorageSettings) {
@@ -438,15 +438,24 @@ func (vmm *VirtualMachineManager) NewVirtualMachine(name string, config *Hardwar
 			// vhdss.IOPSLimit = 5000
 		}).
 		Finish(). // disk
-		Finish(). // drive
-		//AddSyntheticDvdDrive(1).
-		//DefineVirtualDvdDisk(isoFile).
-		//Finish(). // disk
-		//Finish(). // drive
+		Finish()  // drive
+
+	if config.DVDDiskPath != "" {
+		// Add a DVD drive if the DVDDiskPath is set
+		// This is useful for cloud-init or other bootable media
+		builder = builder.
+			AddSyntheticDvdDrive(1).
+			DefineVirtualDvdDisk(config.DVDDiskPath).
+			Finish(). // disk
+			Finish()  // drive
+	}
+
+	if err := builder.
 		Finish(). // controller
 		Complete(); err != nil {
 		return err
 	}
+
 	// Add default network connection
 	if config.Network {
 		if err := NewNetworkSettingsBuilder(systemSettings).

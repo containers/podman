@@ -3,7 +3,7 @@ package common
 import (
 	"os"
 
-	"github.com/containers/image/v5/types"
+	"go.podman.io/image/v5/types"
 )
 
 // SetRegistriesConfPath sets the registries.conf path for the specified context.

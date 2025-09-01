@@ -22,12 +22,12 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/containers/image/v5/pkg/compression"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/reexec"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/pkg/compression"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/reexec"
 )
 
 const (

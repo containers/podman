@@ -3,7 +3,7 @@ package define
 import (
 	"net/url"
 
-	"github.com/containers/image/v5/types"
+	"go.podman.io/image/v5/types"
 )
 
 type InitOptions struct {

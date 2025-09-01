@@ -10,12 +10,12 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/applehv"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/libkrun"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
 )
 
 func Get() (vmconfigs.VMProvider, error) {

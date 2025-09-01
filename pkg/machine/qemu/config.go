@@ -3,7 +3,7 @@
 package qemu
 
 import (
-	"github.com/containers/common/pkg/config"
+	"go.podman.io/common/pkg/config"
 )
 
 // setNewMachineCMDOpts are options needed to pass
