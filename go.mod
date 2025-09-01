@@ -8,7 +8,7 @@ go 1.23.3
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
-	github.com/checkpoint-restore/checkpointctl v1.3.0
+	github.com/checkpoint-restore/checkpointctl v1.4.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
 	github.com/containernetworking/plugins v1.7.1
 	github.com/containers/buildah v1.41.1-0.20250825221131-264309dc1081
@@ -73,7 +73,7 @@ require (
 	golang.org/x/sync v0.16.0
 	golang.org/x/sys v0.35.0
 	golang.org/x/term v0.34.0
-	google.golang.org/protobuf v1.36.7
+	google.golang.org/protobuf v1.36.8
 	gopkg.in/inf.v0 v0.9.1
 	gopkg.in/yaml.v3 v3.0.1
 	sigs.k8s.io/yaml v1.6.0
@@ -168,7 +168,7 @@ require (
 	github.com/tklauser/go-sysconf v0.3.15 // indirect
 	github.com/tklauser/numcpus v0.10.0 // indirect
 	github.com/u-root/uio v0.0.0-20240224005618-d2acac8f3701 // indirect
-	github.com/ulikunitz/xz v0.5.13 // indirect
+	github.com/ulikunitz/xz v0.5.15 // indirect
 	github.com/vbatts/tar-split v0.12.1 // indirect
 	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
