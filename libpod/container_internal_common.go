@@ -420,6 +420,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				// Podman decided for --no-dereference as many
 				// bin-utils tools (e..g, touch, chown, cp) do.
 				options = append(options, "copy-symlink")
+			case "copy", "nocopy":
+				// no real OCI runtime bind mount options, these should already be handled by the named volume mount above
 			default:
 				options = append(options, o)
 			}
