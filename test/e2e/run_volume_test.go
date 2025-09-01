@@ -3,6 +3,7 @@
 package integration
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // in-container mount point: using a path that is definitely not present
@@ -448,9 +450,27 @@ var _ = Describe("Podman run with volumes", func() {
 		Expect(separateVolumeSession).Should(ExitCleanly())
 		Expect(separateVolumeSession.OutputToString()).To(Equal(baselineOutput))
 
-		copySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol3:/etc/apk:copy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
-		copySession.WaitWithDefaultTimeout()
-		Expect(copySession).Should(ExitCleanly())
+		podmanTest.PodmanExitCleanly("run", "--name", "testctr", "-v", "testvol3:/etc/apk:copy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch")
+
+		inspect := podmanTest.PodmanExitCleanly("container", "inspect", "testctr", "--format", "{{.OCIConfigPath}}")
+
+		// Make extra check that the OCI config does not contain the copy opt, runc 1.3.0 fails on that while crun does not.
+		// We only test crun upstream so make sure the spec is sane: https://github.com/containers/podman/issues/26938
+		f, err := os.Open(inspect.OutputToString())
+		Expect(err).ToNot(HaveOccurred())
+		defer f.Close()
+		var spec specs.Spec
+		err = json.NewDecoder(f).Decode(&spec)
+		Expect(err).ToNot(HaveOccurred())
+
+		found := false
+		for _, m := range spec.Mounts {
+			if m.Destination == "/etc/apk" {
+				found = true
+				Expect(m.Options).To(Equal([]string{"rprivate", "nosuid", "nodev", "rbind"}))
+			}
+		}
+		Expect(found).To(BeTrue(), "OCI spec contains /etc/apk mount")
 
 		noCopySession := podmanTest.Podman([]string{"run", "--rm", "-v", "testvol4:/etc/apk:nocopy", ALPINE, "stat", "-c", "%h", "/etc/apk/arch"})
 		noCopySession.WaitWithDefaultTimeout()
