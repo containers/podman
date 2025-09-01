@@ -48,7 +48,13 @@ func (d *timeValue) Type() string {
 	return "time"
 }
 
-func (d *timeValue) String() string { return d.Time.Format(time.RFC3339Nano) }
+func (d *timeValue) String() string {
+	if d.Time.IsZero() {
+		return ""
+	} else {
+		return d.Time.Format(time.RFC3339Nano)
+	}
+}
 
 // GetTime return the time value of a flag with the given name
 func (f *FlagSet) GetTime(name string) (time.Time, error) {
