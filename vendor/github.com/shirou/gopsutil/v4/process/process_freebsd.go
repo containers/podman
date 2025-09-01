@@ -79,7 +79,7 @@ func (p *Process) CwdWithContext(_ context.Context) (string, error) {
 
 	var k kinfoFile
 	br := bytes.NewReader(buf)
-	if err := common.Read(br, binary.LittleEndian, &k); err != nil {
+	if err := binary.Read(br, binary.LittleEndian, &k); err != nil {
 		return "", err
 	}
 	cwd := common.IntToString(k.Path[:])
@@ -279,7 +279,7 @@ func (p *Process) MemoryInfoWithContext(_ context.Context) (*MemoryInfoStat, err
 	if err != nil {
 		return nil, err
 	}
-	pageSize := common.LittleEndian.Uint16([]byte(v))
+	pageSize := binary.LittleEndian.Uint16([]byte(v))
 
 	return &MemoryInfoStat{
 		RSS: uint64(k.Rssize) * uint64(pageSize),

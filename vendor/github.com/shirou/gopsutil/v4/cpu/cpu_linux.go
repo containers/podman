@@ -81,6 +81,13 @@ var armModelToModelName = map[uint64]string{
 	0xd4c: "Cortex-X1C",
 	0xd4d: "Cortex-A715",
 	0xd4e: "Cortex-X3",
+	0xd4f: "Neoverse-V2",
+	0xd81: "Cortex-A720",
+	0xd82: "Cortex-X4",
+	0xd84: "Neoverse-V3",
+	0xd85: "Cortex-X925",
+	0xd87: "Cortex-A725",
+	0xd8e: "Neoverse-N3",
 }
 
 func init() {
@@ -98,6 +105,7 @@ func Times(percpu bool) ([]TimesStat, error) {
 func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
 	filename := common.HostProcWithContext(ctx, "stat")
 	lines := []string{}
+	var err error
 	if percpu {
 		statlines, err := common.ReadLines(filename)
 		if err != nil || len(statlines) < 2 {
@@ -110,7 +118,10 @@ func TimesWithContext(ctx context.Context, percpu bool) ([]TimesStat, error) {
 			lines = append(lines, line)
 		}
 	} else {
-		lines, _ = common.ReadLinesOffsetN(filename, 0, 1)
+		lines, err = common.ReadLinesOffsetN(filename, 0, 1)
+		if err != nil || len(lines) == 0 {
+			return []TimesStat{}, nil
+		}
 	}
 
 	ret := make([]TimesStat, 0, len(lines))
@@ -174,7 +185,10 @@ func Info() ([]InfoStat, error) {
 
 func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 	filename := common.HostProcWithContext(ctx, "cpuinfo")
-	lines, _ := common.ReadLines(filename)
+	lines, err := common.ReadLines(filename)
+	if err != nil {
+		return nil, fmt.Errorf("could not read %s: %w", filename, err)
+	}
 
 	var ret []InfoStat
 	var processorName string
@@ -269,6 +283,10 @@ func InfoWithContext(ctx context.Context) ([]InfoStat, error) {
 
 			if key == "revision" {
 				val = strings.Split(value, ".")[0]
+			}
+
+			if strings.EqualFold(val, "unknown") {
+				continue
 			}
 
 			t, err := strconv.ParseInt(val, 10, 64)
