@@ -2,8 +2,6 @@
 #
 # podman blkio-related tests
 #
-# bats file_tags=distro-integration
-#
 
 load helpers
 

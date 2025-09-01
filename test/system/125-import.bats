@@ -47,7 +47,7 @@ load helpers
 }
 
 # Integration tag to catch future breakage in tar, e.g. #19407
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman export, alter tarball, re-import" {
     # Create a test file following test
     mkdir $PODMAN_TMPDIR/tmp

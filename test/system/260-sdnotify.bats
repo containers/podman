@@ -116,7 +116,7 @@ function _assert_mainpid_is_conmon() {
     _stop_socat
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "sdnotify : conmon" {
     export NOTIFY_SOCKET=$PODMAN_TMPDIR/conmon.sock
     _start_socat
@@ -155,7 +155,7 @@ READY=1" "sdnotify sent MAINPID and READY"
 
 # These tests can fail in dev. environment because of SELinux.
 # quick fix: chcon -t container_runtime_exec_t ./bin/podman
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "sdnotify : container" {
     _prefetch $SYSTEMD_IMAGE
 
@@ -479,7 +479,7 @@ spec:
 " > $fname
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman kube play - exit-code propagation" {
     fname=$PODMAN_TMPDIR/$(random_string).yaml
 

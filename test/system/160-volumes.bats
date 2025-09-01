@@ -408,7 +408,6 @@ EOF
     is "$output"  "" "no more volumes to prune"
 }
 
-# bats test_tags=distro-integration
 @test "podman volume type=bind" {
     myvoldir=${PODMAN_TMPDIR}/volume_$(random_string)
     mkdir $myvoldir

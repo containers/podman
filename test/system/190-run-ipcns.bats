@@ -3,8 +3,6 @@
 #
 # Tests for podman build
 #
-# bats file_tags=distro-integration
-#
 
 load helpers
 
