@@ -5,6 +5,7 @@
 #
 
 load helpers
+load helpers.network
 
 # bats test_tags=distro-integration
 @test "podman build - basic test" {
@@ -279,20 +280,41 @@ EOF
     tmpdir=$PODMAN_TMPDIR/build-test
     mkdir -p $tmpdir
 
+    # Create a test file with random content
+    INDEX=$PODMAN_TMPDIR/index.txt
+    local content="test-$(random_string)"
+    echo "$content" > $INDEX
+    echo READY > $PODMAN_TMPDIR/ready
+
+    # Setup local webserver
+    local host_port=$(random_free_port)
+    local server=http://127.0.0.1:$host_port
+    serverctr="c1-$(safename)"
+    run_podman run -d --name $serverctr -p "$host_port:80" \
+               -v $INDEX:/var/www/index.txt:Z \
+               -v $PODMAN_TMPDIR/ready:/var/www/ready:Z \
+               -w /var/www \
+               $IMAGE /bin/busybox-extras httpd -f -p 80
+
+    wait_for_command_output "curl -s -S $server/ready" "READY"
+
     cat >$tmpdir/Dockerfile <<EOF
 FROM $IMAGE
-ADD https://github.com/containers/podman/blob/main/README.md /tmp/
+ADD $server/index.txt /tmp/
 EOF
 
     imgname="b-$(safename)"
     run_podman build -t $imgname $tmpdir
-    run_podman run --rm $imgname stat /tmp/README.md
+    run_podman run --rm $imgname cat /tmp/index.txt
+    assert "$output" == "$content" "file has right content"
     run_podman rmi -f $imgname
 
     # Now test COPY. That should fail.
     sed -i -e 's/ADD/COPY/' $tmpdir/Dockerfile
     run_podman 125 build -t $imgname $tmpdir
     is "$output" ".* building at STEP .*: source can't be a URL for COPY"
+
+    run_podman rm -f -t0 $serverctr
 }
 
 
