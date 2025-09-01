@@ -16,11 +16,11 @@ import (
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/rootless"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/stringid"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/stringid"
 )
 
 func (c *Container) copyFromArchive(path string, chown, noOverwriteDirNonDir bool, rename map[string]string, reader io.Reader) (func() error, error) {

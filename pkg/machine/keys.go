@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 var sshCommand = []string{"ssh-keygen", "-N", "", "-t", "ed25519", "-f"}

@@ -11,9 +11,9 @@ import (
 	"os/exec"
 
 	"github.com/containers/buildah/pkg/jail"
-	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/types"
 )
 
 type Netstat struct {

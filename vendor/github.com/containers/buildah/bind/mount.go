@@ -11,10 +11,10 @@ import (
 	"syscall"
 
 	"github.com/containers/buildah/util"
-	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/mount"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/idtools"
+	"go.podman.io/storage/pkg/mount"
 	"golang.org/x/sys/unix"
 )
 

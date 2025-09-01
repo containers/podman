@@ -6,9 +6,9 @@ import (
 	"errors"
 
 	"github.com/containers/buildah/define"
-	nettypes "github.com/containers/common/libnetwork/types"
-	"github.com/containers/storage"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/storage"
 )
 
 // ContainerDevices is an alias for a slice of github.com/opencontainers/runc/libcontainer/configs.Device structures.

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/image/v5/signature"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.podman.io/image/v5/signature"
 )
 
 func TestPolicyDescription(t *testing.T) {

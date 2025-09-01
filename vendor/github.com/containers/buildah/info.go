@@ -12,12 +12,12 @@ import (
 	internalUtil "github.com/containers/buildah/internal/util"
 	putil "github.com/containers/buildah/pkg/util"
 	"github.com/containers/buildah/util"
-	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/storage"
-	"github.com/containers/storage/pkg/system"
-	"github.com/containers/storage/pkg/unshare"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/storage"
+	"go.podman.io/storage/pkg/system"
+	"go.podman.io/storage/pkg/unshare"
 )
 
 // InfoData holds the info type, i.e store, host etc and the data for each type

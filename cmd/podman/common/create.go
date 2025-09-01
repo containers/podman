@@ -4,14 +4,14 @@ import (
 	"errors"
 	"time"
 
-	"github.com/containers/common/pkg/auth"
-	"github.com/containers/common/pkg/completion"
-	commonFlag "github.com/containers/common/pkg/flag"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/auth"
+	"go.podman.io/common/pkg/completion"
+	commonFlag "go.podman.io/common/pkg/flag"
+	"go.podman.io/image/v5/manifest"
 )
 
 const sizeWithUnitFormat = "(format: `<number>[<unit>]`, where unit = b (bytes), k (kibibytes), m (mebibytes), or g (gibibytes))"

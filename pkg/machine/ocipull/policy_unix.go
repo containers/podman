@@ -5,8 +5,8 @@ package ocipull
 import (
 	"path/filepath"
 
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/storage/pkg/homedir"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/storage/pkg/homedir"
 )
 
 func localPolicyOverwrites() []string {

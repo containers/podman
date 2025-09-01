@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/homedir"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/homedir"
 )
 
 // GetDataDir returns the filepath where vm images should

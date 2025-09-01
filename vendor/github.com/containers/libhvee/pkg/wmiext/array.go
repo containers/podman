@@ -41,7 +41,7 @@ func safeArrayCreateVector(variantType ole.VT, lowerBound int32, length uint32) 
 	if ret == 0 { // NULL return value
 		err = fmt.Errorf("could not create safe array")
 	}
-	safearray = (*ole.SafeArray)(unsafe.Pointer(ret))
+	safearray = (*ole.SafeArray)(unsafe.Pointer(ret)) //nolint:govet
 	return
 }
 
@@ -148,7 +148,10 @@ func safeArrayGetElement(safearray *ole.SafeArray, index int64, element unsafe.P
 }
 
 func isVariantValConvertible(variant ole.VARIANT) bool {
-	return !(variant.VT == ole.VT_RECORD || variant.VT == ole.VT_VARIANT)
+	if variant.VT == ole.VT_RECORD || variant.VT == ole.VT_VARIANT {
+		return false
+	}
+	return true
 }
 
 func safeArrayGetAsVariantVal(safeArray *ole.SafeArray, index int64, variant ole.VARIANT) (int64, error) {

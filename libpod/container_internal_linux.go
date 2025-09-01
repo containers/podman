@@ -14,10 +14,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/common/libnetwork/slirp4netns"
-	"github.com/containers/common/libnetwork/types"
-	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/libpod/shutdown"
 	"github.com/containers/podman/v5/pkg/rootless"
@@ -27,6 +23,10 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/libnetwork/slirp4netns"
+	"go.podman.io/common/libnetwork/types"
+	"go.podman.io/common/pkg/cgroups"
+	"go.podman.io/common/pkg/config"
 	"golang.org/x/sys/unix"
 )
 

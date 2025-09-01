@@ -9,10 +9,10 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/wsl"
 	"github.com/containers/podman/v5/pkg/machine/wsl/wutil"
 
-	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/hyperv"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
 )
 
 func Get() (vmconfigs.VMProvider, error) {

@@ -7,14 +7,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/parse"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgenutilexternal"
 	"github.com/containers/podman/v5/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/parse"
 )
 
 var (

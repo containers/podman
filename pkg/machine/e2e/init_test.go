@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/strongunits"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -17,6 +16,7 @@ import (
 	. "github.com/onsi/gomega/gexec"
 	"github.com/shirou/gopsutil/v4/mem"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/strongunits"
 )
 
 var _ = Describe("podman machine init", func() {

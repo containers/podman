@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/containers/podman/v5/pkg/domain/entities"
-	"github.com/containers/storage"
-	"github.com/containers/storage/types"
+	"go.podman.io/storage"
+	"go.podman.io/storage/types"
 )
 
 var (

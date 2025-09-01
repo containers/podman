@@ -9,8 +9,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/sysinfo"
 	"github.com/containers/podman/v5/cmd/podman/common"
 	"github.com/containers/podman/v5/cmd/podman/containers"
 	"github.com/containers/podman/v5/cmd/podman/parse"
@@ -21,9 +19,11 @@ import (
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/specgenutil"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage/pkg/parsers"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/completion"
+	"go.podman.io/common/pkg/sysinfo"
+	"go.podman.io/storage/pkg/parsers"
 )
 
 var (

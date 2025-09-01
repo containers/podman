@@ -6,8 +6,8 @@ import (
 	"net"
 	"strings"
 
-	"github.com/containers/common/pkg/machine"
 	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
+	"go.podman.io/common/pkg/machine"
 )
 
 // WSL machines do not relay ipv4 traffic to dual-stack ports, simulate instead

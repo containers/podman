@@ -19,23 +19,23 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/buildah/define"
-	imageTypes "github.com/containers/image/v5/types"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 	"github.com/containers/podman/v5/pkg/specgen"
 	"github.com/containers/podman/v5/pkg/util"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/fileutils"
-	"github.com/containers/storage/pkg/ioutils"
-	"github.com/containers/storage/pkg/regexp"
 	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/docker/go-units"
 	"github.com/hashicorp/go-multierror"
 	jsoniter "github.com/json-iterator/go"
 	gzip "github.com/klauspost/pgzip"
 	"github.com/sirupsen/logrus"
+	imageTypes "go.podman.io/image/v5/types"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/fileutils"
+	"go.podman.io/storage/pkg/ioutils"
+	"go.podman.io/storage/pkg/regexp"
 )
 
 type devino struct {

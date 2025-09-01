@@ -15,11 +15,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/common/pkg/detach"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/moby/term"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/detach"
 	terminal "golang.org/x/term"
 )
 

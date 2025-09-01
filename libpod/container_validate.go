@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/pkg/shortnames"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v5/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"go.podman.io/image/v5/docker"
+	"go.podman.io/image/v5/pkg/shortnames"
+	"go.podman.io/image/v5/transports/alltransports"
 )
 
 // Validate that the configuration of a container is valid.

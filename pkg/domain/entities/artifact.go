@@ -3,9 +3,9 @@ package entities
 import (
 	"io"
 
-	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	entitiesTypes "github.com/containers/podman/v5/pkg/domain/entities/types"
+	"go.podman.io/image/v5/types"
 )
 
 type ArtifactAddOptions struct {

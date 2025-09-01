@@ -4,10 +4,10 @@ import (
 	"context"
 	"strings"
 
-	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/ocipull"
 	"github.com/containers/podman/v5/pkg/machine/stdpull"
+	"go.podman.io/image/v5/types"
 )
 
 func GetDisk(userInputPath string, dirs *define.MachineDirs, imagePath *define.VMFile, vmType define.VMType, name string, skipTlsVerify types.OptionalBool) error {

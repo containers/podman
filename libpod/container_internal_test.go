@@ -11,10 +11,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/containers/storage/pkg/idtools"
-	stypes "github.com/containers/storage/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/stretchr/testify/assert"
+	"go.podman.io/storage/pkg/idtools"
+	stypes "go.podman.io/storage/types"
 )
 
 // hookPath is the path to an example hook executable.

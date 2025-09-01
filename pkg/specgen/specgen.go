@@ -6,11 +6,11 @@ import (
 	"strings"
 	"syscall"
 
-	nettypes "github.com/containers/common/libnetwork/types"
-	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v5/libpod/define"
-	"github.com/containers/storage/types"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
+	nettypes "go.podman.io/common/libnetwork/types"
+	"go.podman.io/image/v5/manifest"
+	"go.podman.io/storage/types"
 )
 
 // LogConfig describes the logging characteristics for a container

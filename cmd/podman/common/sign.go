@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/common/pkg/completion"
-	"github.com/containers/common/pkg/ssh"
-	"github.com/containers/image/v5/pkg/cli"
-	"github.com/containers/image/v5/pkg/cli/sigstore"
-	"github.com/containers/image/v5/signature/signer"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/spf13/cobra"
+	"go.podman.io/common/pkg/completion"
+	"go.podman.io/common/pkg/ssh"
+	"go.podman.io/image/v5/pkg/cli"
+	"go.podman.io/image/v5/pkg/cli/sigstore"
+	"go.podman.io/image/v5/signature/signer"
 )
 
 // SigningCLIOnlyOptions contains signing-related CLI options.

@@ -8,10 +8,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/containers/common/pkg/resize"
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/libpod/define"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/resize"
 	"golang.org/x/term"
 )
 

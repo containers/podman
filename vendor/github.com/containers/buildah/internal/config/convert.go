@@ -4,8 +4,8 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/containers/image/v5/manifest"
 	dockerclient "github.com/fsouza/go-dockerclient"
+	"go.podman.io/image/v5/manifest"
 )
 
 // Schema2ConfigFromGoDockerclientConfig converts a go-dockerclient Config

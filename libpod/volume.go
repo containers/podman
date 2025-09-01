@@ -11,9 +11,9 @@ import (
 	"github.com/containers/podman/v5/libpod/lock"
 	"github.com/containers/podman/v5/libpod/plugin"
 	"github.com/containers/podman/v5/utils"
-	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/directory"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/directory"
 )
 
 // Volume is a libpod named volume.

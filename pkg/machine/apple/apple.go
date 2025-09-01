@@ -12,8 +12,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/common/pkg/config"
-	"github.com/containers/common/pkg/strongunits"
 	gvproxy "github.com/containers/gvisor-tap-vsock/pkg/types"
 	"github.com/containers/podman/v5/pkg/machine"
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -23,6 +21,8 @@ import (
 	"github.com/containers/podman/v5/pkg/systemd/parser"
 	vfConfig "github.com/crc-org/vfkit/pkg/config"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/common/pkg/config"
+	"go.podman.io/common/pkg/strongunits"
 )
 
 const applehvMACAddress = "5a:94:ef:e4:0c:ee"

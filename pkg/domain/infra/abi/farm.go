@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/containers/buildah/pkg/parse"
-	lplatform "github.com/containers/common/libimage/platform"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/emulation"
+	lplatform "go.podman.io/common/libimage/platform"
 )
 
 // FarmNodeName returns the local engine's name.
