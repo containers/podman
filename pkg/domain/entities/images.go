@@ -197,6 +197,8 @@ type ImageSearchOptions struct {
 	SkipTLSVerify types.OptionalBool
 	// ListTags search the available tags of the repository
 	ListTags bool
+	// Whether the engine should fetch and include manifest digests
+	ShowHash bool
 }
 
 // ImageSearchReport is the response from searching images.
