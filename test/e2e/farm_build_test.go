@@ -117,8 +117,7 @@ func makeReverseProxy(remoteSocket string) (*ReverseProxy, error) {
 	return &rp, nil
 }
 
-
-var _ = Context("Testing farm build functionality :", Ordered,  func() {
+var _ = Context("Testing farm build functionality :", Ordered, func() {
 
 	// Note: there are two enclosed contexts:
 	//
@@ -131,8 +130,6 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 	//
 	// Consequently, these two contexts must be performed in ORDER.
 
-
-	
 	const HOST_ARCH = "HOST_ARCH"
 	const LOCAL_HOST = "(local)"
 	const PROXY_URL = "PROXY_URL"
@@ -397,7 +394,6 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 
 		// emuInfo = podmanStaticLocal.PodmanExitCleanly("info", "--format", "{{json .Host.EmulatedArchitectures}}").OutputToString()
 
-
 		// fmt.Printf("socket = %s\n", podmanStaticTest.RemoteSocket)
 		// fmt.Printf("url = %s\n", proxyConnectionURL)
 		// fmt.Printf("offlineUrl = %s\n", offlineConnectionURL)
@@ -491,9 +487,9 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			// at the time the Container was evaluated, NOT the value they had at completion of any
 			// set-up nodes, such as BeforeEach, AfterEach.
 
-			Entry("Creating ConA    ", "ConA",    PROXY_URL,   ""),
-			Entry("Creating ConB    ", "ConB",    PROXY_URL,   ""),
-			Entry("Creating Default ", "Default", PROXY_URL,   ""),
+			Entry("Creating ConA    ", "ConA", PROXY_URL, ""),
+			Entry("Creating ConB    ", "ConB", PROXY_URL, ""),
+			Entry("Creating Default ", "Default", PROXY_URL, ""),
 			Entry("Creating Offline ", "Offline", OFFLINE_URL, ""),
 		)
 		/*##########################################################################################################*/
@@ -548,12 +544,12 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			// will the value they had at the time the ginkgo Container node was evaluated, NOT the value they
 			// had at completion of any set-up nodes, such as BeforeEach, AfterEach.
 
-			Entry("Adding ConA to proxyFarm     ", "proxyFarm",     "ConA"),
-			Entry("Adding ConA to offlineFarm   ", "offlineFarm",   "ConA"),
-			Entry("Adding Offline to offlineFarm", "offlineFarm",   "Offline"),
+			Entry("Adding ConA to proxyFarm     ", "proxyFarm", "ConA"),
+			Entry("Adding ConA to offlineFarm   ", "offlineFarm", "ConA"),
+			Entry("Adding Offline to offlineFarm", "offlineFarm", "Offline"),
 			Entry("Adding ConA to multinodeFarm ", "multinodeFarm", "ConA"),
 			Entry("Adding ConB to multinodeFarm ", "multinodeFarm", "ConB"),
-			Entry("Adding Default to defaultFarm", "defaultFarm",   "Default"),
+			Entry("Adding Default to defaultFarm", "defaultFarm", "Default"),
 		)
 		/*##########################################################################################################*/
 	})
@@ -584,7 +580,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			arch                string
 			expectedTobeBuiltOn string
 			usingEmulation      bool
-			withCleanup  bool
+			withCleanup         bool
 		}
 
 		type expectBuildsOf []build
@@ -592,7 +588,6 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 		type expectFailureWith struct {
 			message string
 		}
-
 
 		/*##########################################################################################################*/
 
@@ -652,7 +647,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			return &PodmanSessionIntegration{session}
 		}
 		/*##########################################################################################################*/
-		
+
 		// the fields below are accessed by ginkgo by reflection, so need to be exported (Capitalized)
 		type Sessions struct {
 			Bld      *PodmanSessionIntegration
@@ -693,7 +688,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			// and the bit containing the metachars we are actually trying to use.
 			regExpStr := regExpEscape(fmt.Sprintf(`finished build for [{%s %s %s}] at "%s": built `, opSys, arch, variant, bldSpec.expectedTobeBuiltOn)) + `(\w+)`
 
-			// Despite our efforts, it is possible that some user input could cause a dodgy regexpi to creep in 
+			// Despite our efforts, it is possible that some user input could cause a dodgy regexpi to creep in
 			// and fail. If so we need to bail.
 			regExp, err := regexp.Compile(regExpStr)
 			if err != nil {
@@ -709,11 +704,17 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			err = nil
 			for i, match := range matches {
 				switch i {
-				case 0: {;}
-				case 1: { foundImageId = match }
-				default:{
-					foundImageId = ""
-					err = fmt.Errorf("Unexpectedly found multiple matches for ImageId")
+				case 0:
+					{
+					}
+				case 1:
+					{
+						foundImageId = match
+					}
+				default:
+					{
+						foundImageId = ""
+						err = fmt.Errorf("Unexpectedly found multiple matches for ImageId")
 					}
 				}
 			}
@@ -777,7 +778,6 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			return SatisfyAll(
 				HaveField("OutputToString()", ContainSubstring(startMessage)),
 				HaveField("OutputToString()", ContainSubstring(endMessage)),
-
 			)
 		}
 		/*##########################################################################################################*/
@@ -810,7 +810,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			return And(matchers...)
 		}
 		/*##########################################################################################################*/
-	
+
 		var indicateAllImagesBuiltToSpecification = func(bldSpecs []build) types.GomegaMatcher {
 			// Checks that the built images on th enodes have been cleared down, if the
 			// --cleardown flag was supplied.
@@ -829,20 +829,20 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 				remainder := bldSpec.arch
 				opSys, remainder, _ := strings.Cut(remainder, "/")
 				arch, _, _ := strings.Cut(remainder, "/")
-	
-				if bldSpec.withCleanup{
+
+				if bldSpec.withCleanup {
 					// Look for a failure message and infer that it means the image has been deleted.
 					matchers = append(matchers, WithTransform(
 						func(sessions []*PodmanSessionIntegration) string {
 							return sessions[i].ErrorToString()
-			 			}, ContainSubstring("failed to find image"),
+						}, ContainSubstring("failed to find image"),
 					))
 				} else {
 					// check os and architesture.
 					matchers = append(matchers, WithTransform(
 						func(sessions []*PodmanSessionIntegration) string {
-							return sessions[i].OutputToString() 
-						},Equal(opSys+"/"+arch),
+							return sessions[i].OutputToString()
+						}, Equal(opSys+"/"+arch),
 					))
 				}
 			}
@@ -933,22 +933,21 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 
 		var transformScenario = func(scenario withTestScenarioOf) withTestScenarioOf {
 
-			scenario.params = strings.ReplaceAll(scenario.params,"HOST_ARCH", hostArch)
+			scenario.params = strings.ReplaceAll(scenario.params, "HOST_ARCH", hostArch)
 
 			if scenario.tag == GOOD_SHORT_TAG {
-				scenario.tag = goodTagBase+strings.ToLower(RandomString(10))
+				scenario.tag = goodTagBase + strings.ToLower(RandomString(10))
 			}
 
 			if scenario.tag == GOOD_LONG_TAG {
-				scenario.tag = goodTagBase+strings.ToLower(RandomString(10))+":tag"
+				scenario.tag = goodTagBase + strings.ToLower(RandomString(10)) + ":tag"
 			}
 
 			return scenario
 		}
 		/*##########################################################################################################*/
 
-
-		var transformExpectedBuild = func( scenario withTestScenarioOf, builds expectBuildsOf) (withTestScenarioOf,expectBuildsOf) {
+		var transformExpectedBuild = func(scenario withTestScenarioOf, builds expectBuildsOf) (withTestScenarioOf, expectBuildsOf) {
 			// The values passed into the test need to be massaged a little before we can use them.
 			//
 			// The only parameters that we can inject DIRECTLY into the table are ones that are
@@ -1013,7 +1012,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 
 			var sessions Sessions
 
-				// "--farm", scenario.farm,
+			// "--farm", scenario.farm,
 			buildCmd := slices.Concat([]string{
 				"farm", "build",
 				"--tls-verify=false"},
@@ -1040,8 +1039,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 		}
 		/*##########################################################################################################*/
 
-
-		var verifyAnyRetainedImages = func( podmanTestInteg *PodmanTestIntegration, bldSession *PodmanSessionIntegration, expectedBuilds expectBuildsOf ) ([]*PodmanSessionIntegration, error){
+		var verifyAnyRetainedImages = func(podmanTestInteg *PodmanTestIntegration, bldSession *PodmanSessionIntegration, expectedBuilds expectBuildsOf) ([]*PodmanSessionIntegration, error) {
 			// Here, we check that the images themselves have been built as they should have been.
 			// Note: we can only do this if the images have been retained (--clean=false)
 
@@ -1063,14 +1061,14 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 				if build.expectedTobeBuiltOn == LOCAL_HOST {
 					imgSess = podmanTestInteg.Podman([]string{"image", "inspect", "--format", "{{.Os}}/{{.Architecture}}", imageId})
 				} else {
-					imgSess = podmanTest.Podman([]string{"--remote", "--connection", build.expectedTobeBuiltOn, "image", "inspect", "--format","{{.Os}}/{{.Architecture}}", imageId})
+					imgSess = podmanTest.Podman([]string{"--remote", "--connection", build.expectedTobeBuiltOn, "image", "inspect", "--format", "{{.Os}}/{{.Architecture}}", imageId})
 				}
 				imgSess.WaitWithDefaultTimeout()
 
 				imgSessions = append(imgSessions, imgSess)
 			}
 
-			return imgSessions,nil
+			return imgSessions, nil
 		}
 		/*##########################################################################################################*/
 
@@ -1132,7 +1130,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 					// accessing the global podmanTest (though we could)
 
 					var sessions *Sessions
-				
+
 					// Sorting etc
 					scenario, expectedBuilds = transformExpectedBuild(scenario, expectedBuilds)
 
@@ -1142,8 +1140,7 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 					// Providing the build has not elected to remove them (--clean), there
 					// ought to be a series of untagged images on the node. We need to scan
 					// these for validation.
-					imgSessions, retainedImageErr := verifyAnyRetainedImages( podmanTestInteg, sessions.Bld, expectedBuilds) 
-
+					imgSessions, retainedImageErr := verifyAnyRetainedImages(podmanTestInteg, sessions.Bld, expectedBuilds)
 
 					// We are expecting all these build to succeed, so first check
 					// that nothing is reporting any failures.
@@ -1165,13 +1162,13 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 
 					// If we haven't been able to successfully scrape the image id from the farm
 					// build output then we can't perform the following test.
-					if retainedImageErr != nil{
+					if retainedImageErr != nil {
 						Skip(fmt.Sprintf("Could not identify the built image ids (Error: %s)", retainedImageErr))
 					}
 					By("Confirm that all non-cleaned up images can found and are of the right architecture")
-					Expect(imgSessions).To(indicateAllImagesBuiltToSpecification(expectedBuilds),"Failed to indicateAllImagesBuiltToSpecification()")
+					Expect(imgSessions).To(indicateAllImagesBuiltToSpecification(expectedBuilds), "Failed to indicateAllImagesBuiltToSpecification()")
 				}
-			
+
 				/*##########################################################################################################*/
 				/*##########################################################################################################*/
 
@@ -1208,14 +1205,14 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 			//  		build{arch: HOST_ARCH, expectedTobeBuiltOn: LOCAL_HOST, usingEmulation: false, withCleanup: false},
 			// 	},
 			// ),
-			//	
+			//
 			Entry("proxyFarm build with --local=true",
 				withTestScenarioOf{farm: "proxyFarm", params: "--local=true", image: standardTestImage, tag: GOOD_SHORT_TAG},
 				expectBuildsOf{
 					build{arch: HOST_ARCH, expectedTobeBuiltOn: LOCAL_HOST, usingEmulation: false, withCleanup: false},
 				},
 			),
-			// 
+			//
 			Entry("proxyFarm build with --local=false",
 				withTestScenarioOf{farm: "proxyFarm", params: "--local=false", image: standardTestImage, tag: GOOD_SHORT_TAG},
 				expectBuildsOf{
@@ -1297,10 +1294,10 @@ var _ = Context("Testing farm build functionality :", Ordered,  func() {
 					// We are expecting all these build to succeed, so first check
 					// that nothing is reporting any failures.
 					By("Check whether the farm build is reporting errors")
-					Expect(sessions.Bld).NotTo(indicateAnErrorFreeFarmBuild(scenario.tag),"indicateAnErrorFreeFarmBuild() unexpectedly succeeded")
+					Expect(sessions.Bld).NotTo(indicateAnErrorFreeFarmBuild(scenario.tag), "indicateAnErrorFreeFarmBuild() unexpectedly succeeded")
 
 					// Now check whether the error message is as expected
-					Expect(sessions.Bld.ErrorToString()).Should(ContainSubstring(expectedFailure.message),"Unexpected Error message")
+					Expect(sessions.Bld.ErrorToString()).Should(ContainSubstring(expectedFailure.message), "Unexpected Error message")
 				}
 
 				/*##########################################################################################################*/
