@@ -1,5 +1,12 @@
 # Release Notes
 
+## 5.6.1
+### Bugfixes
+- Fixed a bug where network creation and removal events were displayed incorrectly when the `journald` events driver was in use.
+- Fixed a bug where the `--security-opt seccomp=unconfined` option was broken on Windows ([#26855](https://github.com/containers/podman/issues/26855)).
+- Fixed a bug where containers created with a name longer than 64 characters, no explicit hostname, the the `container_name_as_hostname` option in `containers.conf` set to `true` would fail to start.
+- Fixed a bug where Podman would fail to start containers when runc 1.3.0 or later was used as the OCI runtime ([#26938](https://github.com/containers/podman/issues/26938)).
+
 ## 5.6.0
 ### Features
 - A new set of commands for managing Quadlets has been added as `podman quadlet install` (install a new Quadlet for the current user), `podman quadlet list` (list installed Quadlets), `podman quadlet print` (print the contents of a Quadlet file), and `podman quadlet rm` (remove a Quadlet). These commands are presently not available with the remote Podman client - we expect support for this to arrive in a future release.
