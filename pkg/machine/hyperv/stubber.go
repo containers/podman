@@ -326,7 +326,7 @@ func (h HyperVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() err
 
 		return errorhandling.JoinErrors(errs)
 	}
-	return []string{}, rmFunc, nil
+	return rmFiles, rmFunc, nil
 }
 
 // canCreate checks if the user can create an Hyper-V machine.
