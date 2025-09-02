@@ -2,11 +2,11 @@
 ####>   podman create, podman-image.unit.5.md.in, pull, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `OS=os`
-{% else %}
+<< else >>
 #### **--os**=*OS*
-{% endif %}
+<< endif >>
 
 Override the OS, defaults to hosts, of the image to be pulled. For example, `windows`.
 Unless overridden, subsequent lookups of the same image in the local storage matches this OS, regardless of the host.

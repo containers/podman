@@ -49,13 +49,13 @@ Quadlet integrates cleanly with both rootless and rootful Podman environments, d
 
 Quadlet supports the following file types:
 
-- **`.container`** — Defines and manages a single container. See **podman-container.unit(5)**.
-- **`.pod`** — Creates a Podman pod that containers can join. See **podman-pod.unit(5)**.
-- **`.volume`** — Ensures a named Podman volume exists. See **podman-volume.unit(5)**.
-- **`.network`** — Creates a Podman network for containers and pods. See **podman-network.unit(5)**.
-- **`.image`** — Pulls and caches a container image. See **podman-image.unit(5)**.
-- **`.build`** — Builds a container image from a Containerfile. See **podman-build.unit(5)**.
-- **`.kube`** — Deploys containers from Kubernetes YAML using `podman kube play`. See **podman-kube.unit(5)**.
+- **`.container`** — Defines and manages a single container. See [podman-container.unit(5)](podman-container.unit.5.md).
+- **`.pod`** — Creates a Podman pod that containers can join. See [podman-pod.unit(5)](podman-pod.unit.5.md).
+- **`.volume`** — Ensures a named Podman volume exists. See [podman-volume.unit(5)](podman-volume.unit.5.md).
+- **`.network`** — Creates a Podman network for containers and pods. See [podman-network.unit(5)](podman-network.unit.5.md).
+- **`.image`** — Pulls and caches a container image. See [podman-image.unit(5)](podman-image.unit.5.md).
+- **`.build`** — Builds a container image from a Containerfile. See [podman-build.unit(5)](podman-build.unit.5.md).
+- **`.kube`** — Deploys containers from Kubernetes YAML using [podman-kube.unit(5)](podman-kube.unit.5.md).
 
 Each file is mapped to a corresponding `.service` unit with a predictable naming pattern, typically appending
 `-<type>.service` to the unit base name.
@@ -76,6 +76,26 @@ Quadlet files should be stored in specific directories depending on rootless or 
 - `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
 - `/etc/containers/systemd/users/$(UID)`
 - `/etc/containers/systemd/users/`
+
+## QUADLET SECTION [Quadlet]
+Some quadlet specific configuration is shared between different unit types. Those settings
+can be configured in the `[Quadlet]` section.
+
+Valid options for `[Quadlet]` are listed below:
+
+| **[Quadlet] options**      | **Description**                                   |
+|----------------------------|---------------------------------------------------|
+| DefaultDependencies=false  | Disable implicit network dependencies to the unit |
+
+### `DefaultDependencies=`
+
+Add Quadlet's default network dependencies to the unit (default is `true`).
+
+When set to false, Quadlet will **not** add a dependency (After=, Wants=) to
+`network-online.target`/`podman-user-wait-network-online.service` to the generated unit.
+
+Note, this option is set in the `[Quadlet]` section. The _systemd_ `[Unit]` section
+has an option with the same name but a different meaning.
 
 # SEE ALSO
 

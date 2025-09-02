@@ -2,11 +2,11 @@
 ####>   podman build, podman-container.unit.5.md.in, create, farm build, pod clone, pod create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `AddDevice=host-device[:container-device][:permissions]`
-{% else %}
+<< else >>
 #### **--device**=*host-device[:container-device][:permissions]*
-{% endif %}
+<< endif >>
 
 Add a host device to the <<container|pod>>. The format of this is
 `HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of

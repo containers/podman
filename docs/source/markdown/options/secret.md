@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `Secret=secret[,opt=opt ...]`
-{% else %}
+<< else >>
 #### **--secret**=*secret[,opt=opt ...]*
-{% endif %}
+<< endif >>
 
 Give the container access to a secret. Can be specified multiple times.
 

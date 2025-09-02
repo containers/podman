@@ -35,17 +35,17 @@ option. To reduce the duplication, the Jinja2 templating system can be
 used to define parts which should be rendered only in Quadlet man-pages:
 
 ```
-    {% if is_quadlet %}
+    << if is_quadlet >>
     ### `DNS=`
-    {% else %}
+    << else >>
     #### **--dns**=*ipaddr*
-    {% endif %}
+    << endif >>
 ```
 
 It is also possible to use in-line condition:
 
 ```
-    {{{ '**DNS=.**' if is_quadlet else '**--dns**' }}}
+    << '**DNS=.**' if is_quadlet else '**--dns**' >>
 ```
 
 Following variables are available for Jinja2 Templates:

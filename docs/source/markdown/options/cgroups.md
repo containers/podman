@@ -2,23 +2,23 @@
 ####>   podman podman-container.unit.5.md.in, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `CgroupsMode=how`
-{% else %}
+<< else >>
 #### **--cgroups**=*how*
-{% endif %}
+<< endif >>
 
 Determines whether the container creates CGroups.
 
-{% if is_quadlet %}
+<< if is_quadlet >>
 By default, the cgroups mode of the container created by Quadlet is `split`,
 which differs from the default (`enabled`) used by the Podman CLI.
 
 If the container joins a pod (i.e. `Pod=` is specified), you may want to change this to
 `no-conmon` or `enabled` so that pod level cgroup resource limits can take effect.
-{% else %}
+<< else >>
 Default is **enabled**.
-{% endif %}
+<< endif >>
 
 The **enabled** option creates a new cgroup under the cgroup-parent.
 The **disabled** option forces the container to not create CGroups, and thus conflicts with CGroup options (**--cgroupns** and **--cgroup-parent**).

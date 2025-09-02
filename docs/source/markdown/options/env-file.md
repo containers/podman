@@ -2,10 +2,10 @@
 ####>   podman podman-container.unit.5.md.in, create, exec, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `EnvironmentFile=file`
-{% else %}
+<< else >>
 #### **--env-file**=*file*
-{% endif %}
+<< endif >>
 
 Read in a line-delimited file of environment variables.

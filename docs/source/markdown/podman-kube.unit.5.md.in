@@ -27,23 +27,6 @@ The `.kube` file is parsed by the `podman-system-generator` at boot or reload, g
 systemctl --user start name.service
 ```
 
-# FILE LOCATIONS
-
-Place `.kube` files in one of the following:
-
-### Rootless
-
-- `$XDG_RUNTIME_DIR/containers/systemd/`
-- `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
-- `/etc/containers/systemd/users/$(UID)`
-- `/etc/containers/systemd/users/`
-
-### Rootful
-
-- `/run/containers/systemd/`
-- `/etc/containers/systemd/`
-- `/usr/share/containers/systemd/`
-
 # OPTIONS
 
 Valid options for `[Kube]` are listed below:
@@ -170,4 +153,5 @@ WantedBy=multi-user.target default.target
 
 [systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html),
 [podman-kube-play(1)](https://docs.podman.io/en/latest/markdown/podman-kube-play.1.html),
+[podman-kube-generate(1)](https://docs.podman.io/en/latest/markdown/podman-kube-generate.1.html),
 [podman-quadlet(7)]

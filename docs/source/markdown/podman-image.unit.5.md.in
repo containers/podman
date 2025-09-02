@@ -20,26 +20,9 @@ particularly interesting when using special options to control image pulls.
 # USAGE SUMMARY
 
 The `.image` file is parsed by the `podman-system-generator` at boot or reload, generating a systemd
-`.service` that runs `podman image pull`. 
+`.service` that runs `podman image pull`.
 
 The reference to the `.image` file can be used in the `.container` file's `Image=` option.
-
-# FILE LOCATIONS
-
-Place `.image` files in one of the following:
-
-### Rootless
-
-- `$XDG_RUNTIME_DIR/containers/systemd/`
-- `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
-- `/etc/containers/systemd/users/$(UID)`
-- `/etc/containers/systemd/users/`
-
-### Rootful
-
-- `/run/containers/systemd/`
-- `/etc/containers/systemd/`
-- `/usr/share/containers/systemd/`
 
 # OPTIONS
 
@@ -145,27 +128,6 @@ This is equivalent to the Podman `--policy` option.
 @@option quadlet:tls-verify
 
 @@option quadlet:variant.container
-
-
-## Quadlet section [Quadlet]
-Some quadlet specific configuration is shared between different unit types. Those settings
-can be configured in the `[Quadlet]` section.
-
-Valid options for `[Quadlet]` are listed below:
-
-| **[Quadlet] options**      | **Description**                                   |
-|----------------------------|---------------------------------------------------|
-| DefaultDependencies=false  | Disable implicit network dependencies to the unit |
-
-### `DefaultDependencies=`
-
-Add Quadlet's default network dependencies to the unit (default is `true`).
-
-When set to false, Quadlet will **not** add a dependency (After=, Wants=) to
-`network-online.target`/`podman-user-wait-network-online.service` to the generated unit.
-
-Note, this option is set in the `[Quadlet]` section. The _systemd_ `[Unit]` section
-has an option with the same name but a different meaning.
 
 # EXAMPLES
 
