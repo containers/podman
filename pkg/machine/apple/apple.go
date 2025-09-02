@@ -454,7 +454,7 @@ func Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
 	rmFunc := func() error {
 		var errs []error
 
-		if err := os.Remove(efiVarsPath); err != nil {
+		if err := os.Remove(efiVarsPath); err != nil && !os.IsNotExist(err) {
 			errs = append(errs, err)
 		}
 
