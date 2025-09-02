@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, run, update
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `HealthOnFailure=action`
-{% else %}
+<< else >>
 #### **--health-on-failure**=*action*
-{% endif %}
+<< endif >>
 
 Action to take once the container transitions to an unhealthy state.  The default is **none**.
 

@@ -146,7 +146,7 @@ sudo systemctl start with-volume.service
 sudo systemctl status with-volume.service
 ```
 
-When started for the first time, the `hello.txt` will not appear in the 
+When started for the first time, the `hello.txt` will not appear in the
 `systemctl status` output, because it has not been created yet. But when
 started for the second time, the output will be:
 

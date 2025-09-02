@@ -2,11 +2,11 @@
 ####>   podman build, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `AddCapability=CAP_xxx`
-{% else %}
+<< else >>
 #### **--cap-add**=*CAP\_xxx*
-{% endif %}
+<< endif >>
 
 
 When executing RUN instructions, run the command specified in the instruction

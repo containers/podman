@@ -2,14 +2,14 @@
 ####>   podman podman-container.unit.5.md.in, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `ReadOnly=`
-{% else %}
+<< else >>
 #### **--read-only**
-{% endif %}
+<< endif >>
 
 Mount the container's root filesystem as read-only.
 
 By default, container root filesystems are writable, allowing processes
-to write files anywhere. By specifying the {{{ '**ReadOnly=**' if is_quadlet else '**--read-only**' }}} flag,
+to write files anywhere. By specifying the << '**ReadOnly=**' if is_quadlet else '**--read-only**' >> flag,
 the containers root filesystem are mounted read-only prohibiting any writes.

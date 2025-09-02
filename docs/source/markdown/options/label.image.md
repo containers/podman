@@ -2,11 +2,11 @@
 ####>   podman build, podman-build.unit.5.md.in, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `Label=label`
-{% else %}
+<< else >>
 #### **--label**=*label*
-{% endif %}
+<< endif >>
 
 Add an image *label* (e.g. label=*value*) to the image metadata. Can be used
 multiple times.

@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, run, update
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
+<< if is_quadlet >>
 ### `HealthInterval=interval`
-{% else %}
+<< else >>
 #### **--health-interval**=*interval*
-{% endif %}
+<< endif >>
 
 Set an interval for the healthchecks. An _interval_ of **disable** results in no automatic timer setup. The default is **30s**.
 
