@@ -14,7 +14,7 @@ require (
 	github.com/containers/buildah v1.41.1-0.20250829135344-3367a9bc2c9f
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.7
-	github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
+	github.com/containers/libhvee v1.10.1
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/psgo v1.9.1-0.20250826150930-4ae76f200c86
 	github.com/containers/winquit v1.1.0
