@@ -481,6 +481,18 @@ podman-testing: bin/podman-testing
 generate-bindings: .install.golangci-lint
 	$(GOCMD) generate ./pkg/bindings/... ;
 
+# DO NOT USE: use local-cross instead
+bin/podman.cross.%:
+	TARGET="$*"; \
+	GOOS="$${TARGET%%.*}"; \
+	GOARCH="$${TARGET##*.}"; \
+	CGO_ENABLED=0 \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		-tags '$(BUILDTAGS_CROSS)' \
+		-o "$@" ./cmd/podman
+
 .PHONY: local-cross
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple architectures
 
