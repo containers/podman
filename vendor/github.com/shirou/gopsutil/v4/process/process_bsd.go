@@ -71,6 +71,6 @@ func (*Process) EnvironWithContext(_ context.Context) ([]string, error) {
 func parseKinfoProc(buf []byte) (KinfoProc, error) {
 	var k KinfoProc
 	br := bytes.NewReader(buf)
-	err := common.Read(br, binary.LittleEndian, &k)
+	err := binary.Read(br, binary.LittleEndian, &k)
 	return k, err
 }

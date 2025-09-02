@@ -61,8 +61,7 @@ func VirtualMemoryWithContext(_ context.Context) (*VirtualMemoryStat, error) {
 	}
 	var bcs Bcachestats
 	br := bytes.NewReader(buf)
-	err = common.Read(br, binary.LittleEndian, &bcs)
-	if err != nil {
+	if err := binary.Read(br, binary.LittleEndian, &bcs); err != nil {
 		return nil, err
 	}
 	ret.Buffers = uint64(bcs.Numbufpages) * p
