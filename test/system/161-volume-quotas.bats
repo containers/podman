@@ -2,8 +2,6 @@
 #
 # podman volume XFS quota tests
 #
-# bats file_tags=distro-integration
-#
 
 load helpers
 

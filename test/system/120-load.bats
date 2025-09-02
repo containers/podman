@@ -220,23 +220,33 @@ verify_iid_and_name() {
 }
 
 @test "podman load - from URL" {
-    get_iid_and_name
-    run_podman save $img_name -o $archive
-    run_podman rmi $iid
+    # Use a different image, not $IMAGE, as we need that for the webserver container.
+    img1=${PODMAN_NONLOCAL_IMAGE_FQN}
+    _prefetch $img1
+
+    run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}' $img1
+    images_output="$output"
+
+    archive=$PODMAN_TMPDIR/myimage-$(safename).tar
+    run_podman save $img1 -o $archive
+    run_podman rmi $img1
 
     HOST_PORT=$(random_free_port)
     SERVER=http://127.0.0.1:$HOST_PORT
 
     # Bind-mount the archive to a container running httpd
+    local cname="cweb=$(safename)"
     run_podman run -d --name myweb -p "$HOST_PORT:80" \
             -v $archive:/var/www/image.tar:Z \
             -w /var/www \
             $IMAGE /bin/busybox-extras httpd -f -p 80
 
     run_podman load -i $SERVER/image.tar
-    verify_iid_and_name $img_name
 
-    run_podman rm -f -t0 myweb
+    run_podman images -a --format '{{.ID}} {{.Repository}}:{{.Tag}}' $img1
+    assert "$output" == "$images_output"
+
+    run_podman rm -f -t0 $cname
 }
 
 @test "podman load - redirect corrupt payload" {

@@ -47,42 +47,42 @@ function check_label() {
 }
 
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: confined container" {
     check_label "" "container_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: container with label=disable" {
     check_label "--security-opt label=disable" "spc_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: privileged container" {
     check_label "--privileged" "spc_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: privileged --userns=host container" {
     check_label "--privileged --userns=host" "spc_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: --ipc=host container" {
     check_label "--ipc=host" "spc_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: init container" {
     check_label "--systemd=always" "container_init_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: init container with --security-opt type" {
     check_label "--systemd=always --security-opt=label=type:spc_t" "spc_t"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: init container with --security-opt level&type" {
     check_label "--systemd=always --security-opt=label=level:s0:c1,c2 --security-opt=label=type:spc_t" "spc_t" "s0:c1,c2"
 }
@@ -92,7 +92,7 @@ function check_label() {
     check_label "--systemd=always --security-opt=label=level:s0:c1,c2" "container_init_t"  "s0:c1,c2"
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: pid=host" {
     # FIXME this test fails when run rootless with runc:
     #   Error: container_linux.go:367: starting container process caused: process_linux.go:495: container init caused: readonly path /proc/asound: operation not permitted: OCI permission denied
@@ -193,7 +193,7 @@ function check_label() {
 }
 
 # pr #7902 - containers in pods should all run under same context
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman selinux: containers in pods share full context" {
     skip_if_no_selinux
 
@@ -269,7 +269,6 @@ function check_label() {
     is "$output" "Error.*: $expect" "podman emits useful diagnostic on failure"
 }
 
-# bats test_tags=distro-integration
 @test "podman selinux: check relabel" {
     skip_if_no_selinux
 

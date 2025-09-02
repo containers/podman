@@ -354,7 +354,7 @@ timeout: sending signal TERM to command.*" "logs --since -f on running container
     _log_test_follow_since k8s-file
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman logs - --since --follow journald" {
     # We can't use journald on RHEL as rootless: rhbz#1895105
     skip_if_journald_unavailable
@@ -398,7 +398,7 @@ $content--2.*" "logs --until -f on running container works"
     _log_test_follow_until k8s-file
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "podman logs - --until --follow journald" {
     # We can't use journald on RHEL as rootless: rhbz#1895105
     skip_if_journald_unavailable

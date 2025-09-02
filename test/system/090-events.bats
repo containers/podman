@@ -6,7 +6,7 @@
 load helpers
 load helpers.network
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "events with a filter by label and --no-trunc option" {
     cname=test-$(safename)
     labelname=labelname-$(safename)
@@ -161,7 +161,7 @@ function _events_disjunctive_filters() {
     _events_disjunctive_filters ""
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "events with events_logfile_path in containers.conf" {
     skip_if_remote "remote does not support --events-backend"
     events_file=$PODMAN_TMPDIR/events.log
@@ -183,7 +183,7 @@ function _populate_events_file() {
     done
 }
 
-# bats test_tags=distro-integration, ci:parallel
+# bats test_tags=ci:parallel
 @test "events log-file rotation" {
     skip_if_remote "setting CONTAINERS_CONF_OVERRIDE logger options does not affect remote client"
 

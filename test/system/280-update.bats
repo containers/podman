@@ -16,7 +16,6 @@ function teardown() {
 }
 
 
-# bats test_tags=distro-integration
 @test "podman update - test all options" {
     local cgv=1
     if is_cgroupsv2; then
