@@ -484,7 +484,7 @@ generate-bindings: .install.golangci-lint
 # Do the cross build with the OS/ARCH extrcted from the target name, i.e.
 # pass a path like "podman.cross.linux.amd64". This target is used by
 # local-cross to build all CROSS_BUILD_TARGETS.
-bin/podman.cross.%:
+bin/podman.cross.%: $(SOURCES)
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}"; \
 	GOARCH="$${TARGET##*.}"; \
