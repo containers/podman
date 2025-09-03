@@ -30,6 +30,17 @@ func (c *EngineConfig) validatePaths() error {
 	return nil
 }
 
+func (c *EngineConfig) validateRuntimeNames() error {
+	// Check if runtimes specified under [engine.runtimes_flags] can be found under [engine.runtimes]
+	for runtime := range c.OCIRuntimesFlags {
+		if _, exists := c.OCIRuntimes[runtime]; !exists {
+			return fmt.Errorf("invalid runtime %q in [engine.runtimes_flags]: "+
+				"not defined in [engine.runtimes]", runtime)
+		}
+	}
+	return nil
+}
+
 func (c *ContainersConfig) validateDevices() error {
 	for _, d := range c.Devices.Get() {
 		if parser.IsQualifiedName(d) {

@@ -112,13 +112,13 @@ func (m *openpgpSigningMechanism) importKeysFromBytes(blob []byte) ([]string, er
 
 // SupportsSigning returns nil if the mechanism supports signing, or a SigningNotSupportedError.
 func (m *openpgpSigningMechanism) SupportsSigning() error {
-	return SigningNotSupportedError("signing is not supported in github.com/containers/image built with the containers_image_openpgp build tag")
+	return SigningNotSupportedError("signing is not supported in go.podman.io/image built with the containers_image_openpgp build tag")
 }
 
 // Sign creates a (non-detached) signature of input using keyIdentity.
 // Fails with a SigningNotSupportedError if the mechanism does not support signing.
 func (m *openpgpSigningMechanism) SignWithPassphrase(input []byte, keyIdentity string, passphrase string) ([]byte, error) {
-	return nil, SigningNotSupportedError("signing is not supported in github.com/containers/image built with the containers_image_openpgp build tag")
+	return nil, SigningNotSupportedError("signing is not supported in go.podman.io/image built with the containers_image_openpgp build tag")
 }
 
 // Sign creates a (non-detached) signature of input using keyIdentity.
@@ -127,7 +127,10 @@ func (m *openpgpSigningMechanism) Sign(input []byte, keyIdentity string) ([]byte
 	return m.SignWithPassphrase(input, keyIdentity, "")
 }
 
-// Verify parses unverifiedSignature and returns the content and the signer's identity
+// Verify parses unverifiedSignature and returns the content and the signer's identity.
+// For mechanisms created using NewEphemeralGPGSigningMechanism, the returned key identity
+// is expected to be one of the values returned by NewEphemeralGPGSigningMechanism,
+// or the mechanism should implement signingMechanismWithVerificationIdentityLookup.
 func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents []byte, keyIdentity string, err error) {
 	md, err := openpgp.ReadMessage(bytes.NewReader(unverifiedSignature), m.keyring, nil, nil)
 	if err != nil {
@@ -166,7 +169,7 @@ func (m *openpgpSigningMechanism) Verify(unverifiedSignature []byte) (contents [
 	}
 
 	// Uppercase the fingerprint to be compatible with gpgme
-	return content, strings.ToUpper(fmt.Sprintf("%x", md.SignedBy.PublicKey.Fingerprint)), nil
+	return content, strings.ToUpper(fmt.Sprintf("%x", md.SignedBy.Entity.PrimaryKey.Fingerprint)), nil
 }
 
 // UntrustedSignatureContents returns UNTRUSTED contents of the signature WITHOUT ANY VERIFICATION,

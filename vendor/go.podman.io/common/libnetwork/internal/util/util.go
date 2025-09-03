@@ -12,7 +12,7 @@ import (
 )
 
 // GetBridgeInterfaceNames returns all bridge interface names
-// already used by network configs
+// already used by network configs.
 func GetBridgeInterfaceNames(n NetUtil) []string {
 	names := make([]string, 0, n.Len())
 	n.ForEach(func(net types.Network) {
@@ -24,7 +24,7 @@ func GetBridgeInterfaceNames(n NetUtil) []string {
 }
 
 // GetUsedNetworkNames returns all network names already used
-// by network configs
+// by network configs.
 func GetUsedNetworkNames(n NetUtil) []string {
 	names := make([]string, 0, n.Len())
 	n.ForEach(func(net types.Network) {
@@ -35,7 +35,7 @@ func GetUsedNetworkNames(n NetUtil) []string {
 
 // GetFreeDeviceName returns a free device name which can
 // be used for new configs as name and bridge interface name.
-// The base name is suffixed by a number
+// The base name is suffixed by a number.
 func GetFreeDeviceName(n NetUtil) (string, error) {
 	bridgeNames := GetBridgeInterfaceNames(n)
 	netNames := GetUsedNetworkNames(n)
@@ -77,7 +77,7 @@ func GetUsedSubnets(n NetUtil) ([]*net.IPNet, error) {
 	return append(subnets, liveSubnets...), nil
 }
 
-// GetFreeIPv4NetworkSubnet returns a unused ipv4 subnet
+// GetFreeIPv4NetworkSubnet returns a unused ipv4 subnet.
 func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet, subnetPools []config.SubnetPool) (*types.Subnet, error) {
 	var err error
 	for _, pool := range subnetPools {
@@ -109,7 +109,7 @@ func GetFreeIPv4NetworkSubnet(usedNetworks []*net.IPNet, subnetPools []config.Su
 	return nil, errors.New("could not find free subnet from subnet pools")
 }
 
-// GetFreeIPv6NetworkSubnet returns a unused ipv6 subnet
+// GetFreeIPv6NetworkSubnet returns a unused ipv6 subnet.
 func GetFreeIPv6NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) {
 	// FIXME: Is 10000 fine as limit? We should prevent an endless loop.
 	for range 10000 {
@@ -128,7 +128,7 @@ func GetFreeIPv6NetworkSubnet(usedNetworks []*net.IPNet) (*types.Subnet, error) 
 	return nil, errors.New("failed to get random ipv6 subnet")
 }
 
-// Map docker driver network options to podman network options
+// MapDockerBridgeDriverOptions docker driver network options to podman network options.
 func MapDockerBridgeDriverOptions(n *types.Network) {
 	// validate the given options
 	for key, value := range n.Options {

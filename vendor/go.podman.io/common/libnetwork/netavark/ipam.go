@@ -24,7 +24,7 @@ import (
 const (
 	idBucket = "ids"
 	// lastIP this is used as key to store the last allocated ip
-	// note that this string should not be 4 or 16 byte long
+	// note that this string should not be 4 or 16 byte long.
 	lastIP = "lastIP"
 )
 
@@ -380,7 +380,7 @@ func (n *netavarkNetwork) removeNetworkIPAMBucket(network *types.Network) error 
 }
 
 // requiresIPAMAlloc return true when we have to allocate ips for this network
-// it checks the ipam driver and if subnets are set
+// it checks the ipam driver and if subnets are set.
 func requiresIPAMAlloc(network *types.Network) bool {
 	// only do host allocation when driver is set to HostLocalIPAMDriver or unset
 	switch network.IPAMOptions[types.Driver] {

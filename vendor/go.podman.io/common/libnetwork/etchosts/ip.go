@@ -12,7 +12,7 @@ import (
 	"go.podman.io/storage/pkg/unshare"
 )
 
-// HostContainersInternalOptions contains the options for GetHostContainersInternalIP()
+// HostContainersInternalOptions contains the options for GetHostContainersInternalIP().
 type HostContainersInternalOptions struct {
 	// Conf is the containers.Conf, must not be nil
 	Conf *config.Config
@@ -46,7 +46,7 @@ var machineHostContainersInternalIP = sync.OnceValue(func() string {
 	return ""
 })
 
-// GetHostContainersInternalIP returns the host.containers.internal ip
+// GetHostContainersInternalIP returns the host.containers.internal ip.
 func GetHostContainersInternalIP(opts HostContainersInternalOptions) string {
 	switch opts.Conf.Containers.HostContainersInternalIP {
 	case "":
@@ -99,7 +99,7 @@ func GetHostContainersInternalIP(opts HostContainersInternalOptions) string {
 
 // GetHostContainersInternalIPExcluding returns the host.containers.internal ip
 // Exclude are ips that should not be returned, this is useful to prevent returning the same ip as in the container.
-// if netStatus is not nil then networkInterface also must be non nil otherwise this function panics
+// if netStatus is not nil then networkInterface also must be non nil otherwise this function panics.
 func GetHostContainersInternalIPExcluding(conf *config.Config, netStatus map[string]types.StatusBlock, networkInterface types.ContainerNetwork, exclude []net.IP) string {
 	return GetHostContainersInternalIP(HostContainersInternalOptions{
 		Conf:             conf,

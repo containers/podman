@@ -14,7 +14,7 @@ import (
 	"go.podman.io/common/pkg/timetype"
 )
 
-// ComputeUntilTimestamp extracts until timestamp from filters
+// ComputeUntilTimestamp extracts until timestamp from filters.
 func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 	invalid := time.Time{}
 	if len(filterValues) != 1 {
@@ -31,7 +31,7 @@ func ComputeUntilTimestamp(filterValues []string) (time.Time, error) {
 	return time.Unix(seconds, nanoseconds), nil
 }
 
-// filtersFromRequests extracts the "filters" parameter from the specified
+// FiltersFromRequest extracts the "filters" parameter from the specified
 // http.Request.  The parameter can either be a `map[string][]string` as done
 // in new versions of Docker and libpod, or a `map[string]map[string]bool` as
 // done in older versions of Docker.  We have to do a bit of Yoga to support
@@ -85,7 +85,7 @@ func FiltersFromRequest(r *http.Request) ([]string, error) {
 }
 
 // PrepareFilters prepares a *map[string][]string of filters to be later searched
-// in lipod and compat API to get desired filters
+// in lipod and compat API to get desired filters.
 func PrepareFilters(r *http.Request) (map[string][]string, error) {
 	filtersList, err := FiltersFromRequest(r)
 	if err != nil {
@@ -101,7 +101,7 @@ func PrepareFilters(r *http.Request) (map[string][]string, error) {
 	return filterMap, nil
 }
 
-// MatchLabelFilters matches labels and returns true if they are valid
+// MatchLabelFilters matches labels and returns true if they are valid.
 func MatchLabelFilters(filterValues []string, labels map[string]string) bool {
 outer:
 	for _, filterValue := range filterValues {
@@ -118,7 +118,7 @@ outer:
 	return true
 }
 
-// MatchNegatedLabelFilters matches negated labels and returns true if they are valid
+// MatchNegatedLabelFilters matches negated labels and returns true if they are valid.
 func MatchNegatedLabelFilters(filterValues []string, labels map[string]string) bool {
 	for _, filterValue := range filterValues {
 		filterKey, filterValue, _ := strings.Cut(filterValue, "=")
@@ -147,7 +147,7 @@ func matchPattern(pattern string, value string) bool {
 // FilterID is a function used to compare an id against a set of ids, if the
 // input is hex we check if the prefix matches. Otherwise we assume it is a
 // regex and try to match that.
-// see https://github.com/containers/podman/issues/18471 for why we do this
+// see https://github.com/containers/podman/issues/18471 for why we do this.
 func FilterID(id string, filters []string) bool {
 	for _, want := range filters {
 		isRegex := types.NotHexRegex.MatchString(want)

@@ -25,13 +25,13 @@ import (
 // systemRegistriesConfPath is the path to the system-wide registry
 // configuration file and is used to add/subtract potential registries for
 // obtaining images.  You can override this at build time with
-// -ldflags '-X github.com/containers/image/v5/sysregistries.systemRegistriesConfPath=$your_path'
+// -ldflags '-X go.podman.io/image/v5/sysregistries.systemRegistriesConfPath=$your_path'
 var systemRegistriesConfPath = builtinRegistriesConfPath
 
 // systemRegistriesConfDirPath is the path to the system-wide registry
 // configuration directory and is used to add/subtract potential registries for
 // obtaining images.  You can override this at build time with
-// -ldflags '-X github.com/containers/image/v5/sysregistries.systemRegistriesConfDirectoryPath=$your_path'
+// -ldflags '-X go.podman.io/image/v5/sysregistries.systemRegistriesConfDirectoryPath=$your_path'
 var systemRegistriesConfDirPath = builtinRegistriesConfDirPath
 
 // AuthenticationFileHelper is a special key for credential helpers indicating

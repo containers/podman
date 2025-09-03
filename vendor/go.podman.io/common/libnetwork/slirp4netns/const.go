@@ -6,14 +6,14 @@ const (
 	ipv6ConfDefaultAcceptDadSysctl = "/proc/sys/net/ipv6/conf/default/accept_dad"
 	BinaryName                     = "slirp4netns"
 
-	// defaultMTU the default MTU override
+	// defaultMTU the default MTU override.
 	defaultMTU = 65520
 
-	// default slirp4ns subnet
+	// default slirp4ns subnet.
 	defaultSubnet = "10.0.2.0/24"
 )
 
-// SetupResult return type from Setup()
+// SetupResult return type from Setup().
 type SetupResult struct {
 	// Pid of the created slirp4netns process
 	Pid int

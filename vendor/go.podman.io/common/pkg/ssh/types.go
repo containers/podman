@@ -68,7 +68,7 @@ type ConnectionScpReport struct {
 }
 
 // Info is the overall struct that describes the host system
-// running libpod/podman
+// running libpod/podman.
 type Info struct {
 	Host       *HostInfo      `json:"host"`
 	Store      *StoreInfo     `json:"store"`
@@ -77,7 +77,7 @@ type Info struct {
 	Version    Version        `json:"version"`
 }
 
-// Version is an output struct for API
+// Version is an output struct for API.
 type Version struct {
 	APIVersion string
 	Version    string
@@ -89,7 +89,7 @@ type Version struct {
 	Os         string
 }
 
-// SecurityInfo describes the libpod host
+// SecurityInfo describes the libpod host.
 type SecurityInfo struct {
 	AppArmorEnabled     bool   `json:"apparmorEnabled"`
 	DefaultCapabilities string `json:"capabilities"`
@@ -99,7 +99,7 @@ type SecurityInfo struct {
 	SELinuxEnabled      bool   `json:"selinuxEnabled"`
 }
 
-// HostInfo describes the libpod host
+// HostInfo describes the libpod host.
 type HostInfo struct {
 	Arch              string           `json:"arch"`
 	BuildahVersion    string           `json:"buildahVersion"`
@@ -133,26 +133,26 @@ type HostInfo struct {
 	Linkmode        string       `json:"linkmode"`
 }
 
-// RemoteSocket describes information about the API socket
+// RemoteSocket describes information about the API socket.
 type RemoteSocket struct {
 	Path   string `json:"path,omitempty"`
 	Exists bool   `json:"exists,omitempty"`
 }
 
-// SlirpInfo describes the slirp executable that is being used
+// SlirpInfo describes the slirp executable that is being used.
 type SlirpInfo struct {
 	Executable string `json:"executable"`
 	Package    string `json:"package"`
 	Version    string `json:"version"`
 }
 
-// IDMappings describe the GID and UID mappings
+// IDMappings describe the GID and UID mappings.
 type IDMappings struct {
 	GIDMap []idtools.IDMap `json:"gidmap"`
 	UIDMap []idtools.IDMap `json:"uidmap"`
 }
 
-// DistributionInfo describes the host distribution for libpod
+// DistributionInfo describes the host distribution for libpod.
 type DistributionInfo struct {
 	Distribution string `json:"distribution"`
 	Variant      string `json:"variant,omitempty"`
@@ -160,7 +160,7 @@ type DistributionInfo struct {
 	Codename     string `json:"codename,omitempty"`
 }
 
-// ConmonInfo describes the conmon executable being used
+// ConmonInfo describes the conmon executable being used.
 type ConmonInfo struct {
 	Package string `json:"package"`
 	Path    string `json:"path"`
@@ -168,7 +168,7 @@ type ConmonInfo struct {
 }
 
 // OCIRuntimeInfo describes the runtime (crun or runc) being
-// used with podman
+// used with podman.
 type OCIRuntimeInfo struct {
 	Name    string `json:"name"`
 	Package string `json:"package"`
@@ -177,7 +177,7 @@ type OCIRuntimeInfo struct {
 }
 
 // StoreInfo describes the container storage and its
-// attributes
+// attributes.
 type StoreInfo struct {
 	ConfigFile      string         `json:"configFile"`
 	ContainerStore  ContainerStore `json:"containerStore"`
@@ -196,13 +196,13 @@ type StoreInfo struct {
 }
 
 // ImageStore describes the image store.  Right now only the number
-// of images present
+// of images present.
 type ImageStore struct {
 	Number int `json:"number"`
 }
 
 // ContainerStore describes the quantity of containers in the
-// store by status
+// store by status.
 type ContainerStore struct {
 	Number  int `json:"number"`
 	Paused  int `json:"paused"`

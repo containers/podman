@@ -14,19 +14,19 @@ const (
 	defaultIPv4Route = "0.0.0.0/0"
 	defaultIPv6Route = "::/0"
 	// defaultPodmanDomainName is used for the dnsname plugin to define
-	// a localized domain name for a created network
+	// a localized domain name for a created network.
 	defaultPodmanDomainName = "dns.podman"
 
-	// cniDeviceName is the default name for a new bridge, it should be suffixed with an integer
+	// cniDeviceName is the default name for a new bridge, it should be suffixed with an integer.
 	cniDeviceName = "cni-podman"
 
-	// podmanLabelKey key used to store the podman network label in a cni config
+	// podmanLabelKey key used to store the podman network label in a cni config.
 	podmanLabelKey = "podman_labels"
 
-	// podmanOptionsKey key used to store the podman network options in a cni config
+	// podmanOptionsKey key used to store the podman network options in a cni config.
 	podmanOptionsKey = "podman_options"
 
-	// ingressPolicySameBridge is used to only allow connection on the same bridge network
+	// ingressPolicySameBridge is used to only allow connection on the same bridge network.
 	ingressPolicySameBridge = "same-bridge"
 )
 
@@ -66,7 +66,7 @@ type ipamConfig struct {
 	Ranges      [][]ipamLocalHostRangeConf `json:"ranges,omitempty"`
 }
 
-// ipamLocalHostRangeConf describes the new style IPAM ranges
+// ipamLocalHostRangeConf describes the new style IPAM ranges.
 type ipamLocalHostRangeConf struct {
 	Subnet     string `json:"subnet"`
 	RangeStart string `json:"rangeStart,omitempty"`
@@ -74,18 +74,18 @@ type ipamLocalHostRangeConf struct {
 	Gateway    string `json:"gateway,omitempty"`
 }
 
-// ipamRoute describes a route in an ipam config
+// ipamRoute describes a route in an ipam config.
 type ipamRoute struct {
 	Dest string `json:"dst"`
 }
 
-// portMapConfig describes the default portmapping config
+// portMapConfig describes the default portmapping config.
 type portMapConfig struct {
 	PluginType   string          `json:"type"`
 	Capabilities map[string]bool `json:"capabilities"`
 }
 
-// VLANConfig describes the macvlan config
+// VLANConfig describes the macvlan config.
 type VLANConfig struct {
 	PluginType   string          `json:"type"`
 	Master       string          `json:"master"`
@@ -95,30 +95,30 @@ type VLANConfig struct {
 	Capabilities map[string]bool `json:"capabilities,omitempty"`
 }
 
-// firewallConfig describes the firewall plugin
+// firewallConfig describes the firewall plugin.
 type firewallConfig struct {
 	PluginType    string `json:"type"`
 	Backend       string `json:"backend"`
 	IngressPolicy string `json:"ingressPolicy,omitempty"`
 }
 
-// tuningConfig describes the tuning plugin
+// tuningConfig describes the tuning plugin.
 type tuningConfig struct {
 	PluginType string `json:"type"`
 }
 
-// dnsNameConfig describes the dns container name resolution plugin config
+// dnsNameConfig describes the dns container name resolution plugin config.
 type dnsNameConfig struct {
 	PluginType   string          `json:"type"`
 	DomainName   string          `json:"domainName"`
 	Capabilities map[string]bool `json:"capabilities"`
 }
 
-// ncList describes a generic map
+// ncList describes a generic map.
 type ncList map[string]any
 
 // newNcList creates a generic map of values with string
-// keys and adds in version and network name
+// keys and adds in version and network name.
 func newNcList(name, version string, labels, options map[string]string) ncList {
 	n := ncList{}
 	n["cniVersion"] = version
@@ -136,7 +136,7 @@ func newNcList(name, version string, labels, options map[string]string) ncList {
 	return n
 }
 
-// newHostLocalBridge creates a new LocalBridge for host-local
+// newHostLocalBridge creates a new LocalBridge for host-local.
 func newHostLocalBridge(name string, isGateWay, ipMasq bool, mtu, vlan int, ipamConf *ipamConfig) *hostLocalBridge {
 	bridge := hostLocalBridge{
 		PluginType:  "bridge",
@@ -157,7 +157,7 @@ func newHostLocalBridge(name string, isGateWay, ipMasq bool, mtu, vlan int, ipam
 	return &bridge
 }
 
-// newIPAMHostLocalConf creates a new IPAMHostLocal configuration
+// newIPAMHostLocalConf creates a new IPAMHostLocal configuration.
 func newIPAMHostLocalConf(routes []ipamRoute, ipamRanges [][]ipamLocalHostRangeConf) ipamConfig {
 	ipamConf := ipamConfig{
 		PluginType: "host-local",
@@ -168,7 +168,7 @@ func newIPAMHostLocalConf(routes []ipamRoute, ipamRanges [][]ipamLocalHostRangeC
 	return ipamConf
 }
 
-// newIPAMLocalHostRange create a new IPAM range
+// newIPAMLocalHostRange create a new IPAM range.
 func newIPAMLocalHostRange(subnet types.IPNet, leaseRange *types.LeaseRange, gw net.IP) *ipamLocalHostRangeConf {
 	hostRange := &ipamLocalHostRangeConf{
 		Subnet: subnet.String(),
@@ -197,7 +197,7 @@ func newIPAMRoute(r *net.IPNet) ipamRoute {
 }
 
 // newIPAMDefaultRoute creates a new IPAMDefault route of
-// 0.0.0.0/0 for IPv4 or ::/0 for IPv6
+// 0.0.0.0/0 for IPv4 or ::/0 for IPv6.
 func newIPAMDefaultRoute(isIPv6 bool) (ipamRoute, error) {
 	route := defaultIPv4Route
 	if isIPv6 {
@@ -211,7 +211,7 @@ func newIPAMDefaultRoute(isIPv6 bool) (ipamRoute, error) {
 }
 
 // newPortMapPlugin creates a predefined, default portmapping
-// configuration
+// configuration.
 func newPortMapPlugin() portMapConfig {
 	return portMapConfig{
 		PluginType:   "portmap",
@@ -219,7 +219,7 @@ func newPortMapPlugin() portMapConfig {
 	}
 }
 
-// newFirewallPlugin creates a generic firewall plugin
+// newFirewallPlugin creates a generic firewall plugin.
 func newFirewallPlugin(isolate bool) firewallConfig {
 	fw := firewallConfig{
 		PluginType: "firewall",
@@ -230,7 +230,7 @@ func newFirewallPlugin(isolate bool) firewallConfig {
 	return fw
 }
 
-// newTuningPlugin creates a generic tuning section
+// newTuningPlugin creates a generic tuning section.
 func newTuningPlugin() tuningConfig {
 	return tuningConfig{
 		PluginType: "tuning",
@@ -238,7 +238,7 @@ func newTuningPlugin() tuningConfig {
 }
 
 // newDNSNamePlugin creates the dnsname config with a given
-// domainname
+// domainname.
 func newDNSNamePlugin(domainName string) dnsNameConfig {
 	return dnsNameConfig{
 		PluginType:   "dnsname",
@@ -247,7 +247,7 @@ func newDNSNamePlugin(domainName string) dnsNameConfig {
 	}
 }
 
-// hasDNSNamePlugin looks to see if the dnsname cni plugin is present
+// hasDNSNamePlugin looks to see if the dnsname cni plugin is present.
 func hasDNSNamePlugin(paths []string) bool {
 	for _, p := range paths {
 		if err := fileutils.Exists(filepath.Join(p, "dnsname")); err == nil {
@@ -257,7 +257,7 @@ func hasDNSNamePlugin(paths []string) bool {
 	return false
 }
 
-// newVLANPlugin creates a macvlanconfig with a given device name
+// newVLANPlugin creates a macvlanconfig with a given device name.
 func newVLANPlugin(pluginType, device, mode string, mtu int, ipam *ipamConfig) VLANConfig {
 	m := VLANConfig{
 		PluginType: pluginType,

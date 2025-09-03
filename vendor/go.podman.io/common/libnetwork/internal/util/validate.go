@@ -143,7 +143,7 @@ func ValidateSetupOptions(n NetUtil, namespacePath string, options types.SetupOp
 	return nil
 }
 
-// validatePerNetworkOpts checks that all given static ips are in a subnet on this network
+// validatePerNetworkOpts checks that all given static ips are in a subnet on this network.
 func validatePerNetworkOpts(network *types.Network, netOpts *types.PerNetworkOptions) error {
 	if netOpts.InterfaceName == "" {
 		return fmt.Errorf("interface name on network %s is empty", network.Name)

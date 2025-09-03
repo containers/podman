@@ -41,7 +41,7 @@ func LoadProfileFromBytes(body []byte, rs *specs.Spec) (*specs.LinuxSeccomp, err
 	return setupSeccomp(config, rs)
 }
 
-// LoadProfileFromConfig takes a Seccomp struct and a spec to retrieve a LinuxSeccomp
+// LoadProfileFromConfig takes a Seccomp struct and a spec to retrieve a LinuxSeccomp.
 func LoadProfileFromConfig(config *Seccomp, specgen *specs.Spec) (*specs.LinuxSeccomp, error) {
 	return setupSeccomp(config, specgen)
 }
@@ -57,7 +57,7 @@ var nativeToSeccomp = map[string]Arch{
 }
 
 // inSlice tests whether a string is contained in a slice of strings or not.
-// Comparison is case sensitive
+// Comparison is case sensitive.
 func inSlice(slice []string, s string) bool {
 	for _, ss := range slice {
 		if s == ss {

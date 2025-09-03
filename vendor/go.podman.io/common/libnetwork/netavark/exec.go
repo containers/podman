@@ -50,7 +50,7 @@ func newNetavarkError(msg string, err error) error {
 }
 
 // Type to implement io.Writer interface
-// This will write the logrus at info level
+// This will write the logrus at info level.
 type logrusNetavarkWriter struct{}
 
 func (l *logrusNetavarkWriter) Write(b []byte) (int, error) {
@@ -58,7 +58,7 @@ func (l *logrusNetavarkWriter) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-// getRustLogEnv returns the RUST_LOG env var based on the current logrus level
+// getRustLogEnv returns the RUST_LOG env var based on the current logrus level.
 func getRustLogEnv() string {
 	level := logrus.GetLevel().String()
 	// rust env_log uses warn instead of warning

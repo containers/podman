@@ -7,7 +7,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
-// DeepCopyDescriptor copies a Descriptor, deeply copying its contents
+// DeepCopyDescriptor copies a Descriptor, deeply copying its contents.
 func DeepCopyDescriptor(original *v1.Descriptor) *v1.Descriptor {
 	tmp := *original
 	if original.URLs != nil {

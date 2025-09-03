@@ -30,11 +30,11 @@ const (
 	mapGuestAddrOpt = "--map-guest-addr"
 
 	// dnsForwardIpv4 static ip used as nameserver address inside the netns,
-	// given this is a "link local" ip it should be very unlikely that it causes conflicts
+	// given this is a "link local" ip it should be very unlikely that it causes conflicts.
 	dnsForwardIpv4 = "169.254.1.1"
 
 	// mapGuestAddrIpv4 static ip used as forwarder address inside the netns to reach the host,
-	// given this is a "link local" ip it should be very unlikely that it causes conflicts
+	// given this is a "link local" ip it should be very unlikely that it causes conflicts.
 	mapGuestAddrIpv4 = "169.254.1.2"
 )
 
@@ -141,13 +141,13 @@ func Setup(opts *SetupOptions) (*SetupResult, error) {
 	}
 
 	result.IPv6 = ipv6
-	result.DNSForwardIPs = filterIpFamily(dnsForwardIPs, ipv4, ipv6)
-	result.MapGuestAddrIPs = filterIpFamily(mapGuestAddrIPs, ipv4, ipv6)
+	result.DNSForwardIPs = filterIPFamily(dnsForwardIPs, ipv4, ipv6)
+	result.MapGuestAddrIPs = filterIPFamily(mapGuestAddrIPs, ipv4, ipv6)
 
 	return result, nil
 }
 
-func filterIpFamily(ips []string, ipv4, ipv6 bool) []string {
+func filterIPFamily(ips []string, ipv4, ipv6 bool) []string {
 	var result []string
 	for _, ip := range ips {
 		ipp := net.ParseIP(ip)

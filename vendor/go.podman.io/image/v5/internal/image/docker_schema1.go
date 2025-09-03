@@ -202,7 +202,7 @@ func (m *manifestSchema1) convertToManifestSchema2(_ context.Context, options *t
 				d = layerDiffIDs[v2Index]
 			}
 			layers = append(layers, manifest.Schema2Descriptor{
-				MediaType: "application/vnd.docker.image.rootfs.diff.tar.gzip",
+				MediaType: manifest.DockerV2Schema2LayerMediaType,
 				Size:      size,
 				Digest:    m.m.FSLayers[v1Index].BlobSum,
 			})
@@ -217,7 +217,7 @@ func (m *manifestSchema1) convertToManifestSchema2(_ context.Context, options *t
 		return nil, err
 	}
 	configDescriptor := manifest.Schema2Descriptor{
-		MediaType: "application/vnd.docker.container.image.v1+json",
+		MediaType: manifest.DockerV2Schema2ConfigMediaType,
 		Size:      int64(len(configJSON)),
 		Digest:    digest.FromBytes(configJSON),
 	}

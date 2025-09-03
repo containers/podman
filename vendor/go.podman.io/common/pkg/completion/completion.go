@@ -10,7 +10,7 @@ import (
 	"go.podman.io/common/pkg/capabilities"
 )
 
-// FlagCompletions - hold flag completion functions to be applied later with CompleteCommandFlags()
+// FlagCompletions - hold flag completion functions to be applied later with CompleteCommandFlags().
 type FlagCompletions map[string]func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective)
 
 // CompleteCommandFlags - Add completion functions for each flagname in FlagCompletions.
@@ -22,7 +22,7 @@ func CompleteCommandFlags(cmd *cobra.Command, flags FlagCompletions) {
 
 /* Autocomplete Functions for cobra ValidArgsFunction */
 
-// AutocompleteNone - Block the default shell completion (no paths)
+// AutocompleteNone - Block the default shell completion (no paths).
 func AutocompleteNone(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return nil, cobra.ShellCompDirectiveNoFileComp
 }
@@ -61,7 +61,7 @@ func AutocompleteCapabilities(_ *cobra.Command, _ []string, toComplete string) (
 	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
-// autocompleteSubIDName - autocomplete the names in /etc/subuid or /etc/subgid
+// autocompleteSubIDName - autocomplete the names in /etc/subuid or /etc/subgid.
 func autocompleteSubIDName(filename string) ([]string, cobra.ShellCompDirective) {
 	file, err := os.Open(filename)
 	if err != nil {
@@ -92,7 +92,7 @@ func AutocompleteSubuidName(_ *cobra.Command, _ []string, _ string) ([]string, c
 	return autocompleteSubIDName("/etc/subuid")
 }
 
-// AutocompleteArch - Autocomplete platform supported by container engines
+// AutocompletePlatform - Autocomplete platform supported by container engines.
 func AutocompletePlatform(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	completions := []string{
 		"linux/386",
@@ -114,7 +114,7 @@ func AutocompletePlatform(_ *cobra.Command, _ []string, _ string) ([]string, cob
 	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
-// AutocompleteArch - Autocomplete architectures supported by container engines
+// AutocompleteArch - Autocomplete architectures supported by container engines.
 func AutocompleteArch(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	completions := []string{
 		"386",
@@ -134,19 +134,19 @@ func AutocompleteArch(_ *cobra.Command, _ []string, _ string) ([]string, cobra.S
 	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
-// AutocompleteOS - Autocomplete OS supported by container engines
+// AutocompleteOS - Autocomplete OS supported by container engines.
 func AutocompleteOS(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	completions := []string{"linux", "windows"}
 	return completions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteJSONFormat - Autocomplete format flag option.
-// -> "json"
+// -> "json".
 func AutocompleteJSONFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return []string{"json"}, cobra.ShellCompDirectiveNoFileComp
 }
 
-// AutocompleteOneArg - Autocomplete one random arg
+// AutocompleteOneArg - Autocomplete one random arg.
 func AutocompleteOneArg(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
 		return nil, cobra.ShellCompDirectiveDefault

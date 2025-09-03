@@ -11,7 +11,7 @@ import (
 )
 
 // These are additional predefined layouts for use in Time.Format and Time.Parse
-// with --since and --until parameters for `docker logs` and `docker events`
+// with --since and --until parameters for `docker logs` and `docker events`.
 const (
 	rFC3339Local     = "2006-01-02T15:04:05"           // RFC3339 with local timezone
 	rFC3339NanoLocal = "2006-01-02T15:04:05.999999999" // RFC3339Nano with local timezone
@@ -108,7 +108,7 @@ func GetTimestamp(value string, reference time.Time) (string, error) {
 //	seconds, nanoseconds, err := ParseTimestamp("1136073600.000000001",0)
 //	if err == nil since := time.Unix(seconds, nanoseconds)
 //
-// returns seconds as def(aultSeconds) if value == ""
+// returns seconds as def(aultSeconds) if value == "".
 func ParseTimestamps(value string, def int64) (secs, nanoSecs int64, err error) {
 	if value == "" {
 		return def, 0, nil

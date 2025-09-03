@@ -14,7 +14,7 @@ import (
 
 const connectionsFile = "podman-connections.json"
 
-// connectionsConfigFile returns the path to the rw connections config file
+// connectionsConfigFile returns the path to the rw connections config file.
 func connectionsConfigFile() (string, error) {
 	if path, found := os.LookupEnv("PODMAN_CONNECTIONS_CONF"); found {
 		return path, nil
@@ -179,7 +179,7 @@ func (c *Config) GetConnection(name string, def bool) (*Connection, error) {
 	return nil, fmt.Errorf("connection %q not found", name)
 }
 
-// GetAllConnections return all configured connections
+// GetAllConnections return all configured connections.
 func (c *Config) GetAllConnections() ([]Connection, error) {
 	path, err := connectionsConfigFile()
 	if err != nil {
@@ -279,7 +279,7 @@ func makeFarm(name string, cons []string, def, readWrite bool) Farm {
 	}
 }
 
-// GetAllFarms returns all configured farms
+// GetAllFarms returns all configured farms.
 func (c *Config) GetAllFarms() ([]Farm, error) {
 	path, err := connectionsConfigFile()
 	if err != nil {
