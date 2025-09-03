@@ -3,7 +3,7 @@ package util
 import "net"
 
 // getLiveNetworkSubnets returns a slice of subnets representing what the system
-// has defined as network interfaces
+// has defined as network interfaces.
 func getLiveNetworkSubnets() ([]*net.IPNet, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
@@ -20,7 +20,7 @@ func getLiveNetworkSubnets() ([]*net.IPNet, error) {
 	return nets, nil
 }
 
-// GetLiveNetworkNames returns a list of network interface names on the system
+// GetLiveNetworkNames returns a list of network interface names on the system.
 func GetLiveNetworkNames() ([]string, error) {
 	liveInterfaces, err := net.Interfaces()
 	if err != nil {

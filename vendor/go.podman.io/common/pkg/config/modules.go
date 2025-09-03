@@ -39,7 +39,7 @@ func (o *Options) modules(paths *paths) ([]string, error) {
 // ModuleDirectories return the directories to load modules from:
 // 1) XDG_CONFIG_HOME/HOME if rootless
 // 2) /etc/
-// 3) /usr/share
+// 3) /usr/share.
 func ModuleDirectories() ([]string, error) { // Public API for shell completions in Podman
 	paths, err := defaultPaths()
 	if err != nil {

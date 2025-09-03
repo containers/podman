@@ -18,7 +18,7 @@ func getPidsHandler() *linuxPidHandler {
 	return &linuxPidHandler{}
 }
 
-// Apply set the specified constraints
+// Apply set the specified constraints.
 func (c *linuxPidHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
 	if ctr.cgroup2 {
 		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
@@ -32,7 +32,7 @@ func (c *linuxPidHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) erro
 	return c.Pid.Set(path, res)
 }
 
-// Create the cgroup
+// Create the cgroup.
 func (c *linuxPidHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
 		return false, nil
@@ -40,12 +40,12 @@ func (c *linuxPidHandler) Create(ctr *CgroupControl) (bool, error) {
 	return ctr.createCgroupDirectory(Pids)
 }
 
-// Destroy the cgroup
+// Destroy the cgroup.
 func (c *linuxPidHandler) Destroy(ctr *CgroupControl) error {
 	return rmDirRecursively(ctr.getCgroupv1Path(Pids))
 }
 
-// Stat fills a metrics structure with usage stats for the controller
+// Stat fills a metrics structure with usage stats for the controller.
 func (c *linuxPidHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 	if ctr.config.Path == "" {
 		// nothing we can do to retrieve the pids.current path

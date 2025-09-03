@@ -292,7 +292,7 @@ func (n *netavarkNetwork) networkCreate(newNetwork *types.Network, defaultNet bo
 	return newNetwork, nil
 }
 
-// ipvlan shares the same mac address so supporting DHCP is not really possible
+// ipvlan shares the same mac address so supporting DHCP is not really possible.
 var errIpvlanNoDHCP = errors.New("ipam driver dhcp is not supported with ipvlan")
 
 func createIpvlanOrMacvlan(network *types.Network) error {

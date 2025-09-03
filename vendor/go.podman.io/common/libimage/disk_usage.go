@@ -10,7 +10,7 @@ import (
 	"go.podman.io/storage"
 )
 
-// ImageDiskUsage reports the total size of an image.  That is the size
+// ImageDiskUsage reports the total size of an image.  That is the size.
 type ImageDiskUsage struct {
 	// Number of containers using the image.
 	Containers int

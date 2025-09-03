@@ -18,12 +18,12 @@ import (
 )
 
 const (
-	// defaultNetworkBackendFileName is the file name for sentinel file to store the backend
+	// defaultNetworkBackendFileName is the file name for sentinel file to store the backend.
 	defaultNetworkBackendFileName = "defaultNetworkBackend"
 
-	// netavarkBinary is the name of the netavark binary
+	// netavarkBinary is the name of the netavark binary.
 	netavarkBinary = "netavark"
-	// aardvarkBinary is the name of the aardvark binary
+	// aardvarkBinary is the name of the aardvark binary.
 	aardvarkBinary = "aardvark-dns"
 )
 

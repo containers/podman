@@ -342,14 +342,14 @@ func (n *netavarkNetwork) getNetwork(nameOrID string) (*types.Network, error) {
 
 // Implement the NetUtil interface for easy code sharing with other network interfaces.
 
-// ForEach call the given function for each network
+// ForEach call the given function for each network.
 func (n *netavarkNetwork) ForEach(run func(types.Network)) {
 	for _, val := range n.networks {
 		run(*val)
 	}
 }
 
-// Len return the number of networks
+// Len return the number of networks.
 func (n *netavarkNetwork) Len() int {
 	return len(n.networks)
 }

@@ -23,7 +23,7 @@ func incByte(subnet *net.IPNet, idx int, shift uint) error {
 	return nil
 }
 
-// NextSubnet returns subnet incremented by 1
+// NextSubnet returns subnet incremented by 1.
 func NextSubnet(subnet *net.IPNet) (*net.IPNet, error) {
 	newSubnet := &net.IPNet{
 		IP:   subnet.IP,

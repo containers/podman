@@ -29,7 +29,7 @@ func userConfigPath() (string, error) {
 }
 
 // overrideContainersConfigPath returns the default config path overridden
-// by the root user
+// by the root user.
 func overrideContainersConfigPath() (string, error) {
 	return overrideContainersConfig, nil
 }

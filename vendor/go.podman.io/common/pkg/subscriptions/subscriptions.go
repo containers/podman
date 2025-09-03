@@ -19,17 +19,17 @@ import (
 
 var (
 	// DefaultMountsFile holds the default mount paths in the form
-	// "host_path:container_path"
+	// "host_path:container_path".
 	DefaultMountsFile = "/usr/share/containers/mounts.conf"
 	// OverrideMountsFile holds the default mount paths in the form
-	// "host_path:container_path" overridden by the user
+	// "host_path:container_path" overridden by the user.
 	OverrideMountsFile = "/etc/containers/mounts.conf"
 	// UserOverrideMountsFile holds the default mount paths in the form
-	// "host_path:container_path" overridden by the rootless user
+	// "host_path:container_path" overridden by the rootless user.
 	UserOverrideMountsFile = filepath.Join(os.Getenv("HOME"), ".config/containers/mounts.conf")
 )
 
-// subscriptionData stores the relative name of the file and the content read from it
+// subscriptionData stores the relative name of the file and the content read from it.
 type subscriptionData struct {
 	// relPath is the relative path to the file
 	relPath string
@@ -38,7 +38,7 @@ type subscriptionData struct {
 	dirMode os.FileMode
 }
 
-// saveTo saves subscription data to given directory
+// saveTo saves subscription data to given directory.
 func (s subscriptionData) saveTo(dir string) error {
 	// We need to join the path here and create all parent directories, only
 	// creating dir is not good enough as relPath could also contain directories.
@@ -143,7 +143,7 @@ func getMounts(filePath string) []string {
 	return mounts
 }
 
-// getHostAndCtrDir separates the host:container paths
+// getHostAndCtrDir separates the host:container paths.
 func getMountsMap(path string) (string, string, error) { //nolint
 	arr := strings.SplitN(path, ":", 2)
 	switch len(arr) {
@@ -158,7 +158,7 @@ func getMountsMap(path string) (string, string, error) { //nolint
 // Return true iff the system is in FIPS mode as determined by reading
 // /proc/sys/crypto/fips_enabled.
 func shouldAddFIPSMounts() bool {
-	fips_enabled, err := os.ReadFile("/proc/sys/crypto/fips_enabled")
+	fipsEnabled, err := os.ReadFile("/proc/sys/crypto/fips_enabled")
 	if err != nil {
 		if !errors.Is(err, os.ErrNotExist) {
 			logrus.Errorf("Failed to read /proc/sys/crypto/fips_enabled to determine FIPS state: %v", err)
@@ -166,7 +166,7 @@ func shouldAddFIPSMounts() bool {
 		return false
 	}
 
-	if strings.TrimSpace(string(fips_enabled)) != "1" {
+	if strings.TrimSpace(string(fipsEnabled)) != "1" {
 		logrus.Debug("/proc/sys/crypto/fips_enabled does not contain '1', not adding FIPS mode bind mounts")
 		return false
 	}
@@ -185,7 +185,7 @@ func shouldAddFIPSMounts() bool {
 // uid: to assign to content created for subscriptions
 // gid: to assign to content created for subscriptions
 // rootless: indicates whether container is running in rootless mode
-// disableFips: indicates whether system should ignore fips mode
+// disableFips: indicates whether system should ignore fips mode.
 func MountsWithUIDGID(mountLabel, containerRunDir, mountFile, mountPoint string, uid, gid int, rootless, disableFips bool) []rspec.Mount {
 	var (
 		subscriptionMounts []rspec.Mount
@@ -233,7 +233,7 @@ func rchown(chowndir string, uid, gid int) error {
 }
 
 // addSubscriptionsFromMountsFile copies the contents of host directory to container directory
-// and returns a list of mounts
+// and returns a list of mounts.
 func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string, uid, gid int) ([]rspec.Mount, error) {
 	defaultMountsPaths := getMounts(filePath)
 	mounts := make([]rspec.Mount, 0, len(defaultMountsPaths))
@@ -483,7 +483,7 @@ func addFIPSMounts(mounts *[]rspec.Mount, containerRunDir, mountPoint, mountLabe
 	return nil
 }
 
-// mountExists checks if a mount already exists in the spec
+// mountExists checks if a mount already exists in the spec.
 func mountExists(mounts []rspec.Mount, dest string) bool {
 	for _, mount := range mounts {
 		if mount.Destination == dest {

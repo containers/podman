@@ -295,14 +295,14 @@ func getNetworkIDFromName(name string) string {
 
 // Implement the NetUtil interface for easy code sharing with other network interfaces.
 
-// ForEach call the given function for each network
+// ForEach call the given function for each network.
 func (n *cniNetwork) ForEach(run func(types.Network)) {
 	for _, val := range n.networks {
 		run(*val.libpodNet)
 	}
 }
 
-// Len return the number of networks
+// Len return the number of networks.
 func (n *cniNetwork) Len() int {
 	return len(n.networks)
 }
