@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	// cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins
+	// cniConfigDirRootless is the directory in XDG_CONFIG_HOME for cni plugins.
 	cniConfigDirRootless = "cni/net.d/"
 
 	cniSupported = true

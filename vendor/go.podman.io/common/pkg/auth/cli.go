@@ -9,7 +9,7 @@ import (
 
 // LoginOptions represents common flags in login
 // In addition, the caller should probably provide a --tls-verify flag (that affects the provided
-// *types.SystemContest)
+// *types.SystemContest).
 type LoginOptions struct {
 	// CLI flags managed by the FlagSet returned by GetLoginFlags
 	// Callers that use GetLoginFlags should not need to touch these values at all; callers that use
@@ -30,7 +30,7 @@ type LoginOptions struct {
 	NoWriteBack               bool      // set to true to not write the credentials to the authfile/cred helpers
 }
 
-// LogoutOptions represents the results for flags in logout
+// LogoutOptions represents the results for flags in logout.
 type LogoutOptions struct {
 	// CLI flags managed by the FlagSet returned by GetLogoutFlags
 	// Callers that use GetLogoutFlags should not need to touch these values at all; callers that use
@@ -44,7 +44,7 @@ type LogoutOptions struct {
 	AcceptUnspecifiedRegistry bool      // set to true if allows logout with unspecified registry
 }
 
-// GetLoginFlags defines and returns login flags for containers tools
+// GetLoginFlags defines and returns login flags for containers tools.
 func GetLoginFlags(flags *LoginOptions) *pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.StringVar(&flags.AuthFile, "authfile", "", "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -58,7 +58,7 @@ func GetLoginFlags(flags *LoginOptions) *pflag.FlagSet {
 	return &fs
 }
 
-// GetLoginFlagsCompletions returns the FlagCompletions for the login flags
+// GetLoginFlagsCompletions returns the FlagCompletions for the login flags.
 func GetLoginFlagsCompletions() completion.FlagCompletions {
 	flagCompletion := completion.FlagCompletions{}
 	flagCompletion["authfile"] = completion.AutocompleteDefault
@@ -69,7 +69,7 @@ func GetLoginFlagsCompletions() completion.FlagCompletions {
 	return flagCompletion
 }
 
-// GetLogoutFlags defines and returns logout flags for containers tools
+// GetLogoutFlags defines and returns logout flags for containers tools.
 func GetLogoutFlags(flags *LogoutOptions) *pflag.FlagSet {
 	fs := pflag.FlagSet{}
 	fs.StringVar(&flags.AuthFile, "authfile", "", "path of the authentication file. Use REGISTRY_AUTH_FILE environment variable to override")
@@ -78,7 +78,7 @@ func GetLogoutFlags(flags *LogoutOptions) *pflag.FlagSet {
 	return &fs
 }
 
-// GetLogoutFlagsCompletions returns the FlagCompletions for the logout flags
+// GetLogoutFlagsCompletions returns the FlagCompletions for the logout flags.
 func GetLogoutFlagsCompletions() completion.FlagCompletions {
 	flagCompletion := completion.FlagCompletions{}
 	flagCompletion["authfile"] = completion.AutocompleteDefault

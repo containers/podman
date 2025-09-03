@@ -26,7 +26,7 @@ type HostEntry struct {
 	Names []string
 }
 
-// Params for the New() function call
+// Params for the New() function call.
 type Params struct {
 	// BaseFile is the file where we read entries from and add entries to
 	// the target hosts file. If the name is empty it will not read any entries.
@@ -98,7 +98,7 @@ func Remove(file string, entries HostEntries) error {
 	return nil
 }
 
-// new see comment on New()
+// new see comment on New().
 func newHost(params *Params) error {
 	entries, err := parseExtraHosts(params.ExtraHosts, params.HostContainersInternalIP)
 	if err != nil {
@@ -128,7 +128,7 @@ func newHost(params *Params) error {
 	return writeHostFile(params.TargetFile, entries, containerIPs)
 }
 
-// add see comment on Add()
+// add see comment on Add().
 func add(file string, entries HostEntries) error {
 	currentEntries, err := parseHostsFile(file)
 	if err != nil {
@@ -152,7 +152,7 @@ func add(file string, entries HostEntries) error {
 	return addEntriesIfNotExists(f, entries, names)
 }
 
-// addIfExists see comment on AddIfExists()
+// addIfExists see comment on AddIfExists().
 func addIfExists(file string, existsEntries, newEntries HostEntries) error {
 	// special case when there are no existing entries do a normal add
 	// this can happen when we connect a network which was not connected
@@ -190,7 +190,7 @@ func addIfExists(file string, existsEntries, newEntries HostEntries) error {
 	return nil
 }
 
-// remove see comment on Remove()
+// remove see comment on Remove().
 func remove(file string, entries HostEntries) error {
 	currentEntries, err := parseHostsFile(file)
 	if err != nil {
@@ -300,7 +300,7 @@ func parseHostsFile(file string) (HostEntries, error) {
 	return entries, scanner.Err()
 }
 
-// writeHostFile write the entries to the given file
+// writeHostFile write the entries to the given file.
 func writeHostFile(file string, userEntries, containerIPs HostEntries) error {
 	f, err := os.Create(file)
 	if err != nil {
@@ -322,7 +322,7 @@ func writeHostFile(file string, userEntries, containerIPs HostEntries) error {
 }
 
 // addEntriesIfNotExists only adds the entries for names that are not already
-// in the hosts file, otherwise we start overwriting user entries
+// in the hosts file, otherwise we start overwriting user entries.
 func addEntriesIfNotExists(f io.StringWriter, containerIPs HostEntries, names map[string]struct{}) error {
 	for _, entry := range containerIPs {
 		freeNames := make([]string, 0, len(entry.Names))

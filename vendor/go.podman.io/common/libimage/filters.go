@@ -72,7 +72,7 @@ func (r *Runtime) filterImages(ctx context.Context, images []*Image, filters com
 //
 //	after, since, before, containers, dangling, id, label, readonly, reference, intermediate
 //
-// compileImageFilters returns: compiled filters, if LayerTree is needed, error
+// compileImageFilters returns: compiled filters, if LayerTree is needed, error.
 func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOptions) (compiledFilters, bool, error) {
 	logrus.Tracef("Parsing image filters %s", options.Filters)
 	if len(options.Filters) == 0 {
@@ -254,7 +254,7 @@ func (r *Runtime) bool(duplicate map[string]string, key, value string) (bool, er
 	return set, nil
 }
 
-// filterManifest filters whether or not the image is a manifest list
+// filterManifest filters whether or not the image is a manifest list.
 func filterManifest(ctx context.Context, value bool) filterFunc {
 	return func(img *Image, _ *layerTree) (bool, error) {
 		isManifestList, err := img.IsManifestList(ctx)
@@ -266,7 +266,7 @@ func filterManifest(ctx context.Context, value bool) filterFunc {
 }
 
 // filterReferences creates a reference filter for matching the specified wantedReferenceMatches value (OR logic)
-// and for matching the unwantedReferenceMatches values (AND logic)
+// and for matching the unwantedReferenceMatches values (AND logic).
 func filterReferences(r *Runtime, wantedReferenceMatches, unwantedReferenceMatches []string) filterFunc {
 	return func(img *Image, _ *layerTree) (bool, error) {
 		// Empty reference filters, return true
@@ -357,7 +357,7 @@ func nameMatchesReference(name string, ref reference.Named) bool {
 	return name == ref.String()
 }
 
-// imageMatchesReferenceFilter returns true if an image matches the filter value given
+// imageMatchesReferenceFilter returns true if an image matches the filter value given.
 func imageMatchesReferenceFilter(r *Runtime, img *Image, value string) (bool, error) {
 	lookedUp, _, _ := r.LookupImage(value, nil)
 	if lookedUp != nil {

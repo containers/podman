@@ -744,7 +744,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.0.0-20250826054041-6e4bed3c9118
+# go.podman.io/common v0.65.0
 ## explicit; go 1.23.3
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -811,7 +811,7 @@ go.podman.io/common/pkg/umask
 go.podman.io/common/pkg/util
 go.podman.io/common/pkg/version
 go.podman.io/common/version
-# go.podman.io/image/v5 v5.36.1-0.20250820085751-a13b38f45723
+# go.podman.io/image/v5 v5.37.0
 ## explicit; go 1.23.3
 go.podman.io/image/v5/copy
 go.podman.io/image/v5/directory
@@ -871,6 +871,7 @@ go.podman.io/image/v5/pkg/tlsclientconfig
 go.podman.io/image/v5/sif
 go.podman.io/image/v5/signature
 go.podman.io/image/v5/signature/internal
+go.podman.io/image/v5/signature/internal/sequoia
 go.podman.io/image/v5/signature/signer
 go.podman.io/image/v5/signature/sigstore
 go.podman.io/image/v5/signature/sigstore/fulcio
@@ -883,7 +884,7 @@ go.podman.io/image/v5/transports
 go.podman.io/image/v5/transports/alltransports
 go.podman.io/image/v5/types
 go.podman.io/image/v5/version
-# go.podman.io/storage v1.59.1-0.20250820085751-a13b38f45723
+# go.podman.io/storage v1.60.0
 ## explicit; go 1.23.3
 go.podman.io/storage
 go.podman.io/storage/drivers

@@ -16,6 +16,7 @@
 // repository.
 // It was copied here and modified for local use by the libpod maintainers.
 
+// Package netns contains functions to manage network namespaces on linux.
 package netns
 
 import (
@@ -37,7 +38,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// threadNsPath is the /proc path to the current netns handle for the current thread
+// threadNsPath is the /proc path to the current netns handle for the current thread.
 const threadNsPath = "/proc/thread-self/ns/net"
 
 var errNoFreeName = errors.New("failed to find free netns path name")
@@ -257,7 +258,7 @@ func newNSPath(nsPath string) (ns.NetNS, error) {
 	return ns.GetNS(nsPath)
 }
 
-// UnmountNS unmounts the given netns path
+// UnmountNS unmounts the given netns path.
 func UnmountNS(nsPath string) error {
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
 	if strings.HasPrefix(nsPath, "/proc/") {

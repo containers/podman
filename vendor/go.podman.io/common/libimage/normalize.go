@@ -74,7 +74,7 @@ type NameTagPair struct {
 	named reference.Named
 }
 
-// ToNameTagsPairs splits repoTags into name&tag pairs.
+// ToNameTagPairs splits repoTags into name&tag pairs.
 // Guaranteed to return at least one pair.
 func ToNameTagPairs(repoTags []reference.Named) ([]NameTagPair, error) {
 	none := "<none>"

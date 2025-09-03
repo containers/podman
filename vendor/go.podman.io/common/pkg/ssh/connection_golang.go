@@ -194,7 +194,7 @@ func golangConnectionScp(options ConnectionScpOptions) (*ConnectionScpReport, er
 }
 
 // ExecRemoteCommand takes a ssh client connection and a command to run and executes the
-// command on the specified client. The function returns the Stdout from the client or the Stderr
+// command on the specified client. The function returns the Stdout from the client or the Stderr.
 func ExecRemoteCommand(dial *ssh.Client, run string) ([]byte, error) {
 	return ExecRemoteCommandWithInput(dial, run, nil)
 }

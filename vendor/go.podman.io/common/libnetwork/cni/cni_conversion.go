@@ -213,7 +213,7 @@ func convertIPAMConfToNetwork(network *types.Network, ipam *ipamConfig, confPath
 	return nil
 }
 
-// getNetworkArgsFromConfList returns the map of args in a conflist, argType should be labels or options
+// getNetworkArgsFromConfList returns the map of args in a conflist, argType should be labels or options.
 func getNetworkArgsFromConfList(args map[string]any, argType string) map[string]string {
 	if args, ok := args[argType]; ok {
 		if labels, ok := args.(map[string]any); ok {

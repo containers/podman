@@ -11,16 +11,16 @@ import (
 	"go.podman.io/storage/pkg/regexp"
 )
 
-// Template embeds template.Template to add functionality to methods
+// Template embeds template.Template to add functionality to methods.
 type Template struct {
 	*template.Template
 	isTable bool
 }
 
-// FuncMap is aliased from template.FuncMap
+// FuncMap is aliased from template.FuncMap.
 type FuncMap template.FuncMap
 
-// tableReplacer will remove 'table ' prefix and clean up tabs
+// tableReplacer will remove 'table ' prefix and clean up tabs.
 var tableReplacer = strings.NewReplacer(
 	"table ", "",
 	`\t`, "\t",
@@ -28,7 +28,7 @@ var tableReplacer = strings.NewReplacer(
 	`\n`, "\n",
 )
 
-// escapedReplacer will clean up escaped characters from CLI
+// escapedReplacer will clean up escaped characters from CLI.
 var escapedReplacer = strings.NewReplacer(
 	`\t`, "\t",
 	`\n`, "\n",
@@ -52,7 +52,7 @@ var DefaultFuncs = FuncMap{
 	"upper":    strings.ToUpper,
 }
 
-// NormalizeFormat reads given go template format provided by CLI and munges it into what we need
+// NormalizeFormat reads given go template format provided by CLI and munges it into what we need.
 func NormalizeFormat(format string) string {
 	var f string
 	// two replacers used so we only remove the prefix keyword `table`
@@ -68,7 +68,7 @@ func NormalizeFormat(format string) string {
 	return f
 }
 
-// padWithSpace adds spaces*prefix and spaces*suffix to the input when it is non-empty
+// padWithSpace adds spaces*prefix and spaces*suffix to the input when it is non-empty.
 func padWithSpace(source string, prefix, suffix int) string {
 	if source == "" {
 		return source
@@ -76,7 +76,7 @@ func padWithSpace(source string, prefix, suffix int) string {
 	return strings.Repeat(" ", prefix) + source + strings.Repeat(" ", suffix)
 }
 
-// truncateWithLength truncates the source string up to the length provided by the input
+// truncateWithLength truncates the source string up to the length provided by the input.
 func truncateWithLength(source string, length int) string {
 	if len(source) < length {
 		return source
@@ -124,12 +124,12 @@ func Headers(object any, overrides map[string]string) []map[string]string {
 	return []map[string]string{headers}
 }
 
-// NewTemplate creates a new template object
+// NewTemplate creates a new template object.
 func NewTemplate(name string) *Template {
 	return &Template{Template: template.New(name).Funcs(template.FuncMap(DefaultFuncs))}
 }
 
-// Parse parses text as a template body for t
+// Parse parses text as a template body for t.
 func (t *Template) Parse(text string) (*Template, error) {
 	if strings.HasPrefix(text, "table ") {
 		t.isTable = true
@@ -155,14 +155,14 @@ func (t *Template) Funcs(funcMap FuncMap) *Template {
 	return &Template{Template: t.Template.Funcs(template.FuncMap(m)), isTable: t.isTable}
 }
 
-// IsTable returns true if format string defines a "table"
+// IsTable returns true if format string defines a "table".
 func (t *Template) IsTable() bool {
 	return t.isTable
 }
 
 var rangeRegex = regexp.Delayed(`(?s){{\s*range\s*\.\s*}}.*{{\s*end\s*-?\s*}}`)
 
-// EnforceRange ensures that the format string contains a range
+// EnforceRange ensures that the format string contains a range.
 func EnforceRange(format string) string {
 	if !rangeRegex.MatchString(format) {
 		return "{{range .}}" + format + "{{end -}}"
@@ -170,7 +170,7 @@ func EnforceRange(format string) string {
 	return format
 }
 
-// HasTable returns whether the format is a table
+// HasTable returns whether the format is a table.
 func HasTable(format string) bool {
 	return strings.HasPrefix(format, "table ")
 }

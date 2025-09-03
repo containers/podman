@@ -20,7 +20,7 @@ var (
 )
 
 const (
-	// DefaultLogDriver is the default type of log files
+	// DefaultLogDriver is the default type of log files.
 	DefaultLogDriver = "journald"
 )
 

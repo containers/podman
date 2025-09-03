@@ -23,7 +23,7 @@ type db struct {
 	lastModified time.Time
 }
 
-// loadDB loads database data into the in-memory cache if it has been modified
+// loadDB loads database data into the in-memory cache if it has been modified.
 func (s *SecretsManager) loadDB() error {
 	// check if the db file exists
 	fileInfo, err := os.Stat(s.secretsDBPath)
@@ -120,7 +120,7 @@ func (s *SecretsManager) getExactNameAndID(nameOrID string) (name, id string, er
 }
 
 // exactSecretExists checks if the secret exists, given a name or ID
-// Does not match partial name or IDs
+// Does not match partial name or IDs.
 func (s *SecretsManager) exactSecretExists(nameOrID string) (bool, error) {
 	_, _, err := s.getExactNameAndID(nameOrID)
 	if err != nil {

@@ -23,17 +23,17 @@ type Seccomp struct {
 }
 
 // Architecture is used to represent a specific architecture
-// and its sub-architectures
+// and its sub-architectures.
 type Architecture struct {
 	Arch      Arch   `json:"architecture"`
 	SubArches []Arch `json:"subArchitectures"`
 }
 
-// Arch used for architectures
+// Arch used for architectures.
 type Arch string
 
 // Additional architectures permitted to be used for system calls
-// By default only the native architecture of the kernel is permitted
+// By default only the native architecture of the kernel is permitted.
 const (
 	ArchNative      Arch = "SCMP_ARCH_NATIVE"
 	ArchX86         Arch = "SCMP_ARCH_X86"
@@ -57,10 +57,10 @@ const (
 	ArchRISCV64     Arch = "SCMP_ARCH_RISCV64"
 )
 
-// Action taken upon Seccomp rule match
+// Action taken upon Seccomp rule match.
 type Action string
 
-// Define actions for Seccomp rules
+// Define actions for Seccomp rules.
 const (
 	// ActKill results in termination of the thread that made the system call.
 	ActKill Action = "SCMP_ACT_KILL"
@@ -78,10 +78,10 @@ const (
 	ActNotify     Action = "SCMP_ACT_NOTIFY"
 )
 
-// Operator used to match syscall arguments in Seccomp
+// Operator used to match syscall arguments in Seccomp.
 type Operator string
 
-// Define operators for syscall arguments in Seccomp
+// Define operators for syscall arguments in Seccomp.
 const (
 	OpNotEqual     Operator = "SCMP_CMP_NE"
 	OpLessThan     Operator = "SCMP_CMP_LT"
@@ -92,7 +92,7 @@ const (
 	OpMaskedEqual  Operator = "SCMP_CMP_MASKED_EQ"
 )
 
-// Arg used for matching specific syscall arguments in Seccomp
+// Arg used for matching specific syscall arguments in Seccomp.
 type Arg struct {
 	Index    uint     `json:"index"`
 	Value    uint64   `json:"value"`
@@ -100,13 +100,13 @@ type Arg struct {
 	Op       Operator `json:"op"`
 }
 
-// Filter is used to conditionally apply Seccomp rules
+// Filter is used to conditionally apply Seccomp rules.
 type Filter struct {
 	Caps   []string `json:"caps,omitempty"`
 	Arches []string `json:"arches,omitempty"`
 }
 
-// Syscall is used to match a group of syscalls in Seccomp
+// Syscall is used to match a group of syscalls in Seccomp.
 type Syscall struct {
 	Name     string   `json:"name,omitempty"`
 	Names    []string `json:"names,omitempty"`

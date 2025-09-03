@@ -13,7 +13,7 @@ import (
 	"go.podman.io/storage/pkg/fileutils"
 )
 
-// ValidateVolumeOpts validates a volume's options
+// ValidateVolumeOpts validates a volume's options.
 func ValidateVolumeOpts(options []string) ([]string, error) {
 	var foundRootPropagation, foundRWRO, foundLabelChange, bindType, foundExec, foundDev, foundSuid, foundChown, foundUpperDir, foundWorkDir, foundCopy, foundCopySymlink int
 	finalOpts := make([]string, 0, len(options))
@@ -170,7 +170,7 @@ func isValidDeviceMode(mode string) bool {
 	return true
 }
 
-// ValidateVolumeHostDir validates a volume mount's source directory
+// ValidateVolumeHostDir validates a volume mount's source directory.
 func ValidateVolumeHostDir(hostDir string) error {
 	if hostDir == "" {
 		return errors.New("host directory cannot be empty")

@@ -119,7 +119,7 @@ func (f *Formatter) Funcs(funcMap template.FuncMap) *Formatter {
 	return f
 }
 
-// Init either resets the given tabwriter with new values or wraps w in tabwriter with given values
+// Init either resets the given tabwriter with new values or wraps w in tabwriter with given values.
 func (f *Formatter) Init(w io.Writer, minwidth, tabwidth, padding int, padchar byte, flags uint) *Formatter {
 	flags |= tabwriter.StripEscape
 
@@ -151,12 +151,12 @@ func (f *Formatter) Flush() error {
 	return f.flusher.Flush()
 }
 
-// Writer returns the embedded io.Writer from Formatter
+// Writer returns the embedded io.Writer from Formatter.
 func (f *Formatter) Writer() io.Writer {
 	return f.writer
 }
 
-// New allocates a new, undefined Formatter with the given name and Writer
+// New allocates a new, undefined Formatter with the given name and Writer.
 func New(output io.Writer, name string) *Formatter {
 	f := new(Formatter)
 

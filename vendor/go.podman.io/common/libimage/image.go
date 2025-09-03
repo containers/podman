@@ -267,12 +267,12 @@ func (i *Image) Labels(ctx context.Context) (map[string]string, error) {
 	return data.Labels, nil
 }
 
-// TopLayer returns the top layer id as a string
+// TopLayer returns the top layer id as a string.
 func (i *Image) TopLayer() string {
 	return i.storageImage.TopLayer
 }
 
-// Parent returns the parent image or nil if there is none
+// Parent returns the parent image or nil if there is none.
 func (i *Image) Parent(ctx context.Context) (*Image, error) {
 	tree, err := i.runtime.newFreshLayerTree()
 	if err != nil {
@@ -383,7 +383,7 @@ func (i *Image) removeContainers(options *RemoveImagesOptions) error {
 // an image specified by imageID.
 type RemoveContainerFunc func(imageID string) error
 
-// RemoveImagesReport is the assembled data from removing *one* image.
+// RemoveImageReport is the assembled data from removing *one* image.
 type RemoveImageReport struct {
 	// ID of the image.
 	ID string
@@ -942,7 +942,7 @@ func (i *Image) hasDifferentDigestWithSystemContext(ctx context.Context, remoteR
 	return true, nil
 }
 
-// driverData gets the driver data from the store on a layer
+// driverData gets the driver data from the store on a layer.
 func (i *Image) driverData() (*DriverData, error) {
 	store := i.runtime.store
 	layerID := i.TopLayer()
@@ -995,7 +995,7 @@ func (i *Image) source(ctx context.Context) (types.ImageSource, error) {
 }
 
 // rawConfigBlob returns the image's config as a raw byte slice.  Users need to
-// unmarshal it to the corresponding type (OCI, Docker v2s{1,2})
+// unmarshal it to the corresponding type (OCI, Docker v2s{1,2}).
 func (i *Image) rawConfigBlob(ctx context.Context) ([]byte, error) {
 	ref, err := i.StorageReference()
 	if err != nil {
@@ -1021,7 +1021,7 @@ func (i *Image) Manifest(ctx context.Context) (rawManifest []byte, mimeType stri
 }
 
 // getImageID creates an image object and uses the hex value of the config
-// blob's digest (if it has one) as the image ID for parsing the store reference
+// blob's digest (if it has one) as the image ID for parsing the store reference.
 func getImageID(ctx context.Context, src types.ImageReference, sys *types.SystemContext) (string, error) {
 	newImg, err := src.NewImage(ctx, sys)
 	if err != nil {

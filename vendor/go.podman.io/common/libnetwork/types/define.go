@@ -8,17 +8,17 @@ import (
 )
 
 var (
-	// ErrNoSuchNetwork indicates the requested network does not exist
+	// ErrNoSuchNetwork indicates the requested network does not exist.
 	ErrNoSuchNetwork = errors.New("network not found")
 
-	// ErrInvalidArg indicates that an invalid argument was passed
+	// ErrInvalidArg indicates that an invalid argument was passed.
 	ErrInvalidArg = errors.New("invalid argument")
 
 	// ErrNetworkExists indicates that a network with the given name already
 	// exists.
 	ErrNetworkExists = errors.New("network already exists")
 
-	// ErrNotRootlessNetns indicates the rootless netns can only be used as root
+	// ErrNotRootlessNetns indicates the rootless netns can only be used as root.
 	ErrNotRootlessNetns = errors.New("rootless netns cannot be used as root")
 
 	// NameRegex is a regular expression to validate names.
@@ -33,6 +33,6 @@ var (
 	// a hexadecimal string.
 	NotHexRegex = regexp.Delayed(`[^0-9a-fA-F]`)
 
-	// MaxInterfaceNameLength is the maximum length of a network interface name
+	// MaxInterfaceNameLength is the maximum length of a network interface name.
 	MaxInterfaceNameLength = 15
 )

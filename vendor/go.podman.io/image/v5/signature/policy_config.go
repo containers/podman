@@ -31,7 +31,7 @@ import (
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
 // You can override this at build time with
-// -ldflags '-X github.com/containers/image/v5/signature.systemDefaultPolicyPath=$your_path'
+// -ldflags '-X go.podman.io/image/v5/signature.systemDefaultPolicyPath=$your_path'
 var systemDefaultPolicyPath = builtinDefaultPolicyPath
 
 // userPolicyFile is the path to the per user policy path.

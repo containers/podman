@@ -17,7 +17,7 @@ func (ob *OptionalBool) Present() bool {
 	return ob.present
 }
 
-// Present returns the bool's value. Should only be used if Present() is true.
+// Value returns the bool's value. Should only be used if Present() is true.
 func (ob *OptionalBool) Value() bool {
 	return ob.value
 }
@@ -25,7 +25,7 @@ func (ob *OptionalBool) Value() bool {
 // optionalBool is a cli.Generic == flag.Value implementation equivalent to
 // the one underlying flag.Bool, except that it records whether the flag has been set.
 // This is distinct from optionalBool to (pretend to) force callers to use
-// optionalBoolFlag
+// optionalBoolFlag.
 type optionalBoolValue OptionalBool
 
 // OptionalBoolFlag creates new flag for an optional in the specified flag with
@@ -38,7 +38,7 @@ func OptionalBoolFlag(fs *pflag.FlagSet, p *OptionalBool, name, usage string) *p
 }
 
 // WARNING: Do not directly use this method to define optionalBool flag.
-// Caller should use optionalBoolFlag
+// Caller should use optionalBoolFlag.
 func internalNewOptionalBoolValue(p *OptionalBool) pflag.Value {
 	p.present = false
 	return (*optionalBoolValue)(p)
@@ -84,7 +84,7 @@ func (os *OptionalString) Present() bool {
 	return os.present
 }
 
-// Present returns the string's value. Should only be used if Present() is true.
+// Value returns the string's value. Should only be used if Present() is true.
 func (os *OptionalString) Value() string {
 	return os.value
 }
@@ -92,7 +92,7 @@ func (os *OptionalString) Value() string {
 // optionalString is a cli.Generic == flag.Value implementation equivalent to
 // the one underlying flag.String, except that it records whether the flag has been set.
 // This is distinct from optionalString to (pretend to) force callers to use
-// newoptionalString
+// newoptionalString.
 type optionalStringValue OptionalString
 
 // NewOptionalStringValue returns a pflag.Value for the string.
@@ -132,7 +132,7 @@ func (oi *OptionalInt) Present() bool {
 	return oi.present
 }
 
-// Present returns the int's value. Should only be used if Present() is true.
+// Value returns the int's value. Should only be used if Present() is true.
 func (oi *OptionalInt) Value() int {
 	return oi.value
 }
@@ -140,7 +140,7 @@ func (oi *OptionalInt) Value() int {
 // optionalInt is a cli.Generic == flag.Value implementation equivalent to
 // the one underlying flag.Int, except that it records whether the flag has been set.
 // This is distinct from optionalInt to (pretend to) force callers to use
-// newoptionalIntValue
+// newoptionalIntValue.
 type optionalIntValue OptionalInt
 
 // NewOptionalIntValue returns the pflag.Value of the int.

@@ -19,7 +19,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// WriteFile writes to a cgroup file
+// WriteFile writes to a cgroup file.
 func WriteFile(dir, file, data string) error {
 	fd, err := OpenFile(dir, file, unix.O_WRONLY)
 	if err != nil {
@@ -36,7 +36,7 @@ func WriteFile(dir, file, data string) error {
 	}
 }
 
-// OpenFile opens a cgroup file with the given flags
+// OpenFile opens a cgroup file with the given flags.
 func OpenFile(dir, file string, flags int) (*os.File, error) {
 	var resolveFlags uint64
 	mode := os.FileMode(0)
@@ -92,7 +92,7 @@ func OpenFile(dir, file string, flags int) (*os.File, error) {
 	return os.NewFile(uintptr(fd), cgroupPath), nil
 }
 
-// ReadFile reads from a cgroup file, opening it with the read only flag
+// ReadFile reads from a cgroup file, opening it with the read only flag.
 func ReadFile(dir, file string) (string, error) {
 	fd, err := OpenFile(dir, file, unix.O_RDONLY)
 	if err != nil {
@@ -105,7 +105,7 @@ func ReadFile(dir, file string) (string, error) {
 	return buf.String(), err
 }
 
-// BlkioFiles gets the proper files for blkio weights
+// BlkioFiles gets the proper files for blkio weights.
 func BlkioFiles(cgroupPath string) (wtFile, wtDevFile string) {
 	var weightFile string
 	var weightDeviceFile string
@@ -120,7 +120,7 @@ func BlkioFiles(cgroupPath string) (wtFile, wtDevFile string) {
 	return weightFile, weightDeviceFile
 }
 
-// SetBlkioThrottle sets the throttle limits for the cgroup
+// SetBlkioThrottle sets the throttle limits for the cgroup.
 func SetBlkioThrottle(res *cgroups.Resources, cgroupPath string) error {
 	for _, td := range res.BlkioThrottleReadBpsDevice {
 		if err := WriteFile(cgroupPath, "blkio.throttle.read_bps_device", fmt.Sprintf("%d:%d %d", td.Major, td.Minor, td.Rate)); err != nil {

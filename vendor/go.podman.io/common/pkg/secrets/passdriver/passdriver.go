@@ -78,7 +78,7 @@ func (cfg *driverConfig) findGpgID() {
 	}
 }
 
-// Driver is the passdriver object
+// Driver is the passdriver object.
 type Driver struct {
 	driverConfig
 }
@@ -95,7 +95,7 @@ func NewDriver(opts map[string]string) (*Driver, error) {
 	return driver, nil
 }
 
-// List returns all secret IDs
+// List returns all secret IDs.
 func (d *Driver) List() (secrets []string, err error) {
 	files, err := os.ReadDir(d.Root)
 	if err != nil {
@@ -110,7 +110,7 @@ func (d *Driver) List() (secrets []string, err error) {
 	return secrets, nil
 }
 
-// Lookup returns the bytes associated with a secret ID
+// Lookup returns the bytes associated with a secret ID.
 func (d *Driver) Lookup(id string) ([]byte, error) {
 	out := &bytes.Buffer{}
 	key, err := d.getPath(id)
@@ -126,7 +126,7 @@ func (d *Driver) Lookup(id string) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-// Store saves the bytes associated with an ID. An error is returned if the ID already exists
+// Store saves the bytes associated with an ID. An error is returned if the ID already exists.
 func (d *Driver) Store(id string, data []byte) error {
 	if _, err := d.Lookup(id); err == nil {
 		return fmt.Errorf("%s: %w", id, define.ErrSecretIDExists)

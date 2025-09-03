@@ -12,7 +12,7 @@ import (
 // * "always"  <-> PullPolicyAlways
 // * "missing" <-> PullPolicyMissing
 // * "newer"  <-> PullPolicyNewer
-// * "never"   <-> PullPolicyNever
+// * "never"   <-> PullPolicyNever.
 type PullPolicy int
 
 const (
@@ -41,7 +41,7 @@ const (
 // * "always"  <-> PullPolicyAlways
 // * "missing" <-> PullPolicyMissing
 // * "newer"   <-> PullPolicyNewer
-// * "never"   <-> PullPolicyNever
+// * "never"   <-> PullPolicyNever.
 func (p PullPolicy) String() string {
 	switch p {
 	case PullPolicyAlways:
@@ -72,7 +72,7 @@ func (p PullPolicy) Validate() error {
 // * "always"  <-> PullPolicyAlways
 // * "missing" <-> PullPolicyMissing (also "ifnotpresent" and "")
 // * "newer"   <-> PullPolicyNewer (also "ifnewer")
-// * "never"   <-> PullPolicyNever
+// * "never"   <-> PullPolicyNever.
 func ParsePullPolicy(s string) (PullPolicy, error) {
 	switch strings.ToLower(s) {
 	case "always":
