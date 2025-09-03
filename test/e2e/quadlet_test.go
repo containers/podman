@@ -51,6 +51,8 @@ func calcServiceName(path string) string {
 		service += "-image"
 	case ".build":
 		service += "-build"
+	case ".artifact":
+		service += "-artifact"
 	case ".pod":
 		service += "-pod"
 	}
@@ -1075,6 +1077,9 @@ BOGUS=foo
 		Entry("Build - No Default Dependencies", "no_deps.build"),
 		Entry("Build - Retry", "retry.build"),
 
+		Entry("Artifact - Basic", "basic.artifact"),
+		Entry("Artifact - Options", "options.artifact"),
+
 		Entry("Pod - Basic", "basic.pod"),
 		Entry("Pod - DNS", "dns.pod"),
 		Entry("Pod - DNS Option", "dns-option.pod"),
@@ -1175,6 +1180,7 @@ BOGUS=foo
 		Entry("Container - Quadlet Network overriding service name", "network.quadlet.servicename.container", []string{"service-name.network"}),
 		Entry("Container - Quadlet Volume overriding service name", "volume.servicename.container", []string{"service-name.volume"}),
 		Entry("Container - Quadlet build with multiple tags", "build.multiple-tags.container", []string{"multiple-tags.build"}),
+		Entry("Container - Artifact Mount", "artifact-mount.container", []string{"basic.artifact"}),
 		Entry("Container - Reuse another container's network", "network.reuse.container", []string{"basic.container"}),
 		Entry("Container - Reuse another named container's network", "network.reuse.name.container", []string{"name.container"}),
 		Entry("Container - Reuse another container's network", "a.network.reuse.container", []string{"basic.container"}),
@@ -1183,6 +1189,7 @@ BOGUS=foo
 			"Container - Dependency between quadlet units",
 			"dependent.container",
 			[]string{
+				"basic.artifact",
 				"basic.build",
 				"basic.container",
 				"basic.image",
@@ -1236,6 +1243,7 @@ BOGUS=foo
 			"Build - Dependency between quadlet units",
 			"dependent.build",
 			[]string{
+				"basic.artifact",
 				"basic.build",
 				"basic.container",
 				"basic.image",
@@ -1255,6 +1263,7 @@ BOGUS=foo
 			"Pod - Dependency between quadlet units",
 			"dependent.pod",
 			[]string{
+				"basic.artifact",
 				"basic.build",
 				"basic.container",
 				"basic.image",
@@ -1269,6 +1278,7 @@ BOGUS=foo
 			"Image - Dependency between quadlet units",
 			"dependent.image",
 			[]string{
+				"basic.artifact",
 				"basic.build",
 				"basic.container",
 				"basic.image",
@@ -1283,6 +1293,7 @@ BOGUS=foo
 			"Network - Dependency between quadlet units",
 			"dependent.network",
 			[]string{
+				"basic.artifact",
 				"basic.build",
 				"basic.container",
 				"basic.image",
