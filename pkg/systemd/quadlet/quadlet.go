@@ -1858,6 +1858,9 @@ func handleLogOpt(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 }
 
 func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo, checkImage bool) (string, error) {
+	if source == "" {
+		return "", fmt.Errorf("source cannot be empty")
+	}
 	if source[0] == '.' {
 		var err error
 		source, err = getAbsolutePath(quadletUnitFile, source)
