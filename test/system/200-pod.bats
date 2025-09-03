@@ -338,7 +338,7 @@ EOF
     # send a random string to the container. This will cause the container
     # to output the string to its logs, then exit.
     teststring=$(random_string 30)
-    echo "$teststring" | nc 127.0.0.1 $port_out
+    echo "$teststring" > /dev/tcp/127.0.0.1/$port_out
 
     # Confirm that the container log output is the string we sent it.
     run_podman wait $cid
