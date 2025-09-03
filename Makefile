@@ -481,7 +481,9 @@ podman-testing: bin/podman-testing
 generate-bindings: .install.golangci-lint
 	$(GOCMD) generate ./pkg/bindings/... ;
 
-# DO NOT USE: use local-cross instead
+# Do the cross build with the OS/ARCH extrcted from the target name, i.e.
+# pass a path like "podman.cross.linux.amd64". This target is used by
+# local-cross to build all CROSS_BUILD_TARGETS.
 bin/podman.cross.%:
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}"; \
