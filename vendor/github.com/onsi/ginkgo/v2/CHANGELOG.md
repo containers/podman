@@ -1,3 +1,9 @@
+## 2.25.3
+
+### Fixes
+
+- emit --github-output group only for progress report itself [f01aed1]
+
 ## 2.25.2
 
 ### Fixes
