@@ -810,8 +810,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			defaultMode := v.DefaultMode
 			// Create files and add data to the volume mountpoint based on the Items in the volume
 			for k, v := range v.Items {
-				dataPath := filepath.Join(mountPoint, k)
-				f, err := os.Create(dataPath)
+				f, err := openPathSafely(mountPoint, k)
 				if err != nil {
 					return nil, nil, fmt.Errorf("cannot create file %q at volume mountpoint %q: %w", k, mountPoint, err)
 				}
@@ -821,7 +820,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 					return nil, nil, err
 				}
 				// Set file permissions
-				if err := os.Chmod(f.Name(), os.FileMode(defaultMode)); err != nil {
+				if err := f.Chmod(os.FileMode(defaultMode)); err != nil {
 					return nil, nil, err
 				}
 			}
