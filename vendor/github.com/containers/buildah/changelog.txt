@@ -1,3 +1,6 @@
+- Changelog for v1.41.4 (2025-09-03)
+  * [release-1.41] c/common to v0.64.2, ulikunitz/xv v0.5.12, docker/docker v28.3.3
+
 - Changelog for v1.41.3 (2025-08-14)
   * Commit: don't depend on MountImage(), because .imagestore
 

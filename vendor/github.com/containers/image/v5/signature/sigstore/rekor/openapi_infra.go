@@ -28,9 +28,6 @@ import (
 
 // makeRequest makes a http request to the requested requestPath, and returns the received response.
 func (r *rekorClient) makeRequest(ctx context.Context, method, requestPath string, bodyContent any) (*http.Response, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
 	var body io.Reader
 	headers := http.Header{}
 
