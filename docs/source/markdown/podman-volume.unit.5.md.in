@@ -79,17 +79,8 @@ Specify the volume driver name. When set to `image`, the `Image` key must also b
 
 This is equivalent to the Podman `--driver` option.
 
-### `GlobalArgs=`
+@@option quadlet:global-args
 
-This key contains a list of arguments passed directly between `podman` and `volume`
-in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
-of what unexpected interactions can be caused by these arguments, it is not recommended to use
-this option.
-
-The format of this is a space separated list of arguments, which can optionally be individually
-escaped to allow inclusion of whitespace and other control characters.
-
-This key can be listed multiple times.
 
 ### `Group=`
 
@@ -120,18 +111,7 @@ This key can be listed multiple times.
 
 The mount options to use for a filesystem as used by the **mount(8)** command `-o` option.
 
-### `PodmanArgs=`
-
-This key contains a list of arguments passed directly to the end of the `podman volume create` command
-in the generated file (right before the name of the volume in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
-of what unexpected interactions can be caused by these arguments, is not recommended to use
-this option.
-
-The format of this is a space separated list of arguments, which can optionally be individually
-escaped to allow inclusion of whitespace and other control characters.
-
-This key can be listed multiple times.
+@@option quadlet:podman-args
 
 ### `Type=`
 
