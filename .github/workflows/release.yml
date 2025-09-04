@@ -70,7 +70,7 @@ jobs:
       with:
         ref: ${{needs.check.outputs.version}}
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: stable
     - name: Set up pandoc
@@ -107,7 +107,7 @@ jobs:
       with:
         ref: ${{needs.check.outputs.version}}
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: stable
     - name: Create Keychain
@@ -165,7 +165,7 @@ jobs:
     - name: Download Windows zip artifact
       uses: actions/download-artifact@v5
     - name: Set up Go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: stable
     - name: Set up WiX
