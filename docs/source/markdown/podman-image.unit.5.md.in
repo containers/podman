@@ -48,11 +48,7 @@ Valid options for `[Image]` are listed below:
 | TLSVerify=false                        | --tls-verify=false                               |
 | Variant=arm/v7                         | --variant=arm/v7                                 |
 
-### `AllTags=`
-
-All tagged images in the repository are pulled.
-
-This is equivalent to the Podman `--all-tags` option.
+@@option quadlet:all-tags
 
 @@option quadlet:arch
 
@@ -66,17 +62,7 @@ This is equivalent to the Podman `--all-tags` option.
 
 @@option quadlet:decryption-key
 
-### `GlobalArgs=`
-
-This key contains a list of arguments passed directly between `podman` and `image`
-in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
-of what unexpected interactions can be caused by these arguments, it is not recommended to use
-this option.
-
-The format of this is a space separated list of arguments, which can optionally be individually
-escaped to allow inclusion of whitespace and other control characters.
-
-This key can be listed multiple times.
+@@option quadlet:global-args
 
 ### `Image=`
 
@@ -102,24 +88,9 @@ requires setting
 
 @@option quadlet:os.pull
 
-### `PodmanArgs=`
+@@option quadlet:podman-args
 
-This key contains a list of arguments passed directly to the end of the `podman image pull` command
-in the generated file (right before the image name in the command line). It can be used to
-access Podman features otherwise unsupported by the generator. Since the generator is unaware
-of what unexpected interactions can be caused by these arguments, it is not recommended to use
-this option.
-
-The format of this is a space separated list of arguments, which can optionally be individually
-escaped to allow inclusion of whitespace and other control characters.
-
-This key can be listed multiple times.
-
-### `Policy=`
-
-The pull policy to use when pulling the image.
-
-This is equivalent to the Podman `--policy` option.
+@@option quadlet:policy
 
 @@option quadlet:retry
 
