@@ -859,6 +859,19 @@ func (c *Container) healthCheckExec(config *ExecConfig, timeout time.Duration, s
 		return -1, err
 	}
 	defer func() {
+		// cleanupExecBundle MUST be called with the parent container locked.
+		if !unlock && !c.batched {
+			c.lock.Lock()
+			unlock = true
+
+			if err := c.syncContainer(); err != nil {
+				logrus.Errorf("Error syncing container %s state: %v", c.ID(), err)
+				// Normally we'd want to continue here, get rid of the exec directory.
+				// But the risk of proceeding into a function that can mutate state with a bad state is high.
+				// Lesser of two evils is to bail and leak a directory.
+				return
+			}
+		}
 		if err := c.cleanupExecBundle(session.ID()); err != nil {
 			logrus.Errorf("Container %s light exec session cleanup error: %v", c.ID(), err)
 		}
@@ -971,7 +984,8 @@ func (c *Container) exec(config *ExecConfig, streams *define.AttachStreams, resi
 	return session.ExitCode, nil
 }
 
-// cleanupExecBundle cleanups an exec session after its done
+// cleanupExecBundle cleans up an exec session after completion.
+// MUST BE CALLED with container `c` locked.
 // Please be careful when using this function since it might temporarily unlock
 // the container when os.RemoveAll($bundlePath) fails with ENOTEMPTY or EBUSY
 // errors.
