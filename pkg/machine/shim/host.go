@@ -483,7 +483,7 @@ func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDe
 	// if the machine cannot continue starting due to a signal, ensure the state
 	// reflects the machine is no longer starting
 	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(signalChan, os.Interrupt, syscall.SIGTERM, syscall.SIGPIPE)
 	go func() {
 		sig, ok := <-signalChan
 		if ok {

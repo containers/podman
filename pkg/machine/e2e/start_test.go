@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
@@ -218,6 +220,41 @@ var _ = Describe("podman machine start", func() {
 			Expect(startSession1.errorToString()).To(ContainSubstring("%s already starting or running: only one VM can be active at a time", machine2))
 		}
 	})
+
+	DescribeTable("handles signal interruption during start",
+		func(sig os.Signal, sigName string) {
+			i := new(initMachine)
+			session, err := mb.setCmd(i.withImage(mb.imagePath)).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session).To(Exit(0))
+			// Start machine in background
+			s := new(startMachine)
+			startSession, err := mb.setCmd(s).setTimeout(time.Second * 30).runWithoutWait()
+			Expect(err).ToNot(HaveOccurred())
+			// Give it a moment to start and set up signal handlers
+			time.Sleep(500 * time.Millisecond)
+			// Send the specific signal to the process
+			if startSession.Command.Process != nil {
+				err = startSession.Command.Process.Signal(sig)
+				Expect(err).ToNot(HaveOccurred(), "failed to send %s signal", sigName)
+			}
+			// Should exit cleanly after signal within reasonable time
+			Eventually(startSession, time.Second*15).Should(Exit())
+			// Give a moment for state to be written
+			time.Sleep(100 * time.Millisecond)
+			// Verify machine is not stuck in Starting state
+			inspect := new(inspectMachine)
+			inspect = inspect.withFormat("{{.State}}")
+			inspectSession, err := mb.setCmd(inspect).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(inspectSession).To(Exit(0))
+			state := inspectSession.outputToString()
+			Expect(state).ToNot(Equal(define.Starting), "machine should not be stuck in Starting state after %s signal", sigName)
+		},
+		Entry("SIGINT signal handling", os.Interrupt, "SIGINT"),
+		Entry("SIGTERM signal handling", syscall.SIGTERM, "SIGTERM"),
+		Entry("SIGPIPE signal handling", syscall.SIGPIPE, "SIGPIPE"),
+	)
 })
 
 func mapToPort(uris []string) ([]string, error) {
