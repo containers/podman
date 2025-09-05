@@ -27,7 +27,7 @@ our @Docs = (
     "docs/source/markdown/podman-pod.unit.5.md",
     "docs/source/markdown/podman-volume.unit.5.md",
     "docs/source/markdown/podman-image.unit.5.md",
-    "docs/source/markdown/podman-quadlet.7.md",
+    "docs/source/markdown/podman-systemd.unit.5.md",
 );
 
 # END   user-customizable section
