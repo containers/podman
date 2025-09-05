@@ -141,6 +141,7 @@ var _ = Context("Testing farm build functionality :", Ordered, func() {
 	const OFFLINE_URL = "OFFLINE_URL"
 	const GOOD_SHORT_TAG = "GOOD_SHORT_TAG"
 	const GOOD_LONG_TAG = "GOOD_LONG_TAG"
+	const GOOD_VERY_LONG_TAG = "GOOD_VERY_LONG_TAG"
 
 	type testImageDescriptor struct {
 		image      string
@@ -400,15 +401,6 @@ var _ = Context("Testing farm build functionality :", Ordered, func() {
 		hostArch = strings.Trim(hostArch, "\\\"/")
 
 		// emuInfo = podmanStaticLocal.PodmanExitCleanly("info", "--format", "{{json .Host.EmulatedArchitectures}}").OutputToString()
-
-		// fmt.Printf("socket = %s\n", podmanStaticTest.RemoteSocket)
-		// fmt.Printf("url = %s\n", proxyConnectionURL)
-		// fmt.Printf("offlineUrl = %s\n", offlineConnectionURL)
-		// fmt.Printf("host architecture = %s\n", hostArch)
-		// fmt.Printf("host emulation capability = %s\n", emuInfo)
-		// fmt.Printf("PODMAN_CONNECTIONS_CONF = %s\n", connectionsConf)
-		// fmt.Printf("CONTAINERS_CONF = %s\n", containersConf)
-
 	})
 	/*##########################################################################################################*/
 
@@ -962,6 +954,10 @@ var _ = Context("Testing farm build functionality :", Ordered, func() {
 				scenario.tag = goodTagBase + strings.ToLower(RandomString(10)) + ":tag"
 			}
 
+			if scenario.tag == GOOD_VERY_LONG_TAG {
+				scenario.tag = goodTagBase + strings.ToLower(RandomString(10)) + "/path/path/path:tag"
+			}
+
 			return scenario
 		}
 		/*##########################################################################################################*/
@@ -1216,14 +1212,19 @@ var _ = Context("Testing farm build functionality :", Ordered, func() {
 				},
 			),
 			//
-			// NB: THIS TEST SHOULD WORK, BUT FAILS IN THE CURRENT PRODUCTION CODE
+			Entry("proxyFarm build with full reference form of tag (registry:port/path:tag)",
+				withTestScenarioOf{farm: "proxyFarm", params: "", image: standardTestImage, tag: GOOD_LONG_TAG},
+				expectBuildsOf{
+					build{arch: HOST_ARCH, expectedTobeBuiltOn: LOCAL_HOST, usingEmulation: false, withCleanup: false},
+				},
+			),
 			//
-			// Entry("proxyFarm build with full reference form of tag",
-			// 	withTestScenarioOf{farm: "proxyFarm", params: "", image: standardTestImage, tag: GOOD_LONG_TAG},
-			// 	expectBuildsOf{
-			//  		build{arch: HOST_ARCH, expectedTobeBuiltOn: LOCAL_HOST, usingEmulation: false, withCleanup: false},
-			// 	},
-			// ),
+			Entry("proxyFarm build with even fuller reference form of tag (registry:port/path/path/path:tag)",
+				withTestScenarioOf{farm: "proxyFarm", params: "", image: standardTestImage, tag: GOOD_VERY_LONG_TAG},
+				expectBuildsOf{
+					build{arch: HOST_ARCH, expectedTobeBuiltOn: LOCAL_HOST, usingEmulation: false, withCleanup: false},
+				},
+			),
 			//
 			Entry("proxyFarm build with --local=true",
 				withTestScenarioOf{farm: "proxyFarm", params: "--local=true", image: standardTestImage, tag: GOOD_SHORT_TAG},
