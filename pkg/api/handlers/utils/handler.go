@@ -8,16 +8,20 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"unsafe"
 
 	"github.com/blang/semver/v4"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
+	"go.podman.io/image/v5/types"
 
 	"github.com/containers/podman/v5/pkg/api/handlers/utils/apiutil"
 	api "github.com/containers/podman/v5/pkg/api/types"
+	"github.com/containers/podman/v5/pkg/bindings/images"
 )
 
 // IsLibpodRequest returns true if the request related to a libpod endpoint
@@ -146,4 +150,98 @@ func GetDecoder(r *http.Request) *schema.Decoder {
 		return r.Context().Value(api.DecoderKey).(*schema.Decoder)
 	}
 	return r.Context().Value(api.CompatDecoderKey).(*schema.Decoder)
+}
+
+// ParseOptionalJSONField unmarshals a JSON string only if the field exists in query values.
+func ParseOptionalJSONField[T any](jsonStr, fieldName string, queryValues url.Values, target *T) error {
+	if _, found := queryValues[fieldName]; found {
+		return json.Unmarshal([]byte(jsonStr), target)
+	}
+	return nil
+}
+
+// ParseOptionalBool creates a types.OptionalBool if the field exists in query values.
+// Returns the OptionalBool and whether the field was found.
+func ParseOptionalBool(value bool, fieldName string, queryValues url.Values) (types.OptionalBool, bool) {
+	if _, found := queryValues[fieldName]; found {
+		return types.NewOptionalBool(value), true
+	}
+	return types.OptionalBoolUndefined, false
+}
+
+// ParseJSONOptionalSlice parses a JSON array string into a slice if the parameter exists.
+// Returns nil if the parameter is not found.
+func ParseJSONOptionalSlice(value string, query url.Values, paramName string) ([]string, error) {
+	if _, found := query[paramName]; found {
+		var result []string
+		if err := json.Unmarshal([]byte(value), &result); err != nil {
+			return nil, err
+		}
+		return result, nil
+	}
+	return nil, nil
+}
+
+// ResponseSender provides streaming JSON responses with automatic flushing.
+type ResponseSender struct {
+	encoder *jsoniter.Encoder
+	flusher func()
+}
+
+// NewBuildResponseSender creates a ResponseSender for streaming build responses.
+// Optionally writes to a debug file if PODMAN_RETAIN_BUILD_ARTIFACT is set.
+func NewBuildResponseSender(w http.ResponseWriter) *ResponseSender {
+	body := w.(io.Writer)
+	if logrus.IsLevelEnabled(logrus.DebugLevel) {
+		if v, found := os.LookupEnv("PODMAN_RETAIN_BUILD_ARTIFACT"); found {
+			if keep, _ := strconv.ParseBool(v); keep {
+				if t, err := os.CreateTemp("", "build_*_server"); err != nil {
+					logrus.Warnf("Failed to create temp file: %v", err)
+				} else {
+					defer t.Close()
+					body = io.MultiWriter(t, w)
+				}
+			}
+		}
+	}
+
+	enc := jsoniter.NewEncoder(body)
+	enc.SetEscapeHTML(true)
+
+	flusher := func() {
+		if f, ok := w.(http.Flusher); ok {
+			f.Flush()
+		}
+	}
+
+	return &ResponseSender{encoder: enc, flusher: flusher}
+}
+
+// Send encodes and sends a response object as JSON with automatic flushing.
+func (b *ResponseSender) Send(response any) {
+	if err := b.encoder.Encode(response); err != nil {
+		logrus.Warnf("Failed to json encode build response: %v", err)
+	}
+	b.flusher()
+}
+
+// SendBuildStream sends a build stream message to the client.
+func (b *ResponseSender) SendBuildStream(message string) {
+	b.Send(images.BuildResponse{Stream: message})
+}
+
+// SendBuildError sends an error message as a build response.
+func (b *ResponseSender) SendBuildError(message string) {
+	response := images.BuildResponse{
+		ErrorMessage: message,
+		Error: &jsonmessage.JSONError{
+			Message: message,
+		},
+	}
+	b.Send(response)
+}
+
+// SendBuildAux sends auxiliary data as part of a build response.
+func (b *ResponseSender) SendBuildAux(aux []byte) {
+	b.Send(images.BuildResponse{Aux: aux})
 }
