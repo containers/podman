@@ -190,6 +190,18 @@ func update(cmd *cobra.Command, args []string) error {
 		opts.UnsetEnv = env
 	}
 
+	if cmd.Flags().Changed("ulimit") {
+		ulimits, err := cmd.Flags().GetStringSlice("ulimit")
+		if err != nil {
+			return err
+		}
+		rlimits, err := specgenutil.GenRlimits(ulimits)
+		if err != nil {
+			return err
+		}
+		opts.Rlimits = rlimits
+	}
+
 	rep, err := registry.ContainerEngine().ContainerUpdate(context.Background(), opts)
 	if err != nil {
 		return err

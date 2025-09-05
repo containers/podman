@@ -822,11 +822,25 @@ func UpdateContainer(w http.ResponseWriter, r *http.Request) {
 		restartRetries = &localRetries
 	}
 
+	// Rlimits
+	var rlimits []spec.POSIXRlimit
+	if len(options.Ulimits) > 0 {
+		for _, ulimit := range options.Ulimits {
+			rlimit := spec.POSIXRlimit{
+				Type: ulimit.Name,
+				Hard: uint64(ulimit.Hard),
+				Soft: uint64(ulimit.Soft),
+			}
+			rlimits = append(rlimits, rlimit)
+		}
+	}
+
 	updateOptions := &entities.ContainerUpdateOptions{
 		Resources:                       resources,
 		ChangedHealthCheckConfiguration: &define.UpdateHealthCheckConfig{},
 		RestartPolicy:                   restartPolicy,
 		RestartRetries:                  restartRetries,
+		Rlimits:                         rlimits,
 	}
 
 	if err := ctr.Update(updateOptions); err != nil {
