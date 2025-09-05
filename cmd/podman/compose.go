@@ -254,7 +254,7 @@ func composeMain(cmd *cobra.Command, args []string) error {
 	// after `podman compose [ARGS]` are passed to the compose provider.
 	// For now, we only look for the --help flag.
 	fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
-	fs.ParseErrorsWhitelist.UnknownFlags = true
+	fs.ParseErrorsAllowlist.UnknownFlags = true
 	fs.SetInterspersed(false)
 	fs.BoolP("help", "h", false, "")
 	if err := fs.Parse(args); err != nil {

@@ -339,7 +339,7 @@ func executePodTemplate(info *podInfo, options entities.GenerateSystemdOptions) 
 
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
-		fs.ParseErrorsWhitelist.UnknownFlags = true
+		fs.ParseErrorsAllowlist.UnknownFlags = true
 		fs.Usage = func() {}
 		fs.SetInterspersed(false)
 		fs.String("name", "", "")

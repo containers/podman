@@ -358,7 +358,7 @@ func executeContainerTemplate(info *containerInfo, options entities.GenerateSyst
 		remainingCmd := info.CreateCommand[index:]
 		// Presence check for certain flags/options.
 		fs := pflag.NewFlagSet("args", pflag.ContinueOnError)
-		fs.ParseErrorsWhitelist.UnknownFlags = true
+		fs.ParseErrorsAllowlist.UnknownFlags = true
 		fs.Usage = func() {}
 		fs.SetInterspersed(false)
 		fs.BoolP("detach", "d", false, "")
