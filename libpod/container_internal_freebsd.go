@@ -352,7 +352,7 @@ func (c *Container) jailName() (string, error) {
 		ic = c
 	}
 
-	if ic.state.NetNS != "" {
+	if ic.state.NetNS != "" && ic != c {
 		return ic.state.NetNS + "." + c.ID(), nil
 	} else {
 		return c.ID(), nil
