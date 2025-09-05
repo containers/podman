@@ -8,7 +8,8 @@ load helpers.bash
 @test "farm - check farm has been created" {
     run_podman farm ls
     assert "$output" =~ $FARMNAME
-    assert "$output" =~ "test-node"
+    #assert "$output" =~ "test-node"
+assert "$output" =~ ${CONNECTION_NAME}
 }
 
 @test "farm - build on local only" {
@@ -118,16 +119,17 @@ EOF
     iname="test-image-5"
     # ManifestAdd only
     echo "Running test with ManifestAdd only..."
-    run_podman --remote farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
+    # Now uses a explicit --connection, rather than relying on the default.
+    run_podman --remote --connection=${CONNECTION_NAME} farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
     assert "$output" =~ "Farm \"$FARMNAME\" ready"
 
     # ManifestListClear and ManifestAdd
     echo "Running test with ManifestListClear and ManifestAdd..."
-    run_podman --remote farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
+    run_podman --remote --connection=${CONNECTION_NAME} farm build --authfile $AUTHFILE --tls-verify=false -t $REGISTRY/$iname $FARM_TMPDIR
     assert "$output" =~ "Farm \"$FARMNAME\" ready"
 
     # get the system architecture
-    run_podman --remote info --format '{{.Host.Arch}}'
+    run_podman --remote --connection=${CONNECTION_NAME} info --format '{{.Host.Arch}}'
     ARCH=$output
     # inspect manifest list built and saved
     run_podman manifest inspect $iname
