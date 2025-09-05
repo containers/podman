@@ -958,6 +958,20 @@ func (ic *ContainerEngine) ContainerExec(ctx context.Context, nameOrID string, o
 	return define.TranslateExecErrorToExitCode(ec, err), err
 }
 
+func (ic *ContainerEngine) ContainerExecNoSession(ctx context.Context, nameOrID string, options entities.ExecOptions, streams define.AttachStreams) (int, error) {
+	ctr, err := ic.Libpod.LookupContainer(nameOrID)
+	if err != nil {
+		return 0, err
+	}
+
+	execConfig, err := makeExecConfig(options, ic.Libpod)
+	if err != nil {
+		return define.ExecErrorCodeGeneric, err
+	}
+
+	return ctr.ExecNoSession(execConfig, &streams, nil)
+}
+
 func (ic *ContainerEngine) ContainerExecDetached(ctx context.Context, nameOrID string, options entities.ExecOptions) (string, error) {
 	err := checkExecPreserveFDs(options)
 	if err != nil {
