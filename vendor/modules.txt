@@ -120,8 +120,8 @@ github.com/containers/conmon/runner/config
 # github.com/containers/gvisor-tap-vsock v0.8.7
 ## explicit; go 1.23.0
 github.com/containers/gvisor-tap-vsock/pkg/types
-# github.com/containers/libhvee v0.10.1-0.20250829163521-178d10e67860
-## explicit; go 1.23.3
+# github.com/containers/libhvee v1.10.1
+## explicit; go 1.22.8
 github.com/containers/libhvee/pkg/hypervctl
 github.com/containers/libhvee/pkg/kvp/ginsu
 github.com/containers/libhvee/pkg/wmiext
