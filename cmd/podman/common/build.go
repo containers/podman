@@ -324,6 +324,10 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 		pullPolicy = buildahDefine.PullNever
 	}
 
+	if strings.EqualFold(strings.TrimSpace(flags.Pull), "newer") {
+		pullPolicy = buildahDefine.PullIfNewer
+	}
+
 	var cleanTmpFile bool
 	flags.Authfile, cleanTmpFile = buildahUtil.MirrorToTempFileIfPathIsDescriptor(flags.Authfile)
 	if cleanTmpFile {
