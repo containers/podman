@@ -288,7 +288,7 @@ func (s *PodmanSession) OutputToString() string {
 func (s *PodmanSession) OutputToStringArray() []string {
 	var results []string
 	output := string(s.Out.Contents())
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if line != "" {
 			results = append(results, line)
 		}

@@ -75,7 +75,7 @@ func (ms *machineSession) Bytes() []byte {
 func (ms *machineSession) outputToStringSlice() []string {
 	var results []string
 	output := string(ms.Out.Contents())
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if line != "" {
 			results = append(results, line)
 		}

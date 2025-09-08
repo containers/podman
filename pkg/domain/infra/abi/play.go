@@ -135,7 +135,7 @@ func (ic *ContainerEngine) prepareAutomountImages(ctx context.Context, forContai
 		return nil, nil
 	}
 
-	for _, imageName := range strings.Split(automount, ";") {
+	for imageName := range strings.SplitSeq(automount, ";") {
 		img, fullName, err := ic.Libpod.LibimageRuntime().LookupImage(imageName, nil)
 		if err != nil {
 			return nil, fmt.Errorf("image %s from container %s does not exist in local storage, cannot automount: %w", imageName, forContainer, err)

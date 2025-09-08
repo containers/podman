@@ -81,7 +81,7 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 				for dir := filepath.Dir(rootPath); ; dir = filepath.Dir(dir) {
 					if m, found := byMountpoint[dir]; found {
 						parentMount = dir
-						for _, o := range strings.Split(m.Optional, ",") {
+						for o := range strings.SplitSeq(m.Optional, ",") {
 							opt := strings.Split(o, ":")
 							if opt[0] == "shared" {
 								isShared = true
