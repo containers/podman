@@ -3,7 +3,7 @@ module github.com/containers/podman/v5
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.23.3
+go 1.24.0
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
