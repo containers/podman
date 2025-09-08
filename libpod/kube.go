@@ -1084,8 +1084,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 func portMappingToContainerPort(portMappings []types.PortMapping, getService bool) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
-		protocols := strings.Split(p.Protocol, ",")
-		for _, proto := range protocols {
+		for proto := range strings.SplitSeq(p.Protocol, ",") {
 			var protocol v1.Protocol
 			switch strings.ToUpper(proto) {
 			case "TCP":
@@ -1360,7 +1359,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 	}
 	var selinuxOpts v1.SELinuxOptions
 	selinuxHasData := false
-	for _, label := range strings.Split(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
+	for label := range strings.SplitSeq(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
 		opt, val, hasVal := strings.Cut(label, ":")
 		if hasVal {
 			switch opt {

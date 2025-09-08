@@ -1263,7 +1263,7 @@ func parseLinuxResourcesDeviceAccess(device string) (specs.LinuxDeviceCgroup, er
 		minor = &m
 	}
 	access = value[2]
-	for _, c := range strings.Split(access, "") {
+	for c := range strings.SplitSeq(access, "") {
 		if !cgroupDeviceAccess[c] {
 			return specs.LinuxDeviceCgroup{}, fmt.Errorf("invalid device access in device-access-add: %s", c)
 		}

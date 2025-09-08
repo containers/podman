@@ -72,7 +72,7 @@ func StartWithOptions(options *Options) (*Registry, error) {
 
 	// Parse the output.
 	registry := Registry{}
-	for _, s := range strings.Split(out, "\n") {
+	for s := range strings.SplitSeq(out, "\n") {
 		if s == "" {
 			continue
 		}

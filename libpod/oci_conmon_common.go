@@ -363,8 +363,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 		// Before handling error from KillContainer, convert STDERR to a []string
 		// (one string per line of output) and print it.
-		stderrLines := strings.Split(stderr.String(), "\n")
-		for _, line := range stderrLines {
+		for line := range strings.SplitSeq(stderr.String(), "\n") {
 			if line != "" {
 				fmt.Fprintf(os.Stderr, "%s\n", line)
 			}

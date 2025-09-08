@@ -293,8 +293,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	ulimitVal, ok := opts.Annotations[define.UlimitAnnotation]
 	if ok {
-		ulimits := strings.Split(ulimitVal, ",")
-		for _, ul := range ulimits {
+		for ul := range strings.SplitSeq(ulimitVal, ",") {
 			parsed, err := units.ParseUlimit(ul)
 			if err != nil {
 				return nil, err

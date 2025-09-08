@@ -145,7 +145,7 @@ func (p *NotifyProxy) listen() {
 			sBuilder.Write(buffer[:n])
 			var isBarrier, isReady bool
 
-			for _, line := range strings.Split(sBuilder.String(), "\n") {
+			for line := range strings.SplitSeq(sBuilder.String(), "\n") {
 				switch line {
 				case _notifyRdyMsg:
 					isReady = true
