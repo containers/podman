@@ -93,7 +93,7 @@ func getDirsFromEnv(paths *searchPaths) bool {
 		return false
 	}
 
-	for _, eachUnitDir := range strings.Split(unitDirsEnv, ":") {
+	for eachUnitDir := range strings.SplitSeq(unitDirsEnv, ":") {
 		if !filepath.IsAbs(eachUnitDir) {
 			logiface.Errorf("%s not a valid file path", eachUnitDir)
 			break

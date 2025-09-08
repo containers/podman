@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -779,7 +780,7 @@ var _ = Describe("Podman checkpoint", func() {
 		Expect(result.OutputToString()).To(Equal(cid), "checkpoint output")
 		// Allow a few seconds for --rm to take effect
 		ncontainers := podmanTest.NumberOfContainers()
-		for try := 0; try < 4; try++ {
+		for range 4 {
 			if ncontainers == 0 {
 				break
 			}
@@ -1620,11 +1621,9 @@ var _ = Describe("Podman checkpoint", func() {
 		preservedMakeOptions := podmanTest.PodmanMakeOptions
 		podmanTest.PodmanMakeOptions = func(args []string, options PodmanExecOptions) []string {
 			defaultArgs := preservedMakeOptions(args, options)
-			for i := range args {
+			if slices.Contains(args, "--runtime") {
 				// Runtime is set explicitly, so we should keep --runtime arg.
-				if args[i] == "--runtime" {
-					return defaultArgs
-				}
+				return defaultArgs
 			}
 			updatedArgs := make([]string, 0)
 			for i := 0; i < len(defaultArgs); i++ {

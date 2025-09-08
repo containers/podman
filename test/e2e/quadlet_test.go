@@ -75,7 +75,7 @@ func loadQuadletTestcaseWithServiceName(path, serviceName string) *quadletTestca
 
 	checks := make([][]string, 0)
 
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		if strings.HasPrefix(line, "##") {
 			words, err := shellwords.Parse(line[2:])
 			Expect(err).ToNot(HaveOccurred())

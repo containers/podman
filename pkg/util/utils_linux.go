@@ -115,7 +115,7 @@ func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
 	}
 
 	if rootless.IsRootless() {
-		mounts := make(map[string]interface{})
+		mounts := make(map[string]any)
 		for _, m := range g.Mounts() {
 			mounts[m.Destination] = true
 		}

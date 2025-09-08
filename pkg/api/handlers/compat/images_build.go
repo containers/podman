@@ -803,7 +803,7 @@ func executeBuild(runtime *libpod.Runtime, w http.ResponseWriter, r *http.Reques
 		case <-runCtx.Done():
 			if success {
 				if !utils.IsLibpodRequest(r) && !query.Quiet {
-					sender.SendBuildAux([]byte(fmt.Sprintf(`{"ID":"sha256:%s"}`, imageID)))
+					sender.SendBuildAux(fmt.Appendf(nil, `{"ID":"sha256:%s"}`, imageID))
 					sender.SendBuildStream(fmt.Sprintf("Successfully built %12.12s\n", imageID))
 					for _, tag := range query.Tags {
 						sender.SendBuildStream(fmt.Sprintf("Successfully tagged %s\n", tag))

@@ -111,8 +111,8 @@ type InspectContainerConfig struct {
 func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 	type Alias InspectContainerConfig
 	aux := &struct {
-		Entrypoint interface{} `json:"Entrypoint"`
-		StopSignal interface{} `json:"StopSignal"`
+		Entrypoint any `json:"Entrypoint"`
+		StopSignal any `json:"StopSignal"`
 		*Alias
 	}{
 		Alias: (*Alias)(insp),
@@ -126,7 +126,7 @@ func (insp *InspectContainerConfig) UnmarshalJSON(data []byte) error {
 		insp.Entrypoint = strings.Split(entrypoint, " ")
 	case []string:
 		insp.Entrypoint = entrypoint
-	case []interface{}:
+	case []any:
 		insp.Entrypoint = []string{}
 		for _, entry := range entrypoint {
 			if str, ok := entry.(string); ok {
@@ -312,8 +312,8 @@ type InspectContainerState struct {
 	Health         *HealthCheckResults `json:"Health,omitempty"`
 	Checkpointed   bool                `json:"Checkpointed,omitempty"`
 	CgroupPath     string              `json:"CgroupPath,omitempty"`
-	CheckpointedAt time.Time           `json:"CheckpointedAt,omitempty"`
-	RestoredAt     time.Time           `json:"RestoredAt,omitempty"`
+	CheckpointedAt time.Time           `json:"CheckpointedAt"`
+	RestoredAt     time.Time           `json:"RestoredAt"`
 	CheckpointLog  string              `json:"CheckpointLog,omitempty"`
 	CheckpointPath string              `json:"CheckpointPath,omitempty"`
 	RestoreLog     string              `json:"RestoreLog,omitempty"`

@@ -150,7 +150,7 @@ func RemoveSlash(input []string) []string {
 	return output
 }
 
-func PrintGenericJSON(data interface{}) error {
+func PrintGenericJSON(data any) error {
 	enc := json.NewEncoder(os.Stdout)
 	// by default, json marshallers will force utf=8 from
 	// a string.

@@ -10,7 +10,7 @@ import (
 )
 
 func benchmarkParsePortMapping(b *testing.B, ports []types.PortMapping) {
-	for n := 0; n < b.N; n++ {
+	for b.Loop() {
 		_, _ = ParsePortMapping(ports, nil)
 	}
 }
@@ -70,7 +70,7 @@ func BenchmarkParsePortMapping10k(b *testing.B) {
 
 func BenchmarkParsePortMapping1m(b *testing.B) {
 	ports := make([]types.PortMapping, 0, 1000000)
-	for j := 0; j < 20; j++ {
+	for j := range 20 {
 		for i := uint16(1); i <= 50000; i++ {
 			ports = append(ports, types.PortMapping{
 				HostPort:      i,
@@ -125,7 +125,7 @@ func BenchmarkParsePortMappingReverse10k(b *testing.B) {
 
 func BenchmarkParsePortMappingReverse1m(b *testing.B) {
 	ports := make([]types.PortMapping, 0, 1000000)
-	for j := 0; j < 20; j++ {
+	for j := range 20 {
 		for i := uint16(50000); i > 0; i-- {
 			ports = append(ports, types.PortMapping{
 				HostPort:      i,
@@ -185,7 +185,7 @@ func BenchmarkParsePortMappingRange10k(b *testing.B) {
 
 func BenchmarkParsePortMappingRange1m(b *testing.B) {
 	ports := make([]types.PortMapping, 0, 1000000)
-	for j := 0; j < 20; j++ {
+	for j := range 20 {
 		ports = append(ports, types.PortMapping{
 			HostPort:      1,
 			ContainerPort: 1,

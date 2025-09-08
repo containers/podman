@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"reflect"
@@ -620,9 +621,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = v
 			}
 			// Convert auto-update labels into kube annotations
-			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-				podAnnotations[k] = v
-			}
+			maps.Copy(podAnnotations, getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()))
 			isInit := ctr.IsInitCtr()
 			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
 			if hostname == "" {
@@ -769,9 +768,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		}
 
 		// Convert auto-update labels into kube annotations
-		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-			kubeAnnotations[k] = v
-		}
+		maps.Copy(kubeAnnotations, getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()))
 
 		isInit := ctr.IsInitCtr()
 		// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter

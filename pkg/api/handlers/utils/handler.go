@@ -38,7 +38,7 @@ func SupportedVersion(r *http.Request, condition string) (semver.Version, error)
 }
 
 // WriteResponse encodes the given value as JSON or string and renders it for http client
-func WriteResponse(w http.ResponseWriter, code int, value interface{}) {
+func WriteResponse(w http.ResponseWriter, code int, value any) {
 	// RFC2616 explicitly states that the following status codes "MUST NOT
 	// include a message-body":
 	switch code {
@@ -118,7 +118,7 @@ func MarshalErrorSliceJSONIsEmpty(ptr unsafe.Pointer) bool {
 }
 
 // WriteJSON writes an interface value encoded as JSON to w
-func WriteJSON(w http.ResponseWriter, code int, value interface{}) {
+func WriteJSON(w http.ResponseWriter, code int, value any) {
 	// FIXME: we don't need to write the header in all/some circumstances.
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)

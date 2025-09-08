@@ -23,7 +23,7 @@ type CPUStats struct {
 	CPU float64 `json:"cpu"`
 
 	// Throttling Data. Linux only.
-	ThrottlingData container.ThrottlingData `json:"throttling_data,omitempty"`
+	ThrottlingData container.ThrottlingData `json:"throttling_data"`
 }
 
 // Stats is Ultimate struct aggregating all types of stats of one container
@@ -33,17 +33,17 @@ type Stats struct {
 	PreRead time.Time `json:"preread"`
 
 	// Linux specific stats, not populated on Windows.
-	PidsStats  container.PidsStats  `json:"pids_stats,omitempty"`
-	BlkioStats container.BlkioStats `json:"blkio_stats,omitempty"`
+	PidsStats  container.PidsStats  `json:"pids_stats"`
+	BlkioStats container.BlkioStats `json:"blkio_stats"`
 
 	// Windows specific stats, not populated on Linux.
 	NumProcs     uint32                 `json:"num_procs"`
-	StorageStats container.StorageStats `json:"storage_stats,omitempty"`
+	StorageStats container.StorageStats `json:"storage_stats"`
 
 	// Shared stats
-	CPUStats    CPUStats              `json:"cpu_stats,omitempty"`
-	PreCPUStats CPUStats              `json:"precpu_stats,omitempty"` // "Pre"="Previous"
-	MemoryStats container.MemoryStats `json:"memory_stats,omitempty"`
+	CPUStats    CPUStats              `json:"cpu_stats"`
+	PreCPUStats CPUStats              `json:"precpu_stats"` // "Pre"="Previous"
+	MemoryStats container.MemoryStats `json:"memory_stats"`
 }
 
 type StatsJSON struct {

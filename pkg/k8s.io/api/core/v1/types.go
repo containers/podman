@@ -117,20 +117,20 @@ type PersistentVolume struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines a specification of a persistent volume owned by the cluster.
 	// Provisioned by an administrator.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistent-volumes
 	// +optional
-	Spec PersistentVolumeSpec `json:"spec,omitempty"`
+	Spec PersistentVolumeSpec `json:"spec"`
 
 	// Status represents the current information/status for the persistent volume.
 	// Populated by the system.
 	// Read-only.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistent-volumes
 	// +optional
-	Status PersistentVolumeStatus `json:"status,omitempty"`
+	Status PersistentVolumeStatus `json:"status"`
 }
 
 // PersistentVolumeSpec is the specification of a persistent volume.
@@ -231,7 +231,7 @@ type PersistentVolumeList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	// List of persistent volumes.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes
 	Items []PersistentVolume `json:"items"`
@@ -246,18 +246,18 @@ type PersistentVolumeClaim struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the desired characteristics of a volume requested by a pod author.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
 	// +optional
-	Spec PersistentVolumeClaimSpec `json:"spec,omitempty"`
+	Spec PersistentVolumeClaimSpec `json:"spec"`
 
 	// Status represents the current information/status of a persistent volume claim.
 	// Read-only.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
 	// +optional
-	Status PersistentVolumeClaimStatus `json:"status,omitempty"`
+	Status PersistentVolumeClaimStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -268,7 +268,7 @@ type PersistentVolumeClaimList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 	// A list of persistent volume claims.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#persistentvolumeclaims
 	Items []PersistentVolumeClaim `json:"items"`
@@ -287,7 +287,7 @@ type PersistentVolumeClaimSpec struct {
 	// Resources represents the minimum resources the volume should have.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
 	// +optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
+	Resources ResourceRequirements `json:"resources"`
 	// VolumeName is the binding reference to the PersistentVolume backing this claim.
 	// +optional
 	VolumeName string `json:"volumeName,omitempty"`
@@ -345,10 +345,10 @@ type PersistentVolumeClaimCondition struct {
 	Status ConditionStatus                    `json:"status"`
 	// Last time we probed the condition.
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	LastProbeTime metav1.Time `json:"lastProbeTime"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// Unique, this should be a short, machine understandable string that gives the reason
 	// for condition's last transition. If it reports "ResizeStarted" that means the underlying
 	// persistent volume is being resized.
@@ -738,7 +738,7 @@ type PersistentVolumeClaimTemplate struct {
 	// validation.
 	//
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// The specification for the PersistentVolumeClaim. The entire content is
 	// copied unchanged into the PVC that gets created from this
@@ -896,7 +896,7 @@ type ResourceFieldSelector struct {
 	Resource string `json:"resource"`
 	// Specifies the output format of the exposed resources, defaults to "1"
 	// +optional
-	Divisor resource.Quantity `json:"divisor,omitempty"`
+	Divisor resource.Quantity `json:"divisor"`
 }
 
 // Selects a key from a ConfigMap.
@@ -1201,7 +1201,7 @@ type Container struct {
 	// Cannot be updated.
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 	// +optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
+	Resources ResourceRequirements `json:"resources"`
 	// Pod volumes to mount into the container's filesystem.
 	// Cannot be updated.
 	// +optional
@@ -1366,7 +1366,7 @@ type ContainerStateWaiting struct {
 type ContainerStateRunning struct {
 	// Time at which the container was last (re-)started
 	// +optional
-	StartedAt metav1.Time `json:"startedAt,omitempty"`
+	StartedAt metav1.Time `json:"startedAt"`
 }
 
 // ContainerStateTerminated is a terminated state of a container.
@@ -1384,10 +1384,10 @@ type ContainerStateTerminated struct {
 	Message string `json:"message,omitempty"`
 	// Time at which previous execution of the container started
 	// +optional
-	StartedAt metav1.Time `json:"startedAt,omitempty"`
+	StartedAt metav1.Time `json:"startedAt"`
 	// Time at which the container last terminated
 	// +optional
-	FinishedAt metav1.Time `json:"finishedAt,omitempty"`
+	FinishedAt metav1.Time `json:"finishedAt"`
 	// Container's ID in the format 'docker://<container_id>'
 	// +optional
 	ContainerID string `json:"containerID,omitempty"`
@@ -1415,10 +1415,10 @@ type ContainerStatus struct {
 	Name string `json:"name"`
 	// Details about the container's current condition.
 	// +optional
-	State ContainerState `json:"state,omitempty"`
+	State ContainerState `json:"state"`
 	// Details about the container's last termination condition.
 	// +optional
-	LastTerminationState ContainerState `json:"lastState,omitempty"`
+	LastTerminationState ContainerState `json:"lastState"`
 	// Specifies whether the container has passed its readiness probe.
 	Ready bool `json:"ready"`
 	// The number of times the container has been restarted, currently based on
@@ -1501,10 +1501,10 @@ type PodCondition struct {
 	Status ConditionStatus `json:"status"`
 	// Last time we probed the condition.
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	LastProbeTime metav1.Time `json:"lastProbeTime"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// Unique, one-word, CamelCase reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -2340,7 +2340,7 @@ type EphemeralContainerCommon struct {
 	// Resources are not allowed for ephemeral containers. Ephemeral containers use spare resources
 	// already allocated to the pod.
 	// +optional
-	Resources ResourceRequirements `json:"resources,omitempty"`
+	Resources ResourceRequirements `json:"resources"`
 	// Pod volumes to mount into the container's filesystem.
 	// Cannot be updated.
 	// +optional
@@ -2543,14 +2543,14 @@ type PodStatusResult struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 	// Most recently observed status of the pod.
 	// This data may not be up to date.
 	// Populated by the system.
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status PodStatus `json:"status,omitempty"`
+	Status PodStatus `json:"status"`
 }
 
 // +genclient
@@ -2564,12 +2564,12 @@ type Pod struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Specification of the desired behavior of the pod.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec PodSpec `json:"spec,omitempty"`
+	Spec PodSpec `json:"spec"`
 
 	// Most recently observed status of the pod.
 	// This data may not be up to date.
@@ -2577,7 +2577,7 @@ type Pod struct {
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status PodStatus `json:"status,omitempty"`
+	Status PodStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -2588,7 +2588,7 @@ type PodList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of pods.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md
@@ -2600,12 +2600,12 @@ type PodTemplateSpec struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Specification of the desired behavior of the pod.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec PodSpec `json:"spec,omitempty"`
+	Spec PodSpec `json:"spec"`
 }
 
 // +genclient
@@ -2617,12 +2617,12 @@ type PodTemplate struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Template defines the pods that will be created from this pod template.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Template PodTemplateSpec `json:"template,omitempty"`
+	Template PodTemplateSpec `json:"template"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -2633,7 +2633,7 @@ type PodTemplateList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of pod templates
 	Items []PodTemplate `json:"items"`
@@ -2724,7 +2724,7 @@ type ReplicationControllerCondition struct {
 	Status ConditionStatus `json:"status"`
 	// The last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -2746,12 +2746,12 @@ type ReplicationController struct {
 	// be the same as the Pod(s) that the replication controller manages.
 	// Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the specification of the desired behavior of the replication controller.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec ReplicationControllerSpec `json:"spec,omitempty"`
+	Spec ReplicationControllerSpec `json:"spec"`
 
 	// Status is the most recently observed status of the replication controller.
 	// This data may be out of date by some window of time.
@@ -2759,7 +2759,7 @@ type ReplicationController struct {
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status ReplicationControllerStatus `json:"status,omitempty"`
+	Status ReplicationControllerStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -2770,7 +2770,7 @@ type ReplicationControllerList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of replication controllers.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller
@@ -2864,7 +2864,7 @@ type ServiceStatus struct {
 	// LoadBalancer contains the current status of the load-balancer,
 	// if one is present.
 	// +optional
-	LoadBalancer LoadBalancerStatus `json:"loadBalancer,omitempty"`
+	LoadBalancer LoadBalancerStatus `json:"loadBalancer"`
 	// Current service state
 	// +optional
 	// +patchMergeKey=type
@@ -3211,7 +3211,7 @@ type ServicePort struct {
 	// omitted or set equal to the 'port' field.
 	// More info: https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
 	// +optional
-	TargetPort intstr.IntOrString `json:"targetPort,omitempty"`
+	TargetPort intstr.IntOrString `json:"targetPort"`
 
 	// The port on each node on which this service is exposed when type is
 	// NodePort or LoadBalancer.  Usually assigned by the system. If a value is
@@ -3238,19 +3238,19 @@ type Service struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the behavior of a service.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec ServiceSpec `json:"spec,omitempty"`
+	Spec ServiceSpec `json:"spec"`
 
 	// Most recently observed status of the service.
 	// Populated by the system.
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status ServiceStatus `json:"status,omitempty"`
+	Status ServiceStatus `json:"status"`
 }
 
 const (
@@ -3267,7 +3267,7 @@ type ServiceList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of services
 	Items []Service `json:"items"`
@@ -3286,7 +3286,7 @@ type ServiceAccount struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Secrets is the list of secrets allowed to be used by pods running using this ServiceAccount.
 	// More info: https://kubernetes.io/docs/concepts/configuration/secret
@@ -3316,7 +3316,7 @@ type ServiceAccountList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of ServiceAccounts.
 	// More info: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/
@@ -3344,7 +3344,7 @@ type Endpoints struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// The set of all endpoints is the union of all subsets. Addresses are placed into
 	// subsets according to the IPs they share. A single address with multiple ports,
@@ -3776,7 +3776,7 @@ type SerializedReference struct {
 	metav1.TypeMeta `json:",inline"`
 	// The reference to an object in the system.
 	// +optional
-	Reference ObjectReference `json:"reference,omitempty"`
+	Reference ObjectReference `json:"reference"`
 }
 
 // EventSource contains information for an event.
@@ -3828,15 +3828,15 @@ type Event struct {
 
 	// The component reporting this event. Should be a short machine understandable string.
 	// +optional
-	Source EventSource `json:"source,omitempty"`
+	Source EventSource `json:"source"`
 
 	// The time at which the event was first recorded. (Time of server receipt is in TypeMeta.)
 	// +optional
-	FirstTimestamp metav1.Time `json:"firstTimestamp,omitempty"`
+	FirstTimestamp metav1.Time `json:"firstTimestamp"`
 
 	// The time at which the most recent occurrence of this event was recorded.
 	// +optional
-	LastTimestamp metav1.Time `json:"lastTimestamp,omitempty"`
+	LastTimestamp metav1.Time `json:"lastTimestamp"`
 
 	// The number of times this event has occurred.
 	// +optional
@@ -3848,7 +3848,7 @@ type Event struct {
 
 	// Time when this Event was first observed.
 	// +optional
-	EventTime metav1.MicroTime `json:"eventTime,omitempty"`
+	EventTime metav1.MicroTime `json:"eventTime"`
 
 	// Data about the Event series this event represents or nil if it's a singleton Event.
 	// +optional
@@ -3877,7 +3877,7 @@ type EventSeries struct {
 	// Number of occurrences in this series up to the last heartbeat time
 	Count int32 `json:"count,omitempty"`
 	// Time of the last occurrence observed
-	LastObservedTime metav1.MicroTime `json:"lastObservedTime,omitempty"`
+	LastObservedTime metav1.MicroTime `json:"lastObservedTime"`
 
 	// +k8s:deprecated=state,protobuf=3
 }
@@ -3890,7 +3890,7 @@ type EventList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of events
 	Items []Event `json:"items"`
@@ -3946,12 +3946,12 @@ type LimitRange struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the limits enforced.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec LimitRangeSpec `json:"spec,omitempty"`
+	Spec LimitRangeSpec `json:"spec"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -3962,7 +3962,7 @@ type LimitRangeList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// Items is a list of LimitRange objects.
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
@@ -4106,17 +4106,17 @@ type ResourceQuota struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the desired quota.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec ResourceQuotaSpec `json:"spec,omitempty"`
+	Spec ResourceQuotaSpec `json:"spec"`
 
 	// Status defines the actual enforced quota and its current usage.
 	// https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status ResourceQuotaStatus `json:"status,omitempty"`
+	Status ResourceQuotaStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -4127,7 +4127,7 @@ type ResourceQuotaList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// Items is a list of ResourceQuota objects.
 	// More info: https://kubernetes.io/docs/concepts/policy/resource-quotas/
@@ -4144,7 +4144,7 @@ type Secret struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Immutable, if set to true, ensures that data stored in the Secret cannot
 	// be updated (only object metadata can be modified).
@@ -4183,7 +4183,7 @@ type SecretList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// Items is a list of secret objects.
 	// More info: https://kubernetes.io/docs/concepts/configuration/secret
@@ -4199,7 +4199,7 @@ type ConfigMap struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Immutable, if set to true, ensures that data stored in the ConfigMap cannot
 	// be updated (only object metadata can be modified).
@@ -4235,7 +4235,7 @@ type ConfigMapList struct {
 
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// Items is the list of ConfigMaps.
 	Items []ConfigMap `json:"items"`
@@ -4278,7 +4278,7 @@ type ComponentStatus struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// List of component conditions observed
 	// +optional
@@ -4296,7 +4296,7 @@ type ComponentStatusList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of ComponentStatus objects.
 	Items []ComponentStatus `json:"items"`
@@ -4697,7 +4697,7 @@ type NamedExtension struct {
 	// Name is the nickname for this Extension
 	Name string `json:"name"`
 	// Extension holds the extension information
-	Extension interface{} `json:"extension"`
+	Extension any `json:"extension"`
 }
 
 // AuthProviderConfig holds the configuration for a specified auth provider.
@@ -4791,15 +4791,15 @@ type Deployment struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specification of the desired behavior of the Deployment.
 	// +optional
-	Spec DeploymentSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec DeploymentSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// Most recently observed status of the Deployment.
 	// +optional
-	Status DeploymentStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Status DeploymentStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
 // DeploymentSpec is the specification of the desired behavior of the Deployment.
@@ -4821,7 +4821,7 @@ type DeploymentSpec struct {
 	// The deployment strategy to use to replace existing pods with new ones.
 	// +optional
 	// +patchStrategy=retainKeys
-	Strategy DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys" protobuf:"bytes,4,opt,name=strategy"`
+	Strategy DeploymentStrategy `json:"strategy" patchStrategy:"retainKeys" protobuf:"bytes,4,opt,name=strategy"`
 
 	// Minimum number of seconds for which a newly created pod should be ready
 	// without any of its container crashing, for it to be considered available.
@@ -4974,9 +4974,9 @@ type DeploymentCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/api/core/v1.ConditionStatus"`
 	// The last time this condition was updated.
-	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,6,opt,name=lastUpdateTime"`
+	LastUpdateTime metav1.Time `json:"lastUpdateTime" protobuf:"bytes,6,opt,name=lastUpdateTime"`
 	// Last time the condition transitioned from one status to another.
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,7,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,7,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 	// A human readable message indicating details about the transition.
@@ -4990,7 +4990,7 @@ type DeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Items is the list of Deployments.
 	Items []Deployment `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -5080,7 +5080,7 @@ type DaemonSetSpec struct {
 
 	// An update strategy to replace existing DaemonSet pods with new pods.
 	// +optional
-	UpdateStrategy DaemonSetUpdateStrategy `json:"updateStrategy,omitempty" protobuf:"bytes,3,opt,name=updateStrategy"`
+	UpdateStrategy DaemonSetUpdateStrategy `json:"updateStrategy" protobuf:"bytes,3,opt,name=updateStrategy"`
 
 	// The minimum number of seconds for which a newly created DaemonSet pod should
 	// be ready without any of its container crashing, for it to be considered
@@ -5162,7 +5162,7 @@ type DaemonSetCondition struct {
 	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/api/core/v1.ConditionStatus"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
@@ -5180,12 +5180,12 @@ type DaemonSet struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// The desired behavior of this daemon set.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec DaemonSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec DaemonSetSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// The current status of this daemon set. This data may be
 	// out of date by some window of time.
@@ -5193,7 +5193,7 @@ type DaemonSet struct {
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status DaemonSetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Status DaemonSetStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
 const (
@@ -5211,7 +5211,7 @@ type DaemonSetList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// A list of daemon sets.
 	Items []DaemonSet `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -5225,17 +5225,17 @@ type Job struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specification of the desired behavior of a job.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec JobSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec JobSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 
 	// Current status of a job.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status JobStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Status JobStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -5246,7 +5246,7 @@ type JobList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// items is the list of Jobs.
 	Items []Job `json:"items" protobuf:"bytes,2,rep,name=items"`
@@ -5818,10 +5818,10 @@ type JobCondition struct {
 	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/api/core/v1.ConditionStatus"`
 	// Last time the condition was checked.
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
+	LastProbeTime metav1.Time `json:"lastProbeTime" protobuf:"bytes,3,opt,name=lastProbeTime"`
 	// Last time the condition transit from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime" protobuf:"bytes,4,opt,name=lastTransitionTime"`
 	// (brief) reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
@@ -5835,10 +5835,10 @@ type JobTemplateSpec struct {
 	// Standard object's metadata of the jobs created from this template.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Specification of the desired behavior of the job.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec JobSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec JobSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 }

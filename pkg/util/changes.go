@@ -10,7 +10,7 @@ import (
 func DecodeChanges(changes []string) []string {
 	result := make([]string, 0, len(changes))
 	for _, possiblyMultilineChange := range changes {
-		for _, change := range strings.Split(possiblyMultilineChange, "\n") {
+		for change := range strings.SplitSeq(possiblyMultilineChange, "\n") {
 			// In particular, we document that we accept values
 			// like "CMD=/bin/sh", which is not valid Dockerfile
 			// syntax, so we can't just pass such a value directly

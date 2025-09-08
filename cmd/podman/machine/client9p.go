@@ -76,7 +76,7 @@ func client9p(portNum uint32, mountPath string) error {
 		conn    *vsock.Conn
 		retries = 20
 	)
-	for i := 0; i < retries; i++ {
+	for range retries {
 		// Host connects to non-hypervisor processes on the host running the VM.
 		conn, err = vsock.Dial(vsock.Host, portNum, nil)
 		// If errors.Is worked on this error, we could detect non-timeout errors.

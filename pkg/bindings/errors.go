@@ -14,7 +14,7 @@ var (
 	ErrNotImplemented = errors.New("function not implemented")
 )
 
-func handleError(data []byte, unmarshalErrorInto interface{}) error {
+func handleError(data []byte, unmarshalErrorInto any) error {
 	if err := json.Unmarshal(data, unmarshalErrorInto); err != nil {
 		return fmt.Errorf("unmarshalling error into %#v, data %q: %w", unmarshalErrorInto, string(data), err)
 	}
@@ -23,13 +23,13 @@ func handleError(data []byte, unmarshalErrorInto interface{}) error {
 
 // Process drains the response body, and processes the HTTP status code
 // Note: Closing the response.Body is left to the caller
-func (h *APIResponse) Process(unmarshalInto interface{}) error {
+func (h *APIResponse) Process(unmarshalInto any) error {
 	return h.ProcessWithError(unmarshalInto, &errorhandling.ErrorModel{})
 }
 
 // ProcessWithError drains the response body, and processes the HTTP status code
 // Note: Closing the response.Body is left to the caller
-func (h *APIResponse) ProcessWithError(unmarshalInto interface{}, unmarshalErrorInto interface{}) error {
+func (h *APIResponse) ProcessWithError(unmarshalInto any, unmarshalErrorInto any) error {
 	data, err := io.ReadAll(h.Response.Body)
 	if err != nil {
 		return fmt.Errorf("unable to process API response: %w", err)

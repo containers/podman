@@ -17,8 +17,8 @@ type ComponentVersion struct {
 // Version contains response of Engine API:
 // GET "/version"
 type Version struct {
-	Platform   struct{ Name string } `json:",omitempty"`
-	Components []ComponentVersion    `json:",omitempty"`
+	Platform   struct{ Name string }
+	Components []ComponentVersion `json:",omitempty"`
 
 	// The following fields are deprecated, they relate to the Engine component and are kept for backwards compatibility
 
