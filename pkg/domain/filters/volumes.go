@@ -4,6 +4,7 @@ package filters
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -22,21 +23,11 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 		}, nil
 	case "driver":
 		return func(v *libpod.Volume) bool {
-			for _, val := range filterValues {
-				if v.Driver() == val {
-					return true
-				}
-			}
-			return false
+			return slices.Contains(filterValues, v.Driver())
 		}, nil
 	case "scope":
 		return func(v *libpod.Volume) bool {
-			for _, val := range filterValues {
-				if v.Scope() == val {
-					return true
-				}
-			}
-			return false
+			return slices.Contains(filterValues, v.Scope())
 		}, nil
 	case "label":
 		return func(v *libpod.Volume) bool {

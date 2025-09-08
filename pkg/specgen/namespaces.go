@@ -408,8 +408,8 @@ func ParseNetworkFlag(networks []string) (Namespace, map[string]types.PerNetwork
 			podmanNetworks[name] = netOpts
 		} else {
 			// Assume we have been given a comma separated list of networks for backwards compat.
-			networkList := strings.Split(ns, ",")
-			for _, net := range networkList {
+			networkList := strings.SplitSeq(ns, ",")
+			for net := range networkList {
 				podmanNetworks[net] = types.PerNetworkOptions{}
 			}
 		}
@@ -452,8 +452,8 @@ func parseBridgeNetworkOptions(opts string) (types.PerNetworkOptions, error) {
 	if len(opts) == 0 {
 		return netOpts, nil
 	}
-	allopts := strings.Split(opts, ",")
-	for _, opt := range allopts {
+	allopts := strings.SplitSeq(opts, ",")
+	for opt := range allopts {
 		name, value, _ := strings.Cut(opt, "=")
 		switch name {
 		case "ip", "ip6":

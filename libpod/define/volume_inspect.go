@@ -18,14 +18,14 @@ type InspectVolumeData struct {
 	Mountpoint string `json:"Mountpoint"`
 	// CreatedAt is the date and time the volume was created at. This is not
 	// stored for older Libpod volumes; if so, it will be omitted.
-	CreatedAt time.Time `json:"CreatedAt,omitempty"`
+	CreatedAt time.Time `json:"CreatedAt"`
 	// Status is used to return information on the volume's current state,
 	// if the volume was created using a volume plugin (uses a Driver that
 	// is not the local driver).
 	// Status is provided to us by an external program, so no guarantees are
 	// made about its format or contents. Further, it is an optional field,
 	// so it may not be set even in cases where a volume plugin is in use.
-	Status map[string]interface{} `json:"Status,omitempty"`
+	Status map[string]any `json:"Status,omitempty"`
 	// Labels includes the volume's configured labels, key:value pairs that
 	// can be passed during volume creation to provide information for third
 	// party tools.

@@ -24,7 +24,7 @@ const (
 // an error is returned
 func backoffForProcess(p *psutil.Process) error {
 	sleepInterval := sleepTime
-	for i := 0; i < loops; i++ {
+	for range loops {
 		running, err := p.IsRunning()
 		if err != nil {
 			// It is possible that while in our loop, the PID vaporize triggering

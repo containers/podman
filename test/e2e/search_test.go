@@ -146,7 +146,7 @@ registries = []`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := search.OutputToStringArray()
-		for i := 0; i < len(output); i++ {
+		for i := range output {
 			Expect(strconv.Atoi(output[i])).To(BeNumerically(">=", 10))
 		}
 	})
@@ -156,7 +156,7 @@ registries = []`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := search.OutputToStringArray()
-		for i := 0; i < len(output); i++ {
+		for i := range output {
 			Expect(output[i]).To(Equal("[OK]"))
 		}
 	})
@@ -166,7 +166,7 @@ registries = []`
 		search.WaitWithDefaultTimeout()
 		Expect(search).Should(ExitCleanly())
 		output := search.OutputToStringArray()
-		for i := 0; i < len(output); i++ {
+		for i := range output {
 			Expect(output[i]).To(Equal(""))
 		}
 	})

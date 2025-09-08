@@ -174,7 +174,7 @@ func shouldMask(mask string, unmask []string) bool {
 		if strings.ToLower(m) == "all" {
 			return false
 		}
-		for _, m1 := range strings.Split(m, ":") {
+		for m1 := range strings.SplitSeq(m, ":") {
 			match, err := filepath.Match(m1, mask)
 			if err != nil {
 				logrus.Error(err.Error())

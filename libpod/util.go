@@ -64,7 +64,7 @@ func sortMounts(m []spec.Mount) []spec.Mount {
 
 // JSONDeepCopy performs a deep copy by performing a JSON encode/decode of the
 // given structures. From and To should be identically typed structs.
-func JSONDeepCopy(from, to interface{}) error {
+func JSONDeepCopy(from, to any) error {
 	tmp, err := json.Marshal(from)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func checkDependencyContainer(depCtr, ctr *Container) error {
 // hijackWriteError writes an error to a hijacked HTTP session.
 func hijackWriteError(toWrite error, cid string, terminal bool, httpBuf *bufio.ReadWriter) {
 	if toWrite != nil && !errors.Is(toWrite, define.ErrDetach) {
-		errString := []byte(fmt.Sprintf("Error: %v\n", toWrite))
+		errString := fmt.Appendf(nil, "Error: %v\n", toWrite)
 		if !terminal {
 			// We need a header.
 			header := makeHTTPAttachHeader(2, uint32(len(errString)))

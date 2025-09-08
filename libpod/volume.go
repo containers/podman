@@ -5,6 +5,7 @@ package libpod
 import (
 	"fmt"
 	"io"
+	"maps"
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
@@ -45,7 +46,7 @@ type VolumeConfig struct {
 	// The location the volume is mounted at.
 	MountPoint string `json:"mountPoint"`
 	// Time the volume was created.
-	CreatedTime time.Time `json:"createdAt,omitempty"`
+	CreatedTime time.Time `json:"createdAt"`
 	// Options to pass to the volume driver. For the local driver, this is
 	// a list of mount options. For other drivers, they are passed to the
 	// volume driver handling the volume.
@@ -139,9 +140,7 @@ func (v *Volume) Scope() string {
 // Labels returns the volume's labels
 func (v *Volume) Labels() map[string]string {
 	labels := make(map[string]string)
-	for key, value := range v.config.Labels {
-		labels[key] = value
-	}
+	maps.Copy(labels, v.config.Labels)
 	return labels
 }
 
@@ -183,9 +182,7 @@ func (v *Volume) mountPoint() string {
 // Options return the volume's options
 func (v *Volume) Options() map[string]string {
 	options := make(map[string]string)
-	for k, v := range v.config.Options {
-		options[k] = v
-	}
+	maps.Copy(options, v.config.Options)
 	return options
 }
 

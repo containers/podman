@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -296,7 +297,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		volume := filepath.Join(podmanTest.TempDir, "vol")
 		err = os.MkdirAll(volume, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
-		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nvolumes=[\"%s:%s:Z\",]\n", volume, volume)), 0755)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[containers]\nvolumes=[\"%s:%s:Z\",]\n", volume, volume), 0755)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -494,7 +495,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 		JustBeforeEach(func() {
 			conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(conffile, []byte(fmt.Sprintf("[containers]\nbase_hosts_file=\"%s\"\nno_hosts=false\n", baseHostsFile)), 0755)
+			err = os.WriteFile(conffile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\nno_hosts=false\n", baseHostsFile), 0755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
 			if IsRemote() {
@@ -566,7 +567,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		os.Setenv("CONTAINERS_CONF", configPath)
 
 		profile := filepath.Join(podmanTest.TempDir, "seccomp.json")
-		containersConf := []byte(fmt.Sprintf("[containers]\nseccomp_profile=\"%s\"", profile))
+		containersConf := fmt.Appendf(nil, "[containers]\nseccomp_profile=\"%s\"", profile)
 		err = os.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -614,7 +615,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		Expect(session).Should(ExitCleanly())
 		Expect(session.OutputToString()).To(Equal("/foobar"))
 
-		containersConf = []byte(fmt.Sprintf("[engine]\nimage_copy_tmp_dir=%q", storagePath))
+		containersConf = fmt.Appendf(nil, "[engine]\nimage_copy_tmp_dir=%q", storagePath)
 		err = os.WriteFile(configPath, containersConf, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
 		if IsRemote() {
@@ -789,11 +790,8 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 
 	startContainer := func(params ...string) string {
 		args := []string{"run", "-d"}
-		for _, param := range params {
-			if param == "--name" {
-				args = append(args, "--replace")
-				break
-			}
+		if slices.Contains(params, "--name") {
+			args = append(args, "--replace")
 		}
 		args = append(args, params...)
 		args = append(args, ALPINE, "true")

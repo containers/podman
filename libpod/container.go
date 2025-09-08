@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net"
 	"os"
 	"strings"
@@ -145,9 +146,9 @@ type ContainerState struct {
 	// by containers/storage.
 	Mountpoint string `json:"mountPoint,omitempty"`
 	// StartedTime is the time the container was started
-	StartedTime time.Time `json:"startedTime,omitempty"`
+	StartedTime time.Time `json:"startedTime"`
 	// FinishedTime is the time the container finished executing
-	FinishedTime time.Time `json:"finishedTime,omitempty"`
+	FinishedTime time.Time `json:"finishedTime"`
 	// ExitCode is the exit code returned when the container stopped
 	ExitCode int32 `json:"exitCode,omitempty"`
 	// Exited is whether the container has exited
@@ -229,8 +230,8 @@ type ContainerState struct {
 
 	// Following checkpoint/restore related information is displayed
 	// if the container has been checkpointed or restored.
-	CheckpointedTime time.Time `json:"checkpointedTime,omitempty"`
-	RestoredTime     time.Time `json:"restoredTime,omitempty"`
+	CheckpointedTime time.Time `json:"checkpointedTime"`
+	RestoredTime     time.Time `json:"restoredTime"`
 	CheckpointLog    string    `json:"checkpointLog,omitempty"`
 	CheckpointPath   string    `json:"checkpointPath,omitempty"`
 	RestoreLog       string    `json:"restoreLog,omitempty"`
@@ -627,9 +628,7 @@ func (c *Container) Stdin() bool {
 // Labels returns the container's labels
 func (c *Container) Labels() map[string]string {
 	labels := make(map[string]string)
-	for key, value := range c.config.Labels {
-		labels[key] = value
-	}
+	maps.Copy(labels, c.config.Labels)
 	return labels
 }
 
@@ -1040,9 +1039,7 @@ func (c *Container) BindMounts() (map[string]string, error) {
 
 	newMap := make(map[string]string, len(c.state.BindMounts))
 
-	for key, val := range c.state.BindMounts {
-		newMap[key] = val
-	}
+	maps.Copy(newMap, c.state.BindMounts)
 
 	return newMap, nil
 }

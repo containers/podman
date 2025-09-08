@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
 	"path/filepath"
 	"strings"
@@ -165,12 +166,8 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 
 	// Supersede volumes-from/image volumes with unified volumes from above.
 	// This is an unconditional replacement.
-	for dest, mount := range unifiedMounts {
-		baseMounts[dest] = mount
-	}
-	for dest, volume := range unifiedVolumes {
-		baseVolumes[dest] = volume
-	}
+	maps.Copy(baseMounts, unifiedMounts)
+	maps.Copy(baseVolumes, unifiedVolumes)
 
 	// TODO: Investigate moving readonlyTmpfs into here. Would be more
 	// correct.

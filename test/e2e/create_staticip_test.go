@@ -62,7 +62,7 @@ var _ = Describe("Podman create with --ip flag", func() {
 
 		// race prevention: wait until IP address is assigned and
 		// container is running.
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			result = podmanTest.Podman([]string{"inspect", "--format", "{{.State.Status}} {{.NetworkSettings.IPAddress}}", "test1"})
 			result.WaitWithDefaultTimeout()
 			Expect(result).Should(ExitCleanly())

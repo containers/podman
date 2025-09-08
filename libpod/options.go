@@ -5,9 +5,11 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"syscall"
 	"time"
@@ -86,9 +88,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 
 		if config.PullOptions != nil {
 			rt.storageConfig.PullOptions = make(map[string]string)
-			for k, v := range config.PullOptions {
-				rt.storageConfig.PullOptions[k] = v
-			}
+			maps.Copy(rt.storageConfig.PullOptions, config.PullOptions)
 		}
 
 		// If any one of runroot, graphroot, graphdrivername,
@@ -278,10 +278,8 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 			return define.ErrRuntimeFinalized
 		}
 
-		for _, hooksDir := range hooksDirs {
-			if hooksDir == "" {
-				return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
-			}
+		if slices.Contains(hooksDirs, "") {
+			return fmt.Errorf("empty-string hook directories are not supported: %w", define.ErrInvalidArg)
 		}
 
 		rt.config.Engine.HooksDir.Set(hooksDirs)
@@ -706,9 +704,7 @@ func WithLabels(labels map[string]string) CtrCreateOption {
 		}
 
 		ctr.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			ctr.config.Labels[key] = value
-		}
+		maps.Copy(ctr.config.Labels, labels)
 
 		return nil
 	}
@@ -1624,9 +1620,7 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 		}
 
 		volume.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			volume.config.Labels[key] = value
-		}
+		maps.Copy(volume.config.Labels, labels)
 
 		return nil
 	}
@@ -1652,9 +1646,7 @@ func WithVolumeOptions(options map[string]string) VolumeCreateOption {
 		}
 
 		volume.config.Options = make(map[string]string)
-		for key, value := range options {
-			volume.config.Options[key] = value
-		}
+		maps.Copy(volume.config.Options, options)
 
 		return nil
 	}
@@ -2023,9 +2015,7 @@ func WithPodLabels(labels map[string]string) PodCreateOption {
 		}
 
 		pod.config.Labels = make(map[string]string)
-		for key, value := range labels {
-			pod.config.Labels[key] = value
-		}
+		maps.Copy(pod.config.Labels, labels)
 
 		return nil
 	}

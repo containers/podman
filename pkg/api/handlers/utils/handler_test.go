@@ -23,7 +23,7 @@ func TestErrorEncoderFuncOmit(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dataAsMap := make(map[string]interface{})
+	dataAsMap := make(map[string]any)
 	err = json.Unmarshal(data, &dataAsMap)
 	if err != nil {
 		t.Fatal(err)
@@ -38,7 +38,7 @@ func TestErrorEncoderFuncOmit(t *testing.T) {
 		t.Errorf("the `errs` field should have been omitted")
 	}
 
-	dataAsMap = make(map[string]interface{})
+	dataAsMap = make(map[string]any)
 	data, err = json.Marshal(struct {
 		Err  error   `json:"err"`
 		Errs []error `json:"errs"`
@@ -264,7 +264,7 @@ func TestResponseSender_Send(t *testing.T) {
 	w := httptest.NewRecorder()
 	sender := NewBuildResponseSender(w)
 
-	testResponse := map[string]interface{}{
+	testResponse := map[string]any{
 		"stream": "test message",
 		"id":     "12345",
 	}
@@ -275,7 +275,7 @@ func TestResponseSender_Send(t *testing.T) {
 	assert.NotEmpty(t, w.Body.String())
 
 	// Verify the JSON was properly encoded
-	var decoded map[string]interface{}
+	var decoded map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &decoded)
 	assert.NoError(t, err)
 	assert.Equal(t, "test message", decoded["stream"])
@@ -290,7 +290,7 @@ func TestResponseSender_SendBuildStream(t *testing.T) {
 	sender.SendBuildStream(message)
 
 	// Verify the response structure
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, message, response["stream"])
@@ -304,7 +304,7 @@ func TestResponseSender_SendBuildError(t *testing.T) {
 	sender.SendBuildError(errorMessage)
 
 	// Verify the response structure
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
@@ -313,7 +313,7 @@ func TestResponseSender_SendBuildError(t *testing.T) {
 	assert.NotNil(t, response["errorDetail"])
 
 	// Check the nested error structure (errorDetail)
-	errorObj := response["errorDetail"].(map[string]interface{})
+	errorObj := response["errorDetail"].(map[string]any)
 	assert.Equal(t, errorMessage, errorObj["message"])
 }
 
@@ -325,7 +325,7 @@ func TestResponseSender_SendBuildAux(t *testing.T) {
 	sender.SendBuildAux(auxData)
 
 	// Verify the response structure
-	var response map[string]interface{}
+	var response map[string]any
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 
@@ -342,7 +342,7 @@ func TestResponseSender_SendInvalidJSON(t *testing.T) {
 	sender := NewBuildResponseSender(w)
 
 	// Create a value that can't be JSON encoded (contains channels)
-	invalidValue := map[string]interface{}{
+	invalidValue := map[string]any{
 		"channel": make(chan string),
 	}
 

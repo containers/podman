@@ -76,7 +76,7 @@ type ContainerConfig struct {
 	// namespace. They are used by the OCI runtime when creating the
 	// container, and by c/storage to ensure that the container's files have
 	// the appropriate owner.
-	IDMappings storage.IDMappingOptions `json:"idMappingsOptions,omitempty"`
+	IDMappings storage.IDMappingOptions `json:"idMappingsOptions"`
 
 	// Dependencies are the IDs of dependency containers.
 	// These containers must be started before this container is started.
