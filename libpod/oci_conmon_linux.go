@@ -80,6 +80,7 @@ func (r *ConmonOCIRuntime) createRootlessContainer(ctr *Container, restoreOption
 				var parentMount string
 				for dir := filepath.Dir(rootPath); ; dir = filepath.Dir(dir) {
 					if m, found := byMountpoint[dir]; found {
+						//nolint:staticcheck // false positive?! it claims the value of parentMount is not used but we use it below for the mount
 						parentMount = dir
 						for o := range strings.SplitSeq(m.Optional, ",") {
 							opt := strings.Split(o, ":")
