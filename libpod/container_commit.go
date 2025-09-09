@@ -131,8 +131,7 @@ func (c *Container) Commit(ctx context.Context, destImage string, options Contai
 		// Only include anonymous named volumes added by the user by
 		// default.
 		for _, v := range c.config.NamedVolumes {
-			include := slices.Contains(c.config.UserVolumes, v.Dest)
-			if include {
+			if slices.Contains(c.config.UserVolumes, v.Dest) {
 				vol, err := c.runtime.GetVolume(v.Name)
 				if err != nil {
 					return nil, fmt.Errorf("volume %s used in container %s has been removed: %w", v.Name, c.ID(), err)

@@ -445,7 +445,6 @@ func configHook() {
 }
 
 func loggingHook() {
-	var found bool
 	if debug {
 		if logLevel != defaultLogLevel {
 			fmt.Fprintf(os.Stderr, "Setting --log-level and --debug is not allowed\n")
@@ -453,10 +452,8 @@ func loggingHook() {
 		}
 		logLevel = "debug"
 	}
-	if slices.Contains(common.LogLevels, strings.ToLower(logLevel)) {
-		found = true
-	}
-	if !found {
+
+	if !slices.Contains(common.LogLevels, strings.ToLower(logLevel)) {
 		fmt.Fprintf(os.Stderr, "Log Level %q is not supported, choose from: %s\n", logLevel, strings.Join(common.LogLevels, ", "))
 		os.Exit(1)
 	}
