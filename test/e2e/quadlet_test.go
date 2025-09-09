@@ -1074,6 +1074,7 @@ BOGUS=foo
 		Entry("Build - Variant Key", "variant.build"),
 		Entry("Build - No Default Dependencies", "no_deps.build"),
 		Entry("Build - Retry", "retry.build"),
+		Entry("Build - No WorkingDirectory with systemd specifier", "no-workingdirectory-systemd-specifier.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
 		Entry("Pod - DNS", "dns.pod"),
