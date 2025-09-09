@@ -36,7 +36,7 @@ func IsRemote() bool {
 			remote = true
 		}
 		fs := pflag.NewFlagSet("remote", pflag.ContinueOnError)
-		fs.ParseErrorsWhitelist.UnknownFlags = true
+		fs.ParseErrorsAllowlist.UnknownFlags = true
 		fs.Usage = func() {}
 		fs.SetInterspersed(false)
 		fs.BoolVarP(&remoteFromCLI.Value, "remote", "r", remote, "")
