@@ -131,7 +131,7 @@ LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
-	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
+	-X go.podman.io/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \
 	$(LDFLAGS_PODMAN) \
