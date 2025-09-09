@@ -2157,7 +2157,7 @@ func getPersistentVolumeClaimVolume(vName string) *Volume {
 
 // getConfigMap returns a new ConfigMap Volume given the name and items
 // of the ConfigMap.
-func getConfigMapVolume(vName string, items []map[string]string, optional bool, defaultMode *int32) *Volume { //nolint:unparam
+func getConfigMapVolume(vName string, items []map[string]string, optional bool, defaultMode *int32) *Volume {
 	vol := &Volume{
 		VolumeType: "ConfigMap",
 		Name:       defaultVolName,
@@ -6182,4 +6182,32 @@ spec:
 		Expect(execArr[len(execArr)-1]).To(Not(ContainSubstring(arr[len(arr)-1])))
 	})
 
+	It("CVE-2025-9566 regression test - ConfigMap mount", func() {
+		testfile := filepath.Join(podmanTest.TempDir, "testfile")
+		volumeName := "cm-vol"
+		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("foo", "content1"))
+		cmYaml, err := getKubeYaml("configmap", cm)
+		Expect(err).ToNot(HaveOccurred())
+
+		ctrName := "ctr1"
+		podName := "pod1"
+		// create a symlink at the volume mount location so we can make sure we don't resolve that to the host location.
+		ctr := getCtr(withName(ctrName), withVolumeMount("/test", "", false), withImage(CITEST_IMAGE), withCmd([]string{"sh", "-c", "ln -sf " + testfile + " /test/foo"}))
+		pod := getPod(withPodName(podName), withVolume(getConfigMapVolume(volumeName, nil, false, nil)), withCtr(ctr))
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).ToNot(HaveOccurred())
+		yamls := []string{cmYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		// wait for the container to finish to ensure the symlink was created
+		podmanTest.PodmanExitCleanly("wait", podName+"-"+ctrName)
+		podmanTest.PodmanExitCleanly("kube", "down", kubeYaml)
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError(125, `cannot create file "foo" at volume mountpoint`))
+
+		Expect(testfile).ToNot(BeAnExistingFile(), "file should never be created on the host")
+	})
 })
