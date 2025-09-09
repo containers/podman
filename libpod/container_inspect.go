@@ -416,13 +416,11 @@ func (c *Container) generateInspectContainerConfig(spec *spec.Spec) *define.Insp
 	}
 
 	if len(c.config.Labels) != 0 {
-		ctrConfig.Labels = make(map[string]string)
-		maps.Copy(ctrConfig.Labels, c.config.Labels)
+		ctrConfig.Labels = maps.Clone(c.config.Labels)
 	}
 
 	if len(spec.Annotations) != 0 {
-		ctrConfig.Annotations = make(map[string]string)
-		maps.Copy(ctrConfig.Annotations, spec.Annotations)
+		ctrConfig.Annotations = maps.Clone(spec.Annotations)
 	}
 	ctrConfig.StopSignal = signal.ToDockerFormat(c.config.StopSignal)
 	// TODO: should JSON deep copy this to ensure internal pointers don't

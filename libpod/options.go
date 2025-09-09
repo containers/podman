@@ -87,8 +87,7 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 		}
 
 		if config.PullOptions != nil {
-			rt.storageConfig.PullOptions = make(map[string]string)
-			maps.Copy(rt.storageConfig.PullOptions, config.PullOptions)
+			rt.storageConfig.PullOptions = maps.Clone(config.PullOptions)
 		}
 
 		// If any one of runroot, graphroot, graphdrivername,
