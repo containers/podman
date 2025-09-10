@@ -2539,4 +2539,209 @@ log_path = "%s"
 		Expect(string(content)).To(ContainSubstring(expectedMessage), "Log should contain expected message")
 		Expect(string(content)).To(MatchRegexp(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+.*stdout F `+regexp.QuoteMeta(expectedMessage)), "Log should follow k8s-file format")
 	})
+
+	It("podman run uses containers.conf default_log_path", func() {
+		expectedMessage := "Default log path test message"
+		defaultLogPath := filepath.Join(podmanTest.TempDir, "default-logs")
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+default_log_path = "%s"
+`, defaultLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		containerName := "default-log-test"
+		session := podmanTest.Podman([]string{"run", "--rm", "--name", containerName, ALPINE, "echo", expectedMessage})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		found := false
+		logContent := ""
+		if _, err := os.Stat(defaultLogPath); err == nil {
+			logDirs, err := os.ReadDir(defaultLogPath)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, logDir := range logDirs {
+				if logDir.IsDir() {
+					logFilePath := filepath.Join(defaultLogPath, logDir.Name(), "ctr.log")
+					if content, err := os.ReadFile(logFilePath); err == nil {
+						logContent = string(content)
+						if strings.Contains(logContent, expectedMessage) {
+							found = true
+							break
+						}
+					}
+				}
+			}
+		}
+
+		Expect(found).To(BeTrue(), "Should find log file with expected message in default_log_path")
+		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+	})
+
+	It("podman run log-opt path overrides containers.conf default_log_path", func() {
+		expectedMessage := "Explicit path override test message"
+		defaultLogPath := filepath.Join(podmanTest.TempDir, "default-logs-unused")
+		explicitLogPath := filepath.Join(podmanTest.TempDir, "explicit-override.log")
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+default_log_path = "%s"
+`, defaultLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", "--log-driver", "k8s-file", "--log-opt", fmt.Sprintf("path=%s", explicitLogPath), ALPINE, "echo", expectedMessage})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		// Verify explicit path was used
+		content, err := os.ReadFile(explicitLogPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(content)).To(ContainSubstring(expectedMessage), "Explicit log file should contain the expected message")
+
+		// Verify default_log_path was not used
+		if _, err := os.Stat(defaultLogPath); err == nil {
+			defaultLogDirs, err := os.ReadDir(defaultLogPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(defaultLogDirs).To(BeEmpty(), "default_log_path should not be used when explicit path is provided")
+		}
+	})
+
+	It("podman run default_log_path works with different log drivers", func() {
+		expectedMessage := "JSON driver test message"
+		defaultLogPath := filepath.Join(podmanTest.TempDir, "default-logs-json")
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "json-file"
+default_log_path = "%s"
+`, defaultLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		containerName := "json-driver-test"
+		session := podmanTest.Podman([]string{"run", "--rm", "--name", containerName, ALPINE, "echo", expectedMessage})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(ExitCleanly())
+
+		found := false
+		logContent := ""
+		if _, err := os.Stat(defaultLogPath); err == nil {
+			logDirs, err := os.ReadDir(defaultLogPath)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, logDir := range logDirs {
+				if logDir.IsDir() {
+					logFilePath := filepath.Join(defaultLogPath, logDir.Name(), "ctr.log")
+					if content, err := os.ReadFile(logFilePath); err == nil {
+						logContent = string(content)
+						if strings.Contains(logContent, expectedMessage) {
+							found = true
+							break
+						}
+					}
+				}
+			}
+		}
+
+		Expect(found).To(BeTrue(), "Should find log file with expected message in default_log_path for json-file driver")
+		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+	})
+
+	It("podman run rejects absolute paths in default_log_path", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := `[containers]
+log_driver = "k8s-file"
+default_log_path = "/absolute/path/logs"
+`
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "echo", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("default_log_path must not be an absolute path"))
+	})
+
+	It("podman run rejects directory traversal in default_log_path", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := `[containers]
+log_driver = "k8s-file"
+default_log_path = "../../../etc/passwd"
+`
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "echo", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("default_log_path must not contain directory traversal (..)"))
+	})
+
+	It("podman run rejects empty default_log_path", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := `[containers]
+log_driver = "k8s-file"
+default_log_path = "   "
+`
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		session := podmanTest.Podman([]string{"run", "--rm", ALPINE, "echo", "test"})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("default_log_path cannot be empty or whitespace-only"))
+	})
 })

@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"slices"
@@ -228,11 +229,41 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 
 	s.ImageVolumes = opts.ImageVolumes
 
+	// Set initial log path from containers config if specified
 	if rtc.Containers.LogPath != "" {
 		s.LogConfiguration.Path = rtc.Containers.LogPath
 	}
 
 	s.LogConfiguration.Options = make(map[string]string)
+
+	// Check if explicit --log-opt path= is provided
+	explicitPathProvided := false
+	for _, o := range opts.LogOptions {
+		key, _, hasVal := strings.Cut(o, "=")
+		if hasVal && strings.ToLower(key) == "path" {
+			explicitPathProvided = true
+			break
+		}
+	}
+
+	// If no explicit path provided, use default_log_path
+	if !explicitPathProvided && s.LogConfiguration.Path == "" &&
+		rtc.Containers.DefaultLogPath != "" {
+		// Validate and sanitize the path to prevent path traversal attacks
+		defaultPath := strings.TrimSpace(rtc.Containers.DefaultLogPath)
+		if defaultPath == "" {
+			return nil, fmt.Errorf("default_log_path cannot be empty or whitespace-only")
+		}
+		cleanPath := filepath.Clean(defaultPath)
+		if filepath.IsAbs(cleanPath) {
+			return nil, fmt.Errorf("default_log_path must not be an absolute path, got: %s", defaultPath)
+		}
+		if strings.Contains(cleanPath, "..") {
+			return nil, fmt.Errorf("default_log_path must not contain directory traversal (..), got: %s", defaultPath)
+		}
+		s.LogConfiguration.Path = cleanPath
+	}
+
 	for _, o := range opts.LogOptions {
 		opt, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {

@@ -175,6 +175,11 @@ type ContainersConfig struct {
 	// LogPath is the path to the container log file.
 	LogPath string `toml:"log_path,omitempty"`
 
+	// DefaultLogPath is the default log path for containers when no explicit path is specified.
+	// When set, podman kube play will automatically use this path for logging unless
+	// overridden by --log-opt path=
+	DefaultLogPath string `toml:"default_log_path,omitempty"`
+
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
 	// that is parsed to bytes.

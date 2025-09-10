@@ -6392,6 +6392,293 @@ spec:
 		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
 	})
 
+	It("test with default_log_path from containers.conf", func() {
+		defaultLogPath := filepath.Join(podmanTest.TempDir, "default-logs")
+		expectedMessage := "Pod started, checking default logs"
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+default_log_path = "%s"
+`, defaultLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.MkdirAll(defaultLogPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-default-log-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: default-log-test-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: logger-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo '%s'; sleep 2"]
+`, CITEST_IMAGE, expectedMessage)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+
+		podmanTest.PodmanExitCleanly("wait", "default-log-test-pod-logger-container")
+
+		defaultLogDirs, err := os.ReadDir(defaultLogPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(defaultLogDirs).To(HaveLen(2), "Should have exactly two container log directories (infra + app container)")
+
+		var logContent string
+		found := false
+
+		for _, dir := range defaultLogDirs {
+			if !dir.IsDir() {
+				continue
+			}
+			containerLogDir := dir.Name()
+			logFilePath := filepath.Join(defaultLogPath, containerLogDir, "ctr.log")
+
+			if _, err := os.Stat(logFilePath); err != nil {
+				continue
+			}
+
+			content, err := os.ReadFile(logFilePath)
+			if err != nil {
+				continue
+			}
+
+			if strings.Contains(string(content), expectedMessage) {
+				logContent = string(content)
+				found = true
+				break
+			}
+		}
+
+		Expect(found).To(BeTrue(), "Should find log file with expected message in default_log_path")
+		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+	})
+
+	It("test that explicit log-opt path overrides default_log_path", func() {
+		defaultLogPath := filepath.Join(podmanTest.TempDir, "default-logs-unused")
+		explicitLogPath := filepath.Join(podmanTest.TempDir, "explicit-logs")
+		expectedMessage := "Pod started, checking explicit logs"
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "k8s-file"
+default_log_path = "%s"
+`, defaultLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = os.MkdirAll(explicitLogPath, 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-explicit-log-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: explicit-log-test-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: logger-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo '%s'; sleep 2"]
+`, CITEST_IMAGE, expectedMessage)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", "--log-opt", fmt.Sprintf("path=%s", explicitLogPath), kubeYaml)
+
+		podmanTest.PodmanExitCleanly("wait", "explicit-log-test-pod-logger-container")
+
+		// Verify logs are in explicit path, not default path
+		explicitLogDirs, err := os.ReadDir(explicitLogPath)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(explicitLogDirs).To(HaveLen(2), "Should have exactly two container log directories in explicit path")
+
+		// Verify default path is not used (should not exist or be empty)
+		if _, err := os.Stat(defaultLogPath); err == nil {
+			defaultLogDirs, err := os.ReadDir(defaultLogPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(defaultLogDirs).To(HaveLen(0), "Default log path should not be used when explicit path is provided")
+		}
+
+		var logContent string
+		found := false
+
+		for _, dir := range explicitLogDirs {
+			if !dir.IsDir() {
+				continue
+			}
+			containerLogDir := dir.Name()
+			logFilePath := filepath.Join(explicitLogPath, containerLogDir, "ctr.log")
+
+			if _, err := os.Stat(logFilePath); err != nil {
+				continue
+			}
+
+			content, err := os.ReadFile(logFilePath)
+			if err != nil {
+				continue
+			}
+
+			if strings.Contains(string(content), expectedMessage) {
+				logContent = string(content)
+				found = true
+				break
+			}
+		}
+
+		Expect(found).To(BeTrue(), "Should find log file with expected message in explicit log path")
+		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+	})
+
+	It("test that default_log_path is ignored for non-k8s-file drivers", func() {
+		defaultLogPath := filepath.Join(podmanTest.TempDir, "default-logs-ignored")
+
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := fmt.Sprintf(`[containers]
+log_driver = "journald"
+default_log_path = "%s"
+`, defaultLogPath)
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-journald-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: journald-test-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: logger-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo 'test message'; sleep 2"]
+`, CITEST_IMAGE)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		podmanTest.PodmanExitCleanly("wait", "journald-test-pod-logger-container")
+
+		// Verify default_log_path directory was not created/used
+		if _, err := os.Stat(defaultLogPath); err == nil {
+			defaultLogDirs, err := os.ReadDir(defaultLogPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(defaultLogDirs).To(HaveLen(0), "default_log_path should not be used with journald driver")
+		}
+	})
+
+	It("kube play rejects absolute paths in default_log_path", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := `[containers]
+log_driver = "k8s-file"
+default_log_path = "/absolute/path/logs"
+`
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-security-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: security-test-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo 'test'; sleep 1"]
+`, CITEST_IMAGE)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("default_log_path must not be an absolute path"))
+	})
+
+	It("kube play rejects directory traversal in default_log_path", func() {
+		conffile := filepath.Join(podmanTest.TempDir, "containers.conf")
+		configContent := `[containers]
+log_driver = "k8s-file"
+default_log_path = "../../../etc/passwd"
+`
+
+		err := os.WriteFile(conffile, []byte(configContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		os.Setenv("CONTAINERS_CONF_OVERRIDE", conffile)
+		defer os.Unsetenv("CONTAINERS_CONF_OVERRIDE")
+
+		if IsRemote() {
+			podmanTest.RestartRemoteService()
+		}
+
+		kubeYaml := filepath.Join(podmanTest.TempDir, "test-security-pod.yaml")
+		podYamlContent := fmt.Sprintf(`apiVersion: v1
+kind: Pod
+metadata:
+  name: security-test-pod
+spec:
+  restartPolicy: Never
+  containers:
+  - name: test-container
+    image: %s
+    command: ["/bin/sh", "-c", "echo 'test'; sleep 1"]
+`, CITEST_IMAGE)
+
+		err = os.WriteFile(kubeYaml, []byte(podYamlContent), 0644)
+		Expect(err).ToNot(HaveOccurred())
+
+		session := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		session.WaitWithDefaultTimeout()
+		Expect(session).Should(Exit(125))
+		Expect(session.ErrorToString()).To(ContainSubstring("default_log_path must not contain directory traversal (..)"))
+	})
+
 	It("CVE-2025-9566 regression test - ConfigMap mount", func() {
 		testfile := filepath.Join(podmanTest.TempDir, "testfile")
 		volumeName := "cm-vol"
