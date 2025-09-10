@@ -56,7 +56,7 @@ jobs:
       # Step 2: Checkout the repository containing the certificate HTML file.
       - name: Checkout containers/automation repository
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: containers/automation
           path: automation-repo
