@@ -34,7 +34,7 @@ jobs:
       - name: Check for first merged PR
         id: check_first_pr
         if: ${{ github.event_name == 'pull_request' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const author = context.payload.pull_request.user.login;
@@ -118,7 +118,7 @@ jobs:
       # Step 7: Upload certificate image to separate repository
       - name: Upload certificate to separate repository
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.CERTIFICATES_REPO_TOKEN }}
           script: |
@@ -217,7 +217,7 @@ jobs:
       # Step 8: Comment on Pull Request with embedded image
       - name: Comment with embedded certificate image
         if: ${{ github.event_name == 'workflow_dispatch' || steps.check_first_pr.outputs.is_first_pr == 'true' }}
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             try {
