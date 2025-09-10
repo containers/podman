@@ -164,6 +164,8 @@ type ContainerState struct {
 	PID int `json:"pid,omitempty"`
 	// ConmonPID is the PID of the container's conmon
 	ConmonPID int `json:"conmonPid,omitempty"`
+	// HealthCheckStopFile is the path to a file that signals the healthcheck timer to stop (nosystemd only)
+	HealthCheckStopFile string `json:"healthCheckStopFile,omitempty"`
 	// ExecSessions contains all exec sessions that are associated with this
 	// container.
 	ExecSessions map[string]*ExecSession `json:"newExecSessions,omitempty"`

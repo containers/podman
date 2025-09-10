@@ -5,6 +5,8 @@ package libpod
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containers/podman/v5/libpod/define"
@@ -22,6 +24,42 @@ type healthcheckTimer struct {
 
 // Global map to track active timers (in a real implementation, this would be part of the runtime)
 var activeTimers = make(map[string]*healthcheckTimer)
+
+// ReattachHealthCheckTimers reattaches healthcheck timers for running containers after podman restart
+// This implementation is for nosystemd builds where healthchecks are managed by goroutines
+func ReattachHealthCheckTimers(containers []*Container) {
+	for _, ctr := range containers {
+		// Only reattach for running containers with healthcheck configs
+		if ctr.state.State != define.ContainerStateRunning {
+			continue
+		}
+
+		// Check if container has healthcheck config
+		if ctr.config.HealthCheckConfig == nil {
+			continue
+		}
+
+		// Check if timer is already running
+		if _, exists := activeTimers[ctr.ID()]; exists {
+			continue
+		}
+
+		// Check if this is a startup healthcheck that hasn't passed yet
+		if ctr.config.StartupHealthCheckConfig != nil && !ctr.state.StartupHCPassed {
+			// Reattach startup healthcheck
+			interval := ctr.config.StartupHealthCheckConfig.StartInterval.String()
+			if err := ctr.createTimer(interval, true); err != nil {
+				logrus.Errorf("Failed to reattach startup healthcheck timer for container %s: %v", ctr.ID(), err)
+			}
+		} else if ctr.state.StartupHCPassed || ctr.config.StartupHealthCheckConfig == nil {
+			// Reattach regular healthcheck
+			interval := ctr.config.HealthCheckConfig.Interval.String()
+			if err := ctr.createTimer(interval, false); err != nil {
+				logrus.Errorf("Failed to reattach healthcheck timer for container %s: %v", ctr.ID(), err)
+			}
+		}
+	}
+}
 
 // disableHealthCheckSystemd returns true if healthcheck should be disabled
 // For non-systemd builds, we only disable if interval is 0
@@ -49,9 +87,19 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 		return err
 	}
 
-	// Stop any existing timer
+	// Stop any existing timer only if there's actually an active timer in memory
 	if c.state.HCUnitName != "" {
-		c.stopHealthCheckTimer()
+		// Check if there's an active timer in memory before stopping
+		if _, exists := activeTimers[c.ID()]; exists {
+			c.stopHealthCheckTimer()
+		} else {
+			// No active timer in memory, just clear the state without creating stop file
+			c.state.HCUnitName = ""
+			c.state.HealthCheckStopFile = ""
+			if err := c.save(); err != nil {
+				return fmt.Errorf("clearing container %s healthcheck state: %w", c.ID(), err)
+			}
+		}
 	}
 
 	// Create context for cancellation
@@ -69,6 +117,9 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 	// Store timer reference globally and in container state
 	activeTimers[c.ID()] = timer
 	c.state.HCUnitName = "goroutine-timer"
+	// Create a stop file for cross-process cleanup
+	stopFile := filepath.Join(c.runtime.config.Engine.TmpDir, fmt.Sprintf("healthcheck-stop-%s", c.ID()))
+	c.state.HealthCheckStopFile = stopFile
 
 	if err := c.save(); err != nil {
 		cancel()
@@ -79,13 +130,25 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 	// Start the background goroutine
 	go timer.run()
 
-	logrus.Debugf("Created goroutine-based healthcheck timer for container %s with interval %s", c.ID(), interval)
 	return nil
 }
 
 // startTimer starts the goroutine-based timer for healthchecks
 func (c *Container) startTimer(isStartup bool) error {
-	// Timer is already started in createTimer, nothing to do
+	// Check if timer already exists
+	if _, exists := activeTimers[c.ID()]; exists {
+		return nil
+	}
+
+	// Create timer if it doesn't exist
+	if c.config.HealthCheckConfig != nil {
+		interval := c.config.HealthCheckConfig.Interval.String()
+		if c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed {
+			interval = c.config.StartupHealthCheckConfig.StartInterval.String()
+		}
+		return c.createTimer(interval, c.config.StartupHealthCheckConfig != nil)
+	}
+
 	return nil
 }
 
@@ -96,30 +159,32 @@ func (c *Container) removeTransientFiles(ctx context.Context, isStartup bool, un
 
 // stopHealthCheckTimer stops the background healthcheck goroutine
 func (c *Container) stopHealthCheckTimer() error {
+	// First try to stop using the in-memory map (same process)
 	timer, exists := activeTimers[c.ID()]
-	if !exists {
-		logrus.Debugf("No active healthcheck timer found for container %s", c.ID())
-		return nil
+	if exists {
+		// Cancel the context to stop the goroutine
+		timer.cancel()
+
+		// Wait for the goroutine to finish (with timeout)
+		select {
+		case <-timer.done:
+			// Timer stopped gracefully
+		case <-time.After(5 * time.Second):
+			logrus.Warnf("Healthcheck timer for container %s did not stop within timeout", c.ID())
+		}
+
+		// Remove from active timers
+		delete(activeTimers, c.ID())
+	} else if c.state.HealthCheckStopFile != "" {
+		// Called from different process (cleanup), create stop file
+		if err := os.WriteFile(c.state.HealthCheckStopFile, []byte("stop"), 0644); err != nil {
+			logrus.Errorf("Failed to create healthcheck stop file for container %s: %v", c.ID(), err)
+		}
 	}
 
-	logrus.Debugf("Stopping healthcheck timer for container %s", c.ID())
-
-	// Cancel the context to stop the goroutine
-	timer.cancel()
-
-	// Wait for the goroutine to finish (with timeout)
-	select {
-	case <-timer.done:
-		logrus.Debugf("Healthcheck timer for container %s stopped gracefully", c.ID())
-	case <-time.After(5 * time.Second):
-		logrus.Warnf("Healthcheck timer for container %s did not stop within timeout", c.ID())
-	}
-
-	// Remove from active timers
-	delete(activeTimers, c.ID())
-
-	// Clear the unit name
+	// Clear the unit name and stop file
 	c.state.HCUnitName = ""
+	c.state.HealthCheckStopFile = ""
 	return c.save()
 }
 
@@ -130,14 +195,22 @@ func (t *healthcheckTimer) run() {
 	ticker := time.NewTicker(t.interval)
 	defer ticker.Stop()
 
-	logrus.Debugf("Starting healthcheck timer for container %s with interval %s", t.container.ID(), t.interval)
-
 	for {
 		select {
 		case <-t.ctx.Done():
-			logrus.Debugf("Healthcheck timer for container %s stopped", t.container.ID())
 			return
 		case <-ticker.C:
+			// Check for stop file (cross-process cleanup)
+			if t.container.state.HealthCheckStopFile != "" {
+				if _, err := os.Stat(t.container.state.HealthCheckStopFile); err == nil {
+					// Clean up the stop file
+					if err := os.Remove(t.container.state.HealthCheckStopFile); err != nil {
+						logrus.Warnf("Failed to remove stop file for container %s: %v", t.container.ID(), err)
+					}
+					return
+				}
+			}
+
 			// Run the healthcheck
 			if err := t.runHealthCheck(); err != nil {
 				logrus.Errorf("Healthcheck failed for container %s: %v", t.container.ID(), err)
@@ -155,14 +228,12 @@ func (t *healthcheckTimer) runHealthCheck() error {
 	}
 
 	if state != define.ContainerStateRunning {
-		logrus.Debugf("Container %s is not running (state: %v), skipping healthcheck", t.container.ID(), state)
 		return nil
 	}
 
 	// Get healthcheck config (without holding lock)
 	healthConfig := t.container.HealthCheckConfig()
 	if healthConfig == nil {
-		logrus.Debugf("No healthcheck config found for container %s, skipping healthcheck", t.container.ID())
 		return nil
 	}
 
