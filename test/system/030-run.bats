@@ -1465,7 +1465,9 @@ EOF
     # check if the underlying file system supports idmapped mounts
     run_podman '?' run --security-opt label=disable --rm --uidmap=0:1000:10000 --rootfs $romount:idmap true
     if [[ $status -ne 0 ]]; then
-        if [[ "$output" =~ "failed to create idmapped mount: invalid argument" ]]; then
+        # Note bash regex only works if the right hand side is unquoted so we have to use this extra var.
+        match="failed to create idmapped mount.* invalid argument"
+        if [[ "$output" =~ $match ]]; then
             skip "idmapped mounts not supported"
         fi
         # Any other error is fatal
