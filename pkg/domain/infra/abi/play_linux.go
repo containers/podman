@@ -1,5 +1,3 @@
-//go:build
-
 package abi
 
 import (
