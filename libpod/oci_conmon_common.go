@@ -363,8 +363,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 		// Before handling error from KillContainer, convert STDERR to a []string
 		// (one string per line of output) and print it.
-		stderrLines := strings.Split(stderr.String(), "\n")
-		for _, line := range stderrLines {
+		for line := range strings.SplitSeq(stderr.String(), "\n") {
 			if line != "" {
 				fmt.Fprintf(os.Stderr, "%s\n", line)
 			}
@@ -691,7 +690,7 @@ func isRetryable(err error) bool {
 // openControlFile opens the terminal control file.
 func openControlFile(ctr *Container, parentDir string) (*os.File, error) {
 	controlPath := filepath.Join(parentDir, "ctl")
-	for i := 0; i < 600; i++ {
+	for range 600 {
 		controlFile, err := os.OpenFile(controlPath, unix.O_WRONLY|unix.O_NONBLOCK, 0)
 		if err == nil {
 			return controlFile, nil

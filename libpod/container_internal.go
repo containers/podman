@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -350,12 +351,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 // Returns true if the container is in one of the given states,
 // or false otherwise.
 func (c *Container) ensureState(states ...define.ContainerStatus) bool {
-	for _, state := range states {
-		if state == c.state.State {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(states, c.state.State)
 }
 
 // Sync this container with on-disk state and runtime status
@@ -412,8 +408,8 @@ func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
 		dest.AutoUserNsOpts.GroupFile = overrides.ContainerEtcGroupPath
 		if c.config.User != "" {
 			initialSize := uint32(0)
-			parts := strings.Split(c.config.User, ":")
-			for _, p := range parts {
+			parts := strings.SplitSeq(c.config.User, ":")
+			for p := range parts {
 				s, err := strconv.ParseUint(p, 10, 32)
 				if err == nil && uint32(s) > initialSize {
 					initialSize = uint32(s)
@@ -476,19 +472,14 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		// privileged containers or '--ipc host' only ProcessLabel will
 		// be set and so we will skip it for cases like that.
 		if options.Flags == nil {
-			options.Flags = make(map[string]interface{})
+			options.Flags = make(map[string]any)
 		}
 		options.Flags["ProcessLabel"] = c.config.ProcessLabel
 		options.Flags["MountLabel"] = c.config.MountLabel
 	}
 	if c.config.Privileged {
 		privOpt := func(opt string) bool {
-			for _, privopt := range []string{"nodev", "nosuid", "noexec"} {
-				if opt == privopt {
-					return true
-				}
-			}
-			return false
+			return slices.Contains([]string{"nodev", "nosuid", "noexec"}, opt)
 		}
 
 		defOptions, err := storage.GetMountOptions(c.runtime.store.GraphDriverName(), c.runtime.store.GraphOptions())
@@ -2479,9 +2470,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			if len(ociHooks) > 0 || config.Hooks != nil {
 				logrus.Warnf("Implicit hook directories are deprecated; set --ociHooks-dir=%q explicitly to continue to load ociHooks from this directory", hDir)
 			}
-			for i, hook := range ociHooks {
-				allHooks[i] = hook
-			}
+			maps.Copy(allHooks, ociHooks)
 		}
 	} else {
 		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir.Get(), []string{"precreate", "poststop"})

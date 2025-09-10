@@ -125,7 +125,7 @@ type ImageRemoveReport struct {
 
 type ImageHistoryLayer struct {
 	ID        string    `json:"id"`
-	Created   time.Time `json:"created,omitempty"`
+	Created   time.Time `json:"created"`
 	CreatedBy string    `json:",omitempty"`
 	Tags      []string  `json:"tags,omitempty"`
 	Size      int64     `json:"size"`

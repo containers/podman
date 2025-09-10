@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -444,7 +445,6 @@ func configHook() {
 }
 
 func loggingHook() {
-	var found bool
 	if debug {
 		if logLevel != defaultLogLevel {
 			fmt.Fprintf(os.Stderr, "Setting --log-level and --debug is not allowed\n")
@@ -452,13 +452,8 @@ func loggingHook() {
 		}
 		logLevel = "debug"
 	}
-	for _, l := range common.LogLevels {
-		if l == strings.ToLower(logLevel) {
-			found = true
-			break
-		}
-	}
-	if !found {
+
+	if !slices.Contains(common.LogLevels, strings.ToLower(logLevel)) {
 		fmt.Fprintf(os.Stderr, "Log Level %q is not supported, choose from: %s\n", logLevel, strings.Join(common.LogLevels, ", "))
 		os.Exit(1)
 	}

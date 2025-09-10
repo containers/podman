@@ -50,6 +50,6 @@ func (d Duration) MarshalJSON() ([]byte, error) {
 }
 
 // ToUnstructured implements the value.UnstructuredConverter interface.
-func (d Duration) ToUnstructured() interface{} {
+func (d Duration) ToUnstructured() any {
 	return d.Duration.String()
 }

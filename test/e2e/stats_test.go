@@ -117,7 +117,7 @@ var _ = Describe("Podman stats", func() {
 		session := podmanTest.RunTopContainer("")
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			ps := podmanTest.Podman([]string{"ps", "-q"})
 			ps.WaitWithDefaultTimeout()
 			if len(ps.OutputToStringArray()) == 1 {

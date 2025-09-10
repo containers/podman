@@ -138,12 +138,12 @@ type ContainerBasicConfig struct {
 	// PidNS is the container's PID namespace.
 	// It defaults to private.
 	// Mandatory.
-	PidNS Namespace `json:"pidns,omitempty"`
+	PidNS Namespace `json:"pidns"`
 	// UtsNS is the container's UTS namespace.
 	// It defaults to private.
 	// Must be set to Private to set Hostname.
 	// Mandatory.
-	UtsNS Namespace `json:"utsns,omitempty"`
+	UtsNS Namespace `json:"utsns"`
 	// Hostname is the container's hostname. If not set, the hostname will
 	// not be modified (if UtsNS is not private) or will be set to the
 	// container ID (if UtsNS is private).
@@ -322,7 +322,7 @@ type ContainerStorageConfig struct {
 	// Default is private.
 	// Conflicts with ShmSize if not set to private.
 	// Mandatory.
-	IpcNS Namespace `json:"ipcns,omitempty"`
+	IpcNS Namespace `json:"ipcns"`
 	// ShmSize is the size of the tmpfs to mount in at /dev/shm, in bytes.
 	// Conflicts with ShmSize if IpcNS is not private.
 	// Optional.
@@ -418,7 +418,7 @@ type ContainerSecurityConfig struct {
 	// created.
 	// If set to private, IDMappings must be set.
 	// Mandatory.
-	UserNS Namespace `json:"userns,omitempty"`
+	UserNS Namespace `json:"userns"`
 	// IDMappings are UID and GID mappings that will be used by user
 	// namespaces.
 	// Required if UserNS is private.
@@ -458,7 +458,7 @@ type ContainerCgroupConfig struct {
 	// CgroupNS is the container's cgroup namespace.
 	// It defaults to private.
 	// Mandatory.
-	CgroupNS Namespace `json:"cgroupns,omitempty"`
+	CgroupNS Namespace `json:"cgroupns"`
 	// CgroupsMode sets a policy for how cgroups will be created for the
 	// container, including the ability to disable creation entirely.
 	// Optional.
@@ -475,7 +475,7 @@ type ContainerNetworkConfig struct {
 	// NetNS is the configuration to use for the container's network
 	// namespace.
 	// Mandatory.
-	NetNS Namespace `json:"netns,omitempty"`
+	NetNS Namespace `json:"netns"`
 	// PortBindings is a set of ports to map into the container.
 	// Only available if NetNS is set to bridge, slirp, or pasta.
 	// Optional.

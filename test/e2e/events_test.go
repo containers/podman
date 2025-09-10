@@ -293,7 +293,7 @@ var _ = Describe("Podman events", func() {
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			hc := podmanTest.Podman([]string{"healthcheck", "run", "test-hc"})
 			hc.WaitWithDefaultTimeout()
 			exitCode := hc.ExitCode()

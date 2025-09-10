@@ -48,16 +48,16 @@ type StatefulSet struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the desired identities of pods in this set.
 	// +optional
-	Spec StatefulSetSpec `json:"spec,omitempty"`
+	Spec StatefulSetSpec `json:"spec"`
 
 	// Status is the current status of Pods in this StatefulSet. This data
 	// may be out of date by some window of time.
 	// +optional
-	Status StatefulSetStatus `json:"status,omitempty"`
+	Status StatefulSetStatus `json:"status"`
 }
 
 // PodManagementPolicyType defines the policy for creating pods under a stateful set.
@@ -168,7 +168,7 @@ type StatefulSetSpec struct {
 	// updateStrategy indicates the StatefulSetUpdateStrategy that will be
 	// employed to update Pods in the StatefulSet when a revision is made to
 	// Template.
-	UpdateStrategy StatefulSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	UpdateStrategy StatefulSetUpdateStrategy `json:"updateStrategy"`
 
 	// revisionHistoryLimit is the maximum number of revisions that will
 	// be maintained in the StatefulSet's revision history. The revision history
@@ -242,7 +242,7 @@ type StatefulSetCondition struct {
 	Status v1.ConditionStatus `json:"status"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -259,7 +259,7 @@ type StatefulSetList struct {
 	// Standard list's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// Items is the list of stateful sets.
 	Items []StatefulSet `json:"items"`
@@ -277,15 +277,15 @@ type Deployment struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Specification of the desired behavior of the Deployment.
 	// +optional
-	Spec DeploymentSpec `json:"spec,omitempty"`
+	Spec DeploymentSpec `json:"spec"`
 
 	// Most recently observed status of the Deployment.
 	// +optional
-	Status DeploymentStatus `json:"status,omitempty"`
+	Status DeploymentStatus `json:"status"`
 }
 
 // DeploymentSpec is the specification of the desired behavior of the Deployment.
@@ -306,7 +306,7 @@ type DeploymentSpec struct {
 	// The deployment strategy to use to replace existing pods with new ones.
 	// +optional
 	// +patchStrategy=retainKeys
-	Strategy DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys"`
+	Strategy DeploymentStrategy `json:"strategy" patchStrategy:"retainKeys"`
 
 	// Minimum number of seconds for which a newly created pod should be ready
 	// without any of its container crashing, for it to be considered available.
@@ -458,9 +458,9 @@ type DeploymentCondition struct {
 	// Status of the condition, one of True, False, Unknown.
 	Status v1.ConditionStatus `json:"status"`
 	// The last time this condition was updated.
-	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	LastUpdateTime metav1.Time `json:"lastUpdateTime"`
 	// Last time the condition transitioned from one status to another.
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// The reason for the condition's last transition.
 	Reason string `json:"reason,omitempty"`
 	// A human readable message indicating details about the transition.
@@ -474,7 +474,7 @@ type DeploymentList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// Items is the list of Deployments.
 	Items []Deployment `json:"items"`
@@ -564,7 +564,7 @@ type DaemonSetSpec struct {
 
 	// An update strategy to replace existing DaemonSet pods with new pods.
 	// +optional
-	UpdateStrategy DaemonSetUpdateStrategy `json:"updateStrategy,omitempty"`
+	UpdateStrategy DaemonSetUpdateStrategy `json:"updateStrategy"`
 
 	// The minimum number of seconds for which a newly created DaemonSet pod should
 	// be ready without any of its container crashing, for it to be considered
@@ -646,7 +646,7 @@ type DaemonSetCondition struct {
 	Status v1.ConditionStatus `json:"status"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`
@@ -664,12 +664,12 @@ type DaemonSet struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// The desired behavior of this daemon set.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec DaemonSetSpec `json:"spec,omitempty"`
+	Spec DaemonSetSpec `json:"spec"`
 
 	// The current status of this daemon set. This data may be
 	// out of date by some window of time.
@@ -677,7 +677,7 @@ type DaemonSet struct {
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status DaemonSetStatus `json:"status,omitempty"`
+	Status DaemonSetStatus `json:"status"`
 }
 
 const (
@@ -695,7 +695,7 @@ type DaemonSetList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// A list of daemon sets.
 	Items []DaemonSet `json:"items"`
@@ -716,12 +716,12 @@ type ReplicaSet struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata"`
 
 	// Spec defines the specification of the desired behavior of the ReplicaSet.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Spec ReplicaSetSpec `json:"spec,omitempty"`
+	Spec ReplicaSetSpec `json:"spec"`
 
 	// Status is the most recently observed status of the ReplicaSet.
 	// This data may be out of date by some window of time.
@@ -729,7 +729,7 @@ type ReplicaSet struct {
 	// Read-only.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status
 	// +optional
-	Status ReplicaSetStatus `json:"status,omitempty"`
+	Status ReplicaSetStatus `json:"status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -740,7 +740,7 @@ type ReplicaSetList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata"`
 
 	// List of ReplicaSets.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller
@@ -772,7 +772,7 @@ type ReplicaSetSpec struct {
 	// insufficient replicas are detected.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
 	// +optional
-	Template v1.PodTemplateSpec `json:"template,omitempty"`
+	Template v1.PodTemplateSpec `json:"template"`
 }
 
 // ReplicaSetStatus represents the current status of a ReplicaSet.
@@ -822,7 +822,7 @@ type ReplicaSetCondition struct {
 	Status v1.ConditionStatus `json:"status"`
 	// The last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
 	// The reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty"`

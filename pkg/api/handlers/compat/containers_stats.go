@@ -89,7 +89,7 @@ streamLabel: // A label to flatten the scope
 		}
 		s.Stats.PreRead = preRead
 
-		var jsonOut interface{}
+		var jsonOut any
 		if utils.IsLibpodRequest(r) {
 			jsonOut = s
 		} else {

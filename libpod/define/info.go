@@ -9,11 +9,11 @@ import (
 // running libpod/podman
 // swagger:model LibpodInfo
 type Info struct {
-	Host       *HostInfo              `json:"host"`
-	Store      *StoreInfo             `json:"store"`
-	Registries map[string]interface{} `json:"registries"`
-	Plugins    Plugins                `json:"plugins"`
-	Version    Version                `json:"version"`
+	Host       *HostInfo      `json:"host"`
+	Store      *StoreInfo     `json:"store"`
+	Registries map[string]any `json:"registries"`
+	Plugins    Plugins        `json:"plugins"`
+	Version    Version        `json:"version"`
 }
 
 // SecurityInfo describes the libpod host
@@ -41,7 +41,7 @@ type HostInfo struct {
 	EventLogger        string            `json:"eventLogger"`
 	FreeLocks          *uint32           `json:"freeLocks,omitempty"`
 	Hostname           string            `json:"hostname"`
-	IDMappings         IDMappings        `json:"idMappings,omitempty"`
+	IDMappings         IDMappings        `json:"idMappings"`
 	Kernel             string            `json:"kernel"`
 	LogDriver          string            `json:"logDriver"`
 	MemFree            int64             `json:"memFree"`
@@ -53,13 +53,13 @@ type HostInfo struct {
 	// RemoteSocket returns the UNIX domain socket the Podman service is listening on
 	RemoteSocket *RemoteSocket `json:"remoteSocket,omitempty"`
 	// RootlessNetworkCmd returns the default rootless network command (slirp4netns or pasta)
-	RootlessNetworkCmd string                 `json:"rootlessNetworkCmd"`
-	RuntimeInfo        map[string]interface{} `json:"runtimeInfo,omitempty"`
+	RootlessNetworkCmd string         `json:"rootlessNetworkCmd"`
+	RuntimeInfo        map[string]any `json:"runtimeInfo,omitempty"`
 	// ServiceIsRemote is true when the podman/libpod service is remote to the client
 	ServiceIsRemote bool         `json:"serviceIsRemote"`
 	Security        SecurityInfo `json:"security"`
-	Slirp4NetNS     SlirpInfo    `json:"slirp4netns,omitempty"`
-	Pasta           PastaInfo    `json:"pasta,omitempty"`
+	Slirp4NetNS     SlirpInfo    `json:"slirp4netns"`
+	Pasta           PastaInfo    `json:"pasta"`
 
 	SwapFree  int64  `json:"swapFree"`
 	SwapTotal int64  `json:"swapTotal"`
@@ -123,11 +123,11 @@ type OCIRuntimeInfo struct {
 // StoreInfo describes the container storage and its
 // attributes
 type StoreInfo struct {
-	ConfigFile      string                 `json:"configFile"`
-	ContainerStore  ContainerStore         `json:"containerStore"`
-	GraphDriverName string                 `json:"graphDriverName"`
-	GraphOptions    map[string]interface{} `json:"graphOptions"`
-	GraphRoot       string                 `json:"graphRoot"`
+	ConfigFile      string         `json:"configFile"`
+	ContainerStore  ContainerStore `json:"containerStore"`
+	GraphDriverName string         `json:"graphDriverName"`
+	GraphOptions    map[string]any `json:"graphOptions"`
+	GraphRoot       string         `json:"graphRoot"`
 	// GraphRootAllocated is how much space the graphroot has in bytes
 	GraphRootAllocated uint64 `json:"graphRootAllocated"`
 	// GraphRootUsed is how much of graphroot is used in bytes

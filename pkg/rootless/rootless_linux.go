@@ -230,7 +230,7 @@ func becomeRootInUserNS(pausePid string) (_ bool, _ int, retErr error) {
 			for _, m := range mounts {
 				if m.Mountpoint == "/" {
 					isShared := false
-					for _, o := range strings.Split(m.Optional, ",") {
+					for o := range strings.SplitSeq(m.Optional, ",") {
 						if strings.HasPrefix(o, "shared:") {
 							isShared = true
 							break

@@ -378,7 +378,7 @@ func getKubePVCs(volumes []*libpod.Volume) ([][]byte, error) {
 }
 
 // generateKubeYAML marshalls a kube kind into a YAML file.
-func generateKubeYAML(kubeKind interface{}) ([]byte, error) {
+func generateKubeYAML(kubeKind any) ([]byte, error) {
 	b, err := yaml.Marshal(kubeKind)
 	if err != nil {
 		return nil, err
@@ -402,7 +402,7 @@ func generateKubeOutput(content [][]byte) ([]byte, error) {
 	}
 
 	// Add header to kube YAML file.
-	output = append(output, []byte(fmt.Sprintf(header, podmanVersion.Version))...)
+	output = append(output, fmt.Appendf(nil, header, podmanVersion.Version)...)
 
 	// kube generate order is based on helm install order (secret, persistentVolume, service, pod...).
 	// Add kube kinds.

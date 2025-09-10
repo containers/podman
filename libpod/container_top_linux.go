@@ -201,7 +201,7 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 	// Also support comma-separated input.
 	psgoDescriptors := []string{}
 	for _, d := range descriptors {
-		for _, s := range strings.Split(d, ",") {
+		for s := range strings.SplitSeq(d, ",") {
 			if s != "" {
 				psgoDescriptors = append(psgoDescriptors, s)
 			}

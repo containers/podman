@@ -63,10 +63,7 @@ func testInputWithWriteLen(t *testing.T, input []byte, minSparse int64, chunkSiz
 	sparseWriter := NewSparseWriter(m)
 
 	for i := 0; i < len(input); i += chunkSize {
-		end := i + chunkSize
-		if end > len(input) {
-			end = len(input)
-		}
+		end := min(i+chunkSize, len(input))
 		_, err := sparseWriter.Write(input[i:end])
 		if err != nil {
 			t.Fatalf("Expected no error, got %v", err)

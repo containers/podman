@@ -53,8 +53,8 @@ func requestMachinePorts(expose bool, ports []types.PortMapping) error {
 	}
 	buf := new(bytes.Buffer)
 	for num, port := range ports {
-		protocols := strings.Split(port.Protocol, ",")
-		for _, protocol := range protocols {
+		protocols := strings.SplitSeq(port.Protocol, ",")
+		for protocol := range protocols {
 			for i := uint16(0); i < port.Range; i++ {
 				machinePort := machineExpose{
 					Local:    net.JoinHostPort(port.HostIP, strconv.FormatInt(int64(port.HostPort+i), 10)),

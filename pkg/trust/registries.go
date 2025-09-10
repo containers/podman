@@ -112,7 +112,7 @@ func registriesDConfigurationForScope(registryConfigs *registryConfiguration, sc
 				return &val
 			}
 		}
-		for range strings.Split(scope, "/") {
+		for range strings.SplitSeq(scope, "/") {
 			val, exists := registryConfigs.Docker[searchScope]
 			if exists {
 				return &val

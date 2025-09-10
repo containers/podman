@@ -334,7 +334,7 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	interval := 250 * time.Millisecond
 	var err error
 	var resp *http.Response
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		resp, err = http.Get(address.String() + "/testimage-id")
 		if err != nil && shouldErr {
 			Expect(err.Error()).To(ContainSubstring(expectedResponse))

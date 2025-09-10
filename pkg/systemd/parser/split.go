@@ -124,7 +124,7 @@ func cUnescapeOne(p string, acceptNul bool) (int, rune, bool) {
 		}
 
 		var a [4]int
-		for i := 0; i < 4; i++ {
+		for i := range 4 {
 			a[i] = unhexchar(p[1+i])
 			if a[i] < 0 {
 				return -1, 0, false
@@ -148,7 +148,7 @@ func cUnescapeOne(p string, acceptNul bool) (int, rune, bool) {
 		}
 
 		var a [8]int
-		for i := 0; i < 8; i++ {
+		for i := range 8 {
 			a[i] = unhexchar(p[1+i])
 			if a[i] < 0 {
 				return -10, 0, false

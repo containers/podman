@@ -125,8 +125,7 @@ func port(_ *cobra.Command, args []string) error {
 			if hostIP == "" {
 				hostIP = "0.0.0.0"
 			}
-			protocols := strings.Split(v.Protocol, ",")
-			for _, protocol := range protocols {
+			for protocol := range strings.SplitSeq(v.Protocol, ",") {
 				// If not searching by port or port/proto, then dump what we see
 				if port == "" {
 					for i := uint16(0); i < v.Range; i++ {

@@ -581,8 +581,8 @@ func prepareContainerFiles(containerFiles []string, contextDir string, options *
 
 		// Check if Containerfile is in the context directory, if so truncate the context directory off path
 		// Do NOT add to tarfile
-		if strings.HasPrefix(containerfile, contextDir+string(filepath.Separator)) {
-			containerfile = strings.TrimPrefix(containerfile, contextDir+string(filepath.Separator))
+		if after, ok := strings.CutPrefix(containerfile, contextDir+string(filepath.Separator)); ok {
+			containerfile = after
 			out.dontexcludes = append(out.dontexcludes, "!"+containerfile)
 			out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".dockerignore")
 			out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".containerignore")

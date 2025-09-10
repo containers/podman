@@ -68,7 +68,7 @@ func logToKmsg(s string) bool {
 	return true
 }
 
-func Logf(format string, a ...interface{}) {
+func Logf(format string, a ...any) {
 	s := fmt.Sprintf(format, a...)
 	line := fmt.Sprintf("quadlet-generator[%d]: %s", os.Getpid(), s)
 
@@ -84,7 +84,7 @@ func enableDebug() {
 	debugEnabled = true
 }
 
-func Debugf(format string, a ...interface{}) {
+func Debugf(format string, a ...any) {
 	if debugEnabled {
 		Logf(format, a...)
 	}
@@ -421,11 +421,11 @@ func generateUnitsInfoMap(units []*parser.UnitFile) map[string]*quadlet.UnitInfo
 // quadletLogger implements the logiface.Logger interface using quadlet's custom logging
 type quadletLogger struct{}
 
-func (l quadletLogger) Errorf(format string, args ...interface{}) {
+func (l quadletLogger) Errorf(format string, args ...any) {
 	Logf(format, args...)
 }
 
-func (l quadletLogger) Debugf(format string, args ...interface{}) {
+func (l quadletLogger) Debugf(format string, args ...any) {
 	Debugf(format, args...)
 }
 

@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -135,7 +136,7 @@ func (ic *ContainerEngine) prepareAutomountImages(ctx context.Context, forContai
 		return nil, nil
 	}
 
-	for _, imageName := range strings.Split(automount, ";") {
+	for imageName := range strings.SplitSeq(automount, ";") {
 		img, fullName, err := ic.Libpod.LibimageRuntime().LookupImage(imageName, nil)
 		if err != nil {
 			return nil, fmt.Errorf("image %s from container %s does not exist in local storage, cannot automount: %w", imageName, forContainer, err)
@@ -956,9 +957,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 
-		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
-			labels[k] = v
-		}
+		// add podYAML labels
+		maps.Copy(labels, podSpec.PodSpecGen.Labels)
 		initCtrType := annotations[define.InitContainerType]
 		if initCtrType == "" {
 			initCtrType = define.OneShotInitContainer
@@ -1050,9 +1050,8 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			return nil, nil, err
 		}
 
-		for k, v := range podSpec.PodSpecGen.Labels { // add podYAML labels
-			labels[k] = v
-		}
+		// add podYAML labels
+		maps.Copy(labels, podSpec.PodSpecGen.Labels)
 
 		automountImages, err := ic.prepareAutomountImages(ctx, container.Name, annotations)
 		if err != nil {
@@ -1548,7 +1547,7 @@ func splitMultiDocYAML(yamlContent []byte) ([][]byte, error) {
 
 	d := yamlv3.NewDecoder(bytes.NewReader(yamlContent))
 	for {
-		var o interface{}
+		var o any
 		// read individual document
 		err := d.Decode(&o)
 		if err == io.EOF {

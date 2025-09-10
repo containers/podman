@@ -154,7 +154,7 @@ func (b *bindingTest) startAPIService() *Session {
 	session := b.runPodman(cmd)
 
 	sock := strings.TrimPrefix(b.sock, "unix://")
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		if _, err := os.Stat(sock); err != nil {
 			if !os.IsNotExist(err) {
 				break

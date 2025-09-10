@@ -109,8 +109,8 @@ func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string) ([
 	gidMap := idMappings.GIDMap
 	if strings.HasPrefix(option, "idmap=") {
 		var err error
-		options := strings.Split(strings.SplitN(option, "=", 2)[1], ";")
-		for _, i := range options {
+		options := strings.SplitSeq(strings.SplitN(option, "=", 2)[1], ";")
+		for i := range options {
 			switch {
 			case strings.HasPrefix(i, "uids="):
 				uidMap, err = parseOptionIDs(idMappings.UIDMap, strings.Replace(i, "uids=", "", 1))
@@ -2732,11 +2732,8 @@ func (c *Container) userPasswdEntry(u *user.User) (string, error) {
 		hDir = filepath.Dir(hDir)
 	}
 	if homeDir != u.HomeDir {
-		for _, hDir := range c.UserVolumes() {
-			if hDir == u.HomeDir {
-				homeDir = u.HomeDir
-				break
-			}
+		if slices.Contains(c.UserVolumes(), u.HomeDir) {
+			homeDir = u.HomeDir
 		}
 	}
 

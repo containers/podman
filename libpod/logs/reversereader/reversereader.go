@@ -33,10 +33,7 @@ func NewReverseReader(reader *os.File) (*ReverseReader, error) {
 	}
 	// set offset (starting position) to the last page boundary or
 	// zero if fits in one page
-	startOffset := end - remainder
-	if startOffset < 0 {
-		startOffset = 0
-	}
+	startOffset := max(end-remainder, 0)
 	rr := ReverseReader{
 		reader:   reader,
 		offset:   startOffset,
