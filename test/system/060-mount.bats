@@ -370,7 +370,7 @@ EOF
         mkdir $testmount
         run mount -t tmpfs -o noswap none $testmount
         if [[ $status -ne 0 ]]; then
-            if [[ $output =~ "bad option" ]]; then
+            if [[ $output =~ "bad option" ]] || [[ "$output" =~ "Unknown parameter" ]]; then
                 skip "requires kernel with tmpfs + noswap support"
             fi
             die "Could not test for tmpfs + noswap support: $output"
