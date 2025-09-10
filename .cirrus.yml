@@ -331,7 +331,7 @@ freebsd_alt_build_task:
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'FreeBSD Cross'
     freebsd_instance:
-        image_family: freebsd-13-4
+        image_family: freebsd-14-3
         # golangci-lint is a very, very hungry beast.
         cpu: 4
         memory: 8Gb
