@@ -1544,3 +1544,115 @@ sudo podman run --rm --userns=auto alpine echo hello
 ```
 
 The command succeeds and prints `hello`
+
+### 45) Podman fails with `lsetxattr(label=system_u:object_r:container_file_t:s0) /dir: operation not permitted`
+
+Strict file permissions prevent Podman from modifying SELinux context file labels
+in a bind-mounted directory. The error might also occur when using bind-mounted
+directories that reside on file systems that do not support XATTR (such as
+old versions of NFS).
+
+#### Symptom
+
+1. Create a directory owned by root
+   ```
+   sudo mkdir /var/test
+   ```
+2. Give everyone read access to the directory
+   ```
+   sudo chmod 755 /var/test
+   ```
+3. Run `ls` directly on the host
+   ```
+   ls /var/test
+   ```
+   The command succeeds.
+4. Run rootless podman with the directory bind-mounted. Set `z` as volume option.
+   ```
+   podman run --rm -v /var/test:/dir:z fedora ls /dir
+   ```
+   The command fails with the following error message:
+   ```
+   Error: lsetxattr(label=system_u:object_r:container_file_t:s0) /var/test: operation not permitted
+   ```
+   The error is expected because the unprivileged user does not have the privileges to modify the SELinux
+   context of the directory `/var/test`
+5. Repeat the previous command but remove the volume option
+   ```
+   podman run --rm -v /var/test:/dir fedora ls /dir
+   ```
+   The command is blocked by SELinux and fails with the
+   following error message:
+   ```
+   ls: cannot open directory '/dir': Permission denied
+   ```
+
+Note, access to the bind-mounted directory depends on SELinux rules.
+For example, bind-mounting the directory `/usr/share` succeeds even though
+the user does not have write permissions to the directory. The following
+command succeeds:
+
+```
+podman run --rm -v /usr/share:/dir fedora ls /dir
+```
+
+#### Solution
+
+Alternative 1
+
+Use the `O` flag to mount the directory from the host
+as a temporary storage using the overlay file system.
+
+```
+podman run --rm -v /var/test:/dir:O fedora ls /dir
+```
+
+Modifications to the mount point are destroyed when the container
+finishes executing, similar to a tmpfs mount point being unmounted.
+
+The following command succeeds:
+
+```
+podman run --rm -v /var/test:/dir:O fedora touch /dir/file
+```
+
+The command `touch` creates the file but the file is discarded when the container finishes.
+
+Alternative 2
+
+If the directory `/var/test` resides on a file system that supports XATTR,
+set a directory SELinux context that corresponds to the podman volume flag `:z`
+
+```
+sudo chcon -R system_u:object_r:container_file_t:s0 /var/test
+```
+
+The following command now succeeds
+
+```
+podman run --rm -v /var/test:/dir ls /dir
+```
+
+Alternative 3
+
+Modify the default SELinux context configuration for the directory `/var/test`
+with the command
+
+```
+sudo semanage fcontext -a -s system_u -t container_file_t "/var/test(/.*)?"
+```
+
+Change the SElinux contexts recursively for files and directories under `/var/test`
+to match the new configuration
+
+```
+sudo restorecon -R -F -v /var/test
+```
+
+Alternative 4
+
+Add the option `--security-opt label=disable` to disable SELinux for the Podman command.
+
+```
+podman run --rm --security-opt label=disable -v /var/test:/dir fedora ls /dir
+```
