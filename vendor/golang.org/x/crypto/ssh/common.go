@@ -83,6 +83,7 @@ var (
 	// supportedKexAlgos specifies key-exchange algorithms implemented by this
 	// package in preference order, excluding those with security issues.
 	supportedKexAlgos = []string{
+		KeyExchangeMLKEM768X25519,
 		KeyExchangeCurve25519,
 		KeyExchangeECDHP256,
 		KeyExchangeECDHP384,
@@ -94,6 +95,7 @@ var (
 	// defaultKexAlgos specifies the default preference for key-exchange
 	// algorithms in preference order.
 	defaultKexAlgos = []string{
+		KeyExchangeMLKEM768X25519,
 		KeyExchangeCurve25519,
 		KeyExchangeECDHP256,
 		KeyExchangeECDHP384,
