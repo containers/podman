@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman build, podman-build.unit.5.md.in, farm build
+####>   podman build, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
-### `Secret=id=id[,src=envOrFile][,env=ENV][,type=file | env]`
-{% else %}
 #### **--secret**=**id=id[,src=*envOrFile*][,env=*ENV*][,type=*file* | *env*]**
-{% endif %}
 
 Pass secret information to be used in the Containerfile for building images
 in a safe way that will not end up stored in the final image, or be seen in other stages.

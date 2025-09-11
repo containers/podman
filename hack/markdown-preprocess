@@ -11,7 +11,6 @@ import glob
 import os
 import re
 import sys
-from jinja2 import Template
 
 class Preprocessor():
     """
@@ -41,24 +40,18 @@ class Preprocessor():
 
         with open(infile, 'r', encoding='utf-8') as fh_in, open(outfile_tmp, 'w', encoding='utf-8', newline='\n') as fh_out:
             for line in fh_in:
-                try:
-                    # '@@option foo' -> include file options/foo.md
-                    if line.startswith('@@option '):
-                        _, optionname = line.strip().split(" ")
-                        is_quadlet = optionname.startswith("quadlet:")
-                        if is_quadlet:
-                            optionname = optionname[len("quadlet:"):]
-                        optionfile = os.path.join("options", optionname + '.md')
-                        self.track_optionfile(optionfile)
-                        self.insert_file(fh_out, optionfile, is_quadlet)
-                    # '@@include relative-path/must-exist.md'
-                    elif line.startswith('@@include '):
-                        _, path = line.strip().split(" ")
-                        self.insert_file(fh_out, path)
-                    else:
-                        fh_out.write(line)
-                except Exception as ex:
-                    raise Exception(f"Error while processing {infile} line '{line[:-1]}'") from ex
+                # '@@option foo' -> include file options/foo.md
+                if line.startswith('@@option '):
+                    _, optionname = line.strip().split(" ")
+                    optionfile = os.path.join("options", optionname + '.md')
+                    self.track_optionfile(optionfile)
+                    self.insert_file(fh_out, optionfile)
+                # '@@include relative-path/must-exist.md'
+                elif line.startswith('@@include '):
+                    _, path = line.strip().split(" ")
+                    self.insert_file(fh_out, path)
+                else:
+                    fh_out.write(line)
 
         os.chmod(outfile_tmp, 0o444)
         os.rename(outfile_tmp, outfile)
@@ -94,7 +87,7 @@ class Preprocessor():
             else:
                 os.unlink(tmpfile)
 
-    def insert_file(self, fh_out, path: str, is_quadlet=False):
+    def insert_file(self, fh_out, path: str):
         """
         Reads one option file, writes it out to the given output filehandle
         """
@@ -105,20 +98,13 @@ class Preprocessor():
         # comment in its output.
         fh_out.write("\n[//]: # (BEGIN included file " + path + ")\n")
         with open(path, 'r', encoding='utf-8') as fh_included:
-            template = Template(fh_included.read(), variable_start_string='{{{', variable_end_string='}}}')
-            rendered = template.render(
-                is_quadlet=is_quadlet,
-                subcommand=self.podman_subcommand,
-                fullsubcommand=self.podman_subcommand('full')
-            )
-            for opt_line in rendered.splitlines():
+            for opt_line in fh_included:
                 if opt_line.startswith('####>'):
                     continue
-
                 opt_line = self.replace_type(opt_line)
                 opt_line = opt_line.replace('<<subcommand>>', self.podman_subcommand())
                 opt_line = opt_line.replace('<<fullsubcommand>>', self.podman_subcommand('full'))
-                fh_out.write(opt_line + '\n')
+                fh_out.write(opt_line)
             fh_out.write("\n[//]: # (END   included file " + path + ")\n")
 
     def podman_subcommand(self, full=None) -> str:
@@ -131,9 +117,6 @@ class Preprocessor():
         if not full:
             if subcommand.startswith("podman-pod-"):
                 subcommand = subcommand[len("podman-pod-"):]
-        # For quadlet man-pages, the subcommand is simply the full manpage name.
-        if subcommand.endswith(".unit.5.md.in"):
-            return subcommand
         if subcommand.startswith("podman-"):
             subcommand = subcommand[len("podman-"):]
         if subcommand.endswith(".1.md.in"):

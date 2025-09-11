@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, run
+####>   podman create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
-### `Pull=policy`
-{% else %}
 #### **--pull**=*policy*
-{% endif %}
 
 Pull image policy. The default is **missing**.
 
