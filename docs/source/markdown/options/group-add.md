@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman build, podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, farm build, run
+####>   podman build, create, farm build, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
-### `GroupAdd=group | keep-groups`
-<< else >>
 #### **--group-add**=*group* | *keep-groups*
-<< endif >>
 
 Assign additional groups to the primary user running within the container process.
 

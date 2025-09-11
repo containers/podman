@@ -481,7 +481,11 @@ Use --stdin to be able to interact from the terminal during the build.
 
 @@option uts
 
-@@option variant.build
+#### **--variant**=*variant*
+
+Set the architecture variant of the image to be built, and that of the base
+image to be pulled, if the build uses one, to the provided value instead of
+using the architecture variant of the build host.
 
 @@option volume.image
 

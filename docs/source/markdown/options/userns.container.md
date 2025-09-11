@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman podman-container.unit.5.md.in, create, kube play, podman-kube.unit.5.md.in, run
+####>   podman create, kube play, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
-### `UserNS=mode`
-<< else >>
 #### **--userns**=*mode*
-<< endif >>
 
 Set the user namespace mode for the container.
 
@@ -18,7 +14,7 @@ If `--userns` is not set, the default value is determined as follows.
 
 `--userns=""` (i.e., an empty string) is an alias for `--userns=host`.
 
-This option is incompatible with << '**GIDMap=**' if is_quadlet else '**--gidmap**' >>, << '**UIDMap=**' if is_quadlet else '**--uidmap**' >>, << '**SubUIDMap=**' if is_quadlet else '**-**--subuidname****' >> and << '**SubGIDMap=**' if is_quadlet else '**-**--subgidname****' >>.
+This option is incompatible with **--gidmap**, **--uidmap**, **--subuidname** and **--subgidname**.
 
 Rootless user --userns=Key mappings:
 
@@ -52,7 +48,7 @@ Using `--userns=auto` when starting new containers does not work as long as any 
 
 The host UID and GID in *gidmapping* and *uidmapping* can optionally be prefixed with the `@` symbol.
 In this case, podman will look up the intermediate ID corresponding to host ID and it will map the found intermediate ID to the container id.
-For details see << '**UIDMap=**' if is_quadlet else '**--uidmap**' >>.
+For details see **--uidmap**.
 
 **container:**_id_: join the user namespace of the specified container.
 

@@ -19,4 +19,4 @@ Podman provides a systemd unit file, podman-restart.service, which restarts cont
 
 When running containers in systemd services, use the restart functionality provided by systemd.
 In other words, do not use this option in a container unit, instead set the `Restart=` systemd directive in the `[Service]` section.
-See **podman-quadlet**(7) and **systemd.service**(5).
+See **podman-systemd.unit**(5) and **systemd.service**(5).

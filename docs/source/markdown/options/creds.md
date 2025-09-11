@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman artifact pull, artifact push, build, container runlabel, create, farm build, podman-image.unit.5.md.in, kube play, manifest add, manifest push, pull, push, run, search
+####>   podman artifact pull, artifact push, build, container runlabel, create, farm build, kube play, manifest add, manifest push, pull, push, run, search
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
-### `Creds=[username[:password]]`
-<< else >>
 #### **--creds**=*[username[:password]]*
-<< endif >>
 
 The [username[:password]] to use to authenticate with the registry, if required.
 If one or both values are not supplied, a command line prompt appears and the
