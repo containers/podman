@@ -2,11 +2,11 @@
 ####>   podman artifact pull, artifact push, build, container runlabel, create, farm build, podman-image.unit.5.md.in, kube play, manifest add, manifest push, pull, push, run, search
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `Creds=[username[:password]]`
-<< else >>
+{% else %}
 #### **--creds**=*[username[:password]]*
-<< endif >>
+{% endif %}
 
 The [username[:password]] to use to authenticate with the registry, if required.
 If one or both values are not supplied, a command line prompt appears and the

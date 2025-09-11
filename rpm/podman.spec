@@ -99,6 +99,7 @@ BuildRequires: man-db
 BuildRequires: sqlite-devel
 BuildRequires: systemd
 BuildRequires: systemd-devel
+BuildRequires: python3-jinja2
 Requires: catatonit
 Requires: conmon >= 2:2.1.7-2
 %if %{defined fedora} && 0%{?fedora} >= 40

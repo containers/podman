@@ -19,6 +19,23 @@ By default, the Podman pod has the same name as the unit, but with a `systemd-` 
 a `$name.pod` file creates a `$name-pod.service` unit and a `systemd-$name` Podman pod. The
 `PodName` option allows for overriding this default name with a user-provided one.
 
+# FILE LOCATIONS
+
+Place `.pod` files in one of the following:
+
+### Rootless
+
+- `$XDG_RUNTIME_DIR/containers/systemd/`
+- `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
+- `/etc/containers/systemd/users/$(UID)`
+- `/etc/containers/systemd/users/`
+
+### Rootful
+
+- `/run/containers/systemd/`
+- `/etc/containers/systemd/`
+- `/usr/share/containers/systemd/`
+
 # OPTIONS
 
 Valid options for `[Pod]` are listed below:
@@ -60,8 +77,6 @@ Supported keys in the `[Pod]` section are:
 
 @@option quadlet:dns-option.container
 
-@@option quadlet:dns-search.container
-
 ### `ExitPolicy=`
 
 Set the exit policy of the pod when the last container exits. Default for quadlets is **stop**.
@@ -82,7 +97,7 @@ escaped to allow inclusion of whitespace and other control characters.
 
 This key can be listed multiple times.
 
-@@option quadlet:hostname.container
+@option quadlet::hostname.container
 
 @@option quadlet:ip
 
@@ -163,3 +178,4 @@ Pod=test.pod
 [systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html),
 [podman-kube-play(1)](https://docs.podman.io/en/latest/markdown/podman-kube-play.1.html),
 [podman-quadlet(7)]
+

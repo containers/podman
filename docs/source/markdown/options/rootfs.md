@@ -2,18 +2,18 @@
 ####>   podman podman-container.unit.5.md.in, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `Rootfs=`
-<< else >>
+{% else %}
 #### **--rootfs**
-<< endif >>
+{% endif %}
 
 If specified, the first argument refers to an exploded container on the file system.
 
-<< if is_quadlet >>
+{% if is_quadlet %}
 This option conflicts with the `Image` option.
 
-<< endif >>
+{% endif %}
 This is useful to run a container without requiring any image management, the rootfs
 of the container is assumed to be managed externally.
 

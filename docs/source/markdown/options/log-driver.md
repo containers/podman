@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, podman-kube.unit.5.md.in, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `LogDriver=driver`
-<< else >>
+{% else %}
 #### **--log-driver**=*driver*
-<< endif >>
+{% endif %}
 
 Logging driver for the container. Currently available options are **k8s-file**, **journald**, **none**, **passthrough** and **passthrough-tty**, with **json-file** aliased to **k8s-file** for scripting compatibility. (Default **journald**).
 

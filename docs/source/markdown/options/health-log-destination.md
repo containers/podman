@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, run, update
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `HealthLogDestination=directory_path`
-<< else >>
+{% else %}
 #### **--health-log-destination**=*directory_path*
-<< endif >>
+{% endif %}
 
 Set the destination of the HealthCheck log. Directory path, local or events_logger (local use container state file) (Default: local)
 

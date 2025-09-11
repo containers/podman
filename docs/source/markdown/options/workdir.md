@@ -2,14 +2,14 @@
 ####>   podman podman-container.unit.5.md.in, create, exec, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `WorkingDir=dir`
-<< else >>
+{% else %}
 #### **--workdir**, **-w**=*dir*
-<< endif >>
+{% endif %}
 
 Working directory inside the container.
 
 The default working directory for running binaries within a container is the root directory (**/**).
 The image developer can set a different default with the WORKDIR instruction. The operator
-can override the working directory by using the << '**WokingDir=**' if is_quadlet else '**-w**' >> option.
+can override the working directory by using the {{{ '**WokingDir=**' if is_quadlet else '**-w**' }}} option.

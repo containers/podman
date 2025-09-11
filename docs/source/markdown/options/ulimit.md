@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `Ulimit=option`
-<< else >>
+{% else %}
 #### **--ulimit**=*option*
-<< endif >>
+{% endif %}
 
 Ulimit options. Sets the ulimits values inside of the container.
 

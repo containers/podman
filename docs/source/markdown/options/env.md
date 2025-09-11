@@ -1,12 +1,12 @@
 ####> This option file is used in:
-####>   podman podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, exec, run
+####>   podman podman-container.unit.5.md.in, create, exec, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `Environment=env`
-<< else >>
+{% else %}
 #### **--env**, **-e**=*env*
-<< endif >>
+{% endif %}
 
 Set environment variables.
 

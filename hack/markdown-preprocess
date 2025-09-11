@@ -11,6 +11,7 @@ import glob
 import os
 import re
 import sys
+from jinja2 import Template
 
 class Preprocessor():
     """
@@ -22,100 +23,6 @@ class Preprocessor():
         self.infile = ''
         self.pod_or_container = ''
         self.used_by = {}
-
-    def render(self, text: str, context: dict) -> str:
-        """
-        Renders the `text` handling the following extra formatting features:
-
-        ```
-        << if variable >>
-        ...
-        << endif >>
-
-        << if not variable >>
-        ...
-        << else >>
-        ...
-        << endif >>
-
-        << "foo" if variable else "bar" >>
-        ```
-
-        Returns the rendered text.
-        """
-        # Match << ... >>
-        TOK = re.compile(r"<<(.*?)>>", re.DOTALL)
-        out = []
-        pos = 0
-        stack = []  # each frame: {"active": bool, "seen_else": bool}
-
-        def is_active():
-            return all(f["active"] for f in stack)
-
-        def get_variable(name: str):
-            v = context.get(name, None)
-            if v is None:
-                raise ValueError(f"undefined variable: {name}")
-            return v
-
-        def truthy(name: str) -> bool:
-            name = name.strip()
-            if name.startswith("not "):
-                v = get_variable(name[4:].strip())
-                return not bool(v)
-            return bool(get_variable(name))
-
-        for m in TOK.finditer(text):
-            # write literal up to token
-            literal = text[pos:m.start()]
-            if is_active():
-                out.append(literal)
-            pos = m.end()
-
-            inner = m.group(1).strip()
-
-            # control blocks
-            if inner.startswith("if ") and len(inner[3:].strip().split(" ")) in [1, 2]:
-                cond = inner[3:].strip()
-                stack.append({"active": is_active() and truthy(cond), "seen_else": False})
-                continue
-            if inner == "else":
-                if not stack:
-                    raise ValueError("`else` without `if`")
-                frame = stack[-1]
-                if frame["seen_else"]:
-                    raise ValueError("multiple `else` in the same `if`")
-                frame["seen_else"] = True
-                parent_active = all(f["active"] for f in stack[:-1])
-                frame["active"] = parent_active and not frame["active"]
-                continue
-            if inner == "endif":
-                if not stack:
-                    raise ValueError("`end` without `if`")
-                stack.pop()
-                continue
-
-            # inline "X if cond else Y" ---
-            if " if " in inner and " else " in inner:
-                try:
-                    # split by " if " then " else "
-                    then_part, rest = inner.split(" if ", 1)
-                    cond, else_part = rest.split(" else ", 1)
-                    cond = cond.strip()
-                    chosen = then_part if truthy(cond) else else_part
-                    if is_active():
-                        out.append(chosen.strip().strip("'\""))
-                except Exception as e:
-                    raise ValueError(f"Invalid inline if/else syntax: {inner}") from e
-                continue
-
-        # trailing literal
-        if is_active():
-            out.append(text[pos:])
-
-        if stack:
-            raise ValueError("unclosed `if` block(s)")
-        return "".join(out)
 
     def process(self, infile:str):
         """
@@ -198,7 +105,12 @@ class Preprocessor():
         # comment in its output.
         fh_out.write("\n[//]: # (BEGIN included file " + path + ")\n")
         with open(path, 'r', encoding='utf-8') as fh_included:
-            rendered = self.render(fh_included.read(), {"is_quadlet": is_quadlet})
+            template = Template(fh_included.read(), variable_start_string='{{{', variable_end_string='}}}')
+            rendered = template.render(
+                is_quadlet=is_quadlet,
+                subcommand=self.podman_subcommand,
+                fullsubcommand=self.podman_subcommand('full')
+            )
             for opt_line in rendered.splitlines():
                 if opt_line.startswith('####>'):
                     continue
