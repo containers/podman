@@ -1,12 +1,12 @@
-% podman-systemd.unit(5)
+% podman-quadlet(7)
 
 # NAME
 
-podman-systemd.unit - High-level overview of Podman Quadlet integration with systemd
+podman\-quadlet - High-level overview of Podman Quadlet integration with systemd
 
 # DESCRIPTION
 
-Quadlet is a systemd unit generator that enables declarative container management by defining
+Podman Quadlet is a systemd unit generator that enables declarative container management by defining
 Podman resources using specialized systemd unit files. It provides an interface between Podman and systemd,
 allowing users to manage containers, pods, volumes, images, and more through native systemd service units.
 
@@ -99,6 +99,7 @@ has an option with the same name but a different meaning.
 
 # SEE ALSO
 
+[podman-quadlet(7)](https://docs.podman.io/en/latest/markdown/podman-quadlet.7.html),
 [podman-container.unit(5)](podman-container.unit.5.md),
 [podman-pod.unit(5)](podman-pod.unit.5.md),
 [podman-volume.unit(5)](podman-volume.unit.5.md),
