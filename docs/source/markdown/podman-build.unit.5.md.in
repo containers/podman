@@ -74,7 +74,12 @@ Valid options for `[Build]` section are listed below:
 | Variant=arm/v7                      | --variant=arm/v7                            |
 | Volume=/source:/dest                | --volume /source:/dest                      |
 
-@@option quadlet:annotation.image
+### `Annotation=`
+
+Add an image *annotation* (e.g. annotation=*value*) to the image metadata. Can be used multiple
+times.
+
+This is equivalent to the `--annotation` option of `podman build`.
 
 @@option quadlet:arch
 
@@ -94,7 +99,17 @@ Valid options for `[Build]` section are listed below:
 
 @@option quadlet:force-rm
 
-@@option quadlet:global-args
+### `GlobalArgs=`
+
+This key contains a list of arguments passed directly between `podman` and `build` in the generated
+file. It can be used to access Podman features otherwise unsupported by the generator. Since the
+generator is unaware of what unexpected interactions can be caused by these arguments, it is not
+recommended to use this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 @@option quadlet:group-add
 
@@ -104,7 +119,18 @@ Valid options for `[Build]` section are listed below:
 
 @@option quadlet:network.image
 
-@@option quadlet:podman-args
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman build` command
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 @@option quadlet:pull
 
@@ -114,7 +140,7 @@ Valid options for `[Build]` section are listed below:
 
 @@option quadlet:secret.image
 
-### `SetWorkingDirectory=path`
+### `SetWorkingDirectory=`
 
 Provide context (a working directory) to `podman build`. Supported values are a path, a URL, or the
 special keys `file` or `unit` to set the context directory to the parent directory of the file from
@@ -139,7 +165,11 @@ also been provided.
 
 @@option quadlet:tls-verify
 
-@@option quadlet:variant.build
+### `Variant=`
+
+Override the default architecture variant of the container image to be built.
+
+This is equivalent to the `--variant` option of `podman build`.
 
 @@option quadlet:volume
 

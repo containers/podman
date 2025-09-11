@@ -138,7 +138,14 @@ Description of `[Container]` section are:
 
 @@option quadlet:annotation.container
 
-@@option quadlet:auto-update
+
+### `AutoUpdate=`
+
+Indicates whether the container will be auto-updated ([podman-auto-update(1)](podman-auto-update.1.md)). The following values are supported:
+
+* `registry`: Requires a fully-qualified image reference (e.g., quay.io/podman/stable:latest) to be used to create the container. This enforcement is necessary to know which image to actually check and pull. If an image ID was used, Podman does not know which image to check/pull anymore.
+
+* `local`: Tells Podman to compare the image a container is using to the image with its raw name in local storage. If an image is updated locally, Podman simply restarts the systemd unit executing the container.
 
 @@option quadlet:cgroups
 
@@ -162,15 +169,38 @@ Description of `[Container]` section are:
 
 @@option quadlet:env-host
 
-@@option quadlet:exec
+### `Exec=`
+
+Additional arguments for the container; this has exactly the same effect as passing
+more arguments after a `podman run <image> <arguments>` invocation.
+
+The format is the same as for [systemd command lines](https://www.freedesktop.org/software/systemd/man/systemd.service.html#Command%20lines),
+However, unlike the usage scenario for similarly-named systemd `ExecStart=` verb
+which operates on the ambient root filesystem, it is very common for container
+images to have their own `ENTRYPOINT` or `CMD` metadata which this interacts with.
+
+The default expectation for many images is that the image will include an `ENTRYPOINT`
+with a default binary, and this field will add arguments to that entrypoint.
+
+Another way to describe this is that it works the same way as the [args field in a Kubernetes pod](https://kubernetes.io/docs/tasks/inject-data-application/define-command-argument-container/#running-a-command-in-a-shell).
 
 @@option quadlet:expose
 
 @@option quadlet:gidmap.container
 
-@@option quadlet:global-args
+### `GlobalArgs=`
 
-### `Group=gid`
+This key contains a list of arguments passed directly between `podman` and `run`
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `Group=`
 
 The (numeric) GID to run as inside the container. This does not need to match the GID on the host,
 which can be modified with `UserNS`, but if that is not specified, this GID is also used on the host.
@@ -210,7 +240,7 @@ which can be modified with `UserNS`, but if that is not specified, this GID is a
 
 @@option quadlet:http-proxy
 
-### `Image=name`
+### `Image=`
 
 The image to run in the container.
 It is recommended to use a fully qualified image name rather than a short name, both for
@@ -234,7 +264,7 @@ Special Cases:
 
 @@option quadlet:log-opt
 
-### `Mask=/path/1:/path/2`
+### `Mask=`
 
 Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`. A masked path cannot be accessed inside the container.
 
@@ -247,12 +277,12 @@ Specify the paths to mask separated by a colon. `Mask=/path/1:/path/2`. A masked
 
 @@option quadlet:network-alias
 
-### `NoNewPrivileges=bool` (defaults to `false`)
+### `NoNewPrivileges=` (defaults to `false`)
 
 If enabled, this disables the container processes from gaining additional privileges via things like
 setuid and file capabilities.
 
-### `Notify=bool` (defaults to `false`)
+### `Notify=` (defaults to `false`)
 
 By default, Podman is run in such a way that the systemd startup notify command is handled by
 the container runtime. In other words, the service is deemed started when the container runtime
@@ -267,7 +297,7 @@ setting up a container healthcheck, see the `HealthCmd` option for more.
 
 @@option quadlet:pids-limit
 
-### `Pod=name`
+### `Pod=`
 
 Specify a Quadlet `.pod` unit to link the container to.
 The value must take the form of `<name>.pod` and the `.pod` unit must exist.
@@ -275,7 +305,18 @@ The value must take the form of `<name>.pod` and the `.pod` unit must exist.
 Quadlet will add all the necessary parameters to link between the container and the pod and between their corresponding services.
 
 
-@@option quadlet:podman-args
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman run` command
+in the generated file (right before the image name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 @@option quadlet:publish
 
@@ -285,7 +326,7 @@ Quadlet will add all the necessary parameters to link between the container and 
 
 @@option quadlet:read-only-tmpfs
 
-### `ReloadCmd=/usr/bin/command`
+### `ReloadCmd=`
 
 Add `ExecReload` line to the `Service` that runs ` podman exec` with this command in this container.
 
@@ -293,7 +334,7 @@ In order to execute the reload run `systemctl reload <Service>`
 
 Mutually exclusive with `ReloadSignal`
 
-### `ReloadSignal=signal`
+### `ReloadSignal=`
 
 Add `ExecReload` line to the `Service` that runs `podman kill` with this signal which sends the signal to the main container process.
 
@@ -309,36 +350,36 @@ Mutually exclusive with `ReloadCmd`
 
 @@option quadlet:init
 
-### `SeccompProfile=path`
+### `SeccompProfile=`
 
 Set the seccomp profile to use in the container. If unset, the default podman profile is used.
 Set to either the pathname of a JSON file, or `unconfined` to disable the seccomp filters.
 
 @@option quadlet:secret
 
-### `SecurityLabelDisable=bool`
+### `SecurityLabelDisable=`
 
 Turn off label separation for the container.
 
-### `SecurityLabelFileType=label`
+### `SecurityLabelFileType=`
 
 Set the label file type for the container files.
 
-### `SecurityLabelLevel=s0:c1,c2`
+### `SecurityLabelLevel=`
 
 Set the label process level for the container processes.
 
-### `SecurityLabelNested=bool`
+### `SecurityLabelNested=`
 
 Allow SecurityLabels to function within the container. This allows separation of containers created within the container.
 
-### `SecurityLabelType=type`
+### `SecurityLabelType=`
 
 Set the label process type for the container processes.
 
 @@option quadlet:shm-size
 
-### `StartWithPod=bool`
+### `StartWithPod=`
 
 Start the container after the associated pod is created. Default to **true**.
 

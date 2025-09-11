@@ -16,7 +16,9 @@ specified as `-`, `podman kube down` reads the YAML from stdin. The input can al
 
 ## OPTIONS
 
-@@option force.kube-down
+#### **--force**
+
+Tear down the volumes linked to the PersistentVolumeClaims as part --down
 
 ## EXAMPLES
 

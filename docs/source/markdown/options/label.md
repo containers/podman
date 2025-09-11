@@ -3,7 +3,7 @@
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 << if is_quadlet >>
-### `Label=key=value [key=value ...]`
+### `Label=key=value`
 << else >>
 #### **--label**, **-l**=*key=value*
 << endif >>

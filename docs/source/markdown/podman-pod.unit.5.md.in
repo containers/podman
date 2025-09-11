@@ -62,7 +62,7 @@ Supported keys in the `[Pod]` section are:
 
 @@option quadlet:dns-search.container
 
-### `ExitPolicy=stop`
+### `ExitPolicy=`
 
 Set the exit policy of the pod when the last container exits. Default for quadlets is **stop**.
 
@@ -70,8 +70,17 @@ To keep the pod active, set `ExitPolicy=continue`.
 
 @@option quadlet:gidmap.container
 
-@@option quadlet:global-args
+### `GlobalArgs=`
 
+This key contains a list of arguments passed directly between `podman` and `pod`
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 @@option quadlet:hostname.container
 
@@ -85,9 +94,19 @@ To keep the pod active, set `ExitPolicy=continue`.
 
 @@option quadlet:network-alias
 
-@@option quadlet:podman-args
+### `PodmanArgs=`
 
-### `PodName=name`
+This key contains a list of arguments passed directly to the end of the `podman pod create` command
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `PodName=`
 
 The (optional) name of the Podman pod.
 If this is not specified, the default value is the same name as the unit, but with a `systemd-` prefix,
@@ -98,7 +117,7 @@ So, if PodName is set, it must not conflict with any container.
 
 @@option quadlet:publish
 
-### `ServiceName=name`
+### `ServiceName=`
 
 By default, Quadlet will name the systemd service unit by appending `-pod` to the name of the Quadlet.
 Setting this key overrides this behavior by instructing Quadlet to use the provided name.

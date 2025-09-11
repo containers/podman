@@ -3,7 +3,7 @@
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 << if is_quadlet >>
-### `Environment=env=value [env=value ...]`
+### `Environment=env`
 << else >>
 #### **--env**, **-e**=*env*
 << endif >>
