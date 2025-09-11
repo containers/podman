@@ -6,6 +6,12 @@ import (
 	"context"
 )
 
+// ReattachHealthCheckTimers reattaches healthcheck timers for running containers after podman restart
+// This is a no-op for unsupported platforms since healthchecks are not supported
+func ReattachHealthCheckTimers(containers []*Container) {
+	// Healthchecks are not supported on this platform
+}
+
 // createTimer systemd timers for healthchecks of a container
 func (c *Container) createTimer(interval string, isStartup bool) error {
 	return nil
