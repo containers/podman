@@ -42,6 +42,25 @@ The resulting image can be referenced by `.container` or `.volume` units via:
 Image=myimage.build
 ```
 
+
+# FILE LOCATIONS
+
+Place `.build` files in one of the following:
+
+### Rootless
+
+- `$XDG_RUNTIME_DIR/containers/systemd/`
+- `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
+- `/etc/containers/systemd/users/$(UID)`
+- `/etc/containers/systemd/users/`
+
+### Rootful
+
+- `/run/containers/systemd/`
+- `/etc/containers/systemd/`
+- `/usr/share/containers/systemd/`
+
+
 # OPTIONS
 
 Valid options for `[Build]` section are listed below:
@@ -93,7 +112,7 @@ This is equivalent to the `--annotation` option of `podman build`.
 
 @@option quadlet:dns-search.image
 
-@@option quadlet:env
+@@option quadlet:env.image
 
 @@option quadlet:file
 

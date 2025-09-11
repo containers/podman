@@ -2,19 +2,19 @@
 ####>   podman build, podman-build.unit.5.md.in, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `Network=mode`
-<< else >>
+{% else %}
 #### **--network**=*mode*, **--net**
-<< endif >>
+{% endif %}
 
 Sets the configuration for network namespaces when handling `RUN` instructions.
 
-<< if is_quadlet >>
+{% if is_quadlet %}
 Special case:
 
 * If the `name` of the network ends with `.network`, Quadlet will look for the corresponding `.network` Quadlet unit. If found, Quadlet will use the name of the Network set in the Unit, otherwise, `systemd-$name` is used. The generated systemd service contains a dependency on the service unit generated for that `.network` unit, or on `$name-network.service` if the `.network` unit is not found. Note: the corresponding `.network` file must exist.
-<< endif >>
+{% endif %}
 
 Valid _mode_ values are:
 

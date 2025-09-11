@@ -33,6 +33,23 @@ The `.container` file is parsed by the `podman-system-generator` at boot or relo
 systemctl --user start myimage-container.service
 ```
 
+# FILE LOCATIONS
+
+Place `.container` files in one of the following:
+
+### Rootless
+
+- `$XDG_RUNTIME_DIR/containers/systemd/`
+- `$XDG_CONFIG_HOME/containers/systemd/` or `~/.config/containers/systemd/`
+- `/etc/containers/systemd/users/$(UID)`
+- `/etc/containers/systemd/users/`
+
+### Rootful
+
+- `/run/containers/systemd/`
+- `/etc/containers/systemd/`
+- `/usr/share/containers/systemd/`
+
 # OPTIONS
 
 Valid options for `[Container]` are listed below:
@@ -76,7 +93,6 @@ Valid options for `[Container]` are listed below:
 | HealthStartupTimeout=1m33s           | --health-startup-timeout=1m33s                       |
 | HealthTimeout=20s                    | --health-timeout=20s                                 |
 | HostName=example.com                 | --hostname example.com                               |
-| HttpProxy=true                       | --http-proxy=true                                    |
 | Image=ubi8                           | Image specification - ubi8                           |
 | IP=192.5.0.1                         | --ip 192.5.0.1                                       |
 | IP6=2001:db8::1                      | --ip6 2001:db8::1                                    |
@@ -237,8 +253,6 @@ which can be modified with `UserNS`, but if that is not specified, this GID is a
 @@option quadlet:health-timeout
 
 @@option quadlet:hostname.container
-
-@@option quadlet:http-proxy
 
 ### `Image=`
 

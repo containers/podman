@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, exec, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `User=user[:group]`
-<< else >>
+{% else %}
 #### **--user**, **-u**=*user[:group]*
-<< endif >>
+{% endif %}
 
 Sets the username or UID used and, optionally, the groupname or GID for the specified command. Both *user* and *group* may be symbolic or numeric.
 

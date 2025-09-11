@@ -2,11 +2,11 @@
 ####>   podman artifact pull, artifact push, build, podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, farm build, podman-image.unit.5.md.in, pull, push, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `Retry=attempts`
-<< else >>
+{% else %}
 #### **--retry**=*attempts*
-<< endif >>
+{% endif %}
 
 Number of times to retry pulling or pushing images between the registry and
 local storage in case of failure. Default is **3**.

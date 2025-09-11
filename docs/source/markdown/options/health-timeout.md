@@ -2,11 +2,11 @@
 ####>   podman podman-container.unit.5.md.in, create, run, update
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
+{% if is_quadlet %}
 ### `HealthTimeout=timeout`
-<< else >>
+{% else %}
 #### **--health-timeout**=*timeout*
-<< endif >>
+{% endif %}
 
 The maximum time allowed to complete the healthcheck before an interval is considered failed. Like start-period, the
 value can be expressed in a time format such as **1m22s**. The default value is **30s**.
