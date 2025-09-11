@@ -213,7 +213,12 @@ Note:  You  can also override the default isolation type by setting the BUILDAH_
 
 @@option cert-dir
 
-@@option configmap
+#### **--configmap**=*path*
+
+Use Kubernetes configmap YAML at path to provide a source for environment variable values within the containers of the pod.  (This option is not available with the remote Podman client)
+
+Note: The *--configmap* option can be used multiple times or a comma-separated list of paths can be used to pass multiple Kubernetes configmap YAMLs.
+The YAML file may be in a multi-doc YAML format. But, it must container only configmaps
 
 #### **--context-dir**=*path*
 

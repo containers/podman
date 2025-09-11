@@ -60,12 +60,17 @@ Indicates whether containers will be auto-updated ([podman-auto-update(1)](podma
 
 * `name/(local|registry)`: Tells Podman to perform the `local` or `registry` autoupdate on the specified container name.
 
+### `ConfigMap=`
 
-@@option quadlet:configmap
+Pass the Kubernetes ConfigMap YAML path to `podman kube play` via the `--configmap` argument.
+Unlike the `configmap` argument, the value may contain only one path but
+it may be absolute or relative to the location of the unit file.
+
+This key may be used multiple times
 
 @@option quadlet:module
 
-### `ExitCodePropagation=how`
+### `ExitCodePropagation=`
 
 Control how the main PID of the systemd service should exit. The following values are supported:
 - `all`: exit non-zero if all containers have failed (i.e., exited non-zero)
@@ -74,9 +79,19 @@ Control how the main PID of the systemd service should exit. The following value
 
 The current default value is `none`.
 
-@@option quadlet:global-args
+### `GlobalArgs=`
 
-### `KubeDownForce=true`
+This key contains a list of arguments passed directly between `podman` and `kube`
+in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `KubeDownForce=`
 
 Remove all resources, including volumes, when calling `podman kube down`.
 Equivalent to the Podman `--force` option.
@@ -85,11 +100,22 @@ Equivalent to the Podman `--force` option.
 
 @@option quadlet:network
 
-@@option quadlet:podman-args
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman kube play` command
+in the generated file (right before the path to the yaml file in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
 
 @@option quadlet:publish
 
-### `SetWorkingDirectory=yaml`
+### `SetWorkingDirectory=`
 
 Set the `WorkingDirectory` field of the `Service` group of the Systemd service unit file.
 Used to allow `podman kube play` to correctly resolve relative paths.
@@ -101,7 +127,7 @@ Quadlet will not set it even if `SetWorkingDirectory` is set
 
 @@option quadlet:userns.container
 
-### `Yaml=path`
+### `Yaml=`
 
 The path, absolute or relative to the location of the unit file, to the Kubernetes YAML file to use.
 

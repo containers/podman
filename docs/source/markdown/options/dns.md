@@ -1,5 +1,5 @@
 ####> This option file is used in:
-####>   podman build, podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, farm build, network create, podman-network.unit.5.md.in, podman-pod.unit.5.md.in, run
+####>   podman build, podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, farm build, podman-network.unit.5.md.in, podman-pod.unit.5.md.in, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
 << if is_quadlet >>
