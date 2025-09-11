@@ -422,11 +422,11 @@ case "$TEST_FLAVOR" in
                 die "Refusing to config. host-test in container";
             fi
             remove_packaged_podman_files
-            make install PREFIX=/usr ETCDIR=/etc
+            make install PREFIX=/usr ETCDIR=/etc EXTRA_BUILDTAGS="$TEST_BUILD_TAGS"
         elif [[ "$TEST_ENVIRON" == "container" ]]; then
             if ((CONTAINER)); then
                 remove_packaged_podman_files
-                make install PREFIX=/usr ETCDIR=/etc
+                make install PREFIX=/usr ETCDIR=/etc EXTRA_BUILDTAGS="$TEST_BUILD_TAGS"
             fi
         else
             die "Invalid value for \$TEST_ENVIRON=$TEST_ENVIRON"
