@@ -10,9 +10,9 @@ podman\-auto-update - Auto update containers according to their auto-update poli
 **podman auto-update** pulls down new container images and restarts containers configured for auto updates.
 To make use of auto updates, the container or Kubernetes workloads must run inside a systemd unit.
 After a successful update of an image, the containers using the image get updated by restarting the systemd units they run in.
-Please refer to `podman-quadlet(7)` on how to run Podman under systemd.
+Please refer to `podman-systemd.unit(5)` on how to run Podman under systemd.
 
-To configure a container for auto updates, it must be created with the `io.containers.autoupdate` label or the `AutoUpdate` field in `podman-quadlet(7)` with one of the following two values:
+To configure a container for auto updates, it must be created with the `io.containers.autoupdate` label or the `AutoUpdate` field in `podman-systemd.unit(5)` with one of the following two values:
 
 * `registry`: If the label is present and set to `registry`, Podman reaches out to the corresponding registry to check if the image has been updated.
 The label `image` is an alternative to `registry` maintained for backwards compatibility.
@@ -27,7 +27,7 @@ If they differ, the local image is considered to be newer and the systemd unit g
 
 ### Auto Updates and Kubernetes YAML
 
-Podman supports auto updates for Kubernetes workloads.  The auto-update policy can be configured directly via `podman-quadlet(7)` or inside the Kubernetes YAML with the Podman-specific annotations mentioned below:
+Podman supports auto updates for Kubernetes workloads.  The auto-update policy can be configured directly via `podman-systemd.unit(5)` or inside the Kubernetes YAML with the Podman-specific annotations mentioned below:
 
 * `io.containers.autoupdate`: "registry|local" to apply the auto-update policy to all containers
 * `io.containers.autoupdate/$container`: "registry|local" to apply the auto-update policy to `$container` only
@@ -119,4 +119,4 @@ sleep.service  f8e4759798d4 (systemd-sleep)  registry.fedoraproject.org/fedora:l
 ```
 
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-quadlet(7)](podman-quadlet.7.md)**, **sd_notify(3)**, **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**
+**[podman(1)](podman.1.md)**, **[podman-generate-systemd(1)](podman-generate-systemd.1.md)**, **[podman-run(1)](podman-run.1.md)**, **[podman-systemd.unit(5)](podman-systemd.unit.5.md)**, **sd_notify(3)**, **[systemd.unit(5)](https://www.freedesktop.org/software/systemd/man/systemd.unit.html)**

@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman podman-container.unit.5.md.in, create, exec, run
+####>   podman create, exec, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
-### `User=user[:group]`
-{% else %}
 #### **--user**, **-u**=*user[:group]*
-{% endif %}
 
 Sets the username or UID used and, optionally, the groupname or GID for the specified command. Both *user* and *group* may be symbolic or numeric.
 

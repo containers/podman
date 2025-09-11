@@ -1,18 +1,12 @@
 ####> This option file is used in:
-####>   podman build, podman-container.unit.5.md.in, create, farm build, pod clone, pod create, run
+####>   podman build, create, farm build, pod clone, pod create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
-### `AddDevice=host-device[:container-device][:permissions]`
-{% else %}
 #### **--device**=*host-device[:container-device][:permissions]*
-{% endif %}
 
-Add a host device to the <<container|pod>>. The format of this is
-`HOST-DEVICE[:CONTAINER-DEVICE][:PERMISSIONS]`, where `HOST-DEVICE` is the path of
-the device node on the host, `CONTAINER-DEVICE` is the path of the device node in
-the container, and `PERMISSIONS` is a list of permissions combining 'r' for read,
-'w' for write, and 'm' for mknod(2).
+Add a host device to the <<container|pod>>. Optional *permissions* parameter
+can be used to specify device permissions by combining
+**r** for read, **w** for write, and **m** for **mknod**(2).
 
 Example: **--device=/dev/sdc:/dev/xvdc:rwm**.
 

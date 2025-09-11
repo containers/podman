@@ -1,12 +1,8 @@
 ####> This option file is used in:
-####>   podman podman-container.unit.5.md.in, create, pod clone, pod create, run
+####>   podman create, pod clone, pod create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-{% if is_quadlet %}
-### `Sysctl=name=value`
-{% else %}
 #### **--sysctl**=*name=value*
-{% endif %}
 
 Configure namespaced kernel parameters <<at runtime|for all containers in the pod>>.
 
