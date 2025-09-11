@@ -300,8 +300,8 @@ github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2 h1:
 github.com/opencontainers/runtime-tools v0.9.1-0.20250523060157-0ea5ed0382a2/go.mod h1:MXdPzqAA8pHC58USHqNCSjyLnRQ6D+NjbpP+02Z1U/0=
 github.com/opencontainers/selinux v1.12.0 h1:6n5JV4Cf+4y0KNXW48TLj5DwfXpvWlxXplUkdTrmPb8=
 github.com/opencontainers/selinux v1.12.0/go.mod h1:BTPX+bjVbWGXw7ZZWUbdENt8w0htPSrlgOOysQaU62U=
-github.com/openshift/imagebuilder v1.2.16-0.20250828154754-e22ebd3ff511 h1:8pU6rEt+HyVdXlszfbWIwUDf8THLXvjXX5n+5EkxlW8=
-github.com/openshift/imagebuilder v1.2.16-0.20250828154754-e22ebd3ff511/go.mod h1:I9FlC4LVo0z/8GM8wdWVhxmw3tUVNM6tiwb8tRv4jvQ=
+github.com/openshift/imagebuilder v1.2.17 h1:xusHiBvK7PpBsEeMGTg61Zx5kSajybjUAbBzVEJKH6g=
+github.com/openshift/imagebuilder v1.2.17/go.mod h1:I9FlC4LVo0z/8GM8wdWVhxmw3tUVNM6tiwb8tRv4jvQ=
 github.com/pierrec/lz4/v4 v4.1.21 h1:yOVMLb6qSIDP67pl/5F7RepeKYu/VmTyEXvuMI5d9mQ=
 github.com/pierrec/lz4/v4 v4.1.21/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
