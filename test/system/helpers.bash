@@ -35,6 +35,35 @@ SYSTEMD_IMAGE=$PODMAN_SYSTEMD_IMAGE_FQN
 # Default timeout for a podman command.
 PODMAN_TIMEOUT=${PODMAN_TIMEOUT:-120}
 
+function add_podman_args {
+  declare -n arrayptr=$1
+
+  case "${REMOTESYSTEM_TRANSPORT}" in
+  tcp | tls | mtls)
+    arrayptr+=(--url="tcp://localhost:${REMOTESYSTEM_TCP_PORT}")
+    ;;
+  esac
+  case "${REMOTESYSTEM_TRANSPORT}" in
+  tls | mtls)
+    arrayptr+=(--tls-ca="${REMOTESYSTEM_TLS_CA_CRT}")
+    ;;
+  esac
+  case "${REMOTESYSTEM_TRANSPORT}" in
+  mtls)
+    arrayptr+=(
+      --tls-cert="${REMOTESYSTEM_TLS_CLIENT_CRT}"
+      --tls-key="${REMOTESYSTEM_TLS_CLIENT_KEY}"
+    )
+    ;;
+  esac
+}
+
+# Full command to run podman, including remote flags. This is set once, and will not
+# change if the REMOTESYSTEM_* envs are unset mid-test
+PODMAN_CMD=("${PODMAN}")
+
+add_podman_args PODMAN_CMD
+
 # Prompt to display when logging podman commands; distinguish root/rootless
 _LOG_PROMPT='$'
 if [ $(id -u) -eq 0 ]; then
@@ -291,7 +320,7 @@ function restore_image() {
 #######################
 function _run_podman_quiet() {
     # This should be the same as what run_podman() does.
-    run timeout -v --foreground --kill=10 60 $PODMAN $_PODMAN_TEST_OPTS "$@"
+    run timeout -v --foreground --kill=10 60 ${PODMAN_CMD[@]} $_PODMAN_TEST_OPTS "$@"
     if [[ $status -ne 0 ]]; then
         echo "# Error running command: podman $*"
         echo "$output"
@@ -394,7 +423,7 @@ function clean_setup() {
             # Special case for timeout: check for locks (#18514)
             if [[ $status -eq 124 ]]; then
                 echo "# [teardown] $_LOG_PROMPT podman system locks" >&3
-                run $PODMAN system locks
+                run "${PODMAN_CMD[@]}" system locks
                 for line in "${lines[*]}"; do
                     echo "# $line" >&3
                 done
@@ -512,11 +541,16 @@ function run_podman() {
         silence127="!"
     fi
 
+    podman_args=()
+    add_podman_args podman_args
+
+
     # stdout is only emitted upon error; this printf is to help in debugging
-    printf "\n%s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" "$PODMAN" "$*"
+    printf "\n%s %s %s %s\n" "$(timestamp)" "$_LOG_PROMPT" $PODMAN "${podman_args[@]}" "$*"
+
     # BATS hangs if a subprocess remains and keeps FD 3 open; this happens
     # if podman crashes unexpectedly without cleaning up subprocesses.
-    run $silence127 timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN $_PODMAN_TEST_OPTS "$@" 3>/dev/null
+    run $silence127 timeout --foreground -v --kill=10 $PODMAN_TIMEOUT $PODMAN "${podman_args[@]}" $_PODMAN_TEST_OPTS "$@" 3>/dev/null
     # without "quotes", multiple lines are glommed together into one
     if [ -n "$output" ]; then
         echo "$(timestamp) $output"

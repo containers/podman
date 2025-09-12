@@ -192,3 +192,5 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+replace go.podman.io/common v0.65.0 => github.com/meln5674/container-libs/common v0.0.0-20250912003433-5765e3edb639
