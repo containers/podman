@@ -154,3 +154,71 @@ func CheckPathOnRunningMachine(ctx context.Context, path string) (*LocalAPIMap, 
 
 	return isPathAvailableOnMachine(mounts, vmType, path)
 }
+
+// CheckMultiplePathsOnRunningMachine checks if multiple paths are available on a running machine.
+// Returns a translation map of local-to-remote paths if all paths are accessible, false otherwise.
+func CheckMultiplePathsOnRunningMachine(ctx context.Context, paths []string) (TranslationLocalAPIMap, bool) {
+	result := TranslationLocalAPIMap{}
+
+	if machineMode := bindings.GetMachineMode(ctx); !machineMode {
+		logrus.Debug("Machine mode is not enabled, skipping machine check")
+		return nil, false
+	}
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		logrus.Debugf("Failed to get client connection: %v", err)
+		return nil, false
+	}
+
+	mounts, vmType, err := getMachineMountsAndVMType(conn.URI.String(), conn.URI)
+	if err != nil {
+		logrus.Debugf("Failed to get machine mounts: %v", err)
+		return nil, false
+	}
+
+	for _, path := range paths {
+		if err := fileutils.Exists(path); errors.Is(err, fs.ErrNotExist) {
+			logrus.Debugf("Path %s does not exist locally, skipping machine check", path)
+			return nil, false
+		}
+		mapping, found := isPathAvailableOnMachine(mounts, vmType, path)
+		if !found {
+			logrus.Debugf("Path %s is not available on the running machine", path)
+			return nil, false
+		}
+		result[path] = mapping.RemotePath
+	}
+
+	logrus.Debugf("Successfully created local-to-remote path translation map: %#v\n", result)
+	return result, true
+}
+
+func IsHyperVProvider(ctx context.Context) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		logrus.Debugf("Failed to get client connection: %v", err)
+		return false, err
+	}
+
+	_, vmType, err := getMachineMountsAndVMType(conn.URI.String(), conn.URI)
+	if err != nil {
+		logrus.Debugf("Failed to get machine mounts: %v", err)
+		return false, err
+	}
+
+	return vmType == define.HyperVVirt, nil
+}
+
+// ValidatePathForLocalAPI checks if the provided path satisfies requirements for local API usage.
+// It returns an error if the path is not absolute or does not exist on the filesystem.
+func ValidatePathForLocalAPI(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("path %q is not absolute", path)
+	}
+
+	if err := fileutils.Exists(path); err != nil {
+		return err
+	}
+	return nil
+}
