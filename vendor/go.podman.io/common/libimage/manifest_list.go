@@ -322,7 +322,7 @@ func (m *ManifestList) saveAndReload() error {
 	return m.reloadID(newID)
 }
 
-// Reload the image and list instances from storage
+// Reload the image and list instances from storage.
 func (m *ManifestList) reload() error {
 	listID := m.ID()
 	return m.reloadID(listID)
@@ -338,7 +338,7 @@ func (m *ManifestList) reloadID(listID string) error {
 	return nil
 }
 
-// getManifestList is a helper to obtain a manifest list
+// getManifestList is a helper to obtain a manifest list.
 func (i *Image) getManifestList() (manifests.List, error) {
 	_, list, err := manifests.LoadFromImage(i.runtime.store, i.ID())
 	if errors.Is(err, manifesterrors.ErrManifestTypeNotSupported) {
@@ -441,7 +441,7 @@ func (m *ManifestList) Inspect() (*define.ManifestListData, error) {
 	return &inspectList, nil
 }
 
-// Options for adding an image or artifact to a manifest list.
+// ManifestListAddOptions for adding an image or artifact to a manifest list.
 type ManifestListAddOptions struct {
 	// Add all images to the list if the to-be-added image itself is a
 	// manifest list.
@@ -538,8 +538,8 @@ func (m *ManifestList) Add(ctx context.Context, name string, options *ManifestLi
 	return newDigest, nil
 }
 
-// Options for creating an artifact manifest for one or more files and adding
-// the artifact manifest to a manifest list.
+// ManifestListAddArtifactOptions used for creating an artifact manifest for one or more
+// files and adding the artifact manifest to a manifest list.
 type ManifestListAddArtifactOptions struct {
 	// The artifactType to set in the artifact manifest.
 	Type *string `json:"artifact_type"`
@@ -557,7 +557,7 @@ type ManifestListAddArtifactOptions struct {
 	Subject string `json:"subject"`
 }
 
-// Add adds one or more manifests to the manifest list and returns the digest
+// AddArtifact adds one or more manifests to the manifest list and returns the digest
 // of the added instance.
 func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAddArtifactOptions, files ...string) (digest.Digest, error) {
 	if options == nil {
@@ -628,7 +628,7 @@ func (m *ManifestList) AddArtifact(ctx context.Context, options *ManifestListAdd
 	return newDigest, nil
 }
 
-// Options for annotating a manifest list.
+// ManifestListAnnotateOptions used for annotating a manifest list.
 type ManifestListAnnotateOptions struct {
 	// Add the specified annotations to the added image.  Empty values are ignored.
 	Annotations map[string]string
@@ -650,7 +650,7 @@ type ManifestListAnnotateOptions struct {
 	Subject string
 }
 
-// Annotate an image instance specified by `d` in the manifest list.
+// AnnotateInstance annotates an image instance specified by `d` in the manifest list.
 func (m *ManifestList) AnnotateInstance(d digest.Digest, options *ManifestListAnnotateOptions) error {
 	ctx := context.Background()
 

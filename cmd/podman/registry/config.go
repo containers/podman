@@ -70,7 +70,7 @@ func containersConfModules() ([]string, error) {
 
 	var modules []string
 	fs := pflag.NewFlagSet("module", pflag.ContinueOnError)
-	fs.ParseErrorsWhitelist.UnknownFlags = true
+	fs.ParseErrorsAllowlist.UnknownFlags = true
 	fs.Usage = func() {}
 	fs.SetInterspersed(false)
 	fs.StringArrayVar(&modules, "module", nil, "")

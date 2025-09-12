@@ -48,7 +48,7 @@ type NetOptions struct {
 	DNSSearch          []string                           `json:"dns_search,omitempty"`
 	DNSServers         []net.IP                           `json:"dns_server,omitempty"`
 	HostsFile          string                             `json:"hosts_file,omitempty"`
-	Network            specgen.Namespace                  `json:"netns,omitempty"`
+	Network            specgen.Namespace                  `json:"netns"`
 	NoHostname         bool                               `json:"no_manage_hostname,omitempty"`
 	NoHosts            bool                               `json:"no_manage_hosts,omitempty"`
 	PublishPorts       []types.PortMapping                `json:"portmappings,omitempty"`

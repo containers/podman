@@ -75,7 +75,7 @@ func (ms *machineSession) Bytes() []byte {
 func (ms *machineSession) outputToStringSlice() []string {
 	var results []string
 	output := string(ms.Out.Contents())
-	for _, line := range strings.Split(output, "\n") {
+	for line := range strings.SplitSeq(output, "\n") {
 		if line != "" {
 			results = append(results, line)
 		}
@@ -214,24 +214,24 @@ func BeValidJSON() *ValidJSONMatcher {
 	return &ValidJSONMatcher{}
 }
 
-func (matcher *ValidJSONMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *ValidJSONMatcher) Match(actual any) (success bool, err error) {
 	s, ok := actual.(string)
 	if !ok {
 		return false, fmt.Errorf("ValidJSONMatcher expects a string, not %q", actual)
 	}
 
-	var i interface{}
+	var i any
 	if err := json.Unmarshal([]byte(s), &i); err != nil {
 		return false, err
 	}
 	return true, nil
 }
 
-func (matcher *ValidJSONMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *ValidJSONMatcher) FailureMessage(actual any) (message string) {
 	return format.Message(actual, "to be valid JSON")
 }
 
-func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *ValidJSONMatcher) NegatedFailureMessage(actual any) (message string) {
 	return format.Message(actual, "to _not_ be valid JSON")
 }
 

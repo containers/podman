@@ -37,7 +37,7 @@ type RuntimeConfigFilterOptions struct {
 // RuntimeConfigFilter passes the proposed runtime configuration (and
 // reads back a possibly-altered form from their standard output).
 //
-// Deprecated: Too many arguments, has been refactored and replaced by RuntimeConfigFilterWithOptions instead
+// Deprecated: Too many arguments, has been refactored and replaced by RuntimeConfigFilterWithOptions instead.
 func RuntimeConfigFilter(ctx context.Context, hooks []spec.Hook, config *spec.Spec, postKillTimeout time.Duration) (hookErr, err error) {
 	return RuntimeConfigFilterWithOptions(ctx, RuntimeConfigFilterOptions{
 		Hooks:           hooks,

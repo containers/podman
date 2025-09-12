@@ -13,7 +13,7 @@ var (
 	isCgroupV2Err  error
 )
 
-// Enabled returns whether we are running on cgroup v2
+// Enabled returns whether we are running on cgroup v2.
 func Enabled() (bool, error) {
 	isCgroupV2Once.Do(func() {
 		var st syscall.Statfs_t

@@ -19,6 +19,7 @@ import (
 
 	"github.com/blang/semver/v4"
 	"github.com/containers/buildah/define"
+	"github.com/containers/podman/v5/internal/remote_build_helpers"
 	ldefine "github.com/containers/podman/v5/libpod/define"
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/bindings"
@@ -51,6 +52,21 @@ type BuildResponse struct {
 	// NOTE: `error` is being deprecated check https://github.com/moby/moby/blob/master/pkg/jsonmessage/jsonmessage.go#L148
 	ErrorMessage string          `json:"error,omitempty"` // deprecate this slowly
 	Aux          json.RawMessage `json:"aux,omitempty"`
+}
+
+// BuildFilePaths contains the file paths and exclusion patterns for the build context.
+type BuildFilePaths struct {
+	tarContent        []string
+	newContainerFiles []string // dockerfile paths, relative to context dir, ToSlash()ed
+	dontexcludes      []string
+	excludes          []string
+}
+
+// RequestParts contains the components of an HTTP request for the build API.
+type RequestParts struct {
+	Headers http.Header
+	Params  url.Values
+	Body    io.ReadCloser
 }
 
 // Modify the build contexts that uses a local windows path. The windows path is
@@ -89,12 +105,32 @@ func convertVolumeSrcPath(volume string) string {
 	}
 }
 
-// Build creates an image using a containerfile reference
-func Build(ctx context.Context, containerFiles []string, options types.BuildOptions) (*types.BuildReport, error) {
-	if options.CommonBuildOpts == nil {
-		options.CommonBuildOpts = new(define.CommonBuildOptions)
+// isSupportedVersion checks if the server version is greater than or equal to the specified minimum version.
+// It extracts version numbers from the server version string, removing any suffixes like -dev or -rc,
+// and compares them using semantic versioning.
+func isSupportedVersion(ctx context.Context, minVersion string) (bool, error) {
+	serverVersion := bindings.ServiceVersion(ctx)
+
+	// Extract just the version numbers (remove -dev, -rc, etc)
+	versionStr := serverVersion.String()
+	if idx := strings.Index(versionStr, "-"); idx > 0 {
+		versionStr = versionStr[:idx]
 	}
 
+	serverVer, err := semver.ParseTolerant(versionStr)
+	if err != nil {
+		return false, fmt.Errorf("parsing server version %q: %w", serverVersion, err)
+	}
+
+	minMultipartVersion, _ := semver.ParseTolerant(minVersion)
+
+	return serverVer.GTE(minMultipartVersion), nil
+}
+
+// prepareParams converts BuildOptions into URL parameters for the build API request.
+// It handles various build options including capabilities, annotations, CPU settings,
+// devices, labels, platforms, volumes, and other build configuration parameters.
+func prepareParams(options types.BuildOptions) (url.Values, error) {
 	params := url.Values{}
 
 	if caps := options.AddCapabilities; len(caps) > 0 {
@@ -399,12 +435,6 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Add("groupadd", group)
 	}
 
-	var err error
-	var contextDir string
-	if contextDir, err = filepath.EvalSymlinks(options.ContextDirectory); err == nil {
-		options.ContextDirectory = contextDir
-	}
-
 	params.Set("pullpolicy", options.PullPolicy.String())
 
 	switch options.CommonBuildOpts.IdentityLabel {
@@ -486,59 +516,55 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		params.Add("unsetannotation", uannotation)
 	}
 
-	var (
-		headers http.Header
-	)
-	if options.SystemContext != nil {
-		if options.SystemContext.DockerAuthConfig != nil {
-			headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
-		} else {
-			headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
-		}
-		if options.SystemContext.DockerInsecureSkipTLSVerify == imageTypes.OptionalBoolTrue {
-			params.Set("tlsVerify", "false")
-		}
-	}
-	if err != nil {
-		return nil, err
+	return params, nil
+}
+
+// prepareAuthHeaders sets up authentication headers for the build request.
+// It handles Docker authentication configuration and TLS verification settings
+// from the system context.
+func prepareAuthHeaders(options types.BuildOptions, requestParts *RequestParts) (*RequestParts, error) {
+	var err error
+
+	if options.SystemContext == nil {
+		return requestParts, err
 	}
 
-	stdout := io.Writer(os.Stdout)
-	if options.Out != nil {
-		stdout = options.Out
+	if options.SystemContext.DockerAuthConfig != nil {
+		requestParts.Headers, err = auth.MakeXRegistryAuthHeader(options.SystemContext, options.SystemContext.DockerAuthConfig.Username, options.SystemContext.DockerAuthConfig.Password)
+	} else {
+		requestParts.Headers, err = auth.MakeXRegistryConfigHeader(options.SystemContext, "", "")
+	}
+	if options.SystemContext.DockerInsecureSkipTLSVerify == imageTypes.OptionalBoolTrue {
+		requestParts.Params.Set("tlsVerify", "false")
 	}
 
-	contextDir, err = filepath.Abs(options.ContextDirectory)
-	if err != nil {
-		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
-		return nil, err
+	return requestParts, err
+}
+
+// prepareContainerFiles processes container files (Dockerfiles/Containerfiles) for the build.
+// It handles URLs, stdin input, symlinks, and determines which files need to be included
+// in the tar archive versus which are already in the context directory.
+// WARNING: Caller must ensure tempManager.Cleanup() is called to remove any temporary files created.
+func prepareContainerFiles(containerFiles []string, contextDir string, options *BuildOptions, tempManager *remote_build_helpers.TempFileManager) (*BuildFilePaths, error) {
+	out := BuildFilePaths{
+		tarContent:        []string{options.ContextDirectory},
+		newContainerFiles: []string{}, // dockerfile paths, relative to context dir, ToSlash()ed
+		dontexcludes:      []string{"!Dockerfile", "!Containerfile", "!.dockerignore", "!.containerignore"},
+		excludes:          []string{},
 	}
 
-	tarContent := []string{options.ContextDirectory}
-	newContainerFiles := []string{} // dockerfile paths, relative to context dir, ToSlash()ed
-
-	dontexcludes := []string{"!Dockerfile", "!Containerfile", "!.dockerignore", "!.containerignore"}
 	for _, c := range containerFiles {
 		// Don not add path to containerfile if it is a URL
 		if strings.HasPrefix(c, "http://") || strings.HasPrefix(c, "https://") {
-			newContainerFiles = append(newContainerFiles, c)
+			out.newContainerFiles = append(out.newContainerFiles, c)
 			continue
 		}
 		if c == "/dev/stdin" {
-			content, err := io.ReadAll(os.Stdin)
+			stdinFile, err := tempManager.CreateTempFileFromReader("", "podman-build-stdin-*", os.Stdin)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("processing stdin: %w", err)
 			}
-			tmpFile, err := os.CreateTemp("", "build")
-			if err != nil {
-				return nil, err
-			}
-			defer os.Remove(tmpFile.Name()) // clean up
-			defer tmpFile.Close()
-			if _, err := tmpFile.Write(content); err != nil {
-				return nil, err
-			}
-			c = tmpFile.Name()
+			c = stdinFile
 		}
 		c = filepath.Clean(c)
 		cfDir := filepath.Dir(c)
@@ -555,11 +581,11 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 
 		// Check if Containerfile is in the context directory, if so truncate the context directory off path
 		// Do NOT add to tarfile
-		if strings.HasPrefix(containerfile, contextDir+string(filepath.Separator)) {
-			containerfile = strings.TrimPrefix(containerfile, contextDir+string(filepath.Separator))
-			dontexcludes = append(dontexcludes, "!"+containerfile)
-			dontexcludes = append(dontexcludes, "!"+containerfile+".dockerignore")
-			dontexcludes = append(dontexcludes, "!"+containerfile+".containerignore")
+		if after, ok := strings.CutPrefix(containerfile, contextDir+string(filepath.Separator)); ok {
+			containerfile = after
+			out.dontexcludes = append(out.dontexcludes, "!"+containerfile)
+			out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".dockerignore")
+			out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".containerignore")
 		} else {
 			// If Containerfile does not exist, assume it is in context directory and do Not add to tarfile
 			if err := fileutils.Lexists(containerfile); err != nil {
@@ -567,251 +593,234 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 					return nil, err
 				}
 				containerfile = c
-				dontexcludes = append(dontexcludes, "!"+containerfile)
-				dontexcludes = append(dontexcludes, "!"+containerfile+".dockerignore")
-				dontexcludes = append(dontexcludes, "!"+containerfile+".containerignore")
+				out.dontexcludes = append(out.dontexcludes, "!"+containerfile)
+				out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".dockerignore")
+				out.dontexcludes = append(out.dontexcludes, "!"+containerfile+".containerignore")
 			} else {
 				// If Containerfile does exist and not in the context directory, add it to the tarfile
-				tarContent = append(tarContent, containerfile)
+				out.tarContent = append(out.tarContent, containerfile)
 			}
 		}
-		newContainerFiles = append(newContainerFiles, filepath.ToSlash(containerfile))
+		out.newContainerFiles = append(out.newContainerFiles, filepath.ToSlash(containerfile))
 	}
 
-	if len(newContainerFiles) > 0 {
-		cFileJSON, err := json.Marshal(newContainerFiles)
-		if err != nil {
-			return nil, err
-		}
-		params.Set("dockerfile", string(cFileJSON))
+	return &out, nil
+}
+
+// prepareSecrets processes build secrets by creating temporary files for them.
+// It moves secrets to the context directory and modifies the secret configuration
+// to use relative paths suitable for remote builds.
+// WARNING: Caller must ensure tempManager.Cleanup() is called to remove any temporary files created.
+func prepareSecrets(secrets []string, contextDir string, tempManager *remote_build_helpers.TempFileManager) ([]string, []string, error) {
+	if len(secrets) == 0 {
+		return nil, nil, nil
 	}
 
-	excludes := options.Excludes
-	if len(excludes) == 0 {
-		excludes, _, err = util.ParseDockerignore(newContainerFiles, options.ContextDirectory)
-		if err != nil {
-			return nil, err
-		}
-	}
+	secretsForRemote := []string{}
+	tarContent := []string{}
 
-	saveFormat := ldefine.OCIArchive
-	if options.OutputFormat == define.Dockerv2ImageManifest {
-		saveFormat = ldefine.V2s2Archive
-	}
-
-	// build secrets are usually absolute host path or relative to context dir on host
-	// in any case move secret to current context and ship the tar.
-	if secrets := options.CommonBuildOpts.Secrets; len(secrets) > 0 {
-		secretsForRemote := []string{}
-
-		for _, secret := range secrets {
-			secretOpt := strings.Split(secret, ",")
-			if len(secretOpt) > 0 {
-				modifiedOpt := []string{}
-				for _, token := range secretOpt {
-					opt, val, hasVal := strings.Cut(token, "=")
-					if hasVal {
-						if opt == "src" {
-							// read specified secret into a tmp file
-							// move tmp file to tar and change secret source to relative tmp file
-							tmpSecretFile, err := os.CreateTemp(options.ContextDirectory, "podman-build-secret")
-							if err != nil {
-								return nil, err
-							}
-							defer os.Remove(tmpSecretFile.Name()) // clean up
-							defer tmpSecretFile.Close()
-							srcSecretFile, err := os.Open(val)
-							if err != nil {
-								return nil, err
-							}
-							defer srcSecretFile.Close()
-							_, err = io.Copy(tmpSecretFile, srcSecretFile)
-							if err != nil {
-								return nil, err
-							}
-
-							// add tmp file to context dir
-							tarContent = append(tarContent, tmpSecretFile.Name())
-
-							modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFile.Name()))
-							modifiedOpt = append(modifiedOpt, modifiedSrc)
-						} else {
-							modifiedOpt = append(modifiedOpt, token)
-						}
+	for _, secret := range secrets {
+		secretOpt := strings.Split(secret, ",")
+		modifiedOpt := []string{}
+		for _, token := range secretOpt {
+			opt, val, hasVal := strings.Cut(token, "=")
+			if hasVal {
+				if opt == "src" {
+					// read specified secret into a tmp file
+					// move tmp file to tar and change secret source to relative tmp file
+					tmpSecretFilePath, err := tempManager.CreateTempSecret(val, contextDir)
+					if err != nil {
+						return nil, nil, err
 					}
+
+					// add tmp file to context dir
+					tarContent = append(tarContent, tmpSecretFilePath)
+
+					modifiedSrc := fmt.Sprintf("src=%s", filepath.Base(tmpSecretFilePath))
+					modifiedOpt = append(modifiedOpt, modifiedSrc)
+				} else {
+					modifiedOpt = append(modifiedOpt, token)
 				}
-				secretsForRemote = append(secretsForRemote, strings.Join(modifiedOpt, ","))
 			}
 		}
-
-		c, err := jsoniter.MarshalToString(secretsForRemote)
-		if err != nil {
-			return nil, err
-		}
-		params.Add("secrets", c)
+		secretsForRemote = append(secretsForRemote, strings.Join(modifiedOpt, ","))
 	}
 
-	tarfile, err := nTar(append(excludes, dontexcludes...), tarContent...)
+	return secretsForRemote, tarContent, nil
+}
+
+// prepareRequestBody creates the request body for the build API call.
+// It handles both simple tar archives and multipart form data for builds with
+// additional build contexts, supporting URLs, images, and local directories.
+// WARNING: Caller must close request body.
+func prepareRequestBody(ctx context.Context, requestParts *RequestParts, buildFilePaths *BuildFilePaths, options types.BuildOptions) (*RequestParts, error) {
+	tarfile, err := nTar(append(buildFilePaths.excludes, buildFilePaths.dontexcludes...), buildFilePaths.tarContent...)
 	if err != nil {
-		logrus.Errorf("Cannot tar container entries %v error: %v", tarContent, err)
+		logrus.Errorf("Cannot tar container entries %v error: %v", buildFilePaths.tarContent, err)
 		return nil, err
 	}
-	defer func() {
-		if err := tarfile.Close(); err != nil {
-			logrus.Errorf("%v\n", err)
-		}
-	}()
 
-	var requestBody io.Reader
 	var contentType string
 
 	// If there are additional build contexts, we need to handle them based on the server version
 	// podman version >= 5.6.0 supports multipart/form-data for additional build contexts that
 	// are local directories or archives. URLs and images are still sent as query parameters.
-	if len(options.AdditionalBuildContexts) > 0 {
-		serverVersion := bindings.ServiceVersion(ctx)
-
-		// Extract just the version numbers (remove -dev, -rc, etc)
-		versionStr := serverVersion.String()
-		if idx := strings.Index(versionStr, "-"); idx > 0 {
-			versionStr = versionStr[:idx]
-		}
-
-		serverVer, err := semver.ParseTolerant(versionStr)
-		if err != nil {
-			return nil, fmt.Errorf("parsing server version %q: %w", serverVersion, err)
-		}
-
-		minMultipartVersion, _ := semver.ParseTolerant("5.6.0")
-
-		if serverVer.GTE(minMultipartVersion) {
-			imageContexts := make(map[string]string)
-			urlContexts := make(map[string]string)
-			localContexts := make(map[string]*define.AdditionalBuildContext)
-
-			for name, context := range options.AdditionalBuildContexts {
-				switch {
-				case context.IsImage:
-					imageContexts[name] = context.Value
-				case context.IsURL:
-					urlContexts[name] = context.Value
-				default:
-					localContexts[name] = context
-				}
-			}
-
-			logrus.Debugf("URL Contexts: %v", urlContexts)
-			for name, url := range urlContexts {
-				params.Add("additionalbuildcontexts", fmt.Sprintf("%s=url:%s", name, url))
-			}
-
-			logrus.Debugf("Image Contexts: %v", imageContexts)
-			for name, imageRef := range imageContexts {
-				params.Add("additionalbuildcontexts", fmt.Sprintf("%s=image:%s", name, imageRef))
-			}
-
-			if len(localContexts) > 0 {
-				// Multipart request structure:
-				// - "MainContext": The main build context as a tar file
-				// - "build-context-<name>": Each additional local context as a tar file
-				logrus.Debugf("Using additional local build contexts: %v", localContexts)
-				pr, pw := io.Pipe()
-				writer := multipart.NewWriter(pw)
-				contentType = writer.FormDataContentType()
-				requestBody = pr
-
-				if headers == nil {
-					headers = make(http.Header)
-				}
-				headers.Set("Content-Type", contentType)
-
-				go func() {
-					defer pw.Close()
-					defer writer.Close()
-
-					mainContext, err := writer.CreateFormFile("MainContext", "MainContext.tar")
-					if err != nil {
-						pw.CloseWithError(fmt.Errorf("creating form file for main context: %w", err))
-						return
-					}
-
-					if _, err := io.Copy(mainContext, tarfile); err != nil {
-						pw.CloseWithError(fmt.Errorf("copying main context: %w", err))
-						return
-					}
-
-					for name, context := range localContexts {
-						logrus.Debugf("Processing additional local context: %s", name)
-						part, err := writer.CreateFormFile(fmt.Sprintf("build-context-%s", name), name)
-						if err != nil {
-							pw.CloseWithError(fmt.Errorf("creating form file for context %q: %w", name, err))
-							return
-						}
-
-						// Context is already a tar
-						if archive.IsArchivePath(context.Value) {
-							file, err := os.Open(context.Value)
-							if err != nil {
-								pw.CloseWithError(fmt.Errorf("opening archive %q: %w", name, err))
-								return
-							}
-							if _, err := io.Copy(part, file); err != nil {
-								file.Close()
-								pw.CloseWithError(fmt.Errorf("copying context %q: %w", name, err))
-								return
-							}
-							file.Close()
-						} else {
-							tarContent, err := nTar(nil, context.Value)
-							if err != nil {
-								pw.CloseWithError(fmt.Errorf("creating tar content %q: %w", name, err))
-								return
-							}
-							if _, err = io.Copy(part, tarContent); err != nil {
-								pw.CloseWithError(fmt.Errorf("copying tar content %q: %w", name, err))
-								return
-							}
-							if err := tarContent.Close(); err != nil {
-								logrus.Errorf("Error closing tar content for context %q: %v\n", name, err)
-							}
-						}
-					}
-				}()
-				logrus.Debugf("Multipart body is created with content type: %s", contentType)
-			} else {
-				requestBody = tarfile
-				logrus.Debugf("Using main build context: %q", options.ContextDirectory)
-			}
-		} else {
-			convertAdditionalBuildContexts(options.AdditionalBuildContexts)
-			additionalBuildContextMap, err := jsoniter.Marshal(options.AdditionalBuildContexts)
-			if err != nil {
-				return nil, err
-			}
-			params.Set("additionalbuildcontexts", string(additionalBuildContextMap))
-
-			requestBody = tarfile
-			logrus.Debugf("Using main build context: %q", options.ContextDirectory)
-		}
-	} else {
-		requestBody = tarfile
-		logrus.Debugf("Using main build context: %q", options.ContextDirectory)
+	isSupported, err := isSupportedVersion(ctx, "5.6.0")
+	if err != nil {
+		return nil, err
 	}
 
+	if len(options.AdditionalBuildContexts) == 0 {
+		requestParts.Body = tarfile
+		logrus.Debugf("Using main build context: %q", options.ContextDirectory)
+		return requestParts, nil
+	}
+
+	if !isSupported {
+		convertAdditionalBuildContexts(options.AdditionalBuildContexts)
+		additionalBuildContextMap, err := jsoniter.Marshal(options.AdditionalBuildContexts)
+		if err != nil {
+			return nil, err
+		}
+		requestParts.Params.Set("additionalbuildcontexts", string(additionalBuildContextMap))
+
+		requestParts.Body = tarfile
+		logrus.Debugf("Using main build context: %q", options.ContextDirectory)
+		return requestParts, nil
+	}
+
+	imageContexts := make(map[string]string)
+	urlContexts := make(map[string]string)
+	localContexts := make(map[string]*define.AdditionalBuildContext)
+
+	for name, context := range options.AdditionalBuildContexts {
+		switch {
+		case context.IsImage:
+			imageContexts[name] = context.Value
+		case context.IsURL:
+			urlContexts[name] = context.Value
+		default:
+			localContexts[name] = context
+		}
+	}
+
+	logrus.Debugf("URL Contexts: %v", urlContexts)
+	for name, url := range urlContexts {
+		requestParts.Params.Add("additionalbuildcontexts", fmt.Sprintf("%s=url:%s", name, url))
+	}
+
+	logrus.Debugf("Image Contexts: %v", imageContexts)
+	for name, imageRef := range imageContexts {
+		requestParts.Params.Add("additionalbuildcontexts", fmt.Sprintf("%s=image:%s", name, imageRef))
+	}
+
+	if len(localContexts) == 0 {
+		requestParts.Body = tarfile
+		logrus.Debugf("Using main build context: %q", options.ContextDirectory)
+		return requestParts, nil
+	}
+	// Multipart request structure:
+	// - "MainContext": The main build context as a tar file
+	// - "build-context-<name>": Each additional local context as a tar file
+	logrus.Debugf("Using additional local build contexts: %v", localContexts)
+	pr, pw := io.Pipe()
+	writer := multipart.NewWriter(pw)
+	contentType = writer.FormDataContentType()
+	requestParts.Body = pr
+
+	if requestParts.Headers == nil {
+		requestParts.Headers = make(http.Header)
+	}
+	requestParts.Headers.Set("Content-Type", contentType)
+
+	go func() {
+		defer pw.Close()
+		defer writer.Close()
+
+		mainContext, err := writer.CreateFormFile("MainContext", "MainContext.tar")
+		if err != nil {
+			pw.CloseWithError(fmt.Errorf("creating form file for main context: %w", err))
+			return
+		}
+
+		if _, err := io.Copy(mainContext, tarfile); err != nil {
+			pw.CloseWithError(fmt.Errorf("copying main context: %w", err))
+			return
+		}
+
+		defer func() {
+			if err := tarfile.Close(); err != nil {
+				logrus.Errorf("failed to close context tarfile: %v\n", err)
+			}
+		}()
+
+		for name, context := range localContexts {
+			logrus.Debugf("Processing additional local context: %s", name)
+			part, err := writer.CreateFormFile(fmt.Sprintf("build-context-%s", name), name)
+			if err != nil {
+				pw.CloseWithError(fmt.Errorf("creating form file for context %q: %w", name, err))
+				return
+			}
+
+			// Context is already a tar
+			if archive.IsArchivePath(context.Value) {
+				file, err := os.Open(context.Value)
+				if err != nil {
+					pw.CloseWithError(fmt.Errorf("opening archive %q: %w", name, err))
+					return
+				}
+				if _, err := io.Copy(part, file); err != nil {
+					file.Close()
+					pw.CloseWithError(fmt.Errorf("copying context %q: %w", name, err))
+					return
+				}
+				file.Close()
+			} else {
+				tarContent, err := nTar(nil, context.Value)
+				if err != nil {
+					pw.CloseWithError(fmt.Errorf("creating tar content %q: %w", name, err))
+					return
+				}
+				if _, err = io.Copy(part, tarContent); err != nil {
+					pw.CloseWithError(fmt.Errorf("copying tar content %q: %w", name, err))
+					return
+				}
+				if err := tarContent.Close(); err != nil {
+					logrus.Errorf("Error closing tar content for context %q: %v\n", name, err)
+				}
+			}
+		}
+	}()
+	logrus.Debugf("Multipart body is created with content type: %s", contentType)
+
+	return requestParts, nil
+}
+
+// executeBuildRequest sends the build request to the API endpoint and returns the response.
+// It handles the HTTP request creation and error checking for the build operation.
+// WARNING: Caller must close the response body.
+func executeBuildRequest(ctx context.Context, endpoint string, requestParts *RequestParts) (*bindings.APIResponse, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	response, err := conn.DoRequest(ctx, requestBody, http.MethodPost, "/build", params, headers)
+
+	response, err := conn.DoRequest(ctx, requestParts.Body, http.MethodPost, endpoint, requestParts.Params, requestParts.Headers)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
 
 	if !response.IsSuccess() {
 		return nil, response.Process(err)
 	}
 
+	return response, nil
+}
+
+// processBuildResponse processes the streaming build response from the API.
+// It reads the JSON stream, extracts build output and errors, writes to stdout,
+// and returns a build report with the final image ID.
+func processBuildResponse(response *bindings.APIResponse, stdout io.Writer, saveFormat string) (*types.BuildReport, error) {
 	body := response.Body.(io.Reader)
 	if logrus.IsLevelEnabled(logrus.DebugLevel) {
 		if v, found := os.LookupEnv("PODMAN_RETAIN_BUILD_ARTIFACT"); found {
@@ -866,6 +875,109 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		}
 	}
 	return &types.BuildReport{ID: id, SaveFormat: saveFormat}, nil
+}
+
+func Build(ctx context.Context, containerFiles []string, options types.BuildOptions) (*types.BuildReport, error) {
+	if options.CommonBuildOpts == nil {
+		options.CommonBuildOpts = new(define.CommonBuildOptions)
+	}
+
+	tempManager := remote_build_helpers.NewTempFileManager()
+	defer tempManager.Cleanup()
+
+	params_, err := prepareParams(options)
+	if err != nil {
+		return nil, err
+	}
+
+	var headers http.Header
+	var requestBody io.ReadCloser
+	requestParts := &RequestParts{
+		Params:  params_,
+		Headers: headers,
+		Body:    requestBody,
+	}
+
+	var contextDir string
+	if contextDir, err = filepath.EvalSymlinks(options.ContextDirectory); err == nil {
+		options.ContextDirectory = contextDir
+	}
+
+	requestParts, err = prepareAuthHeaders(options, requestParts)
+	if err != nil {
+		return nil, err
+	}
+
+	contextDirAbs, err := filepath.Abs(options.ContextDirectory)
+	if err != nil {
+		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
+		return nil, err
+	}
+
+	buildFilePaths, err := prepareContainerFiles(containerFiles, contextDirAbs, &options, tempManager)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(buildFilePaths.newContainerFiles) > 0 {
+		cFileJSON, err := json.Marshal(buildFilePaths.newContainerFiles)
+		if err != nil {
+			return nil, err
+		}
+		requestParts.Params.Set("dockerfile", string(cFileJSON))
+	}
+
+	buildFilePaths.excludes = options.Excludes
+	if len(buildFilePaths.excludes) == 0 {
+		buildFilePaths.excludes, _, err = util.ParseDockerignore(buildFilePaths.newContainerFiles, options.ContextDirectory)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// build secrets are usually absolute host path or relative to context dir on host
+	// in any case move secret to current context and ship the tar.
+	secretsForRemote, secretsTarContent, err := prepareSecrets(options.CommonBuildOpts.Secrets, options.ContextDirectory, tempManager)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(secretsForRemote) > 0 {
+		c, err := jsoniter.MarshalToString(secretsForRemote)
+		if err != nil {
+			return nil, err
+		}
+		requestParts.Params.Add("secrets", c)
+		buildFilePaths.tarContent = append(buildFilePaths.tarContent, secretsTarContent...)
+	}
+
+	requestParts, err = prepareRequestBody(ctx, requestParts, buildFilePaths, options)
+	if err != nil {
+		return nil, fmt.Errorf("building tar file: %w", err)
+	}
+	defer func() {
+		if err := requestParts.Body.Close(); err != nil {
+			logrus.Errorf("failed to close build request body: %v\n", err)
+		}
+	}()
+
+	response, err := executeBuildRequest(ctx, "/build", requestParts)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	saveFormat := ldefine.OCIArchive
+	if options.OutputFormat == define.Dockerv2ImageManifest {
+		saveFormat = ldefine.V2s2Archive
+	}
+
+	stdout := io.Writer(os.Stdout)
+	if options.Out != nil {
+		stdout = options.Out
+	}
+
+	return processBuildResponse(response, stdout, saveFormat)
 }
 
 func nTar(excludes []string, sources ...string) (io.ReadCloser, error) {

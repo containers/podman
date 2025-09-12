@@ -1496,7 +1496,7 @@ var (
 )
 
 // getKubeYaml returns a kubernetes YAML document.
-func getKubeYaml(kind string, object interface{}) (string, error) {
+func getKubeYaml(kind string, object any) (string, error) {
 	var yamlTemplate string
 	templateBytes := &bytes.Buffer{}
 
@@ -1532,7 +1532,7 @@ func getKubeYaml(kind string, object interface{}) (string, error) {
 }
 
 // generateKubeYaml writes a kubernetes YAML document.
-func generateKubeYaml(kind string, object interface{}, pathname string) error {
+func generateKubeYaml(kind string, object any, pathname string) error {
 	k, err := getKubeYaml(kind, object)
 	if err != nil {
 		return err
@@ -2188,7 +2188,7 @@ func getPersistentVolumeClaimVolume(vName string) *Volume {
 
 // getConfigMapVolume returns a new ConfigMap Volume given the name and items
 // of the ConfigMap.
-func getConfigMapVolume(vName string, items []map[string]string, optional bool, defaultMode *int32) *Volume { //nolint:unparam
+func getConfigMapVolume(vName string, items []map[string]string, optional bool, defaultMode *int32) *Volume {
 	vol := &Volume{
 		VolumeType: "ConfigMap",
 		Name:       defaultVolName,
@@ -2339,7 +2339,7 @@ func testHTTPServer(port string, shouldErr bool, expectedResponse string) {
 	interval := 250 * time.Millisecond
 	var err error
 	var resp *http.Response
-	for i := 0; i < 6; i++ {
+	for range 6 {
 		resp, err = http.Get(address.String())
 		if err != nil && shouldErr {
 			Expect(err.Error()).To(ContainSubstring(expectedResponse))
@@ -2481,7 +2481,7 @@ var _ = Describe("Podman kube play", func() {
 		conffile := filepath.Join(podmanTest.TempDir, "container.conf")
 
 		infraImage := INFRA_IMAGE
-		err := os.WriteFile(conffile, []byte(fmt.Sprintf("[engine]\ninfra_image=\"%s\"\n", infraImage)), 0644)
+		err := os.WriteFile(conffile, fmt.Appendf(nil, "[engine]\ninfra_image=\"%s\"\n", infraImage), 0644)
 		Expect(err).ToNot(HaveOccurred())
 
 		os.Setenv("CONTAINERS_CONF", conffile)
@@ -4437,7 +4437,7 @@ spec:
     app: %s
 `
 		// generate services, pods and deployments
-		for i := 0; i < 2; i++ {
+		for i := range 2 {
 			podName := fmt.Sprintf("testPod%d", i)
 			deploymentName := fmt.Sprintf("testDeploy%d", i)
 			deploymentPodName := fmt.Sprintf("%s-pod", deploymentName)
@@ -6390,5 +6390,34 @@ spec:
 
 		Expect(appContainerLogDir).ToNot(BeEmpty(), "Should have found application container log directory")
 		Expect(logContent).To(ContainSubstring(expectedMessage), "Log file should contain the expected message")
+	})
+
+	It("CVE-2025-9566 regression test - ConfigMap mount", func() {
+		testfile := filepath.Join(podmanTest.TempDir, "testfile")
+		volumeName := "cm-vol"
+		cm := getConfigMap(withConfigMapName(volumeName), withConfigMapData("foo", "content1"))
+		cmYaml, err := getKubeYaml("configmap", cm)
+		Expect(err).ToNot(HaveOccurred())
+
+		ctrName := "ctr1"
+		podName := "pod1"
+		// create a symlink at the volume mount location so we can make sure we don't resolve that to the host location.
+		ctr := getCtr(withName(ctrName), withVolumeMount("/test", "", false), withImage(CITEST_IMAGE), withCmd([]string{"sh", "-c", "ln -sf " + testfile + " /test/foo"}))
+		pod := getPod(withPodName(podName), withVolume(getConfigMapVolume(volumeName, nil, false, nil)), withCtr(ctr))
+		podYaml, err := getKubeYaml("pod", pod)
+		Expect(err).ToNot(HaveOccurred())
+		yamls := []string{cmYaml, podYaml}
+		err = generateMultiDocKubeYaml(yamls, kubeYaml)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("kube", "play", kubeYaml)
+		// wait for the container to finish to ensure the symlink was created
+		podmanTest.PodmanExitCleanly("wait", podName+"-"+ctrName)
+		podmanTest.PodmanExitCleanly("kube", "down", kubeYaml)
+		kube := podmanTest.Podman([]string{"kube", "play", kubeYaml})
+		kube.WaitWithDefaultTimeout()
+		Expect(kube).To(ExitWithError(125, `cannot create file "foo" at volume mountpoint`))
+
+		Expect(testfile).ToNot(BeAnExistingFile(), "file should never be created on the host")
 	})
 })

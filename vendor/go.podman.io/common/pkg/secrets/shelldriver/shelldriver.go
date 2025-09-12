@@ -13,7 +13,7 @@ import (
 	"go.podman.io/common/pkg/secrets/define"
 )
 
-// errMissingConfig indicates that one or more of the external actions are not configured
+// errMissingConfig indicates that one or more of the external actions are not configured.
 var errMissingConfig = errors.New("missing config value")
 
 type driverConfig struct {
@@ -56,7 +56,7 @@ func (cfg *driverConfig) ParseOpts(opts map[string]string) error {
 	return nil
 }
 
-// Driver is the passdriver object
+// Driver is the passdriver object.
 type Driver struct {
 	driverConfig
 }
@@ -75,7 +75,7 @@ func NewDriver(opts map[string]string) (*Driver, error) {
 	return driver, nil
 }
 
-// List returns all secret IDs
+// List returns all secret IDs.
 func (d *Driver) List() (secrets []string, err error) {
 	cmd := exec.CommandContext(context.TODO(), "/bin/sh", "-c", d.ListCommand)
 	cmd.Env = os.Environ()
@@ -101,7 +101,7 @@ func (d *Driver) List() (secrets []string, err error) {
 	return secrets, nil
 }
 
-// Lookup returns the bytes associated with a secret ID
+// Lookup returns the bytes associated with a secret ID.
 func (d *Driver) Lookup(id string) ([]byte, error) {
 	if strings.Contains(id, "..") {
 		return nil, define.ErrInvalidKey
@@ -122,7 +122,7 @@ func (d *Driver) Lookup(id string) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// Store saves the bytes associated with an ID. An error is returned if the ID already exists
+// Store saves the bytes associated with an ID. An error is returned if the ID already exists.
 func (d *Driver) Store(id string, data []byte) error {
 	if strings.Contains(id, "..") {
 		return define.ErrInvalidKey

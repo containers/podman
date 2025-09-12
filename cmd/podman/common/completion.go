@@ -1365,7 +1365,7 @@ func convertFormatSuggestions(suggestions []formatSuggestion) []string {
 // This function will only work for pointer to structs other types are not supported.
 // When "{{." is typed the field and method names of the given struct will be completed.
 // This also works recursive for nested structs.
-func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteFormat(o any) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	// this function provides shell completion for go templates
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 		// autocomplete json when nothing or json is typed
@@ -1454,7 +1454,7 @@ func AutocompleteFormat(o interface{}) func(cmd *cobra.Command, args []string, t
 	}
 }
 
-func getEntityType(cmd *cobra.Command, args []string, o interface{}) interface{} {
+func getEntityType(cmd *cobra.Command, args []string, o any) any {
 	// container logic
 	if containers, _ := getContainers(cmd, args[0], completeDefault); len(containers) > 0 {
 		return &define.InspectContainerData{}

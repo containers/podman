@@ -597,8 +597,8 @@ func CommitContainer(w http.ResponseWriter, r *http.Request) {
 	statusWritten := false
 	writeStatusCode := func(code int) {
 		if !statusWritten {
-			w.WriteHeader(code)
 			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(code)
 			flush()
 			statusWritten = true
 		}

@@ -263,7 +263,7 @@ RUN find $LOCAL
 
 		// Prepare images
 		wg.Add(10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			go func(i int) {
 				defer GinkgoRecover()
 				defer wg.Done()
@@ -278,7 +278,7 @@ RUN find $LOCAL
 
 		// A herd of concurrent removals
 		wg.Add(10)
-		for i := 0; i < 10; i++ {
+		for i := range 10 {
 			go func(i int) {
 				defer GinkgoRecover()
 				defer wg.Done()

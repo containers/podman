@@ -406,7 +406,9 @@ var _ = Describe("Podman run", func() {
 				if st.IsDir() {
 					session = podmanTest.Podman([]string{"exec", "maskCtr", "ls", mask})
 					session.WaitWithDefaultTimeout()
-					Expect(session).Should(ExitCleanly())
+					// FIXME: crun 1.24 fails with EACCES https://github.com/containers/crun/issues/1876
+					// Thus ignore the exit status check here, we still check that the dir is empty with the output.
+					// Expect(session).Should(ExitCleanly())
 					Expect(session.OutputToString()).To(BeEmpty())
 				} else {
 					session = podmanTest.Podman([]string{"exec", "maskCtr", "cat", mask})
@@ -761,7 +763,7 @@ USER bin`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
-		for i := 0; i < 2; i++ {
+		for range 2 {
 			session = podmanTest.Podman([]string{"start", "-a", name})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
@@ -1568,7 +1570,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 			Expect(err).ToNot(HaveOccurred())
 
 			confFile := filepath.Join(podmanTest.TempDir, "containers.conf")
-			err = os.WriteFile(confFile, []byte(fmt.Sprintf("[containers]\nbase_hosts_file=\"%s\"\n", configHosts)), 0755)
+			err = os.WriteFile(confFile, fmt.Appendf(nil, "[containers]\nbase_hosts_file=\"%s\"\n", configHosts), 0755)
 			Expect(err).ToNot(HaveOccurred())
 			os.Setenv("CONTAINERS_CONF_OVERRIDE", confFile)
 			if IsRemote() {
@@ -1681,7 +1683,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		found := false
 		testFile := filepath.Join(testDir, "ran")
-		for i := 0; i < 30; i++ {
+		for range 30 {
 			time.Sleep(1 * time.Second)
 			if _, err := os.Stat(testFile); err == nil {
 				found = true
@@ -1699,7 +1701,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		// 10 seconds to restart the container
 		found = false
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			time.Sleep(1 * time.Second)
 			if _, err := os.Stat(testFile); err == nil {
 				found = true
@@ -1887,7 +1889,7 @@ VOLUME %s`, ALPINE, volPath, volPath)
 
 		// Run and replace 5 times in a row the "same" container.
 		ctrName := "testCtr"
-		for i := 0; i < 5; i++ {
+		for range 5 {
 			session := podmanTest.Podman([]string{"run", "--detach", "--replace", "--name", ctrName, ALPINE, "top"})
 			session.WaitWithDefaultTimeout()
 			// FIXME - #20196: Cannot use ExitCleanly()

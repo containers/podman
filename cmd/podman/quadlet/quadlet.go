@@ -11,11 +11,11 @@ import (
 // logrusLogger implements the logiface.Logger interface using logrus
 type logrusLogger struct{}
 
-func (l logrusLogger) Errorf(format string, args ...interface{}) {
+func (l logrusLogger) Errorf(format string, args ...any) {
 	logrus.Errorf(format, args...)
 }
 
-func (l logrusLogger) Debugf(format string, args ...interface{}) {
+func (l logrusLogger) Debugf(format string, args ...any) {
 	logrus.Debugf(format, args...)
 }
 

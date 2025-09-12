@@ -26,9 +26,8 @@ func GetRacct(filter string) (map[string]uint64, error) {
 		return nil, fmt.Errorf("error calling rctl_get_racct with filter %s: %v", filter, errno)
 	}
 	len := bytes.IndexByte(buf[:], byte(0))
-	entries := strings.Split(string(buf[:len]), ",")
 	res := make(map[string]uint64)
-	for _, entry := range entries {
+	for entry := range strings.SplitSeq(string(buf[:len]), ",") {
 		key, valstr, _ := strings.Cut(entry, "=")
 		val, err := strconv.ParseUint(valstr, 10, 0)
 		if err != nil {

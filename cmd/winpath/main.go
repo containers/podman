@@ -96,7 +96,7 @@ func addPathToRegistry(dir string) error {
 	}
 
 	// Is this directory already on the windows path?
-	for _, element := range strings.Split(existing, ";") {
+	for element := range strings.SplitSeq(existing, ";") {
 		if strings.EqualFold(element, dir) {
 			// Path already added
 			return nil
@@ -147,7 +147,7 @@ func removePathFromRegistry(path string) error {
 	// No point preallocating we can't know how big the array needs to be.
 	//nolint:prealloc
 	var elements []string
-	for _, element := range strings.Split(existing, ";") {
+	for element := range strings.SplitSeq(existing, ";") {
 		if strings.EqualFold(element, path) {
 			continue
 		}

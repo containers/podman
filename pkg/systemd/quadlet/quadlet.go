@@ -1428,7 +1428,7 @@ func ConvertBuild(build *parser.UnitFile, unitsInfoMap map[string]*UnitInfo, isU
 	// Context or WorkingDirectory has to be last argument
 	if len(context) > 0 {
 		podman.add(context)
-	} else if !filepath.IsAbs(filePath) && !isURL(filePath) {
+	} else if !startsWithSystemdSpecifier(filePath) && !filepath.IsAbs(filePath) && !isURL(filePath) {
 		// Special handling for relative filePaths
 		if len(workingDirectory) == 0 {
 			return nil, warnings, fmt.Errorf("relative path in File key requires SetWorkingDirectory key to be set")
@@ -1858,6 +1858,9 @@ func handleLogOpt(unitFile *parser.UnitFile, groupName string, podman *PodmanCmd
 }
 
 func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, source string, unitsInfoMap map[string]*UnitInfo, checkImage bool) (string, error) {
+	if source == "" {
+		return "", fmt.Errorf("source cannot be empty")
+	}
 	if source[0] == '.' {
 		var err error
 		source, err = getAbsolutePath(quadletUnitFile, source)

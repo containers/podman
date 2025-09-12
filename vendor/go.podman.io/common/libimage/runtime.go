@@ -75,7 +75,7 @@ type Runtime struct {
 	systemContext types.SystemContext
 }
 
-// Returns a copy of the runtime's system context.
+// SystemContext returns a copy of the runtime's system context.
 func (r *Runtime) SystemContext() *types.SystemContext {
 	return r.systemContextCopy()
 }
@@ -161,7 +161,7 @@ func (r *Runtime) storageToImage(storageImage *storage.Image, ref types.ImageRef
 	}
 }
 
-// getImagesAndLayers obtains consistent slices of Image and storage.Layer
+// getImagesAndLayers obtains consistent slices of Image and storage.Layer.
 func (r *Runtime) getImagesAndLayers() ([]*Image, []storage.Layer, error) {
 	snapshot, err := r.store.MultiList(
 		storage.MultiListOptions{
@@ -225,7 +225,7 @@ type LookupImageOptions struct {
 
 var errNoHexValue = errors.New("invalid format: no 64-byte hexadecimal value")
 
-// Lookup Image looks up `name` in the local container storage.  Returns the
+// LookupImage looks up `name` in the local container storage.  Returns the
 // image and the name it has been found with.  Note that name may also use the
 // `containers-storage:` prefix used to refer to the containers-storage
 // transport.  Returns storage.ErrImageUnknown if the image could not be found.

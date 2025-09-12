@@ -27,7 +27,10 @@ type SigningMechanism interface {
 	// Sign creates a (non-detached) signature of input using keyIdentity.
 	// Fails with a SigningNotSupportedError if the mechanism does not support signing.
 	Sign(input []byte, keyIdentity string) ([]byte, error)
-	// Verify parses unverifiedSignature and returns the content and the signer's identity
+	// Verify parses unverifiedSignature and returns the content and the signer's identity.
+	// For mechanisms created using NewEphemeralGPGSigningMechanism, the returned key identity
+	// is expected to be one of the values returned by NewEphemeralGPGSigningMechanism,
+	// or the mechanism should implement signingMechanismWithVerificationIdentityLookup.
 	Verify(unverifiedSignature []byte) (contents []byte, keyIdentity string, err error)
 	// UntrustedSignatureContents returns UNTRUSTED contents of the signature WITHOUT ANY VERIFICATION,
 	// along with a short identifier of the key used for signing.
@@ -44,6 +47,16 @@ type signingMechanismWithPassphrase interface {
 	// Sign creates a (non-detached) signature of input using keyIdentity and passphrase.
 	// Fails with a SigningNotSupportedError if the mechanism does not support signing.
 	SignWithPassphrase(input []byte, keyIdentity string, passphrase string) ([]byte, error)
+}
+
+// signingMechanismWithVerificationIdentityLookup is an internal extension of SigningMechanism.
+type signingMechanismWithVerificationIdentityLookup interface {
+	SigningMechanism
+	// keyIdentityForVerificationKeyIdentity re-checks the key identity returned by Verify
+	// if it doesn't match an identity returned by NewEphemeralGPGSigningMechanism, trying to match it.
+	// (To be more specific, for mechanisms which return a subkey fingerprint from Verify,
+	// this converts the subkey fingerprint into the corresponding primary key fingerprint.)
+	keyIdentityForVerificationKeyIdentity(keyIdentity string) (string, error)
 }
 
 // SigningNotSupportedError is returned when trying to sign using a mechanism which does not support that.

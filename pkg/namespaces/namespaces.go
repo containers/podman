@@ -71,7 +71,7 @@ func (n UsernsMode) GetKeepIDOptions() (*KeepIDUserNsOptions, error) {
 	if !hasOpts {
 		return &options, nil
 	}
-	for _, o := range strings.Split(nsopts, ",") {
+	for o := range strings.SplitSeq(nsopts, ",") {
 		opt, val, hasVal := strings.Cut(o, "=")
 		if !hasVal {
 			return nil, fmt.Errorf("invalid option specified: %q", o)

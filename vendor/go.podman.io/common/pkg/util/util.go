@@ -12,7 +12,7 @@ import (
 	"go.podman.io/storage/pkg/fileutils"
 )
 
-// StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool
+// StringMatchRegexSlice determines if a given string matches one of the given regexes, returns bool.
 func StringMatchRegexSlice(s string, re []string) bool {
 	for _, r := range re {
 		m, err := regexp.MatchString(r, s)
@@ -23,7 +23,7 @@ func StringMatchRegexSlice(s string, re []string) bool {
 	return false
 }
 
-// WaitForFile waits until a file has been created or the given timeout has occurred
+// WaitForFile waits until a file has been created or the given timeout has occurred.
 func WaitForFile(path string, chWait chan error, timeout time.Duration) (bool, error) {
 	var inotifyEvents chan fsnotify.Event
 	watcher, err := fsnotify.NewWatcher()

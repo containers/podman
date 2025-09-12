@@ -199,7 +199,7 @@ type ObjectMeta struct {
 	// Null for lists.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	CreationTimestamp Time `json:"creationTimestamp,omitempty"`
+	CreationTimestamp Time `json:"creationTimestamp"`
 
 	// DeletionTimestamp is RFC 3339 date and time at which this resource will be deleted. This
 	// field is set by the server when a graceful deletion is requested by the user, and is not
@@ -652,7 +652,7 @@ type Status struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	ListMeta `json:"metadata,omitempty"`
+	ListMeta `json:"metadata"`
 
 	// Status of the operation.
 	// One of: "Success" or "Failure".
@@ -935,10 +935,10 @@ type List struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	ListMeta `json:"metadata,omitempty"`
+	ListMeta `json:"metadata"`
 
 	// List of objects
-	Items []interface{} `json:"items"`
+	Items []any `json:"items"`
 }
 
 // APIVersions lists the versions that are available, to allow clients to
@@ -983,7 +983,7 @@ type APIGroup struct {
 	// preferredVersion is the version preferred by the API server, which
 	// probably is the storage version.
 	// +optional
-	PreferredVersion GroupVersionForDiscovery `json:"preferredVersion,omitempty"`
+	PreferredVersion GroupVersionForDiscovery `json:"preferredVersion"`
 	// a map of client CIDR to server address that is serving this group.
 	// This is to help clients reach servers in the most network-efficient way possible.
 	// Clients can use the appropriate server address as per the CIDR that they match.
@@ -1266,7 +1266,7 @@ type PartialObjectMetadata struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta `json:"metadata"`
 }
 
 // PartialObjectMetadataList contains a list of objects containing only their metadata
@@ -1276,7 +1276,7 @@ type PartialObjectMetadataList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
 	// +optional
-	ListMeta `json:"metadata,omitempty"`
+	ListMeta `json:"metadata"`
 
 	// items contains each of the included items.
 	Items []PartialObjectMetadata `json:"items"`

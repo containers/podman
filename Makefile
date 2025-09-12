@@ -131,7 +131,7 @@ LDFLAGS_PODMAN ?= \
 	-X $(LIBPOD)/config._installPrefix=$(PREFIX) \
 	-X $(LIBPOD)/config._etcDir=$(ETCDIR) \
 	-X $(PROJECT)/v5/pkg/systemd/quadlet._binDir=$(BINDIR) \
-	-X github.com/containers/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
+	-X go.podman.io/common/pkg/config.additionalHelperBinariesDir=$(HELPER_BINARIES_DIR)\
 	$(EXTRA_LDFLAGS)
 LDFLAGS_PODMAN_STATIC ?= \
 	$(LDFLAGS_PODMAN) \
@@ -480,6 +480,20 @@ podman-testing: bin/podman-testing
 .PHONY: generate-bindings
 generate-bindings: .install.golangci-lint
 	$(GOCMD) generate ./pkg/bindings/... ;
+
+# Do the cross build with the OS/ARCH extrcted from the target name, i.e.
+# pass a path like "podman.cross.linux.amd64". This target is used by
+# local-cross to build all CROSS_BUILD_TARGETS.
+bin/podman.cross.%: $(SOURCES)
+	TARGET="$*"; \
+	GOOS="$${TARGET%%.*}"; \
+	GOARCH="$${TARGET##*.}"; \
+	CGO_ENABLED=0 \
+		$(GO) build \
+		$(BUILDFLAGS) \
+		$(GO_LDFLAGS) '$(LDFLAGS_PODMAN)' \
+		-tags '$(BUILDTAGS_CROSS)' \
+		-o "$@" ./cmd/podman
 
 .PHONY: local-cross
 local-cross: $(CROSS_BUILD_TARGETS) ## Cross compile podman binary for multiple architectures

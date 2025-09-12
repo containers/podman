@@ -133,7 +133,7 @@ func isCpusetListAvailable(provided, available string) (bool, error) {
 	return true, nil
 }
 
-// GetDefaultPidsLimit returns the default pids limit to run containers with
+// GetDefaultPidsLimit returns the default pids limit to run containers with.
 func GetDefaultPidsLimit() int64 {
 	sysInfo := New(true)
 	if !sysInfo.PidsLimit {

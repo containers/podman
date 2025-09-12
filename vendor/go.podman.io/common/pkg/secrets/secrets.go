@@ -18,40 +18,40 @@ import (
 	"go.podman.io/storage/pkg/stringid"
 )
 
-// maxSecretSize is the max size for secret data - 512kB
+// maxSecretSize is the max size for secret data - 512kB.
 const maxSecretSize = 512000
 
-// secretIDLength is the character length of a secret ID - 25
+// secretIDLength is the character length of a secret ID - 25.
 const secretIDLength = 25
 
-// errInvalidPath indicates that the secrets path is invalid
+// errInvalidPath indicates that the secrets path is invalid.
 var errInvalidPath = errors.New("invalid secrets path")
 
-// ErrNoSuchSecret indicates that the secret does not exist
+// ErrNoSuchSecret indicates that the secret does not exist.
 var ErrNoSuchSecret = define.ErrNoSuchSecret
 
-// errSecretNameInUse indicates that the secret name is already in use
+// errSecretNameInUse indicates that the secret name is already in use.
 var errSecretNameInUse = errors.New("secret name in use")
 
-// errInvalidSecretName indicates that the secret name is invalid
+// errInvalidSecretName indicates that the secret name is invalid.
 var errInvalidSecretName = errors.New("invalid secret name")
 
-// errInvalidDriver indicates that the driver type is invalid
+// errInvalidDriver indicates that the driver type is invalid.
 var errInvalidDriver = errors.New("invalid driver")
 
-// errInvalidDriverOpt indicates that a driver option is invalid
+// errInvalidDriverOpt indicates that a driver option is invalid.
 var errInvalidDriverOpt = errors.New("invalid driver option")
 
-// errAmbiguous indicates that a secret is ambiguous
+// errAmbiguous indicates that a secret is ambiguous.
 var errAmbiguous = errors.New("secret is ambiguous")
 
-// errDataSize indicates that the secret data is too large or too small
+// errDataSize indicates that the secret data is too large or too small.
 var errDataSize = errors.New("secret data must be larger than 0 and less than 512000 bytes")
 
 // errIgnoreIfExistsAndReplace indicates that ignoreIfExists and replace cannot be used together.
 var errIgnoreIfExistsAndReplace = errors.New("ignoreIfExists and replace cannot be used together")
 
-// secretsFile is the name of the file that the secrets database will be stored in
+// secretsFile is the name of the file that the secrets database will be stored in.
 var secretsFile = "secrets.json"
 
 // SecretsManager holds information on handling secrets
@@ -68,7 +68,7 @@ type SecretsManager struct {
 	db *db
 }
 
-// Secret defines a secret
+// Secret defines a secret.
 type Secret struct {
 	// Name is the name of the secret
 	Name string `json:"name"`
@@ -107,7 +107,7 @@ type SecretsDriver interface {
 	Delete(id string) error
 }
 
-// StoreOptions are optional metadata fields that can be set when storing a new secret
+// StoreOptions are optional metadata fields that can be set when storing a new secret.
 type StoreOptions struct {
 	// DriverOptions are extra options used to run this driver
 	DriverOpts map[string]string
@@ -122,7 +122,7 @@ type StoreOptions struct {
 }
 
 // NewManager creates a new secrets manager
-// rootPath is the directory where the secrets data file resides
+// rootPath is the directory where the secrets data file resides.
 func NewManager(rootPath string) (*SecretsManager, error) {
 	manager := new(SecretsManager)
 

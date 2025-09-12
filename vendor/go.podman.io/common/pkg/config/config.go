@@ -23,13 +23,13 @@ import (
 const (
 	// userOverrideContainersConfig holds the containers config path overridden by the rootless user.
 	userOverrideContainersConfig = ".config/" + _configPath
-	// Token prefix for looking for helper binary under $BINDIR
+	// Token prefix for looking for helper binary under $BINDIR.
 	bindirPrefix = "$BINDIR"
 )
 
 var validImageVolumeModes = []string{"anonymous", "tmpfs", "ignore"}
 
-// ProxyEnv is a list of Proxy Environment variables
+// ProxyEnv is a list of Proxy Environment variables.
 var ProxyEnv = []string{
 	"http_proxy",
 	"https_proxy",
@@ -41,7 +41,7 @@ var ProxyEnv = []string{
 	"NO_PROXY",
 }
 
-// Config contains configuration options for container tools
+// Config contains configuration options for container tools.
 type Config struct {
 	// Containers specify settings that configure how containers will run ont the system
 	Containers ContainersConfig `toml:"containers"`
@@ -64,7 +64,7 @@ type Config struct {
 }
 
 // ContainersConfig represents the "containers" TOML config table
-// containers global options for containers tools
+// containers global options for containers tools.
 type ContainersConfig struct {
 	// Devices to add to all containers
 	Devices attributedstring.Slice `toml:"devices,omitempty"`
@@ -252,7 +252,7 @@ type ContainersConfig struct {
 	UserNSSize int `toml:"userns_size,omitempty,omitzero"`
 }
 
-// EngineConfig contains configuration options used to set up a engine runtime
+// EngineConfig contains configuration options used to set up a engine runtime.
 type EngineConfig struct {
 	// CgroupCheck indicates the configuration has been rewritten after an
 	// upgrade to Fedora 31 to change the default OCI runtime for cgroupv2v2.
@@ -423,6 +423,9 @@ type EngineConfig struct {
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
 
+	// OCIRuntimesFlags are the set of configured OCI runtimes' flags
+	OCIRuntimesFlags map[string][]string `toml:"runtimes_flags,omitempty"`
+
 	// PlatformToOCIRuntime requests specific OCI runtime for a specified platform of image.
 	PlatformToOCIRuntime map[string]string `toml:"platform_to_oci_runtime,omitempty"`
 
@@ -584,7 +587,7 @@ type SetOptions struct {
 	StorageConfigGraphDriverNameSet bool `toml:"-"`
 }
 
-// NetworkConfig represents the "network" TOML config table
+// NetworkConfig represents the "network" TOML config table.
 type NetworkConfig struct {
 	// NetworkBackend determines what backend should be used for Podman's
 	// networking.
@@ -642,7 +645,7 @@ type SubnetPool struct {
 	Size int `toml:"size,omitempty"`
 }
 
-// SecretConfig represents the "secret" TOML config table
+// SecretConfig represents the "secret" TOML config table.
 type SecretConfig struct {
 	// Driver specifies the secret driver to use.
 	// Current valid value:
@@ -668,7 +671,7 @@ type ConfigMapConfig struct {
 	Opts map[string]string `toml:"opts,omitempty"`
 }
 
-// MachineConfig represents the "machine" TOML config table
+// MachineConfig represents the "machine" TOML config table.
 type MachineConfig struct {
 	// Number of CPU's a machine is created with.
 	CPUs uint64 `toml:"cpus,omitempty,omitzero"`
@@ -688,7 +691,7 @@ type MachineConfig struct {
 	Rosetta bool `toml:"rosetta,omitempty"`
 }
 
-// FarmConfig represents the "farm" TOML config tables
+// FarmConfig represents the "farm" TOML config tables.
 type FarmConfig struct {
 	// Default is the default farm to be used when farming out builds
 	Default string `json:",omitempty" toml:"default,omitempty"`
@@ -696,7 +699,7 @@ type FarmConfig struct {
 	List map[string][]string `json:",omitempty" toml:"list,omitempty"`
 }
 
-// Destination represents destination for remote service
+// Destination represents destination for remote service.
 type Destination struct {
 	// URI, required. Example: ssh://root@example.com:22/run/podman/podman.sock
 	URI string `toml:"uri"`
@@ -708,7 +711,7 @@ type Destination struct {
 	IsMachine bool `json:",omitempty" toml:"is_machine,omitempty"`
 }
 
-// PodmanshConfig represents configuration for the podman shell
+// PodmanshConfig represents configuration for the podman shell.
 type PodmanshConfig struct {
 	// Shell to start in container, default: "/bin/sh"
 	Shell string `toml:"shell,omitempty"`
@@ -721,8 +724,8 @@ type PodmanshConfig struct {
 	Timeout uint `toml:"timeout,omitempty,omitzero"`
 }
 
-// Consumes container image's os and arch and returns if any dedicated runtime was
-// configured otherwise returns default runtime.
+// ImagePlatformToRuntime consumes the container image's os and arch and returns if
+// any dedicated runtime was configured otherwise returns default runtime.
 func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
 	platformString := os + "/" + arch
 	if val, ok := c.PlatformToOCIRuntime[platformString]; ok {
@@ -809,7 +812,7 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// URI returns the URI Path to the machine image
+// URI returns the URI Path to the machine image.
 func (m *MachineConfig) URI() string {
 	uri := m.Image
 	for _, val := range []string{"$ARCH", "$arch"} {
@@ -855,6 +858,11 @@ func (c *EngineConfig) Validate() error {
 	}
 
 	if _, err := ParseDBBackend(c.DBBackend); err != nil {
+		return err
+	}
+
+	// Check if runtimes specified under [engine.runtimes_flags] can be found under [engine.runtimes]
+	if err := c.validateRuntimeNames(); err != nil {
 		return err
 	}
 
@@ -910,7 +918,7 @@ func (c *NetworkConfig) Validate() error {
 			if pool.Base.IP.To4() == nil {
 				return fmt.Errorf("invalid subnet pool ip %q", pool.Base.IP)
 			}
-			ones, _ := pool.Base.IPNet.Mask.Size()
+			ones, _ := pool.Base.Mask.Size()
 			if ones > pool.Size {
 				return fmt.Errorf("invalid subnet pool, size is bigger than subnet %q", &pool.Base.IPNet)
 			}
@@ -1128,7 +1136,7 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 	return "", fmt.Errorf("could not find %q in one of %v.  %s", name, dirList, configHint)
 }
 
-// ImageCopyTmpDir default directory to store temporary image files during copy
+// ImageCopyTmpDir default directory to store temporary image files during copy.
 func (c *Config) ImageCopyTmpDir() (string, error) {
 	if path, found := os.LookupEnv("TMPDIR"); found {
 		return path, nil
@@ -1147,7 +1155,7 @@ func (c *Config) ImageCopyTmpDir() (string, error) {
 	return "", fmt.Errorf("invalid image_copy_tmp_dir value %q (relative paths are not accepted)", c.Engine.ImageCopyTmpDir)
 }
 
-// setupEnv sets the environment variables for the engine
+// setupEnv sets the environment variables for the engine.
 func (c *Config) setupEnv() error {
 	for _, env := range c.Engine.Env.Get() {
 		splitEnv := strings.SplitN(env, "=", 2)
@@ -1167,7 +1175,7 @@ func (c *Config) setupEnv() error {
 	return nil
 }
 
-// eventsLogMaxSize is the type used by EventsLogFileMaxSize
+// eventsLogMaxSize is the type used by EventsLogFileMaxSize.
 type eventsLogMaxSize uint64
 
 // UnmarshalText parses the JSON encoding of eventsLogMaxSize and
@@ -1208,7 +1216,7 @@ func ValidateImageVolumeMode(mode string) error {
 	return fmt.Errorf("invalid image volume mode %q required value: %s", mode, strings.Join(validImageVolumeModes, ", "))
 }
 
-// FindInitBinary will return the path to the init binary (catatonit)
+// FindInitBinary will return the path to the init binary (catatonit).
 func (c *Config) FindInitBinary() (string, error) {
 	// Sigh, for some reason we ended up with two InitPath field in containers.conf and
 	// both are used in podman so we have to keep supporting both to prevent regressions.

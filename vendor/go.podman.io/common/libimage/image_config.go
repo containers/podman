@@ -33,7 +33,7 @@ type ImageConfig struct {
 // * WORKDIR
 // * LABEL
 // * STOPSIGNAL
-// * ONBUILD
+// * ONBUILD.
 func ImageConfigFromChanges(changes []string) (*ImageConfig, error) { // nolint:gocyclo
 	config := &ImageConfig{}
 

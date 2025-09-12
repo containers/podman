@@ -20,7 +20,7 @@ var (
 	runsOnSystemd     bool
 )
 
-// RunsOnSystemd returns whether the system is using systemd
+// RunsOnSystemd returns whether the system is using systemd.
 func RunsOnSystemd() bool {
 	runsOnSystemdOnce.Do(func() {
 		// per sd_booted(3), check for this dir
@@ -100,7 +100,7 @@ func MovePauseProcessToScope(pausePidPath string) {
 	}
 }
 
-// RunUnderSystemdScope adds the specified pid to a systemd scope
+// RunUnderSystemdScope adds the specified pid to a systemd scope.
 func RunUnderSystemdScope(pid int, slice string, unitName string) error {
 	var properties []systemdDbus.Property
 	var conn *systemdDbus.Conn

@@ -12,7 +12,7 @@ var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // DeepCopy does a deep copy of a structure
 // Error checking of parameters delegated to json engine
-var DeepCopy = func(dst interface{}, src interface{}) error {
+var DeepCopy = func(dst any, src any) error {
 	payload, err := json.Marshal(src)
 	if err != nil {
 		return err

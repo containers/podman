@@ -8,7 +8,7 @@ import (
 	"go.podman.io/storage/pkg/homedir"
 )
 
-// DangerousHostPath validates if a host path is dangerous and should not be modified
+// DangerousHostPath validates if a host path is dangerous and should not be modified.
 func DangerousHostPath(path string) (bool, error) {
 	excludePaths := map[string]bool{
 		"/":           true,

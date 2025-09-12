@@ -18,7 +18,7 @@ func getMemoryHandler() *linuxMemHandler {
 	return &linuxMemHandler{}
 }
 
-// Apply set the specified constraints
+// Apply set the specified constraints.
 func (c *linuxMemHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
 	if ctr.cgroup2 {
 		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
@@ -31,7 +31,7 @@ func (c *linuxMemHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) erro
 	return c.Mem.Set(path, res)
 }
 
-// Create the cgroup
+// Create the cgroup.
 func (c *linuxMemHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
 		return false, nil
@@ -39,12 +39,12 @@ func (c *linuxMemHandler) Create(ctr *CgroupControl) (bool, error) {
 	return ctr.createCgroupDirectory(Memory)
 }
 
-// Destroy the cgroup
+// Destroy the cgroup.
 func (c *linuxMemHandler) Destroy(ctr *CgroupControl) error {
 	return rmDirRecursively(ctr.getCgroupv1Path(Memory))
 }
 
-// Stat fills a metrics structure with usage stats for the controller
+// Stat fills a metrics structure with usage stats for the controller.
 func (c *linuxMemHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 	var err error
 	memUsage := cgroups.MemoryStats{}

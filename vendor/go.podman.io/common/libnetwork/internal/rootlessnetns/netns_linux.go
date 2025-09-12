@@ -30,18 +30,18 @@ import (
 )
 
 const (
-	// rootlessNetnsDir is the directory name
+	// rootlessNetnsDir is the directory name.
 	rootlessNetnsDir = "rootless-netns"
-	// refCountFile file name for the ref count file
+	// refCountFile file name for the ref count file.
 	refCountFile = "ref-count"
 
-	// infoCacheFile file name for the cache file used to store the rootless netns info
+	// infoCacheFile file name for the cache file used to store the rootless netns info.
 	infoCacheFile = "info.json"
 
-	// rootlessNetNsConnPidFile is the name of the rootless netns slirp4netns/pasta pid file
+	// rootlessNetNsConnPidFile is the name of the rootless netns slirp4netns/pasta pid file.
 	rootlessNetNsConnPidFile = "rootless-netns-conn.pid"
 
-	// persistentCNIDir is the directory where the CNI files are stored
+	// persistentCNIDir is the directory where the CNI files are stored.
 	persistentCNIDir = "/var/lib/cni"
 
 	tmpfs          = "tmpfs"
@@ -100,7 +100,7 @@ func New(dir string, backend NetworkBackend, conf *config.Config) (*Netns, error
 	}, nil
 }
 
-// getPath is a small wrapper around filepath.Join() to have a bit less code
+// getPath is a small wrapper around filepath.Join() to have a bit less code.
 func (n *Netns) getPath(path string) string {
 	return filepath.Join(n.dir, path)
 }
@@ -333,7 +333,7 @@ func (n *Netns) cleanupRootlessNetns() error {
 	return err
 }
 
-// mountAndMkdirDest convenience wrapper for mount and mkdir
+// mountAndMkdirDest convenience wrapper for mount and mkdir.
 func mountAndMkdirDest(source string, target string, fstype string, flags uintptr) error {
 	if err := os.MkdirAll(target, 0o700); err != nil {
 		return wrapError("create mount point", err)
@@ -656,8 +656,9 @@ func (n *Netns) Run(lock *lockfile.LockFile, toRun func() error) error {
 	return inErr
 }
 
-// IPAddresses returns the currently used ip addresses in the netns
-// These should then not be assigned for the host.containers.internal entry.
+// Info returns the currently used ip addresses for the rootless-netns.
+// These should be used to configure the containers resolv.conf and
+// host.containers.internal entries.
 func (n *Netns) Info() *types.RootlessNetnsInfo {
 	return n.info
 }

@@ -19,13 +19,13 @@ import (
 	"net"
 )
 
-// NextIP returns IP incremented by 1
+// NextIP returns IP incremented by 1.
 func NextIP(ip net.IP) net.IP {
 	i := ipToInt(ip)
 	return intToIP(i.Add(i, big.NewInt(1)))
 }
 
-// PrevIP returns IP decremented by 1
+// PrevIP returns IP decremented by 1.
 func PrevIP(ip net.IP) net.IP {
 	i := ipToInt(ip)
 	return intToIP(i.Sub(i, big.NewInt(1)))
@@ -34,7 +34,7 @@ func PrevIP(ip net.IP) net.IP {
 // Cmp compares two IPs, returning the usual ordering:
 // a < b : -1
 // a == b : 0
-// a > b : 1
+// a > b : 1.
 func Cmp(a, b net.IP) int {
 	aa := ipToInt(a)
 	bb := ipToInt(b)

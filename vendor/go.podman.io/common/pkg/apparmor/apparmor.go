@@ -10,7 +10,7 @@ const (
 	// ProfilePrefix is used for version-independent presence checks.
 	ProfilePrefix = "containers-default-"
 
-	// Profile default name
+	// Profile default name.
 	Profile = ProfilePrefix + version.Version
 )
 

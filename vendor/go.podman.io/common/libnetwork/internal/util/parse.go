@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-// ParseMTU parses the mtu option
+// ParseMTU parses the mtu option.
 func ParseMTU(mtu string) (int, error) {
 	if mtu == "" {
 		return 0, nil // default
@@ -20,7 +20,7 @@ func ParseMTU(mtu string) (int, error) {
 	return m, nil
 }
 
-// ParseVlan parses the vlan option
+// ParseVlan parses the vlan option.
 func ParseVlan(vlan string) (int, error) {
 	if vlan == "" {
 		return 0, nil // default
@@ -35,7 +35,7 @@ func ParseVlan(vlan string) (int, error) {
 	return v, nil
 }
 
-// ParseIsolate parses the isolate option
+// ParseIsolate parses the isolate option.
 func ParseIsolate(isolate string) (string, error) {
 	switch isolate {
 	case "":

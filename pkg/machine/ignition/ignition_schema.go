@@ -18,9 +18,9 @@ type Clevis struct {
 
 type Config struct {
 	Ignition Ignition `json:"ignition"`
-	Passwd   Passwd   `json:"passwd,omitempty"`
-	Storage  Storage  `json:"storage,omitempty"`
-	Systemd  Systemd  `json:"systemd,omitempty"`
+	Passwd   Passwd   `json:"passwd"`
+	Storage  Storage  `json:"storage"`
+	Systemd  Systemd  `json:"systemd"`
 }
 
 type Custom struct {
@@ -58,7 +58,7 @@ type File struct {
 
 type FileEmbedded1 struct {
 	Append   []Resource `json:"append,omitempty"`
-	Contents Resource   `json:"contents,omitempty"`
+	Contents Resource   `json:"contents"`
 	Mode     *int       `json:"mode,omitempty"`
 }
 
@@ -85,16 +85,16 @@ type HTTPHeader struct {
 type HTTPHeaders []HTTPHeader
 
 type Ignition struct {
-	Config   IgnitionConfig `json:"config,omitempty"`
-	Proxy    Proxy          `json:"proxy,omitempty"`
-	Security Security       `json:"security,omitempty"`
-	Timeouts Timeouts       `json:"timeouts,omitempty"`
+	Config   IgnitionConfig `json:"config"`
+	Proxy    Proxy          `json:"proxy"`
+	Security Security       `json:"security"`
+	Timeouts Timeouts       `json:"timeouts"`
 	Version  string         `json:"version,omitempty"`
 }
 
 type IgnitionConfig struct {
 	Merge   []Resource `json:"merge,omitempty"`
-	Replace Resource   `json:"replace,omitempty"`
+	Replace Resource   `json:"replace"`
 }
 
 type Link struct {
@@ -110,7 +110,7 @@ type LinkEmbedded1 struct {
 type Luks struct {
 	Clevis     *Clevis      `json:"clevis,omitempty"`
 	Device     *string      `json:"device,omitempty"`
-	KeyFile    Resource     `json:"keyFile,omitempty"`
+	KeyFile    Resource     `json:"keyFile"`
 	Label      *string      `json:"label,omitempty"`
 	Name       string       `json:"name"`
 	Options    []LuksOption `json:"options,omitempty"`
@@ -125,10 +125,10 @@ type MountOption string
 type NoProxyItem string
 
 type Node struct {
-	Group     NodeGroup `json:"group,omitempty"`
+	Group     NodeGroup `json:"group"`
 	Overwrite *bool     `json:"overwrite,omitempty"`
 	Path      string    `json:"path"`
-	User      NodeUser  `json:"user,omitempty"`
+	User      NodeUser  `json:"user"`
 }
 
 type NodeGroup struct {
@@ -203,13 +203,13 @@ type Resource struct {
 	Compression  *string      `json:"compression,omitempty"`
 	HTTPHeaders  HTTPHeaders  `json:"httpHeaders,omitempty"`
 	Source       *string      `json:"source,omitempty"`
-	Verification Verification `json:"verification,omitempty"`
+	Verification Verification `json:"verification"`
 }
 
 type SSHAuthorizedKey string
 
 type Security struct {
-	TLS TLS `json:"tls,omitempty"`
+	TLS TLS `json:"tls"`
 }
 
 type Storage struct {

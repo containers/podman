@@ -127,7 +127,7 @@ func ValidateCapabilities(caps []string) error {
 //
 // Note that:
 // "ALL" in capAdd adds returns known capabilities
-// "All" in capDrop returns only the capabilities specified in capAdd
+// "All" in capDrop returns only the capabilities specified in capAdd.
 func MergeCapabilities(base, adds, drops []string) ([]string, error) {
 	// Normalize the base capabilities
 	base, err := NormalizeCapabilities(base)

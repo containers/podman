@@ -6,7 +6,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// Error table
+// Error table.
 var errnoArch = map[string]uint{
 	"EPERM":           uint(unix.EPERM),
 	"ENOENT":          uint(unix.ENOENT),

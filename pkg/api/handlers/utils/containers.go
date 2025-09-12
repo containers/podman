@@ -285,7 +285,7 @@ func containerExists(ctx context.Context, name string) (bool, error) {
 func PSTitles(output string) []string {
 	var titles []string
 
-	for _, title := range strings.Fields(output) {
+	for title := range strings.FieldsSeq(output) {
 		switch title {
 		case "AMBIENT", "INHERITED", "PERMITTED", "EFFECTIVE", "BOUNDING":
 			{

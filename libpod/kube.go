@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math/rand"
 	"os"
 	"reflect"
@@ -620,9 +621,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = v
 			}
 			// Convert auto-update labels into kube annotations
-			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-				podAnnotations[k] = v
-			}
+			maps.Copy(podAnnotations, getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()))
 			isInit := ctr.IsInitCtr()
 			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
 			if hostname == "" {
@@ -769,9 +768,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		}
 
 		// Convert auto-update labels into kube annotations
-		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-			kubeAnnotations[k] = v
-		}
+		maps.Copy(kubeAnnotations, getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()))
 
 		isInit := ctr.IsInitCtr()
 		// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
@@ -1084,8 +1081,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 func portMappingToContainerPort(portMappings []types.PortMapping, getService bool) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
-		protocols := strings.Split(p.Protocol, ",")
-		for _, proto := range protocols {
+		for proto := range strings.SplitSeq(p.Protocol, ",") {
 			var protocol v1.Protocol
 			switch strings.ToUpper(proto) {
 			case "TCP":
@@ -1360,7 +1356,7 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 	}
 	var selinuxOpts v1.SELinuxOptions
 	selinuxHasData := false
-	for _, label := range strings.Split(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
+	for label := range strings.SplitSeq(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
 		opt, val, hasVal := strings.Cut(label, ":")
 		if hasVal {
 			switch opt {

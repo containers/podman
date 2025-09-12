@@ -27,7 +27,10 @@ func registeredBinfmtMisc() ([]string, error) {
 		if filepath.Base(path) == "register" { // skip this one
 			return nil
 		}
-		if err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return nil
+			}
 			return err
 		}
 		info, err := d.Info()

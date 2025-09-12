@@ -21,7 +21,7 @@ func getCPUHandler() *linuxCPUHandler {
 	return &linuxCPUHandler{}
 }
 
-// Apply set the specified constraints
+// Apply set the specified constraints.
 func (c *linuxCPUHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) error {
 	if ctr.cgroup2 {
 		man, err := fs2.NewManager(ctr.config, filepath.Join(cgroupRoot, ctr.config.Path))
@@ -34,7 +34,7 @@ func (c *linuxCPUHandler) Apply(ctr *CgroupControl, res *cgroups.Resources) erro
 	return c.CPU.Set(path, res)
 }
 
-// Create the cgroup
+// Create the cgroup.
 func (c *linuxCPUHandler) Create(ctr *CgroupControl) (bool, error) {
 	if ctr.cgroup2 {
 		return false, nil
@@ -42,12 +42,12 @@ func (c *linuxCPUHandler) Create(ctr *CgroupControl) (bool, error) {
 	return ctr.createCgroupDirectory(CPU)
 }
 
-// Destroy the cgroup
+// Destroy the cgroup.
 func (c *linuxCPUHandler) Destroy(ctr *CgroupControl) error {
 	return rmDirRecursively(ctr.getCgroupv1Path(CPU))
 }
 
-// Stat fills a metrics structure with usage stats for the controller
+// Stat fills a metrics structure with usage stats for the controller.
 func (c *linuxCPUHandler) Stat(ctr *CgroupControl, m *cgroups.Stats) error {
 	var err error
 	cpu := cgroups.CpuStats{}

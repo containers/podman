@@ -75,7 +75,7 @@ func loadQuadletTestcaseWithServiceName(path, serviceName string) *quadletTestca
 
 	checks := make([][]string, 0)
 
-	for _, line := range strings.Split(string(data), "\n") {
+	for line := range strings.SplitSeq(string(data), "\n") {
 		if strings.HasPrefix(line, "##") {
 			words, err := shellwords.Parse(line[2:])
 			Expect(err).ToNot(HaveOccurred())
@@ -1074,6 +1074,7 @@ BOGUS=foo
 		Entry("Build - Variant Key", "variant.build"),
 		Entry("Build - No Default Dependencies", "no_deps.build"),
 		Entry("Build - Retry", "retry.build"),
+		Entry("Build - No WorkingDirectory with systemd specifier", "no-workingdirectory-systemd-specifier.build"),
 
 		Entry("Pod - Basic", "basic.pod"),
 		Entry("Pod - DNS", "dns.pod"),
@@ -1142,6 +1143,8 @@ BOGUS=foo
 		Entry("Build - Neither WorkingDirectory nor File Key", "neither-workingdirectory-nor-file.build", "converting \"neither-workingdirectory-nor-file.build\": neither SetWorkingDirectory, nor File key specified"),
 		Entry("Build - No ImageTag Key", "no-imagetag.build", "converting \"no-imagetag.build\": no ImageTag key specified"),
 		Entry("emptyline.container", "emptyline.container", "converting \"emptyline.container\": no Image or Rootfs key specified"),
+
+		Entry("Mount - Missing source=...", "mount-source-missing.container", "converting \"mount-source-missing.container\": source cannot be empty"),
 	)
 
 	DescribeTable("Running success quadlet with ServiceName test case",

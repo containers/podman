@@ -99,7 +99,7 @@ func addPortToUsedPorts(ports *[]types.PortMapping, allHostPorts, allContainerPo
 // the caller has to supply an array with the already used ports
 func getRandomHostPort(hostPorts *[65536]bool, port types.PortMapping) (types.PortMapping, error) {
 outer:
-	for i := 0; i < 15; i++ {
+	for range 15 {
 		ranPort, err := utils.GetRandomPort()
 		if err != nil {
 			return port, err
@@ -378,9 +378,8 @@ func createPortMappings(s *specgen.SpecGenerator, imageData *libimage.ImageData)
 // Check a string to ensure it is a comma-separated set of valid protocols
 func checkProtocol(protocol string) ([]string, error) {
 	protocols := make(map[string]struct{})
-	splitProto := strings.Split(protocol, ",")
 	// Don't error on duplicates - just deduplicate
-	for _, p := range splitProto {
+	for p := range strings.SplitSeq(protocol, ",") {
 		p = strings.ToLower(p)
 		switch p {
 		case protoTCP, "":

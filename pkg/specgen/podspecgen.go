@@ -55,7 +55,7 @@ type PodBasicConfig struct {
 	InfraName string `json:"infra_name,omitempty"`
 	// Ipc sets the IPC namespace of the pod, set to private by default.
 	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
-	Ipc Namespace `json:"ipcns,omitempty"`
+	Ipc Namespace `json:"ipcns"`
 	// SharedNamespaces instructs the pod to share a set of namespaces.
 	// Shared namespaces will be joined (by default) by every container
 	// which joins the pod.
@@ -86,13 +86,13 @@ type PodBasicConfig struct {
 	// Pid sets the process id namespace of the pod
 	// Optional (defaults to private if unset). This sets the PID namespace of the infra container
 	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
-	Pid Namespace `json:"pidns,omitempty"`
+	Pid Namespace `json:"pidns"`
 	// Userns is used to indicate which kind of Usernamespace to enter.
 	// Any containers created within the pod will inherit the pod's userns settings.
 	// Optional
-	Userns Namespace `json:"userns,omitempty"`
+	Userns Namespace `json:"userns"`
 	// UtsNs is used to indicate the UTS mode the pod is in
-	UtsNs Namespace `json:"utsns,omitempty"`
+	UtsNs Namespace `json:"utsns"`
 	// Devices contains user specified Devices to be added to the Pod
 	Devices []string `json:"pod_devices,omitempty"`
 	// Sysctl sets kernel parameters for the pod
@@ -108,7 +108,7 @@ type PodNetworkConfig struct {
 	// Setting this to anything except default conflicts with NoInfra=true.
 	// Defaults to Bridge as root and Slirp as rootless.
 	// Mandatory.
-	NetNS Namespace `json:"netns,omitempty"`
+	NetNS Namespace `json:"netns"`
 	// PortMappings is a set of ports to map into the infra container.
 	// As, by default, containers share their network with the infra
 	// container, this will forward the ports to the entire pod.

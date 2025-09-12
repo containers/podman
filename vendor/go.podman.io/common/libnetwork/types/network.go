@@ -87,7 +87,7 @@ type Network struct {
 	IPAMOptions map[string]string `json:"ipam_options,omitempty"`
 }
 
-// NetworkOptions for a given container.
+// NetworkUpdateOptions for a given container.
 type NetworkUpdateOptions struct {
 	// List of custom DNS server for podman's DNS resolver.
 	// Priority order will be kept as defined by user in the configuration.
@@ -104,7 +104,7 @@ type NetworkInfo struct {
 	DNS     DNSNetworkInfo `json:"dns,omitempty"`
 }
 
-// NetworkInfo contains the DNS information.
+// DNSNetworkInfo contains the DNS information.
 type DNSNetworkInfo struct {
 	Version string `json:"version,omitempty"`
 	Package string `json:"package,omitempty"`
@@ -116,7 +116,7 @@ type IPNet struct {
 	net.IPNet
 }
 
-// ParseCIDR parse a string to IPNet
+// ParseCIDR parse a string to IPNet.
 func ParseCIDR(cidr string) (IPNet, error) {
 	ip, subnet, err := net.ParseCIDR(cidr)
 	if err != nil {
@@ -347,6 +347,7 @@ type RootlessNetnsInfo struct {
 	// IPAddresses used in the netns, must not be used for host.containers.internal
 	IPAddresses []net.IP
 	// DnsForwardIps ips used in resolv.conf
+	//nolint:staticcheck //It wants this to be named DNSForwardIps but this would be a breaking change and thus is not worth it.
 	DnsForwardIps []string
 	// MapGuestIps should be used for the host.containers.internal entry when set
 	MapGuestIps []string

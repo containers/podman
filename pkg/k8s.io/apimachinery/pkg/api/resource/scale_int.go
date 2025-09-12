@@ -29,7 +29,7 @@ var (
 )
 
 func init() {
-	intPool.New = func() interface{} {
+	intPool.New = func() any {
 		return &big.Int{}
 	}
 }

@@ -28,7 +28,7 @@ func (i *Image) toOCI(ctx context.Context) (*ociv1.Image, error) {
 }
 
 // historiesMatch returns the number of entries in the histories which have the
-// same contents
+// same contents.
 func historiesMatch(a, b []ociv1.History) int {
 	i := 0
 	for i < len(a) && i < len(b) {
@@ -61,7 +61,7 @@ func historiesMatch(a, b []ociv1.History) int {
 }
 
 // areParentAndChild checks diff ID and history in the two images and return
-// true if the second should be considered to be directly based on the first
+// true if the second should be considered to be directly based on the first.
 func areParentAndChild(parent, child *ociv1.Image) bool {
 	// the child and candidate parent should share all of the
 	// candidate parent's diff IDs, which together would have

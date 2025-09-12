@@ -67,9 +67,11 @@ func queryPackageVersion(cmdArg ...string) string {
 	return strings.Trim(output, "\n")
 }
 
-// Note: This function is copied from containers/podman libpod/util.go
-// Please see https://github.com/containers/common/pull/1460
-func Package(program string) string { // program is full path
+// Package tries to query the package information of the given program path.
+// Note it must be an absolute path.
+func Package(program string) string {
+	// Note: This function is copied from containers/podman libpod/util.go
+	// Please see https://github.com/containers/common/pull/1460
 	err := fileutils.Exists(program)
 	if err != nil {
 		return UnknownPackage
@@ -108,9 +110,10 @@ func Package(program string) string { // program is full path
 	return UnknownPackage
 }
 
-// Note: This function is copied from containers/podman libpod/util.go
-// Please see https://github.com/containers/common/pull/1460
+// Program returns the --version output as string of the given command.
 func Program(name string) (string, error) {
+	// Note: This function is copied from containers/podman libpod/util.go
+	// Please see https://github.com/containers/common/pull/1460
 	return program(name, false)
 }
 

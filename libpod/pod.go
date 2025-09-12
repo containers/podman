@@ -5,6 +5,7 @@ package libpod
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strings"
 	"time"
@@ -286,9 +287,7 @@ func (p *Pod) VolumesFrom() []string {
 // Labels returns the pod's labels
 func (p *Pod) Labels() map[string]string {
 	labels := make(map[string]string)
-	for key, value := range p.config.Labels {
-		labels[key] = value
-	}
+	maps.Copy(labels, p.config.Labels)
 
 	return labels
 }

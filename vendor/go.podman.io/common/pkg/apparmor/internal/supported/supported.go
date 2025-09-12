@@ -39,7 +39,7 @@ func NewAppArmorVerifier() *ApparmorVerifier {
 // The method will error if:
 // - the process runs in rootless mode
 // - AppArmor is disabled by the host system
-// - the `apparmor_parser` binary is not discoverable
+// - the `apparmor_parser` binary is not discoverable.
 func (a *ApparmorVerifier) IsSupported() error {
 	if a.impl.UnshareIsRootless() {
 		return errors.New("AppAmor is not supported on rootless containers")

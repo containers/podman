@@ -34,7 +34,7 @@ type RunOptions struct {
 // Run executes the hook and waits for it to complete or for the
 // context or hook-specified timeout to expire.
 //
-// Deprecated: Too many arguments, has been refactored and replaced by RunWithOptions instead
+// Deprecated: Too many arguments, has been refactored and replaced by RunWithOptions instead.
 func Run(ctx context.Context, hook *rspec.Hook, state []byte, stdout io.Writer, stderr io.Writer, postKillTimeout time.Duration) (hookErr, err error) {
 	return RunWithOptions(
 		ctx,

@@ -294,8 +294,7 @@ func handler(ctx context.Context, conn io.Reader, pm rkport.Manager) error {
 func exposePorts(pm rkport.Manager, portMappings []types.PortMapping, childIP string) error {
 	ctx := context.TODO()
 	for _, port := range portMappings {
-		protocols := strings.Split(port.Protocol, ",")
-		for _, protocol := range protocols {
+		for protocol := range strings.SplitSeq(port.Protocol, ",") {
 			hostIP := port.HostIP
 			if hostIP == "" {
 				hostIP = "0.0.0.0"

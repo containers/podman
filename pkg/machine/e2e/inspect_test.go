@@ -80,7 +80,7 @@ var _ = Describe("podman inspect stop", func() {
 
 	It("inspect shows a unique socket name per machine", func() {
 		var socks []string
-		for c := 0; c < 2; c++ {
+		for range 2 {
 			name := randomString()
 			i := new(initMachine)
 			session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath)).run()
