@@ -1,12 +1,16 @@
 ####> This option file is used in:
-####>   podman pod clone, pod create
+####>   podman pod clone, pod create, podman-pod.unit.5.md.in
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+<< if is_quadlet >>
+### `UserNS=mode`
+<< else >>
 #### **--userns**=*mode*
+<< endif >>
 
 Set the user namespace mode for all the containers in a pod. It defaults to the `PODMAN_USERNS` environment variable. An empty value ("") means user namespaces are disabled.
 
-Rootless user --userns=Key mappings:
+Rootless user << '**UserNS=Key**' if is_quadlet else '**--userns=Key**' >> mappings:
 
 Key       | Host User |  Container User
 ----------|---------------|---------------------
@@ -22,7 +26,7 @@ Valid _mode_ values are:
 
     - *gidmapping=*_CONTAINER\_GID:HOST\_GID:SIZE_ to force a GID mapping to be present in the user namespace.
 
-    - *size=*_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `--userns=auto:size=8192`. If `size` is not specified, `auto` estimates the size for the user namespace.
+    - *size=*_SIZE_: to specify an explicit size for the automatic user namespace. e.g. `<< 'UserNS=' if is_quadlet else '--userns=' >>auto:size=8192`. If `size` is not specified, `auto` estimates the size for the user namespace.
 
     - *uidmapping=*_CONTAINER\_UID:HOST\_UID:SIZE_ to force a UID mapping to be present in the user namespace.
 
