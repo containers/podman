@@ -544,23 +544,24 @@ func prepareAuthHeaders(options types.BuildOptions, requestParts *RequestParts) 
 // prepareContainerFiles processes container files (Dockerfiles/Containerfiles) for the build.
 // It handles URLs, stdin input, symlinks, and determines which files need to be included
 // in the tar archive versus which are already in the context directory.
+// The stdinDestination parameter specifies where to save stdin content when processing /dev/stdin.
 // WARNING: Caller must ensure tempManager.Cleanup() is called to remove any temporary files created.
-func prepareContainerFiles(containerFiles []string, contextDir string, options *BuildOptions, tempManager *remote_build_helpers.TempFileManager) (*BuildFilePaths, error) {
+func prepareContainerFiles(containerFiles []string, contextDir string, stdinDestination string, tempManager *remote_build_helpers.TempFileManager) (*BuildFilePaths, error) {
 	out := BuildFilePaths{
-		tarContent:        []string{options.ContextDirectory},
+		tarContent:        []string{contextDir},
 		newContainerFiles: []string{}, // dockerfile paths, relative to context dir, ToSlash()ed
 		dontexcludes:      []string{"!Dockerfile", "!Containerfile", "!.dockerignore", "!.containerignore"},
 		excludes:          []string{},
 	}
 
 	for _, c := range containerFiles {
-		// Don not add path to containerfile if it is a URL
+		// Do not add path to containerfile if it is a URL
 		if strings.HasPrefix(c, "http://") || strings.HasPrefix(c, "https://") {
 			out.newContainerFiles = append(out.newContainerFiles, c)
 			continue
 		}
 		if c == "/dev/stdin" {
-			stdinFile, err := tempManager.CreateTempFileFromReader("", "podman-build-stdin-*", os.Stdin)
+			stdinFile, err := tempManager.CreateTempFileFromReader(stdinDestination, "podman-build-stdin-*", os.Stdin)
 			if err != nil {
 				return nil, fmt.Errorf("processing stdin: %w", err)
 			}
@@ -649,11 +650,11 @@ func prepareSecrets(secrets []string, contextDir string, tempManager *remote_bui
 	return secretsForRemote, tarContent, nil
 }
 
-// prepareRequestBody creates the request body for the build API call.
+// prepareRemoteRequestBody creates the request body for the build API call.
 // It handles both simple tar archives and multipart form data for builds with
 // additional build contexts, supporting URLs, images, and local directories.
 // WARNING: Caller must close request body.
-func prepareRequestBody(ctx context.Context, requestParts *RequestParts, buildFilePaths *BuildFilePaths, options types.BuildOptions) (*RequestParts, error) {
+func prepareRemoteRequestBody(ctx context.Context, requestParts *RequestParts, buildFilePaths *BuildFilePaths, options types.BuildOptions) (*RequestParts, error) {
 	tarfile, err := nTar(append(buildFilePaths.excludes, buildFilePaths.dontexcludes...), buildFilePaths.tarContent...)
 	if err != nil {
 		logrus.Errorf("Cannot tar container entries %v error: %v", buildFilePaths.tarContent, err)
@@ -913,7 +914,54 @@ func processBuildResponse(response *bindings.APIResponse, stdout io.Writer, save
 	return &types.BuildReport{ID: id, SaveFormat: saveFormat}, nil
 }
 
+// prepareLocalRequestBody prepares HTTP request parameters for local build API calls.
+// It sets up local context directory and additional build contexts using already translated paths.
+func prepareLocalRequestBody(_ context.Context, requestParts *RequestParts, _ *BuildFilePaths, options types.BuildOptions) (*RequestParts, error) {
+	requestParts.Params.Set("localcontextdir", options.ContextDirectory)
+
+	for name, context := range options.AdditionalBuildContexts {
+		switch {
+		case context.IsImage:
+			requestParts.Params.Add("additionalbuildcontexts", fmt.Sprintf("%s=image:%s", name, context.Value))
+		case context.IsURL:
+			requestParts.Params.Add("additionalbuildcontexts", fmt.Sprintf("%s=url:%s", name, context.Value))
+		default:
+			requestParts.Params.Add("additionalbuildcontexts", fmt.Sprintf("%s=localpath:%s", name, context.Value))
+		}
+	}
+	return requestParts, nil
+}
+
+// BuildFromServerContext performs a container image build using the local build API to build image with files present on server.
+//
+// Unlike the standard Build function, this uses existing files on the remote server's filesystem
+// rather than uploading build contexts. The containerFiles and options parameters should contain
+// already translated paths pointing to files on the remote server, making it suitable for scenarios
+// where build contexts already exist on the server (e.g., shared filesystems, mounted volumes).
+//
+// The context directory and containerFiles paths must be accessible on the remote server.
+// Missing paths will result in build errors.
+//
+// Returns a BuildReport containing the final image ID and save format.
+func BuildFromServerContext(ctx context.Context, containerFiles []string, options types.BuildOptions) (*types.BuildReport, error) {
+	return build(ctx, containerFiles, options, "/local/build", prepareLocalRequestBody)
+}
+
+// Build performs a container image build on the remote API using the standard build API.
+//
+// Prepares build contexts and container files by creating tar archives from local directories,
+// processes build secrets and authentication, and streams the build to the remote server.
+// Supports additional build contexts (URLs, images, local directories) via multipart uploads
+// for servers >= v5.6.0, otherwise uses query parameters for compatibility.
+//
+// Returns a BuildReport containing the final image ID and save format.
 func Build(ctx context.Context, containerFiles []string, options types.BuildOptions) (*types.BuildReport, error) {
+	return build(ctx, containerFiles, options, "/build", prepareRemoteRequestBody)
+}
+
+type prepareRequestBodyFunc func(ctx context.Context, requestParts *RequestParts, buildFilePaths *BuildFilePaths, options types.BuildOptions) (*RequestParts, error)
+
+func build(ctx context.Context, containerFiles []string, options types.BuildOptions, endpoint string, prepareRequestBody prepareRequestBodyFunc) (*types.BuildReport, error) {
 	if options.CommonBuildOpts == nil {
 		options.CommonBuildOpts = new(define.CommonBuildOptions)
 	}
@@ -949,8 +997,11 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		logrus.Errorf("Cannot find absolute path of %v: %v", options.ContextDirectory, err)
 		return nil, err
 	}
-
-	buildFilePaths, err := prepareContainerFiles(containerFiles, contextDirAbs, &options, tempManager)
+	stdinDestination := ""
+	if endpoint == "/local/build" {
+		stdinDestination = contextDirAbs
+	}
+	buildFilePaths, err := prepareContainerFiles(containerFiles, contextDirAbs, stdinDestination, tempManager)
 	if err != nil {
 		return nil, err
 	}
@@ -992,12 +1043,14 @@ func Build(ctx context.Context, containerFiles []string, options types.BuildOpti
 		return nil, fmt.Errorf("building tar file: %w", err)
 	}
 	defer func() {
-		if err := requestParts.Body.Close(); err != nil {
-			logrus.Errorf("failed to close build request body: %v\n", err)
+		if requestParts.Body != nil {
+			if err := requestParts.Body.Close(); err != nil {
+				logrus.Errorf("failed to close build request body: %v\n", err)
+			}
 		}
 	}()
 
-	response, err := executeBuildRequest(ctx, "/build", requestParts)
+	response, err := executeBuildRequest(ctx, endpoint, requestParts)
 	if err != nil {
 		return nil, err
 	}

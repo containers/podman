@@ -118,6 +118,10 @@ func (e *BuildError) Error() string {
 	return e.err.Error()
 }
 
+func GetFileNotFoundError(err error) *BuildError {
+	return &BuildError{code: http.StatusNotFound, err: err}
+}
+
 func GetBadRequestError(key, value string, err error) *BuildError {
 	return &BuildError{code: http.StatusBadRequest, err: fmt.Errorf("failed to parse query parameter '%s': %q: %w", key, value, err)}
 }

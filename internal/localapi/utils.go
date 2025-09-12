@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/bindings"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/machine/define"
 	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/provider"
@@ -153,4 +154,114 @@ func CheckPathOnRunningMachine(ctx context.Context, path string) (*LocalAPIMap, 
 	}
 
 	return isPathAvailableOnMachine(mounts, vmType, path)
+}
+
+// CheckIfImageBuildPathsOnRunningMachine checks if the build context directory and all specified
+// Containerfiles are available on the running machine. If they are, it translates their paths
+// to the corresponding remote paths and returns them along with a flag indicating success.
+func CheckIfImageBuildPathsOnRunningMachine(ctx context.Context, containerFiles []string, options entities.BuildOptions) ([]string, entities.BuildOptions, bool) {
+	if machineMode := bindings.GetMachineMode(ctx); !machineMode {
+		logrus.Debug("Machine mode is not enabled, skipping machine check")
+		return nil, options, false
+	}
+
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		logrus.Debugf("Failed to get client connection: %v", err)
+		return nil, options, false
+	}
+
+	mounts, vmType, err := getMachineMountsAndVMType(conn.URI.String(), conn.URI)
+	if err != nil {
+		logrus.Debugf("Failed to get machine mounts: %v", err)
+		return nil, options, false
+	}
+
+	// Context directory
+	if err := fileutils.Lexists(options.ContextDirectory); errors.Is(err, fs.ErrNotExist) {
+		logrus.Debugf("Path %s does not exist locally, skipping machine check", options.ContextDirectory)
+		return nil, options, false
+	}
+	mapping, found := isPathAvailableOnMachine(mounts, vmType, options.ContextDirectory)
+	if !found {
+		logrus.Debugf("Path %s is not available on the running machine", options.ContextDirectory)
+		return nil, options, false
+	}
+	options.ContextDirectory = mapping.RemotePath
+
+	// Containerfiles
+	translatedContainerFiles := []string{}
+	for _, containerFile := range containerFiles {
+		if strings.HasPrefix(containerFile, "http://") || strings.HasPrefix(containerFile, "https://") {
+			translatedContainerFiles = append(translatedContainerFiles, containerFile)
+			continue
+		}
+
+		// If Containerfile does not exist, assume it is in context directory
+		if err := fileutils.Lexists(containerFile); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Fatalf("Failed to check if containerfile %s exists: %v", containerFile, err)
+				return nil, options, false
+			}
+			continue
+		}
+
+		mapping, found := isPathAvailableOnMachine(mounts, vmType, containerFile)
+		if !found {
+			logrus.Debugf("Path %s is not available on the running machine", containerFile)
+			return nil, options, false
+		}
+		translatedContainerFiles = append(translatedContainerFiles, mapping.RemotePath)
+	}
+
+	// Additional build contexts
+	for _, context := range options.AdditionalBuildContexts {
+		switch {
+		case context.IsImage, context.IsURL:
+			continue
+		default:
+			if err := fileutils.Lexists(context.Value); errors.Is(err, fs.ErrNotExist) {
+				logrus.Debugf("Path %s does not exist locally, skipping machine check", context.Value)
+				return nil, options, false
+			}
+			mapping, found := isPathAvailableOnMachine(mounts, vmType, context.Value)
+			if !found {
+				logrus.Debugf("Path %s is not available on the running machine", context.Value)
+				return nil, options, false
+			}
+			context.Value = mapping.RemotePath
+		}
+	}
+	return translatedContainerFiles, options, true
+}
+
+// IsHyperVProvider checks if the current machine provider is Hyper-V.
+// It returns true if the provider is Hyper-V, false otherwise, or an error if the check fails.
+func IsHyperVProvider(ctx context.Context) (bool, error) {
+	conn, err := bindings.GetClient(ctx)
+	if err != nil {
+		logrus.Debugf("Failed to get client connection: %v", err)
+		return false, err
+	}
+
+	_, vmType, err := getMachineMountsAndVMType(conn.URI.String(), conn.URI)
+	if err != nil {
+		logrus.Debugf("Failed to get machine mounts: %v", err)
+		return false, err
+	}
+
+	return vmType == define.HyperVVirt, nil
+}
+
+// ValidatePathForLocalAPI checks if the provided path satisfies requirements for local API usage.
+// It returns an error if the path is not absolute or does not exist on the filesystem.
+func ValidatePathForLocalAPI(path string) error {
+	if !filepath.IsAbs(path) {
+		return fmt.Errorf("path %q is not absolute", path)
+	}
+
+	if err := fileutils.Exists(path); err != nil {
+		return err
+	}
+	return nil
 }
