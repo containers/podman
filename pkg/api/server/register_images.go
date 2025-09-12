@@ -1839,6 +1839,356 @@ func (s *APIServer) registerImagesHandlers(r *mux.Router) error {
 	//     $ref: "#/responses/internalError"
 	r.Handle(VersionedPath("/libpod/build"), s.APIHandler(compat.BuildImage)).Methods(http.MethodPost)
 
+	// swagger:operation POST /libpod/local/build libpod LocalBuildLibpod
+	// ---
+	// tags:
+	//  - images
+	// summary: Create image from local build context
+	// description: Build an image from a local build context directory without requiring tar archive upload. The build context must already exist on the server filesystem.
+	// parameters:
+	//  - in: header
+	//    name: X-Registry-Config
+	//    type: string
+	//  - in: query
+	//    name: localcontextdir
+	//    type: string
+	//    required: true
+	//    description: |
+	//      Absolute path to the build context directory on the server filesystem.
+	//      This directory must contain all files needed for the build.
+	//  - in: query
+	//    name: dockerfile
+	//    type: string
+	//    default: Dockerfile
+	//    description: |
+	//      Absolute path within the build context to the `Dockerfile`.
+	//      This is ignored if remote is specified and points to an external `Dockerfile`.
+	//  - in: query
+	//    name: t
+	//    type: string
+	//    default: latest
+	//    description: A name and optional tag to apply to the image in the `name:tag` format.  If you omit the tag, the default latest value is assumed. You can provide several t parameters.
+	//  - in: query
+	//    name: allplatforms
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Instead of building for a set of platforms specified using the platform option, inspect the build's base images,
+	//      and build for all of the platforms that are available.  Stages that use *scratch* as a starting point can not be inspected,
+	//      so at least one non-*scratch* stage must be present for detection to work usefully.
+	//  - in: query
+	//    name: additionalbuildcontexts
+	//    type: array
+	//    items:
+	//      type: string
+	//    default: []
+	//    description: |
+	//      Additional build contexts for builds that require more than one context.
+	//      Each additional context must be specified as a key-value pair in the format "name=value".
+	//
+	//      The value can be specified in three formats:
+	//      - URL context: Use the prefix "url:" followed by a URL to a tar archive
+	//        Example: "mycontext=url:https://example.com/context.tar"
+	//      - Image context: Use the prefix "image:" followed by an image reference
+	//        Example: "mycontext=image:alpine:latest" or "mycontext=image:docker.io/library/ubuntu:22.04"
+	//      - Local path context: Use the prefix "localpath:" followed by an absolute path on the server filesystem
+	//        Example: "mycontext=localpath:/path/to/context/dir"
+	//
+	//      (As of version 5.6.0)
+	//  - in: query
+	//    name: extrahosts
+	//    type: string
+	//    default:
+	//    description: |
+	//      TBD Extra hosts to add to /etc/hosts
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: nohosts
+	//    type: boolean
+	//    default:
+	//    description: |
+	//      Not to create /etc/hosts when building the image
+	//  - in: query
+	//    name: remote
+	//    type: string
+	//    default:
+	//    description: |
+	//      A Git repository URI or HTTP/HTTPS context URI.
+	//      If the URI points to a single text file, the file's contents are placed
+	//      into a file called Dockerfile and the image is built from that file. If
+	//      the URI points to a tarball, the file is downloaded by the daemon and the
+	//      contents therein used as the context for the build. If the URI points to a
+	//      tarball and the dockerfile parameter is also specified, there must be a file
+	//      with the corresponding path inside the tarball.
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: q
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Suppress verbose build output
+	//  - in: query
+	//    name: compatvolumes
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Contents of volume locations to be modified on ADD or COPY only
+	//      (As of Podman version v5.2)
+	//  - in: query
+	//    name: createdannotation
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Add an "org.opencontainers.image.created" annotation to the
+	//      image.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: sourcedateepoch
+	//    type: number
+	//    description: |
+	//      Timestamp to use for newly-added history entries and the image's
+	//      creation date.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: rewritetimestamp
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      If sourcedateepoch is set, force new content added in layers to
+	//      have timestamps no later than the sourcedateepoch date.
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: timestamp
+	//    type: number
+	//    description: |
+	//      Timestamp to use for newly-added history entries, the image's
+	//      creation date, and for new content added in layers.
+	//  - in: query
+	//    name: inheritlabels
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Inherit the labels from the base image or base stages
+	//      (As of Podman version v5.5)
+	//  - in: query
+	//    name: inheritannotations
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Inherit the annotations from the base image or base stages
+	//      (As of Podman version v5.6)
+	//  - in: query
+	//    name: nocache
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Do not use the cache when building the image
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cachefrom
+	//    type: string
+	//    default:
+	//    description: |
+	//      JSON array of images used to build cache resolution
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: pull
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Attempt to pull the image even if an older image exists locally
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: rm
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Remove intermediate containers after a successful build
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: forcerm
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Always remove intermediate containers, even upon failure
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: memory
+	//    type: integer
+	//    description: |
+	//      Memory is the upper limit (in bytes) on how much memory running containers can use
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: memswap
+	//    type: integer
+	//    description: |
+	//      MemorySwap limits the amount of memory and swap together
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpushares
+	//    type: integer
+	//    description: |
+	//      CPUShares (relative weight
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpusetcpus
+	//    type: string
+	//    description: |
+	//      CPUSetCPUs in which to allow execution (0-3, 0,1)
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpuperiod
+	//    type: integer
+	//    description: |
+	//      CPUPeriod limits the CPU CFS (Completely Fair Scheduler) period
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: cpuquota
+	//    type: integer
+	//    description: |
+	//      CPUQuota limits the CPU CFS (Completely Fair Scheduler) quota
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: buildargs
+	//    type: string
+	//    default:
+	//    description: |
+	//      JSON map of string pairs denoting build-time variables.
+	//      For example, the build argument `Foo` with the value of `bar` would be encoded in JSON as `["Foo":"bar"]`.
+	//
+	//      For example, buildargs={"Foo":"bar"}.
+	//
+	//      Note(s):
+	//      * This should not be used to pass secrets.
+	//      * The value of buildargs should be URI component encoded before being passed to the API.
+	//
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: shmsize
+	//    type: integer
+	//    default: 67108864
+	//    description: |
+	//      ShmSize is the "size" value to use when mounting an shmfs on the container's /dev/shm directory.
+	//      Default is 64MB
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: squash
+	//    type: boolean
+	//    default: false
+	//    description: |
+	//      Silently ignored.
+	//      Squash the resulting images layers into a single layer
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: labels
+	//    type: string
+	//    default:
+	//    description: |
+	//      JSON map of key, value pairs to set as labels on the new image
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: layerLabel
+	//    description: Add an intermediate image *label* (e.g. label=*value*) to the intermediate image metadata.
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
+	//    name: layers
+	//    type: boolean
+	//    default: true
+	//    description: |
+	//      Cache intermediate layers during build.
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: networkmode
+	//    type: string
+	//    default: bridge
+	//    description: |
+	//      Sets the networking mode for the run commands during build.
+	//      Supported standard values are:
+	//        * `bridge` limited to containers within a single host, port mapping required for external access
+	//        * `host` no isolation between host and containers on this network
+	//        * `none` disable all networking for this container
+	//        * container:<nameOrID> share networking with given container
+	//        ---All other values are assumed to be a custom network's name
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: platform
+	//    type: string
+	//    default:
+	//    description: |
+	//      Platform format os[/arch[/variant]]
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: target
+	//    type: string
+	//    default:
+	//    description: |
+	//      Target build stage
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: outputs
+	//    type: string
+	//    default:
+	//    description: |
+	//      output configuration TBD
+	//      (As of version 1.xx)
+	//  - in: query
+	//    name: httpproxy
+	//    type: boolean
+	//    default:
+	//    description: |
+	//      Inject http proxy environment variables into container
+	//      (As of version 2.0.0)
+	//  - in: query
+	//    name: unsetenv
+	//    description: Unset environment variables from the final image.
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
+	//    name: unsetlabel
+	//    description: Unset the image label, causing the label not to be inherited from the base image.
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
+	//    name: unsetannotation
+	//    description: |
+	//      Unset the image annotation, causing the annotation not to be inherited from the base image.
+	//      (As of Podman version v5.6)
+	//    type: array
+	//    items:
+	//      type: string
+	//  - in: query
+	//    name: volume
+	//    description: Extra volumes that should be mounted in the build container.
+	//    type: array
+	//    items:
+	//      type: string
+	// produces:
+	// - application/json
+	// responses:
+	//   200:
+	//     description: OK (As of version 1.xx)
+	//     schema:
+	//       type: object
+	//       required:
+	//         - stream
+	//       properties:
+	//         stream:
+	//           type: string
+	//           description: output from build process
+	//           example: |
+	//             (build details...)
+	//   400:
+	//     $ref: "#/responses/badParamError"
+	//   404:
+	//     $ref: "#/responses/fileNotFound"
+	//   500:
+	//     $ref: "#/responses/internalError"
+	r.Handle(VersionedPath("/libpod/local/build"), s.APIHandler(compat.LocalBuildImage)).Methods(http.MethodPost)
+
 	// swagger:operation POST /libpod/images/scp/{name} libpod ImageScpLibpod
 	// ---
 	// tags:
