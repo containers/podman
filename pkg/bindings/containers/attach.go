@@ -180,7 +180,7 @@ func Attach(ctx context.Context, nameOrID string, stdin io.Reader, stdout io.Wri
 					return err
 				}
 
-				return nil
+				return <-stdoutChan
 			}
 		}
 	} else {
