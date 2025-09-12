@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman create, pod clone, pod create, run
+####>   podman podman-build.unit.5.md.in, podman-container.unit.5.md.in, create, pod clone, pod create, podman-pod.unit.5.md.in, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+<< if is_quadlet >>
+### `Volume=[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]`
+<< else >>
 #### **--volume**, **-v**=*[[SOURCE-VOLUME|HOST-DIR:]CONTAINER-DIR[:OPTIONS]]*
+<< endif >>
 
 Create a bind mount. If `-v /HOST-DIR:/CONTAINER-DIR` is specified, Podman
 bind mounts `/HOST-DIR` from the host into `/CONTAINER-DIR` in the Podman
@@ -12,6 +16,12 @@ Podman creates one. If no source is given, the volume is created
 as an anonymously named volume with a randomly generated name, and is
 removed when the <<container|pod>> is removed via the `--rm` flag or
 the `podman rm --volumes` command.
+
+<< if is_quadlet >>
+Special case:
+
+* If `SOURCE-VOLUME` ends with `.volume`, a Podman named volume called `systemd-$name` is used as the source, and the generated systemd service contains a dependency on the `$name-volume.service`. Note that the corresponding `.volume` file must exist.
+<< endif >>
 
 (Note when using the remote client, including Mac and Windows (excluding WSL2) machines, the volumes are mounted from the remote server, not necessarily the client machine.)
 
