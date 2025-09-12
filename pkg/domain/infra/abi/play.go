@@ -533,8 +533,7 @@ func (ic *ContainerEngine) playKubePod(ctx context.Context, podName string, podY
 			}
 			// Create files and add data to the volume mountpoint based on the Items in the volume
 			for k, v := range v.Items {
-				dataPath := filepath.Join(mountPoint, k)
-				f, err := os.Create(dataPath)
+				f, err := openPathSafely(mountPoint, k)
 				if err != nil {
 					return nil, nil, fmt.Errorf("cannot create file %q at volume mountpoint %q: %w", k, mountPoint, err)
 				}
