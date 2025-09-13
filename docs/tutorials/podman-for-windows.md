@@ -165,7 +165,7 @@ Docker. Provided there is no other service listening on the Docker API pipe;
 no special settings will be required.
 
 ```
-PS C:\Users\User> .\docker.exe run -it fedora echo "Hello Podman!"
+PS C:\Users\User> docker run -it fedora echo "Hello Podman!"
 Hello Podman!
 ```
 
