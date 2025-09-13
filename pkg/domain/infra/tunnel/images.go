@@ -408,7 +408,48 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 	return config.Default()
 }
 
+// getLocalFilesForBuild extracts all local file paths needed for a build operation.
+// It collects the context directory, container files, and additional build contexts.
+func getLocalFilesForBuild(containerFiles []string, options entities.BuildOptions) []string {
+	localFiles := []string{options.ContextDirectory}
+	for _, v := range containerFiles {
+		if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
+			continue
+		}
+		localFiles = append(localFiles, v)
+	}
+
+	for _, context := range options.AdditionalBuildContexts {
+		switch {
+		case context.IsImage, context.IsURL:
+			continue
+		default:
+			localFiles = append(localFiles, context.Value)
+		}
+	}
+	return localFiles
+}
+
 func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+	localFiles := getLocalFilesForBuild(containerFiles, opts)
+	if translationLocalAPIMap, ok := localapi.CheckMultiplePathsOnRunningMachine(ir.ClientCtx, localFiles); ok {
+		report, err := images.BuildLocal(ir.ClientCtx, containerFiles, opts, translationLocalAPIMap)
+		if err == nil {
+			return report, nil
+		}
+
+		var errModel *errorhandling.ErrorModel
+		if errors.As(err, &errModel) {
+			switch errModel.ResponseCode {
+			case http.StatusNotFound, http.StatusMethodNotAllowed:
+			default:
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
 	report, err := images.Build(ir.ClientCtx, containerFiles, opts)
 	if err != nil {
 		return nil, err
