@@ -144,11 +144,12 @@ A curl command against localhost on the PowerShell prompt will return a
 successful HTTP response:
 
 ```
-PS C:\Users\User> curl http://localhost:8080/ -UseBasicParsing
+PS C:\Users\User> Invoke-WebRequest -UseBasicParsing http://localhost:8080/
 
-StatusCode : 200
+StatusCode        : 200
 StatusDescription : OK
-Content : <html><body><h1>It works!</h1></body></html>
+Content           : <html><body><h1>It works!</h1></body></html>
+[...]
 ```
 
 As with Linux, to stop, run:
