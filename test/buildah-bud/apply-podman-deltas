@@ -214,10 +214,6 @@ skip_if_remote "secret files not implemented under podman-remote" \
 skip_if_remote "--signature-policy does not work with podman-remote" \
                "buildah-bud-policy"
 
-skip_if_remote "--build-context option not implemented in podman-remote" \
-               "build-with-additional-build-context and COPY, additional context from host" \
-               "build-with-additional-build-context and RUN --mount=from=, additional-context not image and also test conflict with stagename" \
-
 skip_if_remote "env-variable for Containerfile.in pre-processing is not propagated on remote" \
                "bud with Containerfile.in, via envariable" \
 
