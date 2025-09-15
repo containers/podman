@@ -448,6 +448,12 @@ func buildFlagsWrapperToOptions(c *cobra.Command, contextDir string, flags *Buil
 	for _, arg := range podmanConfig.RuntimeFlags {
 		runtimeFlags = append(runtimeFlags, "--"+arg)
 	}
+	configIndex := filepath.Base(podmanConfig.RuntimePath)
+	if len(runtimeFlags) == 0 {
+		for _, arg := range podmanConfig.ContainersConfDefaultsRO.Engine.OCIRuntimesFlags[configIndex] {
+			runtimeFlags = append(runtimeFlags, "--"+arg)
+		}
+	}
 	if podmanConfig.ContainersConf.Engine.CgroupManager == config.SystemdCgroupsManager {
 		runtimeFlags = append(runtimeFlags, "--systemd-cgroup")
 	}
