@@ -20,7 +20,7 @@ require (
 	github.com/containers/storage v1.46.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
-	github.com/cyphar/filepath-securejoin v0.2.4
+	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
 	github.com/docker/docker v20.10.23+incompatible
 	github.com/docker/go-connections v0.4.1-0.20210727194412-58542c764a11
@@ -62,7 +62,7 @@ require (
 	go.etcd.io/bbolt v1.3.6
 	golang.org/x/net v0.17.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.17.0
+	golang.org/x/sys v0.18.0
 	golang.org/x/term v0.17.0
 	golang.org/x/text v0.14.0
 	google.golang.org/protobuf v1.33.0
