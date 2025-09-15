@@ -4,7 +4,6 @@ package integration
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -668,33 +667,13 @@ var _ = Describe("Podman pull", func() {
 
 			podmanTest.AddImageToRWStore(ALPINE)
 
-			success := false
-			registryArgs := []string{"run", "-d", "--name", "registry", "-p", "5012:5000"}
 			if isRootless() {
 				err := podmanTest.RestoreArtifact(REGISTRY_IMAGE)
 				Expect(err).ToNot(HaveOccurred())
-
-				// Debug code for https://github.com/containers/podman/issues/24219
-				logFile := filepath.Join(podmanTest.TempDir, "pasta.log")
-				registryArgs = append(registryArgs, "--network", "pasta:--trace,--log-file,"+logFile)
-				defer func() {
-					if success {
-						// only print the log on errors otherwise it will clutter CI logs way to much
-						return
-					}
-
-					f, err := os.Open(logFile)
-					Expect(err).ToNot(HaveOccurred())
-					defer f.Close()
-					GinkgoWriter.Println("pasta trace log:")
-					_, err = io.Copy(GinkgoWriter, f)
-					Expect(err).ToNot(HaveOccurred())
-				}()
 			}
-			registryArgs = append(registryArgs, REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml")
 			lock := GetPortLock("5012")
 			defer lock.Unlock()
-			session := podmanTest.Podman(registryArgs)
+			session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5012:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 			session.WaitWithDefaultTimeout()
 			Expect(session).Should(ExitCleanly())
 
@@ -707,8 +686,6 @@ var _ = Describe("Podman pull", func() {
 			session = decryptionTestHelper(imgPath)
 
 			Expect(session.LineInOutputContainsTag(imgPath, "latest")).To(BeTrue())
-
-			success = true
 		})
 	})
 
