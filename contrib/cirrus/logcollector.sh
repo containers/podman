@@ -71,7 +71,7 @@ case $1 in
             *) bad_os_id_ver ;;
         esac
         echo "Kernel: " $(uname -r)
-        echo "Cgroups: " $(stat -f -c %T /sys/fs/cgroup)
+        echo "cgroups: " $(stat -f -c %T /sys/fs/cgroup)
         # Any not-present packages will be listed as such
         $PKG_LST_CMD "${PKG_NAMES[@]}" | sort -u
         ;;

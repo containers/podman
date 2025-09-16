@@ -423,7 +423,7 @@ func (c *Container) getOCICgroupPath() (string, error) {
 		// expects cgroups to be passed as follows:
 		// slice:prefix:name
 		systemdCgroups := fmt.Sprintf("%s:libpod:%s", path.Base(c.config.CgroupParent), c.ID())
-		logrus.Debugf("Setting Cgroups for container %s to %s", c.ID(), systemdCgroups)
+		logrus.Debugf("Setting cgroups for container %s to %s", c.ID(), systemdCgroups)
 		return systemdCgroups, nil
 	case (rootless.IsRootless() && (cgroupManager == config.CgroupfsCgroupsManager || !unified)):
 		if c.config.CgroupParent == "" || !isRootlessCgroupSet(c.config.CgroupParent) {

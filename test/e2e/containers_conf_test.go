@@ -723,7 +723,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 
-		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Cgroups }}", result.OutputToString()})
+		inspect := podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.cgroups }}", result.OutputToString()})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).ToNot(Equal("disabled"))
 
@@ -735,7 +735,7 @@ var _ = Describe("Verify podman containers.conf usage", func() {
 		result.WaitWithDefaultTimeout()
 		Expect(result).Should(ExitCleanly())
 
-		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.Cgroups }}", result.OutputToString()})
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{ .HostConfig.cgroups }}", result.OutputToString()})
 		inspect.WaitWithDefaultTimeout()
 		Expect(inspect.OutputToString()).To(Equal("disabled"))
 

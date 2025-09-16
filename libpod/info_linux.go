@@ -30,7 +30,7 @@ func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
 		return fmt.Errorf("getting Seccomp profile path: %w", err)
 	}
 
-	// Cgroups version
+	// cgroups version
 	unified, err := cgroups.IsCgroup2UnifiedMode()
 	if err != nil {
 		return fmt.Errorf("reading cgroups mode: %w", err)

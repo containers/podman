@@ -49,19 +49,19 @@ const (
 	_procPathMountInfo = "/proc/self/mountinfo"
 )
 
-// CGroups is a map that associates each CGroup with its subsystem name.
-type CGroups map[string]*CGroup
+// cgroups is a map that associates each CGroup with its subsystem name.
+type cgroups map[string]*CGroup
 
-// NewCGroups returns a new *CGroups from given `mountinfo` and `cgroup` files
+// NewCGroups returns a new *cgroups from given `mountinfo` and `cgroup` files
 // under for some process under `/proc` file system (see also proc(5) for more
 // information).
-func NewCGroups(procPathMountInfo, procPathCGroup string) (CGroups, error) {
+func NewCGroups(procPathMountInfo, procPathCGroup string) (cgroups, error) {
 	cgroupSubsystems, err := parseCGroupSubsystems(procPathCGroup)
 	if err != nil {
 		return nil, err
 	}
 
-	cgroups := make(CGroups)
+	cgroups := make(cgroups)
 	newMountPoint := func(mp *MountPoint) error {
 		if mp.FSType != _cgroupFSType {
 			return nil
@@ -89,16 +89,16 @@ func NewCGroups(procPathMountInfo, procPathCGroup string) (CGroups, error) {
 	return cgroups, nil
 }
 
-// NewCGroupsForCurrentProcess returns a new *CGroups instance for the current
+// NewCGroupsForCurrentProcess returns a new *cgroups instance for the current
 // process.
-func NewCGroupsForCurrentProcess() (CGroups, error) {
+func NewCGroupsForCurrentProcess() (cgroups, error) {
 	return NewCGroups(_procPathMountInfo, _procPathCGroup)
 }
 
 // CPUQuota returns the CPU quota applied with the CPU cgroup controller.
 // It is a result of `cpu.cfs_quota_us / cpu.cfs_period_us`. If the value of
 // `cpu.cfs_quota_us` was not set (-1), the method returns `(-1, nil)`.
-func (cg CGroups) CPUQuota() (float64, bool, error) {
+func (cg cgroups) CPUQuota() (float64, bool, error) {
 	cpuCGroup, exists := cg[_cgroupSubsysCPU]
 	if !exists {
 		return -1, false, nil

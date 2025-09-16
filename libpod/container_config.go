@@ -362,7 +362,7 @@ type ContainerMiscConfig struct {
 	// CgroupManager is the cgroup manager used to create this container.
 	// If empty, the runtime default will be used.
 	CgroupManager string `json:"cgroupManager,omitempty"`
-	// NoCgroups indicates that the container will not create Cgroups. It is
+	// NoCgroups indicates that the container will not create cgroups. It is
 	// incompatible with CgroupParent.  Deprecated in favor of CgroupsMode.
 	NoCgroups bool `json:"noCgroups,omitempty"`
 	// CgroupsMode indicates how the container will create cgroups

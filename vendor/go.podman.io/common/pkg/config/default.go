@@ -251,7 +251,7 @@ func defaultConfig() (*Config, error) {
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
 			CgroupNS:            cgroupNS,
-			Cgroups:             getDefaultCgroupsMode(),
+			cgroups:             getDefaultCgroupsMode(),
 			DNSOptions:          attributedstring.Slice{},
 			DNSSearches:         attributedstring.Slice{},
 			DNSServers:          attributedstring.Slice{},
@@ -636,9 +636,9 @@ func (c *Config) CgroupNS() string {
 	return c.Containers.CgroupNS
 }
 
-// Cgroups returns whether to run containers in their own control groups, as configured by the "cgroups" setting in containers.conf.
-func (c *Config) Cgroups() string {
-	return c.Containers.Cgroups
+// cgroups returns whether to run containers in their own control groups, as configured by the "cgroups" setting in containers.conf.
+func (c *Config) cgroups() string {
+	return c.Containers.cgroups
 }
 
 // UTSNS returns the default UTS Namespace configuration to run containers with.

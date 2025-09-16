@@ -15,7 +15,7 @@ func ulimits() []string {
 
 func cgroupConfig() string {
 	if !registry.IsRemote() {
-		return podmanConfig.ContainersConfDefaultsRO.Cgroups()
+		return podmanConfig.ContainersConfDefaultsRO.cgroups()
 	}
 	return ""
 }

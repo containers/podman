@@ -780,7 +780,7 @@
 - We are beginning development on Podman 5.0, which will include a number of breaking changes and deprecations. We are still finalizing what will be done, but a preliminary list is below. Please note that none of these changes are present in Podman 4.8; this is a preview of upcoming changes.
 - Podman 5.0 will deprecate the BoltDB database backend. Exact details on the transition to SQLite are still being decided - expect more news here soon.
 - The containers.conf configuration file will be broken up into multiple separate files, ensuring that it will never be rewritten by Podman.
-- Support for the CNI network backend and Cgroups V1 are being deprecated and gated by build tags. They will not be enabled in Podman builds by default.
+- Support for the CNI network backend and cgroups V1 are being deprecated and gated by build tags. They will not be enabled in Podman builds by default.
 - A variety of small breaking changes to the REST API are planned, both to improve Docker compatibility and to better support `containers.conf` settings when creating and managing containers.
 
 ### Changes
@@ -2447,7 +2447,7 @@
 - Fixed a bug where Podman would fail to start containers if a Seccomp profile was not available at `/usr/share/containers/seccomp.json` ([#10556](https://github.com/containers/podman/issues/10556)).
 - Fixed a bug where the `podman machine start` command failed on OS X machines with the AMD64 architecture and certain QEMU versions ([#10555](https://github.com/containers/podman/issues/10555)).
 - Fixed a bug where Podman would always use the slow path for joining the rootless user namespace.
-- Fixed a bug where the `podman stats` command would fail on Cgroups v1 systems when run on a container running systemd ([#10602](https://github.com/containers/podman/issues/10602)).
+- Fixed a bug where the `podman stats` command would fail on cgroups v1 systems when run on a container running systemd ([#10602](https://github.com/containers/podman/issues/10602)).
 - Fixed a bug where pre-checkpoint support for `podman container checkpoint` did not function correctly.
 - Fixed a bug where the remote Podman client's `podman build` command did not properly handle the `-f` option ([#9871](https://github.com/containers/podman/issues/9871)).
 - Fixed a bug where the remote Podman client's `podman run` command would sometimes not resize the container's terminal before execution began ([#9859](https://github.com/containers/podman/issues/9859)).
@@ -3563,12 +3563,12 @@
 - Fixed a bug where the `podman play kube` command did not properly locate Seccomp profiles specified relative to localhost ([#4555](https://github.com/containers/podman/issues/4555))
 - Fixed a bug where the `podman info` command for remote Podman did not show registry information ([#4793](https://github.com/containers/podman/issues/4793))
 - Fixed a bug where the `podman exec` command did not support having input piped into it ([#3302](https://github.com/containers/podman/issues/3302))
-- Fixed a bug where the `podman cp` command with rootless Podman on CGroups v2 systems did not properly determine if the container could be paused while copying ([#4813](https://github.com/containers/podman/issues/4813))
+- Fixed a bug where the `podman cp` command with rootless Podman on cgroups v2 systems did not properly determine if the container could be paused while copying ([#4813](https://github.com/containers/podman/issues/4813))
 - Fixed a bug where the `podman container prune --force` command could possible remove running containers if they were started while the command was running ([#4844](https://github.com/containers/podman/issues/4844))
 - Fixed a bug where Podman, when run as root, would not properly configure `slirp4netns` networking when requested ([#4853](https://github.com/containers/podman/pull/4853))
 - Fixed a bug where `podman run --userns=keep-id` did not work when the user had a UID over 65535 ([#4838](https://github.com/containers/podman/issues/4838))
 - Fixed a bug where rootless `podman run` and `podman create` with the `--userns=keep-id` option could change permissions on `/run/user/$UID` and break KDE ([#4846](https://github.com/containers/podman/issues/4846))
-- Fixed a bug where rootless Podman could not be run in a systemd service on systems using CGroups v2 ([#4833](https://github.com/containers/podman/issues/4833))
+- Fixed a bug where rootless Podman could not be run in a systemd service on systems using cgroups v2 ([#4833](https://github.com/containers/podman/issues/4833))
 - Fixed a bug where `podman inspect` would show CPUShares as 0, instead of the default (1024), when it was not explicitly set ([#4822](https://github.com/containers/podman/issues/4822))
 - Fixed a bug where `podman-remote push` would segfault ([#4706](https://github.com/containers/podman/issues/4706))
 - Fixed a bug where image healthchecks were not shown in the output of `podman inspect` ([#4799](https://github.com/containers/podman/issues/4799))
@@ -3596,7 +3596,7 @@
 - Added support for setting a static MAC address for containers
 - Added support for creating `macvlan` networks with `podman network create`, allowing Podman containers to be attached directly to networks the host is connected to
 - The `podman image prune` and `podman container prune` commands now support the `--filter` flag to filter what will be pruned, and now prompts for confirmation when run without `--force` ([#4410](https://github.com/containers/podman/issues/4410) and [#4411](https://github.com/containers/podman/issues/4411))
-- Podman now creates CGroup namespaces by default on systems using CGroups v2 ([#4363](https://github.com/containers/podman/issues/4363))
+- Podman now creates CGroup namespaces by default on systems using cgroups v2 ([#4363](https://github.com/containers/podman/issues/4363))
 - Added the `podman system reset` command to remove all Podman files and perform a factory reset of the Podman installation
 - Added the `--history` flag to `podman images` to display previous names used by images ([#4566](https://github.com/containers/podman/issues/4566))
 - Added the `--ignore` flag to `podman rm` and `podman stop` to not error when requested containers no longer exist
@@ -3616,7 +3616,7 @@
 - Fixed a bug where Podman would use an incorrect runtime directory as root, causing state to be deleted after root logged out and making Podman in systemd services not function properly
 - Fixed a bug where the `--change` flag to `podman import` and `podman commit` was not being parsed properly in many cases
 - Fixed a bug where detach keys specified in `libpod.conf` were not used by the `podman attach` and `podman exec` commands, which always used the global default `ctrl-p,ctrl-q` key combination ([#4556](https://github.com/containers/podman/issues/4556))
-- Fixed a bug where rootless Podman was not able to run `podman pod stats` even on CGroups v2 enabled systems ([#4634](https://github.com/containers/podman/issues/4634))
+- Fixed a bug where rootless Podman was not able to run `podman pod stats` even on cgroups v2 enabled systems ([#4634](https://github.com/containers/podman/issues/4634))
 - Fixed a bug where rootless Podman would fail on kernels without the `renameat2` syscall ([#4570](https://github.com/containers/podman/issues/4570))
 - Fixed a bug where containers with chained network namespace dependencies (IE, container A using `--net container=B` and container B using `--net container=C`) would not properly mount `/etc/hosts` and `/etc/resolv.conf` into the container ([#4626](https://github.com/containers/podman/issues/4626))
 - Fixed a bug where `podman run` with the `--rm` flag and without `-d` could, when run in the background, throw a 'container does not exist' error when attempting to remove the container after it exited
@@ -3690,14 +3690,14 @@
 
 ## 1.6.2
 ### Features
-- Added a `--runtime` flag to `podman system migrate` to allow the OCI runtime for all containers to be reset, to ease transition to the `crun` runtime on CGroups V2 systems until `runc` gains full support
+- Added a `--runtime` flag to `podman system migrate` to allow the OCI runtime for all containers to be reset, to ease transition to the `crun` runtime on cgroups V2 systems until `runc` gains full support
 - The `podman rm` command can now remove containers in broken states which previously could not be removed
 - The `podman info` command, when run without root, now shows information on UID and GID mappings in the rootless user namespace
 - Added `podman build --squash-all` flag, which squashes all layers (including those of the base image) into one layer
 - The `--systemd` flag to `podman run` and `podman create` now accepts a string argument and allows a new value, `always`, which forces systemd support without checking if the container entrypoint is systemd
 
 ### Bugfixes
-- Fixed a bug where the `podman top` command did not work on systems using CGroups V2 ([#4192](https://github.com/containers/podman/issues/4192))
+- Fixed a bug where the `podman top` command did not work on systems using cgroups V2 ([#4192](https://github.com/containers/podman/issues/4192))
 - Fixed a bug where rootless Podman could double-close a file, leading to a panic
 - Fixed a bug where rootless Podman could fail to retrieve some containers while refreshing the state
 - Fixed a bug where `podman start --attach --sig-proxy=false` would still proxy signals into the container
@@ -3707,7 +3707,7 @@
 - Fixed a bug where rootless Podman would allow volumes with options to be mounted (mounting volumes requires root), creating an inconsistent state where volumes reported as mounted but were not ([#4248](https://github.com/containers/podman/issues/4248))
 - Fixed a bug where volumes which failed to unmount could not be removed ([#4247](https://github.com/containers/podman/issues/4247))
 - Fixed a bug where Podman incorrectly handled some errors relating to unmounted or missing containers in containers/storage
-- Fixed a bug where `podman stats` was broken on systems running CGroups V2 when run rootless ([#4268](https://github.com/containers/podman/issues/4268))
+- Fixed a bug where `podman stats` was broken on systems running cgroups V2 when run rootless ([#4268](https://github.com/containers/podman/issues/4268))
 - Fixed a bug where the `podman start` command would print the short container ID, instead of the full ID
 - Fixed a bug where containers created with an OCI runtime that is no longer available (uninstalled or removed from the config file) would not appear in `podman ps` and could not be removed via `podman rm`
 - Fixed a bug where containers restored via `podman container restore --import` would retain the CGroup path of the original container, even if their container ID changed; thus, multiple containers created from the same checkpoint would all share the same CGroup
@@ -3723,7 +3723,7 @@
 
 ## 1.6.1
 ### Bugfixes
-- Fixed a bug where rootless Podman on systems using CGroups V2 would not function with the `cgroupfs` CGroups manager
+- Fixed a bug where rootless Podman on systems using cgroups V2 would not function with the `cgroupfs` cgroups manager
 - Fixed a bug where rootless Podman could not correctly identify the DBus session address, causing containers to fail to start ([#4162](https://github.com/containers/podman/issues/4162))
 - Fixed a bug where rootless Podman with `slirp4netns` networking would fail to start containers due to mount leaks
 
@@ -3731,7 +3731,7 @@
 ### Features
 - The `podman network create`, `podman network rm`, `podman network inspect`, and `podman network ls` commands have been added to manage CNI networks used by Podman
 - The `podman volume create` command can now create and mount volumes with options, allowing volumes backed by NFS, tmpfs, and many other filesystems
-- Podman can now run containers without CGroups for better integration with systemd by using the `--cgroups=disabled` flag with `podman create` and `podman run`. This is presently only supported with the `crun` OCI runtime
+- Podman can now run containers without cgroups for better integration with systemd by using the `--cgroups=disabled` flag with `podman create` and `podman run`. This is presently only supported with the `crun` OCI runtime
 - The `podman volume rm` and `podman volume inspect` commands can now refer to volumes by an unambiguous partial name, in addition to full name (e.g. `podman volume rm myvol` to remove a volume named `myvolume`) ([#3891](https://github.com/containers/podman/issues/3891))
 - The `podman run` and `podman create` commands now support the `--pull` flag to allow forced re-pulling of images ([#3734](https://github.com/containers/podman/issues/3734))
 - Mounting volumes into a container using `--volume`, `--mount`, and `--tmpfs` now allows the `suid`, `dev`, and `exec` mount options (the inverse of `nosuid`, `nodev`, `noexec`) ([#3819](https://github.com/containers/podman/issues/3819))
@@ -3754,7 +3754,7 @@
 - Fixed a bug where rootless Podman could not run `podman exec` when the container was not run inside a CGroup owned by the user ([#3937](https://github.com/containers/podman/issues/3937))
 - Fixed a bug where `podman play kube` would panic when given Pod YAML without a `securityContext` ([#3956](https://github.com/containers/podman/issues/3956))
 - Fixed a bug where Podman would place files incorrectly when `storage.conf` configuration items were set to the empty string ([#3952](https://github.com/containers/podman/issues/3952))
-- Fixed a bug where `podman build` did not correctly inherit Podman's CGroup configuration, causing crashed on CGroups V2 systems ([#3938](https://github.com/containers/podman/issues/3938))
+- Fixed a bug where `podman build` did not correctly inherit Podman's CGroup configuration, causing crashed on cgroups V2 systems ([#3938](https://github.com/containers/podman/issues/3938))
 - Fixed a bug where `podman cp` would improperly copy files on the host when copying a symlink in the container that included a glob operator ([#3829](https://github.com/containers/podman/issues/3829))
 - Fixed a bug where remote `podman run --rm` would exit before the container was completely removed, allowing race conditions when removing container resources ([#3870](https://github.com/containers/podman/issues/3870))
 - Fixed a bug where rootless Podman would not properly handle changes to `/etc/subuid` and `/etc/subgid` after a container was launched
@@ -3784,7 +3784,7 @@
 - Updated vendored Buildah to v1.11.2
 - Updated vendored containers/storage library to v1.13.4
 - Improved error messages when trying to create a pod with no name via `podman play kube`
-- Improved error messages when trying to run `podman pause` or `podman stats` on a rootless container on a system without CGroups V2 enabled
+- Improved error messages when trying to run `podman pause` or `podman stats` on a rootless container on a system without cgroups V2 enabled
 - `TMPDIR` has been set to `/var/tmp` by default to better handle large temporary files
 - `podman wait` has been optimized to detect stopped containers more rapidly
 - Podman containers now include a `ContainerManager` annotation indicating they were created by `libpod`
@@ -3804,7 +3804,7 @@
 - Fixed a bug where `podman run --rm` (or force-removing any running container with `podman rm --force`) were not retrieving the correct exit code ([#3795](https://github.com/containers/podman/issues/3795))
 - Fixed a bug where Podman would exit with an error if any configured hooks directory was not present
 - Fixed a bug where `podman inspect` and `podman commit` would not use the correct `CMD` for containers run with `podman play kube`
-- Fixed a bug created pods when using rootless Podman and CGroups V2 ([#3801](https://github.com/containers/podman/issues/3801))
+- Fixed a bug created pods when using rootless Podman and cgroups V2 ([#3801](https://github.com/containers/podman/issues/3801))
 - Fixed a bug where the `podman events` command with the `--since` or `--until` options could take a very long time to complete
 
 ### Misc
@@ -3828,7 +3828,7 @@
 - Podman containers now support CGroup namespaces, and can create them by passing `--cgroupns=private` to `podman run` or `podman create`
 - The `podman create` and `podman run` commands now support the `--ulimit=host` flag, which uses any ulimits currently set on the host for the container
 - The `podman rm` and `podman rmi` commands now use different exit codes to indicate 'no such container' and 'container is running' errors
-- Support for CGroups V2 through the `crun` OCI runtime has been greatly improved, allowing resource limits to be set for rootless containers when the CGroups V2 hierarchy is in use
+- Support for cgroups V2 through the `crun` OCI runtime has been greatly improved, allowing resource limits to be set for rootless containers when the cgroups V2 hierarchy is in use
 
 ### Bugfixes
 - Fixed a bug where a race condition could cause `podman restart` to fail to start containers with ports
@@ -4338,7 +4338,7 @@
 - Fixed a bug where rootless `podman attach` would fail to attach due to a too-long path name
 - Fixed a bug where `podman info` was not properly reporting the Git commit Podman was built from
 - Fixed a bug where `podman run --interactive` was not holding STDIN open when `-a` flag was specified
-- Fixed a bug where Podman with the `cgroupfs` CGroup driver was sometimes not successfully removing pod CGroups
+- Fixed a bug where Podman with the `cgroupfs` CGroup driver was sometimes not successfully removing pod cgroups
 - Fixed a bug where rootless Podman was unable to run systemd containers (note that this also requires an update to systemd)
 - Fixed a bug where `podman run` with the `--user` flag would fail if the container image did not contain `/etc/passwd` or `/etc/group`
 

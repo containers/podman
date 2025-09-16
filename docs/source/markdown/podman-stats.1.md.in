@@ -11,11 +11,11 @@ podman\-stats - Display a live stream of one or more container's resource usage 
 ## DESCRIPTION
 Display a live stream of one or more containers' resource usage statistics
 
-Note:  Podman stats does not work in rootless environments that use CGroups V1.
+Note:  Podman stats does not work in rootless environments that use cgroups V1.
 Podman stats relies on CGroup information for statistics, and CGroup v1 is not
 supported for rootless use cases.
 
-Note: Rootless environments that use CGroups V2 are not able to report statistics
+Note: Rootless environments that use cgroups V2 are not able to report statistics
 about their networking usage.
 
 ## OPTIONS
@@ -59,7 +59,7 @@ Valid placeholders for the Go template are listed below:
 | .Up                 | Duration (CPUNano), in human-readable form       |
 | .UpTime             | Same as Up                                       |
 
-[1] Cgroups V1 only
+[1] cgroups V1 only
 
 When using a Go template, precede the format with `table` to print headers.
 

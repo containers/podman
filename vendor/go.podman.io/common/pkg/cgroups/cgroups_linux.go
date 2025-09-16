@@ -33,7 +33,7 @@ var (
 	// ErrCgroupDeleted means the cgroup was deleted.
 	ErrCgroupDeleted = errors.New("cgroup deleted")
 	// ErrCgroupV1Rootless means the cgroup v1 were attempted to be used in rootless environment.
-	ErrCgroupV1Rootless = errors.New("no support for CGroups V1 in rootless environments")
+	ErrCgroupV1Rootless = errors.New("no support for cgroups V1 in rootless environments")
 	ErrStatCgroup       = errors.New("no cgroup available for gathering user statistics")
 
 	isUnifiedOnce sync.Once

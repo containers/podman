@@ -318,7 +318,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	}
 
 	if s.CgroupsMode == "" {
-		s.CgroupsMode = rtc.Cgroups()
+		s.CgroupsMode = rtc.cgroups()
 	}
 
 	// If caller did not specify Pids Limits load default

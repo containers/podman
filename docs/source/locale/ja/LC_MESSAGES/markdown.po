@@ -1933,7 +1933,7 @@ msgstr ""
 msgid ""
 "Path to cgroups under which the cgroup for the container is created. If "
 "the path is not absolute, the path is considered to be relative to the "
-"cgroups path of the init process. Cgroups are created if they do not "
+"cgroups path of the init process. cgroups are created if they do not "
 "already exist."
 msgstr ""
 
@@ -8469,7 +8469,7 @@ msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:193
 #: ../../source/markdown/podman-run.1.md:212
-msgid "Determines whether the container creates CGroups."
+msgid "Determines whether the container creates cgroups."
 msgstr ""
 
 #: ../../source/markdown/podman-create.1.md:195
@@ -8481,7 +8481,7 @@ msgstr ""
 #: ../../source/markdown/podman-run.1.md:216
 msgid ""
 "The **enabled** option creates a new cgroup under the cgroup-parent. The "
-"**disabled** option forces the container to not create CGroups, and thus "
+"**disabled** option forces the container to not create cgroups, and thus "
 "conflicts with CGroup options (**--cgroupns** and **--cgroup-parent**). "
 "The **no-conmon** option disables a new CGroup only for the **conmon** "
 "process. The **split** option splits the current CGroup in two sub-"
@@ -21140,7 +21140,7 @@ msgstr ""
 msgid ""
 "Path to cgroups under which the cgroup for the pod is created. If the "
 "path is not absolute, the path is considered to be relative to the "
-"cgroups path of the init process. Cgroups are created if they do not "
+"cgroups path of the init process. cgroups are created if they do not "
 "already exist."
 msgstr ""
 
@@ -26355,13 +26355,13 @@ msgstr ""
 #: ../../source/markdown/podman-stats.1.md:15
 msgid ""
 "Note:  Podman stats does not work in rootless environments that use "
-"CGroups V1. Podman stats relies on CGroup information for statistics, and"
+"cgroups V1. Podman stats relies on CGroup information for statistics, and"
 " CGroup v1 is not supported for rootless use cases."
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:19
 msgid ""
-"Note: Rootless environments that use CGroups V2 are not able to report "
+"Note: Rootless environments that use cgroups V2 are not able to report "
 "statistics about their networking usage."
 msgstr ""
 
@@ -26522,7 +26522,7 @@ msgid "Same as UpTime"
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:64
-msgid "[1] Cgroups V1 only"
+msgid "[1] cgroups V1 only"
 msgstr ""
 
 #: ../../source/markdown/podman-stats.1.md:68
@@ -31198,7 +31198,7 @@ msgstr ""
 msgid ""
 "Note: Setting this flag can cause certain commands to break when called "
 "on containers previously created by the other CGroup manager type. Note: "
-"CGroup manager is not supported in rootless mode when using CGroups "
+"CGroup manager is not supported in rootless mode when using cgroups "
 "Version V1."
 msgstr ""
 

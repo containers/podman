@@ -257,7 +257,7 @@ $ podman container inspect foobar
             "GroupAdd": [],
             "IpcMode": "shareable",
             "Cgroup": "",
-            "Cgroups": "default",
+            "cgroups": "default",
             "Links": null,
             "OomScoreAdj": 0,
             "PidMode": "private",

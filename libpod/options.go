@@ -1069,7 +1069,7 @@ func WithLogTag(tag string) CtrCreateOption {
 	}
 }
 
-// WithCgroupsMode disables the creation of Cgroups for the conmon process.
+// WithCgroupsMode disables the creation of cgroups for the conmon process.
 func WithCgroupsMode(mode string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {

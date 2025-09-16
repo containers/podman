@@ -373,7 +373,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}
 
 	// Check Cgroup parent sanity, and set it if it was not set.
-	// Only if we're actually configuring Cgroups.
+	// Only if we're actually configuring cgroups.
 	if !ctr.config.NoCgroups {
 		ctr.config.CgroupManager = r.config.Engine.CgroupManager
 		switch r.config.Engine.CgroupManager {

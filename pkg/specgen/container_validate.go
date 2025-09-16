@@ -119,7 +119,7 @@ func (s *SpecGenerator) Validate() error {
 	}
 
 	// TODO the specgen does not appear to handle this?  Should it
-	// switch config.Cgroup.Cgroups {
+	// switch config.Cgroup.cgroups {
 	// case "disabled":
 	//	if addedResources {
 	//		return errors.New("cannot specify resource limits when cgroups are disabled is specified")

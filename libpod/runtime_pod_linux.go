@@ -19,7 +19,7 @@ import (
 func (r *Runtime) platformMakePod(pod *Pod, resourceLimits *spec.LinuxResources) (string, error) {
 	cgroupParent := ""
 	// Check Cgroup parent sanity, and set it if it was not set
-	if r.config.Cgroups() != "disabled" {
+	if r.config.cgroups() != "disabled" {
 		switch r.config.Engine.CgroupManager {
 		case config.CgroupfsCgroupsManager:
 			canUseCgroup := !rootless.IsRootless() || isRootlessCgroupSet(pod.config.CgroupParent)

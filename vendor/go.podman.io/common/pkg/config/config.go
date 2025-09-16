@@ -90,7 +90,7 @@ type ContainersConfig struct {
 	CgroupNS string `toml:"cgroupns,omitempty"`
 
 	// Default cgroup configuration
-	Cgroups string `toml:"cgroups,omitempty"`
+	cgroups string `toml:"cgroups,omitempty"`
 
 	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
 	// "memory.high=1073741824" sets the memory.high limit to 1GB.
@@ -478,7 +478,7 @@ type EngineConfig struct {
 	RuntimeSupportsJSON attributedstring.Slice `toml:"runtime_supports_json,omitempty"`
 
 	// RuntimeSupportsNoCgroups is a list of OCI runtimes that support
-	// running containers without CGroups.
+	// running containers without cgroups.
 	RuntimeSupportsNoCgroups attributedstring.Slice `toml:"runtime_supports_nocgroup,omitempty"`
 
 	// RuntimeSupportsKVM is a list of OCI runtimes that support

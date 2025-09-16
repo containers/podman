@@ -46,7 +46,7 @@ function setup() {
         'Rootless:{{.Host.Security.Rootless}}'
         'Events:{{.Host.EventLogger}}'
         'Logdriver:{{.Host.LogDriver}}'
-        'Cgroups:{{.Host.CgroupsVersion}}+{{.Host.CgroupManager}}'
+        'cgroups:{{.Host.CgroupsVersion}}+{{.Host.CgroupManager}}'
         'Net:{{.Host.NetworkBackend}}'
         'DB:{{.Host.DatabaseBackend}}'
         'Store:{{.Store.GraphDriverName}}'

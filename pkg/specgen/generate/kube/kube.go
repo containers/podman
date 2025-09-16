@@ -202,7 +202,7 @@ func ToSpecGen(ctx context.Context, opts *CtrSpecGenOptions) (*specgen.SpecGener
 	}
 
 	if s.CgroupsMode == "" {
-		s.CgroupsMode = rtc.Cgroups()
+		s.CgroupsMode = rtc.cgroups()
 	}
 	if len(s.ImageVolumeMode) == 0 {
 		s.ImageVolumeMode = rtc.Engine.ImageVolumeMode

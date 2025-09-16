@@ -1367,8 +1367,8 @@ func (c *Container) stopWithAll() (bool, error) {
 	// a pid namespace then the OCI Runtime needs to kill ALL processes in
 	// the container's cgroup in order to make sure the container is stopped.
 	all := !c.hasNamespace(spec.PIDNamespace)
-	// We can't use --all if Cgroups aren't present.
-	// Rootless containers with Cgroups v1 and NoCgroups are both cases
+	// We can't use --all if cgroups aren't present.
+	// Rootless containers with cgroups v1 and NoCgroups are both cases
 	// where this can happen.
 	if all {
 		if c.config.NoCgroups {
@@ -1556,7 +1556,7 @@ func (c *Container) waitForConmonToExitAndSave() error {
 // Internal, non-locking function to pause a container
 func (c *Container) pause() error {
 	if c.config.NoCgroups {
-		return fmt.Errorf("cannot pause without using Cgroups: %w", define.ErrNoCgroups)
+		return fmt.Errorf("cannot pause without using cgroups: %w", define.ErrNoCgroups)
 	}
 
 	if rootless.IsRootless() {
@@ -1593,7 +1593,7 @@ func (c *Container) pause() error {
 // Internal, non-locking function to unpause a container
 func (c *Container) unpause() error {
 	if c.config.NoCgroups {
-		return fmt.Errorf("cannot unpause without using Cgroups: %w", define.ErrNoCgroups)
+		return fmt.Errorf("cannot unpause without using cgroups: %w", define.ErrNoCgroups)
 	}
 
 	if err := c.ociRuntime.UnpauseContainer(c); err != nil {

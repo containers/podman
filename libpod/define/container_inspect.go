@@ -458,11 +458,11 @@ type InspectContainerHostConfig struct {
 	// populated.
 	// TODO.
 	Cgroup string `json:"Cgroup"`
-	// Cgroups contains the container's Cgroup mode.
-	// Allowed values are "default" (container is creating Cgroups) and
-	// "disabled" (container is not creating Cgroups).
+	// cgroups contains the container's Cgroup mode.
+	// Allowed values are "default" (container is creating cgroups) and
+	// "disabled" (container is not creating cgroups).
 	// This is Libpod-specific and not included in `docker inspect`.
-	Cgroups string `json:"Cgroups"`
+	cgroups string `json:"cgroups"`
 	// Links is unused, and provided purely for Docker compatibility.
 	Links []string `json:"Links"`
 	// OOMScoreAdj is an adjustment that will be made to the container's OOM
@@ -533,7 +533,7 @@ type InspectContainerHostConfig struct {
 	Isolation string `json:"Isolation"`
 	// CpuShares indicates the CPU resources allocated to the container.
 	// It is a relative weight in the scheduler for assigning CPU time
-	// versus other Cgroups.
+	// versus other cgroups.
 	CpuShares uint64 `json:"CpuShares"`
 	// Memory indicates the memory resources allocated to the container.
 	// This is the limit (in bytes) of RAM the container may use.
@@ -555,7 +555,7 @@ type InspectContainerHostConfig struct {
 	CgroupParent string `json:"CgroupParent"`
 	// BlkioWeight indicates the I/O resources allocated to the container.
 	// It is a relative weight in the scheduler for assigning I/O time
-	// versus other Cgroups.
+	// versus other cgroups.
 	BlkioWeight uint16 `json:"BlkioWeight"`
 	// BlkioWeightDevice is an array of I/O resource priorities for
 	// individual device nodes.

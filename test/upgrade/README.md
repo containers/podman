@@ -64,7 +64,7 @@ Findings
 Well, first, `v1.6.2` won't work on default f32/f33: the image
 does not include `crun`, so it can't work at all:
 
-    ERRO[0000] oci runtime "runc" does not support CGroups V2: use system migrate to mitigate
+    ERRO[0000] oci runtime "runc" does not support cgroups V2: use system migrate to mitigate
 
 I realize that it's kind of stupid not to test 1.6, since that's
 precisely the test that would've caught #8613 early, but I just

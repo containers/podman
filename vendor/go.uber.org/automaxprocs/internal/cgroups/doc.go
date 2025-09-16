@@ -18,6 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-// Package cgroups provides utilities to access Linux control group (CGroups)
+// Package cgroups provides utilities to access Linux control group (cgroups)
 // parameters (CPU quota, for example) for a given process.
 package cgroups

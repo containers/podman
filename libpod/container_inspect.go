@@ -506,9 +506,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	restartPolicy.MaximumRetryCount = c.config.RestartRetries
 	hostConfig.RestartPolicy = restartPolicy
 	if c.config.NoCgroups {
-		hostConfig.Cgroups = "disabled"
+		hostConfig.cgroups = "disabled"
 	} else {
-		hostConfig.Cgroups = "default"
+		hostConfig.cgroups = "default"
 	}
 
 	hostConfig.Dns = make([]string, 0, len(c.config.DNSServer))
