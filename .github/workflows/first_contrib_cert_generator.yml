@@ -3,7 +3,7 @@ name: Generate Contributor Certificate Preview
 # This action triggers automatically when a pull request is closed,
 # or can be run manually from the Actions tab.
 on:
-  pull_request:
+  pull_request_target:
     types: [closed]
     branches:
       - main
