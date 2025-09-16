@@ -122,10 +122,10 @@ validate-source_task:
     setup_script: &setup '$GOSRC/$SCRIPT_BASE/setup_environment.sh'
     golangci-lint_cache:
         folder: /root/.cache/golangci-lint
-        reupload_on_changes: true
-        fingerprint_script:
+        fingerprint_script: &golangci_cache_fingerprint
             - go version
             - grep GOLANGCI_LINT_VERSION Makefile | head -1
+            - date +%U
     # Standard main execution stage call, used by nearly every task in CI.
     main_script: &main '/usr/bin/time --verbose --output="$STATS_LOGFILE" $GOSRC/$SCRIPT_BASE/runner.sh'
 
@@ -331,7 +331,7 @@ freebsd_alt_build_task:
         TEST_FLAVOR: "altbuild"
         ALT_NAME: 'FreeBSD Cross'
     freebsd_instance:
-        image_family: freebsd-13-4
+        image_family: freebsd-14-3
         # golangci-lint is a very, very hungry beast.
         cpu: 4
         memory: 8Gb
@@ -340,10 +340,7 @@ freebsd_alt_build_task:
         - go version # Downloads a new go version based on go.mod's go directive.
     golint_cache:
         folder: ~/.cache/golangci-lint
-        reupload_on_changes: true
-        fingerprint_script:
-            - go version
-            - grep GOLANGCI_LINT_VERSION Makefile | head -1
+        fingerprint_script: *golangci_cache_fingerprint
     lint_script:
         - gmake golangci-lint
     build_amd64_script:
