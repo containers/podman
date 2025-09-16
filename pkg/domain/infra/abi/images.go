@@ -422,7 +422,9 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 
 	pushedManifestBytes, pushError := ir.Libpod.LibimageRuntime().Push(ctx, source, destination, pushOptions)
 	if pushError == nil {
-		manifestDigest, err := manifest.Digest(pushedManifestBytes)
+		// TODO: Get the digest algorithm from the storage store for manifest digest computation
+		// For now, use DigestWithAlgorithm with canonical algorithm to maintain consistency with new function signature
+		manifestDigest, err := manifest.DigestWithAlgorithm(pushedManifestBytes, digest.Canonical)
 		if err != nil {
 			return nil, err
 		}

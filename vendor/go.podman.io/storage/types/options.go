@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -269,6 +270,10 @@ type StoreOptions struct {
 	DisableVolatile bool `json:"disable-volatile,omitempty"`
 	// If transient, don't persist containers over boot (stores db in runroot)
 	TransientStore bool `json:"transient_store,omitempty"`
+	// DigestType specifies the hash algorithm to use for content addressing.
+	// Supported values are: "sha256", "sha512"
+	// Default is "sha256"
+	DigestType string `json:"digest_type,omitempty"`
 }
 
 // isRootlessDriver returns true if the given storage driver is valid for containers running as non root
@@ -362,7 +367,7 @@ func getRootlessStorageOpts(systemOpts StoreOptions) (StoreOptions, error) {
 	}
 
 	if os.Getenv("STORAGE_OPTS") != "" {
-		opts.GraphDriverOptions = append(opts.GraphDriverOptions, strings.Split(os.Getenv("STORAGE_OPTS"), ",")...)
+		opts.GraphDriverOptions = slices.AppendSeq(opts.GraphDriverOptions, strings.SplitSeq(os.Getenv("STORAGE_OPTS"), ","))
 	}
 
 	return opts, nil
@@ -492,6 +497,12 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 
 	storeOptions.DisableVolatile = config.Storage.Options.DisableVolatile
 	storeOptions.TransientStore = config.Storage.TransientStore
+
+	if config.Storage.Options.DigestType != "" {
+		storeOptions.DigestType = config.Storage.Options.DigestType
+	} else {
+		storeOptions.DigestType = "sha256" // default value
+	}
 
 	storeOptions.GraphDriverOptions = append(storeOptions.GraphDriverOptions, cfg.GetGraphDriverOptions(storeOptions.GraphDriverName, config.Storage.Options)...)
 

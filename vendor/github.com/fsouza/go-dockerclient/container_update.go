@@ -30,7 +30,7 @@ type UpdateContainerOptions struct {
 //
 // See https://goo.gl/Y6fXUy for more details.
 func (c *Client) UpdateContainer(id string, opts UpdateContainerOptions) error {
-	resp, err := c.do(http.MethodPost, fmt.Sprintf("/containers/"+id+"/update"), doOptions{
+	resp, err := c.do(http.MethodPost, fmt.Sprintf("/containers/%s/update", id), doOptions{
 		data:      opts,
 		forceJSON: true,
 		context:   opts.Context,

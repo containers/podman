@@ -72,7 +72,7 @@ func autocompleteSubIDName(filename string) ([]string, cobra.ShellCompDirective)
 	var names []string
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		name := strings.SplitN(scanner.Text(), ":", 2)[0]
+		name, _, _ := strings.Cut(scanner.Text(), ":")
 		names = append(names, name)
 	}
 	if err = scanner.Err(); err != nil {

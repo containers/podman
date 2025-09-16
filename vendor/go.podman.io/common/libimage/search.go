@@ -94,11 +94,11 @@ func (r *Runtime) Search(ctx context.Context, term string, options *SearchOption
 	// that we cannot use the reference parser from the containers/image
 	// library as the search term may container arbitrary input such as
 	// wildcards.  See bugzilla.redhat.com/show_bug.cgi?id=1846629.
-	spl := strings.SplitN(term, "/", 2)
+	perhapsRegistry, perhapsTerm, ok := strings.Cut(term, "/")
 	switch {
-	case len(spl) > 1:
-		searchRegistries = []string{spl[0]}
-		term = spl[1]
+	case ok:
+		searchRegistries = []string{perhapsRegistry}
+		term = perhapsTerm
 	case len(options.Registries) > 0:
 		searchRegistries = options.Registries
 	default:
@@ -203,15 +203,9 @@ func (r *Runtime) searchImageInRegistry(ctx context.Context, term, registry stri
 	// limit is the number of results to output
 	// if the total number of results is less than the limit, output all
 	// if the limit has been set by the user, output those number of queries
-	limit = searchMaxQueries
-	if len(results) < limit {
-		limit = len(results)
-	}
+	limit = min(len(results), searchMaxQueries)
 	if options.Limit != 0 {
-		limit = len(results)
-		if options.Limit < len(results) {
-			limit = options.Limit
-		}
+		limit = min(len(results), options.Limit)
 	}
 
 	paramsArr := []SearchResult{}
@@ -264,15 +258,9 @@ func searchRepositoryTags(ctx context.Context, sys *types.SystemContext, registr
 	if err != nil {
 		return nil, fmt.Errorf("getting repository tags: %v", err)
 	}
-	limit := searchMaxQueries
-	if len(tags) < limit {
-		limit = len(tags)
-	}
+	limit := min(len(tags), searchMaxQueries)
 	if options.Limit != 0 {
-		limit = len(tags)
-		if options.Limit < limit {
-			limit = options.Limit
-		}
+		limit = min(len(tags), options.Limit)
 	}
 	paramsArr := []SearchResult{}
 	for i := range limit {

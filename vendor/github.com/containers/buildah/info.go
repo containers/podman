@@ -183,11 +183,11 @@ func getHostDistributionInfo() map[string]string {
 
 	l := bufio.NewScanner(f)
 	for l.Scan() {
-		if strings.HasPrefix(l.Text(), "ID=") {
-			dist["Distribution"] = strings.TrimPrefix(l.Text(), "ID=")
+		if after, ok := strings.CutPrefix(l.Text(), "ID="); ok {
+			dist["Distribution"] = after
 		}
-		if strings.HasPrefix(l.Text(), "VERSION_ID=") {
-			dist["Version"] = strings.Trim(strings.TrimPrefix(l.Text(), "VERSION_ID="), "\"")
+		if after, ok := strings.CutPrefix(l.Text(), "VERSION_ID="); ok {
+			dist["Version"] = strings.Trim(after, "\"")
 		}
 	}
 	return dist

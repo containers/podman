@@ -19,7 +19,7 @@ func CleanAbsPath(path string) string {
 //
 // The caller MUST ensure d is a valid digest (in particular, that it contains no path separators or .. entries)
 func RegularFilePathForValidatedDigest(d digest.Digest) (string, error) {
-	if algo := d.Algorithm(); algo != digest.SHA256 {
+	if algo := d.Algorithm(); algo != digest.SHA256 && algo != digest.SHA512 {
 		return "", fmt.Errorf("unexpected digest algorithm %q", algo)
 	}
 	e := d.Encoded()

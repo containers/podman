@@ -15,6 +15,8 @@
 package name
 
 import (
+	"encoding"
+	"encoding/json"
 	"net"
 	"net/url"
 	"path"
@@ -36,6 +38,11 @@ type Registry struct {
 	insecure bool
 	registry string
 }
+
+var _ encoding.TextMarshaler = (*Registry)(nil)
+var _ encoding.TextUnmarshaler = (*Registry)(nil)
+var _ json.Marshaler = (*Registry)(nil)
+var _ json.Unmarshaler = (*Registry)(nil)
 
 // RegistryStr returns the registry component of the Registry.
 func (r Registry) RegistryStr() string {
@@ -139,4 +146,34 @@ func NewRegistry(name string, opts ...Option) (Registry, error) {
 func NewInsecureRegistry(name string, opts ...Option) (Registry, error) {
 	opts = append(opts, Insecure)
 	return NewRegistry(name, opts...)
+}
+
+// MarshalJSON formats the Registry into a string for JSON serialization.
+func (r Registry) MarshalJSON() ([]byte, error) { return json.Marshal(r.String()) }
+
+// UnmarshalJSON parses a JSON string into a Registry.
+func (r *Registry) UnmarshalJSON(data []byte) error {
+	var s string
+	if err := json.Unmarshal(data, &s); err != nil {
+		return err
+	}
+	n, err := NewRegistry(s)
+	if err != nil {
+		return err
+	}
+	*r = n
+	return nil
+}
+
+// MarshalText formats the registry into a string for text serialization.
+func (r Registry) MarshalText() ([]byte, error) { return []byte(r.String()), nil }
+
+// UnmarshalText parses a text string into a Registry.
+func (r *Registry) UnmarshalText(data []byte) error {
+	n, err := NewRegistry(string(data))
+	if err != nil {
+		return err
+	}
+	*r = n
+	return nil
 }

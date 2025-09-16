@@ -3,6 +3,7 @@ package chunked
 import (
 	"io"
 
+	"github.com/opencontainers/go-digest"
 	"go.podman.io/storage/pkg/chunked/compressor"
 	"go.podman.io/storage/pkg/chunked/internal/minimal"
 )
@@ -21,5 +22,5 @@ const (
 // ZstdCompressor is a CompressorFunc for the zstd compression algorithm.
 // Deprecated: Use pkg/chunked/compressor.ZstdCompressor.
 func ZstdCompressor(r io.Writer, metadata map[string]string, level *int) (io.WriteCloser, error) {
-	return compressor.ZstdCompressor(r, metadata, level)
+	return compressor.ZstdCompressor(r, metadata, level, digest.SHA256)
 }

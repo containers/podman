@@ -145,16 +145,6 @@ var (
 	// helper binary in a different location.
 	additionalHelperBinariesDir string
 
-	defaultUnixComposeProviders = []string{
-		"$HOME/.docker/cli-plugins/docker-compose",
-		"/usr/local/lib/docker/cli-plugins/docker-compose",
-		"/usr/local/libexec/docker/cli-plugins/docker-compose",
-		"/usr/lib/docker/cli-plugins/docker-compose",
-		"/usr/libexec/docker/cli-plugins/docker-compose",
-		"docker-compose",
-		"podman-compose",
-	}
-
 	defaultContainerEnv = []string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
 )
 
