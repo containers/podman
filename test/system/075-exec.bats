@@ -65,7 +65,7 @@ load helpers
     is "$(find_exec_pid_files)" "" "there isn't any exec pid hash file leak"
 
     # Ensure file is there while container is running
-    run_podman exec -d $cid sleep 5
+    run_podman exec -d $cid sleep 100
     is "$(find_exec_pid_files)" '.*containers.*exec_pid' "exec_pid file found"
 
     run_podman rm -t 0 -f $cid
