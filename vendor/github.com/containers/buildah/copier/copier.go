@@ -162,13 +162,13 @@ type request struct {
 	preservedDirectory       string
 	Globs                    []string `json:",omitempty"` // used by stat, get
 	preservedGlobs           []string
-	StatOptions              StatOptions              `json:",omitempty"`
-	GetOptions               GetOptions               `json:",omitempty"`
-	PutOptions               PutOptions               `json:",omitempty"`
-	MkdirOptions             MkdirOptions             `json:",omitempty"`
-	RemoveOptions            RemoveOptions            `json:",omitempty"`
-	EnsureOptions            EnsureOptions            `json:",omitempty"`
-	ConditionalRemoveOptions ConditionalRemoveOptions `json:",omitempty"`
+	StatOptions              StatOptions
+	GetOptions               GetOptions
+	PutOptions               PutOptions
+	MkdirOptions             MkdirOptions
+	RemoveOptions            RemoveOptions
+	EnsureOptions            EnsureOptions
+	ConditionalRemoveOptions ConditionalRemoveOptions
 }
 
 func (req *request) Excludes() []string {
@@ -248,15 +248,15 @@ func (req *request) GIDMap() []idtools.IDMap {
 
 // Response encodes a single response.
 type response struct {
-	Error             string                    `json:",omitempty"`
-	Stat              statResponse              `json:",omitempty"`
-	Eval              evalResponse              `json:",omitempty"`
-	Get               getResponse               `json:",omitempty"`
-	Put               putResponse               `json:",omitempty"`
-	Mkdir             mkdirResponse             `json:",omitempty"`
-	Remove            removeResponse            `json:",omitempty"`
-	Ensure            ensureResponse            `json:",omitempty"`
-	ConditionalRemove conditionalRemoveResponse `json:",omitempty"`
+	Error             string `json:",omitempty"`
+	Stat              statResponse
+	Eval              evalResponse
+	Get               getResponse
+	Put               putResponse
+	Mkdir             mkdirResponse
+	Remove            removeResponse
+	Ensure            ensureResponse
+	ConditionalRemove conditionalRemoveResponse
 }
 
 // statResponse encodes a response for a single Stat request.
@@ -801,7 +801,7 @@ func copierWithSubprocess(bulkReader io.Reader, bulkWriter io.Writer, req reques
 	}
 	loggedOutput := strings.TrimSuffix(errorBuffer.String(), "\n")
 	if len(loggedOutput) > 0 {
-		for _, output := range strings.Split(loggedOutput, "\n") {
+		for output := range strings.SplitSeq(loggedOutput, "\n") {
 			logrus.Debug(output)
 		}
 	}
@@ -1588,8 +1588,8 @@ func mapWithPrefixedKeysWithoutKeyPrefix[K any](m map[string]K, p string) map[st
 	}
 	cloned := make(map[string]K, len(m))
 	for k, v := range m {
-		if strings.HasPrefix(k, p) {
-			cloned[strings.TrimPrefix(k, p)] = v
+		if after, ok := strings.CutPrefix(k, p); ok {
+			cloned[after] = v
 		}
 	}
 	return cloned
@@ -1819,7 +1819,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 			return fmt.Errorf("%q is not a subdirectory of %q: %w", directory, req.Root, err)
 		}
 		subdir := ""
-		for _, component := range strings.Split(rel, string(os.PathSeparator)) {
+		for component := range strings.SplitSeq(rel, string(os.PathSeparator)) {
 			subdir = filepath.Join(subdir, component)
 			path := filepath.Join(req.Root, subdir)
 			if err := os.Mkdir(path, 0o700); err == nil {
@@ -2187,7 +2187,7 @@ func copierHandlerPut(bulkReader io.Reader, req request, idMappings *idtools.IDM
 }
 
 func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response, func() error, error) {
-	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) {
+	errorResponse := func(fmtspec string, args ...any) (*response, func() error, error) { //nolint:unparam
 		return &response{Error: fmt.Sprintf(fmtspec, args...), Mkdir: mkdirResponse{}}, nil, nil
 	}
 	dirUID, dirGID := 0, 0
@@ -2219,7 +2219,7 @@ func copierHandlerMkdir(req request, idMappings *idtools.IDMappings) (*response,
 
 	subdir := ""
 	var created []string
-	for _, component := range strings.Split(rel, string(os.PathSeparator)) {
+	for component := range strings.SplitSeq(rel, string(os.PathSeparator)) {
 		subdir = filepath.Join(subdir, component)
 		path := filepath.Join(req.Root, subdir)
 		if err := os.Mkdir(path, 0o700); err == nil {

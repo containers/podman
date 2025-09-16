@@ -271,11 +271,13 @@ func (eventState *eventMonitoringState) monitorEvents(c *Client, opts EventsOpti
 				return
 			}
 			if ev == EOFEvent {
-				eventState.disableEventMonitoring()
+				go eventState.disableEventMonitoring()
 				return
 			}
-			eventState.updateLastSeen(ev)
-			eventState.sendEvent(ev)
+			go func(ev *APIEvents) {
+				eventState.updateLastSeen(ev)
+				eventState.sendEvent(ev)
+			}(ev)
 		case err = <-eventState.errC:
 			if errors.Is(err, ErrNoListeners) {
 				eventState.disableEventMonitoring()

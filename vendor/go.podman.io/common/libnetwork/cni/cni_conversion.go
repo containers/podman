@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	internalutil "go.podman.io/common/libnetwork/internal/util"
 	"go.podman.io/common/libnetwork/types"
@@ -22,10 +23,10 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath string) (*types.Network, error) {
+func createNetworkFromCNIConfigList(conf *libcni.NetworkConfigList, confPath string, digestAlgorithm digest.Algorithm) (*types.Network, error) {
 	network := types.Network{
 		Name:        conf.Name,
-		ID:          getNetworkIDFromName(conf.Name),
+		ID:          getNetworkIDFromName(conf.Name, digestAlgorithm),
 		Labels:      map[string]string{},
 		Options:     map[string]string{},
 		IPAMOptions: map[string]string{},

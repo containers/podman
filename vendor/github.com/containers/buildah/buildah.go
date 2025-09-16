@@ -132,8 +132,8 @@ type Builder struct {
 	ImageHistoryComment string `json:"history-comment,omitempty"`
 
 	// Image metadata and runtime settings, in multiple formats.
-	OCIv1  v1.Image       `json:"ociv1,omitempty"`
-	Docker docker.V2Image `json:"docker,omitempty"`
+	OCIv1  v1.Image       `json:"ociv1"`
+	Docker docker.V2Image `json:"docker"`
 	// DefaultMountsFilePath is the file path holding the mounts to be mounted in "host-path:container-path" format.
 	DefaultMountsFilePath string `json:"defaultMountsFilePath,omitempty"`
 

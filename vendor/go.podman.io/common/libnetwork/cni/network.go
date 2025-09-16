@@ -4,8 +4,6 @@ package cni
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -15,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containernetworking/cni/libcni"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libnetwork/internal/rootlessnetns"
 	"go.podman.io/common/libnetwork/types"
@@ -212,7 +211,7 @@ func (n *cniNetwork) loadNetworks() error {
 			continue
 		}
 
-		net, err := createNetworkFromCNIConfigList(conf, file)
+		net, err := createNetworkFromCNIConfigList(conf, file, digest.SHA256)
 		if err != nil {
 			// ignore ENOENT as the config has been removed in the meantime so we can just ignore this case
 			if !errors.Is(err, fs.ErrNotExist) {
@@ -286,11 +285,14 @@ func (n *cniNetwork) getNetwork(nameOrID string) (*network, error) {
 	return nil, fmt.Errorf("unable to find network with name or ID %s: %w", nameOrID, types.ErrNoSuchNetwork)
 }
 
-// getNetworkIDFromName creates a network ID from the name. It is just the
-// sha256 hash so it is not safe but it should be safe enough for our use case.
-func getNetworkIDFromName(name string) string {
-	hash := sha256.Sum256([]byte(name))
-	return hex.EncodeToString(hash[:])
+// getNetworkIDFromName creates a network ID from the name using the specified digest algorithm.
+func getNetworkIDFromName(name string, algorithm digest.Algorithm) string {
+	// Use the digest library's built-in functionality
+	digester := algorithm.Digester()
+	digester.Hash().Write([]byte(name))
+	digest := digester.Digest()
+	// Return just the hex part without the algorithm prefix
+	return digest.Encoded()
 }
 
 // Implement the NetUtil interface for easy code sharing with other network interfaces.

@@ -202,7 +202,7 @@ func Merge(mergeStrategy define.SBOMMergeStrategy, inputOutputSBOM, inputSBOM, o
 		Dependencies []string `json:"dependencies,omitempty"`
 	}
 	type purlDocument struct {
-		ImageContents purlImageContents `json:"image_contents,omitempty"`
+		ImageContents purlImageContents `json:"image_contents"`
 	}
 	purls := []string{}
 	seenPurls := make(map[string]struct{})

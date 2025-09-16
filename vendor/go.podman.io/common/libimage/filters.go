@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	filtersPkg "go.podman.io/common/pkg/filters"
 	"go.podman.io/common/pkg/timetype"
@@ -481,9 +482,45 @@ func filterID(value string) filterFunc {
 
 // filterDigest creates a digest filter for matching the specified value.
 func filterDigest(value string) (filterFunc, error) {
-	if !strings.HasPrefix(value, "sha256:") {
-		return nil, fmt.Errorf("invalid value %q for digest filter", value)
+	// Check if it's a valid complete digest
+	if _, err := digest.Parse(value); err == nil {
+		// Valid complete digest - use it as is
+		return func(img *Image, _ *layerTree) (bool, error) {
+			return img.containsDigestPrefix(value), nil
+		}, nil
 	}
+
+	// Not a complete digest - check if it's a valid partial digest with algorithm prefix
+	if !strings.Contains(value, ":") {
+		return nil, fmt.Errorf("invalid value %q for digest filter: must have algorithm prefix (e.g., sha256:)", value)
+	}
+
+	parts := strings.SplitN(value, ":", 2)
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid value %q for digest filter: invalid format", value)
+	}
+
+	algorithm := parts[0]
+	hashPart := parts[1]
+
+	// Validate the algorithm is known
+	switch algorithm {
+	case "sha256", "sha512": // common algorithms
+		// Valid algorithm prefix
+	default:
+		return nil, fmt.Errorf("invalid value %q for digest filter: unsupported algorithm %q", value, algorithm)
+	}
+
+	// Validate hash part contains only hex characters
+	if len(hashPart) == 0 {
+		return nil, fmt.Errorf("invalid value %q for digest filter: empty hash part", value)
+	}
+	for _, c := range hashPart {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') && (c < 'A' || c > 'F') {
+			return nil, fmt.Errorf("invalid value %q for digest filter: hash part contains non-hex characters", value)
+		}
+	}
+
 	return func(img *Image, _ *layerTree) (bool, error) {
 		return img.containsDigestPrefix(value), nil
 	}, nil

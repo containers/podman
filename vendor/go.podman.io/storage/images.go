@@ -164,8 +164,9 @@ type rwImageStore interface {
 type imageStore struct {
 	// The following fields are only set when constructing imageStore, and must never be modified afterwards.
 	// They are safe to access without any other locking.
-	lockfile *lockfile.LockFile // lockfile.IsReadWrite can be used to distinguish between read-write and read-only image stores.
-	dir      string
+	lockfile   *lockfile.LockFile // lockfile.IsReadWrite can be used to distinguish between read-write and read-only image stores.
+	dir        string
+	digestType string
 
 	inProcessLock sync.RWMutex // Can _only_ be obtained with lockfile held.
 	// The following fields can only be read/written with read/write ownership of inProcessLock, respectively.
@@ -589,7 +590,7 @@ func (r *imageStore) Save() error {
 	return nil
 }
 
-func newImageStore(dir string) (rwImageStore, error) {
+func newImageStore(dir string, digestType string) (rwImageStore, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
@@ -598,8 +599,9 @@ func newImageStore(dir string) (rwImageStore, error) {
 		return nil, err
 	}
 	istore := imageStore{
-		lockfile: lockfile,
-		dir:      dir,
+		lockfile:   lockfile,
+		dir:        dir,
+		digestType: digestType,
 
 		images:   []*Image{},
 		byid:     make(map[string]*Image),
@@ -620,14 +622,15 @@ func newImageStore(dir string) (rwImageStore, error) {
 	return &istore, nil
 }
 
-func newROImageStore(dir string) (roImageStore, error) {
+func newROImageStore(dir string, digestType string) (roImageStore, error) {
 	lockfile, err := lockfile.GetROLockFile(filepath.Join(dir, "images.lock"))
 	if err != nil {
 		return nil, err
 	}
 	istore := imageStore{
-		lockfile: lockfile,
-		dir:      dir,
+		lockfile:   lockfile,
+		dir:        dir,
+		digestType: digestType,
 
 		images:   []*Image{},
 		byid:     make(map[string]*Image),
@@ -763,7 +766,8 @@ func (r *imageStore) create(id string, names []string, layer string, options Ima
 	}
 	for _, item := range options.BigData {
 		if item.Digest == "" {
-			item.Digest = digest.Canonical.FromBytes(item.Data)
+			digestAlgorithm := getDigestAlgorithmFromType(r.digestType)
+			item.Digest = digestAlgorithm.FromBytes(item.Data)
 		}
 		if err = r.setBigData(image, item.Key, item.Data, item.Digest); err != nil {
 			return nil, err
@@ -988,7 +992,8 @@ func (r *imageStore) SetBigData(id, key string, data []byte, digestManifest func
 			return fmt.Errorf("digesting manifest: %w", err)
 		}
 	} else {
-		newDigest = digest.Canonical.FromBytes(data)
+		digestAlgorithm := getDigestAlgorithmFromType(r.digestType)
+		newDigest = digestAlgorithm.FromBytes(data)
 	}
 	return r.setBigData(image, key, data, newDigest)
 }

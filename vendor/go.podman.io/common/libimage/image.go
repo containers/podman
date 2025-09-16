@@ -474,7 +474,7 @@ func (i *Image) removeRecursive(ctx context.Context, rmMap map[string]*RemoveIma
 	// error.
 	if referencedBy != "" && numNames != 1 {
 		byID := strings.HasPrefix(i.ID(), referencedBy)
-		byDigest := strings.HasPrefix(referencedBy, "sha256:")
+		byDigest := isDigestReference(referencedBy)
 		if !options.Force {
 			if byID && numNames > 1 {
 				return processedIDs, fmt.Errorf("unable to delete image %q by ID with more than one tag (%s): please force removal", i.ID(), i.Names())
@@ -577,7 +577,7 @@ var errTagDigest = errors.New("tag by digest not supported")
 // Tag the image with the specified name and store it in the local containers
 // storage.  The name is normalized according to the rules of NormalizeName.
 func (i *Image) Tag(name string) error {
-	if strings.HasPrefix(name, "sha256:") { // ambiguous input
+	if isDigestReference(name) { // ambiguous input
 		return fmt.Errorf("%s: %w", name, errTagDigest)
 	}
 
@@ -613,7 +613,7 @@ var errUntagDigest = errors.New("untag by digest not supported")
 // the local containers storage.  The name is normalized according to the rules
 // of NormalizeName.
 func (i *Image) Untag(name string) error {
-	if strings.HasPrefix(name, "sha256:") { // ambiguous input
+	if isDigestReference(name) { // ambiguous input
 		return fmt.Errorf("%s: %w", name, errUntagDigest)
 	}
 
@@ -1026,6 +1026,25 @@ func getImageID(ctx context.Context, src types.ImageReference, sys *types.System
 		return "", fmt.Errorf("getting config info: %w", err)
 	}
 	return "@" + imageDigest.Encoded(), nil
+}
+
+// getImageDigestString creates an image object and returns the full digest string
+// (with algorithm prefix) of the config blob for use in image names.
+func getImageDigestString(ctx context.Context, src types.ImageReference, sys *types.SystemContext) (string, error) {
+	newImg, err := src.NewImage(ctx, sys)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := newImg.Close(); err != nil {
+			logrus.Errorf("Failed to close image: %q", err)
+		}
+	}()
+	imageDigest := newImg.ConfigInfo().Digest
+	if err = imageDigest.Validate(); err != nil {
+		return "", fmt.Errorf("getting config info: %w", err)
+	}
+	return imageDigest.String(), nil
 }
 
 // Checks whether the image matches the specified platform.
