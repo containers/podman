@@ -338,8 +338,8 @@ github.com/coreos/stream-metadata-go/release
 github.com/coreos/stream-metadata-go/release/rhcos
 github.com/coreos/stream-metadata-go/stream
 github.com/coreos/stream-metadata-go/stream/rhcos
-# github.com/cyphar/filepath-securejoin v0.2.3
-## explicit; go 1.13
+# github.com/cyphar/filepath-securejoin v0.4.1 => github.com/containers/filepath-securejoin v0.0.0-20250916132358-b79b8fe093cc
+## explicit; go 1.17
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
@@ -1008,3 +1008,4 @@ gopkg.in/yaml.v3
 sigs.k8s.io/yaml
 # github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8
 # golang.org/x/crypto => github.com/containers/golang-crypto v0.0.0-v420-rhel-podman.1
+# github.com/cyphar/filepath-securejoin => github.com/containers/filepath-securejoin v0.0.0-20250916132358-b79b8fe093cc

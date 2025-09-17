@@ -23,7 +23,7 @@ require (
 	github.com/containers/storage v1.42.1-0.20221223141133-5351738c4dba
 	github.com/coreos/go-systemd/v22 v22.3.2
 	github.com/coreos/stream-metadata-go v0.0.0-20210225230131-70edb9eb47b3
-	github.com/cyphar/filepath-securejoin v0.2.3
+	github.com/cyphar/filepath-securejoin v0.4.1
 	github.com/digitalocean/go-qemu v0.0.0-20210326154740-ac9e0b687001
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/docker v20.10.17+incompatible
@@ -160,3 +160,5 @@ require (
 replace github.com/opencontainers/runc => github.com/projectatomic/runc v0.0.0-20240307021259-c0428046ced8
 
 replace golang.org/x/crypto => github.com/containers/golang-crypto v0.0.0-v420-rhel-podman.1
+
+replace github.com/cyphar/filepath-securejoin => github.com/containers/filepath-securejoin v0.0.0-20250916132358-b79b8fe093cc
