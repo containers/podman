@@ -11,11 +11,11 @@ podman\-stats - Display a live stream of one or more container's resource usage 
 ## DESCRIPTION
 Display a live stream of one or more containers' resource usage statistics
 
-Note:  Podman stats does not work in rootless environments that use cgroups v1.
-Podman stats relies on cgroup information for statistics, and cgroup v1 is not
+Note:  Podman stats does not work in rootless environments that use CGroups V1.
+Podman stats relies on CGroup information for statistics, and CGroup v1 is not
 supported for rootless use cases.
 
-Note: Rootless environments that use cgroups v2 are not able to report statistics
+Note: Rootless environments that use CGroups V2 are not able to report statistics
 about their networking usage.
 
 ## OPTIONS
