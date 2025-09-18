@@ -145,7 +145,7 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 		mc.Mounts = CmdLineVolumesToMounts(opts.Volumes, mp.MountType())
 	}
 
-	mc.CloudInitConfig, err = CmdLineCloudInitToConfig(opts.CloudInitFiles)
+	mc.CloudInitConfig, err = CmdLineCloudInitToConfig(opts.CloudInitPaths)
 	if err != nil {
 		return err
 	}
