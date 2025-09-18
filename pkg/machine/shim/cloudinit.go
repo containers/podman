@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"go.podman.io/podman/v6/pkg/machine/define"
 	"go.podman.io/podman/v6/pkg/machine/vmconfigs"
@@ -45,8 +46,16 @@ func CmdLineCloudInitToConfig(params []string) (vmconfigs.CloudInitConfig, error
 	}
 
 	for _, param := range params {
-		kind := filepath.Base(param)
-		if err := processOneFile(&config, kind, param); err != nil {
+		var kind, file string
+		subparams := strings.SplitN(param, "=", 2)
+		if len(subparams) == 2 {
+			kind = subparams[0]
+			file = subparams[1]
+		} else { // len(subparams) == 1
+			kind = filepath.Base(param)
+			file = param
+		}
+		if err := processOneFile(&config, kind, file); err != nil {
 			return config, err
 		}
 	}
