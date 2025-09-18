@@ -34,6 +34,7 @@ podman-manifest-create.1.md
 podman-manifest-inspect.1.md
 podman-manifest-push.1.md
 podman-mount.1.md
+podman-network-create.1.md
 podman-network-ls.1.md
 podman-network-reload.1.md
 podman-pause.1.md
@@ -69,3 +70,11 @@ podman-unpause.1.md
 podman-update.1.md
 podman-volume-ls.1.md
 podman-wait.1.md
+podman-build.unit.5.md
+podman-container.unit.5.md
+podman-image.unit.5.md
+podman-kube.unit.5.md
+podman-kube-down.1.md
+podman-network.unit.5.md
+podman-pod.unit.5.md
+podman-volume.unit.5.md

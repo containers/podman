@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman create, pod create, run
+####>   podman podman-container.unit.5.md.in, create, podman-kube.unit.5.md.in, pod create, podman-pod.unit.5.md.in, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+<< if is_quadlet >>
+### `PublishPort=[[ip:][hostPort]:]containerPort[/protocol]`
+<< else >>
 #### **--publish**, **-p**=*[[ip:][hostPort]:]containerPort[/protocol]*
+<< endif >>
 
 Publish a container's port, or range of ports,<<| within this pod>> to the host.
 

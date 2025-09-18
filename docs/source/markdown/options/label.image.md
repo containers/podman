@@ -1,8 +1,12 @@
 ####> This option file is used in:
-####>   podman build, farm build
+####>   podman build, podman-build.unit.5.md.in, farm build
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
+<< if is_quadlet >>
+### `Label=label`
+<< else >>
 #### **--label**=*label*
+<< endif >>
 
 Add an image *label* (e.g. label=*value*) to the image metadata. Can be used
 multiple times.
