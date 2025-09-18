@@ -30,7 +30,7 @@ func statsContainerJSON(ctnr *libpod.Container, stats *define.ContainerStats, pr
 					TotalUsage: stats.CPUNano,
 				},
 				CPU:            stats.CPU,
-				OnlineCPUs:     0,
+				OnlineCPUs:     uint32(onlineCPUs),
 				ThrottlingData: container.ThrottlingData{},
 			},
 			PreCPUStats: preCPUStats,
