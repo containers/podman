@@ -19,7 +19,10 @@ func CmdLineCloudInitToConfig(files []string) (vmconfigs.CloudInitConfig, error)
 	for _, file := range files {
 		_, err := os.Stat(file)
 		if errors.Is(err, os.ErrNotExist) {
-			return config, fmt.Errorf("cloud-initfile %s not found: %w", file, err)
+			return config, fmt.Errorf("cloud-init: file %s not found: %w", file, err)
+		}
+		if err != nil {
+			return config, fmt.Errorf("cloud-init: failed to access %s: %w", file, err)
 		}
 
 		filename := filepath.Base(file)
