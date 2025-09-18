@@ -101,21 +101,21 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 
 	userdata, metadata, networkConfig := []byte{}, []byte{}, []byte{}
 	if mc.CloudInitConfig.UserData != nil {
-		userdata, err = os.ReadFile(mc.CloudInitConfig.UserData.GetPath())
+		userdata, err = mc.CloudInitConfig.UserData.Read()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read user-data file: %w", err)
 		}
 	}
 
 	if mc.CloudInitConfig.MetaData != nil {
-		metadata, err = os.ReadFile(mc.CloudInitConfig.MetaData.GetPath())
+		metadata, err = mc.CloudInitConfig.MetaData.Read()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read meta-data file: %w", err)
 		}
 	}
 
 	if mc.CloudInitConfig.NetworkConfig != nil {
-		networkConfig, err = os.ReadFile(mc.CloudInitConfig.NetworkConfig.GetPath())
+		networkConfig, err = mc.CloudInitConfig.NetworkConfig.Read()
 		if err != nil {
 			return nil, fmt.Errorf("failed to read network-config file: %w", err)
 		}
