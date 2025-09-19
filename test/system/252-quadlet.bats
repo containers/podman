@@ -1856,6 +1856,40 @@ EOF
     done < <(parse_table "${dropin_files}")
 }
 
+@test "quadlet - artifact" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+    mkdir -p $quadlet_tmpdir
+
+    # Create artifact quadlet file
+    local artifact_file=$PODMAN_TMPDIR/test-artifact.artifact
+    cat >$artifact_file << EOF
+[Artifact]
+Artifact=quay.io/libpod/testartifact:20250206-single
+EOF
+
+    run_quadlet "$artifact_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Wait for the service to complete (it's a oneshot service)
+    local timeout=30
+    local count=0
+    while [ $count -lt $timeout ]; do
+        run systemctl show --value --property=ActiveState "$QUADLET_SERVICE_NAME"
+        if [ "$output" = "active" ]; then
+            break
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+    # Verify artifact was pulled
+    run_podman artifact ls
+    assert $status -eq 0 "Failed to list artifacts"
+    assert "$output" =~ "quay.io/libpod/testartifact.*20250206-single" "Artifact should exist after quadlet service runs"
+
+    # Clean up
+    run_podman artifact rm quay.io/libpod/testartifact:20250206-single
+}
+
 # Following issue: https://github.com/containers/podman/issues/24599
 # Make sure future changes do not break
 @test "quadlet - build with pull" {

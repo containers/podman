@@ -2111,11 +2111,15 @@ Valid options for `[Artifact]` are listed below:
 | Artifact=quay\.io/foobar/artifact:special   | podman artifact pull quay\.io/foobar/artifact:special  |
 | AuthFile=/etc/registry/auth\.json           | --authfile=/etc/registry/auth\.json                    |
 | CertDir=/etc/registry/certs                 | --cert-dir=/etc/registry/certs                         |
+| ContainersConfModule=/etc/nvd\.conf         | --module=/etc/nvd\.conf                                |
+| Creds=username:password                     | --creds=username:password                              |
 | DecryptionKey=/etc/registry\.key            | --decryption-key=/etc/registry\.key                    |
 | GlobalArgs=--log-level=debug                | --log-level=debug                                      |
+| PodmanArgs=--pull never                     | --pull never                                           |
 | Quiet=true                                  | --quiet                                                |
 | Retry=5                                     | --retry=5                                              |
 | RetryDelay=10s                              | --retry-delay=10s                                      |
+| ServiceName=my-artifact                     | Set the systemd service name to my-artifact.service   |
 | TLSVerify=false                             | --tls-verify=false                                     |
 
 ### `Artifact=`
@@ -2137,6 +2141,18 @@ Use certificates at path (*.crt, *.cert, *.key) to connect to the registry.
 
 This is equivalent to the Podman `--cert-dir` option.
 
+### `ContainersConfModule=`
+
+Load the specified containers.conf(5) module. Equivalent to the Podman `--module` option.
+
+This key can be listed multiple times.
+
+### `Creds=`
+
+The credentials to use when contacting the registry in the format `[username[:password]]`.
+
+This is equivalent to the Podman `--creds` option.
+
 ### `DecryptionKey=`
 
 The `[key[:passphrase]]` to be used for decryption of artifacts.
@@ -2147,6 +2163,19 @@ This is equivalent to the Podman `--decryption-key` option.
 
 This key contains a list of arguments passed directly between `podman` and `artifact`
 in the generated file. It can be used to access Podman features otherwise unsupported by the generator. Since the generator is unaware
+of what unexpected interactions can be caused by these arguments, it is not recommended to use
+this option.
+
+The format of this is a space separated list of arguments, which can optionally be individually
+escaped to allow inclusion of whitespace and other control characters.
+
+This key can be listed multiple times.
+
+### `PodmanArgs=`
+
+This key contains a list of arguments passed directly to the end of the `podman artifact pull` command
+in the generated file (right before the artifact name in the command line). It can be used to
+access Podman features otherwise unsupported by the generator. Since the generator is unaware
 of what unexpected interactions can be caused by these arguments, it is not recommended to use
 this option.
 
@@ -2168,6 +2197,10 @@ Number of times to retry the artifact pull when a HTTP error occurs. Equivalent 
 ### `RetryDelay=`
 
 Delay between retries. Equivalent to the Podman `--retry-delay` option.
+
+### `ServiceName=`
+
+The (optional) name of the systemd service. If this is not specified, the default value is the same name as the unit, but with a `-artifact` suffix, i.e. a `$name.artifact` file creates a `$name-artifact.service` systemd service.
 
 ### `TLSVerify=`
 
@@ -2297,13 +2330,9 @@ Artifact=quay.io/example/my-config:latest
 
 `my-app.container`:
 ```
-[Unit]
-Requires=my-artifact.service
-After=my-artifact.service
-
 [Container]
 Image=quay.io/example/my-app:latest
-Mount=type=artifact,source=quay.io/example/my-config:latest,destination=/etc/config
+Mount=type=artifact,source=my-artifact.artifact,destination=/etc/config
 ```
 
 Example for Container in a Pod:

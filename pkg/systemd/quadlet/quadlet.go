@@ -1488,7 +1488,7 @@ func GetUnitServiceName(unit *parser.UnitFile) (string, error) {
 	case strings.HasSuffix(unit.Filename, ".build"):
 		return GetBuildServiceName(unit), nil
 	case strings.HasSuffix(unit.Filename, ".artifact"):
-		return GetBuildServiceName(unit), nil
+		return GetArtifactServiceName(unit), nil
 	case strings.HasSuffix(unit.Filename, ".pod"):
 		return GetPodServiceName(unit), nil
 	default:
@@ -1900,7 +1900,7 @@ func handleStorageSource(quadletUnitFile, serviceUnitFile *parser.UnitFile, sour
 	if source[0] == '/' {
 		// Absolute path
 		serviceUnitFile.Add(UnitGroup, "RequiresMountsFor", source)
-	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) {
+	} else if strings.HasSuffix(source, ".volume") || (checkImage && strings.HasSuffix(source, ".image")) || strings.HasSuffix(source, ".artifact") {
 		sourceUnitInfo, ok := unitsInfoMap[source]
 		if !ok {
 			return "", fmt.Errorf("requested Quadlet source %s was not found", source)

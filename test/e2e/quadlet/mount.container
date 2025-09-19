@@ -9,8 +9,6 @@ Mount=type=bind,src=/path/on/host,dst=/path/in/container,relabel=shared,U=true
 ## assert-podman-args-key-val "--mount" "," "type=volume,source=vol1,destination=/path/in/container,ro=true"
 Mount=type=volume,source=vol1,destination=/path/in/container,ro=true
 ## assert-podman-args-key-val "--mount" "," "type=volume,source=systemd-basic,destination=/path/in/container,ro=true"
-## assert-key-is "Unit" "Requires" "basic-volume.service" "basic-image.service"
-## assert-key-is-regex "Unit" "After" "network-online.target|podman-user-wait-network-online.service" "basic-volume.service" "basic-image.service"
 Mount=type=volume,source=basic.volume,destination=/path/in/container,ro=true
 ## assert-podman-args-key-val "--mount" "," "type=tmpfs,tmpfs-size=512M,destination=/path/in/container"
 Mount=type=tmpfs,tmpfs-size=512M,destination=/path/in/container
@@ -18,6 +16,8 @@ Mount=type=tmpfs,tmpfs-size=512M,destination=/path/in/container
 Mount=type=image,source=fedora,destination=/fedora-image,rw=true
 ## assert-podman-args-key-val "--mount" "," "type=image,source=localhost/imagename,destination=/fedora-image,rw=true"
 Mount=type=image,source=basic.image,destination=/fedora-image,rw=true
+## assert-podman-args-key-val "--mount" "," "type=artifact,source=quay.io/libpod/testartifact:20250206-single,destination=/artifacts"
+Mount=type=artifact,source=basic.artifact,destination=/artifacts
 ## assert-podman-args-key-val "--mount" "," "type=devpts,destination=/dev/pts"
 Mount=type=devpts,destination=/dev/pts
 ## assert-podman-args-key-val-regex "--mount" "," "type=bind,source=.*/podman-e2e-.*/subtest-.*/quadlet/path/on/host,destination=/path/in/container"
@@ -28,3 +28,5 @@ Mount=type=volume,source=vol1,destination=/path/in/container,ro
 Mount=type=bind,src=/tmp,\"dst=/path,1\"
 ## assert-podman-args-key-val-regex "--mount" "," "type=bind,source=.*/podman-e2e-.*/subtest-.*/quadlet/src,destination=/dst/,idmap=uids=12-34-1;gids=56-78-1"
 Mount=type=bind,source=./src/,destination=/dst/,idmap=uids=12-34-1;gids=56-78-1
+## assert-key-is "Unit" "Requires" "basic-volume.service" "basic-image.service" "basic-artifact.service"
+## assert-key-is-regex "Unit" "After" "network-online.target|podman-user-wait-network-online.service" "basic-volume.service" "basic-image.service" "basic-artifact.service"
