@@ -96,21 +96,21 @@ func (c *WriterConfig) Verify() error {
 }
 
 // header returns the header structure for this configuration.
-func (c *WriterConfig) header() header {
-	h := header{
-		properties: *c.Properties,
-		dictCap:    c.DictCap,
-		size:       -1,
+func (c *WriterConfig) header() Header {
+	h := Header{
+		Properties: *c.Properties,
+		DictSize:   uint32(c.DictCap),
+		Size:       -1,
 	}
 	if c.SizeInHeader {
-		h.size = c.Size
+		h.Size = c.Size
 	}
 	return h
 }
 
 // Writer writes an LZMA stream in the classic format.
 type Writer struct {
-	h   header
+	h   Header
 	bw  io.ByteWriter
 	buf *bufio.Writer
 	e   *encoder
@@ -130,12 +130,12 @@ func (c WriterConfig) NewWriter(lzma io.Writer) (w *Writer, err error) {
 		w.buf = bufio.NewWriter(lzma)
 		w.bw = w.buf
 	}
-	state := newState(w.h.properties)
-	m, err := c.Matcher.new(w.h.dictCap)
+	state := newState(w.h.Properties)
+	m, err := c.Matcher.new(int(w.h.DictSize))
 	if err != nil {
 		return nil, err
 	}
-	dict, err := newEncoderDict(w.h.dictCap, c.BufSize, m)
+	dict, err := newEncoderDict(int(w.h.DictSize), c.BufSize, m)
 	if err != nil {
 		return nil, err
 	}
@@ -171,8 +171,8 @@ func (w *Writer) writeHeader() error {
 
 // Write puts data into the Writer.
 func (w *Writer) Write(p []byte) (n int, err error) {
-	if w.h.size >= 0 {
-		m := w.h.size
+	if w.h.Size >= 0 {
+		m := w.h.Size
 		m -= w.e.Compressed() + int64(w.e.dict.Buffered())
 		if m < 0 {
 			m = 0
@@ -192,9 +192,9 @@ func (w *Writer) Write(p []byte) (n int, err error) {
 // Close closes the writer stream. It ensures that all data from the
 // buffer will be compressed and the LZMA stream will be finished.
 func (w *Writer) Close() error {
-	if w.h.size >= 0 {
+	if w.h.Size >= 0 {
 		n := w.e.Compressed() + int64(w.e.dict.Buffered())
-		if n != w.h.size {
+		if n != w.h.Size {
 			return errSize
 		}
 	}

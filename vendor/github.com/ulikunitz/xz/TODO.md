@@ -1,9 +1,5 @@
 # TODO list
 
-## Release v0.5.x
-
-1. Support check flag in gxz command.
-
 ## Release v0.6
 
 1. Review encoder and check for lzma improvements under xz.
@@ -85,6 +81,19 @@
 * `git push`
 
 ## Log
+
+## 2025-08-28
+
+Release v0.5.14 addresses the security vulnerability CVE-2025-58058. If you put
+bytes in from of a LZMA stream, the header might not be read correctly and
+memory for the dictionary buffer allocated. I have implemented mitigations for
+the problem.
+
+### 2025-08-20
+
+Release v0.5.13 addressed issue #61 regarding handling of multiple WriteClosers
+together. So I added a new package xio with a WriteCloserStack to address the
+issue.
 
 ### 2024-04-03
 
