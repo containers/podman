@@ -875,6 +875,7 @@ go.podman.io/image/v5/signature/sigstore
 go.podman.io/image/v5/signature/sigstore/fulcio
 go.podman.io/image/v5/signature/sigstore/internal
 go.podman.io/image/v5/signature/sigstore/rekor
+go.podman.io/image/v5/signature/simplesequoia
 go.podman.io/image/v5/signature/simplesigning
 go.podman.io/image/v5/storage
 go.podman.io/image/v5/tarball
