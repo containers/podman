@@ -4,6 +4,7 @@ package main
 
 import (
 	"net"
+	"os"
 	"strings"
 
 	rkport "github.com/rootless-containers/rootlesskit/v2/pkg/port"
@@ -14,7 +15,7 @@ import (
 func splitDualStackSpecIfWsl(spec rkport.Spec) []rkport.Spec {
 	specs := []rkport.Spec{spec}
 	protocol := spec.Proto
-	if machine.HostType() != machine.Wsl || strings.HasSuffix(protocol, "4") || strings.HasSuffix(protocol, "6") {
+	if !isWsl() || strings.HasSuffix(protocol, "4") || strings.HasSuffix(protocol, "6") {
 		return specs
 	}
 
@@ -36,4 +37,21 @@ func splitDualStackSpecIfWsl(spec rkport.Spec) []rkport.Spec {
 	}
 
 	return specs
+}
+
+func isWsl() bool {
+	if machine.HostType() == machine.Wsl {
+		return true
+	}
+
+	// "Official" way (https://github.com/Microsoft/WSL/issues/423#issuecomment-221627364)
+	content, err := os.ReadFile("/proc/sys/kernel/osrelease")
+	if err == nil {
+		relName := strings.ToLower(string(content))
+		if strings.Contains(relName, "microsoft") || strings.Contains(relName, "wsl") {
+			return true
+		}
+	}
+
+	return false
 }
