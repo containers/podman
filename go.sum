@@ -245,6 +245,8 @@ github.com/mdlayher/socket v0.5.1 h1:VZaqt6RkGkt2OE9l3GcC6nZkqD3xKeQLyfleW/uBcos
 github.com/mdlayher/socket v0.5.1/go.mod h1:TjPLHI1UgwEv5J1B5q0zTZq12A/6H7nKmtTanQE37IQ=
 github.com/mdlayher/vsock v1.2.1 h1:pC1mTJTvjo1r9n9fbm7S1j04rCgCzhCOS5DY0zqHlnQ=
 github.com/mdlayher/vsock v1.2.1/go.mod h1:NRfCibel++DgeMD8z/hP+PPTjlNJsdPOmxcnENvE+SE=
+github.com/meln5674/container-libs/common v0.0.0-20250912003433-5765e3edb639 h1:fsJYQdkDvsMw3QsdugdnNGFxMJWOsp8Z9KtIdLV6HsE=
+github.com/meln5674/container-libs/common v0.0.0-20250912003433-5765e3edb639/go.mod h1:+lJu8KHeoDQsD9HDdiFaMaOUiqPLQnK406WuLnqM7Z0=
 github.com/miekg/pkcs11 v1.1.1 h1:Ugu9pdy6vAYku5DEpVWVFPYnzV+bxB+iRdbuFSu7TvU=
 github.com/miekg/pkcs11 v1.1.1/go.mod h1:XsNlhZGX73bx86s2hdc/FuaLm2CPZJemRLMA+WTFxgs=
 github.com/mistifyio/go-zfs/v3 v3.0.1 h1:YaoXgBePoMA12+S1u/ddkv+QqxcfiZK4prI6HPnkFiU=
@@ -449,8 +451,6 @@ go.opentelemetry.io/otel/trace v1.35.0 h1:dPpEfJu1sDIqruz7BHFG3c7528f6ddfSWfFDVt
 go.opentelemetry.io/otel/trace v1.35.0/go.mod h1:WUk7DtFp1Aw2MkvqGdwiXYDZZNvA/1J8o6xRXLrIkyc=
 go.opentelemetry.io/proto/otlp v1.5.0 h1:xJvq7gMzB31/d406fB8U5CBdyQGw4P399D1aQWU/3i4=
 go.opentelemetry.io/proto/otlp v1.5.0/go.mod h1:keN8WnHxOy8PG0rQZjJJ5A2ebUoafqWp0eVQ4yIXvJ4=
-go.podman.io/common v0.65.0 h1:8JNl25U4VpKDkFHSymSPm4te7ZQHJbfAB/l2FqtmYEg=
-go.podman.io/common v0.65.0/go.mod h1:+lJu8KHeoDQsD9HDdiFaMaOUiqPLQnK406WuLnqM7Z0=
 go.podman.io/image/v5 v5.37.0 h1:yzgQybwuWIIeK63hu+mQqna/wOh96XD5cpVc6j8Dg5M=
 go.podman.io/image/v5 v5.37.0/go.mod h1:+s2Sx5dia/jVeT8tI3r2NAPrARMiDdbEq3QPIQogx3I=
 go.podman.io/storage v1.60.0 h1:bWNSrR58nxg39VNFDSx3m0AswbvyzPGOo5XsUfomTao=

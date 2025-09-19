@@ -742,7 +742,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.65.0
+# go.podman.io/common v0.65.0 => github.com/meln5674/container-libs/common v0.0.0-20250912003433-5765e3edb639
 ## explicit; go 1.23.3
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring

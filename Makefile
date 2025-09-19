@@ -150,12 +150,17 @@ GINKGO ?= ./bin/ginkgo
 GINKGO_FLAKE_ATTEMPTS ?= 0
 GINKGO_NO_COLOR ?= y
 
+# The type of transport to use for testing remote service.
+# Must be one of unix, tcp, tls, mtls
+export REMOTESYSTEM_TRANSPORT ?= unix
+export REMOTEINTEGRATION_TRANSPORT ?= unix
+
 # Conditional required to produce empty-output if binary not built yet.
 RELEASE_VERSION = $(shell if test -x test/version/version; then test/version/version; fi)
 RELEASE_NUMBER = $(shell echo "$(call err_if_empty,RELEASE_VERSION)" | sed -e 's/^v\(.*\)/\1/')
 
-# If non-empty, logs all output from server during remote system testing
-PODMAN_SERVER_LOG ?=
+# Logs all output from server during remote system testing to this file
+PODMAN_SERVER_LOG ?= /dev/null
 
 # Ensure GOBIN is not set so the default (`go env GOPATH`/bin) is used.
 override undefine GOBIN
@@ -680,6 +685,7 @@ ginkgo-run: .install.ginkgo
 ginkgo:
 	$(MAKE) ginkgo-run TAGS="$(BUILDTAGS)"
 
+
 .PHONY: ginkgo-remote
 ginkgo-remote:
 	$(MAKE) ginkgo-run TAGS="$(REMOTETAGS) remote_testing"
@@ -709,44 +715,15 @@ localsystem:
 	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags '!ci:parallel' test/system/
 	PODMAN=$(CURDIR)/bin/podman QUADLET=$(CURDIR)/bin/quadlet bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
 
+
 .PHONY: remotesystem
 remotesystem:
 	# Wipe existing config, database, and cache: start with clean slate.
 	$(RM) -rf ${HOME}/.local/share/containers ${HOME}/.config/containers
-	# . Make sure there's no active podman server - if there is,
-	#   it's not us, and we have no way to know what it is.
-	# . Start server. Wait to make sure it comes up.
-	# . Run tests, pretty much the same as localsystem.
-	# . Stop server.
-	rc=0;\
-	if timeout -v 1 true; then \
-		if ./bin/podman-remote info; then \
-			echo "Error: podman system service (not ours) is already running" >&2;\
-			exit 1;\
-		fi;\
-		./bin/podman system service --timeout=0 > $(if $(PODMAN_SERVER_LOG),$(PODMAN_SERVER_LOG),/dev/null) 2>&1 & \
-		retry=5;\
-		while [ $$retry -ge 0 ]; do\
-			echo Waiting for server...;\
-			sleep 1;\
-			./bin/podman-remote info >/dev/null 2>&1 && break;\
-			retry=$$(expr $$retry - 1);\
-		done;\
-		if [ $$retry -lt 0 ]; then\
-			echo "Error: ./bin/podman system service did not come up" >&2;\
-			exit 1;\
-		fi;\
-		env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags '!ci:parallel' test/system/ ;\
-		rc=$$?; \
-		if [ $$rc -eq 0 ]; then \
-		   env PODMAN="$(CURDIR)/bin/podman-remote" bats -T --filter-tags ci:parallel -j $$(nproc) test/system/ ;\
-		   rc=$$?;\
-		fi; \
-		kill %1;\
-	else \
-		echo "Skipping $@: 'timeout -v' unavailable'";\
-	fi;\
-	exit $$rc
+	PODMAN=$(CURDIR)/bin/podman-remote QUADLET=$(CURDIR)/bin/quadlet \
+		bats -T --filter-tags '!ci:parallel' test/system/
+	PODMAN=$(CURDIR)/bin/podman-remote QUADLET=$(CURDIR)/bin/quadlet \
+		bats -T --filter-tags ci:parallel -j $$(nproc) test/system/
 
 .PHONY: localapiv2-bash
 localapiv2-bash:
