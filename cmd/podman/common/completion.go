@@ -1954,3 +1954,35 @@ func AutocompleteSSH(cmd *cobra.Command, args []string, toComplete string) ([]st
 func AutocompleteHealthOnFailure(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return define.SupportedHealthCheckOnFailureActions, cobra.ShellCompDirectiveNoFileComp
 }
+
+// AutocompleteSysctl - autocomplete list all sysctl names
+func AutocompleteSysctl(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	var completions []string
+	sysPath := "/proc/sys"
+
+	err := filepath.Walk(sysPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if !info.IsDir() {
+			rel, err := filepath.Rel(sysPath, path)
+			if err != nil {
+				return err
+			}
+			sysctlName := strings.ReplaceAll(rel, string(os.PathSeparator), ".")
+
+			if strings.HasPrefix(sysctlName, toComplete) {
+				completions = append(completions, sysctlName)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, cobra.ShellCompDirectiveError
+	}
+
+	return completions, cobra.ShellCompDirectiveNoFileComp
+}
