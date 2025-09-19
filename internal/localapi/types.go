@@ -5,3 +5,5 @@ type LocalAPIMap struct {
 	ClientPath string `json:"ClientPath,omitempty"`
 	RemotePath string `json:"RemotePath,omitempty"`
 }
+
+type TranslationLocalAPIMap map[string]string

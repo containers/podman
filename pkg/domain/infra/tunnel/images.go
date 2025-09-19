@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -18,11 +20,13 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities/reports"
 	"github.com/containers/podman/v5/pkg/domain/utils"
 	"github.com/containers/podman/v5/pkg/errorhandling"
+	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage/filter"
 	"go.podman.io/common/pkg/config"
 	"go.podman.io/image/v5/docker/reference"
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/fileutils"
 )
 
 func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
@@ -408,7 +412,66 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 	return config.Default()
 }
 
+// getLocalFilesForBuild extracts all local file paths needed for a build operation.
+// It collects the context directory, container files, and additional build contexts.
+func getLocalFilesForBuild(containerFiles []string, options entities.BuildOptions) []string {
+	localFiles := []string{options.ContextDirectory}
+	for _, v := range containerFiles {
+		if strings.HasPrefix(v, "http://") || strings.HasPrefix(v, "https://") {
+			continue
+		}
+		// If Containerfile does not exist, assume it is in context directory
+		if err := fileutils.Lexists(v); err != nil {
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Fatalf("Failed to check if containerfile %s exists: %v", v, err)
+				return nil
+			}
+			continue
+		}
+
+		v, err := filepath.Abs(v)
+		if err != nil {
+			logrus.Fatalf("Failed to get absolute path for %s: %v", v, err)
+			return nil
+		}
+
+		localFiles = append(localFiles, v)
+	}
+
+	for _, context := range options.AdditionalBuildContexts {
+		switch {
+		case context.IsImage, context.IsURL:
+			continue
+		default:
+			localFiles = append(localFiles, context.Value)
+		}
+	}
+	return localFiles
+}
+
 func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
+	localFiles := getLocalFilesForBuild(containerFiles, opts)
+	if translationLocalAPIMap, ok := localapi.CheckMultiplePathsOnRunningMachine(ir.ClientCtx, localFiles); ok {
+		report, err := images.BuildLocal(ir.ClientCtx, containerFiles, opts, translationLocalAPIMap)
+		if err == nil {
+			return report, nil
+		}
+		if err != nil {
+			logrus.Debugf("BuildLocal failed: %v", err)
+		}
+
+		var errModel *errorhandling.ErrorModel
+		if errors.As(err, &errModel) {
+			switch errModel.ResponseCode {
+			case http.StatusNotFound, http.StatusMethodNotAllowed:
+			default:
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
+	}
+
 	report, err := images.Build(ir.ClientCtx, containerFiles, opts)
 	if err != nil {
 		return nil, err
