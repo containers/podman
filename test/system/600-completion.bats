@@ -410,3 +410,12 @@ function _check_no_suggestions() {
     # cleanup container
     run_podman rm $ctrname
 }
+
+# bats test_tags=ci:parallel
+@test "podman network create --interface-name" {
+    run_completion network create --interface-name l
+
+    assert "$output" =~ '.*lo.*' "Loopback interface should be present by default"
+
+    _check_completion_end NoFileComp
+}
