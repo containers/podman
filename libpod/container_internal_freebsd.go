@@ -190,7 +190,7 @@ func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error
 	return nil
 }
 
-func isRootlessCgroupSet(cgroup string) bool {
+func isRootlessCgroupSet(_ string) bool {
 	return false
 }
 
@@ -225,7 +225,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	return nil
 }
 
-func (c *Container) addSystemdMounts(g *generate.Generator) error {
+func (c *Container) addSystemdMounts(_ *generate.Generator) error {
 	return nil
 }
 
