@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
+	"net"
 	"os"
 	"path"
 	"path/filepath"
@@ -1878,6 +1879,20 @@ func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete st
 		"until=": nil,
 	}
 	return completeKeyValues(toComplete, kv)
+}
+
+// AutocompleteNetworkInterfaceNames - Autocomplete network create --interface-name options.
+func AutocompleteNetworkInterfaceNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		cobra.CompErrorln(err.Error())
+		return nil, cobra.ShellCompDirectiveDefault
+	}
+	interfaceNames := make([]string, 0, len(interfaces))
+	for _, iface := range interfaces {
+		interfaceNames = append(interfaceNames, iface.Name)
+	}
+	return interfaceNames, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteVolumeFilters - Autocomplete volume ls --filter options.
