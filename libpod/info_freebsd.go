@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func (r *Runtime) setPlatformHostInfo(info *define.HostInfo) error {
+func (r *Runtime) setPlatformHostInfo(_ *define.HostInfo) error {
 	return nil
 }
 
