@@ -34,7 +34,7 @@ func init() {
 }
 
 // TODO  Name shouldn't be required, need to create a default vm
-func stop(cmd *cobra.Command, args []string) error {
+func stop(_ *cobra.Command, args []string) error {
 	var (
 		err error
 	)

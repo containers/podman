@@ -221,7 +221,7 @@ func (f *Farm) Schedule(ctx context.Context, platforms []string) (Schedule, erro
 // Build runs a build using the specified targetplatform:service map.  If all
 // builds succeed, it copies the resulting images from the remote hosts to the
 // local service and builds a manifest list with the specified reference name.
-func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.BuildOptions, reference string, localEngine entities.ImageEngine) error {
+func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.BuildOptions, reference string, _ entities.ImageEngine) error {
 	switch options.OutputFormat {
 	default:
 		return fmt.Errorf("unknown output format %q requested", options.OutputFormat)
@@ -348,7 +348,7 @@ func (f *Farm) Build(ctx context.Context, schedule Schedule, options entities.Bu
 
 	// Assemble the final result.
 	perArchBuilds := make(map[entities.BuildReport]entities.ImageEngine)
-	buildResults.Range(func(k, v any) bool {
+	buildResults.Range(func(_, v any) bool {
 		result, ok := v.(buildResult)
 		if !ok {
 			fmt.Fprintf(os.Stderr, "report %v not a build result?", v)

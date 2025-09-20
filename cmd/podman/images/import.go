@@ -94,7 +94,7 @@ func importFlags(cmd *cobra.Command) {
 	}
 }
 
-func importCon(cmd *cobra.Command, args []string) error {
+func importCon(_ *cobra.Command, args []string) error {
 	var (
 		source    string
 		reference string

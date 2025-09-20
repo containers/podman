@@ -58,7 +58,7 @@ func init() {
 	_ = addCmd.RegisterFlagCompletionFunc(fileMIMETypeFlagName, completion.AutocompleteNone)
 }
 
-func add(cmd *cobra.Command, args []string) error {
+func add(_ *cobra.Command, args []string) error {
 	artifactName := args[0]
 	blobs := args[1:]
 

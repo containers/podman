@@ -14,7 +14,7 @@ var (
 		Short:  "Debug Libpod's use of locks, identifying any potential conflicts",
 		Args:   validate.NoArgs,
 		Hidden: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runLocks()
 		},
 		Example: "podman system locks",

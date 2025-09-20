@@ -14,12 +14,12 @@ import (
 )
 
 // FarmNodeName returns the local engine's name.
-func (ir *ImageEngine) FarmNodeName(ctx context.Context) string {
+func (ir *ImageEngine) FarmNodeName(_ context.Context) string {
 	return entities.LocalFarmImageBuilderName
 }
 
 // FarmNodeDriver returns a description of the local image builder driver
-func (ir *ImageEngine) FarmNodeDriver(ctx context.Context) string {
+func (ir *ImageEngine) FarmNodeDriver(_ context.Context) string {
 	return entities.LocalFarmImageBuilderDriver
 }
 

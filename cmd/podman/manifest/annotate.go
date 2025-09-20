@@ -76,7 +76,7 @@ func init() {
 	_ = annotateCmd.RegisterFlagCompletionFunc(subjectFlagName, completion.AutocompleteNone)
 }
 
-func annotate(cmd *cobra.Command, args []string) error {
+func annotate(_ *cobra.Command, args []string) error {
 	var listImageSpec, instanceSpec string
 	switch len(args) {
 	case 1:

@@ -44,7 +44,7 @@ func init() {
 	flags.BoolVarP(&forceFlag, "force", "f", false, "Do not prompt for confirmation")
 }
 
-func reset(cmd *cobra.Command, args []string) {
+func reset(_ *cobra.Command, _ []string) {
 	// Get all the external containers in use
 	listCtn, err := registry.ContainerEngine().ContainerListExternal(registry.Context())
 	if err != nil {

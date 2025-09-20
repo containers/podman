@@ -46,7 +46,7 @@ func init() {
 	installFlags(quadletInstallCmd)
 }
 
-func install(cmd *cobra.Command, args []string) error {
+func install(_ *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
 	installReport, err := registry.ContainerEngine().QuadletInstall(registry.Context(), args, installOptions)
 	if err != nil {

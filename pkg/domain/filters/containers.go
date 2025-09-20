@@ -292,7 +292,7 @@ func GenerateContainerFilterFuncs(filter string, filterValues []string, r *libpo
 }
 
 // GeneratePruneContainerFilterFuncs return ContainerFilter functions based of filter for prune operation
-func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, r *libpod.Runtime) (func(container *libpod.Container) bool, error) {
+func GeneratePruneContainerFilterFuncs(filter string, filterValues []string, _ *libpod.Runtime) (func(container *libpod.Container) bool, error) {
 	switch filter {
 	case "label":
 		return func(c *libpod.Container) bool {

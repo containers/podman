@@ -276,7 +276,7 @@ func VolumeFromEmptyDir(emptyDirVolumeSource *v1.EmptyDirVolumeSource, name stri
 	}
 }
 
-func VolumeFromImage(imageVolumeSource *v1.ImageVolumeSource, name string) (*KubeVolume, error) {
+func VolumeFromImage(imageVolumeSource *v1.ImageVolumeSource, _ string) (*KubeVolume, error) {
 	return &KubeVolume{
 		Type:            KubeVolumeTypeImage,
 		Source:          imageVolumeSource.Reference,

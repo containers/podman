@@ -83,7 +83,7 @@ func getCgroupPermissions(unmask []string) string {
 }
 
 // SpecGenToOCI returns the base configuration for the container.
-func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {
+func SpecGenToOCI(_ context.Context, s *specgen.SpecGenerator, rt *libpod.Runtime, rtc *config.Config, newImage *libimage.Image, mounts []spec.Mount, pod *libpod.Pod, finalCmd []string, compatibleOptions *libpod.InfraInherit) (*spec.Spec, error) {
 	cgroupPerm := getCgroupPermissions(s.Unmask)
 
 	g, err := generate.New("linux")

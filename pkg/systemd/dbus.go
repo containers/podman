@@ -128,7 +128,7 @@ func dbusAuthRootlessConnection(createBus func(opts ...godbus.ConnOption) (*godb
 
 func newRootlessConnection() (*dbus.Conn, error) {
 	return dbus.NewConnection(func() (*godbus.Conn, error) {
-		return dbusAuthRootlessConnection(func(opts ...godbus.ConnOption) (*godbus.Conn, error) {
+		return dbusAuthRootlessConnection(func(_ ...godbus.ConnOption) (*godbus.Conn, error) {
 			path := filepath.Join(os.Getenv("XDG_RUNTIME_DIR"), "systemd", "private")
 			path, err := filepath.EvalSymlinks(path)
 			if err != nil {

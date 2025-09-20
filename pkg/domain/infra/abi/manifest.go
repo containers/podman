@@ -70,7 +70,7 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 }
 
 // ManifestExists checks if a manifest list with the given name exists in local storage
-func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entities.BoolReport, error) {
+func (ir *ImageEngine) ManifestExists(_ context.Context, name string) (*entities.BoolReport, error) {
 	_, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
 		if errors.Is(err, storage.ErrImageUnknown) {
@@ -442,7 +442,7 @@ func (ir *ImageEngine) digestFromDigestOrManifestListMember(ctx context.Context,
 }
 
 // ManifestRemoveDigest removes specified digest from the specified manifest list
-func (ir *ImageEngine) ManifestRemoveDigest(ctx context.Context, name, image string) (string, error) {
+func (ir *ImageEngine) ManifestRemoveDigest(_ context.Context, name, image string) (string, error) {
 	instanceDigest, err := digest.Parse(image)
 	if err != nil {
 		return "", fmt.Errorf(`invalid image digest "%s": %v`, image, err)
@@ -549,7 +549,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 }
 
 // ManifestListClear clears out all instances from the manifest list
-func (ir *ImageEngine) ManifestListClear(ctx context.Context, name string) (string, error) {
+func (ir *ImageEngine) ManifestListClear(_ context.Context, name string) (string, error) {
 	manifestList, err := ir.Libpod.LibimageRuntime().LookupManifestList(name)
 	if err != nil {
 		return "", err

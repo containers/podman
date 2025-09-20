@@ -8,7 +8,7 @@ type cpMachine struct {
 	cmd []string
 }
 
-func (c *cpMachine) buildCmd(m *machineTestBuilder) []string {
+func (c *cpMachine) buildCmd(_ *machineTestBuilder) []string {
 	cmd := []string{"machine", "cp"}
 
 	if c.quiet {

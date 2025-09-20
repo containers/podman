@@ -55,7 +55,7 @@ func init() {
 	_ = pruneCmd.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
 }
 
-func prune(cmd *cobra.Command, args []string) error {
+func prune(_ *cobra.Command, _ []string) error {
 	if !force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Printf("%s", createPruneWarningMessage(pruneOpts))

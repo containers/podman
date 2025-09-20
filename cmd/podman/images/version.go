@@ -29,7 +29,7 @@ func init() {
 	})
 }
 
-func version(cmd *cobra.Command, args []string) error {
+func version(_ *cobra.Command, _ []string) error {
 	fmt.Printf("%s %s\n", define.Package, define.Version)
 	return nil
 }

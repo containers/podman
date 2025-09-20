@@ -61,7 +61,7 @@ func init() {
 	validate.AddLatestFlag(cleanupCommand, &cleanupOptions.Latest)
 }
 
-func cleanup(cmd *cobra.Command, args []string) error {
+func cleanup(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

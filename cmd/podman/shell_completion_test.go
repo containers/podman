@@ -46,7 +46,7 @@ func checkCommand(t *testing.T, cmd *cobra.Command) {
 	// loop over all local flags
 	cmd.LocalFlags().VisitAll(func(flag *pflag.Flag) {
 		// an error means that there is a completion function for this flag
-		err := cmd.RegisterFlagCompletionFunc(flag.Name, func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		err := cmd.RegisterFlagCompletionFunc(flag.Name, func(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 			return nil, cobra.ShellCompDirectiveDefault
 		})
 

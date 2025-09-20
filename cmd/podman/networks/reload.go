@@ -46,7 +46,7 @@ func init() {
 	validate.AddLatestFlag(networkReloadCommand, &reloadOptions.Latest)
 }
 
-func networkReload(cmd *cobra.Command, args []string) error {
+func networkReload(_ *cobra.Command, args []string) error {
 	responses, err := registry.ContainerEngine().NetworkReload(registry.Context(), args, reloadOptions)
 	if err != nil {
 		return err

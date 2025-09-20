@@ -37,7 +37,7 @@ func init() {
 	_ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&inspectTypes.ImageData{}))
 }
 
-func inspectExec(cmd *cobra.Command, args []string) error {
+func inspectExec(_ *cobra.Command, args []string) error {
 	inspectOpts.Type = common.ImageType
 	return inspect.Inspect(args, *inspectOpts)
 }

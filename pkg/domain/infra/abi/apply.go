@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func (ic *ContainerEngine) KubeApply(ctx context.Context, body io.Reader, options entities.ApplyOptions) error {
+func (ic *ContainerEngine) KubeApply(_ context.Context, body io.Reader, options entities.ApplyOptions) error {
 	// Read the yaml file
 	content, err := io.ReadAll(body)
 	if err != nil {

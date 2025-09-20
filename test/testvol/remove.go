@@ -10,7 +10,7 @@ var removeCmd = &cobra.Command{
 	Short: "remove a volume",
 	Long:  `Remove a volume in the volume plugin listening on --sock-name`,
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		return removeVol(config.sockName, args[0])
 	},
 }
