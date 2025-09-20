@@ -85,7 +85,7 @@ func networkCreateFlags(cmd *cobra.Command) {
 
 	interfaceFlagName := "interface-name"
 	flags.StringVar(&networkCreateOptions.InterfaceName, interfaceFlagName, "", "interface name which is used by the driver")
-	_ = cmd.RegisterFlagCompletionFunc(interfaceFlagName, completion.AutocompleteNone)
+	_ = cmd.RegisterFlagCompletionFunc(interfaceFlagName, common.AutocompleteNetworkInterfaceNames)
 
 	flags.BoolVar(&networkCreateOptions.DisableDNS, "disable-dns", false, "disable dns plugin")
 
