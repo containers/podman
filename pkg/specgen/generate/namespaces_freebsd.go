@@ -56,6 +56,6 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 // On FreeBSD 13.3 and later, we can avoid creating a separate vnet jail but
 // only if we can initialise the network after the OCI container is created -
 // the OCI container will own the vnet in this case.
-func needPostConfigureNetNS(s *specgen.SpecGenerator) bool {
+func needPostConfigureNetNS(_ *specgen.SpecGenerator) bool {
 	return !jail.NeedVnetJail()
 }

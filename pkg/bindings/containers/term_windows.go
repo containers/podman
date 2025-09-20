@@ -34,7 +34,7 @@ func makeRawTerm(stdin *os.File) (*term.State, error) {
 	return state, nil
 }
 
-func notifyWinChange(ctx context.Context, winChange chan os.Signal, stdin *os.File, stdout *os.File) {
+func notifyWinChange(ctx context.Context, winChange chan os.Signal, _ *os.File, stdout *os.File) {
 	// Simulate WINCH with polling
 	go func() {
 		var lastW int
@@ -62,6 +62,6 @@ func notifyWinChange(ctx context.Context, winChange chan os.Signal, stdin *os.Fi
 	}()
 }
 
-func getTermSize(stdin *os.File, stdout *os.File) (width, height int, err error) {
+func getTermSize(_ *os.File, stdout *os.File) (width, height int, err error) {
 	return term.GetSize(int(stdout.Fd()))
 }
