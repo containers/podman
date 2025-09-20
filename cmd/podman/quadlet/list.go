@@ -51,7 +51,7 @@ func init() {
 	listFlags(quadletListCmd)
 }
 
-func list(cmd *cobra.Command, args []string) error {
+func list(cmd *cobra.Command, _ []string) error {
 	quadlets, err := registry.ContainerEngine().QuadletList(registry.Context(), listOptions)
 	if err != nil {
 		return err

@@ -19,7 +19,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
+func (ic *ContainerEngine) GenerateSystemd(_ context.Context, nameOrID string, options entities.GenerateSystemdOptions) (*entities.GenerateSystemdReport, error) {
 	// First assume it's a container.
 	ctr, ctrErr := ic.Libpod.LookupContainer(nameOrID)
 	if ctrErr == nil {
@@ -46,7 +46,7 @@ func (ic *ContainerEngine) GenerateSystemd(ctx context.Context, nameOrID string,
 	return &entities.GenerateSystemdReport{Units: units}, nil
 }
 
-func (ic *ContainerEngine) GenerateSpec(ctx context.Context, opts *entities.GenerateSpecOptions) (*entities.GenerateSpecReport, error) {
+func (ic *ContainerEngine) GenerateSpec(_ context.Context, opts *entities.GenerateSpecOptions) (*entities.GenerateSpecReport, error) {
 	var spec *specgen.SpecGenerator
 	var pspec *specgen.PodSpecGenerator
 	var err error

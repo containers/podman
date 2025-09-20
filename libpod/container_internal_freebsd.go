@@ -25,11 +25,11 @@ var (
 	bindOptions = []string{}
 )
 
-func (c *Container) mountSHM(shmOptions string) error {
+func (c *Container) mountSHM(_ string) error {
 	return nil
 }
 
-func (c *Container) unmountSHM(path string) error {
+func (c *Container) unmountSHM(_ string) error {
 	return nil
 }
 
@@ -190,7 +190,7 @@ func (c *Container) addNetworkContainer(g *generate.Generator, ctr string) error
 	return nil
 }
 
-func isRootlessCgroupSet(cgroup string) bool {
+func isRootlessCgroupSet(_ string) bool {
 	return false
 }
 
@@ -225,7 +225,7 @@ func (c *Container) addNetworkNamespace(g *generate.Generator) error {
 	return nil
 }
 
-func (c *Container) addSystemdMounts(g *generate.Generator) error {
+func (c *Container) addSystemdMounts(_ *generate.Generator) error {
 	return nil
 }
 
@@ -280,17 +280,17 @@ func (c *Container) addSharedNamespaces(g *generate.Generator) error {
 	return nil
 }
 
-func (c *Container) addRootPropagation(g *generate.Generator, mounts []spec.Mount) error {
+func (c *Container) addRootPropagation(_ *generate.Generator, _ []spec.Mount) error {
 	return nil
 }
 
-func (c *Container) setProcessLabel(g *generate.Generator) {
+func (c *Container) setProcessLabel(_ *generate.Generator) {
 }
 
-func (c *Container) setMountLabel(g *generate.Generator) {
+func (c *Container) setMountLabel(_ *generate.Generator) {
 }
 
-func (c *Container) setCgroupsPath(g *generate.Generator) error {
+func (c *Container) setCgroupsPath(_ *generate.Generator) error {
 	return nil
 }
 
@@ -378,7 +378,7 @@ func (c *Container) safeMountSubPath(mountPoint, subpath string) (s *safeMountIn
 	return &safeMountInfo{mountPoint: filepath.Join(mountPoint, subpath)}, nil
 }
 
-func (c *Container) makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID int) error {
+func (c *Container) makePlatformMtabLink(_, _, _ int) error {
 	// /etc/mtab does not exist on FreeBSD
 	return nil
 }
@@ -403,7 +403,7 @@ func (c *Container) getPlatformRunPath() (string, error) {
 	return runPath, nil
 }
 
-func (c *Container) addMaskedPaths(g *generate.Generator) {
+func (c *Container) addMaskedPaths(_ *generate.Generator) {
 	// There are currently no FreeBSD-specific masked paths
 }
 

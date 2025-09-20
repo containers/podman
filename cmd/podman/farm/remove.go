@@ -42,7 +42,7 @@ func init() {
 	flags.BoolVarP(&rmOpts.All, "all", "a", false, "Remove all farms")
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	deletedFarms := []string{}
 	err := config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
 		if rmOpts.All {

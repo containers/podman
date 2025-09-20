@@ -3,7 +3,7 @@ package utils
 import "github.com/spf13/pflag"
 
 // AliasFlags is a function to handle backwards compatibility with old flags
-func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
+func AliasFlags(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 	switch name {
 	case "dns-opt":
 		name = "dns-option"
@@ -36,7 +36,7 @@ func AliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 }
 
 // TimeoutAliasFlags is a function to handle backwards compatibility with old timeout flags
-func TimeoutAliasFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
+func TimeoutAliasFlags(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 	if name == "timeout" {
 		name = "time"
 	}

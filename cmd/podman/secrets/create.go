@@ -64,7 +64,7 @@ func init() {
 	_ = createCmd.RegisterFlagCompletionFunc(labelFlagName, completion.AutocompleteNone)
 }
 
-func create(cmd *cobra.Command, args []string) error {
+func create(_ *cobra.Command, args []string) error {
 	name := args[0]
 
 	// Validate that --ignore and --replace are not used together

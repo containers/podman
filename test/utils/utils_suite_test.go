@@ -31,7 +31,7 @@ func FakePodmanTestCreate() *FakePodmanTest {
 	return p
 }
 
-func (p *FakePodmanTest) makeOptions(args []string, options PodmanExecOptions) []string {
+func (p *FakePodmanTest) makeOptions(args []string, _ PodmanExecOptions) []string {
 	return FakeOutputs[strings.Join(args, " ")]
 }
 

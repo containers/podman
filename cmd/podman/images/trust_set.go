@@ -52,7 +52,7 @@ File(s) must exist before using this command`)
 	_ = setTrustCommand.RegisterFlagCompletionFunc(typeFlagName, common.AutocompleteTrustType)
 }
 
-func setTrust(cmd *cobra.Command, args []string) error {
+func setTrust(_ *cobra.Command, args []string) error {
 	validTrustTypes := []string{"accept", "insecureAcceptAnything", "reject", "signedBy", "sigstoreSigned"}
 
 	valid, err := isValidImageURI(args[0])

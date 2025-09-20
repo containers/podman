@@ -36,7 +36,7 @@ var (
 	rmOptions = entities.SecretRmOptions{}
 )
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

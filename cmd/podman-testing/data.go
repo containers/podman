@@ -205,7 +205,7 @@ func init() {
 	flags.StringVarP(&removeContainerDataOpts.Key, "key", "k", "", "Name of the data item")
 }
 
-func createLayerData(cmd *cobra.Command, args []string) error {
+func createLayerData(_ *cobra.Command, _ []string) error {
 	if createLayerDataOpts.ID == "" {
 		return errors.New("layer ID not specified")
 	}
@@ -233,7 +233,7 @@ func createLayerData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createImageData(cmd *cobra.Command, args []string) error {
+func createImageData(_ *cobra.Command, _ []string) error {
 	if createImageDataOpts.ID == "" {
 		return errors.New("image ID not specified")
 	}
@@ -261,7 +261,7 @@ func createImageData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createContainerData(cmd *cobra.Command, args []string) error {
+func createContainerData(_ *cobra.Command, _ []string) error {
 	if createContainerDataOpts.ID == "" {
 		return errors.New("container ID not specified")
 	}
@@ -289,7 +289,7 @@ func createContainerData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func modifyLayerData(cmd *cobra.Command, args []string) error {
+func modifyLayerData(_ *cobra.Command, _ []string) error {
 	if modifyLayerDataOpts.ID == "" {
 		return errors.New("layer ID not specified")
 	}
@@ -314,7 +314,7 @@ func modifyLayerData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func modifyImageData(cmd *cobra.Command, args []string) error {
+func modifyImageData(_ *cobra.Command, _ []string) error {
 	if modifyImageDataOpts.ID == "" {
 		return errors.New("image ID not specified")
 	}
@@ -339,7 +339,7 @@ func modifyImageData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func modifyContainerData(cmd *cobra.Command, args []string) error {
+func modifyContainerData(_ *cobra.Command, _ []string) error {
 	if modifyContainerDataOpts.ID == "" {
 		return errors.New("container ID not specified")
 	}
@@ -364,7 +364,7 @@ func modifyContainerData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func removeLayerData(cmd *cobra.Command, args []string) error {
+func removeLayerData(_ *cobra.Command, _ []string) error {
 	if removeLayerDataOpts.ID == "" {
 		return errors.New("layer ID not specified")
 	}
@@ -378,7 +378,7 @@ func removeLayerData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func removeImageData(cmd *cobra.Command, args []string) error {
+func removeImageData(_ *cobra.Command, _ []string) error {
 	if removeImageDataOpts.ID == "" {
 		return errors.New("image ID not specified")
 	}
@@ -392,7 +392,7 @@ func removeImageData(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func removeContainerData(cmd *cobra.Command, args []string) error {
+func removeContainerData(_ *cobra.Command, _ []string) error {
 	if removeContainerDataOpts.ID == "" {
 		return errors.New("container ID not specified")
 	}

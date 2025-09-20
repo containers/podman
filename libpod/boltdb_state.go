@@ -264,7 +264,7 @@ func (s *BoltState) Refresh() error {
 		// Then save the modified state
 		// Also clear all network namespaces
 		toRemoveIDs := []string{}
-		err = idBucket.ForEach(func(id, name []byte) error {
+		err = idBucket.ForEach(func(id, _ []byte) error {
 			ctrBkt := ctrsBucket.Bucket(id)
 			if ctrBkt == nil {
 				// It's a pod
@@ -345,7 +345,7 @@ func (s *BoltState) Refresh() error {
 				// Can't delete in a ForEach, so build a list of
 				// what to remove then remove.
 				toRemove := []string{}
-				err = ctrExecBkt.ForEach(func(id, unused []byte) error {
+				err = ctrExecBkt.ForEach(func(id, _ []byte) error {
 					toRemove = append(toRemove, string(id))
 					return nil
 				})
@@ -384,7 +384,7 @@ func (s *BoltState) Refresh() error {
 		}
 
 		// Now refresh volumes
-		err = allVolsBucket.ForEach(func(id, name []byte) error {
+		err = allVolsBucket.ForEach(func(id, _ []byte) error {
 			dbVol := volBucket.Bucket(id)
 			if dbVol == nil {
 				return fmt.Errorf("inconsistency in state - volume %s is in all volumes bucket but volume not found: %w", string(id), define.ErrInternal)
@@ -425,7 +425,7 @@ func (s *BoltState) Refresh() error {
 		// So we have to make a list of what to operate on, then do the
 		// work.
 		toRemoveExec := []string{}
-		err = execBucket.ForEach(func(id, unused []byte) error {
+		err = execBucket.ForEach(func(id, _ []byte) error {
 			toRemoveExec = append(toRemoveExec, string(id))
 			return nil
 		})
@@ -941,7 +941,7 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 		}
 
 		// Iterate through and add dependencies
-		err = dependsBkt.ForEach(func(id, value []byte) error {
+		err = dependsBkt.ForEach(func(id, _ []byte) error {
 			depCtrs = append(depCtrs, string(id))
 
 			return nil
@@ -985,7 +985,7 @@ func (s *BoltState) AllContainers(loadState bool) ([]*Container, error) {
 			return err
 		}
 
-		return allCtrsBucket.ForEach(func(id, name []byte) error {
+		return allCtrsBucket.ForEach(func(id, _ []byte) error {
 			// If performance becomes an issue, this check can be
 			// removed. But the error messages that come back will
 			// be much less helpful.
@@ -1106,7 +1106,7 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 					networkList = []string{ctr.runtime.config.Network.DefaultNetwork}
 				}
 			} else {
-				err = ctrNetworkBkt.ForEach(func(network, v []byte) error {
+				err = ctrNetworkBkt.ForEach(func(network, _ []byte) error {
 					networkList = append(networkList, string(network))
 					return nil
 				})
@@ -1140,7 +1140,7 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 					}
 
 					// let's ignore the error here there is nothing we can do
-					_ = netAliasesBkt.ForEach(func(alias, v []byte) error {
+					_ = netAliasesBkt.ForEach(func(alias, _ []byte) error {
 						aliases = append(aliases, string(alias))
 						return nil
 					})
@@ -1755,7 +1755,7 @@ func (s *BoltState) GetContainerExecSessions(ctr *Container) ([]string, error) {
 			return nil
 		}
 
-		return ctrExecSessions.ForEach(func(id, unused []byte) error {
+		return ctrExecSessions.ForEach(func(id, _ []byte) error {
 			sessions = append(sessions, string(id))
 			return nil
 		})
@@ -1808,7 +1808,7 @@ func (s *BoltState) RemoveContainerExecSessions(ctr *Container) error {
 			return nil
 		}
 
-		err = ctrExecSessions.ForEach(func(id, unused []byte) error {
+		err = ctrExecSessions.ForEach(func(id, _ []byte) error {
 			sessions = append(sessions, string(id))
 			return nil
 		})
@@ -2186,7 +2186,7 @@ func (s *BoltState) LookupPod(idOrName string) (*Pod, error) {
 		// They did not give us a full pod name or ID.
 		// Search for partial ID matches.
 		exists := false
-		err = podBkt.ForEach(func(checkID, checkName []byte) error {
+		err = podBkt.ForEach(func(checkID, _ []byte) error {
 			if strings.HasPrefix(string(checkID), idOrName) {
 				if exists {
 					return fmt.Errorf("more than one result for ID or name %s: %w", idOrName, define.ErrPodExists)
@@ -2355,7 +2355,7 @@ func (s *BoltState) PodContainersByID(pod *Pod) ([]string, error) {
 		}
 
 		// Iterate through all containers in the pod
-		err = podCtrs.ForEach(func(id, val []byte) error {
+		err = podCtrs.ForEach(func(id, _ []byte) error {
 			ctrs = append(ctrs, string(id))
 
 			return nil
@@ -2418,7 +2418,7 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 		}
 
 		// Iterate through all containers in the pod
-		err = podCtrs.ForEach(func(id, val []byte) error {
+		err = podCtrs.ForEach(func(id, _ []byte) error {
 			newCtr := new(Container)
 			newCtr.config = new(ContainerConfig)
 			newCtr.state = new(ContainerState)
@@ -2581,7 +2581,7 @@ func (s *BoltState) RemoveVolume(volume *Volume) error {
 		volCtrsBkt := volDB.Bucket(volDependenciesBkt)
 		if volCtrsBkt != nil {
 			var deps []string
-			err = volCtrsBkt.ForEach(func(id, value []byte) error {
+			err = volCtrsBkt.ForEach(func(id, _ []byte) error {
 				// Alright, this is ugly.
 				// But we need it to work around the change in
 				// volume dependency handling, to make sure that
@@ -2745,7 +2745,7 @@ func (s *BoltState) AllVolumes() ([]*Volume, error) {
 		if err != nil {
 			return err
 		}
-		err = allVolsBucket.ForEach(func(id, name []byte) error {
+		err = allVolsBucket.ForEach(func(id, _ []byte) error {
 			volExists := volBucket.Bucket(id)
 			// This check can be removed if performance becomes an
 			// issue, but much less helpful errors will be produced
@@ -2854,7 +2854,7 @@ func (s *BoltState) LookupVolume(name string) (*Volume, error) {
 
 		// No exact match. Search all names.
 		foundMatch := false
-		err = allVolsBkt.ForEach(func(checkName, checkName2 []byte) error {
+		err = allVolsBkt.ForEach(func(checkName, _ []byte) error {
 			if strings.HasPrefix(string(checkName), name) {
 				if foundMatch {
 					return fmt.Errorf("more than one result for volume name %q: %w", name, define.ErrVolumeExists)
@@ -2964,7 +2964,7 @@ func (s *BoltState) VolumeInUse(volume *Volume) ([]string, error) {
 		}
 
 		// Iterate through and add dependencies
-		err = dependsBkt.ForEach(func(id, value []byte) error {
+		err = dependsBkt.ForEach(func(id, _ []byte) error {
 			// Look up all dependencies and see that they
 			// still exist before appending.
 			ctrExists := ctrBucket.Bucket(id)
@@ -3252,7 +3252,7 @@ func (s *BoltState) RemovePodContainers(pod *Pod) error {
 			// This should never be nil, but if it is, we're
 			// removing it anyways, so continue if it is
 			if ctrDeps != nil {
-				err = ctrDeps.ForEach(func(depID, name []byte) error {
+				err = ctrDeps.ForEach(func(depID, _ []byte) error {
 					exists := podCtrsBkt.Get(depID)
 					if exists == nil {
 						return fmt.Errorf("container %s has dependency %s outside of pod %s: %w", string(id), string(depID), pod.ID(), define.ErrCtrExists)
@@ -3485,7 +3485,7 @@ func (s *BoltState) AllPods() ([]*Pod, error) {
 			return err
 		}
 
-		err = allPodsBucket.ForEach(func(id, name []byte) error {
+		err = allPodsBucket.ForEach(func(id, _ []byte) error {
 			podExists := podBucket.Bucket(id)
 			// This check can be removed if performance becomes an
 			// issue, but much less helpful errors will be produced

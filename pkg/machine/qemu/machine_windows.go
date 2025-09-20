@@ -25,10 +25,10 @@ func checkProcessStatus(processHint string, pid int, stderrBuf *bytes.Buffer) er
 	return nil
 }
 
-func sigKill(pid int) error {
+func sigKill(_ int) error {
 	return nil
 }
 
-func findProcess(pid int) (int, error) {
+func findProcess(_ int) (int, error) {
 	return -1, nil
 }

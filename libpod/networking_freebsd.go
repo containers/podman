@@ -44,7 +44,7 @@ type NetstatAddress struct {
 	Collisions uint64 `json:"collisions"`
 }
 
-func getSlirp4netnsIP(subnet *net.IPNet) (*net.IP, error) {
+func getSlirp4netnsIP(_ *net.IPNet) (*net.IP, error) {
 	return nil, errors.New("not implemented GetSlirp4netnsIP")
 }
 
@@ -221,7 +221,7 @@ func (c *Container) joinedNetworkNSPath() (string, bool) {
 	return c.state.NetNS, false
 }
 
-func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {
+func (c *Container) inspectJoinedNetworkNS(_ string) (q types.StatusBlock, retErr error) {
 	// TODO: extract interface information from the vnet jail
 	return types.StatusBlock{}, nil
 }

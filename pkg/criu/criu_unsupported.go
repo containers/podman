@@ -4,7 +4,7 @@ package criu
 
 import "fmt"
 
-func CheckForCriu(version int) error {
+func CheckForCriu(_ int) error {
 	return fmt.Errorf("CheckForCriu not supported on this platform")
 }
 

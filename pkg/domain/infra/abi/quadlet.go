@@ -546,7 +546,7 @@ func getQuadletPathByName(name string) (string, error) {
 	return "", fmt.Errorf("could not locate quadlet %q in any supported quadlet directory", name)
 }
 
-func (ic *ContainerEngine) QuadletPrint(ctx context.Context, quadlet string) (string, error) {
+func (ic *ContainerEngine) QuadletPrint(_ context.Context, quadlet string) (string, error) {
 	quadletPath, err := getQuadletPathByName(quadlet)
 	if err != nil {
 		return "", err

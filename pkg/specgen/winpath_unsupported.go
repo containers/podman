@@ -6,7 +6,7 @@ func shouldResolveWinPaths() bool {
 	return false
 }
 
-func shouldResolveUnixWinVariant(path string) bool {
+func shouldResolveUnixWinVariant(_ string) bool {
 	return false
 }
 
@@ -14,6 +14,6 @@ func resolveRelativeOnWindows(path string) string {
 	return path
 }
 
-func winPathExists(path string) bool {
+func winPathExists(_ string) bool {
 	return false
 }

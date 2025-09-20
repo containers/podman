@@ -51,7 +51,7 @@ func init() {
 	_ = dfSystemCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&dfSummary{}))
 }
 
-func df(cmd *cobra.Command, args []string) error {
+func df(cmd *cobra.Command, _ []string) error {
 	reports, err := registry.ContainerEngine().SystemDf(registry.Context(), dfOptions)
 	if err != nil {
 		return err

@@ -31,7 +31,7 @@ func init() {
 	})
 }
 
-func print(cmd *cobra.Command, args []string) error {
+func print(_ *cobra.Command, args []string) error {
 	quadletContents, err := registry.ContainerEngine().QuadletPrint(registry.Context(), args[0])
 	if err != nil {
 		return err

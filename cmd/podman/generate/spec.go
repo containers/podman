@@ -49,7 +49,7 @@ func init() {
 	flags.SetNormalizeFunc(utils.AliasFlags)
 }
 
-func spec(cmd *cobra.Command, args []string) error {
+func spec(_ *cobra.Command, args []string) error {
 	opts.ID = args[0]
 	report, err := registry.ContainerEngine().GenerateSpec(registry.Context(), opts)
 	if err != nil {

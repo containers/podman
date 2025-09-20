@@ -62,7 +62,7 @@ func init() {
 	flags.BoolVarP(&cliOpts.Quiet, "quiet", "q", false, "Print volume output in quiet mode")
 }
 
-func list(cmd *cobra.Command, args []string) error {
+func list(cmd *cobra.Command, _ []string) error {
 	var err error
 	if cliOpts.Quiet && cmd.Flag("format").Changed {
 		return errors.New("quiet and format flags cannot be used together")

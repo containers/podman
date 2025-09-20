@@ -1081,12 +1081,12 @@ type RootPaths struct {
 }
 
 // TODO: remove me when watch is refactored
-func LabelSelectorQueryParam(version string) string {
+func LabelSelectorQueryParam(_ string) string {
 	return "labelSelector"
 }
 
 // TODO: remove me when watch is refactored
-func FieldSelectorQueryParam(version string) string {
+func FieldSelectorQueryParam(_ string) string {
 	return "fieldSelector"
 }
 

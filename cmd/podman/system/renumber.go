@@ -39,7 +39,7 @@ func init() {
 	})
 }
 
-func renumber(cmd *cobra.Command, args []string) {
+func renumber(_ *cobra.Command, _ []string) {
 	if err := registry.ContainerEngine().Renumber(registry.Context()); err != nil {
 		fmt.Println(err)
 		// FIXME change this to return the error like other commands

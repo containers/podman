@@ -60,7 +60,7 @@ func init() {
 	flags.BoolVarP(&listFlag.quiet, quietFlagName, "q", false, "Print secret IDs only")
 }
 
-func ls(cmd *cobra.Command, args []string) error {
+func ls(cmd *cobra.Command, _ []string) error {
 	var err error
 	lsOpts := entities.SecretListRequest{}
 
