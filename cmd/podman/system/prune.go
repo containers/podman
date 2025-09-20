@@ -36,7 +36,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 		Example:           `podman system prune`,
 	}
-	force bool
+	force         bool
+	includePinned bool
 )
 
 func init() {
@@ -50,6 +51,7 @@ func init() {
 	flags.BoolVar(&pruneOptions.External, "external", false, "Remove container data in storage not controlled by podman")
 	flags.BoolVar(&pruneOptions.Build, "build", false, "Remove build containers")
 	flags.BoolVar(&pruneOptions.Volume, "volumes", false, "Prune volumes")
+	flags.BoolVar(&includePinned, "include-pinned", false, "Include pinned volumes in prune operation")
 	filterFlagName := "filter"
 	flags.StringArrayVar(&filters, filterFlagName, []string{}, "Provide filter values (e.g. 'label=<key>=<value>')")
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
@@ -80,11 +82,21 @@ func prune(cmd *cobra.Command, args []string) error {
 			return nil
 		}
 	}
+	
+	// Set the include pinned flag for volume pruning
+	if pruneOptions.Volume {
+		pruneOptions.VolumePruneOptions.IncludePinned = includePinned
+	}
 
 	// Remove all unused pods, containers, images, networks, and volume data.
 	pruneOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
 	if err != nil {
 		return err
+	}
+	
+	// Set the include pinned flag for volume pruning
+	if pruneOptions.Volume {
+		pruneOptions.VolumePruneOptions.IncludePinned = includePinned
 	}
 
 	response, err := registry.ContainerEngine().SystemPrune(context.Background(), pruneOptions)
@@ -126,6 +138,11 @@ func prune(cmd *cobra.Command, args []string) error {
 }
 
 func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
+	pinnedNote := ""
+	if pruneOpts.Volume && !pruneOpts.VolumePruneOptions.IncludePinned {
+		pinnedNote = " (excluding pinned volumes)"
+	}
+	
 	if pruneOpts.All {
 		return `WARNING! This command removes:
 	- all stopped containers
@@ -137,7 +154,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	}
 	return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s%s
+	- all networks not used by at least one container%s%s` + pinnedNote + `
 	- all dangling images
 	- all dangling build cache
 
