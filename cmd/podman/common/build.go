@@ -47,6 +47,8 @@ type BuildFlagsWrapper struct {
 	SquashAll bool
 	// Cleanup removes built images from remote connections on success
 	Cleanup bool
+	// DigestAlgorithm specifies the digest algorithm to use for content addressing
+	DigestAlgorithm string
 }
 
 // FarmBuildHiddenFlags are the flags hidden from the farm build command because they are either not
@@ -115,6 +117,11 @@ func DefineBuildFlags(cmd *cobra.Command, buildOpts *BuildFlagsWrapper, isFarmBu
 	fromAndBudFlagsCompletions := buildahCLI.GetFromAndBudFlagsCompletions()
 	completion.CompleteCommandFlags(cmd, fromAndBudFlagsCompletions)
 	flags.SetNormalizeFunc(buildahCLI.AliasFlags)
+
+	// Digest algorithm flag
+	digestFlagName := "digest"
+	flags.StringVar(&buildOpts.DigestAlgorithm, digestFlagName, "", "Digest algorithm to use for content addressing (sha256, sha512). Defaults to value from storage.conf or sha256")
+	_ = cmd.RegisterFlagCompletionFunc(digestFlagName, completion.AutocompleteNone)
 	if registry.IsRemote() {
 		// Unset the isolation default as we never want to send this over the API
 		// as it can be wrong (root vs rootless).
@@ -262,6 +269,16 @@ func ParseBuildOpts(cmd *cobra.Command, args []string, buildOpts *BuildFlagsWrap
 	apiBuildOpts.BuildOptions = *buildahDefineOpts
 	apiBuildOpts.ContainerFiles = containerFiles
 	apiBuildOpts.Authfile = buildOpts.Authfile
+
+	// Validate and process digest algorithm
+	if buildOpts.DigestAlgorithm != "" {
+		if buildOpts.DigestAlgorithm != "sha256" && buildOpts.DigestAlgorithm != "sha512" {
+			return nil, fmt.Errorf("invalid digest algorithm %q: must be sha256 or sha512", buildOpts.DigestAlgorithm)
+		}
+		// Store the digest algorithm preference in the apiBuildOpts
+		// This will be used to configure the build environment
+		apiBuildOpts.DigestAlgorithm = buildOpts.DigestAlgorithm
+	}
 
 	return &apiBuildOpts, err
 }
