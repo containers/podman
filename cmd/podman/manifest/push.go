@@ -25,6 +25,7 @@ type manifestPushOptsWrapper struct {
 	CredentialsCLI         string
 	signing                common.SigningCLIOnlyOptions
 	DigestFile             string
+	DigestAlgorithm        string
 }
 
 var (
@@ -96,6 +97,10 @@ func init() {
 	flags.Int(compressionLevel, 0, "compression level to use")
 	_ = pushCmd.RegisterFlagCompletionFunc(compressionLevel, completion.AutocompleteNone)
 
+	digestFlagName := "digest"
+	flags.StringVar(&manifestPushOpts.DigestAlgorithm, digestFlagName, "", "Digest algorithm to use for content addressing (sha256, sha512). Defaults to value from storage.conf or sha256")
+	_ = pushCmd.RegisterFlagCompletionFunc(digestFlagName, completion.AutocompleteNone)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 	}
@@ -164,6 +169,14 @@ func push(cmd *cobra.Command, args []string) error {
 			manifestPushOpts.ForceCompressionFormat = true
 		}
 	}
+
+	// Validate and copy the digest algorithm from CLI wrapper to ImagePushOptions
+	if manifestPushOpts.DigestAlgorithm != "" {
+		if manifestPushOpts.DigestAlgorithm != "sha256" && manifestPushOpts.DigestAlgorithm != "sha512" {
+			return fmt.Errorf("invalid digest algorithm %q: must be sha256 or sha512", manifestPushOpts.DigestAlgorithm)
+		}
+	}
+	manifestPushOpts.ImagePushOptions.DigestAlgorithm = manifestPushOpts.DigestAlgorithm
 
 	digest, err := registry.ImageEngine().ManifestPush(registry.Context(), listImageSpec, destSpec, manifestPushOpts.ImagePushOptions)
 	if err != nil {

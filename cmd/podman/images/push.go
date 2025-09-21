@@ -19,12 +19,13 @@ import (
 // CLI-only fields into the API types.
 type pushOptionsWrapper struct {
 	entities.ImagePushOptions
-	TLSVerifyCLI   bool // CLI only
-	CredentialsCLI string
-	signing        common.SigningCLIOnlyOptions
-	EncryptionKeys []string
-	EncryptLayers  []int
-	DigestFile     string
+	TLSVerifyCLI    bool // CLI only
+	CredentialsCLI  string
+	signing         common.SigningCLIOnlyOptions
+	EncryptionKeys  []string
+	EncryptLayers   []int
+	DigestFile      string
+	DigestAlgorithm string
 }
 
 var (
@@ -137,6 +138,10 @@ func pushFlags(cmd *cobra.Command) {
 	flags.IntSliceVar(&pushOptions.EncryptLayers, encryptLayersFlagName, nil, "Layers to encrypt, 0-indexed layer indices with support for negative indexing (e.g. 0 is the first layer, -1 is the last layer). If not defined, will encrypt all layers if encryption-key flag is specified")
 	_ = cmd.RegisterFlagCompletionFunc(encryptLayersFlagName, completion.AutocompleteDefault)
 
+	digestFlagName := "digest"
+	flags.StringVar(&pushOptions.DigestAlgorithm, digestFlagName, "", "Digest algorithm to use for content addressing (sha256, sha512). Defaults to value from storage.conf or sha256")
+	_ = cmd.RegisterFlagCompletionFunc(digestFlagName, completion.AutocompleteNone)
+
 	if registry.IsRemote() {
 		_ = flags.MarkHidden("cert-dir")
 		_ = flags.MarkHidden("compress")
@@ -228,6 +233,14 @@ func imagePush(cmd *cobra.Command, args []string) error {
 			pushOptions.ForceCompressionFormat = true
 		}
 	}
+
+	// Validate and copy the digest algorithm from CLI wrapper to ImagePushOptions
+	if pushOptions.DigestAlgorithm != "" {
+		if pushOptions.DigestAlgorithm != "sha256" && pushOptions.DigestAlgorithm != "sha512" {
+			return fmt.Errorf("invalid digest algorithm %q: must be sha256 or sha512", pushOptions.DigestAlgorithm)
+		}
+	}
+	pushOptions.ImagePushOptions.DigestAlgorithm = pushOptions.DigestAlgorithm
 
 	// Let's do all the remaining Yoga in the API to prevent us from scattering
 	// logic across (too) many parts of the code.
