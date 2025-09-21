@@ -162,6 +162,9 @@ type ImagePushOptions struct {
 	// CompressionFormat is used exclusively, and blobs of other compression
 	// algorithms are not reused.
 	ForceCompressionFormat bool
+	// DigestAlgorithm specifies the digest algorithm to use for content addressing.
+	// If empty, defaults to the digest algorithm configured in storage.conf or SHA256.
+	DigestAlgorithm string
 }
 
 // ImagePushReport is the response from pushing an image.
