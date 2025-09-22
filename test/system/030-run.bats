@@ -105,7 +105,6 @@ echo $rand        |   0 | $rand
 @test "podman run - uidmapping has no /sys/kernel mounts" {
     skip_if_cgroupsv1 "run --uidmap fails on cgroups v1 (issue 15025, wontfix)"
     skip_if_rootless "cannot umount as rootless"
-    skip_if_remote "TODO Fix this for remote case"
 
     run_podman run --rm --uidmap 0:100:10000 $IMAGE mount
     assert "$output" !~ /sys/kernel "unwanted /sys/kernel in 'mount' output"
