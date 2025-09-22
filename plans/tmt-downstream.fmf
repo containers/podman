@@ -1,0 +1,9 @@
+/:
+  inherit: false
+
+summary: Run tmt's integration tests
+plan:
+  import:
+    url: https://github.com/teemtee/tmt
+    path: /plans/friends
+    name: /podman
