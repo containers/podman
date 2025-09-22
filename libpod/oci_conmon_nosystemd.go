@@ -3,9 +3,7 @@
 package libpod
 
 import (
-	"fmt"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -19,10 +17,15 @@ func (r *ConmonOCIRuntime) addHealthCheckArgs(ctr *Container, args []string) []s
 		if healthConfig != nil {
 			logrus.Debugf("HEALTHCHECK: Adding healthcheck CLI args for container %s", ctr.ID())
 
-			// Build healthcheck command string from test array
-			healthCmd := r.buildHealthcheckCmd(healthConfig.Test)
+			// Build healthcheck command and arguments from test array
+			healthCmd, healthArgs := r.buildHealthcheckCmdAndArgs(healthConfig.Test)
 			if healthCmd != "" {
 				args = append(args, "--healthcheck-cmd", healthCmd)
+
+				// Add all healthcheck arguments
+				for _, arg := range healthArgs {
+					args = append(args, "--healthcheck-arg", arg)
+				}
 
 				// Add optional healthcheck parameters with validation and defaults
 				interval := r.validateAndGetInterval(healthConfig.Interval)
@@ -35,8 +38,8 @@ func (r *ConmonOCIRuntime) addHealthCheckArgs(ctr *Container, args []string) []s
 				args = append(args, "--healthcheck-retries", strconv.Itoa(retries))
 				args = append(args, "--healthcheck-start-period", strconv.Itoa(startPeriod))
 
-				logrus.Debugf("HEALTHCHECK: Added healthcheck args for container %s: cmd=%s, interval=%ds, timeout=%ds, retries=%d, start-period=%ds",
-					ctr.ID(), healthCmd, interval, timeout, retries, startPeriod)
+				logrus.Debugf("HEALTHCHECK: Added healthcheck args for container %s: cmd=%s, args=%v, interval=%ds, timeout=%ds, retries=%d, start-period=%ds",
+					ctr.ID(), healthCmd, healthArgs, interval, timeout, retries, startPeriod)
 			} else {
 				logrus.Warnf("HEALTHCHECK: Container %s has healthcheck config but no valid command", ctr.ID())
 			}
@@ -47,32 +50,34 @@ func (r *ConmonOCIRuntime) addHealthCheckArgs(ctr *Container, args []string) []s
 	return args
 }
 
-// buildHealthcheckCmd converts Podman's healthcheck test array to a single command string
-func (r *ConmonOCIRuntime) buildHealthcheckCmd(test []string) string {
+// buildHealthcheckCmdAndArgs converts Podman's healthcheck test array to command and arguments
+func (r *ConmonOCIRuntime) buildHealthcheckCmdAndArgs(test []string) (string, []string) {
 	if len(test) == 0 {
-		return ""
+		return "", nil
 	}
 
 	// Handle special cases
 	switch test[0] {
 	case "", "NONE":
-		return ""
+		return "", nil
 	case "CMD":
 		// CMD format: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+		// -> cmd="curl", args=["-f", "http://localhost:8080/health"]
 		if len(test) > 1 {
-			return strings.Join(test[1:], " ")
+			return test[1], test[2:]
 		}
-		return ""
+		return "", nil
 	case "CMD-SHELL":
 		// CMD-SHELL format: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
-		// Wrap with sh -c for shell execution
+		// -> cmd="/bin/sh", args=["-c", "curl -f http://localhost:8080/health"]
 		if len(test) > 1 {
-			return fmt.Sprintf("/bin/sh -c %q", test[1])
+			return "/bin/sh", []string{"-c", test[1]}
 		}
-		return ""
+		return "", nil
 	default:
 		// Direct command format: ["curl", "-f", "http://localhost:8080/health"]
-		return strings.Join(test, " ")
+		// -> cmd="curl", args=["-f", "http://localhost:8080/health"]
+		return test[0], test[1:]
 	}
 }
 
