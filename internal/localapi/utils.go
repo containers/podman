@@ -26,44 +26,46 @@ import (
 // FindMachineByPort finds a running machine that matches the given connection port.
 // It returns the machine configuration and provider, or an error if not found.
 func FindMachineByPort(connectionURI string, parsedConnection *url.URL) (*vmconfigs.MachineConfig, vmconfigs.VMProvider, error) {
-	machineProvider, err := provider.Get()
-	if err != nil {
-		return nil, nil, fmt.Errorf("getting machine provider: %w", err)
-	}
-
-	dirs, err := env.GetMachineDirs(machineProvider.VMType())
-	if err != nil {
-		return nil, nil, err
-	}
-
-	machineList, err := vmconfigs.LoadMachinesInDir(dirs)
-	if err != nil {
-		return nil, nil, fmt.Errorf("listing machines: %w", err)
-	}
-
-	// Now we know that the connection points to a machine and we
-	// can find the machine by looking for the one with the
-	// matching port.
-	connectionPort, err := strconv.Atoi(parsedConnection.Port())
-	if err != nil {
-		return nil, nil, fmt.Errorf("parsing connection port: %w", err)
-	}
-
-	for _, mc := range machineList {
-		if connectionPort != mc.SSH.Port {
+	for _, machineProvider := range provider.GetAll() {
+		logrus.Debugf("Checking provider: %s", machineProvider.VMType())
+		dirs, err := env.GetMachineDirs(machineProvider.VMType())
+		if err != nil {
+			logrus.Debugf("Failed to get machine dirs for provider %s: %v", machineProvider.VMType(), err)
 			continue
 		}
 
-		state, err := machineProvider.State(mc, false)
+		machineList, err := vmconfigs.LoadMachinesInDir(dirs)
 		if err != nil {
-			return nil, nil, err
+			logrus.Debugf("Failed to list machines: %v", err)
+			continue
 		}
 
-		if state != define.Running {
-			return nil, nil, fmt.Errorf("machine %s is not running but in state %s", mc.Name, state)
+		// Now we know that the connection points to a machine and we
+		// can find the machine by looking for the one with the
+		// matching port.
+		connectionPort, err := strconv.Atoi(parsedConnection.Port())
+		if err != nil {
+			logrus.Debugf("Failed to parse connection port: %v", err)
+			continue
 		}
 
-		return mc, machineProvider, nil
+		for _, mc := range machineList {
+			if connectionPort != mc.SSH.Port {
+				continue
+			}
+
+			state, err := machineProvider.State(mc, false)
+			if err != nil {
+				logrus.Debugf("Failed to get machine state for %s: %v", mc.Name, err)
+				continue
+			}
+
+			if state != define.Running {
+				return nil, nil, fmt.Errorf("machine %s is not running but in state %s", mc.Name, state)
+			}
+
+			return mc, machineProvider, nil
+		}
 	}
 
 	return nil, nil, fmt.Errorf("could not find a matching machine for connection %q", connectionURI)
@@ -244,13 +246,13 @@ func IsHyperVProvider(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	_, vmType, err := getMachineMountsAndVMType(conn.URI.String(), conn.URI)
+	_, vmProvider, err := FindMachineByPort(conn.URI.String(), conn.URI)
 	if err != nil {
-		logrus.Debugf("Failed to get machine mounts: %v", err)
+		logrus.Debugf("Failed to get machine hypervisor type: %v", err)
 		return false, err
 	}
 
-	return vmType == define.HyperVVirt, nil
+	return vmProvider.VMType() == define.HyperVVirt, nil
 }
 
 // ValidatePathForLocalAPI checks if the provided path satisfies requirements for local API usage.
