@@ -23,6 +23,7 @@ var (
   podman artifact rm quay.io/myimage/myartifact:latest
   podman artifact rm -a
   podman artifact rm c4dfb1609ee2 93fd78260bd1 c0ed59d05ff7
+  podman artifact rm -i c4dfb1609ee2
 		`,
 	}
 
@@ -32,6 +33,7 @@ var (
 func rmFlags(cmd *cobra.Command) {
 	flags := cmd.Flags()
 	flags.BoolVarP(&rmOptions.All, "all", "a", false, "Remove all artifacts")
+	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore error if artifact does not exist")
 }
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
