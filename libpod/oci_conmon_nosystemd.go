@@ -67,7 +67,7 @@ func (r *ConmonOCIRuntime) buildHealthcheckCmd(test []string) string {
 		// CMD-SHELL format: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
 		// Wrap with sh -c for shell execution
 		if len(test) > 1 {
-			return fmt.Sprintf("sh -c %q", test[1])
+			return fmt.Sprintf("/bin/sh -c %q", test[1])
 		}
 		return ""
 	default:
