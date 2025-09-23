@@ -126,6 +126,8 @@ quadlet_to_service_name() {
         suffix="-pod"
     elif [ "$extension" == "build" ]; then
         suffix="-build"
+    elif [ "$extension" == "artifact" ]; then
+        suffix="-artifact"
     fi
 
     echo "$filename$suffix.service"
