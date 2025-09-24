@@ -573,6 +573,65 @@ var _ = Describe("Podman artifact", func() {
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
 	})
+
+	It("podman artifact add --replace", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/artifact1"
+
+		// Create initial artifact
+		add1 := podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+		firstDigest := add1.OutputToString()
+
+		// Verify artifact exists
+		a := podmanTest.InspectArtifact(artifact1Name)
+		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.TotalSizeBytes()).To(Equal(int64(1024)))
+
+		// Replace with different file
+		add2 := podmanTest.PodmanExitCleanly("artifact", "add", "--replace", artifact1Name, artifact2File)
+		secondDigest := add2.OutputToString()
+
+		// Verify the artifact was replaced (different digest, new size)
+		Expect(secondDigest).ToNot(Equal(firstDigest))
+		a = podmanTest.InspectArtifact(artifact1Name)
+		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.TotalSizeBytes()).To(Equal(int64(2048)))
+
+		// Verify only one artifact in the list (not appended)
+		listSession := podmanTest.PodmanExitCleanly("artifact", "ls")
+		Expect(listSession.OutputToStringArray()).To(HaveLen(2)) // header + 1 artifact
+	})
+
+	It("podman artifact add --replace nonexistent artifact", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/nonexistent"
+
+		// Using --replace on a nonexistent artifact should work (no error)
+		podmanTest.PodmanExitCleanly("artifact", "add", "--replace", artifact1Name, artifact1File)
+
+		// Verify artifact was created
+		a := podmanTest.InspectArtifact(artifact1Name)
+		Expect(a.Name).To(Equal(artifact1Name))
+		Expect(a.TotalSizeBytes()).To(Equal(int64(1024)))
+	})
+
+	It("podman artifact add --replace and --append conflict", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/artifact1"
+
+		// Using --replace and --append together should fail
+		failSession := podmanTest.Podman([]string{"artifact", "add", "--replace", "--append", artifact1Name, artifact1File})
+		failSession.WaitWithDefaultTimeout()
+		Expect(failSession).Should(ExitWithError(125, "--append and --replace options cannot be used together"))
+	})
 })
 
 func digestToFilename(digest string) string {

@@ -13,6 +13,7 @@ type ArtifactAddOptions struct {
 	ArtifactMIMEType string
 	Append           bool
 	FileMIMEType     string
+	Replace          bool
 }
 
 type ArtifactAddReport = entitiesTypes.ArtifactAddReport
