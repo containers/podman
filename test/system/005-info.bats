@@ -328,4 +328,69 @@ EOF
     CONTAINERS_STORAGE_CONF=$PODMAN_TMPDIR/storage.conf run_podman $safe_opts info
 }
 
+@test "podman info --rewrite-config respects new runRoot" {
+    skip_if_remote "Test uses nonstandard paths for c/storage directories"
+
+    # Create temporary storage directories
+    GRAPHROOT=$(mktemp -d)
+    RUNROOT_A=$(mktemp -d)
+    RUNROOT_B=$(mktemp -d)
+
+    STORAGE_CONF1=$PODMAN_TMPDIR/storage1.conf
+    STORAGE_CONF2=$PODMAN_TMPDIR/storage2.conf
+
+    cat >$STORAGE_CONF1 <<EOF
+[storage]
+driver="$(podman_storage_driver)"
+graphroot = "$GRAPHROOT"
+runroot = "$RUNROOT_A"
+[storage.options]
+EOF
+
+    cat >$STORAGE_CONF2 <<EOF
+[storage]
+driver="$(podman_storage_driver)"
+graphroot = "$GRAPHROOT"
+runroot = "$RUNROOT_B"
+[storage.options]
+EOF
+
+    # First, verify original runRoot is used with first config
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman info
+    echo "$output" | grep -q "RunRoot: $RUNROOT_A"
+
+    # Second config should be ignored; still original runRoot
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF2 run_podman info
+    echo "$output" | grep -q "RunRoot: $RUNROOT_A"
+
+    # Rewrite with a container should fail
+    randomctrname=c_$(safename)
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman create --name $randomctrname $IMAGE sh
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF2 run_podman 125 --rewrite-config info
+    is "$output" "Error: refusing to rewrite database cached configuration as containers, pods, or volumes are present: internal libpod error"
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman rm $randomctrname
+
+    # Rewrite with a pod should fail
+    randompodname=p_$(safename)
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman pod create $randompodname
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF2 run_podman 125 --rewrite-config info
+    is "$output" "Error: refusing to rewrite database cached configuration as containers, pods, or volumes are present: internal libpod error"
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman pod rm $randompodname
+
+    # Rewrite with a volume should fail
+    randomvolname=v_$(safename)
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman volume create $randomvolname
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF2 run_podman 125 --rewrite-config info
+    is "$output" "Error: refusing to rewrite database cached configuration as containers, pods, or volumes are present: internal libpod error"
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF1 run_podman volume rm $randomvolname
+
+    # With rewrite-config flag, new runRoot should be used
+    CONTAINERS_STORAGE_CONF=$STORAGE_CONF2 run_podman --rewrite-config info
+    echo "$output" | grep -q "RunRoot: $RUNROOT_B"
+
+    rm -rf "$RUNROOT_A"
+    rm -rf "$RUNROOT_B"
+    rm -rf "$GRAPHROOT"
+}
+
 # vim: filetype=sh

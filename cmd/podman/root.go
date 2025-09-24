@@ -595,6 +595,8 @@ func rootFlags(cmd *cobra.Command, podmanConfig *entities.PodmanConfig) {
 		_ = cmd.RegisterFlagCompletionFunc(networkBackendFlagName, common.AutocompleteNetworkBackend)
 		_ = pFlags.MarkHidden(networkBackendFlagName)
 
+		pFlags.BoolVar(&podmanConfig.IsRewrite, "rewrite-config", false, "Rewrite cached database configuration")
+
 		rootFlagName := "root"
 		pFlags.StringVar(&podmanConfig.GraphRoot, rootFlagName, "", "Path to the graph root directory where images, containers, etc. are stored")
 		_ = cmd.RegisterFlagCompletionFunc(rootFlagName, completion.AutocompleteDefault)
