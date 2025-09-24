@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v5/libpod"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
+	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/domain/infra/abi"
 	"github.com/containers/podman/v5/pkg/errorhandling"
@@ -21,10 +22,9 @@ func AutoUpdate(w http.ResponseWriter, r *http.Request) {
 	runtime := r.Context().Value(api.RuntimeKey).(*libpod.Runtime)
 
 	query := struct {
-		Authfile  string `schema:"authfile"`
-		DryRun    bool   `schema:"dryRun"`
-		Rollback  bool   `schema:"rollback"`
-		TLSVerify bool   `schema:"tlsVerify"`
+		DryRun    bool `schema:"dryRun"`
+		Rollback  bool `schema:"rollback"`
+		TLSVerify bool `schema:"tlsVerify"`
 	}{
 		TLSVerify: true,
 	}
@@ -34,10 +34,17 @@ func AutoUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	_, authfile, err := auth.GetCredentials(r)
+	if err != nil {
+		utils.Error(w, http.StatusBadRequest, err)
+		return
+	}
+	defer auth.RemoveAuthfile(authfile)
+
 	containerEngine := abi.ContainerEngine{Libpod: runtime}
 
 	options := entities.AutoUpdateOptions{
-		Authfile:              query.Authfile,
+		Authfile:              authfile,
 		DryRun:                query.DryRun,
 		Rollback:              query.Rollback,
 		InsecureSkipTLSVerify: types.NewOptionalBool(!query.TLSVerify),
