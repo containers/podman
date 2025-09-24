@@ -493,9 +493,13 @@ func (s *BoltState) GetDBConfig() (*DBConfig, error) {
 }
 
 // ValidateDBConfig validates paths in the given runtime against the database
-func (s *BoltState) ValidateDBConfig(runtime *Runtime) error {
+func (s *BoltState) ValidateDBConfig(runtime *Runtime, performRewrite bool) error {
 	if !s.valid {
 		return define.ErrDBClosed
+	}
+
+	if performRewrite {
+		return fmt.Errorf("rewriting database config is not allowed with the boltdb database backend: %w", define.ErrNotSupported)
 	}
 
 	db, err := s.getDBCon()

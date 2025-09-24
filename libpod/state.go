@@ -39,7 +39,11 @@ type State interface { //nolint:interfacebloat
 	// This is not implemented by the in-memory state, as it has no need to
 	// validate runtime configuration that may change over multiple runs of
 	// the program.
-	ValidateDBConfig(runtime *Runtime) error
+	// If performRewrite is set, the current configuration values will be
+	// overwritten by the values given in the current runtime struct.
+	// This occurs if and only if no containers, pods, and volumes are
+	// present.
+	ValidateDBConfig(runtime *Runtime, performRewrite bool) error
 
 	// Resolve an ID to a Container Name.
 	GetContainerName(id string) (string, error)
@@ -164,7 +168,7 @@ type State interface { //nolint:interfacebloat
 	// There are a lot of capital letters and conditions here, but the short
 	// answer is this: use this only very sparingly, and only if you really
 	// know what you're doing.
-	// TODO: Once BoltDB is removed, RewriteContainerConfig and
+	// TODO 6.0: Once BoltDB is removed, RewriteContainerConfig and
 	// SafeRewriteContainerConfig can be merged.
 	RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error
 	// This is a more limited version of RewriteContainerConfig, though it

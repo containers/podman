@@ -935,6 +935,15 @@ function skip_if_aarch64 {
     fi
 }
 
+##################################
+#  skip_if_boltdb  #  ...with an optional message
+##################################
+function skip_if_boltdb {
+    if [[ "$CI_DESIRED_DATABASE" = "boltdb" ]]; then
+        skip "${1:-not supported with boltdb database backend}"
+    fi
+}
+
 #########
 #  die  #  Abort with helpful message
 #########

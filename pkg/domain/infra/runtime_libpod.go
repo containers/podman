@@ -134,6 +134,9 @@ func getRuntime(ctx context.Context, fs *flag.FlagSet, opts *engineOpts) (*libpo
 	if opts.renumber {
 		options = append(options, libpod.WithRenumber())
 	}
+	if opts.config.IsRewrite {
+		options = append(options, libpod.WithRewrite())
+	}
 
 	if len(cfg.RuntimeFlags) > 0 {
 		runtimeFlags := []string{}

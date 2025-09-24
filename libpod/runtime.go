@@ -110,6 +110,15 @@ type Runtime struct {
 	// errors related to lock initialization so a renumber can be performed
 	// if something has gone wrong.
 	doRenumber bool
+	// doRewrite indicates that the runtime will overwrite cached values in
+	// the database for a number of paths in the configuration (e.g.
+	// graphroot, runroot, tmpdir). These paths will otherwise be overridden
+	// by cached versions when changed by the user, requiring a wipe of the
+	// database to change.
+	// If doRewrite is set, the returned runtime is fully usable.
+	// If doRewrite is set and any containers, pods, or volumes are present
+	// in the database, an error will be returned during runtime init.
+	doRewrite bool
 
 	// valid indicates whether the runtime is ready to use.
 	// valid is set to true when a runtime is returned from GetRuntime(),
@@ -394,7 +403,11 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 		return fmt.Errorf("retrieving runtime configuration from database: %w", err)
 	}
 
-	runtime.mergeDBConfig(dbConfig)
+	if !runtime.doRewrite {
+		runtime.mergeDBConfig(dbConfig)
+	} else {
+		logrus.Debugf("Going to rewrite cached paths in database. Values below will be used for new cached configuration.")
+	}
 
 	checkCgroups2UnifiedMode(runtime)
 
@@ -408,7 +421,7 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	// Validate our config against the database, now that we've set our
 	// final storage configuration
-	if err := runtime.state.ValidateDBConfig(runtime); err != nil {
+	if err := runtime.state.ValidateDBConfig(runtime, runtime.doRewrite); err != nil {
 		// If we are performing a storage reset: continue on with a
 		// warning. Otherwise we can't `system reset` after a change to
 		// the core paths.
