@@ -78,7 +78,7 @@ echo $rand        |   0 | $rand
     echo "$content" > $PODMAN_TMPDIR/tempfile
 
     run_podman run --rm -i --preserve-fds=2 $IMAGE sh -c "cat <&4" 4<$PODMAN_TMPDIR/tempfile
-    is "$output" "$content" "container read input from fd 4"
+    assert "$output" =~ "$content" "container read input from fd 4"
 }
 
 # 'run --preserve-fd' passes a list of additional file descriptors into the container
