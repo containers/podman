@@ -36,10 +36,11 @@ type listFlagType struct {
 }
 
 type artifactListOutput struct {
-	Digest     string
-	Repository string
-	Size       string
-	Tag        string
+	Digest      string
+	Repository  string
+	Size        string
+	Tag         string
+	VirtualSize string
 }
 
 var (
@@ -106,10 +107,11 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 		}
 
 		artifacts = append(artifacts, artifactListOutput{
-			Digest:     artifactHash,
-			Repository: named.Name(),
-			Size:       units.HumanSize(float64(lr.Artifact.TotalSizeBytes())),
-			Tag:        tag,
+			Digest:      artifactHash,
+			Repository:  named.Name(),
+			Size:        units.HumanSize(float64(lr.Artifact.TotalSizeBytes())),
+			Tag:         tag,
+			VirtualSize: fmt.Sprintf("%d", lr.Artifact.TotalSizeBytes()),
 		})
 	}
 
