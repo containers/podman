@@ -83,6 +83,8 @@ type PlayKubeOptions struct {
 	SystemContext *types.SystemContext
 	// Do not prefix container name with pod name
 	NoPodPrefix bool
+	// MultiplePods - allows creating of multiple Pods
+	MultiplePods bool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube
