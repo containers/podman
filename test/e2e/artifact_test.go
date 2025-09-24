@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/podman/v5/utils"
@@ -572,6 +573,41 @@ var _ = Describe("Podman artifact", func() {
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--type", artifactType, "--append", artifact1Name, artifact3File})
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
+	})
+
+	It("podman artifact inspect shows created date", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/artifact1"
+
+		// Add artifact
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		// Inspect artifact
+		a := podmanTest.InspectArtifact(artifact1Name)
+		Expect(a.Name).To(Equal(artifact1Name))
+
+		// Check that created annotation exists and is in valid Unix nanosecond format
+		createdStr, exists := a.Manifest.Annotations["org.opencontainers.image.created"]
+		Expect(exists).To(BeTrue(), "Should have org.opencontainers.image.created annotation")
+
+		// podman artifact append preserves original created date
+		// Wait a moment to ensure timestamps would be different
+		time.Sleep(100 * time.Millisecond)
+
+		// Append to the artifact
+		podmanTest.PodmanExitCleanly("artifact", "add", "--append", artifact1Name, artifact2File)
+
+		// Check that created timestamp is unchanged
+		a = podmanTest.InspectArtifact(artifact1Name)
+		currentCreated := a.Manifest.Annotations["org.opencontainers.image.created"]
+		Expect(currentCreated).To(Equal(createdStr), "Created timestamp should not change when appending")
+
+		// Verify we have 2 layers
+		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
 })
 
