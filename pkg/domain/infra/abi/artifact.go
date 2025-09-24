@@ -93,6 +93,7 @@ func (ir *ImageEngine) ArtifactPull(ctx context.Context, name string, opts entit
 func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRemoveOptions) (*entities.ArtifactRemoveReport, error) {
 	var (
 		namesOrDigests []string
+		rmErrors       []error
 	)
 	artStore, err := ir.Libpod.ArtifactStore()
 	if err != nil {
@@ -124,6 +125,11 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 	for _, namesOrDigest := range namesOrDigests {
 		artifactDigest, err := artStore.Remove(ctx, namesOrDigest)
 		if err != nil {
+			if opts.Ignore {
+				// Collect the error but continue processing other artifacts
+				rmErrors = append(rmErrors, err)
+				continue
+			}
 			return nil, err
 		}
 		artifactDigests = append(artifactDigests, artifactDigest)
@@ -131,7 +137,13 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 	artifactRemoveReport := entities.ArtifactRemoveReport{
 		ArtifactDigests: artifactDigests,
 	}
-	return &artifactRemoveReport, err
+
+	// Return collected errors if any, but only if not ignoring
+	if len(rmErrors) > 0 && !opts.Ignore {
+		return &artifactRemoveReport, rmErrors[0]
+	}
+
+	return &artifactRemoveReport, nil
 }
 
 func (ir *ImageEngine) ArtifactPush(ctx context.Context, name string, opts entities.ArtifactPushOptions) (*entities.ArtifactPushReport, error) {

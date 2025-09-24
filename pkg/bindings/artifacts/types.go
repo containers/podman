@@ -52,6 +52,8 @@ type RemoveOptions struct {
 	All *bool
 	// Artifacts is a list of Artifact IDs or names to remove
 	Artifacts []string
+	// Ignore errors when a specified artifact does not exist
+	Ignore *bool
 }
 
 // AddOptions are optional options for removing images

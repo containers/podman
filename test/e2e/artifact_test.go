@@ -573,6 +573,70 @@ var _ = Describe("Podman artifact", func() {
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
 	})
+
+	It("podman artifact rm --ignore", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/artifact1"
+
+		// Add an artifact first
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		// Remove the artifact normally
+		podmanTest.PodmanExitCleanly("artifact", "rm", artifact1Name)
+
+		// Try to remove it again without --ignore (should fail)
+		rmFailSession := podmanTest.Podman([]string{"artifact", "rm", artifact1Name})
+		rmFailSession.WaitWithDefaultTimeout()
+		Expect(rmFailSession).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+
+		// Try to remove it again with --ignore (should succeed)
+		rmIgnoreSession := podmanTest.PodmanExitCleanly("artifact", "rm", "--ignore", artifact1Name)
+		// Should produce no output when ignoring non-existent artifacts
+		Expect(rmIgnoreSession.OutputToString()).To(BeEmpty())
+	})
+
+	It("podman artifact rm --ignore mixed existing and non-existing", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/artifact1"
+		artifact2Name := "localhost/test/artifact2"
+		nonExistentName := "localhost/test/nonexistent"
+
+		// Add two artifacts
+		add1 := podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+		add2 := podmanTest.PodmanExitCleanly("artifact", "add", artifact2Name, artifact2File)
+
+		// Try to remove mix of existing and non-existing without --ignore (should fail)
+		rmFailSession := podmanTest.Podman([]string{"artifact", "rm", artifact1Name, nonExistentName, artifact2Name})
+		rmFailSession.WaitWithDefaultTimeout()
+		Expect(rmFailSession).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", nonExistentName)))
+
+		// Verify artifacts still exist after failed removal
+		podmanTest.PodmanExitCleanly("artifact", "inspect", artifact1Name)
+		podmanTest.PodmanExitCleanly("artifact", "inspect", artifact2Name)
+
+		// Try to remove mix of existing and non-existing with --ignore (should succeed)
+		rmIgnoreSession := podmanTest.PodmanExitCleanly("artifact", "rm", "--ignore", artifact1Name, nonExistentName, artifact2Name)
+
+		// Should show digests of successfully removed artifacts
+		output := rmIgnoreSession.OutputToString()
+		Expect(output).To(ContainSubstring(add1.OutputToString()))
+		Expect(output).To(ContainSubstring(add2.OutputToString()))
+
+		// Verify artifacts were actually removed
+		inspectFail1 := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
+		inspectFail1.WaitWithDefaultTimeout()
+		Expect(inspectFail1).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+
+		inspectFail2 := podmanTest.Podman([]string{"artifact", "inspect", artifact2Name})
+		inspectFail2.WaitWithDefaultTimeout()
+		Expect(inspectFail2).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact2Name)))
+	})
 })
 
 func digestToFilename(digest string) string {

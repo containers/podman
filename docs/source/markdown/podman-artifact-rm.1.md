@@ -22,6 +22,10 @@ providing a name or digest of the artifact.
 
 Print usage statement.
 
+#### **--ignore**, **-i**
+
+Ignore errors when a specified artifact does not exist. A user might have decided
+to manually remove an artifact which would lead to a failure during script execution.
 
 ## EXAMPLES
 
@@ -47,6 +51,12 @@ Remove all artifacts in local storage.
 $ podman artifact rm -a
 Deleted: cee15f7c5ce3e86ae6ce60d84bebdc37ad34acfa9a2611cf47501469ac83a1ab
 Deleted: 72875f8f6f78d5b8ba98b2dd2c0a6f395fde8f05ff63a1df580d7a88f5afa97b
+```
+
+Ignore errors when removing non-existent artifacts.
+```
+$ podman artifact rm --ignore nonexistent-artifact existing-artifact
+Deleted: e7b417f49fc24fc7ead6485da0ebd5bc4419d8a3f394c169fee5a6f38faa4056
 ```
 
 ## SEE ALSO
