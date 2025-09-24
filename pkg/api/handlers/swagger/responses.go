@@ -525,5 +525,5 @@ type artifactPushResponse struct {
 // swagger:response
 type autoupdateResponse struct {
 	// in:body
-	Body []*entities.AutoUpdateReport
+	Body handlers.LibpodAutoUpdateReports
 }

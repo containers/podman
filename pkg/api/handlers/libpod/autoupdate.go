@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/containers/podman/v5/libpod"
+	"github.com/containers/podman/v5/pkg/api/handlers"
 	"github.com/containers/podman/v5/pkg/api/handlers/utils"
 	api "github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/auth"
@@ -50,11 +51,13 @@ func AutoUpdate(w http.ResponseWriter, r *http.Request) {
 		InsecureSkipTLSVerify: types.NewOptionalBool(!query.TLSVerify),
 	}
 
-	allReports, failures := containerEngine.AutoUpdate(r.Context(), options)
-	if allReports == nil {
-		utils.Error(w, http.StatusInternalServerError, errorhandling.JoinErrors(failures))
+	autoUpdateReports, autoUpdateFailures := containerEngine.AutoUpdate(r.Context(), options)
+	if autoUpdateReports == nil {
+		utils.Error(w, http.StatusInternalServerError, errorhandling.JoinErrors(autoUpdateFailures))
 		return
 	}
 
-	utils.WriteResponse(w, http.StatusOK, allReports)
+	reports := handlers.LibpodAutoUpdateReports{Reports: autoUpdateReports, Errors: errorhandling.ErrorsToStrings(autoUpdateFailures)}
+
+	utils.WriteResponse(w, http.StatusOK, reports)
 }

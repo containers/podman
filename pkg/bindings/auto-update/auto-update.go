@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"strconv"
 
+	handlersTypes "github.com/containers/podman/v5/pkg/api/handlers/types"
 	"github.com/containers/podman/v5/pkg/auth"
 	"github.com/containers/podman/v5/pkg/bindings"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/errorhandling"
 	imageTypes "go.podman.io/image/v5/types"
 )
 
@@ -42,11 +44,11 @@ func AutoUpdate(ctx context.Context, options *AutoUpdateOptions) ([]*entities.Au
 	}
 	defer response.Body.Close()
 
-	var reports []*entities.AutoUpdateReport
+	var reports handlersTypes.LibpodAutoUpdateReports
 
 	if err := response.Process(&reports); err != nil {
 		return nil, []error{err}
 	}
 
-	return reports, nil
+	return reports.Reports, errorhandling.StringsToErrors(reports.Errors)
 }
