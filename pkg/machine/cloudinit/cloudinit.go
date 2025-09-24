@@ -101,7 +101,7 @@ func GenerateISO(mc *vmconfigs.MachineConfig) (*define.VMFile, error) {
 
 	userdata, err := GenerateUserData(mc)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	if err := writer.AddFile(bytes.NewReader(userdata), "user-data"); err != nil {
 		return nil, err
