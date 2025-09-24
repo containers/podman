@@ -39,6 +39,7 @@ type PodmanConfig struct {
 	Identity                 string   // ssh identity for connecting to server
 	IsRenumber               bool     // Is this a system renumber command? If so, a number of checks will be relaxed
 	IsReset                  bool     // Is this a system reset command? If so, a number of checks will be skipped/omitted
+	IsRewrite                bool     // Rewrite cached database configuration.
 	MaxWorks                 int      // maximum number of parallel threads
 	MemoryProfile            string   // Hidden: Should memory profile be taken
 	RegistriesConf           string   // allows for specifying a custom registries.conf
