@@ -11,7 +11,6 @@ load helpers.systemd
 export SNAME_FILE
 
 function setup() {
-    skip_if_remote "systemd tests are meaningless over remote"
     basic_setup
 
     SNAME_FILE=${PODMAN_TMPDIR}/services
@@ -635,6 +634,8 @@ EOF
 }
 
 @test "podman-auto-update --authfile"  {
+    skip_if_remote "tests depend on start_registry which does not work with podman-remote"
+
     # Test the three supported ways of using authfiles with auto updates
     # 1) Passed via --authfile CLI flag
     # 2) Passed via the REGISTRY_AUTH_FILE env variable
