@@ -77,7 +77,7 @@ var (
 
 func parseFileFlags(fflags string) (uint32, uint32, error) {
 	var set, clear uint32 = 0, 0
-	for _, fflag := range strings.Split(fflags, ",") {
+	for fflag := range strings.SplitSeq(fflags, ",") {
 		isClear := false
 		if clean, ok := strings.CutPrefix(fflag, "no"); ok {
 			isClear = true

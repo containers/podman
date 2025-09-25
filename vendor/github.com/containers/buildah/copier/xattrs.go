@@ -65,7 +65,7 @@ func Lgetxattrs(path string) (map[string]string, error) {
 		return nil, fmt.Errorf("unable to read list of attributes for %q: size would have been too big", path)
 	}
 	m := make(map[string]string)
-	for _, attribute := range strings.Split(string(list), string('\000')) {
+	for attribute := range strings.SplitSeq(string(list), string('\000')) {
 		if isRelevantXattr(attribute) {
 			attributeSize := initialXattrValueSize
 			var attributeValue []byte
