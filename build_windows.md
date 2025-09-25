@@ -9,7 +9,7 @@ Windows.
 - [Requirements](#requirements)
   - [OS requirements](#os-requirements)
   - [Git and go](#git-and-go)
-  - [Pandoc](#pandoc)
+  - [Pandoc (optional)](#pandoc-optional)
   - [.NET SDK](#net-sdk)
   - [Virtualization Provider](#virtualization-provider)
     - [WSL](#wsl)
@@ -25,9 +25,10 @@ Windows.
 - [Build and test the Podman Windows installer](#build-and-test-the-podman-windows-installer)
   - [Build the Windows installer](#build-the-windows-installer)
   - [Test the Windows installer](#test-the-windows-installer)
-  - [Build and test the standalone `podman.msi` file](#build-and-test-the-standalone-podmanmsi-file)
-  - [Verify the installation](#verify-the-installation)
+    - [Run the Windows installer automated tests](#run-the-windows-installer-automated-tests)
+    - [Verify the installation](#verify-the-installation)
   - [Uninstall and clean-up](#uninstall-and-clean-up)
+    - [Retrieve Podman installed products](#retrieve-podman-installed-products)
 - [Validate changes before submitting a PR](#validate-changes-before-submitting-a-pr)
   - [winmake lint](#winmake-lint)
   - [winmake validatepr](#winmake-validatepr)
@@ -86,8 +87,14 @@ winget install -e Microsoft.DotNet.SDK.8
 used too and can be installed using `dotnet install`:
 
 ```pwsh
-dotnet tool install --global wix
+dotnet tool install --global wix --version 5.0.2
 ```
+
+:information_source: Because WiX Toolset has changed its licensing model when v6
+was released, [Podman still uses the WiX Toolset
+v5.0.2](https://github.com/containers/podman/issues/27042)
+and we recommend using it as well for local development (although it's not
+strictly required).
 
 ### Virtualization Provider
 
@@ -125,7 +132,7 @@ Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
 After running this command, a restart of the Windows machine is required.
 
 :information_source: Configure the VM provider used by podman (Hyper-V or WSL)
-in the file `%PROGRAMDATA%/containers/containers.conf`.
+in the file `%APPDATA%/containers/containers.conf`.
 [More on that later](#create-a-configuration-file-optional).
 
 ## Get the source code
@@ -242,9 +249,9 @@ To test some particular configurations of Podman, create a `containers.conf`
 file:
 
 ```
-New-Item -ItemType Directory $env:PROGRAMDATA\containers\
-New-Item -ItemType File $env:PROGRAMDATA\containers\containers.conf
-notepad $env:PROGRAMDATA\containers\containers.conf
+New-Item -ItemType Directory $env:APPDATA\containers\
+New-Item -ItemType File $env:APPDATA\containers\containers.conf
+notepad $env:APPDATA\containers\containers.conf
 ```
 
 For example, to test with Hyper-V as the virtualization provider, use the
@@ -288,15 +295,15 @@ To learn how to use the Podman client, refer to its
 
 ## Build and test the Podman Windows installer
 
-The Podman Windows installer (e.g., `podman-5.1.0-dev-setup.exe`) is a bundle
-that includes an msi package (`podman.msi`). It's built using the
-[WiX Toolset](https://wixtoolset.org/) and the
-[PanelSwWixExtension](https://github.com/nirbar/PanelSwWixExtension/tree/master5)
-WiX extension. The source code is in the folder `contrib\win-installer`.
+The Podman Windows installer (e.g., `podman-5.7.0.msi`) is an MSI package
+built using the [WiX Toolset](https://wixtoolset.org/) v5. The installer
+supports installation at both user scope (per-user) and machine scope
+(per-machine/administrator). The source code is in the folder
+`contrib\win-installer`.
 
 ### Build the Windows installer
 
-To build the installation bundle, run the following command:
+To build the MSI installer, run the following command:
 
 ```pwsh
 .\winmake.ps1 installer
@@ -306,14 +313,15 @@ To build the installation bundle, run the following command:
 required before running this command.
 
 Locate the installer in the `contrib\win-installer` folder (relative to checkout
-root) with a name like `podman-5.2.0-dev-setup.exe`.
+root) with a name like `podman-5.7.0.msi`, where `5.7.0` is the version of
+Podman on the local branch.
 
 The `installer` target of `winmake.ps1` runs the script
-`contrib\win-installer\build.ps1` that, in turns, executes:
-- `dotnet build podman.wixproj`: builds `podman.msi` from the WiX source files `podman.wxs`,
-  `pages.wxs`, `podman-ui.wxs` and `welcome-install-dlg.wxs`.
-- `dotnet build podman-setup.wixproj`: builds `podman-setup.exe` file from
-  [WiX Burn bundle](https://wixtoolset.org/docs/tools/burn/) `burn.wxs`.
+`contrib\win-installer\build.ps1` that, in turn, executes:
+
+- `dotnet build podman.wixproj`: builds `podman.msi` from the WiX source files
+  `wix\podman-main.wxs`, `wix\podman-ui-main.wxs`, and
+  `wix\podman-ui-welcome-dlg.wxs`.
 
 ### Test the Windows installer
 
@@ -321,37 +329,54 @@ Double-click on the Windows installer to run it. To get the installation logs
 with debug information, running it via the command line is recommended:
 
 ```pwsh
-contrib\win-installer\podman-5.1.0-dev-setup.exe /install /log podman-setup.log
+msiexec /package contrib\win-installer\podman-5.7.0.msi /l*v podman-msi.log
 ```
 
-It generates the files `podman-setup.log` and `podman-setup_000_Setup.log`,
-which include detailed installation information, in the current directory.
+It generates the file `podman-msi.log`, which includes detailed installation
+information, in the current directory.
 
-Run it in `quiet` mode to automate the installation and avoid interacting with
-the GUI. Open the terminal **as an administrator**, add the `/quiet` option, and
-set the bundle variable `MachineProvider` (`wsl` or `hyperv`):
+The MSI installer supports both user-scope and machine-scope installations:
+
+- **User scope (per-user)**: No administrator privileges required. Files are
+  installed in the user's profile directory, and the PATH is updated only for
+  the current user. This is the default scope.
+
+- **Machine scope (per-machine)**: Requires administrator privileges. Files are
+  installed in `Program Files`, and the PATH is updated for all users.
+
+To run an automated installation in quiet, non-interactive mode and set the
+machine provider (`wsl` or `hyperv`), use the following command:
+
+**User scope installation** (no administrator required):
 
 ```pwsh
-contrib\win-installer\podman-5.1.0-dev-setup.exe /install `
-                      /log podman-setup.log /quiet `
-                      MachineProvider=wsl
+msiexec /package contrib\win-installer\podman-5.7.0.msi /l*v podman-msi.log `
+        /quiet MSIINSTALLPERUSER=1 MACHINE_PROVIDER=wsl
+```
+
+**Machine scope installation** (requires administrator terminal):
+
+```pwsh
+msiexec /package contrib\win-installer\podman-5.7.0.msi /l*v podman-msi.log `
+        /quiet ALLUSERS=1 MACHINE_PROVIDER=wsl
 ```
 
 :information_source: If uninstallation fails, the installer may end up in an
-inconsistent state. Podman results as uninstalled, but some install packages are
-still tracked in the Windows registry and will affect further tentative to
-re-install Podman. When this is the case, trying to re-install Podman results in
-the installer returning zero (success) but no action is executed. The trailing
-packages `GID` can be found in installation logs:
+inconsistent state. Podman results as uninstalled, but the MSI package is still
+tracked in the Windows registry and will affect further attempts to reinstall
+Podman. When this is the case, trying to reinstall Podman results in the
+installer returning zero (success) but no action is executed. The package
+`GUID` can be found in the installation logs:
 
-```
-Detected related package: {<GID>}
+```log
+Product: Podman CLI -- Installation completed successfully.
+ProductCode: {<GUID>}
 ```
 
-To fix this problem remove the related packages:
+To fix this problem, remove the tracked package:
 
 ```pwsh
-msiexec /x "{<GID>}"
+msiexec /x "{<GUID>}"
 ```
 
 #### Run the Windows installer automated tests
@@ -363,66 +388,46 @@ it requires an administrator terminal.
 .\winmake.ps1 installertest [wsl|hyperv]
 ```
 
-### Build and test the standalone `podman.msi` file
+#### Verify the installation
 
-Building and testing the standalone `podman.msi` package during development may
-be useful. Even if this package is not published as a standalone file when
-Podman is released (it's included in the `podman-setup.exe` bundle), it can be
-faster to build and test that rather than the full bundle during the development
-phase.
-
-Run the command `dotnet build` to build the standalone `podman.msi` file:
-
-```pwsh
-Push-Location .\contrib\win-installer\
-dotnet build podman.wixproj /property:DefineConstants="VERSION=9.9.9" -o .
-Pop-Location
-```
-
-It creates the file `.\contrib\win-installer\en-US\podman.msi`. Test it using the
-[Microsoft Standard Installer](https://learn.microsoft.com/en-us/windows/win32/msi/standard-installer-command-line-options)
-command line tool:
-
-```pwsh
-msiexec /package contrib\win-installer\en-US\podman.msi /l*v podman-msi.log
-```
-
-To run it in quiet, non-interactive mode, open the terminal **as an
-administrator**, add the `/quiet` option, and set the MSI property
-`MACHINE_PROVIDER` (`wsl` or `hyperv`):
-
-```pwsh
-msiexec /package contrib\win-installer\en-US\podman.msi /l*v podman-msi.log /quiet MACHINE_PROVIDER=wsl
-```
-
-:information_source: `podman.msi` GUI dialogs, defined in the file
-`contrib\win-installer\welcome-install-dlg.wxs`, are distinct from the installation bundle
-`podman-setup.exe` GUI dialogs, defined in
-`contrib\win-installer\podman-theme.xml`.
-
-### Verify the installation
-
-Inspect the msi installation log `podman-msi.log` (or
-`podman-setup_000_Setup.log` if testing with the bundle) to verify that the
+Inspect the MSI installation log `podman-msi.log` to verify that the
 installation was successful:
 
 ```pwsh
 Select-String -Path "podman-msi.log" -Pattern "Installation success or error status: 0"
 ```
 
-These commands too are helpful to check the installation:
+The following commands are helpful to check the installation:
+
+**For machine scope (per-machine) installations:**
 
 ```pwsh
 # Check the copy of the podman client in the Podman folder
-Test-Path -Path "$ENV:PROGRAMFILES\RedHat\Podman\podman.exe"
+Test-Path -Path "$ENV:PROGRAMFILES\Podman\podman.exe"
 # Check the generation of the podman configuration file
 Test-Path -Path "$ENV:PROGRAMDATA\containers\containers.conf.d\99-podman-machine-provider.conf"
 # Check that the installer configured the right provider
 Get-Content "$ENV:PROGRAMDATA\containers\containers.conf.d\99-podman-machine-provider.conf" | Select -Skip 1 | ConvertFrom-StringData | % { $_.provider }
 # Check the creation of the registry key
-Test-Path -Path "HKLM:\SOFTWARE\Red Hat\Podman"
-Get-ItemProperty "HKLM:\SOFTWARE\Red Hat\Podman" InstallDir
-# Check the podman.exe is in the $PATH
+Test-Path -Path "HKLM:\SOFTWARE\Podman"
+Get-ItemProperty "HKLM:\SOFTWARE\Podman" InstallDir
+# Check that podman.exe is in the $PATH
+$env:PATH | Select-String -Pattern "Podman"
+```
+
+**For user scope (per-user) installations:**
+
+```pwsh
+# Check the copy of the podman client in the Podman folder
+Test-Path -Path "$ENV:LOCALAPPDATA\Programs\Podman\podman.exe"
+# Check the generation of the podman configuration file
+Test-Path -Path "$ENV:APPDATA\containers\containers.conf.d\99-podman-machine-provider.conf"
+# Check that the installer configured the right provider
+Get-Content "$ENV:APPDATA\containers\containers.conf.d\99-podman-machine-provider.conf" | Select -Skip 1 | ConvertFrom-StringData | % { $_.provider }
+# Check the creation of the registry key
+Test-Path -Path "HKCU:\SOFTWARE\Podman"
+Get-ItemProperty "HKCU:\SOFTWARE\Podman" InstallDir
+# Check that podman.exe is in the $PATH
 $env:PATH | Select-String -Pattern "Podman"
 ```
 
@@ -437,42 +442,123 @@ $ENV:CONTAINERS_MACHINE_PROVIDER='hyperv'; .\contrib\cirrus\win-installer-main.p
 
 ### Uninstall and clean-up
 
-Podman can be uninstalled from the Windows Control Panel or running the
-following command from a terminal **as an administrator**:
+Podman can be uninstalled from the Windows Control Panel or using the MSI
+uninstall command. Administrator privileges will be required if Podman was
+installed for the machine, rather than for a user:
 
 ```pwsh
-contrib\win-installer\podman-5.1.0-dev-setup.exe /uninstall /quiet /log podman-setup-uninstall.log
+msiexec /x contrib\win-installer\podman-5.7.0.msi /quiet /l*v podman-msi-uninstall.log
 ```
 
 The uninstaller does not delete some folders. Clean them up manually:
+
+**For machine scope installations:**
 
 ```pwsh
 $extraFolders = @(
     "$ENV:PROGRAMDATA\containers\"
     "$ENV:LOCALAPPDATA\containers\"
-    "$env:USERPROFILE.config\containers\"
-    "$env:USERPROFILE.local\share\containers\"
-    )
-$extraFolders | ForEach-Object {Remove-Item -Recurse -Force $PSItem}
+    "$env:USERPROFILE\.config\containers\"
+    "$env:USERPROFILE\.local\share\containers\"
+)
+$extraFolders | ForEach-Object {Remove-Item -Recurse -Force $PSItem -ErrorAction SilentlyContinue}
+```
+
+**For user scope installations:**
+
+```pwsh
+$extraFolders = @(
+    "$ENV:APPDATA\containers\"
+    "$ENV:LOCALAPPDATA\containers\"
+    "$env:USERPROFILE\.config\containers\"
+    "$env:USERPROFILE\.local\share\containers\"
+)
+$extraFolders | ForEach-Object {Remove-Item -Recurse -Force $PSItem -ErrorAction SilentlyContinue}
 ```
 
 The following commands are helpful to verify that the uninstallation was
 successful:
 
+**For machine scope installations:**
+
 ```pwsh
 # Inspect the uninstallation log for a success message
-Select-String -Path "podman-setup-uninstall_000_Setup.log" -Pattern "Removal success or error status: 0"
+Select-String -Path "podman-msi-uninstall.log" -Pattern "Removal success or error status: 0"
 # Check that the uninstaller removed Podman resources
 $foldersToCheck = @(
-    "$ENV:PROGRAMFILES\RedHat\Podman\podman.exe"
-    "HKLM:\SOFTWARE\Red Hat\Podman"
+    "$ENV:PROGRAMFILES\Podman\podman.exe"
+    "HKLM:\SOFTWARE\Podman"
     "$ENV:PROGRAMDATA\containers\"
-    "$env:USERPROFILE.config\containers\"
-    "$env:USERPROFILE.local\share\containers\"
-    "$ENV:LOCALAPPDATA\containers\"
+    "$env:USERPROFILE\.config\containers\"
+    "$env:USERPROFILE\.local\share\containers\"
+    "$ENV:APPDATA\containers\"
     "$ENV:PROGRAMDATA\containers\containers.conf.d\99-podman-machine-provider.conf"
 )
 $foldersToCheck | ForEach-Object {Test-Path -Path $PSItem}
+```
+
+**For user scope installations:**
+
+```pwsh
+# Inspect the uninstallation log for a success message
+Select-String -Path "podman-msi-uninstall.log" -Pattern "Removal success or error status: 0"
+# Check that the uninstaller removed Podman resources
+$foldersToCheck = @(
+    "$ENV:PROGRAMFILES\Podman\podman.exe"
+    "HKCU:\SOFTWARE\Podman"
+    "$ENV:APPDATA\containers\"
+    "$env:USERPROFILE\.config\containers\"
+    "$env:USERPROFILE\.local\share\containers\"
+    "$ENV:LOCALAPPDATA\containers\"
+    "$ENV:APPDATA\containers\containers.conf.d\99-podman-machine-provider.conf"
+)
+$foldersToCheck | ForEach-Object {Test-Path -Path $PSItem}
+```
+
+#### Retrieve Podman installed products
+
+MSI uninstallations can leave the package tracked in the Windows registry. This
+can cause issues when trying to reinstall Podman. The following command can be
+used to retrieve the package information:
+
+```pwsh
+$Installer = New-Object -ComObject WindowsInstaller.Installer
+$InstallerProducts = $Installer.ProductsEx("", "", 7)
+$InstalledProducts = ForEach($Product in $InstallerProducts){
+    try {
+        $ProductCode = $Product.ProductCode()
+        $LocalPackage = try { $Product.InstallProperty("LocalPackage") } catch { "Unknown" }
+        $VersionString = try { $Product.InstallProperty("VersionString") } catch { "Unknown" }
+        $ProductName = $Product.InstallProperty("ProductName")
+
+        [PSCustomObject]@{
+            ProductCode = $ProductCode
+            LocalPackage = $LocalPackage
+            VersionString = $VersionString
+            ProductName = $ProductName
+        }
+    }
+    catch {
+        Write-Warning "Failed to process product: $($_.Exception.Message)"
+        # Skip this product and continue
+        continue
+    }
+}
+$InstalledProducts | Where-Object {$_.ProductName -match "podman"}
+```
+
+This command returns a list of installed Podman products:
+
+```log
+ProductCode                            LocalPackage VersionString ProductName
+-----------                            ------------ ------------- -----------
+{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} Unknown      Unknown       Podman
+```
+
+The product code can be used to uninstall the Podman package:
+
+```pwsh
+msiexec /x "{<product-code>}"
 ```
 
 ## Validate changes before submitting a PR
@@ -498,7 +584,6 @@ tools:
     winget install -e Python.Python.3.13
     pip install pre-commit
     ```
-
 
 ### winmake validatepr
 
