@@ -8,7 +8,7 @@ import (
 	"os/exec"
 )
 
-func setupIOPassthrough(cmd *exec.Cmd, interactive bool, stdin io.Reader) error {
+func setupIOPassthrough(cmd *exec.Cmd, _ bool, stdin io.Reader) error {
 	cmd.Stdin = stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

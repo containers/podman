@@ -22,7 +22,7 @@ import (
 	"go.podman.io/storage/pkg/fileutils"
 )
 
-func (ic *ContainerEngine) Info(ctx context.Context) (*define.Info, error) {
+func (ic *ContainerEngine) Info(_ context.Context) (*define.Info, error) {
 	info, err := ic.Libpod.Info()
 	if err != nil {
 		return nil, err
@@ -178,7 +178,7 @@ func (ic *ContainerEngine) SystemPrune(ctx context.Context, options entities.Sys
 	return systemPruneReport, nil
 }
 
-func (ic *ContainerEngine) SystemDf(ctx context.Context, options entities.SystemDfOptions) (*entities.SystemDfReport, error) {
+func (ic *ContainerEngine) SystemDf(ctx context.Context, _ entities.SystemDfOptions) (*entities.SystemDfReport, error) {
 	var (
 		dfImages = []*entities.SystemDfImageReport{}
 	)
@@ -302,11 +302,11 @@ func (ic *ContainerEngine) Reset(ctx context.Context) error {
 	return ic.Libpod.Reset(ctx)
 }
 
-func (ic *ContainerEngine) Renumber(ctx context.Context) error {
+func (ic *ContainerEngine) Renumber(_ context.Context) error {
 	return ic.Libpod.RenumberLocks()
 }
 
-func (ic *ContainerEngine) Migrate(ctx context.Context, options entities.SystemMigrateOptions) error {
+func (ic *ContainerEngine) Migrate(_ context.Context, options entities.SystemMigrateOptions) error {
 	return ic.Libpod.Migrate(options.NewRuntime)
 }
 
@@ -316,7 +316,7 @@ func unshareEnv(graphroot, runroot string) []string {
 		fmt.Sprintf("CONTAINERS_RUNROOT=%s", runroot))
 }
 
-func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options entities.SystemUnshareOptions) error {
+func (ic *ContainerEngine) Unshare(_ context.Context, args []string, options entities.SystemUnshareOptions) error {
 	unshare := func() error {
 		cmd := exec.Command(args[0], args[1:]...)
 		cmd.Env = unshareEnv(ic.Libpod.StorageConfig().GraphRoot, ic.Libpod.StorageConfig().RunRoot)
@@ -332,7 +332,7 @@ func (ic *ContainerEngine) Unshare(ctx context.Context, args []string, options e
 	return unshare()
 }
 
-func (ic *ContainerEngine) Version(ctx context.Context) (*entities.SystemVersionReport, error) {
+func (ic *ContainerEngine) Version(_ context.Context) (*entities.SystemVersionReport, error) {
 	var report entities.SystemVersionReport
 	v, err := define.GetVersion()
 	if err != nil {
@@ -342,7 +342,7 @@ func (ic *ContainerEngine) Version(ctx context.Context) (*entities.SystemVersion
 	return &report, err
 }
 
-func (ic *ContainerEngine) Locks(ctx context.Context) (*entities.LocksReport, error) {
+func (ic *ContainerEngine) Locks(_ context.Context) (*entities.LocksReport, error) {
 	var report entities.LocksReport
 	conflicts, held, err := ic.Libpod.LockConflicts()
 	if err != nil {

@@ -45,7 +45,7 @@ func init() {
 	networkUpdateFlags(networkUpdateCommand)
 }
 
-func networkUpdate(cmd *cobra.Command, args []string) error {
+func networkUpdate(_ *cobra.Command, args []string) error {
 	name := args[0]
 
 	err := registry.ContainerEngine().NetworkUpdate(registry.Context(), name, networkUpdateOptions)

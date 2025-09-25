@@ -19,7 +19,7 @@ import (
 
 // Exists a lightweight way to determine if an image exists in local storage.  It returns a
 // boolean response.
-func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err
@@ -326,7 +326,7 @@ func Search(ctx context.Context, term string, options *SearchOptions) ([]types.I
 	return results, nil
 }
 
-func Scp(ctx context.Context, source, destination *string, options ScpOptions) (reports.ScpReport, error) {
+func Scp(ctx context.Context, source, _ *string, options ScpOptions) (reports.ScpReport, error) {
 	rep := reports.ScpReport{}
 
 	conn, err := bindings.GetClient(ctx)

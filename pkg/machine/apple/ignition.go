@@ -25,7 +25,7 @@ func ServeIgnitionOverSock(ignitionSocket *define.VMFile, mc *vmconfigs.MachineC
 		return err
 	}
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/", func(w http.ResponseWriter, _ *http.Request) {
 		_, err := w.Write(ignFile)
 		if err != nil {
 			logrus.Errorf("failed to serve ignition file: %v", err)

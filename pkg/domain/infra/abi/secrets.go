@@ -16,7 +16,7 @@ import (
 	"go.podman.io/common/pkg/secrets"
 )
 
-func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
+func (ic *ContainerEngine) SecretCreate(_ context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
 	data, _ := io.ReadAll(reader)
 	secretsPath := ic.Libpod.GetSecretsStorageDir()
 	manager, err := ic.Libpod.SecretsManager()
@@ -65,7 +65,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	}, nil
 }
 
-func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string, options entities.SecretInspectOptions) ([]*entities.SecretInfoReport, []error, error) {
+func (ic *ContainerEngine) SecretInspect(_ context.Context, nameOrIDs []string, options entities.SecretInspectOptions) ([]*entities.SecretInfoReport, []error, error) {
 	var (
 		secret *secrets.Secret
 		data   []byte
@@ -102,7 +102,7 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	return reports, errs, nil
 }
 
-func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretListRequest) ([]*entities.SecretInfoReport, error) {
+func (ic *ContainerEngine) SecretList(_ context.Context, opts entities.SecretListRequest) ([]*entities.SecretInfoReport, error) {
 	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err
@@ -124,7 +124,7 @@ func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretL
 	return report, nil
 }
 
-func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, options entities.SecretRmOptions) ([]*entities.SecretRmReport, error) {
+func (ic *ContainerEngine) SecretRm(_ context.Context, nameOrIDs []string, options entities.SecretRmOptions) ([]*entities.SecretRmReport, error) {
 	var (
 		err      error
 		toRemove []string
@@ -158,7 +158,7 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 	return reports, nil
 }
 
-func (ic *ContainerEngine) SecretExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+func (ic *ContainerEngine) SecretExists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
 	manager, err := ic.Libpod.SecretsManager()
 	if err != nil {
 		return nil, err

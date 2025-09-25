@@ -37,7 +37,7 @@ func init() {
 	})
 }
 
-func remoteDirClient(cmd *cobra.Command, args []string) error {
+func remoteDirClient(_ *cobra.Command, args []string) error {
 	port, err := strconv.Atoi(args[0])
 	if err != nil {
 		return fmt.Errorf("error parsing port number: %w", err)

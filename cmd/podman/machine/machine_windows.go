@@ -12,7 +12,7 @@ func isUnixSocket(file os.DirEntry) bool {
 	return !file.Type().IsDir() && strings.HasSuffix(file.Name(), ".sock")
 }
 
-func rootlessOnly(cmd *cobra.Command, args []string) error {
+func rootlessOnly(_ *cobra.Command, _ []string) error {
 	// Rootless is not relevant on Windows. In the future rootless.IsRootless
 	// could be switched to return true on Windows, and other codepaths migrated
 

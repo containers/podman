@@ -21,7 +21,7 @@ func (u unparsedArtifactImage) Reference() types.ImageReference {
 	return u.ir
 }
 
-func (u unparsedArtifactImage) Manifest(ctx context.Context) ([]byte, string, error) {
+func (u unparsedArtifactImage) Manifest(_ context.Context) ([]byte, string, error) {
 	b, err := json.Marshal(u.mannyfest)
 	if err != nil {
 		return nil, "", err
@@ -29,7 +29,7 @@ func (u unparsedArtifactImage) Manifest(ctx context.Context) ([]byte, string, er
 	return b, specV1.MediaTypeImageIndex, nil
 }
 
-func (u unparsedArtifactImage) Signatures(ctx context.Context) ([][]byte, error) {
+func (u unparsedArtifactImage) Signatures(_ context.Context) ([][]byte, error) {
 	return [][]byte{}, nil
 }
 

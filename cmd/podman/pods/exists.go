@@ -30,7 +30,7 @@ func init() {
 	})
 }
 
-func exists(cmd *cobra.Command, args []string) error {
+func exists(_ *cobra.Command, args []string) error {
 	response, err := registry.ContainerEngine().PodExists(context.Background(), args[0])
 	if err != nil {
 		return err

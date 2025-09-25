@@ -45,7 +45,7 @@ func scpFlags(cmd *cobra.Command) {
 	flags.BoolVarP(&quiet, "quiet", "q", false, "Suppress the output")
 }
 
-func scp(cmd *cobra.Command, args []string) (finalErr error) {
+func scp(_ *cobra.Command, args []string) (finalErr error) {
 	var (
 		err error
 	)

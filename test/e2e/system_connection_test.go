@@ -358,7 +358,7 @@ qe ssh://root@podman.test:2222/run/podman/podman.sock ~/.ssh/id_rsa false true
 					pr.SetURL(baseURL)
 				},
 				Transport: &http.Transport{
-					DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 						By("Proxying to " + podmanTest.RemoteSocket)
 						url, err := url.Parse(podmanTest.RemoteSocket)
 						if err != nil {

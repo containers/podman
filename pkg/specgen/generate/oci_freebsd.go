@@ -169,7 +169,7 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	return configSpec, nil
 }
 
-func WeightDevices(wtDevices map[string]spec.LinuxWeightDevice) ([]spec.LinuxWeightDevice, error) {
+func WeightDevices(_ map[string]spec.LinuxWeightDevice) ([]spec.LinuxWeightDevice, error) {
 	devs := []spec.LinuxWeightDevice{}
 	return devs, nil
 }

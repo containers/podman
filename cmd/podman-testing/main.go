@@ -26,13 +26,13 @@ var (
 	mainCmd = &cobra.Command{
 		Use:  "podman-testing",
 		Long: "Assorted tools for use in testing podman",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, _ []string) error {
 			return cmd.Help()
 		},
-		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPreRunE: func(_ *cobra.Command, _ []string) error {
 			return before()
 		},
-		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		PersistentPostRunE: func(_ *cobra.Command, _ []string) error {
 			return after()
 		},
 		SilenceUsage:  true,

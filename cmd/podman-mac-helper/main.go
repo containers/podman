@@ -142,7 +142,7 @@ func addPrefixFlag(cmd *cobra.Command) {
 	cmd.Flags().StringVar(&installPrefix, "prefix", defaultPrefix, "Sets the install location prefix")
 }
 
-func silentUsage(cmd *cobra.Command, args []string) {
+func silentUsage(cmd *cobra.Command, _ []string) {
 	cmd.SilenceUsage = true
 	cmd.SilenceErrors = true
 }
