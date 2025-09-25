@@ -118,6 +118,18 @@ load helpers
 }
 
 # bats test_tags=ci:parallel
+
+@test "podman run - image volume mounts with idmapped mounts" {
+    skip_if_rootless "idmapped mounts work only with root for now"
+
+    skip_if_remote "userns=auto is set on the server"
+
+    grep -E -q "^containers:" /etc/subuid || skip "no IDs allocated for user 'containers'"
+
+    run_podman run --rm --userns=auto --mount type=image,src=$IMAGE,dst=/image-mount,idmap $IMAGE ls -ld /image-mount
+    is "$output" "dr-xr-xr-x    1 root     root.*"
+}
+
 @test "podman run --mount image" {
     skip_if_rootless "too hard to test rootless"
 
