@@ -5,16 +5,14 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 
 	"go.podman.io/common/pkg/cgroupv2"
+	"go.podman.io/common/pkg/systemd"
 	"go.podman.io/storage/pkg/unshare"
 )
 
 var (
-	systemdOnce  sync.Once
-	usesSystemd  bool
 	journaldOnce sync.Once
 	usesJournald bool
 )
@@ -51,14 +49,7 @@ func defaultLogDriver() string {
 }
 
 func useSystemd() bool {
-	systemdOnce.Do(func() {
-		dat, err := os.ReadFile("/proc/1/comm")
-		if err == nil {
-			val := strings.TrimSuffix(string(dat), "\n")
-			usesSystemd = (val == "systemd")
-		}
-	})
-	return usesSystemd
+	return systemd.RunsOnSystemd()
 }
 
 func useJournald() bool {

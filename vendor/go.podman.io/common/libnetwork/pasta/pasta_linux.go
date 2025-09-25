@@ -212,8 +212,7 @@ func createPastaArgs(opts *SetupOptions) ([]string, []string, []string, error) {
 	}
 
 	for _, i := range opts.Ports {
-		protocols := strings.Split(i.Protocol, ",")
-		for _, protocol := range protocols {
+		for protocol := range strings.SplitSeq(i.Protocol, ",") {
 			var addr string
 
 			if i.HostIP != "" {

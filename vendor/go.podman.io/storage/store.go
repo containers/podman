@@ -3496,7 +3496,6 @@ func (s *store) ImagesByTopLayer(id string) ([]*Image, error) {
 			return struct{}{}, true, err
 		}
 		for _, image := range imageList {
-			image := image
 			if image.TopLayer == layer.ID || stringutils.InSlice(image.MappedTopLayers, layer.ID) {
 				images = append(images, &image)
 			}

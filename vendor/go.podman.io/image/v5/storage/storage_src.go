@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"slices"
 	"sync"
@@ -26,6 +27,7 @@ import (
 	"go.podman.io/image/v5/types"
 	"go.podman.io/storage"
 	"go.podman.io/storage/pkg/archive"
+	"go.podman.io/storage/pkg/chunked/toc"
 	"go.podman.io/storage/pkg/ioutils"
 )
 
@@ -295,14 +297,17 @@ func (s *storageImageSource) LayerInfosForCopy(ctx context.Context, instanceDige
 	}
 
 	uncompressedLayerType := ""
+	gzipCompressedLayerType := ""
 	switch manifestType {
 	case imgspecv1.MediaTypeImageManifest:
 		uncompressedLayerType = imgspecv1.MediaTypeImageLayer
+		gzipCompressedLayerType = imgspecv1.MediaTypeImageLayerGzip
 	case manifest.DockerV2Schema1MediaType, manifest.DockerV2Schema1SignedMediaType, manifest.DockerV2Schema2MediaType:
 		uncompressedLayerType = manifest.DockerV2SchemaLayerMediaTypeUncompressed
+		gzipCompressedLayerType = manifest.DockerV2Schema2LayerMediaType
 	}
 
-	physicalBlobInfos := []types.BlobInfo{} // Built reversed
+	physicalBlobInfos := []layerForCopy{} // Built reversed
 	layerID := s.image.TopLayer
 	for layerID != "" {
 		layer, err := s.imageRef.transport.store.Layer(layerID)
@@ -337,43 +342,68 @@ func (s *storageImageSource) LayerInfosForCopy(ctx context.Context, instanceDige
 		s.getBlobMutex.Lock()
 		s.getBlobMutexProtected.digestToLayerID[blobDigest] = layer.ID
 		s.getBlobMutex.Unlock()
-		blobInfo := types.BlobInfo{
-			Digest:    blobDigest,
-			Size:      size,
-			MediaType: uncompressedLayerType,
+		layerInfo := layerForCopy{
+			digest:    blobDigest,
+			size:      size,
+			mediaType: uncompressedLayerType,
 		}
-		physicalBlobInfos = append(physicalBlobInfos, blobInfo)
+		physicalBlobInfos = append(physicalBlobInfos, layerInfo)
 		layerID = layer.Parent
 	}
 	slices.Reverse(physicalBlobInfos)
 
-	res, err := buildLayerInfosForCopy(man.LayerInfos(), physicalBlobInfos)
+	res, err := buildLayerInfosForCopy(man.LayerInfos(), physicalBlobInfos, gzipCompressedLayerType)
 	if err != nil {
 		return nil, fmt.Errorf("creating LayerInfosForCopy of image %q: %w", s.image.ID, err)
 	}
 	return res, nil
 }
 
+// layerForCopy is information about a physical layer, an edit to be made by buildLayerInfosForCopy.
+type layerForCopy struct {
+	digest    digest.Digest
+	size      int64
+	mediaType string
+}
+
 // buildLayerInfosForCopy builds a LayerInfosForCopy return value based on manifestInfos from the original manifest,
 // but using layer data which we can actually produce — physicalInfos for non-empty layers,
-// and image.GzippedEmptyLayer for empty ones.
+// and image.GzippedEmptyLayer with gzipCompressedLayerType for empty ones.
 // (This is split basically only to allow easily unit-testing the part that has no dependencies on the external environment.)
-func buildLayerInfosForCopy(manifestInfos []manifest.LayerInfo, physicalInfos []types.BlobInfo) ([]types.BlobInfo, error) {
+func buildLayerInfosForCopy(manifestInfos []manifest.LayerInfo, physicalInfos []layerForCopy, gzipCompressedLayerType string) ([]types.BlobInfo, error) {
 	nextPhysical := 0
 	res := make([]types.BlobInfo, len(manifestInfos))
 	for i, mi := range manifestInfos {
 		if mi.EmptyLayer {
 			res[i] = types.BlobInfo{
-				Digest:    image.GzippedEmptyLayerDigest,
-				Size:      int64(len(image.GzippedEmptyLayer)),
-				MediaType: mi.MediaType,
+				Digest:      image.GzippedEmptyLayerDigest,
+				Size:        int64(len(image.GzippedEmptyLayer)),
+				URLs:        mi.URLs,
+				Annotations: mi.Annotations,
+				MediaType:   gzipCompressedLayerType,
 			}
 		} else {
 			if nextPhysical >= len(physicalInfos) {
 				return nil, fmt.Errorf("expected more than %d physical layers to exist", len(physicalInfos))
 			}
-			res[i] = physicalInfos[nextPhysical] // FIXME? Should we preserve more data in manifestInfos? Notably the current approach correctly removes zstd:chunked metadata annotations.
+			res[i] = types.BlobInfo{
+				Digest:      physicalInfos[nextPhysical].digest,
+				Size:        physicalInfos[nextPhysical].size,
+				URLs:        mi.URLs,
+				Annotations: mi.Annotations,
+				MediaType:   physicalInfos[nextPhysical].mediaType,
+			}
 			nextPhysical++
+		}
+		// We have changed the compression format, so strip compression-related annotations.
+		if res[i].Annotations != nil {
+			maps.DeleteFunc(res[i].Annotations, func(key string, _ string) bool {
+				_, ok := toc.ChunkedAnnotations[key]
+				return ok
+			})
+			if len(res[i].Annotations) == 0 {
+				res[i].Annotations = nil
+			}
 		}
 	}
 	if nextPhysical != len(physicalInfos) {
