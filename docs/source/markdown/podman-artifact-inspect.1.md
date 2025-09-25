@@ -8,10 +8,15 @@ podman\-artifact\-inspect - Inspect an OCI artifact
 
 ## DESCRIPTION
 
-Inspect an artifact in the local store.  The artifact can be referred to with either:
+Inspect an artifact in the local store and output the results in JSON format.
+The artifact can be referred to with either:
 
 1. Fully qualified artifact name
 2. Full or partial digest of the artifact's manifest
+
+The inspect output includes the artifact manifest with annotations. All artifacts
+automatically include a creation timestamp in the `org.opencontainers.image.created`
+annotation using RFC3339Nano format, showing when the artifact was initially created.
 
 ## OPTIONS
 
