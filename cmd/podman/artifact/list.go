@@ -89,6 +89,9 @@ func outputTemplate(cmd *cobra.Command, lrs []*entities.ArtifactListReport) erro
 		}
 		if tagged, ok := named.(reference.Tagged); ok {
 			tag = tagged.Tag()
+		} else {
+			// display consistency with images: show 'latest' when tag missing
+			tag = "latest"
 		}
 
 		// Note: Right now we only support things that are single manifests

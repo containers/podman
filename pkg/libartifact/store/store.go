@@ -132,7 +132,14 @@ func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*liba
 	if err != nil {
 		return nil, err
 	}
-	inspectData, _, err := artifacts.GetByNameOrDigest(nameOrDigest)
+
+	// Normalize name to :latest if no tag/digest present for single lookup
+	lookupName := nameOrDigest
+	if !strings.Contains(nameOrDigest, ":") && !strings.Contains(nameOrDigest, "@") {
+		lookupName = nameOrDigest + ":latest"
+	}
+
+	inspectData, _, err := artifacts.GetByNameOrDigest(lookupName)
 	return inspectData, err
 }
 
@@ -215,6 +222,11 @@ func (as ArtifactStore) Push(ctx context.Context, src, dest string, opts libimag
 func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []entities.ArtifactBlob, options *libartTypes.AddOptions) (*digest.Digest, error) {
 	if len(dest) == 0 {
 		return nil, ErrEmptyArtifactName
+	}
+
+	// Add :latest tag if no tag/digest is present
+	if !strings.Contains(dest, ":") && !strings.Contains(dest, "@") {
+		dest += ":latest"
 	}
 
 	if options.Append && len(options.ArtifactMIMEType) > 0 {
