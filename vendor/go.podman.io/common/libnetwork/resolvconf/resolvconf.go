@@ -76,9 +76,8 @@ func filterResolvDNS(resolvConf []byte, ipv6Enabled bool, netnsEnabled bool) []b
 
 // getLines parses input into lines and strips away comments.
 func getLines(input []byte) [][]byte {
-	lines := bytes.Split(input, []byte("\n"))
 	var output [][]byte
-	for _, currentLine := range lines {
+	for currentLine := range bytes.SplitSeq(input, []byte("\n")) {
 		commentIndex := bytes.Index(currentLine, []byte("#"))
 		if commentIndex == -1 {
 			output = append(output, currentLine)

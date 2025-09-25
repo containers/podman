@@ -173,7 +173,7 @@ func (rc *rollingChecksumReader) Read(b []byte) (bool, int, error) {
 			return false, -1, err
 		}
 		if holeLen > 0 {
-			for j := int64(0); j < holeLen; j++ {
+			for range holeLen {
 				rc.rollsum.Roll(0)
 			}
 			rc.pendingHole = holeLen

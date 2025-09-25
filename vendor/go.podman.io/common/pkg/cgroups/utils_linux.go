@@ -270,7 +270,7 @@ func MoveUnderCgroup(cgroup, subtree string, processes []uint32) error {
 			if err != nil {
 				return err
 			}
-			for _, pid := range bytes.Split(processesData, []byte("\n")) {
+			for pid := range bytes.SplitSeq(processesData, []byte("\n")) {
 				if len(pid) == 0 {
 					continue
 				}

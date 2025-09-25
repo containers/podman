@@ -3,6 +3,7 @@ package report
 import (
 	"bytes"
 	"encoding/json"
+	"maps"
 	"reflect"
 	"strings"
 	"text/template"
@@ -95,7 +96,7 @@ func truncateWithLength(source string, length int) string {
 //	3) --format 'table {{.ID}}' # includes headers
 func Headers(object any, overrides map[string]string) []map[string]string {
 	value := reflect.ValueOf(object)
-	if value.Kind() == reflect.Ptr {
+	if value.Kind() == reflect.Pointer {
 		value = value.Elem()
 	}
 
@@ -106,9 +107,7 @@ func Headers(object any, overrides map[string]string) []map[string]string {
 		// Recurse to find field names from promoted structs
 		if field.Type.Kind() == reflect.Struct && field.Anonymous {
 			h := Headers(reflect.New(field.Type).Interface(), nil)
-			for k, v := range h[0] {
-				headers[k] = v
-			}
+			maps.Copy(headers, h[0])
 			continue
 		}
 		name := strings.Join(camelcase.Split(field.Name), " ")
@@ -146,12 +145,8 @@ func (t *Template) Parse(text string) (*Template, error) {
 // A default template function will be replace if there is a key collision.
 func (t *Template) Funcs(funcMap FuncMap) *Template {
 	m := make(FuncMap)
-	for k, v := range DefaultFuncs {
-		m[k] = v
-	}
-	for k, v := range funcMap {
-		m[k] = v
-	}
+	maps.Copy(m, DefaultFuncs)
+	maps.Copy(m, funcMap)
 	return &Template{Template: t.Template.Funcs(template.FuncMap(m)), isTable: t.isTable}
 }
 
