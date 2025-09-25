@@ -246,6 +246,9 @@ var _ = Describe("Podman artifact", func() {
 		// There should be no artifacts in the store
 		rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
 		Expect(rmAll.OutputToString()).To(BeEmpty())
+
+		// Trying to remove an artifact that does not exist should pass with -i
+		podmanTest.PodmanExitCleanly("artifact", "rm", "-i", "foobar")
 	})
 
 	It("podman artifact inspect with full or partial digest", func() {

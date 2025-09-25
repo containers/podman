@@ -27,6 +27,10 @@ func Remove(ctx context.Context, nameOrID string, options *RemoveOptions) (*enti
 
 	response, err := conn.DoRequest(ctx, nil, http.MethodDelete, "/artifacts/remove", params, nil)
 	if err != nil {
+		if options.GetIgnore() {
+			return &entities.ArtifactRemoveReport{}, nil
+		}
+
 		return nil, err
 	}
 	defer response.Body.Close()

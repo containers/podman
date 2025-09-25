@@ -57,6 +57,7 @@ func (ir *ImageEngine) ArtifactRm(_ context.Context, opts entities.ArtifactRemov
 	removeOptions := artifacts.RemoveOptions{
 		All:       &opts.All,
 		Artifacts: opts.Artifacts,
+		Ignore:    &opts.Ignore,
 	}
 
 	return artifacts.Remove(ir.ClientCtx, "", &removeOptions)
