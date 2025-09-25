@@ -188,7 +188,7 @@ var _ = Describe("Podman artifact mount", func() {
 		// restart will fail if artifact does not exist
 		session = podmanTest.Podman([]string{"restart", "-t0", ctrName})
 		session.WaitWithDefaultTimeout()
-		Expect(session).To(ExitWithError(125, artifactName+": artifact does not exist"))
+		Expect(session).To(ExitWithError(125, artifactName+":latest: artifact does not exist"))
 
 		// create a artifact with the same name again and add another file to ensure it picks up the changes
 		artifactFile2Name := "otherfile"
