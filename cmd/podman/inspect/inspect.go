@@ -151,9 +151,18 @@ func (i *inspector) inspect(namesOrIDs []string) error {
 		for i := range volumeData {
 			data = append(data, volumeData[i])
 		}
+	case common.ArtifactType:
+		for _, name := range namesOrIDs {
+			artifactData, err := i.imageEngine.ArtifactInspect(ctx, name, entities.ArtifactInspectOptions{})
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			data = append(data, artifactData)
+		}
 	default:
-		return fmt.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, or %q", i.options.Type,
-			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.AllType)
+		return fmt.Errorf("invalid type %q: must be %q, %q, %q, %q, %q, %q, or %q", i.options.Type,
+			common.ImageType, common.ContainerType, common.PodType, common.NetworkType, common.VolumeType, common.ArtifactType, common.AllType)
 	}
 	// Always print an empty array
 	if data == nil {
@@ -234,6 +243,11 @@ func (i *inspector) inspectAll(ctx context.Context, namesOrIDs []string) ([]any,
 		}
 		if len(errs) == 0 {
 			data = append(data, podData[0])
+			continue
+		}
+		artifactData, err := i.imageEngine.ArtifactInspect(ctx, name, entities.ArtifactInspectOptions{})
+		if err == nil {
+			data = append(data, artifactData)
 			continue
 		}
 		if len(errs) > 0 {
