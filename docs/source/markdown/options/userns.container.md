@@ -56,6 +56,8 @@ For details see **--uidmap**.
 
 **keep-id**: creates a user namespace where the current user's UID:GID are mapped to the same values in the container. For containers created by root, the current mapping is created into a new user namespace.
 
+  In addition, the init process within the container will run under the current user's UID. This behavior overrides the image's `USER` instruction unless you explicitly set `--user`.
+
   Valid `keep-id` options:
 
   - *uid*=UID: override the UID inside the container that is used to map the current user to.
