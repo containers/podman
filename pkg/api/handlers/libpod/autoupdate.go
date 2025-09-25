@@ -53,8 +53,10 @@ func AutoUpdate(w http.ResponseWriter, r *http.Request) {
 
 	autoUpdateReports, autoUpdateFailures := containerEngine.AutoUpdate(r.Context(), options)
 	if autoUpdateReports == nil {
-		utils.Error(w, http.StatusInternalServerError, errorhandling.JoinErrors(autoUpdateFailures))
-		return
+		if err := errorhandling.JoinErrors(autoUpdateFailures); err != nil {
+			utils.Error(w, http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	reports := handlers.LibpodAutoUpdateReports{Reports: autoUpdateReports, Errors: errorhandling.ErrorsToStrings(autoUpdateFailures)}
