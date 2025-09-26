@@ -1195,6 +1195,14 @@ BOGUS=foo
 				"basic.volume",
 			},
 		),
+		Entry(
+			"Container - Template with Volume Template dependency",
+			"template-dependency@.container",
+			[]string{
+				"template-dependency@.volume",
+				"template-dependency@.network",
+			},
+		),
 
 		Entry("Volume - Quadlet image (.build)", "build.quadlet.volume", []string{"basic.build"}),
 		Entry("Volume - Quadlet image (.image)", "image.quadlet.volume", []string{"basic.image"}),
