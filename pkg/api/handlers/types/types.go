@@ -10,6 +10,13 @@ type LibpodImagesRemoveReport struct {
 	Errors []string
 }
 
+// LibpodAutoUpdateReport is the return type for auto update via the rest api.
+type LibpodAutoUpdateReports struct {
+	Reports []*entities.AutoUpdateReport
+	// Auto update returns data and possible errors.
+	Errors []string
+}
+
 // HistoryResponse provides details on image layers
 type HistoryResponse struct {
 	ID        string `json:"Id"`

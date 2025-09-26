@@ -11,7 +11,6 @@ load helpers.systemd
 export SNAME_FILE
 
 function setup() {
-    skip_if_remote "systemd tests are meaningless over remote"
     basic_setup
 
     SNAME_FILE=${PODMAN_TMPDIR}/services
@@ -93,7 +92,14 @@ function generate_service() {
 
     run_podman create $extraArgs --name $cname $label $target_img $command
 
-    (cd $UNIT_DIR; run_podman generate systemd --new --files --name $requires $cname)
+    # podman-remote will give warning saying the generated units should be placed on the remote system
+    if ! is_remote; then
+        (cd $UNIT_DIR; run_podman generate systemd --new --files --name $requires $cname)
+    else
+
+        (cd $UNIT_DIR; run_podman 0+w generate systemd --new --files --name $requires $cname)
+    fi
+
     echo "container-$cname" >> $SNAME_FILE
     run_podman rm -t 0 -f $cname
 
@@ -165,7 +171,13 @@ function _confirm_update() {
     archive=$PODMAN_TMPDIR/archive.tar
     run_podman save -o $archive $IMAGE
     run_podman 125 create --label io.containers.autoupdate=registry docker-archive:$archive
-    is "$output" ".*Error: auto updates require the docker image transport but image is of transport \"docker-archive\""
+
+    # Remote gives different error message
+    if ! is_remote; then
+        is "$output" ".*Error: auto updates require the docker image transport but image is of transport \"docker-archive\""
+    else
+        is "$output" ".*Error: unsupported transport docker-archive in \"docker-archive:$archive\": only docker transport is supported"
+    fi
 
     run_podman rmi $shortname
 }
@@ -200,7 +212,12 @@ function _confirm_update() {
 
     since=$(date --iso-8601=seconds)
     run_podman auto-update --rollback=false --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
-    is "$output" "Trying to pull.*" "Image is updated."
+
+    # Trying to pull is not logged for podman-remote
+    if ! is_remote; then
+        is "$output" "Trying to pull.*" "Image is updated."
+    fi
+
     is "$output" ".*container-$ctr_parent.service,quay.io/libpod/alpine:latest,true,registry.*" "Image is updated."
     run_podman events --filter type=system --since $since --stream=false
     is "$output" ".* system auto-update"
@@ -239,7 +256,12 @@ function _confirm_update() {
     containerID="$output"
 
     run_podman auto-update --format "{{.Unit}},{{.Image}},{{.Updated}},{{.Policy}}"
-    is "$output" "Trying to pull.*" "Image is updated."
+
+    # Trying to pull is not logged for podman-remote
+    if ! is_remote; then
+        is "$output" "Trying to pull.*" "Image is updated."
+    fi
+
     is "$output" ".*container-$cname.service,$image:latest,rolled back,registry.*" "Image has been rolled back."
 
     run_podman container inspect --format "{{.Image}}" $cname
@@ -386,8 +408,11 @@ EOF
     update_log=$output
     assert "$update_log" =~ '.*Error: auto-updating container "[0-9a-f]{64}": invalid auto-update policy.*' "invalid policy setup"
 
-    local n_updated=$(grep -c 'Trying to pull' <<<"$update_log")
-    is "$n_updated" "2" "Number of images updated from registry."
+    # Trying to pull is not logged for podman-remote
+    if ! is_remote; then
+        local n_updated=$(grep -c 'Trying to pull' <<<"$update_log")
+        is "$n_updated" "2" "Number of images updated from registry."
+    fi
 
     for cname in "${!expect_update[@]}"; do
         is "$update_log" ".*$cname.*" "container with auto-update policy image updated"
@@ -473,6 +498,8 @@ EOF
 }
 
 @test "podman-kube@.service template with rollback" {
+    skip_if_remote "tests depend on podman kube play --service-container which does not work with podman-remote"
+
     # sdnotify fails with runc 1.0.0-3-dev2 on Ubuntu. Let's just
     # assume that we work only with crun, nothing else.
     # [copied from 260-sdnotify.bats]
@@ -587,7 +614,15 @@ EOF
 
     # cd into the unit dir to generate the two files.
     pushd "$UNIT_DIR"
-    run_podman generate systemd --name --new --files $podname
+
+    # podman-remote will give warning saying the generated units should be placed on the remote system
+    if ! is_remote; then
+        run_podman generate systemd --name --new --files $podname
+    else
+
+        run_podman 0+w generate systemd --name --new --files $podname
+    fi
+
     is "$output" ".*$podunit.*"
     is "$output" ".*$ctrunit.*"
     popd
@@ -635,6 +670,8 @@ EOF
 }
 
 @test "podman-auto-update --authfile"  {
+    skip_if_remote "tests depend on start_registry which does not work with podman-remote"
+
     # Test the three supported ways of using authfiles with auto updates
     # 1) Passed via --authfile CLI flag
     # 2) Passed via the REGISTRY_AUTH_FILE env variable
