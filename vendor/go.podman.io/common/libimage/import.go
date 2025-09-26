@@ -128,5 +128,11 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 		}
 	}
 
-	return "sha256:" + name, nil
+	// Get the proper digest string with the correct algorithm
+	digestString, err := getImageDigestString(ctx, srcRef, r.systemContextCopy())
+	if err != nil {
+		return "", err
+	}
+
+	return digestString, nil
 }

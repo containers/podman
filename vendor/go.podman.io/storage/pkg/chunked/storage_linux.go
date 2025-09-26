@@ -170,13 +170,13 @@ func (c *chunkedDiffer) convertTarToZstdChunked(destDirectory string, payload *o
 	}
 
 	newAnnotations := make(map[string]string)
-	chunked, err := compressor.NoCompression(f, newAnnotations)
+	chunked, err := compressor.NoCompression(f, newAnnotations, c.layersCache.store.GetDigestAlgorithm())
 	if err != nil {
 		f.Close()
 		return 0, nil, "", nil, err
 	}
 
-	convertedOutputDigester := digest.Canonical.Digester()
+	convertedOutputDigester := c.layersCache.store.GetDigestAlgorithm().Digester()
 	copied, err := io.CopyBuffer(io.MultiWriter(chunked, convertedOutputDigester.Hash()), diff, c.copyBuffer)
 	if err != nil {
 		f.Close()
@@ -340,7 +340,7 @@ func makeConvertFromRawDiffer(store storage.Store, blobDigest digest.Digest, blo
 // makeZstdChunkedDiffer sets up a chunkedDiffer for a zstd:chunked layer.
 // It may return an error matching ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert.
 func makeZstdChunkedDiffer(store storage.Store, blobSize int64, tocDigest digest.Digest, annotations map[string]string, iss ImageSourceSeekable, pullOptions pullOptions) (_ *chunkedDiffer, retErr error) {
-	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(store.RunRoot(), iss, tocDigest, annotations, true)
+	manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(store.RunRoot(), iss, tocDigest, annotations, true, store.GetDigestAlgorithm())
 	if err != nil { // May be ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
@@ -399,7 +399,7 @@ func makeEstargzChunkedDiffer(store storage.Store, blobSize int64, tocDigest dig
 		}
 	}
 
-	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, tocDigest)
+	manifest, tocOffset, err := readEstargzChunkedManifest(iss, blobSize, tocDigest, store.GetDigestAlgorithm())
 	if err != nil { // May be ErrFallbackToOrdinaryLayerDownload / errFallbackCanConvert
 		return nil, fmt.Errorf("read zstd:chunked manifest: %w", err)
 	}
@@ -772,7 +772,7 @@ type destinationFile struct {
 	recordFsVerity recordFsVerityFunc
 }
 
-func openDestinationFile(dirfd int, metadata *fileMetadata, options *archive.TarOptions, skipValidation bool, recordFsVerity recordFsVerityFunc) (*destinationFile, error) {
+func openDestinationFile(dirfd int, metadata *fileMetadata, options *archive.TarOptions, skipValidation bool, recordFsVerity recordFsVerityFunc, digestAlgorithm digest.Algorithm) (*destinationFile, error) {
 	file, err := openFileUnderRoot(dirfd, metadata.Name, newFileFlags, 0)
 	if err != nil {
 		return nil, err
@@ -785,7 +785,7 @@ func openDestinationFile(dirfd int, metadata *fileMetadata, options *archive.Tar
 	if skipValidation {
 		to = file
 	} else {
-		digester = digest.Canonical.Digester()
+		digester = digestAlgorithm.Digester()
 		hash = digester.Hash()
 		to = io.MultiWriter(file, hash)
 	}
@@ -985,7 +985,7 @@ func (c *chunkedDiffer) storeMissingFiles(streams chan io.ReadCloser, errs chan 
 				if c.useFsVerity == graphdriver.DifferFsVerityDisabled {
 					recordFsVerity = nil
 				}
-				destFile, err = openDestinationFile(dirfd, mf.File, options, c.skipValidation, recordFsVerity)
+				destFile, err = openDestinationFile(dirfd, mf.File, options, c.skipValidation, recordFsVerity, c.layersCache.store.GetDigestAlgorithm())
 				if err != nil {
 					Err = err
 					goto exit
@@ -1363,7 +1363,7 @@ func (c *chunkedDiffer) copyAllBlobToFile(destination *os.File) (digest.Digest, 
 		return "", err
 	}
 
-	originalRawDigester := digest.Canonical.Digester()
+	originalRawDigester := c.layersCache.store.GetDigestAlgorithm().Digester()
 	for soe := range streamsOrErrors {
 		if soe.stream != nil {
 			r := io.TeeReader(soe.stream, originalRawDigester.Hash())
@@ -1466,7 +1466,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 		if tocDigest == nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("internal error: just-created zstd:chunked missing TOC digest")
 		}
-		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(dest, fileSource, *tocDigest, annotations, false)
+		manifest, toc, tarSplit, tocOffset, err := readZstdChunkedManifest(dest, fileSource, *tocDigest, annotations, false, c.layersCache.store.GetDigestAlgorithm())
 		if err != nil {
 			return graphdriver.DriverWithDifferOutput{}, fmt.Errorf("read zstd:chunked manifest: %w", err)
 		}
@@ -1821,7 +1821,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 				if err != nil {
 					return output, err
 				}
-				if offset >= 0 && validateChunkChecksum(chunk, root, path, offset, c.copyBuffer) {
+				if offset >= 0 && validateChunkChecksum(chunk, root, path, offset, c.copyBuffer, c.layersCache.store.GetDigestAlgorithm()) {
 					missingPartsSize -= size
 					mp.OriginFile = &originFile{
 						Root:   root,
@@ -1878,7 +1878,7 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			}
 			metadata := tsStorage.NewJSONUnpacker(output.TarSplit)
 			fg := newStagedFileGetter(dirFile, flatPathNameMap)
-			digester := digest.Canonical.Digester()
+			digester := c.layersCache.store.GetDigestAlgorithm().Digester()
 			if err := asm.WriteOutputTarStream(fg, metadata, digester.Hash()); err != nil {
 				return output, fmt.Errorf("digesting staged uncompressed stream: %w", err)
 			}
@@ -1986,7 +1986,7 @@ func (c *chunkedDiffer) mergeTocEntries(fileType compressedFileType, entries []m
 
 // validateChunkChecksum checks if the file at $root/$path[offset:chunk.ChunkSize] has the
 // same digest as chunk.ChunkDigest
-func validateChunkChecksum(chunk *minimal.FileMetadata, root, path string, offset int64, copyBuffer []byte) bool {
+func validateChunkChecksum(chunk *minimal.FileMetadata, root, path string, offset int64, copyBuffer []byte, digestAlgorithm digest.Algorithm) bool {
 	parentDirfd, err := unix.Open(root, unix.O_PATH|unix.O_CLOEXEC, 0)
 	if err != nil {
 		return false
@@ -2004,7 +2004,7 @@ func validateChunkChecksum(chunk *minimal.FileMetadata, root, path string, offse
 	}
 
 	r := io.LimitReader(fd, chunk.ChunkSize)
-	digester := digest.Canonical.Digester()
+	digester := digestAlgorithm.Digester()
 
 	if _, err := io.CopyBuffer(digester.Hash(), r, copyBuffer); err != nil {
 		return false

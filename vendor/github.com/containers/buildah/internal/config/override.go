@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -136,9 +137,7 @@ func OverrideOCI(oconfig *v1.ImageConfig, overrideChanges []string, overrideConf
 			if oconfig.Labels == nil {
 				oconfig.Labels = make(map[string]string)
 			}
-			for k, v := range overrideConfig.Labels {
-				oconfig.Labels[k] = v
-			}
+			maps.Copy(oconfig.Labels, overrideConfig.Labels)
 		}
 		oconfig.StopSignal = overrideConfig.StopSignal
 	}
@@ -206,9 +205,7 @@ func OverrideDocker(dconfig *docker.Config, overrideChanges []string, overrideCo
 			if dconfig.Labels == nil {
 				dconfig.Labels = make(map[string]string)
 			}
-			for k, v := range overrideConfig.Labels {
-				dconfig.Labels[k] = v
-			}
+			maps.Copy(dconfig.Labels, overrideConfig.Labels)
 		}
 		dconfig.StopSignal = overrideConfig.StopSignal
 		dconfig.StopTimeout = overrideConfig.StopTimeout

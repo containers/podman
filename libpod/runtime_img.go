@@ -14,6 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 	"go.podman.io/image/v5/docker/reference"
+	"go.podman.io/storage"
 )
 
 // Runtime API
@@ -115,6 +116,11 @@ func (r *Runtime) newImageBuildCompleteEvent(idOrName string) {
 
 // Build adds the runtime to the imagebuildah call
 func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions, dockerfiles ...string) (string, reference.Canonical, error) {
+	return r.BuildWithDigest(ctx, options, "", dockerfiles...)
+}
+
+// BuildWithDigest adds the runtime to the imagebuildah call with optional digest algorithm override
+func (r *Runtime) BuildWithDigest(ctx context.Context, options buildahDefine.BuildOptions, digestAlgorithm string, dockerfiles ...string) (string, reference.Canonical, error) {
 	if options.Runtime == "" {
 		options.Runtime = r.GetOCIRuntimePath()
 	}
@@ -122,7 +128,35 @@ func (r *Runtime) Build(ctx context.Context, options buildahDefine.BuildOptions,
 
 	// share the network interface between podman and buildah
 	options.NetworkInterface = r.network
-	id, ref, err := imagebuildah.BuildDockerfiles(ctx, r.store, options, dockerfiles...)
+
+	// Determine which store to use for the build
+	var buildStore storage.Store
+
+	if digestAlgorithm != "" && digestAlgorithm != r.store.GetDigestType() {
+		// Temporarily modify the store's digest type for the build
+		originalDigestType := r.store.GetDigestType()
+		logrus.Debugf("Temporarily setting store digest algorithm from %s to %s", originalDigestType, digestAlgorithm)
+		r.store.SetDigestType(digestAlgorithm)
+
+		// Ensure we restore the original digest type even if build fails
+		defer func() {
+			r.store.SetDigestType(originalDigestType)
+			logrus.Debugf("Restored store digest algorithm to %s", originalDigestType)
+		}()
+
+		buildStore = r.store
+	} else {
+		// Use the existing store
+		buildStore = r.store
+		if digestAlgorithm != "" {
+			logrus.Debugf("Using existing store digest algorithm: %s (matches requested)", digestAlgorithm)
+		}
+	}
+
+	// Note: Stores created by storage.GetStore() are automatically managed
+	// by the storage library and don't require explicit cleanup
+
+	id, ref, err := imagebuildah.BuildDockerfiles(ctx, buildStore, options, dockerfiles...)
 	// Write event for build completion
 	r.newImageBuildCompleteEvent(id)
 	return id, ref, err

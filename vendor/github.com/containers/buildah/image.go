@@ -535,7 +535,7 @@ func (mb *dockerSchema2ManifestBuilder) manifestAndConfig() ([]byte, []byte, err
 	logrus.Debugf("Docker v2s2 config = %s", dconfig)
 
 	// Add the configuration blob to the manifest.
-	mb.dmanifest.Config.Digest = digest.Canonical.FromBytes(dconfig)
+	mb.dmanifest.Config.Digest = mb.i.store.GetDigestAlgorithm().FromBytes(dconfig)
 	mb.dmanifest.Config.Size = int64(len(dconfig))
 	mb.dmanifest.Config.MediaType = manifest.DockerV2Schema2ConfigMediaType
 
@@ -772,7 +772,7 @@ func (mb *ociManifestBuilder) manifestAndConfig() ([]byte, []byte, error) {
 	logrus.Debugf("OCIv1 config = %s", oconfig)
 
 	// Add the configuration blob to the manifest.
-	mb.omanifest.Config.Digest = digest.Canonical.FromBytes(oconfig)
+	mb.omanifest.Config.Digest = mb.i.store.GetDigestAlgorithm().FromBytes(oconfig)
 	mb.omanifest.Config.Size = int64(len(oconfig))
 	mb.omanifest.Config.MediaType = v1.MediaTypeImageConfig
 
@@ -1068,7 +1068,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 				}
 			}
 		}
-		srcHasher := digest.Canonical.Digester()
+		srcHasher := i.store.GetDigestAlgorithm().Digester()
 		// Set up to write the possibly-recompressed blob.
 		layerFile, err := os.OpenFile(filepath.Join(path, "layer"), os.O_CREATE|os.O_WRONLY, 0o600)
 		if err != nil {
@@ -1085,7 +1085,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 		diffBeingAltered = diffBeingAltered || i.layerModTime != nil || i.layerLatestModTime != nil
 		diffBeingAltered = diffBeingAltered || len(layerExclusions) != 0
 		if diffBeingAltered {
-			destHasher = digest.Canonical.Digester()
+			destHasher = i.store.GetDigestAlgorithm().Digester()
 			multiWriter = io.MultiWriter(counter, destHasher.Hash())
 		} else {
 			destHasher = srcHasher
@@ -1172,7 +1172,7 @@ func (i *containerImageRef) NewImageSource(ctx context.Context, _ *types.SystemC
 		names:         i.names,
 		compression:   i.compression,
 		config:        config,
-		configDigest:  digest.Canonical.FromBytes(config),
+		configDigest:  i.store.GetDigestAlgorithm().FromBytes(config),
 		manifest:      imageManifest,
 		manifestType:  i.preferredManifestType,
 		blobDirectory: i.blobDirectory,
@@ -1313,7 +1313,7 @@ func (i *containerImageRef) makeExtraImageContentDiff(includeFooter bool, timest
 			os.Remove(diff.Name())
 		}
 	}()
-	digester := digest.Canonical.Digester()
+	digester := i.store.GetDigestAlgorithm().Digester()
 	counter := ioutils.NewWriteCounter(digester.Hash())
 	tw := tar.NewWriter(io.MultiWriter(diff, counter))
 	if timestamp == nil {
@@ -1473,7 +1473,7 @@ func (b *Builder) makeLinkedLayerInfos(layers []LinkedLayer, layerType string, l
 				}
 			}
 
-			digester := digest.Canonical.Digester()
+			digester := b.store.GetDigestAlgorithm().Digester()
 			sizeCountedFile := ioutils.NewWriteCounter(io.MultiWriter(digester.Hash(), f))
 			wc := makeFilteredLayerWriteCloser(ioutils.NopWriteCloser(sizeCountedFile), layerModTime, layerLatestModTime, nil)
 			_, copyErr := io.Copy(wc, rc)

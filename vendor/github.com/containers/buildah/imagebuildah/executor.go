@@ -836,12 +836,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 					}
 				case "ADD", "COPY":
 					for _, flag := range child.Flags { // flags for this instruction
-						if strings.HasPrefix(flag, "--from=") {
+						if after, ok := strings.CutPrefix(flag, "--from="); ok {
 							// TODO: this didn't undergo variable and
 							// arg expansion, so if the previous stage
 							// was named using argument values, we might
 							// not record the right value here.
-							rootfs := strings.TrimPrefix(flag, "--from=")
+							rootfs := after
 							b.rootfsMap[rootfs] = struct{}{}
 							logrus.Debugf("rootfs needed for COPY in stage %d: %q", stageIndex, rootfs)
 							// Populate dependency tree and check
@@ -885,8 +885,8 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 						// dependency calculation.
 						if strings.HasPrefix(flag, "--mount=") && strings.Contains(flag, "from") {
 							mountFlags := strings.TrimPrefix(flag, "--mount=")
-							fields := strings.Split(mountFlags, ",")
-							for _, field := range fields {
+							fields := strings.SplitSeq(mountFlags, ",")
+							for field := range fields {
 								if mountFrom, hasFrom := strings.CutPrefix(field, "from="); hasFrom {
 									// Check if this base is a stage if yes
 									// add base to current stage's dependency tree

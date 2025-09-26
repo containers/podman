@@ -422,7 +422,43 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 
 	pushedManifestBytes, pushError := ir.Libpod.LibimageRuntime().Push(ctx, source, destination, pushOptions)
 	if pushError == nil {
-		manifestDigest, err := manifest.Digest(pushedManifestBytes)
+		// Determine the appropriate digest algorithm for manifest computation
+		var digestAlgorithm digest.Algorithm = digest.Canonical // Default fallback to SHA256
+
+		// Second priority: Try to detect the digest algorithm from the source image
+		if options.DigestAlgorithm == "" {
+			if sourceImage, _, err := ir.Libpod.LibimageRuntime().LookupImage(source, nil); err == nil {
+				imageID := sourceImage.ID()
+				// Detect digest algorithm from image ID length
+				// SHA256 = 64 chars, SHA512 = 128 chars
+				switch len(imageID) {
+				case 64:
+					digestAlgorithm = digest.SHA256
+					logrus.Debugf("Push: Auto-detected SHA256 from source image ID length")
+				case 128:
+					digestAlgorithm = digest.SHA512
+					logrus.Debugf("Push: Auto-detected SHA512 from source image ID length")
+				default:
+					logrus.Debugf("Push: Unknown image ID length %d, using default %s", len(imageID), digestAlgorithm.String())
+				}
+			} else {
+				logrus.Debugf("Push: Could not lookup source image %s for digest algorithm detection: %v", source, err)
+			}
+		}
+
+		// First priority: Use the digest algorithm specified in push options if provided
+		if options.DigestAlgorithm != "" {
+			switch options.DigestAlgorithm {
+			case "sha256":
+				digestAlgorithm = digest.SHA256
+			case "sha512":
+				digestAlgorithm = digest.SHA512
+			default:
+				logrus.Warnf("Unknown digest algorithm %q, falling back to auto-detected or default", options.DigestAlgorithm)
+			}
+		}
+
+		manifestDigest, err := manifest.DigestWithAlgorithm(pushedManifestBytes, digestAlgorithm)
 		if err != nil {
 			return nil, err
 		}
@@ -581,7 +617,13 @@ func (ir *ImageEngine) Config(_ context.Context) (*config.Config, error) {
 }
 
 func (ir *ImageEngine) Build(ctx context.Context, containerFiles []string, opts entities.BuildOptions) (*entities.BuildReport, error) {
-	id, _, err := ir.Libpod.Build(ctx, opts.BuildOptions, containerFiles...)
+	// Handle digest algorithm configuration
+	if opts.DigestAlgorithm != "" {
+		logrus.Debugf("Using digest algorithm for build operation: %s", opts.DigestAlgorithm)
+	}
+
+	// Use the new BuildWithDigest method that supports digest algorithm override
+	id, _, err := ir.Libpod.BuildWithDigest(ctx, opts.BuildOptions, opts.DigestAlgorithm, containerFiles...)
 	if err != nil {
 		return nil, err
 	}

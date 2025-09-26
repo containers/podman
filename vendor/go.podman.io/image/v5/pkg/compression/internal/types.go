@@ -1,19 +1,30 @@
 package internal
 
-import "io"
+import (
+	"io"
+
+	"github.com/opencontainers/go-digest"
+)
 
 // CompressorFunc writes the compressed stream to the given writer using the specified compression level.
+// The metadata value is filled by the compressor, and can be used to store information about
+// the compressed stream. The metadata values which are meaningful for _this_ layer data
+// _may_ be _copied_ from a previous layer (passed to this compressor), but that is not guaranteed,
+// and the metadata is going to be recorded for this layer, so this function should set metadata
+// values only for the current layer, not for any old / reused layer data.
+// Metadata keys must be unique within a single layer, and include a namespace, e.g. gzip stores
+// the header information in metadata["gzip.header"] = base64(header), in a compressed tar stream.
 //
-// Compressing a stream may create integrity data that allows consuming the compressed byte stream
-// while only using subsets of the compressed data (if the compressed data is seekable and most
-// of the uncompressed data is already present via other means), while still protecting integrity
+// As for the general file's digest metadata, it is the caller's responsibility to set the
+// relevant information in annotations or elsewhere — this metadata is expected to be more layer-specific,
+// and the caller will have better visibility to ensure that the metadata ends up in the correct layer digest
 // of the compressed stream against unwanted modification. (In OCI container images, this metadata
 // is usually carried in manifest annotations.)
 //
 // If the compression generates such metadata, it is written to the provided metadata map.
 //
 // The caller must call Close() on the stream (even if the input stream does not need closing!).
-type CompressorFunc func(io.Writer, map[string]string, *int) (io.WriteCloser, error)
+type CompressorFunc func(io.Writer, map[string]string, *int, digest.Algorithm) (io.WriteCloser, error)
 
 // DecompressorFunc returns the decompressed stream, given a compressed stream.
 // The caller must call Close() on the decompressed stream (even if the compressed input stream does not need closing!).

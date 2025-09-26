@@ -19,12 +19,13 @@ import (
 // CLI-only fields into the API types.
 type pushOptionsWrapper struct {
 	entities.ArtifactPushOptions
-	TLSVerifyCLI   bool // CLI only
-	CredentialsCLI string
-	signing        common.SigningCLIOnlyOptions
-	EncryptionKeys []string
-	EncryptLayers  []int
-	DigestFile     string
+	TLSVerifyCLI    bool // CLI only
+	CredentialsCLI  string
+	signing         common.SigningCLIOnlyOptions
+	EncryptionKeys  []string
+	EncryptLayers   []int
+	DigestFile      string
+	DigestAlgorithm string
 }
 
 var (
@@ -88,6 +89,10 @@ func pushFlags(cmd *cobra.Command) {
 	common.DefineSigningFlags(cmd, &pushOptions.signing, &pushOptions.ArtifactPushOptions.ImagePushOptions)
 
 	flags.BoolVar(&pushOptions.TLSVerifyCLI, "tls-verify", true, "Require HTTPS and verify certificates when contacting registries")
+
+	digestFlagName := "digest"
+	flags.StringVar(&pushOptions.DigestAlgorithm, digestFlagName, "", "Digest algorithm to use for content addressing (sha256, sha512). Defaults to value from storage.conf or sha256")
+	_ = cmd.RegisterFlagCompletionFunc(digestFlagName, completion.AutocompleteNone)
 
 	// TODO I think these two can be removed?
 	/*
@@ -202,6 +207,14 @@ func artifactPush(cmd *cobra.Command, args []string) error {
 				}
 			}
 	*/
+
+	// Validate and copy the digest algorithm from CLI wrapper to ArtifactPushOptions
+	if pushOptions.DigestAlgorithm != "" {
+		if pushOptions.DigestAlgorithm != "sha256" && pushOptions.DigestAlgorithm != "sha512" {
+			return fmt.Errorf("invalid digest algorithm %q: must be sha256 or sha512", pushOptions.DigestAlgorithm)
+		}
+	}
+	pushOptions.ArtifactPushOptions.ImagePushOptions.DigestAlgorithm = pushOptions.DigestAlgorithm
 
 	_, err = registry.ImageEngine().ArtifactPush(registry.Context(), source, pushOptions.ArtifactPushOptions)
 	return err

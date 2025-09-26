@@ -146,7 +146,9 @@ const (
 
 	// TarSplitChecksumKey is no longer used and is replaced by the TOC.TarSplitDigest field instead.
 	// The value is retained here as a constant as a historical reference for older zstd:chunked images.
-	// TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
+	//
+	// Deprecated: This field should never be relied on - use the digest in the TOC instead.
+	TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
 
 	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
 	ManifestTypeCRFS = 1
@@ -188,7 +190,7 @@ type TarSplitData struct {
 	UncompressedSize int64
 }
 
-func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, tarSplitData *TarSplitData, metadata []FileMetadata, createZstdWriter CreateZstdWriterFunc) error {
+func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, offset uint64, tarSplitData *TarSplitData, metadata []FileMetadata, createZstdWriter CreateZstdWriterFunc, digestAlgorithm digest.Algorithm) error {
 	// 8 is the size of the zstd skippable frame header + the frame size
 	const zstdSkippableFrameHeader = 8
 	manifestOffset := offset + zstdSkippableFrameHeader
@@ -220,7 +222,7 @@ func WriteZstdChunkedManifest(dest io.Writer, outMetadata map[string]string, off
 	}
 	compressedManifest := compressedBuffer.Bytes()
 
-	manifestDigester := digest.Canonical.Digester()
+	manifestDigester := digestAlgorithm.Digester()
 	manifestChecksum := manifestDigester.Hash()
 	if _, err := manifestChecksum.Write(compressedManifest); err != nil {
 		return err

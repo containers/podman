@@ -246,7 +246,7 @@ func (c *layersCache) createCacheFileFromTOC(layerID string) (*layer, error) {
 		return nil, fmt.Errorf("read manifest file: %w", err)
 	}
 
-	cacheFile, err := writeCache(manifest, lcd.Format, layerID, c.store)
+	cacheFile, err := writeCache(manifest, lcd.Format, layerID, c.store, c.store.GetDigestAlgorithm())
 	if err != nil {
 		return nil, err
 	}
@@ -321,8 +321,8 @@ func (c *layersCache) load() error {
 // calculateHardLinkFingerprint calculates a hash that can be used to verify if a file
 // is usable for deduplication with hardlinks.
 // To calculate the digest, it uses the file payload digest, UID, GID, mode and xattrs.
-func calculateHardLinkFingerprint(f *fileMetadata) (string, error) {
-	digester := digest.Canonical.Digester()
+func calculateHardLinkFingerprint(f *fileMetadata, digestAlgorithm digest.Algorithm) (string, error) {
+	digester := digestAlgorithm.Digester()
 
 	modeString := fmt.Sprintf("%d:%d:%o", f.UID, f.GID, f.Mode)
 	hash := digester.Hash()
@@ -479,7 +479,7 @@ func writeCacheFileToWriter(writer io.Writer, bloomFilter *bloomFilter, tags [][
 // - digest(file.payload))
 // - digest(digest(file.payload) + file.UID + file.GID + file.mode + file.xattrs)
 // - digest(i) for each i in chunks(file payload)
-func writeCache(manifest []byte, format graphdriver.DifferOutputFormat, id string, dest setBigData) (*cacheFile, error) {
+func writeCache(manifest []byte, format graphdriver.DifferOutputFormat, id string, dest setBigData, digestAlgorithm digest.Algorithm) (*cacheFile, error) {
 	var vdata, tagsBuffer, fnames bytes.Buffer
 	tagLen := 0
 	digestLen := 0
@@ -533,7 +533,7 @@ func writeCache(manifest []byte, format graphdriver.DifferOutputFormat, id strin
 			}
 			tags = append(tags, tag)
 
-			fp, err := calculateHardLinkFingerprint(k)
+			fp, err := calculateHardLinkFingerprint(k, digestAlgorithm)
 			if err != nil {
 				return nil, err
 			}
@@ -836,7 +836,7 @@ func (c *layersCache) findFileInOtherLayers(file *fileMetadata, useHardLinks boo
 	digest := file.Digest
 	if useHardLinks {
 		var err error
-		digest, err = calculateHardLinkFingerprint(file)
+		digest, err = calculateHardLinkFingerprint(file, c.store.GetDigestAlgorithm())
 		if err != nil {
 			return "", "", err
 		}

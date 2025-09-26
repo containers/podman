@@ -68,6 +68,8 @@ type BuildOptions struct {
 	// so need to pass this to the main build functions
 	LogFileToClose *os.File
 	TmpDirToClose  string
+	// DigestAlgorithm specifies the digest algorithm to use for content addressing
+	DigestAlgorithm string
 }
 
 // BuildReport is the image-build report.
