@@ -334,7 +334,7 @@ var _ = Describe("Podman containers ", func() {
 		status := define.HealthCheckStarting
 		for i := 0; i < 10; i++ {
 			result, err := containers.RunHealthCheck(bt.conn, "hc", nil)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			if result.Status != define.HealthCheckHealthy {
 				fmt.Println("Healthcheck container still starting, retrying in 1 second")
 				time.Sleep(1 * time.Second)
