@@ -60,14 +60,18 @@ function setup() {
     if ! is_remote; then
         skip "only applicable on podman-remote"
     fi
+
     # All we care about here is that the command passes
     run_podman --context=default version
 
-    # This one must fail
-    PODMAN=${PODMAN%%--url*} run_podman 125 --context=swarm version
-    is "$output" \
-       "Error: read cli flags: connection \"swarm\" not found" \
-       "--context=swarm should fail"
+    (
+      unset REMOTESYSTEM_TRANSPORT
+      # This one must fail
+      PODMAN=${PODMAN%%--url*} run_podman 125 --context=swarm version
+      is "$output" \
+         "Error: read cli flags: connection \"swarm\" not found" \
+         "--context=swarm should fail"
+    )
 }
 
 @test "podman can pull an image" {
