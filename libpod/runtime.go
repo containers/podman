@@ -647,6 +647,16 @@ func makeRuntime(ctx context.Context, runtime *Runtime) (retErr error) {
 
 	runtime.startWorker()
 
+	// Reattach healthcheck timers for running containers after podman restart
+	// This is only needed for the nosystemd build where healthchecks are managed by goroutines
+	// Systemd healthchecks are managed by systemd and don't need reattachment
+	ctrs, err := runtime.state.AllContainers(true)
+	if err != nil {
+		logrus.Errorf("Failed to get containers for healthcheck reattachment: %v", err)
+	} else {
+		ReattachHealthCheckTimers(ctrs)
+	}
+
 	return nil
 }
 

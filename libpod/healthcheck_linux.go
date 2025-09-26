@@ -18,6 +18,14 @@ import (
 	systemdCommon "go.podman.io/common/pkg/systemd"
 )
 
+// ReattachHealthCheckTimers reattaches healthcheck timers for running containers after podman restart
+// This is a no-op for systemd builds since systemd manages healthcheck timers independently
+func ReattachHealthCheckTimers(containers []*Container) {
+	// Systemd healthchecks are managed by systemd and don't need reattachment
+	// The timers persist across podman restarts because they're systemd units
+	logrus.Debugf("Skipping healthcheck reattachment for systemd build - timers are managed by systemd")
+}
+
 // createTimer systemd timers for healthchecks of a container
 func (c *Container) createTimer(interval string, isStartup bool) error {
 	if c.disableHealthCheckSystemd(isStartup) {
