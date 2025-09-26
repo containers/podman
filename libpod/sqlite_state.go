@@ -306,7 +306,7 @@ func (s *SQLiteState) GetDBConfig() (*DBConfig, error) {
 }
 
 // ValidateDBConfig validates paths in the given runtime against the database
-func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
+func (s *SQLiteState) ValidateDBConfig(runtime *Runtime, performRewrite bool) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -322,6 +322,20 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
                 ?, ?, ?,
                 ?, ?, ?
         );`
+	const getNumObject = `
+        SELECT
+                (SELECT COUNT(*) FROM ContainerConfig) AS container_count,
+                (SELECT COUNT(*) FROM PodConfig)       AS pod_count,
+                (SELECT COUNT(*) FROM VolumeConfig)    AS volume_count;`
+	const updateRow = `
+        UPDATE DBConfig SET
+                OS=?,
+                StaticDir=?,
+                TmpDir=?,
+                GraphRoot=?,
+                RunRoot=?,
+                GraphDriver=?,
+                VolumeDir=?;`
 
 	var (
 		dbOS, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
@@ -335,7 +349,9 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 	)
 
 	// Some fields may be empty, indicating they are set to the default.
-	// If so, grab the default from c/storage for them.
+	// If so, grab the values from c/storage for them.
+	// TODO: Validate the c/storage ones are not empty string,
+	// grab default values if they are.
 	if runtimeGraphRoot == "" {
 		runtimeGraphRoot = storeOpts.GraphRoot
 	}
@@ -384,6 +400,37 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		}
 
 		return fmt.Errorf("retrieving DB config: %w", err)
+	}
+
+	if performRewrite {
+		// If a rewrite of database configuration is requested:
+		// First ensure no containers, pods, volumes are present.
+		// If clear to proceed, update the row and return. Do not
+		// perform any checks; use current configuration without
+		// question, as we would on DB init.
+		var numCtrs, numPods, numVols int
+		countRow := tx.QueryRow(getNumObject)
+		if err := countRow.Scan(&numCtrs, &numPods, &numVols); err != nil {
+			return fmt.Errorf("querying number of objects in database: %w", err)
+		}
+		if numCtrs+numPods+numVols != 0 {
+			return fmt.Errorf("refusing to rewrite database cached configuration as containers, pods, or volumes are present: %w", define.ErrInternal)
+		}
+		result, err := tx.Exec(updateRow, runtimeOS, runtimeStaticDir, runtimeTmpDir, runtimeGraphRoot, runtimeRunRoot, runtimeGraphDriver, runtimeVolumePath)
+		if err != nil {
+			return fmt.Errorf("updating database cached configuration: %w", err)
+		}
+		rows, err := result.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("counting rows affected by DB configuration update: %w", err)
+		}
+		if rows != 1 {
+			return fmt.Errorf("updated %d rows when changing DB configuration, expected 1: %w", rows, define.ErrInternal)
+		}
+		if err := tx.Commit(); err != nil {
+			return fmt.Errorf("committing write of database validation row: %w", err)
+		}
+		return nil
 	}
 
 	// Sometimes, for as-yet unclear reasons, the database value ends up set
