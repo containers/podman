@@ -65,6 +65,17 @@ var _ = Describe("Podman artifact", func() {
 		noHeaderOutput := noHeaderSession.OutputToStringArray()
 		Expect(noHeaderOutput).To(HaveLen(2))
 		Expect(noHeaderOutput).ToNot(ContainElement("REPOSITORY"))
+
+		// Check if .VirtualSize is reported correctly
+		virtualSizeFormatSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.VirtualSize}}")
+		virtualSizes := virtualSizeFormatSession.OutputToStringArray()
+
+		// Should list 2 lines (without the header)
+		Expect(virtualSizes).To(HaveLen(2))
+
+		// Verify if the virtual size values are present in the output
+		Expect(virtualSizes).To(ContainElement("4192"))
+		Expect(virtualSizes).To(ContainElement("10240"))
 	})
 
 	It("podman artifact simple add", func() {
