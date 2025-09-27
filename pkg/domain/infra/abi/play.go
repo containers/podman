@@ -411,7 +411,15 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 			}
 
 			if numReplicas > 1 && options.MultiplePods {
+				if len(options.PublishPorts) > 0 && len(options.PublishPorts) != int(numReplicas) {
+					return nil, fmt.Errorf("number of Pod replics aren't equal to number of published ports: %d replicas, %d published ports", numReplicas, len(options.PublishPorts))
+				}
+
+				var portToPublish []string = make([]string, numReplicas)
+				copy(portToPublish, options.PublishPorts)
+				options.PublishPorts = make([]string, 1)
 				for i := numReplicas; i != 0; i-- {
+					options.PublishPorts[0] = (portToPublish[(len(portToPublish) - int(i))])
 					podName := fmt.Sprintf("%s-pod-%d", deploymentYAML.ObjectMeta.Name, i)
 					r, proxies, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps, serviceContainer, podName)
 					if err != nil {
@@ -422,8 +430,10 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 					report.Pods = append(report.Pods, r.Pods...)
 					setRanContainers(r)
 				}
-			} else if numReplicas > 1 && !options.MultiplePods {
-				logrus.Warnf("Limiting replica count to 1, more than one replica is not supported by Podman")
+			} else {
+				if numReplicas > 1 {
+					logrus.Warnf("Limiting replica count to 1, more than one replica is not supported by Podman")
+				}
 				podName := fmt.Sprintf("%s-pod", deploymentYAML.ObjectMeta.Name)
 				r, proxies, err := ic.playKubeDeployment(ctx, &deploymentYAML, options, &ipIndex, configMaps, serviceContainer, podName)
 				if err != nil {
