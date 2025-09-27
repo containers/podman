@@ -415,7 +415,7 @@ func (ic *ContainerEngine) PlayKube(ctx context.Context, body io.Reader, options
 					return nil, fmt.Errorf("number of Pod replics aren't equal to number of published ports: %d replicas, %d published ports", numReplicas, len(options.PublishPorts))
 				}
 
-				var portToPublish []string = make([]string, numReplicas)
+				var portToPublish = make([]string, numReplicas)
 				copy(portToPublish, options.PublishPorts)
 				options.PublishPorts = make([]string, 1)
 				for i := numReplicas; i != 0; i-- {
