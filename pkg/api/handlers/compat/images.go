@@ -390,29 +390,32 @@ func imageDataToImageInspect(ctx context.Context, l *libimage.Image, r *http.Req
 	cc.Volumes = info.Config.Volumes
 
 	dockerImageInspect := dockerImage.InspectResponse{
-		Architecture:    info.Architecture,
-		Author:          info.Author,
-		Comment:         info.Comment,
-		Config:          &config,
-		ContainerConfig: cc,
-		Created:         l.Created().Format(time.RFC3339Nano),
-		DockerVersion:   info.Version,
-		GraphDriver:     graphDriver,
-		ID:              "sha256:" + l.ID(),
-		Metadata:        dockerImage.Metadata{},
-		Os:              info.Os,
-		OsVersion:       info.Version,
-		Parent:          info.Parent,
-		RepoDigests:     info.RepoDigests,
-		RepoTags:        info.RepoTags,
-		RootFS:          rootfs,
-		Size:            info.Size,
-		Variant:         "",
+		Architecture:  info.Architecture,
+		Author:        info.Author,
+		Comment:       info.Comment,
+		Config:        &config,
+		Created:       l.Created().Format(time.RFC3339Nano),
+		DockerVersion: info.Version,
+		GraphDriver:   graphDriver,
+		ID:            "sha256:" + l.ID(),
+		Metadata:      dockerImage.Metadata{},
+		Os:            info.Os,
+		OsVersion:     info.Version,
+		Parent:        info.Parent,
+		RepoDigests:   info.RepoDigests,
+		RepoTags:      info.RepoTags,
+		RootFS:        rootfs,
+		Size:          info.Size,
+		Variant:       "",
 	}
 
 	if _, err := apiutil.SupportedVersion(r, "<1.44.0"); err == nil {
 		//nolint:staticcheck // Deprecated field
 		dockerImageInspect.VirtualSize = info.VirtualSize
+	}
+
+	if _, err := apiutil.SupportedVersion(r, "<1.45.0"); err == nil {
+		dockerImageInspect.ContainerConfig = cc //nolint:staticcheck // Deprecated field
 	}
 
 	return &handlers.ImageInspect{InspectResponse: dockerImageInspect}, nil
