@@ -60,6 +60,8 @@ Options specific to type=**volume**:
 
 - *U*, *chown*: *true* or *false* (default if unspecified: *false*). Recursively change the owner and group of the source volume based on the UID and GID of the container.
 
+- *subpath*: Mount only a specific subpath within the volume, instead of the whole volume.
+
 - *idmap*: If specified, create an idmapped mount to the target user namespace in the container.
   The idmap option is only supported by Podman in rootful mode. The Linux kernel does not allow the use of idmapped file systems for unprivileged users.
   The idmap option supports a custom mapping that can be different than the user namespace used by the container.
@@ -139,3 +141,5 @@ Examples:
 - `type=artifact,src=quay.io/libpod/testartifact:20250206-single,dst=/data`
 
 - `type=artifact,src=quay.io/libpod/testartifact:20250206-multi,dst=/data,title=test1`
+
+- `type=volume,src=test_vol,dst=/data,subpath=/code/docs`
