@@ -18,7 +18,7 @@ import (
 	netutil "go.podman.io/common/libnetwork/util"
 )
 
-func (ic *ContainerEngine) NetworkUpdate(ctx context.Context, netName string, options entities.NetworkUpdateOptions) error {
+func (ic *ContainerEngine) NetworkUpdate(_ context.Context, netName string, options entities.NetworkUpdateOptions) error {
 	var networkUpdateOptions types.NetworkUpdateOptions
 	networkUpdateOptions.AddDNSServers = options.AddDNSServers
 	networkUpdateOptions.RemoveDNSServers = options.RemoveDNSServers
@@ -29,7 +29,7 @@ func (ic *ContainerEngine) NetworkUpdate(ctx context.Context, netName string, op
 	return nil
 }
 
-func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.NetworkListOptions) ([]types.Network, error) {
+func (ic *ContainerEngine) NetworkList(_ context.Context, options entities.NetworkListOptions) ([]types.Network, error) {
 	// dangling filter is not provided by netutil
 	var wantDangling bool
 
@@ -67,7 +67,7 @@ func (ic *ContainerEngine) NetworkList(ctx context.Context, options entities.Net
 	return nets, err
 }
 
-func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []string, options entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
+func (ic *ContainerEngine) NetworkInspect(_ context.Context, namesOrIds []string, _ entities.InspectOptions) ([]entities.NetworkInspectReport, []error, error) {
 	var errs []error
 	statuses, err := ic.GetContainerNetStatuses()
 	if err != nil {
@@ -104,7 +104,7 @@ func (ic *ContainerEngine) NetworkInspect(ctx context.Context, namesOrIds []stri
 	return networks, errs, nil
 }
 
-func (ic *ContainerEngine) NetworkReload(ctx context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
+func (ic *ContainerEngine) NetworkReload(_ context.Context, names []string, options entities.NetworkReloadOptions) ([]*entities.NetworkReloadReport, error) {
 	containers, err := getContainers(ic.Libpod, getContainersOptions{all: options.All, latest: options.Latest, names: names})
 	if err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func (ic *ContainerEngine) NetworkRm(ctx context.Context, namesOrIds []string, o
 	return reports, nil
 }
 
-func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
+func (ic *ContainerEngine) NetworkCreate(_ context.Context, network types.Network, createOptions *types.NetworkCreateOptions) (*types.Network, error) {
 	if slices.Contains([]string{"none", "host", "bridge", "private", slirp4netns.BinaryName, pasta.BinaryName, "container", "ns", "default"}, network.Name) {
 		return nil, fmt.Errorf("cannot create network with name %q because it conflicts with a valid network mode", network.Name)
 	}
@@ -192,16 +192,16 @@ func (ic *ContainerEngine) NetworkCreate(ctx context.Context, network types.Netw
 }
 
 // NetworkDisconnect removes a container from a given network
-func (ic *ContainerEngine) NetworkDisconnect(ctx context.Context, networkname string, options entities.NetworkDisconnectOptions) error {
+func (ic *ContainerEngine) NetworkDisconnect(_ context.Context, networkname string, options entities.NetworkDisconnectOptions) error {
 	return ic.Libpod.DisconnectContainerFromNetwork(options.Container, networkname, options.Force)
 }
 
-func (ic *ContainerEngine) NetworkConnect(ctx context.Context, networkname string, options entities.NetworkConnectOptions) error {
+func (ic *ContainerEngine) NetworkConnect(_ context.Context, networkname string, options entities.NetworkConnectOptions) error {
 	return ic.Libpod.ConnectContainerToNetwork(options.Container, networkname, options.PerNetworkOptions)
 }
 
 // NetworkExists checks if the given network exists
-func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string) (*entities.BoolReport, error) {
+func (ic *ContainerEngine) NetworkExists(_ context.Context, networkname string) (*entities.BoolReport, error) {
 	_, err := ic.Libpod.Network().NetworkInspect(networkname)
 	exists := true
 	// if err is ErrNoSuchNetwork do not return it
@@ -216,7 +216,7 @@ func (ic *ContainerEngine) NetworkExists(ctx context.Context, networkname string
 }
 
 // Network prune removes unused networks
-func (ic *ContainerEngine) NetworkPrune(ctx context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
+func (ic *ContainerEngine) NetworkPrune(_ context.Context, options entities.NetworkPruneOptions) ([]*entities.NetworkPruneReport, error) {
 	// get all filters
 	filters, err := netutil.GenerateNetworkPruneFilters(options.Filters)
 	if err != nil {

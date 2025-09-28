@@ -243,7 +243,7 @@ func add(cmd *cobra.Command, args []string) error {
 	})
 }
 
-func create(cmd *cobra.Command, args []string) error {
+func create(_ *cobra.Command, args []string) error {
 	dest, err := translateDest(dockerPath)
 	if err != nil {
 		return err

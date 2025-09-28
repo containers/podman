@@ -46,7 +46,7 @@ func init() {
 	_ = checkCommand.RegisterFlagCompletionFunc("max", completion.AutocompleteNone)
 }
 
-func check(cmd *cobra.Command, args []string) error {
+func check(cmd *cobra.Command, _ []string) error {
 	flags := cmd.Flags()
 	if flags.Changed("max") {
 		maxAge, err := flags.GetDuration("max")

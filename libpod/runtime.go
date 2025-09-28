@@ -210,7 +210,7 @@ func newRuntimeFromConfig(ctx context.Context, conf *config.Config, options ...R
 		return nil, err
 	}
 
-	if err := shutdown.Register("libpod", func(sig os.Signal) error {
+	if err := shutdown.Register("libpod", func(_ os.Signal) error {
 		if runtime.store != nil {
 			_, _ = runtime.store.Shutdown(false)
 		}
@@ -1304,7 +1304,7 @@ func (r *Runtime) PruneBuildContainers() ([]*reports.PruneReport, error) {
 
 // SystemCheck checks our storage for consistency, and depending on the options
 // specified, will attempt to remove anything which fails consistency checks.
-func (r *Runtime) SystemCheck(ctx context.Context, options entities.SystemCheckOptions) (entities.SystemCheckReport, error) {
+func (r *Runtime) SystemCheck(_ context.Context, options entities.SystemCheckOptions) (entities.SystemCheckReport, error) {
 	what := storage.CheckEverything()
 	if options.Quick {
 		// Turn off checking layer digests and layer contents to do quick check.

@@ -57,7 +57,7 @@ func init() {
 	validate.AddLatestFlag(startCommand, &startOptions.Latest)
 }
 
-func start(cmd *cobra.Command, args []string) error {
+func start(_ *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
 
 	ids, err := specgenutil.ReadPodIDFiles(startOptions.PodIDFiles)

@@ -13,78 +13,78 @@ type TestingEngine struct {
 	ClientCtx context.Context
 }
 
-func (te *TestingEngine) CreateStorageLayer(ctx context.Context, opts entities.CreateStorageLayerOptions) (*entities.CreateStorageLayerReport, error) {
+func (te *TestingEngine) CreateStorageLayer(_ context.Context, _ entities.CreateStorageLayerOptions) (*entities.CreateStorageLayerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) CreateLayer(ctx context.Context, opts entities.CreateLayerOptions) (*entities.CreateLayerReport, error) {
+func (te *TestingEngine) CreateLayer(_ context.Context, _ entities.CreateLayerOptions) (*entities.CreateLayerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) CreateLayerData(ctx context.Context, opts entities.CreateLayerDataOptions) (*entities.CreateLayerDataReport, error) {
+func (te *TestingEngine) CreateLayerData(_ context.Context, _ entities.CreateLayerDataOptions) (*entities.CreateLayerDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) ModifyLayer(ctx context.Context, opts entities.ModifyLayerOptions) (*entities.ModifyLayerReport, error) {
+func (te *TestingEngine) ModifyLayer(_ context.Context, _ entities.ModifyLayerOptions) (*entities.ModifyLayerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) PopulateLayer(ctx context.Context, opts entities.PopulateLayerOptions) (*entities.PopulateLayerReport, error) {
+func (te *TestingEngine) PopulateLayer(_ context.Context, _ entities.PopulateLayerOptions) (*entities.PopulateLayerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveStorageLayer(ctx context.Context, opts entities.RemoveStorageLayerOptions) (*entities.RemoveStorageLayerReport, error) {
+func (te *TestingEngine) RemoveStorageLayer(_ context.Context, _ entities.RemoveStorageLayerOptions) (*entities.RemoveStorageLayerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) CreateImage(ctx context.Context, opts entities.CreateImageOptions) (*entities.CreateImageReport, error) {
+func (te *TestingEngine) CreateImage(_ context.Context, _ entities.CreateImageOptions) (*entities.CreateImageReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) CreateImageData(ctx context.Context, opts entities.CreateImageDataOptions) (*entities.CreateImageDataReport, error) {
+func (te *TestingEngine) CreateImageData(_ context.Context, _ entities.CreateImageDataOptions) (*entities.CreateImageDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveLayer(ctx context.Context, opts entities.RemoveLayerOptions) (*entities.RemoveLayerReport, error) {
+func (te *TestingEngine) RemoveLayer(_ context.Context, _ entities.RemoveLayerOptions) (*entities.RemoveLayerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveImage(ctx context.Context, opts entities.RemoveImageOptions) (*entities.RemoveImageReport, error) {
+func (te *TestingEngine) RemoveImage(_ context.Context, _ entities.RemoveImageOptions) (*entities.RemoveImageReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveContainer(ctx context.Context, opts entities.RemoveContainerOptions) (*entities.RemoveContainerReport, error) {
+func (te *TestingEngine) RemoveContainer(_ context.Context, _ entities.RemoveContainerOptions) (*entities.RemoveContainerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) CreateContainer(ctx context.Context, opts entities.CreateContainerOptions) (*entities.CreateContainerReport, error) {
+func (te *TestingEngine) CreateContainer(_ context.Context, _ entities.CreateContainerOptions) (*entities.CreateContainerReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) CreateContainerData(ctx context.Context, opts entities.CreateContainerDataOptions) (*entities.CreateContainerDataReport, error) {
+func (te *TestingEngine) CreateContainerData(_ context.Context, _ entities.CreateContainerDataOptions) (*entities.CreateContainerDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveLayerData(ctx context.Context, opts entities.RemoveLayerDataOptions) (*entities.RemoveLayerDataReport, error) {
+func (te *TestingEngine) RemoveLayerData(_ context.Context, _ entities.RemoveLayerDataOptions) (*entities.RemoveLayerDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveImageData(ctx context.Context, opts entities.RemoveImageDataOptions) (*entities.RemoveImageDataReport, error) {
+func (te *TestingEngine) RemoveImageData(_ context.Context, _ entities.RemoveImageDataOptions) (*entities.RemoveImageDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) RemoveContainerData(ctx context.Context, opts entities.RemoveContainerDataOptions) (*entities.RemoveContainerDataReport, error) {
+func (te *TestingEngine) RemoveContainerData(_ context.Context, _ entities.RemoveContainerDataOptions) (*entities.RemoveContainerDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) ModifyLayerData(ctx context.Context, opts entities.ModifyLayerDataOptions) (*entities.ModifyLayerDataReport, error) {
+func (te *TestingEngine) ModifyLayerData(_ context.Context, _ entities.ModifyLayerDataOptions) (*entities.ModifyLayerDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) ModifyImageData(ctx context.Context, opts entities.ModifyImageDataOptions) (*entities.ModifyImageDataReport, error) {
+func (te *TestingEngine) ModifyImageData(_ context.Context, _ entities.ModifyImageDataOptions) (*entities.ModifyImageDataReport, error) {
 	return nil, syscall.ENOSYS
 }
 
-func (te *TestingEngine) ModifyContainerData(ctx context.Context, opts entities.ModifyContainerDataOptions) (*entities.ModifyContainerDataReport, error) {
+func (te *TestingEngine) ModifyContainerData(_ context.Context, _ entities.ModifyContainerDataOptions) (*entities.ModifyContainerDataReport, error) {
 	return nil, syscall.ENOSYS
 }

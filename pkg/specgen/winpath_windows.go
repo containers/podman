@@ -7,7 +7,7 @@ import (
 	"go.podman.io/storage/pkg/fileutils"
 )
 
-func shouldResolveUnixWinVariant(path string) bool {
+func shouldResolveUnixWinVariant(_ string) bool {
 	return true
 }
 

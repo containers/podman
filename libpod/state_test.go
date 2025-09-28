@@ -137,7 +137,7 @@ func TestGetContainerPodSameIDFails(t *testing.T) {
 }
 
 func TestAddInvalidContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.AddContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 	})
@@ -274,21 +274,21 @@ func TestAddCtrDepInPodFails(t *testing.T) {
 }
 
 func TestGetNonexistentContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.Container("does not exist")
 		assert.Error(t, err)
 	})
 }
 
 func TestGetContainerWithEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.Container("")
 		assert.Error(t, err)
 	})
 }
 
 func TestLookupContainerWithEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.LookupContainer("")
 		assert.Error(t, err)
 
@@ -298,7 +298,7 @@ func TestLookupContainerWithEmptyIDFails(t *testing.T) {
 }
 
 func TestLookupNonexistentContainerFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.LookupContainer("does not exist")
 		assert.Error(t, err)
 
@@ -415,14 +415,14 @@ func TestLookupCtrByPodIDFails(t *testing.T) {
 }
 
 func TestHasContainerEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.HasContainer("")
 		assert.Error(t, err)
 	})
 }
 
 func TestHasContainerNoSuchContainerReturnsFalse(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		exists, err := state.HasContainer("does not exist")
 		assert.NoError(t, err)
 		assert.False(t, exists)
@@ -494,14 +494,14 @@ func TestUpdateContainerNotInDatabaseReturnsError(t *testing.T) {
 }
 
 func TestUpdateInvalidContainerReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.UpdateContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 	})
 }
 
 func TestSaveInvalidContainerReturnsError(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.SaveContainer(&Container{config: &ContainerConfig{ID: "1234"}})
 		assert.Error(t, err)
 	})
@@ -551,7 +551,7 @@ func TestRemoveNonexistentContainerFails(t *testing.T) {
 }
 
 func TestGetAllContainersOnNewStateIsEmpty(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		ctrs, err := state.AllContainers(false)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(ctrs))
@@ -594,7 +594,7 @@ func TestGetAllContainersTwoContainers(t *testing.T) {
 }
 
 func TestContainerInUseInvalidContainer(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.ContainerInUse(&Container{})
 		assert.Error(t, err)
 	})
@@ -930,7 +930,7 @@ func TestCannotUseBadIDAsGenericDependency(t *testing.T) {
 }
 
 func TestRewriteContainerConfigDoesNotExist(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.RewriteContainerConfig(&Container{}, &ContainerConfig{})
 		assert.Error(t, err)
 	})
@@ -966,7 +966,7 @@ func TestRewriteContainerConfigRewritesConfig(t *testing.T) {
 }
 
 func TestRewritePodConfigDoesNotExist(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.RewritePodConfig(&Pod{}, &PodConfig{})
 		assert.Error(t, err)
 	})
@@ -1002,14 +1002,14 @@ func TestRewritePodConfigRewritesConfig(t *testing.T) {
 }
 
 func TestGetPodDoesNotExist(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.Pod("doesnotexist")
 		assert.Error(t, err)
 	})
 }
 
 func TestGetPodEmptyID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.Pod("")
 		assert.Error(t, err)
 	})
@@ -1084,14 +1084,14 @@ func TestGetPodByCtrID(t *testing.T) {
 }
 
 func TestLookupPodEmptyID(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.LookupPod("")
 		assert.Error(t, err)
 	})
 }
 
 func TestLookupNotExistPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.LookupPod("doesnotexist")
 		assert.Error(t, err)
 	})
@@ -1188,14 +1188,14 @@ func TestLookupPodByCtrName(t *testing.T) {
 }
 
 func TestHasPodEmptyIDErrors(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.HasPod("")
 		assert.Error(t, err)
 	})
 }
 
 func TestHasPodNoSuchPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		exist, err := state.HasPod("nonexistent")
 		assert.NoError(t, err)
 		assert.False(t, exist)
@@ -1245,7 +1245,7 @@ func TestHasPodCtrIDFalse(t *testing.T) {
 }
 
 func TestAddPodInvalidPodErrors(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.AddPod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -1368,7 +1368,7 @@ func TestAddPodCtrNameConflictFails(t *testing.T) {
 }
 
 func TestRemovePodInvalidPodErrors(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.RemovePod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -1479,7 +1479,7 @@ func TestRemovePodAfterEmptySucceeds(t *testing.T) {
 }
 
 func TestAllPodsEmptyOnEmptyState(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		allPods, err := state.AllPods()
 		assert.NoError(t, err)
 		assert.Equal(t, 0, len(allPods))
@@ -1541,7 +1541,7 @@ func TestAllPodsMultiplePods(t *testing.T) {
 }
 
 func TestPodHasContainerNoSuchPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.PodHasContainer(&Pod{config: &PodConfig{}}, strings.Repeat("0", 32))
 		assert.Error(t, err)
 	})
@@ -1617,7 +1617,7 @@ func TestPodHasContainerSucceeds(t *testing.T) {
 }
 
 func TestPodContainersByIDInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.PodContainersByID(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -1719,7 +1719,7 @@ func TestPodContainersByIDMultipleContainers(t *testing.T) {
 }
 
 func TestPodContainersInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.PodContainers(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -1822,7 +1822,7 @@ func TestPodContainersMultipleContainers(t *testing.T) {
 }
 
 func TestRemovePodContainersInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.RemovePodContainers(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -2508,7 +2508,7 @@ func TestRemoveContainerFromPodWithDependencySucceedsAfterDepRemoved(t *testing.
 }
 
 func TestUpdatePodInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.UpdatePod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -2525,7 +2525,7 @@ func TestUpdatePodPodNotInStateFails(t *testing.T) {
 }
 
 func TestSavePodInvalidPod(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		err := state.SavePod(&Pod{config: &PodConfig{}})
 		assert.Error(t, err)
 	})
@@ -2581,13 +2581,13 @@ func TestGetContainerConfigSucceeds(t *testing.T) {
 }
 
 func TestGetContainerConfigEmptyIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.GetContainerConfig("")
 		assert.Error(t, err)
 	})
 }
 func TestGetContainerConfigNonExistentIDFails(t *testing.T) {
-	runForAllStates(t, func(t *testing.T, state State, manager lock.Manager) {
+	runForAllStates(t, func(t *testing.T, state State, _ lock.Manager) {
 		_, err := state.GetContainerConfig("does not exist")
 		assert.Error(t, err)
 	})

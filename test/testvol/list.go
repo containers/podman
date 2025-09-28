@@ -11,7 +11,7 @@ var listCmd = &cobra.Command{
 	Short: "list all volumes",
 	Long:  `List all volumes from the volume plugin listening on --sock-name`,
 	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return listVol(config.sockName)
 	},
 }

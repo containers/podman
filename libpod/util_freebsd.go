@@ -10,7 +10,7 @@ import (
 )
 
 // No equivalent on FreeBSD?
-func LabelVolumePath(path, mountLabel string) error {
+func LabelVolumePath(_, _ string) error {
 	return nil
 }
 

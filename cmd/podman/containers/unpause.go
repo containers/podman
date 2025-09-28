@@ -87,7 +87,7 @@ func init() {
 	validate.AddLatestFlag(containerUnpauseCommand, &unpauseOpts.Latest)
 }
 
-func unpause(cmd *cobra.Command, args []string) error {
+func unpause(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

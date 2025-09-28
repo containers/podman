@@ -80,7 +80,7 @@ func init() {
 	cpFlags(containerCpCommand)
 }
 
-func cp(cmd *cobra.Command, args []string) error {
+func cp(_ *cobra.Command, args []string) error {
 	// Parse user input.
 	sourceContainerStr, sourcePath, destContainerStr, destPath, err := copy.ParseSourceAndDestination(args[0], args[1])
 	if err != nil {

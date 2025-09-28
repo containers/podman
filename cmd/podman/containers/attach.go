@@ -69,7 +69,7 @@ func init() {
 	validate.AddLatestFlag(containerAttachCommand, &attachOpts.Latest)
 }
 
-func attach(cmd *cobra.Command, args []string) error {
+func attach(_ *cobra.Command, args []string) error {
 	if len(args) > 1 || (len(args) == 0 && !attachOpts.Latest) {
 		return errors.New("attach requires the name or id of one running container or the latest flag")
 	}

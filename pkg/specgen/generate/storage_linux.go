@@ -8,6 +8,6 @@ import (
 	"go.podman.io/common/libimage"
 )
 
-func imageRunPath(ctx context.Context, img *libimage.Image) (string, error) {
+func imageRunPath(_ context.Context, _ *libimage.Image) (string, error) {
 	return "/run", nil
 }

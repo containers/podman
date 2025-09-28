@@ -35,6 +35,6 @@ func init() {
 	})
 }
 
-func renumber(cmd *cobra.Command, args []string) error {
+func renumber(_ *cobra.Command, _ []string) error {
 	return registry.ContainerEngine().Renumber(registry.Context())
 }

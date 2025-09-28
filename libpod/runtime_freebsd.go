@@ -2,9 +2,9 @@
 
 package libpod
 
-func checkCgroups2UnifiedMode(runtime *Runtime) {
+func checkCgroups2UnifiedMode(_ *Runtime) {
 }
 
-func (r *Runtime) checkBootID(runtimeAliveFile string) error {
+func (r *Runtime) checkBootID(_ string) error {
 	return nil
 }

@@ -900,7 +900,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 	ctrExecSessionsBkt := ctrExists.Bucket(execBkt)
 	if ctrExecSessionsBkt != nil {
 		sessions := []string{}
-		err = ctrExecSessionsBkt.ForEach(func(id, value []byte) error {
+		err = ctrExecSessionsBkt.ForEach(func(id, _ []byte) error {
 			sessions = append(sessions, string(id))
 
 			return nil
@@ -919,7 +919,7 @@ func (s *BoltState) removeContainer(ctr *Container, pod *Pod, tx *bolt.Tx) error
 		return fmt.Errorf("container %s does not have a dependencies bucket: %w", ctr.ID(), define.ErrInternal)
 	}
 	deps := []string{}
-	err = ctrDepsBkt.ForEach(func(id, value []byte) error {
+	err = ctrDepsBkt.ForEach(func(id, _ []byte) error {
 		deps = append(deps, string(id))
 
 		return nil
@@ -1034,7 +1034,7 @@ func (s *BoltState) lookupContainerID(idOrName string, ctrBucket, namesBucket *b
 	// We were not given a full container ID or name.
 	// Search for partial ID matches.
 	exists := false
-	err := ctrBucket.ForEach(func(checkID, checkName []byte) error {
+	err := ctrBucket.ForEach(func(checkID, _ []byte) error {
 		if strings.HasPrefix(string(checkID), idOrName) {
 			if exists {
 				return fmt.Errorf("more than one result for container ID %s: %w", idOrName, define.ErrCtrExists)

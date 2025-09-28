@@ -394,7 +394,7 @@ func stopContainerGraph(ctx context.Context, graph *ContainerGraph, pod *Pod, ti
 	nodeDetails.ctrErrors = syncmap.New[string, error]()
 	nodeDetails.ctrsVisited = syncmap.New[string, bool]()
 
-	traversalFunc := func(ctr *Container, pod *Pod) error {
+	traversalFunc := func(ctr *Container, _ *Pod) error {
 		ctr.lock.Lock()
 		defer ctr.lock.Unlock()
 

@@ -45,7 +45,7 @@ func init() {
 	_ = inspectCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&define.InspectVolumeData{}))
 }
 
-func volumeInspect(cmd *cobra.Command, args []string) error {
+func volumeInspect(_ *cobra.Command, args []string) error {
 	if (inspectOpts.All && len(args) > 0) || (!inspectOpts.All && len(args) < 1) {
 		return errors.New("provide one or more volume names or use --all")
 	}

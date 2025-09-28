@@ -25,7 +25,7 @@ var serveCmd = &cobra.Command{
 	Short: "serve the volume plugin on the unix socket",
 	Long:  `Creates simple directory volumes using the Volume Plugin API for testing volume plugin functionality`,
 	Args:  cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, _ []string) error {
 		return startServer(config.sockName)
 	},
 }
@@ -52,7 +52,7 @@ func init() {
 	rootCmd.AddCommand(serveCmd, createCmd, removeCmd, listCmd)
 }
 
-func before(cmd *cobra.Command, args []string) error {
+func before(_ *cobra.Command, _ []string) error {
 	if config.logLevel == "" {
 		config.logLevel = "error"
 	}

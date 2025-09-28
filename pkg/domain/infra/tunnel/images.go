@@ -30,12 +30,12 @@ func (ir *ImageEngine) Exists(_ context.Context, nameOrID string) (*entities.Boo
 	return &entities.BoolReport{Value: found}, err
 }
 
-func (ir *ImageEngine) Remove(ctx context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, []error) {
+func (ir *ImageEngine) Remove(_ context.Context, imagesArg []string, opts entities.ImageRemoveOptions) (*entities.ImageRemoveReport, []error) {
 	options := new(images.RemoveOptions).WithForce(opts.Force).WithIgnore(opts.Ignore).WithAll(opts.All).WithLookupManifest(opts.LookupManifest).WithNoPrune(opts.NoPrune)
 	return images.Remove(ir.ClientCtx, imagesArg, options)
 }
 
-func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
+func (ir *ImageEngine) List(_ context.Context, opts entities.ImageListOptions) ([]*entities.ImageSummary, error) {
 	filters := make(map[string][]string, len(opts.Filter))
 	for _, filter := range opts.Filter {
 		f := strings.SplitN(filter, "=", 2)
@@ -62,15 +62,15 @@ func (ir *ImageEngine) List(ctx context.Context, opts entities.ImageListOptions)
 	return is, nil
 }
 
-func (ir *ImageEngine) Mount(ctx context.Context, images []string, options entities.ImageMountOptions) ([]*entities.ImageMountReport, error) {
+func (ir *ImageEngine) Mount(_ context.Context, _ []string, _ entities.ImageMountOptions) ([]*entities.ImageMountReport, error) {
 	return nil, errors.New("mounting images is not supported for remote clients")
 }
 
-func (ir *ImageEngine) Unmount(ctx context.Context, images []string, options entities.ImageUnmountOptions) ([]*entities.ImageUnmountReport, error) {
+func (ir *ImageEngine) Unmount(_ context.Context, _ []string, _ entities.ImageUnmountOptions) ([]*entities.ImageUnmountReport, error) {
 	return nil, errors.New("unmounting images is not supported for remote clients")
 }
 
-func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
+func (ir *ImageEngine) History(_ context.Context, nameOrID string, _ entities.ImageHistoryOptions) (*entities.ImageHistoryReport, error) {
 	options := new(images.HistoryOptions)
 	results, err := images.History(ir.ClientCtx, nameOrID, options)
 	if err != nil {
@@ -97,7 +97,7 @@ func (ir *ImageEngine) History(ctx context.Context, nameOrID string, opts entiti
 	return &history, nil
 }
 
-func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
+func (ir *ImageEngine) Prune(_ context.Context, opts entities.ImagePruneOptions) ([]*reports.PruneReport, error) {
 	filters := make(map[string][]string, len(opts.Filter))
 	for _, filter := range opts.Filter {
 		f := strings.Split(filter, "=")
@@ -111,7 +111,7 @@ func (ir *ImageEngine) Prune(ctx context.Context, opts entities.ImagePruneOption
 	return reports, nil
 }
 
-func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
+func (ir *ImageEngine) Pull(_ context.Context, rawImage string, opts entities.ImagePullOptions) (*entities.ImagePullReport, error) {
 	if opts.OciDecryptConfig != nil {
 		return nil, fmt.Errorf("decryption is not supported for remote clients")
 	}
@@ -141,7 +141,7 @@ func (ir *ImageEngine) Pull(ctx context.Context, rawImage string, opts entities.
 	return &entities.ImagePullReport{Images: pulledImages}, nil
 }
 
-func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageTagOptions) error {
+func (ir *ImageEngine) Tag(_ context.Context, nameOrID string, tags []string, _ entities.ImageTagOptions) error {
 	options := new(images.TagOptions)
 	for _, newTag := range tags {
 		var (
@@ -167,7 +167,7 @@ func (ir *ImageEngine) Tag(ctx context.Context, nameOrID string, tags []string, 
 	return nil
 }
 
-func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string, opt entities.ImageUntagOptions) error {
+func (ir *ImageEngine) Untag(_ context.Context, nameOrID string, tags []string, _ entities.ImageUntagOptions) error {
 	options := new(images.UntagOptions)
 	if len(tags) == 0 {
 		return images.Untag(ir.ClientCtx, nameOrID, "", "", options)
@@ -200,7 +200,7 @@ func (ir *ImageEngine) Untag(ctx context.Context, nameOrID string, tags []string
 	return nil
 }
 
-func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
+func (ir *ImageEngine) Inspect(_ context.Context, namesOrIDs []string, opts entities.InspectOptions) ([]*entities.ImageInspectReport, []error, error) {
 	options := new(images.GetOptions).WithSize(opts.Size)
 	reports := []*entities.ImageInspectReport{}
 	errs := []error{}
@@ -222,7 +222,7 @@ func (ir *ImageEngine) Inspect(ctx context.Context, namesOrIDs []string, opts en
 	return reports, errs, nil
 }
 
-func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
+func (ir *ImageEngine) Load(_ context.Context, opts entities.ImageLoadOptions) (*entities.ImageLoadReport, error) {
 	if localMap, ok := localapi.CheckPathOnRunningMachine(ir.ClientCtx, opts.Input); ok {
 		report, err := images.LoadLocal(ir.ClientCtx, localMap.RemotePath)
 		if err == nil {
@@ -255,7 +255,7 @@ func (ir *ImageEngine) Load(ctx context.Context, opts entities.ImageLoadOptions)
 	return images.Load(ir.ClientCtx, f)
 }
 
-func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
+func (ir *ImageEngine) Import(_ context.Context, opts entities.ImageImportOptions) (*entities.ImageImportReport, error) {
 	var (
 		err error
 		f   *os.File
@@ -273,7 +273,7 @@ func (ir *ImageEngine) Import(ctx context.Context, opts entities.ImageImportOpti
 	return images.Import(ir.ClientCtx, f, options)
 }
 
-func (ir *ImageEngine) Push(ctx context.Context, source string, destination string, opts entities.ImagePushOptions) (*entities.ImagePushReport, error) {
+func (ir *ImageEngine) Push(_ context.Context, source string, destination string, opts entities.ImagePushOptions) (*entities.ImagePushReport, error) {
 	if opts.Signers != nil {
 		return nil, fmt.Errorf("forwarding Signers is not supported for remote clients")
 	}
@@ -307,7 +307,7 @@ func (ir *ImageEngine) Push(ctx context.Context, source string, destination stri
 	return &entities.ImagePushReport{ManifestDigest: options.GetManifestDigest()}, nil
 }
 
-func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string, opts entities.ImageSaveOptions) error {
+func (ir *ImageEngine) Save(_ context.Context, nameOrID string, tags []string, opts entities.ImageSaveOptions) error {
 	var (
 		f   *os.File
 		err error
@@ -373,7 +373,7 @@ func (ir *ImageEngine) Save(ctx context.Context, nameOrID string, tags []string,
 	return archive.Untar(f, opts.Output, &archive.TarOptions{NoLchown: true})
 }
 
-func (ir *ImageEngine) Search(ctx context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
+func (ir *ImageEngine) Search(_ context.Context, term string, opts entities.ImageSearchOptions) ([]entities.ImageSearchReport, error) {
 	mappedFilters := make(map[string][]string)
 	filters, err := filter.ParseSearchFilter(opts.Filters)
 	if err != nil {
@@ -420,7 +420,7 @@ func (ir *ImageEngine) Build(_ context.Context, containerFiles []string, opts en
 	return report, nil
 }
 
-func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
+func (ir *ImageEngine) Tree(_ context.Context, nameOrID string, opts entities.ImageTreeOptions) (*entities.ImageTreeReport, error) {
 	options := new(images.TreeOptions).WithWhatRequires(opts.WhatRequires)
 	return images.Tree(ir.ClientCtx, nameOrID, options)
 }
@@ -429,11 +429,11 @@ func (ir *ImageEngine) Tree(ctx context.Context, nameOrID string, opts entities.
 func (ir *ImageEngine) Shutdown(_ context.Context) {
 }
 
-func (ir *ImageEngine) Sign(ctx context.Context, names []string, options entities.SignOptions) (*entities.SignReport, error) {
+func (ir *ImageEngine) Sign(_ context.Context, _ []string, _ entities.SignOptions) (*entities.SignReport, error) {
 	return nil, errors.New("not implemented yet")
 }
 
-func (ir *ImageEngine) Scp(ctx context.Context, src, dst string, opts entities.ImageScpOptions) (*entities.ImageScpReport, error) {
+func (ir *ImageEngine) Scp(_ context.Context, src, dst string, opts entities.ImageScpOptions) (*entities.ImageScpReport, error) {
 	options := new(images.ScpOptions)
 
 	var destination *string

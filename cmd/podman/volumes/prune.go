@@ -46,7 +46,7 @@ func init() {
 	flags.BoolP("force", "f", false, "Do not prompt for confirmation")
 }
 
-func prune(cmd *cobra.Command, args []string) error {
+func prune(cmd *cobra.Command, _ []string) error {
 	var (
 		pruneOptions  = entities.VolumePruneOptions{}
 		listOptions   = entities.VolumeListOptions{}

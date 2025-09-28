@@ -74,7 +74,7 @@ func infoFlags(cmd *cobra.Command) {
 	_ = cmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&define.Info{}))
 }
 
-func info(cmd *cobra.Command, args []string) error {
+func info(cmd *cobra.Command, _ []string) error {
 	info, err := registry.ContainerEngine().Info(registry.Context())
 	if err != nil {
 		return err

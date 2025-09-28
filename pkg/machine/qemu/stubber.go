@@ -89,7 +89,7 @@ func (q *QEMUStubber) setQEMUCommandLine(mc *vmconfigs.MachineConfig) error {
 	return nil
 }
 
-func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
+func (q *QEMUStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) error {
 	monitor, err := command.NewQMPMonitor(opts.Name, opts.Dirs.RuntimeDir)
 	if err != nil {
 		return err
@@ -243,7 +243,7 @@ func waitForReady(readySocket *define.VMFile, pid int, stdErrBuffer *bytes.Buffe
 	return err
 }
 
-func (q *QEMUStubber) Exists(name string) (bool, error) {
+func (q *QEMUStubber) Exists(_ string) (bool, error) {
 	return false, nil
 }
 
@@ -380,15 +380,15 @@ func (q *QEMUStubber) MountType() vmconfigs.VolumeMountType {
 	return vmconfigs.VirtIOFS
 }
 
-func (q *QEMUStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+func (q *QEMUStubber) PostStartNetworking(_ *vmconfigs.MachineConfig, _ bool) error {
 	return nil
 }
 
-func (q *QEMUStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
+func (q *QEMUStubber) UpdateSSHPort(_ *vmconfigs.MachineConfig, _ int) error {
 	// managed by gvproxy on this backend, so nothing to do
 	return nil
 }
 
-func (q *QEMUStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+func (q *QEMUStubber) GetRosetta(_ *vmconfigs.MachineConfig) (bool, error) {
 	return false, nil
 }

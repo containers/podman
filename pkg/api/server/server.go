@@ -90,7 +90,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 		tlsClientCAFile: opts.TLSClientCAFile,
 	}
 
-	server.BaseContext = func(l net.Listener) context.Context {
+	server.BaseContext = func(_ net.Listener) context.Context {
 		ctx := context.WithValue(context.Background(), types.DecoderKey, handlers.NewAPIDecoder())
 		ctx = context.WithValue(ctx, types.CompatDecoderKey, handlers.NewCompatAPIDecoder())
 		ctx = context.WithValue(ctx, types.RuntimeKey, runtime)
@@ -163,7 +163,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
 		// If in trace mode log request and response bodies
 		router.Use(loggingHandler())
-		_ = router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error {
+		_ = router.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
 			path, err := route.GetPathTemplate()
 			if err != nil {
 				path = "<N/A>"
@@ -209,7 +209,7 @@ func (s *APIServer) setupSystemd() {
 func (s *APIServer) Serve() error {
 	s.setupPprof()
 
-	if err := shutdown.Register("service", func(sig os.Signal) error {
+	if err := shutdown.Register("service", func(_ os.Signal) error {
 		err := s.Shutdown(true)
 		if err == nil {
 			// For `systemctl stop podman.service` support, exit code should be 0

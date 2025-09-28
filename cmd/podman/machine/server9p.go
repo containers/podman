@@ -46,7 +46,7 @@ var (
 	serveDirs []string
 )
 
-func remoteDirServer(cmd *cobra.Command, args []string) error {
+func remoteDirServer(_ *cobra.Command, args []string) error {
 	pid, err := strconv.Atoi(args[0])
 	if err != nil {
 		return fmt.Errorf("parsing PID: %w", err)

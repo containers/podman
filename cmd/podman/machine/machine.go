@@ -61,7 +61,7 @@ func machinePreRunE(c *cobra.Command, args []string) error {
 }
 
 // autocompleteMachineSSH - Autocomplete machine ssh command.
-func autocompleteMachineSSH(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func autocompleteMachineSSH(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return getMachines(toComplete)
 	}
@@ -69,7 +69,7 @@ func autocompleteMachineSSH(cmd *cobra.Command, args []string, toComplete string
 }
 
 // autocompleteMachineCp - Autocomplete machine cp command.
-func autocompleteMachineCp(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func autocompleteMachineCp(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) < 2 {
 		if i := strings.IndexByte(toComplete, ':'); i > -1 {
 			// TODO: offer virtual machine path completion
@@ -96,7 +96,7 @@ func autocompleteMachineCp(cmd *cobra.Command, args []string, toComplete string)
 }
 
 // autocompleteMachine - Autocomplete machines.
-func autocompleteMachine(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func autocompleteMachine(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return getMachines(toComplete)
 	}

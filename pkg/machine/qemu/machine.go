@@ -243,7 +243,7 @@ func (q *QEMUStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() erro
 	}, nil
 }
 
-func (q *QEMUStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Status, error) {
+func (q *QEMUStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
 	// Check if qmp socket path exists
 	if err := fileutils.Exists(mc.QEMUHypervisor.QMPMonitor.Address.GetPath()); errors.Is(err, fs.ErrNotExist) {
 		return define.Stopped, nil

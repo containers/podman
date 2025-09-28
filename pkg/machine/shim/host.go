@@ -753,7 +753,7 @@ func confirmationMessage(files []string) {
 	}
 }
 
-func Reset(mps []vmconfigs.VMProvider, opts machine.ResetOptions) error {
+func Reset(mps []vmconfigs.VMProvider, _ machine.ResetOptions) error {
 	var resetErrors *multierror.Error
 	removeDirs := []*machineDefine.MachineDirs{}
 

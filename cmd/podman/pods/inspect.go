@@ -40,7 +40,7 @@ func init() {
 	validate.AddLatestFlag(inspectCmd, &inspectOpts.Latest)
 }
 
-func inspectExec(cmd *cobra.Command, args []string) error {
+func inspectExec(_ *cobra.Command, args []string) error {
 	inspectOpts.Type = common.PodType
 	return inspect.Inspect(args, *inspectOpts)
 }

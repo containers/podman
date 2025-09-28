@@ -45,7 +45,7 @@ func init() {
 	rmFlags(quadletRmCmd)
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	if len(args) < 1 && !removeOptions.All {
 		return errors.New("at least one quadlet file must be selected")
 	}

@@ -83,7 +83,7 @@ func init() {
 	rootCmd.AddCommand(installCmd)
 }
 
-func install(cmd *cobra.Command, args []string) error {
+func install(_ *cobra.Command, _ []string) error {
 	userName, uid, homeDir, err := getUser()
 	if err != nil {
 		return err

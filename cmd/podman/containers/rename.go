@@ -44,7 +44,7 @@ func init() {
 	})
 }
 
-func rename(cmd *cobra.Command, args []string) error {
+func rename(_ *cobra.Command, args []string) error {
 	if len(args) > 2 {
 		return errors.New("must provide at least two arguments to rename")
 	}

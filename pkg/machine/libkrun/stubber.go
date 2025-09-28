@@ -54,11 +54,11 @@ func (l *LibKrunStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.Machin
 	return apple.ResizeDisk(mc, mc.Resources.DiskSize)
 }
 
-func (l *LibKrunStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+func (l *LibKrunStubber) PrepareIgnition(_ *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
 	return nil, nil
 }
 
-func (l *LibKrunStubber) Exists(name string) (bool, error) {
+func (l *LibKrunStubber) Exists(_ string) (bool, error) {
 	// not applicable for libkrun (same as applehv)
 	return false, nil
 }
@@ -67,15 +67,15 @@ func (l *LibKrunStubber) MountType() vmconfigs.VolumeMountType {
 	return vmconfigs.VirtIOFS
 }
 
-func (l *LibKrunStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) error {
+func (l *LibKrunStubber) MountVolumesToVM(_ *vmconfigs.MachineConfig, _ bool) error {
 	return nil
 }
 
-func (l *LibKrunStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
+func (l *LibKrunStubber) Remove(_ *vmconfigs.MachineConfig) ([]string, func() error, error) {
 	return []string{}, func() error { return nil }, nil
 }
 
-func (l *LibKrunStubber) RemoveAndCleanMachines(dirs *define.MachineDirs) error {
+func (l *LibKrunStubber) RemoveAndCleanMachines(_ *define.MachineDirs) error {
 	return nil
 }
 
@@ -91,7 +91,7 @@ func (l *LibKrunStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvpro
 	return apple.StartGenericNetworking(mc, cmd)
 }
 
-func (l *LibKrunStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+func (l *LibKrunStubber) PostStartNetworking(_ *vmconfigs.MachineConfig, _ bool) error {
 	return nil
 }
 
@@ -103,7 +103,7 @@ func (l *LibKrunStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, fun
 	return apple.StartGenericAppleVM(mc, krunkitBinary, bl, mc.LibKrunHypervisor.KRun.Endpoint)
 }
 
-func (l *LibKrunStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Status, error) {
+func (l *LibKrunStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
 	return mc.LibKrunHypervisor.KRun.State()
 }
 
@@ -111,7 +111,7 @@ func (l *LibKrunStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) erro
 	return mc.LibKrunHypervisor.KRun.Stop(hardStop, true)
 }
 
-func (l *LibKrunStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, vmType define.VMType) error {
+func (l *LibKrunStubber) StopHostNetworking(_ *vmconfigs.MachineConfig, _ define.VMType) error {
 	return nil
 }
 
@@ -119,7 +119,7 @@ func (l *LibKrunStubber) VMType() define.VMType {
 	return define.LibKrun
 }
 
-func (l *LibKrunStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
+func (l *LibKrunStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool {
 	return true
 }
 
@@ -131,10 +131,10 @@ func (l *LibKrunStubber) RequireExclusiveActive() bool {
 	return true
 }
 
-func (l *LibKrunStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
+func (l *LibKrunStubber) UpdateSSHPort(_ *vmconfigs.MachineConfig, _ int) error {
 	return nil
 }
 
-func (l *LibKrunStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+func (l *LibKrunStubber) GetRosetta(_ *vmconfigs.MachineConfig) (bool, error) {
 	return false, nil
 }

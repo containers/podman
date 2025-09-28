@@ -23,7 +23,7 @@ func IsRootless() bool {
 // into a new user namespace and the return code from the re-executed podman process.
 // If podman was re-executed the caller needs to propagate the error code returned by the child
 // process.  It is a convenience function for BecomeRootInUserNSWithOpts with a default configuration.
-func BecomeRootInUserNS(pausePid string) (bool, int, error) {
+func BecomeRootInUserNS(_ string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
 
@@ -41,7 +41,7 @@ func GetRootlessGID() int {
 // This is useful when there are already running containers and we
 // don't have a pause process yet.  We can use the paths to the conmon
 // processes to attempt joining their namespaces.
-func TryJoinFromFilePaths(pausePidPath string, paths []string) (bool, int, error) {
+func TryJoinFromFilePaths(_ string, _ []string) (bool, int, error) {
 	return false, -1, errors.New("this function is not supported on this os")
 }
 
@@ -52,11 +52,11 @@ func ConfigurationMatches() (bool, error) {
 }
 
 // GetConfiguredMappings returns the additional IDs configured for the current user.
-func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error) {
+func GetConfiguredMappings(_ bool) ([]idtools.IDMap, []idtools.IDMap, error) {
 	return nil, nil, errors.New("this function is not supported on this os")
 }
 
 // IsFdInherited checks whether the fd is opened and valid to use
-func IsFdInherited(fd int) bool {
+func IsFdInherited(_ int) bool {
 	return false
 }

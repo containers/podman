@@ -48,6 +48,6 @@ func init() {
 	_ = migrateCommand.RegisterFlagCompletionFunc(newRuntimeFlagName, completion.AutocompleteNone)
 }
 
-func migrate(cmd *cobra.Command, args []string) error {
+func migrate(_ *cobra.Command, _ []string) error {
 	return registry.ContainerEngine().Migrate(registry.Context(), migrateOptions)
 }

@@ -5,7 +5,7 @@ type infoMachine struct {
 	cmd    []string
 }
 
-func (i *infoMachine) buildCmd(m *machineTestBuilder) []string {
+func (i *infoMachine) buildCmd(_ *machineTestBuilder) []string {
 	cmd := []string{"machine", "info"}
 	if len(i.format) > 0 {
 		cmd = append(cmd, "--format", i.format)

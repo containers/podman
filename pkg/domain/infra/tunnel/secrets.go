@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v5/pkg/errorhandling"
 )
 
-func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
+func (ic *ContainerEngine) SecretCreate(_ context.Context, name string, reader io.Reader, options entities.SecretCreateOptions) (*entities.SecretCreateReport, error) {
 	opts := new(secrets.CreateOptions).
 		WithDriver(options.Driver).
 		WithDriverOpts(options.DriverOpts).
@@ -25,7 +25,7 @@ func (ic *ContainerEngine) SecretCreate(ctx context.Context, name string, reader
 	return created, nil
 }
 
-func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string, options entities.SecretInspectOptions) ([]*entities.SecretInfoReport, []error, error) {
+func (ic *ContainerEngine) SecretInspect(_ context.Context, nameOrIDs []string, options entities.SecretInspectOptions) ([]*entities.SecretInfoReport, []error, error) {
 	allInspect := make([]*entities.SecretInfoReport, 0, len(nameOrIDs))
 	errs := make([]error, 0, len(nameOrIDs))
 	opts := new(secrets.InspectOptions).
@@ -49,13 +49,13 @@ func (ic *ContainerEngine) SecretInspect(ctx context.Context, nameOrIDs []string
 	return allInspect, errs, nil
 }
 
-func (ic *ContainerEngine) SecretList(ctx context.Context, opts entities.SecretListRequest) ([]*entities.SecretInfoReport, error) {
+func (ic *ContainerEngine) SecretList(_ context.Context, opts entities.SecretListRequest) ([]*entities.SecretInfoReport, error) {
 	options := new(secrets.ListOptions).WithFilters(opts.Filters)
 	secrs, _ := secrets.List(ic.ClientCtx, options)
 	return secrs, nil
 }
 
-func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, options entities.SecretRmOptions) ([]*entities.SecretRmReport, error) {
+func (ic *ContainerEngine) SecretRm(_ context.Context, nameOrIDs []string, options entities.SecretRmOptions) ([]*entities.SecretRmReport, error) {
 	allRm := make([]*entities.SecretRmReport, 0, len(nameOrIDs))
 	if options.All {
 		allSecrets, err := secrets.List(ic.ClientCtx, nil)
@@ -95,7 +95,7 @@ func (ic *ContainerEngine) SecretRm(ctx context.Context, nameOrIDs []string, opt
 	return allRm, nil
 }
 
-func (ic *ContainerEngine) SecretExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+func (ic *ContainerEngine) SecretExists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
 	exists, err := secrets.Exists(ic.ClientCtx, nameOrID)
 	if err != nil {
 		return nil, err

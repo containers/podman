@@ -34,7 +34,7 @@ func init() {
 	flags.BoolVarP(&rmOptions.Ignore, "ignore", "i", false, "Ignore errors when a specified manifest is missing")
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	report, rmErrors := registry.ImageEngine().ManifestRm(context.Background(), args, rmOptions)
 	if report != nil {
 		for _, u := range report.Untagged {

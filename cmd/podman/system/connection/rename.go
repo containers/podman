@@ -32,7 +32,7 @@ func init() {
 	})
 }
 
-func rename(cmd *cobra.Command, args []string) error {
+func rename(_ *cobra.Command, args []string) error {
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
 		if _, found := cfg.Connection.Connections[args[0]]; !found {
 			return fmt.Errorf("%q destination is not defined. See \"podman system connection add ...\" to create a connection", args[0])

@@ -61,7 +61,7 @@ func imageRemoveFlagSet(flags *pflag.FlagSet) {
 	flags.BoolVar(&imageOpts.NoPrune, "no-prune", false, "Do not remove dangling images")
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	if len(args) < 1 && !imageOpts.All {
 		return errors.New("image name or ID must be specified")
 	}

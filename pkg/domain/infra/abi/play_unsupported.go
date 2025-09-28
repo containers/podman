@@ -8,6 +8,6 @@ import (
 )
 
 // openSymlinkPath is not supported on this platform.
-func openSymlinkPath(root *os.File, unsafePath string, flags int) (*os.File, error) {
+func openSymlinkPath(_ *os.File, _ string, _ int) (*os.File, error) {
 	return nil, errors.New("cannot safely open symlink on this platform")
 }

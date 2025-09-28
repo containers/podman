@@ -52,7 +52,7 @@ func init() {
 	_ = flags.MarkHidden("force")
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
 		if rmOpts.All {
 			cfg.Connection.Connections = nil

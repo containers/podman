@@ -28,6 +28,6 @@ func GetContainerPidInformationDescriptors() ([]string, error) {
 	}, nil
 }
 
-func AddPrivilegedDevices(g *generate.Generator, systemdMode bool) error {
+func AddPrivilegedDevices(_ *generate.Generator, _ bool) error {
 	return nil
 }

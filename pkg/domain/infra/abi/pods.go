@@ -50,7 +50,7 @@ func getPodsByContext(all, latest bool, pods []string, runtime *libpod.Runtime) 
 	return outpods, err
 }
 
-func (ic *ContainerEngine) PodExists(ctx context.Context, nameOrID string) (*entities.BoolReport, error) {
+func (ic *ContainerEngine) PodExists(_ context.Context, nameOrID string) (*entities.BoolReport, error) {
 	_, err := ic.Libpod.LookupPod(nameOrID)
 	if err != nil && !errors.Is(err, define.ErrNoSuchPod) {
 		return nil, err
@@ -292,7 +292,7 @@ func (ic *ContainerEngine) PodRm(ctx context.Context, namesOrIds []string, optio
 	return reports, nil
 }
 
-func (ic *ContainerEngine) PodPrune(ctx context.Context, options entities.PodPruneOptions) ([]*entities.PodPruneReport, error) {
+func (ic *ContainerEngine) PodPrune(ctx context.Context, _ entities.PodPruneOptions) ([]*entities.PodPruneReport, error) {
 	return ic.prunePodHelper(ctx)
 }
 
@@ -311,7 +311,7 @@ func (ic *ContainerEngine) prunePodHelper(ctx context.Context) ([]*entities.PodP
 	return reports, nil
 }
 
-func (ic *ContainerEngine) PodCreate(ctx context.Context, specg entities.PodSpec) (*entities.PodCreateReport, error) {
+func (ic *ContainerEngine) PodCreate(_ context.Context, specg entities.PodSpec) (*entities.PodCreateReport, error) {
 	pod, err := generate.MakePod(&specg, ic.Libpod)
 	if err != nil {
 		return nil, err
@@ -404,7 +404,7 @@ func (ic *ContainerEngine) PodClone(ctx context.Context, podClone entities.PodCl
 	return &entities.PodCloneReport{Id: pod.ID()}, nil
 }
 
-func (ic *ContainerEngine) PodTop(ctx context.Context, options entities.PodTopOptions) (*entities.StringSliceReport, error) {
+func (ic *ContainerEngine) PodTop(_ context.Context, options entities.PodTopOptions) (*entities.StringSliceReport, error) {
 	var (
 		pod *libpod.Pod
 		err error
@@ -481,7 +481,7 @@ func (ic *ContainerEngine) listPodReportFromPod(p *libpod.Pod) (*entities.ListPo
 	}, nil
 }
 
-func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
+func (ic *ContainerEngine) PodPs(_ context.Context, options entities.PodPSOptions) ([]*entities.ListPodsReport, error) {
 	var (
 		err error
 		pds = []*libpod.Pod{}
@@ -522,7 +522,7 @@ func (ic *ContainerEngine) PodPs(ctx context.Context, options entities.PodPSOpti
 	return reports, nil
 }
 
-func (ic *ContainerEngine) PodInspect(ctx context.Context, nameOrIDs []string, options entities.InspectOptions) ([]*entities.PodInspectReport, []error, error) {
+func (ic *ContainerEngine) PodInspect(_ context.Context, nameOrIDs []string, options entities.InspectOptions) ([]*entities.PodInspectReport, []error, error) {
 	if options.Latest {
 		pod, err := ic.Libpod.GetLatestPod()
 		if err != nil {

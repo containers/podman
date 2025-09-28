@@ -37,7 +37,7 @@ func CreatePodFromSpec(ctx context.Context, spec *entitiesTypes.PodSpec) (*entit
 }
 
 // Exists is a lightweight method to determine if a pod exists in local storage
-func Exists(ctx context.Context, nameOrID string, options *ExistsOptions) (bool, error) {
+func Exists(ctx context.Context, nameOrID string, _ *ExistsOptions) (bool, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return false, err

@@ -21,7 +21,7 @@ func getPreCPUStats(stats *define.ContainerStats) CPUStats {
 	}
 }
 
-func statsContainerJSON(ctnr *libpod.Container, stats *define.ContainerStats, preCPUStats CPUStats, onlineCPUs int) (StatsJSON, error) {
+func statsContainerJSON(_ *libpod.Container, stats *define.ContainerStats, preCPUStats CPUStats, onlineCPUs int) (StatsJSON, error) {
 	return StatsJSON{
 		Stats: Stats{
 			Read: time.Now(),
