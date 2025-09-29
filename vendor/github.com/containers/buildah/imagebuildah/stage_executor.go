@@ -1913,7 +1913,7 @@ func (s *StageExecutor) getCreatedBy(node *parser.Node, addedContentSummary stri
 
 	switch command {
 	case "ARG":
-		for _, variable := range strings.Fields(node.Original) {
+		for variable := range strings.FieldsSeq(node.Original) {
 			if variable != "ARG" {
 				s.argsFromContainerfile = append(s.argsFromContainerfile, variable)
 			}

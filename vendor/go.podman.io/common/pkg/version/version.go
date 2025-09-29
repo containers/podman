@@ -28,10 +28,9 @@ func queryPackageVersion(cmdArg ...string) string {
 			switch cmdArg[0] {
 			case "/usr/bin/dlocate":
 				// can return multiple matches
-				l := strings.Split(output, "\n")
-				output = l[0]
-				r := strings.Split(output, ": ")
-				regexpFormat := `^..\s` + r[0] + `\s`
+				output, _, _ := strings.Cut(output, "\n")
+				r, _, _ := strings.Cut(output, ": ")
+				regexpFormat := `^..\s` + r + `\s`
 				cmd = exec.Command(cmdArg[0], "-P", regexpFormat, "-l")
 				cmd.Env = []string{"COLUMNS=160"} // show entire value
 				// dlocate always returns exit code 1 for list command
@@ -46,9 +45,9 @@ func queryPackageVersion(cmdArg ...string) string {
 					}
 				}
 			case "/usr/bin/dpkg":
-				r := strings.Split(output, ": ")
+				r, _, _ := strings.Cut(output, ": ")
 				queryFormat := `${Package}_${Version}_${Architecture}`
-				cmd = exec.Command("/usr/bin/dpkg-query", "-f", queryFormat, "-W", r[0])
+				cmd = exec.Command("/usr/bin/dpkg-query", "-f", queryFormat, "-W", r)
 				if outp, err := cmd.Output(); err == nil {
 					output = string(outp)
 				}

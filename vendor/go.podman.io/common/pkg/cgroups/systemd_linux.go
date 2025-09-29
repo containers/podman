@@ -280,7 +280,7 @@ func resourcesToProps(res *cgroups.Resources, v2 bool) (map[string]uint64, map[s
 func rangeToBits(str string) ([]byte, error) {
 	bits := new(big.Int)
 
-	for _, r := range strings.Split(str, ",") {
+	for r := range strings.SplitSeq(str, ",") {
 		// allow extra spaces around
 		r = strings.TrimSpace(r)
 		// allow empty elements (extra commas)

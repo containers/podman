@@ -111,7 +111,7 @@ func getAvailableControllers(exclude map[string]controllerHandler, cgroup2 bool)
 		if err != nil {
 			return nil, fmt.Errorf("failed while reading controllers for cgroup v2: %w", err)
 		}
-		for _, controllerName := range strings.Fields(string(controllersFileBytes)) {
+		for controllerName := range strings.FieldsSeq(string(controllersFileBytes)) {
 			c := controller{
 				name:    controllerName,
 				symlink: false,
@@ -197,10 +197,9 @@ func getCgroupPathForCurrentProcess() (string, error) {
 	s := bufio.NewScanner(f)
 	for s.Scan() {
 		text := s.Text()
-		procEntries := strings.SplitN(text, "::", 2)
 		// set process cgroupPath only if entry is valid
-		if len(procEntries) > 1 {
-			cgroupPath = procEntries[1]
+		if _, p, ok := strings.Cut(text, "::"); ok {
+			cgroupPath = p
 		}
 	}
 	if err := s.Err(); err != nil {
@@ -278,10 +277,10 @@ func readFileByKeyAsUint64(path, key string) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-	for _, line := range strings.Split(string(content), "\n") {
-		fields := strings.SplitN(line, " ", 2)
-		if fields[0] == key {
-			v := cleanString(fields[1])
+	for line := range strings.SplitSeq(string(content), "\n") {
+		k, v, _ := strings.Cut(line, " ")
+		if k == key {
+			v := cleanString(v)
 			if v == "max" {
 				return math.MaxUint64, nil
 			}
@@ -684,7 +683,7 @@ func readAcctList(ctr *CgroupControl, name string) ([]uint64, error) {
 		return nil, err
 	}
 	r := []uint64{}
-	for _, s := range strings.Split(string(data), " ") {
+	for s := range strings.SplitSeq(string(data), " ") {
 		s = cleanString(s)
 		if s == "" {
 			break
@@ -874,7 +873,7 @@ func rmDirRecursively(path string) error {
 		}
 		// kill all the processes that are still part of the cgroup
 		if procs, err := os.ReadFile(filepath.Join(path, "cgroup.procs")); err == nil {
-			for _, pidS := range strings.Split(string(procs), "\n") {
+			for pidS := range strings.SplitSeq(string(procs), "\n") {
 				if pid, err := strconv.Atoi(pidS); err == nil {
 					_ = unix.Kill(pid, signal)
 				}

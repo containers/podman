@@ -1066,6 +1066,8 @@ func (c *dockerClient) getBlob(ctx context.Context, ref dockerReference, info ty
 	cache.RecordKnownLocation(ref.Transport(), bicTransportScope(ref), info.Digest, newBICLocationReference(ref))
 	blobSize, err := getBlobSize(res)
 	if err != nil {
+		// See above, we don't guarantee returning a size
+		logrus.Debugf("failed to get blob size: %v", err)
 		blobSize = -1
 	}
 

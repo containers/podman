@@ -89,8 +89,7 @@ func (d *Driver) List() (secrets []string, err error) {
 		return nil, err
 	}
 
-	parts := bytes.Split(buf.Bytes(), []byte("\n"))
-	for _, part := range parts {
+	for part := range bytes.SplitSeq(buf.Bytes(), []byte("\n")) {
 		id := strings.Trim(string(part), " \r\n")
 		if len(id) > 0 {
 			secrets = append(secrets, id)

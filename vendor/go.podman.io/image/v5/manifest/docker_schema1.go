@@ -342,5 +342,7 @@ func (m *Schema1) ImageID(diffIDs []digest.Digest) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	// Note: Using canonical digest for ImageID generation to maintain compatibility.
+	// ImageIDs need to be consistent across different systems.
 	return digest.FromBytes(image).Encoded(), nil
 }

@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/klauspost/pgzip"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	"github.com/ulikunitz/xz"
 	"go.podman.io/image/v5/pkg/compression/internal"
@@ -76,7 +77,7 @@ func XzDecompressor(r io.Reader) (io.ReadCloser, error) {
 }
 
 // gzipCompressor is a CompressorFunc for the gzip compression algorithm.
-func gzipCompressor(r io.Writer, metadata map[string]string, level *int) (io.WriteCloser, error) {
+func gzipCompressor(r io.Writer, metadata map[string]string, level *int, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
 	if level != nil {
 		return pgzip.NewWriterLevel(r, *level)
 	}
@@ -84,19 +85,18 @@ func gzipCompressor(r io.Writer, metadata map[string]string, level *int) (io.Wri
 }
 
 // bzip2Compressor is a CompressorFunc for the bzip2 compression algorithm.
-func bzip2Compressor(r io.Writer, metadata map[string]string, level *int) (io.WriteCloser, error) {
+func bzip2Compressor(r io.Writer, metadata map[string]string, level *int, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
 	return nil, fmt.Errorf("bzip2 compression not supported")
 }
 
 // xzCompressor is a CompressorFunc for the xz compression algorithm.
-func xzCompressor(r io.Writer, metadata map[string]string, level *int) (io.WriteCloser, error) {
+func xzCompressor(r io.Writer, metadata map[string]string, level *int, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
 	return xz.NewWriter(r)
 }
 
 // CompressStream returns the compressor by its name
 func CompressStream(dest io.Writer, algo Algorithm, level *int) (io.WriteCloser, error) {
-	m := map[string]string{}
-	return internal.AlgorithmCompressor(algo)(dest, m, level)
+	return CompressStreamWithDigest(dest, algo, level, digest.SHA256)
 }
 
 // CompressStreamWithMetadata returns the compressor by its name.
@@ -112,7 +112,29 @@ func CompressStream(dest io.Writer, algo Algorithm, level *int) (io.WriteCloser,
 //
 // If the compression generates such metadata, it is written to the provided metadata map.
 func CompressStreamWithMetadata(dest io.Writer, metadata map[string]string, algo Algorithm, level *int) (io.WriteCloser, error) {
-	return internal.AlgorithmCompressor(algo)(dest, metadata, level)
+	return CompressStreamWithMetadataAndDigest(dest, metadata, algo, level, digest.SHA256)
+}
+
+// CompressStreamWithDigest returns the compressor by its name with the specified digest algorithm.
+func CompressStreamWithDigest(dest io.Writer, algo Algorithm, level *int, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
+	m := map[string]string{}
+	return internal.AlgorithmCompressor(algo)(dest, m, level, digestAlgorithm)
+}
+
+// CompressStreamWithMetadataAndDigest returns the compressor by its name with the specified digest algorithm.
+//
+// Compressing a stream may create integrity data that allows consuming the compressed byte stream
+// while only using subsets of the compressed data (if the compressed data is seekable and most
+// of the uncompressed data is already present via other means), while still protecting integrity
+// of the compressed stream against unwanted modification. (In OCI container images, this metadata
+// is usually carried in manifest annotations.)
+//
+// Such a partial decompression is not implemented by this package; it is consumed e.g. by
+// github.com/containers/storage/pkg/chunked .
+//
+// If the compression generates such metadata, it is written to the provided metadata map.
+func CompressStreamWithMetadataAndDigest(dest io.Writer, metadata map[string]string, algo Algorithm, level *int, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
+	return internal.AlgorithmCompressor(algo)(dest, metadata, level, digestAlgorithm)
 }
 
 // DetectCompressionFormat returns an Algorithm and DecompressorFunc if the input is recognized as a compressed format, an invalid

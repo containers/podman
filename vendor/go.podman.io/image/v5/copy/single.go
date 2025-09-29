@@ -379,7 +379,14 @@ func (ic *imageCopier) noPendingManifestUpdates() bool {
 // compareImageDestinationManifestEqual compares the source and destination image manifests (reading the manifest from the
 // (possibly remote) destination). If they are equal, it returns a full copySingleImageResult, nil otherwise.
 func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context, targetInstance *digest.Digest) (*copySingleImageResult, error) {
-	srcManifestDigest, err := manifest.Digest(ic.src.ManifestBlob)
+	// Get the digest algorithm from the destination store if available
+	digestAlgorithm := digest.Canonical // Default fallback
+	if digestProvider, ok := ic.c.dest.(interface{ GetDigestAlgorithm() digest.Algorithm }); ok {
+		digestAlgorithm = digestProvider.GetDigestAlgorithm()
+	}
+
+
+	srcManifestDigest, err := manifest.DigestWithAlgorithm(ic.src.ManifestBlob, digestAlgorithm)
 	if err != nil {
 		return nil, fmt.Errorf("calculating manifest digest: %w", err)
 	}
@@ -397,7 +404,7 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 		return nil, nil
 	}
 
-	destManifestDigest, err := manifest.Digest(destManifest)
+	destManifestDigest, err := manifest.DigestWithAlgorithm(destManifest, digestAlgorithm)
 	if err != nil {
 		return nil, fmt.Errorf("calculating manifest digest: %w", err)
 	}
@@ -601,7 +608,14 @@ func (ic *imageCopier) copyUpdatedConfigAndManifest(ctx context.Context, instanc
 	}
 
 	ic.c.Printf("Writing manifest to image destination\n")
-	manifestDigest, err := manifest.Digest(man)
+	// Get the digest algorithm from the destination store if available
+	digestAlgorithm := digest.Canonical // Default fallback
+	if digestProvider, ok := ic.c.dest.(interface{ GetDigestAlgorithm() digest.Algorithm }); ok {
+		digestAlgorithm = digestProvider.GetDigestAlgorithm()
+	}
+
+
+	manifestDigest, err := manifest.DigestWithAlgorithm(man, digestAlgorithm)
 	if err != nil {
 		return nil, "", err
 	}
@@ -856,7 +870,13 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		}
 		defer srcStream.Close()
 
-		blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize, MediaType: srcInfo.MediaType, Annotations: srcInfo.Annotations}, diffIDIsNeeded, toEncrypt, bar, layerIndex, emptyLayer)
+		// Get the digest algorithm from the destination store if available
+		digestAlgorithm := digest.Canonical // Default fallback
+		if digestProvider, ok := ic.c.dest.(interface{ GetDigestAlgorithm() digest.Algorithm }); ok {
+			digestAlgorithm = digestProvider.GetDigestAlgorithm()
+		}
+
+		blobInfo, diffIDChan, err := ic.copyLayerFromStream(ctx, srcStream, types.BlobInfo{Digest: srcInfo.Digest, Size: srcBlobSize, MediaType: srcInfo.MediaType, Annotations: srcInfo.Annotations}, diffIDIsNeeded, toEncrypt, bar, layerIndex, emptyLayer, digestAlgorithm)
 		if err != nil {
 			return types.BlobInfo{}, "", err
 		}
@@ -929,12 +949,12 @@ func updatedBlobInfoFromReuse(inputInfo types.BlobInfo, reusedBlob private.Reuse
 	return res
 }
 
-// copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate “defer” scope.
+// copyLayerFromStream is an implementation detail of copyLayer; mostly providing a separate "defer" scope.
 // it copies a blob with srcInfo (with known Digest and Annotations and possibly known Size) from srcStream to dest,
 // perhaps (de/re/)compressing the stream,
 // and returns a complete blobInfo of the copied blob and perhaps a <-chan diffIDResult if diffIDIsNeeded, to be read by the caller.
 func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Reader, srcInfo types.BlobInfo,
-	diffIDIsNeeded bool, toEncrypt bool, bar *progressBar, layerIndex int, emptyLayer bool) (types.BlobInfo, <-chan diffIDResult, error) {
+	diffIDIsNeeded bool, toEncrypt bool, bar *progressBar, layerIndex int, emptyLayer bool, digestAlgorithm digest.Algorithm) (types.BlobInfo, <-chan diffIDResult, error) {
 	var getDiffIDRecorder func(compressiontypes.DecompressorFunc) io.Writer // = nil
 	var diffIDChan chan diffIDResult
 
@@ -948,13 +968,13 @@ func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Rea
 
 		getDiffIDRecorder = func(decompressor compressiontypes.DecompressorFunc) io.Writer {
 			// If this fails, e.g. because we have exited and due to pipeWriter.CloseWithError() above further
-			// reading from the pipe has failed, we don’t really care.
+			// reading from the pipe has failed, we don't really care.
 			// We only read from diffIDChan if the rest of the flow has succeeded, and when we do read from it,
 			// the return value includes an error indication, which we do check.
 			//
 			// If this gets never called, pipeReader will not be used anywhere, but pipeWriter will only be
 			// closed above, so we are happy enough with both pipeReader and pipeWriter to just get collected by GC.
-			go diffIDComputationGoroutine(diffIDChan, pipeReader, decompressor) // Closes pipeReader
+			go diffIDComputationGoroutine(diffIDChan, pipeReader, decompressor, digestAlgorithm) // Closes pipeReader
 			return pipeWriter
 		}
 	}
@@ -965,7 +985,7 @@ func (ic *imageCopier) copyLayerFromStream(ctx context.Context, srcStream io.Rea
 }
 
 // diffIDComputationGoroutine reads all input from layerStream, uncompresses using decompressor if necessary, and sends its digest, and status, if any, to dest.
-func diffIDComputationGoroutine(dest chan<- diffIDResult, layerStream io.ReadCloser, decompressor compressiontypes.DecompressorFunc) {
+func diffIDComputationGoroutine(dest chan<- diffIDResult, layerStream io.ReadCloser, decompressor compressiontypes.DecompressorFunc, digestAlgorithm digest.Algorithm) {
 	result := diffIDResult{
 		digest: "",
 		err:    errors.New("Internal error: unexpected panic in diffIDComputationGoroutine"),
@@ -973,11 +993,11 @@ func diffIDComputationGoroutine(dest chan<- diffIDResult, layerStream io.ReadClo
 	defer func() { dest <- result }()
 	defer layerStream.Close() // We do not care to bother the other end of the pipe with other failures; we send them to dest instead.
 
-	result.digest, result.err = computeDiffID(layerStream, decompressor)
+	result.digest, result.err = computeDiffID(layerStream, decompressor, digestAlgorithm)
 }
 
 // computeDiffID reads all input from layerStream, uncompresses it using decompressor if necessary, and returns its digest.
-func computeDiffID(stream io.Reader, decompressor compressiontypes.DecompressorFunc) (digest.Digest, error) {
+func computeDiffID(stream io.Reader, decompressor compressiontypes.DecompressorFunc, digestAlgorithm digest.Algorithm) (digest.Digest, error) {
 	if decompressor != nil {
 		s, err := decompressor(stream)
 		if err != nil {
@@ -987,7 +1007,8 @@ func computeDiffID(stream io.Reader, decompressor compressiontypes.DecompressorF
 		stream = s
 	}
 
-	return digest.Canonical.FromReader(stream)
+	// Use the provided digest algorithm for digest agility support
+	return digestAlgorithm.FromReader(stream)
 }
 
 // algorithmsByNames returns slice of Algorithms from a sequence of Algorithm Names

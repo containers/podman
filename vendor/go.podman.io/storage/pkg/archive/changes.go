@@ -281,8 +281,7 @@ func (info *FileInfo) LookUp(path string) *FileInfo {
 		return info
 	}
 
-	pathElements := strings.Split(path, string(os.PathSeparator))
-	for _, elem := range pathElements {
+	for elem := range strings.SplitSeq(path, string(os.PathSeparator)) {
 		if elem != "" {
 			child := parent.children[elem]
 			if child == nil {

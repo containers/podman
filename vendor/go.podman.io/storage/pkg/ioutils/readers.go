@@ -2,9 +2,9 @@ package ioutils
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"io"
+
+	"github.com/opencontainers/go-digest"
 )
 
 type readCloserWrapper struct {
@@ -62,13 +62,13 @@ func NewReaderErrWrapper(r io.Reader, closer func()) io.Reader {
 	}
 }
 
-// HashData returns the sha256 sum of src.
-func HashData(src io.Reader) (string, error) {
-	h := sha256.New()
-	if _, err := io.Copy(h, src); err != nil {
+// HashData returns the sha256 sum of src using the specified algorithm
+func HashData(src io.Reader, algorithm digest.Algorithm) (string, error) {
+	digester := algorithm.Digester()
+	if _, err := io.Copy(digester.Hash(), src); err != nil {
 		return "", err
 	}
-	return "sha256:" + hex.EncodeToString(h.Sum(nil)), nil
+	return digester.Digest().String(), nil
 }
 
 // OnEOFReader wraps an io.ReadCloser and a function

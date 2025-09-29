@@ -843,10 +843,9 @@ func transportNew(config *restConfig) (http.RoundTripper, error) {
 func newProxierWithNoProxyCIDR(delegate func(req *http.Request) (*url.URL, error)) func(req *http.Request) (*url.URL, error) {
 	// we wrap the default method, so we only need to perform our check if the NO_PROXY envvar has a CIDR in it
 	noProxyEnv := os.Getenv("NO_PROXY")
-	noProxyRules := strings.Split(noProxyEnv, ",")
 
 	cidrs := []netip.Prefix{}
-	for _, noProxyRule := range noProxyRules {
+	for noProxyRule := range strings.SplitSeq(noProxyEnv, ",") {
 		prefix, err := netip.ParsePrefix(noProxyRule)
 		if err == nil {
 			cidrs = append(cidrs, prefix)

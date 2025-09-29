@@ -343,7 +343,21 @@ func (i imageReporter) ID() string {
 	if !listFlag.noTrunc && len(i.ImageSummary.ID) >= 12 {
 		return i.ImageSummary.ID[0:12]
 	}
-	return "sha256:" + i.ImageSummary.ID
+
+	// Determine digest algorithm based on ID length
+	// SHA256 = 64 hex chars, SHA512 = 128 hex chars
+	var prefix string
+	switch len(i.ImageSummary.ID) {
+	case 128:
+		prefix = "sha512:"
+	case 64:
+		prefix = "sha256:"
+	default:
+		// For unknown lengths, default to sha256 for backward compatibility
+		prefix = "sha256:"
+	}
+
+	return prefix + i.ImageSummary.ID
 }
 
 func (i imageReporter) Created() string {

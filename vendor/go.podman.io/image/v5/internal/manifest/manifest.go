@@ -26,6 +26,8 @@ const (
 	DockerV2Schema2LayerMediaType = "application/vnd.docker.image.rootfs.diff.tar.gzip"
 	// DockerV2SchemaLayerMediaTypeUncompressed is the mediaType used for uncompressed layers.
 	DockerV2SchemaLayerMediaTypeUncompressed = "application/vnd.docker.image.rootfs.diff.tar"
+	// DockerV2Schema2LayerMediaType is the MIME type used for schema 2 layers.
+	DockerV2SchemaLayerMediaTypeZstd = "application/vnd.docker.image.rootfs.diff.tar.zstd"
 	// DockerV2ListMediaType MIME type represents Docker manifest schema 2 list
 	DockerV2ListMediaType = "application/vnd.docker.distribution.manifest.list.v2+json"
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for schema 2 foreign layers.
@@ -121,7 +123,29 @@ func Digest(manifest []byte) (digest.Digest, error) {
 		}
 	}
 
+	// Note: This uses the canonical digest algorithm. For digest agility,
+	// callers should use a specific algorithm via digest.Algorithm.FromBytes()
 	return digest.FromBytes(manifest), nil
+}
+
+// DigestWithAlgorithm returns the digest of a docker manifest using the specified digest algorithm,
+// with any necessary implied transformations like stripping v1s1 signatures.
+func DigestWithAlgorithm(manifest []byte, algorithm digest.Algorithm) (digest.Digest, error) {
+	if GuessMIMEType(manifest) == DockerV2Schema1SignedMediaType {
+		sig, err := libtrust.ParsePrettySignature(manifest, "signatures")
+		if err != nil {
+			return "", err
+		}
+		manifest, err = sig.Payload()
+		if err != nil {
+			// Coverage: This should never happen, libtrust's Payload() can fail only if joseBase64UrlDecode() fails, on a string
+			// that libtrust itself has josebase64UrlEncode()d
+			return "", err
+		}
+	}
+
+	// Use the provided digest algorithm for digest agility
+	return algorithm.FromBytes(manifest), nil
 }
 
 // MatchesDigest returns true iff the manifest matches expectedDigest.
