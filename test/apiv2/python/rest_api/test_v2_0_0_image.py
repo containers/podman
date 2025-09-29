@@ -23,7 +23,6 @@ class ImageTestCase(APITestCase):
             "SharedSize",
             "VirtualSize",
             "Labels",
-            "Containers",
         )
         images = r.json()
         self.assertIsInstance(images, list)
@@ -45,7 +44,6 @@ class ImageTestCase(APITestCase):
             "Parent",
             "Comment",
             "Created",
-            "Container",
             "DockerVersion",
             "Author",
             "Architecture",

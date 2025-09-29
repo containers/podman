@@ -66,6 +66,14 @@ t GET /v1.43/images/$iid/json 200 \
 t GET /v1.44/images/$iid/json 200 \
   .VirtualSize=null
 
+# Test ContainerConfig fields are present in API v1.44 (backward compatibility)
+t GET /v1.44/images/$iid/json 200 \
+  .ContainerConfig.Hostname~[0-9a-f]
+
+# Test ContainerConfig fields are no longer present in API >= v1.45 (deprecated since API v1.44, omitted since API v1.45)
+t GET /v1.45/images/$iid/json 200 \
+  .ContainerConfig=null
+
 t POST "images/create?fromImage=alpine" 200 .error~null .status~".*Download complete.*"
 t POST "libpod/images/pull?reference=alpine&compatMode=true" 200 .error~null .status~".*Download complete.*"
 
