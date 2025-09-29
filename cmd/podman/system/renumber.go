@@ -3,12 +3,8 @@
 package system
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
-	"github.com/containers/podman/v5/libpod/define"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
 )
@@ -27,7 +23,7 @@ var (
 		Args:              validate.NoArgs,
 		Short:             "Migrate lock numbers",
 		Long:              renumberDescription,
-		Run:               renumber,
+		RunE:              renumber,
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 )
@@ -39,12 +35,6 @@ func init() {
 	})
 }
 
-func renumber(cmd *cobra.Command, args []string) {
-	if err := registry.ContainerEngine().Renumber(registry.Context()); err != nil {
-		fmt.Println(err)
-		// FIXME change this to return the error like other commands
-		// defer will never run on os.Exit()
-		os.Exit(define.ExecErrorCodeGeneric)
-	}
-	os.Exit(0)
+func renumber(cmd *cobra.Command, args []string) error {
+	return registry.ContainerEngine().Renumber(registry.Context())
 }
