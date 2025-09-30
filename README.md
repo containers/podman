@@ -3,7 +3,7 @@
 # Podman: A tool for managing OCI containers and pods
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/containers/podman)
-[![Go Report Card](https://goreportcard.com/badge/github.com/containers/libpod)](https://goreportcard.com/report/github.com/containers/libpod)
+[![Go Report Card](https://goreportcard.com/badge/github.com/containers/podman)](https://goreportcard.com/report/github.com/containers/podman)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10499/badge)](https://www.bestpractices.dev/projects/10499)
 
 [![LFX Health Score](https://insights.linuxfoundation.org/api/badge/health-score?project=containers-podman)](https://insights.linuxfoundation.org/project/containers-podman)
