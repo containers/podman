@@ -124,6 +124,14 @@ When true, access to the Podman service is remote. Defaults to false.
 Settings can be modified in the containers.conf file. If the CONTAINER_HOST
 environment variable is set, the **--remote** option defaults to true.
 
+#### **--rewrite-config**
+When true, cached configuration values in the database will be rewritten.
+Normally, changes to certain configuration values - graphDriver, graphRoot, and runRoot in storage.conf, as well as static_dir, tmp_dir, and volume_path in containers.conf - will be ignored until a `podman system reset`, as old values cached in the database will be used.
+This is done to ensure that configuration changes do not break existing pods, containers, and volumes present in the database.
+This option rewrites the cached values in the database, replacing them with the current configuration.
+This can only be done if no containers, pods, and volumes are present, to prevent the breakage described earlier.
+If any containers, pods, or volumes are present, an error will be returned.
+
 #### **--root**=*value*
 
 Storage root dir in which data, including images, is stored (default: "/var/lib/containers/storage" for UID 0, "$HOME/.local/share/containers/storage" for other users).

@@ -430,6 +430,23 @@ func WithRenumber() RuntimeOption {
 	}
 }
 
+// WithRewrite tells Libpod that the runtime should rewrite cached configuration
+// paths in the database.
+// This must be used to make configuration changes to certain paths take effect.
+// This option can only be used if no containers, pods, and volumes exist.
+// The runtime is fully usable after being returned.
+func WithRewrite() RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.doRewrite = true
+
+		return nil
+	}
+}
+
 // WithEventsLogger sets the events backend to use.
 // Currently supported values are "file" for file backend and "journald" for
 // journald backend.
