@@ -1,5 +1,13 @@
 # Release Notes
 
+## 5.6.2
+### Bugfixes
+- Fixed a bug where stopping the `podman machine start` command with SIGPIPE could result in machine state being stuck as "Starting" ([#26949](https://github.com/containers/podman/issues/26949)).
+- Fixed a bug where `podman build` would fail with a permissions error when building Containerfiles using a non-root user and cache mounts ([#27044](https://github.com/containers/podman/issues/27044)).
+
+### Misc
+- Updated Buildah to v1.41.5
+
 ## 5.6.1
 ### Security
 - This release addresses CVE-2025-9566, where Kubernetes YAML run by `podman play kube` containing `ConfigMap` and `Secret` volumes can use crafted symlinks to overwrite content on the host.

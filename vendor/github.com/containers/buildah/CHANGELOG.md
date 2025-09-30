@@ -2,6 +2,11 @@
 
 # Changelog
 
+## v1.41.5 (2025-09-29)
+
+    [release-1.41] Run: create parent directories of mount targets with mode 0755
+    [release-1.41] tests/run.bats: "run masks" test: accept "unreadable" masked directories
+
 ## v1.41.4 (2025-09-03)
 
     [release-1.41] c/common to v0.64.2, ulikunitz/xv v0.5.12, docker/docker v28.3.3
