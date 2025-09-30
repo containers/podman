@@ -218,6 +218,11 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		return nil, ErrEmptyArtifactName
 	}
 
+	// Add :latest tag if no tag/digest is present
+	if !strings.Contains(dest, ":") && !strings.Contains(dest, "@") {
+		dest += ":latest"
+	}
+
 	if options.Append && len(options.ArtifactMIMEType) > 0 {
 		return nil, errors.New("append option is not compatible with type option")
 	}

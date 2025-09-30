@@ -77,8 +77,9 @@ func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, 
 		}
 	}
 
-	// If no exact match and no tag/digest present, try with :latest
+	// Handle :latest tag normalization for both directions
 	if !strings.Contains(nameOrDigest, ":") && !strings.Contains(nameOrDigest, "@") {
+		// If no tag/digest present, try with :latest
 		latestName := nameOrDigest + ":latest"
 		for _, artifact := range al {
 			if artifact.Name == latestName {
@@ -87,6 +88,14 @@ func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, 
 		}
 		// Return error with the :latest name since that's what we tried
 		return nil, false, fmt.Errorf("%s: %w", latestName, types.ErrArtifactNotExist)
+	} else if strings.HasSuffix(nameOrDigest, ":latest") {
+		// If looking for :latest, also try without the tag
+		untaggedName := strings.TrimSuffix(nameOrDigest, ":latest")
+		for _, artifact := range al {
+			if artifact.Name == untaggedName {
+				return artifact, false, nil
+			}
+		}
 	}
 
 	return nil, false, fmt.Errorf("%s: %w", nameOrDigest, types.ErrArtifactNotExist)
