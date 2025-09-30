@@ -124,6 +124,28 @@ var _ = Describe("Podman artifact", func() {
 		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
 
+	It("podman artifact add defaults to latest tag", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifactNameWithoutTag := "localhost/test/artifact-no-tag"
+		podmanTest.PodmanExitCleanly("artifact", "add", artifactNameWithoutTag, artifact1File)
+
+		// The artifact should be stored with original name (backward compatibility)
+		a := podmanTest.InspectArtifact(artifactNameWithoutTag)
+		Expect(a.Name).To(Equal(artifactNameWithoutTag))
+
+		// But should be accessible with :latest suffix
+		artifactNameWithTag := artifactNameWithoutTag + ":latest"
+		a2 := podmanTest.InspectArtifact(artifactNameWithTag)
+		Expect(a2.Name).To(Equal(artifactNameWithoutTag))
+
+		// List should show :latest in TAG column for display consistency
+		listSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.Repository}}:{{.Tag}}")
+		output := listSession.OutputToStringArray()
+		Expect(output).To(ContainElement(artifactNameWithTag))
+	})
+
 	It("podman artifact push and pull", func() {
 		// Before starting a registry, try to pull a bogus image from a bogus registry
 		// using retry-delay
@@ -204,7 +226,7 @@ var _ = Describe("Podman artifact", func() {
 		// Trying to remove an image that does not exist should fail
 		rmFail := podmanTest.Podman([]string{"artifact", "rm", "foobar"})
 		rmFail.WaitWithDefaultTimeout()
-		Expect(rmFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", "foobar")))
+		Expect(rmFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", "foobar:latest")))
 
 		// Add an artifact to remove later
 		artifact1File, err := createArtifactFile(4192)
@@ -220,7 +242,7 @@ var _ = Describe("Podman artifact", func() {
 		// Inspecting that the removed artifact should fail
 		inspectArtifact := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
 		inspectArtifact.WaitWithDefaultTimeout()
-		Expect(inspectArtifact).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+		Expect(inspectArtifact).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name+":latest")))
 
 		// Add some artifacts back in
 		artifact2File, err := createArtifactFile(8096)
@@ -524,7 +546,7 @@ var _ = Describe("Podman artifact", func() {
 
 		inspectFail := podmanTest.Podman([]string{"artifact", "inspect", artifact1Name})
 		inspectFail.WaitWithDefaultTimeout()
-		Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name)))
+		Expect(inspectFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: artifact does not exist", artifact1Name+":latest")))
 	})
 
 	It("podman artifact add --append file already exists in artifact", func() {
@@ -539,6 +561,7 @@ var _ = Describe("Podman artifact", func() {
 		Expect(appendFail).Should(ExitWithError(125, fmt.Sprintf("Error: %s: file already exists in artifact", filepath.Base(artifact1File))))
 		a := podmanTest.InspectArtifact(artifact1Name)
 
+		Expect(a.Name).To(Equal(artifact1Name))
 		Expect(a.Manifest.Layers).To(HaveLen(1))
 		Expect(a.TotalSizeBytes()).To(Equal(int64(2048)))
 	})

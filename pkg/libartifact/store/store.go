@@ -132,6 +132,7 @@ func (as ArtifactStore) Inspect(ctx context.Context, nameOrDigest string) (*liba
 	if err != nil {
 		return nil, err
 	}
+
 	inspectData, _, err := artifacts.GetByNameOrDigest(nameOrDigest)
 	return inspectData, err
 }

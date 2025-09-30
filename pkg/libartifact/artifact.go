@@ -58,12 +58,13 @@ type ArtifactList []*Artifact
 // GetByNameOrDigest returns an artifact, if present, by a given name
 // Returns an error if not found
 func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, error) {
-	// This is the hot route through
+	// This is the hot route through - try exact match first
 	for _, artifact := range al {
 		if artifact.Name == nameOrDigest {
 			return artifact, false, nil
 		}
 	}
+
 	// Before giving up, check by digest
 	for _, artifact := range al {
 		artifactDigest, err := artifact.GetDigest()
@@ -75,5 +76,18 @@ func (al ArtifactList) GetByNameOrDigest(nameOrDigest string) (*Artifact, bool, 
 			return artifact, true, nil
 		}
 	}
+
+	// If no exact match and no tag/digest present, try with :latest
+	if !strings.Contains(nameOrDigest, ":") && !strings.Contains(nameOrDigest, "@") {
+		latestName := nameOrDigest + ":latest"
+		for _, artifact := range al {
+			if artifact.Name == latestName {
+				return artifact, false, nil
+			}
+		}
+		// Return error with the :latest name since that's what we tried
+		return nil, false, fmt.Errorf("%s: %w", latestName, types.ErrArtifactNotExist)
+	}
+
 	return nil, false, fmt.Errorf("%s: %w", nameOrDigest, types.ErrArtifactNotExist)
 }
