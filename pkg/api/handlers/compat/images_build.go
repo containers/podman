@@ -923,10 +923,8 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 
 		logrus.Debugf("name: %q, context: %q", name, value)
 
-		switch {
-		case strings.HasPrefix(value, "url:"):
-			value = strings.TrimPrefix(value, "url:")
-			tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", value)
+		if urlValue, ok := strings.CutPrefix(value, "url:"); ok {
+			tempDir, subdir, err := buildahDefine.TempDirForURL(anchorDir, "buildah", urlValue)
 			if err != nil {
 				return nil, fmt.Errorf("downloading URL %q: %w", name, err)
 			}
@@ -940,15 +938,14 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 			}
 
 			logrus.Debugf("Downloaded URL context %q to %q", name, contextPath)
-		case strings.HasPrefix(value, "image:"):
-			value = strings.TrimPrefix(value, "image:")
+		} else if imageValue, ok := strings.CutPrefix(value, "image:"); ok {
 			out.AdditionalBuildContexts[name] = &buildahDefine.AdditionalBuildContext{
 				IsURL:   false,
 				IsImage: true,
-				Value:   value,
+				Value:   imageValue,
 			}
 
-			logrus.Debugf("Using image context %q: %q", name, value)
+			logrus.Debugf("Using image context %q: %q", name, imageValue)
 		}
 	}
 
@@ -979,8 +976,7 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 
 		fieldName := part.FormName()
 
-		switch {
-		case fieldName == "MainContext":
+		if fieldName == "MainContext" {
 			mainDir, err := extractTarFile(anchorDir, part)
 			if err != nil {
 				return nil, fmt.Errorf("extracting main context in multipart: %w", err)
@@ -989,10 +985,7 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 				return nil, fmt.Errorf("main context directory is empty")
 			}
 			out.ContextDirectory = mainDir
-
-		case strings.HasPrefix(fieldName, "build-context-"):
-			contextName := strings.TrimPrefix(fieldName, "build-context-")
-
+		} else if contextName, ok := strings.CutPrefix(fieldName, "build-context-"); ok {
 			// Create temp directory directly under anchorDir
 			additionalAnchor, err := os.MkdirTemp(anchorDir, contextName+"-*")
 			if err != nil {
@@ -1039,7 +1032,7 @@ func handleBuildContexts(r *http.Request, query url.Values, anchorDir string, mu
 				IsImage: false,
 				Value:   additionalAnchor,
 			}
-		default:
+		} else {
 			logrus.Debugf("Ignoring unknown multipart field: %s", fieldName)
 		}
 	}
