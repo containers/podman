@@ -75,8 +75,8 @@ github.com/containernetworking/cni/pkg/types/create
 github.com/containernetworking/cni/pkg/types/internal
 github.com/containernetworking/cni/pkg/utils
 github.com/containernetworking/cni/pkg/version
-# github.com/containernetworking/plugins v1.7.1
-## explicit; go 1.23.0
+# github.com/containernetworking/plugins v1.8.0
+## explicit; go 1.24.2
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/buildah v1.41.1-0.20250829135344-3367a9bc2c9f
 ## explicit; go 1.23.3
@@ -320,8 +320,8 @@ github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-intervals v0.0.2
 ## explicit; go 1.12
 github.com/google/go-intervals/intervalset
-# github.com/google/pprof v0.0.0-20250403155104-27863c87afa6
-## explicit; go 1.23
+# github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6
+## explicit; go 1.24.0
 github.com/google/pprof/profile
 # github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 ## explicit; go 1.13

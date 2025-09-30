@@ -3,14 +3,16 @@ module github.com/containers/podman/v5
 // Warning: if there is a "toolchain" directive anywhere in this file (and most of the
 // time there shouldn't be), its version must be an exact match to the "go" directive.
 
-go 1.24.0
+go 1.24.2
+
+toolchain go1.24.7
 
 require (
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.4.0
 	github.com/checkpoint-restore/go-criu/v7 v7.2.0
-	github.com/containernetworking/plugins v1.7.1
+	github.com/containernetworking/plugins v1.8.0
 	github.com/containers/buildah v1.41.1-0.20250829135344-3367a9bc2c9f
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/gvisor-tap-vsock v0.8.7
@@ -121,7 +123,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.20.3 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
-	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect
+	github.com/google/pprof v0.0.0-20250820193118-f64d9cf942d6 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
