@@ -2102,6 +2102,12 @@ func (b *Builder) createMountTargets(spec *specs.Spec) ([]copier.ConditionalRemo
 				// forced permissions
 				mode = &perms
 			}
+			if mode == nil && destination != cleanedDestination {
+				// parent directories default to 0o755, for
+				// the sake of commands running as UID != 0
+				perms := os.FileMode(0o755)
+				mode = &perms
+			}
 			targets.Paths = append(targets.Paths, copier.EnsurePath{
 				Path:     destination,
 				Typeflag: typeFlag,
