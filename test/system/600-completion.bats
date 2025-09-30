@@ -422,3 +422,11 @@ function _check_no_suggestions() {
 
     _check_completion_end NoFileComp
 }
+
+@test "podman network create --interface-name" {
+    run_completion network create --interface-name l
+
+    assert "$output" =~ '.*lo.*' "Loopback interface should be present by default"
+
+    _check_completion_end NoFileComp
+}
