@@ -76,3 +76,18 @@ func (o *AddOptions) GetFileMIMEType() string {
 	}
 	return *o.FileMIMEType
 }
+
+// WithReplace set field Replace to given value
+func (o *AddOptions) WithReplace(value bool) *AddOptions {
+	o.Replace = &value
+	return o
+}
+
+// GetReplace returns value of field Replace
+func (o *AddOptions) GetReplace() bool {
+	if o.Replace == nil {
+		var z bool
+		return z
+	}
+	return *o.Replace
+}

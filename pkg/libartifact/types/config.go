@@ -13,6 +13,8 @@ type AddOptions struct {
 	// FileType describes the media type for the layer.  It is an override
 	// for the standard detection
 	FileMIMEType string `json:",omitempty"`
+	// Replace option removes existing artifact before adding new one
+	Replace bool `json:",omitempty"`
 }
 
 // FilterBlobOptions options used to filter for a single blob in an artifact
