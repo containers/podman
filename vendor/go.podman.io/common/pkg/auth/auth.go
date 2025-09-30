@@ -233,8 +233,7 @@ func parseCredentialsKey(arg string, acceptRepositories bool) (key, registry str
 		return "", "", err
 	}
 
-	split := strings.Split(key, "/")
-	registry = split[0]
+	registry, _, _ = strings.Cut(key, "/")
 
 	if !acceptRepositories {
 		return registry, registry, nil

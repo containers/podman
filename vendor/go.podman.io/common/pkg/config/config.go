@@ -707,6 +707,13 @@ type Destination struct {
 	// Identity file with ssh key, optional
 	Identity string `json:",omitempty" toml:"identity,omitempty"`
 
+	// Path to TLS client certificate PEM file, optional
+	TLSCert string `json:",omitempty" toml:"tls_cert,omitempty"`
+	// Path to TLS client certificate private key PEM file, optional
+	TLSKey string `json:",omitempty" toml:"tls_key,omitempty"`
+	// Path to TLS certificate authority PEM file, optional
+	TLSCA string `json:",omitempty" toml:"tls_ca,omitempty"`
+
 	// isMachine describes if the remote destination is a machine.
 	IsMachine bool `json:",omitempty" toml:"is_machine,omitempty"`
 }
@@ -761,9 +768,9 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 			}
 		}
 	} else {
-		for _, part := range strings.Split(session, ",") {
-			if strings.HasPrefix(part, "unix:path=") {
-				err := fileutils.Exists(strings.TrimPrefix(part, "unix:path="))
+		for part := range strings.SplitSeq(session, ",") {
+			if path, ok := strings.CutPrefix(part, "unix:path="); ok {
+				err := fileutils.Exists(path)
 				hasSession = err == nil
 				break
 			}
@@ -1158,17 +1165,17 @@ func (c *Config) ImageCopyTmpDir() (string, error) {
 // setupEnv sets the environment variables for the engine.
 func (c *Config) setupEnv() error {
 	for _, env := range c.Engine.Env.Get() {
-		splitEnv := strings.SplitN(env, "=", 2)
-		if len(splitEnv) != 2 {
+		key, value, ok := strings.Cut(env, "=")
+		if !ok {
 			logrus.Warnf("invalid environment variable for engine %s, valid configuration is KEY=value pair", env)
 			continue
 		}
 		// skip if the env is already defined
-		if _, ok := os.LookupEnv(splitEnv[0]); ok {
-			logrus.Debugf("environment variable %s is already defined, skip the settings from containers.conf", splitEnv[0])
+		if _, ok := os.LookupEnv(key); ok {
+			logrus.Debugf("environment variable %s is already defined, skip the settings from containers.conf", key)
 			continue
 		}
-		if err := os.Setenv(splitEnv[0], splitEnv[1]); err != nil {
+		if err := os.Setenv(key, value); err != nil {
 			return err
 		}
 	}
@@ -1202,7 +1209,7 @@ func (e eventsLogMaxSize) MarshalText() ([]byte, error) {
 		v := []byte{}
 		return v, nil
 	}
-	return []byte(fmt.Sprintf("%d", e)), nil
+	return fmt.Appendf(nil, "%d", e), nil
 }
 
 func ValidateImageVolumeMode(mode string) error {

@@ -933,7 +933,7 @@ load helpers
     # that podman's stdout is redirected cleanly with no artifacts.
 
     # Copy file.
-    $PODMAN cp $cpcontainer:/tmp/file.txt - > $srcdir/stdout.tar
+    "${PODMAN_CMD[@]}" cp $cpcontainer:/tmp/file.txt - > $srcdir/stdout.tar
 
     tar xvf $srcdir/stdout.tar -C $srcdir
     is "$(< $srcdir/file.txt)" "$rand_content" "File contents: file.txt"
@@ -943,7 +943,7 @@ load helpers
     rm -f $srcdir/*
 
     # Copy directory.
-    $PODMAN cp $cpcontainer:/tmp - > $srcdir/stdout.tar
+    "${PODMAN_CMD[@]}" cp $cpcontainer:/tmp - > $srcdir/stdout.tar
 
     tar xvf $srcdir/stdout.tar -C $srcdir
     is "$(< $srcdir/tmp/file.txt)" "$rand_content"  "file.txt contents"

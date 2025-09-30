@@ -8,6 +8,7 @@ load helpers
 load helpers.network
 load helpers.registry
 
+
 # Create common environment just in case we end up needing a registry.
 # These environment variables will be available to all tests.
 function setup_suite() {
@@ -16,6 +17,20 @@ function setup_suite() {
     # The line below is newline, space, tab.
     IFS="
  	"
+
+    # These are set/generated even for non-remote tests because some local tests still create their
+    # own system service.
+    export REMOTESYSTEM_UNIX_SOCK=$(mktemp ${BATS_SUITE_TMPDIR}/remotesystem.podman.XXXXXX.sock)
+    export REMOTESYSTEM_TCP_PORT=$(random_free_port 27000-27999)
+    gen-tls
+
+    PODMAN_CMD=("${PODMAN}")
+    add_podman_args PODMAN_CMD
+
+    if is_remote; then
+      echo "Running remote system tests with transport ${REMOTESYSTEM_TRANSPORT}"
+      start-suite-podman-system-service
+    fi
 
     export PODMAN_LOGIN_WORKDIR="$BATS_SUITE_TMPDIR/podman-bats-registry"
     mkdir "$PODMAN_LOGIN_WORKDIR"
@@ -62,6 +77,15 @@ function teardown_suite() {
             echo "^^^^^ Leaks found in $NETNS_DIR ^^^^^"
             exit_code=$((exit_code + 1))
         fi
+    fi
+
+    if is_remote; then
+      # See function start-suite-podman-system-service
+      # run systemctl-user stop "$SUITE_SERVICE_NAME"
+      # journalctl -u "${SUITE_SERVICE_NAME}" | tee ${PODMAN_SERVER_LOG:-/dev/null}
+      local system_service_pid=$(cat "${SUITE_PIDFILE}")
+      kill -sINT "${system_service_pid}"
+      wait "${system_service_pid}"
     fi
 
     return $exit_code

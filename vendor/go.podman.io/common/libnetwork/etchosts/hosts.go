@@ -236,24 +236,23 @@ func checkIfEntryExists(current HostEntry, entries HostEntries) bool {
 func parseExtraHosts(extraHosts []string, hostContainersInternalIP string) (HostEntries, error) {
 	entries := make(HostEntries, 0, len(extraHosts))
 	for _, entry := range extraHosts {
-		values := strings.SplitN(entry, ":", 2)
-		if len(values) != 2 {
+		namesString, ip, ok := strings.Cut(entry, ":")
+		if !ok {
 			return nil, fmt.Errorf("unable to parse host entry %q: incorrect format", entry)
 		}
-		if values[0] == "" {
+		if namesString == "" {
 			return nil, fmt.Errorf("hostname in host entry %q is empty", entry)
 		}
-		if values[1] == "" {
+		if ip == "" {
 			return nil, fmt.Errorf("IP address in host entry %q is empty", entry)
 		}
-		ip := values[1]
-		if values[1] == HostGateway {
+		if ip == HostGateway {
 			if hostContainersInternalIP == "" {
 				return nil, fmt.Errorf("unable to replace %q of host entry %q: host containers internal IP address is empty", HostGateway, entry)
 			}
 			ip = hostContainersInternalIP
 		}
-		names := strings.Split(values[0], ";")
+		names := strings.Split(namesString, ";")
 		e := HostEntry{IP: ip, Names: names}
 		entries = append(entries, e)
 	}

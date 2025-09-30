@@ -19,7 +19,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     PORT=$(random_free_port)
 
     log=${PODMAN_TMPDIR}/system-service.log
-    $PODMAN system service --cors="*" tcp:$SERVICE_TCP_HOST:$PORT -t 20 2> $log &
+    "${PODMAN_CMD[@]}" system service --cors="*" tcp:$SERVICE_TCP_HOST:$PORT -t 20 2> $log &
     podman_pid="$!"
 
     wait_for_port $SERVICE_TCP_HOST $PORT
@@ -42,7 +42,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
 @test "podman system service - tcp without CORS" {
     skip_if_remote "system service tests are meaningless over remote"
     PORT=$(random_free_port)
-    $PODMAN system service tcp:$SERVICE_TCP_HOST:$PORT -t 20 &
+    "${PODMAN_CMD[@]}" system service tcp:$SERVICE_TCP_HOST:$PORT -t 20 &
     podman_pid="$!"
 
     wait_for_port $SERVICE_TCP_HOST $PORT
@@ -65,7 +65,7 @@ SOCKET_FILE="$UNIT_DIR/$SERVICE_NAME.socket"
     PORT=$(random_free_port)
     run_podman 0+w system service --log-level="debug" --cors="*" -t 1 tcp:$SERVICE_TCP_HOST:$PORT
     is "$output" ".*CORS Headers were set to ..\*...*" "debug log confirms CORS headers set"
-    assert "$output" =~ "level=warning msg=\"Using the Podman API service with TCP sockets is not recommended" \
+    assert "$output" =~ "level=warning msg=\"Using the Podman API service with TCP sockets without TLS is not recommended" \
            "TCP socket warning"
 }
 

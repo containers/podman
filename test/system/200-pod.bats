@@ -589,7 +589,7 @@ io.max          | $lomajmin rbps=1048576 wbps=1048576 riops=max wiops=max
     done
 
     # and delete them
-    $PODMAN pod rm -a &
+    "${PODMAN_CMD[@]}" pod rm -a &
 
     # pod ps should not fail while pods are deleted
     run_podman pod ps -q

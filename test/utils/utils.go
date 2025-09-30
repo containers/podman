@@ -2,7 +2,11 @@ package utils
 
 import (
 	"bufio"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"math/rand"
@@ -14,9 +18,6 @@ import (
 	"time"
 
 	crypto_rand "crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 
 	"github.com/sirupsen/logrus"
 
@@ -63,19 +64,29 @@ type PodmanTestCommon interface {
 
 // PodmanTest struct for command line options
 type PodmanTest struct {
-	ImageCacheDir      string
-	ImageCacheFS       string
-	NetworkBackend     NetworkBackend
-	DatabaseBackend    string
-	PodmanBinary       string
-	PodmanMakeOptions  func(args []string, options PodmanExecOptions) []string
-	RemoteCommand      *exec.Cmd
-	RemotePodmanBinary string
-	RemoteSession      *os.Process
-	RemoteSocket       string
-	RemoteSocketLock   string // If not "", should be removed _after_ RemoteSocket is removed
-	RemoteTest         bool
-	TempDir            string
+	ImageCacheDir           string
+	ImageCacheFS            string
+	NetworkBackend          NetworkBackend
+	DatabaseBackend         string
+	PodmanBinary            string
+	PodmanMakeOptions       func(args []string, options PodmanExecOptions) []string
+	RemoteCommand           *exec.Cmd
+	RemotePodmanBinary      string
+	RemoteSession           *os.Process
+	RemoteSocket            string
+	RemoteSocketScheme      string
+	RemoteSocketLock        string // If not "", should be removed _after_ RemoteSocket is removed
+	RemoteTLSClientCAFile   string
+	RemoteTLSClientCAPool   *x509.CertPool
+	RemoteTLSClientCerts    []tls.Certificate
+	RemoteTLSServerCertFile string
+	RemoteTLSServerKeyFile  string
+	RemoteTLSServerCAFile   string
+	RemoteTLSServerCAPool   *x509.CertPool
+	RemoteTLSClientCertFile string
+	RemoteTLSClientKeyFile  string
+	RemoteTest              bool
+	TempDir                 string
 }
 
 // PodmanSession wraps the gexec.session so we can extend it
@@ -229,7 +240,7 @@ func (p *PodmanTest) NumberOfPods() int {
 // GetContainerStatus returns the containers state.
 // This function assumes only one container is active.
 func (p *PodmanTest) GetContainerStatus() string {
-	var podmanArgs = []string{"ps"}
+	podmanArgs := []string{"ps"}
 	podmanArgs = append(podmanArgs, "--all", "--format={{.Status}}")
 	session := p.PodmanExecBaseWithOptions(podmanArgs, PodmanExecOptions{
 		NoCache: true,

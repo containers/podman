@@ -1,4 +1,4 @@
-//go:build !windows
+//go:build linux || freebsd
 
 package timezone
 
@@ -103,4 +103,8 @@ func copyTimezoneFile(containerRunDir, zonePath string) (string, error) {
 		return "", err
 	}
 	return localtimeCopy, err
+}
+
+func openDirectory(path string) (fd int, err error) {
+	return unix.Open(path, unix.O_RDONLY|O_PATH|unix.O_CLOEXEC, 0)
 }

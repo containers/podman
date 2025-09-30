@@ -37,6 +37,9 @@ type PodmanConfig struct {
 	HooksDir                 []string
 	CdiSpecDirs              []string
 	Identity                 string   // ssh identity for connecting to server
+	TLSCertFile              string   // tls client cert for connecting to server
+	TLSKeyFile               string   // tls client cert private key for connection to server
+	TLSCAFile                string   // tls certificate authority to verify server connection
 	IsRenumber               bool     // Is this a system renumber command? If so, a number of checks will be relaxed
 	IsReset                  bool     // Is this a system reset command? If so, a number of checks will be skipped/omitted
 	MaxWorks                 int      // maximum number of parallel threads
