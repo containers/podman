@@ -8,9 +8,7 @@ import (
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/libpod/events"
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 )
 
@@ -54,11 +52,7 @@ func start(_ *cobra.Command, args []string) error {
 		vmName = args[0]
 	}
 
-	dirs, err := env.GetMachineDirs(provider.VMType())
-	if err != nil {
-		return err
-	}
-	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
+	mc, vmProvider, err := shim.VMExists(vmName)
 	if err != nil {
 		return err
 	}
@@ -67,7 +61,7 @@ func start(_ *cobra.Command, args []string) error {
 		fmt.Printf("Starting machine %q\n", vmName)
 	}
 
-	if err := shim.Start(mc, provider, dirs, startOpts); err != nil {
+	if err := shim.Start(mc, vmProvider, startOpts); err != nil {
 		return err
 	}
 	fmt.Printf("Machine %q started successfully\n", vmName)

@@ -9,10 +9,8 @@ import (
 	"strings"
 
 	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
 	pkgOS "github.com/containers/podman/v5/pkg/machine/os"
-	"github.com/containers/podman/v5/pkg/machine/provider"
-	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
+	"github.com/containers/podman/v5/pkg/machine/shim"
 	machineconfig "go.podman.io/common/pkg/machine"
 )
 
@@ -23,13 +21,30 @@ type ManagerOpts struct {
 }
 
 // NewOSManager creates a new OSManager depending on the mode of the call
-func NewOSManager(opts ManagerOpts, p vmconfigs.VMProvider) (pkgOS.Manager, error) {
+func NewOSManager(opts ManagerOpts) (pkgOS.Manager, error) {
 	// If a VM name is specified, then we know that we are not inside a
 	// Podman VM, but rather outside of it.
 	if machineconfig.IsPodmanMachine() && opts.VMName == "" {
 		return guestOSManager()
 	}
-	return machineOSManager(opts, p)
+
+	// Set to the default name if no VM was provided
+	if opts.VMName == "" {
+		opts.VMName = define.DefaultMachineName
+	}
+
+	mc, vmProvider, err := shim.VMExists(opts.VMName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pkgOS.MachineOS{
+		VM:       mc,
+		Provider: vmProvider,
+		Args:     opts.CLIArgs,
+		VMName:   opts.VMName,
+		Restart:  opts.Restart,
+	}, nil
 }
 
 // guestOSManager returns an OSmanager for inside-VM operations
@@ -41,33 +56,6 @@ func guestOSManager() (pkgOS.Manager, error) {
 	default:
 		return nil, errors.New("unsupported OS")
 	}
-}
-
-// machineOSManager returns an os manager that manages outside the VM.
-func machineOSManager(opts ManagerOpts, _ vmconfigs.VMProvider) (pkgOS.Manager, error) {
-	vmName := opts.VMName
-	if opts.VMName == "" {
-		vmName = define.DefaultMachineName
-	}
-	p, err := provider.Get()
-	if err != nil {
-		return nil, err
-	}
-	dirs, err := env.GetMachineDirs(p.VMType())
-	if err != nil {
-		return nil, err
-	}
-	mc, err := vmconfigs.LoadMachineByName(vmName, dirs)
-	if err != nil {
-		return nil, err
-	}
-	return &pkgOS.MachineOS{
-		VM:       mc,
-		Provider: p,
-		Args:     opts.CLIArgs,
-		VMName:   vmName,
-		Restart:  opts.Restart,
-	}, nil
 }
 
 type Distribution struct {

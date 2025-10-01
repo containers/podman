@@ -3,14 +3,14 @@
 package machine
 
 import (
+	"errors"
 	"fmt"
-
-	"github.com/containers/podman/v5/pkg/machine/define"
-	"github.com/containers/podman/v5/pkg/machine/env"
 
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/utils"
 	"github.com/containers/podman/v5/pkg/machine"
+	"github.com/containers/podman/v5/pkg/machine/define"
+	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
@@ -45,19 +45,13 @@ func init() {
 	_ = sshCmd.RegisterFlagCompletionFunc(usernameFlagName, completion.AutocompleteNone)
 }
 
-// TODO Remember that this changed upstream and needs to updated as such!
-
 func ssh(_ *cobra.Command, args []string) error {
 	var (
-		err     error
-		mc      *vmconfigs.MachineConfig
-		validVM bool
+		err        error
+		exists     bool
+		mc         *vmconfigs.MachineConfig
+		vmProvider vmconfigs.VMProvider
 	)
-
-	dirs, err := env.GetMachineDirs(provider.VMType())
-	if err != nil {
-		return err
-	}
 
 	// Set the VM to default
 	vmName := defaultMachineName
@@ -68,23 +62,22 @@ func ssh(_ *cobra.Command, args []string) error {
 		// note: previous incantations of this up by a specific name
 		// and errors were ignored.  this error is not ignored because
 		// it implies podman cannot read its machine files, which is bad
-		machines, err := vmconfigs.LoadMachinesInDir(dirs)
+		mc, vmProvider, err = shim.VMExists(args[0])
 		if err != nil {
 			return err
 		}
-
-		mc, validVM = machines[args[0]]
-		if validVM {
+		if errors.Is(err, &define.ErrVMDoesNotExist{}) {
 			vmName = args[0]
 		} else {
 			sshOpts.Args = append(sshOpts.Args, args[0])
 		}
+		exists = true
 	}
 
 	// If len is greater than 1, it means we might have been
 	// given a vmname and args or just args
 	if len(args) > 1 {
-		if validVM {
+		if exists {
 			sshOpts.Args = args[1:]
 		} else {
 			sshOpts.Args = args
@@ -93,13 +86,12 @@ func ssh(_ *cobra.Command, args []string) error {
 
 	// If the machine config was not loaded earlier, we load it now
 	if mc == nil {
-		mc, err = vmconfigs.LoadMachineByName(vmName, dirs)
+		mc, vmProvider, err = shim.VMExists(vmName)
 		if err != nil {
-			return fmt.Errorf("vm %s not found: %w", vmName, err)
+			return err
 		}
 	}
-
-	state, err := provider.State(mc, false)
+	state, err := vmProvider.State(mc, false)
 	if err != nil {
 		return err
 	}
