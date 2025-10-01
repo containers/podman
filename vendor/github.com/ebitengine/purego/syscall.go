@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || windows
+//go:build darwin || freebsd || linux || netbsd || windows
 
 package purego
 
@@ -13,8 +13,8 @@ package purego
 type CDecl struct{}
 
 const (
-	maxArgs     = 15
-	numOfFloats = 8 // arm64 and amd64 both have 8 float registers
+	maxArgs             = 15
+	numOfFloatRegisters = 8 // arm64 and amd64 both have 8 float registers
 )
 
 type syscall15Args struct {
@@ -26,6 +26,9 @@ type syscall15Args struct {
 // SyscallN takes fn, a C function pointer and a list of arguments as uintptr.
 // There is an internal maximum number of arguments that SyscallN can take. It panics
 // when the maximum is exceeded. It returns the result and the libc error code if there is one.
+//
+// In order to call this function properly make sure to follow all the rules specified in [unsafe.Pointer]
+// especially point 4.
 //
 // NOTE: SyscallN does not properly call functions that have both integer and float parameters.
 // See discussion comment https://github.com/ebiten/purego/pull/1#issuecomment-1128057607

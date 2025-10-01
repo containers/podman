@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build !cgo && (darwin || freebsd || linux)
+//go:build !cgo && (darwin || freebsd || linux || netbsd)
 
 #include "textflag.h"
 
@@ -35,6 +35,10 @@ TEXT _nanosleep(SB), NOSPLIT|NOFRAME, $0-0
 
 TEXT _abort(SB), NOSPLIT|NOFRAME, $0-0
 	JMP purego_abort(SB)
+	RET
+
+TEXT _sigaltstack(SB), NOSPLIT|NOFRAME, $0-0
+	JMP purego_sigaltstack(SB)
 	RET
 
 TEXT _pthread_attr_init(SB), NOSPLIT|NOFRAME, $0-0

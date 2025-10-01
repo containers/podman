@@ -14,3 +14,7 @@ var (
 	PTHREAD_COND_INITIALIZER  = pthread_cond_t(0)
 	PTHREAD_MUTEX_INITIALIZER = pthread_mutex_t(0)
 )
+
+type stack_t struct {
+	/* not implemented */
+}
