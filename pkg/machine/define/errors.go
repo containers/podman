@@ -7,11 +7,18 @@ import (
 
 var (
 	ErrWrongState          = errors.New("VM in wrong state to perform action")
-	ErrVMAlreadyExists     = errors.New("VM already exists")
 	ErrNotImplemented      = errors.New("functionality not implemented")
 	ErrInitRelaunchAttempt = errors.New("stopping execution: 'init' relaunched with --reexec flag to reinitialize the VM")
 	ErrRebootInitiated     = errors.New("system reboot initiated")
 )
+
+type ErrVMAlreadyExists struct {
+	Name string
+}
+
+func (err *ErrVMAlreadyExists) Error() string {
+	return fmt.Sprintf("machine %q already exists", err.Name)
+}
 
 type ErrVMRunningCannotDestroyed struct {
 	Name string
