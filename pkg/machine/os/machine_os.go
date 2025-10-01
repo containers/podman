@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/containers/podman/v5/pkg/machine"
-	"github.com/containers/podman/v5/pkg/machine/env"
 	"github.com/containers/podman/v5/pkg/machine/shim"
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
@@ -28,16 +27,11 @@ func (m *MachineOS) Apply(image string, _ ApplyOptions) error {
 		return err
 	}
 
-	dirs, err := env.GetMachineDirs(m.Provider.VMType())
-	if err != nil {
-		return err
-	}
-
 	if m.Restart {
-		if err := shim.Stop(m.VM, m.Provider, dirs, false); err != nil {
+		if err := shim.Stop(m.VM, m.Provider, false); err != nil {
 			return err
 		}
-		if err := shim.Start(m.VM, m.Provider, dirs, machine.StartOptions{NoInfo: true}); err != nil {
+		if err := shim.Start(m.VM, m.Provider, machine.StartOptions{NoInfo: true}); err != nil {
 			return err
 		}
 		fmt.Printf("Machine %q restarted successfully\n", m.VMName)

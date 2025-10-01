@@ -32,42 +32,35 @@ import (
 // List is done at the host level to allow for a *possible* future where
 // more than one provider is used
 func List(vmstubbers []vmconfigs.VMProvider, _ machine.ListOptions) ([]*machine.ListResponse, error) {
-	var lrs []*machine.ListResponse
-
-	for _, s := range vmstubbers {
-		dirs, err := env.GetMachineDirs(s.VMType())
-		if err != nil {
-			return nil, err
-		}
-		mcs, err := vmconfigs.LoadMachinesInDir(dirs)
-		if err != nil {
-			return nil, err
-		}
-		for name, mc := range mcs {
-			state, err := s.State(mc, false)
-			if err != nil {
-				return nil, err
-			}
-			lr := machine.ListResponse{
-				Name:               name,
-				CreatedAt:          mc.Created,
-				LastUp:             mc.LastUp,
-				Running:            state == machineDefine.Running,
-				Starting:           mc.Starting,
-				VMType:             s.VMType().String(),
-				CPUs:               mc.Resources.CPUs,
-				Memory:             mc.Resources.Memory,
-				Swap:               mc.Swap,
-				DiskSize:           mc.Resources.DiskSize,
-				Port:               mc.SSH.Port,
-				RemoteUsername:     mc.SSH.RemoteUsername,
-				IdentityPath:       mc.SSH.IdentityPath,
-				UserModeNetworking: s.UserModeNetworkEnabled(mc),
-			}
-			lrs = append(lrs, &lr)
-		}
+	lrs := make([]*machine.ListResponse, 0)
+	mcs, err := getMCsOverProviders(vmstubbers)
+	if err != nil {
+		return nil, err
 	}
+	for name, mc := range mcs {
+		state, err := mc.Provider.State(mc.MachineConfig, false)
+		if err != nil {
+			return nil, err
+		}
+		lr := machine.ListResponse{
+			Name:               name,
+			CreatedAt:          mc.Created,
+			LastUp:             mc.LastUp,
+			Running:            state == machineDefine.Running,
+			Starting:           mc.Starting,
+			VMType:             mc.Provider.VMType().String(),
+			CPUs:               mc.Resources.CPUs,
+			Memory:             mc.Resources.Memory,
+			Swap:               mc.Swap,
+			DiskSize:           mc.Resources.DiskSize,
+			Port:               mc.SSH.Port,
+			RemoteUsername:     mc.SSH.RemoteUsername,
+			IdentityPath:       mc.SSH.IdentityPath,
+			UserModeNetworking: mc.Provider.UserModeNetworkEnabled(mc.MachineConfig),
+		}
 
+		lrs = append(lrs, &lr)
+	}
 	return lrs, nil
 }
 
@@ -300,27 +293,20 @@ func Init(opts machineDefine.InitOptions, mp vmconfigs.VMProvider) error {
 	return mc.Write()
 }
 
+type MultiProvider []vmconfigs.VMProvider
+
 // VMExists looks across given providers for a machine's existence.  returns the actual config and found bool
-func VMExists(name string, vmstubbers []vmconfigs.VMProvider) (*vmconfigs.MachineConfig, bool, error) {
+func VMExists(name string) (*vmconfigs.MachineConfig, vmconfigs.VMProvider, error) {
 	// Look on disk first
-	mcs, err := getMCsOverProviders(vmstubbers)
+	mcs, err := getMCsOverProviders(provider.GetAll())
 	if err != nil {
-		return nil, false, err
+		return nil, nil, err
 	}
 	if mc, found := mcs[name]; found {
-		return mc.MachineConfig, true, nil
+		vmType := mc.Provider
+		return mc.MachineConfig, vmType, nil
 	}
-	// Check with the provider hypervisor
-	for _, vmstubber := range vmstubbers {
-		exists, err := vmstubber.Exists(name)
-		if err != nil {
-			return nil, false, err
-		}
-		if exists {
-			return nil, true, fmt.Errorf("vm %q already exists on hypervisor", name)
-		}
-	}
-	return nil, false, nil
+	return nil, nil, &machineDefine.ErrVMDoesNotExist{Name: name}
 }
 
 // checkExclusiveActiveVM checks if any of the machines are already running
@@ -356,8 +342,8 @@ func checkExclusiveActiveVM(currentProvider vmconfigs.VMProvider, mc *vmconfigs.
 }
 
 type knownMachineConfig struct {
-	Provider      vmconfigs.VMProvider
-	MachineConfig *vmconfigs.MachineConfig
+	Provider vmconfigs.VMProvider
+	*vmconfigs.MachineConfig
 }
 
 // getMCsOverProviders loads machineconfigs from a config dir derived from the "provider".  it returns only what is known on
@@ -373,15 +359,9 @@ func getMCsOverProviders(vmstubbers []vmconfigs.VMProvider) (map[string]knownMac
 		if err != nil {
 			return nil, err
 		}
-		// TODO When we get to golang-1.20+ we can replace the following with maps.Copy
-		// maps.Copy(mcs, stubberMCs)
-		// iterate known mcs and add the stubbers
 		for mcName, mc := range stubberMCs {
 			if _, ok := mcs[mcName]; !ok {
-				mcs[mcName] = knownMachineConfig{
-					Provider:      stubber,
-					MachineConfig: mc,
-				}
+				mcs[mcName] = knownMachineConfig{Provider: stubber, MachineConfig: mc}
 			}
 		}
 	}
@@ -389,7 +369,11 @@ func getMCsOverProviders(vmstubbers []vmconfigs.VMProvider) (map[string]knownMac
 }
 
 // Stop stops the machine as well as supporting binaries/processes
-func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, hardStop bool) error {
+func Stop(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, hardStop bool) error {
+	dirs, err := env.GetMachineDirs(mp.VMType())
+	if err != nil {
+		return err
+	}
 	// state is checked here instead of earlier because stopping a stopped vm is not considered
 	// an error.  so putting in one place instead of sprinkling all over.
 	mc.Lock()
@@ -445,11 +429,15 @@ func stopLocked(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *mach
 	return mc.Write()
 }
 
-func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.StartOptions) error {
+func Start(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.StartOptions) error {
 	defaultBackoff := 500 * time.Millisecond
 	maxBackoffs := 6
 	signalChanClosed := false
 
+	dirs, err := env.GetMachineDirs(mp.VMType())
+	if err != nil {
+		return err
+	}
 	mc.Lock()
 	defer mc.Unlock()
 	if err := mc.Refresh(); err != nil {
@@ -672,7 +660,11 @@ func Set(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machineDefin
 	return mc.Write()
 }
 
-func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, dirs *machineDefine.MachineDirs, opts machine.RemoveOptions) error {
+func Remove(mc *vmconfigs.MachineConfig, mp vmconfigs.VMProvider, opts machine.RemoveOptions) error {
+	dirs, err := env.GetMachineDirs(mp.VMType())
+	if err != nil {
+		return err
+	}
 	mc.Lock()
 	defer mc.Unlock()
 	if err := mc.Refresh(); err != nil {
@@ -776,7 +768,7 @@ func Reset(mps []vmconfigs.VMProvider, _ machine.ResetOptions) error {
 		}
 
 		for _, mc := range mcs {
-			err := Stop(mc, p, d, true)
+			err := Stop(mc, p, true)
 			if err != nil {
 				resetErrors = multierror.Append(resetErrors, err)
 			}
