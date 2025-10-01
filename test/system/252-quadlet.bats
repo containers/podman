@@ -11,6 +11,7 @@ load helpers.registry
 load helpers.systemd
 
 UNIT_FILES=()
+SERVICES_TO_STOP=()
 
 function start_time() {
     sleep_to_next_second # Ensure we're on a new second with no previous logging
@@ -26,16 +27,32 @@ function setup() {
 
     start_time
 
+    # Clear arrays for each test
+    SERVICES_TO_STOP=()
+
     basic_setup
 }
 
 function teardown() {
+    # Stop manually specified services
+    for service in ${SERVICES_TO_STOP[@]}; do
+        run systemctl stop "$service"
+        if [ $status -ne 0 ]; then
+           echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+        fi
+        run systemctl reset-failed "$service"
+    done
+
     for UNIT_FILE in ${UNIT_FILES[@]}; do
         if [[ -e "$UNIT_FILE" ]]; then
             local service=$(basename "$UNIT_FILE")
-            run systemctl stop "$service"
-            if [ $status -ne 0 ]; then
-               echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+            # Skip stopping template services (those ending with '@')
+            # as they cannot be stopped directly without an instance name
+            if [[ ! "$service" =~ @\.service$ ]]; then
+                run systemctl stop "$service"
+                if [ $status -ne 0 ]; then
+                   echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+                fi
             fi
             run systemctl reset-failed "$service"
             rm -f "$UNIT_FILE"
@@ -503,6 +520,11 @@ EOF
     # Start the container service instance which should also trigger the start of the volume service instance
     service_setup $container_service_instance
 
+    # Add the service instances to SERVICES_TO_STOP for proper cleanup
+    # SERVICES_TO_STOP+=("$container_service_instance")
+    SERVICES_TO_STOP+=("$vol_service_instance")
+    SERVICES_TO_STOP+=("$net_service_instance")
+
     # Volume system unit instance should be active
     run systemctl show --property=ActiveState "$vol_service_instance"
     assert "$output" = "ActiveState=active" \
@@ -519,19 +541,10 @@ EOF
     # Network should exist
     run_podman network exists ${network_name_instance}
 
-    # The default cleanup stops the services corresponding to the copied unit files.
-    # However, the test copies the template units while running their instances.
-    # As a result, the default cleanup fails to stop the services.
-    # As a workaround, stop the services and delete the unit files manually.
+    # Clean up the created resources
     service_cleanup $container_service_instance failed
-    service_cleanup $vol_service_instance inactive
-    service_cleanup $net_service_instance inactive
     run_podman volume rm $volume_name_instance
     run_podman network rm $network_name_instance
-    for UNIT_FILE in ${UNIT_FILES[@]}; do
-        rm $UNIT_FILE
-    done
-    UNIT_FILES=()
 }
 
 # A quadlet container depends on a named quadlet volume
