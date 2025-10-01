@@ -41,7 +41,7 @@ func init() {
 	rmFlags(rmCmd)
 }
 
-func rm(cmd *cobra.Command, args []string) error {
+func rm(_ *cobra.Command, args []string) error {
 	rmOptions.Artifacts = args
 
 	artifactRemoveReport, err := registry.ImageEngine().ArtifactRm(registry.Context(), rmOptions)

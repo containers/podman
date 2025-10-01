@@ -65,7 +65,7 @@ func init() {
 	validate.AddLatestFlag(containerInitCommand, &initOptions.Latest)
 }
 
-func initContainer(cmd *cobra.Command, args []string) error {
+func initContainer(_ *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
 	args = utils.RemoveSlash(args)
 	report, err := registry.ContainerEngine().ContainerInit(registry.Context(), args, initOptions)

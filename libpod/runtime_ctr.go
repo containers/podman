@@ -59,7 +59,7 @@ func (r *Runtime) NewContainer(ctx context.Context, rSpec *spec.Spec, spec *spec
 	return r.newContainer(ctx, rSpec, options...)
 }
 
-func (r *Runtime) PrepareVolumeOnCreateContainer(ctx context.Context, ctr *Container) error {
+func (r *Runtime) PrepareVolumeOnCreateContainer(_ context.Context, ctr *Container) error {
 	// Copy the content from the underlying image into the newly created
 	// volume if configured to do so.
 	if !r.config.Containers.PrepareVolumeOnCreate {
@@ -117,7 +117,7 @@ func (r *Runtime) RestoreContainer(ctx context.Context, rSpec *spec.Spec, config
 
 // RenameContainer renames the given container.
 // Returns a copy of the container that has been renamed if successful.
-func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName string) (*Container, error) {
+func (r *Runtime) RenameContainer(_ context.Context, ctr *Container, newName string) (*Container, error) {
 	ctr.lock.Lock()
 	defer ctr.lock.Unlock()
 

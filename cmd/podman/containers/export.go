@@ -68,7 +68,7 @@ func init() {
 	exportFlags(containerExportCommand)
 }
 
-func export(cmd *cobra.Command, args []string) error {
+func export(_ *cobra.Command, args []string) error {
 	if len(outputFile) == 0 {
 		file := os.Stdout
 		if term.IsTerminal(int(file.Fd())) {

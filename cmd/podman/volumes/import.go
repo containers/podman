@@ -33,7 +33,7 @@ func init() {
 	})
 }
 
-func importVol(cmd *cobra.Command, args []string) error {
+func importVol(_ *cobra.Command, args []string) error {
 	opts := entities.VolumeImportOptions{}
 
 	filepath := args[1]

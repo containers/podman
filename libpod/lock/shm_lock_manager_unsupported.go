@@ -9,12 +9,12 @@ import "fmt"
 type SHMLockManager struct{}
 
 // NewSHMLockManager is not supported on this platform
-func NewSHMLockManager(path string, numLocks uint32) (Manager, error) {
+func NewSHMLockManager(_ string, _ uint32) (Manager, error) {
 	return nil, fmt.Errorf("not supported")
 }
 
 // OpenSHMLockManager is not supported on this platform
-func OpenSHMLockManager(path string, numLocks uint32) (Manager, error) {
+func OpenSHMLockManager(_ string, _ uint32) (Manager, error) {
 	return nil, fmt.Errorf("not supported")
 }
 
@@ -24,7 +24,7 @@ func (m *SHMLockManager) AllocateLock() (Locker, error) {
 }
 
 // RetrieveLock is not supported on this platform
-func (m *SHMLockManager) RetrieveLock(id string) (Locker, error) {
+func (m *SHMLockManager) RetrieveLock(_ string) (Locker, error) {
 	return nil, fmt.Errorf("not supported")
 }
 

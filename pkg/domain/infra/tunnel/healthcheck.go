@@ -8,6 +8,6 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 )
 
-func (ic *ContainerEngine) HealthCheckRun(ctx context.Context, nameOrID string, options entities.HealthCheckOptions) (*define.HealthCheckResults, error) {
+func (ic *ContainerEngine) HealthCheckRun(_ context.Context, nameOrID string, _ entities.HealthCheckOptions) (*define.HealthCheckResults, error) {
 	return containers.RunHealthCheck(ic.ClientCtx, nameOrID, nil)
 }

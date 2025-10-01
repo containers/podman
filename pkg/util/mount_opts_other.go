@@ -2,6 +2,6 @@
 
 package util
 
-func getDefaultMountOptions(path string) (opts defaultMountOptions, err error) {
+func getDefaultMountOptions(_ string) (opts defaultMountOptions, err error) {
 	return
 }

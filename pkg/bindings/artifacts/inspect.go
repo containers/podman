@@ -8,7 +8,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities/types"
 )
 
-func Inspect(ctx context.Context, nameOrID string, options *InspectOptions) (*types.ArtifactInspectReport, error) {
+func Inspect(ctx context.Context, nameOrID string, _ *InspectOptions) (*types.ArtifactInspectReport, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

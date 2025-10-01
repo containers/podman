@@ -41,6 +41,6 @@ func init() {
 	inspectOpts = inspect.AddInspectFlagSet(inspectCmd)
 }
 
-func inspectExec(cmd *cobra.Command, args []string) error {
+func inspectExec(_ *cobra.Command, args []string) error {
 	return inspect.Inspect(args, *inspectOpts)
 }

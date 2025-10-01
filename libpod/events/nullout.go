@@ -10,12 +10,12 @@ import (
 type EventToNull struct{}
 
 // Write eats the event and always returns nil
-func (e EventToNull) Write(ee Event) error {
+func (e EventToNull) Write(_ Event) error {
 	return nil
 }
 
 // Read does nothing and returns an error.
-func (e EventToNull) Read(ctx context.Context, options ReadOptions) error {
+func (e EventToNull) Read(_ context.Context, _ ReadOptions) error {
 	return errors.New("cannot read events with the \"none\" backend")
 }
 

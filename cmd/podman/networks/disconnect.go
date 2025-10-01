@@ -38,7 +38,7 @@ func init() {
 	networkDisconnectFlags(flags)
 }
 
-func networkDisconnect(cmd *cobra.Command, args []string) error {
+func networkDisconnect(_ *cobra.Command, args []string) error {
 	networkDisconnectOptions.Container = args[1]
 	return registry.ContainerEngine().NetworkDisconnect(registry.Context(), args[0], networkDisconnectOptions)
 }

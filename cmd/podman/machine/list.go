@@ -65,7 +65,7 @@ func init() {
 	flags.BoolVar(&listFlag.allProviders, "all-providers", false, "Show machines from all providers")
 }
 
-func list(cmd *cobra.Command, args []string) error {
+func list(cmd *cobra.Command, _ []string) error {
 	var (
 		opts machine.ListOptions
 		err  error
@@ -91,7 +91,7 @@ func list(cmd *cobra.Command, args []string) error {
 		return listResponse[i].LastUp.After(listResponse[j].LastUp)
 	})
 	// Bring currently running machines to top
-	sort.Slice(listResponse, func(i, j int) bool {
+	sort.Slice(listResponse, func(i, _ int) bool {
 		return listResponse[i].Running
 	})
 

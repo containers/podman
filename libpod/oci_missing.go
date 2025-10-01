@@ -72,17 +72,17 @@ func (r *MissingRuntime) Path() string {
 }
 
 // CreateContainer is not available as the runtime is missing
-func (r *MissingRuntime) CreateContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
+func (r *MissingRuntime) CreateContainer(_ *Container, _ *ContainerCheckpointOptions) (int64, error) {
 	return 0, r.printError()
 }
 
 // StartContainer is not available as the runtime is missing
-func (r *MissingRuntime) StartContainer(ctr *Container) error {
+func (r *MissingRuntime) StartContainer(_ *Container) error {
 	return r.printError()
 }
 
 // UpdateContainer is not available as the runtime is missing
-func (r *MissingRuntime) UpdateContainer(ctr *Container, resources *spec.LinuxResources) error {
+func (r *MissingRuntime) UpdateContainer(_ *Container, _ *spec.LinuxResources) error {
 	return r.printError()
 }
 
@@ -90,63 +90,63 @@ func (r *MissingRuntime) UpdateContainer(ctr *Container, resources *spec.LinuxRe
 // TODO: We could attempt to unix.Kill() the PID as recorded in the state if we
 // really want to smooth things out? Won't be perfect, but if the container has
 // a PID namespace it could be enough?
-func (r *MissingRuntime) KillContainer(ctr *Container, signal uint, all bool) error {
+func (r *MissingRuntime) KillContainer(_ *Container, _ uint, _ bool) error {
 	return r.printError()
 }
 
 // StopContainer is not available as the runtime is missing
-func (r *MissingRuntime) StopContainer(ctr *Container, timeout uint, all bool) error {
+func (r *MissingRuntime) StopContainer(_ *Container, _ uint, _ bool) error {
 	return r.printError()
 }
 
 // DeleteContainer is not available as the runtime is missing
-func (r *MissingRuntime) DeleteContainer(ctr *Container) error {
+func (r *MissingRuntime) DeleteContainer(_ *Container) error {
 	return r.printError()
 }
 
 // PauseContainer is not available as the runtime is missing
-func (r *MissingRuntime) PauseContainer(ctr *Container) error {
+func (r *MissingRuntime) PauseContainer(_ *Container) error {
 	return r.printError()
 }
 
 // UnpauseContainer is not available as the runtime is missing
-func (r *MissingRuntime) UnpauseContainer(ctr *Container) error {
+func (r *MissingRuntime) UnpauseContainer(_ *Container) error {
 	return r.printError()
 }
 
 // Attach is not available as the runtime is missing
-func (r *MissingRuntime) Attach(ctr *Container, params *AttachOptions) error {
+func (r *MissingRuntime) Attach(_ *Container, _ *AttachOptions) error {
 	return r.printError()
 }
 
 // HTTPAttach is not available as the runtime is missing
-func (r *MissingRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) error {
+func (r *MissingRuntime) HTTPAttach(_ *Container, _ *http.Request, _ http.ResponseWriter, _ *HTTPAttachStreams, _ *string, _ <-chan bool, _ chan<- bool, _, _ bool) error {
 	return r.printError()
 }
 
 // AttachResize is not available as the runtime is missing
-func (r *MissingRuntime) AttachResize(ctr *Container, newSize resize.TerminalSize) error {
+func (r *MissingRuntime) AttachResize(_ *Container, _ resize.TerminalSize) error {
 	return r.printError()
 }
 
 // ExecContainer is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainer(ctr *Container, sessionID string, options *ExecOptions, streams *define.AttachStreams, newSize *resize.TerminalSize) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainer(_ *Container, _ string, _ *ExecOptions, _ *define.AttachStreams, _ *resize.TerminalSize) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 
 // ExecContainerHTTP is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainerHTTP(ctr *Container, sessionID string, options *ExecOptions, req *http.Request, w http.ResponseWriter,
-	streams *HTTPAttachStreams, cancel <-chan bool, hijackDone chan<- bool, holdConnOpen <-chan bool, newSize *resize.TerminalSize) (int, chan error, error) {
+func (r *MissingRuntime) ExecContainerHTTP(_ *Container, _ string, _ *ExecOptions, _ *http.Request, _ http.ResponseWriter,
+	_ *HTTPAttachStreams, _ <-chan bool, _ chan<- bool, _ <-chan bool, _ *resize.TerminalSize) (int, chan error, error) {
 	return -1, nil, r.printError()
 }
 
 // ExecContainerDetached is not available as the runtime is missing
-func (r *MissingRuntime) ExecContainerDetached(ctr *Container, sessionID string, options *ExecOptions, stdin bool) (int, error) {
+func (r *MissingRuntime) ExecContainerDetached(_ *Container, _ string, _ *ExecOptions, _ bool) (int, error) {
 	return -1, r.printError()
 }
 
 // ExecAttachResize is not available as the runtime is missing.
-func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newSize resize.TerminalSize) error {
+func (r *MissingRuntime) ExecAttachResize(_ *Container, _ string, _ resize.TerminalSize) error {
 	return r.printError()
 }
 
@@ -154,22 +154,22 @@ func (r *MissingRuntime) ExecAttachResize(ctr *Container, sessionID string, newS
 // TODO: We can also investigate using unix.Kill() on the PID of the exec
 // session here if we want to make stopping containers possible. Won't be
 // perfect, though.
-func (r *MissingRuntime) ExecStopContainer(ctr *Container, sessionID string, timeout uint) error {
+func (r *MissingRuntime) ExecStopContainer(_ *Container, _ string, _ uint) error {
 	return r.printError()
 }
 
 // ExecUpdateStatus is not available as the runtime is missing.
-func (r *MissingRuntime) ExecUpdateStatus(ctr *Container, sessionID string) (bool, error) {
+func (r *MissingRuntime) ExecUpdateStatus(_ *Container, _ string) (bool, error) {
 	return false, r.printError()
 }
 
 // CheckpointContainer is not available as the runtime is missing
-func (r *MissingRuntime) CheckpointContainer(ctr *Container, options ContainerCheckpointOptions) (int64, error) {
+func (r *MissingRuntime) CheckpointContainer(_ *Container, _ ContainerCheckpointOptions) (int64, error) {
 	return 0, r.printError()
 }
 
 // CheckConmonRunning is not available as the runtime is missing
-func (r *MissingRuntime) CheckConmonRunning(ctr *Container) (bool, error) {
+func (r *MissingRuntime) CheckConmonRunning(_ *Container) (bool, error) {
 	return false, r.printError()
 }
 
@@ -197,14 +197,14 @@ func (r *MissingRuntime) SupportsKVM() bool {
 // AttachSocketPath does not work as there is no runtime to attach to.
 // (Theoretically we could follow ExitFilePath but there is no guarantee the
 // container is running and thus has an attach socket...)
-func (r *MissingRuntime) AttachSocketPath(ctr *Container) (string, error) {
+func (r *MissingRuntime) AttachSocketPath(_ *Container) (string, error) {
 	return "", r.printError()
 }
 
 // ExecAttachSocketPath does not work as there is no runtime to attach to.
 // (Again, we could follow ExitFilePath, but no guarantee there is an existing
 // and running exec session)
-func (r *MissingRuntime) ExecAttachSocketPath(ctr *Container, sessionID string) (string, error) {
+func (r *MissingRuntime) ExecAttachSocketPath(_ *Container, _ string) (string, error) {
 	return "", r.printError()
 }
 

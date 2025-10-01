@@ -38,7 +38,7 @@ func init() {
 	flags.BoolVar(&restart, restartFlagName, false, "Restart VM to apply changes")
 }
 
-func apply(cmd *cobra.Command, args []string) error {
+func apply(_ *cobra.Command, args []string) error {
 	vmName := ""
 	if len(args) == 2 {
 		vmName = args[1]

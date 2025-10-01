@@ -120,7 +120,7 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 	return p.runtime.GetContainer(infraID)
 }
 
-func GenerateForKubeDaemonSet(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDaemonSet, error) {
+func GenerateForKubeDaemonSet(_ context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDaemonSet, error) {
 	// Restart policy for DaemonSets can only be set to Always
 	if pod.Spec.RestartPolicy != "" && pod.Spec.RestartPolicy != v1.RestartPolicyAlways {
 		return nil, fmt.Errorf("k8s DaemonSets can only have restartPolicy set to Always")
@@ -177,7 +177,7 @@ func GenerateForKubeDaemonSet(ctx context.Context, pod *YAMLPod, options entitie
 
 // GenerateForKubeDeployment returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Deployment
 // kind YAML.
-func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
+func GenerateForKubeDeployment(_ context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
 	// Restart policy for Deployments can only be set to Always
 	if options.Type == define.K8sKindDeployment && (pod.Spec.RestartPolicy != "" && pod.Spec.RestartPolicy != v1.RestartPolicyAlways) {
 		return nil, fmt.Errorf("k8s Deployments can only have restartPolicy set to Always")
@@ -236,7 +236,7 @@ func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entiti
 
 // GenerateForKubeJob returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Job
 // kind YAML.
-func GenerateForKubeJob(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLJob, error) {
+func GenerateForKubeJob(_ context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLJob, error) {
 	// Restart policy for Job cannot be set to Always
 	if options.Type == define.K8sKindJob && pod.Spec.RestartPolicy == v1.RestartPolicyAlways {
 		return nil, fmt.Errorf("k8s Jobs can not have restartPolicy set to Always; only Never and OnFailure policies allowed")

@@ -44,7 +44,7 @@ func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{Command: composeCommand})
 }
 
-func composeCompletion(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func composeCompletion(_ *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	var stdout strings.Builder
 
 	args = append(args, toComplete)

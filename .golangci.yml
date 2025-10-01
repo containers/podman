@@ -64,7 +64,6 @@ linters:
     revive:
       rules:
         - name: unused-parameter
-          disabled: true
   exclusions:
     generated: strict
     presets:

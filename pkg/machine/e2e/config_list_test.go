@@ -15,7 +15,7 @@ type listMachine struct {
 	cmd []string
 }
 
-func (i *listMachine) buildCmd(m *machineTestBuilder) []string {
+func (i *listMachine) buildCmd(_ *machineTestBuilder) []string {
 	cmd := []string{"machine", "list"}
 	if len(i.format) > 0 {
 		cmd = append(cmd, "--format", i.format)

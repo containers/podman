@@ -7,10 +7,10 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 )
 
-func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options entities.ShowTrustOptions) (*entities.ShowTrustReport, error) {
+func (ir *ImageEngine) ShowTrust(_ context.Context, _ []string, _ entities.ShowTrustOptions) (*entities.ShowTrustReport, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options entities.SetTrustOptions) error {
+func (ir *ImageEngine) SetTrust(_ context.Context, _ []string, _ entities.SetTrustOptions) error {
 	return errors.New("not implemented")
 }

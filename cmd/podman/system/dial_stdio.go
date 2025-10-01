@@ -21,7 +21,7 @@ var (
 		Short:  "Proxy the stdio stream to the daemon connection. Should not be invoked manually.",
 		Args:   validate.NoArgs,
 		Hidden: true,
-		RunE: func(cmd *cobra.Command, args []string) error {
+		RunE: func(_ *cobra.Command, _ []string) error {
 			return runDialStdio()
 		},
 		Example: "podman system dial-stdio",

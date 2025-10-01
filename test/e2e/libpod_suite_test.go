@@ -71,6 +71,6 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 }
 
 // Just a stub for compiling with `!remote`.
-func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
+func getRemoteOptions(_ *PodmanTestIntegration, _ []string) []string {
 	return nil
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/containers/podman/v5/pkg/trust"
 )
 
-func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options entities.ShowTrustOptions) (*entities.ShowTrustReport, error) {
+func (ir *ImageEngine) ShowTrust(_ context.Context, _ []string, options entities.ShowTrustOptions) (*entities.ShowTrustReport, error) {
 	var (
 		err    error
 		report entities.ShowTrustReport
@@ -38,7 +38,7 @@ func (ir *ImageEngine) ShowTrust(ctx context.Context, args []string, options ent
 	return &report, nil
 }
 
-func (ir *ImageEngine) SetTrust(ctx context.Context, args []string, options entities.SetTrustOptions) error {
+func (ir *ImageEngine) SetTrust(_ context.Context, args []string, options entities.SetTrustOptions) error {
 	if len(args) != 1 {
 		return fmt.Errorf("SetTrust called with unexpected %d args", len(args))
 	}

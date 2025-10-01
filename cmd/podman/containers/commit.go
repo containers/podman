@@ -96,7 +96,7 @@ func init() {
 	commitFlags(containerCommitCommand)
 }
 
-func commit(cmd *cobra.Command, args []string) error {
+func commit(_ *cobra.Command, args []string) error {
 	container := strings.TrimPrefix(args[0], "/")
 	if len(args) == 2 {
 		commitOptions.ImageName = args[1]

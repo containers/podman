@@ -61,7 +61,7 @@ func init() {
 	networkListFlags(flags)
 }
 
-func networkList(cmd *cobra.Command, args []string) error {
+func networkList(cmd *cobra.Command, _ []string) error {
 	var err error
 	networkListOptions.Filters, err = parse.FilterArgumentsIntoFilters(filters)
 	if err != nil {

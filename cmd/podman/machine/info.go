@@ -52,7 +52,7 @@ func init() {
 	_ = infoCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.MachineInfo{}))
 }
 
-func info(cmd *cobra.Command, args []string) error {
+func info(cmd *cobra.Command, _ []string) error {
 	info := entities.MachineInfo{}
 	version, err := define.GetVersion()
 	if err != nil {

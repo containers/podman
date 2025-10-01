@@ -30,7 +30,7 @@ func GetDevNullFiles() (*os.File, *os.File, error) {
 
 // WaitAPIAndPrintInfo prints info about the machine and does a ping test on the
 // API socket
-func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardSock string, noInfo, rootful bool) {
+func WaitAPIAndPrintInfo(forwardState APIForwardingState, name, helper, forwardSock string, noInfo, _ bool) {
 	suffix := ""
 	var fmtString string
 

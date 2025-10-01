@@ -14,7 +14,7 @@ func isUnixSocket(file os.DirEntry) bool {
 	return file.Type()&os.ModeSocket != 0
 }
 
-func rootlessOnly(cmd *cobra.Command, args []string) error {
+func rootlessOnly(cmd *cobra.Command, _ []string) error {
 	if !rootless.IsRootless() {
 		return fmt.Errorf("cannot run command %q as root", cmd.CommandPath())
 	}

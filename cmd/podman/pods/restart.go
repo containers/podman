@@ -45,7 +45,7 @@ func init() {
 	validate.AddLatestFlag(restartCommand, &restartOptions.Latest)
 }
 
-func restart(cmd *cobra.Command, args []string) error {
+func restart(_ *cobra.Command, args []string) error {
 	var (
 		errs utils.OutputErrors
 	)

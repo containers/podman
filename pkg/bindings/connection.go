@@ -297,7 +297,7 @@ func sshClient(_url *url.URL, uri string, identity string, machine bool) (Connec
 		val := strings.TrimSuffix(b.String(), "\n")
 		_url.Path = val
 	}
-	dialContext := func(ctx context.Context, _, _ string) (net.Conn, error) {
+	dialContext := func(_ context.Context, _, _ string) (net.Conn, error) {
 		return ssh.DialNet(conn, "unix", _url)
 	}
 	connection.Client = &http.Client{
@@ -312,7 +312,7 @@ func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connec
 	connection := Connection{
 		URI: _url,
 	}
-	dialContext := func(ctx context.Context, _, _ string) (net.Conn, error) {
+	dialContext := func(_ context.Context, _, _ string) (net.Conn, error) {
 		return net.Dial("tcp", _url.Host)
 	}
 	// use proxy if env `CONTAINER_PROXY` set
@@ -325,7 +325,7 @@ func tcpClient(_url *url.URL, tlsCertFile, tlsKeyFile, tlsCAFile string) (Connec
 		if err != nil {
 			return connection, fmt.Errorf("unable to dial to proxy %s, %w", proxyURI, err)
 		}
-		dialContext = func(ctx context.Context, _, _ string) (net.Conn, error) {
+		dialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 			logrus.Debugf("use proxy %s, but proxy dialer does not support dial timeout", proxyURI)
 			return proxyDialer.Dial("tcp", _url.Host)
 		}

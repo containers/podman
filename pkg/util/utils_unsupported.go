@@ -5,6 +5,6 @@ package util
 import "errors"
 
 // FindDeviceNodes is not implemented anywhere except Linux.
-func FindDeviceNodes(onlyBlockDevices bool) (map[string]string, error) {
+func FindDeviceNodes(_ bool) (map[string]string, error) {
 	return nil, errors.New("not supported on non-Linux OSes")
 }

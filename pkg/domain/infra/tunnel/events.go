@@ -10,7 +10,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 )
 
-func (ic *ContainerEngine) Events(ctx context.Context, opts entities.EventsOptions) error {
+func (ic *ContainerEngine) Events(_ context.Context, opts entities.EventsOptions) error {
 	filters := make(map[string][]string)
 	if len(opts.Filter) > 0 {
 		for _, filter := range opts.Filter {

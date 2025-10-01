@@ -7,7 +7,7 @@ import (
 	"github.com/containers/podman/v5/pkg/machine/vmconfigs"
 )
 
-func (a *AppleHVStubber) Remove(mc *vmconfigs.MachineConfig) ([]string, func() error, error) {
+func (a *AppleHVStubber) Remove(_ *vmconfigs.MachineConfig) ([]string, func() error, error) {
 	return []string{}, func() error { return nil }, nil
 }
 

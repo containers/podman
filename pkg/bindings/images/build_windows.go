@@ -4,6 +4,6 @@ import (
 	"os"
 )
 
-func checkHardLink(fi os.FileInfo) (devino, bool) {
+func checkHardLink(_ os.FileInfo) (devino, bool) {
 	return devino{}, false
 }

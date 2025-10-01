@@ -55,7 +55,7 @@ func init() {
 	_ = pruneCommand.RegisterFlagCompletionFunc(filterFlagName, common.AutocompletePruneFilters)
 }
 
-func prune(cmd *cobra.Command, args []string) error {
+func prune(_ *cobra.Command, _ []string) error {
 	var err error
 	// Prompt for confirmation if --force is not set, unless --external
 	if !force && !pruneOptions.External {

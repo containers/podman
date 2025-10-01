@@ -83,7 +83,7 @@ func init() {
 	validate.AddLatestFlag(containerStartCommand, &startOptions.Latest)
 }
 
-func validateStart(cmd *cobra.Command, args []string) error {
+func validateStart(_ *cobra.Command, args []string) error {
 	if len(args) == 0 && !startOptions.Latest && !startOptions.All && len(filters) < 1 {
 		return errors.New("start requires at least one argument")
 	}

@@ -195,7 +195,7 @@ func GetUserLevelFilter(resolvedUnitDirAdminUser string) func(string, bool) bool
 }
 
 func GetNonNumericFilter(resolvedUnitDirAdminUser string, systemUserDirLevel int) func(string, bool) bool {
-	return func(path string, isUserFlag bool) bool {
+	return func(path string, _ bool) bool {
 		// when running in rootless, recursive walk directories that are non numeric
 		// ignore sub dirs under the `users` directory which correspond to a user id
 		if strings.HasPrefix(path, resolvedUnitDirAdminUser) {

@@ -9,18 +9,18 @@ import (
 
 var errNotImplemented = errors.New("not implemented for the remote Podman client")
 
-func (ic *ContainerEngine) QuadletInstall(ctx context.Context, pathsOrURLs []string, options entities.QuadletInstallOptions) (*entities.QuadletInstallReport, error) {
+func (ic *ContainerEngine) QuadletInstall(_ context.Context, _ []string, _ entities.QuadletInstallOptions) (*entities.QuadletInstallReport, error) {
 	return nil, errNotImplemented
 }
 
-func (ic *ContainerEngine) QuadletList(ctx context.Context, options entities.QuadletListOptions) ([]*entities.ListQuadlet, error) {
+func (ic *ContainerEngine) QuadletList(_ context.Context, _ entities.QuadletListOptions) ([]*entities.ListQuadlet, error) {
 	return nil, errNotImplemented
 }
 
-func (ic *ContainerEngine) QuadletPrint(ctx context.Context, quadlet string) (string, error) {
+func (ic *ContainerEngine) QuadletPrint(_ context.Context, _ string) (string, error) {
 	return "", errNotImplemented
 }
 
-func (ic *ContainerEngine) QuadletRemove(ctx context.Context, quadlets []string, options entities.QuadletRemoveOptions) (*entities.QuadletRemoveReport, error) {
+func (ic *ContainerEngine) QuadletRemove(_ context.Context, _ []string, _ entities.QuadletRemoveOptions) (*entities.QuadletRemoveReport, error) {
 	return nil, errNotImplemented
 }

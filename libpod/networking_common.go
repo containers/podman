@@ -357,7 +357,7 @@ func resultToBasicNetworkConfig(result types.StatusBlock) define.InspectBasicNet
 }
 
 // NetworkDisconnect removes a container from the network
-func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) error {
+func (c *Container) NetworkDisconnect(nameOrID, netName string, _ bool) error {
 	// only the bridge mode supports cni networks
 	if err := isBridgeNetMode(c.config.NetMode); err != nil {
 		return err

@@ -9,7 +9,7 @@ import (
 )
 
 // List returns a list of artifacts in local storage.
-func List(ctx context.Context, options *ListOptions) ([]*entities.ArtifactListReport, error) {
+func List(ctx context.Context, _ *ListOptions) ([]*entities.ArtifactListReport, error) {
 	conn, err := bindings.GetClient(ctx)
 	if err != nil {
 		return nil, err

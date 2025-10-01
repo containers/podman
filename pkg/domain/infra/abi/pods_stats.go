@@ -17,7 +17,7 @@ import (
 )
 
 // PodStats implements printing stats about pods.
-func (ic *ContainerEngine) PodStats(ctx context.Context, namesOrIds []string, options entities.PodStatsOptions) ([]*entities.PodStatsReport, error) {
+func (ic *ContainerEngine) PodStats(_ context.Context, namesOrIds []string, options entities.PodStatsOptions) ([]*entities.PodStatsReport, error) {
 	// Cgroups v2 check for rootless.
 	if rootless.IsRootless() {
 		unified, err := cgroups.IsCgroup2UnifiedMode()

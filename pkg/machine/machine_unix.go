@@ -9,7 +9,7 @@ import (
 	"net"
 )
 
-func DialNamedPipe(ctx context.Context, path string) (net.Conn, error) {
+func DialNamedPipe(_ context.Context, _ string) (net.Conn, error) {
 	return nil, errors.New("not implemented")
 }
 

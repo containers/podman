@@ -146,6 +146,6 @@ func CreateSecret(w http.ResponseWriter, r *http.Request) {
 	utils.WriteResponse(w, http.StatusOK, report)
 }
 
-func UpdateSecret(w http.ResponseWriter, r *http.Request) {
+func UpdateSecret(w http.ResponseWriter, _ *http.Request) {
 	utils.Error(w, http.StatusNotImplemented, errors.New("update is not supported"))
 }

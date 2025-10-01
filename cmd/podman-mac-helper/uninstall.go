@@ -27,7 +27,7 @@ func init() {
 	rootCmd.AddCommand(uninstallCmd)
 }
 
-func uninstall(cmd *cobra.Command, args []string) error {
+func uninstall(_ *cobra.Command, _ []string) error {
 	userName, _, homeDir, err := getUser()
 	if err != nil {
 		return err

@@ -738,7 +738,7 @@ func AutocompleteSecrets(cmd *cobra.Command, args []string, toComplete string) (
 	return getSecrets(cmd, toComplete, completeDefault)
 }
 
-func AutocompleteSecretCreate(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSecretCreate(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 1 {
 		return nil, cobra.ShellCompDirectiveDefault
 	}
@@ -776,12 +776,12 @@ func AutocompleteManifestListAndMember(cmd *cobra.Command, args []string, toComp
 }
 
 // AutocompleteImageSearchFilters - Autocomplete `search --filter`.
-func AutocompleteImageSearchFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteImageSearchFilters(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return libimageDefine.SearchFilters, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompletePodExitPolicy - Autocomplete pod exit policy.
-func AutocompletePodExitPolicy(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePodExitPolicy(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return config.PodExitPolicies, cobra.ShellCompDirectiveNoFileComp
 }
 
@@ -845,13 +845,13 @@ func AutocompleteNetworks(cmd *cobra.Command, args []string, toComplete string) 
 
 // AutocompleteHostsFile - Autocomplete hosts file options.
 // -> "image", "none", paths
-func AutocompleteHostsFile(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteHostsFile(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	hostsFileModes := []string{"image", "none"}
 	return hostsFileModes, cobra.ShellCompDirectiveDefault
 }
 
 // AutocompleteDefaultOneArg - Autocomplete path only for the first argument.
-func AutocompleteDefaultOneArg(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteDefaultOneArg(_ *cobra.Command, args []string, _ string) ([]string, cobra.ShellCompDirective) {
 	if len(args) == 0 {
 		return nil, cobra.ShellCompDirectiveDefault
 	}
@@ -1088,7 +1088,7 @@ func AutocompleteScp(cmd *cobra.Command, args []string, toComplete string) ([]st
 
 // AutocompleteDetachKeys - Autocomplete detach-keys options.
 // -> "ctrl-"
-func AutocompleteDetachKeys(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteDetachKeys(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if strings.HasSuffix(toComplete, ",") {
 		return []string{toComplete + "ctrl-"}, cobra.ShellCompDirectiveNoSpace
 	}
@@ -1097,36 +1097,36 @@ func AutocompleteDetachKeys(cmd *cobra.Command, args []string, toComplete string
 
 // AutocompleteChangeInstructions - Autocomplete change instructions options for commit and import.
 // -> "CMD", "ENTRYPOINT", "ENV", "EXPOSE", "LABEL", "ONBUILD", "STOPSIGNAL", "USER", "VOLUME", "WORKDIR"
-func AutocompleteChangeInstructions(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteChangeInstructions(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return ChangeCmds, cobra.ShellCompDirectiveNoSpace
 }
 
 // AutocompleteImageFormat - Autocomplete image format options.
 // -> "oci", "docker"
-func AutocompleteImageFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteImageFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	ImageFormat := []string{"oci", "docker"}
 	return ImageFormat, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteInitCtr - Autocomplete init container type
 // -> "once", "always"
-func AutocompleteInitCtr(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteInitCtr(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	InitCtrType := []string{define.AlwaysInitContainer, define.OneShotInitContainer}
 	return InitCtrType, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteCreateAttach - Autocomplete create --attach options.
 // -> "stdin", "stdout", "stderr"
-func AutocompleteCreateAttach(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteCreateAttach(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return []string{"stdin", "stdout", "stderr"}, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteNamespace - Autocomplete namespace options.
 // -> host,container:[name],ns:[path],private
-func AutocompleteNamespace(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNamespace(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"container:": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
-		"ns:":        func(s string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveDefault },
+		"ns:":        func(_ string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveDefault },
 		"host":       nil,
 		"private":    nil,
 	}
@@ -1143,21 +1143,21 @@ func AutocompleteUserNamespace(cmd *cobra.Command, args []string, toComplete str
 
 // AutocompleteCgroupMode - Autocomplete cgroup mode options.
 // -> "enabled", "disabled", "no-conmon", "split"
-func AutocompleteCgroupMode(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteCgroupMode(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	cgroupModes := []string{"enabled", "disabled", "no-conmon", "split"}
 	return cgroupModes, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteImageVolume - Autocomplete image volume options.
 // -> "bind", "tmpfs", "ignore"
-func AutocompleteImageVolume(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteImageVolume(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	imageVolumes := []string{"bind", "tmpfs", "ignore"}
 	return imageVolumes, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteLogDriver - Autocomplete log-driver options.
 // -> "journald", "none", "k8s-file", "passthrough", "passthrough-tty"
-func AutocompleteLogDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteLogDriver(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	// don't show json-file
 	logDrivers := []string{define.JournaldLogging, define.NoLogging, define.KubernetesLogging}
 	if !registry.IsRemote() {
@@ -1168,7 +1168,7 @@ func AutocompleteLogDriver(cmd *cobra.Command, args []string, toComplete string)
 
 // AutocompleteLogOpt - Autocomplete log-opt options.
 // -> "path=", "tag="
-func AutocompleteLogOpt(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteLogOpt(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	logOptions := []string{"path=", "tag=", "max-size="}
 	if strings.HasPrefix(toComplete, "path=") {
 		return nil, cobra.ShellCompDirectiveDefault
@@ -1178,25 +1178,25 @@ func AutocompleteLogOpt(cmd *cobra.Command, args []string, toComplete string) ([
 
 // AutocompletePullOption - Autocomplete pull options for create and run command.
 // -> "always", "missing", "never"
-func AutocompletePullOption(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePullOption(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	pullOptions := []string{"always", "missing", "never", "newer"}
 	return pullOptions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteRestartOption - Autocomplete restart options for create and run command.
 // -> "always", "no", "on-failure", "unless-stopped"
-func AutocompleteRestartOption(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteRestartOption(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	restartOptions := []string{define.RestartPolicyAlways, define.RestartPolicyNo,
 		define.RestartPolicyOnFailure, define.RestartPolicyUnlessStopped}
 	return restartOptions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteSecurityOption - Autocomplete security options options.
-func AutocompleteSecurityOption(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSecurityOption(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"apparmor=":         nil,
 		"no-new-privileges": nil,
-		"seccomp=":          func(s string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveDefault },
+		"seccomp=":          func(_ string) ([]string, cobra.ShellCompDirective) { return nil, cobra.ShellCompDirectiveDefault },
 		"label=": func(s string) ([]string, cobra.ShellCompDirective) {
 			if strings.HasPrefix(s, "d") {
 				return []string{"disable"}, cobra.ShellCompDirectiveNoFileComp
@@ -1209,7 +1209,7 @@ func AutocompleteSecurityOption(cmd *cobra.Command, args []string, toComplete st
 
 // AutocompleteStopSignal - Autocomplete stop signal options.
 // Autocompletes signals both lower or uppercase depending on the user input.
-func AutocompleteStopSignal(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteStopSignal(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	// convertCase will convert a string to lowercase only if the user input is lowercase
 	convertCase := func(s string) string { return s }
 	if len(toComplete) > 0 && unicode.IsLower(rune(toComplete[0])) {
@@ -1233,14 +1233,14 @@ func AutocompleteStopSignal(cmd *cobra.Command, args []string, toComplete string
 
 // AutocompleteSystemdFlag - Autocomplete systemd flag options.
 // -> "true", "false", "always"
-func AutocompleteSystemdFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSystemdFlag(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	systemd := []string{"true", "false", "always"}
 	return systemd, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteUserFlag - Autocomplete user flag based on the names and groups (includes ids after first char) in /etc/passwd and /etc/group files.
 // -> user:group
-func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteUserFlag(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	if strings.Contains(toComplete, ":") {
 		// It would be nice to read the file in the image
 		// but at this point we don't know the image.
@@ -1296,7 +1296,7 @@ func AutocompleteUserFlag(cmd *cobra.Command, args []string, toComplete string) 
 
 // AutocompleteMountFlag - Autocomplete mount flag options.
 // -> "type=bind,", "type=volume,", "type=tmpfs,"
-func AutocompleteMountFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteMountFlag(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"type=bind,", "type=volume,", "type=tmpfs,"}
 	// TODO: Add support for all different options
 	return types, cobra.ShellCompDirectiveNoSpace
@@ -1304,7 +1304,7 @@ func AutocompleteMountFlag(cmd *cobra.Command, args []string, toComplete string)
 
 // AutocompleteVolumeFlag - Autocomplete volume flag options.
 // -> volumes and paths
-func AutocompleteVolumeFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteVolumeFlag(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	volumes, _ := getVolumes(cmd, toComplete)
 	directive := cobra.ShellCompDirectiveNoSpace | cobra.ShellCompDirectiveDefault
 	if strings.Contains(toComplete, ":") {
@@ -1315,7 +1315,7 @@ func AutocompleteVolumeFlag(cmd *cobra.Command, args []string, toComplete string
 }
 
 // AutocompleteNetworkFlag - Autocomplete network flag options.
-func AutocompleteNetworkFlag(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNetworkFlag(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"container:": func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
 		"ns:": func(_ string) ([]string, cobra.ShellCompDirective) {
@@ -1589,7 +1589,7 @@ func getMethodNames(f reflect.Value, prefix string) []formatSuggestion {
 
 // AutocompleteEventFilter - Autocomplete event filter flag options.
 // -> "container=", "event=", "image=", "pod=", "volume=", "type="
-func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteEventFilter(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	event := func(_ string) ([]string, cobra.ShellCompDirective) {
 		return []string{events.Attach.String(), events.AutoUpdate.String(), events.Checkpoint.String(), events.Cleanup.String(),
 			events.Commit.String(), events.Create.String(), events.Exec.String(), events.ExecDied.String(),
@@ -1621,39 +1621,39 @@ func AutocompleteEventFilter(cmd *cobra.Command, args []string, toComplete strin
 
 // AutocompleteSystemdRestartOptions - Autocomplete systemd restart options.
 // -> "no", "on-success", "on-failure", "on-abnormal", "on-watchdog", "on-abort", "always"
-func AutocompleteSystemdRestartOptions(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSystemdRestartOptions(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return systemdDefine.RestartPolicies, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteTrustType - Autocomplete trust type options.
 // -> "signedBy", "accept", "reject"
-func AutocompleteTrustType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteTrustType(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"signedBy", "accept", "reject"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteImageSort - Autocomplete images sort options.
 // -> "created", "id", "repository", "size", "tag"
-func AutocompleteImageSort(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteImageSort(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	sortBy := []string{"created", "id", "repository", "size", "tag"}
 	return sortBy, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteInspectType - Autocomplete inspect type options.
-func AutocompleteInspectType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteInspectType(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{AllType, ContainerType, ImageType, NetworkType, PodType, VolumeType}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteManifestFormat - Autocomplete manifest format options.
 // -> "oci", "v2s2"
-func AutocompleteManifestFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteManifestFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"oci", "v2s2"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteNetworkDriver - Autocomplete network driver option.
-func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNetworkDriver(cmd *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	engine, err := setupContainerEngine(cmd)
 	if err != nil {
 		cobra.CompErrorln(err.Error())
@@ -1669,14 +1669,14 @@ func AutocompleteNetworkDriver(cmd *cobra.Command, args []string, toComplete str
 
 // AutocompleteNetworkIPAMDriver - Autocomplete network ipam driver option.
 // -> "bridge", "macvlan"
-func AutocompleteNetworkIPAMDriver(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNetworkIPAMDriver(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	drivers := []string{types.HostLocalIPAMDriver, types.DHCPIPAMDriver, types.NoneIPAMDriver}
 	return drivers, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompletePodShareNamespace - Autocomplete pod create --share flag option.
 // -> "ipc", "net", "pid", "user", "uts", "cgroup", "none"
-func AutocompletePodShareNamespace(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePodShareNamespace(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	namespaces := []string{"ipc", "net", "pid", "user", "uts", "cgroup", "none"}
 	split := strings.Split(toComplete, ",")
 	split[len(split)-1] = ""
@@ -1686,26 +1686,26 @@ func AutocompletePodShareNamespace(cmd *cobra.Command, args []string, toComplete
 
 // AutocompletePodPsSort - Autocomplete images sort options.
 // -> "created", "id", "name", "status", "number"
-func AutocompletePodPsSort(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePodPsSort(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	sortBy := []string{"created", "id", "name", "status", "number"}
 	return sortBy, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompletePsSort - Autocomplete images sort options.
 // -> "command", "created", "id", "image", "names", "runningfor", "size", "status"
-func AutocompletePsSort(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePsSort(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	sortBy := []string{"command", "created", "id", "image", "names", "runningfor", "size", "status"}
 	return sortBy, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteImageSaveFormat - Autocomplete image save format options.
-func AutocompleteImageSaveFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteImageSaveFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return ValidSaveFormats, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteWaitCondition - Autocomplete wait condition options.
 // -> "unknown", "configured", "created", "running", "stopped", "paused", "exited", "removing"
-func AutocompleteWaitCondition(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteWaitCondition(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	states := []string{"unknown", "configured", "created", "exited",
 		"healthy", "initialized", "paused", "removing", "running",
 		"stopped", "stopping", "unhealthy"}
@@ -1714,13 +1714,13 @@ func AutocompleteWaitCondition(cmd *cobra.Command, args []string, toComplete str
 
 // AutocompleteCgroupManager - Autocomplete cgroup manager options.
 // -> "cgroupfs", "systemd"
-func AutocompleteCgroupManager(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteCgroupManager(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{config.CgroupfsCgroupsManager, config.SystemdCgroupsManager}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteContainersConfModules- Autocomplete containers.conf modules.
-func AutocompleteContainersConfModules(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteContainersConfModules(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	dirs, err := config.ModuleDirectories()
 	if err != nil {
 		return nil, cobra.ShellCompDirectiveDefault
@@ -1753,27 +1753,27 @@ func AutocompleteContainersConfModules(cmd *cobra.Command, args []string, toComp
 
 // AutocompleteEventBackend - Autocomplete event backend options.
 // -> "file", "journald", "none"
-func AutocompleteEventBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteEventBackend(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{events.LogFile.String(), events.Journald.String(), events.Null.String()}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteNetworkBackend - Autocomplete network backend options.
 // -> "cni", "netavark"
-func AutocompleteNetworkBackend(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNetworkBackend(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{string(types.CNI), string(types.Netavark)}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteLogLevel - Autocomplete log level options.
 // -> "trace", "debug", "info", "warn", "error", "fatal", "panic"
-func AutocompleteLogLevel(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteLogLevel(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return LogLevels, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteSDNotify - Autocomplete sdnotify options.
 // -> "container", "conmon", "ignore"
-func AutocompleteSDNotify(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSDNotify(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{define.SdNotifyModeConmon, define.SdNotifyModeContainer, define.SdNotifyModeHealthy, define.SdNotifyModeIgnore}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
@@ -1781,7 +1781,7 @@ func AutocompleteSDNotify(cmd *cobra.Command, args []string, toComplete string) 
 var containerStatuses = []string{"created", "running", "paused", "stopped", "exited", "unknown"}
 
 // AutocompletePsFilters - Autocomplete ps filter options.
-func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePsFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"ancestor=": func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) },
 		"before=":   func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeDefault) },
@@ -1807,7 +1807,7 @@ func AutocompletePsFilters(cmd *cobra.Command, args []string, toComplete string)
 }
 
 // AutocompleteQuadletFilters - Autocomplete quadlet filter options.
-func AutocompleteQuadletFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteQuadletFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getQuadlets(cmd, s) },
 	}
@@ -1815,7 +1815,7 @@ func AutocompleteQuadletFilters(cmd *cobra.Command, args []string, toComplete st
 }
 
 // AutocompletePodPsFilters - Autocomplete pod ps filter options.
-func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePodPsFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"ctr-ids=":    func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeIDs) },
 		"ctr-names=":  func(s string) ([]string, cobra.ShellCompDirective) { return getContainers(cmd, s, completeNames) },
@@ -1837,7 +1837,7 @@ func AutocompletePodPsFilters(cmd *cobra.Command, args []string, toComplete stri
 }
 
 // AutocompleteImageFilters - Autocomplete image ls --filter options.
-func AutocompleteImageFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteImageFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	getImg := func(s string) ([]string, cobra.ShellCompDirective) { return getImages(cmd, s) }
 	kv := keyValueCompletion{
 		"after=":        getImg,
@@ -1858,7 +1858,7 @@ func AutocompleteImageFilters(cmd *cobra.Command, args []string, toComplete stri
 }
 
 // AutocompletePruneFilters - Autocomplete container/image prune --filter options.
-func AutocompletePruneFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompletePruneFilters(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"label=": nil,
 		"until=": nil,
@@ -1867,7 +1867,7 @@ func AutocompletePruneFilters(cmd *cobra.Command, args []string, toComplete stri
 }
 
 // AutocompleteNetworkFilters - Autocomplete network ls --filter options.
-func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNetworkFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"dangling=": getBoolCompletion,
 		"driver=": func(_ string) ([]string, cobra.ShellCompDirective) {
@@ -1882,7 +1882,7 @@ func AutocompleteNetworkFilters(cmd *cobra.Command, args []string, toComplete st
 }
 
 // AutocompleteNetworkInterfaceNames - Autocomplete network create --interface-name options.
-func AutocompleteNetworkInterfaceNames(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteNetworkInterfaceNames(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		cobra.CompErrorln(err.Error())
@@ -1896,7 +1896,7 @@ func AutocompleteNetworkInterfaceNames(cmd *cobra.Command, args []string, toComp
 }
 
 // AutocompleteVolumeFilters - Autocomplete volume ls --filter options.
-func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteVolumeFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	local := func(_ string) ([]string, cobra.ShellCompDirective) {
 		return []string{"local"}, cobra.ShellCompDirectiveNoFileComp
 	}
@@ -1916,7 +1916,7 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, args []string, toComplete str
 }
 
 // AutocompleteSecretFilters - Autocomplete secret ls --filter options.
-func AutocompleteSecretFilters(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSecretFilters(cmd *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	kv := keyValueCompletion{
 		"id=":   func(s string) ([]string, cobra.ShellCompDirective) { return getSecrets(cmd, s, completeIDs) },
 		"name=": func(s string) ([]string, cobra.ShellCompDirective) { return getSecrets(cmd, s, completeNames) },
@@ -1926,13 +1926,13 @@ func AutocompleteSecretFilters(cmd *cobra.Command, args []string, toComplete str
 
 // AutocompleteCheckpointCompressType - Autocomplete checkpoint compress type options.
 // -> "gzip", "none", "zstd"
-func AutocompleteCheckpointCompressType(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteCheckpointCompressType(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"gzip", "none", "zstd"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteCompressionFormat - Autocomplete compression-format type options.
-func AutocompleteCompressionFormat(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteCompressionFormat(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	types := []string{"gzip", "zstd", "zstd:chunked"}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
@@ -1966,12 +1966,12 @@ func AutocompleteSSH(cmd *cobra.Command, args []string, toComplete string) ([]st
 }
 
 // AutocompleteHealthOnFailure - action to take once the container turns unhealthy.
-func AutocompleteHealthOnFailure(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteHealthOnFailure(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
 	return define.SupportedHealthCheckOnFailureActions, cobra.ShellCompDirectiveNoFileComp
 }
 
 // AutocompleteSysctl - autocomplete list all sysctl names
-func AutocompleteSysctl(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+func AutocompleteSysctl(_ *cobra.Command, _ []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	var completions []string
 	sysPath := "/proc/sys"
 

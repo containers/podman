@@ -108,7 +108,7 @@ func init() {
 	rootFlags(rootCmd, registry.PodmanConfig())
 
 	// backwards compat still allow --cni-config-dir
-	rootCmd.Flags().SetNormalizeFunc(func(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	rootCmd.Flags().SetNormalizeFunc(func(_ *pflag.FlagSet, name string) pflag.NormalizedName {
 		if name == "cni-config-dir" {
 			name = "network-config-dir"
 		}
@@ -406,7 +406,7 @@ func persistentPreRunE(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func persistentPostRunE(cmd *cobra.Command, args []string) error {
+func persistentPostRunE(cmd *cobra.Command, _ []string) error {
 	logrus.Debugf("Called %s.PersistentPostRunE(%s)", cmd.Name(), strings.Join(os.Args, " "))
 
 	if registry.IsRemote() {

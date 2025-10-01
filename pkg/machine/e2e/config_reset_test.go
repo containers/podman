@@ -10,7 +10,7 @@ type resetMachine struct {
 	cmd []string
 }
 
-func (i *resetMachine) buildCmd(m *machineTestBuilder) []string {
+func (i *resetMachine) buildCmd(_ *machineTestBuilder) []string {
 	cmd := []string{"machine", "reset"}
 	if i.force {
 		cmd = append(cmd, "--force")

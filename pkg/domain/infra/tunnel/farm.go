@@ -13,12 +13,12 @@ const (
 )
 
 // FarmNodeName returns the remote engine's name.
-func (ir *ImageEngine) FarmNodeName(ctx context.Context) string {
+func (ir *ImageEngine) FarmNodeName(_ context.Context) string {
 	return ir.NodeName
 }
 
 // FarmNodeDriver returns a description of the image builder driver
-func (ir *ImageEngine) FarmNodeDriver(ctx context.Context) string {
+func (ir *ImageEngine) FarmNodeDriver(_ context.Context) string {
 	return remoteFarmImageBuilderDriver
 }
 

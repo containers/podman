@@ -41,7 +41,7 @@ func init() {
 	_ = extractCmd.RegisterFlagCompletionFunc(titleFlagName, completion.AutocompleteNone)
 }
 
-func extract(cmd *cobra.Command, args []string) error {
+func extract(_ *cobra.Command, args []string) error {
 	err := registry.ImageEngine().ArtifactExtract(registry.Context(), args[0], args[1], extractOpts)
 	if err != nil {
 		return err

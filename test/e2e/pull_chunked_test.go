@@ -32,7 +32,7 @@ func pullChunkedTests() { // included in pull_test.go, must use a Ginkgo DSL at 
 		// This is, nominally, a built-in feature of Ginkgo, but we run the tests with -vv, making the
 		// full output always captured in a log. So, here, we need to conditionalize explicitly.
 		var lastPullOutput bytes.Buffer
-		ReportAfterEach(func(ctx SpecContext, report SpecReport) {
+		ReportAfterEach(func(_ SpecContext, report SpecReport) {
 			if report.Failed() {
 				AddReportEntry("last pull operation", lastPullOutput.String())
 			}
@@ -156,7 +156,7 @@ func pullChunkedTests() { // included in pull_test.go, must use a Ginkgo DSL at 
 					modified[0] = digest.NewDigestFromEncoded(diffIDs[0].Algorithm(), hex.EncodeToString(digestBytes))
 					return modified
 				})
-				chunkedMissing = createChunkedImage("missing", func(diffIDs []digest.Digest) []digest.Digest {
+				chunkedMissing = createChunkedImage("missing", func(_ []digest.Digest) []digest.Digest {
 					return nil
 				})
 				chunkedEmpty = createChunkedImage("empty", func(diffIDs []digest.Digest) []digest.Digest {
