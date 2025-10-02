@@ -1476,6 +1476,10 @@ func getEntityType(cmd *cobra.Command, args []string, o any) any {
 	if networks, _ := getNetworks(cmd, args[0], completeDefault); len(networks) > 0 {
 		return &entities.NetworkInspectReport{}
 	}
+	// artifact logic
+	if artifacts, _ := getArtifacts(cmd, args[0]); len(artifacts) > 0 {
+		return &entities.ArtifactInspectReport{}
+	}
 	return o
 }
 
@@ -1641,7 +1645,7 @@ func AutocompleteImageSort(_ *cobra.Command, _ []string, _ string) ([]string, co
 
 // AutocompleteInspectType - Autocomplete inspect type options.
 func AutocompleteInspectType(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
-	types := []string{AllType, ContainerType, ImageType, NetworkType, PodType, VolumeType}
+	types := []string{AllType, ArtifactType, ContainerType, ImageType, NetworkType, PodType, VolumeType}
 	return types, cobra.ShellCompDirectiveNoFileComp
 }
 
