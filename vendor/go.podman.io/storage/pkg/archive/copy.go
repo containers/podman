@@ -93,13 +93,13 @@ func TarResource(sourceInfo CopyInfo) (content io.ReadCloser, err error) {
 
 // TarResourceRebase is like TarResource but renames the first path element of
 // items in the resulting tar archive to match the given rebaseName if not "".
-func TarResourceRebase(sourcePath, rebaseName string) (content io.ReadCloser, err error) {
+func TarResourceRebase(sourcePath, rebaseName string) (io.ReadCloser, error) {
 	sourcePath = normalizePath(sourcePath)
-	if err = fileutils.Lexists(sourcePath); err != nil {
+	if err := fileutils.Lexists(sourcePath); err != nil {
 		// Catches the case where the source does not exist or is not a
 		// directory if asserted to be a directory, as this also causes an
 		// error.
-		return
+		return nil, err
 	}
 
 	// Separate the source path between its directory and
@@ -411,7 +411,7 @@ func ResolveHostSourcePath(path string, followLink bool) (resolvedPath, rebaseNa
 	if followLink {
 		resolvedPath, err = filepath.EvalSymlinks(path)
 		if err != nil {
-			return
+			return "", "", err
 		}
 
 		resolvedPath, rebaseName = GetRebaseName(path, resolvedPath)
@@ -422,7 +422,7 @@ func ResolveHostSourcePath(path string, followLink bool) (resolvedPath, rebaseNa
 		var resolvedDirPath string
 		resolvedDirPath, err = filepath.EvalSymlinks(dirPath)
 		if err != nil {
-			return
+			return "", "", err
 		}
 		// resolvedDirPath will have been cleaned (no trailing path separators) so
 		// we can manually join it with the base path element.

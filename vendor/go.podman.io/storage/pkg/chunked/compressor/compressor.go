@@ -205,9 +205,9 @@ type tarSplitData struct {
 	packer              storage.Packer
 }
 
-func newTarSplitData(createZstdWriter minimal.CreateZstdWriterFunc, digestAlgorithm digest.Algorithm) (*tarSplitData, error) {
+func newTarSplitData(createZstdWriter minimal.CreateZstdWriterFunc) (*tarSplitData, error) {
 	compressed := bytes.NewBuffer(nil)
-	digester := digestAlgorithm.Digester()
+	digester := digest.Canonical.Digester()
 
 	zstdWriter, err := createZstdWriter(io.MultiWriter(compressed, digester.Hash()))
 	if err != nil {
@@ -226,11 +226,11 @@ func newTarSplitData(createZstdWriter minimal.CreateZstdWriterFunc, digestAlgori
 	}, nil
 }
 
-func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, reader io.Reader, createZstdWriter minimal.CreateZstdWriterFunc, digestAlgorithm digest.Algorithm) error {
+func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, reader io.Reader, createZstdWriter minimal.CreateZstdWriterFunc) error {
 	// total written so far.  Used to retrieve partial offsets in the file
 	dest := ioutils.NewWriteCounter(destFile)
 
-	tarSplitData, err := newTarSplitData(createZstdWriter, digestAlgorithm)
+	tarSplitData, err := newTarSplitData(createZstdWriter)
 	if err != nil {
 		return err
 	}
@@ -287,8 +287,8 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 			return err
 		}
 
-		payloadDigester := digestAlgorithm.Digester()
-		chunkDigester := digestAlgorithm.Digester()
+		payloadDigester := digest.Canonical.Digester()
+		chunkDigester := digest.Canonical.Digester()
 
 		// Now handle the payload, if any
 		startOffset := int64(0)
@@ -353,7 +353,7 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 
 				lastOffset = off
 				lastChunkOffset = rcReader.WrittenOut
-				chunkDigester = digestAlgorithm.Digester()
+				chunkDigester = digest.Canonical.Digester()
 				payloadDest = io.MultiWriter(payloadDigester.Hash(), chunkDigester.Hash(), zstdWriter)
 			}
 			if errRead == io.EOF {
@@ -419,7 +419,7 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 		UncompressedSize: tarSplitData.uncompressedCounter.Count,
 	}
 
-	return minimal.WriteZstdChunkedManifest(dest, outMetadata, uint64(dest.Count), &ts, metadata, createZstdWriter, digestAlgorithm)
+	return minimal.WriteZstdChunkedManifest(dest, outMetadata, uint64(dest.Count), &ts, metadata, createZstdWriter)
 }
 
 type zstdChunkedWriter struct {
@@ -461,12 +461,12 @@ func (w zstdChunkedWriter) Write(p []byte) (int, error) {
 // [SKIPPABLE FRAME 1]: [ZSTD SKIPPABLE FRAME, SIZE=MANIFEST LENGTH][MANIFEST]
 // [SKIPPABLE FRAME 2]: [ZSTD SKIPPABLE FRAME, SIZE=16][MANIFEST_OFFSET][MANIFEST_LENGTH][MANIFEST_LENGTH_UNCOMPRESSED][MANIFEST_TYPE][CHUNKED_ZSTD_MAGIC_NUMBER]
 // MANIFEST_OFFSET, MANIFEST_LENGTH, MANIFEST_LENGTH_UNCOMPRESSED and CHUNKED_ZSTD_MAGIC_NUMBER are 64 bits unsigned in little endian format.
-func makeZstdChunkedWriter(out io.Writer, metadata map[string]string, createZstdWriter minimal.CreateZstdWriterFunc, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
+func makeZstdChunkedWriter(out io.Writer, metadata map[string]string, createZstdWriter minimal.CreateZstdWriterFunc) (io.WriteCloser, error) {
 	ch := make(chan error, 1)
 	r, w := io.Pipe()
 
 	go func() {
-		ch <- writeZstdChunkedStream(out, metadata, r, createZstdWriter, digestAlgorithm)
+		ch <- writeZstdChunkedStream(out, metadata, r, createZstdWriter)
 		_, _ = io.Copy(io.Discard, r) // Ordinarily writeZstdChunkedStream consumes all of r. If it fails, ensure the write end never blocks and eventually terminates.
 		r.Close()
 		close(ch)
@@ -479,7 +479,7 @@ func makeZstdChunkedWriter(out io.Writer, metadata map[string]string, createZstd
 }
 
 // ZstdCompressor is a CompressorFunc for the zstd compression algorithm.
-func ZstdCompressor(r io.Writer, metadata map[string]string, level *int, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
+func ZstdCompressor(r io.Writer, metadata map[string]string, level *int) (io.WriteCloser, error) {
 	if level == nil {
 		l := 10
 		level = &l
@@ -489,7 +489,7 @@ func ZstdCompressor(r io.Writer, metadata map[string]string, level *int, digestA
 		return minimal.ZstdWriterWithLevel(dest, *level)
 	}
 
-	return makeZstdChunkedWriter(r, metadata, createZstdWriter, digestAlgorithm)
+	return makeZstdChunkedWriter(r, metadata, createZstdWriter)
 }
 
 type noCompression struct {
@@ -516,9 +516,9 @@ func (n *noCompression) Reset(dest io.Writer) {
 //
 // Such an output does not follow the zstd:chunked spec and cannot be generally consumed; this function
 // only exists for internal purposes and should not be called from outside c/storage.
-func NoCompression(r io.Writer, metadata map[string]string, digestAlgorithm digest.Algorithm) (io.WriteCloser, error) {
+func NoCompression(r io.Writer, metadata map[string]string) (io.WriteCloser, error) {
 	createZstdWriter := func(dest io.Writer) (minimal.ZstdWriter, error) {
 		return &noCompression{dest: dest}, nil
 	}
-	return makeZstdChunkedWriter(r, metadata, createZstdWriter, digestAlgorithm)
+	return makeZstdChunkedWriter(r, metadata, createZstdWriter)
 }

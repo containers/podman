@@ -43,6 +43,7 @@ type dockerImageDestination struct {
 	impl.PropertyMethodsInitialize
 	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
+	types.DefaultDigestAlgorithm
 
 	ref dockerReference
 	c   *dockerClient

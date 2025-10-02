@@ -28,6 +28,7 @@ import (
 type openshiftImageDestination struct {
 	impl.Compat
 	stubs.AlwaysSupportsSignatures
+	types.DefaultDigestAlgorithm
 
 	client *openshiftClient
 	docker private.ImageDestination // The docker/distribution API endpoint

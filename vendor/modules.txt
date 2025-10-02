@@ -310,13 +310,8 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-<<<<<<< HEAD
-# github.com/google/go-containerregistry v0.20.4-0.20250225234217-098045d5e61f
-## explicit; go 1.23.0
-=======
 # github.com/google/go-containerregistry v0.20.6
 ## explicit; go 1.24
->>>>>>> 56493466ce (vendoring update)
 github.com/google/go-containerregistry/pkg/name
 github.com/google/go-containerregistry/pkg/v1
 github.com/google/go-containerregistry/pkg/v1/types
@@ -745,7 +740,7 @@ go.opentelemetry.io/otel/trace
 go.opentelemetry.io/otel/trace/embedded
 go.opentelemetry.io/otel/trace/internal/telemetry
 go.opentelemetry.io/otel/trace/noop
-# go.podman.io/common v0.65.1-0.20250925174758-4cf0ff781bfc
+# go.podman.io/common v0.65.1-0.20250925174758-4cf0ff781bfc => /home/lsm5/repositories/containers/container-libs/common/
 ## explicit; go 1.24.2
 go.podman.io/common/internal
 go.podman.io/common/internal/attributedstring
@@ -1044,7 +1039,6 @@ golang.org/x/time/rate
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/edge
 golang.org/x/tools/go/ast/inspector
-<<<<<<< HEAD
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/packages
 golang.org/x/tools/go/types/objectpath
@@ -1062,8 +1056,6 @@ golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
-=======
->>>>>>> 56493466ce (vendoring update)
 # google.golang.org/genproto/googleapis/api v0.0.0-20250414145226-207652e42e2e
 ## explicit; go 1.23.0
 google.golang.org/genproto/googleapis/api

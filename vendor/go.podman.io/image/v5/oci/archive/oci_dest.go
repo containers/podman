@@ -21,6 +21,7 @@ import (
 
 type ociArchiveImageDestination struct {
 	impl.Compat
+	types.DefaultDigestAlgorithm
 
 	ref          ociArchiveReference
 	unpackedDest private.ImageDestination

@@ -32,6 +32,7 @@ type dirImageDestination struct {
 	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 	stubs.AlwaysSupportsSignatures
+	types.DefaultDigestAlgorithm
 
 	ref dirReference
 }

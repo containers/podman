@@ -109,8 +109,6 @@ func (s *Source) ensureCachedDataIsPresentPrivate() error {
 	// Success; commit.
 	s.tarManifest = tarManifest
 	s.configBytes = configBytes
-	// Note: Using canonical digest for config digest storage.
-	// This is used internally and should be consistent.
 	s.configDigest = digest.FromBytes(configBytes)
 	s.orderedDiffIDList = parsedConfig.RootFS.DiffIDs
 	s.knownLayers = knownLayers

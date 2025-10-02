@@ -13,29 +13,22 @@ type Digester struct {
 	digester    digest.Digester // Or nil
 }
 
-// newDigester initiates computation of a digest of stream using the same algorithm as knownDigest if available,
+// newDigester initiates computation of a digest.Canonical digest of stream,
 // if !validDigest; otherwise it just records knownDigest to be returned later.
 // The caller MUST use the returned stream instead of the original value.
 func newDigester(stream io.Reader, knownDigest digest.Digest, validDigest bool) (Digester, io.Reader) {
 	if validDigest {
 		return Digester{knownDigest: knownDigest}, stream
 	} else {
-		// Use the algorithm from knownDigest if available and valid, otherwise fall back to canonical
-		algorithm := digest.Canonical
-		if knownDigest != "" {
-			if algo := knownDigest.Algorithm(); algo.Available() {
-				algorithm = algo
-			}
-		}
 		res := Digester{
-			digester: algorithm.Digester(),
+			digester: digest.Canonical.Digester(),
 		}
 		stream = io.TeeReader(stream, res.digester.Hash())
 		return res, stream
 	}
 }
 
-// DigestIfUnknown initiates computation of a digest of stream using the same algorithm as the provided digest,
+// DigestIfUnknown initiates computation of a digest.Canonical digest of stream,
 // if no digest is supplied in the provided blobInfo; otherwise blobInfo.Digest will
 // be used (accepting any algorithm).
 // The caller MUST use the returned stream instead of the original value.
@@ -44,7 +37,7 @@ func DigestIfUnknown(stream io.Reader, blobInfo types.BlobInfo) (Digester, io.Re
 	return newDigester(stream, d, d != "")
 }
 
-// DigestIfCanonicalUnknown initiates computation of a digest using the same algorithm as the provided digest,
+// DigestIfCanonicalUnknown initiates computation of a digest.Canonical digest of stream,
 // if a digest.Canonical digest is not supplied in the provided blobInfo;
 // otherwise blobInfo.Digest will be used.
 // The caller MUST use the returned stream instead of the original value.

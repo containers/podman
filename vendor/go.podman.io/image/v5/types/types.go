@@ -359,6 +359,11 @@ type ImageDestination interface {
 	// - Uploaded data MAY be visible to others before Commit() is called
 	// - Uploaded data MAY be removed or MAY remain around if Close() is called without Commit() (i.e. rollback is allowed but not guaranteed)
 	Commit(ctx context.Context, unparsedToplevel UnparsedImage) error
+
+	// GetDigestAlgorithm returns the digest algorithm configured for the destination.
+	// This is used to determine which digest algorithm to use when computing digests
+	// for blobs and manifests during image operations.
+	GetDigestAlgorithm() digest.Algorithm
 }
 
 // ManifestTypeRejectedError is returned by ImageDestination.PutManifest if the destination is in principle available,
@@ -369,6 +374,20 @@ type ManifestTypeRejectedError struct { // We only use a struct to allow a type 
 
 func (e ManifestTypeRejectedError) Error() string {
 	return e.Err.Error()
+}
+
+// GetDefaultDigestAlgorithm returns the default digest algorithm (SHA256).
+func GetDefaultDigestAlgorithm() digest.Algorithm {
+	return digest.Canonical
+}
+
+// DefaultDigestAlgorithm provides a default implementation of GetDigestAlgorithm()
+// that can be embedded in ImageDestination implementations.
+type DefaultDigestAlgorithm struct{}
+
+// GetDigestAlgorithm returns the default digest algorithm (SHA256).
+func (d DefaultDigestAlgorithm) GetDigestAlgorithm() digest.Algorithm {
+	return digest.Canonical
 }
 
 // UnparsedImage is an Image-to-be; until it is verified and accepted, it only caries its identity and caches manifest and signature blobs.

@@ -45,6 +45,10 @@ func (d *blobCacheDestination) Reference() types.ImageReference {
 	return d.reference
 }
 
+func (d *blobCacheDestination) GetDigestAlgorithm() digest.Algorithm {
+	return d.destination.GetDigestAlgorithm()
+}
+
 func (d *blobCacheDestination) Close() error {
 	logrus.Debugf("finished writing to image %q using blob cache", transports.ImageName(d.reference))
 	return d.destination.Close()
@@ -92,7 +96,7 @@ func (d *blobCacheDestination) saveStream(wg *sync.WaitGroup, decompressReader i
 		}
 	}()
 
-	digester := digest.Canonical.Digester()
+	digester := d.destination.GetDigestAlgorithm().Digester()
 	if err := func() error { // A scope for defer
 		defer tempFile.Close()
 

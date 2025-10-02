@@ -113,12 +113,6 @@ func Digest(manifestBlob []byte) (digest.Digest, error) {
 	return manifest.Digest(manifestBlob)
 }
 
-// DigestWithAlgorithm returns the digest of a docker manifest using the specified digest algorithm,
-// with any necessary implied transformations like stripping v1s1 signatures.
-func DigestWithAlgorithm(manifestBlob []byte, algorithm digest.Algorithm) (digest.Digest, error) {
-	return manifest.DigestWithAlgorithm(manifestBlob, algorithm)
-}
-
 // MatchesDigest returns true iff the manifest matches expectedDigest.
 // Error may be set if this returns false.
 // Note that this is not doing ConstantTimeCompare; by the time we get here, the cryptographic signature must already have been verified,

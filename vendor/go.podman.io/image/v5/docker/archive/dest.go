@@ -11,9 +11,10 @@ import (
 
 type archiveImageDestination struct {
 	*tarfile.Destination // Implements most of types.ImageDestination
-	ref                  archiveReference
-	writer               *Writer // Should be closed if closeWriter
-	closeWriter          bool
+	types.DefaultDigestAlgorithm
+	ref         archiveReference
+	writer      *Writer // Should be closed if closeWriter
+	closeWriter bool
 }
 
 func newImageDestination(sys *types.SystemContext, ref archiveReference) (private.ImageDestination, error) {

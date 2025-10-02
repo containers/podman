@@ -30,7 +30,7 @@ type overlayWhiteoutConverter struct {
 	rolayers []string
 }
 
-func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi os.FileInfo) (wo *tar.Header, err error) {
+func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi os.FileInfo) (*tar.Header, error) {
 	// convert whiteouts to AUFS format
 	if fi.Mode()&os.ModeCharDevice != 0 && hdr.Devmajor == 0 && hdr.Devminor == 0 {
 		// we just rename the file and make it normal
@@ -73,7 +73,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 					// add a whiteout for this item in this layer.
 					// create a header for the whiteout file
 					// it should inherit some properties from the parent, but be a regular file
-					wo = &tar.Header{
+					wo := &tar.Header{
 						Typeflag:   tar.TypeReg,
 						Mode:       hdr.Mode & int64(os.ModePerm),
 						Name:       filepath.Join(hdr.Name, WhiteoutOpaqueDir),
@@ -85,7 +85,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 						AccessTime: hdr.AccessTime,
 						ChangeTime: hdr.ChangeTime,
 					}
-					break
+					return wo, nil
 				}
 				for dir := filepath.Dir(hdr.Name); dir != "" && dir != "." && dir != string(os.PathSeparator); dir = filepath.Dir(dir) {
 					// Check for whiteout for a parent directory in a parent layer.
@@ -109,7 +109,7 @@ func (o overlayWhiteoutConverter) ConvertWrite(hdr *tar.Header, path string, fi 
 		}
 	}
 
-	return
+	return nil, nil
 }
 
 func (overlayWhiteoutConverter) ConvertReadWithHandler(hdr *tar.Header, path string, handler TarWhiteoutHandler) (bool, error) {

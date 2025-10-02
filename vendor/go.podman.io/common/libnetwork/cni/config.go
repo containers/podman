@@ -9,7 +9,6 @@ import (
 	"os"
 	"slices"
 
-	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 	internalutil "go.podman.io/common/libnetwork/internal/util"
 	"go.podman.io/common/libnetwork/types"
@@ -106,7 +105,7 @@ func (n *cniNetwork) networkCreate(newNetwork *types.Network, defaultNet bool) (
 	}
 
 	// generate the network ID
-	newNetwork.ID = getNetworkIDFromName(newNetwork.Name, digest.SHA256)
+	newNetwork.ID = getNetworkIDFromName(newNetwork.Name)
 
 	// when we do not have ipam we must disable dns
 	internalutil.IpamNoneDisableDNS(newNetwork)

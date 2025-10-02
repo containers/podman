@@ -19,7 +19,8 @@ type daemonImageDestination struct {
 	ref                  daemonReference
 	mustMatchRuntimeOS   bool
 	*tarfile.Destination // Implements most of types.ImageDestination
-	archive              *tarfile.Writer
+	types.DefaultDigestAlgorithm
+	archive *tarfile.Writer
 	// For talking to imageLoadGoroutine
 	goroutineCancel context.CancelFunc
 	statusChannel   <-chan error

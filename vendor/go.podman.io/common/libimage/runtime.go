@@ -152,6 +152,16 @@ func (r *Runtime) Shutdown(force bool) error {
 	return err
 }
 
+// GetDigestAlgorithm returns the current digest algorithm used by the runtime.
+func (r *Runtime) GetDigestAlgorithm() digest.Algorithm {
+	return r.store.GetDigestAlgorithm()
+}
+
+// SetDigestAlgorithm sets the digest algorithm to be used by the runtime.
+func (r *Runtime) SetDigestAlgorithm(algorithm digest.Algorithm) error {
+	return r.store.SetDigestAlgorithm(algorithm)
+}
+
 // storageToImage transforms a storage.Image to an Image.
 func (r *Runtime) storageToImage(storageImage *storage.Image, ref types.ImageReference) *Image {
 	return &Image{
@@ -273,9 +283,12 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 
 	byDigest := false
 	originalName := name
-	if isDigestReference(name) {
+	if strings.HasPrefix(name, "sha256:") {
 		byDigest = true
-		name = trimDigestPrefix(name)
+		name = strings.TrimPrefix(name, "sha256:")
+	} else if strings.HasPrefix(name, "sha512:") {
+		byDigest = true
+		name = strings.TrimPrefix(name, "sha512:")
 	}
 	byFullID := reference.IsFullIdentifier(name)
 

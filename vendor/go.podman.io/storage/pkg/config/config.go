@@ -123,11 +123,6 @@ type OptionsConfig struct {
 
 	// DisableVolatile doesn't allow volatile mounts when it is set.
 	DisableVolatile bool `toml:"disable-volatile,omitempty"`
-
-	// DigestType specifies the hash algorithm to use for content addressing.
-	// Supported values are: "sha256", "sha512"
-	// Default is "sha256"
-	DigestType string `toml:"digest_type,omitempty"`
 }
 
 // GetGraphDriverOptions returns the driver specific options

@@ -30,6 +30,7 @@ type ociImageDestination struct {
 	stubs.IgnoresOriginalOCIConfig
 	stubs.NoPutBlobPartialInitialize
 	stubs.NoSignaturesInitialize
+	types.DefaultDigestAlgorithm
 
 	ref           ociReference
 	index         imgspecv1.Index

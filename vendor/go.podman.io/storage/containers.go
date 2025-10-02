@@ -145,10 +145,9 @@ type rwContainerStore interface {
 type containerStore struct {
 	// The following fields are only set when constructing containerStore, and must never be modified afterwards.
 	// They are safe to access without any other locking.
-	lockfile   *lockfile.LockFile // Synchronizes readers vs. writers of the _filesystem data_, both cross-process and in-process.
-	dir        string
-	digestType string
-	jsonPath   [numContainerLocationIndex]string
+	lockfile *lockfile.LockFile // Synchronizes readers vs. writers of the _filesystem data_, both cross-process and in-process.
+	dir      string
+	jsonPath [numContainerLocationIndex]string
 
 	inProcessLock sync.RWMutex // Can _only_ be obtained with lockfile held.
 	// The following fields can only be read/written with read/write ownership of inProcessLock, respectively.
@@ -572,7 +571,7 @@ func (r *containerStore) saveFor(modifiedContainer *Container) error {
 	return r.save(containerLocation(modifiedContainer))
 }
 
-func newContainerStore(dir string, runDir string, transient bool, digestType string) (rwContainerStore, error) {
+func newContainerStore(dir string, runDir string, transient bool) (rwContainerStore, error) {
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return nil, err
 	}
@@ -588,9 +587,8 @@ func newContainerStore(dir string, runDir string, transient bool, digestType str
 		return nil, err
 	}
 	cstore := containerStore{
-		lockfile:   lockfile,
-		dir:        dir,
-		digestType: digestType,
+		lockfile: lockfile,
+		dir:      dir,
 		jsonPath: [numContainerLocationIndex]string{
 			filepath.Join(dir, "containers.json"),
 			filepath.Join(volatileDir, "volatile-containers.json"),
@@ -934,8 +932,7 @@ func (r *containerStore) SetBigData(id, key string, data []byte) error {
 			c.BigDataDigests = make(map[string]digest.Digest)
 		}
 		oldDigest, digestOk := c.BigDataDigests[key]
-		digestAlgorithm := getDigestAlgorithmFromType(r.digestType)
-		newDigest := digestAlgorithm.FromBytes(data)
+		newDigest := digest.Canonical.FromBytes(data)
 		c.BigDataDigests[key] = newDigest
 		if !sizeOk || oldSize != c.BigDataSizes[key] || !digestOk || oldDigest != newDigest {
 			save = true

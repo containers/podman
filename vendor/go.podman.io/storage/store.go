@@ -175,7 +175,6 @@ const (
 	DedupHashCRC      = dedup.DedupHashCRC
 	DedupHashFileSize = dedup.DedupHashFileSize
 	DedupHashSHA256   = dedup.DedupHashSHA256
-	DedupHashSHA512   = dedup.DedupHashSHA512
 )
 
 type (
@@ -203,15 +202,6 @@ type Store interface {
 	PullOptions() map[string]string
 	UIDMap() []idtools.IDMap
 	GIDMap() []idtools.IDMap
-
-	// GetDigestType returns the configured digest type for the store.
-	GetDigestType() string
-
-	// SetDigestType temporarily sets the digest type for the store.
-	SetDigestType(digestType string)
-
-	// GetDigestAlgorithm returns the digest algorithm based on the configured digest type.
-	GetDigestAlgorithm() digest.Algorithm
 
 	// GraphDriver obtains and returns a handle to the graph Driver object used
 	// by the Store.
@@ -620,6 +610,12 @@ type Store interface {
 
 	// Dedup deduplicates layers in the store.
 	Dedup(DedupArgs) (drivers.DedupResult, error)
+
+	// GetDigestAlgorithm returns the current digest algorithm used by the store.
+	GetDigestAlgorithm() digest.Algorithm
+
+	// SetDigestAlgorithm sets the digest algorithm to be used by the store.
+	SetDigestAlgorithm(algorithm digest.Algorithm) error
 }
 
 // AdditionalLayer represents a layer that is contained in the additional layer store
@@ -784,7 +780,6 @@ type store struct {
 	digestLockRoot  string
 	disableVolatile bool
 	transientStore  bool
-	digestType      string
 
 	// The following fields can only be accessed with graphLock held.
 	graphLockLastWrite lockfile.LastWrite
@@ -794,9 +789,12 @@ type store struct {
 	layerStoreUseGetters    rwLayerStore   // Almost all users should use the provided accessors instead of accessing this field directly.
 	roLayerStoresUseGetters []roLayerStore // Almost all users should use the provided accessors instead of accessing this field directly.
 
-	// FIXME: The following fields need locking, and don’t have it.
+	// FIXME: The following fields need locking, and don't have it.
 	additionalUIDs *idSet // Set by getAvailableIDs()
 	additionalGIDs *idSet // Set by getAvailableIDs()
+
+	// Current digest algorithm type (sha256, sha512, etc.)
+	digestAlgorithm digest.Algorithm
 }
 
 // GetStore attempts to find an already-created Store object matching the
@@ -916,7 +914,6 @@ func GetStore(options types.StoreOptions) (Store, error) {
 		autoNsMaxSize:       autoNsMaxSize,
 		disableVolatile:     options.DisableVolatile,
 		transientStore:      options.TransientStore,
-		digestType:          options.DigestType,
 
 		additionalUIDs: nil,
 		additionalGIDs: nil,
@@ -999,7 +996,7 @@ func (s *store) load() error {
 	if err := os.MkdirAll(gipath, 0o700); err != nil {
 		return err
 	}
-	imageStore, err := newImageStore(gipath, s.digestType)
+	imageStore, err := newImageStore(gipath)
 	if err != nil {
 		return err
 	}
@@ -1016,7 +1013,7 @@ func (s *store) load() error {
 		return err
 	}
 
-	rcs, err := newContainerStore(gcpath, rcpath, s.transientStore, s.digestType)
+	rcs, err := newContainerStore(gcpath, rcpath, s.transientStore)
 	if err != nil {
 		return err
 	}
@@ -1033,14 +1030,14 @@ func (s *store) load() error {
 		var ris roImageStore
 		// both the graphdriver and the imagestore must be used read-write.
 		if store == s.imageStoreDir || store == s.graphRoot {
-			imageStore, err := newImageStore(gipath, s.digestType)
+			imageStore, err := newImageStore(gipath)
 			if err != nil {
 				return err
 			}
 			s.rwImageStores = append(s.rwImageStores, imageStore)
 			ris = imageStore
 		} else {
-			ris, err = newROImageStore(gipath, s.digestType)
+			ris, err = newROImageStore(gipath)
 			if err != nil {
 				if errors.Is(err, syscall.EROFS) {
 					logrus.Debugf("Ignoring creation of lockfiles on read-only file systems %q, %v", gipath, err)
@@ -1190,7 +1187,7 @@ func (s *store) getROLayerStoresLocked() ([]roLayerStore, error) {
 	for _, store := range s.graphDriver.AdditionalImageStores() {
 		glpath := filepath.Join(store, driverPrefix+"layers")
 
-		rls, err := newROLayerStore(rlpath, glpath, s.graphDriver, s)
+		rls, err := newROLayerStore(rlpath, glpath, s.graphDriver)
 		if err != nil {
 			return nil, err
 		}
@@ -4003,32 +4000,25 @@ func (s *store) Dedup(req DedupArgs) (drivers.DedupResult, error) {
 	})
 }
 
-func (s *store) GetDigestType() string {
-	if s.digestType == "" {
-		return "sha256" // default value
-	}
-	return s.digestType
-}
-
-// SetDigestType temporarily sets the digest type for this store.
-// This is used for build operations that need a specific digest algorithm.
-func (s *store) SetDigestType(digestType string) {
-	s.digestType = digestType
-}
-
-// GetDigestAlgorithm returns the digest algorithm based on the configured digest type
+// GetDigestAlgorithm returns the current digest algorithm used by the store.
 func (s *store) GetDigestAlgorithm() digest.Algorithm {
-	return getDigestAlgorithmFromType(s.GetDigestType())
+	if s.digestAlgorithm == "" {
+		return digest.Canonical // Default to sha256 if not set
+	}
+	return s.digestAlgorithm
 }
 
-// getDigestAlgorithmFromType returns the digest algorithm for a given digest type string
-func getDigestAlgorithmFromType(digestType string) digest.Algorithm {
-	switch digestType {
-	case "sha512":
-		return digest.SHA512
-	case "sha256":
-		return digest.SHA256
+// SetDigestAlgorithm sets the digest algorithm to be used by the store.
+func (s *store) SetDigestAlgorithm(algorithm digest.Algorithm) error {
+	// Validate the digest type
+	switch algorithm {
+	case digest.SHA256, digest.SHA512:
+		s.digestAlgorithm = algorithm
+		return nil
+	case "":
+		s.digestAlgorithm = digest.Canonical // Default to sha256
+		return nil
 	default:
-		return digest.Canonical
+		return fmt.Errorf("unsupported digest algorithm: %q", algorithm)
 	}
 }

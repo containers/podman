@@ -110,16 +110,9 @@ func (m *manifestSchema2) ConfigBlob(ctx context.Context) ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Use the same digest algorithm as the expected digest for verification
-		expectedDigest := m.m.ConfigDescriptor.Digest
-		var computedDigest digest.Digest
-		if expectedDigest != "" && expectedDigest.Algorithm().Available() {
-			computedDigest = expectedDigest.Algorithm().FromBytes(blob)
-		} else {
-			computedDigest = digest.FromBytes(blob)
-		}
-		if computedDigest != expectedDigest {
-			return nil, fmt.Errorf("Download config.json digest %s does not match expected %s", computedDigest, expectedDigest)
+		computedDigest := digest.FromBytes(blob)
+		if computedDigest != m.m.ConfigDescriptor.Digest {
+			return nil, fmt.Errorf("Download config.json digest %s does not match expected %s", computedDigest, m.m.ConfigDescriptor.Digest)
 		}
 		m.configBlob = blob
 	}
@@ -225,8 +218,6 @@ func (m *manifestSchema2) convertToManifestOCI1(ctx context.Context, _ *types.Ma
 	config := imgspecv1.Descriptor{
 		MediaType: imgspecv1.MediaTypeImageConfig,
 		Size:      int64(len(configOCIBytes)),
-		// Note: Using canonical digest for manifest generation.
-		// For digest agility, this could be configurable in the future.
 		Digest:    digest.FromBytes(configOCIBytes),
 	}
 

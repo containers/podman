@@ -128,11 +128,7 @@ func (r *Runtime) Import(ctx context.Context, path string, options *ImportOption
 		}
 	}
 
-	// Get the proper digest string with the correct algorithm
-	digestString, err := getImageDigestString(ctx, srcRef, r.systemContextCopy())
-	if err != nil {
-		return "", err
-	}
-
-	return digestString, nil
+	// Use the configured digest algorithm for the image ID
+	digestAlgorithm := r.GetDigestAlgorithm()
+	return digestAlgorithm.String() + ":" + name, nil
 }
