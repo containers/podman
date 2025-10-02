@@ -118,7 +118,7 @@ func (s *APIServer) registerArtifactHandlers(r *mux.Router) error {
 	//    type: boolean
 	//  - name: ignore
 	//    in: query
-	//    description: Ignore errors if artifact do not exist
+	//    description: Ignore errors if artifact does not exist
 	//    type: boolean
 	// responses:
 	//   200:
