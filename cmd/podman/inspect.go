@@ -12,6 +12,7 @@ var (
 	inspectDescription = `Displays the low-level information on an object identified by name or ID.
   For more inspection options, see:
 
+      podman artifact inspect
       podman container inspect
       podman image inspect
       podman network inspect
@@ -20,7 +21,7 @@ var (
 
 	// Command: podman _inspect_ Object_ID
 	inspectCmd = &cobra.Command{
-		Use:               "inspect [options] {CONTAINER|IMAGE|POD|NETWORK|VOLUME} [...]",
+		Use:               "inspect [options] {ARTIFACT|CONTAINER|IMAGE|POD|NETWORK|VOLUME} [...]",
 		Short:             "Display the configuration of object denoted by ID",
 		RunE:              inspectExec,
 		Long:              inspectDescription,
@@ -28,6 +29,7 @@ var (
 		ValidArgsFunction: common.AutocompleteInspect,
 		Example: `podman inspect fedora
   podman inspect --type image fedora
+  podman inspect --type artifact quay.io/myimage/myartifact:latest
   podman inspect CtrID ImgID
   podman inspect --format "imageId: {{.Id}} size: {{.Size}}" fedora`,
 	}

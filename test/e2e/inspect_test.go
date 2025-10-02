@@ -597,4 +597,46 @@ var _ = Describe("Podman inspect", func() {
 		Expect(session.OutputToString()).To(ContainSubstring(commandNotFound))
 	})
 
+	It("podman inspect artifact", func() {
+		artifactFile, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifactName := "localhost/test/myartifact"
+		add := podmanTest.Podman([]string{"artifact", "add", artifactName, artifactFile})
+		add.WaitWithDefaultTimeout()
+		Expect(add).Should(ExitCleanly())
+
+		// Test explicit artifact type
+		inspect := podmanTest.Podman([]string{"inspect", "--type", "artifact", artifactName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(BeValidJSON())
+
+		// Test fallback to artifact when no other object type matches
+		inspect = podmanTest.Podman([]string{"inspect", artifactName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(BeValidJSON())
+
+		// Verify that the output contains artifact-specific fields
+		Expect(inspect.OutputToString()).To(ContainSubstring("Manifest"))
+		Expect(inspect.OutputToString()).To(ContainSubstring("Digest"))
+
+		// Test format with artifact-specific fields
+		inspect = podmanTest.Podman([]string{"inspect", "--format", "{{.Name}}", artifactName})
+		inspect.WaitWithDefaultTimeout()
+		Expect(inspect).Should(ExitCleanly())
+		Expect(inspect.OutputToString()).To(Equal(artifactName))
+
+		inspect2 := podmanTest.Podman([]string{"inspect", "--format", "{{.Digest}}", artifactName})
+		inspect2.WaitWithDefaultTimeout()
+		Expect(inspect2).Should(ExitCleanly())
+		Expect(inspect2.OutputToString()).To(ContainSubstring("sha256:"))
+
+		// Clean up
+		rm := podmanTest.Podman([]string{"artifact", "rm", artifactName})
+		rm.WaitWithDefaultTimeout()
+		Expect(rm).Should(ExitCleanly())
+	})
+
 })
