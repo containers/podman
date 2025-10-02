@@ -520,3 +520,10 @@ type artifactPushResponse struct {
 	// in:body
 	Body entities.ArtifactPushReport
 }
+
+// Auto Update
+// swagger:response
+type autoupdateResponse struct {
+	// in:body
+	Body handlers.LibpodAutoUpdateReports
+}
