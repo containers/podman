@@ -325,6 +325,35 @@ var _ = Describe("Podman secret", func() {
 		Expect(list.OutputToStringArray()).To(HaveLen(2), list.OutputToString())
 	})
 
+	It("podman secret ls with valid format fields Driver/CreatedAt", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("secret", "create", "fmt", secretFilePath)
+
+		// .Driver should be available on SecretListReport
+		list := podmanTest.PodmanExitCleanly("secret", "ls", "--format", "{{.Driver}}")
+		Expect(list.OutputToString()).ToNot(BeEmpty())
+
+		// .CreatedAt should be available and human-readable (e.g., "X ago")
+		list = podmanTest.PodmanExitCleanly("secret", "ls", "--format", "{{.CreatedAt}}")
+		Expect(list.OutputToString()).To(ContainSubstring("ago"))
+	})
+
+	It("podman secret ls with invalid Spec.* format should error", func() {
+		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
+		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
+		Expect(err).ToNot(HaveOccurred())
+
+		podmanTest.PodmanExitCleanly("secret", "create", "fmt2", secretFilePath)
+
+		bad := podmanTest.Podman([]string{"secret", "ls", "--format", "{{.Spec.Name}}"})
+		bad.WaitWithDefaultTimeout()
+		Expect(bad).To(Not(ExitCleanly()))
+		Expect(bad.ErrorToString()).To(ContainSubstring("can't evaluate field Spec"))
+	})
+
 	It("podman secret rm", func() {
 		secretFilePath := filepath.Join(podmanTest.TempDir, "secret")
 		err := os.WriteFile(secretFilePath, []byte("mysecret"), 0755)
