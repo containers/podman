@@ -22,7 +22,6 @@ var ApplyUncompressedLayer = chrootarchive.ApplyUncompressedLayer
 // capability of the Diffing methods which it may or may not
 // support on its own. See the comment on the exported
 // NewNaiveDiffDriver function below.
-// Notably, the AUFS driver doesn't need to be wrapped like this.
 type NaiveDiffDriver struct {
 	ProtoDriver
 	LayerIDMapUpdater

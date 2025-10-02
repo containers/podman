@@ -101,7 +101,7 @@ func mountOverlayFromMain() {
 	// Split out the various options, since we need to manipulate the
 	// paths, but we don't want to mess with other options.
 	var upperk, upperv, workk, workv, lowerk, lowerv, labelk, labelv, others string
-	for _, arg := range strings.Split(options.Label, ",") {
+	for arg := range strings.SplitSeq(options.Label, ",") {
 		key, val, _ := strings.Cut(arg, "=")
 		switch key {
 		case "upperdir":
@@ -139,10 +139,9 @@ func mountOverlayFromMain() {
 	// Get a descriptor for each lower, and use that descriptor's name as
 	// the new value for the list of lowers, because it's shorter.
 	if lowerv != "" {
-		lowers := strings.Split(lowerv, ":")
 		var newLowers []string
 		dataOnly := false
-		for _, lowerPath := range lowers {
+		for lowerPath := range strings.SplitSeq(lowerv, ":") {
 			if lowerPath == "" {
 				dataOnly = true
 				continue

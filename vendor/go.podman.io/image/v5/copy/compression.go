@@ -27,9 +27,10 @@ var (
 	// expectedBaseCompressionFormats is used to check if a blob with a specified media type is compressed
 	// using the algorithm that the media type says it should be compressed with
 	expectedBaseCompressionFormats = map[string]*compressiontypes.Algorithm{
-		imgspecv1.MediaTypeImageLayerGzip:      &compression.Gzip,
-		imgspecv1.MediaTypeImageLayerZstd:      &compression.Zstd,
-		manifest.DockerV2Schema2LayerMediaType: &compression.Gzip,
+		imgspecv1.MediaTypeImageLayerGzip:         &compression.Gzip,
+		imgspecv1.MediaTypeImageLayerZstd:         &compression.Zstd,
+		manifest.DockerV2Schema2LayerMediaType:    &compression.Gzip,
+		manifest.DockerV2SchemaLayerMediaTypeZstd: &compression.Zstd,
 	}
 )
 
