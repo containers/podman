@@ -164,6 +164,10 @@ func (r *Runtime) Reset(ctx context.Context) error {
 		return err
 	}
 	for _, v := range volumes {
+		// Skip pinned volumes - they should not be removed during reset
+		if v.IsPinned() {
+			continue
+		}
 		if err := r.RemoveVolume(ctx, v, true, &timeout); err != nil {
 			if errors.Is(err, define.ErrNoSuchVolume) {
 				continue
