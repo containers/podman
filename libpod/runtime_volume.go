@@ -178,18 +178,3 @@ func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []Vol
 	}
 	return preports, nil
 }
-
-// SetVolumePinned sets the pinned status of a volume by name.
-// Pinned volumes are excluded from system prune operations by default.
-func (r *Runtime) SetVolumePinned(volumeName string, pinned bool) error {
-	if !r.valid {
-		return define.ErrRuntimeStopped
-	}
-
-	vol, err := r.state.Volume(volumeName)
-	if err != nil {
-		return err
-	}
-
-	return vol.SetPinned(pinned)
-}
