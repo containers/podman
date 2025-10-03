@@ -138,11 +138,6 @@ func prune(_ *cobra.Command, _ []string) error {
 }
 
 func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
-	pinnedNote := ""
-	if pruneOpts.Volume && !pruneOpts.VolumePruneOptions.IncludePinned {
-		pinnedNote = " (excluding pinned volumes)"
-	}
-	
 	if pruneOpts.All {
 		return `WARNING! This command removes:
 	- all stopped containers
@@ -154,7 +149,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	}
 	return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s%s` + pinnedNote + `
+	- all networks not used by at least one container%s%s (excluding pinned volumes)
 	- all dangling images
 	- all dangling build cache
 
