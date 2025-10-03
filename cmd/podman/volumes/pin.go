@@ -13,7 +13,7 @@ import (
 var (
 	pinDescription = `Mark or unmark a volume as pinned.
 
-Pinned volumes are excluded from system prune operations by default.`
+Pinned volumes are excluded from system prune and system reset operations.`
 
 	pinCommand = &cobra.Command{
 		Use:               "pin [options] VOLUME [VOLUME...]",
