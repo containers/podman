@@ -23,7 +23,8 @@ type VolumeCreateOptions struct {
 	// GID that the volume will be created as
 	GID *int `schema:"gid"`
 	// Pinned indicates that this volume should be excluded from
-	// system prune operations by default
+	// system prune and reset operations. This allows atomically
+	// creating and pinning a volume to avoid race conditions.
 	Pinned bool `schema:"pinned"`
 }
 

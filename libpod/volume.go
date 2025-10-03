@@ -113,7 +113,7 @@ type VolumeState struct {
 	// GIDChowned is the GID the volume was chowned to.
 	GIDChowned int `json:"gidChowned,omitempty"`
 	// Pinned indicates that this volume should be excluded from
-	// system prune operations by default
+	// system prune and reset operations by default
 	Pinned bool `json:"pinned,omitempty"`
 }
 
@@ -297,7 +297,7 @@ func (v *Volume) IsPinned() bool {
 }
 
 // SetPinned sets the pinned status of the volume.
-// Pinned volumes are excluded from system prune operations by default.
+// Pinned volumes are excluded from system prune and reset operations by default.
 func (v *Volume) SetPinned(pinned bool) error {
 	if !v.valid {
 		return define.ErrVolumeRemoved

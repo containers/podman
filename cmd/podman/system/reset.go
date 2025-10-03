@@ -19,7 +19,7 @@ import (
 var (
 	systemResetDescription = `Reset podman storage back to default state
 
-  All containers will be stopped and removed, and all images, volumes, networks and container content will be removed.
+  All containers will be stopped and removed, and all images, volumes (excluding pinned volumes), networks and container content will be removed.
   This command does not restart podman.service and podman.socket systemd units. You may need to manually restart it after running this command.
 `
 	systemResetCommand = &cobra.Command{
@@ -60,7 +60,7 @@ func reset(_ *cobra.Command, _ []string) {
         - all networks
         - all build cache
         - all machines
-        - all volumes`)
+        - all volumes (excluding pinned volumes)`)
 
 		info, _ := registry.ContainerEngine().Info(registry.Context())
 		// lets not hard fail in case of an error
