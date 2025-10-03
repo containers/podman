@@ -80,15 +80,20 @@ func CreateVolume(w http.ResponseWriter, r *http.Request) {
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*input.GID), libpod.WithVolumeNoChown())
 	}
 
-	if input.Pinned {
-		volumeOptions = append(volumeOptions, libpod.WithVolumePinned())
-	}
-
 	vol, err := runtime.NewVolume(r.Context(), volumeOptions...)
 	if err != nil {
 		utils.InternalServerError(w, err)
 		return
 	}
+
+	// Set pinned status after volume creation if requested
+	if input.Pinned {
+		if err := vol.SetPinned(true); err != nil {
+			utils.InternalServerError(w, err)
+			return
+		}
+	}
+
 	inspectOut, err := vol.Inspect()
 	if err != nil {
 		utils.InternalServerError(w, err)

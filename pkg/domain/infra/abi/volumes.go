@@ -48,14 +48,18 @@ func (ic *ContainerEngine) VolumeCreate(ctx context.Context, opts entities.Volum
 		volumeOptions = append(volumeOptions, libpod.WithVolumeGID(*opts.GID), libpod.WithVolumeNoChown())
 	}
 
-	if opts.Pinned {
-		volumeOptions = append(volumeOptions, libpod.WithVolumePinned())
-	}
-
 	vol, err := ic.Libpod.NewVolume(ctx, volumeOptions...)
 	if err != nil {
 		return nil, err
 	}
+
+	// Set pinned status after volume creation if requested
+	if opts.Pinned {
+		if err := vol.SetPinned(true); err != nil {
+			return nil, err
+		}
+	}
+
 	return &entities.IDOrNameResponse{IDOrName: vol.Name()}, nil
 }
 
@@ -286,8 +290,11 @@ func (ic *ContainerEngine) VolumePin(ctx context.Context, namesOrIds []string, o
 	for _, nameOrId := range namesOrIds {
 		report := &entities.VolumePinReport{Id: nameOrId}
 		
-		if err := ic.Libpod.SetVolumePinned(nameOrId, !opts.Unpin); err != nil {
+		vol, err := ic.Libpod.LookupVolume(nameOrId)
+		if err != nil {
 			report.Err = err
+		} else {
+			report.Err = vol.SetPinned(!opts.Unpin)
 		}
 
 		reports = append(reports, report)
