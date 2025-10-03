@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"syscall"
@@ -125,6 +126,13 @@ type BuildQuery struct {
 	UnsetLabels             []string           `schema:"unsetlabel"`
 	UnsetAnnotations        []string           `schema:"unsetannotation"`
 	Volumes                 []string           `schema:"volume"`
+	SBOMOutput              string             `schema:"sbom-output"`
+	SBOMPURLOutput          string             `schema:"sbom-purl-output"`
+	ImageSBOMOutput         string             `schema:"sbom-image-output"`
+	ImageSBOMPURLOutput     string             `schema:"sbom-image-purl-output"`
+	ImageSBOM               string             `schema:"sbom-scanner-image"`
+	SBOMCommands            string             `schema:"sbom-scanner-command"`
+	SBOMMergeStrategy       string             `schema:"sbom-merge-strategy"`
 }
 
 // BuildContext represents processed build context and metadata for container image builds.
@@ -619,6 +627,44 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 			return nil, cleanup, utils.GetBadRequestError("retry-delay", query.RetryDelay, err)
 		}
 	}
+	var sbomScanOptions []buildahDefine.SBOMScanOptions
+	if query.ImageSBOM != "" ||
+		query.SBOMOutput != "" ||
+		query.ImageSBOMOutput != "" ||
+		query.SBOMPURLOutput != "" ||
+		query.ImageSBOMPURLOutput != "" ||
+		query.SBOMCommands != "" ||
+		query.SBOMMergeStrategy != "" {
+		sbomScanOption := &buildahDefine.SBOMScanOptions{
+			SBOMOutput:      query.SBOMOutput,
+			PURLOutput:      query.SBOMPURLOutput,
+			ImageSBOMOutput: query.ImageSBOMOutput,
+			ImagePURLOutput: query.ImageSBOMPURLOutput,
+			Image:           query.ImageSBOM,
+			MergeStrategy:   buildahDefine.SBOMMergeStrategy(query.SBOMMergeStrategy),
+			PullPolicy:      pullPolicy,
+		}
+
+		if _, found := r.URL.Query()["sbom-scanner-command"]; found {
+			var m = []string{}
+			if err := json.Unmarshal([]byte(query.SBOMCommands), &m); err != nil {
+				return nil, cleanup, utils.GetBadRequestError("sbom-scanner-command", query.SBOMCommands, err)
+			}
+			sbomScanOption.Commands = m
+		}
+
+		if !slices.Contains(sbomScanOption.ContextDir, buildCtx.ContextDirectory) {
+			sbomScanOption.ContextDir = append(sbomScanOption.ContextDir, buildCtx.ContextDirectory)
+		}
+
+		for _, abc := range buildCtx.AdditionalBuildContexts {
+			if !abc.IsURL && !abc.IsImage {
+				sbomScanOption.ContextDir = append(sbomScanOption.ContextDir, abc.Value)
+			}
+		}
+
+		sbomScanOptions = append(sbomScanOptions, *sbomScanOption)
+	}
 
 	// Create build options
 	buildOptions := &buildahDefine.BuildOptions{
@@ -702,6 +748,7 @@ func createBuildOptions(query *BuildQuery, buildCtx *BuildContext, queryValues u
 		UnsetEnvs:                      query.UnsetEnvs,
 		UnsetLabels:                    query.UnsetLabels,
 		UnsetAnnotations:               query.UnsetAnnotations,
+		SBOMScanOptions:                sbomScanOptions,
 	}
 
 	// Process platforms

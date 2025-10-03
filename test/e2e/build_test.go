@@ -973,6 +973,24 @@ RUN ls /dev/test1`, CITEST_IMAGE)
 		Expect(session).Should(ExitWithError(1, `building at STEP "RUN --mount=type=cache,target=/test,z cat /test/world": while running runtime: exit status 1`))
 	})
 
+	It("podman build with sbom flags", func() {
+		podmanTest.AddImageToRWStore(ALPINE)
+
+		localsbomFile := filepath.Join(podmanTest.TempDir, "localsbom.txt")
+		localPurlFile := filepath.Join(podmanTest.TempDir, "localpurl.txt")
+
+		podmanTest.PodmanExitCleanly("build", "-t", "sbom-img", "--sbom-output="+localsbomFile, "--sbom-purl-output="+localPurlFile, "--sbom-image-output=/tmp/sbom.txt", "--sbom-image-purl-output=/tmp/purl.txt",
+			"--sbom-scanner-image=alpine", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED ROOT {ROOTFS} > {OUTPUT}'", "--sbom-scanner-command=/bin/sh -c 'echo SCANNED BUILD CONTEXT {CONTEXT} > {OUTPUT}'",
+			"--sbom-merge-strategy=cat", "build/basicalpine")
+
+		Expect(localsbomFile).To(BeARegularFile())
+		Expect(localPurlFile).To(BeARegularFile())
+
+		session := podmanTest.PodmanExitCleanly("run", "--rm", "sbom-img", "ls", "/tmp")
+		Expect(session.OutputToString()).To(ContainSubstring("purl.txt"))
+		Expect(session.OutputToString()).To(ContainSubstring("sbom.txt"))
+	})
+
 	It("podman build --build-context: local source", func() {
 		podmanTest.RestartRemoteService()
 
