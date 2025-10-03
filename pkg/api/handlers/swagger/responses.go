@@ -520,3 +520,10 @@ type artifactPushResponse struct {
 	// in:body
 	Body entities.ArtifactPushReport
 }
+
+// Quadlet list
+// swagger:response
+type quadletListResponse struct {
+	// in:body
+	Body []entities.ListQuadlet
+}
