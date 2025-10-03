@@ -7,8 +7,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega/gexec"
-
-	"github.com/containers/podman/v6/pkg/machine/define"
 )
 
 const podmanBinary = "../../../bin/windows/podman.exe"
@@ -27,15 +25,6 @@ func pgrep(n string) (string, error) {
 		return "", fmt.Errorf("no task found")
 	}
 	return strOut, nil
-}
-
-func getOtherProvider() string {
-	if isVmtype(define.WSLVirt) {
-		return "hyperv"
-	} else if isVmtype(define.HyperVVirt) {
-		return "wsl"
-	}
-	return ""
 }
 
 func runWslCommand(cmdArgs []string) (*machineSession, error) {

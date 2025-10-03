@@ -96,6 +96,12 @@ Add the provided Ansible playbook to the machine and execute it after the first 
 Note: The playbook will be executed with the same privileges given to the user in the virtual machine. The playbook provided cannot include other files from the host system, as they will not be copied.
 Use of the `--playbook` flag will require the image to include Ansible. The default image provided will have Ansible included.
 
+
+#### **--provider**
+
+Specify the provider for the machine to be created.  This allows users to override the default provider on platforms
+that have multiple providers.
+
 #### **--rootful**
 
 Whether this machine prefers rootful (`true`) or rootless (`false`)
@@ -235,6 +241,11 @@ $ podman machine init --usb vendor=13d3,product=5406
 Initialize the default Podman machine with a usb device passthrough with specified with options. Only supported for QEMU Machines.
 ```
 $ podman machine init --usb bus=1,devnum=3
+```
+
+Initialize a machine on different provider than the default
+```
+$ podman machine init --provider applehv
 ```
 
 ## SEE ALSO

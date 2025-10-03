@@ -100,7 +100,7 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 	host.Arch = runtime.GOARCH
 	host.OS = runtime.GOOS
 
-	dirs, err := env.GetMachineDirs(provider.VMType())
+	dirs, err := env.GetMachineDirs(machineProvider.VMType())
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,7 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 			host.DefaultMachine = vm.Name
 		}
 		// If machine is running or starting, it is automatically the current machine
-		state, err := provider.State(vm, false)
+		state, err := machineProvider.State(vm, false)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +149,7 @@ func hostInfo() (*entities.MachineHostInfo, error) {
 		}
 	}
 
-	host.VMType = provider.VMType().String()
+	host.VMType = machineProvider.VMType().String()
 
 	host.MachineImageDir = dirs.DataDir.GetPath()
 	host.MachineConfigDir = dirs.ConfigDir.GetPath()

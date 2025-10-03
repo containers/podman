@@ -9,8 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containers/podman/v6/pkg/domain/entities"
 	"github.com/containers/podman/v6/pkg/machine/define"
+	"github.com/containers/podman/v6/pkg/machine/provider"
 	"github.com/containers/podman/v6/utils"
+	jsoniter "github.com/json-iterator/go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gexec"
@@ -635,6 +638,68 @@ var _ = Describe("podman machine init", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(proc2Session.outputToString()).To(ContainSubstring("/proc/sys/fs/binfmt_misc/qemu-x86_64"))
 	})
+
+	It("init machine with invalid --provider for platform", func() {
+		var providerOverride string
+		switch testProvider.VMType() {
+		case define.QemuVirt, define.AppleHvVirt, define.LibKrun:
+			providerOverride = "wsl"
+		case define.WSLVirt, define.HyperVVirt:
+			providerOverride = "applehv"
+		default:
+			Fail("unsupported provider in tests")
+		}
+
+		i := initMachine{}
+		machineName := randomString()
+		session, err := mb.setName(machineName).setCmd(i.withImage(mb.imagePath).withProvider(providerOverride)).run()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(session.errorToString()).To(ContainSubstring(fmt.Sprintf("unsupported provider %q", providerOverride)))
+
+	})
+
+	It("machine init --provider", func() {
+		skipIfVmtype(define.WSLVirt, "Skip to avoid long tests or image pulls on Windows")
+		skipIfVmtype(define.HyperVVirt, "Skip to avoid long tests or image pulls Windows")
+		verify := make(map[string]string)
+
+		// Loop all providers and create a map with
+		// machine_name -> provider
+		for _, p := range provider.GetAll() {
+			machineName := randomString()
+			verify[machineName] = p.VMType().String()
+		}
+
+		// Loop verify and create a podman machine with the name and
+		// --provider
+		for name, p := range verify {
+			i := initMachine{}
+			session, err := mb.setName(name).setCmd(i.withImage(mb.imagePath).withProvider(p)).run()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(session.ExitCode()).To(Equal(0))
+		}
+
+		// List machines and marshall them
+		list := new(listMachine)
+		list = list.withFormat("json")
+		listSession, err := mb.setCmd(list).run()
+		Expect(err).NotTo(HaveOccurred())
+		var listResponse []*entities.ListReporter
+		err = jsoniter.Unmarshal(listSession.Bytes(), &listResponse)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(listResponse).To(HaveLen(len(verify)))
+
+		// Loop our machine list and make sure we have a name -> provider
+		// match
+		for _, l := range listResponse {
+			p, ok := verify[l.Name]
+			if !ok {
+				Fail(fmt.Sprintf("%s not found in list", l.Name))
+			}
+			Expect(p).To(Equal(l.VMType))
+		}
+	})
+
 })
 
 var p4Config = []byte(`{

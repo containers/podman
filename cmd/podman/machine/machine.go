@@ -41,10 +41,7 @@ var (
 	}
 )
 
-var (
-	// TODO This needs to be deleted!
-	provider vmconfigs.VMProvider
-)
+var machineProvider vmconfigs.VMProvider
 
 func init() {
 	registry.Commands = append(registry.Commands, registry.CliCommand{
@@ -54,7 +51,7 @@ func init() {
 
 func machinePreRunE(c *cobra.Command, args []string) error {
 	var err error
-	provider, err = provider2.Get()
+	machineProvider, err = provider2.Get()
 	if err != nil {
 		return err
 	}
@@ -102,6 +99,14 @@ func autocompleteMachine(_ *cobra.Command, args []string, toComplete string) ([]
 		return getMachines(toComplete)
 	}
 	return nil, cobra.ShellCompDirectiveNoFileComp
+}
+
+func autocompleteMachineProvider(_ *cobra.Command, _ []string, _ string) ([]string, cobra.ShellCompDirective) {
+	suggestions := make([]string, 0)
+	for _, p := range provider2.GetAll() {
+		suggestions = append(suggestions, p.VMType().String())
+	}
+	return suggestions, cobra.ShellCompDirectiveNoFileComp
 }
 
 func getMachines(toComplete string) ([]string, cobra.ShellCompDirective) {

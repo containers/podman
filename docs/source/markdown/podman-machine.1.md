@@ -22,6 +22,17 @@ environment variable while the machines are running can lead to unexpected behav
 
 Podman machine behaviour can be modified via the [machine] section in the containers.conf(5) file.
 
+Podman is based on virtual machine providers. The following table describes which providers are
+supported by platform.  The asterisk denotes the default provider for the platform.
+
+| Platform | Provider |
+| --------  |----------|
+| Linux | qemu*    |
+| MacOS | libkrun* |
+| MacOS | applehv  |
+| Windows | wsl*     |
+| Windows | hyperv   |
+
 ## SUBCOMMANDS
 
 | Command | Man Page                                                 | Description                                                     |
