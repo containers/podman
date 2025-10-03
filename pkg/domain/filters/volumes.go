@@ -62,7 +62,7 @@ func GenerateVolumeFilters(filter string, filterValues []string, runtime *libpod
 		}
 		return func(v *libpod.Volume) bool {
 			for _, val := range filterValues {
-				pinned := v.Pinned()
+				pinned := v.IsPinned()
 
 				switch strings.ToLower(val) {
 				case "true", "1":
@@ -136,7 +136,7 @@ func GeneratePruneVolumeFilters(filter string, filterValues []string, runtime *l
 		}
 		return func(v *libpod.Volume) bool {
 			for _, val := range filterValues {
-				pinned := v.Pinned()
+				pinned := v.IsPinned()
 
 				switch strings.ToLower(val) {
 				case "true", "1":

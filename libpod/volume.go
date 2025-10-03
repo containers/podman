@@ -283,9 +283,9 @@ func (v *Volume) UsesVolumeDriver() bool {
 	return v.config.Driver != define.VolumeDriverLocal && v.config.Driver != ""
 }
 
-// Pinned returns whether this volume is marked as pinned.
-// Pinned volumes are excluded from system prune operations by default.
-func (v *Volume) Pinned() bool {
+// IsPinned returns whether this volume is marked as pinned.
+// Pinned volumes are excluded from system prune and reset operations by default.
+func (v *Volume) IsPinned() bool {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 

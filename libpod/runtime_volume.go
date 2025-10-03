@@ -152,7 +152,7 @@ func (r *Runtime) PruneVolumesWithOptions(ctx context.Context, filterFuncs []Vol
 
 	for _, vol := range vols {
 		// Skip pinned volumes unless explicitly requested
-		if vol.Pinned() && !includePinned {
+		if vol.IsPinned() && !includePinned {
 			continue
 		}
 
