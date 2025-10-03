@@ -64,6 +64,7 @@ type AddOptions struct {
 	ArtifactMIMEType *string
 	Append           *bool
 	FileMIMEType     *string
+	Replace          *bool
 }
 
 // ExtractOptions

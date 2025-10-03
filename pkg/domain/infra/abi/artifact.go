@@ -209,11 +209,19 @@ func (ir *ImageEngine) ArtifactAdd(ctx context.Context, name string, artifactBlo
 		return nil, err
 	}
 
+	// If replace is true, try to remove existing artifact (ignore errors if it doesn't exist)
+	if opts.Replace {
+		if _, err = artStore.Remove(ctx, name); err != nil && !errors.Is(err, types.ErrArtifactNotExist) {
+			logrus.Debugf("Artifact %q removal failed: %s", name, err)
+		}
+	}
+
 	addOptions := types.AddOptions{
 		Annotations:      opts.Annotations,
 		ArtifactMIMEType: opts.ArtifactMIMEType,
 		Append:           opts.Append,
 		FileMIMEType:     opts.FileMIMEType,
+		Replace:          opts.Replace,
 	}
 
 	artifactDigest, err := artStore.Add(ctx, name, artifactBlobs, &addOptions)
