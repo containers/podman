@@ -89,7 +89,7 @@ func (ic *ContainerEngine) VolumeRm(ctx context.Context, namesOrIds []string, op
 	}
 	for _, vol := range vols {
 		// Check if volume is pinned and --include-pinned flag is not set
-		if vol.Pinned() && !opts.IncludePinned {
+		if vol.IsPinned() && !opts.IncludePinned {
 			reports = append(reports, &entities.VolumeRmReport{
 				Err: fmt.Errorf("volume %s is pinned and cannot be removed without --include-pinned flag", vol.Name()),
 				Id:  vol.Name(),
