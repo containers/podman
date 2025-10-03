@@ -1966,6 +1966,71 @@ EOF
     done < <(parse_table "${dropin_files}")
 }
 
+@test "quadlet - artifact" {
+    local quadlet_tmpdir=$PODMAN_TMPDIR/quadlets
+
+    local registry=localhost:${PODMAN_LOGIN_REGISTRY_PORT}
+    local artifact_for_test=$registry/test-artifact:$(random_string)
+    local authfile=$PODMAN_TMPDIR/authfile.json
+
+    # Create a test artifact file
+    local test_artifact_dir=$PODMAN_TMPDIR/test-artifact
+    mkdir -p $test_artifact_dir
+    echo "test artifact content $(random_string)" > $test_artifact_dir/test-file.txt
+
+    # In order to test artifact pull but without possible Network issues,
+    # this test uses an additional registry.
+    # Start the registry and populate the authfile that we can use for the test.
+    start_registry
+    run_podman login --authfile=$authfile \
+        --tls-verify=false \
+        --username ${PODMAN_LOGIN_USER} \
+        --password ${PODMAN_LOGIN_PASS} \
+        $registry
+
+    # Create and push a test artifact to the registry
+    run_podman artifact add $artifact_for_test $test_artifact_dir/test-file.txt
+    run_podman artifact push --tls-verify=false --authfile=$authfile $artifact_for_test
+
+    # Remove the local artifact to make sure it will be pulled again
+    run_podman artifact rm $artifact_for_test
+
+    # Create artifact quadlet file
+    local artifact_file=$PODMAN_TMPDIR/test-artifact.artifact
+    cat >$artifact_file << EOF
+[Artifact]
+Artifact=$artifact_for_test
+AuthFile=$authfile
+TLSVerify=false
+EOF
+
+    run_quadlet "$artifact_file"
+    service_setup $QUADLET_SERVICE_NAME
+
+    # Wait for the service to complete (it's a oneshot service)
+    local timeout=30
+    local count=0
+    while [ $count -lt $timeout ]; do
+        run systemctl show --value --property=ActiveState "$QUADLET_SERVICE_NAME"
+        if [ "$output" = "active" ]; then
+            break
+        fi
+        sleep 1
+        count=$((count + 1))
+    done
+
+    # Verify artifact was pulled
+    run_podman artifact ls
+    assert $status -eq 0 "Failed to list artifacts"
+    # Extract the repository and tag parts separately since artifact ls shows them in columns
+    local artifact_repo=$(echo "$artifact_for_test" | cut -d: -f1)
+    local artifact_tag=$(echo "$artifact_for_test" | cut -d: -f2)
+    assert "$output" =~ "$artifact_repo.*$artifact_tag" "Artifact should exist after quadlet service runs"
+
+    # Clean up
+    run_podman artifact rm $artifact_for_test
+}
+
 # Following issue: https://github.com/containers/podman/issues/24599
 # Make sure future changes do not break
 @test "quadlet - build with pull" {
