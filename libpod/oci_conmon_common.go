@@ -46,6 +46,9 @@ const (
 	// Important: The conmon attach socket uses an extra byte at the beginning of each
 	// message to specify the STREAM so we have to increase the buffer size by one
 	bufferSize = conmonConfig.BufSize + 1
+
+	// Healthcheck message type from conmon (using negative to avoid PID conflicts)
+	HealthCheckMsgStatusUpdate = -100
 )
 
 // ConmonOCIRuntime is an OCI runtime managed by Conmon.
@@ -981,7 +984,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if err != nil {
 		return 0, fmt.Errorf("creating socket pair: %w", err)
 	}
-	defer errorhandling.CloseQuiet(parentSyncPipe)
+	// Note: parentSyncPipe is NOT closed here because it's used for continuous healthcheck monitoring
+	// defer errorhandling.CloseQuiet(parentSyncPipe)
 
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
@@ -1037,6 +1041,13 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if ctr.config.ConmonPidFile != "" {
 		args = append(args, "--conmon-pidfile", ctr.config.ConmonPidFile)
 	}
+
+	// Add healthcheck-related arguments (build-conditional)
+	logrus.Debugf("HEALTHCHECK: Adding healthcheck args for container %s (has healthcheck: %v)", ctr.ID(), ctr.HasHealthCheck())
+	args = r.addHealthCheckArgs(ctr, args)
+
+	// Log the final conmon command for debugging
+	logrus.Debugf("HEALTHCHECK: Final conmon command for container %s: %v", ctr.ID(), args)
 
 	if r.noPivot {
 		args = append(args, "--no-pivot")
@@ -1199,6 +1210,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	// regardless of whether we errored or not, we no longer need the children pipes
 	childSyncPipe.Close()
 	childStartPipe.Close()
+
+	// Note: parentSyncPipe is NOT closed here because it's used for continuous healthcheck monitoring
 	if err != nil {
 		return 0, err
 	}
@@ -1219,7 +1232,8 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, fmt.Errorf("conmon failed: %w", err)
 	}
 
-	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog)
+	logrus.Debugf("HEALTHCHECK: About to read sync pipe data for container %s", ctr.ID())
+	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog, ctr)
 	if err != nil {
 		if err2 := r.DeleteContainer(ctr); err2 != nil {
 			logrus.Errorf("Removing container %s from runtime after creation failed", ctr.ID())
@@ -1322,7 +1336,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		logDriverArg = define.NoLogging
 	case define.PassthroughLogging, define.PassthroughTTYLogging:
 		logDriverArg = define.PassthroughLogging
-	//lint:ignore ST1015 the default case has to be here
 	default: //nolint:gocritic
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
 		logrus.Errorf("%s logging specified but not supported. Choosing k8s-file logging instead", ctr.LogDriver())
@@ -1390,13 +1403,15 @@ func readConmonPidFile(pidFile string) (int, error) {
 	return 0, nil
 }
 
+// syncInfo is used to return data from monitor process to daemon
+type syncInfo struct {
+	Data    int    `json:"data"`
+	Message string `json:"message,omitempty"`
+}
+
 // readConmonPipeData attempts to read a syncInfo struct from the pipe
-func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, error) {
-	// syncInfo is used to return data from monitor process to daemon
-	type syncInfo struct {
-		Data    int    `json:"data"`
-		Message string `json:"message,omitempty"`
-	}
+// If ctr is provided, it will also start continuous healthcheck monitoring
+func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string, ctr ...*Container) (int, error) {
 
 	// Wait to get container pid from conmon
 	type syncStruct struct {
@@ -1408,15 +1423,24 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		var si *syncInfo
 		rdr := bufio.NewReader(pipe)
 		b, err := rdr.ReadBytes('\n')
+
+		// Log the raw JSON string received from conmon
+		logrus.Debugf("HEALTHCHECK: Raw JSON received from conmon: %q", string(b))
+		logrus.Debugf("HEALTHCHECK: JSON length: %d bytes", len(b))
+
 		// ignore EOF here, error is returned even when data was read
 		// if it is no valid json unmarshal will fail below
 		if err != nil && !errors.Is(err, io.EOF) {
+			logrus.Debugf("HEALTHCHECK: Error reading from conmon pipe: %v", err)
 			ch <- syncStruct{err: err}
+			return
 		}
 		if err := json.Unmarshal(b, &si); err != nil {
+			logrus.Debugf("HEALTHCHECK: Failed to unmarshal JSON from conmon: %v", err)
 			ch <- syncStruct{err: fmt.Errorf("conmon bytes %q: %w", string(b), err)}
 			return
 		}
+		logrus.Debugf("HEALTHCHECK: Successfully parsed JSON from conmon: Data=%d, Message=%q", si.Data, si.Message)
 		ch <- syncStruct{si: si}
 	}()
 
@@ -1436,6 +1460,13 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 			return -1, fmt.Errorf("container create failed (no logs from conmon): %w", ss.err)
 		}
 		logrus.Debugf("Received: %d", ss.si.Data)
+
+		// Start continuous healthcheck monitoring if container is provided and PID is valid
+		if len(ctr) > 0 && ctr[0] != nil && ss.si.Data > 0 {
+			logrus.Debugf("HEALTHCHECK: Starting continuous healthcheck monitoring for container %s (PID: %d)", ctr[0].ID(), ss.si.Data)
+			go readConmonHealthCheckPipeData(ctr[0], pipe)
+		}
+
 		if ss.si.Data < 0 {
 			if ociLog != "" {
 				ociLogData, err := os.ReadFile(ociLog)
@@ -1457,6 +1488,94 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		return -1, fmt.Errorf("container creation timeout: %w", define.ErrInternal)
 	}
 	return data, nil
+}
+
+// readConmonHealthCheckPipeData continuously reads healthcheck status updates from conmon
+func readConmonHealthCheckPipeData(ctr *Container, pipe *os.File) {
+	logrus.Debugf("HEALTHCHECK: Starting continuous healthcheck monitoring for container %s", ctr.ID())
+
+	rdr := bufio.NewReader(pipe)
+	for {
+		// Read one line from the pipe
+		b, err := rdr.ReadBytes('\n')
+		if err != nil {
+			if err == io.EOF {
+				logrus.Debugf("HEALTHCHECK: Pipe closed for container %s, stopping monitoring", ctr.ID())
+				return
+			}
+			logrus.Errorf("HEALTHCHECK: Error reading from pipe for container %s: %v", ctr.ID(), err)
+			return
+		}
+
+		// Log the raw JSON string received from conmon
+		logrus.Debugf("HEALTHCHECK: Raw JSON received from conmon for container %s: %q", ctr.ID(), string(b))
+		logrus.Debugf("HEALTHCHECK: JSON length: %d bytes", len(b))
+
+		// Parse the JSON
+		var si syncInfo
+		if err := json.Unmarshal(b, &si); err != nil {
+			logrus.Errorf("HEALTHCHECK: Failed to parse JSON from conmon for container %s: %v", ctr.ID(), err)
+			continue
+		}
+
+		logrus.Debugf("HEALTHCHECK: Parsed sync info for container %s: Data=%d, Message=%q", ctr.ID(), si.Data, si.Message)
+
+		// Handle healthcheck status updates (negative message types)
+		if si.Data == HealthCheckMsgStatusUpdate && si.Message != "" {
+			logrus.Infof("HEALTHCHECK: Received healthcheck status update for container %s: %s", ctr.ID(), si.Message)
+			// Process the healthcheck status update
+			if err := handleHealthCheckStatusUpdate(ctr, si.Message); err != nil {
+				logrus.Errorf("HEALTHCHECK: Failed to process healthcheck status update for container %s: %v", ctr.ID(), err)
+			}
+		} else if si.Data == HealthCheckMsgStatusUpdate {
+			logrus.Debugf("HEALTHCHECK: Received healthcheck message type %d for container %s but no message content", si.Data, ctr.ID())
+		} else if si.Data < 0 {
+			// This might be a healthcheck message with a different negative type number
+			logrus.Debugf("HEALTHCHECK: Received negative message type %d for container %s - might be healthcheck related", si.Data, ctr.ID())
+		} else if si.Data > 0 {
+			// This might be a PID or other positive message - log but don't process as healthcheck
+			logrus.Debugf("HEALTHCHECK: Received positive message type %d for container %s - not healthcheck related", si.Data, ctr.ID())
+		}
+	}
+}
+
+// handleHealthCheckStatusUpdate processes healthcheck status updates from conmon
+func handleHealthCheckStatusUpdate(ctr *Container, message string) error {
+	logrus.Debugf("HEALTHCHECK: Processing healthcheck status update for container %s: %s", ctr.ID(), message)
+
+	// Parse the healthcheck status JSON from conmon
+	type healthCheckStatus struct {
+		Type        string `json:"type"`
+		ContainerID string `json:"container_id"`
+		Status      string `json:"status"`
+		ExitCode    int    `json:"exit_code"`
+		Timestamp   int64  `json:"timestamp"`
+	}
+
+	var hcStatus healthCheckStatus
+	if err := json.Unmarshal([]byte(message), &hcStatus); err != nil {
+		logrus.Errorf("HEALTHCHECK: Failed to parse healthcheck status JSON for container %s: %v", ctr.ID(), err)
+		return fmt.Errorf("failed to parse healthcheck status from conmon: %w", err)
+	}
+
+	logrus.Debugf("HEALTHCHECK: Parsed healthcheck status for container %s: Type=%s, ContainerID=%s, Status=%s, ExitCode=%d, Timestamp=%d",
+		ctr.ID(), hcStatus.Type, hcStatus.ContainerID, hcStatus.Status, hcStatus.ExitCode, hcStatus.Timestamp)
+
+	// Verify this is for the correct container
+	if hcStatus.ContainerID != ctr.ID() {
+		logrus.Errorf("HEALTHCHECK: Healthcheck status for wrong container: expected %s, got %s", ctr.ID(), hcStatus.ContainerID)
+		return fmt.Errorf("healthcheck status for wrong container: expected %s, got %s", ctr.ID(), hcStatus.ContainerID)
+	}
+
+	// Update the container's healthcheck status
+	logrus.Debugf("HEALTHCHECK: Updating healthcheck status for container %s to %s", ctr.ID(), hcStatus.Status)
+	if err := ctr.updateHealthStatus(hcStatus.Status); err != nil {
+		logrus.Errorf("HEALTHCHECK: Failed to update healthcheck status for container %s: %v", ctr.ID(), err)
+		return fmt.Errorf("failed to update healthcheck status for container %s: %w", ctr.ID(), err)
+	}
+
+	logrus.Infof("HEALTHCHECK: Successfully updated healthcheck status for container %s to %s (exit code: %d)", ctr.ID(), hcStatus.Status, hcStatus.ExitCode)
+	return nil
 }
 
 // writeConmonPipeData writes nonce data to a pipe
