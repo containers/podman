@@ -527,6 +527,20 @@ class ArtifactTestCase(APITestCase):
         rjson = r.json()
         self.assertEqual(len(rjson), 0)
 
+    def test_remove_with_ignore(self):
+        # Test remove non existent artifacts with ignore
+        removeparameters: dict[str, str | list[str]] = {
+            "Artifacts": "fake_artifact",
+            "ignore": "true",
+        }
+
+        url = self.uri("/artifacts/remove")
+        r = requests.delete(url, params=removeparameters)
+        rjson = r.json()
+
+        # Assert correct response code
+        self.assertEqual(r.status_code, 200, r.text)
+
     def test_remove_absent_artifact_fails(self):
         ARTIFACT_NAME = "localhost/fake/artifact:latest"
         url = self.uri("/artifacts/" + ARTIFACT_NAME)
