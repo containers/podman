@@ -11,6 +11,7 @@ load helpers.registry
 load helpers.systemd
 
 UNIT_FILES=()
+SERVICES_TO_STOP=()
 
 function start_time() {
     sleep_to_next_second # Ensure we're on a new second with no previous logging
@@ -26,16 +27,32 @@ function setup() {
 
     start_time
 
+    # Clear arrays for each test
+    SERVICES_TO_STOP=()
+
     basic_setup
 }
 
 function teardown() {
+    # Stop manually specified services
+    for service in ${SERVICES_TO_STOP[@]}; do
+        run systemctl stop "$service"
+        if [ $status -ne 0 ]; then
+           echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+        fi
+        run systemctl reset-failed "$service"
+    done
+
     for UNIT_FILE in ${UNIT_FILES[@]}; do
         if [[ -e "$UNIT_FILE" ]]; then
             local service=$(basename "$UNIT_FILE")
-            run systemctl stop "$service"
-            if [ $status -ne 0 ]; then
-               echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+            # Skip stopping template services (those ending with '@')
+            # as they cannot be stopped directly without an instance name
+            if [[ ! "$service" =~ @\.service$ ]]; then
+                run systemctl stop "$service"
+                if [ $status -ne 0 ]; then
+                   echo "# WARNING: systemctl stop failed in teardown: $output" >&3
+                fi
             fi
             run systemctl reset-failed "$service"
             rm -f "$UNIT_FILE"
@@ -435,6 +452,99 @@ EOF
     # Shutdown the service and remove the volume
     service_cleanup $container_service failed
     run_podman volume rm $volume_name
+}
+
+# A quadlet container template depends on a quadlet volume and network templates
+@test "quadlet - template dependency" {
+    # Save the unit name to use as the volume template for the container template
+    local quadlet_vol_unit=dep_$(safename)@.volume
+    local quadlet_vol_file=$PODMAN_TMPDIR/${quadlet_vol_unit}
+    cat > $quadlet_vol_file <<EOF
+[Volume]
+EOF
+
+    local quadlet_tmpdir=$(mktemp -d --tmpdir=$PODMAN_TMPDIR quadlet.XXXXXX)
+    # Have quadlet create the systemd unit file for the volume template unit
+    run_quadlet "$quadlet_vol_file" "$quadlet_tmpdir"
+
+    # Save the volume service name since the variable will be overwritten
+    local vol_service=$QUADLET_SERVICE_NAME
+    local volume_name=systemd-$(basename $quadlet_vol_file .volume)
+    # For template units, the volume name should have -%i appended
+    volume_name=${volume_name%@}-%i
+
+    # Save the unit name to use as the network template for the container template
+    local quadlet_net_unit=dep_$(safename)@.network
+    local quadlet_net_file=$PODMAN_TMPDIR/${quadlet_net_unit}
+    cat > $quadlet_net_file <<EOF
+[Network]
+EOF
+
+    # Have quadlet create the systemd unit file for the network template unit
+    run_quadlet "$quadlet_net_file" "$quadlet_tmpdir"
+
+    # Save the network service name since the variable will be overwritten
+    local net_service=$QUADLET_SERVICE_NAME
+    local network_name=systemd-$(basename $quadlet_net_file .network)
+    # For template units, the network name should have -%i appended
+    network_name=${network_name%@}-%i
+
+    local quadlet_file=$PODMAN_TMPDIR/user_$(safename)@.container
+    cat > $quadlet_file <<EOF
+[Container]
+Image=$IMAGE
+Exec=top
+Volume=$quadlet_vol_unit:/tmp
+Network=$quadlet_net_unit
+EOF
+
+    # Have quadlet create the systemd unit file for the container template unit
+    run_quadlet "$quadlet_file" "$quadlet_tmpdir"
+
+    # Save the container service name for readability
+    local container_service=$QUADLET_SERVICE_NAME
+
+    # Create instance names for the template units
+    local instance_name="test"
+    local vol_service_instance="${vol_service%@*}@${instance_name}.service"
+    local net_service_instance="${net_service%@*}@${instance_name}.service"
+    local container_service_instance="${container_service%@*}@${instance_name}.service"
+    local volume_name_instance="systemd-dep_$(safename)-${instance_name}"
+    local network_name_instance="systemd-dep_$(safename)-${instance_name}"
+
+    # Volume should not exist
+    run_podman 1 volume exists ${volume_name_instance}
+    # Network should not exist
+    run_podman 1 network exists ${network_name_instance}
+
+    # Start the container service instance which should also trigger the start of the volume service instance
+    service_setup $container_service_instance
+
+    # Add the service instances to SERVICES_TO_STOP for proper cleanup
+    # SERVICES_TO_STOP+=("$container_service_instance")
+    SERVICES_TO_STOP+=("$vol_service_instance")
+    SERVICES_TO_STOP+=("$net_service_instance")
+
+    # Volume system unit instance should be active
+    run systemctl show --property=ActiveState "$vol_service_instance"
+    assert "$output" = "ActiveState=active" \
+           "volume template instance should be active via dependency"
+
+    # Network system unit instance should be active
+    run systemctl show --property=ActiveState "$net_service_instance"
+    assert "$output" = "ActiveState=active" \
+           "network template instance should be active via dependency"
+
+    # Volume should exist
+    run_podman volume exists ${volume_name_instance}
+
+    # Network should exist
+    run_podman network exists ${network_name_instance}
+
+    # Clean up the created resources
+    service_cleanup $container_service_instance failed
+    run_podman volume rm $volume_name_instance
+    run_podman network rm $network_name_instance
 }
 
 # A quadlet container depends on a named quadlet volume

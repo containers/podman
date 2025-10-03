@@ -115,6 +115,13 @@ quadlet_to_service_name() {
     local extension="${filename##*.}"
     local filename="${filename%.*}"
     local suffix=""
+    local is_template=""
+
+    # Check if this is a template unit (ends with @)
+    if [[ "$filename" == *@ ]]; then
+        is_template="@"
+        filename="${filename%@}"
+    fi
 
     if [ "$extension" == "volume" ]; then
         suffix="-volume"
@@ -128,5 +135,5 @@ quadlet_to_service_name() {
         suffix="-build"
     fi
 
-    echo "$filename$suffix.service"
+    echo "$filename$suffix$is_template.service"
 }
