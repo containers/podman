@@ -16,6 +16,13 @@ type imageNotFound struct {
 	Body errorhandling.ErrorModel
 }
 
+// No such file
+// swagger:response
+type fileNotFound struct {
+	// in:body
+	Body errorhandling.ErrorModel
+}
+
 // No such container
 // swagger:response
 type containerNotFound struct {
