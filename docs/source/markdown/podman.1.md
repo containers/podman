@@ -147,6 +147,8 @@ consult the manpages of the selected container runtime (`runc` is the default
 runtime, the manpage to consult is `runc(8)`.  When the machine is configured
 for cgroup V2, the default runtime is `crun`, the manpage to consult is `crun(8)`.).
 
+Default runtime flags can be added in containers.conf.
+
 Note: Do not pass the leading `--` to the flag. To pass the runc flag `--log-format json`
 to podman build, the option given can be `--runtime-flag log-format=json`.
 
