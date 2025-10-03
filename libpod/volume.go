@@ -310,6 +310,11 @@ func (v *Volume) SetPinned(pinned bool) error {
 		return err
 	}
 
+	// If the volume is already in the desired state, this is a no-op
+	if v.state.Pinned == pinned {
+		return nil
+	}
+
 	v.state.Pinned = pinned
 
 	return v.save()
