@@ -833,6 +833,7 @@ func validateDestinationPaths(dest string) error {
 		"/tmp":  {},
 		"/usr":  {},
 		"/var":  {},
+		"/var/lib/containers/storage/":  {},
 	}
 	mountTarget := path.Clean(dest)
 	if _, ok := illegalMounts[mountTarget]; ok {

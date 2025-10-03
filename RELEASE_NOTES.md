@@ -36,6 +36,7 @@
 - The `--mount type=artifact` option to `podman create`, `podman run`, and `podman pod create` now mounts artifacts containing a only a single blob as a file at the given destination path if the path does not exist in the image.
 - The `podman volume export` command now refuses to export to `STDOUT` if it is a TTY ([#26506](https://github.com/containers/podman/issues/26506)).
 - When generating Quadlet units with options known to be problematic when used with Podman, such as `User=`, `Group=`, and `DynamicUser=` in the `[Service]` section of a unit, Quadlet will now warn the user of the potential incompatibility ([#26543](https://github.com/containers/podman/issues/26543)).
+- The `podman machine init` command now throws out errors if users try to mount `/var/lib/containers/storage/`, which podman is not able to support, due to virtiofs filesystem limitations with multiple UIDs/GIDs ([#27183](https://github.com/containers/podman/issues/27183)).
 
 ### Bugfixes
 - Fixed a bug where the `--security-opt unmask=` option to `podman create` and `podman run` did not allow comma-separated lists of paths to be passed, instead only allowing a single path.
