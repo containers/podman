@@ -283,7 +283,7 @@ func (ic *ContainerEngine) VolumeExport(_ context.Context, nameOrID string, opti
 }
 
 func (ic *ContainerEngine) VolumePin(ctx context.Context, namesOrIds []string, opts entities.VolumePinOptions) ([]*entities.VolumePinReport, error) {
-	var reports []*entities.VolumePinReport
+	reports := make([]*entities.VolumePinReport, 0, len(namesOrIds))
 
 	for _, nameOrId := range namesOrIds {
 		report := &entities.VolumePinReport{Id: nameOrId}

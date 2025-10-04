@@ -60,8 +60,8 @@ Valid placeholders for the Go template are listed below:
 | .Status ...               | Status of the volume                         |
 | .StorageID                | StorageID of the volume                      |
 | .Timeout                  | Timeout of the volume                        |
-| .UID                      | UID of volume                                |
 | .Pinned                   | Whether the volume is pinned                 |
+| .UID                      | UID of volume                                |
 | .VolumeConfigResponse ... | Don't use                                    |
 
 #### **--help**

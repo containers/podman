@@ -1933,6 +1933,7 @@ func AutocompleteVolumeFilters(cmd *cobra.Command, _ []string, toComplete string
 		"label=":    nil,
 		"name=":     func(s string) ([]string, cobra.ShellCompDirective) { return getVolumes(cmd, s) },
 		"opt=":      nil,
+		"pinned=":   getBoolCompletion,
 		"scope=":    local,
 		"since=":    getImg,
 		"until=":    nil,

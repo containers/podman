@@ -33,8 +33,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	forceFlag     bool
-	includePinned bool
+	forceFlag          bool
+	resetIncludePinned bool
 )
 
 func init() {
@@ -44,7 +44,7 @@ func init() {
 	})
 	flags := systemResetCommand.Flags()
 	flags.BoolVarP(&forceFlag, "force", "f", false, "Do not prompt for confirmation")
-	flags.BoolVar(&includePinned, "include-pinned", false, "Include pinned volumes in reset operation")
+	flags.BoolVar(&resetIncludePinned, "include-pinned", false, "Include pinned volumes in reset operation")
 }
 
 func reset(_ *cobra.Command, _ []string) {
@@ -57,7 +57,7 @@ func reset(_ *cobra.Command, _ []string) {
 	if !forceFlag {
 		reader := bufio.NewReader(os.Stdin)
 		volumeMsg := "        - all volumes (excluding pinned volumes)"
-		if includePinned {
+		if resetIncludePinned {
 			volumeMsg = "        - all volumes"
 		}
 		fmt.Printf(`WARNING! This will remove:
@@ -102,7 +102,7 @@ func reset(_ *cobra.Command, _ []string) {
 
 	// ContainerEngine() is unusable and shut down after this.
 	resetOptions := entities.SystemResetOptions{
-		IncludePinned: includePinned,
+		IncludePinned: resetIncludePinned,
 	}
 	if err := registry.ContainerEngine().Reset(registry.Context(), resetOptions); err != nil {
 		logrus.Error(err)

@@ -16,13 +16,13 @@ By default, **podman volume pin** marks volumes as pinned. Use the **--unpin** o
 
 ## OPTIONS
 
-#### **--unpin**
-
-Remove the pinned status from the specified volumes instead of pinning them.
-
 #### **--help**
 
 Print usage statement.
+
+#### **--unpin**
+
+Remove the pinned status from the specified volumes instead of pinning them.
 
 ## EXAMPLES
 
