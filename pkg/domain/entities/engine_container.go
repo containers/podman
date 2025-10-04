@@ -98,7 +98,7 @@ type ContainerEngine interface { //nolint:interfacebloat
 	QuadletPrint(ctx context.Context, quadlet string) (string, error)
 	QuadletRemove(ctx context.Context, quadlets []string, options QuadletRemoveOptions) (*QuadletRemoveReport, error)
 	Renumber(ctx context.Context) error
-	Reset(ctx context.Context) error
+	Reset(ctx context.Context, options SystemResetOptions) error
 	SetupRootless(ctx context.Context, noMoveProcess bool, cgroupMode string) error
 	SecretCreate(ctx context.Context, name string, reader io.Reader, options SecretCreateOptions) (*SecretCreateReport, error)
 	SecretInspect(ctx context.Context, nameOrIDs []string, options SecretInspectOptions) ([]*SecretInfoReport, []error, error)

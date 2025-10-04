@@ -11,6 +11,7 @@ import (
 	"github.com/containers/buildah/pkg/volumes"
 	"github.com/containers/podman/v5/cmd/podman/registry"
 	"github.com/containers/podman/v5/cmd/podman/validate"
+	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.podman.io/common/pkg/completion"
@@ -32,7 +33,8 @@ var (
 		ValidArgsFunction: completion.AutocompleteNone,
 	}
 
-	forceFlag bool
+	forceFlag     bool
+	includePinned bool
 )
 
 func init() {
@@ -42,6 +44,7 @@ func init() {
 	})
 	flags := systemResetCommand.Flags()
 	flags.BoolVarP(&forceFlag, "force", "f", false, "Do not prompt for confirmation")
+	flags.BoolVar(&includePinned, "include-pinned", false, "Include pinned volumes in reset operation")
 }
 
 func reset(_ *cobra.Command, _ []string) {
@@ -53,14 +56,19 @@ func reset(_ *cobra.Command, _ []string) {
 	// Prompt for confirmation if --force is not set
 	if !forceFlag {
 		reader := bufio.NewReader(os.Stdin)
-		fmt.Println(`WARNING! This will remove:
+		volumeMsg := "        - all volumes (excluding pinned volumes)"
+		if includePinned {
+			volumeMsg = "        - all volumes"
+		}
+		fmt.Printf(`WARNING! This will remove:
         - all containers
         - all pods
         - all images
         - all networks
         - all build cache
         - all machines
-        - all volumes (excluding pinned volumes)`)
+%s
+`, volumeMsg)
 
 		info, _ := registry.ContainerEngine().Info(registry.Context())
 		// lets not hard fail in case of an error
@@ -93,7 +101,10 @@ func reset(_ *cobra.Command, _ []string) {
 	}
 
 	// ContainerEngine() is unusable and shut down after this.
-	if err := registry.ContainerEngine().Reset(registry.Context()); err != nil {
+	resetOptions := entities.SystemResetOptions{
+		IncludePinned: includePinned,
+	}
+	if err := registry.ContainerEngine().Reset(registry.Context(), resetOptions); err != nil {
 		logrus.Error(err)
 	}
 
