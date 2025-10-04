@@ -149,7 +149,7 @@ func createPruneWarningMessage(pruneOpts entities.SystemPruneOptions) string {
 	}
 	return `WARNING! This command removes:
 	- all stopped containers
-	- all networks not used by at least one container%s%s (excluding pinned volumes)
+	- all networks not used by at least one container%s%s (optionally including pinned volumes)
 	- all dangling images
 	- all dangling build cache
 

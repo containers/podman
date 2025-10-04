@@ -72,6 +72,11 @@ type SystemMigrateOptions struct {
 	NewRuntime string
 }
 
+// SystemResetOptions describes the options for resetting system storage
+type SystemResetOptions struct {
+	IncludePinned bool
+}
+
 // SystemDfOptions describes the options for getting df information
 type SystemDfOptions struct {
 	Format  string
