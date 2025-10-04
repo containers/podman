@@ -45,6 +45,7 @@ Valid placeholders for the Go template are listed below:
 | .StorageID          | StorageID of the volume                                                     |
 | .Timeout            | Timeout of the volume                                                       |
 | .UID                | UID the volume was created with                                             |
+| .Pinned             | Whether the volume is pinned                                                |
 
 #### **--help**
 
