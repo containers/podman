@@ -30,6 +30,7 @@ Volumes can be filtered by the following attributes:
 | label       | [Key] or [Key=Value] Label assigned to a volume                                       |
 | name        | [Name] Volume name (accepts regex)                                                    |
 | opt         | Matches a storage driver options                                                      |
+| pinned      | [Bool] Matches volumes based on their pinned status (true/false)                      |
 | scope       | Filters volume by scope                                                               |
 | after/since | Filter by volumes created after the given VOLUME (name or tag)                        |
 | until       | Only remove volumes created before given timestamp                                    |
@@ -60,6 +61,7 @@ Valid placeholders for the Go template are listed below:
 | .StorageID                | StorageID of the volume                      |
 | .Timeout                  | Timeout of the volume                        |
 | .UID                      | UID of volume                                |
+| .Pinned                   | Whether the volume is pinned                 |
 | .VolumeConfigResponse ... | Don't use                                    |
 
 #### **--help**
@@ -97,6 +99,16 @@ $ podman volume ls --filter name=foo,label=blue
 List volumes with the label key=value.
 ```
 $ podman volume ls --filter label=key=value
+```
+
+List all pinned volumes.
+```
+$ podman volume ls --filter pinned=true
+```
+
+List all non-pinned volumes.
+```
+$ podman volume ls --filter pinned=false
 ```
 
 ## SEE ALSO
