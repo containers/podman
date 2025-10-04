@@ -298,8 +298,8 @@ func (ic *ContainerEngine) SystemDf(ctx context.Context, _ entities.SystemDfOpti
 	}, nil
 }
 
-func (ic *ContainerEngine) Reset(ctx context.Context) error {
-	return ic.Libpod.Reset(ctx)
+func (ic *ContainerEngine) Reset(ctx context.Context, options entities.SystemResetOptions) error {
+	return ic.Libpod.Reset(ctx, options.IncludePinned)
 }
 
 func (ic *ContainerEngine) Renumber(_ context.Context) error {

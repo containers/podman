@@ -20,6 +20,7 @@ podman volume is a set of subcommands that manage volumes.
 | inspect | [podman-volume-inspect(1)](podman-volume-inspect.1.md) | Get detailed information on one or more volumes.                               |
 | ls      | [podman-volume-ls(1)](podman-volume-ls.1.md)           | List all the available volumes.                                                |
 | mount   | [podman-volume-mount(1)](podman-volume-mount.1.md)     | Mount a volume filesystem.                                                     |
+| pin     | [podman-volume-pin(1)](podman-volume-pin.1.md)         | Mark or unmark volumes as pinned.                                              |
 | prune   | [podman-volume-prune(1)](podman-volume-prune.1.md)     | Remove all unused volumes.                                                     |
 | reload  | [podman-volume-reload(1)](podman-volume-reload.1.md)   | Reload all volumes from volumes plugins.                                       |
 | rm      | [podman-volume-rm(1)](podman-volume-rm.1.md)           | Remove one or more volumes.                                                    |
