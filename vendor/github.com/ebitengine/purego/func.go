@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build darwin || freebsd || linux || windows
+//go:build darwin || freebsd || linux || netbsd || windows
 
 package purego
 
@@ -10,14 +10,20 @@ import (
 	"math"
 	"reflect"
 	"runtime"
+	"strconv"
+	"sync"
 	"unsafe"
 
 	"github.com/ebitengine/purego/internal/strings"
 )
 
+var thePool = sync.Pool{New: func() any {
+	return new(syscall15Args)
+}}
+
 // RegisterLibFunc is a wrapper around RegisterFunc that uses the C function returned from Dlsym(handle, name).
 // It panics if it can't find the name symbol.
-func RegisterLibFunc(fptr interface{}, handle uintptr, name string) {
+func RegisterLibFunc(fptr any, handle uintptr, name string) {
 	sym, err := loadSymbol(handle, name)
 	if err != nil {
 		panic(err)
@@ -60,7 +66,7 @@ func RegisterLibFunc(fptr interface{}, handle uintptr, name string) {
 //
 // There is a special case when the last argument of fptr is a variadic interface (or []interface}
 // it will be expanded into a call to the C function as if it had the arguments in that slice.
-// This means that using arg ...interface{} is like a cast to the function with the arguments inside arg.
+// This means that using arg ...any is like a cast to the function with the arguments inside arg.
 // This is not the same as C variadic.
 //
 // # Memory
@@ -105,7 +111,7 @@ func RegisterLibFunc(fptr interface{}, handle uintptr, name string) {
 //	defer free(mustFree)
 //
 // [Cgo rules]: https://pkg.go.dev/cmd/cgo#hdr-Go_references_to_C
-func RegisterFunc(fptr interface{}, cfn uintptr) {
+func RegisterFunc(fptr any, cfn uintptr) {
 	fn := reflect.ValueOf(fptr).Elem()
 	ty := fn.Type()
 	if ty.Kind() != reflect.Func {
@@ -118,7 +124,7 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 		panic("purego: cfn is nil")
 	}
 	if ty.NumOut() == 1 && (ty.Out(0).Kind() == reflect.Float32 || ty.Out(0).Kind() == reflect.Float64) &&
-		runtime.GOARCH != "arm64" && runtime.GOARCH != "amd64" {
+		runtime.GOARCH != "arm64" && runtime.GOARCH != "amd64" && runtime.GOARCH != "loong64" {
 		panic("purego: float returns are not supported")
 	}
 	{
@@ -156,7 +162,7 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 				if is32bit {
 					panic("purego: floats only supported on 64bit platforms")
 				}
-				if floats < numOfFloats {
+				if floats < numOfFloatRegisters {
 					floats++
 				} else {
 					stack++
@@ -200,21 +206,8 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 		}
 	}
 	v := reflect.MakeFunc(ty, func(args []reflect.Value) (results []reflect.Value) {
-		if len(args) > 0 {
-			if variadic, ok := args[len(args)-1].Interface().([]interface{}); ok {
-				// subtract one from args bc the last argument in args is []interface{}
-				// which we are currently expanding
-				tmp := make([]reflect.Value, len(args)-1+len(variadic))
-				n := copy(tmp, args[:len(args)-1])
-				for i, v := range variadic {
-					tmp[n+i] = reflect.ValueOf(v)
-				}
-				args = tmp
-			}
-		}
 		var sysargs [maxArgs]uintptr
-		stack := sysargs[numOfIntegerRegisters():]
-		var floats [numOfFloats]uintptr
+		var floats [numOfFloatRegisters]uintptr
 		var numInts int
 		var numFloats int
 		var numStack int
@@ -222,7 +215,7 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 		if runtime.GOARCH == "arm64" || runtime.GOOS != "windows" {
 			// Windows arm64 uses the same calling convention as macOS and Linux
 			addStack = func(x uintptr) {
-				stack[numStack] = x
+				sysargs[numOfIntegerRegisters()+numStack] = x
 				numStack++
 			}
 			addInt = func(x uintptr) {
@@ -255,15 +248,16 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 			addFloat = addStack
 		}
 
-		var keepAlive []interface{}
+		var keepAlive []any
 		defer func() {
 			runtime.KeepAlive(keepAlive)
 			runtime.KeepAlive(args)
 		}()
-		var syscall syscall15Args
+
+		var arm64_r8 uintptr
 		if ty.NumOut() == 1 && ty.Out(0).Kind() == reflect.Struct {
 			outType := ty.Out(0)
-			if runtime.GOARCH == "amd64" && outType.Size() > maxRegAllocStructSize {
+			if (runtime.GOARCH == "amd64" || runtime.GOARCH == "loong64") && outType.Size() > maxRegAllocStructSize {
 				val := reflect.New(outType)
 				keepAlive = append(keepAlive, val)
 				addInt(val.Pointer())
@@ -272,53 +266,73 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 				if !isAllFloats || numFields > 4 {
 					val := reflect.New(outType)
 					keepAlive = append(keepAlive, val)
-					syscall.arm64_r8 = val.Pointer()
+					arm64_r8 = val.Pointer()
 				}
 			}
 		}
-		for _, v := range args {
-			switch v.Kind() {
-			case reflect.String:
-				ptr := strings.CString(v.String())
-				keepAlive = append(keepAlive, ptr)
-				addInt(uintptr(unsafe.Pointer(ptr)))
-			case reflect.Uintptr, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-				addInt(uintptr(v.Uint()))
-			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				addInt(uintptr(v.Int()))
-			case reflect.Ptr, reflect.UnsafePointer, reflect.Slice:
-				// There is no need to keepAlive this pointer separately because it is kept alive in the args variable
-				addInt(v.Pointer())
-			case reflect.Func:
-				addInt(NewCallback(v.Interface()))
-			case reflect.Bool:
-				if v.Bool() {
-					addInt(1)
-				} else {
-					addInt(0)
+		for i, v := range args {
+			if variadic, ok := args[i].Interface().([]any); ok {
+				if i != len(args)-1 {
+					panic("purego: can only expand last parameter")
 				}
-			case reflect.Float32:
-				addFloat(uintptr(math.Float32bits(float32(v.Float()))))
-			case reflect.Float64:
-				addFloat(uintptr(math.Float64bits(v.Float())))
-			case reflect.Struct:
-				keepAlive = addStruct(v, &numInts, &numFloats, &numStack, addInt, addFloat, addStack, keepAlive)
-			default:
-				panic("purego: unsupported kind: " + v.Kind().String())
+				for _, x := range variadic {
+					keepAlive = addValue(reflect.ValueOf(x), keepAlive, addInt, addFloat, addStack, &numInts, &numFloats, &numStack)
+				}
+				continue
 			}
+			if runtime.GOARCH == "arm64" && runtime.GOOS == "darwin" &&
+				(numInts >= numOfIntegerRegisters() || numFloats >= numOfFloatRegisters) && v.Kind() != reflect.Struct { // hit the stack
+				fields := make([]reflect.StructField, len(args[i:]))
+
+				for j, val := range args[i:] {
+					if val.Kind() == reflect.String {
+						ptr := strings.CString(v.String())
+						keepAlive = append(keepAlive, ptr)
+						val = reflect.ValueOf(ptr)
+						args[i+j] = val
+					}
+					fields[j] = reflect.StructField{
+						Name: "X" + strconv.Itoa(j),
+						Type: val.Type(),
+					}
+				}
+				structType := reflect.StructOf(fields)
+				structInstance := reflect.New(structType).Elem()
+				for j, val := range args[i:] {
+					structInstance.Field(j).Set(val)
+				}
+				placeRegisters(structInstance, addFloat, addInt)
+				break
+			}
+			keepAlive = addValue(v, keepAlive, addInt, addFloat, addStack, &numInts, &numFloats, &numStack)
 		}
-		if runtime.GOARCH == "arm64" || runtime.GOOS != "windows" {
-			// Use the normal arm64 calling convention even on Windows
-			syscall = syscall15Args{
+
+		syscall := thePool.Get().(*syscall15Args)
+		defer thePool.Put(syscall)
+
+		if runtime.GOARCH == "loong64" {
+			*syscall = syscall15Args{
 				cfn,
 				sysargs[0], sysargs[1], sysargs[2], sysargs[3], sysargs[4], sysargs[5],
 				sysargs[6], sysargs[7], sysargs[8], sysargs[9], sysargs[10], sysargs[11],
 				sysargs[12], sysargs[13], sysargs[14],
 				floats[0], floats[1], floats[2], floats[3], floats[4], floats[5], floats[6], floats[7],
-				syscall.arm64_r8,
+				0,
 			}
-			runtime_cgocall(syscall15XABI0, unsafe.Pointer(&syscall))
+			runtime_cgocall(syscall15XABI0, unsafe.Pointer(syscall))
+		} else if runtime.GOARCH == "arm64" || runtime.GOOS != "windows" {
+			// Use the normal arm64 calling convention even on Windows
+			*syscall = syscall15Args{
+				cfn,
+				sysargs[0], sysargs[1], sysargs[2], sysargs[3], sysargs[4], sysargs[5],
+				sysargs[6], sysargs[7], sysargs[8], sysargs[9], sysargs[10], sysargs[11],
+				sysargs[12], sysargs[13], sysargs[14],
+				floats[0], floats[1], floats[2], floats[3], floats[4], floats[5], floats[6], floats[7],
+				arm64_r8,
+			}
+			runtime_cgocall(syscall15XABI0, unsafe.Pointer(syscall))
 		} else {
+			*syscall = syscall15Args{}
 			// This is a fallback for Windows amd64, 386, and arm. Note this may not support floats
 			syscall.a1, syscall.a2, _ = syscall_syscall15X(cfn, sysargs[0], sysargs[1], sysargs[2], sysargs[3], sysargs[4],
 				sysargs[5], sysargs[6], sysargs[7], sysargs[8], sysargs[9], sysargs[10], sysargs[11],
@@ -357,13 +371,52 @@ func RegisterFunc(fptr interface{}, cfn uintptr) {
 			// On 32bit platforms syscall.r2 is the upper part of a 64bit return.
 			v.SetFloat(math.Float64frombits(uint64(syscall.f1)))
 		case reflect.Struct:
-			v = getStruct(outType, syscall)
+			v = getStruct(outType, *syscall)
 		default:
 			panic("purego: unsupported return kind: " + outType.Kind().String())
 		}
-		return []reflect.Value{v}
+		if len(args) > 0 {
+			// reuse args slice instead of allocating one when possible
+			args[0] = v
+			return args[:1]
+		} else {
+			return []reflect.Value{v}
+		}
 	})
 	fn.Set(v)
+}
+
+func addValue(v reflect.Value, keepAlive []any, addInt func(x uintptr), addFloat func(x uintptr), addStack func(x uintptr), numInts *int, numFloats *int, numStack *int) []any {
+	switch v.Kind() {
+	case reflect.String:
+		ptr := strings.CString(v.String())
+		keepAlive = append(keepAlive, ptr)
+		addInt(uintptr(unsafe.Pointer(ptr)))
+	case reflect.Uintptr, reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		addInt(uintptr(v.Uint()))
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		addInt(uintptr(v.Int()))
+	case reflect.Ptr, reflect.UnsafePointer, reflect.Slice:
+		// There is no need to keepAlive this pointer separately because it is kept alive in the args variable
+		addInt(v.Pointer())
+	case reflect.Func:
+		addInt(NewCallback(v.Interface()))
+	case reflect.Bool:
+		if v.Bool() {
+			addInt(1)
+		} else {
+			addInt(0)
+		}
+	case reflect.Float32:
+		addFloat(uintptr(math.Float32bits(float32(v.Float()))))
+	case reflect.Float64:
+		addFloat(uintptr(math.Float64bits(v.Float())))
+	case reflect.Struct:
+		keepAlive = addStruct(v, numInts, numFloats, numStack, addInt, addFloat, addStack, keepAlive)
+	default:
+		panic("purego: unsupported kind: " + v.Kind().String())
+	}
+	return keepAlive
 }
 
 // maxRegAllocStructSize is the biggest a struct can be while still fitting in registers.
@@ -424,7 +477,7 @@ func roundUpTo8(val uintptr) uintptr {
 
 func numOfIntegerRegisters() int {
 	switch runtime.GOARCH {
-	case "arm64":
+	case "arm64", "loong64":
 		return 8
 	case "amd64":
 		return 6

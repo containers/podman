@@ -348,7 +348,7 @@ func getTableInfo(filename string, table any) (index, step, length int) {
 		length = int(table.(pmibUDP6TableOwnerPid).DwNumEntries)
 	}
 
-	return
+	return index, step, length
 }
 
 func getTCPConnections(family uint32) ([]ConnectionStat, error) {
@@ -533,7 +533,7 @@ func getExtendedTCPTable(pTCPTable uintptr, pdwSize *uint32, bOrder bool, ulAf u
 	if r1 != 0 {
 		errcode = syscall.Errno(r1)
 	}
-	return
+	return errcode
 }
 
 func getExtendedUDPTable(pUDPTable uintptr, pdwSize *uint32, bOrder bool, ulAf uint32, tableClass udpTableClass, reserved uint32) (errcode error) {
@@ -541,7 +541,7 @@ func getExtendedUDPTable(pUDPTable uintptr, pdwSize *uint32, bOrder bool, ulAf u
 	if r1 != 0 {
 		errcode = syscall.Errno(r1)
 	}
-	return
+	return errcode
 }
 
 func getUintptrFromBool(b bool) uintptr {

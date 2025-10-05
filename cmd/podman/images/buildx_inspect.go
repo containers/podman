@@ -39,7 +39,7 @@ func init() {
 	})
 }
 
-func runBuildxInspect(cmd *cobra.Command, args []string) error {
+func runBuildxInspect(_ *cobra.Command, _ []string) error {
 	info, err := registry.ContainerEngine().Info(registry.Context())
 
 	if err != nil {

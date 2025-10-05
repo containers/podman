@@ -12,6 +12,10 @@ Add an OCI artifact to the local store from the local filesystem.  You must
 provide at least one file to create the artifact, but several can also be
 added.
 
+Artifacts automatically include a creation timestamp in the
+`org.opencontainers.image.created` annotation using RFC3339Nano format. When using
+the `--append` option, the original creation timestamp is preserved.
+
 
 ## OPTIONS
 

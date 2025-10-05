@@ -96,6 +96,8 @@ type ArtifactRemoveOptions struct {
 	All bool
 	// Artifacts is a list of Artifact IDs or names to remove
 	Artifacts []string
+	// Ignore if a specified artifact does not exist and do not throw any error.
+	Ignore bool
 }
 
 type ArtifactRemoveReport = entitiesTypes.ArtifactRemoveReport

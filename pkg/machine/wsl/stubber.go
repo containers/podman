@@ -99,7 +99,7 @@ func (w WSLStubber) MountType() vmconfigs.VolumeMountType {
 	return vmconfigs.Unknown
 }
 
-func (w WSLStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) error {
+func (w WSLStubber) MountVolumesToVM(_ *vmconfigs.MachineConfig, _ bool) error {
 	return nil
 }
 
@@ -169,7 +169,7 @@ func (w WSLStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define.Se
 	return nil
 }
 
-func (w WSLStubber) StartNetworking(mc *vmconfigs.MachineConfig, cmd *gvproxy.GvproxyCommand) error {
+func (w WSLStubber) StartNetworking(mc *vmconfigs.MachineConfig, _ *gvproxy.GvproxyCommand) error {
 	// Startup user-mode networking if enabled
 	if mc.WSLHypervisor.UserModeNetworking {
 		return startUserModeNetworking(mc)
@@ -223,7 +223,7 @@ func (w WSLStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func() e
 	return nil, readyFunc, err
 }
 
-func (w WSLStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Status, error) {
+func (w WSLStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
 	running, err := isRunning(mc.Name)
 	if err != nil {
 		return "", err
@@ -234,7 +234,7 @@ func (w WSLStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Stat
 	return define.Stopped, nil
 }
 
-func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
+func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, _ bool) error {
 	var (
 		err error
 	)
@@ -276,7 +276,7 @@ func (w WSLStubber) StopVM(mc *vmconfigs.MachineConfig, hardStop bool) error {
 	return terminateDist(dist)
 }
 
-func (w WSLStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, vmType define.VMType) error {
+func (w WSLStubber) StopHostNetworking(mc *vmconfigs.MachineConfig, _ define.VMType) error {
 	return stopUserModeNetworking(mc)
 }
 
@@ -294,6 +294,6 @@ func (w WSLStubber) VMType() define.VMType {
 	return define.WSLVirt
 }
 
-func (w WSLStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+func (w WSLStubber) GetRosetta(_ *vmconfigs.MachineConfig) (bool, error) {
 	return false, nil
 }

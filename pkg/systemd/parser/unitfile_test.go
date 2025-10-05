@@ -346,7 +346,7 @@ func FuzzParser(f *testing.F) {
 		f.Add([]byte(sample))
 	}
 
-	f.Fuzz(func(t *testing.T, orig []byte) {
+	f.Fuzz(func(_ *testing.T, orig []byte) {
 		unitFile := NewUnitFile()
 		unitFile.Path = "foo/bar"
 		unitFile.Filename = "bar"

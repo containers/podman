@@ -1,0 +1,15 @@
+# -*- sh -*-
+#
+# quadlet-related tests
+#
+
+# NOTE: Once podman-remote quadlet support is added we can enable the podman quadlet tests in
+#       test/system/253-podman-quadlet.bats which should cover it in more detail then.
+
+## list volume
+t GET libpod/quadlets/json 200
+
+# Example with filter applied (uncomment once needed)
+# t GET libpod/quadlets/json?filters='{"name":["name.*"]}' 200
+
+# vim: filetype=sh

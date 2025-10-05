@@ -88,7 +88,7 @@ func init() {
 	flags.StringVarP(&createContainerOpts.Layer, "layer", "l", "", "ID of containers's read-write layer (default none)")
 }
 
-func createStorageLayer(cmd *cobra.Command, args []string) error {
+func createStorageLayer(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.CreateStorageLayer(mainContext, createStorageLayerOpts)
 	if err != nil {
 		return err
@@ -98,7 +98,7 @@ func createStorageLayer(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createLayer(cmd *cobra.Command, args []string) error {
+func createLayer(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.CreateLayer(mainContext, createLayerOpts)
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func createLayer(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createImage(cmd *cobra.Command, args []string) error {
+func createImage(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.CreateImage(mainContext, createImageOpts)
 	if err != nil {
 		return err
@@ -118,7 +118,7 @@ func createImage(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func createContainer(cmd *cobra.Command, args []string) error {
+func createContainer(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.CreateContainer(mainContext, createContainerOpts)
 	if err != nil {
 		return err

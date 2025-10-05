@@ -1,19 +1,20 @@
 % podman-inspect 1
 
 ## NAME
-podman\-inspect - Display a container, image, volume, network, or pod's configuration
+podman\-inspect - Display artifact, container, image, volume, network, or pod's configuration
 
 ## SYNOPSIS
 **podman inspect** [*options*] *name* [...]
 
 ## DESCRIPTION
 
-This displays the low-level information on containers and images identified by name or ID. By default, this renders
-all results in a JSON array. If the inspect type is all, the order of inspection is: containers, images, volumes, network, pods.
+This displays the low-level information on artifacts, containers, and images identified by name or ID. By default, this renders
+all results in a JSON array. If the inspect type is all, the order of inspection is: containers, images, volumes, network, pods, artifacts.
  If a container has the same name as an image, then the container JSON is returned, and so on.
  If a format is specified, the given template is executed for each result.
 
 For more inspection options, see also
+[podman-artifact-inspect(1)](podman-artifact-inspect.1.md),
 [podman-container-inspect(1)](podman-container-inspect.1.md),
 [podman-image-inspect(1)](podman-image-inspect.1.md),
 [podman-network-inspect(1)](podman-network-inspect.1.md),
@@ -35,7 +36,7 @@ In addition to normal output, display the total file size if the type is a conta
 
 #### **--type**, **-t**=*type*
 
-Return JSON for the specified type. Type can be 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
+Return JSON for the specified type. Type can be 'artifact', 'container', 'image', 'volume', 'network', 'pod', or 'all' (default: all)
 (Only meaningful when invoked as *podman inspect*)
 
 ## EXAMPLES
@@ -164,8 +165,22 @@ Inspect the specified network for the `Name` format specifier:
 myNetwork
 ```
 
+Inspect the specified artifact:
+```
+# podman inspect quay.io/myimage/myartifact:latest --type artifact
+{
+    "Manifest": {
+        "schemaVersion": 2,
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        ...
+    },
+    "Name": "quay.io/myimage/myartifact:latest",
+    "Digest": "sha256:..."
+}
+```
+
 ## SEE ALSO
-**[podman(1)](podman.1.md)**, **[podman-container-inspect(1)](podman-container-inspect.1.md)**, **[podman-image-inspect(1)](podman-image-inspect.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-pod-inspect(1)](podman-pod-inspect.1.md)**, **[podman-volume-inspect(1)](podman-volume-inspect.1.md)**
+**[podman(1)](podman.1.md)**, **[podman-artifact-inspect(1)](podman-artifact-inspect.1.md)**, **[podman-container-inspect(1)](podman-container-inspect.1.md)**, **[podman-image-inspect(1)](podman-image-inspect.1.md)**, **[podman-network-inspect(1)](podman-network-inspect.1.md)**, **[podman-pod-inspect(1)](podman-pod-inspect.1.md)**, **[podman-volume-inspect(1)](podman-volume-inspect.1.md)**
 
 ## HISTORY
 July 2017, Originally compiled by Dan Walsh <dwalsh@redhat.com>

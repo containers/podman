@@ -14,14 +14,14 @@ func TestNewPIDHandle(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return 255, nil
 	}
 
 	// Mock the nameToHandleAt
 	original_nameToHandleAt := nameToHandleAt
 	defer func() { nameToHandleAt = original_nameToHandleAt }()
-	nameToHandleAt = func(dirfd int, path string, flags int) (handle unix.FileHandle, mountID int, err error) {
+	nameToHandleAt = func(_ int, _ string, _ int) (handle unix.FileHandle, mountID int, err error) {
 		return newFileHandle(254, []byte("test")), 1, nil
 	}
 
@@ -39,7 +39,7 @@ func TestNewPIDHandlepidfdOpenNotSupported(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return -1, unix.ENOSYS
 	}
 
@@ -57,14 +57,14 @@ func TestPIDHandleStringnameToHandleAtNotSupported(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return 254, nil
 	}
 
 	// Mock the nameToHandleAt
 	original_nameToHandleAt := nameToHandleAt
 	defer func() { nameToHandleAt = original_nameToHandleAt }()
-	nameToHandleAt = func(dirfd int, path string, flags int) (handle unix.FileHandle, mountID int, err error) {
+	nameToHandleAt = func(_ int, _ string, _ int) (handle unix.FileHandle, mountID int, err error) {
 		return newFileHandle(-1, []byte("")), 1, unix.ENOTSUP
 	}
 
@@ -81,28 +81,28 @@ func TestNewPIDHandleFromString(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return 254, nil
 	}
 
 	// Mock the newFileHandle
 	original_newFileHandle := newFileHandle
 	defer func() { newFileHandle = original_newFileHandle }()
-	newFileHandle = func(fhType int32, bytes []byte) unix.FileHandle {
+	newFileHandle = func(_ int32, _ []byte) unix.FileHandle {
 		return unix.NewFileHandle(254, []byte("test"))
 	}
 
 	// Mock the openByHandleAt
 	original_openByHandleAt := openByHandleAt
 	defer func() { openByHandleAt = original_openByHandleAt }()
-	openByHandleAt = func(mountFD int, handle unix.FileHandle, flags int) (fd int, err error) {
+	openByHandleAt = func(_ int, _ unix.FileHandle, _ int) (fd int, err error) {
 		return 255, nil
 	}
 
 	// Mock the nameToHandleAt
 	original_nameToHandleAt := nameToHandleAt
 	defer func() { nameToHandleAt = original_nameToHandleAt }()
-	nameToHandleAt = func(dirfd int, path string, flags int) (handle unix.FileHandle, mountID int, err error) {
+	nameToHandleAt = func(_ int, _ string, _ int) (handle unix.FileHandle, mountID int, err error) {
 		return newFileHandle(255, []byte("test")), 1, nil
 	}
 
@@ -120,21 +120,21 @@ func TestNewPIDHandleFromStringWrongPidData(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return 254, nil
 	}
 
 	// Mock the newFileHandle
 	original_newFileHandle := newFileHandle
 	defer func() { newFileHandle = original_newFileHandle }()
-	newFileHandle = func(fhType int32, bytes []byte) unix.FileHandle {
+	newFileHandle = func(_ int32, _ []byte) unix.FileHandle {
 		return unix.NewFileHandle(254, []byte("test"))
 	}
 
 	// Mock the openByHandleAt
 	original_openByHandleAt := openByHandleAt
 	defer func() { openByHandleAt = original_openByHandleAt }()
-	openByHandleAt = func(mountFD int, handle unix.FileHandle, flags int) (fd int, err error) {
+	openByHandleAt = func(_ int, _ unix.FileHandle, _ int) (fd int, err error) {
 		return 255, nil
 	}
 
@@ -161,21 +161,21 @@ func TestPIDHandleKill(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return 254, nil
 	}
 
 	// Mock the pidfdSendSignal
 	original_pidfdSendSignal := pidfdSendSignal
 	defer func() { pidfdSendSignal = original_pidfdSendSignal }()
-	pidfdSendSignal = func(pidfd int, sig unix.Signal, info *unix.Siginfo, flags int) (err error) {
+	pidfdSendSignal = func(_ int, _ unix.Signal, _ *unix.Siginfo, _ int) (err error) {
 		return unix.ESRCH
 	}
 
 	// Mock the nameToHandleAt
 	original_nameToHandleAt := nameToHandleAt
 	defer func() { nameToHandleAt = original_nameToHandleAt }()
-	nameToHandleAt = func(dirfd int, path string, flags int) (handle unix.FileHandle, mountID int, err error) {
+	nameToHandleAt = func(_ int, _ string, _ int) (handle unix.FileHandle, mountID int, err error) {
 		return newFileHandle(254, []byte("test")), 1, nil
 	}
 
@@ -191,7 +191,7 @@ func TestPIDHandleKillPidfdNotSupported(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return -1, unix.ENOSYS
 	}
 
@@ -215,7 +215,7 @@ func TestPIDHandleKillPidfdNotSupportedStartTimeNotMatch(t *testing.T) {
 	// Mock the pidfdOpen
 	original := pidfdOpen
 	defer func() { pidfdOpen = original }()
-	pidfdOpen = func(pid int, flags int) (int, error) {
+	pidfdOpen = func(_ int, _ int) (int, error) {
 		return -1, unix.ENOSYS
 	}
 

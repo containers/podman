@@ -1,27 +1,10 @@
 ####> This option file is used in:
-####>   podman podman-container.unit.5.md.in, create, kube play, podman-kube.unit.5.md.in, pod create, podman-pod.unit.5.md.in, run
+####>   podman create, kube play, pod create, run
 ####> If file is edited, make sure the changes
 ####> are applicable to all of those.
-<< if is_quadlet >>
-### `Network=mode`
-<< else >>
 #### **--network**=*mode*, **--net**
-<< endif >>
 
 Set the network mode for the <<container|pod>>.
-
-<< if is_quadlet >>
-Special cases:
-
-* If the `name` of the network ends with `.network`, a Podman network called
-`systemd-$name` is used, and the generated systemd service contains
-a dependency on the `$name-network.service`. Such a network can be automatically
-created by using a `$name.network` Quadlet file. Note: the corresponding `.network` file must exist.
-
-* If the `name` ends with `.container`,
-the container will reuse the network stack of another container created by `$name.container`.
-The generated systemd service contains a dependency on `$name.service`. Note: the corresponding `.container` file must exist.
-<< endif >>
 
 Valid _mode_ values are:
 

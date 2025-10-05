@@ -22,15 +22,15 @@ func (ir *ImageEngine) ArtifactExtract(_ context.Context, name string, target st
 	return artifacts.Extract(ir.ClientCtx, name, target, &options)
 }
 
-func (ir *ImageEngine) ArtifactExtractTarStream(_ context.Context, w io.Writer, name string, opts entities.ArtifactExtractOptions) error {
+func (ir *ImageEngine) ArtifactExtractTarStream(_ context.Context, _ io.Writer, _ string, _ entities.ArtifactExtractOptions) error {
 	return fmt.Errorf("not implemented")
 }
 
-func (ir *ImageEngine) ArtifactInspect(_ context.Context, name string, opts entities.ArtifactInspectOptions) (*entities.ArtifactInspectReport, error) {
+func (ir *ImageEngine) ArtifactInspect(_ context.Context, name string, _ entities.ArtifactInspectOptions) (*entities.ArtifactInspectReport, error) {
 	return artifacts.Inspect(ir.ClientCtx, name, &artifacts.InspectOptions{})
 }
 
-func (ir *ImageEngine) ArtifactList(_ context.Context, opts entities.ArtifactListOptions) ([]*entities.ArtifactListReport, error) {
+func (ir *ImageEngine) ArtifactList(_ context.Context, _ entities.ArtifactListOptions) ([]*entities.ArtifactListReport, error) {
 	return artifacts.List(ir.ClientCtx, &artifacts.ListOptions{})
 }
 
@@ -57,6 +57,7 @@ func (ir *ImageEngine) ArtifactRm(_ context.Context, opts entities.ArtifactRemov
 	removeOptions := artifacts.RemoveOptions{
 		All:       &opts.All,
 		Artifacts: opts.Artifacts,
+		Ignore:    &opts.Ignore,
 	}
 
 	return artifacts.Remove(ir.ClientCtx, "", &removeOptions)

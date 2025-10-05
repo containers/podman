@@ -10,7 +10,7 @@ var createCmd = &cobra.Command{
 	Short: "create a volume",
 	Long:  `Create a volume in the volume plugin listening on --sock-name`,
 	Args:  cobra.ExactArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		return createVol(config.sockName, args[0])
 	},
 }

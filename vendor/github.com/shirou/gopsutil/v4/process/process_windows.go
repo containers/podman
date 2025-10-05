@@ -956,7 +956,7 @@ func getProcessMemoryInfo(h windows.Handle, mem *PROCESS_MEMORY_COUNTERS) (err e
 			err = syscall.EINVAL
 		}
 	}
-	return
+	return err
 }
 
 type SYSTEM_TIMES struct { //nolint:revive //FIXME

@@ -14,12 +14,12 @@ import (
 
 var errNotSupported = errors.New("seccomp not enabled in this build")
 
-// LoadProfile returns an error on unsupported systems
+// LoadProfile returns an error on unsupported systems.
 func LoadProfile(body string, rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 	return nil, errNotSupported
 }
 
-// GetDefaultProfile returns an error on unsupported systems
+// GetDefaultProfile returns an error on unsupported systems.
 func GetDefaultProfile(rs *specs.Spec) (*specs.LinuxSeccomp, error) {
 	return nil, errNotSupported
 }
@@ -29,7 +29,7 @@ func LoadProfileFromBytes(body []byte, rs *specs.Spec) (*specs.LinuxSeccomp, err
 	return nil, errNotSupported
 }
 
-// LoadProfileFromConfig takes a Seccomp struct and a spec to retrieve a LinuxSeccomp
+// LoadProfileFromConfig takes a Seccomp struct and a spec to retrieve a LinuxSeccomp.
 func LoadProfileFromConfig(config *Seccomp, specgen *specs.Spec) (*specs.LinuxSeccomp, error) {
 	return nil, errNotSupported
 }

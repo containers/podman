@@ -70,7 +70,7 @@ func loadFlags(cmd *cobra.Command) {
 	}
 }
 
-func load(cmd *cobra.Command, args []string) error {
+func load(_ *cobra.Command, _ []string) error {
 	if len(loadOpts.Input) > 0 {
 		// Download the input file if needed.
 		if strings.HasPrefix(loadOpts.Input, "https://") || strings.HasPrefix(loadOpts.Input, "http://") {

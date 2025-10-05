@@ -700,7 +700,7 @@ func TestGetRootlessKeepIDMapping(t *testing.T) {
 	}
 }
 
-func getDefaultMountOptionsNoStat(path string) (defaultMountOptions, error) {
+func getDefaultMountOptionsNoStat(_ string) (defaultMountOptions, error) {
 	return defaultMountOptions{false, true, true}, nil
 }
 

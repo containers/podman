@@ -47,7 +47,7 @@ func init() {
 
 // TODO Remember that this changed upstream and needs to updated as such!
 
-func ssh(cmd *cobra.Command, args []string) error {
+func ssh(_ *cobra.Command, args []string) error {
 	var (
 		err     error
 		mc      *vmconfigs.MachineConfig

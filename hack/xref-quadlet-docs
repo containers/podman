@@ -19,16 +19,7 @@ our $VERSION = '0.1';
 # BEGIN user-customizable section
 
 our $Go  = 'pkg/systemd/quadlet/quadlet.go';
-our @Docs = (
-    "docs/source/markdown/podman-build.unit.5.md",
-    "docs/source/markdown/podman-container.unit.5.md",
-    "docs/source/markdown/podman-kube.unit.5.md",
-    "docs/source/markdown/podman-network.unit.5.md",
-    "docs/source/markdown/podman-pod.unit.5.md",
-    "docs/source/markdown/podman-volume.unit.5.md",
-    "docs/source/markdown/podman-image.unit.5.md",
-    "docs/source/markdown/podman-systemd.unit.5.md",
-);
+our $Doc = 'docs/source/markdown/podman-systemd.unit.5.md';
 
 # END   user-customizable section
 ###############################################################################
@@ -44,7 +35,7 @@ $ME cross-checks quadlet documentation between the Go source[Go]
 and the man page[MD].
 
  [Go]: $Go
- [MD]: @Docs
+ [MD]: $Doc
 
 We check that:
 
@@ -104,7 +95,7 @@ sub main {
     my $true_keys = read_go($Go);
 
     # Read md file, compare against Truth
-    crossref_docs(\@Docs, $true_keys);
+    crossref_doc($Doc, $true_keys);
 
     exit $errs;
 }
@@ -150,17 +141,19 @@ sub read_go {
 }
 
 ##################
-#  crossref_docs  #  Read the markdown pages, cross-check against Truth
+#  crossref_doc  #  Read the markdown page, cross-check against Truth
 ##################
-sub crossref_docs {
-    my $paths_ref = shift;             # in: array with paths to .md file
+sub crossref_doc {
+    my $path      = shift;              # in: path to .md file
     my $true_keys = shift;              # in: AREF, list of keys from .go
+
+    open my $fh, '<', $path
+        or die "$ME: Cannot read $path: $!\n";;
 
     my $unit = '';
     my %documented;
     my @found_in_table;
     my @described;
-    my $read_first_table;
 
     # Helper function: when done reading description blocks,
     # make sure that there's one block for each key listed
@@ -173,86 +166,85 @@ sub crossref_docs {
         }
     };
 
-    # foreach loop
-    foreach my $path (@$paths_ref) {
-        open my $fh, '<', $path
-        or die "$ME: Cannot read $path: $!\n";;
+    # Main loop: read the docs line by line
+    while (my $line = <$fh>) {
+        chomp $line;
 
-        my $new_unit = $path;
-        $crossref_against_table->();
-        $unit = $new_unit;
+        # New section, with its own '| table |' and '### Keyword blocks'
+        if ($line =~ /^##\s+(\S+)\s+(?:units|section)\s+\[(\S+)\]/) {
+            my $new_unit = $1;
+            $new_unit eq $2
+                or warn "$ME: $path:$.: inconsistent block names in '$line'\n";
 
-        # Reset, because each section has its own table & blocks
-        @found_in_table = ();
-        @described = ();
-        $read_first_table = 0;
+            $crossref_against_table->();
 
+            $unit = $new_unit;
 
-        # Main loop: read the docs line by line
-        while (my $line = <$fh>) {
-            chomp $line;
+            # Reset, because each section has its own table & blocks
+            @found_in_table = ();
+            @described = ();
+            next;
+        }
 
-            # Table line
-            if ($read_first_table == 0 && $line =~ s/^\|\s+//) {
-                next if $line =~ /^\*\*/;           # title
-                next if $line =~ /^-----/;          # divider
+        # Table line
+        if ($line =~ s/^\|\s+//) {
+            next if $line =~ /^\*\*/;           # title
+            next if $line =~ /^-----/;          # divider
 
-                if ($line =~ /^([A-Z][A-Za-z6]+)=/) {
-                    my $key = $1;
-
-                    grep { $_ eq $key } @$true_keys
-                        or warn "$ME: $path:$.: unknown key '$key' (not present in $Go)\n";
-
-                    # Sorting check
-                    if (@found_in_table) {
-                        if (lc($key) lt lc($found_in_table[-1])) {
-                            warn "$ME: $path:$.: out-of-order key '$key' in table\n";
-                        }
-                    }
-
-                    push @found_in_table, $key;
-                    $documented{$key}++;
-                }
-                else {
-                    warn "$ME: $path:$.: cannot grok table line '$line'\n";
-                }
-            }
-
-            # Description block
-            elsif ($line =~ /^###\s+`([A-Z][A-Za-z6]+)=.*`/) {
+            if ($line =~ /^([A-Z][A-Za-z6]+)=/) {
                 my $key = $1;
 
-                $read_first_table = 1;
+                grep { $_ eq $key } @$true_keys
+                    or warn "$ME: $path:$.: unknown key '$key' (not present in $Go)\n";
 
-                # Check for dups and for out-of-order
-                if (@described) {
-                    if (lc($key) lt lc($described[-1])) {
-                        warn "$ME: $path:$.: out-of-order key '$key'\n";
-                    }
-                    if (grep { lc($_) eq lc($key) } @described) {
-                        warn "$ME: $path:$.: duplicate key '$key'\n";
+                # Sorting check
+                if (@found_in_table) {
+                    if (lc($key) lt lc($found_in_table[-1])) {
+                        warn "$ME: $path:$.: out-of-order key '$key' in table\n";
                     }
                 }
 
-                grep { $_ eq $key } @found_in_table
-                    or warn "$ME: $path:$.: key '$key' is not listed in table for unit/section '$unit'\n";
-
-                push @described, $key;
+                push @found_in_table, $key;
                 $documented{$key}++;
+            }
+            else {
+                warn "$ME: $path:$.: cannot grok table line '$line'\n";
             }
         }
 
-        close $fh;
+        # Description block
+        elsif ($line =~ /^###\s+`(\S+)=`/) {
+            my $key = $1;
+
+            # Check for dups and for out-of-order
+            if (@described) {
+                if (lc($key) lt lc($described[-1])) {
+                    warn "$ME: $path:$.: out-of-order key '$key'\n";
+                }
+                if (grep { lc($_) eq lc($key) } @described) {
+                    warn "$ME: $path:$.: duplicate key '$key'\n";
+                }
+            }
+
+            grep { $_ eq $key } @found_in_table
+                or warn "$ME: $path:$.: key '$key' is not listed in table for unit/section '$unit'\n";
+
+            push @described, $key;
+            $documented{$key}++;
+        }
     }
+
+    close $fh;
 
     # Final cross-check between table and description blocks
     $crossref_against_table->();
 
     # Check that no Go keys are missing
 
+    (my $md_basename = $path) =~ s|^.*/||;
     for my $k (@$true_keys) {
         $documented{$k}
-            or warn "$ME: undocumented key: '$k' not found anywhere in @$paths_ref\n";
+            or warn "$ME: undocumented key: '$k' not found anywhere in $md_basename\n";
     }
 }
 

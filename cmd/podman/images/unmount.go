@@ -50,7 +50,7 @@ func init() {
 	unmountFlags(unmountCommand.Flags())
 }
 
-func unmount(cmd *cobra.Command, args []string) error {
+func unmount(_ *cobra.Command, args []string) error {
 	var errs utils.OutputErrors
 	if len(args) < 1 && !unmountOpts.All {
 		return errors.New("image name or ID must be specified")

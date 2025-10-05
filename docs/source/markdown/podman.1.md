@@ -173,6 +173,19 @@ Output logging information to syslog as well as the console (default *false*).
 
 On remote clients, including Mac and Windows (excluding WSL2) machines, logging is directed to the file $HOME/.config/containers/podman.log.
 
+#### **--tls-ca**=*path*
+
+Path to a PEM file containing the certificate authority bundle to verify the server's certificate against.
+
+#### **--tls-cert**=*path*
+
+Path to a PEM file containing the TLS client certificate to present to the server. `--tls-key` must also be provided.
+
+#### **--tls-key**=*path*
+
+Path to a PEM file containing the private key matching `--tls-cert`. `--tls-cert` must also be provided.
+
+
 #### **--tmpdir**=*path*
 
 Path to the tmp directory, for libpod runtime content. Defaults to `$XDG_RUNTIME_DIR/libpod/tmp` as rootless and `/run/libpod/tmp` as rootful.
@@ -354,7 +367,7 @@ the exit codes follow the `chroot` standard, see below:
 | [podman-import(1)](podman-import.1.md)           | Import a tarball and save it as a filesystem image.                          |
 | [podman-info(1)](podman-info.1.md)               | Display Podman related system information.                                   |
 | [podman-init(1)](podman-init.1.md)               | Initialize one or more containers                                            |
-| [podman-inspect(1)](podman-inspect.1.md)         | Display a container, image, volume, network, or pod's configuration.         |
+| [podman-inspect(1)](podman-inspect.1.md)         | Display artifact, container, image, volume, network, or pod's configuration. |
 | [podman-kill(1)](podman-kill.1.md)               | Kill the main process in one or more containers.                             |
 | [podman-load(1)](podman-load.1.md)               | Load image(s) from a tar archive into container storage.                     |
 | [podman-login(1)](podman-login.1.md)             | Log in to a container registry.                                              |

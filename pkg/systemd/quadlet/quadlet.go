@@ -908,6 +908,19 @@ func getContainerName(container *parser.UnitFile) string {
 	return containerName
 }
 
+// Get the unresolved resource name that may contain '%'.
+func getResourceName(unit *parser.UnitFile, group, key string) string {
+	resourceName, ok := unit.Lookup(group, key)
+	if !ok || len(resourceName) == 0 {
+		resourceName = removeExtension(unit.Filename, "systemd-", "")
+		// By default, We want to name the resource by the service name.
+		if strings.Contains(unit.Filename, "@") {
+			resourceName = resourceName[:len(resourceName)-1] + "-%i"
+		}
+	}
+	return resourceName
+}
+
 // Get the resolved container name that contains no '%'.
 // Returns an empty string if not resolvable.
 func GetContainerResourceName(container *parser.UnitFile) string {
@@ -954,10 +967,7 @@ func ConvertNetwork(network *parser.UnitFile, name string, unitsInfoMap map[stri
 	}
 
 	// Derive network name from unit name (with added prefix), or use user-provided name.
-	networkName, ok := network.Lookup(NetworkGroup, KeyNetworkName)
-	if !ok || len(networkName) == 0 {
-		networkName = removeExtension(name, "systemd-", "")
-	}
+	networkName := getResourceName(network, NetworkGroup, KeyNetworkName)
 
 	if network.LookupBooleanWithDefault(NetworkGroup, KeyNetworkDeleteOnStop, false) {
 		serviceStopPostCmd := createBasePodmanCommand(network, NetworkGroup)
@@ -1046,10 +1056,7 @@ func ConvertVolume(volume *parser.UnitFile, name string, unitsInfoMap map[string
 	}
 
 	// Derive volume name from unit name (with added prefix), or use user-provided name.
-	volumeName, ok := volume.Lookup(VolumeGroup, KeyVolumeName)
-	if !ok || len(volumeName) == 0 {
-		volumeName = removeExtension(name, "systemd-", "")
-	}
+	volumeName := getResourceName(volume, VolumeGroup, KeyVolumeName)
 
 	podman := createBasePodmanCommand(volume, VolumeGroup)
 
@@ -1503,7 +1510,12 @@ func getServiceName(quadletUnitFile *parser.UnitFile, groupName string, defaultE
 	if serviceName, ok := quadletUnitFile.Lookup(groupName, KeyServiceName); ok {
 		return serviceName
 	}
-	return removeExtension(quadletUnitFile.Filename, "", defaultExtraSuffix)
+	baseServiceName := removeExtension(quadletUnitFile.Filename, "", "")
+	if baseServiceName[len(baseServiceName)-1] == '@' {
+		baseServiceName = baseServiceName[:len(baseServiceName)-1]
+		defaultExtraSuffix += "@"
+	}
+	return baseServiceName + defaultExtraSuffix
 }
 
 func GetPodResourceName(podUnit *parser.UnitFile) string {
@@ -1515,7 +1527,7 @@ func GetPodResourceName(podUnit *parser.UnitFile) string {
 	return podName
 }
 
-func ConvertPod(podUnit *parser.UnitFile, name string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
+func ConvertPod(podUnit *parser.UnitFile, _ string, unitsInfoMap map[string]*UnitInfo, isUser bool) (*parser.UnitFile, error, error) {
 	var warn, warnings error
 
 	service, unitInfo, err := initServiceUnitFile(podUnit, isUser, unitsInfoMap, PodGroup)

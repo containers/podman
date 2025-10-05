@@ -22,6 +22,7 @@ Print results with a Go template.
 | .Repository     | Repository name of the artifact                |
 | .Size           | Size artifact in human readable units          |
 | .Tag            | Tag of the artifact name                       |
+| .VirtualSize    | Size of artifact in bytes                      |
 
 @@option no-trunc
 

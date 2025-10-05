@@ -83,7 +83,7 @@ func init() {
 	flags.StringVarP(&removeContainerOpts.ID, "container", "i", "", "ID of the container to remove")
 }
 
-func removeStorageLayer(cmd *cobra.Command, args []string) error {
+func removeStorageLayer(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.RemoveStorageLayer(mainContext, removeStorageLayerOpts)
 	if err != nil {
 		return err
@@ -92,7 +92,7 @@ func removeStorageLayer(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func removeLayer(cmd *cobra.Command, args []string) error {
+func removeLayer(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.RemoveLayer(mainContext, removeLayerOpts)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func removeLayer(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func removeImage(cmd *cobra.Command, args []string) error {
+func removeImage(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.RemoveImage(mainContext, removeImageOpts)
 	if err != nil {
 		return err
@@ -110,7 +110,7 @@ func removeImage(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func removeContainer(cmd *cobra.Command, args []string) error {
+func removeContainer(_ *cobra.Command, _ []string) error {
 	results, err := testingEngine.RemoveContainer(mainContext, removeContainerOpts)
 	if err != nil {
 		return err

@@ -1,3 +1,9 @@
+## 2.26.0
+
+### Features
+
+Ginkgo can now generate json-formatted reports that are compatible with the `go test` json format.  Use `ginkgo --gojson-report=report.go.json`.  This is not intended to be a replacement for Ginkgo's native json format which is more information rich and better models Ginkgo's test structure semantics.
+
 ## 2.25.3
 
 ### Fixes

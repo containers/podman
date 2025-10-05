@@ -21,7 +21,7 @@ func getPreCPUStats(stats *define.ContainerStats) CPUStats {
 	}
 }
 
-func statsContainerJSON(ctnr *libpod.Container, stats *define.ContainerStats, preCPUStats CPUStats, onlineCPUs int) (StatsJSON, error) {
+func statsContainerJSON(_ *libpod.Container, stats *define.ContainerStats, preCPUStats CPUStats, onlineCPUs int) (StatsJSON, error) {
 	return StatsJSON{
 		Stats: Stats{
 			Read: time.Now(),
@@ -30,7 +30,7 @@ func statsContainerJSON(ctnr *libpod.Container, stats *define.ContainerStats, pr
 					TotalUsage: stats.CPUNano,
 				},
 				CPU:            stats.CPU,
-				OnlineCPUs:     0,
+				OnlineCPUs:     uint32(onlineCPUs),
 				ThrottlingData: container.ThrottlingData{},
 			},
 			PreCPUStats: preCPUStats,

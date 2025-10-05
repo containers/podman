@@ -1,5 +1,5 @@
 package parse
 
-func ValidateFileName(filename string) error {
+func ValidateFileName(_ string) error {
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	. "github.com/containers/podman/v5/test/utils"
 	"github.com/containers/podman/v5/utils"
@@ -65,6 +66,17 @@ var _ = Describe("Podman artifact", func() {
 		noHeaderOutput := noHeaderSession.OutputToStringArray()
 		Expect(noHeaderOutput).To(HaveLen(2))
 		Expect(noHeaderOutput).ToNot(ContainElement("REPOSITORY"))
+
+		// Check if .VirtualSize is reported correctly
+		virtualSizeFormatSession := podmanTest.PodmanExitCleanly("artifact", "ls", "--format", "{{.VirtualSize}}")
+		virtualSizes := virtualSizeFormatSession.OutputToStringArray()
+
+		// Should list 2 lines (without the header)
+		Expect(virtualSizes).To(HaveLen(2))
+
+		// Verify if the virtual size values are present in the output
+		Expect(virtualSizes).To(ContainElement("4192"))
+		Expect(virtualSizes).To(ContainElement("10240"))
 	})
 
 	It("podman artifact simple add", func() {
@@ -244,6 +256,22 @@ var _ = Describe("Podman artifact", func() {
 
 		// There should be no artifacts in the store
 		rmAll := podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
+		Expect(rmAll.OutputToString()).To(BeEmpty())
+
+		// Trying to remove an artifact that does not exist should pass with -i
+		podmanTest.PodmanExitCleanly("artifact", "rm", "-i", "foobar")
+
+		// Add an artifact to test remove with --ignore flag
+		artifact3File, err := createArtifactFile(4192)
+		Expect(err).ToNot(HaveOccurred())
+		artifact3Name := "localhost/test/artifact3"
+		_ = podmanTest.PodmanExitCleanly("artifact", "add", artifact3Name, artifact3File)
+
+		// Trying to remove an existing artifact should also pass with -i
+		podmanTest.PodmanExitCleanly("artifact", "rm", "-i", artifact3Name)
+
+		// There should be no artifacts in the store at this point
+		rmAll = podmanTest.PodmanExitCleanly("artifact", "ls", "--noheading")
 		Expect(rmAll.OutputToString()).To(BeEmpty())
 	})
 
@@ -572,6 +600,41 @@ var _ = Describe("Podman artifact", func() {
 		failSession := podmanTest.Podman([]string{"artifact", "add", "--type", artifactType, "--append", artifact1Name, artifact3File})
 		failSession.WaitWithDefaultTimeout()
 		Expect(failSession).Should(ExitWithError(125, "Error: append option is not compatible with type option"))
+	})
+
+	It("podman artifact inspect shows created date", func() {
+		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2File, err := createArtifactFile(2048)
+		Expect(err).ToNot(HaveOccurred())
+
+		artifact1Name := "localhost/test/artifact1"
+
+		// Add artifact
+		podmanTest.PodmanExitCleanly("artifact", "add", artifact1Name, artifact1File)
+
+		// Inspect artifact
+		a := podmanTest.InspectArtifact(artifact1Name)
+		Expect(a.Name).To(Equal(artifact1Name))
+
+		// Check that created annotation exists and is in valid Unix nanosecond format
+		createdStr, exists := a.Manifest.Annotations["org.opencontainers.image.created"]
+		Expect(exists).To(BeTrue(), "Should have org.opencontainers.image.created annotation")
+
+		// podman artifact append preserves original created date
+		// Wait a moment to ensure timestamps would be different
+		time.Sleep(100 * time.Millisecond)
+
+		// Append to the artifact
+		podmanTest.PodmanExitCleanly("artifact", "add", "--append", artifact1Name, artifact2File)
+
+		// Check that created timestamp is unchanged
+		a = podmanTest.InspectArtifact(artifact1Name)
+		currentCreated := a.Manifest.Annotations["org.opencontainers.image.created"]
+		Expect(currentCreated).To(Equal(createdStr), "Created timestamp should not change when appending")
+
+		// Verify we have 2 layers
+		Expect(a.Manifest.Layers).To(HaveLen(2))
 	})
 })
 

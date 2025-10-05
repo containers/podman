@@ -4,7 +4,6 @@ package integration
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"os"
 	"path/filepath"
@@ -2325,10 +2324,6 @@ WORKDIR /madethis`, BB)
 	})
 
 	It("podman run check personality support", func() {
-		// TODO: Remove this as soon as this is merged and made available in our CI https://github.com/opencontainers/runc/pull/3126.
-		if !strings.Contains(podmanTest.OCIRuntime, "crun") {
-			Skip("Test only works on crun")
-		}
 		session := podmanTest.Podman([]string{"run", "--personality=LINUX32", "--name=testpersonality", ALPINE, "uname", "-a"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
@@ -2354,31 +2349,9 @@ WORKDIR /madethis`, BB)
 
 		podmanTest.AddImageToRWStore(ALPINE)
 
-		success := false
-		registryArgs := []string{"run", "-d", "--name", "registry", "-p", "5006:5000"}
-		if isRootless() {
-			// Debug code for https://github.com/containers/podman/issues/24219
-			logFile := filepath.Join(podmanTest.TempDir, "pasta.log")
-			registryArgs = append(registryArgs, "--network", "pasta:--trace,--log-file,"+logFile)
-			defer func() {
-				if success {
-					// only print the log on errors otherwise it will clutter CI logs way to much
-					return
-				}
-
-				f, err := os.Open(logFile)
-				Expect(err).ToNot(HaveOccurred())
-				defer f.Close()
-				GinkgoWriter.Println("pasta trace log:")
-				_, err = io.Copy(GinkgoWriter, f)
-				Expect(err).ToNot(HaveOccurred())
-			}()
-		}
-		registryArgs = append(registryArgs, REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml")
-
 		lock := GetPortLock("5006")
 		defer lock.Unlock()
-		session := podmanTest.Podman(registryArgs)
+		session := podmanTest.Podman([]string{"run", "-d", "--name", "registry", "-p", "5006:5000", REGISTRY_IMAGE, "/entrypoint.sh", "/etc/docker/registry/config.yml"})
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(ExitCleanly())
 
@@ -2412,8 +2385,6 @@ WORKDIR /madethis`, BB)
 		session.WaitWithDefaultTimeout()
 		Expect(session).Should(Exit(0))
 		Expect(session.ErrorToString()).To(ContainSubstring("Trying to pull " + imgPath))
-
-		success = true
 	})
 
 	It("podman run --shm-size-systemd", func() {

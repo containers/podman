@@ -51,7 +51,7 @@ func init() {
 	networkPruneFlags(networkPruneCommand, flags)
 }
 
-func networkPrune(cmd *cobra.Command, _ []string) error {
+func networkPrune(_ *cobra.Command, _ []string) error {
 	var err error
 	if !force {
 		reader := bufio.NewReader(os.Stdin)

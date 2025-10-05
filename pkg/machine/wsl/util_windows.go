@@ -175,7 +175,7 @@ func wrapMaybe(err error, message string) error {
 	return errors.New(message)
 }
 
-func wrapMaybef(err error, format string, args ...interface{}) error {
+func wrapMaybef(err error, format string, args ...any) error {
 	if err != nil {
 		return fmt.Errorf(format+": %w", append(args, err)...)
 	}

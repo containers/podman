@@ -15,7 +15,7 @@ import (
 )
 
 // ManifestCreate implements manifest create via ImageEngine
-func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images []string, opts entities.ManifestCreateOptions) (string, error) {
+func (ir *ImageEngine) ManifestCreate(_ context.Context, name string, images []string, opts entities.ManifestCreateOptions) (string, error) {
 	options := new(manifests.CreateOptions).WithAll(opts.All).WithAmend(opts.Amend).WithAnnotation(opts.Annotations)
 	imageID, err := manifests.Create(ir.ClientCtx, name, images, options)
 	if err != nil {
@@ -25,7 +25,7 @@ func (ir *ImageEngine) ManifestCreate(ctx context.Context, name string, images [
 }
 
 // ManifestExists checks if a manifest list with the given name exists
-func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entities.BoolReport, error) {
+func (ir *ImageEngine) ManifestExists(_ context.Context, name string) (*entities.BoolReport, error) {
 	exists, err := manifests.Exists(ir.ClientCtx, name, nil)
 	if err != nil {
 		return nil, err
@@ -34,7 +34,7 @@ func (ir *ImageEngine) ManifestExists(ctx context.Context, name string) (*entiti
 }
 
 // ManifestInspect returns contents of manifest list with given name
-func (ir *ImageEngine) ManifestInspect(ctx context.Context, name string, opts entities.ManifestInspectOptions) (*define.ManifestListData, error) {
+func (ir *ImageEngine) ManifestInspect(_ context.Context, name string, opts entities.ManifestInspectOptions) (*define.ManifestListData, error) {
 	options := new(manifests.InspectOptions).WithAuthfile(opts.Authfile)
 	if s := opts.SkipTLSVerify; s != types.OptionalBoolUndefined {
 		if s == types.OptionalBoolTrue {
@@ -127,7 +127,7 @@ func (ir *ImageEngine) ManifestAddArtifact(_ context.Context, name string, files
 }
 
 // ManifestAnnotate updates an entry of the manifest list
-func (ir *ImageEngine) ManifestAnnotate(ctx context.Context, name, images string, opts entities.ManifestAnnotateOptions) (string, error) {
+func (ir *ImageEngine) ManifestAnnotate(_ context.Context, name, images string, opts entities.ManifestAnnotateOptions) (string, error) {
 	options := new(manifests.ModifyOptions).WithArch(opts.Arch).WithVariant(opts.Variant)
 	options.WithFeatures(opts.Features).WithOS(opts.OS).WithOSVersion(opts.OSVersion)
 
@@ -169,7 +169,7 @@ func mergeAnnotations(preferred map[string]string, aux []string) (map[string]str
 }
 
 // ManifestRemoveDigest removes the digest from manifest list
-func (ir *ImageEngine) ManifestRemoveDigest(ctx context.Context, name string, image string) (string, error) {
+func (ir *ImageEngine) ManifestRemoveDigest(_ context.Context, name string, image string) (string, error) {
 	updatedListID, err := manifests.Remove(ir.ClientCtx, name, image, nil)
 	if err != nil {
 		return updatedListID, fmt.Errorf("removing from manifest %s: %w", name, err)
@@ -213,7 +213,7 @@ func (ir *ImageEngine) ManifestPush(ctx context.Context, name, destination strin
 }
 
 // ManifestListClear clears out all instances from a manifest list
-func (ir *ImageEngine) ManifestListClear(ctx context.Context, name string) (string, error) {
+func (ir *ImageEngine) ManifestListClear(_ context.Context, name string) (string, error) {
 	listContents, err := manifests.InspectListData(ir.ClientCtx, name, &manifests.InspectOptions{})
 	if err != nil {
 		return "", err

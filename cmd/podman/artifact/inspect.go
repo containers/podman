@@ -40,7 +40,7 @@ func init() {
 	// _ = inspectCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&machine.InspectInfo{}))
 }
 
-func inspect(cmd *cobra.Command, args []string) error {
+func inspect(_ *cobra.Command, args []string) error {
 	artifactOptions := entities.ArtifactInspectOptions{}
 	inspectData, err := registry.ImageEngine().ArtifactInspect(registry.Context(), args[0], artifactOptions)
 	if err != nil {

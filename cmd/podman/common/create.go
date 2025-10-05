@@ -733,8 +733,8 @@ func DefineCreateFlags(cmd *cobra.Command, cf *entities.ContainerCreateOptions, 
 			sysctlFlagName, []string{},
 			"Sysctl options",
 		)
-		//TODO: Add function for sysctl completion.
-		_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, completion.AutocompleteNone)
+
+		_ = cmd.RegisterFlagCompletionFunc(sysctlFlagName, AutocompleteSysctl)
 
 		securityOptFlagName := "security-opt"
 		createFlags.StringArrayVar(

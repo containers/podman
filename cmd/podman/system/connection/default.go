@@ -44,7 +44,7 @@ func init() {
 	})
 }
 
-func defaultRunE(cmd *cobra.Command, args []string) error {
+func defaultRunE(_ *cobra.Command, args []string) error {
 	connection := args[0]
 	return config.EditConnectionConfig(func(cfg *config.ConnectionsFile) error {
 		if _, found := cfg.Connection.Connections[connection]; !found {

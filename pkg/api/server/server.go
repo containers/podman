@@ -4,6 +4,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -22,6 +23,7 @@ import (
 	"github.com/containers/podman/v5/pkg/api/server/idle"
 	"github.com/containers/podman/v5/pkg/api/types"
 	"github.com/containers/podman/v5/pkg/domain/entities"
+	"github.com/containers/podman/v5/pkg/util/tlsutil"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/schema"
@@ -38,6 +40,9 @@ type APIServer struct {
 	CorsHeaders        string        // Inject Cross-Origin Resource Sharing (CORS) headers
 	PProfAddr          string        // Binding network address for pprof profiles
 	idleTracker        *idle.Tracker // Track connections to support idle shutdown
+	tlsCertFile        string        // TLS serving certificate PEM file
+	tlsKeyFile         string        // TLS serving certificate private key PEM file
+	tlsClientCAFile    string        // TLS client certifiicate CA bundle PEM file
 }
 
 // Number of seconds to wait for next request, if exceeded shutdown server
@@ -76,18 +81,33 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 			Handler:     router,
 			IdleTimeout: opts.Timeout * 2,
 		},
-		CorsHeaders: opts.CorsHeaders,
-		Listener:    listener,
-		PProfAddr:   opts.PProfAddr,
-		idleTracker: tracker,
+		CorsHeaders:     opts.CorsHeaders,
+		Listener:        listener,
+		PProfAddr:       opts.PProfAddr,
+		idleTracker:     tracker,
+		tlsCertFile:     opts.TLSCertFile,
+		tlsKeyFile:      opts.TLSKeyFile,
+		tlsClientCAFile: opts.TLSClientCAFile,
 	}
 
-	server.BaseContext = func(l net.Listener) context.Context {
+	server.BaseContext = func(_ net.Listener) context.Context {
 		ctx := context.WithValue(context.Background(), types.DecoderKey, handlers.NewAPIDecoder())
 		ctx = context.WithValue(ctx, types.CompatDecoderKey, handlers.NewCompatAPIDecoder())
 		ctx = context.WithValue(ctx, types.RuntimeKey, runtime)
 		ctx = context.WithValue(ctx, types.IdleTrackerKey, tracker)
 		return ctx
+	}
+
+	if opts.TLSClientCAFile != "" {
+		logrus.Debugf("will validate client certs against %s", opts.TLSClientCAFile)
+		pool, err := tlsutil.ReadCertBundle(opts.TLSClientCAFile)
+		if err != nil {
+			return nil, err
+		}
+		server.TLSConfig = &tls.Config{
+			ClientCAs:  pool,
+			ClientAuth: tls.RequireAndVerifyClientCert,
+		}
 	}
 
 	// Capture panics and print stack traces for diagnostics,
@@ -128,6 +148,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 		server.registerKubeHandlers,
 		server.registerPluginsHandlers,
 		server.registerPodsHandlers,
+		server.registerQuadletHandlers,
 		server.registerSecretHandlers,
 		server.registerSwaggerHandlers,
 		server.registerSwarmHandlers,
@@ -143,7 +164,7 @@ func newServer(runtime *libpod.Runtime, listener net.Listener, opts entities.Ser
 	if logrus.IsLevelEnabled(logrus.TraceLevel) {
 		// If in trace mode log request and response bodies
 		router.Use(loggingHandler())
-		_ = router.Walk(func(route *mux.Route, r *mux.Router, ancestors []*mux.Route) error {
+		_ = router.Walk(func(route *mux.Route, _ *mux.Router, _ []*mux.Route) error {
 			path, err := route.GetPathTemplate()
 			if err != nil {
 				path = "<N/A>"
@@ -189,7 +210,7 @@ func (s *APIServer) setupSystemd() {
 func (s *APIServer) Serve() error {
 	s.setupPprof()
 
-	if err := shutdown.Register("service", func(sig os.Signal) error {
+	if err := shutdown.Register("service", func(_ os.Signal) error {
 		err := s.Shutdown(true)
 		if err == nil {
 			// For `systemctl stop podman.service` support, exit code should be 0
@@ -217,7 +238,15 @@ func (s *APIServer) Serve() error {
 	errChan := make(chan error, 1)
 	s.setupSystemd()
 	go func() {
-		err := s.Server.Serve(s.Listener)
+		var err error
+		if s.tlsClientCAFile != "" || (s.tlsCertFile != "" && s.tlsKeyFile != "") {
+			if s.tlsCertFile != "" && s.tlsKeyFile != "" {
+				logrus.Debugf("serving TLS with cert %s and key %s", s.tlsCertFile, s.tlsKeyFile)
+			}
+			err = s.Server.ServeTLS(s.Listener, s.tlsCertFile, s.tlsKeyFile)
+		} else {
+			err = s.Server.Serve(s.Listener)
+		}
 		if err != nil && err != http.ErrServerClosed {
 			errChan <- fmt.Errorf("failed to start API service: %w", err)
 			return

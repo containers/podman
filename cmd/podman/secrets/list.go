@@ -46,8 +46,8 @@ func init() {
 	flags := lsCmd.Flags()
 
 	formatFlagName := "format"
-	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\n{{end -}}", "Format volume output using Go template")
-	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretInfoReport{}))
+	flags.StringVar(&listFlag.format, formatFlagName, "{{range .}}{{.ID}}\t{{.Name}}\t{{.Driver}}\t{{.CreatedAt}}\t{{.UpdatedAt}}\n{{end -}}", "Format secret output using Go template")
+	_ = lsCmd.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SecretListReport{}))
 
 	filterFlagName := "filter"
 	flags.StringArrayVarP(&listFlag.filter, filterFlagName, "f", []string{}, "Filter secret output")
@@ -60,7 +60,7 @@ func init() {
 	flags.BoolVarP(&listFlag.quiet, quietFlagName, "q", false, "Print secret IDs only")
 }
 
-func ls(cmd *cobra.Command, args []string) error {
+func ls(cmd *cobra.Command, _ []string) error {
 	var err error
 	lsOpts := entities.SecretListRequest{}
 

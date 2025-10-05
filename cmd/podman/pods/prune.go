@@ -42,7 +42,7 @@ func init() {
 	flags.BoolVarP(&pruneOptions.Force, "force", "f", false, "Do not prompt for confirmation.  The default is false")
 }
 
-func prune(cmd *cobra.Command, args []string) error {
+func prune(_ *cobra.Command, _ []string) error {
 	if !pruneOptions.Force {
 		reader := bufio.NewReader(os.Stdin)
 		fmt.Println("WARNING! This will remove all stopped/exited pods..")

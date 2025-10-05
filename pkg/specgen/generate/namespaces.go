@@ -394,7 +394,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 // GetNamespaceOptions transforms a slice of kernel namespaces
 // into a slice of pod create options. Currently, not all
 // kernel namespaces are supported, and they will be returned in an error
-func GetNamespaceOptions(ns []string, netnsIsHost bool) ([]libpod.PodCreateOption, error) {
+func GetNamespaceOptions(ns []string, _ bool) ([]libpod.PodCreateOption, error) {
 	var options []libpod.PodCreateOption
 	var erroredOptions []libpod.PodCreateOption
 	if ns == nil {

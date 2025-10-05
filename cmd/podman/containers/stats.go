@@ -95,7 +95,7 @@ func init() {
 
 // stats is different in that it will assume running containers if
 // no input is given, so we need to validate differently
-func checkStatOptions(cmd *cobra.Command, args []string) error {
+func checkStatOptions(_ *cobra.Command, args []string) error {
 	opts := 0
 	if statsOptions.All {
 		opts++

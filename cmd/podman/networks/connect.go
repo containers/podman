@@ -58,7 +58,7 @@ func init() {
 	networkConnectFlags(networkConnectCommand)
 }
 
-func networkConnect(cmd *cobra.Command, args []string) error {
+func networkConnect(_ *cobra.Command, args []string) error {
 	networkConnectOptions.Container = args[1]
 	if macAddress != "" {
 		mac, err := net.ParseMAC(macAddress)

@@ -21,17 +21,17 @@ func TestLabelVolumePath(t *testing.T) {
 	}()
 
 	// Relabel returns ENOTSUP unconditionally.
-	lvpRelabel = func(path string, fileLabel string, shared bool) error {
+	lvpRelabel = func(_ string, _ string, _ bool) error {
 		return syscall.ENOTSUP
 	}
 
 	// InitLabels and ReleaseLabel both return dummy values and nil errors.
-	lvpInitLabels = func(options []string) (string, string, error) {
+	lvpInitLabels = func(_ []string) (string, string, error) {
 		pLabel := "system_u:system_r:container_t:s0:c1,c2"
 		mLabel := "system_u:object_r:container_file_t:s0:c1,c2"
 		return pLabel, mLabel, nil
 	}
-	lvpReleaseLabel = func(label string) {}
+	lvpReleaseLabel = func(_ string) {}
 
 	// LabelVolumePath should not return an error if the operation is unsupported.
 	err := LabelVolumePath("/foo/bar", "")

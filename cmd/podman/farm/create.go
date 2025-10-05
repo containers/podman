@@ -37,7 +37,7 @@ func init() {
 	})
 }
 
-func create(cmd *cobra.Command, args []string) error {
+func create(_ *cobra.Command, args []string) error {
 	farmName := args[0]
 	connections := args[1:]
 

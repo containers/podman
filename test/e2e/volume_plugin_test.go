@@ -188,13 +188,6 @@ var _ = Describe("Podman volume plugins", func() {
 		ctr2.WaitWithDefaultTimeout()
 		Expect(ctr2).Should(ExitCleanly())
 		Expect(ctr2.OutputToString()).To(ContainSubstring("helloworld"))
-
-		// HACK: `volume rm -f` is timing out trying to remove containers using the volume.
-		// Solution: remove them manually...
-		// TODO: fix this when I get back
-		rmAll := podmanTest.Podman([]string{"rm", "-f", ctr2Name, ctr1Name})
-		rmAll.WaitWithDefaultTimeout()
-		Expect(rmAll).Should(ExitCleanly())
 	})
 
 	It("podman volume reload", func() {

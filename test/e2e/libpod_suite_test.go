@@ -26,6 +26,12 @@ func (p *PodmanTestIntegration) PodmanWithOptions(options PodmanExecOptions, arg
 	return &PodmanSessionIntegration{podmanSession}
 }
 
+func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
+	pti := PodmanTestCreateUtil(tempDir, PodmanTestCreateUtilTargetLocal)
+	pti.StartRemoteService()
+	return pti
+}
+
 func (p *PodmanTestIntegration) setDefaultRegistriesConfigEnv() {
 	defaultFile := "registries.conf"
 	if UsingCacheRegistry() {
@@ -47,10 +53,6 @@ func resetRegistriesConfigEnv() {
 	os.Setenv("CONTAINERS_REGISTRIES_CONF", "")
 }
 
-func PodmanTestCreate(tempDir string) *PodmanTestIntegration {
-	return PodmanTestCreateUtil(tempDir, false)
-}
-
 // RestoreArtifact puts the cached image into our test store
 func (p *PodmanTestIntegration) RestoreArtifact(image string) error {
 	tarball := imageTarPath(image)
@@ -69,6 +71,6 @@ func (p *PodmanTestIntegration) StartRemoteService() {
 }
 
 // Just a stub for compiling with `!remote`.
-func getRemoteOptions(p *PodmanTestIntegration, args []string) []string {
+func getRemoteOptions(_ *PodmanTestIntegration, _ []string) []string {
 	return nil
 }

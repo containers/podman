@@ -14,6 +14,7 @@ package fakecgo
 //go:cgo_import_dynamic purego_sigfillset sigfillset "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic purego_nanosleep nanosleep "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic purego_abort abort "/usr/lib/libSystem.B.dylib"
+//go:cgo_import_dynamic purego_sigaltstack sigaltstack "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic purego_pthread_attr_init pthread_attr_init "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic purego_pthread_create pthread_create "/usr/lib/libSystem.B.dylib"
 //go:cgo_import_dynamic purego_pthread_detach pthread_detach "/usr/lib/libSystem.B.dylib"

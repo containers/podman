@@ -4,6 +4,7 @@ package abi
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"github.com/containers/podman/v5/pkg/domain/entities"
 	"github.com/containers/podman/v5/pkg/libartifact/types"
 	"github.com/opencontainers/go-digest"
+	"github.com/sirupsen/logrus"
 	"go.podman.io/common/libimage"
 )
 
@@ -124,6 +126,10 @@ func (ir *ImageEngine) ArtifactRm(ctx context.Context, opts entities.ArtifactRem
 	for _, namesOrDigest := range namesOrDigests {
 		artifactDigest, err := artStore.Remove(ctx, namesOrDigest)
 		if err != nil {
+			if opts.Ignore && errors.Is(err, types.ErrArtifactNotExist) {
+				logrus.Debugf("Artifact with name or digest %q does not exist, ignoring error as request", namesOrDigest)
+				continue
+			}
 			return nil, err
 		}
 		artifactDigests = append(artifactDigests, artifactDigest)

@@ -330,22 +330,9 @@ var _ = Describe("Podman containers ", func() {
 		code, _ = bindings.CheckResponseCode(err)
 		Expect(code).To(BeNumerically("==", http.StatusConflict))
 
-		// TODO for the life of me, i cannot get this to work. maybe another set
-		// of eyes will
-		// successful healthcheck
-		// status := define.HealthCheckHealthy
-		// for i:=0; i < 10; i++ {
-		//	result, err := containers.RunHealthCheck(connText, "hc")
-		//	Expect(err).To(BeNil())
-		//	if result.Status != define.HealthCheckHealthy {
-		//		fmt.Println("Healthcheck container still starting, retrying in 1 second")
-		//		time.Sleep(1 * time.Second)
-		//		continue
-		//	}
-		//	status = result.Status
-		//	break
-		// }
-		// Expect(status).To(Equal(define.HealthCheckHealthy))
+		result, err := containers.RunHealthCheck(bt.conn, "hc", nil)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result.Status).To(Equal(define.HealthCheckHealthy))
 
 		// TODO enable this when wait is working
 		// healthcheck on a stopped container should be a 409

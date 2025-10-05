@@ -40,7 +40,7 @@ func init() {
 	_ = versionCommand.RegisterFlagCompletionFunc(formatFlagName, common.AutocompleteFormat(&entities.SystemVersionReport{}))
 }
 
-func version(cmd *cobra.Command, args []string) error {
+func version(cmd *cobra.Command, _ []string) error {
 	versions, err := registry.ContainerEngine().Version(registry.Context())
 	if err != nil {
 		return err

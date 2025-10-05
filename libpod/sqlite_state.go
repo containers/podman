@@ -306,7 +306,7 @@ func (s *SQLiteState) GetDBConfig() (*DBConfig, error) {
 }
 
 // ValidateDBConfig validates paths in the given runtime against the database
-func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
+func (s *SQLiteState) ValidateDBConfig(_ *Runtime) (defErr error) {
 	if !s.valid {
 		return define.ErrDBClosed
 	}

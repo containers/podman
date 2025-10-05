@@ -410,3 +410,23 @@ function _check_no_suggestions() {
     # cleanup container
     run_podman rm $ctrname
 }
+
+# bats test_tags=ci:parallel
+@test "podman run --sysctl completion for sysctl" {
+    skip_if_remote "sysctl option not working via remote"
+
+    run_completion run --sysctl net.
+
+    assert "$output" =~ "^net\." \
+      "Only suggestions with 'net.' should be present for podman run --sysctl net."
+
+    _check_completion_end NoFileComp
+}
+
+@test "podman network create --interface-name" {
+    run_completion network create --interface-name l
+
+    assert "$output" =~ '.*lo.*' "Loopback interface should be present by default"
+
+    _check_completion_end NoFileComp
+}

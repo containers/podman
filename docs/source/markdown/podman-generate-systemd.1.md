@@ -8,7 +8,7 @@ podman\-generate\-systemd - [DEPRECATED] Generate systemd unit file(s) for a con
 
 ## DESCRIPTION
 DEPRECATED:
-Note: **podman generate systemd** is deprecated. We recommend using [Quadlet](podman-quadlet.7.md)
+Note: **podman generate systemd** is deprecated. We recommend using [Quadlet](podman-systemd.unit.5.md)
 files when running Podman containers or pods under systemd.  There are no plans to remove the command.
 It will receive urgent bug fixes but no new features.
 

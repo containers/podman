@@ -28,7 +28,7 @@ type HyperVStubber struct {
 	vmconfigs.HyperVConfig
 }
 
-func (h HyperVStubber) UserModeNetworkEnabled(mc *vmconfigs.MachineConfig) bool {
+func (h HyperVStubber) UserModeNetworkEnabled(_ *vmconfigs.MachineConfig) bool {
 	return true
 }
 
@@ -40,7 +40,7 @@ func (h HyperVStubber) RequireExclusiveActive() bool {
 	return true
 }
 
-func (h HyperVStubber) CreateVM(opts define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
+func (h HyperVStubber) CreateVM(_ define.CreateVMOpts, mc *vmconfigs.MachineConfig, builder *ignition.IgnitionBuilder) error {
 	var (
 		err error
 	)
@@ -132,7 +132,7 @@ func (h HyperVStubber) MountType() vmconfigs.VolumeMountType {
 	return vmconfigs.NineP
 }
 
-func (h HyperVStubber) MountVolumesToVM(mc *vmconfigs.MachineConfig, quiet bool) error {
+func (h HyperVStubber) MountVolumesToVM(_ *vmconfigs.MachineConfig, _ bool) error {
 	return nil
 }
 
@@ -229,7 +229,7 @@ func (h HyperVStubber) StartVM(mc *vmconfigs.MachineConfig) (func() error, func(
 // State is returns the state as a define.status.  for hyperv, state differs from others because
 // state is determined by the VM itself.  normally this can be done with vm.State() and a conversion
 // but doing here as well.  this requires a little more interaction with the hypervisor
-func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, bypass bool) (define.Status, error) {
+func (h HyperVStubber) State(mc *vmconfigs.MachineConfig, _ bool) (define.Status, error) {
 	_, vm, err := GetVMFromMC(mc)
 	if err != nil {
 		return define.Unknown, err
@@ -348,7 +348,7 @@ func (h HyperVStubber) SetProviderAttrs(mc *vmconfigs.MachineConfig, opts define
 	return nil
 }
 
-func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, ignBuilder *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
+func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, _ *ignition.IgnitionBuilder) (*ignition.ReadyUnitOpts, error) {
 	// HyperV is different because it has to know some ignition details before creating the VM.  It cannot
 	// simply be derived. So we create the HyperVConfig here.
 	mc.HyperVHypervisor = new(vmconfigs.HyperVConfig)
@@ -365,7 +365,7 @@ func (h HyperVStubber) PrepareIgnition(mc *vmconfigs.MachineConfig, ignBuilder *
 	return &ignOpts, nil
 }
 
-func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo bool) error {
+func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, _ bool) error {
 	var (
 		err        error
 		executable string
@@ -441,7 +441,7 @@ func (h HyperVStubber) PostStartNetworking(mc *vmconfigs.MachineConfig, noInfo b
 	return err
 }
 
-func (h HyperVStubber) UpdateSSHPort(mc *vmconfigs.MachineConfig, port int) error {
+func (h HyperVStubber) UpdateSSHPort(_ *vmconfigs.MachineConfig, _ int) error {
 	// managed by gvproxy on this backend, so nothing to do
 	return nil
 }
@@ -548,6 +548,6 @@ func createNetworkUnit(netPort uint64) (string, error) {
 	return netUnit.ToString()
 }
 
-func (h HyperVStubber) GetRosetta(mc *vmconfigs.MachineConfig) (bool, error) {
+func (h HyperVStubber) GetRosetta(_ *vmconfigs.MachineConfig) (bool, error) {
 	return false, nil
 }

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-FileCopyrightText: 2022 The Ebitengine Authors
 
-//go:build !cgo && (darwin || freebsd || linux)
+//go:build !cgo && (darwin || freebsd || linux || netbsd)
 
 // Package fakecgo implements the Cgo runtime (runtime/cgo) entirely in Go.
 // This allows code that calls into C to function properly when CGO_ENABLED=0.

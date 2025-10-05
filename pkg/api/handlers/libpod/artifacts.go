@@ -169,6 +169,7 @@ func BatchRemoveArtifact(w http.ResponseWriter, r *http.Request) {
 	query := struct {
 		All       bool     `schema:"all"`
 		Artifacts []string `schema:"artifacts"`
+		Ignore    bool     `schema:"ignore"`
 	}{}
 
 	if err := decoder.Decode(&query, r.URL.Query()); err != nil {
@@ -191,11 +192,16 @@ func BatchRemoveArtifact(w http.ResponseWriter, r *http.Request) {
 	removeOptions := entities.ArtifactRemoveOptions{
 		Artifacts: query.Artifacts,
 		All:       query.All,
+		Ignore:    query.Ignore,
 	}
 
 	artifacts, err := imageEngine.ArtifactRm(r.Context(), removeOptions)
 	if err != nil {
 		if errors.Is(err, libartifact_types.ErrArtifactNotExist) {
+			if removeOptions.Ignore {
+				utils.WriteResponse(w, http.StatusOK, artifacts)
+				return
+			}
 			utils.ArtifactNotFound(w, "", err)
 			return
 		}

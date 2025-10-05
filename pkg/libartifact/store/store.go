@@ -253,13 +253,22 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []en
 		if err == nil {
 			return nil, fmt.Errorf("%s: %w", dest, libartTypes.ErrArtifactAlreadyExists)
 		}
+
+		// Set creation timestamp and other annotations
+		annotations := make(map[string]string)
+		if options.Annotations != nil {
+			annotations = maps.Clone(options.Annotations)
+		}
+		annotations[specV1.AnnotationCreated] = time.Now().UTC().Format(time.RFC3339Nano)
+
 		artifactManifest = specV1.Manifest{
 			Versioned:    specs.Versioned{SchemaVersion: ManifestSchemaVersion},
 			MediaType:    specV1.MediaTypeImageManifest,
 			ArtifactType: options.ArtifactMIMEType,
 			// TODO This should probably be configurable once the CLI is capable
-			Config: specV1.DescriptorEmptyJSON,
-			Layers: make([]specV1.Descriptor, 0),
+			Config:      specV1.DescriptorEmptyJSON,
+			Layers:      make([]specV1.Descriptor, 0),
+			Annotations: annotations,
 		}
 	} else {
 		artifact, _, err := artifacts.GetByNameOrDigest(dest)

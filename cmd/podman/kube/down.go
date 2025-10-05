@@ -47,7 +47,7 @@ func downFlags(cmd *cobra.Command) {
 	flags.BoolVar(&downOptions.Force, "force", false, "remove volumes")
 }
 
-func down(cmd *cobra.Command, args []string) error {
+func down(_ *cobra.Command, args []string) error {
 	reader, err := readerFromArg(args[0])
 	if err != nil {
 		return err
