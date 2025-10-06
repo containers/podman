@@ -14,6 +14,7 @@ import (
 	"github.com/containers/podman/v5/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	imgspec "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
 const (
@@ -99,7 +100,11 @@ var _ = Describe("Podman artifact", func() {
 	It("podman artifact add with options", func() {
 		yamlType := "text/yaml"
 		artifact1Name := "localhost/test/artifact1"
+		artifact2Name := "localhost/test/artifact2"
+		artifact3Name := "localhost/test/artifact3"
 		artifact1File, err := createArtifactFile(1024)
+		Expect(err).ToNot(HaveOccurred())
+		artifact2File, err := createArtifactFile(1024)
 		Expect(err).ToNot(HaveOccurred())
 
 		artifactType := "octet/foobar"
@@ -115,9 +120,26 @@ var _ = Describe("Podman artifact", func() {
 		Expect(a.Manifest.Layers[0].Annotations["flavor"]).To(Equal("lemon"))
 		Expect(a.Manifest.Layers[0].MediaType).To(Equal(yamlType))
 
-		failSession := podmanTest.Podman([]string{"artifact", "add", "--annotation", "org.opencontainers.image.title=foobar", "foobar", artifact1File})
+		title := RandomString(12)
+		annotation3 := fmt.Sprintf("%s=%s", imgspec.AnnotationTitle, title)
+		podmanTest.PodmanExitCleanly("artifact", "add", "--annotation", annotation3, artifact2Name, artifact1File)
+		a = podmanTest.InspectArtifact(artifact2Name)
+		Expect(a.Manifest.Layers[0].Annotations[imgspec.AnnotationTitle]).To(Equal(title))
+
+		failSession := podmanTest.Podman([]string{"artifact", "add", "--append", "--annotation", annotation3, artifact2Name, artifact2File})
 		failSession.WaitWithDefaultTimeout()
-		Expect(failSession).Should(ExitWithError(125, "Error: cannot override filename with org.opencontainers.image.title annotation"))
+		Expect(failSession).Should(ExitWithError(125, "Error: duplicate layers org.opencontainers.image.title labels within an artifact not allowed"))
+
+		title = RandomString(12)
+		annotation3 = fmt.Sprintf("%s=%s", imgspec.AnnotationTitle, title)
+		podmanTest.PodmanExitCleanly("artifact", "add", "--append", "--annotation", annotation3, artifact2Name, artifact2File)
+		a = podmanTest.InspectArtifact(artifact2Name)
+		Expect(a.Manifest.Layers[1].Annotations[imgspec.AnnotationTitle]).To(Equal(title))
+
+		failSession = podmanTest.Podman([]string{"artifact", "add", "--annotation", annotation3, artifact3Name, artifact1File, artifact2File})
+		failSession.WaitWithDefaultTimeout()
+		Expect(failSession).Should(ExitWithError(125, "Error: duplicate layers org.opencontainers.image.title labels within an artifact not allowed"))
+
 	})
 
 	It("podman artifact add multiple", func() {
@@ -480,9 +502,9 @@ var _ = Describe("Podman artifact", func() {
 		Expect(a.Manifest.Layers).To(HaveLen(3))
 
 		for _, l := range a.Manifest.Layers {
-			layersNames[l.Annotations["org.opencontainers.image.title"]] += 1
+			layersNames[l.Annotations[imgspec.AnnotationTitle]] += 1
 
-			if l.Annotations["org.opencontainers.image.title"] == filepath.Base(artifact3File) {
+			if l.Annotations[imgspec.AnnotationTitle] == filepath.Base(artifact3File) {
 				Expect(l.Annotations["color"]).To(Equal("blue"))
 			} else {
 				Expect(l.Annotations).To(HaveLen(1))

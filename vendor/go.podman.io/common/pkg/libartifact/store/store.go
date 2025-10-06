@@ -218,13 +218,6 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []li
 		return nil, errors.New("append option is not compatible with type option")
 	}
 
-	// currently we don't allow override of the filename ; if a user requirement emerges,
-	// we could seemingly accommodate but broadens possibilities of something bad happening
-	// for things like `artifact extract`
-	if _, hasTitle := options.Annotations[specV1.AnnotationTitle]; hasTitle {
-		return nil, fmt.Errorf("cannot override filename with %s annotation", specV1.AnnotationTitle)
-	}
-
 	locked := true
 	as.lock.Lock()
 	defer func() {
@@ -317,7 +310,17 @@ func (as ArtifactStore) Add(ctx context.Context, dest string, artifactBlobs []li
 		}
 
 		annotations := maps.Clone(options.Annotations)
-		annotations[specV1.AnnotationTitle] = artifactBlob.FileName
+		if title, ok := annotations[specV1.AnnotationTitle]; ok {
+			// Verify a duplicate AnnotationTitle is not in use in a different layer.
+			for _, layer := range artifactManifest.Layers {
+				if title == layer.Annotations[specV1.AnnotationTitle] {
+					return nil, fmt.Errorf("duplicate layers %s labels within an artifact not allowed", specV1.AnnotationTitle)
+				}
+			}
+		} else {
+			// Only override if the user did not specify the Title
+			annotations[specV1.AnnotationTitle] = artifactBlob.FileName
+		}
 
 		newLayer := specV1.Descriptor{
 			MediaType:   options.FileMIMEType,
@@ -469,6 +472,11 @@ func (as ArtifactStore) BlobMountPaths(ctx context.Context, nameOrDigest string,
 	mountPaths := make([]libartTypes.BlobMountPath, 0, len(arty.Manifest.Layers))
 	for _, l := range arty.Manifest.Layers {
 		title := l.Annotations[specV1.AnnotationTitle]
+		for _, mp := range mountPaths {
+			if title == mp.Name {
+				return nil, fmt.Errorf("annotation %q:%q is used in multiple different layers within artifact", specV1.AnnotationTitle, title)
+			}
+		}
 		filename, err := generateArtifactBlobName(title, l.Digest)
 		if err != nil {
 			return nil, err

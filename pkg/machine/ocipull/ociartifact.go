@@ -27,7 +27,7 @@ const (
 	artifactRegistry     = "quay.io"
 	artifactRepo         = "podman"
 	artifactImageName    = "machine-os"
-	artifactOriginalName = "org.opencontainers.image.title"
+	artifactOriginalName = specV1.AnnotationTitle
 	machineOS            = "linux"
 )
 
