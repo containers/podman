@@ -43,7 +43,25 @@ $Env:TEMP = 'Z:\'
 Write-Host "`nRunning podman-machine e2e tests"
 
 if ($Env:TEST_FLAVOR -eq "machine-wsl") {
+    if ($Env:CIRRUS_CI -eq "true") {
+        # Add a WSL configuration file
+        # The `kernelBootTimeout` configuration is to prevent CI/CD flakes
+        # See
+        # https://github.com/microsoft/WSL/issues/13301#issuecomment-3367452109
+        Write-Host "`nAdding WSL configuration file"
+        $wslConfigPath = "$env:UserProfile\.wslconfig"
+        $wslConfigContent = @"
+[wsl2]
+kernelBootTimeout=300000 # 5 minutes
+"@
+        Set-Content -Path $wslConfigPath -Value $wslConfigContent -Encoding utf8
+        wsl --shutdown
+        Write-Host "`n$wslConfigPath content:"
+        Get-Content -Path $wslConfigPath
+    }
+
     # Output info so we know what version we are testing.
+    Write-Host "`nOutputting WSL version:"
     wsl --version
     Run-Command "$PSScriptRoot\win-collect-wsl-logs-start.ps1"
 }
