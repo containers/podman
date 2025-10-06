@@ -1638,7 +1638,7 @@ search               | $IMAGE           |
            "$command --authfile=nonexistent-path"
 
         if [[ "$command" != "logout" ]]; then
-           REGISTRY_AUTH_FILE=$bogus run_podman ? $command $args
+           REGISTRY_AUTH_FILE=$bogus run_podman '?' $command $args
            assert "$output" !~ "credential file is not accessible" \
               "$command REGISTRY_AUTH_FILE=nonexistent-path"
 

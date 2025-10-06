@@ -114,7 +114,7 @@ load helpers
     run_podman run --rm -d --name $cname $IMAGE top
     run_podman kill $cname
     is "$output" $cname
-    run_podman ? wait $cname
+    run_podman '?' wait $cname
 }
 
 # bats test_tags=ci:parallel
