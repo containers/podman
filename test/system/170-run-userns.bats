@@ -179,3 +179,30 @@ EOF
     # gid not mapped
     run_podman run --rm --uidmap 0:0:1000 --gidmap 0:1:1000 $IMAGE true
 }
+
+# bats test_tags=ci:parallel
+@test "podman --userns=ns:<path> join existing user namespace" {
+    # Test for issue #27148: --userns=ns:<path> should not add dummy mappings
+    local cname="userns_source_$(safename)"
+
+    run_podman run -d --name $cname \
+        --userns=keep-id \
+        $IMAGE top
+
+    run_podman inspect --format '{{.State.Pid}}' $cname
+    local pid=$output
+    local userns_path="/proc/$pid/ns/user"
+
+    run_podman exec $cname sh -c "readlink /proc/self/ns/user; echo '---'; cat /proc/self/uid_map"
+    local expected="$output"
+
+    run_podman run --rm \
+        --userns=ns:$userns_path \
+        $IMAGE \
+        sh -c "readlink /proc/self/ns/user; echo '---'; cat /proc/self/uid_map"
+    local output="$output"
+
+    assert "$expected" == "$output" "User namespace identifiers and UID mappings should match"
+
+    run_podman rm -f $cname
+}

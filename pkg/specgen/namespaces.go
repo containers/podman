@@ -503,9 +503,6 @@ func SetupUserNS(idmappings *storageTypes.IDMappingOptions, userns Namespace, g 
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), userns.Value); err != nil {
 			return user, err
 		}
-		// runc complains if no mapping is specified, even if we join another ns.  So provide a dummy mapping
-		g.AddLinuxUIDMapping(uint32(0), uint32(0), uint32(1))
-		g.AddLinuxGIDMapping(uint32(0), uint32(0), uint32(1))
 	case Host:
 		if err := g.RemoveLinuxNamespace(string(spec.UserNamespace)); err != nil {
 			return user, err
