@@ -670,6 +670,42 @@ func prepareRequestBody(ctx context.Context, requestParts *RequestParts, buildFi
 		return nil, err
 	}
 
+	if len(options.SBOMScanOptions) > 0 {
+		for _, sbomScanOpts := range options.SBOMScanOptions {
+			if sbomScanOpts.SBOMOutput != "" {
+				requestParts.Params.Set("sbom-output", sbomScanOpts.SBOMOutput)
+			}
+
+			if sbomScanOpts.PURLOutput != "" {
+				requestParts.Params.Set("sbom-purl-output", sbomScanOpts.PURLOutput)
+			}
+
+			if sbomScanOpts.ImageSBOMOutput != "" {
+				requestParts.Params.Set("sbom-image-output", sbomScanOpts.ImageSBOMOutput)
+			}
+
+			if sbomScanOpts.ImagePURLOutput != "" {
+				requestParts.Params.Set("sbom-image-purl-output", sbomScanOpts.ImagePURLOutput)
+			}
+
+			if sbomScanOpts.Image != "" {
+				requestParts.Params.Set("sbom-scanner-image", sbomScanOpts.Image)
+			}
+
+			if commands := sbomScanOpts.Commands; len(commands) > 0 {
+				c, err := jsoniter.MarshalToString(commands)
+				if err != nil {
+					return nil, err
+				}
+				requestParts.Params.Add("sbom-scanner-command", c)
+			}
+
+			if sbomScanOpts.MergeStrategy != "" {
+				requestParts.Params.Set("sbom-merge-strategy", string(sbomScanOpts.MergeStrategy))
+			}
+		}
+	}
+
 	if len(options.AdditionalBuildContexts) == 0 {
 		requestParts.Body = tarfile
 		logrus.Debugf("Using main build context: %q", options.ContextDirectory)
