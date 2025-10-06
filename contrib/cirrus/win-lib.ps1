@@ -56,6 +56,7 @@ function Invoke-Logformatter {
     $logformatterGeneratedFile = "$logformatterArg.log.html"
     if (Test-Path $logformatterGeneratedFile) {
         Move-Item $logformatterGeneratedFile .. -Force
+        Write-Host "Logformatter generated $logformatterGeneratedFile"
     } else {
         Write-Host "Logformatter did not generate the expected file: $logformatterGeneratedFile"
     }
