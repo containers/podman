@@ -8,6 +8,6 @@ if ($Env:CI -eq "true") {
     Push-Location $PSScriptRoot\..\..
 }
 
-Run-Command ".\winmake.ps1 localunit"
+Run-Command ".\winmake.ps1 localunit" -invokeLogformatter:$true
 
 Pop-Location

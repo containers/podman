@@ -34,12 +34,14 @@ $wprOutputLog = "$folder/wpr.txt"
 Write-Host "Saving WSL logs..."
 wpr.exe -stop $folder/logs.etl 2>&1 >> $wprOutputLog
 
-$logArchive = "$(Resolve-Path $folder).zip"
-Compress-Archive -Path $folder -DestinationPath $logArchive
+$logArchive = "$(Resolve-Path $folder).7z"
+Write-Host "Compressing logs with 7z..."
+7z.exe a -t7z  $logArchive $folder # Use 7-zip because if $folder is larger than 2GB, `Compress-Archive` fails
 Remove-Item $folder -Recurse
 
 $fileName = (Get-Item $logArchive).Name
 $parentFolder = (Get-Item $logArchive).Directory.Parent.FullName
+Write-Host "Moving logs to parent folder..."
 Move-Item -Path $logArchive -Destination $parentFolder
 
 Write-Host -ForegroundColor Green "Logs saved in: ${parentFolder}/${fileName}"

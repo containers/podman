@@ -49,7 +49,7 @@ actions:
 
 jobs:
   - job: copr_build
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications: &packit_generic_failure_notification
       failure_comment:
@@ -90,7 +90,7 @@ jobs:
 
   # Run on commit to main branch
   - job: copr_build
-    trigger: commit
+    trigger: ignore
     packages: [podman-fedora]
     branch: main
     owner: rhcontainerbot
@@ -99,7 +99,7 @@ jobs:
 
   # Tests on Fedora
   - job: tests
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications: *packit_generic_failure_notification
     targets:
@@ -113,7 +113,7 @@ jobs:
 
   - job: tests
     identifier: cockpit-revdeps
-    trigger: pull_request
+    trigger: ignore
     packages: [podman-fedora]
     notifications:
       failure_comment:
@@ -140,7 +140,7 @@ jobs:
       - fedora-all
 
   - job: koji_build
-    trigger: commit
+    trigger: ignore
     packages: [podman-fedora]
     sidetag_group: podman-releases
     dist_git_branches: *fedora_targets

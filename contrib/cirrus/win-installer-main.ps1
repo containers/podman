@@ -40,4 +40,4 @@ $command += "-provider $ENV:CONTAINERS_MACHINE_PROVIDER "
 $command += "-setupExePath `"$WIN_INST_FOLDER\podman-$ENV:WIN_INST_VER-dev-setup.exe`""
 $command += "-previousSetupExePath `"$env:PREV_SETUP_EXE_PATH`""
 $command += "-nextSetupExePath `"$WIN_INST_FOLDER\podman-$NEXT_WIN_INST_VER-dev-setup.exe`""
-Run-Command "${command}"
+Run-Command "${command}" -invokeLogformatter:$true

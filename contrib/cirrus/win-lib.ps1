@@ -56,6 +56,7 @@ function Invoke-Logformatter {
     $logformatterGeneratedFile = "$logformatterArg.log.html"
     if (Test-Path $logformatterGeneratedFile) {
         Move-Item $logformatterGeneratedFile .. -Force
+        Write-Host "Logformatter generated $logformatterGeneratedFile"
     } else {
         Write-Host "Logformatter did not generate the expected file: $logformatterGeneratedFile"
     }
@@ -87,7 +88,10 @@ function Check-Exit {
 # WARNING: DO NOT use this with powershell builtins! It will not do what you expect!
 function Run-Command {
     param (
-        [string] $command
+        [Parameter(Mandatory = $true)]
+        [string] $command,
+        [Parameter(Mandatory = $false)]
+        [switch] $invokeLogformatter = $false
     )
 
     Write-Host $command
@@ -101,7 +105,7 @@ function Run-Command {
 
     $exitCode = $LASTEXITCODE
 
-    if ($Env:CIRRUS_CI -eq "true") {
+    if ($Env:CIRRUS_CI -eq "true" -and $invokeLogformatter) {
         Invoke-Logformatter $unformattedLog
     }
 
